@@ -8,11 +8,11 @@ import {
   importCollectionData,
   listCollections,
   listRequests,
-  renameCollection,
-  saveRequest
+  saveRequest,
+  updateCollection
 } from '#/main/db'
 import { executeRequest } from '#/main/http'
-import type { SaveRequestInput, SendRequestInput } from '#/shared/types'
+import type { SaveRequestInput, SendRequestInput, Variable } from '#/shared/types'
 
 /**
  * Registers IPC handlers that bridge renderer calls to db and HTTP modules.
@@ -24,9 +24,9 @@ export function registerIpcHandlers(): void {
   // Creates a new collection with the given display name.
   ipcMain.handle('collections:create', (_event, name: string) => createCollection(name));
 
-  // Renames an existing collection by ID.
-  ipcMain.handle('collections:rename', (_event, id: number, name: string) =>
-    renameCollection(id, name)
+  // Updates a collection's name and variables.
+  ipcMain.handle('collections:update', (_event, id: number, name: string, variables: Variable[]) =>
+    updateCollection(id, name, variables)
   );
 
   // Deletes a collection and all of its saved requests.

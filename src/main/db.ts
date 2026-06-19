@@ -8,7 +8,8 @@ import type {
   HttpMethod,
   KeyValue,
   SaveRequestInput,
-  SavedRequest
+  SavedRequest,
+  Variable
 } from '#/shared/types'
 
 let db: Database.Database | null = null
@@ -25,6 +26,21 @@ function parseJson<T>(value: string, fallback: T): T {
     return JSON.parse(value) as T
   } catch {
     return fallback
+  }
+}
+
+/**
+ * Maps a raw SQLite row to a Collection object.
+ *
+ * @param row - Database row from the collections table.
+ * @returns Normalized collection.
+ */
+function rowToCollection(row: Record<string, unknown>): Collection {
+  return {
+    id: row.id as number,
+    name: row.name as string,
+    variables: parseJson<Variable[]>(row.variables as string, []),
+    created_at: row.created_at as string
   }
 }
 
@@ -69,6 +85,7 @@ export function initDb(userDataPath: string): Database.Database {
     CREATE TABLE IF NOT EXISTS collections (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
+      variables TEXT NOT NULL DEFAULT '[]',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -88,6 +105,14 @@ export function initDb(userDataPath: string): Database.Database {
       FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE
     );
   `)
+
+  const columns = db
+    .prepare("PRAGMA table_info(collections)")
+    .all() as Array<{ name: string }>
+  const hasVariables = columns.some((col) => col.name === 'variables')
+  if (!hasVariables) {
+    db.exec("ALTER TABLE collections ADD COLUMN variables TEXT NOT NULL DEFAULT '[]'")
+  }
 
   return db
 }
@@ -109,9 +134,11 @@ export function getDb(): Database.Database {
  * @returns All collections in the database.
  */
 export function listCollections(): Collection[] {
-  return getDb()
-    .prepare('SELECT id, name, created_at FROM collections ORDER BY name ASC')
-    .all() as Collection[]
+  const rows = getDb()
+    .prepare('SELECT id, name, variables, created_at FROM collections ORDER BY name ASC')
+    .all() as Record<string, unknown>[]
+
+  return rows.map(rowToCollection)
 }
 
 /**
@@ -125,30 +152,33 @@ export function createCollection(name: string): Collection {
     .prepare('INSERT INTO collections (name) VALUES (?)')
     .run(name.trim())
 
-  return getDb()
-    .prepare('SELECT id, name, created_at FROM collections WHERE id = ?')
-    .get(result.lastInsertRowid) as Collection
+  const row = getDb()
+    .prepare('SELECT id, name, variables, created_at FROM collections WHERE id = ?')
+    .get(result.lastInsertRowid) as Record<string, unknown>
+
+  return rowToCollection(row)
 }
 
 /**
- * Renames an existing collection.
+ * Updates a collection's name and variables.
  *
- * @param id - Collection ID to rename.
+ * @param id - Collection ID to update.
  * @param name - New display name.
+ * @param variables - Collection-scoped variables.
  * @returns The updated collection.
  * @throws When the collection does not exist.
  */
-export function renameCollection(id: number, name: string): Collection {
+export function updateCollection(id: number, name: string, variables: Variable[]): Collection {
   getDb()
-    .prepare('UPDATE collections SET name = ? WHERE id = ?')
-    .run(name.trim(), id)
+    .prepare('UPDATE collections SET name = ?, variables = ? WHERE id = ?')
+    .run(name.trim(), JSON.stringify(variables), id)
 
   const row = getDb()
-    .prepare('SELECT id, name, created_at FROM collections WHERE id = ?')
-    .get(id)
+    .prepare('SELECT id, name, variables, created_at FROM collections WHERE id = ?')
+    .get(id) as Record<string, unknown> | undefined
 
   if (!row) throw new Error('Collection not found')
-  return row as Collection
+  return rowToCollection(row)
 }
 
 /**
@@ -294,6 +324,12 @@ function validateCollectionExport(data: unknown): CollectionExport {
     throw new Error('Invalid collection file: requests must be an array')
   }
 
+  const variables = Array.isArray(record.variables)
+    ? (record.variables as Variable[]).filter(
+        (v) => v && typeof v.key === 'string' && typeof v.value === 'string'
+      )
+    : []
+
   const requests = record.requests.map((item, index) => {
     if (!item || typeof item !== 'object') {
       throw new Error(`Invalid collection file: request ${index + 1} is malformed`)
@@ -330,6 +366,7 @@ function validateCollectionExport(data: unknown): CollectionExport {
   return {
     formatVersion: 1,
     name,
+    variables,
     requests
   }
 }
@@ -343,8 +380,8 @@ function validateCollectionExport(data: unknown): CollectionExport {
  */
 export function exportCollectionData(id: number): CollectionExport {
   const row = getDb()
-    .prepare('SELECT name FROM collections WHERE id = ?')
-    .get(id) as { name: string } | undefined
+    .prepare('SELECT name, variables FROM collections WHERE id = ?')
+    .get(id) as { name: string; variables: string } | undefined
 
   if (!row) throw new Error('Collection not found')
 
@@ -364,6 +401,7 @@ export function exportCollectionData(id: number): CollectionExport {
   return {
     formatVersion: 1,
     name: row.name,
+    variables: parseJson<Variable[]>(row.variables, []),
     requests
   }
 }
@@ -382,8 +420,8 @@ export function importCollectionData(data: unknown): Collection {
 
   const importCollection = database.transaction((payload: CollectionExport) => {
     const collectionResult = database
-      .prepare('INSERT INTO collections (name) VALUES (?)')
-      .run(payload.name)
+      .prepare('INSERT INTO collections (name, variables) VALUES (?, ?)')
+      .run(payload.name, JSON.stringify(payload.variables))
 
     const collectionId = Number(collectionResult.lastInsertRowid)
     const insertRequest = database.prepare(
@@ -407,9 +445,11 @@ export function importCollectionData(data: unknown): Collection {
       )
     }
 
-    return database
-      .prepare('SELECT id, name, created_at FROM collections WHERE id = ?')
-      .get(collectionId) as Collection
+    const row = database
+      .prepare('SELECT id, name, variables, created_at FROM collections WHERE id = ?')
+      .get(collectionId) as Record<string, unknown>
+
+    return rowToCollection(row)
   })
 
   return importCollection(exportData)

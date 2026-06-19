@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import toast, { Toaster } from 'react-hot-toast'
 import { useAppStore } from '#/renderer/src/store'
 import { isTabDirty } from '#/renderer/src/store/drafts'
+import { CollectionSettings } from '#/renderer/src/components/CollectionSettings'
 import { Sidebar } from '#/renderer/src/components/Sidebar'
 import { TabBar } from '#/renderer/src/components/TabBar'
 import { RequestEditor } from '#/renderer/src/components/RequestEditor'
@@ -28,6 +29,7 @@ export default function App() {
   const [collectionModalTab, setCollectionModalTab] = useState<CollectionModalTab>('create')
   const [newCollectionName, setNewCollectionName] = useState('')
   const [closeTabPrompt, setCloseTabPrompt] = useState<CloseTabPrompt | null>(null)
+  const [configuringCollectionId, setConfiguringCollectionId] = useState<number | null>(null)
   const requests =
     store.selectedCollectionId != null
       ? store.requestsByCollection[store.selectedCollectionId] ?? []
@@ -129,6 +131,9 @@ export default function App() {
   }
 
   const showImportTab = collectionModal === 'create'
+  const configuringCollection = configuringCollectionId
+    ? store.collections.find((c) => c.id === configuringCollectionId)
+    : undefined
 
   return (
     <div className={`flex h-screen flex-col ${isMac ? 'platform-darwin' : ''}`}>
@@ -145,7 +150,7 @@ export default function App() {
             setCollectionModalTab('create')
             setCollectionModal('create')
           }}
-          onRenameCollection={store.renameCollection}
+          onConfigureCollection={(id) => setConfiguringCollectionId(id)}
           onDeleteCollection={store.deleteCollection}
           onExportCollection={async (id) => {
             const result = await store.exportCollection(id)
@@ -165,26 +170,43 @@ export default function App() {
         />
 
         <main className="flex min-w-0 flex-1 flex-col bg-surface">
-          <TabBar
-            tabs={store.tabs}
-            activeTabId={store.activeTabId}
-            onSelect={store.setActiveTab}
-            onClose={handleCloseTab}
-            onNew={store.newRequest}
-          />
-          <RequestEditor
-            key={`editor-${store.activeTabId}`}
-            draft={store.draft}
-            onChange={store.setDraft}
-            onSend={() => void store.sendRequest()}
-            onSave={() => void handleSave()}
-            sending={store.sending}
-          />
-          <ResponseViewer
-            key={`response-${store.activeTabId}`}
-            response={store.response}
-            sending={store.sending}
-          />
+          {configuringCollection ? (
+            <CollectionSettings
+              collection={configuringCollection}
+              onSave={async (id, name, variables) => {
+                try {
+                  await store.updateCollection(id, name, variables)
+                  toast.success('Collection updated')
+                } catch (err) {
+                  alert(err instanceof Error ? err.message : 'Failed to update collection')
+                }
+              }}
+              onClose={() => setConfiguringCollectionId(null)}
+            />
+          ) : (
+            <>
+              <TabBar
+                tabs={store.tabs}
+                activeTabId={store.activeTabId}
+                onSelect={store.setActiveTab}
+                onClose={handleCloseTab}
+                onNew={store.newRequest}
+              />
+              <RequestEditor
+                key={`editor-${store.activeTabId}`}
+                draft={store.draft}
+                onChange={store.setDraft}
+                onSend={() => void store.sendRequest()}
+                onSave={() => void handleSave()}
+                sending={store.sending}
+              />
+              <ResponseViewer
+                key={`response-${store.activeTabId}`}
+                response={store.response}
+                sending={store.sending}
+              />
+            </>
+          )}
         </main>
       </div>
 

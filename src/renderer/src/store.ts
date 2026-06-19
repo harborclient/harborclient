@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { Collection, SavedRequest } from '#/shared/types'
+import type { Collection, SavedRequest, Variable } from '#/shared/types'
 import {
   cloneDraft,
   createTab,
@@ -10,6 +10,26 @@ import {
 } from '#/renderer/src/store/drafts'
 
 const OPEN_TABS_KEY = 'harbor-client.openTabs'
+
+const VARIABLE_PATTERN = /\{\{\s*([\w.-]+)\s*\}\}/g
+
+/**
+ * Replaces {{key}} placeholders in text with collection variable values.
+ *
+ * @param text - Text containing variable placeholders.
+ * @param variables - Collection-scoped variables.
+ * @returns Text with known variables substituted; unknown tokens are left unchanged.
+ */
+function substituteVariables(text: string, variables: Variable[]): string {
+  const lookup = new Map(
+    variables.filter((v) => v.key.trim()).map((v) => [v.key.trim(), v.value])
+  )
+
+  return text.replace(VARIABLE_PATTERN, (match, key: string) => {
+    const value = lookup.get(key)
+    return value !== undefined ? value : match
+  })
+}
 
 /** Persisted tab shape (draft only, no response/sending). */
 interface PersistedTab {
@@ -257,13 +277,14 @@ export function useAppStore() {
   }
 
   /**
-   * Renames a collection and refreshes the list.
+   * Updates a collection's name and variables and refreshes the list.
    *
-   * @param id - Collection ID to rename.
+   * @param id - Collection ID to update.
    * @param name - New display name.
+   * @param variables - Collection-scoped variables.
    */
-  const renameCollection = async (id: number, name: string) => {
-    await window.api.renameCollection(id, name)
+  const updateCollection = async (id: number, name: string, variables: Variable[]) => {
+    await window.api.updateCollection(id, name, variables)
     await refreshCollections()
   }
 
@@ -398,12 +419,19 @@ export function useAppStore() {
 
     const tabId = activeTab.tabId
     const { draft: currentDraft } = activeTab
+    const collectionId = currentDraft.collection_id ?? selectedCollectionId
+    const collection = collectionId
+      ? collections.find((c) => c.id === collectionId)
+      : undefined
+    const resolvedUrl = collection
+      ? substituteVariables(currentDraft.url, collection.variables)
+      : currentDraft.url
 
     updateTab(tabId, () => ({ sending: true, response: null }))
     try {
       const result = await window.api.sendRequest({
         method: currentDraft.method,
-        url: currentDraft.url,
+        url: resolvedUrl,
         headers: currentDraft.headers,
         params: currentDraft.params,
         body: currentDraft.body,
@@ -429,7 +457,7 @@ export function useAppStore() {
     setActiveTab,
     closeTab,
     createCollection,
-    renameCollection,
+    updateCollection,
     deleteCollection,
     exportCollection,
     importCollection,

@@ -29,6 +29,21 @@ export interface KeyValue {
 }
 
 /**
+ * A collection-scoped variable for use in request URLs via {{key}} syntax.
+ */
+export interface Variable {
+  /**
+   * Variable name referenced in {{key}} placeholders.
+   */
+  key: string
+
+  /**
+   * Value substituted when the variable is resolved.
+   */
+  value: string
+}
+
+/**
  * A named group of saved HTTP requests.
  */
 export interface Collection {
@@ -41,6 +56,11 @@ export interface Collection {
    * Display name shown in the sidebar.
    */
   name: string
+
+  /**
+   * Collection-scoped variables for {{key}} substitution in requests.
+   */
+  variables: Variable[]
 
   /**
    * ISO 8601 timestamp when the collection was created.
@@ -171,6 +191,11 @@ export interface CollectionExport {
    * Display name for the collection.
    */
   name: string
+
+  /**
+   * Collection-scoped variables for {{key}} substitution in requests.
+   */
+  variables: Variable[]
 
   /**
    * Saved requests belonging to the collection.
@@ -338,13 +363,14 @@ export interface Api {
   createCollection: (name: string) => Promise<Collection>
 
   /**
-   * Renames an existing collection.
+   * Updates a collection's name and variables.
    *
-   * @param id - Collection ID to rename.
+   * @param id - Collection ID to update.
    * @param name - New display name.
+   * @param variables - Collection-scoped variables.
    * @returns The updated collection.
    */
-  renameCollection: (id: number, name: string) => Promise<Collection>
+  updateCollection: (id: number, name: string, variables: Variable[]) => Promise<Collection>
 
   /**
    * Deletes a collection and all of its saved requests.

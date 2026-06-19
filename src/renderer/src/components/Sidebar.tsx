@@ -3,7 +3,6 @@ import type { Collection, SavedRequest } from '#/shared/types'
 import { RowActionsMenu } from '#/renderer/src/components/RowActionsMenu'
 import {
   METHOD_CLASSES,
-  field,
   sourceRow,
   toolbarButton
 } from '#/renderer/src/ui/classes'
@@ -42,12 +41,11 @@ interface Props {
   onAddCollection: () => void
 
   /**
-   * Persists a collection rename.
+   * Opens the collection settings view.
    *
-   * @param id - Collection ID to rename.
-   * @param name - New display name.
+   * @param id - Collection ID to configure.
    */
-  onRenameCollection: (id: number, name: string) => Promise<void>
+  onConfigureCollection: (id: number) => void
 
   /**
    * Deletes a collection and its saved requests.
@@ -95,36 +93,15 @@ export function Sidebar({
   activeRequestId,
   onSelectCollection,
   onAddCollection,
-  onRenameCollection,
+  onConfigureCollection,
   onDeleteCollection,
   onExportCollection,
   onNewRequestInCollection,
   onLoadRequest,
   onDeleteRequest
 }: Props) {
-  const [editingCollectionId, setEditingCollectionId] = useState<number | null>(null)
-  const [editingName, setEditingName] = useState('')
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
-
-  /**
-   * Enters inline rename mode for a collection.
-   *
-   * @param collection - Collection to rename.
-   */
-  const startRename = (collection: Collection) => {
-    setEditingCollectionId(collection.id)
-    setEditingName(collection.name)
-  }
-
-  /** Commits the inline collection rename if the name is non-empty. */
-  const commitRename = async () => {
-    if (editingCollectionId && editingName.trim()) {
-      await onRenameCollection(editingCollectionId, editingName.trim())
-    }
-    setEditingCollectionId(null)
-    setEditingName('')
-  }
 
   /**
    * Toggles collection disclosure and selects it.
@@ -177,33 +154,19 @@ export function Sidebar({
                   >
                     {expanded ? '▼' : '▶'}
                   </button>
-                  {editingCollectionId === collection.id ? (
-                    <input
-                      className={`${field} min-w-0 flex-1`}
-                      value={editingName}
-                      autoFocus
-                      onChange={(e) => setEditingName(e.target.value)}
-                      onBlur={() => void commitRename()}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') void commitRename()
-                        if (e.key === 'Escape') setEditingCollectionId(null)
-                      }}
-                    />
-                  ) : (
-                    <button
-                      className="min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0.5 text-left text-[13px] text-inherit app-no-drag"
-                      onClick={() => toggleCollection(collection.id)}
-                      onDoubleClick={() => startRename(collection)}
-                    >
-                      {collection.name}
-                    </button>
-                  )}
+                  <button
+                    className="min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0.5 text-left text-[13px] text-inherit app-no-drag"
+                    onClick={() => toggleCollection(collection.id)}
+                    onDoubleClick={() => onConfigureCollection(collection.id)}
+                  >
+                    {collection.name}
+                  </button>
                   <RowActionsMenu
                     menuId={`collection-${collection.id}`}
                     openMenuId={openMenuId}
                     onOpenChange={setOpenMenuId}
                     items={[
-                      { label: 'Rename', onSelect: () => startRename(collection) },
+                      { label: 'Settings', onSelect: () => onConfigureCollection(collection.id) },
                       {
                         label: 'New Request',
                         onSelect: () => void onNewRequestInCollection(collection.id)

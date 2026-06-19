@@ -6,7 +6,8 @@ import type {
   SaveRequestInput,
   SavedRequest,
   SendRequestInput,
-  SendResult
+  SendResult,
+  Variable
 } from '#/shared/types'
 
 /**
@@ -29,14 +30,15 @@ function createCollection(name: string): Promise<Collection> {
 }
 
 /**
- * Renames a collection via IPC.
+ * Updates a collection's name and variables via IPC.
  *
- * @param id - Collection ID to rename.
+ * @param id - Collection ID to update.
  * @param name - New display name.
+ * @param variables - Collection-scoped variables.
  * @returns The updated collection.
  */
-function renameCollection(id: number, name: string): Promise<Collection> {
-  return ipcRenderer.invoke('collections:rename', id, name)
+function updateCollection(id: number, name: string, variables: Variable[]): Promise<Collection> {
+  return ipcRenderer.invoke('collections:update', id, name, variables)
 }
 
 /**
@@ -109,7 +111,7 @@ function sendRequest(req: SendRequestInput): Promise<SendResult> {
 const api: Api = {
   listCollections,
   createCollection,
-  renameCollection,
+  updateCollection,
   deleteCollection,
   exportCollection,
   importCollection,
