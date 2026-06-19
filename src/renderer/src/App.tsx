@@ -10,6 +10,8 @@ import { TabBar } from '#/renderer/src/ui/TabBar';
 import { RequestEditor } from '#/renderer/src/ui/RequestEditor';
 import { ResponseViewer } from '#/renderer/src/ui/ResponseViewer';
 import { TitleBar } from '#/renderer/src/ui/TitleBar';
+import { Footer } from '#/renderer/src/ui/Footer';
+import { ConsolePanel } from '#/renderer/src/ui/ConsolePanel';
 import {
   field,
   primaryButton,
@@ -41,6 +43,7 @@ export default function App(): JSX.Element {
   const [configuringCollectionId, setConfiguringCollectionId] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [showConsole, setShowConsole] = useState(false);
   const [appVersion, setAppVersion] = useState('');
   const requests =
     store.selectedCollectionId != null
@@ -191,7 +194,7 @@ export default function App(): JSX.Element {
   return (
     <div className={`flex h-screen flex-col ${isMac ? 'platform-darwin' : ''}`}>
       <TitleBar />
-      <div className="flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <Sidebar
           collections={store.collections}
           requests={requests}
@@ -268,7 +271,20 @@ export default function App(): JSX.Element {
             </>
           )}
         </main>
+
+        <ConsolePanel
+          entries={store.consoleEntries}
+          open={showConsole}
+          onClose={() => setShowConsole(false)}
+          onClear={store.clearConsole}
+        />
       </div>
+
+      <Footer
+        consoleOpen={showConsole}
+        entryCount={store.consoleEntries.length}
+        onToggleConsole={() => setShowConsole((open) => !open)}
+      />
 
       {collectionModal && (
         <div

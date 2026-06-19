@@ -172,6 +172,15 @@ function getInitialTabState(): { tabs: RequestTab[]; activeTabId: string } {
   return initialTabState;
 }
 
+/** A single entry in the global session console log. */
+export interface ConsoleEntry {
+  id: string;
+  timestamp: number;
+  requestName: string;
+  collectionName?: string;
+  result: SendResult;
+}
+
 /** State and actions exposed to renderer components via useAppStore. */
 export interface AppStore {
   collections: Collection[];
@@ -203,6 +212,8 @@ export interface AppStore {
   newRequestInCollection: (collectionId: number) => Promise<SavedRequest>;
   sendRequest: () => Promise<void>;
   refreshRequests: (collectionId: number) => Promise<void>;
+  consoleEntries: ConsoleEntry[];
+  clearConsole: () => void;
 }
 
 /**
@@ -218,6 +229,7 @@ export function useAppStore(): AppStore {
   const [selectedCollectionId, setSelectedCollectionId] = useState<number | null>(null);
   const [tabs, setTabs] = useState<RequestTab[]>(() => getInitialTabState().tabs);
   const [activeTabId, setActiveTabId] = useState(() => getInitialTabState().activeTabId);
+  const [consoleEntries, setConsoleEntries] = useState<ConsoleEntry[]>([]);
 
   const activeTab = useMemo(
     () => tabs.find((t) => t.tabId === activeTabId) ?? tabs[0],
@@ -579,10 +591,24 @@ export function useAppStore(): AppStore {
         bodyType: currentDraft.body_type
       });
       updateTab(tabId, () => ({ response: result }));
+      setConsoleEntries((prev) => [
+        {
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          requestName: currentDraft.name,
+          collectionName: collection?.name,
+          result
+        },
+        ...prev
+      ]);
     } finally {
       updateTab(tabId, () => ({ sending: false }));
     }
   };
+
+  const clearConsole = useCallback(() => {
+    setConsoleEntries([]);
+  }, []);
 
   return {
     collections,
@@ -608,6 +634,8 @@ export function useAppStore(): AppStore {
     newRequest,
     newRequestInCollection,
     sendRequest,
-    refreshRequests
+    refreshRequests,
+    consoleEntries,
+    clearConsole
   };
 }

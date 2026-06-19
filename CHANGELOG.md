@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add console panel and footer to App component; implement console logging functionality in store. Refactor ResponseViewer to remove console tab and related code. Enhance TabBar styling for better UI consistency.. (`f9d9546`)
 - Add 'Save' action to menu and implement keyboard shortcut (CmdOrCtrl+S) for saving requests. Refactor App and RequestEditor components to handle save action and improve variable management in CodeEditor with tooltip support for editing variables.. (`54859bc`)
 - Implement variable editing functionality in RequestEditor and KeyValueEditor components. Add onEditVariable prop to enable editing of variables directly from the UI. Enhance VariableInput with tooltip support for editing, improving user experience in managing collection-scoped variables.. (`b681b7e`)
 - Enhance collection management by adding support for headers in database schema and API. Update related functions and UI components to handle headers, ensuring they are included in collection creation, updates, and exports. Introduce tests for header substitution in requests.. (`f642c60`)
