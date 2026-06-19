@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Enhance select component styling for improved user experience. (`eb21315`)
 - Remove Settings component and associated logic from the UI, streamlining the application by eliminating unused settings functionality.. (`727b360`)
 - Add new dependencies for enhanced functionality and update documentation structure. (`fb1ae63`)
 - Refactor UI components to replace button-based tab navigation with SegmentedTabs for improved user experience. Update styles and imports accordingly across multiple files, enhancing consistency in tab management.. (`e4bb3b7`)

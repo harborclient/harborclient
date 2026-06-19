@@ -23,7 +23,7 @@ interface Props {
 export function MethodSelect({ value, onChange }: Props): JSX.Element {
   return (
     <select
-      className="w-[88px] shrink-0 cursor-pointer appearance-none border-none bg-transparent px-2 py-1 text-[13px] font-semibold text-accent app-no-drag"
+      className="w-[88px] shrink-0 cursor-pointer appearance-none border-none bg-transparent px-2 py-1 text-[13px] font-semibold app-no-drag"
       value={value}
       onChange={(e) => onChange(e.target.value as HttpMethod)}
     >

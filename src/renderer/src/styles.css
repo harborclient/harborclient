@@ -105,6 +105,15 @@
     font: inherit;
   }
 
+  select {
+    color-scheme: light dark;
+  }
+
+  select option {
+    background-color: var(--mac-control);
+    color: var(--mac-text);
+  }
+
   #root {
     min-height: 100vh;
   }
