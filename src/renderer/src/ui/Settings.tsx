@@ -6,8 +6,9 @@ import type {
   ThemeSource
 } from '#/shared/types';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
+import { SegmentedTabs } from '#/renderer/src/components/SegmentedTabs';
 import { faXmark } from '#/renderer/src/fontawesome';
-import { field, iconButton, primaryButton, segment, segmentGroup } from './classes';
+import { field, iconButton, primaryButton } from './classes';
 
 interface Props {
   /**
@@ -210,29 +211,17 @@ export function Settings({ onClose }: Props): JSX.Element {
           </button>
         </div>
 
-        <div className={`${segmentGroup} mb-6 w-full`}>
-          <button
-            type="button"
-            className={`${segment(tab === 'general')} flex-1`}
-            onClick={() => setTab('general')}
-          >
-            General
-          </button>
-          <button
-            type="button"
-            className={`${segment(tab === 'sqlite')} flex-1`}
-            onClick={() => setTab('sqlite')}
-          >
-            SQLite
-          </button>
-          <button
-            type="button"
-            className={`${segment(tab === 'firestore')} flex-1`}
-            onClick={() => setTab('firestore')}
-          >
-            Firestore
-          </button>
-        </div>
+        <SegmentedTabs
+          value={tab}
+          onChange={setTab}
+          fullWidth
+          className="mb-6"
+          tabs={[
+            { value: 'general', label: 'General' },
+            { value: 'sqlite', label: 'SQLite' },
+            { value: 'firestore', label: 'Firestore' }
+          ]}
+        />
 
         {tab === 'general' && (
           <div className="mb-6 flex flex-col gap-6">
@@ -242,18 +231,16 @@ export function Settings({ onClose }: Props): JSX.Element {
                 Choose light, dark, or match your system preference.
               </p>
 
-              <div className={`${segmentGroup} w-full`}>
-                {THEME_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    className={`${segment(theme === option.value)} flex-1`}
-                    disabled={loading}
-                    onClick={() => void handleThemeChange(option.value)}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
+              <SegmentedTabs
+                value={theme}
+                onChange={(value) => void handleThemeChange(value)}
+                fullWidth
+                tabs={THEME_OPTIONS.map((option) => ({
+                  value: option.value,
+                  label: option.label,
+                  disabled: loading
+                }))}
+              />
             </div>
 
             <div>

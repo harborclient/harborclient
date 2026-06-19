@@ -3,9 +3,10 @@ import type { BodyType, Variable } from '#/shared/types';
 import { CodeEditor } from '#/renderer/src/components/CodeEditor';
 import { KeyValueEditor } from '#/renderer/src/components/KeyValueEditor';
 import { MethodSelect } from '#/renderer/src/components/MethodSelect';
+import { SegmentedTabs } from '#/renderer/src/components/SegmentedTabs';
 import { VariableInput } from '#/renderer/src/components/VariableInput';
 import type { RequestDraft } from '#/renderer/src/store/drafts';
-import { field, primaryButton, segment, segmentGroup } from './classes';
+import { field, primaryButton } from './classes';
 
 type EditorTab = 'params' | 'headers' | 'body' | 'pre' | 'post';
 
@@ -149,25 +150,17 @@ export function RequestEditor({
       </div>
 
       <div className="mt-4">
-        <div className={segmentGroup}>
-          <button className={segment(tab === 'params')} onClick={() => setTab('params')}>
-            Params
-          </button>
-          <button className={segment(tab === 'headers')} onClick={() => setTab('headers')}>
-            Headers
-          </button>
-          {showBody && (
-            <button className={segment(tab === 'body')} onClick={() => setTab('body')}>
-              Body
-            </button>
-          )}
-          <button className={segment(tab === 'pre')} onClick={() => setTab('pre')}>
-            PreRequest
-          </button>
-          <button className={segment(tab === 'post')} onClick={() => setTab('post')}>
-            PostRequest
-          </button>
-        </div>
+        <SegmentedTabs
+          value={tab}
+          onChange={setTab}
+          tabs={[
+            { value: 'params', label: 'Params' },
+            { value: 'headers', label: 'Headers' },
+            { value: 'body', label: 'Body', hidden: !showBody },
+            { value: 'pre', label: 'PreRequest' },
+            { value: 'post', label: 'PostRequest' }
+          ]}
+        />
       </div>
 
       <div className="min-h-[160px] pt-2">

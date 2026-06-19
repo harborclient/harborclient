@@ -13,13 +13,8 @@ import { ResponseViewer } from '#/renderer/src/ui/ResponseViewer';
 import { TitleBar } from '#/renderer/src/ui/TitleBar';
 import { Footer } from '#/renderer/src/ui/Footer';
 import { ConsolePanel } from '#/renderer/src/ui/ConsolePanel';
-import {
-  field,
-  primaryButton,
-  secondaryButton,
-  segment,
-  segmentGroup
-} from '#/renderer/src/ui/classes';
+import { SegmentedTabs } from '#/renderer/src/components/SegmentedTabs';
+import { field, primaryButton, secondaryButton } from '#/renderer/src/ui/classes';
 
 const isMac = window.platform === 'darwin';
 
@@ -376,20 +371,16 @@ export default function App(): JSX.Element {
             )}
 
             {showImportTab && (
-              <div className={`${segmentGroup} mb-3 w-full`}>
-                <button
-                  className={`${segment(collectionModalTab === 'create')} flex-1`}
-                  onClick={() => setCollectionModalTab('create')}
-                >
-                  Create new
-                </button>
-                <button
-                  className={`${segment(collectionModalTab === 'import')} flex-1`}
-                  onClick={() => setCollectionModalTab('import')}
-                >
-                  Import from file
-                </button>
-              </div>
+              <SegmentedTabs
+                value={collectionModalTab}
+                onChange={setCollectionModalTab}
+                fullWidth
+                className="mb-3"
+                tabs={[
+                  { value: 'create', label: 'Create new' },
+                  { value: 'import', label: 'Import from file' }
+                ]}
+              />
             )}
 
             {collectionModalTab === 'create' || !showImportTab ? (

@@ -1,7 +1,8 @@
 import { useMemo, useState, type JSX } from 'react';
 import type { ScriptTestResult, SendResult } from '#/shared/types';
 import { CodeEditor } from '#/renderer/src/components/CodeEditor';
-import { segment, segmentGroup, statusDotClass } from './classes';
+import { SegmentedTabs } from '#/renderer/src/components/SegmentedTabs';
+import { statusDotClass } from './classes';
 import { bodyLanguage, formatBody, formatBytes } from './responseFormatUtils';
 
 interface Props {
@@ -77,24 +78,28 @@ export function ResponseViewer({ response, sending, testResults }: Props): JSX.E
       )}
 
       <div className="mb-2">
-        <div className={segmentGroup}>
-          <button className={segment(effectiveTab === 'body')} onClick={() => setTab('body')}>
-            Body
-          </button>
-          <button className={segment(effectiveTab === 'headers')} onClick={() => setTab('headers')}>
-            Headers
-          </button>
-          {hasTests && (
-            <button className={segment(effectiveTab === 'tests')} onClick={() => setTab('tests')}>
-              Tests
-              <span
-                className={`ml-1.5 text-[12px] ${failedCount > 0 ? 'text-danger' : 'text-muted'}`}
-              >
-                {passedCount}/{testResults.length}
-              </span>
-            </button>
-          )}
-        </div>
+        <SegmentedTabs
+          value={effectiveTab}
+          onChange={setTab}
+          tabs={[
+            { value: 'body', label: 'Body' },
+            { value: 'headers', label: 'Headers' },
+            {
+              value: 'tests',
+              hidden: !hasTests,
+              label: (
+                <>
+                  Tests
+                  <span
+                    className={`ml-1.5 text-[12px] ${failedCount > 0 ? 'text-danger' : 'text-muted'}`}
+                  >
+                    {passedCount}/{testResults.length}
+                  </span>
+                </>
+              )
+            }
+          ]}
+        />
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto">

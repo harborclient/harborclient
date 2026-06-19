@@ -3,6 +3,7 @@ import type { Collection, KeyValue, Variable } from '#/shared/types';
 import { CodeEditor } from '#/renderer/src/components/CodeEditor';
 import { KeyValueEditor } from '#/renderer/src/components/KeyValueEditor';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
+import { SegmentedTabs } from '#/renderer/src/components/SegmentedTabs';
 import { emptyKeyValue } from '#/renderer/src/store/drafts';
 import { faPlus, faXmark } from '#/renderer/src/fontawesome';
 import {
@@ -11,8 +12,6 @@ import {
   iconButtonDanger,
   primaryButton,
   secondaryButton,
-  segment,
-  segmentGroup,
   toolbarButton
 } from './classes';
 
@@ -187,23 +186,17 @@ function CollectionSettingsForm({
         </div>
 
         <div className="mb-6">
-          <div className={segmentGroup}>
-            <button className={segment(tab === 'general')} onClick={() => setTab('general')}>
-              General
-            </button>
-            <button className={segment(tab === 'variables')} onClick={() => setTab('variables')}>
-              Variables
-            </button>
-            <button className={segment(tab === 'headers')} onClick={() => setTab('headers')}>
-              Headers
-            </button>
-            <button className={segment(tab === 'pre')} onClick={() => setTab('pre')}>
-              PreRequest
-            </button>
-            <button className={segment(tab === 'post')} onClick={() => setTab('post')}>
-              PostRequest
-            </button>
-          </div>
+          <SegmentedTabs
+            value={tab}
+            onChange={setTab}
+            tabs={[
+              { value: 'general', label: 'General' },
+              { value: 'variables', label: 'Variables' },
+              { value: 'headers', label: 'Headers' },
+              { value: 'pre', label: 'PreRequest' },
+              { value: 'post', label: 'PostRequest' }
+            ]}
+          />
         </div>
 
         {tab === 'general' && (
