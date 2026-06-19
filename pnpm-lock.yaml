@@ -11,6 +11,9 @@ importers:
       '@awesome.me/kit-55c528f18b':
         specifier: ^1.0.2
         version: 1.0.2
+      '@codemirror/autocomplete':
+        specifier: ^6.20.3
+        version: 6.20.3
       '@codemirror/lang-javascript':
         specifier: ^6.2.4
         version: 6.2.5

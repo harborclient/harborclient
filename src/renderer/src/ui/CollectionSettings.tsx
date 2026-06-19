@@ -331,6 +331,7 @@ function CollectionSettingsForm({
               value={preRequestScript}
               onChange={setPreRequestScript}
               language="javascript"
+              scriptPhase="pre"
               placeholder="// hc.variables.set('token', 'abc');"
               variables={variables}
               minHeight="240px"
@@ -348,6 +349,7 @@ function CollectionSettingsForm({
               value={postRequestScript}
               onChange={setPostRequestScript}
               language="javascript"
+              scriptPhase="post"
               placeholder={
                 '// hc.test("status is 200", () => {\n//   hc.expect(hc.response.code).to.equal(200);\n// });'
               }

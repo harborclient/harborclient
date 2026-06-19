@@ -222,6 +222,7 @@ export function RequestEditor({
             value={draft.pre_request_script}
             onChange={(pre_request_script) => update({ pre_request_script })}
             language="javascript"
+            scriptPhase="pre"
             placeholder="// hc.request.url = 'https://example.com';\n// hc.variables.set('token', 'abc');"
             variables={variables}
             onEditVariable={onEditVariables}
@@ -233,6 +234,7 @@ export function RequestEditor({
             value={draft.post_request_script}
             onChange={(post_request_script) => update({ post_request_script })}
             language="javascript"
+            scriptPhase="post"
             placeholder={
               '// hc.test("status is 200", () => {\n//   hc.expect(hc.response.code).to.equal(200);\n// });'
             }

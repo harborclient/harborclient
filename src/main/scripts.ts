@@ -5,6 +5,7 @@ const SCRIPT_TIMEOUT_MS = 5000;
 const MEMORY_LIMIT_MB = 128;
 
 const BOOTSTRAP = `
+// hc API surface — keep autocomplete in hcCompletions.ts in sync with this bootstrap.
 const ctx = JSON.parse(__CONTEXT__);
 const state = {
   request: ctx.request,

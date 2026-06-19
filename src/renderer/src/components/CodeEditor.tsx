@@ -1,3 +1,4 @@
+import { autocompletion } from '@codemirror/autocomplete';
 import { javascript } from '@codemirror/lang-javascript';
 import { json } from '@codemirror/lang-json';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
@@ -13,8 +14,9 @@ import {
 import CodeMirror from '@uiw/react-codemirror';
 import { tags } from '@lezer/highlight';
 import { useEffect, useMemo, useState, type JSX } from 'react';
-import type { Variable } from '#/shared/types';
+import type { ScriptPhase, Variable } from '#/shared/types';
 import { resolveVariable } from '#/renderer/src/store';
+import { createHcCompletionSource } from '#/renderer/src/components/hcCompletions';
 
 export type CodeEditorLanguage = 'json' | 'text' | 'javascript';
 
@@ -65,6 +67,11 @@ interface Props {
    * Opens collection settings to edit a hovered variable.
    */
   onEditVariable?: () => void;
+
+  /**
+   * When set on a JavaScript editor, enables hc API autocomplete for pre/post scripts.
+   */
+  scriptPhase?: ScriptPhase;
 }
 
 const lightHighlight = HighlightStyle.define([
@@ -157,6 +164,21 @@ const editorTheme = EditorView.theme({
     cursor: 'pointer',
     fontSize: '12px',
     color: 'var(--mac-accent)'
+  },
+  '.cm-tooltip.cm-tooltip-autocomplete': {
+    border: '1px solid var(--mac-separator)',
+    backgroundColor: 'var(--mac-surface)',
+    borderRadius: '6px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    fontSize: '12px'
+  },
+  '.cm-completionLabel': {
+    fontFamily: 'var(--font-mono)'
+  },
+  '.cm-completionDetail': {
+    color: 'var(--mac-muted)',
+    fontStyle: 'normal',
+    marginLeft: '8px'
   }
 });
 
@@ -248,7 +270,8 @@ export function CodeEditor({
   minHeight = '144px',
   className = '',
   variables,
-  onEditVariable
+  onEditVariable,
+  scriptPhase
 }: Props): JSX.Element {
   const [isDark, setIsDark] = useState(
     () => window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -272,12 +295,20 @@ export function CodeEditor({
     }
     if (language === 'javascript') {
       next.push(javascript());
+      if (scriptPhase) {
+        next.push(
+          autocompletion({
+            activateOnTyping: true,
+            override: [createHcCompletionSource(scriptPhase, variables ?? [])]
+          })
+        );
+      }
     }
     if (variables) {
       next.push(variableHighlighter, variableTooltip(variables, onEditVariable));
     }
     return next;
-  }, [isDark, language, variables, onEditVariable]);
+  }, [isDark, language, variables, onEditVariable, scriptPhase]);
 
   const wrapperClassName = readOnly
     ? `overflow-hidden rounded-md bg-control shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)] app-no-drag ${className}`

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add CodeMirror autocomplete support for JavaScript scripts in the editor. Update package.json and pnpm-lock.yaml to include @codemirror/autocomplete dependency. Enhance CodeEditor component to utilize autocomplete for pre-request and post-request scripts, improving user experience in script editing.. (`628976f`)
 - Enhance request and collection management by adding pre-request and post-request script fields. Update database schema and related functions to support script storage. Refactor UI components to allow script editing in collection settings and improve script execution handling in the request workflow.. (`11a0a3d`)
 - Add fullscreen escape handler and enhance collection settings management. Implement unsaved changes prompt for loading requests, improve state management in App component, and refine CollectionSettings for better dirty state tracking.. (`505154e`)
 
