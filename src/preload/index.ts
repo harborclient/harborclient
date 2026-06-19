@@ -3,10 +3,12 @@ import type {
   Api,
   Collection,
   CollectionExportResult,
+  MenuActionId,
   SaveRequestInput,
   SavedRequest,
   SendRequestInput,
   SendResult,
+  ThemeSource,
   Variable
 } from '#/shared/types';
 
@@ -108,6 +110,43 @@ function sendRequest(req: SendRequestInput): Promise<SendResult> {
   return ipcRenderer.invoke('http:send', req);
 }
 
+/**
+ * Subscribes to menu bar action events from the main process.
+ *
+ * @param callback - Handler invoked with the menu action id.
+ * @returns Unsubscribe function.
+ */
+function onMenuAction(callback: (action: MenuActionId) => void): () => void {
+  const listener = (_event: Electron.IpcRendererEvent, action: MenuActionId): void => {
+    callback(action);
+  };
+  ipcRenderer.on('menu:action', listener);
+  return () => ipcRenderer.removeListener('menu:action', listener);
+}
+
+/**
+ * Returns the application version from package.json.
+ */
+function getAppVersion(): Promise<string> {
+  return ipcRenderer.invoke('app:getVersion');
+}
+
+/**
+ * Returns the persisted theme preference.
+ */
+function getTheme(): Promise<ThemeSource> {
+  return ipcRenderer.invoke('theme:get');
+}
+
+/**
+ * Persists and applies a theme preference.
+ *
+ * @param theme - Theme source to apply.
+ */
+function setTheme(theme: ThemeSource): Promise<void> {
+  return ipcRenderer.invoke('theme:set', theme);
+}
+
 const api: Api = {
   listCollections,
   createCollection,
@@ -118,7 +157,11 @@ const api: Api = {
   listRequests,
   saveRequest,
   deleteRequest,
-  sendRequest
+  sendRequest,
+  onMenuAction,
+  getAppVersion,
+  getTheme,
+  setTheme
 };
 
 contextBridge.exposeInMainWorld('api', api);

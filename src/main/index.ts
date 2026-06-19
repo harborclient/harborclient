@@ -1,12 +1,24 @@
-import { app, BrowserWindow, nativeTheme, shell } from 'electron';
+import { app, BrowserWindow, Menu, nativeTheme, shell } from 'electron';
 import windowStateKeeper from 'electron-window-state';
 import { join } from 'path';
-import { closeDb, initDb } from '#/main/db';
+import { closeDb, getSetting, initDb } from '#/main/db';
 import { registerIpcHandlers } from '#/main/ipc';
+import { buildMenu } from '#/main/menu';
+import type { ThemeSource } from '#/shared/types';
 
 const isDev = !app.isPackaged;
 
-nativeTheme.themeSource = 'system';
+const THEME_SETTING_KEY = 'theme';
+
+/**
+ * Applies a persisted or default theme to nativeTheme.
+ */
+function applyPersistedTheme(): void {
+  const stored = getSetting(THEME_SETTING_KEY);
+  const theme: ThemeSource =
+    stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+  nativeTheme.themeSource = theme;
+}
 
 // chrome-sandbox needs SUID (mode 4755), which fails on mounted/network filesystems
 if (process.platform === 'linux' && isDev) {
@@ -24,8 +36,10 @@ function resolveAppIcon(): string {
 
 /**
  * Creates and configures the main application window.
+ *
+ * @returns The created browser window.
  */
-function createWindow(): void {
+function createWindow(): BrowserWindow {
   const mainWindowState = windowStateKeeper({
     defaultWidth: 1280,
     defaultHeight: 800
@@ -41,7 +55,6 @@ function createWindow(): void {
     title: 'Harbor Client',
     icon: resolveAppIcon(),
     show: false,
-    autoHideMenuBar: true,
     backgroundColor: '#f5f5f7',
     ...(process.platform === 'darwin' && {
       titleBarStyle: 'hiddenInset',
@@ -73,15 +86,22 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
   }
+
+  return mainWindow;
 }
 
 app.whenReady().then(() => {
   initDb(app.getPath('userData'));
+  applyPersistedTheme();
   registerIpcHandlers();
-  createWindow();
+  const mainWindow = createWindow();
+  Menu.setApplicationMenu(buildMenu(mainWindow));
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      const window = createWindow();
+      Menu.setApplicationMenu(buildMenu(window));
+    }
   });
 });
 

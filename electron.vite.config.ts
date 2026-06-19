@@ -2,6 +2,7 @@
  * Electron-vite configuration for main, preload, and renderer processes.
  * Main externalizes native deps (better-sqlite3); renderer uses React.
  */
+import { resolve } from 'path';
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
@@ -19,6 +20,11 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()]
   },
   renderer: {
-    plugins: [react(), tailwindcss()]
+    plugins: [react(), tailwindcss()],
+    resolve: {
+      alias: {
+        '@images': resolve(__dirname, 'images')
+      }
+    }
   }
 });

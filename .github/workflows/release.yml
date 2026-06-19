@@ -23,6 +23,8 @@ jobs:
   release:
     needs: ci
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
 
     steps:
       - name: Checkout
@@ -46,10 +48,12 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Bump version
+        id: bump
         run: |
           set -euo pipefail
           VERSION=$(pnpm version "${{ inputs.release_type }}" --no-git-tag-version | tail -n1 | sed 's/^v//')
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Bumped to $VERSION"
 
       - name: Update CHANGELOG.md for release
@@ -98,14 +102,97 @@ jobs:
           git tag -a "v${VERSION}" -m "Release v${VERSION}"
           git push origin HEAD:main --follow-tags
 
-      - name: Build and package
-        run: pnpm build && pnpm exec electron-builder --linux --publish never
+  build:
+    needs: release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            args: --linux
+          - os: macos-latest
+            args: --mac
+    runs-on: ${{ matrix.os }}
 
-      - name: Create GitHub Release
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.release.outputs.version }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Unconfigured GitHub secrets resolve to empty strings, and an empty
+      # CSC_LINK makes electron-builder try to load it as a certificate file
+      # and fail. Decode CSC_LINK to a .p12 on disk and verify macOS can import
+      # it before electron-builder runs (catches bad base64 and OpenSSL 3 p12).
+      - name: Configure macOS signing
+        if: runner.os == 'macOS'
+        env:
+          CSC_LINK_B64: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          append_env() {
+            local name="$1"
+            local value="$2"
+            {
+              echo "${name}<<EOF"
+              echo "$value"
+              echo "EOF"
+            } >> "$GITHUB_ENV"
+          }
+
+          if [ -z "${CSC_LINK_B64}" ]; then
+            echo "No signing certificate configured; disabling identity auto-discovery."
+            echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> "$GITHUB_ENV"
+          else
+            CERT_PATH="${RUNNER_TEMP}/signing-certificate.p12"
+            echo "$CSC_LINK_B64" | tr -d '[:space:]' | openssl base64 -d -A -out "$CERT_PATH"
+
+            if [ ! -s "$CERT_PATH" ]; then
+              echo "::error::CSC_LINK decoded to an empty file. Re-encode with: base64 -w0 developer_id.p12"
+              exit 1
+            fi
+
+            KEYCHAIN="${RUNNER_TEMP}/signing.keychain-db"
+            KEYCHAIN_PASSWORD="$(openssl rand -hex 16)"
+            security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+            security set-keychain-settings -lut 21600 "$KEYCHAIN"
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+
+            if ! security import "$CERT_PATH" -k "$KEYCHAIN" -P "$CSC_KEY_PASSWORD" \
+                 -T /usr/bin/codesign -T /usr/bin/productbuild 2>&1; then
+              echo "::error::Could not import CSC_LINK as a PKCS#12 certificate (SecKeychainItemImport: Unknown format in import)."
+              echo "::error::If you created the .p12 on Linux with OpenSSL 3, re-export with legacy encryption:"
+              echo "::error::  openssl pkcs12 -export -legacy -inkey developer_id.key -in developer_id.pem -certfile DeveloperIDG2CA.pem -out developer_id.p12"
+              echo "::error::Then update the CSC_LINK secret: base64 -w0 developer_id.p12"
+              exit 1
+            fi
+
+            append_env CSC_LINK "$CERT_PATH"
+            append_env CSC_KEY_PASSWORD "$CSC_KEY_PASSWORD"
+          fi
+
+      - name: Build and publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create "v${VERSION}" \
-            --title "v${VERSION}" \
-            --generate-notes \
-            release/*.AppImage release/*.deb
+          CI: true
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASS }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          DEBUG: electron-notarize*
+        run: pnpm build && npx electron-builder build ${{ matrix.args }} --publish always

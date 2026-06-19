@@ -1,5 +1,7 @@
 appId: com.harbor.client
 productName: Harbor Client
+artifactName: harborclient-${version}.${ext}
+executableName: harborclient
 icon: build/icons/512x512.png
 extraResources:
   - from: build/icons/512x512.png
@@ -22,8 +24,23 @@ linux:
   category: Development
   maintainer: harbor@example.com
 mac:
+  artifactName: harborclient-${version}-${arch}.${ext}
   target:
-    - dmg
+    target: default
+    arch:
+      - arm64
+      - x64
+  type: distribution
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: true
 win:
   target:
     - nsis
+publish:
+  provider: github
+  owner: headzoo
+  repo: harborclient
+  releaseType: release

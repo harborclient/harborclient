@@ -119,6 +119,11 @@ export function initDb(userDataPath: string): Database.Database {
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
 
   const columns = db.prepare('PRAGMA table_info(collections)').all() as Array<{ name: string }>;
@@ -469,6 +474,33 @@ export function importCollectionData(data: unknown): Collection {
   });
 
   return importCollection(exportData);
+}
+
+/**
+ * Reads a persisted setting by key.
+ *
+ * @param key - Setting key to look up.
+ * @returns The stored value, or undefined when not set.
+ */
+export function getSetting(key: string): string | undefined {
+  const row = getDb().prepare('SELECT value FROM settings WHERE key = ?').get(key) as
+    | { value: string }
+    | undefined;
+  return row?.value;
+}
+
+/**
+ * Persists a setting value, replacing any existing entry for the key.
+ *
+ * @param key - Setting key to store.
+ * @param value - Value to persist.
+ */
+export function setSetting(key: string, value: string): void {
+  getDb()
+    .prepare(
+      'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?'
+    )
+    .run(key, value, value);
 }
 
 /**

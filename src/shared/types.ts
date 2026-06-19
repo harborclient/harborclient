@@ -384,6 +384,16 @@ export interface SendResult {
 }
 
 /**
+ * Theme preference for light, dark, or system appearance.
+ */
+export type ThemeSource = 'light' | 'dark' | 'system';
+
+/**
+ * Menu action identifiers sent from the main process menu.
+ */
+export type MenuActionId = 'new-request' | 'new-collection' | 'import' | 'settings' | 'about';
+
+/**
  * IPC bridge API exposed to the renderer via contextBridge.
  */
 export interface Api {
@@ -464,6 +474,31 @@ export interface Api {
    * @returns Response metadata from the main process.
    */
   sendRequest: (req: SendRequestInput) => Promise<SendResult>;
+
+  /**
+   * Subscribes to menu bar action events from the main process.
+   *
+   * @param callback - Handler invoked with the menu action id.
+   * @returns Unsubscribe function.
+   */
+  onMenuAction: (callback: (action: MenuActionId) => void) => () => void;
+
+  /**
+   * Returns the application version from package.json.
+   */
+  getAppVersion: () => Promise<string>;
+
+  /**
+   * Returns the persisted theme preference.
+   */
+  getTheme: () => Promise<ThemeSource>;
+
+  /**
+   * Persists and applies a theme preference.
+   *
+   * @param theme - Theme source to apply.
+   */
+  setTheme: (theme: ThemeSource) => Promise<void>;
 }
 
 declare global {

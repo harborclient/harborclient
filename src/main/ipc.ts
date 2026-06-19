@@ -1,18 +1,35 @@
-import { BrowserWindow, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme } from 'electron';
 import { readFile, writeFile } from 'fs/promises';
 import {
   createCollection,
   deleteCollection,
   deleteRequest,
   exportCollectionData,
+  getSetting,
   importCollectionData,
   listCollections,
   listRequests,
   saveRequest,
+  setSetting,
   updateCollection
 } from '#/main/db';
 import { executeRequest } from '#/main/http';
-import type { SaveRequestInput, SendRequestInput, Variable } from '#/shared/types';
+import type { SaveRequestInput, SendRequestInput, ThemeSource, Variable } from '#/shared/types';
+
+const THEME_SETTING_KEY = 'theme';
+
+/**
+ * Validates and returns a theme source value.
+ *
+ * @param value - Raw stored theme value.
+ * @returns A valid theme source, defaulting to system.
+ */
+function parseThemeSource(value: string | undefined): ThemeSource {
+  if (value === 'light' || value === 'dark' || value === 'system') {
+    return value;
+  }
+  return 'system';
+}
 
 /**
  * Registers IPC handlers that bridge renderer calls to db and HTTP modules.
@@ -83,4 +100,16 @@ export function registerIpcHandlers(): void {
 
   // Sends an HTTP request and returns the response (status, headers, body, timing).
   ipcMain.handle('http:send', (_event, req: SendRequestInput) => executeRequest(req));
+
+  // Returns the application version from package.json.
+  ipcMain.handle('app:getVersion', () => app.getVersion());
+
+  // Returns the persisted theme preference.
+  ipcMain.handle('theme:get', () => parseThemeSource(getSetting(THEME_SETTING_KEY)));
+
+  // Persists and applies a theme preference.
+  ipcMain.handle('theme:set', (_event, theme: ThemeSource) => {
+    nativeTheme.themeSource = theme;
+    setSetting(THEME_SETTING_KEY, theme);
+  });
 }

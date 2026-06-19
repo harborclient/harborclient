@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState, type JSX } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
+import logoUrl from '@images/logo-square.png';
 import { useAppStore } from '#/renderer/src/store';
 import { isTabDirty } from '#/renderer/src/store/drafts';
 import { CollectionSettings } from '#/renderer/src/ui/CollectionSettings';
+import { Settings } from '#/renderer/src/ui/Settings';
 import { Sidebar } from '#/renderer/src/ui/Sidebar';
 import { TabBar } from '#/renderer/src/ui/TabBar';
 import { RequestEditor } from '#/renderer/src/ui/RequestEditor';
@@ -37,6 +39,9 @@ export default function App(): JSX.Element {
   const [newCollectionName, setNewCollectionName] = useState('');
   const [closeTabPrompt, setCloseTabPrompt] = useState<CloseTabPrompt | null>(null);
   const [configuringCollectionId, setConfiguringCollectionId] = useState<number | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
+  const [appVersion, setAppVersion] = useState('');
   const requests =
     store.selectedCollectionId != null
       ? (store.requestsByCollection[store.selectedCollectionId] ?? [])
@@ -100,7 +105,7 @@ export default function App(): JSX.Element {
   /**
    * Imports a collection from a JSON file selected via a native dialog.
    */
-  const handleImportCollection = async (): Promise<void> => {
+  const handleImportCollection = useCallback(async (): Promise<void> => {
     try {
       const collection = await store.importCollection();
       if (!collection) return;
@@ -112,13 +117,50 @@ export default function App(): JSX.Element {
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to import collection');
     }
-  };
+  }, [store]);
 
   const closeCollectionModal = (): void => {
     setCollectionModal(null);
     setNewCollectionName('');
     setCollectionModalTab('create');
   };
+
+  useEffect(() => {
+    const unsubscribe = window.api.onMenuAction((action) => {
+      switch (action) {
+        case 'new-request':
+          store.newRequest();
+          break;
+        case 'new-collection':
+          setNewCollectionName('');
+          setCollectionModalTab('create');
+          setCollectionModal('create');
+          break;
+        case 'import':
+          void handleImportCollection();
+          break;
+        case 'settings':
+          setConfiguringCollectionId(null);
+          setShowSettings(true);
+          break;
+        case 'about':
+          setShowAbout(true);
+          break;
+      }
+    });
+    return unsubscribe;
+  }, [store, handleImportCollection]);
+
+  useEffect(() => {
+    if (!showAbout) return;
+    let cancelled = false;
+    window.api.getAppVersion().then((version) => {
+      if (!cancelled) setAppVersion(version);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [showAbout]);
 
   /**
    * Closes a tab, prompting when it has unsaved changes.
@@ -154,7 +196,10 @@ export default function App(): JSX.Element {
             setCollectionModalTab('create');
             setCollectionModal('create');
           }}
-          onConfigureCollection={(id) => setConfiguringCollectionId(id)}
+          onConfigureCollection={(id) => {
+            setShowSettings(false);
+            setConfiguringCollectionId(id);
+          }}
           onDeleteCollection={store.deleteCollection}
           onExportCollection={async (id) => {
             const result = await store.exportCollection(id);
@@ -174,7 +219,9 @@ export default function App(): JSX.Element {
         />
 
         <main className="flex min-w-0 flex-1 flex-col bg-surface">
-          {configuringCollection ? (
+          {showSettings ? (
+            <Settings onClose={() => setShowSettings(false)} />
+          ) : configuringCollection ? (
             <CollectionSettings
               collection={configuringCollection}
               onSave={async (id, name, variables) => {
@@ -320,6 +367,29 @@ export default function App(): JSX.Element {
                 }}
               >
                 Close without saving
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAbout && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => setShowAbout(false)}
+        >
+          <div
+            className="w-80 rounded-lg border border-separator bg-surface p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-col items-center text-center">
+              <img src={logoUrl} alt="Harbor Client" className="mb-4 h-16 w-16 rounded-xl" />
+              <h2 className="m-0 mb-1 text-[15px] font-semibold text-text">Harbor Client</h2>
+              {appVersion && <p className="m-0 text-[12px] text-muted">Version {appVersion}</p>}
+            </div>
+            <div className="mt-6 flex justify-center">
+              <button className={primaryButton} onClick={() => setShowAbout(false)}>
+                OK
               </button>
             </div>
           </div>
