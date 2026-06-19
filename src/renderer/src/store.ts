@@ -20,7 +20,7 @@ const VARIABLE_PATTERN = /\{\{\s*([\w.-]+)\s*\}\}/g
  * @param variables - Collection-scoped variables.
  * @returns Text with known variables substituted; unknown tokens are left unchanged.
  */
-function substituteVariables(text: string, variables: Variable[]): string {
+export function substituteVariables(text: string, variables: Variable[]): string {
   const lookup = new Map(
     variables.filter((v) => v.key.trim()).map((v) => [v.key.trim(), v.value])
   )

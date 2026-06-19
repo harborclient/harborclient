@@ -7,7 +7,7 @@ import type { BodyType, KeyValue, SendRequestInput, SendResult, SentRequest } fr
  * @param params - Key-value pairs to append as search params.
  * @returns URL with merged query parameters.
  */
-function buildUrl(baseUrl: string, params: KeyValue[]): string {
+export function buildUrl(baseUrl: string, params: KeyValue[]): string {
   const trimmed = baseUrl.trim()
   if (!trimmed) return trimmed
 
@@ -36,7 +36,7 @@ function buildUrl(baseUrl: string, params: KeyValue[]): string {
  * @param bodyType - Body type used to infer Content-Type when absent.
  * @returns Header map ready for fetch.
  */
-function buildHeaders(headers: KeyValue[], bodyType: BodyType): Record<string, string> {
+export function buildHeaders(headers: KeyValue[], bodyType: BodyType): Record<string, string> {
   const result: Record<string, string> = {}
 
   for (const header of headers) {
