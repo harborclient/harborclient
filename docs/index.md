@@ -8,7 +8,7 @@ hero:
   text: A desktop HTTP client
   tagline: Build, send, and inspect HTTP requests with collections, tabs, and local persistence.
   image:
-    src: /images/logo.png
+    src: /images/logo-white.png
     alt: HarborClient
   actions:
     - theme: brand
