@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, nativeTheme, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, nativeTheme, shell } from 'electron';
 import windowStateKeeper from 'electron-window-state';
 import { join } from 'path';
 import { closeDb, getSetting, initDb } from '#/main/db';
@@ -10,6 +10,13 @@ const isDev = !app.isPackaged;
 
 const THEME_SETTING_KEY = 'theme';
 
+type CloseReason = 'window' | 'app';
+
+let mainWindow: BrowserWindow | null = null;
+let isQuitting = false;
+let closePromptOpen = false;
+let closeReason: CloseReason | null = null;
+
 /**
  * Applies a persisted or default theme to nativeTheme.
  */
@@ -18,6 +25,33 @@ function applyPersistedTheme(): void {
   const theme: ThemeSource =
     stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
   nativeTheme.themeSource = theme;
+}
+
+/**
+ * Prompts the renderer to confirm close/quit when not already quitting.
+ *
+ * @param reason - Whether the user closed the window or quit the app.
+ */
+function promptForClose(reason: CloseReason): void {
+  if (!mainWindow || closePromptOpen || isQuitting) return;
+  if (mainWindow.webContents.isLoading()) return;
+
+  closePromptOpen = true;
+  closeReason = reason;
+  mainWindow.webContents.send('app:before-close');
+}
+
+/**
+ * Registers close and quit handlers on a browser window.
+ *
+ * @param window - Main application window.
+ */
+function setupCloseHandlers(window: BrowserWindow): void {
+  window.on('close', (event) => {
+    if (isQuitting) return;
+    event.preventDefault();
+    promptForClose('window');
+  });
 }
 
 // chrome-sandbox needs SUID (mode 4755), which fails on mounted/network filesystems
@@ -45,7 +79,7 @@ function createWindow(): BrowserWindow {
     defaultHeight: 800
   });
 
-  const mainWindow = new BrowserWindow({
+  const window = new BrowserWindow({
     x: mainWindowState.x,
     y: mainWindowState.y,
     width: mainWindowState.width,
@@ -70,48 +104,75 @@ function createWindow(): BrowserWindow {
     }
   });
 
-  mainWindowState.manage(mainWindow);
+  mainWindowState.manage(window);
 
-  mainWindow.on('ready-to-show', () => {
-    mainWindow.show();
+  window.on('ready-to-show', () => {
+    window.show();
   });
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
+  window.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url);
     return { action: 'deny' };
   });
 
+  setupCloseHandlers(window);
+
   if (isDev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
+    window.loadURL(process.env['ELECTRON_RENDERER_URL']);
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
+    window.loadFile(join(__dirname, '../renderer/index.html'));
   }
 
-  return mainWindow;
+  return window;
 }
+
+ipcMain.on('app:close-decision', (_event, proceed: boolean) => {
+  closePromptOpen = false;
+
+  if (!proceed) {
+    closeReason = null;
+    return;
+  }
+
+  isQuitting = true;
+  const reason = closeReason;
+  closeReason = null;
+
+  if (reason === 'app') {
+    app.quit();
+  } else {
+    mainWindow?.close();
+  }
+});
 
 app.whenReady().then(() => {
   initDb(app.getPath('userData'));
   applyPersistedTheme();
   registerIpcHandlers();
-  const mainWindow = createWindow();
+  mainWindow = createWindow();
   Menu.setApplicationMenu(buildMenu(mainWindow));
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      const window = createWindow();
-      Menu.setApplicationMenu(buildMenu(window));
+      isQuitting = false;
+      mainWindow = createWindow();
+      Menu.setApplicationMenu(buildMenu(mainWindow));
     }
   });
 });
 
 app.on('window-all-closed', () => {
-  closeDb();
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
 
-app.on('before-quit', () => {
-  closeDb();
+app.on('before-quit', (event) => {
+  if (isQuitting) {
+    closeDb();
+    return;
+  }
+
+  event.preventDefault();
+  promptForClose('app');
 });

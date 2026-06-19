@@ -1,6 +1,8 @@
 import type { JSX } from 'react';
 import type { KeyValue, Variable } from '#/shared/types';
+import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { VariableInput } from '#/renderer/src/components/VariableInput';
+import { faPlus, faXmark } from '#/renderer/src/fontawesome';
 import { field, iconButtonDanger, toolbarButton } from '#/renderer/src/ui/classes';
 
 interface Props {
@@ -119,12 +121,17 @@ export function KeyValueEditor({
             onClick={() => removeRow(index)}
             title="Remove"
           >
-            ×
+            <FaIcon icon={faXmark} className="h-3.5 w-3.5" />
           </button>
         </div>
       ))}
-      <button type="button" className={`${toolbarButton} self-start`} onClick={addRow}>
-        + Add row
+      <button
+        type="button"
+        className={`${toolbarButton} inline-flex items-center gap-1 self-start`}
+        onClick={addRow}
+      >
+        <FaIcon icon={faPlus} className="h-3 w-3" />
+        Add row
       </button>
     </div>
   );

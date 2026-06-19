@@ -1,6 +1,8 @@
 import { useState, type JSX } from 'react';
 import type { Collection, SavedRequest } from '#/shared/types';
 import { RowActionsMenu } from '#/renderer/src/components/RowActionsMenu';
+import { FaIcon } from '#/renderer/src/components/FaIcon';
+import { faPlus } from '#/renderer/src/fontawesome';
 import { METHOD_CLASSES, sourceRow, toolbarButton } from './classes';
 
 interface Props {
@@ -127,8 +129,12 @@ export function Sidebar({
           <h2 className="m-0 text-[11px] font-medium uppercase tracking-wide text-muted">
             Collections
           </h2>
-          <button className={toolbarButton} onClick={onAddCollection}>
-            + Collection
+          <button
+            className={`${toolbarButton} inline-flex items-center gap-1`}
+            onClick={onAddCollection}
+          >
+            <FaIcon icon={faPlus} className="h-3 w-3" />
+            Collection
           </button>
         </div>
 

@@ -77,6 +77,16 @@ export function isTabDirty(tab: RequestTab): boolean {
 }
 
 /**
+ * Returns all open tabs that have unsaved changes.
+ *
+ * @param tabs - Open request tabs.
+ * @returns Tabs whose draft differs from its saved baseline.
+ */
+export function getDirtyTabs(tabs: RequestTab[]): RequestTab[] {
+  return tabs.filter(isTabDirty);
+}
+
+/**
  * Returns an empty key-value row with enabled set to true.
  *
  * @returns Blank KeyValue entry for editors.

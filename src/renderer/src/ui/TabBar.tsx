@@ -1,5 +1,7 @@
 import type { JSX } from 'react';
 import { isTabDirty, type RequestTab } from '#/renderer/src/store/drafts';
+import { FaIcon } from '#/renderer/src/components/FaIcon';
+import { faPlus, faXmark } from '#/renderer/src/fontawesome';
 import { METHOD_CLASSES } from './classes';
 
 interface Props {
@@ -75,18 +77,18 @@ export function TabBar({ tabs, activeTabId, onSelect, onClose, onNew }: Props): 
                 onClose(tab.tabId);
               }}
             >
-              ×
+              <FaIcon icon={faXmark} className="h-3.5 w-3.5" />
             </button>
           </div>
         );
       })}
-      <div className="flex shrink-0 items-center rounded-t-md border border-b-0 border-transparent bg-transparent px-2 py-2 text-muted hover:bg-selection/60 hover:text-text">
+      <div className="flex shrink-0 self-stretch items-stretch rounded-t-md border border-b-0 border-transparent bg-transparent px-1 text-muted hover:bg-selection/60 hover:text-text">
         <button
-          className="flex cursor-pointer items-center justify-center border-none bg-transparent p-0 text-[13px] text-inherit app-no-drag"
+          className="inline-flex cursor-pointer items-center justify-center self-stretch border-none bg-transparent px-2 py-2 text-inherit app-no-drag"
           title="New tab"
           onClick={onNew}
         >
-          +
+          <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
         </button>
       </div>
     </div>

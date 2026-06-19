@@ -515,6 +515,21 @@ export interface Api {
    * @param theme - Theme source to apply.
    */
   setTheme: (theme: ThemeSource) => Promise<void>;
+
+  /**
+   * Subscribes to window close and app quit attempts from the main process.
+   *
+   * @param callback - Handler invoked when the user tries to close or quit.
+   * @returns Unsubscribe function.
+   */
+  onBeforeClose: (callback: () => void) => () => void;
+
+  /**
+   * Responds to a close/quit attempt after checking unsaved state or user choice.
+   *
+   * @param proceed - True to allow close/quit, false to cancel.
+   */
+  confirmClose: (proceed: boolean) => void;
 }
 
 declare global {

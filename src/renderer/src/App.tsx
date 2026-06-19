@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState, type JSX } from 'react';
+import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import logoUrl from '@images/logo-square.png';
 import { useAppStore } from '#/renderer/src/store';
-import { isTabDirty } from '#/renderer/src/store/drafts';
+import { getDirtyTabs, isTabDirty } from '#/renderer/src/store/drafts';
 import { CollectionSettings } from '#/renderer/src/ui/CollectionSettings';
 import { Settings } from '#/renderer/src/ui/Settings';
 import { Sidebar } from '#/renderer/src/ui/Sidebar';
@@ -40,15 +40,19 @@ export default function App(): JSX.Element {
   const [collectionModalTab, setCollectionModalTab] = useState<CollectionModalTab>('create');
   const [newCollectionName, setNewCollectionName] = useState('');
   const [closeTabPrompt, setCloseTabPrompt] = useState<CloseTabPrompt | null>(null);
+  const [quitPrompt, setQuitPrompt] = useState<string[] | null>(null);
   const [configuringCollectionId, setConfiguringCollectionId] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showConsole, setShowConsole] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
   const [appVersion, setAppVersion] = useState('');
   const requests =
     store.selectedCollectionId != null
       ? (store.requestsByCollection[store.selectedCollectionId] ?? [])
       : [];
+  const tabsRef = useRef(store.tabs);
+  tabsRef.current = store.tabs;
 
   const activeCollectionId = store.draft.collection_id ?? store.selectedCollectionId;
   const activeCollection =
@@ -172,6 +176,18 @@ export default function App(): JSX.Element {
     };
   }, [showAbout]);
 
+  useEffect(() => {
+    const unsubscribe = window.api.onBeforeClose(() => {
+      const dirtyTabs = getDirtyTabs(tabsRef.current);
+      if (dirtyTabs.length === 0) {
+        window.api.confirmClose(true);
+        return;
+      }
+      setQuitPrompt(dirtyTabs.map((tab) => tab.draft.name));
+    });
+    return unsubscribe;
+  }, []);
+
   /**
    * Closes a tab, prompting when it has unsaved changes.
    *
@@ -195,38 +211,40 @@ export default function App(): JSX.Element {
     <div className={`flex h-screen flex-col ${isMac ? 'platform-darwin' : ''}`}>
       <TitleBar />
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
-        <Sidebar
-          collections={store.collections}
-          requests={requests}
-          selectedCollectionId={store.selectedCollectionId}
-          activeRequestId={store.draft.id}
-          onSelectCollection={store.setSelectedCollectionId}
-          onAddCollection={() => {
-            setNewCollectionName('');
-            setCollectionModalTab('create');
-            setCollectionModal('create');
-          }}
-          onConfigureCollection={(id) => {
-            setShowSettings(false);
-            setConfiguringCollectionId(id);
-          }}
-          onDeleteCollection={store.deleteCollection}
-          onExportCollection={async (id) => {
-            const result = await store.exportCollection(id);
-            if (!result.canceled) {
-              toast.success('Collection exported');
-            }
-          }}
-          onNewRequestInCollection={async (id) => {
-            try {
-              await store.newRequestInCollection(id);
-            } catch (err) {
-              alert(err instanceof Error ? err.message : 'Failed to create request');
-            }
-          }}
-          onLoadRequest={store.loadRequest}
-          onDeleteRequest={store.deleteRequest}
-        />
+        {showSidebar && (
+          <Sidebar
+            collections={store.collections}
+            requests={requests}
+            selectedCollectionId={store.selectedCollectionId}
+            activeRequestId={store.draft.id}
+            onSelectCollection={store.setSelectedCollectionId}
+            onAddCollection={() => {
+              setNewCollectionName('');
+              setCollectionModalTab('create');
+              setCollectionModal('create');
+            }}
+            onConfigureCollection={(id) => {
+              setShowSettings(false);
+              setConfiguringCollectionId(id);
+            }}
+            onDeleteCollection={store.deleteCollection}
+            onExportCollection={async (id) => {
+              const result = await store.exportCollection(id);
+              if (!result.canceled) {
+                toast.success('Collection exported');
+              }
+            }}
+            onNewRequestInCollection={async (id) => {
+              try {
+                await store.newRequestInCollection(id);
+              } catch (err) {
+                alert(err instanceof Error ? err.message : 'Failed to create request');
+              }
+            }}
+            onLoadRequest={store.loadRequest}
+            onDeleteRequest={store.deleteRequest}
+          />
+        )}
 
         <main className="flex min-w-0 flex-1 flex-col bg-surface">
           {showSettings ? (
@@ -284,6 +302,8 @@ export default function App(): JSX.Element {
         consoleOpen={showConsole}
         entryCount={store.consoleEntries.length}
         onToggleConsole={() => setShowConsole((open) => !open)}
+        sidebarOpen={showSidebar}
+        onToggleSidebar={() => setShowSidebar((open) => !open)}
       />
 
       {collectionModal && (
@@ -392,6 +412,52 @@ export default function App(): JSX.Element {
                 }}
               >
                 Close without saving
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {quitPrompt && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => {
+            setQuitPrompt(null);
+            window.api.confirmClose(false);
+          }}
+        >
+          <div
+            className="w-96 rounded-lg border border-separator bg-surface p-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="m-0 mb-1 text-[13px] font-semibold text-text">Unsaved changes</h2>
+            <p className="mb-4 text-[12px] text-muted">
+              {quitPrompt.length === 1 ? (
+                <>
+                  &ldquo;{quitPrompt[0]}&rdquo; has unsaved changes. Quit without saving?
+                </>
+              ) : (
+                <>{quitPrompt.length} requests have unsaved changes. Quit without saving?</>
+              )}
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                className={secondaryButton}
+                onClick={() => {
+                  setQuitPrompt(null);
+                  window.api.confirmClose(false);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className={primaryButton}
+                onClick={() => {
+                  setQuitPrompt(null);
+                  window.api.confirmClose(true);
+                }}
+              >
+                Quit without saving
               </button>
             </div>
           </div>

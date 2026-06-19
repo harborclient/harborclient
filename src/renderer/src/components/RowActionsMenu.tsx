@@ -1,4 +1,6 @@
 import { useEffect, useRef, type JSX } from 'react';
+import { FaIcon } from '#/renderer/src/components/FaIcon';
+import { faBars } from '#/renderer/src/fontawesome';
 import { iconButton } from '#/renderer/src/ui/classes';
 
 type MenuItem = {
@@ -74,7 +76,7 @@ export function RowActionsMenu({ items, menuId, openMenuId, onOpenChange }: Prop
           onOpenChange(isOpen ? null : menuId);
         }}
       >
-        ☰
+        <FaIcon icon={faBars} className="h-3.5 w-3.5" />
       </button>
       {isOpen && (
         <div

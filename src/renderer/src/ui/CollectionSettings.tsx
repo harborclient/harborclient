@@ -1,7 +1,9 @@
 import { useState, type JSX } from 'react';
 import type { Collection, KeyValue, Variable } from '#/shared/types';
 import { KeyValueEditor } from '#/renderer/src/components/KeyValueEditor';
+import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { emptyKeyValue } from '#/renderer/src/store/drafts';
+import { faPlus, faXmark } from '#/renderer/src/fontawesome';
 import {
   field,
   iconButton,
@@ -110,7 +112,7 @@ function CollectionSettingsForm({ collection, onSave, onClose }: Props): JSX.Ele
             title="Close"
             onClick={onClose}
           >
-            ×
+            <FaIcon icon={faXmark} className="h-4 w-4" />
           </button>
         </div>
 
@@ -191,15 +193,20 @@ function CollectionSettingsForm({ collection, onSave, onClose }: Props): JSX.Ele
                         onClick={() => removeVariable(index)}
                         title="Remove"
                       >
-                        ×
+                        <FaIcon icon={faXmark} className="h-3.5 w-3.5" />
                       </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <button type="button" className={`${toolbarButton} self-start`} onClick={addVariable}>
-              + Add variable
+            <button
+              type="button"
+              className={`${toolbarButton} inline-flex items-center gap-1 self-start`}
+              onClick={addVariable}
+            >
+              <FaIcon icon={faPlus} className="h-3 w-3" />
+              Add variable
             </button>
           </div>
         </div>

@@ -6,6 +6,7 @@ import {
   defaultDraft,
   draftFromSaved,
   emptyKeyValue,
+  getDirtyTabs,
   isDraftDirty,
   isTabDirty,
   normalizeDraftForCompare,
@@ -95,6 +96,17 @@ describe('isTabDirty', () => {
 
     tab.draft.url = 'https://changed.example';
     expect(isTabDirty(tab)).toBe(true);
+  });
+});
+
+describe('getDirtyTabs', () => {
+  it('returns only tabs with unsaved changes', () => {
+    const clean = createTab(sampleDraft());
+    const dirty = createTab(sampleDraft());
+    dirty.draft.url = 'https://changed.example';
+
+    expect(getDirtyTabs([clean, dirty])).toEqual([dirty]);
+    expect(getDirtyTabs([clean])).toEqual([]);
   });
 });
 

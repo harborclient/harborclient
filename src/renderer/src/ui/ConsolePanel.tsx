@@ -7,6 +7,8 @@ import {
   type MouseEvent as ReactMouseEvent
 } from 'react';
 import type { ConsoleEntry } from '#/renderer/src/store';
+import { FaIcon } from '#/renderer/src/components/FaIcon';
+import { faXmark } from '#/renderer/src/fontawesome';
 import { RequestDetails } from './responseFormat';
 import { formatBytes } from './responseFormatUtils';
 import { METHOD_CLASSES, secondaryButton, statusDotClass } from './classes';
@@ -191,7 +193,7 @@ export function ConsolePanel({ entries, open, onClose, onClear }: Props): JSX.El
             onClick={handleClose}
             aria-label="Close console"
           >
-            ×
+            <FaIcon icon={faXmark} className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>

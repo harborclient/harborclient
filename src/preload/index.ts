@@ -154,6 +154,29 @@ function setTheme(theme: ThemeSource): Promise<void> {
   return ipcRenderer.invoke('theme:set', theme);
 }
 
+/**
+ * Subscribes to window close and app quit attempts from the main process.
+ *
+ * @param callback - Handler invoked when the user tries to close or quit.
+ * @returns Unsubscribe function.
+ */
+function onBeforeClose(callback: () => void): () => void {
+  const listener = (): void => {
+    callback();
+  };
+  ipcRenderer.on('app:before-close', listener);
+  return () => ipcRenderer.removeListener('app:before-close', listener);
+}
+
+/**
+ * Responds to a close/quit attempt after checking unsaved state or user choice.
+ *
+ * @param proceed - True to allow close/quit, false to cancel.
+ */
+function confirmClose(proceed: boolean): void {
+  ipcRenderer.send('app:close-decision', proceed);
+}
+
 const api: Api = {
   listCollections,
   createCollection,
@@ -168,7 +191,9 @@ const api: Api = {
   onMenuAction,
   getAppVersion,
   getTheme,
-  setTheme
+  setTheme,
+  onBeforeClose,
+  confirmClose
 };
 
 contextBridge.exposeInMainWorld('api', api);
