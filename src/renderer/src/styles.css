@@ -1,0 +1,129 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-surface: var(--mac-surface);
+  --color-sidebar: var(--mac-sidebar);
+  --color-control: var(--mac-control);
+  --color-separator: var(--mac-separator);
+  --color-text: var(--mac-text);
+  --color-text-secondary: var(--mac-text-secondary);
+  --color-muted: var(--mac-muted);
+  --color-accent: var(--mac-accent);
+  --color-selection: var(--mac-selection);
+  --color-danger: var(--mac-danger);
+  --color-danger-light: var(--mac-danger-light);
+  --color-warning: var(--mac-warning);
+  --color-success: var(--mac-success);
+  --color-info: var(--mac-info);
+  --color-method-get: var(--mac-method-get);
+  --color-method-post: var(--mac-method-post);
+  --color-method-put: var(--mac-method-put);
+  --color-method-patch: var(--mac-method-patch);
+  --color-method-delete: var(--mac-method-delete);
+  --color-method-head: var(--mac-method-head);
+  --color-method-options: var(--mac-method-options);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+
+    --mac-surface: #f5f5f7;
+    --mac-sidebar: #ececee;
+    --mac-control: #ffffff;
+    --mac-separator: rgba(0, 0, 0, 0.08);
+    --mac-text: rgba(0, 0, 0, 0.85);
+    --mac-text-secondary: rgba(0, 0, 0, 0.65);
+    --mac-muted: rgba(0, 0, 0, 0.45);
+    --mac-accent: #007aff;
+    --mac-selection: rgba(0, 122, 255, 0.18);
+    --mac-danger: #ff3b30;
+    --mac-danger-light: #d70015;
+    --mac-warning: #ff9500;
+    --mac-success: #34c759;
+    --mac-info: rgba(0, 0, 0, 0.35);
+    --mac-method-get: #2d8a4e;
+    --mac-method-post: #0066cc;
+    --mac-method-put: #b8860b;
+    --mac-method-patch: #7b5ea7;
+    --mac-method-delete: #c0392b;
+    --mac-method-head: #6e6e73;
+    --mac-method-options: #6e6e73;
+
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    font-weight: 400;
+    color: var(--mac-text);
+    background-color: var(--mac-surface);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --mac-surface: #1e1e1e;
+      --mac-sidebar: #252526;
+      --mac-control: #3a3a3c;
+      --mac-separator: rgba(255, 255, 255, 0.08);
+      --mac-text: rgba(255, 255, 255, 0.85);
+      --mac-text-secondary: rgba(255, 255, 255, 0.65);
+      --mac-muted: rgba(255, 255, 255, 0.45);
+      --mac-accent: #0a84ff;
+      --mac-selection: rgba(10, 132, 255, 0.22);
+      --mac-danger: #ff453a;
+      --mac-danger-light: #ff6961;
+      --mac-warning: #ff9f0a;
+      --mac-success: #30d158;
+      --mac-info: rgba(255, 255, 255, 0.35);
+      --mac-method-get: #3d9960;
+      --mac-method-post: #409cff;
+      --mac-method-put: #d4a017;
+      --mac-method-patch: #9b7ed9;
+      --mac-method-delete: #ff6961;
+      --mac-method-head: #8e8e93;
+      --mac-method-options: #8e8e93;
+    }
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--mac-accent) 35%, transparent);
+  }
+}
+
+@layer utilities {
+  .app-drag {
+    -webkit-app-region: drag;
+  }
+
+  .app-no-drag {
+    -webkit-app-region: no-drag;
+  }
+}

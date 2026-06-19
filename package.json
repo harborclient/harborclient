@@ -1,0 +1,49 @@
+{
+  "name": "harbor-client",
+  "version": "1.0.0",
+  "description": "A Postman-style HTTP client built with Electron",
+  "main": "./out/main/index.js",
+  "homepage": "https://github.com/harbor/harbor-client",
+  "author": {
+    "name": "Harbor",
+    "email": "harbor@example.com"
+  },
+  "license": "MIT",
+  "imports": {
+    "#/*": "./src/*"
+  },
+  "scripts": {
+    "dev": "ELECTRON_DISABLE_SANDBOX=1 electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "ELECTRON_DISABLE_SANDBOX=1 electron-vite preview",
+    "postinstall": "electron-builder install-app-deps",
+    "dist": "pnpm build && electron-builder"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.9.1",
+    "electron-window-state": "^5.0.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-hot-toast": "^2.6.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.1",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.4.1",
+    "electron": "^35.2.1",
+    "electron-builder": "^26.0.12",
+    "electron-vite": "^3.1.0",
+    "tailwindcss": "^4.3.1",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "electron",
+      "esbuild"
+    ]
+  }
+}

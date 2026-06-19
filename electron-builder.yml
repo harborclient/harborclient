@@ -1,0 +1,23 @@
+appId: com.harbor.client
+productName: Harbor Client
+directories:
+  buildResources: build
+  output: release
+files:
+  - out/**/*
+  - package.json
+  - node_modules/better-sqlite3/**/*
+asarUnpack:
+  - node_modules/better-sqlite3/**/*
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Development
+  maintainer: harbor@example.com
+mac:
+  target:
+    - dmg
+win:
+  target:
+    - nsis
