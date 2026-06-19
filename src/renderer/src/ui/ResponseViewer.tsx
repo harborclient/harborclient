@@ -86,7 +86,7 @@ export function ResponseViewer({ response, sending, testResults }: Props): JSX.E
           </button>
           {hasTests && (
             <button className={segment(effectiveTab === 'tests')} onClick={() => setTab('tests')}>
-              Test Results
+              Tests
               <span
                 className={`ml-1.5 text-[12px] ${failedCount > 0 ? 'text-danger' : 'text-muted'}`}
               >

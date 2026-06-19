@@ -497,6 +497,66 @@ export interface ScriptRunResult {
 export type ThemeSource = 'light' | 'dark' | 'system';
 
 /**
+ * Active database backend for collections and requests.
+ */
+export type DatabaseProvider = 'sqlite' | 'firestore';
+
+/**
+ * Firebase Firestore connection settings.
+ */
+export interface FirestoreSettings {
+  /**
+   * Firebase Web API key.
+   */
+  apiKey: string;
+
+  /**
+   * Firebase Auth domain.
+   */
+  authDomain: string;
+
+  /**
+   * Firebase project ID.
+   */
+  projectId: string;
+
+  /**
+   * Firebase app ID.
+   */
+  appId: string;
+
+  /**
+   * Email for Firebase Auth sign-in.
+   */
+  email: string;
+
+  /**
+   * Password for Firebase Auth sign-in.
+   */
+  password: string;
+}
+
+/**
+ * Configurable SQLite database path and legacy migration settings.
+ */
+export interface SqliteSettings {
+  /**
+   * Filename of the primary database file within userData.
+   */
+  dbFilename: string;
+
+  /**
+   * Filename of the legacy database file used for migration.
+   */
+  legacyDbFilename: string;
+
+  /**
+   * Legacy application data directory name under appData.
+   */
+  legacyUserDataDir: string;
+}
+
+/**
  * Menu action identifiers sent from the main process menu.
  */
 export type MenuActionId =
@@ -629,6 +689,42 @@ export interface Api {
    * @param theme - Theme source to apply.
    */
   setTheme: (theme: ThemeSource) => Promise<void>;
+
+  /**
+   * Returns persisted SQLite path and legacy migration settings.
+   */
+  getSqliteSettings: () => Promise<SqliteSettings>;
+
+  /**
+   * Persists SQLite path and legacy migration settings (applied on restart).
+   *
+   * @param settings - SQLite configuration to store.
+   */
+  setSqliteSettings: (settings: SqliteSettings) => Promise<void>;
+
+  /**
+   * Returns the persisted database provider selection.
+   */
+  getDatabaseProvider: () => Promise<DatabaseProvider>;
+
+  /**
+   * Persists the database provider selection (applied on restart).
+   *
+   * @param provider - Provider to use on next launch.
+   */
+  setDatabaseProvider: (provider: DatabaseProvider) => Promise<void>;
+
+  /**
+   * Returns persisted Firestore connection settings.
+   */
+  getFirestoreSettings: () => Promise<FirestoreSettings>;
+
+  /**
+   * Persists Firestore connection settings (applied on restart).
+   *
+   * @param settings - Firestore configuration to store.
+   */
+  setFirestoreSettings: (settings: FirestoreSettings) => Promise<void>;
 
   /**
    * Subscribes to window close and app quit attempts from the main process.

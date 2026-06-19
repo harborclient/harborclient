@@ -3,10 +3,20 @@ import { readFile, writeFile } from 'fs/promises';
 import type { IDatabase } from '#/main/db/IDatabase';
 import { executeRequest } from '#/main/http';
 import { runScript } from '#/main/scripts';
+import {
+  getDatabaseProvider,
+  getFirestoreSettings,
+  setDatabaseProvider,
+  setFirestoreSettings
+} from '#/main/settings/databaseSettings';
+import { getSqliteSettings, setSqliteSettings } from '#/main/settings/sqliteSettings';
 import type {
+  DatabaseProvider,
+  FirestoreSettings,
   SaveRequestInput,
   ScriptRunInput,
   SendRequestInput,
+  SqliteSettings,
   ThemeSource,
   Variable,
   KeyValue
@@ -31,13 +41,10 @@ function parseThemeSource(value: string | undefined): ThemeSource {
  * Registers IPC handlers that bridge renderer calls to db and HTTP modules.
  */
 export function registerIpcHandlers(db: IDatabase): void {
-  // Returns all collections, ordered by name.
   ipcMain.handle('collections:list', () => db.listCollections());
 
-  // Creates a new collection with the given display name.
   ipcMain.handle('collections:create', (_event, name: string) => db.createCollection(name));
 
-  // Updates a collection's name, variables, and headers.
   ipcMain.handle(
     'collections:update',
     (
@@ -51,12 +58,10 @@ export function registerIpcHandlers(db: IDatabase): void {
     ) => db.updateCollection(id, name, variables, headers, preRequestScript, postRequestScript)
   );
 
-  // Deletes a collection and all of its saved requests.
   ipcMain.handle('collections:delete', (_event, id: number) => db.deleteCollection(id));
 
-  // Exports a collection to a JSON file via a native save dialog.
   ipcMain.handle('collections:export', async (_event, id: number) => {
-    const data = db.exportCollectionData(id);
+    const data = await db.exportCollectionData(id);
     const win = BrowserWindow.getFocusedWindow();
     const dialogOptions = {
       defaultPath: `${data.name}.json`,
@@ -74,7 +79,6 @@ export function registerIpcHandlers(db: IDatabase): void {
     return { canceled: false, path: filePath };
   });
 
-  // Imports a collection from a JSON file via a native open dialog.
   ipcMain.handle('collections:import', async () => {
     const win = BrowserWindow.getFocusedWindow();
     const dialogOptions = {
@@ -94,30 +98,40 @@ export function registerIpcHandlers(db: IDatabase): void {
     return db.importCollectionData(parsed);
   });
 
-  // Returns all saved requests in a collection, ordered by sort order then name.
   ipcMain.handle('requests:list', (_event, collectionId: number) => db.listRequests(collectionId));
 
-  // Inserts a new saved request or updates an existing one.
   ipcMain.handle('requests:save', (_event, req: SaveRequestInput) => db.saveRequest(req));
 
-  // Deletes a saved request by ID.
   ipcMain.handle('requests:delete', (_event, id: number) => db.deleteRequest(id));
 
-  // Sends an HTTP request and returns the response (status, headers, body, timing).
   ipcMain.handle('http:send', (_event, req: SendRequestInput) => executeRequest(req));
 
-  // Runs a pre/post script in an isolated-vm sandbox.
   ipcMain.handle('scripts:run', (_event, input: ScriptRunInput) => runScript(input));
 
-  // Returns the application version from package.json.
   ipcMain.handle('app:getVersion', () => app.getVersion());
 
-  // Returns the persisted theme preference.
-  ipcMain.handle('theme:get', () => parseThemeSource(db.getSetting(THEME_SETTING_KEY)));
+  ipcMain.handle('theme:get', async () => parseThemeSource(await db.getSetting(THEME_SETTING_KEY)));
 
-  // Persists and applies a theme preference.
-  ipcMain.handle('theme:set', (_event, theme: ThemeSource) => {
+  ipcMain.handle('theme:set', async (_event, theme: ThemeSource) => {
     nativeTheme.themeSource = theme;
-    db.setSetting(THEME_SETTING_KEY, theme);
+    await db.setSetting(THEME_SETTING_KEY, theme);
+  });
+
+  ipcMain.handle('sqlite:getSettings', () => getSqliteSettings());
+
+  ipcMain.handle('sqlite:setSettings', (_event, settings: SqliteSettings) => {
+    setSqliteSettings(settings);
+  });
+
+  ipcMain.handle('database:getProvider', () => getDatabaseProvider());
+
+  ipcMain.handle('database:setProvider', (_event, provider: DatabaseProvider) => {
+    setDatabaseProvider(provider);
+  });
+
+  ipcMain.handle('firestore:getSettings', () => getFirestoreSettings());
+
+  ipcMain.handle('firestore:setSettings', (_event, settings: FirestoreSettings) => {
+    setFirestoreSettings(settings);
   });
 }

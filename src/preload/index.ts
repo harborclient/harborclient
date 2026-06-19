@@ -3,6 +3,8 @@ import type {
   Api,
   Collection,
   CollectionExportResult,
+  DatabaseProvider,
+  FirestoreSettings,
   MenuActionId,
   SaveRequestInput,
   SavedRequest,
@@ -10,6 +12,7 @@ import type {
   ScriptRunResult,
   SendRequestInput,
   SendResult,
+  SqliteSettings,
   ThemeSource,
   Variable,
   KeyValue
@@ -177,6 +180,54 @@ function setTheme(theme: ThemeSource): Promise<void> {
 }
 
 /**
+ * Returns persisted SQLite path and legacy migration settings.
+ */
+function getSqliteSettings(): Promise<SqliteSettings> {
+  return ipcRenderer.invoke('sqlite:getSettings');
+}
+
+/**
+ * Persists SQLite path and legacy migration settings.
+ *
+ * @param settings - SQLite configuration to store.
+ */
+function setSqliteSettings(settings: SqliteSettings): Promise<void> {
+  return ipcRenderer.invoke('sqlite:setSettings', settings);
+}
+
+/**
+ * Returns the persisted database provider selection.
+ */
+function getDatabaseProvider(): Promise<DatabaseProvider> {
+  return ipcRenderer.invoke('database:getProvider');
+}
+
+/**
+ * Persists the database provider selection.
+ *
+ * @param provider - Provider to use on next launch.
+ */
+function setDatabaseProvider(provider: DatabaseProvider): Promise<void> {
+  return ipcRenderer.invoke('database:setProvider', provider);
+}
+
+/**
+ * Returns persisted Firestore connection settings.
+ */
+function getFirestoreSettings(): Promise<FirestoreSettings> {
+  return ipcRenderer.invoke('firestore:getSettings');
+}
+
+/**
+ * Persists Firestore connection settings.
+ *
+ * @param settings - Firestore configuration to store.
+ */
+function setFirestoreSettings(settings: FirestoreSettings): Promise<void> {
+  return ipcRenderer.invoke('firestore:setSettings', settings);
+}
+
+/**
  * Subscribes to window close and app quit attempts from the main process.
  *
  * @param callback - Handler invoked when the user tries to close or quit.
@@ -215,6 +266,12 @@ const api: Api = {
   getAppVersion,
   getTheme,
   setTheme,
+  getSqliteSettings,
+  setSqliteSettings,
+  getDatabaseProvider,
+  setDatabaseProvider,
+  getFirestoreSettings,
+  setFirestoreSettings,
   onBeforeClose,
   confirmClose
 };

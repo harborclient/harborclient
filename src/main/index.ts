@@ -1,8 +1,11 @@
-import { app, BrowserWindow, ipcMain, Menu, nativeTheme, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, shell } from 'electron';
 import windowStateKeeper from 'electron-window-state';
 import { join } from 'path';
-import { SqliteDatabase } from '#/main/db';
+import { FirestoreDatabase, SqliteDatabase } from '#/main/db';
+import type { IDatabase } from '#/main/db/IDatabase';
 import { registerIpcHandlers } from '#/main/ipc';
+import { getDatabaseProvider, getFirestoreSettings } from '#/main/settings/databaseSettings';
+import { getSqliteSettings } from '#/main/settings/sqliteSettings';
 import { buildMenu } from '#/main/menu';
 import type { ThemeSource } from '#/shared/types';
 
@@ -10,7 +13,7 @@ const isDev = !app.isPackaged;
 
 const THEME_SETTING_KEY = 'theme';
 
-const db = new SqliteDatabase();
+let db: IDatabase;
 
 type CloseReason = 'window' | 'app';
 
@@ -20,10 +23,39 @@ let closePromptOpen = false;
 let closeReason: CloseReason | null = null;
 
 /**
+ * Creates and initializes the configured database backend.
+ *
+ * @returns Initialized database instance.
+ */
+async function createDatabase(): Promise<IDatabase> {
+  const provider = getDatabaseProvider();
+  if (provider === 'firestore') {
+    try {
+      const firestoreDb = new FirestoreDatabase(getFirestoreSettings());
+      await firestoreDb.init();
+      return firestoreDb;
+    } catch (err) {
+      console.error('Firestore init failed, falling back to SQLite:', err);
+    }
+  }
+
+  try {
+    const sqliteDb = new SqliteDatabase(app.getPath('userData'), getSqliteSettings());
+    await sqliteDb.init();
+    return sqliteDb;
+  } catch (err) {
+    throw new Error(
+      `SQLite init failed: ${err instanceof Error ? err.message : String(err)}`,
+      { cause: err },
+    );
+  }
+}
+
+/**
  * Applies a persisted or default theme to nativeTheme.
  */
-function applyPersistedTheme(): void {
-  const stored = db.getSetting(THEME_SETTING_KEY);
+async function applyPersistedTheme(): Promise<void> {
+  const stored = await db.getSetting(THEME_SETTING_KEY);
   const theme: ThemeSource =
     stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
   nativeTheme.themeSource = theme;
@@ -161,12 +193,22 @@ ipcMain.on('app:close-decision', (_event, proceed: boolean) => {
   }
 });
 
-app.whenReady().then(() => {
-  db.init(app.getPath('userData'));
-  applyPersistedTheme();
-  registerIpcHandlers(db);
-  mainWindow = createWindow();
-  Menu.setApplicationMenu(buildMenu(mainWindow));
+app.whenReady().then(async () => {
+  try {
+    db = await createDatabase();
+    await applyPersistedTheme();
+    registerIpcHandlers(db);
+    mainWindow = createWindow();
+    Menu.setApplicationMenu(buildMenu(mainWindow));
+  } catch (err) {
+    console.error('Failed to initialize application:', err);
+    dialog.showErrorBox(
+      'Harbor Client failed to start',
+      err instanceof Error ? err.message : String(err),
+    );
+    app.quit();
+    return;
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -185,7 +227,7 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', (event) => {
   if (isQuitting) {
-    db.close();
+    void db.close();
     return;
   }
 

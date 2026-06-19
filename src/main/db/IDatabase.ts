@@ -12,18 +12,16 @@ import type {
  */
 export interface IDatabase {
   /**
-   * Opens the database for the given user-data directory.
-   *
-   * @param userDataPath - Electron app userData path where the database file is stored.
+   * Opens the database connection using constructor configuration.
    */
-  init(userDataPath: string): void;
+  init(): Promise<void>;
 
   /**
    * Lists all collections ordered by name.
    *
    * @returns All collections in the database.
    */
-  listCollections(): Collection[];
+  listCollections(): Promise<Collection[]>;
 
   /**
    * Creates a new collection with the given name.
@@ -31,7 +29,7 @@ export interface IDatabase {
    * @param name - Display name for the collection.
    * @returns The newly created collection.
    */
-  createCollection(name: string): Collection;
+  createCollection(name: string): Promise<Collection>;
 
   /**
    * Updates a collection's name, variables, headers, and scripts.
@@ -51,14 +49,14 @@ export interface IDatabase {
     headers: KeyValue[],
     preRequestScript: string,
     postRequestScript: string
-  ): Collection;
+  ): Promise<Collection>;
 
   /**
    * Deletes a collection and all of its requests.
    *
    * @param id - Collection ID to delete.
    */
-  deleteCollection(id: number): void;
+  deleteCollection(id: number): Promise<void>;
 
   /**
    * Lists all saved requests in a collection.
@@ -66,7 +64,7 @@ export interface IDatabase {
    * @param collectionId - Collection to query.
    * @returns Requests ordered by sort_order then name.
    */
-  listRequests(collectionId: number): SavedRequest[];
+  listRequests(collectionId: number): Promise<SavedRequest[]>;
 
   /**
    * Inserts a new request or updates an existing one.
@@ -74,14 +72,14 @@ export interface IDatabase {
    * @param input - Request fields to persist.
    * @returns The saved request with ID and timestamps.
    */
-  saveRequest(input: SaveRequestInput): SavedRequest;
+  saveRequest(input: SaveRequestInput): Promise<SavedRequest>;
 
   /**
    * Deletes a saved request by ID.
    *
    * @param id - Request ID to delete.
    */
-  deleteRequest(id: number): void;
+  deleteRequest(id: number): Promise<void>;
 
   /**
    * Builds a portable export payload for a collection and its requests.
@@ -89,7 +87,7 @@ export interface IDatabase {
    * @param id - Collection ID to export.
    * @returns Collection export data without database IDs.
    */
-  exportCollectionData(id: number): CollectionExport;
+  exportCollectionData(id: number): Promise<CollectionExport>;
 
   /**
    * Imports a collection and its requests from export data.
@@ -97,7 +95,7 @@ export interface IDatabase {
    * @param data - Parsed collection export payload.
    * @returns The newly created collection.
    */
-  importCollectionData(data: unknown): Collection;
+  importCollectionData(data: unknown): Promise<Collection>;
 
   /**
    * Reads a persisted setting by key.
@@ -105,7 +103,7 @@ export interface IDatabase {
    * @param key - Setting key to look up.
    * @returns The stored value, or undefined when not set.
    */
-  getSetting(key: string): string | undefined;
+  getSetting(key: string): Promise<string | undefined>;
 
   /**
    * Persists a setting value, replacing any existing entry for the key.
@@ -113,10 +111,10 @@ export interface IDatabase {
    * @param key - Setting key to store.
    * @param value - Value to persist.
    */
-  setSetting(key: string, value: string): void;
+  setSetting(key: string, value: string): Promise<void>;
 
   /**
    * Closes the database connection.
    */
-  close(): void;
+  close(): Promise<void>;
 }

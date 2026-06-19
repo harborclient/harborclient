@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Enhance database management by integrating Firestore support alongside SQLite. Update IDatabase interface and SqliteDatabase class for asynchronous operations. Refactor IPC handlers and application initialization to accommodate new database settings. Modify package.json for dependency updates and improve test coverage for database interactions.. (`c7bab81`)
 - Update README.md to change logo image path from external URL to local path.. (`bd90979`)
 - Refactor database interaction by introducing a new SqliteDatabase class, updating IPC handlers for improved data management, and enhancing application initialization and theme management to align with the new structure.. (`b82e37e`)
 - Refactor database management by removing the old SQLite implementation and replacing it with a new SqliteDatabase class. Update IPC handlers to utilize the new database interface for improved data handling and organization. Enhance application initialization and theme management to align with the new database structure.. (`ffe777c`)

@@ -511,8 +511,10 @@ export function useAppStore(): AppStore {
     }
 
     const { draft: currentDraft } = activeTab;
+    const shouldUpdate =
+      currentDraft.id != null && currentDraft.collection_id === targetId;
     const saved = await window.api.saveRequest({
-      id: currentDraft.id,
+      id: shouldUpdate ? currentDraft.id : undefined,
       collection_id: targetId,
       name: currentDraft.name,
       method: currentDraft.method,
