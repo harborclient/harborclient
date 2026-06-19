@@ -1,10 +1,17 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
+    inputs:
+      release_type:
+        description: semver bump
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: write
@@ -16,6 +23,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -31,13 +41,67 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Bump version
+        run: |
+          set -euo pipefail
+          VERSION=$(pnpm version "${{ inputs.release_type }}" --no-git-tag-version | tail -n1 | sed 's/^v//')
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Bumped to $VERSION"
+
+      - name: Update CHANGELOG.md for release
+        if: env.VERSION != ''
+        run: |
+          set -euo pipefail
+
+          python3 - "$VERSION" "$(date -u +%Y-%m-%d)" <<'PY'
+          import re
+          import sys
+          import pathlib
+
+          version, date_iso = sys.argv[1], sys.argv[2]
+          path = pathlib.Path("CHANGELOG.md")
+          if not path.exists():
+              print("::warning::CHANGELOG.md not found; skipping changelog rename.")
+              sys.exit(0)
+
+          text = path.read_text()
+          match = re.search(r"^## Unreleased\s*\n(.*?)(?=^## |\Z)", text, flags=re.S | re.M)
+          if not match or not match.group(1).strip():
+              print("::warning::No Unreleased content; skipping changelog rename.")
+              sys.exit(0)
+
+          body = match.group(1).strip("\n")
+          replacement = f"## Unreleased\n\n## {version} - {date_iso}\n\n{body}\n"
+          new_text = re.sub(
+              r"^## Unreleased\s*\n.*?(?=^## |\Z)",
+              replacement + "\n",
+              text,
+              count=1,
+              flags=re.S | re.M,
+          )
+          path.write_text(new_text)
+          PY
+
+      - name: Commit, tag, and push
+        if: env.VERSION != ''
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json CHANGELOG.md
+          git commit -m "chore(changelog): release v${VERSION} [skip ci]"
+          git tag -a "v${VERSION}" -m "Release v${VERSION}"
+          git push origin HEAD:main --follow-tags
+
       - name: Build and package
         run: pnpm build && pnpm exec electron-builder --linux --publish never
 
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            release/*.AppImage
-            release/*.deb
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            --generate-notes \
+            release/*.AppImage release/*.deb
