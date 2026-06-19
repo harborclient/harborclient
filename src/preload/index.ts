@@ -9,7 +9,8 @@ import type {
   SendRequestInput,
   SendResult,
   ThemeSource,
-  Variable
+  Variable,
+  KeyValue
 } from '#/shared/types';
 
 /**
@@ -32,15 +33,21 @@ function createCollection(name: string): Promise<Collection> {
 }
 
 /**
- * Updates a collection's name and variables via IPC.
+ * Updates a collection's name, variables, and headers via IPC.
  *
  * @param id - Collection ID to update.
  * @param name - New display name.
  * @param variables - Collection-scoped variables.
+ * @param headers - Headers sent with every request in the collection.
  * @returns The updated collection.
  */
-function updateCollection(id: number, name: string, variables: Variable[]): Promise<Collection> {
-  return ipcRenderer.invoke('collections:update', id, name, variables);
+function updateCollection(
+  id: number,
+  name: string,
+  variables: Variable[],
+  headers: KeyValue[]
+): Promise<Collection> {
+  return ipcRenderer.invoke('collections:update', id, name, variables, headers);
 }
 
 /**

@@ -73,6 +73,11 @@ export interface Collection {
   variables: Variable[];
 
   /**
+   * Headers sent with every request in this collection.
+   */
+  headers: KeyValue[];
+
+  /**
    * ISO 8601 timestamp when the collection was created.
    */
   created_at: string;
@@ -206,6 +211,11 @@ export interface CollectionExport {
    * Collection-scoped variables for {{key}} substitution in requests.
    */
   variables: Variable[];
+
+  /**
+   * Headers sent with every request in this collection.
+   */
+  headers: KeyValue[];
 
   /**
    * Saved requests belonging to the collection.
@@ -413,14 +423,20 @@ export interface Api {
   createCollection: (name: string) => Promise<Collection>;
 
   /**
-   * Updates a collection's name and variables.
+   * Updates a collection's name, variables, and headers.
    *
    * @param id - Collection ID to update.
    * @param name - New display name.
    * @param variables - Collection-scoped variables.
+   * @param headers - Headers sent with every request in the collection.
    * @returns The updated collection.
    */
-  updateCollection: (id: number, name: string, variables: Variable[]) => Promise<Collection>;
+  updateCollection: (
+    id: number,
+    name: string,
+    variables: Variable[],
+    headers: KeyValue[]
+  ) => Promise<Collection>;
 
   /**
    * Deletes a collection and all of its saved requests.

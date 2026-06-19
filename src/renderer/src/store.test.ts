@@ -69,6 +69,12 @@ describe('substituteVariables', () => {
 
     expect(result).toBe('https://api.example.com/api');
   });
+
+  it('substitutes variables in collection header values', () => {
+    const result = substituteVariables('Bearer {{token}}', [variable('token', 'abc123')]);
+
+    expect(result).toBe('Bearer abc123');
+  });
 });
 
 describe('tokenizeVariables', () => {

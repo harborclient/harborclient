@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type {
   Collection,
   CollectionExportResult,
+  KeyValue,
   SavedRequest,
   SendResult,
   Variable
@@ -186,7 +187,12 @@ export interface AppStore {
   setActiveTab: (tabId: string) => void;
   closeTab: (tabId: string) => void;
   createCollection: (name: string) => Promise<Collection>;
-  updateCollection: (id: number, name: string, variables: Variable[]) => Promise<void>;
+  updateCollection: (
+    id: number,
+    name: string,
+    variables: Variable[],
+    headers: KeyValue[]
+  ) => Promise<void>;
   deleteCollection: (id: number) => Promise<void>;
   exportCollection: (id: number) => Promise<CollectionExportResult>;
   importCollection: () => Promise<Collection | null>;
@@ -391,18 +397,20 @@ export function useAppStore(): AppStore {
   };
 
   /**
-   * Updates a collection's name and variables and refreshes the list.
+   * Updates a collection's name, variables, and headers and refreshes the list.
    *
    * @param id - Collection ID to update.
    * @param name - New display name.
    * @param variables - Collection-scoped variables.
+   * @param headers - Headers sent with every request in the collection.
    */
   const updateCollection = async (
     id: number,
     name: string,
-    variables: Variable[]
+    variables: Variable[],
+    headers: KeyValue[]
   ): Promise<void> => {
-    await window.api.updateCollection(id, name, variables);
+    await window.api.updateCollection(id, name, variables, headers);
     await refreshCollections();
   };
 
@@ -542,13 +550,20 @@ export function useAppStore(): AppStore {
     const resolvedUrl = collection
       ? substituteVariables(currentDraft.url, collection.variables)
       : currentDraft.url;
+    const collectionHeaders = collection
+      ? (collection.headers ?? []).map((header) => ({
+          ...header,
+          value: substituteVariables(header.value, collection.variables)
+        }))
+      : [];
+    const headers = [...collectionHeaders, ...currentDraft.headers];
 
     updateTab(tabId, () => ({ sending: true, response: null }));
     try {
       const result = await window.api.sendRequest({
         method: currentDraft.method,
         url: resolvedUrl,
-        headers: currentDraft.headers,
+        headers,
         params: currentDraft.params,
         body: currentDraft.body,
         bodyType: currentDraft.body_type

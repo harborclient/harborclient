@@ -87,6 +87,7 @@ function rowToCollection(row: Record<string, unknown>): Collection {
     id: row.id as number,
     name: row.name as string,
     variables: parseJson<Partial<Variable>[]>(row.variables as string, []).map(normalizeVariable),
+    headers: parseJson<KeyValue[]>(row.headers as string, []),
     created_at: row.created_at as string
   };
 }
@@ -133,6 +134,7 @@ export function initDb(userDataPath: string): Database.Database {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       variables TEXT NOT NULL DEFAULT '[]',
+      headers TEXT NOT NULL DEFAULT '[]',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -163,6 +165,10 @@ export function initDb(userDataPath: string): Database.Database {
   if (!hasVariables) {
     db.exec("ALTER TABLE collections ADD COLUMN variables TEXT NOT NULL DEFAULT '[]'");
   }
+  const hasHeaders = columns.some((col) => col.name === 'headers');
+  if (!hasHeaders) {
+    db.exec("ALTER TABLE collections ADD COLUMN headers TEXT NOT NULL DEFAULT '[]'");
+  }
 
   return db;
 }
@@ -185,7 +191,7 @@ export function getDb(): Database.Database {
  */
 export function listCollections(): Collection[] {
   const rows = getDb()
-    .prepare('SELECT id, name, variables, created_at FROM collections ORDER BY name ASC')
+    .prepare('SELECT id, name, variables, headers, created_at FROM collections ORDER BY name ASC')
     .all() as Record<string, unknown>[];
 
   return rows.map(rowToCollection);
@@ -201,28 +207,34 @@ export function createCollection(name: string): Collection {
   const result = getDb().prepare('INSERT INTO collections (name) VALUES (?)').run(name.trim());
 
   const row = getDb()
-    .prepare('SELECT id, name, variables, created_at FROM collections WHERE id = ?')
+    .prepare('SELECT id, name, variables, headers, created_at FROM collections WHERE id = ?')
     .get(result.lastInsertRowid) as Record<string, unknown>;
 
   return rowToCollection(row);
 }
 
 /**
- * Updates a collection's name and variables.
+ * Updates a collection's name, variables, and headers.
  *
  * @param id - Collection ID to update.
  * @param name - New display name.
  * @param variables - Collection-scoped variables.
+ * @param headers - Headers sent with every request in the collection.
  * @returns The updated collection.
  * @throws When the collection does not exist.
  */
-export function updateCollection(id: number, name: string, variables: Variable[]): Collection {
+export function updateCollection(
+  id: number,
+  name: string,
+  variables: Variable[],
+  headers: KeyValue[]
+): Collection {
   getDb()
-    .prepare('UPDATE collections SET name = ?, variables = ? WHERE id = ?')
-    .run(name.trim(), JSON.stringify(variables), id);
+    .prepare('UPDATE collections SET name = ?, variables = ?, headers = ? WHERE id = ?')
+    .run(name.trim(), JSON.stringify(variables), JSON.stringify(headers), id);
 
   const row = getDb()
-    .prepare('SELECT id, name, variables, created_at FROM collections WHERE id = ?')
+    .prepare('SELECT id, name, variables, headers, created_at FROM collections WHERE id = ?')
     .get(id) as Record<string, unknown> | undefined;
 
   if (!row) throw new Error('Collection not found');
@@ -376,6 +388,8 @@ function validateCollectionExport(data: unknown): CollectionExport {
         .filter((v) => v.key.trim() || v.value.trim() || v.defaultValue.trim())
     : [];
 
+  const headers = Array.isArray(record.headers) ? (record.headers as KeyValue[]) : [];
+
   const requests = record.requests.map((item, index) => {
     if (!item || typeof item !== 'object') {
       throw new Error(`Invalid collection file: request ${index + 1} is malformed`);
@@ -413,6 +427,7 @@ function validateCollectionExport(data: unknown): CollectionExport {
     formatVersion: 1,
     name,
     variables,
+    headers,
     requests
   };
 }
@@ -425,9 +440,9 @@ function validateCollectionExport(data: unknown): CollectionExport {
  * @throws When the collection does not exist.
  */
 export function exportCollectionData(id: number): CollectionExport {
-  const row = getDb().prepare('SELECT name, variables FROM collections WHERE id = ?').get(id) as
-    | { name: string; variables: string }
-    | undefined;
+  const row = getDb()
+    .prepare('SELECT name, variables, headers FROM collections WHERE id = ?')
+    .get(id) as { name: string; variables: string; headers: string } | undefined;
 
   if (!row) throw new Error('Collection not found');
 
@@ -445,6 +460,7 @@ export function exportCollectionData(id: number): CollectionExport {
   );
 
   const variables = parseJson<Partial<Variable>[]>(row.variables, []).map(normalizeVariable);
+  const headers = parseJson<KeyValue[]>(row.headers, []);
 
   return {
     formatVersion: 1,
@@ -455,6 +471,7 @@ export function exportCollectionData(id: number): CollectionExport {
       defaultValue: v.defaultValue,
       share: v.share
     })),
+    headers,
     requests
   };
 }
@@ -473,8 +490,8 @@ export function importCollectionData(data: unknown): Collection {
 
   const importCollection = database.transaction((payload: CollectionExport) => {
     const collectionResult = database
-      .prepare('INSERT INTO collections (name, variables) VALUES (?, ?)')
-      .run(payload.name, JSON.stringify(payload.variables));
+      .prepare('INSERT INTO collections (name, variables, headers) VALUES (?, ?, ?)')
+      .run(payload.name, JSON.stringify(payload.variables), JSON.stringify(payload.headers));
 
     const collectionId = Number(collectionResult.lastInsertRowid);
     const insertRequest = database.prepare(
@@ -499,7 +516,7 @@ export function importCollectionData(data: unknown): Collection {
     }
 
     const row = database
-      .prepare('SELECT id, name, variables, created_at FROM collections WHERE id = ?')
+      .prepare('SELECT id, name, variables, headers, created_at FROM collections WHERE id = ?')
       .get(collectionId) as Record<string, unknown>;
 
     return rowToCollection(row);

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type JSX } from 'react';
 import type { BodyType, Variable } from '#/shared/types';
+import { CodeEditor } from '#/renderer/src/components/CodeEditor';
 import { KeyValueEditor } from '#/renderer/src/components/KeyValueEditor';
 import { MethodSelect } from '#/renderer/src/components/MethodSelect';
 import { VariableInput } from '#/renderer/src/components/VariableInput';
@@ -172,6 +173,7 @@ export function RequestEditor({
             onChange={(params) => update({ params })}
             placeholderKey="param"
             placeholderValue="value"
+            variables={variables}
           />
         )}
         {tab === 'headers' && (
@@ -180,6 +182,7 @@ export function RequestEditor({
             onChange={(headers) => update({ headers })}
             placeholderKey="header"
             placeholderValue="value"
+            variables={variables}
           />
         )}
         {tab === 'body' && showBody && (
@@ -197,12 +200,11 @@ export function RequestEditor({
               </select>
             </div>
             {draft.body_type !== 'none' && (
-              <textarea
-                className="min-h-36 w-full resize-y rounded-md border border-separator bg-control p-2 font-mono text-[12px] text-inherit shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)] app-no-drag"
-                placeholder={draft.body_type === 'json' ? '{\n  "key": "value"\n}' : 'Request body'}
+              <CodeEditor
                 value={draft.body}
-                onChange={(e) => update({ body: e.target.value })}
-                spellCheck={false}
+                onChange={(body) => update({ body })}
+                language={draft.body_type === 'json' ? 'json' : 'text'}
+                placeholder={draft.body_type === 'json' ? '{\n  "key": "value"\n}' : 'Request body'}
               />
             )}
           </div>

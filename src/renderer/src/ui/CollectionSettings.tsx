@@ -1,6 +1,15 @@
 import { useState, type JSX } from 'react';
-import type { Collection, Variable } from '#/shared/types';
-import { field, iconButtonDanger, primaryButton, secondaryButton, toolbarButton } from './classes';
+import type { Collection, KeyValue, Variable } from '#/shared/types';
+import { KeyValueEditor } from '#/renderer/src/components/KeyValueEditor';
+import { emptyKeyValue } from '#/renderer/src/store/drafts';
+import {
+  field,
+  iconButton,
+  iconButtonDanger,
+  primaryButton,
+  secondaryButton,
+  toolbarButton
+} from './classes';
 
 interface Props {
   /**
@@ -9,13 +18,14 @@ interface Props {
   collection: Collection;
 
   /**
-   * Persists collection name and variables.
+   * Persists collection name, variables, and headers.
    *
    * @param id - Collection ID to update.
    * @param name - New display name.
    * @param variables - Collection-scoped variables.
+   * @param headers - Headers sent with every request in the collection.
    */
-  onSave: (id: number, name: string, variables: Variable[]) => Promise<void>;
+  onSave: (id: number, name: string, variables: Variable[], headers: KeyValue[]) => Promise<void>;
 
   /**
    * Closes the settings view without saving.
@@ -28,7 +38,7 @@ const emptyVariable = (): Variable => ({ key: '', value: '', defaultValue: '', s
 const thClass = 'pb-1 text-left text-[11px] font-medium uppercase tracking-wide text-muted';
 
 /**
- * Full-area collection settings: rename and manage collection-scoped variables.
+ * Full-area collection settings: rename, manage variables, and configure shared headers.
  */
 export function CollectionSettings(props: Props): JSX.Element {
   return <CollectionSettingsForm key={props.collection.id} {...props} />;
@@ -38,6 +48,9 @@ function CollectionSettingsForm({ collection, onSave, onClose }: Props): JSX.Ele
   const [name, setName] = useState(collection.name);
   const [variables, setVariables] = useState<Variable[]>(
     collection.variables.length ? collection.variables : [emptyVariable()]
+  );
+  const [headers, setHeaders] = useState<KeyValue[]>(
+    collection.headers.length ? collection.headers : [emptyKeyValue()]
   );
   const [saving, setSaving] = useState(false);
 
@@ -68,7 +81,7 @@ function CollectionSettingsForm({ collection, onSave, onClose }: Props): JSX.Ele
     });
   };
 
-  /** Persists name and non-empty variable rows. */
+  /** Persists name, non-empty variable rows, and non-empty header rows. */
   const handleSave = async (): Promise<void> => {
     const trimmedName = name.trim();
     if (!trimmedName) return;
@@ -76,9 +89,10 @@ function CollectionSettingsForm({ collection, onSave, onClose }: Props): JSX.Ele
     const cleanedVariables = variables.filter(
       (v) => v.key.trim() || v.value.trim() || v.defaultValue.trim()
     );
+    const cleanedHeaders = headers.filter((h) => h.key.trim() || h.value.trim());
     setSaving(true);
     try {
-      await onSave(collection.id, trimmedName, cleanedVariables);
+      await onSave(collection.id, trimmedName, cleanedVariables, cleanedHeaders);
       onClose();
     } finally {
       setSaving(false);
@@ -90,8 +104,13 @@ function CollectionSettingsForm({ collection, onSave, onClose }: Props): JSX.Ele
       <div className="mx-auto w-full">
         <div className="mb-6 flex items-center justify-between gap-4">
           <h1 className="m-0 text-[15px] font-semibold text-text">Collection Settings</h1>
-          <button className={secondaryButton} onClick={onClose}>
-            Close
+          <button
+            type="button"
+            className={`${iconButton} opacity-100 text-[28px]`}
+            title="Close"
+            onClick={onClose}
+          >
+            ×
           </button>
         </div>
 
@@ -183,6 +202,22 @@ function CollectionSettingsForm({ collection, onSave, onClose }: Props): JSX.Ele
               + Add variable
             </button>
           </div>
+        </div>
+
+        <div className="mb-6">
+          <h2 className="m-0 mb-1 text-[13px] font-medium text-text">Headers</h2>
+          <p className="mb-3 text-[12px] text-muted">
+            These headers are sent with every request in this collection. Header values support{' '}
+            {'{{variable}}'} syntax. Request-level headers override collection headers with the same
+            name.
+          </p>
+          <KeyValueEditor
+            rows={headers}
+            onChange={setHeaders}
+            placeholderKey="header"
+            placeholderValue="value"
+            variables={variables}
+          />
         </div>
 
         <div className="flex justify-end gap-2">

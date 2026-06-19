@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
-import type { KeyValue } from '#/shared/types';
+import type { KeyValue, Variable } from '#/shared/types';
+import { VariableInput } from '#/renderer/src/components/VariableInput';
 import { field, iconButtonDanger, toolbarButton } from '#/renderer/src/ui/classes';
 
 interface Props {
@@ -24,6 +25,11 @@ interface Props {
    * Placeholder text for the value column.
    */
   placeholderValue?: string;
+
+  /**
+   * Collection-scoped variables for value highlighting and tooltips.
+   */
+  variables: Variable[];
 }
 
 const rowGrid = 'grid grid-cols-[24px_1fr_1fr_28px] items-center gap-1.5';
@@ -35,7 +41,8 @@ export function KeyValueEditor({
   rows,
   onChange,
   placeholderKey = 'Key',
-  placeholderValue = 'Value'
+  placeholderValue = 'Value',
+  variables
 }: Props): JSX.Element {
   /**
    * Updates a single row by index.
@@ -90,13 +97,15 @@ export function KeyValueEditor({
             placeholder={placeholderKey}
             onChange={(e) => updateRow(index, { key: e.target.value })}
           />
-          <input
-            type="text"
-            className={field}
-            value={row.value}
-            placeholder={placeholderValue}
-            onChange={(e) => updateRow(index, { value: e.target.value })}
-          />
+          <div className="min-w-0 overflow-hidden rounded-md border border-separator bg-control shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)]">
+            <VariableInput
+              className="app-no-drag"
+              value={row.value}
+              onChange={(value) => updateRow(index, { value })}
+              variables={variables}
+              placeholder={placeholderValue}
+            />
+          </div>
           <button
             type="button"
             className={iconButtonDanger}

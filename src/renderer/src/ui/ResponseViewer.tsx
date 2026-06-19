@@ -1,5 +1,6 @@
 import { useMemo, useState, type JSX } from 'react';
 import type { SendResult } from '#/shared/types';
+import { CodeEditor } from '#/renderer/src/components/CodeEditor';
 import { segment, segmentGroup, statusDotClass } from './classes';
 
 interface Props {
@@ -32,6 +33,33 @@ function formatBody(body: string): string {
   } catch {
     return body;
   }
+}
+
+/**
+ * Returns true when the body is valid JSON.
+ *
+ * @param body - Raw body string.
+ */
+function isValidJson(body: string): boolean {
+  if (!body.trim()) return false;
+  try {
+    JSON.parse(body);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Chooses a syntax mode from content-type or JSON validity.
+ *
+ * @param body - Raw body string.
+ * @param headers - Response headers map.
+ */
+function bodyLanguage(body: string, headers?: Record<string, string>): 'json' | 'text' {
+  const contentType = headers?.['content-type'] ?? headers?.['Content-Type'] ?? '';
+  if (contentType.includes('json')) return 'json';
+  return isValidJson(body) ? 'json' : 'text';
 }
 
 /**
@@ -87,6 +115,17 @@ export function ResponseViewer({ response, sending }: Props): JSX.Element {
     [response]
   );
 
+  const responseBodyLanguage = useMemo(
+    () => (response ? bodyLanguage(response.body, response.headers) : 'text'),
+    [response]
+  );
+
+  const requestBodyLanguage = useMemo(
+    () =>
+      response?.request ? bodyLanguage(response.request.body, response.request.headers) : 'text',
+    [response]
+  );
+
   const emptyState = (message: string): JSX.Element => (
     <div className="flex flex-1 flex-col p-3">
       <div className="flex flex-1 items-center justify-center text-[13px] text-muted">
@@ -138,9 +177,11 @@ export function ResponseViewer({ response, sending }: Props): JSX.Element {
 
       <div className="min-h-0 flex-1 overflow-auto">
         {tab === 'body' && (
-          <pre className="m-0 rounded-md bg-control p-2 font-mono text-[12px] break-words whitespace-pre-wrap shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)]">
-            {formattedBody || '(empty body)'}
-          </pre>
+          <CodeEditor
+            readOnly
+            value={formattedBody || '(empty body)'}
+            language={responseBodyLanguage}
+          />
         )}
         {tab === 'headers' && (
           <div className="overflow-hidden rounded-md border border-separator">
@@ -205,9 +246,11 @@ export function ResponseViewer({ response, sending }: Props): JSX.Element {
                 <div>
                   <SectionTitle title="Payload" />
                   {response.request.body ? (
-                    <pre className="m-0 rounded-md bg-control p-2 font-mono text-[12px] break-words whitespace-pre-wrap shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)]">
-                      {formattedRequestBody}
-                    </pre>
+                    <CodeEditor
+                      readOnly
+                      value={formattedRequestBody}
+                      language={requestBodyLanguage}
+                    />
                   ) : (
                     <div className="rounded-md border border-separator px-2.5 py-2 text-[13px] text-muted">
                       (no payload)

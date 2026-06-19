@@ -14,7 +14,7 @@ import {
   updateCollection
 } from '#/main/db';
 import { executeRequest } from '#/main/http';
-import type { SaveRequestInput, SendRequestInput, ThemeSource, Variable } from '#/shared/types';
+import type { SaveRequestInput, SendRequestInput, ThemeSource, Variable, KeyValue } from '#/shared/types';
 
 const THEME_SETTING_KEY = 'theme';
 
@@ -41,9 +41,11 @@ export function registerIpcHandlers(): void {
   // Creates a new collection with the given display name.
   ipcMain.handle('collections:create', (_event, name: string) => createCollection(name));
 
-  // Updates a collection's name and variables.
-  ipcMain.handle('collections:update', (_event, id: number, name: string, variables: Variable[]) =>
-    updateCollection(id, name, variables)
+  // Updates a collection's name, variables, and headers.
+  ipcMain.handle(
+    'collections:update',
+    (_event, id: number, name: string, variables: Variable[], headers: KeyValue[]) =>
+      updateCollection(id, name, variables, headers)
   );
 
   // Deletes a collection and all of its saved requests.

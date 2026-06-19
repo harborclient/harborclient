@@ -90,6 +90,14 @@ describe('buildHeaders', () => {
 
     expect(headers).toEqual({ 'content-type': 'application/xml' });
   });
+
+  it('request headers override collection headers when merged last-wins', () => {
+    const collectionHeaders = [{ key: 'Authorization', value: 'Bearer collection', enabled: true }];
+    const requestHeaders = [{ key: 'Authorization', value: 'Bearer request', enabled: true }];
+    const merged = [...collectionHeaders, ...requestHeaders];
+
+    expect(buildHeaders(merged, 'none')).toEqual({ Authorization: 'Bearer request' });
+  });
 });
 
 describe('executeRequest', () => {

@@ -232,9 +232,9 @@ export default function App(): JSX.Element {
           ) : configuringCollection ? (
             <CollectionSettings
               collection={configuringCollection}
-              onSave={async (id, name, variables) => {
+              onSave={async (id, name, variables, headers) => {
                 try {
-                  await store.updateCollection(id, name, variables);
+                  await store.updateCollection(id, name, variables, headers);
                   toast.success('Collection updated');
                 } catch (err) {
                   alert(err instanceof Error ? err.message : 'Failed to update collection');
