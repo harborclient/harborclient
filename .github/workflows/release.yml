@@ -112,6 +112,8 @@ jobs:
             args: --linux
           - os: macos-latest
             args: --mac
+          - os: windows-latest
+            args: --win
     runs-on: ${{ matrix.os }}
 
     steps:
