@@ -26,8 +26,10 @@ on:
     branches:
       - main
     paths:
+      - images/logo.png
       - README.md
       - docs/**
+      - scripts/sync-docs-assets.mjs
       - scripts/build-docs-nav.mjs
       - scripts/docs-nav.config.mjs
       - scripts/docs-slugger.mjs

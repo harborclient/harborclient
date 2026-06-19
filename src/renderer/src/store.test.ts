@@ -57,9 +57,7 @@ describe('substituteVariables', () => {
   });
 
   it('falls back to defaultValue when value is empty', () => {
-    const result = substituteVariables('https://{{host}}/api', [
-      variable('host', '', 'localhost')
-    ]);
+    const result = substituteVariables('https://{{host}}/api', [variable('host', '', 'localhost')]);
 
     expect(result).toBe('https://localhost/api');
   });

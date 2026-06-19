@@ -12,6 +12,8 @@ const watchDirs = [path.join(repoDir, 'docs')];
 
 /** Individual files that trigger rebuilds when changed. */
 const watchFiles = [
+  path.join(repoDir, 'images/logo.png'),
+  path.join(repoDir, 'scripts/sync-docs-assets.mjs'),
   path.join(repoDir, 'scripts/build-docs-nav.mjs'),
   path.join(repoDir, 'scripts/docs-nav.config.mjs'),
   path.join(repoDir, 'scripts/docs-slugger.mjs'),
@@ -41,32 +43,45 @@ const runBuild = () => {
       new Promise((resolve, reject) => {
         console.log('[docs:watch] rebuilding nav...');
 
-        const nav = spawn('node', [path.join(scriptDir, 'build-docs-nav.mjs')], {
+        const sync = spawn('node', [path.join(scriptDir, 'sync-docs-assets.mjs')], {
           cwd: repoDir,
           stdio: 'inherit',
         });
 
-        nav.on('error', reject);
-        nav.on('close', (code) => {
-          if (code !== 0) {
-            reject(new Error(`build-docs-nav.mjs exited with code ${code}`));
+        sync.on('error', reject);
+        sync.on('close', (syncCode) => {
+          if (syncCode !== 0) {
+            reject(new Error(`sync-docs-assets.mjs exited with code ${syncCode}`));
             return;
           }
 
-          const slugs = spawn('node', [path.join(scriptDir, 'assert-docs-slugs.mjs')], {
+          const nav = spawn('node', [path.join(scriptDir, 'build-docs-nav.mjs')], {
             cwd: repoDir,
             stdio: 'inherit',
           });
 
-          slugs.on('error', reject);
-          slugs.on('close', (slugCode) => {
-            if (slugCode !== 0) {
-              reject(new Error(`assert-docs-slugs.mjs exited with code ${slugCode}`));
+          nav.on('error', reject);
+          nav.on('close', (code) => {
+            if (code !== 0) {
+              reject(new Error(`build-docs-nav.mjs exited with code ${code}`));
               return;
             }
 
-            console.log('[docs:watch] nav updated');
-            resolve();
+            const slugs = spawn('node', [path.join(scriptDir, 'assert-docs-slugs.mjs')], {
+              cwd: repoDir,
+              stdio: 'inherit',
+            });
+
+            slugs.on('error', reject);
+            slugs.on('close', (slugCode) => {
+              if (slugCode !== 0) {
+                reject(new Error(`assert-docs-slugs.mjs exited with code ${slugCode}`));
+                return;
+              }
+
+              console.log('[docs:watch] nav updated');
+              resolve();
+            });
           });
         });
       }),
