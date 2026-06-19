@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Update logo images in README.md and documentation; enhance description clarity in index.md. (`9c9cc17`)
 - Update homepage links in package.json and README.md to reflect new domain; adjust siteBase in VitePress config for correct routing.. (`ad3e8ab`)
 - Update package.json and pnpm-lock.yaml to add new documentation scripts and dependencies, including concurrently and vitepress. Revise README.md for improved documentation structure and clarity, highlighting features and development instructions.. (`08620f7`)
 

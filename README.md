@@ -1,4 +1,4 @@
-![Harbor Client](https://headzoo.github.io/harborclient/images/logo.png)
+![Harbor Client](https://headzoo.github.io/harborclient/images/logo-white.png)
 
 **Full documentation:** [https://harborclient.com/](https://harborclient.com/)
 
