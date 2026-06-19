@@ -26,6 +26,7 @@ on:
     branches:
       - main
     paths:
+      - build/icons/**
       - images/logo.png
       - README.md
       - docs/**

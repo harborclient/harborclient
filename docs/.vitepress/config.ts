@@ -23,16 +23,6 @@ export default defineConfig({
     publicDir: '.vitepress/static',
   },
   head: [
-    ['link', { rel: 'icon', href: withSiteBase('/images/favicon.ico') }],
-    [
-      'link',
-      {
-        rel: 'icon',
-        type: 'image/png',
-        sizes: '16x16',
-        href: withSiteBase('/images/favicon-16x16.png'),
-      },
-    ],
     [
       'link',
       {
@@ -45,8 +35,17 @@ export default defineConfig({
     [
       'link',
       {
+        rel: 'icon',
+        type: 'image/png',
+        sizes: '16x16',
+        href: withSiteBase('/images/favicon-16x16.png'),
+      },
+    ],
+    [
+      'link',
+      {
         rel: 'apple-touch-icon',
-        sizes: '180x180',
+        sizes: '128x128',
         href: withSiteBase('/images/apple-touch-icon.png'),
       },
     ],
