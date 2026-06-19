@@ -48,10 +48,12 @@ export default function App(): JSX.Element {
       : [];
 
   const activeCollectionId = store.draft.collection_id ?? store.selectedCollectionId;
-  const activeVariables =
+  const activeCollection =
     activeCollectionId != null
-      ? (store.collections.find((c) => c.id === activeCollectionId)?.variables ?? [])
-      : [];
+      ? store.collections.find((c) => c.id === activeCollectionId)
+      : undefined;
+  const activeVariables = activeCollection?.variables ?? [];
+  const activeCollectionName = activeCollection?.name;
 
   /**
    * Saves the current draft, prompting for a new collection when none exists.
@@ -257,6 +259,7 @@ export default function App(): JSX.Element {
                 onSave={() => void handleSave()}
                 sending={store.sending}
                 variables={activeVariables}
+                collectionName={activeCollectionName}
               />
               <ResponseViewer
                 key={`response-${store.activeTabId}`}

@@ -1,4 +1,4 @@
-import { useState, type JSX } from 'react';
+import { useEffect, useRef, useState, type JSX } from 'react';
 import type { BodyType, Variable } from '#/shared/types';
 import { KeyValueEditor } from '#/renderer/src/components/KeyValueEditor';
 import { MethodSelect } from '#/renderer/src/components/MethodSelect';
@@ -40,6 +40,11 @@ interface Props {
    * Collection-scoped variables for URL highlighting and tooltips.
    */
   variables: Variable[];
+
+  /**
+   * Name of the collection this request belongs to, for display as a breadcrumb prefix.
+   */
+  collectionName?: string;
 }
 
 /**
@@ -51,9 +56,19 @@ export function RequestEditor({
   onSend,
   onSave,
   sending,
-  variables
+  variables,
+  collectionName
 }: Props): JSX.Element {
   const [tab, setTab] = useState<EditorTab>('params');
+  const [editingName, setEditingName] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingName) {
+      nameInputRef.current?.focus();
+      nameInputRef.current?.select();
+    }
+  }, [editingName]);
 
   /**
    * Merges a partial update into the current draft.
@@ -69,13 +84,46 @@ export function RequestEditor({
   return (
     <div className="border-b border-separator p-3">
       <div className="mb-2 flex justify-between gap-2">
-        <input
-          className={`${field} max-w-xs`}
-          type="text"
-          placeholder="Request name"
-          value={draft.name}
-          onChange={(e) => update({ name: e.target.value })}
-        />
+        {editingName ? (
+          <div className="flex min-w-0 max-w-xs items-center gap-1">
+            {collectionName && (
+              <>
+                <span className="shrink-0 text-[15px] font-normal text-muted">
+                  {collectionName}
+                </span>
+                <span className="shrink-0 text-[15px] font-normal text-muted">&gt;</span>
+              </>
+            )}
+            <input
+              ref={nameInputRef}
+              className="min-w-0 flex-1 border-none bg-transparent p-0 text-[15px] font-semibold text-text outline-none app-no-drag"
+              type="text"
+              value={draft.name}
+              onChange={(e) => update({ name: e.target.value })}
+              onBlur={() => setEditingName(false)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === 'Escape') {
+                  e.preventDefault();
+                  setEditingName(false);
+                }
+              }}
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="min-w-0 max-w-xs cursor-text border-none bg-transparent p-0 text-left text-[15px] font-semibold text-text hover:opacity-80 app-no-drag"
+            onClick={() => setEditingName(true)}
+          >
+            {collectionName && (
+              <>
+                <span className="font-normal text-muted">{collectionName}</span>
+                <span className="font-normal text-muted"> &gt; </span>
+              </>
+            )}
+            {draft.name ? draft.name : <span className="text-muted">Request name</span>}
+          </button>
+        )}
         <button className={secondaryButton} onClick={onSave}>
           Save
         </button>
