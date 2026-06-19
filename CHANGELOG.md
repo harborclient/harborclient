@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Update CI and release workflows to require FONTAWESOME_PACKAGE_TOKEN and inherit secrets. This enhances security and ensures proper authentication for Font Awesome package management.. (`0182eaf`)
 - Add Font Awesome registry authentication to CI workflows. Ensure FONTAWESOME_PACKAGE_TOKEN is configured and set for pnpm, enhancing package management for Font Awesome dependencies.. (`b664034`)
 - Add FontAwesome support and implement close confirmation prompts in the application. Update dependencies in package.json and pnpm-lock.yaml, enhance main process with close handlers, and improve UI components for unsaved changes notifications.. (`4e521e8`)
 - Refactor response formatting utilities: move formatBytes and formatBody functions to responseFormatUtils. Update ConsolePanel and ResponseViewer to use new imports, enhancing code organization and readability.. (`fdd4d96`)
