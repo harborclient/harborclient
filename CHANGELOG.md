@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.1.3 - 2026-06-19
+
 - Update documentation build process by adding new scripts and modifying existing ones; enhance ESLint configuration to ignore additional directories and update Prettier ignore list. Also, update watch script to include new asset synchronization and improve logo image handling.. (`af5502e`)
 - Remove version specification for pnpm in CI and release workflows to streamline setup process.. (`c019fb3`)
 - Update Electron build configuration to disable executable signing for Windows and enhance CI workflow to include Windows build support. Add download section in documentation for macOS, Windows, and Linux releases.. (`5fb58f2`)
