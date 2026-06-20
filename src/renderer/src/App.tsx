@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import logoUrl from '@images/logo-square.png';
-import type { SavedRequest } from '#/shared/types';
+import type { SavedRequest, Variable } from '#/shared/types';
 import { useAppStore } from '#/renderer/src/store';
 import { getDirtyTabs, isTabDirty } from '#/renderer/src/store/drafts';
 import { CollectionSettings } from '#/renderer/src/ui/CollectionSettings';
+import { EnvironmentSettings } from '#/renderer/src/ui/EnvironmentSettings';
 import { Settings } from '#/renderer/src/ui/Settings';
 import { Sidebar } from '#/renderer/src/ui/Sidebar';
 import { TabBar } from '#/renderer/src/ui/TabBar';
@@ -27,6 +28,26 @@ interface CloseTabPrompt {
 }
 
 /**
+ * Merges collection and environment variables; environment wins on duplicate keys.
+ *
+ * @param collectionVars - Collection-scoped variables.
+ * @param envVars - Environment-scoped variables.
+ * @returns Combined variable list for editor highlighting.
+ */
+function mergeVariables(collectionVars: Variable[], envVars: Variable[]): Variable[] {
+  const map = new Map<string, Variable>();
+  for (const variable of collectionVars) {
+    const key = variable.key.trim();
+    if (key) map.set(key, variable);
+  }
+  for (const variable of envVars) {
+    const key = variable.key.trim();
+    if (key) map.set(key, variable);
+  }
+  return Array.from(map.values());
+}
+
+/**
  * Root application layout: sidebar, request editor, and response viewer.
  */
 export default function App(): JSX.Element {
@@ -39,6 +60,10 @@ export default function App(): JSX.Element {
   const [quitPrompt, setQuitPrompt] = useState<string[] | null>(null);
   const [configuringCollectionId, setConfiguringCollectionId] = useState<number | null>(null);
   const [collectionSettingsDirty, setCollectionSettingsDirty] = useState(false);
+  const [configuringEnvironmentId, setConfiguringEnvironmentId] = useState<number | null>(null);
+  const [environmentSettingsDirty, setEnvironmentSettingsDirty] = useState(false);
+  const [showEnvironmentModal, setShowEnvironmentModal] = useState(false);
+  const [newEnvironmentName, setNewEnvironmentName] = useState('');
   const [pendingLoadRequest, setPendingLoadRequest] = useState<SavedRequest | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
@@ -57,13 +82,22 @@ export default function App(): JSX.Element {
     activeCollectionId != null
       ? store.collections.find((c) => c.id === activeCollectionId)
       : undefined;
-  const activeVariables = activeCollection?.variables ?? [];
+  const activeEnvironment =
+    store.activeEnvironmentId != null
+      ? store.environments.find((env) => env.id === store.activeEnvironmentId)
+      : undefined;
+  const activeVariables = mergeVariables(
+    activeCollection?.variables ?? [],
+    activeEnvironment?.variables ?? []
+  );
   const activeCollectionName = activeCollection?.name;
 
   /** Opens the active collection's settings to edit variables. */
   const handleEditVariables = useCallback((): void => {
     if (activeCollectionId == null) return;
     setShowSettings(false);
+    setConfiguringEnvironmentId(null);
+    setEnvironmentSettingsDirty(false);
     setCollectionSettingsDirty(false);
     setConfiguringCollectionId(activeCollectionId);
   }, [activeCollectionId]);
@@ -79,24 +113,37 @@ export default function App(): JSX.Element {
     setCollectionSettingsDirty(false);
   }, []);
 
+  /** Closes environment settings and clears dirty tracking. */
+  const closeEnvironmentSettings = useCallback((): void => {
+    setConfiguringEnvironmentId(null);
+    setEnvironmentSettingsDirty(false);
+  }, []);
+
   /**
    * Loads a saved request from the sidebar, closing settings overlays first.
    */
   const handleLoadRequest = useCallback(
     (req: SavedRequest): void => {
-      if (configuringCollectionId != null && collectionSettingsDirty) {
+      if (
+        (configuringCollectionId != null && collectionSettingsDirty) ||
+        (configuringEnvironmentId != null && environmentSettingsDirty)
+      ) {
         setPendingLoadRequest(req);
         return;
       }
       closeAppSettings();
       closeCollectionSettings();
+      closeEnvironmentSettings();
       store.loadRequest(req);
     },
     [
       configuringCollectionId,
       collectionSettingsDirty,
+      configuringEnvironmentId,
+      environmentSettingsDirty,
       closeAppSettings,
       closeCollectionSettings,
+      closeEnvironmentSettings,
       store
     ]
   );
@@ -168,6 +215,26 @@ export default function App(): JSX.Element {
     setCollectionModalTab('create');
   };
 
+  const closeEnvironmentModal = (): void => {
+    setShowEnvironmentModal(false);
+    setNewEnvironmentName('');
+  };
+
+  /**
+   * Creates an environment from the modal form.
+   */
+  const handleEnvironmentModalSubmit = async (): Promise<void> => {
+    const name = newEnvironmentName.trim();
+    if (!name) return;
+    try {
+      await store.createEnvironment(name);
+      toast.success('Environment created');
+      closeEnvironmentModal();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to create environment');
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = window.api.onMenuAction((action) => {
       switch (action) {
@@ -187,6 +254,9 @@ export default function App(): JSX.Element {
           break;
         case 'settings':
           setConfiguringCollectionId(null);
+          setConfiguringEnvironmentId(null);
+          setCollectionSettingsDirty(false);
+          setEnvironmentSettingsDirty(false);
           setShowSettings(true);
           break;
         case 'about':
@@ -238,6 +308,9 @@ export default function App(): JSX.Element {
   const configuringCollection = configuringCollectionId
     ? store.collections.find((c) => c.id === configuringCollectionId)
     : undefined;
+  const configuringEnvironment = configuringEnvironmentId
+    ? store.environments.find((env) => env.id === configuringEnvironmentId)
+    : undefined;
 
   return (
     <div className={`flex h-screen flex-col ${isMac ? 'platform-darwin' : ''}`}>
@@ -246,22 +319,39 @@ export default function App(): JSX.Element {
         {showSidebar && (
           <Sidebar
             collections={store.collections}
+            environments={store.environments}
             requestsByCollection={store.requestsByCollection}
             selectedCollectionId={store.selectedCollectionId}
+            activeEnvironmentId={store.activeEnvironmentId}
             activeRequestId={store.draft.id}
             onSelectCollection={store.setSelectedCollectionId}
+            onSelectEnvironment={store.setActiveEnvironmentId}
             onExpandCollection={store.refreshRequests}
             onAddCollection={() => {
               setNewCollectionName('');
               setCollectionModalTab('create');
               setCollectionModal('create');
             }}
+            onAddEnvironment={() => {
+              setNewEnvironmentName('');
+              setShowEnvironmentModal(true);
+            }}
             onConfigureCollection={(id) => {
               setShowSettings(false);
+              setConfiguringEnvironmentId(null);
+              setEnvironmentSettingsDirty(false);
               setCollectionSettingsDirty(false);
               setConfiguringCollectionId(id);
             }}
+            onConfigureEnvironment={(id) => {
+              setShowSettings(false);
+              setConfiguringCollectionId(null);
+              setCollectionSettingsDirty(false);
+              setEnvironmentSettingsDirty(false);
+              setConfiguringEnvironmentId(id);
+            }}
             onDeleteCollection={store.deleteCollection}
+            onDeleteEnvironment={store.deleteEnvironment}
             onExportCollection={async (id) => {
               const result = await store.exportCollection(id);
               if (!result.canceled) {
@@ -304,14 +394,31 @@ export default function App(): JSX.Element {
               }}
               onClose={closeCollectionSettings}
             />
+          ) : configuringEnvironment ? (
+            <EnvironmentSettings
+              environment={configuringEnvironment}
+              onDirtyChange={setEnvironmentSettingsDirty}
+              onSave={async (id, name, variables) => {
+                try {
+                  await store.updateEnvironment(id, name, variables);
+                  toast.success('Environment updated');
+                } catch (err) {
+                  alert(err instanceof Error ? err.message : 'Failed to update environment');
+                }
+              }}
+              onClose={closeEnvironmentSettings}
+            />
           ) : (
             <>
               <TabBar
                 tabs={store.tabs}
                 activeTabId={store.activeTabId}
+                environments={store.environments}
+                activeEnvironmentId={store.activeEnvironmentId}
                 onSelect={store.setActiveTab}
                 onClose={handleCloseTab}
                 onNew={store.newRequest}
+                onEnvironmentChange={store.setActiveEnvironmentId}
               />
               <RequestEditor
                 key={`editor-${store.activeTabId}`}
@@ -426,6 +533,44 @@ export default function App(): JSX.Element {
         </div>
       )}
 
+      {showEnvironmentModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={closeEnvironmentModal}
+        >
+          <div
+            className="w-96 rounded-lg border border-separator bg-surface p-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="m-0 mb-1 text-[13px] font-semibold text-text">New environment</h2>
+            <input
+              className={`${field} mt-3 w-full`}
+              type="text"
+              autoFocus
+              placeholder="Environment name"
+              value={newEnvironmentName}
+              onChange={(e) => setNewEnvironmentName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleEnvironmentModalSubmit();
+                if (e.key === 'Escape') closeEnvironmentModal();
+              }}
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button className={secondaryButton} onClick={closeEnvironmentModal}>
+                Cancel
+              </button>
+              <button
+                className={primaryButton}
+                onClick={() => void handleEnvironmentModalSubmit()}
+                disabled={!newEnvironmentName.trim()}
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {pendingLoadRequest && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
@@ -437,7 +582,7 @@ export default function App(): JSX.Element {
           >
             <h2 className="m-0 mb-1 text-[13px] font-semibold text-text">Unsaved changes</h2>
             <p className="mb-4 text-[12px] text-muted">
-              Collection settings have unsaved changes. Open request without saving?
+              Settings have unsaved changes. Open request without saving?
             </p>
             <div className="flex justify-end gap-2">
               <button className={secondaryButton} onClick={() => setPendingLoadRequest(null)}>
@@ -450,6 +595,7 @@ export default function App(): JSX.Element {
                   setPendingLoadRequest(null);
                   closeAppSettings();
                   closeCollectionSettings();
+                  closeEnvironmentSettings();
                   store.loadRequest(req);
                 }}
               >

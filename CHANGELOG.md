@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add environment management functionality with IPC handlers and database integration. (`d988503`)
 - Enhance application menu and UI components for improved user experience. (`935b8c5`)
 - Enhance select component styling for improved user experience. (`eb21315`)
 - Remove Settings component and associated logic from the UI, streamlining the application by eliminating unused settings functionality.. (`727b360`)

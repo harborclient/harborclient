@@ -27,6 +27,7 @@ import type {
   BodyType,
   Collection,
   CollectionExport,
+  Environment,
   FirestoreSettings,
   HttpMethod,
   KeyValue,
@@ -56,6 +57,26 @@ function docToCollection(id: number, data: Record<string, unknown>): Collection 
     pre_request_script: typeof data.pre_request_script === 'string' ? data.pre_request_script : '',
     post_request_script:
       typeof data.post_request_script === 'string' ? data.post_request_script : '',
+    created_at: typeof data.created_at === 'string' ? data.created_at : new Date().toISOString()
+  };
+}
+
+/**
+ * Maps a Firestore environment document to an Environment object.
+ *
+ * @param id - Numeric document ID.
+ * @param data - Raw Firestore document fields.
+ * @returns Normalized environment.
+ */
+function docToEnvironment(id: number, data: Record<string, unknown>): Environment {
+  const variables = Array.isArray(data.variables)
+    ? (data.variables as Partial<Variable>[]).map(normalizeVariable)
+    : [];
+
+  return {
+    id,
+    name: typeof data.name === 'string' ? data.name : '',
+    variables,
     created_at: typeof data.created_at === 'string' ? data.created_at : new Date().toISOString()
   };
 }
@@ -210,6 +231,51 @@ export class FirestoreDatabase implements IDatabase {
     }
     batch.delete(doc(firestore, 'collections', String(id)));
     await batch.commit();
+  }
+
+  async listEnvironments(): Promise<Environment[]> {
+    const snap = await getDocs(
+      query(collection(this.getFirestore(), 'environments'), orderBy('name'))
+    );
+    return snap.docs.map((document) =>
+      docToEnvironment(Number(document.id), document.data() as Record<string, unknown>)
+    );
+  }
+
+  async createEnvironment(name: string): Promise<Environment> {
+    const id = await this.nextId('environments');
+    const createdAt = new Date().toISOString();
+    const data = {
+      id,
+      name: name.trim(),
+      variables: [] as Variable[],
+      created_at: createdAt
+    };
+
+    await setDoc(doc(this.getFirestore(), 'environments', String(id)), data);
+    return docToEnvironment(id, data);
+  }
+
+  async updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment> {
+    const ref = doc(this.getFirestore(), 'environments', String(id));
+    const snap = await getDoc(ref);
+    if (!snap.exists()) throw new Error('Environment not found');
+
+    const existing = snap.data() as Record<string, unknown>;
+    await updateDoc(ref, {
+      name: name.trim(),
+      variables
+    });
+
+    return docToEnvironment(id, {
+      ...existing,
+      name: name.trim(),
+      variables
+    });
+  }
+
+  async deleteEnvironment(id: number): Promise<void> {
+    await deleteDoc(doc(this.getFirestore(), 'environments', String(id)));
   }
 
   async listRequests(collectionId: number): Promise<SavedRequest[]> {

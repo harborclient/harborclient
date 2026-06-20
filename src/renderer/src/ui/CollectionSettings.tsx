@@ -2,17 +2,16 @@ import { useEffect, useMemo, useState, type JSX } from 'react';
 import type { Collection, KeyValue, Variable } from '#/shared/types';
 import { CodeEditor } from '#/renderer/src/components/CodeEditor';
 import { KeyValueEditor } from '#/renderer/src/components/KeyValueEditor';
+import { VariableTable, cleanVariables } from '#/renderer/src/components/VariableTable';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { SegmentedTabs } from '#/renderer/src/components/SegmentedTabs';
 import { emptyKeyValue } from '#/renderer/src/store/drafts';
-import { faPlus, faXmark } from '#/renderer/src/fontawesome';
+import { faXmark } from '#/renderer/src/fontawesome';
 import {
   field,
   iconButton,
-  iconButtonDanger,
   primaryButton,
-  secondaryButton,
-  toolbarButton
+  secondaryButton
 } from './classes';
 
 type SettingsTab = 'general' | 'variables' | 'headers' | 'pre' | 'post';
@@ -53,11 +52,6 @@ interface Props {
   onDirtyChange?: (dirty: boolean) => void;
 }
 
-const emptyVariable = (): Variable => ({ key: '', value: '', defaultValue: '', share: false });
-
-const cleanVariables = (variables: Variable[]): Variable[] =>
-  variables.filter((v) => v.key.trim() || v.value.trim() || v.defaultValue.trim());
-
 const cleanHeaders = (headers: KeyValue[]): KeyValue[] =>
   headers.filter((h) => h.key.trim() || h.value.trim());
 
@@ -76,8 +70,6 @@ const serializeCollectionForm = (
     post_request_script: postRequestScript
   });
 
-const thClass = 'pb-1 text-left text-[11px] font-medium uppercase tracking-wide text-muted';
-
 /**
  * Full-area collection settings with tabbed sections.
  */
@@ -94,7 +86,9 @@ function CollectionSettingsForm({
   const [tab, setTab] = useState<SettingsTab>('general');
   const [name, setName] = useState(collection.name);
   const [variables, setVariables] = useState<Variable[]>(
-    collection.variables.length ? collection.variables : [emptyVariable()]
+    collection.variables.length
+      ? collection.variables
+      : [{ key: '', value: '', defaultValue: '', share: false }]
   );
   const [headers, setHeaders] = useState<KeyValue[]>(
     collection.headers.length ? collection.headers : [emptyKeyValue()]
@@ -119,33 +113,6 @@ function CollectionSettingsForm({
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
-
-  /**
-   * Updates a single variable row by index.
-   *
-   * @param index - Row index to update.
-   * @param patch - Partial fields to merge into the row.
-   */
-  const updateVariable = (index: number, patch: Partial<Variable>): void => {
-    setVariables((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
-  };
-
-  /** Appends a blank variable row. */
-  const addVariable = (): void => {
-    setVariables((prev) => [...prev, emptyVariable()]);
-  };
-
-  /**
-   * Removes a variable row, keeping at least one empty row.
-   *
-   * @param index - Row index to remove.
-   */
-  const removeVariable = (index: number): void => {
-    setVariables((prev) => {
-      if (prev.length === 1) return [emptyVariable()];
-      return prev.filter((_, i) => i !== index);
-    });
-  };
 
   /** Persists name, variables, headers, and scripts. */
   const handleSave = async (): Promise<void> => {
@@ -217,83 +184,11 @@ function CollectionSettingsForm({
 
         {tab === 'variables' && (
           <div className="mb-6">
-            <p className="mb-3 text-[12px] text-muted">
-              Use variables in request URLs with {'{{variable}}'} syntax. When value is empty, the
-              default is used. Values are omitted from export unless Share is checked.
-            </p>
-
-            <div className="flex flex-col gap-1.5">
-              <table className="w-full border-separate border-spacing-x-1.5 border-spacing-y-1.5">
-                <thead>
-                  <tr>
-                    <th className={thClass}>Key</th>
-                    <th className={thClass}>Value</th>
-                    <th className={thClass}>Default</th>
-                    <th className={`${thClass} w-14 text-center`}>Share</th>
-                    <th className={`${thClass} w-7 p-0 text-center`} />
-                  </tr>
-                </thead>
-                <tbody>
-                  {variables.map((variable, index) => (
-                    <tr className="group" key={index}>
-                      <td>
-                        <input
-                          type="text"
-                          className={`${field} w-full`}
-                          value={variable.key}
-                          placeholder="variable"
-                          onChange={(e) => updateVariable(index, { key: e.target.value })}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          className={`${field} w-full`}
-                          value={variable.value}
-                          placeholder="value"
-                          onChange={(e) => updateVariable(index, { value: e.target.value })}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          className={`${field} w-full`}
-                          value={variable.defaultValue}
-                          placeholder="default"
-                          onChange={(e) => updateVariable(index, { defaultValue: e.target.value })}
-                        />
-                      </td>
-                      <td className="w-14 text-center">
-                        <input
-                          type="checkbox"
-                          checked={variable.share}
-                          onChange={(e) => updateVariable(index, { share: e.target.checked })}
-                          title="Include value in collection export"
-                        />
-                      </td>
-                      <td className="w-7 p-0 text-center">
-                        <button
-                          type="button"
-                          className={iconButtonDanger}
-                          onClick={() => removeVariable(index)}
-                          title="Remove"
-                        >
-                          <FaIcon icon={faXmark} className="h-3.5 w-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <button
-                type="button"
-                className={`${toolbarButton} inline-flex items-center gap-1 self-start`}
-                onClick={addVariable}
-              >
-                <FaIcon icon={faPlus} className="h-3 w-3" />
-                Add variable
-              </button>
-            </div>
+            <VariableTable
+              variables={variables}
+              onChange={setVariables}
+              description={`Use variables in request URLs with {{variable}} syntax. When value is empty, the default is used. Values are omitted from export unless Share is checked.`}
+            />
           </div>
         )}
 

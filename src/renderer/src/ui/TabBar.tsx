@@ -1,8 +1,9 @@
+import type { Environment } from '#/shared/types';
 import type { JSX } from 'react';
 import { isTabDirty, type RequestTab } from '#/renderer/src/store/drafts';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { faPlus, faXmark } from '#/renderer/src/fontawesome';
-import { METHOD_CLASSES } from './classes';
+import { field, METHOD_CLASSES } from './classes';
 
 interface Props {
   /**
@@ -14,6 +15,16 @@ interface Props {
    * ID of the currently active tab.
    */
   activeTabId: string;
+
+  /**
+   * All saved environments.
+   */
+  environments: Environment[];
+
+  /**
+   * ID of the active environment, or null when none is selected.
+   */
+  activeEnvironmentId: number | null;
 
   /**
    * Called when the user selects a tab.
@@ -33,12 +44,28 @@ interface Props {
    * Opens a new blank request tab.
    */
   onNew: () => void;
+
+  /**
+   * Called when the user selects an environment.
+   *
+   * @param id - Environment ID, or null for no environment.
+   */
+  onEnvironmentChange: (id: number | null) => void;
 }
 
 /**
  * Horizontal tab bar for switching between open request editors.
  */
-export function TabBar({ tabs, activeTabId, onSelect, onClose, onNew }: Props): JSX.Element {
+export function TabBar({
+  tabs,
+  activeTabId,
+  environments,
+  activeEnvironmentId,
+  onSelect,
+  onClose,
+  onNew,
+  onEnvironmentChange
+}: Props): JSX.Element {
   return (
     <div className="flex shrink-0 items-end gap-0 overflow-x-auto border-b border-separator bg-sidebar px-2 pt-1 app-no-drag">
       {tabs.map((tab) => {
@@ -90,6 +117,24 @@ export function TabBar({ tabs, activeTabId, onSelect, onClose, onNew }: Props): 
         >
           <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
         </button>
+      </div>
+      <div className="ms-auto flex shrink-0 self-stretch items-center px-2">
+        <select
+          className={`${field} max-w-[180px] cursor-pointer py-1 text-[13px] app-no-drag`}
+          value={activeEnvironmentId ?? ''}
+          onChange={(e) => {
+            const value = e.target.value;
+            onEnvironmentChange(value ? Number(value) : null);
+          }}
+          title="Active environment"
+        >
+          <option value="">No Environment</option>
+          {environments.map((env) => (
+            <option key={env.id} value={env.id}>
+              {env.name}
+            </option>
+          ))}
+        </select>
       </div>
     </div>
   );

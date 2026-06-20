@@ -54,6 +54,31 @@ export interface Variable {
 }
 
 /**
+ * A named group of variables available when the environment is active.
+ */
+export interface Environment {
+  /**
+   * Unique database ID.
+   */
+  id: number;
+
+  /**
+   * Display name shown in the sidebar and TabBar dropdown.
+   */
+  name: string;
+
+  /**
+   * Environment-scoped variables for {{key}} substitution in requests.
+   */
+  variables: Variable[];
+
+  /**
+   * ISO 8601 timestamp when the environment was created.
+   */
+  created_at: string;
+}
+
+/**
  * A named group of saved HTTP requests.
  */
 export interface Collection {
@@ -625,6 +650,38 @@ export interface Api {
    * @returns The imported collection, or null when the dialog was canceled.
    */
   importCollection: () => Promise<Collection | null>;
+
+  /**
+   * Lists all environments.
+   *
+   * @returns All environments from the main process.
+   */
+  listEnvironments: () => Promise<Environment[]>;
+
+  /**
+   * Creates a new environment.
+   *
+   * @param name - Display name for the environment.
+   * @returns The newly created environment.
+   */
+  createEnvironment: (name: string) => Promise<Environment>;
+
+  /**
+   * Updates an environment's name and variables.
+   *
+   * @param id - Environment ID to update.
+   * @param name - New display name.
+   * @param variables - Environment-scoped variables.
+   * @returns The updated environment.
+   */
+  updateEnvironment: (id: number, name: string, variables: Variable[]) => Promise<Environment>;
+
+  /**
+   * Deletes an environment.
+   *
+   * @param id - Environment ID to delete.
+   */
+  deleteEnvironment: (id: number) => Promise<void>;
 
   /**
    * Lists saved requests in a collection.

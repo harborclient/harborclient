@@ -1,6 +1,7 @@
 import type {
   Collection,
   CollectionExport,
+  Environment,
   KeyValue,
   SaveRequestInput,
   SavedRequest,
@@ -57,6 +58,38 @@ export interface IDatabase {
    * @param id - Collection ID to delete.
    */
   deleteCollection(id: number): Promise<void>;
+
+  /**
+   * Lists all environments ordered by name.
+   *
+   * @returns All environments in the database.
+   */
+  listEnvironments(): Promise<Environment[]>;
+
+  /**
+   * Creates a new environment with the given name.
+   *
+   * @param name - Display name for the environment.
+   * @returns The newly created environment.
+   */
+  createEnvironment(name: string): Promise<Environment>;
+
+  /**
+   * Updates an environment's name and variables.
+   *
+   * @param id - Environment ID to update.
+   * @param name - New display name.
+   * @param variables - Environment-scoped variables.
+   * @returns The updated environment.
+   */
+  updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment>;
+
+  /**
+   * Deletes an environment.
+   *
+   * @param id - Environment ID to delete.
+   */
+  deleteEnvironment(id: number): Promise<void>;
 
   /**
    * Lists all saved requests in a collection.

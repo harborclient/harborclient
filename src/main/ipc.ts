@@ -98,6 +98,18 @@ export function registerIpcHandlers(db: IDatabase): void {
     return db.importCollectionData(parsed);
   });
 
+  ipcMain.handle('environments:list', () => db.listEnvironments());
+
+  ipcMain.handle('environments:create', (_event, name: string) => db.createEnvironment(name));
+
+  ipcMain.handle(
+    'environments:update',
+    (_event, id: number, name: string, variables: Variable[]) =>
+      db.updateEnvironment(id, name, variables)
+  );
+
+  ipcMain.handle('environments:delete', (_event, id: number) => db.deleteEnvironment(id));
+
   ipcMain.handle('requests:list', (_event, collectionId: number) => db.listRequests(collectionId));
 
   ipcMain.handle('requests:save', (_event, req: SaveRequestInput) => db.saveRequest(req));

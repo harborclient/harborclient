@@ -4,6 +4,7 @@ import type {
   Collection,
   CollectionExportResult,
   DatabaseProvider,
+  Environment,
   FirestoreSettings,
   MenuActionId,
   SaveRequestInput,
@@ -91,6 +92,50 @@ function exportCollection(id: number): Promise<CollectionExportResult> {
  */
 function importCollection(): Promise<Collection | null> {
   return ipcRenderer.invoke('collections:import');
+}
+
+/**
+ * Lists all environments via IPC.
+ *
+ * @returns All environments from the main process.
+ */
+function listEnvironments(): Promise<Environment[]> {
+  return ipcRenderer.invoke('environments:list');
+}
+
+/**
+ * Creates a new environment via IPC.
+ *
+ * @param name - Display name for the environment.
+ * @returns The newly created environment.
+ */
+function createEnvironment(name: string): Promise<Environment> {
+  return ipcRenderer.invoke('environments:create', name);
+}
+
+/**
+ * Updates an environment's name and variables via IPC.
+ *
+ * @param id - Environment ID to update.
+ * @param name - New display name.
+ * @param variables - Environment-scoped variables.
+ * @returns The updated environment.
+ */
+function updateEnvironment(
+  id: number,
+  name: string,
+  variables: Variable[]
+): Promise<Environment> {
+  return ipcRenderer.invoke('environments:update', id, name, variables);
+}
+
+/**
+ * Deletes an environment via IPC.
+ *
+ * @param id - Environment ID to delete.
+ */
+function deleteEnvironment(id: number): Promise<void> {
+  return ipcRenderer.invoke('environments:delete', id);
 }
 
 /**
@@ -257,6 +302,10 @@ const api: Api = {
   deleteCollection,
   exportCollection,
   importCollection,
+  listEnvironments,
+  createEnvironment,
+  updateEnvironment,
+  deleteEnvironment,
   listRequests,
   saveRequest,
   deleteRequest,

@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import type {
   Collection,
   CollectionExportResult,
+  Environment,
   KeyValue,
   SavedRequest,
   ScriptRequestContext,
@@ -30,6 +31,7 @@ import {
 
 const OPEN_TABS_KEY = 'harborclient.openTabs';
 const LEGACY_OPEN_TABS_KEY = 'harbor-client.openTabs';
+const ACTIVE_ENVIRONMENT_KEY = 'harborclient.activeEnvironmentId';
 
 const VARIABLE_PATTERN = /\{\{\s*([\w.-]+)\s*\}\}/g;
 
@@ -130,6 +132,22 @@ function defaultTabState(): { tabs: RequestTab[]; activeTabId: string } {
 }
 
 /**
+ * Loads the persisted active environment ID from localStorage.
+ *
+ * @returns Active environment ID, or null when none is selected.
+ */
+function loadActiveEnvironmentId(): number | null {
+  try {
+    const raw = localStorage.getItem(ACTIVE_ENVIRONMENT_KEY);
+    if (!raw) return null;
+    const id = Number(raw);
+    return Number.isFinite(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Loads open tabs from localStorage, or returns a default single tab.
  *
  * @returns Restored tab state with cleared responses and sending flags.
@@ -200,9 +218,12 @@ export interface ConsoleEntry {
 /** State and actions exposed to renderer components via useAppStore. */
 export interface AppStore {
   collections: Collection[];
+  environments: Environment[];
   requestsByCollection: Record<number, SavedRequest[]>;
   selectedCollectionId: number | null;
+  activeEnvironmentId: number | null;
   setSelectedCollectionId: (id: number | null) => void;
+  setActiveEnvironmentId: (id: number | null) => void;
   tabs: RequestTab[];
   activeTabId: string;
   draft: RequestDraft;
@@ -224,6 +245,10 @@ export interface AppStore {
   deleteCollection: (id: number) => Promise<void>;
   exportCollection: (id: number) => Promise<CollectionExportResult>;
   importCollection: () => Promise<Collection | null>;
+  createEnvironment: (name: string) => Promise<Environment>;
+  updateEnvironment: (id: number, name: string, variables: Variable[]) => Promise<void>;
+  deleteEnvironment: (id: number) => Promise<void>;
+  refreshEnvironments: () => Promise<void>;
   saveRequest: (collectionId?: number) => Promise<SavedRequest>;
   deleteRequest: (id: number) => Promise<void>;
   loadRequest: (req: SavedRequest) => void;
@@ -242,10 +267,14 @@ export interface AppStore {
  */
 export function useAppStore(): AppStore {
   const [collections, setCollections] = useState<Collection[]>([]);
+  const [environments, setEnvironments] = useState<Environment[]>([]);
   const [requestsByCollection, setRequestsByCollection] = useState<Record<number, SavedRequest[]>>(
     {}
   );
   const [selectedCollectionId, setSelectedCollectionId] = useState<number | null>(null);
+  const [activeEnvironmentId, setActiveEnvironmentIdState] = useState<number | null>(
+    () => loadActiveEnvironmentId()
+  );
   const [tabs, setTabs] = useState<RequestTab[]>(() => getInitialTabState().tabs);
   const [activeTabId, setActiveTabId] = useState(() => getInitialTabState().activeTabId);
   const [consoleEntries, setConsoleEntries] = useState<ConsoleEntry[]>([]);
@@ -259,6 +288,20 @@ export function useAppStore(): AppStore {
   const response = activeTab?.response ?? null;
   const sending = activeTab?.sending ?? false;
   const testResults = activeTab?.testResults ?? [];
+
+  /**
+   * Sets the active environment and persists the selection.
+   *
+   * @param id - Environment ID to activate, or null for no environment.
+   */
+  const setActiveEnvironmentId = useCallback((id: number | null): void => {
+    setActiveEnvironmentIdState(id);
+    if (id == null) {
+      localStorage.removeItem(ACTIVE_ENVIRONMENT_KEY);
+    } else {
+      localStorage.setItem(ACTIVE_ENVIRONMENT_KEY, String(id));
+    }
+  }, []);
 
   /**
    * Updates a single tab by ID.
@@ -296,6 +339,17 @@ export function useAppStore(): AppStore {
     setRequestsByCollection((prev) => ({ ...prev, [collectionId]: data }));
   }, []);
 
+  /**
+   * Reloads environments from the main process.
+   */
+  const refreshEnvironments = useCallback(async (): Promise<void> => {
+    const data = await window.api.listEnvironments();
+    setEnvironments(data);
+    if (activeEnvironmentId != null && !data.some((env) => env.id === activeEnvironmentId)) {
+      setActiveEnvironmentId(null);
+    }
+  }, [activeEnvironmentId, setActiveEnvironmentId]);
+
   useEffect(() => {
     let cancelled = false;
     window.api.listCollections().then((data) => {
@@ -309,6 +363,23 @@ export function useAppStore(): AppStore {
       cancelled = true;
     };
   }, [selectedCollectionId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    window.api.listEnvironments().then((data) => {
+      if (cancelled) return;
+      setEnvironments(data);
+      if (
+        activeEnvironmentId != null &&
+        !data.some((env) => env.id === activeEnvironmentId)
+      ) {
+        setActiveEnvironmentId(null);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeEnvironmentId, setActiveEnvironmentId]);
 
   useEffect(() => {
     if (!selectedCollectionId) return;
@@ -496,6 +567,48 @@ export function useAppStore(): AppStore {
   };
 
   /**
+   * Creates an environment and refreshes the list.
+   *
+   * @param name - Display name for the new environment.
+   * @returns The created environment.
+   */
+  const createEnvironment = async (name: string): Promise<Environment> => {
+    const environment = await window.api.createEnvironment(name);
+    await refreshEnvironments();
+    setActiveEnvironmentId(environment.id);
+    return environment;
+  };
+
+  /**
+   * Updates an environment's name and variables and refreshes the list.
+   *
+   * @param id - Environment ID to update.
+   * @param name - New display name.
+   * @param variables - Environment-scoped variables.
+   */
+  const updateEnvironment = async (
+    id: number,
+    name: string,
+    variables: Variable[]
+  ): Promise<void> => {
+    await window.api.updateEnvironment(id, name, variables);
+    await refreshEnvironments();
+  };
+
+  /**
+   * Deletes an environment and clears selection if it was active.
+   *
+   * @param id - Environment ID to delete.
+   */
+  const deleteEnvironment = async (id: number): Promise<void> => {
+    await window.api.deleteEnvironment(id);
+    if (activeEnvironmentId === id) {
+      setActiveEnvironmentId(null);
+    }
+    await refreshEnvironments();
+  };
+
+  /**
    * Persists the active tab's draft to a collection.
    *
    * @param collectionId - Target collection; defaults to the selected collection.
@@ -594,8 +707,14 @@ export function useAppStore(): AppStore {
     const { draft: currentDraft } = activeTab;
     const collectionId = currentDraft.collection_id ?? selectedCollectionId;
     const collection = collectionId ? collections.find((c) => c.id === collectionId) : undefined;
+    const environment = activeEnvironmentId
+      ? environments.find((env) => env.id === activeEnvironmentId)
+      : undefined;
 
-    let runtimeVars = buildRuntimeVars(collection?.variables ?? []);
+    let runtimeVars = {
+      ...buildRuntimeVars(collection?.variables ?? []),
+      ...buildRuntimeVars(environment?.variables ?? [])
+    };
     const allLogs: string[] = [];
     const allTests: ScriptTestResult[] = [];
     const scriptErrors: string[] = [];
@@ -705,9 +824,12 @@ export function useAppStore(): AppStore {
 
   return {
     collections,
+    environments,
     requestsByCollection,
     selectedCollectionId,
+    activeEnvironmentId,
     setSelectedCollectionId,
+    setActiveEnvironmentId,
     tabs,
     activeTabId,
     draft,
@@ -722,6 +844,10 @@ export function useAppStore(): AppStore {
     deleteCollection,
     exportCollection,
     importCollection,
+    createEnvironment,
+    updateEnvironment,
+    deleteEnvironment,
+    refreshEnvironments,
     saveRequest,
     deleteRequest,
     loadRequest,

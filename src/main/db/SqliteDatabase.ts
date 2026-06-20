@@ -12,6 +12,7 @@ import type {
   BodyType,
   Collection,
   CollectionExport,
+  Environment,
   HttpMethod,
   KeyValue,
   SaveRequestInput,
@@ -76,6 +77,21 @@ function rowToCollection(row: Record<string, unknown>): Collection {
     headers: parseJson<KeyValue[]>(row.headers as string, []),
     pre_request_script: (row.pre_request_script as string) ?? '',
     post_request_script: (row.post_request_script as string) ?? '',
+    created_at: row.created_at as string
+  };
+}
+
+/**
+ * Maps a raw SQLite row to an Environment object.
+ *
+ * @param row - Database row from the environments table.
+ * @returns Normalized environment.
+ */
+function rowToEnvironment(row: Record<string, unknown>): Environment {
+  return {
+    id: row.id as number,
+    name: row.name as string,
+    variables: parseJson<Partial<Variable>[]>(row.variables as string, []).map(normalizeVariable),
     created_at: row.created_at as string
   };
 }
@@ -174,6 +190,13 @@ export class SqliteDatabase implements IDatabase {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS environments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      variables TEXT NOT NULL DEFAULT '[]',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
 
     const columns = this.#db.prepare('PRAGMA table_info(collections)').all() as Array<{
@@ -270,6 +293,43 @@ export class SqliteDatabase implements IDatabase {
 
   async deleteCollection(id: number): Promise<void> {
     this.getDb().prepare('DELETE FROM collections WHERE id = ?').run(id);
+  }
+
+  async listEnvironments(): Promise<Environment[]> {
+    const rows = this.getDb()
+      .prepare('SELECT id, name, variables, created_at FROM environments ORDER BY name ASC')
+      .all() as Record<string, unknown>[];
+
+    return rows.map(rowToEnvironment);
+  }
+
+  async createEnvironment(name: string): Promise<Environment> {
+    const result = this.getDb()
+      .prepare('INSERT INTO environments (name) VALUES (?)')
+      .run(name.trim());
+
+    const row = this.getDb()
+      .prepare('SELECT id, name, variables, created_at FROM environments WHERE id = ?')
+      .get(result.lastInsertRowid) as Record<string, unknown>;
+
+    return rowToEnvironment(row);
+  }
+
+  async updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment> {
+    this.getDb()
+      .prepare('UPDATE environments SET name = ?, variables = ? WHERE id = ?')
+      .run(name.trim(), JSON.stringify(variables), id);
+
+    const row = this.getDb()
+      .prepare('SELECT id, name, variables, created_at FROM environments WHERE id = ?')
+      .get(id) as Record<string, unknown> | undefined;
+
+    if (!row) throw new Error('Environment not found');
+    return rowToEnvironment(row);
+  }
+
+  async deleteEnvironment(id: number): Promise<void> {
+    this.getDb().prepare('DELETE FROM environments WHERE id = ?').run(id);
   }
 
   async listRequests(collectionId: number): Promise<SavedRequest[]> {
