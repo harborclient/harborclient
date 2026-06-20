@@ -31,7 +31,7 @@ describe('substituteVariables', () => {
     expect(result).toBe('https://api.example.com/{{missing}}');
   });
 
-  it('handles surrounding whitespace inside braces', () => {
+  it('substitutes {{ host }} when token key has surrounding whitespace', () => {
     const result = substituteVariables('https://{{ host }}/users', [
       variable('host', 'api.example.com')
     ]);
@@ -93,7 +93,7 @@ describe('tokenizeVariables', () => {
     ]);
   });
 
-  it('captures keys with surrounding whitespace inside braces', () => {
+  it('tokenizeVariables extracts host key from {{ host }} token', () => {
     expect(tokenizeVariables('https://{{ host }}/users')).toEqual([
       { text: 'https://' },
       { text: '{{ host }}', key: 'host' },

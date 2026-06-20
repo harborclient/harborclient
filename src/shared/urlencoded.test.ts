@@ -36,7 +36,7 @@ describe('serializeUrlEncodedParts', () => {
     expect(serializeUrlEncodedParts([])).toBe('');
   });
 
-  it('round-trips through parseUrlEncodedParts', () => {
+  it('serializeUrlEncodedParts output parses back via parseUrlEncodedParts', () => {
     const rows = [
       emptyUrlEncodedPart(),
       { key: 'title', value: '{{name}}', enabled: true },

@@ -13,6 +13,49 @@ import { parseFormParts } from '#/shared/formData';
 import { parseUrlEncodedParts } from '#/shared/urlencoded';
 import { DEFAULT_GENERAL_SETTINGS } from '#/main/settings/generalSettings';
 
+/** HTTP schemes allowed for outbound requests. */
+const ALLOWED_PROTOCOLS = new Set(['http:', 'https:']);
+
+/**
+ * Returns whether a URL string is a root-relative path (`/api`), not protocol-relative (`//cdn`).
+ *
+ * @param url - Trimmed URL string.
+ */
+function isRootRelativePath(url: string): boolean {
+  return url.startsWith('/') && !url.startsWith('//');
+}
+
+/**
+ * Returns whether a URL is safe to send via fetch: absolute http(s) or root-relative path.
+ *
+ * @param url - Request URL before or after query string merging.
+ * @returns True when the URL uses http/https or is a root-relative path.
+ */
+export function isValidRequestUrl(url: string): boolean {
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+
+  try {
+    return ALLOWED_PROTOCOLS.has(new URL(trimmed).protocol);
+  } catch {
+    return isRootRelativePath(trimmed);
+  }
+}
+
+/**
+ * Appends query parameters via string concatenation for root-relative paths.
+ *
+ * @param trimmed - Trimmed base URL that failed absolute URL parsing.
+ * @param enabledParams - Enabled key-value pairs to append.
+ */
+function appendQueryFallback(trimmed: string, enabledParams: KeyValue[]): string {
+  const separator = trimmed.includes('?') ? '&' : '?';
+  const query = enabledParams
+    .map((p) => `${encodeURIComponent(p.key.trim())}=${encodeURIComponent(p.value)}`)
+    .join('&');
+  return `${trimmed}${separator}${query}`;
+}
+
 /**
  * Appends enabled query parameters to a base URL.
  *
@@ -29,16 +72,18 @@ export function buildUrl(baseUrl: string, params: KeyValue[]): string {
 
   try {
     const url = new URL(trimmed);
+    if (!ALLOWED_PROTOCOLS.has(url.protocol)) {
+      return trimmed;
+    }
     for (const param of enabledParams) {
       url.searchParams.set(param.key.trim(), param.value);
     }
     return url.toString();
   } catch {
-    const separator = trimmed.includes('?') ? '&' : '?';
-    const query = enabledParams
-      .map((p) => `${encodeURIComponent(p.key.trim())}=${encodeURIComponent(p.value)}`)
-      .join('&');
-    return `${trimmed}${separator}${query}`;
+    if (!isRootRelativePath(trimmed)) {
+      return trimmed;
+    }
+    return appendQueryFallback(trimmed, enabledParams);
   }
 }
 
@@ -297,6 +342,25 @@ export async function executeRequest(
       timeMs: 0,
       sizeBytes: 0,
       error: 'URL is required',
+      request: {
+        method: input.method,
+        url: input.url,
+        headers,
+        body: sentBody,
+        bodyType: input.bodyType
+      }
+    };
+  }
+
+  if (!isValidRequestUrl(url)) {
+    return {
+      status: 0,
+      statusText: 'Error',
+      headers: {},
+      body: '',
+      timeMs: 0,
+      sizeBytes: 0,
+      error: 'Invalid URL',
       request: {
         method: input.method,
         url: input.url,

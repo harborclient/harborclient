@@ -71,7 +71,7 @@ describeSqlite('getCookiesForDomain and setCookiesForDomain', () => {
     expect(cookieJar.getCookiesForDomain('example.com')).toEqual([]);
   });
 
-  it('round-trips cookies for a domain', () => {
+  it('getCookiesForDomain returns cookies previously saved with setCookiesForDomain', () => {
     const cookies: KeyValue[] = [
       { key: 'session', value: 'abc123', enabled: true },
       { key: 'theme', value: 'dark', enabled: false }
@@ -184,6 +184,15 @@ describeSqlite('buildCookieHeader', () => {
       { key: 'safe', value: 'ok', enabled: true },
       { key: 'bad', value: 'val\r\ninjected', enabled: true },
       { key: 'also-bad\x7F', value: 'fine', enabled: true }
+    ]);
+
+    expect(cookieJar.buildCookieHeader('https://example.com/')).toBe('safe=ok');
+  });
+
+  it('excludes cookies whose values contain semicolon injection patterns', () => {
+    cookieJar.setCookiesForDomain('example.com', [
+      { key: 'safe', value: 'ok', enabled: true },
+      { key: 'session', value: 'abc; Secure', enabled: true }
     ]);
 
     expect(cookieJar.buildCookieHeader('https://example.com/')).toBe('safe=ok');

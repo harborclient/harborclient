@@ -1,5 +1,10 @@
 import { deleteApp, initializeApp, type FirebaseApp } from 'firebase/app';
-import { connectAuthEmulator, createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import {
+  connectAuthEmulator,
+  createUserWithEmailAndPassword,
+  getAuth,
+  signInWithEmailAndPassword
+} from 'firebase/auth';
 import {
   collection,
   connectFirestoreEmulator,

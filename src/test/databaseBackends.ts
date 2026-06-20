@@ -158,7 +158,7 @@ export function createFirestoreTestDbFactory(): CreateTestDb {
         await db.init();
         sharedFirestoreDb = db;
       } catch (err) {
-        await db.close().catch(() => { });
+        await db.close().catch(() => {});
         throw err;
       }
     }

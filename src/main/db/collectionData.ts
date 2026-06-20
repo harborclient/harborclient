@@ -1,38 +1,7 @@
-import type {
-  BodyType,
-  CollectionExport,
-  ExportedRequest,
-  HttpMethod,
-  KeyValue,
-  Variable
-} from '#/shared/types';
+import { collectionExportSchema, formatCollectionImportError } from '#/main/db/collectionSchemas';
+import type { CollectionExport, Variable } from '#/shared/types';
 
-export const HTTP_METHODS = new Set<HttpMethod>([
-  'GET',
-  'POST',
-  'PUT',
-  'PATCH',
-  'DELETE',
-  'HEAD',
-  'OPTIONS'
-]);
-
-export const BODY_TYPES = new Set<BodyType>(['none', 'json', 'text', 'multipart', 'urlencoded']);
-
-/**
- * Coerces a partial or legacy variable record to the full Variable shape.
- *
- * @param v - Raw variable fields from storage or import.
- * @returns Normalized variable with defaults for missing fields.
- */
-export function normalizeVariable(v: Partial<Variable>): Variable {
-  return {
-    key: typeof v.key === 'string' ? v.key : '',
-    value: typeof v.value === 'string' ? v.value : '',
-    defaultValue: typeof v.defaultValue === 'string' ? v.defaultValue : '',
-    share: v.share === true
-  };
-}
+export { normalizeVariable } from '#/main/db/collectionVariables';
 
 /**
  * Masks private variable values for portable export.
@@ -56,107 +25,44 @@ export function maskVariablesForExport(variables: Variable[]): Variable[] {
  * @returns Normalized collection export.
  * @throws When the payload is invalid.
  */
+/**
+ * Returns whether a script field contains executable code.
+ *
+ * @param script - Pre- or post-request script text from an export row.
+ * @returns True when the script is non-empty after trimming whitespace.
+ */
+function hasScript(script: string | undefined): boolean {
+  return typeof script === 'string' && script.trim().length > 0;
+}
+
+/**
+ * Returns whether a validated collection export defines any pre- or post-request scripts.
+ *
+ * Used to warn users before import because scripts from untrusted files may be malicious
+ * and the vm sandbox is not a hard security boundary.
+ *
+ * @param data - Normalized collection export payload.
+ * @returns True when the collection or any request includes a non-empty script.
+ */
+export function collectionExportContainsScripts(data: CollectionExport): boolean {
+  if (hasScript(data.pre_request_script) || hasScript(data.post_request_script)) {
+    return true;
+  }
+
+  return data.requests.some(
+    (req) => hasScript(req.pre_request_script) || hasScript(req.post_request_script)
+  );
+}
+
 export function validateCollectionExport(data: unknown): CollectionExport {
   if (!data || typeof data !== 'object') {
     throw new Error('Invalid collection file: expected a JSON object');
   }
 
-  const record = data as Record<string, unknown>;
-  const formatVersion = record.formatVersion;
-  if (formatVersion !== 1 && formatVersion !== 2) {
-    throw new Error('Invalid collection file: unsupported format version');
+  const result = collectionExportSchema.safeParse(data);
+  if (!result.success) {
+    throw new Error(`Invalid collection file: ${formatCollectionImportError(result.error)}`);
   }
 
-  const name = typeof record.name === 'string' ? record.name.trim() : '';
-  if (!name) {
-    throw new Error('Invalid collection file: collection name is required');
-  }
-
-  if (!Array.isArray(record.requests)) {
-    throw new Error('Invalid collection file: requests must be an array');
-  }
-
-  const variables = Array.isArray(record.variables)
-    ? (record.variables as Partial<Variable>[])
-        .map(normalizeVariable)
-        .filter((v) => v.key.trim() || v.value.trim() || v.defaultValue.trim())
-    : [];
-
-  const headers = Array.isArray(record.headers) ? (record.headers as KeyValue[]) : [];
-
-  const preRequestScript =
-    typeof record.pre_request_script === 'string' ? record.pre_request_script : '';
-  const postRequestScript =
-    typeof record.post_request_script === 'string' ? record.post_request_script : '';
-
-  const folders = Array.isArray(record.folders)
-    ? record.folders.map((item, index) => {
-        if (!item || typeof item !== 'object') {
-          throw new Error(`Invalid collection file: folder ${index + 1} is malformed`);
-        }
-        const folder = item as Record<string, unknown>;
-        const folderName = typeof folder.name === 'string' ? folder.name.trim() : '';
-        if (!folderName) {
-          throw new Error(`Invalid collection file: folder ${index + 1} is missing a name`);
-        }
-        return {
-          name: folderName,
-          sort_order: typeof folder.sort_order === 'number' ? folder.sort_order : index
-        };
-      })
-    : [];
-
-  const requests = record.requests.map((item, index) => {
-    if (!item || typeof item !== 'object') {
-      throw new Error(`Invalid collection file: request ${index + 1} is malformed`);
-    }
-
-    const req = item as Record<string, unknown>;
-    const method = req.method;
-    if (typeof method !== 'string' || !HTTP_METHODS.has(method as HttpMethod)) {
-      throw new Error(`Invalid collection file: request ${index + 1} has an invalid method`);
-    }
-
-    const bodyType = req.body_type;
-    if (typeof bodyType !== 'string' || !BODY_TYPES.has(bodyType as BodyType)) {
-      throw new Error(`Invalid collection file: request ${index + 1} has an invalid body type`);
-    }
-
-    const requestName = typeof req.name === 'string' ? req.name.trim() : '';
-    if (!requestName) {
-      throw new Error(`Invalid collection file: request ${index + 1} is missing a name`);
-    }
-
-    return {
-      name: requestName,
-      method: method as HttpMethod,
-      url: typeof req.url === 'string' ? req.url : '',
-      headers: Array.isArray(req.headers) ? (req.headers as KeyValue[]) : [],
-      params: Array.isArray(req.params) ? (req.params as KeyValue[]) : [],
-      body: typeof req.body === 'string' ? req.body : '',
-      body_type: bodyType as BodyType,
-      pre_request_script: typeof req.pre_request_script === 'string' ? req.pre_request_script : '',
-      post_request_script:
-        typeof req.post_request_script === 'string' ? req.post_request_script : '',
-      comment: typeof req.comment === 'string' ? req.comment : '',
-      sort_order: typeof req.sort_order === 'number' ? req.sort_order : index,
-      folder_name:
-        typeof req.folder_name === 'string'
-          ? req.folder_name.trim() || null
-          : req.folder_name === null
-            ? null
-            : undefined
-    } satisfies ExportedRequest;
-  });
-
-  return {
-    formatVersion,
-    name,
-    variables,
-    headers,
-    pre_request_script: preRequestScript,
-    post_request_script: postRequestScript,
-    folders: formatVersion === 2 ? folders : undefined,
-    requests
-  };
+  return result.data;
 }

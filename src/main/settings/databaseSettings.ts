@@ -95,6 +95,39 @@ function normalizeSqliteSettings(input: Partial<SqliteSettings>): SqliteSettings
 }
 
 /**
+ * Trims an optional string field without substituting provider defaults.
+ *
+ * Missing values become empty strings; whitespace-only values trim to empty.
+ *
+ * @param value - Raw field value from storage or input.
+ * @returns Trimmed string, or empty when absent.
+ */
+function trimOptionalString(value: string | undefined): string {
+  return value?.trim() ?? '';
+}
+
+/**
+ * Normalizes shared SQL connection settings with trimmed fields and a valid port.
+ *
+ * @param input - Raw settings from storage or user input.
+ * @param defaults - Provider defaults for host and port.
+ * @returns Normalized settings.
+ */
+function normalizeSqlConnectionSettings(
+  input: Partial<MySqlSettings>,
+  defaults: MySqlSettings
+): MySqlSettings {
+  const port = Number(input.port);
+  return {
+    host: input.host?.trim() ?? defaults.host,
+    port: Number.isFinite(port) && port > 0 ? port : defaults.port,
+    user: input.user?.trim() ?? '',
+    password: input.password ?? '',
+    database: input.database?.trim() ?? ''
+  };
+}
+
+/**
  * Normalizes Firestore settings with trimmed fields.
  *
  * @param input - Raw settings from storage or user input.
@@ -102,11 +135,11 @@ function normalizeSqliteSettings(input: Partial<SqliteSettings>): SqliteSettings
  */
 function normalizeFirestoreSettings(input: Partial<FirestoreSettings>): FirestoreSettings {
   return {
-    apiKey: input.apiKey?.trim() ?? '',
-    authDomain: input.authDomain?.trim() ?? '',
-    projectId: input.projectId?.trim() ?? '',
-    appId: input.appId?.trim() ?? '',
-    email: input.email?.trim() ?? '',
+    apiKey: trimOptionalString(input.apiKey),
+    authDomain: trimOptionalString(input.authDomain),
+    projectId: trimOptionalString(input.projectId),
+    appId: trimOptionalString(input.appId),
+    email: trimOptionalString(input.email),
     password: input.password ?? ''
   };
 }
@@ -118,14 +151,7 @@ function normalizeFirestoreSettings(input: Partial<FirestoreSettings>): Firestor
  * @returns Normalized settings.
  */
 function normalizeMySqlSettings(input: Partial<MySqlSettings>): MySqlSettings {
-  const port = Number(input.port);
-  return {
-    host: input.host?.trim() ?? DEFAULT_MYSQL_SETTINGS.host,
-    port: Number.isFinite(port) && port > 0 ? port : DEFAULT_MYSQL_SETTINGS.port,
-    user: input.user?.trim() ?? '',
-    password: input.password ?? '',
-    database: input.database?.trim() ?? ''
-  };
+  return normalizeSqlConnectionSettings(input, DEFAULT_MYSQL_SETTINGS);
 }
 
 /**
@@ -135,14 +161,7 @@ function normalizeMySqlSettings(input: Partial<MySqlSettings>): MySqlSettings {
  * @returns Normalized settings.
  */
 function normalizePostgresSettings(input: Partial<PostgresSettings>): PostgresSettings {
-  const port = Number(input.port);
-  return {
-    host: input.host?.trim() ?? DEFAULT_POSTGRES_SETTINGS.host,
-    port: Number.isFinite(port) && port > 0 ? port : DEFAULT_POSTGRES_SETTINGS.port,
-    user: input.user?.trim() ?? '',
-    password: input.password ?? '',
-    database: input.database?.trim() ?? ''
-  };
+  return normalizeSqlConnectionSettings(input, DEFAULT_POSTGRES_SETTINGS);
 }
 
 /**

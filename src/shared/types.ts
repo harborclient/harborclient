@@ -159,6 +159,23 @@ export interface Collection {
 }
 
 /**
+ * Result of listing collections, including user-facing warnings when a backend
+ * could not be read.
+ */
+export interface ListCollectionsResult {
+  /**
+   * Collections from the registry, with data hydrated from available backends.
+   */
+  collections: Collection[];
+
+  /**
+   * Warnings when one or more database connections were unavailable or failed
+   * to respond; the list may be incomplete.
+   */
+  warnings: string[];
+}
+
+/**
  * A folder for organizing requests within a collection (single level).
  */
 export interface Folder {
@@ -898,9 +915,9 @@ export interface Api {
   /**
    * Lists all collections.
    *
-   * @returns All collections from the main process.
+   * @returns Collections and any warnings when backends were unavailable.
    */
-  listCollections: () => Promise<Collection[]>;
+  listCollections: () => Promise<ListCollectionsResult>;
 
   /**
    * Creates a new collection.

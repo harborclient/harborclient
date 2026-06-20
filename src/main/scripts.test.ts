@@ -91,7 +91,7 @@ describe('runScript', () => {
     ]);
   });
 
-  it('captures script errors', async () => {
+  it('returns scriptError when sandbox script throws', async () => {
     const { runScript } = await import('#/main/scripts');
     const request = {
       method: 'GET' as const,
@@ -111,5 +111,28 @@ describe('runScript', () => {
 
     expect(result.error).toContain('boom');
     expect(result.request).toEqual(request);
+  });
+
+  it('sanitizes filesystem paths from script errors', async () => {
+    const { runScript } = await import('#/main/scripts');
+    const request = {
+      method: 'GET' as const,
+      url: 'https://example.com',
+      headers: [],
+      params: [],
+      body: '',
+      bodyType: 'none' as const
+    };
+
+    const result = await runScript({
+      phase: 'pre',
+      script: 'throw new Error("ENOENT: /home/user/secret/project/file.js");',
+      request,
+      variables: {}
+    });
+
+    expect(result.error).toContain('[path]');
+    expect(result.error).not.toContain('/home/user');
+    expect(result.error).not.toContain('file.js');
   });
 });

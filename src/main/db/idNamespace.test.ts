@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { decodeGlobalId, encodeGlobalId, ID_OFFSET } from '#/main/db/idNamespace';
 
 describe('idNamespace', () => {
-  it('encodes and decodes global ids', () => {
+  it('decodeGlobalId inverts encodeGlobalId for each backend slot', () => {
     expect(encodeGlobalId(0, 42)).toBe(42);
     expect(encodeGlobalId(2, 7)).toBe(2 * ID_OFFSET + 7);
     expect(decodeGlobalId(42)).toEqual({ slot: 0, localId: 42 });

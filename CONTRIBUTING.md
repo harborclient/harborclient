@@ -1,6 +1,7 @@
 # Contributing
 
-Guidance for humans and agents working on HarborClient.
+Guidance for humans and agents working on HarborClient. See also
+[AGENTS.md](./AGENTS.md) and [TESTING.md](./TESTING.md).
 
 ## Development
 
@@ -16,12 +17,12 @@ Use `pnpm` only (lockfile: `pnpm-lock.yaml`). Do not use npm or yarn.
 HarborClient is an Electron app built with [electron-vite](https://electron-vite.org/).
 Source lives under `src/`:
 
-| Path | Role |
-| --- | --- |
-| `src/main/` | Main process — HTTP, SQLite, IPC handlers, menus, settings |
-| `src/preload/` | Preload script — exposes a typed `window.api` via `contextBridge` |
-| `src/renderer/` | React UI (Redux Toolkit, Tailwind CSS v4) |
-| `src/shared/` | Types and pure utilities shared across processes |
+| Path            | Role                                                              |
+| --------------- | ----------------------------------------------------------------- |
+| `src/main/`     | Main process — HTTP, SQLite, IPC handlers, menus, settings        |
+| `src/preload/`  | Preload script — exposes a typed `window.api` via `contextBridge` |
+| `src/renderer/` | React UI (Redux Toolkit, Tailwind CSS v4)                         |
+| `src/shared/`   | Types and pure utilities shared across processes                  |
 
 Build output goes to `out/`. User docs are in `docs/` (VitePress).
 
@@ -58,29 +59,17 @@ The renderer uses Redux Toolkit (`src/renderer/src/store/`). Slices live in
 
 ### Path aliases
 
-| Alias | Resolves to | Used in |
-| --- | --- | --- |
-| `#/*` | `./src/*` | TypeScript, preload, renderer imports |
-| `@images` | `./images` | Renderer (Vite alias) |
+| Alias     | Resolves to | Used in                               |
+| --------- | ----------- | ------------------------------------- |
+| `#/*`     | `./src/*`   | TypeScript, preload, renderer imports |
+| `@images` | `./images`  | Renderer (Vite alias)                 |
 
 Vitest resolves bare `#` to `./src` (see `vitest.config.ts`).
 
 ## Testing
 
-Tests are colocated as `src/**/*.test.ts` (`.tsx` is not included by vitest).
-
-**Always run tests via `pnpm test`**, which uses `scripts/test-with-native.mjs` to:
-
-1. Rebuild native modules (`better-sqlite3`) for system Node
-2. Run vitest
-3. Restore native modules for Electron
-
-Do **not** run `vitest` or `pnpm exec vitest run` directly — it skips the
-rebuild/restore cycle and can leave native modules built for the wrong ABI,
-breaking `pnpm dev` and `pnpm build`.
-
-Use `pnpm test:watch` only when actively iterating on tests; it leaves modules
-built for system Node until you run `pnpm test` or `pnpm install` again.
+See [TESTING.md](./TESTING.md) for philosophy, coverage expectations, shared
+helpers, and when to add tests. Run the suite with `pnpm test` before merging.
 
 ## Dependencies
 

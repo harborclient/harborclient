@@ -9,14 +9,16 @@ interface StoredCookie extends KeyValue {
 }
 
 /**
- * Returns whether a cookie name or value contains control characters.
+ * Returns whether a cookie name or value contains characters unsafe for Cookie
+ * header serialization, such as control characters or semicolons that could
+ * inject attribute-like segments (e.g. `; Secure`).
  *
  * @param value - Cookie name or value to inspect.
  */
 function hasUnsafeCookieChars(value: string): boolean {
   for (let index = 0; index < value.length; index += 1) {
     const code = value.charCodeAt(index);
-    if (code <= 0x1f || code === 0x7f) {
+    if (code <= 0x1f || code === 0x7f || code === 0x3b) {
       return true;
     }
   }

@@ -1,17 +1,11 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
 import type {
-  Collection,
-  CollectionExportResult,
-  Environment,
-  Folder,
-  KeyValue,
   SavedRequest,
   ScriptRequestContext,
   ScriptRunResult,
   ScriptTestResult,
-  SendResult,
-  Variable
+  SendResult
 } from '#/shared/types';
 import {
   applyScriptRequestMutations,
@@ -21,222 +15,33 @@ import {
   substituteWithMap
 } from '#/renderer/src/store/scriptOrchestration';
 import { cloneDraft, draftFromSaved } from '#/renderer/src/store/drafts';
-import {
-  setCollections,
-  setFoldersForCollection,
-  setRequestsForCollection,
-  setSelectedCollectionId
-} from '#/renderer/src/store/slices/collectionsSlice';
-import {
-  setActiveEnvironmentId,
-  setEnvironments
-} from '#/renderer/src/store/slices/environmentsSlice';
+import { setSelectedCollectionId } from '#/renderer/src/store/slices/collectionsSlice';
 import { addConsoleEntry } from '#/renderer/src/store/slices/consoleSlice';
-import {
-  closeTabsForRequest,
-  closeTabsForCollection,
-  loadRequest,
-  newTab,
-  openTabWithDraft,
-  updateActiveTabDraftAfterSave,
-  updateTab
-} from '#/renderer/src/store/slices/tabsSlice';
 import {
   closeOverlay,
   selectCollectionSettingsDirty,
   selectEnvironmentSettingsDirty
 } from '#/renderer/src/store/slices/navigationSlice';
 import {
-  closeCollectionModal,
   openCollectionModal,
-  setAboutVersion,
-  setInviteToken,
-  setInviteTokenError,
-  setInviteTokenLoading,
-  setInviteTrustedKeys,
-  setInviteTrustedKeysLoading,
   setPendingLoadRequest
 } from '#/renderer/src/store/slices/modalsSlice';
+import {
+  closeTabsForRequest,
+  loadRequest,
+  newTab,
+  openTabWithDraft,
+  updateActiveTabDraftAfterSave,
+  updateTab
+} from '#/renderer/src/store/slices/tabsSlice';
 import type { AppDispatch, ThunkApiConfig } from '#/renderer/src/store/redux';
 import { selectActiveTab } from '#/renderer/src/store/selectors';
+import {
+  refreshCollectionContents,
+  refreshRequests
+} from '#/renderer/src/store/thunks/collections';
 
-export const refreshCollections = createAsyncThunk<
-  Awaited<ReturnType<typeof window.api.listCollections>>,
-  void,
-  ThunkApiConfig
->('collections/refresh', async (_, { dispatch, getState }) => {
-  const data = await window.api.listCollections();
-  dispatch(setCollections(data));
-  const selectedId = getState().collections.selectedCollectionId;
-  if (data.length > 0 && !selectedId) {
-    dispatch(setSelectedCollectionId(data[0].id));
-  }
-  return data;
-});
-
-export const refreshFolders = createAsyncThunk<
-  Awaited<ReturnType<typeof window.api.listFolders>>,
-  number,
-  ThunkApiConfig
->('collections/refreshFolders', async (collectionId, { dispatch }) => {
-  const data = await window.api.listFolders(collectionId);
-  dispatch(setFoldersForCollection({ collectionId, folders: data }));
-  return data;
-});
-
-export const refreshCollectionContents = createAsyncThunk<void, number, ThunkApiConfig>(
-  'collections/refreshContents',
-  async (collectionId, { dispatch }) => {
-    await dispatch(refreshFolders(collectionId));
-    await dispatch(refreshRequests(collectionId));
-  }
-);
-
-export const refreshRequests = createAsyncThunk<
-  Awaited<ReturnType<typeof window.api.listRequests>>,
-  number,
-  ThunkApiConfig
->('collections/refreshRequests', async (collectionId, { dispatch }) => {
-  const data = await window.api.listRequests(collectionId);
-  dispatch(setRequestsForCollection({ collectionId, requests: data }));
-  return data;
-});
-
-export const refreshEnvironments = createAsyncThunk<
-  Awaited<ReturnType<typeof window.api.listEnvironments>>,
-  void,
-  ThunkApiConfig
->('environments/refresh', async (_, { dispatch, getState }) => {
-  const data = await window.api.listEnvironments();
-  dispatch(setEnvironments(data));
-  const activeId = getState().environments.activeEnvironmentId;
-  if (activeId != null && !data.some((env) => env.id === activeId)) {
-    dispatch(setActiveEnvironmentId(null));
-  }
-  return data;
-});
-
-export const createCollection = createAsyncThunk<Collection, string, ThunkApiConfig>(
-  'collections/create',
-  async (name, { dispatch }) => {
-    const collection = await window.api.createCollection(name);
-    await dispatch(refreshCollections());
-    dispatch(setSelectedCollectionId(collection.id));
-    return collection;
-  }
-);
-
-export const updateCollection = createAsyncThunk<
-  Collection,
-  {
-    id: number;
-    name: string;
-    variables: Variable[];
-    headers: KeyValue[];
-    preRequestScript: string;
-    postRequestScript: string;
-    connectionId?: string;
-  },
-  ThunkApiConfig
->(
-  'collections/update',
-  async (
-    { id, name, variables, headers, preRequestScript, postRequestScript, connectionId },
-    { dispatch, getState }
-  ) => {
-    const state = getState();
-    const collection = state.collections.collections.find((item) => item.id === id);
-    const primaryConnectionId = await window.api.getActiveDatabaseId();
-    const currentConnectionId = collection?.connectionId ?? primaryConnectionId;
-
-    await window.api.updateCollection(
-      id,
-      name,
-      variables,
-      headers,
-      preRequestScript,
-      postRequestScript
-    );
-
-    if (connectionId && connectionId !== currentConnectionId) {
-      dispatch(closeTabsForCollection(id));
-      const moved = await window.api.moveCollection(id, connectionId);
-      await dispatch(refreshCollections());
-      dispatch(setSelectedCollectionId(moved.id));
-      await dispatch(refreshRequests(moved.id));
-      return moved;
-    }
-
-    await dispatch(refreshCollections());
-    const refreshed = getState().collections.collections.find((item) => item.id === id);
-    if (!refreshed) {
-      throw new Error(`Collection not found after update: ${id}`);
-    }
-    return refreshed;
-  }
-);
-
-export const deleteCollection = createAsyncThunk<void, number, ThunkApiConfig>(
-  'collections/delete',
-  async (id, { dispatch, getState }) => {
-    await window.api.deleteCollection(id);
-    if (getState().collections.selectedCollectionId === id) {
-      dispatch(setSelectedCollectionId(null));
-    }
-    await dispatch(refreshCollections());
-  }
-);
-
-export const exportCollection = createAsyncThunk<CollectionExportResult, number, ThunkApiConfig>(
-  'collections/export',
-  async (id) => {
-    return window.api.exportCollection(id);
-  }
-);
-
-export const importCollection = createAsyncThunk<Collection | null, void, ThunkApiConfig>(
-  'collections/import',
-  async (_, { dispatch }) => {
-    const collection = await window.api.importCollection();
-    if (!collection) return null;
-
-    await dispatch(refreshCollections());
-    dispatch(setSelectedCollectionId(collection.id));
-    await dispatch(refreshCollectionContents(collection.id));
-    return collection;
-  }
-);
-
-export const createEnvironment = createAsyncThunk<Environment, string, ThunkApiConfig>(
-  'environments/create',
-  async (name, { dispatch }) => {
-    const environment = await window.api.createEnvironment(name);
-    await dispatch(refreshEnvironments());
-    dispatch(setActiveEnvironmentId(environment.id));
-    return environment;
-  }
-);
-
-export const updateEnvironment = createAsyncThunk<
-  void,
-  { id: number; name: string; variables: Variable[] },
-  ThunkApiConfig
->('environments/update', async ({ id, name, variables }, { dispatch }) => {
-  await window.api.updateEnvironment(id, name, variables);
-  await dispatch(refreshEnvironments());
-});
-
-export const deleteEnvironment = createAsyncThunk<void, number, ThunkApiConfig>(
-  'environments/delete',
-  async (id, { dispatch, getState }) => {
-    await window.api.deleteEnvironment(id);
-    if (getState().environments.activeEnvironmentId === id) {
-      dispatch(setActiveEnvironmentId(null));
-    }
-    await dispatch(refreshEnvironments());
-  }
-);
-
+/** Persists the active tab draft to the selected or specified collection. */
 export const saveRequest = createAsyncThunk<SavedRequest, number | undefined, ThunkApiConfig>(
   'tabs/saveRequest',
   async (collectionId, { dispatch, getState }) => {
@@ -274,6 +79,7 @@ export const saveRequest = createAsyncThunk<SavedRequest, number | undefined, Th
   }
 );
 
+/** Deletes a saved request and closes any editor tabs showing it. */
 export const deleteRequest = createAsyncThunk<void, number, ThunkApiConfig>(
   'tabs/deleteRequest',
   async (id, { dispatch, getState }) => {
@@ -288,69 +94,7 @@ export const deleteRequest = createAsyncThunk<void, number, ThunkApiConfig>(
   }
 );
 
-export const createFolder = createAsyncThunk<
-  Folder,
-  { collectionId: number; name: string },
-  ThunkApiConfig
->('collections/createFolder', async ({ collectionId, name }, { dispatch }) => {
-  const folder = await window.api.createFolder(collectionId, name);
-  await dispatch(refreshFolders(collectionId));
-  return folder;
-});
-
-export const renameFolder = createAsyncThunk<
-  Folder,
-  { id: number; collectionId: number; name: string },
-  ThunkApiConfig
->('collections/renameFolder', async ({ id, collectionId, name }, { dispatch }) => {
-  const folder = await window.api.renameFolder(id, name);
-  await dispatch(refreshFolders(collectionId));
-  return folder;
-});
-
-export const deleteFolder = createAsyncThunk<
-  void,
-  { id: number; collectionId: number; requestIds: number[] },
-  ThunkApiConfig
->('collections/deleteFolder', async ({ id, collectionId, requestIds }, { dispatch }) => {
-  for (const requestId of requestIds) {
-    await window.api.deleteRequestEditorTab(String(requestId));
-    dispatch(closeTabsForRequest(requestId));
-  }
-  await window.api.deleteFolder(id);
-  await dispatch(refreshCollectionContents(collectionId));
-});
-
-export const reorderFolders = createAsyncThunk<
-  void,
-  { collectionId: number; orderedFolderIds: number[] },
-  ThunkApiConfig
->('collections/reorderFolders', async ({ collectionId, orderedFolderIds }, { dispatch }) => {
-  await window.api.reorderFolders(collectionId, orderedFolderIds);
-  await dispatch(refreshFolders(collectionId));
-});
-
-export const reorderRequests = createAsyncThunk<
-  void,
-  { collectionId: number; folderId: number | null; orderedRequestIds: number[] },
-  ThunkApiConfig
->(
-  'collections/reorderRequests',
-  async ({ collectionId, folderId, orderedRequestIds }, { dispatch }) => {
-    await window.api.reorderRequests(collectionId, folderId, orderedRequestIds);
-    await dispatch(refreshRequests(collectionId));
-  }
-);
-
-export const moveRequestToFolder = createAsyncThunk<
-  void,
-  { collectionId: number; requestId: number; folderId: number | null; index: number },
-  ThunkApiConfig
->('collections/moveRequest', async ({ collectionId, requestId, folderId, index }, { dispatch }) => {
-  await window.api.moveRequest(requestId, folderId, index);
-  await dispatch(refreshRequests(collectionId));
-});
-
+/** Creates a new saved request inside a folder and opens it in a tab. */
 export const newRequestInFolder = createAsyncThunk<
   SavedRequest,
   { collectionId: number; folderId: number },
@@ -378,6 +122,7 @@ export const newRequestInFolder = createAsyncThunk<
   return saved;
 });
 
+/** Creates a new saved request at the collection root and opens it in a tab. */
 export const newRequestInCollection = createAsyncThunk<SavedRequest, number, ThunkApiConfig>(
   'tabs/newRequestInCollection',
   async (collectionId, { dispatch }) => {
@@ -403,6 +148,7 @@ export const newRequestInCollection = createAsyncThunk<SavedRequest, number, Thu
   }
 );
 
+/** Sends the active tab request, running pre/post scripts and recording console output. */
 export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
   'tabs/sendRequest',
   async (_, { dispatch, getState }) => {
@@ -552,6 +298,7 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
   }
 );
 
+/** Cancels the in-flight HTTP request for the active tab. */
 export const cancelRequest = createAsyncThunk<void, void, ThunkApiConfig>(
   'tabs/cancelRequest',
   async (_, { dispatch, getState }) => {
@@ -569,12 +316,6 @@ export const cancelRequest = createAsyncThunk<void, void, ThunkApiConfig>(
   }
 );
 
-/** Dispatches initial data loads on app mount. */
-export function initializeStore(dispatch: AppDispatch): void {
-  void dispatch(refreshCollections());
-  void dispatch(refreshEnvironments());
-}
-
 /** Opens a saved request in a tab (sync action wrapper). */
 export function dispatchLoadRequest(dispatch: AppDispatch, req: SavedRequest): void {
   dispatch(loadRequest(req));
@@ -584,61 +325,6 @@ export function dispatchLoadRequest(dispatch: AppDispatch, req: SavedRequest): v
 export function dispatchNewRequest(dispatch: AppDispatch): void {
   dispatch(newTab());
 }
-
-/** Loads trusted keys for the invite modal recipient picker. */
-export const loadTrustedKeys = createAsyncThunk<void, void, ThunkApiConfig>(
-  'modals/loadTrustedKeys',
-  async (_, { dispatch }) => {
-    dispatch(setInviteTrustedKeysLoading(true));
-    dispatch(setInviteTokenError(null));
-    try {
-      const keys = await window.api.listTrustedKeys();
-      dispatch(setInviteTrustedKeys(keys));
-    } catch (err) {
-      dispatch(
-        setInviteTokenError(err instanceof Error ? err.message : 'Failed to load trusted keys')
-      );
-      dispatch(setInviteTrustedKeys([]));
-    } finally {
-      dispatch(setInviteTrustedKeysLoading(false));
-    }
-  }
-);
-
-/** Generates an encrypted invite token for the selected recipient. */
-export const generateInviteToken = createAsyncThunk<void, void, ThunkApiConfig>(
-  'modals/generateInviteToken',
-  async (_, { dispatch, getState }) => {
-    const invite = getState().modals.invite;
-    if (!invite || !invite.recipientKid) return;
-
-    dispatch(setInviteTokenLoading(true));
-    dispatch(setInviteTokenError(null));
-    dispatch(setInviteToken(''));
-
-    try {
-      const token = await window.api.createInviteToken(invite.collectionId, invite.recipientKid);
-      dispatch(setInviteToken(token));
-    } catch (err) {
-      dispatch(
-        setInviteTokenError(err instanceof Error ? err.message : 'Failed to create invite token')
-      );
-    } finally {
-      dispatch(setInviteTokenLoading(false));
-    }
-  }
-);
-
-/** Accepts an invite JWT and refreshes collections. */
-export const acceptInviteToken = createAsyncThunk<void, string, ThunkApiConfig>(
-  'modals/acceptInviteToken',
-  async (token, { dispatch }) => {
-    await window.api.acceptInvite(token);
-    await dispatch(refreshCollections());
-    dispatch(closeCollectionModal());
-    toast.success('Shared connection added');
-  }
-);
 
 /** Loads a saved request, prompting when settings overlays have unsaved edits. */
 export const requestLoadRequest = createAsyncThunk<void, SavedRequest, ThunkApiConfig>(
@@ -671,15 +357,5 @@ export const saveFromMenu = createAsyncThunk<void, void, ThunkApiConfig>(
     }
     await dispatch(saveRequest()).unwrap();
     toast.success('Request saved');
-  }
-);
-
-/** Fetches the application version for the about dialog. */
-export const fetchAppVersion = createAsyncThunk<string, void, ThunkApiConfig>(
-  'modals/fetchAppVersion',
-  async (_, { dispatch }) => {
-    const version = await window.api.getAppVersion();
-    dispatch(setAboutVersion(version));
-    return version;
   }
 );

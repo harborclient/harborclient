@@ -6,7 +6,7 @@ import type { SendRequestInput } from '#/shared/types';
 import { serializeFormParts } from '#/shared/formData';
 import { serializeUrlEncodedParts } from '#/shared/urlencoded';
 import { DEFAULT_GENERAL_SETTINGS } from '#/main/settings/generalSettings';
-import { buildHeaders, buildUrl, executeRequest } from '#/main/http';
+import { buildHeaders, buildUrl, executeRequest, isValidRequestUrl } from '#/main/http';
 
 describe('buildUrl', () => {
   it('returns trimmed URL when empty or whitespace', () => {
@@ -59,6 +59,36 @@ describe('buildUrl', () => {
     expect(buildUrl('/search', [{ key: 'q', value: 'hello world', enabled: true }])).toBe(
       '/search?q=hello%20world'
     );
+  });
+
+  it('does not append params to disallowed schemes or malformed URLs', () => {
+    const params = [{ key: 'q', value: 'test', enabled: true }];
+
+    expect(buildUrl('javascript:alert(1)', params)).toBe('javascript:alert(1)');
+    expect(buildUrl('file:///', params)).toBe('file:///');
+    expect(buildUrl('not-a-url', params)).toBe('not-a-url');
+    expect(buildUrl('//cdn.example.com/path', params)).toBe('//cdn.example.com/path');
+  });
+});
+
+describe('isValidRequestUrl', () => {
+  it('accepts http and https absolute URLs', () => {
+    expect(isValidRequestUrl('https://example.com')).toBe(true);
+    expect(isValidRequestUrl('http://localhost:8080/path')).toBe(true);
+  });
+
+  it('accepts root-relative paths', () => {
+    expect(isValidRequestUrl('/api/users')).toBe(true);
+    expect(isValidRequestUrl('/search?q=hello')).toBe(true);
+  });
+
+  it('rejects blank, dangerous, and malformed URLs', () => {
+    expect(isValidRequestUrl('')).toBe(false);
+    expect(isValidRequestUrl('   ')).toBe(false);
+    expect(isValidRequestUrl('javascript:alert(1)')).toBe(false);
+    expect(isValidRequestUrl('file:///')).toBe(false);
+    expect(isValidRequestUrl('not-a-url')).toBe(false);
+    expect(isValidRequestUrl('//cdn.example.com/path')).toBe(false);
   });
 });
 
@@ -171,6 +201,30 @@ describe('executeRequest', () => {
     });
   });
 
+  it('returns invalid URL error for disallowed schemes without calling fetch', async () => {
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock;
+
+    const result = await executeRequest({
+      ...baseInput,
+      url: 'javascript:alert(1)',
+      params: [{ key: 'q', value: 'test', enabled: true }]
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      status: 0,
+      statusText: 'Error',
+      error: 'Invalid URL',
+      timeMs: 0,
+      sizeBytes: 0
+    });
+    expect(result.request).toMatchObject({
+      method: 'GET',
+      url: 'javascript:alert(1)'
+    });
+  });
+
   it('omits body for GET and HEAD requests', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response('ok', {
@@ -222,7 +276,36 @@ describe('executeRequest', () => {
     expect(init).not.toHaveProperty('body');
   });
 
-  it('maps successful fetch responses', async () => {
+  it('sends empty string body for POST with json bodyType and empty body', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response('ok', { status: 200, statusText: 'OK' }));
+    globalThis.fetch = fetchMock;
+
+    const result = await executeRequest({
+      ...baseInput,
+      method: 'POST',
+      body: '',
+      bodyType: 'json'
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(init.method).toBe('POST');
+    expect(init.body).toBe('');
+    expect(init.headers).toEqual({ 'Content-Type': 'application/json' });
+
+    expect(result.request).toMatchObject({
+      method: 'POST',
+      body: '',
+      bodyType: 'json',
+      headers: { 'Content-Type': 'application/json' }
+    });
+  });
+
+  it('returns status, headers, and body from fetch Response', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response('{"ok":true}', {
         status: 201,
@@ -255,7 +338,7 @@ describe('executeRequest', () => {
     });
   });
 
-  it('maps fetch failures to error results', async () => {
+  it('returns error result when fetch rejects', async () => {
     const fetchMock = vi.fn().mockRejectedValue(new Error('network down'));
     globalThis.fetch = fetchMock;
 

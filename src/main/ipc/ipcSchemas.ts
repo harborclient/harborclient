@@ -1,16 +1,17 @@
 import { z } from 'zod';
+import { bodyType, httpMethod, keyValue, variable } from '#/main/schemas/common';
 import type {
   DatabaseConnection,
   GeneralSettings,
-  KeyValue,
   SaveRequestInput,
   ScriptRequestContext,
   ScriptRunInput,
   SendRequestInput,
   SendResult,
-  SentRequest,
-  Variable
+  SentRequest
 } from '#/shared/types';
+
+export { bodyType, httpMethod, keyValue, variable } from '#/main/schemas/common';
 
 /** Non-negative integer database row id. */
 export const dbId = z.number().int().nonnegative();
@@ -26,10 +27,6 @@ export const token = z.string();
 export const publicKeyPem = z.string();
 export const name = z.string();
 
-export const httpMethod = z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']);
-
-export const bodyType = z.enum(['none', 'json', 'text', 'multipart', 'urlencoded']);
-
 export const themeSource = z.enum(['light', 'dark', 'system']);
 
 export const editorTab = z.enum(['params', 'headers', 'cookies', 'body', 'pre', 'post', 'comment']);
@@ -37,19 +34,6 @@ export const editorTab = z.enum(['params', 'headers', 'cookies', 'body', 'pre', 
 export const scriptPhase = z.enum(['pre', 'post']);
 
 export const nullableFolderId = z.union([dbId, z.null()]);
-
-export const keyValue = z.object({
-  key: z.string(),
-  value: z.string(),
-  enabled: z.boolean()
-}) satisfies z.ZodType<KeyValue>;
-
-export const variable = z.object({
-  key: z.string(),
-  value: z.string(),
-  defaultValue: z.string(),
-  share: z.boolean()
-}) satisfies z.ZodType<Variable>;
 
 export const saveRequestInput = z.object({
   id: dbId.optional(),

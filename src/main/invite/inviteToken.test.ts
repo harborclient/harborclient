@@ -67,7 +67,7 @@ const sampleCollection: InviteCollectionMeta = {
 };
 
 describe('inviteToken', () => {
-  it('round-trips create and verify', () => {
+  it('verifyInvite decrypts and validates token from createInviteToken', () => {
     const sender = generateTestKeyPair();
     const recipient = generateTestKeyPair();
 

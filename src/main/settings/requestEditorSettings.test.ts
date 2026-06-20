@@ -16,7 +16,7 @@ describe('requestEditorTabKey', () => {
 });
 
 describe('normalizeEditorTab', () => {
-  it('accepts valid editor tabs', () => {
+  it('parseEditorTab accepts params, headers, body, and scripts tabs', () => {
     expect(normalizeEditorTab('headers')).toBe('headers');
     expect(normalizeEditorTab('post')).toBe('post');
   });

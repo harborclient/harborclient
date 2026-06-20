@@ -12,7 +12,7 @@ import {
 
 describe('entityMappers', () => {
   describe('SQL-shaped rows', () => {
-    it('maps a collection row with JSON string columns', () => {
+    it('rowToCollection parses JSON headers and variables into arrays', () => {
       const row = {
         id: 1,
         name: 'My Collection',
@@ -50,7 +50,7 @@ describe('entityMappers', () => {
       });
     });
 
-    it('maps a folder row', () => {
+    it('rowToFolder returns Folder with id, name, and sort_order', () => {
       const row = {
         id: 3,
         collection_id: 1,
@@ -62,7 +62,7 @@ describe('entityMappers', () => {
       expect(rowToFolder(row)).toEqual(row);
     });
 
-    it('maps a request row with nullable folder_id and JSON arrays', () => {
+    it('rowToRequest parses nullable folder_id and JSON header/param arrays', () => {
       const row = {
         id: 4,
         collection_id: 1,
@@ -107,7 +107,7 @@ describe('entityMappers', () => {
   });
 
   describe('Firestore-shaped documents', () => {
-    it('maps a collection document via docToCollection', () => {
+    it('docToCollection returns Collection with parsed variables and headers', () => {
       const data = {
         name: 'Firestore Collection',
         variables: [{ key: 'env', value: 'dev' }],
@@ -138,7 +138,7 @@ describe('entityMappers', () => {
       ).toMatchObject({ id: 5, name: 'Staging', variables: [] });
     });
 
-    it('maps a folder document via docToFolder', () => {
+    it('docToFolder returns Folder with collection_id and sort_order', () => {
       expect(
         docToFolder(7, {
           collection_id: 10,
@@ -149,7 +149,7 @@ describe('entityMappers', () => {
       ).toMatchObject({ id: 7, collection_id: 10, name: 'API', sort_order: 2 });
     });
 
-    it('maps a request document with defaults for missing fields', () => {
+    it('docToRequest fills empty strings and none body_type when fields are missing', () => {
       const mapped = docToRequest(99, {
         collection_id: 10,
         name: 'Health check',

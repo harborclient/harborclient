@@ -154,6 +154,30 @@ const console = {
 `;
 
 /**
+ * Strips filesystem paths and vm framing from script errors before they reach the UI.
+ *
+ * User scripts and the vm runtime can embed absolute paths or `evalmachine` locations
+ * that are useful for main-process debugging but should not appear in the renderer.
+ *
+ * @param message - Raw error message from the vm sandbox or Node vm runtime.
+ * @returns Single-line message with absolute paths replaced by `[path]`.
+ */
+function sanitizeScriptErrorMessage(message: string): string {
+  const firstLine = message.split('\n')[0]?.trim() ?? '';
+  if (!firstLine) {
+    return 'Script execution failed';
+  }
+
+  let sanitized = firstLine.replace(/evalmachine\.<anonymous>/g, 'script');
+
+  sanitized = sanitized
+    .replace(/[A-Za-z]:[\\/][^\s'"(),\]}]+/g, '[path]')
+    .replace(/(^|[\s(,])(\/(?:[\w.-]+\/)+[\w.-]*)/g, '$1[path]');
+
+  return sanitized;
+}
+
+/**
  * Runs a pre/post script inside a `node:vm` sandbox with the hc API.
  *
  * The context is created with a fresh global that exposes only the standard
@@ -205,13 +229,13 @@ export async function runScript(input: ScriptRunInput): Promise<ScriptRunResult>
   } catch (err) {
     // Errors thrown inside the vm context come from a different realm, so
     // `instanceof Error` is unreliable; read `message` defensively instead.
-    const message =
+    const rawMessage =
       err && typeof err === 'object' && 'message' in err
         ? String((err as { message: unknown }).message)
         : String(err);
     return {
       ...passthrough,
-      error: message
+      error: sanitizeScriptErrorMessage(rawMessage)
     };
   }
 }

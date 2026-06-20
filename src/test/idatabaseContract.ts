@@ -104,7 +104,7 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
   });
 
   describe(`${label} environments`, () => {
-    it('createEnvironment and listEnvironments', async () => {
+    it('listEnvironments returns environment after createEnvironment', async () => {
       const { db } = await createTestDb();
       const env = await db.createEnvironment('  Dev  ');
       expect(env.name).toBe('Dev');
@@ -224,7 +224,7 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
       expect(await db.getSetting('theme')).toBeUndefined();
     });
 
-    it('setSetting and getSetting round-trip and overwrite', async () => {
+    it('getSetting returns latest value after setSetting overwrites a key', async () => {
       const { db } = await createTestDb();
 
       await db.setSetting('theme', 'dark');
@@ -337,7 +337,7 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
       expect((await db.listRequests(imported.id))[0]?.name).toBe('Health');
     });
 
-    it('importCollectionData rejects invalid payloads', async () => {
+    it('importCollectionData rejects null payload, unsupported version, blank name, and invalid request fields', async () => {
       const { db } = await createTestDb();
 
       await expect(db.importCollectionData(null)).rejects.toThrow(

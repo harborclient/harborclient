@@ -175,7 +175,7 @@ describe('createTab', () => {
 });
 
 describe('draftFromSaved', () => {
-  it('maps saved request fields into a draft', () => {
+  it('requestToDraft copies method, url, headers, params, body, and scripts from saved request', () => {
     const saved: SavedRequest = {
       id: 1,
       collection_id: 10,

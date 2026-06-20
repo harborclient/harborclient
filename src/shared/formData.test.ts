@@ -36,7 +36,7 @@ describe('serializeFormParts', () => {
     expect(serializeFormParts([])).toBe('');
   });
 
-  it('round-trips through parseFormParts', () => {
+  it('serializeFormParts output parses back to equivalent parts via parseFormParts', () => {
     const parts = [
       emptyFormPart(),
       { key: 'title', value: '{{name}}', enabled: true, type: 'text' as const, files: [] },

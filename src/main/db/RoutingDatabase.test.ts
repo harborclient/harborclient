@@ -113,6 +113,28 @@ describeSqlite('RoutingDatabase collections', () => {
     expect(listed).toHaveLength(1);
     expect(listed[0]?.name).toBe('Orphan');
     expect(listed[0]?.variables).toEqual([]);
+    expect(router.consumeCollectionListWarnings()).toEqual([
+      'Could not load collection data: database connection "missing-conn" is unavailable.'
+    ]);
+  });
+
+  it('listCollections records warnings when a provider read fails', async () => {
+    const { router, registry, backendA } = await createRoutingFixture();
+    await router.createCollection('Healthy');
+
+    registry.addRegistryEntry({
+      name: 'Remote',
+      connectionId: CONN_B.id,
+      providerCollectionId: 99
+    });
+
+    vi.spyOn(backendA, 'listCollections').mockRejectedValueOnce(new Error('Connection refused'));
+
+    const listed = await router.listCollections();
+    expect(listed.map((c) => c.name).sort()).toEqual(['Healthy', 'Remote']);
+    expect(router.consumeCollectionListWarnings()).toEqual([
+      'Could not load collections from "SQLite A": Connection refused'
+    ]);
   });
 });
 

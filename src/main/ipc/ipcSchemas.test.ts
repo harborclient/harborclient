@@ -68,7 +68,7 @@ describe('enum schemas', () => {
 });
 
 describe('saveRequestInput', () => {
-  it('accepts a valid request payload', () => {
+  it('parses saveRequestInput with required collection_id, method, and KeyValue headers', () => {
     expect(saveRequestInput.safeParse(validSaveRequest).success).toBe(true);
   });
 
@@ -89,7 +89,7 @@ describe('saveRequestInput', () => {
     ).toBe(false);
   });
 
-  it('rejects invalid method and body_type', () => {
+  it('rejects unknown method FETCH and body_type xml in saveRequestInput', () => {
     expect(saveRequestInput.safeParse({ ...validSaveRequest, method: 'FETCH' }).success).toBe(
       false
     );
@@ -100,7 +100,7 @@ describe('saveRequestInput', () => {
 });
 
 describe('databaseConnection', () => {
-  it('accepts valid sqlite connection', () => {
+  it('parses sqlite databaseConnection with dbFilename settings', () => {
     expect(
       databaseConnection.safeParse({
         id: 'abc',
@@ -115,7 +115,7 @@ describe('databaseConnection', () => {
     ).toBe(true);
   });
 
-  it('accepts valid mysql connection', () => {
+  it('parses mysql databaseConnection with host, port, and credentials', () => {
     expect(
       databaseConnection.safeParse({
         id: 'mysql-1',
@@ -132,7 +132,7 @@ describe('databaseConnection', () => {
     ).toBe(true);
   });
 
-  it('rejects unknown type', () => {
+  it('rejects databaseConnection when type is not sqlite, mysql, or postgres', () => {
     expect(
       databaseConnection.safeParse({
         id: 'x',
@@ -156,7 +156,7 @@ describe('databaseConnection', () => {
 });
 
 describe('generalSettings', () => {
-  it('accepts valid settings', () => {
+  it('parses generalSettings with numeric timeout and boolean verifySsl', () => {
     expect(
       generalSettings.safeParse({
         requestTimeoutMs: 30000,
@@ -183,7 +183,7 @@ describe('nullable folderId tuples', () => {
     expect(ipcArgSchemas.requestReorder.safeParse([1, 5, [2, 3]]).success).toBe(true);
   });
 
-  it('requestReorder rejects invalid folderId', () => {
+  it('rejects requestReorder when folderId is a string instead of null or number', () => {
     expect(ipcArgSchemas.requestReorder.safeParse([1, 'root', [2]]).success).toBe(false);
   });
 
@@ -193,15 +193,15 @@ describe('nullable folderId tuples', () => {
 });
 
 describe('object schema happy paths', () => {
-  it('sendRequestInput accepts valid payload', () => {
+  it('parses sendRequestInput with POST method and json bodyType', () => {
     expect(sendRequestInput.safeParse(validSendRequest).success).toBe(true);
   });
 
-  it('scriptRunInput accepts valid payload', () => {
+  it('parses scriptRunInput with phase, script, request, and variables', () => {
     expect(scriptRunInput.safeParse(validScriptRun).success).toBe(true);
   });
 
-  it('variable accepts valid payload', () => {
+  it('parses variable with key, value, defaultValue, and share flag', () => {
     expect(
       variable.safeParse({ key: 'baseUrl', value: 'https://a', defaultValue: '', share: false })
         .success

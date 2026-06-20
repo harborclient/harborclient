@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type JSX } from 'react';
+import { FaIcon } from '#/renderer/src/components/FaIcon';
+import { faChevronRight } from '#/renderer/src/fontawesome';
 
 interface Props {
   /**
@@ -52,14 +54,15 @@ function BreadcrumbPrefix({
   const segmentClass = compact
     ? 'shrink-0 text-[15px] font-normal text-muted'
     : 'font-normal text-muted';
-  const separator = compact ? (
-    <span className={segmentClass}>&gt;</span>
-  ) : (
-    <span className={segmentClass}> &gt; </span>
+  const separator = (
+    <FaIcon
+      icon={faChevronRight}
+      className="inline-block h-3 w-3 shrink-0 align-middle text-muted"
+    />
   );
 
   return (
-    <>
+    <span className="inline-flex shrink-0 items-center gap-1">
       {collectionName && (
         <>
           <span className={segmentClass}>{collectionName}</span>
@@ -72,7 +75,7 @@ function BreadcrumbPrefix({
           {separator}
         </>
       )}
-    </>
+    </span>
   );
 }
 
@@ -113,7 +116,7 @@ export function Name({ name, collectionName, folderName, onNameChange }: Props):
       ) : (
         <button
           type="button"
-          className="min-w-0 max-w-xs cursor-text border-none bg-transparent p-0 text-left text-[15px] font-semibold text-text hover:opacity-80 app-no-drag"
+          className="inline-flex min-w-0 max-w-xs cursor-text items-center gap-1 border-none bg-transparent p-0 text-left text-[15px] font-semibold text-text hover:opacity-80 app-no-drag"
           onClick={() => setEditingName(true)}
         >
           <BreadcrumbPrefix collectionName={collectionName} folderName={folderName} />

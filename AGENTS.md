@@ -17,8 +17,8 @@ directly. The test script rebuilds native modules (`better-sqlite3`) for system
 Node, runs vitest, then restores them for Electron. Skipping this leaves the
 wrong ABI and breaks `pnpm dev` / `pnpm build`.
 
-Tests are colocated as `src/**/*.test.ts`. See [CONTRIBUTING.md](./CONTRIBUTING.md#testing)
-for details.
+Tests are colocated as `src/**/*.test.ts`. See [TESTING.md](./TESTING.md) for
+philosophy, coverage goals, and when to add tests.
 
 ## Package manager
 
@@ -73,8 +73,8 @@ which sets `core.hooksPath` to `.githooks`).
 
 How it works:
 
-- After each commit, the hook prepends `- <commit subject>. (\`<short sha>\`)` to
-  the `## Unreleased` section and amends the change into the same commit.
+- After each commit, the hook prepends `- <commit subject>. (\`<short sha>\`)`to
+the`## Unreleased` section and amends the change into the same commit.
 - The hook stays out of the way when:
   - `CHANGELOG.md` is already part of the commit (you wrote your own entry).
   - The commit is a merge, revert, fixup, squash, or `chore(changelog)` /

@@ -5,7 +5,11 @@ import { join } from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { SqliteSettings } from '#/shared/types';
 import { SqliteDatabase } from '#/main/db/SqliteDatabase';
-import { baseRequestInput, runIdatabaseContractSuite, type TestDbHandle } from '#/test/idatabaseContract';
+import {
+  baseRequestInput,
+  runIdatabaseContractSuite,
+  type TestDbHandle
+} from '#/test/idatabaseContract';
 import { describeSqlite } from '#/test/nativeModules';
 
 const DEFAULT_TEST_SETTINGS: SqliteSettings = {

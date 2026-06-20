@@ -9,6 +9,7 @@ import type {
   Folder,
   GeneralSettings,
   InviteIdentity,
+  ListCollectionsResult,
   MenuActionId,
   PemExportResult,
   SaveRequestInput,
@@ -26,9 +27,9 @@ import type {
 /**
  * Lists all collections via IPC.
  *
- * @returns All collections from the main process.
+ * @returns Collections and any warnings when backends were unavailable.
  */
-function listCollections(): Promise<Collection[]> {
+function listCollections(): Promise<ListCollectionsResult> {
   return ipcRenderer.invoke('collections:list');
 }
 
