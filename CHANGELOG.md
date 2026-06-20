@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.4.3 - 2026-06-20
+
 - chore(formatting): improve code formatting and linting checks. (`9881be7`)
 - feat(collections): implement collection duplication and reordering functionality. (`97f6098`)
 - chore(docs): update README and index.md tagline for clarity. (`011696e`)
