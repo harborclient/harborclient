@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { existsSync } from 'fs';
 import { join } from 'path';
-import { normalizeVariable } from '#/main/db/collectionData';
+import { rowToEnvironment } from '#/main/db/entityMappers';
 import type { Environment, Variable } from '#/shared/types';
 
 const REGISTRY_DB_FILENAME = 'harborclient-registry.db';
@@ -59,20 +59,6 @@ export type UpdateRegistryEntryInput = Partial<
 >;
 
 /**
- * Parses a JSON string, returning a fallback value on failure.
- *
- * @param value - JSON string to parse.
- * @param fallback - Value returned when parsing fails.
- */
-function parseJson<T>(value: string, fallback: T): T {
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-/**
  * Maps a raw SQLite row to a collection registry entry.
  */
 function rowToRegistryEntry(row: Record<string, unknown>): CollectionRegistryEntry {
@@ -81,18 +67,6 @@ function rowToRegistryEntry(row: Record<string, unknown>): CollectionRegistryEnt
     name: row.name as string,
     connectionId: row.connection_id as string,
     providerCollectionId: row.provider_collection_id as number,
-    created_at: row.created_at as string
-  };
-}
-
-/**
- * Maps a raw SQLite row to an Environment object.
- */
-function rowToEnvironment(row: Record<string, unknown>): Environment {
-  return {
-    id: row.id as number,
-    name: row.name as string,
-    variables: parseJson<Partial<Variable>[]>(row.variables as string, []).map(normalizeVariable),
     created_at: row.created_at as string
   };
 }

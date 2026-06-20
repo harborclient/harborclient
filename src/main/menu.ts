@@ -47,6 +47,10 @@ export function buildMenu(window: BrowserWindow): Menu {
           accelerator: 'CmdOrCtrl+,',
           click: () => sendMenuAction(window, 'settings')
         },
+        {
+          label: 'Certificates',
+          click: () => sendMenuAction(window, 'certificates')
+        },
         { type: 'separator' },
         { role: 'quit' }
       ]

@@ -59,6 +59,41 @@ export const sidebar: DefaultTheme.SidebarItem[] =
     "collapsed": false
   },
   {
+    "text": "Certificates",
+    "link": "/certificates",
+    "items": [
+      {
+        "text": "My identity",
+        "link": "/certificates#my-identity"
+      },
+      {
+        "text": "Exporting your public key",
+        "link": "/certificates#exporting-your-public-key"
+      },
+      {
+        "text": "Exporting and importing your key pair",
+        "link": "/certificates#exporting-and-importing-your-key-pair"
+      },
+      {
+        "text": "Trusted keys",
+        "link": "/certificates#trusted-keys"
+      },
+      {
+        "text": "Working with collaborators",
+        "link": "/certificates#working-with-collaborators"
+      },
+      {
+        "text": "Security notes",
+        "link": "/certificates#security-notes"
+      },
+      {
+        "text": "What's next",
+        "link": "/certificates#whats-next"
+      }
+    ],
+    "collapsed": false
+  },
+  {
     "text": "Collections",
     "link": "/collections",
     "items": [

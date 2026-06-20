@@ -1,7 +1,13 @@
 import type { JSX } from 'react';
 import type { SendResult } from '#/shared/types';
 import { CodeEditor } from '#/renderer/src/components/CodeEditor';
-import { bodyLanguage, formatBody } from '#/renderer/src/ui/shared/responseFormatUtils';
+import {
+  bodyLanguage,
+  formatBody,
+  formatSentRequestBody,
+  sentRequestBodyLanguage,
+  sentRequestBodySectionTitle
+} from '#/renderer/src/ui/shared/responseFormatUtils';
 import { SectionTitle } from './SectionTitle';
 
 const detailRow =
@@ -27,12 +33,16 @@ interface Props {
  * Renders expandable request/response inspector details for a send result.
  */
 export function RequestDetails({ result }: Props): JSX.Element {
-  const formattedRequestBody = result.request ? formatBody(result.request.body) : '';
+  const formattedRequestBody = result.request
+    ? formatSentRequestBody(result.request.body, result.request.bodyType)
+    : '';
   const formattedResponseBody = formatBody(result.body);
   const requestBodyLanguage = result.request
-    ? bodyLanguage(result.request.body, result.request.headers)
+    ? sentRequestBodyLanguage(result.request.body, result.request.bodyType, result.request.headers)
     : 'text';
   const responseBodyLanguage = bodyLanguage(result.body, result.headers);
+  const requestBodySectionTitle = sentRequestBodySectionTitle(result.request?.bodyType);
+  const isMultipartSummary = result.request?.bodyType === 'multipart';
 
   if (!result.request) {
     return <div className="text-[13px] text-muted">No request data</div>;
@@ -80,7 +90,12 @@ export function RequestDetails({ result }: Props): JSX.Element {
       </div>
 
       <div>
-        <SectionTitle title="Payload" />
+        <SectionTitle title={requestBodySectionTitle} />
+        {isMultipartSummary && (
+          <p className="m-0 mb-1.5 text-[12px] text-muted">
+            Summary of fields sent — not the raw multipart body.
+          </p>
+        )}
         {result.request.body ? (
           <CodeEditor readOnly value={formattedRequestBody} language={requestBodyLanguage} />
         ) : (

@@ -19,7 +19,7 @@
     "preview": "ELECTRON_DISABLE_SANDBOX=1 electron-vite preview",
     "postinstall": "node scripts/install-app-deps.mjs",
     "dist": "pnpm build && electron-builder",
-    "test": "vitest run && node scripts/install-app-deps.mjs",
+    "test": "node scripts/test-with-native.mjs",
     "test:watch": "vitest",
     "lint": "eslint --cache .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -57,13 +57,13 @@
     "electron-store": "^8.2.0",
     "electron-window-state": "^5.0.3",
     "firebase": "^12.15.0",
-    "isolated-vm": "^6.0.2",
     "mysql2": "^3.22.5",
     "pg": "^8.22.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hot-toast": "^2.6.0",
-    "react-redux": "^9.3.0"
+    "react-redux": "^9.3.0",
+    "undici": "^6.27.0"
   },
   "devDependencies": {
     "@braintree/sanitize-url": "^7.1.2",
@@ -100,8 +100,7 @@
     "onlyBuiltDependencies": [
       "better-sqlite3",
       "electron",
-      "esbuild",
-      "isolated-vm"
+      "esbuild"
     ]
   }
 }

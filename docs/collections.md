@@ -207,6 +207,8 @@ Common validation errors:
 
 Use **Export/Import** when you want a portable snapshot of a collection — a `.json` file you can version, email, or archive. Use **invites** when you want another HarborClient user to connect to the same **live** collection on a remote database. Invited collections stay in sync with the shared backend; changes from other users appear when data is reloaded (for example, after restarting the app). See [Settings → Databases](/settings#databases) for how remote backends work.
 
+Before sending or accepting invites, exchange public keys with your colleague — see [Certificates](/certificates).
+
 ### Sending an invite
 
 | Step | Action |

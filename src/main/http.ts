@@ -1,5 +1,6 @@
 import { readFile } from 'fs/promises';
 import { basename } from 'path';
+import { Agent, type Dispatcher } from 'undici';
 import type {
   BodyType,
   GeneralSettings,
@@ -239,17 +240,14 @@ function mapFetchError(err: unknown, timeoutMs: number): string {
   return 'Unknown error';
 }
 
+let insecureDispatcher: Agent | undefined;
+
 /**
- * Restores NODE_TLS_REJECT_UNAUTHORIZED after a request that disabled verification.
- *
- * @param previousValue - Prior env value before the request.
+ * Returns a shared undici Agent that skips TLS certificate verification.
  */
-function restoreTlsRejectUnauthorized(previousValue: string | undefined): void {
-  if (previousValue === undefined) {
-    delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
-    return;
-  }
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = previousValue;
+function getInsecureDispatcher(): Agent {
+  insecureDispatcher ??= new Agent({ connect: { rejectUnauthorized: false } });
+  return insecureDispatcher;
 }
 
 /**
@@ -286,7 +284,8 @@ export async function executeRequest(
     method: input.method,
     url,
     headers,
-    body: sentBody
+    body: sentBody,
+    bodyType: input.bodyType
   };
 
   if (!url.trim()) {
@@ -302,25 +301,25 @@ export async function executeRequest(
         method: input.method,
         url: input.url,
         headers,
-        body: sentBody
+        body: sentBody,
+        bodyType: input.bodyType
       }
     };
   }
 
   const start = performance.now();
-  const previousTlsReject = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
   const effectiveSignal = buildEffectiveSignal(signal, settings.requestTimeoutMs);
 
-  if (!settings.verifySsl) {
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-  }
-
   try {
-    const init: RequestInit = {
+    const init: RequestInit & { dispatcher?: Dispatcher } = {
       method: input.method,
       headers,
       signal: effectiveSignal
     };
+
+    if (!settings.verifySsl) {
+      init.dispatcher = getInsecureDispatcher();
+    }
 
     if (shouldSendBody) {
       if (input.bodyType === 'multipart') {
@@ -394,9 +393,5 @@ export async function executeRequest(
       error: mapFetchError(err, settings.requestTimeoutMs),
       request
     };
-  } finally {
-    if (!settings.verifySsl) {
-      restoreTlsRejectUnauthorized(previousTlsReject);
-    }
   }
 }

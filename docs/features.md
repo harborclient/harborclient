@@ -6,4 +6,4 @@
 - **Collections** — Organize saved requests into named collections with create, rename, and delete. See [Collections](/collections) for the full guide.
 - **Environments** — Global variable groups selectable from the TabBar; override collection variables when both define the same key
 - **Database backends** — Pluggable storage for collections, requests, and environments. Use SQLite locally or connect to remote engines such as Firestore, MySQL, or PostgreSQL. See [Settings](/settings) for configuration.
-- **Team collaboration** — Point multiple HarborClient instances at the same remote database to share collections, environments, and saved requests across your team.
+- **Team collaboration** — Point multiple HarborClient instances at the same remote database to share collections, environments, and saved requests across your team. Signed, encrypted collection invites use RSA keys managed under [Certificates](/certificates).

@@ -5,6 +5,7 @@ import { tmpdir } from 'os';
 import type { SendRequestInput } from '#/shared/types';
 import { serializeFormParts } from '#/shared/formData';
 import { serializeUrlEncodedParts } from '#/shared/urlencoded';
+import { DEFAULT_GENERAL_SETTINGS } from '#/main/settings/generalSettings';
 import { buildHeaders, buildUrl, executeRequest } from '#/main/http';
 
 describe('buildUrl', () => {
@@ -249,6 +250,7 @@ describe('executeRequest', () => {
       method: 'POST',
       url: 'https://example.com',
       body: '{"ok":true}',
+      bodyType: 'json',
       headers: { 'Content-Type': 'application/json' }
     });
   });
@@ -309,7 +311,8 @@ describe('executeRequest', () => {
 
     expect(result.request).toMatchObject({
       method: 'POST',
-      body: `name: Ada\nfile: [upload.txt]`
+      body: `name: Ada\nfile: [upload.txt]`,
+      bodyType: 'multipart'
     });
   });
 
@@ -373,7 +376,62 @@ describe('executeRequest', () => {
     expect(result.request).toMatchObject({
       method: 'POST',
       body: 'name=Ada+Lovelace&tags=a%26b%3Dc',
+      bodyType: 'urlencoded',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
+  });
+
+  it('passes an undici dispatcher when verifySsl is false', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response('ok', { status: 200, statusText: 'OK' }));
+    globalThis.fetch = fetchMock;
+
+    await executeRequest(baseInput, { ...DEFAULT_GENERAL_SETTINGS, verifySsl: false });
+
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit & { dispatcher?: unknown };
+    expect(init.dispatcher).toBeDefined();
+  });
+
+  it('omits a dispatcher when verifySsl is true', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response('ok', { status: 200, statusText: 'OK' }));
+    globalThis.fetch = fetchMock;
+
+    await executeRequest(baseInput, { ...DEFAULT_GENERAL_SETTINGS, verifySsl: true });
+
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit & { dispatcher?: unknown };
+    expect(init.dispatcher).toBeUndefined();
+  });
+
+  it('selects dispatchers independently for concurrent secure and insecure requests', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response('ok', { status: 200, statusText: 'OK' }));
+    globalThis.fetch = fetchMock;
+
+    await Promise.all([
+      executeRequest(
+        { ...baseInput, url: 'https://secure.example.com' },
+        { ...DEFAULT_GENERAL_SETTINGS, verifySsl: true }
+      ),
+      executeRequest(
+        { ...baseInput, url: 'https://insecure.example.com' },
+        { ...DEFAULT_GENERAL_SETTINGS, verifySsl: false }
+      )
+    ]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    const secureInit = fetchMock.mock.calls.find(
+      (call) => call[0] === 'https://secure.example.com'
+    )?.[1] as RequestInit & { dispatcher?: unknown };
+    const insecureInit = fetchMock.mock.calls.find(
+      (call) => call[0] === 'https://insecure.example.com'
+    )?.[1] as RequestInit & { dispatcher?: unknown };
+
+    expect(secureInit.dispatcher).toBeUndefined();
+    expect(insecureInit.dispatcher).toBeDefined();
   });
 });

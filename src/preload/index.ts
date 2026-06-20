@@ -8,7 +8,9 @@ import type {
   Environment,
   Folder,
   GeneralSettings,
+  InviteIdentity,
   MenuActionId,
+  PemExportResult,
   SaveRequestInput,
   SavedRequest,
   ScriptRunInput,
@@ -16,6 +18,7 @@ import type {
   SendRequestInput,
   SendResult,
   ThemeSource,
+  TrustedInviteKey,
   Variable,
   KeyValue
 } from '#/shared/types';
@@ -410,12 +413,13 @@ function selectFiles(): Promise<string[]> {
 }
 
 /**
- * Creates a signed JWT encoding a collection's connection and mapping for sharing via IPC.
+ * Creates a signed, encrypted invite for a specific recipient via IPC.
  *
  * @param collectionId - Global collection id to share.
+ * @param recipientKid - Fingerprint of the recipient's trusted public key.
  */
-function createInviteToken(collectionId: number): Promise<string> {
-  return ipcRenderer.invoke('invite:create', collectionId);
+function createInviteToken(collectionId: number, recipientKid: string): Promise<string> {
+  return ipcRenderer.invoke('invite:create', collectionId, recipientKid);
 }
 
 /**
@@ -425,6 +429,69 @@ function createInviteToken(collectionId: number): Promise<string> {
  */
 function acceptInvite(token: string): Promise<DatabaseConnection[]> {
   return ipcRenderer.invoke('invite:accept', token);
+}
+
+/**
+ * Returns the local invite identity via IPC.
+ */
+function getInviteIdentity(): Promise<InviteIdentity> {
+  return ipcRenderer.invoke('certs:getIdentity');
+}
+
+/**
+ * Exports the local private key via IPC.
+ */
+function exportInvitePrivateKey(): Promise<PemExportResult> {
+  return ipcRenderer.invoke('certs:exportPrivateKey');
+}
+
+/**
+ * Exports the local public key via IPC.
+ */
+function exportInvitePublicKey(): Promise<PemExportResult> {
+  return ipcRenderer.invoke('certs:exportPublicKey');
+}
+
+/**
+ * Imports a local invite key pair from a PEM file via IPC.
+ */
+function importInviteKeyPair(): Promise<InviteIdentity> {
+  return ipcRenderer.invoke('certs:importKeyPair');
+}
+
+/**
+ * Lists trusted collaborator public keys via IPC.
+ */
+function listTrustedKeys(): Promise<TrustedInviteKey[]> {
+  return ipcRenderer.invoke('certs:listTrustedKeys');
+}
+
+/**
+ * Adds a trusted collaborator public key via IPC.
+ *
+ * @param label - Display label for the key owner.
+ * @param publicKeyPem - PEM-encoded RSA public key.
+ */
+function addTrustedKey(label: string, publicKeyPem: string): Promise<TrustedInviteKey[]> {
+  return ipcRenderer.invoke('certs:addTrustedKey', label, publicKeyPem);
+}
+
+/**
+ * Imports a trusted public key from a PEM file via IPC.
+ *
+ * @param label - Display label for the key owner.
+ */
+function importTrustedPublicKey(label: string): Promise<TrustedInviteKey[]> {
+  return ipcRenderer.invoke('certs:importTrustedPublicKey', label);
+}
+
+/**
+ * Removes a trusted public key via IPC.
+ *
+ * @param id - SHA-256 fingerprint of the key to remove.
+ */
+function removeTrustedKey(id: string): Promise<TrustedInviteKey[]> {
+  return ipcRenderer.invoke('certs:removeTrustedKey', id);
 }
 
 const api: Api = {
@@ -472,7 +539,15 @@ const api: Api = {
   confirmClose,
   selectFiles,
   createInviteToken,
-  acceptInvite
+  acceptInvite,
+  getInviteIdentity,
+  exportInvitePrivateKey,
+  exportInvitePublicKey,
+  importInviteKeyPair,
+  listTrustedKeys,
+  addTrustedKey,
+  importTrustedPublicKey,
+  removeTrustedKey
 };
 
 contextBridge.exposeInMainWorld('api', api);

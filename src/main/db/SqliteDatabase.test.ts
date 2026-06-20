@@ -5,6 +5,7 @@ import { join } from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CollectionExport, SaveRequestInput, SqliteSettings } from '#/shared/types';
 import { SqliteDatabase } from '#/main/db/SqliteDatabase';
+import { describeSqlite } from '#/test/nativeModules';
 
 const DEFAULT_TEST_SETTINGS: SqliteSettings = {
   dbFilename: 'harborclient.db',
@@ -22,21 +23,6 @@ vi.mock('electron', () => ({
     })
   }
 }));
-
-/**
- * better-sqlite3 is rebuilt for Electron during postinstall; vitest uses system Node.
- */
-function sqliteAvailable(): boolean {
-  try {
-    const db = new Database(':memory:');
-    db.close();
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-const describeSqlite = sqliteAvailable() ? describe : describe.skip;
 
 const cleanups: Array<() => void | Promise<void>> = [];
 

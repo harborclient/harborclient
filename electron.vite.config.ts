@@ -12,7 +12,7 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin({ exclude: [] })],
     build: {
       rollupOptions: {
-        external: ['better-sqlite3', 'isolated-vm']
+        external: ['better-sqlite3']
       }
     }
   },

@@ -300,13 +300,12 @@ See [Environments](/environments) for how collection and environment variables a
 
 ## Sandbox limits
 
-Scripts run inside an [isolated-vm](https://github.com/laverdet/isolated-vm) sandbox in the main process:
+Scripts run inside a `node:vm` sandbox in the main process:
 
 - **Timeout:** 5 seconds per script
-- **Memory:** 128 MB per isolate
-- **No I/O:** no network, filesystem, `require`, `import`, or DOM APIs
+- **No I/O:** no network, filesystem, `require`, `import`, or DOM APIs are exposed to the script
 - **Language:** plain JavaScript (ES5-style syntax such as `var` and `function` works reliably; modern syntax may not)
-- **Globals:** only `hc`, `console`, and standard sandbox globals are available
+- **Globals:** only `hc`, `console`, and standard JavaScript globals are available
 
 If a script throws or times out, the error is recorded and the send continues with the last known request state. Syntax errors and runtime exceptions surface in the send console.
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import logoUrl from '@images/logo-square.png';
-import type { Collection, Environment, SavedRequest } from '#/shared/types';
+import type { Collection, Environment, SavedRequest, TrustedInviteKey } from '#/shared/types';
 import { getDirtyTabs } from '#/renderer/src/store/drafts';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
@@ -26,7 +26,7 @@ import {
   updateCollection,
   updateEnvironment
 } from '#/renderer/src/store/thunks';
-import { Configuration } from '#/renderer/src/ui/Sidebar/Configuration';
+import { Configuration } from '#/renderer/src/ui/Configuration';
 import { Sidebar } from '#/renderer/src/ui/Sidebar';
 import { Request } from '#/renderer/src/ui/Request';
 import { TitleBar } from '#/renderer/src/ui/TitleBar';
@@ -66,6 +66,9 @@ export default function App(): JSX.Element {
   const [inviteToken, setInviteToken] = useState('');
   const [inviteTokenLoading, setInviteTokenLoading] = useState(false);
   const [inviteTokenError, setInviteTokenError] = useState<string | null>(null);
+  const [inviteRecipientKid, setInviteRecipientKid] = useState('');
+  const [inviteTrustedKeys, setInviteTrustedKeys] = useState<TrustedInviteKey[]>([]);
+  const [inviteTrustedKeysLoading, setInviteTrustedKeysLoading] = useState(false);
   const [quitPrompt, setQuitPrompt] = useState<string[] | null>(null);
   const [configuringCollectionId, setConfiguringCollectionId] = useState<number | null>(null);
   const [collectionSettingsDirty, setCollectionSettingsDirty] = useState(false);
@@ -73,12 +76,13 @@ export default function App(): JSX.Element {
   const [environmentSettingsDirty, setEnvironmentSettingsDirty] = useState(false);
   const [pendingLoadRequest, setPendingLoadRequest] = useState<SavedRequest | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showCertificates, setShowCertificates] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showConsole, setShowConsole] = useState(false);
   const [showVariables, setShowVariables] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const [appVersion, setAppVersion] = useState('');
-  const sidebarVisible = showSidebar && !showSettings;
+  const sidebarVisible = showSidebar && !showSettings && !showCertificates;
 
   /**
    * Ref to tabs to avoid unnecessary re-renders.
@@ -115,6 +119,7 @@ export default function App(): JSX.Element {
   const handleEditVariables = useCallback((): void => {
     if (activeCollectionId == null) return;
     setShowSettings(false);
+    setShowCertificates(false);
     setConfiguringEnvironmentId(null);
     setEnvironmentSettingsDirty(false);
     setCollectionSettingsDirty(false);
@@ -126,6 +131,13 @@ export default function App(): JSX.Element {
    */
   const closeAppSettings = useCallback((): void => {
     setShowSettings(false);
+  }, []);
+
+  /**
+   * Closes the certificates view.
+   */
+  const closeAppCertificates = useCallback((): void => {
+    setShowCertificates(false);
   }, []);
 
   /**
@@ -157,6 +169,7 @@ export default function App(): JSX.Element {
         return;
       }
       closeAppSettings();
+      closeAppCertificates();
       closeCollectionSettings();
       closeEnvironmentSettings();
       dispatchLoadRequest(dispatch, req);
@@ -167,6 +180,7 @@ export default function App(): JSX.Element {
       configuringEnvironmentId,
       environmentSettingsDirty,
       closeAppSettings,
+      closeAppCertificates,
       closeCollectionSettings,
       closeEnvironmentSettings,
       dispatch
@@ -192,26 +206,52 @@ export default function App(): JSX.Element {
   }, [selectedCollectionId, dispatch]);
 
   /**
-   * Opens the invite modal and loads a JWT for the collection's database connection.
+   * Opens the invite modal and loads trusted keys for recipient selection.
    */
   const handleInviteCollection = useCallback(
     async (collectionId: number, collectionName: string): Promise<void> => {
       setPendingInvite({ collectionId, collectionName });
       setInviteToken('');
       setInviteTokenError(null);
-      setInviteTokenLoading(true);
+      setInviteRecipientKid('');
+      setInviteTokenLoading(false);
+      setInviteTrustedKeysLoading(true);
 
       try {
-        const token = await window.api.createInviteToken(collectionId);
-        setInviteToken(token);
+        const keys = await window.api.listTrustedKeys();
+        setInviteTrustedKeys(keys);
       } catch (err) {
-        setInviteTokenError(err instanceof Error ? err.message : 'Failed to create invite token');
+        setInviteTokenError(err instanceof Error ? err.message : 'Failed to load trusted keys');
+        setInviteTrustedKeys([]);
       } finally {
-        setInviteTokenLoading(false);
+        setInviteTrustedKeysLoading(false);
       }
     },
     []
   );
+
+  /**
+   * Generates an invite token for the selected recipient.
+   */
+  const handleGenerateInvite = useCallback(async (): Promise<void> => {
+    if (!pendingInvite || !inviteRecipientKid) return;
+
+    setInviteTokenLoading(true);
+    setInviteTokenError(null);
+    setInviteToken('');
+
+    try {
+      const token = await window.api.createInviteToken(
+        pendingInvite.collectionId,
+        inviteRecipientKid
+      );
+      setInviteToken(token);
+    } catch (err) {
+      setInviteTokenError(err instanceof Error ? err.message : 'Failed to create invite token');
+    } finally {
+      setInviteTokenLoading(false);
+    }
+  }, [pendingInvite, inviteRecipientKid]);
 
   /**
    * Closes the invite modal and clears token state.
@@ -221,6 +261,9 @@ export default function App(): JSX.Element {
     setInviteToken('');
     setInviteTokenError(null);
     setInviteTokenLoading(false);
+    setInviteRecipientKid('');
+    setInviteTrustedKeys([]);
+    setInviteTrustedKeysLoading(false);
   }, []);
 
   /**
@@ -321,7 +364,16 @@ export default function App(): JSX.Element {
           setConfiguringEnvironmentId(null);
           setCollectionSettingsDirty(false);
           setEnvironmentSettingsDirty(false);
+          setShowCertificates(false);
           setShowSettings(true);
+          break;
+        case 'certificates':
+          setConfiguringCollectionId(null);
+          setConfiguringEnvironmentId(null);
+          setCollectionSettingsDirty(false);
+          setEnvironmentSettingsDirty(false);
+          setShowSettings(false);
+          setShowCertificates(true);
           break;
         case 'about':
           setShowAbout(true);
@@ -382,6 +434,7 @@ export default function App(): JSX.Element {
             }}
             onConfigureCollection={(id) => {
               setShowSettings(false);
+              setShowCertificates(false);
               setConfiguringEnvironmentId(null);
               setEnvironmentSettingsDirty(false);
               setCollectionSettingsDirty(false);
@@ -389,6 +442,7 @@ export default function App(): JSX.Element {
             }}
             onConfigureEnvironment={(id) => {
               setShowSettings(false);
+              setShowCertificates(false);
               setConfiguringCollectionId(null);
               setCollectionSettingsDirty(false);
               setEnvironmentSettingsDirty(false);
@@ -402,10 +456,12 @@ export default function App(): JSX.Element {
         )}
 
         <main className="flex min-w-0 flex-1 flex-col bg-surface">
-          {showSettings || configuringCollection || configuringEnvironment ? (
+          {showSettings || showCertificates || configuringCollection || configuringEnvironment ? (
             <Configuration
               showSettings={showSettings}
               onCloseAppSettings={closeAppSettings}
+              showCertificates={showCertificates}
+              onCloseCertificates={closeAppCertificates}
               collection={configuringCollection}
               onCollectionDirtyChange={setCollectionSettingsDirty}
               onCollectionSave={async (
@@ -513,8 +569,9 @@ export default function App(): JSX.Element {
             {collectionModalTab === 'invite' && showImportTab ? (
               <>
                 <p className="mb-3 text-[12px] text-muted">
-                  Paste an invite token to add a shared database connection. Restart HarborClient
-                  after accepting to load collections from that database.
+                  Paste an invite token from a trusted sender. Add their public key under File →
+                  Certificates first. Restart HarborClient after accepting to load collections from
+                  that database.
                 </p>
                 <textarea
                   className={`${field} min-h-28 w-full resize-y font-mono text-[12px]`}
@@ -596,37 +653,76 @@ export default function App(): JSX.Element {
           >
             <h2 className="m-0 mb-1 text-[13px] font-semibold text-text">Invite to collection</h2>
             <p className="mb-3 text-[12px] text-muted">
-              Share this token so others can connect to &ldquo;{pendingInvite.collectionName}
-              &rdquo;. They must restart HarborClient after accepting the invite.
+              Create an encrypted invite for &ldquo;{pendingInvite.collectionName}&rdquo;. Only the
+              selected recipient can decrypt it. Invites expire after seven days.
             </p>
+            {inviteTrustedKeysLoading ? (
+              <p className="text-[12px] text-muted">Loading trusted keys…</p>
+            ) : inviteTrustedKeys.length === 0 ? (
+              <p className="text-[12px] text-muted">
+                Add the recipient&apos;s public key under File → Certificates → Trusted keys before
+                creating an invite.
+              </p>
+            ) : (
+              <>
+                <label className="mb-1 block text-[12px] font-medium text-text">Recipient</label>
+                <select
+                  className={`${field} mb-3 w-full`}
+                  value={inviteRecipientKid}
+                  disabled={inviteTokenLoading}
+                  onChange={(event) => {
+                    setInviteRecipientKid(event.target.value);
+                    setInviteToken('');
+                    setInviteTokenError(null);
+                  }}
+                >
+                  <option value="">Select a recipient…</option>
+                  {inviteTrustedKeys.map((key) => (
+                    <option key={key.id} value={key.id}>
+                      {key.label}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+            {inviteTokenError && <p className="mb-3 text-[12px] text-danger">{inviteTokenError}</p>}
             {inviteTokenLoading ? (
               <p className="text-[12px] text-muted">Generating invite token…</p>
-            ) : inviteTokenError ? (
-              <p className="text-[12px] text-danger">{inviteTokenError}</p>
-            ) : (
+            ) : inviteToken ? (
               <textarea
                 className={`${field} min-h-28 w-full resize-y font-mono text-[12px]`}
                 readOnly
                 value={inviteToken}
                 onFocus={(e) => e.target.select()}
               />
-            )}
+            ) : null}
             <div className="mt-4 flex justify-end gap-2">
               <button className={secondaryButton} onClick={closeInviteModal}>
                 Close
               </button>
-              <button
-                className={primaryButton}
-                disabled={!inviteToken || inviteTokenLoading}
-                onClick={() => {
-                  void navigator.clipboard.writeText(inviteToken).then(
-                    () => toast.success('Invite token copied'),
-                    () => toast.error('Failed to copy invite token')
-                  );
-                }}
-              >
-                Copy
-              </button>
+              {!inviteToken && inviteTrustedKeys.length > 0 && (
+                <button
+                  className={primaryButton}
+                  disabled={!inviteRecipientKid || inviteTokenLoading || inviteTrustedKeysLoading}
+                  onClick={() => void handleGenerateInvite()}
+                >
+                  Generate invite
+                </button>
+              )}
+              {inviteToken && (
+                <button
+                  className={primaryButton}
+                  disabled={inviteTokenLoading}
+                  onClick={() => {
+                    void navigator.clipboard.writeText(inviteToken).then(
+                      () => toast.success('Invite token copied'),
+                      () => toast.error('Failed to copy invite token')
+                    );
+                  }}
+                >
+                  Copy
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -655,6 +751,7 @@ export default function App(): JSX.Element {
                   const req = pendingLoadRequest;
                   setPendingLoadRequest(null);
                   closeAppSettings();
+                  closeAppCertificates();
                   closeCollectionSettings();
                   closeEnvironmentSettings();
                   dispatchLoadRequest(dispatch, req);

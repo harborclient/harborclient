@@ -1,23 +1,9 @@
 import { getLocalRegistry } from '#/main/db/localRegistryInstance';
 import type { DatabaseConnection } from '#/shared/types';
 import { getActiveDatabaseId, listDatabaseConnections } from '#/main/settings/databaseSettings';
+import { parseJson } from '#/shared/parseJson';
 
 const SLOTS_KEY = 'databaseSlots';
-
-/**
- * Parses a JSON string, returning a fallback value on failure.
- *
- * @param value - JSON string to parse.
- * @param fallback - Value returned when parsing fails or value is empty.
- */
-function parseJson<T>(value: string | undefined, fallback: T): T {
-  if (!value) return fallback;
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
-}
 
 /**
  * Reads the persisted slot map from the local registry.

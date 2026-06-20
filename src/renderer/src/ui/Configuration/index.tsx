@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import type { Collection, Environment, KeyValue, Variable } from '#/shared/types';
+import { Certificates } from '#/renderer/src/ui/Certificates';
 import { CollectionSettings } from '../CollectionSettings';
 import { EnvironmentSettings } from '../EnvironmentSettings';
 import { Settings } from '../Settings';
@@ -14,6 +15,16 @@ interface Props {
    * Closes application settings.
    */
   onCloseAppSettings: () => void;
+
+  /**
+   * Whether the certificates view is shown.
+   */
+  showCertificates: boolean;
+
+  /**
+   * Closes the certificates view.
+   */
+  onCloseCertificates: () => void;
 
   /**
    * Collection being configured, if any.
@@ -70,6 +81,8 @@ interface Props {
 export function Configuration({
   showSettings,
   onCloseAppSettings,
+  showCertificates,
+  onCloseCertificates,
   collection,
   onCollectionDirtyChange,
   onCollectionSave,
@@ -81,6 +94,10 @@ export function Configuration({
 }: Props): JSX.Element | null {
   if (showSettings) {
     return <Settings onClose={onCloseAppSettings} />;
+  }
+
+  if (showCertificates) {
+    return <Certificates onClose={onCloseCertificates} />;
   }
 
   if (collection) {

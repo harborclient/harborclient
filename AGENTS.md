@@ -4,9 +4,43 @@ After making code changes, always run:
 
 ```bash
 pnpm lint
+pnpm typecheck
+pnpm test
 ```
 
 Fix any reported issues before finishing the task.
+
+## Testing
+
+Always run tests via `pnpm test` — never `vitest` or `pnpm exec vitest run`
+directly. The test script rebuilds native modules (`better-sqlite3`) for system
+Node, runs vitest, then restores them for Electron. Skipping this leaves the
+wrong ABI and breaks `pnpm dev` / `pnpm build`.
+
+Tests are colocated as `src/**/*.test.ts`. See [CONTRIBUTING.md](./CONTRIBUTING.md#testing)
+for details.
+
+## Package manager
+
+Use `pnpm` only. Lockfile is `pnpm-lock.yaml`. Do not use npm or yarn.
+
+## Dependencies and scope
+
+- Do not add new dependencies without maintainer approval.
+- Avoid large refactors unless explicitly requested.
+- New native deps must be added to `pnpm.onlyBuiltDependencies` in
+  `package.json`.
+
+## Generated files
+
+Never commit `docs/.vitepress/cache/` (VitePress build cache). Do not hand-edit
+generated docs nav — use `pnpm docs:build:nav`.
+
+## Architecture
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for project layout, the IPC contract
+(`src/shared/types.ts` → `src/preload/index.ts` → `src/main/ipc.ts`), code
+style, and path aliases.
 
 ## Changelog
 
@@ -16,7 +50,8 @@ which sets `core.hooksPath` to `.githooks`).
 
 How it works:
 
-- After each commit, the hook prepends `- <commit subject>. (\`<short sha>\`)`to the`## Unreleased` section and amends the change into the same commit.
+- After each commit, the hook prepends `- <commit subject>. (\`<short sha>\`)` to
+  the `## Unreleased` section and amends the change into the same commit.
 - The hook stays out of the way when:
   - `CHANGELOG.md` is already part of the commit (you wrote your own entry).
   - The commit is a merge, revert, fixup, squash, or `chore(changelog)` /

@@ -8,6 +8,7 @@ import type {
   PostgresSettings,
   SqliteSettings
 } from '#/shared/types';
+import { parseJson } from '#/shared/parseJson';
 
 const CONNECTIONS_KEY = 'databaseConnections';
 const ACTIVE_ID_KEY = 'activeDatabaseId';
@@ -42,21 +43,6 @@ const DEFAULT_POSTGRES_SETTINGS: PostgresSettings = {
   password: '',
   database: ''
 };
-
-/**
- * Parses a JSON string, returning a fallback value on failure.
- *
- * @param value - JSON string to parse.
- * @param fallback - Value returned when parsing fails or value is empty.
- */
-function parseJson<T>(value: string | undefined, fallback: T): T {
-  if (!value) return fallback;
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
-}
 
 /**
  * Persists the connection list to the local registry.

@@ -1,108 +1,28 @@
-import { Pool, type QueryResultRow } from 'pg';
+import { Pool } from 'pg';
 import {
   maskVariablesForExport,
   normalizeVariable,
   validateCollectionExport
 } from '#/main/db/collectionData';
+import {
+  rowToCollection,
+  rowToEnvironment,
+  rowToFolder,
+  rowToRequest
+} from '#/main/db/entityMappers';
 import type { IDatabase } from '#/main/db/IDatabase';
 import type {
-  BodyType,
   Collection,
   CollectionExport,
   Environment,
   Folder,
-  HttpMethod,
   KeyValue,
   PostgresSettings,
   SaveRequestInput,
   SavedRequest,
   Variable
 } from '#/shared/types';
-
-/**
- * Parses a JSON string, returning a fallback value on failure.
- *
- * @param value - JSON string to parse.
- * @param fallback - Value returned when parsing fails.
- * @returns Parsed value or fallback.
- */
-function parseJson<T>(value: string, fallback: T): T {
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-/**
- * Maps a raw Postgres row to a Collection object.
- *
- * @param row - Database row from the collections table.
- * @returns Normalized collection.
- */
-function rowToCollection(row: QueryResultRow): Collection {
-  return {
-    id: row.id as number,
-    name: row.name as string,
-    variables: parseJson<Partial<Variable>[]>(row.variables as string, []).map(normalizeVariable),
-    headers: parseJson<KeyValue[]>(row.headers as string, []),
-    pre_request_script: (row.pre_request_script as string) ?? '',
-    post_request_script: (row.post_request_script as string) ?? '',
-    created_at: row.created_at as string
-  };
-}
-
-/**
- * Maps a raw Postgres row to an Environment object.
- *
- * @param row - Database row from the environments table.
- * @returns Normalized environment.
- */
-function rowToEnvironment(row: QueryResultRow): Environment {
-  return {
-    id: row.id as number,
-    name: row.name as string,
-    variables: parseJson<Partial<Variable>[]>(row.variables as string, []).map(normalizeVariable),
-    created_at: row.created_at as string
-  };
-}
-
-/**
- * Maps a raw Postgres row to a SavedRequest object.
- *
- * @param row - Database row from the requests table.
- * @returns Normalized saved request.
- */
-function rowToRequest(row: QueryResultRow): SavedRequest {
-  return {
-    id: row.id as number,
-    collection_id: row.collection_id as number,
-    name: row.name as string,
-    method: row.method as HttpMethod,
-    url: row.url as string,
-    headers: parseJson<KeyValue[]>(row.headers as string, []),
-    params: parseJson<KeyValue[]>(row.params as string, []),
-    body: (row.body as string) ?? '',
-    body_type: row.body_type as BodyType,
-    pre_request_script: (row.pre_request_script as string) ?? '',
-    post_request_script: (row.post_request_script as string) ?? '',
-    comment: (row.comment as string) ?? '',
-    folder_id: row.folder_id != null ? (row.folder_id as number) : null,
-    sort_order: row.sort_order as number,
-    created_at: row.created_at as string,
-    updated_at: row.updated_at as string
-  };
-}
-
-function rowToFolder(row: QueryResultRow): Folder {
-  return {
-    id: row.id as number,
-    collection_id: row.collection_id as number,
-    name: row.name as string,
-    sort_order: row.sort_order as number,
-    created_at: row.created_at as string
-  };
-}
+import { parseJson } from '#/shared/parseJson';
 
 export class PostgresDatabase implements IDatabase {
   #pool: Pool | null = null;

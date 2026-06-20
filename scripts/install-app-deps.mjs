@@ -5,7 +5,6 @@ import { fileURLToPath } from 'node:url'
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const isDarwin = process.platform === 'darwin'
-const ivmDir = path.join(projectRoot, 'node_modules', 'isolated-vm')
 
 const require = getElectronRebuildRequire()
 const { rebuild } = require('@electron/rebuild')
@@ -17,13 +16,18 @@ const electronVersion = require('electron/package.json').version
 // Avoid useElectronClang: it downloads a Chromium clang toolchain from Google
 // storage at install time, which is fragile and breaks the Windows build with
 // "Failed to fetch a clang resource".
+//
+// force: true makes the rebuild ignore any cached/previously built artifact.
+// Without it, @electron/rebuild can short-circuit and leave behind a binary
+// compiled against a different Node/Electron ABI (e.g. after an Electron bump
+// or switching Node versions), which then fails to load at runtime with
+// ERR_DLOPEN_FAILED / "compiled against a different Node.js version".
 await rebuild({
   buildPath: projectRoot,
   electronVersion,
-  buildFromSource: isDarwin
+  buildFromSource: isDarwin,
+  force: true
 })
-
-pruneIsolatedVmPackagingArtifacts(ivmDir, { removePrebuilds: isDarwin })
 
 function getElectronRebuildRequire() {
   const candidates = [
@@ -50,21 +54,4 @@ function findPnpmElectronRebuildPackageJsons() {
     .map((entry) =>
       path.join(pnpmDir, entry, 'node_modules/@electron/rebuild/package.json')
     )
-}
-
-function pruneIsolatedVmPackagingArtifacts(ivmDir, { removePrebuilds }) {
-  if (!fs.existsSync(ivmDir)) return
-
-  for (const entry of fs.readdirSync(ivmDir)) {
-    if (entry.endsWith('.tgz')) {
-      fs.rmSync(path.join(ivmDir, entry), { force: true })
-    }
-  }
-
-  if (!removePrebuilds) return
-
-  const prebuildsDir = path.join(ivmDir, 'prebuilds')
-  if (fs.existsSync(prebuildsDir)) {
-    fs.rmSync(prebuildsDir, { recursive: true, force: true })
-  }
 }

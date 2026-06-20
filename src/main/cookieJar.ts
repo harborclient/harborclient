@@ -1,28 +1,33 @@
 import { getLocalRegistry } from '#/main/db/localRegistryInstance';
+import { parseJson } from '#/shared/parseJson';
 import type { KeyValue } from '#/shared/types';
 
 const STORE_KEY = 'cookieJar';
 
+interface StoredCookie extends KeyValue {
+  secure?: boolean;
+}
+
 /**
- * Parses a JSON string, returning a fallback value on failure.
+ * Returns whether a cookie name or value contains control characters.
  *
- * @param value - JSON string to parse.
- * @param fallback - Value returned when parsing fails or value is empty.
+ * @param value - Cookie name or value to inspect.
  */
-function parseJson<T>(value: string | undefined, fallback: T): T {
-  if (!value) return fallback;
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
+function hasUnsafeCookieChars(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x1f || code === 0x7f) {
+      return true;
+    }
   }
+  return false;
 }
 
 /**
  * Reads persisted cookies keyed by hostname.
  */
-function getJarMap(): Record<string, KeyValue[]> {
-  const stored = parseJson<Record<string, KeyValue[]>>(
+function getJarMap(): Record<string, StoredCookie[]> {
+  const stored = parseJson<Record<string, StoredCookie[]>>(
     getLocalRegistry().getSetting(STORE_KEY),
     {}
   );
@@ -37,7 +42,7 @@ function getJarMap(): Record<string, KeyValue[]> {
  *
  * @param jar - Domain to cookies map.
  */
-function persistJarMap(jar: Record<string, KeyValue[]>): void {
+function persistJarMap(jar: Record<string, StoredCookie[]>): void {
   getLocalRegistry().setSetting(STORE_KEY, JSON.stringify(jar));
 }
 
@@ -54,15 +59,61 @@ function normalizeDomain(domain: string): string {
  * Filters out rows with both key and value empty.
  *
  * @param cookies - Cookie rows to normalize.
+ * @param existing - Previously stored cookies used to preserve the secure flag.
  */
-function normalizeCookieRows(cookies: KeyValue[]): KeyValue[] {
+function normalizeCookieRows(cookies: KeyValue[], existing: StoredCookie[] = []): StoredCookie[] {
+  const existingByKey = new Map(existing.map((cookie) => [cookie.key, cookie]));
+
   return cookies
     .filter((cookie) => cookie.key.trim() || cookie.value.trim())
-    .map((cookie) => ({
-      key: cookie.key.trim(),
-      value: cookie.value,
-      enabled: cookie.enabled !== false
-    }));
+    .map((cookie) => {
+      const key = cookie.key.trim();
+      return {
+        key,
+        value: cookie.value,
+        enabled: cookie.enabled !== false,
+        secure: existingByKey.get(key)?.secure ?? false
+      };
+    });
+}
+
+/**
+ * Returns stored cookies for a hostname, including internal metadata.
+ *
+ * @param domain - Hostname to query.
+ */
+function getStoredCookiesForDomain(domain: string): StoredCookie[] {
+  const normalized = normalizeDomain(domain);
+  if (!normalized) return [];
+
+  const cookies = getJarMap()[normalized];
+  if (!Array.isArray(cookies)) return [];
+
+  return cookies.map((cookie) => ({ ...cookie }));
+}
+
+/**
+ * Persists stored cookies for a hostname.
+ *
+ * @param domain - Hostname to update.
+ * @param cookies - Cookie rows to store.
+ */
+function setStoredCookiesForDomain(domain: string, cookies: StoredCookie[]): void {
+  const normalized = normalizeDomain(domain);
+  if (!normalized) return;
+
+  const jar = getJarMap();
+
+  if (cookies.length === 0) {
+    if (normalized in jar) {
+      delete jar[normalized];
+      persistJarMap(jar);
+    }
+    return;
+  }
+
+  jar[normalized] = cookies;
+  persistJarMap(jar);
 }
 
 /**
@@ -87,18 +138,37 @@ export function hostFromUrl(url: string): string | null {
 }
 
 /**
+ * Extracts the URL scheme from a URL string.
+ *
+ * @param url - Absolute or relative URL.
+ * @returns Scheme including trailing colon, or null when parsing fails.
+ */
+function schemeFromUrl(url: string): string | null {
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
+  try {
+    return new URL(trimmed).protocol || null;
+  } catch {
+    try {
+      return new URL(`https://${trimmed}`).protocol || null;
+    } catch {
+      return null;
+    }
+  }
+}
+
+/**
  * Returns cookies stored for a hostname.
  *
  * @param domain - Hostname to query.
  */
 export function getCookiesForDomain(domain: string): KeyValue[] {
-  const normalized = normalizeDomain(domain);
-  if (!normalized) return [];
-
-  const cookies = getJarMap()[normalized];
-  if (!Array.isArray(cookies)) return [];
-
-  return cookies.map((cookie) => ({ ...cookie }));
+  return getStoredCookiesForDomain(domain).map(({ key, value, enabled }) => ({
+    key,
+    value,
+    enabled
+  }));
 }
 
 /**
@@ -111,19 +181,9 @@ export function setCookiesForDomain(domain: string, cookies: KeyValue[]): void {
   const normalized = normalizeDomain(domain);
   if (!normalized) return;
 
-  const jar = getJarMap();
-  const normalizedCookies = normalizeCookieRows(cookies);
-
-  if (normalizedCookies.length === 0) {
-    if (normalized in jar) {
-      delete jar[normalized];
-      persistJarMap(jar);
-    }
-    return;
-  }
-
-  jar[normalized] = normalizedCookies;
-  persistJarMap(jar);
+  const existing = getStoredCookiesForDomain(normalized);
+  const normalizedCookies = normalizeCookieRows(cookies, existing);
+  setStoredCookiesForDomain(normalized, normalizedCookies);
 }
 
 /**
@@ -136,7 +196,16 @@ export function buildCookieHeader(url: string): string | null {
   const host = hostFromUrl(url);
   if (!host) return null;
 
-  const cookies = getCookiesForDomain(host).filter((cookie) => cookie.enabled && cookie.key.trim());
+  const scheme = schemeFromUrl(url);
+  const isSecureRequest = scheme === 'https:';
+
+  const cookies = getStoredCookiesForDomain(host).filter((cookie) => {
+    if (!cookie.enabled || !cookie.key.trim()) return false;
+    if (cookie.secure && !isSecureRequest) return false;
+    if (hasUnsafeCookieChars(cookie.key) || hasUnsafeCookieChars(cookie.value)) return false;
+    return true;
+  });
+
   if (cookies.length === 0) return null;
 
   return cookies.map((cookie) => `${cookie.key}=${cookie.value}`).join('; ');
@@ -164,30 +233,40 @@ function parseSetCookieNameValue(header: string): { name: string; value: string 
 }
 
 /**
+ * Parses Set-Cookie attributes from a header value.
+ *
+ * @param header - Raw Set-Cookie header string.
+ */
+function parseSetCookieAttributes(header: string): { name: string; value: string }[] {
+  return header
+    .split(';')
+    .slice(1)
+    .map((part) => part.trim())
+    .map((attribute) => {
+      const [rawName, ...rawValueParts] = attribute.split('=');
+      return {
+        name: rawName.trim().toLowerCase(),
+        value: rawValueParts.join('=').trim()
+      };
+    });
+}
+
+/**
  * Returns whether a Set-Cookie header indicates the cookie should be deleted.
  *
  * @param header - Raw Set-Cookie header string.
  */
 function isSetCookieExpired(header: string): boolean {
-  const attributes = header
-    .split(';')
-    .slice(1)
-    .map((part) => part.trim());
-
-  for (const attribute of attributes) {
-    const [rawName, ...rawValueParts] = attribute.split('=');
-    const name = rawName.trim().toLowerCase();
-    const value = rawValueParts.join('=').trim();
-
-    if (name === 'max-age') {
-      const maxAge = Number(value);
+  for (const attribute of parseSetCookieAttributes(header)) {
+    if (attribute.name === 'max-age') {
+      const maxAge = Number(attribute.value);
       if (Number.isFinite(maxAge) && maxAge <= 0) {
         return true;
       }
     }
 
-    if (name === 'expires') {
-      const expiresAt = Date.parse(value);
+    if (attribute.name === 'expires') {
+      const expiresAt = Date.parse(attribute.value);
       if (Number.isFinite(expiresAt) && expiresAt <= Date.now()) {
         return true;
       }
@@ -195,6 +274,15 @@ function isSetCookieExpired(header: string): boolean {
   }
 
   return false;
+}
+
+/**
+ * Returns whether a Set-Cookie header marks the cookie as Secure.
+ *
+ * @param header - Raw Set-Cookie header string.
+ */
+function isSetCookieSecure(header: string): boolean {
+  return parseSetCookieAttributes(header).some((attribute) => attribute.name === 'secure');
 }
 
 /**
@@ -209,8 +297,7 @@ export function captureSetCookies(url: string, setCookieHeaders: string[] | unde
   const host = hostFromUrl(url);
   if (!host) return;
 
-  const cookies = getCookiesForDomain(host);
-  const cookieMap = new Map(cookies.map((cookie) => [cookie.key, cookie]));
+  const cookieMap = new Map(getStoredCookiesForDomain(host).map((cookie) => [cookie.key, cookie]));
 
   for (const header of setCookieHeaders) {
     const parsed = parseSetCookieNameValue(header);
@@ -221,12 +308,17 @@ export function captureSetCookies(url: string, setCookieHeaders: string[] | unde
       continue;
     }
 
+    if (hasUnsafeCookieChars(parsed.name) || hasUnsafeCookieChars(parsed.value)) {
+      continue;
+    }
+
     cookieMap.set(parsed.name, {
       key: parsed.name,
       value: parsed.value,
-      enabled: true
+      enabled: true,
+      secure: isSetCookieSecure(header)
     });
   }
 
-  setCookiesForDomain(host, Array.from(cookieMap.values()));
+  setStoredCookiesForDomain(host, Array.from(cookieMap.values()));
 }

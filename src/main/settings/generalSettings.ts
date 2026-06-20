@@ -1,4 +1,5 @@
 import { getLocalRegistry } from '#/main/db/localRegistryInstance';
+import { parseJson } from '#/shared/parseJson';
 import type { GeneralSettings } from '#/shared/types';
 
 export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
@@ -8,21 +9,6 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
 };
 
 const STORE_KEY = 'general';
-
-/**
- * Parses a JSON string, returning a fallback value on failure.
- *
- * @param value - JSON string to parse.
- * @param fallback - Value returned when parsing fails or value is empty.
- */
-function parseJson<T>(value: string | undefined, fallback: T): T {
-  if (!value) return fallback;
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
-}
 
 /**
  * Normalizes a non-negative number, falling back to the default when invalid.

@@ -1,8 +1,7 @@
-import ivm from 'isolated-vm';
+import vm from 'node:vm';
 import type { ScriptRunInput, ScriptRunResult } from '#/shared/types';
 
 const SCRIPT_TIMEOUT_MS = 5000;
-const MEMORY_LIMIT_MB = 128;
 
 const BOOTSTRAP = `
 // hc API surface — keep autocomplete in hcCompletions.ts in sync with this bootstrap.
@@ -155,7 +154,12 @@ const console = {
 `;
 
 /**
- * Runs a pre/post script inside an isolated-vm sandbox with the hc API.
+ * Runs a pre/post script inside a `node:vm` sandbox with the hc API.
+ *
+ * The context is created with a fresh global that exposes only the standard
+ * JavaScript built-ins; Node globals such as `require` and `process` are
+ * intentionally not passed through. `node:vm` is not a hard security boundary,
+ * but these scripts are authored by the user themselves.
  *
  * @param input - Script source, phase, request/response context, and variables.
  * @returns Mutated request, variable sets, tests, and logs from the sandbox.
@@ -172,23 +176,19 @@ export async function runScript(input: ScriptRunInput): Promise<ScriptRunResult>
     return passthrough;
   }
 
-  const isolate = new ivm.Isolate({ memoryLimit: MEMORY_LIMIT_MB });
+  const contextPayload = JSON.stringify({
+    phase: input.phase,
+    request: input.request,
+    response: input.response,
+    variables: input.variables
+  });
+
+  const sandbox = vm.createContext({ __CONTEXT__: contextPayload });
+
   try {
-    const context = await isolate.createContext();
-    const jail = context.global;
-    await jail.set('global', jail.derefInto());
-
-    const contextPayload = JSON.stringify({
-      phase: input.phase,
-      request: input.request,
-      response: input.response,
-      variables: input.variables
-    });
-    await jail.set('__CONTEXT__', contextPayload, { copy: true });
-
     const fullScript = `${BOOTSTRAP}\n${input.script}\nJSON.stringify(state);`;
-    const compiled = await isolate.compileScript(fullScript);
-    const resultJson = await compiled.run(context, { timeout: SCRIPT_TIMEOUT_MS });
+    const script = new vm.Script(fullScript);
+    const resultJson = script.runInContext(sandbox, { timeout: SCRIPT_TIMEOUT_MS });
     const state = JSON.parse(String(resultJson)) as {
       request: ScriptRunResult['request'];
       variableSets: Record<string, string>;
@@ -203,12 +203,15 @@ export async function runScript(input: ScriptRunInput): Promise<ScriptRunResult>
       logs: state.logs ?? []
     };
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown script error';
+    // Errors thrown inside the vm context come from a different realm, so
+    // `instanceof Error` is unreliable; read `message` defensively instead.
+    const message =
+      err && typeof err === 'object' && 'message' in err
+        ? String((err as { message: unknown }).message)
+        : String(err);
     return {
       ...passthrough,
       error: message
     };
-  } finally {
-    isolate.dispose();
   }
 }

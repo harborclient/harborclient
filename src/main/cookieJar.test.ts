@@ -1,29 +1,10 @@
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import Database from 'better-sqlite3';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { LocalRegistry } from '#/main/db/LocalRegistry';
-import {
-  clearLocalRegistryForTesting,
-  setLocalRegistryForTesting
-} from '#/main/db/localRegistryInstance';
 import type { KeyValue } from '#/shared/types';
-
-/**
- * better-sqlite3 is rebuilt for Electron during postinstall; vitest uses system Node.
- */
-function sqliteAvailable(): boolean {
-  try {
-    const db = new Database(':memory:');
-    db.close();
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-const describeSqlite = sqliteAvailable() ? describe : describe.skip;
+import { describeSqlite } from '#/test/nativeModules';
 
 let tempDir: string;
 let registry: LocalRegistry;
@@ -37,7 +18,8 @@ async function setupCookieJarTest(): Promise<void> {
   tempDir = mkdtempSync(join(tmpdir(), 'hc-cookie-test-'));
   registry = new LocalRegistry(tempDir);
   await registry.init();
-  setLocalRegistryForTesting(registry);
+  const registryInstance = await import('#/main/db/localRegistryInstance');
+  registryInstance.setLocalRegistryForTesting(registry);
   cookieJar = await import('#/main/cookieJar');
 }
 
@@ -49,7 +31,8 @@ describeSqlite('hostFromUrl', () => {
   afterEach(async () => {
     await registry.close();
     rmSync(tempDir, { recursive: true, force: true });
-    clearLocalRegistryForTesting();
+    const registryInstance = await import('#/main/db/localRegistryInstance');
+    registryInstance.clearLocalRegistryForTesting();
   });
 
   it('returns null for empty or whitespace URLs', () => {
@@ -80,7 +63,8 @@ describeSqlite('getCookiesForDomain and setCookiesForDomain', () => {
   afterEach(async () => {
     await registry.close();
     rmSync(tempDir, { recursive: true, force: true });
-    clearLocalRegistryForTesting();
+    const registryInstance = await import('#/main/db/localRegistryInstance');
+    registryInstance.clearLocalRegistryForTesting();
   });
 
   it('returns an empty list for unknown domains', () => {
@@ -136,6 +120,17 @@ describeSqlite('getCookiesForDomain and setCookiesForDomain', () => {
       { key: 'session', value: 'abc', enabled: true }
     ]);
   });
+
+  it('preserves the secure flag when cookies are resaved from the UI', () => {
+    cookieJar.captureSetCookies('https://example.com/login', ['session=abc; Secure; Path=/']);
+
+    cookieJar.setCookiesForDomain('example.com', [
+      { key: 'session', value: 'updated', enabled: true }
+    ]);
+
+    expect(cookieJar.buildCookieHeader('https://example.com/')).toBe('session=updated');
+    expect(cookieJar.buildCookieHeader('http://example.com/')).toBeNull();
+  });
 });
 
 describeSqlite('buildCookieHeader', () => {
@@ -146,7 +141,8 @@ describeSqlite('buildCookieHeader', () => {
   afterEach(async () => {
     await registry.close();
     rmSync(tempDir, { recursive: true, force: true });
-    clearLocalRegistryForTesting();
+    const registryInstance = await import('#/main/db/localRegistryInstance');
+    registryInstance.clearLocalRegistryForTesting();
   });
 
   it('returns null when the URL has no host', () => {
@@ -170,6 +166,28 @@ describeSqlite('buildCookieHeader', () => {
 
     expect(cookieJar.buildCookieHeader('https://example.com/api')).toBe('session=abc; lang=en');
   });
+
+  it('omits Secure cookies over plain HTTP but includes them over HTTPS', () => {
+    cookieJar.captureSetCookies('https://example.com/login', [
+      'secureToken=secret; Path=/; Secure',
+      'plainToken=open; Path=/'
+    ]);
+
+    expect(cookieJar.buildCookieHeader('https://example.com/api')).toBe(
+      'secureToken=secret; plainToken=open'
+    );
+    expect(cookieJar.buildCookieHeader('http://example.com/api')).toBe('plainToken=open');
+  });
+
+  it('excludes cookies whose names or values contain control characters', () => {
+    cookieJar.setCookiesForDomain('example.com', [
+      { key: 'safe', value: 'ok', enabled: true },
+      { key: 'bad', value: 'val\r\ninjected', enabled: true },
+      { key: 'also-bad\x7F', value: 'fine', enabled: true }
+    ]);
+
+    expect(cookieJar.buildCookieHeader('https://example.com/')).toBe('safe=ok');
+  });
 });
 
 describeSqlite('captureSetCookies', () => {
@@ -180,7 +198,8 @@ describeSqlite('captureSetCookies', () => {
   afterEach(async () => {
     await registry.close();
     rmSync(tempDir, { recursive: true, force: true });
-    clearLocalRegistryForTesting();
+    const registryInstance = await import('#/main/db/localRegistryInstance');
+    registryInstance.clearLocalRegistryForTesting();
     vi.useRealTimers();
   });
 
@@ -249,5 +268,17 @@ describeSqlite('captureSetCookies', () => {
     cookieJar.captureSetCookies('', ['session=abc']);
 
     expect(registry.getSetting('cookieJar')).toBeUndefined();
+  });
+
+  it('does not persist cookies with control characters in the name or value', () => {
+    cookieJar.captureSetCookies('https://example.com/', [
+      'safe=ok; Path=/',
+      'bad=val\r\ninjected; Path=/',
+      'also-bad\x7F=fine; Path=/'
+    ]);
+
+    expect(cookieJar.getCookiesForDomain('example.com')).toEqual([
+      { key: 'safe', value: 'ok', enabled: true }
+    ]);
   });
 });

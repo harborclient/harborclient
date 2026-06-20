@@ -1,21 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-/**
- * isolated-vm is rebuilt for Electron during postinstall; vitest uses system Node.
- */
-function isolateAvailable(): boolean {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    require('isolated-vm');
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-const describeIsolate = isolateAvailable() ? describe : describe.skip;
-
-describeIsolate('runScript', () => {
+describe('runScript', () => {
   it('returns passthrough for empty script', async () => {
     const { runScript } = await import('#/main/scripts');
     const request = {

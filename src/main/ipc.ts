@@ -1,7 +1,8 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme } from 'electron';
 import { randomUUID } from 'crypto';
-import { ensureInviteKeys } from '#/main/invite/inviteKeys';
-import { createInviteToken, decodeInviteToken } from '#/main/invite/inviteToken';
+import { ensureInviteKeys, getInviteIdentity, importInviteKeyPair } from '#/main/invite/inviteKeys';
+import { createInviteToken, verifyInviteToken } from '#/main/invite/inviteToken';
+import { addTrustedKey, listTrustedKeys, removeTrustedKey } from '#/main/invite/trustedKeys';
 import { readFile, writeFile } from 'fs/promises';
 import type { IDatabase } from '#/main/db/IDatabase';
 import { RoutingDatabase } from '#/main/db/RoutingDatabase';
@@ -259,9 +260,15 @@ export function registerIpcHandlers(db: IDatabase): void {
     setCookiesForDomain(domain, cookies);
   });
 
-  ipcMain.handle('invite:create', async (_event, collectionId: number) => {
+  ipcMain.handle('invite:create', async (_event, collectionId: number, recipientKid?: string) => {
     if (!(db instanceof RoutingDatabase)) {
       throw new Error('Invite is unavailable.');
+    }
+
+    if (!recipientKid) {
+      throw new Error(
+        'A recipient key is required. Add their public key under Certificates and select them when creating an invite.'
+      );
     }
 
     const share = db.getShareInfo(collectionId);
@@ -273,16 +280,37 @@ export function registerIpcHandlers(db: IDatabase): void {
       throw new Error('SQLite connections cannot be shared via invite.');
     }
 
-    const { privateKey } = await ensureInviteKeys(app.getPath('userData'));
+    const recipient = listTrustedKeys().find((key) => key.id === recipientKid);
+    if (!recipient) {
+      throw new Error(`Unknown recipient key: ${recipientKid}`);
+    }
+
+    const { privateKey, publicKey } = await ensureInviteKeys(app.getPath('userData'));
     return createInviteToken(
       connection,
       { name: share.name, providerCollectionId: share.providerCollectionId },
-      privateKey
+      privateKey,
+      publicKey,
+      recipient.publicKeyPem
     );
   });
 
   ipcMain.handle('invite:accept', async (_event, token: string) => {
-    const { connection, collection } = decodeInviteToken(token);
+    const { privateKey, publicKey } = await ensureInviteKeys(app.getPath('userData'));
+    let connection;
+    let collection;
+    try {
+      ({ connection, collection } = verifyInviteToken(
+        token,
+        privateKey,
+        publicKey,
+        listTrustedKeys()
+      ));
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : 'Invalid invite token.', {
+        cause: err
+      });
+    }
 
     const existing = findMatchingConnection(connection);
     const targetConn: DatabaseConnection = existing ?? { ...connection, id: randomUUID() };
@@ -307,4 +335,90 @@ export function registerIpcHandlers(db: IDatabase): void {
 
     return listDatabaseConnections();
   });
+
+  ipcMain.handle('certs:getIdentity', async () => {
+    return getInviteIdentity(app.getPath('userData'));
+  });
+
+  ipcMain.handle('certs:exportPrivateKey', async () => {
+    const { privateKey } = await ensureInviteKeys(app.getPath('userData'));
+    const win = BrowserWindow.getFocusedWindow();
+    const dialogOptions = {
+      defaultPath: 'invite-key.pem',
+      filters: [{ name: 'PEM', extensions: ['pem'] }]
+    };
+    const { canceled, filePath } = win
+      ? await dialog.showSaveDialog(win, dialogOptions)
+      : await dialog.showSaveDialog(dialogOptions);
+
+    if (canceled || !filePath) {
+      return { canceled: true };
+    }
+
+    await writeFile(filePath, privateKey, 'utf-8');
+    return { canceled: false, path: filePath };
+  });
+
+  ipcMain.handle('certs:exportPublicKey', async () => {
+    const { publicKey } = await ensureInviteKeys(app.getPath('userData'));
+    const win = BrowserWindow.getFocusedWindow();
+    const dialogOptions = {
+      defaultPath: 'invite-pub.pem',
+      filters: [{ name: 'PEM', extensions: ['pem'] }]
+    };
+    const { canceled, filePath } = win
+      ? await dialog.showSaveDialog(win, dialogOptions)
+      : await dialog.showSaveDialog(dialogOptions);
+
+    if (canceled || !filePath) {
+      return { canceled: true };
+    }
+
+    await writeFile(filePath, publicKey, 'utf-8');
+    return { canceled: false, path: filePath };
+  });
+
+  ipcMain.handle('certs:importKeyPair', async () => {
+    const win = BrowserWindow.getFocusedWindow();
+    const dialogOptions = {
+      properties: ['openFile'] as Array<'openFile'>,
+      filters: [{ name: 'PEM', extensions: ['pem'] }]
+    };
+    const { canceled, filePaths } = win
+      ? await dialog.showOpenDialog(win, dialogOptions)
+      : await dialog.showOpenDialog(dialogOptions);
+
+    if (canceled || filePaths.length === 0) {
+      throw new Error('Import canceled.');
+    }
+
+    const privateKeyPem = await readFile(filePaths[0], 'utf-8');
+    return importInviteKeyPair(app.getPath('userData'), privateKeyPem);
+  });
+
+  ipcMain.handle('certs:listTrustedKeys', () => listTrustedKeys());
+
+  ipcMain.handle('certs:addTrustedKey', (_event, label: string, publicKeyPem: string) =>
+    addTrustedKey(label, publicKeyPem)
+  );
+
+  ipcMain.handle('certs:importTrustedPublicKey', async (_event, label: string) => {
+    const win = BrowserWindow.getFocusedWindow();
+    const dialogOptions = {
+      properties: ['openFile'] as Array<'openFile'>,
+      filters: [{ name: 'PEM', extensions: ['pem'] }]
+    };
+    const { canceled, filePaths } = win
+      ? await dialog.showOpenDialog(win, dialogOptions)
+      : await dialog.showOpenDialog(dialogOptions);
+
+    if (canceled || filePaths.length === 0) {
+      throw new Error('Import canceled.');
+    }
+
+    const publicKeyPem = await readFile(filePaths[0], 'utf-8');
+    return addTrustedKey(label, publicKeyPem);
+  });
+
+  ipcMain.handle('certs:removeTrustedKey', (_event, id: string) => removeTrustedKey(id));
 }

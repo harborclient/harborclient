@@ -17,7 +17,6 @@ files:
   - '!**/node_modules/**/prebuilds/**'
 asarUnpack:
   - node_modules/better-sqlite3/**/*
-  - node_modules/isolated-vm/**/*
 linux:
   icon: build/icons
   syncDesktopName: true

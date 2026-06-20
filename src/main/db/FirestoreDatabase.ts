@@ -17,110 +17,25 @@ import {
   writeBatch,
   type Firestore
 } from 'firebase/firestore';
+import { maskVariablesForExport, validateCollectionExport } from '#/main/db/collectionData';
 import {
-  maskVariablesForExport,
-  normalizeVariable,
-  validateCollectionExport
-} from '#/main/db/collectionData';
+  docToCollection,
+  docToEnvironment,
+  docToFolder,
+  docToRequest
+} from '#/main/db/entityMappers';
 import type { IDatabase } from '#/main/db/IDatabase';
 import type {
-  BodyType,
   Collection,
   CollectionExport,
   Environment,
   FirestoreSettings,
   Folder,
-  HttpMethod,
   KeyValue,
   SaveRequestInput,
   SavedRequest,
   Variable
 } from '#/shared/types';
-
-/**
- * Maps a Firestore collection document to a Collection object.
- *
- * @param id - Numeric document ID.
- * @param data - Raw Firestore document fields.
- * @returns Normalized collection.
- */
-function docToCollection(id: number, data: Record<string, unknown>): Collection {
-  const variables = Array.isArray(data.variables)
-    ? (data.variables as Partial<Variable>[]).map(normalizeVariable)
-    : [];
-  const headers = Array.isArray(data.headers) ? (data.headers as KeyValue[]) : [];
-
-  return {
-    id,
-    name: typeof data.name === 'string' ? data.name : '',
-    variables,
-    headers,
-    pre_request_script: typeof data.pre_request_script === 'string' ? data.pre_request_script : '',
-    post_request_script:
-      typeof data.post_request_script === 'string' ? data.post_request_script : '',
-    created_at: typeof data.created_at === 'string' ? data.created_at : new Date().toISOString()
-  };
-}
-
-/**
- * Maps a Firestore environment document to an Environment object.
- *
- * @param id - Numeric document ID.
- * @param data - Raw Firestore document fields.
- * @returns Normalized environment.
- */
-function docToEnvironment(id: number, data: Record<string, unknown>): Environment {
-  const variables = Array.isArray(data.variables)
-    ? (data.variables as Partial<Variable>[]).map(normalizeVariable)
-    : [];
-
-  return {
-    id,
-    name: typeof data.name === 'string' ? data.name : '',
-    variables,
-    created_at: typeof data.created_at === 'string' ? data.created_at : new Date().toISOString()
-  };
-}
-
-/**
- * Maps a Firestore request document to a SavedRequest object.
- *
- * @param id - Numeric document ID.
- * @param data - Raw Firestore document fields.
- * @returns Normalized saved request.
- */
-function docToRequest(id: number, data: Record<string, unknown>): SavedRequest {
-  return {
-    id,
-    collection_id: typeof data.collection_id === 'number' ? data.collection_id : 0,
-    name: typeof data.name === 'string' ? data.name : '',
-    method: (typeof data.method === 'string' ? data.method : 'GET') as HttpMethod,
-    url: typeof data.url === 'string' ? data.url : '',
-    headers: Array.isArray(data.headers) ? (data.headers as KeyValue[]) : [],
-    params: Array.isArray(data.params) ? (data.params as KeyValue[]) : [],
-    body: typeof data.body === 'string' ? data.body : '',
-    body_type: (typeof data.body_type === 'string' ? data.body_type : 'none') as BodyType,
-    pre_request_script: typeof data.pre_request_script === 'string' ? data.pre_request_script : '',
-    post_request_script:
-      typeof data.post_request_script === 'string' ? data.post_request_script : '',
-    comment: typeof data.comment === 'string' ? data.comment : '',
-    folder_id:
-      typeof data.folder_id === 'number' ? data.folder_id : data.folder_id === null ? null : null,
-    sort_order: typeof data.sort_order === 'number' ? data.sort_order : 0,
-    created_at: typeof data.created_at === 'string' ? data.created_at : new Date().toISOString(),
-    updated_at: typeof data.updated_at === 'string' ? data.updated_at : new Date().toISOString()
-  };
-}
-
-function docToFolder(id: number, data: Record<string, unknown>): Folder {
-  return {
-    id,
-    collection_id: typeof data.collection_id === 'number' ? data.collection_id : 0,
-    name: typeof data.name === 'string' ? data.name : '',
-    sort_order: typeof data.sort_order === 'number' ? data.sort_order : 0,
-    created_at: typeof data.created_at === 'string' ? data.created_at : new Date().toISOString()
-  };
-}
 
 export class FirestoreDatabase implements IDatabase {
   readonly #settings: FirestoreSettings;

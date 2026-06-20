@@ -519,7 +519,8 @@ export interface SendRequestInput {
 }
 
 /**
- * The HTTP request as actually sent over the wire.
+ * Metadata for the HTTP request as sent. Multipart {@link body} is a display
+ * summary of form fields, not the raw wire payload.
  */
 export interface SentRequest {
   /**
@@ -538,9 +539,16 @@ export interface SentRequest {
   headers: Record<string, string>;
 
   /**
-   * Request body content that was sent, or empty string when none.
+   * Body content for display. For multipart, a human-readable summary of form
+   * fields and file names — not the raw multipart bytes. For other body types,
+   * the literal string sent on the wire, or empty when none.
    */
   body: string;
+
+  /**
+   * Content type of the request body; used to interpret {@link body}.
+   */
+  bodyType?: BodyType;
 }
 
 /**
@@ -816,6 +824,61 @@ export type DatabaseConnection =
   | (DatabaseConnectionBase & { type: 'postgres'; settings: PostgresSettings });
 
 /**
+ * Local RSA identity used to sign and decrypt invites.
+ */
+export interface InviteIdentity {
+  /**
+   * PEM-encoded RSA public key.
+   */
+  publicKeyPem: string;
+
+  /**
+   * SHA-256 fingerprint of the public key (hex).
+   */
+  fingerprint: string;
+}
+
+/**
+ * A trusted collaborator public key used to verify invite signatures.
+ */
+export interface TrustedInviteKey {
+  /**
+   * SHA-256 fingerprint of the SPKI public key (hex).
+   */
+  id: string;
+
+  /**
+   * User-defined label for the key owner.
+   */
+  label: string;
+
+  /**
+   * PEM-encoded RSA public key.
+   */
+  publicKeyPem: string;
+
+  /**
+   * Unix timestamp when the key was added.
+   */
+  addedAt: number;
+}
+
+/**
+ * Result of exporting a PEM key to disk via a native save dialog.
+ */
+export interface PemExportResult {
+  /**
+   * True when the user canceled the save dialog.
+   */
+  canceled: boolean;
+
+  /**
+   * Absolute path written when not canceled.
+   */
+  path?: string;
+}
+
+/**
  * Menu action identifiers sent from the main process menu.
  */
 export type MenuActionId =
@@ -824,6 +887,7 @@ export type MenuActionId =
   | 'import'
   | 'save'
   | 'settings'
+  | 'certificates'
   | 'about';
 
 /**
@@ -1044,7 +1108,7 @@ export interface Api {
   setCookies: (domain: string, cookies: KeyValue[]) => Promise<void>;
 
   /**
-   * Runs a pre/post script in an isolated-vm sandbox.
+   * Runs a pre/post script in a sandboxed JavaScript context.
    *
    * @param input - Script source, phase, request/response context, and variables.
    * @returns Mutated request, variable sets, tests, and logs from the sandbox.
@@ -1166,11 +1230,12 @@ export interface Api {
   selectFiles: () => Promise<string[]>;
 
   /**
-   * Creates a signed JWT encoding a collection's database connection and mapping for sharing.
+   * Creates a signed, encrypted invite for a specific recipient.
    *
    * @param collectionId - Global collection id to share.
+   * @param recipientKid - Fingerprint of the recipient's trusted public key.
    */
-  createInviteToken: (collectionId: number) => Promise<string>;
+  createInviteToken: (collectionId: number, recipientKid: string) => Promise<string>;
 
   /**
    * Decodes an invite JWT and adds the embedded database connection.
@@ -1179,6 +1244,53 @@ export interface Api {
    * @returns Updated list of all connections.
    */
   acceptInvite: (token: string) => Promise<DatabaseConnection[]>;
+
+  /**
+   * Returns the local invite identity (public key and fingerprint).
+   */
+  getInviteIdentity: () => Promise<InviteIdentity>;
+
+  /**
+   * Writes the local private key to a file via a native save dialog.
+   */
+  exportInvitePrivateKey: () => Promise<PemExportResult>;
+
+  /**
+   * Writes the local public key to a file via a native save dialog.
+   */
+  exportInvitePublicKey: () => Promise<PemExportResult>;
+
+  /**
+   * Replaces the local invite key pair from a PEM private key file.
+   */
+  importInviteKeyPair: () => Promise<InviteIdentity>;
+
+  /**
+   * Lists trusted collaborator public keys.
+   */
+  listTrustedKeys: () => Promise<TrustedInviteKey[]>;
+
+  /**
+   * Adds or updates a trusted collaborator public key.
+   *
+   * @param label - Display label for the key owner.
+   * @param publicKeyPem - PEM-encoded RSA public key.
+   */
+  addTrustedKey: (label: string, publicKeyPem: string) => Promise<TrustedInviteKey[]>;
+
+  /**
+   * Imports a trusted public key from a PEM file via a native open dialog.
+   *
+   * @param label - Display label for the key owner.
+   */
+  importTrustedPublicKey: (label: string) => Promise<TrustedInviteKey[]>;
+
+  /**
+   * Removes a trusted public key by fingerprint id.
+   *
+   * @param id - SHA-256 fingerprint of the key to remove.
+   */
+  removeTrustedKey: (id: string) => Promise<TrustedInviteKey[]>;
 }
 
 declare global {

@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import type { DatabaseConnection } from '#/shared/types';
 import { field } from '#/renderer/src/ui/shared/classes';
-import { providerLabel } from '#/renderer/src/ui/Sidebar/Settings/constants';
+import { providerLabel } from '#/renderer/src/ui/Settings/constants';
 
 interface Props {
   name: string;
