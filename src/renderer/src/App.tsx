@@ -9,7 +9,6 @@ import { Sidebar } from '#/renderer/src/ui/Sidebar';
 import { Request } from '#/renderer/src/ui/Request';
 import { TitleBar } from '#/renderer/src/ui/TitleBar';
 import { Footer } from '#/renderer/src/ui/Footer';
-import { ConsolePanel } from '#/renderer/src/ui/ConsolePanel';
 import { SegmentedTabs } from '#/renderer/src/components/SegmentedTabs';
 import { field, primaryButton, secondaryButton } from '#/renderer/src/ui/shared/classes';
 
@@ -47,6 +46,7 @@ function AppShell(): JSX.Element {
   const [showSettings, setShowSettings] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showConsole, setShowConsole] = useState(false);
+  const [showVariables, setShowVariables] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const [appVersion, setAppVersion] = useState('');
 
@@ -59,6 +59,14 @@ function AppShell(): JSX.Element {
   });
 
   const activeCollectionId = store.draft.collection_id ?? store.selectedCollectionId;
+  const activeCollection =
+    activeCollectionId != null
+      ? store.collections.find((c) => c.id === activeCollectionId)
+      : undefined;
+  const activeEnvironment =
+    store.activeEnvironmentId != null
+      ? store.environments.find((env) => env.id === store.activeEnvironmentId)
+      : undefined;
 
   /**
    * Opens the active collection's settings to edit variables.
@@ -267,7 +275,7 @@ function AppShell(): JSX.Element {
     : undefined;
 
   return (
-    <div className={`flex h-screen flex-col ${isMac ? 'platform-darwin' : ''}`}>
+    <div className={`flex h-screen flex-col overflow-hidden ${isMac ? 'platform-darwin' : ''}`}>
       <TitleBar />
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
         {showSidebar && (
@@ -341,19 +349,26 @@ function AppShell(): JSX.Element {
             <Request onEditVariables={handleEditVariables} />
           )}
         </main>
-
-        <ConsolePanel
-          entries={store.consoleEntries}
-          open={showConsole}
-          onClose={() => setShowConsole(false)}
-          onClear={store.clearConsole}
-        />
       </div>
 
       <Footer
         consoleOpen={showConsole}
         entryCount={store.consoleEntries.length}
-        onToggleConsole={() => setShowConsole((open) => !open)}
+        onToggleConsole={() => {
+          setShowConsole((open) => !open);
+          setShowVariables(false);
+        }}
+        entries={store.consoleEntries}
+        onClear={store.clearConsole}
+        variablesOpen={showVariables}
+        onToggleVariables={() => {
+          setShowVariables((open) => !open);
+          setShowConsole(false);
+        }}
+        collectionVariables={activeCollection?.variables ?? []}
+        environmentVariables={activeEnvironment?.variables ?? []}
+        collectionName={activeCollection?.name}
+        environmentName={activeEnvironment?.name}
         sidebarOpen={showSidebar}
         onToggleSidebar={() => setShowSidebar((open) => !open)}
       />

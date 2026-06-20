@@ -41,9 +41,10 @@ export function ConsolePanel({ entries, open, onClose, onClear }: Props): JSX.El
     defaultSize: DEFAULT_HEIGHT,
     minSize: MIN_HEIGHT,
     getMaxSize: () => {
-      const container = containerRef.current?.parentElement;
-      if (!container) return window.innerHeight * 0.8;
-      return container.clientHeight - 40;
+      const shell = containerRef.current?.parentElement?.parentElement;
+      const contentArea = shell?.children[1] as HTMLElement | undefined;
+      if (!contentArea) return window.innerHeight * 0.8;
+      return contentArea.clientHeight - 40;
     },
     storageKey: 'hc.consoleHeight'
   });
@@ -65,9 +66,9 @@ export function ConsolePanel({ entries, open, onClose, onClear }: Props): JSX.El
 
   const effectiveExpandedId = open ? expandedId : null;
   const panelClassName = [
-    'absolute inset-x-0 bottom-0 z-40 flex flex-col border-t border-separator bg-surface',
+    'absolute inset-x-0 bottom-full z-40 flex flex-col border-t border-separator bg-surface',
     'shadow-[0_-4px_16px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out app-no-drag',
-    open ? 'translate-y-0' : 'translate-y-full'
+    open ? 'translate-y-0' : 'translate-y-full pointer-events-none'
   ].join(' ');
 
   return (

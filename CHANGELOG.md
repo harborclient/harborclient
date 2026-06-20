@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Refactor ConsolePanel and enhance AppShell functionality. (`a7c0cdf`)
 - Refactor Request and ConsolePanel components for improved UI and functionality. (`4adfc0e`)
 - Enhance UI components with resizable features and code cleanup. (`c735424`)
 - Refactor application structure and enhance request handling UI. (`a7b8bff`)
