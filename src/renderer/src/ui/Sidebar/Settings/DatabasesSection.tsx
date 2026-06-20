@@ -21,15 +21,14 @@ export function DatabasesSection(): JSX.Element {
   useEffect(() => {
     let cancelled = false;
 
-    void Promise.all([
-      window.api.listDatabaseConnections(),
-      window.api.getActiveDatabaseId()
-    ]).then(([nextConnections, nextActiveId]) => {
-      if (cancelled) return;
-      setConnections(nextConnections);
-      setActiveId(nextActiveId);
-      setLoading(false);
-    });
+    void Promise.all([window.api.listDatabaseConnections(), window.api.getActiveDatabaseId()]).then(
+      ([nextConnections, nextActiveId]) => {
+        if (cancelled) return;
+        setConnections(nextConnections);
+        setActiveId(nextActiveId);
+        setLoading(false);
+      }
+    );
 
     return () => {
       cancelled = true;
@@ -159,7 +158,9 @@ export function DatabasesSection(): JSX.Element {
           <div>
             <h2 className="m-0 mb-1 text-[13px] font-medium text-text">Databases</h2>
             <p className="m-0 text-[12px] text-muted">
-              Define database connections and choose which one is active on launch.
+              Define database connections. The active database is used for new collections,
+              environments, and app settings. Individual collections can be moved to other databases
+              from collection settings.
             </p>
           </div>
           <button type="button" className={primaryButton} disabled={loading} onClick={handleAdd}>
@@ -231,7 +232,8 @@ export function DatabasesSection(): JSX.Element {
         {saved && <p className="mt-3 text-[12px] text-success">Settings saved.</p>}
 
         <p className="mb-0 mt-4 text-[12px] text-muted">
-          Changes take effect after restarting HarborClient.
+          Connection changes take effect after restarting HarborClient. All configured databases are
+          opened at launch so shared collections are available immediately.
         </p>
       </div>
 

@@ -95,6 +95,16 @@ function importCollection(): Promise<Collection | null> {
 }
 
 /**
+ * Moves a collection to another database connection via IPC.
+ *
+ * @param id - Global collection ID to move.
+ * @param targetConnectionId - Destination connection id.
+ */
+function moveCollection(id: number, targetConnectionId: string): Promise<Collection> {
+  return ipcRenderer.invoke('collections:move', id, targetConnectionId);
+}
+
+/**
  * Lists all environments via IPC.
  *
  * @returns All environments from the main process.
@@ -373,6 +383,7 @@ const api: Api = {
   deleteCollection,
   exportCollection,
   importCollection,
+  moveCollection,
   listEnvironments,
   createEnvironment,
   updateEnvironment,

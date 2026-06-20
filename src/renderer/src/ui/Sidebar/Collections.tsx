@@ -20,6 +20,16 @@ interface Props {
   selectedCollectionId: number | null;
 
   /**
+   * Primary database connection id used for new collections and app settings.
+   */
+  primaryConnectionId: string;
+
+  /**
+   * Display names for database connections keyed by connection id.
+   */
+  connectionNamesById: Record<string, string>;
+
+  /**
    * ID of the request loaded in the editor, if any.
    */
   activeRequestId?: number;
@@ -72,6 +82,8 @@ export function Collections({
   collections,
   requestsByCollection,
   selectedCollectionId,
+  primaryConnectionId,
+  connectionNamesById,
   activeRequestId,
   onSelectCollection,
   onExpandCollection,
@@ -133,6 +145,8 @@ export function Collections({
         const selected = selectedCollectionId === collection.id;
         const collectionRequests = requestsByCollection[collection.id];
         const loaded = collectionRequests != null;
+        const collectionConnectionId = collection.connectionId ?? primaryConnectionId;
+        const connectionName = connectionNamesById[collectionConnectionId];
 
         return (
           <div key={collection.id}>
@@ -149,7 +163,17 @@ export function Collections({
                 onClick={() => onSelectCollection(collection.id)}
                 onDoubleClick={() => onConfigureCollection(collection.id)}
               >
-                {collection.name}
+                <span className="inline-flex min-w-0 items-center gap-1.5">
+                  <span className="truncate">{collection.name}</span>
+                  {connectionName != null && (
+                    <span
+                      className="shrink-0 rounded bg-info/15 px-1.5 py-0.5 text-[10px] font-medium text-info"
+                      title={`Stored in ${connectionName}`}
+                    >
+                      {connectionName}
+                    </span>
+                  )}
+                </span>
               </button>
               <RowActionsMenu
                 menuId={`collection-${collection.id}`}

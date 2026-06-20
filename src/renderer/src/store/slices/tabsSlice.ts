@@ -101,6 +101,27 @@ const tabsSlice = createSlice({
       }
       state.tabs = remaining;
     },
+    closeTabsForCollection(state, action: PayloadAction<number>) {
+      const collectionId = action.payload;
+      const matching = state.tabs.filter((t) => t.draft.collection_id === collectionId);
+      if (matching.length === 0) return;
+
+      const remaining = state.tabs.filter((t) => t.draft.collection_id !== collectionId);
+      if (remaining.length === 0) {
+        const tab = createTab();
+        state.tabs = [tab];
+        state.activeTabId = tab.tabId;
+        return;
+      }
+
+      const closedActive = matching.some((t) => t.tabId === state.activeTabId);
+      if (closedActive) {
+        const closedIndex = state.tabs.findIndex((t) => t.tabId === state.activeTabId);
+        const neighbor = remaining[Math.min(closedIndex, remaining.length - 1)];
+        state.activeTabId = neighbor.tabId;
+      }
+      state.tabs = remaining;
+    },
     updateActiveTabDraftAfterSave(
       state,
       action: PayloadAction<{ tabId: string; savedDraft: RequestDraft }>
@@ -124,6 +145,7 @@ export const {
   updateTab,
   openTabWithDraft,
   closeTabsForRequest,
+  closeTabsForCollection,
   updateActiveTabDraftAfterSave
 } = tabsSlice.actions;
 export default tabsSlice.reducer;

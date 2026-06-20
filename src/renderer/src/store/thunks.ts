@@ -32,6 +32,7 @@ import {
 import { addConsoleEntry } from '#/renderer/src/store/slices/consoleSlice';
 import {
   closeTabsForRequest,
+  closeTabsForCollection,
   loadRequest,
   newTab,
   openTabWithDraft,
@@ -90,7 +91,7 @@ export const createCollection = createAsyncThunk<Collection, string, ThunkApiCon
 );
 
 export const updateCollection = createAsyncThunk<
-  void,
+  Collection,
   {
     id: number;
     name: string;
@@ -98,11 +99,20 @@ export const updateCollection = createAsyncThunk<
     headers: KeyValue[];
     preRequestScript: string;
     postRequestScript: string;
+    connectionId?: string;
   },
   ThunkApiConfig
 >(
   'collections/update',
-  async ({ id, name, variables, headers, preRequestScript, postRequestScript }, { dispatch }) => {
+  async (
+    { id, name, variables, headers, preRequestScript, postRequestScript, connectionId },
+    { dispatch, getState }
+  ) => {
+    const state = getState();
+    const collection = state.collections.collections.find((item) => item.id === id);
+    const primaryConnectionId = await window.api.getActiveDatabaseId();
+    const currentConnectionId = collection?.connectionId ?? primaryConnectionId;
+
     await window.api.updateCollection(
       id,
       name,
@@ -111,7 +121,22 @@ export const updateCollection = createAsyncThunk<
       preRequestScript,
       postRequestScript
     );
+
+    if (connectionId && connectionId !== currentConnectionId) {
+      dispatch(closeTabsForCollection(id));
+      const moved = await window.api.moveCollection(id, connectionId);
+      await dispatch(refreshCollections());
+      dispatch(setSelectedCollectionId(moved.id));
+      await dispatch(refreshRequests(moved.id));
+      return moved;
+    }
+
     await dispatch(refreshCollections());
+    const refreshed = getState().collections.collections.find((item) => item.id === id);
+    if (!refreshed) {
+      throw new Error(`Collection not found after update: ${id}`);
+    }
+    return refreshed;
   }
 );
 

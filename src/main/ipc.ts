@@ -1,6 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme } from 'electron';
 import { readFile, writeFile } from 'fs/promises';
 import type { IDatabase } from '#/main/db/IDatabase';
+import { RoutingDatabase } from '#/main/db/RoutingDatabase';
 import {
   buildCookieHeader,
   captureSetCookies,
@@ -110,6 +111,13 @@ export function registerIpcHandlers(db: IDatabase): void {
     const raw = await readFile(filePaths[0], 'utf-8');
     const parsed = JSON.parse(raw) as unknown;
     return db.importCollectionData(parsed);
+  });
+
+  ipcMain.handle('collections:move', (_event, id: number, targetConnectionId: string) => {
+    if (!(db instanceof RoutingDatabase)) {
+      throw new Error('Collection move is unavailable.');
+    }
+    return db.moveCollection(id, targetConnectionId);
   });
 
   ipcMain.handle('dialog:openFiles', async () => {

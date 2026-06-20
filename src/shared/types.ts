@@ -151,6 +151,11 @@ export interface Collection {
    * ISO 8601 timestamp when the collection was created.
    */
   created_at: string;
+
+  /**
+   * Id of the database connection that stores this collection.
+   */
+  connectionId?: string;
 }
 
 /**
@@ -814,6 +819,15 @@ export interface Api {
    * @returns The imported collection, or null when the dialog was canceled.
    */
   importCollection: () => Promise<Collection | null>;
+
+  /**
+   * Moves a collection and its requests to another database connection.
+   *
+   * @param id - Global collection ID to move.
+   * @param targetConnectionId - Destination connection id.
+   * @returns The collection in its new backend with a new global id.
+   */
+  moveCollection: (id: number, targetConnectionId: string) => Promise<Collection>;
 
   /**
    * Lists all environments.

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type JSX } from 'react';
-import type { Collection, KeyValue, Variable } from '#/shared/types';
+import type { Collection, DatabaseConnection, KeyValue, Variable } from '#/shared/types';
 import { cleanVariables } from '#/renderer/src/components/variableUtils';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { SegmentedTabs } from '#/renderer/src/components/SegmentedTabs';
@@ -20,7 +20,7 @@ interface Props {
   collection: Collection;
 
   /**
-   * Persists collection name, variables, headers, and scripts.
+   * Persists collection name, variables, headers, scripts, and database.
    *
    * @param id - Collection ID to update.
    * @param name - New display name.
@@ -28,6 +28,7 @@ interface Props {
    * @param headers - Headers sent with every request in the collection.
    * @param preRequestScript - Collection pre-request script.
    * @param postRequestScript - Collection post-request script.
+   * @param connectionId - Target database connection id.
    */
   onSave: (
     id: number,
@@ -35,8 +36,9 @@ interface Props {
     variables: Variable[],
     headers: KeyValue[],
     preRequestScript: string,
-    postRequestScript: string
-  ) => Promise<void>;
+    postRequestScript: string,
+    connectionId: string
+  ) => Promise<Collection | void>;
 
   /**
    * Closes the settings view without saving.
@@ -74,29 +76,68 @@ function CollectionSettingsForm({
   );
   const [preRequestScript, setPreRequestScript] = useState(collection.pre_request_script ?? '');
   const [postRequestScript, setPostRequestScript] = useState(collection.post_request_script ?? '');
+  const [connections, setConnections] = useState<DatabaseConnection[]>([]);
+  const [primaryConnectionId, setPrimaryConnectionId] = useState('');
+  const [connectionId, setConnectionId] = useState(collection.connectionId ?? '');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void Promise.all([window.api.listDatabaseConnections(), window.api.getActiveDatabaseId()]).then(
+      ([nextConnections, nextPrimaryConnectionId]) => {
+        if (cancelled) return;
+        setConnections(nextConnections);
+        setPrimaryConnectionId(nextPrimaryConnectionId);
+        setConnectionId((current) => current || collection.connectionId || nextPrimaryConnectionId);
+      }
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [collection.connectionId]);
+
+  const resolvedConnectionId = connectionId || collection.connectionId || primaryConnectionId;
 
   const isDirty = useMemo(
     () =>
-      serializeCollectionForm(name, variables, headers, preRequestScript, postRequestScript) !==
+      serializeCollectionForm(
+        name,
+        variables,
+        headers,
+        preRequestScript,
+        postRequestScript,
+        resolvedConnectionId
+      ) !==
       serializeCollectionForm(
         collection.name,
         collection.variables,
         collection.headers,
         collection.pre_request_script ?? '',
-        collection.post_request_script ?? ''
+        collection.post_request_script ?? '',
+        collection.connectionId ?? primaryConnectionId
       ),
-    [name, variables, headers, preRequestScript, postRequestScript, collection]
+    [
+      name,
+      variables,
+      headers,
+      preRequestScript,
+      postRequestScript,
+      resolvedConnectionId,
+      collection,
+      primaryConnectionId
+    ]
   );
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
 
-  /** Persists name, variables, headers, and scripts. */
+  /** Persists name, variables, headers, scripts, and database selection. */
   const handleSave = async (): Promise<void> => {
     const trimmedName = name.trim();
-    if (!trimmedName) return;
+    if (!trimmedName || !resolvedConnectionId) return;
 
     const cleanedVariables = cleanVariables(variables);
     const cleanedHeaders = cleanHeaders(headers);
@@ -108,7 +149,8 @@ function CollectionSettingsForm({
         cleanedVariables,
         cleanedHeaders,
         preRequestScript,
-        postRequestScript
+        postRequestScript,
+        resolvedConnectionId
       );
       onClose();
     } finally {
@@ -149,6 +191,9 @@ function CollectionSettingsForm({
           <GeneralSection
             name={name}
             onNameChange={setName}
+            connectionId={resolvedConnectionId}
+            connections={connections}
+            onConnectionIdChange={setConnectionId}
             onSave={() => void handleSave()}
             onClose={onClose}
           />
@@ -191,7 +236,7 @@ function CollectionSettingsForm({
           <button
             className={primaryButton}
             onClick={() => void handleSave()}
-            disabled={!name.trim() || saving}
+            disabled={!name.trim() || !resolvedConnectionId || saving}
           >
             {saving ? 'Saving…' : 'Save'}
           </button>

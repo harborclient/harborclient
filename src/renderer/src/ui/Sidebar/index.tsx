@@ -1,6 +1,6 @@
-import { useState, type JSX } from 'react';
+import { useEffect, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { SavedRequest } from '#/shared/types';
+import type { DatabaseConnection, SavedRequest } from '#/shared/types';
 import { ResizeHandle, useResizable } from '#/renderer/src/components/Resizable';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
@@ -70,6 +70,8 @@ export function Sidebar({
   const [environmentsExpanded, setEnvironmentsExpanded] = useState(true);
   const [showEnvironmentModal, setShowEnvironmentModal] = useState(false);
   const [newEnvironmentName, setNewEnvironmentName] = useState('');
+  const [databaseConnections, setDatabaseConnections] = useState<DatabaseConnection[]>([]);
+  const [primaryConnectionId, setPrimaryConnectionId] = useState('');
   const { size: width, onResizeStart } = useResizable({
     axis: 'x',
     direction: 1,
@@ -78,6 +80,30 @@ export function Sidebar({
     getMaxSize: () => 640,
     storageKey: 'hc.sidebarWidth'
   });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void Promise.all([window.api.listDatabaseConnections(), window.api.getActiveDatabaseId()]).then(
+      ([connections, activeId]) => {
+        if (cancelled) return;
+        setDatabaseConnections(connections);
+        setPrimaryConnectionId(activeId);
+      }
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const connectionNamesById = useMemo(
+    () =>
+      Object.fromEntries(
+        databaseConnections.map((connection) => [connection.id, connection.name || 'Untitled'])
+      ),
+    [databaseConnections]
+  );
 
   const closeEnvironmentModal = (): void => {
     setShowEnvironmentModal(false);
@@ -114,6 +140,8 @@ export function Sidebar({
               collections={collections}
               requestsByCollection={requestsByCollection}
               selectedCollectionId={selectedCollectionId}
+              primaryConnectionId={primaryConnectionId}
+              connectionNamesById={connectionNamesById}
               activeRequestId={draft.id}
               onSelectCollection={(id) => dispatch(setSelectedCollectionId(id))}
               onExpandCollection={(id) => void dispatch(refreshRequests(id))}

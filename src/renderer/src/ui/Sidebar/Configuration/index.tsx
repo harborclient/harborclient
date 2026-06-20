@@ -26,7 +26,7 @@ interface Props {
   onCollectionDirtyChange: (dirty: boolean) => void;
 
   /**
-   * Persists collection name, variables, headers, and scripts.
+   * Persists collection name, variables, headers, scripts, and database.
    */
   onCollectionSave: (
     id: number,
@@ -34,8 +34,9 @@ interface Props {
     variables: Variable[],
     headers: KeyValue[],
     preRequestScript: string,
-    postRequestScript: string
-  ) => Promise<void>;
+    postRequestScript: string,
+    connectionId: string
+  ) => Promise<Collection | void>;
 
   /**
    * Closes collection settings without saving.

@@ -1,12 +1,18 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, shell } from 'electron';
 import windowStateKeeper from 'electron-window-state';
 import { join } from 'path';
-import { FirestoreDatabase, MySqlDatabase, PostgresDatabase, SqliteDatabase } from '#/main/db';
+import { RoutingDatabase } from '#/main/db';
+import { createDatabaseInstance } from '#/main/db/createDatabaseInstance';
 import type { IDatabase } from '#/main/db/IDatabase';
 import { registerIpcHandlers } from '#/main/ipc';
-import { getActiveDatabaseConnection, getSqliteFallbackSettings } from '#/main/settings/databaseSettings';
+import {
+  getActiveDatabaseId,
+  getSqliteFallbackSettings,
+  listDatabaseConnections
+} from '#/main/settings/databaseSettings';
+import { ensureDatabaseSlots } from '#/main/settings/databaseSlots';
 import { buildMenu } from '#/main/menu';
-import type { ThemeSource } from '#/shared/types';
+import type { DatabaseConnection, ThemeSource } from '#/shared/types';
 
 const isDev = !app.isPackaged;
 
@@ -22,66 +28,43 @@ let closePromptOpen = false;
 let closeReason: CloseReason | null = null;
 
 /**
- * Creates and initializes the configured database backend.
+ * Creates and initializes the routing database with all configured backends mounted.
  *
- * @returns Initialized database instance.
+ * @returns Initialized routing database instance.
  */
-async function createDatabase(): Promise<IDatabase> {
-  const connection = getActiveDatabaseConnection();
+async function createDatabase(): Promise<RoutingDatabase> {
+  const connections = listDatabaseConnections();
+  const primaryConnectionId = getActiveDatabaseId();
+  const slots = ensureDatabaseSlots(connections, primaryConnectionId);
+  const userDataPath = app.getPath('userData');
 
-  if (connection.type === 'firestore') {
-    try {
-      const firestoreDb = new FirestoreDatabase(connection.settings);
-      await firestoreDb.init();
-      return firestoreDb;
-    } catch (err) {
-      console.error('Firestore init failed, falling back to SQLite:', err);
-    }
+  const router = await RoutingDatabase.create(
+    primaryConnectionId,
+    connections,
+    slots,
+    userDataPath
+  );
+
+  if (!router.hasAnyBackend()) {
+    const sqliteConnection: DatabaseConnection = connections.find(
+      (conn) => conn.type === 'sqlite'
+    ) ?? {
+      id: 'fallback-sqlite',
+      name: 'SQLite',
+      type: 'sqlite',
+      settings: getSqliteFallbackSettings()
+    };
+
+    const sqliteDb = await createDatabaseInstance(sqliteConnection, userDataPath);
+    const slot = slots[sqliteConnection.id] ?? 0;
+    router.mount(slot, sqliteConnection, sqliteDb);
   }
 
-  if (connection.type === 'mysql') {
-    try {
-      const mysqlDb = new MySqlDatabase(connection.settings);
-      await mysqlDb.init();
-      return mysqlDb;
-    } catch (err) {
-      console.error('MySQL init failed, falling back to SQLite:', err);
-    }
+  if (!router.hasPrimary()) {
+    throw new Error('No database backend could be initialized.');
   }
 
-  if (connection.type === 'postgres') {
-    try {
-      const postgresDb = new PostgresDatabase(connection.settings);
-      await postgresDb.init();
-      return postgresDb;
-    } catch (err) {
-      console.error('PostgreSQL init failed, falling back to SQLite:', err);
-    }
-  }
-
-  if (connection.type === 'sqlite') {
-    try {
-      const sqliteDb = new SqliteDatabase(app.getPath('userData'), connection.settings);
-      await sqliteDb.init();
-      return sqliteDb;
-    } catch (err) {
-      throw new Error(`SQLite init failed: ${err instanceof Error ? err.message : String(err)}`, {
-        cause: err
-      });
-    }
-  }
-
-  const sqliteSettings = getSqliteFallbackSettings();
-
-  try {
-    const sqliteDb = new SqliteDatabase(app.getPath('userData'), sqliteSettings);
-    await sqliteDb.init();
-    return sqliteDb;
-  } catch (err) {
-    throw new Error(`SQLite init failed: ${err instanceof Error ? err.message : String(err)}`, {
-      cause: err
-    });
-  }
+  return router;
 }
 
 /**

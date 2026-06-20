@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(database): implement routing database and collection management. (`ce10e8a`)
 - feat(database): enhance database connection management. (`c868deb`)
 - feat(cookies): enhance request handling with cookie management. (`063f472`)
 - chore(readme): streamline project description and documentation links. (`ad988d9`)

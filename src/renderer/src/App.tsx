@@ -344,19 +344,24 @@ export default function App(): JSX.Element {
                 variables,
                 headers,
                 preRequestScript,
-                postRequestScript
+                postRequestScript,
+                connectionId
               ) => {
                 try {
-                  await dispatch(
+                  const result = await dispatch(
                     updateCollection({
                       id,
                       name,
                       variables,
                       headers,
                       preRequestScript,
-                      postRequestScript
+                      postRequestScript,
+                      connectionId
                     })
                   ).unwrap();
+                  if (result.id !== id) {
+                    setConfiguringCollectionId(result.id);
+                  }
                   toast.success('Collection updated');
                 } catch (err) {
                   alert(err instanceof Error ? err.message : 'Failed to update collection');

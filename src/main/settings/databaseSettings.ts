@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import Store from 'electron-store';
+import { assignSlotForNewConnection } from '#/main/settings/databaseSlots';
 import type {
   DatabaseConnection,
   DatabaseProvider,
@@ -330,6 +331,9 @@ export function saveDatabaseConnection(input: DatabaseConnection): DatabaseConne
     connections[index] = normalized;
   } else {
     connections.push(normalized);
+    getStore().set('databaseConnections', connections);
+    assignSlotForNewConnection(normalized.id);
+    return connections;
   }
 
   getStore().set('databaseConnections', connections);
@@ -370,8 +374,7 @@ export function deleteDatabaseConnection(id: string): DatabaseConnection[] {
 
   const activeId = getActiveDatabaseId();
   if (activeId === id) {
-    const fallback =
-      nextConnections.find((conn) => conn.type === 'sqlite') ?? nextConnections[0];
+    const fallback = nextConnections.find((conn) => conn.type === 'sqlite') ?? nextConnections[0];
     getStore().set('activeDatabaseId', fallback.id);
   }
 

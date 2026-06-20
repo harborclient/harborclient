@@ -9,12 +9,14 @@ export const serializeCollectionForm = (
   variables: Variable[],
   headers: KeyValue[],
   preRequestScript: string,
-  postRequestScript: string
+  postRequestScript: string,
+  connectionId: string
 ): string =>
   JSON.stringify({
     name: name.trim(),
     variables: cleanVariables(variables),
     headers: cleanHeaders(headers),
     pre_request_script: preRequestScript,
-    post_request_script: postRequestScript
+    post_request_script: postRequestScript,
+    connectionId
   });
