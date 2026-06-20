@@ -21,15 +21,10 @@ export const syncedPages = [];
  */
 export const docsNav = [
   { kind: 'overview', title: 'Home' },
-  { kind: 'page', slug: 'getting-started', title: 'Getting started' },
-  { kind: 'page', slug: 'features', title: 'Features', maxDepth: 3 },
-  { kind: 'page', slug: 'prerequisites', title: 'Prerequisites' },
-  { kind: 'page', slug: 'scripts', title: 'Scripts', maxDepth: 2 },
+  { kind: 'page', slug: 'features', title: 'Features', maxDepth: 2 },
+  { kind: 'page', slug: 'getting-started', title: 'Getting started', maxDepth: 2 },
   { kind: 'page', slug: 'request-scripts', title: 'Request scripts', maxDepth: 2 },
-  { kind: 'page', slug: 'project-structure', title: 'Project structure', maxDepth: 3 },
-  { kind: 'page', slug: 'tech-stack', title: 'Tech stack' },
-  { kind: 'page', slug: 'data', title: 'Data' },
-  { kind: 'page', slug: 'license', title: 'License', maxDepth: 0, pinnedBottom: true },
+  { kind: 'page', slug: 'environments', title: 'Environments', maxDepth: 2 },
 ];
 
 /** Slugs of canonical overview pages committed under docs/<slug>/index.md. */

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Remove outdated documentation files and enhance getting started guide with installation instructions for Windows, macOS, and Linux. Update sidebar navigation to reflect new structure and include environments section. Improve request scripts documentation with variable resolution details.. (`8236251`)
 - Add environment management functionality with IPC handlers and database integration. (`d988503`)
 - Enhance application menu and UI components for improved user experience. (`935b8c5`)
 - Enhance select component styling for improved user experience. (`eb21315`)

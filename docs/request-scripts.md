@@ -293,7 +293,10 @@ Request **params** and **body type** are not modified by scripts. Post-request c
 Variable resolution order for `hc.variables.get`:
 
 1. Value set with `hc.variables.set` during this send
-2. Collection variable value (or default if the value is empty)
+2. Active environment variable value (or default if the value is empty)
+3. Collection variable value (or default if the value is empty)
+
+See [Environments](/environments) for how collection and environment variables are merged at send time.
 
 ## Sandbox limits
 

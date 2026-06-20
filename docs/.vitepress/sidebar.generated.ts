@@ -9,20 +9,35 @@ export const sidebar: DefaultTheme.SidebarItem[] =
     "link": "/"
   },
   {
-    "text": "Getting started",
-    "link": "/getting-started"
-  },
-  {
     "text": "Features",
     "link": "/features"
   },
   {
-    "text": "Prerequisites",
-    "link": "/prerequisites"
-  },
-  {
-    "text": "Scripts",
-    "link": "/scripts"
+    "text": "Getting started",
+    "link": "/getting-started",
+    "items": [
+      {
+        "text": "Download",
+        "link": "/getting-started#download"
+      },
+      {
+        "text": "Install on Windows",
+        "link": "/getting-started#install-on-windows"
+      },
+      {
+        "text": "Install on macOS",
+        "link": "/getting-started#install-on-macos"
+      },
+      {
+        "text": "Install on Linux",
+        "link": "/getting-started#install-on-linux"
+      },
+      {
+        "text": "What's next",
+        "link": "/getting-started#whats-next"
+      }
+    ],
+    "collapsed": false
   },
   {
     "text": "Request scripts",
@@ -56,19 +71,30 @@ export const sidebar: DefaultTheme.SidebarItem[] =
     "collapsed": false
   },
   {
-    "text": "Project structure",
-    "link": "/project-structure"
-  },
-  {
-    "text": "Tech stack",
-    "link": "/tech-stack"
-  },
-  {
-    "text": "Data",
-    "link": "/data"
-  },
-  {
-    "text": "License",
-    "link": "/license"
+    "text": "Environments",
+    "link": "/environments",
+    "items": [
+      {
+        "text": "Managing environments",
+        "link": "/environments#managing-environments"
+      },
+      {
+        "text": "Selecting an environment",
+        "link": "/environments#selecting-an-environment"
+      },
+      {
+        "text": "Variables",
+        "link": "/environments#variables"
+      },
+      {
+        "text": "Precedence",
+        "link": "/environments#precedence"
+      },
+      {
+        "text": "Storage",
+        "link": "/environments#storage"
+      }
+    ],
+    "collapsed": false
   }
 ]
