@@ -10,14 +10,11 @@ import {
 import { buildUrl, executeRequest } from '#/main/http';
 import { runScript } from '#/main/scripts';
 import {
-  getDatabaseProvider,
-  getFirestoreSettings,
-  getMySqlSettings,
-  getPostgresSettings,
-  setDatabaseProvider,
-  setFirestoreSettings,
-  setMySqlSettings,
-  setPostgresSettings
+  deleteDatabaseConnection,
+  getActiveDatabaseId,
+  listDatabaseConnections,
+  saveDatabaseConnection,
+  setActiveDatabaseId
 } from '#/main/settings/databaseSettings';
 import { getGeneralSettings, setGeneralSettings } from '#/main/settings/generalSettings';
 import {
@@ -25,18 +22,13 @@ import {
   getRequestEditorTab,
   setRequestEditorTab
 } from '#/main/settings/requestEditorSettings';
-import { getSqliteSettings, setSqliteSettings } from '#/main/settings/sqliteSettings';
 import type {
-  DatabaseProvider,
+  DatabaseConnection,
   EditorTab,
-  FirestoreSettings,
   GeneralSettings,
-  MySqlSettings,
-  PostgresSettings,
   SaveRequestInput,
   ScriptRunInput,
   SendRequestInput,
-  SqliteSettings,
   ThemeSource,
   Variable,
   KeyValue
@@ -196,34 +188,20 @@ export function registerIpcHandlers(db: IDatabase): void {
     setGeneralSettings(settings);
   });
 
-  ipcMain.handle('sqlite:getSettings', () => getSqliteSettings());
+  ipcMain.handle('databaseConnections:list', () => listDatabaseConnections());
 
-  ipcMain.handle('sqlite:setSettings', (_event, settings: SqliteSettings) => {
-    setSqliteSettings(settings);
-  });
+  ipcMain.handle('databaseConnections:save', (_event, conn: DatabaseConnection) =>
+    saveDatabaseConnection(conn)
+  );
 
-  ipcMain.handle('database:getProvider', () => getDatabaseProvider());
+  ipcMain.handle('databaseConnections:delete', (_event, id: string) =>
+    deleteDatabaseConnection(id)
+  );
 
-  ipcMain.handle('database:setProvider', (_event, provider: DatabaseProvider) => {
-    setDatabaseProvider(provider);
-  });
+  ipcMain.handle('database:getActiveId', () => getActiveDatabaseId());
 
-  ipcMain.handle('firestore:getSettings', () => getFirestoreSettings());
-
-  ipcMain.handle('firestore:setSettings', (_event, settings: FirestoreSettings) => {
-    setFirestoreSettings(settings);
-  });
-
-  ipcMain.handle('mysql:getSettings', () => getMySqlSettings());
-
-  ipcMain.handle('mysql:setSettings', (_event, settings: MySqlSettings) => {
-    setMySqlSettings(settings);
-  });
-
-  ipcMain.handle('postgres:getSettings', () => getPostgresSettings());
-
-  ipcMain.handle('postgres:setSettings', (_event, settings: PostgresSettings) => {
-    setPostgresSettings(settings);
+  ipcMain.handle('database:setActiveId', (_event, id: string) => {
+    setActiveDatabaseId(id);
   });
 
   ipcMain.handle('requestEditor:getTab', (_event, key: string) => getRequestEditorTab(key));

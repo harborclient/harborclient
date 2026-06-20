@@ -3,21 +3,17 @@ import type {
   Api,
   Collection,
   CollectionExportResult,
-  DatabaseProvider,
+  DatabaseConnection,
   EditorTab,
   Environment,
-  FirestoreSettings,
   GeneralSettings,
   MenuActionId,
-  MySqlSettings,
-  PostgresSettings,
   SaveRequestInput,
   SavedRequest,
   ScriptRunInput,
   ScriptRunResult,
   SendRequestInput,
   SendResult,
-  SqliteSettings,
   ThemeSource,
   Variable,
   KeyValue
@@ -270,83 +266,44 @@ function setGeneralSettings(settings: GeneralSettings): Promise<void> {
 }
 
 /**
- * Returns persisted SQLite path and legacy migration settings.
+ * Lists all configured database connections via IPC.
  */
-function getSqliteSettings(): Promise<SqliteSettings> {
-  return ipcRenderer.invoke('sqlite:getSettings');
+function listDatabaseConnections(): Promise<DatabaseConnection[]> {
+  return ipcRenderer.invoke('databaseConnections:list');
 }
 
 /**
- * Persists SQLite path and legacy migration settings.
+ * Creates or updates a database connection via IPC.
  *
- * @param settings - SQLite configuration to store.
+ * @param conn - Connection to persist.
  */
-function setSqliteSettings(settings: SqliteSettings): Promise<void> {
-  return ipcRenderer.invoke('sqlite:setSettings', settings);
+function saveDatabaseConnection(conn: DatabaseConnection): Promise<DatabaseConnection[]> {
+  return ipcRenderer.invoke('databaseConnections:save', conn);
 }
 
 /**
- * Returns the persisted database provider selection.
- */
-function getDatabaseProvider(): Promise<DatabaseProvider> {
-  return ipcRenderer.invoke('database:getProvider');
-}
-
-/**
- * Persists the database provider selection.
+ * Deletes a database connection via IPC.
  *
- * @param provider - Provider to use on next launch.
+ * @param id - Connection id to remove.
  */
-function setDatabaseProvider(provider: DatabaseProvider): Promise<void> {
-  return ipcRenderer.invoke('database:setProvider', provider);
+function deleteDatabaseConnection(id: string): Promise<DatabaseConnection[]> {
+  return ipcRenderer.invoke('databaseConnections:delete', id);
 }
 
 /**
- * Returns persisted Firestore connection settings.
+ * Returns the active database connection id via IPC.
  */
-function getFirestoreSettings(): Promise<FirestoreSettings> {
-  return ipcRenderer.invoke('firestore:getSettings');
+function getActiveDatabaseId(): Promise<string> {
+  return ipcRenderer.invoke('database:getActiveId');
 }
 
 /**
- * Persists Firestore connection settings.
+ * Sets the active database connection id via IPC.
  *
- * @param settings - Firestore configuration to store.
+ * @param id - Connection id to activate on next launch.
  */
-function setFirestoreSettings(settings: FirestoreSettings): Promise<void> {
-  return ipcRenderer.invoke('firestore:setSettings', settings);
-}
-
-/**
- * Returns persisted MySQL connection settings.
- */
-function getMySqlSettings(): Promise<MySqlSettings> {
-  return ipcRenderer.invoke('mysql:getSettings');
-}
-
-/**
- * Persists MySQL connection settings.
- *
- * @param settings - MySQL configuration to store.
- */
-function setMySqlSettings(settings: MySqlSettings): Promise<void> {
-  return ipcRenderer.invoke('mysql:setSettings', settings);
-}
-
-/**
- * Returns persisted PostgreSQL connection settings.
- */
-function getPostgresSettings(): Promise<PostgresSettings> {
-  return ipcRenderer.invoke('postgres:getSettings');
-}
-
-/**
- * Persists PostgreSQL connection settings.
- *
- * @param settings - PostgreSQL configuration to store.
- */
-function setPostgresSettings(settings: PostgresSettings): Promise<void> {
-  return ipcRenderer.invoke('postgres:setSettings', settings);
+function setActiveDatabaseId(id: string): Promise<void> {
+  return ipcRenderer.invoke('database:setActiveId', id);
 }
 
 /**
@@ -434,16 +391,11 @@ const api: Api = {
   setTheme,
   getGeneralSettings,
   setGeneralSettings,
-  getSqliteSettings,
-  setSqliteSettings,
-  getDatabaseProvider,
-  setDatabaseProvider,
-  getFirestoreSettings,
-  setFirestoreSettings,
-  getMySqlSettings,
-  setMySqlSettings,
-  getPostgresSettings,
-  setPostgresSettings,
+  listDatabaseConnections,
+  saveDatabaseConnection,
+  deleteDatabaseConnection,
+  getActiveDatabaseId,
+  setActiveDatabaseId,
   getRequestEditorTab,
   setRequestEditorTab,
   deleteRequestEditorTab,

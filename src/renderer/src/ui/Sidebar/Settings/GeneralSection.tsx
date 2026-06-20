@@ -1,10 +1,10 @@
 import { useEffect, useState, type JSX } from 'react';
-import type { DatabaseProvider, GeneralSettings, ThemeSource } from '#/shared/types';
+import type { GeneralSettings, ThemeSource } from '#/shared/types';
 import { field, primaryButton } from '#/renderer/src/ui/shared/classes';
-import { DEFAULT_GENERAL_SETTINGS, PROVIDER_OPTIONS, THEME_OPTIONS } from './constants';
+import { DEFAULT_GENERAL_SETTINGS, THEME_OPTIONS } from './constants';
 
 /**
- * General settings: appearance, requests, and database provider.
+ * General settings: appearance and HTTP request defaults.
  */
 export function GeneralSection(): JSX.Element {
   const [theme, setTheme] = useState<ThemeSource>('system');
@@ -13,8 +13,6 @@ export function GeneralSection(): JSX.Element {
   const [generalLoading, setGeneralLoading] = useState(true);
   const [generalSaving, setGeneralSaving] = useState(false);
   const [generalSaved, setGeneralSaved] = useState(false);
-  const [databaseProvider, setDatabaseProvider] = useState<DatabaseProvider>('sqlite');
-  const [providerLoading, setProviderLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,19 +33,6 @@ export function GeneralSection(): JSX.Element {
       if (!cancelled) {
         setGeneralSettings(value);
         setGeneralLoading(false);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    window.api.getDatabaseProvider().then((value) => {
-      if (!cancelled) {
-        setDatabaseProvider(value);
-        setProviderLoading(false);
       }
     });
     return () => {
@@ -80,28 +65,17 @@ export function GeneralSection(): JSX.Element {
   };
 
   /**
-   * Persists general request settings and database provider.
+   * Persists general request settings.
    */
   const handleGeneralSave = async (): Promise<void> => {
     setGeneralSaving(true);
     setGeneralSaved(false);
     try {
       await window.api.setGeneralSettings(generalSettings);
-      await window.api.setDatabaseProvider(databaseProvider);
       setGeneralSaved(true);
     } finally {
       setGeneralSaving(false);
     }
-  };
-
-  /**
-   * Updates the selected database provider in local form state.
-   *
-   * @param next - Provider to use on next launch.
-   */
-  const handleProviderChange = (next: DatabaseProvider): void => {
-    setGeneralSaved(false);
-    setDatabaseProvider(next);
   };
 
   return (
@@ -164,42 +138,17 @@ export function GeneralSection(): JSX.Element {
         </label>
       </div>
 
-      <div>
-        <label className="flex flex-col gap-1">
-          <span className="text-[12px] font-medium text-text">Database provider</span>
-          <select
-            className={field}
-            value={databaseProvider}
-            disabled={providerLoading || generalLoading || generalSaving}
-            onChange={(event) => handleProviderChange(event.target.value as DatabaseProvider)}
-          >
-            {PROVIDER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <p className="mb-3 text-[12px] text-muted">
-          Choose whether collections and requests are stored in SQLite, Firestore, MySQL, or
-          PostgreSQL.
-        </p>
-      </div>
-
       <div className="flex items-center gap-3">
         <button
           type="button"
           className={primaryButton}
-          disabled={generalLoading || providerLoading || generalSaving}
+          disabled={generalLoading || generalSaving}
           onClick={() => void handleGeneralSave()}
         >
           {generalSaving ? 'Saving…' : 'Save'}
         </button>
         {generalSaved && <span className="text-[12px] text-success">Settings saved.</span>}
       </div>
-      <p className="mb-0 mt-3 text-[12px] text-muted">
-        Changes take effect after restarting HarborClient.
-      </p>
     </div>
   );
 }

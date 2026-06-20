@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(database): enhance database connection management. (`c868deb`)
 - feat(cookies): enhance request handling with cookie management. (`063f472`)
 - chore(readme): streamline project description and documentation links. (`ad988d9`)
 - feat(requestEditor): implement tab management functionality. (`cc091b1`)

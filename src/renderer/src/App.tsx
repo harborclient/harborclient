@@ -66,6 +66,7 @@ export default function App(): JSX.Element {
   const [showVariables, setShowVariables] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const [appVersion, setAppVersion] = useState('');
+  const sidebarVisible = showSidebar && !showSettings;
 
   /**
    * Ref to tabs to avoid unnecessary re-renders.
@@ -305,7 +306,7 @@ export default function App(): JSX.Element {
     <div className={`flex h-screen flex-col overflow-hidden ${isMac ? 'platform-darwin' : ''}`}>
       <TitleBar />
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
-        {showSidebar && (
+        {sidebarVisible && (
           <Sidebar
             onAddCollection={() => {
               setNewCollectionName('');
@@ -398,7 +399,7 @@ export default function App(): JSX.Element {
         environmentVariables={activeEnvironment?.variables ?? []}
         collectionName={activeCollection?.name}
         environmentName={activeEnvironment?.name}
-        sidebarOpen={showSidebar}
+        sidebarOpen={sidebarVisible}
         onToggleSidebar={() => setShowSidebar((open) => !open)}
       />
 

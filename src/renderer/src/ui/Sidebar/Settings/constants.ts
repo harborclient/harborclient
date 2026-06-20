@@ -1,4 +1,5 @@
 import type {
+  DatabaseConnection,
   DatabaseProvider,
   FirestoreSettings,
   GeneralSettings,
@@ -63,3 +64,30 @@ export const SETTINGS_SECTIONS: Array<{ value: SettingsSection; label: string }>
   { value: 'general', label: 'General' },
   { value: 'databases', label: 'Databases' }
 ];
+
+/**
+ * Returns the display label for a database provider type.
+ *
+ * @param type - Database provider type.
+ */
+export function providerLabel(type: DatabaseProvider): string {
+  return PROVIDER_OPTIONS.find((option) => option.value === type)?.label ?? type;
+}
+
+/**
+ * Creates a blank database connection for the given provider type.
+ *
+ * @param type - Database provider type.
+ */
+export function createBlankConnection(type: DatabaseProvider): DatabaseConnection {
+  switch (type) {
+    case 'sqlite':
+      return { id: '', name: '', type: 'sqlite', settings: { ...DEFAULT_SQLITE_SETTINGS } };
+    case 'firestore':
+      return { id: '', name: '', type: 'firestore', settings: { ...DEFAULT_FIRESTORE_SETTINGS } };
+    case 'mysql':
+      return { id: '', name: '', type: 'mysql', settings: { ...DEFAULT_MYSQL_SETTINGS } };
+    case 'postgres':
+      return { id: '', name: '', type: 'postgres', settings: { ...DEFAULT_POSTGRES_SETTINGS } };
+  }
+}

@@ -4,13 +4,7 @@ import { join } from 'path';
 import { FirestoreDatabase, MySqlDatabase, PostgresDatabase, SqliteDatabase } from '#/main/db';
 import type { IDatabase } from '#/main/db/IDatabase';
 import { registerIpcHandlers } from '#/main/ipc';
-import {
-  getDatabaseProvider,
-  getFirestoreSettings,
-  getMySqlSettings,
-  getPostgresSettings
-} from '#/main/settings/databaseSettings';
-import { getSqliteSettings } from '#/main/settings/sqliteSettings';
+import { getActiveDatabaseConnection, getSqliteFallbackSettings } from '#/main/settings/databaseSettings';
 import { buildMenu } from '#/main/menu';
 import type { ThemeSource } from '#/shared/types';
 
@@ -33,10 +27,11 @@ let closeReason: CloseReason | null = null;
  * @returns Initialized database instance.
  */
 async function createDatabase(): Promise<IDatabase> {
-  const provider = getDatabaseProvider();
-  if (provider === 'firestore') {
+  const connection = getActiveDatabaseConnection();
+
+  if (connection.type === 'firestore') {
     try {
-      const firestoreDb = new FirestoreDatabase(getFirestoreSettings());
+      const firestoreDb = new FirestoreDatabase(connection.settings);
       await firestoreDb.init();
       return firestoreDb;
     } catch (err) {
@@ -44,9 +39,9 @@ async function createDatabase(): Promise<IDatabase> {
     }
   }
 
-  if (provider === 'mysql') {
+  if (connection.type === 'mysql') {
     try {
-      const mysqlDb = new MySqlDatabase(getMySqlSettings());
+      const mysqlDb = new MySqlDatabase(connection.settings);
       await mysqlDb.init();
       return mysqlDb;
     } catch (err) {
@@ -54,9 +49,9 @@ async function createDatabase(): Promise<IDatabase> {
     }
   }
 
-  if (provider === 'postgres') {
+  if (connection.type === 'postgres') {
     try {
-      const postgresDb = new PostgresDatabase(getPostgresSettings());
+      const postgresDb = new PostgresDatabase(connection.settings);
       await postgresDb.init();
       return postgresDb;
     } catch (err) {
@@ -64,8 +59,22 @@ async function createDatabase(): Promise<IDatabase> {
     }
   }
 
+  if (connection.type === 'sqlite') {
+    try {
+      const sqliteDb = new SqliteDatabase(app.getPath('userData'), connection.settings);
+      await sqliteDb.init();
+      return sqliteDb;
+    } catch (err) {
+      throw new Error(`SQLite init failed: ${err instanceof Error ? err.message : String(err)}`, {
+        cause: err
+      });
+    }
+  }
+
+  const sqliteSettings = getSqliteFallbackSettings();
+
   try {
-    const sqliteDb = new SqliteDatabase(app.getPath('userData'), getSqliteSettings());
+    const sqliteDb = new SqliteDatabase(app.getPath('userData'), sqliteSettings);
     await sqliteDb.init();
     return sqliteDb;
   } catch (err) {

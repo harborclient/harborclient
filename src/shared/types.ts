@@ -722,6 +722,30 @@ export interface SqliteSettings {
 }
 
 /**
+ * Shared fields for a named database connection.
+ */
+export interface DatabaseConnectionBase {
+  /**
+   * Unique connection identifier.
+   */
+  id: string;
+
+  /**
+   * User-defined display name.
+   */
+  name: string;
+}
+
+/**
+ * A named database connection with type-specific settings.
+ */
+export type DatabaseConnection =
+  | (DatabaseConnectionBase & { type: 'sqlite'; settings: SqliteSettings })
+  | (DatabaseConnectionBase & { type: 'firestore'; settings: FirestoreSettings })
+  | (DatabaseConnectionBase & { type: 'mysql'; settings: MySqlSettings })
+  | (DatabaseConnectionBase & { type: 'postgres'; settings: PostgresSettings });
+
+/**
  * Menu action identifiers sent from the main process menu.
  */
 export type MenuActionId =
@@ -923,64 +947,37 @@ export interface Api {
   setGeneralSettings: (settings: GeneralSettings) => Promise<void>;
 
   /**
-   * Returns persisted SQLite path and legacy migration settings.
+   * Lists all configured database connections.
    */
-  getSqliteSettings: () => Promise<SqliteSettings>;
+  listDatabaseConnections: () => Promise<DatabaseConnection[]>;
 
   /**
-   * Persists SQLite path and legacy migration settings (applied on restart).
+   * Creates or updates a database connection.
    *
-   * @param settings - SQLite configuration to store.
+   * @param conn - Connection to persist; empty id inserts a new connection.
+   * @returns Updated list of all connections.
    */
-  setSqliteSettings: (settings: SqliteSettings) => Promise<void>;
+  saveDatabaseConnection: (conn: DatabaseConnection) => Promise<DatabaseConnection[]>;
 
   /**
-   * Returns the persisted database provider selection.
-   */
-  getDatabaseProvider: () => Promise<DatabaseProvider>;
-
-  /**
-   * Persists the database provider selection (applied on restart).
+   * Deletes a database connection by id.
    *
-   * @param provider - Provider to use on next launch.
+   * @param id - Connection id to remove.
+   * @returns Updated list of all connections.
    */
-  setDatabaseProvider: (provider: DatabaseProvider) => Promise<void>;
+  deleteDatabaseConnection: (id: string) => Promise<DatabaseConnection[]>;
 
   /**
-   * Returns persisted Firestore connection settings.
+   * Returns the id of the active database connection.
    */
-  getFirestoreSettings: () => Promise<FirestoreSettings>;
+  getActiveDatabaseId: () => Promise<string>;
 
   /**
-   * Persists Firestore connection settings (applied on restart).
+   * Sets the active database connection (applied on restart).
    *
-   * @param settings - Firestore configuration to store.
+   * @param id - Connection id to activate.
    */
-  setFirestoreSettings: (settings: FirestoreSettings) => Promise<void>;
-
-  /**
-   * Returns persisted MySQL connection settings.
-   */
-  getMySqlSettings: () => Promise<MySqlSettings>;
-
-  /**
-   * Persists MySQL connection settings (applied on restart).
-   *
-   * @param settings - MySQL configuration to store.
-   */
-  setMySqlSettings: (settings: MySqlSettings) => Promise<void>;
-
-  /**
-   * Returns persisted PostgreSQL connection settings.
-   */
-  getPostgresSettings: () => Promise<PostgresSettings>;
-
-  /**
-   * Persists PostgreSQL connection settings (applied on restart).
-   *
-   * @param settings - PostgreSQL configuration to store.
-   */
-  setPostgresSettings: (settings: PostgresSettings) => Promise<void>;
+  setActiveDatabaseId: (id: string) => Promise<void>;
 
   /**
    * Returns the persisted request editor tab for a storage key.
