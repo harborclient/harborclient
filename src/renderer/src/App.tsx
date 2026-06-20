@@ -50,7 +50,9 @@ function AppShell(): JSX.Element {
   const [showSidebar, setShowSidebar] = useState(true);
   const [appVersion, setAppVersion] = useState('');
 
-  /** Ref to store.tabs to avoid unnecessary re-renders. */
+  /**
+   * Ref to store.tabs to avoid unnecessary re-renders.
+   */
   const tabsRef = useRef(store.tabs);
   useEffect(() => {
     tabsRef.current = store.tabs;
@@ -59,7 +61,7 @@ function AppShell(): JSX.Element {
   const activeCollectionId = store.draft.collection_id ?? store.selectedCollectionId;
 
   /**
-   * Opens the active collection's settings to edit variables. 
+   * Opens the active collection's settings to edit variables.
    */
   const handleEditVariables = useCallback((): void => {
     if (activeCollectionId == null) return;

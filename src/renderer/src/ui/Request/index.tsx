@@ -1,8 +1,9 @@
-import { useMemo, useState, type JSX } from 'react';
+import { useMemo, useRef, useState, type JSX } from 'react';
 import type { Variable } from '#/shared/types';
 import { isTabDirty } from '#/renderer/src/store/drafts';
 import { useStore } from '#/renderer/src/store/StoreContext';
-import { field, primaryButton, secondaryButton } from '#/renderer/src/ui/shared/classes';
+import { ResizeHandle, useResizable } from '#/renderer/src/components/Resizable';
+import { primaryButton, secondaryButton } from '#/renderer/src/ui/shared/classes';
 import { RequestEditor } from './RequestEditor';
 import { ResponseViewer } from './ResponseViewer';
 import { TabBar } from './TabBar';
@@ -41,6 +42,15 @@ function mergeVariables(collectionVars: Variable[], envVars: Variable[]): Variab
 export function Request({ onEditVariables }: Props): JSX.Element {
   const store = useStore();
   const [closeTabPrompt, setCloseTabPrompt] = useState<CloseTabPrompt | null>(null);
+  const splitRef = useRef<HTMLDivElement>(null);
+  const { size: editorHeight, onResizeStart } = useResizable({
+    axis: 'y',
+    direction: 1,
+    defaultSize: 340,
+    minSize: 160,
+    getMaxSize: () => (splitRef.current?.parentElement?.clientHeight ?? 600) - 160,
+    storageKey: 'hc.requestEditorHeight'
+  });
 
   const activeCollectionId = store.draft.collection_id ?? store.selectedCollectionId;
   const activeCollection =
@@ -53,8 +63,7 @@ export function Request({ onEditVariables }: Props): JSX.Element {
       : undefined;
 
   const activeVariables = useMemo(
-    () =>
-      mergeVariables(activeCollection?.variables ?? [], activeEnvironment?.variables ?? []),
+    () => mergeVariables(activeCollection?.variables ?? [], activeEnvironment?.variables ?? []),
     [activeCollection, activeEnvironment]
   );
   const activeCollectionName = activeCollection?.name;
@@ -83,15 +92,22 @@ export function Request({ onEditVariables }: Props): JSX.Element {
         onNew={store.newRequest}
         onEnvironmentChange={store.setActiveEnvironmentId}
       />
-      <RequestEditor
-        key={`editor-${store.activeTabId}`}
-        draft={store.draft}
-        onChange={store.setDraft}
-        onSend={() => void store.sendRequest()}
-        sending={store.sending}
-        variables={activeVariables}
-        collectionName={activeCollectionName}
-        onEditVariables={onEditVariables}
+      <div ref={splitRef} style={{ height: editorHeight }} className="shrink-0 overflow-auto">
+        <RequestEditor
+          key={`editor-${store.activeTabId}`}
+          draft={store.draft}
+          onChange={store.setDraft}
+          onSend={() => void store.sendRequest()}
+          sending={store.sending}
+          variables={activeVariables}
+          collectionName={activeCollectionName}
+          onEditVariables={onEditVariables}
+        />
+      </div>
+      <ResizeHandle
+        orientation="horizontal"
+        onResizeStart={onResizeStart}
+        ariaLabel="Resize request editor"
       />
       <ResponseViewer
         key={`response-${store.activeTabId}`}

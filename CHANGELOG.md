@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Enhance UI components with resizable features and code cleanup. (`c735424`)
 - Refactor application structure and enhance request handling UI. (`a7b8bff`)
 - Refactor UI component imports and remove unused classes. (`af56f8a`)
 - Refactor app dependency installation script for improved compatibility and error handling. (`0b77c39`)

@@ -1,13 +1,7 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type JSX,
-  type MouseEvent as ReactMouseEvent
-} from 'react';
+import { useCallback, useRef, useState, type JSX } from 'react';
 import type { ConsoleEntry } from '#/renderer/src/store';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
+import { ResizeHandle, useResizable } from '#/renderer/src/components/Resizable';
 import { faXmark } from '#/renderer/src/fontawesome';
 import { secondaryButton } from '#/renderer/src/ui/shared/classes';
 import { ConsoleEntryRow } from './ConsoleEntryRow';
@@ -39,55 +33,32 @@ interface Props {
  * Slide-up, resizable console panel showing a global request log.
  */
 export function ConsolePanel({ entries, open, onClose, onClear }: Props): JSX.Element {
-  const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const resizingRef = useRef(false);
-  const startYRef = useRef(0);
-  const startHeightRef = useRef(DEFAULT_HEIGHT);
-
-  const getMaxHeight = useCallback((): number => {
-    const container = containerRef.current?.parentElement;
-    if (!container) return window.innerHeight * 0.8;
-    return container.clientHeight - 40;
-  }, []);
-
-  const handleResizeStart = useCallback(
-    (event: ReactMouseEvent) => {
-      event.preventDefault();
-      resizingRef.current = true;
-      startYRef.current = event.clientY;
-      startHeightRef.current = height;
+  const { size: height, onResizeStart } = useResizable({
+    axis: 'y',
+    direction: -1,
+    defaultSize: DEFAULT_HEIGHT,
+    minSize: MIN_HEIGHT,
+    getMaxSize: () => {
+      const container = containerRef.current?.parentElement;
+      if (!container) return window.innerHeight * 0.8;
+      return container.clientHeight - 40;
     },
-    [height]
-  );
+    storageKey: 'hc.consoleHeight'
+  });
 
+  /**
+   * Closes the console panel.
+   */
   const handleClose = useCallback(() => {
     setExpandedId(null);
     onClose();
   }, [onClose]);
 
-  useEffect(() => {
-    const handleMouseMove = (event: MouseEvent): void => {
-      if (!resizingRef.current) return;
-      const delta = startYRef.current - event.clientY;
-      const maxHeight = getMaxHeight();
-      const nextHeight = Math.min(maxHeight, Math.max(MIN_HEIGHT, startHeightRef.current + delta));
-      setHeight(nextHeight);
-    };
-
-    const handleMouseUp = (): void => {
-      resizingRef.current = false;
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [getMaxHeight]);
-
+  /**
+   * Toggles the expanded state of a console entry.
+   */
   const toggleExpanded = (id: string): void => {
     setExpandedId((current) => (current === id ? null : id));
   };
@@ -101,15 +72,11 @@ export function ConsolePanel({ entries, open, onClose, onClear }: Props): JSX.El
 
   return (
     <div ref={containerRef} className={panelClassName} style={{ height }} aria-hidden={!open}>
-      <div
-        className="flex h-1.5 shrink-0 cursor-row-resize items-center justify-center border-b border-separator bg-control hover:bg-selection/60"
-        onMouseDown={handleResizeStart}
-        role="separator"
-        aria-orientation="horizontal"
-        aria-label="Resize console panel"
-      >
-        <div className="h-0.5 w-8 rounded-full bg-muted/50" />
-      </div>
+      <ResizeHandle
+        orientation="horizontal"
+        onResizeStart={onResizeStart}
+        ariaLabel="Resize console panel"
+      />
 
       <div className="flex shrink-0 items-center justify-between border-b border-separator px-3 py-2">
         <div className="flex items-center gap-2 text-[13px] font-medium text-text">

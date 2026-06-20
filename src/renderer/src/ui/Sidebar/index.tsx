@@ -1,6 +1,7 @@
 import { useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { SavedRequest } from '#/shared/types';
+import { ResizeHandle, useResizable } from '#/renderer/src/components/Resizable';
 import { useStore } from '#/renderer/src/store/StoreContext';
 import { field, primaryButton, secondaryButton } from '#/renderer/src/ui/shared/classes';
 import { Collections } from './Collections';
@@ -43,6 +44,14 @@ export function Sidebar({
   const [environmentsExpanded, setEnvironmentsExpanded] = useState(true);
   const [showEnvironmentModal, setShowEnvironmentModal] = useState(false);
   const [newEnvironmentName, setNewEnvironmentName] = useState('');
+  const { size: width, onResizeStart } = useResizable({
+    axis: 'x',
+    direction: 1,
+    defaultSize: 400,
+    minSize: 240,
+    getMaxSize: () => 640,
+    storageKey: 'hc.sidebarWidth'
+  });
 
   const closeEnvironmentModal = (): void => {
     setShowEnvironmentModal(false);
@@ -66,7 +75,7 @@ export function Sidebar({
 
   return (
     <>
-      <aside className="flex w-100 shrink-0 flex-col border-r border-separator bg-sidebar">
+      <aside className="flex shrink-0 flex-col bg-sidebar" style={{ width }}>
         <div className="flex-1 overflow-y-auto px-2 pb-3">
           <SidebarSection
             title="Collections"
@@ -122,6 +131,11 @@ export function Sidebar({
           </SidebarSection>
         </div>
       </aside>
+      <ResizeHandle
+        orientation="vertical"
+        onResizeStart={onResizeStart}
+        ariaLabel="Resize sidebar"
+      />
 
       {showEnvironmentModal && (
         <div

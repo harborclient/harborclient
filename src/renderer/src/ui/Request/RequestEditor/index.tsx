@@ -72,7 +72,7 @@ export function RequestEditor({
   const showBody = draft.method !== 'GET' && draft.method !== 'HEAD';
 
   return (
-    <div className="border-b border-separator p-3">
+    <div className="p-3">
       <RequestName
         name={draft.name}
         collectionName={collectionName}
