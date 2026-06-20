@@ -281,9 +281,9 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
       const resolvedUrl = substituteWithMap(scriptRequest.url, runtimeVars);
       const collectionHeaders = collection
         ? (collection.headers ?? []).map((header) => ({
-          ...header,
-          value: substituteWithMap(header.value, runtimeVars)
-        }))
+            ...header,
+            value: substituteWithMap(header.value, runtimeVars)
+          }))
         : [];
       const draftHeaders = scriptRequest.headers.map((header) => ({
         ...header,

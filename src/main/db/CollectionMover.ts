@@ -41,8 +41,8 @@ export class MoveCoordinator {
       const sourceBackend = this.internals.getBackend(entry.connectionId);
       const record = sourceBackend
         ? (await sourceBackend.db.listCollections()).find(
-          (item) => item.id === entry.providerCollectionId
-        )
+            (item) => item.id === entry.providerCollectionId
+          )
         : undefined;
       return this.internals.buildCollection(entry, record);
     }

@@ -231,15 +231,15 @@ function RequestRow({
   const moveItems =
     folders.length > 0
       ? [
-        {
-          label: 'Move to collection root',
-          onSelect: () => onMoveRequest(req.id, null)
-        },
-        ...folders.map((folder) => ({
-          label: `Move to ${folder.name}`,
-          onSelect: () => onMoveRequest(req.id, folder.id)
-        }))
-      ]
+          {
+            label: 'Move to collection root',
+            onSelect: () => onMoveRequest(req.id, null)
+          },
+          ...folders.map((folder) => ({
+            label: `Move to ${folder.name}`,
+            onSelect: () => onMoveRequest(req.id, folder.id)
+          }))
+        ]
       : [];
 
   return (
@@ -564,7 +564,8 @@ export function Collections({
             const expanded = expandedCollectionIds.has(collection.id);
             const selected = selectedCollectionId === collection.id;
             const loaded =
-              requestsByCollection[collection.id] != null && foldersByCollection[collection.id] != null;
+              requestsByCollection[collection.id] != null &&
+              foldersByCollection[collection.id] != null;
             const collectionConnectionId = collection.connectionId ?? primaryConnectionId;
             const connectionName = connectionNamesById[collectionConnectionId];
             const connectionType = connectionTypesById[collectionConnectionId];
@@ -627,11 +628,11 @@ export function Collections({
                       },
                       ...(canInvite
                         ? [
-                          {
-                            label: 'Invite',
-                            onSelect: () => onInviteCollection(collection.id, collection.name)
-                          }
-                        ]
+                            {
+                              label: 'Invite',
+                              onSelect: () => onInviteCollection(collection.id, collection.name)
+                            }
+                          ]
                         : []),
                       {
                         label: 'Delete',
@@ -665,7 +666,9 @@ export function Collections({
                         className={
                           [
                             rootDropHighlight,
-                            isDraggingRequestHere && rootRequests.length === 0 ? 'min-h-8' : undefined
+                            isDraggingRequestHere && rootRequests.length === 0
+                              ? 'min-h-8'
+                              : undefined
                           ]
                             .filter(Boolean)
                             .join(' ') || undefined
@@ -679,7 +682,10 @@ export function Collections({
                         {isDraggingRequestHere && rootRequests.length === 0 && (
                           <div className="px-2 py-1.5 text-[12px] text-muted">Collection root</div>
                         )}
-                        <SortableContext items={rootRequestIds} strategy={verticalListSortingStrategy}>
+                        <SortableContext
+                          items={rootRequestIds}
+                          strategy={verticalListSortingStrategy}
+                        >
                           <div className="flex flex-col gap-0.5">
                             {rootRequests.map((req) => (
                               <RequestRow
@@ -714,7 +720,9 @@ export function Collections({
                         {folders.map((folder) => {
                           const folderExpanded = expandedFolderIds.has(folder.id);
                           const folderRequests = getFolderRequests(collection.id, folder.id);
-                          const folderRequestIds = folderRequests.map((req) => requestDragId(req.id));
+                          const folderRequestIds = folderRequests.map((req) =>
+                            requestDragId(req.id)
+                          );
                           const folderHighlighted =
                             isRequestDragInCollection && dropTargetFolderId === folder.id;
 
@@ -724,11 +732,16 @@ export function Collections({
                               className={folderHighlighted ? dropTargetHighlightClass : undefined}
                             >
                               <DropZone id={dropFolderId(folder.id)}>
-                                <SortableRow id={folderDragId(folder.id)} className={sourceRow(false)}>
+                                <SortableRow
+                                  id={folderDragId(folder.id)}
+                                  className={sourceRow(false)}
+                                >
                                   <button
                                     className="inline-flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent p-0 text-[10px] text-muted hover:text-text app-no-drag"
                                     onClick={() => toggleFolder(folder.id)}
-                                    aria-label={folderExpanded ? 'Collapse folder' : 'Expand folder'}
+                                    aria-label={
+                                      folderExpanded ? 'Collapse folder' : 'Expand folder'
+                                    }
                                   >
                                     {folderExpanded ? '▼' : '▶'}
                                   </button>
@@ -752,7 +765,8 @@ export function Collections({
                                       },
                                       {
                                         label: 'Rename',
-                                        onSelect: () => void onRenameFolder(folder.id, collection.id)
+                                        onSelect: () =>
+                                          void onRenameFolder(folder.id, collection.id)
                                       },
                                       {
                                         label: 'Delete',
@@ -802,7 +816,9 @@ export function Collections({
                                     ))}
                                   </SortableContext>
                                   {folderRequests.length === 0 && (
-                                    <div className="px-2 py-1 text-[12px] text-muted">Empty folder</div>
+                                    <div className="px-2 py-1 text-[12px] text-muted">
+                                      Empty folder
+                                    </div>
                                   )}
                                 </div>
                               )}
@@ -814,8 +830,8 @@ export function Collections({
 
                     <DragOverlay>
                       {dragCollectionId === collection.id &&
-                        activeDragKind === 'request' &&
-                        activeDragRequest ? (
+                      activeDragKind === 'request' &&
+                      activeDragRequest ? (
                         <div className="flex items-center gap-1.5 rounded border border-separator bg-surface px-2 py-1 shadow-md">
                           <span
                             className={`shrink-0 rounded px-1 py-px text-[10px] font-semibold ${METHOD_CLASSES[activeDragRequest.method.toLowerCase()] ?? 'bg-info text-white'}`}

@@ -8,7 +8,7 @@ import type { Display } from 'electron';
 // the imports above, so the static import already resolves to this stub.
 vi.mock('electron', () => ({
   app: { getPath: () => '' },
-  BrowserWindow: class { },
+  BrowserWindow: class {},
   screen: { getAllDisplays: () => [] }
 }));
 

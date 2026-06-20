@@ -149,7 +149,9 @@ export class LocalRegistry {
     const rows = this.getDb()
       .prepare('SELECT id FROM collection_registry ORDER BY name ASC, id ASC')
       .all() as Array<{ id: number }>;
-    const update = this.getDb().prepare('UPDATE collection_registry SET sort_order = ? WHERE id = ?');
+    const update = this.getDb().prepare(
+      'UPDATE collection_registry SET sort_order = ? WHERE id = ?'
+    );
     const backfill = this.getDb().transaction((entries: Array<{ id: number }>) => {
       entries.forEach((entry, index) => {
         update.run(index, entry.id);
@@ -195,7 +197,9 @@ export class LocalRegistry {
    */
   reorderRegistry(orderedIds: number[]): void {
     const reorder = this.getDb().transaction((ids: number[]) => {
-      const stmt = this.getDb().prepare('UPDATE collection_registry SET sort_order = ? WHERE id = ?');
+      const stmt = this.getDb().prepare(
+        'UPDATE collection_registry SET sort_order = ? WHERE id = ?'
+      );
       ids.forEach((id, index) => {
         stmt.run(index, id);
       });
