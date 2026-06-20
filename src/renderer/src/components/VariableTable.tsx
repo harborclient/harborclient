@@ -136,6 +136,3 @@ export function VariableTable({ variables, onChange, description }: Props): JSX.
     </div>
   );
 }
-
-export const cleanVariables = (variables: Variable[]): Variable[] =>
-  variables.filter((v) => v.key.trim() || v.value.trim() || v.defaultValue.trim());

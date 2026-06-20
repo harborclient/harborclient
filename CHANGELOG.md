@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Refactor error handling and code formatting for improved readability. (`128884f`)
+
 ## 1.3.0 - 2026-06-20
 
 - Update documentation to enhance user guidance and navigation. (`1eef195`)

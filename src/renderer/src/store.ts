@@ -272,8 +272,8 @@ export function useAppStore(): AppStore {
     {}
   );
   const [selectedCollectionId, setSelectedCollectionId] = useState<number | null>(null);
-  const [activeEnvironmentId, setActiveEnvironmentIdState] = useState<number | null>(
-    () => loadActiveEnvironmentId()
+  const [activeEnvironmentId, setActiveEnvironmentIdState] = useState<number | null>(() =>
+    loadActiveEnvironmentId()
   );
   const [tabs, setTabs] = useState<RequestTab[]>(() => getInitialTabState().tabs);
   const [activeTabId, setActiveTabId] = useState(() => getInitialTabState().activeTabId);
@@ -369,10 +369,7 @@ export function useAppStore(): AppStore {
     window.api.listEnvironments().then((data) => {
       if (cancelled) return;
       setEnvironments(data);
-      if (
-        activeEnvironmentId != null &&
-        !data.some((env) => env.id === activeEnvironmentId)
-      ) {
+      if (activeEnvironmentId != null && !data.some((env) => env.id === activeEnvironmentId)) {
         setActiveEnvironmentId(null);
       }
     });
@@ -624,8 +621,7 @@ export function useAppStore(): AppStore {
     }
 
     const { draft: currentDraft } = activeTab;
-    const shouldUpdate =
-      currentDraft.id != null && currentDraft.collection_id === targetId;
+    const shouldUpdate = currentDraft.id != null && currentDraft.collection_id === targetId;
     const saved = await window.api.saveRequest({
       id: shouldUpdate ? currentDraft.id : undefined,
       collection_id: targetId,

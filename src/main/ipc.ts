@@ -102,10 +102,8 @@ export function registerIpcHandlers(db: IDatabase): void {
 
   ipcMain.handle('environments:create', (_event, name: string) => db.createEnvironment(name));
 
-  ipcMain.handle(
-    'environments:update',
-    (_event, id: number, name: string, variables: Variable[]) =>
-      db.updateEnvironment(id, name, variables)
+  ipcMain.handle('environments:update', (_event, id: number, name: string, variables: Variable[]) =>
+    db.updateEnvironment(id, name, variables)
   );
 
   ipcMain.handle('environments:delete', (_event, id: number) => db.deleteEnvironment(id));

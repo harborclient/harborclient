@@ -44,10 +44,9 @@ async function createDatabase(): Promise<IDatabase> {
     await sqliteDb.init();
     return sqliteDb;
   } catch (err) {
-    throw new Error(
-      `SQLite init failed: ${err instanceof Error ? err.message : String(err)}`,
-      { cause: err },
-    );
+    throw new Error(`SQLite init failed: ${err instanceof Error ? err.message : String(err)}`, {
+      cause: err
+    });
   }
 }
 
@@ -204,7 +203,7 @@ app.whenReady().then(async () => {
     console.error('Failed to initialize application:', err);
     dialog.showErrorBox(
       'Harbor Client failed to start',
-      err instanceof Error ? err.message : String(err),
+      err instanceof Error ? err.message : String(err)
     );
     app.quit();
     return;

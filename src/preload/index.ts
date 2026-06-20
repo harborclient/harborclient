@@ -121,11 +121,7 @@ function createEnvironment(name: string): Promise<Environment> {
  * @param variables - Environment-scoped variables.
  * @returns The updated environment.
  */
-function updateEnvironment(
-  id: number,
-  name: string,
-  variables: Variable[]
-): Promise<Environment> {
+function updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment> {
   return ipcRenderer.invoke('environments:update', id, name, variables);
 }
 

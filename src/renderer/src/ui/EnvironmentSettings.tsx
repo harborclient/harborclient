@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type JSX } from 'react';
 import type { Environment, Variable } from '#/shared/types';
-import { VariableTable, cleanVariables } from '#/renderer/src/components/VariableTable';
+import { VariableTable } from '#/renderer/src/components/VariableTable';
+import { cleanVariables } from '#/renderer/src/components/variableUtils';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { faXmark } from '#/renderer/src/fontawesome';
 import { field, iconButton, primaryButton, secondaryButton } from './classes';

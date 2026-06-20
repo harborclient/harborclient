@@ -2,17 +2,13 @@ import { useEffect, useMemo, useState, type JSX } from 'react';
 import type { Collection, KeyValue, Variable } from '#/shared/types';
 import { CodeEditor } from '#/renderer/src/components/CodeEditor';
 import { KeyValueEditor } from '#/renderer/src/components/KeyValueEditor';
-import { VariableTable, cleanVariables } from '#/renderer/src/components/VariableTable';
+import { VariableTable } from '#/renderer/src/components/VariableTable';
+import { cleanVariables } from '#/renderer/src/components/variableUtils';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { SegmentedTabs } from '#/renderer/src/components/SegmentedTabs';
 import { emptyKeyValue } from '#/renderer/src/store/drafts';
 import { faXmark } from '#/renderer/src/fontawesome';
-import {
-  field,
-  iconButton,
-  primaryButton,
-  secondaryButton
-} from './classes';
+import { field, iconButton, primaryButton, secondaryButton } from './classes';
 
 type SettingsTab = 'general' | 'variables' | 'headers' | 'pre' | 'post';
 

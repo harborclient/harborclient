@@ -104,9 +104,7 @@ export function GeneralSection(): JSX.Element {
             className={field}
             value={databaseProvider}
             disabled={providerLoading || providerSaving}
-            onChange={(event) =>
-              void handleProviderChange(event.target.value as DatabaseProvider)
-            }
+            onChange={(event) => void handleProviderChange(event.target.value as DatabaseProvider)}
           >
             {PROVIDER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
