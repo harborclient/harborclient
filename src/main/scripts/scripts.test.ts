@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 describe('runScript', () => {
   it('returns passthrough for empty script', async () => {
-    const { runScript } = await import('#/main/scripts');
+    const { runScript } = await import('#/main/scripts/scripts');
     const request = {
       method: 'GET' as const,
       url: 'https://example.com',
@@ -28,7 +28,7 @@ describe('runScript', () => {
   });
 
   it('mutates request url and sets variables in pre script', async () => {
-    const { runScript } = await import('#/main/scripts');
+    const { runScript } = await import('#/main/scripts/scripts');
     const result = await runScript({
       phase: 'pre',
       script: `
@@ -54,7 +54,7 @@ describe('runScript', () => {
   });
 
   it('runs post script tests against response', async () => {
-    const { runScript } = await import('#/main/scripts');
+    const { runScript } = await import('#/main/scripts/scripts');
     const result = await runScript({
       phase: 'post',
       script: `
@@ -92,7 +92,7 @@ describe('runScript', () => {
   });
 
   it('returns scriptError when sandbox script throws', async () => {
-    const { runScript } = await import('#/main/scripts');
+    const { runScript } = await import('#/main/scripts/scripts');
     const request = {
       method: 'GET' as const,
       url: 'https://example.com',
@@ -114,7 +114,7 @@ describe('runScript', () => {
   });
 
   it('sanitizes filesystem paths from script errors', async () => {
-    const { runScript } = await import('#/main/scripts');
+    const { runScript } = await import('#/main/scripts/scripts');
     const request = {
       method: 'GET' as const,
       url: 'https://example.com',

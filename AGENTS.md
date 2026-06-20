@@ -39,7 +39,7 @@ generated docs nav — use `pnpm docs:build:nav`.
 ## Architecture
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for project layout, the IPC contract
-(`src/shared/types.ts` → `src/preload/index.ts` → `src/main/ipc.ts`), code
+(`src/shared/types.ts` → `src/preload/index.ts` → `src/main/ipc/ipc.ts`), code
 style, and path aliases.
 
 ## Documentation

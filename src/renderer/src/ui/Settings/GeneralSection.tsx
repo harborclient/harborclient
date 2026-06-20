@@ -124,7 +124,9 @@ export function GeneralSection(): JSX.Element {
               handleGeneralFieldChange('maxResponseSizeMb', Number(event.target.value))
             }
           />
-          <p className="m-0 text-[12px] text-muted">Set to 0 to disable the limit.</p>
+          <p className="m-0 text-[12px] text-muted">
+            Set to 0 for no configurable limit (512 MB hard cap still applies).
+          </p>
         </label>
 
         <label className="flex items-center gap-2">

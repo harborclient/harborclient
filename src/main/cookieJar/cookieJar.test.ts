@@ -8,7 +8,7 @@ import { describeSqlite } from '#/test/nativeModules';
 
 let tempDir: string;
 let registry: LocalRegistry;
-let cookieJar: typeof import('#/main/cookieJar');
+let cookieJar: typeof import('#/main/cookieJar/cookieJar');
 
 /**
  * Sets up an isolated local registry for cookie jar tests.
@@ -20,7 +20,7 @@ async function setupCookieJarTest(): Promise<void> {
   await registry.init();
   const registryInstance = await import('#/main/db/localRegistryInstance');
   registryInstance.setLocalRegistryForTesting(registry);
-  cookieJar = await import('#/main/cookieJar');
+  cookieJar = await import('#/main/cookieJar/cookieJar');
 }
 
 describeSqlite('hostFromUrl', () => {

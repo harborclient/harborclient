@@ -43,10 +43,18 @@ import type {
   Variable
 } from '#/shared/types';
 
+/** Maximum writes per Firestore batch commit. */
+const WRITE_BATCH_LIMIT = 500;
+
+/** IDs reserved per counter transaction when dispensing via {@link FirestoreDatabase.nextId}. */
+const ID_BLOCK_SIZE = 50;
+
 export class FirestoreDatabase implements IDatabase {
   readonly #settings: FirestoreSettings;
   #app: FirebaseApp | null = null;
   #firestore: Firestore | null = null;
+  /** Unused IDs from the most recent block allocation, keyed by counter name. */
+  readonly #idBlocks = new Map<string, number[]>();
 
   /**
    * @param settings - Firebase connection and auth settings.
@@ -66,21 +74,67 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Allocates the next numeric ID for a named counter.
+   * Allocates a contiguous block of numeric IDs for a named counter.
    *
    * @param counterName - Counter document name.
+   * @param count - Number of IDs to allocate.
+   * @returns Allocated IDs in ascending order.
    */
-  private async nextId(counterName: string): Promise<number> {
+  private async allocateIds(counterName: string, count: number): Promise<number[]> {
+    if (count <= 0) return [];
+
+    // Bulk allocation must not reuse IDs still cached for single nextId calls.
+    this.#idBlocks.delete(counterName);
+
     const firestore = this.getFirestore();
     const counterRef = doc(firestore, 'counters', counterName);
 
     return runTransaction(firestore, async (transaction) => {
       const snap = await transaction.get(counterRef);
       const current = snap.exists() ? Number(snap.data().value ?? 0) : 0;
-      const next = current + 1;
+      const next = current + count;
       transaction.set(counterRef, { value: next });
-      return next;
+      return Array.from({ length: count }, (_, index) => current + index + 1);
     });
+  }
+
+  /**
+   * Allocates the next numeric ID for a named counter.
+   *
+   * Uses in-memory hi/lo blocks so routine inserts share one Firestore transaction
+   * per {@link ID_BLOCK_SIZE} IDs instead of one transaction per row.
+   *
+   * @param counterName - Counter document name.
+   */
+  private async nextId(counterName: string): Promise<number> {
+    const cached = this.#idBlocks.get(counterName);
+    if (cached != null && cached.length > 0) {
+      return cached.shift() as number;
+    }
+
+    const ids = await this.allocateIds(counterName, ID_BLOCK_SIZE);
+    const [next, ...rest] = ids;
+    this.#idBlocks.set(counterName, rest);
+    return next;
+  }
+
+  /**
+   * Commits document writes in Firestore-sized batches.
+   *
+   * @param firestore - Active Firestore handle.
+   * @param writes - Document refs and payloads to set.
+   */
+  private async commitBatchedSets(
+    firestore: Firestore,
+    writes: Array<{ ref: ReturnType<typeof doc>; data: Record<string, unknown> }>
+  ): Promise<void> {
+    for (let offset = 0; offset < writes.length; offset += WRITE_BATCH_LIMIT) {
+      const batch = writeBatch(firestore);
+      for (const write of writes.slice(offset, offset + WRITE_BATCH_LIMIT)) {
+        batch.set(write.ref, write.data);
+      }
+      await batch.commit();
+    }
   }
 
   async init(): Promise<void> {
@@ -537,6 +591,7 @@ export class FirestoreDatabase implements IDatabase {
     const id = await this.nextId('collections');
     const now = new Date().toISOString();
     const firestore = this.getFirestore();
+    const folders = exportData.folders ?? [];
 
     const collectionData = {
       id,
@@ -548,46 +603,59 @@ export class FirestoreDatabase implements IDatabase {
       created_at: now
     };
 
-    await setDoc(doc(firestore, 'collections', String(id)), collectionData);
+    const folderIds = await this.allocateIds('folders', folders.length);
+    const requestIds = await this.allocateIds('requests', exportData.requests.length);
 
     const folderIdByName = new Map<string, number>();
-    for (const folder of exportData.folders ?? []) {
-      const folderId = await this.nextId('folders');
-      await setDoc(doc(firestore, 'folders', String(folderId)), {
-        id: folderId,
-        collection_id: id,
-        name: folder.name,
-        sort_order: folder.sort_order,
-        created_at: now
-      });
-      folderIdByName.set(folder.name, folderId);
-    }
+    const writes: Array<{ ref: ReturnType<typeof doc>; data: Record<string, unknown> }> = [
+      { ref: doc(firestore, 'collections', String(id)), data: collectionData }
+    ];
 
-    for (const request of exportData.requests) {
-      const requestId = await this.nextId('requests');
+    folders.forEach((folder, index) => {
+      const folderId = folderIds[index];
+      folderIdByName.set(folder.name, folderId);
+      writes.push({
+        ref: doc(firestore, 'folders', String(folderId)),
+        data: {
+          id: folderId,
+          collection_id: id,
+          name: folder.name,
+          sort_order: folder.sort_order,
+          created_at: now
+        }
+      });
+    });
+
+    exportData.requests.forEach((request, index) => {
+      const requestId = requestIds[index];
       const folderName = request.folder_name ?? null;
       const folderId =
         folderName != null && folderName.trim() ? (folderIdByName.get(folderName) ?? null) : null;
 
-      await setDoc(doc(firestore, 'requests', String(requestId)), {
-        id: requestId,
-        collection_id: id,
-        folder_id: folderId,
-        name: request.name,
-        method: request.method,
-        url: request.url,
-        headers: request.headers,
-        params: request.params,
-        body: request.body,
-        body_type: request.body_type,
-        pre_request_script: request.pre_request_script,
-        post_request_script: request.post_request_script,
-        comment: request.comment,
-        sort_order: request.sort_order,
-        created_at: now,
-        updated_at: now
+      writes.push({
+        ref: doc(firestore, 'requests', String(requestId)),
+        data: {
+          id: requestId,
+          collection_id: id,
+          folder_id: folderId,
+          name: request.name,
+          method: request.method,
+          url: request.url,
+          headers: request.headers,
+          params: request.params,
+          body: request.body,
+          body_type: request.body_type,
+          pre_request_script: request.pre_request_script,
+          post_request_script: request.post_request_script,
+          comment: request.comment,
+          sort_order: request.sort_order,
+          created_at: now,
+          updated_at: now
+        }
       });
-    }
+    });
+
+    await this.commitBatchedSets(firestore, writes);
 
     return docToCollection(id, collectionData);
   }
@@ -604,6 +672,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   async close(): Promise<void> {
+    this.#idBlocks.clear();
     if (this.#firestore) {
       await terminate(this.#firestore);
       this.#firestore = null;

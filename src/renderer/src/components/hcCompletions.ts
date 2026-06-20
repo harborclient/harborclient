@@ -3,7 +3,7 @@ import type { ScriptPhase, Variable } from '#/shared/types';
 
 /**
  * Hand-maintained completion surface for the hc sandbox API.
- * Keep in sync with the bootstrap in src/main/scripts.ts.
+ * Keep in sync with the bootstrap in src/main/scripts/scripts.ts.
  */
 interface HcCompletionOption {
   label: string;

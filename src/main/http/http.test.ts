@@ -6,7 +6,14 @@ import type { SendRequestInput } from '#/shared/types';
 import { serializeFormParts } from '#/shared/formData';
 import { serializeUrlEncodedParts } from '#/shared/urlencoded';
 import { DEFAULT_GENERAL_SETTINGS } from '#/main/settings/generalSettings';
-import { buildHeaders, buildUrl, executeRequest, isValidRequestUrl } from '#/main/http';
+import {
+  buildHeaders,
+  buildUrl,
+  executeRequest,
+  isValidRequestUrl,
+  HARD_MAX_RESPONSE_SIZE_MB,
+  resolveMaxResponseSizeMb
+} from '#/main/http/http';
 
 describe('buildUrl', () => {
   it('returns trimmed URL when empty or whitespace', () => {
@@ -166,6 +173,35 @@ describe('buildHeaders', () => {
     expect(buildHeaders(merged, 'none')).toEqual({ Authorization: 'Bearer request' });
   });
 });
+
+describe('resolveMaxResponseSizeMb', () => {
+  it('returns the user limit when positive', () => {
+    expect(resolveMaxResponseSizeMb(50)).toBe(50);
+    expect(resolveMaxResponseSizeMb(1)).toBe(1);
+  });
+
+  it('returns the hard cap when the user limit is 0', () => {
+    expect(resolveMaxResponseSizeMb(0)).toBe(HARD_MAX_RESPONSE_SIZE_MB);
+  });
+});
+
+/**
+ * Builds a fetch Response backed by a ReadableStream of byte chunks.
+ *
+ * @param chunks - Ordered body chunks to enqueue before closing the stream.
+ */
+function createStreamResponse(chunks: Uint8Array[]): Response {
+  const stream = new ReadableStream({
+    start(controller) {
+      for (const chunk of chunks) {
+        controller.enqueue(chunk);
+      }
+      controller.close();
+    }
+  });
+
+  return new Response(stream, { status: 200, statusText: 'OK' });
+}
 
 describe('executeRequest', () => {
   const originalFetch = globalThis.fetch;
@@ -516,5 +552,62 @@ describe('executeRequest', () => {
 
     expect(secureInit.dispatcher).toBeUndefined();
     expect(insecureInit.dispatcher).toBeDefined();
+  });
+
+  it('returns body from a streaming response under the configured max size', async () => {
+    const payload = 'hello stream';
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(createStreamResponse([new TextEncoder().encode(payload)]));
+    globalThis.fetch = fetchMock;
+
+    const result = await executeRequest(baseInput, {
+      ...DEFAULT_GENERAL_SETTINGS,
+      maxResponseSizeMb: 1
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.body).toBe(payload);
+    expect(result.sizeBytes).toBe(new TextEncoder().encode(payload).length);
+  });
+
+  it('returns an error when a streaming response exceeds the configured max size', async () => {
+    const oneMb = 1024 * 1024;
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        createStreamResponse([new Uint8Array(oneMb).fill(0x61), new Uint8Array(oneMb).fill(0x62)])
+      );
+    globalThis.fetch = fetchMock;
+
+    const result = await executeRequest(baseInput, {
+      ...DEFAULT_GENERAL_SETTINGS,
+      maxResponseSizeMb: 1
+    });
+
+    expect(result).toMatchObject({
+      status: 0,
+      statusText: 'Error',
+      body: '',
+      sizeBytes: 0,
+      error: 'Response exceeded max size of 1 MB'
+    });
+  });
+
+  it('reads streaming responses when maxResponseSizeMb is 0', async () => {
+    const payload = 'unlimited-ish';
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(createStreamResponse([new TextEncoder().encode(payload)]));
+    globalThis.fetch = fetchMock;
+
+    const result = await executeRequest(baseInput, {
+      ...DEFAULT_GENERAL_SETTINGS,
+      maxResponseSizeMb: 0
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.body).toBe(payload);
+    expect(result.sizeBytes).toBe(new TextEncoder().encode(payload).length);
   });
 });

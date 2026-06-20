@@ -4,7 +4,7 @@ import { RoutingDatabase } from '#/main/db';
 import { initLocalRegistry } from '#/main/db/localRegistryInstance';
 import { createDatabaseInstance } from '#/main/db/createDatabaseInstance';
 import type { IDatabase } from '#/main/db/IDatabase';
-import { registerIpcHandlers } from '#/main/ipc';
+import { registerIpcHandlers } from '#/main/ipc/ipc';
 import {
   getActiveDatabaseId,
   getActiveDatabaseConnection,
@@ -19,7 +19,7 @@ import {
   restoreWindowPresentation,
   saveWindowState,
   trackWindowState
-} from '#/main/windowState';
+} from '#/main/window/windowState';
 import type { DatabaseConnection, ThemeSource } from '#/shared/types';
 
 const isDev = !app.isPackaged;

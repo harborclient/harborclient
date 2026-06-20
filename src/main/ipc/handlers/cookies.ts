@@ -1,4 +1,4 @@
-import { getCookiesForDomain, setCookiesForDomain } from '#/main/cookieJar';
+import { getCookiesForDomain, setCookiesForDomain } from '#/main/cookieJar/cookieJar';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 

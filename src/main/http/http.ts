@@ -16,6 +16,19 @@ import { DEFAULT_GENERAL_SETTINGS } from '#/main/settings/generalSettings';
 /** HTTP schemes allowed for outbound requests. */
 const ALLOWED_PROTOCOLS = new Set(['http:', 'https:']);
 
+/** Absolute ceiling when the user disables the configurable response size limit (0). */
+export const HARD_MAX_RESPONSE_SIZE_MB = 512;
+
+/**
+ * Resolves the effective response size limit in megabytes.
+ *
+ * @param maxResponseSizeMb - User setting; 0 means no configurable limit.
+ * @returns The user limit when positive, otherwise {@link HARD_MAX_RESPONSE_SIZE_MB}.
+ */
+export function resolveMaxResponseSizeMb(maxResponseSizeMb: number): number {
+  return maxResponseSizeMb > 0 ? maxResponseSizeMb : HARD_MAX_RESPONSE_SIZE_MB;
+}
+
 /**
  * Returns whether a URL string is a root-relative path (`/api`), not protocol-relative (`//cdn`).
  *
@@ -220,18 +233,22 @@ function buildEffectiveSignal(
 }
 
 /**
- * Reads a response body, enforcing an optional max size in megabytes.
+ * Reads a response body, enforcing a max size in megabytes.
+ *
+ * When {@link maxResponseSizeMb} is 0, the user-configurable limit is disabled but
+ * {@link HARD_MAX_RESPONSE_SIZE_MB} still applies as a safety ceiling.
  *
  * @param response - Fetch response to read.
- * @param maxResponseSizeMb - Maximum body size in MB; 0 disables the limit.
+ * @param maxResponseSizeMb - Maximum body size in MB; 0 uses the hard cap only.
  */
 async function readResponseBody(
   response: Response,
   maxResponseSizeMb: number
 ): Promise<{ body: string; sizeBytes: number } | { error: string }> {
-  const maxBytes = maxResponseSizeMb > 0 ? maxResponseSizeMb * 1024 * 1024 : 0;
+  const effectiveMaxMb = resolveMaxResponseSizeMb(maxResponseSizeMb);
+  const maxBytes = effectiveMaxMb * 1024 * 1024;
 
-  if (maxBytes === 0 || !response.body) {
+  if (!response.body) {
     const body = await response.text();
     return { body, sizeBytes: new TextEncoder().encode(body).length };
   }
@@ -249,7 +266,11 @@ async function readResponseBody(
       totalBytes += value.length;
       if (totalBytes > maxBytes) {
         await reader.cancel();
-        return { error: `Response exceeded max size of ${maxResponseSizeMb} MB` };
+        const error =
+          maxResponseSizeMb > 0
+            ? `Response exceeded max size of ${maxResponseSizeMb} MB`
+            : `Response exceeded the maximum allowed size of ${HARD_MAX_RESPONSE_SIZE_MB} MB`;
+        return { error };
       }
       chunks.push(value);
     }

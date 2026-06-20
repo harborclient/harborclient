@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fitWindowStateToDisplays, type SavedWindowState } from '#/main/windowState';
+import { fitWindowStateToDisplays, type SavedWindowState } from '#/main/window/windowState';
 import type { Display } from 'electron';
 
 function display(workArea: Display['workArea']): Display {
