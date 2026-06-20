@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { withBase } from 'vitepress';
 
-const logoSrc = withBase('/images/logo.png');
+const logoSrc = withBase('/images/logo-white.png');
 const SITE_TITLE = 'HarborClient';
 const homeHref = withBase('/');
 </script>
