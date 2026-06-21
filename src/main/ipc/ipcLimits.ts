@@ -1,4 +1,4 @@
-import { HARD_MAX_RESPONSE_SIZE_MB } from '#/main/http/http';
+import { HARD_MAX_RESPONSE_SIZE_MB } from '#/main/http';
 
 /**
  * Maximum request body string length accepted over IPC (characters).

@@ -4,7 +4,7 @@ import { RoutingDatabase } from '#/main/db';
 import { initLocalRegistry } from '#/main/db/localRegistryInstance';
 import { createDatabaseInstance } from '#/main/db/createDatabaseInstance';
 import type { IDatabase } from '#/main/db/IDatabase';
-import { registerIpcHandlers } from '#/main/ipc/ipc';
+import { registerIpcHandlers } from '#/main/ipc';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import {
   getActiveDatabaseId,

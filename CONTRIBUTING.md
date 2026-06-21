@@ -34,7 +34,7 @@ access goes through `window.api`, defined in three places that must stay in sync
 1. **`src/shared/types.ts`** — `Api` interface and shared request/response types
 2. **`src/preload/index.ts`** — thin `ipcRenderer.invoke` wrappers, exposed via
    `contextBridge.exposeInMainWorld('api', api)`
-3. **`src/main/ipc/ipc.ts`** — `ipcMain.handle` handlers that delegate to main-process modules
+3. **`src/main/ipc/index.ts`** — `ipcMain.handle` handlers that delegate to main-process modules
 
 When adding or changing an IPC method, update all three files. Do not bypass
 the preload bridge or expose additional Node/Electron APIs to the renderer.

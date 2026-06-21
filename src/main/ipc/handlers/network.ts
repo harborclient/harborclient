@@ -1,5 +1,6 @@
-import { buildCookieHeader, captureSetCookies } from '#/main/cookieJar/cookieJar';
-import { buildUrl, executeRequest } from '#/main/http/http';
+import type { ICookieJar } from '#/main/cookieJar/ICookieJar';
+import { QueryString } from '#/main/http/QueryString';
+import { Requester } from '#/main/http/Requester';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import { runScript } from '#/main/scripting/scripts';
@@ -54,8 +55,10 @@ function cancelActiveRequest(requestId: string): void {
 
 /**
  * Registers IPC handlers for HTTP execution, cancellation, and script sandboxing.
+ *
+ * @param cookieJar - Cookie jar used to attach and capture cookies on HTTP requests.
  */
-export function registerNetworkHandlers(): void {
+export function registerNetworkHandlers(cookieJar: ICookieJar): void {
   // Sends an HTTP request and captures response cookies in the jar.
   handle('http:send', ipcArgSchemas.sendRequest, async (_event, req, requestId) => {
     const controller = new AbortController();
@@ -65,11 +68,16 @@ export function registerNetworkHandlers(): void {
 
     try {
       const settings = getGeneralSettings();
-      const url = buildUrl(req.url, req.params);
-      const cookieHeader = buildCookieHeader(url) ?? undefined;
-      const result = await executeRequest(req, settings, controller.signal, cookieHeader);
+      const url = new QueryString().buildUrl(req.url, req.params);
+      const cookieHeader = cookieJar.buildCookieHeader(url) ?? undefined;
+      const result = await new Requester().executeRequest(
+        req,
+        settings,
+        controller.signal,
+        cookieHeader
+      );
       if (result.request?.url) {
-        captureSetCookies(result.request.url, result.setCookieHeaders);
+        cookieJar.captureSetCookies(result.request.url, result.setCookieHeaders);
       }
       return result;
     } finally {

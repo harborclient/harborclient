@@ -2,12 +2,38 @@ import { app, BrowserWindow, screen, type Display } from 'electron';
 import { mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
+/**
+ * Persisted main-window bounds and presentation written to `window-state.json`.
+ */
 export interface SavedWindowState {
+  /**
+   * Left edge of the window in screen coordinates (normal bounds, not maximized size).
+   */
   x: number;
+
+  /**
+   * Top edge of the window in screen coordinates (normal bounds, not maximized size).
+   */
   y: number;
+
+  /**
+   * Window width in pixels before maximize or full-screen presentation is applied.
+   */
   width: number;
+
+  /**
+   * Window height in pixels before maximize or full-screen presentation is applied.
+   */
   height: number;
+
+  /**
+   * When true, the window is restored maximized after bounds are applied.
+   */
   isMaximized: boolean;
+
+  /**
+   * When true, the window is restored full screen after bounds are applied.
+   */
   isFullScreen: boolean;
 }
 

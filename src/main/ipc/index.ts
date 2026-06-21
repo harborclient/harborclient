@@ -1,3 +1,5 @@
+import { CookieJar } from '#/main/cookieJar/CookieJar';
+import { getLocalRegistry } from '#/main/db/localRegistryInstance';
 import type { IDatabase } from '#/main/db/IDatabase';
 import { registerCollectionHandlers } from '#/main/ipc/handlers/collections';
 import { registerCookieHandlers } from '#/main/ipc/handlers/cookies';
@@ -13,11 +15,13 @@ import { registerSettingsHandlers } from '#/main/ipc/handlers/settings';
  * @param db - Database instance shared by collection, environment, and request handlers.
  */
 export function registerIpcHandlers(db: IDatabase): void {
+  const cookieJar = new CookieJar(getLocalRegistry());
+
   registerCollectionHandlers(db);
   registerEnvironmentHandlers(db);
   registerRequestHandlers(db);
-  registerNetworkHandlers();
+  registerNetworkHandlers(cookieJar);
   registerSettingsHandlers(db);
-  registerCookieHandlers();
+  registerCookieHandlers(cookieJar);
   registerInviteHandlers(db);
 }

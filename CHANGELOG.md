@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- refactor: reorganize IPC structure and enhance cookie management. (`b83df70`)
 - feat: add code editor theme and settings configuration. (`c693048`)
 - feat: implement request export and import functionality. (`669f08f`)
 - refactor: update export format version to harborclientVersion. (`9f6e0a3`)

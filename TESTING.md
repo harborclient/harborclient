@@ -45,15 +45,15 @@ All gated backend suites **must pass in CI** — they must not be skipped when `
 
 There is no enforced line or branch coverage percentage. Expectations are qualitative and layer-based:
 
-| Layer                                | Expectation                                                                                  | Examples                                                                        |
-| ------------------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `src/shared/`                        | Test pure helpers and serializers                                                            | `formData.test.ts`, `urlencoded.test.ts`                                        |
-| `src/main/` (HTTP, scripts, cookies) | Test edge cases and security-relevant behavior                                               | `http/http.test.ts`, `cookieJar/cookieJar.test.ts`, `scripting/scripts.test.ts` |
-| `src/main/db/`                       | Every backend runs the contract suite; add backend-specific tests for migrations and routing | `SqliteDatabase.test.ts`, `RoutingDatabase.test.ts`                             |
-| `src/main/ipc/`                      | Every new or changed Zod schema gets parse/reject cases                                      | `ipcSchemas.test.ts`                                                            |
-| `src/renderer/` (non-UI)             | Redux slices, thunks with testable logic, persistence                                        | `store/*.test.ts`                                                               |
-| `src/renderer/` (React `.tsx`)       | Not required by Vitest; manual QA for UI changes                                             | —                                                                               |
-| IPC handler wiring (`ipc.ts`)        | Indirectly covered via module tests; full E2E not required for every handler                 | —                                                                               |
+| Layer                                | Expectation                                                                                  | Examples                                                                     |
+| ------------------------------------ | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `src/shared/`                        | Test pure helpers and serializers                                                            | `formData.test.ts`, `urlencoded.test.ts`                                     |
+| `src/main/` (HTTP, scripts, cookies) | Test edge cases and security-relevant behavior                                               | `http/*.test.ts`, `cookieJar/CookieJar.test.ts`, `scripting/scripts.test.ts` |
+| `src/main/db/`                       | Every backend runs the contract suite; add backend-specific tests for migrations and routing | `SqliteDatabase.test.ts`, `RoutingDatabase.test.ts`                          |
+| `src/main/ipc/`                      | Every new or changed Zod schema gets parse/reject cases                                      | `ipcSchemas.test.ts`                                                         |
+| `src/renderer/` (non-UI)             | Redux slices, thunks with testable logic, persistence                                        | `store/*.test.ts`                                                            |
+| `src/renderer/` (React `.tsx`)       | Not required by Vitest; manual QA for UI changes                                             | —                                                                            |
+| IPC handler wiring (`index.ts`)      | Indirectly covered via module tests; full E2E not required for every handler                 | —                                                                            |
 
 **Lower priority** (manual QA is acceptable): visual UI layout, window chrome, native menus.
 
@@ -97,7 +97,7 @@ When adding a new database backend, wire it into `databaseBackends.ts` (or an eq
 
 ## Writing good tests
 
-Follow patterns in existing tests such as `src/main/http/http.test.ts` and `src/renderer/src/store.test.ts`:
+Follow patterns in existing tests such as `src/main/http/Requester.test.ts` and `src/renderer/src/store.test.ts`:
 
 - Use descriptive `it('…')` names that state input and expected outcome.
 - Prefer Given-When-Then phrasing in names when it clarifies a scenario (e.g. `given empty script, returns passthrough request`).

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HARD_MAX_RESPONSE_SIZE_MB } from '#/main/http/http';
+import { HARD_MAX_RESPONSE_SIZE_MB } from '#/main/http';
 import {
   MAX_IPC_COMMENT_CHARS,
   MAX_IPC_REQUEST_BODY_CHARS,

@@ -1,0 +1,15 @@
+export { HARD_MAX_RESPONSE_SIZE_MB } from '#/main/settings/generalSettings';
+export type { ApplyCookieResult, BuildHeadersResult } from '#/main/http/IHeaders';
+export type { BuildMultipartResult } from '#/main/http/IBody';
+export type { ReadResponseBodyResult } from '#/main/http/IResponseReader';
+export type { IBody } from '#/main/http/IBody';
+export type { IHeaders } from '#/main/http/IHeaders';
+export type { IQueryString } from '#/main/http/IQueryString';
+export type { IRequester } from '#/main/http/IRequester';
+export type { IResponseReader } from '#/main/http/IResponseReader';
+export type { RequesterDeps } from '#/main/http/Requester';
+export { Body } from '#/main/http/Body';
+export { Headers } from '#/main/http/Headers';
+export { QueryString } from '#/main/http/QueryString';
+export { Requester } from '#/main/http/Requester';
+export { ResponseReader } from '#/main/http/ResponseReader';
