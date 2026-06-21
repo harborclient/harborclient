@@ -14,3 +14,7 @@ pnpm dev
 ## License
 
 MIT
+
+## Security
+
+Security policy: [SECURITY.md](./SECURITY.md)

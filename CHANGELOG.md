@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- docs(README): add security policy section. (`cf42c86`)
 - feat(collections): add validation for duplicate folder names in collection exports. (`cb21d93`)
 
 ## 1.5.1 - 2026-06-21
