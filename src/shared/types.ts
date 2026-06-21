@@ -749,6 +749,36 @@ export type EditorTab =
   | 'comment';
 
 /**
+ * Persisted sidebar expansion state for sections, collections, and folders.
+ */
+export interface SidebarExpansionState {
+  /**
+   * Expanded/collapsed state for top-level sidebar sections.
+   */
+  sections: {
+    /**
+     * Whether the Collections section body is visible.
+     */
+    collections: boolean;
+
+    /**
+     * Whether the Environments section body is visible.
+     */
+    environments: boolean;
+  };
+
+  /**
+   * Collection ids whose request trees are expanded in the sidebar.
+   */
+  collectionIds: number[];
+
+  /**
+   * Folder ids whose request lists are expanded in the sidebar.
+   */
+  folderIds: number[];
+}
+
+/**
  * General application settings for HTTP request execution.
  */
 export interface GeneralSettings {
@@ -1310,6 +1340,18 @@ export interface Api {
    * @param key - Saved request id string to clear.
    */
   deleteRequestEditorTab: (key: string) => Promise<void>;
+
+  /**
+   * Returns persisted sidebar expansion for sections, collections, and folders.
+   */
+  getSidebarExpansion: () => Promise<SidebarExpansionState>;
+
+  /**
+   * Persists sidebar expansion for sections, collections, and folders.
+   *
+   * @param state - Expansion snapshot to store.
+   */
+  setSidebarExpansion: (state: SidebarExpansionState) => Promise<void>;
 
   /**
    * Subscribes to window close and app quit attempts from the main process.

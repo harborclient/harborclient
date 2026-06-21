@@ -8,7 +8,8 @@ import type {
   ScriptRunInput,
   SendRequestInput,
   SendResult,
-  SentRequest
+  SentRequest,
+  SidebarExpansionState
 } from '#/shared/types';
 
 export {
@@ -186,6 +187,15 @@ export const databaseConnection = z.discriminatedUnion('type', [
   })
 ]) satisfies z.ZodType<DatabaseConnection>;
 
+export const sidebarExpansion = z.object({
+  sections: z.object({
+    collections: z.boolean(),
+    environments: z.boolean()
+  }),
+  collectionIds: z.array(dbId),
+  folderIds: z.array(dbId)
+}) satisfies z.ZodType<SidebarExpansionState>;
+
 /** Tuple schemas for IPC handler argument validation. */
 export const ipcArgSchemas = {
   none: z.tuple([]),
@@ -206,6 +216,7 @@ export const ipcArgSchemas = {
   generalSettings: z.tuple([generalSettings]),
   databaseConnection: z.tuple([databaseConnection]),
   setEditorTab: z.tuple([storageKey, editorTab]),
+  sidebarExpansionSet: z.tuple([sidebarExpansion]),
   setCookies: z.tuple([domain, z.array(keyValue)]),
   collectionUpdate: z.tuple([
     dbId,

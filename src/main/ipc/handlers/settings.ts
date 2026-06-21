@@ -15,6 +15,7 @@ import {
   getRequestEditorTab,
   setRequestEditorTab
 } from '#/main/settings/requestEditorSettings';
+import { getSidebarExpansion, setSidebarExpansion } from '#/main/settings/sidebarExpansionSettings';
 import type { ThemeSource } from '#/shared/types';
 
 const THEME_SETTING_KEY = 'theme';
@@ -95,5 +96,13 @@ export function registerSettingsHandlers(db: IDatabase): void {
   // Clears the persisted request editor tab for a storage key.
   handle('requestEditor:deleteTab', ipcArgSchemas.storageKey, (_event, key) => {
     deleteRequestEditorTab(key);
+  });
+
+  // Returns persisted sidebar expansion for sections, collections, and folders.
+  handle('sidebar:getExpansion', ipcArgSchemas.none, () => getSidebarExpansion());
+
+  // Persists sidebar expansion for sections, collections, and folders.
+  handle('sidebar:setExpansion', ipcArgSchemas.sidebarExpansionSet, (_event, state) => {
+    setSidebarExpansion(state);
   });
 }

@@ -10,7 +10,15 @@ import {
   type DragStartEvent
 } from '@dnd-kit/core';
 import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type JSX,
+  type SetStateAction
+} from 'react';
 import type { Collection, DatabaseProvider, Folder, SavedRequest } from '#/shared/types';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { RowActionsMenu } from '#/renderer/src/components/RowActionsMenu';
@@ -73,6 +81,26 @@ interface Props {
    * Id of the request currently open in the editor, for row highlighting.
    */
   activeRequestId?: number;
+
+  /**
+   * Collection ids whose request trees are expanded.
+   */
+  expandedCollectionIds: Set<number>;
+
+  /**
+   * Folder ids whose request lists are expanded.
+   */
+  expandedFolderIds: Set<number>;
+
+  /**
+   * Updates expanded collection ids.
+   */
+  setExpandedCollectionIds: Dispatch<SetStateAction<Set<number>>>;
+
+  /**
+   * Updates expanded folder ids.
+   */
+  setExpandedFolderIds: Dispatch<SetStateAction<Set<number>>>;
 
   /**
    * Called when the user selects a collection row.
@@ -191,6 +219,10 @@ export function Collections({
   connectionNamesById,
   connectionTypesById,
   activeRequestId,
+  expandedCollectionIds,
+  expandedFolderIds,
+  setExpandedCollectionIds,
+  setExpandedFolderIds,
   onSelectCollection,
   onExpandCollection,
   onConfigureCollection,
@@ -211,8 +243,6 @@ export function Collections({
   onDeleteRequest,
   onDuplicateRequest
 }: Props): JSX.Element {
-  const [expandedCollectionIds, setExpandedCollectionIds] = useState<Set<number>>(new Set());
-  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<number>>(new Set());
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [prevSelectedId, setPrevSelectedId] = useState<number | null>(null);
   const [activeDragKind, setActiveDragKind] = useState<DragKind | null>(null);
@@ -590,11 +620,11 @@ export function Collections({
                       },
                       ...(canInvite
                         ? [
-                            {
-                              label: 'Invite',
-                              onSelect: () => onInviteCollection(collection.id, collection.name)
-                            }
-                          ]
+                          {
+                            label: 'Invite',
+                            onSelect: () => onInviteCollection(collection.id, collection.name)
+                          }
+                        ]
                         : []),
                       {
                         label: 'Delete',
@@ -795,8 +825,8 @@ export function Collections({
 
                     <DragOverlay>
                       {dragCollectionId === collection.id &&
-                      activeDragKind === 'request' &&
-                      activeDragRequest ? (
+                        activeDragKind === 'request' &&
+                        activeDragRequest ? (
                         <div className="flex items-center gap-1.5 rounded border border-separator bg-surface px-2 py-1 shadow-md">
                           <span
                             className={`shrink-0 rounded px-1 py-px text-[10px] font-semibold ${METHOD_CLASSES[activeDragRequest.method.toLowerCase()] ?? 'bg-info text-white'}`}

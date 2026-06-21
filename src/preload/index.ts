@@ -19,6 +19,7 @@ import type {
   ScriptRunResult,
   SendRequestInput,
   SendResult,
+  SidebarExpansionState,
   ThemeSource,
   TrustedInviteKey,
   Variable,
@@ -407,6 +408,22 @@ function deleteRequestEditorTab(key: string): Promise<void> {
 }
 
 /**
+ * Returns persisted sidebar expansion for sections, collections, and folders.
+ */
+function getSidebarExpansion(): Promise<SidebarExpansionState> {
+  return ipcRenderer.invoke('sidebar:getExpansion');
+}
+
+/**
+ * Persists sidebar expansion for sections, collections, and folders.
+ *
+ * @param state - Expansion snapshot to store.
+ */
+function setSidebarExpansion(state: SidebarExpansionState): Promise<void> {
+  return ipcRenderer.invoke('sidebar:setExpansion', state);
+}
+
+/**
  * Subscribes to window close and app quit attempts from the main process.
  *
  * @param callback - Handler invoked when the user tries to close or quit.
@@ -563,6 +580,8 @@ const api: Api = {
   getRequestEditorTab,
   setRequestEditorTab,
   deleteRequestEditorTab,
+  getSidebarExpansion,
+  setSidebarExpansion,
   onBeforeClose,
   confirmClose,
   selectFiles,

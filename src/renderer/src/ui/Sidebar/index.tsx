@@ -37,6 +37,7 @@ import { field, primaryButton, secondaryButton } from '#/renderer/src/ui/shared/
 import { Collections } from './Collections';
 import { Environments } from './Environments';
 import { Section } from './Section';
+import { usePersistedSidebarExpansion } from './usePersistedSidebarExpansion';
 
 interface Props {
   /**
@@ -84,8 +85,26 @@ export function Sidebar({
   const environments = useAppSelector(selectEnvironments);
   const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
 
-  const [collectionsExpanded, setCollectionsExpanded] = useState(true);
-  const [environmentsExpanded, setEnvironmentsExpanded] = useState(true);
+  const handleExpandCollection = useCallback(
+    (id: number) => {
+      void dispatch(refreshCollectionContents(id));
+    },
+    [dispatch]
+  );
+
+  const {
+    collectionsSectionExpanded,
+    environmentsSectionExpanded,
+    toggleCollectionsSection,
+    toggleEnvironmentsSection,
+    expandedCollectionIds,
+    expandedFolderIds,
+    setExpandedCollectionIds,
+    setExpandedFolderIds
+  } = usePersistedSidebarExpansion({
+    onExpandCollection: handleExpandCollection
+  });
+
   const [showEnvironmentModal, setShowEnvironmentModal] = useState(false);
   const [newEnvironmentName, setNewEnvironmentName] = useState('');
   const [folderModal, setFolderModal] = useState<{
@@ -133,13 +152,6 @@ export function Sidebar({
     () =>
       Object.fromEntries(databaseConnections.map((connection) => [connection.id, connection.type])),
     [databaseConnections]
-  );
-
-  const handleExpandCollection = useCallback(
-    (id: number) => {
-      void dispatch(refreshCollectionContents(id));
-    },
-    [dispatch]
   );
 
   const closeEnvironmentModal = (): void => {
@@ -195,8 +207,8 @@ export function Sidebar({
         <div className="flex-1 overflow-y-auto px-2 pb-3">
           <Section
             title="Collections"
-            expanded={collectionsExpanded}
-            onToggle={() => setCollectionsExpanded((open) => !open)}
+            expanded={collectionsSectionExpanded}
+            onToggle={toggleCollectionsSection}
             onAdd={onAddCollection}
             addLabel="Add Collection"
           >
@@ -209,6 +221,10 @@ export function Sidebar({
               connectionNamesById={connectionNamesById}
               connectionTypesById={connectionTypesById}
               activeRequestId={draft.id}
+              expandedCollectionIds={expandedCollectionIds}
+              expandedFolderIds={expandedFolderIds}
+              setExpandedCollectionIds={setExpandedCollectionIds}
+              setExpandedFolderIds={setExpandedFolderIds}
               onSelectCollection={(id) => dispatch(setSelectedCollectionId(id))}
               onExpandCollection={handleExpandCollection}
               onConfigureCollection={onConfigureCollection}
@@ -298,8 +314,8 @@ export function Sidebar({
 
           <Section
             title="Environments"
-            expanded={environmentsExpanded}
-            onToggle={() => setEnvironmentsExpanded((open) => !open)}
+            expanded={environmentsSectionExpanded}
+            onToggle={toggleEnvironmentsSection}
             onAdd={() => {
               setNewEnvironmentName('');
               setShowEnvironmentModal(true);

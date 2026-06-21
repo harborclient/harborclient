@@ -334,10 +334,10 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
       const headers =
         authValue && !manualHasAuth
           ? [
-            { key: 'Authorization', value: authValue, enabled: true },
-            ...collectionHeaders,
-            ...draftHeaders
-          ]
+              { key: 'Authorization', value: authValue, enabled: true },
+              ...collectionHeaders,
+              ...draftHeaders
+            ]
           : [...collectionHeaders, ...draftHeaders];
       const params = scriptRequest.params.map((param) => ({
         ...param,

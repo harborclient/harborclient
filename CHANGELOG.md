@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(sidebar): implement persistent sidebar expansion state management. (`9b8852f`)
 - feat(collections): dispatch closeTabsForCollection on delete. (`cd29938`)
 - feat(docs): enhance Postman collection import and migration documentation. (`415f623`)
 - fix(docs): format authorization and variable examples in requests documentation. (`970adf2`)
