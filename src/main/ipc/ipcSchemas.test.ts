@@ -191,22 +191,28 @@ describe('databaseConnection', () => {
 });
 
 describe('generalSettings', () => {
+  const validGeneralSettings = {
+    requestTimeoutMs: 30000,
+    maxResponseSizeMb: 50,
+    verifySsl: true,
+    codeEditorTheme: 'default' as const,
+    codeEditorSetup: {
+      lineNumbers: true,
+      foldGutter: true,
+      highlightActiveLine: true,
+      highlightActiveLineGutter: true
+    }
+  };
+
   it('parses generalSettings with numeric timeout and boolean verifySsl', () => {
-    expect(
-      generalSettings.safeParse({
-        requestTimeoutMs: 30000,
-        maxResponseSizeMb: 50,
-        verifySsl: true
-      }).success
-    ).toBe(true);
+    expect(generalSettings.safeParse(validGeneralSettings).success).toBe(true);
   });
 
   it('rejects non-number requestTimeoutMs', () => {
     expect(
       generalSettings.safeParse({
-        requestTimeoutMs: '30000',
-        maxResponseSizeMb: 50,
-        verifySsl: true
+        ...validGeneralSettings,
+        requestTimeoutMs: '30000'
       }).success
     ).toBe(false);
   });
@@ -214,16 +220,14 @@ describe('generalSettings', () => {
   it('accepts maxResponseSizeMb from 0 through the hard cap', () => {
     expect(
       generalSettings.safeParse({
-        requestTimeoutMs: 30000,
-        maxResponseSizeMb: 0,
-        verifySsl: true
+        ...validGeneralSettings,
+        maxResponseSizeMb: 0
       }).success
     ).toBe(true);
     expect(
       generalSettings.safeParse({
-        requestTimeoutMs: 30000,
-        maxResponseSizeMb: 512,
-        verifySsl: true
+        ...validGeneralSettings,
+        maxResponseSizeMb: 512
       }).success
     ).toBe(true);
   });
@@ -231,16 +235,14 @@ describe('generalSettings', () => {
   it('rejects maxResponseSizeMb outside the allowed range', () => {
     expect(
       generalSettings.safeParse({
-        requestTimeoutMs: 30000,
-        maxResponseSizeMb: -1,
-        verifySsl: true
+        ...validGeneralSettings,
+        maxResponseSizeMb: -1
       }).success
     ).toBe(false);
     expect(
       generalSettings.safeParse({
-        requestTimeoutMs: 30000,
-        maxResponseSizeMb: 1_000_000,
-        verifySsl: true
+        ...validGeneralSettings,
+        maxResponseSizeMb: 1_000_000
       }).success
     ).toBe(false);
   });

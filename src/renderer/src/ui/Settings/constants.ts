@@ -8,6 +8,7 @@ import type {
   SqliteSettings,
   ThemeSource
 } from '#/shared/types';
+import { DEFAULT_CODE_EDITOR_SETUP } from '#/shared/codeEditorSettings';
 import type { SettingsSection } from './types';
 
 export const THEME_OPTIONS: Array<{ value: ThemeSource; label: string }> = [
@@ -19,7 +20,9 @@ export const THEME_OPTIONS: Array<{ value: ThemeSource; label: string }> = [
 export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   requestTimeoutMs: 30000,
   maxResponseSizeMb: 50,
-  verifySsl: true
+  verifySsl: true,
+  codeEditorTheme: 'default',
+  codeEditorSetup: { ...DEFAULT_CODE_EDITOR_SETUP }
 };
 
 export const PROVIDER_OPTIONS: Array<{ value: DatabaseProvider; label: string }> = [
@@ -62,6 +65,7 @@ export const DEFAULT_POSTGRES_SETTINGS: PostgresSettings = {
 
 export const SETTINGS_SECTIONS: Array<{ value: SettingsSection; label: string }> = [
   { value: 'general', label: 'General' },
+  { value: 'syntax', label: 'Syntax highlighting' },
   { value: 'databases', label: 'Databases' }
 ];
 

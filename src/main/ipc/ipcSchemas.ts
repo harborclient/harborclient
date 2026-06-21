@@ -7,6 +7,7 @@ import {
 } from '#/main/ipc/ipcLimits';
 import { HARD_MAX_RESPONSE_SIZE_MB } from '#/main/settings/generalSettings';
 import { authConfig, bodyType, httpMethod, keyValue, variable } from '#/main/schemas/common';
+import { CODE_EDITOR_THEME_IDS } from '#/shared/codeEditorSettings';
 import { requestExportSchema } from '#/main/db/collectionSchemas';
 import type {
   DatabaseConnection,
@@ -158,7 +159,14 @@ export const scriptRunInput = z.object({
 export const generalSettings = z.object({
   requestTimeoutMs: z.number(),
   maxResponseSizeMb: z.number().min(0).max(HARD_MAX_RESPONSE_SIZE_MB),
-  verifySsl: z.boolean()
+  verifySsl: z.boolean(),
+  codeEditorTheme: z.enum(CODE_EDITOR_THEME_IDS),
+  codeEditorSetup: z.object({
+    lineNumbers: z.boolean(),
+    foldGutter: z.boolean(),
+    highlightActiveLine: z.boolean(),
+    highlightActiveLineGutter: z.boolean()
+  })
 }) satisfies z.ZodType<GeneralSettings>;
 
 /**

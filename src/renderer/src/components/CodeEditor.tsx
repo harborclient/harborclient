@@ -14,7 +14,13 @@ import {
 import CodeMirror from '@uiw/react-codemirror';
 import { tags } from '@lezer/highlight';
 import { useEffect, useMemo, useState, type JSX } from 'react';
-import type { ScriptPhase, Variable } from '#/shared/types';
+import type { CodeEditorSetup, CodeEditorTheme, ScriptPhase, Variable } from '#/shared/types';
+import { getCodeEditorThemeExtension } from '#/renderer/src/components/codeEditorThemes';
+import { useAppSelector } from '#/renderer/src/store/hooks';
+import {
+  selectCodeEditorSetup,
+  selectCodeEditorTheme
+} from '#/renderer/src/store/slices/settingsSlice';
 import { resolveVariable } from '#/renderer/src/store';
 import { createHcCompletionSource } from '#/renderer/src/scripting/hcCompletions';
 
@@ -72,6 +78,16 @@ interface Props {
    * When set on a JavaScript editor, enables hc API autocomplete for pre/post scripts.
    */
   scriptPhase?: ScriptPhase;
+
+  /**
+   * When set, overrides the persisted CodeMirror theme (used by the settings preview).
+   */
+  themeOverride?: CodeEditorTheme;
+
+  /**
+   * When set, overrides persisted basicSetup options (used by the settings preview).
+   */
+  setupOverride?: CodeEditorSetup;
 }
 
 const lightHighlight = HighlightStyle.define([
@@ -281,8 +297,14 @@ export function CodeEditor({
   className = '',
   variables,
   onEditVariable,
-  scriptPhase
+  scriptPhase,
+  themeOverride,
+  setupOverride
 }: Props): JSX.Element {
+  const storeTheme = useAppSelector(selectCodeEditorTheme);
+  const storeSetup = useAppSelector(selectCodeEditorSetup);
+  const resolvedTheme = themeOverride ?? storeTheme;
+  const resolvedSetup = setupOverride ?? (readOnly ? null : storeSetup);
   const [isDark, setIsDark] = useState(
     () => window.matchMedia('(prefers-color-scheme: dark)').matches
   );
@@ -301,11 +323,13 @@ export function CodeEditor({
    * Assembles CodeMirror extensions for language mode, theme, and optional variable tooling.
    */
   const extensions = useMemo(() => {
-    const next = [
-      EditorView.lineWrapping,
-      editorTheme,
-      syntaxHighlighting(isDark ? darkHighlight : lightHighlight)
-    ];
+    const next = [EditorView.lineWrapping, editorTheme];
+    const themeExtension = getCodeEditorThemeExtension(resolvedTheme);
+    if (themeExtension) {
+      next.push(themeExtension);
+    } else {
+      next.push(syntaxHighlighting(isDark ? darkHighlight : lightHighlight));
+    }
     if (language === 'json') {
       next.push(json());
     }
@@ -324,7 +348,45 @@ export function CodeEditor({
       next.push(variableHighlighter, variableTooltip(variables, onEditVariable));
     }
     return next;
-  }, [isDark, language, variables, onEditVariable, scriptPhase]);
+  }, [resolvedTheme, isDark, language, variables, onEditVariable, scriptPhase]);
+
+  /**
+   * Resolves CodeMirror basicSetup from persisted settings or read-only defaults.
+   */
+  const basicSetup = useMemo(() => {
+    if (!resolvedSetup) {
+      return {
+        lineNumbers: false,
+        foldGutter: false,
+        highlightActiveLine: false,
+        highlightActiveLineGutter: false,
+        highlightSelectionMatches: false,
+        autocompletion: false,
+        closeBrackets: false,
+        indentOnInput: false
+      };
+    }
+
+    if (readOnly) {
+      return {
+        lineNumbers: resolvedSetup.lineNumbers,
+        foldGutter: resolvedSetup.foldGutter,
+        highlightActiveLine: resolvedSetup.highlightActiveLine,
+        highlightActiveLineGutter: resolvedSetup.highlightActiveLineGutter,
+        highlightSelectionMatches: false,
+        autocompletion: false,
+        closeBrackets: false,
+        indentOnInput: false
+      };
+    }
+
+    return {
+      lineNumbers: resolvedSetup.lineNumbers,
+      foldGutter: resolvedSetup.foldGutter,
+      highlightActiveLine: resolvedSetup.highlightActiveLine,
+      highlightActiveLineGutter: resolvedSetup.highlightActiveLineGutter
+    };
+  }, [resolvedSetup, readOnly]);
 
   const wrapperClassName = readOnly
     ? `overflow-hidden rounded-md bg-control shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)] app-no-drag ${className}`
@@ -341,25 +403,7 @@ export function CodeEditor({
         readOnly={readOnly}
         placeholder={placeholder}
         minHeight={minHeight}
-        basicSetup={
-          readOnly
-            ? {
-                lineNumbers: false,
-                foldGutter: false,
-                highlightActiveLine: false,
-                highlightActiveLineGutter: false,
-                highlightSelectionMatches: false,
-                autocompletion: false,
-                closeBrackets: false,
-                indentOnInput: false
-              }
-            : {
-                lineNumbers: true,
-                foldGutter: true,
-                highlightActiveLine: true,
-                highlightActiveLineGutter: true
-              }
-        }
+        basicSetup={basicSetup}
       />
     </div>
   );

@@ -1,5 +1,10 @@
 import { getLocalRegistry } from '#/main/db/localRegistryInstance';
 import { parseJson } from '#/shared/parseJson';
+import {
+  DEFAULT_CODE_EDITOR_SETUP,
+  normalizeCodeEditorSetup,
+  normalizeCodeEditorTheme
+} from '#/shared/codeEditorSettings';
 import type { GeneralSettings } from '#/shared/types';
 
 /**
@@ -10,7 +15,9 @@ export const HARD_MAX_RESPONSE_SIZE_MB = 512;
 export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   requestTimeoutMs: 30000,
   maxResponseSizeMb: 50,
-  verifySsl: true
+  verifySsl: true,
+  codeEditorTheme: 'default',
+  codeEditorSetup: { ...DEFAULT_CODE_EDITOR_SETUP }
 };
 
 const STORE_KEY = 'general';
@@ -48,7 +55,9 @@ function normalizeSettings(input: Partial<GeneralSettings>): GeneralSettings {
       ),
       HARD_MAX_RESPONSE_SIZE_MB
     ),
-    verifySsl: input.verifySsl !== false
+    verifySsl: input.verifySsl !== false,
+    codeEditorTheme: normalizeCodeEditorTheme(input.codeEditorTheme),
+    codeEditorSetup: normalizeCodeEditorSetup(input.codeEditorSetup)
   };
 }
 

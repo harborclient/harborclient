@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat: add code editor theme and settings configuration. (`c693048`)
 - feat: implement request export and import functionality. (`669f08f`)
 - refactor: update export format version to harborclientVersion. (`9f6e0a3`)
 - docs(README): add downloads section with latest release link. (`db7bffc`)

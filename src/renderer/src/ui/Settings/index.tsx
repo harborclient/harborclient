@@ -4,6 +4,7 @@ import { faXmark } from '#/renderer/src/fontawesome';
 import { iconButton } from '#/renderer/src/ui/shared/classes';
 import { DatabasesSection } from './DatabasesSection';
 import { GeneralSection } from './GeneralSection';
+import { SyntaxHighlightingSection } from './SyntaxHighlightingSection';
 import { SettingsSidebar } from './SettingsSidebar';
 import type { SettingsSection } from './types';
 
@@ -39,6 +40,7 @@ export function Settings({ onClose }: Props): JSX.Element {
 
         <div className="flex-1 overflow-y-auto p-6">
           {section === 'general' && <GeneralSection />}
+          {section === 'syntax' && <SyntaxHighlightingSection />}
           {section === 'databases' && <DatabasesSection />}
         </div>
       </div>

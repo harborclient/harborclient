@@ -824,6 +824,44 @@ export interface ScriptRunResult {
 export type ThemeSource = 'light' | 'dark' | 'system';
 
 /**
+ * Named CodeMirror syntax themes available in settings.
+ */
+export type CodeEditorTheme =
+  | 'default'
+  | 'dracula'
+  | 'githubLight'
+  | 'githubDark'
+  | 'monokai'
+  | 'nord'
+  | 'solarizedLight'
+  | 'tokyoNight';
+
+/**
+ * CodeMirror basicSetup options for editable editor instances.
+ */
+export interface CodeEditorSetup {
+  /**
+   * When true, shows line numbers in the gutter.
+   */
+  lineNumbers: boolean;
+
+  /**
+   * When true, shows the code-folding gutter.
+   */
+  foldGutter: boolean;
+
+  /**
+   * When true, highlights the line containing the cursor.
+   */
+  highlightActiveLine: boolean;
+
+  /**
+   * When true, highlights the active line number in the gutter.
+   */
+  highlightActiveLineGutter: boolean;
+}
+
+/**
  * Active database backend for collections and requests.
  */
 export type DatabaseProvider = 'sqlite' | 'firestore' | 'mysql' | 'postgres';
@@ -889,6 +927,16 @@ export interface GeneralSettings {
    * When true, TLS certificates are verified for HTTPS requests.
    */
   verifySsl: boolean;
+
+  /**
+   * CodeMirror syntax theme applied to all editor instances.
+   */
+  codeEditorTheme: CodeEditorTheme;
+
+  /**
+   * CodeMirror basicSetup options for editable editor instances.
+   */
+  codeEditorSetup: CodeEditorSetup;
 }
 
 /**

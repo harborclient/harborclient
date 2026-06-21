@@ -7,6 +7,7 @@ import consoleReducer from '#/renderer/src/store/slices/consoleSlice';
 import uiReducer from '#/renderer/src/store/slices/uiSlice';
 import navigationReducer from '#/renderer/src/store/slices/navigationSlice';
 import modalsReducer from '#/renderer/src/store/slices/modalsSlice';
+import settingsReducer from '#/renderer/src/store/slices/settingsSlice';
 import { persistActiveEnvironmentId, persistTabs } from '#/renderer/src/store/persistence';
 
 export const store = configureStore({
@@ -17,7 +18,8 @@ export const store = configureStore({
     console: consoleReducer,
     ui: uiReducer,
     navigation: navigationReducer,
-    modals: modalsReducer
+    modals: modalsReducer,
+    settings: settingsReducer
   },
   /**
    * Registers default RTK middleware plus busy tracking.

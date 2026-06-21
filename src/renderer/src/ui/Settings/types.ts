@@ -1,4 +1,4 @@
 /**
  * Settings sidebar section identifiers.
  */
-export type SettingsSection = 'general' | 'databases';
+export type SettingsSection = 'general' | 'syntax' | 'databases';
