@@ -71,15 +71,15 @@ export function RequestRow({
   const moveItems =
     folders.length > 0
       ? [
-        {
-          label: 'Move to collection root',
-          onSelect: () => onMoveRequest(req.id, null)
-        },
-        ...folders.map((folder) => ({
-          label: `Move to ${folder.name}`,
-          onSelect: () => onMoveRequest(req.id, folder.id)
-        }))
-      ]
+          {
+            label: 'Move to collection root',
+            onSelect: () => onMoveRequest(req.id, null)
+          },
+          ...folders.map((folder) => ({
+            label: `Move to ${folder.name}`,
+            onSelect: () => onMoveRequest(req.id, folder.id)
+          }))
+        ]
       : [];
 
   return (

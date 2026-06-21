@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix: standardize quotes in dependabot.yml and improve formatting in RequestRow and Collections components. (`ebf412b`)
 - feat(ui): enhance user interface with custom modals and error handling. (`5d0a059`)
 - docs(README): add security policy section. (`cf42c86`)
 - feat(collections): add validation for duplicate folder names in collection exports. (`cb21d93`)
