@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.5.1 - 2026-06-21
+
 - feat(docs): enhance documentation with detailed function descriptions. (`019c0be`)
 - feat(sidebar): implement persistent sidebar expansion state management. (`9b8852f`)
 - feat(collections): dispatch closeTabsForCollection on delete. (`cd29938`)
