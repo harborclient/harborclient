@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import {
   docToCollection,
@@ -12,6 +12,64 @@ import {
 } from '#/main/db/entityMappers';
 
 describe('entityMappers', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe('numeric coercion', () => {
+    it('parses string numeric IDs from database drivers', () => {
+      expect(rowToCollection({ id: '42', name: 'Test' })).toMatchObject({ id: 42 });
+      expect(
+        rowToFolder({ id: '3', collection_id: '1', name: 'Auth', sort_order: '0' })
+      ).toMatchObject({
+        id: 3,
+        collection_id: 1,
+        sort_order: 0
+      });
+      expect(
+        rowToRequest({
+          id: '4',
+          collection_id: '1',
+          name: 'Get users',
+          folder_id: '7'
+        })
+      ).toMatchObject({
+        id: 4,
+        collection_id: 1,
+        folder_id: 7
+      });
+    });
+
+    it('warns and uses fallback when a required numeric field is not coercible', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      expect(rowToCollection({ id: 'not-a-number', name: 'Broken' })).toMatchObject({ id: 0 });
+
+      expect(warn).toHaveBeenCalledWith(
+        'Failed to coerce database field to number, using fallback:',
+        { value: 'not-a-number', fallback: 0 }
+      );
+    });
+
+    it('warns and returns null when a nullable numeric field is not coercible', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      expect(
+        rowToRequest({
+          id: 1,
+          collection_id: 1,
+          name: 'Broken folder',
+          folder_id: 'not-a-number'
+        }).folder_id
+      ).toBeNull();
+
+      expect(warn).toHaveBeenCalledWith(
+        'Failed to coerce nullable database field to number:',
+        'not-a-number'
+      );
+    });
+  });
+
   describe('SQL-shaped rows', () => {
     it('rowToCollection parses JSON headers and variables into arrays', () => {
       const row = {

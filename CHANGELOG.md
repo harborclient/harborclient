@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(collections): add validation for duplicate folder names in collection exports. (`cb21d93`)
 - feat(docs): enhance documentation with detailed function descriptions. (`019c0be`)
 - feat(sidebar): implement persistent sidebar expansion state management. (`9b8852f`)
 - feat(collections): dispatch closeTabsForCollection on delete. (`cd29938`)

@@ -87,8 +87,11 @@ describe('modalsSlice', () => {
       updated_at: '2026-01-01T00:00:00.000Z'
     };
 
-    let state = modalsReducer(undefined, setPendingLoadRequest(request));
-    expect(state.pendingLoadRequest).toEqual(request);
+    let state = modalsReducer(
+      undefined,
+      setPendingLoadRequest({ req: request, reason: 'settings' })
+    );
+    expect(state.pendingLoadRequest).toEqual({ req: request, reason: 'settings' });
 
     state = modalsReducer(state, setQuitPrompt(['Draft A', 'Draft B']));
     expect(state.quitPrompt).toEqual(['Draft A', 'Draft B']);

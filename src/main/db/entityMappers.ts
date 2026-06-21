@@ -34,24 +34,78 @@ function readString(value: unknown, fallback = ''): string {
 }
 
 /**
+ * Returns whether a raw field value is absent (null, undefined, or blank string).
+ *
+ * @param value - Raw field value.
+ */
+function isAbsent(value: unknown): boolean {
+  return value === null || value === undefined || value === '';
+}
+
+/**
+ * Attempts to coerce a raw database field to a finite number.
+ *
+ * Accepts numbers and numeric strings (e.g. driver-returned `"42"`).
+ *
+ * @param value - Raw field value.
+ * @returns Parsed number, or null when coercion is not possible.
+ */
+function coerceToNumber(value: unknown): number | null {
+  if (isAbsent(value)) {
+    return null;
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value.trim());
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+/**
  * Coerces an unknown value to a number with a fallback.
+ *
+ * Parses numeric strings from database drivers. Logs a warning when a present
+ * value cannot be coerced so silent `0` IDs are easier to diagnose.
  *
  * @param value - Raw field value.
  * @param fallback - Default when value is not a number.
  * @returns The numeric value or fallback.
  */
 function readNumber(value: unknown, fallback = 0): number {
-  return typeof value === 'number' ? value : fallback;
+  const coerced = coerceToNumber(value);
+  if (coerced !== null) {
+    return coerced;
+  }
+  if (!isAbsent(value)) {
+    console.warn('Failed to coerce database field to number, using fallback:', { value, fallback });
+  }
+  return fallback;
 }
 
 /**
  * Coerces an unknown value to a number or null.
  *
+ * Parses numeric strings from database drivers. Logs a warning when a present
+ * non-null value cannot be coerced.
+ *
  * @param value - Raw field value.
  * @returns The number when numeric, null otherwise.
  */
 function readNullableNumber(value: unknown): number | null {
-  return typeof value === 'number' ? value : value === null ? null : null;
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const coerced = coerceToNumber(value);
+  if (coerced !== null) {
+    return coerced;
+  }
+  if (!isAbsent(value)) {
+    console.warn('Failed to coerce nullable database field to number:', value);
+  }
+  return null;
 }
 
 /**

@@ -10,6 +10,7 @@ import {
   rowToFolder,
   rowToRequest
 } from '#/main/db/entityMappers';
+import { trimRequiredName } from '#/main/db/trimRequiredName';
 import { DEFAULT_AUTH_JSON, defaultAuth, normalizeAuth } from '#/shared/auth';
 import type { IDatabase } from '#/main/db/IDatabase';
 import type {
@@ -191,11 +192,12 @@ export class MySqlDatabase implements IDatabase {
    * @returns The newly created collection.
    */
   async createCollection(name: string): Promise<Collection> {
+    const trimmedName = trimRequiredName(name, 'Collection name');
     const createdAt = new Date().toISOString();
     const [result] = await this.getPool().execute<ResultSetHeader>(
       `INSERT INTO collections (name, variables, headers, pre_request_script, post_request_script, created_at)
        VALUES (?, '[]', '[]', '', '', ?)`,
-      [name.trim(), createdAt]
+      [trimmedName, createdAt]
     );
 
     const [rows] = await this.getPool().execute<RowDataPacket[]>(
@@ -241,10 +243,11 @@ export class MySqlDatabase implements IDatabase {
     postRequestScript: string,
     auth: AuthConfig
   ): Promise<Collection> {
+    const trimmedName = trimRequiredName(name, 'Collection name');
     const [result] = await this.getPool().execute<ResultSetHeader>(
       'UPDATE collections SET name = ?, variables = ?, headers = ?, auth = ?, pre_request_script = ?, post_request_script = ? WHERE id = ?',
       [
-        name.trim(),
+        trimmedName,
         JSON.stringify(variables),
         JSON.stringify(headers),
         JSON.stringify(auth),
@@ -294,10 +297,11 @@ export class MySqlDatabase implements IDatabase {
    * @returns The newly created environment.
    */
   async createEnvironment(name: string): Promise<Environment> {
+    const trimmedName = trimRequiredName(name, 'Environment name');
     const createdAt = new Date().toISOString();
     const [result] = await this.getPool().execute<ResultSetHeader>(
       `INSERT INTO environments (name, variables, created_at) VALUES (?, '[]', ?)`,
-      [name.trim(), createdAt]
+      [trimmedName, createdAt]
     );
 
     const [rows] = await this.getPool().execute<RowDataPacket[]>(
@@ -319,9 +323,10 @@ export class MySqlDatabase implements IDatabase {
    * @returns The updated environment.
    */
   async updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment> {
+    const trimmedName = trimRequiredName(name, 'Environment name');
     const [result] = await this.getPool().execute<ResultSetHeader>(
       'UPDATE environments SET name = ?, variables = ? WHERE id = ?',
-      [name.trim(), JSON.stringify(variables), id]
+      [trimmedName, JSON.stringify(variables), id]
     );
 
     if (result.affectedRows === 0) throw new Error('Environment not found');
@@ -366,6 +371,7 @@ export class MySqlDatabase implements IDatabase {
    * @returns The saved request with ID and timestamps.
    */
   async saveRequest(input: SaveRequestInput): Promise<SavedRequest> {
+    const trimmedName = trimRequiredName(input.name, 'Request name');
     const headers = JSON.stringify(input.headers);
     const params = JSON.stringify(input.params);
     const auth = JSON.stringify(input.auth);
@@ -397,7 +403,7 @@ export class MySqlDatabase implements IDatabase {
         [
           input.collection_id,
           folderId,
-          input.name.trim(),
+          trimmedName,
           input.method,
           input.url,
           headers,
@@ -438,7 +444,7 @@ export class MySqlDatabase implements IDatabase {
       [
         input.collection_id,
         folderId,
-        input.name.trim(),
+        trimmedName,
         input.method,
         input.url,
         headers,
@@ -496,6 +502,7 @@ export class MySqlDatabase implements IDatabase {
    * @returns The newly created folder.
    */
   async createFolder(collectionId: number, name: string): Promise<Folder> {
+    const trimmedName = trimRequiredName(name, 'Folder name');
     const createdAt = new Date().toISOString();
     const [maxRows] = await this.getPool().execute<RowDataPacket[]>(
       'SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM folders WHERE collection_id = ?',
@@ -505,7 +512,7 @@ export class MySqlDatabase implements IDatabase {
 
     const [result] = await this.getPool().execute<ResultSetHeader>(
       'INSERT INTO folders (collection_id, name, sort_order, created_at) VALUES (?, ?, ?, ?)',
-      [collectionId, name.trim(), maxOrder + 1, createdAt]
+      [collectionId, trimmedName, maxOrder + 1, createdAt]
     );
 
     const [rows] = await this.getPool().execute<RowDataPacket[]>(
@@ -525,9 +532,10 @@ export class MySqlDatabase implements IDatabase {
    * @returns The updated folder.
    */
   async renameFolder(id: number, name: string): Promise<Folder> {
+    const trimmedName = trimRequiredName(name, 'Folder name');
     const [result] = await this.getPool().execute<ResultSetHeader>(
       'UPDATE folders SET name = ? WHERE id = ?',
-      [name.trim(), id]
+      [trimmedName, id]
     );
     if (result.affectedRows === 0) throw new Error('Folder not found');
 
@@ -623,31 +631,17 @@ export class MySqlDatabase implements IDatabase {
    * @param index - Zero-based position within the destination container.
    */
   async moveRequest(requestId: number, folderId: number | null, index: number): Promise<void> {
-    const pool = this.getPool();
-    const [requestRows] = await pool.execute<RowDataPacket[]>(
-      'SELECT * FROM requests WHERE id = ?',
-      [requestId]
-    );
-    const requestRow = requestRows[0];
-    if (!requestRow) throw new Error('Request not found');
+    // Run the read, validate, and reindex steps on a single connection wrapped
+    // in a transaction so a concurrent move or mid-operation failure cannot
+    // leave duplicate or gap-filled sort_order values across the source and
+    // destination containers.
+    const connection = await this.getPool().getConnection();
 
-    const request = rowToRequest(requestRow);
-    const collectionId = request.collection_id;
-    const oldFolderId = request.folder_id;
-
-    if (folderId != null) {
-      const [folderRows] = await pool.execute<RowDataPacket[]>(
-        'SELECT collection_id FROM folders WHERE id = ?',
-        [folderId]
-      );
-      const folderRow = folderRows[0];
-      if (!folderRow || folderRow.collection_id !== collectionId) {
-        throw new Error('Folder not found');
-      }
-    }
-
-    const listInContainer = async (targetFolderId: number | null): Promise<number[]> => {
-      const [rows] = await pool.execute<RowDataPacket[]>(
+    const listInContainer = async (
+      collectionId: number,
+      targetFolderId: number | null
+    ): Promise<number[]> => {
+      const [rows] = await connection.execute<RowDataPacket[]>(
         `SELECT id FROM requests WHERE collection_id = ?
          AND ((? IS NULL AND folder_id IS NULL) OR folder_id = ?)
          ORDER BY sort_order ASC, name ASC`,
@@ -661,7 +655,7 @@ export class MySqlDatabase implements IDatabase {
       orderedIds: number[]
     ): Promise<void> => {
       for (let sortIndex = 0; sortIndex < orderedIds.length; sortIndex++) {
-        await pool.execute('UPDATE requests SET sort_order = ?, folder_id = ? WHERE id = ?', [
+        await connection.execute('UPDATE requests SET sort_order = ?, folder_id = ? WHERE id = ?', [
           sortIndex,
           targetFolderId,
           orderedIds[sortIndex]
@@ -669,19 +663,57 @@ export class MySqlDatabase implements IDatabase {
       }
     };
 
-    if (oldFolderId === folderId) {
-      const siblings = (await listInContainer(folderId)).filter((id) => id !== requestId);
-      siblings.splice(index, 0, requestId);
-      await reindexContainer(folderId, siblings);
-      return;
+    try {
+      await connection.beginTransaction();
+
+      const [requestRows] = await connection.execute<RowDataPacket[]>(
+        'SELECT * FROM requests WHERE id = ?',
+        [requestId]
+      );
+      const requestRow = requestRows[0];
+      if (!requestRow) throw new Error('Request not found');
+
+      const request = rowToRequest(requestRow);
+      const collectionId = request.collection_id;
+      const oldFolderId = request.folder_id;
+
+      if (folderId != null) {
+        const [folderRows] = await connection.execute<RowDataPacket[]>(
+          'SELECT collection_id FROM folders WHERE id = ?',
+          [folderId]
+        );
+        const folderRow = folderRows[0];
+        if (!folderRow || folderRow.collection_id !== collectionId) {
+          throw new Error('Folder not found');
+        }
+      }
+
+      if (oldFolderId === folderId) {
+        const siblings = (await listInContainer(collectionId, folderId)).filter(
+          (id) => id !== requestId
+        );
+        siblings.splice(index, 0, requestId);
+        await reindexContainer(folderId, siblings);
+      } else {
+        const oldIds = (await listInContainer(collectionId, oldFolderId)).filter(
+          (id) => id !== requestId
+        );
+        await reindexContainer(oldFolderId, oldIds);
+
+        const newIds = (await listInContainer(collectionId, folderId)).filter(
+          (id) => id !== requestId
+        );
+        newIds.splice(index, 0, requestId);
+        await reindexContainer(folderId, newIds);
+      }
+
+      await connection.commit();
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
     }
-
-    const oldIds = (await listInContainer(oldFolderId)).filter((id) => id !== requestId);
-    await reindexContainer(oldFolderId, oldIds);
-
-    const newIds = (await listInContainer(folderId)).filter((id) => id !== requestId);
-    newIds.splice(index, 0, requestId);
-    await reindexContainer(folderId, newIds);
   }
 
   /**
@@ -786,6 +818,9 @@ export class MySqlDatabase implements IDatabase {
       const folderIdByName = new Map<string, number>();
 
       for (const folder of exportData.folders ?? []) {
+        if (folderIdByName.has(folder.name)) {
+          throw new Error(`Invalid collection file: duplicate folder name "${folder.name}"`);
+        }
         const [folderResult] = await connection.execute<ResultSetHeader>(
           'INSERT INTO folders (collection_id, name, sort_order, created_at) VALUES (?, ?, ?, ?)',
           [collectionId, folder.name, folder.sort_order, now]

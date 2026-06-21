@@ -10,6 +10,7 @@ import {
   rowToFolder,
   rowToRequest
 } from '#/main/db/entityMappers';
+import { trimRequiredName } from '#/main/db/trimRequiredName';
 import { DEFAULT_AUTH_JSON, defaultAuth, normalizeAuth } from '#/shared/auth';
 import type { IDatabase } from '#/main/db/IDatabase';
 import type {
@@ -164,12 +165,13 @@ export class PostgresDatabase implements IDatabase {
    * @returns The newly created collection.
    */
   async createCollection(name: string): Promise<Collection> {
+    const trimmedName = trimRequiredName(name, 'Collection name');
     const createdAt = new Date().toISOString();
     const result = await this.getPool().query(
       `INSERT INTO collections (name, variables, headers, pre_request_script, post_request_script, created_at)
        VALUES ($1, '[]', '[]', '', '', $2)
        RETURNING id, name, variables, headers, auth, pre_request_script, post_request_script, created_at`,
-      [name.trim(), createdAt]
+      [trimmedName, createdAt]
     );
 
     const row = result.rows[0];
@@ -210,10 +212,11 @@ export class PostgresDatabase implements IDatabase {
     postRequestScript: string,
     auth: AuthConfig
   ): Promise<Collection> {
+    const trimmedName = trimRequiredName(name, 'Collection name');
     const result = await this.getPool().query(
       'UPDATE collections SET name = $1, variables = $2, headers = $3, auth = $4, pre_request_script = $5, post_request_script = $6 WHERE id = $7',
       [
-        name.trim(),
+        trimmedName,
         JSON.stringify(variables),
         JSON.stringify(headers),
         JSON.stringify(auth),
@@ -263,11 +266,12 @@ export class PostgresDatabase implements IDatabase {
    * @returns The newly created environment.
    */
   async createEnvironment(name: string): Promise<Environment> {
+    const trimmedName = trimRequiredName(name, 'Environment name');
     const createdAt = new Date().toISOString();
     const result = await this.getPool().query(
       `INSERT INTO environments (name, variables, created_at) VALUES ($1, '[]', $2)
        RETURNING id, name, variables, created_at`,
-      [name.trim(), createdAt]
+      [trimmedName, createdAt]
     );
 
     const row = result.rows[0];
@@ -284,9 +288,10 @@ export class PostgresDatabase implements IDatabase {
    * @returns The updated environment.
    */
   async updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment> {
+    const trimmedName = trimRequiredName(name, 'Environment name');
     const result = await this.getPool().query(
       'UPDATE environments SET name = $1, variables = $2 WHERE id = $3',
-      [name.trim(), JSON.stringify(variables), id]
+      [trimmedName, JSON.stringify(variables), id]
     );
 
     if (result.rowCount === 0) throw new Error('Environment not found');
@@ -331,6 +336,7 @@ export class PostgresDatabase implements IDatabase {
    * @returns The saved request with ID and timestamps.
    */
   async saveRequest(input: SaveRequestInput): Promise<SavedRequest> {
+    const trimmedName = trimRequiredName(input.name, 'Request name');
     const headers = JSON.stringify(input.headers);
     const params = JSON.stringify(input.params);
     const auth = JSON.stringify(input.auth);
@@ -362,7 +368,7 @@ export class PostgresDatabase implements IDatabase {
         [
           input.collection_id,
           folderId,
-          input.name.trim(),
+          trimmedName,
           input.method,
           input.url,
           headers,
@@ -403,7 +409,7 @@ export class PostgresDatabase implements IDatabase {
       [
         input.collection_id,
         folderId,
-        input.name.trim(),
+        trimmedName,
         input.method,
         input.url,
         headers,
@@ -456,6 +462,7 @@ export class PostgresDatabase implements IDatabase {
    * @returns The newly created folder.
    */
   async createFolder(collectionId: number, name: string): Promise<Folder> {
+    const trimmedName = trimRequiredName(name, 'Folder name');
     const createdAt = new Date().toISOString();
     const maxResult = await this.getPool().query(
       'SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM folders WHERE collection_id = $1',
@@ -467,7 +474,7 @@ export class PostgresDatabase implements IDatabase {
       `INSERT INTO folders (collection_id, name, sort_order, created_at)
        VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [collectionId, name.trim(), maxOrder + 1, createdAt]
+      [collectionId, trimmedName, maxOrder + 1, createdAt]
     );
 
     const row = result.rows[0];
@@ -483,9 +490,10 @@ export class PostgresDatabase implements IDatabase {
    * @returns The updated folder.
    */
   async renameFolder(id: number, name: string): Promise<Folder> {
+    const trimmedName = trimRequiredName(name, 'Folder name');
     const result = await this.getPool().query(
       'UPDATE folders SET name = $1 WHERE id = $2 RETURNING *',
-      [name.trim(), id]
+      [trimmedName, id]
     );
     const row = result.rows[0];
     if (!row) throw new Error('Folder not found');
@@ -575,27 +583,17 @@ export class PostgresDatabase implements IDatabase {
    * @param index - Zero-based position within the destination container.
    */
   async moveRequest(requestId: number, folderId: number | null, index: number): Promise<void> {
-    const pool = this.getPool();
-    const requestResult = await pool.query('SELECT * FROM requests WHERE id = $1', [requestId]);
-    const requestRow = requestResult.rows[0];
-    if (!requestRow) throw new Error('Request not found');
+    // Run the read, validate, and reindex steps on a single client wrapped in a
+    // transaction so a concurrent move or mid-operation failure cannot leave
+    // duplicate or gap-filled sort_order values across the source and
+    // destination containers.
+    const client = await this.getPool().connect();
 
-    const request = rowToRequest(requestRow);
-    const collectionId = request.collection_id;
-    const oldFolderId = request.folder_id;
-
-    if (folderId != null) {
-      const folderResult = await pool.query('SELECT collection_id FROM folders WHERE id = $1', [
-        folderId
-      ]);
-      const folderRow = folderResult.rows[0];
-      if (!folderRow || folderRow.collection_id !== collectionId) {
-        throw new Error('Folder not found');
-      }
-    }
-
-    const listInContainer = async (targetFolderId: number | null): Promise<number[]> => {
-      const result = await pool.query(
+    const listInContainer = async (
+      collectionId: number,
+      targetFolderId: number | null
+    ): Promise<number[]> => {
+      const result = await client.query(
         `SELECT id FROM requests WHERE collection_id = $1
          AND (($2::int IS NULL AND folder_id IS NULL) OR folder_id = $2)
          ORDER BY sort_order ASC, name ASC`,
@@ -609,7 +607,7 @@ export class PostgresDatabase implements IDatabase {
       orderedIds: number[]
     ): Promise<void> => {
       for (let sortIndex = 0; sortIndex < orderedIds.length; sortIndex++) {
-        await pool.query('UPDATE requests SET sort_order = $1, folder_id = $2 WHERE id = $3', [
+        await client.query('UPDATE requests SET sort_order = $1, folder_id = $2 WHERE id = $3', [
           sortIndex,
           targetFolderId,
           orderedIds[sortIndex]
@@ -617,19 +615,53 @@ export class PostgresDatabase implements IDatabase {
       }
     };
 
-    if (oldFolderId === folderId) {
-      const siblings = (await listInContainer(folderId)).filter((id) => id !== requestId);
-      siblings.splice(index, 0, requestId);
-      await reindexContainer(folderId, siblings);
-      return;
+    try {
+      await client.query('BEGIN');
+
+      const requestResult = await client.query('SELECT * FROM requests WHERE id = $1', [requestId]);
+      const requestRow = requestResult.rows[0];
+      if (!requestRow) throw new Error('Request not found');
+
+      const request = rowToRequest(requestRow);
+      const collectionId = request.collection_id;
+      const oldFolderId = request.folder_id;
+
+      if (folderId != null) {
+        const folderResult = await client.query('SELECT collection_id FROM folders WHERE id = $1', [
+          folderId
+        ]);
+        const folderRow = folderResult.rows[0];
+        if (!folderRow || folderRow.collection_id !== collectionId) {
+          throw new Error('Folder not found');
+        }
+      }
+
+      if (oldFolderId === folderId) {
+        const siblings = (await listInContainer(collectionId, folderId)).filter(
+          (id) => id !== requestId
+        );
+        siblings.splice(index, 0, requestId);
+        await reindexContainer(folderId, siblings);
+      } else {
+        const oldIds = (await listInContainer(collectionId, oldFolderId)).filter(
+          (id) => id !== requestId
+        );
+        await reindexContainer(oldFolderId, oldIds);
+
+        const newIds = (await listInContainer(collectionId, folderId)).filter(
+          (id) => id !== requestId
+        );
+        newIds.splice(index, 0, requestId);
+        await reindexContainer(folderId, newIds);
+      }
+
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
     }
-
-    const oldIds = (await listInContainer(oldFolderId)).filter((id) => id !== requestId);
-    await reindexContainer(oldFolderId, oldIds);
-
-    const newIds = (await listInContainer(folderId)).filter((id) => id !== requestId);
-    newIds.splice(index, 0, requestId);
-    await reindexContainer(folderId, newIds);
   }
 
   /**
@@ -735,6 +767,9 @@ export class PostgresDatabase implements IDatabase {
       const folderIdByName = new Map<string, number>();
 
       for (const folder of exportData.folders ?? []) {
+        if (folderIdByName.has(folder.name)) {
+          throw new Error(`Invalid collection file: duplicate folder name "${folder.name}"`);
+        }
         const folderResult = await client.query(
           `INSERT INTO folders (collection_id, name, sort_order, created_at)
            VALUES ($1, $2, $3, $4)

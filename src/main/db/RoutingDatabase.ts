@@ -184,12 +184,17 @@ export class RoutingDatabase implements IDatabase {
   async createCollection(name: string): Promise<Collection> {
     const backend = this.requireDefaultDataBackend();
     const created = await backend.db.createCollection(name);
-    const entry = this.registry.addRegistryEntry({
-      name: created.name,
-      connectionId: backend.connectionId,
-      providerCollectionId: created.id
-    });
-    return this.buildCollection(entry, created);
+    try {
+      const entry = this.registry.addRegistryEntry({
+        name: created.name,
+        connectionId: backend.connectionId,
+        providerCollectionId: created.id
+      });
+      return this.buildCollection(entry, created);
+    } catch (err) {
+      await this.compensateProviderCollectionCreate(backend, created.id);
+      throw err;
+    }
   }
 
   /**
@@ -224,10 +229,8 @@ export class RoutingDatabase implements IDatabase {
    */
   async deleteCollection(id: number): Promise<void> {
     const entry = this.requireEntry(id);
-    const backend = this.byConnectionId.get(entry.connectionId);
-    if (backend) {
-      await backend.db.deleteCollection(entry.providerCollectionId);
-    }
+    const backend = this.requireBackendByConnectionId(entry.connectionId);
+    await backend.db.deleteCollection(entry.providerCollectionId);
     this.registry.deleteRegistryEntry(id);
   }
 
@@ -275,9 +278,12 @@ export class RoutingDatabase implements IDatabase {
   async saveRequest(input: SaveRequestInput): Promise<SavedRequest> {
     const entry = this.requireEntry(input.collection_id);
     const backend = this.requireBackendByConnectionId(entry.connectionId);
-    const localRequestId = input.id != null ? decodeGlobalId(input.id).localId : undefined;
+    const localRequestId =
+      input.id != null ? this.decodeLocalIdForBackend(input.id, backend) : undefined;
     const localFolderId =
-      input.folder_id != null ? decodeGlobalId(input.folder_id).localId : input.folder_id;
+      input.folder_id != null
+        ? this.decodeLocalIdForBackend(input.folder_id, backend)
+        : input.folder_id;
 
     const saved = await backend.db.saveRequest({
       ...input,
@@ -369,7 +375,9 @@ export class RoutingDatabase implements IDatabase {
   async reorderFolders(collectionId: number, orderedFolderIds: number[]): Promise<void> {
     const entry = this.requireEntry(collectionId);
     const backend = this.requireBackendByConnectionId(entry.connectionId);
-    const localIds = orderedFolderIds.map((folderId) => decodeGlobalId(folderId).localId);
+    const localIds = orderedFolderIds.map((folderId) =>
+      this.decodeLocalIdForBackend(folderId, backend)
+    );
     await backend.db.reorderFolders(entry.providerCollectionId, localIds);
   }
 
@@ -387,8 +395,10 @@ export class RoutingDatabase implements IDatabase {
   ): Promise<void> {
     const entry = this.requireEntry(collectionId);
     const backend = this.requireBackendByConnectionId(entry.connectionId);
-    const localFolderId = folderId != null ? decodeGlobalId(folderId).localId : null;
-    const localRequestIds = orderedRequestIds.map((requestId) => decodeGlobalId(requestId).localId);
+    const localFolderId = folderId != null ? this.decodeLocalIdForBackend(folderId, backend) : null;
+    const localRequestIds = orderedRequestIds.map((requestId) =>
+      this.decodeLocalIdForBackend(requestId, backend)
+    );
     await backend.db.reorderRequests(entry.providerCollectionId, localFolderId, localRequestIds);
   }
 
@@ -424,12 +434,17 @@ export class RoutingDatabase implements IDatabase {
   async importCollectionData(data: unknown): Promise<Collection> {
     const backend = this.requireDefaultDataBackend();
     const imported = await backend.db.importCollectionData(data);
-    const entry = this.registry.addRegistryEntry({
-      name: imported.name,
-      connectionId: backend.connectionId,
-      providerCollectionId: imported.id
-    });
-    return this.buildCollection(entry, imported);
+    try {
+      const entry = this.registry.addRegistryEntry({
+        name: imported.name,
+        connectionId: backend.connectionId,
+        providerCollectionId: imported.id
+      });
+      return this.buildCollection(entry, imported);
+    } catch (err) {
+      await this.compensateProviderCollectionCreate(backend, imported.id);
+      throw err;
+    }
   }
 
   /**
@@ -537,12 +552,16 @@ export class RoutingDatabase implements IDatabase {
         providerCollectionId: meta.providerCollectionId
       });
 
+    const backend = this.requireBackendByConnectionId(connection.id);
     let record: Collection | undefined;
     try {
-      const records = await this.requireBackendByConnectionId(connection.id).db.listCollections();
+      const records = await backend.db.listCollections();
       record = records.find((item) => item.id === meta.providerCollectionId);
-    } catch {
-      record = undefined;
+    } catch (err) {
+      console.warn(`Failed to read collections from "${backend.connectionName}":`, err);
+      this.listCollectionWarnings.push(
+        `Could not load collections from "${backend.connectionName}": ${formatListCollectionError(err)}`
+      );
     }
 
     return this.buildCollection(entry, record);
@@ -625,6 +644,26 @@ export class RoutingDatabase implements IDatabase {
   }
 
   /**
+   * Deletes a provider collection when registry registration fails after create/import.
+   *
+   * @param backend - Backend that owns the orphaned provider collection.
+   * @param providerCollectionId - Provider-local collection id to remove.
+   */
+  private async compensateProviderCollectionCreate(
+    backend: MountedBackend,
+    providerCollectionId: number
+  ): Promise<void> {
+    try {
+      await backend.db.deleteCollection(providerCollectionId);
+    } catch (cleanupErr) {
+      console.warn(
+        `Failed to clean up provider collection ${providerCollectionId} after registry failure:`,
+        cleanupErr
+      );
+    }
+  }
+
+  /**
    * Merges registry metadata with backend collection record fields.
    *
    * @param entry - Registry entry for the collection.
@@ -687,6 +726,24 @@ export class RoutingDatabase implements IDatabase {
       id: encodeGlobalId(backend.slot, folder.id),
       collection_id: globalCollectionId
     };
+  }
+
+  /**
+   * Decodes a global id and verifies it belongs to the expected backend slot.
+   *
+   * @param globalId - Namespaced id from the UI.
+   * @param backend - Mounted backend that should own the id.
+   * @returns Local id within that backend.
+   * @throws When the id's slot does not match the backend.
+   */
+  private decodeLocalIdForBackend(globalId: number, backend: MountedBackend): number {
+    const { slot, localId } = decodeGlobalId(globalId);
+    if (slot !== backend.slot) {
+      throw new Error(
+        `Global id ${globalId} does not belong to backend slot ${backend.slot} (slot ${slot}).`
+      );
+    }
+    return localId;
   }
 
   /**

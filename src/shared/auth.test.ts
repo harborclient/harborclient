@@ -49,6 +49,15 @@ describe('buildAuthHeaderValue', () => {
     const auth = { ...defaultAuth(), type: 'bearer' as const, bearer: { token: '   ' } };
     expect(buildAuthHeaderValue(auth)).toBeNull();
   });
+
+  it('returns null for bearer when token contains control characters', () => {
+    const auth = {
+      ...defaultAuth(),
+      type: 'bearer' as const,
+      bearer: { token: 'abc\r\nX-Injected: evil' }
+    };
+    expect(buildAuthHeaderValue(auth)).toBeNull();
+  });
 });
 
 describe('normalizeAuth', () => {

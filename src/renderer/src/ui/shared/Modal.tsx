@@ -1,4 +1,4 @@
-import type { JSX, ReactNode } from 'react';
+import { useEffect, type JSX, type ReactNode } from 'react';
 
 interface Props {
   /**
@@ -11,13 +11,39 @@ interface Props {
    */
   className?: string;
 
+  /**
+   * When true, Escape does not call `onClose` (e.g. modals that require an explicit button).
+   */
+  disableEscape?: boolean;
+
   children: ReactNode;
 }
 
 /**
  * Shared modal backdrop and panel wrapper used by all application dialogs.
  */
-export function Modal({ onClose, className = 'w-96', children }: Props): JSX.Element {
+export function Modal({
+  onClose,
+  className = 'w-96',
+  disableEscape = false,
+  children
+}: Props): JSX.Element {
+  /**
+   * Closes the modal when Escape is pressed unless disabled.
+   */
+  useEffect(() => {
+    if (disableEscape) return;
+
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [disableEscape, onClose]);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"

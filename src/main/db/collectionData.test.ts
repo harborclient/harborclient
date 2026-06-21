@@ -53,6 +53,34 @@ describe('validateCollectionExport', () => {
     expect(result.folders).toEqual([{ name: 'API', sort_order: 0 }]);
   });
 
+  it('rejects duplicate folder names', () => {
+    expect(() =>
+      validateCollectionExport({
+        ...validV1Export,
+        formatVersion: 2,
+        folders: [
+          { name: 'API', sort_order: 0 },
+          { name: 'API', sort_order: 1 }
+        ],
+        requests: []
+      })
+    ).toThrow('Invalid collection file: folder 2 has a duplicate name');
+  });
+
+  it('rejects duplicate folder names after whitespace normalization', () => {
+    expect(() =>
+      validateCollectionExport({
+        ...validV1Export,
+        formatVersion: 2,
+        folders: [
+          { name: ' API ', sort_order: 0 },
+          { name: 'API', sort_order: 1 }
+        ],
+        requests: []
+      })
+    ).toThrow('Invalid collection file: folder 2 has a duplicate name');
+  });
+
   it('rejects non-object payloads', () => {
     expect(() => validateCollectionExport(null)).toThrow(
       'Invalid collection file: expected a JSON object'

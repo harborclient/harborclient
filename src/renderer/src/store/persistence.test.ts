@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import type { RequestDraft } from '#/renderer/src/store/drafts';
+import { createTab } from '#/renderer/src/store/drafts';
 import {
   defaultTabState,
   LEGACY_OPEN_TABS_KEY,
   loadTabsFromStorage,
   OPEN_TABS_KEY,
+  persistActiveEnvironmentId,
+  persistTabs,
   type PersistedOpenTabs
 } from '#/renderer/src/store/persistence';
 
@@ -206,5 +209,50 @@ describe('loadTabsFromStorage', () => {
 
     expect(result.tabs).toHaveLength(1);
     expect(result.tabs[0].draft.name).toBe('First');
+  });
+});
+
+describe('persistTabs', () => {
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', createLocalStorageMock());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('does not throw when localStorage.setItem fails', () => {
+    vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new DOMException('QuotaExceededError');
+    });
+    const tab = createTab();
+
+    expect(() => persistTabs([tab], tab.tabId)).not.toThrow();
+  });
+});
+
+describe('persistActiveEnvironmentId', () => {
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', createLocalStorageMock());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('does not throw when localStorage.setItem fails', () => {
+    vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new DOMException('QuotaExceededError');
+    });
+
+    expect(() => persistActiveEnvironmentId(1)).not.toThrow();
+  });
+
+  it('does not throw when localStorage.removeItem fails', () => {
+    vi.spyOn(localStorage, 'removeItem').mockImplementation(() => {
+      throw new DOMException('SecurityError');
+    });
+
+    expect(() => persistActiveEnvironmentId(null)).not.toThrow();
   });
 });

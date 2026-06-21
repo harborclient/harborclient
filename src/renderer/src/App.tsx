@@ -10,6 +10,7 @@ import {
   selectConsoleEntries,
   selectDraft,
   selectEnvironments,
+  selectFoldersByCollection,
   selectSelectedCollectionId
 } from '#/renderer/src/store/selectors';
 import { clearConsole } from '#/renderer/src/store/slices/consoleSlice';
@@ -65,6 +66,7 @@ export default function App(): JSX.Element {
   const sidebarVisible = useAppSelector(selectSidebarVisible);
   const showConsole = useAppSelector(selectShowConsole);
   const showVariables = useAppSelector(selectShowVariables);
+  const foldersByCollection = useAppSelector(selectFoldersByCollection);
 
   useMenuActions();
   useBeforeClose();
@@ -79,13 +81,15 @@ export default function App(): JSX.Element {
   const activeCollectionId = draft.collection_id ?? selectedCollectionId;
 
   /**
-   * Refreshes the contents of the active collection.
+   * Loads folders and requests for the active collection when that data has not
+   * been fetched yet (lazy load on mount or collection change).
    */
   useEffect(() => {
-    if (activeCollectionId != null) {
+    if (activeCollectionId == null) return;
+    if (foldersByCollection[activeCollectionId] === undefined) {
       void dispatch(refreshCollectionContents(activeCollectionId));
     }
-  }, [dispatch, activeCollectionId]);
+  }, [activeCollectionId, foldersByCollection, dispatch]);
 
   const activeCollection =
     activeCollectionId != null
@@ -125,7 +129,7 @@ export default function App(): JSX.Element {
               dispatch(openInviteModal({ collectionId, collectionName }));
               void dispatch(loadTrustedKeys());
             }}
-            onLoadRequest={(req) => void dispatch(requestLoadRequest(req))}
+            onLoadRequest={(req) => void dispatch(requestLoadRequest({ req }))}
           />
         )}
 

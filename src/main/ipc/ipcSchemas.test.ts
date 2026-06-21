@@ -1,4 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { HARD_MAX_RESPONSE_SIZE_MB } from '#/main/http/http';
+import {
+  MAX_IPC_COMMENT_CHARS,
+  MAX_IPC_REQUEST_BODY_CHARS,
+  MAX_IPC_SCRIPT_CHARS,
+  MAX_IPC_URL_CHARS
+} from '#/main/ipc/ipcLimits';
 import {
   bodyType,
   databaseConnection,
@@ -159,6 +166,28 @@ describe('databaseConnection', () => {
       }).success
     ).toBe(false);
   });
+
+  it('rejects sqlite legacyUserDataDir with path traversal or separators', () => {
+    const base = {
+      id: 'abc',
+      name: 'Local',
+      type: 'sqlite' as const,
+      settings: {
+        dbFilename: 'harborclient.db',
+        legacyDbFilename: 'harbor-client.db',
+        legacyUserDataDir: 'harbor-client'
+      }
+    };
+
+    for (const legacyUserDataDir of ['..', '../escape', 'foo/bar', 'foo\\bar', '.']) {
+      expect(
+        databaseConnection.safeParse({
+          ...base,
+          settings: { ...base.settings, legacyUserDataDir }
+        }).success
+      ).toBe(false);
+    }
+  });
 });
 
 describe('generalSettings', () => {
@@ -177,6 +206,40 @@ describe('generalSettings', () => {
       generalSettings.safeParse({
         requestTimeoutMs: '30000',
         maxResponseSizeMb: 50,
+        verifySsl: true
+      }).success
+    ).toBe(false);
+  });
+
+  it('accepts maxResponseSizeMb from 0 through the hard cap', () => {
+    expect(
+      generalSettings.safeParse({
+        requestTimeoutMs: 30000,
+        maxResponseSizeMb: 0,
+        verifySsl: true
+      }).success
+    ).toBe(true);
+    expect(
+      generalSettings.safeParse({
+        requestTimeoutMs: 30000,
+        maxResponseSizeMb: 512,
+        verifySsl: true
+      }).success
+    ).toBe(true);
+  });
+
+  it('rejects maxResponseSizeMb outside the allowed range', () => {
+    expect(
+      generalSettings.safeParse({
+        requestTimeoutMs: 30000,
+        maxResponseSizeMb: -1,
+        verifySsl: true
+      }).success
+    ).toBe(false);
+    expect(
+      generalSettings.safeParse({
+        requestTimeoutMs: 30000,
+        maxResponseSizeMb: 1_000_000,
         verifySsl: true
       }).success
     ).toBe(false);
@@ -222,5 +285,72 @@ describe('object schema happy paths', () => {
   it('inviteCreate accepts optional recipientKid', () => {
     expect(ipcArgSchemas.inviteCreate.safeParse([1]).success).toBe(true);
     expect(ipcArgSchemas.inviteCreate.safeParse([1, 'kid-abc']).success).toBe(true);
+    expect(ipcArgSchemas.inviteCreate.safeParse([1, '']).success).toBe(false);
+  });
+});
+
+describe('non-empty name schemas', () => {
+  it('name tuple rejects whitespace-only strings', () => {
+    expect(ipcArgSchemas.name.safeParse(['']).success).toBe(false);
+    expect(ipcArgSchemas.name.safeParse(['   ']).success).toBe(false);
+    expect(ipcArgSchemas.name.safeParse(['My API']).success).toBe(true);
+    expect(ipcArgSchemas.name.safeParse(['  My API  ']).success).toBe(true);
+  });
+
+  it('saveRequestInput rejects empty request name', () => {
+    expect(saveRequestInput.safeParse({ ...validSaveRequest, name: '' }).success).toBe(false);
+    expect(saveRequestInput.safeParse({ ...validSaveRequest, name: '   ' }).success).toBe(false);
+  });
+});
+
+describe('IPC size limits', () => {
+  it('aligns request body cap with the hard response size ceiling', () => {
+    expect(MAX_IPC_REQUEST_BODY_CHARS).toBe(HARD_MAX_RESPONSE_SIZE_MB * 1024 * 1024);
+  });
+
+  it('saveRequestInput rejects oversized pre_request_script and accepts at-limit script', () => {
+    const oversizedScript = 'x'.repeat(MAX_IPC_SCRIPT_CHARS + 1);
+    const atLimitScript = 'x'.repeat(MAX_IPC_SCRIPT_CHARS);
+
+    expect(
+      saveRequestInput.safeParse({ ...validSaveRequest, pre_request_script: oversizedScript })
+        .success
+    ).toBe(false);
+    expect(
+      saveRequestInput.safeParse({ ...validSaveRequest, pre_request_script: atLimitScript }).success
+    ).toBe(true);
+  });
+
+  it('scriptRunInput rejects oversized script and accepts at-limit script', () => {
+    const oversizedScript = 'x'.repeat(MAX_IPC_SCRIPT_CHARS + 1);
+    const atLimitScript = 'x'.repeat(MAX_IPC_SCRIPT_CHARS);
+
+    expect(scriptRunInput.safeParse({ ...validScriptRun, script: oversizedScript }).success).toBe(
+      false
+    );
+    expect(scriptRunInput.safeParse({ ...validScriptRun, script: atLimitScript }).success).toBe(
+      true
+    );
+  });
+
+  it('sendRequestInput rejects oversized url', () => {
+    expect(
+      sendRequestInput.safeParse({
+        ...validSendRequest,
+        url: 'https://example.com/' + 'a'.repeat(MAX_IPC_URL_CHARS)
+      }).success
+    ).toBe(false);
+  });
+
+  it('saveRequestInput rejects oversized comment and accepts at-limit comment', () => {
+    const oversizedComment = 'x'.repeat(MAX_IPC_COMMENT_CHARS + 1);
+    const atLimitComment = 'x'.repeat(MAX_IPC_COMMENT_CHARS);
+
+    expect(
+      saveRequestInput.safeParse({ ...validSaveRequest, comment: oversizedComment }).success
+    ).toBe(false);
+    expect(
+      saveRequestInput.safeParse({ ...validSaveRequest, comment: atLimitComment }).success
+    ).toBe(true);
   });
 });

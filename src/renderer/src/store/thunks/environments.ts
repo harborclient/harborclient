@@ -5,6 +5,12 @@ import {
   setEnvironments
 } from '#/renderer/src/store/slices/environmentsSlice';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
+import {
+  beginRefreshGeneration,
+  isLatestRefreshGeneration
+} from '#/renderer/src/store/refreshGeneration';
+
+const ENVIRONMENTS_REFRESH_KEY = 'environments';
 
 /**
  * Reloads all environments and clears the active selection when it no longer exists.
@@ -14,7 +20,11 @@ export const refreshEnvironments = createAsyncThunk<
   void,
   ThunkApiConfig
 >('environments/refresh', async (_, { dispatch, getState }) => {
+  const generation = beginRefreshGeneration(ENVIRONMENTS_REFRESH_KEY);
   const data = await window.api.listEnvironments();
+  if (!isLatestRefreshGeneration(ENVIRONMENTS_REFRESH_KEY, generation)) {
+    return getState().environments.environments;
+  }
   dispatch(setEnvironments(data));
   const activeId = getState().environments.activeEnvironmentId;
   if (activeId != null && !data.some((env) => env.id === activeId)) {

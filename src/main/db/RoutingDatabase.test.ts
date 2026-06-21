@@ -162,6 +162,55 @@ describeSqlite('RoutingDatabase collections', () => {
       'Second'
     ]);
   });
+
+  it('createCollection deletes provider row when registry registration fails', async () => {
+    const { router, registry, backendA } = await createRoutingFixture();
+    vi.spyOn(registry, 'addRegistryEntry').mockImplementationOnce(() => {
+      throw new Error('Registry write failed');
+    });
+
+    await expect(router.createCollection('Orphan')).rejects.toThrow('Registry write failed');
+    expect(await backendA.listCollections()).toEqual([]);
+    expect(registry.listRegistry()).toEqual([]);
+  });
+
+  it('registerSharedCollection records warnings when provider read fails', async () => {
+    const { router, backendA, rootDir } = await createRoutingFixture();
+    vi.spyOn(backendA, 'listCollections').mockRejectedValueOnce(new Error('Connection refused'));
+
+    const collection = await router.registerSharedCollection(CONN_A, 0, rootDir, {
+      name: 'Shared API',
+      providerCollectionId: 1
+    });
+
+    expect(collection.name).toBe('Shared API');
+    expect(collection.variables).toEqual([]);
+    expect(router.consumeCollectionListWarnings()).toEqual([
+      'Could not load collections from "SQLite A": Connection refused'
+    ]);
+  });
+
+  it('importCollectionData deletes provider row when registry registration fails', async () => {
+    const { router, registry, backendA } = await createRoutingFixture();
+    vi.spyOn(registry, 'addRegistryEntry').mockImplementationOnce(() => {
+      throw new Error('Registry write failed');
+    });
+
+    const payload = {
+      formatVersion: 2 as const,
+      name: 'Imported API',
+      variables: [],
+      headers: [],
+      pre_request_script: '',
+      post_request_script: '',
+      folders: [],
+      requests: []
+    };
+
+    await expect(router.importCollectionData(payload)).rejects.toThrow('Registry write failed');
+    expect(await backendA.listCollections()).toEqual([]);
+    expect(registry.listRegistry()).toEqual([]);
+  });
 });
 
 describeSqlite('RoutingDatabase global ids', () => {
@@ -217,6 +266,67 @@ describeSqlite('RoutingDatabase global ids', () => {
     expect(updated.id).toBe(created.id);
     expect(updated.name).toBe('Updated');
     expect(updated.folder_id).toBe(folder.id);
+  });
+
+  it('rejects saveRequest when request or folder id belongs to another backend slot', async () => {
+    const { router } = await createRoutingFixture();
+    const collectionA = await router.createCollection('Slot A');
+    const folderA = await router.createFolder(collectionA.id, 'API');
+    const requestA = await router.saveRequest(
+      baseRequestInput(collectionA.id, { name: 'On A', folder_id: folderA.id })
+    );
+
+    const collectionB = await router.createCollection('Slot B');
+    await router.moveCollection(collectionB.id, CONN_B.id);
+    const folderB = await router.createFolder(collectionB.id, 'Remote');
+
+    const wrongSlotRequestId = requestA.id + ID_OFFSET;
+    const wrongSlotFolderId = folderB.id;
+
+    await expect(
+      router.saveRequest({
+        ...baseRequestInput(collectionA.id),
+        id: wrongSlotRequestId,
+        name: 'Cross-slot update'
+      })
+    ).rejects.toThrow(/does not belong to backend slot 0/);
+
+    await expect(
+      router.saveRequest({
+        ...baseRequestInput(collectionA.id),
+        name: 'Wrong folder',
+        folder_id: wrongSlotFolderId
+      })
+    ).rejects.toThrow(/does not belong to backend slot 0/);
+  });
+
+  it('rejects reorderFolders and reorderRequests when ids belong to another backend slot', async () => {
+    const { router } = await createRoutingFixture();
+    const collectionA = await router.createCollection('Reorder A');
+    const folderA = await router.createFolder(collectionA.id, 'One');
+    const folderB = await router.createFolder(collectionA.id, 'Two');
+    const request = await router.saveRequest(
+      baseRequestInput(collectionA.id, { name: 'Req', folder_id: folderA.id })
+    );
+
+    const collectionRemote = await router.createCollection('Remote');
+    await router.moveCollection(collectionRemote.id, CONN_B.id);
+    const remoteFolder = await router.createFolder(collectionRemote.id, 'Remote');
+    const remoteRequest = await router.saveRequest(
+      baseRequestInput(collectionRemote.id, { name: 'Remote req', folder_id: remoteFolder.id })
+    );
+
+    await expect(
+      router.reorderFolders(collectionA.id, [folderB.id, remoteFolder.id])
+    ).rejects.toThrow(/does not belong to backend slot 0/);
+
+    await expect(
+      router.reorderRequests(collectionA.id, folderA.id, [request.id, remoteRequest.id])
+    ).rejects.toThrow(/does not belong to backend slot 0/);
+
+    await expect(
+      router.reorderRequests(collectionA.id, remoteFolder.id, [request.id])
+    ).rejects.toThrow(/does not belong to backend slot 0/);
   });
 });
 

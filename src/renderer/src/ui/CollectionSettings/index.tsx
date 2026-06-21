@@ -95,6 +95,7 @@ function CollectionSettingsForm({
   const [connections, setConnections] = useState<DatabaseConnection[]>([]);
   const [primaryConnectionId, setPrimaryConnectionId] = useState('');
   const [connectionId, setConnectionId] = useState(collection.connectionId ?? '');
+  const [connectionsReady, setConnectionsReady] = useState(false);
   const [saving, setSaving] = useState(false);
 
   /**
@@ -113,6 +114,7 @@ function CollectionSettingsForm({
         setConnections(nextConnections);
         setPrimaryConnectionId(nextPrimaryConnectionId);
         setConnectionId((current) => current || collection.connectionId || nextPrimaryConnectionId);
+        setConnectionsReady(true);
       }
     );
 
@@ -146,7 +148,7 @@ function CollectionSettingsForm({
         collection.pre_request_script ?? '',
         collection.post_request_script ?? '',
         normalizeAuth(collection.auth),
-        collection.connectionId ?? primaryConnectionId
+        collection.connectionId || primaryConnectionId
       ),
     [
       name,
@@ -162,12 +164,13 @@ function CollectionSettingsForm({
   );
 
   /**
-   * Notifies the parent when unsaved edits appear or are cleared.
-   * Runs when isDirty or the callback reference changes; no cleanup.
+   * Notifies the parent when unsaved edits appear or are cleared. Reports clean
+   * until async connection bootstrap finishes so primaryConnectionId does not
+   * cause a spurious dirty flicker during load.
    */
   useEffect(() => {
-    onDirtyChange?.(isDirty);
-  }, [isDirty, onDirtyChange]);
+    onDirtyChange?.(connectionsReady ? isDirty : false);
+  }, [isDirty, connectionsReady, onDirtyChange]);
 
   /**
    * Dot indicators for tabs whose sections have content configured.

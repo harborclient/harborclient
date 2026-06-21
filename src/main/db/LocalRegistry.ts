@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { rowToEnvironment } from '#/main/db/entityMappers';
+import { trimRequiredName } from '#/main/db/trimRequiredName';
 import type { Environment, Variable } from '#/shared/types';
 
 const REGISTRY_DB_FILENAME = 'harborclient-registry.db';
@@ -321,9 +322,10 @@ export class LocalRegistry {
    * @returns The newly created environment.
    */
   createEnvironment(name: string): Environment {
+    const trimmedName = trimRequiredName(name, 'Environment name');
     const result = this.getDb()
       .prepare('INSERT INTO environments (name) VALUES (?)')
-      .run(name.trim());
+      .run(trimmedName);
 
     const row = this.getDb()
       .prepare('SELECT id, name, variables, created_at FROM environments WHERE id = ?')
@@ -361,9 +363,10 @@ export class LocalRegistry {
    * @returns The updated environment.
    */
   updateEnvironment(id: number, name: string, variables: Variable[]): Environment {
+    const trimmedName = trimRequiredName(name, 'Environment name');
     this.getDb()
       .prepare('UPDATE environments SET name = ?, variables = ? WHERE id = ?')
-      .run(name.trim(), JSON.stringify(variables), id);
+      .run(trimmedName, JSON.stringify(variables), id);
 
     const row = this.getDb()
       .prepare('SELECT id, name, variables, created_at FROM environments WHERE id = ?')

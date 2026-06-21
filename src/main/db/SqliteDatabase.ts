@@ -13,6 +13,7 @@ import {
   rowToFolder,
   rowToRequest
 } from '#/main/db/entityMappers';
+import { trimRequiredName } from '#/main/db/trimRequiredName';
 import { DEFAULT_AUTH_JSON, defaultAuth, normalizeAuth } from '#/shared/auth';
 import type { IDatabase } from '#/main/db/IDatabase';
 import type {
@@ -225,9 +226,10 @@ export class SqliteDatabase implements IDatabase {
    * @returns The newly created collection.
    */
   async createCollection(name: string): Promise<Collection> {
+    const trimmedName = trimRequiredName(name, 'Collection name');
     const result = this.getDb()
       .prepare('INSERT INTO collections (name) VALUES (?)')
-      .run(name.trim());
+      .run(trimmedName);
 
     const row = this.getDb()
       .prepare(
@@ -271,12 +273,13 @@ export class SqliteDatabase implements IDatabase {
     postRequestScript: string,
     auth: AuthConfig
   ): Promise<Collection> {
+    const trimmedName = trimRequiredName(name, 'Collection name');
     this.getDb()
       .prepare(
         'UPDATE collections SET name = ?, variables = ?, headers = ?, auth = ?, pre_request_script = ?, post_request_script = ? WHERE id = ?'
       )
       .run(
-        name.trim(),
+        trimmedName,
         JSON.stringify(variables),
         JSON.stringify(headers),
         JSON.stringify(auth),
@@ -324,9 +327,10 @@ export class SqliteDatabase implements IDatabase {
    * @returns The newly created environment.
    */
   async createEnvironment(name: string): Promise<Environment> {
+    const trimmedName = trimRequiredName(name, 'Environment name');
     const result = this.getDb()
       .prepare('INSERT INTO environments (name) VALUES (?)')
-      .run(name.trim());
+      .run(trimmedName);
 
     const row = this.getDb()
       .prepare('SELECT id, name, variables, created_at FROM environments WHERE id = ?')
@@ -344,9 +348,10 @@ export class SqliteDatabase implements IDatabase {
    * @returns The updated environment.
    */
   async updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment> {
+    const trimmedName = trimRequiredName(name, 'Environment name');
     this.getDb()
       .prepare('UPDATE environments SET name = ?, variables = ? WHERE id = ?')
-      .run(name.trim(), JSON.stringify(variables), id);
+      .run(trimmedName, JSON.stringify(variables), id);
 
     const row = this.getDb()
       .prepare('SELECT id, name, variables, created_at FROM environments WHERE id = ?')
@@ -386,6 +391,7 @@ export class SqliteDatabase implements IDatabase {
    * @returns The saved request with ID and timestamps.
    */
   async saveRequest(input: SaveRequestInput): Promise<SavedRequest> {
+    const trimmedName = trimRequiredName(input.name, 'Request name');
     const headers = JSON.stringify(input.headers);
     const params = JSON.stringify(input.params);
     const auth = JSON.stringify(input.auth);
@@ -417,7 +423,7 @@ export class SqliteDatabase implements IDatabase {
         .run(
           input.collection_id,
           folderId,
-          input.name.trim(),
+          trimmedName,
           input.method,
           input.url,
           headers,
@@ -455,7 +461,7 @@ export class SqliteDatabase implements IDatabase {
       .run(
         input.collection_id,
         folderId,
-        input.name.trim(),
+        trimmedName,
         input.method,
         input.url,
         headers,
@@ -509,6 +515,7 @@ export class SqliteDatabase implements IDatabase {
    * @returns The newly created folder.
    */
   async createFolder(collectionId: number, name: string): Promise<Folder> {
+    const trimmedName = trimRequiredName(name, 'Folder name');
     const maxOrder = this.getDb()
       .prepare(
         'SELECT COALESCE(MAX(sort_order), -1) as max_order FROM folders WHERE collection_id = ?'
@@ -517,7 +524,7 @@ export class SqliteDatabase implements IDatabase {
 
     const result = this.getDb()
       .prepare('INSERT INTO folders (collection_id, name, sort_order) VALUES (?, ?, ?)')
-      .run(collectionId, name.trim(), maxOrder.max_order + 1);
+      .run(collectionId, trimmedName, maxOrder.max_order + 1);
 
     const row = this.getDb()
       .prepare('SELECT * FROM folders WHERE id = ?')
@@ -534,9 +541,10 @@ export class SqliteDatabase implements IDatabase {
    * @returns The updated folder.
    */
   async renameFolder(id: number, name: string): Promise<Folder> {
+    const trimmedName = trimRequiredName(name, 'Folder name');
     const result = this.getDb()
       .prepare('UPDATE folders SET name = ? WHERE id = ?')
-      .run(name.trim(), id);
+      .run(trimmedName, id);
 
     if (result.changes === 0) throw new Error('Folder not found');
 
@@ -612,26 +620,11 @@ export class SqliteDatabase implements IDatabase {
    */
   async moveRequest(requestId: number, folderId: number | null, index: number): Promise<void> {
     const database = this.getDb();
-    const row = database.prepare('SELECT * FROM requests WHERE id = ?').get(requestId) as
-      | Record<string, unknown>
-      | undefined;
 
-    if (!row) throw new Error('Request not found');
-
-    const request = rowToRequest(row);
-    const collectionId = request.collection_id;
-    const oldFolderId = request.folder_id;
-
-    if (folderId != null) {
-      const folderRow = database
-        .prepare('SELECT collection_id FROM folders WHERE id = ?')
-        .get(folderId) as { collection_id: number } | undefined;
-      if (!folderRow || folderRow.collection_id !== collectionId) {
-        throw new Error('Folder not found');
-      }
-    }
-
-    const listInContainer = (targetFolderId: number | null): SavedRequest[] => {
+    const listInContainer = (
+      collectionId: number,
+      targetFolderId: number | null
+    ): SavedRequest[] => {
       const rows = database
         .prepare(
           `SELECT * FROM requests WHERE collection_id = ?
@@ -659,25 +652,51 @@ export class SqliteDatabase implements IDatabase {
       });
     };
 
-    if (oldFolderId === folderId) {
-      const siblings = listInContainer(folderId)
+    // Wrap the read, validate, and reindex steps in a single transaction so a
+    // concurrent move or mid-operation failure cannot leave duplicate or
+    // gap-filled sort_order values across the source and destination containers.
+    const runMove = database.transaction((): void => {
+      const row = database.prepare('SELECT * FROM requests WHERE id = ?').get(requestId) as
+        | Record<string, unknown>
+        | undefined;
+
+      if (!row) throw new Error('Request not found');
+
+      const request = rowToRequest(row);
+      const collectionId = request.collection_id;
+      const oldFolderId = request.folder_id;
+
+      if (folderId != null) {
+        const folderRow = database
+          .prepare('SELECT collection_id FROM folders WHERE id = ?')
+          .get(folderId) as { collection_id: number } | undefined;
+        if (!folderRow || folderRow.collection_id !== collectionId) {
+          throw new Error('Folder not found');
+        }
+      }
+
+      if (oldFolderId === folderId) {
+        const siblings = listInContainer(collectionId, folderId)
+          .map((item) => item.id)
+          .filter((id) => id !== requestId);
+        siblings.splice(index, 0, requestId);
+        reindexContainer(folderId, siblings);
+        return;
+      }
+
+      const oldIds = listInContainer(collectionId, oldFolderId)
         .map((item) => item.id)
         .filter((id) => id !== requestId);
-      siblings.splice(index, 0, requestId);
-      reindexContainer(folderId, siblings);
-      return;
-    }
+      reindexContainer(oldFolderId, oldIds);
 
-    const oldIds = listInContainer(oldFolderId)
-      .map((item) => item.id)
-      .filter((id) => id !== requestId);
-    reindexContainer(oldFolderId, oldIds);
+      const newIds = listInContainer(collectionId, folderId)
+        .map((item) => item.id)
+        .filter((id) => id !== requestId);
+      newIds.splice(index, 0, requestId);
+      reindexContainer(folderId, newIds);
+    });
 
-    const newIds = listInContainer(folderId)
-      .map((item) => item.id)
-      .filter((id) => id !== requestId);
-    newIds.splice(index, 0, requestId);
-    reindexContainer(folderId, newIds);
+    runMove();
   }
 
   /**
@@ -693,13 +712,13 @@ export class SqliteDatabase implements IDatabase {
       )
       .get(id) as
       | {
-          name: string;
-          variables: string;
-          headers: string;
-          auth: string;
-          pre_request_script: string;
-          post_request_script: string;
-        }
+        name: string;
+        variables: string;
+        headers: string;
+        auth: string;
+        pre_request_script: string;
+        post_request_script: string;
+      }
       | undefined;
 
     if (!row) throw new Error('Collection not found');
@@ -790,6 +809,9 @@ export class SqliteDatabase implements IDatabase {
       const folderIdByName = new Map<string, number>();
 
       for (const folder of payload.folders ?? []) {
+        if (folderIdByName.has(folder.name)) {
+          throw new Error(`Invalid collection file: duplicate folder name "${folder.name}"`);
+        }
         const folderResult = database
           .prepare('INSERT INTO folders (collection_id, name, sort_order) VALUES (?, ?, ?)')
           .run(collectionId, folder.name, folder.sort_order);

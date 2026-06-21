@@ -1,3 +1,5 @@
+import { hasUnsafeHeaderFieldChars } from '#/shared/httpHeaders';
+
 /**
  * Authorization type for the Auth tab; none inherits collection auth at send time.
  */
@@ -130,7 +132,7 @@ export function buildAuthHeaderValue(auth: AuthConfig): string | null {
   }
 
   const token = auth.bearer.token.trim();
-  if (!token) {
+  if (!token || hasUnsafeHeaderFieldChars(token)) {
     return null;
   }
   return `Bearer ${token}`;

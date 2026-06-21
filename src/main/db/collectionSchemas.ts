@@ -41,6 +41,27 @@ const exportedFolderRow = z
   }));
 
 /**
+ * Returns the index of the first duplicate folder name, or null when all names are unique.
+ *
+ * @param folders - Folder rows with normalized names.
+ * @returns Index of the second occurrence, or null when names are unique.
+ */
+export function findDuplicateFolderIndex(folders: ReadonlyArray<{ name: string }>): number | null {
+  const seen = new Set<string>();
+  for (let index = 0; index < folders.length; index++) {
+    const name = folders[index]?.name;
+    if (name === undefined) {
+      continue;
+    }
+    if (seen.has(name)) {
+      return index;
+    }
+    seen.add(name);
+  }
+  return null;
+}
+
+/**
  * Validates folder rows and applies index-based sort_order defaults.
  */
 export const exportedFolders = z
@@ -53,7 +74,17 @@ export const exportedFolders = z
         sort_order: typeof folder.sort_order === 'number' ? folder.sort_order : index
       })
     )
-  );
+  )
+  .superRefine((folders, ctx) => {
+    const duplicateIndex = findDuplicateFolderIndex(folders);
+    if (duplicateIndex !== null) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'duplicate folder name',
+        path: [duplicateIndex, 'name']
+      });
+    }
+  });
 
 const exportedRequestRow = z
   .object({
@@ -200,6 +231,9 @@ export function formatCollectionImportError(error: z.ZodError): string {
     const folderNumber = path[1] + 1;
 
     if (path[2] === 'name') {
+      if (issue.message === 'duplicate folder name') {
+        return `folder ${folderNumber} has a duplicate name`;
+      }
       return `folder ${folderNumber} is missing a name`;
     }
 

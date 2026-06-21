@@ -239,22 +239,36 @@ export function getInitialTabState(): { tabs: RequestTab[]; activeTabId: string 
 
 /**
  * Persists open tabs to localStorage.
+ *
+ * Ignores quota, privacy-mode, and other storage failures so Redux subscribers
+ * are not interrupted on every dispatch.
  */
 export function persistTabs(tabs: RequestTab[], activeTabId: string): void {
-  const payload: PersistedOpenTabs = {
-    tabs: tabs.map((t) => ({ tabId: t.tabId, draft: t.draft, savedDraft: t.savedDraft })),
-    activeTabId
-  };
-  localStorage.setItem(OPEN_TABS_KEY, JSON.stringify(payload));
+  try {
+    const payload: PersistedOpenTabs = {
+      tabs: tabs.map((t) => ({ tabId: t.tabId, draft: t.draft, savedDraft: t.savedDraft })),
+      activeTabId
+    };
+    localStorage.setItem(OPEN_TABS_KEY, JSON.stringify(payload));
+  } catch {
+    // Ignore quota or privacy-mode failures.
+  }
 }
 
 /**
  * Persists the active environment ID to localStorage.
+ *
+ * Ignores quota, privacy-mode, and other storage failures so Redux subscribers
+ * are not interrupted on every dispatch.
  */
 export function persistActiveEnvironmentId(id: number | null): void {
-  if (id == null) {
-    localStorage.removeItem(ACTIVE_ENVIRONMENT_KEY);
-  } else {
-    localStorage.setItem(ACTIVE_ENVIRONMENT_KEY, String(id));
+  try {
+    if (id == null) {
+      localStorage.removeItem(ACTIVE_ENVIRONMENT_KEY);
+    } else {
+      localStorage.setItem(ACTIVE_ENVIRONMENT_KEY, String(id));
+    }
+  } catch {
+    // Ignore quota or privacy-mode failures.
   }
 }

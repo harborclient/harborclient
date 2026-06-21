@@ -11,17 +11,18 @@ import type {
 } from '#/shared/types';
 import { parseFormParts } from '#/shared/formData';
 import { parseUrlEncodedParts } from '#/shared/urlencoded';
-import { DEFAULT_GENERAL_SETTINGS } from '#/main/settings/generalSettings';
+import {
+  DEFAULT_GENERAL_SETTINGS,
+  HARD_MAX_RESPONSE_SIZE_MB
+} from '#/main/settings/generalSettings';
+import { validateHeaderField } from '#/shared/httpHeaders';
+
+export { HARD_MAX_RESPONSE_SIZE_MB };
 
 /**
  * HTTP schemes allowed for outbound requests.
  */
 const ALLOWED_PROTOCOLS = new Set(['http:', 'https:']);
-
-/**
- * Absolute ceiling when the user disables the configurable response size limit (0).
- */
-export const HARD_MAX_RESPONSE_SIZE_MB = 512;
 
 /**
  * Resolves the effective response size limit in megabytes.
@@ -105,21 +106,35 @@ export function buildUrl(baseUrl: string, params: KeyValue[]): string {
 }
 
 /**
+ * Result of building request headers from user input.
+ */
+export type BuildHeadersResult =
+  | { ok: true; headers: Record<string, string> }
+  | { ok: false; error: string };
+
+/**
  * Builds request headers from enabled key-value pairs and body type defaults.
+ *
+ * Rejects hop-by-hop headers and fields containing control characters or CRLF.
  *
  * @param headers - User-defined headers.
  * @param bodyType - Body type used to infer Content-Type when absent.
- * @returns Header map ready for fetch.
+ * @returns Header map ready for fetch, or an error when a field is invalid.
  */
-export function buildHeaders(headers: KeyValue[], bodyType: BodyType): Record<string, string> {
+export function buildHeaders(headers: KeyValue[], bodyType: BodyType): BuildHeadersResult {
   const result: Record<string, string> = {};
 
   for (const header of headers) {
     if (header.enabled && header.key.trim()) {
-      if (bodyType === 'multipart' && header.key.trim().toLowerCase() === 'content-type') {
+      const key = header.key.trim();
+      if (bodyType === 'multipart' && key.toLowerCase() === 'content-type') {
         continue;
       }
-      result[header.key.trim()] = header.value;
+      const validationError = validateHeaderField(key, header.value);
+      if (validationError) {
+        return { ok: false, error: validationError };
+      }
+      result[key] = header.value;
     }
   }
 
@@ -135,7 +150,7 @@ export function buildHeaders(headers: KeyValue[], bodyType: BodyType): Record<st
     }
   }
 
-  return result;
+  return { ok: true, headers: result };
 }
 
 /**
@@ -252,12 +267,15 @@ async function readResponseBody(
   const effectiveMaxMb = resolveMaxResponseSizeMb(maxResponseSizeMb);
   const maxBytes = effectiveMaxMb * 1024 * 1024;
 
-  if (!response.body) {
-    const body = await response.text();
-    return { body, sizeBytes: new TextEncoder().encode(body).length };
-  }
+  const bodyStream =
+    response.body ??
+    new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.close();
+      }
+    });
 
-  const reader = response.body.getReader();
+  const reader = bodyStream.getReader();
   const chunks: Uint8Array[] = [];
   let totalBytes = 0;
 
@@ -336,9 +354,47 @@ export async function executeRequest(
   cookieHeader?: string
 ): Promise<SendResult> {
   const url = buildUrl(input.url, input.params);
-  const headers = buildHeaders(input.headers, input.bodyType);
+  const builtHeaders = buildHeaders(input.headers, input.bodyType);
+  if (!builtHeaders.ok) {
+    return {
+      status: 0,
+      statusText: 'Error',
+      headers: {},
+      body: '',
+      timeMs: 0,
+      sizeBytes: 0,
+      error: builtHeaders.error,
+      request: {
+        method: input.method,
+        url: input.url,
+        headers: {},
+        body: '',
+        bodyType: input.bodyType
+      }
+    };
+  }
+  const headers = builtHeaders.headers;
   const hasCookieHeader = Object.keys(headers).some((key) => key.toLowerCase() === 'cookie');
   if (cookieHeader && !hasCookieHeader) {
+    const cookieError = validateHeaderField('Cookie', cookieHeader);
+    if (cookieError) {
+      return {
+        status: 0,
+        statusText: 'Error',
+        headers: {},
+        body: '',
+        timeMs: 0,
+        sizeBytes: 0,
+        error: cookieError,
+        request: {
+          method: input.method,
+          url: input.url,
+          headers,
+          body: '',
+          bodyType: input.bodyType
+        }
+      };
+    }
     headers.Cookie = cookieHeader;
   }
   const shouldSendBody =

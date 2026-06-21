@@ -8,12 +8,19 @@ import {
   privateDecrypt,
   publicEncrypt,
   randomBytes,
+  randomUUID,
   sign,
   verify,
   type BinaryLike,
   type CipherKey
 } from 'crypto';
-import type { DatabaseConnection, DatabaseProvider, TrustedInviteKey } from '#/shared/types';
+import { z } from 'zod';
+import { databaseConnection, dbId } from '#/main/ipc/ipcSchemas';
+import {
+  getDefaultSpentInviteTokenStore,
+  type SpentInviteTokenStore
+} from '#/main/invite/spentInviteTokens';
+import type { DatabaseConnection, TrustedInviteKey } from '#/shared/types';
 
 export const INVITE_TOKEN_VERSION = 2;
 
@@ -57,6 +64,7 @@ interface InviteTokenHeader {
 }
 
 interface InviteTokenEnvelope {
+  jti: string;
   iat: number;
   exp: number;
   encKey: string;
@@ -148,19 +156,43 @@ function asArrayBufferView(value: Buffer): NodeJS.ArrayBufferView {
  * Returns the SHA-256 fingerprint of an RSA public key PEM.
  *
  * @param publicKeyPem - PEM-encoded RSA public key.
+ * @throws When the PEM cannot be parsed as a public key.
  */
 export function publicKeyFingerprint(publicKeyPem: string): string {
-  const der = createPublicKey(publicKeyPem).export({ type: 'spki', format: 'der' }) as Buffer;
+  let der: Buffer;
+  try {
+    der = createPublicKey(publicKeyPem).export({ type: 'spki', format: 'der' }) as Buffer;
+  } catch {
+    throw new Error('Invalid public key PEM.');
+  }
   return createHash('sha256').update(asBinaryLike(der)).digest('hex');
 }
 
 /**
- * Returns true when value is a supported database provider.
- *
- * @param value - Raw provider from decoded payload.
+ * Zod schema for decrypted invite payload contents after AES-GCM decryption.
  */
-function isDatabaseProvider(value: unknown): value is DatabaseProvider {
-  return value === 'sqlite' || value === 'firestore' || value === 'mysql' || value === 'postgres';
+const decryptedInvitePayloadSchema = z.object({
+  conn: databaseConnection,
+  collection: z.object({
+    name: z.string(),
+    providerCollectionId: dbId
+  })
+}) satisfies z.ZodType<DecryptedInvitePayload>;
+
+/**
+ * Maps a Zod validation failure to a user-facing invite token error.
+ *
+ * @param error - Zod safeParse error from payload validation.
+ */
+function invitePayloadValidationError(error: z.ZodError): Error {
+  const firstPath = error.issues[0]?.path[0];
+  if (firstPath === 'conn') {
+    return new Error('Invalid invite token: invalid connection.');
+  }
+  if (firstPath === 'collection') {
+    return new Error('Invalid invite token: invalid collection metadata.');
+  }
+  return new Error('Invalid invite token: malformed payload.');
 }
 
 /**
@@ -169,50 +201,11 @@ function isDatabaseProvider(value: unknown): value is DatabaseProvider {
  * @param raw - Parsed JSON payload.
  */
 function parseDecryptedPayload(raw: unknown): DecryptedInvitePayload {
-  if (typeof raw !== 'object' || raw == null) {
-    throw new Error('Invalid invite token: malformed payload.');
+  const result = decryptedInvitePayloadSchema.safeParse(raw);
+  if (!result.success) {
+    throw invitePayloadValidationError(result.error);
   }
-
-  const payload = raw as Partial<DecryptedInvitePayload>;
-  const conn = payload.conn;
-  if (typeof conn !== 'object' || conn == null) {
-    throw new Error('Invalid invite token: missing connection.');
-  }
-
-  const connection = conn as Partial<DatabaseConnection>;
-  if (typeof connection.name !== 'string' || !isDatabaseProvider(connection.type)) {
-    throw new Error('Invalid invite token: invalid connection.');
-  }
-
-  if (typeof connection.settings !== 'object' || connection.settings == null) {
-    throw new Error('Invalid invite token: invalid connection settings.');
-  }
-
-  const collection = payload.collection;
-  if (typeof collection !== 'object' || collection == null) {
-    throw new Error('Invalid invite token: missing collection.');
-  }
-
-  const collectionMeta = collection as Partial<InviteCollectionMeta>;
-  if (
-    typeof collectionMeta.name !== 'string' ||
-    typeof collectionMeta.providerCollectionId !== 'number'
-  ) {
-    throw new Error('Invalid invite token: invalid collection metadata.');
-  }
-
-  return {
-    conn: {
-      id: typeof connection.id === 'string' ? connection.id : '',
-      name: connection.name,
-      type: connection.type,
-      settings: connection.settings
-    } as DatabaseConnection,
-    collection: {
-      name: collectionMeta.name,
-      providerCollectionId: collectionMeta.providerCollectionId
-    }
-  };
+  return result.data;
 }
 
 /**
@@ -280,6 +273,8 @@ function parseInviteEnvelope(encodedPayload: string): InviteTokenEnvelope {
 
   const envelope = parsed as Partial<InviteTokenEnvelope>;
   if (
+    typeof envelope.jti !== 'string' ||
+    envelope.jti.trim().length === 0 ||
     typeof envelope.iat !== 'number' ||
     typeof envelope.exp !== 'number' ||
     typeof envelope.encKey !== 'string' ||
@@ -291,6 +286,7 @@ function parseInviteEnvelope(encodedPayload: string): InviteTokenEnvelope {
   }
 
   return {
+    jti: envelope.jti,
     iat: envelope.iat,
     exp: envelope.exp,
     encKey: envelope.encKey,
@@ -301,7 +297,8 @@ function parseInviteEnvelope(encodedPayload: string): InviteTokenEnvelope {
 }
 
 /**
- * Validates invite freshness (`iat` / `exp`).
+ * Validates invite freshness (`iat` / `exp`) and caps the signed validity window
+ * so trusted senders cannot issue arbitrarily long-lived invites.
  *
  * @param envelope - Parsed invite envelope.
  * @param now - Current timestamp in milliseconds.
@@ -313,6 +310,10 @@ function assertInviteFreshness(envelope: InviteTokenEnvelope, now: number): void
 
   if (envelope.iat > now + CLOCK_SKEW_MS) {
     throw new Error('Invalid invite token: invite is not yet valid.');
+  }
+
+  if (envelope.exp - envelope.iat > INVITE_TTL_MS) {
+    throw new Error('Invalid invite token: invite validity exceeds maximum allowed lifetime.');
   }
 }
 
@@ -363,6 +364,7 @@ export function createInviteToken(
   );
   const payload = base64UrlEncode(
     JSON.stringify({
+      jti: randomUUID(),
       iat: now,
       exp: now + INVITE_TTL_MS,
       encKey: base64UrlEncodeBuffer(wrappedKey),
@@ -389,13 +391,16 @@ export function createInviteToken(
  * @param recipientPrivateKeyPem - PEM-encoded RSA private key of the recipient.
  * @param recipientPublicKeyPem - PEM-encoded RSA public key of the recipient.
  * @param trustedKeys - Public keys of senders the recipient trusts.
+ * @param options - Optional overrides, including a custom spent-token store for tests.
  */
 export function verifyInviteToken(
   token: string,
   recipientPrivateKeyPem: string,
   recipientPublicKeyPem: string,
-  trustedKeys: TrustedInviteKey[]
+  trustedKeys: TrustedInviteKey[],
+  options?: { spentStore?: SpentInviteTokenStore }
 ): DecodedInvite {
+  const spentStore = options?.spentStore ?? getDefaultSpentInviteTokenStore();
   const trimmed = token.trim();
   const parts = trimmed.split('.');
   if (parts.length !== 3) {
@@ -407,6 +412,10 @@ export function verifyInviteToken(
   const envelope = parseInviteEnvelope(encodedPayload);
   const now = Date.now();
   assertInviteFreshness(envelope, now);
+
+  if (spentStore.isSpent(envelope.jti)) {
+    throw new Error('Invalid invite token: invite has already been used.');
+  }
 
   const recipientKid = publicKeyFingerprint(recipientPublicKeyPem);
   if (header.recipientKid !== recipientKid) {
@@ -468,5 +477,6 @@ export function verifyInviteToken(
   }
 
   const payload = parseDecryptedPayload(parsed);
+  spentStore.markSpent(envelope.jti, envelope.exp);
   return { connection: payload.conn, collection: payload.collection };
 }

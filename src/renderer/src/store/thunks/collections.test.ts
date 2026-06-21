@@ -115,3 +115,34 @@ describe('deleteCollection', () => {
     expect(tabs.some((tab) => tab.draft.name === 'Collection Two Request')).toBe(true);
   });
 });
+
+describe('refreshCollections', () => {
+  it('ignores stale listCollections responses that finish after a newer refresh', async () => {
+    let resolveStaleRefresh!: (value: ListCollectionsResult) => void;
+    const staleRefresh = new Promise<ListCollectionsResult>((resolve) => {
+      resolveStaleRefresh = resolve;
+    });
+
+    listCollectionsMock.mockReturnValueOnce(staleRefresh).mockResolvedValueOnce({
+      collections: [sampleCollection(2, 'Fresh')],
+      warnings: []
+    });
+
+    const { store } = await import('#/renderer/src/store/redux');
+    const { refreshCollections } = await import('#/renderer/src/store/thunks/collections');
+
+    const firstRefresh = store.dispatch(refreshCollections());
+    const secondRefresh = store.dispatch(refreshCollections());
+
+    await secondRefresh;
+    expect(store.getState().collections.collections[0]?.name).toBe('Fresh');
+
+    resolveStaleRefresh({
+      collections: [sampleCollection(1, 'Stale')],
+      warnings: []
+    });
+    await firstRefresh;
+
+    expect(store.getState().collections.collections[0]?.name).toBe('Fresh');
+  });
+});

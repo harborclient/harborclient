@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
+import { useMemo, useRef, useState, type JSX } from 'react';
 import type { Variable } from '#/shared/types';
 import { isTabDirty } from '#/renderer/src/store/drafts';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
@@ -16,14 +16,9 @@ import {
   selectTabs,
   selectTestResults
 } from '#/renderer/src/store/selectors';
-import {
-  setActiveDraft,
-  closeTab,
-  newTab,
-  setActiveTab
-} from '#/renderer/src/store/slices/tabsSlice';
+import { setActiveDraft, newTab, setActiveTab } from '#/renderer/src/store/slices/tabsSlice';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
-import { sendRequest, cancelRequest, refreshCollectionContents } from '#/renderer/src/store/thunks';
+import { sendRequest, cancelRequest, closeRequestTab } from '#/renderer/src/store/thunks';
 import { ResizeHandle, useResizable } from '#/renderer/src/components/Resizable';
 import { primaryButton, secondaryButton } from '#/renderer/src/ui/shared/classes';
 import { Editor } from './Editor';
@@ -126,16 +121,6 @@ export function Request({ onEditVariables }: Props): JSX.Element {
   }, [activeFolderId, activeCollectionId, foldersByCollection]);
 
   /**
-   * Loads folders and requests when the active collection has not been fetched yet.
-   */
-  useEffect(() => {
-    if (activeCollectionId == null) return;
-    if (foldersByCollection[activeCollectionId] === undefined) {
-      void dispatch(refreshCollectionContents(activeCollectionId));
-    }
-  }, [activeCollectionId, foldersByCollection, dispatch]);
-
-  /**
    * Closes a tab, prompting when it has unsaved changes.
    */
   const handleCloseTab = (tabId: string): void => {
@@ -144,7 +129,7 @@ export function Request({ onEditVariables }: Props): JSX.Element {
       setCloseTabPrompt({ tabId, name: tab.draft.name });
       return;
     }
-    dispatch(closeTab(tabId));
+    void dispatch(closeRequestTab(tabId));
   };
 
   return (
@@ -183,7 +168,7 @@ export function Request({ onEditVariables }: Props): JSX.Element {
         response={response}
         sending={sending}
         testResults={testResults}
-        onCancel={() => void dispatch(cancelRequest())}
+        onCancel={() => void dispatch(cancelRequest(activeTabId))}
       />
 
       {closeTabPrompt && (
@@ -206,7 +191,7 @@ export function Request({ onEditVariables }: Props): JSX.Element {
               <button
                 className={primaryButton}
                 onClick={() => {
-                  dispatch(closeTab(closeTabPrompt.tabId));
+                  void dispatch(closeRequestTab(closeTabPrompt.tabId));
                   setCloseTabPrompt(null);
                 }}
               >

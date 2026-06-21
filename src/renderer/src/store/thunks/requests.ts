@@ -17,7 +17,7 @@ import {
   mergeVariableSets,
   substituteWithMap
 } from '#/renderer/src/scripting/scriptOrchestration';
-import { cloneDraft, draftFromSaved } from '#/renderer/src/store/drafts';
+import { cloneDraft, draftFromSaved, isTabDirty } from '#/renderer/src/store/drafts';
 import { setSelectedCollectionId } from '#/renderer/src/store/slices/collectionsSlice';
 import { addConsoleEntry } from '#/renderer/src/store/slices/consoleSlice';
 import {
@@ -30,6 +30,7 @@ import {
   setPendingLoadRequest
 } from '#/renderer/src/store/slices/modalsSlice';
 import {
+  closeTab,
   closeTabsForRequest,
   loadRequest,
   newTab,
@@ -224,7 +225,7 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
   async (_, { dispatch, getState }) => {
     const state = getState();
     const activeTab = selectActiveTab(state);
-    if (!activeTab) return;
+    if (!activeTab || activeTab.sending) return;
 
     const tabId = activeTab.tabId;
     const requestId = crypto.randomUUID();
@@ -352,10 +353,10 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
       const headers =
         authValue && !manualHasAuth
           ? [
-              { key: 'Authorization', value: authValue, enabled: true },
-              ...collectionHeaders,
-              ...draftHeaders
-            ]
+            { key: 'Authorization', value: authValue, enabled: true },
+            ...collectionHeaders,
+            ...draftHeaders
+          ]
           : [...collectionHeaders, ...draftHeaders];
       const params = scriptRequest.params.map((param) => ({
         ...param,
@@ -377,35 +378,49 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
 
       await runScriptPhase('post', result);
 
+      const persistErrors: string[] = [];
+
       if (collection) {
         const headersChanged =
           JSON.stringify(collectionHeaderRows) !== JSON.stringify(collection.headers ?? []);
         const hasCollectionChanges = Object.keys(collectionVarSets).length > 0 || headersChanged;
 
         if (hasCollectionChanges) {
-          await dispatch(
-            updateCollection({
-              id: collection.id,
-              name: collection.name,
-              variables: applyCollectionVariableSets(collection.variables, collectionVarSets),
-              headers: collectionHeaderRows,
-              preRequestScript: collection.pre_request_script,
-              postRequestScript: collection.post_request_script,
-              auth: collection.auth,
-              connectionId: collection.connectionId
-            })
-          );
+          try {
+            await dispatch(
+              updateCollection({
+                id: collection.id,
+                name: collection.name,
+                variables: applyCollectionVariableSets(collection.variables, collectionVarSets),
+                headers: collectionHeaderRows,
+                preRequestScript: collection.pre_request_script,
+                postRequestScript: collection.post_request_script,
+                auth: collection.auth,
+                connectionId: collection.connectionId
+              })
+            ).unwrap();
+          } catch (err) {
+            persistErrors.push(
+              err instanceof Error ? err.message : 'Failed to save collection changes from script'
+            );
+          }
         }
       }
 
       if (environment && Object.keys(envVarSets).length > 0) {
-        await dispatch(
-          updateEnvironment({
-            id: environment.id,
-            name: environment.name,
-            variables: applyCollectionVariableSets(environment.variables, envVarSets)
-          })
-        );
+        try {
+          await dispatch(
+            updateEnvironment({
+              id: environment.id,
+              name: environment.name,
+              variables: applyCollectionVariableSets(environment.variables, envVarSets)
+            })
+          ).unwrap();
+        } catch (err) {
+          persistErrors.push(
+            err instanceof Error ? err.message : 'Failed to save environment changes from script'
+          );
+        }
       }
 
       if (isRequestStillActive()) {
@@ -431,6 +446,43 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
         if (scriptErrors.length) {
           toast.error(`Script error: ${scriptErrors[0]}`);
         }
+
+        if (persistErrors.length) {
+          toast.error(`Failed to persist script changes: ${persistErrors[0]}`);
+        }
+      }
+    } catch (err) {
+      if (isRequestStillActive()) {
+        const message = err instanceof Error ? err.message : String(err);
+        const errorResult: SendResult = {
+          status: 0,
+          statusText: 'Error',
+          headers: {},
+          body: '',
+          timeMs: 0,
+          sizeBytes: 0,
+          error: message
+        };
+
+        dispatch(
+          updateTab({
+            tabId,
+            updates: { response: errorResult, testResults: allTests }
+          })
+        );
+        dispatch(
+          addConsoleEntry({
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            requestName: currentDraft.name,
+            collectionName: collection?.name,
+            result: errorResult,
+            logs: allLogs.length ? allLogs : undefined,
+            tests: allTests.length ? allTests : undefined,
+            scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined
+          })
+        );
+        toast.error(message);
       }
     } finally {
       if (isRequestStillActive()) {
@@ -441,22 +493,35 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
 );
 
 /**
- * Cancels the in-flight HTTP request for the active tab.
+ * Cancels the in-flight HTTP request owned by a specific tab.
  */
-export const cancelRequest = createAsyncThunk<void, void, ThunkApiConfig>(
+export const cancelRequest = createAsyncThunk<void, string, ThunkApiConfig>(
   'tabs/cancelRequest',
-  async (_, { dispatch, getState }) => {
-    const activeTab = selectActiveTab(getState());
-    if (!activeTab?.sendingRequestId) return;
+  async (tabId, { dispatch, getState }) => {
+    const tab = getState().tabs.tabs.find((t) => t.tabId === tabId);
+    if (!tab?.sendingRequestId) return;
 
-    const { tabId, sendingRequestId } = activeTab;
-    await window.api.cancelRequest(sendingRequestId);
+    await window.api.cancelRequest(tab.sendingRequestId);
     dispatch(
       updateTab({
         tabId,
         updates: { sending: false, sendingRequestId: null }
       })
     );
+  }
+);
+
+/**
+ * Cancels any in-flight send for a tab, then removes it from the tab bar.
+ */
+export const closeRequestTab = createAsyncThunk<void, string, ThunkApiConfig>(
+  'tabs/closeRequestTab',
+  async (tabId, { dispatch, getState }) => {
+    const tab = getState().tabs.tabs.find((t) => t.tabId === tabId);
+    if (tab?.sendingRequestId) {
+      await dispatch(cancelRequest(tabId));
+    }
+    dispatch(closeTab(tabId));
   }
 );
 
@@ -475,19 +540,34 @@ export function dispatchNewRequest(dispatch: AppDispatch): void {
 }
 
 /**
- * Loads a saved request, prompting when settings overlays have unsaved edits.
+ * Payload for {@link requestLoadRequest}.
  */
-export const requestLoadRequest = createAsyncThunk<void, SavedRequest, ThunkApiConfig>(
+export interface RequestLoadRequestArgs {
+  req: SavedRequest;
+  skipSettingsCheck?: boolean;
+  forceReload?: boolean;
+}
+
+/**
+ * Loads a saved request, prompting when settings or tab drafts have unsaved edits.
+ */
+export const requestLoadRequest = createAsyncThunk<void, RequestLoadRequestArgs, ThunkApiConfig>(
   'modals/requestLoadRequest',
-  async (req, { dispatch, getState }) => {
+  async ({ req, skipSettingsCheck = false, forceReload = false }, { dispatch, getState }) => {
     const state = getState();
     const mainView = state.navigation.mainView;
     const collectionDirty = mainView.type === 'collection' && selectCollectionSettingsDirty(state);
     const environmentDirty =
       mainView.type === 'environment' && selectEnvironmentSettingsDirty(state);
 
-    if (collectionDirty || environmentDirty) {
-      dispatch(setPendingLoadRequest(req));
+    if (!skipSettingsCheck && (collectionDirty || environmentDirty)) {
+      dispatch(setPendingLoadRequest({ req, reason: 'settings' }));
+      return;
+    }
+
+    const existing = state.tabs.tabs.find((t) => t.draft.id === req.id);
+    if (!forceReload && existing && isTabDirty(existing)) {
+      dispatch(setPendingLoadRequest({ req, reason: 'dirty-tab' }));
       return;
     }
 

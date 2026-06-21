@@ -2,6 +2,11 @@ import { getLocalRegistry } from '#/main/db/localRegistryInstance';
 import { parseJson } from '#/shared/parseJson';
 import type { GeneralSettings } from '#/shared/types';
 
+/**
+ * Absolute ceiling for the configurable max response size setting (MB).
+ */
+export const HARD_MAX_RESPONSE_SIZE_MB = 512;
+
 export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   requestTimeoutMs: 30000,
   maxResponseSizeMb: 50,
@@ -36,9 +41,12 @@ function normalizeSettings(input: Partial<GeneralSettings>): GeneralSettings {
       input.requestTimeoutMs,
       DEFAULT_GENERAL_SETTINGS.requestTimeoutMs
     ),
-    maxResponseSizeMb: normalizeNonNegativeNumber(
-      input.maxResponseSizeMb,
-      DEFAULT_GENERAL_SETTINGS.maxResponseSizeMb
+    maxResponseSizeMb: Math.min(
+      normalizeNonNegativeNumber(
+        input.maxResponseSizeMb,
+        DEFAULT_GENERAL_SETTINGS.maxResponseSizeMb
+      ),
+      HARD_MAX_RESPONSE_SIZE_MB
     ),
     verifySsl: input.verifySsl !== false
   };

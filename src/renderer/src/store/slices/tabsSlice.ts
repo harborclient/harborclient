@@ -76,8 +76,11 @@ const tabsSlice = createSlice({
       const existing = state.tabs.find((t) => t.draft.id === req.id);
       if (existing) {
         state.activeTabId = existing.tabId;
-        existing.draft.collection_id = req.collection_id;
-        existing.draft.folder_id = req.folder_id;
+        const freshDraft = cloneDraft(draftFromSaved(req));
+        existing.draft = freshDraft;
+        existing.savedDraft = cloneDraft(freshDraft);
+        existing.response = null;
+        existing.testResults = [];
         return;
       }
 

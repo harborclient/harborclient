@@ -101,7 +101,7 @@ describe('isValidRequestUrl', () => {
 
 describe('buildHeaders', () => {
   it('includes only enabled headers with trimmed keys', () => {
-    const headers = buildHeaders(
+    const result = buildHeaders(
       [
         { key: ' Authorization ', value: 'Bearer token', enabled: true },
         { key: 'X-Disabled', value: 'off', enabled: false },
@@ -110,32 +110,38 @@ describe('buildHeaders', () => {
       'none'
     );
 
-    expect(headers).toEqual({ Authorization: 'Bearer token' });
+    expect(result).toEqual({ ok: true, headers: { Authorization: 'Bearer token' } });
   });
 
   it('auto-adds application/json Content-Type for json body', () => {
-    expect(buildHeaders([], 'json')).toEqual({ 'Content-Type': 'application/json' });
+    expect(buildHeaders([], 'json')).toEqual({
+      ok: true,
+      headers: { 'Content-Type': 'application/json' }
+    });
   });
 
   it('auto-adds text/plain Content-Type for text body', () => {
-    expect(buildHeaders([], 'text')).toEqual({ 'Content-Type': 'text/plain' });
+    expect(buildHeaders([], 'text')).toEqual({
+      ok: true,
+      headers: { 'Content-Type': 'text/plain' }
+    });
   });
 
   it('does not auto-add Content-Type for none body', () => {
-    expect(buildHeaders([], 'none')).toEqual({});
+    expect(buildHeaders([], 'none')).toEqual({ ok: true, headers: {} });
   });
 
   it('respects an existing case-insensitive content-type header', () => {
-    const headers = buildHeaders(
+    const result = buildHeaders(
       [{ key: 'content-type', value: 'application/xml', enabled: true }],
       'json'
     );
 
-    expect(headers).toEqual({ 'content-type': 'application/xml' });
+    expect(result).toEqual({ ok: true, headers: { 'content-type': 'application/xml' } });
   });
 
   it('strips content-type for multipart body so fetch can set the boundary', () => {
-    const headers = buildHeaders(
+    const result = buildHeaders(
       [
         { key: 'Content-Type', value: 'multipart/form-data', enabled: true },
         { key: 'Authorization', value: 'Bearer token', enabled: true }
@@ -143,26 +149,27 @@ describe('buildHeaders', () => {
       'multipart'
     );
 
-    expect(headers).toEqual({ Authorization: 'Bearer token' });
+    expect(result).toEqual({ ok: true, headers: { Authorization: 'Bearer token' } });
   });
 
   it('does not auto-add Content-Type for multipart body', () => {
-    expect(buildHeaders([], 'multipart')).toEqual({});
+    expect(buildHeaders([], 'multipart')).toEqual({ ok: true, headers: {} });
   });
 
   it('auto-adds application/x-www-form-urlencoded Content-Type for urlencoded body', () => {
     expect(buildHeaders([], 'urlencoded')).toEqual({
-      'Content-Type': 'application/x-www-form-urlencoded'
+      ok: true,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
   });
 
   it('respects an existing content-type header for urlencoded body', () => {
-    const headers = buildHeaders(
+    const result = buildHeaders(
       [{ key: 'Content-Type', value: 'text/plain', enabled: true }],
       'urlencoded'
     );
 
-    expect(headers).toEqual({ 'Content-Type': 'text/plain' });
+    expect(result).toEqual({ ok: true, headers: { 'Content-Type': 'text/plain' } });
   });
 
   it('request headers override collection headers when merged last-wins', () => {
@@ -170,7 +177,28 @@ describe('buildHeaders', () => {
     const requestHeaders = [{ key: 'Authorization', value: 'Bearer request', enabled: true }];
     const merged = [...collectionHeaders, ...requestHeaders];
 
-    expect(buildHeaders(merged, 'none')).toEqual({ Authorization: 'Bearer request' });
+    expect(buildHeaders(merged, 'none')).toEqual({
+      ok: true,
+      headers: { Authorization: 'Bearer request' }
+    });
+  });
+
+  it('rejects hop-by-hop headers', () => {
+    const result = buildHeaders([{ key: 'Connection', value: 'close', enabled: true }], 'none');
+
+    expect(result).toEqual({ ok: false, error: 'Forbidden header: Connection' });
+  });
+
+  it('rejects header values containing CRLF', () => {
+    const result = buildHeaders(
+      [{ key: 'X-Test', value: 'safe\r\nX-Injected: evil', enabled: true }],
+      'none'
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: 'Invalid header value for "X-Test": control characters are not allowed'
+    });
   });
 });
 
@@ -258,6 +286,40 @@ describe('executeRequest', () => {
     expect(result.request).toMatchObject({
       method: 'GET',
       url: 'javascript:alert(1)'
+    });
+  });
+
+  it('returns header validation error for forbidden hop-by-hop headers without calling fetch', async () => {
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock;
+
+    const result = await executeRequest({
+      ...baseInput,
+      headers: [{ key: 'Connection', value: 'close', enabled: true }]
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      status: 0,
+      statusText: 'Error',
+      error: 'Forbidden header: Connection'
+    });
+  });
+
+  it('returns header validation error for CRLF in header values without calling fetch', async () => {
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock;
+
+    const result = await executeRequest({
+      ...baseInput,
+      headers: [{ key: 'X-Test', value: 'ok\r\nX-Injected: evil', enabled: true }]
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      status: 0,
+      statusText: 'Error',
+      error: 'Invalid header value for "X-Test": control characters are not allowed'
     });
   });
 
@@ -609,5 +671,22 @@ describe('executeRequest', () => {
     expect(result.error).toBeUndefined();
     expect(result.body).toBe(payload);
     expect(result.sizeBytes).toBe(new TextEncoder().encode(payload).length);
+  });
+
+  it('returns an empty body for responses with no readable stream', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 204, statusText: 'No Content' }));
+    globalThis.fetch = fetchMock;
+
+    const result = await executeRequest(baseInput, {
+      ...DEFAULT_GENERAL_SETTINGS,
+      maxResponseSizeMb: 1
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.status).toBe(204);
+    expect(result.body).toBe('');
+    expect(result.sizeBytes).toBe(0);
   });
 });

@@ -31,6 +31,7 @@ function createLocalStorageMock(): Storage {
 
 const saveRequestMock = vi.fn<(input: SaveRequestInput) => Promise<SavedRequest>>();
 const listRequestsMock = vi.fn<(collectionId: number) => Promise<SavedRequest[]>>();
+const cancelRequestMock = vi.fn<(requestId: string) => Promise<void>>();
 
 /**
  * Builds a saved request matching a save input so the thunk can update tab state.
@@ -60,12 +61,18 @@ function savedFrom(input: SaveRequestInput): SavedRequest {
 beforeEach(() => {
   vi.stubGlobal('localStorage', createLocalStorageMock());
   vi.stubGlobal('window', {
-    api: { saveRequest: saveRequestMock, listRequests: listRequestsMock }
+    api: {
+      saveRequest: saveRequestMock,
+      listRequests: listRequestsMock,
+      cancelRequest: cancelRequestMock
+    }
   });
   saveRequestMock.mockReset();
   saveRequestMock.mockImplementation((input) => Promise.resolve(savedFrom(input)));
   listRequestsMock.mockReset();
   listRequestsMock.mockResolvedValue([]);
+  cancelRequestMock.mockReset();
+  cancelRequestMock.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -137,5 +144,216 @@ describe('saveRequest folder handling', () => {
     expect(input.id).toBeUndefined();
     expect(input.collection_id).toBe(2);
     expect(input.folder_id).toBeNull();
+  });
+});
+
+/**
+ * Builds a saved request fixture for requestLoadRequest tests.
+ *
+ * @param overrides - Partial fields to override defaults.
+ * @returns Saved request suitable for thunk dispatch.
+ */
+function sampleSaved(overrides: Partial<SavedRequest> = {}): SavedRequest {
+  return {
+    id: 1,
+    collection_id: 10,
+    folder_id: null,
+    name: 'Get users',
+    method: 'GET',
+    url: 'https://example.com/users',
+    headers: [],
+    params: [],
+    auth: defaultAuth(),
+    body: '',
+    body_type: 'none',
+    pre_request_script: '',
+    post_request_script: '',
+    comment: '',
+    sort_order: 0,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+    ...overrides
+  };
+}
+
+describe('requestLoadRequest', () => {
+  /**
+   * Clears modal state that can leak between tests sharing the singleton store.
+   */
+  async function resetPendingLoadRequest(
+    store: Awaited<typeof import('#/renderer/src/store/redux')>['store']
+  ): Promise<void> {
+    const { setPendingLoadRequest } = await import('#/renderer/src/store/slices/modalsSlice');
+    store.dispatch(setPendingLoadRequest(null));
+  }
+
+  /**
+   * Opens a saved request tab and edits the draft so it is dirty.
+   *
+   * @param store - Redux store under test.
+   * @param draft - Saved request draft to open.
+   */
+  async function openDirtySavedTab(
+    store: Awaited<typeof import('#/renderer/src/store/redux')>['store'],
+    draft: Parameters<
+      Awaited<typeof import('#/renderer/src/store/slices/tabsSlice')>['openTabWithDraft']
+    >[0]
+  ): Promise<void> {
+    const { openTabWithDraft, setActiveDraft } =
+      await import('#/renderer/src/store/slices/tabsSlice');
+    store.dispatch(openTabWithDraft(draft));
+    const activeTab = store
+      .getState()
+      .tabs.tabs.find((tab) => tab.tabId === store.getState().tabs.activeTabId);
+    if (!activeTab) throw new Error('expected active tab');
+    store.dispatch(setActiveDraft({ ...activeTab.draft, url: 'https://example.com/edited' }));
+  }
+
+  it('prompts when reopening a dirty tab for the same saved request', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { requestLoadRequest } = await import('#/renderer/src/store/thunks/requests');
+    await resetPendingLoadRequest(store);
+    const req = sampleSaved({ id: 101 });
+
+    await openDirtySavedTab(store, {
+      id: 101,
+      collection_id: 10,
+      folder_id: null,
+      name: 'Get users',
+      method: 'GET',
+      url: 'https://example.com/old',
+      headers: [],
+      params: [],
+      auth: defaultAuth(),
+      body: '',
+      body_type: 'none',
+      pre_request_script: '',
+      post_request_script: '',
+      comment: ''
+    });
+
+    await store.dispatch(requestLoadRequest({ req }));
+
+    expect(store.getState().modals.pendingLoadRequest).toEqual({
+      req,
+      reason: 'dirty-tab'
+    });
+    expect(store.getState().tabs.tabs.find((tab) => tab.draft.id === 101)?.draft.url).toBe(
+      'https://example.com/edited'
+    );
+  });
+
+  it('reloads a dirty tab when forceReload is true', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { requestLoadRequest } = await import('#/renderer/src/store/thunks/requests');
+    await resetPendingLoadRequest(store);
+    const req = sampleSaved({ id: 102 });
+
+    await openDirtySavedTab(store, {
+      id: 102,
+      collection_id: 10,
+      folder_id: null,
+      name: 'Get users',
+      method: 'GET',
+      url: 'https://example.com/old',
+      headers: [],
+      params: [],
+      auth: defaultAuth(),
+      body: '',
+      body_type: 'none',
+      pre_request_script: '',
+      post_request_script: '',
+      comment: ''
+    });
+
+    await store.dispatch(requestLoadRequest({ req, skipSettingsCheck: true, forceReload: true }));
+
+    expect(store.getState().modals.pendingLoadRequest).toBeNull();
+    expect(store.getState().tabs.tabs.find((tab) => tab.draft.id === 102)?.draft.url).toBe(
+      'https://example.com/users'
+    );
+  });
+
+  it('reloads a clean existing tab without prompting', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { loadRequest } = await import('#/renderer/src/store/slices/tabsSlice');
+    const { requestLoadRequest } = await import('#/renderer/src/store/thunks/requests');
+    await resetPendingLoadRequest(store);
+    const req = sampleSaved({ id: 103, url: 'https://example.com/old' });
+
+    store.dispatch(loadRequest(req));
+
+    await store.dispatch(requestLoadRequest({ req: sampleSaved({ id: 103 }) }));
+
+    expect(store.getState().modals.pendingLoadRequest).toBeNull();
+    expect(store.getState().tabs.tabs.filter((tab) => tab.draft.id === 103)).toHaveLength(1);
+    expect(store.getState().tabs.tabs.find((tab) => tab.draft.id === 103)?.draft.url).toBe(
+      'https://example.com/users'
+    );
+  });
+});
+
+describe('cancelRequest', () => {
+  it('cancels the in-flight request for the given tab id', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { openTabWithDraft, updateTab } = await import('#/renderer/src/store/slices/tabsSlice');
+    const { cancelRequest } = await import('#/renderer/src/store/thunks/requests');
+
+    store.dispatch(
+      openTabWithDraft({
+        name: 'Users',
+        method: 'GET',
+        url: 'https://example.com/users',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        comment: '',
+        auth: defaultAuth()
+      })
+    );
+
+    const tabId = store.getState().tabs.activeTabId;
+    store.dispatch(
+      updateTab({
+        tabId,
+        updates: { sending: true, sendingRequestId: 'req-42' }
+      })
+    );
+
+    await store.dispatch(cancelRequest(tabId));
+
+    expect(cancelRequestMock).toHaveBeenCalledWith('req-42');
+    const tab = store.getState().tabs.tabs.find((t) => t.tabId === tabId);
+    expect(tab?.sending).toBe(false);
+    expect(tab?.sendingRequestId).toBeNull();
+  });
+});
+
+describe('closeRequestTab', () => {
+  it('cancels an in-flight send before removing the tab', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { newTab, updateTab } = await import('#/renderer/src/store/slices/tabsSlice');
+    const { closeRequestTab } = await import('#/renderer/src/store/thunks/requests');
+
+    store.dispatch(newTab());
+    const firstTabId = store.getState().tabs.activeTabId;
+    store.dispatch(newTab());
+    const secondTabId = store.getState().tabs.activeTabId;
+
+    store.dispatch(
+      updateTab({
+        tabId: firstTabId,
+        updates: { sending: true, sendingRequestId: 'req-close' }
+      })
+    );
+
+    await store.dispatch(closeRequestTab(firstTabId));
+
+    expect(cancelRequestMock).toHaveBeenCalledWith('req-close');
+    expect(store.getState().tabs.tabs.some((tab) => tab.tabId === firstTabId)).toBe(false);
+    expect(store.getState().tabs.activeTabId).toBe(secondTabId);
   });
 });

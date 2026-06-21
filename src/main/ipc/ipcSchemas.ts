@@ -1,4 +1,11 @@
 import { z } from 'zod';
+import {
+  MAX_IPC_COMMENT_CHARS,
+  MAX_IPC_REQUEST_BODY_CHARS,
+  MAX_IPC_SCRIPT_CHARS,
+  MAX_IPC_URL_CHARS
+} from '#/main/ipc/ipcLimits';
+import { HARD_MAX_RESPONSE_SIZE_MB } from '#/main/settings/generalSettings';
 import { authConfig, bodyType, httpMethod, keyValue, variable } from '#/main/schemas/common';
 import type {
   DatabaseConnection,
@@ -31,13 +38,21 @@ export const dbId = z.number().int().nonnegative();
  */
 export const connectionId = z.string();
 
+/**
+ * Fingerprint id of a trusted recipient public key for invite tokens.
+ */
+export const recipientKid = z.string().min(1);
+
 export const requestId = z.string();
 export const storageKey = z.string();
 export const domain = z.string();
 export const label = z.string();
 export const token = z.string();
 export const publicKeyPem = z.string();
-export const name = z.string();
+/**
+ * Non-empty display name after trimming whitespace.
+ */
+export const name = z.string().trim().min(1, 'name is required');
 
 export const themeSource = z.enum(['light', 'dark', 'system']);
 
@@ -56,29 +71,41 @@ export const scriptPhase = z.enum(['pre', 'post']);
 
 export const nullableFolderId = z.union([dbId, z.null()]);
 
+/** Request body string bounded for IPC deserialization. */
+const ipcRequestBody = z.string().max(MAX_IPC_REQUEST_BODY_CHARS);
+
+/** Pre/post script source bounded for IPC. */
+const ipcScriptSource = z.string().max(MAX_IPC_SCRIPT_CHARS);
+
+/** URL string bounded for IPC. */
+const ipcUrl = z.string().max(MAX_IPC_URL_CHARS);
+
+/** Request comment/description bounded for IPC. */
+const ipcComment = z.string().max(MAX_IPC_COMMENT_CHARS);
+
 export const saveRequestInput = z.object({
   id: dbId.optional(),
   collection_id: dbId,
-  name: z.string(),
+  name: z.string().trim().min(1, 'request name is required'),
   method: httpMethod,
-  url: z.string(),
+  url: ipcUrl,
   headers: z.array(keyValue),
   params: z.array(keyValue),
-  body: z.string(),
+  body: ipcRequestBody,
   body_type: bodyType,
-  pre_request_script: z.string(),
-  post_request_script: z.string(),
-  comment: z.string(),
+  pre_request_script: ipcScriptSource,
+  post_request_script: ipcScriptSource,
+  comment: ipcComment,
   auth: authConfig,
   folder_id: nullableFolderId.optional()
 }) satisfies z.ZodType<SaveRequestInput>;
 
 export const sendRequestInput = z.object({
   method: httpMethod,
-  url: z.string(),
+  url: ipcUrl,
   headers: z.array(keyValue),
   params: z.array(keyValue),
-  body: z.string(),
+  body: ipcRequestBody,
   bodyType: bodyType
 }) satisfies z.ZodType<SendRequestInput>;
 
@@ -104,16 +131,16 @@ export const sendResult = z.object({
 
 export const scriptRequestContext = z.object({
   method: httpMethod,
-  url: z.string(),
+  url: ipcUrl,
   headers: z.array(keyValue),
   params: z.array(keyValue),
-  body: z.string(),
+  body: ipcRequestBody,
   bodyType: bodyType
 }) satisfies z.ZodType<ScriptRequestContext>;
 
 export const scriptRunInput = z.object({
   phase: scriptPhase,
-  script: z.string(),
+  script: ipcScriptSource,
   request: scriptRequestContext,
   response: sendResult.optional(),
   variables: z.record(z.string(), z.string()),
@@ -129,14 +156,27 @@ export const scriptRunInput = z.object({
 
 export const generalSettings = z.object({
   requestTimeoutMs: z.number(),
-  maxResponseSizeMb: z.number(),
+  maxResponseSizeMb: z.number().min(0).max(HARD_MAX_RESPONSE_SIZE_MB),
   verifySsl: z.boolean()
 }) satisfies z.ZodType<GeneralSettings>;
+
+/**
+ * Single directory name safe for `join(parentDir, segment, ...)`.
+ * Rejects path separators and `.` / `..` so IPC cannot escape the parent.
+ */
+const singlePathSegment = z
+  .string()
+  .trim()
+  .min(1)
+  .refine(
+    (value) => value !== '.' && value !== '..' && !value.includes('/') && !value.includes('\\'),
+    { message: 'must be a single path segment' }
+  );
 
 const sqliteSettings = z.object({
   dbFilename: z.string(),
   legacyDbFilename: z.string(),
-  legacyUserDataDir: z.string()
+  legacyUserDataDir: singlePathSegment
 });
 
 const firestoreSettings = z.object({
@@ -241,5 +281,5 @@ export const ipcArgSchemas = {
   folderReorder: z.tuple([dbId, z.array(dbId)]),
   requestReorder: z.tuple([dbId, nullableFolderId, z.array(dbId)]),
   requestMove: z.tuple([dbId, nullableFolderId, dbId]),
-  inviteCreate: z.tuple([dbId, connectionId.optional()])
+  inviteCreate: z.tuple([dbId, recipientKid.optional()])
 } as const;

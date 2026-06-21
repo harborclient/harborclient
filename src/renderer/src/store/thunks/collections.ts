@@ -16,6 +16,13 @@ import {
 } from '#/renderer/src/store/slices/collectionsSlice';
 import { closeTabsForCollection, closeTabsForRequest } from '#/renderer/src/store/slices/tabsSlice';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
+import {
+  beginRefreshGeneration,
+  collectionRefreshKey,
+  isLatestRefreshGeneration
+} from '#/renderer/src/store/refreshGeneration';
+
+const COLLECTIONS_REFRESH_KEY = 'collections';
 
 /**
  * Reloads all collections from the active database and auto-selects the first when none is selected.
@@ -23,7 +30,11 @@ import type { ThunkApiConfig } from '#/renderer/src/store/redux';
 export const refreshCollections = createAsyncThunk<Collection[], void, ThunkApiConfig>(
   'collections/refresh',
   async (_, { dispatch, getState }) => {
+    const generation = beginRefreshGeneration(COLLECTIONS_REFRESH_KEY);
     const { collections, warnings } = await window.api.listCollections();
+    if (!isLatestRefreshGeneration(COLLECTIONS_REFRESH_KEY, generation)) {
+      return getState().collections.collections;
+    }
     for (const warning of warnings) {
       toast.error(warning);
     }
@@ -43,8 +54,13 @@ export const refreshFolders = createAsyncThunk<
   Awaited<ReturnType<typeof window.api.listFolders>>,
   number,
   ThunkApiConfig
->('collections/refreshFolders', async (collectionId, { dispatch }) => {
+>('collections/refreshFolders', async (collectionId, { dispatch, getState }) => {
+  const refreshKey = collectionRefreshKey('folders', collectionId);
+  const generation = beginRefreshGeneration(refreshKey);
   const data = await window.api.listFolders(collectionId);
+  if (!isLatestRefreshGeneration(refreshKey, generation)) {
+    return getState().collections.foldersByCollection[collectionId] ?? [];
+  }
   dispatch(setFoldersForCollection({ collectionId, folders: data }));
   return data;
 });
@@ -67,8 +83,13 @@ export const refreshRequests = createAsyncThunk<
   Awaited<ReturnType<typeof window.api.listRequests>>,
   number,
   ThunkApiConfig
->('collections/refreshRequests', async (collectionId, { dispatch }) => {
+>('collections/refreshRequests', async (collectionId, { dispatch, getState }) => {
+  const refreshKey = collectionRefreshKey('requests', collectionId);
+  const generation = beginRefreshGeneration(refreshKey);
   const data = await window.api.listRequests(collectionId);
+  if (!isLatestRefreshGeneration(refreshKey, generation)) {
+    return getState().collections.requestsByCollection[collectionId] ?? [];
+  }
   dispatch(setRequestsForCollection({ collectionId, requests: data }));
   return data;
 });

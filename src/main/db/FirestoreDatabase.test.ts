@@ -7,7 +7,11 @@ import {
   describeFirestore,
   TEST_FIRESTORE_SETTINGS
 } from '#/test/databaseBackends';
-import { runIdatabaseContractSuite, type TestDbHandle } from '#/test/idatabaseContract';
+import {
+  runIdatabaseContractSuite,
+  baseRequestInput,
+  type TestDbHandle
+} from '#/test/idatabaseContract';
 import type { CollectionExport } from '#/shared/types';
 
 const cleanups: Array<() => void | Promise<void>> = [];
@@ -40,6 +44,48 @@ describeFirestore('FirestoreDatabase lifecycle', () => {
 
 describeFirestore('FirestoreDatabase contract', () => {
   runIdatabaseContractSuite('FirestoreDatabase', createTestDb);
+});
+
+describeFirestore('FirestoreDatabase reorder ownership', () => {
+  it('reorderFolders rejects folders from another collection', async () => {
+    const { db } = await createTestDb();
+    const collectionA = await db.createCollection('Collection A');
+    const collectionB = await db.createCollection('Collection B');
+    const folderA = await db.createFolder(collectionA.id, 'Folder A');
+    const folderB = await db.createFolder(collectionB.id, 'Folder B');
+
+    await expect(db.reorderFolders(collectionA.id, [folderA.id, folderB.id])).rejects.toThrow(
+      'Folder not found'
+    );
+
+    expect((await db.listFolders(collectionB.id)).map((folder) => folder.id)).toEqual([folderB.id]);
+  });
+
+  it('reorderRequests rejects requests from another collection or folder', async () => {
+    const { db } = await createTestDb();
+    const collectionA = await db.createCollection('Collection A');
+    const collectionB = await db.createCollection('Collection B');
+    const folderA = await db.createFolder(collectionA.id, 'Folder A');
+    const folderB = await db.createFolder(collectionB.id, 'Folder B');
+    const requestA = await db.saveRequest(
+      baseRequestInput(collectionA.id, { name: 'Request A', folder_id: folderA.id })
+    );
+    const requestB = await db.saveRequest(
+      baseRequestInput(collectionB.id, { name: 'Request B', folder_id: folderB.id })
+    );
+
+    await expect(
+      db.reorderRequests(collectionA.id, folderA.id, [requestA.id, requestB.id])
+    ).rejects.toThrow('Request not found');
+
+    expect((await db.listRequests(collectionB.id)).map((request) => request.id)).toEqual([
+      requestB.id
+    ]);
+    const remaining = (await db.listRequests(collectionB.id)).find(
+      (request) => request.id === requestB.id
+    );
+    expect(remaining?.folder_id).toBe(folderB.id);
+  });
 });
 
 describeFirestore('FirestoreDatabase import and ID allocation', () => {
@@ -87,6 +133,58 @@ describeFirestore('FirestoreDatabase import and ID allocation', () => {
     expect(imported.name).toBe('Large Import');
     expect(await db.listFolders(imported.id)).toHaveLength(2);
     expect(await db.listRequests(imported.id)).toHaveLength(requestCount);
+  });
+
+  it('deleteCollection batch-deletes collections larger than the writeBatch limit', async () => {
+    const { db } = await createTestDb();
+    const requestCount = 600;
+    const payload: CollectionExport = {
+      formatVersion: 2,
+      name: 'Large Delete',
+      variables: [],
+      headers: [],
+      pre_request_script: '',
+      post_request_script: '',
+      folders: [
+        { name: 'Alpha', sort_order: 0 },
+        { name: 'Beta', sort_order: 1 }
+      ],
+      requests: Array.from({ length: requestCount }, (_, index) => buildExportedRequest(index))
+    };
+
+    const imported = await db.importCollectionData(payload);
+    await db.deleteCollection(imported.id);
+
+    expect(await db.listCollections()).toEqual([]);
+    expect(await db.listRequests(imported.id)).toEqual([]);
+    expect(await db.listFolders(imported.id)).toEqual([]);
+  });
+
+  it('deleteFolder batch-deletes folders larger than the writeBatch limit', async () => {
+    const { db } = await createTestDb();
+    const requestCount = 600;
+    const folderName = 'Large';
+    const payload: CollectionExport = {
+      formatVersion: 2,
+      name: 'Large Folder Delete',
+      variables: [],
+      headers: [],
+      pre_request_script: '',
+      post_request_script: '',
+      folders: [{ name: folderName, sort_order: 0 }],
+      requests: Array.from({ length: requestCount }, (_, index) => ({
+        ...buildExportedRequest(index),
+        folder_name: folderName
+      }))
+    };
+
+    const imported = await db.importCollectionData(payload);
+    const [folder] = await db.listFolders(imported.id);
+    await db.deleteFolder(folder.id);
+
+    expect(await db.listFolders(imported.id)).toEqual([]);
+    expect(await db.listRequests(imported.id)).toEqual([]);
+    expect(await db.listCollections()).toEqual([imported]);
   });
 
   it('nextId dispenses IDs from cached blocks instead of one transaction per insert', async () => {

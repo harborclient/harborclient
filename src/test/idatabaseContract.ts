@@ -58,6 +58,19 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
       expect(collection.created_at).toEqual(expect.any(String));
     });
 
+    it('createCollection rejects empty name after trim', async () => {
+      const { db } = await createTestDb();
+      await expect(db.createCollection('   ')).rejects.toThrow('Collection name is required');
+    });
+
+    it('updateCollection rejects empty name after trim', async () => {
+      const { db } = await createTestDb();
+      const created = await db.createCollection('Original');
+      await expect(
+        db.updateCollection(created.id, '  ', [], [], '', '', defaultAuth())
+      ).rejects.toThrow('Collection name is required');
+    });
+
     it('listCollections sorts by name ascending', async () => {
       const { db } = await createTestDb();
       await db.createCollection('Zebra');
@@ -124,6 +137,11 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
       expect((await db.listEnvironments()).map((e) => e.name)).toEqual(['Dev']);
     });
 
+    it('createEnvironment rejects empty name after trim', async () => {
+      const { db } = await createTestDb();
+      await expect(db.createEnvironment('   ')).rejects.toThrow('Environment name is required');
+    });
+
     it('updateEnvironment persists variables', async () => {
       const { db } = await createTestDb();
       const created = await db.createEnvironment('Dev');
@@ -155,6 +173,14 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
       expect(first.sort_order).toBe(0);
       expect(second.sort_order).toBe(1);
       expect(first.id).not.toBe(second.id);
+    });
+
+    it('saveRequest rejects empty name after trim', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Requests');
+      await expect(
+        db.saveRequest(baseRequestInput(collection.id, { name: '   ' }))
+      ).rejects.toThrow('Request name is required');
     });
 
     it('saveRequest updates existing request fields', async () => {
@@ -387,6 +413,17 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
           requests: [{ name: 'X', method: 'GET', body_type: 'xml' }]
         })
       ).rejects.toThrow('Invalid collection file: request 1 has an invalid body type');
+      await expect(
+        db.importCollectionData({
+          formatVersion: 2,
+          name: 'Duplicate Folders',
+          folders: [
+            { name: 'API', sort_order: 0 },
+            { name: 'API', sort_order: 1 }
+          ],
+          requests: []
+        })
+      ).rejects.toThrow('Invalid collection file: folder 2 has a duplicate name');
     });
   });
 
@@ -404,6 +441,14 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
         'Alpha',
         'Beta'
       ]);
+    });
+
+    it('createFolder rejects empty name after trim', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Folders');
+      await expect(db.createFolder(collection.id, '   ')).rejects.toThrow(
+        'Folder name is required'
+      );
     });
 
     it('saveRequest stores folder_id and scopes sort_order per folder', async () => {

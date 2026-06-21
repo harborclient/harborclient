@@ -127,9 +127,6 @@ export function CollectionModal(): JSX.Element | null {
             placeholder="Paste invite token"
             value={collectionModal.inviteTokenInput}
             onChange={(e) => dispatch(setCollectionModalInviteTokenInput(e.target.value))}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') handleClose();
-            }}
           />
           <div className="mt-4 flex justify-end gap-2">
             <button className={secondaryButton} onClick={handleClose}>
@@ -155,7 +152,6 @@ export function CollectionModal(): JSX.Element | null {
             onChange={(e) => dispatch(setCollectionModalName(e.target.value))}
             onKeyDown={(e) => {
               if (e.key === 'Enter') void handleSubmit();
-              if (e.key === 'Escape') handleClose();
             }}
           />
           <div className="mt-4 flex justify-end gap-2">

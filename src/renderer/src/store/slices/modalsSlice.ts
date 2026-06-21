@@ -28,10 +28,18 @@ export interface AboutModalState {
   version: string;
 }
 
+/**
+ * Saved request queued for load after the user confirms discarding unsaved edits.
+ */
+export interface PendingLoadRequest {
+  req: SavedRequest;
+  reason: 'settings' | 'dirty-tab';
+}
+
 export interface ModalsState {
   collectionModal: CollectionModalState | null;
   invite: InviteModalState | null;
-  pendingLoadRequest: SavedRequest | null;
+  pendingLoadRequest: PendingLoadRequest | null;
   quitPrompt: string[] | null;
   about: AboutModalState;
 }
@@ -169,7 +177,7 @@ const modalsSlice = createSlice({
     /**
      * Queues a saved request to load after unsaved prompt.
      */
-    setPendingLoadRequest(state, action: PayloadAction<SavedRequest | null>) {
+    setPendingLoadRequest(state, action: PayloadAction<PendingLoadRequest | null>) {
       state.pendingLoadRequest = action.payload;
     },
     /**
@@ -232,7 +240,7 @@ export const selectInviteModal = (state: RootState): InviteModalState | null => 
 /**
  * Returns a request waiting on unsaved-load confirmation.
  */
-export const selectPendingLoadRequest = (state: RootState): SavedRequest | null =>
+export const selectPendingLoadRequest = (state: RootState): PendingLoadRequest | null =>
   state.modals.pendingLoadRequest;
 /**
  * Returns dirty tab names for the quit prompt.
