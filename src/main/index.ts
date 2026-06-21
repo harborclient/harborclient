@@ -150,7 +150,7 @@ if (process.platform === 'linux' && isDev) {
 function resolveAppIcon(): string {
   return app.isPackaged
     ? join(process.resourcesPath, 'icon.png')
-    : join(__dirname, '../../images/logo-square.png');
+    : join(__dirname, '../../images/logo-icon.png');
 }
 
 /**
