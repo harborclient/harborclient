@@ -149,6 +149,11 @@ interface Props {
   onNewRequestInCollection: (id: number) => Promise<void> | void;
 
   /**
+   * Imports a request from a JSON file into a collection or folder.
+   */
+  onImportRequest: (collectionId: number, folderId?: number | null) => Promise<void> | void;
+
+  /**
    * Creates a new request inside a folder.
    */
   onNewRequestInFolder: (collectionId: number, folderId: number) => Promise<void> | void;
@@ -206,6 +211,11 @@ interface Props {
    * Duplicates a saved request.
    */
   onDuplicateRequest: (req: SavedRequest) => Promise<void>;
+
+  /**
+   * Exports a saved request to a JSON file.
+   */
+  onExportRequest: (req: SavedRequest) => Promise<void> | void;
 }
 
 /**
@@ -233,6 +243,7 @@ export function Collections({
   onInviteCollection,
   onNewFolder,
   onNewRequestInCollection,
+  onImportRequest,
   onNewRequestInFolder,
   onRenameFolder,
   onDeleteFolder,
@@ -242,7 +253,8 @@ export function Collections({
   onMoveRequest,
   onLoadRequest,
   onDeleteRequest,
-  onDuplicateRequest
+  onDuplicateRequest,
+  onExportRequest
 }: Props): JSX.Element {
   const confirm = useConfirm();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -615,6 +627,10 @@ export function Collections({
                         label: 'New Request',
                         onSelect: () => void onNewRequestInCollection(collection.id)
                       },
+                      {
+                        label: 'Import Request',
+                        onSelect: () => void onImportRequest(collection.id)
+                      },
                       { label: 'Export', onSelect: () => void onExportCollection(collection.id) },
                       {
                         label: 'Duplicate',
@@ -622,11 +638,11 @@ export function Collections({
                       },
                       ...(canInvite
                         ? [
-                            {
-                              label: 'Invite',
-                              onSelect: () => onInviteCollection(collection.id, collection.name)
-                            }
-                          ]
+                          {
+                            label: 'Invite',
+                            onSelect: () => onInviteCollection(collection.id, collection.name)
+                          }
+                        ]
                         : []),
                       {
                         label: 'Delete',
@@ -700,6 +716,7 @@ export function Collections({
                                 onLoadRequest={onLoadRequest}
                                 onDeleteRequest={onDeleteRequest}
                                 onDuplicateRequest={onDuplicateRequest}
+                                onExportRequest={onExportRequest}
                                 onMoveRequest={(requestId, folderId) => {
                                   const targetList =
                                     folderId == null
@@ -769,6 +786,11 @@ export function Collections({
                                           void onNewRequestInFolder(collection.id, folder.id)
                                       },
                                       {
+                                        label: 'Import Request',
+                                        onSelect: () =>
+                                          void onImportRequest(collection.id, folder.id)
+                                      },
+                                      {
                                         label: 'Rename',
                                         onSelect: () =>
                                           void onRenameFolder(folder.id, collection.id)
@@ -805,6 +827,7 @@ export function Collections({
                                         onLoadRequest={onLoadRequest}
                                         onDeleteRequest={onDeleteRequest}
                                         onDuplicateRequest={onDuplicateRequest}
+                                        onExportRequest={onExportRequest}
                                         onMoveRequest={(requestId, folderId) => {
                                           const targetList =
                                             folderId == null
@@ -835,8 +858,8 @@ export function Collections({
 
                     <DragOverlay>
                       {dragCollectionId === collection.id &&
-                      activeDragKind === 'request' &&
-                      activeDragRequest ? (
+                        activeDragKind === 'request' &&
+                        activeDragRequest ? (
                         <div className="flex items-center gap-1.5 rounded border border-separator bg-surface px-2 py-1 shadow-md">
                           <span
                             className={`shrink-0 rounded px-1 py-px text-[10px] font-semibold ${METHOD_CLASSES[activeDragRequest.method.toLowerCase()] ?? 'bg-info text-white'}`}

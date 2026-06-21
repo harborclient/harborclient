@@ -2,9 +2,12 @@ import { BrowserWindow, dialog } from 'electron';
 import { readFile, writeFile } from 'fs/promises';
 import {
   collectionExportContainsScripts,
-  validateCollectionExport
+  requestExportContainsScripts,
+  validateCollectionExport,
+  validateRequestExport
 } from '#/main/db/collectionData';
 import { convertPostmanCollection, isPostmanCollection } from '#/main/import/postman';
+import { defaultAuth } from '#/shared/auth';
 import {
   getSuppressPostmanImportWarning,
   setSuppressPostmanImportWarning
@@ -150,6 +153,81 @@ export function registerCollectionHandlers(db: IDatabase): void {
     }
 
     return db.importCollectionData(exportData);
+  });
+
+  // Exports a request to a JSON file via a native save dialog.
+  handle('requests:export', ipcArgSchemas.requestExport, async (_event, data) => {
+    const win = BrowserWindow.getFocusedWindow();
+    const dialogOptions = {
+      defaultPath: `${data.name}.json`,
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    };
+    const { canceled, filePath } = win
+      ? await dialog.showSaveDialog(win, dialogOptions)
+      : await dialog.showSaveDialog(dialogOptions);
+
+    if (canceled || !filePath) {
+      return { canceled: true };
+    }
+
+    await writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    return { canceled: false, path: filePath };
+  });
+
+  // Imports a request from a JSON file selected via a native open dialog.
+  handle('requests:import', ipcArgSchemas.requestImport, async (_event, collectionId, folderId) => {
+    const win = BrowserWindow.getFocusedWindow();
+    const dialogOptions = {
+      properties: ['openFile'] as Array<'openFile'>,
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    };
+    const { canceled, filePaths } = win
+      ? await dialog.showOpenDialog(win, dialogOptions)
+      : await dialog.showOpenDialog(dialogOptions);
+
+    if (canceled || filePaths.length === 0) {
+      return null;
+    }
+
+    const raw = await readFile(filePaths[0], 'utf-8');
+    const parsed = JSON.parse(raw) as unknown;
+    const exportData = validateRequestExport(parsed);
+
+    if (requestExportContainsScripts(exportData)) {
+      const messageBoxOptions = {
+        type: 'warning' as const,
+        buttons: ['Cancel', 'Import anyway'],
+        defaultId: 0,
+        cancelId: 0,
+        title: 'Request contains scripts',
+        message: 'This request includes pre-request or post-request scripts.',
+        detail:
+          'Scripts from imported files may not be safe. They run in a limited sandbox, but that sandbox is not a security boundary. Only import requests from sources you trust.'
+      };
+      const { response } = win
+        ? await dialog.showMessageBox(win, messageBoxOptions)
+        : await dialog.showMessageBox(messageBoxOptions);
+
+      if (response !== 1) {
+        return null;
+      }
+    }
+
+    return db.saveRequest({
+      collection_id: collectionId,
+      folder_id: folderId ?? null,
+      name: exportData.name,
+      method: exportData.method,
+      url: exportData.url,
+      headers: exportData.headers,
+      params: exportData.params,
+      body: exportData.body,
+      body_type: exportData.body_type,
+      pre_request_script: exportData.pre_request_script,
+      post_request_script: exportData.post_request_script,
+      comment: exportData.comment,
+      auth: exportData.auth ?? defaultAuth()
+    });
   });
 
   // Moves a collection to a different database connection.

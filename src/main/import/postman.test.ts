@@ -159,6 +159,7 @@ describe('isPostmanCollection', () => {
     expect(
       isPostmanCollection({
         harborclientVersion: 2,
+        harborclientExport: 'collection',
         name: 'My API',
         variables: [],
         headers: [],
@@ -178,6 +179,7 @@ describe('convertPostmanCollection', () => {
     const result = convertPostmanCollection(pintailFixture);
 
     expect(result.harborclientVersion).toBe(2);
+    expect(result.harborclientExport).toBe('collection');
     expect(result.name).toBe('Pintail');
     expect(result.variables).toEqual([
       { key: 'base_url', value: '', defaultValue: '', share: true }
@@ -335,6 +337,7 @@ describe('convertPostmanCollection', () => {
     const validated = validateCollectionExport(converted);
 
     expect(validated.harborclientVersion).toBe(2);
+    expect(validated.harborclientExport).toBe('collection');
     expect(validated.requests).toHaveLength(2);
   });
 

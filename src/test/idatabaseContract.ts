@@ -314,6 +314,7 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
 
       expect(exported).toEqual({
         harborclientVersion: 2,
+        harborclientExport: 'collection',
         name: 'Export Me',
         variables: [
           { key: 'shared', value: 'visible', defaultValue: '', share: true },
@@ -354,6 +355,7 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
       const { db } = await createTestDb();
       const payload: CollectionExport = {
         harborclientVersion: 1,
+        harborclientExport: 'collection',
         name: 'Imported',
         variables: [
           { key: 'baseUrl', value: 'https://example.com', defaultValue: '', share: true }
@@ -394,14 +396,25 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
         'Invalid collection file: expected a JSON object'
       );
       await expect(
-        db.importCollectionData({ harborclientVersion: 3, name: 'Bad', requests: [] })
+        db.importCollectionData({
+          harborclientVersion: 3,
+          harborclientExport: 'collection',
+          name: 'Bad',
+          requests: []
+        })
       ).rejects.toThrow('Invalid collection file: unsupported format version');
       await expect(
-        db.importCollectionData({ harborclientVersion: 1, name: '   ', requests: [] })
+        db.importCollectionData({
+          harborclientVersion: 1,
+          harborclientExport: 'collection',
+          name: '   ',
+          requests: []
+        })
       ).rejects.toThrow('Invalid collection file: collection name is required');
       await expect(
         db.importCollectionData({
           harborclientVersion: 1,
+          harborclientExport: 'collection',
           name: 'Bad Request',
           requests: [{ name: 'X', method: 'INVALID', body_type: 'none' }]
         })
@@ -409,6 +422,7 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
       await expect(
         db.importCollectionData({
           harborclientVersion: 1,
+          harborclientExport: 'collection',
           name: 'Bad Body',
           requests: [{ name: 'X', method: 'GET', body_type: 'xml' }]
         })
@@ -416,6 +430,7 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
       await expect(
         db.importCollectionData({
           harborclientVersion: 2,
+          harborclientExport: 'collection',
           name: 'Duplicate Folders',
           folders: [
             { name: 'API', sort_order: 0 },
@@ -529,6 +544,7 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
 
       const exported = await db.exportCollectionData(collection.id);
       expect(exported.harborclientVersion).toBe(2);
+      expect(exported.harborclientExport).toBe('collection');
       expect(exported.folders).toEqual([{ name: 'Auth', sort_order: 0 }]);
       expect(exported.requests[0]?.folder_name).toBe('Auth');
 

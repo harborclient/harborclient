@@ -7,6 +7,7 @@ import {
 } from '#/main/ipc/ipcLimits';
 import { HARD_MAX_RESPONSE_SIZE_MB } from '#/main/settings/generalSettings';
 import { authConfig, bodyType, httpMethod, keyValue, variable } from '#/main/schemas/common';
+import { requestExportSchema } from '#/main/db/collectionSchemas';
 import type {
   DatabaseConnection,
   GeneralSettings,
@@ -282,5 +283,7 @@ export const ipcArgSchemas = {
   folderReorder: z.tuple([dbId, z.array(dbId)]),
   requestReorder: z.tuple([dbId, nullableFolderId, z.array(dbId)]),
   requestMove: z.tuple([dbId, nullableFolderId, dbId]),
+  requestExport: z.tuple([requestExportSchema]),
+  requestImport: z.tuple([dbId, nullableFolderId.optional()]),
   inviteCreate: z.tuple([dbId, recipientKid.optional()])
 } as const;

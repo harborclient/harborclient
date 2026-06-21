@@ -25,6 +25,8 @@ import {
   duplicateCollection,
   duplicateRequest,
   exportCollection,
+  exportRequest,
+  importRequest,
   moveRequestToFolder,
   newRequestInCollection,
   newRequestInFolder,
@@ -279,6 +281,16 @@ export function Sidebar({
                   showAlert(dispatch, formatErrorMessage(err, 'Failed to create request'));
                 }
               }}
+              onImportRequest={async (collectionId, folderId) => {
+                try {
+                  const saved = await dispatch(importRequest({ collectionId, folderId })).unwrap();
+                  if (saved) {
+                    toast.success('Request imported');
+                  }
+                } catch (err) {
+                  showAlert(dispatch, formatErrorMessage(err, 'Failed to import request'));
+                }
+              }}
               onNewRequestInFolder={async (collectionId, folderId) => {
                 try {
                   await dispatch(newRequestInFolder({ collectionId, folderId })).unwrap();
@@ -337,6 +349,12 @@ export function Sidebar({
                   await dispatch(duplicateRequest(req)).unwrap();
                 } catch (err) {
                   showAlert(dispatch, formatErrorMessage(err, 'Failed to duplicate request'));
+                }
+              }}
+              onExportRequest={async (req) => {
+                const result = await dispatch(exportRequest(req)).unwrap();
+                if (!result.canceled) {
+                  toast.success('Request exported');
                 }
               }}
             />

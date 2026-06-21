@@ -34,7 +34,7 @@ Use **New Folder** in a collection's row menu to create a folder. Folder actions
 | **Rename** | Row menu → **Rename** |
 | **Delete** | Row menu → **Delete** — removes the folder and all requests inside it |
 
-Drag and drop to reorder collections, folders, and requests within a folder or at the collection root, and move requests between folders and the root. While dragging a request, the target folder or collection root is highlighted so you can see where it will land. You can also use **Move to …** in a request's row menu.
+Drag and drop to reorder collections, folders, and requests within a folder or at the collection root, and move requests between folders and the root. While dragging a request, the target folder or collection root is highlighted so you can see where it will land. You can also use **Move to root** in a request's row menu.
 
 ### Empty state and ordering
 
@@ -210,13 +210,14 @@ Scripts imported from Postman use the `pm.*` API in Postman but run in HarborCli
 
 ### Export file format
 
-HarborClient export files use `harborclientVersion: 1` or `harborclientVersion: 2` (with folders). They contain the collection name, variables, headers, authorization, scripts, and all saved requests. Database IDs are not included.
+HarborClient export files require `harborclientExport: "collection"` and use `harborclientVersion: 1` or `harborclientVersion: 2` (with folders). They contain the collection name, variables, headers, authorization, scripts, and all saved requests. Database IDs are not included.
 
 Example (abbreviated):
 
 ```json
 {
   "harborclientVersion": 1,
+  "harborclientExport": "collection",
   "name": "My API",
   "variables": [
     { "key": "baseUrl", "value": "https://api.example.com", "defaultValue": "", "share": true }
@@ -258,11 +259,42 @@ Common validation errors:
 | Error | Cause |
 | --- | --- |
 | `unsupported format version` | `harborclientVersion` is not `1` or `2` |
+| `not a HarborClient collection export` | `harborclientExport` is not `"collection"` |
 | `collection name is required` | Name is missing or blank |
 | `requests must be an array` | `requests` field is missing or wrong type |
 | `request N has an invalid method` | Method is not a supported HTTP method |
 | `request N has an invalid body type` | `body_type` is not `none`, `json`, `text`, `multipart`, or `urlencoded` |
 | `request N is missing a name` | Request name is blank |
+
+### Request export format
+
+Individual requests can be exported from the request row menu in the sidebar. Request export files require `harborclientExport: "request"` and `harborclientVersion: 1`. They contain request fields only (name, method, URL, headers, params, auth, body, scripts, comment). Folder information is not included.
+
+Import a request export via **Import Request** in a collection or folder row menu. Collection root imports place the request at the root; folder imports place it inside that folder.
+
+Example (abbreviated):
+
+```json
+{
+  "harborclientVersion": 1,
+  "harborclientExport": "request",
+  "name": "Get status",
+  "method": "GET",
+  "url": "{{baseUrl}}/v1/status",
+  "params": [],
+  "headers": [],
+  "auth": {
+    "type": "none",
+    "basic": { "username": "", "password": "" },
+    "bearer": { "token": "" }
+  },
+  "body_type": "none",
+  "body": "",
+  "pre_request_script": "",
+  "post_request_script": "",
+  "comment": ""
+}
+```
 
 ## Sharing collections
 

@@ -1,7 +1,9 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
 import type {
+  CollectionExportResult,
   KeyValue,
+  RequestExport,
   SavedRequest,
   ScriptRequestContext,
   ScriptRunResult,
@@ -47,6 +49,72 @@ import {
   updateCollection
 } from '#/renderer/src/store/thunks/collections';
 import { updateEnvironment } from '#/renderer/src/store/thunks/environments';
+
+/**
+ * Builds a portable request export payload from a saved request.
+ *
+ * @param req - Saved request to export.
+ * @returns Export file data without folder or database identifiers.
+ */
+export function buildRequestExport(req: SavedRequest): RequestExport {
+  return {
+    harborclientVersion: 1,
+    harborclientExport: 'request',
+    name: req.name,
+    method: req.method,
+    url: req.url,
+    headers: req.headers,
+    params: req.params,
+    auth: req.auth,
+    body: req.body,
+    body_type: req.body_type,
+    pre_request_script: req.pre_request_script ?? '',
+    post_request_script: req.post_request_script ?? '',
+    comment: req.comment ?? ''
+  };
+}
+
+/**
+ * Exports a saved request to a user-chosen file path.
+ */
+export const exportRequest = createAsyncThunk<CollectionExportResult, SavedRequest, ThunkApiConfig>(
+  'requests/export',
+  async (req) => {
+    return window.api.exportRequest(buildRequestExport(req));
+  }
+);
+
+/**
+ * Payload for {@link importRequest}.
+ */
+export interface ImportRequestArgs {
+  /**
+   * Collection to add the imported request to.
+   */
+  collectionId: number;
+
+  /**
+   * Target folder id, or omitted/null for collection root.
+   */
+  folderId?: number | null;
+}
+
+/**
+ * Imports a request from disk into a collection or folder and opens it in a tab.
+ */
+export const importRequest = createAsyncThunk<
+  SavedRequest | null,
+  ImportRequestArgs,
+  ThunkApiConfig
+>('requests/import', async ({ collectionId, folderId }, { dispatch }) => {
+  const saved = await window.api.importRequest(collectionId, folderId);
+  if (!saved) return null;
+
+  dispatch(setSelectedCollectionId(collectionId));
+  dispatch(openTabWithDraft(draftFromSaved(saved)));
+  await dispatch(refreshCollectionContents(collectionId));
+  return saved;
+});
 
 /**
  * Persists the active tab draft to the selected or specified collection.
@@ -353,10 +421,10 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
       const headers =
         authValue && !manualHasAuth
           ? [
-              { key: 'Authorization', value: authValue, enabled: true },
-              ...collectionHeaders,
-              ...draftHeaders
-            ]
+            { key: 'Authorization', value: authValue, enabled: true },
+            ...collectionHeaders,
+            ...draftHeaders
+          ]
           : [...collectionHeaders, ...draftHeaders];
       const params = scriptRequest.params.map((param) => ({
         ...param,

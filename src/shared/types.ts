@@ -399,6 +399,11 @@ export interface CollectionExport {
   harborclientVersion: 1 | 2;
 
   /**
+   * Discriminator identifying this file as a collection export.
+   */
+  harborclientExport: 'collection';
+
+  /**
    * Display name for the collection.
    */
   name: string;
@@ -452,6 +457,76 @@ export interface CollectionExportResult {
    * Absolute path where the file was written; omitted when canceled.
    */
   path?: string;
+}
+
+/**
+ * Portable single-request export file format.
+ */
+export interface RequestExport {
+  /**
+   * HarborClient export schema version for forward compatibility.
+   */
+  harborclientVersion: 1;
+
+  /**
+   * Discriminator identifying this file as a request export.
+   */
+  harborclientExport: 'request';
+
+  /**
+   * Display name for the saved request.
+   */
+  name: string;
+
+  /**
+   * HTTP method used for the request.
+   */
+  method: HttpMethod;
+
+  /**
+   * Request URL without query parameters.
+   */
+  url: string;
+
+  /**
+   * Request headers as editable key-value pairs.
+   */
+  headers: KeyValue[];
+
+  /**
+   * Query parameters as editable key-value pairs.
+   */
+  params: KeyValue[];
+
+  /**
+   * Authorization settings; none inherits collection auth at send time.
+   */
+  auth?: AuthConfig;
+
+  /**
+   * Raw request body content.
+   */
+  body: string;
+
+  /**
+   * Content type of the request body.
+   */
+  body_type: BodyType;
+
+  /**
+   * JavaScript run before the request is sent.
+   */
+  pre_request_script: string;
+
+  /**
+   * JavaScript run after the response is received.
+   */
+  post_request_script: string;
+
+  /**
+   * Free-form notes for this request.
+   */
+  comment: string;
 }
 
 /**
@@ -1093,6 +1168,23 @@ export interface Api {
    * @returns The imported collection, or null when the dialog was canceled.
    */
   importCollection: () => Promise<Collection | null>;
+
+  /**
+   * Exports a request to a JSON file via a native save dialog.
+   *
+   * @param data - Portable request export payload.
+   * @returns Whether the dialog was canceled and the saved path when written.
+   */
+  exportRequest: (data: RequestExport) => Promise<CollectionExportResult>;
+
+  /**
+   * Imports a request from a JSON file via a native open dialog.
+   *
+   * @param collectionId - Collection to add the imported request to.
+   * @param folderId - Target folder id, or omitted/null for collection root.
+   * @returns The imported request, or null when the dialog was canceled.
+   */
+  importRequest: (collectionId: number, folderId?: number | null) => Promise<SavedRequest | null>;
 
   /**
    * Moves a collection and its requests to another database connection.

@@ -723,6 +723,7 @@ export class PostgresDatabase implements IDatabase {
 
     return {
       harborclientVersion: 2,
+      harborclientExport: 'collection',
       name: row.name as string,
       variables: maskVariablesForExport(variables),
       headers,

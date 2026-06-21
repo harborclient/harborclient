@@ -1,5 +1,10 @@
-import { collectionExportSchema, formatCollectionImportError } from '#/main/db/collectionSchemas';
-import type { CollectionExport, Variable } from '#/shared/types';
+import {
+  collectionExportSchema,
+  formatCollectionImportError,
+  formatRequestImportError,
+  requestExportSchema
+} from '#/main/db/collectionSchemas';
+import type { CollectionExport, RequestExport, Variable } from '#/shared/types';
 
 export { normalizeVariable } from '#/main/db/collectionVariables';
 
@@ -62,6 +67,36 @@ export function validateCollectionExport(data: unknown): CollectionExport {
   const result = collectionExportSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Invalid collection file: ${formatCollectionImportError(result.error)}`);
+  }
+
+  return result.data;
+}
+
+/**
+ * Returns whether a validated request export defines any pre- or post-request scripts.
+ *
+ * @param data - Normalized request export payload.
+ * @returns True when the request includes a non-empty script.
+ */
+export function requestExportContainsScripts(data: RequestExport): boolean {
+  return hasScript(data.pre_request_script) || hasScript(data.post_request_script);
+}
+
+/**
+ * Validates and normalizes imported request export data.
+ *
+ * @param data - Parsed JSON payload from an export file.
+ * @returns Normalized request export.
+ * @throws When the payload is invalid.
+ */
+export function validateRequestExport(data: unknown): RequestExport {
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid request file: expected a JSON object');
+  }
+
+  const result = requestExportSchema.safeParse(data);
+  if (!result.success) {
+    throw new Error(`Invalid request file: ${formatRequestImportError(result.error)}`);
   }
 
   return result.data;

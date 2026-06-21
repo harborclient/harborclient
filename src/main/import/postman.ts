@@ -490,6 +490,7 @@ export function convertPostmanCollection(data: unknown): CollectionExport {
 
   return {
     harborclientVersion: 2,
+    harborclientExport: 'collection',
     name,
     variables: convertVariables(collection.variable),
     headers: [],

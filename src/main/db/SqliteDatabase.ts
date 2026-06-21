@@ -768,6 +768,7 @@ export class SqliteDatabase implements IDatabase {
 
     return {
       harborclientVersion: 2,
+      harborclientExport: 'collection',
       name: row.name,
       variables: maskVariablesForExport(variables),
       headers,

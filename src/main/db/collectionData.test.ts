@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   collectionExportContainsScripts,
-  validateCollectionExport
+  requestExportContainsScripts,
+  validateCollectionExport,
+  validateRequestExport
 } from '#/main/db/collectionData';
 
 const validKeyValue = { key: 'Accept', value: 'application/json', enabled: true };
@@ -22,6 +24,7 @@ const validRequest = {
 
 const validV1Export = {
   harborclientVersion: 1 as const,
+  harborclientExport: 'collection' as const,
   name: 'Imported',
   variables: [{ key: 'baseUrl', value: 'https://example.com', defaultValue: '', share: true }],
   headers: [validKeyValue],
@@ -30,11 +33,27 @@ const validV1Export = {
   requests: [validRequest]
 };
 
+const validRequestExport = {
+  harborclientVersion: 1 as const,
+  harborclientExport: 'request' as const,
+  name: 'Health',
+  method: 'GET' as const,
+  url: 'https://example.com/health',
+  headers: [] as (typeof validKeyValue)[],
+  params: [] as (typeof validKeyValue)[],
+  body: '',
+  body_type: 'none' as const,
+  pre_request_script: '',
+  post_request_script: '',
+  comment: ''
+};
+
 describe('validateCollectionExport', () => {
   it('accepts a minimal valid format version 1 export', () => {
     const result = validateCollectionExport(validV1Export);
 
     expect(result.harborclientVersion).toBe(1);
+    expect(result.harborclientExport).toBe('collection');
     expect(result.name).toBe('Imported');
     expect(result.headers).toEqual([validKeyValue]);
     expect(result.requests).toHaveLength(1);
@@ -89,13 +108,29 @@ describe('validateCollectionExport', () => {
 
   it('rejects unsupported format versions', () => {
     expect(() =>
-      validateCollectionExport({ harborclientVersion: 3, name: 'Bad', requests: [] })
+      validateCollectionExport({
+        harborclientVersion: 3,
+        harborclientExport: 'collection',
+        name: 'Bad',
+        requests: []
+      })
     ).toThrow('Invalid collection file: unsupported format version');
+  });
+
+  it('rejects wrong harborclientExport discriminator', () => {
+    expect(() =>
+      validateCollectionExport({ ...validV1Export, harborclientExport: 'request' })
+    ).toThrow('Invalid collection file: not a HarborClient collection export');
   });
 
   it('rejects missing collection names', () => {
     expect(() =>
-      validateCollectionExport({ harborclientVersion: 1, name: '   ', requests: [] })
+      validateCollectionExport({
+        harborclientVersion: 1,
+        harborclientExport: 'collection',
+        name: '   ',
+        requests: []
+      })
     ).toThrow('Invalid collection file: collection name is required');
   });
 
@@ -103,6 +138,7 @@ describe('validateCollectionExport', () => {
     expect(() =>
       validateCollectionExport({
         harborclientVersion: 1,
+        harborclientExport: 'collection',
         name: 'Bad Request',
         requests: [{ ...validRequest, name: 'X', method: 'INVALID' }]
       })
@@ -113,6 +149,7 @@ describe('validateCollectionExport', () => {
     expect(() =>
       validateCollectionExport({
         harborclientVersion: 1,
+        harborclientExport: 'collection',
         name: 'Bad Body',
         requests: [{ ...validRequest, name: 'X', body_type: 'xml' }]
       })
@@ -123,6 +160,7 @@ describe('validateCollectionExport', () => {
     expect(() =>
       validateCollectionExport({
         harborclientVersion: 2,
+        harborclientExport: 'collection',
         name: 'Test',
         variables: [],
         headers: [{ key: 123, value: null }],
@@ -135,6 +173,7 @@ describe('validateCollectionExport', () => {
     expect(() =>
       validateCollectionExport({
         harborclientVersion: 1,
+        harborclientExport: 'collection',
         name: 'Test',
         requests: [
           {
@@ -150,6 +189,7 @@ describe('validateCollectionExport', () => {
     expect(() =>
       validateCollectionExport({
         harborclientVersion: 1,
+        harborclientExport: 'collection',
         name: 'Test',
         requests: [
           {
@@ -201,11 +241,65 @@ describe('validateCollectionExport', () => {
   it('normalizes lenient variable rows and filters empty entries', () => {
     const result = validateCollectionExport({
       harborclientVersion: 1,
+      harborclientExport: 'collection',
       name: 'Vars',
       variables: [{ key: 'token' }, { key: '', value: '', defaultValue: '' }, 42],
       requests: []
     });
 
     expect(result.variables).toEqual([{ key: 'token', value: '', defaultValue: '', share: false }]);
+  });
+});
+
+describe('validateRequestExport', () => {
+  it('accepts a minimal valid request export', () => {
+    const result = validateRequestExport(validRequestExport);
+
+    expect(result.harborclientVersion).toBe(1);
+    expect(result.harborclientExport).toBe('request');
+    expect(result.name).toBe('Health');
+    expect(result).not.toHaveProperty('folder_name');
+    expect(result).not.toHaveProperty('folder_id');
+    expect(result).not.toHaveProperty('sort_order');
+  });
+
+  it('rejects non-object payloads', () => {
+    expect(() => validateRequestExport(null)).toThrow(
+      'Invalid request file: expected a JSON object'
+    );
+  });
+
+  it('rejects wrong harborclientExport discriminator', () => {
+    expect(() =>
+      validateRequestExport({ ...validRequestExport, harborclientExport: 'collection' })
+    ).toThrow('Invalid request file: not a HarborClient request export');
+  });
+
+  it('rejects unsupported format versions', () => {
+    expect(() => validateRequestExport({ ...validRequestExport, harborclientVersion: 2 })).toThrow(
+      'Invalid request file: unsupported format version'
+    );
+  });
+
+  it('rejects missing request names', () => {
+    expect(() => validateRequestExport({ ...validRequestExport, name: '   ' })).toThrow(
+      'Invalid request file: request name is required'
+    );
+  });
+
+  it('rejects invalid request methods', () => {
+    expect(() => validateRequestExport({ ...validRequestExport, method: 'INVALID' })).toThrow(
+      'Invalid request file: request has an invalid method'
+    );
+  });
+
+  it('detects request-level scripts', () => {
+    expect(requestExportContainsScripts(validRequestExport)).toBe(false);
+    expect(
+      requestExportContainsScripts({
+        ...validRequestExport,
+        pre_request_script: 'console.log("pre");'
+      })
+    ).toBe(true);
   });
 });

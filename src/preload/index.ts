@@ -13,6 +13,7 @@ import type {
   ListCollectionsResult,
   MenuActionId,
   PemExportResult,
+  RequestExport,
   SaveRequestInput,
   SavedRequest,
   ScriptRunInput,
@@ -114,6 +115,30 @@ function exportCollection(id: number): Promise<CollectionExportResult> {
  */
 function importCollection(): Promise<Collection | null> {
   return ipcRenderer.invoke('collections:import');
+}
+
+/**
+ * Exports a request to a JSON file via IPC.
+ *
+ * @param data - Portable request export payload.
+ * @returns Whether the dialog was canceled and the saved path when written.
+ */
+function exportRequest(data: RequestExport): Promise<CollectionExportResult> {
+  return ipcRenderer.invoke('requests:export', data);
+}
+
+/**
+ * Imports a request from a JSON file via IPC.
+ *
+ * @param collectionId - Collection to add the imported request to.
+ * @param folderId - Target folder id, or omitted/null for collection root.
+ * @returns The imported request, or null when the dialog was canceled.
+ */
+function importRequest(
+  collectionId: number,
+  folderId?: number | null
+): Promise<SavedRequest | null> {
+  return ipcRenderer.invoke('requests:import', collectionId, folderId);
 }
 
 /**
@@ -590,6 +615,8 @@ const api: Api = {
   duplicateCollection,
   exportCollection,
   importCollection,
+  exportRequest,
+  importRequest,
   moveCollection,
   reorderCollections,
   listEnvironments,

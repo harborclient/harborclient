@@ -198,6 +198,7 @@ describeSqlite('RoutingDatabase collections', () => {
 
     const payload = {
       harborclientVersion: 2 as const,
+      harborclientExport: 'collection' as const,
       name: 'Imported API',
       variables: [],
       headers: [],

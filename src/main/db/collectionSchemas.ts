@@ -1,7 +1,13 @@
 import { z } from 'zod';
 import { normalizeVariable } from '#/main/db/collectionVariables';
 import { authConfig, bodyType, httpMethod, keyValue } from '#/main/schemas/common';
-import type { CollectionExport, ExportedFolder, ExportedRequest, Variable } from '#/shared/types';
+import type {
+  CollectionExport,
+  ExportedFolder,
+  ExportedRequest,
+  RequestExport,
+  Variable
+} from '#/shared/types';
 
 /**
  * Normalizes imported collection variables and drops rows with no meaningful content.
@@ -144,6 +150,7 @@ export const exportedRequests = z.array(exportedRequestRow).transform((requests)
 );
 
 const collectionExportFields = {
+  harborclientExport: z.literal('collection'),
   name: z.string().trim().min(1, 'collection name is required'),
   variables: importVariables,
   headers: z.array(keyValue).default([]),
@@ -184,6 +191,10 @@ export function formatCollectionImportError(error: z.ZodError): string {
 
   if (path[0] === 'harborclientVersion') {
     return 'unsupported format version';
+  }
+
+  if (path[0] === 'harborclientExport') {
+    return 'not a HarborClient collection export';
   }
 
   if (path[0] === 'name') {
@@ -241,5 +252,97 @@ export function formatCollectionImportError(error: z.ZodError): string {
   }
 
   const pathLabel = path.length > 0 ? path.join('.') : 'collection file';
+  return issue.message ? `${pathLabel}: ${issue.message}` : pathLabel;
+}
+
+const requestExportRow = z
+  .object({
+    harborclientVersion: z.literal(1),
+    harborclientExport: z.literal('request'),
+    name: z.string(),
+    method: httpMethod,
+    url: z.string().default(''),
+    headers: z.array(keyValue).default([]),
+    params: z.array(keyValue).default([]),
+    auth: authConfig.optional(),
+    body: z.string().default(''),
+    body_type: bodyType,
+    pre_request_script: z.string().default(''),
+    post_request_script: z.string().default(''),
+    comment: z.string().default('')
+  })
+  .superRefine((req, ctx) => {
+    if (!req.name.trim()) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'missing a name',
+        path: ['name']
+      });
+    }
+  })
+  .transform((req) => ({
+    harborclientVersion: req.harborclientVersion,
+    harborclientExport: req.harborclientExport,
+    name: req.name.trim(),
+    method: req.method,
+    url: req.url,
+    headers: req.headers,
+    params: req.params,
+    auth: req.auth,
+    body: req.body,
+    body_type: req.body_type,
+    pre_request_script: req.pre_request_script,
+    post_request_script: req.post_request_script,
+    comment: req.comment
+  }));
+
+/**
+ * Validates portable request export files for import.
+ */
+export const requestExportSchema = requestExportRow satisfies z.ZodType<RequestExport>;
+
+/**
+ * Maps a Zod validation failure to a user-facing request import error fragment.
+ *
+ * @param error - Zod error from requestExportSchema.safeParse.
+ * @returns Message suffix after the "Invalid request file:" prefix.
+ */
+export function formatRequestImportError(error: z.ZodError): string {
+  const issue = error.issues[0];
+  if (!issue) {
+    return 'invalid request file';
+  }
+
+  const path = issue.path;
+
+  if (path[0] === 'harborclientVersion') {
+    return 'unsupported format version';
+  }
+
+  if (path[0] === 'harborclientExport') {
+    return 'not a HarborClient request export';
+  }
+
+  if (path[0] === 'name') {
+    return 'request name is required';
+  }
+
+  if (path[0] === 'method') {
+    return 'request has an invalid method';
+  }
+
+  if (path[0] === 'body_type') {
+    return 'request has an invalid body type';
+  }
+
+  if (path[0] === 'headers') {
+    return 'request has invalid headers';
+  }
+
+  if (path[0] === 'params') {
+    return 'request has invalid params';
+  }
+
+  const pathLabel = path.length > 0 ? path.join('.') : 'request file';
   return issue.message ? `${pathLabel}: ${issue.message}` : pathLabel;
 }

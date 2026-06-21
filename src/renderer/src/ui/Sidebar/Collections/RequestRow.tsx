@@ -48,6 +48,11 @@ interface Props {
   onDuplicateRequest: (req: SavedRequest) => Promise<void>;
 
   /**
+   * Exports the saved request to a JSON file.
+   */
+  onExportRequest: (req: SavedRequest) => Promise<void> | void;
+
+  /**
    * Moves the request to another folder or collection root.
    */
   onMoveRequest: (requestId: number, folderId: number | null) => void;
@@ -65,21 +70,18 @@ export function RequestRow({
   onLoadRequest,
   onDeleteRequest,
   onDuplicateRequest,
+  onExportRequest,
   onMoveRequest
 }: Props): JSX.Element {
   const confirm = useConfirm();
   const moveItems =
     folders.length > 0
       ? [
-          {
-            label: 'Move to collection root',
-            onSelect: () => onMoveRequest(req.id, null)
-          },
-          ...folders.map((folder) => ({
-            label: `Move to ${folder.name}`,
-            onSelect: () => onMoveRequest(req.id, folder.id)
-          }))
-        ]
+        {
+          label: 'Move to root',
+          onSelect: () => onMoveRequest(req.id, null)
+        }
+      ]
       : [];
 
   return (
@@ -104,6 +106,10 @@ export function RequestRow({
           {
             label: 'Duplicate',
             onSelect: () => void onDuplicateRequest(req)
+          },
+          {
+            label: 'Export',
+            onSelect: () => void onExportRequest(req)
           },
           {
             label: 'Delete',
