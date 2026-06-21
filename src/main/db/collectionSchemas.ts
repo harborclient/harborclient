@@ -156,13 +156,13 @@ const collectionExportFields = {
 /**
  * Validates portable collection export files for import.
  */
-export const collectionExportSchema = z.discriminatedUnion('formatVersion', [
+export const collectionExportSchema = z.discriminatedUnion('harborclientVersion', [
   z.object({
-    formatVersion: z.literal(1),
+    harborclientVersion: z.literal(1),
     ...collectionExportFields
   }),
   z.object({
-    formatVersion: z.literal(2),
+    harborclientVersion: z.literal(2),
     ...collectionExportFields,
     folders: exportedFolders
   })
@@ -182,7 +182,7 @@ export function formatCollectionImportError(error: z.ZodError): string {
 
   const path = issue.path;
 
-  if (path[0] === 'formatVersion') {
+  if (path[0] === 'harborclientVersion') {
     return 'unsupported format version';
   }
 

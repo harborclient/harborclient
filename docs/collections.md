@@ -210,13 +210,13 @@ Scripts imported from Postman use the `pm.*` API in Postman but run in HarborCli
 
 ### Export file format
 
-HarborClient export files use `formatVersion: 1` or `formatVersion: 2` (with folders). They contain the collection name, variables, headers, authorization, scripts, and all saved requests. Database IDs are not included.
+HarborClient export files use `harborclientVersion: 1` or `harborclientVersion: 2` (with folders). They contain the collection name, variables, headers, authorization, scripts, and all saved requests. Database IDs are not included.
 
 Example (abbreviated):
 
 ```json
 {
-  "formatVersion": 1,
+  "harborclientVersion": 1,
   "name": "My API",
   "variables": [
     { "key": "baseUrl", "value": "https://api.example.com", "defaultValue": "", "share": true }
@@ -257,7 +257,7 @@ Common validation errors:
 
 | Error | Cause |
 | --- | --- |
-| `unsupported format version` | `formatVersion` is not `1` or `2` |
+| `unsupported format version` | `harborclientVersion` is not `1` or `2` |
 | `collection name is required` | Name is missing or blank |
 | `requests must be an array` | `requests` field is missing or wrong type |
 | `request N has an invalid method` | Method is not a supported HTTP method |

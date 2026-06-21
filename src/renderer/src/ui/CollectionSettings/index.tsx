@@ -234,15 +234,11 @@ function CollectionSettingsForm({
             onClose={onClose}
           />
         )}
-
         {tab === 'variables' && <VariablesSection variables={variables} onChange={setVariables} />}
-
         {tab === 'headers' && (
           <HeadersSection headers={headers} variables={variables} onChange={setHeaders} />
         )}
-
         {tab === 'auth' && <AuthSection auth={auth} variables={variables} onChange={setAuth} />}
-
         {tab === 'pre' && (
           <ScriptSection
             phase="pre"
@@ -253,7 +249,6 @@ function CollectionSettingsForm({
             variables={variables}
           />
         )}
-
         {tab === 'post' && (
           <ScriptSection
             phase="post"

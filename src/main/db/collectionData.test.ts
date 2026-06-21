@@ -21,7 +21,7 @@ const validRequest = {
 };
 
 const validV1Export = {
-  formatVersion: 1 as const,
+  harborclientVersion: 1 as const,
   name: 'Imported',
   variables: [{ key: 'baseUrl', value: 'https://example.com', defaultValue: '', share: true }],
   headers: [validKeyValue],
@@ -34,7 +34,7 @@ describe('validateCollectionExport', () => {
   it('accepts a minimal valid format version 1 export', () => {
     const result = validateCollectionExport(validV1Export);
 
-    expect(result.formatVersion).toBe(1);
+    expect(result.harborclientVersion).toBe(1);
     expect(result.name).toBe('Imported');
     expect(result.headers).toEqual([validKeyValue]);
     expect(result.requests).toHaveLength(1);
@@ -44,12 +44,12 @@ describe('validateCollectionExport', () => {
   it('accepts a minimal valid format version 2 export with folders', () => {
     const result = validateCollectionExport({
       ...validV1Export,
-      formatVersion: 2,
+      harborclientVersion: 2,
       folders: [{ name: 'API', sort_order: 0 }],
       requests: [{ ...validRequest, folder_name: 'API' }]
     });
 
-    expect(result.formatVersion).toBe(2);
+    expect(result.harborclientVersion).toBe(2);
     expect(result.folders).toEqual([{ name: 'API', sort_order: 0 }]);
   });
 
@@ -57,7 +57,7 @@ describe('validateCollectionExport', () => {
     expect(() =>
       validateCollectionExport({
         ...validV1Export,
-        formatVersion: 2,
+        harborclientVersion: 2,
         folders: [
           { name: 'API', sort_order: 0 },
           { name: 'API', sort_order: 1 }
@@ -71,7 +71,7 @@ describe('validateCollectionExport', () => {
     expect(() =>
       validateCollectionExport({
         ...validV1Export,
-        formatVersion: 2,
+        harborclientVersion: 2,
         folders: [
           { name: ' API ', sort_order: 0 },
           { name: 'API', sort_order: 1 }
@@ -88,21 +88,21 @@ describe('validateCollectionExport', () => {
   });
 
   it('rejects unsupported format versions', () => {
-    expect(() => validateCollectionExport({ formatVersion: 3, name: 'Bad', requests: [] })).toThrow(
-      'Invalid collection file: unsupported format version'
-    );
+    expect(() =>
+      validateCollectionExport({ harborclientVersion: 3, name: 'Bad', requests: [] })
+    ).toThrow('Invalid collection file: unsupported format version');
   });
 
   it('rejects missing collection names', () => {
-    expect(() => validateCollectionExport({ formatVersion: 1, name: '   ', requests: [] })).toThrow(
-      'Invalid collection file: collection name is required'
-    );
+    expect(() =>
+      validateCollectionExport({ harborclientVersion: 1, name: '   ', requests: [] })
+    ).toThrow('Invalid collection file: collection name is required');
   });
 
   it('rejects invalid request methods', () => {
     expect(() =>
       validateCollectionExport({
-        formatVersion: 1,
+        harborclientVersion: 1,
         name: 'Bad Request',
         requests: [{ ...validRequest, name: 'X', method: 'INVALID' }]
       })
@@ -112,7 +112,7 @@ describe('validateCollectionExport', () => {
   it('rejects invalid request body types', () => {
     expect(() =>
       validateCollectionExport({
-        formatVersion: 1,
+        harborclientVersion: 1,
         name: 'Bad Body',
         requests: [{ ...validRequest, name: 'X', body_type: 'xml' }]
       })
@@ -122,7 +122,7 @@ describe('validateCollectionExport', () => {
   it('rejects malformed collection header items', () => {
     expect(() =>
       validateCollectionExport({
-        formatVersion: 2,
+        harborclientVersion: 2,
         name: 'Test',
         variables: [],
         headers: [{ key: 123, value: null }],
@@ -134,7 +134,7 @@ describe('validateCollectionExport', () => {
   it('rejects malformed request header items', () => {
     expect(() =>
       validateCollectionExport({
-        formatVersion: 1,
+        harborclientVersion: 1,
         name: 'Test',
         requests: [
           {
@@ -149,7 +149,7 @@ describe('validateCollectionExport', () => {
   it('rejects malformed request param items', () => {
     expect(() =>
       validateCollectionExport({
-        formatVersion: 1,
+        harborclientVersion: 1,
         name: 'Test',
         requests: [
           {
@@ -200,7 +200,7 @@ describe('validateCollectionExport', () => {
 
   it('normalizes lenient variable rows and filters empty entries', () => {
     const result = validateCollectionExport({
-      formatVersion: 1,
+      harborclientVersion: 1,
       name: 'Vars',
       variables: [{ key: 'token' }, { key: '', value: '', defaultValue: '' }, 42],
       requests: []

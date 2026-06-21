@@ -115,7 +115,7 @@ describeFirestore('FirestoreDatabase import and ID allocation', () => {
     const { db } = await createTestDb();
     const requestCount = 600;
     const payload: CollectionExport = {
-      formatVersion: 2,
+      harborclientVersion: 2,
       name: 'Large Import',
       variables: [],
       headers: [],
@@ -139,7 +139,7 @@ describeFirestore('FirestoreDatabase import and ID allocation', () => {
     const { db } = await createTestDb();
     const requestCount = 600;
     const payload: CollectionExport = {
-      formatVersion: 2,
+      harborclientVersion: 2,
       name: 'Large Delete',
       variables: [],
       headers: [],
@@ -165,7 +165,7 @@ describeFirestore('FirestoreDatabase import and ID allocation', () => {
     const requestCount = 600;
     const folderName = 'Large';
     const payload: CollectionExport = {
-      formatVersion: 2,
+      harborclientVersion: 2,
       name: 'Large Folder Delete',
       variables: [],
       headers: [],

@@ -774,7 +774,7 @@ export class MySqlDatabase implements IDatabase {
     const auth = normalizeAuth(parseJson(row.auth as string, defaultAuth()));
 
     return {
-      formatVersion: 2,
+      harborclientVersion: 2,
       name: row.name as string,
       variables: maskVariablesForExport(variables),
       headers,

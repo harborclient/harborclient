@@ -489,7 +489,7 @@ export function convertPostmanCollection(data: unknown): CollectionExport {
   const { preRequestScript, postRequestScript } = convertEvents(collection.event);
 
   return {
-    formatVersion: 2,
+    harborclientVersion: 2,
     name,
     variables: convertVariables(collection.variable),
     headers: [],

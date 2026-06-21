@@ -313,7 +313,7 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
       const exported = await db.exportCollectionData(collection.id);
 
       expect(exported).toEqual({
-        formatVersion: 2,
+        harborclientVersion: 2,
         name: 'Export Me',
         variables: [
           { key: 'shared', value: 'visible', defaultValue: '', share: true },
@@ -353,7 +353,7 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
     it('importCollectionData creates collection and requests', async () => {
       const { db } = await createTestDb();
       const payload: CollectionExport = {
-        formatVersion: 1,
+        harborclientVersion: 1,
         name: 'Imported',
         variables: [
           { key: 'baseUrl', value: 'https://example.com', defaultValue: '', share: true }
@@ -394,28 +394,28 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
         'Invalid collection file: expected a JSON object'
       );
       await expect(
-        db.importCollectionData({ formatVersion: 3, name: 'Bad', requests: [] })
+        db.importCollectionData({ harborclientVersion: 3, name: 'Bad', requests: [] })
       ).rejects.toThrow('Invalid collection file: unsupported format version');
       await expect(
-        db.importCollectionData({ formatVersion: 1, name: '   ', requests: [] })
+        db.importCollectionData({ harborclientVersion: 1, name: '   ', requests: [] })
       ).rejects.toThrow('Invalid collection file: collection name is required');
       await expect(
         db.importCollectionData({
-          formatVersion: 1,
+          harborclientVersion: 1,
           name: 'Bad Request',
           requests: [{ name: 'X', method: 'INVALID', body_type: 'none' }]
         })
       ).rejects.toThrow('Invalid collection file: request 1 has an invalid method');
       await expect(
         db.importCollectionData({
-          formatVersion: 1,
+          harborclientVersion: 1,
           name: 'Bad Body',
           requests: [{ name: 'X', method: 'GET', body_type: 'xml' }]
         })
       ).rejects.toThrow('Invalid collection file: request 1 has an invalid body type');
       await expect(
         db.importCollectionData({
-          formatVersion: 2,
+          harborclientVersion: 2,
           name: 'Duplicate Folders',
           folders: [
             { name: 'API', sort_order: 0 },
@@ -528,7 +528,7 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
       );
 
       const exported = await db.exportCollectionData(collection.id);
-      expect(exported.formatVersion).toBe(2);
+      expect(exported.harborclientVersion).toBe(2);
       expect(exported.folders).toEqual([{ name: 'Auth', sort_order: 0 }]);
       expect(exported.requests[0]?.folder_name).toBe('Auth');
 

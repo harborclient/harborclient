@@ -394,9 +394,9 @@ export interface ExportedFolder {
  */
 export interface CollectionExport {
   /**
-   * Export schema version for forward compatibility.
+   * HarborClient export schema version for forward compatibility.
    */
-  formatVersion: 1 | 2;
+  harborclientVersion: 1 | 2;
 
   /**
    * Display name for the collection.

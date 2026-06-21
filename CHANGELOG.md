@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- refactor: update export format version to harborclientVersion. (`9f6e0a3`)
 - docs(README): add downloads section with latest release link. (`db7bffc`)
 
 ## 1.5.2 - 2026-06-21
