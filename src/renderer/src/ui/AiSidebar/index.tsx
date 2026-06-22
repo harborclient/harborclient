@@ -4,6 +4,7 @@ import { hasConfiguredAiApiKeys } from '#/shared/aiSettings';
 import { ResizeHandle, useResizable } from '#/renderer/src/components/Resizable';
 import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Settings/constants';
 import { ConfigureApiKeysPrompt } from './ConfigureApiKeysPrompt';
+import { AiChat } from './Chat';
 
 /**
  * Right-side AI panel shell. Shows a configure-keys prompt when no API keys exist.
@@ -54,6 +55,7 @@ export function AiSidebar(): JSX.Element {
   }, []);
 
   const showConfigurePrompt = !loading && !hasConfiguredAiApiKeys(aiSettings);
+  const showChat = !loading && !showConfigurePrompt;
 
   return (
     <>
@@ -73,6 +75,7 @@ export function AiSidebar(): JSX.Element {
         aria-label="AI"
       >
         {showConfigurePrompt && <ConfigureApiKeysPrompt />}
+        {showChat && <AiChat aiSettings={aiSettings} />}
       </aside>
     </>
   );

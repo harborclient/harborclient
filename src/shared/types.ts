@@ -1060,6 +1060,126 @@ export interface AiSettings {
 export type LlmProvider = 'openai' | 'claude' | 'gemini';
 
 /**
+ * Role of a message in an AI chat thread.
+ */
+export type ChatRole = 'user' | 'assistant';
+
+/**
+ * A single message in an AI chat thread.
+ */
+export interface ChatMessage {
+  /**
+   * Database row id.
+   */
+  id: number;
+
+  /**
+   * Parent chat id.
+   */
+  chatId: number;
+
+  /**
+   * Whether the message is from the user or the assistant.
+   */
+  role: ChatRole;
+
+  /**
+   * Message body text.
+   */
+  content: string;
+
+  /**
+   * Model id used when the message was sent, if any.
+   */
+  model?: string;
+
+  /**
+   * ISO timestamp when the message was created.
+   */
+  created_at: string;
+}
+
+/**
+ * Summary row for a chat in history lists.
+ */
+export interface ChatSummary {
+  /**
+   * Database row id.
+   */
+  id: number;
+
+  /**
+   * Display title for the chat tab and history list.
+   */
+  title: string;
+
+  /**
+   * Last selected model id for this chat, if any.
+   */
+  model?: string;
+
+  /**
+   * ISO timestamp when the chat was last updated.
+   */
+  updated_at: string;
+}
+
+/**
+ * Full chat record including ordered messages.
+ */
+export interface Chat extends ChatSummary {
+  /**
+   * ISO timestamp when the chat was created.
+   */
+  created_at: string;
+
+  /**
+   * Messages in chronological order.
+   */
+  messages: ChatMessage[];
+}
+
+/**
+ * Input for creating a new chat.
+ */
+export interface CreateChatInput {
+  /**
+   * Optional initial title; defaults to "New Chat".
+   */
+  title?: string;
+
+  /**
+   * Optional initial model id.
+   */
+  model?: string;
+}
+
+/**
+ * Input for appending a message to a chat.
+ */
+export interface AddChatMessageInput {
+  /**
+   * Parent chat id.
+   */
+  chatId: number;
+
+  /**
+   * Message author role.
+   */
+  role: ChatRole;
+
+  /**
+   * Message body text.
+   */
+  content: string;
+
+  /**
+   * Model id used for this message, if any.
+   */
+  model?: string;
+}
+
+/**
  * Firebase Firestore connection settings.
  */
 export interface FirestoreSettings {
@@ -1685,6 +1805,39 @@ export interface Api {
    * @param settings - AI configuration to store.
    */
   setAiSettings: (settings: AiSettings) => Promise<void>;
+
+  /**
+   * Lists all AI chats ordered by most recently updated.
+   */
+  listChats: () => Promise<ChatSummary[]>;
+
+  /**
+   * Creates a new AI chat thread.
+   *
+   * @param input - Optional title and model for the new chat.
+   */
+  createChat: (input: CreateChatInput) => Promise<Chat>;
+
+  /**
+   * Loads a chat and its messages by id.
+   *
+   * @param id - Chat id to load.
+   */
+  getChat: (id: number) => Promise<Chat | null>;
+
+  /**
+   * Appends a message to a chat thread.
+   *
+   * @param input - Chat id, role, content, and optional model.
+   */
+  addChatMessage: (input: AddChatMessageInput) => Promise<ChatMessage>;
+
+  /**
+   * Deletes a chat and its messages.
+   *
+   * @param id - Chat id to delete.
+   */
+  deleteChat: (id: number) => Promise<void>;
 
   /**
    * Lists all configured database connections.

@@ -60,3 +60,31 @@ describeSqlite('LocalRegistry collection order', () => {
     expect(registry.listRegistry().map((entry) => entry.name)).toEqual(['Gamma', 'Alpha', 'Beta']);
   });
 });
+
+describeSqlite('LocalRegistry chats', () => {
+  it('creates chats, stores messages, and auto-titles from the first user message', async () => {
+    const { registry } = await createRegistry();
+
+    const chat = registry.createChat({});
+    expect(chat.title).toBe('New Chat');
+    expect(chat.messages).toEqual([]);
+
+    registry.addChatMessage({ chatId: chat.id, role: 'user', content: '  Hello there  ' });
+    const assistant = registry.addChatMessage({
+      chatId: chat.id,
+      role: 'assistant',
+      content: 'Stub reply'
+    });
+
+    const loaded = registry.getChat(chat.id);
+    expect(loaded?.title).toBe('Hello there');
+    expect(loaded?.messages).toHaveLength(2);
+    expect(assistant.role).toBe('assistant');
+
+    const summaries = registry.listChats();
+    expect(summaries[0]?.id).toBe(chat.id);
+
+    registry.deleteChat(chat.id);
+    expect(registry.getChat(chat.id)).toBeNull();
+  });
+});

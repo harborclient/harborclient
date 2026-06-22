@@ -1,6 +1,7 @@
 import { CookieJar } from '#/main/cookieJar/CookieJar';
 import { getLocalRegistry } from '#/main/db/localRegistryInstance';
 import type { IDatabase } from '#/main/db/IDatabase';
+import { registerChatHandlers } from '#/main/ipc/handlers/chats';
 import { registerCollectionHandlers } from '#/main/ipc/handlers/collections';
 import { registerCookieHandlers } from '#/main/ipc/handlers/cookies';
 import { registerEnvironmentHandlers } from '#/main/ipc/handlers/environments';
@@ -20,6 +21,7 @@ export function registerIpcHandlers(db: IDatabase): void {
   const cookieJar = new CookieJar(getLocalRegistry());
 
   registerCollectionHandlers(db);
+  registerChatHandlers();
   registerEnvironmentHandlers(db);
   registerRequestHandlers(db);
   registerNetworkHandlers(cookieJar);

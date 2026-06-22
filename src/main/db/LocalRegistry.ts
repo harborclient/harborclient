@@ -1,11 +1,25 @@
 import Database from 'better-sqlite3';
 import { existsSync } from 'fs';
 import { join } from 'path';
-import { rowToEnvironment } from '#/main/db/entityMappers';
+import {
+  rowToChat,
+  rowToChatMessage,
+  rowToChatSummary,
+  rowToEnvironment
+} from '#/main/db/entityMappers';
 import { trimRequiredName } from '#/main/db/trimRequiredName';
-import type { Environment, Variable } from '#/shared/types';
+import type {
+  Chat,
+  ChatMessage,
+  ChatRole,
+  ChatSummary,
+  Environment,
+  Variable
+} from '#/shared/types';
 
 const REGISTRY_DB_FILENAME = 'harborclient-registry.db';
+const DEFAULT_CHAT_TITLE = 'New Chat';
+const CHAT_TITLE_MAX_LENGTH = 40;
 
 /**
  * A single entry in the local collection registry.
@@ -127,6 +141,23 @@ export class LocalRegistry {
       CREATE TABLE IF NOT EXISTS settings (
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS chats (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        model TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        model TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
     `);
 
@@ -386,6 +417,125 @@ export class LocalRegistry {
   }
 
   /**
+   * Lists all chats ordered by most recently updated.
+   *
+   * @returns Chat summaries for history and tab labels.
+   */
+  listChats(): ChatSummary[] {
+    const rows = this.getDb()
+      .prepare('SELECT id, title, model, updated_at FROM chats ORDER BY updated_at DESC, id DESC')
+      .all() as Record<string, unknown>[];
+
+    return rows.map(rowToChatSummary);
+  }
+
+  /**
+   * Creates a new chat thread.
+   *
+   * @param input - Optional title and model for the new chat.
+   * @returns The created chat with an empty message list.
+   */
+  createChat(input: { title?: string; model?: string } = {}): Chat {
+    const title = input.title?.trim() || DEFAULT_CHAT_TITLE;
+    const model = input.model?.trim();
+
+    const result = this.getDb()
+      .prepare('INSERT INTO chats (title, model) VALUES (?, ?)')
+      .run(title, model ?? null);
+
+    const chatId = Number(result.lastInsertRowid);
+    const chat = this.getChat(chatId);
+    if (!chat) throw new Error('Chat not found after insert');
+    return chat;
+  }
+
+  /**
+   * Loads a chat and its messages by id.
+   *
+   * @param id - Chat id to load.
+   * @returns The chat when found, otherwise null.
+   */
+  getChat(id: number): Chat | null {
+    const summaryRow = this.getDb()
+      .prepare('SELECT id, title, model, created_at, updated_at FROM chats WHERE id = ?')
+      .get(id) as Record<string, unknown> | undefined;
+
+    if (!summaryRow) return null;
+
+    const messageRows = this.getDb()
+      .prepare(
+        'SELECT id, chat_id, role, content, model, created_at FROM chat_messages WHERE chat_id = ? ORDER BY created_at ASC, id ASC'
+      )
+      .all(id) as Record<string, unknown>[];
+
+    return rowToChat(summaryRow, messageRows);
+  }
+
+  /**
+   * Appends a message to a chat and updates the chat timestamp.
+   *
+   * @param input - Chat id, role, content, and optional model.
+   * @returns The persisted message.
+   */
+  addChatMessage(input: {
+    chatId: number;
+    role: ChatRole;
+    content: string;
+    model?: string;
+  }): ChatMessage {
+    const content = input.content.trim();
+    if (!content) {
+      throw new Error('Message content is required');
+    }
+
+    const chatRow = this.getDb()
+      .prepare('SELECT id, title FROM chats WHERE id = ?')
+      .get(input.chatId) as { id: number; title: string } | undefined;
+
+    if (!chatRow) {
+      throw new Error('Chat not found');
+    }
+
+    const result = this.getDb()
+      .prepare('INSERT INTO chat_messages (chat_id, role, content, model) VALUES (?, ?, ?, ?)')
+      .run(input.chatId, input.role, content, input.model ?? null);
+
+    this.getDb()
+      .prepare("UPDATE chats SET updated_at = datetime('now') WHERE id = ?")
+      .run(input.chatId);
+
+    if (input.role === 'user' && chatRow.title === DEFAULT_CHAT_TITLE) {
+      const userCount = this.getDb()
+        .prepare("SELECT COUNT(*) AS count FROM chat_messages WHERE chat_id = ? AND role = 'user'")
+        .get(input.chatId) as { count: number };
+
+      if (userCount.count === 1) {
+        const nextTitle = truncateChatTitle(content);
+        this.getDb()
+          .prepare('UPDATE chats SET title = ? WHERE id = ?')
+          .run(nextTitle, input.chatId);
+      }
+    }
+
+    const row = this.getDb()
+      .prepare(
+        'SELECT id, chat_id, role, content, model, created_at FROM chat_messages WHERE id = ?'
+      )
+      .get(result.lastInsertRowid) as Record<string, unknown>;
+
+    return rowToChatMessage(row);
+  }
+
+  /**
+   * Deletes a chat and its messages.
+   *
+   * @param id - Chat id to delete.
+   */
+  deleteChat(id: number): void {
+    this.getDb().prepare('DELETE FROM chats WHERE id = ?').run(id);
+  }
+
+  /**
    * Reads a persisted setting by key.
    *
    * @param key - Setting key to look up.
@@ -450,4 +600,16 @@ export class LocalRegistry {
       legacy.close();
     }
   }
+}
+
+/**
+ * Truncates user message text for use as a chat tab title.
+ *
+ * @param content - Raw message content.
+ */
+function truncateChatTitle(content: string): string {
+  const normalized = content.trim().replace(/\s+/g, ' ');
+  if (!normalized) return DEFAULT_CHAT_TITLE;
+  if (normalized.length <= CHAT_TITLE_MAX_LENGTH) return normalized;
+  return `${normalized.slice(0, CHAT_TITLE_MAX_LENGTH - 1)}…`;
 }

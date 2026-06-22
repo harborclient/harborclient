@@ -2,6 +2,10 @@ import { normalizeVariable } from '#/main/db/collectionData';
 import { defaultAuth, normalizeAuth } from '#/shared/auth';
 import type {
   BodyType,
+  Chat,
+  ChatMessage,
+  ChatRole,
+  ChatSummary,
   Collection,
   Environment,
   Folder,
@@ -187,6 +191,55 @@ export function rowToEnvironment(row: Record<string, unknown>): Environment {
     name: readString(row.name),
     variables: readVariables(row.variables),
     created_at: readTimestamp(row.created_at)
+  };
+}
+
+/**
+ * Maps a raw database row to a chat summary.
+ *
+ * @param row - Row fields including numeric `id`.
+ */
+export function rowToChatSummary(row: Record<string, unknown>): ChatSummary {
+  const model = readString(row.model);
+  return {
+    id: readNumber(row.id),
+    title: readString(row.title),
+    ...(model ? { model } : {}),
+    updated_at: readTimestamp(row.updated_at)
+  };
+}
+
+/**
+ * Maps a raw database row to a chat message.
+ *
+ * @param row - Row fields including numeric `id` and `chat_id`.
+ */
+export function rowToChatMessage(row: Record<string, unknown>): ChatMessage {
+  const model = readString(row.model);
+  return {
+    id: readNumber(row.id),
+    chatId: readNumber(row.chat_id),
+    role: readString(row.role, 'user') as ChatRole,
+    content: readString(row.content),
+    ...(model ? { model } : {}),
+    created_at: readTimestamp(row.created_at)
+  };
+}
+
+/**
+ * Maps chat summary and message rows to a full chat record.
+ *
+ * @param summaryRow - Chat header row.
+ * @param messageRows - Ordered message rows for the chat.
+ */
+export function rowToChat(
+  summaryRow: Record<string, unknown>,
+  messageRows: Record<string, unknown>[]
+): Chat {
+  return {
+    ...rowToChatSummary(summaryRow),
+    created_at: readTimestamp(summaryRow.created_at),
+    messages: messageRows.map(rowToChatMessage)
   };
 }
 

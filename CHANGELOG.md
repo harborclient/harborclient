@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat: implement chat functionality with database integration. (`47f613a`)
 - feat: update settings management and add OpenAI dependency. (`e8a4b2d`)
 - feat: add AI settings and sidebar functionality. (`4178704`)
 

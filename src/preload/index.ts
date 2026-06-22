@@ -9,6 +9,11 @@ import type {
   Environment,
   Folder,
   AiSettings,
+  AddChatMessageInput,
+  Chat,
+  ChatMessage,
+  ChatSummary,
+  CreateChatInput,
   GeneralSettings,
   ImportEntityResult,
   InviteIdentity,
@@ -487,6 +492,49 @@ function setAiSettings(settings: AiSettings): Promise<void> {
 }
 
 /**
+ * Lists all AI chats ordered by most recently updated.
+ */
+function listChats(): Promise<ChatSummary[]> {
+  return ipcRenderer.invoke('chats:list');
+}
+
+/**
+ * Creates a new AI chat thread.
+ *
+ * @param input - Optional title and model for the new chat.
+ */
+function createChat(input: CreateChatInput): Promise<Chat> {
+  return ipcRenderer.invoke('chats:create', input);
+}
+
+/**
+ * Loads a chat and its messages by id.
+ *
+ * @param id - Chat id to load.
+ */
+function getChat(id: number): Promise<Chat | null> {
+  return ipcRenderer.invoke('chats:get', id);
+}
+
+/**
+ * Appends a message to a chat thread.
+ *
+ * @param input - Chat id, role, content, and optional model.
+ */
+function addChatMessage(input: AddChatMessageInput): Promise<ChatMessage> {
+  return ipcRenderer.invoke('chats:addMessage', input);
+}
+
+/**
+ * Deletes a chat and its messages.
+ *
+ * @param id - Chat id to delete.
+ */
+function deleteChat(id: number): Promise<void> {
+  return ipcRenderer.invoke('chats:delete', id);
+}
+
+/**
  * Lists all configured database connections via IPC.
  */
 function listDatabaseConnections(): Promise<DatabaseConnection[]> {
@@ -797,6 +845,11 @@ const api: Api = {
   setGeneralSettings,
   getAiSettings,
   setAiSettings,
+  listChats,
+  createChat,
+  getChat,
+  addChatMessage,
+  deleteChat,
   listDatabaseConnections,
   saveDatabaseConnection,
   deleteDatabaseConnection,

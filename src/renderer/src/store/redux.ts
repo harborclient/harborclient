@@ -8,6 +8,7 @@ import uiReducer from '#/renderer/src/store/slices/uiSlice';
 import navigationReducer from '#/renderer/src/store/slices/navigationSlice';
 import modalsReducer from '#/renderer/src/store/slices/modalsSlice';
 import settingsReducer from '#/renderer/src/store/slices/settingsSlice';
+import aiChatReducer from '#/renderer/src/store/slices/aiChatSlice';
 import { persistActiveEnvironmentId, persistTabs } from '#/renderer/src/store/persistence';
 
 export const store = configureStore({
@@ -19,7 +20,8 @@ export const store = configureStore({
     ui: uiReducer,
     navigation: navigationReducer,
     modals: modalsReducer,
-    settings: settingsReducer
+    settings: settingsReducer,
+    aiChat: aiChatReducer
   },
   /**
    * Registers default RTK middleware plus busy tracking.

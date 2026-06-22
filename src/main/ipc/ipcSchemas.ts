@@ -11,6 +11,9 @@ import { CODE_EDITOR_THEME_IDS } from '#/shared/codeEditorSettings';
 import { requestExportSchema } from '#/main/db/collectionSchemas';
 import type {
   AiSettings,
+  AddChatMessageInput,
+  ChatRole,
+  CreateChatInput,
   DatabaseConnection,
   GeneralSettings,
   SaveRequestInput,
@@ -271,6 +274,20 @@ export const aiSettings = z.object({
   geminiApiKey: z.string()
 }) satisfies z.ZodType<AiSettings>;
 
+export const chatRole = z.enum(['user', 'assistant']) satisfies z.ZodType<ChatRole>;
+
+export const chatCreateInput = z.object({
+  title: z.string().optional(),
+  model: z.string().optional()
+}) satisfies z.ZodType<CreateChatInput>;
+
+export const chatAddMessageInput = z.object({
+  chatId: dbId,
+  role: chatRole,
+  content: z.string(),
+  model: z.string().optional()
+}) satisfies z.ZodType<AddChatMessageInput>;
+
 export const sidebarExpansion = z.object({
   sections: z.object({
     collections: z.boolean(),
@@ -304,6 +321,10 @@ export const ipcArgSchemas = {
   closeDecision: z.tuple([z.boolean()]),
   menuSidebarVisible: z.tuple([z.boolean()]),
   menuAiSidebarVisible: z.tuple([z.boolean()]),
+  chatCreate: z.tuple([chatCreateInput]),
+  chatGet: z.tuple([dbId]),
+  chatAddMessage: z.tuple([chatAddMessageInput]),
+  chatDelete: z.tuple([dbId]),
   saveRequest: z.tuple([saveRequestInput]),
   sendRequest: z.tuple([sendRequestInput, requestId.optional()]),
   cancelRequest: z.tuple([requestId]),

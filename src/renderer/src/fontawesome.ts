@@ -3,6 +3,7 @@ import {
   faBars,
   faChevronDown,
   faChevronRight,
+  faClockRotateLeft,
   faGripVertical,
   faPlus,
   faRobot,
@@ -17,6 +18,7 @@ library.add(
   faTableColumns,
   faChevronDown,
   faChevronRight,
+  faClockRotateLeft,
   faGripVertical,
   faRobot
 );
@@ -26,6 +28,7 @@ export {
   faBars,
   faChevronDown,
   faChevronRight,
+  faClockRotateLeft,
   faGripVertical,
   faPlus,
   faRobot,
