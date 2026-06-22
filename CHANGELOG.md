@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat: add markdown rendering to message bubbles. (`09694af`)
 - feat: add AI assistant feature and update documentation. (`ce70937`)
 - feat: transition from service hubs to team hubs and add jmespath dependency. (`c4b2d7b`)
 - feat: enhance chat functionality with model updates and error handling. (`66c36f9`)

@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import type { ChatMessage } from '#/shared/types';
+import { MarkdownContent } from './MarkdownContent';
 
 interface Props {
   /**
@@ -23,7 +24,7 @@ export function MessageBubble({ message }: Props): JSX.Element {
             : 'max-w-[85%] rounded-lg border border-separator bg-control px-3 py-2 text-[14px] text-text'
         }
       >
-        {message.content}
+        <MarkdownContent content={message.content} variant={isUser ? 'user' : 'assistant'} />
       </div>
     </div>
   );
