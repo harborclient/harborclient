@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(tsconfig): add ignoreDeprecations option for better compatibility. (`8179f5e`)
 - refactor(database): improve formatting of fallback SQLite connection logic. (`3424e82`)
 - fix(database): improve error handling during database initialization and migration. (`7acea77`)
 
