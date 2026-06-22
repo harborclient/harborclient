@@ -3,6 +3,7 @@ import { useAppDispatch } from '#/renderer/src/store/hooks';
 import {
   openAboutModal,
   openCollectionModal,
+  openSyncModal,
   openUpdateModal
 } from '#/renderer/src/store/slices/modalsSlice';
 import {
@@ -10,7 +11,12 @@ import {
   openServiceHubs,
   openSettings
 } from '#/renderer/src/store/slices/navigationSlice';
-import { dispatchNewRequest, importFromMenu, saveFromMenu } from '#/renderer/src/store/thunks';
+import {
+  dispatchNewRequest,
+  importFromMenu,
+  runSync,
+  saveFromMenu
+} from '#/renderer/src/store/thunks';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
 
 /**
@@ -52,6 +58,12 @@ export function useMenuActions(): void {
           break;
         case 'accept-invite':
           dispatch(openCollectionModal({ mode: 'create', tab: 'invite' }));
+          break;
+        case 'sync':
+          dispatch(openSyncModal());
+          void dispatch(runSync()).catch((err: unknown) => {
+            showAlert(dispatch, formatErrorMessage(err, 'Failed to sync'));
+          });
           break;
         case 'about':
           dispatch(openAboutModal());

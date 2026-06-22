@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat: implement sync functionality for providers. (`2686d5a`)
 - feat: enhance service hubs integration and provider selection. (`ec321fd`)
 - feat: add service hubs functionality. (`70c0c38`)
 - fix: address issues with environment import/export validation. (`d2883dd`)

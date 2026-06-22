@@ -67,7 +67,7 @@ The **Databases** section lists every named database connection. The **active** 
 
 All configured databases are opened at launch, so shared collections from any connection are available immediately.
 
-**Service hubs** are configured separately under **File → Service Hubs**, not in this section. They connect to [HarborClient Server](/service-hubs) for token-based shared collections. See [Service hubs](/service-hubs) for setup and sync behavior.
+**Service hubs** are configured separately under **File → Service Hubs**, not in this section. They connect to [HarborClient Service Hub](/service-hubs) for token-based shared collections. See [Service hubs](/service-hubs) for setup and sync behavior.
 
 ### Managing connections
 

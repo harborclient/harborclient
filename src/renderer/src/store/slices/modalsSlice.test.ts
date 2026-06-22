@@ -4,9 +4,13 @@ import modalsReducer, {
   closeAboutModal,
   closeCollectionModal,
   closeInviteModal,
+  closeSyncModal,
+  finishSync,
+  incrementSyncCompleted,
   openAboutModal,
   openCollectionModal,
   openInviteModal,
+  openSyncModal,
   setAboutVersion,
   setCollectionModalInviteTokenInput,
   setCollectionModalName,
@@ -16,7 +20,9 @@ import modalsReducer, {
   setPendingLoadRequest,
   setQuitPrompt,
   setAlertModal,
-  setConfirmModal
+  setConfirmModal,
+  setSyncProviderStatus,
+  setSyncProviders
 } from '#/renderer/src/store/slices/modalsSlice';
 
 describe('modalsSlice', () => {
@@ -27,6 +33,13 @@ describe('modalsSlice', () => {
     expect(state.pendingLoadRequest).toBeNull();
     expect(state.quitPrompt).toBeNull();
     expect(state.about).toEqual({ open: false, version: '' });
+    expect(state.syncModal).toEqual({
+      open: false,
+      running: false,
+      providers: [],
+      completed: 0,
+      total: 0
+    });
     expect(state.alertModal).toBeNull();
     expect(state.confirmModal).toBeNull();
   });
@@ -144,5 +157,59 @@ describe('modalsSlice', () => {
 
     state = modalsReducer(state, setConfirmModal(null));
     expect(state.confirmModal).toBeNull();
+  });
+
+  it('tracks sync modal progress and summary state', () => {
+    let state = modalsReducer(undefined, openSyncModal());
+    expect(state.syncModal).toEqual({
+      open: true,
+      running: true,
+      providers: [],
+      completed: 0,
+      total: 0
+    });
+
+    state = modalsReducer(
+      state,
+      setSyncProviders([
+        {
+          id: 'db-1',
+          name: 'Local SQLite',
+          kind: 'database',
+          status: 'pending',
+          error: null
+        },
+        {
+          id: 'hub-1',
+          name: 'Team Hub',
+          kind: 'service-hub',
+          status: 'pending',
+          error: null
+        }
+      ])
+    );
+    expect(state.syncModal.total).toBe(2);
+
+    state = modalsReducer(state, setSyncProviderStatus({ id: 'db-1', status: 'syncing' }));
+    expect(state.syncModal.providers[0]?.status).toBe('syncing');
+
+    state = modalsReducer(
+      state,
+      setSyncProviderStatus({ id: 'db-1', status: 'success', error: null })
+    );
+    state = modalsReducer(state, incrementSyncCompleted());
+    expect(state.syncModal.completed).toBe(1);
+
+    state = modalsReducer(
+      state,
+      setSyncProviderStatus({ id: 'hub-1', status: 'error', error: 'Connection refused' })
+    );
+    state = modalsReducer(state, incrementSyncCompleted());
+    state = modalsReducer(state, finishSync());
+    expect(state.syncModal.running).toBe(false);
+    expect(state.syncModal.providers[1]?.error).toBe('Connection refused');
+
+    state = modalsReducer(state, closeSyncModal());
+    expect(state.syncModal.open).toBe(false);
   });
 });

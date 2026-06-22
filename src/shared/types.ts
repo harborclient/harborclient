@@ -1275,6 +1275,7 @@ export type MenuActionId =
   | 'service-hubs'
   | 'certificates'
   | 'accept-invite'
+  | 'sync'
   | 'about'
   | 'check-for-updates';
 
@@ -1668,6 +1669,13 @@ export interface Api {
    * @returns Updated list of all service hubs.
    */
   deleteServiceHub: (id: string) => Promise<ServiceHub[]>;
+
+  /**
+   * Re-reads collection data from a single provider (database or service hub).
+   *
+   * @param connectionId - Provider connection id to sync.
+   */
+  syncProvider: (connectionId: string) => Promise<void>;
 
   /**
    * Returns the id of the active database connection.

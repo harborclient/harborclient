@@ -431,6 +431,24 @@ describeSqlite('RoutingDatabase duplicateCollection', () => {
   });
 });
 
+describeSqlite('RoutingDatabase syncProvider', () => {
+  it('re-reads collections from a mounted database provider', async () => {
+    const { router } = await createRoutingFixture({ mountB: false });
+    await router.createCollection('Synced Collection');
+
+    await expect(router.syncProvider(CONN_A.id)).resolves.toBeUndefined();
+    const collections = await router.listCollections();
+    expect(collections.map((item) => item.name)).toContain('Synced Collection');
+  });
+
+  it('throws when the provider is not mounted', async () => {
+    const { router } = await createRoutingFixture({ mountB: false });
+    await expect(router.syncProvider('missing-provider')).rejects.toThrow(
+      'Provider "missing-provider" is not mounted.'
+    );
+  });
+});
+
 describeSqlite('RoutingDatabase migrateRegistryIfNeeded', () => {
   it('seeds registry from default provider collections', async () => {
     const { router, registry, backendA, rootDir } = await createRoutingFixture();

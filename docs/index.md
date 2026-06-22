@@ -21,7 +21,7 @@ features:
   - title: Team collaboration
     details: Point multiple HarborClient instances at the same remote database to share collections across your team.
   - title: Service hubs
-    details: Self-host HarborClient service hubs so your team shares collections through a centralized workflow service—token-based access without shared database credentials.
+    details: Self-host HarborClient Service Hub and connect via service hubs so your team shares collections through a centralized workflow service—token-based access without shared database credentials.
   - title: Request builder
     details: Method selector, URL bar, query params, headers, and body (none, JSON, or plain text).
   - title: Collections

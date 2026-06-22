@@ -299,6 +299,7 @@ export const ipcArgSchemas = {
   generalSettings: z.tuple([generalSettings]),
   databaseConnection: z.tuple([databaseConnection]),
   serviceHub: z.tuple([serviceHub]),
+  providerSync: z.tuple([connectionId]),
   setEditorTab: z.tuple([storageKey, editorTab]),
   sidebarExpansionSet: z.tuple([sidebarExpansion]),
   shortcutOverridesSet: z.tuple([shortcutOverrides]),

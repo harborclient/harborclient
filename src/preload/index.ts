@@ -502,6 +502,15 @@ function deleteServiceHub(id: string): Promise<ServiceHub[]> {
 }
 
 /**
+ * Re-reads collection data from a single provider via IPC.
+ *
+ * @param connectionId - Provider connection id to sync.
+ */
+function syncProvider(connectionId: string): Promise<void> {
+  return ipcRenderer.invoke('providers:sync', connectionId);
+}
+
+/**
  * Returns the active database connection id via IPC.
  */
 function getActiveDatabaseId(): Promise<string> {
@@ -755,6 +764,7 @@ const api: Api = {
   listServiceHubs,
   saveServiceHub,
   deleteServiceHub,
+  syncProvider,
   getActiveDatabaseId,
   setActiveDatabaseId,
   getRequestEditorTab,

@@ -51,6 +51,28 @@ export interface UpdateModalState {
 }
 
 /**
+ * Per-provider progress row shown in the sync modal.
+ */
+export interface SyncProviderProgress {
+  id: string;
+  name: string;
+  kind: 'database' | 'service-hub';
+  status: 'pending' | 'syncing' | 'success' | 'error';
+  error: string | null;
+}
+
+/**
+ * Sync-all modal state with determinate per-provider progress.
+ */
+export interface SyncModalState {
+  open: boolean;
+  running: boolean;
+  providers: SyncProviderProgress[];
+  completed: number;
+  total: number;
+}
+
+/**
  * Saved request queued for load after the user confirms discarding unsaved edits.
  */
 export interface PendingLoadRequest {
@@ -65,6 +87,7 @@ export interface ModalsState {
   quitPrompt: string[] | null;
   about: AboutModalState;
   update: UpdateModalState;
+  syncModal: SyncModalState;
   alertModal: AlertModalState | null;
   confirmModal: ConfirmModalState | null;
 }
@@ -76,6 +99,7 @@ const initialState: ModalsState = {
   quitPrompt: null,
   about: { open: false, version: '' },
   update: { open: false, loading: false, result: null, error: null },
+  syncModal: { open: false, running: false, providers: [], completed: 0, total: 0 },
   alertModal: null,
   confirmModal: null
 };
@@ -285,6 +309,57 @@ const modalsSlice = createSlice({
       state.update.error = action.payload;
     },
     /**
+     * Opens the sync-all modal in a running state.
+     */
+    openSyncModal(state) {
+      state.syncModal = { open: true, running: true, providers: [], completed: 0, total: 0 };
+    },
+    /**
+     * Closes the sync-all modal and resets its state.
+     */
+    closeSyncModal(state) {
+      state.syncModal = { open: false, running: false, providers: [], completed: 0, total: 0 };
+    },
+    /**
+     * Initializes the provider list for a sync run.
+     */
+    setSyncProviders(state, action: PayloadAction<SyncProviderProgress[]>) {
+      state.syncModal.providers = action.payload;
+      state.syncModal.total = action.payload.length;
+      state.syncModal.completed = 0;
+    },
+    /**
+     * Updates status and optional error for one provider in the sync list.
+     */
+    setSyncProviderStatus(
+      state,
+      action: PayloadAction<{
+        id: string;
+        status: SyncProviderProgress['status'];
+        error?: string | null;
+      }>
+    ) {
+      const provider = state.syncModal.providers.find((item) => item.id === action.payload.id);
+      if (provider) {
+        provider.status = action.payload.status;
+        if (action.payload.error !== undefined) {
+          provider.error = action.payload.error;
+        }
+      }
+    },
+    /**
+     * Increments the completed provider count for the progress bar.
+     */
+    incrementSyncCompleted(state) {
+      state.syncModal.completed += 1;
+    },
+    /**
+     * Marks the sync run as finished so the summary view is shown.
+     */
+    finishSync(state) {
+      state.syncModal.running = false;
+    },
+    /**
      * Opens or closes the global alert dialog.
      */
     setAlertModal(state, action: PayloadAction<AlertModalState | null>) {
@@ -325,6 +400,12 @@ export const {
   setUpdateLoading,
   setUpdateResult,
   setUpdateError,
+  openSyncModal,
+  closeSyncModal,
+  setSyncProviders,
+  setSyncProviderStatus,
+  incrementSyncCompleted,
+  finishSync,
   setAlertModal,
   setConfirmModal
 } = modalsSlice.actions;
@@ -355,6 +436,10 @@ export const selectAboutModal = (state: RootState): AboutModalState => state.mod
  * Returns check-for-updates dialog state.
  */
 export const selectUpdateModal = (state: RootState): UpdateModalState => state.modals.update;
+/**
+ * Returns sync-all modal state.
+ */
+export const selectSyncModal = (state: RootState): SyncModalState => state.modals.syncModal;
 /**
  * Returns alert dialog state when open.
  */

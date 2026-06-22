@@ -682,6 +682,26 @@ export class RoutingDatabase implements IDatabase {
   }
 
   /**
+   * Re-reads collection data from a single provider.
+   *
+   * Service hubs run additive registry sync first; all provider types then
+   * list collections to validate connectivity and pull fresh metadata.
+   *
+   * @param connectionId - Database connection or service hub id.
+   * @throws When the provider is not mounted.
+   */
+  async syncProvider(connectionId: string): Promise<void> {
+    const backend = this.byConnectionId.get(connectionId);
+    if (!backend) {
+      throw new Error(`Provider "${connectionId}" is not mounted.`);
+    }
+    if (backend.connectionType === 'service-hub') {
+      await this.syncServiceHub(connectionId);
+    }
+    await backend.db.listCollections();
+  }
+
+  /**
    * Adds registry entries for server collections not yet registered on a hub.
    *
    * @param hubId - Service hub connection id.

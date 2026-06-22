@@ -311,7 +311,7 @@ Example (abbreviated):
 
 ## Sharing collections
 
-Use **Export/Import** when you want a portable snapshot of a collection — a `.json` file you can version, email, or archive. Use **invites** when you want another HarborClient user to connect to the same **live** collection on a remote database. Use **[service hubs](/service-hubs)** when your team shares collections through HarborClient Server with API tokens instead of shared database credentials. Invited and hub-backed collections stay in sync with the shared backend; changes from other users appear when data is reloaded (for example, after restarting the app). See [Settings → Databases](/settings#databases) for how remote backends work.
+Use **Export/Import** when you want a portable snapshot of a collection — a `.json` file you can version, email, or archive. Use **invites** when you want another HarborClient user to connect to the same **live** collection on a remote database. Use **[service hubs](/service-hubs)** when your team shares collections through HarborClient Service Hub with API tokens instead of shared database credentials. Invited and hub-backed collections stay in sync with the shared backend; changes from other users appear when data is reloaded (for example, after restarting the app). See [Settings → Databases](/settings#databases) for how remote backends work.
 
 Before sending or accepting invites, exchange public keys with your colleague — see [Certificates](/certificates).
 
@@ -384,7 +384,7 @@ Collections and saved requests are stored in your chosen provider:
 
 - **SQLite (default)** — `{userData}/harborclient.db`. The database filename can be changed in [Settings → SQLite](/settings#sqlite) (restart required).
 - **Firestore, MySQL, PostgreSQL** — remote storage when selected in [Settings → Databases](/settings#databases) (restart required).
-- **Service hubs** — collection data on [HarborClient Server](/service-hubs); configured under **File → Service Hubs**, not in Settings.
+- **Service hubs** — collection data on [HarborClient Service Hub](/service-hubs); configured under **File → Service Hubs**, not in Settings.
 
 See [Settings](/settings) for database configuration and [Service hubs](/service-hubs) for hub-backed collections.
 

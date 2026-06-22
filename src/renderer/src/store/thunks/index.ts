@@ -2,6 +2,7 @@ export * from '#/renderer/src/store/thunks/collections';
 export * from '#/renderer/src/store/thunks/environments';
 export * from '#/renderer/src/store/thunks/requests';
 export * from '#/renderer/src/store/thunks/modals';
+export * from '#/renderer/src/store/thunks/sync';
 
 import type { AppDispatch } from '#/renderer/src/store/redux';
 import { setGeneralSettingsState } from '#/renderer/src/store/slices/settingsSlice';

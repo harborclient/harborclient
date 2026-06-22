@@ -137,6 +137,13 @@ export function registerSettingsHandlers(db: IDatabase): void {
     return hubs;
   });
 
+  // Re-reads collection data from a single provider (database or service hub).
+  handle('providers:sync', ipcArgSchemas.providerSync, async (_event, connectionId) => {
+    if (db instanceof RoutingDatabase) {
+      await db.syncProvider(connectionId);
+    }
+  });
+
   // Deletes a service hub by id.
   handle('serviceHubs:delete', ipcArgSchemas.connectionId, async (_event, id) => {
     if (db instanceof RoutingDatabase) {

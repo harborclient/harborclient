@@ -38,6 +38,7 @@ import {
   updateEnvironment
 } from '#/renderer/src/store/thunks';
 import { AboutModal } from '#/renderer/src/ui/modals/AboutModal';
+import { SyncModal } from '#/renderer/src/ui/modals/SyncModal';
 import { UpdateModal } from '#/renderer/src/ui/modals/UpdateModal';
 import { AlertModal } from '#/renderer/src/ui/modals/AlertModal';
 import { CollectionModal } from '#/renderer/src/ui/modals/CollectionModal';
@@ -248,6 +249,7 @@ export default function App(): JSX.Element {
       <QuitPrompt />
       <AboutModal />
       <UpdateModal />
+      <SyncModal />
       <AlertModal />
       <ConfirmModal />
 

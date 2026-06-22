@@ -74,6 +74,10 @@ export function buildMenu(window: BrowserWindow): Menu {
           label: 'Accept Invite',
           click: () => sendMenuAction(window, 'accept-invite')
         },
+        {
+          label: 'Sync',
+          click: () => sendMenuAction(window, 'sync')
+        },
         { type: 'separator' },
         { role: 'quit' }
       ]
