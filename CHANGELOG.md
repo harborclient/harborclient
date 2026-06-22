@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.5.7 - 2026-06-22
+
 - refactor: standardize constructor formatting in database classes. (`b3d76a8`)
 - feat: implement sync functionality for providers. (`2686d5a`)
 - feat: enhance service hubs integration and provider selection. (`ec321fd`)
