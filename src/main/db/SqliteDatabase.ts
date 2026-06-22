@@ -712,13 +712,13 @@ export class SqliteDatabase implements IDatabase {
       )
       .get(id) as
       | {
-        name: string;
-        variables: string;
-        headers: string;
-        auth: string;
-        pre_request_script: string;
-        post_request_script: string;
-      }
+          name: string;
+          variables: string;
+          headers: string;
+          auth: string;
+          pre_request_script: string;
+          post_request_script: string;
+        }
       | undefined;
 
     if (!row) throw new Error('Collection not found');

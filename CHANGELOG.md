@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- refactor: clean up type definitions and improve HTML structure. (`77b8e3a`)
 - feat: implement environment import/export functionality. (`eed4be1`)
 - refactor: update menu labels and enhance UI text consistency. (`2a29420`)
 - fix: enforce HarborClient export version to 1. (`8485287`)
