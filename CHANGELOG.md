@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.5.6 - 2026-06-22
+
 - refactor: clean up type definitions and improve HTML structure. (`77b8e3a`)
 - feat: implement environment import/export functionality. (`eed4be1`)
 - refactor: update menu labels and enhance UI text consistency. (`2a29420`)
