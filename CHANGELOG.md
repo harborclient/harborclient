@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.5.8 - 2026-06-22
+
 - refactor: standardize type formatting in AI tool executor. (`4ee893c`)
 - feat: enhance AI assistant request handling with cookie support and updates. (`0f6fe57`)
 - feat: enhance AI assistant with Team Hub integration and model management. (`06cb4c9`)
