@@ -19,6 +19,7 @@ import { listTeamHubs } from '#/main/settings/teamHubSettings';
 import { ensureInviteKeys } from '#/main/invite/inviteKeys';
 import { buildMenu } from '#/main/menu';
 import { setMenuWindow } from '#/main/appMenu';
+import { isVerbose, logVerbose } from '#/main/logger';
 import {
   loadWindowState,
   restoreWindowPresentation,
@@ -135,11 +136,16 @@ function reconcileActiveDatabaseSelection(
  */
 async function createDatabase(): Promise<RoutingDatabase> {
   const userDataPath = app.getPath('userData');
+  logVerbose('createDatabase: userData path', userDataPath);
   const registry = await initLocalRegistry(userDataPath);
+  logVerbose('createDatabase: local registry initialized');
   migrateTeamHubSettings(registry, userDataPath);
   const connections = listDatabaseConnections();
   const teamHubs = listTeamHubs();
   const primaryConnectionId = getActiveDatabaseId();
+  logVerbose(
+    `createDatabase: ${connections.length} connection(s), ${teamHubs.length} team hub(s), active="${primaryConnectionId}"`
+  );
   const slots = ensureDatabaseSlots(
     connections,
     primaryConnectionId,
@@ -148,6 +154,7 @@ async function createDatabase(): Promise<RoutingDatabase> {
 
   let router: RoutingDatabase;
   try {
+    logVerbose('createDatabase: mounting routing database backends');
     router = await RoutingDatabase.create(
       registry,
       primaryConnectionId,
@@ -156,6 +163,7 @@ async function createDatabase(): Promise<RoutingDatabase> {
       slots,
       userDataPath
     );
+    logVerbose('createDatabase: routing database created');
   } catch (err) {
     console.warn('Failed to initialize routing database; falling back to SQLite provider:', err);
     router = new RoutingDatabase(registry, primaryConnectionId, userDataPath);
@@ -180,8 +188,10 @@ async function createDatabase(): Promise<RoutingDatabase> {
   const legacyProviderDbPath = join(userDataPath, sqliteSettings.dbFilename);
 
   setSplashStatus('Loading metadata...');
+  logVerbose('createDatabase: running registry migration if needed', legacyProviderDbPath);
   try {
     await router.migrateRegistryIfNeeded(legacyProviderDbPath);
+    logVerbose('createDatabase: registry migration complete');
   } catch (err) {
     console.warn('Database metadata migration failed; continuing startup without migration:', err);
   }
@@ -420,11 +430,25 @@ function createWindow(): BrowserWindow {
   });
 
   window.on('ready-to-show', () => {
+    logVerbose('createWindow: main window ready-to-show, closing splash');
     closeSplash();
     window.show();
     restoreWindowPresentation(window, savedState);
     trackWindowState(window);
   });
+
+  window.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    console.error(`Renderer failed to load (${errorCode} ${errorDescription}): ${validatedURL}`);
+  });
+
+  if (isVerbose) {
+    window.webContents.on('did-finish-load', () => {
+      logVerbose('createWindow: renderer finished loading');
+    });
+    window.webContents.on('render-process-gone', (_event, details) => {
+      console.error('Renderer process gone:', details.reason, details.exitCode);
+    });
+  }
 
   window.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url);
@@ -435,9 +459,12 @@ function createWindow(): BrowserWindow {
   setupFullscreenEscapeHandler(window);
 
   if (isDev && process.env['ELECTRON_RENDERER_URL']) {
+    logVerbose('createWindow: loading renderer URL', process.env['ELECTRON_RENDERER_URL']);
     window.loadURL(process.env['ELECTRON_RENDERER_URL']);
   } else {
-    window.loadFile(join(__dirname, '../renderer/index.html'));
+    const indexPath = join(__dirname, '../renderer/index.html');
+    logVerbose('createWindow: loading renderer file', indexPath);
+    window.loadFile(indexPath);
   }
 
   return window;
@@ -470,17 +497,22 @@ ipcMain.on('app:close-decision', (_event, ...raw) => {
 });
 
 app.whenReady().then(async () => {
+  logVerbose('app ready: verbose logging enabled');
   await createSplashWindow();
   const splashStartedAt = Date.now();
 
   try {
     setSplashStatus('Starting up...');
+    logVerbose('startup: ensuring invite keys');
     await ensureInviteKeys(app.getPath('userData'));
 
     setSplashStatus('Connecting to databases...');
+    logVerbose('startup: initializing databases');
     db = await createDatabase();
 
+    logVerbose('startup: applying persisted theme');
     await applyPersistedTheme();
+    logVerbose('startup: registering IPC handlers');
     registerIpcHandlers(db);
 
     const elapsed = Date.now() - splashStartedAt;
@@ -488,9 +520,11 @@ app.whenReady().then(async () => {
       await delay(MIN_SPLASH_MS - elapsed);
     }
 
+    logVerbose('startup: creating main window');
     mainWindow = createWindow();
     setMenuWindow(mainWindow);
     Menu.setApplicationMenu(buildMenu(mainWindow));
+    logVerbose('startup: main window created, waiting for ready-to-show');
   } catch (err) {
     closeSplash();
     console.error('Failed to initialize application:', err);

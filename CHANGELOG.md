@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(logging): enhance verbose logging throughout application startup and database creation. (`b179303`)
+
 ## 1.5.13 - 2026-06-22
 
 - fix(tsconfig): update ignoreDeprecations option to version 5.0. (`76a810a`)
