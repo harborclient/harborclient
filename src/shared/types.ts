@@ -1030,6 +1030,11 @@ export interface GeneralSettings {
 }
 
 /**
+ * Settings sidebar section identifiers.
+ */
+export type SettingsSection = 'general' | 'syntax' | 'databases' | 'shortcuts' | 'proxy' | 'ai';
+
+/**
  * AI provider API keys stored locally for future assistant features.
  */
 export interface AiSettings {
@@ -1048,6 +1053,11 @@ export interface AiSettings {
    */
   geminiApiKey: string;
 }
+
+/**
+ * Supported LLM providers for the OpenAI SDK compatibility layer.
+ */
+export type LlmProvider = 'openai' | 'claude' | 'gemini';
 
 /**
  * Firebase Firestore connection settings.

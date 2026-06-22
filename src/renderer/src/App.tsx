@@ -20,6 +20,7 @@ import {
   openEnvironmentSettings,
   selectAiSidebarVisible,
   selectMainView,
+  selectSettingsSection,
   selectShowConsole,
   selectShowVariables,
   selectSidebarVisible,
@@ -72,6 +73,7 @@ export default function App(): JSX.Element {
   const draft = useAppSelector(selectDraft);
   const consoleEntries = useAppSelector(selectConsoleEntries);
   const mainView = useAppSelector(selectMainView);
+  const settingsSection = useAppSelector(selectSettingsSection);
   const sidebarVisible = useAppSelector(selectSidebarVisible);
   const aiSidebarVisible = useAppSelector(selectAiSidebarVisible);
   const showConsole = useAppSelector(selectShowConsole);
@@ -170,6 +172,7 @@ export default function App(): JSX.Element {
             <Configuration
               showSettings={mainView.type === 'settings'}
               onCloseAppSettings={() => dispatch(closeOverlay())}
+              settingsSection={settingsSection}
               showCertificates={mainView.type === 'certificates'}
               onCloseCertificates={() => dispatch(closeOverlay())}
               showServiceHubs={mainView.type === 'service-hubs'}

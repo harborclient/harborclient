@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat: update settings management and add OpenAI dependency. (`e8a4b2d`)
 - feat: add AI settings and sidebar functionality. (`4178704`)
 
 ## 1.5.7 - 2026-06-22

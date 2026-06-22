@@ -1,5 +1,12 @@
 import type { JSX } from 'react';
-import type { AuthConfig, Collection, Environment, KeyValue, Variable } from '#/shared/types';
+import type {
+  AuthConfig,
+  Collection,
+  Environment,
+  KeyValue,
+  SettingsSection,
+  Variable
+} from '#/shared/types';
 import { Certificates } from '#/renderer/src/ui/Certificates';
 import { ServiceHubs } from '#/renderer/src/ui/ServiceHubs';
 import { CollectionSettings } from '../CollectionSettings';
@@ -16,6 +23,11 @@ interface Props {
    * Closes application settings.
    */
   onCloseAppSettings: () => void;
+
+  /**
+   * Settings section to show when app settings open.
+   */
+  settingsSection: SettingsSection;
 
   /**
    * Whether the certificates view is shown.
@@ -93,6 +105,7 @@ interface Props {
 export function Configuration({
   showSettings,
   onCloseAppSettings,
+  settingsSection,
   showCertificates,
   onCloseCertificates,
   showServiceHubs,
@@ -107,7 +120,13 @@ export function Configuration({
   onCloseEnvironmentSettings
 }: Props): JSX.Element | null {
   if (showSettings) {
-    return <Settings onClose={onCloseAppSettings} />;
+    return (
+      <Settings
+        key={settingsSection}
+        onClose={onCloseAppSettings}
+        initialSection={settingsSection}
+      />
+    );
   }
 
   if (showCertificates) {

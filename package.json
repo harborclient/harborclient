@@ -38,7 +38,6 @@
   },
   "packageManager": "pnpm@10.17.1",
   "dependencies": {
-    "@fortawesome/free-solid-svg-icons": "^7.2.0",
     "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/lang-javascript": "^6.2.4",
     "@codemirror/lang-json": "^6.0.2",
@@ -49,6 +48,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
+    "@fortawesome/free-solid-svg-icons": "^7.2.0",
     "@fortawesome/react-fontawesome": "^3.3.1",
     "@lezer/highlight": "^1.2.3",
     "@reduxjs/toolkit": "^2.12.0",
@@ -59,6 +59,7 @@
     "electron-window-state": "^5.0.3",
     "firebase": "^12.15.0",
     "mysql2": "^3.22.5",
+    "openai": "^6.44.0",
     "pg": "^8.22.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

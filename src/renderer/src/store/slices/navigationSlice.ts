@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import type { SettingsSection } from '#/shared/types';
 import type { RootState } from '#/renderer/src/store/redux';
 
 /**
@@ -20,6 +21,7 @@ export interface NavigationState {
   showAiSidebar: boolean;
   showConsole: boolean;
   showVariables: boolean;
+  settingsSection: SettingsSection;
 }
 
 const initialState: NavigationState = {
@@ -29,7 +31,8 @@ const initialState: NavigationState = {
   showSidebar: true,
   showAiSidebar: false,
   showConsole: false,
-  showVariables: false
+  showVariables: false,
+  settingsSection: 'general'
 };
 
 /**
@@ -47,9 +50,10 @@ const navigationSlice = createSlice({
     /**
      * Shows the settings overlay and clears dirty flags.
      */
-    openSettings(state) {
+    openSettings(state, action: PayloadAction<SettingsSection | undefined>) {
       resetDirtyFlags(state);
       state.mainView = { type: 'settings' };
+      state.settingsSection = action.payload ?? 'general';
     },
     /**
      * Shows the service hubs overlay and clears dirty flags.
@@ -176,6 +180,11 @@ export const selectShowConsole = (state: RootState): boolean => state.navigation
  * Returns whether the variables panel is open.
  */
 export const selectShowVariables = (state: RootState): boolean => state.navigation.showVariables;
+/**
+ * Returns the settings section to show when the settings overlay is open.
+ */
+export const selectSettingsSection = (state: RootState): SettingsSection =>
+  state.navigation.settingsSection;
 
 /**
  * Sidebar is hidden when app settings, service hubs, or certificates are open, even if the

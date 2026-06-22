@@ -1,11 +1,17 @@
-import type { JSX } from 'react';
+import { useEffect, useState, type JSX } from 'react';
+import type { AiSettings } from '#/shared/types';
+import { hasConfiguredAiApiKeys } from '#/shared/aiSettings';
 import { ResizeHandle, useResizable } from '#/renderer/src/components/Resizable';
+import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Settings/constants';
+import { ConfigureApiKeysPrompt } from './ConfigureApiKeysPrompt';
 
 /**
- * Right-side AI panel shell. Content is added in future work; this component
- * only provides layout, resize, and visibility wiring from the parent.
+ * Right-side AI panel shell. Shows a configure-keys prompt when no API keys exist.
  */
 export function AiSidebar(): JSX.Element {
+  const [aiSettings, setAiSettings] = useState<AiSettings>(DEFAULT_AI_SETTINGS);
+  const [loading, setLoading] = useState(true);
+
   const {
     size: width,
     minSize: sidebarMinSize,
@@ -21,6 +27,34 @@ export function AiSidebar(): JSX.Element {
     storageKey: 'hc.aiSidebarWidth'
   });
 
+  /**
+   * Loads AI settings on mount so the empty-state prompt reflects stored keys.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadSettings = async (): Promise<void> => {
+      try {
+        const value = await window.api.getAiSettings();
+        if (!cancelled) {
+          setAiSettings(value);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const showConfigurePrompt = !loading && !hasConfiguredAiApiKeys(aiSettings);
+
   return (
     <>
       <ResizeHandle
@@ -33,7 +67,13 @@ export function AiSidebar(): JSX.Element {
         ariaLabel="Resize AI sidebar"
         className="border-r-0 border-l border-separator"
       />
-      <aside className="flex shrink-0 flex-col bg-sidebar" style={{ width }} aria-label="AI" />
+      <aside
+        className="flex min-h-0 shrink-0 flex-col bg-sidebar"
+        style={{ width }}
+        aria-label="AI"
+      >
+        {showConfigurePrompt && <ConfigureApiKeysPrompt />}
+      </aside>
     </>
   );
 }

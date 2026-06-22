@@ -22,6 +22,7 @@ describe('navigationSlice', () => {
     expect(state.showAiSidebar).toBe(false);
     expect(state.showConsole).toBe(false);
     expect(state.showVariables).toBe(false);
+    expect(state.settingsSection).toBe('general');
     expect(state.collectionSettingsDirty).toBe(false);
     expect(state.environmentSettingsDirty).toBe(false);
   });
@@ -30,8 +31,15 @@ describe('navigationSlice', () => {
     let state = navigationReducer(undefined, setCollectionSettingsDirty(true));
     state = navigationReducer(state, openSettings());
     expect(state.mainView).toEqual({ type: 'settings' });
+    expect(state.settingsSection).toBe('general');
     expect(state.collectionSettingsDirty).toBe(false);
     expect(state.environmentSettingsDirty).toBe(false);
+  });
+
+  it('opens settings on a specific section', () => {
+    const state = navigationReducer(undefined, openSettings('ai'));
+    expect(state.mainView).toEqual({ type: 'settings' });
+    expect(state.settingsSection).toBe('ai');
   });
 
   it('opens service hubs and resets dirty flags', () => {

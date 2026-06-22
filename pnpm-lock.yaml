@@ -71,6 +71,9 @@ importers:
       mysql2:
         specifier: ^3.22.5
         version: 3.22.5(@types/node@25.9.3)
+      openai:
+        specifier: ^6.44.0
+        version: 6.44.0(zod@4.4.3)
       pg:
         specifier: ^8.22.0
         version: 8.22.0
@@ -4963,6 +4966,17 @@ packages:
   open@6.4.0:
     resolution: {integrity: sha512-IFenVPgF70fSm1keSd2iDBIDIBZkroLeuffXq+wKTzTJlBpesFWojV9lb8mzOfaAzM1sr7HQHuO0vtV0zYekGg==}
     engines: {node: '>=8'}
+
+  openai@6.44.0:
+    resolution: {integrity: sha512-09/gH+8jH0RgUwsgWHAaxsKGRT5zVZ95IaJUnqAWj6XejIBmnFRwq2WUIF37VtDEsmGrtPmvCs5+yBSeZGWvkA==}
+    peerDependencies:
+      ws: ^8.18.0
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      ws:
+        optional: true
+      zod:
+        optional: true
 
   openapi3-ts@3.2.0:
     resolution: {integrity: sha512-/ykNWRV5Qs0Nwq7Pc0nJ78fgILvOT/60OxEmB3v7yQ8a8Bwcm43D4diaYazG/KBn6czA+52XYy931WFLMCUeSg==}
@@ -12241,6 +12255,10 @@ snapshots:
   open@6.4.0:
     dependencies:
       is-wsl: 1.1.0
+
+  openai@6.44.0(zod@4.4.3):
+    optionalDependencies:
+      zod: 4.4.3
 
   openapi3-ts@3.2.0:
     dependencies:

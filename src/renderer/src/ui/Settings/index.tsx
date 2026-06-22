@@ -16,13 +16,18 @@ interface Props {
    * Closes the settings view.
    */
   onClose: () => void;
+
+  /**
+   * Settings section to show when the overlay opens.
+   */
+  initialSection: SettingsSection;
 }
 
 /**
  * Full-area application settings with sidebar navigation.
  */
-export function Settings({ onClose }: Props): JSX.Element {
-  const [section, setSection] = useState<SettingsSection>('general');
+export function Settings({ onClose, initialSection }: Props): JSX.Element {
+  const [section, setSection] = useState<SettingsSection>(initialSection);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
