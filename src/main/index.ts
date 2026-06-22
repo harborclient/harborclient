@@ -13,7 +13,8 @@ import {
   listDatabaseConnections
 } from '#/main/settings/databaseSettings';
 import { ensureDatabaseSlots } from '#/main/settings/databaseSlots';
-import { listServiceHubs } from '#/main/settings/serviceHubSettings';
+import { migrateTeamHubSettings } from '#/main/settings/teamHubMigration';
+import { listTeamHubs } from '#/main/settings/teamHubSettings';
 import { ensureInviteKeys } from '#/main/invite/inviteKeys';
 import { buildMenu } from '#/main/menu';
 import { setMenuWindow } from '#/main/appMenu';
@@ -50,20 +51,21 @@ let closeReason: CloseReason | null = null;
 async function createDatabase(): Promise<RoutingDatabase> {
   const userDataPath = app.getPath('userData');
   const registry = await initLocalRegistry(userDataPath);
+  migrateTeamHubSettings(registry, userDataPath);
   const connections = listDatabaseConnections();
-  const serviceHubs = listServiceHubs();
+  const teamHubs = listTeamHubs();
   const primaryConnectionId = getActiveDatabaseId();
   const slots = ensureDatabaseSlots(
     connections,
     primaryConnectionId,
-    serviceHubs.map((hub) => hub.id)
+    teamHubs.map((hub) => hub.id)
   );
 
   const router = await RoutingDatabase.create(
     registry,
     primaryConnectionId,
     connections,
-    serviceHubs,
+    teamHubs,
     slots,
     userDataPath
   );

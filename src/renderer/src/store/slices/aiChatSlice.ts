@@ -50,6 +50,16 @@ const aiChatSlice = createSlice({
       state.activeChatId = action.payload;
     },
     /**
+     * Restores open tabs and active chat from persisted session state.
+     */
+    restoreChatSession(
+      state,
+      action: PayloadAction<{ openTabIds: number[]; activeChatId: number | null }>
+    ) {
+      state.openTabIds = action.payload.openTabIds;
+      state.activeChatId = action.payload.activeChatId;
+    },
+    /**
      * Closes a chat tab and activates a neighbor when needed.
      */
     closeChatTab(state, action: PayloadAction<number>) {
@@ -126,6 +136,7 @@ export const {
   setChats,
   setActiveChat,
   openChatTab,
+  restoreChatSession,
   closeChatTab,
   setMessages,
   appendMessage,

@@ -3,6 +3,7 @@ import aiChatReducer, {
   appendMessage,
   closeChatTab,
   openChatTab,
+  restoreChatSession,
   setActiveChat,
   setChats
 } from '#/renderer/src/store/slices/aiChatSlice';
@@ -34,6 +35,15 @@ describe('aiChatSlice', () => {
     state = aiChatReducer(state, closeChatTab(2));
     expect(state.openTabIds).toEqual([1]);
     expect(state.activeChatId).toBe(1);
+  });
+
+  it('restores persisted chat session tabs', () => {
+    const state = aiChatReducer(
+      undefined,
+      restoreChatSession({ openTabIds: [2, 5], activeChatId: 5 })
+    );
+    expect(state.openTabIds).toEqual([2, 5]);
+    expect(state.activeChatId).toBe(5);
   });
 
   it('appends messages for a chat', () => {

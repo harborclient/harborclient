@@ -3,21 +3,21 @@ import { mkdirSync } from 'fs';
 import { dirname } from 'path';
 
 /**
- * Entity kinds stored in the service hub id map.
+ * Entity kinds stored in the team hub id map.
  */
-export type ServiceHubEntityType = 'collection' | 'folder' | 'request';
+export type TeamHubEntityType = 'collection' | 'folder' | 'request';
 
 /**
  * Persistent bidirectional map between HarborClient Server UUIDs and local numeric ids.
  *
- * Stored per service hub so {@link IDatabase} callers keep using numeric ids while the
+ * Stored per team hub so {@link IDatabase} callers keep using numeric ids while the
  * server API uses UUID strings.
  */
-export class ServiceHubIdMap {
+export class TeamHubIdMap {
   private db: Database.Database | null = null;
 
   /**
-   * @param dbPath - Absolute path to the SQLite file (`service-hub-<hubId>.db`).
+   * @param dbPath - Absolute path to the SQLite file (`team-hub-<hubId>.db`).
    */
   constructor(private readonly dbPath: string) {}
 
@@ -47,7 +47,7 @@ export class ServiceHubIdMap {
    */
   private getDb(): Database.Database {
     if (!this.db) {
-      throw new Error('Service hub id map not initialized');
+      throw new Error('Team hub id map not initialized');
     }
     return this.db;
   }
@@ -59,7 +59,7 @@ export class ServiceHubIdMap {
    * @param serverId - Server-side UUID string.
    * @returns Local numeric id for use with {@link IDatabase}.
    */
-  toLocalId(entityType: ServiceHubEntityType, serverId: string): number {
+  toLocalId(entityType: TeamHubEntityType, serverId: string): number {
     const db = this.getDb();
     db.prepare('INSERT OR IGNORE INTO id_map (entity_type, server_id) VALUES (?, ?)').run(
       entityType,
@@ -81,7 +81,7 @@ export class ServiceHubIdMap {
    * @param localId - Local numeric id from {@link toLocalId}.
    * @returns Server UUID, or undefined when the local id is unknown.
    */
-  toServerId(entityType: ServiceHubEntityType, localId: number): string | undefined {
+  toServerId(entityType: TeamHubEntityType, localId: number): string | undefined {
     const row = this.getDb()
       .prepare('SELECT server_id FROM id_map WHERE entity_type = ? AND local_id = ?')
       .get(entityType, localId) as { server_id: string } | undefined;
@@ -94,7 +94,7 @@ export class ServiceHubIdMap {
    * @param entityType - Entity kind (`collection`, `folder`, or `request`).
    * @param serverId - Server-side UUID string to forget.
    */
-  forget(entityType: ServiceHubEntityType, serverId: string): void {
+  forget(entityType: TeamHubEntityType, serverId: string): void {
     this.getDb()
       .prepare('DELETE FROM id_map WHERE entity_type = ? AND server_id = ?')
       .run(entityType, serverId);

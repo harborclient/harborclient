@@ -23,7 +23,7 @@ export const runSync = createAsyncThunk<void, void, ThunkApiConfig>(
   async (_, { dispatch, getState }) => {
     const [connections, hubs] = await Promise.all([
       window.api.listDatabaseConnections(),
-      window.api.listServiceHubs()
+      window.api.listTeamHubs()
     ]);
 
     const providers: SyncProviderProgress[] = [
@@ -37,7 +37,7 @@ export const runSync = createAsyncThunk<void, void, ThunkApiConfig>(
       ...hubs.map((hub) => ({
         id: hub.id,
         name: hub.name,
-        kind: 'service-hub' as const,
+        kind: 'team-hub' as const,
         status: 'pending' as const,
         error: null
       }))

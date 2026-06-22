@@ -11,6 +11,7 @@ import { initializeAiChat } from '#/renderer/src/store/thunks/aiChat';
 import { ChatComposer } from './ChatComposer';
 import { ChatTabBar } from './ChatTabBar';
 import { MessageList } from './MessageList';
+import { usePersistedAiChatSession } from './usePersistedAiChatSession';
 
 interface Props {
   /**
@@ -35,6 +36,11 @@ export function AiChat({ aiSettings }: Props): JSX.Element {
   useEffect(() => {
     void dispatch(initializeAiChat(aiSettings));
   }, [dispatch, aiSettings]);
+
+  /**
+   * Persists open chat tabs and active selection whenever session state changes.
+   */
+  usePersistedAiChatSession();
 
   const activeMessages = activeChatId != null ? (messagesByChat[activeChatId] ?? []) : [];
   const selectedModel = activeChatId != null ? selectedModelByChat[activeChatId] : undefined;

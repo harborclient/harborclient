@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import type { SavedRequest } from '#/shared/types';
 import { ResizeHandle, useResizable } from '#/renderer/src/components/Resizable';
 import {
-  isServiceHubProvider,
+  isTeamHubProvider,
   providerTypesById,
   useProviders
 } from '#/renderer/src/hooks/useProviders';
@@ -285,11 +285,11 @@ export function Sidebar({
                 onConfigureCollection={onConfigureCollection}
                 onDeleteCollection={async (id) => {
                   const collection = collections.find((item) => item.id === id);
-                  if (collection && isServiceHubProvider(providers, collection.connectionId)) {
+                  if (collection && isTeamHubProvider(providers, collection.connectionId)) {
                     const confirmed = await showConfirm(dispatch, {
                       title: 'Delete collection',
                       message:
-                        'Delete this collection from the service hub? Team members will lose access to it on the server.',
+                        'Delete this collection from the team hub? Team members will lose access to it on the server.',
                       confirmLabel: 'Delete',
                       variant: 'danger'
                     });

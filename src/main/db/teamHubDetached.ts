@@ -4,17 +4,17 @@ import { parseJson } from '#/shared/parseJson';
 /**
  * Builds the registry settings key for a hub's detached collection UUID list.
  *
- * @param hubId - Service hub connection id.
+ * @param hubId - Team hub connection id.
  */
 export function detachedSettingKey(hubId: string): string {
-  return `serviceHubDetached:${hubId}`;
+  return `teamHubDetached:${hubId}`;
 }
 
 /**
- * Reads the set of server collection UUIDs detached from a service hub.
+ * Reads the set of server collection UUIDs detached from a team hub.
  *
  * @param registry - Local registry holding app settings.
- * @param hubId - Service hub connection id.
+ * @param hubId - Team hub connection id.
  */
 export function readDetachedServerIds(registry: LocalRegistry, hubId: string): Set<string> {
   const raw = registry.getSetting(detachedSettingKey(hubId));
@@ -26,7 +26,7 @@ export function readDetachedServerIds(registry: LocalRegistry, hubId: string): S
  * Records a server collection UUID as detached so additive sync will not re-add it.
  *
  * @param registry - Local registry holding app settings.
- * @param hubId - Service hub connection id.
+ * @param hubId - Team hub connection id.
  * @param serverCollectionId - Server-side collection UUID.
  */
 export function addDetachedServerId(
@@ -43,7 +43,7 @@ export function addDetachedServerId(
  * Removes the detached-collection setting for a hub when the hub itself is deleted.
  *
  * @param registry - Local registry holding app settings.
- * @param hubId - Service hub connection id.
+ * @param hubId - Team hub connection id.
  */
 export function removeDetachedSetting(registry: LocalRegistry, hubId: string): void {
   registry.setSetting(detachedSettingKey(hubId), '');

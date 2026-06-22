@@ -20,7 +20,7 @@ function createInternals(options: {
     connectionId: string,
     providerCollectionId: number
   ) => string | undefined;
-  addDetachedServiceHubCollection?: (hubId: string, serverCollectionId: string) => void;
+  addDetachedTeamHubCollection?: (hubId: string, serverCollectionId: string) => void;
 }): RoutingInternals {
   const registry = {
     getSetting: vi.fn(() => undefined),
@@ -50,11 +50,11 @@ function createInternals(options: {
     buildCollection: (entry, record) => ({ ...(record ?? options.record), id: entry.id }),
     resolveCollectionServerId:
       options.resolveCollectionServerId ?? (() => '550e8400-e29b-41d4-a716-446655440000'),
-    addDetachedServiceHubCollection: options.addDetachedServiceHubCollection ?? vi.fn()
+    addDetachedTeamHubCollection: options.addDetachedTeamHubCollection ?? vi.fn()
   };
 }
 
-describe('MoveCoordinator service hub source', () => {
+describe('MoveCoordinator team hub source', () => {
   it('leaves the server copy intact and records a detached id when moving off a hub', async () => {
     const record: Collection = {
       id: 1,
@@ -80,7 +80,7 @@ describe('MoveCoordinator service hub source', () => {
       slot: 1,
       connectionId: 'hub-a',
       connectionName: 'Hub A',
-      connectionType: 'service-hub',
+      connectionType: 'team-hub',
       db: {
         listCollections: vi.fn().mockResolvedValue([{ ...record, id: 10 }]),
         listRequests: vi.fn().mockResolvedValue([]),
@@ -117,7 +117,7 @@ describe('MoveCoordinator service hub source', () => {
         targetBackend,
         entry,
         record,
-        addDetachedServiceHubCollection: addDetached
+        addDetachedTeamHubCollection: addDetached
       })
     );
 

@@ -3,6 +3,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import type { Collection, Environment } from '#/shared/types';
 import { useBeforeClose } from '#/renderer/src/hooks/useBeforeClose';
 import { useMenuActions } from '#/renderer/src/hooks/useMenuActions';
+import { usePersistedPanelLayout } from '#/renderer/src/hooks/usePersistedPanelLayout';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveEnvironmentId,
@@ -81,6 +82,7 @@ export default function App(): JSX.Element {
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
 
   useMenuActions();
+  usePersistedPanelLayout();
   useBeforeClose();
 
   /**
@@ -138,7 +140,7 @@ export default function App(): JSX.Element {
 
   const showConfiguration =
     mainView.type === 'settings' ||
-    mainView.type === 'service-hubs' ||
+    mainView.type === 'team-hubs' ||
     mainView.type === 'certificates' ||
     configuringCollection != null ||
     configuringEnvironment != null;
@@ -175,8 +177,8 @@ export default function App(): JSX.Element {
               settingsSection={settingsSection}
               showCertificates={mainView.type === 'certificates'}
               onCloseCertificates={() => dispatch(closeOverlay())}
-              showServiceHubs={mainView.type === 'service-hubs'}
-              onCloseServiceHubs={() => dispatch(closeOverlay())}
+              showTeamHubs={mainView.type === 'team-hubs'}
+              onCloseTeamHubs={() => dispatch(closeOverlay())}
               collection={configuringCollection}
               onCollectionDirtyChange={(dirty) => dispatch(setCollectionSettingsDirty(dirty))}
               onCollectionSave={async (

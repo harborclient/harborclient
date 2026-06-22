@@ -2,18 +2,18 @@ import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, expect, it } from 'vitest';
-import { ServiceHubIdMap } from '#/main/db/ServiceHubIdMap';
+import { TeamHubIdMap } from '#/main/db/TeamHubIdMap';
 import { describeSqlite } from '#/test/nativeModules';
 
-describeSqlite('ServiceHubIdMap', () => {
+describeSqlite('TeamHubIdMap', () => {
   const cleanups: Array<() => void> = [];
 
   /**
    * Creates a fresh id map in a temporary directory for tests.
    */
-  function createMap(): ServiceHubIdMap {
+  function createMap(): TeamHubIdMap {
     const dir = mkdtempSync(join(tmpdir(), 'harborclient-idmap-'));
-    const map = new ServiceHubIdMap(join(dir, 'service-hub-test.db'));
+    const map = new TeamHubIdMap(join(dir, 'team-hub-test.db'));
     map.init();
     cleanups.push(() => {
       map.close();

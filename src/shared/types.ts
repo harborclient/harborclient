@@ -902,9 +902,9 @@ export interface CodeEditorSetup {
 export type DatabaseProvider = 'sqlite' | 'firestore' | 'mysql' | 'postgres';
 
 /**
- * Kind of collection data provider, including remote service hubs.
+ * Kind of collection data provider, including remote team hubs.
  */
-export type CollectionProviderKind = DatabaseProvider | 'service-hub';
+export type CollectionProviderKind = DatabaseProvider | 'team-hub';
 
 /**
  * Request editor tab identifiers.
@@ -947,6 +947,36 @@ export interface SidebarExpansionState {
    * Folder ids whose request lists are expanded in the sidebar.
    */
   folderIds: number[];
+}
+
+/**
+ * Persisted visibility for the left and AI sidebars.
+ */
+export interface PanelLayoutState {
+  /**
+   * Whether the collections sidebar is shown when not hidden by an overlay.
+   */
+  showSidebar: boolean;
+
+  /**
+   * Whether the AI sidebar is shown when not hidden by an overlay.
+   */
+  showAiSidebar: boolean;
+}
+
+/**
+ * Persisted AI chat tab session for restoring open tabs on launch.
+ */
+export interface AiChatSessionState {
+  /**
+   * Chat ids open in the tab bar, in display order.
+   */
+  openTabIds: number[];
+
+  /**
+   * Currently selected chat tab id, if any.
+   */
+  activeChatId: number | null;
 }
 
 /**
@@ -1180,18 +1210,88 @@ export interface AddChatMessageInput {
 }
 
 /**
- * Input for requesting an assistant reply from the LLM for a chat turn.
+ * Role of a message in an LLM completion step (includes tool roles).
  */
-export interface CompleteChatTurnInput {
-  /**
-   * Chat thread whose latest user message should be completed.
-   */
-  chatId: number;
+export type ChatStepMessageRole = 'system' | 'user' | 'assistant' | 'tool';
 
+/**
+ * Serializable tool call returned from a completion step.
+ */
+export interface ChatToolCall {
+  /**
+   * Tool call id from the model.
+   */
+  id: string;
+
+  /**
+   * Tool function name.
+   */
+  name: string;
+
+  /**
+   * JSON-encoded tool arguments.
+   */
+  arguments: string;
+}
+
+/**
+ * Serializable message passed to a single LLM completion step.
+ */
+export interface ChatStepMessage {
+  /**
+   * OpenAI-compatible message role.
+   */
+  role: ChatStepMessageRole;
+
+  /**
+   * Text content for user, assistant, tool, or system messages.
+   */
+  content?: string | null;
+
+  /**
+   * Tool calls requested by the assistant.
+   */
+  tool_calls?: ChatToolCall[];
+
+  /**
+   * Tool call id this tool message responds to.
+   */
+  tool_call_id?: string;
+
+  /**
+   * Tool name for tool role messages (optional).
+   */
+  name?: string;
+}
+
+/**
+ * Input for one stateless LLM completion step.
+ */
+export interface ChatStepInput {
   /**
    * Provider-specific model id selected in the composer.
    */
   model: string;
+
+  /**
+   * Conversation messages excluding the system prompt (injected in main).
+   */
+  messages: ChatStepMessage[];
+}
+
+/**
+ * Result of one LLM completion step.
+ */
+export interface ChatStepResult {
+  /**
+   * Assistant text when the model finishes without tool calls.
+   */
+  content: string | null;
+
+  /**
+   * Tool calls to execute in the renderer when present.
+   */
+  toolCalls?: ChatToolCall[];
 }
 
 /**
@@ -1334,11 +1434,11 @@ export type DatabaseConnection =
   | (DatabaseConnectionBase & { type: 'postgres'; settings: PostgresSettings });
 
 /**
- * A configured HarborClient Server service hub connection.
+ * A configured HarborClient Team Hub connection.
  */
-export interface ServiceHub {
+export interface TeamHub {
   /**
-   * Unique service hub identifier.
+   * Unique team hub identifier.
    */
   id: string;
 
@@ -1348,7 +1448,7 @@ export interface ServiceHub {
   name: string;
 
   /**
-   * HarborClient Server base URL (for example `http://127.0.0.1:8788`).
+   * HarborClient Team Hub base URL (for example `http://127.0.0.1:8788`).
    */
   baseUrl: string;
 
@@ -1437,7 +1537,7 @@ export type MenuActionId =
   | 'import'
   | 'save'
   | 'settings'
-  | 'service-hubs'
+  | 'team-hubs'
   | 'certificates'
   | 'accept-invite'
   | 'sync'
@@ -1848,11 +1948,11 @@ export interface Api {
   addChatMessage: (input: AddChatMessageInput) => Promise<ChatMessage>;
 
   /**
-   * Calls the LLM with a chat's message history and persists the assistant reply.
+   * Runs one LLM completion step with tool definitions and returns text or tool calls.
    *
-   * @param input - Chat id and model id for the completion request.
+   * @param input - Model id and conversation messages for the step.
    */
-  completeChatTurn: (input: CompleteChatTurnInput) => Promise<ChatMessage>;
+  completeChatStep: (input: ChatStepInput) => Promise<ChatStepResult>;
 
   /**
    * Deletes a chat and its messages.
@@ -1883,28 +1983,28 @@ export interface Api {
   deleteDatabaseConnection: (id: string) => Promise<DatabaseConnection[]>;
 
   /**
-   * Lists all configured service hubs.
+   * Lists all configured team hubs.
    */
-  listServiceHubs: () => Promise<ServiceHub[]>;
+  listTeamHubs: () => Promise<TeamHub[]>;
 
   /**
-   * Creates or updates a service hub.
+   * Creates or updates a team hub.
    *
-   * @param hub - Service hub to persist.
-   * @returns Updated list of all service hubs.
+   * @param hub - Team hub to persist.
+   * @returns Updated list of all team hubs.
    */
-  saveServiceHub: (hub: ServiceHub) => Promise<ServiceHub[]>;
+  saveTeamHub: (hub: TeamHub) => Promise<TeamHub[]>;
 
   /**
-   * Deletes a service hub by id.
+   * Deletes a team hub by id.
    *
-   * @param id - Service hub id to remove.
-   * @returns Updated list of all service hubs.
+   * @param id - Team hub id to remove.
+   * @returns Updated list of all team hubs.
    */
-  deleteServiceHub: (id: string) => Promise<ServiceHub[]>;
+  deleteTeamHub: (id: string) => Promise<TeamHub[]>;
 
   /**
-   * Re-reads collection data from a single provider (database or service hub).
+   * Re-reads collection data from a single provider (database or team hub).
    *
    * @param connectionId - Provider connection id to sync.
    */
@@ -1955,6 +2055,30 @@ export interface Api {
    * @param state - Expansion snapshot to store.
    */
   setSidebarExpansion: (state: SidebarExpansionState) => Promise<void>;
+
+  /**
+   * Returns persisted sidebar and AI sidebar visibility preferences.
+   */
+  getPanelLayout: () => Promise<PanelLayoutState>;
+
+  /**
+   * Persists sidebar and AI sidebar visibility preferences.
+   *
+   * @param state - Panel layout snapshot to store.
+   */
+  setPanelLayout: (state: PanelLayoutState) => Promise<void>;
+
+  /**
+   * Returns persisted AI chat open tabs and active tab.
+   */
+  getAiChatSession: () => Promise<AiChatSessionState>;
+
+  /**
+   * Persists AI chat open tabs and active tab.
+   *
+   * @param state - Chat session snapshot to store.
+   */
+  setAiChatSession: (state: AiChatSessionState) => Promise<void>;
 
   /**
    * Returns resolved keyboard shortcut bindings with user overrides applied.

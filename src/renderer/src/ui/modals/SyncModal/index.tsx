@@ -11,11 +11,11 @@ import { Modal } from '#/renderer/src/ui/shared/Modal';
 /**
  * Returns a human-readable label for a provider kind.
  *
- * @param kind - Database connection or service hub.
+ * @param kind - Database connection or team hub.
  * @returns Display label for the provider type.
  */
 function providerKindLabel(kind: SyncProviderProgress['kind']): string {
-  return kind === 'service-hub' ? 'Service Hub' : 'Database';
+  return kind === 'team-hub' ? 'Team Hub' : 'Database';
 }
 
 /**

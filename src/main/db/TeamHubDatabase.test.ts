@@ -2,26 +2,26 @@ import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, expect, it, vi } from 'vitest';
-import { ServiceHubDatabase } from '#/main/db/ServiceHubDatabase';
-import { ServiceHubIdMap } from '#/main/db/ServiceHubIdMap';
+import { TeamHubDatabase } from '#/main/db/TeamHubDatabase';
+import { TeamHubIdMap } from '#/main/db/TeamHubIdMap';
 import type { HarborServerClient } from '#/main/server/HarborServerClient';
 import { describeSqlite } from '#/test/nativeModules';
 
-describeSqlite('ServiceHubDatabase', () => {
+describeSqlite('TeamHubDatabase', () => {
   const cleanups: Array<() => void> = [];
 
   /**
-   * Builds a ServiceHubDatabase backed by a mock HarborServerClient and temp id map.
+   * Builds a TeamHubDatabase backed by a mock HarborServerClient and temp id map.
    */
-  function createDatabase(client: Partial<HarborServerClient>): ServiceHubDatabase {
+  function createDatabase(client: Partial<HarborServerClient>): TeamHubDatabase {
     const dir = mkdtempSync(join(tmpdir(), 'harborclient-shub-'));
-    const idMap = new ServiceHubIdMap(join(dir, 'service-hub-test.db'));
+    const idMap = new TeamHubIdMap(join(dir, 'team-hub-test.db'));
     idMap.init();
     cleanups.push(() => {
       idMap.close();
       rmSync(dir, { recursive: true, force: true });
     });
-    return new ServiceHubDatabase(client as HarborServerClient, idMap);
+    return new TeamHubDatabase(client as HarborServerClient, idMap);
   }
 
   afterEach(() => {
@@ -146,7 +146,7 @@ describeSqlite('ServiceHubDatabase', () => {
       })
     });
 
-    const idMap = (db as unknown as { idMap: ServiceHubIdMap }).idMap;
+    const idMap = (db as unknown as { idMap: TeamHubIdMap }).idMap;
     const collectionId = idMap.toLocalId('collection', collectionServerId);
     const folderId = idMap.toLocalId('folder', folderServerId);
 

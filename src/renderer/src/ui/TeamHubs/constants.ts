@@ -1,11 +1,11 @@
-import type { ServiceHub } from '#/shared/types';
+import type { TeamHub } from '#/shared/types';
 
 /**
- * Creates an empty service hub form record for add flows.
+ * Creates an empty team hub form record for add flows.
  *
- * @returns Blank service hub with a default local base URL.
+ * @returns Blank team hub with a default local base URL.
  */
-export function createBlankServiceHub(): ServiceHub {
+export function createBlankTeamHub(): TeamHub {
   return {
     id: '',
     name: '',
@@ -15,19 +15,19 @@ export function createBlankServiceHub(): ServiceHub {
 }
 
 /**
- * Validates service hub form fields before save.
+ * Validates team hub form fields before save.
  *
- * @param hub - Service hub draft from the edit form.
+ * @param hub - Team hub draft from the edit form.
  * @returns Field-specific validation errors, or null when valid.
  */
-export function validateServiceHubForm(hub: ServiceHub): Record<string, string> | null {
+export function validateTeamHubForm(hub: TeamHub): Record<string, string> | null {
   const errors: Record<string, string> = {};
 
   if (!hub.name.trim()) {
     errors.name = 'Name is required.';
   }
   if (!hub.baseUrl.trim()) {
-    errors.baseUrl = 'Service hub URL is required.';
+    errors.baseUrl = 'Team hub URL is required.';
   }
   if (!hub.token.trim()) {
     errors.token = 'API token is required.';

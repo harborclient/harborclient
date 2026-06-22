@@ -4,7 +4,7 @@ import navigationReducer, {
   openCertificates,
   openCollectionSettings,
   openEnvironmentSettings,
-  openServiceHubs,
+  openTeamHubs,
   openSettings,
   setCollectionSettingsDirty,
   setEnvironmentSettingsDirty,
@@ -42,10 +42,10 @@ describe('navigationSlice', () => {
     expect(state.settingsSection).toBe('ai');
   });
 
-  it('opens service hubs and resets dirty flags', () => {
+  it('opens team hubs and resets dirty flags', () => {
     let state = navigationReducer(undefined, setEnvironmentSettingsDirty(true));
-    state = navigationReducer(state, openServiceHubs());
-    expect(state.mainView).toEqual({ type: 'service-hubs' });
+    state = navigationReducer(state, openTeamHubs());
+    expect(state.mainView).toEqual({ type: 'team-hubs' });
     expect(state.collectionSettingsDirty).toBe(false);
     expect(state.environmentSettingsDirty).toBe(false);
   });

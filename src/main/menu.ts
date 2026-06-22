@@ -69,8 +69,8 @@ export function buildMenu(
           click: () => sendMenuAction(window, 'settings')
         },
         {
-          label: 'Service Hubs',
-          click: () => sendMenuAction(window, 'service-hubs')
+          label: 'Team Hubs',
+          click: () => sendMenuAction(window, 'team-hubs')
         },
         {
           label: 'Invite Certificates',

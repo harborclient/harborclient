@@ -8,7 +8,7 @@ import type { RootState } from '#/renderer/src/store/redux';
 export type MainView =
   | { type: 'request' }
   | { type: 'settings' }
-  | { type: 'service-hubs' }
+  | { type: 'team-hubs' }
   | { type: 'certificates' }
   | { type: 'collection'; id: number }
   | { type: 'environment'; id: number };
@@ -56,11 +56,11 @@ const navigationSlice = createSlice({
       state.settingsSection = action.payload ?? 'general';
     },
     /**
-     * Shows the service hubs overlay and clears dirty flags.
+     * Shows the team hubs overlay and clears dirty flags.
      */
-    openServiceHubs(state) {
+    openTeamHubs(state) {
       resetDirtyFlags(state);
-      state.mainView = { type: 'service-hubs' };
+      state.mainView = { type: 'team-hubs' };
     },
     /**
      * Shows the certificates overlay and clears dirty flags.
@@ -109,10 +109,22 @@ const navigationSlice = createSlice({
       state.showSidebar = !state.showSidebar;
     },
     /**
+     * Sets sidebar visibility explicitly.
+     */
+    setShowSidebar(state, action: PayloadAction<boolean>) {
+      state.showSidebar = action.payload;
+    },
+    /**
      * Toggles AI sidebar visibility.
      */
     toggleAiSidebar(state) {
       state.showAiSidebar = !state.showAiSidebar;
+    },
+    /**
+     * Sets AI sidebar visibility explicitly.
+     */
+    setShowAiSidebar(state, action: PayloadAction<boolean>) {
+      state.showAiSidebar = action.payload;
     },
     /**
      * Toggles the footer console panel.
@@ -137,7 +149,7 @@ const navigationSlice = createSlice({
 
 export const {
   openSettings,
-  openServiceHubs,
+  openTeamHubs,
   openCertificates,
   openCollectionSettings,
   openEnvironmentSettings,
@@ -145,7 +157,9 @@ export const {
   setCollectionSettingsDirty,
   setEnvironmentSettingsDirty,
   toggleSidebar,
+  setShowSidebar,
   toggleAiSidebar,
+  setShowAiSidebar,
   toggleConsole,
   toggleVariables
 } = navigationSlice.actions;
@@ -187,7 +201,7 @@ export const selectSettingsSection = (state: RootState): SettingsSection =>
   state.navigation.settingsSection;
 
 /**
- * Sidebar is hidden when app settings, service hubs, or certificates are open, even if the
+ * Sidebar is hidden when app settings, team hubs, or certificates are open, even if the
  * user has not toggled it off manually.
  */
 export const selectSidebarVisible = (state: RootState): boolean => {
@@ -195,13 +209,13 @@ export const selectSidebarVisible = (state: RootState): boolean => {
   return (
     showSidebar &&
     mainView.type !== 'settings' &&
-    mainView.type !== 'service-hubs' &&
+    mainView.type !== 'team-hubs' &&
     mainView.type !== 'certificates'
   );
 };
 
 /**
- * AI sidebar is hidden when app settings, service hubs, or certificates are open, even if the
+ * AI sidebar is hidden when app settings, team hubs, or certificates are open, even if the
  * user has not toggled it off manually.
  */
 export const selectAiSidebarVisible = (state: RootState): boolean => {
@@ -209,7 +223,7 @@ export const selectAiSidebarVisible = (state: RootState): boolean => {
   return (
     showAiSidebar &&
     mainView.type !== 'settings' &&
-    mainView.type !== 'service-hubs' &&
+    mainView.type !== 'team-hubs' &&
     mainView.type !== 'certificates'
   );
 };

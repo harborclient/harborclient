@@ -85,7 +85,7 @@ export class MoveCoordinator {
         providerCollectionId: updated.id
       });
 
-      const leaveSourceIntact = sourceBackend.connectionType === 'service-hub';
+      const leaveSourceIntact = sourceBackend.connectionType === 'team-hub';
 
       if (!leaveSourceIntact) {
         this.writePendingMoveCleanup(
@@ -102,7 +102,7 @@ export class MoveCoordinator {
             sourceProviderCollectionId
           );
           if (serverCollectionId) {
-            this.internals.addDetachedServiceHubCollection(sourceConnectionId, serverCollectionId);
+            this.internals.addDetachedTeamHubCollection(sourceConnectionId, serverCollectionId);
           }
         } else {
           await sourceBackend.db.deleteCollection(sourceProviderCollectionId);
@@ -111,7 +111,7 @@ export class MoveCoordinator {
       } catch (err) {
         console.warn(
           leaveSourceIntact
-            ? `Collection moved but failed to detach from service hub (global id ${globalCollectionId}):`
+            ? `Collection moved but failed to detach from team hub (global id ${globalCollectionId}):`
             : `Collection moved but source cleanup failed; will retry on next launch (global id ${globalCollectionId}):`,
           err
         );
@@ -198,7 +198,7 @@ export class MoveCoordinator {
         }
 
         const sourceBackend = this.internals.getBackend(cleanup.sourceConnectionId);
-        if (sourceBackend && sourceBackend.connectionType !== 'service-hub') {
+        if (sourceBackend && sourceBackend.connectionType !== 'team-hub') {
           try {
             await sourceBackend.db.deleteCollection(cleanup.sourceProviderCollectionId);
           } catch (err) {
@@ -208,7 +208,7 @@ export class MoveCoordinator {
             );
             continue;
           }
-        } else if (sourceBackend?.connectionType === 'service-hub') {
+        } else if (sourceBackend?.connectionType === 'team-hub') {
           this.clearPendingMoveCleanup(globalId);
           continue;
         }

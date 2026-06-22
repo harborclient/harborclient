@@ -4,13 +4,9 @@ import {
   clearLocalRegistryForTesting,
   setLocalRegistryForTesting
 } from '#/main/db/localRegistryInstance';
-import {
-  deleteServiceHub,
-  listServiceHubs,
-  saveServiceHub
-} from '#/main/settings/serviceHubSettings';
+import { deleteTeamHub, listTeamHubs, saveTeamHub } from '#/main/settings/teamHubSettings';
 
-describe('serviceHubSettings', () => {
+describe('teamHubSettings', () => {
   let settingsStore: Record<string, string>;
 
   beforeEach(() => {
@@ -29,11 +25,11 @@ describe('serviceHubSettings', () => {
   });
 
   it('returns an empty list when unset', () => {
-    expect(listServiceHubs()).toEqual([]);
+    expect(listTeamHubs()).toEqual([]);
   });
 
-  it('creates a service hub with a generated id and normalized base URL', () => {
-    const saved = saveServiceHub({
+  it('creates a team hub with a generated id and normalized base URL', () => {
+    const saved = saveTeamHub({
       id: '',
       name: ' Team Hub ',
       baseUrl: 'http://127.0.0.1:8788/',
@@ -47,8 +43,8 @@ describe('serviceHubSettings', () => {
     expect(saved[0]?.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
   });
 
-  it('updates an existing service hub by id', () => {
-    const created = saveServiceHub({
+  it('updates an existing team hub by id', () => {
+    const created = saveTeamHub({
       id: '',
       name: 'Original',
       baseUrl: 'http://127.0.0.1:8788',
@@ -56,14 +52,14 @@ describe('serviceHubSettings', () => {
     });
     const id = created[0]?.id ?? '';
 
-    saveServiceHub({
+    saveTeamHub({
       id,
       name: 'Updated',
       baseUrl: 'https://hub.example.com/',
       token: 'hbk_new'
     });
 
-    expect(listServiceHubs()).toEqual([
+    expect(listTeamHubs()).toEqual([
       {
         id,
         name: 'Updated',
@@ -73,14 +69,14 @@ describe('serviceHubSettings', () => {
     ]);
   });
 
-  it('deletes a service hub by id', () => {
-    const first = saveServiceHub({
+  it('deletes a team hub by id', () => {
+    const first = saveTeamHub({
       id: '',
       name: 'First',
       baseUrl: 'http://127.0.0.1:8788',
       token: 'hbk_one'
     });
-    const second = saveServiceHub({
+    const second = saveTeamHub({
       id: '',
       name: 'Second',
       baseUrl: 'http://127.0.0.1:8789',
@@ -89,7 +85,7 @@ describe('serviceHubSettings', () => {
     const firstId = first[0]?.id ?? '';
     const secondId = second[1]?.id ?? '';
 
-    const remaining = deleteServiceHub(firstId);
+    const remaining = deleteTeamHub(firstId);
 
     expect(remaining).toEqual([
       {
@@ -101,7 +97,7 @@ describe('serviceHubSettings', () => {
     ]);
   });
 
-  it('throws when deleting an unknown service hub', () => {
-    expect(() => deleteServiceHub('missing-id')).toThrow('Unknown service hub: missing-id');
+  it('throws when deleting an unknown team hub', () => {
+    expect(() => deleteTeamHub('missing-id')).toThrow('Unknown team hub: missing-id');
   });
 });

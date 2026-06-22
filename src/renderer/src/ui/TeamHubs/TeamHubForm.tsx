@@ -1,11 +1,11 @@
 import type { JSX } from 'react';
-import type { ServiceHub } from '#/shared/types';
+import type { TeamHub } from '#/shared/types';
 
 interface Props {
   /**
-   * Service hub draft being edited.
+   * Team hub draft being edited.
    */
-  hub: ServiceHub;
+  hub: TeamHub;
 
   /**
    * Whether the form is disabled during save.
@@ -20,30 +20,30 @@ interface Props {
   /**
    * Called when any field changes.
    */
-  onChange: (hub: ServiceHub) => void;
+  onChange: (hub: TeamHub) => void;
 }
 
 /**
- * Form fields for creating or editing a service hub connection.
+ * Form fields for creating or editing a team hub connection.
  */
-export function ServiceHubForm({
+export function TeamHubForm({
   hub,
   disabled = false,
   fieldErrors = {},
   onChange
 }: Props): JSX.Element {
-  const nameErrorId = 'service-hub-name-error';
-  const baseUrlErrorId = 'service-hub-base-url-error';
-  const tokenErrorId = 'service-hub-token-error';
+  const nameErrorId = 'team-hub-name-error';
+  const baseUrlErrorId = 'team-hub-base-url-error';
+  const tokenErrorId = 'team-hub-token-error';
 
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <label htmlFor="service-hub-name" className="mb-1 block text-[14px] font-medium text-text">
+        <label htmlFor="team-hub-name" className="mb-1 block text-[14px] font-medium text-text">
           Name
         </label>
         <input
-          id="service-hub-name"
+          id="team-hub-name"
           type="text"
           className="w-full rounded-md border border-separator bg-surface px-3 py-2 text-[14px] text-text"
           value={hub.name}
@@ -60,14 +60,11 @@ export function ServiceHubForm({
       </div>
 
       <div>
-        <label
-          htmlFor="service-hub-base-url"
-          className="mb-1 block text-[14px] font-medium text-text"
-        >
-          Service hub URL
+        <label htmlFor="team-hub-base-url" className="mb-1 block text-[14px] font-medium text-text">
+          Team hub URL
         </label>
         <input
-          id="service-hub-base-url"
+          id="team-hub-base-url"
           type="url"
           className="w-full rounded-md border border-separator bg-surface px-3 py-2 text-[14px] text-text"
           value={hub.baseUrl}
@@ -84,11 +81,11 @@ export function ServiceHubForm({
       </div>
 
       <div>
-        <label htmlFor="service-hub-token" className="mb-1 block text-[14px] font-medium text-text">
+        <label htmlFor="team-hub-token" className="mb-1 block text-[14px] font-medium text-text">
           API token
         </label>
         <input
-          id="service-hub-token"
+          id="team-hub-token"
           type="password"
           autoComplete="off"
           className="w-full rounded-md border border-separator bg-surface px-3 py-2 text-[14px] text-text"

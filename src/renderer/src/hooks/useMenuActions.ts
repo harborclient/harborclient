@@ -8,7 +8,7 @@ import {
 } from '#/renderer/src/store/slices/modalsSlice';
 import {
   openCertificates,
-  openServiceHubs,
+  openTeamHubs,
   openSettings,
   selectAiSidebarVisible,
   selectSidebarVisible,
@@ -70,8 +70,8 @@ export function useMenuActions(): void {
         case 'settings':
           dispatch(openSettings());
           break;
-        case 'service-hubs':
-          dispatch(openServiceHubs());
+        case 'team-hubs':
+          dispatch(openTeamHubs());
           break;
         case 'certificates':
           dispatch(openCertificates());

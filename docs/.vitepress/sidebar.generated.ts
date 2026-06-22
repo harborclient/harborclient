@@ -60,6 +60,10 @@ export const sidebar: DefaultTheme.SidebarItem[] =
         "link": "/settings#databases"
       },
       {
+        "text": "AI",
+        "link": "/settings#ai"
+      },
+      {
         "text": "What's next",
         "link": "/settings#whats-next"
       }
@@ -67,36 +71,36 @@ export const sidebar: DefaultTheme.SidebarItem[] =
     "collapsed": false
   },
   {
-    "text": "Service hubs",
-    "link": "/service-hubs",
+    "text": "Team hubs",
+    "link": "/team-hubs",
     "items": [
       {
         "text": "Prerequisites",
-        "link": "/service-hubs#prerequisites"
+        "link": "/team-hubs#prerequisites"
       },
       {
-        "text": "Managing service hubs",
-        "link": "/service-hubs#managing-service-hubs"
+        "text": "Managing team hubs",
+        "link": "/team-hubs#managing-team-hubs"
       },
       {
-        "text": "Collections on a service hub",
-        "link": "/service-hubs#collections-on-a-service-hub"
+        "text": "Collections on a team hub",
+        "link": "/team-hubs#collections-on-a-team-hub"
       },
       {
         "text": "Moving and deleting collections",
-        "link": "/service-hubs#moving-and-deleting-collections"
+        "link": "/team-hubs#moving-and-deleting-collections"
       },
       {
-        "text": "Service hubs vs other sharing options",
-        "link": "/service-hubs#service-hubs-vs-other-sharing-options"
+        "text": "Team hubs vs other sharing options",
+        "link": "/team-hubs#team-hubs-vs-other-sharing-options"
       },
       {
         "text": "Limitations",
-        "link": "/service-hubs#limitations"
+        "link": "/team-hubs#limitations"
       },
       {
         "text": "What's next",
-        "link": "/service-hubs#whats-next"
+        "link": "/team-hubs#whats-next"
       }
     ],
     "collapsed": false

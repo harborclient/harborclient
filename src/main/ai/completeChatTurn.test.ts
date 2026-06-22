@@ -1,33 +1,20 @@
-import { mkdtempSync, rmSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import type OpenAI from 'openai';
-import { completeChatTurn, extractAssistantContent } from '#/main/ai/completeChatTurn';
-import { LocalRegistry } from '#/main/db/LocalRegistry';
-import { describeSqlite } from '#/test/nativeModules';
-
-const cleanups: Array<() => void | Promise<void>> = [];
+import { describe, expect, it, vi } from 'vitest';
+import { APIError, type OpenAI } from 'openai';
+import { extractAssistantContent, runChatCompletionStep } from '#/main/ai/completeChatTurn';
+import { AGGRESSIVE_HISTORY_MESSAGE_COUNT } from '#/shared/aiChatContext';
+import { AI_SYSTEM_PROMPT, AI_TOOL_DEFINITIONS } from '#/shared/aiTools';
 
 /**
- * Creates an isolated registry database for tests.
+ * Builds an OpenAI context length error for retry tests.
  */
-async function createRegistry(): Promise<LocalRegistry> {
-  const rootDir = mkdtempSync(join(tmpdir(), 'harborclient-complete-chat-'));
-  const registry = new LocalRegistry(rootDir);
-  await registry.init();
-  cleanups.push(async () => {
-    await registry.close();
-    rmSync(rootDir, { recursive: true, force: true });
-  });
-  return registry;
+function contextLengthError(): APIError {
+  return new APIError(
+    400,
+    { code: 'context_length_exceeded', message: 'context length exceeded' },
+    'context length exceeded',
+    new Headers()
+  );
 }
-
-afterEach(async () => {
-  while (cleanups.length > 0) {
-    await cleanups.pop()?.();
-  }
-});
 
 describe('extractAssistantContent', () => {
   it('returns string content from the first choice', () => {
@@ -38,29 +25,33 @@ describe('extractAssistantContent', () => {
     ).toBe('Hello');
   });
 
-  it('throws when the model returns no content', () => {
-    expect(() =>
+  it('returns null when the model returns no content', () => {
+    expect(
       extractAssistantContent({
         choices: [{ message: { role: 'assistant', content: null } }]
       } as Parameters<typeof extractAssistantContent>[0])
-    ).toThrow(/empty response/);
+    ).toBeNull();
   });
 });
 
-describeSqlite('completeChatTurn', () => {
-  it('sends full chat history to the LLM and persists the assistant reply', async () => {
-    const registry = await createRegistry();
-    const chat = registry.createChat({ model: 'gpt-4o' });
-    registry.addChatMessage({ chatId: chat.id, role: 'user', content: 'First question' });
-    registry.addChatMessage({
-      chatId: chat.id,
-      role: 'assistant',
-      content: 'First answer'
-    });
-    registry.addChatMessage({ chatId: chat.id, role: 'user', content: 'Follow up' });
-
+describe('runChatCompletionStep', () => {
+  it('prepends the system prompt, attaches tools, and returns tool calls', async () => {
     const create = vi.fn().mockResolvedValue({
-      choices: [{ message: { role: 'assistant', content: 'Model reply' } }]
+      choices: [
+        {
+          message: {
+            role: 'assistant',
+            content: null,
+            tool_calls: [
+              {
+                id: 'call_1',
+                type: 'function',
+                function: { name: 'list_collections', arguments: '{}' }
+              }
+            ]
+          }
+        }
+      ]
     });
     const mockClient = {
       chat: {
@@ -70,37 +61,93 @@ describeSqlite('completeChatTurn', () => {
       }
     } as unknown as OpenAI;
 
-    const assistantMessage = await completeChatTurn(chat.id, 'gpt-4o', {
-      registry,
-      createClient: () => mockClient
-    });
+    const result = await runChatCompletionStep(
+      {
+        model: 'gpt-4o',
+        messages: [{ role: 'user', content: 'What collections do I have?' }]
+      },
+      { createClient: () => mockClient }
+    );
 
     expect(create).toHaveBeenCalledWith({
       model: 'gpt-4o',
+      tools: AI_TOOL_DEFINITIONS,
       messages: [
-        { role: 'user', content: 'First question' },
-        { role: 'assistant', content: 'First answer' },
-        { role: 'user', content: 'Follow up' }
+        { role: 'system', content: AI_SYSTEM_PROMPT },
+        { role: 'user', content: 'What collections do I have?' }
       ]
     });
-    expect(assistantMessage.content).toBe('Model reply');
-    expect(registry.getChat(chat.id)?.model).toBe('gpt-4o');
-    expect(registry.getChat(chat.id)?.messages).toHaveLength(4);
+    expect(result.toolCalls).toEqual([{ id: 'call_1', name: 'list_collections', arguments: '{}' }]);
   });
 
-  it('throws when the chat ends with an assistant message', async () => {
-    const registry = await createRegistry();
-    const chat = registry.createChat({});
-    registry.addChatMessage({ chatId: chat.id, role: 'assistant', content: 'Already answered' });
+  it('returns assistant text when no tool calls are present', async () => {
+    const create = vi.fn().mockResolvedValue({
+      choices: [{ message: { role: 'assistant', content: 'Done.' } }]
+    });
+    const mockClient = {
+      chat: {
+        completions: {
+          create
+        }
+      }
+    } as unknown as OpenAI;
+
+    const result = await runChatCompletionStep(
+      { model: 'gpt-4o', messages: [{ role: 'user', content: 'Hi' }] },
+      { createClient: () => mockClient }
+    );
+
+    expect(result).toEqual({ content: 'Done.' });
+  });
+
+  it('retries once with aggressive truncation after context_length_exceeded', async () => {
+    const longMessages = Array.from({ length: 10 }, (_, index) => ({
+      role: 'user' as const,
+      content: `message-${index}`
+    }));
+    const create = vi
+      .fn()
+      .mockRejectedValueOnce(contextLengthError())
+      .mockResolvedValueOnce({
+        choices: [{ message: { role: 'assistant', content: 'Recovered.' } }]
+      });
+    const mockClient = {
+      chat: {
+        completions: {
+          create
+        }
+      }
+    } as unknown as OpenAI;
+
+    const result = await runChatCompletionStep(
+      { model: 'gpt-4o', messages: longMessages },
+      { createClient: () => mockClient }
+    );
+
+    expect(create).toHaveBeenCalledTimes(2);
+    const retryMessages = create.mock.calls[1]?.[0]?.messages ?? [];
+    expect(retryMessages).toHaveLength(AGGRESSIVE_HISTORY_MESSAGE_COUNT + 1);
+    expect(result).toEqual({ content: 'Recovered.' });
+  });
+
+  it('returns a friendly error when retry also exceeds context length', async () => {
+    const create = vi.fn().mockRejectedValue(contextLengthError());
+    const mockClient = {
+      chat: {
+        completions: {
+          create
+        }
+      }
+    } as unknown as OpenAI;
 
     await expect(
-      completeChatTurn(chat.id, 'gpt-4o', {
-        registry,
-        createClient: () =>
-          ({
-            chat: { completions: { create: vi.fn() } }
-          }) as unknown as OpenAI
-      })
-    ).rejects.toThrow(/no user message to complete/);
+      runChatCompletionStep(
+        { model: 'gpt-4o', messages: [{ role: 'user', content: 'Hi' }] },
+        { createClient: () => mockClient }
+      )
+    ).rejects.toThrow(
+      'The conversation is too long for this model. Start a new chat or ask about a smaller response.'
+    );
+    expect(create).toHaveBeenCalledTimes(2);
   });
 });

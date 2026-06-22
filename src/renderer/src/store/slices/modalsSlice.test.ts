@@ -182,7 +182,7 @@ describe('modalsSlice', () => {
         {
           id: 'hub-1',
           name: 'Team Hub',
-          kind: 'service-hub',
+          kind: 'team-hub',
           status: 'pending',
           error: null
         }

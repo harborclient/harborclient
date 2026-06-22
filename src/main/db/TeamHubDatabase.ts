@@ -3,7 +3,7 @@ import {
   normalizeVariable,
   validateCollectionExport
 } from '#/main/db/collectionData';
-import type { ServiceHubIdMap } from '#/main/db/ServiceHubIdMap';
+import type { TeamHubIdMap } from '#/main/db/TeamHubIdMap';
 import { trimRequiredName } from '#/main/db/trimRequiredName';
 import type { IDatabase } from '#/main/db/IDatabase';
 import type { HarborServerClient } from '#/main/server/HarborServerClient';
@@ -25,7 +25,7 @@ import type {
  * Maps a server collection record to the local {@link Collection} shape.
  *
  * @param record - Collection payload from HarborClient Server.
- * @param localId - Numeric id assigned by {@link ServiceHubIdMap}.
+ * @param localId - Numeric id assigned by {@link TeamHubIdMap}.
  */
 function serverToCollection(record: CollectionRecord, localId: number): Collection {
   return {
@@ -44,7 +44,7 @@ function serverToCollection(record: CollectionRecord, localId: number): Collecti
  * Maps a server folder record to the local {@link Folder} shape.
  *
  * @param record - Folder payload from HarborClient Server.
- * @param localId - Numeric id assigned by {@link ServiceHubIdMap}.
+ * @param localId - Numeric id assigned by {@link TeamHubIdMap}.
  * @param localCollectionId - Mapped parent collection id.
  */
 function serverToFolder(record: FolderRecord, localId: number, localCollectionId: number): Folder {
@@ -61,7 +61,7 @@ function serverToFolder(record: FolderRecord, localId: number, localCollectionId
  * Maps a server saved request record to the local {@link SavedRequest} shape.
  *
  * @param record - Request payload from HarborClient Server.
- * @param localId - Numeric id assigned by {@link ServiceHubIdMap}.
+ * @param localId - Numeric id assigned by {@link TeamHubIdMap}.
  * @param localCollectionId - Mapped parent collection id.
  * @param localFolderId - Mapped parent folder id, or null at collection root.
  */
@@ -132,16 +132,16 @@ function toServerRequestBody(
 }
 
 /**
- * {@link IDatabase} adapter backed by HarborClient Server for a single service hub.
+ * {@link IDatabase} adapter backed by HarborClient Server for a single team hub.
  */
-export class ServiceHubDatabase implements IDatabase {
+export class TeamHubDatabase implements IDatabase {
   /**
    * @param client - Typed HTTP client for the hub's HarborClient Server instance.
    * @param idMap - Persistent UUID to numeric id map for this hub.
    */
   constructor(
     private readonly client: HarborServerClient,
-    private readonly idMap: ServiceHubIdMap
+    private readonly idMap: TeamHubIdMap
   ) {}
 
   /**
@@ -217,36 +217,36 @@ export class ServiceHubDatabase implements IDatabase {
   }
 
   /**
-   * Environments are stored in the local registry for service hub collections.
+   * Environments are stored in the local registry for team hub collections.
    */
   async listEnvironments(): Promise<Environment[]> {
     return [];
   }
 
   /**
-   * Environments are stored in the local registry for service hub collections.
+   * Environments are stored in the local registry for team hub collections.
    */
   async createEnvironment(name: string): Promise<Environment> {
     void name;
-    throw new Error('Environments are not stored on service hubs.');
+    throw new Error('Environments are not stored on team hubs.');
   }
 
   /**
-   * Environments are stored in the local registry for service hub collections.
+   * Environments are stored in the local registry for team hub collections.
    */
   async updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment> {
     void id;
     void name;
     void variables;
-    throw new Error('Environments are not stored on service hubs.');
+    throw new Error('Environments are not stored on team hubs.');
   }
 
   /**
-   * Environments are stored in the local registry for service hub collections.
+   * Environments are stored in the local registry for team hub collections.
    */
   async deleteEnvironment(id: number): Promise<void> {
     void id;
-    throw new Error('Environments are not stored on service hubs.');
+    throw new Error('Environments are not stored on team hubs.');
   }
 
   /**
@@ -511,14 +511,14 @@ export class ServiceHubDatabase implements IDatabase {
   }
 
   /**
-   * Settings are stored in the local registry for service hub collections.
+   * Settings are stored in the local registry for team hub collections.
    */
   async getSetting(): Promise<string | undefined> {
     return undefined;
   }
 
   /**
-   * Settings are stored in the local registry for service hub collections.
+   * Settings are stored in the local registry for team hub collections.
    */
   async setSetting(): Promise<void> {
     // no-op

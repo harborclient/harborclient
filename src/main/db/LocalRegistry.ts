@@ -557,6 +557,19 @@ export class LocalRegistry {
   }
 
   /**
+   * Lists setting keys that start with the given prefix.
+   *
+   * @param prefix - Key prefix to match.
+   * @returns Matching setting keys in arbitrary order.
+   */
+  listSettingKeysWithPrefix(prefix: string): string[] {
+    const rows = this.getDb()
+      .prepare('SELECT key FROM settings WHERE key LIKE ?')
+      .all(`${prefix}%`) as { key: string }[];
+    return rows.map((row) => row.key);
+  }
+
+  /**
    * Reads a persisted setting by key.
    *
    * @param key - Setting key to look up.

@@ -38,5 +38,5 @@ export interface RoutingInternals {
   requireEntry(id: number): CollectionRegistryEntry;
   buildCollection(entry: CollectionRegistryEntry, record: Collection | undefined): Collection;
   resolveCollectionServerId(connectionId: string, providerCollectionId: number): string | undefined;
-  addDetachedServiceHubCollection(hubId: string, serverCollectionId: string): void;
+  addDetachedTeamHubCollection(hubId: string, serverCollectionId: string): void;
 }

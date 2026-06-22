@@ -1,4 +1,4 @@
-import { completeChatTurn } from '#/main/ai/completeChatTurn';
+import { runChatCompletionStep } from '#/main/ai/completeChatTurn';
 import { getLocalRegistry } from '#/main/db/localRegistryInstance';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
@@ -19,8 +19,8 @@ export function registerChatHandlers(): void {
     getLocalRegistry().addChatMessage(input)
   );
 
-  handle('chats:completeTurn', ipcArgSchemas.chatCompleteTurn, (_event, input) =>
-    completeChatTurn(input.chatId, input.model)
+  handle('chats:completeStep', ipcArgSchemas.chatCompleteStep, (_event, input) =>
+    runChatCompletionStep(input)
   );
 
   handle('chats:delete', ipcArgSchemas.chatDelete, (_event, id) => {

@@ -12,15 +12,11 @@ import {
   setActiveDatabaseId
 } from '#/main/settings/databaseSettings';
 import {
-  assignSlotForNewServiceHub,
+  assignSlotForNewTeamHub,
   getSlotForConnection,
   removeSlotForConnection
 } from '#/main/settings/databaseSlots';
-import {
-  deleteServiceHub,
-  listServiceHubs,
-  saveServiceHub
-} from '#/main/settings/serviceHubSettings';
+import { deleteTeamHub, listTeamHubs, saveTeamHub } from '#/main/settings/teamHubSettings';
 import { getAiSettings, setAiSettings } from '#/main/settings/aiSettings';
 import { getGeneralSettings, setGeneralSettings } from '#/main/settings/generalSettings';
 import {
@@ -28,6 +24,8 @@ import {
   getRequestEditorTab,
   setRequestEditorTab
 } from '#/main/settings/requestEditorSettings';
+import { getAiChatSession, setAiChatSession } from '#/main/settings/aiChatSessionSettings';
+import { getPanelLayout, setPanelLayout } from '#/main/settings/panelLayoutSettings';
 import { getSidebarExpansion, setSidebarExpansion } from '#/main/settings/sidebarExpansionSettings';
 import { checkForUpdates } from '#/main/settings/updateCheck';
 import {
@@ -119,47 +117,47 @@ export function registerSettingsHandlers(db: IDatabase): void {
     deleteDatabaseConnection(id)
   );
 
-  // Lists configured service hubs.
-  handle('serviceHubs:list', ipcArgSchemas.none, () => listServiceHubs());
+  // Lists configured team hubs.
+  handle('teamHubs:list', ipcArgSchemas.none, () => listTeamHubs());
 
-  // Creates or updates a service hub.
-  handle('serviceHubs:save', ipcArgSchemas.serviceHub, async (_event, hub) => {
-    const existingHubs = listServiceHubs();
+  // Creates or updates a team hub.
+  handle('teamHubs:save', ipcArgSchemas.teamHub, async (_event, hub) => {
+    const existingHubs = listTeamHubs();
     const trimmedId = hub.id.trim();
     const isNew = trimmedId.length === 0 || !existingHubs.some((item) => item.id === trimmedId);
-    const hubs = saveServiceHub(hub);
+    const hubs = saveTeamHub(hub);
     const saved =
       hubs.find((item) => item.id === trimmedId) ??
       (trimmedId.length === 0 ? hubs[hubs.length - 1] : undefined);
 
     if (saved && db instanceof RoutingDatabase) {
       if (isNew) {
-        assignSlotForNewServiceHub(saved.id);
+        assignSlotForNewTeamHub(saved.id);
       }
       const slot = getSlotForConnection(saved.id);
       if (slot != null) {
-        await db.mountServiceHub(saved, slot);
-        await db.syncServiceHub(saved.id);
+        await db.mountTeamHub(saved, slot);
+        await db.syncTeamHub(saved.id);
       }
     }
 
     return hubs;
   });
 
-  // Re-reads collection data from a single provider (database or service hub).
+  // Re-reads collection data from a single provider (database or team hub).
   handle('providers:sync', ipcArgSchemas.providerSync, async (_event, connectionId) => {
     if (db instanceof RoutingDatabase) {
       await db.syncProvider(connectionId);
     }
   });
 
-  // Deletes a service hub by id.
-  handle('serviceHubs:delete', ipcArgSchemas.connectionId, async (_event, id) => {
+  // Deletes a team hub by id.
+  handle('teamHubs:delete', ipcArgSchemas.connectionId, async (_event, id) => {
     if (db instanceof RoutingDatabase) {
-      await db.removeServiceHub(id);
+      await db.removeTeamHub(id);
       removeSlotForConnection(id);
     }
-    return deleteServiceHub(id);
+    return deleteTeamHub(id);
   });
 
   // Returns the id of the active database connection.
@@ -191,6 +189,22 @@ export function registerSettingsHandlers(db: IDatabase): void {
   // Persists sidebar expansion for sections, collections, and folders.
   handle('sidebar:setExpansion', ipcArgSchemas.sidebarExpansionSet, (_event, state) => {
     setSidebarExpansion(state);
+  });
+
+  // Returns persisted sidebar and AI sidebar visibility preferences.
+  handle('layout:getPanel', ipcArgSchemas.none, () => getPanelLayout());
+
+  // Persists sidebar and AI sidebar visibility preferences.
+  handle('layout:setPanel', ipcArgSchemas.panelLayoutSet, (_event, state) => {
+    setPanelLayout(state);
+  });
+
+  // Returns persisted AI chat open tabs and active tab.
+  handle('aiChat:getSession', ipcArgSchemas.none, () => getAiChatSession());
+
+  // Persists AI chat open tabs and active tab.
+  handle('aiChat:setSession', ipcArgSchemas.aiChatSessionSet, (_event, state) => {
+    setAiChatSession(state);
   });
 
   // Returns resolved keyboard shortcut bindings.

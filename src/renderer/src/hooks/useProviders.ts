@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { CollectionProviderKind, DatabaseProvider } from '#/shared/types';
 
 /**
- * Unified collection provider entry for database connections and service hubs.
+ * Unified collection provider entry for database connections and team hubs.
  */
 export interface ProviderOption {
   /**
@@ -16,9 +16,9 @@ export interface ProviderOption {
   name: string;
 
   /**
-   * Whether the provider is a local/remote database or a service hub.
+   * Whether the provider is a local/remote database or a team hub.
    */
-  kind: 'database' | 'service-hub';
+  kind: 'database' | 'team-hub';
 
   /**
    * Database engine type when {@link ProviderOption.kind} is `database`.
@@ -31,7 +31,7 @@ export interface ProviderOption {
  */
 export interface ProvidersState {
   /**
-   * Database connections and service hubs available as collection providers.
+   * Database connections and team hubs available as collection providers.
    */
   providers: ProviderOption[];
 
@@ -62,8 +62,8 @@ export interface ProvidersState {
  * @param provider - Provider option from {@link useProviders}.
  */
 export function providerOptionLabel(provider: ProviderOption): string {
-  if (provider.kind === 'service-hub') {
-    return 'Service Hub';
+  if (provider.kind === 'team-hub') {
+    return 'Team Hub';
   }
   const labels: Record<DatabaseProvider, string> = {
     sqlite: 'SQLite',
@@ -75,7 +75,7 @@ export function providerOptionLabel(provider: ProviderOption): string {
 }
 
 /**
- * Loads database connections and service hubs via IPC and merges them into one provider list.
+ * Loads database connections and team hubs via IPC and merges them into one provider list.
  *
  * @param deps - Optional effect dependencies; when they change the hook refetches.
  * @returns Provider list, primary id, loading/error flags, and a reload callback.
@@ -95,7 +95,7 @@ export function useProviders(deps: readonly unknown[] = []): ProvidersState {
   }, []);
 
   /**
-   * Fetches database connections, service hubs, and the active database id.
+   * Fetches database connections, team hubs, and the active database id.
    */
   useEffect(() => {
     let cancelled = false;
@@ -107,7 +107,7 @@ export function useProviders(deps: readonly unknown[] = []): ProvidersState {
         setError(null);
         return Promise.all([
           window.api.listDatabaseConnections(),
-          window.api.listServiceHubs(),
+          window.api.listTeamHubs(),
           window.api.getActiveDatabaseId()
         ]);
       })
@@ -124,7 +124,7 @@ export function useProviders(deps: readonly unknown[] = []): ProvidersState {
           ...hubs.map((hub) => ({
             id: hub.id,
             name: hub.name,
-            kind: 'service-hub' as const
+            kind: 'team-hub' as const
           }))
         ];
         setProviders(merged);
@@ -152,19 +152,17 @@ export function useProviders(deps: readonly unknown[] = []): ProvidersState {
 }
 
 /**
- * Returns whether a connection id refers to a service hub provider.
+ * Returns whether a connection id refers to a team hub provider.
  *
  * @param providers - Loaded provider options.
  * @param connectionId - Collection provider connection id.
  */
-export function isServiceHubProvider(
+export function isTeamHubProvider(
   providers: ProviderOption[],
   connectionId: string | undefined
 ): boolean {
   if (!connectionId) return false;
-  return providers.some(
-    (provider) => provider.id === connectionId && provider.kind === 'service-hub'
-  );
+  return providers.some((provider) => provider.id === connectionId && provider.kind === 'team-hub');
 }
 
 /**
@@ -178,7 +176,7 @@ export function providerTypesById(
   return Object.fromEntries(
     providers.map((provider) => [
       provider.id,
-      provider.kind === 'service-hub' ? 'service-hub' : (provider.type ?? 'sqlite')
+      provider.kind === 'team-hub' ? 'team-hub' : (provider.type ?? 'sqlite')
     ])
   );
 }

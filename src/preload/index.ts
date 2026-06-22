@@ -10,16 +10,19 @@ import type {
   Folder,
   AiSettings,
   AddChatMessageInput,
+  AiChatSessionState,
   Chat,
   ChatMessage,
   ChatSummary,
-  CompleteChatTurnInput,
+  ChatStepInput,
+  ChatStepResult,
   CreateChatInput,
   GeneralSettings,
   ImportEntityResult,
   InviteIdentity,
   ListCollectionsResult,
   MenuActionId,
+  PanelLayoutState,
   PemExportResult,
   RequestExport,
   SaveRequestInput,
@@ -29,7 +32,7 @@ import type {
   SendRequestInput,
   SendResult,
   SaveTextFileResult,
-  ServiceHub,
+  TeamHub,
   ShortcutBinding,
   ShortcutOverrides,
   SidebarExpansionState,
@@ -527,12 +530,12 @@ function addChatMessage(input: AddChatMessageInput): Promise<ChatMessage> {
 }
 
 /**
- * Calls the LLM with a chat's message history and persists the assistant reply.
+ * Runs one LLM completion step with tool definitions.
  *
- * @param input - Chat id and model id for the completion request.
+ * @param input - Model id and conversation messages for the step.
  */
-function completeChatTurn(input: CompleteChatTurnInput): Promise<ChatMessage> {
-  return ipcRenderer.invoke('chats:completeTurn', input);
+function completeChatStep(input: ChatStepInput): Promise<ChatStepResult> {
+  return ipcRenderer.invoke('chats:completeStep', input);
 }
 
 /**
@@ -570,28 +573,28 @@ function deleteDatabaseConnection(id: string): Promise<DatabaseConnection[]> {
 }
 
 /**
- * Lists all configured service hubs via IPC.
+ * Lists all configured team hubs via IPC.
  */
-function listServiceHubs(): Promise<ServiceHub[]> {
-  return ipcRenderer.invoke('serviceHubs:list');
+function listTeamHubs(): Promise<TeamHub[]> {
+  return ipcRenderer.invoke('teamHubs:list');
 }
 
 /**
- * Creates or updates a service hub via IPC.
+ * Creates or updates a team hub via IPC.
  *
- * @param hub - Service hub to persist.
+ * @param hub - Team hub to persist.
  */
-function saveServiceHub(hub: ServiceHub): Promise<ServiceHub[]> {
-  return ipcRenderer.invoke('serviceHubs:save', hub);
+function saveTeamHub(hub: TeamHub): Promise<TeamHub[]> {
+  return ipcRenderer.invoke('teamHubs:save', hub);
 }
 
 /**
- * Deletes a service hub via IPC.
+ * Deletes a team hub via IPC.
  *
- * @param id - Service hub id to remove.
+ * @param id - Team hub id to remove.
  */
-function deleteServiceHub(id: string): Promise<ServiceHub[]> {
-  return ipcRenderer.invoke('serviceHubs:delete', id);
+function deleteTeamHub(id: string): Promise<TeamHub[]> {
+  return ipcRenderer.invoke('teamHubs:delete', id);
 }
 
 /**
@@ -661,6 +664,38 @@ function getSidebarExpansion(): Promise<SidebarExpansionState> {
  */
 function setSidebarExpansion(state: SidebarExpansionState): Promise<void> {
   return ipcRenderer.invoke('sidebar:setExpansion', state);
+}
+
+/**
+ * Returns persisted sidebar and AI sidebar visibility preferences.
+ */
+function getPanelLayout(): Promise<PanelLayoutState> {
+  return ipcRenderer.invoke('layout:getPanel');
+}
+
+/**
+ * Persists sidebar and AI sidebar visibility preferences.
+ *
+ * @param state - Panel layout snapshot to store.
+ */
+function setPanelLayout(state: PanelLayoutState): Promise<void> {
+  return ipcRenderer.invoke('layout:setPanel', state);
+}
+
+/**
+ * Returns persisted AI chat open tabs and active tab.
+ */
+function getAiChatSession(): Promise<AiChatSessionState> {
+  return ipcRenderer.invoke('aiChat:getSession');
+}
+
+/**
+ * Persists AI chat open tabs and active tab.
+ *
+ * @param state - Chat session snapshot to store.
+ */
+function setAiChatSession(state: AiChatSessionState): Promise<void> {
+  return ipcRenderer.invoke('aiChat:setSession', state);
 }
 
 /**
@@ -859,14 +894,14 @@ const api: Api = {
   createChat,
   getChat,
   addChatMessage,
-  completeChatTurn,
+  completeChatStep,
   deleteChat,
   listDatabaseConnections,
   saveDatabaseConnection,
   deleteDatabaseConnection,
-  listServiceHubs,
-  saveServiceHub,
-  deleteServiceHub,
+  listTeamHubs,
+  saveTeamHub,
+  deleteTeamHub,
   syncProvider,
   getActiveDatabaseId,
   setActiveDatabaseId,
@@ -875,6 +910,10 @@ const api: Api = {
   deleteRequestEditorTab,
   getSidebarExpansion,
   setSidebarExpansion,
+  getPanelLayout,
+  setPanelLayout,
+  getAiChatSession,
+  setAiChatSession,
   getShortcuts,
   setShortcuts,
   resetShortcuts,

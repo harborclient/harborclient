@@ -1,4 +1,4 @@
-import { useState, type JSX, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type JSX, type KeyboardEvent } from 'react';
 import { getAvailableModels } from '#/shared/aiModels';
 import type { AiSettings } from '#/shared/types';
 import { Button } from '#/renderer/src/components/Button';
@@ -40,10 +40,22 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
   const dispatch = useAppDispatch();
   const sendErrorByChat = useAppSelector(selectSendErrorByChat);
   const [draft, setDraft] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const wasSendingRef = useRef(false);
   const availableModels = getAvailableModels(aiSettings);
   const modelId = selectedModel ?? availableModels[0]?.id ?? '';
   const canSend = chatId != null && draft.trim().length > 0 && !sending && modelId.length > 0;
   const sendError = chatId != null ? sendErrorByChat[chatId] : undefined;
+
+  /**
+   * Returns focus to the prompt after a send completes and the textarea is re-enabled.
+   */
+  useEffect(() => {
+    if (wasSendingRef.current && !sending) {
+      textareaRef.current?.focus();
+    }
+    wasSendingRef.current = sending;
+  }, [sending]);
 
   /**
    * Sends the current draft when Enter is pressed without Shift.
@@ -78,6 +90,7 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
   return (
     <div className="flex shrink-0 flex-col gap-2 border-t border-separator p-3 app-no-drag">
       <textarea
+        ref={textareaRef}
         className={`${field} min-h-[72px] w-full resize-none text-[14px]`}
         value={draft}
         placeholder="Type a message…"

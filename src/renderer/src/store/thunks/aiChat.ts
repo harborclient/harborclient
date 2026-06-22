@@ -1,6 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { getAvailableModels } from '#/shared/aiModels';
-import type { AiSettings, ChatSummary } from '#/shared/types';
+import type { AiSettings, ChatMessage, ChatStepMessage, ChatSummary } from '#/shared/types';
+import { executeAiToolCall } from '#/renderer/src/store/ai/aiToolExecutor';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
 import {
   appendMessage,
@@ -11,9 +12,24 @@ import {
   setChats,
   setMessages,
   setSelectedModel,
+  restoreChatSession,
   setSendError,
   setSending
 } from '#/renderer/src/store/slices/aiChatSlice';
+
+const MAX_TOOL_ITERATIONS = 6;
+
+/**
+ * Maps persisted chat messages to LLM step messages.
+ *
+ * @param messages - Messages stored for a chat thread.
+ */
+function historyToStepMessages(messages: ChatMessage[]): ChatStepMessage[] {
+  return messages.map((message) => ({
+    role: message.role,
+    content: message.content
+  }));
+}
 
 /**
  * Refreshes chat history from persistence.
@@ -64,6 +80,35 @@ export const initializeAiChat = createAsyncThunk<void, AiSettings, ThunkApiConfi
     const summaries = await dispatch(refreshChatHistory()).unwrap();
     const availableModels = getAvailableModels(aiSettings);
     const defaultModel = availableModels[0]?.id;
+    const existingChatIds = new Set(summaries.map((chat) => chat.id));
+    const session = await window.api.getAiChatSession();
+    const validOpenTabIds = session.openTabIds.filter((id) => existingChatIds.has(id));
+    const validActiveChatId =
+      session.activeChatId != null && validOpenTabIds.includes(session.activeChatId)
+        ? session.activeChatId
+        : (validOpenTabIds[0] ?? null);
+
+    if (validOpenTabIds.length > 0 && validActiveChatId != null) {
+      dispatch(
+        restoreChatSession({
+          openTabIds: validOpenTabIds,
+          activeChatId: validActiveChatId
+        })
+      );
+
+      await Promise.all(
+        validOpenTabIds.map(async (chatId) => {
+          const chat = await window.api.getChat(chatId);
+          if (!chat) return;
+          dispatch(setMessages({ chatId, messages: chat.messages }));
+          dispatch(clearSendError(chatId));
+          if (chat.model) {
+            dispatch(setSelectedModel({ chatId, modelId: chat.model }));
+          }
+        })
+      );
+      return;
+    }
 
     let chatId: number;
     if (summaries.length === 0) {
@@ -137,7 +182,7 @@ export const sendChatMessage = createAsyncThunk<
   void,
   { chatId: number; content: string; model?: string },
   ThunkApiConfig
->('aiChat/sendMessage', async ({ chatId, content, model }, { dispatch }) => {
+>('aiChat/sendMessage', async ({ chatId, content, model }, { dispatch, getState }) => {
   const trimmed = content.trim();
   if (!trimmed) return;
 
@@ -159,8 +204,45 @@ export const sendChatMessage = createAsyncThunk<
   dispatch(setSending({ chatId, sending: true }));
 
   try {
-    const assistantMessage = await window.api.completeChatTurn({
+    const messages = historyToStepMessages(getState().aiChat.messagesByChat[chatId] ?? []);
+    let assistantText: string | null = null;
+
+    for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration += 1) {
+      const step = await window.api.completeChatStep({ model: modelId, messages });
+
+      if (step.toolCalls && step.toolCalls.length > 0) {
+        messages.push({
+          role: 'assistant',
+          content: step.content,
+          tool_calls: step.toolCalls
+        });
+
+        for (const call of step.toolCalls) {
+          const result = await executeAiToolCall(call.name, call.arguments, {
+            getState,
+            dispatch
+          });
+          messages.push({
+            role: 'tool',
+            tool_call_id: call.id,
+            content: result
+          });
+        }
+        continue;
+      }
+
+      assistantText = step.content;
+      break;
+    }
+
+    if (assistantText == null || assistantText.trim() === '') {
+      assistantText = 'I could not complete your request.';
+    }
+
+    const assistantMessage = await window.api.addChatMessage({
       chatId,
+      role: 'assistant',
+      content: assistantText,
       model: modelId
     });
     dispatch(appendMessage(assistantMessage));

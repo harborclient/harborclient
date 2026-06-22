@@ -1,16 +1,16 @@
 import { MoveCoordinator } from '#/main/db/CollectionMover';
-import { createServiceHubDatabase, serviceHubIdMapPath } from '#/main/db/createServiceHubDatabase';
+import { createTeamHubDatabase, teamHubIdMapPath } from '#/main/db/createTeamHubDatabase';
 import { LocalRegistry, type CollectionRegistryEntry } from '#/main/db/LocalRegistry';
 import { MigrationManager } from '#/main/db/RegistryMigrator';
 import { createDatabaseInstance } from '#/main/db/createDatabaseInstance';
 import { decodeGlobalId, encodeGlobalId } from '#/main/db/idNamespace';
 import type { IDatabase } from '#/main/db/IDatabase';
-import { ServiceHubDatabase } from '#/main/db/ServiceHubDatabase';
+import { TeamHubDatabase } from '#/main/db/TeamHubDatabase';
 import {
   addDetachedServerId,
   readDetachedServerIds,
   removeDetachedSetting
-} from '#/main/db/serviceHubDetached';
+} from '#/main/db/teamHubDetached';
 import type {
   MountedBackend,
   ProviderDescriptor,
@@ -27,7 +27,7 @@ import type {
   KeyValue,
   SaveRequestInput,
   SavedRequest,
-  ServiceHub,
+  TeamHub,
   Variable
 } from '#/shared/types';
 import { defaultAuth } from '#/shared/auth';
@@ -206,7 +206,7 @@ export class RoutingDatabase implements IDatabase {
    * Creates a collection on a specific provider and registers it.
    *
    * @param name - Display name for the collection.
-   * @param connectionId - Target provider connection id (database or service hub).
+   * @param connectionId - Target provider connection id (database or team hub).
    */
   async createCollectionInProvider(name: string, connectionId: string): Promise<Collection> {
     const backend = this.requireBackendByConnectionId(connectionId);
@@ -593,13 +593,13 @@ export class RoutingDatabase implements IDatabase {
   }
 
   /**
-   * Creates and mounts every configured connection and service hub, skipping failures gracefully.
+   * Creates and mounts every configured connection and team hub, skipping failures gracefully.
    */
   static async create(
     registry: LocalRegistry,
     preferredConnectionId: string,
     connections: DatabaseConnection[],
-    serviceHubs: ServiceHub[],
+    teamHubs: TeamHub[],
     slots: Record<string, number>,
     userDataPath: string
   ): Promise<RoutingDatabase> {
@@ -624,14 +624,14 @@ export class RoutingDatabase implements IDatabase {
       }
     }
 
-    for (const hub of serviceHubs) {
+    for (const hub of teamHubs) {
       const slot = slots[hub.id];
       if (slot === undefined) continue;
 
       try {
-        await router.mountServiceHub(hub, slot);
+        await router.mountTeamHub(hub, slot);
       } catch (err) {
-        console.warn(`Failed to initialize service hub "${hub.name}":`, err);
+        console.warn(`Failed to initialize team hub "${hub.name}":`, err);
       }
     }
 
@@ -651,12 +651,12 @@ export class RoutingDatabase implements IDatabase {
 
     await router.recoverPendingMoveCleanups();
 
-    for (const hub of serviceHubs) {
+    for (const hub of teamHubs) {
       if (!router.byConnectionId.has(hub.id)) continue;
       try {
-        await router.syncServiceHub(hub.id);
+        await router.syncTeamHub(hub.id);
       } catch (err) {
-        console.warn(`Failed to sync collections from service hub "${hub.name}":`, err);
+        console.warn(`Failed to sync collections from team hub "${hub.name}":`, err);
       }
     }
 
@@ -664,12 +664,12 @@ export class RoutingDatabase implements IDatabase {
   }
 
   /**
-   * Mounts or remounts a service hub backend at runtime.
+   * Mounts or remounts a team hub backend at runtime.
    *
-   * @param hub - Service hub connection settings.
+   * @param hub - Team hub connection settings.
    * @param slot - Backend slot for request id namespacing.
    */
-  async mountServiceHub(hub: ServiceHub, slot: number): Promise<void> {
+  async mountTeamHub(hub: TeamHub, slot: number): Promise<void> {
     const existing = this.byConnectionId.get(hub.id);
     if (existing) {
       await existing.db.close();
@@ -677,17 +677,17 @@ export class RoutingDatabase implements IDatabase {
       this.bySlot.delete(existing.slot);
     }
 
-    const db = await createServiceHubDatabase(hub, this.userDataPath);
-    this.mount(slot, { id: hub.id, name: hub.name, type: 'service-hub' }, db);
+    const db = await createTeamHubDatabase(hub, this.userDataPath);
+    this.mount(slot, { id: hub.id, name: hub.name, type: 'team-hub' }, db);
   }
 
   /**
    * Re-reads collection data from a single provider.
    *
-   * Service hubs run additive registry sync first; all provider types then
+   * Team hubs run additive registry sync first; all provider types then
    * list collections to validate connectivity and pull fresh metadata.
    *
-   * @param connectionId - Database connection or service hub id.
+   * @param connectionId - Database connection or team hub id.
    * @throws When the provider is not mounted.
    */
   async syncProvider(connectionId: string): Promise<void> {
@@ -695,8 +695,8 @@ export class RoutingDatabase implements IDatabase {
     if (!backend) {
       throw new Error(`Provider "${connectionId}" is not mounted.`);
     }
-    if (backend.connectionType === 'service-hub') {
-      await this.syncServiceHub(connectionId);
+    if (backend.connectionType === 'team-hub') {
+      await this.syncTeamHub(connectionId);
     }
     await backend.db.listCollections();
   }
@@ -704,17 +704,17 @@ export class RoutingDatabase implements IDatabase {
   /**
    * Adds registry entries for server collections not yet registered on a hub.
    *
-   * @param hubId - Service hub connection id.
+   * @param hubId - Team hub connection id.
    */
-  async syncServiceHub(hubId: string): Promise<void> {
+  async syncTeamHub(hubId: string): Promise<void> {
     const backend = this.requireBackendByConnectionId(hubId);
-    if (backend.connectionType !== 'service-hub') {
-      throw new Error(`Connection "${hubId}" is not a service hub.`);
+    if (backend.connectionType !== 'team-hub') {
+      throw new Error(`Connection "${hubId}" is not a team hub.`);
     }
 
     const hubDb = backend.db;
-    if (!(hubDb instanceof ServiceHubDatabase)) {
-      throw new Error(`Service hub backend for "${hubId}" is unavailable.`);
+    if (!(hubDb instanceof TeamHubDatabase)) {
+      throw new Error(`Team hub backend for "${hubId}" is unavailable.`);
     }
 
     const detached = readDetachedServerIds(this.registry, hubId);
@@ -742,20 +742,20 @@ export class RoutingDatabase implements IDatabase {
       const serverId = serverIdsByProviderId.get(entry.providerCollectionId);
       if (serverId) continue;
       console.warn(
-        `Collection "${entry.name}" is registered for service hub "${backend.connectionName}" but was not found on the server.`
+        `Collection "${entry.name}" is registered for team hub "${backend.connectionName}" but was not found on the server.`
       );
       this.listCollectionWarnings.push(
-        `Collection "${entry.name}" was not found on service hub "${backend.connectionName}". It may be offline or was removed on the server.`
+        `Collection "${entry.name}" was not found on team hub "${backend.connectionName}". It may be offline or was removed on the server.`
       );
     }
   }
 
   /**
-   * Unmounts a service hub, removes its registry entries, and deletes its id map file.
+   * Unmounts a team hub, removes its registry entries, and deletes its id map file.
    *
-   * @param hubId - Service hub connection id.
+   * @param hubId - Team hub connection id.
    */
-  async removeServiceHub(hubId: string): Promise<void> {
+  async removeTeamHub(hubId: string): Promise<void> {
     const backend = this.byConnectionId.get(hubId);
     if (backend) {
       await backend.db.close();
@@ -772,7 +772,7 @@ export class RoutingDatabase implements IDatabase {
     removeDetachedSetting(this.registry, hubId);
 
     try {
-      unlinkSync(serviceHubIdMapPath(this.userDataPath, hubId));
+      unlinkSync(teamHubIdMapPath(this.userDataPath, hubId));
     } catch {
       // Missing id map file is acceptable when mount never succeeded.
     }
@@ -1026,15 +1026,15 @@ export class RoutingDatabase implements IDatabase {
       buildCollection: (entry, record) => this.buildCollection(entry, record),
       resolveCollectionServerId: (connectionId, providerCollectionId) => {
         const backend = this.byConnectionId.get(connectionId);
-        if (!backend || backend.connectionType !== 'service-hub') {
+        if (!backend || backend.connectionType !== 'team-hub') {
           return undefined;
         }
-        if (!(backend.db instanceof ServiceHubDatabase)) {
+        if (!(backend.db instanceof TeamHubDatabase)) {
           return undefined;
         }
         return backend.db.getServerCollectionId(providerCollectionId);
       },
-      addDetachedServiceHubCollection: (hubId, serverCollectionId) => {
+      addDetachedTeamHubCollection: (hubId, serverCollectionId) => {
         addDetachedServerId(this.registry, hubId, serverCollectionId);
       }
     };

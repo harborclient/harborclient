@@ -8,7 +8,7 @@ import type {
   Variable
 } from '#/shared/types';
 import { Certificates } from '#/renderer/src/ui/Certificates';
-import { ServiceHubs } from '#/renderer/src/ui/ServiceHubs';
+import { TeamHubs } from '#/renderer/src/ui/TeamHubs';
 import { CollectionSettings } from '../CollectionSettings';
 import { EnvironmentSettings } from '../EnvironmentSettings';
 import { Settings } from '../Settings';
@@ -40,14 +40,14 @@ interface Props {
   onCloseCertificates: () => void;
 
   /**
-   * Whether the service hubs view is shown.
+   * Whether the team hubs view is shown.
    */
-  showServiceHubs: boolean;
+  showTeamHubs: boolean;
 
   /**
-   * Closes the service hubs view.
+   * Closes the team hubs view.
    */
-  onCloseServiceHubs: () => void;
+  onCloseTeamHubs: () => void;
 
   /**
    * Collection being configured, if any.
@@ -108,8 +108,8 @@ export function Configuration({
   settingsSection,
   showCertificates,
   onCloseCertificates,
-  showServiceHubs,
-  onCloseServiceHubs,
+  showTeamHubs,
+  onCloseTeamHubs,
   collection,
   onCollectionDirtyChange,
   onCollectionSave,
@@ -133,8 +133,8 @@ export function Configuration({
     return <Certificates onClose={onCloseCertificates} />;
   }
 
-  if (showServiceHubs) {
-    return <ServiceHubs onClose={onCloseServiceHubs} />;
+  if (showTeamHubs) {
+    return <TeamHubs onClose={onCloseTeamHubs} />;
   }
 
   if (collection) {

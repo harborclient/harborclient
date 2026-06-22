@@ -56,7 +56,7 @@ export interface UpdateModalState {
 export interface SyncProviderProgress {
   id: string;
   name: string;
-  kind: 'database' | 'service-hub';
+  kind: 'database' | 'team-hub';
   status: 'pending' | 'syncing' | 'success' | 'error';
   error: string | null;
 }

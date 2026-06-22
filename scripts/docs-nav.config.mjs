@@ -24,7 +24,7 @@ export const docsNav = [
   { kind: 'page', slug: 'features', title: 'Features', maxDepth: 2 },
   { kind: 'page', slug: 'getting-started', title: 'Getting started', maxDepth: 2 },
   { kind: 'page', slug: 'settings', title: 'Settings', maxDepth: 2 },
-  { kind: 'page', slug: 'service-hubs', title: 'Service hubs', maxDepth: 2 },
+  { kind: 'page', slug: 'team-hubs', title: 'Team hubs', maxDepth: 2 },
   { kind: 'page', slug: 'certificates', title: 'Certificates', maxDepth: 2 },
   { kind: 'page', slug: 'collections', title: 'Collections', maxDepth: 2 },
   { kind: 'page', slug: 'requests', title: 'Making requests', maxDepth: 2 },

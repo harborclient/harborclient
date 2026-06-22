@@ -1,19 +1,19 @@
 import { useEffect, useState, type JSX } from 'react';
-import type { ServiceHub } from '#/shared/types';
+import type { TeamHub } from '#/shared/types';
 import { Button } from '#/renderer/src/components/Button';
-import { useServiceHubs } from '#/renderer/src/hooks/useServiceHubs';
-import { createBlankServiceHub, validateServiceHubForm } from './constants';
-import { ServiceHubForm } from './ServiceHubForm';
+import { useTeamHubs } from '#/renderer/src/hooks/useTeamHubs';
+import { createBlankTeamHub, validateTeamHubForm } from './constants';
+import { TeamHubForm } from './TeamHubForm';
 
 /**
- * Lists configured service hubs with add, edit, and delete actions.
+ * Lists configured team hubs with add, edit, and delete actions.
  */
-export function ServiceHubList(): JSX.Element {
-  const { serviceHubs, loading, error: bootstrapError, reload } = useServiceHubs();
+export function TeamHubList(): JSX.Element {
+  const { teamHubs, loading, error: bootstrapError, reload } = useTeamHubs();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [editingHub, setEditingHub] = useState<ServiceHub | null>(null);
-  const [deletingHub, setDeletingHub] = useState<ServiceHub | null>(null);
+  const [editingHub, setEditingHub] = useState<TeamHub | null>(null);
+  const [deletingHub, setDeletingHub] = useState<TeamHub | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -46,22 +46,22 @@ export function ServiceHubList(): JSX.Element {
   }, [editingHub, deletingHub]);
 
   /**
-   * Opens the form to add a new service hub.
+   * Opens the form to add a new team hub.
    */
   const handleAdd = (): void => {
     setError(null);
     setSaved(false);
     setFieldErrors({});
     setIsNew(true);
-    setEditingHub(createBlankServiceHub());
+    setEditingHub(createBlankTeamHub());
   };
 
   /**
-   * Opens the form to edit an existing service hub.
+   * Opens the form to edit an existing team hub.
    *
-   * @param hub - Service hub to edit.
+   * @param hub - Team hub to edit.
    */
-  const handleEdit = (hub: ServiceHub): void => {
+  const handleEdit = (hub: TeamHub): void => {
     setError(null);
     setSaved(false);
     setFieldErrors({});
@@ -70,7 +70,7 @@ export function ServiceHubList(): JSX.Element {
   };
 
   /**
-   * Closes the service hub editor modal.
+   * Closes the team hub editor modal.
    */
   const handleCancelEdit = (): void => {
     setEditingHub(null);
@@ -80,12 +80,12 @@ export function ServiceHubList(): JSX.Element {
   };
 
   /**
-   * Persists the service hub being edited.
+   * Persists the team hub being edited.
    */
   const handleSave = async (): Promise<void> => {
     if (!editingHub) return;
 
-    const validationErrors = validateServiceHubForm(editingHub);
+    const validationErrors = validateTeamHubForm(editingHub);
     if (validationErrors) {
       setFieldErrors(validationErrors);
       return;
@@ -97,8 +97,8 @@ export function ServiceHubList(): JSX.Element {
     setFieldErrors({});
 
     try {
-      const payload: ServiceHub = isNew ? { ...editingHub, id: crypto.randomUUID() } : editingHub;
-      await window.api.saveServiceHub(payload);
+      const payload: TeamHub = isNew ? { ...editingHub, id: crypto.randomUUID() } : editingHub;
+      await window.api.saveTeamHub(payload);
       reload();
       setEditingHub(null);
       setIsNew(false);
@@ -111,9 +111,9 @@ export function ServiceHubList(): JSX.Element {
   };
 
   /**
-   * Deletes a service hub by id.
+   * Deletes a team hub by id.
    *
-   * @param id - Service hub id to delete.
+   * @param id - Team hub id to delete.
    */
   const handleDelete = async (id: string): Promise<void> => {
     setError(null);
@@ -121,7 +121,7 @@ export function ServiceHubList(): JSX.Element {
     setDeletingHub(null);
 
     try {
-      await window.api.deleteServiceHub(id);
+      await window.api.deleteTeamHub(id);
       reload();
       if (editingHub?.id === id) {
         handleCancelEdit();
@@ -136,9 +136,9 @@ export function ServiceHubList(): JSX.Element {
       <div>
         <div className="mb-4 flex items-end justify-between gap-4">
           <div className="min-w-0">
-            <h2 className="m-0 mb-1 text-[14px] font-medium text-text">Service hubs</h2>
+            <h2 className="m-0 mb-1 text-[14px] font-medium text-text">Team hubs</h2>
             <p className="m-0 text-[14px] text-muted">
-              Connect to HarborClient Server instances for shared collections and environments.
+              Connect to HarborClient Team Hub instances for shared collections and environments.
             </p>
           </div>
           <Button
@@ -147,7 +147,7 @@ export function ServiceHubList(): JSX.Element {
             disabled={loading}
             onClick={handleAdd}
           >
-            Add service hub
+            Add team hub
           </Button>
         </div>
 
@@ -160,11 +160,11 @@ export function ServiceHubList(): JSX.Element {
               Retry
             </Button>
           </div>
-        ) : serviceHubs.length === 0 ? (
-          <p className="text-[14px] text-muted">No service hubs configured yet.</p>
+        ) : teamHubs.length === 0 ? (
+          <p className="text-[14px] text-muted">No team hubs configured yet.</p>
         ) : (
           <ul className="m-0 flex list-none flex-col gap-2 p-0">
-            {serviceHubs.map((hub) => (
+            {teamHubs.map((hub) => (
               <li
                 key={hub.id}
                 className="flex items-center justify-between gap-3 rounded-md border border-separator px-3 py-2"
@@ -192,7 +192,7 @@ export function ServiceHubList(): JSX.Element {
         {error && !editingHub && !deletingHub && (
           <p className="mt-3 text-[14px] text-danger">{error}</p>
         )}
-        {saved && <p className="mt-3 text-[14px] text-success">Service hub saved.</p>}
+        {saved && <p className="mt-3 text-[14px] text-success">Team hub saved.</p>}
       </div>
 
       {editingHub && (
@@ -205,19 +205,16 @@ export function ServiceHubList(): JSX.Element {
             onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            aria-labelledby="service-hub-dialog-title"
+            aria-labelledby="team-hub-dialog-title"
           >
-            <h2
-              id="service-hub-dialog-title"
-              className="m-0 mb-1 text-[14px] font-semibold text-text"
-            >
-              {isNew ? 'Add service hub' : 'Edit service hub'}
+            <h2 id="team-hub-dialog-title" className="m-0 mb-1 text-[14px] font-semibold text-text">
+              {isNew ? 'Add team hub' : 'Edit team hub'}
             </h2>
             <p className="mb-4 text-[14px] text-muted">
-              Enter a display name, service hub URL, and API token for HarborClient Server.
+              Enter a display name, team hub URL, and API token for HarborClient Team Hub.
             </p>
 
-            <ServiceHubForm
+            <TeamHubForm
               hub={editingHub}
               disabled={saving}
               fieldErrors={fieldErrors}
@@ -253,13 +250,10 @@ export function ServiceHubList(): JSX.Element {
             onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            aria-labelledby="delete-service-hub-title"
+            aria-labelledby="delete-team-hub-title"
           >
-            <h2
-              id="delete-service-hub-title"
-              className="m-0 mb-1 text-[14px] font-semibold text-text"
-            >
-              Delete service hub?
+            <h2 id="delete-team-hub-title" className="m-0 mb-1 text-[14px] font-semibold text-text">
+              Delete team hub?
             </h2>
             <p className="mb-4 text-[14px] text-muted">
               Are you sure you want to delete &ldquo;

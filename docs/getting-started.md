@@ -86,4 +86,4 @@ chmod +x harborclient-{version}.AppImage
 - [Environments](/environments) — define variable groups and switch between them while testing APIs.
 - [Request scripts](/request-scripts) — run JavaScript before or after requests to set variables and write tests.
 - [Settings](/settings) — configure appearance, database provider, and backend connection details.
-- [Service hubs](/service-hubs) — connect to HarborClient Service Hub for shared collections with API tokens.
+- [Team hubs](/team-hubs) — connect to HarborClient Team Hub for shared collections with API tokens.

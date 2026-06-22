@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat: transition from service hubs to team hubs and add jmespath dependency. (`c4b2d7b`)
 - feat: enhance chat functionality with model updates and error handling. (`66c36f9`)
 - feat: implement chat functionality with database integration. (`47f613a`)
 - feat: update settings management and add OpenAI dependency. (`e8a4b2d`)

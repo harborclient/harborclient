@@ -10,20 +10,22 @@ import { authConfig, bodyType, httpMethod, keyValue, variable } from '#/main/sch
 import { CODE_EDITOR_THEME_IDS } from '#/shared/codeEditorSettings';
 import { requestExportSchema } from '#/main/db/collectionSchemas';
 import type {
+  AiChatSessionState,
   AiSettings,
   AddChatMessageInput,
   ChatRole,
-  CompleteChatTurnInput,
+  ChatStepInput,
   CreateChatInput,
   DatabaseConnection,
   GeneralSettings,
+  PanelLayoutState,
   SaveRequestInput,
   ScriptRequestContext,
   ScriptRunInput,
   SendRequestInput,
   SendResult,
   SentRequest,
-  ServiceHub,
+  TeamHub,
   ShortcutOverrides,
   SidebarExpansionState
 } from '#/shared/types';
@@ -257,14 +259,14 @@ export const databaseConnection = z.discriminatedUnion('type', [
 ]) satisfies z.ZodType<DatabaseConnection>;
 
 /**
- * Zod schema for a persisted service hub connection.
+ * Zod schema for a persisted team hub connection.
  */
-export const serviceHub = z.object({
+export const teamHub = z.object({
   id: z.string(),
   name: z.string().trim().min(1),
   baseUrl: z.string().trim().min(1),
   token: z.string().trim().min(1)
-}) satisfies z.ZodType<ServiceHub>;
+}) satisfies z.ZodType<TeamHub>;
 
 /**
  * Zod schema for persisted AI provider API keys.
@@ -289,10 +291,26 @@ export const chatAddMessageInput = z.object({
   model: z.string().optional()
 }) satisfies z.ZodType<AddChatMessageInput>;
 
-export const chatCompleteTurnInput = z.object({
-  chatId: dbId,
-  model: z.string().min(1)
-}) satisfies z.ZodType<CompleteChatTurnInput>;
+export const chatCompleteStepInput = z.object({
+  model: z.string().min(1),
+  messages: z.array(
+    z.object({
+      role: z.enum(['system', 'user', 'assistant', 'tool']),
+      content: z.string().nullable().optional(),
+      tool_calls: z
+        .array(
+          z.object({
+            id: z.string(),
+            name: z.string(),
+            arguments: z.string()
+          })
+        )
+        .optional(),
+      tool_call_id: z.string().optional(),
+      name: z.string().optional()
+    })
+  )
+}) satisfies z.ZodType<ChatStepInput>;
 
 export const sidebarExpansion = z.object({
   sections: z.object({
@@ -302,6 +320,16 @@ export const sidebarExpansion = z.object({
   collectionIds: z.array(dbId),
   folderIds: z.array(dbId)
 }) satisfies z.ZodType<SidebarExpansionState>;
+
+export const panelLayout = z.object({
+  showSidebar: z.boolean(),
+  showAiSidebar: z.boolean()
+}) satisfies z.ZodType<PanelLayoutState>;
+
+export const aiChatSession = z.object({
+  openTabIds: z.array(dbId),
+  activeChatId: dbId.nullable()
+}) satisfies z.ZodType<AiChatSessionState>;
 
 export const shortcutOverrides = z.record(
   z.string(),
@@ -330,7 +358,7 @@ export const ipcArgSchemas = {
   chatCreate: z.tuple([chatCreateInput]),
   chatGet: z.tuple([dbId]),
   chatAddMessage: z.tuple([chatAddMessageInput]),
-  chatCompleteTurn: z.tuple([chatCompleteTurnInput]),
+  chatCompleteStep: z.tuple([chatCompleteStepInput]),
   chatDelete: z.tuple([dbId]),
   saveRequest: z.tuple([saveRequestInput]),
   sendRequest: z.tuple([sendRequestInput, requestId.optional()]),
@@ -339,10 +367,12 @@ export const ipcArgSchemas = {
   generalSettings: z.tuple([generalSettings]),
   aiSettings: z.tuple([aiSettings]),
   databaseConnection: z.tuple([databaseConnection]),
-  serviceHub: z.tuple([serviceHub]),
+  teamHub: z.tuple([teamHub]),
   providerSync: z.tuple([connectionId]),
   setEditorTab: z.tuple([storageKey, editorTab]),
   sidebarExpansionSet: z.tuple([sidebarExpansion]),
+  panelLayoutSet: z.tuple([panelLayout]),
+  aiChatSessionSet: z.tuple([aiChatSession]),
   shortcutOverridesSet: z.tuple([shortcutOverrides]),
   setCookies: z.tuple([domain, z.array(keyValue)]),
   collectionUpdate: z.tuple([

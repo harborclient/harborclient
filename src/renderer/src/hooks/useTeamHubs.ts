@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { ServiceHub } from '#/shared/types';
+import type { TeamHub } from '#/shared/types';
 
 /**
- * Loaded service hub list and bootstrap state from IPC.
+ * Loaded team hub list and bootstrap state from IPC.
  */
-export interface ServiceHubsState {
+export interface TeamHubsState {
   /**
-   * Configured service hubs from settings.
+   * Configured team hubs from settings.
    */
-  serviceHubs: ServiceHub[];
+  teamHubs: TeamHub[];
 
   /**
    * True while the initial or retried IPC load is in flight.
@@ -27,13 +27,13 @@ export interface ServiceHubsState {
 }
 
 /**
- * Loads service hubs via IPC. Handles cancellation on unmount, rejection with a
- * stable error message, and manual retry through {@link ServiceHubsState.reload}.
+ * Loads team hubs via IPC. Handles cancellation on unmount, rejection with a
+ * stable error message, and manual retry through {@link TeamHubsState.reload}.
  *
- * @returns Service hub list, loading/error flags, and a reload callback.
+ * @returns Team hub list, loading/error flags, and a reload callback.
  */
-export function useServiceHubs(): ServiceHubsState {
-  const [serviceHubs, setServiceHubs] = useState<ServiceHub[]>([]);
+export function useTeamHubs(): TeamHubsState {
+  const [teamHubs, setTeamHubs] = useState<TeamHub[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
@@ -46,7 +46,7 @@ export function useServiceHubs(): ServiceHubsState {
   }, []);
 
   /**
-   * Fetches service hubs; ignores results after cleanup or a newer run.
+   * Fetches team hubs; ignores results after cleanup or a newer run.
    */
   useEffect(() => {
     let cancelled = false;
@@ -56,11 +56,11 @@ export function useServiceHubs(): ServiceHubsState {
         if (cancelled) return;
         setLoading(true);
         setError(null);
-        return window.api.listServiceHubs();
+        return window.api.listTeamHubs();
       })
       .then((result) => {
         if (cancelled || result === undefined) return;
-        setServiceHubs(result);
+        setTeamHubs(result);
         setLoading(false);
       })
       .catch((err: unknown) => {
@@ -74,5 +74,5 @@ export function useServiceHubs(): ServiceHubsState {
     };
   }, [reloadToken]);
 
-  return { serviceHubs, loading, error, reload };
+  return { teamHubs, loading, error, reload };
 }
