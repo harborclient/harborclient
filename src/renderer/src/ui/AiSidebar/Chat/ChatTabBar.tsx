@@ -63,11 +63,11 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
   };
 
   return (
-    <div className="relative flex shrink-0 items-end gap-0 overflow-x-auto border-b border-separator bg-sidebar px-2 py-1 app-no-drag">
+    <div className="relative z-10 flex shrink-0 items-end gap-0 border-b border-separator bg-sidebar px-2 py-1 app-no-drag">
       <div
         role="tablist"
         aria-label="Open AI chats"
-        className="flex min-w-0 flex-1 items-end"
+        className="flex min-w-0 flex-1 items-end overflow-x-auto overflow-y-hidden"
         onKeyDown={handleTabListKeyDown}
       >
         {openTabs.map((chat) => (

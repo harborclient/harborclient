@@ -57,7 +57,7 @@ export function ChatTabItem({ chat, active, tabIndex, onSelect, onClose }: Props
       onClick={() => onSelect(chat.id)}
       onKeyDown={handleKeyDown}
     >
-      <span className="min-w-0 flex-1 truncate text-[13px]">{chat.title}</span>
+      <span className="min-w-0 flex-1 truncate text-[14px]">{chat.title}</span>
       <button
         type="button"
         className="inline-flex aspect-square shrink-0 cursor-pointer items-center justify-center self-stretch rounded-md border-none bg-transparent text-[14px] text-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 focus-visible:opacity-100 hover:bg-selection hover:text-text app-no-drag"

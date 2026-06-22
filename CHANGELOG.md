@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix: update font sizes for improved readability in chat components. (`86de51d`)
 - refactor: standardize type formatting in AI tool executor. (`4ee893c`)
 - feat: enhance AI assistant request handling with cookie support and updates. (`0f6fe57`)
 - feat: enhance AI assistant with Team Hub integration and model management. (`06cb4c9`)

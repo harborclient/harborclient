@@ -110,7 +110,7 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
       />
       <div className="flex items-center justify-between gap-2">
         <label className="flex min-w-0 flex-1 items-center gap-2" htmlFor="ai-chat-model">
-          <span className="shrink-0 text-[13px] text-muted">Model</span>
+          <span className="shrink-0 text-[14px] text-muted">Model</span>
           <select
             id="ai-chat-model"
             className={`${field} min-w-0 flex-1 cursor-pointer py-1 text-[14px]`}
@@ -134,7 +134,7 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
         </Button>
       </div>
       {sendError ? (
-        <p className="text-[13px] text-danger" role="alert">
+        <p className="text-[14px] text-danger" role="alert">
           {sendError}
         </p>
       ) : null}

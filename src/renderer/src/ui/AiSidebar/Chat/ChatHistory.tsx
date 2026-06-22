@@ -72,7 +72,7 @@ export function ChatHistory({ onClose, onOpenChat }: Props): JSX.Element {
             </button>
             <button
               type="button"
-              className="shrink-0 cursor-pointer border-none bg-transparent px-2 py-2 text-[13px] text-danger hover:bg-danger/10 app-no-drag"
+              className="shrink-0 cursor-pointer border-none bg-transparent px-2 py-2 text-[14px] text-danger hover:bg-danger/10 app-no-drag"
               aria-label={`Delete ${chat.title}`}
               onClick={() => void dispatch(deleteChatThunk(chat.id))}
             >
