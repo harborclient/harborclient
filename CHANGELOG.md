@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(database): implement SQLite fallback logic and enhance connection validation. (`911e539`)
 - fix(tsconfig): add ignoreDeprecations option for better compatibility. (`8179f5e`)
 
 ## 1.5.12 - 2026-06-22

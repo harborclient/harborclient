@@ -262,6 +262,31 @@ function ensureConnectionsSeeded(): { connections: DatabaseConnection[]; activeI
 }
 
 /**
+ * Returns whether a connection has the minimum settings required to open a backend.
+ *
+ * Unconfigured placeholder connections (for example default Firestore/MySQL/PostgreSQL
+ * rows on first launch) are kept in settings but must not block startup.
+ *
+ * @param connection - Normalized connection to evaluate.
+ * @returns True when init should be attempted for this connection.
+ */
+export function isDatabaseConnectionConfigured(connection: DatabaseConnection): boolean {
+  switch (connection.type) {
+    case 'sqlite':
+      return Boolean(connection.settings.dbFilename.trim());
+    case 'firestore': {
+      const { apiKey, authDomain, projectId, appId, email, password } = connection.settings;
+      return Boolean(apiKey && authDomain && projectId && appId && email && password);
+    }
+    case 'mysql':
+    case 'postgres': {
+      const { host, user, database } = connection.settings;
+      return Boolean(host && user && database);
+    }
+  }
+}
+
+/**
  * Lists all configured database connections.
  *
  * @returns All persisted connections.

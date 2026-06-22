@@ -463,3 +463,87 @@ describeSqlite('RoutingDatabase migrateRegistryIfNeeded', () => {
     expect(registry.getSetting('__migrated__')).toBe('1');
   });
 });
+
+describeSqlite('RoutingDatabase.create', () => {
+  it('mounts SQLite and skips unconfigured remote providers on first launch', async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'harborclient-routing-create-'));
+    const registry = new LocalRegistry(rootDir);
+    await registry.init();
+
+    const sqliteId = 'sqlite-default';
+    const connections: DatabaseConnection[] = [
+      {
+        id: sqliteId,
+        name: 'SQLite',
+        type: 'sqlite',
+        settings: { ...BASE_SQLITE_SETTINGS }
+      },
+      {
+        id: 'firestore-default',
+        name: 'Firestore',
+        type: 'firestore',
+        settings: {
+          apiKey: '',
+          authDomain: '',
+          projectId: '',
+          appId: '',
+          email: '',
+          password: ''
+        }
+      },
+      {
+        id: 'mysql-default',
+        name: 'MySQL',
+        type: 'mysql',
+        settings: {
+          host: '127.0.0.1',
+          port: 3306,
+          user: '',
+          password: '',
+          database: ''
+        }
+      },
+      {
+        id: 'postgres-default',
+        name: 'PostgreSQL',
+        type: 'postgres',
+        settings: {
+          host: '127.0.0.1',
+          port: 5432,
+          user: '',
+          password: '',
+          database: ''
+        }
+      }
+    ];
+    const slots = Object.fromEntries(connections.map((conn, index) => [conn.id, index]));
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const router = await RoutingDatabase.create(
+      registry,
+      sqliteId,
+      connections,
+      [],
+      slots,
+      rootDir
+    );
+
+    expect(router.isConnectionMounted(sqliteId)).toBe(true);
+    expect(router.isConnectionMounted('firestore-default')).toBe(false);
+    expect(router.isConnectionMounted('mysql-default')).toBe(false);
+    expect(router.isConnectionMounted('postgres-default')).toBe(false);
+    expect(router.hasDefaultProvider()).toBe(true);
+    expect(
+      warnSpy.mock.calls.some(([message]) =>
+        String(message).includes(
+          'Skipping database "Firestore" (firestore): settings are incomplete'
+        )
+      )
+    ).toBe(true);
+
+    warnSpy.mockRestore();
+    await router.close();
+    rmSync(rootDir, { recursive: true, force: true });
+  });
+});

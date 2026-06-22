@@ -10,7 +10,8 @@ import {
   getActiveDatabaseId,
   getActiveDatabaseConnection,
   getSqliteFallbackSettings,
-  listDatabaseConnections
+  listDatabaseConnections,
+  setActiveDatabaseId
 } from '#/main/settings/databaseSettings';
 import { ensureDatabaseSlots } from '#/main/settings/databaseSlots';
 import { migrateTeamHubSettings } from '#/main/settings/teamHubMigration';
@@ -44,6 +45,90 @@ let closePromptOpen = false;
 let closeReason: CloseReason | null = null;
 
 /**
+ * Resolves the SQLite connection used as the local fallback provider.
+ *
+ * @param connections - Persisted database connections.
+ * @returns SQLite connection configuration, or a synthetic fallback when none exists.
+ */
+function resolveSqliteFallbackConnection(connections: DatabaseConnection[]): DatabaseConnection {
+  return (
+    connections.find((conn) => conn.type === 'sqlite') ?? {
+      id: 'fallback-sqlite',
+      name: 'SQLite',
+      type: 'sqlite',
+      settings: getSqliteFallbackSettings()
+    }
+  );
+}
+
+/**
+ * Mounts the SQLite fallback provider when the preferred default is unavailable.
+ *
+ * @param router - Routing database to mount into.
+ * @param connections - Persisted database connections.
+ * @param slots - Connection id to slot map.
+ * @param userDataPath - Electron userData path for SQLite file storage.
+ * @returns True when SQLite was mounted successfully.
+ */
+async function mountSqliteFallback(
+  router: RoutingDatabase,
+  connections: DatabaseConnection[],
+  slots: Record<string, number>,
+  userDataPath: string
+): Promise<boolean> {
+  const sqliteConnection = resolveSqliteFallbackConnection(connections);
+
+  if (router.isConnectionMounted(sqliteConnection.id)) {
+    router.setDefaultDataConnectionId(sqliteConnection.id);
+    return true;
+  }
+
+  try {
+    const sqliteDb = await createDatabaseInstance(sqliteConnection, userDataPath);
+    const slot = slots[sqliteConnection.id] ?? 0;
+    router.mount(slot, sqliteConnection, sqliteDb);
+    router.setDefaultDataConnectionId(sqliteConnection.id);
+    return true;
+  } catch (err) {
+    console.warn('Failed to mount SQLite fallback provider:', err);
+    return false;
+  }
+}
+
+/**
+ * Points persisted and runtime defaults at a mounted provider when the active
+ * connection could not be opened (for example incomplete remote settings).
+ *
+ * @param router - Initialized routing database.
+ * @param connections - Persisted database connections.
+ */
+function reconcileActiveDatabaseSelection(
+  router: RoutingDatabase,
+  connections: DatabaseConnection[]
+): void {
+  const activeId = getActiveDatabaseId();
+  if (router.isConnectionMounted(activeId)) {
+    return;
+  }
+
+  const sqliteConnection = connections.find((conn) => conn.type === 'sqlite');
+  const fallbackId =
+    (sqliteConnection && router.isConnectionMounted(sqliteConnection.id)
+      ? sqliteConnection.id
+      : undefined) ?? connections.find((conn) => router.isConnectionMounted(conn.id))?.id;
+
+  if (!fallbackId) {
+    return;
+  }
+
+  setActiveDatabaseId(fallbackId);
+  router.setDefaultDataConnectionId(fallbackId);
+  console.warn(
+    `Active database "${activeId}" is unavailable; using "${fallbackId}" for this session.`
+  );
+}
+
+/**
  * Creates and initializes the routing database with all configured backends mounted.
  *
  * @returns Initialized routing database instance.
@@ -73,35 +158,20 @@ async function createDatabase(): Promise<RoutingDatabase> {
     );
   } catch (err) {
     console.warn('Failed to initialize routing database; falling back to SQLite provider:', err);
-    const sqliteConnection: DatabaseConnection = connections.find(
-      (conn) => conn.type === 'sqlite'
-    ) ?? {
-      id: 'fallback-sqlite',
-      name: 'SQLite',
-      type: 'sqlite',
-      settings: getSqliteFallbackSettings()
-    };
-
-    const sqliteDb = await createDatabaseInstance(sqliteConnection, userDataPath);
-    const slot = slots[sqliteConnection.id] ?? 0;
-    router = new RoutingDatabase(registry, sqliteConnection.id, userDataPath);
-    router.mount(slot, sqliteConnection, sqliteDb);
+    router = new RoutingDatabase(registry, primaryConnectionId, userDataPath);
+    await mountSqliteFallback(router, connections, slots, userDataPath);
   }
 
   if (!router.hasDefaultProvider()) {
-    const sqliteConnection: DatabaseConnection = connections.find(
-      (conn) => conn.type === 'sqlite'
-    ) ?? {
-      id: 'fallback-sqlite',
-      name: 'SQLite',
-      type: 'sqlite',
-      settings: getSqliteFallbackSettings()
-    };
+    await mountSqliteFallback(router, connections, slots, userDataPath);
+  }
 
-    const sqliteDb = await createDatabaseInstance(sqliteConnection, userDataPath);
-    const slot = slots[sqliteConnection.id] ?? 0;
-    router.mount(slot, sqliteConnection, sqliteDb);
-    router.setDefaultDataConnectionId(sqliteConnection.id);
+  reconcileActiveDatabaseSelection(router, connections);
+
+  if (!router.hasAnyBackend()) {
+    console.warn(
+      'No database providers could be mounted; continuing startup with registry-only storage.'
+    );
   }
 
   const activeConnection = getActiveDatabaseConnection();

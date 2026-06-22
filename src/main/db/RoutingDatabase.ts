@@ -16,6 +16,7 @@ import type {
   ProviderDescriptor,
   RoutingInternals
 } from '#/main/db/routingInternals';
+import { isDatabaseConnectionConfigured } from '#/main/settings/databaseSettings';
 import { unlinkSync } from 'fs';
 import type {
   AuthConfig,
@@ -123,6 +124,15 @@ export class RoutingDatabase implements IDatabase {
    */
   hasDefaultProvider(): boolean {
     return this.byConnectionId.has(this.defaultDataConnectionId);
+  }
+
+  /**
+   * Returns true when a provider backend is mounted for the given connection id.
+   *
+   * @param connectionId - Database or team hub connection id.
+   */
+  isConnectionMounted(connectionId: string): boolean {
+    return this.byConnectionId.has(connectionId);
   }
 
   /**
@@ -612,6 +622,13 @@ export class RoutingDatabase implements IDatabase {
     for (const connection of connections) {
       const slot = slots[connection.id];
       if (slot === undefined) continue;
+
+      if (!isDatabaseConnectionConfigured(connection)) {
+        console.warn(
+          `Skipping database "${connection.name}" (${connection.type}): settings are incomplete`
+        );
+        continue;
+      }
 
       try {
         const db = await createDatabaseInstance(connection, userDataPath);
