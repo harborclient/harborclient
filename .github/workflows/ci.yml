@@ -3,9 +3,6 @@ name: CI
 on:
   workflow_dispatch:
   workflow_call:
-    secrets:
-      FONTAWESOME_PACKAGE_TOKEN:
-        required: true
 
 permissions:
   contents: read
@@ -56,11 +53,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-
-      - name: Configure Font Awesome registry auth
-        env:
-          FONTAWESOME_PACKAGE_TOKEN: ${{ secrets.FONTAWESOME_PACKAGE_TOKEN }}
-        run: bash scripts/configure-fontawesome-registry.sh
 
       - run: pnpm install --frozen-lockfile
 

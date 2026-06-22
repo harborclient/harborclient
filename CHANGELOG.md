@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- refactor: replace Font Awesome package and update icon usage. (`5f118f9`)
 - refactor: reorganize IPC structure and enhance cookie management. (`b83df70`)
 - feat: add code editor theme and settings configuration. (`c693048`)
 - feat: implement request export and import functionality. (`669f08f`)

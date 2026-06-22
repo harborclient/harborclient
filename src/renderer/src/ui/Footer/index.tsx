@@ -2,7 +2,7 @@ import { useMemo, type JSX } from 'react';
 import type { Variable } from '#/shared/types';
 import type { ConsoleEntry } from '#/renderer/src/store';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
-import { faSidebar } from '#/renderer/src/fontawesome';
+import { faTableColumns } from '#/renderer/src/fontawesome';
 import { segmentGroup } from '#/renderer/src/ui/shared/classes';
 import { ConsolePanel } from './ConsolePanel';
 import { VariablesPanel } from './VariablesPanel';
@@ -138,7 +138,7 @@ export function Footer({
           aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
           title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
         >
-          <FaIcon icon={faSidebar} className="h-3.5 w-3.5" />
+          <FaIcon icon={faTableColumns} className="h-3.5 w-3.5" />
         </button>
       </footer>
     </div>

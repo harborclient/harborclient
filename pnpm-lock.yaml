@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@awesome.me/kit-55c528f18b':
-        specifier: ^1.0.2
-        version: 1.0.2
       '@codemirror/autocomplete':
         specifier: ^6.20.3
         version: 6.20.3
@@ -39,6 +36,9 @@ importers:
         specifier: ^3.2.2
         version: 3.2.2(react@19.2.7)
       '@fortawesome/fontawesome-svg-core':
+        specifier: ^7.2.0
+        version: 7.2.0
+      '@fortawesome/free-solid-svg-icons':
         specifier: ^7.2.0
         version: 7.2.0
       '@fortawesome/react-fontawesome':
@@ -270,10 +270,6 @@ packages:
 
   '@apphosting/common@0.0.8':
     resolution: {integrity: sha512-RJu5gXs2HYV7+anxpVPpp04oXeuHbV3qn402AdXVlnuYM/uWo7aceqmngpfp6Bi376UzRqGjfpdwFHxuwsEGXQ==}
-
-  '@awesome.me/kit-55c528f18b@1.0.2':
-    resolution: {integrity: sha512-UFQJpJGqqS0Ihfak2z80MYDZHrvb9jJwyh1etDYVEaqQYV5CAib6HqlVLWI0glPPgeTNlc4lFyr0p+1+UZOZ7Q==}
-    engines: {node: '>=16'}
 
   '@babel/code-frame@7.29.7':
     resolution: {integrity: sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw==}
@@ -1077,6 +1073,10 @@ packages:
 
   '@fortawesome/fontawesome-svg-core@7.2.0':
     resolution: {integrity: sha512-6639htZMjEkwskf3J+e6/iar+4cTNM9qhoWuRfj9F3eJD6r7iCzV1SWnQr2Mdv0QT0suuqU8BoJCZUyCtP9R4Q==}
+    engines: {node: '>=6'}
+
+  '@fortawesome/free-solid-svg-icons@7.2.0':
+    resolution: {integrity: sha512-YTVITFGN0/24PxzXrwqCgnyd7njDuzp5ZvaCx5nq/jg55kUYd94Nj8UTchBdBofi/L0nwRfjGOg0E41d2u9T1w==}
     engines: {node: '>=6'}
 
   '@fortawesome/react-fontawesome@3.3.1':
@@ -6602,10 +6602,6 @@ snapshots:
 
   '@apphosting/common@0.0.8': {}
 
-  '@awesome.me/kit-55c528f18b@1.0.2':
-    dependencies:
-      '@fortawesome/fontawesome-common-types': 7.2.0
-
   '@babel/code-frame@7.29.7':
     dependencies:
       '@babel/helper-validator-identifier': 7.29.7
@@ -7501,6 +7497,10 @@ snapshots:
   '@fortawesome/fontawesome-common-types@7.2.0': {}
 
   '@fortawesome/fontawesome-svg-core@7.2.0':
+    dependencies:
+      '@fortawesome/fontawesome-common-types': 7.2.0
+
+  '@fortawesome/free-solid-svg-icons@7.2.0':
     dependencies:
       '@fortawesome/fontawesome-common-types': 7.2.0
 

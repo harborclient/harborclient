@@ -4,11 +4,11 @@ import {
   faChevronDown,
   faChevronRight,
   faPlus,
-  faSidebar,
+  faTableColumns,
   faXmark
-} from '@awesome.me/kit-55c528f18b/icons/classic/solid';
+} from '@fortawesome/free-solid-svg-icons';
 
-library.add(faXmark, faPlus, faBars, faSidebar, faChevronDown, faChevronRight);
+library.add(faXmark, faPlus, faBars, faTableColumns, faChevronDown, faChevronRight);
 config.autoAddCss = false;
 
-export { faBars, faChevronDown, faChevronRight, faPlus, faSidebar, faXmark };
+export { faBars, faChevronDown, faChevronRight, faPlus, faTableColumns, faXmark };
