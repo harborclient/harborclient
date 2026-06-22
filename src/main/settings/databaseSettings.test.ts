@@ -1,6 +1,12 @@
 import { expect, it } from 'vitest';
 import { isDatabaseConnectionConfigured } from '#/main/settings/databaseSettings';
-import type { DatabaseConnection } from '#/shared/types';
+import type { DatabaseConnection, SqliteSettings } from '#/shared/types';
+
+const DEFAULT_SQLITE_SETTINGS: SqliteSettings = {
+  dbFilename: 'harborclient.db',
+  legacyDbFilename: 'harbor-client.db',
+  legacyUserDataDir: 'harbor-client'
+};
 
 /**
  * Builds a minimal SQLite connection for configuration checks.
@@ -8,19 +14,12 @@ import type { DatabaseConnection } from '#/shared/types';
  * @param settings - Optional overrides for SQLite settings fields.
  * @returns SQLite connection fixture.
  */
-function sqliteConnection(
-  settings: Partial<DatabaseConnection & { type: 'sqlite' }>['settings'] = {}
-): DatabaseConnection {
+function sqliteConnection(settings: Partial<SqliteSettings> = {}): DatabaseConnection {
   return {
     id: 'sqlite',
     name: 'SQLite',
     type: 'sqlite',
-    settings: {
-      dbFilename: 'harborclient.db',
-      legacyDbFilename: 'harbor-client.db',
-      legacyUserDataDir: 'harbor-client',
-      ...settings
-    }
+    settings: { ...DEFAULT_SQLITE_SETTINGS, ...settings }
   };
 }
 
