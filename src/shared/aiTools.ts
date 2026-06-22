@@ -1,4 +1,7 @@
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
+import type { UpdateActiveRequestToolArgs } from '#/shared/aiRequestUpdate';
+
+export type { UpdateActiveRequestToolArgs };
 
 /**
  * Names of tools exposed to the AI chat agent.
@@ -15,7 +18,8 @@ export const AI_TOOL_NAMES = [
   'get_active_response',
   'query_response_body',
   'send_active_request',
-  'set_active_environment'
+  'set_active_environment',
+  'update_active_request'
 ] as const;
 
 /**
@@ -82,6 +86,23 @@ export interface SetActiveEnvironmentToolArgs {
    */
   name?: string;
 }
+
+/**
+ * JSON schema for key-value rows in update_active_request tool arguments.
+ */
+const AI_KEY_VALUE_SCHEMA = {
+  type: 'object',
+  properties: {
+    key: { type: 'string', description: 'Header, param, or cookie name.' },
+    value: { type: 'string', description: 'Header, param, or cookie value.' },
+    enabled: {
+      type: 'boolean',
+      description: 'Whether the row is active; defaults to true when omitted.'
+    }
+  },
+  required: ['key', 'value'],
+  additionalProperties: false
+} as const;
 
 /**
  * OpenAI tool definitions for querying and controlling Harbor app state.
@@ -151,7 +172,7 @@ export const AI_TOOL_DEFINITIONS: ChatCompletionTool[] = [
     function: {
       name: 'get_active_request_details',
       description:
-        'Returns the full draft of the active editor request (headers, params, body, auth, scripts).',
+        'Returns the full draft of the active editor request (headers, params, body, auth, scripts, cookies).',
       parameters: { type: 'object', properties: {}, additionalProperties: false }
     }
   },
@@ -227,6 +248,114 @@ export const AI_TOOL_DEFINITIONS: ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
+      name: 'update_active_request',
+      description:
+        'Modifies the request open in the editor (method, URL, params, headers, body, auth, pre/post scripts, cookies). Call get_active_request_details first when you need current values. Use Harbor hc API in scripts, not Postman pm. Changes appear in the editor immediately but are not saved until the user saves.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Display name for the request.' },
+          method: {
+            type: 'string',
+            enum: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'],
+            description: 'HTTP method for the request.'
+          },
+          url: {
+            type: 'string',
+            description:
+              'Request URL. When changed without params, the params table syncs from the query string.'
+          },
+          body: { type: 'string', description: 'Request body content.' },
+          body_type: {
+            type: 'string',
+            enum: ['none', 'json', 'text', 'multipart', 'urlencoded'],
+            description: 'Content type of the request body.'
+          },
+          pre_request_script: {
+            type: 'string',
+            description: 'JavaScript run before the request is sent.'
+          },
+          pre_request_script_mode: {
+            type: 'string',
+            enum: ['replace', 'append'],
+            description: 'How to apply pre_request_script; defaults to replace.'
+          },
+          post_request_script: {
+            type: 'string',
+            description: 'JavaScript run after the response is received.'
+          },
+          post_request_script_mode: {
+            type: 'string',
+            enum: ['replace', 'append'],
+            description: 'How to apply post_request_script; defaults to replace.'
+          },
+          comment: { type: 'string', description: 'Free-form notes for the request.' },
+          headers: {
+            type: 'array',
+            items: AI_KEY_VALUE_SCHEMA,
+            description: 'Request headers to merge or replace.'
+          },
+          headers_mode: {
+            type: 'string',
+            enum: ['merge', 'replace'],
+            description: 'How to apply headers; defaults to merge.'
+          },
+          params: {
+            type: 'array',
+            items: AI_KEY_VALUE_SCHEMA,
+            description: 'Query params to merge or replace.'
+          },
+          params_mode: {
+            type: 'string',
+            enum: ['merge', 'replace'],
+            description: 'How to apply params; defaults to merge.'
+          },
+          auth: {
+            type: 'object',
+            properties: {
+              type: {
+                type: 'string',
+                enum: ['none', 'basic', 'bearer'],
+                description: 'Selected auth mode.'
+              },
+              basic: {
+                type: 'object',
+                properties: {
+                  username: { type: 'string' },
+                  password: { type: 'string' }
+                },
+                additionalProperties: false
+              },
+              bearer: {
+                type: 'object',
+                properties: {
+                  token: { type: 'string' }
+                },
+                additionalProperties: false
+              }
+            },
+            additionalProperties: false,
+            description: 'Partial auth settings patch.'
+          },
+          cookies: {
+            type: 'array',
+            items: AI_KEY_VALUE_SCHEMA,
+            description:
+              'Cookies for the request host; stored in the cookie jar for the URL hostname.'
+          },
+          cookies_mode: {
+            type: 'string',
+            enum: ['merge', 'replace'],
+            description: 'How to apply cookies; defaults to merge.'
+          }
+        },
+        additionalProperties: false
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'set_active_environment',
       description:
         'Sets the global active environment by id or name. Pass environmentId null to clear the active environment.',
@@ -264,4 +393,5 @@ You can inspect live app state and perform limited actions using the provided to
 7. Use get_sidebar_request to see which saved request is highlighted in the sidebar (null if the editor tab is unsaved).
 8. Only call send_active_request when the user explicitly asks to send, run, or execute the active request. It returns a compact response summary by default; call get_active_response (with maxBodyChars when needed) or query_response_body if you need more detail from the response.
 9. Only call set_active_environment when the user explicitly asks to switch or clear the active environment.
-10. After tool calls, summarize results clearly for the user. Do not paste large response bodies into your reply; refer to status, headers, preview, query results, and tests instead.`;
+10. When the user asks to change, add, set, or modify the active request (URL, headers, params, body, auth, pre/post scripts, cookies), call get_active_request_details first if you need current values, then update_active_request to apply the change directly. Do not only describe manual steps. Post-request tests use hc.test and hc.expect(hc.response.code).to.equal(200); never use Postman pm syntax. Edits update the editor draft only until the user saves.
+11. After tool calls, summarize results clearly for the user. Do not paste large response bodies into your reply; refer to status, headers, preview, query results, and tests instead.`;

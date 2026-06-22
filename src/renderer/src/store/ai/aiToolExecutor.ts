@@ -1,5 +1,13 @@
 import type { ThunkDispatch, UnknownAction } from '@reduxjs/toolkit';
 import {
+  applyRequestDraftUpdate,
+  hasRequestUpdateFields,
+  mergeKeyValues,
+  type KeyValueListMode,
+  type ScriptUpdateMode,
+  type UpdateActiveRequestToolArgs
+} from '#/shared/aiRequestUpdate';
+import {
   AI_TOOL_NAMES,
   type AiToolName,
   type GetActiveResponseToolArgs,
@@ -17,7 +25,10 @@ import {
   type QueryResponseBodyError,
   type QueryResponseBodyResult
 } from '#/shared/aiChatContext';
+import { hostFromUrl } from '#/renderer/src/ui/Request/Editor/cookieHost';
+import { isTabDirty } from '#/renderer/src/store/drafts';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
+import { setActiveDraft } from '#/renderer/src/store/slices/tabsSlice';
 import {
   selectActiveEnvironmentId,
   selectActiveTab,
@@ -28,10 +39,37 @@ import {
   selectSelectedCollectionId,
   selectTestResults
 } from '#/renderer/src/store/selectors';
-import { isTabDirty } from '#/renderer/src/store/drafts';
 import type { RootState } from '#/renderer/src/store/redux';
 import { sendRequest } from '#/renderer/src/store/thunks/requests';
-import type { AuthConfig, KeyValue, Variable } from '#/shared/types';
+import type { AuthConfig, BodyType, HttpMethod, KeyValue, Variable } from '#/shared/types';
+
+/**
+ * Supported HTTP methods for update_active_request validation.
+ */
+const HTTP_METHODS: readonly HttpMethod[] = [
+  'GET',
+  'POST',
+  'PUT',
+  'PATCH',
+  'DELETE',
+  'HEAD',
+  'OPTIONS'
+];
+
+/**
+ * Supported body types for update_active_request validation.
+ */
+const BODY_TYPES: readonly BodyType[] = ['none', 'json', 'text', 'multipart', 'urlencoded'];
+
+/**
+ * Supported list merge modes for update_active_request validation.
+ */
+const KEY_VALUE_MODES: readonly KeyValueListMode[] = ['merge', 'replace'];
+
+/**
+ * Supported script update modes for update_active_request validation.
+ */
+const SCRIPT_MODES: readonly ScriptUpdateMode[] = ['replace', 'append'];
 
 /**
  * Context passed to tool handlers for reading state and dispatching actions.
@@ -100,7 +138,7 @@ export async function executeAiTool(
       case 'get_active_request':
         return JSON.stringify(getActiveRequest(ctx.getState()));
       case 'get_active_request_details':
-        return JSON.stringify(getActiveRequestDetails(ctx.getState()));
+        return JSON.stringify(await getActiveRequestDetails(ctx.getState()));
       case 'get_active_response_summary':
         return JSON.stringify(getActiveResponseSummary(ctx.getState()));
       case 'get_active_response':
@@ -111,6 +149,8 @@ export async function executeAiTool(
         return JSON.stringify(await sendActiveRequest(ctx, args));
       case 'set_active_environment':
         return JSON.stringify(setActiveEnvironment(args, ctx));
+      case 'update_active_request':
+        return JSON.stringify(await updateActiveRequest(args, ctx));
       default: {
         const exhaustive: never = name;
         return JSON.stringify({ error: `Unhandled tool: ${String(exhaustive)}` });
@@ -259,13 +299,13 @@ function getSidebarRequest(state: RootState): {
  */
 function getActiveRequest(state: RootState):
   | {
-      tabId: string;
-      name: string;
-      method: string;
-      url: string;
-      savedRequestId: number | null;
-      isDirty: boolean;
-    }
+    tabId: string;
+    name: string;
+    method: string;
+    url: string;
+    savedRequestId: number | null;
+    isDirty: boolean;
+  }
   | { error: string } {
   const tab = selectActiveTab(state);
   if (!tab) {
@@ -283,29 +323,34 @@ function getActiveRequest(state: RootState):
 }
 
 /**
- * Returns the full draft of the active editor request.
+ * Returns the full draft of the active editor request including cookies for the URL host.
  *
  * @param state - Current Redux root state.
  */
-function getActiveRequestDetails(state: RootState):
+async function getActiveRequestDetails(state: RootState): Promise<
   | {
-      method: string;
-      url: string;
-      headers: KeyValue[];
-      params: KeyValue[];
-      auth: AuthConfig;
-      body: string;
-      body_type: string;
-      pre_request_script: string;
-      post_request_script: string;
-      comment: string;
-    }
-  | { error: string } {
+    method: string;
+    url: string;
+    headers: KeyValue[];
+    params: KeyValue[];
+    auth: AuthConfig;
+    body: string;
+    body_type: string;
+    pre_request_script: string;
+    post_request_script: string;
+    comment: string;
+    cookies: KeyValue[];
+  }
+  | { error: string }
+> {
   const tab = selectActiveTab(state);
   if (!tab) {
     return { error: 'No active request tab.' };
   }
   const draft = tab.draft;
+  const host = hostFromUrl(draft.url);
+  const cookies = host ? await window.api.getCookies(host) : [];
+
   return {
     method: draft.method,
     url: draft.url,
@@ -316,7 +361,8 @@ function getActiveRequestDetails(state: RootState):
     body_type: draft.body_type,
     pre_request_script: draft.pre_request_script,
     post_request_script: draft.post_request_script,
-    comment: draft.comment
+    comment: draft.comment,
+    cookies
   };
 }
 
@@ -478,4 +524,123 @@ function setActiveEnvironment(
   }
 
   throw new Error('Provide environmentId or name.');
+}
+
+/**
+ * Validates update_active_request tool arguments from the model.
+ *
+ * @param args - Parsed tool arguments.
+ * @returns Normalized update arguments.
+ */
+function parseUpdateActiveRequestArgs(args: unknown): UpdateActiveRequestToolArgs {
+  if (args == null || typeof args !== 'object') {
+    throw new Error('Invalid update arguments.');
+  }
+
+  const parsed = args as UpdateActiveRequestToolArgs;
+
+  if (!hasRequestUpdateFields(parsed)) {
+    throw new Error('Provide at least one field to update.');
+  }
+
+  if (parsed.method !== undefined && !HTTP_METHODS.includes(parsed.method)) {
+    throw new Error(`Invalid method: ${String(parsed.method)}`);
+  }
+
+  if (parsed.body_type !== undefined && !BODY_TYPES.includes(parsed.body_type)) {
+    throw new Error(`Invalid body_type: ${String(parsed.body_type)}`);
+  }
+
+  for (const mode of [parsed.headers_mode, parsed.params_mode, parsed.cookies_mode] as const) {
+    if (mode !== undefined && !KEY_VALUE_MODES.includes(mode)) {
+      throw new Error(`Invalid list mode: ${String(mode)}`);
+    }
+  }
+
+  for (const mode of [parsed.pre_request_script_mode, parsed.post_request_script_mode] as const) {
+    if (mode !== undefined && !SCRIPT_MODES.includes(mode)) {
+      throw new Error(`Invalid script mode: ${String(mode)}`);
+    }
+  }
+
+  return parsed;
+}
+
+/**
+ * Returns persisted cookie rows without editor trailing blank rows.
+ *
+ * @param rows - Cookie table rows.
+ */
+function cookiesForStorage(rows: KeyValue[]): KeyValue[] {
+  return rows.filter((row) => row.key.trim() !== '' || row.value.trim() !== '');
+}
+
+/**
+ * Applies a partial update to the active request draft and optional cookie jar.
+ *
+ * @param args - Parsed update_active_request tool arguments.
+ * @param ctx - Redux getState and dispatch.
+ */
+async function updateActiveRequest(
+  args: unknown,
+  ctx: AiToolContext
+): Promise<
+  | {
+    ok: true;
+    changedFields: string[];
+    isDirty: boolean;
+    summary: {
+      name: string;
+      method: string;
+      url: string;
+      body_type: string;
+    };
+  }
+  | { error: string }
+> {
+  const tab = selectActiveTab(ctx.getState());
+  if (!tab) {
+    return { error: 'No active request tab.' };
+  }
+
+  const parsed = parseUpdateActiveRequestArgs(args);
+  const {
+    draft: nextDraft,
+    changedFields,
+    hasCookieUpdate
+  } = applyRequestDraftUpdate(tab.draft, parsed);
+
+  ctx.dispatch(setActiveDraft(nextDraft));
+
+  if (hasCookieUpdate && parsed.cookies !== undefined) {
+    const host = hostFromUrl(nextDraft.url);
+    if (!host) {
+      throw new Error('Cannot update cookies without a parseable URL hostname.');
+    }
+
+    const currentCookies = await window.api.getCookies(host);
+    const mergedCookies = mergeKeyValues(
+      parsed.cookies_mode === 'replace' ? [] : currentCookies,
+      parsed.cookies,
+      parsed.cookies_mode ?? 'merge'
+    );
+    await window.api.setCookies(host, cookiesForStorage(mergedCookies));
+  }
+
+  const updatedTab = selectActiveTab(ctx.getState());
+  if (!updatedTab) {
+    return { error: 'No active request tab.' };
+  }
+
+  return {
+    ok: true,
+    changedFields,
+    isDirty: isTabDirty(updatedTab),
+    summary: {
+      name: nextDraft.name,
+      method: nextDraft.method,
+      url: nextDraft.url,
+      body_type: nextDraft.body_type
+    }
+  };
 }

@@ -64,7 +64,7 @@ The assistant reads live HarborClient state through built-in tools. It inspects 
 - The collection selected in the sidebar, and all collections (with variables, headers, auth, and scripts)
 - Saved requests in a collection
 - Environments and which one is active
-- The request open in the editor (summary and full draft)
+- The request open in the editor (summary and full draft, including cookies for the URL host)
 - The saved request highlighted in the sidebar
 
 ### Inspect responses
@@ -77,11 +77,15 @@ The assistant reads live HarborClient state through built-in tools. It inspects 
 
 - Send the active request (equivalent to clicking **Send**)
 - Switch or clear the active environment
+- Modify the active request (method, URL, params, headers, body, auth, pre/post scripts, cookies)
+
+Changes from the assistant appear in the editor immediately. Saved requests show as unsaved until you save them yourself.
 
 ### Constraints
 
 - The assistant uses tools to read live app state — it should not invent URLs, headers, or test results.
 - It will not send requests or change environments unless you explicitly ask.
+- Request edits update the open tab draft only; they are not saved to the collection automatically.
 - Very long conversations may hit model context limits; start a new chat if that happens.
 
 ### Example prompts
@@ -90,6 +94,7 @@ The assistant reads live HarborClient state through built-in tools. It inspects 
 - “Summarize the last response for this request.”
 - “How many items are in the response array?”
 - “Send this request and tell me if the tests passed.”
+- “Add a post-request script that asserts the response status is 200.”
 
 ## What's next
 

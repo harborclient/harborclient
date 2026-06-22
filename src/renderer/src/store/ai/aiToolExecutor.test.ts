@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_RESPONSE_BODY_CHARS, RESPONSE_BODY_PREVIEW_CHARS } from '#/shared/aiChatContext';
 import { defaultAuth } from '#/shared/auth';
-import type { Collection, Environment, SavedRequest, SendResult } from '#/shared/types';
+import type { Collection, Environment, KeyValue, SavedRequest, SendResult } from '#/shared/types';
 import { executeAiTool } from '#/renderer/src/store/ai/aiToolExecutor';
 import {
   setCollections,
@@ -12,6 +12,7 @@ import {
   setEnvironments
 } from '#/renderer/src/store/slices/environmentsSlice';
 import { openTabWithDraft, updateTab } from '#/renderer/src/store/slices/tabsSlice';
+import { selectDraft } from '#/renderer/src/store/selectors';
 
 vi.mock('react-hot-toast', () => ({
   default: { success: vi.fn(), error: vi.fn(), loading: vi.fn(), dismiss: vi.fn() }
@@ -19,6 +20,8 @@ vi.mock('react-hot-toast', () => ({
 
 const listRequestsMock = vi.fn<(collectionId: number) => Promise<SavedRequest[]>>();
 const sendRequestMock = vi.fn<(req: unknown, requestId?: string) => Promise<SendResult>>();
+const getCookiesMock = vi.fn<(domain: string) => Promise<KeyValue[]>>();
+const setCookiesMock = vi.fn<(domain: string, cookies: KeyValue[]) => Promise<void>>();
 
 /**
  * Minimal in-memory localStorage mock for store persistence subscribers.
@@ -47,6 +50,8 @@ beforeEach(() => {
     api: {
       listRequests: listRequestsMock,
       sendRequest: sendRequestMock,
+      getCookies: getCookiesMock,
+      setCookies: setCookiesMock,
       runScript: vi.fn().mockResolvedValue({ logs: [], tests: [], error: undefined }),
       cancelRequest: vi.fn()
     }
@@ -54,6 +59,10 @@ beforeEach(() => {
   listRequestsMock.mockReset();
   listRequestsMock.mockResolvedValue([]);
   sendRequestMock.mockReset();
+  getCookiesMock.mockReset();
+  getCookiesMock.mockResolvedValue([]);
+  setCookiesMock.mockReset();
+  setCookiesMock.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -515,5 +524,208 @@ describe('executeAiTool', () => {
     expect(result).toEqual({
       error: 'No HTTP response available. Send the request first.'
     });
+  });
+
+  it('returns active request details with cookies for the URL host', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    getCookiesMock.mockResolvedValue([{ key: 'session', value: 'abc', enabled: true }]);
+    store.dispatch(
+      openTabWithDraft({
+        id: 8,
+        collection_id: 1,
+        folder_id: null,
+        name: 'With cookies',
+        method: 'GET',
+        url: 'https://example.com/data',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        comment: '',
+        auth: defaultAuth()
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_active_request_details',
+        {},
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(getCookiesMock).toHaveBeenCalledWith('example.com');
+    expect(result.cookies).toEqual([{ key: 'session', value: 'abc', enabled: true }]);
+  });
+
+  it('updates post_request_script and marks the draft dirty', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(
+      openTabWithDraft({
+        id: 10,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Script test',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        comment: '',
+        auth: defaultAuth()
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'update_active_request',
+        {
+          post_request_script:
+            "hc.test('Status is 200', function () { hc.expect(hc.response.code).to.equal(200); });"
+        },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    const draft = selectDraft(store.getState());
+    expect(result.ok).toBe(true);
+    expect(result.isDirty).toBe(true);
+    expect(draft.post_request_script).toContain("hc.test('Status is 200'");
+  });
+
+  it('merges headers by key via update_active_request', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(
+      openTabWithDraft({
+        id: 11,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Headers',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [{ key: 'Accept', value: 'text/plain', enabled: true }],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        comment: '',
+        auth: defaultAuth()
+      })
+    );
+
+    await executeAiTool(
+      'update_active_request',
+      { headers: [{ key: 'Authorization', value: 'Bearer token' }] },
+      { getState: store.getState, dispatch: store.dispatch }
+    );
+
+    const headers = selectDraft(store.getState()).headers;
+    expect(headers.some((row) => row.key === 'Accept' && row.value === 'text/plain')).toBe(true);
+    expect(headers.some((row) => row.key === 'Authorization')).toBe(true);
+  });
+
+  it('syncs params when the url changes via update_active_request', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(
+      openTabWithDraft({
+        id: 12,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Params sync',
+        method: 'GET',
+        url: 'https://example.com?page=1',
+        headers: [],
+        params: [{ key: 'page', value: '1', enabled: true }],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        comment: '',
+        auth: defaultAuth()
+      })
+    );
+
+    await executeAiTool(
+      'update_active_request',
+      { url: 'https://example.com?limit=10' },
+      { getState: store.getState, dispatch: store.dispatch }
+    );
+
+    const draft = selectDraft(store.getState());
+    expect(draft.url).toBe('https://example.com?limit=10');
+    expect(draft.params.some((row) => row.key === 'limit' && row.value === '10')).toBe(true);
+  });
+
+  it('persists cookies for the request host via update_active_request', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    getCookiesMock.mockResolvedValue([{ key: 'existing', value: '1', enabled: true }]);
+    store.dispatch(
+      openTabWithDraft({
+        id: 13,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Cookies',
+        method: 'GET',
+        url: 'https://api.example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        comment: '',
+        auth: defaultAuth()
+      })
+    );
+
+    await executeAiTool(
+      'update_active_request',
+      { cookies: [{ key: 'session', value: 'xyz' }] },
+      { getState: store.getState, dispatch: store.dispatch }
+    );
+
+    expect(getCookiesMock).toHaveBeenCalledWith('api.example.com');
+    expect(setCookiesMock).toHaveBeenCalledWith('api.example.com', [
+      { key: 'existing', value: '1', enabled: true },
+      { key: 'session', value: 'xyz', enabled: true }
+    ]);
+  });
+
+  it('returns an error when update_active_request has no fields', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(
+      openTabWithDraft({
+        id: 14,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Empty patch',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        comment: '',
+        auth: defaultAuth()
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'update_active_request',
+        {},
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({ error: 'Provide at least one field to update.' });
   });
 });
