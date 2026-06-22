@@ -700,25 +700,25 @@ export function Collections({
                     groups={[
                       ...(collectionIndex > 0 || collectionIndex < collections.length - 1
                         ? [
-                            [
-                              ...(collectionIndex > 0
-                                ? [
-                                    {
-                                      label: 'Move up',
-                                      onSelect: () => void moveCollection(collection.id, 'up')
-                                    }
-                                  ]
-                                : []),
-                              ...(collectionIndex < collections.length - 1
-                                ? [
-                                    {
-                                      label: 'Move down',
-                                      onSelect: () => void moveCollection(collection.id, 'down')
-                                    }
-                                  ]
-                                : [])
-                            ]
+                          [
+                            ...(collectionIndex > 0
+                              ? [
+                                {
+                                  label: 'Move up',
+                                  onSelect: () => void moveCollection(collection.id, 'up')
+                                }
+                              ]
+                              : []),
+                            ...(collectionIndex < collections.length - 1
+                              ? [
+                                {
+                                  label: 'Move down',
+                                  onSelect: () => void moveCollection(collection.id, 'down')
+                                }
+                              ]
+                              : [])
                           ]
+                        ]
                         : []),
                       [
                         {
@@ -748,11 +748,11 @@ export function Collections({
                         },
                         ...(canInvite
                           ? [
-                              {
-                                label: 'Invite',
-                                onSelect: () => onInviteCollection(collection.id, collection.name)
-                              }
-                            ]
+                            {
+                              label: 'Invite',
+                              onSelect: () => onInviteCollection(collection.id, collection.name)
+                            }
+                          ]
                           : [])
                       ],
                       [
@@ -906,35 +906,35 @@ export function Collections({
                                     groups={[
                                       ...(folderIndex > 0 || folderIndex < folders.length - 1
                                         ? [
-                                            [
-                                              ...(folderIndex > 0
-                                                ? [
-                                                    {
-                                                      label: 'Move up',
-                                                      onSelect: () =>
-                                                        void moveFolder(
-                                                          collection.id,
-                                                          folder.id,
-                                                          'up'
-                                                        )
-                                                    }
-                                                  ]
-                                                : []),
-                                              ...(folderIndex < folders.length - 1
-                                                ? [
-                                                    {
-                                                      label: 'Move down',
-                                                      onSelect: () =>
-                                                        void moveFolder(
-                                                          collection.id,
-                                                          folder.id,
-                                                          'down'
-                                                        )
-                                                    }
-                                                  ]
-                                                : [])
-                                            ]
+                                          [
+                                            ...(folderIndex > 0
+                                              ? [
+                                                {
+                                                  label: 'Move up',
+                                                  onSelect: () =>
+                                                    void moveFolder(
+                                                      collection.id,
+                                                      folder.id,
+                                                      'up'
+                                                    )
+                                                }
+                                              ]
+                                              : []),
+                                            ...(folderIndex < folders.length - 1
+                                              ? [
+                                                {
+                                                  label: 'Move down',
+                                                  onSelect: () =>
+                                                    void moveFolder(
+                                                      collection.id,
+                                                      folder.id,
+                                                      'down'
+                                                    )
+                                                }
+                                              ]
+                                              : [])
                                           ]
+                                        ]
                                         : []),
                                       [
                                         {
@@ -1038,11 +1038,11 @@ export function Collections({
 
                     <DragOverlay>
                       {dragCollectionId === collection.id &&
-                      activeDragKind === 'request' &&
-                      activeDragRequest ? (
+                        activeDragKind === 'request' &&
+                        activeDragRequest ? (
                         <div className="flex items-center gap-1.5 rounded border border-separator bg-surface px-2 py-1 shadow-md">
                           <span
-                            className={`shrink-0 rounded px-1 py-px text-[14px] font-semibold ${METHOD_CLASSES[activeDragRequest.method.toLowerCase()] ?? 'bg-info text-white'}`}
+                            className={`shrink-0 px-1 py-px text-[14px] ${METHOD_CLASSES[activeDragRequest.method.toLowerCase()] ?? 'text-info'}`}
                           >
                             {activeDragRequest.method}
                           </span>

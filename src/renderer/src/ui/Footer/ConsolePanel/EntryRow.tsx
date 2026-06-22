@@ -34,9 +34,7 @@ export function EntryRow({ entry, expanded, onToggle }: Props): JSX.Element {
           className={`inline-block h-2 w-2 shrink-0 rounded-full ${statusDotClass(result.status)}`}
           aria-hidden="true"
         />
-        <span
-          className={`shrink-0 rounded px-1.5 py-0.5 text-[14px] font-semibold uppercase ${methodClass}`}
-        >
+        <span className={`shrink-0 px-1.5 py-0.5 text-[14px] uppercase ${methodClass}`}>
           {method}
         </span>
         <span className="min-w-0 flex-1 truncate font-mono text-[14px] text-text">{url}</span>

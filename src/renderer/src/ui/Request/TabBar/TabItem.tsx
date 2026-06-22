@@ -112,7 +112,7 @@ export function TabItem({ tab, active, tabIndex, onSelect, onClose }: Props): JS
     >
       <span className="flex min-w-0 flex-1 items-center gap-1.5 py-2 text-inherit app-no-drag">
         <span
-          className={`shrink-0 rounded px-1 py-px text-[14px] font-semibold ${METHOD_CLASSES[tab.draft.method.toLowerCase()] ?? 'bg-info text-white'}`}
+          className={`shrink-0 px-1 py-px text-[14px] ${METHOD_CLASSES[tab.draft.method.toLowerCase()] ?? 'text-info'}`}
         >
           {tab.draft.method}
         </span>

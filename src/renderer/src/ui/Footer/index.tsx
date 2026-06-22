@@ -7,7 +7,7 @@ import { segmentGroup } from '#/renderer/src/ui/shared/classes';
 import { ConsolePanel } from './ConsolePanel';
 import { VariablesPanel } from './VariablesPanel';
 import { effectiveCount, resolveScopedVariables } from './VariablesPanel/resolve';
-import { footerSegment } from './styles';
+import { footerIconButton, footerSegment } from './styles';
 
 interface Props {
   /**
@@ -114,8 +114,6 @@ export function Footer({
     [collectionVariables, environmentVariables]
   );
   const variableCount = effectiveCount(resolvedVariables);
-  const iconButtonClassName =
-    'inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-muted hover:bg-selection hover:text-text app-no-drag';
 
   return (
     <div className="relative shrink-0">
@@ -160,8 +158,9 @@ export function Footer({
         <div className="flex items-center gap-0.5">
           <button
             type="button"
-            className={iconButtonClassName}
+            className={footerIconButton(sidebarOpen)}
             onClick={onToggleSidebar}
+            aria-pressed={sidebarOpen}
             aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
             title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
           >
@@ -169,8 +168,9 @@ export function Footer({
           </button>
           <button
             type="button"
-            className={iconButtonClassName}
+            className={footerIconButton(aiSidebarOpen)}
             onClick={onToggleAiSidebar}
+            aria-pressed={aiSidebarOpen}
             aria-label={aiSidebarOpen ? 'Hide AI sidebar' : 'Show AI sidebar'}
             title={aiSidebarOpen ? 'Hide AI sidebar' : 'Show AI sidebar'}
           >

@@ -47,13 +47,13 @@ export const separator = 'h-px bg-separator';
 export const sectionLabel = 'mb-1 px-2 text-[14px] font-medium uppercase tracking-wide text-muted';
 
 export const METHOD_CLASSES: Record<string, string> = {
-  get: 'bg-method-get/90 text-white',
-  post: 'bg-method-post/90 text-white',
-  put: 'bg-method-put/90 text-white',
-  patch: 'bg-method-patch/90 text-white',
-  delete: 'bg-method-delete/90 text-white',
-  head: 'bg-method-head/80 text-white',
-  options: 'bg-method-options/80 text-white'
+  get: 'text-method-get',
+  post: 'text-method-post',
+  put: 'text-method-put',
+  patch: 'text-method-patch',
+  delete: 'text-method-delete',
+  head: 'text-method-head',
+  options: 'text-method-options'
 };
 
 /**

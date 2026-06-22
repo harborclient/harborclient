@@ -131,7 +131,7 @@ export function RequestRow({
         onClick={() => onLoadRequest(req)}
       >
         <span
-          className={`shrink-0 rounded px-1 py-px text-[14px] font-semibold ${METHOD_CLASSES[req.method.toLowerCase()] ?? 'bg-info text-white'}`}
+          className={`shrink-0 px-1 py-px text-[14px] ${METHOD_CLASSES[req.method.toLowerCase()] ?? 'text-info'}`}
         >
           {req.method}
         </span>

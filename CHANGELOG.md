@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- refactor: update footer button styles and improve accessibility. (`d923d5d`)
 - feat: implement Team Hub user management features. (`e2daef8`)
 
 ## 1.5.9 - 2026-06-22
