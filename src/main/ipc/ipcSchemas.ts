@@ -249,6 +249,7 @@ const gitSettings = z.object({
   url: z.string(),
   branch: z.string(),
   subdir: z.string(),
+  oauthClientId: z.string().optional(),
   auth: gitAuthMethod
 });
 

@@ -1,5 +1,6 @@
 import {
   completeGitHubDeviceFlow,
+  GITHUB_OAUTH_CLIENT_ID,
   refreshGitHubAccessToken,
   startGitHubDeviceFlow
 } from '#/main/git/githubOAuth';
@@ -43,6 +44,15 @@ function requireGitConnection(connectionId: string): DatabaseConnection & { type
 }
 
 /**
+ * Resolves the GitHub OAuth App client id for a git connection.
+ *
+ * @param conn - Git connection configuration.
+ */
+function resolveGitHubOAuthClientId(conn: DatabaseConnection & { type: 'git' }): string {
+  return conn.settings.oauthClientId?.trim() || GITHUB_OAUTH_CLIENT_ID;
+}
+
+/**
  * Returns a fresh OAuth access token, refreshing when expired when possible.
  *
  * @param connectionId - Git connection id.
@@ -59,7 +69,11 @@ async function resolveOAuthAccessToken(connectionId: string): Promise<string> {
   }
 
   if (refreshToken) {
-    const refreshed = await refreshGitHubAccessToken(refreshToken);
+    const conn = requireGitConnection(connectionId);
+    const refreshed = await refreshGitHubAccessToken(
+      refreshToken,
+      resolveGitHubOAuthClientId(conn)
+    );
     storeGitOAuthTokens(
       connectionId,
       refreshed.accessToken,
@@ -125,8 +139,8 @@ export async function beginGitHubOAuth(connectionId: string): Promise<{
   userCode: string;
   verificationUri: string;
 }> {
-  requireGitConnection(connectionId);
-  return startGitHubDeviceFlow(connectionId);
+  const conn = requireGitConnection(connectionId);
+  return startGitHubDeviceFlow(connectionId, resolveGitHubOAuthClientId(conn));
 }
 
 /**

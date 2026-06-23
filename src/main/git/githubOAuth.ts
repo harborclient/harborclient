@@ -18,6 +18,11 @@ interface PendingDeviceFlow {
   deviceCode: string;
 
   /**
+   * OAuth App client id used to start this flow.
+   */
+  clientId: string;
+
+  /**
    * Polling interval in seconds suggested by GitHub.
    */
   interval: number;
@@ -34,9 +39,13 @@ const pendingFlows = new Map<string, PendingDeviceFlow>();
  * Starts GitHub OAuth device flow for a git connection.
  *
  * @param connectionId - Git connection id.
+ * @param clientId - GitHub OAuth App client id; defaults to HarborClient's built-in app.
  * @returns User code and verification URI for browser approval.
  */
-export async function startGitHubDeviceFlow(connectionId: string): Promise<{
+export async function startGitHubDeviceFlow(
+  connectionId: string,
+  clientId = GITHUB_OAUTH_CLIENT_ID
+): Promise<{
   userCode: string;
   verificationUri: string;
 }> {
@@ -47,7 +56,7 @@ export async function startGitHubDeviceFlow(connectionId: string): Promise<{
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      client_id: GITHUB_OAUTH_CLIENT_ID,
+      client_id: clientId,
       scope: 'repo'
     })
   });
@@ -77,6 +86,7 @@ export async function startGitHubDeviceFlow(connectionId: string): Promise<{
   const expiresIn = data.expires_in ?? 900;
   pendingFlows.set(connectionId, {
     deviceCode: data.device_code,
+    clientId,
     interval: data.interval ?? 5,
     expiresAt: Date.now() + expiresIn * 1000
   });
@@ -113,7 +123,7 @@ export async function completeGitHubDeviceFlow(connectionId: string): Promise<{
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        client_id: GITHUB_OAUTH_CLIENT_ID,
+        client_id: pending.clientId,
         device_code: pending.deviceCode,
         grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
       })
@@ -170,8 +180,12 @@ export async function completeGitHubDeviceFlow(connectionId: string): Promise<{
  * Refreshes a GitHub OAuth access token using a refresh token.
  *
  * @param refreshToken - Stored refresh token.
+ * @param clientId - GitHub OAuth App client id; defaults to HarborClient's built-in app.
  */
-export async function refreshGitHubAccessToken(refreshToken: string): Promise<{
+export async function refreshGitHubAccessToken(
+  refreshToken: string,
+  clientId = GITHUB_OAUTH_CLIENT_ID
+): Promise<{
   accessToken: string;
   refreshToken?: string;
   expiresAt?: string;
@@ -183,7 +197,7 @@ export async function refreshGitHubAccessToken(refreshToken: string): Promise<{
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      client_id: GITHUB_OAUTH_CLIENT_ID,
+      client_id: clientId,
       grant_type: 'refresh_token',
       refresh_token: refreshToken
     })

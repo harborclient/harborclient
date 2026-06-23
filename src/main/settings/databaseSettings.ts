@@ -185,15 +185,16 @@ function normalizeGitSettings(input: Partial<GitSettings>): GitSettings {
     auth?.kind === 'oauth' && auth.provider === 'github'
       ? { kind: 'oauth' as const, provider: 'github' as const }
       : {
-          kind: 'pat' as const,
-          username: auth?.kind === 'pat' ? auth.username.trim() || 'token' : 'token'
-        };
+        kind: 'pat' as const,
+        username: auth?.kind === 'pat' ? auth.username.trim() || 'token' : 'token'
+      };
 
   return {
     repoPath: input.repoPath?.trim() ?? '',
     url: input.url?.trim() ?? '',
     branch: input.branch?.trim() || DEFAULT_GIT_SETTINGS.branch,
     subdir: input.subdir?.trim() || DEFAULT_GIT_SETTINGS.subdir,
+    oauthClientId: input.oauthClientId?.trim() || undefined,
     auth: normalizedAuth
   };
 }

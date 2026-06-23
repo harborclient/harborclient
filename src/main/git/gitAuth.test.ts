@@ -3,6 +3,21 @@ import type { DatabaseConnection } from '#/shared/types';
 
 const mockConnections: DatabaseConnection[] = [];
 
+const { startGitHubDeviceFlow, completeGitHubDeviceFlow, refreshGitHubAccessToken } = vi.hoisted(
+  () => ({
+    startGitHubDeviceFlow: vi.fn(async () => ({
+      userCode: 'ABCD-1234',
+      verificationUri: 'https://github.com/login/device'
+    })),
+    completeGitHubDeviceFlow: vi.fn(async () => ({
+      accessToken: 'oauth-token',
+      refreshToken: 'refresh-token',
+      expiresAt: '2099-01-01T00:00:00.000Z'
+    })),
+    refreshGitHubAccessToken: vi.fn()
+  })
+);
+
 vi.mock('#/main/settings/databaseSettings', () => ({
   listDatabaseConnections: () => mockConnections
 }));
@@ -17,30 +32,28 @@ vi.mock('#/main/git/gitSecrets', () => ({
 }));
 
 vi.mock('#/main/git/githubOAuth', () => ({
-  startGitHubDeviceFlow: vi.fn(async () => ({
-    userCode: 'ABCD-1234',
-    verificationUri: 'https://github.com/login/device'
-  })),
-  completeGitHubDeviceFlow: vi.fn(async () => ({
-    accessToken: 'oauth-token',
-    refreshToken: 'refresh-token',
-    expiresAt: '2099-01-01T00:00:00.000Z'
-  })),
-  refreshGitHubAccessToken: vi.fn()
+  GITHUB_OAUTH_CLIENT_ID: 'builtin-client-id',
+  startGitHubDeviceFlow,
+  completeGitHubDeviceFlow,
+  refreshGitHubAccessToken
 }));
 
-import { deleteGitSecrets, getGitAccessToken } from '#/main/git/gitSecrets';
+import { deleteGitSecrets, getGitAccessToken, getGitRefreshToken } from '#/main/git/gitSecrets';
 import {
   beginGitHubOAuth,
   finishGitHubOAuth,
   resolveGitAuth,
   revokeGitHubOAuth
 } from '#/main/git/gitAuth';
+import { GITHUB_OAUTH_CLIENT_ID } from '#/main/git/githubOAuth';
 
 describe('git auth resolver', () => {
   beforeEach(() => {
     mockConnections.length = 0;
     vi.mocked(getGitAccessToken).mockReturnValue('stored-pat');
+    vi.mocked(getGitRefreshToken).mockReturnValue(undefined);
+    startGitHubDeviceFlow.mockClear();
+    refreshGitHubAccessToken.mockClear();
   });
 
   it('resolves PAT credentials from encrypted storage', async () => {
@@ -77,6 +90,7 @@ describe('git auth resolver', () => {
 
     const started = await beginGitHubOAuth('git-oauth');
     expect(started.userCode).toBe('ABCD-1234');
+    expect(startGitHubDeviceFlow).toHaveBeenCalledWith('git-oauth', GITHUB_OAUTH_CLIENT_ID);
 
     await finishGitHubOAuth('git-oauth');
     const conn = mockConnections[0];
@@ -84,6 +98,53 @@ describe('git auth resolver', () => {
       kind: 'oauth',
       provider: 'github'
     });
+  });
+
+  it('passes a custom OAuth client id when configured on the connection', async () => {
+    mockConnections.push({
+      id: 'git-oauth-custom',
+      name: 'Git OAuth Custom',
+      type: 'git',
+      settings: {
+        repoPath: '/tmp/repo',
+        url: 'https://github.com/example/repo.git',
+        branch: 'main',
+        subdir: '.harborclient',
+        oauthClientId: '  org-client-id  ',
+        auth: { kind: 'pat', username: 'token' }
+      }
+    });
+
+    await beginGitHubOAuth('git-oauth-custom');
+    expect(startGitHubDeviceFlow).toHaveBeenCalledWith('git-oauth-custom', 'org-client-id');
+  });
+
+  it('refreshes OAuth tokens with the connection client id', async () => {
+    mockConnections.push({
+      id: 'git-oauth-refresh',
+      name: 'Git OAuth Refresh',
+      type: 'git',
+      settings: {
+        repoPath: '/tmp/repo',
+        url: 'https://github.com/example/repo.git',
+        branch: 'main',
+        subdir: '.harborclient',
+        oauthClientId: 'org-client-id',
+        auth: { kind: 'oauth', provider: 'github' }
+      }
+    });
+
+    vi.mocked(getGitAccessToken).mockReturnValue(undefined);
+    vi.mocked(getGitRefreshToken).mockReturnValue('refresh-token');
+    refreshGitHubAccessToken.mockResolvedValue({
+      accessToken: 'new-token',
+      refreshToken: 'refresh-token',
+      expiresAt: '2099-01-01T00:00:00.000Z'
+    });
+
+    const auth = await resolveGitAuth('git-oauth-refresh');
+    expect(refreshGitHubAccessToken).toHaveBeenCalledWith('refresh-token', 'org-client-id');
+    expect(auth).toEqual({ username: 'oauth2', password: 'new-token' });
   });
 
   it('revokes GitHub OAuth and resets auth metadata', async () => {
@@ -96,6 +157,7 @@ describe('git auth resolver', () => {
         url: 'https://github.com/example/repo.git',
         branch: 'main',
         subdir: '.harborclient',
+        oauthClientId: 'org-client-id',
         auth: { kind: 'oauth', provider: 'github' }
       }
     });
@@ -108,5 +170,6 @@ describe('git auth resolver', () => {
       kind: 'pat',
       username: 'token'
     });
+    expect(conn.type === 'git' && conn.settings.oauthClientId).toBe('org-client-id');
   });
 });

@@ -209,6 +209,7 @@ export function GitFields({ connection, disabled = false, onChange }: Props): JS
   );
   const patUsernameId = useId();
   const patTokenId = useId();
+  const oauthClientIdId = useId();
 
   const authDisabled = disabled || authBusy;
   const isGitHubUrl = settings.url.includes('github.com');
@@ -437,6 +438,26 @@ export function GitFields({ connection, disabled = false, onChange }: Props): JS
           </>
         )}
       </div>
+
+      <details className="rounded border border-separator p-3">
+        <summary className="text-[14px] font-medium text-text cursor-pointer">Advanced</summary>
+        <label className="flex flex-col gap-1 mt-3" htmlFor={oauthClientIdId}>
+          <span className="text-[13px] text-muted">GitHub OAuth Client ID</span>
+          <input
+            id={oauthClientIdId}
+            type="text"
+            className={field}
+            value={settings.oauthClientId ?? ''}
+            disabled={disabled}
+            placeholder="Leave blank to use HarborClient's app"
+            onChange={(event) => updateSettings({ oauthClientId: event.target.value })}
+          />
+          <span className="text-[13px] text-muted">
+            Use your organization&apos;s GitHub OAuth App (device flow enabled, <code>repo</code>{' '}
+            scope). Changing this after authorizing requires revoking and re-authorizing.
+          </span>
+        </label>
+      </details>
     </div>
   );
 }

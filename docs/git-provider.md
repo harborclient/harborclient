@@ -90,6 +90,19 @@ Private HTTPS remotes require credentials. HarborClient stores tokens encrypted 
 
 Both methods feed the same HTTPS authentication path used for fetch, pull, and push.
 
+### Custom GitHub OAuth App (Advanced)
+
+By default, **Authorize with GitHub** uses HarborClient's built-in OAuth App. Teams that require their own app (org policy, audit, or approval workflows) can register a GitHub OAuth App and enter its **Client ID** under **Advanced** in git connection settings.
+
+1. In your GitHub organization: **Settings → Developer settings → OAuth Apps → New OAuth App** (or create an organization-owned app).
+2. Enable **Device Flow** for the app.
+3. Request the **`repo`** scope when users authorize (HarborClient requests this during device flow).
+4. Copy the **Client ID** — no client secret is required for device flow.
+5. If your organization restricts third-party apps, an admin must approve the app for the org.
+6. In HarborClient: open the git connection, expand **Advanced**, paste the Client ID, save the connection, then authorize with GitHub.
+
+Leave the Client ID blank to keep using HarborClient's built-in app. If you change the Client ID after authorizing, revoke GitHub authorization and authorize again so tokens match the new app.
+
 ### HTTPS only
 
 HarborClient uses `isomorphic-git` over HTTPS. SSH remotes and SSH keys are not supported. If your team uses SSH URLs, create a PAT for HTTPS access or use external git tooling for push/pull while still editing files through HarborClient.
