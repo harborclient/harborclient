@@ -1,9 +1,12 @@
 import { Pool } from 'pg';
 import {
-  buildFolderNameIndex,
+  buildFolderImportMaps,
   buildRequestUuidIndex,
+  planImportedFolderUpsert,
+  registerImportedFolderInMaps,
   resolveImportFolderId,
   resolveImportedCollectionUuid,
+  resolveImportedFolderUuid,
   serializeImportedRequestFields
 } from '#/main/db/collectionImport';
 import {
@@ -169,18 +172,23 @@ export class PostgresDatabase implements IDatabase {
       ALTER TABLE environments ADD COLUMN IF NOT EXISTS uuid TEXT NOT NULL DEFAULT ''
     `);
 
+    await this.#pool.query(`
+      ALTER TABLE folders ADD COLUMN IF NOT EXISTS uuid TEXT NOT NULL DEFAULT ''
+    `);
+
     await this.backfillDocumentUuids('collections');
     await this.backfillDocumentUuids('requests');
     await this.backfillDocumentUuids('environments');
+    await this.backfillDocumentUuids('folders');
   }
 
   /**
    * Assigns uuids to rows that were created before uuid support existed.
    *
-   * @param table - Table name (`collections`, `requests`, or `environments`).
+   * @param table - Table name (`collections`, `requests`, `environments`, or `folders`).
    */
   private async backfillDocumentUuids(
-    table: 'collections' | 'requests' | 'environments'
+    table: 'collections' | 'requests' | 'environments' | 'folders'
   ): Promise<void> {
     const result = await this.getPool().query(
       `SELECT id FROM ${table} WHERE uuid IS NULL OR uuid = ''`
@@ -526,10 +534,10 @@ export class PostgresDatabase implements IDatabase {
     const maxOrder = (maxResult.rows[0]?.max_order as number) ?? -1;
 
     const result = await this.getPool().query(
-      `INSERT INTO folders (collection_id, name, sort_order, created_at)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO folders (collection_id, name, sort_order, uuid, created_at)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [collectionId, trimmedName, maxOrder + 1, createdAt]
+      [collectionId, trimmedName, maxOrder + 1, generateDocumentUuid(), createdAt]
     );
 
     const row = result.rows[0];
@@ -735,8 +743,13 @@ export class PostgresDatabase implements IDatabase {
     if (!row) throw new Error('Collection not found');
 
     const folderRecords = await this.listFolders(id);
-    const folders = folderRecords.map(({ name, sort_order }) => ({ name, sort_order }));
+    const folders = folderRecords.map(({ uuid, name, sort_order }) => ({
+      uuid,
+      name,
+      sort_order
+    }));
     const folderNameById = new Map(folderRecords.map((folder) => [folder.id, folder.name]));
+    const folderUuidById = new Map(folderRecords.map((folder) => [folder.id, folder.uuid]));
 
     const requests = (await this.listRequests(id)).map(
       ({
@@ -768,7 +781,8 @@ export class PostgresDatabase implements IDatabase {
         post_request_script,
         comment,
         sort_order,
-        folder_name: folder_id != null ? (folderNameById.get(folder_id) ?? null) : null
+        folder_name: folder_id != null ? (folderNameById.get(folder_id) ?? null) : null,
+        folder_uuid: folder_id != null ? (folderUuidById.get(folder_id) ?? null) : null
       })
     );
 
@@ -825,23 +839,35 @@ export class PostgresDatabase implements IDatabase {
       );
 
       const collectionId = collectionResult.rows[0]?.id as number;
-      const folderIdByName = new Map<string, number>();
+      const folderMaps: ReturnType<typeof buildFolderImportMaps> = {
+        folderIdByUuid: new Map(),
+        folderIdByName: new Map(),
+        folderUuidById: new Map()
+      };
 
       for (const folder of exportData.folders ?? []) {
-        if (folderIdByName.has(folder.name)) {
-          throw new Error(`Invalid collection file: duplicate folder name "${folder.name}"`);
-        }
+        const folderUuid = resolveImportedFolderUuid(folder);
         const folderResult = await client.query(
-          `INSERT INTO folders (collection_id, name, sort_order, created_at)
-           VALUES ($1, $2, $3, $4)
+          `INSERT INTO folders (collection_id, name, sort_order, uuid, created_at)
+           VALUES ($1, $2, $3, $4, $5)
            RETURNING id`,
-          [collectionId, folder.name, folder.sort_order, now]
+          [collectionId, folder.name, folder.sort_order, folderUuid, now]
         );
-        folderIdByName.set(folder.name, folderResult.rows[0]?.id as number);
+        registerImportedFolderInMaps(
+          folderMaps,
+          folderResult.rows[0]?.id as number,
+          folder.name,
+          folderUuid
+        );
       }
 
       for (const request of exportData.requests) {
-        const folderId = resolveImportFolderId(request.folder_name, folderIdByName);
+        const folderId = resolveImportFolderId(
+          request.folder_uuid,
+          request.folder_name,
+          folderMaps.folderIdByUuid,
+          folderMaps.folderIdByName
+        );
         const fields = serializeImportedRequestFields(request);
 
         await client.query(
@@ -959,25 +985,31 @@ export class PostgresDatabase implements IDatabase {
         'SELECT * FROM folders WHERE collection_id = $1',
         [id]
       );
-      const folderIdByName = buildFolderNameIndex(existingFolderResult.rows.map(rowToFolder));
+      const folderMaps = buildFolderImportMaps(existingFolderResult.rows.map(rowToFolder));
 
       for (const folder of exportData.folders ?? []) {
-        const existingFolderId = folderIdByName.get(folder.name);
-        if (existingFolderId != null) {
+        const plan = planImportedFolderUpsert(folder, folderMaps);
+        if (plan.action === 'update') {
           await client.query(
-            'UPDATE folders SET sort_order = $1 WHERE id = $2 AND collection_id = $3',
-            [folder.sort_order, existingFolderId, id]
+            'UPDATE folders SET name = $1, sort_order = $2 WHERE id = $3 AND collection_id = $4',
+            [plan.name, plan.sort_order, plan.existingId, id]
           );
+          registerImportedFolderInMaps(folderMaps, plan.existingId, plan.name, plan.uuid);
           continue;
         }
 
         const folderResult = await client.query(
-          `INSERT INTO folders (collection_id, name, sort_order, created_at)
-           VALUES ($1, $2, $3, $4)
+          `INSERT INTO folders (collection_id, name, sort_order, uuid, created_at)
+           VALUES ($1, $2, $3, $4, $5)
            RETURNING id`,
-          [id, folder.name, folder.sort_order, now]
+          [id, plan.name, plan.sort_order, plan.uuid, now]
         );
-        folderIdByName.set(folder.name, folderResult.rows[0]?.id as number);
+        registerImportedFolderInMaps(
+          folderMaps,
+          folderResult.rows[0]?.id as number,
+          plan.name,
+          plan.uuid
+        );
       }
 
       const existingRequestResult = await client.query(
@@ -987,7 +1019,12 @@ export class PostgresDatabase implements IDatabase {
       const requestUuidIndex = buildRequestUuidIndex(existingRequestResult.rows.map(rowToRequest));
 
       for (const request of exportData.requests) {
-        const folderId = resolveImportFolderId(request.folder_name, folderIdByName);
+        const folderId = resolveImportFolderId(
+          request.folder_uuid,
+          request.folder_name,
+          folderMaps.folderIdByUuid,
+          folderMaps.folderIdByName
+        );
         const fields = serializeImportedRequestFields(request);
         const existingRequestId = fields.uuid ? requestUuidIndex.get(fields.uuid) : undefined;
 

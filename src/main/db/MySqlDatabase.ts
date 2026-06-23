@@ -1,9 +1,12 @@
 import mysql, { type Pool, type ResultSetHeader, type RowDataPacket } from 'mysql2/promise';
 import {
-  buildFolderNameIndex,
+  buildFolderImportMaps,
   buildRequestUuidIndex,
+  planImportedFolderUpsert,
+  registerImportedFolderInMaps,
   resolveImportFolderId,
   resolveImportedCollectionUuid,
+  resolveImportedFolderUuid,
   serializeImportedRequestFields
 } from '#/main/db/collectionImport';
 import {
@@ -159,18 +162,20 @@ export class MySqlDatabase implements IDatabase {
     await this.addColumnIfMissing('collections', 'uuid', "VARCHAR(36) NOT NULL DEFAULT ''");
     await this.addColumnIfMissing('requests', 'uuid', "VARCHAR(36) NOT NULL DEFAULT ''");
     await this.addColumnIfMissing('environments', 'uuid', "VARCHAR(36) NOT NULL DEFAULT ''");
+    await this.addColumnIfMissing('folders', 'uuid', "VARCHAR(36) NOT NULL DEFAULT ''");
     await this.backfillDocumentUuids('collections');
     await this.backfillDocumentUuids('requests');
     await this.backfillDocumentUuids('environments');
+    await this.backfillDocumentUuids('folders');
   }
 
   /**
    * Assigns uuids to rows that were created before uuid support existed.
    *
-   * @param table - Table name (`collections`, `requests`, or `environments`).
+   * @param table - Table name (`collections`, `requests`, `environments`, or `folders`).
    */
   private async backfillDocumentUuids(
-    table: 'collections' | 'requests' | 'environments'
+    table: 'collections' | 'requests' | 'environments' | 'folders'
   ): Promise<void> {
     const [rows] = await this.getPool().execute<RowDataPacket[]>(
       `SELECT id FROM ${table} WHERE uuid IS NULL OR uuid = ''`
@@ -556,8 +561,8 @@ export class MySqlDatabase implements IDatabase {
     const maxOrder = (maxRows[0]?.max_order as number) ?? -1;
 
     const [result] = await this.getPool().execute<ResultSetHeader>(
-      'INSERT INTO folders (collection_id, name, sort_order, created_at) VALUES (?, ?, ?, ?)',
-      [collectionId, trimmedName, maxOrder + 1, createdAt]
+      'INSERT INTO folders (collection_id, name, sort_order, uuid, created_at) VALUES (?, ?, ?, ?, ?)',
+      [collectionId, trimmedName, maxOrder + 1, generateDocumentUuid(), createdAt]
     );
 
     const [rows] = await this.getPool().execute<RowDataPacket[]>(
@@ -777,8 +782,13 @@ export class MySqlDatabase implements IDatabase {
     if (!row) throw new Error('Collection not found');
 
     const folderRecords = await this.listFolders(id);
-    const folders = folderRecords.map(({ name, sort_order }) => ({ name, sort_order }));
+    const folders = folderRecords.map(({ uuid, name, sort_order }) => ({
+      uuid,
+      name,
+      sort_order
+    }));
     const folderNameById = new Map(folderRecords.map((folder) => [folder.id, folder.name]));
+    const folderUuidById = new Map(folderRecords.map((folder) => [folder.id, folder.uuid]));
 
     const requests = (await this.listRequests(id)).map(
       ({
@@ -810,7 +820,8 @@ export class MySqlDatabase implements IDatabase {
         post_request_script,
         comment,
         sort_order,
-        folder_name: folder_id != null ? (folderNameById.get(folder_id) ?? null) : null
+        folder_name: folder_id != null ? (folderNameById.get(folder_id) ?? null) : null,
+        folder_uuid: folder_id != null ? (folderUuidById.get(folder_id) ?? null) : null
       })
     );
 
@@ -866,21 +877,28 @@ export class MySqlDatabase implements IDatabase {
       );
 
       const collectionId = collectionResult.insertId;
-      const folderIdByName = new Map<string, number>();
+      const folderMaps: ReturnType<typeof buildFolderImportMaps> = {
+        folderIdByUuid: new Map(),
+        folderIdByName: new Map(),
+        folderUuidById: new Map()
+      };
 
       for (const folder of exportData.folders ?? []) {
-        if (folderIdByName.has(folder.name)) {
-          throw new Error(`Invalid collection file: duplicate folder name "${folder.name}"`);
-        }
+        const folderUuid = resolveImportedFolderUuid(folder);
         const [folderResult] = await connection.execute<ResultSetHeader>(
-          'INSERT INTO folders (collection_id, name, sort_order, created_at) VALUES (?, ?, ?, ?)',
-          [collectionId, folder.name, folder.sort_order, now]
+          'INSERT INTO folders (collection_id, name, sort_order, uuid, created_at) VALUES (?, ?, ?, ?, ?)',
+          [collectionId, folder.name, folder.sort_order, folderUuid, now]
         );
-        folderIdByName.set(folder.name, folderResult.insertId);
+        registerImportedFolderInMaps(folderMaps, folderResult.insertId, folder.name, folderUuid);
       }
 
       for (const request of exportData.requests) {
-        const folderId = resolveImportFolderId(request.folder_name, folderIdByName);
+        const folderId = resolveImportFolderId(
+          request.folder_uuid,
+          request.folder_name,
+          folderMaps.folderIdByUuid,
+          folderMaps.folderIdByName
+        );
         const fields = serializeImportedRequestFields(request);
 
         await connection.execute(
@@ -1003,23 +1021,24 @@ export class MySqlDatabase implements IDatabase {
         'SELECT * FROM folders WHERE collection_id = ?',
         [id]
       );
-      const folderIdByName = buildFolderNameIndex(existingFolderRows.map(rowToFolder));
+      const folderMaps = buildFolderImportMaps(existingFolderRows.map(rowToFolder));
 
       for (const folder of exportData.folders ?? []) {
-        const existingFolderId = folderIdByName.get(folder.name);
-        if (existingFolderId != null) {
+        const plan = planImportedFolderUpsert(folder, folderMaps);
+        if (plan.action === 'update') {
           await connection.execute(
-            'UPDATE folders SET sort_order = ? WHERE id = ? AND collection_id = ?',
-            [folder.sort_order, existingFolderId, id]
+            'UPDATE folders SET name = ?, sort_order = ? WHERE id = ? AND collection_id = ?',
+            [plan.name, plan.sort_order, plan.existingId, id]
           );
+          registerImportedFolderInMaps(folderMaps, plan.existingId, plan.name, plan.uuid);
           continue;
         }
 
         const [folderResult] = await connection.execute<ResultSetHeader>(
-          'INSERT INTO folders (collection_id, name, sort_order, created_at) VALUES (?, ?, ?, ?)',
-          [id, folder.name, folder.sort_order, now]
+          'INSERT INTO folders (collection_id, name, sort_order, uuid, created_at) VALUES (?, ?, ?, ?, ?)',
+          [id, plan.name, plan.sort_order, plan.uuid, now]
         );
-        folderIdByName.set(folder.name, folderResult.insertId);
+        registerImportedFolderInMaps(folderMaps, folderResult.insertId, plan.name, plan.uuid);
       }
 
       const [existingRequestRows] = await connection.execute<RowDataPacket[]>(
@@ -1029,7 +1048,12 @@ export class MySqlDatabase implements IDatabase {
       const requestUuidIndex = buildRequestUuidIndex(existingRequestRows.map(rowToRequest));
 
       for (const request of exportData.requests) {
-        const folderId = resolveImportFolderId(request.folder_name, folderIdByName);
+        const folderId = resolveImportFolderId(
+          request.folder_uuid,
+          request.folder_name,
+          folderMaps.folderIdByUuid,
+          folderMaps.folderIdByName
+        );
         const fields = serializeImportedRequestFields(request);
         const existingRequestId = fields.uuid ? requestUuidIndex.get(fields.uuid) : undefined;
 

@@ -253,6 +253,7 @@ export function rowToChat(
 export function rowToFolder(row: Record<string, unknown>): Folder {
   return {
     id: readNumber(row.id),
+    uuid: readString(row.uuid),
     collection_id: readNumber(row.collection_id),
     name: readString(row.name),
     sort_order: readNumber(row.sort_order),

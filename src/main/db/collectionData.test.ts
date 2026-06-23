@@ -50,14 +50,24 @@ const validRequestExport = {
 };
 
 describe('validateCollectionExport', () => {
-  it('accepts optional document uuids on collection, request, and environment exports', () => {
+  it('accepts optional document uuids on collection, request, folder, and environment exports', () => {
     const collection = validateCollectionExport({
       ...validV1Export,
       uuid: '11111111-1111-4111-8111-111111111111',
-      requests: [{ ...validRequest, uuid: '22222222-2222-4222-8222-222222222222' }]
+      folders: [{ uuid: '55555555-5555-4555-8555-555555555555', name: 'API', sort_order: 0 }],
+      requests: [
+        {
+          ...validRequest,
+          uuid: '22222222-2222-4222-8222-222222222222',
+          folder_uuid: '55555555-5555-4555-8555-555555555555',
+          folder_name: 'API'
+        }
+      ]
     });
     expect(collection.uuid).toBe('11111111-1111-4111-8111-111111111111');
     expect(collection.requests[0]?.uuid).toBe('22222222-2222-4222-8222-222222222222');
+    expect(collection.folders?.[0]?.uuid).toBe('55555555-5555-4555-8555-555555555555');
+    expect(collection.requests[0]?.folder_uuid).toBe('55555555-5555-4555-8555-555555555555');
 
     const request = validateRequestExport({
       ...validRequestExport,
@@ -132,6 +142,19 @@ describe('validateCollectionExport', () => {
         requests: []
       })
     ).toThrow('Invalid collection file: folder 2 has a duplicate name');
+  });
+
+  it('rejects duplicate folder uuids', () => {
+    expect(() =>
+      validateCollectionExport({
+        ...validV1Export,
+        folders: [
+          { uuid: '55555555-5555-4555-8555-555555555555', name: 'API', sort_order: 0 },
+          { uuid: '55555555-5555-4555-8555-555555555555', name: 'Auth', sort_order: 1 }
+        ],
+        requests: []
+      })
+    ).toThrow('Invalid collection file: folder 2 has a duplicate uuid');
   });
 
   it('rejects non-object payloads', () => {

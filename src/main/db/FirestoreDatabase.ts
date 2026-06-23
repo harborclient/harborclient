@@ -25,10 +25,13 @@ import {
 } from 'firebase/firestore';
 import { maskVariablesForExport, validateCollectionExport } from '#/main/db/collectionData';
 import {
-  buildFolderNameIndex,
+  buildFolderImportMaps,
   buildRequestUuidIndex,
+  planImportedFolderUpsert,
+  registerImportedFolderInMaps,
   resolveImportFolderId,
   resolveImportedCollectionUuid,
+  resolveImportedFolderUuid,
   serializeImportedRequestFields
 } from '#/main/db/collectionImport';
 import {
@@ -182,7 +185,7 @@ export class FirestoreDatabase implements IDatabase {
    * @returns The persisted uuid string.
    */
   private async ensureDocumentUuid(
-    collectionName: 'collections' | 'requests' | 'environments',
+    collectionName: 'collections' | 'requests' | 'environments' | 'folders',
     docId: string,
     data: Record<string, unknown>
   ): Promise<string> {
@@ -566,15 +569,19 @@ export class FirestoreDatabase implements IDatabase {
    * @returns Folders ordered by sort_order then name.
    */
   async listFolders(collectionId: number): Promise<Folder[]> {
+    const firestore = this.getFirestore();
     const snap = await getDocs(
-      query(collection(this.getFirestore(), 'folders'), where('collection_id', '==', collectionId))
+      query(collection(firestore, 'folders'), where('collection_id', '==', collectionId))
     );
 
-    return snap.docs
-      .map((document) =>
-        docToFolder(Number(document.id), document.data() as Record<string, unknown>)
-      )
-      .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+    const results: Folder[] = [];
+    for (const document of snap.docs) {
+      const data = document.data() as Record<string, unknown>;
+      const uuid = await this.ensureDocumentUuid('folders', document.id, data);
+      results.push(docToFolder(Number(document.id), { ...data, uuid }));
+    }
+
+    return results.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
   }
 
   /**
@@ -592,6 +599,7 @@ export class FirestoreDatabase implements IDatabase {
     const createdAt = new Date().toISOString();
     const data = {
       id,
+      uuid: generateDocumentUuid(),
       collection_id: collectionId,
       name: trimmedName,
       sort_order: maxOrder + 1,
@@ -772,8 +780,13 @@ export class FirestoreDatabase implements IDatabase {
     const collectionUuid = await this.ensureDocumentUuid('collections', String(id), data);
     const collectionRecord = docToCollection(id, { ...data, uuid: collectionUuid });
     const folderRecords = await this.listFolders(id);
-    const folders = folderRecords.map(({ name, sort_order }) => ({ name, sort_order }));
+    const folders = folderRecords.map(({ uuid, name, sort_order }) => ({
+      uuid,
+      name,
+      sort_order
+    }));
     const folderNameById = new Map(folderRecords.map((folder) => [folder.id, folder.name]));
+    const folderUuidById = new Map(folderRecords.map((folder) => [folder.id, folder.uuid]));
 
     const requests = (await this.listRequests(id)).map(
       ({
@@ -805,7 +818,8 @@ export class FirestoreDatabase implements IDatabase {
         post_request_script,
         comment,
         sort_order,
-        folder_name: folder_id != null ? (folderNameById.get(folder_id) ?? null) : null
+        folder_name: folder_id != null ? (folderNameById.get(folder_id) ?? null) : null,
+        folder_uuid: folder_id != null ? (folderUuidById.get(folder_id) ?? null) : null
       })
     );
 
@@ -852,21 +866,24 @@ export class FirestoreDatabase implements IDatabase {
     const folderIds = await this.allocateIds('folders', folders.length);
     const requestIds = await this.allocateIds('requests', exportData.requests.length);
 
-    const folderIdByName = new Map<string, number>();
+    const folderMaps: ReturnType<typeof buildFolderImportMaps> = {
+      folderIdByUuid: new Map(),
+      folderIdByName: new Map(),
+      folderUuidById: new Map()
+    };
     const writes: Array<{ ref: ReturnType<typeof doc>; data: Record<string, unknown> }> = [
       { ref: doc(firestore, 'collections', String(id)), data: collectionData }
     ];
 
     folders.forEach((folder, index) => {
-      if (folderIdByName.has(folder.name)) {
-        throw new Error(`Invalid collection file: duplicate folder name "${folder.name}"`);
-      }
       const folderId = folderIds[index];
-      folderIdByName.set(folder.name, folderId);
+      const folderUuid = resolveImportedFolderUuid(folder);
+      registerImportedFolderInMaps(folderMaps, folderId, folder.name, folderUuid);
       writes.push({
         ref: doc(firestore, 'folders', String(folderId)),
         data: {
           id: folderId,
+          uuid: folderUuid,
           collection_id: id,
           name: folder.name,
           sort_order: folder.sort_order,
@@ -877,7 +894,12 @@ export class FirestoreDatabase implements IDatabase {
 
     exportData.requests.forEach((request, index) => {
       const requestId = requestIds[index];
-      const folderId = resolveImportFolderId(request.folder_name, folderIdByName);
+      const folderId = resolveImportFolderId(
+        request.folder_uuid,
+        request.folder_name,
+        folderMaps.folderIdByUuid,
+        folderMaps.folderIdByName
+      );
       const fields = serializeImportedRequestFields(request);
 
       writes.push({
@@ -995,33 +1017,41 @@ export class FirestoreDatabase implements IDatabase {
     });
 
     const existingFolders = await this.listFolders(id);
-    const folderIdByName = buildFolderNameIndex(existingFolders);
+    const folderMaps = buildFolderImportMaps(existingFolders);
 
     for (const folder of exportData.folders ?? []) {
-      const existingFolderId = folderIdByName.get(folder.name);
-      if (existingFolderId != null) {
-        await updateDoc(doc(firestore, 'folders', String(existingFolderId)), {
-          sort_order: folder.sort_order
+      const plan = planImportedFolderUpsert(folder, folderMaps);
+      if (plan.action === 'update') {
+        await updateDoc(doc(firestore, 'folders', String(plan.existingId)), {
+          name: plan.name,
+          sort_order: plan.sort_order
         });
+        registerImportedFolderInMaps(folderMaps, plan.existingId, plan.name, plan.uuid);
         continue;
       }
 
       const folderId = await this.nextId('folders');
       await setDoc(doc(firestore, 'folders', String(folderId)), {
         id: folderId,
+        uuid: plan.uuid,
         collection_id: id,
-        name: folder.name,
-        sort_order: folder.sort_order,
+        name: plan.name,
+        sort_order: plan.sort_order,
         created_at: now
       });
-      folderIdByName.set(folder.name, folderId);
+      registerImportedFolderInMaps(folderMaps, folderId, plan.name, plan.uuid);
     }
 
     const existingRequests = await this.listRequests(id);
     const requestUuidIndex = buildRequestUuidIndex(existingRequests);
 
     for (const request of exportData.requests) {
-      const folderId = resolveImportFolderId(request.folder_name, folderIdByName);
+      const folderId = resolveImportFolderId(
+        request.folder_uuid,
+        request.folder_name,
+        folderMaps.folderIdByUuid,
+        folderMaps.folderIdByName
+      );
       const fields = serializeImportedRequestFields(request);
       const existingRequestId = fields.uuid ? requestUuidIndex.get(fields.uuid) : undefined;
 

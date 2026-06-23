@@ -556,8 +556,11 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
       const exported = await db.exportCollectionData(collection.id);
       expect(exported.harborclientVersion).toBe(1);
       expect(exported.harborclientExport).toBe('collection');
-      expect(exported.folders).toEqual([{ name: 'Auth', sort_order: 0 }]);
+      expect(exported.folders).toEqual([
+        expect.objectContaining({ name: 'Auth', sort_order: 0, uuid: folder.uuid })
+      ]);
       expect(exported.requests[0]?.folder_name).toBe('Auth');
+      expect(exported.requests[0]?.folder_uuid).toBe(folder.uuid);
 
       const imported = await db.importCollectionData(exported);
       const importedFolders = await db.listFolders(imported.id);
@@ -566,6 +569,31 @@ export function runIdatabaseContractSuite(label: string, createTestDb: CreateTes
       expect(importedFolders).toHaveLength(1);
       expect(importedRequests).toHaveLength(1);
       expect(importedRequests[0]?.folder_id).toBe(importedFolders[0]?.id);
+    });
+
+    it('updateCollectionFromImport reuses folder id when uuid matches', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Folder Uuid Import');
+      const folder = await db.createFolder(collection.id, 'Auth');
+      await db.saveRequest(
+        baseRequestInput(collection.id, { name: 'Login', folder_id: folder.id, method: 'POST' })
+      );
+
+      const exportData = await db.exportCollectionData(collection.id);
+      const payload: typeof exportData = {
+        ...exportData,
+        folders: exportData.folders?.map((row) =>
+          row.uuid === folder.uuid ? { ...row, name: 'Renamed' } : row
+        )
+      };
+
+      await db.updateCollectionFromImport(collection.id, payload);
+      const folders = await db.listFolders(collection.id);
+
+      expect(folders).toHaveLength(1);
+      expect(folders[0]?.id).toBe(folder.id);
+      expect(folders[0]?.uuid).toBe(folder.uuid);
+      expect(folders[0]?.name).toBe('Renamed');
     });
   });
 }

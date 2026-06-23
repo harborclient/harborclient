@@ -3,10 +3,13 @@ import { app } from 'electron';
 import { copyFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import {
-  buildFolderNameIndex,
+  buildFolderImportMaps,
   buildRequestUuidIndex,
+  planImportedFolderUpsert,
+  registerImportedFolderInMaps,
   resolveImportFolderId,
   resolveImportedCollectionUuid,
+  resolveImportedFolderUuid,
   serializeImportedRequestFields
 } from '#/main/db/collectionImport';
 import {
@@ -218,17 +221,21 @@ export class SqliteDatabase implements IDatabase {
     this.migrateDocumentUuidColumn('collections');
     this.migrateDocumentUuidColumn('requests');
     this.migrateDocumentUuidColumn('environments');
+    this.migrateDocumentUuidColumn('folders');
     this.backfillDocumentUuids('collections');
     this.backfillDocumentUuids('requests');
     this.backfillDocumentUuids('environments');
+    this.backfillDocumentUuids('folders');
   }
 
   /**
    * Adds a uuid column to a document table when missing from legacy databases.
    *
-   * @param table - Table name (`collections`, `requests`, or `environments`).
+   * @param table - Table name (`collections`, `requests`, `environments`, or `folders`).
    */
-  private migrateDocumentUuidColumn(table: 'collections' | 'requests' | 'environments'): void {
+  private migrateDocumentUuidColumn(
+    table: 'collections' | 'requests' | 'environments' | 'folders'
+  ): void {
     const columns = this.getDb().prepare(`PRAGMA table_info(${table})`).all() as Array<{
       name: string;
     }>;
@@ -241,9 +248,11 @@ export class SqliteDatabase implements IDatabase {
   /**
    * Assigns uuids to rows that were created before uuid support existed.
    *
-   * @param table - Table name (`collections`, `requests`, or `environments`).
+   * @param table - Table name (`collections`, `requests`, `environments`, or `folders`).
    */
-  private backfillDocumentUuids(table: 'collections' | 'requests' | 'environments'): void {
+  private backfillDocumentUuids(
+    table: 'collections' | 'requests' | 'environments' | 'folders'
+  ): void {
     const database = this.getDb();
     const rows = database
       .prepare(`SELECT id FROM ${table} WHERE uuid IS NULL OR uuid = ''`)
@@ -578,8 +587,8 @@ export class SqliteDatabase implements IDatabase {
       .get(collectionId) as { max_order: number };
 
     const result = this.getDb()
-      .prepare('INSERT INTO folders (collection_id, name, sort_order) VALUES (?, ?, ?)')
-      .run(collectionId, trimmedName, maxOrder.max_order + 1);
+      .prepare('INSERT INTO folders (collection_id, name, sort_order, uuid) VALUES (?, ?, ?, ?)')
+      .run(collectionId, trimmedName, maxOrder.max_order + 1, generateDocumentUuid());
 
     const row = this.getDb()
       .prepare('SELECT * FROM folders WHERE id = ?')
@@ -780,11 +789,13 @@ export class SqliteDatabase implements IDatabase {
     if (!row) throw new Error('Collection not found');
 
     const folderRows = await this.listFolders(id);
-    const folders = folderRows.map(({ name, sort_order }) => ({
+    const folders = folderRows.map(({ uuid, name, sort_order }) => ({
+      uuid,
       name,
       sort_order
     }));
     const folderNameById = new Map(folderRows.map((folder) => [folder.id, folder.name]));
+    const folderUuidById = new Map(folderRows.map((folder) => [folder.id, folder.uuid]));
 
     const requests = (await this.listRequests(id)).map(
       ({
@@ -816,7 +827,8 @@ export class SqliteDatabase implements IDatabase {
         post_request_script,
         comment,
         sort_order,
-        folder_name: folder_id != null ? (folderNameById.get(folder_id) ?? null) : null
+        folder_name: folder_id != null ? (folderNameById.get(folder_id) ?? null) : null,
+        folder_uuid: folder_id != null ? (folderUuidById.get(folder_id) ?? null) : null
       })
     );
 
@@ -867,16 +879,21 @@ export class SqliteDatabase implements IDatabase {
         );
 
       const collectionId = Number(collectionResult.lastInsertRowid);
-      const folderIdByName = new Map<string, number>();
+      const folderMaps: ReturnType<typeof buildFolderImportMaps> = {
+        folderIdByUuid: new Map(),
+        folderIdByName: new Map(),
+        folderUuidById: new Map()
+      };
 
       for (const folder of payload.folders ?? []) {
-        if (folderIdByName.has(folder.name)) {
-          throw new Error(`Invalid collection file: duplicate folder name "${folder.name}"`);
-        }
+        const folderUuid = resolveImportedFolderUuid(folder);
         const folderResult = database
-          .prepare('INSERT INTO folders (collection_id, name, sort_order) VALUES (?, ?, ?)')
-          .run(collectionId, folder.name, folder.sort_order);
-        folderIdByName.set(folder.name, Number(folderResult.lastInsertRowid));
+          .prepare(
+            'INSERT INTO folders (collection_id, name, sort_order, uuid) VALUES (?, ?, ?, ?)'
+          )
+          .run(collectionId, folder.name, folder.sort_order, folderUuid);
+        const folderId = Number(folderResult.lastInsertRowid);
+        registerImportedFolderInMaps(folderMaps, folderId, folder.name, folderUuid);
       }
 
       const insertRequest = database.prepare(
@@ -887,7 +904,12 @@ export class SqliteDatabase implements IDatabase {
       );
 
       for (const request of payload.requests) {
-        const folderId = resolveImportFolderId(request.folder_name, folderIdByName);
+        const folderId = resolveImportFolderId(
+          request.folder_uuid,
+          request.folder_name,
+          folderMaps.folderIdByUuid,
+          folderMaps.folderIdByName
+        );
         const fields = serializeImportedRequestFields(request);
 
         insertRequest.run(
@@ -989,21 +1011,31 @@ export class SqliteDatabase implements IDatabase {
       const existingFolderRows = database
         .prepare('SELECT * FROM folders WHERE collection_id = ?')
         .all(id) as Record<string, unknown>[];
-      const folderIdByName = buildFolderNameIndex(existingFolderRows.map(rowToFolder));
+      const folderMaps = buildFolderImportMaps(existingFolderRows.map(rowToFolder));
 
       for (const folder of payload.folders ?? []) {
-        const existingFolderId = folderIdByName.get(folder.name);
-        if (existingFolderId != null) {
+        const plan = planImportedFolderUpsert(folder, folderMaps);
+        if (plan.action === 'update') {
           database
-            .prepare('UPDATE folders SET sort_order = ? WHERE id = ? AND collection_id = ?')
-            .run(folder.sort_order, existingFolderId, id);
+            .prepare(
+              'UPDATE folders SET name = ?, sort_order = ? WHERE id = ? AND collection_id = ?'
+            )
+            .run(plan.name, plan.sort_order, plan.existingId, id);
+          registerImportedFolderInMaps(folderMaps, plan.existingId, plan.name, plan.uuid);
           continue;
         }
 
         const folderResult = database
-          .prepare('INSERT INTO folders (collection_id, name, sort_order) VALUES (?, ?, ?)')
-          .run(id, folder.name, folder.sort_order);
-        folderIdByName.set(folder.name, Number(folderResult.lastInsertRowid));
+          .prepare(
+            'INSERT INTO folders (collection_id, name, sort_order, uuid) VALUES (?, ?, ?, ?)'
+          )
+          .run(id, plan.name, plan.sort_order, plan.uuid);
+        registerImportedFolderInMaps(
+          folderMaps,
+          Number(folderResult.lastInsertRowid),
+          plan.name,
+          plan.uuid
+        );
       }
 
       const existingRequestRows = database
@@ -1026,7 +1058,12 @@ export class SqliteDatabase implements IDatabase {
       );
 
       for (const request of payload.requests) {
-        const folderId = resolveImportFolderId(request.folder_name, folderIdByName);
+        const folderId = resolveImportFolderId(
+          request.folder_uuid,
+          request.folder_name,
+          folderMaps.folderIdByUuid,
+          folderMaps.folderIdByName
+        );
         const fields = serializeImportedRequestFields(request);
         const existingRequestId = fields.uuid ? requestUuidIndex.get(fields.uuid) : undefined;
 

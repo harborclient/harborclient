@@ -35,6 +35,7 @@ export const importVariables = z
 
 const exportedFolderRow = z
   .object({
+    uuid: optionalDocumentUuid,
     name: z.string(),
     sort_order: z.number().optional()
   })
@@ -48,6 +49,7 @@ const exportedFolderRow = z
     }
   })
   .transform((folder) => ({
+    uuid: folder.uuid,
     name: folder.name.trim(),
     sort_order: folder.sort_order
   }));
@@ -74,6 +76,29 @@ export function findDuplicateFolderIndex(folders: ReadonlyArray<{ name: string }
 }
 
 /**
+ * Returns the index of the first duplicate folder uuid, or null when all uuids are unique.
+ *
+ * @param folders - Folder rows with optional uuids.
+ * @returns Index of the second occurrence, or null when uuids are unique or absent.
+ */
+export function findDuplicateFolderUuidIndex(
+  folders: ReadonlyArray<{ uuid?: string }>
+): number | null {
+  const seen = new Set<string>();
+  for (let index = 0; index < folders.length; index++) {
+    const uuid = folders[index]?.uuid?.trim();
+    if (!uuid) {
+      continue;
+    }
+    if (seen.has(uuid)) {
+      return index;
+    }
+    seen.add(uuid);
+  }
+  return null;
+}
+
+/**
  * Validates folder rows and applies index-based sort_order defaults.
  */
 export const exportedFolders = z
@@ -82,18 +107,28 @@ export const exportedFolders = z
   .transform((folders) =>
     folders.map(
       (folder, index): ExportedFolder => ({
+        uuid: folder.uuid,
         name: folder.name,
         sort_order: typeof folder.sort_order === 'number' ? folder.sort_order : index
       })
     )
   )
   .superRefine((folders, ctx) => {
-    const duplicateIndex = findDuplicateFolderIndex(folders);
-    if (duplicateIndex !== null) {
+    const duplicateNameIndex = findDuplicateFolderIndex(folders);
+    if (duplicateNameIndex !== null) {
       ctx.addIssue({
         code: 'custom',
         message: 'duplicate folder name',
-        path: [duplicateIndex, 'name']
+        path: [duplicateNameIndex, 'name']
+      });
+    }
+
+    const duplicateUuidIndex = findDuplicateFolderUuidIndex(folders);
+    if (duplicateUuidIndex !== null) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'duplicate folder uuid',
+        path: [duplicateUuidIndex, 'uuid']
       });
     }
   });
@@ -113,7 +148,8 @@ const exportedRequestRow = z
     post_request_script: z.string().default(''),
     comment: z.string().default(''),
     sort_order: z.number().optional(),
-    folder_name: z.union([z.string(), z.null()]).optional()
+    folder_name: z.union([z.string(), z.null()]).optional(),
+    folder_uuid: z.union([z.string().uuid(), z.null()]).optional()
   })
   .superRefine((req, ctx) => {
     if (!req.name.trim()) {
@@ -141,6 +177,12 @@ const exportedRequestRow = z
       typeof req.folder_name === 'string'
         ? req.folder_name.trim() || null
         : req.folder_name === null
+          ? null
+          : undefined,
+    folder_uuid:
+      typeof req.folder_uuid === 'string'
+        ? req.folder_uuid.trim() || null
+        : req.folder_uuid === null
           ? null
           : undefined
   }));
@@ -249,6 +291,10 @@ export function formatCollectionImportError(error: z.ZodError): string {
         return `folder ${folderNumber} has a duplicate name`;
       }
       return `folder ${folderNumber} is missing a name`;
+    }
+
+    if (path[2] === 'uuid' && issue.message === 'duplicate folder uuid') {
+      return `folder ${folderNumber} has a duplicate uuid`;
     }
 
     return `folder ${folderNumber} is malformed`;

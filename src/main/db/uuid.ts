@@ -26,21 +26,46 @@ export function resolveImportUuid(uuid: string | undefined): string {
 }
 
 /**
- * Returns a copy of a collection export with fresh uuids for the collection and every request.
+ * Returns a copy of a collection export with fresh uuids for the collection, folders, and requests.
  *
  * Used when the user chooses "Import as new copy" so future imports do not collide.
+ * Request `folder_uuid` values are rewritten to match reminted folder uuids.
  *
  * @param data - Validated collection export payload.
  * @returns A shallow copy with new uuids assigned.
  */
 export function mintFreshCollectionExportUuids(data: CollectionExport): CollectionExport {
+  const folderUuidByOldUuid = new Map<string, string>();
+  const folders = (data.folders ?? []).map((folder) => {
+    const newUuid = generateDocumentUuid();
+    if (folder.uuid?.trim()) {
+      folderUuidByOldUuid.set(folder.uuid.trim(), newUuid);
+    }
+    return {
+      ...folder,
+      uuid: newUuid
+    };
+  });
+
+  const requests = data.requests.map((request) => {
+    const oldFolderUuid = request.folder_uuid?.trim();
+    const remappedFolderUuid =
+      oldFolderUuid != null
+        ? (folderUuidByOldUuid.get(oldFolderUuid) ?? null)
+        : request.folder_uuid;
+
+    return {
+      ...request,
+      uuid: generateDocumentUuid(),
+      folder_uuid: remappedFolderUuid
+    };
+  });
+
   return {
     ...data,
     uuid: generateDocumentUuid(),
-    requests: data.requests.map((request) => ({
-      ...request,
-      uuid: generateDocumentUuid()
-    }))
+    folders,
+    requests
   };
 }
 

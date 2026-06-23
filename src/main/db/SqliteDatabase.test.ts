@@ -151,6 +151,74 @@ describeSqlite('SqliteDatabase uuid import', () => {
     expect(requests.find((item) => item.uuid === kept.uuid)?.name).toBe('Kept');
     expect(requests.find((item) => item.uuid === updated.uuid)?.name).toBe('New Name');
   });
+
+  it('round-trips folder uuids through export and import', async () => {
+    const { db } = await createTestDb();
+    const collection = await db.createCollection('Folder Round Trip');
+    const folder = await db.createFolder(collection.id, 'Auth');
+    await db.saveRequest(
+      baseRequestInput(collection.id, { name: 'Login', folder_id: folder.id, method: 'POST' })
+    );
+
+    const exported = await db.exportCollectionData(collection.id);
+    expect(exported.folders?.[0]?.uuid).toBe(folder.uuid);
+    expect(exported.requests[0]?.folder_uuid).toBe(folder.uuid);
+
+    const imported = await db.importCollectionData(exported);
+    const importedFolders = await db.listFolders(imported.id);
+    expect(importedFolders[0]?.uuid).toBe(folder.uuid);
+  });
+
+  it('updateCollectionFromImport reuses folder by uuid when name changes', async () => {
+    const { db } = await createTestDb();
+    const collection = await db.createCollection('Folder Upsert');
+    const folder = await db.createFolder(collection.id, 'Old Name');
+    await db.saveRequest(
+      baseRequestInput(collection.id, { name: 'In Folder', folder_id: folder.id })
+    );
+
+    const exportData = await db.exportCollectionData(collection.id);
+    const payload: typeof exportData = {
+      ...exportData,
+      folders: exportData.folders?.map((row) =>
+        row.uuid === folder.uuid ? { ...row, name: 'Renamed Folder' } : row
+      ),
+      requests: exportData.requests.map((row) =>
+        row.folder_uuid === folder.uuid ? { ...row, folder_name: 'Renamed Folder' } : row
+      )
+    };
+
+    await db.updateCollectionFromImport(collection.id, payload);
+    const folders = await db.listFolders(collection.id);
+
+    expect(folders).toHaveLength(1);
+    expect(folders[0]?.id).toBe(folder.id);
+    expect(folders[0]?.uuid).toBe(folder.uuid);
+    expect(folders[0]?.name).toBe('Renamed Folder');
+  });
+
+  it('links imported requests via folder_uuid when folder_name differs', async () => {
+    const { db } = await createTestDb();
+    const collection = await db.createCollection('Folder Uuid Link');
+    const folder = await db.createFolder(collection.id, 'Auth');
+    await db.saveRequest(baseRequestInput(collection.id, { name: 'Login', folder_id: folder.id }));
+
+    const exportData = await db.exportCollectionData(collection.id);
+    const payload: typeof exportData = {
+      ...exportData,
+      requests: exportData.requests.map((row) => ({
+        ...row,
+        folder_name: 'Wrong Name',
+        folder_uuid: folder.uuid
+      }))
+    };
+
+    const imported = await db.importCollectionData(payload);
+    const importedFolders = await db.listFolders(imported.id);
+    const importedRequests = await db.listRequests(imported.id);
+
+    expect(importedRequests[0]?.folder_id).toBe(importedFolders[0]?.id);
+  });
 });
 
 describeSqlite('SqliteDatabase contract', () => {

@@ -211,6 +211,11 @@ export interface Folder {
   collection_id: number;
 
   /**
+   * Stable portable identifier for export/import deduplication.
+   */
+  uuid: string;
+
+  /**
    * Display name shown in the sidebar.
    */
   name: string;
@@ -394,12 +399,22 @@ export interface ExportedRequest {
    * Name of the folder containing this request; null or omitted for collection root.
    */
   folder_name?: string | null;
+
+  /**
+   * Portable folder identifier; preferred over folder_name when present.
+   */
+  folder_uuid?: string | null;
 }
 
 /**
  * Portable folder shape for collection export/import (no database IDs).
  */
 export interface ExportedFolder {
+  /**
+   * Stable portable identifier; omitted in legacy export files.
+   */
+  uuid?: string;
+
   /**
    * Display name for the folder.
    */

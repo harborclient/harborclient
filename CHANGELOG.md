@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(folders): enhance folder management with UUID support and validation. (`c34b798`)
 - feat(docs): integrate dynamic download links and enhance documentation structure. (`49a7dc4`)
 - feat(docs): update README and documentation with new screenshot and features. (`248d31d`)
 - feat(sidebar): enhance sidebar navigation with folder selection and focus functionality. (`b840ed9`)

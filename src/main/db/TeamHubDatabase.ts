@@ -1,7 +1,10 @@
 import {
-  buildFolderNameIndex,
+  buildFolderImportMaps,
   buildRequestUuidIndex,
+  planImportedFolderUpsert,
+  registerImportedFolderInMaps,
   resolveImportFolderId,
+  resolveImportedFolderUuid,
   serializeImportedRequestFields
 } from '#/main/db/collectionImport';
 import {
@@ -58,6 +61,7 @@ function serverToCollection(record: CollectionRecord, localId: number): Collecti
 function serverToFolder(record: FolderRecord, localId: number, localCollectionId: number): Folder {
   return {
     id: localId,
+    uuid: record.id,
     collection_id: localCollectionId,
     name: record.name,
     sort_order: record.sortOrder,
@@ -151,7 +155,7 @@ export class TeamHubDatabase implements IDatabase {
   constructor(
     private readonly client: HarborTeamHubClient,
     private readonly idMap: TeamHubIdMap
-  ) {}
+  ) { }
 
   /**
    * Verifies connectivity to HarborClient Server before the router mounts this backend.
@@ -429,8 +433,13 @@ export class TeamHubDatabase implements IDatabase {
     }
 
     const folderRows = await this.listFolders(id);
-    const folders = folderRows.map(({ name, sort_order }) => ({ name, sort_order }));
+    const folders = folderRows.map(({ uuid, name, sort_order }) => ({
+      uuid,
+      name,
+      sort_order
+    }));
     const folderNameById = new Map(folderRows.map((folder) => [folder.id, folder.name]));
+    const folderUuidById = new Map(folderRows.map((folder) => [folder.id, folder.uuid]));
 
     const requests = (await this.listRequests(id)).map(
       ({
@@ -462,7 +471,8 @@ export class TeamHubDatabase implements IDatabase {
         post_request_script,
         comment,
         sort_order,
-        folder_name: folder_id != null ? (folderNameById.get(folder_id) ?? null) : null
+        folder_name: folder_id != null ? (folderNameById.get(folder_id) ?? null) : null,
+        folder_uuid: folder_id != null ? (folderUuidById.get(folder_id) ?? null) : null
       })
     );
 
@@ -499,22 +509,31 @@ export class TeamHubDatabase implements IDatabase {
       exportData.auth ?? defaultAuth()
     );
 
-    const folderIdByName = new Map<string, number>();
+    const folderMaps: ReturnType<typeof buildFolderImportMaps> = {
+      folderIdByUuid: new Map(),
+      folderIdByName: new Map(),
+      folderUuidById: new Map()
+    };
+    const orderedFolderIds: number[] = [];
+
     for (const folder of exportData.folders ?? []) {
-      if (folderIdByName.has(folder.name)) {
-        throw new Error(`Invalid collection file: duplicate folder name "${folder.name}"`);
-      }
       const createdFolder = await this.createFolder(updated.id, folder.name);
-      folderIdByName.set(folder.name, createdFolder.id);
+      const importUuid = resolveImportedFolderUuid(folder);
+      registerImportedFolderInMaps(folderMaps, createdFolder.id, folder.name, importUuid);
+      orderedFolderIds.push(createdFolder.id);
     }
 
-    const folderIds = [...folderIdByName.values()];
-    if (folderIds.length > 0) {
-      await this.reorderFolders(updated.id, folderIds);
+    if (orderedFolderIds.length > 0) {
+      await this.reorderFolders(updated.id, orderedFolderIds);
     }
 
     for (const request of exportData.requests) {
-      const folderId = resolveImportFolderId(request.folder_name, folderIdByName);
+      const folderId = resolveImportFolderId(
+        request.folder_uuid,
+        request.folder_name,
+        folderMaps.folderIdByUuid,
+        folderMaps.folderIdByName
+      );
       await this.saveRequest({
         collection_id: updated.id,
         folder_id: folderId,
@@ -594,23 +613,40 @@ export class TeamHubDatabase implements IDatabase {
     );
 
     const existingFolders = await this.listFolders(id);
-    const folderIdByName = buildFolderNameIndex(existingFolders);
+    const folderMaps = buildFolderImportMaps(existingFolders);
+    const orderedFolderIds: number[] = [];
 
     for (const folder of exportData.folders ?? []) {
-      const existingFolderId = folderIdByName.get(folder.name);
-      if (existingFolderId != null) {
+      const plan = planImportedFolderUpsert(folder, folderMaps);
+      if (plan.action === 'update') {
+        const existingFolder = existingFolders.find((item) => item.id === plan.existingId);
+        if (existingFolder != null && existingFolder.name !== plan.name) {
+          await this.renameFolder(plan.existingId, plan.name);
+        }
+        registerImportedFolderInMaps(folderMaps, plan.existingId, plan.name, plan.uuid);
+        orderedFolderIds.push(plan.existingId);
         continue;
       }
 
-      const createdFolder = await this.createFolder(id, folder.name);
-      folderIdByName.set(folder.name, createdFolder.id);
+      const createdFolder = await this.createFolder(id, plan.name);
+      registerImportedFolderInMaps(folderMaps, createdFolder.id, plan.name, plan.uuid);
+      orderedFolderIds.push(createdFolder.id);
+    }
+
+    if (orderedFolderIds.length > 0) {
+      await this.reorderFolders(id, orderedFolderIds);
     }
 
     const existingRequests = await this.listRequests(id);
     const requestUuidIndex = buildRequestUuidIndex(existingRequests);
 
     for (const request of exportData.requests) {
-      const folderId = resolveImportFolderId(request.folder_name, folderIdByName);
+      const folderId = resolveImportFolderId(
+        request.folder_uuid,
+        request.folder_name,
+        folderMaps.folderIdByUuid,
+        folderMaps.folderIdByName
+      );
       const fields = serializeImportedRequestFields(request);
       const existingRequestId = fields.uuid ? requestUuidIndex.get(fields.uuid) : undefined;
 

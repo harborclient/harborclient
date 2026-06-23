@@ -8,7 +8,7 @@ hero:
   actions:
     - theme: brand
       text: Download
-      link: https://github.com/headzoo/harborclient/releases/latest
+      link: /getting-started#download
     - theme: alt
       text: Get Started
       link: /getting-started

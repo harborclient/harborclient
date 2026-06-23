@@ -17,6 +17,13 @@ const sampleCollectionExport: CollectionExport = {
   headers: [],
   pre_request_script: '',
   post_request_script: '',
+  folders: [
+    {
+      uuid: '55555555-5555-4555-8555-555555555555',
+      name: 'Auth',
+      sort_order: 0
+    }
+  ],
   requests: [
     {
       uuid: '22222222-2222-4222-8222-222222222222',
@@ -30,7 +37,9 @@ const sampleCollectionExport: CollectionExport = {
       pre_request_script: '',
       post_request_script: '',
       comment: '',
-      sort_order: 0
+      sort_order: 0,
+      folder_uuid: '55555555-5555-4555-8555-555555555555',
+      folder_name: 'Auth'
     }
   ]
 };
@@ -63,11 +72,13 @@ describe('resolveImportUuid', () => {
 });
 
 describe('mintFreshCollectionExportUuids', () => {
-  it('assigns new uuids to the collection and every request', () => {
+  it('assigns new uuids to the collection, folders, and every request', () => {
     const copy = mintFreshCollectionExportUuids(sampleCollectionExport);
 
     expect(copy.uuid).not.toBe(sampleCollectionExport.uuid);
+    expect(copy.folders?.[0]?.uuid).not.toBe(sampleCollectionExport.folders?.[0]?.uuid);
     expect(copy.requests[0]?.uuid).not.toBe(sampleCollectionExport.requests[0]?.uuid);
+    expect(copy.requests[0]?.folder_uuid).toBe(copy.folders?.[0]?.uuid);
     expect(copy.name).toBe(sampleCollectionExport.name);
   });
 });

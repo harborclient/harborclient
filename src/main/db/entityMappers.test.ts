@@ -41,7 +41,7 @@ describe('entityMappers', () => {
     });
 
     it('warns and uses fallback when a required numeric field is not coercible', () => {
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => { });
 
       expect(rowToCollection({ id: 'not-a-number', name: 'Broken' })).toMatchObject({ id: 0 });
 
@@ -52,7 +52,7 @@ describe('entityMappers', () => {
     });
 
     it('warns and returns null when a nullable numeric field is not coercible', () => {
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => { });
 
       expect(
         rowToRequest({
@@ -112,9 +112,10 @@ describe('entityMappers', () => {
       });
     });
 
-    it('rowToFolder returns Folder with id, name, and sort_order', () => {
+    it('rowToFolder returns Folder with id, uuid, name, and sort_order', () => {
       const row = {
         id: 3,
+        uuid: '55555555-5555-4555-8555-555555555555',
         collection_id: 1,
         name: 'Auth',
         sort_order: 0,
