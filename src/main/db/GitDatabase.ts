@@ -377,8 +377,8 @@ export class GitDatabase implements IDatabase {
     const folderUuid =
       input.folder_id != null
         ? (loaded.manifest.folders.find(
-          (row) => this.#idIndex.folderIds[row.uuid] === input.folder_id
-        )?.uuid ?? null)
+            (row) => this.#idIndex.folderIds[row.uuid] === input.folder_id
+          )?.uuid ?? null)
         : null;
 
     const exported: CollectionExport['requests'][number] = {
@@ -542,7 +542,7 @@ export class GitDatabase implements IDatabase {
     const folderName =
       folderId != null
         ? (loaded.manifest.folders.find((f) => this.#idIndex.folderIds[f.uuid] === folderId)
-          ?.name ?? null)
+            ?.name ?? null)
         : null;
 
     const inContainer = loaded.requests.filter((request) => {

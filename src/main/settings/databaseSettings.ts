@@ -185,9 +185,9 @@ function normalizeGitSettings(input: Partial<GitSettings>): GitSettings {
     auth?.kind === 'oauth' && auth.provider === 'github'
       ? { kind: 'oauth' as const, provider: 'github' as const }
       : {
-        kind: 'pat' as const,
-        username: auth?.kind === 'pat' ? auth.username.trim() || 'token' : 'token'
-      };
+          kind: 'pat' as const,
+          username: auth?.kind === 'pat' ? auth.username.trim() || 'token' : 'token'
+        };
 
   return {
     repoPath: input.repoPath?.trim() ?? '',
