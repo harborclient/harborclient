@@ -4,7 +4,6 @@ The free API client that keeps your work private: no accounts, no subscriptions,
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![GitHub release](https://img.shields.io/github/v/release/headzoo/harborclient)](https://github.com/headzoo/harborclient/releases/latest)
-[![CI](https://github.com/headzoo/harborclient/actions/workflows/ci.yml/badge.svg)](https://github.com/headzoo/harborclient/actions/workflows/ci.yml)
 [![Documentation](https://img.shields.io/badge/docs-harborclient.com-0366d6)](https://harborclient.com/)
 ![Electron](https://img.shields.io/badge/Electron-desktop-47848F?logo=electron&logoColor=white)
 
