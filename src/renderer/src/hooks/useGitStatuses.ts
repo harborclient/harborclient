@@ -44,9 +44,9 @@ export function useGitStatuses(
     const unsubscribe =
       onWorkingTreeChanged != null
         ? window.api.onGitWorkingTreeChanged((connectionId) => {
-          refresh();
-          onWorkingTreeChanged(connectionId);
-        })
+            refresh();
+            onWorkingTreeChanged(connectionId);
+          })
         : undefined;
 
     return () => {

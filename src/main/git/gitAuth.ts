@@ -54,6 +54,14 @@ function resolveGitHubOAuthClientId(conn: DatabaseConnection & { type: 'git' }):
 }
 
 /**
+ * In-flight OAuth refresh promises keyed by connection id.
+ *
+ * GitHub rotates refresh tokens on use; concurrent refreshes with the same
+ * token cause `invalid_grant` and break the session. Callers share one refresh.
+ */
+const refreshPromises = new Map<string, Promise<string>>();
+
+/**
  * Returns a fresh OAuth access token, refreshing when expired when possible.
  *
  * @param connectionId - Git connection id.
@@ -70,18 +78,25 @@ async function resolveOAuthAccessToken(connectionId: string): Promise<string> {
   }
 
   if (refreshToken) {
-    const conn = requireGitConnection(connectionId);
-    const refreshed = await refreshGitHubAccessToken(
-      refreshToken,
-      resolveGitHubOAuthClientId(conn)
-    );
-    storeGitOAuthTokens(
-      connectionId,
-      refreshed.accessToken,
-      refreshed.refreshToken,
-      refreshed.expiresAt
-    );
-    return refreshed.accessToken;
+    let promise = refreshPromises.get(connectionId);
+    if (!promise) {
+      const conn = requireGitConnection(connectionId);
+      promise = refreshGitHubAccessToken(refreshToken, resolveGitHubOAuthClientId(conn))
+        .then((refreshed) => {
+          storeGitOAuthTokens(
+            connectionId,
+            refreshed.accessToken,
+            refreshed.refreshToken,
+            refreshed.expiresAt
+          );
+          return refreshed.accessToken;
+        })
+        .finally(() => {
+          refreshPromises.delete(connectionId);
+        });
+      refreshPromises.set(connectionId, promise);
+    }
+    return promise;
   }
 
   if (accessToken) {

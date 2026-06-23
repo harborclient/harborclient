@@ -718,7 +718,7 @@ describeSqlite('RoutingDatabase.create', () => {
     ];
     const slots = Object.fromEntries(connections.map((conn, index) => [conn.id, index]));
 
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const router = await RoutingDatabase.create(
       registry,

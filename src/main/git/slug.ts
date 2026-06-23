@@ -1,32 +1,29 @@
-import { existsSync, readdirSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { promises as fsp } from 'fs';
 
 /**
- * Recursively counts files under a directory containing git conflict markers.
+ * Counts JSON files in the provided list whose contents contain git conflict markers.
  *
- * @param dir - Directory to scan.
+ * Intended for modified paths from `git.statusMatrix` so status polling avoids
+ * scanning the entire HarborClient tree on every refresh.
+ *
+ * @param files - Absolute paths to candidate JSON files.
+ * @returns Number of files containing `<<<<<<<` conflict markers.
  */
-export function countConflictFiles(dir: string): number {
-  if (!existsSync(dir)) {
-    return 0;
-  }
-
-  let count = 0;
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const full = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      count += countConflictFiles(full);
-      continue;
-    }
-    if (!entry.name.endsWith('.json')) {
-      continue;
-    }
-    const text = readFileSync(full, 'utf-8');
-    if (text.includes('<<<<<<<')) {
-      count += 1;
-    }
-  }
-  return count;
+export async function countConflictFiles(files: string[]): Promise<number> {
+  const results = await Promise.all(
+    files.map(async (filePath) => {
+      if (!filePath.endsWith('.json')) {
+        return 0;
+      }
+      try {
+        const text = await fsp.readFile(filePath, 'utf-8');
+        return text.includes('<<<<<<<') ? 1 : 0;
+      } catch {
+        return 0;
+      }
+    })
+  );
+  return results.reduce<number>((sum, count) => sum + count, 0);
 }
 
 /**

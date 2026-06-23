@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { describe, expect, it } from 'vitest';
@@ -8,6 +8,7 @@ import {
   ensureHarborclientLayout,
   manifestToCollectionExport,
   readCollectionFromDir,
+  readAllEnvironments,
   writeCollectionToDir,
   type CollectionManifest
 } from '#/main/git/fileLayout';
@@ -67,6 +68,71 @@ describe('git file layout', () => {
     expect(exported.requests.length).toBe(1);
     expect(exported.requests[0]?.name).toBe('Health');
     expect(existsSync(join(root, '.gitignore'))).toBe(true);
+
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('throws a descriptive error when collection.json contains invalid JSON', () => {
+    const root = mkdtempSync(join(tmpdir(), 'hc-git-layout-'));
+    ensureHarborclientLayout(root);
+    const uuid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const dir = collectionDir(root, uuid, 'API');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'collection.json'), '<<<<<<< HEAD\n{ invalid\n', 'utf-8');
+
+    expect(() => readCollectionFromDir(dir)).toThrow(/Failed to parse JSON in .*collection\.json/);
+
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('throws a descriptive error when a request file contains invalid JSON', () => {
+    const root = mkdtempSync(join(tmpdir(), 'hc-git-layout-'));
+    ensureHarborclientLayout(root);
+    const uuid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const dir = collectionDir(root, uuid, 'API');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, 'collection.json'),
+      JSON.stringify({
+        harborclientVersion: 1,
+        harborclientExport: 'collection',
+        uuid,
+        name: 'API',
+        variables: [],
+        headers: [],
+        folders: [],
+        created_at: '2026-01-01T00:00:00.000Z'
+      }),
+      'utf-8'
+    );
+    const requestsDir = join(dir, 'requests');
+    mkdirSync(requestsDir, { recursive: true });
+    writeFileSync(
+      join(requestsDir, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb-health.json'),
+      '<<<<<<< HEAD\n{ invalid\n',
+      'utf-8'
+    );
+
+    expect(() => readCollectionFromDir(dir)).toThrow(
+      /Failed to parse JSON in .*bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb-health\.json/
+    );
+
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('throws a descriptive error when an environment file contains invalid JSON', () => {
+    const root = mkdtempSync(join(tmpdir(), 'hc-git-layout-'));
+    ensureHarborclientLayout(root);
+    const envDir = join(root, 'environments');
+    writeFileSync(
+      join(envDir, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc-local.json'),
+      '<<<<<<< HEAD\n{ invalid\n',
+      'utf-8'
+    );
+
+    expect(() => readAllEnvironments(root)).toThrow(
+      /Failed to parse JSON in .*cccccccc-cccc-4ccc-8ccc-cccccccccccc-local\.json/
+    );
 
     rmSync(root, { recursive: true, force: true });
   });

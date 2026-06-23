@@ -132,7 +132,7 @@ export async function completeGitHubDeviceFlow(
       throw new DOMException('GitHub OAuth polling aborted.', 'AbortError');
     }
 
-    await sleep(pending.interval * 1000);
+    await sleep(pending.interval * 1000, options.signal);
 
     const response = await fetch(ACCESS_TOKEN_URL, {
       method: 'POST',
@@ -259,10 +259,39 @@ export function clearPendingGitHubDeviceFlow(connectionId: string): void {
 }
 
 /**
- * Sleeps for the given duration.
+ * Sleeps for the given duration, rejecting immediately when the signal aborts.
  *
  * @param ms - Duration in milliseconds.
+ * @param signal - Optional abort signal that cancels the wait early.
  */
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException('GitHub OAuth polling aborted.', 'AbortError'));
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, ms);
+
+    /**
+     * Clears the timer and rejects when polling is cancelled mid-wait.
+     */
+    function onAbort(): void {
+      clearTimeout(timer);
+      cleanup();
+      reject(new DOMException('GitHub OAuth polling aborted.', 'AbortError'));
+    }
+
+    /**
+     * Removes the abort listener so resolved sleeps do not leak handlers.
+     */
+    function cleanup(): void {
+      signal?.removeEventListener('abort', onAbort);
+    }
+
+    signal?.addEventListener('abort', onAbort);
+  });
 }

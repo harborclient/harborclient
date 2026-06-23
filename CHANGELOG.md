@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- refactor(git): improve JSON error handling and sync operations. (`e33a817`)
 - refactor(git): rename HarborTeamHubClient to TeamHubClient. (`ba31cd1`)
 
 ## 1.5.19 - 2026-06-23

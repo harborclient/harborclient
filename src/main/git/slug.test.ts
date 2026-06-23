@@ -20,7 +20,7 @@ describe('git slug helpers', () => {
     expect(uuidSlugPrefix(uuid, 'Users API')).toBe(`${uuid}-users-api`);
   });
 
-  it('counts json files containing merge conflict markers', () => {
+  it('counts json files containing merge conflict markers', async () => {
     const root = mkdtempSync(join(tmpdir(), 'hc-git-conflicts-'));
     const nested = join(root, 'collections', 'api');
     mkdirSync(nested, { recursive: true });
@@ -31,7 +31,9 @@ describe('git slug helpers', () => {
       'utf-8'
     );
 
-    expect(countConflictFiles(root)).toBe(1);
+    expect(
+      await countConflictFiles([join(nested, 'clean.json'), join(nested, 'conflict.json')])
+    ).toBe(1);
     expect(existsSync(root)).toBe(true);
 
     rmSync(root, { recursive: true, force: true });

@@ -15,6 +15,23 @@ import type {
 import { parseJson } from '#/shared/parseJson';
 
 /**
+ * Reads and parses a JSON file, throwing a descriptive error when parsing fails.
+ *
+ * @param filePath - Absolute path to the JSON file.
+ * @returns Parsed JSON value.
+ * @throws When the file cannot be read or contains invalid JSON.
+ */
+function readJsonFile(filePath: string): unknown {
+  const raw = readFileSync(filePath, 'utf-8');
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to parse JSON in ${filePath}: ${detail}`);
+  }
+}
+
+/**
  * Folder row stored in collection.json with a stable uuid.
  */
 export interface StoredFolderRow {
@@ -203,7 +220,7 @@ export function readCollectionFromDir(dir: string): {
   requests: ExportedRequest[];
 } {
   const manifestPath = join(dir, 'collection.json');
-  const raw = JSON.parse(readFileSync(manifestPath, 'utf-8')) as Record<string, unknown>;
+  const raw = readJsonFile(manifestPath) as Record<string, unknown>;
   const manifest: CollectionManifest = {
     harborclientVersion: 1,
     harborclientExport: 'collection',
@@ -229,7 +246,8 @@ export function readCollectionFromDir(dir: string): {
       if (!fileName.endsWith('.json')) {
         continue;
       }
-      const parsed = JSON.parse(readFileSync(join(requestsDir, fileName), 'utf-8'));
+      const requestPath = join(requestsDir, fileName);
+      const parsed = readJsonFile(requestPath);
       const validated = validateRequestExport(parsed);
       requests.push({
         ...validated,
@@ -419,7 +437,8 @@ export function readAllEnvironments(root: string): EnvironmentExport[] {
     if (!fileName.endsWith('.json')) {
       continue;
     }
-    const parsed = JSON.parse(readFileSync(join(dir, fileName), 'utf-8'));
+    const envPath = join(dir, fileName);
+    const parsed = readJsonFile(envPath);
     environments.push(validateEnvironmentExport(parsed));
   }
   return environments;

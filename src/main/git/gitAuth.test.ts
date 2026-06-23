@@ -51,6 +51,7 @@ import {
   deleteGitSecrets,
   getGitAccessToken,
   getGitRefreshToken,
+  storeGitOAuthTokens,
   storeGitPat
 } from '#/main/git/gitSecrets';
 import {
@@ -69,6 +70,7 @@ describe('git auth resolver', () => {
     vi.mocked(getGitRefreshToken).mockReturnValue(undefined);
     startGitHubDeviceFlow.mockClear();
     refreshGitHubAccessToken.mockClear();
+    vi.mocked(storeGitOAuthTokens).mockClear();
   });
 
   it('resolves PAT credentials from encrypted storage', async () => {
@@ -176,6 +178,55 @@ describe('git auth resolver', () => {
 
     await beginGitHubOAuth('git-oauth-custom');
     expect(startGitHubDeviceFlow).toHaveBeenCalledWith('git-oauth-custom', 'org-client-id');
+  });
+
+  it('deduplicates concurrent OAuth refresh requests for the same connection', async () => {
+    mockConnections.push({
+      id: 'git-oauth-concurrent',
+      name: 'Git OAuth Concurrent',
+      type: 'git',
+      settings: {
+        repoPath: '/tmp/repo',
+        url: 'https://github.com/example/repo.git',
+        branch: 'main',
+        subdir: '.harborclient',
+        auth: { kind: 'oauth', provider: 'github' }
+      }
+    });
+
+    vi.mocked(getGitAccessToken).mockReturnValue(undefined);
+    vi.mocked(getGitRefreshToken).mockReturnValue('refresh-token');
+
+    let resolveRefresh: (value: {
+      accessToken: string;
+      refreshToken: string;
+      expiresAt: string;
+    }) => void = () => {};
+    const refreshDeferred = new Promise<{
+      accessToken: string;
+      refreshToken: string;
+      expiresAt: string;
+    }>((resolve) => {
+      resolveRefresh = resolve;
+    });
+    refreshGitHubAccessToken.mockReturnValue(refreshDeferred);
+
+    const first = resolveGitAuth('git-oauth-concurrent');
+    const second = resolveGitAuth('git-oauth-concurrent');
+
+    expect(refreshGitHubAccessToken).toHaveBeenCalledTimes(1);
+
+    resolveRefresh({
+      accessToken: 'new-token',
+      refreshToken: 'rotated-refresh-token',
+      expiresAt: '2099-01-01T00:00:00.000Z'
+    });
+
+    const [authA, authB] = await Promise.all([first, second]);
+    expect(authA).toEqual({ username: 'oauth2', password: 'new-token' });
+    expect(authB).toEqual({ username: 'oauth2', password: 'new-token' });
+    expect(storeGitOAuthTokens).toHaveBeenCalledTimes(1);
+    expect(refreshGitHubAccessToken).toHaveBeenCalledTimes(1);
   });
 
   it('refreshes OAuth tokens with the connection client id', async () => {

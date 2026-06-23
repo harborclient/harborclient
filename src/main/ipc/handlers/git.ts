@@ -34,6 +34,45 @@ function requireGitDatabase(db: IDatabase, connectionId: string): GitDatabase {
 }
 
 /**
+ * Runs a git sync operation and reloads the local registry, preserving the
+ * original sync error when reload fails (for example after merge conflicts leave
+ * invalid JSON on disk).
+ *
+ * @param gitDb - Git-backed database for the connection.
+ * @param router - Routing database used to reconcile the registry.
+ * @param connectionId - Git connection id.
+ * @param sync - Pull or push operation to execute.
+ */
+async function syncAndReloadGitRegistry(
+  gitDb: GitDatabase,
+  router: RoutingDatabase,
+  connectionId: string,
+  sync: () => Promise<void>
+): Promise<void> {
+  let syncError: unknown;
+  try {
+    await sync();
+  } catch (err) {
+    syncError = err;
+  }
+
+  try {
+    await gitDb.reloadFromDisk();
+    await router.reconcileGitRegistry(connectionId);
+  } catch (reloadError) {
+    if (syncError != null) {
+      console.warn('Failed to reload git registry after sync error:', reloadError);
+      throw syncError;
+    }
+    throw reloadError;
+  }
+
+  if (syncError != null) {
+    throw syncError;
+  }
+}
+
+/**
  * Registers IPC handlers for git source-control operations.
  *
  * @param db - Top-level database handle shared by collection handlers.
@@ -59,24 +98,14 @@ export function registerGitHandlers(db: IDatabase): void {
   handle('git:pull', ipcArgSchemas.connectionId, async (_event, connectionId) => {
     const router = requireRoutingDatabase(db);
     const gitDb = requireGitDatabase(db, connectionId);
-    try {
-      await gitDb.syncManager.pull();
-    } finally {
-      await gitDb.reloadFromDisk();
-      await router.reconcileGitRegistry(connectionId);
-    }
+    await syncAndReloadGitRegistry(gitDb, router, connectionId, () => gitDb.syncManager.pull());
   });
 
   // Pushes local commits and reloads the local registry (hooks may change disk).
   handle('git:push', ipcArgSchemas.connectionId, async (_event, connectionId) => {
     const router = requireRoutingDatabase(db);
     const gitDb = requireGitDatabase(db, connectionId);
-    try {
-      await gitDb.syncManager.push();
-    } finally {
-      await gitDb.reloadFromDisk();
-      await router.reconcileGitRegistry(connectionId);
-    }
+    await syncAndReloadGitRegistry(gitDb, router, connectionId, () => gitDb.syncManager.push());
   });
 
   // Returns recent commit history for a git connection.

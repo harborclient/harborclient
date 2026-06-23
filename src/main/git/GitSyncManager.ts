@@ -1,6 +1,7 @@
 import * as git from 'isomorphic-git';
 import http from 'isomorphic-git/http/node';
 import fs, { existsSync } from 'fs';
+import { join } from 'path';
 import { buildGitOnAuth } from '#/main/git/gitAuth';
 import { ensureHarborclientLayout, resolveHarborclientRoot } from '#/main/git/fileLayout';
 import { countConflictFiles, pullMergeConflictMessage } from '#/main/git/slug';
@@ -35,12 +36,19 @@ export class GitSyncManager {
    * Returns local source-control status without network access.
    */
   async getStatus(): Promise<SourceControlStatus> {
-    const matrix = await git.statusMatrix({ fs, dir: this.#repoPath, filepaths: ['.'] });
+    const harborSubdir = this.harborSubdir();
+    const harborRoot = resolveHarborclientRoot(this.#repoPath, harborSubdir);
+
+    const matrix = await git.statusMatrix({ fs, dir: this.#repoPath, filepaths: [harborSubdir] });
     let changedCount = 0;
+    const modifiedJsonFiles: string[] = [];
     for (const row of matrix) {
-      const [, head, workdir, stage] = row;
+      const [filepath, head, workdir, stage] = row;
       if (head !== workdir || head !== stage || workdir !== stage) {
         changedCount += 1;
+        if (filepath.endsWith('.json')) {
+          modifiedJsonFiles.push(join(this.#repoPath, filepath));
+        }
       }
     }
 
@@ -50,16 +58,13 @@ export class GitSyncManager {
         ? await this.countAheadBehind(branch)
         : { ahead: 0, behind: 0, syncKnown: false };
 
-    const harborSubdir = this.harborSubdir();
-    const harborRoot = resolveHarborclientRoot(this.#repoPath, harborSubdir);
-
     const status = {
       changedCount,
       branch,
       ahead,
       behind,
       syncKnown,
-      conflictCount: countConflictFiles(harborRoot),
+      conflictCount: await countConflictFiles(modifiedJsonFiles),
       harborRootExists: existsSync(harborRoot),
       harborSubdir
     };
@@ -117,10 +122,9 @@ export class GitSyncManager {
    * Pulls (fetch + merge) from the configured remote.
    */
   async pull(): Promise<void> {
-    const harborRoot = resolveHarborclientRoot(this.#repoPath, this.#settings.subdir);
-    const existingConflicts = countConflictFiles(harborRoot);
-    if (existingConflicts > 0) {
-      throw new Error(pullMergeConflictMessage(existingConflicts));
+    const existingStatus = await this.getStatus();
+    if (existingStatus.conflictCount > 0) {
+      throw new Error(pullMergeConflictMessage(existingStatus.conflictCount));
     }
 
     await this.fetch();
@@ -134,12 +138,13 @@ export class GitSyncManager {
         fs,
         dir: this.#repoPath,
         ours: branch,
-        theirs: `origin/${this.#settings.branch}`
+        theirs: `origin/${this.#settings.branch}`,
+        abortOnConflict: false
       });
     } catch (err) {
-      const mergeConflicts = countConflictFiles(harborRoot);
-      if (mergeConflicts > 0) {
-        throw new Error(pullMergeConflictMessage(mergeConflicts));
+      const mergeConflictCount = countJsonMergeConflicts(err);
+      if (mergeConflictCount > 0) {
+        throw new Error(pullMergeConflictMessage(mergeConflictCount));
       }
       throw err;
     }
@@ -234,7 +239,7 @@ export class GitSyncManager {
    */
   private async countCommitsSince(ref: string, stopOid: string): Promise<number> {
     let count = 0;
-    const commits = await git.log({ fs, dir: this.#repoPath, ref });
+    const commits = await git.log({ fs, dir: this.#repoPath, ref, depth: 50 });
     for (const commit of commits) {
       if (commit.oid === stopOid) {
         break;
@@ -305,4 +310,31 @@ export class GitSyncManager {
       }
     }
   }
+}
+
+/**
+ * Returns the number of JSON paths reported in a merge conflict error.
+ *
+ * @param err - Error thrown by `git.merge` when conflicts occur.
+ * @returns Count of `.json` filepaths in the merge error payload, or zero when not applicable.
+ */
+function countJsonMergeConflicts(err: unknown): number {
+  if (
+    typeof err !== 'object' ||
+    err == null ||
+    !('code' in err) ||
+    (err as { code: string }).code !== 'MergeConflictError' ||
+    !('data' in err)
+  ) {
+    return 0;
+  }
+
+  const filepaths = (err as { data?: { filepaths?: unknown } }).data?.filepaths;
+  if (!Array.isArray(filepaths)) {
+    return 0;
+  }
+
+  return filepaths.filter((filepath): filepath is string => {
+    return typeof filepath === 'string' && filepath.endsWith('.json');
+  }).length;
 }

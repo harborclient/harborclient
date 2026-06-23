@@ -92,12 +92,13 @@ describe('githubOAuth device flow', () => {
 
     const controller = new AbortController();
     const aborted = completeGitHubDeviceFlow('conn-1', { signal: controller.signal });
-    controller.abort();
     const abortedExpectation = expect(aborted).rejects.toMatchObject({ name: 'AbortError' });
-    await vi.advanceTimersByTimeAsync(1000);
+    controller.abort();
+    await vi.advanceTimersByTimeAsync(0);
     await abortedExpectation;
 
     const retry = completeGitHubDeviceFlow('conn-1');
+    await vi.advanceTimersByTimeAsync(1000);
     await vi.advanceTimersByTimeAsync(1000);
 
     await expect(retry).resolves.toEqual({
