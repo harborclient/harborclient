@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(docs): add Git-backed collections feature to documentation. (`46238b3`)
 - feat(git): add support for custom GitHub OAuth App in connection settings. (`85373b1`)
 
 ## 1.5.17 - 2026-06-23

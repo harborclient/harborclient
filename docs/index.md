@@ -21,6 +21,8 @@ features:
     details: No accounts, subscriptions, or central servers. HarborClient runs on your machine and stores data where you choose—locally or in a database you control.
   - title: Database backends
     details: Pluggable storage for collections, requests, and environments. Use SQLite locally or connect to remote engines such as Firestore, MySQL, or PostgreSQL.
+  - title: Git-backed collections
+    details: Store collections as version-controlled files in a local git repository. Edit in HarborClient, commit and push from the app, and share changes through branches and pull requests.
   - title: Team collaboration
     details: Point multiple HarborClient instances at the same remote database to share collections across your team.
   - title: Team hubs
