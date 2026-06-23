@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- docs(README): enhance documentation with badges and detailed descriptions. (`b6029e9`)
+
 ## 1.5.20 - 2026-06-23
 
 - chore(docs): update GitHub Actions workflow for documentation deployment. (`8f51593`)
