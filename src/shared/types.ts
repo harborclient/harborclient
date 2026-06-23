@@ -1499,27 +1499,27 @@ export interface PostgresSettings {
  */
 export type GitAuthMethod =
   | {
-    /**
-     * Personal access token entered by the user.
-     */
-    kind: 'pat';
+      /**
+       * Personal access token entered by the user.
+       */
+      kind: 'pat';
 
-    /**
-     * Username for Basic Auth (often the account name or `token` on GitHub).
-     */
-    username: string;
-  }
+      /**
+       * Username for Basic Auth (often the account name or `token` on GitHub).
+       */
+      username: string;
+    }
   | {
-    /**
-     * OAuth token obtained via device flow.
-     */
-    kind: 'oauth';
+      /**
+       * OAuth token obtained via device flow.
+       */
+      kind: 'oauth';
 
-    /**
-     * OAuth provider that issued the token.
-     */
-    provider: 'github';
-  };
+      /**
+       * OAuth provider that issued the token.
+       */
+      provider: 'github';
+    };
 
 /**
  * Settings for a git-backed collection provider.
