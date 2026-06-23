@@ -9,7 +9,7 @@ import { RoutingDatabase } from '#/main/db/RoutingDatabase';
 import { SqliteDatabase } from '#/main/db/SqliteDatabase';
 import { TeamHubDatabase } from '#/main/db/TeamHubDatabase';
 import { TeamHubIdMap } from '#/main/db/TeamHubIdMap';
-import type { HarborTeamHubClient } from '#/main/teamHub/HarborTeamHubClient';
+import type { TeamHubClient } from '#/main/teamHub/TeamHubClient';
 import { baseRequestInput } from '#/test/idatabaseContract';
 import { describeSqlite } from '#/test/nativeModules';
 
@@ -109,10 +109,10 @@ async function createRoutingFixture(options?: { mountB?: boolean }): Promise<{
 /**
  * Builds a TeamHubDatabase backed by a mock client and temp id map for routing tests.
  *
- * @param client - Partial HarborTeamHubClient mock.
+ * @param client - Partial TeamHubClient mock.
  * @returns Team hub database adapter.
  */
-function createTeamHubDatabase(client: Partial<HarborTeamHubClient>): TeamHubDatabase {
+function createTeamHubDatabase(client: Partial<TeamHubClient>): TeamHubDatabase {
   const dir = mkdtempSync(join(tmpdir(), 'harborclient-routing-hub-'));
   const idMap = new TeamHubIdMap(join(dir, 'team-hub-test.db'));
   idMap.init();
@@ -120,16 +120,16 @@ function createTeamHubDatabase(client: Partial<HarborTeamHubClient>): TeamHubDat
     idMap.close();
     rmSync(dir, { recursive: true, force: true });
   });
-  return new TeamHubDatabase(client as HarborTeamHubClient, idMap);
+  return new TeamHubDatabase(client as TeamHubClient, idMap);
 }
 
 /**
  * Builds a routing database fixture with SQLite and a mounted team hub.
  *
- * @param client - Partial HarborTeamHubClient mock for the hub backend.
+ * @param client - Partial TeamHubClient mock for the hub backend.
  * @returns Test routing database, registry, hub database, and temp root directory.
  */
-async function createRoutingFixtureWithHub(client: Partial<HarborTeamHubClient>): Promise<{
+async function createRoutingFixtureWithHub(client: Partial<TeamHubClient>): Promise<{
   router: RoutingDatabase;
   registry: LocalRegistry;
   hubDb: TeamHubDatabase;
@@ -718,7 +718,7 @@ describeSqlite('RoutingDatabase.create', () => {
     ];
     const slots = Object.fromEntries(connections.map((conn, index) => [conn.id, index]));
 
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
 
     const router = await RoutingDatabase.create(
       registry,

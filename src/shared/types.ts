@@ -1588,9 +1588,45 @@ export interface SourceControlStatus {
   behind: number;
 
   /**
+   * Whether ahead/behind were computed from a cached origin tracking ref.
+   * When false, counts are placeholders and the working tree may not be in sync.
+   */
+  syncKnown: boolean;
+
+  /**
    * Number of files containing unresolved git merge conflict markers.
    */
   conflictCount: number;
+
+  /**
+   * Whether the configured HarborClient subdirectory exists on disk.
+   */
+  harborRootExists: boolean;
+
+  /**
+   * Configured HarborClient subdirectory relative to the repository root.
+   */
+  harborSubdir: string;
+}
+
+/**
+ * Result of background GitHub OAuth device-flow completion.
+ */
+export interface GitOAuthFinishedEvent {
+  /**
+   * Git connection id that finished OAuth.
+   */
+  connectionId: string;
+
+  /**
+   * Whether authorization completed and credentials were validated.
+   */
+  ok: boolean;
+
+  /**
+   * Error message when {@link GitOAuthFinishedEvent.ok} is false.
+   */
+  error?: string;
 }
 
 /**
@@ -2677,19 +2713,21 @@ export interface Api {
   onGitWorkingTreeChanged: (callback: (connectionId: string) => void) => () => void;
 
   /**
+   * Subscribes to background GitHub OAuth completion for a git-backed connection.
+   *
+   * @param callback - Handler invoked when OAuth polling finishes or fails.
+   * @returns Unsubscribe function.
+   */
+  onGitOAuthFinished: (callback: (event: GitOAuthFinishedEvent) => void) => () => void;
+
+  /**
    * Stages all changes and commits in a git-backed connection working tree.
    *
    * @param connectionId - Git connection id.
    * @param message - Commit message.
+   * @param createHarborRoot - When true, creates the HarborClient subdirectory layout if missing.
    */
-  gitCommit: (connectionId: string, message: string) => Promise<void>;
-
-  /**
-   * Fetches from the remote for a git-backed connection.
-   *
-   * @param connectionId - Git connection id.
-   */
-  gitFetch: (connectionId: string) => Promise<void>;
+  gitCommit: (connectionId: string, message: string, createHarborRoot?: boolean) => Promise<void>;
 
   /**
    * Pulls (fetch + merge) for a git-backed connection.
@@ -2732,6 +2770,9 @@ export interface Api {
 
   /**
    * Completes GitHub OAuth device flow after the user approves in a browser.
+   *
+   * Ensures background polling is running when a pending device flow exists.
+   * Resolves immediately without waiting for GitHub approval.
    *
    * @param connectionId - Git connection id.
    */

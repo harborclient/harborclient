@@ -4,14 +4,12 @@ import type { IDatabase } from '#/main/db/IDatabase';
 import { RoutingDatabase } from '#/main/db/RoutingDatabase';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
+import { beginGitHubOAuth, revokeGitHubOAuth, saveGitPat } from '#/main/git/gitAuth';
 import {
-  beginGitHubOAuth,
-  finishGitHubOAuth,
-  revokeGitHubOAuth,
-  saveGitPat
-} from '#/main/git/gitAuth';
-import { GitSyncManager } from '#/main/git/GitSyncManager';
-import { listDatabaseConnections, saveDatabaseConnection } from '#/main/settings/databaseSettings';
+  cancelGitHubOAuthCompletion,
+  scheduleGitHubOAuthCompletion,
+  testGitCredentials
+} from '#/main/git/gitOAuthScheduler';
 
 /**
  * Returns a RoutingDatabase instance or throws when git IPC is unavailable.
@@ -36,112 +34,79 @@ function requireGitDatabase(db: IDatabase, connectionId: string): GitDatabase {
 }
 
 /**
- * Updates persisted git connection auth metadata after credential changes.
- *
- * @param connectionId - Git connection id.
- * @param auth - New auth method metadata.
- */
-function persistGitAuthMetadata(
-  connectionId: string,
-  auth: { kind: 'pat'; username: string } | { kind: 'oauth'; provider: 'github' }
-): void {
-  const connections = listDatabaseConnections();
-  const index = connections.findIndex((conn) => conn.id === connectionId);
-  if (index < 0 || connections[index].type !== 'git') {
-    throw new Error(`Git connection not found: ${connectionId}`);
-  }
-  const conn = connections[index];
-  if (conn.type !== 'git') {
-    return;
-  }
-  conn.settings.auth = auth;
-  saveDatabaseConnection(conn);
-}
-
-/**
- * Validates git remote credentials, using a mounted backend when available or a
- * temporary sync manager when the connection was saved but not yet mounted.
- *
- * @param db - Top-level database handle.
- * @param connectionId - Git connection id.
- */
-async function testGitCredentials(db: IDatabase, connectionId: string): Promise<void> {
-  if (db instanceof RoutingDatabase && db.isConnectionMounted(connectionId)) {
-    await db.requireGitDatabase(connectionId).syncManager.testCredentials();
-    return;
-  }
-
-  const conn = listDatabaseConnections().find((item) => item.id === connectionId);
-  if (!conn || conn.type !== 'git') {
-    throw new Error(`Git connection not found: ${connectionId}`);
-  }
-
-  const sync = new GitSyncManager(connectionId, conn.settings);
-  await sync.testCredentials();
-}
-
-/**
  * Registers IPC handlers for git source-control operations.
  *
  * @param db - Top-level database handle shared by collection handlers.
  */
 export function registerGitHandlers(db: IDatabase): void {
+  // Lists git sync status for all git-backed connections.
   handle('git:statuses', ipcArgSchemas.none, async () => {
     const router = requireRoutingDatabase(db);
     return router.listGitStatuses();
   });
 
-  handle('git:commit', ipcArgSchemas.gitCommit, async (_event, connectionId, message) => {
-    const gitDb = requireGitDatabase(db, connectionId);
-    await gitDb.syncManager.commit(message);
-  });
+  // Commits local changes for a git connection.
+  handle(
+    'git:commit',
+    ipcArgSchemas.gitCommit,
+    async (_event, connectionId, message, createHarborRoot) => {
+      const gitDb = requireGitDatabase(db, connectionId);
+      await gitDb.syncManager.commit(message, { createHarborRoot });
+    }
+  );
 
-  handle('git:fetch', ipcArgSchemas.connectionId, async (_event, connectionId) => {
-    const gitDb = requireGitDatabase(db, connectionId);
-    await gitDb.syncManager.fetch();
-  });
-
+  // Pulls remote changes and reloads the local registry.
   handle('git:pull', ipcArgSchemas.connectionId, async (_event, connectionId) => {
     const router = requireRoutingDatabase(db);
     const gitDb = requireGitDatabase(db, connectionId);
-    await gitDb.syncManager.pull();
-    await gitDb.reloadFromDisk();
-    await router.reconcileGitRegistry(connectionId);
+    try {
+      await gitDb.syncManager.pull();
+    } finally {
+      await gitDb.reloadFromDisk();
+      await router.reconcileGitRegistry(connectionId);
+    }
   });
 
+  // Pushes local commits and reloads the local registry (hooks may change disk).
   handle('git:push', ipcArgSchemas.connectionId, async (_event, connectionId) => {
+    const router = requireRoutingDatabase(db);
     const gitDb = requireGitDatabase(db, connectionId);
-    await gitDb.syncManager.push();
+    try {
+      await gitDb.syncManager.push();
+    } finally {
+      await gitDb.reloadFromDisk();
+      await router.reconcileGitRegistry(connectionId);
+    }
   });
 
+  // Returns recent commit history for a git connection.
   handle('git:log', ipcArgSchemas.gitLog, async (_event, connectionId, depth) => {
     const gitDb = requireGitDatabase(db, connectionId);
     return gitDb.syncManager.log(depth ?? 20);
   });
 
+  // Saves a personal access token and validates credentials.
   handle('git:setPat', ipcArgSchemas.gitSetPat, async (_event, connectionId, username, token) => {
     saveGitPat(connectionId, username, token);
-    persistGitAuthMetadata(connectionId, {
-      kind: 'pat',
-      username: username.trim() || 'token'
-    });
     await testGitCredentials(db, connectionId);
   });
 
-  handle('git:startOAuth', ipcArgSchemas.connectionId, async (_event, connectionId) => {
+  // Starts GitHub device OAuth, opens the browser, and polls in the background.
+  handle('git:startOAuth', ipcArgSchemas.connectionId, async (event, connectionId) => {
     const result = await beginGitHubOAuth(connectionId);
     await shell.openExternal(result.verificationUri);
+    scheduleGitHubOAuthCompletion(event.sender, db, connectionId);
     return result;
   });
 
-  handle('git:completeOAuth', ipcArgSchemas.connectionId, async (_event, connectionId) => {
-    await finishGitHubOAuth(connectionId);
-    persistGitAuthMetadata(connectionId, { kind: 'oauth', provider: 'github' });
-    await testGitCredentials(db, connectionId);
+  // Ensures background OAuth polling is running without blocking the invoke channel.
+  handle('git:completeOAuth', ipcArgSchemas.connectionId, async (event, connectionId) => {
+    scheduleGitHubOAuthCompletion(event.sender, db, connectionId);
   });
 
+  // Revokes GitHub OAuth and clears stored credentials.
   handle('git:revokeOAuth', ipcArgSchemas.connectionId, async (_event, connectionId) => {
+    cancelGitHubOAuthCompletion(connectionId);
     revokeGitHubOAuth(connectionId);
-    persistGitAuthMetadata(connectionId, { kind: 'pat', username: 'token' });
   });
 }

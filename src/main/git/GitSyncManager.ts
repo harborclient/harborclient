@@ -1,10 +1,9 @@
 import * as git from 'isomorphic-git';
 import http from 'isomorphic-git/http/node';
-import fs from 'fs';
-import { join } from 'path';
+import fs, { existsSync } from 'fs';
 import { buildGitOnAuth } from '#/main/git/gitAuth';
-import { resolveHarborclientRoot } from '#/main/git/fileLayout';
-import { countConflictFiles } from '#/main/git/slug';
+import { ensureHarborclientLayout, resolveHarborclientRoot } from '#/main/git/fileLayout';
+import { countConflictFiles, pullMergeConflictMessage } from '#/main/git/slug';
 import type { GitLogEntry, GitSettings, SourceControlStatus } from '#/shared/types';
 
 /**
@@ -46,17 +45,23 @@ export class GitSyncManager {
     }
 
     const branch = await this.currentBranch();
-    const { ahead, behind } =
-      branch != null ? await this.countAheadBehind(branch) : { ahead: 0, behind: 0 };
+    const { ahead, behind, syncKnown } =
+      branch != null
+        ? await this.countAheadBehind(branch)
+        : { ahead: 0, behind: 0, syncKnown: false };
+
+    const harborSubdir = this.harborSubdir();
+    const harborRoot = resolveHarborclientRoot(this.#repoPath, harborSubdir);
 
     const status = {
       changedCount,
       branch,
       ahead,
       behind,
-      conflictCount: countConflictFiles(
-        resolveHarborclientRoot(this.#repoPath, this.#settings.subdir)
-      )
+      syncKnown,
+      conflictCount: countConflictFiles(harborRoot),
+      harborRootExists: existsSync(harborRoot),
+      harborSubdir
     };
     return status;
   }
@@ -65,9 +70,19 @@ export class GitSyncManager {
    * Stages all changes under the HarborClient subdirectory and commits.
    *
    * @param message - Commit message.
+   * @param options - When `createHarborRoot` is true, creates the HarborClient layout if missing.
    */
-  async commit(message: string): Promise<void> {
-    const subdir = this.#settings.subdir.trim() || '.harborclient';
+  async commit(message: string, options?: { createHarborRoot?: boolean }): Promise<void> {
+    const subdir = this.harborSubdir();
+    const harborRoot = resolveHarborclientRoot(this.#repoPath, subdir);
+
+    if (!existsSync(harborRoot)) {
+      if (!options?.createHarborRoot) {
+        throw new Error(`HarborClient subdirectory "${subdir}" does not exist in this repository.`);
+      }
+      ensureHarborclientLayout(harborRoot);
+    }
+
     await this.stagePath(subdir);
 
     const trimmed = message.trim();
@@ -102,17 +117,32 @@ export class GitSyncManager {
    * Pulls (fetch + merge) from the configured remote.
    */
   async pull(): Promise<void> {
+    const harborRoot = resolveHarborclientRoot(this.#repoPath, this.#settings.subdir);
+    const existingConflicts = countConflictFiles(harborRoot);
+    if (existingConflicts > 0) {
+      throw new Error(pullMergeConflictMessage(existingConflicts));
+    }
+
     await this.fetch();
     const branch = await git.currentBranch({ fs, dir: this.#repoPath });
     if (!branch) {
       throw new Error('Cannot pull: repository is not on a branch.');
     }
-    await git.merge({
-      fs,
-      dir: this.#repoPath,
-      ours: branch,
-      theirs: `origin/${this.#settings.branch}`
-    });
+
+    try {
+      await git.merge({
+        fs,
+        dir: this.#repoPath,
+        ours: branch,
+        theirs: `origin/${this.#settings.branch}`
+      });
+    } catch (err) {
+      const mergeConflicts = countConflictFiles(harborRoot);
+      if (mergeConflicts > 0) {
+        throw new Error(pullMergeConflictMessage(mergeConflicts));
+      }
+      throw err;
+    }
   }
 
   /**
@@ -157,9 +187,14 @@ export class GitSyncManager {
    * Uses refs/remotes/origin/{branch} updated by fetch/pull; no network access.
    *
    * @param branch - Current branch name.
-   * @returns Ahead/behind counts relative to the origin tracking ref.
+   * @returns Ahead/behind counts relative to the origin tracking ref, plus whether
+   *   the remote tracking ref was available for comparison.
    */
-  private async countAheadBehind(branch: string): Promise<{ ahead: number; behind: number }> {
+  private async countAheadBehind(
+    branch: string
+  ): Promise<{ ahead: number; behind: number; syncKnown: boolean }> {
+    const unknown = { ahead: 0, behind: 0, syncKnown: false as const };
+
     try {
       const localOid = await git.resolveRef({ fs, dir: this.#repoPath, ref: 'HEAD' });
       const remoteOid = await git.resolveRef({
@@ -169,7 +204,7 @@ export class GitSyncManager {
       });
 
       if (localOid === remoteOid) {
-        return { ahead: 0, behind: 0 };
+        return { ahead: 0, behind: 0, syncKnown: true };
       }
 
       const mergeBases = await git.findMergeBase({
@@ -179,14 +214,14 @@ export class GitSyncManager {
       });
       const baseOid = mergeBases[0];
       if (baseOid == null) {
-        return { ahead: 0, behind: 0 };
+        return unknown;
       }
 
       const ahead = await this.countCommitsSince(localOid, baseOid);
       const behind = await this.countCommitsSince(remoteOid, baseOid);
-      return { ahead, behind };
+      return { ahead, behind, syncKnown: true };
     } catch {
-      return { ahead: 0, behind: 0 };
+      return unknown;
     }
   }
 
@@ -238,29 +273,36 @@ export class GitSyncManager {
   }
 
   /**
-   * Stages all files under a repository-relative path recursively.
+   * Returns the configured HarborClient subdirectory relative to the repository root.
+   */
+  private harborSubdir(): string {
+    return this.#settings.subdir.trim() || '.harborclient';
+  }
+
+  /**
+   * Stages all changes under a repository-relative path (adds, modifications, deletions).
    *
    * @param relPath - Path relative to repo root.
    */
   private async stagePath(relPath: string): Promise<void> {
-    const abs = join(this.#repoPath, relPath);
-    if (!fs.existsSync(abs)) {
-      return;
-    }
+    const prefix = relPath.replace(/\\/g, '/');
+    const matrix = await git.statusMatrix({
+      fs,
+      dir: this.#repoPath,
+      filter: (filepath) => filepath === prefix || filepath.startsWith(`${prefix}/`)
+    });
 
-    const walk = async (dir: string, prefix: string): Promise<void> => {
-      const entries = fs.readdirSync(dir, { withFileTypes: true });
-      for (const entry of entries) {
-        const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
-        const full = join(dir, entry.name);
-        if (entry.isDirectory()) {
-          await walk(full, rel);
-        } else {
-          await git.add({ fs, dir: this.#repoPath, filepath: rel });
-        }
+    for (const row of matrix) {
+      const [filepath, , workdir, stage] = row;
+      if (workdir === stage) {
+        continue;
       }
-    };
 
-    await walk(abs, relPath.replace(/\\/g, '/'));
+      if (workdir === 0) {
+        await git.remove({ fs, dir: this.#repoPath, filepath });
+      } else {
+        await git.add({ fs, dir: this.#repoPath, filepath });
+      }
+    }
   }
 }

@@ -98,12 +98,26 @@ export async function startGitHubDeviceFlow(
 }
 
 /**
+ * Options for GitHub device-flow completion polling.
+ */
+export interface CompleteGitHubDeviceFlowOptions {
+  /**
+   * When aborted, polling stops without clearing the pending flow session.
+   */
+  signal?: AbortSignal;
+}
+
+/**
  * Polls GitHub until the user approves device flow or the code expires.
  *
  * @param connectionId - Git connection id.
+ * @param options - Optional abort signal for background cancellation.
  * @returns OAuth access token and optional refresh metadata.
  */
-export async function completeGitHubDeviceFlow(connectionId: string): Promise<{
+export async function completeGitHubDeviceFlow(
+  connectionId: string,
+  options: CompleteGitHubDeviceFlowOptions = {}
+): Promise<{
   accessToken: string;
   refreshToken?: string;
   expiresAt?: string;
@@ -114,6 +128,10 @@ export async function completeGitHubDeviceFlow(connectionId: string): Promise<{
   }
 
   while (Date.now() < pending.expiresAt) {
+    if (options.signal?.aborted) {
+      throw new DOMException('GitHub OAuth polling aborted.', 'AbortError');
+    }
+
     await sleep(pending.interval * 1000);
 
     const response = await fetch(ACCESS_TOKEN_URL, {

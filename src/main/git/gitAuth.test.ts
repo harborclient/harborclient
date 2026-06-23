@@ -19,7 +19,16 @@ const { startGitHubDeviceFlow, completeGitHubDeviceFlow, refreshGitHubAccessToke
 );
 
 vi.mock('#/main/settings/databaseSettings', () => ({
-  listDatabaseConnections: () => mockConnections
+  listDatabaseConnections: () => mockConnections,
+  saveDatabaseConnection: (input: DatabaseConnection) => {
+    const index = mockConnections.findIndex((conn) => conn.id === input.id);
+    if (index >= 0) {
+      mockConnections[index] = input;
+    } else {
+      mockConnections.push(input);
+    }
+    return mockConnections;
+  }
 }));
 
 vi.mock('#/main/git/gitSecrets', () => ({
@@ -38,12 +47,18 @@ vi.mock('#/main/git/githubOAuth', () => ({
   refreshGitHubAccessToken
 }));
 
-import { deleteGitSecrets, getGitAccessToken, getGitRefreshToken } from '#/main/git/gitSecrets';
+import {
+  deleteGitSecrets,
+  getGitAccessToken,
+  getGitRefreshToken,
+  storeGitPat
+} from '#/main/git/gitSecrets';
 import {
   beginGitHubOAuth,
   finishGitHubOAuth,
   resolveGitAuth,
-  revokeGitHubOAuth
+  revokeGitHubOAuth,
+  saveGitPat
 } from '#/main/git/gitAuth';
 import { GITHUB_OAUTH_CLIENT_ID } from '#/main/git/githubOAuth';
 
@@ -74,6 +89,30 @@ describe('git auth resolver', () => {
     expect(auth).toEqual({ username: 'token', password: 'stored-pat' });
   });
 
+  it('stores a PAT and persists auth metadata', () => {
+    mockConnections.push({
+      id: 'git-pat',
+      name: 'Git PAT',
+      type: 'git',
+      settings: {
+        repoPath: '/tmp/repo',
+        url: 'https://github.com/example/repo.git',
+        branch: 'main',
+        subdir: '.harborclient',
+        auth: { kind: 'oauth', provider: 'github' }
+      }
+    });
+
+    saveGitPat('git-pat', 'my-user', '  secret-token  ');
+
+    expect(storeGitPat).toHaveBeenCalledWith('git-pat', 'secret-token');
+    const conn = mockConnections[0];
+    expect(conn.type === 'git' && conn.settings.auth).toEqual({
+      kind: 'pat',
+      username: 'my-user'
+    });
+  });
+
   it('starts and completes GitHub device flow', async () => {
     mockConnections.push({
       id: 'git-oauth',
@@ -98,6 +137,26 @@ describe('git auth resolver', () => {
       kind: 'oauth',
       provider: 'github'
     });
+  });
+
+  it('rejects OAuth for non-github.com repository URLs', async () => {
+    mockConnections.push({
+      id: 'git-not-github',
+      name: 'Not GitHub',
+      type: 'git',
+      settings: {
+        repoPath: '/tmp/repo',
+        url: 'https://notgithub.com/example/repo.git',
+        branch: 'main',
+        subdir: '.harborclient',
+        auth: { kind: 'pat', username: 'token' }
+      }
+    });
+
+    await expect(beginGitHubOAuth('git-not-github')).rejects.toThrow(
+      'GitHub OAuth is only supported for github.com repository URLs.'
+    );
+    expect(startGitHubDeviceFlow).not.toHaveBeenCalled();
   });
 
   it('passes a custom OAuth client id when configured on the connection', async () => {

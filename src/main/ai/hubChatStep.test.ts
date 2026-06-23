@@ -18,8 +18,8 @@ vi.mock('#/main/settings/teamHubSettings', () => ({
   ])
 }));
 
-vi.mock('#/main/teamHub/HarborTeamHubClient', () => ({
-  HarborTeamHubClient: vi.fn(function HarborTeamHubClientMock() {
+vi.mock('#/main/teamHub/TeamHubClient', () => ({
+  TeamHubClient: vi.fn(function TeamHubClientMock() {
     return {
       completeChatStep
     };

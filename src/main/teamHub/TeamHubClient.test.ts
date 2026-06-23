@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { HarborTeamHubClient } from '#/main/teamHub/HarborTeamHubClient';
+import { TeamHubClient } from '#/main/teamHub/TeamHubClient';
 import { TeamHubClientError } from '#/main/teamHub/TeamHubClientError';
 
-describe('HarborTeamHubClient', () => {
+describe('TeamHubClient', () => {
   const originalFetch = globalThis.fetch;
   const baseUrl = 'http://127.0.0.1:8788';
   const token = 'hbk_test_token';
@@ -10,8 +10,8 @@ describe('HarborTeamHubClient', () => {
   /**
    * Creates a client instance for tests with a fixed base URL and token.
    */
-  function createClient(): HarborTeamHubClient {
-    return new HarborTeamHubClient({ baseUrl, token });
+  function createClient(): TeamHubClient {
+    return new TeamHubClient({ baseUrl, token });
   }
 
   afterEach(() => {

@@ -2,6 +2,7 @@ import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { GitLogEntry, SourceControlStatus } from '#/shared/types';
 import { Button } from '#/renderer/src/components/Button';
+import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { Modal } from '#/renderer/src/ui/shared/Modal';
 import { field } from '#/renderer/src/ui/shared/classes';
 
@@ -56,8 +57,9 @@ export function GitSourceControlPanel({
   const [messageDraft, setMessageDraft] = useState<{ edited: true; value: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<GitLogEntry[]>([]);
+  const confirm = useConfirm();
 
-  const hasUnpushed = (status?.ahead ?? 0) > 0;
+  const hasUnpushed = status?.syncKnown === true && (status.ahead ?? 0) > 0;
   const defaultMessage = (status?.changedCount ?? 0) > 0 ? DEFAULT_COMMIT_MESSAGE : '';
   const message = messageDraft?.edited === true ? messageDraft.value : defaultMessage;
 
@@ -88,10 +90,35 @@ export function GitSourceControlPanel({
       const entries = await window.api.gitLog(connectionId, 10);
       setLog(entries);
     } catch (err) {
+      onRefresh();
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
     }
+  };
+
+  /**
+   * Commits local changes, prompting to create the HarborClient subdirectory when missing.
+   */
+  const handleCommit = async (): Promise<void> => {
+    const trimmedMessage = message.trim();
+    let createHarborRoot = false;
+
+    if (status?.harborRootExists === false) {
+      const confirmed = await confirm({
+        title: 'Create HarborClient directory?',
+        message: `The subdirectory "${status.harborSubdir}" does not exist in this repository. Create it and continue with the commit?`,
+        confirmLabel: 'Create and commit'
+      });
+      if (!confirmed) {
+        return;
+      }
+      createHarborRoot = true;
+    }
+
+    await runGitAction(() =>
+      window.api.gitCommit(connectionId, trimmedMessage, createHarborRoot || undefined)
+    );
   };
 
   if (!open) {
@@ -113,9 +140,13 @@ export function GitSourceControlPanel({
             <p className="m-0">
               {status.changedCount} uncommitted change(s)
               {status.conflictCount > 0 ? ` · ${status.conflictCount} conflict(s)` : ''}
-              {status.ahead > 0 || status.behind > 0
-                ? ` · ${status.ahead} ahead, ${status.behind} behind`
-                : ''}
+              {status.syncKnown
+                ? status.ahead > 0 || status.behind > 0
+                  ? ` · ${status.ahead} ahead, ${status.behind} behind`
+                  : ''
+                : status.branch != null
+                  ? ' · sync status unknown (fetch to compare with remote)'
+                  : ''}
             </p>
             {status.conflictCount > 0 && (
               <p className="mt-2 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-[13px] text-text">
@@ -141,9 +172,7 @@ export function GitSourceControlPanel({
           <Button
             className="flex-1"
             disabled={busy || !message.trim()}
-            onClick={() =>
-              void runGitAction(() => window.api.gitCommit(connectionId, message.trim()))
-            }
+            onClick={() => void handleCommit()}
           >
             Commit
           </Button>

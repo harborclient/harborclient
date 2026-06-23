@@ -8,7 +8,7 @@ import type {
 } from '#/shared/types';
 
 /**
- * Connection settings for {@link HarborTeamHubClient}.
+ * Connection settings for {@link TeamHubClient}.
  */
 export interface TeamHubClientConfig {
   /**

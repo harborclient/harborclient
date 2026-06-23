@@ -85,7 +85,7 @@ export interface HubChatStepRequest {
 }
 
 /**
- * Options passed to the internal {@link HarborTeamHubClient.request} helper.
+ * Options passed to the internal {@link TeamHubClient.request} helper.
  */
 interface RequestOptions<T> {
   /**
@@ -107,7 +107,7 @@ interface RequestOptions<T> {
 /**
  * Executes typed HTTP requests against HarborClient Server.
  */
-export class HarborTeamHubClient implements ITeamHubClient {
+export class TeamHubClient implements ITeamHubClient {
   private readonly baseUrl: string;
   private readonly token: string;
   private readonly requestTimeoutMs: number;

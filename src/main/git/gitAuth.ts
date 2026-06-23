@@ -13,7 +13,8 @@ import {
   storeGitPat
 } from '#/main/git/gitSecrets';
 import type { DatabaseConnection, GitAuthMethod } from '#/shared/types';
-import { listDatabaseConnections } from '#/main/settings/databaseSettings';
+import { isGitHubRepositoryUrl } from '#/shared/gitUrl';
+import { listDatabaseConnections, saveDatabaseConnection } from '#/main/settings/databaseSettings';
 
 /**
  * Resolved HTTPS credentials for isomorphic-git onAuth.
@@ -118,6 +119,29 @@ export async function resolveGitAuth(connectionId: string): Promise<ResolvedGitA
 }
 
 /**
+ * Updates persisted git connection auth metadata after credential changes.
+ *
+ * @param connectionId - Git connection id.
+ * @param auth - New auth method metadata.
+ */
+export function persistGitAuthMetadata(
+  connectionId: string,
+  auth: { kind: 'pat'; username: string } | { kind: 'oauth'; provider: 'github' }
+): void {
+  const connections = listDatabaseConnections();
+  const index = connections.findIndex((conn) => conn.id === connectionId);
+  if (index < 0 || connections[index].type !== 'git') {
+    throw new Error(`Git connection not found: ${connectionId}`);
+  }
+  const conn = connections[index];
+  if (conn.type !== 'git') {
+    return;
+  }
+  conn.settings.auth = auth;
+  saveDatabaseConnection(conn);
+}
+
+/**
  * Stores a PAT for a git connection and updates auth metadata.
  *
  * @param connectionId - Git connection id.
@@ -126,8 +150,10 @@ export async function resolveGitAuth(connectionId: string): Promise<ResolvedGitA
  */
 export function saveGitPat(connectionId: string, username: string, token: string): void {
   storeGitPat(connectionId, token.trim());
-  const conn = requireGitConnection(connectionId);
-  conn.settings.auth = { kind: 'pat', username: username.trim() || 'token' };
+  persistGitAuthMetadata(connectionId, {
+    kind: 'pat',
+    username: username.trim() || 'token'
+  });
 }
 
 /**
@@ -140,19 +166,35 @@ export async function beginGitHubOAuth(connectionId: string): Promise<{
   verificationUri: string;
 }> {
   const conn = requireGitConnection(connectionId);
+  if (!isGitHubRepositoryUrl(conn.settings.url)) {
+    throw new Error('GitHub OAuth is only supported for github.com repository URLs.');
+  }
   return startGitHubDeviceFlow(connectionId, resolveGitHubOAuthClientId(conn));
+}
+
+/**
+ * Options for completing GitHub device flow.
+ */
+export interface FinishGitHubOAuthOptions {
+  /**
+   * When aborted, token polling stops without storing credentials.
+   */
+  signal?: AbortSignal;
 }
 
 /**
  * Completes GitHub device flow and stores tokens for a git connection.
  *
  * @param connectionId - Git connection id.
+ * @param options - Optional abort signal for background cancellation.
  */
-export async function finishGitHubOAuth(connectionId: string): Promise<void> {
-  const conn = requireGitConnection(connectionId);
-  const tokens = await completeGitHubDeviceFlow(connectionId);
+export async function finishGitHubOAuth(
+  connectionId: string,
+  options: FinishGitHubOAuthOptions = {}
+): Promise<void> {
+  const tokens = await completeGitHubDeviceFlow(connectionId, options);
   storeGitOAuthTokens(connectionId, tokens.accessToken, tokens.refreshToken, tokens.expiresAt);
-  conn.settings.auth = { kind: 'oauth', provider: 'github' };
+  persistGitAuthMetadata(connectionId, { kind: 'oauth', provider: 'github' });
 }
 
 /**
@@ -161,9 +203,8 @@ export async function finishGitHubOAuth(connectionId: string): Promise<void> {
  * @param connectionId - Git connection id.
  */
 export function revokeGitHubOAuth(connectionId: string): void {
-  const conn = requireGitConnection(connectionId);
   deleteGitSecrets(connectionId);
-  conn.settings.auth = { kind: 'pat', username: 'token' };
+  persistGitAuthMetadata(connectionId, { kind: 'pat', username: 'token' });
 }
 
 /**

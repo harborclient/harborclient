@@ -31,6 +31,7 @@ function checkpointOpenDatabases(db: IDatabase): void {
  * @param db - Active database router shared by IPC handlers.
  */
 export function registerBackupHandlers(db: IDatabase): void {
+  // Exports user data to a backup zip via a save dialog.
   handle('backup:export', ipcArgSchemas.backupExport, async (_event, localStorage) => {
     const userDataPath = app.getPath('userData');
     const archive = await buildBackupZip(userDataPath, localStorage, app.getVersion(), () => {
@@ -54,6 +55,7 @@ export function registerBackupHandlers(db: IDatabase): void {
     return { canceled: false, path: filePath };
   });
 
+  // Restores user data from a backup zip via an open dialog.
   handle('backup:import', ipcArgSchemas.none, async () => {
     const win = BrowserWindow.getFocusedWindow();
     const dialogOptions = {
@@ -82,6 +84,7 @@ export function registerBackupHandlers(db: IDatabase): void {
     };
   });
 
+  // Relaunches the application.
   handle('app:restart', ipcArgSchemas.none, () => {
     app.relaunch();
     app.exit(0);

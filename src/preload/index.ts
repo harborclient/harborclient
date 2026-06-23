@@ -786,22 +786,37 @@ function onGitWorkingTreeChanged(callback: (connectionId: string) => void): () =
 }
 
 /**
+ * Subscribes to background GitHub OAuth completion events.
+ *
+ * @param callback - Handler invoked when OAuth polling finishes or fails.
+ * @returns Unsubscribe function.
+ */
+function onGitOAuthFinished(
+  callback: (event: import('#/shared/types').GitOAuthFinishedEvent) => void
+): () => void {
+  const listener = (
+    _event: Electron.IpcRendererEvent,
+    payload: import('#/shared/types').GitOAuthFinishedEvent
+  ): void => {
+    callback(payload);
+  };
+  ipcRenderer.on('git:oauthFinished', listener);
+  return () => ipcRenderer.removeListener('git:oauthFinished', listener);
+}
+
+/**
  * Commits staged changes in a git-backed connection.
  *
  * @param connectionId - Git connection id.
  * @param message - Commit message.
+ * @param createHarborRoot - When true, creates the HarborClient subdirectory layout if missing.
  */
-function gitCommit(connectionId: string, message: string): Promise<void> {
-  return ipcRenderer.invoke('git:commit', connectionId, message);
-}
-
-/**
- * Fetches from the remote for a git-backed connection.
- *
- * @param connectionId - Git connection id.
- */
-function gitFetch(connectionId: string): Promise<void> {
-  return ipcRenderer.invoke('git:fetch', connectionId);
+function gitCommit(
+  connectionId: string,
+  message: string,
+  createHarborRoot?: boolean
+): Promise<void> {
+  return ipcRenderer.invoke('git:commit', connectionId, message, createHarborRoot);
 }
 
 /**
@@ -860,6 +875,9 @@ function gitStartOAuth(connectionId: string): Promise<{
 
 /**
  * Completes GitHub OAuth device flow after browser approval.
+ *
+ * Ensures background polling is running when a pending device flow exists.
+ * Resolves immediately without waiting for GitHub approval.
  *
  * @param connectionId - Git connection id.
  */
@@ -1213,8 +1231,8 @@ const api: Api = {
   syncProvider,
   listGitStatuses,
   onGitWorkingTreeChanged,
+  onGitOAuthFinished,
   gitCommit,
-  gitFetch,
   gitPull,
   gitPush,
   gitLog,

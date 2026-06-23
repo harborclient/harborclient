@@ -30,6 +30,21 @@ export function countConflictFiles(dir: string): number {
 }
 
 /**
+ * Builds a user-facing message when pull stops due to merge conflict markers.
+ *
+ * @param conflictCount - Number of JSON files containing conflict markers.
+ * @returns Error message guiding the user to resolve markers in their editor.
+ */
+export function pullMergeConflictMessage(conflictCount: number): string {
+  const fileLabel = conflictCount === 1 ? 'file has' : 'files have';
+  return (
+    `Pull could not finish: ${conflictCount} ${fileLabel} merge conflicts. ` +
+    'Open the affected collection or environment JSON files in your editor, resolve the ' +
+    '<<<<<<< conflict markers, then pull again.'
+  );
+}
+
+/**
  * Converts a display name into a filesystem-safe slug for git-backed paths.
  *
  * @param name - Human-readable name (collection or request).

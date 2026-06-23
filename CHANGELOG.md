@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- refactor(git): rename HarborTeamHubClient to TeamHubClient. (`ba31cd1`)
+
 ## 1.5.19 - 2026-06-23
 
 - feat(git): add unit tests for GitSyncManager functionality. (`4199783`)

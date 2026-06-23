@@ -1,6 +1,7 @@
-import { useId, useState, type JSX } from 'react';
+import { useCallback, useEffect, useId, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { DatabaseConnection, GitSettings } from '#/shared/types';
+import { isGitHubRepositoryUrl } from '#/shared/gitUrl';
 import { Button } from '#/renderer/src/components/Button';
 import {
   SegmentedTabPanel,
@@ -132,14 +133,14 @@ interface OAuthAuthPanelProps {
   oauthUserCode: string | null;
 
   /**
+   * Whether background OAuth polling is waiting for browser approval.
+   */
+  oauthWaiting: boolean;
+
+  /**
    * Called when the user starts GitHub OAuth.
    */
   onStart: () => void;
-
-  /**
-   * Called when the user completes GitHub OAuth after approving in a browser.
-   */
-  onComplete: () => void;
 
   /**
    * Called when the user revokes stored GitHub OAuth credentials.
@@ -154,8 +155,8 @@ function OAuthAuthPanel({
   isAuthorized,
   disabled,
   oauthUserCode,
+  oauthWaiting,
   onStart,
-  onComplete,
   onRevoke
 }: OAuthAuthPanelProps): JSX.Element {
   if (isAuthorized) {
@@ -179,14 +180,13 @@ function OAuthAuthPanel({
       </Button>
       {oauthUserCode != null && (
         <p className="m-0 text-[13px] text-text">
-          Enter code <strong>{oauthUserCode}</strong> in the browser, then click Complete
-          authorization.
+          Enter code <strong>{oauthUserCode}</strong> in the browser.
         </p>
       )}
-      {oauthUserCode != null && (
-        <Button variant="secondary" disabled={disabled} onClick={onComplete}>
-          Complete authorization
-        </Button>
+      {oauthWaiting && (
+        <p className="m-0 text-[13px] text-text" role="status" aria-live="polite">
+          Waiting for approval in your browser…
+        </p>
       )}
     </div>
   );
@@ -203,6 +203,7 @@ export function GitFields({ connection, disabled = false, onChange }: Props): JS
   );
   const [patToken, setPatToken] = useState('');
   const [oauthUserCode, setOauthUserCode] = useState<string | null>(null);
+  const [oauthWaiting, setOauthWaiting] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
   const [authView, setAuthView] = useState<AuthView>(
     settings.auth.kind === 'oauth' ? 'oauth' : 'pat'
@@ -212,19 +213,72 @@ export function GitFields({ connection, disabled = false, onChange }: Props): JS
   const oauthClientIdId = useId();
 
   const authDisabled = disabled || authBusy;
-  const isGitHubUrl = settings.url.includes('github.com');
+  const isGitHubUrl = isGitHubRepositoryUrl(settings.url);
 
   /**
    * Updates a git settings field on the parent connection.
    *
    * @param partial - Partial settings patch.
    */
-  const updateSettings = (partial: Partial<GitSettings>): void => {
-    onChange({
-      ...connection,
-      settings: { ...settings, ...partial }
+  const updateSettings = useCallback(
+    (partial: Partial<GitSettings>): void => {
+      onChange({
+        ...connection,
+        settings: { ...connection.settings, ...partial }
+      });
+    },
+    [connection, onChange]
+  );
+
+  /**
+   * Refreshes auth metadata in the editor from the main-process connection store.
+   * Credential IPC handlers persist auth on disk; the renderer must not construct
+   * parallel auth values.
+   */
+  const reloadAuthFromMain = useCallback(async (): Promise<void> => {
+    if (!connection.id) {
+      return;
+    }
+
+    const connections = await window.api.listDatabaseConnections();
+    const updated = connections.find((item) => item.id === connection.id);
+    if (updated?.type !== 'git') {
+      return;
+    }
+
+    updateSettings({ auth: updated.settings.auth });
+    if (updated.settings.auth.kind === 'pat') {
+      setPatUsername(updated.settings.auth.username);
+    }
+  }, [connection.id, updateSettings]);
+
+  /**
+   * Applies OAuth completion events from the main-process background poller.
+   */
+  useEffect(() => {
+    if (!connection.id) {
+      return;
+    }
+
+    return window.api.onGitOAuthFinished((event) => {
+      if (event.connectionId !== connection.id) {
+        return;
+      }
+
+      setOauthWaiting(false);
+
+      if (event.ok) {
+        void reloadAuthFromMain().then(() => {
+          setOauthUserCode(null);
+          setAuthView('oauth');
+          toast.success('GitHub authorization complete.');
+        });
+        return;
+      }
+
+      toast.error(event.error ?? 'GitHub authorization failed.');
     });
-  };
+  }, [connection.id, reloadAuthFromMain]);
 
   /**
    * Stores a PAT and validates remote credentials.
@@ -241,7 +295,7 @@ export function GitFields({ connection, disabled = false, onChange }: Props): JS
     setAuthBusy(true);
     try {
       await window.api.gitSetPat(connection.id, patUsername, patToken);
-      updateSettings({ auth: { kind: 'pat', username: patUsername.trim() || 'token' } });
+      await reloadAuthFromMain();
       setPatToken('');
       setAuthView('pat');
       toast.success('Token saved and validated.');
@@ -264,27 +318,7 @@ export function GitFields({ connection, disabled = false, onChange }: Props): JS
     try {
       const result = await window.api.gitStartOAuth(connection.id);
       setOauthUserCode(result.userCode);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    } finally {
-      setAuthBusy(false);
-    }
-  };
-
-  /**
-   * Completes GitHub OAuth after the user approves in a browser.
-   */
-  const handleCompleteOAuth = async (): Promise<void> => {
-    if (!connection.id) {
-      return;
-    }
-    setAuthBusy(true);
-    try {
-      await window.api.gitCompleteOAuth(connection.id);
-      updateSettings({ auth: { kind: 'oauth', provider: 'github' } });
-      setOauthUserCode(null);
-      setAuthView('oauth');
-      toast.success('GitHub authorization complete.');
+      setOauthWaiting(true);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
@@ -315,8 +349,9 @@ export function GitFields({ connection, disabled = false, onChange }: Props): JS
     setAuthBusy(true);
     try {
       await window.api.gitRevokeOAuth(connection.id);
-      updateSettings({ auth: { kind: 'pat', username: 'token' } });
+      await reloadAuthFromMain();
       setOauthUserCode(null);
+      setOauthWaiting(false);
       setAuthView('pat');
       toast.success('GitHub authorization revoked.');
     } catch (err) {
@@ -420,8 +455,8 @@ export function GitFields({ connection, disabled = false, onChange }: Props): JS
                 isAuthorized={settings.auth.kind === 'oauth'}
                 disabled={authDisabled}
                 oauthUserCode={oauthUserCode}
+                oauthWaiting={oauthWaiting}
                 onStart={() => void handleStartOAuth()}
-                onComplete={() => void handleCompleteOAuth()}
                 onRevoke={() => void handleRevokeOAuth()}
               />
             </SegmentedTabPanel>

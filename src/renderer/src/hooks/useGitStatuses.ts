@@ -24,7 +24,7 @@ export function useGitStatuses(
       .listGitStatuses()
       .then(setStatuses)
       .catch(() => {
-        setStatuses({});
+        // Keep last-known statuses; next poll or focus will retry.
       });
   }, []);
 
@@ -44,9 +44,9 @@ export function useGitStatuses(
     const unsubscribe =
       onWorkingTreeChanged != null
         ? window.api.onGitWorkingTreeChanged((connectionId) => {
-            refresh();
-            onWorkingTreeChanged(connectionId);
-          })
+          refresh();
+          onWorkingTreeChanged(connectionId);
+        })
         : undefined;
 
     return () => {

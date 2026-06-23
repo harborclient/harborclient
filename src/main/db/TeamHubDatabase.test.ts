@@ -4,16 +4,16 @@ import { join } from 'path';
 import { afterEach, expect, it, vi } from 'vitest';
 import { TeamHubDatabase } from '#/main/db/TeamHubDatabase';
 import { TeamHubIdMap } from '#/main/db/TeamHubIdMap';
-import type { HarborTeamHubClient } from '#/main/teamHub/HarborTeamHubClient';
+import type { TeamHubClient } from '#/main/teamHub/TeamHubClient';
 import { describeSqlite } from '#/test/nativeModules';
 
 describeSqlite('TeamHubDatabase', () => {
   const cleanups: Array<() => void> = [];
 
   /**
-   * Builds a TeamHubDatabase backed by a mock HarborTeamHubClient and temp id map.
+   * Builds a TeamHubDatabase backed by a mock TeamHubClient and temp id map.
    */
-  function createDatabase(client: Partial<HarborTeamHubClient>): TeamHubDatabase {
+  function createDatabase(client: Partial<TeamHubClient>): TeamHubDatabase {
     const dir = mkdtempSync(join(tmpdir(), 'harborclient-shub-'));
     const idMap = new TeamHubIdMap(join(dir, 'team-hub-test.db'));
     idMap.init();
@@ -21,7 +21,7 @@ describeSqlite('TeamHubDatabase', () => {
       idMap.close();
       rmSync(dir, { recursive: true, force: true });
     });
-    return new TeamHubDatabase(client as HarborTeamHubClient, idMap);
+    return new TeamHubDatabase(client as TeamHubClient, idMap);
   }
 
   afterEach(() => {

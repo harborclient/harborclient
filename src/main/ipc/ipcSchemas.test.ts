@@ -57,6 +57,8 @@ const validScriptRun = {
   variables: { foo: 'bar' }
 };
 
+const validGitConnectionId = 'git-conn-abc123';
+
 describe('enum schemas', () => {
   it('httpMethod rejects unknown values', () => {
     expect(httpMethod.safeParse('FETCH').success).toBe(false);
@@ -270,6 +272,69 @@ describe('nullable folderId tuples', () => {
 
   it('requestMove accepts null folderId', () => {
     expect(ipcArgSchemas.requestMove.safeParse([10, null, 0]).success).toBe(true);
+  });
+});
+
+describe('git IPC schemas', () => {
+  it('gitCommit accepts connection id and non-empty commit message', () => {
+    expect(
+      ipcArgSchemas.gitCommit.safeParse([validGitConnectionId, 'Initial commit']).success
+    ).toBe(true);
+    expect(ipcArgSchemas.gitCommit.safeParse([validGitConnectionId, '  fix typo  ']).success).toBe(
+      true
+    );
+    expect(
+      ipcArgSchemas.gitCommit.safeParse([validGitConnectionId, 'Initial commit', true]).success
+    ).toBe(true);
+  });
+
+  it('gitCommit rejects empty or whitespace-only commit message', () => {
+    expect(ipcArgSchemas.gitCommit.safeParse([validGitConnectionId, '']).success).toBe(false);
+    expect(ipcArgSchemas.gitCommit.safeParse([validGitConnectionId, '   ']).success).toBe(false);
+  });
+
+  it('gitCommit rejects non-string connection id and wrong arity', () => {
+    expect(ipcArgSchemas.gitCommit.safeParse([123, 'msg']).success).toBe(false);
+    expect(ipcArgSchemas.gitCommit.safeParse([validGitConnectionId]).success).toBe(false);
+    expect(ipcArgSchemas.gitCommit.safeParse([validGitConnectionId, 'msg', 'yes']).success).toBe(
+      false
+    );
+  });
+
+  it('gitLog accepts connection id with optional positive depth', () => {
+    expect(ipcArgSchemas.gitLog.safeParse([validGitConnectionId]).success).toBe(true);
+    expect(ipcArgSchemas.gitLog.safeParse([validGitConnectionId, 10]).success).toBe(true);
+  });
+
+  it('gitLog rejects invalid depth values', () => {
+    expect(ipcArgSchemas.gitLog.safeParse([validGitConnectionId, 0]).success).toBe(false);
+    expect(ipcArgSchemas.gitLog.safeParse([validGitConnectionId, -1]).success).toBe(false);
+    expect(ipcArgSchemas.gitLog.safeParse([validGitConnectionId, 1.5]).success).toBe(false);
+    expect(ipcArgSchemas.gitLog.safeParse([validGitConnectionId, '10']).success).toBe(false);
+  });
+
+  it('gitLog rejects non-string connection id', () => {
+    expect(ipcArgSchemas.gitLog.safeParse([null]).success).toBe(false);
+  });
+
+  it('gitSetPat accepts connection id, username, and non-empty token', () => {
+    expect(
+      ipcArgSchemas.gitSetPat.safeParse([validGitConnectionId, 'octocat', 'ghp_xxx']).success
+    ).toBe(true);
+    expect(ipcArgSchemas.gitSetPat.safeParse([validGitConnectionId, '', 'ghp_xxx']).success).toBe(
+      true
+    );
+  });
+
+  it('gitSetPat rejects empty token', () => {
+    expect(ipcArgSchemas.gitSetPat.safeParse([validGitConnectionId, 'octocat', '']).success).toBe(
+      false
+    );
+  });
+
+  it('gitSetPat rejects non-string connection id and wrong arity', () => {
+    expect(ipcArgSchemas.gitSetPat.safeParse([{}, 'user', 'token']).success).toBe(false);
+    expect(ipcArgSchemas.gitSetPat.safeParse([validGitConnectionId, 'user']).success).toBe(false);
   });
 });
 

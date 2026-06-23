@@ -4,24 +4,24 @@ Typed HTTP client for [HarborClient Server](https://github.com/harbor/harborclie
 
 ## Directory layout
 
-| Role           | Files                                                                  |
-| -------------- | ---------------------------------------------------------------------- |
-| Types          | `types.ts` — record and request input types                            |
-| Schemas        | `schemas.ts` — Zod schemas for response validation                     |
-| Error          | `TeamHubClientError.ts` — thrown on HTTP and validation failures       |
-| Interface      | `ITeamHubClient.ts` — endpoint method contract                         |
-| Implementation | `HarborTeamHubClient.ts` — default client with bearer auth and timeout |
-| Barrel         | `index.ts` — public exports                                            |
-| Tests          | `HarborTeamHubClient.test.ts` — colocated unit tests with mocked fetch |
+| Role           | Files                                                            |
+| -------------- | ---------------------------------------------------------------- |
+| Types          | `types.ts` — record and request input types                      |
+| Schemas        | `schemas.ts` — Zod schemas for response validation               |
+| Error          | `TeamHubClientError.ts` — thrown on HTTP and validation failures |
+| Interface      | `ITeamHubClient.ts` — endpoint method contract                   |
+| Implementation | `TeamHubClient.ts` — default client with bearer auth and timeout |
+| Barrel         | `index.ts` — public exports                                      |
+| Tests          | `TeamHubClient.test.ts` — colocated unit tests with mocked fetch |
 
-Import from `#/main/teamHub` for barrel exports, or from specific modules (e.g. `#/main/teamHub/HarborTeamHubClient`) when you need a single class.
+Import from `#/main/teamHub` for barrel exports, or from specific modules (e.g. `#/main/teamHub/TeamHubClient`) when you need a single class.
 
 ## Usage
 
 ```typescript
-import { HarborTeamHubClient } from '#/main/teamHub';
+import { TeamHubClient } from '#/main/teamHub';
 
-const client = new HarborTeamHubClient({
+const client = new TeamHubClient({
   baseUrl: 'http://127.0.0.1:8788',
   token: 'hbk_...'
 });

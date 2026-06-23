@@ -2,7 +2,12 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { describe, expect, it } from 'vitest';
-import { countConflictFiles, toFileSlug, uuidSlugPrefix } from '#/main/git/slug';
+import {
+  countConflictFiles,
+  pullMergeConflictMessage,
+  toFileSlug,
+  uuidSlugPrefix
+} from '#/main/git/slug';
 
 describe('git slug helpers', () => {
   it('normalizes display names into filesystem slugs', () => {
@@ -30,5 +35,11 @@ describe('git slug helpers', () => {
     expect(existsSync(root)).toBe(true);
 
     rmSync(root, { recursive: true, force: true });
+  });
+
+  it('builds singular and plural pull merge conflict messages', () => {
+    expect(pullMergeConflictMessage(1)).toContain('1 file has merge conflicts');
+    expect(pullMergeConflictMessage(2)).toContain('2 files have merge conflicts');
+    expect(pullMergeConflictMessage(1)).toContain('<<<<<<< conflict markers');
   });
 });

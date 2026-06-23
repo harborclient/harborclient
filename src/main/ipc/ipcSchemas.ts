@@ -467,7 +467,7 @@ export const ipcArgSchemas = {
   inviteCreate: z.tuple([dbId, recipientKid.optional()]),
   saveTextFile: z.tuple([z.string().max(MAX_IPC_REQUEST_BODY_CHARS), z.string()]),
   backupExport: z.tuple([z.record(z.string(), z.string())]),
-  gitCommit: z.tuple([connectionId, z.string().trim().min(1)]),
+  gitCommit: z.tuple([connectionId, z.string().trim().min(1), z.boolean().optional()]),
   gitLog: z.tuple([connectionId, z.number().int().positive().optional()]),
   gitSetPat: z.tuple([connectionId, z.string(), z.string().min(1)])
 } as const;

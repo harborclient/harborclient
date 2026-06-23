@@ -19,7 +19,7 @@ import {
 } from '#/main/settings/databaseSlots';
 import { deleteTeamHub, listTeamHubs, saveTeamHub } from '#/main/settings/teamHubSettings';
 import { scanTeamHubSessions } from '#/main/settings/teamHubSessionScan';
-import { HarborTeamHubClient } from '#/main/teamHub/HarborTeamHubClient';
+import { TeamHubClient } from '#/main/teamHub/TeamHubClient';
 import { getAiSettings, setAiSettings } from '#/main/settings/aiSettings';
 import { getGeneralSettings, setGeneralSettings } from '#/main/settings/generalSettings';
 import {
@@ -143,7 +143,7 @@ export function registerSettingsHandlers(db: IDatabase): void {
       throw new Error(`Unknown team hub: ${hubId}`);
     }
 
-    const client = new HarborTeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+    const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
     return client.listAdminUsers();
   });
 
@@ -157,7 +157,7 @@ export function registerSettingsHandlers(db: IDatabase): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new HarborTeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
       return client.updateAdminUser(userId, input);
     }
   );
@@ -169,7 +169,7 @@ export function registerSettingsHandlers(db: IDatabase): void {
       throw new Error(`Unknown team hub: ${hubId}`);
     }
 
-    const client = new HarborTeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+    const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
     await client.deleteAdminUser(userId);
   });
 
@@ -180,7 +180,7 @@ export function registerSettingsHandlers(db: IDatabase): void {
       throw new Error(`Unknown team hub: ${hubId}`);
     }
 
-    const client = new HarborTeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+    const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
     return client.createAdminUser(input);
   });
 
@@ -191,7 +191,7 @@ export function registerSettingsHandlers(db: IDatabase): void {
       throw new Error(`Unknown team hub: ${hubId}`);
     }
 
-    const client = new HarborTeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+    const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
     return client.listAdminTokens();
   });
 
@@ -205,7 +205,7 @@ export function registerSettingsHandlers(db: IDatabase): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new HarborTeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
       return client.createAdminUserToken(userId, input);
     }
   );
@@ -220,7 +220,7 @@ export function registerSettingsHandlers(db: IDatabase): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new HarborTeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
       await client.deleteAdminToken(tokenId);
     }
   );
@@ -232,7 +232,7 @@ export function registerSettingsHandlers(db: IDatabase): void {
       throw new Error(`Unknown team hub: ${hubId}`);
     }
 
-    const client = new HarborTeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+    const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
     return client.listAdminResourceOptions();
   });
 
