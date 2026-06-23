@@ -3,6 +3,9 @@
 ## Unreleased
 
 - feat(teamHub): implement user and token management for Team Hub. (`c786ae4`)
+
+## 1.5.15 - 2026-06-23
+
 - feat(logging): add verbose and very-verbose logging options for HTTP requests and startup diagnostics. (`5e0efd2`)
 - refactor(window): improve main window reveal logic during startup. (`fc68691`)
 - refactor(teamHub): replace HarborServerClient with HarborTeamHubClient across the application. (`965efaa`)
