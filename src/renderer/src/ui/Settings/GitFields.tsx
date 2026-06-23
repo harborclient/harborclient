@@ -211,6 +211,7 @@ export function GitFields({ connection, disabled = false, onChange }: Props): JS
   const patUsernameId = useId();
   const patTokenId = useId();
   const oauthClientIdId = useId();
+  const repoPathId = useId();
 
   const authDisabled = disabled || authBusy;
   const isGitHubUrl = isGitHubRepositoryUrl(settings.url);
@@ -327,6 +328,16 @@ export function GitFields({ connection, disabled = false, onChange }: Props): JS
   };
 
   /**
+   * Opens a native directory picker and updates the repository path when chosen.
+   */
+  const handleBrowseRepoPath = async (): Promise<void> => {
+    const selected = await window.api.selectDirectory(settings.repoPath);
+    if (selected != null) {
+      updateSettings({ repoPath: selected });
+    }
+  };
+
+  /**
    * Revokes stored GitHub OAuth credentials after user confirmation.
    */
   const handleRevokeOAuth = async (): Promise<void> => {
@@ -376,17 +387,30 @@ export function GitFields({ connection, disabled = false, onChange }: Props): JS
 
   return (
     <div className="flex flex-col gap-4">
-      <label className="flex flex-col gap-1">
-        <span className="text-[14px] font-medium text-text">Repository path</span>
-        <input
-          type="text"
-          className={field}
-          value={settings.repoPath}
-          disabled={disabled}
-          placeholder="/path/to/your/repo"
-          onChange={(event) => updateSettings({ repoPath: event.target.value })}
-        />
-      </label>
+      <div className="flex flex-col gap-1">
+        <label className="text-[14px] font-medium text-text" htmlFor={repoPathId}>
+          Repository path
+        </label>
+        <div className="flex gap-2">
+          <input
+            id={repoPathId}
+            type="text"
+            className={`${field} min-w-0 flex-1`}
+            value={settings.repoPath}
+            disabled={disabled}
+            placeholder="/path/to/your/repo"
+            onChange={(event) => updateSettings({ repoPath: event.target.value })}
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={disabled}
+            onClick={() => void handleBrowseRepoPath()}
+          >
+            Browse
+          </Button>
+        </div>
+      </div>
 
       <label className="flex flex-col gap-1">
         <span className="text-[14px] font-medium text-text">Repository URL (HTTPS)</span>

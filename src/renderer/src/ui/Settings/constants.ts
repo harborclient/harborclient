@@ -14,6 +14,9 @@ import type {
 import { DEFAULT_CODE_EDITOR_SETUP } from '#/shared/codeEditorSettings';
 import type { SettingsSection } from './types';
 
+/**
+ * Select options for the appearance theme control in General settings.
+ */
 export const THEME_OPTIONS: Array<{ value: ThemeSource; label: string }> = [
   { value: 'light', label: 'Light' },
   { value: 'dark', label: 'Dark' },
@@ -21,6 +24,9 @@ export const THEME_OPTIONS: Array<{ value: ThemeSource; label: string }> = [
   { value: 'system', label: 'System' }
 ];
 
+/**
+ * Baseline proxy configuration used when proxy is disabled or reset.
+ */
 export const DEFAULT_PROXY_SETTINGS: ProxySettings = {
   enabled: false,
   protocol: 'http',
@@ -31,6 +37,9 @@ export const DEFAULT_PROXY_SETTINGS: ProxySettings = {
   password: ''
 };
 
+/**
+ * Factory defaults for app-wide General settings (timeouts, editor, SSL, proxy).
+ */
 export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   requestTimeoutMs: 30000,
   maxResponseSizeMb: 50,
@@ -40,11 +49,17 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   proxy: { ...DEFAULT_PROXY_SETTINGS }
 };
 
+/**
+ * Select options for the proxy protocol field in Proxy settings.
+ */
 export const PROXY_PROTOCOL_OPTIONS: Array<{ value: ProxySettings['protocol']; label: string }> = [
   { value: 'http', label: 'HTTP' },
   { value: 'https', label: 'HTTPS' }
 ];
 
+/**
+ * Select options for database provider type when adding or editing a connection.
+ */
 export const PROVIDER_OPTIONS: Array<{ value: DatabaseProvider; label: string }> = [
   { value: 'sqlite', label: 'SQLite' },
   { value: 'git', label: 'Git' },
@@ -53,12 +68,18 @@ export const PROVIDER_OPTIONS: Array<{ value: DatabaseProvider; label: string }>
   { value: 'postgres', label: 'PostgreSQL' }
 ];
 
+/**
+ * Initial SQLite connection settings for new local database connections.
+ */
 export const DEFAULT_SQLITE_SETTINGS: SqliteSettings = {
   dbFilename: 'harborclient.db',
   legacyDbFilename: 'harbor-client.db',
   legacyUserDataDir: 'harbor-client'
 };
 
+/**
+ * Blank Firestore credentials and project fields for a new remote connection.
+ */
 export const DEFAULT_FIRESTORE_SETTINGS: FirestoreSettings = {
   apiKey: '',
   authDomain: '',
@@ -68,6 +89,9 @@ export const DEFAULT_FIRESTORE_SETTINGS: FirestoreSettings = {
   password: ''
 };
 
+/**
+ * Sensible localhost defaults for a new MySQL connection form.
+ */
 export const DEFAULT_MYSQL_SETTINGS: MySqlSettings = {
   host: '127.0.0.1',
   port: 3306,
@@ -76,6 +100,9 @@ export const DEFAULT_MYSQL_SETTINGS: MySqlSettings = {
   database: ''
 };
 
+/**
+ * Sensible localhost defaults for a new PostgreSQL connection form.
+ */
 export const DEFAULT_POSTGRES_SETTINGS: PostgresSettings = {
   host: '127.0.0.1',
   port: 5432,
@@ -84,6 +111,9 @@ export const DEFAULT_POSTGRES_SETTINGS: PostgresSettings = {
   database: ''
 };
 
+/**
+ * Initial Git-backed storage settings for a new repository connection.
+ */
 export const DEFAULT_GIT_SETTINGS: GitSettings = {
   repoPath: '',
   url: '',
@@ -92,19 +122,25 @@ export const DEFAULT_GIT_SETTINGS: GitSettings = {
   auth: { kind: 'pat', username: 'token' }
 };
 
+/**
+ * Empty API key placeholders for AI provider settings.
+ */
 export const DEFAULT_AI_SETTINGS: AiSettings = {
   openaiApiKey: '',
   claudeApiKey: '',
   geminiApiKey: ''
 };
 
+/**
+ * Sidebar navigation entries for the Settings screen (order and labels).
+ */
 export const SETTINGS_SECTIONS: Array<{ value: SettingsSection; label: string }> = [
   { value: 'general', label: 'General' },
-  { value: 'syntax', label: 'Syntax highlighting' },
-  { value: 'shortcuts', label: 'Shortcuts' },
-  { value: 'proxy', label: 'Proxy' },
   { value: 'databases', label: 'Databases' },
+  { value: 'shortcuts', label: 'Shortcuts' },
+  { value: 'syntax', label: 'Syntax highlighting' },
   { value: 'ai', label: 'AI' },
+  { value: 'proxy', label: 'Proxy' },
   { value: 'backup-restore', label: 'Backup & Restore' }
 ];
 

@@ -4,9 +4,27 @@ import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 
 /**
- * Registers IPC handlers for generic file save dialogs.
+ * Registers IPC handlers for generic file save and open dialogs.
  */
 export function registerFileHandlers(): void {
+  // Opens a native directory picker and returns the selected absolute path.
+  handle('dialog:openDirectory', ipcArgSchemas.openDirectory, async (_event, defaultPath) => {
+    const win = BrowserWindow.getFocusedWindow();
+    const dialogOptions = {
+      properties: ['openDirectory'] as Array<'openDirectory'>,
+      defaultPath: defaultPath.trim() || undefined
+    };
+    const { canceled, filePaths } = win
+      ? await dialog.showOpenDialog(win, dialogOptions)
+      : await dialog.showOpenDialog(dialogOptions);
+
+    if (canceled || filePaths.length === 0) {
+      return null;
+    }
+
+    return filePaths[0];
+  });
+
   // Writes arbitrary text to a file chosen via a native save dialog.
   handle('files:saveText', ipcArgSchemas.saveTextFile, async (_event, content, defaultPath) => {
     const win = BrowserWindow.getFocusedWindow();

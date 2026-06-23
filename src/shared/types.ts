@@ -2895,6 +2895,14 @@ export interface Api {
   selectFiles: () => Promise<string[]>;
 
   /**
+   * Opens a native directory picker.
+   *
+   * @param defaultPath - Initial directory shown in the dialog, if any.
+   * @returns Selected absolute directory path, or null when canceled.
+   */
+  selectDirectory: (defaultPath: string) => Promise<string | null>;
+
+  /**
    * Creates a signed, encrypted invite for a specific recipient.
    *
    * @param collectionId - Global collection id to share.

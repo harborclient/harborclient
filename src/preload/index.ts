@@ -1042,6 +1042,16 @@ function selectFiles(): Promise<string[]> {
 }
 
 /**
+ * Opens a native directory picker via IPC.
+ *
+ * @param defaultPath - Initial directory shown in the dialog, if any.
+ * @returns Selected absolute directory path, or null when canceled.
+ */
+function selectDirectory(defaultPath: string): Promise<string | null> {
+  return ipcRenderer.invoke('dialog:openDirectory', defaultPath);
+}
+
+/**
  * Creates a signed, encrypted invite for a specific recipient via IPC.
  *
  * @param collectionId - Global collection id to share.
@@ -1257,6 +1267,7 @@ const api: Api = {
   onBeforeClose,
   confirmClose,
   selectFiles,
+  selectDirectory,
   createInviteToken,
   acceptInvite,
   getInviteIdentity,

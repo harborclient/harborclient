@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(ipc): add directory picker functionality. (`5459a7e`)
+
 ## 1.6.0 - 2026-06-23
 
 - docs(README): remove CI badge for cleaner presentation. (`a5a4ff6`)
