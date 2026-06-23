@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- docs(README): add Electron badge to enhance visibility. (`6a6065d`)
 - refactor(ui): streamline Collections and RequestRow components. (`e44d761`)
 - docs(README): enhance documentation with badges and detailed descriptions. (`b6029e9`)
 
