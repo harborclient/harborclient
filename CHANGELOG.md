@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- chore(docs): update GitHub Actions workflow for documentation deployment. (`8f51593`)
 - refactor(git): improve JSON error handling and sync operations. (`e33a817`)
 - refactor(git): rename HarborTeamHubClient to TeamHubClient. (`ba31cd1`)
 

@@ -4,10 +4,9 @@ name: Docs Pages
 #
 # Repository: https://github.com/headzoo/harborclient
 #
-# Automatically deploys when documentation changes land on main.
-# Manual dispatch remains available so docs can be published from any branch/ref
-# without merging to main first. Provide `source_ref` with the
-# branch, tag, or SHA whose content should be deployed.
+# Runs on demand via workflow_dispatch, or when invoked by the release workflow.
+# Provide `source_ref` with the branch, tag, or SHA whose content should be
+# deployed.
 #
 # Required repository setup:
 #   1. Settings → Pages → Build and deployment → Source: GitHub Actions
@@ -22,26 +21,6 @@ name: Docs Pages
 #   https://harborclient.com/
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - build/icons/**
-      - images/logo.png
-      - images/screenshots/**
-      - README.md
-      - docs/**
-      - scripts/sync-docs-assets.mjs
-      - scripts/generate-download-links.mjs
-      - scripts/build-docs-nav.mjs
-      - scripts/docs-nav.config.mjs
-      - scripts/docs-slugger.mjs
-      - scripts/docs-link-rewriter.mjs
-      - scripts/docs-site.config.mjs
-      - scripts/assert-docs-slugs.mjs
-      - package.json
-      - pnpm-lock.yaml
-      - .github/workflows/docs-pages.yml
   workflow_dispatch:
     inputs:
       source_ref:
