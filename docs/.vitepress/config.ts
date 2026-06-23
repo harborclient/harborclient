@@ -107,6 +107,7 @@ export default withMermaid(
       nav: [
         { text: 'Guide', link: '/getting-started' },
         { text: 'Features', link: '/features' },
+        { text: 'Blog', link: 'https://harborclient-blog.com/' },
         {
           text: `v${pkg.version}`,
           link: 'https://github.com/headzoo/harborclient/releases',

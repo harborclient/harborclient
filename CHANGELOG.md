@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(docs): add Blog link and Verbose logging section to documentation. (`ab36624`)
 - feat(teamHub): enhance synchronization logic for team hub collections. (`8669326`)
 
 ## 1.5.16 - 2026-06-23

@@ -33,6 +33,10 @@ export const sidebar: DefaultTheme.SidebarItem[] =
         "link": "/getting-started#install-on-linux"
       },
       {
+        "text": "Verbose logging",
+        "link": "/getting-started#verbose-logging"
+      },
+      {
         "text": "What's next",
         "link": "/getting-started#whats-next"
       }
