@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.6.0 - 2026-06-23
+
 - docs(README): remove CI badge for cleaner presentation. (`a5a4ff6`)
 - refactor(ui): simplify action menu structure in Collections component. (`e677a48`)
 - docs(README): add Electron badge to enhance visibility. (`6a6065d`)
