@@ -162,6 +162,58 @@ export function registerSettingsHandlers(db: IDatabase): void {
     await client.deleteAdminUser(userId);
   });
 
+  // Creates a Team Hub user account and initial token using an admin token.
+  handle('teamHubs:createUser', ipcArgSchemas.teamHubUserCreate, async (_event, hubId, input) => {
+    const hub = listTeamHubs().find((entry) => entry.id === hubId);
+    if (!hub) {
+      throw new Error(`Unknown team hub: ${hubId}`);
+    }
+
+    const client = new HarborTeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+    return client.createAdminUser(input);
+  });
+
+  // Lists Team Hub API tokens using an admin token on the given hub connection.
+  handle('teamHubs:listTokens', ipcArgSchemas.teamHubTokenList, async (_event, hubId) => {
+    const hub = listTeamHubs().find((entry) => entry.id === hubId);
+    if (!hub) {
+      throw new Error(`Unknown team hub: ${hubId}`);
+    }
+
+    const client = new HarborTeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+    return client.listAdminTokens();
+  });
+
+  // Creates a Team Hub API token for a user using an admin token.
+  handle(
+    'teamHubs:createToken',
+    ipcArgSchemas.teamHubTokenCreate,
+    async (_event, hubId, userId, input) => {
+      const hub = listTeamHubs().find((entry) => entry.id === hubId);
+      if (!hub) {
+        throw new Error(`Unknown team hub: ${hubId}`);
+      }
+
+      const client = new HarborTeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      return client.createAdminUserToken(userId, input);
+    }
+  );
+
+  // Deletes a Team Hub API token using an admin token on the given hub connection.
+  handle(
+    'teamHubs:deleteToken',
+    ipcArgSchemas.teamHubTokenDelete,
+    async (_event, hubId, tokenId) => {
+      const hub = listTeamHubs().find((entry) => entry.id === hubId);
+      if (!hub) {
+        throw new Error(`Unknown team hub: ${hubId}`);
+      }
+
+      const client = new HarborTeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      await client.deleteAdminToken(tokenId);
+    }
+  );
+
   // Loads admin resource options for user management forms on the given hub connection.
   handle('teamHubs:listAdminResourceOptions', ipcArgSchemas.connectionId, async (_event, hubId) => {
     const hub = listTeamHubs().find((entry) => entry.id === hubId);

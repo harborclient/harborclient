@@ -59,8 +59,7 @@ import { TitleBar } from '#/renderer/src/ui/TitleBar';
 import { BusyIndicator } from '#/renderer/src/ui/shared/BusyIndicator';
 import { Footer } from '#/renderer/src/ui/Footer';
 import { applyThemeAttribute } from '#/renderer/src/theme';
-
-const isMac = window.platform === 'darwin';
+import { platformClassName } from '#/renderer/src/platform';
 
 /**
  * Root application layout: sidebar, request editor, and response viewer.
@@ -146,7 +145,7 @@ export default function App(): JSX.Element {
     configuringEnvironment != null;
 
   return (
-    <div className={`flex h-screen flex-col overflow-hidden ${isMac ? 'platform-darwin' : ''}`}>
+    <div className={`flex h-screen flex-col overflow-hidden ${platformClassName()}`}>
       <BusyIndicator />
       <TitleBar />
       <a

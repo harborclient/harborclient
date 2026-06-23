@@ -249,6 +249,154 @@ describe('HarborTeamHubClient', () => {
     });
   });
 
+  describe('createAdminUser', () => {
+    it('sends bearer auth and parses the created user and token payload', async () => {
+      const payload = {
+        user: {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          name: 'alice',
+          role: 'user' as const,
+          collectionAccess: ['*'],
+          environmentAccess: ['*'],
+          llmAccess: false,
+          llmModels: [],
+          llmMonthlyTokenLimit: null,
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z'
+        },
+        token: {
+          id: '660e8400-e29b-41d4-a716-446655440001',
+          userId: '550e8400-e29b-41d4-a716-446655440000',
+          name: 'alice',
+          tokenPrefix: 'hbk_AbCd1234',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          lastUsedAt: null,
+          revokedAt: null
+        },
+        secret: 'hbk_secret_value'
+      };
+
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(payload), {
+          status: 201,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      );
+      globalThis.fetch = fetchMock;
+
+      const client = createClient();
+      const created = await client.createAdminUser({
+        name: 'alice',
+        role: 'user',
+        collectionAccess: ['*'],
+        environmentAccess: ['*']
+      });
+
+      expect(created).toEqual(payload);
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:8788/admin/users',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            name: 'alice',
+            role: 'user',
+            collectionAccess: ['*'],
+            environmentAccess: ['*']
+          })
+        })
+      );
+    });
+  });
+
+  describe('listAdminTokens', () => {
+    it('sends bearer auth and parses the admin token list', async () => {
+      const tokenRecord = {
+        id: '660e8400-e29b-41d4-a716-446655440001',
+        userId: '550e8400-e29b-41d4-a716-446655440000',
+        name: 'Desktop',
+        tokenPrefix: 'hbk_AbCd1234',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        lastUsedAt: null,
+        revokedAt: null
+      };
+
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ tokens: [tokenRecord] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      );
+      globalThis.fetch = fetchMock;
+
+      const client = createClient();
+      const tokens = await client.listAdminTokens();
+
+      expect(tokens).toEqual([tokenRecord]);
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:8788/admin/tokens',
+        expect.objectContaining({
+          method: 'GET'
+        })
+      );
+    });
+  });
+
+  describe('createAdminUserToken', () => {
+    it('sends bearer auth and parses the created token payload', async () => {
+      const payload = {
+        token: {
+          id: '660e8400-e29b-41d4-a716-446655440001',
+          userId: '550e8400-e29b-41d4-a716-446655440000',
+          name: 'Desktop',
+          tokenPrefix: 'hbk_AbCd1234',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          lastUsedAt: null,
+          revokedAt: null
+        },
+        secret: 'hbk_secret_value'
+      };
+
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(payload), {
+          status: 201,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      );
+      globalThis.fetch = fetchMock;
+
+      const client = createClient();
+      const created = await client.createAdminUserToken('550e8400-e29b-41d4-a716-446655440000', {
+        name: 'Desktop'
+      });
+
+      expect(created).toEqual(payload);
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:8788/admin/users/550e8400-e29b-41d4-a716-446655440000/tokens',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ name: 'Desktop' })
+        })
+      );
+    });
+  });
+
+  describe('deleteAdminToken', () => {
+    it('sends bearer auth and accepts 204 responses', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+      globalThis.fetch = fetchMock;
+
+      const client = createClient();
+      await client.deleteAdminToken('660e8400-e29b-41d4-a716-446655440001');
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:8788/admin/tokens/660e8400-e29b-41d4-a716-446655440001',
+        expect.objectContaining({
+          method: 'DELETE'
+        })
+      );
+    });
+  });
+
   describe('listAdminResourceOptions', () => {
     it('loads collections, environments, and models in parallel', async () => {
       const fetchMock = vi

@@ -67,6 +67,8 @@ export const name = z.string().trim().min(1, 'name is required');
 
 export const themeSource = z.enum(['light', 'dark', 'system', 'high-contrast']);
 
+export const rootMenuLabel = z.enum(['File', 'Edit', 'View', 'Help']);
+
 export const editorTab = z.enum([
   'params',
   'headers',
@@ -282,6 +284,26 @@ export const updateHubUserInput = z.object({
 });
 
 /**
+ * Zod schema for creating a Team Hub user sent over IPC.
+ */
+export const createHubUserInput = z.object({
+  name: z.string().trim().min(1),
+  role: z.enum(['admin', 'user']),
+  collectionAccess: z.array(z.string()).optional(),
+  environmentAccess: z.array(z.string()).optional(),
+  llmAccess: z.boolean().optional(),
+  llmModels: z.array(z.string()).optional(),
+  llmMonthlyTokenLimit: z.number().int().nonnegative().nullable().optional()
+});
+
+/**
+ * Zod schema for creating a Team Hub API token sent over IPC.
+ */
+export const createHubTokenInput = z.object({
+  name: z.string().trim().min(1)
+});
+
+/**
  * Zod schema for persisted AI provider API keys.
  */
 export const aiSettings = z.object({
@@ -369,6 +391,7 @@ export const ipcArgSchemas = {
   closeDecision: z.tuple([z.boolean()]),
   menuSidebarVisible: z.tuple([z.boolean()]),
   menuAiSidebarVisible: z.tuple([z.boolean()]),
+  menuPopupSubmenu: z.tuple([rootMenuLabel, z.number(), z.number()]),
   chatCreate: z.tuple([chatCreateInput]),
   chatGet: z.tuple([dbId]),
   chatAddMessage: z.tuple([chatAddMessageInput]),
@@ -384,6 +407,10 @@ export const ipcArgSchemas = {
   teamHub: z.tuple([teamHub]),
   teamHubUserUpdate: z.tuple([connectionId, connectionId, updateHubUserInput]),
   teamHubUserDelete: z.tuple([connectionId, connectionId]),
+  teamHubUserCreate: z.tuple([connectionId, createHubUserInput]),
+  teamHubTokenList: z.tuple([connectionId]),
+  teamHubTokenCreate: z.tuple([connectionId, connectionId, createHubTokenInput]),
+  teamHubTokenDelete: z.tuple([connectionId, connectionId]),
   providerSync: z.tuple([connectionId]),
   setEditorTab: z.tuple([storageKey, editorTab]),
   sidebarExpansionSet: z.tuple([sidebarExpansion]),

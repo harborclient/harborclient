@@ -319,11 +319,13 @@ function setSplashStatus(message: string): void {
 }
 
 /**
- * Resolves a solid window background for the splash on platforms without transparency.
+ * Resolves a solid window background from the current native light/dark preference.
+ *
+ * Used for splash and Linux frameless windows where the OS does not paint chrome.
  *
  * @returns Hex color matching the current light/dark preference.
  */
-function resolveSplashBackgroundColor(): string {
+function resolveWindowBackgroundColor(): string {
   return nativeTheme.shouldUseDarkColors ? '#1e1e1e' : '#f5f5f7';
 }
 
@@ -364,7 +366,7 @@ async function createSplashWindow(): Promise<BrowserWindow> {
     y,
     frame: false,
     transparent: useTransparency,
-    backgroundColor: useTransparency ? undefined : resolveSplashBackgroundColor(),
+    backgroundColor: useTransparency ? undefined : resolveWindowBackgroundColor(),
     resizable: false,
     minimizable: false,
     maximizable: false,
@@ -414,12 +416,15 @@ function createWindow(): BrowserWindow {
     title: 'HarborClient',
     icon: resolveAppIcon(),
     show: false,
-    backgroundColor: '#f5f5f7',
+    backgroundColor: process.platform === 'linux' ? resolveWindowBackgroundColor() : '#f5f5f7',
     ...(process.platform === 'darwin' && {
       titleBarStyle: 'hiddenInset',
       vibrancy: 'sidebar',
       visualEffectState: 'active',
       transparent: true
+    }),
+    ...(process.platform === 'linux' && {
+      frame: false
     }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

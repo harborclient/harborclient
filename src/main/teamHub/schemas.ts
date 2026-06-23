@@ -167,6 +167,63 @@ export const updateAdminUserBodySchema = z.object({
 });
 
 /**
+ * Request body schema for `POST /admin/users`.
+ */
+export const createAdminUserBodySchema = z.object({
+  name: z.string().trim().min(1),
+  role: z.enum(['admin', 'user']),
+  collectionAccess: z.array(z.string()).optional(),
+  environmentAccess: z.array(z.string()).optional(),
+  llmAccess: z.boolean().optional(),
+  llmModels: z.array(z.string()).optional(),
+  llmMonthlyTokenLimit: z.number().int().nonnegative().nullable().optional()
+});
+
+/**
+ * JSON shape for an API token record returned by admin token routes.
+ */
+export const hubApiTokenRecordSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  name: z.string(),
+  tokenPrefix: z.string(),
+  createdAt: timestampSchema,
+  lastUsedAt: timestampSchema.nullable(),
+  revokedAt: timestampSchema.nullable()
+});
+
+/**
+ * Response body schema for `POST /admin/users`.
+ */
+export const createAdminUserResponseSchema = z.object({
+  user: hubUserRecordSchema,
+  token: hubApiTokenRecordSchema,
+  secret: z.string()
+});
+
+/**
+ * Request body schema for `POST /admin/users/:id/tokens`.
+ */
+export const createAdminTokenBodySchema = z.object({
+  name: z.string().trim().min(1)
+});
+
+/**
+ * Response body schema for `POST /admin/users/:id/tokens`.
+ */
+export const createdApiTokenResponseSchema = z.object({
+  token: hubApiTokenRecordSchema,
+  secret: z.string()
+});
+
+/**
+ * List response wrapper for admin token listings.
+ */
+export const listAdminTokensResponseSchema = z.object({
+  tokens: z.array(hubApiTokenRecordSchema)
+});
+
+/**
  * List response wrapper for collections.
  */
 export const listCollectionsResponseSchema = z.object({

@@ -18,6 +18,9 @@ import {
   listAdminUsersResponseSchema,
   listAdminCollectionsResponseSchema,
   listAdminEnvironmentsResponseSchema,
+  createAdminUserResponseSchema,
+  createdApiTokenResponseSchema,
+  listAdminTokensResponseSchema,
   hubUserRecordSchema
 } from '#/main/teamHub/schemas';
 import type {
@@ -26,10 +29,15 @@ import type {
   CreateCollectionInput,
   CreateEnvironmentInput,
   CreateFolderInput,
+  CreateHubTokenInput,
+  CreateHubUserInput,
   CreateRequestInput,
+  CreatedHubToken,
+  CreatedHubUser,
   EnvironmentRecord,
   FolderRecord,
   HealthResponse,
+  HubApiTokenRecord,
   HubUserRecord,
   MoveRequestInput,
   RenameFolderInput,
@@ -268,6 +276,19 @@ export class HarborTeamHubClient implements ITeamHubClient {
   }
 
   /**
+   * Creates a Team Hub user account and an initial API bearer token.
+   *
+   * @param input - User fields for the new account.
+   */
+  async createAdminUser(input: CreateHubUserInput): Promise<CreatedHubUser> {
+    const result = await this.request('POST', '/admin/users', {
+      body: input,
+      schema: createAdminUserResponseSchema
+    });
+    return result as CreatedHubUser;
+  }
+
+  /**
    * Updates a Team Hub user account via the management API.
    *
    * @param id - User account identifier.
@@ -288,6 +309,39 @@ export class HarborTeamHubClient implements ITeamHubClient {
    */
   async deleteAdminUser(id: string): Promise<void> {
     await this.request('DELETE', `/admin/users/${id}`);
+  }
+
+  /**
+   * Lists all API bearer tokens visible to an admin-role token.
+   */
+  async listAdminTokens(): Promise<HubApiTokenRecord[]> {
+    const result = await this.request('GET', '/admin/tokens', {
+      schema: listAdminTokensResponseSchema
+    });
+    return (result as { tokens: HubApiTokenRecord[] }).tokens;
+  }
+
+  /**
+   * Creates an additional API bearer token for a user account.
+   *
+   * @param userId - Owning user account identifier.
+   * @param input - Human-readable label for the new token.
+   */
+  async createAdminUserToken(userId: string, input: CreateHubTokenInput): Promise<CreatedHubToken> {
+    const result = await this.request('POST', `/admin/users/${userId}/tokens`, {
+      body: input,
+      schema: createdApiTokenResponseSchema
+    });
+    return result as CreatedHubToken;
+  }
+
+  /**
+   * Permanently deletes an API bearer token via the management API.
+   *
+   * @param id - Token record identifier.
+   */
+  async deleteAdminToken(id: string): Promise<void> {
+    await this.request('DELETE', `/admin/tokens/${id}`);
   }
 
   /**

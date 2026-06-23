@@ -6,9 +6,11 @@ import {
   faCircleCheck,
   faClockRotateLeft,
   faGripVertical,
+  faMinus,
   faPlus,
   faRobot,
   faTableColumns,
+  faWindowMaximize,
   faXmark
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -22,7 +24,9 @@ library.add(
   faClockRotateLeft,
   faCircleCheck,
   faGripVertical,
-  faRobot
+  faRobot,
+  faMinus,
+  faWindowMaximize
 );
 config.autoAddCss = false;
 
@@ -33,8 +37,10 @@ export {
   faCircleCheck,
   faClockRotateLeft,
   faGripVertical,
+  faMinus,
   faPlus,
   faRobot,
   faTableColumns,
+  faWindowMaximize,
   faXmark
 };

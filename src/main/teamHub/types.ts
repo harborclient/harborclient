@@ -243,6 +243,131 @@ export interface UpdateHubUserInput {
 }
 
 /**
+ * Fields required to create a Team Hub user via management routes.
+ */
+export interface CreateHubUserInput {
+  /**
+   * Unique display name for the new account.
+   */
+  name: string;
+
+  /**
+   * Role assigned to the new account.
+   */
+  role: HubUserRole;
+
+  /**
+   * Collection access list; admins store an empty array.
+   */
+  collectionAccess?: string[];
+
+  /**
+   * Environment access list; admins store an empty array.
+   */
+  environmentAccess?: string[];
+
+  /**
+   * Whether the user may use hub-proxied LLM routes.
+   */
+  llmAccess?: boolean;
+
+  /**
+   * Allowed LLM model ids, or `['*']` for all hub-offered models.
+   */
+  llmModels?: string[];
+
+  /**
+   * Monthly token limit, or null for unlimited.
+   */
+  llmMonthlyTokenLimit?: number | null;
+}
+
+/**
+ * API token metadata returned by admin token routes.
+ */
+export interface HubApiTokenRecord {
+  /**
+   * Stable token record identifier.
+   */
+  id: string;
+
+  /**
+   * Owning user account identifier.
+   */
+  userId: string;
+
+  /**
+   * Human-readable label chosen when the token was created.
+   */
+  name: string;
+
+  /**
+   * Non-secret prefix shown in operator listings.
+   */
+  tokenPrefix: string;
+
+  /**
+   * ISO 8601 timestamp when the token was created.
+   */
+  createdAt: string;
+
+  /**
+   * ISO 8601 timestamp when the token was last used, if ever.
+   */
+  lastUsedAt: string | null;
+
+  /**
+   * ISO 8601 timestamp when the token was revoked; null when active.
+   */
+  revokedAt: string | null;
+}
+
+/**
+ * Response from creating a user account and initial API token.
+ */
+export interface CreatedHubUser {
+  /**
+   * Newly created user account.
+   */
+  user: HubUserRecord;
+
+  /**
+   * Metadata for the initial bearer token.
+   */
+  token: HubApiTokenRecord;
+
+  /**
+   * One-time plaintext bearer token secret.
+   */
+  secret: string;
+}
+
+/**
+ * Request body for creating an additional API token for a user.
+ */
+export interface CreateHubTokenInput {
+  /**
+   * Human-readable label for the new token.
+   */
+  name: string;
+}
+
+/**
+ * Response from creating an additional API bearer token.
+ */
+export interface CreatedHubToken {
+  /**
+   * Metadata for the newly created bearer token.
+   */
+  token: HubApiTokenRecord;
+
+  /**
+   * One-time plaintext bearer token secret.
+   */
+  secret: string;
+}
+
+/**
  * Collection record returned by HarborClient Server entity routes.
  */
 export interface CollectionRecord {

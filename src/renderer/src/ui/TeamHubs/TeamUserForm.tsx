@@ -1,12 +1,15 @@
 import { useForm, useWatch } from 'react-hook-form';
 import { useMemo, type JSX } from 'react';
 import type {
+  CreateHubUserInput,
   HubUserRecord,
   TeamHubAdminResourceOptions,
   UpdateHubUserInput
 } from '#/shared/types';
 import { AccessListInput } from '#/renderer/src/ui/TeamHubs/AccessListInput';
 import {
+  defaultCreateFormValues,
+  formValuesToCreateInput,
   formValuesToUpdateInput,
   hubUserToFormValues,
   type TeamUserFormValues
@@ -15,12 +18,7 @@ import {
 const inputClassName =
   'w-full rounded-md border border-separator bg-surface px-3 py-2 text-[14px] text-text';
 
-interface Props {
-  /**
-   * User account being edited.
-   */
-  user: HubUserRecord;
-
+interface BaseProps {
   /**
    * Whether the form is disabled during save.
    */
@@ -40,6 +38,18 @@ interface Props {
    * HTML form id used by an external submit button.
    */
   formId: string;
+}
+
+interface EditProps extends BaseProps {
+  /**
+   * Edit mode for an existing user account.
+   */
+  mode: 'edit';
+
+  /**
+   * User account being edited.
+   */
+  user: HubUserRecord;
 
   /**
    * Called with the normalized update payload when the form is submitted.
@@ -47,24 +57,40 @@ interface Props {
   onSubmit: (input: UpdateHubUserInput) => void | Promise<void>;
 }
 
+interface CreateProps extends BaseProps {
+  /**
+   * Create mode for a new user account.
+   */
+  mode: 'create';
+
+  /**
+   * Called with the normalized create payload when the form is submitted.
+   */
+  onSubmit: (input: CreateHubUserInput) => void | Promise<void>;
+}
+
+type Props = EditProps | CreateProps;
+
 /**
- * Edit form for a Team Hub user account wired with react-hook-form.
+ * Create or edit form for a Team Hub user account wired with react-hook-form.
  */
-export function TeamUserForm({
-  user,
-  disabled = false,
-  resourceOptions,
-  optionsLoading = false,
-  formId,
-  onSubmit
-}: Props): JSX.Element {
+export function TeamUserForm(props: Props): JSX.Element {
+  const {
+    disabled = false,
+    resourceOptions,
+    optionsLoading = false,
+    formId,
+    mode,
+    onSubmit
+  } = props;
+
   const {
     register,
     handleSubmit,
     control,
     formState: { errors }
   } = useForm<TeamUserFormValues>({
-    defaultValues: hubUserToFormValues(user)
+    defaultValues: mode === 'edit' ? hubUserToFormValues(props.user) : defaultCreateFormValues
   });
 
   const role = useWatch({ control, name: 'role' });
@@ -104,7 +130,12 @@ export function TeamUserForm({
    * @param values - Submitted form values.
    */
   const handleValidSubmit = (values: TeamUserFormValues): void => {
-    void onSubmit(formValuesToUpdateInput(values));
+    if (mode === 'edit') {
+      void onSubmit(formValuesToUpdateInput(values));
+      return;
+    }
+
+    void onSubmit(formValuesToCreateInput(values));
   };
 
   return (
@@ -183,7 +214,7 @@ export function TeamUserForm({
           id="team-user-llm-access"
           type="checkbox"
           className="h-4 w-4"
-          disabled={fieldsDisabled}
+          disabled={fieldsDisabled || isAdminRole}
           {...register('llmAccess')}
         />
         <label htmlFor="team-user-llm-access" className="text-[14px] font-medium text-text">
@@ -198,7 +229,7 @@ export function TeamUserForm({
         inputId="team-user-llm-models"
         placeholder="* or comma-separated model ids"
         suggestions={modelSuggestions}
-        disabled={fieldsDisabled}
+        disabled={fieldsDisabled || isAdminRole}
       />
 
       <div>
@@ -213,7 +244,7 @@ export function TeamUserForm({
           type="number"
           min={1}
           className={inputClassName}
-          disabled={fieldsDisabled}
+          disabled={fieldsDisabled || isAdminRole}
           placeholder="Leave blank for unlimited"
           {...register('llmMonthlyTokenLimitText', {
             validate: (value) => {

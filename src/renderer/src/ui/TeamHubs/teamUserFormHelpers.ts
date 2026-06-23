@@ -1,4 +1,4 @@
-import type { HubUserRecord, UpdateHubUserInput } from '#/shared/types';
+import type { CreateHubUserInput, HubUserRecord, UpdateHubUserInput } from '#/shared/types';
 
 /**
  * Form values edited in the Team Hub user modal.
@@ -39,6 +39,19 @@ export interface TeamUserFormValues {
    */
   llmMonthlyTokenLimitText: string;
 }
+
+/**
+ * Default form values for creating a new Team Hub user account.
+ */
+export const defaultCreateFormValues: TeamUserFormValues = {
+  name: '',
+  role: 'user',
+  collectionAccessText: '',
+  environmentAccessText: '',
+  llmAccess: false,
+  llmModelsText: '',
+  llmMonthlyTokenLimitText: ''
+};
 
 /**
  * Parses a comma-separated access list from the edit form.
@@ -156,6 +169,28 @@ export function hubUserToFormValues(user: HubUserRecord): TeamUserFormValues {
  * @returns Partial user update accepted by Team Hub.
  */
 export function formValuesToUpdateInput(values: TeamUserFormValues): UpdateHubUserInput {
+  const llmLimitText = values.llmMonthlyTokenLimitText.trim();
+
+  return {
+    name: values.name.trim(),
+    role: values.role,
+    collectionAccess:
+      values.role === 'admin' ? [] : parseAccessListText(values.collectionAccessText),
+    environmentAccess:
+      values.role === 'admin' ? [] : parseAccessListText(values.environmentAccessText),
+    llmAccess: values.llmAccess,
+    llmModels: parseAccessListText(values.llmModelsText),
+    llmMonthlyTokenLimit: llmLimitText.length === 0 ? null : Number(llmLimitText)
+  };
+}
+
+/**
+ * Converts validated form values into a management API create payload.
+ *
+ * @param values - Submitted form values.
+ * @returns Create input accepted by Team Hub.
+ */
+export function formValuesToCreateInput(values: TeamUserFormValues): CreateHubUserInput {
   const llmLimitText = values.llmMonthlyTokenLimitText.trim();
 
   return {

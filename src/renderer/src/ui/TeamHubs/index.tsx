@@ -6,8 +6,9 @@ import { useTeamHubAdminScan } from '#/renderer/src/hooks/useTeamHubAdminScan';
 import { useTeamHubs } from '#/renderer/src/hooks/useTeamHubs';
 import { TeamHubList } from './TeamHubList';
 import { TeamManageView } from './TeamManageView';
+import { TeamTokensView } from './TeamTokensView';
 
-type TeamHubsView = 'list' | 'manage';
+type TeamHubsView = 'list' | 'manageUsers' | 'manageTokens';
 
 interface Props {
   /**
@@ -33,12 +34,13 @@ export function TeamHubs({ onClose }: Props): JSX.Element {
   );
   const showManageTeam = !scanning && adminHubIds.size > 0;
 
+  const title =
+    view === 'list' ? 'Team Hubs' : view === 'manageUsers' ? 'Manage users' : 'Manage tokens';
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 items-center justify-between gap-4 border-b border-separator px-6 py-4">
-        <h1 className="m-0 text-[15px] font-semibold text-text">
-          {view === 'list' ? 'Team Hubs' : 'Manage team'}
-        </h1>
+        <h1 className="m-0 text-[15px] font-semibold text-text">{title}</h1>
         <Button
           type="button"
           variant="icon"
@@ -61,10 +63,13 @@ export function TeamHubs({ onClose }: Props): JSX.Element {
             showManageTeam={showManageTeam}
             adminHubIds={adminHubIds}
             scanning={scanning}
-            onManageTeam={() => setView('manage')}
+            onManageUsers={() => setView('manageUsers')}
+            onManageTokens={() => setView('manageTokens')}
           />
-        ) : (
+        ) : view === 'manageUsers' ? (
           <TeamManageView adminHubs={adminHubs} onBack={() => setView('list')} />
+        ) : (
+          <TeamTokensView adminHubs={adminHubs} onBack={() => setView('list')} />
         )}
       </div>
     </div>

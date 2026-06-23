@@ -43,9 +43,14 @@ interface Props {
   scanning: boolean;
 
   /**
-   * Opens the manage team view.
+   * Opens the manage users view.
    */
-  onManageTeam: () => void;
+  onManageUsers: () => void;
+
+  /**
+   * Opens the manage tokens view.
+   */
+  onManageTokens: () => void;
 }
 
 /**
@@ -59,7 +64,8 @@ export function TeamHubList({
   showManageTeam,
   adminHubIds,
   scanning,
-  onManageTeam
+  onManageUsers,
+  onManageTokens
 }: Props): JSX.Element {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -194,9 +200,14 @@ export function TeamHubList({
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {showManageTeam && (
-              <Button type="button" variant="secondary" onClick={onManageTeam}>
-                Manage team
-              </Button>
+              <>
+                <Button type="button" variant="secondary" onClick={onManageUsers}>
+                  Manage users
+                </Button>
+                <Button type="button" variant="secondary" onClick={onManageTokens}>
+                  Manage tokens
+                </Button>
+              </>
             )}
             <Button
               type="button"

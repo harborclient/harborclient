@@ -12,6 +12,7 @@ import { registerMenuHandlers } from '#/main/ipc/handlers/menu';
 import { registerNetworkHandlers } from '#/main/ipc/handlers/network';
 import { registerRequestHandlers } from '#/main/ipc/handlers/requests';
 import { registerSettingsHandlers } from '#/main/ipc/handlers/settings';
+import { registerWindowHandlers } from '#/main/ipc/handlers/window';
 
 /**
  * Registers IPC handlers that bridge renderer calls to db and HTTP modules.
@@ -32,4 +33,5 @@ export function registerIpcHandlers(db: IDatabase): void {
   registerCookieHandlers(cookieJar);
   registerInviteHandlers(db);
   registerFileHandlers();
+  registerWindowHandlers();
 }

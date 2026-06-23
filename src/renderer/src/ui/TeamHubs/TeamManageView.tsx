@@ -1,6 +1,7 @@
 import { useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type {
+  CreateHubUserInput,
   HubUserRecord,
   TeamHub,
   TeamHubAdminResourceOptions,
@@ -8,9 +9,11 @@ import type {
 } from '#/shared/types';
 import { Button } from '#/renderer/src/components/Button';
 import { useTeamHubUsers } from '#/renderer/src/hooks/useTeamHubUsers';
+import { TeamSecretDialog } from '#/renderer/src/ui/TeamHubs/TeamSecretDialog';
 import { TeamUserForm } from '#/renderer/src/ui/TeamHubs/TeamUserForm';
 
 const editFormId = 'team-user-edit-form';
+const createFormId = 'team-user-create-form';
 
 interface Props {
   /**
@@ -45,6 +48,8 @@ export function TeamManageView({ adminHubs, onBack }: Props): JSX.Element {
   const selectedHubIdOrNull = selectedHubId.length > 0 ? selectedHubId : null;
   const { users, loading, error, reload } = useTeamHubUsers(selectedHubIdOrNull);
   const [editingUser, setEditingUser] = useState<HubUserRecord | null>(null);
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [createdSecret, setCreatedSecret] = useState<string | null>(null);
   const [deletingUser, setDeletingUser] = useState<HubUserRecord | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [saving, setSaving] = useState(false);
@@ -79,6 +84,29 @@ export function TeamManageView({ adminHubs, onBack }: Props): JSX.Element {
       .finally(() => {
         setOptionsLoading(false);
       });
+  };
+
+  /**
+   * Closes the create modal and clears action errors.
+   */
+  const closeCreateModal = (): void => {
+    if (saving) {
+      return;
+    }
+
+    setCreatingUser(false);
+    setResourceOptions(null);
+    setOptionsLoading(false);
+    setActionError(null);
+  };
+
+  /**
+   * Opens the create user modal and loads resource options.
+   */
+  const handleCreateClick = (): void => {
+    setActionError(null);
+    setCreatingUser(true);
+    loadResourceOptions();
   };
 
   /**
@@ -156,6 +184,32 @@ export function TeamManageView({ adminHubs, onBack }: Props): JSX.Element {
   };
 
   /**
+   * Creates a user account and shows the one-time token secret.
+   *
+   * @param input - User fields for the new account.
+   */
+  const handleCreateUser = async (input: CreateHubUserInput): Promise<void> => {
+    if (!selectedHubIdOrNull) {
+      return;
+    }
+
+    setSaving(true);
+    setActionError(null);
+
+    try {
+      const created = await window.api.createTeamHubUser(selectedHubIdOrNull, input);
+      setCreatingUser(false);
+      setCreatedSecret(created.secret);
+      reload();
+      toast.success('User created.');
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /**
    * Deletes the selected user after the operator confirms by typing DELETE.
    */
   const handleConfirmDelete = async (): Promise<void> => {
@@ -186,9 +240,14 @@ export function TeamManageView({ adminHubs, onBack }: Props): JSX.Element {
           <h2 className="m-0 mb-1 text-[14px] font-medium text-text">Users</h2>
           <p className="m-0 text-[14px] text-muted">Accounts on the selected Team Hub server.</p>
         </div>
-        <Button type="button" variant="secondary" className="shrink-0" onClick={onBack}>
-          Back
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button type="button" onClick={handleCreateClick}>
+            Create user
+          </Button>
+          <Button type="button" variant="secondary" onClick={onBack}>
+            Back
+          </Button>
+        </div>
       </div>
 
       {sortedHubs.length > 1 && (
@@ -278,6 +337,7 @@ export function TeamManageView({ adminHubs, onBack }: Props): JSX.Element {
 
             <TeamUserForm
               key={editingUser.id}
+              mode="edit"
               user={editingUser}
               disabled={saving}
               resourceOptions={resourceOptions}
@@ -298,6 +358,67 @@ export function TeamManageView({ adminHubs, onBack }: Props): JSX.Element {
             </div>
           </div>
         </div>
+      )}
+
+      {creatingUser && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={closeCreateModal}
+        >
+          <div
+            className="max-h-[85vh] w-[520px] overflow-y-auto rounded-lg border border-separator bg-surface p-4 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="team-user-create-title"
+          >
+            <h2
+              id="team-user-create-title"
+              className="m-0 mb-1 text-[14px] font-semibold text-text"
+            >
+              Create user
+            </h2>
+            <p className="mb-4 text-[14px] text-muted">
+              A new API token will be generated automatically. Store the secret when it is shown; it
+              will not be displayed again.
+            </p>
+
+            <TeamUserForm
+              key="create-user"
+              mode="create"
+              disabled={saving}
+              resourceOptions={resourceOptions}
+              optionsLoading={optionsLoading}
+              formId={createFormId}
+              onSubmit={handleCreateUser}
+            />
+
+            {actionError && <p className="mt-4 text-[14px] text-danger">{actionError}</p>}
+
+            <div className="mt-4 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={saving}
+                onClick={closeCreateModal}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" form={createFormId} disabled={saving}>
+                {saving ? 'Creating…' : 'Create'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {createdSecret && (
+        <TeamSecretDialog
+          title="User created"
+          description="Copy this API token secret now. It will not be shown again."
+          secret={createdSecret}
+          onClose={() => setCreatedSecret(null)}
+        />
       )}
 
       {deletingUser && (

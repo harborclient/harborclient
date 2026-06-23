@@ -1654,6 +1654,131 @@ export interface UpdateHubUserInput {
 }
 
 /**
+ * Fields required to create a Team Hub user via management routes.
+ */
+export interface CreateHubUserInput {
+  /**
+   * Unique display name for the new account.
+   */
+  name: string;
+
+  /**
+   * Role assigned to the new account.
+   */
+  role: 'admin' | 'user';
+
+  /**
+   * Collection access list; admins store an empty array.
+   */
+  collectionAccess?: string[];
+
+  /**
+   * Environment access list; admins store an empty array.
+   */
+  environmentAccess?: string[];
+
+  /**
+   * Whether the user may use hub-proxied LLM routes.
+   */
+  llmAccess?: boolean;
+
+  /**
+   * Allowed LLM model ids, or `['*']` for all hub-offered models.
+   */
+  llmModels?: string[];
+
+  /**
+   * Monthly token limit, or null for unlimited.
+   */
+  llmMonthlyTokenLimit?: number | null;
+}
+
+/**
+ * API token metadata returned by admin token routes.
+ */
+export interface HubApiTokenRecord {
+  /**
+   * Stable token record identifier.
+   */
+  id: string;
+
+  /**
+   * Owning user account identifier.
+   */
+  userId: string;
+
+  /**
+   * Human-readable label chosen when the token was created.
+   */
+  name: string;
+
+  /**
+   * Non-secret prefix shown in operator listings.
+   */
+  tokenPrefix: string;
+
+  /**
+   * ISO 8601 timestamp when the token was created.
+   */
+  createdAt: string;
+
+  /**
+   * ISO 8601 timestamp when the token was last used, if ever.
+   */
+  lastUsedAt: string | null;
+
+  /**
+   * ISO 8601 timestamp when the token was revoked; null when active.
+   */
+  revokedAt: string | null;
+}
+
+/**
+ * Response from creating a user account and initial API token.
+ */
+export interface CreatedHubUser {
+  /**
+   * Newly created user account.
+   */
+  user: HubUserRecord;
+
+  /**
+   * Metadata for the initial bearer token.
+   */
+  token: HubApiTokenRecord;
+
+  /**
+   * One-time plaintext bearer token secret.
+   */
+  secret: string;
+}
+
+/**
+ * Request body for creating an additional API token for a user.
+ */
+export interface CreateHubTokenInput {
+  /**
+   * Human-readable label for the new token.
+   */
+  name: string;
+}
+
+/**
+ * Response from creating an additional API bearer token.
+ */
+export interface CreatedHubToken {
+  /**
+   * Metadata for the newly created bearer token.
+   */
+  token: HubApiTokenRecord;
+
+  /**
+   * One-time plaintext bearer token secret.
+   */
+  secret: string;
+}
+
+/**
  * Local RSA identity used to sign and decrypt invites.
  */
 export interface InviteIdentity {
@@ -1740,6 +1865,11 @@ export type MenuActionId =
   | 'toggle-ai-sidebar'
   | 'about'
   | 'check-for-updates';
+
+/**
+ * Top-level application menu labels shown in the Linux in-app menu bar.
+ */
+export type RootMenuLabel = 'File' | 'Edit' | 'View' | 'Help';
 
 /**
  * Result of comparing the running app version against the latest GitHub release.
@@ -2071,6 +2201,15 @@ export interface Api {
   setMenuAiSidebarVisible: (visible: boolean) => Promise<void>;
 
   /**
+   * Opens a root application submenu at the given window coordinates.
+   *
+   * @param label - Root menu label to open.
+   * @param x - Left edge in window coordinates.
+   * @param y - Top edge in window coordinates.
+   */
+  popupMenuSubmenu: (label: RootMenuLabel, x: number, y: number) => Promise<void>;
+
+  /**
    * Returns the application version from package.json.
    */
   getAppVersion: () => Promise<string>;
@@ -2091,6 +2230,21 @@ export interface Api {
    * @param theme - Theme source to apply.
    */
   setTheme: (theme: ThemeSource) => Promise<void>;
+
+  /**
+   * Minimizes the focused application window.
+   */
+  minimizeWindow: () => Promise<void>;
+
+  /**
+   * Toggles maximize on the focused application window.
+   */
+  toggleMaximizeWindow: () => Promise<void>;
+
+  /**
+   * Closes the focused application window, honoring the quit prompt when configured.
+   */
+  closeWindow: () => Promise<void>;
 
   /**
    * Returns persisted general request settings.
@@ -2235,6 +2389,42 @@ export interface Api {
    * @param userId - User account identifier to delete.
    */
   deleteTeamHubUser: (hubId: string, userId: string) => Promise<void>;
+
+  /**
+   * Creates a Team Hub user account and initial token using an admin token.
+   *
+   * @param hubId - Team hub connection id with an admin token.
+   * @param input - User fields for the new account.
+   */
+  createTeamHubUser: (hubId: string, input: CreateHubUserInput) => Promise<CreatedHubUser>;
+
+  /**
+   * Lists Team Hub API tokens using an admin token on the given hub connection.
+   *
+   * @param hubId - Team hub connection id with an admin token.
+   */
+  listTeamHubTokens: (hubId: string) => Promise<HubApiTokenRecord[]>;
+
+  /**
+   * Creates a Team Hub API token for a user using an admin token.
+   *
+   * @param hubId - Team hub connection id with an admin token.
+   * @param userId - Owning user account identifier.
+   * @param input - Human-readable label for the new token.
+   */
+  createTeamHubUserToken: (
+    hubId: string,
+    userId: string,
+    input: CreateHubTokenInput
+  ) => Promise<CreatedHubToken>;
+
+  /**
+   * Deletes a Team Hub API token using an admin token on the given hub connection.
+   *
+   * @param hubId - Team hub connection id with an admin token.
+   * @param tokenId - Token record identifier to delete.
+   */
+  deleteTeamHubToken: (hubId: string, tokenId: string) => Promise<void>;
 
   /**
    * Loads collection, environment, and LLM model options for admin user management.

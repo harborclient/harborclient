@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyAccessSuggestion,
   filterAccessListSuggestions,
+  formValuesToCreateInput,
   getCurrentAccessToken,
   parseAccessListText
 } from '#/renderer/src/ui/TeamHubs/teamUserFormHelpers';
@@ -58,5 +59,29 @@ describe('filterAccessListSuggestions', () => {
 describe('parseAccessListText', () => {
   it('splits and trims comma-separated access ids', () => {
     expect(parseAccessListText(' uuid-1 , uuid-2 , ')).toEqual(['uuid-1', 'uuid-2']);
+  });
+});
+
+describe('formValuesToCreateInput', () => {
+  it('builds a create payload from form values', () => {
+    expect(
+      formValuesToCreateInput({
+        name: ' Alice ',
+        role: 'user',
+        collectionAccessText: 'uuid-1, *',
+        environmentAccessText: '',
+        llmAccess: true,
+        llmModelsText: 'gpt-4o',
+        llmMonthlyTokenLimitText: '1000'
+      })
+    ).toEqual({
+      name: 'Alice',
+      role: 'user',
+      collectionAccess: ['uuid-1', '*'],
+      environmentAccess: [],
+      llmAccess: true,
+      llmModels: ['gpt-4o'],
+      llmMonthlyTokenLimit: 1000
+    });
   });
 });

@@ -23,6 +23,7 @@ import type {
   InviteIdentity,
   ListCollectionsResult,
   MenuActionId,
+  RootMenuLabel,
   PanelLayoutState,
   PemExportResult,
   RequestExport,
@@ -38,6 +39,11 @@ import type {
   HubUserRecord,
   TeamHubAdminResourceOptions,
   UpdateHubUserInput,
+  CreateHubUserInput,
+  CreatedHubUser,
+  HubApiTokenRecord,
+  CreateHubTokenInput,
+  CreatedHubToken,
   ShortcutBinding,
   ShortcutOverrides,
   SidebarExpansionState,
@@ -439,6 +445,19 @@ function setMenuAiSidebarVisible(visible: boolean): Promise<void> {
 }
 
 /**
+ * Opens a root application submenu at the given window coordinates.
+ *
+ * Used by the Linux in-app menu bar where frameless windows have no native menu strip.
+ *
+ * @param label - Root menu label to open.
+ * @param x - Left edge in window coordinates.
+ * @param y - Top edge in window coordinates.
+ */
+function popupMenuSubmenu(label: RootMenuLabel, x: number, y: number): Promise<void> {
+  return ipcRenderer.invoke('menu:popupSubmenu', label, x, y);
+}
+
+/**
  * Returns the application version from package.json.
  */
 function getAppVersion(): Promise<string> {
@@ -466,6 +485,27 @@ function getTheme(): Promise<ThemeSource> {
  */
 function setTheme(theme: ThemeSource): Promise<void> {
   return ipcRenderer.invoke('theme:set', theme);
+}
+
+/**
+ * Minimizes the focused application window.
+ */
+function minimizeWindow(): Promise<void> {
+  return ipcRenderer.invoke('window:minimize');
+}
+
+/**
+ * Toggles maximize on the focused application window.
+ */
+function toggleMaximizeWindow(): Promise<void> {
+  return ipcRenderer.invoke('window:toggleMaximize');
+}
+
+/**
+ * Closes the focused application window, honoring the quit prompt when configured.
+ */
+function closeWindow(): Promise<void> {
+  return ipcRenderer.invoke('window:close');
 }
 
 /**
@@ -648,6 +688,50 @@ function updateTeamHubUser(
  */
 function deleteTeamHubUser(hubId: string, userId: string): Promise<void> {
   return ipcRenderer.invoke('teamHubs:deleteUser', hubId, userId);
+}
+
+/**
+ * Creates a Team Hub user account and initial token via IPC.
+ *
+ * @param hubId - Team hub connection id with an admin token.
+ * @param input - User fields for the new account.
+ */
+function createTeamHubUser(hubId: string, input: CreateHubUserInput): Promise<CreatedHubUser> {
+  return ipcRenderer.invoke('teamHubs:createUser', hubId, input);
+}
+
+/**
+ * Lists Team Hub API tokens via IPC using an admin token on the given hub.
+ *
+ * @param hubId - Team hub connection id with an admin token.
+ */
+function listTeamHubTokens(hubId: string): Promise<HubApiTokenRecord[]> {
+  return ipcRenderer.invoke('teamHubs:listTokens', hubId);
+}
+
+/**
+ * Creates a Team Hub API token for a user via IPC.
+ *
+ * @param hubId - Team hub connection id with an admin token.
+ * @param userId - Owning user account identifier.
+ * @param input - Human-readable label for the new token.
+ */
+function createTeamHubUserToken(
+  hubId: string,
+  userId: string,
+  input: CreateHubTokenInput
+): Promise<CreatedHubToken> {
+  return ipcRenderer.invoke('teamHubs:createToken', hubId, userId, input);
+}
+
+/**
+ * Deletes a Team Hub API token via IPC using an admin token on the given hub.
+ *
+ * @param hubId - Team hub connection id with an admin token.
+ * @param tokenId - Token record identifier to delete.
+ */
+function deleteTeamHubToken(hubId: string, tokenId: string): Promise<void> {
+  return ipcRenderer.invoke('teamHubs:deleteToken', hubId, tokenId);
 }
 
 /**
@@ -944,10 +1028,14 @@ const api: Api = {
   onMenuAction,
   setMenuSidebarVisible,
   setMenuAiSidebarVisible,
+  popupMenuSubmenu,
   getAppVersion,
   checkForUpdates,
   getTheme,
   setTheme,
+  minimizeWindow,
+  toggleMaximizeWindow,
+  closeWindow,
   getGeneralSettings,
   setGeneralSettings,
   getAiSettings,
@@ -969,6 +1057,10 @@ const api: Api = {
   listTeamHubUsers,
   updateTeamHubUser,
   deleteTeamHubUser,
+  createTeamHubUser,
+  listTeamHubTokens,
+  createTeamHubUserToken,
+  deleteTeamHubToken,
   listTeamHubAdminResourceOptions,
   syncProvider,
   getActiveDatabaseId,

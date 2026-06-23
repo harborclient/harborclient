@@ -19,6 +19,11 @@ import type {
   UpdateCollectionInput,
   UpdateEnvironmentInput,
   UpdateHubUserInput,
+  CreateHubUserInput,
+  HubApiTokenRecord,
+  CreatedHubUser,
+  CreateHubTokenInput,
+  CreatedHubToken,
   UpdateRequestInput
 } from '#/main/teamHub/types';
 import type { HubLlmModel } from '#/shared/types';
@@ -46,6 +51,13 @@ export interface ITeamHubClient {
   listAdminUsers(): Promise<HubUserRecord[]>;
 
   /**
+   * Creates a Team Hub user account and an initial API bearer token.
+   *
+   * @param input - User fields for the new account.
+   */
+  createAdminUser(input: CreateHubUserInput): Promise<CreatedHubUser>;
+
+  /**
    * Updates a Team Hub user account via the management API.
    *
    * @param id - User account identifier.
@@ -59,6 +71,26 @@ export interface ITeamHubClient {
    * @param id - User account identifier.
    */
   deleteAdminUser(id: string): Promise<void>;
+
+  /**
+   * Lists all API bearer tokens visible to an admin-role token.
+   */
+  listAdminTokens(): Promise<HubApiTokenRecord[]>;
+
+  /**
+   * Creates an additional API bearer token for a user account.
+   *
+   * @param userId - Owning user account identifier.
+   * @param input - Human-readable label for the new token.
+   */
+  createAdminUserToken(userId: string, input: CreateHubTokenInput): Promise<CreatedHubToken>;
+
+  /**
+   * Permanently deletes an API bearer token via the management API.
+   *
+   * @param id - Token record identifier.
+   */
+  deleteAdminToken(id: string): Promise<void>;
 
   /**
    * Lists all collections as id/name metadata for admin user management.
