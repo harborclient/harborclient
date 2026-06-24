@@ -172,6 +172,25 @@ export interface PluginCommands {
   execute(id: string, ...args: unknown[]): Promise<void>;
 }
 
+export interface PluginFsPickFileOptions {
+  title?: string;
+  filters?: Array<{ name: string; extensions: string[] }>;
+  multiple?: boolean;
+}
+
+export interface PluginFsSaveFileOptions {
+  defaultPath?: string;
+  filters?: Array<{ name: string; extensions: string[] }>;
+}
+
+export interface PluginFs {
+  pickFile: (options?: PluginFsPickFileOptions) => Promise<string[]>;
+  pickDirectory: (defaultPath?: string) => Promise<string | null>;
+  saveFile: (content: string, options?: PluginFsSaveFileOptions) => Promise<string | null>;
+  readFile: (path: string) => Promise<string>;
+  writeFile: (path: string, content: string) => Promise<void>;
+}
+
 export interface PluginUi {
   registerSettingsSection(section: SettingsSectionContribution): Disposable;
   registerSidebarPanel(panel: SidebarPanelContribution): Disposable;
@@ -194,5 +213,6 @@ export interface PluginContext {
   themes: PluginThemes;
   commands: PluginCommands;
   storage: PluginStorage;
+  fs: PluginFs;
   subscriptions: Disposable[];
 }

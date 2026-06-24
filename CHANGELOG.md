@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(plugins): add filesystem access and menu contributions for plugins. (`25ec4c1`)
 - feat(plugins): implement plugin management system and enhance plugin support. (`f74301b`)
 - feat(docs): add Plugins section to documentation and sidebar. (`596996a`)
 - feat(scripting): enhance script execution with SES integration and update dependencies. (`c2586ab`)

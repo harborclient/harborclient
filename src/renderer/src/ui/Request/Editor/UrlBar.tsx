@@ -1,9 +1,11 @@
+import type { JSX } from 'react';
 import type { HttpMethod, Variable } from '#/shared/types';
 import { Button } from '#/renderer/src/components/Button';
 import { MethodSelect } from '#/renderer/src/components/MethodSelect';
 import { VariableInput } from '#/renderer/src/components/VariableInput';
 import { fieldFrame } from '#/renderer/src/components/forms';
-import type { JSX } from 'react';
+import { usePluginRequestToolbarActions } from '#/renderer/src/plugins/pluginHooks';
+import { executePluginCommand } from '#/renderer/src/plugins/createPluginContext';
 
 interface Props {
   /**
@@ -48,7 +50,7 @@ interface Props {
 }
 
 /**
- * Method selector, URL input, and Send button.
+ * Method selector, URL input, plugin toolbar actions, and Send button.
  */
 export function UrlBar({
   method,
@@ -60,6 +62,8 @@ export function UrlBar({
   onSend,
   onEditVariables
 }: Props): JSX.Element {
+  const toolbarActions = usePluginRequestToolbarActions();
+
   return (
     <div className="flex items-center gap-2">
       <div className={`flex min-w-0 flex-1 items-center ${fieldFrame}`}>
@@ -78,6 +82,18 @@ export function UrlBar({
           }}
         />
       </div>
+      {toolbarActions.map((action) => (
+        <Button
+          key={`${action.pluginId}:${action.id}`}
+          type="button"
+          variant="secondary"
+          title={action.title}
+          aria-label={action.title}
+          onClick={() => void executePluginCommand(action.pluginId, action.command)}
+        >
+          {action.title}
+        </Button>
+      ))}
       <Button onClick={onSend} disabled={sending}>
         {sending ? 'Sending…' : 'Send'}
       </Button>

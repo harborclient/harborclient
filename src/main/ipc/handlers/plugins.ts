@@ -1,7 +1,9 @@
-import { dialog } from 'electron';
+import { BrowserWindow, dialog } from 'electron';
 import type { PluginManager } from '#/main/plugins/PluginManager';
+import { rebuildAppMenu } from '#/main/appMenu';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
+import { setPluginMenuContributions } from '#/main/plugins/pluginMenuContributions';
 import {
   activatePluginMain,
   deactivatePluginMain,
@@ -142,6 +144,100 @@ export function registerPluginHandlers(pluginManager: PluginManager): void {
     'plugins:invokeMain',
     ipcArgSchemas.pluginInvokeMain,
     async (_event, pluginId, channel, args) => invokePluginIpc(pluginId, channel, args)
+  );
+
+  handle('plugins:setMenuContributions', ipcArgSchemas.pluginMenuContributions, (_event, items) => {
+    setPluginMenuContributions(items);
+    rebuildAppMenu();
+  });
+
+  handle(
+    'plugins:fsPickFile',
+    ipcArgSchemas.pluginFsPickFile,
+    async (_event, pluginId, options) => {
+      pluginManager.assertPermission(pluginId, 'filesystem:pick');
+      const win = BrowserWindow.getFocusedWindow();
+      const dialogOptions = {
+        title: options?.title ?? 'Select file',
+        properties: [
+          'openFile',
+          ...(options?.multiple ? (['multiSelections'] as const) : [])
+        ] as Array<'openFile' | 'multiSelections'>,
+        filters: options?.filters ?? [{ name: 'All Files', extensions: ['*'] }]
+      };
+      const { canceled, filePaths } = win
+        ? await dialog.showOpenDialog(win, dialogOptions)
+        : await dialog.showOpenDialog(dialogOptions);
+      if (canceled || filePaths.length === 0) {
+        return [];
+      }
+      for (const filePath of filePaths) {
+        pluginManager.grantFilesystemPath(pluginId, filePath);
+      }
+      return filePaths;
+    }
+  );
+
+  handle(
+    'plugins:fsPickDirectory',
+    ipcArgSchemas.pluginFsPickDirectory,
+    async (_event, pluginId, defaultPath) => {
+      pluginManager.assertPermission(pluginId, 'filesystem:pick');
+      const win = BrowserWindow.getFocusedWindow();
+      const dialogOptions = {
+        title: 'Select directory',
+        properties: ['openDirectory'] as Array<'openDirectory'>,
+        defaultPath: defaultPath.trim() || undefined
+      };
+      const { canceled, filePaths } = win
+        ? await dialog.showOpenDialog(win, dialogOptions)
+        : await dialog.showOpenDialog(dialogOptions);
+      if (canceled || filePaths.length === 0) {
+        return null;
+      }
+      pluginManager.grantFilesystemPath(pluginId, filePaths[0]);
+      return filePaths[0];
+    }
+  );
+
+  handle(
+    'plugins:fsSaveFile',
+    ipcArgSchemas.pluginFsSaveFile,
+    async (_event, pluginId, content, options) => {
+      pluginManager.assertPermission(pluginId, 'filesystem:pick');
+      const win = BrowserWindow.getFocusedWindow();
+      const dialogOptions = {
+        title: 'Save file',
+        defaultPath: options?.defaultPath,
+        filters: options?.filters ?? [
+          { name: 'Text', extensions: ['txt', 'json'] },
+          { name: 'All Files', extensions: ['*'] }
+        ]
+      };
+      const { canceled, filePath } = win
+        ? await dialog.showSaveDialog(win, dialogOptions)
+        : await dialog.showSaveDialog(dialogOptions);
+      if (canceled || !filePath) {
+        return null;
+      }
+      pluginManager.grantFilesystemPath(pluginId, filePath);
+      pluginManager.fsAllowlist.writeTextFile(pluginId, filePath, content);
+      return filePath;
+    }
+  );
+
+  handle('plugins:fsReadFile', ipcArgSchemas.pluginFsReadFile, (_event, pluginId, path) => {
+    pluginManager.assertPermission(pluginId, 'filesystem:read');
+    return pluginManager.fsAllowlist.readTextFile(pluginId, path);
+  });
+
+  handle(
+    'plugins:fsWriteFile',
+    ipcArgSchemas.pluginFsWriteFile,
+    (_event, pluginId, path, content) => {
+      pluginManager.assertPermission(pluginId, 'filesystem:write');
+      pluginManager.fsAllowlist.writeTextFile(pluginId, path, content);
+    }
   );
 }
 

@@ -3,6 +3,12 @@ import type { Variable } from '#/shared/types';
 import type { ConsoleEntry } from '#/renderer/src/store';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { faRobot, faTableColumns } from '#/renderer/src/fontawesome';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import {
+  selectActivePluginFooterPanelId,
+  togglePluginFooterPanel
+} from '#/renderer/src/store/slices/navigationSlice';
+import { usePluginFooterPanels, usePluginStatusBarItems } from '#/renderer/src/plugins/pluginHooks';
 import { segmentGroup } from '#/renderer/src/ui/shared/classes';
 import { ConsolePanel } from './ConsolePanel';
 import { VariablesPanel } from './VariablesPanel';
@@ -106,6 +112,11 @@ export function Footer({
   aiSidebarOpen,
   onToggleAiSidebar
 }: Props): JSX.Element {
+  const dispatch = useAppDispatch();
+  const pluginFooterPanels = usePluginFooterPanels();
+  const statusBarItems = usePluginStatusBarItems();
+  const activePluginFooterPanelId = useAppSelector(selectActivePluginFooterPanelId);
+
   /**
    * Merges collection and environment variables for the footer variables panel.
    */
@@ -114,6 +125,18 @@ export function Footer({
     [collectionVariables, environmentVariables]
   );
   const variableCount = effectiveCount(resolvedVariables);
+
+  /**
+   * Status bar items grouped by alignment for stable footer layout.
+   */
+  const leftStatusItems = useMemo(
+    () => statusBarItems.filter((item) => (item.alignment ?? 'right') === 'left'),
+    [statusBarItems]
+  );
+  const rightStatusItems = useMemo(
+    () => statusBarItems.filter((item) => (item.alignment ?? 'right') === 'right'),
+    [statusBarItems]
+  );
 
   return (
     <div className="relative shrink-0">
@@ -130,8 +153,32 @@ export function Footer({
         collectionName={collectionName}
         environmentName={environmentName}
       />
+      {pluginFooterPanels.map((panel) => {
+        const open = activePluginFooterPanelId === panel.id;
+        const Component = panel.Component;
+        return (
+          <div
+            key={panel.id}
+            id={`footer-plugin-panel-${panel.id}`}
+            className={`absolute inset-x-0 bottom-full z-40 max-h-[min(420px,50vh)] overflow-auto border-t border-separator bg-control shadow-lg transition-transform ${
+              open ? 'translate-y-0' : 'pointer-events-none translate-y-full opacity-0'
+            }`}
+            aria-hidden={!open}
+          >
+            {open ? <Component /> : null}
+          </div>
+        );
+      })}
       <footer className="relative z-50 flex shrink-0 items-center justify-between border-t border-separator bg-control px-2 py-0.5 app-no-drag">
-        <div className={segmentGroup}>
+        <div className={`${segmentGroup} min-w-0 flex-1`}>
+          {leftStatusItems.map((item) => {
+            const Component = item.Component;
+            return (
+              <div key={item.id} className="px-1">
+                <Component />
+              </div>
+            );
+          })}
           <button
             type="button"
             className={footerSegment(consoleOpen)}
@@ -154,8 +201,28 @@ export function Footer({
               <span className="ml-1 text-[14px] text-muted">({variableCount})</span>
             )}
           </button>
+          {pluginFooterPanels.map((panel) => (
+            <button
+              key={panel.id}
+              type="button"
+              className={footerSegment(activePluginFooterPanelId === panel.id)}
+              aria-expanded={activePluginFooterPanelId === panel.id}
+              aria-controls={`footer-plugin-panel-${panel.id}`}
+              onClick={() => dispatch(togglePluginFooterPanel(panel.id))}
+            >
+              {panel.title}
+            </button>
+          ))}
         </div>
         <div className="flex items-center gap-0.5">
+          {rightStatusItems.map((item) => {
+            const Component = item.Component;
+            return (
+              <div key={item.id} className="px-1">
+                <Component />
+              </div>
+            );
+          })}
           <button
             type="button"
             className={footerIconButton(sidebarOpen)}

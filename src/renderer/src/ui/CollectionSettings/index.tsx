@@ -10,6 +10,8 @@ import {
   SegmentedTabsGroup
 } from '#/renderer/src/components/SegmentedTabs';
 import { useProviders } from '#/renderer/src/hooks/useProviders';
+import { usePluginCollectionSettingsTabs } from '#/renderer/src/plugins/pluginHooks';
+import type { CollectionSettingsTabContext } from '#/shared/plugin/types';
 import { emptyKeyValue } from '#/renderer/src/store/drafts';
 import { faXmark } from '#/renderer/src/fontawesome';
 import { AuthSection } from './AuthSection';
@@ -17,7 +19,6 @@ import { GeneralSection } from './GeneralSection';
 import { HeadersSection } from './HeadersSection';
 import { ScriptSection } from './ScriptSection';
 import { cleanHeaders, serializeCollectionForm } from './serialize';
-import type { SettingsTab } from './types';
 import { VariablesSection } from './VariablesSection';
 
 interface Props {
@@ -78,7 +79,8 @@ function CollectionSettingsForm({
   onClose,
   onDirtyChange
 }: Props): JSX.Element {
-  const [tab, setTab] = useState<SettingsTab>('general');
+  const pluginTabs = usePluginCollectionSettingsTabs();
+  const [tab, setTab] = useState<string>('general');
   const [name, setName] = useState(collection.name);
   const [variables, setVariables] = useState<Variable[]>(
     collection.variables.length
@@ -167,6 +169,33 @@ function CollectionSettingsForm({
   );
 
   /**
+   * Read-only context passed to plugin collection settings tabs.
+   */
+  const collectionTabContext = useMemo<CollectionSettingsTabContext>(
+    () => ({
+      collectionId: collection.id,
+      readOnly: saving
+    }),
+    [collection.id, saving]
+  );
+
+  /**
+   * Built-in and plugin collection settings tabs merged for SegmentedTabs.
+   */
+  const tabs = useMemo(
+    () => [
+      { value: 'general', label: 'General' },
+      { value: 'variables', label: 'Variables', indicator: tabIndicators.variables },
+      { value: 'headers', label: 'Headers', indicator: tabIndicators.headers },
+      { value: 'auth', label: 'Authorization', indicator: tabIndicators.auth },
+      { value: 'pre', label: 'PreRequest', indicator: tabIndicators.pre },
+      { value: 'post', label: 'PostRequest', indicator: tabIndicators.post },
+      ...pluginTabs.map((entry) => ({ value: entry.id, label: entry.title }))
+    ],
+    [pluginTabs, tabIndicators]
+  );
+
+  /**
    * Validates name and connection, persists the form, then closes on success.
    * No-ops when the trimmed name is empty or no connection is selected.
    */
@@ -212,16 +241,7 @@ function CollectionSettingsForm({
 
         <SegmentedTabsGroup value={tab} onChange={setTab} ariaLabel="Collection settings sections">
           <div className="mb-6">
-            <SegmentedTabs
-              tabs={[
-                { value: 'general', label: 'General' },
-                { value: 'variables', label: 'Variables', indicator: tabIndicators.variables },
-                { value: 'headers', label: 'Headers', indicator: tabIndicators.headers },
-                { value: 'auth', label: 'Authorization', indicator: tabIndicators.auth },
-                { value: 'pre', label: 'PreRequest', indicator: tabIndicators.pre },
-                { value: 'post', label: 'PostRequest', indicator: tabIndicators.post }
-              ]}
-            />
+            <SegmentedTabs tabs={tabs} />
           </div>
 
           <SegmentedTabPanel value="general">
@@ -269,6 +289,14 @@ function CollectionSettingsForm({
               variables={variables}
             />
           </SegmentedTabPanel>
+          {pluginTabs.map((entry) => {
+            const Component = entry.Component;
+            return (
+              <SegmentedTabPanel key={entry.id} value={entry.id}>
+                <Component context={collectionTabContext} />
+              </SegmentedTabPanel>
+            );
+          })}
         </SegmentedTabsGroup>
 
         <div className="flex justify-end gap-2">

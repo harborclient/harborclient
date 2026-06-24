@@ -30,8 +30,11 @@ import type {
   PemExportResult,
   PluginAssetResult,
   PluginEntryKind,
+  PluginFsPickFileOptions,
+  PluginFsSaveFileOptions,
   PluginInfo,
   PluginPermission,
+  SerializableMenuContribution,
   RequestExport,
   SaveRequestInput,
   SavedRequest,
@@ -1335,6 +1338,72 @@ function onPluginsChanged(callback: (pluginId: string) => void): () => void {
   return () => ipcRenderer.removeListener('plugins:changed', listener);
 }
 
+/**
+ * Pushes plugin menu contributions to the main process for menu merge.
+ *
+ * @param contributions - Serializable menu entries from the renderer registry.
+ */
+function setPluginMenuContributions(contributions: SerializableMenuContribution[]): Promise<void> {
+  return ipcRenderer.invoke('plugins:setMenuContributions', contributions);
+}
+
+/**
+ * Subscribes to plugin menu command clicks from the application menu.
+ *
+ * @param callback - Called with the plugin id and command id.
+ */
+function onPluginMenuCommand(
+  callback: (payload: { pluginId: string; command: string }) => void
+): () => void {
+  const listener = (
+    _event: Electron.IpcRendererEvent,
+    payload: { pluginId: string; command: string }
+  ): void => {
+    callback(payload);
+  };
+  ipcRenderer.on('menu:pluginCommand', listener);
+  return () => ipcRenderer.removeListener('menu:pluginCommand', listener);
+}
+
+/**
+ * Opens a native file picker for a plugin with filesystem:pick permission.
+ */
+function pluginFsPickFile(pluginId: string, options?: PluginFsPickFileOptions): Promise<string[]> {
+  return ipcRenderer.invoke('plugins:fsPickFile', pluginId, options);
+}
+
+/**
+ * Opens a native directory picker for a plugin with filesystem:pick permission.
+ */
+function pluginFsPickDirectory(pluginId: string, defaultPath = ''): Promise<string | null> {
+  return ipcRenderer.invoke('plugins:fsPickDirectory', pluginId, defaultPath);
+}
+
+/**
+ * Saves text to a user-selected path for a plugin with filesystem:pick permission.
+ */
+function pluginFsSaveFile(
+  pluginId: string,
+  content: string,
+  options?: PluginFsSaveFileOptions
+): Promise<string | null> {
+  return ipcRenderer.invoke('plugins:fsSaveFile', pluginId, content, options);
+}
+
+/**
+ * Reads a UTF-8 file from an allowlisted path for a plugin.
+ */
+function pluginFsReadFile(pluginId: string, path: string): Promise<string> {
+  return ipcRenderer.invoke('plugins:fsReadFile', pluginId, path);
+}
+
+/**
+ * Writes a UTF-8 file to an allowlisted path for a plugin.
+ */
+function pluginFsWriteFile(pluginId: string, path: string, content: string): Promise<void> {
+  return ipcRenderer.invoke('plugins:fsWriteFile', pluginId, path, content);
+}
+
 const api: Api = {
   listCollections,
   createCollection,
@@ -1467,7 +1536,14 @@ const api: Api = {
   activatePluginMain,
   deactivatePluginMain,
   invokePluginMain,
-  onPluginsChanged
+  onPluginsChanged,
+  setPluginMenuContributions,
+  onPluginMenuCommand,
+  pluginFsPickFile,
+  pluginFsPickDirectory,
+  pluginFsSaveFile,
+  pluginFsReadFile,
+  pluginFsWriteFile
 };
 
 contextBridge.exposeInMainWorld('api', api);

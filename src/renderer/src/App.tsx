@@ -153,6 +153,7 @@ export default function App(): JSX.Element {
     mainView.type === 'settings' ||
     mainView.type === 'team-hubs' ||
     mainView.type === 'sharing-keys' ||
+    mainView.type === 'plugin-view' ||
     configuringCollection != null ||
     configuringEnvironment != null;
 
@@ -192,6 +193,10 @@ export default function App(): JSX.Element {
                 onCloseSharingKeys={() => dispatch(closeOverlay())}
                 showTeamHubs={mainView.type === 'team-hubs'}
                 onCloseTeamHubs={() => dispatch(closeOverlay())}
+                showPluginView={mainView.type === 'plugin-view'}
+                pluginViewPluginId={mainView.type === 'plugin-view' ? mainView.pluginId : undefined}
+                pluginViewId={mainView.type === 'plugin-view' ? mainView.viewId : undefined}
+                onClosePluginView={() => dispatch(closeOverlay())}
                 collection={configuringCollection}
                 onCollectionDirtyChange={(dirty) => dispatch(setCollectionSettingsDirty(dirty))}
                 onCollectionSave={async (

@@ -1,6 +1,11 @@
 import { useMemo, useRef, useState, type JSX } from 'react';
+import type { RequestTabContext, ResponseTabContext } from '#/shared/plugin/types';
 import type { Variable } from '#/shared/types';
 import { isTabDirty } from '#/renderer/src/store/drafts';
+import {
+  toPluginHttpResponse,
+  toPluginRequestDraft
+} from '#/renderer/src/plugins/pluginContextAdapters';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveEnvironmentId,
@@ -110,6 +115,30 @@ export function Request({ onEditVariables }: Props): JSX.Element {
     () => mergeVariables(activeCollection?.variables ?? [], activeEnvironment?.variables ?? []),
     [activeCollection, activeEnvironment]
   );
+
+  /**
+   * Read-only plugin context for request editor tabs.
+   */
+  const requestTabContext = useMemo<RequestTabContext>(
+    () => ({
+      draft: toPluginRequestDraft(draft),
+      response: toPluginHttpResponse(response),
+      readOnly: true
+    }),
+    [draft, response]
+  );
+
+  /**
+   * Read-only plugin context for response viewer tabs.
+   */
+  const responseTabContext = useMemo<ResponseTabContext>(
+    () => ({
+      draft: toPluginRequestDraft(draft),
+      response: toPluginHttpResponse(response)
+    }),
+    [draft, response]
+  );
+
   const activeCollectionName = activeCollection?.name;
   /**
    * Resolves the folder id for the active draft from saved state or draft fields.
@@ -173,6 +202,7 @@ export function Request({ onEditVariables }: Props): JSX.Element {
             key={`editor-${activeTabId}`}
             tabId={activeTabId}
             draft={draft}
+            requestTabContext={requestTabContext}
             onChange={(next) => dispatch(setActiveDraft(next))}
             onSend={() => void dispatch(sendRequest())}
             sending={sending}
@@ -207,6 +237,7 @@ export function Request({ onEditVariables }: Props): JSX.Element {
           <Response
             key={`response-${activeTabId}`}
             response={response}
+            responseTabContext={responseTabContext}
             sending={sending}
             testResults={testResults}
             onCancel={() => void dispatch(cancelRequest(activeTabId))}

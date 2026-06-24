@@ -3,8 +3,11 @@ import type { ShortcutBinding, ShortcutOverrides } from '#/shared/shortcuts';
 import type {
   PluginAssetResult,
   PluginEntryKind,
+  PluginFsPickFileOptions,
+  PluginFsSaveFileOptions,
   PluginInfo,
-  PluginPermission
+  PluginPermission,
+  SerializableMenuContribution
 } from '#/shared/plugin/types';
 
 export type { AuthConfig, AuthType } from '#/shared/auth';
@@ -12,8 +15,11 @@ export type { ShortcutBinding, ShortcutId, ShortcutOverrides } from '#/shared/sh
 export type {
   PluginAssetResult,
   PluginEntryKind,
+  PluginFsPickFileOptions,
+  PluginFsSaveFileOptions,
   PluginInfo,
-  PluginPermission
+  PluginPermission,
+  SerializableMenuContribution
 } from '#/shared/plugin/types';
 
 /**
@@ -3137,6 +3143,47 @@ export interface Api {
    * @param callback - Called with the changed plugin id.
    */
   onPluginsChanged: (callback: (pluginId: string) => void) => () => void;
+
+  /**
+   * Pushes plugin menu contributions to the main process for menu merge.
+   */
+  setPluginMenuContributions: (contributions: SerializableMenuContribution[]) => Promise<void>;
+
+  /**
+   * Subscribes to plugin menu command clicks from the application menu.
+   */
+  onPluginMenuCommand: (
+    callback: (payload: { pluginId: string; command: string }) => void
+  ) => () => void;
+
+  /**
+   * Opens a native file picker for a plugin with filesystem:pick permission.
+   */
+  pluginFsPickFile: (pluginId: string, options?: PluginFsPickFileOptions) => Promise<string[]>;
+
+  /**
+   * Opens a native directory picker for a plugin with filesystem:pick permission.
+   */
+  pluginFsPickDirectory: (pluginId: string, defaultPath?: string) => Promise<string | null>;
+
+  /**
+   * Saves text to a user-selected path for a plugin with filesystem:pick permission.
+   */
+  pluginFsSaveFile: (
+    pluginId: string,
+    content: string,
+    options?: PluginFsSaveFileOptions
+  ) => Promise<string | null>;
+
+  /**
+   * Reads a UTF-8 file from an allowlisted path for a plugin.
+   */
+  pluginFsReadFile: (pluginId: string, path: string) => Promise<string>;
+
+  /**
+   * Writes a UTF-8 file to an allowlisted path for a plugin.
+   */
+  pluginFsWriteFile: (pluginId: string, path: string, content: string) => Promise<void>;
 }
 
 declare global {

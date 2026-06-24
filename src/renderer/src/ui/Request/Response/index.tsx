@@ -1,5 +1,6 @@
 import { useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
+import type { ResponseTabContext } from '#/shared/plugin/types';
 import type { ScriptTestResult, SendResult } from '#/shared/types';
 import { Button } from '#/renderer/src/components/Button';
 import { CodeEditor } from '#/renderer/src/components/CodeEditor';
@@ -8,6 +9,8 @@ import {
   SegmentedTabPanel,
   SegmentedTabsGroup
 } from '#/renderer/src/components/SegmentedTabs';
+import { usePluginResponseTabs } from '#/renderer/src/plugins/pluginHooks';
+import { isPluginTabId } from '#/renderer/src/plugins/pluginContextAdapters';
 import { statusDotClass } from '#/renderer/src/ui/shared/classes';
 import {
   bodyLanguage,
@@ -18,13 +21,17 @@ import {
 } from '#/renderer/src/ui/shared/responseFormatUtils';
 import { Headers } from './Headers';
 import { Tests } from './Tests';
-import type { ViewerTab } from './types';
 
 interface Props {
   /**
    * Last send result to display, or null before the first send.
    */
   response: SendResult | null;
+
+  /**
+   * Read-only plugin tab context shared with contributed tabs.
+   */
+  responseTabContext: ResponseTabContext;
 
   /**
    * Whether a request is in flight; shows a loading state when true.
@@ -45,8 +52,15 @@ interface Props {
 /**
  * Displays HTTP response status, timing, body, headers, and script test results.
  */
-export function Response({ response, sending, testResults, onCancel }: Props): JSX.Element {
-  const [tab, setTab] = useState<ViewerTab>('body');
+export function Response({
+  response,
+  responseTabContext,
+  sending,
+  testResults,
+  onCancel
+}: Props): JSX.Element {
+  const pluginTabs = usePluginResponseTabs();
+  const [tab, setTab] = useState<string>('body');
 
   /**
    * Pretty-prints the response body for display in the read-only editor.
@@ -70,8 +84,15 @@ export function Response({ response, sending, testResults, onCancel }: Props): J
    * Copies the active tab content to the clipboard.
    */
   const handleCopy = async (): Promise<void> => {
-    if (!response) return;
-    const text = responseTabText(effectiveTab, response.body, response.headers, testResults);
+    if (!response || isPluginTabId(effectiveTab)) {
+      return;
+    }
+    const text = responseTabText(
+      effectiveTab as 'body' | 'headers' | 'tests',
+      response.body,
+      response.headers,
+      testResults
+    );
     try {
       await navigator.clipboard.writeText(text);
       toast.success('Copied to clipboard');
@@ -84,9 +105,20 @@ export function Response({ response, sending, testResults, onCancel }: Props): J
    * Exports the active tab content to a file via a native save dialog.
    */
   const handleExport = async (): Promise<void> => {
-    if (!response) return;
-    const content = responseTabText(effectiveTab, response.body, response.headers, testResults);
-    const defaultPath = responseTabExportPath(effectiveTab, response.body, response.headers);
+    if (!response || isPluginTabId(effectiveTab)) {
+      return;
+    }
+    const content = responseTabText(
+      effectiveTab as 'body' | 'headers' | 'tests',
+      response.body,
+      response.headers,
+      testResults
+    );
+    const defaultPath = responseTabExportPath(
+      effectiveTab as 'body' | 'headers' | 'tests',
+      response.body,
+      response.headers
+    );
     try {
       const result = await window.api.saveTextFile(content, defaultPath);
       if (result.canceled) return;
@@ -95,6 +127,38 @@ export function Response({ response, sending, testResults, onCancel }: Props): J
       toast.error('Failed to export response');
     }
   };
+
+  /**
+   * Built-in and plugin response tabs merged for SegmentedTabs.
+   */
+  const tabs = useMemo(
+    () => [
+      { value: 'body', label: 'Body' },
+      { value: 'headers', label: 'Headers' },
+      {
+        value: 'tests',
+        hidden: !hasTests,
+        label: (
+          <>
+            Tests
+            <span
+              className={`ml-1.5 text-[14px] ${failedCount > 0 ? 'text-danger' : 'text-muted'}`}
+            >
+              {passedCount}/{testResults.length}
+            </span>
+          </>
+        )
+      },
+      ...pluginTabs
+        .filter((entry) => entry.when !== 'hasResponse' || response != null)
+        .map((entry) => ({
+          value: entry.id,
+          label: entry.title,
+          hidden: entry.when === 'hasResponse' && response == null
+        }))
+    ],
+    [failedCount, hasTests, passedCount, pluginTabs, response, testResults.length]
+  );
 
   /**
    * Renders a centered placeholder when there is no response content to show.
@@ -150,26 +214,7 @@ export function Response({ response, sending, testResults, onCancel }: Props): J
 
       <SegmentedTabsGroup value={effectiveTab} onChange={setTab} ariaLabel="Response view">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <SegmentedTabs
-            tabs={[
-              { value: 'body', label: 'Body' },
-              { value: 'headers', label: 'Headers' },
-              {
-                value: 'tests',
-                hidden: !hasTests,
-                label: (
-                  <>
-                    Tests
-                    <span
-                      className={`ml-1.5 text-[14px] ${failedCount > 0 ? 'text-danger' : 'text-muted'}`}
-                    >
-                      {passedCount}/{testResults.length}
-                    </span>
-                  </>
-                )
-              }
-            ]}
-          />
+          <SegmentedTabs tabs={tabs} />
           <div className="flex shrink-0 items-center gap-1">
             <Button type="button" variant="toolbar" onClick={() => void handleCopy()}>
               Copy
@@ -196,6 +241,14 @@ export function Response({ response, sending, testResults, onCancel }: Props): J
               <Tests testResults={testResults} />
             </SegmentedTabPanel>
           )}
+          {pluginTabs.map((entry) => {
+            const Component = entry.Component;
+            return (
+              <SegmentedTabPanel key={entry.id} value={entry.id}>
+                <Component context={responseTabContext} />
+              </SegmentedTabPanel>
+            );
+          })}
         </div>
       </SegmentedTabsGroup>
     </div>

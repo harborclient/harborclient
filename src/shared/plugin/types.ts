@@ -388,6 +388,7 @@ export interface PluginContext {
   themes: PluginThemes;
   commands: PluginCommands;
   storage: PluginStorage;
+  fs: PluginFs;
   subscriptions: Disposable[];
 }
 
@@ -411,6 +412,176 @@ export interface RegisteredPluginTheme {
   type: 'light' | 'dark';
   colors?: Partial<Record<ThemeColorToken, string>>;
   stylesheet?: string;
+}
+
+/**
+ * Registered sidebar section contribution.
+ */
+export interface RegisteredSidebarSection {
+  pluginId: string;
+  id: string;
+  title: string;
+  order?: number;
+  Component: React.ComponentType;
+}
+
+/**
+ * Registered switchable sidebar panel contribution.
+ */
+export interface RegisteredSidebarPanel {
+  pluginId: string;
+  id: string;
+  title: string;
+  icon?: string;
+  order?: number;
+  Component: React.ComponentType;
+}
+
+/**
+ * Registered main-area overlay contribution.
+ */
+export interface RegisteredMainView {
+  pluginId: string;
+  id: string;
+  title: string;
+  Component: React.ComponentType;
+}
+
+/**
+ * Registered request editor tab contribution.
+ */
+export interface RegisteredRequestTab {
+  pluginId: string;
+  id: string;
+  title: string;
+  order?: number;
+  Component: React.ComponentType<{ context: RequestTabContext }>;
+}
+
+/**
+ * Registered response viewer tab contribution.
+ */
+export interface RegisteredResponseTab {
+  pluginId: string;
+  id: string;
+  title: string;
+  order?: number;
+  when?: 'always' | 'hasResponse';
+  Component: React.ComponentType<{ context: ResponseTabContext }>;
+}
+
+/**
+ * Registered collection settings tab contribution.
+ */
+export interface RegisteredCollectionSettingsTab {
+  pluginId: string;
+  id: string;
+  title: string;
+  order?: number;
+  Component: React.ComponentType<{ context: CollectionSettingsTabContext }>;
+}
+
+/**
+ * Registered footer slide-up panel contribution.
+ */
+export interface RegisteredFooterPanel {
+  pluginId: string;
+  id: string;
+  title: string;
+  Component: React.ComponentType;
+}
+
+/**
+ * Registered application menu item contribution.
+ */
+export interface RegisteredMenuItem {
+  pluginId: string;
+  menu: AppMenu;
+  command: string;
+  label?: string;
+  group?: string;
+  order?: number;
+}
+
+/**
+ * Registered request toolbar action contribution.
+ */
+export interface RegisteredRequestToolbarAction {
+  pluginId: string;
+  id: string;
+  title: string;
+  command: string;
+  icon?: string;
+  order?: number;
+}
+
+/**
+ * Registered sidebar context menu item contribution.
+ */
+export interface RegisteredContextMenuItem {
+  pluginId: string;
+  id: string;
+  title: string;
+  command: string;
+  when: ContextMenuTarget | ContextMenuTarget[];
+  group?: string;
+  order?: number;
+}
+
+/**
+ * Registered footer status bar item contribution.
+ */
+export interface RegisteredStatusBarItem {
+  pluginId: string;
+  id: string;
+  alignment?: 'left' | 'right';
+  order?: number;
+  Component: React.ComponentType;
+}
+
+/**
+ * Options for picking a file through hc.fs.
+ */
+export interface PluginFsPickFileOptions {
+  /** Dialog title. */
+  title?: string;
+  /** File extension filters. */
+  filters?: Array<{ name: string; extensions: string[] }>;
+  /** Allow multiple file selection. */
+  multiple?: boolean;
+}
+
+/**
+ * Options for saving a file through hc.fs.
+ */
+export interface PluginFsSaveFileOptions {
+  /** Suggested file name or path. */
+  defaultPath?: string;
+  /** File extension filters. */
+  filters?: Array<{ name: string; extensions: string[] }>;
+}
+
+/**
+ * Plugin filesystem API backed by main-process allowlist enforcement.
+ */
+export interface PluginFs {
+  pickFile: (options?: PluginFsPickFileOptions) => Promise<string[]>;
+  pickDirectory: (defaultPath?: string) => Promise<string | null>;
+  saveFile: (content: string, options?: PluginFsSaveFileOptions) => Promise<string | null>;
+  readFile: (path: string) => Promise<string>;
+  writeFile: (path: string, content: string) => Promise<void>;
+}
+
+/**
+ * Serializable menu contribution pushed to the main process for menu merge.
+ */
+export interface SerializableMenuContribution {
+  pluginId: string;
+  menu: AppMenu;
+  command: string;
+  label?: string;
+  group?: string;
+  order?: number;
 }
 
 /**
@@ -441,7 +612,18 @@ export interface PluginHttpResponse {
  * @returns Stable section key for Settings navigation.
  */
 export function pluginSettingsSectionId(pluginId: string, sectionId: string): string {
-  return `plugin:${pluginId}:${sectionId}`;
+  return pluginContributionId(pluginId, sectionId);
+}
+
+/**
+ * Namespaced contribution id for plugin UI slots.
+ *
+ * @param pluginId - Plugin manifest id.
+ * @param contributionId - Contribution id from the manifest.
+ * @returns Stable namespaced id used as tab/section keys in the host UI.
+ */
+export function pluginContributionId(pluginId: string, contributionId: string): string {
+  return `plugin:${pluginId}:${contributionId}`;
 }
 
 /**

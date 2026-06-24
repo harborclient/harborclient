@@ -3,6 +3,7 @@ import { dirname, join, normalize, relative, resolve } from 'path';
 import JSZip from 'jszip';
 import type { BrowserWindow } from 'electron';
 import { validatePluginManifest } from '#/main/plugins/manifestSchema';
+import { PluginFsAllowlist } from '#/main/plugins/pluginFsAllowlist';
 import {
   clearPluginEnabled,
   getPluginEnablement,
@@ -16,6 +17,7 @@ import type {
   PluginAssetResult,
   PluginEntryKind,
   PluginInfo,
+  PluginPermission,
   PluginSource
 } from '#/shared/plugin/types';
 
@@ -70,6 +72,7 @@ export class PluginManager {
   readonly #appVersion: string;
   readonly #records = new Map<string, PluginRecord>();
   readonly #reloadTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  readonly #fsAllowlist = new PluginFsAllowlist();
   #notifyWindow: (() => BrowserWindow | null) | null = null;
 
   /**
@@ -95,6 +98,49 @@ export class PluginManager {
    */
   get pluginsDirectory(): string {
     return join(this.#userDataPath, PLUGINS_DIR);
+  }
+
+  /**
+   * Filesystem allowlist used by plugin fs IPC handlers.
+   */
+  get fsAllowlist(): PluginFsAllowlist {
+    return this.#fsAllowlist;
+  }
+
+  /**
+   * Returns granted permissions for one plugin.
+   *
+   * @param pluginId - Plugin manifest id.
+   */
+  getPluginPermissions(pluginId: string): PluginPermission[] {
+    const record = this.#records.get(pluginId);
+    if (!record) {
+      throw new Error(`Unknown plugin: ${pluginId}`);
+    }
+    return record.info.permissions;
+  }
+
+  /**
+   * Throws when a plugin lacks one required permission.
+   *
+   * @param pluginId - Plugin manifest id.
+   * @param permission - Required permission flag.
+   */
+  assertPermission(pluginId: string, permission: PluginPermission): void {
+    if (!this.getPluginPermissions(pluginId).includes(permission)) {
+      throw new Error(`Plugin ${pluginId} lacks permission: ${permission}`);
+    }
+  }
+
+  /**
+   * Grants filesystem access to one path for a plugin.
+   *
+   * @param pluginId - Plugin manifest id.
+   * @param targetPath - Absolute path selected by the user or plugin directory.
+   */
+  grantFilesystemPath(pluginId: string, targetPath: string): void {
+    this.#assertPluginExists(pluginId);
+    this.#fsAllowlist.grantPath(pluginId, targetPath);
   }
 
   /**
@@ -309,6 +355,7 @@ export class PluginManager {
       throw new Error('Only installed plugins can be uninstalled.');
     }
     this.#stopWatcher(pluginId);
+    this.#fsAllowlist.clearPlugin(pluginId);
     rmSync(record.info.path, { recursive: true, force: true });
     clearPluginEnabled(pluginId);
     this.#records.delete(pluginId);
@@ -329,6 +376,7 @@ export class PluginManager {
       throw new Error('Only unpacked plugins can be removed from the dev registry.');
     }
     this.#stopWatcher(pluginId);
+    this.#fsAllowlist.clearPlugin(pluginId);
     removeUnpackedPluginPath(pluginId);
     clearPluginEnabled(pluginId);
     this.#records.delete(pluginId);
@@ -440,6 +488,7 @@ export class PluginManager {
       throw new Error(`Plugin manifest is not valid JSON: ${manifestPath}`);
     }
     const manifest = validatePluginManifest(manifestRaw, this.#appVersion);
+    this.#fsAllowlist.seedPluginDirectory(manifest.id, directory);
     return {
       id: manifest.id,
       name: manifest.name,

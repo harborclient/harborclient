@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { requestEditorTabKey, resolveEditorTab } from '#/shared/requestEditorTab';
 import type { EditorTab } from '#/shared/types';
 import type { RequestDraft } from '#/renderer/src/store/drafts';
+import { isPluginTabId } from '#/renderer/src/plugins/pluginContextAdapters';
 
 interface Options {
   /**
@@ -24,19 +25,19 @@ interface Result {
   /**
    * Resolved editor tab for display (Body falls back when hidden).
    */
-  tab: EditorTab;
+  tab: string;
 
   /**
    * Persists and updates the selected editor tab.
    */
-  setTab: (tab: EditorTab) => void;
+  setTab: (tab: string) => void;
 }
 
 /**
  * Loads and persists the request editor tab per request via electron-store.
  */
 export function usePersistedEditorTab({ draft, tabId, showBody }: Options): Result {
-  const [tab, setTabState] = useState<EditorTab>('params');
+  const [tab, setTabState] = useState<string>('params');
   const tabRef = useRef(tab);
 
   /**
@@ -77,7 +78,9 @@ export function usePersistedEditorTab({ draft, tabId, showBody }: Options): Resu
 
     if (draft.id == null || previousId != null) return;
 
-    void window.api.setRequestEditorTab(String(draft.id), tabRef.current);
+    if (!isPluginTabId(tabRef.current)) {
+      void window.api.setRequestEditorTab(String(draft.id), tabRef.current as EditorTab);
+    }
     void window.api.deleteRequestEditorTab(requestEditorTabKey({}, tabId));
   }, [draft.id, tabId]);
 
@@ -85,9 +88,11 @@ export function usePersistedEditorTab({ draft, tabId, showBody }: Options): Resu
    * Updates the selected tab in memory and electron-store.
    */
   const setTab = useCallback(
-    (next: EditorTab) => {
+    (next: string) => {
       setTabState(next);
-      void window.api.setRequestEditorTab(storageKey, next);
+      if (!isPluginTabId(next)) {
+        void window.api.setRequestEditorTab(storageKey, next as EditorTab);
+      }
     },
     [storageKey]
   );

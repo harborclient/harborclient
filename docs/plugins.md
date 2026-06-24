@@ -977,6 +977,47 @@ Persists a JSON-serializable value.
 await hc.storage.set('enabled', true);
 ```
 
+### hc.fs
+
+Plugin-scoped filesystem access backed by main-process permission checks and a per-plugin path allowlist. Requires `filesystem:pick` for open/save dialogs, `filesystem:read` for `readFile`, and `filesystem:write` for `writeFile`. User-selected paths from pick/save dialogs are added to the allowlist automatically; the plugin package directory is allowlisted on load.
+
+#### hc.fs.pickFile(options?)
+
+**Signature:** `(options?: PluginFsPickFileOptions) => Promise<string[]>`
+
+Opens a native file picker. Returns absolute paths for the selected files, or an empty array when the dialog is canceled. Requires the `filesystem:pick` permission.
+
+```typescript
+const paths = await hc.fs.pickFile({
+  title: 'Choose a schema',
+  filters: [{ name: 'JSON', extensions: ['json'] }],
+});
+```
+
+#### hc.fs.pickDirectory(defaultPath?)
+
+**Signature:** `(defaultPath?: string) => Promise<string | null>`
+
+Opens a native directory picker. Returns the selected directory path, or `null` when canceled. Requires the `filesystem:pick` permission.
+
+#### hc.fs.saveFile(content, options?)
+
+**Signature:** `(content: string, options?: PluginFsSaveFileOptions) => Promise<string | null>`
+
+Opens a native save dialog and writes `content` to the chosen path. Returns the saved path, or `null` when canceled. Requires the `filesystem:pick` and `filesystem:write` permissions.
+
+#### hc.fs.readFile(path)
+
+**Signature:** `(path: string) => Promise<string>`
+
+Reads a UTF-8 text file from an allowlisted path. Requires the `filesystem:read` permission.
+
+#### hc.fs.writeFile(path, content)
+
+**Signature:** `(path: string, content: string) => Promise<void>`
+
+Writes UTF-8 text to an allowlisted path. Requires the `filesystem:write` permission.
+
 ### hc.subscriptions
 
 **Type:** `Disposable[]`

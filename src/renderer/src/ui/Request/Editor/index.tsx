@@ -2,7 +2,9 @@ import { useMemo, type JSX } from 'react';
 import type { KeyValue, Variable } from '#/shared/types';
 import { applyParamsToUrl, mergeParamsFromUrl } from '#/shared/queryParams';
 import { SegmentedTabs, SegmentedTabsGroup } from '#/renderer/src/components/SegmentedTabs';
+import type { RequestTabContext } from '#/shared/plugin/types';
 import type { RequestDraft } from '#/renderer/src/store/drafts';
+import { usePluginRequestTabs } from '#/renderer/src/plugins/pluginHooks';
 import { Name } from './Name';
 import { TabContent } from './TabContent';
 import { UrlBar } from './UrlBar';
@@ -29,6 +31,11 @@ interface Props {
    * Open tab id for per-request editor tab persistence.
    */
   tabId: string;
+
+  /**
+   * Read-only plugin tab context shared with contributed tabs.
+   */
+  requestTabContext: RequestTabContext;
 
   /**
    * Called when any draft field changes.
@@ -84,6 +91,7 @@ interface Props {
 export function Editor({
   draft,
   tabId,
+  requestTabContext,
   onChange,
   onSend,
   sending,
@@ -94,6 +102,7 @@ export function Editor({
   onCollectionClick,
   onFolderClick
 }: Props): JSX.Element {
+  const pluginTabs = usePluginRequestTabs();
   const showBody = draft.method !== 'GET' && draft.method !== 'HEAD';
   const { tab, setTab } = usePersistedEditorTab({ draft, tabId, showBody });
   const hasCookies = useHasCookies(draft.url, variables);
@@ -123,6 +132,24 @@ export function Editor({
       hasCookies,
       showBody
     ]
+  );
+
+  /**
+   * Built-in and plugin request editor tabs merged for SegmentedTabs.
+   */
+  const tabs = useMemo(
+    () => [
+      { value: 'params', label: 'Params', indicator: tabIndicators.params },
+      { value: 'headers', label: 'Headers', indicator: tabIndicators.headers },
+      { value: 'auth', label: 'Authorization', indicator: tabIndicators.auth },
+      { value: 'cookies', label: 'Cookies', indicator: tabIndicators.cookies },
+      { value: 'body', label: 'Body', hidden: !showBody, indicator: tabIndicators.body },
+      { value: 'pre', label: 'PreRequest', indicator: tabIndicators.pre },
+      { value: 'post', label: 'PostRequest', indicator: tabIndicators.post },
+      { value: 'comment', label: 'Comment', indicator: tabIndicators.comment },
+      ...pluginTabs.map((entry) => ({ value: entry.id, label: entry.title }))
+    ],
+    [pluginTabs, showBody, tabIndicators]
   );
 
   /**
@@ -176,18 +203,7 @@ export function Editor({
 
       <SegmentedTabsGroup value={tab} onChange={setTab} ariaLabel="Request editor sections">
         <div className="mt-2">
-          <SegmentedTabs
-            tabs={[
-              { value: 'params', label: 'Params', indicator: tabIndicators.params },
-              { value: 'headers', label: 'Headers', indicator: tabIndicators.headers },
-              { value: 'auth', label: 'Authorization', indicator: tabIndicators.auth },
-              { value: 'cookies', label: 'Cookies', indicator: tabIndicators.cookies },
-              { value: 'body', label: 'Body', hidden: !showBody, indicator: tabIndicators.body },
-              { value: 'pre', label: 'PreRequest', indicator: tabIndicators.pre },
-              { value: 'post', label: 'PostRequest', indicator: tabIndicators.post },
-              { value: 'comment', label: 'Comment', indicator: tabIndicators.comment }
-            ]}
-          />
+          <SegmentedTabs tabs={tabs} />
         </div>
 
         <TabContent
@@ -197,6 +213,8 @@ export function Editor({
           onParamsChange={handleParamsChange}
           variables={variables}
           onEditVariables={onEditVariables}
+          pluginTabs={pluginTabs}
+          requestTabContext={requestTabContext}
         />
       </SegmentedTabsGroup>
     </div>

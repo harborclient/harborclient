@@ -1,13 +1,31 @@
 import toast from 'react-hot-toast';
 import * as React from 'react';
-import type { PluginContext, PluginManifest, Disposable } from '#/shared/plugin/types';
+import type {
+  PluginContext,
+  PluginManifest,
+  PluginPermission,
+  Disposable
+} from '#/shared/plugin/types';
 import {
+  registerCollectionSettingsTabContribution,
+  registerContextMenuItemContribution,
+  registerFooterPanelContribution,
+  registerMainViewContribution,
+  registerMenuItemContribution,
+  registerRequestTabContribution,
+  registerRequestToolbarActionContribution,
+  registerResponseTabContribution,
   registerSettingsSectionContribution,
+  registerSidebarPanelContribution,
+  registerSidebarSectionContribution,
+  registerStatusBarItemContribution,
   registerThemeContribution
 } from '#/renderer/src/plugins/registry';
-import { pluginSettingsSectionId } from '#/shared/plugin/types';
+import { pluginContributionId, pluginSettingsSectionId } from '#/shared/plugin/types';
 
 const commandHandlers = new Map<string, Set<(...args: unknown[]) => void | Promise<void>>>();
+
+type ManifestContributionKey = keyof NonNullable<PluginManifest['contributes']>;
 
 /**
  * Asserts that a contribution id is declared in the plugin manifest.
@@ -18,12 +36,25 @@ const commandHandlers = new Map<string, Set<(...args: unknown[]) => void | Promi
  */
 function assertManifestContribution(
   manifest: PluginManifest,
-  key: 'settingsSections' | 'themes' | 'commands',
+  key: ManifestContributionKey,
   id: string
 ): void {
   const entries = manifest.contributes?.[key];
   if (!Array.isArray(entries) || !entries.some((entry) => 'id' in entry && entry.id === id)) {
     throw new Error(`Contribution id "${id}" is not declared in manifest.contributes.${key}.`);
+  }
+}
+
+/**
+ * Asserts that a menu command is declared in manifest.contributes.menus.
+ *
+ * @param manifest - Plugin manifest.
+ * @param command - Command id referenced by the menu item.
+ */
+function assertManifestMenuCommand(manifest: PluginManifest, command: string): void {
+  const entries = manifest.contributes?.menus;
+  if (!Array.isArray(entries) || !entries.some((entry) => entry.command === command)) {
+    throw new Error(`Command "${command}" is not declared in manifest.contributes.menus.`);
   }
 }
 
@@ -34,7 +65,7 @@ function assertManifestContribution(
  * @param commandId - Command id declared in the manifest.
  * @param handler - Handler invoked when the command executes.
  */
-function registerCommand(
+export function registerCommand(
   pluginId: string,
   commandId: string,
   handler: (...args: unknown[]) => void | Promise<void>
@@ -83,32 +114,49 @@ export async function executePluginCommand(
  */
 export function createPluginContext(pluginId: string, manifest: PluginManifest): PluginContext {
   const subscriptions: Disposable[] = [];
-  const hasUi = manifest.permissions.includes('ui');
-  const hasStorage = manifest.permissions.includes('storage');
+  const permissions = new Set(manifest.permissions);
 
-  const assertUi = (): void => {
-    if (!hasUi) {
-      throw new Error(`Plugin ${pluginId} lacks permission: ui`);
+  const assertPermission = (permission: PluginPermission): void => {
+    if (!permissions.has(permission)) {
+      throw new Error(`Plugin ${pluginId} lacks permission: ${permission}`);
     }
   };
 
-  const assertStorage = (): void => {
-    if (!hasStorage) {
-      throw new Error(`Plugin ${pluginId} lacks permission: storage`);
-    }
-  };
+  const assertUi = (): void => assertPermission('ui');
 
   return {
     react: React,
     subscriptions,
     storage: {
       get: async <T>(key: string) => {
-        assertStorage();
+        assertPermission('storage');
         return (await window.api.getPluginStorage(pluginId, key)) as T | undefined;
       },
       set: async <T>(key: string, value: T) => {
-        assertStorage();
+        assertPermission('storage');
         await window.api.setPluginStorage(pluginId, key, value);
+      }
+    },
+    fs: {
+      pickFile: async (options) => {
+        assertPermission('filesystem:pick');
+        return window.api.pluginFsPickFile(pluginId, options);
+      },
+      pickDirectory: async (defaultPath) => {
+        assertPermission('filesystem:pick');
+        return window.api.pluginFsPickDirectory(pluginId, defaultPath ?? '');
+      },
+      saveFile: async (content, options) => {
+        assertPermission('filesystem:pick');
+        return window.api.pluginFsSaveFile(pluginId, content, options);
+      },
+      readFile: async (path) => {
+        assertPermission('filesystem:read');
+        return window.api.pluginFsReadFile(pluginId, path);
+      },
+      writeFile: async (path, content) => {
+        assertPermission('filesystem:write');
+        await window.api.pluginFsWriteFile(pluginId, path, content);
       }
     },
     commands: {
@@ -173,42 +221,100 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
           Component: section.Component
         });
       },
-      registerSidebarPanel: () => {
-        throw new Error('registerSidebarPanel is not available in this HarborClient version.');
+      registerSidebarPanel: (panel) => {
+        assertUi();
+        assertManifestContribution(manifest, 'sidebarPanels', panel.id);
+        return registerSidebarPanelContribution(pluginId, {
+          id: pluginContributionId(pluginId, panel.id),
+          title: panel.title,
+          icon: panel.icon,
+          order: panel.order,
+          Component: panel.Component
+        });
       },
-      registerSidebarSection: () => {
-        throw new Error('registerSidebarSection is not available in this HarborClient version.');
+      registerSidebarSection: (section) => {
+        assertUi();
+        assertManifestContribution(manifest, 'sidebarSections', section.id);
+        return registerSidebarSectionContribution(pluginId, {
+          id: pluginContributionId(pluginId, section.id),
+          title: section.title,
+          order: section.order,
+          Component: section.Component
+        });
       },
-      registerMainView: () => {
-        throw new Error('registerMainView is not available in this HarborClient version.');
+      registerMainView: (view) => {
+        assertUi();
+        assertManifestContribution(manifest, 'mainViews', view.id);
+        return registerMainViewContribution(pluginId, {
+          id: pluginContributionId(pluginId, view.id),
+          title: view.title,
+          Component: view.Component
+        });
       },
-      registerRequestTab: () => {
-        throw new Error('registerRequestTab is not available in this HarborClient version.');
+      registerRequestTab: (tab) => {
+        assertUi();
+        assertManifestContribution(manifest, 'requestTabs', tab.id);
+        return registerRequestTabContribution(pluginId, {
+          id: pluginContributionId(pluginId, tab.id),
+          title: tab.title,
+          order: tab.order,
+          Component: tab.Component
+        });
       },
-      registerResponseTab: () => {
-        throw new Error('registerResponseTab is not available in this HarborClient version.');
+      registerResponseTab: (tab) => {
+        assertUi();
+        assertManifestContribution(manifest, 'responseTabs', tab.id);
+        return registerResponseTabContribution(pluginId, {
+          id: pluginContributionId(pluginId, tab.id),
+          title: tab.title,
+          order: tab.order,
+          when: tab.when,
+          Component: tab.Component
+        });
       },
-      registerCollectionSettingsTab: () => {
-        throw new Error(
-          'registerCollectionSettingsTab is not available in this HarborClient version.'
-        );
+      registerCollectionSettingsTab: (tab) => {
+        assertUi();
+        assertManifestContribution(manifest, 'collectionSettingsTabs', tab.id);
+        return registerCollectionSettingsTabContribution(pluginId, {
+          id: pluginContributionId(pluginId, tab.id),
+          title: tab.title,
+          order: tab.order,
+          Component: tab.Component
+        });
       },
-      registerFooterPanel: () => {
-        throw new Error('registerFooterPanel is not available in this HarborClient version.');
+      registerFooterPanel: (panel) => {
+        assertUi();
+        assertManifestContribution(manifest, 'footerPanels', panel.id);
+        return registerFooterPanelContribution(pluginId, {
+          id: pluginContributionId(pluginId, panel.id),
+          title: panel.title,
+          Component: panel.Component
+        });
       },
-      registerMenuItem: () => {
-        throw new Error('registerMenuItem is not available in this HarborClient version.');
+      registerMenuItem: (item) => {
+        assertUi();
+        assertManifestMenuCommand(manifest, item.command);
+        return registerMenuItemContribution(pluginId, item);
       },
-      registerRequestToolbarAction: () => {
-        throw new Error(
-          'registerRequestToolbarAction is not available in this HarborClient version.'
-        );
+      registerRequestToolbarAction: (action) => {
+        assertUi();
+        assertManifestContribution(manifest, 'requestToolbarActions', action.id);
+        return registerRequestToolbarActionContribution(pluginId, action);
       },
-      registerContextMenuItem: () => {
-        throw new Error('registerContextMenuItem is not available in this HarborClient version.');
+      registerContextMenuItem: (item) => {
+        assertUi();
+        assertManifestContribution(manifest, 'contextMenus', item.id);
+        return registerContextMenuItemContribution(pluginId, item);
       },
-      registerStatusBarItem: () => {
-        throw new Error('registerStatusBarItem is not available in this HarborClient version.');
+      registerStatusBarItem: (item) => {
+        assertUi();
+        assertManifestContribution(manifest, 'statusBarItems', item.id);
+        return registerStatusBarItemContribution(pluginId, {
+          id: pluginContributionId(pluginId, item.id),
+          alignment: item.alignment,
+          order: item.order,
+          Component: item.Component
+        });
       },
       showToast: (message, options) => {
         assertUi();

@@ -495,5 +495,44 @@ export const ipcArgSchemas = {
   pluginStorageKey: z.tuple([pluginId, z.string().min(1)]),
   pluginStorageSet: z.tuple([pluginId, z.string().min(1), z.unknown()]),
   pluginActivateMain: z.tuple([pluginId, z.string(), z.array(pluginPermission)]),
-  pluginInvokeMain: z.tuple([pluginId, z.string().min(1), z.array(z.unknown())])
+  pluginInvokeMain: z.tuple([pluginId, z.string().min(1), z.array(z.unknown())]),
+  pluginMenuContributions: z.tuple([
+    z.array(
+      z.object({
+        pluginId: pluginId,
+        menu: z.enum(['file', 'edit', 'view', 'help']),
+        command: z.string().min(1),
+        label: z.string().optional(),
+        group: z.string().optional(),
+        order: z.number().optional()
+      })
+    )
+  ]),
+  pluginFsPickFile: z.tuple([
+    pluginId,
+    z
+      .object({
+        title: z.string().optional(),
+        multiple: z.boolean().optional(),
+        filters: z.array(z.object({ name: z.string(), extensions: z.array(z.string()) })).optional()
+      })
+      .optional()
+  ]),
+  pluginFsPickDirectory: z.tuple([pluginId, z.string()]),
+  pluginFsSaveFile: z.tuple([
+    pluginId,
+    z.string().max(MAX_IPC_REQUEST_BODY_CHARS),
+    z
+      .object({
+        defaultPath: z.string().optional(),
+        filters: z.array(z.object({ name: z.string(), extensions: z.array(z.string()) })).optional()
+      })
+      .optional()
+  ]),
+  pluginFsReadFile: z.tuple([pluginId, z.string().min(1)]),
+  pluginFsWriteFile: z.tuple([
+    pluginId,
+    z.string().min(1),
+    z.string().max(MAX_IPC_REQUEST_BODY_CHARS)
+  ])
 } as const;

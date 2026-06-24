@@ -4,6 +4,8 @@ import {
   reloadPlugin,
   unloadAllPlugins
 } from '#/renderer/src/plugins/pluginLoader';
+import { registerHostPluginCommands } from '#/renderer/src/plugins/hostCommands';
+import { startPluginMenuSync } from '#/renderer/src/plugins/pluginMenuSync';
 
 /**
  * Mounts the plugin host lifecycle and hot-reload listeners.
@@ -13,6 +15,8 @@ export function PluginHost(): null {
    * Loads enabled plugins on mount and when the plugin list changes.
    */
   useEffect(() => {
+    const unregisterHostCommands = registerHostPluginCommands();
+    const stopMenuSync = startPluginMenuSync();
     let active = true;
     void reloadAllPlugins().catch((error) => {
       console.error('Failed to load plugins:', error);
@@ -27,6 +31,8 @@ export function PluginHost(): null {
     });
     return () => {
       active = false;
+      unregisterHostCommands();
+      stopMenuSync();
       unsubscribe();
       void unloadAllPlugins();
     };

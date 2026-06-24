@@ -1,5 +1,7 @@
 import { BrowserWindow, Menu, shell, type MenuItemConstructorOptions } from 'electron';
 import { getShortcutOverrides } from '#/main/settings/shortcutSettings';
+import { getPluginMenuContributions } from '#/main/plugins/pluginMenuContributions';
+import { mergePluginMenuItemsIntoTemplate } from '#/main/plugins/pluginMenuMerge';
 import { resolveAcceleratorMap, type ShortcutId } from '#/shared/shortcuts';
 import type { MenuActionId } from '#/shared/types';
 
@@ -11,6 +13,17 @@ import type { MenuActionId } from '#/shared/types';
  */
 function sendMenuAction(window: BrowserWindow, action: MenuActionId): void {
   window.webContents.send('menu:action', action);
+}
+
+/**
+ * Sends a plugin menu command to the renderer process.
+ *
+ * @param window - Target browser window.
+ * @param pluginId - Plugin manifest id.
+ * @param command - Command id declared in the manifest.
+ */
+function sendPluginMenuCommand(window: BrowserWindow, pluginId: string, command: string): void {
+  window.webContents.send('menu:pluginCommand', { pluginId, command });
 }
 
 /**
@@ -146,6 +159,10 @@ export function buildMenu(
       ]
     }
   ];
+
+  mergePluginMenuItemsIntoTemplate(template, getPluginMenuContributions(), (contribution) =>
+    sendPluginMenuCommand(window, contribution.pluginId, contribution.command)
+  );
 
   return Menu.buildFromTemplate(template);
 }

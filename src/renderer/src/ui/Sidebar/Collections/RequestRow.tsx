@@ -1,6 +1,8 @@
 import type { SavedRequest } from '#/shared/types';
 import { RowActionsMenu } from '#/renderer/src/components/RowActionsMenu';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
+import { usePluginContextMenuItems } from '#/renderer/src/plugins/pluginHooks';
+import { buildPluginContextMenuGroups } from '#/renderer/src/plugins/pluginContextMenuHelpers';
 import { METHOD_CLASSES, sourceRow } from '#/renderer/src/ui/shared/classes';
 import { requestDragId } from '#/renderer/src/ui/Sidebar/Collections/utils';
 import { type JSX } from 'react';
@@ -86,6 +88,7 @@ export function RequestRow({
   onExportRequest
 }: Props): JSX.Element {
   const confirm = useConfirm();
+  const pluginContextMenuItems = usePluginContextMenuItems();
 
   const reorderItems = [
     ...(canMoveUp ? [{ label: 'Move up', onSelect: onMoveUp }] : []),
@@ -127,6 +130,15 @@ export function RequestRow({
               onSelect: () => void onExportRequest(req)
             }
           ],
+          ...buildPluginContextMenuGroups(
+            'request',
+            {
+              requestId: req.id,
+              collectionId: req.collection_id,
+              folderId: req.folder_id
+            },
+            pluginContextMenuItems
+          ),
           [
             {
               label: 'Delete',

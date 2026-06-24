@@ -10,6 +10,7 @@ export type MainView =
   | { type: 'settings' }
   | { type: 'team-hubs' }
   | { type: 'sharing-keys' }
+  | { type: 'plugin-view'; pluginId: string; viewId: string }
   | { type: 'collection'; id: number }
   | { type: 'environment'; id: number };
 
@@ -21,6 +22,8 @@ export interface NavigationState {
   showAiSidebar: boolean;
   showConsole: boolean;
   showVariables: boolean;
+  activePluginFooterPanelId: string | null;
+  activeSidebarPanelId: string | null;
   settingsSection: SettingsSection;
 }
 
@@ -32,6 +35,8 @@ const initialState: NavigationState = {
   showAiSidebar: false,
   showConsole: false,
   showVariables: false,
+  activePluginFooterPanelId: null,
+  activeSidebarPanelId: null,
   settingsSection: 'general'
 };
 
@@ -68,6 +73,23 @@ const navigationSlice = createSlice({
     openSharingKeys(state) {
       resetDirtyFlags(state);
       state.mainView = { type: 'sharing-keys' };
+    },
+    /**
+     * Shows a plugin-contributed main-area overlay.
+     */
+    openPluginView(state, action: PayloadAction<{ pluginId: string; viewId: string }>) {
+      resetDirtyFlags(state);
+      state.mainView = {
+        type: 'plugin-view',
+        pluginId: action.payload.pluginId,
+        viewId: action.payload.viewId
+      };
+    },
+    /**
+     * Sets the active switchable sidebar panel id, or null for the default sidebar.
+     */
+    setActiveSidebarPanel(state, action: PayloadAction<string | null>) {
+      state.activeSidebarPanelId = action.payload;
     },
     /**
      * Shows collection settings for the given id.
@@ -133,6 +155,7 @@ const navigationSlice = createSlice({
       state.showConsole = !state.showConsole;
       if (state.showConsole) {
         state.showVariables = false;
+        state.activePluginFooterPanelId = null;
       }
     },
     /**
@@ -142,6 +165,18 @@ const navigationSlice = createSlice({
       state.showVariables = !state.showVariables;
       if (state.showVariables) {
         state.showConsole = false;
+        state.activePluginFooterPanelId = null;
+      }
+    },
+    /**
+     * Toggles one plugin footer panel and closes built-in footer panels.
+     */
+    togglePluginFooterPanel(state, action: PayloadAction<string>) {
+      const nextId = state.activePluginFooterPanelId === action.payload ? null : action.payload;
+      state.activePluginFooterPanelId = nextId;
+      if (nextId) {
+        state.showConsole = false;
+        state.showVariables = false;
       }
     }
   }
@@ -151,6 +186,8 @@ export const {
   openSettings,
   openTeamHubs,
   openSharingKeys,
+  openPluginView,
+  setActiveSidebarPanel,
   openCollectionSettings,
   openEnvironmentSettings,
   closeOverlay,
@@ -161,7 +198,8 @@ export const {
   toggleAiSidebar,
   setShowAiSidebar,
   toggleConsole,
-  toggleVariables
+  toggleVariables,
+  togglePluginFooterPanel
 } = navigationSlice.actions;
 
 /**
@@ -195,6 +233,16 @@ export const selectShowConsole = (state: RootState): boolean => state.navigation
  */
 export const selectShowVariables = (state: RootState): boolean => state.navigation.showVariables;
 /**
+ * Returns the active plugin footer panel id, if any.
+ */
+export const selectActivePluginFooterPanelId = (state: RootState): string | null =>
+  state.navigation.activePluginFooterPanelId;
+/**
+ * Returns the active switchable sidebar panel id, if any.
+ */
+export const selectActiveSidebarPanelId = (state: RootState): string | null =>
+  state.navigation.activeSidebarPanelId;
+/**
  * Returns the settings section to show when the settings overlay is open.
  */
 export const selectSettingsSection = (state: RootState): SettingsSection =>
@@ -210,7 +258,8 @@ export const selectSidebarVisible = (state: RootState): boolean => {
     showSidebar &&
     mainView.type !== 'settings' &&
     mainView.type !== 'team-hubs' &&
-    mainView.type !== 'sharing-keys'
+    mainView.type !== 'sharing-keys' &&
+    mainView.type !== 'plugin-view'
   );
 };
 
@@ -224,7 +273,8 @@ export const selectAiSidebarVisible = (state: RootState): boolean => {
     showAiSidebar &&
     mainView.type !== 'settings' &&
     mainView.type !== 'team-hubs' &&
-    mainView.type !== 'sharing-keys'
+    mainView.type !== 'sharing-keys' &&
+    mainView.type !== 'plugin-view'
   );
 };
 

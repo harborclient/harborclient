@@ -12,6 +12,7 @@ import { TeamHubs } from '#/renderer/src/ui/TeamHubs';
 import { CollectionSettings } from '../CollectionSettings';
 import { EnvironmentSettings } from '../EnvironmentSettings';
 import { Settings } from '../Settings';
+import { PluginMainView } from '../PluginMainView';
 
 interface Props {
   /**
@@ -48,6 +49,26 @@ interface Props {
    * Closes the team hubs view.
    */
   onCloseTeamHubs: () => void;
+
+  /**
+   * Whether a plugin main view overlay is shown.
+   */
+  showPluginView: boolean;
+
+  /**
+   * Plugin manifest id for the active plugin view overlay.
+   */
+  pluginViewPluginId?: string;
+
+  /**
+   * Plugin view contribution id for the active overlay.
+   */
+  pluginViewId?: string;
+
+  /**
+   * Closes the plugin main view overlay.
+   */
+  onClosePluginView: () => void;
 
   /**
    * Collection being configured, if any.
@@ -110,6 +131,10 @@ export function Configuration({
   onCloseSharingKeys,
   showTeamHubs,
   onCloseTeamHubs,
+  showPluginView,
+  pluginViewPluginId,
+  pluginViewId,
+  onClosePluginView,
   collection,
   onCollectionDirtyChange,
   onCollectionSave,
@@ -135,6 +160,16 @@ export function Configuration({
 
   if (showTeamHubs) {
     return <TeamHubs onClose={onCloseTeamHubs} />;
+  }
+
+  if (showPluginView && pluginViewPluginId && pluginViewId) {
+    return (
+      <PluginMainView
+        pluginId={pluginViewPluginId}
+        viewId={pluginViewId}
+        onClose={onClosePluginView}
+      />
+    );
   }
 
   if (collection) {

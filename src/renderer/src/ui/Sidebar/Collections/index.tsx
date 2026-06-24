@@ -35,6 +35,8 @@ import type {
 import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { RowActionsMenu } from '#/renderer/src/components/RowActionsMenu';
 import { buildReorderMenuGroup } from '#/renderer/src/components/rowActionsMenuHelpers';
+import { usePluginContextMenuItems } from '#/renderer/src/plugins/pluginHooks';
+import { buildPluginContextMenuGroups } from '#/renderer/src/plugins/pluginContextMenuHelpers';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { faChevronDown, faChevronRight } from '#/renderer/src/fontawesome';
 import { METHOD_CLASSES, sourceRow } from '#/renderer/src/ui/shared/classes';
@@ -294,6 +296,7 @@ export function Collections({
   onExportRequest
 }: Props): JSX.Element {
   const confirm = useConfirm();
+  const pluginContextMenuItems = usePluginContextMenuItems();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [activeDragKind, setActiveDragKind] = useState<DragKind | null>(null);
   const [activeDragRequest, setActiveDragRequest] = useState<SavedRequest | null>(null);
@@ -784,6 +787,11 @@ export function Collections({
                             ]
                           : [])
                       ],
+                      ...buildPluginContextMenuGroups(
+                        'collection',
+                        { collectionId: collection.id },
+                        pluginContextMenuItems
+                      ),
                       [
                         {
                           label: 'Delete',
@@ -955,6 +963,11 @@ export function Collections({
                                             void onRenameFolder(folder.id, collection.id)
                                         }
                                       ],
+                                      ...buildPluginContextMenuGroups(
+                                        'folder',
+                                        { collectionId: collection.id, folderId: folder.id },
+                                        pluginContextMenuItems
+                                      ),
                                       [
                                         {
                                           label: 'Delete',

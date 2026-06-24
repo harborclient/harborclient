@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import type { KeyValue, Variable } from '#/shared/types';
+import type { RegisteredRequestTab, RequestTabContext } from '#/shared/plugin/types';
 import { CodeEditor } from '#/renderer/src/components/CodeEditor';
 import { KeyValueEditor } from '#/renderer/src/components/KeyValueEditor';
 import { SegmentedTabPanel } from '#/renderer/src/components/SegmentedTabs';
@@ -41,6 +42,16 @@ interface Props {
    * Opens collection settings to edit variables.
    */
   onEditVariables?: () => void;
+
+  /**
+   * Registered plugin request editor tabs.
+   */
+  pluginTabs: RegisteredRequestTab[];
+
+  /**
+   * Read-only context passed to plugin tab components.
+   */
+  requestTabContext: RequestTabContext;
 }
 
 /**
@@ -52,7 +63,9 @@ export function TabContent({
   update,
   onParamsChange,
   variables,
-  onEditVariables
+  onEditVariables,
+  pluginTabs,
+  requestTabContext
 }: Props): JSX.Element {
   return (
     <div className="min-h-[160px] pt-2">
@@ -132,6 +145,14 @@ export function TabContent({
           placeholder="Notes for this request"
         />
       </SegmentedTabPanel>
+      {pluginTabs.map((entry) => {
+        const Component = entry.Component;
+        return (
+          <SegmentedTabPanel key={entry.id} value={entry.id}>
+            <Component context={requestTabContext} />
+          </SegmentedTabPanel>
+        );
+      })}
     </div>
   );
 }
