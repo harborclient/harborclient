@@ -438,7 +438,7 @@ Scripts run inside a `node:vm` sandbox in the main process:
 
 - **Timeout:** 5 seconds per script
 - **No I/O:** no network, filesystem, `require`, `import`, or DOM APIs are exposed to the script
-- **Language:** plain JavaScript (ES5-style syntax such as `var` and `function` works reliably; modern syntax may not)
+- **Language:** modern JavaScript (scripts are transpiled with esbuild before execution). `import`, `require`, and external modules are not supported.
 - **Globals:** only `hc`, `console`, and standard JavaScript globals are available
 
 If a script throws or times out, the error is recorded and the send continues with the last known request state. Syntax errors and runtime exceptions surface in the send console.
@@ -534,7 +534,7 @@ These Postman script features have no HarborClient equivalent:
 - **`pm.info`**, **`pm.iterationData`**, **visualizers**, and the legacy **`tests["name"] = true`** global.
 - **Request params and body type** — scripts cannot change query params or switch between JSON, form, and multipart body modes; only `hc.request.body` text is writable.
 
-Prefer ES5-style syntax (`var`, `function`) in migrated scripts. Modern JavaScript may not run reliably in the sandbox; see [Sandbox limits](#sandbox-limits).
+Modern JavaScript syntax (`const`, arrow functions, template literals, optional chaining, and similar) is supported in migrated scripts. `import`, `require`, and bundled libraries remain unavailable; see [Sandbox limits](#sandbox-limits).
 
 ### Example: rewrite a Postman test script
 

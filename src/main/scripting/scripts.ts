@@ -1,7 +1,11 @@
 import vm from 'node:vm';
+import { transform } from 'esbuild';
 import type { ScriptRunInput, ScriptRunResult } from '#/shared/types';
 
 const SCRIPT_TIMEOUT_MS = 5000;
+
+/** esbuild target for lowering modern user script syntax before vm execution. */
+const SCRIPT_TRANSPILE_TARGET = 'es2020';
 
 const BOOTSTRAP = `
 // hc API surface — keep autocomplete in hcCompletions.ts in sync with this bootstrap.
@@ -209,12 +213,58 @@ function sanitizeScriptErrorMessage(message: string): string {
 }
 
 /**
+ * Formats an esbuild transform failure into a single-line message for the UI.
+ *
+ * @param err - Thrown esbuild error or unknown value.
+ * @returns Human-readable compile error text, optionally with line/column.
+ */
+function formatEsbuildError(err: unknown): string {
+  if (err && typeof err === 'object' && 'errors' in err) {
+    const errors = (
+      err as { errors: Array<{ text: string; location?: { line: number; column: number } }> }
+    ).errors;
+    const first = errors[0];
+    if (first) {
+      const loc = first.location;
+      const prefix = loc ? `script:${loc.line}:${loc.column}: ` : '';
+      return prefix + first.text;
+    }
+  }
+
+  if (err && typeof err === 'object' && 'message' in err) {
+    return String((err as { message: unknown }).message);
+  }
+
+  return String(err);
+}
+
+/**
+ * Lowers modern JavaScript syntax in a user script via esbuild before vm execution.
+ *
+ * Transpilation is syntax-only (no bundling). `import` and `require` are not
+ * resolved or enabled.
+ *
+ * @param source - Raw user-authored script source.
+ * @returns Transpiled script source safe to concatenate with the hc bootstrap.
+ * @throws esbuild transform errors when the source is invalid.
+ */
+async function transpileUserScript(source: string): Promise<string> {
+  const result = await transform(source, {
+    loader: 'js',
+    target: SCRIPT_TRANSPILE_TARGET,
+    sourcefile: 'script.js'
+  });
+  return result.code;
+}
+
+/**
  * Runs a pre/post script inside a `node:vm` sandbox with the hc API.
  *
- * The context is created with a fresh global that exposes only the standard
- * JavaScript built-ins; Node globals such as `require` and `process` are
- * intentionally not passed through. `node:vm` is not a hard security boundary,
- * but these scripts are authored by the user themselves.
+ * User source is transpiled with esbuild before execution so modern JavaScript
+ * syntax is supported. The context is created with a fresh global that exposes
+ * only the standard JavaScript built-ins; Node globals such as `require` and
+ * `process` are intentionally not passed through. `node:vm` is not a hard
+ * security boundary, but these scripts are authored by the user themselves.
  *
  * @param input - Script source, phase, request/response context, and variables.
  * @returns Mutated request, variable sets, tests, and logs from the sandbox.
@@ -245,8 +295,18 @@ export async function runScript(input: ScriptRunInput): Promise<ScriptRunResult>
 
   const sandbox = vm.createContext({ __CONTEXT__: contextPayload });
 
+  let compiledScript: string;
   try {
-    const fullScript = `${BOOTSTRAP}\n${input.script}\nJSON.stringify(state);`;
+    compiledScript = await transpileUserScript(input.script);
+  } catch (err) {
+    return {
+      ...passthrough,
+      error: sanitizeScriptErrorMessage(formatEsbuildError(err))
+    };
+  }
+
+  try {
+    const fullScript = `${BOOTSTRAP}\n${compiledScript}\nJSON.stringify(state);`;
     const script = new vm.Script(fullScript);
     const resultJson = script.runInContext(sandbox, { timeout: SCRIPT_TIMEOUT_MS });
     const state = JSON.parse(String(resultJson)) as {

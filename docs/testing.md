@@ -163,7 +163,7 @@ See [Environments](/environments) for how collection and environment variables a
 ## Tips and limits
 
 - **One concept per test** — keep each `hc.test` focused so failures point to a single expectation.
-- **ES5-style JavaScript** — use `var` and `function` syntax for reliable execution in the sandbox. Modern syntax may not work.
+- **Modern JavaScript** — use `const`, arrow functions, template literals, and other modern syntax. Scripts are transpiled before execution in the sandbox.
 - **Five-second timeout** — each script (including all tests inside it) must finish within five seconds.
 - **No I/O** — tests cannot open network connections, read files, or call Node or browser APIs. Only `hc`, `console`, and standard JavaScript globals are available.
 - **Independent tests** — a failing assertion in one `hc.test` does not stop other tests in the same script from running. Each test is recorded separately.

@@ -309,4 +309,58 @@ describe('runScript', () => {
     expect(result.error).not.toContain('/home/user');
     expect(result.error).not.toContain('file.js');
   });
+
+  it('runs modern JavaScript syntax after esbuild transpile', async () => {
+    const { runScript } = await import('#/main/scripting/scripts');
+    const result = await runScript({
+      phase: 'pre',
+      script: `
+        const host = hc.variables.get('host');
+        const { token = 'default' } = { token: 'abc123' };
+        const buildUrl = (base, path) => \`\${base}/\${path}\`;
+        const maybeHost = host?.toUpperCase?.() ?? 'UNKNOWN';
+        hc.request.url = buildUrl('https://api.example.com', 'v1/status');
+        hc.variables.set('token', token);
+        hc.variables.set('hostUpper', maybeHost);
+        console.log(...['modern', 'syntax']);
+      `,
+      request: {
+        method: 'GET',
+        url: 'https://old.example.com',
+        headers: [],
+        params: [],
+        body: '',
+        bodyType: 'none'
+      },
+      variables: { host: 'example.com' }
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.request.url).toBe('https://api.example.com/v1/status');
+    expect(result.variableSets).toEqual({ token: 'abc123', hostUpper: 'EXAMPLE.COM' });
+    expect(result.logs).toContain('modern syntax');
+  });
+
+  it('returns compile error for invalid modern syntax', async () => {
+    const { runScript } = await import('#/main/scripting/scripts');
+    const request = {
+      method: 'GET' as const,
+      url: 'https://example.com',
+      headers: [],
+      params: [],
+      body: '',
+      bodyType: 'none' as const
+    };
+
+    const result = await runScript({
+      phase: 'pre',
+      script: 'const x = ;',
+      request,
+      variables: {}
+    });
+
+    expect(result.error).toBeDefined();
+    expect(result.error?.length).toBeGreaterThan(0);
+    expect(result.request).toEqual(request);
+  });
 });
