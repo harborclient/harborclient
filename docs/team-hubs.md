@@ -4,14 +4,14 @@ Team hubs connect HarborClient to a running **[HarborClient Team Hub](https://gi
 
 ![Team hubs](images/screenshots/hc-8.png)
 
-**Environments are not shared via team hubs.** Environment variable groups stay in your local registry on each machine, even though HarborClient Team Hub supports environments on the server. Use [Environments](/environments) for per-machine variable groups; use team hubs when you want teammates to share the same collection data.
+**Environments are not shared via team hubs.** Environment variable groups stay in your local database on each machine, even though HarborClient Team Hub supports environments on the server. Use [Environments](/environments) for per-machine variable groups; use team hubs when you want teammates to share the same collection data.
 
 ```mermaid
 flowchart LR
   App[HarborClient] --> HubConn[Team hub connection]
   HubConn --> TeamHubServer[HarborClient Team Hub]
   TeamHubServer --> Collections[Shared collections]
-  App --> LocalRegistry[Local registry and environments]
+  App --> LocalDatabase[Local database and environments]
 ```
 
 ## Prerequisites
@@ -148,7 +148,7 @@ Teammates then add their **user** token in HarborClient as described in [Add a t
 
 ## Collections on a team hub
 
-HarborClient treats database connections and team hubs as **providers** — places where collection data can live.
+HarborClient treats storage connections and team hubs as **providers** — places where collection data can live.
 
 ### Choosing a provider
 
@@ -161,7 +161,7 @@ When you create or move a collection, pick the provider that should store its da
 
 The provider dropdown lists SQLite, Firestore, MySQL, PostgreSQL, and any configured team hubs. Team hubs are labeled **(Team Hub)**.
 
-The **active database** (set in [Settings → Databases](/settings#databases)) is the default provider for new collections when you do not choose another one.
+The **active storage location** (set in [Settings → Storage Locations](/settings#storage-locations)) is the default provider for new collections when you do not choose another one.
 
 ### Auto-sync
 
@@ -170,13 +170,13 @@ HarborClient syncs collections from each reachable hub:
 - **On app launch** — after hubs are mounted, new team hub collections are added to the sidebar
 - **When you save a hub** — immediately after add or edit
 
-Sync is **additive**: collections on the team hub that are not yet in your sidebar are registered automatically. When the hub is **reachable**, collections deleted on the server are removed from your sidebar on the next sync (app launch, hub save, or manual provider sync). When the hub is **offline or unreachable**, existing sidebar entries are kept until the hub can be contacted again.
+Sync is **additive**: collections on the team hub that are not yet in your sidebar are registered automatically. When the hub is **reachable**, collections deleted on the server are removed from your sidebar on the next sync (app launch, hub save, or manual storage sync). When the hub is **offline or unreachable**, existing sidebar entries are kept until the hub can be contacted again.
 
 There is **no background polling** or live sync. Changes made by teammates appear when HarborClient reloads data — for example, after restarting the app or when a hub is saved again.
 
 ### Sidebar badges
 
-When a collection's provider is not your active database, its row shows a connection badge with the provider name (database or team hub). This helps distinguish local collections from hub-backed or shared remote-database collections.
+When a collection's provider is not your active storage location, its row shows a connection badge with the provider name (database or team hub). This helps distinguish local collections from hub-backed or shared remote-storage collections.
 
 ## Moving and deleting collections
 
@@ -186,17 +186,17 @@ In **Collection Settings → General**, change **Provider** to a database (or an
 
 When the source is a team hub, HarborClient **leaves the original collection on HarborClient Team Hub**. Teammates keep access to the server copy. HarborClient records the collection as **detached** from that hub so a later sync does not re-add it to your sidebar.
 
-When the source is a local or remote **database**, HarborClient deletes the source copy after a successful move, as before.
+When the source is a local or remote **storage location**, HarborClient deletes the source copy after a successful move, as before.
 
 ### Move a collection onto a hub
 
-Choose a team hub as the target **Provider** and save. HarborClient creates the collection on the team hub via the API and removes the source copy from the previous database provider (standard move behavior).
+Choose a team hub as the target **Provider** and save. HarborClient creates the collection on the team hub via the API and removes the source copy from the previous storage provider (standard move behavior).
 
 ### Delete a hub-backed collection
 
 Choose **Delete** from the collection row menu. When the collection is stored on a team hub, HarborClient asks you to confirm that **team members will lose access** to the collection on the team hub. Confirming deletes the collection on HarborClient Team Hub and removes it from your sidebar.
 
-Deleting a collection from a SQLite or remote-database provider does not show this team-access warning — only hub-backed collections affect shared server data.
+Deleting a collection from a SQLite or remote-storage provider does not show this team-access warning — only hub-backed collections affect shared server data.
 
 ## Team hubs vs other sharing options
 
@@ -205,13 +205,13 @@ HarborClient offers several ways to work with others. Pick the approach that mat
 | Approach                                   | Best for                                                                                                                                                         |
 | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **SQLite / local DB**                      | Solo work, offline-first, full control on one machine                                                                                                            |
-| **Remote DB** (Firestore, MySQL, Postgres) | Team shares one database directly; configure connections in [Settings → Databases](/settings#databases)                                                          |
-| **Encrypted invites**                      | One-step handoff of database credentials plus a collection; requires [Certificates](/certificates) and [Collections → Sharing](/collections#sharing-collections) |
-| **Team hubs**                              | Team shares collections through HarborClient Team Hub with token-based access — no manual database setup per teammate                                            |
+| **Remote storage** (Firestore, MySQL, Postgres) | Team shares one storage location directly; configure connections in [Settings → Storage Locations](/settings#storage-locations)                                                          |
+| **Encrypted invites**                      | One-step handoff of storage credentials plus a collection; requires [Certificates](/certificates) and [Collections → Sharing](/collections#sharing-collections) |
+| **Team hubs**                              | Team shares collections through HarborClient Team Hub with token-based access — no manual storage setup per teammate                                            |
 
-**Remote database vs team hub:** With a remote database, every teammate configures the same DB connection (or accepts an invite that embeds credentials). With a team hub, teammates only need the team hub URL and their own API token; collection data is exposed through HarborClient Team Hub's HTTP API.
+**Remote storage location vs team hub:** With a remote storage location, every teammate configures the same DB connection (or accepts an invite that embeds credentials). With a team hub, teammates only need the team hub URL and their own API token; collection data is exposed through HarborClient Team Hub's HTTP API.
 
-**Invites vs team hubs:** Invites bundle remote **database** connection details and a single collection mapping. Team hubs are a separate path: collections live on HarborClient Team Hub, and sync discovers collections your token can access. The **Invite** row menu action is intended for remote-database sharing; for hub-backed collections, sharing is handled by granting team hub access (tokens) rather than sending an invite token.
+**Invites vs team hubs:** Invites bundle remote **storage location** connection details and a single collection mapping. Team hubs are a separate path: collections live on HarborClient Team Hub, and sync discovers collections your token can access. The **Invite** row menu action is intended for remote-storage sharing; for hub-backed collections, sharing is handled by granting team hub access (tokens) rather than sending an invite token.
 
 ## Team Hub LLM access
 
@@ -234,12 +234,12 @@ See the [AI assistant](/ai) guide and the team hub [LLM proxy documentation](htt
 | **Environments**           | Not shared via hubs. Each HarborClient instance keeps its own environment list locally.                        |
 | **Concurrent edits**       | Last write wins through the team hub API. HarborClient does not merge conflicting edits.                       |
 | **Offline team hub**       | Hub-backed collections may show warnings if the team hub is unreachable; sidebar entries are not auto-deleted. |
-| **Configuration location** | Team hubs are managed under **File → Team Hub**, not under [Settings → Databases](/settings#databases).        |
+| **Configuration location** | Team hubs are managed under **File → Team Hub**, not under [Settings → Storage Locations](/settings#storage-locations).        |
 
 ## What's next
 
 - [Collections](/collections) — sidebar, settings, import/export, and provider moves
-- [Settings → Databases](/settings#databases) — SQLite and remote database connections
+- [Settings → Storage Locations](/settings#storage-locations) — SQLite and remote storage connections
 - [Certificates](/certificates) — keys and trusted collaborators for encrypted invites
 - [Environments](/environments) — local variable groups that override collection variables at send time
 - [HarborClient Team Hub documentation](https://headzoo.github.io/harborclient-service-hub/) — install, configure, and run the central server

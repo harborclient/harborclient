@@ -8,7 +8,7 @@ import {
 import { HARD_MAX_RESPONSE_SIZE_MB } from '#/main/settings/generalSettings';
 import { authConfig, bodyType, httpMethod, keyValue, variable } from '#/main/schemas/common';
 import { CODE_EDITOR_THEME_IDS } from '#/shared/codeEditorSettings';
-import { requestExportSchema } from '#/main/db/collectionSchemas';
+import { requestExportSchema } from '#/main/storage/collectionSchemas';
 import type {
   AiChatSessionState,
   AiSettings,
@@ -16,7 +16,7 @@ import type {
   ChatRole,
   ChatStepInput,
   CreateChatInput,
-  DatabaseConnection,
+  StorageConnection,
   GeneralSettings,
   PanelLayoutState,
   SaveRequestInput,
@@ -253,7 +253,7 @@ const gitSettings = z.object({
   auth: gitAuthMethod
 });
 
-export const databaseConnection = z.discriminatedUnion('type', [
+export const storageConnection = z.discriminatedUnion('type', [
   z.object({
     id: connectionId,
     name: z.string(),
@@ -284,7 +284,7 @@ export const databaseConnection = z.discriminatedUnion('type', [
     type: z.literal('git'),
     settings: gitSettings
   })
-]) satisfies z.ZodType<DatabaseConnection>;
+]) satisfies z.ZodType<StorageConnection>;
 
 /**
  * Zod schema for a persisted team hub connection.
@@ -429,7 +429,7 @@ export const ipcArgSchemas = {
   scriptRun: z.tuple([scriptRunInput]),
   generalSettings: z.tuple([generalSettings]),
   aiSettings: z.tuple([aiSettings]),
-  databaseConnection: z.tuple([databaseConnection]),
+  storageConnection: z.tuple([storageConnection]),
   teamHub: z.tuple([teamHub]),
   teamHubUserUpdate: z.tuple([connectionId, connectionId, updateHubUserInput]),
   teamHubUserDelete: z.tuple([connectionId, connectionId]),

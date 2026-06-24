@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { LocalRegistry } from '#/main/db/LocalRegistry';
+import type { LocalDatabase } from '#/main/storage/LocalDatabase';
 import {
-  clearLocalRegistryForTesting,
-  setLocalRegistryForTesting
-} from '#/main/db/localRegistryInstance';
+  clearLocalDatabaseForTesting,
+  setLocalDatabaseForTesting
+} from '#/main/storage/localDatabaseInstance';
 import { deleteTeamHub, listTeamHubs, saveTeamHub } from '#/main/settings/teamHubSettings';
 
 describe('teamHubSettings', () => {
@@ -11,17 +11,17 @@ describe('teamHubSettings', () => {
 
   beforeEach(() => {
     settingsStore = {};
-    const registry = {
+    const database = {
       getSetting: (key: string) => settingsStore[key],
       setSetting: (key: string, value: string) => {
         settingsStore[key] = value;
       }
-    } as LocalRegistry;
-    setLocalRegistryForTesting(registry);
+    } as LocalDatabase;
+    setLocalDatabaseForTesting(database);
   });
 
   afterEach(() => {
-    clearLocalRegistryForTesting();
+    clearLocalDatabaseForTesting();
   });
 
   it('returns an empty list when unset', () => {

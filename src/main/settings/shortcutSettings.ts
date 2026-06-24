@@ -1,4 +1,4 @@
-import { getLocalRegistry } from '#/main/db/localRegistryInstance';
+import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { parseJson } from '#/shared/parseJson';
 import {
   normalizeShortcutOverrides,
@@ -12,12 +12,12 @@ import {
 const STORE_KEY = 'shortcuts';
 
 /**
- * Reads persisted shortcut overrides from LocalRegistry.
+ * Reads persisted shortcut overrides from LocalDatabase.
  *
  * @returns Normalized shortcut overrides.
  */
 export function getShortcutOverrides(): ShortcutOverrides {
-  const stored = parseJson<unknown>(getLocalRegistry().getSetting(STORE_KEY), {});
+  const stored = parseJson<unknown>(getLocalDatabase().getSetting(STORE_KEY), {});
   return normalizeShortcutOverrides(stored);
 }
 
@@ -54,7 +54,7 @@ export function setShortcutOverrides(overrides: ShortcutOverrides): ShortcutBind
     throw new Error('Invalid shortcut configuration.');
   }
 
-  getLocalRegistry().setSetting(STORE_KEY, JSON.stringify(normalized));
+  getLocalDatabase().setSetting(STORE_KEY, JSON.stringify(normalized));
   return resolveShortcuts(normalized);
 }
 
@@ -64,6 +64,6 @@ export function setShortcutOverrides(overrides: ShortcutOverrides): ShortcutBind
  * @returns Default shortcut bindings.
  */
 export function resetShortcuts(): ShortcutBinding[] {
-  getLocalRegistry().setSetting(STORE_KEY, JSON.stringify({}));
+  getLocalDatabase().setSetting(STORE_KEY, JSON.stringify({}));
   return resolveShortcuts({});
 }

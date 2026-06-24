@@ -62,12 +62,12 @@ The request editor highlights `{{variable}}` tokens using the merged set of coll
 Environment records are stored alongside collections and requests:
 
 - **SQLite** — `environments` table in `{userData}/harborclient.db`
-- **Firestore** — `environments` collection when using the Firestore database provider
-- **MySQL** — `environments` table when using the MySQL database provider
+- **Firestore** — `environments` collection when using the Firestore storage provider
+- **MySQL** — `environments` table when using the MySQL storage provider
 
-See [Settings](/settings) for database provider and connection configuration.
+See [Settings](/settings) for storage provider and connection configuration.
 
-The active environment ID is stored in browser `localStorage` under `harborclient.activeEnvironmentId`, not in the database.
+The active environment ID is stored in browser `localStorage` under `harborclient.activeEnvironmentId`, not in storage.
 
 ## Export and import
 
@@ -90,7 +90,7 @@ If the file is invalid, HarborClient shows an alert with a descriptive error (fo
 
 ### Export file format
 
-HarborClient environment export files require `harborclientExport: "environment"` and `harborclientVersion: 1`. They contain the environment name and variables. Database IDs are not included.
+HarborClient environment export files require `harborclientExport: "environment"` and `harborclientVersion: 1`. They contain the environment name and variables. Storage IDs are not included.
 
 Example (abbreviated):
 

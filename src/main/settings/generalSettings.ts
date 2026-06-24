@@ -1,4 +1,4 @@
-import { getLocalRegistry } from '#/main/db/localRegistryInstance';
+import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { parseJson } from '#/shared/parseJson';
 import {
   DEFAULT_CODE_EDITOR_SETUP,
@@ -122,7 +122,7 @@ function normalizeSettings(input: Partial<GeneralSettings>): GeneralSettings {
  */
 export function getGeneralSettings(): GeneralSettings {
   const stored = parseJson<Partial<GeneralSettings>>(
-    getLocalRegistry().getSetting(STORE_KEY),
+    getLocalDatabase().getSetting(STORE_KEY),
     DEFAULT_GENERAL_SETTINGS
   );
   return normalizeSettings(stored);
@@ -134,5 +134,5 @@ export function getGeneralSettings(): GeneralSettings {
  * @param input - Settings to store.
  */
 export function setGeneralSettings(input: GeneralSettings): void {
-  getLocalRegistry().setSetting(STORE_KEY, JSON.stringify(normalizeSettings(input)));
+  getLocalDatabase().setSetting(STORE_KEY, JSON.stringify(normalizeSettings(input)));
 }

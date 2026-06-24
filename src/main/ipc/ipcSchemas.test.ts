@@ -8,7 +8,7 @@ import {
 } from '#/main/ipc/ipcLimits';
 import {
   bodyType,
-  databaseConnection,
+  storageConnection,
   editorTab,
   generalSettings,
   httpMethod,
@@ -115,10 +115,10 @@ describe('saveRequestInput', () => {
   });
 });
 
-describe('databaseConnection', () => {
-  it('parses sqlite databaseConnection with dbFilename settings', () => {
+describe('storageConnection', () => {
+  it('parses sqlite storageConnection with dbFilename settings', () => {
     expect(
-      databaseConnection.safeParse({
+      storageConnection.safeParse({
         id: 'abc',
         name: 'Local',
         type: 'sqlite',
@@ -131,9 +131,9 @@ describe('databaseConnection', () => {
     ).toBe(true);
   });
 
-  it('parses mysql databaseConnection with host, port, and credentials', () => {
+  it('parses mysql storageConnection with host, port, and credentials', () => {
     expect(
-      databaseConnection.safeParse({
+      storageConnection.safeParse({
         id: 'mysql-1',
         name: 'MySQL',
         type: 'mysql',
@@ -148,9 +148,9 @@ describe('databaseConnection', () => {
     ).toBe(true);
   });
 
-  it('rejects databaseConnection when type is not sqlite, mysql, or postgres', () => {
+  it('rejects storageConnection when type is not sqlite, mysql, or postgres', () => {
     expect(
-      databaseConnection.safeParse({
+      storageConnection.safeParse({
         id: 'x',
         name: 'Bad',
         type: 'mongodb',
@@ -161,7 +161,7 @@ describe('databaseConnection', () => {
 
   it('rejects wrong settings shape for sqlite', () => {
     expect(
-      databaseConnection.safeParse({
+      storageConnection.safeParse({
         id: 'x',
         name: 'Bad',
         type: 'sqlite',
@@ -184,7 +184,7 @@ describe('databaseConnection', () => {
 
     for (const legacyUserDataDir of ['..', '../escape', 'foo/bar', 'foo\\bar', '.']) {
       expect(
-        databaseConnection.safeParse({
+        storageConnection.safeParse({
           ...base,
           settings: { ...base.settings, legacyUserDataDir }
         }).success

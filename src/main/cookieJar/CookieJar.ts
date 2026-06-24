@@ -1,4 +1,4 @@
-import type { LocalRegistry } from '#/main/db/LocalRegistry';
+import type { LocalDatabase } from '#/main/storage/LocalDatabase';
 import type { ICookieJar } from '#/main/cookieJar/ICookieJar';
 import { parseJson } from '#/shared/parseJson';
 import type { KeyValue } from '#/shared/types';
@@ -14,13 +14,13 @@ interface StoredCookie extends KeyValue {
  * for outbound HTTP requests.
  */
 export class CookieJar implements ICookieJar {
-  private readonly registry: LocalRegistry;
+  private readonly database: LocalDatabase;
 
   /**
-   * @param registry - Local registry used to persist the jar map.
+   * @param database - Local registry used to persist the jar map.
    */
-  constructor(registry: LocalRegistry) {
-    this.registry = registry;
+  constructor(database: LocalDatabase) {
+    this.database = database;
   }
 
   /**
@@ -161,7 +161,7 @@ export class CookieJar implements ICookieJar {
    */
   private getJarMap(): Record<string, StoredCookie[]> {
     const stored = parseJson<Record<string, StoredCookie[]>>(
-      this.registry.getSetting(STORE_KEY),
+      this.database.getSetting(STORE_KEY),
       {}
     );
     if (!stored || typeof stored !== 'object') {
@@ -176,7 +176,7 @@ export class CookieJar implements ICookieJar {
    * @param jar - Domain to cookies map.
    */
   private persistJarMap(jar: Record<string, StoredCookie[]>): void {
-    this.registry.setSetting(STORE_KEY, JSON.stringify(jar));
+    this.database.setSetting(STORE_KEY, JSON.stringify(jar));
   }
 
   /**

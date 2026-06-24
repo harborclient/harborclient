@@ -28,7 +28,7 @@ Use `pnpm dev -- -v` for verbose startup and diagnostic logging, or `pnpm dev --
 ### Who is it for?
 
 - **Individual developers** testing REST and HTTP APIs locally
-- **Teams** that want shared collections without per-seat fees or vendor cloud sync—via a shared database, [Team Hub](https://github.com/headzoo/harborclient-service-hub), or git-backed collections
+- **Teams** that want shared collections without per-seat fees or vendor cloud sync—via a shared storage location, [Team Hub](https://github.com/headzoo/harborclient-service-hub), or git-backed collections
 - **Privacy-minded users** who want data on their machine or infrastructure they operate (SQLite by default; optional MySQL, PostgreSQL, or Firestore)
 - **Postman users** looking to migrate—HarborClient imports Postman v2.1 collection exports (see [collections docs](https://harborclient.com/collections#postman-collections))
 

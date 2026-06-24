@@ -1,4 +1,4 @@
-import type { IDatabase } from '#/main/db/IDatabase';
+import type { IStorage } from '#/main/storage/IStorage';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 
@@ -7,7 +7,7 @@ import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
  *
  * @param db - Database instance backing request and folder persistence.
  */
-export function registerRequestHandlers(db: IDatabase): void {
+export function registerRequestHandlers(db: IStorage): void {
   // Lists saved requests in a collection.
   handle('requests:list', ipcArgSchemas.collectionId, (_event, collectionId) =>
     db.listRequests(collectionId)

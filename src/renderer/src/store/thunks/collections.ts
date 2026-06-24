@@ -137,7 +137,7 @@ export const updateCollection = createAsyncThunk<
   ) => {
     const state = getState();
     const collection = state.collections.collections.find((item) => item.id === id);
-    const primaryConnectionId = await window.api.getActiveDatabaseId();
+    const primaryConnectionId = await window.api.getActiveStorageId();
     const currentConnectionId = collection?.connectionId ?? primaryConnectionId;
 
     if (connectionId && connectionId !== currentConnectionId) {

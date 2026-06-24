@@ -18,15 +18,15 @@ hero:
 
 features:
   - title: Free and decentralized
-    details: No accounts, subscriptions, or central servers. HarborClient runs on your machine and stores data where you choose—locally or in a database you control.
-  - title: Database backends
+    details: No accounts, subscriptions, or central servers. HarborClient runs on your machine and stores data where you choose—locally or in a storage you control.
+  - title: Storage locations
     details: Pluggable storage for collections, requests, and environments. Use SQLite locally or connect to remote engines such as Firestore, MySQL, or PostgreSQL.
   - title: Git-backed collections
     details: Store collections as version-controlled files in a local git repository. Edit in HarborClient, commit and push from the app, and share changes through branches and pull requests.
   - title: Team collaboration
-    details: Point multiple HarborClient instances at the same remote database to share collections across your team.
+    details: Point multiple HarborClient instances at the same remote storage location to share collections across your team.
   - title: Team hubs
-    details: Self-host HarborClient Team Hub and connect via team hubs so your team shares collections through a centralized workflow service—token-based access without shared database credentials.
+    details: Self-host HarborClient Team Hub and connect via team hubs so your team shares collections through a centralized workflow service—token-based access without shared storage location credentials.
   - title: Request builder
     details: Method selector, URL bar, query params, headers, and body (none, JSON, or plain text).
   - title: Collections

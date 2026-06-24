@@ -55,7 +55,7 @@ The AI sidebar provides a tabbed chat panel. Use the controls in the chat tab ba
 | **Choose model**       | Model dropdown in the composer (per chat)                           |
 | **Send message**       | **Send** or **Enter** (**Shift+Enter** for a newline)               |
 
-Chats and messages are stored locally in the app database. New chats start as **New Chat**; the tab title updates from your first message. Open tabs and the active selection persist across restarts. While the model is working, the UI shows **Thinking…**; errors appear inline below the composer.
+Chats and messages are stored locally in the local database. New chats start as **New Chat**; the tab title updates from your first message. Open tabs and the active selection persist across restarts. While the model is working, the UI shows **Thinking…**; errors appear inline below the composer.
 
 ## What the assistant can do
 

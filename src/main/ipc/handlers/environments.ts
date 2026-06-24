@@ -1,9 +1,9 @@
 import { BrowserWindow, dialog } from 'electron';
 import { writeFile } from 'fs/promises';
-import { maskVariablesForExport, validateEnvironmentExport } from '#/main/db/collectionData';
-import { mintFreshEnvironmentExportUuid, resolveImportUuid } from '#/main/db/uuid';
-import type { IDatabase } from '#/main/db/IDatabase';
-import { RoutingDatabase } from '#/main/db/RoutingDatabase';
+import { maskVariablesForExport, validateEnvironmentExport } from '#/main/storage/collectionData';
+import { mintFreshEnvironmentExportUuid, resolveImportUuid } from '#/main/storage/uuid';
+import type { IStorage } from '#/main/storage/IStorage';
+import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { handle } from '#/main/ipc/handle';
 import { confirmDuplicateImport, openImportFile } from '#/main/ipc/handlers/importDialogs';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
@@ -31,8 +31,8 @@ export interface EnvironmentImportResult {
  * @param uuid - Stable environment identifier from an export file.
  * @returns Matching environment, or undefined when not found.
  */
-function findExistingEnvironment(db: IDatabase, uuid: string): Environment | undefined {
-  if (db instanceof RoutingDatabase) {
+function findExistingEnvironment(db: IStorage, uuid: string): Environment | undefined {
+  if (db instanceof RoutingStorage) {
     return db.findEnvironmentByUuid(uuid);
   }
   return undefined;
@@ -47,7 +47,7 @@ function findExistingEnvironment(db: IDatabase, uuid: string): Environment | und
  * @returns The created or updated environment with action, or null when canceled.
  */
 export async function importEnvironmentData(
-  db: IDatabase,
+  db: IStorage,
   win: BrowserWindow | null,
   data: EnvironmentExport
 ): Promise<EnvironmentImportResult | null> {
@@ -80,7 +80,7 @@ export async function importEnvironmentData(
  *
  * @param db - Database instance backing environment persistence.
  */
-export function registerEnvironmentHandlers(db: IDatabase): void {
+export function registerEnvironmentHandlers(db: IStorage): void {
   // Lists all named variable environments.
   handle('environments:list', ipcArgSchemas.none, () => db.listEnvironments());
 
@@ -101,7 +101,7 @@ export function registerEnvironmentHandlers(db: IDatabase): void {
 
   // Deep-copies an environment into a new record with a fresh uuid.
   handle('environments:duplicate', ipcArgSchemas.dbId, (_event, id) => {
-    if (!(db instanceof RoutingDatabase)) {
+    if (!(db instanceof RoutingStorage)) {
       throw new Error('Environment duplicate is unavailable.');
     }
     return db.duplicateEnvironment(id);

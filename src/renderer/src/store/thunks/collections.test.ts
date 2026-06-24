@@ -32,7 +32,7 @@ function createLocalStorageMock(): Storage {
 
 const deleteCollectionMock = vi.fn<(id: number) => Promise<void>>();
 const listCollectionsMock = vi.fn<() => Promise<ListCollectionsResult>>();
-const getActiveDatabaseIdMock = vi.fn<() => Promise<string>>();
+const getActiveStorageIdMock = vi.fn<() => Promise<string>>();
 const updateCollectionMock =
   vi.fn<
     (
@@ -100,7 +100,7 @@ beforeEach(() => {
     api: {
       deleteCollection: deleteCollectionMock,
       listCollections: listCollectionsMock,
-      getActiveDatabaseId: getActiveDatabaseIdMock,
+      getActiveStorageId: getActiveStorageIdMock,
       updateCollection: updateCollectionMock,
       moveCollection: moveCollectionMock,
       listRequests: listRequestsMock
@@ -113,8 +113,8 @@ beforeEach(() => {
     collections: [sampleCollection(2, 'Remaining')],
     warnings: []
   });
-  getActiveDatabaseIdMock.mockReset();
-  getActiveDatabaseIdMock.mockResolvedValue('conn-a');
+  getActiveStorageIdMock.mockReset();
+  getActiveStorageIdMock.mockResolvedValue('conn-a');
   updateCollectionMock.mockReset();
   moveCollectionMock.mockReset();
   listRequestsMock.mockReset();

@@ -10,7 +10,7 @@ HarborClient tests focus on **observable behavior**, not implementation details.
 
 - **Behavior over implementation** — assert return values, persisted state, thrown errors, and side effects you care about. Avoid asserting internal call counts unless you are mocking an external boundary.
 - **Colocated unit tests** — place tests next to the code they cover as `src/**/*.test.ts` (see `vitest.config.ts`). Vitest does not include `.tsx` files.
-- **Contract tests for pluggable backends** — every `IDatabase` implementation runs the shared suite in `src/test/idatabaseContract.ts` via `runIdatabaseContractSuite`.
+- **Contract tests for pluggable backends** — every `IStorage` implementation runs the shared suite in `src/test/istorageContract.ts` via `runIstorageContractSuite`.
 - **Schema tests at IPC boundaries** — Zod schemas in `src/main/ipc/ipcSchemas.ts` have dedicated tests. New or changed IPC arguments should add parse and reject cases there.
 - **Renderer logic, not UI snapshots** — Redux slices, variable substitution, persistence, and orchestration are tested in `.test.ts` files. React components (`.tsx`) rely on manual QA unless Vitest config changes.
 
@@ -49,7 +49,7 @@ There is no enforced line or branch coverage percentage. Expectations are qualit
 | ------------------------------------ | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | `src/shared/`                        | Test pure helpers and serializers                                                            | `formData.test.ts`, `urlencoded.test.ts`                                     |
 | `src/main/` (HTTP, scripts, cookies) | Test edge cases and security-relevant behavior                                               | `http/*.test.ts`, `cookieJar/CookieJar.test.ts`, `scripting/scripts.test.ts` |
-| `src/main/db/`                       | Every backend runs the contract suite; add backend-specific tests for migrations and routing | `SqliteDatabase.test.ts`, `RoutingDatabase.test.ts`                          |
+| `src/main/storage/`                  | Every backend runs the contract suite; add backend-specific tests for migrations and routing | `SqliteStorage.test.ts`, `RoutingStorage.test.ts`                            |
 | `src/main/ipc/`                      | Every new or changed Zod schema gets parse/reject cases                                      | `ipcSchemas.test.ts`                                                         |
 | `src/renderer/` (non-UI)             | Redux slices, thunks with testable logic, persistence                                        | `store/*.test.ts`                                                            |
 | `src/renderer/` (React `.tsx`)       | Not required by Vitest; manual QA for UI changes                                             | —                                                                            |
@@ -66,7 +66,7 @@ Helpers live under `src/test/`:
 - `describeSqlite` gates SQLite tests on whether `better-sqlite3` loads under the current Node ABI.
 - In CI, if SQLite is unavailable, tests **fail** with a clear error (they must not silently skip).
 
-### `databaseBackends.ts`
+### `storageBackends.ts`
 
 - `describeMySql`, `describePostgres`, and `describeFirestore` gate tests on environment configuration.
 - Locally, suites skip when the backend is not configured.
@@ -88,12 +88,12 @@ Optional local setup (defaults match CI):
 | `HARBOR_TEST_POSTGRES_DATABASE` | PostgreSQL database (default `harborclient_test`)                 |
 | `FIRESTORE_EMULATOR_HOST`       | Firestore emulator address (required for Firestore tests locally) |
 
-### `idatabaseContract.ts`
+### `istorageContract.ts`
 
 - `baseRequestInput` — minimal `SaveRequestInput` for contract tests.
-- `runIdatabaseContractSuite` — shared `IDatabase` behavior every backend must satisfy.
+- `runIstorageContractSuite` — shared `IStorage` behavior every backend must satisfy.
 
-When adding a new database backend, wire it into `databaseBackends.ts` (or an equivalent factory) and call `runIdatabaseContractSuite` from a colocated `*.test.ts` file.
+When adding a new storage backend, wire it into `storageBackends.ts` (or an equivalent factory) and call `runIstorageContractSuite` from a colocated `*.test.ts` file.
 
 ## Writing good tests
 
@@ -120,7 +120,7 @@ Use this checklist when opening a PR:
 | ----------------------------------------- | ------------------------------------------------------------------- |
 | New or changed pure function / serializer | Colocated `*.test.ts`                                               |
 | New IPC method                            | Zod schema + `ipcSchemas.test.ts`; module tests for delegated logic |
-| New `IDatabase` method                    | Extend `runIdatabaseContractSuite`; implement in all backends       |
+| New `IStorage` method                     | Extend `runIstorageContractSuite`; implement in all backends        |
 | Bug fix                                   | Regression test reproducing the bug                                 |
 | HTTP, scripts, or import behavior change  | Extend the relevant existing test file with the edge case           |
 

@@ -22,7 +22,7 @@ export const runSync = createAsyncThunk<void, void, ThunkApiConfig>(
   'sync/run',
   async (_, { dispatch, getState }) => {
     const [connections, hubs] = await Promise.all([
-      window.api.listDatabaseConnections(),
+      window.api.listStorageConnections(),
       window.api.listTeamHubs()
     ]);
 

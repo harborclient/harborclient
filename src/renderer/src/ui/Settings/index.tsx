@@ -4,7 +4,7 @@ import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { faXmark } from '#/renderer/src/fontawesome';
 import { AiSection } from './AiSection';
 import { BackupRestoreSection } from './BackupRestoreSection';
-import { DatabasesSection } from './DatabasesSection';
+import { StorageLocationsSection } from './StorageLocationsSection';
 import { GeneralSection } from './GeneralSection';
 import { ProxySection } from './ProxySection';
 import { ShortcutsSection } from './ShortcutsSection';
@@ -53,7 +53,7 @@ export function Settings({ onClose, initialSection }: Props): JSX.Element {
           {section === 'syntax' && <SyntaxHighlightingSection />}
           {section === 'shortcuts' && <ShortcutsSection />}
           {section === 'proxy' && <ProxySection />}
-          {section === 'databases' && <DatabasesSection />}
+          {section === 'storage' && <StorageLocationsSection />}
           {section === 'ai' && <AiSection />}
           {section === 'backup-restore' && <BackupRestoreSection />}
         </div>

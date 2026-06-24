@@ -174,7 +174,7 @@ console.log('Collection:', hc.collection.name);
 
 **Type:** `number | null` (read-only)
 
-Database id of the collection, or `null` when the request has no collection.
+Storage id of the collection, or `null` when the request has no collection.
 
 ```javascript
 console.log('Collection id:', hc.collection.id);

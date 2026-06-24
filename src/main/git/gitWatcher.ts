@@ -1,8 +1,8 @@
 import { watch } from 'fs';
 import type { BrowserWindow } from 'electron';
-import type { RoutingDatabase } from '#/main/db/RoutingDatabase';
+import type { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { resolveHarborclientRoot } from '#/main/git/fileLayout';
-import { listDatabaseConnections } from '#/main/settings/databaseSettings';
+import { listStorageConnections } from '#/main/settings/storageSettings';
 
 const DEBOUNCE_MS = 500;
 
@@ -14,10 +14,10 @@ const DEBOUNCE_MS = 500;
  * @param getMainWindow - Returns the focused main window for IPC events.
  */
 export function startGitWatchers(
-  router: RoutingDatabase,
+  router: RoutingStorage,
   getMainWindow: () => BrowserWindow | null
 ): void {
-  const connections = listDatabaseConnections().filter((conn) => conn.type === 'git');
+  const connections = listStorageConnections().filter((conn) => conn.type === 'git');
 
   for (const connection of connections) {
     if (!router.isConnectionMounted(connection.id)) {
@@ -40,7 +40,7 @@ export function startGitWatchers(
           debounceTimer = null;
           void (async () => {
             try {
-              const gitDb = router.requireGitDatabase(connection.id);
+              const gitDb = router.requireGitStorage(connection.id);
               await gitDb.reloadFromDisk();
               await router.reconcileGitRegistry(connection.id);
             } catch (err) {

@@ -6,7 +6,7 @@ import type {
   BackupImportResult,
   Collection,
   CollectionExportResult,
-  DatabaseConnection,
+  StorageConnection,
   EditorTab,
   Environment,
   Folder,
@@ -614,8 +614,8 @@ function deleteChat(id: number): Promise<void> {
 /**
  * Lists all configured database connections via IPC.
  */
-function listDatabaseConnections(): Promise<DatabaseConnection[]> {
-  return ipcRenderer.invoke('databaseConnections:list');
+function listStorageConnections(): Promise<StorageConnection[]> {
+  return ipcRenderer.invoke('storageConnections:list');
 }
 
 /**
@@ -623,8 +623,8 @@ function listDatabaseConnections(): Promise<DatabaseConnection[]> {
  *
  * @param conn - Connection to persist.
  */
-function saveDatabaseConnection(conn: DatabaseConnection): Promise<DatabaseConnection[]> {
-  return ipcRenderer.invoke('databaseConnections:save', conn);
+function saveStorageConnection(conn: StorageConnection): Promise<StorageConnection[]> {
+  return ipcRenderer.invoke('storageConnections:save', conn);
 }
 
 /**
@@ -632,8 +632,8 @@ function saveDatabaseConnection(conn: DatabaseConnection): Promise<DatabaseConne
  *
  * @param id - Connection id to remove.
  */
-function deleteDatabaseConnection(id: string): Promise<DatabaseConnection[]> {
-  return ipcRenderer.invoke('databaseConnections:delete', id);
+function deleteStorageConnection(id: string): Promise<StorageConnection[]> {
+  return ipcRenderer.invoke('storageConnections:delete', id);
 }
 
 /**
@@ -897,8 +897,8 @@ function gitRevokeOAuth(connectionId: string): Promise<void> {
 /**
  * Returns the active database connection id via IPC.
  */
-function getActiveDatabaseId(): Promise<string> {
-  return ipcRenderer.invoke('database:getActiveId');
+function getActiveStorageId(): Promise<string> {
+  return ipcRenderer.invoke('storage:getActiveId');
 }
 
 /**
@@ -906,8 +906,8 @@ function getActiveDatabaseId(): Promise<string> {
  *
  * @param id - Connection id to activate on next launch.
  */
-function setActiveDatabaseId(id: string): Promise<void> {
-  return ipcRenderer.invoke('database:setActiveId', id);
+function setActiveStorageId(id: string): Promise<void> {
+  return ipcRenderer.invoke('storage:setActiveId', id);
 }
 
 /**
@@ -1066,7 +1066,7 @@ function createInviteToken(collectionId: number, recipientKid: string): Promise<
  *
  * @param token - JWT string from an invite.
  */
-function acceptInvite(token: string): Promise<DatabaseConnection[]> {
+function acceptInvite(token: string): Promise<StorageConnection[]> {
   return ipcRenderer.invoke('invite:accept', token);
 }
 
@@ -1223,9 +1223,9 @@ const api: Api = {
   completeChatStep,
   listHubLlmModels,
   deleteChat,
-  listDatabaseConnections,
-  saveDatabaseConnection,
-  deleteDatabaseConnection,
+  listStorageConnections,
+  saveStorageConnection,
+  deleteStorageConnection,
   listTeamHubs,
   saveTeamHub,
   deleteTeamHub,
@@ -1250,8 +1250,8 @@ const api: Api = {
   gitStartOAuth,
   gitCompleteOAuth,
   gitRevokeOAuth,
-  getActiveDatabaseId,
-  setActiveDatabaseId,
+  getActiveStorageId,
+  setActiveStorageId,
   getRequestEditorTab,
   setRequestEditorTab,
   deleteRequestEditorTab,

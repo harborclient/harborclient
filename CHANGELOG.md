@@ -25,7 +25,7 @@
 ## 1.5.18 - 2026-06-23
 
 - feat(backup): implement backup and restore functionality for local data. (`1174c10`)
-- refactor(database): improve code formatting in databaseSettings and types. (`b7fa089`)
+- refactor(database): improve code formatting in storageSettings and types. (`b7fa089`)
 - feat(docs): add Git-backed collections feature to documentation. (`46238b3`)
 - feat(git): add support for custom GitHub OAuth App in connection settings. (`85373b1`)
 
@@ -217,10 +217,10 @@
 - Remove Settings component and associated logic from the UI, streamlining the application by eliminating unused settings functionality.. (`727b360`)
 - Add new dependencies for enhanced functionality and update documentation structure. (`fb1ae63`)
 - Refactor UI components to replace button-based tab navigation with SegmentedTabs for improved user experience. Update styles and imports accordingly across multiple files, enhancing consistency in tab management.. (`e4bb3b7`)
-- Enhance database management by integrating Firestore support alongside SQLite. Update IDatabase interface and SqliteDatabase class for asynchronous operations. Refactor IPC handlers and application initialization to accommodate new database settings. Modify package.json for dependency updates and improve test coverage for database interactions.. (`c7bab81`)
+- Enhance database management by integrating Firestore support alongside SQLite. Update IStorage interface and SqliteStorage class for asynchronous operations. Refactor IPC handlers and application initialization to accommodate new database settings. Modify package.json for dependency updates and improve test coverage for database interactions.. (`c7bab81`)
 - Update README.md to change logo image path from external URL to local path.. (`bd90979`)
-- Refactor database interaction by introducing a new SqliteDatabase class, updating IPC handlers for improved data management, and enhancing application initialization and theme management to align with the new structure.. (`b82e37e`)
-- Refactor database management by removing the old SQLite implementation and replacing it with a new SqliteDatabase class. Update IPC handlers to utilize the new database interface for improved data handling and organization. Enhance application initialization and theme management to align with the new database structure.. (`ffe777c`)
+- Refactor database interaction by introducing a new SqliteStorage class, updating IPC handlers for improved data management, and enhancing application initialization and theme management to align with the new structure.. (`b82e37e`)
+- Refactor database management by removing the old SQLite implementation and replacing it with a new SqliteStorage class. Update IPC handlers to utilize the new database interface for improved data handling and organization. Enhance application initialization and theme management to align with the new database structure.. (`ffe777c`)
 
 ## 1.2.1 - 2026-06-19
 

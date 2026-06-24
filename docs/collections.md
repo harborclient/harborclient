@@ -59,7 +59,7 @@ The highlighted collection in the sidebar is remembered for the current session 
 
 In the **Add collection** modal you can:
 
-- **Create new** — enter a name, choose a **Provider** (SQLite, a remote database, or a [team hub](/team-hubs)), and click **Create**
+- **Create new** — enter a name, choose a **Provider** (SQLite, a remote storage location, or a [team hub](/team-hubs)), and click **Create**
 - **Import from file** — pick a HarborClient `.json` export (same as **File → Import**)
 - **Accept invite** — paste an invite token to connect to a shared remote collection (see [Sharing collections](#sharing-collections))
 
@@ -224,7 +224,7 @@ Scripts imported from Postman use the `pm.*` API in Postman but run in HarborCli
 
 ### Export file format
 
-HarborClient collection export files require `harborclientExport: "collection"` and `harborclientVersion: 1`. They contain the collection name, variables, headers, authorization, scripts, folders, and all saved requests. Database IDs are not included.
+HarborClient collection export files require `harborclientExport: "collection"` and `harborclientVersion: 1`. They contain the collection name, variables, headers, authorization, scripts, folders, and all saved requests. Storage IDs are not included.
 
 Example (abbreviated):
 
@@ -313,7 +313,7 @@ Example (abbreviated):
 
 ## Sharing collections
 
-Use **Export/Import** when you want a portable snapshot of a collection — a `.json` file you can version, email, or archive. Use a **[git-backed database connection](/git-provider)** when collections should live as version-controlled files in a repository with in-app commit/push/pull. Use **invites** when you want another HarborClient user to connect to the same **live** collection on a remote database. Use **[team hubs](/team-hubs)** when your team shares collections through HarborClient Team Hub with API tokens instead of shared database credentials. Invited and hub-backed collections stay in sync with the shared backend; changes from other users appear when data is reloaded (for example, after restarting the app). Git-backed collections sync when you pull, when the working tree changes on disk, or when the window regains focus. See [Settings → Databases](/settings#databases) for how remote backends work.
+Use **Export/Import** when you want a portable snapshot of a collection — a `.json` file you can version, email, or archive. Use a **[git-backed storage connection](/git-provider)** when collections should live as version-controlled files in a repository with in-app commit/push/pull. Use **invites** when you want another HarborClient user to connect to the same **live** collection on a remote storage location. Use **[team hubs](/team-hubs)** when your team shares collections through HarborClient Team Hub with API tokens instead of shared storage location credentials. Invited and hub-backed collections stay in sync with the shared backend; changes from other users appear when data is reloaded (for example, after restarting the app). Git-backed collections sync when you pull, when the working tree changes on disk, or when the window regains focus. See [Settings → Storage Locations](/settings#storage-locations) for how remote backends work.
 
 Before sending or accepting invites, exchange public keys with your colleague — see [Certificates](/certificates).
 
@@ -327,9 +327,9 @@ Before sending or accepting invites, exchange public keys with your colleague �
 
 HarborClient opens an **Invite to collection** modal and generates a token for the selected collection. Click **Copy** to put the token on the clipboard.
 
-The **Invite** menu item is hidden for collections stored in SQLite — only remote databases can be shared this way.
+The **Invite** menu item is hidden for collections stored in SQLite — only remote storage locations can be shared this way.
 
-The token embeds **database connection credentials**. Treat it like a secret and share it only with people who should have access to that database and collection.
+The token embeds **storage connection credentials**. Treat it like a secret and share it only with people who should have access to that database and collection.
 
 Tell recipients they must **restart HarborClient** after accepting the invite.
 
@@ -342,15 +342,15 @@ Tell recipients they must **restart HarborClient** after accepting the invite.
 | 3 | Paste the token and click **Accept** |
 | 4 | Restart HarborClient |
 
-On success, HarborClient shows a **Shared connection added** toast. The new connection appears under [Settings → Databases](/settings#databases), and the shared collection appears in the sidebar. When a collection is stored on a non-active database, its row shows a connection badge with the database name.
+On success, HarborClient shows a **Shared connection added** toast. The new connection appears under [Settings → Storage Locations](/settings#storage-locations), and the shared collection appears in the sidebar. When a collection is stored on a non-active storage location, its row shows a connection badge with the storage location name.
 
-Accepting an invite is **not** the same as import — it adds a live database connection and registers the shared collection, not a new local copy from a `.json` file.
+Accepting an invite is **not** the same as import — it adds a live storage connection and registers the shared collection, not a new local copy from a `.json` file.
 
 If the token is invalid, HarborClient shows an alert with a descriptive error (for example, malformed token, unsupported version, or missing connection).
 
-### Invite vs manual database setup
+### Invite vs manual storage setup
 
-Teammates can also share access by configuring the same remote database manually in [Settings → Databases](/settings#databases). Invites bundle the connection details and collection mapping in one step so the recipient does not have to enter credentials by hand.
+Teammates can also share access by configuring the same remote storage location manually in [Settings → Storage Locations](/settings#storage-locations). Invites bundle the connection details and collection mapping in one step so the recipient does not have to enter credentials by hand.
 
 ## How collections affect sends
 
@@ -385,14 +385,14 @@ For the full send pipeline and response handling, see [Making requests](/request
 Collections and saved requests are stored in your chosen provider:
 
 - **SQLite (default)** — `{userData}/harborclient.db`. The database filename can be changed in [Settings → SQLite](/settings#sqlite) (restart required).
-- **Firestore, MySQL, PostgreSQL** — remote storage when selected in [Settings → Databases](/settings#databases) (restart required).
+- **Firestore, MySQL, PostgreSQL** — remote storage when selected in [Settings → Storage Locations](/settings#storage-locations) (restart required).
 - **Team hubs** — collection data on [HarborClient Team Hub](/team-hubs); configured under **File → Team Hub**, not in Settings.
 
-See [Settings](/settings) for database configuration and [Team hubs](/team-hubs) for hub-backed collections.
+See [Settings](/settings) for storage configuration and [Team hubs](/team-hubs) for hub-backed collections.
 
 Open tab drafts are stored separately in browser `localStorage`. The selected collection in the sidebar is not persisted.
 
-To back up a collection, use **Export** to save a portable JSON file. Deleting a collection from the sidebar permanently removes it and all its requests from the database.
+To back up a collection, use **Export** to save a portable JSON file. Deleting a collection from the sidebar permanently removes it and all its requests from storage.
 
 ## Keyboard shortcuts
 

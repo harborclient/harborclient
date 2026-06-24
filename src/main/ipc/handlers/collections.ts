@@ -6,12 +6,12 @@ import {
   validateCollectionExport,
   validateEnvironmentExport,
   validateRequestExport
-} from '#/main/db/collectionData';
+} from '#/main/storage/collectionData';
 import { convertPostmanCollection, isPostmanCollection } from '#/main/import/postman';
 import { defaultAuth } from '#/shared/auth';
-import type { IDatabase } from '#/main/db/IDatabase';
-import { RoutingDatabase } from '#/main/db/RoutingDatabase';
-import { mintFreshCollectionExportUuids, mintFreshRequestExportUuid } from '#/main/db/uuid';
+import type { IStorage } from '#/main/storage/IStorage';
+import { RoutingStorage } from '#/main/storage/RoutingStorage';
+import { mintFreshCollectionExportUuids, mintFreshRequestExportUuid } from '#/main/storage/uuid';
 import { handle } from '#/main/ipc/handle';
 import {
   confirmCollectionScripts,
@@ -52,7 +52,7 @@ export interface RequestImportResult {
   /**
    * Imported or updated request with global ids.
    */
-  request: Awaited<ReturnType<IDatabase['saveRequest']>>;
+  request: Awaited<ReturnType<IStorage['saveRequest']>>;
 
   /**
    * Whether a new request was created or an existing one was updated.
@@ -82,7 +82,7 @@ function readHarborclientExport(parsed: unknown): string | null {
  * @returns Matching collection, or null when not found or uuid is absent.
  */
 async function findExistingCollection(
-  db: IDatabase,
+  db: IStorage,
   uuid: string | undefined
 ): Promise<Collection | null> {
   const trimmed = uuid?.trim();
@@ -101,7 +101,7 @@ async function findExistingCollection(
  * @returns Imported collection with action, or null when the user canceled.
  */
 async function importCollectionFromParsed(
-  db: IDatabase,
+  db: IStorage,
   win: BrowserWindow | null,
   parsed: unknown
 ): Promise<CollectionImportResult | null> {
@@ -127,7 +127,7 @@ async function importCollectionFromParsed(
       return null;
     }
     if (choice === 'update') {
-      if (!(db instanceof RoutingDatabase)) {
+      if (!(db instanceof RoutingStorage)) {
         throw new Error('Collection update on import is unavailable.');
       }
       const collection = await db.updateCollectionFromImport(existing.id, exportData);
@@ -151,7 +151,7 @@ async function importCollectionFromParsed(
  * @returns Imported request with action, or null when the user canceled a warning.
  */
 async function saveImportedRequest(
-  db: IDatabase,
+  db: IStorage,
   win: BrowserWindow | null,
   exportData: RequestExport,
   collectionId: number,
@@ -220,11 +220,11 @@ async function saveImportedRequest(
  *
  * @param db - Database instance backing collection persistence.
  */
-export function registerCollectionHandlers(db: IDatabase): void {
+export function registerCollectionHandlers(db: IStorage): void {
   // Lists all saved request collections.
   handle('collections:list', ipcArgSchemas.none, async () => {
     const collections = await db.listCollections();
-    const warnings = db instanceof RoutingDatabase ? db.consumeCollectionListWarnings() : [];
+    const warnings = db instanceof RoutingStorage ? db.consumeCollectionListWarnings() : [];
     return { collections, warnings };
   });
 
@@ -233,7 +233,7 @@ export function registerCollectionHandlers(db: IDatabase): void {
     'collections:create',
     ipcArgSchemas.collectionCreate,
     (_event, collectionName, connectionId) => {
-      if (connectionId && db instanceof RoutingDatabase) {
+      if (connectionId && db instanceof RoutingStorage) {
         return db.createCollectionInProvider(collectionName, connectionId);
       }
       return db.createCollection(collectionName);
@@ -261,7 +261,7 @@ export function registerCollectionHandlers(db: IDatabase): void {
 
   // Deep-copies a collection into a new collection on the same backend.
   handle('collections:duplicate', ipcArgSchemas.dbId, (_event, id) => {
-    if (!(db instanceof RoutingDatabase)) {
+    if (!(db instanceof RoutingStorage)) {
       throw new Error('Collection duplicate is unavailable.');
     }
     return db.duplicateCollection(id);
@@ -402,7 +402,7 @@ export function registerCollectionHandlers(db: IDatabase): void {
 
   // Moves a collection to a different database connection.
   handle('collections:move', ipcArgSchemas.collectionMove, (_event, id, targetConnectionId) => {
-    if (!(db instanceof RoutingDatabase)) {
+    if (!(db instanceof RoutingStorage)) {
       throw new Error('Collection move is unavailable.');
     }
     return db.moveCollection(id, targetConnectionId);
@@ -410,7 +410,7 @@ export function registerCollectionHandlers(db: IDatabase): void {
 
   // Reorders collections in the sidebar.
   handle('collections:reorder', ipcArgSchemas.collectionReorder, (_event, orderedCollectionIds) => {
-    if (!(db instanceof RoutingDatabase)) {
+    if (!(db instanceof RoutingStorage)) {
       throw new Error('Collection reorder is unavailable.');
     }
     return db.reorderCollections(orderedCollectionIds);

@@ -1,10 +1,10 @@
 # Settings
 
-HarborClient application settings control appearance, HTTP request defaults, and the database connections where collections, requests, and environments are stored. Open settings from **File → Settings** or **Cmd/Ctrl+,**.
+HarborClient application settings control appearance, HTTP request defaults, and the storage connections where collections, requests, and environments are stored. Open settings from **File → Settings** or **Cmd/Ctrl+,**.
 
-The settings panel has a sidebar with seven sections: **General**, **Syntax highlighting**, **Shortcuts**, **Proxy**, **Databases**, **AI**, and **Backup & Restore**. General covers appearance and request defaults; Syntax highlighting controls the code editor; Shortcuts lets you customize keyboard shortcuts; Proxy configures a global HTTP proxy for outbound requests; Databases manages the named database connections that hold your data; AI stores API keys for the built-in assistant; Backup & Restore exports or replaces all local HarborClient data from a single backup file.
+The settings panel has a sidebar with seven sections: **General**, **Syntax highlighting**, **Shortcuts**, **Proxy**, **Storage Locations**, **AI**, and **Backup & Restore**. General covers appearance and request defaults; Syntax highlighting controls the code editor; Shortcuts lets you customize keyboard shortcuts; Proxy configures a global HTTP proxy for outbound requests; Storage Locations manages the named storage connections that hold your data; AI stores API keys for the built-in assistant; Backup & Restore exports or replaces all local HarborClient data from a single backup file.
 
-Appearance, request defaults, and connection definitions are stored in electron-store on your machine. Collections, requests, and environments live in the database connections you configure.
+Appearance, request defaults, and connection definitions are stored in electron-store on your machine. Collections, requests, and environments live in the storage connections you configure.
 
 ## General
 
@@ -67,13 +67,13 @@ The **Proxy** section configures a global HTTP proxy applied to every outbound r
 
 Click **Save** to apply proxy settings. When the proxy is enabled but the host is empty, requests are sent directly without a proxy.
 
-## Databases
+## Storage Locations
 
-![Databases](images/screenshots/hc-5.png)
+![Storage Locations](images/screenshots/hc-5.png)
 
-The **Databases** section lists every named database connection. The **active** database is used for new collections and imports. Individual collections can be moved to other databases from collection settings.
+The **Storage Locations** section lists every named storage connection. The **active** storage location is used for new collections and imports. Individual collections can be moved to other storage locations from collection settings.
 
-All configured databases are opened at launch, so shared collections from any connection are available immediately.
+All configured storage locations are opened at launch, so shared collections from any connection are available immediately.
 
 **Team hubs** are configured separately under **File → Team Hub**, not in this section. They connect to [HarborClient Team Hub](/team-hubs) for token-based shared collections. See [Team hubs](/team-hubs) for setup and sync behavior.
 
@@ -81,10 +81,10 @@ All configured databases are opened at launch, so shared collections from any co
 
 | Action | Description |
 | --- | --- |
-| **Add database** | Create a new connection. Choose a name and type, then configure its connection details. |
-| **Set active** | Mark a connection as the active database for new data. |
+| **Add storage location** | Create a new connection. Choose a name and type, then configure its connection details. |
+| **Set active** | Mark a connection as the active storage location for new data. |
 | **Edit** | Change a connection's name and connection details. The type cannot be changed after creation. |
-| **Delete** | Remove a connection. The last remaining connection cannot be deleted, and the last remaining SQLite connection cannot be deleted. Deleting the active database promotes another connection to active after restart. |
+| **Delete** | Remove a connection. The last remaining connection cannot be deleted, and the last remaining SQLite connection cannot be deleted. Deleting the active storage location promotes another connection to active after restart. |
 
 Connection changes take effect after restarting HarborClient.
 
@@ -123,7 +123,7 @@ Stores data on a remote MySQL server. Use this type for self-hosted or team-shar
 | **Port** | MySQL server port | `3306` |
 | **User** | MySQL username | (empty) |
 | **Password** | MySQL password | (empty) |
-| **Database** | MySQL database name | (empty) |
+| **Database** | MySQL storage location name | (empty) |
 
 #### PostgreSQL
 
@@ -135,7 +135,7 @@ Stores data on a remote PostgreSQL server. Use this type for self-hosted or team
 | **Port** | PostgreSQL server port | `5432` |
 | **User** | PostgreSQL username | (empty) |
 | **Password** | PostgreSQL password | (empty) |
-| **Database** | PostgreSQL database name | (empty) |
+| **Database** | PostgreSQL storage location name | (empty) |
 
 #### Git
 
@@ -186,7 +186,7 @@ A backup captures local application data under HarborClient's user data director
 - Local SQLite databases (registry, default provider database, and Team Hub ID maps) and their WAL sidecars
 - Electron-store settings (panel layout, sidebar expansion, editor tabs, and similar UI state)
 - Window position and size
-- Database connection definitions, environments, AI chat history, cookies, and collection routing stored in the registry
+- Storage connection definitions, environments, AI chat history, cookies, and collection routing stored in the registry
 - Encrypted AI and git credentials, invite identity keys, and the local encryption key file
 - Git provider sidecar files (`git-index/`, `git-provider-settings/`)
 - Renderer UI state such as open tabs, the active environment, and panel sizes
@@ -197,7 +197,7 @@ Backups are zip archives with a `.hcb` extension. They include secrets in readab
 
 Restore replaces **local** HarborClient state only. It does not copy data that lives elsewhere:
 
-- **Remote databases** (Firestore, MySQL, PostgreSQL) — only connection settings are backed up; server-side collections and environments are unchanged
+- **Remote storage locations** (Firestore, MySQL, PostgreSQL) — only connection settings are backed up; server-side collections and environments are unchanged
 - **Team Hub servers** — only local hub configuration and ID maps are backed up
 - **Git repository working trees** — collection files in your repo are not inside the backup; only HarborClient sidecar files in user data are included
 
@@ -208,4 +208,4 @@ Secrets encrypted with your operating system keychain may not decrypt when you r
 - [AI assistant](/ai) — configure API keys and use the chat sidebar
 - [Collections](/collections) — organize saved requests and manage storage and backup
 - [Environments](/environments) — define global variable groups stored in your chosen backend
-- [Features](/features) — overview of database backends and team collaboration
+- [Features](/features) — overview of storage locations and team collaboration

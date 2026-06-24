@@ -1,8 +1,8 @@
 import { app, BrowserWindow, dialog } from 'electron';
 import { randomUUID } from 'crypto';
 import { readFile, writeFile } from 'fs/promises';
-import type { IDatabase } from '#/main/db/IDatabase';
-import { RoutingDatabase } from '#/main/db/RoutingDatabase';
+import type { IStorage } from '#/main/storage/IStorage';
+import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import { ensureInviteKeys, getInviteIdentity, importInviteKeyPair } from '#/main/invite/inviteKeys';
@@ -10,24 +10,24 @@ import { createInviteToken, verifyInviteToken } from '#/main/invite/inviteToken'
 import { addTrustedKey, listTrustedKeys, removeTrustedKey } from '#/main/invite/trustedKeys';
 import {
   findMatchingConnection,
-  listDatabaseConnections,
-  saveDatabaseConnection
-} from '#/main/settings/databaseSettings';
-import { getSlotForConnection } from '#/main/settings/databaseSlots';
-import type { DatabaseConnection } from '#/shared/types';
+  listStorageConnections,
+  saveStorageConnection
+} from '#/main/settings/storageSettings';
+import { getSlotForConnection } from '#/main/settings/storageSlots';
+import type { StorageConnection } from '#/shared/types';
 
 /**
  * Registers IPC handlers for collection invites and trusted certificate management.
  *
  * @param db - Database instance used for invite creation and shared collection registration.
  */
-export function registerInviteHandlers(db: IDatabase): void {
+export function registerInviteHandlers(db: IStorage): void {
   // Creates an encrypted invite token for sharing a collection.
   handle(
     'invite:create',
     ipcArgSchemas.inviteCreate,
     async (_event, collectionId, recipientKid) => {
-      if (!(db instanceof RoutingDatabase)) {
+      if (!(db instanceof RoutingStorage)) {
         throw new Error('Invite is unavailable.');
       }
 
@@ -38,7 +38,7 @@ export function registerInviteHandlers(db: IDatabase): void {
       }
 
       const share = db.getShareInfo(collectionId);
-      const connection = listDatabaseConnections().find((conn) => conn.id === share.connectionId);
+      const connection = listStorageConnections().find((conn) => conn.id === share.connectionId);
       if (!connection) {
         throw new Error(`Unknown database connection: ${share.connectionId}`);
       }
@@ -81,9 +81,9 @@ export function registerInviteHandlers(db: IDatabase): void {
     }
 
     const existing = findMatchingConnection(connection);
-    const targetConn: DatabaseConnection = existing ?? { ...connection, id: randomUUID() };
+    const targetConn: StorageConnection = existing ?? { ...connection, id: randomUUID() };
     if (!existing) {
-      saveDatabaseConnection(targetConn);
+      saveStorageConnection(targetConn);
     }
 
     const slot = getSlotForConnection(targetConn.id);
@@ -91,7 +91,7 @@ export function registerInviteHandlers(db: IDatabase): void {
       throw new Error('Failed to assign a slot for the invited connection.');
     }
 
-    if (db instanceof RoutingDatabase) {
+    if (db instanceof RoutingStorage) {
       try {
         await db.registerSharedCollection(targetConn, slot, app.getPath('userData'), collection);
       } catch (err) {
@@ -101,7 +101,7 @@ export function registerInviteHandlers(db: IDatabase): void {
       }
     }
 
-    return listDatabaseConnections();
+    return listStorageConnections();
   });
 
   // Returns the local invite RSA identity (public key and fingerprint).

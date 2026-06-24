@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { DatabaseConnection, GitSettings } from '#/shared/types';
+import type { StorageConnection, GitSettings } from '#/shared/types';
 import { isGitHubRepositoryUrl } from '#/shared/gitUrl';
 import { Button } from '#/renderer/src/components/Button';
 import {
@@ -17,7 +17,7 @@ interface Props {
   /**
    * Git connection being edited.
    */
-  connection: DatabaseConnection & { type: 'git' };
+  connection: StorageConnection & { type: 'git' };
 
   /**
    * Whether inputs are disabled.
@@ -27,7 +27,7 @@ interface Props {
   /**
    * Called when settings change.
    */
-  onChange: (connection: DatabaseConnection) => void;
+  onChange: (connection: StorageConnection) => void;
 }
 
 interface PatAuthPanelProps {
@@ -241,7 +241,7 @@ export function GitFields({ connection, disabled = false, onChange }: Props): JS
       return;
     }
 
-    const connections = await window.api.listDatabaseConnections();
+    const connections = await window.api.listStorageConnections();
     const updated = connections.find((item) => item.id === connection.id);
     if (updated?.type !== 'git') {
       return;

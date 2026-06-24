@@ -1,8 +1,8 @@
 import { app, BrowserWindow, dialog } from 'electron';
 import { readFile, writeFile } from 'fs/promises';
-import { getLocalRegistry } from '#/main/db/localRegistryInstance';
-import type { IDatabase } from '#/main/db/IDatabase';
-import { RoutingDatabase } from '#/main/db/RoutingDatabase';
+import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
+import type { IStorage } from '#/main/storage/IStorage';
+import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import {
   BACKUP_FILE_FILTER,
   applyBackup,
@@ -18,9 +18,9 @@ import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
  *
  * @param db - Active database router shared by IPC handlers.
  */
-function checkpointOpenDatabases(db: IDatabase): void {
-  getLocalRegistry().checkpointWal();
-  if (db instanceof RoutingDatabase) {
+function checkpointOpenDatabases(db: IStorage): void {
+  getLocalDatabase().checkpointWal();
+  if (db instanceof RoutingStorage) {
     db.checkpointWalForBackup();
   }
 }
@@ -30,7 +30,7 @@ function checkpointOpenDatabases(db: IDatabase): void {
  *
  * @param db - Active database router shared by IPC handlers.
  */
-export function registerBackupHandlers(db: IDatabase): void {
+export function registerBackupHandlers(db: IStorage): void {
   // Exports user data to a backup zip via a save dialog.
   handle('backup:export', ipcArgSchemas.backupExport, async (_event, localStorage) => {
     const userDataPath = app.getPath('userData');

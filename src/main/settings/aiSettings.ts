@@ -1,4 +1,4 @@
-import { getLocalRegistry } from '#/main/db/localRegistryInstance';
+import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { decryptSecret, encryptSecret, type EncryptedSecret } from '#/main/secrets/secretStorage';
 import { parseJson } from '#/shared/parseJson';
 import type { AiSettings } from '#/shared/types';
@@ -60,7 +60,7 @@ function isEncryptedSecret(value: unknown): value is EncryptedSecret {
  * @returns Current AI settings with defaults applied.
  */
 export function getAiSettings(): AiSettings {
-  const raw = getLocalRegistry().getSetting(STORE_KEY);
+  const raw = getLocalDatabase().getSetting(STORE_KEY);
   if (!raw) {
     return DEFAULT_AI_SETTINGS;
   }
@@ -93,5 +93,5 @@ export function getAiSettings(): AiSettings {
 export function setAiSettings(input: AiSettings): void {
   const normalized = normalizeSettings(input);
   const encrypted = encryptSecret(JSON.stringify(normalized));
-  getLocalRegistry().setSetting(STORE_KEY, JSON.stringify(encrypted));
+  getLocalDatabase().setSetting(STORE_KEY, JSON.stringify(encrypted));
 }

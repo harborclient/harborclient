@@ -15,12 +15,12 @@ import {
   type CipherKey
 } from 'crypto';
 import { z } from 'zod';
-import { databaseConnection, dbId } from '#/main/ipc/ipcSchemas';
+import { storageConnection, dbId } from '#/main/ipc/ipcSchemas';
 import {
   getDefaultSpentInviteTokenStore,
   type SpentInviteTokenStore
 } from '#/main/invite/spentInviteTokens';
-import type { DatabaseConnection, TrustedInviteKey } from '#/shared/types';
+import type { StorageConnection, TrustedInviteKey } from '#/shared/types';
 
 export const INVITE_TOKEN_VERSION = 2;
 
@@ -74,7 +74,7 @@ interface InviteTokenEnvelope {
 }
 
 interface DecryptedInvitePayload {
-  conn: DatabaseConnection;
+  conn: StorageConnection;
   collection: InviteCollectionMeta;
 }
 
@@ -82,7 +82,7 @@ interface DecryptedInvitePayload {
  * Decoded invite contents: the shared connection plus the collection mapping.
  */
 export interface DecodedInvite {
-  connection: DatabaseConnection;
+  connection: StorageConnection;
   collection: InviteCollectionMeta;
 }
 
@@ -172,7 +172,7 @@ export function publicKeyFingerprint(publicKeyPem: string): string {
  * Zod schema for decrypted invite payload contents after AES-GCM decryption.
  */
 const decryptedInvitePayloadSchema = z.object({
-  conn: databaseConnection,
+  conn: storageConnection,
   collection: z.object({
     name: z.string(),
     providerCollectionId: dbId
@@ -327,7 +327,7 @@ function assertInviteFreshness(envelope: InviteTokenEnvelope, now: number): void
  * @param recipientPublicKeyPem - PEM-encoded RSA public key of the intended recipient.
  */
 export function createInviteToken(
-  connection: DatabaseConnection,
+  connection: StorageConnection,
   collection: InviteCollectionMeta,
   senderPrivateKeyPem: string,
   senderPublicKeyPem: string,

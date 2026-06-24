@@ -96,5 +96,5 @@ pnpm dev -- -vv
 - [Features](/features) — overview of the request builder, collections, tabs, and response viewer.
 - [Environments](/environments) — define variable groups and switch between them while testing APIs.
 - [Request scripts](/request-scripts) — run JavaScript before or after requests to set variables and write tests.
-- [Settings](/settings) — configure appearance, database provider, and backend connection details.
+- [Settings](/settings) — configure appearance, storage provider, and backend connection details.
 - [Team hubs](/team-hubs) — connect to HarborClient Team Hub for shared collections with API tokens.

@@ -2,7 +2,7 @@
 
 HarborClient can store collections as version-controlled files inside a git repository. Link a local clone, edit collections in the app, commit and push from the **Source control** panel, and share changes with your team through normal git workflows.
 
-Git-backed storage is a **database connection type** in [Settings → Databases](/settings#databases). Each git connection points at a repository working tree on your machine. Collections for that connection are written under a configurable subdirectory (default `.harborclient/`).
+Git-backed storage is a **storage connection type** in [Settings → Storage Locations](/settings#storage-locations). Each git connection points at a repository working tree on your machine. Collections for that connection are written under a configurable subdirectory (default `.harborclient/`).
 
 ![Git-backed collections](images/screenshots/hc-12.png)
 
@@ -20,7 +20,7 @@ Use git when you want collections to live in a repo alongside application code o
 ## Setup
 
 1. Clone the repository locally (HTTPS URL).
-2. Open **File → Settings → Databases** and click **Add database**.
+2. Open **File → Settings → Storage Locations** and click **Add storage location**.
 3. Choose type **Git** and configure:
    - **Repository path** — absolute path to your local clone
    - **Repository URL (HTTPS)** — remote URL used for fetch/push (`isomorphic-git` does not support SSH keys)
@@ -109,10 +109,10 @@ HarborClient uses `isomorphic-git` over HTTPS. SSH remotes and SSH keys are not 
 
 ## Provider badge and invites
 
-Collections on a git connection show the connection name badge like other non-active databases. **Invite** is hidden for git-backed collections — sharing is through the repository, not HarborClient invite tokens.
+Collections on a git connection show the connection name badge like other non-active storage locations. **Invite** is hidden for git-backed collections — sharing is through the repository, not HarborClient invite tokens.
 
 ## What's next
 
 - [Collections](/collections) — sidebar, folders, and export/import
-- [Settings → Databases](/settings#databases) — connection types and management
+- [Settings → Storage Locations](/settings#storage-locations) — connection types and management
 - [Environments](/environments) — global variable groups stored per backend

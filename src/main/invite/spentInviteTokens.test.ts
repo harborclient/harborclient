@@ -2,29 +2,29 @@ import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, beforeEach, expect, it } from 'vitest';
-import { LocalRegistry } from '#/main/db/LocalRegistry';
+import { LocalDatabase } from '#/main/storage/LocalDatabase';
 import {
-  clearLocalRegistryForTesting,
-  setLocalRegistryForTesting
-} from '#/main/db/localRegistryInstance';
+  clearLocalDatabaseForTesting,
+  setLocalDatabaseForTesting
+} from '#/main/storage/localDatabaseInstance';
 import { createPersistedSpentInviteTokenStore } from '#/main/invite/spentInviteTokens';
 import { describeSqlite } from '#/test/nativeModules';
 
 let tempDir: string;
-let registry: LocalRegistry;
+let database: LocalDatabase;
 
 describeSqlite('spentInviteTokens', () => {
   beforeEach(async () => {
     tempDir = mkdtempSync(join(tmpdir(), 'hc-spent-invite-'));
-    registry = new LocalRegistry(tempDir);
-    await registry.init();
-    setLocalRegistryForTesting(registry);
+    database = new LocalDatabase(tempDir);
+    await database.init();
+    setLocalDatabaseForTesting(database);
   });
 
   afterEach(async () => {
-    await registry.close();
+    await database.close();
     rmSync(tempDir, { recursive: true, force: true });
-    clearLocalRegistryForTesting();
+    clearLocalDatabaseForTesting();
   });
 
   it('markSpent records a jti as spent', () => {

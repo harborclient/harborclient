@@ -1,7 +1,7 @@
 import { shell } from 'electron';
-import { GitDatabase } from '#/main/db/GitDatabase';
-import type { IDatabase } from '#/main/db/IDatabase';
-import { RoutingDatabase } from '#/main/db/RoutingDatabase';
+import { GitStorage } from '#/main/storage/GitStorage';
+import type { IStorage } from '#/main/storage/IStorage';
+import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import { beginGitHubOAuth, revokeGitHubOAuth, saveGitPat } from '#/main/git/gitAuth';
@@ -12,25 +12,25 @@ import {
 } from '#/main/git/gitOAuthScheduler';
 
 /**
- * Returns a RoutingDatabase instance or throws when git IPC is unavailable.
+ * Returns a RoutingStorage instance or throws when git IPC is unavailable.
  *
  * @param db - Top-level database handle from IPC registration.
  */
-function requireRoutingDatabase(db: IDatabase): RoutingDatabase {
-  if (!(db instanceof RoutingDatabase)) {
-    throw new Error('Git operations require RoutingDatabase.');
+function requireRoutingStorage(db: IStorage): RoutingStorage {
+  if (!(db instanceof RoutingStorage)) {
+    throw new Error('Git operations require RoutingStorage.');
   }
   return db;
 }
 
 /**
- * Returns a mounted GitDatabase for a connection id.
+ * Returns a mounted GitStorage for a connection id.
  *
  * @param db - Top-level database handle.
  * @param connectionId - Git connection id.
  */
-function requireGitDatabase(db: IDatabase, connectionId: string): GitDatabase {
-  return requireRoutingDatabase(db).requireGitDatabase(connectionId);
+function requireGitStorage(db: IStorage, connectionId: string): GitStorage {
+  return requireRoutingStorage(db).requireGitStorage(connectionId);
 }
 
 /**
@@ -44,8 +44,8 @@ function requireGitDatabase(db: IDatabase, connectionId: string): GitDatabase {
  * @param sync - Pull or push operation to execute.
  */
 async function syncAndReloadGitRegistry(
-  gitDb: GitDatabase,
-  router: RoutingDatabase,
+  gitDb: GitStorage,
+  router: RoutingStorage,
   connectionId: string,
   sync: () => Promise<void>
 ): Promise<void> {
@@ -77,10 +77,10 @@ async function syncAndReloadGitRegistry(
  *
  * @param db - Top-level database handle shared by collection handlers.
  */
-export function registerGitHandlers(db: IDatabase): void {
+export function registerGitHandlers(db: IStorage): void {
   // Lists git sync status for all git-backed connections.
   handle('git:statuses', ipcArgSchemas.none, async () => {
-    const router = requireRoutingDatabase(db);
+    const router = requireRoutingStorage(db);
     return router.listGitStatuses();
   });
 
@@ -89,28 +89,28 @@ export function registerGitHandlers(db: IDatabase): void {
     'git:commit',
     ipcArgSchemas.gitCommit,
     async (_event, connectionId, message, createHarborRoot) => {
-      const gitDb = requireGitDatabase(db, connectionId);
+      const gitDb = requireGitStorage(db, connectionId);
       await gitDb.syncManager.commit(message, { createHarborRoot });
     }
   );
 
   // Pulls remote changes and reloads the local registry.
   handle('git:pull', ipcArgSchemas.connectionId, async (_event, connectionId) => {
-    const router = requireRoutingDatabase(db);
-    const gitDb = requireGitDatabase(db, connectionId);
+    const router = requireRoutingStorage(db);
+    const gitDb = requireGitStorage(db, connectionId);
     await syncAndReloadGitRegistry(gitDb, router, connectionId, () => gitDb.syncManager.pull());
   });
 
   // Pushes local commits and reloads the local registry (hooks may change disk).
   handle('git:push', ipcArgSchemas.connectionId, async (_event, connectionId) => {
-    const router = requireRoutingDatabase(db);
-    const gitDb = requireGitDatabase(db, connectionId);
+    const router = requireRoutingStorage(db);
+    const gitDb = requireGitStorage(db, connectionId);
     await syncAndReloadGitRegistry(gitDb, router, connectionId, () => gitDb.syncManager.push());
   });
 
   // Returns recent commit history for a git connection.
   handle('git:log', ipcArgSchemas.gitLog, async (_event, connectionId, depth) => {
-    const gitDb = requireGitDatabase(db, connectionId);
+    const gitDb = requireGitStorage(db, connectionId);
     return gitDb.syncManager.log(depth ?? 20);
   });
 

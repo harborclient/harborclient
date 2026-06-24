@@ -54,7 +54,7 @@ export function buildMenu(
           click: () => sendMenuAction(window, 'new-collection')
         },
         {
-          label: 'Sync Remotes',
+          label: 'Sync Storage',
           click: () => sendMenuAction(window, 'sync')
         },
         {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { CollectionProviderKind, DatabaseProvider } from '#/shared/types';
+import type { CollectionProviderKind, StorageProvider } from '#/shared/types';
 
 /**
  * Unified collection provider entry for database connections and team hubs.
@@ -23,7 +23,7 @@ export interface ProviderOption {
   /**
    * Database engine type when {@link ProviderOption.kind} is `database`.
    */
-  type?: DatabaseProvider;
+  type?: StorageProvider;
 }
 
 /**
@@ -65,7 +65,7 @@ export function providerOptionLabel(provider: ProviderOption): string {
   if (provider.kind === 'team-hub') {
     return 'Team Hub';
   }
-  const labels: Record<DatabaseProvider, string> = {
+  const labels: Record<StorageProvider, string> = {
     sqlite: 'SQLite',
     git: 'Git',
     firestore: 'Firestore',
@@ -107,9 +107,9 @@ export function useProviders(deps: readonly unknown[] = []): ProvidersState {
         setLoading(true);
         setError(null);
         return Promise.all([
-          window.api.listDatabaseConnections(),
+          window.api.listStorageConnections(),
           window.api.listTeamHubs(),
-          window.api.getActiveDatabaseId()
+          window.api.getActiveStorageId()
         ]);
       })
       .then((result) => {

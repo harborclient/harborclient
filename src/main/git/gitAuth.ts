@@ -12,9 +12,9 @@ import {
   storeGitOAuthTokens,
   storeGitPat
 } from '#/main/git/gitSecrets';
-import type { DatabaseConnection, GitAuthMethod } from '#/shared/types';
+import type { StorageConnection, GitAuthMethod } from '#/shared/types';
 import { isGitHubRepositoryUrl } from '#/shared/gitUrl';
-import { listDatabaseConnections, saveDatabaseConnection } from '#/main/settings/databaseSettings';
+import { listStorageConnections, saveStorageConnection } from '#/main/settings/storageSettings';
 
 /**
  * Resolved HTTPS credentials for isomorphic-git onAuth.
@@ -36,8 +36,8 @@ export interface ResolvedGitAuth {
  *
  * @param connectionId - Git connection id.
  */
-function requireGitConnection(connectionId: string): DatabaseConnection & { type: 'git' } {
-  const conn = listDatabaseConnections().find((item) => item.id === connectionId);
+function requireGitConnection(connectionId: string): StorageConnection & { type: 'git' } {
+  const conn = listStorageConnections().find((item) => item.id === connectionId);
   if (!conn || conn.type !== 'git') {
     throw new Error(`Git connection not found: ${connectionId}`);
   }
@@ -49,7 +49,7 @@ function requireGitConnection(connectionId: string): DatabaseConnection & { type
  *
  * @param conn - Git connection configuration.
  */
-function resolveGitHubOAuthClientId(conn: DatabaseConnection & { type: 'git' }): string {
+function resolveGitHubOAuthClientId(conn: StorageConnection & { type: 'git' }): string {
   return conn.settings.oauthClientId?.trim() || GITHUB_OAUTH_CLIENT_ID;
 }
 
@@ -143,7 +143,7 @@ export function persistGitAuthMetadata(
   connectionId: string,
   auth: { kind: 'pat'; username: string } | { kind: 'oauth'; provider: 'github' }
 ): void {
-  const connections = listDatabaseConnections();
+  const connections = listStorageConnections();
   const index = connections.findIndex((conn) => conn.id === connectionId);
   if (index < 0 || connections[index].type !== 'git') {
     throw new Error(`Git connection not found: ${connectionId}`);
@@ -153,7 +153,7 @@ export function persistGitAuthMetadata(
     return;
   }
   conn.settings.auth = auth;
-  saveDatabaseConnection(conn);
+  saveStorageConnection(conn);
 }
 
 /**

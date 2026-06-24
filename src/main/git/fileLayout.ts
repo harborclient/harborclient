@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { maskVariablesForExport, validateCollectionExport } from '#/main/db/collectionData';
-import { validateEnvironmentExport } from '#/main/db/collectionData';
-import { validateRequestExport } from '#/main/db/collectionData';
-import { generateDocumentUuid, resolveImportUuid } from '#/main/db/uuid';
+import { maskVariablesForExport, validateCollectionExport } from '#/main/storage/collectionData';
+import { validateEnvironmentExport } from '#/main/storage/collectionData';
+import { validateRequestExport } from '#/main/storage/collectionData';
+import { generateDocumentUuid, resolveImportUuid } from '#/main/storage/uuid';
 import { uuidSlugPrefix } from '#/main/git/slug';
 import type {
   CollectionExport,

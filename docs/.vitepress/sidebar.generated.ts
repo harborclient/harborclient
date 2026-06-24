@@ -60,12 +60,16 @@ export const sidebar: DefaultTheme.SidebarItem[] =
         "link": "/settings#proxy"
       },
       {
-        "text": "Databases",
-        "link": "/settings#databases"
+        "text": "Storage Locations",
+        "link": "/settings#storage-locations"
       },
       {
         "text": "AI",
         "link": "/settings#ai"
+      },
+      {
+        "text": "Backup & Restore",
+        "link": "/settings#backup--restore"
       },
       {
         "text": "What's next",

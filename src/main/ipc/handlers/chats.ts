@@ -1,5 +1,5 @@
 import { runChatCompletionStep } from '#/main/ai/completeChatTurn';
-import { getLocalRegistry } from '#/main/db/localRegistryInstance';
+import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 
@@ -8,19 +8,19 @@ import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
  */
 export function registerChatHandlers(): void {
   // Lists persisted AI chats from the local registry.
-  handle('chats:list', ipcArgSchemas.none, () => getLocalRegistry().listChats());
+  handle('chats:list', ipcArgSchemas.none, () => getLocalDatabase().listChats());
 
   // Creates a new AI chat record.
   handle('chats:create', ipcArgSchemas.chatCreate, (_event, input) =>
-    getLocalRegistry().createChat(input)
+    getLocalDatabase().createChat(input)
   );
 
   // Returns a single AI chat by id.
-  handle('chats:get', ipcArgSchemas.chatGet, (_event, id) => getLocalRegistry().getChat(id));
+  handle('chats:get', ipcArgSchemas.chatGet, (_event, id) => getLocalDatabase().getChat(id));
 
   // Appends a message to an AI chat.
   handle('chats:addMessage', ipcArgSchemas.chatAddMessage, (_event, input) =>
-    getLocalRegistry().addChatMessage(input)
+    getLocalDatabase().addChatMessage(input)
   );
 
   // Runs one LLM completion step for a chat turn.
@@ -30,6 +30,6 @@ export function registerChatHandlers(): void {
 
   // Deletes an AI chat by id.
   handle('chats:delete', ipcArgSchemas.chatDelete, (_event, id) => {
-    getLocalRegistry().deleteChat(id);
+    getLocalDatabase().deleteChat(id);
   });
 }

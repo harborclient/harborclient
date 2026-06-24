@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { getLocalRegistry } from '#/main/db/localRegistryInstance';
+import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { parseJson } from '#/shared/parseJson';
 import type { TeamHub } from '#/shared/types';
 
@@ -11,7 +11,7 @@ const TEAM_HUBS_KEY = 'teamHubs';
  * @param hubs - Team hubs to store.
  */
 function persistTeamHubs(hubs: TeamHub[]): void {
-  getLocalRegistry().setSetting(TEAM_HUBS_KEY, JSON.stringify(hubs));
+  getLocalDatabase().setSetting(TEAM_HUBS_KEY, JSON.stringify(hubs));
 }
 
 /**
@@ -35,7 +35,7 @@ function normalizeTeamHub(input: TeamHub): TeamHub {
  * @returns Normalized team hub records from local storage.
  */
 export function listTeamHubs(): TeamHub[] {
-  const stored = parseJson<TeamHub[]>(getLocalRegistry().getSetting(TEAM_HUBS_KEY), []);
+  const stored = parseJson<TeamHub[]>(getLocalDatabase().getSetting(TEAM_HUBS_KEY), []);
   return stored.map(normalizeTeamHub);
 }
 

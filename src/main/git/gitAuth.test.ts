@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DatabaseConnection } from '#/shared/types';
+import type { StorageConnection } from '#/shared/types';
 
-const mockConnections: DatabaseConnection[] = [];
+const mockConnections: StorageConnection[] = [];
 
 const { startGitHubDeviceFlow, completeGitHubDeviceFlow, refreshGitHubAccessToken } = vi.hoisted(
   () => ({
@@ -18,9 +18,9 @@ const { startGitHubDeviceFlow, completeGitHubDeviceFlow, refreshGitHubAccessToke
   })
 );
 
-vi.mock('#/main/settings/databaseSettings', () => ({
-  listDatabaseConnections: () => mockConnections,
-  saveDatabaseConnection: (input: DatabaseConnection) => {
+vi.mock('#/main/settings/storageSettings', () => ({
+  listStorageConnections: () => mockConnections,
+  saveStorageConnection: (input: StorageConnection) => {
     const index = mockConnections.findIndex((conn) => conn.id === input.id);
     if (index >= 0) {
       mockConnections[index] = input;

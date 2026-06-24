@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import OpenAI from 'openai';
-import type { LocalRegistry } from '#/main/db/LocalRegistry';
+import type { LocalDatabase } from '#/main/storage/LocalDatabase';
 import {
-  clearLocalRegistryForTesting,
-  setLocalRegistryForTesting
-} from '#/main/db/localRegistryInstance';
+  clearLocalDatabaseForTesting,
+  setLocalDatabaseForTesting
+} from '#/main/storage/localDatabaseInstance';
 import { LlmClientFactory } from '#/main/ai/LlmClientFactory';
 import {
   clearSecretEncryptorForTesting,
@@ -35,13 +35,13 @@ describe('LlmClientFactory', () => {
 
   beforeEach(() => {
     settingsStore = {};
-    const registry = {
+    const database = {
       getSetting: (key: string) => settingsStore[key],
       setSetting: (key: string, value: string) => {
         settingsStore[key] = value;
       }
-    } as LocalRegistry;
-    setLocalRegistryForTesting(registry);
+    } as LocalDatabase;
+    setLocalDatabaseForTesting(database);
     setSecretEncryptorForTesting(mockEncryptor);
     setAiSettings({
       openaiApiKey: 'sk-openai-test',
@@ -51,7 +51,7 @@ describe('LlmClientFactory', () => {
   });
 
   afterEach(() => {
-    clearLocalRegistryForTesting();
+    clearLocalDatabaseForTesting();
     clearSecretEncryptorForTesting();
   });
 

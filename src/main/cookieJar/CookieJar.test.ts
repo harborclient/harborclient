@@ -3,12 +3,12 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { CookieJar } from '#/main/cookieJar/CookieJar';
-import { LocalRegistry } from '#/main/db/LocalRegistry';
+import { LocalDatabase } from '#/main/storage/LocalDatabase';
 import type { KeyValue } from '#/shared/types';
 import { describeSqlite } from '#/test/nativeModules';
 
 let tempDir: string;
-let registry: LocalRegistry;
+let database: LocalDatabase;
 let jar: CookieJar;
 
 /**
@@ -16,9 +16,9 @@ let jar: CookieJar;
  */
 async function setupCookieJarTest(): Promise<void> {
   tempDir = mkdtempSync(join(tmpdir(), 'hc-cookie-test-'));
-  registry = new LocalRegistry(tempDir);
-  await registry.init();
-  jar = new CookieJar(registry);
+  database = new LocalDatabase(tempDir);
+  await database.init();
+  jar = new CookieJar(database);
 }
 
 describeSqlite('hostFromUrl', () => {
@@ -27,7 +27,7 @@ describeSqlite('hostFromUrl', () => {
   });
 
   afterEach(async () => {
-    await registry.close();
+    await database.close();
     rmSync(tempDir, { recursive: true, force: true });
   });
 
@@ -57,7 +57,7 @@ describeSqlite('getCookiesForDomain and setCookiesForDomain', () => {
   });
 
   afterEach(async () => {
-    await registry.close();
+    await database.close();
     rmSync(tempDir, { recursive: true, force: true });
   });
 
@@ -101,7 +101,7 @@ describeSqlite('getCookiesForDomain and setCookiesForDomain', () => {
     jar.setCookiesForDomain('example.com', [{ key: '', value: '', enabled: true }]);
 
     expect(jar.getCookiesForDomain('example.com')).toEqual([]);
-    expect(registry.getSetting('cookieJar')).toBe('{}');
+    expect(database.getSetting('cookieJar')).toBe('{}');
   });
 
   it('returns defensive copies that do not mutate stored cookies', () => {
@@ -131,7 +131,7 @@ describeSqlite('buildCookieHeader', () => {
   });
 
   afterEach(async () => {
-    await registry.close();
+    await database.close();
     rmSync(tempDir, { recursive: true, force: true });
   });
 
@@ -193,7 +193,7 @@ describeSqlite('captureSetCookies', () => {
   });
 
   afterEach(async () => {
-    await registry.close();
+    await database.close();
     rmSync(tempDir, { recursive: true, force: true });
     vi.useRealTimers();
   });
@@ -262,7 +262,7 @@ describeSqlite('captureSetCookies', () => {
   it('does nothing when the URL has no host', () => {
     jar.captureSetCookies('', ['session=abc']);
 
-    expect(registry.getSetting('cookieJar')).toBeUndefined();
+    expect(database.getSetting('cookieJar')).toBeUndefined();
   });
 
   it('does not persist cookies with control characters in the name or value', () => {

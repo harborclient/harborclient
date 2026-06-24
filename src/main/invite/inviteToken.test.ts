@@ -12,7 +12,7 @@ import {
   type CipherKey
 } from 'crypto';
 import { describe, expect, it } from 'vitest';
-import type { DatabaseConnection } from '#/shared/types';
+import type { StorageConnection } from '#/shared/types';
 import {
   createInviteToken,
   INVITE_TTL_MS,
@@ -187,7 +187,7 @@ function createInviteTokenWithPayload(
   return `${signingInput}.${signature}`;
 }
 
-const sampleConnection: DatabaseConnection = {
+const sampleConnection: StorageConnection = {
   id: 'conn-1',
   name: 'Shared Postgres',
   type: 'postgres',

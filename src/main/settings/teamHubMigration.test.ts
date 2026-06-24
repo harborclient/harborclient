@@ -2,11 +2,11 @@ import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { LocalRegistry } from '#/main/db/LocalRegistry';
+import type { LocalDatabase } from '#/main/storage/LocalDatabase';
 import {
-  clearLocalRegistryForTesting,
-  setLocalRegistryForTesting
-} from '#/main/db/localRegistryInstance';
+  clearLocalDatabaseForTesting,
+  setLocalDatabaseForTesting
+} from '#/main/storage/localDatabaseInstance';
 import { migrateTeamHubSettings } from '#/main/settings/teamHubMigration';
 
 describe('teamHubMigration', () => {
@@ -17,20 +17,20 @@ describe('teamHubMigration', () => {
     settingsStore = {};
     userDataPath = mkdtempSync(join(tmpdir(), 'team-hub-migration-'));
 
-    const registry = {
+    const database = {
       getSetting: (key: string) => settingsStore[key],
       setSetting: (key: string, value: string) => {
         settingsStore[key] = value;
       },
       listSettingKeysWithPrefix: (prefix: string) =>
         Object.keys(settingsStore).filter((key) => key.startsWith(prefix))
-    } as LocalRegistry;
+    } as LocalDatabase;
 
-    setLocalRegistryForTesting(registry);
+    setLocalDatabaseForTesting(database);
   });
 
   afterEach(() => {
-    clearLocalRegistryForTesting();
+    clearLocalDatabaseForTesting();
   });
 
   it('copies legacy serviceHubs into teamHubs when teamHubs is unset', () => {
@@ -47,7 +47,7 @@ describe('teamHubMigration', () => {
         },
         listSettingKeysWithPrefix: (prefix) =>
           Object.keys(settingsStore).filter((key) => key.startsWith(prefix))
-      } as LocalRegistry,
+      } as LocalDatabase,
       userDataPath
     );
 
@@ -68,7 +68,7 @@ describe('teamHubMigration', () => {
         },
         listSettingKeysWithPrefix: (prefix) =>
           Object.keys(settingsStore).filter((key) => key.startsWith(prefix))
-      } as LocalRegistry,
+      } as LocalDatabase,
       userDataPath
     );
 
@@ -94,7 +94,7 @@ describe('teamHubMigration', () => {
         },
         listSettingKeysWithPrefix: (prefix) =>
           Object.keys(settingsStore).filter((key) => key.startsWith(prefix))
-      } as LocalRegistry,
+      } as LocalDatabase,
       userDataPath
     );
 

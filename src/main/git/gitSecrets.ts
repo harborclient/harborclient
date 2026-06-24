@@ -1,4 +1,4 @@
-import { getLocalRegistry } from '#/main/db/localRegistryInstance';
+import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { decryptSecret, encryptSecret, type EncryptedSecret } from '#/main/secrets/secretStorage';
 import { parseJson } from '#/shared/parseJson';
 
@@ -29,7 +29,7 @@ interface StoredGitSecret {
  */
 function readAllGitSecrets(): Record<string, StoredGitSecret> {
   return parseJson<Record<string, StoredGitSecret>>(
-    getLocalRegistry().getSetting(GIT_SECRETS_KEY),
+    getLocalDatabase().getSetting(GIT_SECRETS_KEY),
     {}
   );
 }
@@ -40,7 +40,7 @@ function readAllGitSecrets(): Record<string, StoredGitSecret> {
  * @param secrets - Map keyed by connection id.
  */
 function writeAllGitSecrets(secrets: Record<string, StoredGitSecret>): void {
-  getLocalRegistry().setSetting(GIT_SECRETS_KEY, JSON.stringify(secrets));
+  getLocalDatabase().setSetting(GIT_SECRETS_KEY, JSON.stringify(secrets));
 }
 
 /**

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateCollectionExport } from '#/main/db/collectionData';
+import { validateCollectionExport } from '#/main/storage/collectionData';
 import { convertPostmanCollection, isPostmanCollection } from '#/main/import/postman';
 
 const pintailFixture = {

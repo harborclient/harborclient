@@ -1,22 +1,22 @@
 import { app, nativeTheme } from 'electron';
-import type { IDatabase } from '#/main/db/IDatabase';
-import { RoutingDatabase } from '#/main/db/RoutingDatabase';
+import type { IStorage } from '#/main/storage/IStorage';
+import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { rebuildAppMenu } from '#/main/appMenu';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import {
-  deleteDatabaseConnection,
-  getActiveDatabaseId,
-  isDatabaseConnectionConfigured,
-  listDatabaseConnections,
-  saveDatabaseConnection,
-  setActiveDatabaseId
-} from '#/main/settings/databaseSettings';
+  deleteStorageConnection,
+  getActiveStorageId,
+  isStorageConnectionConfigured,
+  listStorageConnections,
+  saveStorageConnection,
+  setActiveStorageId
+} from '#/main/settings/storageSettings';
 import {
   assignSlotForNewTeamHub,
   getSlotForConnection,
   removeSlotForConnection
-} from '#/main/settings/databaseSlots';
+} from '#/main/settings/storageSlots';
 import { deleteTeamHub, listTeamHubs, saveTeamHub } from '#/main/settings/teamHubSettings';
 import { scanTeamHubSessions } from '#/main/settings/teamHubSessionScan';
 import { TeamHubClient } from '#/main/teamHub/TeamHubClient';
@@ -73,7 +73,7 @@ function resolveNativeThemeSource(theme: ThemeSource): 'light' | 'dark' | 'syste
  *
  * @param db - Database instance used for theme setting storage.
  */
-export function registerSettingsHandlers(db: IDatabase): void {
+export function registerSettingsHandlers(db: IStorage): void {
   // Returns the application semver from package metadata.
   handle('app:getVersion', ipcArgSchemas.none, () => app.getVersion());
 
@@ -108,17 +108,17 @@ export function registerSettingsHandlers(db: IDatabase): void {
   });
 
   // Lists configured database connections.
-  handle('databaseConnections:list', ipcArgSchemas.none, () => listDatabaseConnections());
+  handle('storageConnections:list', ipcArgSchemas.none, () => listStorageConnections());
 
   // Creates or updates a database connection.
-  handle('databaseConnections:save', ipcArgSchemas.databaseConnection, async (_event, conn) => {
-    const connections = saveDatabaseConnection(conn);
+  handle('storageConnections:save', ipcArgSchemas.storageConnection, async (_event, conn) => {
+    const connections = saveStorageConnection(conn);
     const saved = connections.find((item) => item.id === conn.id);
 
-    if (saved && db instanceof RoutingDatabase && isDatabaseConnectionConfigured(saved)) {
+    if (saved && db instanceof RoutingStorage && isStorageConnectionConfigured(saved)) {
       const slot = getSlotForConnection(saved.id);
       if (slot != null) {
-        await db.mountDatabaseConnection(saved);
+        await db.mountStorageConnection(saved);
       }
     }
 
@@ -126,8 +126,8 @@ export function registerSettingsHandlers(db: IDatabase): void {
   });
 
   // Deletes a database connection by id.
-  handle('databaseConnections:delete', ipcArgSchemas.connectionId, (_event, id) =>
-    deleteDatabaseConnection(id)
+  handle('storageConnections:delete', ipcArgSchemas.connectionId, (_event, id) =>
+    deleteStorageConnection(id)
   );
 
   // Lists configured team hubs.
@@ -246,7 +246,7 @@ export function registerSettingsHandlers(db: IDatabase): void {
       hubs.find((item) => item.id === trimmedId) ??
       (trimmedId.length === 0 ? hubs[hubs.length - 1] : undefined);
 
-    if (saved && db instanceof RoutingDatabase) {
+    if (saved && db instanceof RoutingStorage) {
       if (isNew) {
         assignSlotForNewTeamHub(saved.id);
       }
@@ -262,14 +262,14 @@ export function registerSettingsHandlers(db: IDatabase): void {
 
   // Re-reads collection data from a single provider (database or team hub).
   handle('providers:sync', ipcArgSchemas.providerSync, async (_event, connectionId) => {
-    if (db instanceof RoutingDatabase) {
+    if (db instanceof RoutingStorage) {
       await db.syncProvider(connectionId);
     }
   });
 
   // Deletes a team hub by id.
   handle('teamHubs:delete', ipcArgSchemas.connectionId, async (_event, id) => {
-    if (db instanceof RoutingDatabase) {
+    if (db instanceof RoutingStorage) {
       await db.removeTeamHub(id);
       removeSlotForConnection(id);
     }
@@ -277,11 +277,11 @@ export function registerSettingsHandlers(db: IDatabase): void {
   });
 
   // Returns the id of the active database connection.
-  handle('database:getActiveId', ipcArgSchemas.none, () => getActiveDatabaseId());
+  handle('storage:getActiveId', ipcArgSchemas.none, () => getActiveStorageId());
 
   // Sets the active database connection (applied on restart).
-  handle('database:setActiveId', ipcArgSchemas.connectionId, (_event, id) => {
-    setActiveDatabaseId(id);
+  handle('storage:setActiveId', ipcArgSchemas.connectionId, (_event, id) => {
+    setActiveStorageId(id);
   });
 
   // Returns the persisted request editor tab for a storage key.

@@ -64,7 +64,7 @@ The following are generally out of scope:
 ## Security Considerations for Users
 
 HarborClient runs locally on your machine and can store sensitive request data,
-credentials, and database connection details. Keep these practices in mind:
+credentials, and storage connection details. Keep these practices in mind:
 
 ### Scripts and imports
 
@@ -78,7 +78,7 @@ See [Request scripts — Sandbox limits](https://harborclient.com/request-script
 
 ### Invite tokens and keys
 
-Collection invite tokens embed database connection credentials. Treat invite
+Collection invite tokens embed storage connection credentials. Treat invite
 tokens as secrets and share them only with the intended recipient over a trusted
 channel. Keep your private RSA key on your machine and never share it. Verify
 public-key fingerprints when exchanging keys with collaborators.
@@ -91,9 +91,9 @@ Install HarborClient from official
 [GitHub Releases](https://github.com/headzoo/harborclient/releases/latest) and
 keep your installation up to date.
 
-### Remote databases
+### Remote storage locations
 
-Database connection credentials are stored locally and may be included in invite
+Storage connection credentials are stored locally and may be included in invite
 tokens. Secure the machines and communication channels where credentials and
 tokens are shared.
 

@@ -9,7 +9,7 @@ import {
   writeFileSync
 } from 'fs';
 import { dirname, join, posix } from 'path';
-import { listDatabaseConnections } from '#/main/settings/databaseSettings';
+import { listStorageConnections } from '#/main/settings/storageSettings';
 import { normalizeSqliteFilename } from '#/main/settings/sqliteFilename';
 
 /** Current HarborClient backup archive format version. */
@@ -193,7 +193,7 @@ function collectSqliteProviderFilenames(sqliteFilenames?: string[]): string[] {
 
   const filenames = new Set<string>([DEFAULT_SQLITE_FILENAME, LEGACY_SQLITE_FILENAME]);
 
-  for (const connection of listDatabaseConnections()) {
+  for (const connection of listStorageConnections()) {
     if (connection.type !== 'sqlite') continue;
     filenames.add(normalizeSqliteFilename(connection.settings.dbFilename, DEFAULT_SQLITE_FILENAME));
   }
@@ -207,7 +207,7 @@ function collectSqliteProviderFilenames(sqliteFilenames?: string[]): string[] {
  * @param entries - Collector array.
  * @param userDataPath - Electron userData directory.
  */
-function addTeamHubDatabases(entries: BackupFileEntry[], userDataPath: string): void {
+function addTeamHubStorages(entries: BackupFileEntry[], userDataPath: string): void {
   if (!existsSync(userDataPath)) return;
 
   for (const name of readdirSync(userDataPath)) {
@@ -241,7 +241,7 @@ export function collectBackupFiles(
     addSqliteFamily(entries, userDataPath, filename);
   }
 
-  addTeamHubDatabases(entries, userDataPath);
+  addTeamHubStorages(entries, userDataPath);
 
   for (const directoryName of BACKUP_DIRECTORIES) {
     addDirectoryIfExists(entries, userDataPath, directoryName);

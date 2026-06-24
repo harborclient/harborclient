@@ -959,12 +959,12 @@ export interface CodeEditorSetup {
 /**
  * Active database backend for collections and requests.
  */
-export type DatabaseProvider = 'sqlite' | 'firestore' | 'mysql' | 'postgres' | 'git';
+export type StorageProvider = 'sqlite' | 'firestore' | 'mysql' | 'postgres' | 'git';
 
 /**
  * Kind of collection data provider, including remote team hubs.
  */
-export type CollectionProviderKind = DatabaseProvider | 'team-hub';
+export type CollectionProviderKind = StorageProvider | 'team-hub';
 
 /**
  * Request editor tab identifiers.
@@ -1125,7 +1125,7 @@ export interface GeneralSettings {
 export type SettingsSection =
   | 'general'
   | 'syntax'
-  | 'databases'
+  | 'storage'
   | 'shortcuts'
   | 'proxy'
   | 'ai'
@@ -1677,7 +1677,7 @@ export interface SqliteSettings {
 /**
  * Shared fields for a named database connection.
  */
-export interface DatabaseConnectionBase {
+export interface StorageConnectionBase {
   /**
    * Unique connection identifier.
    */
@@ -1692,12 +1692,12 @@ export interface DatabaseConnectionBase {
 /**
  * A named database connection with type-specific settings.
  */
-export type DatabaseConnection =
-  | (DatabaseConnectionBase & { type: 'sqlite'; settings: SqliteSettings })
-  | (DatabaseConnectionBase & { type: 'firestore'; settings: FirestoreSettings })
-  | (DatabaseConnectionBase & { type: 'mysql'; settings: MySqlSettings })
-  | (DatabaseConnectionBase & { type: 'postgres'; settings: PostgresSettings })
-  | (DatabaseConnectionBase & { type: 'git'; settings: GitSettings });
+export type StorageConnection =
+  | (StorageConnectionBase & { type: 'sqlite'; settings: SqliteSettings })
+  | (StorageConnectionBase & { type: 'firestore'; settings: FirestoreSettings })
+  | (StorageConnectionBase & { type: 'mysql'; settings: MySqlSettings })
+  | (StorageConnectionBase & { type: 'postgres'; settings: PostgresSettings })
+  | (StorageConnectionBase & { type: 'git'; settings: GitSettings });
 
 /**
  * A configured HarborClient Team Hub connection.
@@ -2577,7 +2577,7 @@ export interface Api {
   /**
    * Lists all configured database connections.
    */
-  listDatabaseConnections: () => Promise<DatabaseConnection[]>;
+  listStorageConnections: () => Promise<StorageConnection[]>;
 
   /**
    * Creates or updates a database connection.
@@ -2585,7 +2585,7 @@ export interface Api {
    * @param conn - Connection to persist; empty id inserts a new connection.
    * @returns Updated list of all connections.
    */
-  saveDatabaseConnection: (conn: DatabaseConnection) => Promise<DatabaseConnection[]>;
+  saveStorageConnection: (conn: StorageConnection) => Promise<StorageConnection[]>;
 
   /**
    * Deletes a database connection by id.
@@ -2593,7 +2593,7 @@ export interface Api {
    * @param id - Connection id to remove.
    * @returns Updated list of all connections.
    */
-  deleteDatabaseConnection: (id: string) => Promise<DatabaseConnection[]>;
+  deleteStorageConnection: (id: string) => Promise<StorageConnection[]>;
 
   /**
    * Lists all configured team hubs.
@@ -2788,14 +2788,14 @@ export interface Api {
   /**
    * Returns the id of the active database connection.
    */
-  getActiveDatabaseId: () => Promise<string>;
+  getActiveStorageId: () => Promise<string>;
 
   /**
    * Sets the active database connection (applied on restart).
    *
    * @param id - Connection id to activate.
    */
-  setActiveDatabaseId: (id: string) => Promise<void>;
+  setActiveStorageId: (id: string) => Promise<void>;
 
   /**
    * Returns the persisted request editor tab for a storage key.
@@ -2916,7 +2916,7 @@ export interface Api {
    * @param token - JWT string from an invite.
    * @returns Updated list of all connections.
    */
-  acceptInvite: (token: string) => Promise<DatabaseConnection[]>;
+  acceptInvite: (token: string) => Promise<StorageConnection[]>;
 
   /**
    * Returns the local invite identity (public key and fingerprint).

@@ -1,7 +1,7 @@
 import type {
   AiSettings,
-  DatabaseConnection,
-  DatabaseProvider,
+  StorageConnection,
+  StorageProvider,
   FirestoreSettings,
   GeneralSettings,
   GitSettings,
@@ -60,7 +60,7 @@ export const PROXY_PROTOCOL_OPTIONS: Array<{ value: ProxySettings['protocol']; l
 /**
  * Select options for database provider type when adding or editing a connection.
  */
-export const PROVIDER_OPTIONS: Array<{ value: DatabaseProvider; label: string }> = [
+export const PROVIDER_OPTIONS: Array<{ value: StorageProvider; label: string }> = [
   { value: 'sqlite', label: 'SQLite' },
   { value: 'git', label: 'Git' },
   { value: 'firestore', label: 'Firestore' },
@@ -136,7 +136,7 @@ export const DEFAULT_AI_SETTINGS: AiSettings = {
  */
 export const SETTINGS_SECTIONS: Array<{ value: SettingsSection; label: string }> = [
   { value: 'general', label: 'General' },
-  { value: 'databases', label: 'Databases' },
+  { value: 'storage', label: 'Storage Locations' },
   { value: 'shortcuts', label: 'Shortcuts' },
   { value: 'syntax', label: 'Syntax highlighting' },
   { value: 'ai', label: 'AI' },
@@ -149,7 +149,7 @@ export const SETTINGS_SECTIONS: Array<{ value: SettingsSection; label: string }>
  *
  * @param type - Database provider type.
  */
-export function providerLabel(type: DatabaseProvider): string {
+export function providerLabel(type: StorageProvider): string {
   return PROVIDER_OPTIONS.find((option) => option.value === type)?.label ?? type;
 }
 
@@ -158,7 +158,7 @@ export function providerLabel(type: DatabaseProvider): string {
  *
  * @param type - Database provider type.
  */
-export function createBlankConnection(type: DatabaseProvider): DatabaseConnection {
+export function createBlankConnection(type: StorageProvider): StorageConnection {
   switch (type) {
     case 'sqlite':
       return { id: '', name: '', type: 'sqlite', settings: { ...DEFAULT_SQLITE_SETTINGS } };

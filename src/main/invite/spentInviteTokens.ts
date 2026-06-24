@@ -1,4 +1,4 @@
-import { getLocalRegistry } from '#/main/db/localRegistryInstance';
+import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { parseJson } from '#/shared/parseJson';
 
 const SPENT_INVITES_SETTING = 'spentInviteTokens';
@@ -55,7 +55,7 @@ function isValidSpentInviteEntry(entry: SpentInviteEntry, now: number): boolean 
  * @param now - Current timestamp in milliseconds used for expiry pruning.
  */
 function loadAndPruneSpentInvites(now: number): SpentInviteEntry[] {
-  const raw = getLocalRegistry().getSetting(SPENT_INVITES_SETTING);
+  const raw = getLocalDatabase().getSetting(SPENT_INVITES_SETTING);
   const parsed = parseJson<SpentInviteEntry[]>(raw, []);
   const entries = parsed.filter((entry) => isValidSpentInviteEntry(entry, now));
   if (entries.length !== parsed.length) {
@@ -70,7 +70,7 @@ function loadAndPruneSpentInvites(now: number): SpentInviteEntry[] {
  * @param entries - Spent invite entries to store.
  */
 function persistSpentInvites(entries: SpentInviteEntry[]): void {
-  getLocalRegistry().setSetting(SPENT_INVITES_SETTING, JSON.stringify(entries));
+  getLocalDatabase().setSetting(SPENT_INVITES_SETTING, JSON.stringify(entries));
 }
 
 /**

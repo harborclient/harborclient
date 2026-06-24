@@ -1,10 +1,10 @@
 import type { WebContents } from 'electron';
-import type { IDatabase } from '#/main/db/IDatabase';
-import { RoutingDatabase } from '#/main/db/RoutingDatabase';
+import type { IStorage } from '#/main/storage/IStorage';
+import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { finishGitHubOAuth } from '#/main/git/gitAuth';
 import { clearPendingGitHubDeviceFlow } from '#/main/git/githubOAuth';
 import { GitSyncManager } from '#/main/git/GitSyncManager';
-import { listDatabaseConnections } from '#/main/settings/databaseSettings';
+import { listStorageConnections } from '#/main/settings/storageSettings';
 import type { GitOAuthFinishedEvent } from '#/shared/types';
 
 const activeCompletions = new Map<string, AbortController>();
@@ -16,13 +16,13 @@ const activeCompletions = new Map<string, AbortController>();
  * @param db - Top-level database handle.
  * @param connectionId - Git connection id.
  */
-export async function testGitCredentials(db: IDatabase, connectionId: string): Promise<void> {
-  if (db instanceof RoutingDatabase && db.isConnectionMounted(connectionId)) {
-    await db.requireGitDatabase(connectionId).syncManager.testCredentials();
+export async function testGitCredentials(db: IStorage, connectionId: string): Promise<void> {
+  if (db instanceof RoutingStorage && db.isConnectionMounted(connectionId)) {
+    await db.requireGitStorage(connectionId).syncManager.testCredentials();
     return;
   }
 
-  const conn = listDatabaseConnections().find((item) => item.id === connectionId);
+  const conn = listStorageConnections().find((item) => item.id === connectionId);
   if (!conn || conn.type !== 'git') {
     throw new Error(`Git connection not found: ${connectionId}`);
   }
@@ -53,7 +53,7 @@ function notifyOAuthFinished(sender: WebContents, event: GitOAuthFinishedEvent):
  */
 export function scheduleGitHubOAuthCompletion(
   sender: WebContents,
-  db: IDatabase,
+  db: IStorage,
   connectionId: string
 ): void {
   activeCompletions.get(connectionId)?.abort();

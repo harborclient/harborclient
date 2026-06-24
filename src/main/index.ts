@@ -1,20 +1,20 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, screen, shell } from 'electron';
 import { join } from 'path';
-import { RoutingDatabase } from '#/main/db';
-import { initLocalRegistry } from '#/main/db/localRegistryInstance';
-import { createDatabaseInstance } from '#/main/db/createDatabaseInstance';
-import type { IDatabase } from '#/main/db/IDatabase';
+import { RoutingStorage } from '#/main/storage';
+import { initLocalDatabase } from '#/main/storage/localDatabaseInstance';
+import { createStorageInstance } from '#/main/storage/createStorageInstance';
 import { registerIpcHandlers } from '#/main/ipc';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import {
-  getActiveDatabaseId,
-  getActiveDatabaseConnection,
+  getActiveStorageId,
+  getActiveStorageConnection,
   getSqliteFallbackSettings,
-  listDatabaseConnections,
-  setActiveDatabaseId
-} from '#/main/settings/databaseSettings';
-import { ensureDatabaseSlots } from '#/main/settings/databaseSlots';
+  listStorageConnections,
+  setActiveStorageId
+} from '#/main/settings/storageSettings';
+import { ensureStorageSlots } from '#/main/settings/storageSlots';
 import { migrateTeamHubSettings } from '#/main/settings/teamHubMigration';
+import { migrateStorageSettingsKeys } from '#/main/settings/storageSettingsMigration';
 import { listTeamHubs } from '#/main/settings/teamHubSettings';
 import { ensureInviteKeys } from '#/main/invite/inviteKeys';
 import { startGitWatchers } from '#/main/git/gitWatcher';
@@ -27,7 +27,7 @@ import {
   saveWindowState,
   trackWindowState
 } from '#/main/window/windowState';
-import type { DatabaseConnection, ThemeSource } from '#/shared/types';
+import type { StorageConnection, ThemeSource } from '#/shared/types';
 
 const isDev = !app.isPackaged;
 
@@ -36,7 +36,7 @@ const MIN_SPLASH_MS = 600;
 const SPLASH_WIDTH = 420;
 const SPLASH_HEIGHT = 260;
 
-let db: IDatabase;
+let db: RoutingStorage;
 
 type CloseReason = 'window' | 'app';
 
@@ -52,7 +52,7 @@ let closeReason: CloseReason | null = null;
  * @param connections - Persisted database connections.
  * @returns SQLite connection configuration, or a synthetic fallback when none exists.
  */
-function resolveSqliteFallbackConnection(connections: DatabaseConnection[]): DatabaseConnection {
+function resolveSqliteFallbackConnection(connections: StorageConnection[]): StorageConnection {
   return (
     connections.find((conn) => conn.type === 'sqlite') ?? {
       id: 'fallback-sqlite',
@@ -73,8 +73,8 @@ function resolveSqliteFallbackConnection(connections: DatabaseConnection[]): Dat
  * @returns True when SQLite was mounted successfully.
  */
 async function mountSqliteFallback(
-  router: RoutingDatabase,
-  connections: DatabaseConnection[],
+  router: RoutingStorage,
+  connections: StorageConnection[],
   slots: Record<string, number>,
   userDataPath: string
 ): Promise<boolean> {
@@ -86,7 +86,7 @@ async function mountSqliteFallback(
   }
 
   try {
-    const sqliteDb = await createDatabaseInstance(sqliteConnection, userDataPath);
+    const sqliteDb = await createStorageInstance(sqliteConnection, userDataPath);
     const slot = slots[sqliteConnection.id] ?? 0;
     router.mount(slot, sqliteConnection, sqliteDb);
     router.setDefaultDataConnectionId(sqliteConnection.id);
@@ -104,11 +104,11 @@ async function mountSqliteFallback(
  * @param router - Initialized routing database.
  * @param connections - Persisted database connections.
  */
-function reconcileActiveDatabaseSelection(
-  router: RoutingDatabase,
-  connections: DatabaseConnection[]
+function reconcileActiveStorageSelection(
+  router: RoutingStorage,
+  connections: StorageConnection[]
 ): void {
-  const activeId = getActiveDatabaseId();
+  const activeId = getActiveStorageId();
   if (router.isConnectionMounted(activeId)) {
     return;
   }
@@ -123,7 +123,7 @@ function reconcileActiveDatabaseSelection(
     return;
   }
 
-  setActiveDatabaseId(fallbackId);
+  setActiveStorageId(fallbackId);
   router.setDefaultDataConnectionId(fallbackId);
   console.warn(
     `Active database "${activeId}" is unavailable; using "${fallbackId}" for this session.`
@@ -135,39 +135,40 @@ function reconcileActiveDatabaseSelection(
  *
  * @returns Initialized routing database instance.
  */
-async function createDatabase(): Promise<RoutingDatabase> {
+async function createStorage(): Promise<RoutingStorage> {
   const userDataPath = app.getPath('userData');
-  logVerbose('createDatabase: userData path', userDataPath);
-  const registry = await initLocalRegistry(userDataPath);
-  logVerbose('createDatabase: local registry initialized');
-  migrateTeamHubSettings(registry, userDataPath);
-  const connections = listDatabaseConnections();
+  logVerbose('createStorage: userData path', userDataPath);
+  const database = await initLocalDatabase(userDataPath);
+  logVerbose('createStorage: local database initialized');
+  migrateTeamHubSettings(database, userDataPath);
+  migrateStorageSettingsKeys(database);
+  const connections = listStorageConnections();
   const teamHubs = listTeamHubs();
-  const primaryConnectionId = getActiveDatabaseId();
+  const primaryConnectionId = getActiveStorageId();
   logVerbose(
-    `createDatabase: ${connections.length} connection(s), ${teamHubs.length} team hub(s), active="${primaryConnectionId}"`
+    `createStorage: ${connections.length} connection(s), ${teamHubs.length} team hub(s), active="${primaryConnectionId}"`
   );
-  const slots = ensureDatabaseSlots(
+  const slots = ensureStorageSlots(
     connections,
     primaryConnectionId,
     teamHubs.map((hub) => hub.id)
   );
 
-  let router: RoutingDatabase;
+  let router: RoutingStorage;
   try {
-    logVerbose('createDatabase: mounting routing database backends');
-    router = await RoutingDatabase.create(
-      registry,
+    logVerbose('createStorage: mounting routing storage backends');
+    router = await RoutingStorage.create(
+      database,
       primaryConnectionId,
       connections,
       teamHubs,
       slots,
       userDataPath
     );
-    logVerbose('createDatabase: routing database created');
+    logVerbose('createStorage: routing storage created');
   } catch (err) {
-    console.warn('Failed to initialize routing database; falling back to SQLite provider:', err);
-    router = new RoutingDatabase(registry, primaryConnectionId, userDataPath);
+    console.warn('Failed to initialize routing storage; falling back to SQLite provider:', err);
+    router = new RoutingStorage(database, primaryConnectionId, userDataPath);
     await mountSqliteFallback(router, connections, slots, userDataPath);
   }
 
@@ -175,26 +176,29 @@ async function createDatabase(): Promise<RoutingDatabase> {
     await mountSqliteFallback(router, connections, slots, userDataPath);
   }
 
-  reconcileActiveDatabaseSelection(router, connections);
+  reconcileActiveStorageSelection(router, connections);
 
   if (!router.hasAnyBackend()) {
     console.warn(
-      'No database providers could be mounted; continuing startup with registry-only storage.'
+      'No storage providers could be mounted; continuing startup with local-database-only storage.'
     );
   }
 
-  const activeConnection = getActiveDatabaseConnection();
+  const activeConnection = getActiveStorageConnection();
   const sqliteSettings =
     activeConnection.type === 'sqlite' ? activeConnection.settings : getSqliteFallbackSettings();
   const legacyProviderDbPath = join(userDataPath, sqliteSettings.dbFilename);
 
   setSplashStatus('Loading metadata...');
-  logVerbose('createDatabase: running registry migration if needed', legacyProviderDbPath);
+  logVerbose(
+    'createStorage: running collection registry migration if needed',
+    legacyProviderDbPath
+  );
   try {
     await router.migrateRegistryIfNeeded(legacyProviderDbPath);
-    logVerbose('createDatabase: registry migration complete');
+    logVerbose('createStorage: collection registry migration complete');
   } catch (err) {
-    console.warn('Database metadata migration failed; continuing startup without migration:', err);
+    console.warn('Storage metadata migration failed; continuing startup without migration:', err);
   }
 
   return router;
@@ -532,16 +536,16 @@ app.whenReady().then(async () => {
     logVerbose('startup: ensuring invite keys');
     await ensureInviteKeys(app.getPath('userData'));
 
-    setSplashStatus('Connecting to databases...');
-    logVerbose('startup: initializing databases');
-    db = await createDatabase();
+    setSplashStatus('Connecting to storage...');
+    logVerbose('startup: initializing storage');
+    db = await createStorage();
 
     logVerbose('startup: applying persisted theme');
     await applyPersistedTheme();
     logVerbose('startup: registering IPC handlers');
     registerIpcHandlers(db);
 
-    if (db instanceof RoutingDatabase) {
+    if (db instanceof RoutingStorage) {
       startGitWatchers(db, () => mainWindow);
     }
 

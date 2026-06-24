@@ -59,7 +59,7 @@ The **Trusted keys** section lists public keys for people you trust. Trusted key
 | **Incoming invites** | HarborClient only accepts invites signed by a sender whose public key is in your trusted list. |
 | **Outgoing invites** | When you create an invite, you must select a recipient from your trusted keys. The invite is encrypted so only that person can decrypt it. |
 
-Trusted keys are stored **per machine** in the local app registry. They are not synced through shared databases — each HarborClient installation maintains its own trust list.
+Trusted keys are stored **per machine** in the local database. They are not synced through shared storage locations — each HarborClient installation maintains its own trust list.
 
 ### Adding a trusted key
 
@@ -107,10 +107,10 @@ flowchart LR
 ## Security notes
 
 - **Public keys** are safe to share. **Private keys** must stay on your machine and out of chat logs or email.
-- **Invite tokens** embed database connection credentials. Treat them like secrets and share only with the intended recipient over a trusted channel.
+- **Invite tokens** embed storage connection credentials. Treat them like secrets and share only with the intended recipient over a trusted channel.
 - **Invites expire** after seven days. Generate a new token if one expires before the recipient accepts it.
 
 ## What's next
 
 - [Collections → Sharing collections](/collections#sharing-collections) — send and accept invites for live remote collections
-- [Settings → Databases](/settings#databases) — configure remote database connections used by shared collections
+- [Settings → Storage Locations](/settings#storage-locations) — configure remote storage connections used by shared collections

@@ -1,4 +1,4 @@
-import { getLocalRegistry } from '#/main/db/localRegistryInstance';
+import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { publicKeyFingerprint } from '#/main/invite/inviteToken';
 import type { TrustedInviteKey } from '#/shared/types';
 import { parseJson } from '#/shared/parseJson';
@@ -11,14 +11,14 @@ const TRUSTED_KEYS_SETTING = 'trustedInviteKeys';
  * @param keys - Trusted keys to store.
  */
 function persistTrustedKeys(keys: TrustedInviteKey[]): void {
-  getLocalRegistry().setSetting(TRUSTED_KEYS_SETTING, JSON.stringify(keys));
+  getLocalDatabase().setSetting(TRUSTED_KEYS_SETTING, JSON.stringify(keys));
 }
 
 /**
  * Returns all trusted invite public keys.
  */
 export function listTrustedKeys(): TrustedInviteKey[] {
-  const raw = getLocalRegistry().getSetting(TRUSTED_KEYS_SETTING);
+  const raw = getLocalDatabase().getSetting(TRUSTED_KEYS_SETTING);
   const keys = parseJson<TrustedInviteKey[]>(raw, []);
   return keys.filter(
     (key) =>
