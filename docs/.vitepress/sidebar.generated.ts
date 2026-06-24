@@ -474,6 +474,10 @@ export const sidebar: DefaultTheme.SidebarItem[] =
         "link": "/plugin_development#lifecycle"
       },
       {
+        "text": "Publish to the marketplace",
+        "link": "/plugin_development#publish-to-the-marketplace"
+      },
+      {
         "text": "Renderer API",
         "link": "/plugin_development#renderer-api"
       },
@@ -511,5 +515,9 @@ export const sidebar: DefaultTheme.SidebarItem[] =
       }
     ],
     "collapsed": false
+  },
+  {
+    "text": "Plugin marketplace",
+    "link": "/plugins"
   }
 ]

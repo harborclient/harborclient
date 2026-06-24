@@ -2,7 +2,7 @@
 
 HarborClient plugins extend the app with installable packages: custom settings panels, sidebar views, request tabs, appearance themes, HTTP hooks, and persistent storage. Each plugin ships as a **HarborClient plugin** file (`.hcp`) containing a `manifest.json` and bundled JavaScript. A `.hcp` file is a normal ZIP archive — the extension is a naming convention only, not a separate container format. Plugins use the same `hc` namespace as [request scripts](/request-scripts), but with a broader API suited to long-lived extensions.
 
-To install or manage plugins in the app, see [Settings → Plugins](/settings#plugins). This guide covers package layout, the manifest, APIs, examples, and the development workflow.
+To install or manage plugins in the app, see [Settings → Plugins](/settings#plugins) or browse the [plugin marketplace](/plugins). This guide covers package layout, the manifest, APIs, examples, and the development workflow.
 
 ## Plugin package layout
 
@@ -273,6 +273,48 @@ flowchart TD
 5. **Uninstall** — Removes an installed plugin directory and clears stored enablement state. Unpacked plugins are removed from the dev registry only; your source folder on disk is not deleted.
 
 Registrations from `hc.ui.*` and similar APIs return **disposables**. Push them onto `hc.subscriptions` so the host can clean up automatically on deactivation.
+
+## Publish to the marketplace
+
+HarborClient maintains a curated [plugin marketplace](/plugins) built from [`plugins/catalog.json`](https://github.com/harborclient/harborclient/blob/main/plugins/catalog.json) in the main repository. Users can browse listed plugins from **Settings → Plugins → Browse plugins** and install them with one click. The app clones each listing from its public GitHub repository using the same git install flow as **Install from Git…**.
+
+### Requirements
+
+1. **Host on GitHub** — Publish your plugin source in a public `https://github.com/...` repository. The repository root must contain a valid `manifest.json` and prebuilt entry files (HarborClient does not run a build step during install).
+2. **Match manifest metadata** — The catalog `id` must match your plugin manifest `id`. Keep `name`, `version`, and `engines.harborclient` accurate in the repository.
+3. **Open a pull request** — Add an entry to [`plugins/catalog.json`](https://github.com/harborclient/harborclient/blob/main/plugins/catalog.json) in the HarborClient repository.
+
+### Catalog entry fields
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `id` | Yes | Plugin manifest id (for example `com.example.my-plugin`). |
+| `name` | Yes | Display name shown in the marketplace. |
+| `summary` | Yes | Short one-line description for list views. |
+| `author` | Yes | Publisher or company name. |
+| `categories` | Yes | One or more category labels (for example `themes`, `integrations`). |
+| `repoUrl` | Yes | Public GitHub repository URL (`https://github.com/owner/repo`). |
+| `ref` | No | Branch or tag to clone (for example `v1.0.0`). Omit to use the repository default branch. |
+| `homepage` | No | Project website URL. |
+| `icon` | No | HTTPS URL to a square plugin icon. |
+| `minAppVersion` | No | Minimum HarborClient semver required to install. |
+
+Example entry:
+
+```json
+{
+  "id": "com.example.my-plugin",
+  "name": "My Plugin",
+  "summary": "Adds a sidebar panel for API audit checks.",
+  "author": "Example Inc.",
+  "categories": ["integrations"],
+  "repoUrl": "https://github.com/example/my-plugin",
+  "ref": "v1.0.0",
+  "homepage": "https://example.com/my-plugin"
+}
+```
+
+After your pull request merges, the docs site and in-app catalog update on the next HarborClient docs deploy. You do not need to host the catalog yourself — only your plugin repository on GitHub.
 
 ## Renderer API
 

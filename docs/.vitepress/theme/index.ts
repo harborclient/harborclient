@@ -2,6 +2,7 @@ import type { Theme } from 'vitepress';
 import DefaultTheme from 'vitepress/theme';
 import DownloadLinks from './DownloadLinks.vue';
 import Layout from './Layout.vue';
+import PluginCatalog from './PluginCatalog.vue';
 import './custom.css';
 
 const syncDocImageLinks = () => {
@@ -21,6 +22,7 @@ export default {
   enhanceApp(ctx) {
     DefaultTheme.enhanceApp?.(ctx);
     ctx.app.component('DownloadLinks', DownloadLinks);
+    ctx.app.component('PluginCatalog', PluginCatalog);
 
     if (typeof window === 'undefined') {
       return;

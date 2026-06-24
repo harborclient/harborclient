@@ -8,6 +8,7 @@ import type {
   PluginInfo,
   SerializableMenuContribution
 } from '#/shared/plugin/types';
+import type { PluginCatalog } from '#/shared/plugin/catalog';
 
 export type { AuthConfig, AuthType } from '#/shared/auth';
 export type { ShortcutBinding, ShortcutId, ShortcutOverrides } from '#/shared/shortcuts';
@@ -20,6 +21,7 @@ export type {
   PluginPermission,
   SerializableMenuContribution
 } from '#/shared/plugin/types';
+export type { PluginCatalog, PluginCatalogEntry } from '#/shared/plugin/catalog';
 
 /**
  * Supported HTTP request methods.
@@ -3028,6 +3030,11 @@ export interface Api {
    * Lists installed and unpacked plugins.
    */
   listPlugins: () => Promise<PluginInfo[]>;
+
+  /**
+   * Fetches the curated plugin marketplace catalog from harborclient.com.
+   */
+  getPluginCatalog: () => Promise<PluginCatalog>;
 
   /**
    * Installs a plugin from a native file picker (.hcp / .zip).

@@ -158,6 +158,10 @@ The **Plugins** section installs and manages HarborClient extension packages. Ea
 
 HarborClient validates each manifest, shows the permissions the plugin requests, and unpacks file or git installs to your local plugins directory.
 
+### Browse plugins
+
+Open the **Browse plugins** tab to load the curated marketplace from [harborclient.com/plugins](/plugins). Each listing shows a summary, author, categories, and links to the plugin's GitHub repository. Click **Install** to clone the repository with the same git install flow as **Install from Git…**. Git-installed marketplace plugins show **Update** when already installed.
+
 ### Installing plugins
 
 | Action | Description |

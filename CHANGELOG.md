@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(plugins): introduce plugin marketplace and enhance management features. (`ef48766`)
 - fix(docs): update HarborClient Team Hub references in documentation. (`8b58d90`)
 - chore: update repository references from headzoo to harborclient. (`d428396`)
 - feat(plugin-api): add sync command and enhance plugin context. (`6bb99d2`)

@@ -32,7 +32,7 @@
     "release:major": "gh workflow run Release --ref main -f release_type=major",
     "plugin-api:sync": "node scripts/sync-plugin-api-types.mjs",
     "docs:build": "pnpm docs:build:nav && vitepress build docs",
-    "docs:build:nav": "node scripts/sync-docs-assets.mjs && node scripts/generate-download-links.mjs && node scripts/build-docs-nav.mjs && node scripts/assert-docs-slugs.mjs",
+    "docs:build:nav": "node scripts/sync-docs-assets.mjs && node scripts/generate-download-links.mjs && node --experimental-strip-types scripts/generate-plugin-catalog.ts && node scripts/build-docs-nav.mjs && node scripts/assert-docs-slugs.mjs",
     "docs:preview": "pnpm docs:build && vitepress preview docs",
     "docs:serve": "pnpm docs:build:nav && concurrently --kill-others --prefixColors=auto -n nav,vp \"node scripts/watch-docs-nav.mjs\" \"vitepress dev docs\"",
     "kill": "pkill -f \"harborclient/node_modules/.pnpm/electron\"",

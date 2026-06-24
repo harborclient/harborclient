@@ -1,5 +1,6 @@
 import { BrowserWindow, dialog } from 'electron';
 import type { PluginManager } from '#/main/plugins/PluginManager';
+import { fetchPluginCatalog } from '#/main/plugins/pluginCatalog';
 import { rebuildAppMenu } from '#/main/appMenu';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
@@ -125,6 +126,8 @@ export function registerPluginHandlers(pluginManager: PluginManager): void {
   setPluginManager(pluginManager);
 
   handle('plugins:list', ipcArgSchemas.none, () => pluginManager.list());
+
+  handle('plugins:catalog', ipcArgSchemas.none, () => fetchPluginCatalog());
 
   handle('plugins:install', ipcArgSchemas.none, async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({

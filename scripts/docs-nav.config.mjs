@@ -34,7 +34,7 @@ export const docsNav = [
   { kind: 'page', slug: 'testing', title: 'Testing', maxDepth: 2 },
   { kind: 'page', slug: 'environments', title: 'Environments', maxDepth: 2 },
   { kind: 'page', slug: 'plugin_development', title: 'Plugin development', maxDepth: 2 },
-  
+  { kind: 'page', slug: 'plugins', title: 'Plugin marketplace', maxDepth: 2 },
 ];
 
 /** Slugs of canonical overview pages committed under docs/<slug>/index.md. */

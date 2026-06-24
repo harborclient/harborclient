@@ -54,6 +54,12 @@ HarborClient does not claim full Postman feature parity; some Postman settings a
 
 For install steps per platform and what to explore next, see the [getting started guide](https://harborclient.com/getting-started).
 
+## Plugin marketplace
+
+Browse curated plugins from **Settings → Plugins → Browse plugins** in the app, or on the [plugin marketplace](https://harborclient.com/plugins) site. Each listing installs from a public GitHub repository.
+
+Plugin authors: host your plugin on GitHub, then open a pull request adding an entry to [`plugins/catalog.json`](https://github.com/harborclient/harborclient/blob/main/plugins/catalog.json). See [Publish to the marketplace](https://harborclient.com/plugin_development#publish-to-the-marketplace) in the plugin development guide.
+
 ## License
 
 MIT

@@ -33,6 +33,7 @@ import type {
   PluginFsPickFileOptions,
   PluginFsSaveFileOptions,
   PluginInfo,
+  PluginCatalog,
   SerializableMenuContribution,
   RequestExport,
   SaveRequestInput,
@@ -1193,6 +1194,13 @@ function listPlugins(): Promise<PluginInfo[]> {
 }
 
 /**
+ * Fetches the curated plugin marketplace catalog.
+ */
+function getPluginCatalog(): Promise<PluginCatalog> {
+  return ipcRenderer.invoke('plugins:catalog');
+}
+
+/**
  * Installs a plugin via native file picker.
  */
 function installPlugin(): Promise<PluginInfo | null> {
@@ -1549,6 +1557,7 @@ const api: Api = {
   importBackup,
   restartApp,
   listPlugins,
+  getPluginCatalog,
   installPlugin,
   installPluginFromPath,
   installPluginFromGit,
