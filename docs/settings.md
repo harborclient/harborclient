@@ -8,7 +8,7 @@ Appearance, request defaults, and connection definitions are stored in electron-
 
 ## General
 
-![General](images/screenshots/hc-2.png)
+![General](images/screenshots/settings-general.png)
 
 ### Theme
 
@@ -36,7 +36,7 @@ Click **Save** to apply request defaults.
 
 ## Shortcuts
 
-![Shortcuts](images/screenshots/hc-3.png)
+![Shortcuts](images/screenshots/settings-shortcuts.png)
 
 The **Shortcuts** section lists every configurable keyboard shortcut in HarborClient. Each row shows the action name and its current key combination.
 
@@ -51,7 +51,7 @@ Configurable shortcuts include File menu actions (new request, save request, set
 
 ## Proxy
 
-![Proxy](images/screenshots/hc-4.png)
+![Proxy](images/screenshots/settings-proxy.png)
 
 The **Proxy** section configures a global HTTP proxy applied to every outbound request.
 
@@ -69,7 +69,7 @@ Click **Save** to apply proxy settings. When the proxy is enabled but the host i
 
 ## Storage Locations
 
-![Storage Locations](images/screenshots/hc-5.png)
+![Storage Locations](images/screenshots/settings-databases.png)
 
 The **Storage Locations** section lists every named storage connection. The **active** storage location is used for new collections and imports. Individual collections can be moved to other storage locations from collection settings.
 
@@ -154,7 +154,7 @@ When you use a remote type such as Firestore, MySQL, or PostgreSQL, multiple Har
 
 ## AI
 
-![AI](images/screenshots/hc-6.png)
+![AI](images/screenshots/settings-ai.png)
 
 The **AI** section stores API keys for OpenAI, Claude, and Google Gemini. Keys are encrypted and saved locally on your machine. HarborClient uses the OS keychain when available; on systems without Secret Service support it falls back to a local encryption key in your application data directory. Saved keys power the AI sidebar chat. See [AI assistant](/ai) for setup and usage.
 

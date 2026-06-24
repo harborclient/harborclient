@@ -9,19 +9,19 @@ const staticImagesDir = path.join(repoDir, 'docs/.vitepress/static/images');
 /** Repo-relative sources copied into the VitePress static dir on each docs build. */
 const assets = [
   ['images/logo.png', 'logo.png'],
-  ['images/screenshots/hc-1.png', 'screenshots/hc-1.png'],
-  ['images/screenshots/hc-2.png', 'screenshots/hc-2.png'],
-  ['images/screenshots/hc-3.png', 'screenshots/hc-3.png'],
-  ['images/screenshots/hc-4.png', 'screenshots/hc-4.png'],
-  ['images/screenshots/hc-5.png', 'screenshots/hc-5.png'],
-  ['images/screenshots/hc-6.png', 'screenshots/hc-6.png'],
-  ['images/screenshots/hc-7.png', 'screenshots/hc-7.png'],
-  ['images/screenshots/hc-8.png', 'screenshots/hc-8.png'],
-  ['images/screenshots/hc-9.png', 'screenshots/hc-9.png'],
-  ['images/screenshots/hc-10.png', 'screenshots/hc-10.png'],
-  ['images/screenshots/hc-11.png', 'screenshots/hc-11.png'],
-  ['images/screenshots/hc-12.png', 'screenshots/hc-12.png'],
-  ['images/screenshots/hc-13.png', 'screenshots/hc-13.png'],
+  ['images/screenshots/request-response.png', 'screenshots/request-response.png'],
+  ['images/screenshots/settings-general.png', 'screenshots/settings-general.png'],
+  ['images/screenshots/settings-shortcuts.png', 'screenshots/settings-shortcuts.png'],
+  ['images/screenshots/settings-proxy.png', 'screenshots/settings-proxy.png'],
+  ['images/screenshots/settings-databases.png', 'screenshots/settings-databases.png'],
+  ['images/screenshots/settings-ai.png', 'screenshots/settings-ai.png'],
+  ['images/screenshots/ai-sidebar.png', 'screenshots/ai-sidebar.png'],
+  ['images/screenshots/team-hubs.png', 'screenshots/team-hubs.png'],
+  ['images/screenshots/team-hubs-users.png', 'screenshots/team-hubs-users.png'],
+  ['images/screenshots/sharing-keys.png', 'screenshots/sharing-keys.png'],
+  ['images/screenshots/post-request-script.png', 'screenshots/post-request-script.png'],
+  ['images/screenshots/edit-database.png', 'screenshots/edit-database.png'],
+  ['images/screenshots/sidebar.png', 'screenshots/sidebar.png'],
   ['build/icons/16x16.png', 'favicon-16x16.png'],
   ['build/icons/32x32.png', 'favicon-32x32.png'],
   ['build/icons/128x128.png', 'apple-touch-icon.png'],
@@ -29,7 +29,7 @@ const assets = [
 
 await mkdir(staticImagesDir, { recursive: true });
 
-/** Markdown image paths (e.g. `images/screenshots/hc-7.png`) resolve from `docs/`. */
+/** Markdown image paths (e.g. `images/screenshots/ai-sidebar.png`) resolve from `docs/`. */
 const docsImagesDir = path.join(repoDir, 'docs/images');
 
 for (const [source, target] of assets) {

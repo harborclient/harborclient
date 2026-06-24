@@ -4,7 +4,7 @@ Collections are named groups of saved HTTP requests. Each collection can define 
 
 The **Collections** section in the left sidebar sits above **Environments**. Both sections can be collapsed independently by clicking the section header.
 
-![Collections](images/screenshots/hc-1.png)
+![Collections](images/screenshots/request-response.png)
 
 ## Sidebar guide
 

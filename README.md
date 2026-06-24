@@ -7,7 +7,7 @@ The free API client that keeps your work private: no accounts, no subscriptions,
 [![Documentation](https://img.shields.io/badge/docs-harborclient.com-0366d6)](https://harborclient.com/)
 ![Electron](https://img.shields.io/badge/Electron-desktop-47848F?logo=electron&logoColor=white)
 
-![HarborClient workspace with collections, request editor, and response panel](images/screenshots/hc-1.png)
+![HarborClient workspace with collections, request editor, and response panel](images/screenshots/request-response.png)
 
 **Full documentation:** [https://harborclient.com/](https://harborclient.com/)  
 **Downloads:** [https://github.com/headzoo/harborclient/releases/latest](https://github.com/headzoo/harborclient/releases/latest)

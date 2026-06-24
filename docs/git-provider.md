@@ -4,7 +4,7 @@ HarborClient can store collections as version-controlled files inside a git repo
 
 Git-backed storage is a **storage connection type** in [Settings → Storage Locations](/settings#storage-locations). Each git connection points at a repository working tree on your machine. Collections for that connection are written under a configurable subdirectory (default `.harborclient/`).
 
-![Git-backed collections](images/screenshots/hc-12.png)
+![Git-backed collections](images/screenshots/edit-database.png)
 
 ## When to use git
 
@@ -64,7 +64,7 @@ Commit shared environment definitions in the main `environments/` files; keep se
 
 Git-backed connections show an amber badge on collection rows when the working tree has uncommitted changes (staged, unstaged, or untracked files under the HarborClient subdirectory).
 
-![Source control](images/screenshots/hc-13.png)
+![Source control](images/screenshots/sidebar.png)
 
 Open **Source control** from a collection row menu to:
 

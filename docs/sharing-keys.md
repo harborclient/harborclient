@@ -6,7 +6,7 @@ This is separate from **Settings → SSL certificate verification**, which contr
 
 The Sharing Keys panel has two sections: **My identity** (your key pair) and **Trusted keys** (public keys of people you trust).
 
-![Sharing Keys](images/screenshots/hc-8.png)
+![Sharing Keys](images/screenshots/sharing-keys.png)
 
 ## My identity
 

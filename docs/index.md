@@ -13,7 +13,7 @@ hero:
       text: Get Started
       link: /getting-started
   screenshot:
-    src: /images/screenshots/hc-1.png
+    src: /images/screenshots/request-response.png
     alt: HarborClient workspace with collections, request editor, and response panel
 
 features:

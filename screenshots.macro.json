@@ -1,0 +1,176 @@
+[
+  {
+    "filename": "request-response.png",
+    "steps": [
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections']",
+          "role": "button",
+          "name": "/ATW/"
+        }
+      },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections']",
+          "nearText": "ATW",
+          "role": "button",
+          "name": "Expand"
+        },
+        "optional": true
+      },
+      {
+        "click": {
+          "selector": "[data-sidebar-folder-id]",
+          "nearText": "Organization / Pass Types",
+          "role": "button",
+          "name": "Expand folder"
+        },
+        "optional": true
+      },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections']",
+          "role": "button",
+          "name": "/List Pass Types/"
+        }
+      },
+      { "send": true }
+    ]
+  },
+  {
+    "filename": "settings-general.png",
+    "menuAction": "settings"
+  },
+  {
+    "filename": "settings-shortcuts.png",
+    "menuAction": "settings",
+    "steps": [{ "click": { "role": "button", "name": "Shortcuts" } }]
+  },
+  {
+    "filename": "settings-proxy.png",
+    "menuAction": "settings",
+    "steps": [{ "click": { "role": "button", "name": "Proxy" } }]
+  },
+  {
+    "filename": "settings-databases.png",
+    "menuAction": "settings",
+    "steps": [{ "click": { "role": "button", "name": "Storage Locations" } }]
+  },
+  {
+    "filename": "settings-ai.png",
+    "menuAction": "settings",
+    "steps": [{ "click": { "role": "button", "name": "AI" } }]
+  },
+  {
+    "filename": "ai-sidebar.png",
+    "steps": [
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections']",
+          "role": "button",
+          "name": "/ATW/"
+        }
+      },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections']",
+          "nearText": "ATW",
+          "role": "button",
+          "name": "Expand"
+        },
+        "optional": true
+      },
+      {
+        "click": {
+          "selector": "[data-sidebar-folder-id]",
+          "nearText": "Organization / Pass Types",
+          "role": "button",
+          "name": "Expand folder"
+        },
+        "optional": true
+      },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections']",
+          "role": "button",
+          "name": "/List Pass Types/"
+        }
+      },
+      { "menuAction": "toggle-ai-sidebar" },
+      { "waitFor": { "selector": "aside[aria-label='AI']" } },
+      { "waitFor": { "ms": 1000 } }
+    ]
+  },
+  {
+    "filename": "team-hubs.png",
+    "menuAction": "team-hubs"
+  },
+  {
+    "filename": "team-hubs-users.png",
+    "menuAction": "team-hubs",
+    "steps": [{ "click": { "role": "button", "name": "Manage users" } }]
+  },
+  {
+    "filename": "sharing-keys.png",
+    "menuAction": "sharing-keys"
+  },
+  {
+    "filename": "post-request-script.png",
+    "steps": [
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections']",
+          "role": "button",
+          "name": "/ATW/"
+        }
+      },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections']",
+          "nearText": "ATW",
+          "role": "button",
+          "name": "Expand"
+        },
+        "optional": true
+      },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections']",
+          "role": "button",
+          "name": "/Authentication/"
+        }
+      },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections']",
+          "role": "button",
+          "name": "/API Grant/"
+        }
+      },
+      { "click": { "role": "tab", "name": "PostRequest" } },
+      { "waitFor": { "role": "tab", "name": "PostRequest" } }
+    ],
+    "capture": { "selector": "section[aria-label='Request editor']" }
+  },
+  {
+    "filename": "edit-database.png",
+    "menuAction": "settings",
+    "steps": [
+      { "click": { "role": "button", "name": "Storage Locations" } },
+      {
+        "click": {
+          "selector": "li",
+          "nearText": "Github",
+          "role": "button",
+          "name": "Edit"
+        }
+      },
+      { "waitFor": { "text": "Edit storage location" } }
+    ]
+  },
+  {
+    "filename": "sidebar.png",
+    "steps": [{ "waitFor": { "role": "navigation", "name": "Collections" } }],
+    "capture": { "role": "navigation", "name": "Collections" }
+  }
+]

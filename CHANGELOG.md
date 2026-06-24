@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(screenshots): add screenshot capturing functionality and update documentation images. (`9937de6`)
 - refactor(ui): update splash screen HTML structure for improved clarity. (`87849c3`)
 - refactor(ui): streamline settings sections and enhance reorder functionality. (`2db4cb8`)
 - refactor(ui): enhance form components and modal structure. (`75b3b22`)

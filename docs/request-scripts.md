@@ -2,7 +2,7 @@
 
 HarborClient lets you run JavaScript before and after each HTTP request. Scripts run in an isolated sandbox and use the global `hc` object to read and modify the outgoing request, set variables, and assert on the response.
 
-![Request scripts](images/screenshots/hc-11.png)
+![Request scripts](images/screenshots/post-request-script.png)
 
 Scripts can be defined at two levels:
 
