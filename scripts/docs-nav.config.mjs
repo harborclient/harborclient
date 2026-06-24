@@ -27,7 +27,7 @@ export const docsNav = [
   { kind: 'page', slug: 'git-provider', title: 'Git provider', maxDepth: 2 },
   { kind: 'page', slug: 'ai', title: 'AI assistant', maxDepth: 2 },
   { kind: 'page', slug: 'team-hubs', title: 'Team hubs', maxDepth: 2 },
-  { kind: 'page', slug: 'certificates', title: 'Certificates', maxDepth: 2 },
+  { kind: 'page', slug: 'sharing-keys', title: 'Sharing Keys', maxDepth: 2 },
   { kind: 'page', slug: 'collections', title: 'Collections', maxDepth: 2 },
   { kind: 'page', slug: 'requests', title: 'Making requests', maxDepth: 2 },
   { kind: 'page', slug: 'request-scripts', title: 'Request scripts', maxDepth: 2 },

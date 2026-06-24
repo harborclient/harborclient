@@ -7,7 +7,7 @@ import type {
   SettingsSection,
   Variable
 } from '#/shared/types';
-import { Certificates } from '#/renderer/src/ui/Certificates';
+import { SharingKeys } from '#/renderer/src/ui/SharingKeys';
 import { TeamHubs } from '#/renderer/src/ui/TeamHubs';
 import { CollectionSettings } from '../CollectionSettings';
 import { EnvironmentSettings } from '../EnvironmentSettings';
@@ -30,14 +30,14 @@ interface Props {
   settingsSection: SettingsSection;
 
   /**
-   * Whether the certificates view is shown.
+   * Whether the sharing keys view is shown.
    */
-  showCertificates: boolean;
+  showSharingKeys: boolean;
 
   /**
-   * Closes the certificates view.
+   * Closes the sharing keys view.
    */
-  onCloseCertificates: () => void;
+  onCloseSharingKeys: () => void;
 
   /**
    * Whether the team hubs view is shown.
@@ -106,8 +106,8 @@ export function Configuration({
   showSettings,
   onCloseAppSettings,
   settingsSection,
-  showCertificates,
-  onCloseCertificates,
+  showSharingKeys,
+  onCloseSharingKeys,
   showTeamHubs,
   onCloseTeamHubs,
   collection,
@@ -129,8 +129,8 @@ export function Configuration({
     );
   }
 
-  if (showCertificates) {
-    return <Certificates onClose={onCloseCertificates} />;
+  if (showSharingKeys) {
+    return <SharingKeys onClose={onCloseSharingKeys} />;
   }
 
   if (showTeamHubs) {

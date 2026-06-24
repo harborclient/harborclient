@@ -1,32 +1,32 @@
 import type { JSX } from 'react';
 import { sourceRow } from '#/renderer/src/ui/shared/classes';
-import { CERTIFICATES_SECTIONS } from './constants';
-import type { CertificatesSection } from './types';
+import { SHARING_KEYS_SECTIONS } from './constants';
+import type { SharingKeysSection } from './types';
 
 interface Props {
   /**
-   * Currently selected certificates section.
+   * Currently selected sharing keys section.
    */
-  section: CertificatesSection;
+  section: SharingKeysSection;
 
   /**
    * Called when the user selects a different section.
    *
    * @param section - Newly selected section.
    */
-  onSectionChange: (section: CertificatesSection) => void;
+  onSectionChange: (section: SharingKeysSection) => void;
 }
 
 /**
- * Narrow sidebar navigation for certificate management sections.
+ * Narrow sidebar navigation for sharing key management sections.
  */
-export function CertificatesSidebar({ section, onSectionChange }: Props): JSX.Element {
+export function SharingKeysSidebar({ section, onSectionChange }: Props): JSX.Element {
   return (
     <nav
       className="flex w-[180px] shrink-0 flex-col gap-0.5 border-r border-separator bg-sidebar px-2 py-3"
-      aria-label="Certificates sections"
+      aria-label="Sharing keys sections"
     >
-      {CERTIFICATES_SECTIONS.map((item) => {
+      {SHARING_KEYS_SECTIONS.map((item) => {
         const active = section === item.value;
         return (
           <button

@@ -1,25 +1,25 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
-import { publicKeyFingerprint } from '#/main/invite/inviteToken';
-import type { TrustedInviteKey } from '#/shared/types';
+import { publicKeyFingerprint } from '#/main/sharing/shareToken';
+import type { TrustedSharingKey } from '#/shared/types';
 import { parseJson } from '#/shared/parseJson';
 
-const TRUSTED_KEYS_SETTING = 'trustedInviteKeys';
+const TRUSTED_KEYS_SETTING = 'trustedSharingKeys';
 
 /**
- * Persists trusted invite public keys to the local registry.
+ * Persists trusted sharing public keys to the local registry.
  *
  * @param keys - Trusted keys to store.
  */
-function persistTrustedKeys(keys: TrustedInviteKey[]): void {
+function persistTrustedKeys(keys: TrustedSharingKey[]): void {
   getLocalDatabase().setSetting(TRUSTED_KEYS_SETTING, JSON.stringify(keys));
 }
 
 /**
- * Returns all trusted invite public keys.
+ * Returns all trusted sharing public keys.
  */
-export function listTrustedKeys(): TrustedInviteKey[] {
+export function listTrustedKeys(): TrustedSharingKey[] {
   const raw = getLocalDatabase().getSetting(TRUSTED_KEYS_SETTING);
-  const keys = parseJson<TrustedInviteKey[]>(raw, []);
+  const keys = parseJson<TrustedSharingKey[]>(raw, []);
   return keys.filter(
     (key) =>
       typeof key.id === 'string' &&
@@ -30,12 +30,12 @@ export function listTrustedKeys(): TrustedInviteKey[] {
 }
 
 /**
- * Adds or updates a trusted invite public key.
+ * Adds or updates a trusted sharing public key.
  *
  * @param label - User-defined label for the key owner.
  * @param publicKeyPem - PEM-encoded RSA public key.
  */
-export function addTrustedKey(label: string, publicKeyPem: string): TrustedInviteKey[] {
+export function addTrustedKey(label: string, publicKeyPem: string): TrustedSharingKey[] {
   const trimmedLabel = label.trim();
   if (!trimmedLabel) {
     throw new Error('Trusted key label is required.');
@@ -48,7 +48,7 @@ export function addTrustedKey(label: string, publicKeyPem: string): TrustedInvit
 
   const id = publicKeyFingerprint(trimmedPem);
   const existing = listTrustedKeys();
-  const nextKey: TrustedInviteKey = {
+  const nextKey: TrustedSharingKey = {
     id,
     label: trimmedLabel,
     publicKeyPem: trimmedPem,
@@ -62,11 +62,11 @@ export function addTrustedKey(label: string, publicKeyPem: string): TrustedInvit
 }
 
 /**
- * Removes a trusted invite public key by fingerprint id.
+ * Removes a trusted sharing public key by fingerprint id.
  *
  * @param id - SHA-256 fingerprint of the public key to remove.
  */
-export function removeTrustedKey(id: string): TrustedInviteKey[] {
+export function removeTrustedKey(id: string): TrustedSharingKey[] {
   const next = listTrustedKeys().filter((key) => key.id !== id);
   persistTrustedKeys(next);
   return next;

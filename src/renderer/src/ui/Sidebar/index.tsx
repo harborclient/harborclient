@@ -79,9 +79,9 @@ interface Props {
   onConfigureEnvironment: (id: number) => void;
 
   /**
-   * Opens the invite modal for a collection.
+   * Opens the share modal for a collection.
    */
-  onInviteCollection: (collectionId: number, collectionName: string) => void;
+  onShareCollection: (collectionId: number, collectionName: string) => void;
 
   /**
    * Loads a saved request into the editor.
@@ -96,7 +96,7 @@ export function Sidebar({
   onAddCollection,
   onConfigureCollection,
   onConfigureEnvironment,
-  onInviteCollection,
+  onShareCollection,
   onLoadRequest
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
@@ -363,7 +363,7 @@ export function Sidebar({
                     showAlert(dispatch, formatErrorMessage(err, 'Failed to duplicate collection'));
                   }
                 }}
-                onInviteCollection={onInviteCollection}
+                onShareCollection={onShareCollection}
                 onNewFolder={(collectionId) => {
                   setFolderModal({ mode: 'create', collectionId, name: '', error: null });
                 }}

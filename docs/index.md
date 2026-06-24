@@ -41,8 +41,8 @@ features:
     details: Use {{variable}} placeholders in URLs, headers, params, body, and scripts. Hover any token to preview its resolved value.
   - title: Cross-platform desktop app
     details: A native Electron app for macOS, Windows, and Linux—no browser or web service required.
-  - title: Encrypted invites
-    details: Share live remote collections with signed, encrypted invite tokens backed by RSA key pairs you manage under Certificates.
+  - title: Encrypted sharing
+    details: Share live remote collections with signed, encrypted share tokens backed by RSA key pairs you manage under Sharing Keys.
   - title: Tabbed workspace
     details: Open multiple requests side by side. Each tab keeps its own draft, response, and unsaved-changes indicator.
   - title: AI assistant

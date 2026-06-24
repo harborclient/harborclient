@@ -35,8 +35,8 @@ const FIXED_TOP_LEVEL_FILES = [
   REGISTRY_DB_FILENAME,
   'settings.json',
   'window-state.json',
-  'invite-key.pem',
-  'invite-pub.pem',
+  'sharing-key.pem',
+  'sharing-pub.pem',
   'local-secrets.key'
 ] as const;
 

@@ -675,7 +675,7 @@ export class RoutingStorage implements IStorage {
    * @param connection - Connection configuration to mount.
    * @param slot - Backend slot for request id namespacing.
    * @param userDataPath - Electron userData path for SQLite file storage.
-   * @param meta - Shared collection name and provider id from the invite.
+   * @param meta - Shared collection name and provider id from the share token.
    * @returns The registered collection.
    */
   async registerSharedCollection(

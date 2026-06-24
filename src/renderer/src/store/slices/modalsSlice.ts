@@ -1,16 +1,16 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { SavedRequest, TrustedInviteKey, UpdateCheckResult } from '#/shared/types';
+import type { SavedRequest, TrustedSharingKey, UpdateCheckResult } from '#/shared/types';
 import type { RootState } from '#/renderer/src/store/redux';
 
 export type CollectionModalMode = 'create' | 'create-and-save';
-export type CollectionModalTab = 'create' | 'import' | 'invite';
+export type CollectionModalTab = 'create' | 'import' | 'join';
 
 export interface CollectionModalState {
   mode: CollectionModalMode;
   tab: CollectionModalTab;
   name: string;
   providerId: string;
-  inviteTokenInput: string;
+  shareTokenInput: string;
   submitError: string | null;
 }
 
@@ -27,14 +27,14 @@ export interface ConfirmModalState {
   variant: 'default' | 'danger';
 }
 
-export interface InviteModalState {
+export interface ShareModalState {
   collectionId: number;
   collectionName: string;
   recipientKid: string;
   token: string;
   tokenLoading: boolean;
   tokenError: string | null;
-  trustedKeys: TrustedInviteKey[];
+  trustedKeys: TrustedSharingKey[];
   trustedKeysLoading: boolean;
 }
 
@@ -82,7 +82,7 @@ export interface PendingLoadRequest {
 
 export interface ModalsState {
   collectionModal: CollectionModalState | null;
-  invite: InviteModalState | null;
+  share: ShareModalState | null;
   pendingLoadRequest: PendingLoadRequest | null;
   quitPrompt: string[] | null;
   about: AboutModalState;
@@ -94,7 +94,7 @@ export interface ModalsState {
 
 const initialState: ModalsState = {
   collectionModal: null,
-  invite: null,
+  share: null,
   pendingLoadRequest: null,
   quitPrompt: null,
   about: { open: false, version: '' },
@@ -109,7 +109,7 @@ const modalsSlice = createSlice({
   initialState,
   reducers: {
     /**
-     * Opens the create/import/invite collection modal.
+     * Opens the create/import/join collection modal.
      */
     openCollectionModal(
       state,
@@ -120,7 +120,7 @@ const modalsSlice = createSlice({
         tab: action.payload.tab ?? 'create',
         name: '',
         providerId: '',
-        inviteTokenInput: '',
+        shareTokenInput: '',
         submitError: null
       };
     },
@@ -158,11 +158,11 @@ const modalsSlice = createSlice({
       }
     },
     /**
-     * Updates the invite token paste field.
+     * Updates the share token paste field.
      */
-    setCollectionModalInviteTokenInput(state, action: PayloadAction<string>) {
+    setCollectionModalShareTokenInput(state, action: PayloadAction<string>) {
       if (state.collectionModal) {
-        state.collectionModal.inviteTokenInput = action.payload;
+        state.collectionModal.shareTokenInput = action.payload;
         state.collectionModal.submitError = null;
       }
     },
@@ -175,13 +175,10 @@ const modalsSlice = createSlice({
       }
     },
     /**
-     * Opens invite generation for a collection.
+     * Opens share token generation for a collection.
      */
-    openInviteModal(
-      state,
-      action: PayloadAction<{ collectionId: number; collectionName: string }>
-    ) {
-      state.invite = {
+    openShareModal(state, action: PayloadAction<{ collectionId: number; collectionName: string }>) {
+      state.share = {
         collectionId: action.payload.collectionId,
         collectionName: action.payload.collectionName,
         recipientKid: '',
@@ -193,59 +190,59 @@ const modalsSlice = createSlice({
       };
     },
     /**
-     * Closes the invite modal.
+     * Closes the share modal.
      */
-    closeInviteModal(state) {
-      state.invite = null;
+    closeShareModal(state) {
+      state.share = null;
     },
     /**
-     * Sets the selected trusted key for invite generation.
+     * Sets the selected trusted key for share token generation.
      */
-    setInviteRecipientKid(state, action: PayloadAction<string>) {
-      if (state.invite) {
-        state.invite.recipientKid = action.payload;
-        state.invite.token = '';
-        state.invite.tokenError = null;
+    setShareRecipientKid(state, action: PayloadAction<string>) {
+      if (state.share) {
+        state.share.recipientKid = action.payload;
+        state.share.token = '';
+        state.share.tokenError = null;
       }
     },
     /**
      * Tracks trusted key list loading state.
      */
-    setInviteTrustedKeysLoading(state, action: PayloadAction<boolean>) {
-      if (state.invite) {
-        state.invite.trustedKeysLoading = action.payload;
+    setShareTrustedKeysLoading(state, action: PayloadAction<boolean>) {
+      if (state.share) {
+        state.share.trustedKeysLoading = action.payload;
       }
     },
     /**
-     * Stores trusted keys for the invite recipient picker.
+     * Stores trusted keys for the share recipient picker.
      */
-    setInviteTrustedKeys(state, action: PayloadAction<TrustedInviteKey[]>) {
-      if (state.invite) {
-        state.invite.trustedKeys = action.payload;
+    setShareTrustedKeys(state, action: PayloadAction<TrustedSharingKey[]>) {
+      if (state.share) {
+        state.share.trustedKeys = action.payload;
       }
     },
     /**
-     * Tracks invite token generation loading state.
+     * Tracks share token generation loading state.
      */
-    setInviteTokenLoading(state, action: PayloadAction<boolean>) {
-      if (state.invite) {
-        state.invite.tokenLoading = action.payload;
+    setShareTokenLoading(state, action: PayloadAction<boolean>) {
+      if (state.share) {
+        state.share.tokenLoading = action.payload;
       }
     },
     /**
-     * Stores a generated invite token.
+     * Stores a generated share token.
      */
-    setInviteToken(state, action: PayloadAction<string>) {
-      if (state.invite) {
-        state.invite.token = action.payload;
+    setShareToken(state, action: PayloadAction<string>) {
+      if (state.share) {
+        state.share.token = action.payload;
       }
     },
     /**
-     * Stores an invite token generation error message.
+     * Stores a share token generation error message.
      */
-    setInviteTokenError(state, action: PayloadAction<string | null>) {
-      if (state.invite) {
-        state.invite.tokenError = action.payload;
+    setShareTokenError(state, action: PayloadAction<string | null>) {
+      if (state.share) {
+        state.share.tokenError = action.payload;
       }
     },
     /**
@@ -380,16 +377,16 @@ export const {
   setCollectionModalTab,
   setCollectionModalName,
   setCollectionModalProviderId,
-  setCollectionModalInviteTokenInput,
+  setCollectionModalShareTokenInput,
   setCollectionModalSubmitError,
-  openInviteModal,
-  closeInviteModal,
-  setInviteRecipientKid,
-  setInviteTrustedKeysLoading,
-  setInviteTrustedKeys,
-  setInviteTokenLoading,
-  setInviteToken,
-  setInviteTokenError,
+  openShareModal,
+  closeShareModal,
+  setShareRecipientKid,
+  setShareTrustedKeysLoading,
+  setShareTrustedKeys,
+  setShareTokenLoading,
+  setShareToken,
+  setShareTokenError,
   setPendingLoadRequest,
   setQuitPrompt,
   openAboutModal,
@@ -416,9 +413,9 @@ export const {
 export const selectCollectionModal = (state: RootState): CollectionModalState | null =>
   state.modals.collectionModal;
 /**
- * Returns invite modal state when open.
+ * Returns share modal state when open.
  */
-export const selectInviteModal = (state: RootState): InviteModalState | null => state.modals.invite;
+export const selectShareModal = (state: RootState): ShareModalState | null => state.modals.share;
 /**
  * Returns a request waiting on unsaved-load confirmation.
  */

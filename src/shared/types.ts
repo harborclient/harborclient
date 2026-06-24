@@ -1506,27 +1506,27 @@ export interface PostgresSettings {
  */
 export type GitAuthMethod =
   | {
-      /**
-       * Personal access token entered by the user.
-       */
-      kind: 'pat';
+    /**
+     * Personal access token entered by the user.
+     */
+    kind: 'pat';
 
-      /**
-       * Username for Basic Auth (often the account name or `token` on GitHub).
-       */
-      username: string;
-    }
+    /**
+     * Username for Basic Auth (often the account name or `token` on GitHub).
+     */
+    username: string;
+  }
   | {
-      /**
-       * OAuth token obtained via device flow.
-       */
-      kind: 'oauth';
+    /**
+     * OAuth token obtained via device flow.
+     */
+    kind: 'oauth';
 
-      /**
-       * OAuth provider that issued the token.
-       */
-      provider: 'github';
-    };
+    /**
+     * OAuth provider that issued the token.
+     */
+    provider: 'github';
+  };
 
 /**
  * Settings for a git-backed collection provider.
@@ -2000,9 +2000,9 @@ export interface CreatedHubToken {
 }
 
 /**
- * Local RSA identity used to sign and decrypt invites.
+ * Local RSA identity used to sign and decrypt share tokens.
  */
-export interface InviteIdentity {
+export interface SharingIdentity {
   /**
    * PEM-encoded RSA public key.
    */
@@ -2015,9 +2015,9 @@ export interface InviteIdentity {
 }
 
 /**
- * A trusted collaborator public key used to verify invite signatures.
+ * A trusted collaborator public key used to verify share token signatures.
  */
-export interface TrustedInviteKey {
+export interface TrustedSharingKey {
   /**
    * SHA-256 fingerprint of the SPKI public key (hex).
    */
@@ -2109,8 +2109,8 @@ export type MenuActionId =
   | 'save'
   | 'settings'
   | 'team-hubs'
-  | 'certificates'
-  | 'accept-invite'
+  | 'sharing-keys'
+  | 'join-shared-collection'
   | 'sync'
   | 'toggle-sidebar'
   | 'toggle-ai-sidebar'
@@ -2903,45 +2903,45 @@ export interface Api {
   selectDirectory: (defaultPath: string) => Promise<string | null>;
 
   /**
-   * Creates a signed, encrypted invite for a specific recipient.
+   * Creates a signed, encrypted share token for a specific recipient.
    *
    * @param collectionId - Global collection id to share.
    * @param recipientKid - Fingerprint of the recipient's trusted public key.
    */
-  createInviteToken: (collectionId: number, recipientKid: string) => Promise<string>;
+  createShareToken: (collectionId: number, recipientKid: string) => Promise<string>;
 
   /**
-   * Decodes an invite JWT and adds the embedded database connection.
+   * Decodes a share JWT and adds the embedded database connection.
    *
-   * @param token - JWT string from an invite.
+   * @param token - JWT string from a share token.
    * @returns Updated list of all connections.
    */
-  acceptInvite: (token: string) => Promise<StorageConnection[]>;
+  joinSharedCollection: (token: string) => Promise<StorageConnection[]>;
 
   /**
-   * Returns the local invite identity (public key and fingerprint).
+   * Returns the local sharing identity (public key and fingerprint).
    */
-  getInviteIdentity: () => Promise<InviteIdentity>;
+  getSharingIdentity: () => Promise<SharingIdentity>;
 
   /**
    * Writes the local private key to a file via a native save dialog.
    */
-  exportInvitePrivateKey: () => Promise<PemExportResult>;
+  exportSharingPrivateKey: () => Promise<PemExportResult>;
 
   /**
    * Writes the local public key to a file via a native save dialog.
    */
-  exportInvitePublicKey: () => Promise<PemExportResult>;
+  exportSharingPublicKey: () => Promise<PemExportResult>;
 
   /**
-   * Replaces the local invite key pair from a PEM private key file.
+   * Replaces the local sharing key pair from a PEM private key file.
    */
-  importInviteKeyPair: () => Promise<InviteIdentity>;
+  importSharingKeyPair: () => Promise<SharingIdentity>;
 
   /**
    * Lists trusted collaborator public keys.
    */
-  listTrustedKeys: () => Promise<TrustedInviteKey[]>;
+  listTrustedKeys: () => Promise<TrustedSharingKey[]>;
 
   /**
    * Adds or updates a trusted collaborator public key.
@@ -2949,21 +2949,21 @@ export interface Api {
    * @param label - Display label for the key owner.
    * @param publicKeyPem - PEM-encoded RSA public key.
    */
-  addTrustedKey: (label: string, publicKeyPem: string) => Promise<TrustedInviteKey[]>;
+  addTrustedKey: (label: string, publicKeyPem: string) => Promise<TrustedSharingKey[]>;
 
   /**
    * Imports a trusted public key from a PEM file via a native open dialog.
    *
    * @param label - Display label for the key owner.
    */
-  importTrustedPublicKey: (label: string) => Promise<TrustedInviteKey[]>;
+  importTrustedPublicKey: (label: string) => Promise<TrustedSharingKey[]>;
 
   /**
    * Removes a trusted public key by fingerprint id.
    *
    * @param id - SHA-256 fingerprint of the key to remove.
    */
-  removeTrustedKey: (id: string) => Promise<TrustedInviteKey[]>;
+  removeTrustedKey: (id: string) => Promise<TrustedSharingKey[]>;
 
   /**
    * Writes text to a file chosen via a native save dialog.

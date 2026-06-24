@@ -61,7 +61,7 @@ In the **Add collection** modal you can:
 
 - **Create new** — enter a name, choose a **Provider** (SQLite, a remote storage location, or a [team hub](/team-hubs)), and click **Create**
 - **Import from file** — pick a HarborClient `.json` export (same as **File → Import**)
-- **Accept invite** — paste an invite token to connect to a shared remote collection (see [Sharing collections](#sharing-collections))
+- **Join shared collection** — paste a share token to connect to a shared remote collection (see [Sharing collections](#sharing-collections))
 
 ## Renaming and deleting
 
@@ -313,44 +313,44 @@ Example (abbreviated):
 
 ## Sharing collections
 
-Use **Export/Import** when you want a portable snapshot of a collection — a `.json` file you can version, email, or archive. Use a **[git-backed storage connection](/git-provider)** when collections should live as version-controlled files in a repository with in-app commit/push/pull. Use **invites** when you want another HarborClient user to connect to the same **live** collection on a remote storage location. Use **[team hubs](/team-hubs)** when your team shares collections through HarborClient Team Hub with API tokens instead of shared storage location credentials. Invited and hub-backed collections stay in sync with the shared backend; changes from other users appear when data is reloaded (for example, after restarting the app). Git-backed collections sync when you pull, when the working tree changes on disk, or when the window regains focus. See [Settings → Storage Locations](/settings#storage-locations) for how remote backends work.
+Use **Export/Import** when you want a portable snapshot of a collection — a `.json` file you can version, email, or archive. Use a **[git-backed storage connection](/git-provider)** when collections should live as version-controlled files in a repository with in-app commit/push/pull. Use **shares** when you want another HarborClient user to connect to the same **live** collection on a remote storage location. Use **[team hubs](/team-hubs)** when your team shares collections through HarborClient Team Hub with API tokens instead of shared storage location credentials. Shared and hub-backed collections stay in sync with the shared backend; changes from other users appear when data is reloaded (for example, after restarting the app). Git-backed collections sync when you pull, when the working tree changes on disk, or when the window regains focus. See [Settings → Storage Locations](/settings#storage-locations) for how remote backends work.
 
-Before sending or accepting invites, exchange public keys with your colleague — see [Certificates](/certificates).
+Before sending or accepting shares, exchange public keys with your colleague — see [Sharing Keys](/sharing-keys).
 
-### Sending an invite
+### Sharing access
 
 | Step | Action |
 | --- | --- |
 | 1 | Ensure the collection is stored on a **remote** database (Firestore, MySQL, or PostgreSQL), not SQLite |
-| 2 | Open the collection row menu → **Invite** |
+| 2 | Open the collection row menu → **Share access** |
 | 3 | Copy the generated token and send it to the recipient over a trusted channel |
 
-HarborClient opens an **Invite to collection** modal and generates a token for the selected collection. Click **Copy** to put the token on the clipboard.
+HarborClient opens a **Share collection access** modal and generates a token for the selected collection. Click **Copy** to put the token on the clipboard.
 
-The **Invite** menu item is hidden for collections stored in SQLite — only remote storage locations can be shared this way.
+The **Share access** menu item is hidden for collections stored in SQLite — only remote storage locations can be shared this way.
 
 The token embeds **storage connection credentials**. Treat it like a secret and share it only with people who should have access to that database and collection.
 
-Tell recipients they must **restart HarborClient** after accepting the invite.
+Tell recipients they must **restart HarborClient** after joining the shared collection.
 
-### Accepting an invite
+### Joining a shared collection
 
 | Step | Action |
 | --- | --- |
 | 1 | Click the sidebar **+** button (or **File → New Collection**) |
-| 2 | In **Add collection**, open the **Accept invite** tab |
-| 3 | Paste the token and click **Accept** |
+| 2 | In **Add collection**, open the **Join shared collection** tab |
+| 3 | Paste the token and click **Join** |
 | 4 | Restart HarborClient |
 
 On success, HarborClient shows a **Shared connection added** toast. The new connection appears under [Settings → Storage Locations](/settings#storage-locations), and the shared collection appears in the sidebar. When a collection is stored on a non-active storage location, its row shows a connection badge with the storage location name.
 
-Accepting an invite is **not** the same as import — it adds a live storage connection and registers the shared collection, not a new local copy from a `.json` file.
+Joining a shared collection is **not** the same as import — it adds a live storage connection and registers the shared collection, not a new local copy from a `.json` file.
 
 If the token is invalid, HarborClient shows an alert with a descriptive error (for example, malformed token, unsupported version, or missing connection).
 
-### Invite vs manual storage setup
+### Share vs manual storage setup
 
-Teammates can also share access by configuring the same remote storage location manually in [Settings → Storage Locations](/settings#storage-locations). Invites bundle the connection details and collection mapping in one step so the recipient does not have to enter credentials by hand.
+Teammates can also share access by configuring the same remote storage location manually in [Settings → Storage Locations](/settings#storage-locations). Shares bundle the connection details and collection mapping in one step so the recipient does not have to enter credentials by hand.
 
 ## How collections affect sends
 

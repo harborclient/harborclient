@@ -1,18 +1,18 @@
 import { createPrivateKey, createPublicKey, generateKeyPairSync, sign, verify } from 'crypto';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
-import { publicKeyFingerprint } from '#/main/invite/inviteToken';
-import type { InviteIdentity } from '#/shared/types';
+import { publicKeyFingerprint } from '#/main/sharing/shareToken';
+import type { SharingIdentity } from '#/shared/types';
 
-const PRIVATE_KEY_FILENAME = 'invite-key.pem';
-const PUBLIC_KEY_FILENAME = 'invite-pub.pem';
+const PRIVATE_KEY_FILENAME = 'sharing-key.pem';
+const PUBLIC_KEY_FILENAME = 'sharing-pub.pem';
 
-export interface InviteKeyPair {
+export interface SharingKeyPair {
   privateKey: string;
   publicKey: string;
 }
 
-let cachedKeys: InviteKeyPair | null = null;
+let cachedKeys: SharingKeyPair | null = null;
 
 /**
  * Reads a PEM file from userData, returning undefined when missing.
@@ -34,7 +34,7 @@ async function readPem(filePath: string): Promise<string | undefined> {
  * @param publicKeyPem - PEM-encoded RSA public key.
  */
 function assertValidKeyPair(privateKeyPem: string, publicKeyPem: string): void {
-  const message = new TextEncoder().encode('harborclient-invite-key-check');
+  const message = new TextEncoder().encode('harborclient-sharing-key-check');
   const signature = sign('RSA-SHA256', message, createPrivateKey(privateKeyPem));
   const valid = verify(
     'RSA-SHA256',
@@ -48,13 +48,13 @@ function assertValidKeyPair(privateKeyPem: string, publicKeyPem: string): void {
 }
 
 /**
- * Ensures an RSA key pair exists for signing invite JWTs.
+ * Ensures an RSA key pair exists for signing share JWTs.
  *
- * Keys are stored in userData as invite-key.pem and invite-pub.pem.
+ * Keys are stored in userData as sharing-key.pem and sharing-pub.pem.
  *
  * @param userDataPath - Electron userData directory.
  */
-export async function ensureInviteKeys(userDataPath: string): Promise<InviteKeyPair> {
+export async function ensureSharingKeys(userDataPath: string): Promise<SharingKeyPair> {
   if (cachedKeys) return cachedKeys;
 
   const privatePath = join(userDataPath, PRIVATE_KEY_FILENAME);
@@ -82,12 +82,12 @@ export async function ensureInviteKeys(userDataPath: string): Promise<InviteKeyP
 }
 
 /**
- * Returns the local invite identity, generating keys when missing.
+ * Returns the local sharing identity, generating keys when missing.
  *
  * @param userDataPath - Electron userData directory.
  */
-export async function getInviteIdentity(userDataPath: string): Promise<InviteIdentity> {
-  const { publicKey } = await ensureInviteKeys(userDataPath);
+export async function getSharingIdentity(userDataPath: string): Promise<SharingIdentity> {
+  const { publicKey } = await ensureSharingKeys(userDataPath);
   return {
     publicKeyPem: publicKey,
     fingerprint: publicKeyFingerprint(publicKey)
@@ -95,15 +95,15 @@ export async function getInviteIdentity(userDataPath: string): Promise<InviteIde
 }
 
 /**
- * Replaces the local invite key pair from a PEM private key.
+ * Replaces the local sharing key pair from a PEM private key.
  *
  * @param userDataPath - Electron userData directory.
  * @param privateKeyPem - PEM-encoded RSA private key.
  */
-export async function importInviteKeyPair(
+export async function importSharingKeyPair(
   userDataPath: string,
   privateKeyPem: string
-): Promise<InviteIdentity> {
+): Promise<SharingIdentity> {
   const trimmedPrivate = privateKeyPem.trim();
   if (!trimmedPrivate) {
     throw new Error('Private key file is empty.');

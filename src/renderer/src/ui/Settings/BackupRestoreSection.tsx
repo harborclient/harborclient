@@ -108,7 +108,7 @@ export function BackupRestoreSection(): JSX.Element {
         <p className="m-0 mb-2 font-medium text-danger">Sensitive data warning</p>
         <p className="m-0 mb-2 text-muted">
           Backup files contain API keys, database passwords, proxy credentials, git tokens, and
-          invite private keys in readable form. Store backups securely and do not share them.
+          sharing private keys in readable form. Store backups securely and do not share them.
         </p>
         <p className="m-0 text-muted">
           Secrets protected by your operating system keychain may not decrypt when a backup is

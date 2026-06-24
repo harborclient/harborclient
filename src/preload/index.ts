@@ -22,7 +22,7 @@ import type {
   GeneralSettings,
   HubLlmModelGroup,
   ImportEntityResult,
-  InviteIdentity,
+  SharingIdentity,
   ListCollectionsResult,
   MenuActionId,
   RootMenuLabel,
@@ -50,7 +50,7 @@ import type {
   ShortcutOverrides,
   SidebarExpansionState,
   ThemeSource,
-  TrustedInviteKey,
+  TrustedSharingKey,
   UpdateCheckResult,
   Variable,
   KeyValue
@@ -1052,57 +1052,57 @@ function selectDirectory(defaultPath: string): Promise<string | null> {
 }
 
 /**
- * Creates a signed, encrypted invite for a specific recipient via IPC.
+ * Creates a signed, encrypted share token for a specific recipient via IPC.
  *
  * @param collectionId - Global collection id to share.
  * @param recipientKid - Fingerprint of the recipient's trusted public key.
  */
-function createInviteToken(collectionId: number, recipientKid: string): Promise<string> {
-  return ipcRenderer.invoke('invite:create', collectionId, recipientKid);
+function createShareToken(collectionId: number, recipientKid: string): Promise<string> {
+  return ipcRenderer.invoke('share:create', collectionId, recipientKid);
 }
 
 /**
- * Decodes an invite JWT and adds the embedded database connection via IPC.
+ * Decodes a share JWT and adds the embedded database connection via IPC.
  *
- * @param token - JWT string from an invite.
+ * @param token - JWT string from a share token.
  */
-function acceptInvite(token: string): Promise<StorageConnection[]> {
-  return ipcRenderer.invoke('invite:accept', token);
+function joinSharedCollection(token: string): Promise<StorageConnection[]> {
+  return ipcRenderer.invoke('share:join', token);
 }
 
 /**
- * Returns the local invite identity via IPC.
+ * Returns the local sharing identity via IPC.
  */
-function getInviteIdentity(): Promise<InviteIdentity> {
-  return ipcRenderer.invoke('certs:getIdentity');
+function getSharingIdentity(): Promise<SharingIdentity> {
+  return ipcRenderer.invoke('sharingKeys:getIdentity');
 }
 
 /**
  * Exports the local private key via IPC.
  */
-function exportInvitePrivateKey(): Promise<PemExportResult> {
-  return ipcRenderer.invoke('certs:exportPrivateKey');
+function exportSharingPrivateKey(): Promise<PemExportResult> {
+  return ipcRenderer.invoke('sharingKeys:exportPrivateKey');
 }
 
 /**
  * Exports the local public key via IPC.
  */
-function exportInvitePublicKey(): Promise<PemExportResult> {
-  return ipcRenderer.invoke('certs:exportPublicKey');
+function exportSharingPublicKey(): Promise<PemExportResult> {
+  return ipcRenderer.invoke('sharingKeys:exportPublicKey');
 }
 
 /**
- * Imports a local invite key pair from a PEM file via IPC.
+ * Imports a local sharing key pair from a PEM file via IPC.
  */
-function importInviteKeyPair(): Promise<InviteIdentity> {
-  return ipcRenderer.invoke('certs:importKeyPair');
+function importSharingKeyPair(): Promise<SharingIdentity> {
+  return ipcRenderer.invoke('sharingKeys:importKeyPair');
 }
 
 /**
  * Lists trusted collaborator public keys via IPC.
  */
-function listTrustedKeys(): Promise<TrustedInviteKey[]> {
-  return ipcRenderer.invoke('certs:listTrustedKeys');
+function listTrustedKeys(): Promise<TrustedSharingKey[]> {
+  return ipcRenderer.invoke('sharingKeys:listTrustedKeys');
 }
 
 /**
@@ -1111,8 +1111,8 @@ function listTrustedKeys(): Promise<TrustedInviteKey[]> {
  * @param label - Display label for the key owner.
  * @param publicKeyPem - PEM-encoded RSA public key.
  */
-function addTrustedKey(label: string, publicKeyPem: string): Promise<TrustedInviteKey[]> {
-  return ipcRenderer.invoke('certs:addTrustedKey', label, publicKeyPem);
+function addTrustedKey(label: string, publicKeyPem: string): Promise<TrustedSharingKey[]> {
+  return ipcRenderer.invoke('sharingKeys:addTrustedKey', label, publicKeyPem);
 }
 
 /**
@@ -1120,8 +1120,8 @@ function addTrustedKey(label: string, publicKeyPem: string): Promise<TrustedInvi
  *
  * @param label - Display label for the key owner.
  */
-function importTrustedPublicKey(label: string): Promise<TrustedInviteKey[]> {
-  return ipcRenderer.invoke('certs:importTrustedPublicKey', label);
+function importTrustedPublicKey(label: string): Promise<TrustedSharingKey[]> {
+  return ipcRenderer.invoke('sharingKeys:importTrustedPublicKey', label);
 }
 
 /**
@@ -1129,8 +1129,8 @@ function importTrustedPublicKey(label: string): Promise<TrustedInviteKey[]> {
  *
  * @param id - SHA-256 fingerprint of the key to remove.
  */
-function removeTrustedKey(id: string): Promise<TrustedInviteKey[]> {
-  return ipcRenderer.invoke('certs:removeTrustedKey', id);
+function removeTrustedKey(id: string): Promise<TrustedSharingKey[]> {
+  return ipcRenderer.invoke('sharingKeys:removeTrustedKey', id);
 }
 
 /**
@@ -1268,12 +1268,12 @@ const api: Api = {
   confirmClose,
   selectFiles,
   selectDirectory,
-  createInviteToken,
-  acceptInvite,
-  getInviteIdentity,
-  exportInvitePrivateKey,
-  exportInvitePublicKey,
-  importInviteKeyPair,
+  createShareToken,
+  joinSharedCollection,
+  getSharingIdentity,
+  exportSharingPrivateKey,
+  exportSharingPublicKey,
+  importSharingKeyPair,
   listTrustedKeys,
   addTrustedKey,
   importTrustedPublicKey,

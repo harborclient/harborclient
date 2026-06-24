@@ -50,7 +50,7 @@ export const dbId = z.number().int().nonnegative();
 export const connectionId = z.string();
 
 /**
- * Fingerprint id of a trusted recipient public key for invite tokens.
+ * Fingerprint id of a trusted recipient public key for share tokens.
  */
 export const recipientKid = z.string().min(1);
 
@@ -464,7 +464,7 @@ export const ipcArgSchemas = {
   requestExport: z.tuple([requestExportSchema]),
   requestImport: z.tuple([dbId, nullableFolderId.optional()]),
   importAuto: z.tuple([dbId.nullable()]),
-  inviteCreate: z.tuple([dbId, recipientKid.optional()]),
+  shareCreate: z.tuple([dbId, recipientKid.optional()]),
   openDirectory: z.tuple([z.string()]),
   saveTextFile: z.tuple([z.string().max(MAX_IPC_REQUEST_BODY_CHARS), z.string()]),
   backupExport: z.tuple([z.record(z.string(), z.string())]),

@@ -7,7 +7,7 @@ import {
   openUpdateModal
 } from '#/renderer/src/store/slices/modalsSlice';
 import {
-  openCertificates,
+  openSharingKeys,
   openTeamHubs,
   openSettings,
   selectAiSidebarVisible,
@@ -73,11 +73,11 @@ export function useMenuActions(): void {
         case 'team-hubs':
           dispatch(openTeamHubs());
           break;
-        case 'certificates':
-          dispatch(openCertificates());
+        case 'sharing-keys':
+          dispatch(openSharingKeys());
           break;
-        case 'accept-invite':
-          dispatch(openCollectionModal({ mode: 'create', tab: 'invite' }));
+        case 'join-shared-collection':
+          dispatch(openCollectionModal({ mode: 'create', tab: 'join' }));
           break;
         case 'sync':
           dispatch(openSyncModal());

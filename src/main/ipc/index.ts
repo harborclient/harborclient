@@ -7,7 +7,7 @@ import { registerCookieHandlers } from '#/main/ipc/handlers/cookies';
 import { registerEnvironmentHandlers } from '#/main/ipc/handlers/environments';
 import { registerFileHandlers } from '#/main/ipc/handlers/files';
 import { registerGitHandlers } from '#/main/ipc/handlers/git';
-import { registerInviteHandlers } from '#/main/ipc/handlers/invites';
+import { registerSharingHandlers } from '#/main/ipc/handlers/sharing';
 import { registerLlmHandlers } from '#/main/ipc/handlers/llm';
 import { registerMenuHandlers } from '#/main/ipc/handlers/menu';
 import { registerNetworkHandlers } from '#/main/ipc/handlers/network';
@@ -34,7 +34,7 @@ export function registerIpcHandlers(db: IStorage): void {
   registerGitHandlers(db);
   registerMenuHandlers();
   registerCookieHandlers(cookieJar);
-  registerInviteHandlers(db);
+  registerSharingHandlers(db);
   registerFileHandlers();
   registerBackupHandlers(db);
   registerWindowHandlers();

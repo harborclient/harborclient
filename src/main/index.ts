@@ -16,7 +16,7 @@ import { ensureStorageSlots } from '#/main/settings/storageSlots';
 import { migrateTeamHubSettings } from '#/main/settings/teamHubMigration';
 import { migrateStorageSettingsKeys } from '#/main/settings/storageSettingsMigration';
 import { listTeamHubs } from '#/main/settings/teamHubSettings';
-import { ensureInviteKeys } from '#/main/invite/inviteKeys';
+import { ensureSharingKeys } from '#/main/sharing/sharingKeys';
 import { startGitWatchers } from '#/main/git/gitWatcher';
 import { buildMenu } from '#/main/menu';
 import { setMenuWindow } from '#/main/appMenu';
@@ -533,8 +533,8 @@ app.whenReady().then(async () => {
 
   try {
     setSplashStatus('Starting up...');
-    logVerbose('startup: ensuring invite keys');
-    await ensureInviteKeys(app.getPath('userData'));
+    logVerbose('startup: ensuring sharing keys');
+    await ensureSharingKeys(app.getPath('userData'));
 
     setSplashStatus('Connecting to storage...');
     logVerbose('startup: initializing storage');

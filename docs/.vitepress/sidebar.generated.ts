@@ -103,8 +103,8 @@ export const sidebar: DefaultTheme.SidebarItem[] =
         "link": "/git-provider#authentication"
       },
       {
-        "text": "Provider badge and invites",
-        "link": "/git-provider#provider-badge-and-invites"
+        "text": "Provider badge and shares",
+        "link": "/git-provider#provider-badge-and-shares"
       },
       {
         "text": "What's next",
@@ -188,36 +188,36 @@ export const sidebar: DefaultTheme.SidebarItem[] =
     "collapsed": false
   },
   {
-    "text": "Certificates",
-    "link": "/certificates",
+    "text": "Sharing Keys",
+    "link": "/sharing-keys",
     "items": [
       {
         "text": "My identity",
-        "link": "/certificates#my-identity"
+        "link": "/sharing-keys#my-identity"
       },
       {
         "text": "Exporting your public key",
-        "link": "/certificates#exporting-your-public-key"
+        "link": "/sharing-keys#exporting-your-public-key"
       },
       {
         "text": "Exporting and importing your key pair",
-        "link": "/certificates#exporting-and-importing-your-key-pair"
+        "link": "/sharing-keys#exporting-and-importing-your-key-pair"
       },
       {
         "text": "Trusted keys",
-        "link": "/certificates#trusted-keys"
+        "link": "/sharing-keys#trusted-keys"
       },
       {
         "text": "Working with collaborators",
-        "link": "/certificates#working-with-collaborators"
+        "link": "/sharing-keys#working-with-collaborators"
       },
       {
         "text": "Security notes",
-        "link": "/certificates#security-notes"
+        "link": "/sharing-keys#security-notes"
       },
       {
         "text": "What's next",
-        "link": "/certificates#whats-next"
+        "link": "/sharing-keys#whats-next"
       }
     ],
     "collapsed": false

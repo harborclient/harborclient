@@ -12,7 +12,7 @@ Git-backed storage is a **storage connection type** in [Settings → Storage Loc
 | --- | --- |
 | **Git provider** | Teams that already use git for API definitions; reviewable diffs, branches, and PRs |
 | **Export/Import** | One-off snapshots or archives as a single `.json` file |
-| **Invites** | Live shared collections on Firestore, MySQL, or PostgreSQL |
+| **Shares** | Live shared collections on Firestore, MySQL, or PostgreSQL |
 | **Team hubs** | HarborClient Team Hub token-based sharing |
 
 Use git when you want collections to live in a repo alongside application code or infrastructure, with history and merge workflows your team already uses.
@@ -107,9 +107,9 @@ Leave the Client ID blank to keep using HarborClient's built-in app. If you chan
 
 HarborClient uses `isomorphic-git` over HTTPS. SSH remotes and SSH keys are not supported. If your team uses SSH URLs, create a PAT for HTTPS access or use external git tooling for push/pull while still editing files through HarborClient.
 
-## Provider badge and invites
+## Provider badge and shares
 
-Collections on a git connection show the connection name badge like other non-active storage locations. **Invite** is hidden for git-backed collections — sharing is through the repository, not HarborClient invite tokens.
+Collections on a git connection show the connection name badge like other non-active storage locations. **Share access** is hidden for git-backed collections — sharing is through the repository, not HarborClient share tokens.
 
 ## What's next
 

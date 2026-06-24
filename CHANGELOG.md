@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- refactor(security): update terminology from "invite" to "share" in security documentation. (`2f24e2a`)
 - feat(ipc): add directory picker functionality. (`5459a7e`)
 
 ## 1.6.0 - 2026-06-23

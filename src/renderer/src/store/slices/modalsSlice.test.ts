@@ -3,20 +3,20 @@ import { defaultAuth } from '#/shared/auth';
 import modalsReducer, {
   closeAboutModal,
   closeCollectionModal,
-  closeInviteModal,
+  closeShareModal,
   closeSyncModal,
   finishSync,
   incrementSyncCompleted,
   openAboutModal,
   openCollectionModal,
-  openInviteModal,
+  openShareModal,
   openSyncModal,
   setAboutVersion,
-  setCollectionModalInviteTokenInput,
+  setCollectionModalShareTokenInput,
   setCollectionModalName,
   setCollectionModalTab,
   setCollectionModalSubmitError,
-  setInviteRecipientKid,
+  setShareRecipientKid,
   setPendingLoadRequest,
   setQuitPrompt,
   setAlertModal,
@@ -29,7 +29,7 @@ describe('modalsSlice', () => {
   it('starts with all modals closed', () => {
     const state = modalsReducer(undefined, { type: 'unknown' });
     expect(state.collectionModal).toBeNull();
-    expect(state.invite).toBeNull();
+    expect(state.share).toBeNull();
     expect(state.pendingLoadRequest).toBeNull();
     expect(state.quitPrompt).toBeNull();
     expect(state.about).toEqual({ open: false, version: '' });
@@ -47,14 +47,14 @@ describe('modalsSlice', () => {
   it('opens and closes the collection modal', () => {
     let state = modalsReducer(
       undefined,
-      openCollectionModal({ mode: 'create-and-save', tab: 'invite' })
+      openCollectionModal({ mode: 'create-and-save', tab: 'join' })
     );
     expect(state.collectionModal).toEqual({
       mode: 'create-and-save',
-      tab: 'invite',
+      tab: 'join',
       name: '',
       providerId: '',
-      inviteTokenInput: '',
+      shareTokenInput: '',
       submitError: null
     });
 
@@ -68,27 +68,27 @@ describe('modalsSlice', () => {
     state = modalsReducer(state, setCollectionModalSubmitError('Create failed'));
     expect(state.collectionModal?.submitError).toBe('Create failed');
 
-    state = modalsReducer(state, setCollectionModalInviteTokenInput('token'));
-    expect(state.collectionModal?.inviteTokenInput).toBe('token');
+    state = modalsReducer(state, setCollectionModalShareTokenInput('token'));
+    expect(state.collectionModal?.shareTokenInput).toBe('token');
     expect(state.collectionModal?.submitError).toBeNull();
 
     state = modalsReducer(state, closeCollectionModal());
     expect(state.collectionModal).toBeNull();
   });
 
-  it('opens invite modal and clears token when recipient changes', () => {
+  it('opens share modal and clears token when recipient changes', () => {
     let state = modalsReducer(
       undefined,
-      openInviteModal({ collectionId: 1, collectionName: 'Demo' })
+      openShareModal({ collectionId: 1, collectionName: 'Demo' })
     );
-    expect(state.invite?.collectionId).toBe(1);
-    expect(state.invite?.trustedKeysLoading).toBe(true);
+    expect(state.share?.collectionId).toBe(1);
+    expect(state.share?.trustedKeysLoading).toBe(true);
 
-    state = modalsReducer(state, setInviteRecipientKid('kid-1'));
-    expect(state.invite?.recipientKid).toBe('kid-1');
+    state = modalsReducer(state, setShareRecipientKid('kid-1'));
+    expect(state.share?.recipientKid).toBe('kid-1');
 
-    state = modalsReducer(state, closeInviteModal());
-    expect(state.invite).toBeNull();
+    state = modalsReducer(state, closeShareModal());
+    expect(state.share).toBeNull();
   });
 
   it('tracks pending load and quit prompts', () => {

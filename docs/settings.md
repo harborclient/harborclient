@@ -187,7 +187,7 @@ A backup captures local application data under HarborClient's user data director
 - Electron-store settings (panel layout, sidebar expansion, editor tabs, and similar UI state)
 - Window position and size
 - Storage connection definitions, environments, AI chat history, cookies, and collection routing stored in the registry
-- Encrypted AI and git credentials, invite identity keys, and the local encryption key file
+- Encrypted AI and git credentials, sharing identity keys, and the local encryption key file
 - Git provider sidecar files (`git-index/`, `git-provider-settings/`)
 - Renderer UI state such as open tabs, the active environment, and panel sizes
 

@@ -14,15 +14,15 @@ import {
 import { describe, expect, it } from 'vitest';
 import type { StorageConnection } from '#/shared/types';
 import {
-  createInviteToken,
-  INVITE_TTL_MS,
-  INVITE_TOKEN_VERSION,
+  createShareToken,
+  SHARE_TTL_MS,
+  SHARE_TOKEN_VERSION,
   publicKeyFingerprint,
-  verifyInviteToken,
-  type InviteCollectionMeta
-} from '#/main/invite/inviteToken';
-import type { SpentInviteTokenStore } from '#/main/invite/spentInviteTokens';
-import type { TrustedInviteKey } from '#/shared/types';
+  verifyShareToken,
+  type ShareCollectionMeta
+} from '#/main/sharing/shareToken';
+import type { SpentShareTokenStore } from '#/main/sharing/spentShareTokens';
+import type { TrustedSharingKey } from '#/shared/types';
 
 interface TestKeyPair {
   privateKey: string;
@@ -33,7 +33,7 @@ interface TestKeyPair {
 /**
  * Builds an in-memory spent-token store for isolated verify tests.
  */
-function createMemorySpentStore(): SpentInviteTokenStore {
+function createMemorySpentStore(): SpentShareTokenStore {
   const spent = new Set<string>();
   return {
     isSpent(jti: string): boolean {
@@ -46,7 +46,7 @@ function createMemorySpentStore(): SpentInviteTokenStore {
 }
 
 /**
- * Generates an RSA key pair for invite token tests.
+ * Generates an RSA key pair for share token tests.
  */
 function generateTestKeyPair(): TestKeyPair {
   const { privateKey, publicKey } = generateKeyPairSync('rsa', {
@@ -68,7 +68,7 @@ function generateTestKeyPair(): TestKeyPair {
  * @param keyPair - Generated key pair.
  * @param label - Display label for the key owner.
  */
-function toTrustedKey(keyPair: TestKeyPair, label: string): TrustedInviteKey {
+function toTrustedKey(keyPair: TestKeyPair, label: string): TrustedSharingKey {
   return {
     id: keyPair.fingerprint,
     label,
@@ -123,14 +123,14 @@ function base64UrlEncode(value: string): string {
 }
 
 /**
- * Builds a signed invite token with an arbitrary inner payload for validation tests.
+ * Builds a signed share token with an arbitrary inner payload for validation tests.
  *
  * @param payload - Plaintext JSON object encrypted into the token.
  * @param senderPrivateKey - Sender RSA private key PEM.
  * @param senderPublicKey - Sender RSA public key PEM.
  * @param recipientPublicKey - Intended recipient RSA public key PEM.
  */
-function createInviteTokenWithPayload(
+function createShareTokenWithPayload(
   payload: unknown,
   senderPrivateKey: string,
   senderPublicKey: string,
@@ -158,7 +158,7 @@ function createInviteTokenWithPayload(
   const now = Date.now();
   const header = base64UrlEncode(
     JSON.stringify({
-      v: INVITE_TOKEN_VERSION,
+      v: SHARE_TOKEN_VERSION,
       alg: 'RSA-OAEP-256+A256GCM',
       sigAlg: 'RS256',
       senderKid: publicKeyFingerprint(senderPublicKey),
@@ -169,7 +169,7 @@ function createInviteTokenWithPayload(
     JSON.stringify({
       jti: randomUUID(),
       iat: now,
-      exp: now + INVITE_TTL_MS,
+      exp: now + SHARE_TTL_MS,
       encKey: base64UrlEncodeBuffer(wrappedKey),
       iv: base64UrlEncodeBuffer(iv),
       ct: base64UrlEncodeBuffer(ciphertext),
@@ -200,21 +200,21 @@ const sampleConnection: StorageConnection = {
   }
 };
 
-const sampleCollection: InviteCollectionMeta = {
+const sampleCollection: ShareCollectionMeta = {
   name: 'Team API',
   providerCollectionId: 42
 };
 
-describe('inviteToken', () => {
+describe('shareToken', () => {
   it('publicKeyFingerprint rejects invalid PEM', () => {
     expect(() => publicKeyFingerprint('not-a-valid-pem')).toThrow(/Invalid public key PEM/i);
   });
 
-  it('verifyInvite decrypts and validates token from createInviteToken', () => {
+  it('verifyShare decrypts and validates token from createShareToken', () => {
     const sender = generateTestKeyPair();
     const recipient = generateTestKeyPair();
 
-    const token = createInviteToken(
+    const token = createShareToken(
       sampleConnection,
       sampleCollection,
       sender.privateKey,
@@ -223,7 +223,7 @@ describe('inviteToken', () => {
     );
 
     const spentStore = createMemorySpentStore();
-    const decoded = verifyInviteToken(
+    const decoded = verifyShareToken(
       token,
       recipient.privateKey,
       recipient.publicKey,
@@ -239,7 +239,7 @@ describe('inviteToken', () => {
     const sender = generateTestKeyPair();
     const recipient = generateTestKeyPair();
 
-    const token = createInviteTokenWithPayload(
+    const token = createShareTokenWithPayload(
       {
         conn: {
           id: 'conn-1',
@@ -259,7 +259,7 @@ describe('inviteToken', () => {
     );
 
     expect(() =>
-      verifyInviteToken(
+      verifyShareToken(
         token,
         recipient.privateKey,
         recipient.publicKey,
@@ -273,7 +273,7 @@ describe('inviteToken', () => {
     const sender = generateTestKeyPair();
     const recipient = generateTestKeyPair();
 
-    const floatToken = createInviteTokenWithPayload(
+    const floatToken = createShareTokenWithPayload(
       {
         conn: sampleConnection,
         collection: { name: 'Team API', providerCollectionId: 42.5 }
@@ -284,7 +284,7 @@ describe('inviteToken', () => {
     );
 
     expect(() =>
-      verifyInviteToken(
+      verifyShareToken(
         floatToken,
         recipient.privateKey,
         recipient.publicKey,
@@ -293,7 +293,7 @@ describe('inviteToken', () => {
       )
     ).toThrow(/invalid collection metadata/i);
 
-    const nanToken = createInviteTokenWithPayload(
+    const nanToken = createShareTokenWithPayload(
       {
         conn: sampleConnection,
         collection: { name: 'Team API', providerCollectionId: NaN }
@@ -304,7 +304,7 @@ describe('inviteToken', () => {
     );
 
     expect(() =>
-      verifyInviteToken(
+      verifyShareToken(
         nanToken,
         recipient.privateKey,
         recipient.publicKey,
@@ -318,7 +318,7 @@ describe('inviteToken', () => {
     const sender = generateTestKeyPair();
     const recipient = generateTestKeyPair();
 
-    const token = createInviteToken(
+    const token = createShareToken(
       sampleConnection,
       sampleCollection,
       sender.privateKey,
@@ -357,7 +357,7 @@ describe('inviteToken', () => {
     const tampered = parts.join('.');
 
     expect(() =>
-      verifyInviteToken(
+      verifyShareToken(
         tampered,
         recipient.privateKey,
         recipient.publicKey,
@@ -367,12 +367,12 @@ describe('inviteToken', () => {
     ).toThrow(/tampering detected/i);
   });
 
-  it('rejects invites from untrusted senders', () => {
+  it('rejects share tokens from untrusted senders', () => {
     const sender = generateTestKeyPair();
     const otherSender = generateTestKeyPair();
     const recipient = generateTestKeyPair();
 
-    const token = createInviteToken(
+    const token = createShareToken(
       sampleConnection,
       sampleCollection,
       sender.privateKey,
@@ -381,7 +381,7 @@ describe('inviteToken', () => {
     );
 
     expect(() =>
-      verifyInviteToken(
+      verifyShareToken(
         token,
         recipient.privateKey,
         recipient.publicKey,
@@ -391,12 +391,12 @@ describe('inviteToken', () => {
     ).toThrow(/untrusted sender/i);
   });
 
-  it('rejects invites encrypted for a different recipient', () => {
+  it('rejects share tokens encrypted for a different recipient', () => {
     const sender = generateTestKeyPair();
     const intendedRecipient = generateTestKeyPair();
     const otherRecipient = generateTestKeyPair();
 
-    const token = createInviteToken(
+    const token = createShareToken(
       sampleConnection,
       sampleCollection,
       sender.privateKey,
@@ -405,7 +405,7 @@ describe('inviteToken', () => {
     );
 
     expect(() =>
-      verifyInviteToken(
+      verifyShareToken(
         token,
         otherRecipient.privateKey,
         otherRecipient.publicKey,
@@ -419,7 +419,7 @@ describe('inviteToken', () => {
     const sender = generateTestKeyPair();
     const recipient = generateTestKeyPair();
 
-    const token = createInviteToken(
+    const token = createShareToken(
       sampleConnection,
       sampleCollection,
       sender.privateKey,
@@ -431,11 +431,11 @@ describe('inviteToken', () => {
     expect(token).not.toContain('db.example.com');
   });
 
-  it('rejects invites whose signed validity window exceeds the maximum TTL', () => {
+  it('rejects share tokens whose signed validity window exceeds the maximum TTL', () => {
     const sender = generateTestKeyPair();
     const recipient = generateTestKeyPair();
 
-    const token = createInviteToken(
+    const token = createShareToken(
       sampleConnection,
       sampleCollection,
       sender.privateKey,
@@ -450,7 +450,7 @@ describe('inviteToken', () => {
     ).toString('utf-8');
     const envelope = JSON.parse(payloadJson) as { iat: number; exp: number };
     envelope.iat = Date.now();
-    envelope.exp = Date.now() + INVITE_TTL_MS * 2;
+    envelope.exp = Date.now() + SHARE_TTL_MS * 2;
     parts[1] = Buffer.from(JSON.stringify(envelope), 'utf-8')
       .toString('base64')
       .replace(/\+/g, '-')
@@ -469,7 +469,7 @@ describe('inviteToken', () => {
     const extended = parts.join('.');
 
     expect(() =>
-      verifyInviteToken(
+      verifyShareToken(
         extended,
         recipient.privateKey,
         recipient.publicKey,
@@ -479,11 +479,11 @@ describe('inviteToken', () => {
     ).toThrow(/validity exceeds maximum allowed lifetime/i);
   });
 
-  it('rejects expired invites', () => {
+  it('rejects expired share tokens', () => {
     const sender = generateTestKeyPair();
     const recipient = generateTestKeyPair();
 
-    const token = createInviteToken(
+    const token = createShareToken(
       sampleConnection,
       sampleCollection,
       sender.privateKey,
@@ -497,7 +497,7 @@ describe('inviteToken', () => {
       'base64'
     ).toString('utf-8');
     const envelope = JSON.parse(payloadJson) as { iat: number; exp: number };
-    envelope.iat = Date.now() - INVITE_TTL_MS - 60_000;
+    envelope.iat = Date.now() - SHARE_TTL_MS - 60_000;
     envelope.exp = Date.now() - 60_000;
     parts[1] = Buffer.from(JSON.stringify(envelope), 'utf-8')
       .toString('base64')
@@ -517,7 +517,7 @@ describe('inviteToken', () => {
     const expired = parts.join('.');
 
     expect(() =>
-      verifyInviteToken(
+      verifyShareToken(
         expired,
         recipient.privateKey,
         recipient.publicKey,
@@ -527,7 +527,7 @@ describe('inviteToken', () => {
     ).toThrow(/expired/i);
   });
 
-  it('rejects legacy v1 invite tokens', () => {
+  it('rejects legacy v1 share tokens', () => {
     const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' }), 'utf-8')
       .toString('base64')
       .replace(/\+/g, '-')
@@ -551,18 +551,18 @@ describe('inviteToken', () => {
     const recipient = generateTestKeyPair();
 
     expect(() =>
-      verifyInviteToken(legacyToken, recipient.privateKey, recipient.publicKey, [], {
+      verifyShareToken(legacyToken, recipient.privateKey, recipient.publicKey, [], {
         spentStore: createMemorySpentStore()
       })
     ).toThrow(/old, insecure format/i);
   });
 
-  it('rejects replay of an already accepted invite', () => {
+  it('rejects replay of an already accepted share token', () => {
     const sender = generateTestKeyPair();
     const recipient = generateTestKeyPair();
     const spentStore = createMemorySpentStore();
 
-    const token = createInviteToken(
+    const token = createShareToken(
       sampleConnection,
       sampleCollection,
       sender.privateKey,
@@ -570,7 +570,7 @@ describe('inviteToken', () => {
       recipient.publicKey
     );
 
-    verifyInviteToken(
+    verifyShareToken(
       token,
       recipient.privateKey,
       recipient.publicKey,
@@ -579,7 +579,7 @@ describe('inviteToken', () => {
     );
 
     expect(() =>
-      verifyInviteToken(
+      verifyShareToken(
         token,
         recipient.privateKey,
         recipient.publicKey,
@@ -593,7 +593,7 @@ describe('inviteToken', () => {
     const sender = generateTestKeyPair();
     const recipient = generateTestKeyPair();
 
-    const token = createInviteToken(
+    const token = createShareToken(
       sampleConnection,
       sampleCollection,
       sender.privateKey,
@@ -626,7 +626,7 @@ describe('inviteToken', () => {
     const missingJti = parts.join('.');
 
     expect(() =>
-      verifyInviteToken(
+      verifyShareToken(
         missingJti,
         recipient.privateKey,
         recipient.publicKey,

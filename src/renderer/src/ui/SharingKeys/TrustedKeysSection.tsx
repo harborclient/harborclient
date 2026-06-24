@@ -1,16 +1,16 @@
 import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { TrustedInviteKey } from '#/shared/types';
+import type { TrustedSharingKey } from '#/shared/types';
 import { Button } from '#/renderer/src/components/Button';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { field } from '#/renderer/src/ui/shared/classes';
 
 /**
- * Trusted collaborator public keys for verifying invite signatures.
+ * Trusted collaborator public keys for verifying share token signatures.
  */
 export function TrustedKeysSection(): JSX.Element {
   const confirm = useConfirm();
-  const [keys, setKeys] = useState<TrustedInviteKey[]>([]);
+  const [keys, setKeys] = useState<TrustedSharingKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +18,7 @@ export function TrustedKeysSection(): JSX.Element {
   const [publicKeyPem, setPublicKeyPem] = useState('');
 
   /**
-   * Loads trusted invite public keys on mount.
+   * Loads trusted sharing public keys on mount.
    */
   useEffect(() => {
     let cancelled = false;
@@ -101,11 +101,11 @@ export function TrustedKeysSection(): JSX.Element {
    *
    * @param key - Trusted key the user chose to delete.
    */
-  const handleDeleteClick = (key: TrustedInviteKey): void => {
+  const handleDeleteClick = (key: TrustedSharingKey): void => {
     void (async () => {
       const confirmed = await confirm({
         title: 'Remove trusted key?',
-        message: `Remove "${key.label}"? Invites signed by this key will no longer be accepted.`,
+        message: `Remove "${key.label}"? Share tokens signed by this key will no longer be accepted.`,
         confirmLabel: 'Remove',
         variant: 'danger'
       });
@@ -118,8 +118,8 @@ export function TrustedKeysSection(): JSX.Element {
       <div className="mb-4">
         <h2 className="m-0 mb-1 text-[14px] font-medium text-text">Trusted keys</h2>
         <p className="m-0 text-[14px] text-muted">
-          Add public keys for people you trust. Invites must be signed by a trusted sender, and you
-          can only create invites for keys listed here.
+          Add public keys for people you trust. Share tokens must be signed by a trusted sender, and
+          you can only create share tokens for keys listed here.
         </p>
       </div>
 

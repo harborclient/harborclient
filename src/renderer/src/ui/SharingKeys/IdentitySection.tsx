@@ -1,25 +1,25 @@
 import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { InviteIdentity } from '#/shared/types';
+import type { SharingIdentity } from '#/shared/types';
 import { Button } from '#/renderer/src/components/Button';
 import { field } from '#/renderer/src/ui/shared/classes';
 
 /**
- * Local invite identity: fingerprint, export, and import.
+ * Local sharing identity: fingerprint, export, and import.
  */
 export function IdentitySection(): JSX.Element {
-  const [identity, setIdentity] = useState<InviteIdentity | null>(null);
+  const [identity, setIdentity] = useState<SharingIdentity | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * Loads the local invite identity on mount.
+   * Loads the local sharing identity on mount.
    */
   useEffect(() => {
     let cancelled = false;
 
-    void window.api.getInviteIdentity().then((nextIdentity) => {
+    void window.api.getSharingIdentity().then((nextIdentity) => {
       if (cancelled) return;
       setIdentity(nextIdentity);
       setLoading(false);
@@ -50,7 +50,7 @@ export function IdentitySection(): JSX.Element {
     setBusy(true);
     setError(null);
     try {
-      const result = await window.api.exportInvitePrivateKey();
+      const result = await window.api.exportSharingPrivateKey();
       if (result.canceled) return;
       toast.success('Private key exported');
     } catch (err) {
@@ -67,7 +67,7 @@ export function IdentitySection(): JSX.Element {
     setBusy(true);
     setError(null);
     try {
-      const result = await window.api.exportInvitePublicKey();
+      const result = await window.api.exportSharingPublicKey();
       if (result.canceled) return;
       toast.success('Public key exported');
     } catch (err) {
@@ -84,7 +84,7 @@ export function IdentitySection(): JSX.Element {
     setBusy(true);
     setError(null);
     try {
-      const nextIdentity = await window.api.importInviteKeyPair();
+      const nextIdentity = await window.api.importSharingKeyPair();
       setIdentity(nextIdentity);
       toast.success('Key pair imported');
     } catch (err) {
@@ -102,7 +102,7 @@ export function IdentitySection(): JSX.Element {
       <div className="mb-4">
         <h2 className="m-0 mb-1 text-[14px] font-medium text-text">My identity</h2>
         <p className="m-0 text-[14px] text-muted">
-          Your key pair signs invites you send and decrypts invites addressed to you. Share your
+          Your key pair signs share tokens you send and decrypts tokens addressed to you. Share your
           public key so collaborators can trust and encrypt to you.
         </p>
       </div>
@@ -166,7 +166,7 @@ export function IdentitySection(): JSX.Element {
           </div>
 
           <p className="mb-0 mt-4 text-[14px] text-danger">
-            Keep your private key secret. Anyone with it can sign invites as you.
+            Keep your private key secret. Anyone with it can sign share tokens as you.
           </p>
         </>
       ) : null}

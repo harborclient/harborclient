@@ -206,12 +206,12 @@ HarborClient offers several ways to work with others. Pick the approach that mat
 | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **SQLite / local DB**                      | Solo work, offline-first, full control on one machine                                                                                                            |
 | **Remote storage** (Firestore, MySQL, Postgres) | Team shares one storage location directly; configure connections in [Settings → Storage Locations](/settings#storage-locations)                                                          |
-| **Encrypted invites**                      | One-step handoff of storage credentials plus a collection; requires [Certificates](/certificates) and [Collections → Sharing](/collections#sharing-collections) |
+| **Encrypted sharing**                      | One-step handoff of storage credentials plus a collection; requires [Sharing Keys](/sharing-keys) and [Collections → Sharing](/collections#sharing-collections) |
 | **Team hubs**                              | Team shares collections through HarborClient Team Hub with token-based access — no manual storage setup per teammate                                            |
 
-**Remote storage location vs team hub:** With a remote storage location, every teammate configures the same DB connection (or accepts an invite that embeds credentials). With a team hub, teammates only need the team hub URL and their own API token; collection data is exposed through HarborClient Team Hub's HTTP API.
+**Remote storage location vs team hub:** With a remote storage location, every teammate configures the same DB connection (or joins with a share token that embeds credentials). With a team hub, teammates only need the team hub URL and their own API token; collection data is exposed through HarborClient Team Hub's HTTP API.
 
-**Invites vs team hubs:** Invites bundle remote **storage location** connection details and a single collection mapping. Team hubs are a separate path: collections live on HarborClient Team Hub, and sync discovers collections your token can access. The **Invite** row menu action is intended for remote-storage sharing; for hub-backed collections, sharing is handled by granting team hub access (tokens) rather than sending an invite token.
+**Share tokens vs team hubs:** Share tokens bundle remote **storage location** connection details and a single collection mapping. Team hubs are a separate path: collections live on HarborClient Team Hub, and sync discovers collections your token can access. The **Share access** row menu action is intended for remote-storage sharing; for hub-backed collections, sharing is handled by granting team hub access (tokens) rather than sending a share token.
 
 ## Team Hub LLM access
 
@@ -240,7 +240,7 @@ See the [AI assistant](/ai) guide and the team hub [LLM proxy documentation](htt
 
 - [Collections](/collections) — sidebar, settings, import/export, and provider moves
 - [Settings → Storage Locations](/settings#storage-locations) — SQLite and remote storage connections
-- [Certificates](/certificates) — keys and trusted collaborators for encrypted invites
+- [Sharing Keys](/sharing-keys) — keys and trusted collaborators for encrypted sharing
 - [Environments](/environments) — local variable groups that override collection variables at send time
 - [HarborClient Team Hub documentation](https://headzoo.github.io/harborclient-service-hub/) — install, configure, and run the central server
 - [Team Hub authentication](https://headzoo.github.io/harborclient-service-hub/auth.html) — user roles, token creation, and CLI administration beyond the HarborClient UI

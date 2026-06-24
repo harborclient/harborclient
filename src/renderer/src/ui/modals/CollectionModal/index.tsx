@@ -4,14 +4,14 @@ import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   closeCollectionModal,
   selectCollectionModal,
-  setCollectionModalInviteTokenInput,
+  setCollectionModalShareTokenInput,
   setCollectionModalName,
   setCollectionModalProviderId,
   setCollectionModalSubmitError,
   setCollectionModalTab
 } from '#/renderer/src/store/slices/modalsSlice';
 import {
-  acceptInviteToken,
+  joinSharedCollection,
   createCollection,
   importCollection,
   saveRequest
@@ -28,7 +28,7 @@ import { Modal } from '#/renderer/src/ui/shared/Modal';
 import { formatErrorMessage } from '#/renderer/src/ui/modals/dialogHelpers';
 
 /**
- * Modal for creating a collection, importing from file, or accepting an invite.
+ * Modal for creating a collection, importing from file, or joining a shared collection.
  */
 export function CollectionModal(): JSX.Element | null {
   const dispatch = useAppDispatch();
@@ -104,17 +104,19 @@ export function CollectionModal(): JSX.Element | null {
   }, [dispatch]);
 
   /**
-   * Accepts an invite JWT and adds the embedded database connection.
+   * Joins a shared collection from a share JWT and adds the embedded database connection.
    */
-  const handleAcceptInvite = useCallback(async (): Promise<void> => {
+  const handleJoinSharedCollection = useCallback(async (): Promise<void> => {
     if (!collectionModal) return;
-    const token = collectionModal.inviteTokenInput.trim();
+    const token = collectionModal.shareTokenInput.trim();
     if (!token) return;
     dispatch(setCollectionModalSubmitError(null));
     try {
-      await dispatch(acceptInviteToken(token)).unwrap();
+      await dispatch(joinSharedCollection(token)).unwrap();
     } catch (err) {
-      dispatch(setCollectionModalSubmitError(formatErrorMessage(err, 'Failed to accept invite')));
+      dispatch(
+        setCollectionModalSubmitError(formatErrorMessage(err, 'Failed to join shared collection'))
+      );
     }
   }, [collectionModal, dispatch]);
 
@@ -152,7 +154,11 @@ export function CollectionModal(): JSX.Element | null {
   );
 
   return (
-    <Modal onClose={handleClose} className="w-[32rem]" labelledBy="collection-modal-title">
+    <Modal
+      onClose={handleClose}
+      className={showImportTab ? 'w-[40rem]' : 'w-[32rem]'}
+      labelledBy="collection-modal-title"
+    >
       <h2 id="collection-modal-title" className="m-0 mb-1 text-[14px] font-semibold text-text">
         {showImportTab ? 'Add collection' : 'New collection'}
       </h2>
@@ -174,7 +180,7 @@ export function CollectionModal(): JSX.Element | null {
             tabs={[
               { value: 'create', label: 'Create new' },
               { value: 'import', label: 'Import from file' },
-              { value: 'invite', label: 'Accept invite' }
+              { value: 'join', label: 'Join shared collection' }
             ]}
           />
 
@@ -182,28 +188,27 @@ export function CollectionModal(): JSX.Element | null {
             <p className="mb-3 text-[14px] text-danger">{collectionModal.submitError}</p>
           )}
 
-          <SegmentedTabPanel value="invite">
+          <SegmentedTabPanel value="join">
             <p className="mb-3 text-[14px] text-muted">
-              Paste an invite token from a trusted sender. Add their public key under File →
-              Certificates first. Restart HarborClient after accepting to load collections from that
-              database.
+              Paste a share token from a trusted sender. Add their public key under File → Sharing
+              Keys first. Restart HarborClient after joining to load collections from that database.
             </p>
             <textarea
               className={`${field} min-h-28 w-full resize-y font-mono text-[14px]`}
               autoFocus
-              placeholder="Paste invite token"
-              value={collectionModal.inviteTokenInput}
-              onChange={(e) => dispatch(setCollectionModalInviteTokenInput(e.target.value))}
+              placeholder="Paste share token"
+              value={collectionModal.shareTokenInput}
+              onChange={(e) => dispatch(setCollectionModalShareTokenInput(e.target.value))}
             />
             <div className="mt-4 flex justify-end gap-2">
               <Button variant="secondary" onClick={handleClose}>
                 Cancel
               </Button>
               <Button
-                onClick={() => void handleAcceptInvite()}
-                disabled={!collectionModal.inviteTokenInput.trim()}
+                onClick={() => void handleJoinSharedCollection()}
+                disabled={!collectionModal.shareTokenInput.trim()}
               >
-                Accept
+                Join
               </Button>
             </div>
           </SegmentedTabPanel>

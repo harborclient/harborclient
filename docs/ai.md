@@ -40,7 +40,7 @@ Show or hide the AI panel from:
 - **View → AI** in the menu bar
 - The **robot** button in the footer (Show/Hide AI sidebar)
 
-Your sidebar visibility preference persists across app restarts. The AI sidebar is hidden while Settings, Team Hub, or Certificates are open.
+Your sidebar visibility preference persists across app restarts. The AI sidebar is hidden while Settings, Team Hub, or Sharing Keys are open.
 
 ## Using chat
 

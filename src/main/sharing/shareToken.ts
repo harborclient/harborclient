@@ -17,17 +17,17 @@ import {
 import { z } from 'zod';
 import { storageConnection, dbId } from '#/main/ipc/ipcSchemas';
 import {
-  getDefaultSpentInviteTokenStore,
-  type SpentInviteTokenStore
-} from '#/main/invite/spentInviteTokens';
-import type { StorageConnection, TrustedInviteKey } from '#/shared/types';
+  getDefaultSpentShareTokenStore,
+  type SpentShareTokenStore
+} from '#/main/sharing/spentShareTokens';
+import type { StorageConnection, TrustedSharingKey } from '#/shared/types';
 
-export const INVITE_TOKEN_VERSION = 2;
+export const SHARE_TOKEN_VERSION = 2;
 
 /**
- * Default invite lifetime (7 days).
+ * Default share token lifetime (7 days).
  */
-export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+export const SHARE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Allowed clock skew when validating `iat`.
@@ -35,10 +35,10 @@ export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const CLOCK_SKEW_MS = 5 * 60 * 1000;
 
 /**
- * Collection metadata embedded in an invite so the recipient can register it
+ * Collection metadata embedded in a share token so the recipient can register it
  * in their local collection registry (the authoritative collection list).
  */
-export interface InviteCollectionMeta {
+export interface ShareCollectionMeta {
   /**
    * Display name for the shared collection.
    */
@@ -51,11 +51,11 @@ export interface InviteCollectionMeta {
 }
 
 /**
- * A trusted sender public key used to verify invite signatures.
+ * A trusted sender public key used to verify share token signatures.
  */
-export type { TrustedInviteKey };
+export type { TrustedSharingKey };
 
-interface InviteTokenHeader {
+interface ShareTokenHeader {
   v: number;
   alg: string;
   sigAlg: string;
@@ -63,7 +63,7 @@ interface InviteTokenHeader {
   recipientKid: string;
 }
 
-interface InviteTokenEnvelope {
+interface ShareTokenEnvelope {
   jti: string;
   iat: number;
   exp: number;
@@ -73,17 +73,17 @@ interface InviteTokenEnvelope {
   tag: string;
 }
 
-interface DecryptedInvitePayload {
+interface DecryptedSharePayload {
   conn: StorageConnection;
-  collection: InviteCollectionMeta;
+  collection: ShareCollectionMeta;
 }
 
 /**
- * Decoded invite contents: the shared connection plus the collection mapping.
+ * Decoded share contents: the shared connection plus the collection mapping.
  */
-export interface DecodedInvite {
+export interface DecodedShare {
   connection: StorageConnection;
-  collection: InviteCollectionMeta;
+  collection: ShareCollectionMeta;
 }
 
 /**
@@ -169,71 +169,71 @@ export function publicKeyFingerprint(publicKeyPem: string): string {
 }
 
 /**
- * Zod schema for decrypted invite payload contents after AES-GCM decryption.
+ * Zod schema for decrypted share payload contents after AES-GCM decryption.
  */
-const decryptedInvitePayloadSchema = z.object({
+const decryptedSharePayloadSchema = z.object({
   conn: storageConnection,
   collection: z.object({
     name: z.string(),
     providerCollectionId: dbId
   })
-}) satisfies z.ZodType<DecryptedInvitePayload>;
+}) satisfies z.ZodType<DecryptedSharePayload>;
 
 /**
- * Maps a Zod validation failure to a user-facing invite token error.
+ * Maps a Zod validation failure to a user-facing share token error.
  *
  * @param error - Zod safeParse error from payload validation.
  */
-function invitePayloadValidationError(error: z.ZodError): Error {
+function sharePayloadValidationError(error: z.ZodError): Error {
   const firstPath = error.issues[0]?.path[0];
   if (firstPath === 'conn') {
-    return new Error('Invalid invite token: invalid connection.');
+    return new Error('Invalid share token: invalid connection.');
   }
   if (firstPath === 'collection') {
-    return new Error('Invalid invite token: invalid collection metadata.');
+    return new Error('Invalid share token: invalid collection metadata.');
   }
-  return new Error('Invalid invite token: malformed payload.');
+  return new Error('Invalid share token: malformed payload.');
 }
 
 /**
- * Validates and normalizes decrypted invite payload contents.
+ * Validates and normalizes decrypted share payload contents.
  *
  * @param raw - Parsed JSON payload.
  */
-function parseDecryptedPayload(raw: unknown): DecryptedInvitePayload {
-  const result = decryptedInvitePayloadSchema.safeParse(raw);
+function parseDecryptedPayload(raw: unknown): DecryptedSharePayload {
+  const result = decryptedSharePayloadSchema.safeParse(raw);
   if (!result.success) {
-    throw invitePayloadValidationError(result.error);
+    throw sharePayloadValidationError(result.error);
   }
   return result.data;
 }
 
 /**
- * Parses and validates the invite JWT header segment.
+ * Parses and validates the share JWT header segment.
  *
  * @param encodedHeader - Base64url-encoded header JSON.
  */
-function parseInviteHeader(encodedHeader: string): InviteTokenHeader {
+function parseShareHeader(encodedHeader: string): ShareTokenHeader {
   let parsed: unknown;
   try {
     parsed = JSON.parse(base64UrlDecode(encodedHeader)) as unknown;
   } catch {
-    throw new Error('Invalid invite token: malformed header.');
+    throw new Error('Invalid share token: malformed header.');
   }
 
   if (typeof parsed !== 'object' || parsed == null) {
-    throw new Error('Invalid invite token: malformed header.');
+    throw new Error('Invalid share token: malformed header.');
   }
 
-  const header = parsed as Partial<InviteTokenHeader>;
-  if (!header.v || header.v < INVITE_TOKEN_VERSION) {
+  const header = parsed as Partial<ShareTokenHeader>;
+  if (!header.v || header.v < SHARE_TOKEN_VERSION) {
     throw new Error(
-      'This invite uses an old, insecure format. Ask the sender to re-share the collection.'
+      'This share token uses an old, insecure format. Ask the sender to re-share the collection.'
     );
   }
 
-  if (header.v !== INVITE_TOKEN_VERSION) {
-    throw new Error('Invalid invite token: unsupported version.');
+  if (header.v !== SHARE_TOKEN_VERSION) {
+    throw new Error('Invalid share token: unsupported version.');
   }
 
   if (
@@ -242,11 +242,11 @@ function parseInviteHeader(encodedHeader: string): InviteTokenHeader {
     typeof header.senderKid !== 'string' ||
     typeof header.recipientKid !== 'string'
   ) {
-    throw new Error('Invalid invite token: malformed header.');
+    throw new Error('Invalid share token: malformed header.');
   }
 
   return {
-    v: INVITE_TOKEN_VERSION,
+    v: SHARE_TOKEN_VERSION,
     alg: header.alg,
     sigAlg: header.sigAlg,
     senderKid: header.senderKid,
@@ -255,23 +255,23 @@ function parseInviteHeader(encodedHeader: string): InviteTokenHeader {
 }
 
 /**
- * Parses and validates the encrypted invite envelope segment.
+ * Parses and validates the encrypted share envelope segment.
  *
  * @param encodedPayload - Base64url-encoded envelope JSON.
  */
-function parseInviteEnvelope(encodedPayload: string): InviteTokenEnvelope {
+function parseShareEnvelope(encodedPayload: string): ShareTokenEnvelope {
   let parsed: unknown;
   try {
     parsed = JSON.parse(base64UrlDecode(encodedPayload)) as unknown;
   } catch {
-    throw new Error('Invalid invite token: malformed payload.');
+    throw new Error('Invalid share token: malformed payload.');
   }
 
   if (typeof parsed !== 'object' || parsed == null) {
-    throw new Error('Invalid invite token: malformed payload.');
+    throw new Error('Invalid share token: malformed payload.');
   }
 
-  const envelope = parsed as Partial<InviteTokenEnvelope>;
+  const envelope = parsed as Partial<ShareTokenEnvelope>;
   if (
     typeof envelope.jti !== 'string' ||
     envelope.jti.trim().length === 0 ||
@@ -282,7 +282,7 @@ function parseInviteEnvelope(encodedPayload: string): InviteTokenEnvelope {
     typeof envelope.ct !== 'string' ||
     typeof envelope.tag !== 'string'
   ) {
-    throw new Error('Invalid invite token: malformed payload.');
+    throw new Error('Invalid share token: malformed payload.');
   }
 
   return {
@@ -297,38 +297,38 @@ function parseInviteEnvelope(encodedPayload: string): InviteTokenEnvelope {
 }
 
 /**
- * Validates invite freshness (`iat` / `exp`) and caps the signed validity window
- * so trusted senders cannot issue arbitrarily long-lived invites.
+ * Validates share token freshness (`iat` / `exp`) and caps the signed validity window
+ * so trusted senders cannot issue arbitrarily long-lived share tokens.
  *
- * @param envelope - Parsed invite envelope.
+ * @param envelope - Parsed share envelope.
  * @param now - Current timestamp in milliseconds.
  */
-function assertInviteFreshness(envelope: InviteTokenEnvelope, now: number): void {
+function assertShareFreshness(envelope: ShareTokenEnvelope, now: number): void {
   if (envelope.exp <= now) {
-    throw new Error('Invalid invite token: invite has expired.');
+    throw new Error('Invalid share token: share token has expired.');
   }
 
   if (envelope.iat > now + CLOCK_SKEW_MS) {
-    throw new Error('Invalid invite token: invite is not yet valid.');
+    throw new Error('Invalid share token: share token is not yet valid.');
   }
 
-  if (envelope.exp - envelope.iat > INVITE_TTL_MS) {
-    throw new Error('Invalid invite token: invite validity exceeds maximum allowed lifetime.');
+  if (envelope.exp - envelope.iat > SHARE_TTL_MS) {
+    throw new Error('Invalid share token: share token validity exceeds maximum allowed lifetime.');
   }
 }
 
 /**
- * Creates a signed, recipient-encrypted invite token.
+ * Creates a signed, recipient-encrypted share token.
  *
  * @param connection - Connection to embed in the token.
  * @param collection - Collection metadata (name and provider id) to embed.
- * @param senderPrivateKeyPem - PEM-encoded RSA private key of the inviter.
- * @param senderPublicKeyPem - PEM-encoded RSA public key of the inviter.
+ * @param senderPrivateKeyPem - PEM-encoded RSA private key of the sender.
+ * @param senderPublicKeyPem - PEM-encoded RSA public key of the sender.
  * @param recipientPublicKeyPem - PEM-encoded RSA public key of the intended recipient.
  */
-export function createInviteToken(
+export function createShareToken(
   connection: StorageConnection,
-  collection: InviteCollectionMeta,
+  collection: ShareCollectionMeta,
   senderPrivateKeyPem: string,
   senderPublicKeyPem: string,
   recipientPublicKeyPem: string
@@ -355,23 +355,23 @@ export function createInviteToken(
   const now = Date.now();
   const header = base64UrlEncode(
     JSON.stringify({
-      v: INVITE_TOKEN_VERSION,
+      v: SHARE_TOKEN_VERSION,
       alg: 'RSA-OAEP-256+A256GCM',
       sigAlg: 'RS256',
       senderKid: publicKeyFingerprint(senderPublicKeyPem),
       recipientKid: publicKeyFingerprint(recipientPublicKeyPem)
-    } satisfies InviteTokenHeader)
+    } satisfies ShareTokenHeader)
   );
   const payload = base64UrlEncode(
     JSON.stringify({
       jti: randomUUID(),
       iat: now,
-      exp: now + INVITE_TTL_MS,
+      exp: now + SHARE_TTL_MS,
       encKey: base64UrlEncodeBuffer(wrappedKey),
       iv: base64UrlEncodeBuffer(iv),
       ct: base64UrlEncodeBuffer(ciphertext),
       tag: base64UrlEncodeBuffer(tag)
-    } satisfies InviteTokenEnvelope)
+    } satisfies ShareTokenEnvelope)
   );
 
   const signingInput = `${header}.${payload}`;
@@ -385,46 +385,46 @@ export function createInviteToken(
 }
 
 /**
- * Verifies and decrypts an invite token addressed to the local identity.
+ * Verifies and decrypts an share token addressed to the local identity.
  *
- * @param token - JWT string from an invite.
+ * @param token - JWT string from a share token.
  * @param recipientPrivateKeyPem - PEM-encoded RSA private key of the recipient.
  * @param recipientPublicKeyPem - PEM-encoded RSA public key of the recipient.
  * @param trustedKeys - Public keys of senders the recipient trusts.
  * @param options - Optional overrides, including a custom spent-token store for tests.
  */
-export function verifyInviteToken(
+export function verifyShareToken(
   token: string,
   recipientPrivateKeyPem: string,
   recipientPublicKeyPem: string,
-  trustedKeys: TrustedInviteKey[],
-  options?: { spentStore?: SpentInviteTokenStore }
-): DecodedInvite {
-  const spentStore = options?.spentStore ?? getDefaultSpentInviteTokenStore();
+  trustedKeys: TrustedSharingKey[],
+  options?: { spentStore?: SpentShareTokenStore }
+): DecodedShare {
+  const spentStore = options?.spentStore ?? getDefaultSpentShareTokenStore();
   const trimmed = token.trim();
   const parts = trimmed.split('.');
   if (parts.length !== 3) {
-    throw new Error('Invalid invite token: expected three JWT segments.');
+    throw new Error('Invalid share token: expected three JWT segments.');
   }
 
   const [encodedHeader, encodedPayload, encodedSignature] = parts;
-  const header = parseInviteHeader(encodedHeader);
-  const envelope = parseInviteEnvelope(encodedPayload);
+  const header = parseShareHeader(encodedHeader);
+  const envelope = parseShareEnvelope(encodedPayload);
   const now = Date.now();
-  assertInviteFreshness(envelope, now);
+  assertShareFreshness(envelope, now);
 
   if (spentStore.isSpent(envelope.jti)) {
-    throw new Error('Invalid invite token: invite has already been used.');
+    throw new Error('Invalid share token: share token has already been used.');
   }
 
   const recipientKid = publicKeyFingerprint(recipientPublicKeyPem);
   if (header.recipientKid !== recipientKid) {
-    throw new Error('Invalid invite token: this invite was not issued to you.');
+    throw new Error('Invalid share token: this share token was not issued to you.');
   }
 
   const sender = trustedKeys.find((key) => key.id === header.senderKid);
   if (!sender) {
-    throw new Error('Invalid invite token: invite is from an untrusted sender.');
+    throw new Error('Invalid share token: share token is from an untrusted sender.');
   }
 
   const signingInput = `${encodedHeader}.${encodedPayload}`;
@@ -435,7 +435,7 @@ export function verifyInviteToken(
     asArrayBufferView(base64UrlDecodeBuffer(encodedSignature))
   );
   if (!signatureValid) {
-    throw new Error('Invalid invite token: signature verification failed.');
+    throw new Error('Invalid share token: signature verification failed.');
   }
 
   let aesKey: Buffer;
@@ -449,7 +449,7 @@ export function verifyInviteToken(
       asArrayBufferView(base64UrlDecodeBuffer(envelope.encKey))
     );
   } catch {
-    throw new Error('Invalid invite token: unable to decrypt invite.');
+    throw new Error('Invalid share token: unable to decrypt share token.');
   }
 
   const decipher = createDecipheriv(
@@ -466,14 +466,14 @@ export function verifyInviteToken(
       decipher.final()
     ] as unknown as readonly Uint8Array[]);
   } catch {
-    throw new Error('Invalid invite token: payload tampering detected.');
+    throw new Error('Invalid share token: payload tampering detected.');
   }
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(decrypted.toString('utf-8')) as unknown;
   } catch {
-    throw new Error('Invalid invite token: malformed payload.');
+    throw new Error('Invalid share token: malformed payload.');
   }
 
   const payload = parseDecryptedPayload(parsed);

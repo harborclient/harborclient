@@ -74,12 +74,12 @@ export function buildMenu(
         },
         { type: 'separator' },
         {
-          label: 'Invite Certificates',
-          click: () => sendMenuAction(window, 'certificates')
+          label: 'Sharing Keys',
+          click: () => sendMenuAction(window, 'sharing-keys')
         },
         {
-          label: 'Accept Invite',
-          click: () => sendMenuAction(window, 'accept-invite')
+          label: 'Join Shared Collection',
+          click: () => sendMenuAction(window, 'join-shared-collection')
         },
         {
           label: 'Import',

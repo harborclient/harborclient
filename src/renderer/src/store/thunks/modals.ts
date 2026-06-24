@@ -3,11 +3,11 @@ import toast from 'react-hot-toast';
 import {
   closeCollectionModal,
   setAboutVersion,
-  setInviteToken,
-  setInviteTokenError,
-  setInviteTokenLoading,
-  setInviteTrustedKeys,
-  setInviteTrustedKeysLoading,
+  setShareToken,
+  setShareTokenError,
+  setShareTokenLoading,
+  setShareTrustedKeys,
+  setShareTrustedKeysLoading,
   setUpdateError,
   setUpdateLoading,
   setUpdateResult
@@ -16,60 +16,60 @@ import type { ThunkApiConfig } from '#/renderer/src/store/redux';
 import { refreshCollections } from '#/renderer/src/store/thunks/collections';
 
 /**
- * Loads trusted keys for the invite modal recipient picker.
+ * Loads trusted keys for the share modal recipient picker.
  */
 export const loadTrustedKeys = createAsyncThunk<void, void, ThunkApiConfig>(
   'modals/loadTrustedKeys',
   async (_, { dispatch }) => {
-    dispatch(setInviteTrustedKeysLoading(true));
-    dispatch(setInviteTokenError(null));
+    dispatch(setShareTrustedKeysLoading(true));
+    dispatch(setShareTokenError(null));
     try {
       const keys = await window.api.listTrustedKeys();
-      dispatch(setInviteTrustedKeys(keys));
+      dispatch(setShareTrustedKeys(keys));
     } catch (err) {
       dispatch(
-        setInviteTokenError(err instanceof Error ? err.message : 'Failed to load trusted keys')
+        setShareTokenError(err instanceof Error ? err.message : 'Failed to load trusted keys')
       );
-      dispatch(setInviteTrustedKeys([]));
+      dispatch(setShareTrustedKeys([]));
     } finally {
-      dispatch(setInviteTrustedKeysLoading(false));
+      dispatch(setShareTrustedKeysLoading(false));
     }
   }
 );
 
 /**
- * Generates an encrypted invite token for the selected recipient.
+ * Generates an encrypted share token for the selected recipient.
  */
-export const generateInviteToken = createAsyncThunk<void, void, ThunkApiConfig>(
-  'modals/generateInviteToken',
+export const generateShareToken = createAsyncThunk<void, void, ThunkApiConfig>(
+  'modals/generateShareToken',
   async (_, { dispatch, getState }) => {
-    const invite = getState().modals.invite;
-    if (!invite || !invite.recipientKid) return;
+    const share = getState().modals.share;
+    if (!share || !share.recipientKid) return;
 
-    dispatch(setInviteTokenLoading(true));
-    dispatch(setInviteTokenError(null));
-    dispatch(setInviteToken(''));
+    dispatch(setShareTokenLoading(true));
+    dispatch(setShareTokenError(null));
+    dispatch(setShareToken(''));
 
     try {
-      const token = await window.api.createInviteToken(invite.collectionId, invite.recipientKid);
-      dispatch(setInviteToken(token));
+      const token = await window.api.createShareToken(share.collectionId, share.recipientKid);
+      dispatch(setShareToken(token));
     } catch (err) {
       dispatch(
-        setInviteTokenError(err instanceof Error ? err.message : 'Failed to create invite token')
+        setShareTokenError(err instanceof Error ? err.message : 'Failed to create share token')
       );
     } finally {
-      dispatch(setInviteTokenLoading(false));
+      dispatch(setShareTokenLoading(false));
     }
   }
 );
 
 /**
- * Accepts an invite JWT and refreshes collections.
+ * Joins a shared collection from a share JWT and refreshes collections.
  */
-export const acceptInviteToken = createAsyncThunk<void, string, ThunkApiConfig>(
-  'modals/acceptInviteToken',
+export const joinSharedCollection = createAsyncThunk<void, string, ThunkApiConfig>(
+  'modals/joinSharedCollection',
   async (token, { dispatch }) => {
-    await window.api.acceptInvite(token);
+    await window.api.joinSharedCollection(token);
     await dispatch(refreshCollections());
     dispatch(closeCollectionModal());
     toast.success('Shared connection added');

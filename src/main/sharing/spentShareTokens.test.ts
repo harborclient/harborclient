@@ -7,13 +7,13 @@ import {
   clearLocalDatabaseForTesting,
   setLocalDatabaseForTesting
 } from '#/main/storage/localDatabaseInstance';
-import { createPersistedSpentInviteTokenStore } from '#/main/invite/spentInviteTokens';
+import { createPersistedSpentShareTokenStore } from '#/main/sharing/spentShareTokens';
 import { describeSqlite } from '#/test/nativeModules';
 
 let tempDir: string;
 let database: LocalDatabase;
 
-describeSqlite('spentInviteTokens', () => {
+describeSqlite('spentShareTokens', () => {
   beforeEach(async () => {
     tempDir = mkdtempSync(join(tmpdir(), 'hc-spent-invite-'));
     database = new LocalDatabase(tempDir);
@@ -28,7 +28,7 @@ describeSqlite('spentInviteTokens', () => {
   });
 
   it('markSpent records a jti as spent', () => {
-    const store = createPersistedSpentInviteTokenStore();
+    const store = createPersistedSpentShareTokenStore();
     const exp = Date.now() + 60_000;
 
     expect(store.isSpent('invite-jti-1')).toBe(false);
@@ -37,7 +37,7 @@ describeSqlite('spentInviteTokens', () => {
   });
 
   it('prunes expired entries and no longer reports them as spent', () => {
-    const store = createPersistedSpentInviteTokenStore();
+    const store = createPersistedSpentShareTokenStore();
     store.markSpent('expired-jti', Date.now() - 1);
 
     expect(store.isSpent('expired-jti')).toBe(false);
@@ -45,9 +45,9 @@ describeSqlite('spentInviteTokens', () => {
 
   it('persists spent entries across store re-creation', () => {
     const exp = Date.now() + 60_000;
-    createPersistedSpentInviteTokenStore().markSpent('persisted-jti', exp);
+    createPersistedSpentShareTokenStore().markSpent('persisted-jti', exp);
 
-    const reloaded = createPersistedSpentInviteTokenStore();
+    const reloaded = createPersistedSpentShareTokenStore();
     expect(reloaded.isSpent('persisted-jti')).toBe(true);
   });
 });

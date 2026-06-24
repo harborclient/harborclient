@@ -43,7 +43,7 @@ Reports we want to hear about include, but are not limited to:
 - Sandbox escape or main-process remote code execution via scripts, IPC, or the
   renderer
 - IPC validation bypass leading to privilege escalation or data exfiltration
-- Invite-token cryptography flaws, signature bypass, or credential leakage
+- Share-token cryptography flaws, signature bypass, or credential leakage
 - Unsafe handling of secrets such as private keys, auth tokens, or database
   passwords
 - Electron or webview misconfiguration that enables renderer-to-Node escalation
@@ -76,14 +76,14 @@ sources you trust.
 
 See [Request scripts — Sandbox limits](https://harborclient.com/request-scripts#sandbox-limits).
 
-### Invite tokens and keys
+### Share tokens and keys
 
-Collection invite tokens embed storage connection credentials. Treat invite
+Collection share tokens embed storage connection credentials. Treat share
 tokens as secrets and share them only with the intended recipient over a trusted
 channel. Keep your private RSA key on your machine and never share it. Verify
 public-key fingerprints when exchanging keys with collaborators.
 
-See [Certificates](https://harborclient.com/certificates).
+See [Sharing Keys](https://harborclient.com/sharing-keys).
 
 ### Updates
 
@@ -93,7 +93,7 @@ keep your installation up to date.
 
 ### Remote storage locations
 
-Storage connection credentials are stored locally and may be included in invite
+Storage connection credentials are stored locally and may be included in share
 tokens. Secure the machines and communication channels where credentials and
 tokens are shared.
 

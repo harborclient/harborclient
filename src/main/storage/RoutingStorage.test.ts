@@ -718,7 +718,7 @@ describeSqlite('RoutingStorage.create', () => {
     ];
     const slots = Object.fromEntries(connections.map((conn, index) => [conn.id, index]));
 
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const router = await RoutingStorage.create(database, sqliteId, connections, [], slots, rootDir);
 

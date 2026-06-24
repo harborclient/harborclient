@@ -32,7 +32,7 @@ import {
   toggleSidebar,
   toggleVariables
 } from '#/renderer/src/store/slices/navigationSlice';
-import { openCollectionModal, openInviteModal } from '#/renderer/src/store/slices/modalsSlice';
+import { openCollectionModal, openShareModal } from '#/renderer/src/store/slices/modalsSlice';
 import {
   initializeStore,
   loadTrustedKeys,
@@ -47,7 +47,7 @@ import { UpdateModal } from '#/renderer/src/ui/modals/UpdateModal';
 import { AlertModal } from '#/renderer/src/ui/modals/AlertModal';
 import { CollectionModal } from '#/renderer/src/ui/modals/CollectionModal';
 import { ConfirmModal } from '#/renderer/src/ui/modals/ConfirmModal';
-import { InviteModal } from '#/renderer/src/ui/modals/InviteModal';
+import { ShareModal } from '#/renderer/src/ui/modals/ShareModal';
 import { QuitPrompt } from '#/renderer/src/ui/modals/QuitPrompt';
 import { UnsavedLoadPrompt } from '#/renderer/src/ui/modals/UnsavedLoadPrompt';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
@@ -151,7 +151,7 @@ export default function App(): JSX.Element {
   const showConfiguration =
     mainView.type === 'settings' ||
     mainView.type === 'team-hubs' ||
-    mainView.type === 'certificates' ||
+    mainView.type === 'sharing-keys' ||
     configuringCollection != null ||
     configuringEnvironment != null;
 
@@ -172,8 +172,8 @@ export default function App(): JSX.Element {
               onAddCollection={() => dispatch(openCollectionModal({ mode: 'create' }))}
               onConfigureCollection={(id) => dispatch(openCollectionSettings(id))}
               onConfigureEnvironment={(id) => dispatch(openEnvironmentSettings(id))}
-              onInviteCollection={(collectionId, collectionName) => {
-                dispatch(openInviteModal({ collectionId, collectionName }));
+              onShareCollection={(collectionId, collectionName) => {
+                dispatch(openShareModal({ collectionId, collectionName }));
                 void dispatch(loadTrustedKeys());
               }}
               onLoadRequest={(req) => void dispatch(requestLoadRequest({ req }))}
@@ -186,8 +186,8 @@ export default function App(): JSX.Element {
                 showSettings={mainView.type === 'settings'}
                 onCloseAppSettings={() => dispatch(closeOverlay())}
                 settingsSection={settingsSection}
-                showCertificates={mainView.type === 'certificates'}
-                onCloseCertificates={() => dispatch(closeOverlay())}
+                showSharingKeys={mainView.type === 'sharing-keys'}
+                onCloseSharingKeys={() => dispatch(closeOverlay())}
                 showTeamHubs={mainView.type === 'team-hubs'}
                 onCloseTeamHubs={() => dispatch(closeOverlay())}
                 collection={configuringCollection}
@@ -268,7 +268,7 @@ export default function App(): JSX.Element {
         />
 
         <CollectionModal />
-        <InviteModal />
+        <ShareModal />
         <UnsavedLoadPrompt />
         <QuitPrompt />
         <AboutModal />

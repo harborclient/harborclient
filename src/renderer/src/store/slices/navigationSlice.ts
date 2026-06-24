@@ -9,7 +9,7 @@ export type MainView =
   | { type: 'request' }
   | { type: 'settings' }
   | { type: 'team-hubs' }
-  | { type: 'certificates' }
+  | { type: 'sharing-keys' }
   | { type: 'collection'; id: number }
   | { type: 'environment'; id: number };
 
@@ -63,11 +63,11 @@ const navigationSlice = createSlice({
       state.mainView = { type: 'team-hubs' };
     },
     /**
-     * Shows the certificates overlay and clears dirty flags.
+     * Shows the sharing keys overlay and clears dirty flags.
      */
-    openCertificates(state) {
+    openSharingKeys(state) {
       resetDirtyFlags(state);
-      state.mainView = { type: 'certificates' };
+      state.mainView = { type: 'sharing-keys' };
     },
     /**
      * Shows collection settings for the given id.
@@ -150,7 +150,7 @@ const navigationSlice = createSlice({
 export const {
   openSettings,
   openTeamHubs,
-  openCertificates,
+  openSharingKeys,
   openCollectionSettings,
   openEnvironmentSettings,
   closeOverlay,
@@ -201,7 +201,7 @@ export const selectSettingsSection = (state: RootState): SettingsSection =>
   state.navigation.settingsSection;
 
 /**
- * Sidebar is hidden when app settings, team hubs, or certificates are open, even if the
+ * Sidebar is hidden when app settings, team hubs, or sharing keys are open, even if the
  * user has not toggled it off manually.
  */
 export const selectSidebarVisible = (state: RootState): boolean => {
@@ -210,12 +210,12 @@ export const selectSidebarVisible = (state: RootState): boolean => {
     showSidebar &&
     mainView.type !== 'settings' &&
     mainView.type !== 'team-hubs' &&
-    mainView.type !== 'certificates'
+    mainView.type !== 'sharing-keys'
   );
 };
 
 /**
- * AI sidebar is hidden when app settings, team hubs, or certificates are open, even if the
+ * AI sidebar is hidden when app settings, team hubs, or sharing keys are open, even if the
  * user has not toggled it off manually.
  */
 export const selectAiSidebarVisible = (state: RootState): boolean => {
@@ -224,7 +224,7 @@ export const selectAiSidebarVisible = (state: RootState): boolean => {
     showAiSidebar &&
     mainView.type !== 'settings' &&
     mainView.type !== 'team-hubs' &&
-    mainView.type !== 'certificates'
+    mainView.type !== 'sharing-keys'
   );
 };
 

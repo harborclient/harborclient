@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import navigationReducer, {
   closeOverlay,
-  openCertificates,
+  openSharingKeys,
   openCollectionSettings,
   openEnvironmentSettings,
   openTeamHubs,
@@ -59,7 +59,7 @@ describe('navigationSlice', () => {
   });
 
   it('closes overlays back to the request view', () => {
-    let state = navigationReducer(undefined, openCertificates());
+    let state = navigationReducer(undefined, openSharingKeys());
     state = navigationReducer(state, closeOverlay());
     expect(state.mainView).toEqual({ type: 'request' });
   });

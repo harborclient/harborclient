@@ -227,6 +227,13 @@ export interface IStorage {
    */
   updateCollectionFromImport(id: number, data: CollectionExport): Promise<Collection>;
 
+  /**
+   * Returns the working-tree source-control status for this provider.
+   *
+   * Only git-backed storage implements this; other providers return null.
+   *
+   * @returns Branch, sync, and change counts when supported, otherwise null.
+   */
   getSourceControlStatus(): Promise<SourceControlStatus | null>;
 
   /**

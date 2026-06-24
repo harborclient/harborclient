@@ -359,10 +359,10 @@ describe('object schema happy paths', () => {
     expect(ipcArgSchemas.sendRequest.safeParse([validSendRequest, 'req-1']).success).toBe(true);
   });
 
-  it('inviteCreate accepts optional recipientKid', () => {
-    expect(ipcArgSchemas.inviteCreate.safeParse([1]).success).toBe(true);
-    expect(ipcArgSchemas.inviteCreate.safeParse([1, 'kid-abc']).success).toBe(true);
-    expect(ipcArgSchemas.inviteCreate.safeParse([1, '']).success).toBe(false);
+  it('shareCreate accepts optional recipientKid', () => {
+    expect(ipcArgSchemas.shareCreate.safeParse([1]).success).toBe(true);
+    expect(ipcArgSchemas.shareCreate.safeParse([1, 'kid-abc']).success).toBe(true);
+    expect(ipcArgSchemas.shareCreate.safeParse([1, '']).success).toBe(false);
   });
 
   it('closeDecision accepts booleans and rejects non-boolean proceed values', () => {
