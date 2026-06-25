@@ -32,6 +32,7 @@ Use **New Folder** in a collection's row menu to create a folder. Folder actions
 
 | Action | How |
 | --- | --- |
+| **Run** | Row menu → **Run** — runs all saved requests in the folder (see [Running collections](#running-collections)) |
 | **New Request** | Row menu on the folder — creates a saved request inside the folder |
 | **Rename** | Row menu → **Rename** |
 | **Delete** | Row menu → **Delete** — removes the folder and all requests inside it |
@@ -160,10 +161,78 @@ Collection pre- and post-request scripts run for every request in the collection
 | **Rename request** | Click the request name in the request editor (not in the sidebar) |
 | **Save changes** | **File → Save Request** or **Cmd/Ctrl+S** — saves to the **sidebar-selected** collection |
 | **Update vs copy** | If the tab already belongs to the target collection, HarborClient updates the existing request. Otherwise it creates a new saved request. Saving while a different collection is selected in the sidebar creates a **copy** in that collection — there is no move action. |
+| **Run collection or folder** | Collection or folder row menu → **Run** — see [Running collections](#running-collections) |
 
 When a request belongs to a collection, the request editor shows a breadcrumb: `CollectionName > Request name`.
 
 For building and sending requests, see [Making requests](/requests).
+
+## Running collections
+
+Use the collection runner to send every saved request in a collection or folder sequentially — useful for smoke tests and regression checks without opening and sending each request by hand.
+
+### Opening a run
+
+| Target | How |
+| --- | --- |
+| Entire collection | Collection row menu → **Run** (near the top, after Move up/down) |
+| Single folder | Folder row menu → **Run** |
+
+If the target has no saved requests, **Run** is disabled and the modal explains that nothing can run.
+
+### Run order
+
+HarborClient runs requests in **sidebar order**:
+
+- **Collection** — root-level requests first (by position in the sidebar, then by name), then each folder in sidebar order, with requests inside each folder ordered the same way
+- **Folder** — only that folder's requests, in sidebar order
+
+This matches the ordering described under [Empty state and ordering](#empty-state-and-ordering) in the sidebar guide.
+
+### Configuration
+
+Choosing **Run** opens a modal where you set options and click **Run** to start. HarborClient remembers your last-used settings and restores them the next time you open the runner. Settings are saved when you click **Run**.
+
+| Setting | Description |
+| --- | --- |
+| **Delay between requests (ms)** | Pause after each send completes before loading the next request (`0` = no delay) |
+| **Stop on failure** | Stop the run after the first failed request |
+| **Environment** | **Use active environment** (the environment selected in the TabBar) or **Override** with a specific environment for the duration of the run |
+
+Request timeout, SSL verification, and proxy settings still come from [Settings → General](/settings) — the same values used for manual sends.
+
+### During and after the run
+
+The modal switches to a progress view:
+
+- A progress bar and a list of each request with status (**Running**, **Passed**, **Failed**, or **Skipped**)
+- **Stop** — cancels before the *next* request loads; the current send finishes first
+- When the run completes, a summary shows pass/fail counts and a toast confirms the result
+- While a run is in progress, you cannot dismiss the modal with Escape or by clicking outside it
+
+### Pass and fail
+
+A request **passes** when the send completes without any of the following:
+
+- A transport or script error on the response
+- An HTTP status code **≥ 400**
+- A failing `hc.test(...)` assertion from a pre- or post-request script
+
+See [Request scripts](/request-scripts) for writing tests with `hc.test`.
+
+When **Stop on failure** is enabled, HarborClient marks all remaining requests as **Skipped** after the first failure.
+
+### Send pipeline
+
+Each request in a run is loaded into a tab and sent through the full pipeline — collection and request variables, headers, authorization, and pre/post scripts. The runner does not bypass collection settings or scripts. For details, see [How collections affect sends](#how-collections-affect-sends).
+
+```mermaid
+flowchart LR
+  runMenu[Row menu Run] --> modal[Configure and Run]
+  modal --> loadReq[Load saved request]
+  loadReq --> sendReq[Send with scripts]
+  sendReq --> summary[Progress and pass/fail summary]
+```
 
 ## Import and export
 

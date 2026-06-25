@@ -9,6 +9,7 @@ import type {
   SerializableMenuContribution
 } from '#/shared/plugin/types';
 import type { PluginCatalog } from '#/shared/plugin/catalog';
+import type { CollectionRunnerConfig } from '#/shared/collectionRunner';
 
 export type { AuthConfig, AuthType } from '#/shared/auth';
 export type { ShortcutBinding, ShortcutId, ShortcutOverrides } from '#/shared/shortcuts';
@@ -22,6 +23,7 @@ export type {
   SerializableMenuContribution
 } from '#/shared/plugin/types';
 export type { PluginCatalog, PluginCatalogEntry } from '#/shared/plugin/catalog';
+export type { CollectionRunnerConfig } from '#/shared/collectionRunner';
 
 /**
  * Supported HTTP request methods.
@@ -2906,6 +2908,18 @@ export interface Api {
    * @param state - Chat session snapshot to store.
    */
   setAiChatSession: (state: AiChatSessionState) => Promise<void>;
+
+  /**
+   * Returns persisted collection runner configuration.
+   */
+  getCollectionRunnerConfig: () => Promise<CollectionRunnerConfig>;
+
+  /**
+   * Persists collection runner configuration.
+   *
+   * @param config - Runner settings snapshot to store.
+   */
+  setCollectionRunnerConfig: (config: CollectionRunnerConfig) => Promise<void>;
 
   /**
    * Returns resolved keyboard shortcut bindings with user overrides applied.

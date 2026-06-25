@@ -154,6 +154,21 @@ interface Props {
   onConfigureCollection: (id: number) => void;
 
   /**
+   * Opens the collection runner for an entire collection.
+   */
+  onRunCollection: (collectionId: number, collectionName: string) => void;
+
+  /**
+   * Opens the collection runner scoped to one folder.
+   */
+  onRunFolder: (
+    collectionId: number,
+    folderId: number,
+    collectionName: string,
+    folderName: string
+  ) => void;
+
+  /**
    * Deletes a collection after user confirmation.
    */
   onDeleteCollection: (id: number) => Promise<void>;
@@ -276,6 +291,8 @@ export function Collections({
   onSelectFolder,
   onExpandCollection,
   onConfigureCollection,
+  onRunCollection,
+  onRunFolder,
   onDeleteCollection,
   onExportCollection,
   onDuplicateCollection,
@@ -744,6 +761,12 @@ export function Collections({
                       ),
                       [
                         {
+                          label: 'Run',
+                          onSelect: () => onRunCollection(collection.id, collection.name)
+                        }
+                      ],
+                      [
+                        {
                           label: 'Settings',
                           onSelect: () => onConfigureCollection(collection.id)
                         },
@@ -944,6 +967,18 @@ export function Collections({
                                         (direction) =>
                                           moveFolder(collection.id, folder.id, direction)
                                       ),
+                                      [
+                                        {
+                                          label: 'Run',
+                                          onSelect: () =>
+                                            onRunFolder(
+                                              collection.id,
+                                              folder.id,
+                                              collection.name,
+                                              folder.name
+                                            )
+                                        }
+                                      ],
                                       [
                                         {
                                           label: 'New Request',

@@ -58,6 +58,172 @@ export function bodyLanguage(body: string, headers?: Record<string, string>): 'j
 }
 
 /**
+ * CSP injected into HTML preview frames: blocks scripts only; stylesheets and
+ * images load freely (iframe sandbox also omits allow-scripts).
+ */
+const HTML_PREVIEW_CSP =
+  "script-src 'none'; script-src-elem 'none'; script-src-attr 'none'; object-src 'none';";
+
+/**
+ * CSP meta tag prepended or injected into preview documents.
+ */
+const HTML_PREVIEW_CSP_META = `<meta http-equiv="Content-Security-Policy" content="${HTML_PREVIEW_CSP}">`;
+
+/**
+ * Removes Content-Security-Policy meta tags from HTML so they do not intersect
+ * with the preview-only policy we inject.
+ *
+ * @param html - Raw HTML string.
+ */
+function stripExistingCspMeta(html: string): string {
+  return html.replace(
+    /<meta\b[^>]*http-equiv\s*=\s*["']Content-Security-Policy(?:-Report-Only)?["'][^>]*>/gi,
+    ''
+  );
+}
+
+/**
+ * Returns true when the HTML already declares a base URL for relative resolution.
+ *
+ * @param html - Raw HTML string.
+ */
+function hasExistingBaseTag(html: string): boolean {
+  return /<base\b[^>]*\bhref\s*=/i.test(html);
+}
+
+/**
+ * Builds head elements injected into preview documents (charset, optional base, CSP).
+ *
+ * @param html - HTML being wrapped or injected into, used to detect an existing base tag.
+ * @param baseUrl - Request URL used to resolve relative asset paths.
+ */
+function buildPreviewHeadInjection(html: string, baseUrl?: string): string {
+  const parts = ['<meta charset="utf-8">'];
+  if (baseUrl && !hasExistingBaseTag(html)) {
+    parts.push(`<base href="${baseUrl}">`);
+  }
+  parts.push(HTML_PREVIEW_CSP_META);
+  return parts.join('\n');
+}
+
+/**
+ * Resolves a request URL suitable for a preview base tag.
+ *
+ * @param requestUrl - URL from the active request draft.
+ * @returns Absolute http(s) href, or undefined when the URL is missing or invalid.
+ */
+export function resolveHtmlPreviewBaseUrl(requestUrl: string): string | undefined {
+  const trimmed = requestUrl.trim();
+  if (!trimmed) return undefined;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return undefined;
+    return parsed.href;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Generic content-types where a body heuristic may still indicate HTML.
+ */
+const GENERIC_CONTENT_TYPES = new Set(['', 'text/plain', 'application/octet-stream']);
+
+/**
+ * Returns true when trimmed body content looks like an HTML document or fragment.
+ *
+ * @param body - Raw response body string.
+ */
+function looksLikeHtml(body: string): boolean {
+  const trimmed = body.trim();
+  if (!trimmed.startsWith('<')) return false;
+  if (/^<!DOCTYPE\s+html/i.test(trimmed) || /^<html[\s>]/i.test(trimmed)) return true;
+  return /<\/(html|body|div|p|span|table|head|title|h[1-6])>/i.test(trimmed);
+}
+
+/**
+ * Returns true when the response body should offer an HTML preview tab.
+ *
+ * Uses Content-Type when present; falls back to markup heuristics for mislabeled bodies.
+ * Valid JSON is never treated as HTML even when content-type claims HTML.
+ *
+ * @param body - Raw response body string.
+ * @param headers - Response headers map.
+ */
+export function isHtmlResponse(body: string, headers?: Record<string, string>): boolean {
+  if (!body.trim()) return false;
+  if (isValidJson(body)) return false;
+
+  const contentType = (headers?.['content-type'] ?? headers?.['Content-Type'] ?? '').toLowerCase();
+  if (contentType.includes('html')) return true;
+
+  if (!GENERIC_CONTENT_TYPES.has(contentType)) return false;
+  return looksLikeHtml(body);
+}
+
+/**
+ * Wraps an HTML fragment in a minimal document shell with preview CSP.
+ *
+ * @param body - Raw HTML fragment.
+ * @param baseUrl - Request URL used to resolve relative asset paths.
+ */
+function wrapHtmlFragment(body: string, baseUrl?: string): string {
+  const stripped = stripExistingCspMeta(body);
+  const headInjection = buildPreviewHeadInjection(stripped, baseUrl);
+  return `<!DOCTYPE html>
+<html>
+<head>
+${headInjection}
+</head>
+<body>
+${stripped}
+</body>
+</html>`;
+}
+
+/**
+ * Injects preview CSP into a full HTML document, adding head when missing.
+ *
+ * @param body - Raw full HTML document string.
+ * @param baseUrl - Request URL used to resolve relative asset paths.
+ */
+function injectCspIntoHtmlDocument(body: string, baseUrl?: string): string {
+  const trimmed = stripExistingCspMeta(body.trim());
+  const headInjection = buildPreviewHeadInjection(trimmed, baseUrl);
+  const headMatch = /<head(\s[^>]*)?>/i.exec(trimmed);
+  if (headMatch) {
+    const insertAt = headMatch.index + headMatch[0].length;
+    return `${trimmed.slice(0, insertAt)}\n${headInjection}\n${trimmed.slice(insertAt)}`;
+  }
+
+  const htmlMatch = /<html(\s[^>]*)?>/i.exec(trimmed);
+  if (htmlMatch) {
+    const insertAt = htmlMatch.index + htmlMatch[0].length;
+    return `${trimmed.slice(0, insertAt)}\n<head>\n${headInjection}\n</head>\n${trimmed.slice(insertAt)}`;
+  }
+
+  return wrapHtmlFragment(trimmed, baseUrl);
+}
+
+/**
+ * Builds sandboxed iframe srcdoc content for an HTML response preview.
+ *
+ * Strips conflicting server CSP, injects a script-blocking policy, and optionally
+ * adds a base URL so relative stylesheets and images resolve against the request.
+ *
+ * @param body - Raw response body string.
+ * @param baseUrl - Request URL used to resolve relative asset paths.
+ * @returns HTML document for rendering in a sandboxed iframe via srcdoc.
+ */
+export function buildHtmlPreviewSrcdoc(body: string, baseUrl?: string): string {
+  const trimmed = body.trim();
+  if (/^<!DOCTYPE\s+html/i.test(trimmed) || /^<html[\s>]/i.test(trimmed)) {
+    return injectCspIntoHtmlDocument(trimmed, baseUrl);
+  }
+  return wrapHtmlFragment(trimmed, baseUrl);
+}
+
+/**
  * Chooses a syntax mode for a sent request body based on body type and headers.
  *
  * @param body - Raw or summarized request body string.

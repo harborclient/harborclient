@@ -16,10 +16,12 @@ import {
   bodyLanguage,
   formatBody,
   formatBytes,
+  isHtmlResponse,
   responseTabExportPath,
   responseTabText
 } from '#/renderer/src/ui/shared/responseFormatUtils';
 import { Headers } from './Headers';
+import { HtmlPreview } from './HtmlPreview';
 import { Tests } from './Tests';
 
 interface Props {
@@ -47,6 +49,11 @@ interface Props {
    * Cancels the in-flight request.
    */
   onCancel: () => void;
+
+  /**
+   * URL of the active request, used to resolve relative assets in HTML preview.
+   */
+  requestUrl: string;
 }
 
 /**
@@ -57,7 +64,8 @@ export function Response({
   responseTabContext,
   sending,
   testResults,
-  onCancel
+  onCancel,
+  requestUrl
 }: Props): JSX.Element {
   const pluginTabs = usePluginResponseTabs();
   const [tab, setTab] = useState<string>('body');
@@ -75,16 +83,25 @@ export function Response({
     [response]
   );
 
+  /**
+   * Whether the current response should expose the HTML preview tab and button.
+   */
+  const showHtmlPreview = useMemo(
+    () => (response ? isHtmlResponse(response.body, response.headers) : false),
+    [response]
+  );
+
   const hasTests = testResults.length > 0;
   const passedCount = testResults.filter((test) => test.passed).length;
   const failedCount = testResults.length - passedCount;
-  const effectiveTab = tab === 'tests' && !hasTests ? 'body' : tab;
+  const effectiveTab =
+    tab === 'tests' && !hasTests ? 'body' : tab === 'preview' && !showHtmlPreview ? 'body' : tab;
 
   /**
    * Copies the active tab content to the clipboard.
    */
   const handleCopy = async (): Promise<void> => {
-    if (!response || isPluginTabId(effectiveTab)) {
+    if (!response || isPluginTabId(effectiveTab) || effectiveTab === 'preview') {
       return;
     }
     const text = responseTabText(
@@ -105,7 +122,7 @@ export function Response({
    * Exports the active tab content to a file via a native save dialog.
    */
   const handleExport = async (): Promise<void> => {
-    if (!response || isPluginTabId(effectiveTab)) {
+    if (!response || isPluginTabId(effectiveTab) || effectiveTab === 'preview') {
       return;
     }
     const content = responseTabText(
@@ -134,6 +151,7 @@ export function Response({
   const tabs = useMemo(
     () => [
       { value: 'body', label: 'Body' },
+      ...(showHtmlPreview ? [{ value: 'preview', label: 'Preview' }] : []),
       { value: 'headers', label: 'Headers' },
       {
         value: 'tests',
@@ -157,7 +175,7 @@ export function Response({
           hidden: entry.when === 'hasResponse' && response == null
         }))
     ],
-    [failedCount, hasTests, passedCount, pluginTabs, response, testResults.length]
+    [failedCount, hasTests, passedCount, pluginTabs, response, showHtmlPreview, testResults.length]
   );
 
   /**
@@ -212,45 +230,52 @@ export function Response({
         </div>
       )}
 
-      <SegmentedTabsGroup value={effectiveTab} onChange={setTab} ariaLabel="Response view">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <SegmentedTabs tabs={tabs} />
-          <div className="flex shrink-0 items-center gap-1">
-            <Button type="button" variant="toolbar" onClick={() => void handleCopy()}>
-              Copy
-            </Button>
-            <Button type="button" variant="toolbar" onClick={() => void handleExport()}>
-              Export
-            </Button>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <SegmentedTabsGroup value={effectiveTab} onChange={setTab} ariaLabel="Response view">
+          <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
+            <SegmentedTabs tabs={tabs} />
+            <div className="flex shrink-0 items-center gap-1">
+              <Button type="button" variant="toolbar" onClick={() => void handleCopy()}>
+                Copy
+              </Button>
+              <Button type="button" variant="toolbar" onClick={() => void handleExport()}>
+                Export
+              </Button>
+            </div>
           </div>
-        </div>
 
-        <div className="min-h-0 flex-1 overflow-auto">
-          <SegmentedTabPanel value="body">
-            <CodeEditor
-              readOnly
-              value={formattedBody || '(empty body)'}
-              language={responseBodyLanguage}
-            />
-          </SegmentedTabPanel>
-          <SegmentedTabPanel value="headers">
-            <Headers headers={response.headers} />
-          </SegmentedTabPanel>
-          {hasTests && (
-            <SegmentedTabPanel value="tests">
-              <Tests testResults={testResults} />
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <SegmentedTabPanel value="body">
+              <CodeEditor
+                readOnly
+                value={formattedBody || '(empty body)'}
+                language={responseBodyLanguage}
+              />
             </SegmentedTabPanel>
-          )}
-          {pluginTabs.map((entry) => {
-            const Component = entry.Component;
-            return (
-              <SegmentedTabPanel key={entry.id} value={entry.id}>
-                <Component context={responseTabContext} />
+            {showHtmlPreview && (
+              <SegmentedTabPanel value="preview" className="flex min-h-0 flex-1 flex-col">
+                <HtmlPreview body={response.body} requestUrl={requestUrl} />
               </SegmentedTabPanel>
-            );
-          })}
-        </div>
-      </SegmentedTabsGroup>
+            )}
+            <SegmentedTabPanel value="headers">
+              <Headers headers={response.headers} />
+            </SegmentedTabPanel>
+            {hasTests && (
+              <SegmentedTabPanel value="tests">
+                <Tests testResults={testResults} />
+              </SegmentedTabPanel>
+            )}
+            {pluginTabs.map((entry) => {
+              const Component = entry.Component;
+              return (
+                <SegmentedTabPanel key={entry.id} value={entry.id}>
+                  <Component context={responseTabContext} />
+                </SegmentedTabPanel>
+              );
+            })}
+          </div>
+        </SegmentedTabsGroup>
+      </div>
     </div>
   );
 }

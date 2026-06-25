@@ -4,6 +4,7 @@ export * from '#/renderer/src/store/thunks/requests';
 export * from '#/renderer/src/store/thunks/modals';
 export * from '#/renderer/src/store/thunks/sync';
 export * from '#/renderer/src/store/thunks/aiChat';
+export * from '#/renderer/src/store/thunks/collectionRunner';
 
 import type { AppDispatch } from '#/renderer/src/store/redux';
 import { setGeneralSettingsState } from '#/renderer/src/store/slices/settingsSlice';

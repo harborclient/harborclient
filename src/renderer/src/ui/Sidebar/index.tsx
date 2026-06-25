@@ -65,6 +65,7 @@ import {
 import { Input } from '#/renderer/src/components/forms';
 import { Modal } from '#/renderer/src/components/Modal';
 import { formatErrorMessage, showAlert, showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
+import { openCollectionRunnerModal } from '#/renderer/src/store/slices/modalsSlice';
 import { Collections } from './Collections';
 import { GitSourceControlPanel } from '#/renderer/src/ui/modals/GitSourceControlPanel';
 import { Environments } from './Environments';
@@ -407,6 +408,24 @@ export function Sidebar({
                   }}
                   onExpandCollection={handleExpandCollection}
                   onConfigureCollection={onConfigureCollection}
+                  onRunCollection={(collectionId, collectionName) => {
+                    dispatch(
+                      openCollectionRunnerModal({
+                        collectionId,
+                        collectionName
+                      })
+                    );
+                  }}
+                  onRunFolder={(collectionId, folderId, collectionName, folderName) => {
+                    dispatch(
+                      openCollectionRunnerModal({
+                        collectionId,
+                        folderId,
+                        collectionName,
+                        folderName
+                      })
+                    );
+                  }}
                   onDeleteCollection={async (id) => {
                     const collection = collections.find((item) => item.id === id);
                     if (collection && isTeamHubProvider(providers, collection.connectionId)) {

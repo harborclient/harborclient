@@ -238,6 +238,7 @@ export function Request({ onEditVariables }: Props): JSX.Element {
             responseTabContext={responseTabContext}
             sending={sending}
             testResults={testResults}
+            requestUrl={draft.url}
             onCancel={() => void dispatch(cancelRequest(activeTabId))}
           />
         </section>

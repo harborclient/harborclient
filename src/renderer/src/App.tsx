@@ -48,6 +48,7 @@ import { AlertModal } from '#/renderer/src/ui/modals/AlertModal';
 import { CollectionModal } from '#/renderer/src/ui/modals/CollectionModal';
 import { ConfirmModal } from '#/renderer/src/ui/modals/ConfirmModal';
 import { ShareModal } from '#/renderer/src/ui/modals/ShareModal';
+import { CollectionRunnerModal } from '#/renderer/src/ui/modals/CollectionRunnerModal';
 import { QuitPrompt } from '#/renderer/src/ui/modals/QuitPrompt';
 import { UnsavedLoadPrompt } from '#/renderer/src/ui/modals/UnsavedLoadPrompt';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
@@ -281,6 +282,7 @@ export default function App(): JSX.Element {
         <AboutModal />
         <UpdateModal />
         <SyncModal />
+        <CollectionRunnerModal />
         <AlertModal />
         <ConfirmModal />
 

@@ -27,6 +27,10 @@ import {
   getRequestEditorTab,
   setRequestEditorTab
 } from '#/main/settings/requestEditorSettings';
+import {
+  getCollectionRunnerConfig,
+  setCollectionRunnerConfig
+} from '#/main/settings/collectionRunnerSettings';
 import { getAiChatSession, setAiChatSession } from '#/main/settings/aiChatSessionSettings';
 import { getPanelLayout, setPanelLayout } from '#/main/settings/panelLayoutSettings';
 import { getSidebarExpansion, setSidebarExpansion } from '#/main/settings/sidebarExpansionSettings';
@@ -329,6 +333,18 @@ export function registerSettingsHandlers(db: IStorage): void {
   handle('aiChat:setSession', ipcArgSchemas.aiChatSessionSet, (_event, state) => {
     setAiChatSession(state);
   });
+
+  // Returns persisted collection runner configuration.
+  handle('collectionRunner:getConfig', ipcArgSchemas.none, () => getCollectionRunnerConfig());
+
+  // Persists collection runner configuration.
+  handle(
+    'collectionRunner:setConfig',
+    ipcArgSchemas.collectionRunnerConfigSet,
+    (_event, config) => {
+      setCollectionRunnerConfig(config);
+    }
+  );
 
   // Returns resolved keyboard shortcut bindings.
   handle('shortcuts:get', ipcArgSchemas.none, () => getResolvedShortcuts());

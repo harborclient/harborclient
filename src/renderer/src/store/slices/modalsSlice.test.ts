@@ -1,14 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import modalsReducer, {
+  appendCollectionRunnerResult,
+  cancelCollectionRunner,
   closeAboutModal,
   closeCollectionModal,
+  closeCollectionRunnerModal,
   closeShareModal,
   closeSyncModal,
+  finishCollectionRunner,
   finishSync,
   incrementSyncCompleted,
   openAboutModal,
   openCollectionModal,
+  openCollectionRunnerModal,
   openShareModal,
   openSyncModal,
   setAboutVersion,
@@ -16,13 +21,16 @@ import modalsReducer, {
   setCollectionModalName,
   setCollectionModalTab,
   setCollectionModalSubmitError,
+  setCollectionRunnerConfig,
   setShareRecipientKid,
   setPendingLoadRequest,
   setQuitPrompt,
   setAlertModal,
   setConfirmModal,
   setSyncProviderStatus,
-  setSyncProviders
+  setSyncProviders,
+  skipRemainingCollectionRunnerRequests,
+  startCollectionRunner
 } from '#/renderer/src/store/slices/modalsSlice';
 
 describe('modalsSlice', () => {
@@ -42,6 +50,7 @@ describe('modalsSlice', () => {
     });
     expect(state.alertModal).toBeNull();
     expect(state.confirmModal).toBeNull();
+    expect(state.collectionRunner).toBeNull();
   });
 
   it('opens and closes the collection modal', () => {
@@ -212,5 +221,62 @@ describe('modalsSlice', () => {
 
     state = modalsReducer(state, closeSyncModal());
     expect(state.syncModal.open).toBe(false);
+  });
+
+  it('tracks collection runner configuration, progress, and summary', () => {
+    let state = modalsReducer(
+      undefined,
+      openCollectionRunnerModal({
+        collectionId: 1,
+        collectionName: 'Demo API',
+        config: { delayMs: 100, stopOnFailure: true }
+      })
+    );
+    expect(state.collectionRunner?.phase).toBe('configure');
+    expect(state.collectionRunner?.delayMs).toBe(100);
+
+    state = modalsReducer(
+      state,
+      setCollectionRunnerConfig({ environmentMode: 'override', environmentId: 3 })
+    );
+    expect(state.collectionRunner?.environmentMode).toBe('override');
+    expect(state.collectionRunner?.environmentId).toBe(3);
+
+    state = modalsReducer(
+      state,
+      startCollectionRunner({
+        results: [
+          {
+            requestId: 10,
+            requestName: 'Health',
+            status: 'pending',
+            testsPassed: 0,
+            testsFailed: 0
+          }
+        ]
+      })
+    );
+    expect(state.collectionRunner?.phase).toBe('running');
+    expect(state.collectionRunner?.total).toBe(1);
+
+    state = modalsReducer(
+      state,
+      appendCollectionRunnerResult({
+        requestId: 10,
+        status: 'passed',
+        httpStatus: 200,
+        testsPassed: 1,
+        testsFailed: 0
+      })
+    );
+    expect(state.collectionRunner?.summary.passed).toBe(1);
+
+    state = modalsReducer(state, finishCollectionRunner());
+    expect(state.collectionRunner?.phase).toBe('complete');
+
+    state = modalsReducer(state, cancelCollectionRunner());
+    state = modalsReducer(state, skipRemainingCollectionRunnerRequests());
+    state = modalsReducer(state, closeCollectionRunnerModal());
+    expect(state.collectionRunner).toBeNull();
   });
 });

@@ -251,6 +251,10 @@ export const sidebar: DefaultTheme.SidebarItem[] =
         "link": "/collections#working-with-saved-requests"
       },
       {
+        "text": "Running collections",
+        "link": "/collections#running-collections"
+      },
+      {
         "text": "Import and export",
         "link": "/collections#import-and-export"
       },

@@ -63,6 +63,7 @@ import type {
   Variable,
   KeyValue
 } from '#/shared/types';
+import type { CollectionRunnerConfig } from '#/shared/collectionRunner';
 
 /**
  * Lists all collections via IPC.
@@ -1017,6 +1018,22 @@ function setAiChatSession(state: AiChatSessionState): Promise<void> {
 }
 
 /**
+ * Returns persisted collection runner configuration.
+ */
+function getCollectionRunnerConfig(): Promise<CollectionRunnerConfig> {
+  return ipcRenderer.invoke('collectionRunner:getConfig');
+}
+
+/**
+ * Persists collection runner configuration.
+ *
+ * @param config - Runner settings snapshot to store.
+ */
+function setCollectionRunnerConfig(config: CollectionRunnerConfig): Promise<void> {
+  return ipcRenderer.invoke('collectionRunner:setConfig', config);
+}
+
+/**
  * Returns resolved keyboard shortcut bindings with user overrides applied.
  */
 function getShortcuts(): Promise<ShortcutBinding[]> {
@@ -1577,6 +1594,8 @@ const api: Api = {
   setPanelLayout,
   getAiChatSession,
   setAiChatSession,
+  getCollectionRunnerConfig,
+  setCollectionRunnerConfig,
   getShortcuts,
   setShortcuts,
   resetShortcuts,

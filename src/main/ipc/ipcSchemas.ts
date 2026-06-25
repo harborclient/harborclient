@@ -29,6 +29,7 @@ import type {
   ShortcutOverrides,
   SidebarExpansionState
 } from '#/shared/types';
+import type { CollectionRunnerConfig } from '#/shared/collectionRunner';
 
 export {
   bodyType,
@@ -396,6 +397,13 @@ export const aiChatSession = z.object({
   activeChatId: dbId.nullable()
 }) satisfies z.ZodType<AiChatSessionState>;
 
+export const collectionRunnerConfig = z.object({
+  delayMs: z.number().int().min(0),
+  stopOnFailure: z.boolean(),
+  environmentMode: z.enum(['active', 'override']),
+  environmentId: dbId.nullable()
+}) satisfies z.ZodType<CollectionRunnerConfig>;
+
 export const shortcutOverrides = z.record(
   z.string(),
   z.string()
@@ -448,6 +456,7 @@ export const ipcArgSchemas = {
   sidebarExpansionSet: z.tuple([sidebarExpansion]),
   panelLayoutSet: z.tuple([panelLayout]),
   aiChatSessionSet: z.tuple([aiChatSession]),
+  collectionRunnerConfigSet: z.tuple([collectionRunnerConfig]),
   shortcutOverridesSet: z.tuple([shortcutOverrides]),
   setCookies: z.tuple([domain, z.array(keyValue)]),
   collectionUpdate: z.tuple([
