@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- chore(plugins): remove version references from plugin metadata. (`cb7ad8b`)
+
 ## 1.8.9 - 2026-06-25
 
 - refactor(plugins): update plugin metadata to use author instead of company. (`eda9ddf`)
