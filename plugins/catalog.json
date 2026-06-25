@@ -24,7 +24,7 @@
     {
       "id": "com.harborclient.plugins.history",
       "name": "History",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "summary": "A HarborClient plugin that records every successful HTTP request and response in a persistent footer panel.",
       "author": "HarborClient",
       "categories": ["requests", "logging"],
