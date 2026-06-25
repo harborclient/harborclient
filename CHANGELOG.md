@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.8.13 - 2026-06-25
+
 - feat(plugins): enhance plugin source management and Team Hub integration. (`9ada4b8`)
 
 ## 1.8.12 - 2026-06-25
