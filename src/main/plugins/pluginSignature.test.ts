@@ -43,28 +43,24 @@ function createAppRootWithTrustedKeys(): string {
  * @param options - Optional manifest overrides.
  * @returns Plugin directory path and cleanup callback.
  */
-function createPluginDir(options: { company?: string; pluginId?: string } = {}): {
+function createPluginDir(options: { company?: string | null; pluginId?: string } = {}): {
   pluginDir: string;
   cleanup: () => void;
 } {
   const pluginDir = mkdtempSync(join(tmpdir(), 'harborclient-plugin-sign-eval-'));
   mkdirSync(join(pluginDir, 'dist'), { recursive: true });
-  writeFileSync(
-    join(pluginDir, 'manifest.json'),
-    JSON.stringify(
-      {
-        id: options.pluginId ?? 'com.example.test-plugin',
-        name: 'Test Plugin',
-        version: '1.0.0',
-        company: options.company ?? TEST_COMPANY,
-        engines: { harborclient: '>=1.0.0' },
-        renderer: 'dist/renderer.js',
-        permissions: ['ui']
-      },
-      null,
-      2
-    )
-  );
+  const manifest: Record<string, unknown> = {
+    id: options.pluginId ?? 'com.example.test-plugin',
+    name: 'Test Plugin',
+    version: '1.0.0',
+    engines: { harborclient: '>=1.0.0' },
+    renderer: 'dist/renderer.js',
+    permissions: ['ui']
+  };
+  if (options.company !== null) {
+    manifest.company = options.company ?? TEST_COMPANY;
+  }
+  writeFileSync(join(pluginDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
   writeFileSync(join(pluginDir, 'dist', 'renderer.js'), 'export function activate() {}');
 
   return {
@@ -117,8 +113,9 @@ describe('pluginSignature', () => {
     }
   });
 
-  it('returns unsigned when signature.json is absent', async () => {
-    const fixture = createPluginDir();
+  it('returns unsigned when signature.json is absent and manifest has no company', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const fixture = createPluginDir({ company: null });
     const { evaluatePluginSignature } = await import('#/main/plugins/pluginSignature');
 
     try {
@@ -126,6 +123,56 @@ describe('pluginSignature', () => {
       await expect(evaluatePluginSignature(fixture.pluginDir, manifest)).resolves.toEqual({
         status: 'unsigned'
       });
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it('returns untrusted when signature.json is absent but manifest claims a trusted publisher', async () => {
+    mockTrustedRegistryFetch();
+    const fixture = createPluginDir();
+    const { evaluatePluginSignature } = await import('#/main/plugins/pluginSignature');
+
+    try {
+      const manifest = JSON.parse(readFileSync(join(fixture.pluginDir, 'manifest.json'), 'utf8'));
+      const result = await evaluatePluginSignature(fixture.pluginDir, manifest);
+      expect(result.status).toBe('untrusted');
+      expect(result.error).toMatch(/verified publisher/i);
+      expect(result.error).toMatch(/not signed/i);
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it('returns unsigned when signature.json is absent and manifest company is not trusted', async () => {
+    mockTrustedRegistryFetch();
+    const fixture = createPluginDir({ company: 'Unknown Publisher' });
+    const { evaluatePluginSignature } = await import('#/main/plugins/pluginSignature');
+
+    try {
+      const manifest = JSON.parse(readFileSync(join(fixture.pluginDir, 'manifest.json'), 'utf8'));
+      await expect(evaluatePluginSignature(fixture.pluginDir, manifest)).resolves.toEqual({
+        status: 'unsigned'
+      });
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it('throws when the trusted registry cannot be loaded for an unsigned plugin claiming a trusted publisher', async () => {
+    rmSync(join(appRoot, 'plugins'), { recursive: true, force: true });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 404 }));
+
+    const fixture = createPluginDir();
+
+    try {
+      const { evaluatePluginSignature, PluginSignatureUnavailableError } =
+        await import('#/main/plugins/pluginSignature');
+      const manifest = JSON.parse(readFileSync(join(fixture.pluginDir, 'manifest.json'), 'utf8'));
+      await expect(evaluatePluginSignature(fixture.pluginDir, manifest)).rejects.toBeInstanceOf(
+        PluginSignatureUnavailableError
+      );
     } finally {
       fixture.cleanup();
     }

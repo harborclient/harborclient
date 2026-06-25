@@ -17,6 +17,7 @@ export interface CollectionModalState {
 export interface AlertModalState {
   title: string;
   message: string;
+  icon?: 'warning';
 }
 
 export interface ConfirmModalState {

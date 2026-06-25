@@ -17,7 +17,17 @@ export interface ConfirmOptions {
   variant?: 'default' | 'danger';
 }
 
+/**
+ * Options for {@link showAlert}.
+ */
+export interface AlertOptions {
+  /** When set, shows a decorative warning icon beside the dialog content. */
+  icon?: 'warning';
+}
+
 let confirmResolver: ((confirmed: boolean) => void) | null = null;
+
+const IPC_ERROR_PREFIX = /^Error invoking remote method '[^']+':\s*(?:Error:\s*)?/i;
 
 /**
  * Formats an unknown thrown value as a user-facing error string.
@@ -31,14 +41,36 @@ export function formatErrorMessage(err: unknown, fallback: string): string {
 }
 
 /**
+ * Formats IPC invoke failures as a user-facing message without Electron's wrapper prefix.
+ *
+ * @param err - Caught error from a renderer IPC call.
+ * @param fallback - Message when the error cannot be parsed.
+ * @returns Trimmed user-facing message text.
+ */
+export function formatIpcErrorMessage(err: unknown, fallback: string): string {
+  if (!(err instanceof Error)) {
+    return fallback;
+  }
+
+  const message = err.message.replace(IPC_ERROR_PREFIX, '').trim();
+  return message.length > 0 ? message : fallback;
+}
+
+/**
  * Opens a blocking alert modal with a single OK button.
  *
  * @param dispatch - Redux dispatch for modal state.
  * @param message - Body text shown in the dialog.
  * @param title - Dialog heading (defaults to "Error").
+ * @param options - Optional presentation overrides such as a warning icon.
  */
-export function showAlert(dispatch: AppDispatch, message: string, title = 'Error'): void {
-  dispatch(setAlertModal({ title, message }));
+export function showAlert(
+  dispatch: AppDispatch,
+  message: string,
+  title = 'Error',
+  options?: AlertOptions
+): void {
+  dispatch(setAlertModal({ title, message, icon: options?.icon }));
 }
 
 /**

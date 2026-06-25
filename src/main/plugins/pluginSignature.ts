@@ -195,16 +195,10 @@ export async function evaluatePluginSignature(
   manifest: PluginManifest
 ): Promise<PluginSignatureInfo> {
   const signatureFile = readPluginSignature(directory);
-  if (!signatureFile) {
-    return { status: 'unsigned' };
-  }
-
   const company = manifest.company?.trim();
-  if (!company) {
-    return {
-      status: 'untrusted',
-      error: 'Plugin manifest is missing company metadata required for signature verification.'
-    };
+
+  if (!signatureFile && !company) {
+    return { status: 'unsigned' };
   }
 
   let trustedKeys: PluginTrustedKeys;
@@ -220,7 +214,27 @@ export async function evaluatePluginSignature(
     });
   }
 
-  const trustedEntry = trustedKeys.find((entry) => entry.company === company);
+  const trustedEntry = company ? trustedKeys.find((entry) => entry.company === company) : undefined;
+
+  if (!signatureFile) {
+    if (trustedEntry) {
+      return {
+        status: 'untrusted',
+        company,
+        error: `This plugin claims to be published by "${company}", a verified publisher, but is not signed. Only "${company}" can publish plugins under that name.`
+      };
+    }
+
+    return { status: 'unsigned' };
+  }
+
+  if (!company) {
+    return {
+      status: 'untrusted',
+      error: 'Plugin manifest is missing company metadata required for signature verification.'
+    };
+  }
+
   if (!trustedEntry) {
     return {
       status: 'untrusted',

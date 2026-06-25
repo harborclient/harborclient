@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(plugins): enhance plugin signature verification and alert handling. (`38ffcd8`)
+
 ## 1.8.8 - 2026-06-25
 
 - feat(plugins): implement plugin signature verification and environment reordering. (`b8f1d2f`)

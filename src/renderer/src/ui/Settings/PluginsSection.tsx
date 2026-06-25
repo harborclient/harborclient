@@ -11,7 +11,11 @@ import { Input } from '#/renderer/src/components/forms';
 import { Modal } from '#/renderer/src/components/Modal';
 import { faAngleLeft, faCircleCheck } from '#/renderer/src/fontawesome';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
-import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
+import {
+  showAlert,
+  showConfirm,
+  formatIpcErrorMessage
+} from '#/renderer/src/ui/modals/dialogHelpers';
 
 const PERMISSION_LABELS: Record<PluginPermission, string> = {
   ui: 'UI contributions (settings, themes, toasts, commands)',
@@ -91,8 +95,18 @@ function PluginDetailModal({
       className="w-[min(42rem,calc(100vw-2rem))]"
       labelledBy="plugin-detail-title"
     >
-      <h2 id="plugin-detail-title" className="m-0 mb-3 text-[15px] font-semibold text-text">
+      <h2
+        id="plugin-detail-title"
+        className="m-0 mb-3 flex flex-wrap items-center gap-2 text-[15px] font-semibold text-text"
+      >
         {plugin.name}
+        {plugin.signature?.status === 'verified' ? (
+          <FaIcon
+            icon={faCircleCheck}
+            className="h-3.5 w-3.5 shrink-0 text-success"
+            title={`Verified publisher: ${plugin.signature.company ?? plugin.manifest.company ?? 'unknown'}`}
+          />
+        ) : null}
       </h2>
 
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[14px]">
@@ -480,6 +494,17 @@ export function PluginsSection(): JSX.Element {
   const [gitUpdateBusyId, setGitUpdateBusyId] = useState<string | null>(null);
 
   /**
+   * Shows a blocking alert when a user-initiated plugin action fails.
+   *
+   * @param title - Dialog heading.
+   * @param err - Caught error from the IPC call.
+   * @param fallback - Message when the error cannot be parsed.
+   */
+  const showPluginActionError = (title: string, err: unknown, fallback: string): void => {
+    showAlert(dispatch, formatIpcErrorMessage(err, fallback), title, { icon: 'warning' });
+  };
+
+  /**
    * Loads the plugin list from the main process and keeps the open detail row in sync.
    *
    * @returns Fresh plugin rows from the main process.
@@ -600,6 +625,7 @@ export function PluginsSection(): JSX.Element {
    * @param entry - Catalog row to inspect.
    */
   const openCatalogDetail = (entry: PluginCatalogEntry): void => {
+    setCatalogError(null);
     setCatalogDetailEntry(entry);
   };
 
@@ -608,6 +634,7 @@ export function PluginsSection(): JSX.Element {
    */
   const closeCatalogDetail = (): void => {
     setCatalogDetailEntry(null);
+    setCatalogError(null);
   };
 
   /**
@@ -698,14 +725,13 @@ export function PluginsSection(): JSX.Element {
    * Opens the install-from-file dialog and shows the permissions modal.
    */
   const handleInstall = async (): Promise<void> => {
-    setError(null);
     try {
       const installed = await window.api.installPlugin();
       if (installed) {
         setPendingInstall(installed);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      showPluginActionError('Install failed', err, 'The plugin could not be installed.');
     }
   };
 
@@ -741,14 +767,13 @@ export function PluginsSection(): JSX.Element {
     }
     setGitInstallBusy(true);
     setGitInstallError(null);
-    setError(null);
     try {
       const ref = gitInstallRef.trim() || undefined;
       const installed = await window.api.installPluginFromGit(url, ref);
       setShowGitInstallModal(false);
       setPendingInstall(installed);
     } catch (err) {
-      setGitInstallError(err instanceof Error ? err.message : String(err));
+      showPluginActionError('Install failed', err, 'The plugin could not be installed from git.');
     } finally {
       setGitInstallBusy(false);
     }
@@ -761,12 +786,11 @@ export function PluginsSection(): JSX.Element {
    */
   const handleUpdateFromGit = async (pluginId: string): Promise<void> => {
     setGitUpdateBusyId(pluginId);
-    setError(null);
     try {
       await window.api.updatePluginFromGit(pluginId);
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      showPluginActionError('Update failed', err, 'The plugin could not be updated from git.');
     } finally {
       setGitUpdateBusyId(null);
     }
@@ -779,14 +803,12 @@ export function PluginsSection(): JSX.Element {
    */
   const handleCatalogInstall = async (entry: PluginCatalogEntry): Promise<void> => {
     setCatalogActionBusyId(entry.id);
-    setCatalogError(null);
-    setError(null);
     try {
       const installed = await window.api.installPluginFromGit(entry.repoUrl, entry.ref);
       setCatalogDetailEntry(null);
       setPendingInstall(installed);
     } catch (err) {
-      setCatalogError(err instanceof Error ? err.message : String(err));
+      showPluginActionError('Install failed', err, 'The plugin could not be installed.');
     } finally {
       setCatalogActionBusyId(null);
     }
@@ -799,13 +821,11 @@ export function PluginsSection(): JSX.Element {
    */
   const handleCatalogUpdate = async (pluginId: string): Promise<void> => {
     setCatalogActionBusyId(pluginId);
-    setCatalogError(null);
-    setError(null);
     try {
       await window.api.updatePluginFromGit(pluginId);
       await refresh();
     } catch (err) {
-      setCatalogError(err instanceof Error ? err.message : String(err));
+      showPluginActionError('Update failed', err, 'The plugin could not be updated.');
     } finally {
       setCatalogActionBusyId(null);
     }
@@ -815,14 +835,13 @@ export function PluginsSection(): JSX.Element {
    * Opens the load-unpacked dialog and shows the permissions modal.
    */
   const handleLoadUnpacked = async (): Promise<void> => {
-    setError(null);
     try {
       const loaded = await window.api.loadUnpackedPlugin();
       if (loaded) {
         setPendingInstall(loaded);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      showPluginActionError('Load failed', err, 'The unpacked plugin could not be loaded.');
     }
   };
 
@@ -982,8 +1001,8 @@ export function PluginsSection(): JSX.Element {
                             {plugin.signature?.status === 'verified' ? (
                               <FaIcon
                                 icon={faCircleCheck}
-                                className="text-success"
-                                aria-label={`Verified publisher: ${plugin.signature.company ?? plugin.manifest.company ?? 'unknown'}`}
+                                className="h-3.5 w-3.5 shrink-0 text-success"
+                                title={`Verified publisher: ${plugin.signature.company ?? plugin.manifest.company ?? 'unknown'}`}
                               />
                             ) : null}
                             {plugin.signature?.status === 'invalid' ? (
@@ -1259,7 +1278,7 @@ export function PluginsSection(): JSX.Element {
           </p>
           {pendingInstall.signature?.status === 'verified' ? (
             <p className="mb-3 flex items-center gap-2 text-[14px] text-text" role="status">
-              <FaIcon icon={faCircleCheck} className="text-success" aria-hidden />
+              <FaIcon icon={faCircleCheck} className="h-3.5 w-3.5 shrink-0 text-success" />
               Verified by {pendingInstall.signature.company ?? pendingInstall.manifest.company}
             </p>
           ) : null}

@@ -392,6 +392,23 @@ describe('PluginManager', () => {
     vi.restoreAllMocks();
   });
 
+  it('rejects unsigned plugin archives claiming a trusted publisher and cleans up the install directory', async () => {
+    vi.spyOn(pluginSignature, 'evaluatePluginSignature').mockResolvedValue({
+      status: 'untrusted',
+      company: 'HarborClient',
+      error:
+        'This plugin claims to be published by "HarborClient", a verified publisher, but is not signed. Only "HarborClient" can publish plugins under that name.'
+    });
+    const { manager, rootDir } = await createManager();
+    const archivePath = await writeArchiveFile(await buildPluginArchive());
+    const pluginDir = join(rootDir, 'plugins', TEST_PLUGIN_ID);
+
+    await expect(manager.installFromFile(archivePath)).rejects.toThrow(/not signed/i);
+    expect(existsSync(pluginDir)).toBe(false);
+    expect(manager.get(TEST_PLUGIN_ID)).toBeUndefined();
+    vi.restoreAllMocks();
+  });
+
   it('rejects plugin archives with zip-slip paths', async () => {
     const { manager, rootDir } = await createManager();
     const archivePath = await writeArchiveFile(
