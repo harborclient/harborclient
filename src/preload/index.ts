@@ -1350,6 +1350,16 @@ function deactivatePluginMain(pluginId: string): Promise<void> {
 }
 
 /**
+ * Records or clears a plugin activation/runtime error shown in Settings.
+ *
+ * @param pluginId - Plugin manifest id.
+ * @param message - Error message, or null to clear.
+ */
+function reportPluginRuntimeError(pluginId: string, message: string | null): Promise<PluginInfo> {
+  return ipcRenderer.invoke('plugins:reportRuntimeError', pluginId, message);
+}
+
+/**
  * Invokes a plugin IPC handler registered in the main runtime.
  *
  * @param pluginId - Plugin manifest id.
@@ -1574,6 +1584,7 @@ const api: Api = {
   setPluginStorage,
   activatePluginMain,
   deactivatePluginMain,
+  reportPluginRuntimeError,
   invokePluginMain,
   onPluginsChanged,
   setPluginMenuContributions,

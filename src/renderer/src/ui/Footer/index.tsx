@@ -11,6 +11,7 @@ import {
 import { usePluginFooterPanels, usePluginStatusBarItems } from '#/renderer/src/plugins/pluginHooks';
 import { segmentGroup } from '#/renderer/src/ui/shared/classes';
 import { ConsolePanel } from './ConsolePanel';
+import { PluginFooterPanel } from './PluginFooterPanel';
 import { VariablesPanel } from './VariablesPanel';
 import { effectiveCount, resolveScopedVariables } from './VariablesPanel/resolve';
 import { footerIconButton, footerSegment } from './styles';
@@ -153,22 +154,16 @@ export function Footer({
         collectionName={collectionName}
         environmentName={environmentName}
       />
-      {pluginFooterPanels.map((panel) => {
-        const open = activePluginFooterPanelId === panel.id;
-        const Component = panel.Component;
-        return (
-          <div
-            key={panel.id}
-            id={`footer-plugin-panel-${panel.id}`}
-            className={`absolute inset-x-0 bottom-full z-40 max-h-[min(420px,50vh)] overflow-auto border-t border-separator bg-control shadow-lg transition-transform ${
-              open ? 'translate-y-0' : 'pointer-events-none translate-y-full opacity-0'
-            }`}
-            aria-hidden={!open}
-          >
-            {open ? <Component /> : null}
-          </div>
-        );
-      })}
+      {pluginFooterPanels.map((panel) => (
+        <PluginFooterPanel
+          key={panel.id}
+          id={panel.id}
+          title={panel.title}
+          open={activePluginFooterPanelId === panel.id}
+          onClose={() => dispatch(togglePluginFooterPanel(panel.id))}
+          Component={panel.Component}
+        />
+      ))}
       <footer className="relative z-50 flex shrink-0 items-center justify-between border-t border-separator bg-control px-2 py-0.5 app-no-drag">
         <div className={`${segmentGroup} min-w-0 flex-1`}>
           {leftStatusItems.map((item) => {

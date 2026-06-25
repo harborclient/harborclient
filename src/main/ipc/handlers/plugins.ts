@@ -19,6 +19,32 @@ import type { KeyValue, SendRequestInput } from '#/shared/types';
 let manager: PluginManager | null = null;
 
 /**
+ * Parses a plugin id from a hook failure thrown by the SES plugin runner.
+ *
+ * @param error - Hook failure from the utilityProcess runner.
+ * @returns Plugin manifest id when the error message matches the runner format.
+ */
+export function parsePluginHookErrorId(error: unknown): string | undefined {
+  const message = error instanceof Error ? error.message : String(error);
+  const match = /^Plugin ([^:]+): /.exec(message);
+  return match?.[1];
+}
+
+/**
+ * Records a plugin HTTP hook failure for display in Settings.
+ *
+ * @param error - Hook failure from the utilityProcess runner.
+ */
+export function recordPluginHookFailure(error: unknown): void {
+  const pluginId = parsePluginHookErrorId(error);
+  if (!pluginId || !manager) {
+    return;
+  }
+  const message = error instanceof Error ? error.message : String(error);
+  manager.setRuntimeError(pluginId, message);
+}
+
+/**
  * Returns the active plugin manager instance.
  */
 export function getPluginManager(): PluginManager {
@@ -210,6 +236,12 @@ export function registerPluginHandlers(pluginManager: PluginManager): void {
   });
 
   handle(
+    'plugins:reportRuntimeError',
+    ipcArgSchemas.pluginReportRuntimeError,
+    (_event, pluginId, message) => pluginManager.setRuntimeError(pluginId, message)
+  );
+
+  handle(
     'plugins:invokeMain',
     ipcArgSchemas.pluginInvokeMain,
     async (_event, pluginId, channel, args) => invokePluginIpc(pluginId, channel, args)
@@ -317,15 +349,21 @@ export function registerPluginHandlers(pluginManager: PluginManager): void {
  * @returns Possibly mutated request payload.
  */
 export async function applyPluginBeforeSendHooks(req: SendRequestInput): Promise<SendRequestInput> {
-  const pluginRequest = toPluginHttpRequest(req);
-  const mutated = await runPluginBeforeSendHooks(pluginRequest);
-  return {
-    ...req,
-    method: parseHttpMethod(mutated.method) ?? req.method,
-    url: mutated.url,
-    headers: mergePluginHttpHeaders(req.headers, mutated.headers),
-    body: mutated.body
-  };
+  try {
+    const pluginRequest = toPluginHttpRequest(req);
+    const mutated = await runPluginBeforeSendHooks(pluginRequest);
+    return {
+      ...req,
+      method: parseHttpMethod(mutated.method) ?? req.method,
+      url: mutated.url,
+      headers: mergePluginHttpHeaders(req.headers, mutated.headers),
+      body: mutated.body
+    };
+  } catch (error) {
+    recordPluginHookFailure(error);
+    console.error('Plugin before-send hook failed:', error);
+    return req;
+  }
 }
 
 /**
@@ -338,5 +376,10 @@ export async function applyPluginAfterSendHooks(
   req: SendRequestInput,
   response: PluginHttpResponse
 ): Promise<void> {
-  await runPluginAfterSendHooks(toPluginHttpRequest(req), response);
+  try {
+    await runPluginAfterSendHooks(toPluginHttpRequest(req), response);
+  } catch (error) {
+    recordPluginHookFailure(error);
+    console.error('Plugin after-send hook failed:', error);
+  }
 }

@@ -3154,6 +3154,14 @@ export interface Api {
   deactivatePluginMain: (pluginId: string) => Promise<void>;
 
   /**
+   * Records or clears a plugin activation/runtime error shown in Settings.
+   *
+   * @param pluginId - Plugin manifest id.
+   * @param message - Error message, or null to clear.
+   */
+  reportPluginRuntimeError: (pluginId: string, message: string | null) => Promise<PluginInfo>;
+
+  /**
    * Invokes a plugin IPC handler registered in the main runtime.
    *
    * @param pluginId - Plugin manifest id.

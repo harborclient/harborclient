@@ -1,6 +1,23 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Headers } from '#/main/http/Headers';
-import { mergePluginHttpHeaders } from '#/main/ipc/handlers/plugins';
+import {
+  applyPluginAfterSendHooks,
+  mergePluginHttpHeaders,
+  parsePluginHookErrorId,
+  recordPluginHookFailure,
+  setPluginManager
+} from '#/main/ipc/handlers/plugins';
+import type { PluginManager } from '#/main/plugins/PluginManager';
+
+vi.mock('#/main/plugins/pluginRunnerHost', () => ({
+  runPluginAfterSendHooks: vi.fn(),
+  runPluginBeforeSendHooks: vi.fn(),
+  activatePluginMain: vi.fn(),
+  deactivatePluginMain: vi.fn(),
+  invokePluginIpc: vi.fn()
+}));
+
+import { runPluginAfterSendHooks } from '#/main/plugins/pluginRunnerHost';
 
 describe('mergePluginHttpHeaders', () => {
   it('disables enabled headers removed by a plugin hook', () => {
@@ -65,5 +82,51 @@ describe('mergePluginHttpHeaders', () => {
     ]);
     const built = new Headers().build(headers, 'none');
     expect(built).toEqual({ ok: true, headers: { 'X-Custom': 'new' } });
+  });
+});
+
+describe('plugin hook failures', () => {
+  it('parses plugin ids from hook error messages', () => {
+    expect(
+      parsePluginHookErrorId(new Error('Plugin com.example.hook: TextEncoder is missing'))
+    ).toBe('com.example.hook');
+    expect(parsePluginHookErrorId(new Error('Something else'))).toBeUndefined();
+  });
+
+  it('records hook failures on the plugin manager', () => {
+    const setRuntimeError = vi.fn();
+    setPluginManager({ setRuntimeError } as unknown as PluginManager);
+
+    recordPluginHookFailure(new Error('Plugin com.example.hook: TextEncoder is missing'));
+
+    expect(setRuntimeError).toHaveBeenCalledWith(
+      'com.example.hook',
+      'Plugin com.example.hook: TextEncoder is missing'
+    );
+  });
+
+  it('does not throw when after-send hooks fail', async () => {
+    vi.mocked(runPluginAfterSendHooks).mockRejectedValueOnce(
+      new Error('Plugin com.example.hook: TextEncoder is missing')
+    );
+
+    await expect(
+      applyPluginAfterSendHooks(
+        {
+          method: 'GET',
+          url: 'https://example.com',
+          headers: [],
+          params: [],
+          body: '',
+          bodyType: 'none'
+        },
+        {
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          body: ''
+        }
+      )
+    ).resolves.toBeUndefined();
   });
 });

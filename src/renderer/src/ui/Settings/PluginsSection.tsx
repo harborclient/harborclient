@@ -19,6 +19,37 @@ const PERMISSION_LABELS: Record<PluginPermission, string> = {
   ipc: 'Custom IPC between renderer and main plugin halves'
 };
 
+interface PluginErrorMessagesProps {
+  /**
+   * Plugin whose manifest or runtime errors should be shown.
+   */
+  plugin: PluginInfo;
+}
+
+/**
+ * Renders manifest load errors and runtime activation/hook failures for one plugin.
+ */
+function PluginErrorMessages({ plugin }: PluginErrorMessagesProps): JSX.Element | null {
+  if (!plugin.error && !plugin.runtimeError) {
+    return null;
+  }
+
+  return (
+    <div className="mt-1 space-y-1">
+      {plugin.error ? (
+        <p className="m-0 text-[14px] text-danger" role="alert">
+          <span className="font-medium">Load error:</span> {plugin.error}
+        </p>
+      ) : null}
+      {plugin.runtimeError ? (
+        <p className="m-0 text-[14px] text-danger" role="alert">
+          <span className="font-medium">Runtime error:</span> {plugin.runtimeError}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 interface PluginDetailModalProps {
   /**
    * Plugin whose read-only metadata and description are shown.
@@ -103,6 +134,8 @@ function PluginDetailModal({
         ) : null}
       </div>
 
+      <PluginErrorMessages plugin={plugin} />
+
       <div className="mt-4 border-t border-separator pt-4">
         <h3 className="m-0 mb-2 text-[14px] font-medium text-text">Permissions</h3>
         <ul className="m-0 list-disc pl-5 text-[14px] text-text">
@@ -113,7 +146,7 @@ function PluginDetailModal({
       </div>
 
       {plugin.manifest.description ? (
-        <div className="prose prose-base mt-4 max-w-none border-t border-separator pt-4 text-text">
+        <div className="prose prose-base mt-4 max-h-[min(28rem,50vh)] max-w-none overflow-y-auto border-t border-separator pt-4 text-text">
           {descriptionLoadState === 'loading' ? (
             <p className="text-muted" role="status">
               Loading description…
@@ -893,6 +926,11 @@ export function PluginsSection(): JSX.Element {
                         <td className="px-3 py-2 align-top">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-medium text-text">{plugin.name}</span>
+                            {plugin.runtimeError && plugin.enabled ? (
+                              <span className="rounded bg-danger/20 px-1.5 py-0.5 text-[14px] text-danger">
+                                Error
+                              </span>
+                            ) : null}
                             {plugin.manifest.homepage ? (
                               <PluginTableExternalLink
                                 href={plugin.manifest.homepage}
@@ -912,9 +950,7 @@ export function PluginsSection(): JSX.Element {
                             ) : null}
                           </div>
                           <div className="text-[14px] text-muted">{plugin.id}</div>
-                          {plugin.error ? (
-                            <div className="mt-1 text-[14px] text-danger">{plugin.error}</div>
-                          ) : null}
+                          <PluginErrorMessages plugin={plugin} />
                         </td>
                         <td className="px-3 py-2 align-top text-text">{plugin.version}</td>
                         <td className="px-3 py-2 align-top text-text">

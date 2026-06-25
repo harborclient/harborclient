@@ -178,7 +178,9 @@ async function activatePlugin(
   const compartment = new Compartment({
     globals: {
       hc,
-      console
+      console,
+      Date,
+      Math
     },
     __options__: true
   });
@@ -217,7 +219,12 @@ async function runBeforeSend(request: PluginHttpRequest): Promise<PluginHttpRequ
   const current: PluginHttpRequest = JSON.parse(JSON.stringify(request));
   for (const state of plugins.values()) {
     for (const handler of state.beforeSend) {
-      await handler(current);
+      try {
+        await handler(current);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Plugin ${state.pluginId}: ${message}`);
+      }
     }
   }
   return current;
@@ -235,7 +242,12 @@ async function runAfterSend(
 ): Promise<void> {
   for (const state of plugins.values()) {
     for (const handler of state.afterSend) {
-      await handler(request, response);
+      try {
+        await handler(request, response);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Plugin ${state.pluginId}: ${message}`);
+      }
     }
   }
 }

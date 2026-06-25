@@ -4,8 +4,14 @@ import { Button } from '#/renderer/src/components/Button';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { ResizeHandle, useResizable } from '#/renderer/src/components/Resizable';
 import { faXmark } from '#/renderer/src/fontawesome';
+import {
+  DEFAULT_HEIGHT,
+  MIN_HEIGHT,
+  footerPanelClassName,
+  footerPanelCloseButtonClassName,
+  getFooterPanelMaxSize
+} from '../panelUtils';
 import { EntryRow } from './EntryRow';
-import { DEFAULT_HEIGHT, MIN_HEIGHT } from './constants';
 
 interface Props {
   /**
@@ -46,12 +52,7 @@ export function ConsolePanel({ entries, open, onClose, onClear }: Props): JSX.El
     direction: -1,
     defaultSize: DEFAULT_HEIGHT,
     minSize: MIN_HEIGHT,
-    getMaxSize: () => {
-      const shell = containerRef.current?.parentElement?.parentElement;
-      const contentArea = shell?.children[1] as HTMLElement | undefined;
-      if (!contentArea) return window.innerHeight * 0.8;
-      return contentArea.clientHeight - 40;
-    },
+    getMaxSize: () => getFooterPanelMaxSize(containerRef),
     storageKey: 'hc.consoleHeight'
   });
 
@@ -71,17 +72,12 @@ export function ConsolePanel({ entries, open, onClose, onClear }: Props): JSX.El
   };
 
   const effectiveExpandedId = open ? expandedId : null;
-  const panelClassName = [
-    'absolute inset-x-0 bottom-full z-40 flex flex-col border-t border-separator bg-surface',
-    'shadow-[0_-4px_16px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out app-no-drag',
-    open ? 'translate-y-0' : 'translate-y-full pointer-events-none'
-  ].join(' ');
 
   return (
     <div
       ref={containerRef}
       id="footer-console-panel"
-      className={panelClassName}
+      className={footerPanelClassName(open)}
       style={{ height }}
       aria-hidden={!open}
     >
@@ -113,7 +109,7 @@ export function ConsolePanel({ entries, open, onClose, onClear }: Props): JSX.El
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text app-no-drag"
+            className={footerPanelCloseButtonClassName}
             onClick={handleClose}
             aria-label="Close console"
           >

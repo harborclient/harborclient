@@ -736,6 +736,17 @@ hc.subscriptions.push(
 | `Component` | `React.ComponentType` | Slide-up panel content |
 
 Registers a slide-up footer panel using the same pattern as Console and Variables.
+The host wraps your component in a resizable shell — you do not implement resize
+logic yourself. The shell provides:
+
+- A top drag handle (and keyboard resize on the handle)
+- Per-panel height persistence in `localStorage` (`hc.footerPanel.<namespaced-id>`)
+- A close button in the top-right corner
+
+**Layout contract:** Your `Component` should fill the resizable area with
+`flex h-full min-h-0 flex-col` and put scrollable content in a
+`flex-1 overflow-auto` child. Leave roughly 32px of right padding on header
+rows so controls do not sit under the host close button.
 
 ```typescript
 hc.subscriptions.push(
@@ -745,6 +756,21 @@ hc.subscriptions.push(
     Component: PluginLogPanel,
   }),
 );
+```
+
+Example panel structure:
+
+```tsx
+function PluginLogPanel() {
+  return (
+    <div className="flex h-full min-h-0 flex-col bg-control">
+      <div className="flex shrink-0 items-center border-b border-separator px-3 py-2 pr-8">
+        <h3 className="text-[14px] font-medium text-text">My Log</h3>
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto">{/* scrollable body */}</div>
+    </div>
+  );
+}
 ```
 
 ### hc.ui.registerMenuItem(item)

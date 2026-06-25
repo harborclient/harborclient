@@ -111,7 +111,10 @@ export interface PluginInfo {
   repoUrl?: string;
   /** Branch or tag ref used for the last clone when source is `git`. */
   repoRef?: string;
+  /** Manifest or discovery failure preventing the plugin package from loading. */
   error?: string;
+  /** Activation or runtime hook failure on an otherwise valid plugin package. */
+  runtimeError?: string;
 }
 
 /**

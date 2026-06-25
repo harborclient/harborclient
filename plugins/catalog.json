@@ -11,6 +11,17 @@
       "repoUrl": "https://github.com/harborclient/plugin-solarized",
       "ref": "v1.0.0",
       "screenshot": "https://raw.githubusercontent.com/harborclient/plugin-solarized/main/assets/screenshots/appearance.png"
+    },
+    {
+      "id": "com.harborclient.plugins.history",
+      "name": "History",
+      "version": "1.0.0",
+      "summary": "A HarborClient plugin that records every successful HTTP request and response in a persistent footer panel.",
+      "author": "HarborClient",
+      "categories": ["themes"],
+      "repoUrl": "https://github.com/harborclient/plugin-history",
+      "ref": "v1.0.0",
+      "screenshot": "https://raw.githubusercontent.com/harborclient/plugin-history/main/screenshot.png"
     }
   ]
 }

@@ -487,6 +487,7 @@ export const ipcArgSchemas = {
   pluginStorageKey: z.tuple([pluginId, z.string().min(1)]),
   pluginStorageSet: z.tuple([pluginId, z.string().min(1), z.unknown()]),
   pluginActivateMain: z.tuple([pluginId]),
+  pluginReportRuntimeError: z.tuple([pluginId, z.string().nullable()]),
   pluginInvokeMain: z.tuple([pluginId, z.string().min(1), z.array(z.unknown())]),
   pluginMenuContributions: z.tuple([
     z.array(

@@ -173,6 +173,66 @@ describe('PluginManager', () => {
     );
   });
 
+  it('stores and clears runtime errors on a valid plugin', async () => {
+    const { manager, rootDir } = await createManager();
+    writePlugin(rootDir, 'com.example.runtime');
+    manager.discover();
+    manager.setEnabled('com.example.runtime', true);
+
+    manager.setRuntimeError('com.example.runtime', 'Activation failed');
+    expect(manager.get('com.example.runtime')?.runtimeError).toBe('Activation failed');
+
+    manager.clearRuntimeError('com.example.runtime');
+    expect(manager.get('com.example.runtime')?.runtimeError).toBeUndefined();
+  });
+
+  it('does not notify listeners when runtime error state is unchanged', async () => {
+    const { manager, rootDir } = await createManager();
+    writePlugin(rootDir, 'com.example.runtime');
+    manager.discover();
+    manager.setEnabled('com.example.runtime', true);
+
+    const notifications: string[] = [];
+    manager.setNotifyWindow(
+      () =>
+        ({
+          isDestroyed: () => false,
+          webContents: {
+            send: (_channel: string, pluginId: string) => {
+              notifications.push(pluginId);
+            }
+          }
+        }) as import('electron').BrowserWindow
+    );
+
+    manager.clearRuntimeError('com.example.runtime');
+    expect(notifications).toEqual([]);
+
+    manager.setRuntimeError('com.example.runtime', 'Activation failed');
+    expect(notifications).toEqual(['com.example.runtime']);
+
+    manager.setRuntimeError('com.example.runtime', 'Activation failed');
+    expect(notifications).toEqual(['com.example.runtime']);
+
+    manager.clearRuntimeError('com.example.runtime');
+    expect(notifications).toEqual(['com.example.runtime', 'com.example.runtime']);
+
+    manager.clearRuntimeError('com.example.runtime');
+    expect(notifications).toEqual(['com.example.runtime', 'com.example.runtime']);
+  });
+
+  it('clears runtime errors when reloading a plugin from disk', async () => {
+    const { manager, rootDir } = await createManager();
+    writePlugin(rootDir, 'com.example.runtime');
+    manager.discover();
+    manager.setEnabled('com.example.runtime', true);
+    manager.setRuntimeError('com.example.runtime', 'Hook failed');
+
+    manager.reload('com.example.runtime');
+
+    expect(manager.get('com.example.runtime')?.runtimeError).toBeUndefined();
+  });
+
   it('marks git-installed plugins with repository metadata on discover', async () => {
     const { manager, rootDir } = await createManager();
     writePlugin(rootDir, 'com.example.git');

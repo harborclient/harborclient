@@ -80,7 +80,8 @@ function persistSize(storageKey: string, size: number): void {
  * Clamps a size between min and optional max bounds.
  */
 function clampSize(size: number, minSize: number, getMaxSize?: () => number): number {
-  const maxSize = getMaxSize?.() ?? Number.POSITIVE_INFINITY;
+  const rawMax = getMaxSize?.() ?? Number.POSITIVE_INFINITY;
+  const maxSize = Math.max(minSize, rawMax);
   return Math.min(maxSize, Math.max(minSize, size));
 }
 

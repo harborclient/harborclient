@@ -32,6 +32,34 @@ async function importPluginModule(
 }
 
 /**
+ * Persists an activation failure so Settings can show the runtime error.
+ *
+ * @param pluginId - Plugin manifest id.
+ * @param error - Thrown activation error.
+ */
+async function reportActivationFailure(pluginId: string, error: unknown): Promise<void> {
+  const message = error instanceof Error ? error.message : String(error);
+  try {
+    await window.api.reportPluginRuntimeError(pluginId, message);
+  } catch {
+    // Best-effort persistence for Settings display.
+  }
+}
+
+/**
+ * Clears a stale runtime error after successful activation.
+ *
+ * @param pluginId - Plugin manifest id.
+ */
+async function clearActivationError(pluginId: string): Promise<void> {
+  try {
+    await window.api.reportPluginRuntimeError(pluginId, null);
+  } catch {
+    // Best-effort clear when the main process is unavailable.
+  }
+}
+
+/**
  * Tears down partial renderer activation after activate() throws before load completes.
  *
  * @param pluginId - Plugin manifest id.
@@ -98,37 +126,44 @@ async function loadPlugin(plugin: PluginInfo): Promise<void> {
 
   await unloadPlugin(plugin.id);
 
-  if (!plugin.manifest.renderer) {
+  try {
+    if (!plugin.manifest.renderer) {
+      if (plugin.manifest.main) {
+        await window.api.activatePluginMain(plugin.id);
+      }
+      await clearActivationError(plugin.id);
+      return;
+    }
+
+    const source = await window.api.readPluginEntry(plugin.id, 'renderer');
+    const module = await importPluginModule(source);
+    if (typeof module.activate !== 'function') {
+      throw new Error(`Plugin ${plugin.id} renderer entry must export activate(hc).`);
+    }
+
+    const hc = createPluginContext(plugin.id, plugin.manifest);
+    try {
+      await module.activate(hc);
+    } catch (error) {
+      await disposePartialRendererActivation(plugin.id, hc, module);
+      throw error;
+    }
+    loaded.set(plugin.id, {
+      pluginId: plugin.id,
+      deactivate: module.deactivate,
+      disposables: [...hc.subscriptions]
+    });
+
     if (plugin.manifest.main) {
       await window.api.activatePluginMain(plugin.id);
     }
-    return;
-  }
 
-  const source = await window.api.readPluginEntry(plugin.id, 'renderer');
-  const module = await importPluginModule(source);
-  if (typeof module.activate !== 'function') {
-    throw new Error(`Plugin ${plugin.id} renderer entry must export activate(hc).`);
-  }
-
-  const hc = createPluginContext(plugin.id, plugin.manifest);
-  try {
-    await module.activate(hc);
+    await applyPersistedPluginTheme();
+    await clearActivationError(plugin.id);
   } catch (error) {
-    await disposePartialRendererActivation(plugin.id, hc, module);
+    await reportActivationFailure(plugin.id, error);
     throw error;
   }
-  loaded.set(plugin.id, {
-    pluginId: plugin.id,
-    deactivate: module.deactivate,
-    disposables: [...hc.subscriptions]
-  });
-
-  if (plugin.manifest.main) {
-    await window.api.activatePluginMain(plugin.id);
-  }
-
-  await applyPersistedPluginTheme();
 }
 
 /**
@@ -138,7 +173,11 @@ export async function reloadAllPlugins(): Promise<void> {
   const plugins = await window.api.listPlugins();
   for (const plugin of plugins) {
     if (plugin.enabled) {
-      await loadPlugin(plugin);
+      try {
+        await loadPlugin(plugin);
+      } catch {
+        // Error already reported; continue loading other plugins.
+      }
     } else {
       await unloadPlugin(plugin.id);
     }

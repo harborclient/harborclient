@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(plugins): enhance error handling and UI for plugin management. (`d6364af`)
 - feat(plugins): enhance plugin catalog and UI improvements. (`13b6e26`)
 - feat(plugins): introduce plugin marketplace and enhance management features. (`ef48766`)
 - fix(docs): update HarborClient Team Hub references in documentation. (`8b58d90`)

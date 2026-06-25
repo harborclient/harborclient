@@ -504,6 +504,44 @@ export class PluginManager {
   }
 
   /**
+   * Records or clears a plugin activation/runtime hook failure.
+   *
+   * @param pluginId - Plugin manifest id.
+   * @param message - Error message, or null to clear a prior runtime error.
+   * @returns Updated plugin metadata.
+   */
+  setRuntimeError(pluginId: string, message: string | null): PluginInfo {
+    const record = this.#records.get(pluginId);
+    if (!record) {
+      throw new Error(`Unknown plugin: ${pluginId}`);
+    }
+    const previousError = record.info.runtimeError;
+    const nextError = message ?? undefined;
+    if (previousError === nextError) {
+      return record.info;
+    }
+    const next = { ...record.info };
+    if (message) {
+      next.runtimeError = message;
+    } else {
+      delete next.runtimeError;
+    }
+    record.info = next;
+    this.#emitChanged(pluginId);
+    return record.info;
+  }
+
+  /**
+   * Clears the runtime error for one plugin.
+   *
+   * @param pluginId - Plugin manifest id.
+   * @returns Updated plugin metadata.
+   */
+  clearRuntimeError(pluginId: string): PluginInfo {
+    return this.setRuntimeError(pluginId, null);
+  }
+
+  /**
    * Removes an installed plugin directory and registry state.
    *
    * @param pluginId - Plugin manifest id.
