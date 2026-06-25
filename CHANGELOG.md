@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.8.9 - 2026-06-25
+
 - refactor(plugins): update plugin metadata to use author instead of company. (`eda9ddf`)
 - feat(plugins): enhance plugin signature verification and alert handling. (`38ffcd8`)
 
