@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.8.6 - 2026-06-25
+
 - feat(plugins): add Interval plugin to the catalog. (`ddea307`)
 - chore: update @harborclient/plugin-api dependency to version 0.3.4 and enhance request handling. (`0535895`)
 
