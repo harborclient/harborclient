@@ -9,7 +9,7 @@ const validCatalog = {
       name: 'Demo Plugin',
       version: '1.0.0',
       summary: 'A sample plugin for tests.',
-      company: 'Example Inc.',
+      author: 'Example Inc.',
       categories: ['utilities'],
       repoUrl: 'https://github.com/example/demo-plugin'
     }
@@ -71,7 +71,7 @@ describe('parsePluginCatalog', () => {
 
 const validTrustedKeys = [
   {
-    company: 'HarborClient',
+    author: 'HarborClient',
     key: 'https://harborclient.com/plugins/harborclient.key'
   }
 ];
@@ -86,7 +86,7 @@ describe('parsePluginTrustedKeys', () => {
       parsePluginTrustedKeys([
         validTrustedKeys[0],
         {
-          company: 'Other',
+          author: 'Other',
           key: 'https://harborclient.com/plugins/harborclient.key'
         }
       ])
@@ -97,7 +97,7 @@ describe('parsePluginTrustedKeys', () => {
     expect(() =>
       parsePluginTrustedKeys([
         {
-          company: 'HarborClient',
+          author: 'HarborClient',
           key: 'not-a-url'
         }
       ])

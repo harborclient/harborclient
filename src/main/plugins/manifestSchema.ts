@@ -39,7 +39,7 @@ export const pluginManifestSchema = z.object({
     .regex(/^[a-zA-Z][a-zA-Z0-9.-]*\.[a-zA-Z][a-zA-Z0-9.-]+$/),
   name: z.string().min(1),
   version: z.string().min(1),
-  company: z.string().optional(),
+  author: z.string().optional(),
   description: z.string().optional(),
   icon: z.string().optional(),
   screenshots: z.array(screenshotEntry).optional(),

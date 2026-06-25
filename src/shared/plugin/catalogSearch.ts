@@ -8,7 +8,7 @@ type PluginCatalogSearchDocument = {
   id: string;
   name: string;
   summary: string;
-  company: string;
+  author: string;
   categoriesText: string;
 };
 
@@ -22,7 +22,7 @@ export function buildPluginCatalogSearchIndex(
   plugins: PluginCatalogEntry[]
 ): MiniSearch<PluginCatalogSearchDocument> {
   const index = new MiniSearch<PluginCatalogSearchDocument>({
-    fields: ['name', 'summary', 'company', 'categoriesText'],
+    fields: ['name', 'summary', 'author', 'categoriesText'],
     storeFields: ['id'],
     searchOptions: {
       prefix: true,
@@ -35,7 +35,7 @@ export function buildPluginCatalogSearchIndex(
       id: entry.id,
       name: entry.name,
       summary: entry.summary,
-      company: entry.company,
+      author: entry.author,
       categoriesText: entry.categories.join(' ')
     }))
   );

@@ -177,7 +177,7 @@ Installed plugins appear in a full-width **table** with **Plugin**, **Version**,
 | --- | --- |
 | **Plugin details** | Click a table row to open a modal with the Markdown description, permissions, and links (including **Report issue** when declared). |
 | **Homepage** | When declared in the manifest, opens in your browser from a link beside the plugin name (does not open the detail modal). |
-| **Publisher** | Publisher or company name from the plugin manifest (`company`), when declared. |
+| **Publisher** | Publisher or author name from the plugin manifest (`author`), when declared. |
 | **Enable / disable** | Use the **Enable** or **Disable** button in **Actions**. Disabled plugins do not activate. |
 | **Reload** | Unpacked dev plugins show a **Reload** button to re-read the manifest and entry bundles from disk. |
 | **Update** | Git-installed plugins show an **Update** button that re-clones the stored repository URL (and optional ref) and replaces the installed copy. Use this to pull the latest version from the default branch or a pinned tag. |

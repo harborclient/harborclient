@@ -104,7 +104,7 @@ function PluginDetailModal({
           <FaIcon
             icon={faCircleCheck}
             className="h-3.5 w-3.5 shrink-0 text-success"
-            title={`Verified publisher: ${plugin.signature.company ?? plugin.manifest.company ?? 'unknown'}`}
+            title={`Verified publisher: ${plugin.signature.author ?? plugin.manifest.author ?? 'unknown'}`}
           />
         ) : null}
       </h2>
@@ -113,7 +113,7 @@ function PluginDetailModal({
         <dt className="text-muted">Version</dt>
         <dd className="m-0 text-text">{plugin.version}</dd>
         <dt className="text-muted">Publisher</dt>
-        <dd className="m-0 text-text">{plugin.manifest.company ?? '—'}</dd>
+        <dd className="m-0 text-text">{plugin.manifest.author ?? '—'}</dd>
         <dt className="text-muted">Source</dt>
         <dd className="m-0 break-all text-text">{plugin.path}</dd>
         {plugin.repoUrl ? (
@@ -393,7 +393,7 @@ function PluginCatalogDetailModal({
 
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[14px]">
         <dt className="text-muted">Publisher</dt>
-        <dd className="m-0 text-text">{entry.company}</dd>
+        <dd className="m-0 text-text">{entry.author}</dd>
         <dt className="text-muted">Version</dt>
         <dd className="m-0 text-text">{displayVersion}</dd>
         <dt className="text-muted">Plugin id</dt>
@@ -1002,7 +1002,7 @@ export function PluginsSection(): JSX.Element {
                               <FaIcon
                                 icon={faCircleCheck}
                                 className="h-3.5 w-3.5 shrink-0 text-success"
-                                title={`Verified publisher: ${plugin.signature.company ?? plugin.manifest.company ?? 'unknown'}`}
+                                title={`Verified publisher: ${plugin.signature.author ?? plugin.manifest.author ?? 'unknown'}`}
                               />
                             ) : null}
                             {plugin.signature?.status === 'invalid' ? (
@@ -1043,8 +1043,8 @@ export function PluginsSection(): JSX.Element {
                         </td>
                         <td className="px-3 py-2 align-top text-text">{plugin.version}</td>
                         <td className="px-3 py-2 align-top text-text">
-                          {plugin.manifest.company ? (
-                            plugin.manifest.company
+                          {plugin.manifest.author ? (
+                            plugin.manifest.author
                           ) : (
                             <span className="text-muted">—</span>
                           )}
@@ -1279,7 +1279,7 @@ export function PluginsSection(): JSX.Element {
           {pendingInstall.signature?.status === 'verified' ? (
             <p className="mb-3 flex items-center gap-2 text-[14px] text-text" role="status">
               <FaIcon icon={faCircleCheck} className="h-3.5 w-3.5 shrink-0 text-success" />
-              Verified by {pendingInstall.signature.company ?? pendingInstall.manifest.company}
+              Verified by {pendingInstall.signature.author ?? pendingInstall.manifest.author}
             </p>
           ) : null}
           {pendingInstall.signature?.status === 'unsigned' ? (

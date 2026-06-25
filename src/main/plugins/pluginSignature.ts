@@ -185,7 +185,7 @@ export function clearPluginSignatureCachesForTesting(): void {
  * signature.json when present.
  *
  * @param directory - Absolute plugin root directory.
- * @param manifest - Parsed plugin manifest used for company matching.
+ * @param manifest - Parsed plugin manifest used for author matching.
  * @returns Signature status metadata for UI and install gating.
  * @throws {@link PluginSignatureUnavailableError} When a signed plugin cannot be
  *   checked because the registry or key URL is unreachable.
@@ -195,9 +195,9 @@ export async function evaluatePluginSignature(
   manifest: PluginManifest
 ): Promise<PluginSignatureInfo> {
   const signatureFile = readPluginSignature(directory);
-  const company = manifest.company?.trim();
+  const author = manifest.author?.trim();
 
-  if (!signatureFile && !company) {
+  if (!signatureFile && !author) {
     return { status: 'unsigned' };
   }
 
@@ -214,32 +214,32 @@ export async function evaluatePluginSignature(
     });
   }
 
-  const trustedEntry = company ? trustedKeys.find((entry) => entry.company === company) : undefined;
+  const trustedEntry = author ? trustedKeys.find((entry) => entry.author === author) : undefined;
 
   if (!signatureFile) {
     if (trustedEntry) {
       return {
         status: 'untrusted',
-        company,
-        error: `This plugin claims to be published by "${company}", a verified publisher, but is not signed. Only "${company}" can publish plugins under that name.`
+        author,
+        error: `This plugin claims to be published by "${author}", a verified publisher, but is not signed. Only "${author}" can publish plugins under that name.`
       };
     }
 
     return { status: 'unsigned' };
   }
 
-  if (!company) {
+  if (!author) {
     return {
       status: 'untrusted',
-      error: 'Plugin manifest is missing company metadata required for signature verification.'
+      error: 'Plugin manifest is missing author metadata required for signature verification.'
     };
   }
 
   if (!trustedEntry) {
     return {
       status: 'untrusted',
-      company,
-      error: `No trusted signing key is registered for publisher "${company}".`
+      author,
+      error: `No trusted signing key is registered for publisher "${author}".`
     };
   }
 
@@ -252,7 +252,7 @@ export async function evaluatePluginSignature(
     }
 
     throw new PluginSignatureUnavailableError(
-      `Could not download trusted public key for publisher "${company}".`,
+      `Could not download trusted public key for publisher "${author}".`,
       { cause: error }
     );
   }
@@ -265,14 +265,14 @@ export async function evaluatePluginSignature(
   if (verification.status === 'valid') {
     return {
       status: 'verified',
-      company,
+      author,
       keyId: verification.keyId ?? verification.signature?.keyId
     };
   }
 
   return {
     status: 'invalid',
-    company,
+    author,
     keyId: verification.signature?.keyId,
     error: verification.error ?? 'Plugin signature failed verification.'
   };

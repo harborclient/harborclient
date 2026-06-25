@@ -8,7 +8,7 @@ const samplePlugins: PluginCatalogEntry[] = [
     name: 'Demo Plugin',
     version: '1.0.0',
     summary: 'A sample plugin for tests.',
-    company: 'Example Inc.',
+    author: 'Example Inc.',
     categories: ['utilities'],
     repoUrl: 'https://github.com/example/demo-plugin'
   },
@@ -17,7 +17,7 @@ const samplePlugins: PluginCatalogEntry[] = [
     name: 'cURL',
     version: '1.0.0',
     summary: 'Shows an equivalent curl command for the configured request.',
-    company: 'HarborClient',
+    author: 'HarborClient',
     categories: ['requests'],
     repoUrl: 'https://github.com/example/plugin-curl'
   },
@@ -26,7 +26,7 @@ const samplePlugins: PluginCatalogEntry[] = [
     name: 'History',
     version: '1.0.0',
     summary: 'Records every successful HTTP request and response.',
-    company: 'HarborClient',
+    author: 'HarborClient',
     categories: ['requests', 'logging'],
     repoUrl: 'https://github.com/example/plugin-history'
   }
@@ -52,7 +52,7 @@ describe('searchPluginCatalog', () => {
     ).toEqual(['com.example.history']);
   });
 
-  it('matches plugins by company', () => {
+  it('matches plugins by author', () => {
     expect(
       searchPluginCatalog(samplePlugins, index, 'Example Inc').map((entry) => entry.id)
     ).toEqual(['com.example.demo']);

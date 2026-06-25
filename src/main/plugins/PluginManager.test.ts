@@ -345,7 +345,7 @@ describe('PluginManager', () => {
   it('installs a verified signed plugin archive', async () => {
     const evaluateSpy = vi.spyOn(pluginSignature, 'evaluatePluginSignature').mockResolvedValue({
       status: 'verified',
-      company: 'Example Inc.',
+      author: 'Example Inc.',
       keyId: 'test-key'
     });
     const { manager, rootDir } = await createManager();
@@ -362,7 +362,7 @@ describe('PluginManager', () => {
   it('rejects plugin archives with invalid signatures and cleans up the install directory', async () => {
     vi.spyOn(pluginSignature, 'evaluatePluginSignature').mockResolvedValue({
       status: 'invalid',
-      company: 'Example Inc.',
+      author: 'Example Inc.',
       error: 'Plugin signature failed verification.'
     });
     const { manager, rootDir } = await createManager();
@@ -380,7 +380,7 @@ describe('PluginManager', () => {
   it('rejects plugin archives from untrusted publishers and cleans up the install directory', async () => {
     vi.spyOn(pluginSignature, 'evaluatePluginSignature').mockResolvedValue({
       status: 'untrusted',
-      company: 'Unknown Publisher',
+      author: 'Unknown Publisher',
       error: 'No trusted signing key is registered for publisher "Unknown Publisher".'
     });
     const { manager, rootDir } = await createManager();
@@ -395,7 +395,7 @@ describe('PluginManager', () => {
   it('rejects unsigned plugin archives claiming a trusted publisher and cleans up the install directory', async () => {
     vi.spyOn(pluginSignature, 'evaluatePluginSignature').mockResolvedValue({
       status: 'untrusted',
-      company: 'HarborClient',
+      author: 'HarborClient',
       error:
         'This plugin claims to be published by "HarborClient", a verified publisher, but is not signed. Only "HarborClient" can publish plugins under that name.'
     });

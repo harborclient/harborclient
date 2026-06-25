@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-06-25T14:12:22.145Z",
+  "updatedAt": "2026-06-25T14:57:22.888Z",
   "plugins": [
     {
       "id": "com.harborclient.plugins.curl",
       "name": "cURL",
       "version": "1.0.0",
       "summary": "Adds a tab to the request editor that shows an equivalent `curl` command for the configured request.",
-      "company": "HarborClient",
+      "author": "HarborClient",
       "categories": [
         "requests"
       ],
@@ -20,7 +20,7 @@
       "name": "Dotenv",
       "version": "1.0.0",
       "summary": "HarborClient plugin that links a .env file to an environment and keeps variables in sync.",
-      "company": "HarborClient",
+      "author": "HarborClient",
       "categories": [
         "environments",
         "import"
@@ -34,7 +34,7 @@
       "name": "History",
       "version": "1.0.0",
       "summary": "A HarborClient plugin that records every successful HTTP request and response in a persistent footer panel.",
-      "company": "HarborClient",
+      "author": "HarborClient",
       "categories": [
         "requests",
         "logging"
@@ -48,7 +48,7 @@
       "name": "Interval",
       "version": "1.0.0",
       "summary": "Adds a Timer tab to the request editor for interval polling and one-shot delayed sends.",
-      "company": "HarborClient",
+      "author": "HarborClient",
       "categories": [
         "requests"
       ],
@@ -61,7 +61,7 @@
       "name": "OpenAPI",
       "version": "1.0.0",
       "summary": "HarborClient plugin that imports an OpenAPI 3.x specification and creates a collection with requests grouped by the first tag on each operation.",
-      "company": "HarborClient",
+      "author": "HarborClient",
       "categories": [
         "requests",
         "import"
@@ -75,7 +75,7 @@
       "name": "Request History",
       "version": "1.0.0",
       "summary": "Records every completed HTTP request and displays them in a Recent Requests sidebar section.",
-      "company": "HarborClient",
+      "author": "HarborClient",
       "categories": [
         "requests"
       ],
@@ -88,7 +88,7 @@
       "name": "Solarized Theme",
       "version": "1.0.0",
       "summary": "A Solarized theme for HarborClient.",
-      "company": "HarborClient",
+      "author": "HarborClient",
       "categories": [
         "themes"
       ],

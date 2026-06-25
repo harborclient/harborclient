@@ -37,7 +37,7 @@ type CatalogEntry = (typeof catalog.plugins)[number];
           <div class="text-muted">{{ entry.categories.join(', ') }}</div>
         </td>
         <td>{{ entry.summary }}</td>
-        <td>{{ entry.company }}</td>
+        <td>{{ entry.author }}</td>
         <td>
           <img
             v-if="entry.screenshot"

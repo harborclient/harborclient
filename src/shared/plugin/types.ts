@@ -50,7 +50,7 @@ export interface PluginManifest {
   id: string;
   name: string;
   version: string;
-  company?: string;
+  author?: string;
   description?: string;
   icon?: string;
   screenshots?: PluginScreenshot[];
@@ -105,8 +105,8 @@ export type PluginSignatureStatus = 'verified' | 'unsigned' | 'untrusted' | 'inv
  */
 export interface PluginSignatureInfo {
   status: PluginSignatureStatus;
-  /** manifest.company the signature was checked against. */
-  company?: string;
+  /** manifest.author the signature was checked against. */
+  author?: string;
   /** keyId recorded in signature.json when verified. */
   keyId?: string;
   /** Human-readable reason for untrusted or invalid signatures. */

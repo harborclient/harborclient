@@ -6,7 +6,7 @@ import { signPlugin } from '@harborclient/plugin-api/signing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PLUGIN_TRUSTED_KEYS_URL } from '#/shared/plugin/catalog';
 
-const TEST_COMPANY = 'Test Publisher';
+const TEST_AUTHOR = 'Test Publisher';
 const TEST_KEY_URL = 'https://example.com/test.key';
 
 let appRoot = '';
@@ -31,7 +31,7 @@ function createAppRootWithTrustedKeys(): string {
   mkdirSync(pluginsDir, { recursive: true });
   writeFileSync(
     join(pluginsDir, 'trusted.json'),
-    `${JSON.stringify([{ company: TEST_COMPANY, key: TEST_KEY_URL }], null, 2)}\n`,
+    `${JSON.stringify([{ author: TEST_AUTHOR, key: TEST_KEY_URL }], null, 2)}\n`,
     'utf8'
   );
   return root;
@@ -43,7 +43,7 @@ function createAppRootWithTrustedKeys(): string {
  * @param options - Optional manifest overrides.
  * @returns Plugin directory path and cleanup callback.
  */
-function createPluginDir(options: { company?: string | null; pluginId?: string } = {}): {
+function createPluginDir(options: { author?: string | null; pluginId?: string } = {}): {
   pluginDir: string;
   cleanup: () => void;
 } {
@@ -57,8 +57,8 @@ function createPluginDir(options: { company?: string | null; pluginId?: string }
     renderer: 'dist/renderer.js',
     permissions: ['ui']
   };
-  if (options.company !== null) {
-    manifest.company = options.company ?? TEST_COMPANY;
+  if (options.author !== null) {
+    manifest.author = options.author ?? TEST_AUTHOR;
   }
   writeFileSync(join(pluginDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
   writeFileSync(join(pluginDir, 'dist', 'renderer.js'), 'export function activate() {}');
@@ -78,7 +78,7 @@ function mockTrustedRegistryFetch(): void {
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     const url = String(input);
     if (url === PLUGIN_TRUSTED_KEYS_URL) {
-      return new Response(JSON.stringify([{ company: TEST_COMPANY, key: TEST_KEY_URL }]), {
+      return new Response(JSON.stringify([{ author: TEST_AUTHOR, key: TEST_KEY_URL }]), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
       });
@@ -113,9 +113,9 @@ describe('pluginSignature', () => {
     }
   });
 
-  it('returns unsigned when signature.json is absent and manifest has no company', async () => {
+  it('returns unsigned when signature.json is absent and manifest has no author', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
-    const fixture = createPluginDir({ company: null });
+    const fixture = createPluginDir({ author: null });
     const { evaluatePluginSignature } = await import('#/main/plugins/pluginSignature');
 
     try {
@@ -145,9 +145,9 @@ describe('pluginSignature', () => {
     }
   });
 
-  it('returns unsigned when signature.json is absent and manifest company is not trusted', async () => {
+  it('returns unsigned when signature.json is absent and manifest author is not trusted', async () => {
     mockTrustedRegistryFetch();
-    const fixture = createPluginDir({ company: 'Unknown Publisher' });
+    const fixture = createPluginDir({ author: 'Unknown Publisher' });
     const { evaluatePluginSignature } = await import('#/main/plugins/pluginSignature');
 
     try {
@@ -193,7 +193,7 @@ describe('pluginSignature', () => {
       const manifest = JSON.parse(readFileSync(join(fixture.pluginDir, 'manifest.json'), 'utf8'));
       await expect(evaluatePluginSignature(fixture.pluginDir, manifest)).resolves.toEqual({
         status: 'verified',
-        company: TEST_COMPANY,
+        author: TEST_AUTHOR,
         keyId: 'test-key'
       });
     } finally {
@@ -226,9 +226,9 @@ describe('pluginSignature', () => {
     }
   });
 
-  it('returns untrusted when the publisher company is not registered', async () => {
+  it('returns untrusted when the publisher author is not registered', async () => {
     mockTrustedRegistryFetch();
-    const fixture = createPluginDir({ company: 'Unknown Publisher' });
+    const fixture = createPluginDir({ author: 'Unknown Publisher' });
 
     try {
       await signPlugin({
@@ -275,8 +275,6 @@ describe('pluginSignature', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 404 }));
 
     const { fetchTrustedKeys } = await import('#/main/plugins/pluginSignature');
-    await expect(fetchTrustedKeys()).resolves.toEqual([
-      { company: TEST_COMPANY, key: TEST_KEY_URL }
-    ]);
+    await expect(fetchTrustedKeys()).resolves.toEqual([{ author: TEST_AUTHOR, key: TEST_KEY_URL }]);
   });
 });

@@ -56,7 +56,7 @@ const pluginCatalogEntrySchema = z.object({
   name: z.string().min(1),
   version: z.string().min(1),
   summary: z.string().min(1),
-  company: z.string().min(1),
+  author: z.string().min(1),
   categories: z.array(z.string().min(1)).min(1),
   repoUrl: z.string().min(1).transform(parseGitHubRepoUrl),
   ref: z.string().min(1).optional(),
@@ -110,7 +110,7 @@ export function parsePluginCatalog(raw: unknown): PluginCatalog {
 }
 
 const pluginTrustedKeyEntrySchema = z.object({
-  company: z.string().min(1),
+  author: z.string().min(1),
   key: z.string().url()
 });
 

@@ -13,9 +13,9 @@ Apps and verification tools fetch `trusted.json`, download each listed `key` URL
 
 ## Trusted publisher signing requirement
 
-Any company listed in `trusted.json` **must** sign every published plugin with the matching private key. HarborClient rejects installs when `manifest.company` matches a trusted publisher but the plugin is unsigned or the signature is invalid. Only one developer can claim each protected company name.
+Any author listed in `trusted.json` **must** sign every published plugin with the matching private key. HarborClient rejects installs when `manifest.author` matches a trusted publisher but the plugin is unsigned or the signature is invalid. Only one developer can claim each protected author name.
 
-Third-party plugins that do not use a trusted company name may remain unsigned; users see a warning before enabling them.
+Third-party plugins that do not use a trusted author name may remain unsigned; users see a warning before enabling them.
 
 ## Generate the signing key pair
 
