@@ -447,7 +447,9 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
           headers,
           params,
           body,
-          bodyType: scriptRequest.bodyType
+          bodyType: scriptRequest.bodyType,
+          ...(currentDraft.id != null ? { sourceRequestId: currentDraft.id } : {}),
+          ...(currentDraft.name.trim() ? { sourceRequestName: currentDraft.name } : {})
         },
         requestId
       );

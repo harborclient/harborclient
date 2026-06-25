@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { unloadAllPlugins } from '#/renderer/src/plugins/pluginLoader';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { getDirtyTabs } from '#/renderer/src/store/drafts';
 import { setQuitPrompt } from '#/renderer/src/store/slices/modalsSlice';
@@ -25,11 +26,13 @@ export function useBeforeClose(): void {
   useEffect(() => {
     const unsubscribe = window.api.onBeforeClose(() => {
       const dirtyTabs = getDirtyTabs(tabsRef.current);
-      if (dirtyTabs.length === 0) {
-        window.api.confirmClose(true);
+      if (dirtyTabs.length > 0) {
+        dispatch(setQuitPrompt(dirtyTabs.map((tab) => tab.draft.name)));
         return;
       }
-      dispatch(setQuitPrompt(dirtyTabs.map((tab) => tab.draft.name)));
+      void unloadAllPlugins().finally(() => {
+        window.api.confirmClose(true);
+      });
     });
     return unsubscribe;
   }, [dispatch]);

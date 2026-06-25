@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(plugins): add Request History plugin and enhance plugin request handling. (`ad376c5`)
 - feat(plugin-api): add runtime variables to request tab context. (`3c72bf5`)
 
 ## 1.8.3 - 2026-06-25

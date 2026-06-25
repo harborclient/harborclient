@@ -1,4 +1,5 @@
 import { useCallback, type JSX } from 'react';
+import { unloadAllPlugins } from '#/renderer/src/plugins/pluginLoader';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectQuitPrompt, setQuitPrompt } from '#/renderer/src/store/slices/modalsSlice';
 import { Button } from '#/renderer/src/components/Button';
@@ -24,7 +25,9 @@ export function QuitPrompt(): JSX.Element | null {
    */
   const handleConfirm = useCallback((): void => {
     dispatch(setQuitPrompt(null));
-    window.api.confirmClose(true);
+    void unloadAllPlugins().finally(() => {
+      window.api.confirmClose(true);
+    });
   }, [dispatch]);
 
   if (!quitPrompt) return null;

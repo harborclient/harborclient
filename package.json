@@ -64,6 +64,7 @@
     "isomorphic-git": "^1.38.5",
     "jmespath": "^0.16.0",
     "jszip": "^3.10.1",
+    "minisearch": "^7.2.0",
     "mysql2": "^3.22.5",
     "openai": "^6.44.0",
     "pg": "^8.22.0",

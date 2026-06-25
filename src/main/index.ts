@@ -594,13 +594,20 @@ app.on('before-quit', (event) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       saveWindowState(mainWindow);
     }
-    disposeScriptRunner();
-    disposePluginRunner();
-    pluginManager?.dispose();
-    void db.close();
     return;
   }
 
   event.preventDefault();
   promptForClose('app');
+});
+
+/**
+ * Disposes long-lived utility processes after all windows have closed so the
+ * renderer can unload plugins while the runner is still active.
+ */
+app.on('will-quit', () => {
+  disposeScriptRunner();
+  disposePluginRunner();
+  pluginManager?.dispose();
+  void db.close();
 });

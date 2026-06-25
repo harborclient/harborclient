@@ -751,6 +751,16 @@ export interface SendRequestInput {
    * Content type of the request body.
    */
   bodyType: BodyType;
+
+  /**
+   * Saved collection request id when the send originated from a saved request tab.
+   */
+  sourceRequestId?: number;
+
+  /**
+   * Display name from the request tab when {@link sourceRequestId} is set.
+   */
+  sourceRequestName?: string;
 }
 
 /**

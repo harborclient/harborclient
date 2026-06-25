@@ -33,6 +33,17 @@
       "repoUrl": "https://github.com/harborclient/plugin-curl",
       "ref": "v1.0.0",
       "screenshot": "https://raw.githubusercontent.com/harborclient/plugin-curl/main/screenshot.png"
+    },
+    {
+      "id": "com.harborclient.plugins.request-history",
+      "name": "Request History",
+      "version": "1.0.0",
+      "summary": "Records every completed HTTP request and displays them in a Recent Requests sidebar section.",
+      "author": "HarborClient",
+      "categories": ["requests"],
+      "repoUrl": "https://github.com/harborclient/plugin-request-history",
+      "ref": "v1.0.0",
+      "screenshot": "https://raw.githubusercontent.com/harborclient/plugin-request-history/main/screenshot.png"
     }
   ]
 }

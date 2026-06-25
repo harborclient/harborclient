@@ -940,6 +940,22 @@ export interface PluginHttpRequest {
    * Request body content as a string.
    */
   body: string;
+  /**
+   * Request body content type when captured from the send pipeline.
+   */
+  bodyType?: string;
+  /**
+   * Enabled query parameters from the outgoing request.
+   */
+  params?: Array<{ key: string; value: string }>;
+  /**
+   * Saved collection request id when the send originated from a saved request tab.
+   */
+  sourceRequestId?: number;
+  /**
+   * Display name from the request tab when {@link sourceRequestId} is set.
+   */
+  sourceRequestName?: string;
 }
 /**
  * Serialized HTTP response passed to main-process after-send hooks.

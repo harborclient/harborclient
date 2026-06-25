@@ -1,6 +1,7 @@
 import { store } from '#/renderer/src/store/redux';
 import { openPluginView, setActiveSidebarPanel } from '#/renderer/src/store/slices/navigationSlice';
 import { executePluginCommand, registerCommand } from '#/renderer/src/plugins/createPluginContext';
+import { registerHostRequestCommands } from '#/renderer/src/plugins/hostRequestCommands';
 
 const HOST_PLUGIN_ID = 'harborclient';
 
@@ -8,6 +9,7 @@ const HOST_PLUGIN_ID = 'harborclient';
  * Registers built-in host commands plugins can invoke through hc.commands.execute.
  */
 export function registerHostPluginCommands(): () => void {
+  const unregisterRequestCommands = registerHostRequestCommands();
   const disposables = [
     registerCommand(HOST_PLUGIN_ID, 'openMainView', (pluginId, viewId) => {
       if (typeof pluginId !== 'string' || typeof viewId !== 'string') {
@@ -27,6 +29,7 @@ export function registerHostPluginCommands(): () => void {
   ];
 
   return () => {
+    unregisterRequestCommands();
     for (const disposable of disposables) {
       disposable.dispose();
     }

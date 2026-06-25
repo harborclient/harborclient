@@ -9,6 +9,17 @@ import type {
 
 const PLUGIN_TIMEOUT_MS = 10000;
 
+/**
+ * Thrown when the plugin runner is shutting down or otherwise unavailable.
+ * IPC handlers treat this as an expected no-op during app quit.
+ */
+export class PluginRunnerUnavailableError extends Error {
+  constructor(message = 'Plugin runner is unavailable') {
+    super(message);
+    this.name = 'PluginRunnerUnavailableError';
+  }
+}
+
 interface PendingCall {
   resolve: (value: unknown) => void;
   reject: (error: Error) => void;
@@ -31,7 +42,15 @@ type RunnerReply = SuccessReply | ErrorReply;
 
 let runner: UtilityProcess | null = null;
 let nextId = 1;
+let shuttingDown = false;
 const pending = new Map<number, PendingCall>();
+
+/**
+ * Returns whether the plugin runner is shutting down and should reject new work.
+ */
+export function isPluginRunnerShuttingDown(): boolean {
+  return shuttingDown;
+}
 
 /**
  * Resolves the built plugin runner entry path beside the main bundle.
@@ -111,6 +130,9 @@ function attachRunnerHandlers(child: UtilityProcess): void {
  * Ensures the long-lived plugin runner process is running.
  */
 function ensureRunner(): UtilityProcess {
+  if (shuttingDown) {
+    throw new PluginRunnerUnavailableError('Plugin runner shutting down');
+  }
   if (runner) {
     return runner;
   }
@@ -243,5 +265,6 @@ export async function invokePluginIpc(
  * Kills the plugin runner process during app shutdown.
  */
 export function disposePluginRunner(): void {
+  shuttingDown = true;
   resetRunner('Plugin runner shutting down');
 }

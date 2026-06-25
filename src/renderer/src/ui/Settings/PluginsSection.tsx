@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useState, type JSX, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type JSX, type KeyboardEvent } from 'react';
 import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { PluginCatalog, PluginCatalogEntry } from '#/shared/plugin/catalog';
+import { buildPluginCatalogSearchIndex, searchPluginCatalog } from '#/shared/plugin/catalogSearch';
 import type { PluginInfo, PluginPermission } from '#/shared/plugin/types';
 import { Button } from '#/renderer/src/components/Button';
+import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { Input } from '#/renderer/src/components/forms';
 import { Modal } from '#/renderer/src/components/Modal';
+import { faAngleLeft } from '#/renderer/src/fontawesome';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
 
@@ -295,6 +298,7 @@ function PluginCatalogCard({ entry, onOpen }: PluginCatalogCardProps): JSX.Eleme
 
       <div className="flex flex-col gap-1.5 p-3">
         <h3 className="m-0 truncate text-[14px] font-semibold text-text">{entry.name}</h3>
+        <p className="m-0 line-clamp-3 text-[14px] text-text">{entry.summary}</p>
         <p className="m-0 text-[14px] text-muted">{entry.version}</p>
         <div className="flex flex-wrap gap-1.5">
           {entry.categories.map((category) => (
@@ -459,6 +463,7 @@ export function PluginsSection(): JSX.Element {
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [catalogActionBusyId, setCatalogActionBusyId] = useState<string | null>(null);
   const [catalogDetailEntry, setCatalogDetailEntry] = useState<PluginCatalogEntry | null>(null);
+  const [catalogSearchQuery, setCatalogSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [detailPlugin, setDetailPlugin] = useState<PluginInfo | null>(null);
@@ -580,6 +585,7 @@ export function PluginsSection(): JSX.Element {
       const next = !current;
       if (!next) {
         setCatalogDetailEntry(null);
+        setCatalogSearchQuery('');
       }
       if (next && !catalog && !catalogLoading) {
         void loadCatalog();
@@ -603,6 +609,26 @@ export function PluginsSection(): JSX.Element {
   const closeCatalogDetail = (): void => {
     setCatalogDetailEntry(null);
   };
+
+  /**
+   * Builds a searchable index over the loaded marketplace catalog.
+   */
+  const catalogSearchIndex = useMemo(() => {
+    if (!catalog?.plugins.length) {
+      return null;
+    }
+    return buildPluginCatalogSearchIndex(catalog.plugins);
+  }, [catalog]);
+
+  /**
+   * Filters marketplace catalog rows by the current search query.
+   */
+  const filteredCatalogPlugins = useMemo(() => {
+    if (!catalog?.plugins.length || !catalogSearchIndex) {
+      return catalog?.plugins ?? [];
+    }
+    return searchPluginCatalog(catalog.plugins, catalogSearchIndex, catalogSearchQuery);
+  }, [catalog, catalogSearchIndex, catalogSearchQuery]);
 
   /**
    * Opens the read-only detail modal for one installed plugin.
@@ -857,9 +883,17 @@ export function PluginsSection(): JSX.Element {
           type="button"
           variant="secondary"
           aria-pressed={showBrowse}
+          className={showBrowse ? 'inline-flex items-center gap-1.5' : undefined}
           onClick={toggleBrowseView}
         >
-          {showBrowse ? 'Installed' : 'Marketplace'}
+          {showBrowse ? (
+            <>
+              <FaIcon icon={faAngleLeft} className="h-3.5 w-3.5" />
+              Installed
+            </>
+          ) : (
+            'Marketplace'
+          )}
         </Button>
         {!showBrowse ? (
           <>
@@ -875,6 +909,23 @@ export function PluginsSection(): JSX.Element {
           </>
         ) : null}
       </div>
+
+      {showBrowse ? (
+        <div className="mb-4">
+          <label htmlFor="plugin-catalog-search" className="sr-only">
+            Search plugins
+          </label>
+          <Input
+            id="plugin-catalog-search"
+            type="search"
+            placeholder="Search plugins"
+            value={catalogSearchQuery}
+            disabled={catalogLoading}
+            className="w-full max-w-md"
+            onChange={(event) => setCatalogSearchQuery(event.target.value)}
+          />
+        </div>
+      ) : null}
 
       {!showBrowse ? (
         <>
@@ -1049,9 +1100,18 @@ export function PluginsSection(): JSX.Element {
             </p>
           ) : null}
 
-          {!catalogLoading && catalog && catalog.plugins.length > 0 ? (
+          {!catalogLoading &&
+          catalog &&
+          catalog.plugins.length > 0 &&
+          filteredCatalogPlugins.length === 0 ? (
+            <p className="text-muted" role="status">
+              No plugins match your search.
+            </p>
+          ) : null}
+
+          {!catalogLoading && catalog && filteredCatalogPlugins.length > 0 ? (
             <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 lg:grid-cols-4">
-              {catalog.plugins.map((entry) => (
+              {filteredCatalogPlugins.map((entry) => (
                 <PluginCatalogCard
                   key={entry.id}
                   entry={entry}

@@ -9,6 +9,8 @@ import {
   activatePluginMain,
   deactivatePluginMain,
   invokePluginIpc,
+  isPluginRunnerShuttingDown,
+  PluginRunnerUnavailableError,
   runPluginAfterSendHooks,
   runPluginBeforeSendHooks
 } from '#/main/plugins/pluginRunnerHost';
@@ -17,6 +19,26 @@ import { parseHttpMethod } from '#/shared/httpMethod';
 import type { KeyValue, SendRequestInput } from '#/shared/types';
 
 let manager: PluginManager | null = null;
+
+/**
+ * Runs a plugin runner call and returns undefined when the runner is unavailable
+ * during shutdown so Electron does not log spurious IPC handler errors.
+ *
+ * @param operation - Plugin runner work to execute.
+ */
+async function withPluginRunner<T>(operation: () => Promise<T>): Promise<T | undefined> {
+  if (isPluginRunnerShuttingDown()) {
+    return undefined;
+  }
+  try {
+    return await operation();
+  } catch (error) {
+    if (error instanceof PluginRunnerUnavailableError) {
+      return undefined;
+    }
+    throw error;
+  }
+}
 
 /**
  * Parses a plugin id from a hook failure thrown by the SES plugin runner.
@@ -75,11 +97,21 @@ export function toPluginHttpRequest(req: SendRequestInput): PluginHttpRequest {
       headers[header.key] = header.value;
     }
   }
+  const params: Array<{ key: string; value: string }> = [];
+  for (const param of req.params) {
+    if (param.enabled && param.key) {
+      params.push({ key: param.key, value: param.value });
+    }
+  }
   return {
     method: req.method,
     url: req.url,
     headers,
-    body: req.body ?? ''
+    body: req.body ?? '',
+    bodyType: req.bodyType,
+    params,
+    ...(req.sourceRequestId != null ? { sourceRequestId: req.sourceRequestId } : {}),
+    ...(req.sourceRequestName ? { sourceRequestName: req.sourceRequestName } : {})
   };
 }
 
@@ -227,12 +259,14 @@ export function registerPluginHandlers(pluginManager: PluginManager): void {
   });
 
   handle('plugins:activateMain', ipcArgSchemas.pluginActivateMain, async (_event, pluginId) => {
-    const { source, permissions } = pluginManager.resolveMainActivation(pluginId);
-    await activatePluginMain(pluginId, source, permissions);
+    await withPluginRunner(async () => {
+      const { source, permissions } = pluginManager.resolveMainActivation(pluginId);
+      await activatePluginMain(pluginId, source, permissions);
+    });
   });
 
   handle('plugins:deactivateMain', ipcArgSchemas.pluginId, async (_event, pluginId) => {
-    await deactivatePluginMain(pluginId);
+    await withPluginRunner(() => deactivatePluginMain(pluginId));
   });
 
   handle(
@@ -244,7 +278,8 @@ export function registerPluginHandlers(pluginManager: PluginManager): void {
   handle(
     'plugins:invokeMain',
     ipcArgSchemas.pluginInvokeMain,
-    async (_event, pluginId, channel, args) => invokePluginIpc(pluginId, channel, args)
+    async (_event, pluginId, channel, args) =>
+      withPluginRunner(() => invokePluginIpc(pluginId, channel, args))
   );
 
   handle('plugins:setMenuContributions', ipcArgSchemas.pluginMenuContributions, (_event, items) => {

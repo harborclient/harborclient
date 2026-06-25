@@ -1,5 +1,6 @@
 import { config, library } from '@fortawesome/fontawesome-svg-core';
 import {
+  faAngleLeft,
   faBars,
   faChevronDown,
   faChevronRight,
@@ -22,6 +23,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 library.add(
+  faAngleLeft,
   faXmark,
   faPlus,
   faBars,
@@ -45,6 +47,7 @@ library.add(
 config.autoAddCss = false;
 
 export {
+  faAngleLeft,
   faBars,
   faChevronDown,
   faChevronRight,
