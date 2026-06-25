@@ -11,6 +11,8 @@ import type {
   SendResult
 } from '#/shared/types';
 import { buildAuthHeaderValue, defaultAuth, resolveAuthVariables } from '#/shared/auth';
+import { toPluginHttpRequest, toPluginHttpResponse } from '#/shared/plugin/httpRequest';
+import { emitPluginAfterSend } from '#/renderer/src/plugins/pluginAfterSendBus';
 import {
   applyScriptRequestMutations,
   applyCollectionVariableSets,
@@ -440,19 +442,22 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
       }));
       const body = substituteWithMap(scriptRequest.body, runtimeVars);
 
-      const result = await window.api.sendRequest(
-        {
-          method: scriptRequest.method,
-          url: resolvedUrl,
-          headers,
-          params,
-          body,
-          bodyType: scriptRequest.bodyType,
-          ...(currentDraft.id != null ? { sourceRequestId: currentDraft.id } : {}),
-          ...(currentDraft.name.trim() ? { sourceRequestName: currentDraft.name } : {})
-        },
-        requestId
-      );
+      const sendInput = {
+        method: scriptRequest.method,
+        url: resolvedUrl,
+        headers,
+        params,
+        body,
+        bodyType: scriptRequest.bodyType,
+        ...(currentDraft.id != null ? { sourceRequestId: currentDraft.id } : {}),
+        ...(currentDraft.name.trim() ? { sourceRequestName: currentDraft.name } : {})
+      };
+
+      const result = await window.api.sendRequest(sendInput, requestId);
+
+      if (!result.error) {
+        emitPluginAfterSend(toPluginHttpRequest(sendInput), toPluginHttpResponse(result));
+      }
 
       await runScriptPhase('post', result);
 

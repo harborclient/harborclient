@@ -132,6 +132,9 @@ importers:
       '@electron-toolkit/eslint-config-ts':
         specifier: ^3.1.0
         version: 3.1.0(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
+      '@harborclient/plugin-api':
+        specifier: file:../harborclient-plugin-api
+        version: file:../harborclient-plugin-api(react@19.2.7)
       '@tailwindcss/vite':
         specifier: ^4.3.1
         version: 4.3.1(vite@6.4.3(@types/node@25.9.3)(jiti@2.7.0)(lightningcss@1.32.0)(yaml@2.9.0))
@@ -1176,6 +1179,11 @@ packages:
     resolution: {integrity: sha512-wtF6h+DY6M3YaDBPAmvuuA6jV8Sif9MjtOI5euKFWRgCDl5PeDpPsHR9u2l6St5ceY8AZgoNDww5+HvEsXFsGg==}
     engines: {node: '>=6'}
     hasBin: true
+
+  '@harborclient/plugin-api@file:../harborclient-plugin-api':
+    resolution: {directory: ../harborclient-plugin-api, type: directory}
+    peerDependencies:
+      react: '>=18'
 
   '@hono/node-server@1.19.14':
     resolution: {integrity: sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw==}
@@ -7914,6 +7922,10 @@ snapshots:
       long: 5.3.2
       protobufjs: 7.6.4
       yargs: 17.7.2
+
+  '@harborclient/plugin-api@file:../harborclient-plugin-api(react@19.2.7)':
+    dependencies:
+      react: 19.2.7
 
   '@hono/node-server@1.19.14(hono@4.12.26)':
     dependencies:

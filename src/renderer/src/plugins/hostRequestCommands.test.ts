@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SavedRequest } from '#/shared/types';
 import { draftFromOpenPayload, findSavedRequest } from '#/renderer/src/plugins/hostRequestCommands';
-import { toPluginHttpRequest } from '#/main/ipc/handlers/plugins';
+import { toPluginHttpRequest } from '#/shared/plugin/httpRequest';
 import type { RootState } from '#/renderer/src/store/redux';
 
 describe('toPluginHttpRequest', () => {

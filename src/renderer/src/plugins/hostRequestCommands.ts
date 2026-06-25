@@ -1,4 +1,6 @@
-import type { BodyType, KeyValue, SavedRequest } from '#/shared/types';
+import type { KeyValue, SavedRequest } from '#/shared/types';
+import type { OpenRequestDraftParam, OpenRequestDraftPayload } from '@harborclient/plugin-api';
+export type { OpenRequestDraftPayload } from '@harborclient/plugin-api';
 import { parseHttpMethod } from '#/shared/httpMethod';
 import { defaultAuth } from '#/shared/auth';
 import { store } from '#/renderer/src/store/redux';
@@ -15,27 +17,6 @@ import { requestLoadRequest } from '#/renderer/src/store/thunks/requests';
 import { registerCommand } from '#/renderer/src/plugins/createPluginContext';
 
 const HOST_PLUGIN_ID = 'harborclient';
-
-/**
- * Serializable query parameter captured from a sent request.
- */
-export interface OpenRequestDraftParam {
-  key: string;
-  value: string;
-}
-
-/**
- * Serializable request draft payload plugins pass to {@link openRequestDraft}.
- */
-export interface OpenRequestDraftPayload {
-  name?: string;
-  method?: string;
-  url?: string;
-  headers?: Record<string, string>;
-  params?: OpenRequestDraftParam[];
-  body?: string;
-  bodyType?: BodyType;
-}
 
 /**
  * Finds a saved collection request in the Redux cache.

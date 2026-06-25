@@ -30,7 +30,6 @@
     "release:patch": "gh workflow run Release --ref main -f release_type=patch",
     "release:minor": "gh workflow run Release --ref main -f release_type=minor",
     "release:major": "gh workflow run Release --ref main -f release_type=major",
-    "plugin-api:sync": "node scripts/sync-plugin-api-types.mjs",
     "docs:build": "pnpm docs:build:nav && vitepress build docs",
     "docs:build:nav": "node scripts/sync-docs-assets.mjs && node scripts/generate-download-links.mjs && node --experimental-strip-types scripts/generate-plugin-catalog.ts && node scripts/build-docs-nav.mjs && node scripts/assert-docs-slugs.mjs",
     "docs:preview": "pnpm docs:build && vitepress preview docs",
@@ -81,6 +80,7 @@
   },
   "devDependencies": {
     "@braintree/sanitize-url": "^7.1.2",
+    "@harborclient/plugin-api": "file:../harborclient-plugin-api",
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
     "@electron-toolkit/eslint-config-ts": "^3.1.0",
     "@tailwindcss/vite": "^4.3.1",

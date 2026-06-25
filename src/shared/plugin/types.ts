@@ -9,9 +9,9 @@ import type {
   RequestTabContext,
   ResponseTabContext,
   ThemeColorToken
-} from '#/shared/plugin/api';
+} from '@harborclient/plugin-api';
 
-export type * from '#/shared/plugin/api';
+export type * from '@harborclient/plugin-api';
 
 /**
  * Plugin capability flags declared in manifest.json and enforced at runtime.

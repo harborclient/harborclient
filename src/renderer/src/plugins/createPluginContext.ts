@@ -28,6 +28,8 @@ import {
   registerStatusBarItemContribution,
   registerThemeContribution
 } from '#/renderer/src/plugins/registry';
+import { loadSavedRequest, openRequestDraft } from '#/renderer/src/plugins/hostRequestCommands';
+import { subscribePluginAfterSend } from '#/renderer/src/plugins/pluginAfterSendBus';
 
 const commandHandlers = new Map<string, Set<(...args: unknown[]) => void | Promise<void>>>();
 
@@ -129,6 +131,39 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
   };
 
   const assertUi = (): void => assertPermission('ui');
+
+  /**
+   * Returns whether an IPC error indicates the plugin main runtime is inactive.
+   *
+   * @param error - Failure from {@link window.api.invokePluginMain}.
+   */
+  const isMainInactiveError = (error: unknown): boolean => {
+    const message = error instanceof Error ? error.message : String(error);
+    return message.includes('Plugin main runtime is not active');
+  };
+
+  /**
+   * Invokes a plugin main IPC channel, reactivating the main runtime once when needed.
+   *
+   * @param targetPluginId - Plugin manifest id.
+   * @param channel - Registered channel name.
+   * @param args - Arguments forwarded to the main handler.
+   */
+  const invokePluginMainWithRetry = async (
+    targetPluginId: string,
+    channel: string,
+    args: unknown[]
+  ): Promise<unknown> => {
+    try {
+      return await window.api.invokePluginMain(targetPluginId, channel, args);
+    } catch (error) {
+      if (!isMainInactiveError(error)) {
+        throw error;
+      }
+      await window.api.activatePluginMain(targetPluginId);
+      return window.api.invokePluginMain(targetPluginId, channel, args);
+    }
+  };
 
   return {
     pluginId,
@@ -319,6 +354,28 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
       showToast: (message, options) => {
         assertUi();
         toast(message, { duration: options?.duration ?? 2000 });
+      }
+    },
+    http: {
+      onAfterSend: (handler) => {
+        assertPermission('http');
+        return subscribePluginAfterSend(handler);
+      }
+    },
+    ipc: {
+      invoke: async <T>(channel: string, ...args: unknown[]) => {
+        assertPermission('ipc');
+        return (await invokePluginMainWithRetry(pluginId, channel, args)) as T;
+      }
+    },
+    host: {
+      openRequestDraft: async (payload) => {
+        assertUi();
+        openRequestDraft(payload);
+      },
+      loadRequest: async (requestId) => {
+        assertUi();
+        loadSavedRequest(requestId);
       }
     }
   };
