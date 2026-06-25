@@ -947,7 +947,10 @@ export interface PluginHttpRequest {
   /**
    * Enabled query parameters from the outgoing request.
    */
-  params?: Array<{ key: string; value: string }>;
+  params?: Array<{
+    key: string;
+    value: string;
+  }>;
   /**
    * Saved collection request id when the send originated from a saved request tab.
    */

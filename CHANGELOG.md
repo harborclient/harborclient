@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- chore: update .gitignore and format PluginHttpRequest interface. (`8bc1f4c`)
 - feat(plugins): add Request History plugin and enhance plugin request handling. (`ad376c5`)
 - feat(plugin-api): add runtime variables to request tab context. (`3c72bf5`)
 

@@ -6,6 +6,8 @@ dist
 .DS_Store
 *.log
 .eslintcache
+*.scratch.txt
+*.scratch.md
 docs/.vitepress/cache
 docs/.vitepress/dist
 docs/.vitepress/static/download_links.json
