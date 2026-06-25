@@ -1,7 +1,7 @@
 import { useMemo, useState, type JSX } from 'react';
 import { Button } from '#/renderer/src/components/Button';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
-import { faXmark } from '#/renderer/src/fontawesome';
+import { faPuzzlePiece, faXmark } from '#/renderer/src/fontawesome';
 import { usePluginSettingsSections } from '#/renderer/src/plugins/pluginHooks';
 import { AiSection } from './AiSection';
 import { BackupRestoreSection } from './BackupRestoreSection';
@@ -70,7 +70,8 @@ export function Settings({ onClose, initialSection }: Props): JSX.Element {
       ...SETTINGS_SECTIONS,
       ...pluginSections.map((entry) => ({
         value: entry.id as SettingsSection,
-        label: entry.title
+        label: entry.title,
+        icon: faPuzzlePiece
       }))
     ],
     [pluginSections]

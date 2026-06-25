@@ -282,11 +282,11 @@ function PluginCatalogCard({ entry, onOpen }: PluginCatalogCardProps): JSX.Eleme
         <img
           src={entry.screenshot}
           alt=""
-          className="h-28 w-full border-b border-separator object-cover object-top"
+          className="h-40 w-full border-b border-separator object-cover object-top"
         />
       ) : (
         <div
-          className="flex h-28 w-full items-center justify-center border-b border-separator bg-panel text-[14px] text-muted"
+          className="flex h-40 w-full items-center justify-center border-b border-separator bg-panel text-[14px] text-muted"
           aria-hidden
         >
           No preview

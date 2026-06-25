@@ -1,4 +1,6 @@
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { JSX } from 'react';
+import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { sourceRow } from '#/renderer/src/ui/shared/classes';
 import type { SettingsSection } from './types';
 
@@ -11,7 +13,7 @@ interface Props {
   /**
    * Sidebar entries including built-in and plugin sections.
    */
-  sections: Array<{ value: SettingsSection; label: string }>;
+  sections: Array<{ value: SettingsSection; label: string; icon: IconDefinition }>;
 
   /**
    * Called when the user selects a different section.
@@ -36,11 +38,15 @@ export function SettingsSidebar({ section, sections, onSectionChange }: Props): 
           <button
             key={item.value}
             type="button"
-            className={`${sourceRow(active)} w-full border-none text-left text-[14px] app-no-drag`}
+            className={`${sourceRow(active)} w-full gap-2 border-none text-left text-[14px] app-no-drag`}
             aria-current={active ? 'page' : undefined}
             onClick={() => onSectionChange(item.value)}
           >
-            {item.label}
+            <FaIcon
+              icon={item.icon}
+              className={`h-3.5 w-3.5 shrink-0 ${active ? 'text-text' : 'text-muted'}`}
+            />
+            <span className="min-w-0 truncate">{item.label}</span>
           </button>
         );
       })}

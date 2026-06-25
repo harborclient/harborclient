@@ -1,3 +1,4 @@
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type {
   AiSettings,
   StorageConnection,
@@ -12,6 +13,16 @@ import type {
   ThemeSource
 } from '#/shared/types';
 import { DEFAULT_CODE_EDITOR_SETUP } from '#/shared/codeEditorSettings';
+import {
+  faCode,
+  faDatabase,
+  faFloppyDisk,
+  faGear,
+  faKeyboard,
+  faPuzzlePiece,
+  faRobot,
+  faServer
+} from '#/renderer/src/fontawesome';
 import type { SettingsSection } from './types';
 
 /**
@@ -132,17 +143,21 @@ export const DEFAULT_AI_SETTINGS: AiSettings = {
 };
 
 /**
- * Sidebar navigation entries for the Settings screen (order and labels).
+ * Sidebar navigation entries for the Settings screen (order, labels, and icons).
  */
-export const SETTINGS_SECTIONS: Array<{ value: SettingsSection; label: string }> = [
-  { value: 'general', label: 'General' },
-  { value: 'storage', label: 'Storage Locations' },
-  { value: 'plugins', label: 'Plugins' },
-  { value: 'shortcuts', label: 'Shortcuts' },
-  { value: 'syntax', label: 'Syntax highlighting' },
-  { value: 'ai', label: 'AI' },
-  { value: 'proxy', label: 'Proxy' },
-  { value: 'backup-restore', label: 'Backup & Restore' }
+export const SETTINGS_SECTIONS: Array<{
+  value: SettingsSection;
+  label: string;
+  icon: IconDefinition;
+}> = [
+  { value: 'general', label: 'General', icon: faGear },
+  { value: 'storage', label: 'Storage Locations', icon: faDatabase },
+  { value: 'plugins', label: 'Plugins', icon: faPuzzlePiece },
+  { value: 'shortcuts', label: 'Shortcuts', icon: faKeyboard },
+  { value: 'syntax', label: 'Syntax highlighting', icon: faCode },
+  { value: 'ai', label: 'AI', icon: faRobot },
+  { value: 'proxy', label: 'Proxy', icon: faServer },
+  { value: 'backup-restore', label: 'Backup & Restore', icon: faFloppyDisk }
 ];
 
 /**

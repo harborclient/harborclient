@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(settings): enhance settings UI with new icons and layout improvements. (`52a033b`)
 - feat(plugin-api): enhance request editor and plugin context. (`58a3176`)
 
 ## 1.8.2 - 2026-06-25
