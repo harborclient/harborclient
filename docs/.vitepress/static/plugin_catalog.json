@@ -1,7 +1,47 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-06-24T19:45:56.753Z",
+  "updatedAt": "2026-06-25T02:13:25.310Z",
   "plugins": [
+    {
+      "id": "com.harborclient.plugins.curl",
+      "name": "cURL",
+      "version": "1.0.0",
+      "summary": "Adds a tab to the request editor that shows an equivalent `curl` command for the configured request.",
+      "author": "HarborClient",
+      "categories": [
+        "requests"
+      ],
+      "repoUrl": "https://github.com/harborclient/plugin-curl",
+      "ref": "v1.0.0",
+      "screenshot": "https://raw.githubusercontent.com/harborclient/plugin-curl/main/screenshot.png"
+    },
+    {
+      "id": "com.harborclient.plugins.history",
+      "name": "History",
+      "version": "1.0.0",
+      "summary": "A HarborClient plugin that records every successful HTTP request and response in a persistent footer panel.",
+      "author": "HarborClient",
+      "categories": [
+        "requests",
+        "logging"
+      ],
+      "repoUrl": "https://github.com/harborclient/plugin-history",
+      "ref": "v1.0.0",
+      "screenshot": "https://raw.githubusercontent.com/harborclient/plugin-history/main/screenshot.png"
+    },
+    {
+      "id": "com.harborclient.plugins.request-history",
+      "name": "Request History",
+      "version": "1.0.0",
+      "summary": "Records every completed HTTP request and displays them in a Recent Requests sidebar section.",
+      "author": "HarborClient",
+      "categories": [
+        "requests"
+      ],
+      "repoUrl": "https://github.com/harborclient/plugin-request-history",
+      "ref": "v1.0.0",
+      "screenshot": "https://raw.githubusercontent.com/harborclient/plugin-request-history/main/screenshot.png"
+    },
     {
       "id": "com.harborclient.plugins.solarized",
       "name": "Solarized Theme",

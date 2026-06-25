@@ -447,74 +447,7 @@ export const sidebar: DefaultTheme.SidebarItem[] =
   },
   {
     "text": "Plugin development",
-    "link": "/plugin_development",
-    "items": [
-      {
-        "text": "Plugin package layout",
-        "link": "/plugin_development#plugin-package-layout"
-      },
-      {
-        "text": "manifest.json",
-        "link": "/plugin_development#manifestjson"
-      },
-      {
-        "text": "Permissions",
-        "link": "/plugin_development#permissions"
-      },
-      {
-        "text": "Permissions",
-        "link": "/plugin_development#permissions-1"
-      },
-      {
-        "text": "Two runtimes",
-        "link": "/plugin_development#two-runtimes"
-      },
-      {
-        "text": "Lifecycle",
-        "link": "/plugin_development#lifecycle"
-      },
-      {
-        "text": "Publish to the marketplace",
-        "link": "/plugin_development#publish-to-the-marketplace"
-      },
-      {
-        "text": "Renderer API",
-        "link": "/plugin_development#renderer-api"
-      },
-      {
-        "text": "Main-process API",
-        "link": "/plugin_development#main-process-api"
-      },
-      {
-        "text": "Example: Logging Requests",
-        "link": "/plugin_development#example-logging-requests"
-      },
-      {
-        "text": "Example: Request audit tab",
-        "link": "/plugin_development#example-request-audit-tab"
-      },
-      {
-        "text": "Example: Solarized theme",
-        "link": "/plugin_development#example-solarized-theme"
-      },
-      {
-        "text": "Building a plugin",
-        "link": "/plugin_development#building-a-plugin"
-      },
-      {
-        "text": "Developing unpacked plugins",
-        "link": "/plugin_development#developing-unpacked-plugins"
-      },
-      {
-        "text": "Performance and IPC",
-        "link": "/plugin_development#performance-and-ipc"
-      },
-      {
-        "text": "Plugins vs request scripts",
-        "link": "/plugin_development#plugins-vs-request-scripts"
-      }
-    ],
-    "collapsed": false
+    "link": "/plugin_development"
   },
   {
     "text": "Plugin marketplace",

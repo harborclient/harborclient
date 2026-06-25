@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- docs: update plugin development and settings documentation. (`6660fcc`)
 - refactor(plugin-api): remove deprecated TypeScript definitions and enhance plugin context. (`a260bfc`)
 
 ## 1.8.4 - 2026-06-25

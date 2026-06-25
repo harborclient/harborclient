@@ -195,7 +195,7 @@ While building a plugin, use these actions instead of packaging a `.hcp` file fo
 | **Reload** | Re-read the manifest and entry bundles for an unpacked plugin after you rebuild (also triggered automatically when file watching is enabled). |
 | **Development badge** | Unpacked plugins appear in the table with a **Development** badge. They keep running from your source path, so the next bundle write can be picked up without reinstalling. |
 
-If reload fails (syntax error, invalid manifest), the previous activation is torn down and an inline error is shown on the plugin row. For project setup, bundling, hot reload, and startup options, see [Developing unpacked plugins](/plugin_development#developing-unpacked-plugins) in the plugin development guide.
+If reload fails (syntax error, invalid manifest), the previous activation is torn down and an inline error is shown on the plugin row. For project setup, bundling, hot reload, and startup options, see [Dev workflow](https://harborclient.github.io/plugin-api/dev-workflow) in the plugin development guide.
 
 ## AI
 
