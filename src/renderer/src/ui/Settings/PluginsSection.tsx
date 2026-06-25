@@ -290,7 +290,7 @@ function PluginCatalogCard({ entry, onOpen }: PluginCatalogCardProps): JSX.Eleme
   return (
     <li
       tabIndex={0}
-      className="flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-md border border-separator bg-control hover:bg-selection/40"
+      className="flex h-full min-w-0 cursor-pointer flex-col overflow-hidden rounded-md border border-separator bg-control hover:bg-selection/40"
       aria-label={`View details for ${entry.name}`}
       onClick={onOpen}
       onKeyDown={handleKeyDown}
@@ -299,22 +299,22 @@ function PluginCatalogCard({ entry, onOpen }: PluginCatalogCardProps): JSX.Eleme
         <img
           src={entry.screenshot}
           alt=""
-          className="h-40 w-full border-b border-separator object-cover object-top"
+          className="aspect-video w-full border-b border-separator object-cover object-top"
         />
       ) : (
         <div
-          className="flex h-40 w-full items-center justify-center border-b border-separator bg-panel text-[14px] text-muted"
+          className="flex aspect-video w-full items-center justify-center border-b border-separator bg-panel text-[14px] text-muted"
           aria-hidden
         >
           No preview
         </div>
       )}
 
-      <div className="flex flex-col gap-1.5 p-3">
+      <div className="flex flex-1 flex-col gap-1.5 p-3">
         <h3 className="m-0 truncate text-[14px] font-semibold text-text">{entry.name}</h3>
         <p className="m-0 line-clamp-3 text-[14px] text-text">{entry.summary}</p>
         <p className="m-0 text-[14px] text-muted">{entry.version}</p>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="mt-auto flex flex-wrap gap-1.5 pt-1.5">
           {entry.categories.map((category) => (
             <span key={category} className="rounded bg-accent/15 px-2 py-0.5 text-[14px] text-text">
               {category}
@@ -385,7 +385,7 @@ function PluginCatalogDetailModal({
         <img
           src={entry.screenshot}
           alt=""
-          className="mb-4 max-h-64 w-full rounded-md border border-separator object-cover object-top"
+          className="mb-4 aspect-video w-full rounded-md border border-separator object-cover object-top"
         />
       ) : null}
 
