@@ -42,6 +42,16 @@
       "screenshot": "https://raw.githubusercontent.com/harborclient/plugin-interval/main/screenshot.png"
     },
     {
+      "id": "com.harborclient.plugins.jwt",
+      "name": "JWT Inspector",
+      "version": "1.0.0",
+      "summary": "Scans response headers and body for JWT-shaped strings and decodes the selected token.",
+      "author": "HarborClient",
+      "categories": ["jwt", "response"],
+      "repoUrl": "https://github.com/harborclient/plugin-jwt",
+      "screenshot": "https://raw.githubusercontent.com/harborclient/plugin-jwt/main/screenshot.png"
+    },
+    {
       "id": "com.harborclient.plugins.openapi",
       "name": "OpenAPI",
       "version": "1.0.3",

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- chore(plugins): add JWT Inspector plugin to catalog.json. (`c0f910f`)
 - chore(plugins): bump History plugin version to 1.0.4 in catalog.json. (`9383de2`)
 
 ## 1.8.11 - 2026-06-25
