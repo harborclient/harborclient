@@ -161,6 +161,21 @@ export const SETTINGS_SECTIONS: Array<{
 ];
 
 /**
+ * Returns sidebar label and icon metadata for a built-in settings section.
+ *
+ * @param value - Built-in settings section id.
+ * @returns Matching sidebar entry from {@link SETTINGS_SECTIONS}.
+ * @throws When `value` is not a built-in section id.
+ */
+export function settingsSectionMeta(value: SettingsSection): (typeof SETTINGS_SECTIONS)[number] {
+  const section = SETTINGS_SECTIONS.find((entry) => entry.value === value);
+  if (!section) {
+    throw new Error(`Unknown settings section: ${value}`);
+  }
+  return section;
+}
+
+/**
  * Returns the display label for a database provider type.
  *
  * @param type - Database provider type.

@@ -5,7 +5,8 @@ import { useStorageConnections } from '#/renderer/src/hooks/useStorageConnection
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { refreshCollections } from '#/renderer/src/store/thunks/collections';
 import { Button } from '#/renderer/src/components/Button';
-import { createBlankConnection, providerLabel } from './constants';
+import { PageHeader } from '#/renderer/src/components/PageHeader';
+import { createBlankConnection, providerLabel, settingsSectionMeta } from './constants';
 import { DiscoverCollectionsModal } from './DiscoverCollectionsModal';
 import { StorageConnectionForm } from './StorageConnectionForm';
 
@@ -214,18 +215,16 @@ export function StorageLocationsSection(): JSX.Element {
   };
 
   const sqliteCount = connections.filter((connection) => connection.type === 'sqlite').length;
+  const { label, icon } = settingsSectionMeta('storage');
 
   return (
     <>
       <div>
-        <div className="mb-4 flex items-end justify-between gap-4">
-          <div className="min-w-0">
-            <h2 className="m-0 mb-1 text-[14px] font-medium text-text">Storage Locations</h2>
-            <p className="m-0 text-[14px] text-muted">
-              Choose where HarborClient stores collections and imports. The active storage location
-              is used for new collections and imports.
-            </p>
-          </div>
+        <PageHeader
+          title={label}
+          icon={icon}
+          description="Choose where HarborClient stores collections and imports. The active storage location is used for new collections and imports."
+        >
           <Button
             type="button"
             className="shrink-0 whitespace-nowrap"
@@ -234,7 +233,7 @@ export function StorageLocationsSection(): JSX.Element {
           >
             Add storage location
           </Button>
-        </div>
+        </PageHeader>
 
         {loading ? (
           <p className="text-[14px] text-muted">Loading…</p>

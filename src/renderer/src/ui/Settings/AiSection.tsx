@@ -2,8 +2,9 @@ import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { AiSettings } from '#/shared/types';
 import { Button } from '#/renderer/src/components/Button';
+import { PageHeader } from '#/renderer/src/components/PageHeader';
 import { Input } from '#/renderer/src/components/forms';
-import { DEFAULT_AI_SETTINGS } from './constants';
+import { DEFAULT_AI_SETTINGS, settingsSectionMeta } from './constants';
 
 /**
  * AI settings: API keys for OpenAI, Claude, and Google Gemini.
@@ -74,8 +75,11 @@ export function AiSection(): JSX.Element {
 
   const fieldsDisabled = loading || saving;
 
+  const { label, icon } = settingsSectionMeta('ai');
+
   return (
     <div className="mb-6 flex flex-col gap-2">
+      <PageHeader title={label} icon={icon} />
       <div className="mb-6 flex flex-col gap-6">
         <label className="flex flex-col gap-1" htmlFor="ai-openai-api-key">
           <span className="text-[14px] font-medium text-text">OpenAI API key</span>

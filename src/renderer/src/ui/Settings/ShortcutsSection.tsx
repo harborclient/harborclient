@@ -6,9 +6,11 @@ import {
   validateShortcutOverrides
 } from '#/shared/shortcuts';
 import { Button } from '#/renderer/src/components/Button';
+import { PageHeader } from '#/renderer/src/components/PageHeader';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { field } from '#/renderer/src/components/forms';
 import { formatErrorMessage } from '#/renderer/src/ui/modals/dialogHelpers';
+import { settingsSectionMeta } from './constants';
 import { acceleratorFromKeyboardEvent } from './acceleratorFromKeyboardEvent';
 
 /**
@@ -169,85 +171,94 @@ export function ShortcutsSection(): JSX.Element {
     }
   };
 
-  if (loading) {
-    return <p className="text-muted">Loading shortcuts…</p>;
-  }
+  const { label, icon } = settingsSectionMeta('shortcuts');
 
   return (
     <section className="max-w-3xl">
-      <h2 className="m-0 mb-1 text-[15px] font-semibold text-text">Shortcuts</h2>
-      <p className="mt-0 mb-4 text-[14px] text-muted">
-        Click a key combination to record a new shortcut. Changes apply immediately when valid.
-      </p>
+      <PageHeader
+        title={label}
+        icon={icon}
+        description="Click a key combination to record a new shortcut. Changes apply immediately when valid."
+      />
 
-      <div className="overflow-x-auto rounded-md border border-separator">
-        <table className="w-full border-collapse text-[14px]">
-          <caption className="sr-only">Keyboard shortcuts</caption>
-          <thead>
-            <tr className="border-b border-separator bg-sidebar/40 text-left">
-              <th scope="col" className="px-3 py-2 font-medium text-text">
-                Shortcut
-              </th>
-              <th scope="col" className="px-3 py-2 font-medium text-text">
-                Key combination
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {bindings.map((binding) => {
-              const recording = recordingId === binding.id;
-              const errorId = `${binding.id}-error`;
-              const error = errors[binding.id];
-              return (
-                <tr key={binding.id} className="border-b border-separator last:border-b-0">
-                  <td className="px-3 py-2 text-text">{binding.label}</td>
-                  <td className="px-3 py-2">
-                    <button
-                      type="button"
-                      className={`${field} min-w-[160px] cursor-pointer text-left ${recording ? 'ring-2 ring-accent' : ''}`}
-                      aria-label={`Change shortcut for ${binding.label}`}
-                      aria-invalid={error != null ? true : undefined}
-                      aria-describedby={error != null ? errorId : undefined}
-                      onClick={() => handleStartRecording(binding.id)}
-                    >
-                      {recording ? 'Press keys…' : formatAcceleratorDisplay(binding.accelerator)}
-                    </button>
-                    {error != null ? (
-                      <p id={errorId} className="mt-1 text-[14px] text-danger">
-                        {error}
-                      </p>
-                    ) : null}
-                  </td>
+      {loading ? (
+        <p className="text-muted" role="status">
+          Loading shortcuts…
+        </p>
+      ) : (
+        <>
+          <div className="overflow-x-auto rounded-md border border-separator">
+            <table className="w-full border-collapse text-[14px]">
+              <caption className="sr-only">Keyboard shortcuts</caption>
+              <thead>
+                <tr className="border-b border-separator bg-sidebar/40 text-left">
+                  <th scope="col" className="px-3 py-2 font-medium text-text">
+                    Shortcut
+                  </th>
+                  <th scope="col" className="px-3 py-2 font-medium text-text">
+                    Key combination
+                  </th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {bindings.map((binding) => {
+                  const recording = recordingId === binding.id;
+                  const errorId = `${binding.id}-error`;
+                  const error = errors[binding.id];
+                  return (
+                    <tr key={binding.id} className="border-b border-separator last:border-b-0">
+                      <td className="px-3 py-2 text-text">{binding.label}</td>
+                      <td className="px-3 py-2">
+                        <button
+                          type="button"
+                          className={`${field} min-w-[160px] cursor-pointer text-left ${recording ? 'ring-2 ring-accent' : ''}`}
+                          aria-label={`Change shortcut for ${binding.label}`}
+                          aria-invalid={error != null ? true : undefined}
+                          aria-describedby={error != null ? errorId : undefined}
+                          onClick={() => handleStartRecording(binding.id)}
+                        >
+                          {recording
+                            ? 'Press keys…'
+                            : formatAcceleratorDisplay(binding.accelerator)}
+                        </button>
+                        {error != null ? (
+                          <p id={errorId} className="mt-1 text-[14px] text-danger">
+                            {error}
+                          </p>
+                        ) : null}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
 
-      {globalError != null ? (
-        <p className="mt-3 text-[14px] text-danger" role="alert">
-          {globalError}
-        </p>
-      ) : null}
+          {globalError != null ? (
+            <p className="mt-3 text-[14px] text-danger" role="alert">
+              {globalError}
+            </p>
+          ) : null}
 
-      <p id={statusId} className="mt-3 text-[14px] text-muted" role="status" aria-live="polite">
-        {statusMessage ?? ''}
-      </p>
+          <p id={statusId} className="mt-3 text-[14px] text-muted" role="status" aria-live="polite">
+            {statusMessage ?? ''}
+          </p>
 
-      <div className="mt-4 rounded-md border border-danger/30 bg-danger/5 p-3">
-        <p className="m-0 mb-2 text-[14px] text-text">
-          Restore all shortcuts to their original defaults. This cannot be undone.
-        </p>
-        <Button
-          type="button"
-          variant="secondaryDanger"
-          disabled={restoring}
-          onClick={() => void handleRestoreDefaults()}
-        >
-          {restoring ? 'Restoring…' : 'Restore defaults'}
-        </Button>
-      </div>
+          <div className="mt-4 rounded-md border border-danger/30 bg-danger/5 p-3">
+            <p className="m-0 mb-2 text-[14px] text-text">
+              Restore all shortcuts to their original defaults. This cannot be undone.
+            </p>
+            <Button
+              type="button"
+              variant="secondaryDanger"
+              disabled={restoring}
+              onClick={() => void handleRestoreDefaults()}
+            >
+              {restoring ? 'Restoring…' : 'Restore defaults'}
+            </Button>
+          </div>
+        </>
+      )}
     </section>
   );
 }

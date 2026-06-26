@@ -9,6 +9,7 @@ import {
   faClockRotateLeft,
   faCode,
   faDatabase,
+  faDownload,
   faFloppyDisk,
   faGear,
   faGripVertical,
@@ -18,6 +19,7 @@ import {
   faPuzzlePiece,
   faRobot,
   faServer,
+  faStore,
   faTableColumns,
   faWindowMaximize,
   faXmark
@@ -36,6 +38,7 @@ library.add(
   faCircleExclamation,
   faCode,
   faDatabase,
+  faDownload,
   faFloppyDisk,
   faGear,
   faGripVertical,
@@ -44,6 +47,7 @@ library.add(
   faMinus,
   faPuzzlePiece,
   faServer,
+  faStore,
   faWindowMaximize
 );
 config.autoAddCss = false;
@@ -58,6 +62,7 @@ export {
   faClockRotateLeft,
   faCode,
   faDatabase,
+  faDownload,
   faFloppyDisk,
   faGear,
   faGripVertical,
@@ -67,6 +72,7 @@ export {
   faPuzzlePiece,
   faRobot,
   faServer,
+  faStore,
   faTableColumns,
   faWindowMaximize,
   faXmark

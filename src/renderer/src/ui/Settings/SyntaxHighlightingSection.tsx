@@ -6,8 +6,9 @@ import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { setGeneralSettingsState } from '#/renderer/src/store/slices/settingsSlice';
 import type { CodeEditorSetup, GeneralSettings } from '#/shared/types';
 import { Button } from '#/renderer/src/components/Button';
+import { PageHeader } from '#/renderer/src/components/PageHeader';
 import { Input, Select } from '#/renderer/src/components/forms';
-import { DEFAULT_GENERAL_SETTINGS } from './constants';
+import { DEFAULT_GENERAL_SETTINGS, settingsSectionMeta } from './constants';
 
 const PREVIEW_SAMPLE = `const response = hc.response.json();
 console.log(response);
@@ -83,8 +84,11 @@ export function SyntaxHighlightingSection(): JSX.Element {
     }
   };
 
+  const { label, icon } = settingsSectionMeta('syntax');
+
   return (
     <div className="mb-6 flex flex-col gap-6">
+      <PageHeader title={label} icon={icon} />
       <div className="flex flex-col gap-6">
         <label className="flex flex-col gap-1">
           <span className="text-[14px] font-medium text-text">Theme</span>

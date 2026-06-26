@@ -2,7 +2,9 @@ import { useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { Button } from '#/renderer/src/components/Button';
+import { PageHeader } from '#/renderer/src/components/PageHeader';
 import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
+import { settingsSectionMeta } from './constants';
 
 /**
  * Reads every key/value pair from renderer localStorage for backup export.
@@ -90,16 +92,15 @@ export function BackupRestoreSection(): JSX.Element {
     }
   };
 
+  const { label, icon } = settingsSectionMeta('backup-restore');
+
   return (
     <div>
-      <div className="mb-4">
-        <h2 className="m-0 mb-1 text-[14px] font-medium text-text">Backup &amp; Restore</h2>
-        <p className="m-0 text-[14px] text-muted">
-          Export everything HarborClient stores locally — collections, environments, settings,
-          chats, credentials, and UI state — into a single backup file. Restore replaces your
-          current local data from a backup.
-        </p>
-      </div>
+      <PageHeader
+        title={label}
+        icon={icon}
+        description="Export everything HarborClient stores locally — collections, environments, settings, chats, credentials, and UI state — into a single backup file. Restore replaces your current local data from a backup."
+      />
 
       <div
         className="mb-6 rounded-md border border-separator bg-sidebar px-4 py-3 text-[14px] text-text"

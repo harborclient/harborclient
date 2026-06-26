@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(settings): enhance settings sections with PageHeader and metadata. (`1206756`)
 - fix(collection-modal): update label for provider selection to 'Storage location'. (`31cbe9c`)
 
 ## 1.8.18 - 2026-06-26

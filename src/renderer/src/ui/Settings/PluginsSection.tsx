@@ -20,7 +20,15 @@ import { Button } from '#/renderer/src/components/Button';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { Input } from '#/renderer/src/components/forms';
 import { Modal } from '#/renderer/src/components/Modal';
-import { faAngleLeft, faCircleCheck } from '#/renderer/src/fontawesome';
+import { PageHeader } from '#/renderer/src/components/PageHeader';
+import {
+  faAngleLeft,
+  faCircleCheck,
+  faDownload,
+  faGear,
+  faPuzzlePiece,
+  faStore
+} from '#/renderer/src/fontawesome';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import {
   showAlert,
@@ -478,6 +486,80 @@ function PluginCatalogDetailModal({
 
 type PluginSourceKind = 'catalogs' | 'trusted';
 
+interface PluginInstallModalProps {
+  /**
+   * Closes the install chooser without starting an install flow.
+   */
+  onClose: () => void;
+
+  /**
+   * Starts the install-from-file flow (native file picker).
+   */
+  onInstallFromFile: () => void;
+
+  /**
+   * Opens the install-from-git form modal.
+   */
+  onInstallFromGit: () => void;
+
+  /**
+   * Starts the load-unpacked flow (native folder picker).
+   */
+  onLoadUnpacked: () => void;
+}
+
+/**
+ * Chooser modal listing the three ways to add a plugin to HarborClient.
+ */
+function PluginInstallModal({
+  onClose,
+  onInstallFromFile,
+  onInstallFromGit,
+  onLoadUnpacked
+}: PluginInstallModalProps): JSX.Element {
+  return (
+    <Modal onClose={onClose} labelledBy="plugin-install-title">
+      <h2 id="plugin-install-title" className="m-0 mb-2 text-[15px] font-semibold text-text">
+        Install plugin
+      </h2>
+      <p className="mb-4 text-[14px] text-muted">
+        Choose how you want to add a plugin to HarborClient.
+      </p>
+      <div className="flex flex-col gap-3">
+        <div>
+          <Button type="button" variant="secondary" className="w-full" onClick={onInstallFromFile}>
+            Install from file
+          </Button>
+          <p className="mt-1 text-[14px] text-muted">
+            Select a <code className="text-text">.hcp</code> plugin package.
+          </p>
+        </div>
+        <div>
+          <Button type="button" variant="secondary" className="w-full" onClick={onInstallFromGit}>
+            Install from Git…
+          </Button>
+          <p className="mt-1 text-[14px] text-muted">
+            Clone a public repository that ships a built manifest and entry files.
+          </p>
+        </div>
+        <div>
+          <Button type="button" variant="secondary" className="w-full" onClick={onLoadUnpacked}>
+            Load unpacked…
+          </Button>
+          <p className="mt-1 text-[14px] text-muted">
+            Load a plugin source directory in place for development.
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 flex justify-end">
+        <Button type="button" variant="secondary" onClick={onClose}>
+          Cancel
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
 interface PluginSourcesModalProps {
   /**
    * Draft plugin source settings edited in the modal.
@@ -921,6 +1003,7 @@ export function PluginsSection(): JSX.Element {
   const [descriptionLoadState, setDescriptionLoadState] = useState<
     'idle' | 'loading' | 'loaded' | 'error'
   >('idle');
+  const [showInstallModal, setShowInstallModal] = useState(false);
   const [showGitInstallModal, setShowGitInstallModal] = useState(false);
   const [gitInstallUrl, setGitInstallUrl] = useState('');
   const [gitInstallRef, setGitInstallRef] = useState('');
@@ -1282,6 +1365,20 @@ export function PluginsSection(): JSX.Element {
   };
 
   /**
+   * Opens the install method chooser modal.
+   */
+  const openInstallModal = (): void => {
+    setShowInstallModal(true);
+  };
+
+  /**
+   * Closes the install method chooser modal.
+   */
+  const closeInstallModal = (): void => {
+    setShowInstallModal(false);
+  };
+
+  /**
    * Opens the install-from-file dialog and shows the permissions modal.
    */
   const handleInstall = async (): Promise<void> => {
@@ -1406,6 +1503,30 @@ export function PluginsSection(): JSX.Element {
   };
 
   /**
+   * Closes the chooser and starts the install-from-file flow.
+   */
+  const handleInstallFromFileChoice = (): void => {
+    closeInstallModal();
+    void handleInstall();
+  };
+
+  /**
+   * Closes the chooser and opens the install-from-git form.
+   */
+  const handleInstallFromGitChoice = (): void => {
+    closeInstallModal();
+    openGitInstallModal();
+  };
+
+  /**
+   * Closes the chooser and starts the load-unpacked flow.
+   */
+  const handleLoadUnpackedChoice = (): void => {
+    closeInstallModal();
+    void handleLoadUnpacked();
+  };
+
+  /**
    * Toggles enablement for one plugin row.
    *
    * @param plugin - Plugin to enable or disable.
@@ -1456,13 +1577,11 @@ export function PluginsSection(): JSX.Element {
 
   return (
     <section>
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <h2 className="m-0 flex-1 text-[15px] font-semibold text-text">Plugins</h2>
+      <PageHeader title="Plugins" icon={faPuzzlePiece}>
         <Button
           type="button"
-          variant="secondary"
           aria-pressed={showBrowse}
-          className={showBrowse ? 'inline-flex items-center gap-1.5' : undefined}
+          className="inline-flex items-center gap-1.5"
           onClick={toggleBrowseView}
         >
           {showBrowse ? (
@@ -1471,26 +1590,33 @@ export function PluginsSection(): JSX.Element {
               Installed
             </>
           ) : (
-            'Marketplace'
+            <>
+              <FaIcon icon={faStore} className="h-3.5 w-3.5" />
+              Marketplace
+            </>
           )}
         </Button>
         {!showBrowse ? (
           <>
-            <Button type="button" variant="secondary" onClick={() => void handleInstall()}>
-              Install from file
+            <Button
+              type="button"
+              className="inline-flex items-center gap-1.5"
+              onClick={openInstallModal}
+            >
+              <FaIcon icon={faDownload} className="h-3.5 w-3.5" />
+              Install
             </Button>
-            <Button type="button" variant="secondary" onClick={openGitInstallModal}>
-              Install from Git…
-            </Button>
-            <Button type="button" variant="secondary" onClick={() => void handleLoadUnpacked()}>
-              Load unpacked…
-            </Button>
-            <Button type="button" variant="secondary" onClick={openPluginSourcesModal}>
+            <Button
+              type="button"
+              className="inline-flex items-center gap-1.5"
+              onClick={openPluginSourcesModal}
+            >
+              <FaIcon icon={faGear} className="h-3.5 w-3.5" />
               Settings
             </Button>
           </>
         ) : null}
-      </div>
+      </PageHeader>
 
       {showBrowse ? (
         <div className="mb-4">
@@ -1744,6 +1870,15 @@ export function PluginsSection(): JSX.Element {
           descriptionMarkdown={descriptionMarkdown}
           descriptionLoadState={descriptionLoadState}
           onClose={closeDetail}
+        />
+      ) : null}
+
+      {showInstallModal ? (
+        <PluginInstallModal
+          onClose={closeInstallModal}
+          onInstallFromFile={handleInstallFromFileChoice}
+          onInstallFromGit={handleInstallFromGitChoice}
+          onLoadUnpacked={handleLoadUnpackedChoice}
         />
       ) : null}
 

@@ -2,8 +2,9 @@ import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { GeneralSettings, ProxySettings } from '#/shared/types';
 import { Button } from '#/renderer/src/components/Button';
+import { PageHeader } from '#/renderer/src/components/PageHeader';
 import { Input, Select } from '#/renderer/src/components/forms';
-import { DEFAULT_GENERAL_SETTINGS, PROXY_PROTOCOL_OPTIONS } from './constants';
+import { DEFAULT_GENERAL_SETTINGS, PROXY_PROTOCOL_OPTIONS, settingsSectionMeta } from './constants';
 
 /**
  * Proxy settings: global HTTP proxy configuration for outbound requests.
@@ -63,8 +64,11 @@ export function ProxySection(): JSX.Element {
   const proxyFieldsDisabled = fieldsDisabled || !proxy.enabled;
   const authFieldsDisabled = proxyFieldsDisabled || !proxy.authEnabled;
 
+  const { label, icon } = settingsSectionMeta('proxy');
+
   return (
     <div className="mb-6 flex flex-col gap-2">
+      <PageHeader title={label} icon={icon} />
       <div className="mb-6 flex flex-col gap-6">
         <label className="flex items-center gap-2">
           <Input
