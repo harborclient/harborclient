@@ -2,6 +2,7 @@ import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { TeamHub, TeamHubServiceFlags } from '#/shared/types';
 import { Button } from '#/renderer/src/components/Button';
+import { Modal } from '#/renderer/src/components/Modal';
 import { PageHeader } from '#/renderer/src/components/PageHeader';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { refreshCollections } from '#/renderer/src/store/thunks/collections';
@@ -338,84 +339,54 @@ export function TeamHubList({
       </div>
 
       {editingHub && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={handleCancelEdit}
+        <Modal
+          className="w-[480px]"
+          labelledBy="team-hub-dialog-title"
+          onClose={handleCancelEdit}
+          title={isNew ? 'Add team hub' : 'Edit team hub'}
+          description="Enter a display name, team hub URL, and API token for HarborClient Team Hub."
+          closeDisabled={saving}
+          disableEscape={saving}
         >
-          <div
-            className="max-h-[85vh] w-[480px] overflow-y-auto rounded-lg border border-separator bg-surface p-4 shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="team-hub-dialog-title"
-          >
-            <h2 id="team-hub-dialog-title" className="m-0 mb-1 text-[14px] font-semibold text-text">
-              {isNew ? 'Add team hub' : 'Edit team hub'}
-            </h2>
-            <p className="mb-4 text-[14px] text-muted">
-              Enter a display name, team hub URL, and API token for HarborClient Team Hub.
-            </p>
+          <TeamHubForm
+            hub={editingHub}
+            disabled={saving}
+            fieldErrors={fieldErrors}
+            onChange={setEditingHub}
+          />
 
-            <TeamHubForm
-              hub={editingHub}
-              disabled={saving}
-              fieldErrors={fieldErrors}
-              onChange={setEditingHub}
-            />
+          {error && <p className="mt-4 text-[14px] text-danger">{error}</p>}
 
-            {error && <p className="mt-4 text-[14px] text-danger">{error}</p>}
-
-            <div className="mt-4 flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={saving}
-                onClick={handleCancelEdit}
-              >
-                Cancel
-              </Button>
-              <Button type="button" disabled={saving} onClick={() => void handleSave()}>
-                {saving ? 'Saving…' : 'Save'}
-              </Button>
-            </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button type="button" disabled={saving} onClick={() => void handleSave()}>
+              {saving ? 'Saving…' : 'Save'}
+            </Button>
           </div>
-        </div>
+        </Modal>
       )}
 
       {deletingHub && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => setDeletingHub(null)}
-        >
-          <div
-            className="w-96 rounded-lg border border-separator bg-surface p-4 shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-team-hub-title"
-          >
-            <h2 id="delete-team-hub-title" className="m-0 mb-1 text-[14px] font-semibold text-text">
-              Delete team hub?
-            </h2>
-            <p className="mb-4 text-[14px] text-muted">
+        <Modal
+          labelledBy="delete-team-hub-title"
+          onClose={() => setDeletingHub(null)}
+          title="Delete team hub?"
+          description={
+            <>
               Are you sure you want to delete &ldquo;
               {deletingHub.name || 'Untitled'}&rdquo;? This cannot be undone.
-            </p>
-
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="secondary" onClick={() => setDeletingHub(null)}>
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="secondaryDanger"
-                onClick={() => void handleDelete(deletingHub.id)}
-              >
-                Delete
-              </Button>
-            </div>
+            </>
+          }
+        >
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondaryDanger"
+              onClick={() => void handleDelete(deletingHub.id)}
+            >
+              Delete
+            </Button>
           </div>
-        </div>
+        </Modal>
       )}
     </>
   );

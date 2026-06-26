@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import type { HubApiTokenRecord, HubUserRecord, TeamHub } from '#/shared/types';
 import { Input, Select } from '#/renderer/src/components/forms';
 import { Button } from '#/renderer/src/components/Button';
+import { Modal } from '#/renderer/src/components/Modal';
 import { PageHeader } from '#/renderer/src/components/PageHeader';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { faAngleLeft } from '#/renderer/src/fontawesome';
@@ -230,87 +231,60 @@ export function TeamTokensView({ hub, onBack }: Props): JSX.Element {
       )}
 
       {creatingToken && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={closeCreateModal}
+        <Modal
+          className="w-[480px]"
+          labelledBy="team-token-create-title"
+          onClose={closeCreateModal}
+          title="Create token"
+          description="The token secret will be shown once after creation."
+          closeDisabled={creating}
+          disableEscape={creating}
         >
-          <div
-            className="w-[480px] rounded-lg border border-separator bg-surface p-4 shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="team-token-create-title"
+          <label htmlFor="team-token-user" className="mb-1 block text-[14px] font-medium text-text">
+            User
+          </label>
+          <Select
+            id="team-token-user"
+            variant="surface"
+            className="mb-4"
+            value={createUserId}
+            disabled={creating}
+            onChange={(event) => setCreateUserId(event.target.value)}
           >
-            <h2
-              id="team-token-create-title"
-              className="m-0 mb-1 text-[14px] font-semibold text-text"
-            >
-              Create token
-            </h2>
-            <p className="mb-4 text-[14px] text-muted">
-              The token secret will be shown once after creation.
-            </p>
+            {users.map((user: HubUserRecord) => (
+              <option key={user.id} value={user.id}>
+                {user.name || user.id}
+              </option>
+            ))}
+          </Select>
 
-            <label
-              htmlFor="team-token-user"
-              className="mb-1 block text-[14px] font-medium text-text"
-            >
-              User
-            </label>
-            <Select
-              id="team-token-user"
-              variant="surface"
-              className="mb-4"
-              value={createUserId}
-              disabled={creating}
-              onChange={(event) => setCreateUserId(event.target.value)}
-            >
-              {users.map((user: HubUserRecord) => (
-                <option key={user.id} value={user.id}>
-                  {user.name || user.id}
-                </option>
-              ))}
-            </Select>
+          <label htmlFor="team-token-name" className="mb-1 block text-[14px] font-medium text-text">
+            Token name
+          </label>
+          <Input
+            id="team-token-name"
+            type="text"
+            variant="surface"
+            value={createTokenName}
+            disabled={creating}
+            autoComplete="off"
+            onChange={(event) => setCreateTokenName(event.target.value)}
+          />
 
-            <label
-              htmlFor="team-token-name"
-              className="mb-1 block text-[14px] font-medium text-text"
+          {actionError && <p className="mt-4 text-[14px] text-danger">{actionError}</p>}
+
+          <div className="mt-4 flex justify-end gap-2">
+            <Button
+              type="button"
+              disabled={
+                creating || createUserId.length === 0 || createTokenName.trim().length === 0
+              }
+              onClick={() => void handleConfirmCreate()}
             >
-              Token name
-            </label>
-            <Input
-              id="team-token-name"
-              type="text"
-              variant="surface"
-              value={createTokenName}
-              disabled={creating}
-              autoComplete="off"
-              onChange={(event) => setCreateTokenName(event.target.value)}
-            />
-
-            {actionError && <p className="mt-4 text-[14px] text-danger">{actionError}</p>}
-
-            <div className="mt-4 flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={creating}
-                onClick={closeCreateModal}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                disabled={
-                  creating || createUserId.length === 0 || createTokenName.trim().length === 0
-                }
-                onClick={() => void handleConfirmCreate()}
-              >
-                {creating ? 'Creating…' : 'Create'}
-              </Button>
-            </div>
+              {creating ? 'Creating…' : 'Create'}
+            </Button>
           </div>
-        </div>
+        </Modal>
       )}
 
       {createdSecret && (
@@ -323,66 +297,49 @@ export function TeamTokensView({ hub, onBack }: Props): JSX.Element {
       )}
 
       {deletingToken && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={closeDeleteModal}
-        >
-          <div
-            className="w-[480px] rounded-lg border border-separator bg-surface p-4 shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="team-token-delete-title"
-          >
-            <h2
-              id="team-token-delete-title"
-              className="m-0 mb-1 text-[14px] font-semibold text-text"
-            >
-              Delete token?
-            </h2>
-            <p className="mb-4 text-[14px] text-muted">
+        <Modal
+          className="w-[480px]"
+          labelledBy="team-token-delete-title"
+          onClose={closeDeleteModal}
+          title="Delete token?"
+          description={
+            <>
               This permanently deletes &ldquo;{deletingToken.name || 'Untitled'}&rdquo; (
               {deletingToken.tokenPrefix}). Type <strong>DELETE</strong> to confirm.
-            </p>
+            </>
+          }
+          closeDisabled={deleting}
+          disableEscape={deleting}
+        >
+          <label
+            htmlFor="team-token-delete-confirm"
+            className="mb-1 block text-[14px] font-medium text-text"
+          >
+            Confirmation
+          </label>
+          <Input
+            id="team-token-delete-confirm"
+            type="text"
+            variant="surface"
+            value={deleteConfirmText}
+            disabled={deleting}
+            autoComplete="off"
+            onChange={(event) => setDeleteConfirmText(event.target.value)}
+          />
 
-            <label
-              htmlFor="team-token-delete-confirm"
-              className="mb-1 block text-[14px] font-medium text-text"
+          {actionError && <p className="mt-4 text-[14px] text-danger">{actionError}</p>}
+
+          <div className="mt-4 flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondaryDanger"
+              disabled={deleting || deleteConfirmText !== 'DELETE'}
+              onClick={() => void handleConfirmDelete()}
             >
-              Confirmation
-            </label>
-            <Input
-              id="team-token-delete-confirm"
-              type="text"
-              variant="surface"
-              value={deleteConfirmText}
-              disabled={deleting}
-              autoComplete="off"
-              onChange={(event) => setDeleteConfirmText(event.target.value)}
-            />
-
-            {actionError && <p className="mt-4 text-[14px] text-danger">{actionError}</p>}
-
-            <div className="mt-4 flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={deleting}
-                onClick={closeDeleteModal}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="secondaryDanger"
-                disabled={deleting || deleteConfirmText !== 'DELETE'}
-                onClick={() => void handleConfirmDelete()}
-              >
-                {deleting ? 'Deleting…' : 'Delete'}
-              </Button>
-            </div>
+              {deleting ? 'Deleting…' : 'Delete'}
+            </Button>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

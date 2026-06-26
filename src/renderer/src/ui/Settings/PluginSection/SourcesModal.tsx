@@ -88,16 +88,11 @@ export function SourcesModal({
       onClose={onClose}
       className="w-[min(42rem,calc(100vw-2rem))]"
       labelledBy="plugin-sources-title"
+      title="Plugin sources"
+      description="Configure where HarborClient loads marketplace catalogs and trusted publisher keys. Enabled endpoints are fetched in list order; the first source wins when entries overlap. Team Hub endpoints are managed by your hub administrator and cannot be removed here."
+      closeDisabled={busy}
+      disableEscape={busy}
     >
-      <h2 id="plugin-sources-title" className="m-0 mb-2 text-[15px] font-semibold text-text">
-        Plugin sources
-      </h2>
-      <p className="mb-4 text-[14px] text-muted">
-        Configure where HarborClient loads marketplace catalogs and trusted publisher keys. Enabled
-        endpoints are fetched in list order; the first source wins when entries overlap. Team Hub
-        endpoints are managed by your hub administrator and cannot be removed here.
-      </p>
-
       {error ? (
         <p className="mb-4 text-[14px] text-danger" role="alert">
           {error}
@@ -134,9 +129,6 @@ export function SourcesModal({
           Reset defaults
         </Button>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="secondary" disabled={busy} onClick={onClose}>
-            Cancel
-          </Button>
           <Button type="button" disabled={busy} onClick={onSave}>
             {busy ? 'Saving…' : 'Save'}
           </Button>

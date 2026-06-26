@@ -3,7 +3,6 @@ import logoUrl from '@images/logo-square.png';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { closeAboutModal, selectAboutModal } from '#/renderer/src/store/slices/modalsSlice';
 import { fetchAppVersion } from '#/renderer/src/store/thunks';
-import { Button } from '#/renderer/src/components/Button';
 import { Modal } from '#/renderer/src/components/Modal';
 
 /**
@@ -26,14 +25,12 @@ export function AboutModal(): JSX.Element | null {
   return (
     <Modal
       onClose={() => dispatch(closeAboutModal())}
-      className="w-80 !p-6"
+      className="w-80"
       labelledBy="about-modal-title"
+      title="HarborClient"
     >
       <div className="flex flex-col items-center text-center">
         <img src={logoUrl} alt="HarborClient" className="mb-4 h-16 w-16 rounded-xl" />
-        <h2 id="about-modal-title" className="m-0 mb-1 text-[15px] font-semibold text-text">
-          HarborClient
-        </h2>
         {about.version && <p className="m-0 text-[14px] text-muted">Version {about.version}</p>}
         <a
           href="https://harborclient.com/"
@@ -43,9 +40,6 @@ export function AboutModal(): JSX.Element | null {
         >
           Documentation
         </a>
-      </div>
-      <div className="mt-6 flex justify-center">
-        <Button onClick={() => dispatch(closeAboutModal())}>OK</Button>
       </div>
     </Modal>
   );

@@ -1,7 +1,7 @@
 {
   "workbench.editor.customLabels.enabled": true,
   "workbench.editor.customLabels.patterns": {
-    "*/src/renderer/src/components/**/index.tsx": "${dirname}"
+    "*/**/index.tsx": "${dirname}"
   },
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",

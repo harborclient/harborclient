@@ -33,6 +33,7 @@ import {
 } from '#/renderer/src/store/thunks';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebar/useSidebarExpansion';
 import { Button } from '#/renderer/src/components/Button';
+import { Modal } from '#/renderer/src/components/Modal';
 import { ResizeHandle, useResizable } from '#/renderer/src/components/Resizable';
 import { Editor } from './Editor';
 import { Response } from './Response';
@@ -245,33 +246,25 @@ export function Request({ onEditVariables }: Props): JSX.Element {
       </div>
 
       {closeTabPrompt && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => setCloseTabPrompt(null)}
+        <Modal
+          onClose={() => setCloseTabPrompt(null)}
+          labelledBy="request-close-tab-title"
+          title="Unsaved changes"
+          description={
+            <>&ldquo;{closeTabPrompt.name}&rdquo; has unsaved changes. Close without saving?</>
+          }
         >
-          <div
-            className="w-96 rounded-lg border border-separator bg-surface p-4 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="m-0 mb-1 text-[14px] font-semibold text-text">Unsaved changes</h2>
-            <p className="mb-4 text-[14px] text-muted">
-              &ldquo;{closeTabPrompt.name}&rdquo; has unsaved changes. Close without saving?
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setCloseTabPrompt(null)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  void dispatch(closeRequestTab(closeTabPrompt.tabId));
-                  setCloseTabPrompt(null);
-                }}
-              >
-                Close without saving
-              </Button>
-            </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              onClick={() => {
+                void dispatch(closeRequestTab(closeTabPrompt.tabId));
+                setCloseTabPrompt(null);
+              }}
+            >
+              Close without saving
+            </Button>
           </div>
-        </div>
+        </Modal>
       )}
     </>
   );

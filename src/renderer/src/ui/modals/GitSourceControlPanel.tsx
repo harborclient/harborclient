@@ -126,11 +126,12 @@ export function GitSourceControlPanel({
   }
 
   return (
-    <Modal onClose={onClose} className="w-[32rem]" labelledBy="git-source-control-title">
-      <h2 id="git-source-control-title" className="m-0 mb-4 text-[15px] font-semibold text-text">
-        Source control — {connectionName}
-      </h2>
-
+    <Modal
+      onClose={onClose}
+      className="w-[32rem]"
+      labelledBy="git-source-control-title"
+      title={`Source control — ${connectionName}`}
+    >
       <div className="flex flex-col gap-4">
         {status != null && (
           <div className="text-[14px] text-text" role="status">
@@ -195,9 +196,6 @@ export function GitSourceControlPanel({
               Push
               {hasUnpushed && <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />}
             </span>
-          </Button>
-          <Button className="flex-1" variant="secondary" disabled={busy} onClick={onClose}>
-            Close
           </Button>
         </div>
 

@@ -1,6 +1,7 @@
 import { useState, type JSX } from 'react';
 import { Textarea } from '#/renderer/src/components/forms';
 import { Button } from '#/renderer/src/components/Button';
+import { Modal } from '#/renderer/src/components/Modal';
 
 interface Props {
   /**
@@ -40,42 +41,30 @@ export function TeamSecretDialog({ title, description, secret, onClose }: Props)
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
-      onClick={onClose}
+    <Modal
+      className="w-[520px]"
+      overlayClassName="z-[60]"
+      labelledBy="team-secret-dialog-title"
+      onClose={onClose}
+      title={title}
+      description={description}
     >
-      <div
-        className="w-[520px] rounded-lg border border-separator bg-surface p-4 shadow-xl"
-        onClick={(event) => event.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="team-secret-dialog-title"
-      >
-        <h2 id="team-secret-dialog-title" className="m-0 mb-1 text-[14px] font-semibold text-text">
-          {title}
-        </h2>
-        <p className="mb-4 text-[14px] text-muted">{description}</p>
+      <label htmlFor="team-secret-value" className="mb-1 block text-[14px] font-medium text-text">
+        Token secret
+      </label>
+      <Textarea
+        id="team-secret-value"
+        readOnly
+        variant="surface"
+        className="h-24 resize-none font-mono text-[14px]"
+        value={secret}
+      />
 
-        <label htmlFor="team-secret-value" className="mb-1 block text-[14px] font-medium text-text">
-          Token secret
-        </label>
-        <Textarea
-          id="team-secret-value"
-          readOnly
-          variant="surface"
-          className="h-24 resize-none font-mono text-[13px]"
-          value={secret}
-        />
-
-        <div className="mt-4 flex justify-end gap-2">
-          <Button type="button" variant="secondary" onClick={handleCopy}>
-            {copied ? 'Copied' : 'Copy'}
-          </Button>
-          <Button type="button" onClick={onClose}>
-            Done
-          </Button>
-        </div>
+      <div className="mt-4 flex justify-end gap-2">
+        <Button type="button" variant="secondary" onClick={handleCopy}>
+          {copied ? 'Copied' : 'Copy'}
+        </Button>
       </div>
-    </div>
+    </Modal>
   );
 }

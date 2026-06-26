@@ -148,15 +148,10 @@ export function CollectionRunnerModal(): JSX.Element | null {
       onClose={handleClose}
       className="w-[32rem]"
       labelledBy="collection-runner-modal-title"
+      title={title}
       disableEscape={runner.running}
+      closeDisabled={runner.running}
     >
-      <h2
-        id="collection-runner-modal-title"
-        className="m-0 mb-4 text-[15px] font-semibold text-text"
-      >
-        {title}
-      </h2>
-
       {runner.phase === 'configure' && (
         <div className="space-y-4">
           <p className="m-0 text-[14px] text-muted">
@@ -251,9 +246,6 @@ export function CollectionRunnerModal(): JSX.Element | null {
           </fieldset>
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={handleClose}>
-              Cancel
-            </Button>
             <Button type="button" disabled={orderedRequests.length === 0} onClick={handleRun}>
               Run
             </Button>
@@ -334,11 +326,7 @@ export function CollectionRunnerModal(): JSX.Element | null {
               <Button type="button" variant="secondaryDanger" onClick={handleStop}>
                 Stop
               </Button>
-            ) : (
-              <Button type="button" onClick={handleClose}>
-                Close
-              </Button>
-            )}
+            ) : null}
           </div>
         </div>
       )}

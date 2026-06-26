@@ -153,21 +153,20 @@ export function CollectionModal(): JSX.Element | null {
     </div>
   );
 
+  const modalTitle = showImportTab ? 'Add collection' : 'New collection';
+
   return (
     <Modal
       onClose={handleClose}
       className={showImportTab ? 'w-[40rem]' : 'w-[32rem]'}
       labelledBy="collection-modal-title"
+      title={modalTitle}
+      description={
+        collectionModal.mode === 'create-and-save'
+          ? 'Create a collection to save this request into.'
+          : undefined
+      }
     >
-      <h2 id="collection-modal-title" className="m-0 mb-1 text-[14px] font-semibold text-text">
-        {showImportTab ? 'Add collection' : 'New collection'}
-      </h2>
-      {collectionModal.mode === 'create-and-save' && (
-        <p className="mb-3 text-[14px] text-muted">
-          Create a collection to save this request into.
-        </p>
-      )}
-
       {showImportTab ? (
         <SegmentedTabsGroup
           value={collectionModal.tab}
@@ -201,9 +200,6 @@ export function CollectionModal(): JSX.Element | null {
               onChange={(e) => dispatch(setCollectionModalShareTokenInput(e.target.value))}
             />
             <div className="mt-4 flex justify-end gap-2">
-              <Button variant="secondary" onClick={handleClose}>
-                Cancel
-              </Button>
               <Button
                 onClick={() => void handleJoinSharedCollection()}
                 disabled={!collectionModal.shareTokenInput.trim()}
@@ -227,9 +223,6 @@ export function CollectionModal(): JSX.Element | null {
             />
             {providerField}
             <div className="mt-4 flex justify-end gap-2">
-              <Button variant="secondary" onClick={handleClose}>
-                Cancel
-              </Button>
               <Button
                 onClick={() => void handleSubmit()}
                 disabled={!collectionModal.name.trim() || providerSelectDisabled}
@@ -245,9 +238,6 @@ export function CollectionModal(): JSX.Element | null {
               requests.
             </p>
             <div className="flex justify-end gap-2">
-              <Button variant="secondary" onClick={handleClose}>
-                Cancel
-              </Button>
               <Button onClick={() => void handleImport()}>Import .json</Button>
             </div>
           </SegmentedTabPanel>
@@ -270,9 +260,6 @@ export function CollectionModal(): JSX.Element | null {
           />
           {providerField}
           <div className="mt-4 flex justify-end gap-2">
-            <Button variant="secondary" onClick={handleClose}>
-              Cancel
-            </Button>
             <Button
               onClick={() => void handleSubmit()}
               disabled={!collectionModal.name.trim() || providerSelectDisabled}

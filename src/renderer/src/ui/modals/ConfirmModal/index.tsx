@@ -29,15 +29,9 @@ export function ConfirmModal(): JSX.Element | null {
   if (!confirmModal) return null;
 
   return (
-    <Modal onClose={handleCancel} labelledBy="confirm-modal-title">
-      <h2 id="confirm-modal-title" className="m-0 mb-1 text-[14px] font-semibold text-text">
-        {confirmModal.title}
-      </h2>
+    <Modal onClose={handleCancel} labelledBy="confirm-modal-title" title={confirmModal.title}>
       <p className="mb-4 text-[14px] text-muted">{confirmModal.message}</p>
       <div className="flex justify-end gap-2">
-        <Button variant="secondary" onClick={handleCancel}>
-          {confirmModal.cancelLabel}
-        </Button>
         <Button
           variant={confirmModal.variant === 'danger' ? 'primaryDanger' : 'primary'}
           onClick={handleConfirm}

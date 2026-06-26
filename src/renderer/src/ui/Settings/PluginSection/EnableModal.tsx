@@ -28,10 +28,11 @@ interface Props {
  */
 export function EnableModal({ plugin, onConfirm, onCancel }: Props): JSX.Element {
   return (
-    <Modal onClose={onCancel} labelledBy="plugin-permissions-title">
-      <h2 id="plugin-permissions-title" className="m-0 mb-2 text-[14px] font-semibold text-text">
-        Enable {plugin.name}?
-      </h2>
+    <Modal
+      onClose={onCancel}
+      labelledBy="plugin-permissions-title"
+      title={`Enable ${plugin.name}?`}
+    >
       <p className="mb-3 text-[14px] text-text">
         Version {plugin.version} requests the following permissions:
       </p>
@@ -52,9 +53,6 @@ export function EnableModal({ plugin, onConfirm, onCancel }: Props): JSX.Element
         ))}
       </ul>
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="secondary" onClick={onCancel}>
-          Cancel
-        </Button>
         <Button type="button" onClick={onConfirm}>
           {plugin.signature?.status === 'unsigned' ? 'Enable anyway' : 'Enable plugin'}
         </Button>

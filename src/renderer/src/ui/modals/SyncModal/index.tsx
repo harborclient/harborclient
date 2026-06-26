@@ -5,7 +5,6 @@ import {
   selectSyncModal,
   type SyncProviderProgress
 } from '#/renderer/src/store/slices/modalsSlice';
-import { Button } from '#/renderer/src/components/Button';
 import { Modal } from '#/renderer/src/components/Modal';
 
 /**
@@ -73,12 +72,10 @@ export function SyncModal(): JSX.Element | null {
       onClose={handleClose}
       className="w-[28rem]"
       labelledBy="sync-modal-title"
+      title="Sync"
       disableEscape={syncModal.running}
+      closeDisabled={syncModal.running}
     >
-      <h2 id="sync-modal-title" className="m-0 mb-4 text-[15px] font-semibold text-text">
-        Sync
-      </h2>
-
       {syncModal.running && (
         <div className="space-y-3">
           <div
@@ -104,46 +101,37 @@ export function SyncModal(): JSX.Element | null {
         </div>
       )}
 
-      {!syncModal.running && (
-        <>
-          {syncModal.providers.length === 0 ? (
-            <p className="m-0 text-[14px] text-muted">No providers configured.</p>
-          ) : (
-            <ul className="m-0 max-h-64 list-none space-y-2 overflow-y-auto p-0">
-              {syncModal.providers.map((provider) => (
-                <li
-                  key={provider.id}
-                  className="rounded border border-separator px-3 py-2 text-[14px]"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="m-0 font-medium text-text">{provider.name}</p>
-                      <p className="m-0 text-[12px] text-muted">
-                        {providerKindLabel(provider.kind)}
-                      </p>
-                    </div>
-                    <span
-                      className={
-                        provider.status === 'error'
-                          ? 'text-danger'
-                          : provider.status === 'success'
-                            ? 'text-text'
-                            : 'text-muted'
-                      }
-                    >
-                      {providerStatusLabel(provider)}
-                    </span>
+      {!syncModal.running &&
+        (syncModal.providers.length === 0 ? (
+          <p className="m-0 text-[14px] text-muted">No providers configured.</p>
+        ) : (
+          <ul className="m-0 max-h-64 list-none space-y-2 overflow-y-auto p-0">
+            {syncModal.providers.map((provider) => (
+              <li
+                key={provider.id}
+                className="rounded border border-separator px-3 py-2 text-[14px]"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="m-0 font-medium text-text">{provider.name}</p>
+                    <p className="m-0 text-[14px] text-muted">{providerKindLabel(provider.kind)}</p>
                   </div>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div className="mt-6 flex justify-end">
-            <Button onClick={handleClose}>Close</Button>
-          </div>
-        </>
-      )}
+                  <span
+                    className={
+                      provider.status === 'error'
+                        ? 'text-danger'
+                        : provider.status === 'success'
+                          ? 'text-text'
+                          : 'text-muted'
+                    }
+                  >
+                    {providerStatusLabel(provider)}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ))}
     </Modal>
   );
 }

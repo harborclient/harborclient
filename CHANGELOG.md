@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(modal): enhance modal components with new structure and features. (`c4509d7`)
 - feat(teamhub): refactor team hubs functionality and introduce new components. (`4d3e233`)
 - refactor(editor): improve layout and structure of the request editor component. (`0018bd2`)
 - feat(settings): refactor plugin settings section and introduce new components. (`c77436f`)

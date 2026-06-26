@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import type { AdminResourceOption, TeamHub } from '#/shared/types';
 import { Input } from '#/renderer/src/components/forms';
 import { Button } from '#/renderer/src/components/Button';
+import { Modal } from '#/renderer/src/components/Modal';
 import { PageHeader } from '#/renderer/src/components/PageHeader';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { faAngleLeft } from '#/renderer/src/fontawesome';
@@ -157,61 +158,43 @@ export function TeamCollectionsView({ hub, onBack }: Props): JSX.Element {
       )}
 
       {deletingCollection && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={closeDeleteModal}
-        >
-          <div
-            className="w-96 rounded-lg border border-separator bg-surface p-4 shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-collection-title"
-          >
-            <h2
-              id="delete-collection-title"
-              className="m-0 mb-1 text-[14px] font-semibold text-text"
-            >
-              Delete collection?
-            </h2>
-            <p className="mb-4 text-[14px] text-muted">
+        <Modal
+          labelledBy="delete-collection-title"
+          onClose={closeDeleteModal}
+          title="Delete collection?"
+          description={
+            <>
               Permanently delete &ldquo;{deletingCollection.name}&rdquo; from the team hub? Team
               members will lose access to this collection on the server.
-            </p>
+            </>
+          }
+          closeDisabled={deleting}
+          disableEscape={deleting}
+        >
+          <label className="mb-4 block text-[14px] text-text" htmlFor="delete-collection-confirm">
+            Type DELETE to confirm
+          </label>
+          <Input
+            id="delete-collection-confirm"
+            value={deleteConfirmText}
+            disabled={deleting}
+            onChange={(event) => setDeleteConfirmText(event.target.value)}
+            autoComplete="off"
+          />
 
-            <label className="mb-4 block text-[14px] text-text" htmlFor="delete-collection-confirm">
-              Type DELETE to confirm
-            </label>
-            <Input
-              id="delete-collection-confirm"
-              value={deleteConfirmText}
-              disabled={deleting}
-              onChange={(event) => setDeleteConfirmText(event.target.value)}
-              autoComplete="off"
-            />
+          {actionError && <p className="mt-3 text-[14px] text-danger">{actionError}</p>}
 
-            {actionError && <p className="mt-3 text-[14px] text-danger">{actionError}</p>}
-
-            <div className="mt-4 flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={deleting}
-                onClick={closeDeleteModal}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="secondaryDanger"
-                disabled={deleting || deleteConfirmText !== 'DELETE'}
-                onClick={() => void handleConfirmDelete()}
-              >
-                {deleting ? 'Deleting…' : 'Delete'}
-              </Button>
-            </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondaryDanger"
+              disabled={deleting || deleteConfirmText !== 'DELETE'}
+              onClick={() => void handleConfirmDelete()}
+            >
+              {deleting ? 'Deleting…' : 'Delete'}
+            </Button>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

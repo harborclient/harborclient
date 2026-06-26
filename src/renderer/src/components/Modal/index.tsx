@@ -1,5 +1,6 @@
 import { useEffect, useRef, type JSX, type ReactNode } from 'react';
 import { useDialogFocus } from '#/renderer/src/hooks/useDialogFocus';
+import { ModalHeader } from '#/renderer/src/components/Modal/ModalHeader';
 
 interface BaseProps {
   /**
@@ -13,10 +14,38 @@ interface BaseProps {
   className?: string;
 
   /**
+   * Optional classes merged onto the backdrop overlay.
+   */
+  overlayClassName?: string;
+
+  /**
    * When true, Escape does not call `onClose` (e.g. modals that require an explicit button).
    */
   disableEscape?: boolean;
 
+  /**
+   * Dialog heading rendered in the modal header row.
+   */
+  title?: ReactNode;
+
+  /**
+   * Optional muted summary shown below the title in the header.
+   */
+  description?: ReactNode;
+
+  /**
+   * Extra action controls rendered before the header Close button.
+   */
+  headerActions?: ReactNode;
+
+  /**
+   * When true, the header Close button is disabled.
+   */
+  closeDisabled?: boolean;
+
+  /**
+   * Children to render inside the modal body.
+   */
   children: ReactNode;
 }
 
@@ -44,7 +73,12 @@ type Props = BaseProps &
 export function Modal({
   onClose,
   className = 'w-96',
+  overlayClassName,
   disableEscape = false,
+  title,
+  description,
+  headerActions,
+  closeDisabled = false,
   labelledBy,
   label,
   children
@@ -74,21 +108,38 @@ export function Modal({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [disableEscape, onClose]);
 
+  const overlayClass = `fixed inset-0 flex items-center justify-center bg-black/40 ${overlayClassName ?? 'z-50'}`;
+
+  const panelClass = title
+    ? `${className} flex max-h-[85vh] flex-col overflow-hidden rounded-lg border border-separator bg-surface shadow-xl`
+    : `${className} rounded-lg border border-separator bg-surface p-4 shadow-xl`;
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={onClose}
-    >
+    <div className={overlayClass} onClick={onClose}>
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
         aria-label={label}
-        className={`${className} rounded-lg border border-separator bg-surface p-4 shadow-xl`}
+        className={panelClass}
         onClick={(event) => event.stopPropagation()}
       >
-        {children}
+        {title && labelledBy ? (
+          <>
+            <ModalHeader
+              titleId={labelledBy}
+              title={title}
+              description={description}
+              headerActions={headerActions}
+              closeDisabled={closeDisabled}
+              onClose={onClose}
+            />
+            <div className="flex-1 overflow-y-auto p-4">{children}</div>
+          </>
+        ) : (
+          children
+        )}
       </div>
     </div>
   );

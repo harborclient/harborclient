@@ -28,14 +28,18 @@ export function ShareModal(): JSX.Element | null {
   if (!share) return null;
 
   return (
-    <Modal onClose={handleClose} className="w-[32rem]" labelledBy="share-modal-title">
-      <h2 id="share-modal-title" className="m-0 mb-1 text-[14px] font-semibold text-text">
-        Share collection access
-      </h2>
-      <p className="mb-3 text-[14px] text-muted">
-        Create an encrypted share token for &ldquo;{share.collectionName}&rdquo;. Only the selected
-        recipient can decrypt it. Share tokens expire after seven days.
-      </p>
+    <Modal
+      onClose={handleClose}
+      className="w-[32rem]"
+      labelledBy="share-modal-title"
+      title="Share collection access"
+      description={
+        <>
+          Create an encrypted share token for &ldquo;{share.collectionName}&rdquo;. Only the
+          selected recipient can decrypt it. Share tokens expire after seven days.
+        </>
+      }
+    >
       {share.trustedKeysLoading ? (
         <p className="text-[14px] text-muted">Loading trusted keys…</p>
       ) : share.trustedKeys.length === 0 ? (
@@ -73,9 +77,6 @@ export function ShareModal(): JSX.Element | null {
         />
       ) : null}
       <div className="mt-4 flex justify-end gap-2">
-        <Button variant="secondary" onClick={handleClose}>
-          Close
-        </Button>
         {!share.token && share.trustedKeys.length > 0 && (
           <Button
             disabled={!share.recipientKid || share.tokenLoading || share.trustedKeysLoading}

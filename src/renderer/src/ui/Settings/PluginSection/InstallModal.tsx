@@ -34,13 +34,12 @@ export function InstallModal({
   onLoadUnpacked
 }: Props): JSX.Element {
   return (
-    <Modal onClose={onClose} labelledBy="plugin-install-title">
-      <h2 id="plugin-install-title" className="m-0 mb-2 text-[15px] font-semibold text-text">
-        Install plugin
-      </h2>
-      <p className="mb-4 text-[14px] text-muted">
-        Choose how you want to add a plugin to HarborClient.
-      </p>
+    <Modal
+      onClose={onClose}
+      labelledBy="plugin-install-title"
+      title="Install plugin"
+      description="Choose how you want to add a plugin to HarborClient."
+    >
       <div className="flex flex-col gap-3">
         <div>
           <Button type="button" variant="secondary" className="w-full" onClick={onInstallFromFile}>
@@ -66,11 +65,6 @@ export function InstallModal({
             Load a plugin source directory in place for development.
           </p>
         </div>
-      </div>
-      <div className="mt-4 flex justify-end">
-        <Button type="button" variant="secondary" onClick={onClose}>
-          Cancel
-        </Button>
       </div>
     </Modal>
   );

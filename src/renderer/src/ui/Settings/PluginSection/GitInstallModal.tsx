@@ -70,14 +70,19 @@ export function GitInstallModal({
   };
 
   return (
-    <Modal onClose={onClose} labelledBy="plugin-git-install-title">
-      <h2 id="plugin-git-install-title" className="m-0 mb-2 text-[14px] font-semibold text-text">
-        Install from Git
-      </h2>
-      <p className="mb-3 text-[14px] text-muted">
-        Enter a public repository URL. The repo must include a built{' '}
-        <code className="text-text">manifest.json</code> and entry files at the repository root.
-      </p>
+    <Modal
+      onClose={onClose}
+      labelledBy="plugin-git-install-title"
+      title="Install from Git"
+      description={
+        <>
+          Enter a public repository URL. The repo must include a built{' '}
+          <code className="text-text">manifest.json</code> and entry files at the repository root.
+        </>
+      }
+      closeDisabled={busy}
+      disableEscape={busy}
+    >
       <label htmlFor="plugin-git-install-url" className="mb-1 block text-[14px] text-muted">
         Repository URL
       </label>
@@ -111,9 +116,6 @@ export function GitInstallModal({
         </p>
       ) : null}
       <div className="mt-4 flex justify-end gap-2">
-        <Button type="button" variant="secondary" disabled={busy} onClick={onClose}>
-          Cancel
-        </Button>
         <Button type="button" disabled={busy || !url.trim()} onClick={onInstall}>
           {busy ? 'Cloning…' : 'Install'}
         </Button>

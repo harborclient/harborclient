@@ -2,7 +2,6 @@ import type { JSX } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { PluginInfo } from '#/shared/plugin/types';
-import { Button } from '#/renderer/src/components/Button';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { Modal } from '#/renderer/src/components/Modal';
 import { faCircleCheck } from '#/renderer/src/fontawesome';
@@ -45,21 +44,19 @@ export function DetailModal({
       onClose={onClose}
       className="w-[min(42rem,calc(100vw-2rem))]"
       labelledBy="plugin-detail-title"
+      title={
+        <>
+          {plugin.name}
+          {plugin.signature?.status === 'verified' ? (
+            <FaIcon
+              icon={faCircleCheck}
+              className="h-3.5 w-3.5 shrink-0 text-success"
+              title={`Verified publisher: ${plugin.signature.author ?? plugin.manifest.author ?? 'unknown'}`}
+            />
+          ) : null}
+        </>
+      }
     >
-      <h2
-        id="plugin-detail-title"
-        className="m-0 mb-3 flex flex-wrap items-center gap-2 text-[15px] font-semibold text-text"
-      >
-        {plugin.name}
-        {plugin.signature?.status === 'verified' ? (
-          <FaIcon
-            icon={faCircleCheck}
-            className="h-3.5 w-3.5 shrink-0 text-success"
-            title={`Verified publisher: ${plugin.signature.author ?? plugin.manifest.author ?? 'unknown'}`}
-          />
-        ) : null}
-      </h2>
-
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[14px]">
         <dt className="text-muted">Version</dt>
         <dd className="m-0 text-text">{plugin.version}</dd>
@@ -129,12 +126,6 @@ export function DetailModal({
           ) : null}
         </div>
       ) : null}
-
-      <div className="mt-4 flex justify-end">
-        <Button type="button" variant="secondary" onClick={onClose}>
-          Close
-        </Button>
-      </div>
     </Modal>
   );
 }

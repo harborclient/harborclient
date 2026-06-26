@@ -44,10 +44,7 @@ export function UnsavedLoadPrompt(): JSX.Element | null {
   const isDirtyTab = reason === 'dirty-tab';
 
   return (
-    <Modal onClose={handleCancel} labelledBy="unsaved-load-prompt-title">
-      <h2 id="unsaved-load-prompt-title" className="m-0 mb-1 text-[14px] font-semibold text-text">
-        Unsaved changes
-      </h2>
+    <Modal onClose={handleCancel} labelledBy="unsaved-load-prompt-title" title="Unsaved changes">
       <p className="mb-4 text-[14px] text-muted">
         {isDirtyTab ? (
           <>&ldquo;{req.name}&rdquo; has unsaved changes. Reload without saving?</>
@@ -56,9 +53,6 @@ export function UnsavedLoadPrompt(): JSX.Element | null {
         )}
       </p>
       <div className="flex justify-end gap-2">
-        <Button variant="secondary" onClick={handleCancel}>
-          Cancel
-        </Button>
         <Button onClick={handleConfirm}>
           {isDirtyTab ? 'Reload without saving' : 'Open without saving'}
         </Button>

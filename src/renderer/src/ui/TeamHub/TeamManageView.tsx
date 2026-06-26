@@ -9,6 +9,7 @@ import type {
 } from '#/shared/types';
 import { Input } from '#/renderer/src/components/forms';
 import { Button } from '#/renderer/src/components/Button';
+import { Modal } from '#/renderer/src/components/Modal';
 import { PageHeader } from '#/renderer/src/components/PageHeader';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { faAngleLeft } from '#/renderer/src/fontawesome';
@@ -277,102 +278,66 @@ export function TeamManageView({ hub, onBack }: Props): JSX.Element {
       )}
 
       {editingUser && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={closeEditModal}
+        <Modal
+          className="w-[520px]"
+          labelledBy="team-user-dialog-title"
+          onClose={closeEditModal}
+          title="Edit user"
+          description={
+            <>Update account settings for &ldquo;{editingUser.name || 'Untitled'}&rdquo;.</>
+          }
+          closeDisabled={saving}
+          disableEscape={saving}
         >
-          <div
-            className="max-h-[85vh] w-[520px] overflow-y-auto rounded-lg border border-separator bg-surface p-4 shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="team-user-dialog-title"
-          >
-            <h2
-              id="team-user-dialog-title"
-              className="m-0 mb-1 text-[14px] font-semibold text-text"
-            >
-              Edit user
-            </h2>
-            <p className="mb-4 text-[14px] text-muted">
-              Update account settings for &ldquo;{editingUser.name || 'Untitled'}&rdquo;.
-            </p>
+          <TeamUserForm
+            key={editingUser.id}
+            mode="edit"
+            user={editingUser}
+            disabled={saving}
+            resourceOptions={resourceOptions}
+            optionsLoading={optionsLoading}
+            formId={editFormId}
+            onSubmit={handleSaveUser}
+          />
 
-            <TeamUserForm
-              key={editingUser.id}
-              mode="edit"
-              user={editingUser}
-              disabled={saving}
-              resourceOptions={resourceOptions}
-              optionsLoading={optionsLoading}
-              formId={editFormId}
-              onSubmit={handleSaveUser}
-            />
+          {actionError && <p className="mt-4 text-[14px] text-danger">{actionError}</p>}
 
-            {actionError && <p className="mt-4 text-[14px] text-danger">{actionError}</p>}
-
-            <div className="mt-4 flex justify-end gap-2">
-              <Button type="button" variant="secondary" disabled={saving} onClick={closeEditModal}>
-                Cancel
-              </Button>
-              <Button type="submit" form={editFormId} disabled={saving}>
-                {saving ? 'Saving…' : 'Save'}
-              </Button>
-            </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button type="submit" form={editFormId} disabled={saving}>
+              {saving ? 'Saving…' : 'Save'}
+            </Button>
           </div>
-        </div>
+        </Modal>
       )}
 
       {creatingUser && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={closeCreateModal}
+        <Modal
+          className="w-[520px]"
+          labelledBy="team-user-create-title"
+          onClose={closeCreateModal}
+          title="Create user"
+          description="A new API token will be generated automatically. Store the secret when it is shown; it will not be displayed again."
+          closeDisabled={saving}
+          disableEscape={saving}
         >
-          <div
-            className="max-h-[85vh] w-[520px] overflow-y-auto rounded-lg border border-separator bg-surface p-4 shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="team-user-create-title"
-          >
-            <h2
-              id="team-user-create-title"
-              className="m-0 mb-1 text-[14px] font-semibold text-text"
-            >
-              Create user
-            </h2>
-            <p className="mb-4 text-[14px] text-muted">
-              A new API token will be generated automatically. Store the secret when it is shown; it
-              will not be displayed again.
-            </p>
+          <TeamUserForm
+            key="create-user"
+            mode="create"
+            disabled={saving}
+            resourceOptions={resourceOptions}
+            optionsLoading={optionsLoading}
+            formId={createFormId}
+            onSubmit={handleCreateUser}
+          />
 
-            <TeamUserForm
-              key="create-user"
-              mode="create"
-              disabled={saving}
-              resourceOptions={resourceOptions}
-              optionsLoading={optionsLoading}
-              formId={createFormId}
-              onSubmit={handleCreateUser}
-            />
+          {actionError && <p className="mt-4 text-[14px] text-danger">{actionError}</p>}
 
-            {actionError && <p className="mt-4 text-[14px] text-danger">{actionError}</p>}
-
-            <div className="mt-4 flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={saving}
-                onClick={closeCreateModal}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" form={createFormId} disabled={saving}>
-                {saving ? 'Creating…' : 'Create'}
-              </Button>
-            </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button type="submit" form={createFormId} disabled={saving}>
+              {saving ? 'Creating…' : 'Create'}
+            </Button>
           </div>
-        </div>
+        </Modal>
       )}
 
       {createdSecret && (
@@ -385,66 +350,49 @@ export function TeamManageView({ hub, onBack }: Props): JSX.Element {
       )}
 
       {deletingUser && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={closeDeleteModal}
-        >
-          <div
-            className="w-[480px] rounded-lg border border-separator bg-surface p-4 shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="team-user-delete-title"
-          >
-            <h2
-              id="team-user-delete-title"
-              className="m-0 mb-1 text-[14px] font-semibold text-text"
-            >
-              Delete user?
-            </h2>
-            <p className="mb-4 text-[14px] text-muted">
+        <Modal
+          className="w-[480px]"
+          labelledBy="team-user-delete-title"
+          onClose={closeDeleteModal}
+          title="Delete user?"
+          description={
+            <>
               This permanently deletes &ldquo;{deletingUser.name || 'Untitled'}&rdquo; and revokes
               all of their API tokens. Type <strong>DELETE</strong> to confirm.
-            </p>
+            </>
+          }
+          closeDisabled={deleting}
+          disableEscape={deleting}
+        >
+          <label
+            htmlFor="team-user-delete-confirm"
+            className="mb-1 block text-[14px] font-medium text-text"
+          >
+            Confirmation
+          </label>
+          <Input
+            id="team-user-delete-confirm"
+            type="text"
+            variant="surface"
+            value={deleteConfirmText}
+            disabled={deleting}
+            autoComplete="off"
+            onChange={(event) => setDeleteConfirmText(event.target.value)}
+          />
 
-            <label
-              htmlFor="team-user-delete-confirm"
-              className="mb-1 block text-[14px] font-medium text-text"
+          {actionError && <p className="mt-4 text-[14px] text-danger">{actionError}</p>}
+
+          <div className="mt-4 flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondaryDanger"
+              disabled={deleting || deleteConfirmText !== 'DELETE'}
+              onClick={() => void handleConfirmDelete()}
             >
-              Confirmation
-            </label>
-            <Input
-              id="team-user-delete-confirm"
-              type="text"
-              variant="surface"
-              value={deleteConfirmText}
-              disabled={deleting}
-              autoComplete="off"
-              onChange={(event) => setDeleteConfirmText(event.target.value)}
-            />
-
-            {actionError && <p className="mt-4 text-[14px] text-danger">{actionError}</p>}
-
-            <div className="mt-4 flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={deleting}
-                onClick={closeDeleteModal}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="secondaryDanger"
-                disabled={deleting || deleteConfirmText !== 'DELETE'}
-                onClick={() => void handleConfirmDelete()}
-              >
-                {deleting ? 'Deleting…' : 'Delete'}
-              </Button>
-            </div>
+              {deleting ? 'Deleting…' : 'Delete'}
+            </Button>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

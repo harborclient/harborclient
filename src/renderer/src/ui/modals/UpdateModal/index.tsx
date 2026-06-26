@@ -2,7 +2,6 @@ import { useCallback, useEffect, type JSX } from 'react';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { closeUpdateModal, selectUpdateModal } from '#/renderer/src/store/slices/modalsSlice';
 import { checkForUpdates } from '#/renderer/src/store/thunks';
-import { Button } from '#/renderer/src/components/Button';
 import { Modal } from '#/renderer/src/components/Modal';
 
 /**
@@ -58,11 +57,12 @@ export function UpdateModal(): JSX.Element | null {
   if (!update.open) return null;
 
   return (
-    <Modal onClose={handleClose} className="w-96" labelledBy="update-modal-title">
-      <h2 id="update-modal-title" className="m-0 mb-4 text-[15px] font-semibold text-text">
-        Check for Updates
-      </h2>
-
+    <Modal
+      onClose={handleClose}
+      className="w-96"
+      labelledBy="update-modal-title"
+      title="Check for Updates"
+    >
       {update.loading && <UpdateCheckSpinner />}
 
       {!update.loading && update.error && (
@@ -93,10 +93,6 @@ export function UpdateModal(): JSX.Element | null {
           You&apos;re on the latest version (v{update.result.currentVersion}).
         </p>
       )}
-
-      <div className="mt-6 flex justify-end">
-        <Button onClick={handleClose}>OK</Button>
-      </div>
     </Modal>
   );
 }

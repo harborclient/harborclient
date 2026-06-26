@@ -299,26 +299,22 @@ export function TeamCollectionContentsView({
       )}
 
       {deletingRequest && (
-        <Modal onClose={closeDeleteModal} labelledBy="delete-request-title">
-          <h2 id="delete-request-title" className="m-0 mb-1 text-[14px] font-semibold text-text">
-            Delete request?
-          </h2>
-          <p className="mb-4 text-[14px] text-muted">
-            Permanently delete &ldquo;{deletingRequest.name}&rdquo; from the team hub? Team members
-            will lose access to this saved request on the server.
-          </p>
-
+        <Modal
+          onClose={closeDeleteModal}
+          labelledBy="delete-request-title"
+          title="Delete request?"
+          description={
+            <>
+              Permanently delete &ldquo;{deletingRequest.name}&rdquo; from the team hub? Team
+              members will lose access to this saved request on the server.
+            </>
+          }
+          closeDisabled={deleting}
+          disableEscape={deleting}
+        >
           {actionError && <p className="mb-4 text-[14px] text-danger">{actionError}</p>}
 
           <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={deleting}
-              onClick={closeDeleteModal}
-            >
-              Cancel
-            </Button>
             <Button
               type="button"
               variant="secondaryDanger"

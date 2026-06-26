@@ -676,13 +676,11 @@ export function Sidebar({
       />
 
       {folderModal && (
-        <Modal onClose={closeFolderModal} labelledBy="sidebar-folder-modal-title">
-          <h2
-            id="sidebar-folder-modal-title"
-            className="m-0 mb-1 text-[14px] font-semibold text-text"
-          >
-            {folderModal.mode === 'create' ? 'New folder' : 'Rename folder'}
-          </h2>
+        <Modal
+          onClose={closeFolderModal}
+          labelledBy="sidebar-folder-modal-title"
+          title={folderModal.mode === 'create' ? 'New folder' : 'Rename folder'}
+        >
           <Input
             className="mt-3 w-full"
             type="text"
@@ -700,9 +698,6 @@ export function Sidebar({
           />
           {folderModal.error && <p className="mt-3 text-[14px] text-danger">{folderModal.error}</p>}
           <div className="mt-4 flex justify-end gap-2">
-            <Button variant="secondary" onClick={closeFolderModal}>
-              Cancel
-            </Button>
             <Button
               onClick={() => void handleFolderModalSubmit()}
               disabled={!folderModal.name.trim()}
@@ -714,14 +709,11 @@ export function Sidebar({
       )}
 
       {showEnvironmentModal && (
-        <Modal onClose={closeEnvironmentModal} labelledBy="sidebar-environment-modal-title">
-          <h2
-            id="sidebar-environment-modal-title"
-            className="m-0 mb-1 text-[14px] font-semibold text-text"
-          >
-            Add environment
-          </h2>
-
+        <Modal
+          onClose={closeEnvironmentModal}
+          labelledBy="sidebar-environment-modal-title"
+          title="Add environment"
+        >
           <SegmentedTabsGroup
             value={environmentModalTab}
             onChange={setEnvironmentModalTab}
@@ -756,9 +748,6 @@ export function Sidebar({
                 }}
               />
               <div className="mt-4 flex justify-end gap-2">
-                <Button variant="secondary" onClick={closeEnvironmentModal}>
-                  Cancel
-                </Button>
                 <Button
                   onClick={() => void handleEnvironmentModalSubmit()}
                   disabled={!newEnvironmentName.trim()}
@@ -773,9 +762,6 @@ export function Sidebar({
                 Choose a HarborClient environment export (.json) to import variables and settings.
               </p>
               <div className="flex justify-end gap-2">
-                <Button variant="secondary" onClick={closeEnvironmentModal}>
-                  Cancel
-                </Button>
                 <Button onClick={() => void handleEnvironmentImport()}>Import .json</Button>
               </div>
             </SegmentedTabPanel>

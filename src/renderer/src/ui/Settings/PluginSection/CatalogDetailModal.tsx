@@ -54,11 +54,10 @@ export function CatalogDetailModal({
       onClose={onClose}
       className="w-[min(42rem,calc(100vw-2rem))]"
       labelledBy="plugin-catalog-detail-title"
+      title={entry.name}
+      closeDisabled={actionBusy}
+      disableEscape={actionBusy}
     >
-      <h2 id="plugin-catalog-detail-title" className="m-0 mb-3 text-[15px] font-semibold text-text">
-        {entry.name}
-      </h2>
-
       {entry.screenshot ? (
         <img
           src={entry.screenshot}
@@ -110,9 +109,6 @@ export function CatalogDetailModal({
       </div>
 
       <div className="mt-4 flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="secondary" onClick={onClose}>
-          Close
-        </Button>
         {installed ? (
           installed.source === 'git' ? (
             <Button

@@ -115,16 +115,21 @@ export function DiscoverCollectionsModal({
   }, [onSkip]);
 
   return (
-    <Modal labelledBy={headingId} className="w-[480px]" onClose={onClose} disableEscape={busy}>
-      <h2 id={headingId} className="m-0 mb-1 text-[14px] font-semibold text-text">
-        Add existing collections?
-      </h2>
-      <p className="mb-4 text-[14px] text-muted">
-        &ldquo;{connectionName || 'Untitled'}&rdquo; already contains{' '}
-        {collections.length === 1 ? 'a collection' : `${collections.length} collections`}. Choose
-        which to show in the sidebar.
-      </p>
-
+    <Modal
+      labelledBy={headingId}
+      className="w-[480px]"
+      onClose={onClose}
+      disableEscape={busy}
+      closeDisabled={busy}
+      title="Add existing collections?"
+      description={
+        <>
+          &ldquo;{connectionName || 'Untitled'}&rdquo; already contains{' '}
+          {collections.length === 1 ? 'a collection' : `${collections.length} collections`}. Choose
+          which to show in the sidebar.
+        </>
+      }
+    >
       <div className="mb-3 flex items-center justify-between gap-2">
         <span className="text-[14px] font-medium text-text">Collections</span>
         <div className="flex gap-2">
