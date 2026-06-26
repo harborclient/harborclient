@@ -7,6 +7,7 @@ import type {
   SendResult
 } from '#/shared/types';
 import { defaultAuth, normalizeAuth, type AuthConfig } from '#/shared/auth';
+import { applyParamsToUrl } from '#/shared/queryParams';
 
 /**
  * Editable request state in the UI before or during save.
@@ -178,13 +179,23 @@ export function createTab(draft: RequestDraft = defaultDraft()): RequestTab {
 }
 
 /**
+ * Ensures the draft URL query string reflects enabled params rows, matching the editor.
+ *
+ * @param draft - Draft whose URL should include enabled query parameters.
+ * @returns Draft with URL updated from the params table.
+ */
+export function syncDraftUrlWithParams(draft: RequestDraft): RequestDraft {
+  return { ...draft, url: applyParamsToUrl(draft.url, draft.params) };
+}
+
+/**
  * Converts a saved request from the database into an editable draft.
  *
  * @param req - Saved request to load into the editor.
  * @returns RequestDraft populated from the saved request.
  */
 export function draftFromSaved(req: SavedRequest): RequestDraft {
-  return {
+  return syncDraftUrlWithParams({
     id: req.id,
     collection_id: req.collection_id,
     folder_id: req.folder_id,
@@ -199,5 +210,5 @@ export function draftFromSaved(req: SavedRequest): RequestDraft {
     pre_request_script: req.pre_request_script ?? '',
     post_request_script: req.post_request_script ?? '',
     comment: req.comment ?? ''
-  };
+  });
 }

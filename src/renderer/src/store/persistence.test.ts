@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import type { RequestDraft } from '#/renderer/src/store/drafts';
-import { createTab } from '#/renderer/src/store/drafts';
+import { createTab, isTabDirty } from '#/renderer/src/store/drafts';
 import {
   defaultTabState,
   LEGACY_OPEN_TABS_KEY,
@@ -88,6 +88,7 @@ describe('loadTabsFromStorage', () => {
     expect(result.tabs).toHaveLength(2);
     expect(result.tabs[0].tabId).toBe('tab-a');
     expect(result.tabs[0].draft.name).toBe('First');
+    expect(result.tabs[0].draft.url).toBe('https://example.com?page=1');
     expect(result.tabs[1].tabId).toBe('tab-b');
     expect(result.activeTabId).toBe('tab-b');
     expect(result.tabs[0].response).toBeNull();
@@ -175,10 +176,12 @@ describe('loadTabsFromStorage', () => {
     expect(result.tabs).toHaveLength(1);
     expect(result.tabs[0].draft).toMatchObject({
       name: 'Legacy',
+      url: 'https://legacy.example?q=search',
       pre_request_script: '',
       post_request_script: '',
       comment: ''
     });
+    expect(isTabDirty(result.tabs[0])).toBe(false);
   });
 
   it('reads from the legacy storage key and migrates to the current key', () => {

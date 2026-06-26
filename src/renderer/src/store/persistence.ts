@@ -2,6 +2,7 @@ import {
   cloneDraft,
   createTab,
   normalizeDraft,
+  syncDraftUrlWithParams,
   type RequestDraft,
   type RequestTab
 } from '#/renderer/src/store/drafts';
@@ -149,8 +150,8 @@ function isPersistedTab(value: unknown): value is PersistedTab {
  * @returns RequestTab with normalized drafts and cleared runtime fields.
  */
 function persistedTabToRequestTab(tab: PersistedTab): RequestTab {
-  const draft = normalizeDraft(tab.draft);
-  const savedDraft = normalizeDraft(tab.savedDraft ?? tab.draft);
+  const draft = syncDraftUrlWithParams(normalizeDraft(tab.draft));
+  const savedDraft = syncDraftUrlWithParams(normalizeDraft(tab.savedDraft ?? tab.draft));
   return {
     tabId: tab.tabId,
     draft,

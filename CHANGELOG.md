@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(drafts): synchronize draft URLs with enabled parameters. (`5298bac`)
 - feat(seed): add --seed flag to ensure HarborClient Echo collection exists. (`38db945`)
 
 ## 1.8.17 - 2026-06-26

@@ -207,7 +207,7 @@ describe('draftFromSaved', () => {
       folder_id: null,
       name: 'Saved',
       method: 'PUT',
-      url: 'https://api.example.com',
+      url: 'https://api.example.com?q=search',
       headers: [{ key: 'X-Test', value: '1', enabled: true }],
       params: [{ key: 'q', value: 'search', enabled: true }],
       auth: defaultAuth(),
@@ -217,6 +217,84 @@ describe('draftFromSaved', () => {
       post_request_script: '',
       comment: ''
     });
+  });
+
+  it('leaves disabled params out of the synced URL', () => {
+    const saved: SavedRequest = {
+      id: 3,
+      uuid: '',
+      collection_id: 10,
+      name: 'Disabled param',
+      method: 'GET',
+      url: 'https://example.com',
+      headers: [],
+      params: [
+        { key: 'active', value: 'yes', enabled: true },
+        { key: 'inactive', value: 'no', enabled: false }
+      ],
+      auth: defaultAuth(),
+      body: '',
+      body_type: 'none',
+      pre_request_script: '',
+      post_request_script: '',
+      comment: '',
+      folder_id: null,
+      sort_order: 0,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z'
+    };
+
+    expect(draftFromSaved(saved).url).toBe('https://example.com?active=yes');
+  });
+
+  it('inserts query before a hash fragment', () => {
+    const saved: SavedRequest = {
+      id: 4,
+      uuid: '',
+      collection_id: 10,
+      name: 'Hash URL',
+      method: 'GET',
+      url: 'https://example.com/path#frag',
+      headers: [],
+      params: [{ key: 'q', value: '1', enabled: true }],
+      auth: defaultAuth(),
+      body: '',
+      body_type: 'none',
+      pre_request_script: '',
+      post_request_script: '',
+      comment: '',
+      folder_id: null,
+      sort_order: 0,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z'
+    };
+
+    expect(draftFromSaved(saved).url).toBe('https://example.com/path?q=1#frag');
+  });
+
+  it('is idempotent when the URL already contains the same query string', () => {
+    const saved: SavedRequest = {
+      id: 5,
+      uuid: '',
+      collection_id: 10,
+      name: 'Already synced',
+      method: 'GET',
+      url: 'https://example.com?foo=bar',
+      headers: [],
+      params: [{ key: 'foo', value: 'bar', enabled: true }],
+      auth: defaultAuth(),
+      body: '',
+      body_type: 'none',
+      pre_request_script: '',
+      post_request_script: '',
+      comment: '',
+      folder_id: null,
+      sort_order: 0,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z'
+    };
+
+    expect(draftFromSaved(saved).url).toBe('https://example.com?foo=bar');
   });
 
   it('backfills empty headers and params with a blank row', () => {
