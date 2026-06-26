@@ -2,7 +2,9 @@ import { useCallback, useId, useState, type JSX } from 'react';
 import type { DiscoveredCollection } from '#/shared/types';
 import { Button } from '#/renderer/src/components/Button';
 import { FormGroup } from '#/renderer/src/components/FormGroup';
-import { Modal } from '#/renderer/src/components/Modal';
+import { Modal, ModalFooter } from '#/renderer/src/components/Modal';
+import { FieldError } from '#/renderer/src/components/FieldError';
+import { StatusMessage } from '#/renderer/src/components/StatusMessage';
 
 interface Props {
   /**
@@ -180,26 +182,22 @@ export function DiscoverCollectionsModal({
         })}
       </ul>
 
-      {busy && (
-        <p className="mt-3 text-[14px] text-muted" role="status">
-          Saving…
-        </p>
-      )}
+      {busy && <StatusMessage>Saving…</StatusMessage>}
 
       {error && (
-        <p className="mt-3 text-[14px] text-danger" role="alert">
+        <FieldError spacing="section" roleAlert>
           {error}
-        </p>
+        </FieldError>
       )}
 
-      <div className="mt-4 flex justify-end gap-2">
+      <ModalFooter spaced>
         <Button type="button" variant="secondary" disabled={busy} onClick={() => void handleSkip()}>
           Not now
         </Button>
         <Button type="button" disabled={busy || noneSelected} onClick={() => void handleConfirm()}>
           Add to sidebar
         </Button>
-      </div>
+      </ModalFooter>
     </Modal>
   );
 }

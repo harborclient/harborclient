@@ -1,7 +1,8 @@
 import type { JSX } from 'react';
 import type { StorageConnection } from '#/shared/types';
 import { Button } from '#/renderer/src/components/Button';
-import { Modal } from '#/renderer/src/components/Modal';
+import { Modal, ModalFormLayout } from '#/renderer/src/components/Modal';
+import { FieldError } from '#/renderer/src/components/FieldError';
 import { StorageConnectionForm } from './StorageConnectionForm';
 
 interface Props {
@@ -63,20 +64,21 @@ export function ConnectionEditModal({
       closeDisabled={saving}
       disableEscape={saving}
     >
-      <StorageConnectionForm
-        connection={connection}
-        isNew={isNew}
-        disabled={saving}
-        onChange={onChange}
-      />
-
-      {error && <p className="mt-4 text-[14px] text-danger">{error}</p>}
-
-      <div className="mt-4 flex justify-end gap-2">
-        <Button type="button" disabled={saving} onClick={() => void onSave()}>
-          {saving ? 'Saving…' : 'Save'}
-        </Button>
-      </div>
+      <ModalFormLayout
+        error={error ? <FieldError spacing="modal">{error}</FieldError> : undefined}
+        actions={
+          <Button type="button" disabled={saving} onClick={() => void onSave()}>
+            {saving ? 'Saving…' : 'Save'}
+          </Button>
+        }
+      >
+        <StorageConnectionForm
+          connection={connection}
+          isNew={isNew}
+          disabled={saving}
+          onChange={onChange}
+        />
+      </ModalFormLayout>
     </Modal>
   );
 }

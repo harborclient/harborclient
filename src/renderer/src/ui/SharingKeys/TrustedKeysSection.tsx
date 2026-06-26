@@ -3,6 +3,15 @@ import toast from 'react-hot-toast';
 import type { TrustedSharingKey } from '#/shared/types';
 import { Button } from '#/renderer/src/components/Button';
 import { PageHeader } from '#/renderer/src/components/PageHeader';
+import { PanelCloseButton } from '#/renderer/src/components/PanelCloseButton';
+import {
+  ResourceList,
+  ResourceListEmptyItem,
+  ResourceListPrimary,
+  ResourceListRow
+} from '#/renderer/src/components/ResourceList';
+import { FieldError } from '#/renderer/src/components/FieldError';
+import { AsyncListState, LoadingMessage } from '#/renderer/src/components/AsyncListState';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { Input, Textarea } from '#/renderer/src/components/forms';
 import { FormGroup } from '#/renderer/src/components/FormGroup';
@@ -128,14 +137,7 @@ export function TrustedKeysSection({ onClose }: Props): JSX.Element {
         title="Trusted keys"
         description="Add public keys for people you trust. Share tokens must be signed by a trusted sender, and you can only create share tokens for keys listed here."
       >
-        <Button
-          type="button"
-          className="shrink-0 whitespace-nowrap"
-          aria-label="Close sharing keys"
-          onClick={onClose}
-        >
-          Close
-        </Button>
+        <PanelCloseButton onClose={onClose} ariaLabel="Close sharing keys" />
       </PageHeader>
 
       <div className="mb-4 rounded-md border border-separator p-3">
@@ -179,36 +181,30 @@ export function TrustedKeysSection({ onClose }: Props): JSX.Element {
         </div>
       </div>
 
-      {loading ? (
-        <p role="status" className="text-[14px] text-muted">
-          Loading…
-        </p>
-      ) : (
-        <ul className="m-0 flex list-none flex-col gap-2 p-0">
+      <AsyncListState loading={loading} loadingMessage={<LoadingMessage>Loading…</LoadingMessage>}>
+        <ResourceList>
           {keys.map((key) => (
-            <li
+            <ResourceListRow
               key={key.id}
-              className="flex items-center justify-between gap-3 rounded-md border border-separator px-3 py-2"
-            >
-              <div className="min-w-0">
-                <div className="truncate text-[14px] font-medium text-text">{key.label}</div>
-                <div className="truncate font-mono text-[14px] text-muted">{key.id}</div>
-              </div>
-              <Button
-                type="button"
-                variant="secondary"
-                className="shrink-0"
-                onClick={() => handleDeleteClick(key)}
-              >
-                Delete
-              </Button>
-            </li>
+              primary={<ResourceListPrimary>{key.label}</ResourceListPrimary>}
+              secondary={<span className="font-mono">{key.id}</span>}
+              actions={
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="shrink-0"
+                  onClick={() => handleDeleteClick(key)}
+                >
+                  Delete
+                </Button>
+              }
+            />
           ))}
-          {keys.length === 0 && <li className="text-[14px] text-muted">No trusted keys yet.</li>}
-        </ul>
-      )}
+          {keys.length === 0 && <ResourceListEmptyItem>No trusted keys yet.</ResourceListEmptyItem>}
+        </ResourceList>
+      </AsyncListState>
 
-      {error && <p className="mt-3 text-[14px] text-danger">{error}</p>}
+      {error && <FieldError spacing="section">{error}</FieldError>}
     </div>
   );
 }

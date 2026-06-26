@@ -25,7 +25,9 @@ import { Button } from '#/renderer/src/components/Button';
 import { FormGroup } from '#/renderer/src/components/FormGroup';
 import { providerOptionLabel, useProviders } from '#/renderer/src/hooks/useProviders';
 import { Input, Select, Textarea } from '#/renderer/src/components/forms';
-import { Modal } from '#/renderer/src/components/Modal';
+import { Modal, ModalFooter } from '#/renderer/src/components/Modal';
+import { FieldError } from '#/renderer/src/components/FieldError';
+import { StatusMessage } from '#/renderer/src/components/StatusMessage';
 import { formatErrorMessage } from '#/renderer/src/ui/modals/dialogHelpers';
 
 /**
@@ -147,8 +149,16 @@ export function CollectionModal(): JSX.Element | null {
             </option>
           ))}
         </Select>
-        {providersLoading && <p className="mb-0 mt-1 text-[14px] text-muted">Loading…</p>}
-        {providersError && <p className="mb-0 mt-1 text-[14px] text-danger">{providersError}</p>}
+        {providersLoading && (
+          <StatusMessage live={false} className="mb-0 mt-1">
+            Loading…
+          </StatusMessage>
+        )}
+        {providersError && (
+          <FieldError spacing="field" className="mb-0 mt-1">
+            {providersError}
+          </FieldError>
+        )}
       </FormGroup>
     </div>
   );
@@ -184,7 +194,9 @@ export function CollectionModal(): JSX.Element | null {
           />
 
           {collectionModal.submitError && (
-            <p className="mb-3 text-[14px] text-danger">{collectionModal.submitError}</p>
+            <FieldError spacing="section" className="mb-3 mt-0">
+              {collectionModal.submitError}
+            </FieldError>
           )}
 
           <SegmentedTabPanel value="join">
@@ -199,14 +211,14 @@ export function CollectionModal(): JSX.Element | null {
               value={collectionModal.shareTokenInput}
               onChange={(e) => dispatch(setCollectionModalShareTokenInput(e.target.value))}
             />
-            <div className="mt-4 flex justify-end gap-2">
+            <ModalFooter spaced>
               <Button
                 onClick={() => void handleJoinSharedCollection()}
                 disabled={!collectionModal.shareTokenInput.trim()}
               >
                 Join
               </Button>
-            </div>
+            </ModalFooter>
           </SegmentedTabPanel>
 
           <SegmentedTabPanel value="create">
@@ -222,14 +234,14 @@ export function CollectionModal(): JSX.Element | null {
               }}
             />
             {providerField}
-            <div className="mt-4 flex justify-end gap-2">
+            <ModalFooter spaced>
               <Button
                 onClick={() => void handleSubmit()}
                 disabled={!collectionModal.name.trim() || providerSelectDisabled}
               >
                 {collectionModal.mode === 'create-and-save' ? 'Create & Save' : 'Create'}
               </Button>
-            </div>
+            </ModalFooter>
           </SegmentedTabPanel>
 
           <SegmentedTabPanel value="import">
@@ -237,15 +249,17 @@ export function CollectionModal(): JSX.Element | null {
               Choose a HarborClient or Postman collection export (.json) to import all saved
               requests.
             </p>
-            <div className="flex justify-end gap-2">
+            <ModalFooter>
               <Button onClick={() => void handleImport()}>Import .json</Button>
-            </div>
+            </ModalFooter>
           </SegmentedTabPanel>
         </SegmentedTabsGroup>
       ) : (
         <>
           {collectionModal.submitError && (
-            <p className="mb-3 text-[14px] text-danger">{collectionModal.submitError}</p>
+            <FieldError spacing="section" className="mb-3 mt-0">
+              {collectionModal.submitError}
+            </FieldError>
           )}
           <Input
             className="w-full"
@@ -259,14 +273,14 @@ export function CollectionModal(): JSX.Element | null {
             }}
           />
           {providerField}
-          <div className="mt-4 flex justify-end gap-2">
+          <ModalFooter spaced>
             <Button
               onClick={() => void handleSubmit()}
               disabled={!collectionModal.name.trim() || providerSelectDisabled}
             >
               {collectionModal.mode === 'create-and-save' ? 'Create & Save' : 'Create'}
             </Button>
-          </div>
+          </ModalFooter>
         </>
       )}
     </Modal>

@@ -12,6 +12,8 @@ import { field } from '#/renderer/src/components/forms';
 import { formatErrorMessage } from '#/renderer/src/ui/modals/dialogHelpers';
 import { settingsSectionMeta } from '../constants';
 import { acceleratorFromKeyboardEvent } from './acceleratorFromKeyboardEvent';
+import { FieldError } from '#/renderer/src/components/FieldError';
+import { StatusMessage } from '#/renderer/src/components/StatusMessage';
 import { SettingsCloseButton } from '../SettingsCloseButton';
 
 interface Props {
@@ -231,11 +233,7 @@ export function ShortcutsSection({ onClose }: Props): JSX.Element {
                             ? 'Press keys…'
                             : formatAcceleratorDisplay(binding.accelerator)}
                         </button>
-                        {error != null ? (
-                          <p id={errorId} className="mt-1 text-[14px] text-danger">
-                            {error}
-                          </p>
-                        ) : null}
+                        {error != null ? <FieldError id={errorId}>{error}</FieldError> : null}
                       </td>
                     </tr>
                   );
@@ -245,14 +243,14 @@ export function ShortcutsSection({ onClose }: Props): JSX.Element {
           </div>
 
           {globalError != null ? (
-            <p className="mt-3 text-[14px] text-danger" role="alert">
+            <FieldError spacing="section" roleAlert>
               {globalError}
-            </p>
+            </FieldError>
           ) : null}
 
-          <p id={statusId} className="mt-3 text-[14px] text-muted" role="status" aria-live="polite">
+          <StatusMessage id={statusId} className="mt-3">
             {statusMessage ?? ''}
-          </p>
+          </StatusMessage>
 
           <div className="mt-4 rounded-md border border-danger/30 bg-danger/5 p-3">
             <p className="m-0 mb-2 text-[14px] text-text">

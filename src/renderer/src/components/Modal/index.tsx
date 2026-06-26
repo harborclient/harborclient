@@ -2,6 +2,9 @@ import { useEffect, useRef, type JSX, type ReactNode } from 'react';
 import { useDialogFocus } from '#/renderer/src/hooks/useDialogFocus';
 import { ModalHeader } from '#/renderer/src/components/Modal/ModalHeader';
 
+export { ModalFooter } from '#/renderer/src/components/Modal/ModalFooter';
+export { ModalFormLayout } from '#/renderer/src/components/Modal/ModalFormLayout';
+
 interface BaseProps {
   /**
    * Called when the backdrop is clicked or Escape is pressed.

@@ -2,7 +2,7 @@ import { useState, type JSX } from 'react';
 import { Textarea } from '#/renderer/src/components/forms';
 import { Button } from '#/renderer/src/components/Button';
 import { FormGroup } from '#/renderer/src/components/FormGroup';
-import { Modal } from '#/renderer/src/components/Modal';
+import { Modal, ModalFooter } from '#/renderer/src/components/Modal';
 
 interface Props {
   /**
@@ -60,11 +60,11 @@ export function TeamSecretDialog({ title, description, secret, onClose }: Props)
         />
       </FormGroup>
 
-      <div className="mt-4 flex justify-end gap-2">
+      <ModalFooter spaced>
         <Button type="button" variant="secondary" onClick={handleCopy}>
           {copied ? 'Copied' : 'Copy'}
         </Button>
-      </div>
+      </ModalFooter>
     </Modal>
   );
 }

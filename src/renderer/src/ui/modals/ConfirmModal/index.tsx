@@ -2,7 +2,7 @@ import { useCallback, type JSX } from 'react';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectConfirmModal } from '#/renderer/src/store/slices/modalsSlice';
 import { Button } from '#/renderer/src/components/Button';
-import { Modal } from '#/renderer/src/components/Modal';
+import { Modal, ModalFooter } from '#/renderer/src/components/Modal';
 import { resolveConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
 
 /**
@@ -31,14 +31,14 @@ export function ConfirmModal(): JSX.Element | null {
   return (
     <Modal onClose={handleCancel} labelledBy="confirm-modal-title" title={confirmModal.title}>
       <p className="mb-4 text-[14px] text-muted">{confirmModal.message}</p>
-      <div className="flex justify-end gap-2">
+      <ModalFooter>
         <Button
           variant={confirmModal.variant === 'danger' ? 'primaryDanger' : 'primary'}
           onClick={handleConfirm}
         >
           {confirmModal.confirmLabel}
         </Button>
-      </div>
+      </ModalFooter>
     </Modal>
   );
 }

@@ -4,10 +4,16 @@ import type { AdminResourceOption, TeamHub } from '#/shared/types';
 import { Input } from '#/renderer/src/components/forms';
 import { FormGroup } from '#/renderer/src/components/FormGroup';
 import { Button } from '#/renderer/src/components/Button';
-import { Modal } from '#/renderer/src/components/Modal';
+import { Modal, ModalFormLayout } from '#/renderer/src/components/Modal';
 import { PageHeader } from '#/renderer/src/components/PageHeader';
-import { FaIcon } from '#/renderer/src/components/FaIcon';
-import { faAngleLeft } from '#/renderer/src/fontawesome';
+import { BackButton } from '#/renderer/src/components/BackButton';
+import { AsyncListState } from '#/renderer/src/components/AsyncListState';
+import {
+  ResourceList,
+  ResourceListPrimary,
+  ResourceListRow
+} from '#/renderer/src/components/ResourceList';
+import { FieldError } from '#/renderer/src/components/FieldError';
 import { useTeamHubAdminCollections } from '#/renderer/src/hooks/useTeamHubAdminCollections';
 import { TeamCollectionContentsView } from '#/renderer/src/ui/TeamHub/TeamCollectionContentsView';
 
@@ -99,63 +105,48 @@ export function TeamCollectionsView({ hub, onBack }: Props): JSX.Element {
   return (
     <div>
       <PageHeader title="Collections" description={`${hub.name || 'Untitled'} · ${hub.baseUrl}`}>
-        <Button
-          type="button"
-          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
-          onClick={onBack}
-        >
-          <FaIcon icon={faAngleLeft} className="h-3.5 w-3.5" aria-hidden />
-          Back
-        </Button>
+        <BackButton onClick={onBack} />
       </PageHeader>
 
-      {loading ? (
-        <p className="text-[14px] text-muted">Loading…</p>
-      ) : error ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="mb-0 text-[14px] text-danger">{error}</p>
-          <Button type="button" variant="secondary" onClick={reload}>
-            Retry
-          </Button>
-        </div>
-      ) : collections.length === 0 ? (
-        <p className="text-[14px] text-muted">No collections found.</p>
-      ) : (
-        <ul className="m-0 flex list-none flex-col gap-2 p-0">
+      <AsyncListState
+        loading={loading}
+        error={error}
+        onRetry={reload}
+        isEmpty={collections.length === 0}
+        emptyMessage="No collections found."
+      >
+        <ResourceList>
           {collections.map((collection) => (
-            <li
+            <ResourceListRow
               key={collection.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-separator px-3 py-2"
-            >
-              <div className="min-w-0">
-                <span className="block truncate text-[14px] font-medium text-text">
-                  {collection.name}
-                </span>
-                <span className="block truncate text-[14px] text-muted">{collection.id}</span>
-              </div>
-              <div className="flex shrink-0 flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setSelectedCollection(collection)}
-                >
-                  Edit
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondaryDanger"
-                  onClick={() => handleDeleteClick(collection)}
-                >
-                  Delete
-                </Button>
-              </div>
-            </li>
+              wrap
+              primary={<ResourceListPrimary>{collection.name}</ResourceListPrimary>}
+              secondary={collection.id}
+              actions={
+                <>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setSelectedCollection(collection)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondaryDanger"
+                    onClick={() => handleDeleteClick(collection)}
+                  >
+                    Delete
+                  </Button>
+                </>
+              }
+            />
           ))}
-        </ul>
-      )}
+        </ResourceList>
+      </AsyncListState>
 
       {actionError && !deletingCollection && (
-        <p className="mt-3 text-[14px] text-danger">{actionError}</p>
+        <FieldError spacing="section">{actionError}</FieldError>
       )}
 
       {deletingCollection && (
@@ -172,32 +163,33 @@ export function TeamCollectionsView({ hub, onBack }: Props): JSX.Element {
           closeDisabled={deleting}
           disableEscape={deleting}
         >
-          <FormGroup
-            label="Type DELETE to confirm"
-            htmlFor="delete-collection-confirm"
-            className="mb-4"
+          <ModalFormLayout
+            error={actionError ? <FieldError spacing="section">{actionError}</FieldError> : null}
+            actions={
+              <Button
+                type="button"
+                variant="secondaryDanger"
+                disabled={deleting || deleteConfirmText !== 'DELETE'}
+                onClick={() => void handleConfirmDelete()}
+              >
+                {deleting ? 'Deleting…' : 'Delete'}
+              </Button>
+            }
           >
-            <Input
-              id="delete-collection-confirm"
-              value={deleteConfirmText}
-              disabled={deleting}
-              onChange={(event) => setDeleteConfirmText(event.target.value)}
-              autoComplete="off"
-            />
-          </FormGroup>
-
-          {actionError && <p className="mt-3 text-[14px] text-danger">{actionError}</p>}
-
-          <div className="mt-4 flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="secondaryDanger"
-              disabled={deleting || deleteConfirmText !== 'DELETE'}
-              onClick={() => void handleConfirmDelete()}
+            <FormGroup
+              label="Type DELETE to confirm"
+              htmlFor="delete-collection-confirm"
+              className="mb-4"
             >
-              {deleting ? 'Deleting…' : 'Delete'}
-            </Button>
-          </div>
+              <Input
+                id="delete-collection-confirm"
+                value={deleteConfirmText}
+                disabled={deleting}
+                onChange={(event) => setDeleteConfirmText(event.target.value)}
+                autoComplete="off"
+              />
+            </FormGroup>
+          </ModalFormLayout>
         </Modal>
       )}
     </div>

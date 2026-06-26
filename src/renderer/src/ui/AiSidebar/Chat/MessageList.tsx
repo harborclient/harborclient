@@ -1,5 +1,6 @@
 import { useEffect, useRef, type JSX } from 'react';
 import type { ChatMessage } from '#/shared/types';
+import { EmptyState } from '#/renderer/src/components/EmptyState';
 import { MessageBubble } from './MessageBubble';
 
 interface Props {
@@ -28,11 +29,7 @@ export function MessageList({ messages, sending }: Props): JSX.Element {
   }, [messages, sending]);
 
   if (messages.length === 0 && !sending) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-4 text-center text-[14px] text-muted">
-        Start the conversation
-      </div>
-    );
+    return <EmptyState variant="centered">Start the conversation</EmptyState>;
   }
 
   return (

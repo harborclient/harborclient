@@ -2,7 +2,8 @@ import type { JSX, KeyboardEvent } from 'react';
 import { Button } from '#/renderer/src/components/Button';
 import { FormGroup } from '#/renderer/src/components/FormGroup';
 import { Input } from '#/renderer/src/components/forms';
-import { Modal } from '#/renderer/src/components/Modal';
+import { Modal, ModalFormLayout } from '#/renderer/src/components/Modal';
+import { FieldError } from '#/renderer/src/components/FieldError';
 
 interface Props {
   /**
@@ -84,45 +85,50 @@ export function GitInstallModal({
       closeDisabled={busy}
       disableEscape={busy}
     >
-      <FormGroup label="Repository URL" htmlFor="plugin-git-install-url" labelTone="muted">
-        <Input
-          id="plugin-git-install-url"
-          className="mb-3 w-full"
-          type="url"
-          autoFocus
-          placeholder="https://github.com/example/my-plugin.git"
-          value={url}
-          disabled={busy}
-          onChange={(event) => onUrlChange(event.target.value)}
-          onKeyDown={handleKeyDown}
-        />
-      </FormGroup>
-      <FormGroup
-        label="Branch or tag (optional)"
-        htmlFor="plugin-git-install-ref"
-        labelTone="muted"
+      <ModalFormLayout
+        error={
+          error ? (
+            <FieldError spacing="section" roleAlert>
+              {error}
+            </FieldError>
+          ) : null
+        }
+        actions={
+          <Button type="button" disabled={busy || !url.trim()} onClick={onInstall}>
+            {busy ? 'Cloning…' : 'Install'}
+          </Button>
+        }
       >
-        <Input
-          id="plugin-git-install-ref"
-          className="w-full"
-          type="text"
-          placeholder="main"
-          value={ref}
-          disabled={busy}
-          onChange={(event) => onRefChange(event.target.value)}
-          onKeyDown={handleKeyDown}
-        />
-      </FormGroup>
-      {error ? (
-        <p className="mt-3 text-[14px] text-danger" role="alert">
-          {error}
-        </p>
-      ) : null}
-      <div className="mt-4 flex justify-end gap-2">
-        <Button type="button" disabled={busy || !url.trim()} onClick={onInstall}>
-          {busy ? 'Cloning…' : 'Install'}
-        </Button>
-      </div>
+        <FormGroup label="Repository URL" htmlFor="plugin-git-install-url" labelTone="muted">
+          <Input
+            id="plugin-git-install-url"
+            className="mb-3 w-full"
+            type="url"
+            autoFocus
+            placeholder="https://github.com/example/my-plugin.git"
+            value={url}
+            disabled={busy}
+            onChange={(event) => onUrlChange(event.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+        </FormGroup>
+        <FormGroup
+          label="Branch or tag (optional)"
+          htmlFor="plugin-git-install-ref"
+          labelTone="muted"
+        >
+          <Input
+            id="plugin-git-install-ref"
+            className="w-full"
+            type="text"
+            placeholder="main"
+            value={ref}
+            disabled={busy}
+            onChange={(event) => onRefChange(event.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+        </FormGroup>
+      </ModalFormLayout>
     </Modal>
   );
 }

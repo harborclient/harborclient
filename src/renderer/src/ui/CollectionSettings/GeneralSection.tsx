@@ -2,9 +2,9 @@ import type { JSX } from 'react';
 import { useId } from 'react';
 import type { ProviderOption } from '#/renderer/src/hooks/useProviders';
 import { providerOptionLabel } from '#/renderer/src/hooks/useProviders';
-import { Button } from '#/renderer/src/components/Button';
 import { FormGroup } from '#/renderer/src/components/FormGroup';
 import { Input, Select } from '#/renderer/src/components/forms';
+import { ErrorRetry, LoadingMessage } from '#/renderer/src/components/AsyncListState';
 
 interface Props {
   name: string;
@@ -80,15 +80,8 @@ export function GeneralSection({
               </option>
             ))}
           </Select>
-          {providersLoading && <p className="mb-0 mt-1 text-[14px] text-muted">Loading…</p>}
-          {providersError && (
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <p className="mb-0 text-[14px] text-danger">{providersError}</p>
-              <Button type="button" variant="secondary" onClick={onProvidersRetry}>
-                Retry
-              </Button>
-            </div>
-          )}
+          {providersLoading && <LoadingMessage className="mb-0 mt-1">Loading…</LoadingMessage>}
+          {providersError && <ErrorRetry error={providersError} onRetry={onProvidersRetry} />}
           {!providersLoading && !providersError && (
             <p className="mb-0 mt-1 text-[14px] text-muted">
               Changing the provider moves this collection and all of its requests.

@@ -33,7 +33,7 @@ import {
 } from '#/renderer/src/store/thunks';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebar/useSidebarExpansion';
 import { Button } from '#/renderer/src/components/Button';
-import { Modal } from '#/renderer/src/components/Modal';
+import { Modal, ModalFooter } from '#/renderer/src/components/Modal';
 import { ResizeHandle, useResizable } from '#/renderer/src/components/Resizable';
 import { Editor } from './Editor';
 import { Response } from './Response';
@@ -254,7 +254,7 @@ export function Request({ onEditVariables }: Props): JSX.Element {
             <>&ldquo;{closeTabPrompt.name}&rdquo; has unsaved changes. Close without saving?</>
           }
         >
-          <div className="flex justify-end gap-2">
+          <ModalFooter>
             <Button
               onClick={() => {
                 void dispatch(closeRequestTab(closeTabPrompt.tabId));
@@ -263,7 +263,7 @@ export function Request({ onEditVariables }: Props): JSX.Element {
             >
               Close without saving
             </Button>
-          </div>
+          </ModalFooter>
         </Modal>
       )}
     </>

@@ -10,10 +10,17 @@ import type {
 import { Input } from '#/renderer/src/components/forms';
 import { FormGroup } from '#/renderer/src/components/FormGroup';
 import { Button } from '#/renderer/src/components/Button';
-import { Modal } from '#/renderer/src/components/Modal';
+import { Modal, ModalFormLayout } from '#/renderer/src/components/Modal';
 import { PageHeader } from '#/renderer/src/components/PageHeader';
-import { FaIcon } from '#/renderer/src/components/FaIcon';
-import { faAngleLeft } from '#/renderer/src/fontawesome';
+import { BackButton } from '#/renderer/src/components/BackButton';
+import { Badge } from '#/renderer/src/components/Badge';
+import { AsyncListState } from '#/renderer/src/components/AsyncListState';
+import {
+  ResourceList,
+  ResourceListPrimary,
+  ResourceListRow
+} from '#/renderer/src/components/ResourceList';
+import { FieldError } from '#/renderer/src/components/FieldError';
 import { useTeamHubUsers } from '#/renderer/src/hooks/useTeamHubUsers';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { refreshCollections } from '#/renderer/src/store/thunks/collections';
@@ -225,58 +232,41 @@ export function TeamManageView({ hub, onBack }: Props): JSX.Element {
         <Button type="button" className="shrink-0 whitespace-nowrap" onClick={handleCreateClick}>
           Create user
         </Button>
-        <Button
-          type="button"
-          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
-          onClick={onBack}
-        >
-          <FaIcon icon={faAngleLeft} className="h-3.5 w-3.5" aria-hidden />
-          Back
-        </Button>
+        <BackButton onClick={onBack} />
       </PageHeader>
 
-      {loading ? (
-        <p className="text-[14px] text-muted">Loading…</p>
-      ) : error ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="mb-0 text-[14px] text-danger">{error}</p>
-          <Button type="button" variant="secondary" onClick={reload}>
-            Retry
-          </Button>
-        </div>
-      ) : users.length === 0 ? (
-        <p className="text-[14px] text-muted">No users found.</p>
-      ) : (
-        <ul className="m-0 flex list-none flex-col gap-2 p-0">
+      <AsyncListState
+        loading={loading}
+        error={error}
+        onRetry={reload}
+        isEmpty={users.length === 0}
+        emptyMessage="No users found."
+      >
+        <ResourceList>
           {users.map((user) => (
-            <li
+            <ResourceListRow
               key={user.id}
-              className="flex items-center justify-between gap-3 rounded-md border border-separator px-3 py-2"
-            >
-              <div className="min-w-0">
+              primary={
                 <div className="flex min-w-0 items-center gap-2">
-                  <span className="truncate text-[14px] font-medium text-text">
-                    {user.name || 'Untitled'}
-                  </span>
-                  <span className="rounded bg-success/15 px-1.5 py-0.5 text-[14px] font-medium text-success">
-                    {user.role}
-                  </span>
+                  <ResourceListPrimary>{user.name || 'Untitled'}</ResourceListPrimary>
+                  <Badge variant="success">{user.role}</Badge>
                 </div>
-                <span className="truncate text-[14px] text-muted">{user.id}</span>
-              </div>
-
-              <div className="flex shrink-0 items-center gap-2">
-                <Button type="button" variant="secondary" onClick={() => handleEdit(user)}>
-                  Edit
-                </Button>
-                <Button type="button" variant="secondary" onClick={() => handleDeleteClick(user)}>
-                  Delete
-                </Button>
-              </div>
-            </li>
+              }
+              secondary={user.id}
+              actions={
+                <>
+                  <Button type="button" variant="secondary" onClick={() => handleEdit(user)}>
+                    Edit
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={() => handleDeleteClick(user)}>
+                    Delete
+                  </Button>
+                </>
+              }
+            />
           ))}
-        </ul>
-      )}
+        </ResourceList>
+      </AsyncListState>
 
       {editingUser && (
         <Modal
@@ -290,24 +280,25 @@ export function TeamManageView({ hub, onBack }: Props): JSX.Element {
           closeDisabled={saving}
           disableEscape={saving}
         >
-          <TeamUserForm
-            key={editingUser.id}
-            mode="edit"
-            user={editingUser}
-            disabled={saving}
-            resourceOptions={resourceOptions}
-            optionsLoading={optionsLoading}
-            formId={editFormId}
-            onSubmit={handleSaveUser}
-          />
-
-          {actionError && <p className="mt-4 text-[14px] text-danger">{actionError}</p>}
-
-          <div className="mt-4 flex justify-end gap-2">
-            <Button type="submit" form={editFormId} disabled={saving}>
-              {saving ? 'Saving…' : 'Save'}
-            </Button>
-          </div>
+          <ModalFormLayout
+            error={actionError ? <FieldError spacing="modal">{actionError}</FieldError> : null}
+            actions={
+              <Button type="submit" form={editFormId} disabled={saving}>
+                {saving ? 'Saving…' : 'Save'}
+              </Button>
+            }
+          >
+            <TeamUserForm
+              key={editingUser.id}
+              mode="edit"
+              user={editingUser}
+              disabled={saving}
+              resourceOptions={resourceOptions}
+              optionsLoading={optionsLoading}
+              formId={editFormId}
+              onSubmit={handleSaveUser}
+            />
+          </ModalFormLayout>
         </Modal>
       )}
 
@@ -321,23 +312,24 @@ export function TeamManageView({ hub, onBack }: Props): JSX.Element {
           closeDisabled={saving}
           disableEscape={saving}
         >
-          <TeamUserForm
-            key="create-user"
-            mode="create"
-            disabled={saving}
-            resourceOptions={resourceOptions}
-            optionsLoading={optionsLoading}
-            formId={createFormId}
-            onSubmit={handleCreateUser}
-          />
-
-          {actionError && <p className="mt-4 text-[14px] text-danger">{actionError}</p>}
-
-          <div className="mt-4 flex justify-end gap-2">
-            <Button type="submit" form={createFormId} disabled={saving}>
-              {saving ? 'Creating…' : 'Create'}
-            </Button>
-          </div>
+          <ModalFormLayout
+            error={actionError ? <FieldError spacing="modal">{actionError}</FieldError> : null}
+            actions={
+              <Button type="submit" form={createFormId} disabled={saving}>
+                {saving ? 'Creating…' : 'Create'}
+              </Button>
+            }
+          >
+            <TeamUserForm
+              key="create-user"
+              mode="create"
+              disabled={saving}
+              resourceOptions={resourceOptions}
+              optionsLoading={optionsLoading}
+              formId={createFormId}
+              onSubmit={handleCreateUser}
+            />
+          </ModalFormLayout>
         </Modal>
       )}
 
@@ -365,30 +357,31 @@ export function TeamManageView({ hub, onBack }: Props): JSX.Element {
           closeDisabled={deleting}
           disableEscape={deleting}
         >
-          <FormGroup label="Confirmation" htmlFor="team-user-delete-confirm">
-            <Input
-              id="team-user-delete-confirm"
-              type="text"
-              variant="surface"
-              value={deleteConfirmText}
-              disabled={deleting}
-              autoComplete="off"
-              onChange={(event) => setDeleteConfirmText(event.target.value)}
-            />
-          </FormGroup>
-
-          {actionError && <p className="mt-4 text-[14px] text-danger">{actionError}</p>}
-
-          <div className="mt-4 flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="secondaryDanger"
-              disabled={deleting || deleteConfirmText !== 'DELETE'}
-              onClick={() => void handleConfirmDelete()}
-            >
-              {deleting ? 'Deleting…' : 'Delete'}
-            </Button>
-          </div>
+          <ModalFormLayout
+            error={actionError ? <FieldError spacing="modal">{actionError}</FieldError> : null}
+            actions={
+              <Button
+                type="button"
+                variant="secondaryDanger"
+                disabled={deleting || deleteConfirmText !== 'DELETE'}
+                onClick={() => void handleConfirmDelete()}
+              >
+                {deleting ? 'Deleting…' : 'Delete'}
+              </Button>
+            }
+          >
+            <FormGroup label="Confirmation" htmlFor="team-user-delete-confirm">
+              <Input
+                id="team-user-delete-confirm"
+                type="text"
+                variant="surface"
+                value={deleteConfirmText}
+                disabled={deleting}
+                autoComplete="off"
+                onChange={(event) => setDeleteConfirmText(event.target.value)}
+              />
+            </FormGroup>
+          </ModalFormLayout>
         </Modal>
       )}
     </div>

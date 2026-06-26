@@ -4,10 +4,16 @@ import type { HubApiTokenRecord, HubUserRecord, TeamHub } from '#/shared/types';
 import { Input, Select } from '#/renderer/src/components/forms';
 import { Button } from '#/renderer/src/components/Button';
 import { FormGroup } from '#/renderer/src/components/FormGroup';
-import { Modal } from '#/renderer/src/components/Modal';
+import { Modal, ModalFormLayout } from '#/renderer/src/components/Modal';
 import { PageHeader } from '#/renderer/src/components/PageHeader';
-import { FaIcon } from '#/renderer/src/components/FaIcon';
-import { faAngleLeft } from '#/renderer/src/fontawesome';
+import { BackButton } from '#/renderer/src/components/BackButton';
+import { AsyncListState } from '#/renderer/src/components/AsyncListState';
+import {
+  ResourceList,
+  ResourceListPrimary,
+  ResourceListRow
+} from '#/renderer/src/components/ResourceList';
+import { FieldError } from '#/renderer/src/components/FieldError';
 import { useTeamHubTokens } from '#/renderer/src/hooks/useTeamHubTokens';
 import { useTeamHubUsers } from '#/renderer/src/hooks/useTeamHubUsers';
 import { TeamSecretDialog } from '#/renderer/src/ui/TeamHub/TeamSecretDialog';
@@ -173,63 +179,46 @@ export function TeamTokensView({ hub, onBack }: Props): JSX.Element {
         >
           Create token
         </Button>
-        <Button
-          type="button"
-          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
-          onClick={onBack}
-        >
-          <FaIcon icon={faAngleLeft} className="h-3.5 w-3.5" aria-hidden />
-          Back
-        </Button>
+        <BackButton onClick={onBack} />
       </PageHeader>
 
-      {loading ? (
-        <p className="text-[14px] text-muted">Loading…</p>
-      ) : error ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="mb-0 text-[14px] text-danger">{error}</p>
-          <Button type="button" variant="secondary" onClick={reload}>
-            Retry
-          </Button>
-        </div>
-      ) : tokens.length === 0 ? (
-        <p className="text-[14px] text-muted">No tokens found.</p>
-      ) : (
-        <ul className="m-0 flex list-none flex-col gap-2 p-0">
+      <AsyncListState
+        loading={loading}
+        error={error}
+        onRetry={reload}
+        isEmpty={tokens.length === 0}
+        emptyMessage="No tokens found."
+      >
+        <ResourceList>
           {tokens.map((token) => (
-            <li
+            <ResourceListRow
               key={token.id}
-              className="flex items-center justify-between gap-3 rounded-md border border-separator px-3 py-2"
-            >
-              <div className="min-w-0">
+              primary={
                 <div className="flex min-w-0 items-center gap-2">
-                  <span className="truncate text-[14px] font-medium text-text">
-                    {token.name || 'Untitled'}
-                  </span>
+                  <ResourceListPrimary>{token.name || 'Untitled'}</ResourceListPrimary>
                   <span className="truncate font-mono text-[13px] text-muted">
                     {token.tokenPrefix}
                   </span>
                 </div>
-                <span className="truncate text-[14px] text-muted">
-                  {userNamesById.get(token.userId) ?? token.userId}
-                </span>
+              }
+              secondary={userNamesById.get(token.userId) ?? token.userId}
+              meta={
                 <span className="block truncate text-[13px] text-muted">
                   Created {formatOptionalTimestamp(token.createdAt)}
                   {token.lastUsedAt
                     ? ` · Last used ${formatOptionalTimestamp(token.lastUsedAt)}`
                     : ''}
                 </span>
-              </div>
-
-              <div className="flex shrink-0 items-center gap-2">
+              }
+              actions={
                 <Button type="button" variant="secondary" onClick={() => handleDeleteClick(token)}>
                   Delete
                 </Button>
-              </div>
-            </li>
+              }
+            />
           ))}
-        </ul>
-      )}
+        </ResourceList>
+      </AsyncListState>
 
       {creatingToken && (
         <Modal
@@ -241,48 +230,49 @@ export function TeamTokensView({ hub, onBack }: Props): JSX.Element {
           closeDisabled={creating}
           disableEscape={creating}
         >
-          <FormGroup label="User" htmlFor="team-token-user">
-            <Select
-              id="team-token-user"
-              variant="surface"
-              className="mb-4"
-              value={createUserId}
-              disabled={creating}
-              onChange={(event) => setCreateUserId(event.target.value)}
-            >
-              {users.map((user: HubUserRecord) => (
-                <option key={user.id} value={user.id}>
-                  {user.name || user.id}
-                </option>
-              ))}
-            </Select>
-          </FormGroup>
+          <ModalFormLayout
+            error={actionError ? <FieldError spacing="modal">{actionError}</FieldError> : null}
+            actions={
+              <Button
+                type="button"
+                disabled={
+                  creating || createUserId.length === 0 || createTokenName.trim().length === 0
+                }
+                onClick={() => void handleConfirmCreate()}
+              >
+                {creating ? 'Creating…' : 'Create'}
+              </Button>
+            }
+          >
+            <FormGroup label="User" htmlFor="team-token-user">
+              <Select
+                id="team-token-user"
+                variant="surface"
+                className="mb-4"
+                value={createUserId}
+                disabled={creating}
+                onChange={(event) => setCreateUserId(event.target.value)}
+              >
+                {users.map((user: HubUserRecord) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name || user.id}
+                  </option>
+                ))}
+              </Select>
+            </FormGroup>
 
-          <FormGroup label="Token name" htmlFor="team-token-name">
-            <Input
-              id="team-token-name"
-              type="text"
-              variant="surface"
-              value={createTokenName}
-              disabled={creating}
-              autoComplete="off"
-              onChange={(event) => setCreateTokenName(event.target.value)}
-            />
-          </FormGroup>
-
-          {actionError && <p className="mt-4 text-[14px] text-danger">{actionError}</p>}
-
-          <div className="mt-4 flex justify-end gap-2">
-            <Button
-              type="button"
-              disabled={
-                creating || createUserId.length === 0 || createTokenName.trim().length === 0
-              }
-              onClick={() => void handleConfirmCreate()}
-            >
-              {creating ? 'Creating…' : 'Create'}
-            </Button>
-          </div>
+            <FormGroup label="Token name" htmlFor="team-token-name">
+              <Input
+                id="team-token-name"
+                type="text"
+                variant="surface"
+                value={createTokenName}
+                disabled={creating}
+                autoComplete="off"
+                onChange={(event) => setCreateTokenName(event.target.value)}
+              />
+            </FormGroup>
+          </ModalFormLayout>
         </Modal>
       )}
 
@@ -310,30 +300,31 @@ export function TeamTokensView({ hub, onBack }: Props): JSX.Element {
           closeDisabled={deleting}
           disableEscape={deleting}
         >
-          <FormGroup label="Confirmation" htmlFor="team-token-delete-confirm">
-            <Input
-              id="team-token-delete-confirm"
-              type="text"
-              variant="surface"
-              value={deleteConfirmText}
-              disabled={deleting}
-              autoComplete="off"
-              onChange={(event) => setDeleteConfirmText(event.target.value)}
-            />
-          </FormGroup>
-
-          {actionError && <p className="mt-4 text-[14px] text-danger">{actionError}</p>}
-
-          <div className="mt-4 flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="secondaryDanger"
-              disabled={deleting || deleteConfirmText !== 'DELETE'}
-              onClick={() => void handleConfirmDelete()}
-            >
-              {deleting ? 'Deleting…' : 'Delete'}
-            </Button>
-          </div>
+          <ModalFormLayout
+            error={actionError ? <FieldError spacing="modal">{actionError}</FieldError> : null}
+            actions={
+              <Button
+                type="button"
+                variant="secondaryDanger"
+                disabled={deleting || deleteConfirmText !== 'DELETE'}
+                onClick={() => void handleConfirmDelete()}
+              >
+                {deleting ? 'Deleting…' : 'Delete'}
+              </Button>
+            }
+          >
+            <FormGroup label="Confirmation" htmlFor="team-token-delete-confirm">
+              <Input
+                id="team-token-delete-confirm"
+                type="text"
+                variant="surface"
+                value={deleteConfirmText}
+                disabled={deleting}
+                autoComplete="off"
+                onChange={(event) => setDeleteConfirmText(event.target.value)}
+              />
+            </FormGroup>
+          </ModalFormLayout>
         </Modal>
       )}
     </div>

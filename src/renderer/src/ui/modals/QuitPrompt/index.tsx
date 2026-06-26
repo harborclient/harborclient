@@ -3,7 +3,7 @@ import { unloadAllPlugins } from '#/renderer/src/plugins/pluginLoader';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectQuitPrompt, setQuitPrompt } from '#/renderer/src/store/slices/modalsSlice';
 import { Button } from '#/renderer/src/components/Button';
-import { Modal } from '#/renderer/src/components/Modal';
+import { Modal, ModalFooter } from '#/renderer/src/components/Modal';
 
 /**
  * Confirms quitting when one or more request tabs have unsaved changes.
@@ -41,9 +41,9 @@ export function QuitPrompt(): JSX.Element | null {
           <>{quitPrompt.length} requests have unsaved changes. Quit without saving?</>
         )}
       </p>
-      <div className="flex justify-end gap-2">
+      <ModalFooter>
         <Button onClick={handleConfirm}>Quit without saving</Button>
-      </div>
+      </ModalFooter>
     </Modal>
   );
 }

@@ -2,8 +2,8 @@ import { useEffect, useId, useMemo, useState, type JSX } from 'react';
 import type { Environment, Variable } from '#/shared/types';
 import { VariableTable } from '#/renderer/src/components/VariableTable';
 import { cleanVariables } from '#/renderer/src/components/utils';
-import { FaIcon } from '#/renderer/src/components/FaIcon';
-import { faXmark } from '#/renderer/src/fontawesome';
+import { ModalFooter } from '#/renderer/src/components/Modal';
+import { OverlayPage } from '#/renderer/src/components/OverlayPage';
 import { Button } from '#/renderer/src/components/Button';
 import { FormGroup } from '#/renderer/src/components/FormGroup';
 import { Input } from '#/renderer/src/components/forms';
@@ -95,54 +95,43 @@ function EnvironmentSettingsForm({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-6">
-      <div className="mx-auto w-full">
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <h1 className="m-0 text-[15px] font-semibold text-text">Environment Settings</h1>
-          <Button
-            type="button"
-            variant="icon"
-            className="opacity-100 text-[28px]"
-            title="Close"
-            onClick={onClose}
-          >
-            <FaIcon icon={faXmark} className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div className="mb-6">
-          <FormGroup label="Name" htmlFor={nameId} labelTone="muted">
-            <Input
-              id={nameId}
-              className="w-full"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void handleSave();
-                if (e.key === 'Escape') onClose();
-              }}
-            />
-          </FormGroup>
-        </div>
-
-        <div className="mb-6">
-          <VariableTable
-            variables={variables}
-            onChange={setVariables}
-            description={`Use variables in request URLs with {{variable}} syntax. When value is empty, the default is used. Environment variables override collection variables with the same key.`}
-          />
-        </div>
-
-        <div className="flex justify-end gap-2">
+    <OverlayPage
+      title="Environment Settings"
+      onClose={onClose}
+      footer={
+        <ModalFooter>
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
           <Button onClick={() => void handleSave()} disabled={!name.trim() || saving}>
             {saving ? 'Saving…' : 'Save'}
           </Button>
-        </div>
+        </ModalFooter>
+      }
+    >
+      <div className="mb-6">
+        <FormGroup label="Name" htmlFor={nameId} labelTone="muted">
+          <Input
+            id={nameId}
+            className="w-full"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void handleSave();
+              if (e.key === 'Escape') onClose();
+            }}
+          />
+        </FormGroup>
       </div>
-    </div>
+
+      <div className="mb-6">
+        <VariableTable
+          variables={variables}
+          onChange={setVariables}
+          description={`Use variables in request URLs with {{variable}} syntax. When value is empty, the default is used. Environment variables override collection variables with the same key.`}
+        />
+      </div>
+    </OverlayPage>
   );
 }

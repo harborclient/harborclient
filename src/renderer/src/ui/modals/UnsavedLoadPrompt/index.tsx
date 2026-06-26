@@ -6,7 +6,7 @@ import {
 } from '#/renderer/src/store/slices/modalsSlice';
 import { requestLoadRequest } from '#/renderer/src/store/thunks/requests';
 import { Button } from '#/renderer/src/components/Button';
-import { Modal } from '#/renderer/src/components/Modal';
+import { Modal, ModalFooter } from '#/renderer/src/components/Modal';
 
 /**
  * Confirms opening a request when settings or request tabs have unsaved edits.
@@ -52,11 +52,11 @@ export function UnsavedLoadPrompt(): JSX.Element | null {
           <>Settings have unsaved changes. Open request without saving?</>
         )}
       </p>
-      <div className="flex justify-end gap-2">
+      <ModalFooter>
         <Button onClick={handleConfirm}>
           {isDirtyTab ? 'Reload without saving' : 'Open without saving'}
         </Button>
-      </div>
+      </ModalFooter>
     </Modal>
   );
 }

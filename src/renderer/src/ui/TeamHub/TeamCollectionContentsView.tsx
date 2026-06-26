@@ -9,9 +9,11 @@ import type {
 import { Button } from '#/renderer/src/components/Button';
 import { FormGroup } from '#/renderer/src/components/FormGroup';
 import { PageHeader } from '#/renderer/src/components/PageHeader';
-import { Modal } from '#/renderer/src/components/Modal';
-import { FaIcon } from '#/renderer/src/components/FaIcon';
-import { faAngleLeft } from '#/renderer/src/fontawesome';
+import { Modal, ModalFooter } from '#/renderer/src/components/Modal';
+import { BackButton } from '#/renderer/src/components/BackButton';
+import { AsyncListState } from '#/renderer/src/components/AsyncListState';
+import { FieldError } from '#/renderer/src/components/FieldError';
+import { ResourceList, ResourceListRow } from '#/renderer/src/components/ResourceList';
 import { useTeamHubAdminCollectionContents } from '#/renderer/src/hooks/useTeamHubAdminCollectionContents';
 import { METHOD_CLASSES } from '#/renderer/src/ui/shared/classes';
 
@@ -218,14 +220,7 @@ export function TeamCollectionContentsView({
         title={collection.name}
         description={`${hub.name || 'Untitled'} · ${hub.baseUrl}`}
       >
-        <Button
-          type="button"
-          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
-          onClick={onBack}
-        >
-          <FaIcon icon={faAngleLeft} className="h-3.5 w-3.5" aria-hidden />
-          Back
-        </Button>
+        <BackButton onClick={onBack} />
       </PageHeader>
 
       <div className="mb-4 rounded-md border border-separator px-3 py-3">
@@ -245,60 +240,64 @@ export function TeamCollectionContentsView({
           />
         </FormGroup>
         {settingsError ? (
-          <p className="mb-0 mt-2 text-[14px] text-danger">{settingsError}</p>
+          <FieldError spacing="field" className="mb-0 mt-2">
+            {settingsError}
+          </FieldError>
         ) : null}
       </div>
 
-      {loading ? (
-        <p className="text-[14px] text-muted">Loading…</p>
-      ) : error ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="mb-0 text-[14px] text-danger">{error}</p>
-          <Button type="button" variant="secondary" onClick={reload}>
-            Retry
-          </Button>
-        </div>
-      ) : sections.length === 0 ? (
-        <p className="text-[14px] text-muted">No requests found.</p>
-      ) : (
+      <AsyncListState
+        loading={loading}
+        error={error}
+        onRetry={reload}
+        isEmpty={sections.length === 0}
+        emptyMessage="No requests found."
+      >
         <div className="flex flex-col gap-4">
           {sections.map((section) => (
             <section key={section.title}>
               <h3 className="m-0 mb-2 text-[14px] font-medium text-text">{section.title}</h3>
-              <ul className="m-0 flex list-none flex-col gap-2 p-0">
+              <ResourceList>
                 {section.requests.map((request) => (
-                  <li
+                  <ResourceListRow
                     key={request.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-separator px-3 py-2"
-                  >
-                    <div className="flex min-w-0 items-start gap-2">
-                      <span
-                        className={`shrink-0 px-1 py-px text-[14px] font-medium ${METHOD_CLASSES[request.method.toLowerCase()] ?? 'text-info'}`}
-                      >
-                        {request.method}
-                      </span>
-                      <div className="min-w-0">
-                        <span className="block truncate text-[14px] font-medium text-text">
-                          {request.name}
+                    wrap
+                    primary={
+                      <div className="flex min-w-0 items-start gap-2">
+                        <span
+                          className={`shrink-0 px-1 py-px text-[14px] font-medium ${METHOD_CLASSES[request.method.toLowerCase()] ?? 'text-info'}`}
+                        >
+                          {request.method}
                         </span>
-                        <span className="block truncate text-[14px] text-muted">{request.url}</span>
-                        <span className="block truncate text-[14px] text-muted">{request.id}</span>
+                        <div className="min-w-0">
+                          <span className="block truncate text-[14px] font-medium text-text">
+                            {request.name}
+                          </span>
+                          <span className="block truncate text-[14px] text-muted">
+                            {request.url}
+                          </span>
+                          <span className="block truncate text-[14px] text-muted">
+                            {request.id}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="secondaryDanger"
-                      onClick={() => handleDeleteClick(request)}
-                    >
-                      Delete
-                    </Button>
-                  </li>
+                    }
+                    actions={
+                      <Button
+                        type="button"
+                        variant="secondaryDanger"
+                        onClick={() => handleDeleteClick(request)}
+                      >
+                        Delete
+                      </Button>
+                    }
+                  />
                 ))}
-              </ul>
+              </ResourceList>
             </section>
           ))}
         </div>
-      )}
+      </AsyncListState>
 
       {deletingRequest && (
         <Modal
@@ -314,9 +313,12 @@ export function TeamCollectionContentsView({
           closeDisabled={deleting}
           disableEscape={deleting}
         >
-          {actionError && <p className="mb-4 text-[14px] text-danger">{actionError}</p>}
-
-          <div className="flex justify-end gap-2">
+          {actionError ? (
+            <FieldError spacing="modal" className="mb-4 mt-0">
+              {actionError}
+            </FieldError>
+          ) : null}
+          <ModalFooter>
             <Button
               type="button"
               variant="secondaryDanger"
@@ -325,7 +327,7 @@ export function TeamCollectionContentsView({
             >
               {deleting ? 'Deleting…' : 'Delete'}
             </Button>
-          </div>
+          </ModalFooter>
         </Modal>
       )}
     </div>

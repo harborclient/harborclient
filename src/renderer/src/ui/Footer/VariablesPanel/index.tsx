@@ -1,5 +1,6 @@
 import { type JSX } from 'react';
 import { Resizable } from '#/renderer/src/components/Resizable';
+import { EmptyState } from '#/renderer/src/components/EmptyState';
 import type { ResolvedVariable } from './resolve';
 import { VariableRow } from './VariableRow';
 
@@ -60,9 +61,9 @@ export function VariablesPanel({
     >
       <div className="min-h-0 flex-1 overflow-auto">
         {variables.length === 0 ? (
-          <div className="flex h-full items-center justify-center p-4 text-[14px] text-muted">
+          <EmptyState variant="centered" className="h-full">
             No variables in scope. Add variables to the active collection or environment.
-          </div>
+          </EmptyState>
         ) : (
           variables.map((variable) => (
             <VariableRow key={`${variable.scope}-${variable.key}`} variable={variable} />

@@ -3,34 +3,18 @@ import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { closeUpdateModal, selectUpdateModal } from '#/renderer/src/store/slices/modalsSlice';
 import { checkForUpdates } from '#/renderer/src/store/thunks';
 import { Modal } from '#/renderer/src/components/Modal';
+import { Spinner } from '#/renderer/src/components/Spinner';
+import { FieldError } from '#/renderer/src/components/FieldError';
+import { StatusMessage } from '#/renderer/src/components/StatusMessage';
 
 /**
  * Spinner shown while the update check request is in flight.
  */
 function UpdateCheckSpinner(): JSX.Element {
   return (
-    <div className="flex flex-col items-center gap-3 py-2" role="status" aria-live="polite">
-      <svg
-        className="h-8 w-8 animate-spin text-accent"
-        viewBox="0 0 24 24"
-        fill="none"
-        aria-hidden="true"
-      >
-        <circle
-          className="opacity-25"
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          strokeWidth="4"
-        />
-        <path
-          className="opacity-75"
-          fill="currentColor"
-          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-        />
-      </svg>
-      <p className="m-0 text-[14px] text-muted">Checking for updates...</p>
+    <div className="flex flex-col items-center gap-3 py-2">
+      <Spinner size="md" label="Checking for updates" className="[&_svg]:h-8 [&_svg]:w-8" />
+      <StatusMessage live={false}>Checking for updates...</StatusMessage>
     </div>
   );
 }
@@ -66,9 +50,9 @@ export function UpdateModal(): JSX.Element | null {
       {update.loading && <UpdateCheckSpinner />}
 
       {!update.loading && update.error && (
-        <p className="m-0 text-[14px] text-danger" role="alert">
+        <FieldError spacing="field" className="m-0" roleAlert>
           {update.error}
-        </p>
+        </FieldError>
       )}
 
       {!update.loading && !update.error && update.result?.updateAvailable && (

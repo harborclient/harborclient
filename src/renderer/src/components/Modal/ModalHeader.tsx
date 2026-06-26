@@ -1,5 +1,7 @@
 import type { JSX, ReactNode } from 'react';
+import { faXmark } from '@fortawesome/free-solid-svg-icons';
 import { Button } from '#/renderer/src/components/Button';
+import { FaIcon } from '#/renderer/src/components/FaIcon';
 
 interface Props {
   /**
@@ -35,7 +37,7 @@ interface Props {
 
 /**
  * Modal header row with a bordered bottom edge, title block on the left,
- * optional actions, and a primary Close button on the right.
+ * optional actions, and a close icon on the right.
  */
 export function ModalHeader({
   titleId,
@@ -60,12 +62,13 @@ export function ModalHeader({
         {headerActions}
         <Button
           type="button"
-          className="shrink-0 whitespace-nowrap"
+          variant="icon"
+          className="shrink-0 opacity-100"
           aria-label="Close"
           disabled={closeDisabled}
           onClick={onClose}
         >
-          Close
+          <FaIcon icon={faXmark} className="h-4 w-4" />
         </Button>
       </div>
     </div>

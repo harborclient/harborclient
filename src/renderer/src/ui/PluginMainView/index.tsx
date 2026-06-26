@@ -1,7 +1,6 @@
 import type { JSX } from 'react';
+import { OverlayCloseButton } from '#/renderer/src/components/OverlayCloseButton';
 import { Button } from '#/renderer/src/components/Button';
-import { FaIcon } from '#/renderer/src/components/FaIcon';
-import { faXmark } from '#/renderer/src/fontawesome';
 import { usePluginMainViews } from '#/renderer/src/plugins/pluginHooks';
 import { pluginContributionId } from '#/shared/plugin/types';
 
@@ -45,16 +44,7 @@ export function PluginMainView({ pluginId, viewId, onClose }: Props): JSX.Elemen
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 items-center justify-between gap-4 border-b border-separator px-6 py-4">
         <h1 className="m-0 text-[15px] font-semibold text-text">{view.title}</h1>
-        <Button
-          type="button"
-          variant="icon"
-          className="opacity-100 text-[28px]"
-          title="Close"
-          aria-label="Close plugin view"
-          onClick={onClose}
-        >
-          <FaIcon icon={faXmark} className="h-4 w-4" />
-        </Button>
+        <OverlayCloseButton label="Close plugin view" onClose={onClose} />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-6">
         <Component />

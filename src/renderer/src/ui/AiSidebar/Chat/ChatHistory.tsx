@@ -1,4 +1,5 @@
 import { useEffect, useRef, type JSX } from 'react';
+import { EmptyState } from '#/renderer/src/components/EmptyState';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectChatHistory } from '#/renderer/src/store/slices/aiChatSlice';
 import { deleteChatThunk } from '#/renderer/src/store/thunks/aiChat';
@@ -55,7 +56,7 @@ export function ChatHistory({ onClose, onOpenChat }: Props): JSX.Element {
       className="absolute right-0 top-full z-20 mt-0.5 max-h-64 w-64 overflow-y-auto rounded-md border border-separator bg-surface py-1 shadow-md app-no-drag"
     >
       {chats.length === 0 ? (
-        <p className="m-0 px-3 py-2 text-[14px] text-muted">No previous chats</p>
+        <EmptyState className="px-3 py-2">No previous chats</EmptyState>
       ) : (
         chats.map((chat) => (
           <div

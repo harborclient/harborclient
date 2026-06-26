@@ -2,7 +2,8 @@ import type { JSX } from 'react';
 import type { PluginInfo } from '#/shared/plugin/types';
 import { Button } from '#/renderer/src/components/Button';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
-import { Modal } from '#/renderer/src/components/Modal';
+import { Modal, ModalFooter } from '#/renderer/src/components/Modal';
+import { FieldError } from '#/renderer/src/components/FieldError';
 import { faCircleCheck } from '#/renderer/src/fontawesome';
 import { PERMISSION_LABELS } from './constants';
 
@@ -43,20 +44,20 @@ export function EnableModal({ plugin, onConfirm, onCancel }: Props): JSX.Element
         </p>
       ) : null}
       {plugin.signature?.status === 'unsigned' ? (
-        <p className="mb-3 text-[14px] text-danger" role="alert">
+        <FieldError spacing="section" className="mb-3 mt-0" roleAlert>
           This plugin is not signed by a trusted publisher. Only enable it if you trust the source.
-        </p>
+        </FieldError>
       ) : null}
       <ul className="mb-4 list-disc pl-5 text-[14px] text-text">
         {plugin.permissions.map((permission) => (
           <li key={permission}>{PERMISSION_LABELS[permission] ?? permission}</li>
         ))}
       </ul>
-      <div className="flex justify-end gap-2">
+      <ModalFooter>
         <Button type="button" onClick={onConfirm}>
           {plugin.signature?.status === 'unsigned' ? 'Enable anyway' : 'Enable plugin'}
         </Button>
-      </div>
+      </ModalFooter>
     </Modal>
   );
 }

@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { openSettings } from '#/renderer/src/store/slices/navigationSlice';
+import { EmptyState } from '#/renderer/src/components/EmptyState';
 
 /**
  * Prompt shown when the AI sidebar is open but no provider API keys are configured.
@@ -16,7 +17,7 @@ export function ConfigureApiKeysPrompt(): JSX.Element {
   };
 
   return (
-    <div className="flex flex-1 items-center justify-center p-4 text-center text-[14px] text-muted">
+    <EmptyState variant="centered">
       <p className="m-0">
         Configure API keys to use AI features.{' '}
         <button
@@ -27,6 +28,6 @@ export function ConfigureApiKeysPrompt(): JSX.Element {
           Open AI settings
         </button>
       </p>
-    </div>
+    </EmptyState>
   );
 }

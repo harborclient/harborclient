@@ -63,7 +63,8 @@ import {
   SegmentedTabsGroup
 } from '#/renderer/src/components/SegmentedTabs';
 import { Input } from '#/renderer/src/components/forms';
-import { Modal } from '#/renderer/src/components/Modal';
+import { Modal, ModalFooter } from '#/renderer/src/components/Modal';
+import { FieldError } from '#/renderer/src/components/FieldError';
 import { formatErrorMessage, showAlert, showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
 import { openCollectionRunnerModal } from '#/renderer/src/store/slices/modalsSlice';
 import { Collections } from './Collections';
@@ -696,15 +697,15 @@ export function Sidebar({
               if (e.key === 'Enter') void handleFolderModalSubmit();
             }}
           />
-          {folderModal.error && <p className="mt-3 text-[14px] text-danger">{folderModal.error}</p>}
-          <div className="mt-4 flex justify-end gap-2">
+          {folderModal.error && <FieldError spacing="section">{folderModal.error}</FieldError>}
+          <ModalFooter spaced>
             <Button
               onClick={() => void handleFolderModalSubmit()}
               disabled={!folderModal.name.trim()}
             >
               {folderModal.mode === 'create' ? 'Create' : 'Save'}
             </Button>
-          </div>
+          </ModalFooter>
         </Modal>
       )}
 
@@ -729,7 +730,9 @@ export function Sidebar({
             />
 
             {environmentModalError && (
-              <p className="mb-3 text-[14px] text-danger">{environmentModalError}</p>
+              <FieldError spacing="section" className="mb-3 mt-0">
+                {environmentModalError}
+              </FieldError>
             )}
 
             <SegmentedTabPanel value="create">
@@ -747,23 +750,23 @@ export function Sidebar({
                   if (e.key === 'Enter') void handleEnvironmentModalSubmit();
                 }}
               />
-              <div className="mt-4 flex justify-end gap-2">
+              <ModalFooter spaced>
                 <Button
                   onClick={() => void handleEnvironmentModalSubmit()}
                   disabled={!newEnvironmentName.trim()}
                 >
                   Create
                 </Button>
-              </div>
+              </ModalFooter>
             </SegmentedTabPanel>
 
             <SegmentedTabPanel value="import">
               <p className="mb-4 text-[14px] text-muted">
                 Choose a HarborClient environment export (.json) to import variables and settings.
               </p>
-              <div className="flex justify-end gap-2">
+              <ModalFooter>
                 <Button onClick={() => void handleEnvironmentImport()}>Import .json</Button>
-              </div>
+              </ModalFooter>
             </SegmentedTabPanel>
           </SegmentedTabsGroup>
         </Modal>

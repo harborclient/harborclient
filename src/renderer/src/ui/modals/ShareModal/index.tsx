@@ -10,7 +10,9 @@ import { generateShareToken } from '#/renderer/src/store/thunks';
 import { Button } from '#/renderer/src/components/Button';
 import { FormGroup } from '#/renderer/src/components/FormGroup';
 import { Select, Textarea } from '#/renderer/src/components/forms';
-import { Modal } from '#/renderer/src/components/Modal';
+import { Modal, ModalFooter } from '#/renderer/src/components/Modal';
+import { FieldError } from '#/renderer/src/components/FieldError';
+import { LoadingMessage } from '#/renderer/src/components/AsyncListState';
 
 /**
  * Modal for generating and copying an encrypted collection share token.
@@ -42,7 +44,7 @@ export function ShareModal(): JSX.Element | null {
       }
     >
       {share.trustedKeysLoading ? (
-        <p className="text-[14px] text-muted">Loading trusted keys…</p>
+        <LoadingMessage>Loading trusted keys…</LoadingMessage>
       ) : share.trustedKeys.length === 0 ? (
         <p className="text-[14px] text-muted">
           Add the recipient&apos;s public key under File → Sharing Keys → Trusted keys before
@@ -67,9 +69,13 @@ export function ShareModal(): JSX.Element | null {
           </FormGroup>
         </>
       )}
-      {share.tokenError && <p className="mb-3 text-[14px] text-danger">{share.tokenError}</p>}
+      {share.tokenError ? (
+        <FieldError spacing="section" className="mb-3 mt-0">
+          {share.tokenError}
+        </FieldError>
+      ) : null}
       {share.tokenLoading ? (
-        <p className="text-[14px] text-muted">Creating share token…</p>
+        <LoadingMessage>Creating share token…</LoadingMessage>
       ) : share.token ? (
         <Textarea
           className="min-h-28 w-full resize-y font-mono text-[14px]"
@@ -78,7 +84,7 @@ export function ShareModal(): JSX.Element | null {
           onFocus={(e) => e.target.select()}
         />
       ) : null}
-      <div className="mt-4 flex justify-end gap-2">
+      <ModalFooter spaced>
         {!share.token && share.trustedKeys.length > 0 && (
           <Button
             disabled={!share.recipientKid || share.tokenLoading || share.trustedKeysLoading}
@@ -100,7 +106,7 @@ export function ShareModal(): JSX.Element | null {
             Copy
           </Button>
         )}
-      </div>
+      </ModalFooter>
     </Modal>
   );
 }

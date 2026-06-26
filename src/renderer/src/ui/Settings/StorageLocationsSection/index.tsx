@@ -6,6 +6,14 @@ import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { refreshCollections } from '#/renderer/src/store/thunks/collections';
 import { Button } from '#/renderer/src/components/Button';
 import { PageHeader } from '#/renderer/src/components/PageHeader';
+import { Badge } from '#/renderer/src/components/Badge';
+import { AsyncListState } from '#/renderer/src/components/AsyncListState';
+import {
+  ResourceList,
+  ResourceListPrimary,
+  ResourceListRow
+} from '#/renderer/src/components/ResourceList';
+import { FieldError } from '#/renderer/src/components/FieldError';
 import { createBlankConnection, providerLabel, settingsSectionMeta } from '../constants';
 import { SettingsCloseButton } from '../SettingsCloseButton';
 import { DiscoverCollectionsModal } from './DiscoverCollectionsModal';
@@ -245,80 +253,66 @@ export function StorageLocationsSection({ onClose }: Props): JSX.Element {
           <SettingsCloseButton onClose={onClose} />
         </PageHeader>
 
-        {loading ? (
-          <p className="text-[14px] text-muted">Loading…</p>
-        ) : bootstrapError ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="mb-0 text-[14px] text-danger">{bootstrapError}</p>
-            <Button type="button" variant="secondary" onClick={reloadConnections}>
-              Retry
-            </Button>
-          </div>
-        ) : (
-          <ul className="m-0 flex list-none flex-col gap-2 p-0">
+        <AsyncListState loading={loading} error={bootstrapError} onRetry={reloadConnections}>
+          <ResourceList>
             {connections.map((connection) => {
               const isActive = connection.id === activeId;
               const isLastSqlite = connection.type === 'sqlite' && sqliteCount <= 1;
               const cannotDelete = connections.length <= 1 || isLastSqlite;
 
               return (
-                <li
+                <ResourceListRow
                   key={connection.id}
-                  className="flex items-center justify-between gap-3 rounded-md border border-separator px-3 py-2"
-                >
-                  <div className="min-w-0">
+                  primary={
                     <div className="flex items-center gap-2">
-                      <span className="truncate text-[14px] font-medium text-text">
-                        {connection.name || 'Untitled'}
-                      </span>
-                      {isActive && (
-                        <span className="rounded bg-success/15 px-1.5 py-0.5 text-[14px] font-medium text-success">
-                          Active
-                        </span>
-                      )}
+                      <ResourceListPrimary>{connection.name || 'Untitled'}</ResourceListPrimary>
+                      {isActive ? <Badge variant="success">Active</Badge> : null}
                     </div>
-                    <span className="text-[14px] text-muted">{providerLabel(connection.type)}</span>
-                    {isLastSqlite && (
+                  }
+                  secondary={providerLabel(connection.type)}
+                  meta={
+                    isLastSqlite ? (
                       <p className="mb-0 mt-1 text-[14px] text-muted">
                         At least one SQLite connection must remain.
                       </p>
-                    )}
-                  </div>
-
-                  <div className="flex shrink-0 items-center gap-2">
-                    {!isActive && (
+                    ) : undefined
+                  }
+                  actions={
+                    <>
+                      {!isActive && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => void handleSetActive(connection.id)}
+                        >
+                          Set active
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         variant="secondary"
-                        onClick={() => void handleSetActive(connection.id)}
+                        onClick={() => handleEdit(connection)}
                       >
-                        Set active
+                        Edit
                       </Button>
-                    )}
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => handleEdit(connection)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      disabled={cannotDelete}
-                      onClick={() => setDeletingConnection(connection)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </li>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={cannotDelete}
+                        onClick={() => setDeletingConnection(connection)}
+                      >
+                        Delete
+                      </Button>
+                    </>
+                  }
+                />
               );
             })}
-          </ul>
-        )}
+          </ResourceList>
+        </AsyncListState>
 
         {error && !editingConnection && !deletingConnection && (
-          <p className="mt-3 text-[14px] text-danger">{error}</p>
+          <FieldError spacing="section">{error}</FieldError>
         )}
 
         <p className="mb-0 mt-4 text-[14px] text-muted">

@@ -2,8 +2,16 @@ import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { TeamHub, TeamHubServiceFlags } from '#/shared/types';
 import { Button } from '#/renderer/src/components/Button';
-import { Modal } from '#/renderer/src/components/Modal';
+import { AsyncListState } from '#/renderer/src/components/AsyncListState';
+import { FieldError } from '#/renderer/src/components/FieldError';
+import { Modal, ModalFooter, ModalFormLayout } from '#/renderer/src/components/Modal';
 import { PageHeader } from '#/renderer/src/components/PageHeader';
+import { PanelCloseButton } from '#/renderer/src/components/PanelCloseButton';
+import {
+  ResourceList,
+  ResourceListPrimary,
+  ResourceListRow
+} from '#/renderer/src/components/ResourceList';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { refreshCollections } from '#/renderer/src/store/thunks/collections';
 import { formatIpcErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
@@ -252,36 +260,23 @@ export function TeamHubList({
           >
             Add team hub
           </Button>
-          <Button type="button" className="shrink-0 whitespace-nowrap" onClick={onClose}>
-            Close
-          </Button>
+          <PanelCloseButton onClose={onClose} />
         </PageHeader>
 
-        {loading ? (
-          <p className="text-[14px] text-muted">Loading…</p>
-        ) : bootstrapError ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="mb-0 text-[14px] text-danger">{bootstrapError}</p>
-            <Button type="button" variant="secondary" onClick={reload}>
-              Retry
-            </Button>
-          </div>
-        ) : teamHubs.length === 0 ? (
-          <p className="text-[14px] text-muted">No team hubs configured yet.</p>
-        ) : (
-          <ul className="m-0 flex list-none flex-col gap-2 p-0">
+        <AsyncListState
+          loading={loading}
+          error={bootstrapError}
+          onRetry={reload}
+          isEmpty={teamHubs.length === 0}
+          emptyMessage="No team hubs configured yet."
+        >
+          <ResourceList>
             {teamHubs.map((hub) => (
-              <li
+              <ResourceListRow
                 key={hub.id}
-                className="flex items-center justify-between gap-3 rounded-md border border-separator px-3 py-2"
-              >
-                <div className="min-w-0">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-[14px] font-medium text-text">
-                      {hub.name || 'Untitled'}
-                    </span>
-                  </div>
-                  <span className="truncate text-[14px] text-muted">{hub.baseUrl}</span>
+                primary={<ResourceListPrimary>{hub.name || 'Untitled'}</ResourceListPrimary>}
+                secondary={hub.baseUrl}
+                meta={
                   <TeamHubServiceBadges
                     services={
                       serviceFlagsByHubId.get(hub.id) ?? {
@@ -293,49 +288,58 @@ export function TeamHubList({
                     }
                     scanning={scanning}
                   />
-                </div>
-
-                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                  {!scanning && adminHubIds.has(hub.id) && (
-                    <>
-                      <Button type="button" variant="secondary" onClick={() => onManageUsers(hub)}>
-                        Manage users
-                      </Button>
-                      <Button type="button" variant="secondary" onClick={() => onManageTokens(hub)}>
-                        Manage tokens
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => onManageCollections(hub)}
-                      >
-                        Manage collections
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        disabled={reloadingHubId === hub.id}
-                        onClick={() => void handleReload(hub)}
-                      >
-                        {reloadingHubId === hub.id ? 'Reloading…' : 'Reload'}
-                      </Button>
-                    </>
-                  )}
-                  <Button type="button" variant="secondary" onClick={() => handleEdit(hub)}>
-                    Edit
-                  </Button>
-                  <Button type="button" variant="secondary" onClick={() => setDeletingHub(hub)}>
-                    Delete
-                  </Button>
-                </div>
-              </li>
+                }
+                actions={
+                  <>
+                    {!scanning && adminHubIds.has(hub.id) && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => onManageUsers(hub)}
+                        >
+                          Manage users
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => onManageTokens(hub)}
+                        >
+                          Manage tokens
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => onManageCollections(hub)}
+                        >
+                          Manage collections
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={reloadingHubId === hub.id}
+                          onClick={() => void handleReload(hub)}
+                        >
+                          {reloadingHubId === hub.id ? 'Reloading…' : 'Reload'}
+                        </Button>
+                      </>
+                    )}
+                    <Button type="button" variant="secondary" onClick={() => handleEdit(hub)}>
+                      Edit
+                    </Button>
+                    <Button type="button" variant="secondary" onClick={() => setDeletingHub(hub)}>
+                      Delete
+                    </Button>
+                  </>
+                }
+              />
             ))}
-          </ul>
-        )}
+          </ResourceList>
+        </AsyncListState>
 
-        {error && !editingHub && !deletingHub && (
-          <p className="mt-3 text-[14px] text-danger">{error}</p>
-        )}
+        {error && !editingHub && !deletingHub ? (
+          <FieldError spacing="section">{error}</FieldError>
+        ) : null}
       </div>
 
       {editingHub && (
@@ -348,20 +352,21 @@ export function TeamHubList({
           closeDisabled={saving}
           disableEscape={saving}
         >
-          <TeamHubForm
-            hub={editingHub}
-            disabled={saving}
-            fieldErrors={fieldErrors}
-            onChange={setEditingHub}
-          />
-
-          {error && <p className="mt-4 text-[14px] text-danger">{error}</p>}
-
-          <div className="mt-4 flex justify-end gap-2">
-            <Button type="button" disabled={saving} onClick={() => void handleSave()}>
-              {saving ? 'Saving…' : 'Save'}
-            </Button>
-          </div>
+          <ModalFormLayout
+            error={error ? <FieldError spacing="modal">{error}</FieldError> : undefined}
+            actions={
+              <Button type="button" disabled={saving} onClick={() => void handleSave()}>
+                {saving ? 'Saving…' : 'Save'}
+              </Button>
+            }
+          >
+            <TeamHubForm
+              hub={editingHub}
+              disabled={saving}
+              fieldErrors={fieldErrors}
+              onChange={setEditingHub}
+            />
+          </ModalFormLayout>
         </Modal>
       )}
 
@@ -377,7 +382,7 @@ export function TeamHubList({
             </>
           }
         >
-          <div className="flex justify-end gap-2">
+          <ModalFooter>
             <Button
               type="button"
               variant="secondaryDanger"
@@ -385,7 +390,7 @@ export function TeamHubList({
             >
               Delete
             </Button>
-          </div>
+          </ModalFooter>
         </Modal>
       )}
     </>

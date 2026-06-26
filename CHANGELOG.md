@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(ui): introduce new components for enhanced user experience and accessibility. (`0b5ddfa`)
 - refactor(sharing-keys): streamline sharing keys components and enhance accessibility. (`0915d36`)
 - refactor(footer): replace button elements with FooterButton and FooterIcon components. (`9fbddbf`)
 - refactor(footer): streamline footer panel components and remove unused utilities. (`8b68b35`)

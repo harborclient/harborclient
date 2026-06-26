@@ -19,7 +19,7 @@ import { runCollectionRequests } from '#/renderer/src/store/thunks/collectionRun
 import { Button } from '#/renderer/src/components/Button';
 import { FormGroup } from '#/renderer/src/components/FormGroup';
 import { Input, Select } from '#/renderer/src/components/forms';
-import { Modal } from '#/renderer/src/components/Modal';
+import { Modal, ModalFooter } from '#/renderer/src/components/Modal';
 
 /**
  * Returns a human-readable label for a collection runner result row.
@@ -242,11 +242,11 @@ export function CollectionRunnerModal(): JSX.Element | null {
             )}
           </fieldset>
 
-          <div className="flex justify-end gap-2">
+          <ModalFooter>
             <Button type="button" disabled={orderedRequests.length === 0} onClick={handleRun}>
               Run
             </Button>
-          </div>
+          </ModalFooter>
         </div>
       )}
 
@@ -318,13 +318,13 @@ export function CollectionRunnerModal(): JSX.Element | null {
             ))}
           </ul>
 
-          <div className="flex justify-end gap-2">
+          <ModalFooter>
             {runner.running ? (
               <Button type="button" variant="secondaryDanger" onClick={handleStop}>
                 Stop
               </Button>
             ) : null}
-          </div>
+          </ModalFooter>
         </div>
       )}
     </Modal>

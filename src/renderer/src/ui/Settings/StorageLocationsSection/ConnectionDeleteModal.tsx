@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import type { StorageConnection } from '#/shared/types';
 import { Button } from '#/renderer/src/components/Button';
-import { Modal } from '#/renderer/src/components/Modal';
+import { Modal, ModalFooter } from '#/renderer/src/components/Modal';
 
 interface Props {
   /**
@@ -53,11 +53,11 @@ export function ConnectionDeleteModal({
         </>
       }
     >
-      <div className="flex justify-end gap-2">
+      <ModalFooter>
         <Button type="button" variant="secondaryDanger" onClick={() => void onConfirm()}>
           Delete
         </Button>
-      </div>
+      </ModalFooter>
     </Modal>
   );
 }

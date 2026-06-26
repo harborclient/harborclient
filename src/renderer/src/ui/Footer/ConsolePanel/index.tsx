@@ -2,6 +2,7 @@ import { useCallback, useState, type JSX } from 'react';
 import type { ConsoleEntry } from '#/renderer/src/store';
 import { Button } from '#/renderer/src/components/Button';
 import { Resizable } from '#/renderer/src/components/Resizable';
+import { EmptyState } from '#/renderer/src/components/EmptyState';
 import { EntryRow } from './EntryRow';
 
 interface Props {
@@ -75,9 +76,9 @@ export function ConsolePanel({ entries, open, onClose, onClear }: Props): JSX.El
     >
       <div className="min-h-0 flex-1 overflow-auto">
         {entries.length === 0 ? (
-          <div className="flex h-full items-center justify-center p-4 text-[14px] text-muted">
+          <EmptyState variant="centered" className="h-full">
             No requests logged yet. Send a request to see it here.
-          </div>
+          </EmptyState>
         ) : (
           entries.map((entry) => (
             <EntryRow
