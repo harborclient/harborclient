@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- chore(package): update package name and author information. (`e777add`)
 - feat(team-hubs): enhance collection management and deletion functionality. (`e1b306e`)
 
 ## 1.8.14 - 2026-06-26

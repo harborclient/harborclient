@@ -1,13 +1,13 @@
 {
-  "name": "harborclient",
+  "name": "@harborclient/harborclient",
   "version": "1.8.14",
   "description": "The free API client that keeps your work private: no accounts, no subscriptions, no lock-in.",
   "main": "./out/main/index.js",
   "desktopName": "harborclient",
   "homepage": "https://harborclient.com/",
   "author": {
-    "name": "Harbor",
-    "email": "harbor@example.com"
+    "name": "HarborClient",
+    "email": "contact@harborclient.com"
   },
   "license": "MIT",
   "imports": {
