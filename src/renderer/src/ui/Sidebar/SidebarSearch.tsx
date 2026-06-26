@@ -30,7 +30,7 @@ export function SidebarSearch({ value, onChange, loading = false }: Props): JSX.
       <Input
         id="sidebar-search"
         type="search"
-        placeholder="Search collections and environments"
+        placeholder="Search"
         value={value}
         className="w-full"
         onChange={(event) => onChange(event.target.value)}

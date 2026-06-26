@@ -133,7 +133,7 @@ export function AuthEditor({
 
       <div className="min-w-0 flex-1">
         {auth.type === 'none' && (
-          <p className="m-0 text-[14px] text-muted">
+          <p className="m-0 text-[14px] text-muted mt-8">
             No request-level authorization is configured. Collection authorization applies when set.
           </p>
         )}

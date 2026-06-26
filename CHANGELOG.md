@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(auth-editor): adjust margin for no authorization message and update sidebar search placeholder. (`8f3b00d`)
 - feat(sidebar): enhance environments and collections with search functionality. (`319ac4b`)
 - feat(menu): update AI sidebar label and add report issue option. (`21ea80a`)
 - feat(drafts): synchronize draft URLs with enabled parameters. (`5298bac`)
