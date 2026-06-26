@@ -1,7 +1,8 @@
 import { useMemo, type JSX } from 'react';
 import type { Variable } from '#/shared/types';
 import type { ConsoleEntry } from '#/renderer/src/store';
-import { FaIcon } from '#/renderer/src/components/FaIcon';
+import { FooterButton } from '#/renderer/src/components/FooterButton';
+import { FooterIcon } from '#/renderer/src/components/FooterIcon';
 import { faRobot, faTableColumns } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
@@ -14,7 +15,6 @@ import { ConsolePanel } from './ConsolePanel';
 import { PluginFooterPanel } from './PluginFooterPanel';
 import { VariablesPanel } from './VariablesPanel';
 import { effectiveCount, resolveScopedVariables } from './VariablesPanel/resolve';
-import { footerIconButton, footerSegment } from './styles';
 
 interface Props {
   /**
@@ -174,39 +174,33 @@ export function Footer({
               </div>
             );
           })}
-          <button
-            type="button"
-            className={footerSegment(consoleOpen)}
-            aria-expanded={consoleOpen}
-            aria-controls="footer-console-panel"
+          <FooterButton
+            active={consoleOpen}
             onClick={onToggleConsole}
+            controlsId="footer-console-panel"
           >
             Console
             {entryCount > 0 && <span className="ml-1 text-[14px] text-muted">({entryCount})</span>}
-          </button>
-          <button
-            type="button"
-            className={footerSegment(variablesOpen)}
-            aria-expanded={variablesOpen}
-            aria-controls="footer-variables-panel"
+          </FooterButton>
+          <FooterButton
+            active={variablesOpen}
             onClick={onToggleVariables}
+            controlsId="footer-variables-panel"
           >
             Variables
             {variableCount > 0 && (
               <span className="ml-1 text-[14px] text-muted">({variableCount})</span>
             )}
-          </button>
+          </FooterButton>
           {pluginFooterPanels.map((panel) => (
-            <button
+            <FooterButton
               key={panel.id}
-              type="button"
-              className={footerSegment(activePluginFooterPanelId === panel.id)}
-              aria-expanded={activePluginFooterPanelId === panel.id}
-              aria-controls={`footer-plugin-panel-${panel.id}`}
+              active={activePluginFooterPanelId === panel.id}
               onClick={() => dispatch(togglePluginFooterPanel(panel.id))}
+              controlsId={`footer-plugin-panel-${panel.id}`}
             >
               {panel.title}
-            </button>
+            </FooterButton>
           ))}
         </div>
         <div className="flex items-center gap-0.5">
@@ -218,26 +212,18 @@ export function Footer({
               </div>
             );
           })}
-          <button
-            type="button"
-            className={footerIconButton(sidebarOpen)}
+          <FooterIcon
             onClick={onToggleSidebar}
-            aria-pressed={sidebarOpen}
-            aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-            title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-          >
-            <FaIcon icon={faTableColumns} className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            className={footerIconButton(aiSidebarOpen)}
+            icon={faTableColumns}
+            active={sidebarOpen}
+            label="sidebar"
+          />
+          <FooterIcon
             onClick={onToggleAiSidebar}
-            aria-pressed={aiSidebarOpen}
-            aria-label={aiSidebarOpen ? 'Hide agent chat' : 'Show agent chat'}
-            title={aiSidebarOpen ? 'Hide agent chat' : 'Show agent chat'}
-          >
-            <FaIcon icon={faRobot} className="h-4 w-4" />
-          </button>
+            icon={faRobot}
+            active={aiSidebarOpen}
+            label="agent chat"
+          />
         </div>
       </footer>
     </div>
