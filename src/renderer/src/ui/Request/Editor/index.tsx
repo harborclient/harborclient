@@ -180,43 +180,47 @@ export function Editor({
   };
 
   return (
-    <div className="p-3">
-      <Name
-        name={draft.name}
-        collectionName={collectionName}
-        folderName={folderName}
-        onNameChange={(name) => update({ name })}
-        onCollectionClick={onCollectionClick}
-        onFolderClick={onFolderClick}
-      />
-
-      <UrlBar
-        method={draft.method}
-        url={draft.url}
-        variables={variables}
-        sending={sending}
-        onMethodChange={(method) => update({ method })}
-        onUrlChange={handleUrlChange}
-        onSend={onSend}
-        onEditVariables={onEditVariables}
-      />
-
-      <SegmentedTabsGroup value={tab} onChange={setTab} ariaLabel="Request editor sections">
-        <div className="mt-2">
-          <SegmentedTabs tabs={tabs} />
-        </div>
-
-        <TabContent
-          draft={draft}
-          showBody={showBody}
-          update={update}
-          onParamsChange={handleParamsChange}
-          variables={variables}
-          onEditVariables={onEditVariables}
-          pluginTabs={pluginTabs}
-          requestTabContext={requestTabContext}
+    <div>
+      <div className="border-b border-separator p-3">
+        <Name
+          name={draft.name}
+          collectionName={collectionName}
+          folderName={folderName}
+          onNameChange={(name) => update({ name })}
+          onCollectionClick={onCollectionClick}
+          onFolderClick={onFolderClick}
         />
-      </SegmentedTabsGroup>
+
+        <UrlBar
+          method={draft.method}
+          url={draft.url}
+          variables={variables}
+          sending={sending}
+          onMethodChange={(method) => update({ method })}
+          onUrlChange={handleUrlChange}
+          onSend={onSend}
+          onEditVariables={onEditVariables}
+        />
+      </div>
+
+      <div className="p-3">
+        <SegmentedTabsGroup value={tab} onChange={setTab} ariaLabel="Request editor sections">
+          <div>
+            <SegmentedTabs tabs={tabs} />
+          </div>
+
+          <TabContent
+            draft={draft}
+            showBody={showBody}
+            update={update}
+            onParamsChange={handleParamsChange}
+            variables={variables}
+            onEditVariables={onEditVariables}
+            pluginTabs={pluginTabs}
+            requestTabContext={requestTabContext}
+          />
+        </SegmentedTabsGroup>
+      </div>
     </div>
   );
 }
