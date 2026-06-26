@@ -8,20 +8,8 @@ import type { CodeEditorSetup, GeneralSettings } from '#/shared/types';
 import { Button } from '#/renderer/src/components/Button';
 import { PageHeader } from '#/renderer/src/components/PageHeader';
 import { Input, Select } from '#/renderer/src/components/forms';
-import { DEFAULT_GENERAL_SETTINGS, settingsSectionMeta } from './constants';
-
-const PREVIEW_SAMPLE = `const response = hc.response.json();
-console.log(response);
-if (response.idToken) {
-    hc.collection.variables.set('idToken', response.idToken);
-}`;
-
-const SETUP_OPTIONS: Array<{ key: keyof CodeEditorSetup; label: string }> = [
-  { key: 'lineNumbers', label: 'Line numbers' },
-  { key: 'foldGutter', label: 'Code folding gutter' },
-  { key: 'highlightActiveLine', label: 'Highlight active line' },
-  { key: 'highlightActiveLineGutter', label: 'Highlight active line gutter' }
-];
+import { DEFAULT_GENERAL_SETTINGS, settingsSectionMeta } from '../constants';
+import { PREVIEW_SAMPLE, SETUP_OPTIONS } from './constants';
 
 /**
  * Syntax highlighting settings: CodeMirror theme, editor setup toggles, and live preview.
@@ -88,7 +76,11 @@ export function SyntaxHighlightingSection(): JSX.Element {
 
   return (
     <div className="mb-6 flex flex-col gap-6">
-      <PageHeader title={label} icon={icon} />
+      <PageHeader
+        title={label}
+        icon={icon}
+        description="Choose a CodeMirror theme and editor behavior for request and response editors."
+      />
       <div className="flex flex-col gap-6">
         <label className="flex flex-col gap-1">
           <span className="text-[14px] font-medium text-text">Theme</span>

@@ -2,7 +2,7 @@ import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { JSX } from 'react';
 import { FaIcon } from '#/renderer/src/components/FaIcon';
 import { sourceRow } from '#/renderer/src/ui/shared/classes';
-import type { SettingsSection } from './types';
+import type { SettingsSection } from '../types';
 
 interface Props {
   /**

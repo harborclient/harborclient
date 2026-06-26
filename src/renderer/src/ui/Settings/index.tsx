@@ -7,7 +7,7 @@ import { AiSection } from './AiSection';
 import { BackupRestoreSection } from './BackupRestoreSection';
 import { StorageLocationsSection } from './StorageLocationsSection';
 import { GeneralSection } from './GeneralSection';
-import { PluginsSection } from './PluginsSection';
+import { PluginsSection } from './PluginSection';
 import { ProxySection } from './ProxySection';
 import { ShortcutsSection } from './ShortcutsSection';
 import { SyntaxHighlightingSection } from './SyntaxHighlightingSection';

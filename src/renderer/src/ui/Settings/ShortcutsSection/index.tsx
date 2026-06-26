@@ -10,7 +10,7 @@ import { PageHeader } from '#/renderer/src/components/PageHeader';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { field } from '#/renderer/src/components/forms';
 import { formatErrorMessage } from '#/renderer/src/ui/modals/dialogHelpers';
-import { settingsSectionMeta } from './constants';
+import { settingsSectionMeta } from '../constants';
 import { acceleratorFromKeyboardEvent } from './acceleratorFromKeyboardEvent';
 
 /**

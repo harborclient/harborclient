@@ -7,7 +7,7 @@ import { PageHeader } from '#/renderer/src/components/PageHeader';
 import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
 import { usePluginThemes } from '#/renderer/src/plugins/pluginHooks';
 import { Input, Select } from '#/renderer/src/components/forms';
-import { DEFAULT_GENERAL_SETTINGS, THEME_OPTIONS, settingsSectionMeta } from './constants';
+import { DEFAULT_GENERAL_SETTINGS, THEME_OPTIONS, settingsSectionMeta } from '../constants';
 
 /**
  * General settings: appearance and HTTP request defaults.
@@ -104,7 +104,11 @@ export function GeneralSection(): JSX.Element {
 
   return (
     <div className="mb-6 flex flex-col gap-2">
-      <PageHeader title={label} icon={icon} />
+      <PageHeader
+        title={label}
+        icon={icon}
+        description="Set appearance, request timeouts, response size limits, and SSL verification defaults."
+      />
       <div className="mb-6 flex flex-col gap-6">
         <label className="flex flex-col gap-1">
           <span className="text-[14px] font-medium text-text">Theme</span>

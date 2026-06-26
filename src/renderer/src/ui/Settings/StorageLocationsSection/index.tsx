@@ -6,9 +6,10 @@ import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { refreshCollections } from '#/renderer/src/store/thunks/collections';
 import { Button } from '#/renderer/src/components/Button';
 import { PageHeader } from '#/renderer/src/components/PageHeader';
-import { createBlankConnection, providerLabel, settingsSectionMeta } from './constants';
+import { createBlankConnection, providerLabel, settingsSectionMeta } from '../constants';
 import { DiscoverCollectionsModal } from './DiscoverCollectionsModal';
-import { StorageConnectionForm } from './StorageConnectionForm';
+import { ConnectionDeleteModal } from './ConnectionDeleteModal';
+import { ConnectionEditModal } from './ConnectionEditModal';
 
 /**
  * Database settings with a list of named connections.
@@ -318,45 +319,15 @@ export function StorageLocationsSection(): JSX.Element {
       </div>
 
       {editingConnection && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={handleCancelEdit}
-        >
-          <div
-            className="max-h-[85vh] w-[480px] overflow-y-auto rounded-lg border border-separator bg-surface p-4 shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h2 className="m-0 mb-1 text-[14px] font-semibold text-text">
-              {isNew ? 'Add storage location' : 'Edit storage location'}
-            </h2>
-            <p className="mb-4 text-[14px] text-muted">
-              Choose a name and configure connection settings for this storage location.
-            </p>
-
-            <StorageConnectionForm
-              connection={editingConnection}
-              isNew={isNew}
-              disabled={saving}
-              onChange={setEditingConnection}
-            />
-
-            {error && <p className="mt-4 text-[14px] text-danger">{error}</p>}
-
-            <div className="mt-4 flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={saving}
-                onClick={handleCancelEdit}
-              >
-                Cancel
-              </Button>
-              <Button type="button" disabled={saving} onClick={() => void handleSave()}>
-                {saving ? 'Saving…' : 'Save'}
-              </Button>
-            </div>
-          </div>
-        </div>
+        <ConnectionEditModal
+          connection={editingConnection}
+          isNew={isNew}
+          saving={saving}
+          error={error}
+          onChange={setEditingConnection}
+          onCancel={handleCancelEdit}
+          onSave={() => void handleSave()}
+        />
       )}
 
       {discoveryPrompt && (
@@ -370,43 +341,12 @@ export function StorageLocationsSection(): JSX.Element {
       )}
 
       {deletingConnection && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => setDeletingConnection(null)}
-        >
-          <div
-            className="w-96 rounded-lg border border-separator bg-surface p-4 shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h2 className="m-0 mb-1 text-[14px] font-semibold text-text">
-              Delete storage location?
-            </h2>
-            <p className="mb-2 text-[14px] text-muted">
-              Are you sure you want to delete &ldquo;
-              {deletingConnection.name || 'Untitled'}&rdquo;? This cannot be undone.
-            </p>
-            {deletingConnection.id === activeId && (
-              <p className="mb-4 text-[14px] text-muted">
-                This is the active storage location. Another location will become active after
-                restart.
-              </p>
-            )}
-            {deletingConnection.id !== activeId && <div className="mb-4" />}
-
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="secondary" onClick={() => setDeletingConnection(null)}>
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="secondaryDanger"
-                onClick={() => void handleDelete(deletingConnection.id)}
-              >
-                Delete
-              </Button>
-            </div>
-          </div>
-        </div>
+        <ConnectionDeleteModal
+          connection={deletingConnection}
+          isActive={deletingConnection.id === activeId}
+          onCancel={() => setDeletingConnection(null)}
+          onConfirm={() => void handleDelete(deletingConnection.id)}
+        />
       )}
     </>
   );

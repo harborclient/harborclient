@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { acceleratorFromKeyboardEvent } from '#/renderer/src/ui/Settings/acceleratorFromKeyboardEvent';
+import { acceleratorFromKeyboardEvent } from '#/renderer/src/ui/Settings/ShortcutsSection/acceleratorFromKeyboardEvent';
 
 describe('acceleratorFromKeyboardEvent', () => {
   it('returns null for Escape and modifier-only keys', () => {

@@ -4,7 +4,11 @@ import type { GeneralSettings, ProxySettings } from '#/shared/types';
 import { Button } from '#/renderer/src/components/Button';
 import { PageHeader } from '#/renderer/src/components/PageHeader';
 import { Input, Select } from '#/renderer/src/components/forms';
-import { DEFAULT_GENERAL_SETTINGS, PROXY_PROTOCOL_OPTIONS, settingsSectionMeta } from './constants';
+import {
+  DEFAULT_GENERAL_SETTINGS,
+  PROXY_PROTOCOL_OPTIONS,
+  settingsSectionMeta
+} from '../constants';
 
 /**
  * Proxy settings: global HTTP proxy configuration for outbound requests.
@@ -68,7 +72,11 @@ export function ProxySection(): JSX.Element {
 
   return (
     <div className="mb-6 flex flex-col gap-2">
-      <PageHeader title={label} icon={icon} />
+      <PageHeader
+        title={label}
+        icon={icon}
+        description="Route HarborClient's outbound HTTP requests through a proxy server."
+      />
       <div className="mb-6 flex flex-col gap-6">
         <label className="flex items-center gap-2">
           <Input

@@ -2,12 +2,12 @@ import type { JSX } from 'react';
 import type { StorageConnection, StorageProvider } from '#/shared/types';
 import { SegmentedTabs } from '#/renderer/src/components/SegmentedTabs';
 import { Input } from '#/renderer/src/components/forms';
-import { createBlankConnection, PROVIDER_OPTIONS } from './constants';
-import { FirestoreFields } from './FirestoreFields';
-import { MySqlFields } from './MySqlFields';
-import { PostgresFields } from './PostgresFields';
-import { GitFields } from './GitFields';
-import { SqliteFields } from './SqliteFields';
+import { createBlankConnection, PROVIDER_OPTIONS } from '../../constants';
+import { FirestoreFields } from '../FirestoreFields';
+import { MySqlFields } from '../MySqlFields';
+import { PostgresFields } from '../PostgresFields';
+import { GitFields } from '../GitFields';
+import { SqliteFields } from '../SqliteFields';
 
 interface Props {
   /**
