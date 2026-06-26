@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.8.15 - 2026-06-26
+
 - feat(team-hubs): enhance admin collection management and synchronization. (`3b855d6`)
 - chore(package): update package name and author information. (`e777add`)
 - feat(team-hubs): enhance collection management and deletion functionality. (`e1b306e`)
