@@ -3248,6 +3248,18 @@ export interface Api {
   setAiChatSession: (state: AiChatSessionState) => Promise<void>;
 
   /**
+   * Returns persisted open request tabs as a JSON payload.
+   */
+  getOpenTabsPayload: () => Promise<string | null>;
+
+  /**
+   * Persists open request tabs as a JSON payload.
+   *
+   * @param payload - Serialized open-tabs JSON from the renderer.
+   */
+  setOpenTabsPayload: (payload: string) => Promise<void>;
+
+  /**
    * Returns persisted collection runner configuration.
    */
   getCollectionRunnerConfig: () => Promise<CollectionRunnerConfig>;

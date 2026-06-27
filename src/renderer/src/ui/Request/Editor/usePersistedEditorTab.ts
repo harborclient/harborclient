@@ -57,10 +57,16 @@ export function usePersistedEditorTab({ draft, tabId, showBody }: Options): Resu
     let cancelled = false;
     const key = requestEditorTabKey(draft, tabId);
 
-    void window.api.getRequestEditorTab(key).then((stored) => {
-      if (cancelled) return;
-      setTabState(resolveEditorTab(stored, showBody));
-    });
+    void window.api
+      .getRequestEditorTab(key)
+      .then((stored) => {
+        if (cancelled) return;
+        const resolved = resolveEditorTab(stored, showBody);
+        setTabState(resolved);
+      })
+      .catch(() => {
+        // Keep the default tab when IPC fails so the editor remains usable.
+      });
 
     return () => {
       cancelled = true;

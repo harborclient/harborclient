@@ -28,6 +28,15 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()]
   },
   renderer: {
+    // Pin the dev server to a fixed port so the renderer origin
+    // (http://localhost:5173) stays stable across restarts. Chromium scopes
+    // localStorage by origin, so a drifting port would orphan persisted state
+    // such as open request tabs (harborclient.openTabs). strictPort fails loudly
+    // on a conflict instead of silently switching ports and losing that state.
+    server: {
+      port: 5173,
+      strictPort: true
+    },
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

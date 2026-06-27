@@ -478,6 +478,7 @@ export const ipcArgSchemas = {
   setEditorTab: z.tuple([storageKey, editorTab]),
   sidebarExpansionSet: z.tuple([sidebarExpansion]),
   panelLayoutSet: z.tuple([panelLayout]),
+  openTabsPayloadSet: z.tuple([z.string().min(1)]),
   aiChatSessionSet: z.tuple([aiChatSession]),
   collectionRunnerConfigSet: z.tuple([collectionRunnerConfig]),
   shortcutOverridesSet: z.tuple([shortcutOverrides]),

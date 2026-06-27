@@ -6,16 +6,19 @@ export * from '#/renderer/src/store/thunks/sync';
 export * from '#/renderer/src/store/thunks/aiChat';
 export * from '#/renderer/src/store/thunks/collectionRunner';
 export * from '#/renderer/src/store/thunks/settings';
+export * from '#/renderer/src/store/thunks/tabs';
 
 import type { AppDispatch } from '#/renderer/src/store/redux';
 import { setGeneralSettingsState } from '#/renderer/src/store/slices/settingsSlice';
 import { refreshCollections } from '#/renderer/src/store/thunks/collections';
 import { refreshEnvironments } from '#/renderer/src/store/thunks/environments';
+import { hydrateOpenTabs } from '#/renderer/src/store/thunks/tabs';
 
 /**
  * Dispatches initial data loads on app mount.
  */
 export function initializeStore(dispatch: AppDispatch): void {
+  void dispatch(hydrateOpenTabs());
   void dispatch(refreshCollections());
   void dispatch(refreshEnvironments());
   void window.api.getGeneralSettings().then((settings) => {

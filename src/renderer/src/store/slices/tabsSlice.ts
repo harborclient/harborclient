@@ -7,16 +7,18 @@ import {
   type RequestDraft,
   type RequestTab
 } from '#/renderer/src/store/drafts';
-import { getInitialTabState } from '#/renderer/src/store/persistence';
+import { defaultTabState } from '#/renderer/src/store/persistence';
 
 export interface TabsState {
   tabs: RequestTab[];
   activeTabId: string;
 }
 
+const startupTabs = defaultTabState();
+
 const initialState: TabsState = {
-  tabs: getInitialTabState().tabs,
-  activeTabId: getInitialTabState().activeTabId
+  tabs: startupTabs.tabs,
+  activeTabId: startupTabs.activeTabId
 };
 
 const tabsSlice = createSlice({
@@ -167,6 +169,13 @@ const tabsSlice = createSlice({
         tab.draft = savedDraft;
         tab.savedDraft = cloneDraft(savedDraft);
       }
+    },
+    /**
+     * Replaces all open tabs after async hydration from electron-store.
+     */
+    restoreTabsState(state, action: PayloadAction<{ tabs: RequestTab[]; activeTabId: string }>) {
+      state.tabs = action.payload.tabs;
+      state.activeTabId = action.payload.activeTabId;
     }
   }
 });
@@ -181,6 +190,7 @@ export const {
   openTabWithDraft,
   closeTabsForRequest,
   closeTabsForCollection,
-  updateActiveTabDraftAfterSave
+  updateActiveTabDraftAfterSave,
+  restoreTabsState
 } = tabsSlice.actions;
 export default tabsSlice.reducer;

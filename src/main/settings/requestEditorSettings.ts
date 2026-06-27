@@ -40,7 +40,8 @@ function getTabsMap(): Record<string, EditorTab> {
 export function getRequestEditorTab(key: string): EditorTab | null {
   const trimmed = key.trim();
   if (!trimmed) return null;
-  return normalizeEditorTab(getTabsMap()[trimmed]);
+  const stored = getTabsMap()[trimmed];
+  return normalizeEditorTab(stored);
 }
 
 /**

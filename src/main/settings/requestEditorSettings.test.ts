@@ -21,6 +21,10 @@ describe('normalizeEditorTab', () => {
     expect(normalizeEditorTab('post')).toBe('post');
   });
 
+  it('accepts the authorization tab', () => {
+    expect(normalizeEditorTab('auth')).toBe('auth');
+  });
+
   it('rejects unknown values', () => {
     expect(normalizeEditorTab('tests')).toBeNull();
     expect(normalizeEditorTab(null)).toBeNull();

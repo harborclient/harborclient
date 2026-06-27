@@ -37,6 +37,7 @@ import {
   setCollectionRunnerConfig
 } from '#/main/settings/collectionRunnerSettings';
 import { getAiChatSession, setAiChatSession } from '#/main/settings/aiChatSessionSettings';
+import { getOpenTabsPayload, setOpenTabsPayload } from '#/main/settings/openTabsSettings';
 import { getPanelLayout, setPanelLayout } from '#/main/settings/panelLayoutSettings';
 import { getSidebarExpansion, setSidebarExpansion } from '#/main/settings/sidebarExpansionSettings';
 import { checkForUpdates } from '#/main/settings/updateCheck';
@@ -539,6 +540,14 @@ export function registerSettingsHandlers(db: IStorage): void {
   // Persists AI chat open tabs and active tab.
   handle('aiChat:setSession', ipcArgSchemas.aiChatSessionSet, (_event, state) => {
     setAiChatSession(state);
+  });
+
+  // Returns persisted open request tabs as a JSON payload.
+  handle('openTabs:getPayload', ipcArgSchemas.none, () => getOpenTabsPayload());
+
+  // Persists open request tabs as a JSON payload.
+  handle('openTabs:setPayload', ipcArgSchemas.openTabsPayloadSet, (_event, payload) => {
+    setOpenTabsPayload(payload);
   });
 
   // Returns persisted collection runner configuration.

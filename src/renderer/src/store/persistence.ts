@@ -1,12 +1,16 @@
 import {
   cloneDraft,
   createTab,
+  defaultDraft,
   normalizeDraft,
   syncDraftUrlWithParams,
   type RequestDraft,
   type RequestTab
 } from '#/renderer/src/store/drafts';
 import type { BodyType, HttpMethod, KeyValue } from '#/shared/types';
+
+/** When false, persistTabs is a no-op so the default startup tab does not clobber electron-store. */
+let tabsHydrated = false;
 
 export const OPEN_TABS_KEY = 'harborclient.openTabs';
 export const LEGACY_OPEN_TABS_KEY = 'harbor-client.openTabs';
@@ -49,28 +53,32 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * Returns whether a parsed value matches the KeyValue shape.
+ * Normalizes a persisted key-value row, defaulting enabled to true when absent.
  *
  * @param value - Candidate key/value row from persisted storage.
- * @returns True when all required fields are present with correct types.
+ * @returns Normalized KeyValue or null when key/value types are invalid.
  */
-function isKeyValue(value: unknown): value is KeyValue {
-  return (
-    isRecord(value) &&
-    typeof value.key === 'string' &&
-    typeof value.value === 'string' &&
-    typeof value.enabled === 'boolean'
-  );
+function normalizeKeyValue(value: unknown): KeyValue | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.key !== 'string' || typeof value.value !== 'string') return null;
+  return {
+    key: value.key,
+    value: value.value,
+    enabled: typeof value.enabled === 'boolean' ? value.enabled : true
+  };
 }
 
 /**
- * Returns whether a parsed value is an array of valid KeyValue rows.
+ * Normalizes a persisted headers or params array, skipping invalid rows.
  *
- * @param value - Candidate headers or params array from persisted storage.
- * @returns True when every entry is a valid KeyValue.
+ * @param value - Candidate array from persisted storage.
+ * @returns Normalized KeyValue array or null when the value is not an array.
  */
-function isKeyValueArray(value: unknown): value is KeyValue[] {
-  return Array.isArray(value) && value.every(isKeyValue);
+function normalizeKeyValueArray(value: unknown): KeyValue[] | null {
+  if (!Array.isArray(value)) return null;
+  return value
+    .map((entry) => normalizeKeyValue(entry))
+    .filter((entry): entry is KeyValue => entry !== null);
 }
 
 /**
@@ -96,51 +104,77 @@ function isOptionalFolderId(value: unknown): boolean {
 }
 
 /**
- * Returns whether a parsed value matches the RequestDraft shape required for restore.
+ * Normalizes a persisted draft into a full RequestDraft, or null when required fields are missing.
  *
  * @param value - Candidate draft from persisted storage.
- * @returns True when required draft fields are present with valid types.
+ * @returns Normalized draft ready for runtime use, or null when salvage is impossible.
  */
-function isRequestDraft(value: unknown): value is RequestDraft {
-  if (!isRecord(value)) return false;
+function normalizePersistedDraft(value: unknown): RequestDraft | null {
+  if (!isRecord(value)) return null;
   if (
     typeof value.name !== 'string' ||
     typeof value.url !== 'string' ||
     typeof value.body !== 'string' ||
     !HTTP_METHODS.has(value.method as HttpMethod) ||
-    !BODY_TYPES.has(value.body_type as BodyType) ||
-    !isKeyValueArray(value.headers) ||
-    !isKeyValueArray(value.params)
+    !BODY_TYPES.has(value.body_type as BodyType)
   ) {
-    return false;
+    return null;
   }
-  if (!isOptionalNumber(value.id)) return false;
-  if (!isOptionalNumber(value.collection_id)) return false;
-  if (!isOptionalFolderId(value.folder_id)) return false;
+
+  const headers = normalizeKeyValueArray(value.headers);
+  const params = normalizeKeyValueArray(value.params);
+  if (headers === null || params === null) return null;
+
+  if (!isOptionalNumber(value.id)) return null;
+  if (!isOptionalNumber(value.collection_id)) return null;
+  if (!isOptionalFolderId(value.folder_id)) return null;
   if (value.pre_request_script !== undefined && typeof value.pre_request_script !== 'string') {
-    return false;
+    return null;
   }
   if (value.post_request_script !== undefined && typeof value.post_request_script !== 'string') {
-    return false;
+    return null;
   }
   if (value.comment !== undefined && typeof value.comment !== 'string') {
-    return false;
+    return null;
   }
-  return true;
+
+  return normalizeDraft({
+    id: value.id as number | undefined,
+    collection_id: value.collection_id as number | undefined,
+    folder_id: value.folder_id as number | null | undefined,
+    name: value.name,
+    method: value.method as HttpMethod,
+    url: value.url,
+    headers,
+    params,
+    auth: value.auth,
+    body: value.body,
+    body_type: value.body_type as BodyType,
+    pre_request_script:
+      typeof value.pre_request_script === 'string' ? value.pre_request_script : '',
+    post_request_script:
+      typeof value.post_request_script === 'string' ? value.post_request_script : '',
+    comment: typeof value.comment === 'string' ? value.comment : ''
+  } as RequestDraft);
 }
 
 /**
- * Returns whether a parsed value matches the persisted tab shape.
+ * Salvages a persisted tab entry, falling back to draft when savedDraft is invalid.
  *
  * @param value - Candidate tab entry from persisted storage.
- * @returns True when tabId and draft are valid; savedDraft is validated when present.
+ * @returns Salvaged tab or null when tabId or draft cannot be recovered.
  */
-function isPersistedTab(value: unknown): value is PersistedTab {
-  if (!isRecord(value)) return false;
-  if (typeof value.tabId !== 'string' || value.tabId.length === 0) return false;
-  if (!isRequestDraft(value.draft)) return false;
-  if (value.savedDraft !== undefined && !isRequestDraft(value.savedDraft)) return false;
-  return true;
+function salvagePersistedTab(value: unknown): PersistedTab | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.tabId !== 'string' || value.tabId.length === 0) return null;
+
+  const draft = normalizePersistedDraft(value.draft);
+  if (!draft) return null;
+
+  const savedDraft =
+    value.savedDraft !== undefined ? (normalizePersistedDraft(value.savedDraft) ?? draft) : draft;
+
+  return { tabId: value.tabId, draft, savedDraft };
 }
 
 /**
@@ -161,6 +195,44 @@ function persistedTabToRequestTab(tab: PersistedTab): RequestTab {
     sendingRequestId: null,
     testResults: []
   };
+}
+
+/**
+ * Returns whether in-memory tab state matches the default blank single tab.
+ *
+ * @param tabs - Open tabs currently in Redux.
+ * @returns True when there is one untouched Untitled Request tab.
+ */
+function isDefaultSingleTabState(tabs: RequestTab[]): boolean {
+  if (tabs.length !== 1) return false;
+  const fallback = defaultDraft();
+  const tab = tabs[0];
+  return (
+    tab.draft.name === fallback.name &&
+    tab.draft.url === fallback.url &&
+    tab.draft.method === fallback.method &&
+    tab.draft.body === fallback.body &&
+    tab.draft.body_type === fallback.body_type
+  );
+}
+
+/**
+ * Returns whether localStorage still holds a multi-tab payload from a failed restore.
+ *
+ * @returns True when clobbering with the default single tab should be skipped.
+ */
+function shouldSkipClobberingPersist(): boolean {
+  try {
+    const raw = localStorage.getItem(OPEN_TABS_KEY);
+    if (!raw) return false;
+
+    const parsed: unknown = JSON.parse(raw);
+    if (!isRecord(parsed) || !Array.isArray(parsed.tabs)) return false;
+
+    return parsed.tabs.length > 1;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -186,6 +258,63 @@ export function loadActiveEnvironmentId(): number | null {
 }
 
 /**
+ * Parses a serialized open-tabs payload into runtime tab state.
+ *
+ * @param raw - JSON string from electron-store or localStorage.
+ * @returns Restored tabs or a default single tab when the payload is invalid.
+ */
+export function parseOpenTabsFromRaw(raw: string): { tabs: RequestTab[]; activeTabId: string } {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!isRecord(parsed) || !Array.isArray(parsed.tabs)) {
+      return defaultTabState();
+    }
+
+    const seenTabIds = new Set<string>();
+    const tabs: RequestTab[] = [];
+    for (const entry of parsed.tabs) {
+      const salvaged = salvagePersistedTab(entry);
+      if (!salvaged || seenTabIds.has(salvaged.tabId)) {
+        continue;
+      }
+      seenTabIds.add(salvaged.tabId);
+      try {
+        tabs.push(persistedTabToRequestTab(salvaged));
+      } catch {
+        // Skip tabs that fail conversion.
+      }
+    }
+
+    if (tabs.length === 0) {
+      return defaultTabState();
+    }
+
+    const activeTabId =
+      typeof parsed.activeTabId === 'string' && tabs.some((tab) => tab.tabId === parsed.activeTabId)
+        ? parsed.activeTabId
+        : tabs[0].tabId;
+
+    return { tabs, activeTabId };
+  } catch {
+    return defaultTabState();
+  }
+}
+
+/**
+ * Marks open tabs as hydrated so Redux subscribers may persist tab state.
+ */
+export function markTabsHydrated(): void {
+  tabsHydrated = true;
+}
+
+/**
+ * Resets the hydration gate for tests simulating a cold app start.
+ */
+export function resetTabsHydratedForTests(): void {
+  tabsHydrated = false;
+}
+
+/**
  * Loads open tabs from localStorage, salvaging valid tabs when the payload is partially corrupt.
  *
  * Invalid tab entries are skipped rather than failing the entire restore. When no valid tabs
@@ -200,57 +329,53 @@ export function loadTabsFromStorage(): { tabs: RequestTab[]; activeTabId: string
         localStorage.setItem(OPEN_TABS_KEY, raw);
       }
     }
-    if (!raw) return defaultTabState();
-
-    const parsed: unknown = JSON.parse(raw);
-    if (!isRecord(parsed) || !Array.isArray(parsed.tabs)) return defaultTabState();
-
-    const seenTabIds = new Set<string>();
-    const tabs: RequestTab[] = [];
-    for (const entry of parsed.tabs) {
-      if (!isPersistedTab(entry) || seenTabIds.has(entry.tabId)) continue;
-      seenTabIds.add(entry.tabId);
-      tabs.push(persistedTabToRequestTab(entry));
+    if (!raw) {
+      return defaultTabState();
     }
 
-    if (tabs.length === 0) return defaultTabState();
-
-    const activeTabId =
-      typeof parsed.activeTabId === 'string' && tabs.some((tab) => tab.tabId === parsed.activeTabId)
-        ? parsed.activeTabId
-        : tabs[0].tabId;
-
-    return { tabs, activeTabId };
+    return parseOpenTabsFromRaw(raw);
   } catch {
     return defaultTabState();
   }
 }
 
-let initialTabState: { tabs: RequestTab[]; activeTabId: string } | undefined;
-
 /**
- * Returns cached initial tab state, loading from storage on first call.
+ * Returns default tab state for tests that still call this helper.
  */
 export function getInitialTabState(): { tabs: RequestTab[]; activeTabId: string } {
-  if (initialTabState === undefined) {
-    initialTabState = loadTabsFromStorage();
-  }
-  return initialTabState;
+  return defaultTabState();
 }
 
 /**
- * Persists open tabs to localStorage.
+ * Clears hydration and cached initial tab state for tests simulating a cold start.
+ */
+export function resetInitialTabStateForTests(): void {
+  resetTabsHydratedForTests();
+}
+
+/**
+ * Persists open tabs to electron-store (primary) and localStorage (mirror).
  *
  * Ignores quota, privacy-mode, and other storage failures so Redux subscribers
  * are not interrupted on every dispatch.
  */
 export function persistTabs(tabs: RequestTab[], activeTabId: string): void {
   try {
+    if (!tabsHydrated) {
+      return;
+    }
+
+    if (isDefaultSingleTabState(tabs) && shouldSkipClobberingPersist()) {
+      return;
+    }
+
     const payload: PersistedOpenTabs = {
       tabs: tabs.map((t) => ({ tabId: t.tabId, draft: t.draft, savedDraft: t.savedDraft })),
       activeTabId
     };
-    localStorage.setItem(OPEN_TABS_KEY, JSON.stringify(payload));
+    const serialized = JSON.stringify(payload);
+    localStorage.setItem(OPEN_TABS_KEY, serialized);
+    void window.api.setOpenTabsPayload(serialized).catch(() => {});
   } catch {
     // Ignore quota or privacy-mode failures.
   }

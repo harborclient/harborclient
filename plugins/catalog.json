@@ -4,7 +4,7 @@
     {
       "id": "com.harborclient.plugins.aws-sigv4",
       "name": "AWS SigV4",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "summary": "HarborClient plugin that signs outgoing HTTP requests with AWS Signature Version 4.",
       "author": "HarborClient",
       "categories": ["requests", "auth"],
@@ -14,7 +14,7 @@
     {
       "id": "com.harborclient.plugins.curl",
       "name": "cURL",
-      "version": "1.0.3",
+      "version": "1.0.5",
       "summary": "Adds a tab to the request editor that shows an equivalent `curl` command for the configured request.",
       "author": "HarborClient",
       "categories": ["requests"],

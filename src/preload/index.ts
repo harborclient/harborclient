@@ -1179,6 +1179,22 @@ function setAiChatSession(state: AiChatSessionState): Promise<void> {
 }
 
 /**
+ * Returns persisted open request tabs as a JSON payload.
+ */
+function getOpenTabsPayload(): Promise<string | null> {
+  return ipcRenderer.invoke('openTabs:getPayload');
+}
+
+/**
+ * Persists open request tabs as a JSON payload.
+ *
+ * @param payload - Serialized open-tabs JSON from the renderer.
+ */
+function setOpenTabsPayload(payload: string): Promise<void> {
+  return ipcRenderer.invoke('openTabs:setPayload', payload);
+}
+
+/**
  * Returns persisted collection runner configuration.
  */
 function getCollectionRunnerConfig(): Promise<CollectionRunnerConfig> {
@@ -1800,6 +1816,8 @@ const api: Api = {
   setPanelLayout,
   getAiChatSession,
   setAiChatSession,
+  getOpenTabsPayload,
+  setOpenTabsPayload,
   getCollectionRunnerConfig,
   setCollectionRunnerConfig,
   getShortcuts,

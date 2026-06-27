@@ -6,9 +6,13 @@ import {
   defaultTabState,
   LEGACY_OPEN_TABS_KEY,
   loadTabsFromStorage,
+  markTabsHydrated,
   OPEN_TABS_KEY,
+  parseOpenTabsFromRaw,
   persistActiveEnvironmentId,
   persistTabs,
+  resetInitialTabStateForTests,
+  resetTabsHydratedForTests,
   type PersistedOpenTabs
 } from '#/renderer/src/store/persistence';
 
@@ -36,6 +40,24 @@ const persistedPayload = (overrides: Partial<PersistedOpenTabs> = {}): Persisted
     ...overrides
   };
 };
+
+/**
+ * Minimal window stub for persistence tests that call electron-store IPC helpers.
+ */
+function createWindowApiMock(
+  handlers: Partial<{
+    getOpenTabsPayload: () => Promise<string | null>;
+    setOpenTabsPayload: (payload: string) => Promise<void>;
+  }> = {}
+): Window & typeof globalThis {
+  return {
+    location: { origin: 'http://test' },
+    api: {
+      setOpenTabsPayload: vi.fn(async () => undefined),
+      ...handlers
+    }
+  } as unknown as Window & typeof globalThis;
+}
 
 /**
  * Minimal localStorage mock backed by an in-memory map for persistence tests.
@@ -213,15 +235,106 @@ describe('loadTabsFromStorage', () => {
     expect(result.tabs).toHaveLength(1);
     expect(result.tabs[0].draft.name).toBe('First');
   });
+
+  it('restores drafts with auth and round-trips through persistTabs', () => {
+    vi.stubGlobal('window', createWindowApiMock());
+    markTabsHydrated();
+    const tab = createTab(
+      sampleDraft({
+        name: 'Authed',
+        auth: {
+          ...defaultAuth(),
+          type: 'bearer',
+          bearer: { token: 'secret' }
+        }
+      })
+    );
+    persistTabs([tab], tab.tabId);
+
+    const result = loadTabsFromStorage();
+
+    expect(result.tabs).toHaveLength(1);
+    expect(result.tabs[0].draft.name).toBe('Authed');
+    expect(result.tabs[0].draft.auth.type).toBe('bearer');
+    expect(result.tabs[0].draft.auth.bearer.token).toBe('secret');
+  });
+
+  it('restores legacy key-value rows missing enabled', () => {
+    const payload = {
+      tabs: [
+        {
+          tabId: 'legacy-kv',
+          draft: {
+            name: 'Legacy KV',
+            method: 'GET',
+            url: 'https://example.com',
+            headers: [{ key: 'X-Test', value: '1' }],
+            params: [{ key: 'page', value: '2' }],
+            body: '',
+            body_type: 'none'
+          }
+        }
+      ],
+      activeTabId: 'legacy-kv'
+    };
+    localStorage.setItem(OPEN_TABS_KEY, JSON.stringify(payload));
+
+    const result = loadTabsFromStorage();
+
+    expect(result.tabs).toHaveLength(1);
+    expect(result.tabs[0].draft.headers[0]).toEqual({
+      key: 'X-Test',
+      value: '1',
+      enabled: true
+    });
+    expect(result.tabs[0].draft.params[0]).toEqual({
+      key: 'page',
+      value: '2',
+      enabled: true
+    });
+  });
+
+  it('salvages draft when savedDraft is invalid', () => {
+    const validDraft = sampleDraft({ name: 'Valid draft' });
+    const payload = {
+      tabs: [
+        {
+          tabId: 'salvaged-tab',
+          draft: validDraft,
+          savedDraft: { ...validDraft, headers: 'not-an-array' }
+        }
+      ],
+      activeTabId: 'salvaged-tab'
+    };
+    localStorage.setItem(OPEN_TABS_KEY, JSON.stringify(payload));
+
+    const result = loadTabsFromStorage();
+
+    expect(result.tabs).toHaveLength(1);
+    expect(result.tabs[0].draft.name).toBe('Valid draft');
+    expect(isTabDirty(result.tabs[0])).toBe(false);
+  });
 });
 
 describe('persistTabs', () => {
   beforeEach(() => {
     vi.stubGlobal('localStorage', createLocalStorageMock());
+    vi.stubGlobal('window', createWindowApiMock());
+    markTabsHydrated();
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    resetTabsHydratedForTests();
+  });
+
+  it('does not persist before hydration completes', () => {
+    resetTabsHydratedForTests();
+    const tab = createTab(sampleDraft({ name: 'Pre-hydrate' }));
+
+    persistTabs([tab], tab.tabId);
+
+    expect(localStorage.getItem(OPEN_TABS_KEY)).toBeNull();
   });
 
   it('does not throw when localStorage.setItem fails', () => {
@@ -231,6 +344,67 @@ describe('persistTabs', () => {
     const tab = createTab();
 
     expect(() => persistTabs([tab], tab.tabId)).not.toThrow();
+  });
+
+  it('does not clobber a multi-tab payload when persisting the default single tab', () => {
+    const multiTabPayload = persistedPayload({
+      tabs: [
+        { tabId: 'tab-a', draft: sampleDraft({ name: 'First' }) },
+        { tabId: 'tab-b', draft: sampleDraft({ name: 'Second' }) }
+      ],
+      activeTabId: 'tab-b'
+    });
+    localStorage.setItem(OPEN_TABS_KEY, JSON.stringify(multiTabPayload));
+
+    const fallback = defaultTabState();
+    persistTabs(fallback.tabs, fallback.activeTabId);
+
+    expect(localStorage.getItem(OPEN_TABS_KEY)).toBe(JSON.stringify(multiTabPayload));
+  });
+});
+
+describe('redux open-tab round trip', () => {
+  let storedPayload: string | null = null;
+
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', createLocalStorageMock());
+    storedPayload = null;
+    vi.stubGlobal(
+      'window',
+      createWindowApiMock({
+        getOpenTabsPayload: vi.fn(async () => storedPayload),
+        setOpenTabsPayload: vi.fn(async (payload: string) => {
+          storedPayload = payload;
+        })
+      })
+    );
+    resetInitialTabStateForTests();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    resetInitialTabStateForTests();
+  });
+
+  it('persists multiple open tabs and reloads them on simulated restart', async () => {
+    vi.resetModules();
+    const { markTabsHydrated } = await import('#/renderer/src/store/persistence');
+    const { store } = await import('#/renderer/src/store/redux');
+    const { openTabWithDraft } = await import('#/renderer/src/store/slices/tabsSlice');
+
+    markTabsHydrated();
+    store.dispatch(openTabWithDraft(sampleDraft({ name: 'First tab', id: 1, collection_id: 10 })));
+    store.dispatch(openTabWithDraft(sampleDraft({ name: 'Second tab', id: 2, collection_id: 10 })));
+
+    expect(storedPayload).not.toBeNull();
+    expect(localStorage.getItem(OPEN_TABS_KEY)).toBe(storedPayload);
+
+    resetInitialTabStateForTests();
+    const restored = parseOpenTabsFromRaw(storedPayload!);
+
+    const names = restored.tabs.map((tab) => tab.draft.name);
+    expect(names).toContain('First tab');
+    expect(names).toContain('Second tab');
   });
 });
 
