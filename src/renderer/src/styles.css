@@ -178,6 +178,11 @@
 }
 
 @layer utilities {
+  /* Closed footer panels align with the footer bar; drop shadow so it does not bleed upward. */
+  [id^='footer-'][aria-hidden='true'] {
+    box-shadow: none;
+  }
+
   .app-drag {
     -webkit-app-region: drag;
   }

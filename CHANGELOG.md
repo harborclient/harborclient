@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(plugins): update plugin versions and enhance auth configuration. (`b985ffd`)
 - feat(tabs): implement open tabs persistence and migration. (`535a436`)
 - feat(plugin-manager): add support for unpacked plugin loading and signature handling. (`cd98d88`)
 - refactor: update component imports to use @harborclient/sdk/components. (`fdd9358`)

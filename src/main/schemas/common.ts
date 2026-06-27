@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { normalizeAuth } from '#/shared/auth';
 import type { AuthConfig, KeyValue, Variable } from '#/shared/types';
 
 /**
@@ -29,19 +30,44 @@ export const oauth2Config = z.object({
 }) satisfies z.ZodType<AuthConfig['oauth2']>;
 
 /**
- * Authorization settings for requests and collections.
+ * Permissive auth payload accepted from import files and IPC before normalization.
+ *
+ * Credential blocks (`basic`, `bearer`, `oauth2`) are optional so legacy exports
+ * and future auth methods do not break import when a block is absent.
  */
-export const authConfig = z.object({
-  type: authType,
-  basic: z.object({
-    username: z.string(),
-    password: z.string()
-  }),
-  bearer: z.object({
-    token: z.string()
-  }),
-  oauth2: oauth2Config
-}) satisfies z.ZodType<AuthConfig>;
+const authConfigInput = z
+  .object({
+    type: z.string().optional(),
+    basic: z
+      .object({
+        username: z.string().optional(),
+        password: z.string().optional()
+      })
+      .optional(),
+    bearer: z
+      .object({
+        token: z.string().optional()
+      })
+      .optional(),
+    oauth2: z
+      .object({
+        tokenUrl: z.string().optional(),
+        clientId: z.string().optional(),
+        clientSecret: z.string().optional(),
+        scope: z.string().optional(),
+        audience: z.string().optional(),
+        clientAuth: z.enum(['body', 'header']).optional()
+      })
+      .optional()
+  })
+  .passthrough();
+
+/**
+ * Authorization settings for requests and collections.
+ *
+ * Accepts partial legacy export shapes and normalizes to a full {@link AuthConfig}.
+ */
+export const authConfig = authConfigInput.transform(normalizeAuth) satisfies z.ZodType<AuthConfig>;
 
 /**
  * Header or query parameter key-value row.

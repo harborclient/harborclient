@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { defaultOAuth2Config } from '#/shared/auth';
 import {
   collectionExportContainsScripts,
   requestExportContainsScripts,
@@ -305,6 +306,57 @@ describe('validateCollectionExport', () => {
     });
 
     expect(result.variables).toEqual([{ key: 'token', value: '', defaultValue: '', share: false }]);
+  });
+
+  it('accepts collection auth without oauth2 and normalizes defaults', () => {
+    const result = validateCollectionExport({
+      ...validV1Export,
+      auth: {
+        type: 'bearer',
+        basic: { username: '', password: '' },
+        bearer: { token: '{{idToken}}' }
+      },
+      requests: []
+    });
+
+    expect(result.auth?.type).toBe('bearer');
+    expect(result.auth?.bearer.token).toBe('{{idToken}}');
+    expect(result.auth?.oauth2).toEqual(defaultOAuth2Config());
+  });
+
+  it('accepts minimal bearer-only collection auth', () => {
+    const result = validateCollectionExport({
+      ...validV1Export,
+      auth: {
+        type: 'bearer',
+        bearer: { token: 'tok' }
+      },
+      requests: []
+    });
+
+    expect(result.auth?.type).toBe('bearer');
+    expect(result.auth?.bearer.token).toBe('tok');
+    expect(result.auth?.basic).toEqual({ username: '', password: '' });
+    expect(result.auth?.oauth2).toEqual(defaultOAuth2Config());
+  });
+
+  it('accepts request auth without oauth2 and normalizes defaults', () => {
+    const result = validateCollectionExport({
+      ...validV1Export,
+      requests: [
+        {
+          ...validRequest,
+          auth: {
+            type: 'none',
+            basic: { username: '', password: '' },
+            bearer: { token: '' }
+          }
+        }
+      ]
+    });
+
+    expect(result.requests[0]?.auth?.type).toBe('none');
+    expect(result.requests[0]?.auth?.oauth2).toEqual(defaultOAuth2Config());
   });
 });
 
