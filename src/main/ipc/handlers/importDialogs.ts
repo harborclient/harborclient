@@ -1,5 +1,8 @@
 import { BrowserWindow, dialog } from 'electron';
+import { stat } from 'fs/promises';
 import { readFile } from 'fs/promises';
+import { join, dirname } from 'path';
+import { isBrunoCollectionManifest } from '#/main/import/bruno';
 import {
   getSuppressPostmanImportWarning,
   setSuppressPostmanImportWarning
@@ -11,16 +14,71 @@ import {
 export type DuplicateImportChoice = 'cancel' | 'copy' | 'update';
 
 /**
- * Opens a native JSON file picker and parses the selected file.
+ * Parsed import file selection from the native open dialog.
+ */
+export type ImportFileSelection = {
+  /**
+   * Raw UTF-8 contents of the JSON file that was read.
+   */
+  raw: string;
+
+  /**
+   * Parsed JSON payload from the selected import file.
+   */
+  parsed: unknown;
+
+  /**
+   * Absolute path to the JSON file read (HarborClient export or bruno.json).
+   */
+  filePath: string;
+
+  /**
+   * Absolute path to the Bruno collection root when a manifest was loaded.
+   */
+  collectionDir?: string;
+};
+
+/**
+ * Reads bruno.json from a directory and returns a parsed import selection.
+ *
+ * @param collectionDir - Absolute path to the selected Bruno collection folder.
+ * @returns Parsed manifest selection for downstream import handlers.
+ * @throws When bruno.json is missing or does not contain a valid manifest.
+ */
+async function readBrunoCollectionSelection(collectionDir: string): Promise<ImportFileSelection> {
+  const manifestPath = join(collectionDir, 'bruno.json');
+  const raw = await readFile(manifestPath, 'utf-8');
+  const parsed = JSON.parse(raw) as unknown;
+
+  if (!isBrunoCollectionManifest(parsed)) {
+    throw new Error('Selected folder is not a Bruno collection (missing or invalid bruno.json).');
+  }
+
+  return {
+    raw,
+    parsed,
+    filePath: manifestPath,
+    collectionDir
+  };
+}
+
+/**
+ * Opens a native import picker and parses the selected JSON file or Bruno folder.
+ *
+ * On macOS the picker accepts both files and directories so users can select a
+ * collection folder directly. Other platforms remain file-only; select bruno.json.
  *
  * @param win - Focused browser window for modal dialogs, if any.
- * @returns Parsed JSON payload, or null when the dialog was canceled.
+ * @returns Parsed import selection, or null when the dialog was canceled.
  */
 export async function openImportFile(
   win: BrowserWindow | null
-): Promise<{ raw: string; parsed: unknown } | null> {
+): Promise<ImportFileSelection | null> {
+  const isDarwin = process.platform === 'darwin';
   const dialogOptions = {
-    properties: ['openFile'] as Array<'openFile'>,
+    properties: isDarwin
+      ? (['openFile', 'openDirectory'] as Array<'openFile' | 'openDirectory'>)
+      : (['openFile'] as Array<'openFile'>),
     filters: [{ name: 'JSON', extensions: ['json'] }]
   };
   const { canceled, filePaths } = win
@@ -31,9 +89,26 @@ export async function openImportFile(
     return null;
   }
 
-  const raw = await readFile(filePaths[0], 'utf-8');
+  const selectedPath = filePaths[0];
+  const selectedStat = await stat(selectedPath);
+
+  if (selectedStat.isDirectory()) {
+    return readBrunoCollectionSelection(selectedPath);
+  }
+
+  const raw = await readFile(selectedPath, 'utf-8');
   const parsed = JSON.parse(raw) as unknown;
-  return { raw, parsed };
+  const selection: ImportFileSelection = {
+    raw,
+    parsed,
+    filePath: selectedPath
+  };
+
+  if (isBrunoCollectionManifest(parsed)) {
+    selection.collectionDir = dirname(selectedPath);
+  }
+
+  return selection;
 }
 
 /**

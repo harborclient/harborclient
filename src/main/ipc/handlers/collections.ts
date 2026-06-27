@@ -8,6 +8,7 @@ import {
   validateRequestExport
 } from '#/main/storage/collectionData';
 import { convertPostmanCollection, isPostmanCollection } from '#/main/import/postman';
+import { convertBrunoCollection, isBrunoCollectionManifest } from '#/main/import/bruno';
 import { defaultAuth } from '#/shared/auth';
 import type { IStorage } from '#/main/storage/IStorage';
 import { RoutingStorage } from '#/main/storage/RoutingStorage';
@@ -93,31 +94,55 @@ async function findExistingCollection(
 }
 
 /**
+ * Optional context for collection imports that require filesystem paths.
+ */
+interface CollectionImportContext {
+  /**
+   * Absolute path to a Bruno collection root directory.
+   */
+  collectionDir?: string;
+}
+
+/**
  * Imports a validated collection export after optional Postman/script warnings.
  *
  * @param db - Database instance backing collection persistence.
  * @param win - Focused browser window for modal dialogs, if any.
  * @param parsed - Parsed JSON payload from an import file.
+ * @param context - Optional import context such as a Bruno collection directory.
  * @returns Imported collection with action, or null when the user canceled.
  */
 async function importCollectionFromParsed(
   db: IStorage,
   win: BrowserWindow | null,
-  parsed: unknown
+  parsed: unknown,
+  context?: CollectionImportContext
 ): Promise<CollectionImportResult | null> {
   let exportData: CollectionExport;
+  let skipScriptWarning = false;
 
   if (isPostmanCollection(parsed)) {
     if (!(await confirmPostmanImport(win))) {
       return null;
     }
     exportData = validateCollectionExport(convertPostmanCollection(parsed));
+    skipScriptWarning = true;
+  } else if (isBrunoCollectionManifest(parsed)) {
+    const collectionDir = context?.collectionDir?.trim();
+    if (!collectionDir) {
+      throw new Error('Bruno collection import requires a collection directory path.');
+    }
+    exportData = validateCollectionExport(convertBrunoCollection(collectionDir, parsed));
   } else {
     exportData = validateCollectionExport(parsed);
+  }
 
-    if (collectionExportContainsScripts(exportData) && !(await confirmCollectionScripts(win))) {
-      return null;
-    }
+  if (
+    !skipScriptWarning &&
+    collectionExportContainsScripts(exportData) &&
+    !(await confirmCollectionScripts(win))
+  ) {
+    return null;
   }
 
   const existing = await findExistingCollection(db, exportData.uuid);
@@ -295,7 +320,9 @@ export function registerCollectionHandlers(db: IStorage): void {
       return null;
     }
 
-    const result = await importCollectionFromParsed(db, win, file.parsed);
+    const result = await importCollectionFromParsed(db, win, file.parsed, {
+      collectionDir: file.collectionDir
+    });
     return result?.collection ?? null;
   });
 
@@ -342,7 +369,23 @@ export function registerCollectionHandlers(db: IStorage): void {
     const { parsed } = file;
 
     if (isPostmanCollection(parsed)) {
-      const result = await importCollectionFromParsed(db, win, parsed);
+      const result = await importCollectionFromParsed(db, win, parsed, {
+        collectionDir: file.collectionDir
+      });
+      if (!result) {
+        return null;
+      }
+      return {
+        kind: 'collection',
+        collection: result.collection,
+        action: result.action
+      } satisfies ImportEntityResult;
+    }
+
+    if (isBrunoCollectionManifest(parsed)) {
+      const result = await importCollectionFromParsed(db, win, parsed, {
+        collectionDir: file.collectionDir
+      });
       if (!result) {
         return null;
       }
@@ -356,7 +399,9 @@ export function registerCollectionHandlers(db: IStorage): void {
     const exportKind = readHarborclientExport(parsed);
 
     if (exportKind === 'collection') {
-      const result = await importCollectionFromParsed(db, win, parsed);
+      const result = await importCollectionFromParsed(db, win, parsed, {
+        collectionDir: file.collectionDir
+      });
       if (!result) {
         return null;
       }

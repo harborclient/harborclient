@@ -61,7 +61,7 @@ The highlighted collection in the sidebar is remembered for the current session 
 In the **Add collection** modal you can:
 
 - **Create new** — enter a name, choose a **Provider** (SQLite, a remote storage location, or a [team hub](/team-hubs)), and click **Create**
-- **Import from file** — pick a HarborClient `.json` export (same as **File → Import**)
+- **Import from file** — pick a HarborClient `.json` export, Postman collection JSON, or Bruno `bruno.json` (same as **File → Import**)
 - **Join shared collection** — paste a share token to connect to a shared remote collection (see [Sharing collections](#sharing-collections))
 
 ## Renaming and deleting
@@ -259,7 +259,7 @@ If the file is invalid, HarborClient shows an alert with a descriptive error (fo
 
 | Export type | Behavior |
 | --- | --- |
-| Collection (HarborClient or Postman) | Creates a new collection and selects it |
+| Collection (HarborClient, Postman, or Bruno) | Creates a new collection and selects it |
 | Request | Imports into the **currently selected collection** at the root; requires a selected collection |
 | Environment | Creates a new environment and activates it |
 
@@ -290,6 +290,32 @@ The following Postman features are **ignored** or converted:
 | Disabled query params in the URL object | URL uses the raw string as exported |
 
 Scripts imported from Postman use the `pm.*` API in Postman but run in HarborClient's `hc` sandbox — they may not behave the same way after import.
+
+#### Bruno collections
+
+HarborClient accepts **Bruno on-disk collections** by selecting the collection's `bruno.json` manifest in the import file picker (**File → Import** or **Add collection → Import from file**). Bruno files are detected automatically by `{ "type": "collection", "name": "..." }` in the JSON.
+
+On macOS you can also select the collection folder directly in the same picker. HarborClient reads `bruno.json` from that folder and imports the full request tree.
+
+HarborClient imports:
+
+- Collection name (from `bruno.json` and optional `collection.bru`)
+- Collection variables, headers, Basic Auth, Bearer Token, and OAuth 2 Client Credentials authorization
+- Saved HTTP requests (method, URL, headers, query params, body, and description)
+- Folders (nested Bruno folders are flattened into a single level using `Parent / Child` names)
+- Pre-request and post-request script text (imported verbatim)
+
+The following Bruno features are **ignored** or converted:
+
+| Bruno feature | HarborClient behavior |
+| --- | --- |
+| Environment files (`environments/`) | Not imported |
+| GraphQL, gRPC, and WebSocket requests | Skipped |
+| API Key, AWS SigV4, Digest, NTLM, and other auth types | Dropped (request uses no auth override) |
+| File request bodies | Body omitted (`none`) |
+| Saved example responses | Ignored |
+
+When a Bruno collection includes scripts, HarborClient shows the same script security warning as native HarborClient imports. Bruno scripts use Bruno's `req`/`res` API; HarborClient scripts use `hc` — rewrite scripts after import as needed. See [Request scripts — Migrating from Postman](/request-scripts#migrating-from-postman) for the general script migration approach.
 
 ### Export file format
 

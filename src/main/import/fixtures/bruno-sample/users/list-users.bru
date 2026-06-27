@@ -1,0 +1,31 @@
+meta {
+  name: List Users
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/users
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/json
+}
+
+params:query {
+  page: 1
+}
+
+script:pre-request {
+  req.setHeader('X-Request', 'bruno');
+}
+
+script:post-response {
+  console.log(res.getStatus());
+}
+
+docs {
+  Fetch all users from the API.
+}

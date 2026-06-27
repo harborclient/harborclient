@@ -1,0 +1,21 @@
+meta {
+  name: Ping
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://api.example.com/ping
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: req-token
+}
+
+body:json {
+  {
+    "ping": true
+  }
+}

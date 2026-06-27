@@ -32,7 +32,7 @@ Use `pnpm dev -- --seed` to ensure the HarborClient Echo sample collection exist
 - **Individual developers** testing REST and HTTP APIs locally
 - **Teams** that want shared collections without per-seat fees or vendor cloud sync—via a shared storage location, [Team Hub](https://github.com/harborclient/team-hub), or git-backed collections
 - **Privacy-minded users** who want data on their machine or infrastructure they operate (SQLite by default; optional MySQL, PostgreSQL, or Firestore)
-- **Postman users** looking to migrate—HarborClient imports Postman v2.1 collection exports (see [collections docs](https://harborclient.com/collections#postman-collections))
+- **Postman and Bruno users** looking to migrate—HarborClient imports Postman v2.1 collection exports and Bruno on-disk collections (see [collections docs](https://harborclient.com/collections#postman-collections))
 
 ### Why HarborClient instead of alternatives?
 
@@ -43,7 +43,7 @@ Most API clients tie your collections to a vendor account and a hosted sync serv
 - **Free forever** — no accounts, subscriptions, or usage limits
 - **Real desktop app** — a native Electron app, not a browser tab or hosted SaaS
 - **Collaboration on your terms** — share via a common database, git repositories, or a self-hosted Team Hub
-- **Familiar workflow** — collections, environments, pre/post scripts, and Postman import for a smooth switch
+- **Familiar workflow** — collections, environments, pre/post scripts, and Postman or Bruno import for a smooth switch
 
 HarborClient does not claim full Postman feature parity; some Postman settings and scripts may need adjustment after import.
 
@@ -52,7 +52,7 @@ HarborClient does not claim full Postman feature parity; some Postman settings a
 1. **Download** the latest release for your OS from [GitHub Releases](https://github.com/harborclient/harborclient/releases/latest)
 2. **Install and launch** — no Node.js or build tools required
 3. **Send a first request** — paste a URL, pick a method, and click Send
-4. **Optional:** import an existing Postman collection via **Collections → Import**
+4. **Optional:** import an existing Postman or Bruno collection via **Collections → Import**
 
 For install steps per platform and what to explore next, see the [getting started guide](https://harborclient.com/getting-started).
 

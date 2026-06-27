@@ -1,0 +1,24 @@
+meta {
+  name: Bruno Sample API
+  type: collection
+}
+
+auth:bearer {
+  token: {{collectionToken}}
+}
+
+headers {
+  X-Collection-Header: bruno-import
+}
+
+vars:pre-request {
+  collectionToken: secret-coll-token
+}
+
+script:pre-request {
+  console.log('collection pre');
+}
+
+script:post-response {
+  console.log('collection post');
+}
