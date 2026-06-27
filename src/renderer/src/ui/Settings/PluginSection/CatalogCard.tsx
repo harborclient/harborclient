@@ -1,5 +1,6 @@
 import type { JSX, KeyboardEvent } from 'react';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
+import { PLUGIN_CATALOG_CATEGORY_LABELS } from '#/shared/plugin/catalogCategories';
 
 interface Props {
   /**
@@ -61,7 +62,7 @@ export function CatalogCard({ entry, onOpen }: Props): JSX.Element {
         <div className="mt-auto flex flex-wrap gap-1.5 pt-1.5">
           {entry.categories.map((category) => (
             <span key={category} className="rounded bg-accent/15 px-2 py-0.5 text-[14px] text-text">
-              {category}
+              {PLUGIN_CATALOG_CATEGORY_LABELS[category]}
             </span>
           ))}
         </div>

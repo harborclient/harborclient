@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
-import { buildPluginCatalogSearchIndex, searchPluginCatalog } from '#/shared/plugin/catalogSearch';
+import {
+  buildPluginCatalogSearchIndex,
+  filterPluginCatalogByCategory,
+  searchPluginCatalog
+} from '#/shared/plugin/catalogSearch';
 
 const samplePlugins: PluginCatalogEntry[] = [
   {
@@ -9,7 +13,7 @@ const samplePlugins: PluginCatalogEntry[] = [
     version: '1.0.0',
     summary: 'A sample plugin for tests.',
     author: 'Example Inc.',
-    categories: ['utilities'],
+    categories: ['editor'],
     repoUrl: 'https://github.com/example/demo-plugin'
   },
   {
@@ -66,5 +70,21 @@ describe('searchPluginCatalog', () => {
 
   it('returns an empty list when nothing matches', () => {
     expect(searchPluginCatalog(samplePlugins, index, 'zzzzzzzzzzzz')).toEqual([]);
+  });
+});
+
+describe('filterPluginCatalogByCategory', () => {
+  it('returns all plugins when no category is selected', () => {
+    expect(filterPluginCatalogByCategory(samplePlugins, '')).toEqual(samplePlugins);
+  });
+
+  it('returns plugins tagged with the selected category', () => {
+    expect(
+      filterPluginCatalogByCategory(samplePlugins, 'requests').map((entry) => entry.id)
+    ).toEqual(['com.example.curl', 'com.example.history']);
+  });
+
+  it('returns an empty list when no plugins match the category', () => {
+    expect(filterPluginCatalogByCategory(samplePlugins, 'themes')).toEqual([]);
   });
 });

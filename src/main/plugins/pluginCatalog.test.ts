@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { PLUGIN_CATALOG_URL } from '#/shared/plugin/catalog';
+import { PLUGIN_CATALOG_URL, parsePluginCatalog } from '#/shared/plugin/catalog';
 
 const sampleCatalog = {
   schemaVersion: 1 as const,
@@ -13,7 +13,7 @@ const sampleCatalog = {
       version: '1.0.0',
       summary: 'A sample plugin for tests.',
       author: 'Example Inc.',
-      categories: ['utilities'],
+      categories: ['editor'],
       repoUrl: 'https://github.com/example/demo-plugin'
     }
   ]
@@ -108,7 +108,7 @@ describe('pluginCatalog', () => {
           version: '9.9.9',
           summary: 'Should be ignored because the first catalog wins.',
           author: 'Example Inc.',
-          categories: ['utilities'],
+          categories: ['editor'],
           repoUrl: 'https://github.com/example/duplicate-plugin'
         },
         {
@@ -117,7 +117,7 @@ describe('pluginCatalog', () => {
           version: '2.0.0',
           summary: 'Comes from the second catalog.',
           author: 'Example Inc.',
-          categories: ['utilities'],
+          categories: ['editor'],
           repoUrl: 'https://github.com/example/other-plugin'
         }
       ]
@@ -144,7 +144,9 @@ describe('pluginCatalog', () => {
       await import('#/main/plugins/pluginCatalog');
     await expect(
       fetchPluginCatalog([PLUGIN_CATALOG_URL, 'https://example.com/catalog.json'])
-    ).resolves.toEqual(mergePluginCatalogs([sampleCatalog, secondCatalog]));
+    ).resolves.toEqual(
+      mergePluginCatalogs([parsePluginCatalog(sampleCatalog), parsePluginCatalog(secondCatalog)])
+    );
   });
 });
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { sanitizePluginCatalogCategories } from '#/shared/plugin/catalogCategories';
 
 /**
  * Public URL of the generated plugin catalog served from harborclient.com.
@@ -57,7 +58,7 @@ const pluginCatalogEntrySchema = z.object({
   version: z.string().min(1),
   summary: z.string().min(1),
   author: z.string().min(1),
-  categories: z.array(z.string().min(1)).min(1),
+  categories: z.array(z.string().min(1)).transform(sanitizePluginCatalogCategories),
   repoUrl: z.string().min(1).transform(parseGitHubRepoUrl),
   ref: z.string().min(1).optional(),
   homepage: z.string().url().optional(),

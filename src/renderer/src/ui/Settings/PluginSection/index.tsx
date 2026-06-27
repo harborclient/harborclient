@@ -7,13 +7,23 @@ import type {
   PluginSourcesSettings
 } from '#/shared/plugin/catalog';
 import { getDefaultPluginSources, pluginSourcesSchema } from '#/shared/plugin/catalog';
-import { buildPluginCatalogSearchIndex, searchPluginCatalog } from '#/shared/plugin/catalogSearch';
+import {
+  PLUGIN_CATALOG_CATEGORIES,
+  PLUGIN_CATALOG_CATEGORY_LABELS,
+  type PluginCatalogCategory
+} from '#/shared/plugin/catalogCategories';
+import {
+  buildPluginCatalogSearchIndex,
+  filterPluginCatalogByCategory,
+  searchPluginCatalog
+} from '#/shared/plugin/catalogSearch';
 import type { PluginInfo } from '#/shared/plugin/types';
 import type { TeamHubPluginSource } from '#/shared/types';
 import { Button } from '@harborclient/sdk/components';
 import { FormGroup } from '@harborclient/sdk/components';
 import { FaIcon } from '@harborclient/sdk/components';
 import { Input } from '@harborclient/sdk/components';
+import { Select } from '@harborclient/sdk/components';
 import { PageHeader } from '@harborclient/sdk/components';
 import {
   faAngleLeft,
@@ -71,6 +81,9 @@ export function PluginsSection({ onClose }: Props): JSX.Element {
   >('idle');
   const [catalogPreviewError, setCatalogPreviewError] = useState<string | null>(null);
   const [catalogSearchQuery, setCatalogSearchQuery] = useState('');
+  const [catalogCategoryFilter, setCatalogCategoryFilter] = useState<PluginCatalogCategory | ''>(
+    ''
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [detailPlugin, setDetailPlugin] = useState<PluginInfo | null>(null);
@@ -397,6 +410,7 @@ export function PluginsSection({ onClose }: Props): JSX.Element {
         setCatalogPreviewLoadState('idle');
         setCatalogPreviewError(null);
         setCatalogSearchQuery('');
+        setCatalogCategoryFilter('');
       }
       if (next && !catalog && !catalogLoading) {
         void loadCatalog();
@@ -427,14 +441,26 @@ export function PluginsSection({ onClose }: Props): JSX.Element {
   }, [catalog]);
 
   /**
-   * Filters marketplace catalog rows by the current search query.
+   * Filters marketplace catalog rows by category and search query.
    */
   const filteredCatalogPlugins = useMemo(() => {
-    if (!catalog?.plugins.length || !catalogSearchIndex) {
-      return catalog?.plugins ?? [];
+    if (!catalog?.plugins.length) {
+      return [];
     }
-    return searchPluginCatalog(catalog.plugins, catalogSearchIndex, catalogSearchQuery);
-  }, [catalog, catalogSearchIndex, catalogSearchQuery]);
+
+    const byCategory = filterPluginCatalogByCategory(catalog.plugins, catalogCategoryFilter);
+    if (!catalogSearchIndex) {
+      return byCategory;
+    }
+
+    const searched = searchPluginCatalog(catalog.plugins, catalogSearchIndex, catalogSearchQuery);
+    if (!catalogCategoryFilter) {
+      return searched;
+    }
+
+    const categoryIds = new Set(byCategory.map((entry) => entry.id));
+    return searched.filter((entry) => categoryIds.has(entry.id));
+  }, [catalog, catalogSearchIndex, catalogSearchQuery, catalogCategoryFilter]);
 
   /**
    * Opens the read-only detail modal for one installed plugin.
@@ -781,7 +807,7 @@ export function PluginsSection({ onClose }: Props): JSX.Element {
       </PageHeader>
 
       {showBrowse ? (
-        <div className="mb-4">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end">
           <FormGroup label="Search plugins" htmlFor="plugin-catalog-search" srOnly>
             <Input
               id="plugin-catalog-search"
@@ -792,6 +818,24 @@ export function PluginsSection({ onClose }: Props): JSX.Element {
               className="w-full max-w-md"
               onChange={(event) => setCatalogSearchQuery(event.target.value)}
             />
+          </FormGroup>
+          <FormGroup label="" htmlFor="plugin-catalog-category">
+            <Select
+              id="plugin-catalog-category"
+              value={catalogCategoryFilter}
+              disabled={catalogLoading}
+              className="w-full max-w-xs"
+              onChange={(event) =>
+                setCatalogCategoryFilter(event.target.value as PluginCatalogCategory | '')
+              }
+            >
+              <option value="">All categories</option>
+              {PLUGIN_CATALOG_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {PLUGIN_CATALOG_CATEGORY_LABELS[category]}
+                </option>
+              ))}
+            </Select>
           </FormGroup>
         </div>
       ) : null}
@@ -995,7 +1039,7 @@ export function PluginsSection({ onClose }: Props): JSX.Element {
           catalog.plugins.length > 0 &&
           filteredCatalogPlugins.length === 0 ? (
             <p className="text-muted" role="status">
-              No plugins match your search.
+              No plugins match your filters.
             </p>
           ) : null}
 

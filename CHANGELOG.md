@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(plugins): enhance plugin catalog functionality and filtering. (`395951e`)
 - feat(tabs): enhance tab management with empty state handling and improved persistence. (`54d8a59`)
 
 ## 1.8.21 - 2026-06-27

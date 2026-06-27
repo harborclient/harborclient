@@ -1,5 +1,6 @@
 import MiniSearch from 'minisearch';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
+import type { PluginCatalogCategory } from '#/shared/plugin/catalogCategories';
 
 /**
  * Indexed fields for marketplace catalog search.
@@ -41,6 +42,24 @@ export function buildPluginCatalogSearchIndex(
   );
 
   return index;
+}
+
+/**
+ * Filters catalog plugins to those tagged with one predefined category slug.
+ *
+ * @param plugins - Full catalog listing in display order.
+ * @param category - Selected category slug, or empty string to return all plugins.
+ * @returns Plugins whose categories include the selected slug, or the original list when unset.
+ */
+export function filterPluginCatalogByCategory(
+  plugins: PluginCatalogEntry[],
+  category: PluginCatalogCategory | ''
+): PluginCatalogEntry[] {
+  if (!category) {
+    return plugins;
+  }
+
+  return plugins.filter((entry) => entry.categories.includes(category));
 }
 
 /**

@@ -18,7 +18,7 @@ const validCatalog = {
       version: '1.0.0',
       summary: 'A sample plugin for tests.',
       author: 'Example Inc.',
-      categories: ['utilities'],
+      categories: ['editor'],
       repoUrl: 'https://github.com/example/demo-plugin'
     }
   ]
@@ -65,6 +65,50 @@ describe('parsePluginCatalog', () => {
         ]
       })
     ).toThrow(/github\.com/);
+  });
+
+  it('strips unknown categories and keeps recognized ones', () => {
+    expect(
+      parsePluginCatalog({
+        schemaVersion: 1,
+        plugins: [
+          {
+            ...validCatalog.plugins[0],
+            categories: ['requests', 'unknown-category', 'requests']
+          }
+        ]
+      })
+    ).toEqual({
+      schemaVersion: 1,
+      plugins: [
+        {
+          ...validCatalog.plugins[0],
+          categories: ['requests']
+        }
+      ]
+    });
+  });
+
+  it('keeps plugins when every category is unknown', () => {
+    expect(
+      parsePluginCatalog({
+        schemaVersion: 1,
+        plugins: [
+          {
+            ...validCatalog.plugins[0],
+            categories: ['utilities', 'unknown-category']
+          }
+        ]
+      })
+    ).toEqual({
+      schemaVersion: 1,
+      plugins: [
+        {
+          ...validCatalog.plugins[0],
+          categories: []
+        }
+      ]
+    });
   });
 
   it('rejects duplicate plugin ids', () => {
