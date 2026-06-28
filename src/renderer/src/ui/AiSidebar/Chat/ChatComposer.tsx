@@ -78,9 +78,7 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
 
     const content = draft.trim();
     setDraft('');
-    if (chatId != null) {
-      dispatch(clearSendError(chatId));
-    }
+    dispatch(clearSendError(chatId));
     await dispatch(
       sendChatMessage({
         chatId,
