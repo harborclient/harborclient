@@ -128,7 +128,6 @@
       "esbuild"
     ],
     "overrides": {
-      "@harborclient/sdk": "link:../harborclient-sdk",
       "@harborclient/sdk>@types/react": "$@types/react",
       "@harborclient/sdk>@types/react-dom": "$@types/react-dom"
     }
