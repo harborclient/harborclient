@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.8.28 - 2026-06-28
+
 - feat(plugins): introduce --disable-plugins flag for session-based plugin management. (`293d6a3`)
 
 ## 1.8.27 - 2026-06-28
