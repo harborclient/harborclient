@@ -771,7 +771,7 @@ export function Sidebar({
       )}
       {gitPanel != null && (
         <GitSourceControlPanel
-          open={gitPanel != null}
+          open={true}
           connectionId={gitPanel.connectionId}
           connectionName={gitPanel.connectionName}
           status={gitStatusesByConnectionId[gitPanel.connectionId] ?? null}
