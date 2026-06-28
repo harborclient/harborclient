@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PluginContext, PluginInfo } from '#/shared/plugin/types';
 import {
   disposePartialRendererActivation,
+  formatPluginActivationErrorDetails,
   markPluginForThemePrompt,
   normalizePluginActivationError,
   reloadPlugin,
@@ -38,7 +39,7 @@ const readPluginEntryMock =
 const activatePluginMainMock = vi.fn<(pluginId: string) => Promise<void>>();
 const deactivatePluginMainMock = vi.fn<(pluginId: string) => Promise<void>>();
 const reportPluginRuntimeErrorMock =
-  vi.fn<(pluginId: string, message: string | null) => Promise<PluginInfo>>();
+  vi.fn<(pluginId: string, message: string | null, logDetails?: string) => Promise<PluginInfo>>();
 const setPluginEnabledMock = vi.fn<(pluginId: string, enabled: boolean) => Promise<PluginInfo>>();
 
 /**
@@ -234,7 +235,8 @@ describe('pluginLoader', () => {
     expect(setPluginEnabledMock).toHaveBeenCalledWith(GATED_PLUGIN_ID, false);
     expect(reportPluginRuntimeErrorMock).toHaveBeenCalledWith(
       GATED_PLUGIN_ID,
-      'Renderer activate failed'
+      'Renderer activate failed',
+      expect.stringContaining('Renderer activate failed')
     );
   });
 
@@ -247,6 +249,55 @@ describe('pluginLoader', () => {
     expect(normalizePluginActivationError(new Error('Renderer activate failed'))).toBe(
       'Renderer activate failed'
     );
+  });
+
+  it('formatPluginActivationErrorDetails includes message, stack, and cause chain', () => {
+    const rootCause = new Error('Unexpected token');
+    const error = new Error(
+      'Failed to fetch dynamically imported module: blob:http://localhost/abc',
+      {
+        cause: rootCause
+      }
+    );
+    error.stack =
+      'Error: Failed to fetch dynamically imported module: blob:http://localhost/abc\n    at import';
+
+    const details = formatPluginActivationErrorDetails(error);
+
+    expect(details).toContain('Failed to fetch dynamically imported module: [blob URL omitted]');
+    expect(details).toContain('Caused by: Unexpected token');
+    expect(details).toContain('[blob URL omitted]');
+  });
+
+  it('formatPluginActivationErrorDetails stringifies non-Error throws', () => {
+    expect(formatPluginActivationErrorDetails('bad plugin source')).toBe('bad plugin source');
+  });
+
+  it('reports activation failure details to the main process for terminal logging', async () => {
+    listPluginsMock.mockResolvedValue([createGatedPluginInfo(true)]);
+    readPluginEntryMock.mockResolvedValue(ACTIVATE_FAILING_SOURCE);
+    vi.spyOn(URL, 'createObjectURL').mockImplementation(
+      () => `data:text/javascript,${encodeURIComponent(ACTIVATE_FAILING_SOURCE.trim())}`
+    );
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+
+    await expect(reloadPlugin(GATED_PLUGIN_ID)).rejects.toThrow('Renderer activate failed');
+
+    expect(setPluginEnabledMock).toHaveBeenCalledWith(GATED_PLUGIN_ID, false);
+    expect(reportPluginRuntimeErrorMock).toHaveBeenCalledWith(
+      GATED_PLUGIN_ID,
+      'Renderer activate failed',
+      expect.stringContaining('Renderer activate failed')
+    );
+  });
+
+  it('reports normalized Settings text with import failure details for terminal logging', () => {
+    const importError = new Error(
+      'Failed to fetch dynamically imported module: blob:http://localhost/abc'
+    );
+
+    expect(normalizePluginActivationError(importError)).toBe('Failed to load plugin module.');
+    expect(formatPluginActivationErrorDetails(importError)).toContain('[blob URL omitted]');
   });
 
   it('unloadPlugin clears orphan contributions when the plugin is not loaded', async () => {

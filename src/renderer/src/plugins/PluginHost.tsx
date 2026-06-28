@@ -25,8 +25,8 @@ export function PluginHost(): null {
       if (!active) {
         return;
       }
-      void reloadPlugin(pluginId).catch((error) => {
-        console.error(`Failed to reload plugin ${pluginId}:`, error);
+      void reloadPlugin(pluginId).catch(() => {
+        // Activation failures are logged in handleActivationFailure.
       });
     });
     return () => {

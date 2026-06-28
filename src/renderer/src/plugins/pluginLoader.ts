@@ -65,6 +65,51 @@ async function importPluginModule(
 /** Stable runtime error text for blob-URL dynamic import failures. */
 const PLUGIN_MODULE_IMPORT_ERROR = 'Failed to load plugin module.';
 
+/** Matches unique blob URLs appended to dynamic import failure messages. */
+const DYNAMIC_IMPORT_BLOB_URL_PATTERN = /:\s*blob:[^\s)]+/g;
+
+/**
+ * Replaces unstable blob URLs in error text so terminal logs stay readable.
+ *
+ * @param text - Raw error message or stack line.
+ * @returns Text with blob URLs replaced by a stable placeholder.
+ */
+function omitBlobUrlsFromErrorText(text: string): string {
+  return text.replace(DYNAMIC_IMPORT_BLOB_URL_PATTERN, ': [blob URL omitted]');
+}
+
+/**
+ * Formats an activation error for terminal logging, including nested causes.
+ *
+ * @param error - Thrown activation error.
+ * @returns Multi-line detail string with message, stack, and cause chain.
+ */
+export function formatPluginActivationErrorDetails(error: unknown): string {
+  const lines: string[] = [];
+  let current: unknown = error;
+  let depth = 0;
+
+  while (current !== undefined && current !== null && depth < 8) {
+    if (current instanceof Error) {
+      lines.push(
+        depth === 0
+          ? omitBlobUrlsFromErrorText(current.message)
+          : `Caused by: ${omitBlobUrlsFromErrorText(current.message)}`
+      );
+      if (depth === 0 && current.stack) {
+        lines.push(omitBlobUrlsFromErrorText(current.stack));
+      }
+      current = current.cause;
+    } else {
+      lines.push(depth === 0 ? String(current) : `Caused by: ${String(current)}`);
+      current = undefined;
+    }
+    depth += 1;
+  }
+
+  return lines.join('\n');
+}
+
 /**
  * Normalizes activation error messages for persistence.
  *
@@ -88,18 +133,19 @@ export function normalizePluginActivationError(error: unknown): string {
  * Disabling first breaks the renderer reload loop triggered by runtime-error
  * updates; a stable normalized message avoids repeated change events on retry.
  *
- * @param pluginId - Plugin manifest id.
+ * @param plugin - Plugin metadata from the main process.
  * @param error - Thrown activation error.
  */
-async function handleActivationFailure(pluginId: string, error: unknown): Promise<void> {
+async function handleActivationFailure(plugin: PluginInfo, error: unknown): Promise<void> {
   const message = normalizePluginActivationError(error);
+  const logDetails = formatPluginActivationErrorDetails(error);
   try {
-    await window.api.setPluginEnabled(pluginId, false);
+    await window.api.setPluginEnabled(plugin.id, false);
   } catch {
     // Best-effort disable when activation fails.
   }
   try {
-    await window.api.reportPluginRuntimeError(pluginId, message);
+    await window.api.reportPluginRuntimeError(plugin.id, message, logDetails);
   } catch {
     // Best-effort persistence for Settings display.
   }
@@ -272,7 +318,7 @@ async function loadPlugin(plugin: PluginInfo): Promise<void> {
     maybePromptForPluginTheme(plugin);
     await clearActivationError(plugin.id);
   } catch (error) {
-    await handleActivationFailure(plugin.id, error);
+    await handleActivationFailure(plugin, error);
     throw error;
   }
 }

@@ -25,7 +25,7 @@ import {
   setPluginDatabaseAccess,
   setPluginStorageAccess
 } from '#/main/plugins/pluginRunnerHost';
-import type { PluginHttpResponse } from '#/shared/plugin/types';
+import type { PluginHttpResponse, PluginInfo } from '#/shared/plugin/types';
 import { toPluginHttpRequest } from '#/shared/plugin/httpRequest';
 import { parseHttpMethod } from '#/shared/httpMethod';
 import type { KeyValue, SendRequestInput } from '#/shared/types';
@@ -76,6 +76,36 @@ export function parsePluginHookErrorId(error: unknown): string | undefined {
   const message = error instanceof Error ? error.message : String(error);
   const match = /^Plugin ([^:]+): /.exec(message);
   return match?.[1];
+}
+
+/**
+ * Writes a plugin activation failure to the main process terminal.
+ *
+ * @param plugin - Plugin metadata when available from the manager.
+ * @param settingsMessage - Normalized message persisted for Settings.
+ * @param details - Full activation error details from the renderer host.
+ */
+export function logPluginActivationFailureToTerminal(
+  plugin: PluginInfo | undefined,
+  settingsMessage: string,
+  details: string
+): void {
+  const pluginId = plugin?.id ?? 'unknown';
+  const pluginName = plugin?.name;
+  const entryParts: string[] = [];
+  if (plugin?.manifest.renderer) {
+    entryParts.push(`renderer=${plugin.manifest.renderer}`);
+  }
+  if (plugin?.manifest.main) {
+    entryParts.push(`main=${plugin.manifest.main}`);
+  }
+  const entryContext = entryParts.length > 0 ? `; entries: ${entryParts.join(', ')}` : '';
+
+  console.error(
+    `[HarborClient] Plugin activation failed (${pluginId}${pluginName ? `: ${pluginName}` : ''}${entryContext})`,
+    details,
+    `(Settings runtime error: ${settingsMessage})`
+  );
 }
 
 /**
@@ -345,7 +375,13 @@ export function registerPluginHandlers(pluginManager: PluginManager): void {
   handle(
     'plugins:reportRuntimeError',
     ipcArgSchemas.pluginReportRuntimeError,
-    (_event, pluginId, message) => pluginManager.setRuntimeError(pluginId, message)
+    (_event, pluginId, message, logDetails) => {
+      const info = pluginManager.setRuntimeError(pluginId, message);
+      if (message && logDetails) {
+        logPluginActivationFailureToTerminal(info, message, logDetails);
+      }
+      return info;
+    }
   );
 
   handle(

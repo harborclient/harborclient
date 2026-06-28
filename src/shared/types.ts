@@ -3664,8 +3664,13 @@ export interface Api {
    *
    * @param pluginId - Plugin manifest id.
    * @param message - Error message, or null to clear.
+   * @param logDetails - Optional activation failure details for the main process terminal.
    */
-  reportPluginRuntimeError: (pluginId: string, message: string | null) => Promise<PluginInfo>;
+  reportPluginRuntimeError: (
+    pluginId: string,
+    message: string | null,
+    logDetails?: string
+  ) => Promise<PluginInfo>;
 
   /**
    * Invokes a plugin IPC handler registered in the main runtime.

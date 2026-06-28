@@ -2,11 +2,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { Headers } from '#/main/http/Headers';
 import {
   applyPluginAfterSendHooks,
+  logPluginActivationFailureToTerminal,
   mergePluginHttpHeaders,
   parsePluginHookErrorId,
   recordPluginHookFailure,
   setPluginManager
 } from '#/main/ipc/handlers/plugins';
+import type { PluginInfo } from '#/shared/plugin/types';
 import type { PluginManager } from '#/main/plugins/PluginManager';
 
 vi.mock('#/main/plugins/pluginRunnerHost', () => ({
@@ -128,5 +130,43 @@ describe('plugin hook failures', () => {
         }
       )
     ).resolves.toBeUndefined();
+  });
+});
+
+describe('logPluginActivationFailureToTerminal', () => {
+  it('writes activation failure details to the main process terminal', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const plugin: PluginInfo = {
+      id: 'com.example.failed',
+      name: 'Failed Plugin',
+      version: '1.0.0',
+      source: 'installed',
+      path: '/tmp/failed-plugin',
+      enabled: false,
+      permissions: ['ui'],
+      manifest: {
+        id: 'com.example.failed',
+        name: 'Failed Plugin',
+        version: '1.0.0',
+        engines: { harborclient: '>=1.0.0' },
+        renderer: 'dist/renderer.js',
+        permissions: ['ui']
+      },
+      runtimeError: 'Failed to load plugin module.'
+    };
+
+    logPluginActivationFailureToTerminal(
+      plugin,
+      'Failed to load plugin module.',
+      'Failed to fetch dynamically imported module: [blob URL omitted]\nCaused by: SyntaxError: Unexpected token'
+    );
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[HarborClient] Plugin activation failed (com.example.failed: Failed Plugin; entries: renderer=dist/renderer.js)',
+      'Failed to fetch dynamically imported module: [blob URL omitted]\nCaused by: SyntaxError: Unexpected token',
+      '(Settings runtime error: Failed to load plugin module.)'
+    );
+
+    consoleErrorSpy.mockRestore();
   });
 });

@@ -1659,9 +1659,14 @@ function deactivatePluginMain(pluginId: string): Promise<void> {
  *
  * @param pluginId - Plugin manifest id.
  * @param message - Error message, or null to clear.
+ * @param logDetails - Optional activation failure details for the main process terminal.
  */
-function reportPluginRuntimeError(pluginId: string, message: string | null): Promise<PluginInfo> {
-  return ipcRenderer.invoke('plugins:reportRuntimeError', pluginId, message);
+function reportPluginRuntimeError(
+  pluginId: string,
+  message: string | null,
+  logDetails?: string
+): Promise<PluginInfo> {
+  return ipcRenderer.invoke('plugins:reportRuntimeError', pluginId, message, logDetails);
 }
 
 /**

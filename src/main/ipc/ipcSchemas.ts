@@ -535,7 +535,11 @@ export const ipcArgSchemas = {
   pluginDbTxBegin: z.tuple([pluginId]),
   pluginDbTxEnd: z.tuple([pluginId, z.string().min(1), z.enum(['commit', 'rollback'])]),
   pluginActivateMain: z.tuple([pluginId]),
-  pluginReportRuntimeError: z.tuple([pluginId, z.string().nullable()]),
+  pluginReportRuntimeError: z.tuple([
+    pluginId,
+    z.string().nullable(),
+    z.string().max(MAX_IPC_COMMENT_CHARS).optional()
+  ]),
   pluginInvokeMain: z.tuple([pluginId, z.string().min(1), z.array(z.unknown())]),
   pluginMenuContributions: z.tuple([
     z.array(
