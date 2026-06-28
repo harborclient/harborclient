@@ -3,6 +3,9 @@
 ## Unreleased
 
 - refactor: update path handling and improve navigation security. (`05587e6`)
+
+## 1.8.30 - 2026-06-28
+
 - refactor(plugins): improve error handling and logging for plugin activation failures. (`929a37c`)
 
 ## 1.8.29 - 2026-06-28
