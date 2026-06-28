@@ -1,4 +1,10 @@
-import type { KeyValue, SaveRequestInput, SavedRequest } from '#/shared/types';
+import type {
+  KeyValue,
+  SaveRequestInput,
+  SavedRequest,
+  SendRequestInput,
+  SendResult
+} from '#/shared/types';
 import type {
   CreateCollectionPayload,
   CreateCollectionRequest,
@@ -7,6 +13,8 @@ import type {
   OpenRequestDraftPayload
 } from '@harborclient/sdk';
 export type { OpenRequestDraftPayload } from '@harborclient/sdk';
+import { getRequestsInRunOrder } from '#/shared/collectionRunner';
+import type { Collection } from '#/shared/types';
 import { parseHttpMethod } from '#/shared/httpMethod';
 import { defaultAuth } from '#/shared/auth';
 import { store } from '#/renderer/src/store/redux';
@@ -19,7 +27,7 @@ import {
 } from '#/renderer/src/store/drafts';
 import { closeOverlay } from '#/renderer/src/store/slices/navigationSlice';
 import { setSelectedCollectionId } from '#/renderer/src/store/slices/collectionsSlice';
-import { openTabWithDraft, setActiveTab } from '#/renderer/src/store/slices/tabsSlice';
+import { openTabWithDraft, setActiveTab, updateTab } from '#/renderer/src/store/slices/tabsSlice';
 import { requestLoadRequest, sendRequest } from '#/renderer/src/store/thunks/requests';
 import {
   createCollection,
@@ -27,8 +35,122 @@ import {
   refreshCollectionContents
 } from '#/renderer/src/store/thunks/collections';
 import { registerCommand } from '#/renderer/src/plugins/createPluginContext';
+import { addConsoleEntry } from '#/renderer/src/store/slices/consoleSlice';
 
 const HOST_PLUGIN_ID = 'harborclient';
+
+/**
+ * Payload accepted by {@link logRequestToConsole} from renderer plugins.
+ */
+export interface PluginConsoleLogPayload {
+  /** Display name shown in the footer console row. */
+  requestName: string;
+  /** Optional collection label prefixed in the console row. */
+  collectionName?: string;
+  /** Send result metadata matching normal request sends. */
+  result: SendResult;
+}
+
+/**
+ * Validates a plugin console log payload before dispatching to Redux.
+ *
+ * @param payload - Raw payload from a plugin host call.
+ */
+export function validatePluginConsoleLogPayload(payload: unknown): PluginConsoleLogPayload {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('harborclient.logRequestToConsole requires a payload object.');
+  }
+
+  const { requestName, collectionName, result } = payload as PluginConsoleLogPayload;
+  const trimmedName = typeof requestName === 'string' ? requestName.trim() : '';
+  if (!trimmedName) {
+    throw new Error('harborclient.logRequestToConsole requires a non-empty requestName.');
+  }
+  if (!result || typeof result !== 'object') {
+    throw new Error('harborclient.logRequestToConsole requires a result object.');
+  }
+  if (typeof result.status !== 'number' || typeof result.timeMs !== 'number') {
+    throw new Error(
+      'harborclient.logRequestToConsole requires numeric result.status and result.timeMs.'
+    );
+  }
+
+  return {
+    requestName: trimmedName,
+    collectionName: typeof collectionName === 'string' ? collectionName : undefined,
+    result
+  };
+}
+
+/**
+ * Sends one HTTP request through the main-process pipeline on behalf of a plugin.
+ *
+ * Uses the same IPC path as the Send button, so requests are not subject to the
+ * renderer's CORS restrictions. Failures are returned as an error
+ * {@link SendResult} rather than thrown, so batch callers (load tests) stay
+ * resilient.
+ *
+ * @param input - Request configuration to execute.
+ * @returns Response metadata, or an error result when the send fails.
+ */
+export async function sendHttpRequestForPlugin(input: SendRequestInput): Promise<SendResult> {
+  if (!input || typeof input !== 'object') {
+    throw new Error('harborclient.sendHttpRequest requires a request input object.');
+  }
+  if (typeof input.url !== 'string' || !input.url.trim()) {
+    throw new Error('harborclient.sendHttpRequest requires a non-empty url.');
+  }
+
+  try {
+    return await window.api.sendRequest(input);
+  } catch (error) {
+    return {
+      status: 0,
+      statusText: 'Error',
+      headers: {},
+      body: '',
+      timeMs: 0,
+      sizeBytes: 0,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
+
+/**
+ * Appends one request result to the footer console log from a renderer plugin.
+ *
+ * @param payload - Console entry fields supplied by the plugin.
+ */
+export function logRequestToConsole(payload: PluginConsoleLogPayload): void {
+  const validated = validatePluginConsoleLogPayload(payload);
+  store.dispatch(
+    addConsoleEntry({
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+      requestName: validated.requestName,
+      collectionName: validated.collectionName,
+      result: validated.result
+    })
+  );
+}
+
+/**
+ * Clears the last HTTP response on the active request tab so plugin-only response
+ * panels can replace the standard Body/Headers view.
+ */
+export function clearActiveResponse(): void {
+  const { activeTabId } = store.getState().tabs;
+  if (!activeTabId) {
+    return;
+  }
+
+  store.dispatch(
+    updateTab({
+      tabId: activeTabId,
+      updates: { response: null, testResults: [] }
+    })
+  );
+}
 
 /**
  * Finds a saved collection request in the Redux cache.
@@ -256,6 +378,37 @@ export async function createCollectionFromPlugin(
   await store.dispatch(refreshCollectionContents(collection.id));
 
   return { collectionId: collection.id };
+}
+
+/**
+ * Returns saved requests for a collection or folder in sidebar run order.
+ *
+ * @param collectionId - Collection database id.
+ * @param folderId - Folder id for folder runs; omit for the full collection.
+ */
+export async function listCollectionRequestsForPlugin(
+  collectionId: number,
+  folderId?: number | null
+): Promise<SavedRequest[]> {
+  const [requests, folders] = await Promise.all([
+    window.api.listRequests(collectionId),
+    window.api.listFolders(collectionId)
+  ]);
+  return getRequestsInRunOrder(collectionId, folderId, requests, folders);
+}
+
+/**
+ * Returns collection metadata needed by plugins to resolve saved requests.
+ *
+ * @param collectionId - Collection database id.
+ */
+export async function getCollectionMetadataForPlugin(collectionId: number): Promise<Collection> {
+  const { collections } = await window.api.listCollections();
+  const collection = collections.find((entry) => entry.id === collectionId);
+  if (!collection) {
+    throw new Error(`Collection ${collectionId} was not found.`);
+  }
+  return collection;
 }
 
 /**

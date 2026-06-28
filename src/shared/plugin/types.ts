@@ -240,7 +240,7 @@ export interface RegisteredResponseTab {
   id: string;
   title: string;
   order?: number;
-  when?: 'always' | 'hasResponse';
+  when?: 'always' | 'hasResponse' | 'noResponse';
   Component: React.ComponentType<{ context: ResponseTabContext }>;
 }
 

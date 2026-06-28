@@ -1,5 +1,9 @@
 appId: com.harborclient
 productName: HarborClient
+protocols:
+  - name: HarborClient
+    schemes:
+      - harborclient
 extraMetadata:
   name: harborclient
   productName: HarborClient

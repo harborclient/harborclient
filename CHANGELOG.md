@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(deep-linking): implement harborclient protocol for plugin installation. (`ec00f60`)
 - feat(response): enhance response handling to include optional base64 encoding for image content. (`5d28aba`)
 - feat(plugins): add new HTTPie and JSON Schema Validator plugins, update plugin catalog. (`a02d0a5`)
 

@@ -25,6 +25,7 @@ export interface NavigationState {
   activePluginFooterPanelId: string | null;
   activeSidebarPanelId: string | null;
   settingsSection: SettingsSection;
+  pendingPluginInstallId: string | null;
 }
 
 const initialState: NavigationState = {
@@ -37,7 +38,8 @@ const initialState: NavigationState = {
   showVariables: false,
   activePluginFooterPanelId: null,
   activeSidebarPanelId: null,
-  settingsSection: 'general'
+  settingsSection: 'general',
+  pendingPluginInstallId: null
 };
 
 /**
@@ -178,6 +180,18 @@ const navigationSlice = createSlice({
         state.showConsole = false;
         state.showVariables = false;
       }
+    },
+    /**
+     * Queues a marketplace plugin install requested via harborclient:// deep link.
+     */
+    setPendingPluginInstall(state, action: PayloadAction<string>) {
+      state.pendingPluginInstallId = action.payload;
+    },
+    /**
+     * Clears a queued deep-link plugin install after it has been handled.
+     */
+    consumePendingPluginInstall(state) {
+      state.pendingPluginInstallId = null;
     }
   }
 });
@@ -199,7 +213,9 @@ export const {
   setShowAiSidebar,
   toggleConsole,
   toggleVariables,
-  togglePluginFooterPanel
+  togglePluginFooterPanel,
+  setPendingPluginInstall,
+  consumePendingPluginInstall
 } = navigationSlice.actions;
 
 /**
@@ -247,6 +263,11 @@ export const selectActiveSidebarPanelId = (state: RootState): string | null =>
  */
 export const selectSettingsSection = (state: RootState): SettingsSection =>
   state.navigation.settingsSection;
+/**
+ * Returns the plugin id queued by a harborclient:// install deep link, if any.
+ */
+export const selectPendingPluginInstallId = (state: RootState): string | null =>
+  state.navigation.pendingPluginInstallId;
 
 /**
  * Sidebar is hidden when app settings, team hubs, or sharing keys are open, even if the

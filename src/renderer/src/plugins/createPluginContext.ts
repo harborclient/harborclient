@@ -35,9 +35,15 @@ import {
 } from '#/renderer/src/plugins/hostEnvironmentCommands';
 import {
   createCollectionFromPlugin,
+  getCollectionMetadataForPlugin,
+  listCollectionRequestsForPlugin,
   loadSavedRequest,
+  clearActiveResponse,
+  logRequestToConsole,
   openRequestDraft,
-  triggerSendRequest
+  sendHttpRequestForPlugin,
+  triggerSendRequest,
+  type PluginConsoleLogPayload
 } from '#/renderer/src/plugins/hostRequestCommands';
 import { subscribePluginAfterSend } from '#/renderer/src/plugins/pluginAfterSendBus';
 import { createPluginDatabaseApi } from '#/shared/plugin/pluginDatabaseApi';
@@ -434,6 +440,32 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
       createCollection: async (payload) => {
         assertUi();
         return createCollectionFromPlugin(payload);
+      },
+      listCollectionRequests: async (collectionId, folderId) => {
+        assertUi();
+        if (typeof collectionId !== 'number') {
+          throw new Error('harborclient.listCollectionRequests requires a numeric collection id.');
+        }
+        return listCollectionRequestsForPlugin(collectionId, folderId);
+      },
+      getCollectionMetadata: async (collectionId) => {
+        assertUi();
+        if (typeof collectionId !== 'number') {
+          throw new Error('harborclient.getCollectionMetadata requires a numeric collection id.');
+        }
+        return getCollectionMetadataForPlugin(collectionId);
+      },
+      logRequestToConsole: async (payload) => {
+        assertUi();
+        logRequestToConsole(payload as PluginConsoleLogPayload);
+      },
+      sendHttpRequest: async (input) => {
+        assertUi();
+        return sendHttpRequestForPlugin(input);
+      },
+      clearResponse: async () => {
+        assertUi();
+        clearActiveResponse();
       }
     }
   };

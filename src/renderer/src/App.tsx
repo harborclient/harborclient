@@ -4,6 +4,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import type { Collection, Environment } from '#/shared/types';
 import { useBeforeClose } from '#/renderer/src/hooks/useBeforeClose';
 import { useMenuActions } from '#/renderer/src/hooks/useMenuActions';
+import { useDeepLinks } from '#/renderer/src/hooks/useDeepLinks';
 import { usePersistedPanelLayout } from '#/renderer/src/hooks/usePersistedPanelLayout';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
@@ -94,6 +95,7 @@ export default function App(): JSX.Element {
   const codeEditorSetup = useAppSelector(selectCodeEditorSetup);
 
   useMenuActions();
+  useDeepLinks();
   usePersistedPanelLayout();
   useBeforeClose();
 

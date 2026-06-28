@@ -11,7 +11,9 @@ import navigationReducer, {
   toggleAiSidebar,
   toggleConsole,
   toggleSidebar,
-  toggleVariables
+  toggleVariables,
+  setPendingPluginInstall,
+  consumePendingPluginInstall
 } from '#/renderer/src/store/slices/navigationSlice';
 
 describe('navigationSlice', () => {
@@ -93,5 +95,12 @@ describe('navigationSlice', () => {
     expect(state.showAiSidebar).toBe(true);
     state = navigationReducer(state, toggleAiSidebar());
     expect(state.showAiSidebar).toBe(false);
+  });
+
+  it('queues and clears pending plugin install ids from deep links', () => {
+    let state = navigationReducer(undefined, setPendingPluginInstall('com.example.plugin'));
+    expect(state.pendingPluginInstallId).toBe('com.example.plugin');
+    state = navigationReducer(state, consumePendingPluginInstall());
+    expect(state.pendingPluginInstallId).toBeNull();
   });
 });

@@ -2,6 +2,10 @@
 
 <PluginCatalog />
 
+Each plugin listing includes an **Install in HarborClient** button that opens the desktop app
+via a `harborclient://` link and asks you to confirm before installing from the official
+marketplace catalog.
+
 ## Custom endpoints
 
 In **Settings → Plugins → Settings**, you can add your own catalog and trusted-publisher

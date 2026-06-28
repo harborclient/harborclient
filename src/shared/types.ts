@@ -1,4 +1,5 @@
 import type { AuthConfig, OAuthFetchTokenResult } from '#/shared/auth';
+import type { HarborDeepLink } from '#/shared/deepLink';
 import type { ShortcutBinding, ShortcutOverrides } from '#/shared/shortcuts';
 import type {
   PluginAssetResult,
@@ -2760,6 +2761,14 @@ export interface Api {
    * @returns Unsubscribe function.
    */
   onMenuAction: (callback: (action: MenuActionId) => void) => () => void;
+
+  /**
+   * Subscribes to harborclient:// deep-link events from the main process.
+   *
+   * @param callback - Handler invoked with a parsed deep-link action.
+   * @returns Unsubscribe function.
+   */
+  onDeepLink: (callback: (payload: HarborDeepLink) => void) => () => void;
 
   /**
    * Syncs sidebar visibility to the View menu checkbox in the main process.

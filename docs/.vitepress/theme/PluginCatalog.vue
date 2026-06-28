@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import catalog from '../static/plugin_catalog.json';
+import { buildPluginInstallDeepLink } from '../../../src/shared/deepLink.ts';
 import {
   PLUGIN_CATALOG_CATEGORY_LABELS,
   type PluginCatalogCategory,
@@ -7,6 +8,8 @@ import {
 
 /** One plugin row from the generated marketplace catalog. */
 type CatalogEntry = (typeof catalog.plugins)[number];
+
+const DOWNLOAD_URL = 'https://github.com/harborclient/harborclient/releases/latest';
 
 /**
  * Returns a human-readable label for a marketplace category slug.
@@ -24,8 +27,14 @@ function categoryLabel(slug: string): string {
 
 <template>
   <p>
-    Browse HarborClient plugins hosted on GitHub. In the desktop app, open
-    <strong>Settings → Plugins</strong> and click <strong>Marketplace</strong>.
+    Browse HarborClient plugins hosted on GitHub. Click <strong>Install in HarborClient</strong> to
+    open the desktop app and install a plugin, or open
+    <strong>Settings → Plugins → Marketplace</strong> inside the app.
+  </p>
+
+  <p class="text-muted">
+    Don't have HarborClient yet?
+    <a :href="DOWNLOAD_URL" target="_blank" rel="noopener noreferrer">Download the app</a>.
   </p>
 
   <p v-if="catalog.updatedAt" class="text-muted">
@@ -53,6 +62,12 @@ function categoryLabel(slug: string): string {
       />
 
       <p class="plugin-summary">{{ entry.summary }}</p>
+
+      <p class="plugin-actions">
+        <a :href="buildPluginInstallDeepLink(entry.id)" class="install-link">
+          Install in HarborClient
+        </a>
+      </p>
 
       <dl class="plugin-meta">
         <dt>Version</dt>
@@ -140,6 +155,28 @@ function categoryLabel(slug: string): string {
 .plugin-summary {
   margin: 0 0 1rem;
   max-width: 48rem;
+}
+
+.plugin-actions {
+  margin: 0 0 1rem;
+}
+
+.install-link {
+  display: inline-block;
+  padding: 0.375rem 0.875rem;
+  border: 1px solid var(--vp-c-brand-1);
+  border-radius: 0.375rem;
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+.install-link:hover {
+  background: var(--vp-c-brand-1);
+  color: var(--vp-c-default-bg);
 }
 
 .catalog-screenshot {

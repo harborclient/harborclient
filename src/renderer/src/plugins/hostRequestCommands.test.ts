@@ -4,10 +4,14 @@ import { defaultAuth } from '#/shared/auth';
 import {
   draftFromOpenPayload,
   findSavedRequest,
+  logRequestToConsole,
   pluginRequestToSaveInput,
   uniqueFolderNames,
-  validateCreateCollectionPayload
+  validateCreateCollectionPayload,
+  validatePluginConsoleLogPayload
 } from '#/renderer/src/plugins/hostRequestCommands';
+import { store } from '#/renderer/src/store/redux';
+import { clearConsole } from '#/renderer/src/store/slices/consoleSlice';
 import { toPluginHttpRequest } from '#/shared/plugin/httpRequest';
 import type { RootState } from '#/renderer/src/store/redux';
 
@@ -140,5 +144,52 @@ describe('hostRequestCommands', () => {
       /must be an array/
     );
     expect(() => pluginRequestToSaveInput({ name: ' ' }, 1, null)).toThrow(/non-empty name/);
+  });
+
+  it('appends plugin request results to the footer console log', () => {
+    store.dispatch(clearConsole());
+
+    logRequestToConsole({
+      requestName: 'Health check',
+      collectionName: 'API',
+      result: {
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'application/json' },
+        body: '{"ok":true}',
+        timeMs: 42,
+        sizeBytes: 13,
+        request: {
+          method: 'GET',
+          url: 'https://example.com/health',
+          headers: { Accept: 'application/json' },
+          body: '',
+          bodyType: 'none'
+        }
+      }
+    });
+
+    const entry = store.getState().console.consoleEntries[0];
+    expect(entry?.requestName).toBe('Health check');
+    expect(entry?.collectionName).toBe('API');
+    expect(entry?.result.status).toBe(200);
+    expect(entry?.result.request?.method).toBe('GET');
+    expect(entry?.result.request?.url).toBe('https://example.com/health');
+    expect(entry?.result.timeMs).toBe(42);
+
+    store.dispatch(clearConsole());
+  });
+
+  it('rejects invalid plugin console payloads', () => {
+    expect(() => validatePluginConsoleLogPayload(null)).toThrow(/payload object/);
+    expect(() => validatePluginConsoleLogPayload({ requestName: ' ', result: {} })).toThrow(
+      /requestName/
+    );
+    expect(() =>
+      validatePluginConsoleLogPayload({
+        requestName: 'Health',
+        result: { status: '200', timeMs: 1 }
+      })
+    ).toThrow(/result.status and result.timeMs/);
   });
 });

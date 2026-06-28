@@ -1,4 +1,5 @@
 import type { OAuthFetchTokenResult } from '#/shared/auth';
+import type { HarborDeepLink } from '#/shared/deepLink';
 import { contextBridge, ipcRenderer } from 'electron';
 import { normalize, resolve } from 'path';
 import type {
@@ -460,6 +461,20 @@ function onMenuAction(callback: (action: MenuActionId) => void): () => void {
   };
   ipcRenderer.on('menu:action', listener);
   return () => ipcRenderer.removeListener('menu:action', listener);
+}
+
+/**
+ * Subscribes to harborclient:// deep-link events from the main process.
+ *
+ * @param callback - Handler invoked with a parsed deep-link action.
+ * @returns Unsubscribe function.
+ */
+function onDeepLink(callback: (payload: HarborDeepLink) => void): () => void {
+  const listener = (_event: Electron.IpcRendererEvent, payload: HarborDeepLink): void => {
+    callback(payload);
+  };
+  ipcRenderer.on('app:deep-link', listener);
+  return () => ipcRenderer.removeListener('app:deep-link', listener);
 }
 
 /**
@@ -1797,6 +1812,7 @@ const api: Api = {
   setCookies,
   runScript,
   onMenuAction,
+  onDeepLink,
   setMenuSidebarVisible,
   setMenuAiSidebarVisible,
   popupMenuSubmenu,

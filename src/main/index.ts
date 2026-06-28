@@ -9,7 +9,7 @@ import {
   shell,
   type App
 } from 'electron';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { RoutingStorage } from '#/main/storage';
 import { initLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import {
@@ -46,6 +46,7 @@ import { disposeScriptRunner } from '#/main/scripting/scriptRunnerHost';
 import { PluginManager, parseDevPluginPaths } from '#/main/plugins/PluginManager';
 import { disposePluginRunner } from '#/main/plugins/pluginRunnerHost';
 import type { StorageConnection, ThemeSource } from '#/shared/types';
+import { HARBOR_PROTOCOL, parseHarborDeepLink, type HarborDeepLink } from '#/shared/deepLink';
 
 const isDev = !app.isPackaged;
 
@@ -64,6 +65,117 @@ let splashWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let closePromptOpen = false;
 let closeReason: CloseReason | null = null;
+let pendingDeepLink: HarborDeepLink | null = null;
+let rendererReady = false;
+
+/**
+ * Registers HarborClient as the default handler for harborclient:// URLs.
+ */
+function registerProtocolClient(): void {
+  if (process.platform === 'win32' && isDev) {
+    app.setAsDefaultProtocolClient(HARBOR_PROTOCOL, process.execPath, [
+      resolve(process.argv[1] ?? '.')
+    ]);
+    return;
+  }
+
+  app.setAsDefaultProtocolClient(HARBOR_PROTOCOL);
+}
+
+/**
+ * Finds a harborclient:// URL in a process argv list.
+ *
+ * @param argv - Command-line arguments from startup or a second-instance launch.
+ * @returns Matching deep-link URL when present.
+ */
+function findDeepLinkInArgv(argv: string[]): string | undefined {
+  return argv.find((arg) => arg.startsWith(`${HARBOR_PROTOCOL}://`));
+}
+
+/**
+ * Restores, shows, and focuses the main application window.
+ */
+function focusMainWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+/**
+ * Sends a parsed deep link to the renderer, or buffers it until the page loads.
+ *
+ * @param payload - Parsed deep-link action.
+ */
+function sendDeepLinkToRenderer(payload: HarborDeepLink): void {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    pendingDeepLink = payload;
+    return;
+  }
+
+  if (rendererReady && !mainWindow.webContents.isLoading()) {
+    mainWindow.webContents.send('app:deep-link', payload);
+    return;
+  }
+
+  pendingDeepLink = payload;
+}
+
+/**
+ * Delivers a buffered deep link after the renderer finishes its initial load.
+ */
+function flushPendingDeepLink(): void {
+  if (!pendingDeepLink || !mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+
+  const payload = pendingDeepLink;
+  pendingDeepLink = null;
+  mainWindow.webContents.send('app:deep-link', payload);
+}
+
+/**
+ * Validates and dispatches one harborclient:// URL to the renderer.
+ *
+ * @param url - Raw URL from the OS protocol handler or launch argv.
+ */
+function handleDeepLink(url: string): void {
+  const payload = parseHarborDeepLink(url);
+  if (!payload) {
+    logVerbose('deep link: ignored unsupported URL', url);
+    return;
+  }
+
+  logVerbose('deep link: handling', payload);
+  focusMainWindow();
+  sendDeepLinkToRenderer(payload);
+}
+
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (_event, argv) => {
+    focusMainWindow();
+    const url = findDeepLinkInArgv(argv);
+    if (url) {
+      handleDeepLink(url);
+    }
+  });
+}
+
+registerProtocolClient();
+
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  handleDeepLink(url);
+});
 
 /**
  * Resolves the SQLite connection used as the local fallback provider.
@@ -455,6 +567,7 @@ function closeSplash(): void {
  * @returns The created browser window.
  */
 function createWindow(): BrowserWindow {
+  rendererReady = false;
   const savedState = loadWindowState();
 
   const window = new BrowserWindow({
@@ -514,6 +627,8 @@ function createWindow(): BrowserWindow {
   window.webContents.on('did-finish-load', () => {
     logVerbose('createWindow: renderer finished loading');
     revealMainWindow('did-finish-load');
+    rendererReady = true;
+    flushPendingDeepLink();
   });
 
   window.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
@@ -612,6 +727,11 @@ app.whenReady().then(async () => {
     setMenuWindow(mainWindow);
     Menu.setApplicationMenu(buildMenu(mainWindow));
     logVerbose('startup: main window created, waiting for ready-to-show');
+
+    const startupDeepLink = findDeepLinkInArgv(process.argv);
+    if (startupDeepLink) {
+      handleDeepLink(startupDeepLink);
+    }
   } catch (err) {
     closeSplash();
     console.error('Failed to initialize application:', err);

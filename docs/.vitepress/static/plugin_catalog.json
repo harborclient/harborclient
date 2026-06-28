@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-06-28T12:20:17.107Z",
+  "updatedAt": "2026-06-28T12:54:42.656Z",
   "plugins": [
     {
       "id": "com.harborclient.plugins.aws-sigv4",
@@ -151,6 +151,20 @@
       ],
       "repoUrl": "https://github.com/harborclient/plugin-jwt",
       "screenshot": "https://raw.githubusercontent.com/harborclient/plugin-jwt/main/screenshot.png"
+    },
+    {
+      "id": "com.harborclient.plugins.load-test",
+      "name": "Load Tester",
+      "version": "1.0.0",
+      "summary": "Fire repeated requests against an endpoint or collection and chart latency percentiles, throughput, and error rate.",
+      "author": "HarborClient",
+      "categories": [
+        "testing",
+        "collections",
+        "requests"
+      ],
+      "repoUrl": "https://github.com/harborclient/plugin-load-tester",
+      "screenshot": "https://raw.githubusercontent.com/harborclient/plugin-load-tester/main/screenshot.png"
     },
     {
       "id": "com.harborclient.plugins.nord",

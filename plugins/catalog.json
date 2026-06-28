@@ -42,6 +42,16 @@
       "screenshot": "https://raw.githubusercontent.com/harborclient/plugin-json-validator/main/screenshot.png"
     },
     {
+      "id": "com.harborclient.plugins.load-test",
+      "name": "Load Tester",
+      "version": "1.0.0",
+      "summary": "Fire repeated requests against an endpoint or collection and chart latency percentiles, throughput, and error rate.",
+      "author": "HarborClient",
+      "categories": ["testing", "collections", "requests"],
+      "repoUrl": "https://github.com/harborclient/plugin-load-tester",
+      "screenshot": "https://raw.githubusercontent.com/harborclient/plugin-load-tester/main/screenshot.png"
+    },
+    {
       "id": "com.harborclient.plugins.dotenv",
       "name": "Dotenv",
       "version": "1.0.4",

@@ -113,6 +113,17 @@ export function Response({
   const hasRedirects = (response?.redirects?.length ?? 0) > 0;
   const passedCount = testResults.filter((test) => test.passed).length;
   const failedCount = testResults.length - passedCount;
+
+  /**
+   * Plugin tabs shown when there is no HTTP response (always or noResponse when).
+   */
+  const noResponsePluginTabs = useMemo(
+    () => pluginTabs.filter((entry) => entry.when === 'always' || entry.when === 'noResponse'),
+    [pluginTabs]
+  );
+
+  const pluginOnlyTab =
+    !response && noResponsePluginTabs.length > 0 ? noResponsePluginTabs[0]?.id : null;
   const effectiveTab =
     tab === 'tests' && !hasTests
       ? 'body'
@@ -120,7 +131,11 @@ export function Response({
         ? 'body'
         : tab === 'redirects' && !hasRedirects
           ? 'body'
-          : tab;
+          : !response &&
+              pluginOnlyTab != null &&
+              !noResponsePluginTabs.some((entry) => entry.id === tab)
+            ? pluginOnlyTab
+            : tab;
 
   /**
    * Copies the active tab content to the clipboard.
@@ -204,6 +219,7 @@ export function Response({
         )
       },
       ...pluginTabs
+        .filter((entry) => entry.when !== 'noResponse')
         .filter((entry) => entry.when !== 'hasResponse' || response != null)
         .map((entry) => ({
           value: entry.id,
@@ -252,7 +268,45 @@ export function Response({
   }
 
   if (!response) {
-    return emptyState('Send a request to see the response');
+    if (noResponsePluginTabs.length === 0) {
+      return emptyState('Send a request to see the response');
+    }
+
+    if (noResponsePluginTabs.length === 1) {
+      const SingleComponent = noResponsePluginTabs[0].Component;
+      return (
+        <div className="flex min-h-0 flex-1 flex-col p-3">
+          <div className="flex min-h-0 flex-1 flex-col overflow-auto">
+            <SingleComponent context={responseTabContext} />
+          </div>
+        </div>
+      );
+    }
+
+    const pluginTabsOnly = noResponsePluginTabs.map((entry) => ({
+      value: entry.id,
+      label: entry.title
+    }));
+
+    return (
+      <div className="flex min-h-0 flex-1 flex-col p-3">
+        <SegmentedTabsGroup value={effectiveTab} onChange={setTab} ariaLabel="Response view">
+          <div className="mb-2 flex shrink-0 items-center gap-2">
+            <SegmentedTabs tabs={pluginTabsOnly} />
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-auto">
+            {noResponsePluginTabs.map((entry) => {
+              const Component = entry.Component;
+              return (
+                <SegmentedTabPanel key={entry.id} value={entry.id}>
+                  <Component context={responseTabContext} />
+                </SegmentedTabPanel>
+              );
+            })}
+          </div>
+        </SegmentedTabsGroup>
+      </div>
+    );
   }
 
   return (
@@ -322,14 +376,16 @@ export function Response({
                 <Tests testResults={testResults} />
               </SegmentedTabPanel>
             )}
-            {pluginTabs.map((entry) => {
-              const Component = entry.Component;
-              return (
-                <SegmentedTabPanel key={entry.id} value={entry.id}>
-                  <Component context={responseTabContext} />
-                </SegmentedTabPanel>
-              );
-            })}
+            {pluginTabs
+              .filter((entry) => entry.when !== 'noResponse')
+              .map((entry) => {
+                const Component = entry.Component;
+                return (
+                  <SegmentedTabPanel key={entry.id} value={entry.id}>
+                    <Component context={responseTabContext} />
+                  </SegmentedTabPanel>
+                );
+              })}
           </div>
         </SegmentedTabsGroup>
       </div>

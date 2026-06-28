@@ -1,3 +1,5 @@
+import type { Collection, SavedRequest, SendRequestInput, SendResult } from '#/shared/types';
+
 /**
  * Result of a mutating plugin SQL statement.
  */
@@ -64,5 +66,38 @@ declare module '@harborclient/sdk' {
 
   interface MainPluginContext {
     database: PluginDatabase;
+  }
+
+  interface PluginHost {
+    /**
+     * Returns saved requests for a collection or folder in sidebar run order.
+     */
+    listCollectionRequests(collectionId: number, folderId?: number | null): Promise<SavedRequest[]>;
+
+    /**
+     * Returns collection metadata needed to resolve saved requests in plugins.
+     */
+    getCollectionMetadata(collectionId: number): Promise<Collection>;
+
+    /**
+     * Appends one HTTP result to the footer session console from a renderer plugin.
+     */
+    logRequestToConsole(payload: {
+      requestName: string;
+      collectionName?: string;
+      result: SendResult;
+    }): Promise<void>;
+
+    /**
+     * Sends one HTTP request through the main-process pipeline, bypassing the
+     * renderer's CORS restrictions. Failures resolve to an error result.
+     */
+    sendHttpRequest(input: SendRequestInput): Promise<SendResult>;
+
+    /**
+     * Clears the active request tab's last HTTP response so plugin-only response
+     * views can take over the panel.
+     */
+    clearResponse(): Promise<void>;
   }
 }

@@ -33,7 +33,11 @@ import {
   faPuzzlePiece,
   faStore
 } from '#/renderer/src/fontawesome';
-import { useAppDispatch } from '#/renderer/src/store/hooks';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import {
+  consumePendingPluginInstall,
+  selectPendingPluginInstallId
+} from '#/renderer/src/store/slices/navigationSlice';
 import {
   showAlert,
   showConfirm,
@@ -80,6 +84,7 @@ function queueThemePromptIfNeeded(plugin: PluginInfo): void {
  */
 export function PluginsSection({ onClose }: Props): JSX.Element {
   const dispatch = useAppDispatch();
+  const pendingPluginInstallId = useAppSelector(selectPendingPluginInstallId);
   const [showBrowse, setShowBrowse] = useState(false);
   const [plugins, setPlugins] = useState<PluginInfo[]>([]);
   const [catalog, setCatalog] = useState<PluginCatalog | null>(null);
@@ -485,6 +490,114 @@ export function PluginsSection({ onClose }: Props): JSX.Element {
     setDetailScreenshotSrc(undefined);
     setDetailPlugin(plugin);
   };
+
+  /**
+   * Handles a harborclient:// plugin install deep link queued in navigation state.
+   */
+  useEffect(() => {
+    if (!pendingPluginInstallId) {
+      return;
+    }
+
+    const pluginId = pendingPluginInstallId;
+    let cancelled = false;
+
+    const run = async (): Promise<void> => {
+      setShowBrowse(true);
+
+      let loadedCatalog = catalog;
+      if (!loadedCatalog) {
+        setCatalogLoading(true);
+        setCatalogError(null);
+        try {
+          loadedCatalog = await window.api.getPluginCatalog();
+          if (cancelled) {
+            return;
+          }
+          setCatalog(loadedCatalog);
+        } catch (err) {
+          if (cancelled) {
+            return;
+          }
+          showAlert(
+            dispatch,
+            formatIpcErrorMessage(err, 'Could not load the plugin marketplace.'),
+            'Marketplace unavailable'
+          );
+          dispatch(consumePendingPluginInstall());
+          return;
+        } finally {
+          if (!cancelled) {
+            setCatalogLoading(false);
+          }
+        }
+      }
+
+      if (cancelled) {
+        return;
+      }
+
+      dispatch(consumePendingPluginInstall());
+
+      const entry = loadedCatalog.plugins.find((candidate) => candidate.id === pluginId);
+      if (!entry) {
+        showAlert(
+          dispatch,
+          `Plugin "${pluginId}" was not found in the marketplace catalog.`,
+          'Plugin not found'
+        );
+        return;
+      }
+
+      const installedPlugins = await window.api.listPlugins();
+      if (cancelled) {
+        return;
+      }
+
+      const installed = findInstalledCatalogPlugin(installedPlugins, entry.id);
+      if (installed) {
+        openDetail(installed);
+        return;
+      }
+
+      const confirmed = await showConfirm(dispatch, {
+        title: `Install ${entry.name}?`,
+        message: `Install ${entry.name} v${entry.version} by ${entry.author} from ${entry.repoUrl}?`,
+        confirmLabel: 'Install'
+      });
+      if (!confirmed || cancelled) {
+        return;
+      }
+
+      setCatalogActionBusyId(entry.id);
+      try {
+        const installedPlugin = await window.api.installPluginFromGit(entry.repoUrl, entry.ref);
+        if (cancelled) {
+          return;
+        }
+        setPendingInstall(installedPlugin);
+      } catch (err) {
+        if (!cancelled) {
+          showAlert(
+            dispatch,
+            formatIpcErrorMessage(err, 'The plugin could not be installed.'),
+            'Install failed',
+            { icon: 'warning' }
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setCatalogActionBusyId(null);
+        }
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pendingPluginInstallId, catalog, dispatch]);
 
   /**
    * Closes the read-only detail modal and clears loaded description text.
