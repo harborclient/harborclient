@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.8.25 - 2026-06-28
+
 - chore(package): update @harborclient/team-hub-api dependency to version 0.1.1. (`58914e4`)
 - feat(team-hub): integrate @harborclient/team-hub-api for improved team hub functionality. (`81b6804`)
 
