@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.8.29 - 2026-06-28
+
 - Update .gitignore and clean up build-docs-nav script. (`b67c989`)
 - feat(plugins): implement resolvePendingPluginInstallDeepLink function for improved plugin installation handling. (`ea7baf9`)
 
