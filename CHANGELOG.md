@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- chore(package): update @harborclient/sdk version and add new dependencies. (`578571f`)
 - chore(package): remove local SDK link from package.json overrides. (`70a5bef`)
 - fix(ui): improve code formatting in Sidebar component and adjust PluginScreenshot type definition. (`0886e98`)
 - feat(plugins): update plugin database management and enhance plugin storage access. (`93c5d6b`)
