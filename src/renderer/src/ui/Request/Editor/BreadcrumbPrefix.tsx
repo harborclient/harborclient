@@ -48,7 +48,7 @@ export function BreadcrumbPrefix({
   const separator = (
     <FaIcon
       icon={faChevronRight}
-      className="inline-block text-sm shrink-0 align-middle text-muted"
+      className="inline-block h-3 w-3 shrink-0 align-middle text-muted"
     />
   );
 

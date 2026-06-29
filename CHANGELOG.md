@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(ui): adjust icon sizes in BreadcrumbPrefix and Response components. (`73d12cd`)
 - feat(git): implement pre-commit hook to prevent local SDK link overrides. (`938db30`)
 - chore: update documentation and configuration files. (`381d0ef`)
 

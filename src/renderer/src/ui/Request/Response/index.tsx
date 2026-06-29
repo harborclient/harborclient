@@ -265,7 +265,7 @@ export function Response({
             aria-label="Send a request to see the response"
             className="flex flex-1 items-center justify-center text-muted"
           >
-            <FaIcon icon={faGlobe} className="text-4xl" />
+            <FaIcon icon={faGlobe} className="h-12 w-12" />
           </div>
         </div>
       );
