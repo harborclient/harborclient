@@ -2,7 +2,7 @@ import {
   Button,
   FormGroup,
   Page,
-  Input,
+  Checkbox,
   Select,
   CodeEditor,
   CODE_EDITOR_THEME_OPTIONS
@@ -116,8 +116,7 @@ export function SyntaxHighlightingSection({ onClose }: Props): JSX.Element {
 
         {SETUP_OPTIONS.map((option) => (
           <FormGroup key={option.key} label={option.label} layout="checkbox">
-            <Input
-              type="checkbox"
+            <Checkbox
               checked={generalSettings.codeEditorSetup[option.key]}
               disabled={loading || saving}
               onChange={(event) => handleSetupChange(option.key, event.target.checked)}

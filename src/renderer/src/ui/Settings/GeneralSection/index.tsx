@@ -1,4 +1,4 @@
-import { Button, FormGroup, Page, Input, Select } from '@harborclient/sdk/components';
+import { Button, Checkbox, FormGroup, Page, Input, Select } from '@harborclient/sdk/components';
 import { useEffect, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { GeneralSettings, ThemeSource } from '#/shared/types';
@@ -162,8 +162,7 @@ export function GeneralSection({ onClose }: Props): JSX.Element {
         </FormGroup>
 
         <FormGroup label="SSL certificate verification" layout="checkbox">
-          <Input
-            type="checkbox"
+          <Checkbox
             checked={generalSettings.verifySsl}
             disabled={generalLoading || generalSaving}
             onChange={(event) => handleGeneralFieldChange('verifySsl', event.target.checked)}
@@ -175,8 +174,7 @@ export function GeneralSection({ onClose }: Props): JSX.Element {
           layout="checkbox"
           description="When disabled, 3xx responses are returned without following Location."
         >
-          <Input
-            type="checkbox"
+          <Checkbox
             checked={generalSettings.followRedirects}
             disabled={generalLoading || generalSaving}
             onChange={(event) => handleGeneralFieldChange('followRedirects', event.target.checked)}

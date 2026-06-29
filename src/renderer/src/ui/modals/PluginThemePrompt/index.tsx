@@ -9,7 +9,7 @@ import {
   selectPluginThemePrompt,
   type PluginThemePromptState
 } from '#/renderer/src/store/slices/modalsSlice';
-import { Button, FormGroup, Input, Modal, ModalFooter } from '@harborclient/sdk/components';
+import { Button, FormGroup, Modal, ModalFooter, Radio } from '@harborclient/sdk/components';
 
 interface PromptBodyProps {
   /** Active plugin theme prompt payload. */
@@ -69,8 +69,7 @@ function PluginThemePromptBody({
             <legend className="sr-only">Plugin themes</legend>
             {prompt.themes.map((theme) => (
               <FormGroup key={theme.id} label={theme.title} layout="checkbox">
-                <Input
-                  type="radio"
+                <Radio
                   name={radioGroupName}
                   checked={selectedThemeId === theme.id}
                   onChange={() => setSelectedThemeId(theme.id)}

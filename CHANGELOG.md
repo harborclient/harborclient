@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- chore(deps): update @harborclient/sdk to version 0.6.12 in package.json and pnpm-lock.yaml; refactor checkbox components in various UI sections. (`24d90ed`)
+
 ## 1.8.37 - 2026-06-29
 
 - chore(deps): update @harborclient/sdk to version 0.6.7 in package.json and pnpm-lock.yaml. (`9c8a58c`)

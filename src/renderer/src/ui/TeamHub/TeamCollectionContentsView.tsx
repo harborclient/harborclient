@@ -10,6 +10,7 @@ import {
   AsyncListState,
   BackButton,
   Button,
+  Checkbox,
   FieldError,
   FormGroup,
   Modal,
@@ -234,10 +235,8 @@ export function TeamCollectionContentsView({
           layout="checkbox"
           className="cursor-pointer"
         >
-          <input
+          <Checkbox
             id="collection-deletion-lock"
-            type="checkbox"
-            className="h-4 w-4 shrink-0"
             checked={deletionLocked}
             disabled={locking}
             onChange={(event) => void handleDeletionLockedChange(event.target.checked)}

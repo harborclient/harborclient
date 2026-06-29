@@ -1,9 +1,9 @@
 import {
   FormDataEditor,
   FormGroup,
-  Input,
   KeyValueEditor,
-  CodeEditor
+  CodeEditor,
+  Radio
 } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import type { BodyType, Variable } from '#/shared/types';
@@ -66,8 +66,7 @@ export function BodyEditor({
         <span className="text-[14px] text-muted">Body type</span>
         {BODY_TYPE_OPTIONS.map(({ value, label }) => (
           <FormGroup key={value} label={label} layout="radio">
-            <Input
-              type="radio"
+            <Radio
               name="body-type"
               className="app-no-drag"
               checked={bodyType === value}

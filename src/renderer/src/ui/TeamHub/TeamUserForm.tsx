@@ -6,7 +6,7 @@ import type {
   TeamHubAdminResourceOptions,
   UpdateHubUserInput
 } from '#/shared/types';
-import { Input, Select } from '@harborclient/sdk/components';
+import { Checkbox, Input, Select } from '@harborclient/sdk/components';
 import { FormGroup } from '@harborclient/sdk/components';
 import { StatusMessage } from '@harborclient/sdk/components';
 import { AccessListInput } from '#/renderer/src/ui/TeamHub/AccessListInput';
@@ -203,10 +203,8 @@ export function TeamUserForm(props: Props): JSX.Element {
       )}
 
       <FormGroup label="LLM access" htmlFor="team-user-llm-access" layout="checkbox">
-        <Input
+        <Checkbox
           id="team-user-llm-access"
-          type="checkbox"
-          className="h-4 w-4"
           disabled={fieldsDisabled || isAdminRole}
           {...register('llmAccess')}
         />

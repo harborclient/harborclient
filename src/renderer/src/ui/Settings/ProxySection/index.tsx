@@ -1,4 +1,4 @@
-import { Button, FormGroup, Page, Input, Select } from '@harborclient/sdk/components';
+import { Button, Checkbox, FormGroup, Page, Input, Select } from '@harborclient/sdk/components';
 import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { GeneralSettings, ProxySettings } from '#/shared/types';
@@ -88,8 +88,7 @@ export function ProxySection({ onClose }: Props): JSX.Element {
     >
       <div className="mb-6 flex flex-col gap-6">
         <FormGroup label="Use a proxy" layout="checkbox">
-          <Input
-            type="checkbox"
+          <Checkbox
             checked={proxy.enabled}
             disabled={fieldsDisabled}
             onChange={(event) => handleProxyFieldChange('enabled', event.target.checked)}
@@ -134,8 +133,7 @@ export function ProxySection({ onClose }: Props): JSX.Element {
         </FormGroup>
 
         <FormGroup label="Use basic authentication" layout="checkbox">
-          <Input
-            type="checkbox"
+          <Checkbox
             checked={proxy.authEnabled}
             disabled={proxyFieldsDisabled}
             onChange={(event) => handleProxyFieldChange('authEnabled', event.target.checked)}

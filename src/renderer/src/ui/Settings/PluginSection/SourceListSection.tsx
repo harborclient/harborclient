@@ -1,4 +1,4 @@
-import { Button, FormGroup, Input } from '@harborclient/sdk/components';
+import { Button, Checkbox, FormGroup, Input } from '@harborclient/sdk/components';
 import { useState, type JSX } from 'react';
 import type { PluginSource } from '#/shared/plugin/catalog';
 import { isHarborClientEndpoint } from '#/shared/plugin/catalog';
@@ -138,9 +138,8 @@ export function SourceListSection({
                 className="flex flex-wrap items-start gap-2 rounded-md border border-separator bg-control p-3"
               >
                 <div className="flex min-w-0 flex-1 items-start gap-2">
-                  <input
+                  <Checkbox
                     id={checkboxId}
-                    type="checkbox"
                     className="mt-1"
                     checked={source.enabled}
                     disabled={busy}
@@ -184,9 +183,8 @@ export function SourceListSection({
                 className="flex flex-wrap items-start gap-2 rounded-md border border-separator bg-control p-3"
               >
                 <div className="flex min-w-0 flex-1 items-start gap-2">
-                  <input
+                  <Checkbox
                     id={checkboxId}
-                    type="checkbox"
                     className="mt-1"
                     checked
                     disabled

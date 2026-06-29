@@ -18,7 +18,7 @@ import {
 import { runCollectionRequests } from '#/renderer/src/store/thunks/collectionRunner';
 import { Button } from '@harborclient/sdk/components';
 import { FormGroup } from '@harborclient/sdk/components';
-import { Input, Select } from '@harborclient/sdk/components';
+import { Checkbox, Input, Radio, Select } from '@harborclient/sdk/components';
 import { Modal, ModalFooter } from '@harborclient/sdk/components';
 
 /**
@@ -178,9 +178,8 @@ export function CollectionRunnerModal(): JSX.Element | null {
           </FormGroup>
 
           <FormGroup label="Stop on failure" layout="checkbox">
-            <Input
+            <Checkbox
               id="collection-runner-stop-on-failure"
-              type="checkbox"
               checked={runner.stopOnFailure}
               onChange={(event) =>
                 dispatch(setCollectionRunnerConfig({ stopOnFailure: event.target.checked }))
@@ -191,8 +190,7 @@ export function CollectionRunnerModal(): JSX.Element | null {
           <fieldset className="m-0 space-y-2 border-none p-0">
             <legend className="mb-2 text-[14px] font-medium text-text">Environment</legend>
             <FormGroup label="Use active environment" layout="checkbox">
-              <Input
-                type="radio"
+              <Radio
                 name="collection-runner-environment-mode"
                 checked={runner.environmentMode === 'active'}
                 onChange={() =>
@@ -203,8 +201,7 @@ export function CollectionRunnerModal(): JSX.Element | null {
               />
             </FormGroup>
             <FormGroup label="Override environment" layout="checkbox">
-              <Input
-                type="radio"
+              <Radio
                 name="collection-runner-environment-mode"
                 checked={runner.environmentMode === 'override'}
                 onChange={() =>

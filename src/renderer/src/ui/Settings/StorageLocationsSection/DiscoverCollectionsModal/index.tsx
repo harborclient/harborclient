@@ -1,5 +1,6 @@
 import {
   Button,
+  Checkbox,
   FormGroup,
   Modal,
   ModalFooter,
@@ -169,9 +170,8 @@ export function DiscoverCollectionsModal({
               className="rounded-md border border-separator bg-control px-3 py-2"
             >
               <FormGroup label={collection.name} htmlFor={checkboxId} layout="checkboxAdjacent">
-                <input
+                <Checkbox
                   id={checkboxId}
-                  type="checkbox"
                   className="mt-1"
                   checked={checked}
                   disabled={busy}
