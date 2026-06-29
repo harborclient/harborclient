@@ -1,4 +1,4 @@
-import { Button, FormGroup, PageHeader, Input, Select } from '@harborclient/sdk/components';
+import { Button, FormGroup, Page, Input, Select } from '@harborclient/sdk/components';
 import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { GeneralSettings, ProxySettings } from '#/shared/types';
@@ -78,14 +78,14 @@ export function ProxySection({ onClose }: Props): JSX.Element {
   const { label, icon } = settingsSectionMeta('proxy');
 
   return (
-    <div className="mb-6 flex flex-col">
-      <PageHeader
-        title={label}
-        icon={icon}
-        description="Route HarborClient's outbound HTTP requests through a proxy server."
-      >
-        <SettingsCloseButton onClose={onClose} />
-      </PageHeader>
+    <Page
+      embedded
+      className="mb-6 flex flex-col"
+      title={label}
+      icon={icon}
+      description="Route HarborClient's outbound HTTP requests through a proxy server."
+      actions={<SettingsCloseButton onClose={onClose} />}
+    >
       <div className="mb-6 flex flex-col gap-6">
         <FormGroup label="Use a proxy" layout="checkbox">
           <Input
@@ -172,6 +172,6 @@ export function ProxySection({ onClose }: Props): JSX.Element {
           {saving ? 'Saving…' : 'Save'}
         </Button>
       </div>
-    </div>
+    </Page>
   );
 }

@@ -1,4 +1,4 @@
-import { VariableTable, cleanVariables, Button, PageHeader } from '@harborclient/sdk/components';
+import { VariableTable, cleanVariables, Button, Page } from '@harborclient/sdk/components';
 import { useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { Variable } from '#/shared/types';
@@ -84,11 +84,7 @@ function GlobalsSectionForm({ savedVariables, onClose }: FormProps): JSX.Element
   const { label, icon } = settingsSectionMeta('globals');
 
   return (
-    <>
-      <PageHeader title={label} icon={icon}>
-        <SettingsCloseButton onClose={onClose} />
-      </PageHeader>
-
+    <Page embedded title={label} icon={icon} actions={<SettingsCloseButton onClose={onClose} />}>
       <div className="mb-6 max-w-3xl">
         <VariableTable
           variables={variables}
@@ -102,6 +98,6 @@ function GlobalsSectionForm({ savedVariables, onClose }: FormProps): JSX.Element
           {saving ? 'Saving…' : 'Save'}
         </Button>
       </div>
-    </>
+    </Page>
   );
 }

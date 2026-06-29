@@ -1,4 +1,4 @@
-import { PageHeader } from '@harborclient/sdk/components';
+import { Page, PageSidebar, SidebarLayout } from '@harborclient/sdk/components';
 import { useMemo, useState, type JSX } from 'react';
 
 import { faPuzzlePiece } from '#/renderer/src/fontawesome';
@@ -13,7 +13,6 @@ import { ProxySection } from './ProxySection';
 import { ShortcutsSection } from './ShortcutsSection';
 import { SyntaxHighlightingSection } from './SyntaxHighlightingSection';
 import { SettingsCloseButton } from './SettingsCloseButton';
-import { SettingsSidebar } from './SettingsSidebar';
 import { SETTINGS_SECTIONS } from './constants';
 import type { SettingsSection } from './types';
 
@@ -59,12 +58,14 @@ function SettingsPanel({
   if (pluginSection) {
     const Component = pluginSection.Component;
     return (
-      <>
-        <PageHeader title={pluginSection.title} icon={faPuzzlePiece}>
-          <SettingsCloseButton onClose={onClose} />
-        </PageHeader>
+      <Page
+        embedded
+        title={pluginSection.title}
+        icon={faPuzzlePiece}
+        actions={<SettingsCloseButton onClose={onClose} />}
+      >
         <Component />
-      </>
+      </Page>
     );
   }
 
@@ -91,18 +92,17 @@ export function Settings({ onClose, initialSection }: Props): JSX.Element {
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1">
-        <SettingsSidebar
-          section={section}
-          sections={sidebarSections}
-          onSectionChange={setSection}
+    <SidebarLayout
+      sidebar={
+        <PageSidebar
+          ariaLabel="Settings sections"
+          selected={section}
+          onSelect={setSection}
+          items={sidebarSections}
         />
-
-        <div className="flex-1 overflow-y-auto p-6">
-          <SettingsPanel section={section} pluginSections={pluginSections} onClose={onClose} />
-        </div>
-      </div>
-    </div>
+      }
+    >
+      <SettingsPanel section={section} pluginSections={pluginSections} onClose={onClose} />
+    </SidebarLayout>
   );
 }

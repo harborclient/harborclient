@@ -1,6 +1,6 @@
 import {
   Button,
-  PageHeader,
+  Page,
   PanelCloseButton,
   Input,
   Textarea,
@@ -111,14 +111,12 @@ export function IdentitySection({ onClose }: Props): JSX.Element {
   };
 
   return (
-    <div>
-      <PageHeader
-        title="My identity"
-        description="Your key pair signs share tokens you send and decrypts tokens addressed to you. Share your public key so collaborators can trust and encrypt to you."
-      >
-        <PanelCloseButton onClose={onClose} ariaLabel="Close sharing keys" />
-      </PageHeader>
-
+    <Page
+      embedded
+      title="My identity"
+      description="Your key pair signs share tokens you send and decrypts tokens addressed to you. Share your public key so collaborators can trust and encrypt to you."
+      actions={<PanelCloseButton onClose={onClose} ariaLabel="Close sharing keys" />}
+    >
       {loading ? (
         <p role="status" className="text-[14px] text-muted">
           Loading…
@@ -181,6 +179,6 @@ export function IdentitySection({ onClose }: Props): JSX.Element {
       ) : null}
 
       {error && <p className="mt-3 text-[14px] text-danger">{error}</p>}
-    </div>
+    </Page>
   );
 }

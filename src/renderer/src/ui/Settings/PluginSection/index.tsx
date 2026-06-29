@@ -24,7 +24,7 @@ import { FormGroup } from '@harborclient/sdk/components';
 import { FaIcon } from '@harborclient/sdk/components';
 import { Input } from '@harborclient/sdk/components';
 import { Select } from '@harborclient/sdk/components';
-import { PageHeader } from '@harborclient/sdk/components';
+import { Page } from '@harborclient/sdk/components';
 import {
   faAngleLeft,
   faCircleCheck,
@@ -880,54 +880,56 @@ export function PluginsSection({ onClose }: Props): JSX.Element {
   };
 
   return (
-    <section>
-      <PageHeader
-        title="Plugins"
-        icon={faPuzzlePiece}
-        description="Install, enable, and manage plugins from the marketplace or local packages."
-      >
-        <Button
-          type="button"
-          variant={showBrowse ? 'secondary' : 'primary'}
-          aria-pressed={showBrowse}
-          className="inline-flex items-center gap-1.5"
-          onClick={toggleBrowseView}
-        >
-          {showBrowse ? (
+    <Page
+      embedded
+      title="Plugins"
+      icon={faPuzzlePiece}
+      description="Install, enable, and manage plugins from the marketplace or local packages."
+      actions={
+        <>
+          <Button
+            type="button"
+            variant={showBrowse ? 'secondary' : 'primary'}
+            aria-pressed={showBrowse}
+            className="inline-flex items-center gap-1.5"
+            onClick={toggleBrowseView}
+          >
+            {showBrowse ? (
+              <>
+                <FaIcon icon={faAngleLeft} className="h-3.5 w-3.5" />
+                Installed
+              </>
+            ) : (
+              <>
+                <FaIcon icon={faStore} className="h-3.5 w-3.5" />
+                Marketplace
+              </>
+            )}
+          </Button>
+          {!showBrowse ? (
             <>
-              <FaIcon icon={faAngleLeft} className="h-3.5 w-3.5" />
-              Installed
+              <Button
+                type="button"
+                className="inline-flex items-center gap-1.5"
+                onClick={openInstallModal}
+              >
+                <FaIcon icon={faDownload} className="h-3.5 w-3.5" />
+                Install
+              </Button>
+              <Button
+                type="button"
+                className="inline-flex items-center gap-1.5"
+                onClick={openPluginSourcesModal}
+              >
+                <FaIcon icon={faGear} className="h-3.5 w-3.5" />
+                Settings
+              </Button>
             </>
-          ) : (
-            <>
-              <FaIcon icon={faStore} className="h-3.5 w-3.5" />
-              Marketplace
-            </>
-          )}
-        </Button>
-        {!showBrowse ? (
-          <>
-            <Button
-              type="button"
-              className="inline-flex items-center gap-1.5"
-              onClick={openInstallModal}
-            >
-              <FaIcon icon={faDownload} className="h-3.5 w-3.5" />
-              Install
-            </Button>
-            <Button
-              type="button"
-              className="inline-flex items-center gap-1.5"
-              onClick={openPluginSourcesModal}
-            >
-              <FaIcon icon={faGear} className="h-3.5 w-3.5" />
-              Settings
-            </Button>
-          </>
-        ) : null}
-        <SettingsCloseButton onClose={onClose} />
-      </PageHeader>
-
+          ) : null}
+          <SettingsCloseButton onClose={onClose} />
+        </>
+      }
+    >
       {showBrowse ? (
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end">
           <FormGroup label="Search plugins" htmlFor="plugin-catalog-search" srOnly>
@@ -1257,6 +1259,6 @@ export function PluginsSection({ onClose }: Props): JSX.Element {
           onConfirm={() => void closePendingInstall(true)}
         />
       ) : null}
-    </section>
+    </Page>
   );
 }

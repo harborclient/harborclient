@@ -1,7 +1,8 @@
+import { PageSidebar, SidebarLayout } from '@harborclient/sdk/components';
 import { useState, type JSX } from 'react';
-import { Sidebar } from './Sidebar';
 import { IdentitySection } from './IdentitySection';
 import { TrustedKeysSection } from './TrustedKeysSection';
+import { SHARING_KEYS_SECTIONS } from './constants';
 import type { SharingKeysSection } from './types';
 
 interface Props {
@@ -18,15 +19,18 @@ export function SharingKeys({ onClose }: Props): JSX.Element {
   const [section, setSection] = useState<SharingKeysSection>('identity');
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1">
-        <Sidebar section={section} onSectionChange={setSection} />
-
-        <div className="flex-1 overflow-y-auto p-6">
-          {section === 'identity' && <IdentitySection onClose={onClose} />}
-          {section === 'trusted' && <TrustedKeysSection onClose={onClose} />}
-        </div>
-      </div>
-    </div>
+    <SidebarLayout
+      sidebar={
+        <PageSidebar
+          ariaLabel="Sharing keys sections"
+          selected={section}
+          onSelect={setSection}
+          items={SHARING_KEYS_SECTIONS}
+        />
+      }
+    >
+      {section === 'identity' && <IdentitySection onClose={onClose} />}
+      {section === 'trusted' && <TrustedKeysSection onClose={onClose} />}
+    </SidebarLayout>
   );
 }

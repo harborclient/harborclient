@@ -1,4 +1,4 @@
-import { Button, FormGroup, PageHeader, Input } from '@harborclient/sdk/components';
+import { Button, FormGroup, Page, Input } from '@harborclient/sdk/components';
 import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { AiSettings } from '#/shared/types';
@@ -85,14 +85,14 @@ export function AiSection({ onClose }: Props): JSX.Element {
   const { label, icon } = settingsSectionMeta('ai');
 
   return (
-    <div className="mb-6 flex flex-col">
-      <PageHeader
-        title={label}
-        icon={icon}
-        description="Store API keys for OpenAI, Claude, and Google Gemini used by the AI sidebar."
-      >
-        <SettingsCloseButton onClose={onClose} />
-      </PageHeader>
+    <Page
+      embedded
+      className="mb-6 flex flex-col"
+      title={label}
+      icon={icon}
+      description="Store API keys for OpenAI, Claude, and Google Gemini used by the AI sidebar."
+      actions={<SettingsCloseButton onClose={onClose} />}
+    >
       <div className="mb-6 flex flex-col gap-6">
         <FormGroup label="OpenAI API key" htmlFor="ai-openai-api-key">
           <Input
@@ -146,6 +146,6 @@ export function AiSection({ onClose }: Props): JSX.Element {
           {saving ? 'Saving…' : 'Save'}
         </Button>
       </div>
-    </div>
+    </Page>
   );
 }

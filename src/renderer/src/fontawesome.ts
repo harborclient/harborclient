@@ -12,6 +12,7 @@ import {
   faDatabase,
   faDownload,
   faFloppyDisk,
+  faFingerprint,
   faGear,
   faGlobe,
   faGripVertical,
@@ -24,6 +25,7 @@ import {
   faStore,
   faTableColumns,
   faUsers,
+  faUserShield,
   faWindowMaximize,
   faXmark
 } from '@fortawesome/free-solid-svg-icons';
@@ -44,6 +46,7 @@ library.add(
   faDatabase,
   faDownload,
   faFloppyDisk,
+  faFingerprint,
   faGear,
   faGlobe,
   faGripVertical,
@@ -54,6 +57,7 @@ library.add(
   faServer,
   faStore,
   faUsers,
+  faUserShield,
   faWindowMaximize
 );
 config.autoAddCss = false;
@@ -71,6 +75,7 @@ export {
   faDatabase,
   faDownload,
   faFloppyDisk,
+  faFingerprint,
   faGear,
   faGlobe,
   faGripVertical,
@@ -83,6 +88,7 @@ export {
   faStore,
   faTableColumns,
   faUsers,
+  faUserShield,
   faWindowMaximize,
   faXmark
 };

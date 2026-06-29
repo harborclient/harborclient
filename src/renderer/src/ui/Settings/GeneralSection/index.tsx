@@ -1,4 +1,4 @@
-import { Button, FormGroup, PageHeader, Input, Select } from '@harborclient/sdk/components';
+import { Button, FormGroup, Page, Input, Select } from '@harborclient/sdk/components';
 import { useEffect, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { GeneralSettings, ThemeSource } from '#/shared/types';
@@ -111,14 +111,14 @@ export function GeneralSection({ onClose }: Props): JSX.Element {
   const { label, icon } = settingsSectionMeta('general');
 
   return (
-    <div className="mb-6 flex flex-col">
-      <PageHeader
-        title={label}
-        icon={icon}
-        description="Set appearance, request timeouts, response size limits, SSL verification, and redirect following defaults."
-      >
-        <SettingsCloseButton onClose={onClose} />
-      </PageHeader>
+    <Page
+      embedded
+      className="mb-6 flex flex-col"
+      title={label}
+      icon={icon}
+      description="Set appearance, request timeouts, response size limits, SSL verification, and redirect following defaults."
+      actions={<SettingsCloseButton onClose={onClose} />}
+    >
       <div className="mb-6 flex flex-col gap-6">
         <FormGroup label="Theme">
           <Select
@@ -193,6 +193,6 @@ export function GeneralSection({ onClose }: Props): JSX.Element {
           {generalSaving ? 'Saving…' : 'Save'}
         </Button>
       </div>
-    </div>
+    </Page>
   );
 }

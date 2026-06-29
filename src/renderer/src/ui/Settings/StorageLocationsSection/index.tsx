@@ -3,7 +3,7 @@ import {
   Badge,
   Button,
   FieldError,
-  PageHeader,
+  Page,
   ResourceList,
   ResourceListPrimary,
   ResourceListRow
@@ -237,23 +237,25 @@ export function StorageLocationsSection({ onClose }: Props): JSX.Element {
 
   return (
     <>
-      <div>
-        <PageHeader
-          title={label}
-          icon={icon}
-          description="Choose where HarborClient stores collections and imports. The active storage location is used for new collections and imports."
-        >
-          <Button
-            type="button"
-            className="shrink-0 whitespace-nowrap"
-            disabled={loading}
-            onClick={handleAdd}
-          >
-            Add storage location
-          </Button>
-          <SettingsCloseButton onClose={onClose} />
-        </PageHeader>
-
+      <Page
+        embedded
+        title={label}
+        icon={icon}
+        description="Choose where HarborClient stores collections and imports. The active storage location is used for new collections and imports."
+        actions={
+          <>
+            <Button
+              type="button"
+              className="shrink-0 whitespace-nowrap"
+              disabled={loading}
+              onClick={handleAdd}
+            >
+              Add storage location
+            </Button>
+            <SettingsCloseButton onClose={onClose} />
+          </>
+        }
+      >
         <AsyncListState loading={loading} error={bootstrapError} onRetry={reloadConnections}>
           <ResourceList>
             {connections.map((connection) => {
@@ -313,7 +315,7 @@ export function StorageLocationsSection({ onClose }: Props): JSX.Element {
           Connection changes take effect after restarting HarborClient. All configured storage
           locations are opened at launch so shared collections are available immediately.
         </p>
-      </div>
+      </Page>
 
       {editingConnection && (
         <ConnectionEditModal

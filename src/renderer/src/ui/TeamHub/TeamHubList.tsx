@@ -5,7 +5,7 @@ import {
   Modal,
   ModalFooter,
   ModalFormLayout,
-  PageHeader,
+  Page,
   PanelCloseButton,
   ResourceList,
   ResourceListPrimary,
@@ -252,23 +252,25 @@ export function TeamHubList({
 
   return (
     <>
-      <div>
-        <PageHeader
-          title="Team Hub"
-          icon={faUsers}
-          description="Connect to HarborClient Team Hub instances for shared collections and environments."
-        >
-          <Button
-            type="button"
-            className="shrink-0 whitespace-nowrap"
-            disabled={loading}
-            onClick={handleAdd}
-          >
-            Add team hub
-          </Button>
-          <PanelCloseButton onClose={onClose} />
-        </PageHeader>
-
+      <Page
+        embedded
+        title="Team Hub"
+        icon={faUsers}
+        description="Connect to HarborClient Team Hub instances for shared collections and environments."
+        actions={
+          <>
+            <Button
+              type="button"
+              className="shrink-0 whitespace-nowrap"
+              disabled={loading}
+              onClick={handleAdd}
+            >
+              Add team hub
+            </Button>
+            <PanelCloseButton onClose={onClose} />
+          </>
+        }
+      >
         <AsyncListState
           loading={loading}
           error={bootstrapError}
@@ -350,7 +352,7 @@ export function TeamHubList({
         {error && !editingHub && !deletingHub ? (
           <FieldError spacing="section">{error}</FieldError>
         ) : null}
-      </div>
+      </Page>
 
       {editingHub && (
         <Modal

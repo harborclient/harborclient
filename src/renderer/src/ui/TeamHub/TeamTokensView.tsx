@@ -7,7 +7,7 @@ import {
   Input,
   Modal,
   ModalFormLayout,
-  PageHeader,
+  Page,
   ResourceList,
   ResourceListPrimary,
   ResourceListRow,
@@ -174,23 +174,25 @@ export function TeamTokensView({ hub, onBack }: Props): JSX.Element {
   };
 
   return (
-    <div>
-      <PageHeader
-        title="Tokens"
-        icon={faUsers}
-        description={`${hub.name || 'Untitled'} · ${hub.baseUrl}`}
-      >
-        <Button
-          type="button"
-          className="shrink-0 whitespace-nowrap"
-          onClick={handleCreateClick}
-          disabled={users.length === 0}
-        >
-          Create token
-        </Button>
-        <BackButton onClick={onBack} />
-      </PageHeader>
-
+    <Page
+      embedded
+      title="Tokens"
+      icon={faUsers}
+      description={`${hub.name || 'Untitled'} · ${hub.baseUrl}`}
+      actions={
+        <>
+          <Button
+            type="button"
+            className="shrink-0 whitespace-nowrap"
+            onClick={handleCreateClick}
+            disabled={users.length === 0}
+          >
+            Create token
+          </Button>
+          <BackButton onClick={onBack} />
+        </>
+      }
+    >
       <AsyncListState
         loading={loading}
         error={error}
@@ -340,6 +342,6 @@ export function TeamTokensView({ hub, onBack }: Props): JSX.Element {
           </ModalFormLayout>
         </Modal>
       )}
-    </div>
+    </Page>
   );
 }

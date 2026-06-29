@@ -14,7 +14,7 @@ import {
   FormGroup,
   Modal,
   ModalFooter,
-  PageHeader,
+  Page,
   ResourceList,
   ResourceListRow
 } from '@harborclient/sdk/components';
@@ -220,15 +220,13 @@ export function TeamCollectionContentsView({
   };
 
   return (
-    <div>
-      <PageHeader
-        title={collection.name}
-        icon={faUsers}
-        description={`${hub.name || 'Untitled'} · ${hub.baseUrl}`}
-      >
-        <BackButton onClick={onBack} />
-      </PageHeader>
-
+    <Page
+      embedded
+      title={collection.name}
+      icon={faUsers}
+      description={`${hub.name || 'Untitled'} · ${hub.baseUrl}`}
+      actions={<BackButton onClick={onBack} />}
+    >
       <div className="mb-4 rounded-md border border-separator px-3 py-3">
         <FormGroup
           label="Protect from user deletion"
@@ -336,6 +334,6 @@ export function TeamCollectionContentsView({
           </ModalFooter>
         </Modal>
       )}
-    </div>
+    </Page>
   );
 }

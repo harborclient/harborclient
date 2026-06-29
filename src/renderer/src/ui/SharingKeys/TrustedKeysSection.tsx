@@ -5,7 +5,7 @@ import {
   FormGroup,
   Input,
   LoadingMessage,
-  PageHeader,
+  Page,
   PanelCloseButton,
   ResourceList,
   ResourceListEmptyItem,
@@ -135,14 +135,12 @@ export function TrustedKeysSection({ onClose }: Props): JSX.Element {
   };
 
   return (
-    <div>
-      <PageHeader
-        title="Trusted keys"
-        description="Add public keys for people you trust. Share tokens must be signed by a trusted sender, and you can only create share tokens for keys listed here."
-      >
-        <PanelCloseButton onClose={onClose} ariaLabel="Close sharing keys" />
-      </PageHeader>
-
+    <Page
+      embedded
+      title="Trusted keys"
+      description="Add public keys for people you trust. Share tokens must be signed by a trusted sender, and you can only create share tokens for keys listed here."
+      actions={<PanelCloseButton onClose={onClose} ariaLabel="Close sharing keys" />}
+    >
       <div className="mb-4 rounded-md border border-separator p-3">
         <FormGroup label="Label">
           <Input
@@ -208,6 +206,6 @@ export function TrustedKeysSection({ onClose }: Props): JSX.Element {
       </AsyncListState>
 
       {error && <FieldError spacing="section">{error}</FieldError>}
-    </div>
+    </Page>
   );
 }

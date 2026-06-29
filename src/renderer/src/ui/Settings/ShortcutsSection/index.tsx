@@ -6,7 +6,7 @@ import {
   validateShortcutOverrides
 } from '#/shared/shortcuts';
 import { Button } from '@harborclient/sdk/components';
-import { PageHeader } from '@harborclient/sdk/components';
+import { Page } from '@harborclient/sdk/components';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { field } from '@harborclient/sdk/components';
 import { formatErrorMessage } from '#/renderer/src/ui/modals/dialogHelpers';
@@ -184,15 +184,13 @@ export function ShortcutsSection({ onClose }: Props): JSX.Element {
   const { label, icon } = settingsSectionMeta('shortcuts');
 
   return (
-    <section>
-      <PageHeader
-        title={label}
-        icon={icon}
-        description="Click a key combination to record a new shortcut. Changes apply immediately when valid."
-      >
-        <SettingsCloseButton onClose={onClose} />
-      </PageHeader>
-
+    <Page
+      embedded
+      title={label}
+      icon={icon}
+      description="Click a key combination to record a new shortcut. Changes apply immediately when valid."
+      actions={<SettingsCloseButton onClose={onClose} />}
+    >
       {loading ? (
         <p className="text-muted" role="status">
           Loading shortcuts…
@@ -267,6 +265,6 @@ export function ShortcutsSection({ onClose }: Props): JSX.Element {
           </div>
         </div>
       )}
-    </section>
+    </Page>
   );
 }

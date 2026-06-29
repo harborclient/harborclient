@@ -2,7 +2,8 @@ import {
   VariableTable,
   cleanVariables,
   ModalFooter,
-  OverlayPage,
+  Page,
+  PanelCloseButton,
   Button,
   FormGroup,
   Input
@@ -98,9 +99,10 @@ function EnvironmentSettingsForm({
   };
 
   return (
-    <OverlayPage
+    <Page
       title="Environment Settings"
-      onClose={onClose}
+      description="Manage environment settings and configuration"
+      actions={<PanelCloseButton onClose={onClose} ariaLabel="Close environment settings" />}
       footer={
         <ModalFooter>
           <Button variant="secondary" onClick={onClose}>
@@ -135,6 +137,6 @@ function EnvironmentSettingsForm({
           description={`Use variables in request URLs with {{variable}} syntax. When value is empty, the default is used. Environment variables override collection variables with the same key.`}
         />
       </div>
-    </OverlayPage>
+    </Page>
   );
 }

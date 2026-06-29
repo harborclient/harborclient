@@ -1,4 +1,4 @@
-import { Button, PageHeader } from '@harborclient/sdk/components';
+import { Button, Page } from '@harborclient/sdk/components';
 import { useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
@@ -74,15 +74,13 @@ export function BackupRestoreSection({ onClose }: Props): JSX.Element {
   const { label, icon } = settingsSectionMeta('backup-restore');
 
   return (
-    <div>
-      <PageHeader
-        title={label}
-        icon={icon}
-        description="Export everything HarborClient stores locally — collections, environments, settings, chats, credentials, and UI state — into a single backup file. Restore replaces your current local data from a backup."
-      >
-        <SettingsCloseButton onClose={onClose} />
-      </PageHeader>
-
+    <Page
+      embedded
+      title={label}
+      icon={icon}
+      description="Export everything HarborClient stores locally — collections, environments, settings, chats, credentials, and UI state — into a single backup file. Restore replaces your current local data from a backup."
+      actions={<SettingsCloseButton onClose={onClose} />}
+    >
       <div
         className="mb-6 rounded-md border border-separator bg-sidebar px-4 py-3 text-[14px] text-text"
         role="note"
@@ -134,6 +132,6 @@ export function BackupRestoreSection({ onClose }: Props): JSX.Element {
           {error}
         </p>
       ) : null}
-    </div>
+    </Page>
   );
 }

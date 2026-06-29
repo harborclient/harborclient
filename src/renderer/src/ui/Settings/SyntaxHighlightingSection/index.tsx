@@ -1,7 +1,7 @@
 import {
   Button,
   FormGroup,
-  PageHeader,
+  Page,
   Input,
   Select,
   CodeEditor,
@@ -89,14 +89,14 @@ export function SyntaxHighlightingSection({ onClose }: Props): JSX.Element {
   const { label, icon } = settingsSectionMeta('syntax');
 
   return (
-    <div className="mb-6 flex flex-col">
-      <PageHeader
-        title={label}
-        icon={icon}
-        description="Choose a CodeMirror theme and editor behavior for request and response editors."
-      >
-        <SettingsCloseButton onClose={onClose} />
-      </PageHeader>
+    <Page
+      embedded
+      className="mb-6 flex flex-col"
+      title={label}
+      icon={icon}
+      description="Choose a CodeMirror theme and editor behavior for request and response editors."
+      actions={<SettingsCloseButton onClose={onClose} />}
+    >
       <div className="flex flex-col gap-6">
         <FormGroup label="Theme">
           <Select
@@ -143,6 +143,6 @@ export function SyntaxHighlightingSection({ onClose }: Props): JSX.Element {
           setupOverride={generalSettings.codeEditorSetup}
         />
       </div>
-    </div>
+    </Page>
   );
 }

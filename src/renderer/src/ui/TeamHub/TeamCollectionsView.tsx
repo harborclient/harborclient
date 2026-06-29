@@ -7,7 +7,7 @@ import {
   Input,
   Modal,
   ModalFormLayout,
-  PageHeader,
+  Page,
   ResourceList,
   ResourceListPrimary,
   ResourceListRow
@@ -107,15 +107,13 @@ export function TeamCollectionsView({ hub, onBack }: Props): JSX.Element {
   }
 
   return (
-    <div>
-      <PageHeader
-        title="Collections"
-        icon={faUsers}
-        description={`${hub.name || 'Untitled'} · ${hub.baseUrl}`}
-      >
-        <BackButton onClick={onBack} />
-      </PageHeader>
-
+    <Page
+      embedded
+      title="Collections"
+      icon={faUsers}
+      description={`${hub.name || 'Untitled'} · ${hub.baseUrl}`}
+      actions={<BackButton onClick={onBack} />}
+    >
       <AsyncListState
         loading={loading}
         error={error}
@@ -200,6 +198,6 @@ export function TeamCollectionsView({ hub, onBack }: Props): JSX.Element {
           </ModalFormLayout>
         </Modal>
       )}
-    </div>
+    </Page>
   );
 }

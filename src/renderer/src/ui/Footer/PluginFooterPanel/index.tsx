@@ -42,8 +42,8 @@ export function PluginFooterPanel({ id, title, open, onClose, Component }: Props
       onClose={onClose}
       closeLabel={title}
       storageKey={`hc.footerPanel.${id}`}
-      headerless
       unmountWhenClosed
+      headerless
     >
       <div className="flex min-h-0 flex-1 flex-col">
         <Component />
