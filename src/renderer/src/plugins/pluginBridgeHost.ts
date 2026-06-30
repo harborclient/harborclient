@@ -11,7 +11,8 @@ import type {
   RegisteredSettingsSection,
   RegisteredSidebarPanel,
   RegisteredSidebarSection,
-  RegisteredStatusBarItem
+  RegisteredStatusBarItem,
+  ThemeContribution
 } from '#/shared/plugin/types';
 import {
   registerCollectionSettingsTabContribution,
@@ -27,6 +28,7 @@ import {
   registerSidebarPanelContribution,
   registerSidebarSectionContribution,
   registerStatusBarItemContribution,
+  registerThemeContribution,
   unregisterContribution
 } from '#/renderer/src/plugins/registry';
 import { executeHostPluginCommand } from '#/renderer/src/plugins/hostCommands';
@@ -52,6 +54,7 @@ import { setPluginModal } from '#/renderer/src/store/slices/modalsSlice';
 
 type ContributionKind =
   | 'settingsSections'
+  | 'themes'
   | 'sidebarPanels'
   | 'sidebarSections'
   | 'mainViews'
@@ -112,6 +115,9 @@ export function applyContributionMessage(message: ContributionMessage): void {
         message.pluginId,
         contribution as Omit<RegisteredSettingsSection, 'pluginId'>
       );
+      break;
+    case 'themes':
+      registerThemeContribution(message.pluginId, contribution as unknown as ThemeContribution);
       break;
     case 'sidebarPanels':
       registerSidebarPanelContribution(

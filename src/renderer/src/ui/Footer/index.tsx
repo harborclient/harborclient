@@ -212,13 +212,13 @@ export function Footer({
             >
               {panel.title}
               {panel.hasIndicator ? (
-                <span className="ml-1 inline-flex items-center">
+                <span className="ml-1 inline-flex h-4 w-3 shrink-0 items-center overflow-hidden">
                   <PluginSurface
                     pluginId={panel.pluginId}
                     contributionId={panel.contributionId}
                     kind="footerPanels"
                     slot="indicator"
-                    style={{ minHeight: 16, height: 16, width: 48 }}
+                    style={{ minHeight: 16, height: 16, width: 12 }}
                   />
                 </span>
               ) : null}

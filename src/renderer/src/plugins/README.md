@@ -258,14 +258,20 @@ Context is pushed separately:
 - The broker forwards this as a `plugin-ui:event` with channel `view.context`.
 
 **Slots:** `content` (default), `headerActions`, `indicator` — encoded as `?slot=`
-in the surface URL.
+in the surface URL. Only the `content` slot receives `plugin-surface-fill` document
+styling. `headerActions` and `indicator` use compact inline sizing: the guest reports
+width/height via `view.reportSize`, and the host webview stays inline with
+`overflow: hidden` (footer panel indicators mount inside a fixed-size wrapper in
+[`Footer/index.tsx`](../ui/Footer/index.tsx)).
 
 **Sizing:** Request and collection settings plugin tabs use `resizeMode="fill"`: the
 webview fills the host tab area and the guest scrolls internally (`plugin-surface-fill`
-in [`pluginShell.html`](../../../main/plugins/pluginShell.html)). Other surfaces use
-`resizeMode="content"` (default): the guest reports height via `view.reportSize`, the
-broker forwards `plugins:surfaceResize`, and `PluginSurface` sets an explicit pixel
-height. Footer panels and status bar slots also use fill mode.
+in [`pluginShell.html`](../../../main/plugins/pluginShell.html) applies to the `content`
+slot only). Other surfaces use `resizeMode="content"` (default): the guest reports
+height via `view.reportSize`, the broker forwards `plugins:surfaceResize`, and
+`PluginSurface` sets an explicit pixel height. Footer panel **content** and status bar
+items use fill mode on the host webview; footer panel **indicators** use compact slot
+sizing instead.
 
 ---
 
@@ -365,6 +371,7 @@ The SDK view-host (`harbor-plugin://host/view-host.js`) builds the full
 | `fs.readFile`, `fs.writeFile`, `fs.watchFile`      | `filesystem:read` / `filesystem:write` | PluginManager via shared fs helpers                           |
 | `ipc.invoke`                                       | `ipc`                                  | SES runner (lazy-activates main if inactive)                  |
 | `registerContribution/unregisterContribution`      | `ui`                                   | Host renderer via `plugins:contributions`                     |
+| `themes.register`, `themes.unregister`             | `ui`                                   | Host renderer via `plugins:contributions` (`kind: 'themes'`)  |
 | `ui.showToast`, `commands.execute`                 | `ui`                                   | Host renderer via `plugins:hostBridge` (void)                 |
 | `commands.executeRemote`                           | `ui`                                   | Another plugin's agent webview                                |
 | `host.openRequestDraft`, `host.loadRequest`, …     | `ui`                                   | Host renderer via `plugins:hostBridge` (void)                 |

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(plugins): update plugin versions and enhance theme registration. (`c1fdd45`)
 - feat(plugins): enhance plugin filesystem operations and UI interactions. (`dccf6ce`)
 - feat(plugins): implement plugin UI broker and enhance plugin communication. (`fcaa067`)
 

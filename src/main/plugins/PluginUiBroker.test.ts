@@ -172,6 +172,78 @@ describe('PluginUiBroker view.reportSize', () => {
   });
 });
 
+describe('PluginUiBroker theme registration', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('forwards themes.register through plugins:contributions', async () => {
+    const send = vi.fn();
+    const mockWindow = {
+      isDestroyed: () => false,
+      webContents: { send }
+    };
+    const manager = {
+      assertPermission: vi.fn()
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.setMainWindow(() => mockWindow as never);
+    broker.registerIpcHandlers();
+
+    const sender = { id: 7 } as WebContents;
+    registerSession(sender, {
+      pluginId: 'com.harborclient.plugins.catppuccin-latte',
+      role: 'agent'
+    });
+
+    const theme = {
+      id: 'latte',
+      title: 'Catppuccin Latte',
+      type: 'light',
+      colors: { surface: '#eff1f5' },
+      stylesheet: 'dist/theme.css'
+    };
+
+    await broker.handleInvoke(sender, 'themes.register', { theme });
+
+    expect(send).toHaveBeenCalledWith('plugins:contributions', {
+      pluginId: 'com.harborclient.plugins.catppuccin-latte',
+      op: 'registerContribution',
+      kind: 'themes',
+      contribution: theme
+    });
+  });
+
+  it('forwards themes.unregister through plugins:contributions', async () => {
+    const send = vi.fn();
+    const mockWindow = {
+      isDestroyed: () => false,
+      webContents: { send }
+    };
+    const manager = {
+      assertPermission: vi.fn()
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.setMainWindow(() => mockWindow as never);
+    broker.registerIpcHandlers();
+
+    const sender = { id: 8 } as WebContents;
+    registerSession(sender, {
+      pluginId: 'com.harborclient.plugins.catppuccin-latte',
+      role: 'agent'
+    });
+
+    await broker.handleInvoke(sender, 'themes.unregister', { themeId: 'latte' });
+
+    expect(send).toHaveBeenCalledWith('plugins:contributions', {
+      pluginId: 'com.harborclient.plugins.catppuccin-latte',
+      op: 'unregisterContribution',
+      kind: 'themes',
+      contributionId: 'latte'
+    });
+  });
+});
+
 describe('PluginUiBroker host bridge invoke', () => {
   beforeEach(() => {
     vi.clearAllMocks();

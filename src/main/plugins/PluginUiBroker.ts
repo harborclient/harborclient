@@ -467,6 +467,26 @@ export class PluginUiBroker {
         });
         return undefined;
       }
+      case 'themes.register': {
+        const { theme } = payload as { theme: Record<string, unknown> };
+        this.#mainWindow?.()?.webContents.send('plugins:contributions', {
+          pluginId: session.pluginId,
+          op: 'registerContribution',
+          kind: 'themes',
+          contribution: theme
+        });
+        return undefined;
+      }
+      case 'themes.unregister': {
+        const { themeId } = payload as { themeId: string };
+        this.#mainWindow?.()?.webContents.send('plugins:contributions', {
+          pluginId: session.pluginId,
+          op: 'unregisterContribution',
+          kind: 'themes',
+          contributionId: themeId
+        });
+        return undefined;
+      }
       case 'commands.executeRemote': {
         const {
           pluginId: targetPluginId,

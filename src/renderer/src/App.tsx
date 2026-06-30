@@ -49,7 +49,6 @@ import { UpdateModal } from '#/renderer/src/ui/modals/UpdateModal';
 import { AlertModal } from '#/renderer/src/ui/modals/AlertModal';
 import { CollectionModal } from '#/renderer/src/ui/modals/CollectionModal';
 import { ConfirmModal } from '#/renderer/src/ui/modals/ConfirmModal';
-import { PluginThemePrompt } from '#/renderer/src/ui/modals/PluginThemePrompt';
 import { PluginModalOverlay } from '#/renderer/src/ui/PluginModalOverlay';
 import { ShareModal } from '#/renderer/src/ui/modals/ShareModal';
 import { CollectionRunnerModal } from '#/renderer/src/ui/modals/CollectionRunnerModal';
@@ -69,6 +68,7 @@ import {
 } from '#/renderer/src/store/slices/settingsSlice';
 import { Footer } from '#/renderer/src/ui/Footer';
 import { PluginHost } from '#/renderer/src/plugins/PluginHost';
+import { PluginThemePrompt } from '#/renderer/src/plugins/PluginThemePrompt';
 import { applyThemeAttribute } from '#/renderer/src/theme';
 import { platformClassName } from '#/renderer/src/platform';
 
@@ -176,6 +176,7 @@ export default function App(): JSX.Element {
     <CodeEditorConfigProvider value={{ theme: codeEditorTheme, setup: codeEditorSetup }}>
       <SidebarExpansionProvider onExpandCollection={handleExpandCollection}>
         <PluginHost />
+        <PluginThemePrompt />
         <div className={`flex h-screen flex-col overflow-hidden ${platformClassName()}`}>
           <BusyIndicator isBusy={isBusy} />
           <TitleBar />
@@ -307,7 +308,6 @@ export default function App(): JSX.Element {
           <CollectionRunnerModal />
           <AlertModal />
           <ConfirmModal />
-          <PluginThemePrompt />
           <PluginModalOverlay />
 
           <Toaster

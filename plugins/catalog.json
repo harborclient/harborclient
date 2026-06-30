@@ -64,7 +64,7 @@
     {
       "id": "com.harborclient.plugins.echo",
       "name": "Echo Server",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "summary": "HarborClient plugin that runs a local httpbin-style HTTP echo server inside the app.",
       "author": "HarborClient",
       "categories": ["requests", "scripting"],
@@ -84,7 +84,7 @@
     {
       "id": "com.harborclient.plugins.interval",
       "name": "Interval",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "summary": "Adds a Timer tab to the request editor for interval polling and one-shot delayed sends.",
       "author": "HarborClient",
       "categories": ["requests"],
@@ -94,7 +94,7 @@
     {
       "id": "com.harborclient.plugins.jwt",
       "name": "JWT Inspector",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "summary": "Scans response headers and body for JWT-shaped strings and decodes the selected token.",
       "author": "HarborClient",
       "categories": ["jwt", "response"],
@@ -104,7 +104,7 @@
     {
       "id": "com.harborclient.plugins.openapi",
       "name": "OpenAPI",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "summary": "HarborClient plugin that imports an OpenAPI 3.x specification and creates a collection with requests grouped by the first tag on each operation.",
       "author": "HarborClient",
       "categories": ["requests", "import"],
@@ -112,9 +112,9 @@
       "screenshot": "https://raw.githubusercontent.com/harborclient/plugin-openapi/main/screenshot.png"
     },
     {
-      "id": "com.harborclient.plugins.request-history",
-      "name": "Request History",
-      "version": "1.2.0",
+      "id": "com.harborclient.plugins.request-history-sidebar",
+      "name": "Request History Sidebar",
+      "version": "1.2.1",
       "summary": "Records every completed HTTP request and displays them in a Recent Requests sidebar section.",
       "author": "HarborClient",
       "categories": ["requests"],
@@ -124,7 +124,7 @@
     {
       "id": "com.harborclient.plugins.catppuccin-latte",
       "name": "Catppuccin Latte Theme",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "summary": "A Catppuccin Latte light theme with pastel gradients, scrollbars, and focus rings via stylesheet.",
       "author": "HarborClient",
       "categories": ["themes"],
@@ -134,7 +134,7 @@
     {
       "id": "com.harborclient.plugins.nord",
       "name": "Nord Theme",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "summary": "A Nord theme for HarborClient with custom scrollbars, focus rings, and aurora styling via stylesheet.",
       "author": "HarborClient",
       "categories": ["themes"],
@@ -144,7 +144,7 @@
     {
       "id": "com.harborclient.plugins.gruvbox",
       "name": "Gruvbox Theme",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "summary": "A Gruvbox light theme for HarborClient.",
       "author": "HarborClient",
       "categories": ["themes"],
@@ -154,7 +154,7 @@
     {
       "id": "com.harborclient.plugins.dracula",
       "name": "Dracula Theme",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "summary": "A Dracula theme for HarborClient.",
       "author": "HarborClient",
       "categories": ["themes"],
@@ -164,7 +164,7 @@
     {
       "id": "com.harborclient.plugins.solarized",
       "name": "Solarized Theme",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "summary": "A Solarized theme for HarborClient.",
       "author": "HarborClient",
       "categories": ["themes"],

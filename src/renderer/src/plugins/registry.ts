@@ -549,6 +549,7 @@ export function unregisterContribution(
   pluginId: string,
   kind:
     | 'settingsSections'
+    | 'themes'
     | 'sidebarPanels'
     | 'sidebarSections'
     | 'mainViews'
@@ -578,6 +579,9 @@ export function unregisterContribution(
         state.settingsSections,
         (item) => item.pluginId === pluginId && item.contributionId === contributionId
       );
+      break;
+    case 'themes':
+      filter(state.themes, (item) => item.pluginId === pluginId && item.id === contributionId);
       break;
     case 'sidebarPanels':
       filter(

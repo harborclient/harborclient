@@ -5,7 +5,9 @@ import {
   getRegisteredRequestTabs,
   getRegisteredSettingsSections,
   registerRequestTabContribution,
-  registerSettingsSectionContribution
+  registerSettingsSectionContribution,
+  registerThemeContribution,
+  unregisterContribution
 } from '#/renderer/src/plugins/registry';
 
 describe('plugin registry', () => {
@@ -79,5 +81,21 @@ describe('plugin registry', () => {
     ).toBe(true);
 
     clearPluginContributions('com.example.b');
+  });
+
+  it('unregisterContribution removes a theme by plugin and theme id', () => {
+    registerThemeContribution('com.example.theme', {
+      id: 'latte',
+      title: 'Latte',
+      type: 'light'
+    });
+
+    expect(getRegisteredPluginThemes()).toHaveLength(1);
+
+    unregisterContribution('com.example.theme', 'themes', 'latte');
+
+    expect(getRegisteredPluginThemes()).toHaveLength(0);
+
+    clearPluginContributions('com.example.theme');
   });
 });

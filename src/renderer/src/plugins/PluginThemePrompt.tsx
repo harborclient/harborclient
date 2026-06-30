@@ -1,0 +1,215 @@
+import { useEffect, useRef, type JSX } from 'react';
+import toast from 'react-hot-toast';
+import { formatPluginThemeValue } from '#/shared/plugin/types';
+import type { ThemeSource } from '#/shared/types';
+import { usePluginThemes } from '#/renderer/src/plugins/pluginHooks';
+import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
+
+/** localStorage key for theme prompt deduplication across app restarts. */
+const PROMPTED_THEMES_STORAGE_KEY = 'harborclient:promptedPluginThemes';
+
+/** Theme keys currently being offered so overlapping effect runs do not duplicate toasts. */
+const inFlightThemePromptKeys = new Set<string>();
+
+/**
+ * Builds a stable key for one plugin theme prompt entry.
+ *
+ * @param pluginId - Plugin manifest id.
+ * @param themeId - Theme id within the plugin manifest.
+ * @returns Dedupe key stored in localStorage.
+ */
+function themePromptKey(pluginId: string, themeId: string): string {
+  return `${pluginId}:${themeId}`;
+}
+
+/**
+ * Reads the set of plugin theme keys the user has already been prompted for.
+ *
+ * @returns Parsed keys from localStorage, or an empty set when unset or invalid.
+ */
+function readPromptedThemeKeys(): Set<string> {
+  try {
+    const raw = localStorage.getItem(PROMPTED_THEMES_STORAGE_KEY);
+    if (!raw) {
+      return new Set();
+    }
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      return new Set();
+    }
+    return new Set(parsed.filter((entry): entry is string => typeof entry === 'string'));
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * Persists one theme key as already prompted so startup does not re-offer it.
+ *
+ * @param key - Dedupe key from {@link themePromptKey}.
+ */
+function markThemePrompted(key: string): void {
+  const prompted = readPromptedThemeKeys();
+  prompted.add(key);
+  localStorage.setItem(PROMPTED_THEMES_STORAGE_KEY, JSON.stringify([...prompted]));
+}
+
+/**
+ * Applies a plugin theme preference and persists it through the main-process settings API.
+ *
+ * @param pluginId - Plugin manifest id.
+ * @param themeId - Theme id within the plugin manifest.
+ */
+async function applyPluginThemePreference(pluginId: string, themeId: string): Promise<void> {
+  const value = formatPluginThemeValue(pluginId, themeId) as ThemeSource;
+  await applyThemePreference(value);
+  await window.api.setTheme(value);
+}
+
+interface ThemePromptToastProps {
+  /** Human-readable theme title shown in the offer. */
+  title: string;
+
+  /** Plugin manifest id for the theme being offered. */
+  pluginId: string;
+
+  /** Theme id within the plugin manifest. */
+  themeId: string;
+
+  /** react-hot-toast id used to dismiss this offer. */
+  toastId: string;
+}
+
+/**
+ * Non-blocking toast content offering to switch to a newly registered plugin theme.
+ */
+function ThemePromptToast({
+  title,
+  pluginId,
+  themeId,
+  toastId
+}: ThemePromptToastProps): JSX.Element {
+  /**
+   * Applies the offered theme and closes the toast.
+   */
+  const handleUseTheme = (): void => {
+    void (async () => {
+      try {
+        await applyPluginThemePreference(pluginId, themeId);
+        toast.success(`${title} applied.`);
+      } catch (error) {
+        console.error('Failed to apply plugin theme:', error);
+      } finally {
+        toast.dismiss(toastId);
+      }
+    })();
+  };
+
+  /**
+   * Dismisses the theme offer without changing the active theme.
+   */
+  const handleDismiss = (): void => {
+    toast.dismiss(toastId);
+  };
+
+  return (
+    <div
+      role="status"
+      className="flex max-w-sm flex-col gap-2 rounded-lg border border-separator bg-surface px-3 py-2 shadow-md"
+    >
+      <p className="text-[14px] text-text">Switch to {title}?</p>
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          className="rounded-md px-2 py-1 text-[14px] text-muted hover:text-text"
+          aria-label={`Dismiss ${title} theme offer`}
+          onClick={handleDismiss}
+        >
+          Not now
+        </button>
+        <button
+          type="button"
+          className="rounded-md bg-accent px-2 py-1 text-[14px] text-white hover:opacity-90"
+          aria-label={`Use ${title} theme`}
+          onClick={handleUseTheme}
+        >
+          Use theme
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Watches registered plugin themes and offers to switch when a new theme appears.
+ *
+ * Dedupes prompts via localStorage so enabled plugins that re-register on every launch
+ * do not repeat the offer after the user has seen it once.
+ */
+export function PluginThemePrompt(): null {
+  const pluginThemes = usePluginThemes();
+  const promptedKeysRef = useRef<Set<string>>(readPromptedThemeKeys());
+
+  /**
+   * Offers to switch when newly registered plugin themes have not been prompted before.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    const candidates = pluginThemes.filter((theme) => {
+      const key = themePromptKey(theme.pluginId, theme.id);
+      return !promptedKeysRef.current.has(key) && !inFlightThemePromptKeys.has(key);
+    });
+
+    if (candidates.length === 0) {
+      return;
+    }
+
+    for (const theme of candidates) {
+      inFlightThemePromptKeys.add(themePromptKey(theme.pluginId, theme.id));
+    }
+
+    void (async () => {
+      try {
+        const activeTheme = await window.api.getTheme();
+
+        for (const theme of candidates) {
+          if (cancelled) {
+            return;
+          }
+
+          const key = themePromptKey(theme.pluginId, theme.id);
+          promptedKeysRef.current.add(key);
+          markThemePrompted(key);
+
+          const themeValue = formatPluginThemeValue(theme.pluginId, theme.id);
+          if (activeTheme === themeValue) {
+            continue;
+          }
+
+          toast.custom(
+            (toastInstance) => (
+              <ThemePromptToast
+                title={theme.title}
+                pluginId={theme.pluginId}
+                themeId={theme.id}
+                toastId={toastInstance.id}
+              />
+            ),
+            { duration: Infinity, id: key }
+          );
+        }
+      } finally {
+        for (const theme of candidates) {
+          inFlightThemePromptKeys.delete(themePromptKey(theme.pluginId, theme.id));
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pluginThemes]);
+
+  return null;
+}

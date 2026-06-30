@@ -89,6 +89,31 @@ function applyFillWebviewStyles(webview: Electron.WebviewTag): void {
 const HEADER_ACTIONS_DEFAULT_WIDTH = 28;
 const HEADER_ACTIONS_DEFAULT_HEIGHT = 34;
 
+/** Default inline size for footer panel indicators before the guest reports its size. */
+const INDICATOR_DEFAULT_WIDTH = 12;
+const INDICATOR_DEFAULT_HEIGHT = 16;
+
+/**
+ * Returns whether a contribution sub-slot uses compact inline guest sizing.
+ *
+ * @param slot - Contribution sub-slot from props.
+ */
+function isCompactEmbedSlot(slot: Props['slot']): boolean {
+  return slot === 'headerActions' || slot === 'indicator';
+}
+
+/**
+ * Resolves default compact embed dimensions for header actions and footer indicators.
+ *
+ * @param slot - Contribution sub-slot from props.
+ */
+function getCompactEmbedDefaults(slot: Props['slot']): { width: number; height: number } {
+  if (slot === 'indicator') {
+    return { width: INDICATOR_DEFAULT_WIDTH, height: INDICATOR_DEFAULT_HEIGHT };
+  }
+  return { width: HEADER_ACTIONS_DEFAULT_WIDTH, height: HEADER_ACTIONS_DEFAULT_HEIGHT };
+}
+
 /**
  * Stateful plugin surface instance remounted when `src` changes so resize state resets
  * without synchronous setState calls inside the webview attach effect.
@@ -108,11 +133,12 @@ function PluginSurfaceInstance({
   const containerRef = useRef<HTMLDivElement>(null);
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const compactDefaults = getCompactEmbedDefaults(slot);
   const [contentHeight, setContentHeight] = useState<number | null>(
-    slot === 'headerActions' ? HEADER_ACTIONS_DEFAULT_HEIGHT : null
+    isCompactEmbedSlot(slot) ? compactDefaults.height : null
   );
   const [contentWidth, setContentWidth] = useState<number | null>(
-    slot === 'headerActions' ? HEADER_ACTIONS_DEFAULT_WIDTH : null
+    isCompactEmbedSlot(slot) ? compactDefaults.width : null
   );
   const minHeightNumber = parseMinHeight(minHeight);
   const minHeightCss = formatMinHeightCss(minHeight);
@@ -146,14 +172,23 @@ function PluginSurfaceInstance({
       if (message.height != null && slot === 'content') {
         setContentHeight(Math.max(message.height, minHeightNumber));
       }
-      if (message.height != null && slot === 'headerActions') {
-        setContentHeight(Math.max(message.height, HEADER_ACTIONS_DEFAULT_HEIGHT));
+      if (message.height != null && isCompactEmbedSlot(slot)) {
+        setContentHeight(Math.max(message.height, compactDefaults.height));
       }
-      if (message.width != null && slot === 'headerActions') {
-        setContentWidth(Math.max(message.width, HEADER_ACTIONS_DEFAULT_WIDTH));
+      if (message.width != null && isCompactEmbedSlot(slot)) {
+        setContentWidth(Math.max(message.width, compactDefaults.width));
       }
     });
-  }, [pluginId, contributionId, kind, slot, resizeMode, minHeightNumber]);
+  }, [
+    pluginId,
+    contributionId,
+    kind,
+    slot,
+    resizeMode,
+    minHeightNumber,
+    compactDefaults.height,
+    compactDefaults.width
+  ]);
 
   /**
    * Creates the surface webview imperatively so `src` is set before attach.
@@ -176,11 +211,11 @@ function PluginSurfaceInstance({
 
     if (resizeMode === 'fill') {
       applyFillWebviewStyles(webview);
-    } else if (slot === 'headerActions') {
+    } else if (isCompactEmbedSlot(slot)) {
       Object.assign(webview.style, {
         display: 'inline-flex',
-        width: `${HEADER_ACTIONS_DEFAULT_WIDTH}px`,
-        height: `${HEADER_ACTIONS_DEFAULT_HEIGHT}px`,
+        width: `${compactDefaults.width}px`,
+        height: `${compactDefaults.height}px`,
         border: 'none',
         background: 'transparent',
         overflow: 'hidden',
@@ -231,7 +266,19 @@ function PluginSurfaceInstance({
         webviewRef.current = null;
       }
     };
-  }, [pluginId, contributionId, kind, src, className, minHeightCss, style, resizeMode, slot]);
+  }, [
+    pluginId,
+    contributionId,
+    kind,
+    src,
+    className,
+    minHeightCss,
+    style,
+    resizeMode,
+    slot,
+    compactDefaults.height,
+    compactDefaults.width
+  ]);
 
   /**
    * Pushes updated context when props change without remounting the webview.
@@ -261,9 +308,9 @@ function PluginSurfaceInstance({
     if (!container) {
       return;
     }
-    if (slot === 'headerActions' && contentWidth != null) {
+    if (isCompactEmbedSlot(slot) && contentWidth != null) {
       const width = `${contentWidth}px`;
-      const height = `${contentHeight ?? HEADER_ACTIONS_DEFAULT_HEIGHT}px`;
+      const height = `${contentHeight ?? compactDefaults.height}px`;
       webview.style.width = width;
       webview.style.height = height;
       webview.style.overflow = 'hidden';
@@ -278,7 +325,7 @@ function PluginSurfaceInstance({
       webview.style.height = height;
       container.style.height = height;
     }
-  }, [contentHeight, contentWidth, resizeMode, slot]);
+  }, [contentHeight, contentWidth, resizeMode, slot, compactDefaults.height]);
 
   if (loadError) {
     return (
@@ -295,11 +342,11 @@ function PluginSurfaceInstance({
           width: '100%',
           ...(hasExplicitHeight ? { ...style } : { flex: '1 1 0%', minHeight: 0 })
         }
-      : slot === 'headerActions'
+      : isCompactEmbedSlot(slot)
         ? {
             display: 'inline-flex',
-            width: `${contentWidth ?? HEADER_ACTIONS_DEFAULT_WIDTH}px`,
-            height: `${contentHeight ?? HEADER_ACTIONS_DEFAULT_HEIGHT}px`,
+            width: `${contentWidth ?? compactDefaults.width}px`,
+            height: `${contentHeight ?? compactDefaults.height}px`,
             maxWidth: '100%',
             overflow: 'hidden',
             ...style
