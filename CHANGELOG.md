@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.9.1 - 2026-06-30
+
 - feat(build): enhance electron-builder configuration and Vite setup. (`be1fef7`)
 
 ## 1.9.0 - 2026-06-30
