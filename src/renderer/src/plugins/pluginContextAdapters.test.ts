@@ -3,6 +3,7 @@ import { defaultAuth } from '#/shared/auth';
 import type { Collection } from '#/shared/types';
 import type { RequestDraft } from '#/renderer/src/store/drafts';
 import {
+  pluginRequestKey,
   toPluginRequestDraft,
   toPluginRequestTabContext
 } from '#/renderer/src/plugins/pluginContextAdapters';
@@ -86,5 +87,30 @@ describe('toPluginRequestTabContext', () => {
 
     expect(context.collectionAuth).toEqual(defaultAuth());
     expect(context.collectionHeaders).toEqual([]);
+  });
+
+  it('uses req:<id> for saved requests and METHOD url for unsaved tabs', () => {
+    const saved = toPluginRequestTabContext(sampleDraft({ id: 42 }), undefined, null, {});
+    expect(saved.requestKey).toBe('req:42');
+
+    const unsaved = toPluginRequestTabContext(
+      sampleDraft({ method: 'GET', url: ' https://example.com ' }),
+      undefined,
+      null,
+      {}
+    );
+    expect(unsaved.requestKey).toBe('GET https://example.com');
+  });
+});
+
+describe('pluginRequestKey', () => {
+  it('returns req:<id> when the draft has a saved id', () => {
+    expect(pluginRequestKey(sampleDraft({ id: 7 }))).toBe('req:7');
+  });
+
+  it('returns METHOD url when the draft is unsaved', () => {
+    expect(pluginRequestKey(sampleDraft({ method: 'POST', url: 'https://api.test' }))).toBe(
+      'POST https://api.test'
+    );
   });
 });

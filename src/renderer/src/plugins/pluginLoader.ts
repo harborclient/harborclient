@@ -6,6 +6,9 @@ import { applyPersistedPluginTheme } from '#/renderer/src/plugins/themeRuntime';
 /** Tracks hidden agent webviews mounted for enabled plugins. */
 const agentWebviews = new Map<string, Electron.WebviewTag>();
 
+/** Plugin ids queued for a post-activation theme switch toast. */
+const pendingThemePromptIds = new Set<string>();
+
 /** Pending agent-ready promises keyed by plugin id. */
 const agentReadyWaiters = new Map<
   string,
@@ -353,6 +356,7 @@ export function resetPluginLoaderForTests(): void {
   }
   agentWebviews.clear();
   agentLoadPhases.clear();
+  pendingThemePromptIds.clear();
 }
 
 /**
@@ -488,8 +492,36 @@ export async function unloadAllPlugins(): Promise<void> {
  * @param pluginId - Plugin manifest id.
  */
 export function markPluginForThemePrompt(pluginId: string): void {
-  void pluginId;
-  // Theme prompt remains host-side; agent webviews receive theme pushes separately.
+  pendingThemePromptIds.add(pluginId);
+}
+
+/**
+ * Returns whether a plugin was marked for a theme switch prompt.
+ *
+ * @param pluginId - Plugin manifest id.
+ */
+export function isPendingThemePrompt(pluginId: string): boolean {
+  return pendingThemePromptIds.has(pluginId);
+}
+
+/**
+ * Clears a pending theme prompt mark after the host finishes processing it.
+ *
+ * @param pluginId - Plugin manifest id.
+ */
+export function clearPendingThemePrompt(pluginId: string): void {
+  pendingThemePromptIds.delete(pluginId);
+}
+
+/**
+ * Returns pending theme prompt plugin ids and clears the queue.
+ *
+ * @returns Plugin ids marked since the last take.
+ */
+export function takePendingThemePromptPluginIds(): string[] {
+  const ids = [...pendingThemePromptIds];
+  pendingThemePromptIds.clear();
+  return ids;
 }
 
 /**

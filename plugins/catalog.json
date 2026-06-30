@@ -4,7 +4,7 @@
     {
       "id": "com.harborclient.plugins.aws-sigv4",
       "name": "AWS SigV4",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "summary": "HarborClient plugin that signs outgoing HTTP requests with AWS Signature Version 4.",
       "author": "HarborClient",
       "categories": ["requests", "auth"],
@@ -14,7 +14,7 @@
     {
       "id": "com.harborclient.plugins.curl",
       "name": "cURL",
-      "version": "1.0.7",
+      "version": "1.0.8",
       "summary": "Adds a tab to the request editor that shows an equivalent `curl` command for the configured request.",
       "author": "HarborClient",
       "categories": ["requests"],
@@ -24,7 +24,7 @@
     {
       "id": "com.harborclient.plugins.httpie",
       "name": "HTTPie",
-      "version": "1.0.1",
+      "version": "1.0.3",
       "summary": "Adds a tab to the request editor that shows an equivalent `http` command for the configured request.",
       "author": "HarborClient",
       "categories": ["requests"],
@@ -34,7 +34,7 @@
     {
       "id": "com.harborclient.plugins.json-schema",
       "name": "JSON Schema Validator",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "summary": "Attach JSON Schemas to requests and validate response bodies against them with path-level error details.",
       "author": "HarborClient",
       "categories": ["requests", "response"],
@@ -44,7 +44,7 @@
     {
       "id": "com.harborclient.plugins.load-test",
       "name": "Load Tester",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "summary": "Fire repeated requests against an endpoint or collection and chart latency percentiles, throughput, and error rate.",
       "author": "HarborClient",
       "categories": ["testing", "collections", "requests"],
@@ -54,7 +54,7 @@
     {
       "id": "com.harborclient.plugins.dotenv",
       "name": "Dotenv",
-      "version": "1.0.7",
+      "version": "1.0.8",
       "summary": "HarborClient plugin that links a .env file to an environment and keeps variables in sync.",
       "author": "HarborClient",
       "categories": ["environments", "import"],
@@ -64,7 +64,7 @@
     {
       "id": "com.harborclient.plugins.echo",
       "name": "Echo Server",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "summary": "HarborClient plugin that runs a local httpbin-style HTTP echo server inside the app.",
       "author": "HarborClient",
       "categories": ["requests", "scripting"],
@@ -74,7 +74,7 @@
     {
       "id": "com.harborclient.plugins.history",
       "name": "History",
-      "version": "1.0.6",
+      "version": "1.0.7",
       "summary": "A HarborClient plugin that records every successful HTTP request and response in a persistent footer panel.",
       "author": "HarborClient",
       "categories": ["requests", "logging"],
@@ -84,7 +84,7 @@
     {
       "id": "com.harborclient.plugins.interval",
       "name": "Interval",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "summary": "Adds a Timer tab to the request editor for interval polling and one-shot delayed sends.",
       "author": "HarborClient",
       "categories": ["requests"],
@@ -94,7 +94,7 @@
     {
       "id": "com.harborclient.plugins.jwt",
       "name": "JWT Inspector",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "summary": "Scans response headers and body for JWT-shaped strings and decodes the selected token.",
       "author": "HarborClient",
       "categories": ["jwt", "response"],
@@ -104,7 +104,7 @@
     {
       "id": "com.harborclient.plugins.openapi",
       "name": "OpenAPI",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "summary": "HarborClient plugin that imports an OpenAPI 3.x specification and creates a collection with requests grouped by the first tag on each operation.",
       "author": "HarborClient",
       "categories": ["requests", "import"],
@@ -114,7 +114,7 @@
     {
       "id": "com.harborclient.plugins.request-history-sidebar",
       "name": "Request History Sidebar",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "summary": "Records every completed HTTP request and displays them in a Recent Requests sidebar section.",
       "author": "HarborClient",
       "categories": ["requests"],
@@ -124,7 +124,7 @@
     {
       "id": "com.harborclient.plugins.catppuccin-latte",
       "name": "Catppuccin Latte Theme",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "summary": "A Catppuccin Latte light theme with pastel gradients, scrollbars, and focus rings via stylesheet.",
       "author": "HarborClient",
       "categories": ["themes"],
@@ -134,7 +134,7 @@
     {
       "id": "com.harborclient.plugins.nord",
       "name": "Nord Theme",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "summary": "A Nord theme for HarborClient with custom scrollbars, focus rings, and aurora styling via stylesheet.",
       "author": "HarborClient",
       "categories": ["themes"],
@@ -144,7 +144,7 @@
     {
       "id": "com.harborclient.plugins.gruvbox",
       "name": "Gruvbox Theme",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "summary": "A Gruvbox light theme for HarborClient.",
       "author": "HarborClient",
       "categories": ["themes"],
@@ -154,7 +154,7 @@
     {
       "id": "com.harborclient.plugins.dracula",
       "name": "Dracula Theme",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "summary": "A Dracula theme for HarborClient.",
       "author": "HarborClient",
       "categories": ["themes"],
@@ -164,7 +164,7 @@
     {
       "id": "com.harborclient.plugins.solarized",
       "name": "Solarized Theme",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "summary": "A Solarized theme for HarborClient.",
       "author": "HarborClient",
       "categories": ["themes"],

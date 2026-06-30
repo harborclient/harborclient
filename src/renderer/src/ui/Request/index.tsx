@@ -5,7 +5,8 @@ import { isTabDirty } from '#/renderer/src/store/drafts';
 import {
   toPluginHttpResponse,
   toPluginRequestDraft,
-  toPluginRequestTabContext
+  toPluginRequestTabContext,
+  pluginRequestKey
 } from '#/renderer/src/plugins/pluginContextAdapters';
 import { buildRuntimeVars } from '#/renderer/src/scripting/scriptOrchestration';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
@@ -149,7 +150,8 @@ export function Request({ onEditVariables }: Props): JSX.Element {
   const responseTabContext = useMemo<ResponseTabContext>(
     () => ({
       draft: toPluginRequestDraft(draft),
-      response: toPluginHttpResponse(response)
+      response: toPluginHttpResponse(response),
+      requestKey: pluginRequestKey(draft)
     }),
     [draft, response]
   );

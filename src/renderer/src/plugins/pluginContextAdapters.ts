@@ -36,6 +36,22 @@ export function toPluginRequestDraft(draft: StoreRequestDraft): RequestDraft {
 }
 
 /**
+ * Builds a stable per-request key for plugin state namespacing.
+ *
+ * Saved requests use `req:<id>` so the key survives edits and restarts. Unsaved
+ * tabs fall back to a best-effort `METHOD url` fingerprint.
+ *
+ * @param draft - Active request draft from Redux.
+ * @returns Stable request key for plugin storage.
+ */
+export function pluginRequestKey(draft: StoreRequestDraft): string {
+  if (draft.id != null) {
+    return `req:${draft.id}`;
+  }
+  return `${draft.method.trim().toUpperCase()} ${draft.url.trim()}`;
+}
+
+/**
  * Builds the read-only context passed to request editor plugin tabs.
  *
  * @param draft - Active request draft from Redux.
@@ -54,7 +70,8 @@ export function toPluginRequestTabContext(
     readOnly: true,
     collectionAuth: toPluginAuthConfig(normalizeAuth(collection?.auth ?? defaultAuth())),
     collectionHeaders: (collection?.headers ?? []).map((row) => ({ ...row })),
-    variables: runtimeVars
+    variables: runtimeVars,
+    requestKey: pluginRequestKey(draft)
   };
 }
 

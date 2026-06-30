@@ -43,7 +43,7 @@ import {
   parseDevPluginPaths
 } from '#/main/plugins/PluginManager';
 import { disposePluginRunner } from '#/main/plugins/pluginRunnerHost';
-import { initPluginUiBroker } from '#/main/plugins/PluginUiBroker';
+import { getPluginUiBroker, initPluginUiBroker } from '#/main/plugins/PluginUiBroker';
 import {
   ensureHarborPluginProtocolForSession,
   registerHarborPluginProtocol,
@@ -699,12 +699,24 @@ function createWindow(): BrowserWindow {
     guestContents.on('did-finish-load', () => {
       logVerbose('plugin webview did-finish-load', { guestId: guestContents.id });
     });
+    guestContents.on('destroyed', () => {
+      try {
+        getPluginUiBroker().clearSession(guestContents.id);
+      } catch {
+        // Broker is not initialized yet during early startup attaches.
+      }
+    });
     guestContents.on('render-process-gone', (_goneEvent, details) => {
       logVerbose('plugin webview render-process-gone', {
         guestId: guestContents.id,
         reason: details.reason,
         exitCode: details.exitCode
       });
+      try {
+        getPluginUiBroker().clearSession(guestContents.id);
+      } catch {
+        // Broker is not initialized yet during early startup attaches.
+      }
     });
     guestContents.on('did-fail-load', (_failEvent, errorCode, errorDescription, validatedURL) => {
       logVerbose('plugin webview did-fail-load', {

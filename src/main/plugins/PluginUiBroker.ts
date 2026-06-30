@@ -262,8 +262,8 @@ export class PluginUiBroker {
    * @param response - Serializable response snapshot from the host send pipeline.
    */
   pushHttpAfterSend(request: PluginHttpRequest, response: PluginHttpResponse): void {
-    for (const [webContentsId, session] of this.#sessions.entries()) {
-      if (!this.#pluginManager.getPluginPermissions(session.pluginId).includes('http')) {
+    for (const [webContentsId, session] of this.#iterSessions()) {
+      if (!this.#sessionHasHttpPermission(webContentsId, session)) {
         continue;
       }
       this.#getWebContentsById(webContentsId)?.send('plugin-ui:event', {
@@ -605,6 +605,43 @@ export class PluginUiBroker {
    */
   #getWebContentsById(webContentsId: number): WebContents | null {
     return webContents.fromId(webContentsId) ?? null;
+  }
+
+  /**
+   * Iterates registered webview sessions without mutating the map during iteration.
+   */
+  *#iterSessions(): IterableIterator<[number, PluginWebviewSession]> {
+    yield* this.#sessions.entries();
+  }
+
+  /**
+   * Drops a session when its plugin is no longer loaded.
+   *
+   * @param webContentsId - Registered webContents id.
+   * @param session - Session metadata for the webview.
+   * @returns True when the session referred to a known plugin.
+   */
+  #isKnownPluginSession(webContentsId: number, session: PluginWebviewSession): boolean {
+    if (this.#pluginManager.get(session.pluginId)) {
+      return true;
+    }
+    this.#sessions.delete(webContentsId);
+    return false;
+  }
+
+  /**
+   * Returns whether a session belongs to a loaded plugin with the `http` permission.
+   *
+   * Stale sessions for disabled or removed plugins are pruned instead of throwing.
+   *
+   * @param webContentsId - Registered webContents id.
+   * @param session - Session metadata for the webview.
+   */
+  #sessionHasHttpPermission(webContentsId: number, session: PluginWebviewSession): boolean {
+    if (!this.#isKnownPluginSession(webContentsId, session)) {
+      return false;
+    }
+    return this.#pluginManager.getPluginPermissions(session.pluginId).includes('http');
   }
 }
 

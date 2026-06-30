@@ -398,3 +398,71 @@ describe('PluginUiBroker filesystem operations', () => {
     });
   });
 });
+
+describe('PluginUiBroker pushHttpAfterSend', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('skips stale sessions and still delivers to loaded http plugins', () => {
+    const staleSend = vi.fn();
+    const historySend = vi.fn();
+    const getPluginPermissions = vi.fn((pluginId: string) => {
+      if (pluginId === 'com.harborclient.plugins.history') {
+        return ['ui', 'storage', 'http'];
+      }
+      throw new Error(`Unknown plugin: ${pluginId}`);
+    });
+    const manager = {
+      get: vi.fn((pluginId: string) =>
+        pluginId === 'com.harborclient.plugins.history'
+          ? { id: pluginId }
+          : pluginId === 'com.harborclient.plugins.aws-sigv4'
+            ? undefined
+            : undefined
+      ),
+      getPluginPermissions
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.registerIpcHandlers();
+
+    const staleSender = { id: 1 } as WebContents;
+    const historySender = { id: 2 } as WebContents;
+    registerSession(staleSender, {
+      pluginId: 'com.harborclient.plugins.aws-sigv4',
+      role: 'agent'
+    });
+    registerSession(historySender, {
+      pluginId: 'com.harborclient.plugins.history',
+      role: 'agent'
+    });
+
+    vi.mocked(webContents.fromId).mockImplementation((id: number) => {
+      if (id === 1) {
+        return { send: staleSend } as never;
+      }
+      if (id === 2) {
+        return { send: historySend } as never;
+      }
+      return undefined;
+    });
+
+    const request = {
+      method: 'GET',
+      url: 'https://example.test',
+      headers: {},
+      body: ''
+    };
+    const response = { status: 200, statusText: 'OK', headers: {}, body: 'ok' };
+
+    expect(() => broker.pushHttpAfterSend(request, response)).not.toThrow();
+
+    expect(staleSend).not.toHaveBeenCalled();
+    expect(historySend).toHaveBeenCalledWith('plugin-ui:event', {
+      channel: 'http.afterSend',
+      payload: { request, response }
+    });
+    expect(getPluginPermissions).toHaveBeenCalledWith('com.harborclient.plugins.history');
+    expect(getPluginPermissions).not.toHaveBeenCalledWith('com.harborclient.plugins.aws-sigv4');
+  });
+});

@@ -3,12 +3,15 @@ import type { PluginInfo } from '#/shared/plugin/types';
 import {
   AGENT_READY_TIMEOUT_MS,
   MAX_AGENT_ACTIVATION_ATTEMPTS,
+  clearPendingThemePrompt,
   disposePartialRendererActivation,
   formatPluginActivationErrorDetails,
+  isPendingThemePrompt,
   markPluginForThemePrompt,
   normalizePluginActivationError,
   notifyAgentReady,
   reloadPlugin,
+  takePendingThemePromptPluginIds,
   unloadAllPlugins,
   unloadPlugin,
   resetPluginLoaderForTests
@@ -273,7 +276,19 @@ describe('pluginLoader', () => {
     ).toBe(false);
   });
 
-  it('markPluginForThemePrompt remains callable for host-side theme UX', () => {
-    expect(() => markPluginForThemePrompt(GATED_PLUGIN_ID)).not.toThrow();
+  it('markPluginForThemePrompt queues and takePendingThemePromptPluginIds clears pending ids', () => {
+    expect(isPendingThemePrompt(GATED_PLUGIN_ID)).toBe(false);
+
+    markPluginForThemePrompt(GATED_PLUGIN_ID);
+    expect(isPendingThemePrompt(GATED_PLUGIN_ID)).toBe(true);
+
+    expect(takePendingThemePromptPluginIds()).toEqual([GATED_PLUGIN_ID]);
+    expect(isPendingThemePrompt(GATED_PLUGIN_ID)).toBe(false);
+  });
+
+  it('clearPendingThemePrompt removes one pending theme prompt mark', () => {
+    markPluginForThemePrompt(GATED_PLUGIN_ID);
+    clearPendingThemePrompt(GATED_PLUGIN_ID);
+    expect(isPendingThemePrompt(GATED_PLUGIN_ID)).toBe(false);
   });
 });

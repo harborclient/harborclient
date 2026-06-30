@@ -1,58 +1,19 @@
-import { useEffect, useRef, type JSX } from 'react';
+import { useEffect, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import { formatPluginThemeValue } from '#/shared/plugin/types';
 import type { ThemeSource } from '#/shared/types';
 import { usePluginThemes } from '#/renderer/src/plugins/pluginHooks';
+import { clearPendingThemePrompt, isPendingThemePrompt } from '#/renderer/src/plugins/pluginLoader';
+import {
+  isActivePluginTheme,
+  markThemePrompted,
+  selectThemePromptCandidates,
+  themePromptKey
+} from '#/renderer/src/plugins/pluginThemePromptLogic';
 import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
-
-/** localStorage key for theme prompt deduplication across app restarts. */
-const PROMPTED_THEMES_STORAGE_KEY = 'harborclient:promptedPluginThemes';
 
 /** Theme keys currently being offered so overlapping effect runs do not duplicate toasts. */
 const inFlightThemePromptKeys = new Set<string>();
-
-/**
- * Builds a stable key for one plugin theme prompt entry.
- *
- * @param pluginId - Plugin manifest id.
- * @param themeId - Theme id within the plugin manifest.
- * @returns Dedupe key stored in localStorage.
- */
-function themePromptKey(pluginId: string, themeId: string): string {
-  return `${pluginId}:${themeId}`;
-}
-
-/**
- * Reads the set of plugin theme keys the user has already been prompted for.
- *
- * @returns Parsed keys from localStorage, or an empty set when unset or invalid.
- */
-function readPromptedThemeKeys(): Set<string> {
-  try {
-    const raw = localStorage.getItem(PROMPTED_THEMES_STORAGE_KEY);
-    if (!raw) {
-      return new Set();
-    }
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) {
-      return new Set();
-    }
-    return new Set(parsed.filter((entry): entry is string => typeof entry === 'string'));
-  } catch {
-    return new Set();
-  }
-}
-
-/**
- * Persists one theme key as already prompted so startup does not re-offer it.
- *
- * @param key - Dedupe key from {@link themePromptKey}.
- */
-function markThemePrompted(key: string): void {
-  const prompted = readPromptedThemeKeys();
-  prompted.add(key);
-  localStorage.setItem(PROMPTED_THEMES_STORAGE_KEY, JSON.stringify([...prompted]));
-}
 
 /**
  * Applies a plugin theme preference and persists it through the main-process settings API.
@@ -78,6 +39,9 @@ interface ThemePromptToastProps {
 
   /** react-hot-toast id used to dismiss this offer. */
   toastId: string;
+
+  /** Dedupe key persisted when the user accepts or dismisses the offer. */
+  promptKey: string;
 }
 
 /**
@@ -87,7 +51,8 @@ function ThemePromptToast({
   title,
   pluginId,
   themeId,
-  toastId
+  toastId,
+  promptKey
 }: ThemePromptToastProps): JSX.Element {
   /**
    * Applies the offered theme and closes the toast.
@@ -100,6 +65,7 @@ function ThemePromptToast({
       } catch (error) {
         console.error('Failed to apply plugin theme:', error);
       } finally {
+        markThemePrompted(promptKey);
         toast.dismiss(toastId);
       }
     })();
@@ -109,6 +75,7 @@ function ThemePromptToast({
    * Dismisses the theme offer without changing the active theme.
    */
   const handleDismiss = (): void => {
+    markThemePrompted(promptKey);
     toast.dismiss(toastId);
   };
 
@@ -141,25 +108,23 @@ function ThemePromptToast({
 }
 
 /**
- * Watches registered plugin themes and offers to switch when a new theme appears.
- *
- * Dedupes prompts via localStorage so enabled plugins that re-register on every launch
- * do not repeat the offer after the user has seen it once.
+ * Watches registered plugin themes and offers to switch when the user enables a plugin
+ * that contributes themes.
  */
 export function PluginThemePrompt(): null {
   const pluginThemes = usePluginThemes();
-  const promptedKeysRef = useRef<Set<string>>(readPromptedThemeKeys());
 
   /**
-   * Offers to switch when newly registered plugin themes have not been prompted before.
+   * Offers to switch when user-enabled plugins register themes that have not been prompted.
    */
   useEffect(() => {
     let cancelled = false;
 
-    const candidates = pluginThemes.filter((theme) => {
-      const key = themePromptKey(theme.pluginId, theme.id);
-      return !promptedKeysRef.current.has(key) && !inFlightThemePromptKeys.has(key);
-    });
+    const candidates = selectThemePromptCandidates(
+      pluginThemes,
+      isPendingThemePrompt,
+      inFlightThemePromptKeys
+    );
 
     if (candidates.length === 0) {
       return;
@@ -170,6 +135,8 @@ export function PluginThemePrompt(): null {
     }
 
     void (async () => {
+      const processedPluginIds = new Set<string>();
+
       try {
         const activeTheme = await window.api.getTheme();
 
@@ -178,12 +145,10 @@ export function PluginThemePrompt(): null {
             return;
           }
 
-          const key = themePromptKey(theme.pluginId, theme.id);
-          promptedKeysRef.current.add(key);
-          markThemePrompted(key);
+          processedPluginIds.add(theme.pluginId);
 
-          const themeValue = formatPluginThemeValue(theme.pluginId, theme.id);
-          if (activeTheme === themeValue) {
+          const key = themePromptKey(theme.pluginId, theme.id);
+          if (isActivePluginTheme(activeTheme, theme.pluginId, theme.id)) {
             continue;
           }
 
@@ -194,6 +159,7 @@ export function PluginThemePrompt(): null {
                 pluginId={theme.pluginId}
                 themeId={theme.id}
                 toastId={toastInstance.id}
+                promptKey={key}
               />
             ),
             { duration: Infinity, id: key }
@@ -202,6 +168,9 @@ export function PluginThemePrompt(): null {
       } finally {
         for (const theme of candidates) {
           inFlightThemePromptKeys.delete(themePromptKey(theme.pluginId, theme.id));
+        }
+        for (const pluginId of processedPluginIds) {
+          clearPendingThemePrompt(pluginId);
         }
       }
     })();
