@@ -2,14 +2,52 @@
  * Electron-vite configuration for main, preload, and renderer processes.
  * Main externalizes native deps (better-sqlite3); renderer uses React.
  */
-import { resolve } from 'path';
+import { copyFileSync } from 'fs';
+import { join, resolve } from 'path';
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import type { Plugin } from 'vite';
+
+/** Static plugin webview assets served by the harbor-plugin protocol handler. */
+const PLUGIN_STATIC_ASSETS = ['pluginShell.html', 'pluginBootstrap.js'] as const;
+
+/**
+ * Prepended to main-process bundles so ESBUILD_BINARY_PATH is set before hoisted
+ * require("esbuild") runs in packaged apps (asar cannot execute nested binaries).
+ */
+const ESBUILD_BINARY_PATH_BANNER = [
+  '"use strict";',
+  '(function(){"use strict";try{',
+  'if(process.env.ESBUILD_BINARY_PATH)return;',
+  'var rp=process.resourcesPath;if(!rp)return;',
+  'var p=require("path");var f=require("fs");',
+  'var pkg="@esbuild/"+process.platform+"-"+process.arch;',
+  'var sub=process.platform==="win32"?"esbuild.exe":p.join("bin","esbuild");',
+  'var bin=p.join(rp,"app.asar.unpacked","node_modules",pkg,sub);',
+  'if(f.existsSync(bin))process.env.ESBUILD_BINARY_PATH=bin;',
+  '}catch(e){}})();'
+].join('');
+
+/**
+ * Copies plugin shell assets into the main build output so packaged apps can
+ * serve harbor-plugin:// shell.html and bootstrap.js without src/ fallbacks.
+ */
+function copyPluginStaticAssets(): Plugin {
+  return {
+    name: 'copy-plugin-static-assets',
+    writeBundle(options: { dir?: string }) {
+      const outDir = options.dir ?? resolve(__dirname, 'out/main');
+      for (const file of PLUGIN_STATIC_ASSETS) {
+        copyFileSync(resolve(__dirname, 'src/main/plugins', file), join(outDir, file));
+      }
+    }
+  };
+}
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin({ exclude: ['ses'] })],
+    plugins: [externalizeDepsPlugin({ exclude: ['ses'] }), copyPluginStaticAssets()],
     build: {
       rollupOptions: {
         input: {
@@ -19,7 +57,8 @@ export default defineConfig({
         },
         external: ['better-sqlite3'],
         output: {
-          entryFileNames: '[name].js'
+          entryFileNames: '[name].js',
+          banner: ESBUILD_BINARY_PATH_BANNER
         }
       }
     }

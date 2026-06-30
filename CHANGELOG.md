@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(build): enhance electron-builder configuration and Vite setup. (`be1fef7`)
+
 ## 1.9.0 - 2026-06-30
 
 - feat(deps): upgrade @harborclient/sdk to version 1.0.0 and update plugin versions. (`2a1565d`)

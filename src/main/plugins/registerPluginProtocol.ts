@@ -1,6 +1,6 @@
 import { protocol, session, type Session } from 'electron';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { join, dirname } from 'path';
+import { join, dirname, sep } from 'path';
 import { tmpdir } from 'os';
 import { createRequire } from 'module';
 import { buildSync } from 'esbuild';
@@ -99,6 +99,22 @@ function resolveViewHostPath(appRoot: string): string | null {
 }
 
 /**
+ * Maps an in-asar module path to its app.asar.unpacked sibling.
+ *
+ * esbuild's binary runs as a child process on the real filesystem and cannot
+ * read entries inside app.asar. Modules it bundles (React, the SDK view host)
+ * are extracted via electron-builder asarUnpack, so rewrite their paths to the
+ * real files. No-op in development where there is no asar in the path.
+ *
+ * @param p - Absolute path that may point inside app.asar.
+ * @returns The corresponding app.asar.unpacked path, or the original path.
+ */
+function toUnpackedDiskPath(p: string): string {
+  const marker = `${sep}app.asar${sep}`;
+  return p.includes(marker) ? p.replace(marker, `${sep}app.asar.unpacked${sep}`) : p;
+}
+
+/**
  * Bundles a Node module entry as browser ESM for plugin webviews.
  *
  * @param entry - Absolute path to the module entry file.
@@ -193,6 +209,36 @@ function bundleViewHostModule(entry: string): string {
 }
 
 /**
+ * Resolves the compiled renderer stylesheet(s) for production plugin surfaces.
+ *
+ * Vite emits the host CSS with a content hash (assets/index-[hash].css), so the
+ * filename is not stable. Parse the built index.html for its stylesheet links —
+ * the same CSS the host renderer loads — and return the concatenated contents.
+ *
+ * @param appRoot - Application root containing out/renderer.
+ * @returns Combined CSS text, or null when the built renderer is unavailable.
+ */
+function readBuiltHostCss(appRoot: string): string | null {
+  const htmlPath = join(appRoot, 'out/renderer/index.html');
+  if (!existsSync(htmlPath)) {
+    return null;
+  }
+  const html = readFileSync(htmlPath, 'utf8');
+  const hrefs = [...html.matchAll(/<link\b[^>]*rel=["']stylesheet["'][^>]*>/gi)]
+    .map((tag) => /href=["']([^"']+)["']/i.exec(tag[0])?.[1])
+    .filter((href): href is string => Boolean(href));
+  const rendererDir = join(appRoot, 'out/renderer');
+  const parts: string[] = [];
+  for (const href of hrefs) {
+    const cssPath = join(rendererDir, href.replace(/^\.?\//, ''));
+    if (existsSync(cssPath)) {
+      parts.push(readFileSync(cssPath, 'utf8'));
+    }
+  }
+  return parts.length > 0 ? parts.join('\n') : null;
+}
+
+/**
  * Serves the host stylesheet that plugin webviews link against.
  *
  * The on-disk `styles.css` is Tailwind v4 source (`@import 'tailwindcss'`,
@@ -228,9 +274,9 @@ async function serveHostStyles(appRoot: string): Promise<Response> {
     }
   }
 
-  const prodCss = join(appRoot, 'out/renderer/assets/index.css');
-  if (existsSync(prodCss)) {
-    return new Response(readFileSync(prodCss, 'utf8'), { headers: cssHeaders });
+  const builtCss = readBuiltHostCss(appRoot);
+  if (builtCss !== null) {
+    return new Response(builtCss, { headers: cssHeaders });
   }
 
   const devCss = join(appRoot, 'src/renderer/src/styles.css');
@@ -260,7 +306,7 @@ async function serveHostAsset(pathname: string, appRoot: string): Promise<Respon
         { status: 404 }
       );
     }
-    return new Response(bundleViewHostModule(viewHostPath), {
+    return new Response(bundleViewHostModule(toUnpackedDiskPath(viewHostPath)), {
       headers: { 'Content-Type': 'text/javascript' }
     });
   }
@@ -274,8 +320,8 @@ async function serveHostAsset(pathname: string, appRoot: string): Promise<Respon
     });
   }
 
-  const reactRoot = join(appRoot, 'node_modules', 'react');
-  const reactDomRoot = join(appRoot, 'node_modules', 'react-dom');
+  const reactRoot = toUnpackedDiskPath(join(appRoot, 'node_modules', 'react'));
+  const reactDomRoot = toUnpackedDiskPath(join(appRoot, 'node_modules', 'react-dom'));
   const reactUrl = `${HARBOR_PLUGIN_PROTOCOL}://${HARBOR_PLUGIN_HOST}/react.js`;
 
   if (pathname === '/react.js') {

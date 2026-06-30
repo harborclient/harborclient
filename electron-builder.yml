@@ -26,6 +26,12 @@ files:
   - '!**/node_modules/**/prebuilds/**'
 asarUnpack:
   - node_modules/better-sqlite3/**/*
+  - node_modules/esbuild/**/*
+  - node_modules/@esbuild/**/*
+  - node_modules/react/**/*
+  - node_modules/react-dom/**/*
+  - node_modules/scheduler/**/*
+  - node_modules/@harborclient/sdk/**/*
 linux:
   icon: build/icons
   syncDesktopName: true
