@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 import type { ResponseTabContext } from '#/shared/plugin/types';
 import type { ScriptTestResult, SendResult } from '#/shared/types';
 
+import { useSendRequestShortcutHint } from '#/renderer/src/hooks/useSendRequestShortcutHint';
 import { faGlobe } from '#/renderer/src/fontawesome';
 import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import { usePluginResponseTabs } from '#/renderer/src/plugins/pluginHooks';
@@ -76,6 +77,7 @@ export function Response({
   requestUrl
 }: Props): JSX.Element {
   const pluginTabs = usePluginResponseTabs();
+  const sendRequestShortcutHint = useSendRequestShortcutHint();
   const [tab, setTab] = useState<string>('body');
 
   /**
@@ -263,10 +265,11 @@ export function Response({
         <div className="flex flex-1 flex-col p-3">
           <div
             role="status"
-            aria-label="Send a request to see the response"
-            className="flex flex-1 items-center justify-center text-muted"
+            aria-label={`Send a request to see the response. ${sendRequestShortcutHint}.`}
+            className="flex flex-1 flex-col items-center justify-center gap-3 text-muted"
           >
-            <FaIcon icon={faGlobe} className="h-12 w-12" />
+            <FaIcon icon={faGlobe} className="h-12 w-12" aria-hidden />
+            <p className="m-0 text-[14px]">{sendRequestShortcutHint}</p>
           </div>
         </div>
       );

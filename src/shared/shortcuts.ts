@@ -562,3 +562,256 @@ export function formatAcceleratorDisplay(accelerator: string): string {
     })
     .join('-');
 }
+
+/**
+ * Modifier and key state from an Electron `before-input-event` or DOM keyboard event.
+ */
+export interface KeyChord {
+  /** Normalized key value (for example `F5`, `f`, `,`). */
+  key: string;
+  /** Whether the control key is pressed. */
+  control: boolean;
+  /** Whether the meta (command) key is pressed. */
+  meta: boolean;
+  /** Whether the alt key is pressed. */
+  alt: boolean;
+  /** Whether the shift key is pressed. */
+  shift: boolean;
+}
+
+const CHORD_KEY_ALIASES: Record<string, string> = {
+  ',': 'Comma',
+  '.': 'Period',
+  '/': 'Slash',
+  '\\': 'Backslash',
+  '`': 'Backquote',
+  '-': 'Minus',
+  '=': 'Equal',
+  '+': 'Plus',
+  '[': 'BracketLeft',
+  ']': 'BracketRight',
+  ';': 'Semicolon',
+  "'": 'Quote',
+  ' ': 'Space',
+  ArrowUp: 'Up',
+  ArrowDown: 'Down',
+  ArrowLeft: 'Left',
+  ArrowRight: 'Right'
+};
+
+const CHORD_NAMED_KEYS = new Set([
+  'Enter',
+  'Backspace',
+  'Delete',
+  'Tab',
+  'Home',
+  'End',
+  'PageUp',
+  'PageDown',
+  'Escape'
+]);
+
+const KEY_COMPARE_ALIASES: Record<string, string> = {
+  Plus: 'plus',
+  Minus: 'minus',
+  Equal: 'equal',
+  Comma: 'comma',
+  Period: 'period',
+  Slash: 'slash',
+  Backslash: 'backslash',
+  Backquote: 'backquote',
+  BracketLeft: 'bracketleft',
+  BracketRight: 'bracketright',
+  Semicolon: 'semicolon',
+  Quote: 'quote',
+  Space: 'space',
+  Tab: 'tab',
+  Enter: 'enter',
+  Escape: 'escape',
+  Backspace: 'backspace',
+  Delete: 'delete',
+  Up: 'up',
+  Down: 'down',
+  Left: 'left',
+  Right: 'right',
+  Home: 'home',
+  End: 'end',
+  PageUp: 'pageup',
+  PageDown: 'pagedown',
+  ',': 'comma',
+  '.': 'period',
+  '/': 'slash',
+  '\\': 'backslash',
+  '`': 'backquote',
+  '-': 'minus',
+  '=': 'equal',
+  '+': 'plus',
+  '[': 'bracketleft',
+  ']': 'bracketright',
+  ';': 'semicolon',
+  "'": 'quote',
+  ' ': 'space'
+};
+
+/**
+ * Normalizes a DOM or Electron key value to an Electron accelerator key token.
+ *
+ * @param key - Key value from a keyboard or before-input event.
+ * @returns Electron key token or null when unsupported.
+ */
+function normalizeChordKey(key: string): string | null {
+  if (/^F([1-9]|1[0-2])$/i.test(key)) {
+    return key.toUpperCase();
+  }
+
+  if (key.length === 1 && /[a-zA-Z]/.test(key)) {
+    return key.toUpperCase();
+  }
+
+  if (key.length === 1 && /[0-9]/.test(key)) {
+    return key;
+  }
+
+  const alias = CHORD_KEY_ALIASES[key];
+  if (alias != null) {
+    return alias;
+  }
+
+  if (CHORD_NAMED_KEYS.has(key)) {
+    return key;
+  }
+
+  return null;
+}
+
+/**
+ * Builds an Electron accelerator string from a key chord.
+ *
+ * @param chord - Modifier and key state from a keyboard event.
+ * @returns Electron accelerator string, or null when the chord should be ignored.
+ */
+export function acceleratorFromChord(chord: KeyChord): string | null {
+  if (
+    chord.key === 'Control' ||
+    chord.key === 'Shift' ||
+    chord.key === 'Alt' ||
+    chord.key === 'Meta'
+  ) {
+    return null;
+  }
+
+  const key = normalizeChordKey(chord.key);
+  if (key == null) {
+    return null;
+  }
+
+  const parts: string[] = [];
+  if (chord.control || chord.meta) {
+    parts.push('CmdOrCtrl');
+  }
+  if (chord.alt) {
+    parts.push('Alt');
+  }
+  if (chord.shift) {
+    parts.push('Shift');
+  }
+  parts.push(key);
+
+  return parts.join('+');
+}
+
+/**
+ * Maps an accelerator modifier token to a canonical compare token.
+ *
+ * @param part - Modifier segment from an accelerator string.
+ * @returns Canonical modifier token, or null when the segment is not a modifier.
+ */
+function normalizeModifierForCompare(part: string): string | null {
+  if (/^(CmdOrCtrl|CommandOrControl|Command|Control|Cmd|Ctrl|Meta)$/i.test(part)) {
+    return 'mod';
+  }
+
+  if (/^Alt$/i.test(part)) {
+    return 'alt';
+  }
+
+  if (/^Shift$/i.test(part)) {
+    return 'shift';
+  }
+
+  return null;
+}
+
+/**
+ * Maps an accelerator key token to a canonical compare token.
+ *
+ * @param key - Key segment from an accelerator string.
+ * @returns Lowercase canonical key token for comparison.
+ */
+function normalizeKeyTokenForCompare(key: string): string {
+  const trimmed = key.trim();
+
+  if (/^F([1-9]|1[0-2])$/i.test(trimmed)) {
+    return trimmed.toUpperCase();
+  }
+
+  if (/^[A-Za-z0-9]$/.test(trimmed)) {
+    return trimmed.toUpperCase();
+  }
+
+  const mapped =
+    KEY_COMPARE_ALIASES[trimmed] ??
+    KEY_COMPARE_ALIASES[trimmed.toLowerCase()] ??
+    trimmed.toLowerCase();
+  return mapped;
+}
+
+/**
+ * Canonicalizes an Electron accelerator for chord comparison.
+ *
+ * Modifiers collapse to sorted `alt`, `mod`, and `shift` tokens so stored
+ * accelerators match chords regardless of Cmd vs Ctrl spelling.
+ *
+ * @param accelerator - Electron accelerator string.
+ * @returns Canonical compare string such as `mod+shift+comma`.
+ */
+export function normalizeAcceleratorForCompare(accelerator: string): string {
+  const parts = accelerator
+    .split('+')
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+
+  if (parts.length === 0) {
+    return '';
+  }
+
+  const key = parts[parts.length - 1] ?? '';
+  const modifiers: string[] = [];
+
+  for (const part of parts.slice(0, -1)) {
+    const normalized = normalizeModifierForCompare(part);
+    if (normalized != null) {
+      modifiers.push(normalized);
+    }
+  }
+
+  modifiers.sort();
+
+  return [...modifiers, normalizeKeyTokenForCompare(key)].join('+');
+}
+
+/**
+ * Returns true when a keyboard chord matches a configured accelerator.
+ *
+ * @param accelerator - Electron accelerator string from shortcut settings.
+ * @param chord - Modifier and key state from a keyboard event.
+ * @returns Whether the chord triggers the accelerator.
+ */
+export function acceleratorMatchesChord(accelerator: string, chord: KeyChord): boolean {
+  const derived = acceleratorFromChord(chord);
+  if (derived == null) {
+    return false;
+  }
+
+  return normalizeAcceleratorForCompare(accelerator) === normalizeAcceleratorForCompare(derived);
+}

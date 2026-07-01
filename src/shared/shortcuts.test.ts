@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  acceleratorMatchesChord,
   bindingsToOverrides,
   formatAcceleratorDisplay,
+  normalizeAcceleratorForCompare,
   normalizeShortcutOverrides,
   resolveShortcuts,
-  validateShortcutOverrides
+  validateShortcutOverrides,
+  type KeyChord
 } from '#/shared/shortcuts';
 
 describe('normalizeShortcutOverrides', () => {
@@ -134,5 +137,67 @@ describe('formatAcceleratorDisplay', () => {
     expect(formatAcceleratorDisplay('CmdOrCtrl+Shift+N')).toBe('ctrl-shift-n');
     expect(formatAcceleratorDisplay('CmdOrCtrl+,')).toBe('ctrl-comma');
     expect(formatAcceleratorDisplay('F11')).toBe('f11');
+  });
+});
+
+describe('acceleratorMatchesChord', () => {
+  const f5Chord: KeyChord = {
+    key: 'F5',
+    control: false,
+    meta: false,
+    alt: false,
+    shift: false
+  };
+
+  it('matches standalone function keys', () => {
+    expect(acceleratorMatchesChord('F5', f5Chord)).toBe(true);
+    expect(acceleratorMatchesChord('F6', f5Chord)).toBe(false);
+  });
+
+  it('matches CmdOrCtrl chords from control or meta', () => {
+    const controlF: KeyChord = {
+      key: 'f',
+      control: true,
+      meta: false,
+      alt: false,
+      shift: false
+    };
+    const metaF: KeyChord = {
+      key: 'f',
+      control: false,
+      meta: true,
+      alt: false,
+      shift: false
+    };
+    const plainF: KeyChord = {
+      key: 'f',
+      control: false,
+      meta: false,
+      alt: false,
+      shift: false
+    };
+
+    expect(acceleratorMatchesChord('CmdOrCtrl+F', controlF)).toBe(true);
+    expect(acceleratorMatchesChord('CmdOrCtrl+F', metaF)).toBe(true);
+    expect(acceleratorMatchesChord('CmdOrCtrl+F', plainF)).toBe(false);
+  });
+
+  it('matches modifier chords with punctuation keys', () => {
+    const previousTabChord: KeyChord = {
+      key: ',',
+      control: true,
+      meta: false,
+      alt: false,
+      shift: true
+    };
+
+    expect(acceleratorMatchesChord('CmdOrCtrl+Shift+Comma', previousTabChord)).toBe(true);
+    expect(acceleratorMatchesChord('CmdOrCtrl+Shift+Period', previousTabChord)).toBe(false);
+  });
+
+  it('normalizes equivalent modifier spellings', () => {
+    expect(normalizeAcceleratorForCompare('CmdOrCtrl+Shift+Comma')).toBe(
+      normalizeAcceleratorForCompare('Ctrl+Shift+,')
+    );
   });
 });

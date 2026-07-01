@@ -25,6 +25,7 @@ import { ensureSharingKeys } from '#/main/sharing/sharingKeys';
 import { startGitWatchers } from '#/main/git/gitWatcher';
 import { buildMenu } from '#/main/menu';
 import { setMenuWindow } from '#/main/appMenu';
+import { attachShortcutDispatch } from '#/main/shortcutDispatch';
 import { isVerbose, logVerbose } from '#/main/logger';
 import {
   loadWindowState,
@@ -730,6 +731,7 @@ function createWindow(): BrowserWindow {
 
   setupCloseHandlers(window);
   setupFullscreenEscapeHandler(window);
+  attachShortcutDispatch(window);
 
   if (isDev && process.env['ELECTRON_RENDERER_URL']) {
     const rendererUrl = process.env['ELECTRON_RENDERER_URL'];

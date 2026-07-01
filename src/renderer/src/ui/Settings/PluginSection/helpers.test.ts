@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { PluginCatalog, PluginCatalogEntry } from '#/shared/plugin/catalog';
 import type { PluginInfo } from '#/shared/plugin/types';
-import { resolvePendingPluginInstallDeepLink } from '#/renderer/src/ui/Settings/PluginSection/helpers';
+import {
+  resolvePendingPluginInstallDeepLink,
+  resolveInstalledPluginSummary
+} from '#/renderer/src/ui/Settings/PluginSection/helpers';
 
 const sampleEntry: PluginCatalogEntry = {
   id: 'com.harborclient.plugins.curl',
@@ -80,5 +83,42 @@ describe('resolvePendingPluginInstallDeepLink', () => {
     });
 
     expect(result).toEqual({ kind: 'already-installed', plugin: installed });
+  });
+});
+
+describe('resolveInstalledPluginSummary', () => {
+  const basePlugin: PluginInfo = {
+    id: sampleEntry.id,
+    name: sampleEntry.name,
+    version: sampleEntry.version,
+    source: 'git',
+    path: '/tmp/plugin',
+    enabled: true,
+    permissions: [],
+    manifest: {
+      id: sampleEntry.id,
+      name: sampleEntry.name,
+      version: sampleEntry.version,
+      main: 'index.js',
+      engines: { harborclient: '>=1.0.0' },
+      permissions: []
+    }
+  };
+
+  it('prefers manifest summary over catalog summary', () => {
+    const plugin: PluginInfo = {
+      ...basePlugin,
+      manifest: { ...basePlugin.manifest, summary: 'From manifest.' }
+    };
+
+    expect(resolveInstalledPluginSummary(plugin, sampleEntry)).toBe('From manifest.');
+  });
+
+  it('falls back to catalog summary when manifest omits summary', () => {
+    expect(resolveInstalledPluginSummary(basePlugin, sampleEntry)).toBe(sampleEntry.summary);
+  });
+
+  it('returns undefined when neither manifest nor catalog provides a summary', () => {
+    expect(resolveInstalledPluginSummary(basePlugin)).toBeUndefined();
   });
 });

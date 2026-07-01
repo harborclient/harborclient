@@ -47,6 +47,7 @@ import type { PluginGitPreview } from '#/shared/plugin/types';
 import {
   findInstalledCatalogPlugin,
   isManagedInstall,
+  resolveInstalledPluginSummary,
   resolvePendingPluginInstallDeepLink,
   stopRowActivation
 } from './helpers';
@@ -72,6 +73,11 @@ interface Props {
    */
   onClose: () => void;
 }
+
+/**
+ * Fixed width for installed-plugin table action buttons so labels align.
+ */
+const PLUGIN_TABLE_ACTION_BUTTON_CLASS = 'w-[6rem]';
 
 /**
  * Queues a theme switch prompt when the plugin manifest declares contributed themes.
@@ -1004,6 +1010,10 @@ export function PluginsSection({ onClose }: Props): JSX.Element {
                 <tbody>
                   {plugins.map((plugin) => {
                     const gitUpdateBusy = gitUpdateBusyId === plugin.id;
+                    const summary = resolveInstalledPluginSummary(
+                      plugin,
+                      catalogById.get(plugin.id)
+                    );
 
                     return (
                       <tr
@@ -1014,7 +1024,7 @@ export function PluginsSection({ onClose }: Props): JSX.Element {
                         onClick={() => openDetail(plugin)}
                         onKeyDown={(event) => handleRowKeyDown(event, plugin)}
                       >
-                        <td className="px-3 py-2 align-middle">
+                        <td className="max-w-0 w-[40%] px-3 py-2 align-middle">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-medium text-text">{plugin.name}</span>
                             {plugin.signature?.status === 'invalid' ? (
@@ -1050,7 +1060,14 @@ export function PluginsSection({ onClose }: Props): JSX.Element {
                               </span>
                             ) : null}
                           </div>
-                          <div className="text-[14px] text-muted">{plugin.id}</div>
+                          {summary ? (
+                            <p
+                              className="m-0 min-w-0 truncate text-[14px] text-muted"
+                              title={summary}
+                            >
+                              {summary}
+                            </p>
+                          ) : null}
                           <ErrorMessages plugin={plugin} />
                         </td>
                         <td className="px-3 py-2 text-center align-middle text-text">
@@ -1081,6 +1098,7 @@ export function PluginsSection({ onClose }: Props): JSX.Element {
                             <Button
                               type="button"
                               variant="secondary"
+                              className={PLUGIN_TABLE_ACTION_BUTTON_CLASS}
                               aria-label={
                                 plugin.enabled ? `Disable ${plugin.name}` : `Enable ${plugin.name}`
                               }
@@ -1092,6 +1110,7 @@ export function PluginsSection({ onClose }: Props): JSX.Element {
                               <Button
                                 type="button"
                                 variant="secondary"
+                                className={PLUGIN_TABLE_ACTION_BUTTON_CLASS}
                                 aria-label={`Reload ${plugin.name}`}
                                 onClick={() => void handleReload(plugin)}
                               >
@@ -1102,6 +1121,7 @@ export function PluginsSection({ onClose }: Props): JSX.Element {
                               <Button
                                 type="button"
                                 variant="secondary"
+                                className={PLUGIN_TABLE_ACTION_BUTTON_CLASS}
                                 disabled={gitUpdateBusy}
                                 aria-label={`Update ${plugin.name}`}
                                 onClick={() => void handleUpdateFromGit(plugin.id)}
@@ -1112,6 +1132,7 @@ export function PluginsSection({ onClose }: Props): JSX.Element {
                             <Button
                               type="button"
                               variant="primaryDanger"
+                              className={PLUGIN_TABLE_ACTION_BUTTON_CLASS}
                               aria-label={
                                 isManagedInstall(plugin)
                                   ? `Uninstall ${plugin.name}`

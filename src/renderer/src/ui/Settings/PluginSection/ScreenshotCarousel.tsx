@@ -61,6 +61,7 @@ export function ScreenshotCarousel({
 
   const hasMultiple = imageCount > 1;
   const currentImage = images[currentIndex];
+  const lightboxEnabled = variant === 'modal';
 
   /**
    * Moves to the previous screenshot, wrapping to the last slide.
@@ -121,26 +122,10 @@ export function ScreenshotCarousel({
   };
 
   /**
-   * Opens the full-size screenshot lightbox without activating a parent card.
-   *
-   * @param event - Pointer event from the preview button.
+   * Opens the full-size screenshot lightbox in the plugin detail modal.
    */
-  const handleOpenLightbox = (event: MouseEvent<HTMLButtonElement>): void => {
-    if (stopPropagation) {
-      event.stopPropagation();
-    }
+  const handleOpenLightbox = (): void => {
     setLightboxOpen(true);
-  };
-
-  /**
-   * Prevents keyboard activation of the preview button from opening a parent card.
-   *
-   * @param event - Keyboard event from the preview button.
-   */
-  const handlePreviewKeyDown = (event: KeyboardEvent<HTMLButtonElement>): void => {
-    if (stopPropagation) {
-      event.stopPropagation();
-    }
   };
 
   const frameClassName = imageFrameClassName(variant);
@@ -157,17 +142,20 @@ export function ScreenshotCarousel({
       tabIndex={hasMultiple ? 0 : undefined}
       onKeyDown={handleKeyDown}
     >
-      <button
-        type="button"
-        className={`block w-full cursor-zoom-in border-none bg-transparent p-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${variant === 'modal' ? 'mb-4' : ''}`}
-        aria-label={previewLabel}
-        onClick={handleOpenLightbox}
-        onKeyDown={handlePreviewKeyDown}
-      >
+      {lightboxEnabled ? (
+        <button
+          type="button"
+          className="mb-4 block w-full cursor-zoom-in border-none bg-transparent p-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          aria-label={previewLabel}
+          onClick={handleOpenLightbox}
+        >
+          <img src={currentImage} alt="" aria-hidden className={frameClassName} />
+        </button>
+      ) : (
         <img src={currentImage} alt="" aria-hidden className={frameClassName} />
-      </button>
+      )}
 
-      {lightboxOpen ? (
+      {lightboxEnabled && lightboxOpen ? (
         <ScreenshotLightbox
           images={images}
           index={currentIndex}

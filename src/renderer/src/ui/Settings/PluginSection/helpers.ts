@@ -106,6 +106,21 @@ export function findInstalledCatalogPlugin(
 }
 
 /**
+ * Resolves the one-line summary shown under an installed plugin name in the table.
+ *
+ * Prefers the local manifest so the Installed tab does not depend on catalog fetch.
+ *
+ * @param plugin - Installed plugin row.
+ * @param catalogEntry - Matching marketplace listing when the catalog is loaded.
+ */
+export function resolveInstalledPluginSummary(
+  plugin: PluginInfo,
+  catalogEntry?: PluginCatalogEntry
+): string | undefined {
+  return plugin.manifest.summary ?? catalogEntry?.summary;
+}
+
+/**
  * Stops row-level click handlers from firing when interacting with row action buttons.
  *
  * @param event - DOM event from an action control inside a table row.
