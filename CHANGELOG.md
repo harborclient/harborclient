@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- fix(tabs): refactor tab management and enhance page navigation. (`3249900`)
+
 ## 1.9.9 - 2026-07-01
 
 - feat(sidebar): integrate @szhsin/react-accordion for improved sidebar navigation. (`dc35d4b`)

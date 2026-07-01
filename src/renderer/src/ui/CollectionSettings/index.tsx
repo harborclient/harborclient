@@ -236,9 +236,6 @@ function CollectionSettingsForm({
       description="Manage collection settings and configuration"
       footer={
         <ModalFooter>
-          <Button variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
           <Button
             onClick={() => void handleSave()}
             disabled={!name.trim() || !resolvedConnectionId || saving}

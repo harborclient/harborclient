@@ -1,4 +1,4 @@
-import { BackButton, Button } from '@harborclient/sdk/components';
+import { Button } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 
 import { usePluginMainViews } from '#/renderer/src/plugins/pluginHooks';
@@ -17,13 +17,13 @@ interface Props {
   viewId: string;
 
   /**
-   * Closes the plugin main view overlay.
+   * Closes the plugin main view tab.
    */
   onClose: () => void;
 }
 
 /**
- * Renders one plugin-contributed full main-area overlay.
+ * Renders one plugin-contributed main-area view inside a page tab.
  */
 export function PluginMainView({ pluginId, viewId, onClose }: Props): JSX.Element | null {
   const views = usePluginMainViews();
@@ -34,7 +34,7 @@ export function PluginMainView({ pluginId, viewId, onClose }: Props): JSX.Elemen
       <div className="flex min-h-0 flex-1 flex-col p-6">
         <p className="text-muted">Plugin view is unavailable.</p>
         <Button type="button" variant="secondary" onClick={onClose}>
-          Back
+          Close tab
         </Button>
       </div>
     );
@@ -44,7 +44,6 @@ export function PluginMainView({ pluginId, viewId, onClose }: Props): JSX.Elemen
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 items-center justify-between gap-4 border-b border-separator px-6 py-4">
         <h1 className="m-0 text-[15px] font-semibold text-text">{view.title}</h1>
-        <BackButton onClick={onClose} ariaLabel="Back to requests" />
       </div>
       <div className="min-h-0 flex-1 overflow-hidden p-6">
         <PluginSurface

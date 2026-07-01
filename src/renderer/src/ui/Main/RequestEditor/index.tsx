@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState, type JSX } from 'react';
 import type { RequestTabContext, ResponseTabContext } from '#/shared/plugin/types';
 import type { Variable } from '#/shared/types';
-import { isTabDirty } from '#/renderer/src/store/drafts';
+import { isPageTab, isRequestTab, isTabDirty } from '#/renderer/src/store/drafts';
 import {
   toPluginHttpResponse,
   toPluginRequestDraft,
@@ -12,19 +12,29 @@ import { buildRuntimeVars } from '#/renderer/src/scripting/scriptOrchestration';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveEnvironmentId,
+  selectActivePage,
   selectActiveTabId,
   selectCollections,
   selectDraft,
+  selectEnvironments,
   selectFoldersByCollection,
   selectRequestsByCollection,
-  selectEnvironments,
   selectResponse,
   selectSelectedCollectionId,
   selectSending,
   selectTabs,
   selectTestResults
 } from '#/renderer/src/store/selectors';
-import { setActiveDraft, newTab, setActiveTab } from '#/renderer/src/store/slices/tabsSlice';
+import {
+  selectCollectionSettingsDirty,
+  selectEnvironmentSettingsDirty
+} from '#/renderer/src/store/slices/navigationSlice';
+import {
+  setActiveDraft,
+  newTab,
+  setActiveTab,
+  closeTab
+} from '#/renderer/src/store/slices/tabsSlice';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import {
   sendRequest,
@@ -38,6 +48,8 @@ import { Modal, ModalFooter } from '@harborclient/sdk/components';
 import { ResizeHandle, useResizable } from '@harborclient/sdk/components';
 import { Editor } from './Editor';
 import { NoOpenRequests } from './NoOpenRequests';
+import { isActivePageTabDirty, pageTabCloseName } from './pageTabCloseHelpers';
+import { PageTabContent } from './PageTabContent';
 import { ResponseEditor } from '../ResponseEditor';
 import { TabBar } from './TabBar';
 
@@ -85,16 +97,21 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const { revealCollection, revealFolder } = useSidebarExpansion();
   const tabs = useAppSelector(selectTabs);
   const activeTabId = useAppSelector(selectActiveTabId);
+  const activePage = useAppSelector(selectActivePage);
+  const activeTab = tabs.find((tab) => tab.tabId === activeTabId);
+  const isActivePageTab = activeTab != null && isPageTab(activeTab);
   const draft = useAppSelector(selectDraft);
   const response = useAppSelector(selectResponse);
   const sending = useAppSelector(selectSending);
   const testResults = useAppSelector(selectTestResults);
   const environments = useAppSelector(selectEnvironments);
-  const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
   const collections = useAppSelector(selectCollections);
+  const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
   const selectedCollectionId = useAppSelector(selectSelectedCollectionId);
+  const collectionSettingsDirty = useAppSelector(selectCollectionSettingsDirty);
+  const environmentSettingsDirty = useAppSelector(selectEnvironmentSettingsDirty);
 
   const hasOpenTabs = tabs.length > 0;
   const [closeTabPrompt, setCloseTabPrompt] = useState<CloseTabPrompt | null>(null);
@@ -184,10 +201,32 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
    */
   const handleCloseTab = (tabId: string): void => {
     const tab = tabs.find((t) => t.tabId === tabId);
-    if (tab && isTabDirty(tab)) {
+    if (!tab) {
+      return;
+    }
+
+    if (isRequestTab(tab) && isTabDirty(tab)) {
       setCloseTabPrompt({ tabId, name: tab.draft.name });
       return;
     }
+
+    if (
+      tabId === activeTabId &&
+      isPageTab(tab) &&
+      isActivePageTabDirty(tab.page, collectionSettingsDirty, environmentSettingsDirty)
+    ) {
+      setCloseTabPrompt({
+        tabId,
+        name: pageTabCloseName(tab.page, collections, environments)
+      });
+      return;
+    }
+
+    if (isPageTab(tab)) {
+      dispatch(closeTab(tabId));
+      return;
+    }
+
     void dispatch(closeRequestTab(tabId));
   };
 
@@ -210,58 +249,72 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
           aria-labelledby={`request-tab-${activeTabId}`}
           className="flex min-h-0 flex-1 flex-col"
         >
-          <section
-            aria-label="Request editor"
-            ref={splitRef}
-            style={{ height: editorHeight }}
-            className="shrink-0 overflow-auto"
-          >
-            <Editor
-              key={`editor-${activeTabId}`}
-              tabId={activeTabId}
-              draft={draft}
-              requestTabContext={requestTabContext}
-              onChange={(next) => dispatch(setActiveDraft(next))}
-              onSend={() => void dispatch(sendRequest())}
-              sending={sending}
-              variables={activeVariables}
-              collectionName={activeCollectionName}
-              folderName={activeFolderName}
-              onEditVariables={onEditVariables}
-              onCollectionClick={() => {
-                if (activeCollectionId == null) return;
-                dispatch(focusSidebarItem({ collectionId: activeCollectionId }));
-                revealCollection(activeCollectionId);
-              }}
-              onFolderClick={() => {
-                if (activeCollectionId == null || activeFolderId == null) return;
-                dispatch(
-                  focusSidebarItem({ collectionId: activeCollectionId, folderId: activeFolderId })
-                );
-                revealFolder(activeCollectionId, activeFolderId);
-              }}
-            />
-          </section>
-          <ResizeHandle
-            orientation="horizontal"
-            value={editorHeight}
-            min={editorMinSize}
-            max={editorMaxSize}
-            onResizeStart={onResizeStart}
-            onKeyboardResize={onKeyboardResize}
-            ariaLabel="Resize request editor"
-          />
-          <section aria-label="Response" className="flex min-h-0 flex-1 flex-col">
-            <ResponseEditor
-              key={`response-${activeTabId}`}
-              response={response}
-              responseTabContext={responseTabContext}
-              sending={sending}
-              testResults={testResults}
-              requestUrl={draft.url}
-              onCancel={() => void dispatch(cancelRequest(activeTabId))}
-            />
-          </section>
+          {isActivePageTab && activePage ? (
+            <div
+              key={`page-${activeTabId}`}
+              className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            >
+              <PageTabContent page={activePage} tabId={activeTabId} />
+            </div>
+          ) : (
+            <>
+              <section
+                aria-label="Request editor"
+                ref={splitRef}
+                style={{ height: editorHeight }}
+                className="shrink-0 overflow-auto"
+              >
+                <Editor
+                  key={`editor-${activeTabId}`}
+                  tabId={activeTabId}
+                  draft={draft}
+                  requestTabContext={requestTabContext}
+                  onChange={(next) => dispatch(setActiveDraft(next))}
+                  onSend={() => void dispatch(sendRequest())}
+                  sending={sending}
+                  variables={activeVariables}
+                  collectionName={activeCollectionName}
+                  folderName={activeFolderName}
+                  onEditVariables={onEditVariables}
+                  onCollectionClick={() => {
+                    if (activeCollectionId == null) return;
+                    dispatch(focusSidebarItem({ collectionId: activeCollectionId }));
+                    revealCollection(activeCollectionId);
+                  }}
+                  onFolderClick={() => {
+                    if (activeCollectionId == null || activeFolderId == null) return;
+                    dispatch(
+                      focusSidebarItem({
+                        collectionId: activeCollectionId,
+                        folderId: activeFolderId
+                      })
+                    );
+                    revealFolder(activeCollectionId, activeFolderId);
+                  }}
+                />
+              </section>
+              <ResizeHandle
+                orientation="horizontal"
+                value={editorHeight}
+                min={editorMinSize}
+                max={editorMaxSize}
+                onResizeStart={onResizeStart}
+                onKeyboardResize={onKeyboardResize}
+                ariaLabel="Resize request editor"
+              />
+              <section aria-label="Response" className="flex min-h-0 flex-1 flex-col">
+                <ResponseEditor
+                  key={`response-${activeTabId}`}
+                  response={response}
+                  responseTabContext={responseTabContext}
+                  sending={sending}
+                  testResults={testResults}
+                  requestUrl={draft.url}
+                  onCancel={() => void dispatch(cancelRequest(activeTabId))}
+                />
+              </section>
+            </>
+          )}
         </div>
       ) : (
         <NoOpenRequests />
@@ -279,7 +332,12 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
           <ModalFooter>
             <Button
               onClick={() => {
-                void dispatch(closeRequestTab(closeTabPrompt.tabId));
+                const tab = tabs.find((entry) => entry.tabId === closeTabPrompt.tabId);
+                if (tab && isPageTab(tab)) {
+                  dispatch(closeTab(closeTabPrompt.tabId));
+                } else {
+                  void dispatch(closeRequestTab(closeTabPrompt.tabId));
+                }
                 setCloseTabPrompt(null);
               }}
             >

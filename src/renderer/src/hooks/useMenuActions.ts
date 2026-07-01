@@ -7,15 +7,16 @@ import {
   openUpdateModal
 } from '#/renderer/src/store/slices/modalsSlice';
 import {
-  openSharingKeys,
-  openTeamHub,
-  openPlugins,
-  openSettings,
   selectAiSidebarVisible,
   selectSidebarVisible,
   toggleAiSidebar,
   toggleSidebar
 } from '#/renderer/src/store/slices/navigationSlice';
+import {
+  activateNextTab,
+  activatePreviousTab,
+  openPageTab
+} from '#/renderer/src/store/slices/tabsSlice';
 import {
   dispatchNewRequest,
   importFromMenu,
@@ -23,7 +24,6 @@ import {
   saveFromMenu,
   sendRequest
 } from '#/renderer/src/store/thunks';
-import { activateNextTab, activatePreviousTab } from '#/renderer/src/store/slices/tabsSlice';
 import {
   restoreLastFocusWithoutRing,
   useLastFocusedElement
@@ -77,16 +77,16 @@ export function useMenuActions(): void {
           });
           break;
         case 'settings':
-          dispatch(openSettings());
+          dispatch(openPageTab({ type: 'settings', section: 'general' }));
           break;
         case 'plugins':
-          dispatch(openPlugins());
+          dispatch(openPageTab({ type: 'plugins' }));
           break;
         case 'team-hubs':
-          dispatch(openTeamHub());
+          dispatch(openPageTab({ type: 'team-hubs' }));
           break;
         case 'sharing-keys':
-          dispatch(openSharingKeys());
+          dispatch(openPageTab({ type: 'sharing-keys' }));
           break;
         case 'join-shared-collection':
           dispatch(openCollectionModal({ mode: 'create', tab: 'join' }));

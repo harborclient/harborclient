@@ -1,15 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import type { SavedRequest, ScriptTestResult, SendResult } from '#/shared/types';
-import { draftFromSaved, isTabDirty } from '#/renderer/src/store/drafts';
+import { asRequestTab, draftFromSaved, isPageTab, isTabDirty } from '#/renderer/src/store/drafts';
 import tabsReducer, {
   activateNextTab,
   activatePreviousTab,
   closeTab,
   closeTabsForCollection,
+  closeTabsForEnvironment,
   closeTabsForRequest,
   loadRequest,
   newTab,
+  openPageTab,
   openTabWithDraft
 } from '#/renderer/src/store/slices/tabsSlice';
 
@@ -112,6 +114,39 @@ describe('tabsSlice closeTabsForRequest', () => {
   });
 });
 
+describe('tabsSlice openPageTab', () => {
+  it('opens a new page tab and selects it', () => {
+    const initial = tabsReducer(undefined, { type: 'unknown' });
+    const state = tabsReducer(initial, openPageTab({ type: 'plugins' }));
+
+    expect(state.tabs).toHaveLength(initial.tabs.length + 1);
+    const pageTab = state.tabs[state.tabs.length - 1];
+    expect(isPageTab(pageTab)).toBe(true);
+    if (isPageTab(pageTab)) {
+      expect(pageTab.page).toEqual({ type: 'plugins' });
+    }
+    expect(state.activeTabId).toBe(pageTab?.tabId);
+  });
+
+  it('focuses an existing page tab instead of opening a duplicate', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, closeTab(state.activeTabId));
+    state = tabsReducer(state, openPageTab({ type: 'settings', section: 'general' }));
+    const existingTabId = state.activeTabId;
+    state = tabsReducer(state, newTab());
+    state = tabsReducer(state, openPageTab({ type: 'settings', section: 'ai' }));
+
+    expect(state.tabs).toHaveLength(2);
+    expect(state.activeTabId).toBe(existingTabId);
+    const settingsTab = state.tabs.find((tab) => tab.tabId === existingTabId);
+    expect(settingsTab).toBeDefined();
+    expect(isPageTab(settingsTab!)).toBe(true);
+    if (isPageTab(settingsTab!)) {
+      expect(settingsTab.page).toEqual({ type: 'settings', section: 'ai' });
+    }
+  });
+});
+
 describe('tabsSlice closeTabsForCollection', () => {
   it('leaves zero tabs open when all tabs belong to the collection', () => {
     let state = tabsReducer(undefined, { type: 'unknown' });
@@ -140,6 +175,32 @@ describe('tabsSlice closeTabsForCollection', () => {
     expect(state.tabs).toEqual([]);
     expect(state.activeTabId).toBe('');
   });
+
+  it('closes matching collection settings page tabs', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, closeTab(state.activeTabId));
+    state = tabsReducer(state, openPageTab({ type: 'collection', id: 99 }));
+    state = tabsReducer(state, newTab());
+
+    state = tabsReducer(state, closeTabsForCollection(99));
+
+    expect(state.tabs).toHaveLength(1);
+    expect(isPageTab(state.tabs[0]!)).toBe(false);
+  });
+});
+
+describe('tabsSlice closeTabsForEnvironment', () => {
+  it('closes matching environment settings page tabs', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, closeTab(state.activeTabId));
+    state = tabsReducer(state, openPageTab({ type: 'environment', id: 7 }));
+    state = tabsReducer(state, newTab());
+
+    state = tabsReducer(state, closeTabsForEnvironment(7));
+
+    expect(state.tabs).toHaveLength(1);
+    expect(isPageTab(state.tabs[0]!)).toBe(false);
+  });
 });
 
 describe('tabsSlice loadRequest', () => {
@@ -150,7 +211,7 @@ describe('tabsSlice loadRequest', () => {
     const state = tabsReducer(initial, loadRequest(req));
 
     expect(state.tabs).toHaveLength(initial.tabs.length + 1);
-    expect(state.tabs[state.tabs.length - 1]?.draft).toEqual(draftFromSaved(req));
+    expect(asRequestTab(state.tabs[state.tabs.length - 1]).draft).toEqual(draftFromSaved(req));
     expect(state.activeTabId).toBe(state.tabs[state.tabs.length - 1]?.tabId);
   });
 
@@ -183,13 +244,13 @@ describe('tabsSlice loadRequest', () => {
     });
 
     const state = tabsReducer(initial, loadRequest(updated));
-    const tab = state.tabs.find((t) => t.tabId === tabId);
+    const tab = asRequestTab(state.tabs.find((t) => t.tabId === tabId));
 
     expect(state.activeTabId).toBe(tabId);
     expect(state.tabs).toHaveLength(initial.tabs.length);
-    expect(tab?.draft).toEqual(draftFromSaved(updated));
-    expect(tab?.savedDraft).toEqual(draftFromSaved(updated));
-    expect(isTabDirty(tab!)).toBe(false);
+    expect(tab.draft).toEqual(draftFromSaved(updated));
+    expect(tab.savedDraft).toEqual(draftFromSaved(updated));
+    expect(isTabDirty(tab)).toBe(false);
   });
 
   it('clears response and test results when reloading an existing tab', () => {
@@ -228,9 +289,9 @@ describe('tabsSlice loadRequest', () => {
 
     const state = tabsReducer(withSendState, loadRequest(sampleSaved()));
 
-    const tab = state.tabs.find((t) => t.tabId === tabId);
-    expect(tab?.response).toBeNull();
-    expect(tab?.testResults).toEqual([]);
+    const tab = asRequestTab(state.tabs.find((t) => t.tabId === tabId));
+    expect(tab.response).toBeNull();
+    expect(tab.testResults).toEqual([]);
   });
 });
 

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import type { RequestDraft } from '#/renderer/src/store/drafts';
-import { createTab, isTabDirty } from '#/renderer/src/store/drafts';
+import { asRequestTab, createTab, isRequestTab, isTabDirty } from '#/renderer/src/store/drafts';
 import {
   defaultTabState,
   LEGACY_OPEN_TABS_KEY,
@@ -33,7 +33,8 @@ const sampleDraft = (overrides: Partial<RequestDraft> = {}): RequestDraft => ({
 
 const persistedPayload = (overrides: Partial<PersistedOpenTabs> = {}): PersistedOpenTabs => {
   const tabId = overrides.tabs?.[0]?.tabId ?? 'tab-1';
-  const draft = overrides.tabs?.[0]?.draft ?? sampleDraft();
+  const firstTab = overrides.tabs?.[0];
+  const draft = firstTab && 'draft' in firstTab ? firstTab.draft : sampleDraft();
   return {
     tabs: [{ tabId, draft }],
     activeTabId: tabId,
@@ -109,12 +110,12 @@ describe('loadTabsFromStorage', () => {
 
     expect(result.tabs).toHaveLength(2);
     expect(result.tabs[0].tabId).toBe('tab-a');
-    expect(result.tabs[0].draft.name).toBe('First');
-    expect(result.tabs[0].draft.url).toBe('https://example.com?page=1');
+    expect(asRequestTab(result.tabs[0]).draft.name).toBe('First');
+    expect(asRequestTab(result.tabs[0]).draft.url).toBe('https://example.com?page=1');
     expect(result.tabs[1].tabId).toBe('tab-b');
     expect(result.activeTabId).toBe('tab-b');
-    expect(result.tabs[0].response).toBeNull();
-    expect(result.tabs[0].sending).toBe(false);
+    expect(asRequestTab(result.tabs[0]).response).toBeNull();
+    expect(asRequestTab(result.tabs[0]).sending).toBe(false);
   });
 
   it('returns a default tab when JSON is corrupt', () => {
@@ -125,7 +126,7 @@ describe('loadTabsFromStorage', () => {
 
     expect(result.tabs).toHaveLength(1);
     expect(result.activeTabId).toBe(result.tabs[0].tabId);
-    expect(result.tabs[0].draft.name).toBe(fallback.tabs[0].draft.name);
+    expect(asRequestTab(result.tabs[0]).draft.name).toBe(asRequestTab(fallback.tabs[0]).draft.name);
   });
 
   it('restores an intentionally empty tabs payload', () => {
@@ -181,7 +182,7 @@ describe('loadTabsFromStorage', () => {
 
     expect(result.tabs).toHaveLength(1);
     expect(result.tabs[0].tabId).toBe('good-tab');
-    expect(result.tabs[0].draft.name).toBe('Good');
+    expect(asRequestTab(result.tabs[0]).draft.name).toBe('Good');
     expect(result.activeTabId).toBe('good-tab');
   });
 
@@ -220,7 +221,7 @@ describe('loadTabsFromStorage', () => {
     const result = loadTabsFromStorage();
 
     expect(result.tabs).toHaveLength(1);
-    expect(result.tabs[0].draft).toMatchObject({
+    expect(asRequestTab(result.tabs[0]).draft).toMatchObject({
       name: 'Legacy',
       url: 'https://legacy.example?q=search',
       pre_request_script: '',
@@ -240,7 +241,7 @@ describe('loadTabsFromStorage', () => {
     const result = loadTabsFromStorage();
 
     expect(result.tabs).toHaveLength(1);
-    expect(result.tabs[0].draft.name).toBe('Legacy key');
+    expect(asRequestTab(result.tabs[0]).draft.name).toBe('Legacy key');
     expect(localStorage.getItem(OPEN_TABS_KEY)).toBe(JSON.stringify(payload));
   });
 
@@ -257,7 +258,7 @@ describe('loadTabsFromStorage', () => {
     const result = loadTabsFromStorage();
 
     expect(result.tabs).toHaveLength(1);
-    expect(result.tabs[0].draft.name).toBe('First');
+    expect(asRequestTab(result.tabs[0]).draft.name).toBe('First');
   });
 
   it('restores drafts with auth and round-trips through persistTabs', () => {
@@ -278,9 +279,9 @@ describe('loadTabsFromStorage', () => {
     const result = loadTabsFromStorage();
 
     expect(result.tabs).toHaveLength(1);
-    expect(result.tabs[0].draft.name).toBe('Authed');
-    expect(result.tabs[0].draft.auth.type).toBe('bearer');
-    expect(result.tabs[0].draft.auth.bearer.token).toBe('secret');
+    expect(asRequestTab(result.tabs[0]).draft.name).toBe('Authed');
+    expect(asRequestTab(result.tabs[0]).draft.auth.type).toBe('bearer');
+    expect(asRequestTab(result.tabs[0]).draft.auth.bearer.token).toBe('secret');
   });
 
   it('restores legacy key-value rows missing enabled', () => {
@@ -306,12 +307,12 @@ describe('loadTabsFromStorage', () => {
     const result = loadTabsFromStorage();
 
     expect(result.tabs).toHaveLength(1);
-    expect(result.tabs[0].draft.headers[0]).toEqual({
+    expect(asRequestTab(result.tabs[0]).draft.headers[0]).toEqual({
       key: 'X-Test',
       value: '1',
       enabled: true
     });
-    expect(result.tabs[0].draft.params[0]).toEqual({
+    expect(asRequestTab(result.tabs[0]).draft.params[0]).toEqual({
       key: 'page',
       value: '2',
       enabled: true
@@ -335,7 +336,7 @@ describe('loadTabsFromStorage', () => {
     const result = loadTabsFromStorage();
 
     expect(result.tabs).toHaveLength(1);
-    expect(result.tabs[0].draft.name).toBe('Valid draft');
+    expect(asRequestTab(result.tabs[0]).draft.name).toBe('Valid draft');
     expect(isTabDirty(result.tabs[0])).toBe(false);
   });
 });
@@ -437,9 +438,30 @@ describe('redux open-tab round trip', () => {
     resetInitialTabStateForTests();
     const restored = parseOpenTabsFromRaw(storedPayload!);
 
-    const names = restored.tabs.map((tab) => tab.draft.name);
+    const names = restored.tabs.filter(isRequestTab).map((tab) => tab.draft.name);
     expect(names).toContain('First tab');
     expect(names).toContain('Second tab');
+  });
+
+  it('round-trips page tabs through parseOpenTabsFromRaw', () => {
+    const payload = JSON.stringify({
+      tabs: [
+        {
+          tabId: 'page-tab-1',
+          kind: 'page',
+          page: { type: 'plugins' }
+        }
+      ],
+      activeTabId: 'page-tab-1'
+    });
+
+    const restored = parseOpenTabsFromRaw(payload);
+
+    expect(restored.tabs).toHaveLength(1);
+    expect(restored.activeTabId).toBe('page-tab-1');
+    const tab = restored.tabs[0];
+    expect(tab?.tabId).toBe('page-tab-1');
+    expect('kind' in tab! && tab.kind === 'page' && tab.page.type).toBe('plugins');
   });
 });
 

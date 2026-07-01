@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import type { Collection, ListCollectionsResult } from '#/shared/types';
 import type { RequestDraft } from '#/renderer/src/store/drafts';
+import { isRequestTab } from '#/renderer/src/store/drafts';
 
 // react-hot-toast pulls in the DOM at import time; stub it for the Node test env.
 vi.mock('react-hot-toast', () => ({
@@ -139,8 +140,10 @@ describe('deleteCollection', () => {
     expect(deleteCollectionMock).toHaveBeenCalledWith(1);
 
     const tabs = store.getState().tabs.tabs;
-    expect(tabs.some((tab) => tab.draft.collection_id === 1)).toBe(false);
-    expect(tabs.some((tab) => tab.draft.name === 'Collection Two Request')).toBe(true);
+    expect(tabs.some((tab) => isRequestTab(tab) && tab.draft.collection_id === 1)).toBe(false);
+    expect(
+      tabs.some((tab) => isRequestTab(tab) && tab.draft.name === 'Collection Two Request')
+    ).toBe(true);
   });
 });
 

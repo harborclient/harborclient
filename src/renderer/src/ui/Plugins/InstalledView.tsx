@@ -1,4 +1,4 @@
-import { BackButton, Button, Page } from '@harborclient/sdk/components';
+import { Button, Page } from '@harborclient/sdk/components';
 import { FaIcon } from '@harborclient/sdk/components';
 import type { JSX, KeyboardEvent } from 'react';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
@@ -14,11 +14,6 @@ import { TableExternalLink } from './TableExternalLink';
 const PLUGIN_TABLE_ACTION_BUTTON_CLASS = 'w-[6rem]';
 
 interface Props {
-  /**
-   * Closes the plugins view.
-   */
-  onClose: () => void;
-
   /**
    * Installed plugin rows from the main process.
    */
@@ -79,7 +74,6 @@ interface Props {
  * Installed plugins table with enable, reload, update, and remove actions.
  */
 export function InstalledView({
-  onClose,
   plugins,
   loading,
   error,
@@ -98,7 +92,6 @@ export function InstalledView({
       title="Installed"
       icon={faPuzzlePiece}
       description="Enable, disable, update, and remove plugins installed on this machine."
-      actions={<BackButton onClick={onClose} ariaLabel="Back to requests" />}
     >
       {error ? <p className="text-danger">{error}</p> : null}
       {loading ? (

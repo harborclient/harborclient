@@ -2,12 +2,16 @@ import {
   cloneDraft,
   createTab,
   defaultDraft,
+  isPageTab,
+  isRequestTab,
   normalizeDraft,
   syncDraftUrlWithParams,
+  type PageRef,
   type RequestDraft,
-  type RequestTab
+  type RequestTab,
+  type Tab
 } from '#/renderer/src/store/drafts';
-import type { BodyType, HttpMethod, KeyValue } from '#/shared/types';
+import type { BodyType, HttpMethod, KeyValue, SettingsSection } from '#/shared/types';
 
 /** When false, persistTabs is a no-op so the default startup tab does not clobber electron-store. */
 let tabsHydrated = false;
@@ -17,13 +21,27 @@ export const LEGACY_OPEN_TABS_KEY = 'harbor-client.openTabs';
 export const ACTIVE_ENVIRONMENT_KEY = 'harborclient.activeEnvironmentId';
 
 /**
- * Persisted tab shape (draft only, no response/sending).
+ * Persisted request tab shape (draft only, no response/sending).
  */
-export interface PersistedTab {
+export interface PersistedRequestTab {
   tabId: string;
   draft: RequestDraft;
   savedDraft?: RequestDraft;
 }
+
+/**
+ * Persisted page tab shape.
+ */
+export interface PersistedPageTab {
+  tabId: string;
+  kind: 'page';
+  page: PageRef;
+}
+
+/**
+ * Persisted tab entry — request tabs omit kind for backward compatibility.
+ */
+export type PersistedTab = PersistedRequestTab | PersistedPageTab;
 
 export interface PersistedOpenTabs {
   tabs: PersistedTab[];
@@ -41,6 +59,17 @@ const HTTP_METHODS = new Set<HttpMethod>([
 ]);
 
 const BODY_TYPES = new Set<BodyType>(['none', 'json', 'text', 'multipart', 'urlencoded']);
+
+const SETTINGS_SECTIONS = new Set<string>([
+  'general',
+  'syntax',
+  'storage',
+  'shortcuts',
+  'proxy',
+  'globals',
+  'ai',
+  'backup-restore'
+]);
 
 /**
  * Returns whether a value is a plain object (not null or an array).
@@ -159,12 +188,90 @@ function normalizePersistedDraft(value: unknown): RequestDraft | null {
 }
 
 /**
- * Salvages a persisted tab entry, falling back to draft when savedDraft is invalid.
+ * Normalizes a persisted settings section identifier.
+ *
+ * @param value - Candidate section from persisted storage.
+ * @returns Valid settings section or null when invalid.
+ */
+function normalizeSettingsSection(value: unknown): SettingsSection | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  if (SETTINGS_SECTIONS.has(value)) {
+    return value as SettingsSection;
+  }
+  if (value.startsWith('plugin:')) {
+    return value as SettingsSection;
+  }
+  return null;
+}
+
+/**
+ * Normalizes a persisted page reference.
+ *
+ * @param value - Candidate page object from persisted storage.
+ * @returns Valid PageRef or null when salvage is impossible.
+ */
+function normalizePageRef(value: unknown): PageRef | null {
+  if (!isRecord(value) || typeof value.type !== 'string') {
+    return null;
+  }
+
+  switch (value.type) {
+    case 'settings': {
+      const section = normalizeSettingsSection(value.section ?? 'general');
+      return section ? { type: 'settings', section } : null;
+    }
+    case 'plugins':
+      return { type: 'plugins' };
+    case 'team-hubs':
+      return { type: 'team-hubs' };
+    case 'sharing-keys':
+      return { type: 'sharing-keys' };
+    case 'plugin-view':
+      if (typeof value.pluginId !== 'string' || typeof value.viewId !== 'string') {
+        return null;
+      }
+      return { type: 'plugin-view', pluginId: value.pluginId, viewId: value.viewId };
+    case 'collection':
+      if (typeof value.id !== 'number' || !Number.isFinite(value.id)) {
+        return null;
+      }
+      return { type: 'collection', id: value.id };
+    case 'environment':
+      if (typeof value.id !== 'number' || !Number.isFinite(value.id)) {
+        return null;
+      }
+      return { type: 'environment', id: value.id };
+    default:
+      return null;
+  }
+}
+
+/**
+ * Salvages a persisted page tab entry.
+ *
+ * @param value - Candidate tab entry from persisted storage.
+ * @returns Salvaged page tab or null when tabId or page cannot be recovered.
+ */
+function salvagePersistedPageTab(value: unknown): PersistedPageTab | null {
+  if (!isRecord(value)) return null;
+  if (value.kind !== 'page') return null;
+  if (typeof value.tabId !== 'string' || value.tabId.length === 0) return null;
+
+  const page = normalizePageRef(value.page);
+  if (!page) return null;
+
+  return { tabId: value.tabId, kind: 'page', page };
+}
+
+/**
+ * Salvages a persisted request tab entry, falling back to draft when savedDraft is invalid.
  *
  * @param value - Candidate tab entry from persisted storage.
  * @returns Salvaged tab or null when tabId or draft cannot be recovered.
  */
-function salvagePersistedTab(value: unknown): PersistedTab | null {
+function salvagePersistedRequestTab(value: unknown): PersistedRequestTab | null {
   if (!isRecord(value)) return null;
   if (typeof value.tabId !== 'string' || value.tabId.length === 0) return null;
 
@@ -178,12 +285,26 @@ function salvagePersistedTab(value: unknown): PersistedTab | null {
 }
 
 /**
- * Converts a validated persisted tab into runtime RequestTab state.
+ * Salvages a persisted tab entry as either a request or page tab.
  *
- * @param tab - Validated persisted tab entry.
+ * @param value - Candidate tab entry from persisted storage.
+ * @returns Salvaged tab or null when the entry cannot be recovered.
+ */
+function salvagePersistedTab(value: unknown): PersistedTab | null {
+  const pageTab = salvagePersistedPageTab(value);
+  if (pageTab) {
+    return pageTab;
+  }
+  return salvagePersistedRequestTab(value);
+}
+
+/**
+ * Converts a validated persisted request tab into runtime RequestTab state.
+ *
+ * @param tab - Validated persisted request tab entry.
  * @returns RequestTab with normalized drafts and cleared runtime fields.
  */
-function persistedTabToRequestTab(tab: PersistedTab): RequestTab {
+function persistedRequestTabToRequestTab(tab: PersistedRequestTab): RequestTab {
   const draft = syncDraftUrlWithParams(normalizeDraft(tab.draft));
   const savedDraft = syncDraftUrlWithParams(normalizeDraft(tab.savedDraft ?? tab.draft));
   return {
@@ -198,13 +319,26 @@ function persistedTabToRequestTab(tab: PersistedTab): RequestTab {
 }
 
 /**
- * Returns whether in-memory tab state matches the default blank single tab.
+ * Converts a validated persisted tab into runtime tab state.
+ *
+ * @param tab - Validated persisted tab entry.
+ * @returns Runtime Tab for Redux state.
+ */
+function persistedTabToTab(tab: PersistedTab): Tab {
+  if ('kind' in tab && tab.kind === 'page') {
+    return { tabId: tab.tabId, kind: 'page', page: tab.page };
+  }
+  return persistedRequestTabToRequestTab(tab as PersistedRequestTab);
+}
+
+/**
+ * Returns whether in-memory tab state matches the default blank single request tab.
  *
  * @param tabs - Open tabs currently in Redux.
  * @returns True when there is one untouched Untitled Request tab.
  */
-function isDefaultSingleTabState(tabs: RequestTab[]): boolean {
-  if (tabs.length !== 1) return false;
+function isDefaultSingleTabState(tabs: Tab[]): boolean {
+  if (tabs.length !== 1 || !isRequestTab(tabs[0])) return false;
   const fallback = defaultDraft();
   const tab = tabs[0];
   return (
@@ -238,7 +372,7 @@ function shouldSkipClobberingPersist(): boolean {
 /**
  * Returns default tab state when nothing is persisted or restore fails.
  */
-export function defaultTabState(): { tabs: RequestTab[]; activeTabId: string } {
+export function defaultTabState(): { tabs: Tab[]; activeTabId: string } {
   const tab = createTab();
   return { tabs: [tab], activeTabId: tab.tabId };
 }
@@ -263,7 +397,7 @@ export function loadActiveEnvironmentId(): number | null {
  * @param raw - JSON string from electron-store or localStorage.
  * @returns Restored tabs or a default single tab when the payload is invalid.
  */
-export function parseOpenTabsFromRaw(raw: string): { tabs: RequestTab[]; activeTabId: string } {
+export function parseOpenTabsFromRaw(raw: string): { tabs: Tab[]; activeTabId: string } {
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!isRecord(parsed) || !Array.isArray(parsed.tabs)) {
@@ -271,7 +405,7 @@ export function parseOpenTabsFromRaw(raw: string): { tabs: RequestTab[]; activeT
     }
 
     const seenTabIds = new Set<string>();
-    const tabs: RequestTab[] = [];
+    const tabs: Tab[] = [];
     for (const entry of parsed.tabs) {
       const salvaged = salvagePersistedTab(entry);
       if (!salvaged || seenTabIds.has(salvaged.tabId)) {
@@ -279,7 +413,7 @@ export function parseOpenTabsFromRaw(raw: string): { tabs: RequestTab[]; activeT
       }
       seenTabIds.add(salvaged.tabId);
       try {
-        tabs.push(persistedTabToRequestTab(salvaged));
+        tabs.push(persistedTabToTab(salvaged));
       } catch {
         // Skip tabs that fail conversion.
       }
@@ -323,7 +457,7 @@ export function resetTabsHydratedForTests(): void {
  * Invalid tab entries are skipped rather than failing the entire restore. When no valid tabs
  * remain, or the top-level payload shape is invalid, returns a default single tab.
  */
-export function loadTabsFromStorage(): { tabs: RequestTab[]; activeTabId: string } {
+export function loadTabsFromStorage(): { tabs: Tab[]; activeTabId: string } {
   try {
     let raw = localStorage.getItem(OPEN_TABS_KEY);
     if (!raw) {
@@ -345,7 +479,7 @@ export function loadTabsFromStorage(): { tabs: RequestTab[]; activeTabId: string
 /**
  * Returns default tab state for tests that still call this helper.
  */
-export function getInitialTabState(): { tabs: RequestTab[]; activeTabId: string } {
+export function getInitialTabState(): { tabs: Tab[]; activeTabId: string } {
   return defaultTabState();
 }
 
@@ -362,7 +496,7 @@ export function resetInitialTabStateForTests(): void {
  * Ignores quota, privacy-mode, and other storage failures so Redux subscribers
  * are not interrupted on every dispatch.
  */
-export function persistTabs(tabs: RequestTab[], activeTabId: string): void {
+export function persistTabs(tabs: Tab[], activeTabId: string): void {
   try {
     if (!tabsHydrated) {
       return;
@@ -373,7 +507,15 @@ export function persistTabs(tabs: RequestTab[], activeTabId: string): void {
     }
 
     const payload: PersistedOpenTabs = {
-      tabs: tabs.map((t) => ({ tabId: t.tabId, draft: t.draft, savedDraft: t.savedDraft })),
+      tabs: tabs.map((tab) => {
+        if (isPageTab(tab)) {
+          return { tabId: tab.tabId, kind: 'page' as const, page: tab.page };
+        }
+        if (isRequestTab(tab)) {
+          return { tabId: tab.tabId, draft: tab.draft, savedDraft: tab.savedDraft };
+        }
+        throw new Error('Unknown tab kind');
+      }),
       activeTabId
     };
     const serialized = JSON.stringify(payload);

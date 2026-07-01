@@ -1,7 +1,7 @@
 import { EmptyState } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
-import { openSettings } from '#/renderer/src/store/slices/navigationSlice';
+import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 
 /**
  * Prompt shown when the AI sidebar is open but no provider API keys are configured.
@@ -13,7 +13,7 @@ export function ConfigureApiKeysPrompt(): JSX.Element {
    * Opens application settings on the AI section so the user can add API keys.
    */
   const handleOpenAiSettings = (): void => {
-    dispatch(openSettings('ai'));
+    dispatch(openPageTab({ type: 'settings', section: 'ai' }));
   };
 
   return (

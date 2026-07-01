@@ -1,5 +1,6 @@
 import { store } from '#/renderer/src/store/redux';
-import { openPluginView, setActiveSidebarPanel } from '#/renderer/src/store/slices/navigationSlice';
+import { setActiveSidebarPanel } from '#/renderer/src/store/slices/navigationSlice';
+import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { executePluginCommand, registerCommand } from '#/renderer/src/plugins/createPluginContext';
 import { registerHostRequestCommands } from '#/renderer/src/plugins/hostRequestCommands';
 import { registerHostEnvironmentCommands } from '#/renderer/src/plugins/hostEnvironmentCommands';
@@ -19,7 +20,7 @@ export function registerHostPluginCommands(): () => void {
       if (typeof pluginId !== 'string' || typeof viewId !== 'string') {
         throw new Error('harborclient.openMainView requires pluginId and viewId strings.');
       }
-      store.dispatch(openPluginView({ pluginId, viewId }));
+      store.dispatch(openPageTab({ type: 'plugin-view', pluginId, viewId }));
     }),
     registerCommand(HOST_PLUGIN_ID, 'openSidebarPanel', (pluginId, panelId) => {
       if (typeof pluginId !== 'string' || typeof panelId !== 'string') {

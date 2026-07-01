@@ -6,7 +6,6 @@ import { selectSettingsDraftLoadError } from '#/renderer/src/store/slices/settin
 import { loadSettingsDraft } from '#/renderer/src/store/thunks/settingsDraft';
 import type { SettingsSection } from '#/shared/types';
 
-import { SettingsBackButton } from '../SettingsBackButton';
 import { SettingsSaveFooter } from '../components/SettingsSaveFooter';
 import { entryById, type FieldSettingId, type SettingId } from './catalog';
 import { renderSettingFields } from './registry';
@@ -26,11 +25,6 @@ interface Props {
    * Opens a management section and clears the active search query.
    */
   onNavigate: (section: SettingsSection) => void;
-
-  /**
-   * Closes the settings overlay.
-   */
-  onClose: () => void;
 }
 
 /**
@@ -52,12 +46,7 @@ function SettingsDraftError(): JSX.Element | null {
 /**
  * Renders settings search results as inline field controls and section navigation cards.
  */
-export function SettingsSearchResults({
-  matchedIds,
-  query,
-  onNavigate,
-  onClose
-}: Props): JSX.Element {
+export function SettingsSearchResults({ matchedIds, query, onNavigate }: Props): JSX.Element {
   const dispatch = useAppDispatch();
 
   const fieldIds = matchedIds.filter((id): id is FieldSettingId => entryById(id).kind === 'field');
@@ -74,12 +63,7 @@ export function SettingsSearchResults({
   }, [dispatch, fieldIds.length]);
 
   return (
-    <Page
-      embedded
-      className="mb-6 flex flex-col"
-      title="Search results"
-      actions={<SettingsBackButton onClose={onClose} />}
-    >
+    <Page embedded className="mb-6 flex flex-col" title="Search results">
       {matchedIds.length === 0 ? (
         <p className="text-[14px] text-muted" role="status">
           No settings match &ldquo;{query.trim()}&rdquo;.

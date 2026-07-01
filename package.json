@@ -51,7 +51,7 @@
     "@fortawesome/free-solid-svg-icons": "^7.2.0",
     "@fortawesome/react-fontawesome": "^3.3.1",
     "@harborclient/http": "^0.1.1",
-    "@harborclient/sdk": "^1.0.9",
+    "@harborclient/sdk": "^1.0.10",
     "@harborclient/team-hub-api": "^0.1.1",
     "@lezer/highlight": "^1.2.3",
     "@reduxjs/toolkit": "^2.12.0",

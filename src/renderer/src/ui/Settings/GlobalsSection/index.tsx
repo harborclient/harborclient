@@ -7,14 +7,6 @@ import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { saveGlobalVariables } from '#/renderer/src/store/thunks/settings';
 import { settingsSectionMeta } from '../constants';
 import { SettingLabel } from '../components/SettingLabel';
-import { SettingsBackButton } from '../SettingsBackButton';
-
-interface Props {
-  /**
-   * Closes the settings overlay.
-   */
-  onClose: () => void;
-}
 
 /**
  * Serializes globals form state for dirty comparison and form remount keys.
@@ -28,18 +20,17 @@ function serializeGlobalsForm(variables: Variable[]): string {
 /**
  * App-wide global variables managed from Settings → Globals.
  */
-export function GlobalsSection({ onClose }: Props): JSX.Element {
+export function GlobalsSection(): JSX.Element {
   const savedVariables = useAppSelector((state) => state.settings.general.globalVariables);
   return (
     <GlobalsSectionForm
       key={serializeGlobalsForm(savedVariables)}
       savedVariables={savedVariables}
-      onClose={onClose}
     />
   );
 }
 
-interface FormProps extends Props {
+interface FormProps {
   /**
    * Persisted global variables from app settings.
    */
@@ -49,7 +40,7 @@ interface FormProps extends Props {
 /**
  * Editable globals form keyed by saved variables so state resets when persistence changes.
  */
-function GlobalsSectionForm({ savedVariables, onClose }: FormProps): JSX.Element {
+function GlobalsSectionForm({ savedVariables }: FormProps): JSX.Element {
   const dispatch = useAppDispatch();
   const [variables, setVariables] = useState<Variable[]>(
     savedVariables.length
@@ -90,7 +81,6 @@ function GlobalsSectionForm({ savedVariables, onClose }: FormProps): JSX.Element
       title={label}
       description="Use variables in request URLs with {{variable}} syntax."
       icon={icon}
-      actions={<SettingsBackButton onClose={onClose} />}
     >
       <div className="mb-6 flex mx-auto max-w-3xl flex-col gap-1">
         <span className="text-[14px] font-medium text-text">

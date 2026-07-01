@@ -18,19 +18,11 @@ import { settingsSectionMeta } from '../constants';
 import { acceleratorFromKeyboardEvent } from './acceleratorFromKeyboardEvent';
 import { FieldError } from '@harborclient/sdk/components';
 import { StatusMessage } from '@harborclient/sdk/components';
-import { SettingsBackButton } from '../SettingsBackButton';
-
-interface Props {
-  /**
-   * Closes the settings overlay.
-   */
-  onClose: () => void;
-}
 
 /**
  * Keyboard shortcut settings with press-to-record editing and restore defaults.
  */
-export function ShortcutsSection({ onClose }: Props): JSX.Element {
+export function ShortcutsSection(): JSX.Element {
   const confirm = useConfirm();
   const statusId = useId();
   const [bindings, setBindings] = useState<ShortcutBinding[]>([]);
@@ -211,7 +203,6 @@ export function ShortcutsSection({ onClose }: Props): JSX.Element {
       title={label}
       icon={icon}
       description="Click a key combination to record a new shortcut. Changes apply immediately when valid."
-      actions={<SettingsBackButton onClose={onClose} />}
     >
       <div className="flex flex-col gap-3">
         {loading ? (

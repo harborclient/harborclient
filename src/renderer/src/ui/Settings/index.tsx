@@ -7,17 +7,11 @@ import { usePluginSettingsSections } from '#/renderer/src/plugins/pluginHooks';
 import { SETTINGS_SECTIONS } from './constants';
 import { SettingsRenderer } from './catalog/SettingsRenderer';
 import { SettingsSearchResults } from './catalog/SettingsSearchResults';
-import { SettingsBackButton } from './SettingsBackButton';
 import { SettingsSidebar } from './SettingsSidebar';
 import { useSettingsSearch } from './hooks/useSettingsSearch';
 import type { SettingsSection } from './types';
 
 interface Props {
-  /**
-   * Closes the settings view.
-   */
-  onClose: () => void;
-
   /**
    * Settings section to show when the overlay opens.
    */
@@ -27,7 +21,7 @@ interface Props {
 /**
  * Full-area application settings with sidebar navigation and catalog search.
  */
-export function Settings({ onClose, initialSection }: Props): JSX.Element {
+export function Settings({ initialSection }: Props): JSX.Element {
   const [section, setSection] = useState<SettingsSection>(initialSection);
   const pluginSections = usePluginSettingsSections();
   const { query, setQuery, matchedIds, isSearching } = useSettingsSearch();
@@ -73,15 +67,9 @@ export function Settings({ onClose, initialSection }: Props): JSX.Element {
           matchedIds={matchedIds}
           query={query}
           onNavigate={handleNavigateFromSearch}
-          onClose={onClose}
         />
       ) : pluginSection ? (
-        <Page
-          embedded
-          title={pluginSection.title}
-          icon={faPuzzlePiece}
-          actions={<SettingsBackButton onClose={onClose} />}
-        >
+        <Page embedded title={pluginSection.title} icon={faPuzzlePiece}>
           <PluginSurface
             pluginId={pluginSection.pluginId}
             contributionId={pluginSection.contributionId}
@@ -90,7 +78,7 @@ export function Settings({ onClose, initialSection }: Props): JSX.Element {
           />
         </Page>
       ) : (
-        <SettingsRenderer section={section} onClose={onClose} />
+        <SettingsRenderer section={section} />
       )}
     </SidebarLayout>
   );

@@ -1,22 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { SettingsSection } from '#/shared/types';
 import type { RootState } from '#/renderer/src/store/redux';
 
-/**
- * Which main-area view is currently shown. Overlays are mutually exclusive.
- */
-export type MainView =
-  | { type: 'request' }
-  | { type: 'settings' }
-  | { type: 'plugins' }
-  | { type: 'team-hubs' }
-  | { type: 'sharing-keys' }
-  | { type: 'plugin-view'; pluginId: string; viewId: string }
-  | { type: 'collection'; id: number }
-  | { type: 'environment'; id: number };
-
 export interface NavigationState {
-  mainView: MainView;
   collectionSettingsDirty: boolean;
   environmentSettingsDirty: boolean;
   showSidebar: boolean;
@@ -25,12 +10,10 @@ export interface NavigationState {
   showVariables: boolean;
   activePluginFooterPanelId: string | null;
   activeSidebarPanelId: string | null;
-  settingsSection: SettingsSection;
   pendingPluginInstallId: string | null;
 }
 
 const initialState: NavigationState = {
-  mainView: { type: 'request' },
   collectionSettingsDirty: false,
   environmentSettingsDirty: false,
   showSidebar: true,
@@ -39,88 +22,18 @@ const initialState: NavigationState = {
   showVariables: false,
   activePluginFooterPanelId: null,
   activeSidebarPanelId: null,
-  settingsSection: 'general',
   pendingPluginInstallId: null
 };
-
-/**
- * Resets dirty flags when switching overlays so a new settings form starts clean.
- */
-function resetDirtyFlags(state: NavigationState): void {
-  state.collectionSettingsDirty = false;
-  state.environmentSettingsDirty = false;
-}
 
 const navigationSlice = createSlice({
   name: 'navigation',
   initialState,
   reducers: {
     /**
-     * Shows the settings overlay and clears dirty flags.
-     */
-    openSettings(state, action: PayloadAction<SettingsSection | undefined>) {
-      resetDirtyFlags(state);
-      state.mainView = { type: 'settings' };
-      state.settingsSection = action.payload ?? 'general';
-    },
-    /**
-     * Shows the plugins overlay and clears dirty flags.
-     */
-    openPlugins(state) {
-      resetDirtyFlags(state);
-      state.mainView = { type: 'plugins' };
-    },
-    /**
-     * Shows the team hub overlay and clears dirty flags.
-     */
-    openTeamHub(state) {
-      resetDirtyFlags(state);
-      state.mainView = { type: 'team-hubs' };
-    },
-    /**
-     * Shows the sharing keys overlay and clears dirty flags.
-     */
-    openSharingKeys(state) {
-      resetDirtyFlags(state);
-      state.mainView = { type: 'sharing-keys' };
-    },
-    /**
-     * Shows a plugin-contributed main-area overlay.
-     */
-    openPluginView(state, action: PayloadAction<{ pluginId: string; viewId: string }>) {
-      resetDirtyFlags(state);
-      state.mainView = {
-        type: 'plugin-view',
-        pluginId: action.payload.pluginId,
-        viewId: action.payload.viewId
-      };
-    },
-    /**
      * Sets the active switchable sidebar panel id, or null for the default sidebar.
      */
     setActiveSidebarPanel(state, action: PayloadAction<string | null>) {
       state.activeSidebarPanelId = action.payload;
-    },
-    /**
-     * Shows collection settings for the given id.
-     */
-    openCollectionSettings(state, action: PayloadAction<number>) {
-      resetDirtyFlags(state);
-      state.mainView = { type: 'collection', id: action.payload };
-    },
-    /**
-     * Shows environment settings for the given id.
-     */
-    openEnvironmentSettings(state, action: PayloadAction<number>) {
-      resetDirtyFlags(state);
-      state.mainView = { type: 'environment', id: action.payload };
-    },
-    /**
-     * Returns to the request editor and clears dirty flags.
-     */
-    closeOverlay(state) {
-      resetDirtyFlags(state);
-      state.mainView = { type: 'request' };
     },
     /**
      * Tracks unsaved edits in collection settings.
@@ -205,15 +118,7 @@ const navigationSlice = createSlice({
 });
 
 export const {
-  openSettings,
-  openPlugins,
-  openTeamHub,
-  openSharingKeys,
-  openPluginView,
   setActiveSidebarPanel,
-  openCollectionSettings,
-  openEnvironmentSettings,
-  closeOverlay,
   setCollectionSettingsDirty,
   setEnvironmentSettingsDirty,
   toggleSidebar,
@@ -227,10 +132,6 @@ export const {
   consumePendingPluginInstall
 } = navigationSlice.actions;
 
-/**
- * Returns the current main-area view.
- */
-export const selectMainView = (state: RootState): MainView => state.navigation.mainView;
 /**
  * Returns whether collection settings have unsaved edits.
  */
@@ -246,9 +147,17 @@ export const selectEnvironmentSettingsDirty = (state: RootState): boolean =>
  */
 export const selectShowSidebar = (state: RootState): boolean => state.navigation.showSidebar;
 /**
+ * Returns effective sidebar visibility for layout rendering.
+ */
+export const selectSidebarVisible = (state: RootState): boolean => state.navigation.showSidebar;
+/**
  * Returns the user AI sidebar visibility preference.
  */
 export const selectShowAiSidebar = (state: RootState): boolean => state.navigation.showAiSidebar;
+/**
+ * Returns effective AI sidebar visibility for layout rendering.
+ */
+export const selectAiSidebarVisible = (state: RootState): boolean => state.navigation.showAiSidebar;
 /**
  * Returns whether the console panel is open.
  */
@@ -268,46 +177,9 @@ export const selectActivePluginFooterPanelId = (state: RootState): string | null
 export const selectActiveSidebarPanelId = (state: RootState): string | null =>
   state.navigation.activeSidebarPanelId;
 /**
- * Returns the settings section to show when the settings overlay is open.
- */
-export const selectSettingsSection = (state: RootState): SettingsSection =>
-  state.navigation.settingsSection;
-/**
  * Returns the plugin id queued by a harborclient:// install deep link, if any.
  */
 export const selectPendingPluginInstallId = (state: RootState): string | null =>
   state.navigation.pendingPluginInstallId;
-
-/**
- * Sidebar is hidden when app settings, plugins, team hubs, or sharing keys are open, even if
- * the user has not toggled it off manually.
- */
-export const selectSidebarVisible = (state: RootState): boolean => {
-  const { mainView, showSidebar } = state.navigation;
-  return (
-    showSidebar &&
-    mainView.type !== 'settings' &&
-    mainView.type !== 'plugins' &&
-    mainView.type !== 'team-hubs' &&
-    mainView.type !== 'sharing-keys' &&
-    mainView.type !== 'plugin-view'
-  );
-};
-
-/**
- * AI sidebar is hidden when app settings, plugins, team hubs, or sharing keys are open, even
- * if the user has not toggled it off manually.
- */
-export const selectAiSidebarVisible = (state: RootState): boolean => {
-  const { mainView, showAiSidebar } = state.navigation;
-  return (
-    showAiSidebar &&
-    mainView.type !== 'settings' &&
-    mainView.type !== 'plugins' &&
-    mainView.type !== 'team-hubs' &&
-    mainView.type !== 'sharing-keys' &&
-    mainView.type !== 'plugin-view'
-  );
-};
 
 export default navigationSlice.reducer;

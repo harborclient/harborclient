@@ -1,9 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  closeOverlay,
-  setActiveSidebarPanel,
-  setShowSidebar
-} from '#/renderer/src/store/slices/navigationSlice';
+import { setActiveSidebarPanel, setShowSidebar } from '#/renderer/src/store/slices/navigationSlice';
 import { focusSidebarSearch } from './focusSidebarSearch';
 
 describe('focusSidebarSearch', () => {
@@ -19,7 +15,6 @@ describe('focusSidebarSearch', () => {
 
     focusSidebarSearch(dispatch);
 
-    expect(dispatch).toHaveBeenCalledWith(closeOverlay());
     expect(dispatch).toHaveBeenCalledWith(setShowSidebar(true));
     expect(dispatch).toHaveBeenCalledWith(setActiveSidebarPanel(null));
 

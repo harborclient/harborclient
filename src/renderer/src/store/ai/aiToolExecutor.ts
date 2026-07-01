@@ -26,7 +26,7 @@ import {
   type QueryResponseBodyResult
 } from '#/shared/aiChatContext';
 import { hostFromUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/cookieHost';
-import { isTabDirty } from '#/renderer/src/store/drafts';
+import { isRequestTab, isTabDirty } from '#/renderer/src/store/drafts';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import { setActiveDraft } from '#/renderer/src/store/slices/tabsSlice';
 import {
@@ -308,7 +308,7 @@ function getActiveRequest(state: RootState):
     }
   | { error: string } {
   const tab = selectActiveTab(state);
-  if (!tab) {
+  if (!tab || !isRequestTab(tab)) {
     return { error: 'No active request tab.' };
   }
   const draft = tab.draft;
@@ -344,7 +344,7 @@ async function getActiveRequestDetails(state: RootState): Promise<
   | { error: string }
 > {
   const tab = selectActiveTab(state);
-  if (!tab) {
+  if (!tab || !isRequestTab(tab)) {
     return { error: 'No active request tab.' };
   }
   const draft = tab.draft;
@@ -462,7 +462,7 @@ async function sendActiveRequest(
 ): Promise<AgentHttpResponse | { error: string }> {
   const state = ctx.getState();
   const tab = selectActiveTab(state);
-  if (!tab) {
+  if (!tab || !isRequestTab(tab)) {
     return { error: 'No active request tab.' };
   }
   if (tab.sending) {
@@ -599,7 +599,7 @@ async function updateActiveRequest(
   | { error: string }
 > {
   const tab = selectActiveTab(ctx.getState());
-  if (!tab) {
+  if (!tab || !isRequestTab(tab)) {
     return { error: 'No active request tab.' };
   }
 
@@ -628,7 +628,7 @@ async function updateActiveRequest(
   }
 
   const updatedTab = selectActiveTab(ctx.getState());
-  if (!updatedTab) {
+  if (!updatedTab || !isRequestTab(updatedTab)) {
     return { error: 'No active request tab.' };
   }
 

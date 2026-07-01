@@ -22,10 +22,10 @@ import type { RootState } from '#/renderer/src/store/redux';
 import {
   defaultDraft,
   emptyKeyValue,
+  isRequestTab,
   normalizeDraft,
   type RequestDraft
 } from '#/renderer/src/store/drafts';
-import { closeOverlay } from '#/renderer/src/store/slices/navigationSlice';
 import { setSelectedCollectionId } from '#/renderer/src/store/slices/collectionsSlice';
 import { openTabWithDraft, setActiveTab, updateTab } from '#/renderer/src/store/slices/tabsSlice';
 import { requestLoadRequest, sendRequest } from '#/renderer/src/store/thunks/requests';
@@ -242,9 +242,8 @@ export function draftFromOpenPayload(payload: OpenRequestDraftPayload): RequestD
  */
 export function loadSavedRequest(requestId: number): void {
   const state = store.getState();
-  const openTab = state.tabs.tabs.find((tab) => tab.draft.id === requestId);
+  const openTab = state.tabs.tabs.find((tab) => isRequestTab(tab) && tab.draft.id === requestId);
   if (openTab) {
-    store.dispatch(closeOverlay());
     store.dispatch(setActiveTab(openTab.tabId));
     return;
   }
@@ -263,7 +262,6 @@ export function loadSavedRequest(requestId: number): void {
  * @param payload - Partial draft fields from a recent request entry.
  */
 export function openRequestDraft(payload: OpenRequestDraftPayload): void {
-  store.dispatch(closeOverlay());
   store.dispatch(openTabWithDraft(draftFromOpenPayload(payload)));
 }
 

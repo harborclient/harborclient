@@ -8,19 +8,11 @@ import { sectionEntryBySection } from '../catalog/catalog';
 import { SettingLabel } from '../components/SettingLabel';
 import { settingsSectionMeta } from '../constants';
 import { applyLocalStorageSnapshot, collectLocalStorageSnapshot } from './helpers';
-import { SettingsBackButton } from '../SettingsBackButton';
-
-interface Props {
-  /**
-   * Closes the settings overlay.
-   */
-  onClose: () => void;
-}
 
 /**
  * Backup and restore settings for exporting and importing all local app data.
  */
-export function BackupRestoreSection({ onClose }: Props): JSX.Element {
+export function BackupRestoreSection(): JSX.Element {
   const dispatch = useDispatch();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +74,6 @@ export function BackupRestoreSection({ onClose }: Props): JSX.Element {
       title={label}
       icon={icon}
       description="Export everything HarborClient stores locally — collections, environments, settings, chats, credentials, and UI state — into a single backup file. Restore replaces your current local data from a backup."
-      actions={<SettingsBackButton onClose={onClose} />}
     >
       <div className="mb-6 flex flex-col gap-3 mx-auto max-w-5xl">
         <div className="flex flex-col gap-1">

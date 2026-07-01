@@ -1,6 +1,5 @@
 import {
   AsyncListState,
-  BackButton,
   Button,
   FieldError,
   Modal,
@@ -80,11 +79,6 @@ interface Props {
    * Opens collection management for an admin hub connection.
    */
   onManageCollections: (hub: TeamHub) => void;
-
-  /**
-   * Closes the team hub overlay.
-   */
-  onClose: () => void;
 }
 
 /**
@@ -101,8 +95,7 @@ export function TeamHubList({
   onRescanServices,
   onManageUsers,
   onManageTokens,
-  onManageCollections,
-  onClose
+  onManageCollections
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const [saving, setSaving] = useState(false);
@@ -257,7 +250,6 @@ export function TeamHubList({
         title="Team Hub"
         icon={faUsers}
         description="Connect to HarborClient Team Hub instances for shared collections and environments."
-        actions={<BackButton onClick={onClose} ariaLabel="Back to requests" />}
       >
         <div className="mb-4">
           <Button

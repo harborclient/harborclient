@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
+import { asRequestTab, isRequestTab } from '#/renderer/src/store/drafts';
 import type { SaveRequestInput, SavedRequest } from '#/shared/types';
 
 // react-hot-toast pulls in the DOM at import time; stub it for the Node test env.
@@ -207,7 +208,7 @@ describe('requestLoadRequest', () => {
     const activeTab = store
       .getState()
       .tabs.tabs.find((tab) => tab.tabId === store.getState().tabs.activeTabId);
-    if (!activeTab) throw new Error('expected active tab');
+    if (!activeTab || !isRequestTab(activeTab)) throw new Error('expected active tab');
     store.dispatch(setActiveDraft({ ...activeTab.draft, url: 'https://example.com/edited' }));
   }
 
@@ -240,9 +241,11 @@ describe('requestLoadRequest', () => {
       req,
       reason: 'dirty-tab'
     });
-    expect(store.getState().tabs.tabs.find((tab) => tab.draft.id === 101)?.draft.url).toBe(
-      'https://example.com/edited'
-    );
+    expect(
+      asRequestTab(
+        store.getState().tabs.tabs.find((tab) => isRequestTab(tab) && tab.draft.id === 101)
+      ).draft.url
+    ).toBe('https://example.com/edited');
   });
 
   it('reloads a dirty tab when forceReload is true', async () => {
@@ -271,9 +274,11 @@ describe('requestLoadRequest', () => {
     await store.dispatch(requestLoadRequest({ req, skipSettingsCheck: true, forceReload: true }));
 
     expect(store.getState().modals.pendingLoadRequest).toBeNull();
-    expect(store.getState().tabs.tabs.find((tab) => tab.draft.id === 102)?.draft.url).toBe(
-      'https://example.com/users'
-    );
+    expect(
+      asRequestTab(
+        store.getState().tabs.tabs.find((tab) => isRequestTab(tab) && tab.draft.id === 102)
+      ).draft.url
+    ).toBe('https://example.com/users');
   });
 
   it('reloads a clean existing tab without prompting', async () => {
@@ -288,10 +293,14 @@ describe('requestLoadRequest', () => {
     await store.dispatch(requestLoadRequest({ req: sampleSaved({ id: 103 }) }));
 
     expect(store.getState().modals.pendingLoadRequest).toBeNull();
-    expect(store.getState().tabs.tabs.filter((tab) => tab.draft.id === 103)).toHaveLength(1);
-    expect(store.getState().tabs.tabs.find((tab) => tab.draft.id === 103)?.draft.url).toBe(
-      'https://example.com/users'
-    );
+    expect(
+      store.getState().tabs.tabs.filter((tab) => isRequestTab(tab) && tab.draft.id === 103)
+    ).toHaveLength(1);
+    expect(
+      asRequestTab(
+        store.getState().tabs.tabs.find((tab) => isRequestTab(tab) && tab.draft.id === 103)
+      ).draft.url
+    ).toBe('https://example.com/users');
   });
 });
 
@@ -328,9 +337,9 @@ describe('cancelRequest', () => {
     await store.dispatch(cancelRequest(tabId));
 
     expect(cancelRequestMock).toHaveBeenCalledWith('req-42');
-    const tab = store.getState().tabs.tabs.find((t) => t.tabId === tabId);
-    expect(tab?.sending).toBe(false);
-    expect(tab?.sendingRequestId).toBeNull();
+    const tab = asRequestTab(store.getState().tabs.tabs.find((t) => t.tabId === tabId));
+    expect(tab.sending).toBe(false);
+    expect(tab.sendingRequestId).toBeNull();
   });
 });
 

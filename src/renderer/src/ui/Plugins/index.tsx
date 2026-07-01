@@ -15,17 +15,10 @@ import { usePluginSources } from './hooks/usePluginSources';
 import { PLUGIN_SECTIONS } from './sidebarConstants';
 import type { PluginsSidebarSection } from './sidebarTypes';
 
-interface Props {
-  /**
-   * Closes the plugins view.
-   */
-  onClose: () => void;
-}
-
 /**
  * Full-area plugin management with sidebar navigation.
  */
-export function Plugins({ onClose }: Props): JSX.Element {
+export function Plugins(): JSX.Element {
   const [section, setSection] = useState<PluginsSidebarSection>('installed');
 
   const { plugins, loading, error, refresh } = usePluginList();
@@ -151,7 +144,6 @@ export function Plugins({ onClose }: Props): JSX.Element {
       >
         {section === 'installed' ? (
           <InstalledView
-            onClose={onClose}
             plugins={plugins}
             loading={loading}
             error={error}
@@ -167,7 +159,6 @@ export function Plugins({ onClose }: Props): JSX.Element {
         ) : null}
         {section === 'marketplace' ? (
           <MarketplaceView
-            onClose={onClose}
             catalog={catalog}
             catalogLoading={catalogLoading}
             catalogError={catalogError}
@@ -181,7 +172,6 @@ export function Plugins({ onClose }: Props): JSX.Element {
         ) : null}
         {section === 'install' ? (
           <InstallView
-            onClose={onClose}
             gitInstallUrl={gitInstallUrl}
             gitInstallRef={gitInstallRef}
             gitInstallError={gitInstallError}
@@ -195,7 +185,6 @@ export function Plugins({ onClose }: Props): JSX.Element {
         ) : null}
         {section === 'settings' ? (
           <PluginSourcesView
-            onClose={onClose}
             settings={pluginSourcesDraft}
             hubSources={teamHubPluginSources}
             busy={pluginSourcesBusy}

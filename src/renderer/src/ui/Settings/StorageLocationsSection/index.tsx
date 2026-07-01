@@ -18,22 +18,14 @@ import { refreshCollections } from '#/renderer/src/store/thunks/collections';
 import { createBlankConnection, providerLabel, settingsSectionMeta } from '../constants';
 import { sectionEntryBySection } from '../catalog/catalog';
 import { SettingLabel } from '../components/SettingLabel';
-import { SettingsBackButton } from '../SettingsBackButton';
 import { DiscoverCollectionsModal } from './DiscoverCollectionsModal';
 import { ConnectionDeleteModal } from './ConnectionDeleteModal';
 import { ConnectionEditModal } from './ConnectionEditModal';
 
-interface Props {
-  /**
-   * Closes the settings overlay.
-   */
-  onClose: () => void;
-}
-
 /**
  * Database settings with a list of named connections.
  */
-export function StorageLocationsSection({ onClose }: Props): JSX.Element {
+export function StorageLocationsSection(): JSX.Element {
   const dispatch = useAppDispatch();
   const {
     connections,
@@ -255,7 +247,6 @@ export function StorageLocationsSection({ onClose }: Props): JSX.Element {
             >
               Add storage location
             </Button>
-            <SettingsBackButton onClose={onClose} />
           </>
         }
       >

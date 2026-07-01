@@ -1,4 +1,4 @@
-import { BackButton, Button, Page } from '@harborclient/sdk/components';
+import { Button, Page } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import type { PluginSource, PluginSourcesSettings } from '#/shared/plugin/catalog';
 import type { TeamHubPluginSourcesView } from '#/shared/types';
@@ -7,11 +7,6 @@ import { SourceListSection } from './SourceListSection';
 import type { SourceKind } from './types';
 
 interface Props {
-  /**
-   * Closes the plugins view.
-   */
-  onClose: () => void;
-
   /**
    * Draft plugin source settings edited on this page.
    */
@@ -62,7 +57,6 @@ interface Props {
  * Plugin marketplace catalog and trusted publisher endpoint configuration.
  */
 export function PluginSourcesView({
-  onClose,
   settings,
   hubSources,
   busy,
@@ -79,7 +73,6 @@ export function PluginSourcesView({
       title="Settings"
       icon={faGear}
       description="Configure where HarborClient loads marketplace catalogs and trusted publisher keys. Enabled endpoints are fetched in list order; the first source wins when entries overlap. Team Hub endpoints are managed by your hub administrator and cannot be removed here."
-      actions={<BackButton onClick={onClose} ariaLabel="Back to requests" />}
     >
       {error ? (
         <p className="mb-4 text-[14px] text-danger" role="alert">

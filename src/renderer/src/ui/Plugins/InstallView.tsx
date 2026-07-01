@@ -1,20 +1,8 @@
-import {
-  BackButton,
-  Button,
-  FieldError,
-  FormGroup,
-  Input,
-  Page
-} from '@harborclient/sdk/components';
+import { Button, FieldError, FormGroup, Input, Page } from '@harborclient/sdk/components';
 import type { JSX, KeyboardEvent } from 'react';
 import { faDownload } from '#/renderer/src/fontawesome';
 
 interface Props {
-  /**
-   * Closes the plugins view.
-   */
-  onClose: () => void;
-
   /**
    * Repository URL entered by the user for git install.
    */
@@ -65,7 +53,6 @@ interface Props {
  * Install page with file, git, and unpacked plugin install options.
  */
 export function InstallView({
-  onClose,
   gitInstallUrl,
   gitInstallRef,
   gitInstallError,
@@ -93,7 +80,6 @@ export function InstallView({
       title="Install"
       icon={faDownload}
       description="Add plugins from a package file, git repository, or unpacked source directory."
-      actions={<BackButton onClick={onClose} ariaLabel="Back to requests" />}
     >
       <div className="flex max-w-xl flex-col gap-6">
         <div>

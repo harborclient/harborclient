@@ -1,4 +1,4 @@
-import { BackButton, FormGroup, Input, Page, Select } from '@harborclient/sdk/components';
+import { FormGroup, Input, Page, Select } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import type { PluginCatalog } from '#/shared/plugin/catalog';
 import {
@@ -11,11 +11,6 @@ import { faStore } from '#/renderer/src/fontawesome';
 import { CatalogCard } from './CatalogCard';
 
 interface Props {
-  /**
-   * Closes the plugins view.
-   */
-  onClose: () => void;
-
   /**
    * Loaded marketplace catalog, if available.
    */
@@ -66,7 +61,6 @@ interface Props {
  * Marketplace catalog browser with search and category filters.
  */
 export function MarketplaceView({
-  onClose,
   catalog,
   catalogLoading,
   catalogError,
@@ -83,7 +77,6 @@ export function MarketplaceView({
       title="Marketplace"
       icon={faStore}
       description="Browse and install plugins from configured marketplace catalogs."
-      actions={<BackButton onClick={onClose} ariaLabel="Back to requests" />}
     >
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end">
         <FormGroup label="Search plugins" htmlFor="plugin-catalog-search" srOnly>

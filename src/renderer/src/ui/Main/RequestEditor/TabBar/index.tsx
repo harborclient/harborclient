@@ -1,17 +1,22 @@
 import { FaIcon, resolveTabListKeyAction } from '@harborclient/sdk/components';
 import type { Environment } from '#/shared/types';
 import type { JSX, KeyboardEvent } from 'react';
-import type { RequestTab } from '#/renderer/src/store/drafts';
+import { useMemo } from 'react';
+import { isPageTab, type Tab } from '#/renderer/src/store/drafts';
+import { useAppSelector } from '#/renderer/src/store/hooks';
+import { selectCollections, selectEnvironments } from '#/renderer/src/store/selectors';
+import { getRegisteredMainViews } from '#/renderer/src/plugins/registry';
 
 import { faPlus } from '#/renderer/src/fontawesome';
 import { EnvironmentSelect } from './EnvironmentSelect';
+import { pageTabMeta } from './pageTabMeta';
 import { TabItem } from './TabItem';
 
 interface Props {
   /**
-   * All open request tabs.
+   * All open tabs.
    */
-  tabs: RequestTab[];
+  tabs: Tab[];
 
   /**
    * ID of the currently active tab.
@@ -56,7 +61,7 @@ interface Props {
 }
 
 /**
- * Horizontal tab bar for switching between open request editors.
+ * Horizontal tab bar for switching between open request editors and page tabs.
  */
 export function TabBar({
   tabs,
@@ -68,9 +73,42 @@ export function TabBar({
   onNew,
   onEnvironmentChange
 }: Props): JSX.Element {
+  const collections = useAppSelector(selectCollections);
+  const allEnvironments = useAppSelector(selectEnvironments);
+
   /**
-   * Moves focus and selection across open request tabs with arrow, Home, and End
-   * keys following the WAI-ARIA tabs pattern.
+   * Resolves display metadata for each page tab using current entity names.
+   */
+  const pageTabDisplays = useMemo(() => {
+    const displays = new Map<string, ReturnType<typeof pageTabMeta>>();
+    for (const tab of tabs) {
+      if (!isPageTab(tab)) {
+        continue;
+      }
+
+      const page = tab.page;
+      let collectionName: string | undefined;
+      let environmentName: string | undefined;
+      let pluginTitle: string | undefined;
+
+      if (page.type === 'collection') {
+        collectionName = collections.find((collection) => collection.id === page.id)?.name;
+      } else if (page.type === 'environment') {
+        environmentName = allEnvironments.find((environment) => environment.id === page.id)?.name;
+      } else if (page.type === 'plugin-view') {
+        pluginTitle = getRegisteredMainViews().find(
+          (view) => view.pluginId === page.pluginId && view.id === page.viewId
+        )?.title;
+      }
+
+      displays.set(tab.tabId, pageTabMeta(page, { collectionName, environmentName, pluginTitle }));
+    }
+    return displays;
+  }, [tabs, collections, allEnvironments]);
+
+  /**
+   * Moves focus and selection across open tabs with arrow, Home, and End keys
+   * following the WAI-ARIA tabs pattern.
    *
    * @param event - Keyboard event from the tab list container.
    */
@@ -92,20 +130,25 @@ export function TabBar({
     <div className="flex shrink-0 min-h-15 items-end gap-0 overflow-x-auto border-b border-separator bg-sidebar px-2 py-1 app-no-drag">
       <div
         role="tablist"
-        aria-label="Open requests"
+        aria-label="Open tabs"
         className="flex items-end"
         onKeyDown={handleTabListKeyDown}
       >
-        {tabs.map((tab) => (
-          <TabItem
-            key={tab.tabId}
-            tab={tab}
-            active={tab.tabId === activeTabId}
-            tabIndex={tab.tabId === activeTabId ? 0 : -1}
-            onSelect={onSelect}
-            onClose={onClose}
-          />
-        ))}
+        {tabs.map((tab) => {
+          const pageDisplay = pageTabDisplays.get(tab.tabId);
+          return (
+            <TabItem
+              key={tab.tabId}
+              tab={tab}
+              active={tab.tabId === activeTabId}
+              tabIndex={tab.tabId === activeTabId ? 0 : -1}
+              pageTitle={pageDisplay?.title}
+              pageIcon={pageDisplay?.icon}
+              onSelect={onSelect}
+              onClose={onClose}
+            />
+          );
+        })}
       </div>
       <div className="flex shrink-0 self-stretch items-stretch rounded-t-md border border-b-0 border-transparent bg-transparent px-1 text-muted hover:bg-selection/60 hover:text-text">
         <button

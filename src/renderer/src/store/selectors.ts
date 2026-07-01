@@ -1,7 +1,12 @@
 import type { RootState } from '#/renderer/src/store/redux';
-import type { RequestDraft } from '#/renderer/src/store/drafts';
+import {
+  defaultDraft,
+  isPageTab,
+  isRequestTab,
+  type PageRef,
+  type RequestDraft
+} from '#/renderer/src/store/drafts';
 import type { Collection, Environment, ScriptTestResult, SendResult } from '#/shared/types';
-import { defaultDraft } from '#/renderer/src/store/drafts';
 
 /**
  * Returns all collections in sidebar order.
@@ -71,25 +76,59 @@ export const selectActiveTab = (
 };
 
 /**
- * Returns the draft for the active tab.
+ * Returns the page reference for the active tab when it hosts a configuration page.
  */
-export const selectDraft = (state: RootState): RequestDraft =>
-  selectActiveTab(state)?.draft ?? defaultDraft();
+export const selectActivePage = (state: RootState): PageRef | null => {
+  const tab = selectActiveTab(state);
+  if (tab && isPageTab(tab)) {
+    return tab.page;
+  }
+  return null;
+};
+
 /**
- * Returns the last send response for the active tab.
+ * Returns the draft for the active request tab.
  */
-export const selectResponse = (state: RootState): SendResult | null =>
-  selectActiveTab(state)?.response ?? null;
+export const selectDraft = (state: RootState): RequestDraft => {
+  const tab = selectActiveTab(state);
+  if (tab && isRequestTab(tab)) {
+    return tab.draft;
+  }
+  return defaultDraft();
+};
+
 /**
- * Returns whether the active tab request is in flight.
+ * Returns the last send response for the active request tab.
  */
-export const selectSending = (state: RootState): boolean =>
-  selectActiveTab(state)?.sending ?? false;
+export const selectResponse = (state: RootState): SendResult | null => {
+  const tab = selectActiveTab(state);
+  if (tab && isRequestTab(tab)) {
+    return tab.response;
+  }
+  return null;
+};
+
 /**
- * Returns script test results for the active tab.
+ * Returns whether the active request tab is in flight.
  */
-export const selectTestResults = (state: RootState): ScriptTestResult[] =>
-  selectActiveTab(state)?.testResults ?? [];
+export const selectSending = (state: RootState): boolean => {
+  const tab = selectActiveTab(state);
+  if (tab && isRequestTab(tab)) {
+    return tab.sending;
+  }
+  return false;
+};
+
+/**
+ * Returns script test results for the active request tab.
+ */
+export const selectTestResults = (state: RootState): ScriptTestResult[] => {
+  const tab = selectActiveTab(state);
+  if (tab && isRequestTab(tab)) {
+    return tab.testResults;
+  }
+  return [];
+};
 
 /**
  * Returns session console log entries.

@@ -28,11 +28,16 @@ import {
   substituteWithMap
 } from '#/renderer/src/scripting/scriptOrchestration';
 import { saveGlobalVariables } from '#/renderer/src/store/thunks/settings';
-import { cloneDraft, draftFromSaved, isTabDirty } from '#/renderer/src/store/drafts';
+import {
+  cloneDraft,
+  draftFromSaved,
+  isPageTab,
+  isRequestTab,
+  isTabDirty
+} from '#/renderer/src/store/drafts';
 import { setSelectedCollectionId } from '#/renderer/src/store/slices/collectionsSlice';
 import { addConsoleEntry } from '#/renderer/src/store/slices/consoleSlice';
 import {
-  closeOverlay,
   selectCollectionSettingsDirty,
   selectEnvironmentSettingsDirty
 } from '#/renderer/src/store/slices/navigationSlice';
@@ -134,7 +139,7 @@ export const saveRequest = createAsyncThunk<SavedRequest, number | undefined, Th
   async (collectionId, { dispatch, getState }) => {
     const state = getState();
     const activeTab = selectActiveTab(state);
-    if (!activeTab) throw new Error('No active tab');
+    if (!activeTab || !isRequestTab(activeTab)) throw new Error('No active tab');
 
     const currentDraft = activeTab.draft;
     // An already-saved request must persist back to its own collection. Falling
@@ -310,7 +315,7 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
   async (_, { dispatch, getState }) => {
     const state = getState();
     const activeTab = selectActiveTab(state);
-    if (!activeTab || activeTab.sending) return;
+    if (!activeTab || !isRequestTab(activeTab) || activeTab.sending) return;
 
     const tabId = activeTab.tabId;
     const requestId = crypto.randomUUID();
@@ -406,7 +411,7 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
      */
     const isRequestStillActive = (): boolean => {
       const tab = getState().tabs.tabs.find((t) => t.tabId === tabId);
-      return tab?.sendingRequestId === requestId;
+      return tab != null && isRequestTab(tab) && tab.sendingRequestId === requestId;
     };
 
     dispatch(
@@ -622,7 +627,7 @@ export const cancelRequest = createAsyncThunk<void, string, ThunkApiConfig>(
   'tabs/cancelRequest',
   async (tabId, { dispatch, getState }) => {
     const tab = getState().tabs.tabs.find((t) => t.tabId === tabId);
-    if (!tab?.sendingRequestId) return;
+    if (!tab || !isRequestTab(tab) || !tab.sendingRequestId) return;
 
     await window.api.cancelRequest(tab.sendingRequestId);
     dispatch(
@@ -641,7 +646,7 @@ export const closeRequestTab = createAsyncThunk<void, string, ThunkApiConfig>(
   'tabs/closeRequestTab',
   async (tabId, { dispatch, getState }) => {
     const tab = getState().tabs.tabs.find((t) => t.tabId === tabId);
-    if (tab?.sendingRequestId) {
+    if (tab && isRequestTab(tab) && tab.sendingRequestId) {
       await dispatch(cancelRequest(tabId));
     }
     dispatch(closeTab(tabId));
@@ -678,23 +683,29 @@ export const requestLoadRequest = createAsyncThunk<void, RequestLoadRequestArgs,
   'modals/requestLoadRequest',
   async ({ req, skipSettingsCheck = false, forceReload = false }, { dispatch, getState }) => {
     const state = getState();
-    const mainView = state.navigation.mainView;
-    const collectionDirty = mainView.type === 'collection' && selectCollectionSettingsDirty(state);
+    const activeTab = state.tabs.tabs.find((tab) => tab.tabId === state.tabs.activeTabId);
+    const collectionDirty =
+      activeTab != null &&
+      isPageTab(activeTab) &&
+      activeTab.page.type === 'collection' &&
+      selectCollectionSettingsDirty(state);
     const environmentDirty =
-      mainView.type === 'environment' && selectEnvironmentSettingsDirty(state);
+      activeTab != null &&
+      isPageTab(activeTab) &&
+      activeTab.page.type === 'environment' &&
+      selectEnvironmentSettingsDirty(state);
 
     if (!skipSettingsCheck && (collectionDirty || environmentDirty)) {
       dispatch(setPendingLoadRequest({ req, reason: 'settings' }));
       return;
     }
 
-    const existing = state.tabs.tabs.find((t) => t.draft.id === req.id);
+    const existing = state.tabs.tabs.find((t) => isRequestTab(t) && t.draft.id === req.id);
     if (!forceReload && existing && isTabDirty(existing)) {
       dispatch(setPendingLoadRequest({ req, reason: 'dirty-tab' }));
       return;
     }
 
-    dispatch(closeOverlay());
     dispatch(loadRequest(req));
   }
 );

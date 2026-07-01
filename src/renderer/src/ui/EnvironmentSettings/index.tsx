@@ -103,9 +103,6 @@ function EnvironmentSettingsForm({
       description="Manage environment settings and configuration"
       footer={
         <ModalFooter>
-          <Button variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
           <Button onClick={() => void handleSave()} disabled={!name.trim() || saving}>
             {saving ? 'Saving…' : 'Save'}
           </Button>

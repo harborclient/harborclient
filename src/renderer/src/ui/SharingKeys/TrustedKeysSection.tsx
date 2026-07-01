@@ -1,6 +1,5 @@
 import {
   AsyncListState,
-  BackButton,
   Button,
   FieldError,
   FormGroup,
@@ -19,17 +18,10 @@ import type { TrustedSharingKey } from '#/shared/types';
 
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 
-interface Props {
-  /**
-   * Closes the sharing keys overlay.
-   */
-  onClose: () => void;
-}
-
 /**
  * Trusted collaborator public keys for verifying share token signatures.
  */
-export function TrustedKeysSection({ onClose }: Props): JSX.Element {
+export function TrustedKeysSection(): JSX.Element {
   const confirm = useConfirm();
   const [keys, setKeys] = useState<TrustedSharingKey[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,7 +131,6 @@ export function TrustedKeysSection({ onClose }: Props): JSX.Element {
       embedded
       title="Trusted keys"
       description="Add public keys for people you trust. Share tokens must be signed by a trusted sender, and you can only create share tokens for keys listed here."
-      actions={<BackButton onClick={onClose} ariaLabel="Back to requests" />}
     >
       <div className="mb-4 rounded-md border border-separator p-3">
         <FormGroup label="Label">

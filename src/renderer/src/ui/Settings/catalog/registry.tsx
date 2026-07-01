@@ -29,12 +29,7 @@ import { SyntaxHighlightActiveLineGutterField } from '../fields/SyntaxHighlightA
 import { SyntaxLineNumbersField } from '../fields/SyntaxLineNumbersField';
 import type { FieldSettingId, FormSettingsSection } from './catalog';
 
-interface SettingsSectionComponentProps {
-  /**
-   * Closes the settings overlay.
-   */
-  onClose: () => void;
-}
+type SettingsSectionComponentProps = Record<string, never>;
 
 /**
  * Maps catalog field ids to standalone field components.

@@ -1,78 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import navigationReducer, {
-  closeOverlay,
-  openPlugins,
-  openSharingKeys,
-  openCollectionSettings,
-  openEnvironmentSettings,
-  openTeamHub,
-  openSettings,
+  consumePendingPluginInstall,
   setCollectionSettingsDirty,
   setEnvironmentSettingsDirty,
+  setPendingPluginInstall,
   toggleAiSidebar,
   toggleConsole,
   toggleSidebar,
-  toggleVariables,
-  setPendingPluginInstall,
-  consumePendingPluginInstall
+  toggleVariables
 } from '#/renderer/src/store/slices/navigationSlice';
 
 describe('navigationSlice', () => {
-  it('starts on the request view with sidebar visible and panels closed', () => {
+  it('starts with sidebar visible and panels closed', () => {
     const state = navigationReducer(undefined, { type: 'unknown' });
-    expect(state.mainView).toEqual({ type: 'request' });
     expect(state.showSidebar).toBe(true);
     expect(state.showAiSidebar).toBe(false);
     expect(state.showConsole).toBe(false);
     expect(state.showVariables).toBe(false);
-    expect(state.settingsSection).toBe('general');
     expect(state.collectionSettingsDirty).toBe(false);
     expect(state.environmentSettingsDirty).toBe(false);
-  });
-
-  it('opens settings and resets dirty flags', () => {
-    let state = navigationReducer(undefined, setCollectionSettingsDirty(true));
-    state = navigationReducer(state, openSettings());
-    expect(state.mainView).toEqual({ type: 'settings' });
-    expect(state.settingsSection).toBe('general');
-    expect(state.collectionSettingsDirty).toBe(false);
-    expect(state.environmentSettingsDirty).toBe(false);
-  });
-
-  it('opens settings on a specific section', () => {
-    const state = navigationReducer(undefined, openSettings('ai'));
-    expect(state.mainView).toEqual({ type: 'settings' });
-    expect(state.settingsSection).toBe('ai');
-  });
-
-  it('opens team hubs and resets dirty flags', () => {
-    let state = navigationReducer(undefined, setEnvironmentSettingsDirty(true));
-    state = navigationReducer(state, openTeamHub());
-    expect(state.mainView).toEqual({ type: 'team-hubs' });
-    expect(state.collectionSettingsDirty).toBe(false);
-    expect(state.environmentSettingsDirty).toBe(false);
-  });
-
-  it('opens plugins and resets dirty flags', () => {
-    let state = navigationReducer(undefined, setEnvironmentSettingsDirty(true));
-    state = navigationReducer(state, openPlugins());
-    expect(state.mainView).toEqual({ type: 'plugins' });
-    expect(state.collectionSettingsDirty).toBe(false);
-    expect(state.environmentSettingsDirty).toBe(false);
-  });
-
-  it('opens collection and environment settings exclusively', () => {
-    let state = navigationReducer(undefined, openCollectionSettings(3));
-    expect(state.mainView).toEqual({ type: 'collection', id: 3 });
-
-    state = navigationReducer(state, openEnvironmentSettings(7));
-    expect(state.mainView).toEqual({ type: 'environment', id: 7 });
-  });
-
-  it('closes overlays back to the request view', () => {
-    let state = navigationReducer(undefined, openSharingKeys());
-    state = navigationReducer(state, closeOverlay());
-    expect(state.mainView).toEqual({ type: 'request' });
   });
 
   it('toggles console and variables exclusively', () => {

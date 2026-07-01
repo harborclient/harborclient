@@ -1,6 +1,6 @@
 import { BusyIndicator, CodeEditorConfigProvider } from '@harborclient/sdk/components';
 import { useCallback, useEffect, type JSX } from 'react';
-import toast, { Toaster } from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast';
 import type { Collection, Environment } from '#/shared/types';
 import { useBeforeClose } from '#/renderer/src/hooks/useBeforeClose';
 import { useEscapeBack } from '#/renderer/src/hooks/useEscapeBack';
@@ -10,6 +10,8 @@ import { usePersistedPanelLayout } from '#/renderer/src/hooks/usePersistedPanelL
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveEnvironmentId,
+  selectActivePage,
+  selectActiveTabId,
   selectCollections,
   selectConsoleEntries,
   selectDraft,
@@ -19,30 +21,22 @@ import {
 } from '#/renderer/src/store/selectors';
 import { clearConsole } from '#/renderer/src/store/slices/consoleSlice';
 import {
-  closeOverlay,
-  openCollectionSettings,
-  openEnvironmentSettings,
   selectAiSidebarVisible,
-  selectMainView,
-  selectSettingsSection,
   selectShowConsole,
   selectShowVariables,
   selectSidebarVisible,
-  setCollectionSettingsDirty,
-  setEnvironmentSettingsDirty,
   toggleAiSidebar,
   toggleConsole,
   toggleSidebar,
   toggleVariables
 } from '#/renderer/src/store/slices/navigationSlice';
 import { openCollectionModal, openShareModal } from '#/renderer/src/store/slices/modalsSlice';
+import { closeTab, openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import {
   initializeStore,
   loadTrustedKeys,
   refreshCollectionContents,
-  requestLoadRequest,
-  updateCollection,
-  updateEnvironment
+  requestLoadRequest
 } from '#/renderer/src/store/thunks';
 import { AboutModal } from '#/renderer/src/ui/modals/AboutModal';
 import { SyncModal } from '#/renderer/src/ui/modals/SyncModal';
@@ -55,9 +49,7 @@ import { ShareModal } from '#/renderer/src/ui/modals/ShareModal';
 import { CollectionRunnerModal } from '#/renderer/src/ui/modals/CollectionRunnerModal';
 import { QuitPrompt } from '#/renderer/src/ui/modals/QuitPrompt';
 import { UnsavedLoadPrompt } from '#/renderer/src/ui/modals/UnsavedLoadPrompt';
-import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
 import { AiSidebar } from '#/renderer/src/ui/AiSidebar';
-import { Configuration } from '#/renderer/src/ui/Configuration';
 import { Sidebar } from '#/renderer/src/ui/Sidebar';
 import { SidebarExpansionProvider } from '#/renderer/src/ui/Sidebar/SidebarExpansionProvider';
 import { RequestEditor } from '#/renderer/src/ui/Main/RequestEditor';
@@ -85,8 +77,8 @@ export default function App(): JSX.Element {
   const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
   const draft = useAppSelector(selectDraft);
   const consoleEntries = useAppSelector(selectConsoleEntries);
-  const mainView = useAppSelector(selectMainView);
-  const settingsSection = useAppSelector(selectSettingsSection);
+  const activePage = useAppSelector(selectActivePage);
+  const activeTabId = useAppSelector(selectActiveTabId);
   const sidebarVisible = useAppSelector(selectSidebarVisible);
   const aiSidebarVisible = useAppSelector(selectAiSidebarVisible);
   const showConsole = useAppSelector(selectShowConsole);
@@ -156,32 +148,16 @@ export default function App(): JSX.Element {
       ? environments.find((env: Environment) => env.id === activeEnvironmentId)
       : undefined;
 
-  const configuringCollection =
-    mainView.type === 'collection'
-      ? collections.find((c: Collection) => c.id === mainView.id)
-      : undefined;
-  const configuringEnvironment =
-    mainView.type === 'environment'
-      ? environments.find((env: Environment) => env.id === mainView.id)
-      : undefined;
-
-  const showConfiguration =
-    mainView.type === 'settings' ||
-    mainView.type === 'plugins' ||
-    mainView.type === 'team-hubs' ||
-    mainView.type === 'sharing-keys' ||
-    mainView.type === 'plugin-view' ||
-    configuringCollection != null ||
-    configuringEnvironment != null;
-
   /**
-   * Closes top-level overlays on Escape; Team Hub manages its own nested stack.
+   * Closes the active page tab on Escape; Team Hub manages its own nested stack.
    */
   useEscapeBack(
     () => {
-      dispatch(closeOverlay());
+      if (activeTabId) {
+        dispatch(closeTab(activeTabId));
+      }
     },
-    showConfiguration && mainView.type !== 'team-hubs'
+    activePage != null && activePage.type !== 'team-hubs'
   );
 
   return (
@@ -202,8 +178,8 @@ export default function App(): JSX.Element {
             {sidebarVisible && (
               <Sidebar
                 onAddCollection={() => dispatch(openCollectionModal({ mode: 'create' }))}
-                onConfigureCollection={(id) => dispatch(openCollectionSettings(id))}
-                onConfigureEnvironment={(id) => dispatch(openEnvironmentSettings(id))}
+                onConfigureCollection={(id) => dispatch(openPageTab({ type: 'collection', id }))}
+                onConfigureEnvironment={(id) => dispatch(openPageTab({ type: 'environment', id }))}
                 onShareCollection={(collectionId, collectionName) => {
                   dispatch(openShareModal({ collectionId, collectionName }));
                   void dispatch(loadTrustedKeys());
@@ -217,77 +193,12 @@ export default function App(): JSX.Element {
               tabIndex={-1}
               className="flex min-w-0 flex-1 flex-col bg-surface"
             >
-              {showConfiguration ? (
-                <Configuration
-                  showSettings={mainView.type === 'settings'}
-                  onCloseAppSettings={() => dispatch(closeOverlay())}
-                  settingsSection={settingsSection}
-                  showSharingKeys={mainView.type === 'sharing-keys'}
-                  onCloseSharingKeys={() => dispatch(closeOverlay())}
-                  showTeamHub={mainView.type === 'team-hubs'}
-                  onCloseTeamHub={() => dispatch(closeOverlay())}
-                  showPlugins={mainView.type === 'plugins'}
-                  onClosePlugins={() => dispatch(closeOverlay())}
-                  showPluginView={mainView.type === 'plugin-view'}
-                  pluginViewPluginId={
-                    mainView.type === 'plugin-view' ? mainView.pluginId : undefined
-                  }
-                  pluginViewId={mainView.type === 'plugin-view' ? mainView.viewId : undefined}
-                  onClosePluginView={() => dispatch(closeOverlay())}
-                  collection={configuringCollection}
-                  onCollectionDirtyChange={(dirty) => dispatch(setCollectionSettingsDirty(dirty))}
-                  onCollectionSave={async (
-                    id,
-                    name,
-                    variables,
-                    headers,
-                    preRequestScript,
-                    postRequestScript,
-                    auth,
-                    connectionId
-                  ) => {
-                    try {
-                      const result = await dispatch(
-                        updateCollection({
-                          id,
-                          name,
-                          variables,
-                          headers,
-                          preRequestScript,
-                          postRequestScript,
-                          auth,
-                          connectionId
-                        })
-                      ).unwrap();
-                      if (result.id !== id) {
-                        dispatch(openCollectionSettings(result.id));
-                      }
-                      toast.success('Collection updated');
-                    } catch (err) {
-                      showAlert(dispatch, formatErrorMessage(err, 'Failed to update collection'));
-                    }
-                  }}
-                  onCloseCollectionSettings={() => dispatch(closeOverlay())}
-                  environment={configuringEnvironment}
-                  onEnvironmentDirtyChange={(dirty) => dispatch(setEnvironmentSettingsDirty(dirty))}
-                  onEnvironmentSave={async (id, name, variables) => {
-                    try {
-                      await dispatch(updateEnvironment({ id, name, variables })).unwrap();
-                      toast.success('Environment updated');
-                    } catch (err) {
-                      showAlert(dispatch, formatErrorMessage(err, 'Failed to update environment'));
-                    }
-                  }}
-                  onCloseEnvironmentSettings={() => dispatch(closeOverlay())}
-                />
-              ) : (
-                <RequestEditor
-                  onEditVariables={() => {
-                    if (activeCollectionId == null) return;
-                    dispatch(openCollectionSettings(activeCollectionId));
-                  }}
-                />
-              )}
+              <RequestEditor
+                onEditVariables={() => {
+                  if (activeCollectionId == null) return;
+                  dispatch(openPageTab({ type: 'collection', id: activeCollectionId }));
+                }}
+              />
             </main>
 
             {aiSidebarVisible && <AiSidebar />}

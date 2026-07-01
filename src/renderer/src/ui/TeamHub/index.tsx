@@ -94,7 +94,6 @@ export function TeamHub({ onClose }: Props): JSX.Element {
             onManageUsers={handleManageUsers}
             onManageTokens={handleManageTokens}
             onManageCollections={handleManageCollections}
-            onClose={onClose}
           />
         ) : view === 'manageUsers' && activeAdminHub ? (
           <TeamManageView hub={activeAdminHub} onBack={handleBackToList} />

@@ -4,7 +4,8 @@ import type {
   KeyValue,
   SavedRequest,
   ScriptTestResult,
-  SendResult
+  SendResult,
+  SettingsSection
 } from '#/shared/types';
 import { defaultAuth, normalizeAuth, type AuthConfig } from '#/shared/auth';
 import { applyParamsToUrl } from '#/shared/queryParams';
@@ -40,6 +41,116 @@ export interface RequestTab {
   sending: boolean;
   sendingRequestId: string | null;
   testResults: ScriptTestResult[];
+}
+
+/**
+ * Reference to a configuration page shown inside a tab.
+ */
+export type PageRef =
+  | { type: 'settings'; section: SettingsSection }
+  | { type: 'plugins' }
+  | { type: 'team-hubs' }
+  | { type: 'sharing-keys' }
+  | { type: 'plugin-view'; pluginId: string; viewId: string }
+  | { type: 'collection'; id: number }
+  | { type: 'environment'; id: number };
+
+/**
+ * Tab that hosts a settings, plugins, or other configuration page.
+ */
+export interface PageTab {
+  tabId: string;
+  kind: 'page';
+  page: PageRef;
+}
+
+/**
+ * Discriminated union of open request editor tabs.
+ */
+export type Tab = RequestTab | PageTab;
+
+/**
+ * Returns whether a tab hosts a configuration page rather than a request.
+ *
+ * @param tab - Open tab from the tab bar.
+ * @returns True when the tab is a page tab.
+ */
+export function isPageTab(tab: Tab): tab is PageTab {
+  return 'kind' in tab && tab.kind === 'page';
+}
+
+/**
+ * Returns whether a tab hosts an HTTP request editor.
+ *
+ * @param tab - Open tab from the tab bar.
+ * @returns True when the tab is a request tab (including legacy persisted tabs without kind).
+ */
+export function isRequestTab(tab: Tab): tab is RequestTab {
+  return !isPageTab(tab);
+}
+
+/**
+ * Narrows a tab to a request tab for callers that require request-only fields.
+ *
+ * @param tab - Tab to narrow.
+ * @returns The same tab typed as RequestTab.
+ * @throws When the tab is not a request tab.
+ */
+export function asRequestTab(tab: Tab | undefined): RequestTab {
+  if (!tab || !isRequestTab(tab)) {
+    throw new Error('Expected a request tab');
+  }
+  return tab;
+}
+
+/**
+ * Returns a stable dedupe key for a page reference.
+ *
+ * @param page - Page identity to key.
+ * @returns Stable string used to find an existing page tab.
+ */
+export function pageRefKey(page: PageRef): string {
+  switch (page.type) {
+    case 'settings':
+      return 'settings';
+    case 'plugins':
+      return 'plugins';
+    case 'team-hubs':
+      return 'team-hubs';
+    case 'sharing-keys':
+      return 'sharing-keys';
+    case 'plugin-view':
+      return `plugin-view:${page.pluginId}:${page.viewId}`;
+    case 'collection':
+      return `collection:${page.id}`;
+    case 'environment':
+      return `environment:${page.id}`;
+  }
+}
+
+/**
+ * Returns whether two page references refer to the same tab identity.
+ *
+ * @param a - First page reference.
+ * @param b - Second page reference.
+ * @returns True when both references would share one tab.
+ */
+export function pageRefsEqual(a: PageRef, b: PageRef): boolean {
+  return pageRefKey(a) === pageRefKey(b);
+}
+
+/**
+ * Creates a new page tab for the given page reference.
+ *
+ * @param page - Page to show in the tab.
+ * @returns New PageTab with a unique tabId.
+ */
+export function createPageTab(page: PageRef): PageTab {
+  return {
+    tabId: crypto.randomUUID(),
+    kind: 'page',
+    page
+  };
 }
 
 /**
@@ -143,21 +254,24 @@ export function isDraftDirty(draft: RequestDraft, savedDraft: RequestDraft): boo
 /**
  * Returns whether a tab has unsaved changes.
  *
- * @param tab - Open request tab.
- * @returns True when the tab draft differs from its saved baseline.
+ * @param tab - Open tab from the tab bar.
+ * @returns True when a request tab draft differs from its saved baseline.
  */
-export function isTabDirty(tab: RequestTab): boolean {
+export function isTabDirty(tab: Tab): boolean {
+  if (!isRequestTab(tab)) {
+    return false;
+  }
   return isDraftDirty(tab.draft, tab.savedDraft);
 }
 
 /**
- * Returns all open tabs that have unsaved changes.
+ * Returns all open request tabs that have unsaved changes.
  *
- * @param tabs - Open request tabs.
- * @returns Tabs whose draft differs from its saved baseline.
+ * @param tabs - Open tabs from the tab bar.
+ * @returns Request tabs whose draft differs from its saved baseline.
  */
-export function getDirtyTabs(tabs: RequestTab[]): RequestTab[] {
-  return tabs.filter(isTabDirty);
+export function getDirtyTabs(tabs: Tab[]): RequestTab[] {
+  return tabs.filter(isRequestTab).filter(isTabDirty);
 }
 
 /**

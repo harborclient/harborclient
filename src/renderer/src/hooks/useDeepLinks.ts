@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
-import { openPlugins, setPendingPluginInstall } from '#/renderer/src/store/slices/navigationSlice';
+import { setPendingPluginInstall } from '#/renderer/src/store/slices/navigationSlice';
+import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 
 /**
  * Subscribes to harborclient:// deep links from the main process and routes
@@ -15,7 +16,7 @@ export function useDeepLinks(): void {
   useEffect(() => {
     const unsubscribe = window.api.onDeepLink((payload) => {
       if (payload.action === 'install-plugin') {
-        dispatch(openPlugins());
+        dispatch(openPageTab({ type: 'plugins' }));
         dispatch(setPendingPluginInstall(payload.pluginId));
       }
     });

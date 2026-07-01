@@ -7,7 +7,6 @@ import { loadSettingsDraft } from '#/renderer/src/store/thunks/settingsDraft';
 import type { SettingsSection } from '#/shared/types';
 
 import { settingsSectionMeta } from '../constants';
-import { SettingsBackButton } from '../SettingsBackButton';
 import { SettingsSaveFooter } from '../components/SettingsSaveFooter';
 import {
   fieldEntriesForSection,
@@ -23,11 +22,6 @@ import {
 } from './registry';
 
 interface Props {
-  /**
-   * Closes the settings overlay.
-   */
-  onClose: () => void;
-
   /**
    * Built-in settings section to render in normal navigation mode.
    */
@@ -66,7 +60,7 @@ function SettingsDraftError(): JSX.Element | null {
 /**
  * Catalog-driven settings layout engine for section navigation.
  */
-export function SettingsRenderer({ onClose, section }: Props): JSX.Element | null {
+export function SettingsRenderer({ section }: Props): JSX.Element | null {
   const dispatch = useAppDispatch();
 
   /**
@@ -81,7 +75,7 @@ export function SettingsRenderer({ onClose, section }: Props): JSX.Element | nul
 
   if (isManagementSettingsSection(section)) {
     const SectionComponent = SETTINGS_SECTION_REGISTRY[section];
-    return <SectionComponent onClose={onClose} />;
+    return <SectionComponent />;
   }
 
   if (isFormSettingsSection(section)) {
@@ -95,7 +89,6 @@ export function SettingsRenderer({ onClose, section }: Props): JSX.Element | nul
         title={label}
         icon={icon}
         description={FORM_SECTION_DESCRIPTIONS[section]}
-        actions={<SettingsBackButton onClose={onClose} />}
       >
         <SettingsDraftError />
         <div className="mb-6 flex flex-col gap-6">{renderSettingFields(fieldIds)}</div>

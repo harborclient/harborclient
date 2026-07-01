@@ -110,8 +110,8 @@ export function SettingsSidebar<T extends string>({
         {items.map((item) => {
           const active = selected === item.value;
           const rowClass = item.icon
-            ? `${sidebarRow(active, disabled)} w-full gap-2 border-none text-left text-[14px] app-no-drag`
-            : `${sidebarRow(active, disabled)} w-full border-none text-left text-[14px] app-no-drag`;
+            ? `${sidebarRow(active, disabled)} w-full gap-2 border-none text-left text-[15px] app-no-drag`
+            : `${sidebarRow(active, disabled)} w-full border-none text-left text-[15px] app-no-drag`;
 
           return (
             <button

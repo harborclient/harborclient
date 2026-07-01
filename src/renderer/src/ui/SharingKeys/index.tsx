@@ -5,17 +5,10 @@ import { TrustedKeysSection } from './TrustedKeysSection';
 import { SHARING_KEYS_SECTIONS } from './constants';
 import type { SharingKeysSection } from './types';
 
-interface Props {
-  /**
-   * Closes the sharing keys view.
-   */
-  onClose: () => void;
-}
-
 /**
  * Full-area sharing key management with sidebar navigation.
  */
-export function SharingKeys({ onClose }: Props): JSX.Element {
+export function SharingKeys(): JSX.Element {
   const [section, setSection] = useState<SharingKeysSection>('identity');
 
   return (
@@ -29,8 +22,8 @@ export function SharingKeys({ onClose }: Props): JSX.Element {
         />
       }
     >
-      {section === 'identity' && <IdentitySection onClose={onClose} />}
-      {section === 'trusted' && <TrustedKeysSection onClose={onClose} />}
+      {section === 'identity' && <IdentitySection />}
+      {section === 'trusted' && <TrustedKeysSection />}
     </SidebarLayout>
   );
 }
