@@ -1,23 +1,28 @@
+import {
+  useAccordionItem,
+  useHeightTransition,
+  useMergeRef,
+  withAccordionItem,
+  type ItemStateProps
+} from '@szhsin/react-accordion';
 import { Button, FaIcon } from '@harborclient/sdk/components';
-import type { JSX, ReactNode } from 'react';
+import {
+  memo,
+  type ForwardRefExoticComponent,
+  type JSX,
+  type MemoExoticComponent,
+  type ReactNode,
+  type Ref,
+  type RefAttributes
+} from 'react';
 
 import { faChevronDown, faChevronRight, faPlus } from '#/renderer/src/fontawesome';
 
-interface Props {
+interface SectionContentProps {
   /**
    * Section title shown in the header.
    */
   title: string;
-
-  /**
-   * Whether the section body is expanded.
-   */
-  expanded: boolean;
-
-  /**
-   * Toggles section expansion.
-   */
-  onToggle: () => void;
 
   /**
    * Section body content.
@@ -40,30 +45,50 @@ interface Props {
   headerActions?: ReactNode;
 }
 
+interface Props extends SectionContentProps {
+  /**
+   * Stable accordion item key shared with the sidebar provider.
+   */
+  itemKey: string;
+
+  /**
+   * Whether the section body starts expanded on first mount.
+   */
+  initialEntered: boolean;
+}
+
+type SectionItemProps = ItemStateProps<HTMLDivElement> & SectionContentProps;
+
 /**
- * Collapsible sidebar section with optional add action.
+ * Renders the sidebar section header row and animated body panel.
  */
-export function Section({
+const SectionItem = memo(function SectionItem({
+  forwardedRef,
+  itemRef,
+  state,
+  toggle,
   title,
-  expanded,
-  onToggle,
   children,
   onAdd,
   addLabel,
   headerActions
-}: Props): JSX.Element {
+}: SectionItemProps): JSX.Element {
+  const { buttonProps, panelProps } = useAccordionItem({ state, toggle });
+  const [transitionStyle, panelRef] = useHeightTransition(state);
+  const itemElementRef = useMergeRef<HTMLDivElement>(forwardedRef, itemRef);
+  const { status, isMounted, isEnter } = state;
+
   return (
-    <div className="mb-3">
+    <div ref={itemElementRef} className="mb-3">
       <div className="-mx-2 mb-1 flex items-center justify-between gap-2 bg-sidebar-section px-2 py-1">
         <button
+          {...buttonProps}
           type="button"
           className="inline-flex min-w-0 flex-1 cursor-pointer items-center gap-1 border-none bg-transparent p-0 text-left app-no-drag"
-          onClick={onToggle}
-          aria-expanded={expanded}
         >
           <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
             <FaIcon
-              icon={expanded ? faChevronDown : faChevronRight}
+              icon={isEnter ? faChevronDown : faChevronRight}
               className="h-3 w-3 text-muted"
             />
           </span>
@@ -74,7 +99,7 @@ export function Section({
         {(headerActions || onAdd) && (
           <div className="flex shrink-0 items-center gap-1">
             {headerActions}
-            {onAdd && (
+            {onAdd ? (
               <Button
                 type="button"
                 variant="toolbar"
@@ -85,11 +110,55 @@ export function Section({
               >
                 <FaIcon icon={faPlus} className="h-3 w-3" />
               </Button>
-            )}
+            ) : null}
           </div>
         )}
       </div>
-      {expanded && children}
+      {isMounted ? (
+        <div
+          style={{
+            display: status === 'exited' ? 'none' : undefined,
+            ...transitionStyle
+          }}
+          className="motion-reduce:transition-none"
+        >
+          <div {...panelProps} ref={panelRef as Ref<HTMLDivElement>}>
+            {children}
+          </div>
+        </div>
+      ) : null}
     </div>
+  );
+});
+
+const AccordionSection = withAccordionItem(
+  SectionItem as unknown as MemoExoticComponent<
+    (props: ItemStateProps<HTMLDivElement>) => JSX.Element
+  >
+) as ForwardRefExoticComponent<Props & RefAttributes<HTMLDivElement>>;
+
+/**
+ * Collapsible sidebar section backed by `@szhsin/react-accordion` with optional add action.
+ */
+export function Section({
+  itemKey,
+  title,
+  initialEntered,
+  children,
+  onAdd,
+  addLabel,
+  headerActions
+}: Props): JSX.Element {
+  return (
+    <AccordionSection
+      itemKey={itemKey}
+      initialEntered={initialEntered}
+      title={title}
+      onAdd={onAdd}
+      addLabel={addLabel}
+      headerActions={headerActions}
+    >
+      {children}
+    </AccordionSection>
   );
 }

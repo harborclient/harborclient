@@ -1,4 +1,11 @@
-import { Button, FaIcon, Modal, Spinner } from '@harborclient/sdk/components';
+import {
+  Button,
+  FaIcon,
+  Modal,
+  ModalFooter,
+  ModalHeader,
+  Spinner
+} from '@harborclient/sdk/components';
 import { useMemo, type JSX } from 'react';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import { stripPluginScreenshotImagesFromMarkdown } from '#/shared/plugin/stripPluginScreenshotImagesFromMarkdown';
@@ -253,26 +260,8 @@ export function PluginDetailModal(props: Props): JSX.Element {
       (descriptionLoadState === 'error' && Boolean(details?.hasDescription));
   const closeDisabled = props.mode === 'catalog' ? props.actionBusy : false;
 
-  return (
-    <Modal
-      onClose={onClose}
-      className="w-[min(46.2rem,calc(100vw-2rem))]"
-      labelledBy="plugin-detail-title"
-      title={
-        <>
-          {title}
-          {isInstalled && props.plugin.signature?.status === 'verified' ? (
-            <FaIcon
-              icon={faCircleCheck}
-              className="h-3.5 w-3.5 shrink-0 text-success"
-              title={`Verified publisher: ${props.plugin.signature.author ?? props.plugin.manifest.author ?? 'unknown'}`}
-            />
-          ) : null}
-        </>
-      }
-      closeDisabled={closeDisabled}
-      disableEscape={closeDisabled}
-    >
+  const detailBody = (
+    <>
       {screenshotSrcs && screenshotSrcs.length > 0 ? (
         <ScreenshotCarousel variant="modal" images={screenshotSrcs} />
       ) : null}
@@ -364,35 +353,67 @@ export function PluginDetailModal(props: Props): JSX.Element {
           ) : null}
         </div>
       ) : null}
+    </>
+  );
 
+  const catalogActions =
+    props.mode === 'catalog' ? (
+      props.installed ? (
+        props.installed.source === 'git' ? (
+          <Button
+            type="button"
+            disabled={props.actionBusy}
+            aria-label={`Update ${props.entry.name}`}
+            onClick={props.onUpdate}
+          >
+            {props.actionBusy ? 'Updating…' : 'Update'}
+          </Button>
+        ) : (
+          <Button type="button" disabled aria-label={`${props.entry.name} is installed`}>
+            Installed
+          </Button>
+        )
+      ) : (
+        <Button
+          type="button"
+          disabled={props.actionBusy}
+          aria-label={`Install ${props.entry.name}`}
+          onClick={props.onInstall}
+        >
+          {props.actionBusy ? 'Installing…' : 'Install'}
+        </Button>
+      )
+    ) : null;
+
+  return (
+    <Modal
+      onClose={onClose}
+      className="flex w-[min(46.2rem,calc(100vw-2rem))] max-h-[85vh] flex-col overflow-hidden !p-0"
+      labelledBy="plugin-detail-title"
+      disableEscape={closeDisabled}
+    >
+      <ModalHeader
+        titleId="plugin-detail-title"
+        title={
+          <>
+            {title}
+            {isInstalled && props.plugin.signature?.status === 'verified' ? (
+              <FaIcon
+                icon={faCircleCheck}
+                className="h-3.5 w-3.5 shrink-0 text-success"
+                title={`Verified publisher: ${props.plugin.signature.author ?? props.plugin.manifest.author ?? 'unknown'}`}
+              />
+            ) : null}
+          </>
+        }
+        closeDisabled={closeDisabled}
+        onClose={onClose}
+      />
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{detailBody}</div>
       {props.mode === 'catalog' ? (
-        <div className="mt-4 flex flex-wrap justify-end gap-2">
-          {props.installed ? (
-            props.installed.source === 'git' ? (
-              <Button
-                type="button"
-                disabled={props.actionBusy}
-                aria-label={`Update ${props.entry.name}`}
-                onClick={props.onUpdate}
-              >
-                {props.actionBusy ? 'Updating…' : 'Update'}
-              </Button>
-            ) : (
-              <Button type="button" disabled aria-label={`${props.entry.name} is installed`}>
-                Installed
-              </Button>
-            )
-          ) : (
-            <Button
-              type="button"
-              disabled={props.actionBusy}
-              aria-label={`Install ${props.entry.name}`}
-              onClick={props.onInstall}
-            >
-              {props.actionBusy ? 'Installing…' : 'Install'}
-            </Button>
-          )}
-        </div>
+        <ModalFooter className="shrink-0 border-t border-separator bg-surface px-4 pb-4 pt-3 shadow-[0_-8px_16px_-8px_rgba(0,0,0,0.12)]">
+          {catalogActions}
+        </ModalFooter>
       ) : null}
     </Modal>
   );

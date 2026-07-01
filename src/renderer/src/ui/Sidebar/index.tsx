@@ -1,3 +1,4 @@
+import { ControlledAccordion, useAccordionProvider } from '@szhsin/react-accordion';
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import {
@@ -131,21 +132,9 @@ export function Sidebar({
     [pluginSidebarPanels, activeSidebarPanelId]
   );
 
-  /**
-   * Toggles expansion for one plugin-contributed sidebar section.
-   */
-  const togglePluginSection = useCallback((sectionId: string): void => {
-    setPluginSectionExpanded((current) => ({
-      ...current,
-      [sectionId]: !(current[sectionId] ?? true)
-    }));
-  }, []);
-
   const {
     collectionsSectionExpanded,
     environmentsSectionExpanded,
-    toggleCollectionsSection,
-    toggleEnvironmentsSection,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
     expandedCollectionIds,
@@ -155,6 +144,76 @@ export function Sidebar({
     revealCollection,
     revealFolder
   } = useSidebarExpansion();
+
+  /**
+   * Writes accordion item state into the persisted sidebar expansion booleans.
+   *
+   * @param key - Accordion item key (`collections`, `environments`, or a plugin section id).
+   * @param isEnter - Whether the section body should be expanded.
+   */
+  const applySectionExpanded = useCallback(
+    (key: string, isEnter: boolean): void => {
+      if (key === 'collections') {
+        setCollectionsSectionExpanded((current) => (current === isEnter ? current : isEnter));
+        return;
+      }
+
+      if (key === 'environments') {
+        setEnvironmentsSectionExpanded((current) => (current === isEnter ? current : isEnter));
+        return;
+      }
+
+      setPluginSectionExpanded((current) => {
+        const previous = current[key] ?? true;
+        if (previous === isEnter) {
+          return current;
+        }
+        return { ...current, [key]: isEnter };
+      });
+    },
+    [setCollectionsSectionExpanded, setEnvironmentsSectionExpanded]
+  );
+
+  const accordion = useAccordionProvider({
+    allowMultiple: true,
+    transition: true,
+    transitionTimeout: 200,
+    mountOnEnter: true,
+    onStateChange: ({ key, current }) => {
+      applySectionExpanded(String(key), current.isEnter);
+    }
+  });
+  const { stateMap, toggle } = accordion;
+
+  /**
+   * Pushes programmatic expansion changes (search, reveal, hydration) into the accordion.
+   * `stateMap` is read when persisted booleans change but omitted from deps so user toggles
+   * do not re-trigger sync and snap sections back open.
+   */
+  useEffect(() => {
+    const desiredExpansion: Record<string, boolean> = {
+      collections: collectionsSectionExpanded,
+      environments: environmentsSectionExpanded
+    };
+
+    for (const section of pluginSidebarSections) {
+      desiredExpansion[section.id] = pluginSectionExpanded[section.id] ?? true;
+    }
+
+    for (const [key, wantExpanded] of Object.entries(desiredExpansion)) {
+      const isExpanded = stateMap.get(key)?.isEnter;
+      if (isExpanded !== wantExpanded) {
+        toggle(key, wantExpanded);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stateMap intentionally excluded; see docblock
+  }, [
+    toggle,
+    collectionsSectionExpanded,
+    environmentsSectionExpanded,
+    pluginSectionExpanded,
+    pluginSidebarSections
+  ]);
 
   const { searchQuery, setSearchQuery, searchFilter, searchLoading } = useSidebarSearch({
     collections,
@@ -418,275 +477,283 @@ export function Sidebar({
                 </p>
               ) : null}
 
-              <nav aria-label="Collections">
-                <Section
-                  title="Collections"
-                  expanded={collectionsSectionExpanded}
-                  onToggle={toggleCollectionsSection}
-                  onAdd={onAddCollection}
-                  addLabel="Add Collection"
-                >
-                  <Collections
-                    collections={collections}
-                    foldersByCollection={foldersByCollection}
-                    requestsByCollection={requestsByCollection}
-                    searchFilter={searchFilter}
-                    selectedCollectionId={selectedCollectionId}
-                    selectedFolderId={selectedFolderId}
-                    primaryConnectionId={primaryConnectionId}
-                    connectionNamesById={connectionNamesById}
-                    connectionTypesById={connectionTypesById}
-                    gitStatusesByConnectionId={gitStatusesByConnectionId}
-                    onOpenSourceControl={(connectionId, connectionName) =>
-                      setGitPanel({ connectionId, connectionName })
-                    }
-                    activeRequestId={draft.id}
-                    expandedCollectionIds={expandedCollectionIds}
-                    expandedFolderIds={expandedFolderIds}
-                    setExpandedCollectionIds={setExpandedCollectionIds}
-                    setExpandedFolderIds={setExpandedFolderIds}
-                    onSelectCollection={(id) => {
-                      dispatch(setSelectedCollectionId(id));
-                      revealCollection(id);
-                    }}
-                    onSelectFolder={(collectionId, folderId) => {
-                      dispatch(focusSidebarItem({ collectionId, folderId }));
-                      revealFolder(collectionId, folderId);
-                    }}
-                    onExpandCollection={handleExpandCollection}
-                    onConfigureCollection={onConfigureCollection}
-                    onRunCollection={(collectionId, collectionName) => {
-                      dispatch(
-                        openCollectionRunnerModal({
+              <ControlledAccordion providerValue={accordion}>
+                <nav aria-label="Collections">
+                  <Section
+                    itemKey="collections"
+                    title="Collections"
+                    initialEntered={collectionsSectionExpanded}
+                    onAdd={onAddCollection}
+                    addLabel="Add Collection"
+                  >
+                    <Collections
+                      collections={collections}
+                      foldersByCollection={foldersByCollection}
+                      requestsByCollection={requestsByCollection}
+                      searchFilter={searchFilter}
+                      selectedCollectionId={selectedCollectionId}
+                      selectedFolderId={selectedFolderId}
+                      primaryConnectionId={primaryConnectionId}
+                      connectionNamesById={connectionNamesById}
+                      connectionTypesById={connectionTypesById}
+                      gitStatusesByConnectionId={gitStatusesByConnectionId}
+                      onOpenSourceControl={(connectionId, connectionName) =>
+                        setGitPanel({ connectionId, connectionName })
+                      }
+                      activeRequestId={draft.id}
+                      expandedCollectionIds={expandedCollectionIds}
+                      expandedFolderIds={expandedFolderIds}
+                      setExpandedCollectionIds={setExpandedCollectionIds}
+                      setExpandedFolderIds={setExpandedFolderIds}
+                      onSelectCollection={(id) => {
+                        dispatch(setSelectedCollectionId(id));
+                        revealCollection(id);
+                      }}
+                      onSelectFolder={(collectionId, folderId) => {
+                        dispatch(focusSidebarItem({ collectionId, folderId }));
+                        revealFolder(collectionId, folderId);
+                      }}
+                      onExpandCollection={handleExpandCollection}
+                      onConfigureCollection={onConfigureCollection}
+                      onRunCollection={(collectionId, collectionName) => {
+                        dispatch(
+                          openCollectionRunnerModal({
+                            collectionId,
+                            collectionName
+                          })
+                        );
+                      }}
+                      onRunFolder={(collectionId, folderId, collectionName, folderName) => {
+                        dispatch(
+                          openCollectionRunnerModal({
+                            collectionId,
+                            folderId,
+                            collectionName,
+                            folderName
+                          })
+                        );
+                      }}
+                      onDeleteCollection={async (id) => {
+                        const collection = collections.find((item) => item.id === id);
+                        if (collection && isTeamHubProvider(providers, collection.connectionId)) {
+                          const confirmed = await showConfirm(dispatch, {
+                            title: collection.deletion_locked
+                              ? 'Remove collection'
+                              : 'Delete collection',
+                            message: collection.deletion_locked
+                              ? 'Remove this collection from your sidebar only? It will stay on the team hub for other members.'
+                              : 'Delete this collection from the team hub? Team members will lose access to it on the server.',
+                            confirmLabel: collection.deletion_locked ? 'Remove' : 'Delete',
+                            variant: 'danger'
+                          });
+                          if (!confirmed) return;
+                        }
+                        try {
+                          await dispatch(deleteCollection(id)).unwrap();
+                          if (collection?.deletion_locked) {
+                            toast.success('Collection removed from sidebar.');
+                          }
+                        } catch (err) {
+                          showAlert(
+                            dispatch,
+                            formatErrorMessage(err, 'Failed to delete collection')
+                          );
+                        }
+                      }}
+                      onExportCollection={async (id) => {
+                        const result = await dispatch(exportCollection(id)).unwrap();
+                        if (!result.canceled) {
+                          toast.success('Collection exported');
+                        }
+                      }}
+                      onDuplicateCollection={async (id) => {
+                        try {
+                          await dispatch(duplicateCollection(id)).unwrap();
+                          toast.success('Collection duplicated');
+                        } catch (err) {
+                          showAlert(
+                            dispatch,
+                            formatErrorMessage(err, 'Failed to duplicate collection')
+                          );
+                        }
+                      }}
+                      onShareCollection={onShareCollection}
+                      onNewFolder={(collectionId) => {
+                        setFolderModal({ mode: 'create', collectionId, name: '', error: null });
+                      }}
+                      onNewRequestInCollection={async (id) => {
+                        try {
+                          await dispatch(newRequestInCollection(id)).unwrap();
+                        } catch (err) {
+                          showAlert(dispatch, formatErrorMessage(err, 'Failed to create request'));
+                        }
+                      }}
+                      onImportRequest={async (collectionId, folderId) => {
+                        try {
+                          const saved = await dispatch(
+                            importRequest({ collectionId, folderId })
+                          ).unwrap();
+                          if (saved) {
+                            toast.success('Request imported');
+                          }
+                        } catch (err) {
+                          showAlert(dispatch, formatErrorMessage(err, 'Failed to import request'));
+                        }
+                      }}
+                      onNewRequestInFolder={async (collectionId, folderId) => {
+                        try {
+                          await dispatch(newRequestInFolder({ collectionId, folderId })).unwrap();
+                        } catch (err) {
+                          showAlert(dispatch, formatErrorMessage(err, 'Failed to create request'));
+                        }
+                      }}
+                      onRenameFolder={(id, collectionId) => {
+                        const folders = foldersByCollection[collectionId] ?? [];
+                        const folder = folders.find((item) => item.id === id);
+                        setFolderModal({
+                          mode: 'rename',
                           collectionId,
-                          collectionName
-                        })
-                      );
-                    }}
-                    onRunFolder={(collectionId, folderId, collectionName, folderName) => {
-                      dispatch(
-                        openCollectionRunnerModal({
-                          collectionId,
-                          folderId,
-                          collectionName,
-                          folderName
-                        })
-                      );
-                    }}
-                    onDeleteCollection={async (id) => {
-                      const collection = collections.find((item) => item.id === id);
-                      if (collection && isTeamHubProvider(providers, collection.connectionId)) {
+                          folderId: id,
+                          name: folder?.name ?? '',
+                          error: null
+                        });
+                      }}
+                      onDeleteFolder={async (id, collectionId, requestIds) => {
+                        const count = requestIds.length;
+                        const message =
+                          count > 0
+                            ? `Delete this folder and ${count} request${count === 1 ? '' : 's'} inside it?`
+                            : 'Delete this folder?';
                         const confirmed = await showConfirm(dispatch, {
-                          title: collection.deletion_locked
-                            ? 'Remove collection'
-                            : 'Delete collection',
-                          message: collection.deletion_locked
-                            ? 'Remove this collection from your sidebar only? It will stay on the team hub for other members.'
-                            : 'Delete this collection from the team hub? Team members will lose access to it on the server.',
-                          confirmLabel: collection.deletion_locked ? 'Remove' : 'Delete',
+                          title: 'Delete folder',
+                          message,
+                          confirmLabel: 'Delete',
                           variant: 'danger'
                         });
                         if (!confirmed) return;
-                      }
-                      try {
-                        await dispatch(deleteCollection(id)).unwrap();
-                        if (collection?.deletion_locked) {
-                          toast.success('Collection removed from sidebar.');
+                        try {
+                          await dispatch(deleteFolder({ id, collectionId, requestIds })).unwrap();
+                        } catch (err) {
+                          showAlert(dispatch, formatErrorMessage(err, 'Failed to delete folder'));
                         }
-                      } catch (err) {
-                        showAlert(dispatch, formatErrorMessage(err, 'Failed to delete collection'));
-                      }
-                    }}
-                    onExportCollection={async (id) => {
-                      const result = await dispatch(exportCollection(id)).unwrap();
-                      if (!result.canceled) {
-                        toast.success('Collection exported');
-                      }
-                    }}
-                    onDuplicateCollection={async (id) => {
-                      try {
-                        await dispatch(duplicateCollection(id)).unwrap();
-                        toast.success('Collection duplicated');
-                      } catch (err) {
-                        showAlert(
-                          dispatch,
-                          formatErrorMessage(err, 'Failed to duplicate collection')
+                      }}
+                      onReorderCollections={async (orderedCollectionIds) => {
+                        await dispatch(reorderCollections({ orderedCollectionIds }));
+                      }}
+                      onReorderFolders={async (collectionId, orderedFolderIds) => {
+                        await dispatch(reorderFolders({ collectionId, orderedFolderIds }));
+                      }}
+                      onReorderRequests={async (collectionId, folderId, orderedRequestIds) => {
+                        await dispatch(
+                          reorderRequests({ collectionId, folderId, orderedRequestIds })
                         );
-                      }
-                    }}
-                    onShareCollection={onShareCollection}
-                    onNewFolder={(collectionId) => {
-                      setFolderModal({ mode: 'create', collectionId, name: '', error: null });
-                    }}
-                    onNewRequestInCollection={async (id) => {
-                      try {
-                        await dispatch(newRequestInCollection(id)).unwrap();
-                      } catch (err) {
-                        showAlert(dispatch, formatErrorMessage(err, 'Failed to create request'));
-                      }
-                    }}
-                    onImportRequest={async (collectionId, folderId) => {
-                      try {
-                        const saved = await dispatch(
-                          importRequest({ collectionId, folderId })
-                        ).unwrap();
-                        if (saved) {
-                          toast.success('Request imported');
+                      }}
+                      onMoveRequest={async (collectionId, requestId, folderId, index) => {
+                        await dispatch(
+                          moveRequestToFolder({ collectionId, requestId, folderId, index })
+                        );
+                      }}
+                      onLoadRequest={onLoadRequest}
+                      onDeleteRequest={async (id) => {
+                        await dispatch(deleteRequest(id));
+                      }}
+                      onDuplicateRequest={async (req) => {
+                        try {
+                          await dispatch(duplicateRequest(req)).unwrap();
+                        } catch (err) {
+                          showAlert(
+                            dispatch,
+                            formatErrorMessage(err, 'Failed to duplicate request')
+                          );
                         }
-                      } catch (err) {
-                        showAlert(dispatch, formatErrorMessage(err, 'Failed to import request'));
-                      }
-                    }}
-                    onNewRequestInFolder={async (collectionId, folderId) => {
-                      try {
-                        await dispatch(newRequestInFolder({ collectionId, folderId })).unwrap();
-                      } catch (err) {
-                        showAlert(dispatch, formatErrorMessage(err, 'Failed to create request'));
-                      }
-                    }}
-                    onRenameFolder={(id, collectionId) => {
-                      const folders = foldersByCollection[collectionId] ?? [];
-                      const folder = folders.find((item) => item.id === id);
-                      setFolderModal({
-                        mode: 'rename',
-                        collectionId,
-                        folderId: id,
-                        name: folder?.name ?? '',
-                        error: null
-                      });
-                    }}
-                    onDeleteFolder={async (id, collectionId, requestIds) => {
-                      const count = requestIds.length;
-                      const message =
-                        count > 0
-                          ? `Delete this folder and ${count} request${count === 1 ? '' : 's'} inside it?`
-                          : 'Delete this folder?';
-                      const confirmed = await showConfirm(dispatch, {
-                        title: 'Delete folder',
-                        message,
-                        confirmLabel: 'Delete',
-                        variant: 'danger'
-                      });
-                      if (!confirmed) return;
-                      try {
-                        await dispatch(deleteFolder({ id, collectionId, requestIds })).unwrap();
-                      } catch (err) {
-                        showAlert(dispatch, formatErrorMessage(err, 'Failed to delete folder'));
-                      }
-                    }}
-                    onReorderCollections={async (orderedCollectionIds) => {
-                      await dispatch(reorderCollections({ orderedCollectionIds }));
-                    }}
-                    onReorderFolders={async (collectionId, orderedFolderIds) => {
-                      await dispatch(reorderFolders({ collectionId, orderedFolderIds }));
-                    }}
-                    onReorderRequests={async (collectionId, folderId, orderedRequestIds) => {
-                      await dispatch(
-                        reorderRequests({ collectionId, folderId, orderedRequestIds })
-                      );
-                    }}
-                    onMoveRequest={async (collectionId, requestId, folderId, index) => {
-                      await dispatch(
-                        moveRequestToFolder({ collectionId, requestId, folderId, index })
-                      );
-                    }}
-                    onLoadRequest={onLoadRequest}
-                    onDeleteRequest={async (id) => {
-                      await dispatch(deleteRequest(id));
-                    }}
-                    onDuplicateRequest={async (req) => {
-                      try {
-                        await dispatch(duplicateRequest(req)).unwrap();
-                      } catch (err) {
-                        showAlert(dispatch, formatErrorMessage(err, 'Failed to duplicate request'));
-                      }
-                    }}
-                    onExportRequest={async (req) => {
-                      const result = await dispatch(exportRequest(req)).unwrap();
-                      if (!result.canceled) {
-                        toast.success('Request exported');
-                      }
-                    }}
-                  />
-                </Section>
-              </nav>
+                      }}
+                      onExportRequest={async (req) => {
+                        const result = await dispatch(exportRequest(req)).unwrap();
+                        if (!result.canceled) {
+                          toast.success('Request exported');
+                        }
+                      }}
+                    />
+                  </Section>
+                </nav>
 
-              <nav aria-label="Environments">
-                <Section
-                  title="Environments"
-                  expanded={environmentsSectionExpanded}
-                  onToggle={toggleEnvironmentsSection}
-                  onAdd={() => {
-                    setEnvironmentModalTab('create');
-                    setNewEnvironmentName('');
-                    setEnvironmentModalError(null);
-                    setShowEnvironmentModal(true);
-                  }}
-                  addLabel="Add Environment"
-                >
-                  <Environments
-                    environments={visibleEnvironments}
-                    activeEnvironmentId={activeEnvironmentId}
-                    searchActive={searchFilter != null}
-                    noMatches={environmentsSearchNoMatches}
-                    onSelectEnvironment={(id) => dispatch(setActiveEnvironmentId(id))}
-                    onConfigureEnvironment={onConfigureEnvironment}
-                    onDeleteEnvironment={async (id) => {
-                      await dispatch(deleteEnvironment(id));
+                <nav aria-label="Environments">
+                  <Section
+                    itemKey="environments"
+                    title="Environments"
+                    initialEntered={environmentsSectionExpanded}
+                    onAdd={() => {
+                      setEnvironmentModalTab('create');
+                      setNewEnvironmentName('');
+                      setEnvironmentModalError(null);
+                      setShowEnvironmentModal(true);
                     }}
-                    onExportEnvironment={async (id) => {
-                      const result = await dispatch(exportEnvironment(id)).unwrap();
-                      if (!result.canceled) {
-                        toast.success('Environment exported');
-                      }
-                    }}
-                    onDuplicateEnvironment={async (id) => {
-                      try {
-                        await dispatch(duplicateEnvironment(id)).unwrap();
-                        toast.success('Environment duplicated');
-                      } catch (err) {
-                        showAlert(
-                          dispatch,
-                          formatErrorMessage(err, 'Failed to duplicate environment')
-                        );
-                      }
-                    }}
-                    onReorderEnvironments={async (orderedEnvironmentIds) => {
-                      await dispatch(reorderEnvironments({ orderedEnvironmentIds }));
-                    }}
-                  />
-                </Section>
-              </nav>
+                    addLabel="Add Environment"
+                  >
+                    <Environments
+                      environments={visibleEnvironments}
+                      activeEnvironmentId={activeEnvironmentId}
+                      searchActive={searchFilter != null}
+                      noMatches={environmentsSearchNoMatches}
+                      onSelectEnvironment={(id) => dispatch(setActiveEnvironmentId(id))}
+                      onConfigureEnvironment={onConfigureEnvironment}
+                      onDeleteEnvironment={async (id) => {
+                        await dispatch(deleteEnvironment(id));
+                      }}
+                      onExportEnvironment={async (id) => {
+                        const result = await dispatch(exportEnvironment(id)).unwrap();
+                        if (!result.canceled) {
+                          toast.success('Environment exported');
+                        }
+                      }}
+                      onDuplicateEnvironment={async (id) => {
+                        try {
+                          await dispatch(duplicateEnvironment(id)).unwrap();
+                          toast.success('Environment duplicated');
+                        } catch (err) {
+                          showAlert(
+                            dispatch,
+                            formatErrorMessage(err, 'Failed to duplicate environment')
+                          );
+                        }
+                      }}
+                      onReorderEnvironments={async (orderedEnvironmentIds) => {
+                        await dispatch(reorderEnvironments({ orderedEnvironmentIds }));
+                      }}
+                    />
+                  </Section>
+                </nav>
 
-              {pluginSidebarSections.map((section) => {
-                const expanded = pluginSectionExpanded[section.id] ?? true;
-                return (
-                  <nav key={section.id} aria-label={section.title}>
-                    <Section
-                      title={section.title}
-                      expanded={expanded}
-                      onToggle={() => togglePluginSection(section.id)}
-                      headerActions={
-                        section.hasHeaderActions ? (
-                          <PluginSurface
-                            pluginId={section.pluginId}
-                            contributionId={section.contributionId}
-                            kind="sidebarSections"
-                            slot="headerActions"
-                          />
-                        ) : undefined
-                      }
-                    >
-                      <PluginSurface
-                        pluginId={section.pluginId}
-                        contributionId={section.contributionId}
-                        kind="sidebarSections"
-                        minHeight={120}
-                      />
-                    </Section>
-                  </nav>
-                );
-              })}
+                {pluginSidebarSections.map((section) => {
+                  const expanded = pluginSectionExpanded[section.id] ?? true;
+                  return (
+                    <nav key={section.id} aria-label={section.title}>
+                      <Section
+                        itemKey={section.id}
+                        title={section.title}
+                        initialEntered={expanded}
+                        headerActions={
+                          section.hasHeaderActions ? (
+                            <PluginSurface
+                              pluginId={section.pluginId}
+                              contributionId={section.contributionId}
+                              kind="sidebarSections"
+                              slot="headerActions"
+                            />
+                          ) : undefined
+                        }
+                      >
+                        <PluginSurface
+                          pluginId={section.pluginId}
+                          contributionId={section.contributionId}
+                          kind="sidebarSections"
+                          minHeight={120}
+                        />
+                      </Section>
+                    </nav>
+                  );
+                })}
+              </ControlledAccordion>
             </div>
           </>
         )}

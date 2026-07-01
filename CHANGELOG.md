@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(sidebar): integrate @szhsin/react-accordion for improved sidebar navigation. (`dc35d4b`)
+
 ## 1.9.8 - 2026-07-01
 
 - feat(settings): implement settings search functionality and enhance navigation. (`866fa0f`)
