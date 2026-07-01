@@ -256,21 +256,24 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     section: 'globals',
     kind: 'section',
     label: 'Globals',
-    description: 'App-wide variables substituted into request URLs and bodies.'
+    description: 'App-wide variables substituted into request URLs and bodies.',
+    keywords: ['variables']
   },
   {
     id: 'storage',
     section: 'storage',
     kind: 'section',
     label: 'Storage Locations',
-    description: 'Configure local, Git, and remote database connections for collections.'
+    description: 'Configure local, Git, and remote database connections for collections.',
+    keywords: ['connections', 'database']
   },
   {
     id: 'shortcuts',
     section: 'shortcuts',
     kind: 'section',
     label: 'Shortcuts',
-    description: 'Customize keyboard shortcuts for menus and common actions.'
+    description: 'Customize keyboard shortcuts for menus and common actions.',
+    keywords: ['keyboard', 'keybindings']
   },
   {
     id: 'backup-restore',
@@ -278,7 +281,8 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     kind: 'section',
     label: 'Backup & Restore',
     description:
-      'Export everything HarborClient stores locally into a backup file, or restore from a backup.'
+      'Export everything HarborClient stores locally into a backup file, or restore from a backup.',
+    keywords: ['export', 'import']
   }
 ];
 

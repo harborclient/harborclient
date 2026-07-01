@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { saveGlobalVariables } from '#/renderer/src/store/thunks/settings';
 import { settingsSectionMeta } from '../constants';
 import { SettingLabel } from '../components/SettingLabel';
-import { SettingsCloseButton } from '../SettingsCloseButton';
+import { SettingsBackButton } from '../SettingsBackButton';
 
 interface Props {
   /**
@@ -90,7 +90,7 @@ function GlobalsSectionForm({ savedVariables, onClose }: FormProps): JSX.Element
       title={label}
       description="Use variables in request URLs with {{variable}} syntax."
       icon={icon}
-      actions={<SettingsCloseButton onClose={onClose} />}
+      actions={<SettingsBackButton onClose={onClose} />}
     >
       <div className="mb-6 flex mx-auto max-w-3xl flex-col gap-1">
         <span className="text-[14px] font-medium text-text">

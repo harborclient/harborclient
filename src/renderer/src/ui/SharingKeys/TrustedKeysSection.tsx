@@ -1,12 +1,12 @@
 import {
   AsyncListState,
+  BackButton,
   Button,
   FieldError,
   FormGroup,
   Input,
   LoadingMessage,
   Page,
-  PanelCloseButton,
   ResourceList,
   ResourceListEmptyItem,
   ResourceListPrimary,
@@ -139,7 +139,7 @@ export function TrustedKeysSection({ onClose }: Props): JSX.Element {
       embedded
       title="Trusted keys"
       description="Add public keys for people you trust. Share tokens must be signed by a trusted sender, and you can only create share tokens for keys listed here."
-      actions={<PanelCloseButton onClose={onClose} ariaLabel="Close sharing keys" />}
+      actions={<BackButton onClick={onClose} ariaLabel="Back to requests" />}
     >
       <div className="mb-4 rounded-md border border-separator p-3">
         <FormGroup label="Label">

@@ -18,6 +18,7 @@ import type { AdminResourceOption, TeamHub } from '#/shared/types';
 
 import { faUsers } from '#/renderer/src/fontawesome';
 
+import { useEscapeBackCapture } from '#/renderer/src/hooks/useEscapeBack';
 import { useTeamHubAdminCollections } from '#/renderer/src/hooks/useTeamHubAdminCollections';
 import { TeamCollectionContentsView } from '#/renderer/src/ui/TeamHub/TeamCollectionContentsView';
 
@@ -91,6 +92,19 @@ export function TeamCollectionsView({ hub, onBack }: Props): JSX.Element {
       setDeleting(false);
     }
   };
+
+  /**
+   * Returns from collection contents to the collections list on Escape.
+   */
+  useEscapeBackCapture(() => {
+    setSelectedCollection(null);
+    reload();
+  }, selectedCollection != null);
+
+  /**
+   * Returns from the collections list to the hub list on Escape.
+   */
+  useEscapeBackCapture(onBack, selectedCollection == null);
 
   if (selectedCollection) {
     return (

@@ -7,16 +7,13 @@ import { loadSettingsDraft } from '#/renderer/src/store/thunks/settingsDraft';
 import type { SettingsSection } from '#/shared/types';
 
 import { settingsSectionMeta } from '../constants';
-import { SettingsCloseButton } from '../SettingsCloseButton';
+import { SettingsBackButton } from '../SettingsBackButton';
 import { SettingsSaveFooter } from '../components/SettingsSaveFooter';
 import {
-  entryById,
   fieldEntriesForSection,
   FORM_SECTION_DESCRIPTIONS,
   isFormSettingsSection,
-  type FieldSettingId,
-  type FormSettingsSection,
-  type SettingId
+  type FormSettingsSection
 } from './catalog';
 import {
   FORM_SECTION_EXTRAS,
@@ -30,14 +27,11 @@ interface Props {
    * Closes the settings overlay.
    */
   onClose: () => void;
+
   /**
-   * Built-in or plugin settings section to render in normal navigation mode.
+   * Built-in settings section to render in normal navigation mode.
    */
-  section?: SettingsSection;
-  /**
-   * Optional explicit field ids for dynamic mixed-section rendering (future search).
-   */
-  settingIds?: SettingId[];
+  section: SettingsSection;
 }
 
 /**
@@ -70,46 +64,20 @@ function SettingsDraftError(): JSX.Element | null {
 }
 
 /**
- * Catalog-driven settings layout engine for section navigation and future search results.
+ * Catalog-driven settings layout engine for section navigation.
  */
-export function SettingsRenderer({ onClose, section, settingIds }: Props): JSX.Element | null {
+export function SettingsRenderer({ onClose, section }: Props): JSX.Element | null {
   const dispatch = useAppDispatch();
 
   /**
-   * Loads the shared settings draft when a catalog-driven section is shown.
+   * Loads the shared settings draft when a catalog-driven form section is shown.
    */
   useEffect(() => {
-    if (section == null && settingIds == null) {
-      return;
-    }
-    if (section != null && isManagementSettingsSection(section)) {
+    if (isManagementSettingsSection(section)) {
       return;
     }
     void dispatch(loadSettingsDraft());
-  }, [dispatch, section, settingIds]);
-
-  if (settingIds != null && settingIds.length > 0) {
-    const fieldIds = settingIds.filter(
-      (id): id is FieldSettingId => entryById(id).kind === 'field'
-    );
-
-    return (
-      <Page
-        embedded
-        className="mb-6 flex flex-col"
-        title="Settings"
-        actions={<SettingsCloseButton onClose={onClose} />}
-      >
-        <SettingsDraftError />
-        <div className="mb-6 flex flex-col gap-6">{renderSettingFields(fieldIds)}</div>
-        <SettingsSaveFooter />
-      </Page>
-    );
-  }
-
-  if (section == null) {
-    return null;
-  }
+  }, [dispatch, section]);
 
   if (isManagementSettingsSection(section)) {
     const SectionComponent = SETTINGS_SECTION_REGISTRY[section];
@@ -127,7 +95,7 @@ export function SettingsRenderer({ onClose, section, settingIds }: Props): JSX.E
         title={label}
         icon={icon}
         description={FORM_SECTION_DESCRIPTIONS[section]}
-        actions={<SettingsCloseButton onClose={onClose} />}
+        actions={<SettingsBackButton onClose={onClose} />}
       >
         <SettingsDraftError />
         <div className="mb-6 flex flex-col gap-6">{renderSettingFields(fieldIds)}</div>

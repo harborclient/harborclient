@@ -18,7 +18,7 @@ import { settingsSectionMeta } from '../constants';
 import { acceleratorFromKeyboardEvent } from './acceleratorFromKeyboardEvent';
 import { FieldError } from '@harborclient/sdk/components';
 import { StatusMessage } from '@harborclient/sdk/components';
-import { SettingsCloseButton } from '../SettingsCloseButton';
+import { SettingsBackButton } from '../SettingsBackButton';
 
 interface Props {
   /**
@@ -211,7 +211,7 @@ export function ShortcutsSection({ onClose }: Props): JSX.Element {
       title={label}
       icon={icon}
       description="Click a key combination to record a new shortcut. Changes apply immediately when valid."
-      actions={<SettingsCloseButton onClose={onClose} />}
+      actions={<SettingsBackButton onClose={onClose} />}
     >
       <div className="flex flex-col gap-3">
         {loading ? (

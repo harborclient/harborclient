@@ -3,7 +3,6 @@ import {
   cleanVariables,
   ModalFooter,
   Page,
-  PanelCloseButton,
   Button,
   FormGroup,
   Input
@@ -102,7 +101,6 @@ function EnvironmentSettingsForm({
     <Page
       title="Environment Settings"
       description="Manage environment settings and configuration"
-      actions={<PanelCloseButton onClose={onClose} ariaLabel="Close environment settings" />}
       footer={
         <ModalFooter>
           <Button variant="secondary" onClick={onClose}>

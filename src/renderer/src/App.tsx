@@ -3,6 +3,7 @@ import { useCallback, useEffect, type JSX } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import type { Collection, Environment } from '#/shared/types';
 import { useBeforeClose } from '#/renderer/src/hooks/useBeforeClose';
+import { useEscapeBack } from '#/renderer/src/hooks/useEscapeBack';
 import { useMenuActions } from '#/renderer/src/hooks/useMenuActions';
 import { useDeepLinks } from '#/renderer/src/hooks/useDeepLinks';
 import { usePersistedPanelLayout } from '#/renderer/src/hooks/usePersistedPanelLayout';
@@ -172,6 +173,16 @@ export default function App(): JSX.Element {
     mainView.type === 'plugin-view' ||
     configuringCollection != null ||
     configuringEnvironment != null;
+
+  /**
+   * Closes top-level overlays on Escape; Team Hub manages its own nested stack.
+   */
+  useEscapeBack(
+    () => {
+      dispatch(closeOverlay());
+    },
+    showConfiguration && mainView.type !== 'team-hubs'
+  );
 
   return (
     <CodeEditorConfigProvider value={{ theme: codeEditorTheme, setup: codeEditorSetup }}>

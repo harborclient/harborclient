@@ -18,7 +18,7 @@ import { refreshCollections } from '#/renderer/src/store/thunks/collections';
 import { createBlankConnection, providerLabel, settingsSectionMeta } from '../constants';
 import { sectionEntryBySection } from '../catalog/catalog';
 import { SettingLabel } from '../components/SettingLabel';
-import { SettingsCloseButton } from '../SettingsCloseButton';
+import { SettingsBackButton } from '../SettingsBackButton';
 import { DiscoverCollectionsModal } from './DiscoverCollectionsModal';
 import { ConnectionDeleteModal } from './ConnectionDeleteModal';
 import { ConnectionEditModal } from './ConnectionEditModal';
@@ -255,7 +255,7 @@ export function StorageLocationsSection({ onClose }: Props): JSX.Element {
             >
               Add storage location
             </Button>
-            <SettingsCloseButton onClose={onClose} />
+            <SettingsBackButton onClose={onClose} />
           </>
         }
       >

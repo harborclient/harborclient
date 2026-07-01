@@ -1,11 +1,4 @@
-import {
-  Button,
-  Page,
-  PanelCloseButton,
-  Input,
-  Textarea,
-  FormGroup
-} from '@harborclient/sdk/components';
+import { BackButton, Button, Page, Input, Textarea, FormGroup } from '@harborclient/sdk/components';
 import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { SharingIdentity } from '#/shared/types';
@@ -115,7 +108,7 @@ export function IdentitySection({ onClose }: Props): JSX.Element {
       embedded
       title="My identity"
       description="Your key pair signs share tokens you send and decrypts tokens addressed to you. Share your public key so collaborators can trust and encrypt to you."
-      actions={<PanelCloseButton onClose={onClose} ariaLabel="Close sharing keys" />}
+      actions={<BackButton onClick={onClose} ariaLabel="Back to requests" />}
     >
       {loading ? (
         <p role="status" className="text-[14px] text-muted">

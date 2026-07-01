@@ -1,10 +1,10 @@
 import {
+  BackButton,
   Button,
   FieldError,
   FormGroup,
   Input,
-  Page,
-  PanelCloseButton
+  Page
 } from '@harborclient/sdk/components';
 import type { JSX, KeyboardEvent } from 'react';
 import { faDownload } from '#/renderer/src/fontawesome';
@@ -93,7 +93,7 @@ export function InstallView({
       title="Install"
       icon={faDownload}
       description="Add plugins from a package file, git repository, or unpacked source directory."
-      actions={<PanelCloseButton onClose={onClose} ariaLabel="Close plugins" />}
+      actions={<BackButton onClick={onClose} ariaLabel="Back to requests" />}
     >
       <div className="flex max-w-xl flex-col gap-6">
         <div>

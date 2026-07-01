@@ -1,4 +1,4 @@
-import { FormGroup, Input, Page, PanelCloseButton, Select } from '@harborclient/sdk/components';
+import { BackButton, FormGroup, Input, Page, Select } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import type { PluginCatalog } from '#/shared/plugin/catalog';
 import {
@@ -83,7 +83,7 @@ export function MarketplaceView({
       title="Marketplace"
       icon={faStore}
       description="Browse and install plugins from configured marketplace catalogs."
-      actions={<PanelCloseButton onClose={onClose} ariaLabel="Close plugins" />}
+      actions={<BackButton onClick={onClose} ariaLabel="Back to requests" />}
     >
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end">
         <FormGroup label="Search plugins" htmlFor="plugin-catalog-search" srOnly>

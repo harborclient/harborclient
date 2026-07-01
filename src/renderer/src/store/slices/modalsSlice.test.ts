@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
+import type { RootState } from '#/renderer/src/store/redux';
 import modalsReducer, {
   appendCollectionRunnerResult,
   cancelCollectionRunner,
@@ -16,6 +17,7 @@ import modalsReducer, {
   openCollectionRunnerModal,
   openShareModal,
   openSyncModal,
+  selectHasBlockingModal,
   setAboutVersion,
   setCollectionModalShareTokenInput,
   setCollectionModalName,
@@ -298,5 +300,37 @@ describe('modalsSlice', () => {
 
     state = modalsReducer(state, setPluginModal(null));
     expect(state.pluginModal).toBeNull();
+  });
+});
+
+describe('selectHasBlockingModal', () => {
+  /**
+   * Builds a minimal root state object for modal selector tests.
+   *
+   * @param modals - Modal slice state under test.
+   * @returns Root state stub containing only the modals slice.
+   */
+  function rootWithModals(modals: ReturnType<typeof modalsReducer>): RootState {
+    return { modals } as RootState;
+  }
+
+  it('returns false when no modals are open', () => {
+    const state = modalsReducer(undefined, { type: 'unknown' });
+    expect(selectHasBlockingModal(rootWithModals(state))).toBe(false);
+  });
+
+  it('returns true when the collection modal is open', () => {
+    const state = modalsReducer(undefined, openCollectionModal({ mode: 'create' }));
+    expect(selectHasBlockingModal(rootWithModals(state))).toBe(true);
+  });
+
+  it('returns true when the quit prompt is open', () => {
+    const state = modalsReducer(undefined, setQuitPrompt(['Request A']));
+    expect(selectHasBlockingModal(rootWithModals(state))).toBe(true);
+  });
+
+  it('returns true when the about modal is open', () => {
+    const state = modalsReducer(undefined, openAboutModal());
+    expect(selectHasBlockingModal(rootWithModals(state))).toBe(true);
   });
 });

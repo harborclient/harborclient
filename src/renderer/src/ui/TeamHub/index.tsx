@@ -1,5 +1,6 @@
 import { useState, type JSX } from 'react';
 import type { TeamHub } from '#/shared/types';
+import { useEscapeBack, useEscapeBackCapture } from '#/renderer/src/hooks/useEscapeBack';
 import { useTeamHubServiceScan } from '#/renderer/src/hooks/useTeamHubServiceScan';
 import { useTeamHubs } from '#/renderer/src/hooks/useTeamHubs';
 import { TeamCollectionsView } from './TeamCollectionsView';
@@ -67,9 +68,19 @@ export function TeamHub({ onClose }: Props): JSX.Element {
     setView('manageCollections');
   };
 
+  /**
+   * Returns to the request editor when the hub list is showing.
+   */
+  useEscapeBack(onClose, view === 'list');
+
+  /**
+   * Returns to the hub list from user or token admin views on Escape.
+   */
+  useEscapeBackCapture(handleBackToList, view === 'manageUsers' || view === 'manageTokens');
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-6 pt-0!">
         {view === 'list' ? (
           <TeamHubList
             teamHubs={teamHubs}

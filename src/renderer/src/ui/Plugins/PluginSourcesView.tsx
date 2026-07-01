@@ -1,4 +1,4 @@
-import { Button, Page, PanelCloseButton } from '@harborclient/sdk/components';
+import { BackButton, Button, Page } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import type { PluginSource, PluginSourcesSettings } from '#/shared/plugin/catalog';
 import type { TeamHubPluginSourcesView } from '#/shared/types';
@@ -79,7 +79,7 @@ export function PluginSourcesView({
       title="Settings"
       icon={faGear}
       description="Configure where HarborClient loads marketplace catalogs and trusted publisher keys. Enabled endpoints are fetched in list order; the first source wins when entries overlap. Team Hub endpoints are managed by your hub administrator and cannot be removed here."
-      actions={<PanelCloseButton onClose={onClose} ariaLabel="Close plugins" />}
+      actions={<BackButton onClick={onClose} ariaLabel="Back to requests" />}
     >
       {error ? (
         <p className="mb-4 text-[14px] text-danger" role="alert">

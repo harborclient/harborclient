@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(settings): implement settings search functionality and enhance navigation. (`866fa0f`)
 - feat(request-editor): refactor and enhance RequestEditor component. (`7c11038`)
 - feat(plugins): add plugin management features and enhance developer tools. (`0fcd9ff`)
 

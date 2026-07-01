@@ -3,7 +3,6 @@ import {
   cleanVariables,
   ModalFooter,
   Page,
-  PanelCloseButton,
   SegmentedTabs,
   SegmentedTabPanel,
   SegmentedTabsGroup
@@ -235,7 +234,6 @@ function CollectionSettingsForm({
       className="flex min-h-0 flex-1 flex-col p-6"
       title="Collection Settings"
       description="Manage collection settings and configuration"
-      actions={<PanelCloseButton onClose={onClose} ariaLabel="Close collection settings" />}
       footer={
         <ModalFooter>
           <Button variant="secondary" onClick={onClose}>

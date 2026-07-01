@@ -728,4 +728,25 @@ export const selectPluginThemePrompt = (state: RootState): PluginThemePromptStat
 export const selectPluginModal = (state: RootState): PluginModalState | null =>
   state.modals.pluginModal;
 
+/**
+ * Returns whether any Redux-backed modal should block overlay Escape navigation.
+ */
+export const selectHasBlockingModal = (state: RootState): boolean => {
+  const modals = state.modals;
+  return (
+    modals.collectionModal != null ||
+    modals.share != null ||
+    modals.pendingLoadRequest != null ||
+    modals.quitPrompt != null ||
+    modals.alertModal != null ||
+    modals.confirmModal != null ||
+    modals.pluginThemePrompt != null ||
+    modals.pluginModal != null ||
+    modals.collectionRunner != null ||
+    modals.about.open ||
+    modals.update.open ||
+    modals.syncModal.open
+  );
+};
+
 export default modalsSlice.reducer;

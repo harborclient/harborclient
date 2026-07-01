@@ -1,12 +1,12 @@
 import {
   AsyncListState,
+  BackButton,
   Button,
   FieldError,
   Modal,
   ModalFooter,
   ModalFormLayout,
   Page,
-  PanelCloseButton,
   ResourceList,
   ResourceListPrimary,
   ResourceListRow
@@ -257,20 +257,18 @@ export function TeamHubList({
         title="Team Hub"
         icon={faUsers}
         description="Connect to HarborClient Team Hub instances for shared collections and environments."
-        actions={
-          <>
-            <Button
-              type="button"
-              className="shrink-0 whitespace-nowrap"
-              disabled={loading}
-              onClick={handleAdd}
-            >
-              Add team hub
-            </Button>
-            <PanelCloseButton onClose={onClose} />
-          </>
-        }
+        actions={<BackButton onClick={onClose} ariaLabel="Back to requests" />}
       >
+        <div className="mb-4">
+          <Button
+            type="button"
+            className="shrink-0 whitespace-nowrap"
+            disabled={loading}
+            onClick={handleAdd}
+          >
+            Add team hub
+          </Button>
+        </div>
         <AsyncListState
           loading={loading}
           error={bootstrapError}

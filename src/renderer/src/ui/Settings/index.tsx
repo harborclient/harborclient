@@ -1,4 +1,4 @@
-import { Page, PageSidebar, SidebarLayout } from '@harborclient/sdk/components';
+import { Page, SidebarLayout } from '@harborclient/sdk/components';
 import { useMemo, useState, type JSX } from 'react';
 
 import { faPuzzlePiece } from '#/renderer/src/fontawesome';
@@ -6,7 +6,10 @@ import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import { usePluginSettingsSections } from '#/renderer/src/plugins/pluginHooks';
 import { SETTINGS_SECTIONS } from './constants';
 import { SettingsRenderer } from './catalog/SettingsRenderer';
-import { SettingsCloseButton } from './SettingsCloseButton';
+import { SettingsSearchResults } from './catalog/SettingsSearchResults';
+import { SettingsBackButton } from './SettingsBackButton';
+import { SettingsSidebar } from './SettingsSidebar';
+import { useSettingsSearch } from './hooks/useSettingsSearch';
 import type { SettingsSection } from './types';
 
 interface Props {
@@ -22,11 +25,12 @@ interface Props {
 }
 
 /**
- * Full-area application settings with sidebar navigation.
+ * Full-area application settings with sidebar navigation and catalog search.
  */
 export function Settings({ onClose, initialSection }: Props): JSX.Element {
   const [section, setSection] = useState<SettingsSection>(initialSection);
   const pluginSections = usePluginSettingsSections();
+  const { query, setQuery, matchedIds, isSearching } = useSettingsSearch();
 
   const sidebarSections = useMemo(
     () => [
@@ -42,23 +46,41 @@ export function Settings({ onClose, initialSection }: Props): JSX.Element {
 
   const pluginSection = pluginSections.find((entry) => entry.id === section);
 
+  /**
+   * Opens a management section from search results and clears the active query.
+   */
+  const handleNavigateFromSearch = (nextSection: SettingsSection): void => {
+    setSection(nextSection);
+    setQuery('');
+  };
+
   return (
     <SidebarLayout
       sidebar={
-        <PageSidebar
+        <SettingsSidebar
           ariaLabel="Settings sections"
           selected={section}
           onSelect={setSection}
           items={sidebarSections}
+          searchValue={query}
+          onSearchChange={setQuery}
+          disabled={isSearching}
         />
       }
     >
-      {pluginSection ? (
+      {isSearching ? (
+        <SettingsSearchResults
+          matchedIds={matchedIds}
+          query={query}
+          onNavigate={handleNavigateFromSearch}
+          onClose={onClose}
+        />
+      ) : pluginSection ? (
         <Page
           embedded
           title={pluginSection.title}
           icon={faPuzzlePiece}
-          actions={<SettingsCloseButton onClose={onClose} />}
+          actions={<SettingsBackButton onClose={onClose} />}
         >
           <PluginSurface
             pluginId={pluginSection.pluginId}

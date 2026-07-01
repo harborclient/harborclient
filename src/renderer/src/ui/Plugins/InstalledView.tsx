@@ -1,4 +1,4 @@
-import { Button, Page, PanelCloseButton } from '@harborclient/sdk/components';
+import { BackButton, Button, Page } from '@harborclient/sdk/components';
 import { FaIcon } from '@harborclient/sdk/components';
 import type { JSX, KeyboardEvent } from 'react';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
@@ -98,7 +98,7 @@ export function InstalledView({
       title="Installed"
       icon={faPuzzlePiece}
       description="Enable, disable, update, and remove plugins installed on this machine."
-      actions={<PanelCloseButton onClose={onClose} ariaLabel="Close plugins" />}
+      actions={<BackButton onClick={onClose} ariaLabel="Back to requests" />}
     >
       {error ? <p className="text-danger">{error}</p> : null}
       {loading ? (
