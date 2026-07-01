@@ -1,6 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 
-import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
 import { setGeneralSettingsState } from '#/renderer/src/store/slices/settingsSlice';
 import {
   initSettingsDraft,
@@ -11,7 +10,7 @@ import {
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
 
 /**
- * Loads general, AI, and theme settings into the shared settings draft.
+ * Loads general and AI settings into the shared settings draft.
  */
 export const loadSettingsDraft = createAsyncThunk<void, void, ThunkApiConfig>(
   'settingsDraft/load',
@@ -19,12 +18,11 @@ export const loadSettingsDraft = createAsyncThunk<void, void, ThunkApiConfig>(
     dispatch(setSettingsDraftLoading(true));
     dispatch(setSettingsDraftLoadError(null));
     try {
-      const [general, ai, theme] = await Promise.all([
+      const [general, ai] = await Promise.all([
         window.api.getGeneralSettings(),
-        window.api.getAiSettings(),
-        window.api.getTheme()
+        window.api.getAiSettings()
       ]);
-      dispatch(initSettingsDraft({ general, ai, theme }));
+      dispatch(initSettingsDraft({ general, ai }));
     } catch (err) {
       dispatch(
         setSettingsDraftLoadError(err instanceof Error ? err.message : 'Failed to load settings.')
@@ -41,17 +39,12 @@ export const loadSettingsDraft = createAsyncThunk<void, void, ThunkApiConfig>(
 export const saveSettingsDraft = createAsyncThunk<void, void, ThunkApiConfig>(
   'settingsDraft/save',
   async (_arg, { dispatch, getState }) => {
-    const { general, ai, theme } = getState().settingsDraft;
+    const { general, ai } = getState().settingsDraft;
     dispatch(setSettingsDraftSaving(true));
     dispatch(setSettingsDraftLoadError(null));
     try {
-      await applyThemePreference(theme);
-      await Promise.all([
-        window.api.setTheme(theme),
-        window.api.setGeneralSettings(general),
-        window.api.setAiSettings(ai)
-      ]);
-      dispatch(initSettingsDraft({ general, ai, theme }));
+      await Promise.all([window.api.setGeneralSettings(general), window.api.setAiSettings(ai)]);
+      dispatch(initSettingsDraft({ general, ai }));
       dispatch(setGeneralSettingsState(general));
     } catch (err) {
       dispatch(

@@ -8,6 +8,7 @@ import {
 } from '#/renderer/src/plugins/pluginLoader';
 import { registerHostPluginCommands } from '#/renderer/src/plugins/hostCommands';
 import { startPluginMenuSync } from '#/renderer/src/plugins/pluginMenuSync';
+import { startThemeMenuSync } from '#/renderer/src/plugins/themeMenuSync';
 import { startPluginBridgeHost } from '#/renderer/src/plugins/pluginBridgeHost';
 
 /**
@@ -20,6 +21,7 @@ export function PluginHost(): null {
   useEffect(() => {
     const unregisterHostCommands = registerHostPluginCommands();
     const stopMenuSync = startPluginMenuSync();
+    const stopThemeMenuSync = startThemeMenuSync();
     const stopBridgeHost = startPluginBridgeHost();
     const unsubscribeAgentReady = window.api.onPluginsAgentReady(({ pluginId }) => {
       notifyAgentReady(pluginId);
@@ -43,6 +45,7 @@ export function PluginHost(): null {
       active = false;
       unregisterHostCommands();
       stopMenuSync();
+      stopThemeMenuSync();
       stopBridgeHost();
       unsubscribeAgentReady();
       unsubscribeAgentFailed();

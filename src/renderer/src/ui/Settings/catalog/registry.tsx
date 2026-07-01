@@ -13,7 +13,6 @@ import { AiOpenAiApiKeyField } from '../fields/AiOpenAiApiKeyField';
 import { GeneralFollowRedirectsField } from '../fields/GeneralFollowRedirectsField';
 import { GeneralMaxResponseSizeField } from '../fields/GeneralMaxResponseSizeField';
 import { GeneralRequestTimeoutField } from '../fields/GeneralRequestTimeoutField';
-import { GeneralThemeField } from '../fields/GeneralThemeField';
 import { GeneralVerifySslField } from '../fields/GeneralVerifySslField';
 import { ProxyAuthEnabledField } from '../fields/ProxyAuthEnabledField';
 import { ProxyEnabledField } from '../fields/ProxyEnabledField';
@@ -35,7 +34,6 @@ type SettingsSectionComponentProps = Record<string, never>;
  * Maps catalog field ids to standalone field components.
  */
 export const SETTINGS_FIELD_REGISTRY: Record<FieldSettingId, ComponentType> = {
-  'general.theme': GeneralThemeField,
   'general.requestTimeoutMs': GeneralRequestTimeoutField,
   'general.maxResponseSizeMb': GeneralMaxResponseSizeField,
   'general.verifySsl': GeneralVerifySslField,

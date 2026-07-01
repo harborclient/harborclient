@@ -1,7 +1,6 @@
 import type { SettingsSection } from '#/shared/types';
 
 export type SettingId =
-  | 'general.theme'
   | 'general.requestTimeoutMs'
   | 'general.maxResponseSizeMb'
   | 'general.verifySsl'
@@ -81,7 +80,7 @@ export type SettingEntry = FieldSettingEntry | SectionSettingEntry;
  */
 export const FORM_SECTION_DESCRIPTIONS: Record<FormSettingsSection, string> = {
   general:
-    'Set appearance, request timeouts, response size limits, SSL verification, and redirect following defaults.',
+    'Set request timeouts, response size limits, SSL verification, and redirect following defaults.',
   proxy: "Route HarborClient's outbound HTTP requests through a proxy server.",
   syntax: 'Choose a CodeMirror theme and editor behavior for request and response editors.',
   ai: 'Store API keys for OpenAI, Claude, and Google Gemini used by the AI sidebar.'
@@ -91,14 +90,6 @@ export const FORM_SECTION_DESCRIPTIONS: Record<FormSettingsSection, string> = {
  * Canonical manifest of searchable settings metadata and layout placement.
  */
 export const SETTINGS_CATALOG: SettingEntry[] = [
-  {
-    id: 'general.theme',
-    section: 'general',
-    kind: 'field',
-    label: 'Theme',
-    description: 'Light, dark, high-contrast, system, or plugin-provided appearance.',
-    keywords: ['appearance', 'dark', 'light', 'color']
-  },
   {
     id: 'general.requestTimeoutMs',
     section: 'general',

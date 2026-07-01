@@ -9,8 +9,7 @@ import type {
   MySqlSettings,
   PostgresSettings,
   ProxySettings,
-  SqliteSettings,
-  ThemeSource
+  SqliteSettings
 } from '#/shared/types';
 import { DEFAULT_CODE_EDITOR_SETUP } from '#/shared/codeEditorSettings';
 import {
@@ -24,16 +23,6 @@ import {
   faServer
 } from '#/renderer/src/fontawesome';
 import type { SettingsSection } from './types';
-
-/**
- * Select options for the appearance theme control in General settings.
- */
-export const THEME_OPTIONS: Array<{ value: ThemeSource; label: string }> = [
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'high-contrast', label: 'High contrast' },
-  { value: 'system', label: 'System' }
-];
 
 /**
  * Baseline proxy configuration used when proxy is disabled or reset.

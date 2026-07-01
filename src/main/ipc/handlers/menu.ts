@@ -1,7 +1,13 @@
 import { BrowserWindow, Menu } from 'electron';
-import { setMenuAiSidebarVisible, setMenuSidebarVisible } from '#/main/appMenu';
+import {
+  setMenuAiSidebarVisible,
+  setMenuSidebarVisible,
+  setMenuThemeMenuState
+} from '#/main/appMenu';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
+import type { ThemeMenuOption } from '#/shared/themes';
+import type { ThemeSource } from '#/shared/types';
 
 /**
  * Registers IPC handlers that keep the application menu in sync with renderer state.
@@ -15,6 +21,11 @@ export function registerMenuHandlers(): void {
   // Updates the View menu checkmark for AI sidebar visibility.
   handle('menu:setAiSidebarVisible', ipcArgSchemas.menuAiSidebarVisible, (_event, visible) => {
     setMenuAiSidebarVisible(visible);
+  });
+
+  // Updates View menu theme checkmarks and plugin theme entries from renderer state.
+  handle('menu:setThemeMenuState', ipcArgSchemas.menuThemeMenuState, (_event, theme, options) => {
+    setMenuThemeMenuState(theme as ThemeSource, options as ThemeMenuOption[]);
   });
 
   // Shows an application menu submenu at screen coordinates.

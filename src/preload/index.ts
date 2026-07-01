@@ -1,5 +1,6 @@
 import type { OAuthFetchTokenResult } from '#/shared/auth';
 import type { HarborDeepLink } from '#/shared/deepLink';
+import type { MenuSelectThemePayload, ThemeMenuOption } from '#/shared/themes';
 import type { PluginHttpRequest, PluginHttpResponse } from '@harborclient/sdk';
 import { contextBridge, ipcRenderer } from 'electron';
 import { normalize, resolve } from 'path';
@@ -494,6 +495,29 @@ function setMenuSidebarVisible(visible: boolean): Promise<void> {
  */
 function setMenuAiSidebarVisible(visible: boolean): Promise<void> {
   return ipcRenderer.invoke('menu:setAiSidebarVisible', visible);
+}
+
+/**
+ * Syncs active theme and plugin theme options to the View menu in the main process.
+ *
+ * @param theme - Persisted appearance theme preference.
+ * @param options - Plugin-provided theme menu options.
+ */
+function setMenuThemeMenuState(theme: ThemeSource, options: ThemeMenuOption[]): Promise<void> {
+  return ipcRenderer.invoke('menu:setThemeMenuState', theme, options);
+}
+
+/**
+ * Subscribes to View menu appearance theme selection events from the main process.
+ *
+ * @param callback - Handler invoked with the selected theme and label.
+ */
+function onMenuSelectTheme(callback: (payload: MenuSelectThemePayload) => void): () => void {
+  const listener = (_event: Electron.IpcRendererEvent, payload: MenuSelectThemePayload): void => {
+    callback(payload);
+  };
+  ipcRenderer.on('menu:selectTheme', listener);
+  return () => ipcRenderer.removeListener('menu:selectTheme', listener);
 }
 
 /**
@@ -1992,6 +2016,8 @@ const api: Api = {
   onDeepLink,
   setMenuSidebarVisible,
   setMenuAiSidebarVisible,
+  setMenuThemeMenuState,
+  onMenuSelectTheme,
   popupMenuSubmenu,
   getAppVersion,
   checkForUpdates,

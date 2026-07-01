@@ -1,11 +1,4 @@
-import {
-  Button,
-  FaIcon,
-  MethodSelect,
-  VariableInput,
-  fieldFrame
-} from '@harborclient/sdk/components';
-import { faCaretRight } from '@fortawesome/free-solid-svg-icons';
+import { Button, MethodSelect, VariableInput, fieldFrame } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import type { HttpMethod, Variable } from '#/shared/types';
 
@@ -100,15 +93,12 @@ export function UrlBar({
           {action.title}
         </Button>
       ))}
-      <Button onClick={onSend} disabled={sending} className="inline-flex items-center gap-1.5">
-        {sending ? (
-          'Sending…'
-        ) : (
-          <>
-            Send
-            <FaIcon icon={faCaretRight} className="h-3.5 w-3.5" />
-          </>
-        )}
+      <Button
+        onClick={onSend}
+        disabled={sending}
+        className="inline-flex w-24 shrink-0 items-center justify-center rounded-full!"
+      >
+        {sending ? 'Sending…' : 'Send'}
       </Button>
     </div>
   );

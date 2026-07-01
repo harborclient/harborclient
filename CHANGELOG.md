@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(theme): implement theme management in application menu. (`ba03f8a`)
 - fix(settings): update storage section label and enhance button styling. (`25aa8b8`)
 
 ## 1.9.11 - 2026-07-01

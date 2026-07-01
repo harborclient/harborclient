@@ -29,7 +29,8 @@ import {
   useLastFocusedElement
 } from '#/renderer/src/hooks/useLastFocusedElement';
 import { focusSidebarSearch } from '#/renderer/src/ui/Sidebar/focusSidebarSearch';
-import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
+import { formatErrorMessage, showAlert, showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
+import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
 
 /**
  * Subscribes to main-process menu actions and dispatches the matching store updates.
@@ -131,6 +132,37 @@ export function useMenuActions(): void {
     });
     return unsubscribe;
   }, [dispatch, lastFocusedRef]);
+
+  /**
+   * Handles View menu appearance theme selections with confirmation before switching.
+   */
+  useEffect(() => {
+    const unsubscribe = window.api.onMenuSelectTheme(({ theme, label }) => {
+      void (async () => {
+        const activeTheme = await window.api.getTheme();
+        if (theme === activeTheme) {
+          return;
+        }
+
+        const confirmed = await showConfirm(dispatch, {
+          title: 'Switch theme?',
+          message: `Switch appearance to ${label}?`,
+          confirmLabel: 'Switch theme'
+        });
+        if (!confirmed) {
+          return;
+        }
+
+        try {
+          await applyThemePreference(theme);
+          await window.api.setTheme(theme);
+        } catch (err: unknown) {
+          showAlert(dispatch, formatErrorMessage(err, 'Failed to switch theme'));
+        }
+      })();
+    });
+    return unsubscribe;
+  }, [dispatch]);
 
   /**
    * Routes plugin menu command clicks to registered plugin command handlers.

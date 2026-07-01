@@ -80,6 +80,11 @@ export const themeSource = z.union([
   z.string().regex(/^plugin:[^:]+:[^:]+$/)
 ]);
 
+const themeMenuOption = z.object({
+  value: themeSource,
+  label: z.string().min(1)
+});
+
 export const rootMenuLabel = z.enum(['File', 'Edit', 'View', 'Help']);
 
 export const editorTab = z.enum([
@@ -444,6 +449,7 @@ export const ipcArgSchemas = {
   closeDecision: z.tuple([z.boolean()]),
   menuSidebarVisible: z.tuple([z.boolean()]),
   menuAiSidebarVisible: z.tuple([z.boolean()]),
+  menuThemeMenuState: z.tuple([themeSource, z.array(themeMenuOption)]),
   menuPopupSubmenu: z.tuple([rootMenuLabel, z.number(), z.number()]),
   chatCreate: z.tuple([chatCreateInput]),
   chatGet: z.tuple([dbId]),

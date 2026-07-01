@@ -7,8 +7,7 @@ import {
 import settingsDraftReducer, {
   initSettingsDraft,
   selectSettingsDraftDirty,
-  setDraftGeneralField,
-  setDraftTheme
+  setDraftGeneralField
 } from '#/renderer/src/store/slices/settingsDraftSlice';
 import type { RootState } from '#/renderer/src/store/redux';
 
@@ -27,8 +26,7 @@ describe('settingsDraftSlice', () => {
       undefined,
       initSettingsDraft({
         general: DEFAULT_GENERAL_SETTINGS,
-        ai: DEFAULT_AI_SETTINGS,
-        theme: 'system'
+        ai: DEFAULT_AI_SETTINGS
       })
     );
 
@@ -40,12 +38,14 @@ describe('settingsDraftSlice', () => {
       undefined,
       initSettingsDraft({
         general: DEFAULT_GENERAL_SETTINGS,
-        ai: DEFAULT_AI_SETTINGS,
-        theme: 'system'
+        ai: DEFAULT_AI_SETTINGS
       })
     );
 
-    state = settingsDraftReducer(state, setDraftTheme('dark'));
+    state = settingsDraftReducer(
+      state,
+      setDraftGeneralField({ key: 'requestTimeoutMs', value: 60_000 })
+    );
 
     expect(selectSettingsDraftDirty(buildState(state))).toBe(true);
   });
@@ -55,8 +55,7 @@ describe('settingsDraftSlice', () => {
       undefined,
       initSettingsDraft({
         general: DEFAULT_GENERAL_SETTINGS,
-        ai: DEFAULT_AI_SETTINGS,
-        theme: 'system'
+        ai: DEFAULT_AI_SETTINGS
       })
     );
 

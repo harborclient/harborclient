@@ -16,7 +16,6 @@ const MANAGEMENT_SECTIONS = ['globals', 'storage', 'shortcuts', 'backup-restore'
 const FORM_SECTIONS = ['general', 'proxy', 'syntax', 'ai'] as const;
 
 const EXPECTED_FIELD_IDS: FieldSettingId[] = [
-  'general.theme',
   'general.requestTimeoutMs',
   'general.maxResponseSizeMb',
   'general.verifySsl',

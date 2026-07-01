@@ -1,4 +1,5 @@
 import type { HarborDeepLink } from '#/shared/deepLink';
+import type { MenuSelectThemePayload, ThemeMenuOption } from '#/shared/themes';
 import type { MenuActionId, RootMenuLabel, UpdateCheckResult } from '#/shared/types/app';
 import type { ThemeSource } from '#/shared/types/settings';
 
@@ -32,6 +33,20 @@ export interface ApiWindow {
    * @param visible - Whether the AI sidebar is currently visible in the renderer.
    */
   setMenuAiSidebarVisible: (visible: boolean) => Promise<void>;
+  /**
+   * Syncs active theme and plugin theme options to the View menu in the main process.
+   *
+   * @param theme - Persisted appearance theme preference.
+   * @param options - Plugin-provided theme menu options.
+   */
+  setMenuThemeMenuState: (theme: ThemeSource, options: ThemeMenuOption[]) => Promise<void>;
+  /**
+   * Subscribes to View menu appearance theme selection events from the main process.
+   *
+   * @param callback - Handler invoked with the selected theme and label.
+   * @returns Unsubscribe function.
+   */
+  onMenuSelectTheme: (callback: (payload: MenuSelectThemePayload) => void) => () => void;
   /**
    * Opens a root application submenu at the given window coordinates.
    *

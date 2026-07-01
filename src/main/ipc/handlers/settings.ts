@@ -1,7 +1,7 @@
 import { app, nativeTheme } from 'electron';
 import type { IStorage } from '#/main/storage/IStorage';
 import { RoutingStorage } from '#/main/storage/RoutingStorage';
-import { rebuildAppMenu } from '#/main/appMenu';
+import { rebuildAppMenu, setMenuActiveTheme } from '#/main/appMenu';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import {
@@ -137,6 +137,7 @@ export function registerSettingsHandlers(db: IStorage): void {
   handle('theme:set', ipcArgSchemas.themeSet, async (event, theme) => {
     nativeTheme.themeSource = resolveNativeThemeSource(theme as ThemeSource);
     await db.setSetting(THEME_SETTING_KEY, theme);
+    setMenuActiveTheme(theme as ThemeSource);
     event.sender.send('theme:changed', theme);
   });
 

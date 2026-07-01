@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, screen, type App } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme, screen, type App } from 'electron';
 import { join, resolve } from 'path';
 import { RoutingStorage } from '#/main/storage';
 import { initLocalDatabase } from '#/main/storage/localDatabaseInstance';
@@ -23,8 +23,7 @@ import { migrateStorageSettingsKeys } from '#/main/settings/storageSettingsMigra
 import { listTeamHubs } from '#/main/settings/teamHubSettings';
 import { ensureSharingKeys } from '#/main/sharing/sharingKeys';
 import { startGitWatchers } from '#/main/git/gitWatcher';
-import { buildMenu } from '#/main/menu';
-import { setMenuWindow } from '#/main/appMenu';
+import { rebuildAppMenu, setMenuActiveTheme, setMenuWindow } from '#/main/appMenu';
 import { attachShortcutDispatch } from '#/main/shortcutDispatch';
 import { isVerbose, logVerbose } from '#/main/logger';
 import {
@@ -380,8 +379,10 @@ function resolveNativeThemeSource(theme: ThemeSource): 'light' | 'dark' | 'syste
 
 /**
  * Applies a persisted or default theme to nativeTheme.
+ *
+ * @returns The resolved persisted theme preference.
  */
-async function applyPersistedTheme(): Promise<void> {
+async function applyPersistedTheme(): Promise<ThemeSource> {
   const stored = await db.getSetting(THEME_SETTING_KEY);
   const theme: ThemeSource =
     stored === 'light' ||
@@ -392,6 +393,7 @@ async function applyPersistedTheme(): Promise<void> {
       ? (stored as ThemeSource)
       : 'system';
   nativeTheme.themeSource = resolveNativeThemeSource(theme);
+  return theme;
 }
 
 /**
@@ -809,7 +811,7 @@ app.whenReady().then(async () => {
     db = await createStorage();
 
     logVerbose('startup: applying persisted theme');
-    await applyPersistedTheme();
+    const persistedTheme = await applyPersistedTheme();
 
     logVerbose('startup: initializing plugin manager');
     if (isDevModeFlagEnabled()) {
@@ -860,7 +862,8 @@ app.whenReady().then(async () => {
     mainWindow = createWindow();
     pluginManager.setNotifyWindow(() => mainWindow);
     setMenuWindow(mainWindow);
-    Menu.setApplicationMenu(buildMenu(mainWindow));
+    setMenuActiveTheme(persistedTheme);
+    rebuildAppMenu();
     logVerbose('startup: main window created, waiting for ready-to-show');
 
     const startupDeepLink = findDeepLinkInArgv(process.argv);
@@ -884,7 +887,18 @@ app.whenReady().then(async () => {
       mainWindow = createWindow();
       pluginManager?.setNotifyWindow(() => mainWindow);
       setMenuWindow(mainWindow);
-      Menu.setApplicationMenu(buildMenu(mainWindow));
+      void db.getSetting(THEME_SETTING_KEY).then((stored) => {
+        const theme: ThemeSource =
+          stored === 'light' ||
+          stored === 'dark' ||
+          stored === 'system' ||
+          stored === 'high-contrast' ||
+          stored?.startsWith('plugin:')
+            ? (stored as ThemeSource)
+            : 'system';
+        setMenuActiveTheme(theme);
+        rebuildAppMenu();
+      });
     }
   });
 });

@@ -4,7 +4,8 @@ import { getShortcutOverrides } from '#/main/settings/shortcutSettings';
 import { getPluginMenuContributions } from '#/main/plugins/pluginMenuContributions';
 import { mergePluginMenuItemsIntoTemplate } from '#/main/plugins/pluginMenuMerge';
 import { resolveAcceleratorMap, type ShortcutId } from '#/shared/shortcuts';
-import type { MenuActionId } from '#/shared/types';
+import { BUILTIN_THEME_OPTIONS, type ThemeMenuOption } from '#/shared/themes';
+import type { MenuActionId, ThemeSource } from '#/shared/types';
 
 /**
  * Sends a menu action to the renderer process.
@@ -28,6 +29,55 @@ function sendPluginMenuCommand(window: BrowserWindow, pluginId: string, command:
 }
 
 /**
+ * Sends a theme selection from the View menu to the renderer process.
+ *
+ * @param window - Target browser window.
+ * @param theme - Theme preference value the user selected.
+ * @param label - Human-readable theme label for confirmation copy.
+ */
+function sendMenuThemeSelect(window: BrowserWindow, theme: ThemeSource, label: string): void {
+  window.webContents.send('menu:selectTheme', { theme, label });
+}
+
+/**
+ * Builds checkbox menu items for built-in and plugin appearance themes.
+ *
+ * @param window - Browser window that receives theme selection events.
+ * @param activeTheme - Currently persisted appearance theme.
+ * @param pluginThemeOptions - Plugin-provided theme menu options.
+ */
+export function buildThemeMenuItems(
+  window: BrowserWindow,
+  activeTheme: ThemeSource,
+  pluginThemeOptions: ThemeMenuOption[]
+): MenuItemConstructorOptions[] {
+  const items: MenuItemConstructorOptions[] = [{ type: 'separator' }];
+
+  for (const option of BUILTIN_THEME_OPTIONS) {
+    items.push({
+      label: option.label,
+      type: 'checkbox',
+      checked: option.value === activeTheme,
+      click: () => sendMenuThemeSelect(window, option.value, option.label)
+    });
+  }
+
+  if (pluginThemeOptions.length > 0) {
+    items.push({ type: 'separator' });
+    for (const option of pluginThemeOptions) {
+      items.push({
+        label: option.label,
+        type: 'checkbox',
+        checked: option.value === activeTheme,
+        click: () => sendMenuThemeSelect(window, option.value, option.label)
+      });
+    }
+  }
+
+  return items;
+}
+
+/**
  * Returns the effective accelerator for a shortcut id.
  *
  * @param accelerators - Resolved accelerator map.
@@ -44,12 +94,16 @@ function acceleratorFor(accelerators: Map<ShortcutId, string>, id: ShortcutId): 
  * @param window - Browser window that receives custom menu actions.
  * @param sidebarVisible - Whether the sidebar checkbox should appear checked.
  * @param aiSidebarVisible - Whether the AI sidebar checkbox should appear checked.
+ * @param activeTheme - Appearance theme used to mark the active View menu checkmark.
+ * @param pluginThemeOptions - Plugin-provided theme menu options.
  * @returns The constructed application menu.
  */
 export function buildMenu(
   window: BrowserWindow,
   sidebarVisible = true,
-  aiSidebarVisible = false
+  aiSidebarVisible = false,
+  activeTheme: ThemeSource = 'system',
+  pluginThemeOptions: ThemeMenuOption[] = []
 ): Menu {
   const accelerators = resolveAcceleratorMap(getShortcutOverrides());
 
@@ -154,7 +208,8 @@ export function buildMenu(
               { type: 'separator' as const },
               { label: 'Developer Tools', role: 'toggleDevTools' as const }
             ]
-          : [])
+          : []),
+        ...buildThemeMenuItems(window, activeTheme, pluginThemeOptions)
       ]
     },
     {
