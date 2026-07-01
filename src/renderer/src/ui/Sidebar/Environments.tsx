@@ -186,7 +186,7 @@ export function Environments({
       onDragEnd={(event) => void handleDragEnd(event)}
       onDragCancel={() => setActiveDragEnvironment(null)}
     >
-      <div className="flex flex-col gap-0.5">
+      <div className="sidebar-source-list flex flex-col gap-0">
         {noMatches && (
           <div className="px-2 py-1.5 text-[14px] text-muted">No matching environments</div>
         )}
@@ -202,13 +202,14 @@ export function Environments({
               <SortableRow
                 key={environment.id}
                 id={environmentDragId(environment.id)}
-                className={sourceRow(selected)}
+                className={sourceRow(selected, true)}
                 dragHandleLabel={`Reorder environment "${environment.name}"`}
                 disabled={searchActive}
+                compact
               >
                 <button
                   type="button"
-                  className="min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0.5 text-left text-[14px] text-inherit app-no-drag"
+                  className="min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left text-[14px] text-inherit app-no-drag"
                   aria-current={selected ? 'true' : undefined}
                   onClick={() => onSelectEnvironment(environment.id)}
                   onDoubleClick={() => onConfigureEnvironment(environment.id)}

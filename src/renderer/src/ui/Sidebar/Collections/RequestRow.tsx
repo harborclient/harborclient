@@ -105,13 +105,14 @@ export function RequestRow({
   return (
     <SortableRow
       id={requestDragId(req.id)}
-      className={sourceRow(activeRequestId === req.id)}
+      className={sourceRow(activeRequestId === req.id, true)}
       dragHandleLabel={`Reorder request "${req.name}"`}
       disabled={dragDisabled}
+      compact
     >
       <button
         type="button"
-        className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0.5 text-left text-inherit app-no-drag"
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-inherit app-no-drag"
         aria-current={activeRequestId === req.id ? 'true' : undefined}
         onClick={() => onLoadRequest(req)}
       >

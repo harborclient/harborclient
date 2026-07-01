@@ -65,8 +65,8 @@ interface Props<T extends string> {
  */
 function sidebarRow(active: boolean, disabled: boolean): string {
   const base = active
-    ? 'group flex items-center gap-1 rounded-md bg-selection px-1.5 py-0.5 app-no-drag'
-    : 'group flex items-center gap-1 rounded-md px-1.5 py-0.5 hover:bg-selection/60 app-no-drag';
+    ? 'group flex cursor-pointer items-center gap-1 rounded-md bg-selection px-1.5 py-0.5 app-no-drag'
+    : 'group flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 hover:bg-selection/60 app-no-drag';
 
   if (disabled) {
     return `${base} opacity-50 cursor-not-allowed`;

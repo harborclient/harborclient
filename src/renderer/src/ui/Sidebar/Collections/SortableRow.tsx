@@ -30,6 +30,11 @@ interface Props {
    * When true, renders a static row without drag-and-drop behavior.
    */
   disabled?: boolean;
+
+  /**
+   * When true, uses a smaller drag handle to match compact sidebar rows.
+   */
+  compact?: boolean;
 }
 
 /**
@@ -41,8 +46,11 @@ export function SortableRow({
   className,
   dragHandleLabel,
   children,
-  disabled = false
+  disabled = false,
+  compact = false
 }: Props): JSX.Element {
+  const controlSize = compact ? 'h-4 w-4' : 'h-5 w-5';
+
   const {
     attributes,
     listeners,
@@ -56,7 +64,7 @@ export function SortableRow({
   if (disabled) {
     return (
       <div className={`group ${className}`}>
-        <span className="inline-flex h-5 w-5 shrink-0" aria-hidden="true" />
+        <span className={`inline-flex shrink-0 ${controlSize}`} aria-hidden="true" />
         {children}
       </div>
     );
@@ -73,7 +81,7 @@ export function SortableRow({
       <button
         type="button"
         ref={setActivatorNodeRef}
-        className="inline-flex h-5 w-5 shrink-0 cursor-grab items-center justify-center rounded border-none bg-transparent p-0 text-muted opacity-0 transition-opacity hover:text-text focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing group-hover:opacity-100 app-no-drag"
+        className={`inline-flex shrink-0 cursor-grab items-center justify-center rounded border-none bg-transparent p-0 text-muted opacity-0 transition-opacity hover:text-text focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing group-hover:opacity-100 app-no-drag ${controlSize}`}
         aria-label={dragHandleLabel}
         {...attributes}
         {...listeners}

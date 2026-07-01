@@ -190,6 +190,27 @@
   }
 }
 
+@layer components {
+  /**
+   * Tighter sidebar source rows (collections, folders, requests, environments).
+   * RowActionsMenu icon buttons default to 30px; shrink to align with row height.
+   * Hide the trigger until the row is hovered or receives keyboard focus.
+   */
+  .sidebar-source-list .hc-row-actions-menu .hc-button {
+    width: 1.25rem;
+    height: 1.25rem;
+    opacity: 0;
+    transition: opacity 150ms;
+  }
+
+  .sidebar-source-list .group:hover .hc-row-actions-menu .hc-button,
+  .sidebar-source-list .group:focus-within .hc-row-actions-menu .hc-button,
+  .sidebar-source-list .hc-row-actions-menu:focus-within .hc-button,
+  .sidebar-source-list .hc-row-actions-menu:has([aria-expanded='true']) .hc-button {
+    opacity: 1;
+  }
+}
+
 @layer utilities {
   /* Closed footer panels align with the footer bar; drop shadow so it does not bleed upward. */
   [id^='footer-'][aria-hidden='true'] {

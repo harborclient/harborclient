@@ -701,7 +701,7 @@ export function Collections({
       onDragEnd={(event) => void handleCollectionDragEnd(event)}
       onDragCancel={clearCollectionDragState}
     >
-      <div className="flex flex-col gap-0.5">
+      <div className="sidebar-source-list flex flex-col gap-0">
         {collections.length === 0 && (
           <div className="px-2 py-1.5 text-[14px] text-muted">No collections yet</div>
         )}
@@ -744,13 +744,14 @@ export function Collections({
               <div key={collection.id}>
                 <SortableRow
                   id={collectionDragId(collection.id)}
-                  className={sourceRow(selected)}
+                  className={sourceRow(selected, true)}
                   dragHandleLabel={`Reorder collection "${collection.name}"`}
                   disabled={searchActive}
+                  compact
                 >
                   <button
                     type="button"
-                    className="inline-flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent p-0 text-muted hover:text-text app-no-drag"
+                    className="inline-flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent p-0 text-muted hover:text-text app-no-drag"
                     onClick={() => toggleCollection(collection.id)}
                     aria-expanded={expanded}
                     aria-label={expanded ? 'Collapse' : 'Expand'}
@@ -759,7 +760,7 @@ export function Collections({
                   </button>
                   <button
                     type="button"
-                    className="min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0.5 text-left text-[14px] text-inherit app-no-drag"
+                    className="min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left text-[14px] text-inherit app-no-drag"
                     aria-current={selected ? 'true' : undefined}
                     onClick={() => onSelectCollection(collection.id)}
                     onDoubleClick={() => onConfigureCollection(collection.id)}
@@ -887,10 +888,10 @@ export function Collections({
                     onDragEnd={(event) => void handleDragEnd(event, collection.id)}
                     onDragCancel={clearDragState}
                   >
-                    <div className="ml-4 flex flex-col gap-0.5 py-0.5">
+                    <div className="ml-4 flex flex-col gap-0 py-0">
                       {loaded && folders.length === 0 && rootRequests.length === 0 && (
-                        <div className="flex items-center gap-1 px-1.5 py-0.5">
-                          <span className="inline-flex h-5 w-5 shrink-0" aria-hidden="true" />
+                        <div className="flex items-center gap-1 px-1.5 py-0">
+                          <span className="inline-flex h-4 w-4 shrink-0" aria-hidden="true" />
                           <span className="text-[14px] text-muted">No saved requests</span>
                         </div>
                       )}
@@ -921,7 +922,7 @@ export function Collections({
                           items={rootRequestIds}
                           strategy={verticalListSortingStrategy}
                         >
-                          <div className="flex flex-col gap-0.5">
+                          <div className="flex flex-col gap-0">
                             {rootRequests.map((req, requestIndex) => (
                               <RequestRow
                                 key={req.id}
@@ -971,13 +972,14 @@ export function Collections({
                               <DropZone id={dropFolderId(folder.id)} disabled={searchActive}>
                                 <SortableRow
                                   id={folderDragId(folder.id)}
-                                  className={sourceRow(folderSelected)}
+                                  className={sourceRow(folderSelected, true)}
                                   dragHandleLabel={`Reorder folder "${folder.name}"`}
                                   disabled={searchActive}
+                                  compact
                                 >
                                   <button
                                     type="button"
-                                    className="inline-flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent p-0 text-muted hover:text-text app-no-drag"
+                                    className="inline-flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent p-0 text-muted hover:text-text app-no-drag"
                                     onClick={() => toggleFolder(folder.id)}
                                     aria-expanded={folderExpanded}
                                     aria-label={
@@ -991,7 +993,7 @@ export function Collections({
                                   </button>
                                   <button
                                     type="button"
-                                    className="min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0.5 text-left text-[14px] font-medium text-inherit app-no-drag"
+                                    className="min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left text-[14px] font-medium text-inherit app-no-drag"
                                     aria-current={folderSelected ? 'true' : undefined}
                                     onClick={() => onSelectFolder(collection.id, folder.id)}
                                   >
@@ -1067,7 +1069,7 @@ export function Collections({
                               </DropZone>
 
                               {folderExpanded && (
-                                <div className="ml-6 flex flex-col gap-0.5 py-0.5">
+                                <div className="ml-6 flex flex-col gap-0 py-0">
                                   <SortableContext
                                     items={folderRequestIds}
                                     strategy={verticalListSortingStrategy}
@@ -1106,9 +1108,9 @@ export function Collections({
                                     ))}
                                   </SortableContext>
                                   {folderRequests.length === 0 && (
-                                    <div className="flex items-center gap-1 px-1.5 py-0.5">
+                                    <div className="flex items-center gap-1 px-1.5 py-0">
                                       <span
-                                        className="inline-flex h-5 w-5 shrink-0"
+                                        className="inline-flex h-4 w-4 shrink-0"
                                         aria-hidden="true"
                                       />
                                       <span className="text-[14px] text-muted">Empty folder</span>

@@ -6,11 +6,13 @@
  * Tailwind classes for a sidebar source row (collection, folder, or request).
  *
  * @param selected - Whether this row is the active selection.
+ * @param compact - When true, uses tighter vertical padding for top-level list rows.
  */
-export function sourceRow(selected: boolean): string {
+export function sourceRow(selected: boolean, compact = false): string {
+  const py = compact ? 'py-0' : 'py-0.5';
   return selected
-    ? 'group flex items-center gap-1 rounded-md bg-selection px-1.5 py-0.5 app-no-drag'
-    : 'group flex items-center gap-1 rounded-md px-1.5 py-0.5 hover:bg-selection/60 app-no-drag';
+    ? `group flex items-center gap-1 rounded-md bg-selection px-1.5 ${py} app-no-drag`
+    : `group flex items-center gap-1 rounded-md px-1.5 ${py} hover:bg-selection/60 app-no-drag`;
 }
 
 /**

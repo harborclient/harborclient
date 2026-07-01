@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(sidebar): enhance sidebar row styling and functionality. (`a7454cd`)
 - refactor(settings): improve layout and styling across settings sections. (`216140f`)
 - feat(request-editor): enhance NoOpenRequests component with icon and improved layout. (`c745bec`)
 
