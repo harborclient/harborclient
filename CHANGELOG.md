@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(request-editor): enhance NoOpenRequests component with icon and improved layout. (`c745bec`)
+
 ## 1.9.10 - 2026-07-01
 
 - fix(tabs): refactor tab management and enhance page navigation. (`3249900`)
