@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.9.12 - 2026-07-02
+
 - feat(scripts): introduce pre/post request script management and snippet functionality. (`55480e3`)
 - feat(ui): enhance button styling and layout across various components. (`9b2b936`)
 - feat(theme): implement theme management in application menu. (`ba03f8a`)
