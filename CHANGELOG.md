@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.9.17 - 2026-07-02
+
 - feat(theme): implement theme picker and shortcuts reference modals. (`db47b7f`)
 - fix(TabBar): adjust minimum height for improved layout consistency. (`9031701`)
 - fix(RequestEditor): simplify class names for layout consistency. (`0027da9`)
