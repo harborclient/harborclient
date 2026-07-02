@@ -1,12 +1,7 @@
 import {
   AsyncListState,
   Button,
-  CodeEditor,
   FaIcon,
-  FieldError,
-  Input,
-  Modal,
-  ModalFormLayout,
   Page,
   ResourceList,
   ResourceListPrimary,
@@ -26,120 +21,15 @@ import {
 } from '#/renderer/src/store/thunks/snippets';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { CodePreviewTooltip } from '#/renderer/src/ui/shared/CodePreviewTooltip';
+import {
+  createBlankSnippet,
+  SnippetEditModal,
+  type SnippetEditDraft
+} from '#/renderer/src/ui/shared/SnippetEditModal';
 import { sectionEntryBySection } from '../catalog/catalog';
 import { SettingLabel } from '../components/SettingLabel';
 import { settingsSectionMeta } from '../constants';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
-
-/**
- * Creates a blank snippet used when opening the create modal.
- */
-function createBlankSnippet(): Pick<Snippet, 'name' | 'code'> {
-  return {
-    name: 'Untitled Snippet',
-    code: ''
-  };
-}
-
-interface SnippetEditModalProps {
-  /**
-   * Snippet being edited, or a blank draft when creating.
-   */
-  draft: { id?: number; name: string; code: string };
-
-  /**
-   * Whether the modal is creating a new snippet.
-   */
-  isNew: boolean;
-
-  /**
-   * True while the save request is in flight.
-   */
-  saving: boolean;
-
-  /**
-   * Inline validation or IPC error message.
-   */
-  error: string | null;
-
-  /**
-   * Updates the draft fields while editing.
-   */
-  onChange: (draft: { id?: number; name: string; code: string }) => void;
-
-  /**
-   * Closes the modal without saving.
-   */
-  onCancel: () => void;
-
-  /**
-   * Persists the draft snippet.
-   */
-  onSave: () => void;
-}
-
-/**
- * Very large modal for creating or editing a reusable JavaScript snippet.
- */
-function SnippetEditModal({
-  draft,
-  isNew,
-  saving,
-  error,
-  onChange,
-  onCancel,
-  onSave
-}: SnippetEditModalProps): JSX.Element {
-  return (
-    <Modal
-      className="flex w-[min(92vw,72rem)] max-h-[85vh] flex-col overflow-hidden"
-      labelledBy="snippet-edit-title"
-      onClose={onCancel}
-      title={isNew ? 'Add snippet' : 'Edit snippet'}
-      description="Reusable JavaScript used in pre-request and post-request script lists."
-      closeDisabled={saving}
-      disableEscape={saving}
-    >
-      <ModalFormLayout
-        error={error ? <FieldError spacing="modal">{error}</FieldError> : undefined}
-        actions={
-          <Button type="button" disabled={saving} onClick={() => void onSave()}>
-            {saving ? 'Saving…' : 'Save'}
-          </Button>
-        }
-      >
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <label className="text-[14px] font-medium text-text" htmlFor="snippet-name">
-              Name
-            </label>
-            <Input
-              id="snippet-name"
-              value={draft.name}
-              disabled={saving}
-              onChange={(event) => onChange({ ...draft, name: event.target.value })}
-              placeholder="Snippet name"
-            />
-          </div>
-          <div className="flex min-h-0 flex-1 flex-col gap-1">
-            <label className="text-[14px] font-medium text-text" htmlFor="snippet-code">
-              JavaScript
-            </label>
-            <CodeEditor
-              id="snippet-code"
-              value={draft.code}
-              onChange={(code) => onChange({ ...draft, code })}
-              language="javascript"
-              minHeight="500px"
-              placeholder="// hc.variables.set('token', 'abc');"
-              aria-labelledby="snippet-code"
-            />
-          </div>
-        </div>
-      </ModalFormLayout>
-    </Modal>
-  );
-}
 
 /**
  * Settings page for managing reusable JavaScript snippets.
@@ -152,11 +42,7 @@ export function SnippetsSection(): JSX.Element {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [editingDraft, setEditingDraft] = useState<{
-    id?: number;
-    name: string;
-    code: string;
-  } | null>(null);
+  const [editingDraft, setEditingDraft] = useState<SnippetEditDraft | null>(null);
   const [isNew, setIsNew] = useState(false);
   const { label, icon } = settingsSectionMeta('snippets');
   const catalogEntry = sectionEntryBySection('snippets');

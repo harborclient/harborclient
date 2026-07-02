@@ -437,7 +437,9 @@ export const sidebarExpansion = z.object({
 
 export const panelLayout = z.object({
   showSidebar: z.boolean(),
-  showAiSidebar: z.boolean()
+  showAiSidebar: z.boolean(),
+  showRequestEditor: z.boolean(),
+  showResponseEditor: z.boolean()
 }) satisfies z.ZodType<PanelLayoutState>;
 
 export const aiChatSession = z.object({
@@ -479,6 +481,8 @@ export const ipcArgSchemas = {
   closeDecision: z.tuple([z.boolean()]),
   menuSidebarVisible: z.tuple([z.boolean()]),
   menuAiSidebarVisible: z.tuple([z.boolean()]),
+  menuRequestEditorVisible: z.tuple([z.boolean()]),
+  menuResponseEditorVisible: z.tuple([z.boolean()]),
   menuCollectionsVisible: z.tuple([z.boolean()]),
   menuEnvironmentsVisible: z.tuple([z.boolean()]),
   menuThemeMenuState: z.tuple([themeSource, z.array(themeMenuOption)]),

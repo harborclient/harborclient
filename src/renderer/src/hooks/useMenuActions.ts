@@ -9,8 +9,12 @@ import {
 } from '#/renderer/src/store/slices/modalsSlice';
 import {
   selectAiSidebarVisible,
+  selectShowRequestEditor,
+  selectShowResponseEditor,
   selectSidebarVisible,
   toggleAiSidebar,
+  toggleRequestEditor,
+  toggleResponseEditor,
   toggleSidebar
 } from '#/renderer/src/store/slices/navigationSlice';
 import {
@@ -43,6 +47,8 @@ export function useMenuActions(): void {
   const store = useStore<RootState>();
   const sidebarVisible = useAppSelector(selectSidebarVisible);
   const aiSidebarVisible = useAppSelector(selectAiSidebarVisible);
+  const requestEditorVisible = useAppSelector(selectShowRequestEditor);
+  const responseEditorVisible = useAppSelector(selectShowResponseEditor);
   const lastFocusedRef = useLastFocusedElement();
 
   /**
@@ -58,6 +64,20 @@ export function useMenuActions(): void {
   useEffect(() => {
     void window.api.setMenuAiSidebarVisible(aiSidebarVisible);
   }, [aiSidebarVisible]);
+
+  /**
+   * Keeps the View menu Request checkbox aligned with request editor visibility.
+   */
+  useEffect(() => {
+    void window.api.setMenuRequestEditorVisible(requestEditorVisible);
+  }, [requestEditorVisible]);
+
+  /**
+   * Keeps the View menu Response checkbox aligned with response editor visibility.
+   */
+  useEffect(() => {
+    void window.api.setMenuResponseEditorVisible(responseEditorVisible);
+  }, [responseEditorVisible]);
 
   /**
    * Wires File menu shortcuts to navigation, modal, and thunk actions.
@@ -110,6 +130,12 @@ export function useMenuActions(): void {
           break;
         case 'toggle-ai-sidebar':
           dispatch(toggleAiSidebar());
+          break;
+        case 'toggle-request-editor':
+          dispatch(toggleRequestEditor());
+          break;
+        case 'toggle-response-editor':
+          dispatch(toggleResponseEditor());
           break;
         case 'send-request':
           void dispatch(sendRequest())

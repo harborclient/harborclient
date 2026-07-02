@@ -34,6 +34,18 @@ export interface ApiWindow {
    */
   setMenuAiSidebarVisible: (visible: boolean) => Promise<void>;
   /**
+   * Syncs request editor visibility to the View menu checkbox in the main process.
+   *
+   * @param visible - Whether the request editor is currently visible in the renderer.
+   */
+  setMenuRequestEditorVisible: (visible: boolean) => Promise<void>;
+  /**
+   * Syncs response editor visibility to the View menu checkbox in the main process.
+   *
+   * @param visible - Whether the response editor is currently visible in the renderer.
+   */
+  setMenuResponseEditorVisible: (visible: boolean) => Promise<void>;
+  /**
    * Syncs Collections section visibility to the View menu checkbox in the main process.
    *
    * @param visible - Whether the Collections section is currently visible in the sidebar.

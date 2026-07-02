@@ -21,6 +21,10 @@ import { AuthSection } from './AuthSection';
 import { GeneralSection } from './GeneralSection';
 import { HeadersSection } from './HeadersSection';
 import { ScriptSection } from './ScriptSection';
+import {
+  COLLECTION_PRE_REQUEST_SCRIPT_PLACEHOLDER,
+  POST_REQUEST_SCRIPT_PLACEHOLDER
+} from '#/renderer/src/ui/shared/scriptPlaceholders';
 import { cleanHeaders, serializeCollectionForm } from './serialize';
 import { VariablesSection } from './VariablesSection';
 
@@ -274,7 +278,7 @@ function CollectionSettingsForm({
           <SegmentedTabs fullWidth tabs={tabs} />
         </div>
 
-        <div className="-mx-6 flex min-h-0 flex-1 flex-col overflow-y-auto px-6">
+        <div className="hc-scroll-stable -mx-6 flex min-h-0 flex-1 flex-col overflow-y-auto px-6">
           <SegmentedTabPanel value="general">
             <GeneralSection
               name={name}
@@ -303,23 +307,21 @@ function CollectionSettingsForm({
               onChange={setAuth}
             />
           </SegmentedTabPanel>
-          <SegmentedTabPanel value="pre">
+          <SegmentedTabPanel value="pre" className="flex min-h-0 flex-1 flex-col">
             <ScriptSection
               phase="pre"
               description="Runs before every request in this collection, before the request-level pre-request script. Supports {{variable}} syntax."
-              placeholder="// hc.variables.set('token', 'abc');"
+              placeholder={COLLECTION_PRE_REQUEST_SCRIPT_PLACEHOLDER}
               scripts={preRequestScripts}
               onChange={setPreRequestScripts}
               variables={variables}
             />
           </SegmentedTabPanel>
-          <SegmentedTabPanel value="post">
+          <SegmentedTabPanel value="post" className="flex min-h-0 flex-1 flex-col">
             <ScriptSection
               phase="post"
               description="Runs after every request in this collection, after the request-level post-request script. Supports {{variable}} syntax."
-              placeholder={
-                '// hc.test("status is 200", () => {\n//   hc.expect(hc.response.code).to.equal(200);\n// });'
-              }
+              placeholder={POST_REQUEST_SCRIPT_PLACEHOLDER}
               scripts={postRequestScripts}
               onChange={setPostRequestScripts}
               variables={variables}

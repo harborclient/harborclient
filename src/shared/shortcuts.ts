@@ -22,6 +22,8 @@ export type ShortcutId =
   | 'toggle-sidebar'
   | 'focus-sidebar-search'
   | 'toggle-ai-sidebar'
+  | 'toggle-request-editor'
+  | 'toggle-response-editor'
   | 'toggle-collections-section'
   | 'toggle-environments-section'
   | 'send-request'
@@ -227,6 +229,20 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'CmdOrCtrl+Shift+B',
     kind: 'action',
     actionId: 'toggle-ai-sidebar'
+  },
+  {
+    id: 'toggle-request-editor',
+    label: 'Toggle request editor',
+    defaultAccelerator: 'CmdOrCtrl+Alt+R',
+    kind: 'action',
+    actionId: 'toggle-request-editor'
+  },
+  {
+    id: 'toggle-response-editor',
+    label: 'Toggle response editor',
+    defaultAccelerator: 'CmdOrCtrl+Alt+Y',
+    kind: 'action',
+    actionId: 'toggle-response-editor'
   },
   {
     id: 'toggle-collections-section',

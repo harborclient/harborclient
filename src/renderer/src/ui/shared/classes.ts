@@ -36,6 +36,18 @@ export const sectionLabel = 'mb-1 px-2 text-[14px] font-medium uppercase trackin
  */
 export const toolbarDangerButtonClass = 'text-danger hover:bg-danger/15';
 
+/**
+ * Circular icon control matching document tab close buttons (round hover/focus surface).
+ */
+export const roundIconButtonClass =
+  'hc-tab-close-button focus-visible:bg-selection focus-visible:text-text';
+
+/**
+ * Larger circular icon control for pre/post script row header actions.
+ */
+export const scriptRowIconButtonClass =
+  'hc-script-row-icon-button focus-visible:bg-selection focus-visible:text-text';
+
 export const METHOD_CLASSES: Record<string, string> = {
   get: 'text-method-get',
   post: 'text-method-post',

@@ -3,7 +3,7 @@ import { useMemo, type JSX } from 'react';
 import type { Variable } from '#/shared/types';
 import type { ConsoleEntry } from '#/renderer/src/store';
 
-import { faRobot, faTableColumns } from '#/renderer/src/fontawesome';
+import { faInbox, faPaperPlane, faRobot, faTableColumns } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActivePluginFooterPanelId,
@@ -97,6 +97,26 @@ interface Props {
    * Toggles the AI sidebar visible/hidden.
    */
   onToggleAiSidebar: () => void;
+
+  /**
+   * Whether the request editor is currently visible.
+   */
+  requestEditorOpen: boolean;
+
+  /**
+   * Toggles the request editor visible/hidden.
+   */
+  onToggleRequestEditor: () => void;
+
+  /**
+   * Whether the response editor is currently visible.
+   */
+  responseEditorOpen: boolean;
+
+  /**
+   * Toggles the response editor visible/hidden.
+   */
+  onToggleResponseEditor: () => void;
 }
 
 /**
@@ -118,7 +138,11 @@ export function Footer({
   sidebarOpen,
   onToggleSidebar,
   aiSidebarOpen,
-  onToggleAiSidebar
+  onToggleAiSidebar,
+  requestEditorOpen,
+  onToggleRequestEditor,
+  responseEditorOpen,
+  onToggleResponseEditor
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const pluginFooterPanels = usePluginFooterPanels();
@@ -237,18 +261,32 @@ export function Footer({
               />
             </div>
           ))}
-          <FooterIcon
-            onClick={onToggleSidebar}
-            icon={faTableColumns}
-            active={sidebarOpen}
-            label="sidebar"
-          />
-          <FooterIcon
-            onClick={onToggleAiSidebar}
-            icon={faRobot}
-            active={aiSidebarOpen}
-            label="agent chat"
-          />
+          <div className="flex items-center gap-1.5">
+            <FooterIcon
+              onClick={onToggleRequestEditor}
+              icon={faPaperPlane}
+              active={requestEditorOpen}
+              label="request editor"
+            />
+            <FooterIcon
+              onClick={onToggleResponseEditor}
+              icon={faInbox}
+              active={responseEditorOpen}
+              label="response editor"
+            />
+            <FooterIcon
+              onClick={onToggleSidebar}
+              icon={faTableColumns}
+              active={sidebarOpen}
+              label="sidebar"
+            />
+            <FooterIcon
+              onClick={onToggleAiSidebar}
+              icon={faRobot}
+              active={aiSidebarOpen}
+              label="agent chat"
+            />
+          </div>
         </div>
       </footer>
     </div>

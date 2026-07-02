@@ -25,18 +25,27 @@ describe('panelLayoutSettings', () => {
 
     expect(getPanelLayout()).toEqual({
       showSidebar: true,
-      showAiSidebar: false
+      showAiSidebar: false,
+      showRequestEditor: true,
+      showResponseEditor: true
     });
   });
 
   it('persists normalized layout state', async () => {
     const { setPanelLayout } = await import('#/main/settings/panelLayoutSettings');
 
-    setPanelLayout({ showSidebar: false, showAiSidebar: true });
+    setPanelLayout({
+      showSidebar: false,
+      showAiSidebar: true,
+      showRequestEditor: false,
+      showResponseEditor: true
+    });
 
     expect(mockSet).toHaveBeenCalledWith('panelLayout', {
       showSidebar: false,
-      showAiSidebar: true
+      showAiSidebar: true,
+      showRequestEditor: false,
+      showResponseEditor: true
     });
   });
 });

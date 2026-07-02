@@ -541,6 +541,24 @@ function setMenuAiSidebarVisible(visible: boolean): Promise<void> {
 }
 
 /**
+ * Syncs request editor visibility to the View menu checkbox in the main process.
+ *
+ * @param visible - Whether the request editor is currently visible in the renderer.
+ */
+function setMenuRequestEditorVisible(visible: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setRequestEditorVisible', visible);
+}
+
+/**
+ * Syncs response editor visibility to the View menu checkbox in the main process.
+ *
+ * @param visible - Whether the response editor is currently visible in the renderer.
+ */
+function setMenuResponseEditorVisible(visible: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setResponseEditorVisible', visible);
+}
+
+/**
  * Syncs Collections section visibility to the View menu checkbox in the main process.
  *
  * @param visible - Whether the Collections section is currently visible in the sidebar.
@@ -2081,6 +2099,8 @@ const api: Api = {
   onDeepLink,
   setMenuSidebarVisible,
   setMenuAiSidebarVisible,
+  setMenuRequestEditorVisible,
+  setMenuResponseEditorVisible,
   setMenuCollectionsVisible,
   setMenuEnvironmentsVisible,
   setMenuThemeMenuState,

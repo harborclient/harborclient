@@ -3,6 +3,8 @@ import {
   setMenuAiSidebarVisible,
   setMenuCollectionsVisible,
   setMenuEnvironmentsVisible,
+  setMenuRequestEditorVisible,
+  setMenuResponseEditorVisible,
   setMenuSidebarVisible,
   setMenuThemeMenuState
 } from '#/main/appMenu';
@@ -24,6 +26,24 @@ export function registerMenuHandlers(): void {
   handle('menu:setAiSidebarVisible', ipcArgSchemas.menuAiSidebarVisible, (_event, visible) => {
     setMenuAiSidebarVisible(visible);
   });
+
+  // Updates the View menu checkmark for request editor visibility.
+  handle(
+    'menu:setRequestEditorVisible',
+    ipcArgSchemas.menuRequestEditorVisible,
+    (_event, visible) => {
+      setMenuRequestEditorVisible(visible);
+    }
+  );
+
+  // Updates the View menu checkmark for response editor visibility.
+  handle(
+    'menu:setResponseEditorVisible',
+    ipcArgSchemas.menuResponseEditorVisible,
+    (_event, visible) => {
+      setMenuResponseEditorVisible(visible);
+    }
+  );
 
   // Updates the View menu checkmark for Collections section visibility.
   handle('menu:setCollectionsVisible', ipcArgSchemas.menuCollectionsVisible, (_event, visible) => {

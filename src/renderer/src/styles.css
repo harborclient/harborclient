@@ -447,6 +447,26 @@
   }
 
   /**
+   * Circular icon buttons in pre/post script row headers; slightly larger than tab
+   * close controls so save, delete, and expand actions are easier to hit.
+   */
+  /**
+   * Reserves space for a vertical scrollbar so content width stays stable when
+   * overflow toggles (e.g. expanding script rows in the request editor).
+   */
+  .hc-scroll-stable {
+    scrollbar-gutter: stable;
+  }
+
+  .hc-script-row-icon-button {
+    align-self: center;
+    width: 2rem;
+    height: 2rem;
+    aspect-ratio: auto;
+    border-radius: 9999px;
+  }
+
+  /**
    * Circular hover/focus background for sidebar section add buttons. Slightly
    * larger than row hamburger triggers so the + reads as the primary action.
    */

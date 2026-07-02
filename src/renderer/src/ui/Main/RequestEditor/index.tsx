@@ -27,7 +27,9 @@ import {
 } from '#/renderer/src/store/selectors';
 import {
   selectCollectionSettingsDirty,
-  selectEnvironmentSettingsDirty
+  selectEnvironmentSettingsDirty,
+  selectShowRequestEditor,
+  selectShowResponseEditor
 } from '#/renderer/src/store/slices/navigationSlice';
 import {
   setActiveDraft,
@@ -111,6 +113,9 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const selectedCollectionId = useAppSelector(selectSelectedCollectionId);
   const collectionSettingsDirty = useAppSelector(selectCollectionSettingsDirty);
   const environmentSettingsDirty = useAppSelector(selectEnvironmentSettingsDirty);
+  const showRequestEditor = useAppSelector(selectShowRequestEditor);
+  const showResponseEditor = useAppSelector(selectShowResponseEditor);
+  const showSplitLayout = showRequestEditor && showResponseEditor;
 
   const hasOpenTabs = tabs.length > 0;
   const [closeTabPrompt, setCloseTabPrompt] = useState<CloseTabPrompt | null>(null);
@@ -254,61 +259,71 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
             </div>
           ) : (
             <>
-              <section
-                aria-label="Request editor"
-                ref={splitRef}
-                style={{ height: editorHeight }}
-                className="shrink-0 overflow-auto"
-              >
-                <Editor
-                  key={`editor-${activeTabId}`}
-                  tabId={activeTabId}
-                  draft={draft}
-                  requestTabContext={requestTabContext}
-                  onChange={(next) => dispatch(setActiveDraft(next))}
-                  onSend={() => void dispatch(sendRequest())}
-                  sending={sending}
-                  variables={activeVariables}
-                  collectionName={activeCollectionName}
-                  folderName={activeFolderName}
-                  onEditVariables={onEditVariables}
-                  onCollectionClick={() => {
-                    if (activeCollectionId == null) return;
-                    dispatch(focusSidebarItem({ collectionId: activeCollectionId }));
-                    revealCollection(activeCollectionId);
-                  }}
-                  onFolderClick={() => {
-                    if (activeCollectionId == null || activeFolderId == null) return;
-                    dispatch(
-                      focusSidebarItem({
-                        collectionId: activeCollectionId,
-                        folderId: activeFolderId
-                      })
-                    );
-                    revealFolder(activeCollectionId, activeFolderId);
-                  }}
+              {showRequestEditor ? (
+                <section
+                  aria-label="Request editor"
+                  ref={splitRef}
+                  style={showSplitLayout ? { height: editorHeight } : undefined}
+                  className={
+                    showSplitLayout
+                      ? 'hc-scroll-stable shrink-0 overflow-auto'
+                      : 'hc-scroll-stable flex min-h-0 flex-1 flex-col overflow-auto'
+                  }
+                >
+                  <Editor
+                    key={`editor-${activeTabId}`}
+                    tabId={activeTabId}
+                    draft={draft}
+                    requestTabContext={requestTabContext}
+                    onChange={(next) => dispatch(setActiveDraft(next))}
+                    onSend={() => void dispatch(sendRequest())}
+                    sending={sending}
+                    variables={activeVariables}
+                    collectionName={activeCollectionName}
+                    folderName={activeFolderName}
+                    onEditVariables={onEditVariables}
+                    onCollectionClick={() => {
+                      if (activeCollectionId == null) return;
+                      dispatch(focusSidebarItem({ collectionId: activeCollectionId }));
+                      revealCollection(activeCollectionId);
+                    }}
+                    onFolderClick={() => {
+                      if (activeCollectionId == null || activeFolderId == null) return;
+                      dispatch(
+                        focusSidebarItem({
+                          collectionId: activeCollectionId,
+                          folderId: activeFolderId
+                        })
+                      );
+                      revealFolder(activeCollectionId, activeFolderId);
+                    }}
+                  />
+                </section>
+              ) : null}
+              {showSplitLayout ? (
+                <ResizeHandle
+                  orientation="horizontal"
+                  value={editorHeight}
+                  min={editorMinSize}
+                  max={editorMaxSize}
+                  onResizeStart={onResizeStart}
+                  onKeyboardResize={onKeyboardResize}
+                  ariaLabel="Resize request editor"
                 />
-              </section>
-              <ResizeHandle
-                orientation="horizontal"
-                value={editorHeight}
-                min={editorMinSize}
-                max={editorMaxSize}
-                onResizeStart={onResizeStart}
-                onKeyboardResize={onKeyboardResize}
-                ariaLabel="Resize request editor"
-              />
-              <section aria-label="Response" className="flex min-h-0 flex-1 flex-col">
-                <ResponseEditor
-                  key={`response-${activeTabId}`}
-                  response={response}
-                  responseTabContext={responseTabContext}
-                  sending={sending}
-                  testResults={testResults}
-                  requestUrl={draft.url}
-                  onCancel={() => void dispatch(cancelRequest(activeTabId))}
-                />
-              </section>
+              ) : null}
+              {showResponseEditor ? (
+                <section aria-label="Response" className="flex min-h-0 flex-1 flex-col">
+                  <ResponseEditor
+                    key={`response-${activeTabId}`}
+                    response={response}
+                    responseTabContext={responseTabContext}
+                    sending={sending}
+                    testResults={testResults}
+                    requestUrl={draft.url}
+                    onCancel={() => void dispatch(cancelRequest(activeTabId))}
+                  />
+                </section>
+              ) : null}
             </>
           )}
         </div>

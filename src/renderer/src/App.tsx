@@ -23,10 +23,14 @@ import { clearConsole } from '#/renderer/src/store/slices/consoleSlice';
 import {
   selectAiSidebarVisible,
   selectShowConsole,
+  selectShowRequestEditor,
+  selectShowResponseEditor,
   selectShowVariables,
   selectSidebarVisible,
   toggleAiSidebar,
   toggleConsole,
+  toggleRequestEditor,
+  toggleResponseEditor,
   toggleSidebar,
   toggleVariables
 } from '#/renderer/src/store/slices/navigationSlice';
@@ -86,6 +90,8 @@ export default function App(): JSX.Element {
   const activeTabId = useAppSelector(selectActiveTabId);
   const sidebarVisible = useAppSelector(selectSidebarVisible);
   const aiSidebarVisible = useAppSelector(selectAiSidebarVisible);
+  const requestEditorVisible = useAppSelector(selectShowRequestEditor);
+  const responseEditorVisible = useAppSelector(selectShowResponseEditor);
   const showConsole = useAppSelector(selectShowConsole);
   const showVariables = useAppSelector(selectShowVariables);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
@@ -245,6 +251,10 @@ export default function App(): JSX.Element {
             onToggleSidebar={() => dispatch(toggleSidebar())}
             aiSidebarOpen={aiSidebarVisible}
             onToggleAiSidebar={() => dispatch(toggleAiSidebar())}
+            requestEditorOpen={requestEditorVisible}
+            onToggleRequestEditor={() => dispatch(toggleRequestEditor())}
+            responseEditorOpen={responseEditorVisible}
+            onToggleResponseEditor={() => dispatch(toggleResponseEditor())}
           />
 
           <CollectionModal />

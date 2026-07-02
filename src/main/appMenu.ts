@@ -6,6 +6,8 @@ import type { ThemeSource } from '#/shared/types';
 let mainWindow: BrowserWindow | null = null;
 let sidebarVisible = true;
 let aiSidebarVisible = false;
+let requestEditorVisible = true;
+let responseEditorVisible = true;
 let collectionsVisible = true;
 let environmentsVisible = true;
 let activeTheme: ThemeSource = 'system';
@@ -23,6 +25,20 @@ export function getMenuSidebarVisible(): boolean {
  */
 export function getMenuAiSidebarVisible(): boolean {
   return aiSidebarVisible;
+}
+
+/**
+ * Returns the request editor visibility state reflected in the View menu checkbox.
+ */
+export function getMenuRequestEditorVisible(): boolean {
+  return requestEditorVisible;
+}
+
+/**
+ * Returns the response editor visibility state reflected in the View menu checkbox.
+ */
+export function getMenuResponseEditorVisible(): boolean {
+  return responseEditorVisible;
 }
 
 /**
@@ -76,6 +92,32 @@ export function setMenuAiSidebarVisible(visible: boolean): void {
     return;
   }
   aiSidebarVisible = visible;
+  rebuildAppMenu();
+}
+
+/**
+ * Updates the View menu Request checkbox and rebuilds the menu when the value changes.
+ *
+ * @param visible - Whether the request editor is currently visible in the renderer.
+ */
+export function setMenuRequestEditorVisible(visible: boolean): void {
+  if (requestEditorVisible === visible) {
+    return;
+  }
+  requestEditorVisible = visible;
+  rebuildAppMenu();
+}
+
+/**
+ * Updates the View menu Response checkbox and rebuilds the menu when the value changes.
+ *
+ * @param visible - Whether the response editor is currently visible in the renderer.
+ */
+export function setMenuResponseEditorVisible(visible: boolean): void {
+  if (responseEditorVisible === visible) {
+    return;
+  }
+  responseEditorVisible = visible;
   rebuildAppMenu();
 }
 
@@ -182,6 +224,8 @@ export function rebuildAppMenu(): void {
       mainWindow,
       sidebarVisible,
       aiSidebarVisible,
+      requestEditorVisible,
+      responseEditorVisible,
       collectionsVisible,
       environmentsVisible,
       activeTheme,

@@ -27,6 +27,7 @@ import {
   ModalFormLayout
 } from '@harborclient/sdk/components';
 import {
+  Fragment,
   useEffect,
   useId,
   useMemo,
@@ -47,20 +48,43 @@ import {
   resolveScriptSourceCode,
   UNNAMED_SCRIPT_NAME
 } from '#/shared/scriptRefs';
-import { CodePreviewTooltip } from '#/renderer/src/ui/shared/CodePreviewTooltip';
+import { CodePreviewTooltip, buildCodePreview } from '#/renderer/src/ui/shared/CodePreviewTooltip';
+import {
+  createBlankSnippet,
+  SnippetEditModal,
+  type SnippetEditDraft
+} from '#/renderer/src/ui/shared/SnippetEditModal';
+import { scriptRowIconButtonClass } from '#/renderer/src/ui/shared/classes';
+import {
+  normalizeEditorPlaceholder,
+  REQUEST_SCRIPTS_HELP_URL
+} from '#/renderer/src/ui/shared/scriptPlaceholders';
 import { createHcCompletionSource } from '#/renderer/src/scripting/hcCompletions';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { createSnippet, updateSnippet } from '#/renderer/src/store/thunks/snippets';
 import {
+  faAnglesDown,
+  faAnglesUp,
+  faCaretDown,
   faChevronDown,
   faChevronUp,
   faFloppyDisk,
   faGripVertical,
-  faTrash
+  faTrash,
+  faArrowUpRightFromSquare
 } from '#/renderer/src/fontawesome';
 
 const SCRIPT_EDITOR_MIN_HEIGHT = '125px';
+
+/** Title and label typography for script row headers. */
+const SCRIPT_ROW_TITLE_CLASS = 'text-[15px] font-medium text-text';
+
+/** Icon size shared by drag handle and row action buttons. */
+const SCRIPT_ROW_ICON_CLASS = 'h-4 w-4';
+
+/** Left inset aligning the code preview with the script title (checkbox width + gap). */
+const SCRIPT_ROW_PREVIEW_INDENT_CLASS = 'pl-6';
 
 interface Props {
   /**
@@ -119,16 +143,6 @@ interface ScriptRowHeaderProps {
    * Called when the optional display name changes.
    */
   onNameChange: (name: string) => void;
-
-  /**
-   * Expands the script editor when the collapsed preview is clicked.
-   */
-  onExpand: () => void;
-
-  /**
-   * When true, omits the collapsed code preview while the script editor is expanded.
-   */
-  previewHidden?: boolean;
 }
 
 interface SortableScriptRowProps {
@@ -254,6 +268,11 @@ interface SnippetMenuProps {
    * @param uuid - Selected snippet uuid.
    */
   onSelect: (uuid: string) => void;
+
+  /**
+   * Opens the create-snippet modal from the menu.
+   */
+  onCreate: () => void;
 
   /**
    * Closes the snippet picker menu.
@@ -394,9 +413,7 @@ function ScriptRowHeader({
   script,
   snippets,
   onEnabledChange,
-  onNameChange,
-  onExpand,
-  previewHidden = false
+  onNameChange
 }: ScriptRowHeaderProps): JSX.Element {
   const [editingLabel, setEditingLabel] = useState(false);
   const labelInputRef = useRef<HTMLInputElement>(null);
@@ -413,59 +430,52 @@ function ScriptRowHeader({
     }
   }, [editingLabel]);
 
+  const titleControl = editingLabel ? (
+    <Input
+      ref={labelInputRef}
+      variant="plain"
+      className={`min-w-0 flex-1 border-none bg-transparent p-0 ${SCRIPT_ROW_TITLE_CLASS} outline-none app-no-drag`}
+      type="text"
+      value={script.name ?? ''}
+      onChange={(event) => onNameChange(event.target.value)}
+      onBlur={() => setEditingLabel(false)}
+      onPointerDown={stopDragPointerDown}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === 'Escape') {
+          event.preventDefault();
+          setEditingLabel(false);
+        }
+      }}
+      aria-label={`Rename ${accessibleLabel}`}
+      placeholder={placeholderLabel}
+    />
+  ) : (
+    <button
+      type="button"
+      className={`min-w-0 flex-1 cursor-text border-none bg-transparent p-0 text-left ${SCRIPT_ROW_TITLE_CLASS} hover:opacity-80 app-no-drag`}
+      aria-label={`Rename ${accessibleLabel}`}
+      onClick={() => setEditingLabel(true)}
+      onPointerDown={stopDragPointerDown}
+    >
+      {script.name?.trim() ? (
+        <span className="truncate">{script.name.trim()}</span>
+      ) : (
+        <span className="truncate text-muted">{placeholderLabel}</span>
+      )}
+    </button>
+  );
+
   return (
-    <div className="flex min-w-0 flex-1 items-start gap-2 text-[14px] text-text">
+    <div className={`flex min-w-0 flex-1 items-center gap-2 ${SCRIPT_ROW_TITLE_CLASS}`}>
       <input
         type="checkbox"
         checked={script.enabled}
         onChange={(event) => onEnabledChange(event.target.checked)}
         onPointerDown={stopDragPointerDown}
         aria-label={`Enable ${accessibleLabel}`}
-        className="mt-0.5 shrink-0"
+        className="shrink-0"
       />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        {editingLabel ? (
-          <Input
-            ref={labelInputRef}
-            variant="plain"
-            className="min-w-0 flex-1 border-none bg-transparent p-0 text-[14px] font-medium text-text outline-none app-no-drag"
-            type="text"
-            value={script.name ?? ''}
-            onChange={(event) => onNameChange(event.target.value)}
-            onBlur={() => setEditingLabel(false)}
-            onPointerDown={stopDragPointerDown}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === 'Escape') {
-                event.preventDefault();
-                setEditingLabel(false);
-              }
-            }}
-            aria-label={`Rename ${accessibleLabel}`}
-            placeholder={placeholderLabel}
-          />
-        ) : (
-          <button
-            type="button"
-            className="min-w-0 flex-1 cursor-text border-none bg-transparent p-0 text-left text-[14px] font-medium text-text hover:opacity-80 app-no-drag"
-            aria-label={`Rename ${accessibleLabel}`}
-            onClick={() => setEditingLabel(true)}
-            onPointerDown={stopDragPointerDown}
-          >
-            {script.name?.trim() ? (
-              <span className="truncate">{script.name.trim()}</span>
-            ) : (
-              <span className="truncate text-muted">{placeholderLabel}</span>
-            )}
-          </button>
-        )}
-        <CodePreviewTooltip
-          code={resolveScriptSourceCode(script, snippets)}
-          actionLabel={`Expand ${accessibleLabel}`}
-          onClick={onExpand}
-          hidden={previewHidden}
-          onPointerDown={stopDragPointerDown}
-        />
-      </div>
+      <div className="min-w-0 flex-1">{titleControl}</div>
     </div>
   );
 }
@@ -473,7 +483,13 @@ function ScriptRowHeader({
 /**
  * Dropdown menu for choosing a snippet from the library.
  */
-function SnippetMenu({ menuId, snippets, onSelect, onClose }: SnippetMenuProps): JSX.Element {
+function SnippetMenu({
+  menuId,
+  snippets,
+  onSelect,
+  onCreate,
+  onClose
+}: SnippetMenuProps): JSX.Element {
   const rootRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -508,6 +524,18 @@ function SnippetMenu({ menuId, snippets, onSelect, onClose }: SnippetMenuProps):
       aria-label="Snippet library"
       className="absolute left-0 top-full z-20 mt-0.5 max-h-64 min-w-full overflow-y-auto rounded-md border border-separator bg-surface py-1 shadow-md app-no-drag"
     >
+      <button
+        type="button"
+        role="menuitem"
+        className="block w-full cursor-pointer border-none bg-transparent px-3 py-2 text-left text-[14px] text-text hover:bg-selection app-no-drag"
+        onClick={() => {
+          onCreate();
+          onClose();
+        }}
+      >
+        Create a snippet
+      </button>
+      <div role="separator" className="my-1 border-t border-separator" aria-hidden="true" />
       {snippets.length === 0 ? (
         <p className="px-3 py-2 text-[14px] text-muted">No snippets saved yet</p>
       ) : (
@@ -527,6 +555,17 @@ function SnippetMenu({ menuId, snippets, onSelect, onClose }: SnippetMenuProps):
         ))
       )}
     </div>
+  );
+}
+
+/**
+ * Decorative caret between script rows indicating top-to-bottom execution order.
+ */
+function ScriptFlowArrow(): JSX.Element {
+  return (
+    <li className="flex list-none justify-center py-1" aria-hidden="true">
+      <FaIcon icon={faCaretDown} className="h-4 w-4 text-muted" aria-hidden />
+    </li>
   );
 }
 
@@ -563,6 +602,8 @@ function SortableScriptRow({
   const saveSnippetLabel =
     script.kind === 'snippet' ? `Save snippet "${label}"` : `Save "${label}" as snippet`;
   const editorPanelId = useId();
+  const showCodePreview =
+    !isExpanded && Boolean(buildCodePreview(resolveScriptSourceCode(script, snippets)));
 
   if (snippetRevision !== snippetRevisionSeen) {
     setSnippetRevisionSeen(snippetRevision);
@@ -591,62 +632,82 @@ function SortableScriptRow({
       style={style}
       className="rounded-lg border border-separator bg-surface px-4 py-3 shadow-sm"
     >
-      <div className="flex items-start gap-3">
-        {sortable ? (
-          <button
-            type="button"
-            ref={setActivatorNodeRef}
-            className="mt-0.5 inline-flex h-3.5 w-3.5 shrink-0 cursor-grab items-center justify-center rounded border-none bg-transparent p-0 text-muted outline-none focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing app-no-drag"
-            aria-label={`Reorder script "${label}"`}
-            {...attributes}
-            {...listeners}
-          >
-            <FaIcon icon={faGripVertical} className="h-3.5 w-3.5" />
-          </button>
-        ) : (
-          <span className="mt-0.5 inline-flex h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        )}
-        <ScriptRowHeader
-          script={script}
-          snippets={snippets}
-          onEnabledChange={onEnabledChange}
-          onNameChange={onNameChange}
-          onExpand={onToggleExpanded}
-          previewHidden={isExpanded}
-        />
+      <div className="flex flex-col gap-0.5">
+        <div className="flex items-center gap-3">
+          {sortable ? (
+            <button
+              type="button"
+              ref={setActivatorNodeRef}
+              className={`inline-flex ${SCRIPT_ROW_ICON_CLASS} shrink-0 cursor-grab items-center justify-center rounded border-none bg-transparent p-0 text-muted outline-none focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing app-no-drag`}
+              aria-label={`Reorder script "${label}"`}
+              {...attributes}
+              {...listeners}
+            >
+              <FaIcon icon={faGripVertical} className={SCRIPT_ROW_ICON_CLASS} />
+            </button>
+          ) : (
+            <span className={`inline-flex ${SCRIPT_ROW_ICON_CLASS} shrink-0`} aria-hidden="true" />
+          )}
+          <ScriptRowHeader
+            script={script}
+            snippets={snippets}
+            onEnabledChange={onEnabledChange}
+            onNameChange={onNameChange}
+          />
 
-        <div className="ml-auto flex shrink-0 items-center gap-1 self-start">
-          <Button
-            type="button"
-            variant="icon"
-            aria-label={saveSnippetLabel}
-            disabled={!canSaveSnippet}
-            onPointerDown={stopDragPointerDown}
-            onClick={() => onSaveSnippet(saveSnippetCode)}
-          >
-            <FaIcon icon={faFloppyDisk} />
-          </Button>
-          <Button
-            type="button"
-            variant="icon"
-            aria-label={`Remove ${label}`}
-            onPointerDown={stopDragPointerDown}
-            onClick={onRemove}
-          >
-            <FaIcon icon={faTrash} />
-          </Button>
-          <Button
-            type="button"
-            variant="icon"
-            aria-controls={editorPanelId}
-            aria-expanded={isExpanded}
-            aria-label={isExpanded ? `Collapse ${label}` : `Expand ${label}`}
-            onPointerDown={stopDragPointerDown}
-            onClick={onToggleExpanded}
-          >
-            <FaIcon icon={isExpanded ? faChevronUp : faChevronDown} />
-          </Button>
+          <div className="ml-auto flex shrink-0 items-center gap-1">
+            <Button
+              type="button"
+              variant="icon"
+              className={scriptRowIconButtonClass}
+              aria-label={saveSnippetLabel}
+              disabled={!canSaveSnippet}
+              onPointerDown={stopDragPointerDown}
+              onClick={() => onSaveSnippet(saveSnippetCode)}
+            >
+              <FaIcon icon={faFloppyDisk} className={SCRIPT_ROW_ICON_CLASS} />
+            </Button>
+            <Button
+              type="button"
+              variant="icon"
+              className={scriptRowIconButtonClass}
+              aria-label={`Remove ${label}`}
+              onPointerDown={stopDragPointerDown}
+              onClick={onRemove}
+            >
+              <FaIcon icon={faTrash} className={SCRIPT_ROW_ICON_CLASS} />
+            </Button>
+            <Button
+              type="button"
+              variant="icon"
+              className={scriptRowIconButtonClass}
+              aria-controls={editorPanelId}
+              aria-expanded={isExpanded}
+              aria-label={isExpanded ? `Collapse ${label}` : `Expand ${label}`}
+              onPointerDown={stopDragPointerDown}
+              onClick={onToggleExpanded}
+            >
+              <FaIcon
+                icon={isExpanded ? faChevronUp : faChevronDown}
+                className={SCRIPT_ROW_ICON_CLASS}
+              />
+            </Button>
+          </div>
         </div>
+
+        {showCodePreview ? (
+          <div className="flex gap-3">
+            <span className={`inline-flex ${SCRIPT_ROW_ICON_CLASS} shrink-0`} aria-hidden="true" />
+            <div className={`min-w-0 flex-1 ${SCRIPT_ROW_PREVIEW_INDENT_CLASS}`}>
+              <CodePreviewTooltip
+                code={resolveScriptSourceCode(script, snippets)}
+                actionLabel={`Expand ${label}`}
+                onClick={onToggleExpanded}
+                onPointerDown={stopDragPointerDown}
+              />
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {isExpanded && script.kind === 'inline' && (
@@ -654,7 +715,7 @@ function SortableScriptRow({
           id={editorPanelId}
           role="region"
           aria-label={`${label} source editor`}
-          className="mt-3 flex flex-col gap-2"
+          className="mt-2 flex flex-col gap-2"
         >
           <CodeEditor
             value={script.code ?? ''}
@@ -675,7 +736,7 @@ function SortableScriptRow({
           id={editorPanelId}
           role="region"
           aria-label={`${label} source editor`}
-          className="mt-3 flex flex-col gap-2"
+          className="mt-2 flex flex-col gap-2"
         >
           <CodeEditor
             value={snippetDraftCode}
@@ -718,7 +779,15 @@ export function ScriptListEditor({
   } | null>(null);
   const [saveSnippetSaving, setSaveSnippetSaving] = useState(false);
   const [saveSnippetError, setSaveSnippetError] = useState<string | null>(null);
+  const [createSnippetDraft, setCreateSnippetDraft] = useState<SnippetEditDraft | null>(null);
+  const [createSnippetSaving, setCreateSnippetSaving] = useState(false);
+  const [createSnippetError, setCreateSnippetError] = useState<string | null>(null);
   const snippetMenuId = useId();
+
+  /**
+   * Placeholder text with literal \\n sequences expanded for CodeMirror display.
+   */
+  const editorPlaceholder = useMemo(() => normalizeEditorPlaceholder(placeholder), [placeholder]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -737,6 +806,22 @@ export function ScriptListEditor({
     () => normalized.find((script) => script.id === activeDragScriptId) ?? null,
     [normalized, activeDragScriptId]
   );
+
+  /**
+   * Whether every script row is expanded; used for the expand/collapse-all control.
+   */
+  const allScriptsExpanded = useMemo(
+    () => normalized.every((script) => script.expanded ?? false),
+    [normalized]
+  );
+
+  /**
+   * Expands every script row when any are collapsed; otherwise collapses them all.
+   */
+  const handleToggleExpandAll = (): void => {
+    const nextExpanded = !allScriptsExpanded;
+    updateScripts(normalized.map((script) => ({ ...script, expanded: nextExpanded })));
+  };
 
   /**
    * Replaces the script list with a normalized copy.
@@ -768,6 +853,58 @@ export function ScriptListEditor({
     const snippet = snippets.find((entry) => entry.uuid === trimmedUuid);
     const created = { ...createSnippetScriptRef(trimmedUuid, snippet?.name), expanded: true };
     updateScripts([...normalized, created]);
+  };
+
+  /**
+   * Opens the create-snippet modal from the snippet library menu.
+   */
+  const openCreateSnippetModal = (): void => {
+    setCreateSnippetDraft(createBlankSnippet());
+    setCreateSnippetError(null);
+    setSnippetMenuOpen(false);
+  };
+
+  /**
+   * Closes the create-snippet modal and clears transient error state.
+   */
+  const closeCreateSnippetModal = (): void => {
+    setCreateSnippetDraft(null);
+    setCreateSnippetError(null);
+    setCreateSnippetSaving(false);
+  };
+
+  /**
+   * Persists a new snippet from the library menu and adds it to the script list.
+   */
+  const handleSaveCreateSnippet = async (): Promise<void> => {
+    if (!createSnippetDraft) {
+      return;
+    }
+
+    const trimmedName = createSnippetDraft.name.trim();
+    if (!trimmedName) {
+      setCreateSnippetError('Snippet name is required.');
+      return;
+    }
+
+    setCreateSnippetSaving(true);
+    setCreateSnippetError(null);
+
+    try {
+      const created = await dispatch(
+        createSnippet({ name: trimmedName, code: createSnippetDraft.code })
+      ).unwrap();
+      toast.success('Snippet created');
+      updateScripts([
+        ...normalized,
+        { ...createSnippetScriptRef(created.uuid, created.name), expanded: true }
+      ]);
+      closeCreateSnippetModal();
+    } catch (err) {
+      setCreateSnippetError(err instanceof Error ? err.message : 'Failed to save snippet');
+    } finally {
+      setCreateSnippetSaving(false);
+    }
   };
 
   /**
@@ -940,10 +1077,10 @@ export function ScriptListEditor({
   };
 
   /**
-   * Renders add controls shared below the script list.
+   * Renders add controls aligned to the right of the script list header.
    */
   const addControls = (
-    <div className="flex shrink-0 flex-wrap items-center gap-2 mt-2">
+    <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2">
       <Button
         type="button"
         className="shrink-0 whitespace-nowrap rounded-full!"
@@ -951,91 +1088,135 @@ export function ScriptListEditor({
       >
         Add
       </Button>
-      <div className="relative">
+      <div className="flex shrink-0 items-center gap-2">
+        <div className="relative">
+          <Button
+            type="button"
+            variant="secondary"
+            className="shrink-0 gap-2 whitespace-nowrap rounded-full!"
+            aria-haspopup="menu"
+            aria-expanded={snippetMenuOpen}
+            aria-controls={snippetMenuOpen ? snippetMenuId : undefined}
+            onClick={() => setSnippetMenuOpen((open) => !open)}
+          >
+            Snippet library...
+            <FaIcon icon={faChevronDown} aria-hidden />
+          </Button>
+          {snippetMenuOpen ? (
+            <SnippetMenu
+              menuId={snippetMenuId}
+              snippets={snippets}
+              onSelect={handleSnippetSelect}
+              onCreate={openCreateSnippetModal}
+              onClose={() => setSnippetMenuOpen(false)}
+            />
+          ) : null}
+        </div>
         <Button
           type="button"
           variant="secondary"
-          className="shrink-0 gap-2 whitespace-nowrap rounded-full!"
-          aria-haspopup="menu"
-          aria-expanded={snippetMenuOpen}
-          aria-controls={snippetMenuOpen ? snippetMenuId : undefined}
-          disabled={snippets.length === 0}
-          onClick={() => setSnippetMenuOpen((open) => !open)}
+          className="shrink-0 rounded-full!"
+          aria-label={allScriptsExpanded ? 'Collapse all scripts' : 'Expand all scripts'}
+          onClick={handleToggleExpandAll}
         >
-          Select snippet...
-          <FaIcon icon={faChevronDown} aria-hidden />
-        </Button>
-        {snippetMenuOpen ? (
-          <SnippetMenu
-            menuId={snippetMenuId}
-            snippets={snippets}
-            onSelect={handleSnippetSelect}
-            onClose={() => setSnippetMenuOpen(false)}
+          <FaIcon
+            icon={allScriptsExpanded ? faAnglesUp : faAnglesDown}
+            className="h-4 w-4"
+            aria-hidden
           />
-        ) : null}
+        </Button>
       </div>
     </div>
   );
 
   /**
-   * Renders the multi-script list, optionally wrapped in drag-and-drop context.
+   * Renders the ordering hint and add controls above the script list.
+   */
+  const scriptListHeader = (
+    <div className="flex shrink-0 flex-wrap items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <p className="m-0 text-[14px] text-muted">Scripts run in order. Drag to reorder.</p>
+        <a
+          href={REQUEST_SCRIPTS_HELP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-[14px] text-accent hover:underline"
+        >
+          Scripting help
+          <FaIcon icon={faArrowUpRightFromSquare} className="h-3 w-3" aria-hidden />
+        </a>
+      </div>
+      {addControls}
+    </div>
+  );
+
+  /**
+   * Renders the ordered script row list.
    */
   const scriptList = (
-    <ul className="flex flex-col gap-3" aria-label={`${phase} request scripts`}>
-      {normalized.map((script) => {
+    <ul className="flex flex-col" aria-label={`${phase} request scripts`}>
+      {normalized.map((script, index) => {
         const label = scriptRowLabel(script, snippets);
         const isExpanded = script.expanded ?? false;
 
         return (
-          <SortableScriptRow
-            key={script.id}
-            script={script}
-            snippets={snippets}
-            label={label}
-            isExpanded={isExpanded}
-            phase={phase}
-            placeholder={placeholder}
-            variables={variables}
-            onEditVariables={onEditVariables}
-            sortable={sortableEnabled}
-            onEnabledChange={(enabled) => patchScript(script.id, { enabled })}
-            onNameChange={(name) => patchScript(script.id, { name })}
-            onRemove={() => void handleRemoveScript(script.id, label)}
-            onToggleExpanded={() => patchScript(script.id, { expanded: !isExpanded })}
-            onPatchCode={(code) => patchScript(script.id, { code })}
-            onSaveSnippet={(code) => openSaveSnippetModal(script.id, code)}
-          />
+          <Fragment key={script.id}>
+            <SortableScriptRow
+              script={script}
+              snippets={snippets}
+              label={label}
+              isExpanded={isExpanded}
+              phase={phase}
+              placeholder={editorPlaceholder}
+              variables={variables}
+              onEditVariables={onEditVariables}
+              sortable={sortableEnabled}
+              onEnabledChange={(enabled) => patchScript(script.id, { enabled })}
+              onNameChange={(name) => patchScript(script.id, { name })}
+              onRemove={() => void handleRemoveScript(script.id, label)}
+              onToggleExpanded={() => patchScript(script.id, { expanded: !isExpanded })}
+              onPatchCode={(code) => patchScript(script.id, { code })}
+              onSaveSnippet={(code) => openSaveSnippetModal(script.id, code)}
+            />
+            {index < normalized.length - 1 ? <ScriptFlowArrow /> : null}
+          </Fragment>
         );
       })}
     </ul>
   );
 
-  return (
-    <div className="flex flex-col gap-3">
-      {sortableEnabled ? (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          onDragCancel={() => setActiveDragScriptId(null)}
-        >
-          <SortableContext items={scriptIds} strategy={verticalListSortingStrategy}>
-            {scriptList}
-          </SortableContext>
-          <DragOverlay>
-            {activeDragScript ? (
-              <div className="rounded-lg border border-separator bg-surface px-4 py-2 text-[14px] font-medium shadow-md">
-                {scriptRowLabel(activeDragScript, snippets)}
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-      ) : (
-        scriptList
-      )}
+  /**
+   * Renders the multi-script list, optionally wrapped in drag-and-drop context.
+   */
+  const scriptListBody = sortableEnabled ? (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setActiveDragScriptId(null)}
+    >
+      <SortableContext items={scriptIds} strategy={verticalListSortingStrategy}>
+        {scriptList}
+      </SortableContext>
+      <DragOverlay>
+        {activeDragScript ? (
+          <div className="rounded-lg border border-separator bg-surface px-4 py-2 text-[14px] font-medium shadow-md">
+            {scriptRowLabel(activeDragScript, snippets)}
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  ) : (
+    scriptList
+  );
 
-      {addControls}
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      {scriptListHeader}
+      <div className="hc-scroll-stable flex min-h-0 flex-1 flex-col overflow-y-auto pb-3">
+        {scriptListBody}
+      </div>
 
       {saveSnippetTarget && saveSnippetScript ? (
         <SaveSnippetNameModal
@@ -1045,6 +1226,18 @@ export function ScriptListEditor({
           error={saveSnippetError}
           onCancel={closeSaveSnippetModal}
           onSave={(name) => void handleConfirmSaveSnippet(name)}
+        />
+      ) : null}
+
+      {createSnippetDraft ? (
+        <SnippetEditModal
+          draft={createSnippetDraft}
+          isNew
+          saving={createSnippetSaving}
+          error={createSnippetError}
+          onChange={setCreateSnippetDraft}
+          onCancel={closeCreateSnippetModal}
+          onSave={() => void handleSaveCreateSnippet()}
         />
       ) : null}
     </div>

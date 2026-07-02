@@ -6,6 +6,8 @@ export interface NavigationState {
   environmentSettingsDirty: boolean;
   showSidebar: boolean;
   showAiSidebar: boolean;
+  showRequestEditor: boolean;
+  showResponseEditor: boolean;
   showConsole: boolean;
   showVariables: boolean;
   activePluginFooterPanelId: string | null;
@@ -18,6 +20,8 @@ const initialState: NavigationState = {
   environmentSettingsDirty: false,
   showSidebar: true,
   showAiSidebar: false,
+  showRequestEditor: true,
+  showResponseEditor: true,
   showConsole: false,
   showVariables: false,
   activePluginFooterPanelId: null,
@@ -70,6 +74,36 @@ const navigationSlice = createSlice({
      */
     setShowAiSidebar(state, action: PayloadAction<boolean>) {
       state.showAiSidebar = action.payload;
+    },
+    /**
+     * Toggles request editor visibility while keeping at least one editor visible.
+     */
+    toggleRequestEditor(state) {
+      if (state.showRequestEditor && !state.showResponseEditor) {
+        return;
+      }
+      state.showRequestEditor = !state.showRequestEditor;
+    },
+    /**
+     * Sets request editor visibility explicitly.
+     */
+    setShowRequestEditor(state, action: PayloadAction<boolean>) {
+      state.showRequestEditor = action.payload;
+    },
+    /**
+     * Toggles response editor visibility while keeping at least one editor visible.
+     */
+    toggleResponseEditor(state) {
+      if (state.showResponseEditor && !state.showRequestEditor) {
+        return;
+      }
+      state.showResponseEditor = !state.showResponseEditor;
+    },
+    /**
+     * Sets response editor visibility explicitly.
+     */
+    setShowResponseEditor(state, action: PayloadAction<boolean>) {
+      state.showResponseEditor = action.payload;
     },
     /**
      * Toggles the footer console panel.
@@ -125,6 +159,10 @@ export const {
   setShowSidebar,
   toggleAiSidebar,
   setShowAiSidebar,
+  toggleRequestEditor,
+  setShowRequestEditor,
+  toggleResponseEditor,
+  setShowResponseEditor,
   toggleConsole,
   toggleVariables,
   togglePluginFooterPanel,
@@ -158,6 +196,16 @@ export const selectShowAiSidebar = (state: RootState): boolean => state.navigati
  * Returns effective AI sidebar visibility for layout rendering.
  */
 export const selectAiSidebarVisible = (state: RootState): boolean => state.navigation.showAiSidebar;
+/**
+ * Returns the user request editor visibility preference.
+ */
+export const selectShowRequestEditor = (state: RootState): boolean =>
+  state.navigation.showRequestEditor;
+/**
+ * Returns the user response editor visibility preference.
+ */
+export const selectShowResponseEditor = (state: RootState): boolean =>
+  state.navigation.showResponseEditor;
 /**
  * Returns whether the console panel is open.
  */

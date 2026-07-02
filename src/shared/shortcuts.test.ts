@@ -100,6 +100,12 @@ describe('resolveShortcuts', () => {
     expect(bindings.find((binding) => binding.id === 'toggle-ai-sidebar')?.accelerator).toBe(
       'CmdOrCtrl+Shift+B'
     );
+    expect(bindings.find((binding) => binding.id === 'toggle-request-editor')?.accelerator).toBe(
+      'CmdOrCtrl+Alt+R'
+    );
+    expect(bindings.find((binding) => binding.id === 'toggle-response-editor')?.accelerator).toBe(
+      'CmdOrCtrl+Alt+Y'
+    );
     expect(
       bindings.find((binding) => binding.id === 'toggle-collections-section')?.accelerator
     ).toBe('CmdOrCtrl+Shift+C');

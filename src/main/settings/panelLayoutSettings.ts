@@ -5,7 +5,9 @@ const STORE_KEY = 'panelLayout';
 
 export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
   showSidebar: true,
-  showAiSidebar: false
+  showAiSidebar: false,
+  showRequestEditor: true,
+  showResponseEditor: true
 };
 
 let store: Store<{ panelLayout: PanelLayoutState }> | null = null;
@@ -34,7 +36,9 @@ function getStore(): Store<{ panelLayout: PanelLayoutState }> {
 function normalizePanelLayout(input: Partial<PanelLayoutState>): PanelLayoutState {
   return {
     showSidebar: input.showSidebar !== false,
-    showAiSidebar: input.showAiSidebar === true
+    showAiSidebar: input.showAiSidebar === true,
+    showRequestEditor: input.showRequestEditor !== false,
+    showResponseEditor: input.showResponseEditor !== false
   };
 }
 

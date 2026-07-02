@@ -108,6 +108,8 @@ function acceleratorFor(accelerators: Map<ShortcutId, string>, id: ShortcutId): 
  * @param window - Browser window that receives custom menu actions.
  * @param sidebarVisible - Whether the sidebar checkbox should appear checked.
  * @param aiSidebarVisible - Whether the AI sidebar checkbox should appear checked.
+ * @param requestEditorVisible - Whether the request editor checkbox should appear checked.
+ * @param responseEditorVisible - Whether the response editor checkbox should appear checked.
  * @param collectionsVisible - Whether the Collections section checkbox should appear checked.
  * @param environmentsVisible - Whether the Environments section checkbox should appear checked.
  * @param activeTheme - Appearance theme used to mark the active View menu checkmark.
@@ -119,6 +121,8 @@ export function buildMenu(
   window: BrowserWindow,
   sidebarVisible = true,
   aiSidebarVisible = false,
+  requestEditorVisible = true,
+  responseEditorVisible = true,
   collectionsVisible = true,
   environmentsVisible = true,
   activeTheme: ThemeSource = 'system',
@@ -215,6 +219,20 @@ export function buildMenu(
           checked: aiSidebarVisible,
           accelerator: acceleratorFor(accelerators, 'toggle-ai-sidebar'),
           click: () => sendMenuAction(window, 'toggle-ai-sidebar')
+        },
+        {
+          label: 'Request',
+          type: 'checkbox',
+          checked: requestEditorVisible,
+          accelerator: acceleratorFor(accelerators, 'toggle-request-editor'),
+          click: () => sendMenuAction(window, 'toggle-request-editor')
+        },
+        {
+          label: 'Response',
+          type: 'checkbox',
+          checked: responseEditorVisible,
+          accelerator: acceleratorFor(accelerators, 'toggle-response-editor'),
+          click: () => sendMenuAction(window, 'toggle-response-editor')
         },
         { type: 'separator' },
         {

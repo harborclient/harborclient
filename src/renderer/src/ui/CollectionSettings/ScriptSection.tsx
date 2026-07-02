@@ -50,7 +50,7 @@ export function ScriptSection({
   const snippets = useAppSelector(selectSnippets);
 
   return (
-    <div className="mb-6 flex flex-col">
+    <div className="mb-6 flex min-h-0 flex-1 flex-col">
       <p className="mb-3 shrink-0 text-[14px] text-muted">{description}</p>
       <ScriptListEditor
         phase={phase}

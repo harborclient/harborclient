@@ -6,6 +6,8 @@ import navigationReducer, {
   setPendingPluginInstall,
   toggleAiSidebar,
   toggleConsole,
+  toggleRequestEditor,
+  toggleResponseEditor,
   toggleSidebar,
   toggleVariables
 } from '#/renderer/src/store/slices/navigationSlice';
@@ -15,6 +17,8 @@ describe('navigationSlice', () => {
     const state = navigationReducer(undefined, { type: 'unknown' });
     expect(state.showSidebar).toBe(true);
     expect(state.showAiSidebar).toBe(false);
+    expect(state.showRequestEditor).toBe(true);
+    expect(state.showResponseEditor).toBe(true);
     expect(state.showConsole).toBe(false);
     expect(state.showVariables).toBe(false);
     expect(state.collectionSettingsDirty).toBe(false);
@@ -50,6 +54,35 @@ describe('navigationSlice', () => {
     expect(state.showAiSidebar).toBe(true);
     state = navigationReducer(state, toggleAiSidebar());
     expect(state.showAiSidebar).toBe(false);
+  });
+
+  it('toggles request editor visibility when response is visible', () => {
+    let state = navigationReducer(undefined, toggleRequestEditor());
+    expect(state.showRequestEditor).toBe(false);
+    expect(state.showResponseEditor).toBe(true);
+
+    state = navigationReducer(state, toggleRequestEditor());
+    expect(state.showRequestEditor).toBe(true);
+    expect(state.showResponseEditor).toBe(true);
+  });
+
+  it('toggles response editor visibility when request is visible', () => {
+    let state = navigationReducer(undefined, toggleResponseEditor());
+    expect(state.showRequestEditor).toBe(true);
+    expect(state.showResponseEditor).toBe(false);
+
+    state = navigationReducer(state, toggleResponseEditor());
+    expect(state.showRequestEditor).toBe(true);
+    expect(state.showResponseEditor).toBe(true);
+  });
+
+  it('prevents hiding the last visible request/response editor', () => {
+    let state = navigationReducer(undefined, toggleRequestEditor());
+    expect(state.showRequestEditor).toBe(false);
+
+    state = navigationReducer(state, toggleResponseEditor());
+    expect(state.showRequestEditor).toBe(false);
+    expect(state.showResponseEditor).toBe(true);
   });
 
   it('queues and clears pending plugin install ids from deep links', () => {

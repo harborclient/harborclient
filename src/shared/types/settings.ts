@@ -50,7 +50,7 @@ export interface SidebarExpansionState {
 }
 
 /**
- * Persisted visibility for the left and AI sidebars.
+ * Persisted visibility for the left and AI sidebars and request/response editors.
  */
 export interface PanelLayoutState {
   /**
@@ -62,6 +62,16 @@ export interface PanelLayoutState {
    * Whether the AI sidebar is shown when not hidden by an overlay.
    */
   showAiSidebar: boolean;
+
+  /**
+   * Whether the request editor panel is shown in the main content area.
+   */
+  showRequestEditor: boolean;
+
+  /**
+   * Whether the response editor panel is shown in the main content area.
+   */
+  showResponseEditor: boolean;
 }
 
 /**

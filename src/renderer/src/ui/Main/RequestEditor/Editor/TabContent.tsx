@@ -5,6 +5,10 @@ import { mirrorLegacyScriptString } from '#/shared/scriptRefs';
 import type { RegisteredRequestTab, RequestTabContext } from '#/shared/plugin/types';
 import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import { ScriptListEditor } from '#/renderer/src/ui/shared/ScriptListEditor';
+import {
+  POST_REQUEST_SCRIPT_PLACEHOLDER,
+  PRE_REQUEST_SCRIPT_PLACEHOLDER
+} from '#/renderer/src/ui/shared/scriptPlaceholders';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectSnippets } from '#/renderer/src/store/selectors';
 
@@ -129,7 +133,7 @@ export function TabContent({
           />
         </SegmentedTabPanel>
       )}
-      <SegmentedTabPanel value="pre">
+      <SegmentedTabPanel value="pre" className="flex min-h-0 flex-1 flex-col mb-4">
         <ScriptListEditor
           phase="pre"
           scripts={draft.pre_request_scripts}
@@ -142,10 +146,10 @@ export function TabContent({
           variables={variables}
           onEditVariables={onEditVariables}
           snippets={snippets}
-          placeholder="// hc.request.url = 'https://example.com';\n// hc.variables.set('token', 'abc');"
+          placeholder={PRE_REQUEST_SCRIPT_PLACEHOLDER}
         />
       </SegmentedTabPanel>
-      <SegmentedTabPanel value="post">
+      <SegmentedTabPanel value="post" className="flex min-h-0 flex-1 flex-col mb-4">
         <ScriptListEditor
           phase="post"
           scripts={draft.post_request_scripts}
@@ -158,9 +162,7 @@ export function TabContent({
           variables={variables}
           onEditVariables={onEditVariables}
           snippets={snippets}
-          placeholder={
-            '// hc.test("status is 200", () => {\n//   hc.expect(hc.response.code).to.equal(200);\n// });'
-          }
+          placeholder={POST_REQUEST_SCRIPT_PLACEHOLDER}
         />
       </SegmentedTabPanel>
       <SegmentedTabPanel value="comment" className="flex min-h-0 flex-1 flex-col mb-4">
