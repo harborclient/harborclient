@@ -1,4 +1,4 @@
-import { KeyValueEditor, SegmentedTabPanel, Textarea } from '@harborclient/sdk/components';
+import { KeyValueEditor, SegmentedTabPanel } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import type { KeyValue, Variable } from '#/shared/types';
 import { mirrorLegacyScriptString } from '#/shared/scriptRefs';
@@ -12,6 +12,7 @@ import type { RequestDraft } from '#/renderer/src/store/drafts';
 
 import { AuthEditor } from './AuthEditor';
 import { BodyEditor } from './BodyEditor';
+import { CommentEditor } from './CommentEditor';
 import { CookiesEditor } from './CookiesEditor';
 import {
   headerKeySource,
@@ -162,15 +163,8 @@ export function TabContent({
           }
         />
       </SegmentedTabPanel>
-      <SegmentedTabPanel value="comment">
-        <div className="border border-separator p-4">
-          <Textarea
-            className="w-full min-h-[200px] resize-y"
-            value={draft.comment}
-            onChange={(event) => update({ comment: event.target.value })}
-            placeholder="Notes for this request"
-          />
-        </div>
+      <SegmentedTabPanel value="comment" className="flex min-h-0 flex-1 flex-col mb-4">
+        <CommentEditor value={draft.comment} onChange={(comment) => update({ comment })} />
       </SegmentedTabPanel>
       {pluginTabs.map((entry) => (
         <SegmentedTabPanel key={entry.id} value={entry.id} className="flex min-h-0 flex-1 flex-col">

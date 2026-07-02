@@ -407,3 +407,193 @@
     animation: none;
   }
 }
+
+/**
+ * MDXEditor chrome for the request comment tab — maps Radix semantic tokens to HarborClient theme.
+ */
+.request-comment-editor {
+  --accentBase: color-mix(in srgb, var(--mac-accent) 12%, var(--mac-control));
+  --accentBgSubtle: color-mix(in srgb, var(--mac-accent) 16%, var(--mac-control));
+  --accentBg: color-mix(in srgb, var(--mac-accent) 22%, var(--mac-control));
+  --accentBgHover: color-mix(in srgb, var(--mac-accent) 28%, var(--mac-control));
+  --accentBgActive: color-mix(in srgb, var(--mac-accent) 34%, var(--mac-control));
+  --accentLine: color-mix(in srgb, var(--mac-accent) 40%, var(--mac-separator));
+  --accentBorder: color-mix(in srgb, var(--mac-accent) 55%, var(--mac-separator));
+  --accentBorderHover: var(--mac-accent);
+  --accentSolid: var(--mac-accent);
+  --accentSolidHover: color-mix(in srgb, var(--mac-accent) 85%, white);
+  --accentText: var(--mac-accent);
+  --accentTextContrast: var(--mac-text);
+
+  --basePageBg: var(--mac-field);
+  --baseBase: var(--mac-field);
+  --baseBgSubtle: var(--mac-field);
+  --baseBg: var(--mac-field);
+  --baseBgHover: color-mix(in srgb, var(--mac-text) 8%, var(--mac-field));
+  --baseBgActive: color-mix(in srgb, var(--mac-text) 12%, var(--mac-field));
+  --baseLine: var(--mac-separator);
+  --baseBorder: var(--mac-separator);
+  --baseBorderHover: color-mix(in srgb, var(--mac-text) 20%, var(--mac-separator));
+  --baseSolid: var(--mac-muted);
+  --baseSolidHover: var(--mac-text-secondary);
+  --baseText: var(--mac-text-secondary);
+  --baseTextContrast: var(--mac-text);
+
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  font-family: inherit;
+  color: var(--mac-text);
+  background: var(--mac-field);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.request-comment-editor .mdxeditor-root-contenteditable {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+@media (prefers-color-scheme: dark) {
+  .request-comment-editor {
+    --accentSolidHover: color-mix(in srgb, var(--mac-accent) 85%, black);
+  }
+}
+
+/**
+ * Contenteditable markdown typography (Tailwind preflight strips default heading/list styles).
+ */
+.request-comment-editor-content {
+  min-height: 100%;
+  padding: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--mac-text);
+  background-color: var(--mac-field);
+}
+
+.request-comment-editor-content :is(h1, h2, h3, h4, h5, h6) {
+  font-weight: 600;
+  color: var(--mac-text);
+}
+
+.request-comment-editor-content h1 {
+  margin: 1.25rem 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--mac-separator);
+  font-size: 20px;
+}
+
+.request-comment-editor-content h2 {
+  margin: 1.25rem 0 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--mac-separator);
+  font-size: 18px;
+}
+
+.request-comment-editor-content h3 {
+  margin: 1rem 0 0.75rem;
+  font-size: 16px;
+}
+
+.request-comment-editor-content :is(h4, h5, h6) {
+  margin: 0.875rem 0 0.5rem;
+  font-size: 14px;
+}
+
+.request-comment-editor-content :is(h1, h2, h3, h4, h5, h6):first-child {
+  margin-top: 0;
+}
+
+.request-comment-editor-content p {
+  margin: 0 0 1rem;
+}
+
+.request-comment-editor-content p:last-child {
+  margin-bottom: 0;
+}
+
+.request-comment-editor-content a {
+  color: var(--mac-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.request-comment-editor-content :is(ul, ol) {
+  margin: 0 0 1rem;
+  padding-left: 1.5rem;
+}
+
+.request-comment-editor-content ul {
+  list-style-type: disc;
+}
+
+.request-comment-editor-content ol {
+  list-style-type: decimal;
+}
+
+.request-comment-editor-content li {
+  margin-bottom: 0.35rem;
+}
+
+.request-comment-editor-content blockquote {
+  margin: 0 0 1rem;
+  padding-left: 1rem;
+  border-left: 4px solid var(--mac-separator);
+  color: var(--mac-muted);
+}
+
+.request-comment-editor-content :is(code, pre) {
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.request-comment-editor-content :not(pre) > code {
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-md);
+  background: var(--mac-sidebar);
+}
+
+.request-comment-editor-content pre {
+  margin: 0 0 1rem;
+  padding: 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--mac-separator);
+  border-radius: var(--radius-md);
+  background: var(--mac-sidebar);
+}
+
+.request-comment-editor-content table {
+  width: 100%;
+  margin: 0 0 1rem;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.request-comment-editor-content :is(th, td) {
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--mac-separator);
+  vertical-align: top;
+}
+
+.request-comment-editor-content th {
+  font-weight: 600;
+  background: color-mix(in srgb, var(--mac-sidebar) 40%, transparent);
+}
+
+.request-comment-editor-content hr {
+  margin: 1.25rem 0;
+  border: none;
+  border-top: 1px solid var(--mac-separator);
+}
+
+.request-comment-editor-content strong {
+  font-weight: 600;
+}
+
+.request-comment-editor-content em {
+  font-style: italic;
+}

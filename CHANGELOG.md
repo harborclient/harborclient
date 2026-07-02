@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(editor): integrate MDXEditor for enhanced comment functionality and update styles. (`ea143fb`)
 - chore(dependencies): update @harborclient/sdk to version 1.0.15 and adjust styles across various components. (`20a8205`)
 
 ## 1.9.12 - 2026-07-02
