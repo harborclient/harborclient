@@ -82,7 +82,7 @@
     "react-redux": "^9.3.0",
     "remark-gfm": "^4.0.1",
     "ses": "^2.2.0",
-    "undici": "^6.27.0",
+    "undici": "^8.5.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
