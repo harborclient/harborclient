@@ -86,7 +86,7 @@ function GlobalsSectionForm({ savedVariables }: FormProps): JSX.Element {
         <span className="text-[18px] font-medium text-text">
           <SettingLabel settingId="globals.variables">Variables</SettingLabel>
         </span>
-        <p className="hc-form-description m-0 text-[14px] text-muted mb-2">
+        <p className="hc-form-group-description m-0 text-[14px] text-muted mb-2">
           When value is empty, the default is used. Global variables have the lowest precedence;
           collection and environment variables override globals with the same key.
         </p>

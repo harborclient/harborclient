@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- chore(dependencies): update @harborclient/sdk to version 1.0.23 and adjust styles. (`a4df70e`)
+
 ## 1.9.17 - 2026-07-02
 
 - feat(theme): implement theme picker and shortcuts reference modals. (`db47b7f`)

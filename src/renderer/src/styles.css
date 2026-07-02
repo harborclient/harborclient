@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import '@harborclient/sdk/styles.css';
 @source "../../../node_modules/@harborclient/sdk/dist/components";
 
 @theme {
@@ -176,10 +177,6 @@
       outline-offset: 1px;
       box-shadow: none;
     }
-
-    .hc-button.bg-accent {
-      border: 1px solid ButtonBorder;
-    }
   }
 
   :root[data-theme='high-contrast'] input:focus-visible,
@@ -295,80 +292,29 @@
   }
 
   /**
-   * Modern page styling for Settings, Plugins, Team Hub, and other SDK Page shells.
+   * Page-scoped form descriptions in Settings and collection overlays.
    */
-  .hc-page-header {
-    padding-block: 1rem;
-  }
-
-  .hc-page-header h2 {
-    font-size: 28px;
-    line-height: 1.15;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-  }
-
-  .hc-page .hc-form-description {
+  .hc-page .hc-form-group-description {
     color: rgba(0, 0, 0, 0.68);
     font-size: 16px !important;
   }
 
-  /**
-   * Checkbox form groups — match stacked label/description spacing. The SDK
-   * applies leading-none on the checkbox label row, which collapses line height
-   * and makes the gap to the description look tighter than stacked fields.
-   */
-  .hc-form-group > label:has(> span.flex.items-center) > span.flex.items-center > span:last-child {
-    line-height: inherit;
-  }
-
   @media (prefers-color-scheme: dark) {
-    .hc-page .hc-form-description {
+    .hc-page .hc-form-group-description {
       color: rgba(255, 255, 255, 0.72);
     }
   }
 
-  .hc-page .hc-resource-list {
-    gap: 10px;
-  }
-
-  .hc-page .hc-resource-list > li {
-    border-color: color-mix(in srgb, var(--mac-separator) 80%, transparent);
-    border-radius: 10px;
-    padding: 14px 16px !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-    transition:
-      background-color 120ms ease,
-      box-shadow 120ms ease;
-  }
-
-  .hc-page .hc-resource-list > li:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .hc-page .hc-resource-list > li {
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-    }
-
-    .hc-page .hc-resource-list > li:hover {
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
-    }
-  }
-
-  .hc-settings-sidebar nav,
-  .hc-page-sidebar {
+  .hc-settings-sidebar nav {
     gap: 4px;
   }
 
-  .hc-settings-sidebar nav button,
-  .hc-page-sidebar button {
+  .hc-settings-sidebar nav button {
     font-size: 15px;
     padding-block: 8px;
   }
 
-  .hc-settings-sidebar nav button svg,
-  .hc-page-sidebar button svg {
+  .hc-settings-sidebar nav button svg {
     width: 18px;
     height: 18px;
   }
@@ -435,7 +381,7 @@
     background-color: var(--mac-selection) !important;
   }
 
-  :root[data-theme='high-contrast'] .hc-page .hc-form-description {
+  :root[data-theme='high-contrast'] .hc-page .hc-form-group-description {
     color: var(--mac-muted);
   }
 }
@@ -449,10 +395,8 @@
    * Footer slide-up panels (Console, Variables, plugin panels) reuse the same
    * round hit target via their "Close …" aria-label.
    */
-  .hc-tab-close-button,
   .hc-tab-new-button,
-  .hc-tab-bar-icon-button,
-  .hc-resizable button[aria-label^='Close '] {
+  .hc-tab-bar-icon-button {
     align-self: center;
     width: 1.75rem;
     height: 1.75rem;
@@ -550,10 +494,6 @@
   .animate-spin {
     animation: none;
   }
-}
-
-::highlight(hc-variable-token) {
-  color: #32d2e2;
 }
 
 :root[data-theme='high-contrast'] ::highlight(hc-variable-token) {
@@ -826,18 +766,8 @@
   }
 
   /**
-   * Active footer toggles use `shadow-sm`, which sits in this layer and overrides
-   * the base focus ring. Restore a visible ring for keyboard focus, including
-   * programmatic focus from footer Tab handoff (`:focus:not(:focus-visible)`).
+   * High-contrast focus rings for footer toggles; base rings live in SDK styles.css.
    */
-  .hc-footer-icon:focus-visible,
-  .hc-footer-icon:focus:not(:focus-visible),
-  .hc-footer-button:focus-visible,
-  .hc-footer-button:focus:not(:focus-visible) {
-    outline: none;
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--mac-accent) 35%, transparent);
-  }
-
   :root[data-theme='high-contrast'] .hc-footer-icon:focus-visible,
   :root[data-theme='high-contrast'] .hc-footer-icon:focus:not(:focus-visible),
   :root[data-theme='high-contrast'] .hc-footer-button:focus-visible,

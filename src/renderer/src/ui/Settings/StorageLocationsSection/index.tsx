@@ -259,7 +259,7 @@ export function StorageLocationsSection(): JSX.Element {
             <span className="text-[18px] font-medium text-text">
               <SettingLabel settingId="storage.connections">Storage locations</SettingLabel>
             </span>
-            <p className="hc-form-description m-0 text-[14px] text-muted mb-2">
+            <p className="hc-form-group-description m-0 text-[14px] text-muted mb-2">
               {storageCatalog.description}
             </p>
           </div>

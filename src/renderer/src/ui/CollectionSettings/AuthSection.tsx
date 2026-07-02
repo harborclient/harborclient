@@ -33,7 +33,7 @@ export function AuthSection({ auth, collectionId, variables, onChange }: Props):
   return (
     <div className="mb-6 flex flex-col gap-1">
       <span className="text-[18px] text-muted">Authorization</span>
-      <p className="hc-form-description m-0 text-[14px] text-muted mb-2">
+      <p className="hc-form-group-description m-0 text-[14px] text-muted mb-2">
         Default authorization for every request in this collection. Requests can override these
         settings on their Authorization tab. Values support {'{{variable}}'} syntax.
       </p>
