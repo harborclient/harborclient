@@ -99,7 +99,7 @@ export function TabBar({ tabs, activeTabId, onSelect, onClose, onNew }: Props): 
   };
 
   return (
-    <div className="flex shrink-0 min-h-15 items-end gap-0 overflow-x-auto border-b border-separator bg-sidebar px-2 py-1 app-no-drag">
+    <div className="flex shrink-0 min-h-16 items-end gap-0 overflow-x-auto border-b border-separator bg-sidebar px-2 py-1 app-no-drag">
       <div
         role="tablist"
         aria-label="Open tabs"

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(TabBar): adjust minimum height for improved layout consistency. (`9031701`)
 - fix(RequestEditor): simplify class names for layout consistency. (`0027da9`)
 - feat(environments): add merge environment down functionality. (`b02de45`)
 
