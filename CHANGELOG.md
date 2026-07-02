@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.9.15 - 2026-07-02
+
 - refactor(verifiedPublisherBadge): remove unused badge functionality and update import path. (`c577bb4`)
 
 ## 1.9.14 - 2026-07-02
