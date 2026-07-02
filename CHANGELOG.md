@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.9.14 - 2026-07-02
+
 - feat(editor): enhance request and response editor visibility management. (`afaba6f`)
 
 ## 1.9.13 - 2026-07-02
