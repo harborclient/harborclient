@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { verifiedPublisherAriaLabel } from '#/renderer/src/ui/shared/verifiedPublisherBadge';
+import { verifiedPublisherAriaLabel } from '#/renderer/src/ui/shared/verifiedPublisherLabel';
 
 describe('verifiedPublisherAriaLabel', () => {
   it('includes the publisher name when provided', () => {

@@ -1,7 +1,7 @@
 import { FaIcon } from '@harborclient/sdk/components';
 import { faCircleCheck } from '#/renderer/src/fontawesome';
 import type { JSX } from 'react';
-import { verifiedPublisherAriaLabel } from '#/renderer/src/ui/shared/verifiedPublisherBadge';
+import { verifiedPublisherAriaLabel } from '#/renderer/src/ui/shared/verifiedPublisherLabel';
 
 interface Props {
   /**
