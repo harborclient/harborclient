@@ -46,6 +46,7 @@ import {
   exportRequest,
   importEnvironment,
   importRequest,
+  mergeEnvironmentDown,
   moveRequestToFolder,
   newRequestInCollection,
   newRequestInFolder,
@@ -739,6 +740,17 @@ export function Sidebar({
                             showAlert(
                               dispatch,
                               formatErrorMessage(err, 'Failed to duplicate environment')
+                            );
+                          }
+                        }}
+                        onMergeEnvironmentDown={async (id) => {
+                          try {
+                            await dispatch(mergeEnvironmentDown(id)).unwrap();
+                            toast.success('Environments merged');
+                          } catch (err) {
+                            showAlert(
+                              dispatch,
+                              formatErrorMessage(err, 'Failed to merge environments')
                             );
                           }
                         }}

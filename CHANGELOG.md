@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(environments): add merge environment down functionality. (`b02de45`)
+
 ## 1.9.16 - 2026-07-02
 
 - feat(ui): enhance settings and editor sections with improved descriptions and layout. (`26ba43d`)

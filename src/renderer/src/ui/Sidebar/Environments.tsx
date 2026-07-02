@@ -62,6 +62,11 @@ interface Props {
   onDuplicateEnvironment: (id: number) => Promise<void>;
 
   /**
+   * Merges an environment into the one directly below it.
+   */
+  onMergeEnvironmentDown: (id: number) => Promise<void>;
+
+  /**
    * Persists a new environment order after drag-and-drop or menu moves.
    */
   onReorderEnvironments: (orderedEnvironmentIds: number[]) => Promise<void> | void;
@@ -107,6 +112,7 @@ export function Environments({
   onDeleteEnvironment,
   onExportEnvironment,
   onDuplicateEnvironment,
+  onMergeEnvironmentDown,
   onReorderEnvironments,
   searchActive = false,
   noMatches = false
@@ -199,6 +205,7 @@ export function Environments({
         <SortableContext items={environmentIds} strategy={verticalListSortingStrategy}>
           {environments.map((environment, environmentIndex) => {
             const selected = activeEnvironmentId === environment.id;
+            const environmentBelow = environments[environmentIndex + 1];
 
             return (
               <SortableRow
@@ -240,7 +247,26 @@ export function Environments({
                       {
                         label: 'Duplicate',
                         onSelect: () => void onDuplicateEnvironment(environment.id)
-                      }
+                      },
+                      ...(environmentBelow
+                        ? [
+                            {
+                              label: 'Merge down',
+                              onSelect: () => {
+                                void (async () => {
+                                  const confirmed = await confirm({
+                                    title: 'Merge environment down',
+                                    message: `Merge "${environment.name}" into "${environmentBelow.name}"? The merged environment will be named "${environment.name}".`,
+                                    confirmLabel: 'Merge down'
+                                  });
+                                  if (confirmed) {
+                                    void onMergeEnvironmentDown(environment.id);
+                                  }
+                                })();
+                              }
+                            }
+                          ]
+                        : [])
                     ],
                     [
                       {

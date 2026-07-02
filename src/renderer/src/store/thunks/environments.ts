@@ -1,5 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type { CollectionExportResult, Environment, Variable } from '#/shared/types';
+import { mergeEnvironmentVariables } from '#/shared/environmentVariables';
 import {
   setActiveEnvironmentId,
   setEnvironments
@@ -108,6 +109,34 @@ export const reorderEnvironments = createAsyncThunk<
   await window.api.reorderEnvironments(orderedEnvironmentIds);
   await dispatch(refreshEnvironments());
 });
+
+/**
+ * Merges an environment into the one directly below it in sidebar order.
+ *
+ * The bottom environment survives with the top environment's name and merged
+ * variables; the top environment is deleted afterward.
+ */
+export const mergeEnvironmentDown = createAsyncThunk<void, number, ThunkApiConfig>(
+  'environments/mergeDown',
+  async (topEnvironmentId, { dispatch, getState }) => {
+    const { environments, activeEnvironmentId } = getState().environments;
+    const index = environments.findIndex((environment) => environment.id === topEnvironmentId);
+    if (index < 0 || index >= environments.length - 1) {
+      throw new Error('Cannot merge down: no environment below the selected one.');
+    }
+
+    const top = environments[index];
+    const bottom = environments[index + 1];
+    const mergedVariables = mergeEnvironmentVariables(bottom.variables, top.variables);
+
+    await window.api.updateEnvironment(bottom.id, top.name, mergedVariables);
+    if (activeEnvironmentId === top.id) {
+      dispatch(setActiveEnvironmentId(bottom.id));
+    }
+    await window.api.deleteEnvironment(top.id);
+    await dispatch(refreshEnvironments());
+  }
+);
 
 /**
  * Exports an environment to a user-chosen file path.
