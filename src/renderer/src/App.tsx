@@ -60,6 +60,11 @@ import {
   selectCodeEditorTheme
 } from '#/renderer/src/store/slices/settingsSlice';
 import { Footer } from '#/renderer/src/ui/Footer';
+import {
+  DEFAULT_TOAST_ARIA_PROPS,
+  ERROR_TOAST_ARIA_PROPS,
+  SUCCESS_TOAST_ARIA_PROPS
+} from '#/renderer/src/ui/shared/toastA11y';
 import { PluginHost } from '#/renderer/src/plugins/PluginHost';
 import { PluginThemePrompt } from '#/renderer/src/plugins/PluginThemePrompt';
 import { applyThemeAttribute } from '#/renderer/src/theme';
@@ -240,6 +245,13 @@ export default function App(): JSX.Element {
             containerStyle={{ bottom: 16 }}
             toastOptions={{
               duration: 2000,
+              ariaProps: DEFAULT_TOAST_ARIA_PROPS,
+              success: {
+                ariaProps: SUCCESS_TOAST_ARIA_PROPS
+              },
+              error: {
+                ariaProps: ERROR_TOAST_ARIA_PROPS
+              },
               style: {
                 background: 'var(--mac-control)',
                 color: 'var(--mac-text)',

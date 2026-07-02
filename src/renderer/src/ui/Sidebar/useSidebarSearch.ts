@@ -73,6 +73,16 @@ interface Options {
   setEnvironmentsSectionExpanded: Dispatch<SetStateAction<boolean>>;
 
   /**
+   * Sets the Collections section visibility.
+   */
+  setCollectionsSectionVisible: Dispatch<SetStateAction<boolean>>;
+
+  /**
+   * Sets the Environments section visibility.
+   */
+  setEnvironmentsSectionVisible: Dispatch<SetStateAction<boolean>>;
+
+  /**
    * Collection ids whose request trees are expanded.
    */
   expandedCollectionIds: Set<number>;
@@ -146,6 +156,8 @@ export function useSidebarSearch({
   environmentsSectionExpanded,
   setCollectionsSectionExpanded,
   setEnvironmentsSectionExpanded,
+  setCollectionsSectionVisible,
+  setEnvironmentsSectionVisible,
   expandedCollectionIds,
   expandedFolderIds,
   setExpandedCollectionIds,
@@ -281,6 +293,18 @@ export function useSidebarSearch({
     setCollectionsSectionExpanded((current) => (current ? current : true));
     setEnvironmentsSectionExpanded((current) => (current ? current : true));
 
+    if (
+      searchFilter.collectionIds.size > 0 ||
+      searchFilter.folderIds.size > 0 ||
+      searchFilter.requestIds.size > 0
+    ) {
+      setCollectionsSectionVisible(true);
+    }
+
+    if (searchFilter.environmentIds.size > 0) {
+      setEnvironmentsSectionVisible(true);
+    }
+
     setExpandedCollectionIds((current) => {
       const next = new Set(current);
       return addIdsToSet(next, searchFilter.collectionIds) ? next : current;
@@ -294,6 +318,8 @@ export function useSidebarSearch({
     searchFilter,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
+    setCollectionsSectionVisible,
+    setEnvironmentsSectionVisible,
     setExpandedCollectionIds,
     setExpandedFolderIds
   ]);

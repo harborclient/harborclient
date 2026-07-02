@@ -22,12 +22,15 @@ export type ShortcutId =
   | 'toggle-sidebar'
   | 'focus-sidebar-search'
   | 'toggle-ai-sidebar'
+  | 'toggle-collections-section'
+  | 'toggle-environments-section'
   | 'send-request'
   | 'previous-request-tab'
   | 'next-request-tab'
   | 'toggle-fullscreen'
   | 'zoom-in'
   | 'zoom-out'
+  | 'reset-zoom'
   | 'documentation'
   | 'report-issue'
   | 'check-for-updates'
@@ -45,7 +48,8 @@ export type ShortcutRole =
   | 'selectAll'
   | 'togglefullscreen'
   | 'zoomIn'
-  | 'zoomOut';
+  | 'zoomOut'
+  | 'resetZoom';
 
 /**
  * Definition of a configurable shortcut in the central registry.
@@ -225,6 +229,20 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     actionId: 'toggle-ai-sidebar'
   },
   {
+    id: 'toggle-collections-section',
+    label: 'Toggle collections section',
+    defaultAccelerator: 'CmdOrCtrl+Shift+C',
+    kind: 'action',
+    actionId: 'toggle-collections-section'
+  },
+  {
+    id: 'toggle-environments-section',
+    label: 'Toggle environments section',
+    defaultAccelerator: 'CmdOrCtrl+Shift+E',
+    kind: 'action',
+    actionId: 'toggle-environments-section'
+  },
+  {
     id: 'send-request',
     label: 'Send request',
     defaultAccelerator: 'F5',
@@ -265,6 +283,13 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'CmdOrCtrl+-',
     kind: 'role',
     role: 'zoomOut'
+  },
+  {
+    id: 'reset-zoom',
+    label: 'Reset zoom',
+    defaultAccelerator: 'CmdOrCtrl+0',
+    kind: 'role',
+    role: 'resetZoom'
   },
   {
     id: 'documentation',

@@ -6,6 +6,8 @@ import type { ThemeSource } from '#/shared/types';
 let mainWindow: BrowserWindow | null = null;
 let sidebarVisible = true;
 let aiSidebarVisible = false;
+let collectionsVisible = true;
+let environmentsVisible = true;
 let activeTheme: ThemeSource = 'system';
 let pluginThemeOptions: ThemeMenuOption[] = [];
 
@@ -21,6 +23,20 @@ export function getMenuSidebarVisible(): boolean {
  */
 export function getMenuAiSidebarVisible(): boolean {
   return aiSidebarVisible;
+}
+
+/**
+ * Returns the Collections section visibility state reflected in the View menu checkbox.
+ */
+export function getMenuCollectionsVisible(): boolean {
+  return collectionsVisible;
+}
+
+/**
+ * Returns the Environments section visibility state reflected in the View menu checkbox.
+ */
+export function getMenuEnvironmentsVisible(): boolean {
+  return environmentsVisible;
 }
 
 /**
@@ -60,6 +76,32 @@ export function setMenuAiSidebarVisible(visible: boolean): void {
     return;
   }
   aiSidebarVisible = visible;
+  rebuildAppMenu();
+}
+
+/**
+ * Updates the View menu Collections checkbox and rebuilds the menu when the value changes.
+ *
+ * @param visible - Whether the Collections section is currently visible in the sidebar.
+ */
+export function setMenuCollectionsVisible(visible: boolean): void {
+  if (collectionsVisible === visible) {
+    return;
+  }
+  collectionsVisible = visible;
+  rebuildAppMenu();
+}
+
+/**
+ * Updates the View menu Environments checkbox and rebuilds the menu when the value changes.
+ *
+ * @param visible - Whether the Environments section is currently visible in the sidebar.
+ */
+export function setMenuEnvironmentsVisible(visible: boolean): void {
+  if (environmentsVisible === visible) {
+    return;
+  }
+  environmentsVisible = visible;
   rebuildAppMenu();
 }
 
@@ -136,6 +178,15 @@ export function rebuildAppMenu(): void {
     return;
   }
   Menu.setApplicationMenu(
-    buildMenu(mainWindow, sidebarVisible, aiSidebarVisible, activeTheme, pluginThemeOptions)
+    buildMenu(
+      mainWindow,
+      sidebarVisible,
+      aiSidebarVisible,
+      collectionsVisible,
+      environmentsVisible,
+      activeTheme,
+      pluginThemeOptions,
+      rebuildAppMenu
+    )
   );
 }

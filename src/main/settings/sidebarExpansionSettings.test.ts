@@ -25,11 +25,13 @@ describe('sidebarExpansionSettings', () => {
 
     expect(getSidebarExpansion()).toEqual({
       sections: { collections: true, environments: true },
+      sectionVisibility: { collections: true, environments: true },
       collectionIds: [],
       folderIds: []
     });
     expect(mockGet).toHaveBeenCalledWith('sidebarExpansion', {
       sections: { collections: true, environments: true },
+      sectionVisibility: { collections: true, environments: true },
       collectionIds: [],
       folderIds: []
     });
@@ -45,6 +47,7 @@ describe('sidebarExpansionSettings', () => {
 
     expect(getSidebarExpansion()).toEqual({
       sections: { collections: false, environments: false },
+      sectionVisibility: { collections: true, environments: true },
       collectionIds: [1],
       folderIds: [9]
     });
@@ -55,12 +58,14 @@ describe('sidebarExpansionSettings', () => {
 
     setSidebarExpansion({
       sections: { collections: true, environments: false },
+      sectionVisibility: { collections: false, environments: true },
       collectionIds: [2, 2, -3],
       folderIds: [8]
     });
 
     expect(mockSet).toHaveBeenCalledWith('sidebarExpansion', {
       sections: { collections: true, environments: false },
+      sectionVisibility: { collections: false, environments: true },
       collectionIds: [2],
       folderIds: [8]
     });

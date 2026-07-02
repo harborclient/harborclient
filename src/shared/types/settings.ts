@@ -32,6 +32,21 @@ export interface SidebarExpansionState {
    * Folder ids whose request lists are expanded in the sidebar.
    */
   folderIds: number[];
+
+  /**
+   * Whether entire top-level sidebar sections are rendered.
+   */
+  sectionVisibility: {
+    /**
+     * Whether the Collections section is shown in the sidebar.
+     */
+    collections: boolean;
+
+    /**
+     * Whether the Environments section is shown in the sidebar.
+     */
+    environments: boolean;
+  };
 }
 
 /**

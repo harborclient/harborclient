@@ -25,11 +25,7 @@ export function AlertModal(): JSX.Element | null {
     return (
       <Modal onClose={handleClose} labelledBy="alert-modal-title" title={alertModal.title}>
         <div className="flex items-start gap-3">
-          <FaIcon
-            icon={faCircleExclamation}
-            className="mt-0.5 h-5 w-5 shrink-0 text-danger"
-            title="Warning"
-          />
+          <FaIcon icon={faCircleExclamation} className="mt-0.5 h-5 w-5 shrink-0 text-danger" />
           <p className="m-0 text-[14px] text-text">{alertModal.message}</p>
         </div>
       </Modal>

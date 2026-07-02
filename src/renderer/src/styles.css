@@ -408,6 +408,28 @@
   }
 }
 
+::highlight(hc-variable-token) {
+  color: #32d2e2;
+}
+
+/**
+ * CodeMirror layout for the request body tab — fills remaining editor height below the type picker.
+ */
+.request-body-editor {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  resize: none;
+}
+
+.request-body-editor .cm-editor {
+  flex: 1 1 0%;
+  min-height: 0;
+  height: 100%;
+}
+
 /**
  * MDXEditor chrome for the request comment tab — maps Radix semantic tokens to HarborClient theme.
  */
@@ -463,13 +485,47 @@
   }
 }
 
+.request-comment-editor .cm-variable-token {
+  color: #32d2e2;
+}
+
+.request-comment-editor .cm-tooltip.cm-tooltip-hover {
+  border: 1px solid var(--mac-separator);
+  background-color: var(--mac-surface);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.request-comment-editor .cm-variable-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--mac-text);
+}
+
+.request-comment-editor .cm-variable-tooltip-muted {
+  color: var(--mac-muted);
+}
+
+.request-comment-editor .cm-variable-tooltip-edit {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--mac-accent);
+}
+
 /**
  * Contenteditable markdown typography (Tailwind preflight strips default heading/list styles).
  */
 .request-comment-editor-content {
   min-height: 100%;
   padding: 12px;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.5;
   color: var(--mac-text);
   background-color: var(--mac-field);

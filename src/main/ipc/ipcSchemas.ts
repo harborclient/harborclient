@@ -426,6 +426,10 @@ export const sidebarExpansion = z.object({
     collections: z.boolean(),
     environments: z.boolean()
   }),
+  sectionVisibility: z.object({
+    collections: z.boolean(),
+    environments: z.boolean()
+  }),
   collectionIds: z.array(dbId),
   folderIds: z.array(dbId)
 }) satisfies z.ZodType<SidebarExpansionState>;
@@ -474,6 +478,8 @@ export const ipcArgSchemas = {
   closeDecision: z.tuple([z.boolean()]),
   menuSidebarVisible: z.tuple([z.boolean()]),
   menuAiSidebarVisible: z.tuple([z.boolean()]),
+  menuCollectionsVisible: z.tuple([z.boolean()]),
+  menuEnvironmentsVisible: z.tuple([z.boolean()]),
   menuThemeMenuState: z.tuple([themeSource, z.array(themeMenuOption)]),
   menuPopupSubmenu: z.tuple([rootMenuLabel, z.number(), z.number()]),
   chatCreate: z.tuple([chatCreateInput]),

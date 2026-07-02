@@ -62,8 +62,8 @@ export function BodyEditor({
   const urlEncodedRows = bodyType === 'urlencoded' ? parseUrlEncodedParts(body) : [];
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-2 border border-separator p-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
+      <div className="mb-2 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border border-separator p-4">
         <span className="text-[16px] text-muted">Body type</span>
         {BODY_TYPE_OPTIONS.map(({ value, label }) => (
           <FormGroup key={value} label={label} layout="radio">
@@ -98,7 +98,7 @@ export function BodyEditor({
         />
       )}
       {bodyType !== 'none' && bodyType !== 'multipart' && bodyType !== 'urlencoded' && (
-        <div className="border border-separator p-4">
+        <div className="flex min-h-0 flex-1 flex-col border border-separator p-4">
           <CodeEditor
             value={body}
             onChange={(nextBody) => update({ body: nextBody })}
@@ -106,6 +106,9 @@ export function BodyEditor({
             placeholder={bodyType === 'json' ? '{\n  "key": "value"\n}' : 'Request body'}
             variables={variables}
             onEditVariable={onEditVariables}
+            minHeight="0"
+            className="request-body-editor"
+            aria-label={bodyType === 'json' ? 'JSON body' : 'Text body'}
           />
         </div>
       )}

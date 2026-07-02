@@ -25,6 +25,7 @@ import {
   updateSnippet
 } from '#/renderer/src/store/thunks/snippets';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
+import { CodePreviewTooltip } from '#/renderer/src/ui/shared/CodePreviewTooltip';
 import { sectionEntryBySection } from '../catalog/catalog';
 import { SettingLabel } from '../components/SettingLabel';
 import { settingsSectionMeta } from '../constants';
@@ -316,20 +317,29 @@ export function SnippetsSection(): JSX.Element {
                 primary={
                   <div className="flex flex-col gap-1">
                     <ResourceListPrimary>{snippet.name}</ResourceListPrimary>
-                    <span className="text-[14px] text-muted">
-                      {snippet.code.trim() ? snippet.code.trim().slice(0, 120) : 'Empty snippet'}
-                    </span>
+                    <CodePreviewTooltip
+                      code={snippet.code}
+                      actionLabel={`Edit ${snippet.name}`}
+                      onClick={() => handleEdit(snippet)}
+                      emptyLabel="Empty snippet"
+                    />
                   </div>
                 }
                 actions={
                   <div className="flex items-center gap-2">
-                    <Button type="button" variant="toolbar" onClick={() => handleEdit(snippet)}>
+                    <Button
+                      type="button"
+                      variant="toolbar"
+                      aria-label={`Edit ${snippet.name}`}
+                      onClick={() => handleEdit(snippet)}
+                    >
                       Edit
                     </Button>
                     <Button
                       type="button"
                       variant="toolbar"
                       className={toolbarDangerButtonClass}
+                      aria-label={`Delete ${snippet.name}`}
                       onClick={() => void handleDelete(snippet)}
                     >
                       Delete

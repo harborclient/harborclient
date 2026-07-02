@@ -195,6 +195,42 @@ describe('saveRequest script lists', () => {
     ]);
     expect(input?.pre_request_script).toBe('console.log("one");');
   });
+
+  it('auto-names unnamed scripts from the first source line when saving', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { openTabWithDraft } = await import('#/renderer/src/store/slices/tabsSlice');
+    const { saveRequest } = await import('#/renderer/src/store/thunks/requests');
+
+    const unnamedWithCode = createInlineScriptRef(
+      'console.log("hello world");',
+      'Unnamed script...'
+    );
+
+    store.dispatch(
+      openTabWithDraft({
+        id: 9,
+        collection_id: 1,
+        name: 'Scripted',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [unnamedWithCode],
+        post_request_scripts: [],
+        comment: '',
+        auth: defaultAuth()
+      })
+    );
+
+    await store.dispatch(saveRequest(1));
+
+    const input = saveRequestMock.mock.calls.at(-1)?.[0];
+    expect(input?.pre_request_scripts?.[0]?.name).toBe('console.log("hello world"');
+  });
 });
 
 /**

@@ -17,9 +17,18 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Button, CodeEditor, FaIcon, Input } from '@harborclient/sdk/components';
+import {
+  Button,
+  CodeEditor,
+  FaIcon,
+  FieldError,
+  Input,
+  Modal,
+  ModalFormLayout
+} from '@harborclient/sdk/components';
 import {
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -27,19 +36,31 @@ import {
   type JSX,
   type PointerEvent as ReactPointerEvent
 } from 'react';
+import toast from 'react-hot-toast';
 import type { ScriptRef, Snippet, Variable } from '#/shared/types';
 import {
   createInlineScriptRef,
   createSnippetScriptRef,
   ensureDefaultScriptRef,
-  normalizeScriptRefs
+  linkScriptRefToSnippet,
+  normalizeScriptRefs,
+  resolveScriptSourceCode,
+  UNNAMED_SCRIPT_NAME
 } from '#/shared/scriptRefs';
+import { CodePreviewTooltip } from '#/renderer/src/ui/shared/CodePreviewTooltip';
 import { createHcCompletionSource } from '#/renderer/src/scripting/hcCompletions';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
-import { faChevronDown, faChevronUp, faGripVertical, faTrash } from '#/renderer/src/fontawesome';
+import { useAppDispatch } from '#/renderer/src/store/hooks';
+import { createSnippet, updateSnippet } from '#/renderer/src/store/thunks/snippets';
+import {
+  faChevronDown,
+  faChevronUp,
+  faFloppyDisk,
+  faGripVertical,
+  faTrash
+} from '#/renderer/src/fontawesome';
 
 const SCRIPT_EDITOR_MIN_HEIGHT = '125px';
-const DEFAULT_NEW_SCRIPT_NAME = 'Unnamed script...';
 
 interface Props {
   /**
@@ -98,6 +119,16 @@ interface ScriptRowHeaderProps {
    * Called when the optional display name changes.
    */
   onNameChange: (name: string) => void;
+
+  /**
+   * Expands the script editor when the collapsed preview is clicked.
+   */
+  onExpand: () => void;
+
+  /**
+   * When true, omits the collapsed code preview while the script editor is expanded.
+   */
+  previewHidden?: boolean;
 }
 
 interface SortableScriptRowProps {
@@ -170,9 +201,48 @@ interface SortableScriptRowProps {
    * Persists inline script source edits.
    */
   onPatchCode: (code: string) => void;
+
+  /**
+   * Opens the save-snippet modal for this row's current source code.
+   */
+  onSaveSnippet: (code: string) => void;
+}
+
+interface SaveSnippetNameModalProps {
+  /**
+   * Default snippet name shown in the input.
+   */
+  defaultName: string;
+
+  /**
+   * True while the save request is in flight.
+   */
+  saving: boolean;
+
+  /**
+   * Inline validation or IPC error message.
+   */
+  error: string | null;
+
+  /**
+   * Closes the modal without saving.
+   */
+  onCancel: () => void;
+
+  /**
+   * Persists the snippet under the entered name.
+   *
+   * @param name - Trimmed snippet name from the modal input.
+   */
+  onSave: (name: string) => void;
 }
 
 interface SnippetMenuProps {
+  /**
+   * DOM id wired to the snippet picker trigger via aria-controls.
+   */
+  menuId: string;
+
   /**
    * Snippet library entries shown in the menu.
    */
@@ -234,13 +304,99 @@ function scriptRowPlaceholder(script: ScriptRef, snippets: Snippet[]): string {
 }
 
 /**
+ * Returns the default snippet name for the save modal.
+ *
+ * @param script - Script reference entry.
+ * @param snippets - Snippet library lookup source.
+ * @returns Existing snippet name, script label, or placeholder label.
+ */
+function saveSnippetDefaultName(script: ScriptRef, snippets: Snippet[]): string {
+  if (script.kind === 'snippet') {
+    const linked = snippets.find((entry) => entry.uuid === script.snippetUuid);
+    if (linked?.name.trim()) {
+      return linked.name.trim();
+    }
+  }
+
+  if (script.name?.trim()) {
+    return script.name.trim();
+  }
+
+  return scriptRowPlaceholder(script, snippets);
+}
+
+/**
+ * Name-only modal for saving script source to the snippet library.
+ */
+function SaveSnippetNameModal({
+  defaultName,
+  saving,
+  error,
+  onCancel,
+  onSave
+}: SaveSnippetNameModalProps): JSX.Element {
+  const [name, setName] = useState(defaultName);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  /**
+   * Focuses and selects the name input when the modal opens.
+   */
+  useEffect(() => {
+    nameInputRef.current?.focus();
+    nameInputRef.current?.select();
+  }, []);
+
+  return (
+    <Modal
+      labelledBy="save-snippet-title"
+      onClose={onCancel}
+      title="Save snippet"
+      description="Save this script to the reusable snippet library."
+      closeDisabled={saving}
+      disableEscape={saving}
+    >
+      <ModalFormLayout
+        error={error ? <FieldError spacing="modal">{error}</FieldError> : undefined}
+        actions={
+          <Button type="button" disabled={saving} onClick={() => onSave(name)}>
+            {saving ? 'Saving…' : 'Save'}
+          </Button>
+        }
+      >
+        <div className="flex flex-col gap-1">
+          <label className="text-[14px] font-medium text-text" htmlFor="save-snippet-name">
+            Name
+          </label>
+          <Input
+            ref={nameInputRef}
+            id="save-snippet-name"
+            value={name}
+            disabled={saving}
+            onChange={(event) => setName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                onSave(name);
+              }
+            }}
+            placeholder="Snippet name"
+          />
+        </div>
+      </ModalFormLayout>
+    </Modal>
+  );
+}
+
+/**
  * Enable checkbox and inline-editable script label for one script row.
  */
 function ScriptRowHeader({
   script,
   snippets,
   onEnabledChange,
-  onNameChange
+  onNameChange,
+  onExpand,
+  previewHidden = false
 }: ScriptRowHeaderProps): JSX.Element {
   const [editingLabel, setEditingLabel] = useState(false);
   const labelInputRef = useRef<HTMLInputElement>(null);
@@ -258,47 +414,58 @@ function ScriptRowHeader({
   }, [editingLabel]);
 
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-2 text-[14px] text-text">
+    <div className="flex min-w-0 flex-1 items-start gap-2 text-[14px] text-text">
       <input
         type="checkbox"
         checked={script.enabled}
         onChange={(event) => onEnabledChange(event.target.checked)}
         onPointerDown={stopDragPointerDown}
         aria-label={`Enable ${accessibleLabel}`}
+        className="mt-0.5 shrink-0"
       />
-      {editingLabel ? (
-        <Input
-          ref={labelInputRef}
-          variant="plain"
-          className="min-w-0 flex-1 border-none bg-transparent p-0 text-[14px] font-medium text-text outline-none app-no-drag"
-          type="text"
-          value={script.name ?? ''}
-          onChange={(event) => onNameChange(event.target.value)}
-          onBlur={() => setEditingLabel(false)}
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        {editingLabel ? (
+          <Input
+            ref={labelInputRef}
+            variant="plain"
+            className="min-w-0 flex-1 border-none bg-transparent p-0 text-[14px] font-medium text-text outline-none app-no-drag"
+            type="text"
+            value={script.name ?? ''}
+            onChange={(event) => onNameChange(event.target.value)}
+            onBlur={() => setEditingLabel(false)}
+            onPointerDown={stopDragPointerDown}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === 'Escape') {
+                event.preventDefault();
+                setEditingLabel(false);
+              }
+            }}
+            aria-label={`Rename ${accessibleLabel}`}
+            placeholder={placeholderLabel}
+          />
+        ) : (
+          <button
+            type="button"
+            className="min-w-0 flex-1 cursor-text border-none bg-transparent p-0 text-left text-[14px] font-medium text-text hover:opacity-80 app-no-drag"
+            aria-label={`Rename ${accessibleLabel}`}
+            onClick={() => setEditingLabel(true)}
+            onPointerDown={stopDragPointerDown}
+          >
+            {script.name?.trim() ? (
+              <span className="truncate">{script.name.trim()}</span>
+            ) : (
+              <span className="truncate text-muted">{placeholderLabel}</span>
+            )}
+          </button>
+        )}
+        <CodePreviewTooltip
+          code={resolveScriptSourceCode(script, snippets)}
+          actionLabel={`Expand ${accessibleLabel}`}
+          onClick={onExpand}
+          hidden={previewHidden}
           onPointerDown={stopDragPointerDown}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === 'Escape') {
-              event.preventDefault();
-              setEditingLabel(false);
-            }
-          }}
-          aria-label="Script label"
-          placeholder={placeholderLabel}
         />
-      ) : (
-        <button
-          type="button"
-          className="min-w-0 flex-1 cursor-text border-none bg-transparent p-0 text-left text-[14px] font-medium text-text hover:opacity-80 app-no-drag"
-          onClick={() => setEditingLabel(true)}
-          onPointerDown={stopDragPointerDown}
-        >
-          {script.name?.trim() ? (
-            <span className="truncate">{script.name.trim()}</span>
-          ) : (
-            <span className="truncate text-muted">{placeholderLabel}</span>
-          )}
-        </button>
-      )}
+      </div>
     </div>
   );
 }
@@ -306,7 +473,7 @@ function ScriptRowHeader({
 /**
  * Dropdown menu for choosing a snippet from the library.
  */
-function SnippetMenu({ snippets, onSelect, onClose }: SnippetMenuProps): JSX.Element {
+function SnippetMenu({ menuId, snippets, onSelect, onClose }: SnippetMenuProps): JSX.Element {
   const rootRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -336,6 +503,7 @@ function SnippetMenu({ snippets, onSelect, onClose }: SnippetMenuProps): JSX.Ele
   return (
     <div
       ref={rootRef}
+      id={menuId}
       role="menu"
       aria-label="Snippet library"
       className="absolute left-0 top-full z-20 mt-0.5 max-h-64 min-w-full overflow-y-auto rounded-md border border-separator bg-surface py-1 shadow-md app-no-drag"
@@ -379,12 +547,27 @@ function SortableScriptRow({
   onNameChange,
   onRemove,
   onToggleExpanded,
-  onPatchCode
+  onPatchCode,
+  onSaveSnippet
 }: SortableScriptRowProps): JSX.Element {
   const snippet =
     script.kind === 'snippet'
       ? snippets.find((entry) => entry.uuid === script.snippetUuid)
       : undefined;
+  const librarySnippetCode = snippet?.code ?? '';
+  const snippetRevision = `${script.snippetUuid ?? ''}:${snippet?.updated_at ?? ''}`;
+  const [snippetDraftCode, setSnippetDraftCode] = useState(librarySnippetCode);
+  const [snippetRevisionSeen, setSnippetRevisionSeen] = useState(snippetRevision);
+  const saveSnippetCode = script.kind === 'inline' ? (script.code ?? '') : snippetDraftCode;
+  const canSaveSnippet = Boolean(saveSnippetCode.trim());
+  const saveSnippetLabel =
+    script.kind === 'snippet' ? `Save snippet "${label}"` : `Save "${label}" as snippet`;
+  const editorPanelId = useId();
+
+  if (snippetRevision !== snippetRevisionSeen) {
+    setSnippetRevisionSeen(snippetRevision);
+    setSnippetDraftCode(librarySnippetCode);
+  }
 
   const {
     attributes,
@@ -408,26 +591,41 @@ function SortableScriptRow({
       style={style}
       className="rounded-lg border border-separator bg-surface px-4 py-3 shadow-sm"
     >
-      <div
-        ref={sortable ? setActivatorNodeRef : undefined}
-        className={
-          sortable
-            ? 'flex cursor-grab flex-wrap items-center gap-3 active:cursor-grabbing'
-            : 'flex flex-wrap items-center gap-3'
-        }
-        aria-label={sortable ? `Reorder script "${label}"` : undefined}
-        {...(sortable ? attributes : {})}
-        {...(sortable ? listeners : {})}
-      >
-        <FaIcon icon={faGripVertical} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
+      <div className="flex items-start gap-3">
+        {sortable ? (
+          <button
+            type="button"
+            ref={setActivatorNodeRef}
+            className="mt-0.5 inline-flex h-3.5 w-3.5 shrink-0 cursor-grab items-center justify-center rounded border-none bg-transparent p-0 text-muted outline-none focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing app-no-drag"
+            aria-label={`Reorder script "${label}"`}
+            {...attributes}
+            {...listeners}
+          >
+            <FaIcon icon={faGripVertical} className="h-3.5 w-3.5" />
+          </button>
+        ) : (
+          <span className="mt-0.5 inline-flex h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        )}
         <ScriptRowHeader
           script={script}
           snippets={snippets}
           onEnabledChange={onEnabledChange}
           onNameChange={onNameChange}
+          onExpand={onToggleExpanded}
+          previewHidden={isExpanded}
         />
 
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex shrink-0 items-center gap-1 self-start">
+          <Button
+            type="button"
+            variant="icon"
+            aria-label={saveSnippetLabel}
+            disabled={!canSaveSnippet}
+            onPointerDown={stopDragPointerDown}
+            onClick={() => onSaveSnippet(saveSnippetCode)}
+          >
+            <FaIcon icon={faFloppyDisk} />
+          </Button>
           <Button
             type="button"
             variant="icon"
@@ -440,6 +638,7 @@ function SortableScriptRow({
           <Button
             type="button"
             variant="icon"
+            aria-controls={editorPanelId}
             aria-expanded={isExpanded}
             aria-label={isExpanded ? `Collapse ${label}` : `Expand ${label}`}
             onPointerDown={stopDragPointerDown}
@@ -451,7 +650,12 @@ function SortableScriptRow({
       </div>
 
       {isExpanded && script.kind === 'inline' && (
-        <div className="mt-3 flex flex-col gap-2">
+        <div
+          id={editorPanelId}
+          role="region"
+          aria-label={`${label} source editor`}
+          className="mt-3 flex flex-col gap-2"
+        >
           <CodeEditor
             value={script.code ?? ''}
             onChange={onPatchCode}
@@ -467,18 +671,22 @@ function SortableScriptRow({
       )}
 
       {isExpanded && script.kind === 'snippet' && (
-        <div className="mt-3 flex flex-col gap-2">
-          <p className="text-[14px] text-muted">
-            Live reference to snippet{' '}
-            <span className="font-medium text-text">{snippet?.name ?? 'Unknown snippet'}</span>.
-            Editing the snippet in Settings updates every request using it.
-          </p>
+        <div
+          id={editorPanelId}
+          role="region"
+          aria-label={`${label} source editor`}
+          className="mt-3 flex flex-col gap-2"
+        >
           <CodeEditor
-            readOnly
-            value={snippet?.code ?? '// Snippet not found'}
+            value={snippetDraftCode}
+            onChange={setSnippetDraftCode}
             language="javascript"
+            completionSource={createHcCompletionSource(phase, variables)}
+            placeholder={placeholder}
+            variables={variables}
+            onEditVariable={onEditVariables}
             minHeight={SCRIPT_EDITOR_MIN_HEIGHT}
-            aria-label={`${label} preview`}
+            aria-label={`${label} source`}
           />
         </div>
       )}
@@ -498,11 +706,19 @@ export function ScriptListEditor({
   snippets,
   placeholder
 }: Props): JSX.Element {
+  const dispatch = useAppDispatch();
   const confirm = useConfirm();
   const normalized = useMemo(() => normalizeScriptRefs(scripts), [scripts]);
   const sortableEnabled = normalized.length > 1;
   const [activeDragScriptId, setActiveDragScriptId] = useState<string | null>(null);
   const [snippetMenuOpen, setSnippetMenuOpen] = useState(false);
+  const [saveSnippetTarget, setSaveSnippetTarget] = useState<{
+    scriptId: string;
+    code: string;
+  } | null>(null);
+  const [saveSnippetSaving, setSaveSnippetSaving] = useState(false);
+  const [saveSnippetError, setSaveSnippetError] = useState<string | null>(null);
+  const snippetMenuId = useId();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -535,7 +751,7 @@ export function ScriptListEditor({
    * Adds a new empty inline script at the end of the list.
    */
   const handleAddInline = (): void => {
-    const created = { ...createInlineScriptRef('', DEFAULT_NEW_SCRIPT_NAME), expanded: true };
+    const created = { ...createInlineScriptRef('', UNNAMED_SCRIPT_NAME), expanded: true };
     updateScripts([...normalized, created]);
   };
 
@@ -553,6 +769,102 @@ export function ScriptListEditor({
     const created = { ...createSnippetScriptRef(trimmedUuid, snippet?.name), expanded: true };
     updateScripts([...normalized, created]);
   };
+
+  /**
+   * Replaces one script reference by id.
+   *
+   * @param id - Script list entry id.
+   * @param next - Updated script reference.
+   */
+  const replaceScript = (id: string, next: ScriptRef): void => {
+    updateScripts(normalized.map((script) => (script.id === id ? next : script)));
+  };
+
+  /**
+   * Opens the save-snippet modal for one script row.
+   *
+   * @param scriptId - Script list entry id.
+   * @param code - Source code to persist.
+   */
+  const openSaveSnippetModal = (scriptId: string, code: string): void => {
+    setSaveSnippetTarget({ scriptId, code });
+    setSaveSnippetError(null);
+  };
+
+  /**
+   * Closes the save-snippet modal and clears transient error state.
+   */
+  const closeSaveSnippetModal = (): void => {
+    setSaveSnippetTarget(null);
+    setSaveSnippetError(null);
+    setSaveSnippetSaving(false);
+  };
+
+  /**
+   * Persists script source to the snippet library and relinks the row when needed.
+   *
+   * @param name - Snippet name entered in the modal.
+   */
+  const handleConfirmSaveSnippet = async (name: string): Promise<void> => {
+    if (!saveSnippetTarget) {
+      return;
+    }
+
+    const script = normalized.find((entry) => entry.id === saveSnippetTarget.scriptId);
+    if (!script) {
+      closeSaveSnippetModal();
+      return;
+    }
+
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setSaveSnippetError('Snippet name is required.');
+      return;
+    }
+
+    const code = saveSnippetTarget.code;
+    const linkedSnippet =
+      script.kind === 'snippet'
+        ? snippets.find((entry) => entry.uuid === script.snippetUuid)
+        : undefined;
+
+    setSaveSnippetSaving(true);
+    setSaveSnippetError(null);
+
+    try {
+      if (script.kind === 'inline' || !linkedSnippet) {
+        const created = await dispatch(createSnippet({ name: trimmedName, code })).unwrap();
+        replaceScript(script.id, linkScriptRefToSnippet(script, created.uuid, trimmedName));
+        toast.success('Snippet saved');
+        closeSaveSnippetModal();
+        return;
+      }
+
+      if (trimmedName === linkedSnippet.name.trim()) {
+        await dispatch(updateSnippet({ id: linkedSnippet.id, name: trimmedName, code })).unwrap();
+        patchScript(script.id, { name: trimmedName });
+        toast.success('Snippet saved');
+        closeSaveSnippetModal();
+        return;
+      }
+
+      const created = await dispatch(createSnippet({ name: trimmedName, code })).unwrap();
+      replaceScript(script.id, linkScriptRefToSnippet(script, created.uuid, trimmedName));
+      toast.success('Snippet saved');
+      closeSaveSnippetModal();
+    } catch (err) {
+      setSaveSnippetError(err instanceof Error ? err.message : 'Failed to save snippet');
+    } finally {
+      setSaveSnippetSaving(false);
+    }
+  };
+
+  /**
+   * Script row targeted by the save-snippet modal, if any.
+   */
+  const saveSnippetScript = saveSnippetTarget
+    ? (normalized.find((entry) => entry.id === saveSnippetTarget.scriptId) ?? null)
+    : null;
 
   /**
    * Updates one script reference by id.
@@ -646,6 +958,7 @@ export function ScriptListEditor({
           className="w-[170px] shrink-0 gap-1 whitespace-nowrap rounded-full!"
           aria-haspopup="menu"
           aria-expanded={snippetMenuOpen}
+          aria-controls={snippetMenuOpen ? snippetMenuId : undefined}
           disabled={snippets.length === 0}
           onClick={() => setSnippetMenuOpen((open) => !open)}
         >
@@ -654,6 +967,7 @@ export function ScriptListEditor({
         </Button>
         {snippetMenuOpen ? (
           <SnippetMenu
+            menuId={snippetMenuId}
             snippets={snippets}
             onSelect={handleSnippetSelect}
             onClose={() => setSnippetMenuOpen(false)}
@@ -689,6 +1003,7 @@ export function ScriptListEditor({
             onRemove={() => void handleRemoveScript(script.id, label)}
             onToggleExpanded={() => patchScript(script.id, { expanded: !isExpanded })}
             onPatchCode={(code) => patchScript(script.id, { code })}
+            onSaveSnippet={(code) => openSaveSnippetModal(script.id, code)}
           />
         );
       })}
@@ -721,6 +1036,17 @@ export function ScriptListEditor({
       )}
 
       {addControls}
+
+      {saveSnippetTarget && saveSnippetScript ? (
+        <SaveSnippetNameModal
+          key={saveSnippetTarget.scriptId}
+          defaultName={saveSnippetDefaultName(saveSnippetScript, snippets)}
+          saving={saveSnippetSaving}
+          error={saveSnippetError}
+          onCancel={closeSaveSnippetModal}
+          onSave={(name) => void handleConfirmSaveSnippet(name)}
+        />
+      ) : null}
     </div>
   );
 }

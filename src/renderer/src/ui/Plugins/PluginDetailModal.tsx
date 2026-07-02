@@ -1,11 +1,4 @@
-import {
-  Button,
-  FaIcon,
-  Modal,
-  ModalFooter,
-  ModalHeader,
-  Spinner
-} from '@harborclient/sdk/components';
+import { Button, Modal, ModalFooter, ModalHeader, Spinner } from '@harborclient/sdk/components';
 import { useMemo, type JSX } from 'react';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import { stripPluginScreenshotImagesFromMarkdown } from '#/shared/plugin/stripPluginScreenshotImagesFromMarkdown';
@@ -16,8 +9,8 @@ import type {
   PluginScreenshot
 } from '#/shared/plugin/types';
 
-import { faCircleCheck } from '#/renderer/src/fontawesome';
 import { PERMISSION_LABELS } from './constants';
+import { VerifiedPublisherBadge } from '#/renderer/src/ui/shared/VerifiedPublisherBadge';
 import { ErrorMessages } from './ErrorMessages';
 import { PluginReadmeMarkdown } from './PluginReadmeMarkdown';
 import { ScreenshotCarousel } from './ScreenshotCarousel';
@@ -398,10 +391,8 @@ export function PluginDetailModal(props: Props): JSX.Element {
           <>
             {title}
             {isInstalled && props.plugin.signature?.status === 'verified' ? (
-              <FaIcon
-                icon={faCircleCheck}
-                className="h-3.5 w-3.5 shrink-0 text-success"
-                title={`Verified publisher: ${props.plugin.signature.author ?? props.plugin.manifest.author ?? 'unknown'}`}
+              <VerifiedPublisherBadge
+                author={props.plugin.signature.author ?? props.plugin.manifest.author}
               />
             ) : null}
           </>

@@ -5,12 +5,18 @@ const DEFAULT_SECTIONS = {
   environments: true
 } as const;
 
+const DEFAULT_SECTION_VISIBILITY = {
+  collections: true,
+  environments: true
+} as const;
+
 /**
  * Returns the default sidebar expansion state for first launch.
  */
 export function defaultSidebarExpansion(): SidebarExpansionState {
   return {
     sections: { ...DEFAULT_SECTIONS },
+    sectionVisibility: { ...DEFAULT_SECTION_VISIBILITY },
     collectionIds: [],
     folderIds: []
   };
@@ -55,6 +61,7 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
 
   const raw = value as Partial<SidebarExpansionState>;
   const sectionsRaw = raw.sections;
+  const visibilityRaw = raw.sectionVisibility;
 
   return {
     sections: {
@@ -66,6 +73,16 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
         sectionsRaw && typeof sectionsRaw.environments === 'boolean'
           ? sectionsRaw.environments
           : DEFAULT_SECTIONS.environments
+    },
+    sectionVisibility: {
+      collections:
+        visibilityRaw && typeof visibilityRaw.collections === 'boolean'
+          ? visibilityRaw.collections
+          : DEFAULT_SECTION_VISIBILITY.collections,
+      environments:
+        visibilityRaw && typeof visibilityRaw.environments === 'boolean'
+          ? visibilityRaw.environments
+          : DEFAULT_SECTION_VISIBILITY.environments
     },
     collectionIds: normalizeIdList(raw.collectionIds),
     folderIds: normalizeIdList(raw.folderIds)

@@ -45,4 +45,18 @@ describe('buildThemeMenuItems', () => {
     ) as MenuItemConstructorOptions;
     expect(midnightItem.checked).toBe(true);
   });
+
+  it('rebuilds the menu after a theme click so active checkmarks stay checked', () => {
+    const onThemeMenuClick = vi.fn();
+    const items = buildThemeMenuItems(window, 'dark', [], onThemeMenuClick);
+    const darkItem = items.find((item) => item.label === 'Dark') as MenuItemConstructorOptions;
+
+    (darkItem.click as () => void)();
+
+    expect(window.webContents.send).toHaveBeenCalledWith('menu:selectTheme', {
+      theme: 'dark',
+      label: 'Dark'
+    });
+    expect(onThemeMenuClick).toHaveBeenCalledOnce();
+  });
 });

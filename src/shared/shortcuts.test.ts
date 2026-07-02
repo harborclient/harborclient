@@ -91,6 +91,33 @@ describe('resolveShortcuts', () => {
       'CmdOrCtrl+F'
     );
   });
+
+  it('includes default bindings for sidebar section toggles', () => {
+    const bindings = resolveShortcuts({});
+    expect(bindings.find((binding) => binding.id === 'toggle-sidebar')?.accelerator).toBe(
+      'CmdOrCtrl+B'
+    );
+    expect(bindings.find((binding) => binding.id === 'toggle-ai-sidebar')?.accelerator).toBe(
+      'CmdOrCtrl+Shift+B'
+    );
+    expect(
+      bindings.find((binding) => binding.id === 'toggle-collections-section')?.accelerator
+    ).toBe('CmdOrCtrl+Shift+C');
+    expect(
+      bindings.find((binding) => binding.id === 'toggle-environments-section')?.accelerator
+    ).toBe('CmdOrCtrl+Shift+E');
+  });
+
+  it('includes default bindings for zoom shortcuts', () => {
+    const bindings = resolveShortcuts({});
+    expect(bindings.find((binding) => binding.id === 'zoom-in')?.accelerator).toBe(
+      'CmdOrCtrl+Plus'
+    );
+    expect(bindings.find((binding) => binding.id === 'zoom-out')?.accelerator).toBe('CmdOrCtrl+-');
+    expect(bindings.find((binding) => binding.id === 'reset-zoom')?.accelerator).toBe(
+      'CmdOrCtrl+0'
+    );
+  });
 });
 
 describe('bindingsToOverrides', () => {

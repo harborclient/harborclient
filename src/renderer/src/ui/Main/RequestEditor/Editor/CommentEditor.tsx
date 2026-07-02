@@ -13,7 +13,13 @@ import {
   codeMirrorPlugin
 } from '@mdxeditor/editor';
 import '@mdxeditor/editor/style.css';
+import type { Variable } from '#/shared/types';
 import { useCallback, useEffect, useMemo, useRef, type JSX } from 'react';
+
+import {
+  createVariableCodeMirrorExtensions,
+  variableHighlightPlugin
+} from './variableHighlightPlugin';
 
 /** Languages offered in fenced code blocks inside request comments. */
 const CODE_BLOCK_LANGUAGES: Record<string, string> = {
@@ -39,24 +45,25 @@ interface Props {
   onChange: (comment: string) => void;
 
   /**
-   * Placeholder shown when the editor is empty.
+   * Collection-scoped variables for highlighting and tooltips.
    */
-  placeholder?: string;
+  variables: Variable[];
+
+  /**
+   * Opens collection settings to edit variables.
+   */
+  onEditVariables?: () => void;
 }
 
 /**
  * Markdown comment editor for request notes using MDXEditor.
  */
-export function CommentEditor({
-  value,
-  onChange,
-  placeholder = 'Notes for this request'
-}: Props): JSX.Element {
+export function CommentEditor({ value, onChange, variables, onEditVariables }: Props): JSX.Element {
   const editorRef = useRef<MDXEditorMethods>(null);
   const lastEmittedRef = useRef(value);
 
   /**
-   * Static MDXEditor plugin set for extended markdown notes (headings through tables).
+   * MDXEditor plugins including variable highlighting for rich text and code blocks.
    */
   const plugins = useMemo(
     () => [
@@ -67,11 +74,15 @@ export function CommentEditor({
       linkPlugin(),
       linkDialogPlugin(),
       codeBlockPlugin({ defaultCodeBlockLanguage: 'json' }),
-      codeMirrorPlugin({ codeBlockLanguages: CODE_BLOCK_LANGUAGES }),
+      codeMirrorPlugin({
+        codeBlockLanguages: CODE_BLOCK_LANGUAGES,
+        codeMirrorExtensions: createVariableCodeMirrorExtensions(variables, onEditVariables)
+      }),
       tablePlugin(),
-      markdownShortcutPlugin()
+      markdownShortcutPlugin(),
+      variableHighlightPlugin({ variables, onEditVariable: onEditVariables })
     ],
-    []
+    [variables, onEditVariables]
   );
 
   /**
@@ -105,14 +116,13 @@ export function CommentEditor({
     <div
       className="flex h-full min-h-0 flex-1 flex-col border border-separator p-4"
       role="group"
-      aria-label={placeholder}
+      aria-label="Comment"
     >
       <MDXEditor
         ref={editorRef}
         markdown={value}
         onChange={handleChange}
         plugins={plugins}
-        placeholder={placeholder}
         className="request-comment-editor app-no-drag min-h-0 flex-1 h-full bg-field"
         contentEditableClassName="request-comment-editor-content bg-field"
       />

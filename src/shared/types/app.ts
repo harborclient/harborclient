@@ -15,6 +15,8 @@ export type MenuActionId =
   | 'toggle-sidebar'
   | 'focus-sidebar-search'
   | 'toggle-ai-sidebar'
+  | 'toggle-collections-section'
+  | 'toggle-environments-section'
   | 'send-request'
   | 'previous-request-tab'
   | 'next-request-tab'

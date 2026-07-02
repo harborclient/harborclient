@@ -8,6 +8,7 @@ import type { RequestDraft } from '#/renderer/src/store/drafts';
 import { usePluginRequestTabs } from '#/renderer/src/plugins/pluginHooks';
 
 import { TabContent } from './TabContent';
+import { DEFAULT_REQUEST_COMMENT, hasUserCommentContent } from './commentDefaults';
 import { useHasCookies } from './useHasCookies';
 import { usePersistedEditorTab } from './usePersistedEditorTab';
 
@@ -76,11 +77,11 @@ export function EditorTabs({
   const showBody = draft.method !== 'GET' && draft.method !== 'HEAD';
 
   /**
-   * Seeds a blank inline script when entering a script tab with no entries yet.
+   * Seeds default tab content when entering script or comment tabs with empty values.
    *
    * @param nextTab - Editor tab the user selected or restored.
    */
-  const seedScriptTab = useCallback(
+  const seedEditorTab = useCallback(
     (nextTab: string): void => {
       if (nextTab === 'pre' && draft.pre_request_scripts.length === 0) {
         update({ pre_request_scripts: ensureDefaultScriptRef(draft.pre_request_scripts) });
@@ -88,15 +89,18 @@ export function EditorTabs({
       if (nextTab === 'post' && draft.post_request_scripts.length === 0) {
         update({ post_request_scripts: ensureDefaultScriptRef(draft.post_request_scripts) });
       }
+      if (nextTab === 'comment' && draft.comment.trim() === '') {
+        update({ comment: DEFAULT_REQUEST_COMMENT });
+      }
     },
-    [draft.post_request_scripts, draft.pre_request_scripts, update]
+    [draft.comment, draft.post_request_scripts, draft.pre_request_scripts, update]
   );
 
   const { tab, setTab } = usePersistedEditorTab({
     draft,
     tabId,
     showBody,
-    onTabResolved: seedScriptTab
+    onTabResolved: seedEditorTab
   });
   const hasCookies = useHasCookies(draft.url, variables);
 
@@ -112,7 +116,7 @@ export function EditorTabs({
       body: showBody && draft.body.trim().length > 0,
       pre: hasScriptContent(draft.pre_request_scripts),
       post: hasScriptContent(draft.post_request_scripts),
-      comment: draft.comment.trim().length > 0
+      comment: hasUserCommentContent(draft.comment)
     }),
     [
       draft.params,
@@ -139,19 +143,19 @@ export function EditorTabs({
       { value: 'body', label: 'Body', hidden: !showBody, indicator: tabIndicators.body },
       { value: 'pre', label: 'PreRequest', indicator: tabIndicators.pre },
       { value: 'post', label: 'PostRequest', indicator: tabIndicators.post },
-      { value: 'comment', label: 'Comment', indicator: tabIndicators.comment },
+      { value: 'comment', label: 'Notes', indicator: tabIndicators.comment },
       ...pluginTabs.map((entry) => ({ value: entry.id, label: entry.title }))
     ],
     [pluginTabs, showBody, tabIndicators]
   );
 
   /**
-   * Seeds a blank inline script when entering a script tab with no entries yet.
+   * Seeds default tab content when entering script or comment tabs with empty values.
    *
    * @param nextTab - Editor tab the user selected.
    */
   const handleTabChange = (nextTab: string): void => {
-    seedScriptTab(nextTab);
+    seedEditorTab(nextTab);
     setTab(nextTab);
   };
 

@@ -1,6 +1,8 @@
 import { BrowserWindow, Menu } from 'electron';
 import {
   setMenuAiSidebarVisible,
+  setMenuCollectionsVisible,
+  setMenuEnvironmentsVisible,
   setMenuSidebarVisible,
   setMenuThemeMenuState
 } from '#/main/appMenu';
@@ -22,6 +24,20 @@ export function registerMenuHandlers(): void {
   handle('menu:setAiSidebarVisible', ipcArgSchemas.menuAiSidebarVisible, (_event, visible) => {
     setMenuAiSidebarVisible(visible);
   });
+
+  // Updates the View menu checkmark for Collections section visibility.
+  handle('menu:setCollectionsVisible', ipcArgSchemas.menuCollectionsVisible, (_event, visible) => {
+    setMenuCollectionsVisible(visible);
+  });
+
+  // Updates the View menu checkmark for Environments section visibility.
+  handle(
+    'menu:setEnvironmentsVisible',
+    ipcArgSchemas.menuEnvironmentsVisible,
+    (_event, visible) => {
+      setMenuEnvironmentsVisible(visible);
+    }
+  );
 
   // Updates View menu theme checkmarks and plugin theme entries from renderer state.
   handle('menu:setThemeMenuState', ipcArgSchemas.menuThemeMenuState, (_event, theme, options) => {

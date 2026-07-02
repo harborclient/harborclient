@@ -11,6 +11,7 @@ import {
   themePromptKey
 } from '#/renderer/src/plugins/pluginThemePromptLogic';
 import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
+import { THEME_PROMPT_TOAST_LIVE_PROPS } from '#/renderer/src/ui/shared/toastA11y';
 
 /** Theme keys currently being offered so overlapping effect runs do not duplicate toasts. */
 const inFlightThemePromptKeys = new Set<string>();
@@ -81,7 +82,7 @@ function ThemePromptToast({
 
   return (
     <div
-      role="status"
+      {...THEME_PROMPT_TOAST_LIVE_PROPS}
       className="flex max-w-sm flex-col gap-2 rounded-lg border border-separator bg-surface px-3 py-2 shadow-md"
     >
       <p className="text-[14px] text-text">Switch to {title}?</p>

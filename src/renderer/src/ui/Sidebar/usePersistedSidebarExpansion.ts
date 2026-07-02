@@ -63,6 +63,36 @@ interface Result {
   setEnvironmentsSectionExpanded: Dispatch<SetStateAction<boolean>>;
 
   /**
+   * Whether the Collections section is rendered in the sidebar.
+   */
+  collectionsSectionVisible: boolean;
+
+  /**
+   * Whether the Environments section is rendered in the sidebar.
+   */
+  environmentsSectionVisible: boolean;
+
+  /**
+   * Toggles the Collections section visibility.
+   */
+  toggleCollectionsSectionVisible: () => void;
+
+  /**
+   * Toggles the Environments section visibility.
+   */
+  toggleEnvironmentsSectionVisible: () => void;
+
+  /**
+   * Sets the Collections section visibility explicitly.
+   */
+  setCollectionsSectionVisible: Dispatch<SetStateAction<boolean>>;
+
+  /**
+   * Sets the Environments section visibility explicitly.
+   */
+  setEnvironmentsSectionVisible: Dispatch<SetStateAction<boolean>>;
+
+  /**
    * Collection ids whose request trees are expanded.
    */
   expandedCollectionIds: Set<number>;
@@ -97,16 +127,19 @@ interface Result {
  * Builds a snapshot for electron-store from in-memory expansion state.
  *
  * @param sections - Section expanded flags.
+ * @param sectionVisibility - Section show/hide flags.
  * @param expandedCollectionIds - Expanded collection ids in memory.
  * @param expandedFolderIds - Expanded folder ids in memory.
  */
 export function serializeSidebarExpansion(
   sections: SidebarExpansionState['sections'],
+  sectionVisibility: SidebarExpansionState['sectionVisibility'],
   expandedCollectionIds: Set<number>,
   expandedFolderIds: Set<number>
 ): SidebarExpansionState {
   return {
     sections,
+    sectionVisibility,
     collectionIds: [...expandedCollectionIds],
     folderIds: [...expandedFolderIds]
   };
@@ -158,6 +191,12 @@ export function usePersistedSidebarExpansion({
   const [environmentsSectionExpanded, setEnvironmentsSectionExpanded] = useState(
     defaults.sections.environments
   );
+  const [collectionsSectionVisible, setCollectionsSectionVisible] = useState(
+    defaults.sectionVisibility.collections
+  );
+  const [environmentsSectionVisible, setEnvironmentsSectionVisible] = useState(
+    defaults.sectionVisibility.environments
+  );
   const [expandedCollectionIds, setExpandedCollectionIds] = useState<Set<number>>(new Set());
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<number>>(new Set());
   const restoredRef = useRef(false);
@@ -179,6 +218,8 @@ export function usePersistedSidebarExpansion({
       const validExpanded = stored.collectionIds.filter((id) => validCollectionIds.has(id));
       setCollectionsSectionExpanded(stored.sections.collections);
       setEnvironmentsSectionExpanded(stored.sections.environments);
+      setCollectionsSectionVisible(stored.sectionVisibility.collections);
+      setEnvironmentsSectionVisible(stored.sectionVisibility.environments);
       setExpandedCollectionIds(new Set(validExpanded));
       setExpandedFolderIds(new Set(stored.folderIds));
       setLoaded(true);
@@ -206,6 +247,10 @@ export function usePersistedSidebarExpansion({
         collections: collectionsSectionExpanded,
         environments: environmentsSectionExpanded
       },
+      {
+        collections: collectionsSectionVisible,
+        environments: environmentsSectionVisible
+      },
       expandedCollectionIds,
       expandedFolderIds
     );
@@ -215,6 +260,8 @@ export function usePersistedSidebarExpansion({
     loaded,
     collectionsSectionExpanded,
     environmentsSectionExpanded,
+    collectionsSectionVisible,
+    environmentsSectionVisible,
     expandedCollectionIds,
     expandedFolderIds
   ]);
@@ -224,6 +271,7 @@ export function usePersistedSidebarExpansion({
    */
   const revealCollection = useCallback(
     (collectionId: number) => {
+      setCollectionsSectionVisible(true);
       setCollectionsSectionExpanded(true);
       setExpandedCollectionIds((prev) => {
         if (prev.has(collectionId)) return prev;
@@ -241,6 +289,7 @@ export function usePersistedSidebarExpansion({
    */
   const revealFolder = useCallback(
     (collectionId: number, folderId: number) => {
+      setCollectionsSectionVisible(true);
       setCollectionsSectionExpanded(true);
       setExpandedCollectionIds((prev) => {
         if (prev.has(collectionId)) return prev;
@@ -277,6 +326,20 @@ export function usePersistedSidebarExpansion({
     setEnvironmentsSectionExpanded((open) => !open);
   }, []);
 
+  /**
+   * Toggles the Collections section visibility.
+   */
+  const toggleCollectionsSectionVisible = useCallback(() => {
+    setCollectionsSectionVisible((visible) => !visible);
+  }, []);
+
+  /**
+   * Toggles the Environments section visibility.
+   */
+  const toggleEnvironmentsSectionVisible = useCallback(() => {
+    setEnvironmentsSectionVisible((visible) => !visible);
+  }, []);
+
   return {
     loaded,
     collectionsSectionExpanded,
@@ -285,6 +348,12 @@ export function usePersistedSidebarExpansion({
     toggleEnvironmentsSection,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
+    collectionsSectionVisible,
+    environmentsSectionVisible,
+    toggleCollectionsSectionVisible,
+    toggleEnvironmentsSectionVisible,
+    setCollectionsSectionVisible,
+    setEnvironmentsSectionVisible,
     expandedCollectionIds,
     expandedFolderIds,
     setExpandedCollectionIds,

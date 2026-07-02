@@ -1,4 +1,5 @@
 {
+  "css.customData": [".vscode/tailwind.json"],
   "workbench.editor.customLabels.enabled": true,
   "workbench.editor.customLabels.patterns": {
     "*/**/index.tsx": "${dirname}"

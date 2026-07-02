@@ -28,7 +28,11 @@ import {
   substituteWithMap
 } from '#/renderer/src/scripting/scriptOrchestration';
 import { buildSnippetLookup } from '#/renderer/src/scripting/scriptResolution';
-import { mirrorLegacyScriptString, normalizeScriptRefs } from '#/shared/scriptRefs';
+import {
+  autoNameUnnamedScripts,
+  mirrorLegacyScriptString,
+  normalizeScriptRefs
+} from '#/shared/scriptRefs';
 import { saveGlobalVariables } from '#/renderer/src/store/thunks/settings';
 import {
   cloneDraft,
@@ -162,8 +166,14 @@ export const saveRequest = createAsyncThunk<SavedRequest, number | undefined, Th
     // saving back into the draft's own collection. Saving into a different collection
     // creates a copy at the root; carrying the source folder_id would reference a
     // folder that does not exist in the target and fail with "Folder not found".
-    const preRequestScripts = normalizeScriptRefs(currentDraft.pre_request_scripts);
-    const postRequestScripts = normalizeScriptRefs(currentDraft.post_request_scripts);
+    const preRequestScripts = autoNameUnnamedScripts(
+      normalizeScriptRefs(currentDraft.pre_request_scripts),
+      getState().snippets.snippets
+    );
+    const postRequestScripts = autoNameUnnamedScripts(
+      normalizeScriptRefs(currentDraft.post_request_scripts),
+      getState().snippets.snippets
+    );
 
     const saved = await window.api.saveRequest({
       id: shouldUpdate ? currentDraft.id : undefined,

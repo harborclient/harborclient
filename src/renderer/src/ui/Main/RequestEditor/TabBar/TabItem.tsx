@@ -3,6 +3,7 @@ import { METHOD_CLASSES, requestTabItem } from '#/renderer/src/ui/shared/classes
 import type { JSX, KeyboardEvent } from 'react';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { isPageTab, isRequestTab, isTabDirty, type Tab } from '#/renderer/src/store/drafts';
+import { tabCloseAccessibleName } from './tabCloseAccessibleName';
 
 interface Props {
   /**
@@ -98,6 +99,7 @@ export function TabItem({
   const ariaLabel = isPage
     ? pageTabAccessibleName(pageTitle ?? 'Page')
     : requestTabAccessibleName(tab);
+  const closeLabel = tabCloseAccessibleName(tab, pageTitle);
 
   return (
     <div
@@ -132,7 +134,8 @@ export function TabItem({
         </span>
       </span>
       <TabCloseButton
-        ariaLabel="Close tab"
+        ariaLabel={closeLabel}
+        title={closeLabel}
         onClick={(event) => {
           event.stopPropagation();
           onClose(tab.tabId);

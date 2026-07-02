@@ -1,9 +1,9 @@
 import { Button, Page } from '@harborclient/sdk/components';
-import { FaIcon } from '@harborclient/sdk/components';
 import type { JSX, KeyboardEvent } from 'react';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import type { PluginInfo } from '#/shared/plugin/types';
-import { faCircleCheck, faPuzzlePiece } from '#/renderer/src/fontawesome';
+import { faPuzzlePiece } from '#/renderer/src/fontawesome';
+import { VerifiedPublisherBadge } from '#/renderer/src/ui/shared/VerifiedPublisherBadge';
 import { ErrorMessages } from './ErrorMessages';
 import { isManagedInstall, resolveInstalledPluginSummary, stopRowActivation } from './helpers';
 import { TableExternalLink } from './TableExternalLink';
@@ -193,10 +193,8 @@ export function InstalledView({
                           <span className="text-muted">—</span>
                         )}
                         {plugin.signature?.status === 'verified' ? (
-                          <FaIcon
-                            icon={faCircleCheck}
-                            className="h-3.5 w-3.5 shrink-0 text-success"
-                            title={`Verified publisher: ${plugin.signature.author ?? plugin.manifest.author ?? 'unknown'}`}
+                          <VerifiedPublisherBadge
+                            author={plugin.signature.author ?? plugin.manifest.author}
                           />
                         ) : null}
                       </div>

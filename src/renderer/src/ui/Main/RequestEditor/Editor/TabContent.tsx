@@ -119,7 +119,7 @@ export function TabContent({
         <CookiesEditor url={draft.url} variables={variables} />
       </SegmentedTabPanel>
       {showBody && (
-        <SegmentedTabPanel value="body">
+        <SegmentedTabPanel value="body" className="flex min-h-0 flex-1 flex-col mb-4">
           <BodyEditor
             bodyType={draft.body_type}
             body={draft.body}
@@ -164,7 +164,12 @@ export function TabContent({
         />
       </SegmentedTabPanel>
       <SegmentedTabPanel value="comment" className="flex min-h-0 flex-1 flex-col mb-4">
-        <CommentEditor value={draft.comment} onChange={(comment) => update({ comment })} />
+        <CommentEditor
+          value={draft.comment}
+          onChange={(comment) => update({ comment })}
+          variables={variables}
+          onEditVariables={onEditVariables}
+        />
       </SegmentedTabPanel>
       {pluginTabs.map((entry) => (
         <SegmentedTabPanel key={entry.id} value={entry.id} className="flex min-h-0 flex-1 flex-col">

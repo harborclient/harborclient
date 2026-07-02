@@ -3,6 +3,7 @@ import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectCollections, selectCollectionsListed } from '#/renderer/src/store/selectors';
 import { SidebarExpansionContext } from '#/renderer/src/ui/Sidebar/sidebarExpansionContext';
 import { usePersistedSidebarExpansion } from '#/renderer/src/ui/Sidebar/usePersistedSidebarExpansion';
+import { useSidebarSectionMenuSync } from '#/renderer/src/hooks/useSidebarSectionMenuSync';
 
 interface ProviderProps {
   /**
@@ -14,6 +15,14 @@ interface ProviderProps {
    * Application subtree that reads or updates sidebar expansion state.
    */
   children: ReactNode;
+}
+
+/**
+ * Syncs View menu section visibility inside the expansion provider tree.
+ */
+function SidebarSectionMenuSync(): null {
+  useSidebarSectionMenuSync();
+  return null;
 }
 
 /**
@@ -37,6 +46,9 @@ export function SidebarExpansionProvider({
   });
 
   return (
-    <SidebarExpansionContext.Provider value={value}>{children}</SidebarExpansionContext.Provider>
+    <SidebarExpansionContext.Provider value={value}>
+      <SidebarSectionMenuSync />
+      {children}
+    </SidebarExpansionContext.Provider>
   );
 }

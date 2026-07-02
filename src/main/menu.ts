@@ -4,6 +4,7 @@ import { getShortcutOverrides } from '#/main/settings/shortcutSettings';
 import { getPluginMenuContributions } from '#/main/plugins/pluginMenuContributions';
 import { mergePluginMenuItemsIntoTemplate } from '#/main/plugins/pluginMenuMerge';
 import { resolveAcceleratorMap, type ShortcutId } from '#/shared/shortcuts';
+import { stepZoomIn, stepZoomOut, resetZoom } from '#/main/window/zoom';
 import { BUILTIN_THEME_OPTIONS, type ThemeMenuOption } from '#/shared/themes';
 import type { MenuActionId, ThemeSource } from '#/shared/types';
 
@@ -45,20 +46,33 @@ function sendMenuThemeSelect(window: BrowserWindow, theme: ThemeSource, label: s
  * @param window - Browser window that receives theme selection events.
  * @param activeTheme - Currently persisted appearance theme.
  * @param pluginThemeOptions - Plugin-provided theme menu options.
+ * @param onThemeMenuClick - Rebuilds the menu after click so Electron checkbox toggles do not desync checkmarks.
  */
 export function buildThemeMenuItems(
   window: BrowserWindow,
   activeTheme: ThemeSource,
-  pluginThemeOptions: ThemeMenuOption[]
+  pluginThemeOptions: ThemeMenuOption[],
+  onThemeMenuClick?: () => void
 ): MenuItemConstructorOptions[] {
   const items: MenuItemConstructorOptions[] = [{ type: 'separator' }];
+
+  /**
+   * Sends the theme selection and restores checkbox state from persisted preferences.
+   *
+   * @param theme - Theme preference value the user selected.
+   * @param label - Human-readable theme label for confirmation copy.
+   */
+  const handleThemeClick = (theme: ThemeSource, label: string): void => {
+    sendMenuThemeSelect(window, theme, label);
+    onThemeMenuClick?.();
+  };
 
   for (const option of BUILTIN_THEME_OPTIONS) {
     items.push({
       label: option.label,
       type: 'checkbox',
       checked: option.value === activeTheme,
-      click: () => sendMenuThemeSelect(window, option.value, option.label)
+      click: () => handleThemeClick(option.value, option.label)
     });
   }
 
@@ -69,7 +83,7 @@ export function buildThemeMenuItems(
         label: option.label,
         type: 'checkbox',
         checked: option.value === activeTheme,
-        click: () => sendMenuThemeSelect(window, option.value, option.label)
+        click: () => handleThemeClick(option.value, option.label)
       });
     }
   }
@@ -94,16 +108,22 @@ function acceleratorFor(accelerators: Map<ShortcutId, string>, id: ShortcutId): 
  * @param window - Browser window that receives custom menu actions.
  * @param sidebarVisible - Whether the sidebar checkbox should appear checked.
  * @param aiSidebarVisible - Whether the AI sidebar checkbox should appear checked.
+ * @param collectionsVisible - Whether the Collections section checkbox should appear checked.
+ * @param environmentsVisible - Whether the Environments section checkbox should appear checked.
  * @param activeTheme - Appearance theme used to mark the active View menu checkmark.
  * @param pluginThemeOptions - Plugin-provided theme menu options.
+ * @param onThemeMenuClick - Rebuilds the menu after a theme item click.
  * @returns The constructed application menu.
  */
 export function buildMenu(
   window: BrowserWindow,
   sidebarVisible = true,
   aiSidebarVisible = false,
+  collectionsVisible = true,
+  environmentsVisible = true,
   activeTheme: ThemeSource = 'system',
-  pluginThemeOptions: ThemeMenuOption[] = []
+  pluginThemeOptions: ThemeMenuOption[] = [],
+  onThemeMenuClick?: () => void
 ): Menu {
   const accelerators = resolveAcceleratorMap(getShortcutOverrides());
 
@@ -198,18 +218,46 @@ export function buildMenu(
         },
         { type: 'separator' },
         {
+          label: 'Collections',
+          type: 'checkbox',
+          checked: collectionsVisible,
+          accelerator: acceleratorFor(accelerators, 'toggle-collections-section'),
+          click: () => sendMenuAction(window, 'toggle-collections-section')
+        },
+        {
+          label: 'Environments',
+          type: 'checkbox',
+          checked: environmentsVisible,
+          accelerator: acceleratorFor(accelerators, 'toggle-environments-section'),
+          click: () => sendMenuAction(window, 'toggle-environments-section')
+        },
+        { type: 'separator' },
+        {
           role: 'togglefullscreen',
           accelerator: acceleratorFor(accelerators, 'toggle-fullscreen')
         },
-        { role: 'zoomIn', accelerator: acceleratorFor(accelerators, 'zoom-in') },
-        { role: 'zoomOut', accelerator: acceleratorFor(accelerators, 'zoom-out') },
+        {
+          label: 'Zoom In',
+          accelerator: acceleratorFor(accelerators, 'zoom-in'),
+          click: () => stepZoomIn(window.webContents)
+        },
+        {
+          label: 'Zoom Out',
+          accelerator: acceleratorFor(accelerators, 'zoom-out'),
+          click: () => stepZoomOut(window.webContents)
+        },
+        {
+          label: 'Reset Zoom',
+          accelerator: acceleratorFor(accelerators, 'reset-zoom'),
+          click: () => resetZoom(window.webContents)
+        },
         ...(isDeveloperToolsEnabled()
           ? [
               { type: 'separator' as const },
               { label: 'Developer Tools', role: 'toggleDevTools' as const }
             ]
           : []),
-        ...buildThemeMenuItems(window, activeTheme, pluginThemeOptions)
+        ...buildThemeMenuItems(window, activeTheme, pluginThemeOptions, onThemeMenuClick)
       ]
     },
     {
