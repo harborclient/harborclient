@@ -73,7 +73,7 @@ export function BackupRestoreSection(): JSX.Element {
       embedded
       title={label}
       icon={icon}
-      description="Export everything HarborClient stores locally — collections, environments, settings, chats, credentials, and UI state — into a single backup file. Restore replaces your current local data from a backup."
+      description="Export everything HarborClient stores locally — collections, environments, settings, chats, credentials, and UI state — into a single backup file."
     >
       <div className="mb-6 flex flex-col gap-3">
         <div className="flex flex-col gap-1">
@@ -85,7 +85,7 @@ export function BackupRestoreSection(): JSX.Element {
           </p>
         </div>
         <div
-          className="rounded-md border border-separator bg-sidebar px-4 py-3 text-[14px] text-text"
+          className="rounded-md border border-separator bg-sidebar px-4 py-3 mb-2 text-[16px] text-text"
           role="note"
         >
           <p className="m-0 mb-2 font-medium text-danger">Sensitive data warning</p>

@@ -133,8 +133,11 @@ export function TrustedKeysSection(): JSX.Element {
       title="Trusted keys"
       description="Add public keys for people you trust. Share tokens must be signed by a trusted sender, and you can only create share tokens for keys listed here."
     >
-      <div className="mb-4 rounded-md border border-separator p-3">
+      <div className="mb-4 p-3 flex flex-col gap-4">
         <FormGroup label="Label">
+          <p className="mb-0 text-[16px] mb-2 text-muted">
+            Add a label for the public key to help you identify it.
+          </p>
           <Input
             className="mb-3 w-full"
             type="text"
@@ -146,6 +149,9 @@ export function TrustedKeysSection(): JSX.Element {
         </FormGroup>
 
         <FormGroup label="Public key (PEM)">
+          <p className="mb-0 text-[16px] mb-2 text-muted">
+            The public key to add as a trusted key.
+          </p>
           <Textarea
             className="mb-3 min-h-24 w-full resize-y font-mono text-[14px]"
             placeholder="-----BEGIN PUBLIC KEY-----"
@@ -166,6 +172,7 @@ export function TrustedKeysSection(): JSX.Element {
           <Button
             type="button"
             variant="secondary"
+            className="rounded-full!"
             disabled={busy || !label.trim()}
             onClick={() => void handleImport()}
           >
@@ -175,7 +182,7 @@ export function TrustedKeysSection(): JSX.Element {
       </div>
 
       <AsyncListState loading={loading} loadingMessage={<LoadingMessage>Loading…</LoadingMessage>}>
-        <ResourceList>
+        <ResourceList className="flex flex-col gap-4">
           {keys.map((key) => (
             <ResourceListRow
               key={key.id}

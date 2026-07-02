@@ -254,7 +254,7 @@ export function StorageLocationsSection(): JSX.Element {
           </>
         }
       >
-        <div className="mb-4 flex flex-col gap-3">
+        <div className="mb-4 flex flex-col gap-2">
           <div className="flex flex-col gap-1">
             <span className="text-[18px] font-medium text-text">
               <SettingLabel settingId="storage.connections">Storage locations</SettingLabel>
@@ -264,7 +264,7 @@ export function StorageLocationsSection(): JSX.Element {
             </p>
           </div>
           <AsyncListState loading={loading} error={bootstrapError} onRetry={reloadConnections}>
-            <ResourceList>
+            <ResourceList className="flex flex-col gap-4">
               {connections.map((connection) => {
                 const isActive = connection.id === activeId;
                 const isLastSqlite = connection.type === 'sqlite' && sqliteCount <= 1;
@@ -319,7 +319,7 @@ export function StorageLocationsSection(): JSX.Element {
             <FieldError spacing="section">{error}</FieldError>
           )}
 
-          <p className="mb-0 mt-4 text-[14px] text-muted">
+          <p className="mb-0 mt-4 text-[16px] text-muted">
             Connection changes take effect after restarting HarborClient. All configured storage
             locations are opened at launch so shared collections are available immediately.
           </p>

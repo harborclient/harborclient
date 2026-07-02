@@ -31,8 +31,9 @@ interface Props {
  */
 export function AuthSection({ auth, collectionId, variables, onChange }: Props): JSX.Element {
   return (
-    <div className="mb-6">
-      <p className="mb-3 text-[14px] text-muted">
+    <div className="mb-6 flex flex-col gap-1">
+      <span className="text-[18px] text-muted">Authorization</span>
+      <p className="hc-form-description m-0 text-[14px] text-muted mb-2">
         Default authorization for every request in this collection. Requests can override these
         settings on their Authorization tab. Values support {'{{variable}}'} syntax.
       </p>

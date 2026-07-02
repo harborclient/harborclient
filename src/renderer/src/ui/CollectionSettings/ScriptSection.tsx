@@ -49,9 +49,12 @@ export function ScriptSection({
 }: Props): JSX.Element {
   const snippets = useAppSelector(selectSnippets);
 
+  const label = phase === 'pre' ? 'Pre-request scripts' : 'Post-request scripts';
+
   return (
-    <div className="mb-6 flex min-h-0 flex-1 flex-col">
-      <p className="mb-3 shrink-0 text-[14px] text-muted">{description}</p>
+    <div className="mb-6 flex min-h-0 flex-1 flex-col gap-1">
+      <span className="shrink-0 text-[18px] text-muted">{label}</span>
+      <p className="hc-form-description m-0 shrink-0 text-[14px] text-muted mb-2">{description}</p>
       <ScriptListEditor
         phase={phase}
         scripts={scripts}

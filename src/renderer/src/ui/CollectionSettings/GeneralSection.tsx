@@ -48,7 +48,12 @@ export function GeneralSection({
   return (
     <div className="mb-6 flex flex-col gap-4">
       <div>
-        <FormGroup label="Name" htmlFor={nameId} labelTone="muted">
+        <FormGroup
+          label="Name"
+          htmlFor={nameId}
+          labelTone="muted"
+          description="Name shown in the sidebar and when this collection is selected."
+        >
           <Input
             id={nameId}
             className="w-full"
@@ -64,7 +69,12 @@ export function GeneralSection({
       </div>
 
       <div>
-        <FormGroup label="Provider" htmlFor={providerId} labelTone="muted">
+        <FormGroup
+          label="Provider"
+          htmlFor={providerId}
+          labelTone="muted"
+          description="Changing the provider moves this collection and all of its requests."
+        >
           <Select
             id={providerId}
             className="w-full"
@@ -80,11 +90,6 @@ export function GeneralSection({
           </Select>
           {providersLoading && <LoadingMessage className="mb-0 mt-1">Loading…</LoadingMessage>}
           {providersError && <ErrorRetry error={providersError} onRetry={onProvidersRetry} />}
-          {!providersLoading && !providersError && (
-            <p className="mb-0 mt-1 text-[14px] text-muted">
-              Changing the provider moves this collection and all of its requests.
-            </p>
-          )}
         </FormGroup>
       </div>
     </div>

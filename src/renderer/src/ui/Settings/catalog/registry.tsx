@@ -2,6 +2,9 @@ import type { ComponentType, JSX } from 'react';
 import type { SettingsSection } from '#/shared/types';
 
 import { AiInfoExtra } from '../extras/AiInfoExtra';
+import { GeneralInfoExtra } from '../extras/GeneralInfoExtra';
+import { ProxyInfoExtra } from '../extras/ProxyInfoExtra';
+import { SyntaxInfoExtra } from '../extras/SyntaxInfoExtra';
 import { SyntaxPreviewExtra } from '../extras/SyntaxPreviewExtra';
 import { BackupRestoreSection } from '../BackupRestoreSection';
 import { GlobalsSection } from '../GlobalsSection';
@@ -73,11 +76,20 @@ export const SETTINGS_SECTION_REGISTRY: Record<
 };
 
 /**
+ * Optional leading content rendered before field components in a form section.
+ */
+export const FORM_SECTION_LEADING_EXTRAS: Partial<Record<FormSettingsSection, ComponentType>> = {
+  general: GeneralInfoExtra,
+  ai: AiInfoExtra,
+  proxy: ProxyInfoExtra,
+  syntax: SyntaxInfoExtra
+};
+
+/**
  * Optional trailing content rendered after field components in a form section.
  */
 export const FORM_SECTION_EXTRAS: Partial<Record<FormSettingsSection, ComponentType>> = {
-  syntax: SyntaxPreviewExtra,
-  ai: AiInfoExtra
+  syntax: SyntaxPreviewExtra
 };
 
 /**

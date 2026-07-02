@@ -16,6 +16,7 @@ import {
 } from './catalog';
 import {
   FORM_SECTION_EXTRAS,
+  FORM_SECTION_LEADING_EXTRAS,
   isManagementSettingsSection,
   renderSettingFields,
   SETTINGS_SECTION_REGISTRY
@@ -26,6 +27,23 @@ interface Props {
    * Built-in settings section to render in normal navigation mode.
    */
   section: SettingsSection;
+}
+
+/**
+ * Renders optional leading content configured for a form section.
+ *
+ * @param section - Form settings section id.
+ */
+function FormSectionLeadingExtras({
+  section
+}: {
+  section: FormSettingsSection;
+}): JSX.Element | null {
+  const ExtraComponent = FORM_SECTION_LEADING_EXTRAS[section];
+  if (!ExtraComponent) {
+    return null;
+  }
+  return <ExtraComponent />;
 }
 
 /**
@@ -91,9 +109,10 @@ export function SettingsRenderer({ section }: Props): JSX.Element | null {
         description={FORM_SECTION_DESCRIPTIONS[section]}
       >
         <SettingsDraftError />
+        <FormSectionLeadingExtras section={section} />
         <div className="mb-6 flex flex-col gap-6">{renderSettingFields(fieldIds)}</div>
         <FormSectionExtras section={section} />
-        <div className="mt-6">
+        <div className="mt-2">
           <SettingsSaveFooter />
         </div>
       </Page>

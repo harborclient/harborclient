@@ -1,7 +1,8 @@
-import { Button, Page, Input, Textarea, FormGroup } from '@harborclient/sdk/components';
+import { Button, FaIcon, Page, Input, Textarea, FormGroup } from '@harborclient/sdk/components';
 import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { SharingIdentity } from '#/shared/types';
+import { faPlus } from '#/renderer/src/fontawesome';
 
 /**
  * Local sharing identity: fingerprint, export, and import.
@@ -101,17 +102,31 @@ export function IdentitySection(): JSX.Element {
       embedded
       title="My identity"
       description="Your key pair signs share tokens you send and decrypts tokens addressed to you. Share your public key so collaborators can trust and encrypt to you."
+      actions={
+        <Button
+          type="button"
+          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
+          disabled={busy}
+          onClick={() => void handleImportKeyPair()}
+        >
+          <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
+          Import key pair
+        </Button>
+      }
     >
       {loading ? (
         <p role="status" className="text-[14px] text-muted">
           Loading…
         </p>
       ) : identity ? (
-        <>
+        <div className="flex flex-col gap-4">
           <FormGroup label="Fingerprint" htmlFor="identity-fingerprint">
+            <p className="mb-0 text-[16px] mb-2 text-muted">
+              The SHA-256 fingerprint of your public key.
+            </p>
             <Input
               id="identity-fingerprint"
-              className="mb-4 w-full font-mono text-[14px]"
+              className="w-full font-mono text-[14px]"
               readOnly
               value={identity.fingerprint}
               onFocus={(event) => event.target.select()}
@@ -119,48 +134,48 @@ export function IdentitySection(): JSX.Element {
           </FormGroup>
 
           <FormGroup label="Public key">
+            <p className="mb-0 text-[16px] mb-2 text-muted">
+              Keep your private key secret. Anyone with it can sign share tokens as you.
+            </p>
+
             <Textarea
-              className="mb-4 min-h-56 w-full resize-y font-mono text-[14px]"
+              className="min-h-66 w-full resize-y font-mono text-[16px] mb-2"
               readOnly
               value={identity.publicKeyPem}
               onFocus={(event) => event.target.select()}
             />
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy}
+                className="rounded-full!"
+                onClick={() => void handleCopyPublicKey()}
+              >
+                Copy public key
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy}
+                className="rounded-full!"
+                onClick={() => void handleExportPublicKey()}
+              >
+                Export public key
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy}
+                className="rounded-full!"
+                onClick={() => void handleExportPrivateKey()}
+              >
+                Export private key
+              </Button>
+            </div>
           </FormGroup>
-
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={busy}
-              onClick={() => void handleCopyPublicKey()}
-            >
-              Copy public key
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={busy}
-              onClick={() => void handleExportPublicKey()}
-            >
-              Export public key
-            </Button>
-            <Button
-              type="button"
-              variant="secondaryDanger"
-              disabled={busy}
-              onClick={() => void handleExportPrivateKey()}
-            >
-              Export private key
-            </Button>
-            <Button type="button" disabled={busy} onClick={() => void handleImportKeyPair()}>
-              Import key pair
-            </Button>
-          </div>
-
-          <p className="mb-0 mt-4 text-[14px] text-danger">
-            Keep your private key secret. Anyone with it can sign share tokens as you.
-          </p>
-        </>
+        </div>
       ) : null}
 
       {error && <p className="mt-3 text-[14px] text-danger">{error}</p>}

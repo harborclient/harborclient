@@ -255,7 +255,7 @@ function CollectionSettingsForm({
   return (
     <Page
       embedded
-      className="flex min-h-0 flex-1 flex-col p-6"
+      className="flex min-h-0 flex-1 flex-col p-6 pt-0!"
       title="Collection Settings"
       description="Manage collection settings and configuration"
       footer={
@@ -275,7 +275,7 @@ function CollectionSettingsForm({
         ariaLabel="Collection settings sections"
       >
         <div className="-mx-6 -mt-3 mb-6 shrink-0">
-          <SegmentedTabs fullWidth tabs={tabs} />
+          <SegmentedTabs tabs={tabs} />
         </div>
 
         <div className="hc-scroll-stable -mx-6 flex min-h-0 flex-1 flex-col overflow-y-auto px-6">

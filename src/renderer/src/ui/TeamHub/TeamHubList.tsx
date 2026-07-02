@@ -1,6 +1,7 @@
 import {
   AsyncListState,
   Button,
+  FaIcon,
   FieldError,
   Modal,
   ModalFooter,
@@ -14,7 +15,7 @@ import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { TeamHub, TeamHubServiceFlags } from '#/shared/types';
 
-import { faUsers } from '#/renderer/src/fontawesome';
+import { faPlus, faUsers } from '#/renderer/src/fontawesome';
 
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { refreshCollections } from '#/renderer/src/store/thunks/collections';
@@ -251,17 +252,18 @@ export function TeamHubList({
         title="Team Hub"
         icon={faUsers}
         description="Connect to HarborClient Team Hub instances for shared collections and environments."
-      >
-        <div className="mb-4">
+        actions={
           <Button
             type="button"
-            className="shrink-0 whitespace-nowrap"
+            className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
             disabled={loading}
             onClick={handleAdd}
           >
-            Add team hub
+            <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
+            Add
           </Button>
-        </div>
+        }
+      >
         <AsyncListState
           loading={loading}
           error={bootstrapError}
@@ -269,7 +271,7 @@ export function TeamHubList({
           isEmpty={teamHubs.length === 0}
           emptyMessage="No team hubs configured yet."
         >
-          <ResourceList>
+          <ResourceList className="flex flex-col gap-4">
             {teamHubs.map((hub) => (
               <ResourceListRow
                 key={hub.id}

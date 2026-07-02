@@ -196,7 +196,7 @@ export function SnippetsSection(): JSX.Element {
           isEmpty={!loading && !loadError && snippets.length === 0}
           emptyMessage="No snippets yet."
         >
-          <ResourceList>
+          <ResourceList className="flex flex-col gap-4">
             {snippets.map((snippet) => (
               <ResourceListRow
                 key={snippet.id}

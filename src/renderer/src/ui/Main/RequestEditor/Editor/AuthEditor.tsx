@@ -119,7 +119,12 @@ export function AuthEditor({
   return (
     <div className="flex flex-col">
       <div className="shrink-0 w-full mb-4">
-        <FormGroup label="Auth Type" htmlFor="auth-type" labelTone="muted">
+        <FormGroup
+          label="Auth Type"
+          htmlFor="auth-type"
+          labelTone="muted"
+          description="Authorization scheme applied to requests unless overridden per request."
+        >
           <Select
             id="auth-type"
             className="w-full"
@@ -144,7 +149,12 @@ export function AuthEditor({
         {auth.type === 'basic' && (
           <div className="flex flex-col gap-3">
             <div>
-              <FormGroup label="Username" htmlFor="auth-username" labelTone="muted">
+              <FormGroup
+                label="Username"
+                htmlFor="auth-username"
+                labelTone="muted"
+                description="Sent using HTTP Basic authentication."
+              >
                 <VariableInput
                   id="auth-username"
                   wrapperClassName={`${fieldFrame} w-full`}
@@ -158,7 +168,12 @@ export function AuthEditor({
               </FormGroup>
             </div>
             <div>
-              <FormGroup label="Password" htmlFor="auth-password" labelTone="muted">
+              <FormGroup
+                label="Password"
+                htmlFor="auth-password"
+                labelTone="muted"
+                description="Sent using HTTP Basic authentication."
+              >
                 <VariableInput
                   id="auth-password"
                   wrapperClassName={`${fieldFrame} w-full`}
@@ -176,7 +191,12 @@ export function AuthEditor({
 
         {auth.type === 'bearer' && (
           <div>
-            <FormGroup label="Token" htmlFor="auth-token" labelTone="muted">
+            <FormGroup
+              label="Token"
+              htmlFor="auth-token"
+              labelTone="muted"
+              description="Value sent in the Authorization header as a Bearer token."
+            >
               <CodeEditor
                 id="auth-token"
                 value={auth.bearer.token}
@@ -194,7 +214,12 @@ export function AuthEditor({
         {auth.type === 'oauth2' && (
           <div className="flex flex-col gap-3">
             <div>
-              <FormGroup label="Token URL" htmlFor="auth-oauth-token-url" labelTone="muted">
+              <FormGroup
+                label="Token URL"
+                htmlFor="auth-oauth-token-url"
+                labelTone="muted"
+                description="OAuth 2.0 token endpoint for the Client Credentials grant."
+              >
                 <VariableInput
                   id="auth-oauth-token-url"
                   wrapperClassName={`${fieldFrame} w-full`}
@@ -210,7 +235,12 @@ export function AuthEditor({
               </FormGroup>
             </div>
             <div>
-              <FormGroup label="Client ID" htmlFor="auth-oauth-client-id" labelTone="muted">
+              <FormGroup
+                label="Client ID"
+                htmlFor="auth-oauth-client-id"
+                labelTone="muted"
+                description="OAuth client identifier registered with the token provider."
+              >
                 <VariableInput
                   id="auth-oauth-client-id"
                   wrapperClassName={`${fieldFrame} w-full`}
@@ -226,7 +256,12 @@ export function AuthEditor({
               </FormGroup>
             </div>
             <div>
-              <FormGroup label="Client Secret" htmlFor="auth-oauth-client-secret" labelTone="muted">
+              <FormGroup
+                label="Client Secret"
+                htmlFor="auth-oauth-client-secret"
+                labelTone="muted"
+                description="OAuth client secret registered with the token provider."
+              >
                 <VariableInput
                   id="auth-oauth-client-secret"
                   wrapperClassName={`${fieldFrame} w-full`}
@@ -242,7 +277,12 @@ export function AuthEditor({
               </FormGroup>
             </div>
             <div>
-              <FormGroup label="Scope" htmlFor="auth-oauth-scope" labelTone="muted">
+              <FormGroup
+                label="Scope"
+                htmlFor="auth-oauth-scope"
+                labelTone="muted"
+                description="Space-separated OAuth scopes requested when fetching a token."
+              >
                 <VariableInput
                   id="auth-oauth-scope"
                   wrapperClassName={`${fieldFrame} w-full`}
@@ -256,7 +296,12 @@ export function AuthEditor({
               </FormGroup>
             </div>
             <div>
-              <FormGroup label="Audience" htmlFor="auth-oauth-audience" labelTone="muted">
+              <FormGroup
+                label="Audience"
+                htmlFor="auth-oauth-audience"
+                labelTone="muted"
+                description="Optional audience claim for token requests that require one."
+              >
                 <VariableInput
                   id="auth-oauth-audience"
                   wrapperClassName={`${fieldFrame} w-full`}
@@ -276,6 +321,7 @@ export function AuthEditor({
                 label="Client Authentication"
                 htmlFor="auth-oauth-client-auth"
                 labelTone="muted"
+                description="How client credentials are sent to the token endpoint."
               >
                 <Select
                   id="auth-oauth-client-auth"

@@ -223,7 +223,7 @@ export function ShortcutsSection(): JSX.Element {
               label="Search shortcuts"
               htmlFor="shortcut-search"
               srOnly
-              className="mb-3 w-full"
+              className="mb-4 w-full"
             >
               <Input
                 id="shortcut-search"
@@ -299,7 +299,7 @@ export function ShortcutsSection(): JSX.Element {
             </StatusMessage>
 
             <div className="mt-4 rounded-md border border-danger/30 bg-danger/5 p-3">
-              <p className="m-0 mb-2 text-[14px] text-text">
+              <p className="m-0 mb-2 text-[16px] text-text">
                 Restore all shortcuts to their original defaults. This cannot be undone.
               </p>
               <Button

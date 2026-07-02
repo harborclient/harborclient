@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(ui): enhance settings and editor sections with improved descriptions and layout. (`26ba43d`)
+
 ## 1.9.15 - 2026-07-02
 
 - refactor(verifiedPublisherBadge): remove unused badge functionality and update import path. (`c577bb4`)

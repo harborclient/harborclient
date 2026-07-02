@@ -99,6 +99,8 @@ function EnvironmentSettingsForm({
 
   return (
     <Page
+      embedded
+      className="flex min-h-0 flex-1 flex-col overflow-y-auto p-6 pt-0!"
       title="Environment Settings"
       description="Manage environment settings and configuration"
       footer={
@@ -110,7 +112,12 @@ function EnvironmentSettingsForm({
       }
     >
       <div className="mb-6">
-        <FormGroup label="Name" htmlFor={nameId} labelTone="muted">
+        <FormGroup
+          label="Name"
+          htmlFor={nameId}
+          labelTone="muted"
+          description="Name shown in the sidebar and environment selector."
+        >
           <Input
             id={nameId}
             className="w-full"
@@ -125,12 +132,13 @@ function EnvironmentSettingsForm({
         </FormGroup>
       </div>
 
-      <div className="mb-6">
-        <VariableTable
-          variables={variables}
-          onChange={setVariables}
-          description={`Use variables in request URLs with {{variable}} syntax. When value is empty, the default is used. Environment variables override collection variables with the same key.`}
-        />
+      <div className="mb-6 flex flex-col gap-1">
+        <span className="text-[18px] text-muted">Variables</span>
+        <p className="hc-form-description m-0 text-[14px] text-muted mb-2">
+          Use variables in request URLs with {'{{variable}}'} syntax. When value is empty, the
+          default is used. Environment variables override collection variables with the same key.
+        </p>
+        <VariableTable variables={variables} onChange={setVariables} />
       </div>
     </Page>
   );
