@@ -67,7 +67,7 @@ import {
 } from '#/renderer/src/ui/shared/toastA11y';
 import { PluginHost } from '#/renderer/src/plugins/PluginHost';
 import { PluginThemePrompt } from '#/renderer/src/plugins/PluginThemePrompt';
-import { applyThemeAttribute } from '#/renderer/src/theme';
+import { applyThemeAttribute, subscribeContrastPreferenceChanges } from '#/renderer/src/theme';
 import { platformClassName } from '#/renderer/src/platform';
 
 /**
@@ -116,17 +116,36 @@ export default function App(): JSX.Element {
   }, [dispatch]);
 
   /**
-   * Applies the persisted high-contrast CSS override on launch.
+   * Applies the high-contrast CSS override on launch and when the OS contrast
+   * preference changes while the user keeps theme set to System.
    */
   useEffect(() => {
     let cancelled = false;
-    window.api.getTheme().then((theme) => {
-      if (!cancelled) {
-        applyThemeAttribute(theme);
+
+    /**
+     * Loads the persisted theme and applies the matching root attribute.
+     */
+    const applyFromSettings = (): void => {
+      void window.api.getTheme().then((theme) => {
+        if (!cancelled) {
+          applyThemeAttribute(theme);
+        }
+      });
+    };
+
+    applyFromSettings();
+    const unsubscribeContrast = subscribeContrastPreferenceChanges(
+      () => window.api.getTheme(),
+      (theme) => {
+        if (!cancelled) {
+          applyThemeAttribute(theme);
+        }
       }
-    });
+    );
+
     return () => {
       cancelled = true;
+      unsubscribeContrast();
     };
   }, []);
 

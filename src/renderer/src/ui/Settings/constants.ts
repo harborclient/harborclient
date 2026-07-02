@@ -46,6 +46,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   maxResponseSizeMb: 50,
   verifySsl: true,
   followRedirects: true,
+  warnWhenSwitchingThemes: true,
   codeEditorTheme: 'default',
   codeEditorSetup: { ...DEFAULT_CODE_EDITOR_SETUP },
   proxy: { ...DEFAULT_PROXY_SETTINGS },

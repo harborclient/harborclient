@@ -1,5 +1,7 @@
 import { parsePluginThemeValue } from '#/shared/plugin/types';
+import type { ThemeSource } from '#/shared/types';
 import { getRegisteredPluginThemes } from '#/renderer/src/plugins/registry';
+import { applyThemeAttribute } from '#/renderer/src/theme';
 
 const STYLE_ELEMENT_ID = 'harborclient-plugin-theme-style';
 
@@ -92,9 +94,7 @@ export async function applyPersistedPluginTheme(): Promise<void> {
   const parsed = parsePluginThemeValue(theme);
   if (!parsed) {
     clearInjectedThemeStyle();
-    if (theme !== 'high-contrast') {
-      document.documentElement.removeAttribute('data-theme');
-    }
+    applyThemeAttribute(theme);
     return;
   }
 
@@ -117,12 +117,6 @@ export async function applyPersistedPluginTheme(): Promise<void> {
  * @param theme - Persisted theme preference.
  */
 export async function applyThemePreference(theme: string): Promise<void> {
-  if (theme === 'high-contrast') {
-    clearInjectedThemeStyle();
-    document.documentElement.setAttribute('data-theme', 'high-contrast');
-    return;
-  }
-
   const parsed = parsePluginThemeValue(theme);
   if (parsed) {
     await applyPluginTheme(parsed.pluginId, parsed.themeId);
@@ -130,5 +124,5 @@ export async function applyThemePreference(theme: string): Promise<void> {
   }
 
   clearInjectedThemeStyle();
-  document.documentElement.removeAttribute('data-theme');
+  applyThemeAttribute(theme as ThemeSource);
 }

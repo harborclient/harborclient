@@ -127,6 +127,11 @@ export interface GeneralSettings {
   followRedirects: boolean;
 
   /**
+   * When true, switching appearance themes from the View menu shows a confirmation dialog.
+   */
+  warnWhenSwitchingThemes: boolean;
+
+  /**
    * CodeMirror syntax theme applied to all editor instances.
    */
   codeEditorTheme: CodeEditorTheme;

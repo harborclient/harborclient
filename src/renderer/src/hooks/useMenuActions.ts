@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useStore } from 'react-redux';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   openAboutModal,
@@ -20,10 +21,12 @@ import {
 import {
   dispatchNewRequest,
   importFromMenu,
+  patchGeneralSettings,
   runSync,
   saveFromMenu,
   sendRequest
 } from '#/renderer/src/store/thunks';
+import type { RootState } from '#/renderer/src/store/redux';
 import {
   restoreLastFocusWithoutRing,
   useLastFocusedElement
@@ -37,6 +40,7 @@ import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
  */
 export function useMenuActions(): void {
   const dispatch = useAppDispatch();
+  const store = useStore<RootState>();
   const sidebarVisible = useAppSelector(selectSidebarVisible);
   const aiSidebarVisible = useAppSelector(selectAiSidebarVisible);
   const lastFocusedRef = useLastFocusedElement();
@@ -144,13 +148,21 @@ export function useMenuActions(): void {
           return;
         }
 
-        const confirmed = await showConfirm(dispatch, {
-          title: 'Switch theme?',
-          message: `Switch appearance to ${label}?`,
-          confirmLabel: 'Switch theme'
-        });
-        if (!confirmed) {
-          return;
+        const warnWhenSwitchingThemes = store.getState().settings.general.warnWhenSwitchingThemes;
+
+        if (warnWhenSwitchingThemes) {
+          const result = await showConfirm(dispatch, {
+            title: 'Switch theme?',
+            message: `Switch appearance to ${label}?`,
+            confirmLabel: 'Switch theme',
+            checkboxLabel: 'Do not ask again'
+          });
+          if (!result.confirmed) {
+            return;
+          }
+          if (result.checkboxChecked) {
+            await dispatch(patchGeneralSettings({ warnWhenSwitchingThemes: false }));
+          }
         }
 
         try {
@@ -162,7 +174,7 @@ export function useMenuActions(): void {
       })();
     });
     return unsubscribe;
-  }, [dispatch]);
+  }, [dispatch, store]);
 
   /**
    * Routes plugin menu command clicks to registered plugin command handlers.

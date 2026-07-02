@@ -61,7 +61,8 @@ describe('dialogHelpers', () => {
         message: 'Delete this item?',
         confirmLabel: 'Delete',
         cancelLabel: 'Cancel',
-        variant: 'danger'
+        variant: 'danger',
+        checkboxLabel: undefined
       }
     });
 
@@ -72,5 +73,38 @@ describe('dialogHelpers', () => {
     const cancelled = showConfirm(dispatch, { title: 'Delete', message: 'Again?' });
     resolveConfirm(dispatch, false);
     await expect(cancelled).resolves.toBe(false);
+  });
+
+  it('showConfirm with checkbox resolves ConfirmResult including checkbox state', async () => {
+    const dispatch = vi.fn();
+    const pending = showConfirm(dispatch, {
+      title: 'Switch theme?',
+      message: 'Switch appearance?',
+      confirmLabel: 'Switch theme',
+      checkboxLabel: 'Do not ask again'
+    });
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: setConfirmModal.type,
+      payload: {
+        title: 'Switch theme?',
+        message: 'Switch appearance?',
+        confirmLabel: 'Switch theme',
+        cancelLabel: 'Cancel',
+        variant: 'default',
+        checkboxLabel: 'Do not ask again'
+      }
+    });
+
+    resolveConfirm(dispatch, true, true);
+    await expect(pending).resolves.toEqual({ confirmed: true, checkboxChecked: true });
+
+    const cancelled = showConfirm(dispatch, {
+      title: 'Switch theme?',
+      message: 'Again?',
+      checkboxLabel: 'Do not ask again'
+    });
+    resolveConfirm(dispatch, false, true);
+    await expect(cancelled).resolves.toEqual({ confirmed: false, checkboxChecked: true });
   });
 });

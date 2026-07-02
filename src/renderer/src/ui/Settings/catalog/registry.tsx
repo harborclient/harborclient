@@ -12,6 +12,7 @@ import { AiClaudeApiKeyField } from '../fields/AiClaudeApiKeyField';
 import { AiGeminiApiKeyField } from '../fields/AiGeminiApiKeyField';
 import { AiOpenAiApiKeyField } from '../fields/AiOpenAiApiKeyField';
 import { GeneralFollowRedirectsField } from '../fields/GeneralFollowRedirectsField';
+import { GeneralWarnWhenSwitchingThemesField } from '../fields/GeneralWarnWhenSwitchingThemesField';
 import { GeneralMaxResponseSizeField } from '../fields/GeneralMaxResponseSizeField';
 import { GeneralRequestTimeoutField } from '../fields/GeneralRequestTimeoutField';
 import { GeneralVerifySslField } from '../fields/GeneralVerifySslField';
@@ -39,6 +40,7 @@ export const SETTINGS_FIELD_REGISTRY: Record<FieldSettingId, ComponentType> = {
   'general.maxResponseSizeMb': GeneralMaxResponseSizeField,
   'general.verifySsl': GeneralVerifySslField,
   'general.followRedirects': GeneralFollowRedirectsField,
+  'general.warnWhenSwitchingThemes': GeneralWarnWhenSwitchingThemesField,
   'proxy.enabled': ProxyEnabledField,
   'proxy.protocol': ProxyProtocolField,
   'proxy.host': ProxyHostField,

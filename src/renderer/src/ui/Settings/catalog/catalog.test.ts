@@ -26,6 +26,7 @@ const EXPECTED_FIELD_IDS: FieldSettingId[] = [
   'general.maxResponseSizeMb',
   'general.verifySsl',
   'general.followRedirects',
+  'general.warnWhenSwitchingThemes',
   'proxy.enabled',
   'proxy.protocol',
   'proxy.host',

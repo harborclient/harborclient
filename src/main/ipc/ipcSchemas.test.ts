@@ -229,6 +229,7 @@ describe('generalSettings', () => {
     maxResponseSizeMb: 50,
     verifySsl: true,
     followRedirects: true,
+    warnWhenSwitchingThemes: true,
     codeEditorTheme: 'default' as const,
     codeEditorSetup: {
       lineNumbers: true,

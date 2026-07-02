@@ -42,9 +42,9 @@
 
     --mac-surface: #f5f5f7;
     --mac-sidebar: #ececee;
-    --mac-sidebar-section: color-mix(in srgb, var(--mac-sidebar) 93%, black);
+    --mac-sidebar-section: var(--mac-selection);
     --mac-control: #ffffff;
-    --mac-field: color-mix(in srgb, black 6%, var(--mac-surface));
+    --mac-field: var(--mac-control);
     --mac-separator: rgba(0, 0, 0, 0.08);
     --mac-text: rgba(0, 0, 0, 0.85);
     --mac-text-secondary: rgba(0, 0, 0, 0.65);
@@ -103,6 +103,10 @@
     }
   }
 
+  /*
+   * High-contrast palette — solid hex only. Ratios vs #000000 unless noted.
+   * Source of truth for tests: src/shared/highContrastPalette.ts
+   */
   :root[data-theme='high-contrast'] {
     color-scheme: dark;
 
@@ -110,14 +114,14 @@
     --mac-sidebar: #000000;
     --mac-sidebar-section: #000000;
     --mac-control: #000000;
-    --mac-field: color-mix(in srgb, white 8%, var(--mac-surface));
-    --mac-separator: rgba(255, 255, 255, 0.6);
+    --mac-field: #141414;
+    --mac-separator: #9e9e9e;
     --mac-text: #ffffff;
     --mac-text-secondary: #ffffff;
-    --mac-muted: rgba(255, 255, 255, 0.85);
+    --mac-muted: #d0d0d0;
     --mac-accent: #4dabff;
-    --mac-selection: rgba(77, 171, 255, 0.4);
-    --mac-danger: #ff6961;
+    --mac-selection: #14487a;
+    --mac-danger: #ff8a80;
     --mac-danger-light: #ffb4af;
     --mac-warning: #ffb340;
     --mac-success: #5ce06a;
@@ -126,10 +130,63 @@
     --mac-method-post: #4dabff;
     --mac-method-put: #ffd60a;
     --mac-method-patch: #bf9bff;
-    --mac-method-delete: #ff6961;
+    --mac-method-delete: #ff8a80;
     --mac-method-head: #ffffff;
     --mac-method-options: #ffffff;
     --mac-resize-handle: #ffd60a;
+    --mac-variable-token: #5fe3f0;
+  }
+
+  /**
+   * Windows Contrast Themes and other forced-colors environments map HarborClient
+   * tokens to CSS system color keywords so the OS palette drives the UI.
+   */
+  @media (forced-colors: active) {
+    :root {
+      color-scheme: light dark;
+
+      --mac-surface: Canvas;
+      --mac-sidebar: Canvas;
+      --mac-sidebar-section: Canvas;
+      --mac-control: Canvas;
+      --mac-field: Field;
+      --mac-separator: GrayText;
+      --mac-text: CanvasText;
+      --mac-text-secondary: CanvasText;
+      --mac-muted: GrayText;
+      --mac-accent: LinkText;
+      --mac-selection: Highlight;
+      --mac-danger: LinkText;
+      --mac-danger-light: LinkText;
+      --mac-warning: CanvasText;
+      --mac-success: CanvasText;
+      --mac-info: CanvasText;
+      --mac-method-get: CanvasText;
+      --mac-method-post: LinkText;
+      --mac-method-put: CanvasText;
+      --mac-method-patch: CanvasText;
+      --mac-method-delete: LinkText;
+      --mac-method-head: CanvasText;
+      --mac-method-options: CanvasText;
+      --mac-resize-handle: CanvasText;
+      --mac-variable-token: LinkText;
+    }
+
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible,
+    button:focus-visible,
+    a:focus-visible,
+    [tabindex]:not([tabindex='-1']):focus-visible,
+    [role='button']:focus-visible {
+      outline: 2px solid Highlight;
+      outline-offset: 1px;
+      box-shadow: none;
+    }
+
+    .hc-button.bg-accent {
+      border: 1px solid ButtonBorder;
+    }
   }
 
   :root[data-theme='high-contrast'] input:focus-visible,
@@ -246,6 +303,15 @@
     font-size: 16px !important;
   }
 
+  /**
+   * Checkbox form groups — match stacked label/description spacing. The SDK
+   * applies leading-none on the checkbox label row, which collapses line height
+   * and makes the gap to the description look tighter than stacked fields.
+   */
+  .hc-form-group > label:has(> span.flex.items-center) > span.flex.items-center > span:last-child {
+    line-height: inherit;
+  }
+
   @media (prefers-color-scheme: dark) {
     .hc-page .hc-form-description {
       color: rgba(255, 255, 255, 0.72);
@@ -307,7 +373,7 @@
 
   :root[data-theme='high-contrast'] [role='separator']:hover,
   :root[data-theme='high-contrast'] [role='separator']:focus-visible {
-    background-color: color-mix(in srgb, var(--mac-resize-handle) 30%, transparent) !important;
+    background-color: #332b00 !important;
   }
 
   :root[data-theme='high-contrast'] [role='separator'] > div[aria-hidden='true'] {
@@ -319,6 +385,13 @@
     background-color: var(--mac-resize-handle) !important;
     border-color: var(--mac-resize-handle) !important;
     color: #000000 !important;
+  }
+
+  /**
+   * Footer slide-up panels share the tab bar / sidebar chrome background.
+   */
+  .hc-resizable.bg-surface {
+    background-color: var(--color-sidebar);
   }
 
   :root[data-theme='high-contrast'] .hc-footer-button,
@@ -339,7 +412,7 @@
     nav[aria-label='Collections']
     .sidebar-source-list
     .bg-selection {
-    background-color: color-mix(in srgb, var(--mac-resize-handle) 40%, transparent) !important;
+    background-color: var(--mac-selection) !important;
   }
 
   /**
@@ -349,11 +422,48 @@
     nav[aria-label='Environments']
     .sidebar-source-list
     .bg-selection {
-    background-color: color-mix(in srgb, var(--mac-resize-handle) 40%, transparent) !important;
+    background-color: var(--mac-selection) !important;
+  }
+
+  :root[data-theme='high-contrast'] .hc-page .hc-form-description {
+    color: var(--mac-muted);
   }
 }
 
 @layer utilities {
+  /**
+   * Circular hover/focus background for document-style tab bar icon buttons. Must
+   * live in utilities so this overrides Tailwind's rounded-md on the same element.
+   * Drop self-stretch so the control stays square instead of a full-height pill.
+   */
+  .hc-tab-close-button,
+  .hc-tab-new-button,
+  .hc-tab-bar-icon-button {
+    align-self: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    aspect-ratio: auto;
+    border-radius: 9999px;
+  }
+
+  /**
+   * Circular hover/focus background for sidebar section add buttons. Slightly
+   * larger than row hamburger triggers so the + reads as the primary action.
+   */
+  .hc-sidebar-add-button {
+    width: 2rem;
+    height: 2rem;
+    aspect-ratio: auto;
+    border-radius: 9999px;
+  }
+
+  /**
+   * Hamburger row-action triggers in the collections and environments lists.
+   */
+  .sidebar-source-list .hc-row-actions-menu .hc-button {
+    border-radius: 9999px;
+  }
+
   /**
    * Pill-shaped primary buttons on full pages. Must live in utilities so this
    * overrides Tailwind's rounded-md on the same element.
@@ -410,6 +520,10 @@
 
 ::highlight(hc-variable-token) {
   color: #32d2e2;
+}
+
+:root[data-theme='high-contrast'] ::highlight(hc-variable-token) {
+  color: var(--mac-variable-token);
 }
 
 /**
@@ -487,6 +601,11 @@
 
 .request-comment-editor .cm-variable-token {
   color: #32d2e2;
+}
+
+:root[data-theme='high-contrast'] .request-comment-editor .cm-variable-token,
+:root[data-theme='high-contrast'] .request-body-editor .cm-variable-token {
+  color: var(--mac-variable-token);
 }
 
 .request-comment-editor .cm-tooltip.cm-tooltip-hover {

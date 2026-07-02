@@ -81,10 +81,10 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
           />
         ))}
       </div>
-      <div className="relative flex shrink-0 items-stretch gap-0.5 self-stretch">
+      <div className="relative flex shrink-0 items-end gap-0.5 px-1 -mb-1">
         <button
           type="button"
-          className="inline-flex cursor-pointer items-center justify-center self-stretch rounded-t-md border border-b-0 border-transparent bg-transparent px-2 py-2 text-muted hover:bg-selection/60 hover:text-text app-no-drag"
+          className="hc-tab-bar-icon-button mb-2.5 inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text app-no-drag"
           title="Chat history"
           aria-label="Chat history"
           aria-haspopup="menu"
@@ -95,7 +95,7 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
         </button>
         <button
           type="button"
-          className="inline-flex cursor-pointer items-center justify-center self-stretch rounded-t-md border border-b-0 border-transparent bg-transparent px-2 py-2 text-muted hover:bg-selection/60 hover:text-text app-no-drag"
+          className="hc-tab-bar-icon-button mb-2.5 inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text app-no-drag"
           title="New chat"
           aria-label="New chat"
           onClick={() => void dispatch(createNewChat(aiSettings))}

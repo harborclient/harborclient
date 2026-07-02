@@ -32,6 +32,8 @@ export interface ConfirmModalState {
   confirmLabel: string;
   cancelLabel: string;
   variant: 'default' | 'danger';
+  /** When set, renders an optional checkbox below the message (e.g. "Do not ask again"). */
+  checkboxLabel?: string;
 }
 
 /**

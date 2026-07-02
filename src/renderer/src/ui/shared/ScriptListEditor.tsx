@@ -955,7 +955,7 @@ export function ScriptListEditor({
         <Button
           type="button"
           variant="secondary"
-          className="w-[170px] shrink-0 gap-1 whitespace-nowrap rounded-full!"
+          className="shrink-0 gap-2 whitespace-nowrap rounded-full!"
           aria-haspopup="menu"
           aria-expanded={snippetMenuOpen}
           aria-controls={snippetMenuOpen ? snippetMenuId : undefined}

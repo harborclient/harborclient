@@ -216,6 +216,7 @@ export const generalSettings = z.object({
   maxResponseSizeMb: z.number().min(0).max(HARD_MAX_RESPONSE_SIZE_MB),
   verifySsl: z.boolean(),
   followRedirects: z.boolean(),
+  warnWhenSwitchingThemes: z.boolean(),
   codeEditorTheme: z.enum(CODE_EDITOR_THEME_IDS),
   codeEditorSetup: z.object({
     lineNumbers: z.boolean(),

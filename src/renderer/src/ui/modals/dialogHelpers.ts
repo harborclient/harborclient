@@ -15,6 +15,18 @@ export interface ConfirmOptions {
   cancelLabel?: string;
   /** When "danger", the confirm button uses destructive styling. */
   variant?: 'default' | 'danger';
+  /** When set, renders a checkbox below the message with this label. */
+  checkboxLabel?: string;
+}
+
+/**
+ * Result from a confirmation dialog that includes an optional checkbox.
+ */
+export interface ConfirmResult {
+  /** Whether the user confirmed the action. */
+  confirmed: boolean;
+  /** Whether the optional checkbox was checked when the dialog closed. */
+  checkboxChecked: boolean;
 }
 
 /**
@@ -25,7 +37,8 @@ export interface AlertOptions {
   icon?: 'warning';
 }
 
-let confirmResolver: ((confirmed: boolean) => void) | null = null;
+let confirmResolver: ((confirmed: boolean, checkboxChecked: boolean) => void) | null = null;
+let confirmHasCheckbox = false;
 
 const IPC_ERROR_PREFIX = /^Error invoking remote method '[^']+':\s*(?:Error:\s*)?/i;
 
@@ -74,22 +87,54 @@ export function showAlert(
 }
 
 /**
+ * Opens a confirmation modal with an optional checkbox and resolves when the user chooses.
+ *
+ * @param dispatch - Redux dispatch for modal state.
+ * @param options - Title, message, button labels, and optional checkbox label.
+ * @returns Resolves to confirmation result including checkbox state when a checkbox is shown.
+ */
+export function showConfirm(
+  dispatch: AppDispatch,
+  options: ConfirmOptions & { checkboxLabel: string }
+): Promise<ConfirmResult>;
+
+/**
  * Opens a confirmation modal and resolves when the user chooses an action.
  *
  * @param dispatch - Redux dispatch for modal state.
  * @param options - Title, message, and button labels for the dialog.
  * @returns Resolves to true when confirmed, false when cancelled or dismissed.
  */
-export function showConfirm(dispatch: AppDispatch, options: ConfirmOptions): Promise<boolean> {
+export function showConfirm(dispatch: AppDispatch, options: ConfirmOptions): Promise<boolean>;
+
+/**
+ * Opens a confirmation modal and resolves when the user chooses an action.
+ *
+ * @param dispatch - Redux dispatch for modal state.
+ * @param options - Title, message, and button labels for the dialog.
+ * @returns Resolves to a boolean or {@link ConfirmResult} when a checkbox is shown.
+ */
+export function showConfirm(
+  dispatch: AppDispatch,
+  options: ConfirmOptions
+): Promise<boolean | ConfirmResult> {
   return new Promise((resolve) => {
-    confirmResolver = resolve;
+    confirmHasCheckbox = options.checkboxLabel !== undefined;
+    confirmResolver = (confirmed, checkboxChecked) => {
+      if (confirmHasCheckbox) {
+        resolve({ confirmed, checkboxChecked });
+      } else {
+        resolve(confirmed);
+      }
+    };
     dispatch(
       setConfirmModal({
         title: options.title,
         message: options.message,
         confirmLabel: options.confirmLabel ?? 'Confirm',
         cancelLabel: options.cancelLabel ?? 'Cancel',
-        variant: options.variant ?? 'default'
+        variant: options.variant ?? 'default',
+        checkboxLabel: options.checkboxLabel
       })
     );
   });
@@ -100,9 +145,15 @@ export function showConfirm(dispatch: AppDispatch, options: ConfirmOptions): Pro
  *
  * @param dispatch - Redux dispatch for modal state.
  * @param confirmed - Whether the user confirmed the action.
+ * @param checkboxChecked - Whether the optional checkbox was checked when the dialog closed.
  */
-export function resolveConfirm(dispatch: AppDispatch, confirmed: boolean): void {
+export function resolveConfirm(
+  dispatch: AppDispatch,
+  confirmed: boolean,
+  checkboxChecked = false
+): void {
   dispatch(setConfirmModal(null));
-  confirmResolver?.(confirmed);
+  confirmResolver?.(confirmed, checkboxChecked);
   confirmResolver = null;
+  confirmHasCheckbox = false;
 }

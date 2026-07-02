@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(settings): add warnWhenSwitchingThemes option and related functionality. (`4cbd011`)
 - feat(menu): add Collections and Environments visibility toggles in the application menu. (`786b9b2`)
 - feat(editor): integrate MDXEditor for enhanced comment functionality and update styles. (`ea143fb`)
 - chore(dependencies): update @harborclient/sdk to version 1.0.15 and adjust styles across various components. (`20a8205`)

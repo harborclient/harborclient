@@ -5,6 +5,7 @@ export type SettingId =
   | 'general.maxResponseSizeMb'
   | 'general.verifySsl'
   | 'general.followRedirects'
+  | 'general.warnWhenSwitchingThemes'
   | 'proxy.enabled'
   | 'proxy.protocol'
   | 'proxy.host'
@@ -122,6 +123,15 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     label: 'Follow redirects',
     description: 'When disabled, 3xx responses are returned without following Location.',
     keywords: ['redirect', '3xx', 'location']
+  },
+  {
+    id: 'general.warnWhenSwitchingThemes',
+    section: 'general',
+    kind: 'field',
+    label: 'Warn when switching themes',
+    description:
+      'When enabled, switching appearance themes from the View menu shows a confirmation dialog.',
+    keywords: ['theme', 'appearance', 'confirm', 'warning']
   },
   {
     id: 'proxy.enabled',

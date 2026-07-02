@@ -1,4 +1,4 @@
-import { Button, Select, Textarea, FormGroup } from '@harborclient/sdk/components';
+import { Button, Select, Textarea } from '@harborclient/sdk/components';
 import { useEffect, useRef, useState, type JSX, type KeyboardEvent } from 'react';
 import { getAvailableModels, resolveAiModelOption } from '#/shared/aiModels';
 import type { AiSettings } from '#/shared/types';
@@ -107,25 +107,23 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
         onKeyDown={handleKeyDown}
       />
       <div className="flex items-center justify-between gap-2">
-        <FormGroup label="Model" htmlFor="ai-chat-model" layout="inline" labelTone="muted">
-          <Select
-            id="ai-chat-model"
-            className="min-w-0 flex-1 cursor-pointer py-1 text-[14px]"
-            value={modelId}
-            disabled={chatId == null || availableModels.length === 0}
-            aria-label="AI model"
-            onChange={(event) => {
-              if (chatId == null) return;
-              dispatch(setSelectedModel({ chatId, modelId: event.target.value }));
-            }}
-          >
-            {availableModels.map((model) => (
-              <option key={model.id} value={model.id}>
-                {model.label}
-              </option>
-            ))}
-          </Select>
-        </FormGroup>
+        <Select
+          id="ai-chat-model"
+          className="min-w-0 flex-1 cursor-pointer py-1 text-[14px]"
+          value={modelId}
+          disabled={chatId == null || availableModels.length === 0}
+          aria-label="AI model"
+          onChange={(event) => {
+            if (chatId == null) return;
+            dispatch(setSelectedModel({ chatId, modelId: event.target.value }));
+          }}
+        >
+          {availableModels.map((model) => (
+            <option key={model.id} value={model.id}>
+              {model.label}
+            </option>
+          ))}
+        </Select>
         <Button type="button" disabled={!canSend} onClick={() => void handleSend()}>
           Send
         </Button>

@@ -5,7 +5,7 @@ import {
   withAccordionItem,
   type ItemStateProps
 } from '@szhsin/react-accordion';
-import { Button, FaIcon } from '@harborclient/sdk/components';
+import { FaIcon } from '@harborclient/sdk/components';
 import {
   memo,
   type ForwardRefExoticComponent,
@@ -100,16 +100,15 @@ const SectionItem = memo(function SectionItem({
           <div className="flex shrink-0 items-center gap-1">
             {headerActions}
             {onAdd ? (
-              <Button
+              <button
                 type="button"
-                variant="toolbar"
+                className="hc-sidebar-add-button inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text app-no-drag"
                 title={addLabel ?? 'Add'}
                 aria-label={addLabel ?? 'Add'}
-                className="inline-flex items-center gap-1"
                 onClick={onAdd}
               >
-                <FaIcon icon={faPlus} className="h-3 w-3" />
-              </Button>
+                <FaIcon icon={faPlus} className="h-4 w-4" />
+              </button>
             ) : null}
           </div>
         )}

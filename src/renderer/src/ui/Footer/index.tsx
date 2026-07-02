@@ -172,7 +172,7 @@ export function Footer({
           onClose={() => dispatch(togglePluginFooterPanel(panel.id))}
         />
       ))}
-      <footer className="relative z-50 flex shrink-0 items-center justify-between border-t border-separator bg-control px-2 py-0.5 app-no-drag">
+      <footer className="relative z-50 flex shrink-0 items-center justify-between border-t border-separator bg-sidebar px-2 py-0.5 app-no-drag">
         <div className={`${segmentGroup} min-w-0 flex-1`}>
           {leftStatusItems.map((item) => (
             <div key={item.id} className="overflow-hidden px-1" style={{ width: 120, height: 20 }}>

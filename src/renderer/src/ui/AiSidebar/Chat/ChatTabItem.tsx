@@ -52,11 +52,13 @@ export function ChatTabItem({ chat, active, tabIndex, onSelect, onClose }: Props
       aria-selected={active}
       aria-label={chat.title}
       tabIndex={tabIndex}
-      className={`group -mb-1 flex max-w-[180px] shrink-0 cursor-pointer self-stretch items-stretch gap-1.5 rounded-t-md border border-b-0 px-3 py-2 ${requestTabItem(active)}`}
+      className={`group -mb-1 flex max-w-[180px] min-h-12 shrink-0 cursor-pointer self-stretch items-stretch gap-2.5 rounded-t-md border border-b-0 px-3 ${requestTabItem(active)}`}
       onClick={() => onSelect(chat.id)}
       onKeyDown={handleKeyDown}
     >
-      <span className="min-w-0 flex-1 truncate text-[14px]">{chat.title}</span>
+      <span className="flex min-w-0 flex-1 items-center py-2 text-inherit app-no-drag">
+        <span className="truncate text-[14px]">{chat.title}</span>
+      </span>
       <TabCloseButton
         ariaLabel={`Close ${chat.title}`}
         onClick={(event) => {

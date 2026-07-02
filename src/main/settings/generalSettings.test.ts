@@ -117,4 +117,17 @@ describe('generalSettings', () => {
 
     expect(getGeneralSettings().followRedirects).toBe(false);
   });
+
+  it('defaults warnWhenSwitchingThemes to true when unset', () => {
+    expect(getGeneralSettings().warnWhenSwitchingThemes).toBe(true);
+  });
+
+  it('persists warnWhenSwitchingThemes false', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      warnWhenSwitchingThemes: false
+    });
+
+    expect(getGeneralSettings().warnWhenSwitchingThemes).toBe(false);
+  });
 });

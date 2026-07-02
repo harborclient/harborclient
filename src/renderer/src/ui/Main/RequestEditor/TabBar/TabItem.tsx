@@ -72,7 +72,7 @@ function pageTabAccessibleName(title: string): string {
 }
 
 /**
- * Single tab with request method badge or page icon, dirty indicator, and close button.
+ * Single tab with request method badge or page icon, unsaved dot (left of method), and close button.
  */
 export function TabItem({
   tab,
@@ -109,7 +109,7 @@ export function TabItem({
       aria-selected={active}
       aria-label={ariaLabel}
       tabIndex={tabIndex}
-      className={`group -mb-1 flex max-w-[220px] min-h-12 shrink-0 cursor-pointer self-stretch items-stretch gap-1.5 rounded-t-md border border-b-0 px-4 ${requestTabItem(active)}`}
+      className={`group -mb-1 flex max-w-[220px] min-h-12 shrink-0 cursor-pointer self-stretch items-stretch gap-2.5 rounded-t-md border border-b-0 px-4 ${requestTabItem(active)}`}
       onClick={() => onSelect(tab.tabId)}
       onKeyDown={handleTabKeyDown}
     >
@@ -119,17 +119,18 @@ export function TabItem({
         ) : (
           <>
             <span
+              className={`h-1.5 w-1.5 shrink-0 rounded-full ${isTabDirty(tab) ? 'bg-muted' : 'bg-transparent'}`}
+              aria-hidden="true"
+            />
+            <span
               className={`shrink-0 px-1 py-px text-[14px] ${METHOD_CLASSES[tab.draft.method.toLowerCase()] ?? 'text-info'}`}
             >
               {tab.draft.method}
             </span>
             {tab.sending && <Spinner size="sm" label="Sending…" className="h-3.5 w-3.5 shrink-0" />}
-            {isTabDirty(tab) && (
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-muted" aria-hidden="true" />
-            )}
           </>
         )}
-        <span className="truncate text-[14px]">
+        <span className={`truncate text-[14px] ${isPage && pageIcon ? 'ms-1.5' : ''}`}>
           {isPage ? (pageTitle ?? 'Page') : tab.draft.name}
         </span>
       </span>
