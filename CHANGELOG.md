@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(RequestEditor): simplify class names for layout consistency. (`0027da9`)
 - feat(environments): add merge environment down functionality. (`b02de45`)
 
 ## 1.9.16 - 2026-07-02
