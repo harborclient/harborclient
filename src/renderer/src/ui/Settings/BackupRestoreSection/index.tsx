@@ -77,10 +77,12 @@ export function BackupRestoreSection(): JSX.Element {
     >
       <div className="mb-6 flex flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <span className="text-[14px] font-medium text-text">
+          <span className="text-[18px] font-medium text-text">
             <SettingLabel settingId="backup-restore.actions">Backup & restore</SettingLabel>
           </span>
-          <p className="m-0 text-[14px] text-muted">{backupCatalog.description}</p>
+          <p className="hc-form-description m-0 text-[14px] text-muted mb-2">
+            {backupCatalog.description}
+          </p>
         </div>
         <div
           className="rounded-md border border-separator bg-sidebar px-4 py-3 text-[14px] text-text"

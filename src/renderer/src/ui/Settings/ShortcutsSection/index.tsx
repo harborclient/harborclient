@@ -212,10 +212,12 @@ export function ShortcutsSection(): JSX.Element {
         ) : (
           <div>
             <div className="flex flex-col gap-1 mb-2">
-              <span className="text-[14px] font-medium text-text">
+              <span className="text-[18px] font-medium text-text">
                 <SettingLabel settingId="shortcuts.bindings">Keyboard shortcuts</SettingLabel>
               </span>
-              <p className="m-0 text-[14px] text-muted">{shortcutsCatalog.description}</p>
+              <p className="hc-form-description m-0 text-[14px] text-muted mb-2">
+                {shortcutsCatalog.description}
+              </p>
             </div>
             <FormGroup
               label="Search shortcuts"
@@ -238,10 +240,13 @@ export function ShortcutsSection(): JSX.Element {
                 <caption className="sr-only">Keyboard shortcuts</caption>
                 <thead>
                   <tr className="border-b border-separator bg-sidebar/40 text-left">
-                    <th scope="col" className="px-3 py-2 font-medium text-text">
+                    <th scope="col" className="px-3 py-2 font-medium text-text text-[16px]">
                       Shortcut
                     </th>
-                    <th scope="col" className="px-3 py-2 font-medium text-text text-right">
+                    <th
+                      scope="col"
+                      className="px-3 py-2 font-medium text-text text-right text-[16px]"
+                    >
                       Key combination
                     </th>
                   </tr>
@@ -254,11 +259,11 @@ export function ShortcutsSection(): JSX.Element {
 
                     return (
                       <tr key={binding.id} className="border-b border-separator last:border-b-0">
-                        <td className="px-3 py-2 text-text">{binding.label}</td>
-                        <td className="px-3 py-2 text-right">
+                        <td className="px-3 py-2 text-text text-[16px]">{binding.label}</td>
+                        <td className="px-3 py-2 text-right text-[16px]">
                           <button
                             type="button"
-                            className={`${field} min-w-[160px] cursor-pointer text-left ${recording ? 'ring-2 ring-accent' : ''}`}
+                            className={`${field} min-w-[160px] cursor-pointer text-left  text-[16px] ${recording ? 'ring-2 ring-accent' : ''}`}
                             aria-label={`Change shortcut for ${binding.label}`}
                             aria-invalid={error != null ? true : undefined}
                             aria-describedby={error != null ? errorId : undefined}

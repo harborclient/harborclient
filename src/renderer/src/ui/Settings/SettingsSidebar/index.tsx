@@ -88,7 +88,7 @@ export function SettingsSidebar<T extends string>({
   disabled = false
 }: Props<T>): JSX.Element {
   return (
-    <aside className="hc-settings-sidebar flex w-[220px] shrink-0 flex-col border-r border-separator bg-sidebar">
+    <aside className="hc-settings-sidebar flex w-[300px] shrink-0 flex-col border-r border-separator bg-sidebar">
       <div className="border-b border-separator px-2 py-3">
         <FormGroup label="Search settings" htmlFor="settings-search" srOnly>
           <Input

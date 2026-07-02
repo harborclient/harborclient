@@ -163,12 +163,14 @@ export function TabContent({
         />
       </SegmentedTabPanel>
       <SegmentedTabPanel value="comment">
-        <Textarea
-          className="w-full min-h-[200px] resize-y"
-          value={draft.comment}
-          onChange={(event) => update({ comment: event.target.value })}
-          placeholder="Notes for this request"
-        />
+        <div className="border border-separator p-4">
+          <Textarea
+            className="w-full min-h-[200px] resize-y"
+            value={draft.comment}
+            onChange={(event) => update({ comment: event.target.value })}
+            placeholder="Notes for this request"
+          />
+        </div>
       </SegmentedTabPanel>
       {pluginTabs.map((entry) => (
         <SegmentedTabPanel key={entry.id} value={entry.id} className="flex min-h-0 flex-1 flex-col">

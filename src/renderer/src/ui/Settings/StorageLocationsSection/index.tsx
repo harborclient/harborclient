@@ -256,10 +256,12 @@ export function StorageLocationsSection(): JSX.Element {
       >
         <div className="mb-4 flex flex-col gap-3">
           <div className="flex flex-col gap-1">
-            <span className="text-[14px] font-medium text-text">
+            <span className="text-[18px] font-medium text-text">
               <SettingLabel settingId="storage.connections">Storage locations</SettingLabel>
             </span>
-            <p className="m-0 text-[14px] text-muted">{storageCatalog.description}</p>
+            <p className="hc-form-description m-0 text-[14px] text-muted mb-2">
+              {storageCatalog.description}
+            </p>
           </div>
           <AsyncListState loading={loading} error={bootstrapError} onRetry={reloadConnections}>
             <ResourceList>
@@ -274,7 +276,7 @@ export function StorageLocationsSection(): JSX.Element {
                     primary={
                       <div className="flex items-center gap-2">
                         <ResourceListPrimary>{connection.name || 'Untitled'}</ResourceListPrimary>
-                        {isActive ? <Badge variant="success">Active</Badge> : null}
+                        {isActive ? <Badge variant="success">Default</Badge> : null}
                       </div>
                     }
                     secondary={providerLabel(connection.type)}
@@ -286,7 +288,7 @@ export function StorageLocationsSection(): JSX.Element {
                             variant="toolbar"
                             onClick={() => void handleSetActive(connection.id)}
                           >
-                            Set active
+                            Set default
                           </Button>
                         )}
                         <Button

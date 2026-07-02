@@ -296,9 +296,12 @@ export function SnippetsSection(): JSX.Element {
       }
     >
       <div className="mb-6 flex flex-col gap-1">
-        <span className="text-[14px] font-medium text-text">
+        <span className="text-[18px] font-medium text-text">
           <SettingLabel settingId="snippets.items">Snippets</SettingLabel>
         </span>
+        <p className="hc-form-description m-0 text-[14px] text-muted mb-2">
+          Create reusable JavaScript snippets for use in pre-request and post-request script lists.
+        </p>
         <AsyncListState
           loading={loading}
           error={loadError}
@@ -320,11 +323,12 @@ export function SnippetsSection(): JSX.Element {
                 }
                 actions={
                   <div className="flex items-center gap-2">
-                    <Button type="button" variant="secondary" onClick={() => handleEdit(snippet)}>
+                    <Button type="button" variant="toolbar" onClick={() => handleEdit(snippet)}>
                       Edit
                     </Button>
                     <Button
                       type="button"
+                      variant="toolbar"
                       className={toolbarDangerButtonClass}
                       onClick={() => void handleDelete(snippet)}
                     >

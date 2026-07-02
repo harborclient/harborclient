@@ -631,7 +631,7 @@ export function ScriptListEditor({
    * Renders add controls shared below the script list.
    */
   const addControls = (
-    <div className="flex shrink-0 flex-wrap items-center gap-2">
+    <div className="flex shrink-0 flex-wrap items-center gap-2 mt-2">
       <Button
         type="button"
         className="shrink-0 whitespace-nowrap rounded-full!"

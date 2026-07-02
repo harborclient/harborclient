@@ -117,8 +117,8 @@ export function AuthEditor({
   };
 
   return (
-    <div className="flex gap-6">
-      <div className="w-[220px] shrink-0">
+    <div className="flex flex-col">
+      <div className="shrink-0 w-full mb-4">
         <FormGroup label="Auth Type" htmlFor="auth-type" labelTone="muted">
           <Select
             id="auth-type"
@@ -136,7 +136,7 @@ export function AuthEditor({
 
       <div className="min-w-0 flex-1">
         {auth.type === 'none' && (
-          <p className="m-0 text-[14px] text-muted mt-8">
+          <p className="m-0 text-[16px] text-muted border border-separator p-4">
             No request-level authorization is configured. Collection authorization applies when set.
           </p>
         )}

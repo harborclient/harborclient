@@ -84,7 +84,7 @@ export function CookiesEditor({ url, variables }: Props): JSX.Element {
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="m-0 text-[14px] text-muted">
+      <p className="m-0 text-[16px] text-muted mb-2 border border-separator p-4">
         Cookies for <span className="font-medium text-text">{host}</span>
       </p>
       {loading ? (

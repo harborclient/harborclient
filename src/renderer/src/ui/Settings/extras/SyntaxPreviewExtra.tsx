@@ -12,8 +12,8 @@ export function SyntaxPreviewExtra(): JSX.Element {
   const general = useAppSelector(selectDraftGeneral);
 
   return (
-    <div className="mt-6 flex flex-col gap-2">
-      <span className="text-[14px] font-medium text-text">Preview</span>
+    <div className="mt-6 flex flex-col gap-2 border border-separator p-4">
+      <span className="text-[16px] font-medium text-text">Preview</span>
       <CodeEditor
         value={PREVIEW_SAMPLE}
         readOnly

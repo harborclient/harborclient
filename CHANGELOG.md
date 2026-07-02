@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- chore(dependencies): update @harborclient/sdk to version 1.0.15 and adjust styles across various components. (`20a8205`)
+
 ## 1.9.12 - 2026-07-02
 
 - feat(scripts): introduce pre/post request script management and snippet functionality. (`55480e3`)

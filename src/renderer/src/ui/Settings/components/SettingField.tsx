@@ -1,12 +1,5 @@
 import { FormGroup } from '@harborclient/sdk/components';
-import {
-  Children,
-  cloneElement,
-  isValidElement,
-  type ComponentProps,
-  type JSX,
-  type ReactNode
-} from 'react';
+import type { ComponentProps, JSX, ReactNode } from 'react';
 
 import { entryById, type FieldSettingId } from '../catalog/catalog';
 import { SettingLabel } from './SettingLabel';
@@ -67,24 +60,6 @@ function settingDescriptionId(settingId: FieldSettingId): string {
 }
 
 /**
- * Links helper text to a single control via `aria-describedby`.
- *
- * @param children - Field control element.
- * @param descriptionId - Description element id.
- */
-function linkControlDescription(children: ReactNode, descriptionId: string): ReactNode {
-  const child = Children.only(children);
-  if (!isValidElement<{ 'aria-describedby'?: string }>(child)) {
-    return children;
-  }
-
-  const existing = child.props['aria-describedby'];
-  const describedBy = existing ? `${existing} ${descriptionId}` : descriptionId;
-
-  return cloneElement(child, { 'aria-describedby': describedBy });
-}
-
-/**
  * Catalog-backed form field wrapper that injects setting metadata and id tooltips.
  */
 export function SettingField({
@@ -104,40 +79,23 @@ export function SettingField({
 
   const controlId = htmlFor ?? settingControlId(settingId);
   const descriptionId = settingDescriptionId(settingId);
-  const usesCheckboxLayout = layout === 'checkbox';
   const description = entry.description;
 
-  const control =
-    usesCheckboxLayout && description.length > 0
-      ? linkControlDescription(children, descriptionId)
-      : children;
-
-  const formGroup = (
-    <FormGroup
-      label={<SettingLabel settingId={settingId}>{entry.label}</SettingLabel>}
-      description={usesCheckboxLayout ? undefined : description}
-      descriptionId={description.length > 0 ? descriptionId : undefined}
-      htmlFor={controlId}
-      error={error}
-      errorId={errorId}
-      layout={layout}
-      labelTone={labelTone}
-      className={className}
-    >
-      {control}
-    </FormGroup>
-  );
-
-  if (!usesCheckboxLayout || description.length === 0) {
-    return <div className="hc-setting-field">{formGroup}</div>;
-  }
-
   return (
-    <div className="hc-setting-field flex flex-col gap-1">
-      {formGroup}
-      <p id={descriptionId} className="hc-form-description m-0 text-[14px] text-muted">
-        {description}
-      </p>
+    <div className="hc-setting-field">
+      <FormGroup
+        label={<SettingLabel settingId={settingId}>{entry.label}</SettingLabel>}
+        description={description}
+        descriptionId={description.length > 0 ? descriptionId : undefined}
+        htmlFor={controlId}
+        error={error}
+        errorId={errorId}
+        layout={layout}
+        labelTone={labelTone}
+        className={className}
+      >
+        {children}
+      </FormGroup>
     </div>
   );
 }

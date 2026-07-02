@@ -63,8 +63,8 @@ export function BodyEditor({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <span className="text-[14px] text-muted">Body type</span>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-2 border border-separator p-4">
+        <span className="text-[16px] text-muted">Body type</span>
         {BODY_TYPE_OPTIONS.map(({ value, label }) => (
           <FormGroup key={value} label={label} layout="radio">
             <Radio
@@ -98,14 +98,16 @@ export function BodyEditor({
         />
       )}
       {bodyType !== 'none' && bodyType !== 'multipart' && bodyType !== 'urlencoded' && (
-        <CodeEditor
-          value={body}
-          onChange={(nextBody) => update({ body: nextBody })}
-          language={bodyType === 'json' ? 'json' : 'text'}
-          placeholder={bodyType === 'json' ? '{\n  "key": "value"\n}' : 'Request body'}
-          variables={variables}
-          onEditVariable={onEditVariables}
-        />
+        <div className="border border-separator p-4">
+          <CodeEditor
+            value={body}
+            onChange={(nextBody) => update({ body: nextBody })}
+            language={bodyType === 'json' ? 'json' : 'text'}
+            placeholder={bodyType === 'json' ? '{\n  "key": "value"\n}' : 'Request body'}
+            variables={variables}
+            onEditVariable={onEditVariables}
+          />
+        </div>
       )}
     </div>
   );
