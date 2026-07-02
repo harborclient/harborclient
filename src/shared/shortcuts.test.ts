@@ -3,6 +3,7 @@ import {
   acceleratorMatchesChord,
   bindingsToOverrides,
   formatAcceleratorDisplay,
+  getShortcutDef,
   normalizeAcceleratorForCompare,
   normalizeShortcutOverrides,
   resolveShortcuts,
@@ -73,6 +74,9 @@ describe('resolveShortcuts', () => {
     expect(bindings.find((binding) => binding.id === 'check-for-updates')?.accelerator).toBe(
       'CmdOrCtrl+Shift+U'
     );
+    expect(bindings.find((binding) => binding.id === 'shortcuts-reference')?.accelerator).toBe(
+      'Alt+Shift+K'
+    );
     expect(bindings.find((binding) => binding.id === 'about')?.accelerator).toBe(
       'CmdOrCtrl+Shift+A'
     );
@@ -87,9 +91,57 @@ describe('resolveShortcuts', () => {
     expect(bindings.find((binding) => binding.id === 'next-request-tab')?.accelerator).toBe(
       'CmdOrCtrl+Shift+Period'
     );
+    expect(bindings.find((binding) => binding.id === 'set-method-get')?.accelerator).toBe(
+      'Alt+Shift+1'
+    );
+    expect(bindings.find((binding) => binding.id === 'set-method-post')?.accelerator).toBe(
+      'Alt+Shift+2'
+    );
+    expect(bindings.find((binding) => binding.id === 'set-method-put')?.accelerator).toBe(
+      'Alt+Shift+3'
+    );
+    expect(bindings.find((binding) => binding.id === 'set-method-patch')?.accelerator).toBe(
+      'Alt+Shift+4'
+    );
+    expect(bindings.find((binding) => binding.id === 'set-method-delete')?.accelerator).toBe(
+      'Alt+Shift+5'
+    );
+    expect(bindings.find((binding) => binding.id === 'set-method-head')?.accelerator).toBe(
+      'Alt+Shift+6'
+    );
+    expect(bindings.find((binding) => binding.id === 'set-method-options')?.accelerator).toBe(
+      'Alt+Shift+7'
+    );
     expect(bindings.find((binding) => binding.id === 'focus-sidebar-search')?.accelerator).toBe(
       'CmdOrCtrl+F'
     );
+    expect(bindings.find((binding) => binding.id === 'focus-request-url')?.accelerator).toBe(
+      'Alt+Shift+R'
+    );
+    expect(bindings.find((binding) => binding.id === 'focus-first-collection')?.accelerator).toBe(
+      'Alt+Shift+C'
+    );
+    expect(bindings.find((binding) => binding.id === 'focus-first-environment')?.accelerator).toBe(
+      'Alt+Shift+E'
+    );
+    expect(bindings.find((binding) => binding.id === 'focus-first-request-tab')?.accelerator).toBe(
+      'Alt+Shift+O'
+    );
+    expect(bindings.find((binding) => binding.id === 'focus-response-editor')?.accelerator).toBe(
+      'Alt+Shift+T'
+    );
+    expect(bindings.find((binding) => binding.id === 'toggle-variables')?.accelerator).toBe(
+      'Alt+Shift+V'
+    );
+    expect(bindings.find((binding) => binding.id === 'toggle-console')?.accelerator).toBe(
+      'Alt+Shift+L'
+    );
+    expect(bindings.find((binding) => binding.id === 'next-sidebar-list-item')?.accelerator).toBe(
+      'CmdOrCtrl+Tab'
+    );
+    expect(
+      bindings.find((binding) => binding.id === 'previous-sidebar-list-item')?.accelerator
+    ).toBe('CmdOrCtrl+Shift+Tab');
   });
 
   it('includes default bindings for sidebar section toggles', () => {
@@ -142,6 +194,12 @@ describe('validateShortcutOverrides', () => {
 
   it('accepts all default bindings without conflicts', () => {
     expect(validateShortcutOverrides({}).valid).toBe(true);
+  });
+
+  it('marks sidebar list navigation shortcuts as renderer-only', () => {
+    expect(getShortcutDef('next-sidebar-list-item')?.rendererOnly).toBe(true);
+    expect(getShortcutDef('previous-sidebar-list-item')?.rendererOnly).toBe(true);
+    expect(getShortcutDef('next-sidebar-list-item')?.actionId).toBeUndefined();
   });
 
   it('rejects modifier-less letter keys', () => {
@@ -232,5 +290,33 @@ describe('acceleratorMatchesChord', () => {
     expect(normalizeAcceleratorForCompare('CmdOrCtrl+Shift+Comma')).toBe(
       normalizeAcceleratorForCompare('Ctrl+Shift+,')
     );
+  });
+
+  it('matches Alt+Shift+digit when Shift produces a symbol key', () => {
+    const altShiftBang: KeyChord = {
+      key: '!',
+      control: false,
+      meta: false,
+      alt: true,
+      shift: true
+    };
+
+    expect(acceleratorMatchesChord('Alt+Shift+1', altShiftBang)).toBe(true);
+    expect(acceleratorMatchesChord('Alt+Shift+2', { ...altShiftBang, key: '@' })).toBe(true);
+    expect(acceleratorMatchesChord('Alt+Shift+7', { ...altShiftBang, key: '&' })).toBe(true);
+  });
+
+  it('matches Alt+Shift+O when Alt produces an unmapped character but code is KeyO', () => {
+    const altShiftO: KeyChord = {
+      key: 'ø',
+      code: 'KeyO',
+      control: false,
+      meta: false,
+      alt: true,
+      shift: true
+    };
+
+    expect(acceleratorMatchesChord('Alt+Shift+O', altShiftO)).toBe(true);
+    expect(acceleratorMatchesChord('Alt+Shift+O', { ...altShiftO, key: 'O' })).toBe(true);
   });
 });

@@ -72,6 +72,7 @@ import { Environments } from './Environments';
 import { Section } from './Section';
 import { SidebarSearch } from './SidebarSearch';
 import { useSidebarExpansion } from './useSidebarExpansion';
+import { useSidebarListNavigation } from './useSidebarListNavigation';
 import { useSidebarSearch } from './useSidebarSearch';
 
 interface Props {
@@ -149,6 +150,8 @@ export function Sidebar({
     revealCollection,
     revealFolder
   } = useSidebarExpansion();
+
+  useSidebarListNavigation(selectedCollectionId, activeEnvironmentId);
 
   /**
    * Writes accordion item state into the persisted sidebar expansion booleans.
@@ -493,7 +496,7 @@ export function Sidebar({
 
               <ControlledAccordion providerValue={accordion}>
                 {collectionsSectionVisible ? (
-                  <nav aria-label="Collections">
+                  <nav aria-label="Collections" data-sidebar-section="collections">
                     <Section
                       itemKey="collections"
                       title="Collections"
@@ -703,7 +706,7 @@ export function Sidebar({
                 ) : null}
 
                 {environmentsSectionVisible ? (
-                  <nav aria-label="Environments">
+                  <nav aria-label="Environments" data-sidebar-section="environments">
                     <Section
                       itemKey="environments"
                       title="Environments"

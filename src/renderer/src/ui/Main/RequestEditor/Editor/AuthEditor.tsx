@@ -140,12 +140,6 @@ export function AuthEditor({
       </div>
 
       <div className="min-w-0 flex-1">
-        {auth.type === 'none' && (
-          <p className="m-0 text-[16px] text-muted border border-separator p-4">
-            No request-level authorization is configured. Collection authorization applies when set.
-          </p>
-        )}
-
         {auth.type === 'basic' && (
           <div className="flex flex-col gap-3">
             <div>

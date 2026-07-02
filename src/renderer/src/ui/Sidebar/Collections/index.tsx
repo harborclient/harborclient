@@ -42,6 +42,7 @@ import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { faChevronDown, faChevronRight } from '#/renderer/src/fontawesome';
 import { METHOD_CLASSES, sourceRow } from '#/renderer/src/ui/shared/classes';
 import { DropZone } from '#/renderer/src/ui/Sidebar/Collections/DropZone';
+import { focusCollectionSettings } from '#/renderer/src/ui/CollectionSettings/focusCollectionSettings';
 import { RequestRow } from '#/renderer/src/ui/Sidebar/Collections/RequestRow';
 import { SortableRow } from '#/renderer/src/ui/Sidebar/Collections/SortableRow';
 import {
@@ -761,9 +762,16 @@ export function Collections({
                   <button
                     type="button"
                     className="min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left text-[14px] text-inherit app-no-drag"
+                    data-sidebar-collection-id={collection.id}
                     aria-current={selected ? 'true' : undefined}
                     onClick={() => onSelectCollection(collection.id)}
                     onDoubleClick={() => onConfigureCollection(collection.id)}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter') return;
+                      e.preventDefault();
+                      onConfigureCollection(collection.id);
+                      focusCollectionSettings();
+                    }}
                   >
                     <span className="inline-flex min-w-0 items-center gap-1.5">
                       <span className="truncate">{collection.name}</span>

@@ -5,6 +5,7 @@ import {
   formatAcceleratorDisplay,
   validateShortcutOverrides
 } from '#/shared/shortcuts';
+import { filterShortcutBindings } from './filterShortcutBindings';
 import { Button } from '@harborclient/sdk/components';
 import { FormGroup } from '@harborclient/sdk/components';
 import { Input } from '@harborclient/sdk/components';
@@ -37,18 +38,10 @@ export function ShortcutsSection(): JSX.Element {
   /**
    * Filters shortcut rows by search query against label and displayed key combination.
    */
-  const filteredBindings = useMemo(() => {
-    const trimmed = query.trim().toLowerCase();
-    if (trimmed.length === 0) {
-      return bindings;
-    }
-
-    return bindings.filter((binding) => {
-      const label = binding.label.toLowerCase();
-      const accelerator = formatAcceleratorDisplay(binding.accelerator).toLowerCase();
-      return label.includes(trimmed) || accelerator.includes(trimmed);
-    });
-  }, [bindings, query]);
+  const filteredBindings = useMemo(
+    () => filterShortcutBindings(bindings, query),
+    [bindings, query]
+  );
 
   /**
    * Loads resolved shortcut bindings on mount.

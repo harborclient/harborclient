@@ -93,13 +93,6 @@
       --mac-warning: #ff9f0a;
       --mac-success: #30d158;
       --mac-info: rgba(255, 255, 255, 0.55);
-      --mac-method-get: #3d9960;
-      --mac-method-post: #409cff;
-      --mac-method-put: #d4a017;
-      --mac-method-patch: #9b7ed9;
-      --mac-method-delete: #ff6961;
-      --mac-method-head: #8e8e93;
-      --mac-method-options: #8e8e93;
     }
   }
 
@@ -126,13 +119,6 @@
     --mac-warning: #ffb340;
     --mac-success: #5ce06a;
     --mac-info: #ffffff;
-    --mac-method-get: #5ce06a;
-    --mac-method-post: #4dabff;
-    --mac-method-put: #ffd60a;
-    --mac-method-patch: #bf9bff;
-    --mac-method-delete: #ff8a80;
-    --mac-method-head: #ffffff;
-    --mac-method-options: #ffffff;
     --mac-resize-handle: #ffd60a;
     --mac-variable-token: #5fe3f0;
   }
@@ -178,7 +164,14 @@
     button:focus-visible,
     a:focus-visible,
     [tabindex]:not([tabindex='-1']):focus-visible,
-    [role='button']:focus-visible {
+    [role='button']:focus-visible,
+    [role='tab']:focus-visible {
+      outline: 2px solid Highlight;
+      outline-offset: 1px;
+      box-shadow: none;
+    }
+
+    [role='tab']:focus:not(:focus-visible) {
       outline: 2px solid Highlight;
       outline-offset: 1px;
       box-shadow: none;
@@ -195,7 +188,14 @@
   :root[data-theme='high-contrast'] button:focus-visible,
   :root[data-theme='high-contrast'] a:focus-visible,
   :root[data-theme='high-contrast'] [tabindex]:not([tabindex='-1']):focus-visible,
-  :root[data-theme='high-contrast'] [role='button']:focus-visible {
+  :root[data-theme='high-contrast'] [role='button']:focus-visible,
+  :root[data-theme='high-contrast'] [role='tab']:focus-visible {
+    outline: 2px solid var(--mac-accent);
+    outline-offset: 1px;
+    box-shadow: none;
+  }
+
+  :root[data-theme='high-contrast'] [role='tab']:focus:not(:focus-visible) {
     outline: 2px solid var(--mac-accent);
     outline-offset: 1px;
     box-shadow: none;
@@ -246,7 +246,17 @@
   button:focus-visible,
   a:focus-visible,
   [tabindex]:not([tabindex='-1']):focus-visible,
-  [role='button']:focus-visible {
+  [role='button']:focus-visible,
+  [role='tab']:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--mac-accent) 35%, transparent);
+  }
+
+  /**
+   * Programmatic focus (shortcuts, arrow-key tab moves) does not always set
+   * :focus-visible in Chromium; show the same ring on :focus for tab labels.
+   */
+  [role='tab']:focus:not(:focus-visible) {
     outline: none;
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--mac-accent) 35%, transparent);
   }
@@ -435,10 +445,14 @@
    * Circular hover/focus background for document-style tab bar icon buttons. Must
    * live in utilities so this overrides Tailwind's rounded-md on the same element.
    * Drop self-stretch so the control stays square instead of a full-height pill.
+   *
+   * Footer slide-up panels (Console, Variables, plugin panels) reuse the same
+   * round hit target via their "Close …" aria-label.
    */
   .hc-tab-close-button,
   .hc-tab-new-button,
-  .hc-tab-bar-icon-button {
+  .hc-tab-bar-icon-button,
+  .hc-resizable button[aria-label^='Close '] {
     align-self: center;
     width: 1.75rem;
     height: 1.75rem;
@@ -791,4 +805,45 @@
 
 .request-comment-editor-content em {
   font-style: italic;
+}
+
+@layer utilities {
+  /**
+   * Request editor Send uses `shadow-sm`, which overrides the base focus ring.
+   * Use a light ring so it stays visible on the accent fill.
+   */
+  .hc-send-button:focus-visible,
+  .hc-send-button:focus:not(:focus-visible) {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, white 70%, transparent);
+  }
+
+  :root[data-theme='high-contrast'] .hc-send-button:focus-visible,
+  :root[data-theme='high-contrast'] .hc-send-button:focus:not(:focus-visible) {
+    outline: 2px solid var(--mac-accent);
+    outline-offset: 2px;
+    box-shadow: none;
+  }
+
+  /**
+   * Active footer toggles use `shadow-sm`, which sits in this layer and overrides
+   * the base focus ring. Restore a visible ring for keyboard focus, including
+   * programmatic focus from footer Tab handoff (`:focus:not(:focus-visible)`).
+   */
+  .hc-footer-icon:focus-visible,
+  .hc-footer-icon:focus:not(:focus-visible),
+  .hc-footer-button:focus-visible,
+  .hc-footer-button:focus:not(:focus-visible) {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--mac-accent) 35%, transparent);
+  }
+
+  :root[data-theme='high-contrast'] .hc-footer-icon:focus-visible,
+  :root[data-theme='high-contrast'] .hc-footer-icon:focus:not(:focus-visible),
+  :root[data-theme='high-contrast'] .hc-footer-button:focus-visible,
+  :root[data-theme='high-contrast'] .hc-footer-button:focus:not(:focus-visible) {
+    outline: 2px solid var(--mac-accent);
+    outline-offset: 1px;
+    box-shadow: none;
+  }
 }

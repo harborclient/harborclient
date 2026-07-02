@@ -6,7 +6,7 @@ import {
   CodeEditor,
   FaIcon
 } from '@harborclient/sdk/components';
-import { statusDotClass } from '#/renderer/src/ui/shared/classes';
+import { focusableReadonlyClass, statusDotClass } from '#/renderer/src/ui/shared/classes';
 import { useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { ResponseTabContext } from '#/shared/plugin/types';
@@ -330,19 +330,39 @@ export function ResponseEditor({
   return (
     <div className="flex min-h-0 flex-1 flex-col p-3">
       <div className="mb-2 flex items-center gap-3 text-[14px] border-b border-separator p-3 -mx-3 -mt-2">
-        <span className="inline-flex items-center gap-1.5 font-medium text-text">
+        <span
+          tabIndex={0}
+          aria-label={responseStatusLabel(response)}
+          className={`inline-flex items-center gap-1.5 font-medium text-text ${focusableReadonlyClass}`}
+        >
           <span
             className={`inline-block h-2 w-2 shrink-0 rounded-full ${statusDotClass(response.status)}`}
             aria-hidden="true"
           />
           {response.error ? 'Error' : `${response.status} ${response.statusText}`}
         </span>
-        <span className="text-muted">{response.timeMs} ms</span>
-        <span className="text-muted">{formatBytes(response.sizeBytes)}</span>
+        <span
+          tabIndex={0}
+          aria-label={responseTimeLabel(response.timeMs)}
+          className={`text-muted ${focusableReadonlyClass}`}
+        >
+          {response.timeMs} ms
+        </span>
+        <span
+          tabIndex={0}
+          aria-label={responseSizeLabel(response.sizeBytes)}
+          className={`text-muted ${focusableReadonlyClass}`}
+        >
+          {formatBytes(response.sizeBytes)}
+        </span>
       </div>
 
       {response.error && (
-        <div className="mb-2 rounded-md bg-danger/10 px-2.5 py-2 text-[14px] text-danger">
+        <div
+          tabIndex={0}
+          aria-label={responseErrorLabel(response.error)}
+          className={`mb-2 rounded-md bg-danger/10 px-2.5 py-2 text-[14px] text-danger ${focusableReadonlyClass}`}
+        >
           {response.error}
         </div>
       )}
@@ -418,4 +438,47 @@ export function ResponseEditor({
       </div>
     </div>
   );
+}
+
+/**
+ * Accessible name for the response status metric tab stop.
+ *
+ * @param response - Last send result shown in the response editor.
+ * @returns Screen-reader label for the HTTP status or error state.
+ */
+function responseStatusLabel(response: SendResult): string {
+  if (response.error) {
+    return 'Response status: Error';
+  }
+  return `Response status: ${response.status} ${response.statusText}`;
+}
+
+/**
+ * Accessible name for the response timing metric tab stop.
+ *
+ * @param timeMs - Round-trip time in milliseconds.
+ * @returns Screen-reader label for response duration.
+ */
+function responseTimeLabel(timeMs: number): string {
+  return `Response time: ${timeMs} milliseconds`;
+}
+
+/**
+ * Accessible name for the response size metric tab stop.
+ *
+ * @param sizeBytes - Response body size in bytes.
+ * @returns Screen-reader label for formatted response size.
+ */
+function responseSizeLabel(sizeBytes: number): string {
+  return `Response size: ${formatBytes(sizeBytes)}`;
+}
+
+/**
+ * Accessible name for the response error banner tab stop.
+ *
+ * @param error - Network or transport error message.
+ * @returns Screen-reader label for the error detail.
+ */
+function responseErrorLabel(error: string): string {
+  return `Response error: ${error}`;
 }

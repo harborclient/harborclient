@@ -112,6 +112,19 @@ export async function applyPersistedPluginTheme(): Promise<void> {
 }
 
 /**
+ * Applies a theme preference for live preview without persisting it.
+ *
+ * Updates renderer CSS overrides and Electron nativeTheme so light/dark/system
+ * palettes match the selected card before the user saves.
+ *
+ * @param theme - Theme source to preview.
+ */
+export async function previewThemePreference(theme: string): Promise<void> {
+  await applyThemePreference(theme);
+  await window.api.previewTheme(theme as ThemeSource);
+}
+
+/**
  * Applies a theme preference from Settings, including built-in and plugin themes.
  *
  * @param theme - Persisted theme preference.

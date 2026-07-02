@@ -34,7 +34,11 @@ import {
   toggleSidebar,
   toggleVariables
 } from '#/renderer/src/store/slices/navigationSlice';
-import { openCollectionModal, openShareModal } from '#/renderer/src/store/slices/modalsSlice';
+import {
+  openCollectionModal,
+  openShareModal,
+  openThemePicker
+} from '#/renderer/src/store/slices/modalsSlice';
 import { closeTab, openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import {
   initializeStore,
@@ -71,6 +75,8 @@ import {
 } from '#/renderer/src/ui/shared/toastA11y';
 import { PluginHost } from '#/renderer/src/plugins/PluginHost';
 import { PluginThemePrompt } from '#/renderer/src/plugins/PluginThemePrompt';
+import { ThemePickerModal } from '#/renderer/src/ui/modals/ThemePickerModal';
+import { ShortcutsReferenceModal } from '#/renderer/src/ui/modals/ShortcutsReferenceModal';
 import { applyThemeAttribute, subscribeContrastPreferenceChanges } from '#/renderer/src/theme';
 import { platformClassName } from '#/renderer/src/platform';
 
@@ -154,6 +160,24 @@ export default function App(): JSX.Element {
       unsubscribeContrast();
     };
   }, []);
+
+  /**
+   * Opens the first-run theme picker when the user has not seen it or when
+   * `--pick-theme` was passed on the command line.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    void window.api.shouldPickTheme().then((shouldOpen) => {
+      if (!cancelled && shouldOpen) {
+        dispatch(openThemePicker());
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dispatch]);
 
   const activeCollectionId = draft.collection_id ?? selectedCollectionId;
 
@@ -267,6 +291,8 @@ export default function App(): JSX.Element {
           <CollectionRunnerModal />
           <AlertModal />
           <ConfirmModal />
+          <ThemePickerModal />
+          <ShortcutsReferenceModal />
           <PluginModalOverlay />
 
           <Toaster

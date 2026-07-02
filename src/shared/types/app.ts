@@ -14,6 +14,13 @@ export type MenuActionId =
   | 'sync'
   | 'toggle-sidebar'
   | 'focus-sidebar-search'
+  | 'focus-request-url'
+  | 'focus-first-collection'
+  | 'focus-first-environment'
+  | 'focus-first-request-tab'
+  | 'focus-response-editor'
+  | 'toggle-variables'
+  | 'toggle-console'
   | 'toggle-ai-sidebar'
   | 'toggle-request-editor'
   | 'toggle-response-editor'
@@ -22,10 +29,18 @@ export type MenuActionId =
   | 'send-request'
   | 'previous-request-tab'
   | 'next-request-tab'
+  | 'set-method-get'
+  | 'set-method-post'
+  | 'set-method-put'
+  | 'set-method-patch'
+  | 'set-method-delete'
+  | 'set-method-head'
+  | 'set-method-options'
   | 'documentation'
   | 'report-issue'
   | 'about'
-  | 'check-for-updates';
+  | 'check-for-updates'
+  | 'shortcuts-reference';
 
 /**
  * Top-level application menu labels shown in the Linux in-app menu bar.

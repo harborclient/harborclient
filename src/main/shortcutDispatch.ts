@@ -45,6 +45,7 @@ export function attachShortcutDispatch(window: BrowserWindow): void {
 
     const chord: KeyChord = {
       key: input.key,
+      code: input.code,
       control: input.control,
       meta: input.meta,
       alt: input.alt,
@@ -54,7 +55,7 @@ export function attachShortcutDispatch(window: BrowserWindow): void {
     const accelerators = resolveAcceleratorMap(getShortcutOverrides());
 
     for (const def of SHORTCUT_DEFS) {
-      if (def.kind !== 'action' || def.actionId == null) {
+      if (def.rendererOnly || def.kind !== 'action' || def.actionId == null) {
         continue;
       }
 

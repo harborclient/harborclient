@@ -52,6 +52,7 @@ import { NoOpenRequests } from './NoOpenRequests';
 import { isActivePageTabDirty, pageTabCloseName } from './pageTabCloseHelpers';
 import { PageTabContent } from './PageTabContent';
 import { ResponseEditor } from '../ResponseEditor';
+import { RESPONSE_EDITOR_SECTION_ID } from '../ResponseEditor/focusResponseEditor';
 import { TabBar } from './TabBar';
 
 interface Props {
@@ -312,7 +313,11 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
                 />
               ) : null}
               {showResponseEditor ? (
-                <section aria-label="Response" className="flex min-h-0 flex-1 flex-col">
+                <section
+                  id={RESPONSE_EDITOR_SECTION_ID}
+                  aria-label="Response"
+                  className="flex min-h-0 flex-1 flex-col"
+                >
                   <ResponseEditor
                     key={`response-${activeTabId}`}
                     response={response}

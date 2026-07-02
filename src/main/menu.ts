@@ -298,6 +298,11 @@ export function buildMenu(
           click: () => sendMenuAction(window, 'check-for-updates')
         },
         {
+          label: 'Keyboard Shortcuts',
+          accelerator: acceleratorFor(accelerators, 'shortcuts-reference'),
+          click: () => sendMenuAction(window, 'shortcuts-reference')
+        },
+        {
           label: 'About',
           accelerator: acceleratorFor(accelerators, 'about'),
           click: () => sendMenuAction(window, 'about')

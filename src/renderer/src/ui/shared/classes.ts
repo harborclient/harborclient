@@ -23,13 +23,19 @@ export function sourceRow(selected: boolean, compact = false): string {
  */
 export function requestTabItem(active: boolean): string {
   return active
-    ? 'border-separator bg-surface text-text'
-    : 'border-transparent bg-transparent text-muted hover:bg-selection/60 hover:text-text';
+    ? 'border-separator bg-surface text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent'
+    : 'border-transparent bg-transparent text-muted hover:bg-selection/60 hover:text-text focus-visible:bg-selection/60 focus-visible:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent';
 }
 
 export const separator = 'h-px bg-separator';
 
 export const sectionLabel = 'mb-1 px-2 text-[14px] font-medium uppercase tracking-wide text-muted';
+
+/**
+ * Focus ring for read-only elements that participate in Tab order without being buttons.
+ */
+export const focusableReadonlyClass =
+  'rounded-sm outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent';
 
 /**
  * Toolbar button styling for destructive row and table actions on full pages.

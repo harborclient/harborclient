@@ -98,6 +98,20 @@ export interface ApiWindow {
    */
   setTheme: (theme: ThemeSource) => Promise<void>;
   /**
+   * Applies a theme preference without persisting it (theme picker live preview).
+   *
+   * @param theme - Theme source to preview.
+   */
+  previewTheme: (theme: ThemeSource) => Promise<void>;
+  /**
+   * Returns whether the first-run theme picker modal should open.
+   */
+  shouldPickTheme: () => Promise<boolean>;
+  /**
+   * Marks the first-run theme picker as seen so it is not shown again.
+   */
+  markThemePickerSeen: () => Promise<void>;
+  /**
    * Subscribes to theme preference changes pushed from the main process.
    *
    * @param callback - Called with the new persisted theme preference.

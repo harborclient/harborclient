@@ -643,6 +643,29 @@ function setTheme(theme: ThemeSource): Promise<void> {
 }
 
 /**
+ * Applies a theme preference without persisting it (theme picker live preview).
+ *
+ * @param theme - Theme source to preview.
+ */
+function previewTheme(theme: ThemeSource): Promise<void> {
+  return ipcRenderer.invoke('theme:preview', theme);
+}
+
+/**
+ * Returns whether the first-run theme picker modal should open.
+ */
+function shouldPickTheme(): Promise<boolean> {
+  return ipcRenderer.invoke('theme:shouldPrompt');
+}
+
+/**
+ * Marks the first-run theme picker as seen so it is not shown again.
+ */
+function markThemePickerSeen(): Promise<void> {
+  return ipcRenderer.invoke('theme:markPickerSeen');
+}
+
+/**
  * Subscribes to theme preference change notifications from the main process.
  *
  * @param callback - Called with the new persisted theme preference.
@@ -2110,6 +2133,9 @@ const api: Api = {
   checkForUpdates,
   getTheme,
   setTheme,
+  previewTheme,
+  shouldPickTheme,
+  markThemePickerSeen,
   onThemeChanged,
   minimizeWindow,
   toggleMaximizeWindow,

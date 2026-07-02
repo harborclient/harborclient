@@ -85,6 +85,7 @@ export function SortableRow({
         aria-label={dragHandleLabel}
         {...attributes}
         {...listeners}
+        tabIndex={-1}
       >
         <FaIcon icon={faGripVertical} className="h-3 w-3" />
       </button>

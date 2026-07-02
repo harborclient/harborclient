@@ -15,7 +15,7 @@ interface Props {
   active: boolean;
 
   /**
-   * Roving tabindex for the tab control.
+   * Tab order index for the tab label; all tabs stay in sequential Tab order.
    */
   tabIndex: number;
 
@@ -61,6 +61,7 @@ export function ChatTabItem({ chat, active, tabIndex, onSelect, onClose }: Props
       </span>
       <TabCloseButton
         ariaLabel={`Close ${chat.title}`}
+        tabIndex={0}
         onClick={(event) => {
           event.stopPropagation();
           onClose(chat.id);

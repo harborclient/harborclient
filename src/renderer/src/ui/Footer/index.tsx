@@ -1,5 +1,5 @@
 import { FooterButton, FooterIcon, segmentGroup } from '@harborclient/sdk/components';
-import { useMemo, type JSX } from 'react';
+import { useEffect, useMemo, useRef, type JSX } from 'react';
 import type { Variable } from '#/shared/types';
 import type { ConsoleEntry } from '#/renderer/src/store';
 
@@ -9,12 +9,19 @@ import {
   selectActivePluginFooterPanelId,
   togglePluginFooterPanel
 } from '#/renderer/src/store/slices/navigationSlice';
+import {
+  closeShortcutsReferenceModal,
+  openShortcutsReferenceModal,
+  selectShortcutsReferenceModal
+} from '#/renderer/src/store/slices/modalsSlice';
 import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import { usePluginFooterPanels, usePluginStatusBarItems } from '#/renderer/src/plugins/pluginHooks';
 
 import { ConsolePanel } from './ConsolePanel';
 import { PluginFooterPanel } from './PluginFooterPanel';
 import { VariablesPanel } from './VariablesPanel';
+import { SHORTCUTS_REFERENCE_MODAL_ID } from '#/renderer/src/ui/modals/ShortcutsReferenceModal';
+import { handleFooterBarTabNavigation } from '#/renderer/src/ui/Footer/footerBarTabNavigation';
 import { effectiveCount, resolveScopedVariables } from './VariablesPanel/resolve';
 
 interface Props {
@@ -148,6 +155,41 @@ export function Footer({
   const pluginFooterPanels = usePluginFooterPanels();
   const statusBarItems = usePluginStatusBarItems();
   const activePluginFooterPanelId = useAppSelector(selectActivePluginFooterPanelId);
+  const shortcutsReferenceOpen = useAppSelector(selectShortcutsReferenceModal)?.open === true;
+  const footerRef = useRef<HTMLElement>(null);
+  const leftGroupRef = useRef<HTMLDivElement>(null);
+  const rightIconsRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Attaches a native capture-phase Tab handler so focus wraps from the last
+   * left panel toggle to the right layout icons before the browser applies its
+   * default Tab navigation. A native listener avoids relying on React's
+   * synthetic capture ordering, which is delegated at the root container.
+   */
+  useEffect(() => {
+    const footer = footerRef.current;
+    if (footer == null) {
+      return;
+    }
+
+    /**
+     * Runs the footer Tab handoff against the current left and right groups.
+     *
+     * @param event - Native keydown event from within the footer bar.
+     */
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      const leftGroup = leftGroupRef.current;
+      const rightIcons = rightIconsRef.current;
+      if (leftGroup == null || rightIcons == null) {
+        return;
+      }
+
+      handleFooterBarTabNavigation(event, leftGroup, rightIcons);
+    };
+
+    footer.addEventListener('keydown', handleKeyDown, true);
+    return () => footer.removeEventListener('keydown', handleKeyDown, true);
+  }, []);
 
   /**
    * Merges collection and environment variables for the footer variables panel.
@@ -196,7 +238,10 @@ export function Footer({
           onClose={() => dispatch(togglePluginFooterPanel(panel.id))}
         />
       ))}
-      <footer className="relative z-50 flex shrink-0 items-center justify-between border-t border-separator bg-sidebar px-2 py-0.5 app-no-drag">
+      <footer
+        ref={footerRef}
+        className="relative z-50 flex shrink-0 items-center justify-between border-t border-separator bg-sidebar px-2 py-0.5 app-no-drag"
+      >
         <div className={`${segmentGroup} min-w-0 flex-1`}>
           {leftStatusItems.map((item) => (
             <div key={item.id} className="overflow-hidden px-1" style={{ width: 120, height: 20 }}>
@@ -209,47 +254,64 @@ export function Footer({
               />
             </div>
           ))}
-          <FooterButton
-            active={consoleOpen}
-            onClick={onToggleConsole}
-            controlsId="footer-console-panel"
-          >
-            Console
-            {entryCount > 0 && <span className="ml-1 text-[14px] text-muted">({entryCount})</span>}
-          </FooterButton>
-          <FooterButton
-            active={variablesOpen}
-            onClick={onToggleVariables}
-            controlsId="footer-variables-panel"
-          >
-            Variables
-            {variableCount > 0 && (
-              <span className="ml-1 text-[14px] text-muted">({variableCount})</span>
-            )}
-          </FooterButton>
-          {pluginFooterPanels.map((panel) => (
+          <div ref={leftGroupRef} className="inline-flex min-w-0 items-center">
             <FooterButton
-              key={panel.id}
-              active={activePluginFooterPanelId === panel.id}
-              onClick={() => dispatch(togglePluginFooterPanel(panel.id))}
-              controlsId={`footer-plugin-panel-${panel.id}`}
+              active={shortcutsReferenceOpen}
+              onClick={() =>
+                dispatch(
+                  shortcutsReferenceOpen
+                    ? closeShortcutsReferenceModal()
+                    : openShortcutsReferenceModal()
+                )
+              }
+              controlsId={SHORTCUTS_REFERENCE_MODAL_ID}
             >
-              {panel.title}
-              {panel.hasIndicator ? (
-                <span className="ml-1 inline-flex h-4 w-3 shrink-0 items-center overflow-hidden">
-                  <PluginSurface
-                    pluginId={panel.pluginId}
-                    contributionId={panel.contributionId}
-                    kind="footerPanels"
-                    slot="indicator"
-                    style={{ minHeight: 16, height: 16, width: 12 }}
-                  />
-                </span>
-              ) : null}
+              Shortcuts
             </FooterButton>
-          ))}
+            <FooterButton
+              active={consoleOpen}
+              onClick={onToggleConsole}
+              controlsId="footer-console-panel"
+            >
+              Console
+              {entryCount > 0 && (
+                <span className="ml-1 text-[14px] text-muted">({entryCount})</span>
+              )}
+            </FooterButton>
+            <FooterButton
+              active={variablesOpen}
+              onClick={onToggleVariables}
+              controlsId="footer-variables-panel"
+            >
+              Variables
+              {variableCount > 0 && (
+                <span className="ml-1 text-[14px] text-muted">({variableCount})</span>
+              )}
+            </FooterButton>
+            {pluginFooterPanels.map((panel) => (
+              <FooterButton
+                key={panel.id}
+                active={activePluginFooterPanelId === panel.id}
+                onClick={() => dispatch(togglePluginFooterPanel(panel.id))}
+                controlsId={`footer-plugin-panel-${panel.id}`}
+              >
+                {panel.title}
+                {panel.hasIndicator ? (
+                  <span className="ml-1 inline-flex h-4 w-3 shrink-0 items-center overflow-hidden">
+                    <PluginSurface
+                      pluginId={panel.pluginId}
+                      contributionId={panel.contributionId}
+                      kind="footerPanels"
+                      slot="indicator"
+                      style={{ minHeight: 16, height: 16, width: 12 }}
+                    />
+                  </span>
+                ) : null}
+              </FooterButton>
+            ))}
+          </div>
         </div>
-        <div className="flex items-center gap-0.5">
+        <div className="flex shrink-0 items-center gap-0.5">
           {rightStatusItems.map((item) => (
             <div key={item.id} className="overflow-hidden px-1" style={{ width: 120, height: 20 }}>
               <PluginSurface
@@ -261,7 +323,7 @@ export function Footer({
               />
             </div>
           ))}
-          <div className="flex items-center gap-1.5">
+          <div ref={rightIconsRef} className="flex items-center gap-1.5">
             <FooterIcon
               onClick={onToggleRequestEditor}
               icon={faPaperPlane}

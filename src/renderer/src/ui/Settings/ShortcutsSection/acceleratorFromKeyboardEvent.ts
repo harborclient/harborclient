@@ -1,3 +1,5 @@
+import { SHIFTED_SYMBOL_TO_DIGIT } from '#/shared/shortcuts';
+
 /**
  * Minimal keyboard event shape used when converting DOM events to accelerators.
  */
@@ -106,6 +108,11 @@ function normalizeCapturedKey(key: string): string | null {
 
   if (key.length === 1 && /[0-9]/.test(key)) {
     return key;
+  }
+
+  const shiftedDigit = SHIFTED_SYMBOL_TO_DIGIT[key];
+  if (shiftedDigit != null) {
+    return shiftedDigit;
   }
 
   const alias = KEY_ALIASES[key];

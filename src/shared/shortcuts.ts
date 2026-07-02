@@ -21,6 +21,15 @@ export type ShortcutId =
   | 'select-all'
   | 'toggle-sidebar'
   | 'focus-sidebar-search'
+  | 'focus-request-url'
+  | 'focus-first-collection'
+  | 'focus-first-environment'
+  | 'focus-first-request-tab'
+  | 'focus-response-editor'
+  | 'next-sidebar-list-item'
+  | 'previous-sidebar-list-item'
+  | 'toggle-variables'
+  | 'toggle-console'
   | 'toggle-ai-sidebar'
   | 'toggle-request-editor'
   | 'toggle-response-editor'
@@ -29,6 +38,13 @@ export type ShortcutId =
   | 'send-request'
   | 'previous-request-tab'
   | 'next-request-tab'
+  | 'set-method-get'
+  | 'set-method-post'
+  | 'set-method-put'
+  | 'set-method-patch'
+  | 'set-method-delete'
+  | 'set-method-head'
+  | 'set-method-options'
   | 'toggle-fullscreen'
   | 'zoom-in'
   | 'zoom-out'
@@ -36,7 +52,8 @@ export type ShortcutId =
   | 'documentation'
   | 'report-issue'
   | 'check-for-updates'
-  | 'about';
+  | 'about'
+  | 'shortcuts-reference';
 
 /**
  * Electron menu role names used by built-in shortcuts.
@@ -69,6 +86,11 @@ export interface ShortcutDef {
   actionId?: MenuActionId;
   /** Electron menu role when `kind` is `role`. */
   role?: ShortcutRole;
+  /**
+   * When true, the main process does not dispatch this shortcut; the renderer
+   * handles it with context-sensitive logic (for example sidebar list navigation).
+   */
+  rendererOnly?: boolean;
 }
 
 /**
@@ -224,6 +246,69 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     actionId: 'focus-sidebar-search'
   },
   {
+    id: 'focus-request-url',
+    label: 'Focus request URL',
+    defaultAccelerator: 'Alt+Shift+R',
+    kind: 'action',
+    actionId: 'focus-request-url'
+  },
+  {
+    id: 'focus-first-collection',
+    label: 'Focus first collection',
+    defaultAccelerator: 'Alt+Shift+C',
+    kind: 'action',
+    actionId: 'focus-first-collection'
+  },
+  {
+    id: 'focus-first-environment',
+    label: 'Focus first environment',
+    defaultAccelerator: 'Alt+Shift+E',
+    kind: 'action',
+    actionId: 'focus-first-environment'
+  },
+  {
+    id: 'focus-first-request-tab',
+    label: 'Focus first request tab',
+    defaultAccelerator: 'Alt+Shift+O',
+    kind: 'action',
+    actionId: 'focus-first-request-tab'
+  },
+  {
+    id: 'focus-response-editor',
+    label: 'Focus response editor',
+    defaultAccelerator: 'Alt+Shift+T',
+    kind: 'action',
+    actionId: 'focus-response-editor'
+  },
+  {
+    id: 'next-sidebar-list-item',
+    label: 'Next sidebar list item',
+    defaultAccelerator: 'CmdOrCtrl+Tab',
+    kind: 'action',
+    rendererOnly: true
+  },
+  {
+    id: 'previous-sidebar-list-item',
+    label: 'Previous sidebar list item',
+    defaultAccelerator: 'CmdOrCtrl+Shift+Tab',
+    kind: 'action',
+    rendererOnly: true
+  },
+  {
+    id: 'toggle-variables',
+    label: 'Toggle variables panel',
+    defaultAccelerator: 'Alt+Shift+V',
+    kind: 'action',
+    actionId: 'toggle-variables'
+  },
+  {
+    id: 'toggle-console',
+    label: 'Toggle console',
+    defaultAccelerator: 'Alt+Shift+L',
+    kind: 'action',
+    actionId: 'toggle-console'
+  },
+  {
     id: 'toggle-ai-sidebar',
     label: 'Toggle agent chat',
     defaultAccelerator: 'CmdOrCtrl+Shift+B',
@@ -280,6 +365,55 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     actionId: 'next-request-tab'
   },
   {
+    id: 'set-method-get',
+    label: 'Set request method to GET',
+    defaultAccelerator: 'Alt+Shift+1',
+    kind: 'action',
+    actionId: 'set-method-get'
+  },
+  {
+    id: 'set-method-post',
+    label: 'Set request method to POST',
+    defaultAccelerator: 'Alt+Shift+2',
+    kind: 'action',
+    actionId: 'set-method-post'
+  },
+  {
+    id: 'set-method-put',
+    label: 'Set request method to PUT',
+    defaultAccelerator: 'Alt+Shift+3',
+    kind: 'action',
+    actionId: 'set-method-put'
+  },
+  {
+    id: 'set-method-patch',
+    label: 'Set request method to PATCH',
+    defaultAccelerator: 'Alt+Shift+4',
+    kind: 'action',
+    actionId: 'set-method-patch'
+  },
+  {
+    id: 'set-method-delete',
+    label: 'Set request method to DELETE',
+    defaultAccelerator: 'Alt+Shift+5',
+    kind: 'action',
+    actionId: 'set-method-delete'
+  },
+  {
+    id: 'set-method-head',
+    label: 'Set request method to HEAD',
+    defaultAccelerator: 'Alt+Shift+6',
+    kind: 'action',
+    actionId: 'set-method-head'
+  },
+  {
+    id: 'set-method-options',
+    label: 'Set request method to OPTIONS',
+    defaultAccelerator: 'Alt+Shift+7',
+    kind: 'action',
+    actionId: 'set-method-options'
+  },
+  {
     id: 'toggle-fullscreen',
     label: 'Toggle full screen',
     defaultAccelerator: 'F11',
@@ -327,6 +461,13 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'CmdOrCtrl+Shift+U',
     kind: 'action',
     actionId: 'check-for-updates'
+  },
+  {
+    id: 'shortcuts-reference',
+    label: 'Keyboard shortcuts',
+    defaultAccelerator: 'Alt+Shift+K',
+    kind: 'action',
+    actionId: 'shortcuts-reference'
   },
   {
     id: 'about',
@@ -610,6 +751,11 @@ export function formatAcceleratorDisplay(accelerator: string): string {
 export interface KeyChord {
   /** Normalized key value (for example `F5`, `f`, `,`). */
   key: string;
+  /**
+   * Physical key code from Electron or DOM (for example `KeyO`, `Digit1`).
+   * Used when Alt or layout changes make `key` an unmapped character.
+   */
+  code?: string;
   /** Whether the control key is pressed. */
   control: boolean;
   /** Whether the meta (command) key is pressed. */
@@ -695,6 +841,64 @@ const KEY_COMPARE_ALIASES: Record<string, string> = {
 };
 
 /**
+ * US keyboard shifted digit-row symbols mapped to their base digit tokens.
+ *
+ * Shift+1 reports as `!` in DOM and Electron key events, but accelerators store
+ * the unshifted digit when Shift is a modifier (e.g. `Alt+Shift+1`).
+ */
+export const SHIFTED_SYMBOL_TO_DIGIT: Record<string, string> = {
+  '!': '1',
+  '@': '2',
+  '#': '3',
+  $: '4',
+  '%': '5',
+  '^': '6',
+  '&': '7',
+  '*': '8',
+  '(': '9',
+  ')': '0'
+};
+
+/**
+ * Maps a DOM/Electron physical key code to an Electron accelerator key token.
+ *
+ * @param code - KeyboardEvent.code or Electron InputEvent.code value.
+ * @returns Electron key token or null when unsupported.
+ */
+function normalizeKeyCodeToken(code: string): string | null {
+  const letterMatch = /^Key([A-Z])$/.exec(code);
+  if (letterMatch != null) {
+    return letterMatch[1];
+  }
+
+  const digitMatch = /^Digit([0-9])$/.exec(code);
+  if (digitMatch != null) {
+    return digitMatch[1];
+  }
+
+  if (/^F([1-9]|1[0-2])$/.test(code)) {
+    return code.toUpperCase();
+  }
+
+  const codeAliases: Record<string, string> = {
+    Comma: 'Comma',
+    Period: 'Period',
+    Slash: 'Slash',
+    Backslash: 'Backslash',
+    Backquote: 'Backquote',
+    Minus: 'Minus',
+    Equal: 'Equal',
+    BracketLeft: 'BracketLeft',
+    BracketRight: 'BracketRight',
+    Semicolon: 'Semicolon',
+    Quote: 'Quote',
+    Space: 'Space'
+  };
+
+  return codeAliases[code] ?? null;
+}
+
+/**
  * Normalizes a DOM or Electron key value to an Electron accelerator key token.
  *
  * @param key - Key value from a keyboard or before-input event.
@@ -713,6 +917,11 @@ function normalizeChordKey(key: string): string | null {
     return key;
   }
 
+  const shiftedDigit = SHIFTED_SYMBOL_TO_DIGIT[key];
+  if (shiftedDigit != null) {
+    return shiftedDigit;
+  }
+
   const alias = CHORD_KEY_ALIASES[key];
   if (alias != null) {
     return alias;
@@ -723,6 +932,28 @@ function normalizeChordKey(key: string): string | null {
   }
 
   return null;
+}
+
+/**
+ * Resolves the accelerator key token from a keyboard chord.
+ *
+ * Prefers the logical `key` value and falls back to the physical `code` when
+ * Alt or keyboard layout produce an unmapped character (common on Linux).
+ *
+ * @param chord - Modifier and key state from a keyboard event.
+ * @returns Electron key token or null when unsupported.
+ */
+function resolveChordKeyToken(chord: KeyChord): string | null {
+  const fromKey = normalizeChordKey(chord.key);
+  if (fromKey != null) {
+    return fromKey;
+  }
+
+  if (chord.code == null || chord.code.length === 0) {
+    return null;
+  }
+
+  return normalizeKeyCodeToken(chord.code);
 }
 
 /**
@@ -741,7 +972,7 @@ export function acceleratorFromChord(chord: KeyChord): string | null {
     return null;
   }
 
-  const key = normalizeChordKey(chord.key);
+  const key = resolveChordKeyToken(chord);
   if (key == null) {
     return null;
   }

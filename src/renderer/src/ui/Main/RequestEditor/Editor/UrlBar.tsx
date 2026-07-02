@@ -4,6 +4,7 @@ import type { HttpMethod, Variable } from '#/shared/types';
 
 import { usePluginRequestToolbarActions } from '#/renderer/src/plugins/pluginHooks';
 import { urlSource } from '#/renderer/src/autocomplete/sources';
+import { REQUEST_URL_INPUT_ID } from '#/renderer/src/ui/Main/RequestEditor/Editor/focusRequestUrl';
 
 interface Props {
   /**
@@ -64,10 +65,11 @@ export function UrlBar({
 
   return (
     <div className="flex items-center gap-2">
-      <div className={`request-url-bar flex min-w-0 flex-1 items-center ${fieldFrame}`}>
+      <div className={`request-url-bar flex min-w-0 flex-1 items-center mb-1 ${fieldFrame}`}>
         <MethodSelect value={method} onChange={onMethodChange} />
         <div className="h-5 w-px shrink-0 bg-separator" />
         <VariableInput
+          id={REQUEST_URL_INPUT_ID}
           className="app-no-drag"
           value={url}
           onChange={onUrlChange}
@@ -94,9 +96,10 @@ export function UrlBar({
         </Button>
       ))}
       <Button
+        type="button"
         onClick={onSend}
         disabled={sending}
-        className="inline-flex w-24 shrink-0 items-center justify-center rounded-full!"
+        className="hc-send-button inline-flex w-24 shrink-0 items-center justify-center rounded-full!"
       >
         {sending ? 'Sending…' : 'Send'}
       </Button>

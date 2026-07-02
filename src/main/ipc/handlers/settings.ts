@@ -1,4 +1,5 @@
 import { app, nativeTheme } from 'electron';
+import { isPickThemeFlagEnabled } from '#/main/pickTheme';
 import type { IStorage } from '#/main/storage/IStorage';
 import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { rebuildAppMenu, setMenuActiveTheme } from '#/main/appMenu';
@@ -82,6 +83,7 @@ function mapTeamHubAdminCollectionContents(
 }
 
 const THEME_SETTING_KEY = 'theme';
+const THEME_PICKER_SEEN_KEY = 'themePickerSeen';
 
 /**
  * Validates and returns a theme source value.
@@ -139,6 +141,24 @@ export function registerSettingsHandlers(db: IStorage): void {
     await db.setSetting(THEME_SETTING_KEY, theme);
     setMenuActiveTheme(theme as ThemeSource);
     event.sender.send('theme:changed', theme);
+  });
+
+  // Applies a theme preference without persisting it (used by the theme picker preview).
+  handle('theme:preview', ipcArgSchemas.themeSet, async (_event, theme) => {
+    nativeTheme.themeSource = resolveNativeThemeSource(theme as ThemeSource);
+  });
+
+  // Returns whether the first-run theme picker modal should open.
+  handle('theme:shouldPrompt', ipcArgSchemas.none, async () => {
+    if (isPickThemeFlagEnabled()) {
+      return true;
+    }
+    return (await db.getSetting(THEME_PICKER_SEEN_KEY)) !== '1';
+  });
+
+  // Marks the first-run theme picker as seen so it is not shown again.
+  handle('theme:markPickerSeen', ipcArgSchemas.none, async () => {
+    await db.setSetting(THEME_PICKER_SEEN_KEY, '1');
   });
 
   // Returns general HTTP execution settings (timeout, size limit, SSL verify).

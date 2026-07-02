@@ -1,14 +1,48 @@
 import { FaIcon, resolveTabListKeyAction } from '@harborclient/sdk/components';
 import type { JSX, KeyboardEvent } from 'react';
 import { useMemo } from 'react';
-import { isPageTab, type Tab } from '#/renderer/src/store/drafts';
+import { isPageTab, isRequestTab, type Tab } from '#/renderer/src/store/drafts';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectCollections, selectEnvironments } from '#/renderer/src/store/selectors';
 import { getRegisteredMainViews } from '#/renderer/src/plugins/registry';
 
 import { faPlus } from '#/renderer/src/fontawesome';
 import { pageTabMeta } from './pageTabMeta';
+import { focusRequestTabControl } from './focusFirstRequestTab';
+import {
+  focusFirstFocusableInRequestTabPanel,
+  resolveRequestTabIdFromFocusTarget
+} from './focusRequestTabPanel';
 import { TabItem } from './TabItem';
+
+/** Prefix for request editor tab label element ids. */
+const REQUEST_TAB_ID_PREFIX = 'request-tab-';
+
+/**
+ * Resolves the tab list index for arrow-key navigation from keyboard focus.
+ *
+ * Uses the focused tab label when focus is inside a tab row; falls back to the
+ * currently selected tab when focus is elsewhere in the tab list.
+ *
+ * @param tabs - Open tabs in display order.
+ * @param activeTabId - Currently selected tab id.
+ * @returns Index into `tabs`, or `-1` when the list is empty.
+ */
+function resolveFocusedTabIndex(tabs: Tab[], activeTabId: string): number {
+  const activeElement = document.activeElement;
+  if (activeElement instanceof HTMLElement) {
+    const tabElement = activeElement.closest('[role="tab"]');
+    if (tabElement instanceof HTMLElement && tabElement.id.startsWith(REQUEST_TAB_ID_PREFIX)) {
+      const tabId = tabElement.id.slice(REQUEST_TAB_ID_PREFIX.length);
+      const focusedIndex = tabs.findIndex((tab) => tab.tabId === tabId);
+      if (focusedIndex >= 0) {
+        return focusedIndex;
+      }
+    }
+  }
+
+  return tabs.findIndex((tab) => tab.tabId === activeTabId);
+}
 
 interface Props {
   /**
@@ -79,13 +113,41 @@ export function TabBar({ tabs, activeTabId, onSelect, onClose, onNew }: Props): 
   }, [tabs, collections, allEnvironments]);
 
   /**
-   * Moves focus and selection across open tabs with arrow, Home, and End keys
-   * following the WAI-ARIA tabs pattern.
+   * Moves focus and selection across open tabs with arrow, Home, and End keys,
+   * and moves Down from a focused request tab into its editor panel.
    *
    * @param event - Keyboard event from the tab list container.
    */
   const handleTabListKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
-    const currentIndex = tabs.findIndex((tab) => tab.tabId === activeTabId);
+    if (event.key === 'ArrowDown') {
+      const focusedTabId = resolveRequestTabIdFromFocusTarget(document.activeElement);
+      if (focusedTabId != null) {
+        const focusedTab = tabs.find((tab) => tab.tabId === focusedTabId);
+        if (focusedTab != null && isRequestTab(focusedTab)) {
+          event.preventDefault();
+
+          /**
+           * Waits for React to mount the linked tab panel before focusing inside it.
+           */
+          const focusPanel = (): void => {
+            focusFirstFocusableInRequestTabPanel(focusedTabId);
+          };
+
+          if (focusedTabId !== activeTabId) {
+            onSelect(focusedTabId);
+            requestAnimationFrame(() => {
+              requestAnimationFrame(focusPanel);
+            });
+          } else {
+            requestAnimationFrame(focusPanel);
+          }
+
+          return;
+        }
+      }
+    }
+
+    const currentIndex = resolveFocusedTabIndex(tabs, activeTabId);
     const nextIndex = resolveTabListKeyAction(event.key, currentIndex, tabs.length);
     if (nextIndex === null) return;
 
@@ -94,7 +156,7 @@ export function TabBar({ tabs, activeTabId, onSelect, onClose, onNew }: Props): 
     onSelect(nextTab.tabId);
 
     requestAnimationFrame(() => {
-      document.getElementById(`request-tab-${nextTab.tabId}`)?.focus();
+      focusRequestTabControl(nextTab.tabId);
     });
   };
 
@@ -113,7 +175,7 @@ export function TabBar({ tabs, activeTabId, onSelect, onClose, onNew }: Props): 
               key={tab.tabId}
               tab={tab}
               active={tab.tabId === activeTabId}
-              tabIndex={tab.tabId === activeTabId ? 0 : -1}
+              tabIndex={0}
               pageTitle={pageDisplay?.title}
               pageIcon={pageDisplay?.icon}
               onSelect={onSelect}

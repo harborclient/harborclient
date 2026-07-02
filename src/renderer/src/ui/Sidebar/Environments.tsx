@@ -21,6 +21,7 @@ import { RowActionsMenu } from '@harborclient/sdk/components';
 import { buildReorderMenuGroup } from '@harborclient/sdk/components';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { SortableRow } from '#/renderer/src/ui/Sidebar/Collections/SortableRow';
+import { focusEnvironmentSettings } from '#/renderer/src/ui/EnvironmentSettings/focusEnvironmentSettings';
 import { sourceRow } from '#/renderer/src/ui/shared/classes';
 
 interface Props {
@@ -219,9 +220,16 @@ export function Environments({
                 <button
                   type="button"
                   className="min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left text-[14px] text-inherit app-no-drag"
+                  data-sidebar-environment-id={environment.id}
                   aria-current={selected ? 'true' : undefined}
                   onClick={() => onSelectEnvironment(selected ? null : environment.id)}
                   onDoubleClick={() => onConfigureEnvironment(environment.id)}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter') return;
+                    e.preventDefault();
+                    onConfigureEnvironment(environment.id);
+                    focusEnvironmentSettings();
+                  }}
                 >
                   {environment.name}
                 </button>

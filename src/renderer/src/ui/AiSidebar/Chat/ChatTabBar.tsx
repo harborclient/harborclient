@@ -15,6 +15,44 @@ import { setActiveChat, setHistoryOpen } from '#/renderer/src/store/slices/aiCha
 import { ChatHistory } from './ChatHistory';
 import { ChatTabItem } from './ChatTabItem';
 
+/** Prefix for AI chat tab label element ids. */
+const AI_CHAT_TAB_ID_PREFIX = 'ai-chat-tab-';
+
+/**
+ * Resolves the chat tab list index for arrow-key navigation from keyboard focus.
+ *
+ * Uses the focused tab label when focus is inside a tab row; falls back to the
+ * active chat when focus is elsewhere in the tab list.
+ *
+ * @param openTabs - Open chat tabs in display order.
+ * @param activeChatId - Currently selected chat id, if any.
+ * @returns Index into `openTabs`, or `-1` when none apply.
+ */
+function resolveFocusedChatTabIndex(
+  openTabs: { id: number }[],
+  activeChatId: number | null
+): number {
+  const activeElement = document.activeElement;
+  if (activeElement instanceof HTMLElement) {
+    const tabElement = activeElement.closest('[role="tab"]');
+    if (tabElement instanceof HTMLElement && tabElement.id.startsWith(AI_CHAT_TAB_ID_PREFIX)) {
+      const chatId = Number.parseInt(tabElement.id.slice(AI_CHAT_TAB_ID_PREFIX.length), 10);
+      if (!Number.isNaN(chatId)) {
+        const focusedIndex = openTabs.findIndex((tab) => tab.id === chatId);
+        if (focusedIndex >= 0) {
+          return focusedIndex;
+        }
+      }
+    }
+  }
+
+  if (activeChatId == null) {
+    return -1;
+  }
+
+  return openTabs.findIndex((tab) => tab.id === activeChatId);
+}
+
 interface Props {
   /**
    * AI provider settings used when creating new chats.
@@ -47,9 +85,9 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
    * Moves focus and selection across open chat tabs with arrow, Home, and End keys.
    */
   const handleTabListKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
-    if (activeChatId == null) return;
+    const currentIndex = resolveFocusedChatTabIndex(openTabs, activeChatId);
+    if (currentIndex < 0) return;
 
-    const currentIndex = openTabs.findIndex((tab) => tab.id === activeChatId);
     const nextIndex = resolveTabListKeyAction(event.key, currentIndex, openTabs.length);
     if (nextIndex === null) return;
 
@@ -75,7 +113,7 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
             key={chat.id}
             chat={chat}
             active={chat.id === activeChatId}
-            tabIndex={chat.id === activeChatId ? 0 : -1}
+            tabIndex={0}
             onSelect={(chatId) => dispatch(setActiveChat(chatId))}
             onClose={(chatId) => void dispatch(closeChat(chatId))}
           />

@@ -23,6 +23,8 @@ Use `pnpm dev -- -v` for verbose startup and diagnostic logging, or `pnpm dev --
 
 Use `pnpm dev -- --seed` to ensure the HarborClient Echo sample collection exists (creates it only when missing).
 
+Use `pnpm dev -- --pick-theme` to open the appearance theme picker on launch (also shown automatically on first install).
+
 ## About HarborClient
 
 **HarborClient** is a free, open-source desktop API client for macOS, Windows, and Linux. It gives you a familiar Postman-style workspace—collections, environments, request scripts, and a tabbed editor—while keeping your work on your machine or on storage you control. There are no accounts, subscriptions, or required cloud sync.

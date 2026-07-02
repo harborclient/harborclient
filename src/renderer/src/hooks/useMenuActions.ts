@@ -1,9 +1,12 @@
 import { useEffect } from 'react';
 import { useStore } from 'react-redux';
+import type { HttpMethod } from '#/shared/types';
+import type { MenuActionId } from '#/shared/types/app';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   openAboutModal,
   openCollectionModal,
+  openShortcutsReferenceModal,
   openSyncModal,
   openUpdateModal
 } from '#/renderer/src/store/slices/modalsSlice';
@@ -15,12 +18,15 @@ import {
   toggleAiSidebar,
   toggleRequestEditor,
   toggleResponseEditor,
-  toggleSidebar
+  toggleSidebar,
+  toggleConsole,
+  toggleVariables
 } from '#/renderer/src/store/slices/navigationSlice';
 import {
   activateNextTab,
   activatePreviousTab,
-  openPageTab
+  openPageTab,
+  setActiveDraft
 } from '#/renderer/src/store/slices/tabsSlice';
 import {
   dispatchNewRequest,
@@ -30,14 +36,50 @@ import {
   saveFromMenu,
   sendRequest
 } from '#/renderer/src/store/thunks';
-import type { RootState } from '#/renderer/src/store/redux';
+import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
+import { selectActiveTab } from '#/renderer/src/store/selectors';
+import { isRequestTab } from '#/renderer/src/store/drafts';
 import {
   restoreLastFocusWithoutRing,
   useLastFocusedElement
 } from '#/renderer/src/hooks/useLastFocusedElement';
 import { focusSidebarSearch } from '#/renderer/src/ui/Sidebar/focusSidebarSearch';
+import { focusRequestUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/focusRequestUrl';
+import { focusFirstRequestTab } from '#/renderer/src/ui/Main/RequestEditor/TabBar/focusFirstRequestTab';
+import { focusResponseEditor } from '#/renderer/src/ui/Main/ResponseEditor/focusResponseEditor';
 import { formatErrorMessage, showAlert, showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
 import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
+
+/**
+ * Maps set-method menu actions to HTTP methods for keyboard shortcuts.
+ */
+const METHOD_BY_MENU_ACTION: Partial<Record<MenuActionId, HttpMethod>> = {
+  'set-method-get': 'GET',
+  'set-method-post': 'POST',
+  'set-method-put': 'PUT',
+  'set-method-patch': 'PATCH',
+  'set-method-delete': 'DELETE',
+  'set-method-head': 'HEAD',
+  'set-method-options': 'OPTIONS'
+};
+
+/**
+ * Updates the HTTP method on the active request tab when one is focused.
+ *
+ * @param dispatch - Redux dispatch function.
+ * @param getState - Reads current store state for the active tab.
+ * @param method - HTTP method to apply.
+ */
+function applyMethodToActiveRequestTab(
+  dispatch: AppDispatch,
+  getState: () => RootState,
+  method: HttpMethod
+): void {
+  const tab = selectActiveTab(getState());
+  if (tab && isRequestTab(tab)) {
+    dispatch(setActiveDraft({ ...tab.draft, method }));
+  }
+}
 
 /**
  * Subscribes to main-process menu actions and dispatches the matching store updates.
@@ -84,6 +126,12 @@ export function useMenuActions(): void {
    */
   useEffect(() => {
     const unsubscribe = window.api.onMenuAction((action) => {
+      const method = METHOD_BY_MENU_ACTION[action];
+      if (method != null) {
+        applyMethodToActiveRequestTab(dispatch, store.getState, method);
+        return;
+      }
+
       switch (action) {
         case 'new-request':
           dispatchNewRequest(dispatch);
@@ -128,6 +176,21 @@ export function useMenuActions(): void {
         case 'focus-sidebar-search':
           focusSidebarSearch(dispatch);
           break;
+        case 'focus-request-url':
+          focusRequestUrl(dispatch);
+          break;
+        case 'focus-first-request-tab':
+          focusFirstRequestTab(dispatch, store.getState);
+          break;
+        case 'focus-response-editor':
+          focusResponseEditor(dispatch);
+          break;
+        case 'toggle-variables':
+          dispatch(toggleVariables());
+          break;
+        case 'toggle-console':
+          dispatch(toggleConsole());
+          break;
         case 'toggle-ai-sidebar':
           dispatch(toggleAiSidebar());
           break;
@@ -155,13 +218,16 @@ export function useMenuActions(): void {
         case 'about':
           dispatch(openAboutModal());
           break;
+        case 'shortcuts-reference':
+          dispatch(openShortcutsReferenceModal());
+          break;
         case 'check-for-updates':
           dispatch(openUpdateModal());
           break;
       }
     });
     return unsubscribe;
-  }, [dispatch, lastFocusedRef]);
+  }, [dispatch, lastFocusedRef, store]);
 
   /**
    * Handles View menu appearance theme selections with confirmation before switching.

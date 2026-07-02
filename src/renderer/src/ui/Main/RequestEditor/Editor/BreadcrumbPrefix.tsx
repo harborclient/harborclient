@@ -1,7 +1,4 @@
-import { FaIcon } from '@harborclient/sdk/components';
 import type { JSX, MouseEvent } from 'react';
-
-import { faChevronRight } from '#/renderer/src/fontawesome';
 
 interface Props {
   /**
@@ -46,10 +43,18 @@ export function BreadcrumbPrefix({
     ? 'truncate text-[15px] font-normal text-muted hover:text-text'
     : 'truncate font-normal text-muted hover:text-text';
   const separator = (
-    <FaIcon
-      icon={faChevronRight}
+    <svg
+      aria-hidden="true"
+      focusable="false"
       className="inline-block h-3 w-3 shrink-0 align-middle text-muted"
-    />
+      viewBox="0 0 320 512"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        fill="currentColor"
+        d="M311.1 233.4c12.5 12.5 12.5 32.8 0 45.3l-192 192c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L243.2 256 73.9 86.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l192 192z"
+      />
+    </svg>
   );
 
   /**

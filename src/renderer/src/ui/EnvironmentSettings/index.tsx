@@ -7,9 +7,10 @@ import {
   FormGroup,
   Input
 } from '@harborclient/sdk/components';
-import { useEffect, useId, useMemo, useState, type JSX } from 'react';
+import { useEffect, useMemo, useState, type JSX } from 'react';
 import type { Environment, Variable } from '#/shared/types';
 
+import { ENVIRONMENT_SETTINGS_NAME_INPUT_ID } from '#/renderer/src/ui/EnvironmentSettings/focusEnvironmentSettings';
 import { serializeEnvironmentForm } from './serialize';
 
 interface Props {
@@ -61,7 +62,6 @@ function EnvironmentSettingsForm({
       : [{ key: '', value: '', defaultValue: '', share: false }]
   );
   const [saving, setSaving] = useState(false);
-  const nameId = useId();
 
   /**
    * Compares serialized form state to the saved environment to detect unsaved edits.
@@ -114,12 +114,12 @@ function EnvironmentSettingsForm({
       <div className="mb-6">
         <FormGroup
           label="Name"
-          htmlFor={nameId}
+          htmlFor={ENVIRONMENT_SETTINGS_NAME_INPUT_ID}
           labelTone="muted"
           description="Name shown in the sidebar and environment selector."
         >
           <Input
-            id={nameId}
+            id={ENVIRONMENT_SETTINGS_NAME_INPUT_ID}
             className="w-full"
             type="text"
             value={name}

@@ -3,6 +3,7 @@ import type { JSX } from 'react';
 import { useId } from 'react';
 import type { ProviderOption } from '#/renderer/src/hooks/useProviders';
 import { providerOptionLabel } from '#/renderer/src/hooks/useProviders';
+import { COLLECTION_SETTINGS_NAME_INPUT_ID } from '#/renderer/src/ui/CollectionSettings/focusCollectionSettings';
 
 interface Props {
   name: string;
@@ -41,7 +42,6 @@ export function GeneralSection({
   onSave,
   onClose
 }: Props): JSX.Element {
-  const nameId = useId();
   const providerId = useId();
   const providerSelectDisabled = providersLoading || providersError != null;
 
@@ -50,12 +50,12 @@ export function GeneralSection({
       <div>
         <FormGroup
           label="Name"
-          htmlFor={nameId}
+          htmlFor={COLLECTION_SETTINGS_NAME_INPUT_ID}
           labelTone="muted"
           description="Name shown in the sidebar and when this collection is selected."
         >
           <Input
-            id={nameId}
+            id={COLLECTION_SETTINGS_NAME_INPUT_ID}
             className="w-full"
             type="text"
             value={name}

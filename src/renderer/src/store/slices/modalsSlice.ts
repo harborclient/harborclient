@@ -161,6 +161,8 @@ export interface ModalsState {
   confirmModal: ConfirmModalState | null;
   pluginThemePrompt: PluginThemePromptState | null;
   pluginModal: PluginModalState | null;
+  themePicker: { open: boolean } | null;
+  shortcutsReference: { open: boolean } | null;
 }
 
 const initialState: ModalsState = {
@@ -175,7 +177,9 @@ const initialState: ModalsState = {
   alertModal: null,
   confirmModal: null,
   pluginThemePrompt: null,
-  pluginModal: null
+  pluginModal: null,
+  themePicker: null,
+  shortcutsReference: null
 };
 
 const modalsSlice = createSlice({
@@ -618,6 +622,30 @@ const modalsSlice = createSlice({
       state.pluginThemePrompt = null;
     },
     /**
+     * Opens the first-run theme picker modal.
+     */
+    openThemePicker(state) {
+      state.themePicker = { open: true };
+    },
+    /**
+     * Closes the first-run theme picker modal.
+     */
+    closeThemePicker(state) {
+      state.themePicker = null;
+    },
+    /**
+     * Opens the read-only keyboard shortcuts reference modal.
+     */
+    openShortcutsReferenceModal(state) {
+      state.shortcutsReference = { open: true };
+    },
+    /**
+     * Closes the read-only keyboard shortcuts reference modal.
+     */
+    closeShortcutsReferenceModal(state) {
+      state.shortcutsReference = null;
+    },
+    /**
      * Opens or closes the host plugin modal overlay webview.
      */
     setPluginModal(state, action: PayloadAction<PluginModalState | null>) {
@@ -671,6 +699,10 @@ export const {
   setConfirmModal,
   openPluginThemePrompt,
   closePluginThemePrompt,
+  openThemePicker,
+  closeThemePicker,
+  openShortcutsReferenceModal,
+  closeShortcutsReferenceModal,
   setPluginModal
 } = modalsSlice.actions;
 
@@ -731,6 +763,18 @@ export const selectPluginModal = (state: RootState): PluginModalState | null =>
   state.modals.pluginModal;
 
 /**
+ * Returns first-run theme picker modal state when open.
+ */
+export const selectThemePicker = (state: RootState): { open: boolean } | null =>
+  state.modals.themePicker;
+
+/**
+ * Returns read-only keyboard shortcuts reference modal state when open.
+ */
+export const selectShortcutsReferenceModal = (state: RootState): { open: boolean } | null =>
+  state.modals.shortcutsReference;
+
+/**
  * Returns whether any Redux-backed modal should block overlay Escape navigation.
  */
 export const selectHasBlockingModal = (state: RootState): boolean => {
@@ -743,6 +787,8 @@ export const selectHasBlockingModal = (state: RootState): boolean => {
     modals.alertModal != null ||
     modals.confirmModal != null ||
     modals.pluginThemePrompt != null ||
+    modals.themePicker != null ||
+    modals.shortcutsReference != null ||
     modals.pluginModal != null ||
     modals.collectionRunner != null ||
     modals.about.open ||

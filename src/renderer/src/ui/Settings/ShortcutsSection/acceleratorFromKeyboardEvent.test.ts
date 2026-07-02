@@ -68,4 +68,16 @@ describe('acceleratorFromKeyboardEvent', () => {
       })
     ).toBe('F11');
   });
+
+  it('maps Alt+Shift+digit when Shift produces a symbol key', () => {
+    expect(
+      acceleratorFromKeyboardEvent({
+        key: '!',
+        ctrlKey: false,
+        metaKey: false,
+        altKey: true,
+        shiftKey: true
+      })
+    ).toBe('Alt+Shift+1');
+  });
 });
