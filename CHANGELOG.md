@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.9.21 - 2026-07-03
+
 - feat(search): introduce global search functionality and related UI components. (`77cc15b`)
 
 ## 1.9.20 - 2026-07-03
