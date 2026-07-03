@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import {
   buildPendingCollectionRunnerResults,
   countTestResults,
-  getRequestsInRunOrder,
+  getCollectionRunnerRequests,
   isCollectionRunnerRequestFailure,
   normalizeCollectionRunnerConfig,
   type CollectionRunnerConfig
@@ -59,7 +59,7 @@ export const runCollectionRequests = createAsyncThunk<void, void, ThunkApiConfig
       return;
     }
 
-    const { collectionId, folderId } = runner;
+    const { collectionId, folderId, requestId } = runner;
     let state = getState();
     let requests = selectRequestsByCollection(state)[collectionId];
     let folders = selectFoldersByCollection(state)[collectionId];
@@ -71,9 +71,10 @@ export const runCollectionRequests = createAsyncThunk<void, void, ThunkApiConfig
       folders = selectFoldersByCollection(state)[collectionId] ?? [];
     }
 
-    const orderedRequests = getRequestsInRunOrder(
+    const orderedRequests = getCollectionRunnerRequests(
       collectionId,
       folderId,
+      requestId,
       requests ?? [],
       folders ?? []
     );

@@ -3,6 +3,7 @@ import { defaultAuth } from '#/shared/auth';
 import {
   buildPendingCollectionRunnerResults,
   DEFAULT_COLLECTION_RUNNER_CONFIG,
+  getCollectionRunnerRequests,
   getRequestsInRunOrder,
   isCollectionRunnerRequestFailure,
   normalizeCollectionRunnerConfig
@@ -104,6 +105,40 @@ describe('getRequestsInRunOrder', () => {
   it('orders a single folder only', () => {
     const order = getRequestsInRunOrder(1, 10, requests, folders).map((request) => request.id);
     expect(order).toEqual([4, 3]);
+  });
+});
+
+describe('getCollectionRunnerRequests', () => {
+  const folders: Folder[] = [
+    {
+      id: 10,
+      collection_id: 1,
+      uuid: 'f1',
+      name: 'Folder A',
+      sort_order: 0,
+      created_at: '2026-01-01T00:00:00.000Z'
+    }
+  ];
+
+  const requests: SavedRequest[] = [
+    sampleRequest({ id: 1, name: 'Root', sort_order: 0, folder_id: null }),
+    sampleRequest({ id: 2, name: 'In folder', sort_order: 0, folder_id: 10 })
+  ];
+
+  it('returns a single matching request when requestId is set', () => {
+    expect(
+      getCollectionRunnerRequests(1, null, 2, requests, folders).map((request) => request.id)
+    ).toEqual([2]);
+  });
+
+  it('returns an empty list when requestId is missing from the collection', () => {
+    expect(getCollectionRunnerRequests(1, null, 99, requests, folders)).toEqual([]);
+  });
+
+  it('falls back to collection run order when requestId is null', () => {
+    expect(
+      getCollectionRunnerRequests(1, null, null, requests, folders).map((request) => request.id)
+    ).toEqual([1, 2]);
   });
 });
 

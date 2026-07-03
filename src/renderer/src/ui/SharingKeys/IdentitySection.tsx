@@ -150,7 +150,6 @@ export function IdentitySection(): JSX.Element {
                 type="button"
                 variant="secondary"
                 disabled={busy}
-                className="rounded-full!"
                 onClick={() => void handleCopyPublicKey()}
               >
                 Copy public key
@@ -159,7 +158,6 @@ export function IdentitySection(): JSX.Element {
                 type="button"
                 variant="secondary"
                 disabled={busy}
-                className="rounded-full!"
                 onClick={() => void handleExportPublicKey()}
               >
                 Export public key
@@ -168,7 +166,6 @@ export function IdentitySection(): JSX.Element {
                 type="button"
                 variant="secondary"
                 disabled={busy}
-                className="rounded-full!"
                 onClick={() => void handleExportPrivateKey()}
               >
                 Export private key

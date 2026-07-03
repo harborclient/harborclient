@@ -159,6 +159,33 @@ export function getRequestsInRunOrder(
 }
 
 /**
+ * Returns saved requests for a collection runner target, optionally scoped to one request.
+ *
+ * @param collectionId - Collection whose requests are included.
+ * @param folderId - When set, only requests in that folder; otherwise full collection order.
+ * @param requestId - When set, returns only that request if it exists in the collection.
+ * @param requests - All saved requests for the collection (already loaded in Redux).
+ * @param folders - Folders for the collection (already loaded in Redux).
+ * @returns Requests ordered for sequential execution.
+ */
+export function getCollectionRunnerRequests(
+  collectionId: number,
+  folderId: number | null | undefined,
+  requestId: number | null | undefined,
+  requests: SavedRequest[],
+  folders: Folder[]
+): SavedRequest[] {
+  if (requestId != null) {
+    const match = requests.find(
+      (request) => request.collection_id === collectionId && request.id === requestId
+    );
+    return match ? [match] : [];
+  }
+
+  return getRequestsInRunOrder(collectionId, folderId, requests, folders);
+}
+
+/**
  * Returns test pass/fail counts for a script test result list.
  *
  * @param testResults - hc.test results from the last send.

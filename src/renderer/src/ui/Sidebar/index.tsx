@@ -634,6 +634,17 @@ export function Sidebar({
                             })
                           );
                         }}
+                        onRunRequest={(req, collectionName) => {
+                          dispatch(
+                            openCollectionRunnerModal({
+                              collectionId: req.collection_id,
+                              folderId: req.folder_id ?? null,
+                              collectionName,
+                              requestId: req.id,
+                              requestName: req.name
+                            })
+                          );
+                        }}
                         onDeleteCollection={async (id) => {
                           const collection = collections.find((item) => item.id === id);
                           if (collection && isTeamHubProvider(providers, collection.connectionId)) {

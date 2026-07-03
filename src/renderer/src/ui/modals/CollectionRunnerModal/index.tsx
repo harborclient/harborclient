@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, type JSX } from 'react';
 import {
-  getRequestsInRunOrder,
+  getCollectionRunnerRequests,
   type CollectionRunnerRequestResult
 } from '#/shared/collectionRunner';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
@@ -61,7 +61,9 @@ export function CollectionRunnerModal(): JSX.Element | null {
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
 
-  const runnerTargetKey = runner ? `${runner.collectionId}:${runner.folderId ?? 'root'}` : null;
+  const runnerTargetKey = runner
+    ? `${runner.collectionId}:${runner.folderId ?? 'root'}:${runner.requestId ?? 'all'}`
+    : null;
 
   /**
    * Loads persisted runner settings when the modal opens for a new target.
@@ -91,9 +93,10 @@ export function CollectionRunnerModal(): JSX.Element | null {
     if (!runner) {
       return [];
     }
-    return getRequestsInRunOrder(
+    return getCollectionRunnerRequests(
       runner.collectionId,
       runner.folderId,
+      runner.requestId,
       requestsByCollection[runner.collectionId] ?? [],
       foldersByCollection[runner.collectionId] ?? []
     );
@@ -140,9 +143,11 @@ export function CollectionRunnerModal(): JSX.Element | null {
     return null;
   }
 
-  const title = runner.folderName
-    ? `Run folder "${runner.folderName}" in "${runner.collectionName}"`
-    : `Run "${runner.collectionName}"`;
+  const title = runner.requestName
+    ? `Run request "${runner.requestName}" in "${runner.collectionName}"`
+    : runner.folderName
+      ? `Run folder "${runner.folderName}" in "${runner.collectionName}"`
+      : `Run "${runner.collectionName}"`;
 
   return (
     <Modal

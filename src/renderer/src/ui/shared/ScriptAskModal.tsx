@@ -255,7 +255,7 @@ export function ScriptAskModal({
             </Select>
             <Button
               type="button"
-              className="rounded-full! w-[80px]"
+              className="w-[80px]"
               disabled={sending ? false : !canSend}
               aria-label={sending ? 'Stop generating' : undefined}
               onClick={() => (sending ? handleStop() : void handleSend())}

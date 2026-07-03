@@ -285,6 +285,21 @@ describe('modalsSlice', () => {
     expect(state.collectionRunner).toBeNull();
   });
 
+  it('stores request scope when opening the collection runner for one request', () => {
+    const state = modalsReducer(
+      undefined,
+      openCollectionRunnerModal({
+        collectionId: 1,
+        collectionName: 'Demo API',
+        requestId: 42,
+        requestName: 'Health'
+      })
+    );
+    expect(state.collectionRunner?.requestId).toBe(42);
+    expect(state.collectionRunner?.requestName).toBe('Health');
+    expect(state.collectionRunner?.folderId).toBeNull();
+  });
+
   it('opens and closes the plugin modal overlay', () => {
     let state = modalsReducer(
       undefined,

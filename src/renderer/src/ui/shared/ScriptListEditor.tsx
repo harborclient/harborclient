@@ -1499,11 +1499,7 @@ export function ScriptListEditor({
    */
   const addControls = (
     <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2">
-      <Button
-        type="button"
-        className="shrink-0 whitespace-nowrap rounded-full!"
-        onClick={handleAddInline}
-      >
+      <Button type="button" className="shrink-0 whitespace-nowrap" onClick={handleAddInline}>
         Add
       </Button>
       <div className="flex shrink-0 items-center gap-2 mr-4">
@@ -1511,7 +1507,7 @@ export function ScriptListEditor({
           <Button
             type="button"
             variant="secondary"
-            className="shrink-0 gap-2 whitespace-nowrap rounded-full!"
+            className="shrink-0 gap-2 whitespace-nowrap"
             aria-haspopup="menu"
             aria-expanded={snippetMenuOpen}
             aria-controls={snippetMenuOpen ? snippetMenuId : undefined}
@@ -1535,7 +1531,7 @@ export function ScriptListEditor({
         <Button
           type="button"
           variant="secondary"
-          className="shrink-0 rounded-full!"
+          className="shrink-0"
           aria-label={allScriptsExpanded ? 'Collapse all scripts' : 'Expand all scripts'}
           title={allScriptsExpanded ? 'Collapse all scripts' : 'Expand all scripts'}
           onClick={handleToggleExpandAll}

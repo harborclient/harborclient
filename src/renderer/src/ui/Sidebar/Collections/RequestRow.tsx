@@ -51,6 +51,11 @@ interface Props {
   onMoveDown: () => void;
 
   /**
+   * Opens the collection runner scoped to this request.
+   */
+  onRunRequest: () => void;
+
+  /**
    * Loads the request into the editor.
    */
   onLoadRequest: (req: SavedRequest) => void;
@@ -88,6 +93,7 @@ export function RequestRow({
   canMoveDown,
   onMoveUp,
   onMoveDown,
+  onRunRequest,
   onLoadRequest,
   onDeleteRequest,
   onDuplicateRequest,
@@ -128,6 +134,7 @@ export function RequestRow({
         openMenuId={openMenuId}
         onOpenChange={onOpenChange}
         groups={[
+          [{ label: 'Run', onSelect: onRunRequest }],
           ...(reorderItems.length > 0 ? [reorderItems] : []),
           [
             {

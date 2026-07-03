@@ -176,6 +176,11 @@ interface Props {
   ) => void;
 
   /**
+   * Opens the collection runner scoped to one saved request.
+   */
+  onRunRequest: (req: SavedRequest, collectionName: string) => void;
+
+  /**
    * Deletes a collection after user confirmation.
    */
   onDeleteCollection: (id: number) => Promise<void>;
@@ -316,6 +321,7 @@ export function Collections({
   onConfigureCollection,
   onRunCollection,
   onRunFolder,
+  onRunRequest,
   onDeleteCollection,
   onExportCollection,
   onDuplicateCollection,
@@ -823,15 +829,15 @@ export function Collections({
                     openMenuId={openMenuId}
                     onOpenChange={setOpenMenuId}
                     groups={[
-                      ...buildReorderMenuGroup(collectionIndex, collections.length, (direction) =>
-                        moveCollection(collection.id, direction)
-                      ),
                       [
                         {
                           label: 'Run',
                           onSelect: () => onRunCollection(collection.id, collection.name)
                         }
                       ],
+                      ...buildReorderMenuGroup(collectionIndex, collections.length, (direction) =>
+                        moveCollection(collection.id, direction)
+                      ),
                       [
                         {
                           label: 'Settings',
@@ -968,6 +974,7 @@ export function Collections({
                                 onMoveDown={() =>
                                   void moveRequestInList(collection.id, null, req.id, 'down')
                                 }
+                                onRunRequest={() => onRunRequest(req, collection.name)}
                                 onLoadRequest={onLoadRequest}
                                 onDeleteRequest={onDeleteRequest}
                                 onDuplicateRequest={onDuplicateRequest}
@@ -1039,12 +1046,6 @@ export function Collections({
                                     openMenuId={openMenuId}
                                     onOpenChange={setOpenMenuId}
                                     groups={[
-                                      ...buildReorderMenuGroup(
-                                        folderIndex,
-                                        folders.length,
-                                        (direction) =>
-                                          moveFolder(collection.id, folder.id, direction)
-                                      ),
                                       [
                                         {
                                           label: 'Run',
@@ -1057,6 +1058,12 @@ export function Collections({
                                             )
                                         }
                                       ],
+                                      ...buildReorderMenuGroup(
+                                        folderIndex,
+                                        folders.length,
+                                        (direction) =>
+                                          moveFolder(collection.id, folder.id, direction)
+                                      ),
                                       [
                                         {
                                           label: 'New Request',
@@ -1067,16 +1074,12 @@ export function Collections({
                                           label: 'Import Request',
                                           onSelect: () =>
                                             void onImportRequest(collection.id, folder.id)
-                                        }
-                                      ],
-                                      [
+                                        },
                                         {
                                           label: 'Save all',
                                           onSelect: () =>
                                             void onSaveAllInFolder(collection.id, folder.id)
-                                        }
-                                      ],
-                                      [
+                                        },
                                         {
                                           label: 'Rename',
                                           onSelect: () =>
@@ -1136,6 +1139,7 @@ export function Collections({
                                             'down'
                                           )
                                         }
+                                        onRunRequest={() => onRunRequest(req, collection.name)}
                                         onLoadRequest={onLoadRequest}
                                         onDeleteRequest={onDeleteRequest}
                                         onDuplicateRequest={onDuplicateRequest}

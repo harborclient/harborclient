@@ -99,7 +99,7 @@ export function UrlBar({
         type="button"
         onClick={onSend}
         disabled={sending}
-        className="hc-send-button inline-flex w-24 shrink-0 items-center justify-center rounded-full!"
+        className="hc-send-button inline-flex w-24 shrink-0 items-center justify-center"
       >
         {sending ? 'Sending…' : 'Send'}
       </Button>

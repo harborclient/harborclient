@@ -127,6 +127,8 @@ export interface CollectionRunnerModalState {
   folderId: number | null;
   collectionName: string;
   folderName: string | null;
+  requestId: number | null;
+  requestName: string | null;
   phase: CollectionRunnerPhase;
   delayMs: number;
   stopOnFailure: boolean;
@@ -435,7 +437,7 @@ const modalsSlice = createSlice({
       state.syncModal.running = false;
     },
     /**
-     * Opens the collection runner modal for a collection or folder target.
+     * Opens the collection runner modal for a collection, folder, or single request target.
      */
     openCollectionRunnerModal(
       state,
@@ -444,6 +446,8 @@ const modalsSlice = createSlice({
         folderId?: number | null;
         collectionName: string;
         folderName?: string | null;
+        requestId?: number | null;
+        requestName?: string | null;
         config?: Partial<CollectionRunnerConfig>;
       }>
     ) {
@@ -456,6 +460,8 @@ const modalsSlice = createSlice({
         folderId: action.payload.folderId ?? null,
         collectionName: action.payload.collectionName,
         folderName: action.payload.folderName ?? null,
+        requestId: action.payload.requestId ?? null,
+        requestName: action.payload.requestName ?? null,
         phase: 'configure',
         delayMs: config.delayMs,
         stopOnFailure: config.stopOnFailure,

@@ -172,7 +172,6 @@ export function TrustedKeysSection(): JSX.Element {
           <Button
             type="button"
             variant="secondary"
-            className="rounded-full!"
             disabled={busy || !label.trim()}
             onClick={() => void handleImport()}
           >
