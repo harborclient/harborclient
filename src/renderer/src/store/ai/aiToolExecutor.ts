@@ -1,6 +1,7 @@
 import type { ThunkDispatch, UnknownAction } from '@reduxjs/toolkit';
 import {
   applyRequestDraftUpdate,
+  applyScriptUpdate,
   hasRequestUpdateFields,
   mergeKeyValues,
   type KeyValueListMode,
@@ -14,7 +15,8 @@ import {
   type ListRequestsToolArgs,
   type QueryResponseBodyToolArgs,
   type SendActiveRequestToolArgs,
-  type SetActiveEnvironmentToolArgs
+  type SetActiveEnvironmentToolArgs,
+  type UpdateRequestScriptToolArgs
 } from '#/shared/aiTools';
 import {
   DEFAULT_RESPONSE_BODY_CHARS,
@@ -27,6 +29,7 @@ import {
 } from '#/shared/aiChatContext';
 import { hostFromUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/cookieHost';
 import { isRequestTab, isTabDirty } from '#/renderer/src/store/drafts';
+import { mirrorLegacyScriptString, resolveScriptSourceCode } from '#/shared/scriptRefs';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import { setActiveDraft } from '#/renderer/src/store/slices/tabsSlice';
 import {
@@ -37,11 +40,20 @@ import {
   selectEnvironments,
   selectResponse,
   selectSelectedCollectionId,
+  selectSnippets,
   selectTestResults
 } from '#/renderer/src/store/selectors';
 import type { RootState } from '#/renderer/src/store/redux';
 import { sendRequest } from '#/renderer/src/store/thunks/requests';
-import type { AuthConfig, BodyType, HttpMethod, KeyValue, Variable } from '#/shared/types';
+import type {
+  AuthConfig,
+  BodyType,
+  HttpMethod,
+  KeyValue,
+  ScriptRef,
+  Snippet,
+  Variable
+} from '#/shared/types';
 
 /**
  * Supported HTTP methods for update_active_request validation.
@@ -151,6 +163,8 @@ export async function executeAiTool(
         return JSON.stringify(setActiveEnvironment(args, ctx));
       case 'update_active_request':
         return JSON.stringify(await updateActiveRequest(args, ctx));
+      case 'update_request_script':
+        return JSON.stringify(updateRequestScript(args, ctx));
       default: {
         const exhaustive: never = name;
         return JSON.stringify({ error: `Unhandled tool: ${String(exhaustive)}` });
@@ -323,6 +337,47 @@ function getActiveRequest(state: RootState):
 }
 
 /**
+ * Compact script row summary for agent tool responses.
+ */
+interface AgentScriptSummary {
+  /**
+   * 1-based index matching @ref syntax.
+   */
+  index: number;
+
+  /**
+   * Optional display name for the script row.
+   */
+  name?: string;
+
+  /**
+   * Script source kind.
+   */
+  kind: ScriptRef['kind'];
+
+  /**
+   * Resolved JavaScript source (inline code or linked snippet body).
+   */
+  code: string;
+}
+
+/**
+ * Formats script references for agent read tools with 1-based indices.
+ *
+ * @param scripts - Ordered script references for one phase.
+ * @param snippets - Snippet library for resolving snippet-linked rows.
+ * @returns Compact script summaries for the model.
+ */
+function formatScriptsForAgent(scripts: ScriptRef[], snippets: Snippet[]): AgentScriptSummary[] {
+  return scripts.map((script, index) => ({
+    index: index + 1,
+    ...(script.name?.trim() ? { name: script.name.trim() } : {}),
+    kind: script.kind,
+    code: resolveScriptSourceCode(script, snippets)
+  }));
+}
+
+/**
  * Returns the full draft of the active editor request including cookies for the URL host.
  *
  * @param state - Current Redux root state.
@@ -338,6 +393,8 @@ async function getActiveRequestDetails(state: RootState): Promise<
       body_type: string;
       pre_request_script: string;
       post_request_script: string;
+      pre_request_scripts: AgentScriptSummary[];
+      post_request_scripts: AgentScriptSummary[];
       comment: string;
       cookies: KeyValue[];
     }
@@ -350,6 +407,7 @@ async function getActiveRequestDetails(state: RootState): Promise<
   const draft = tab.draft;
   const host = hostFromUrl(draft.url);
   const cookies = host ? await window.api.getCookies(host) : [];
+  const snippets = selectSnippets(state);
 
   return {
     method: draft.method,
@@ -361,6 +419,8 @@ async function getActiveRequestDetails(state: RootState): Promise<
     body_type: draft.body_type,
     pre_request_script: draft.pre_request_script,
     post_request_script: draft.post_request_script,
+    pre_request_scripts: formatScriptsForAgent(draft.pre_request_scripts, snippets),
+    post_request_scripts: formatScriptsForAgent(draft.post_request_scripts, snippets),
     comment: draft.comment,
     cookies
   };
@@ -642,5 +702,155 @@ async function updateActiveRequest(
       url: nextDraft.url,
       body_type: nextDraft.body_type
     }
+  };
+}
+
+/**
+ * Parses and validates update_request_script tool arguments from the model.
+ *
+ * @param args - Raw parsed tool arguments.
+ * @returns Validated update_request_script arguments.
+ */
+function parseUpdateRequestScriptArgs(args: unknown): UpdateRequestScriptToolArgs {
+  if (args == null || typeof args !== 'object') {
+    throw new Error('Tool arguments must be an object.');
+  }
+
+  const parsed = args as Partial<UpdateRequestScriptToolArgs>;
+  let requestId: number | 'active' | undefined = parsed.requestId;
+  const phase = parsed.phase;
+  const scriptIndex = parsed.scriptIndex;
+  const code = parsed.code;
+  const mode = parsed.mode;
+
+  if (typeof requestId === 'string' && requestId !== 'active' && /^\d+$/.test(requestId.trim())) {
+    requestId = Number(requestId.trim());
+  }
+
+  if (requestId !== 'active' && (typeof requestId !== 'number' || !Number.isFinite(requestId))) {
+    throw new Error('requestId must be a number or "active".');
+  }
+
+  if (phase !== 'pre' && phase !== 'post') {
+    throw new Error('phase must be "pre" or "post".');
+  }
+
+  if (typeof scriptIndex !== 'number' || !Number.isInteger(scriptIndex) || scriptIndex < 1) {
+    throw new Error('scriptIndex must be a positive integer.');
+  }
+
+  if (typeof code !== 'string') {
+    throw new Error('code must be a string.');
+  }
+
+  if (mode !== undefined && !SCRIPT_MODES.includes(mode)) {
+    throw new Error(`Invalid script mode: ${String(mode)}`);
+  }
+
+  return {
+    requestId,
+    phase,
+    scriptIndex,
+    code,
+    ...(mode !== undefined ? { mode } : {})
+  };
+}
+
+/**
+ * Returns whether the request id from an @ reference matches the active tab draft.
+ *
+ * @param requestId - Saved id or "active" from the tool arguments.
+ * @param draftId - Saved request id on the active draft, if any.
+ */
+function requestIdMatchesActiveTab(
+  requestId: number | 'active',
+  draftId: number | undefined
+): boolean {
+  if (requestId === 'active') {
+    // "active" means the request open in the editor tab (saved or unsaved).
+    return true;
+  }
+  return draftId === requestId;
+}
+
+/**
+ * Updates one inline script in the active request draft by phase and 1-based index.
+ *
+ * @param args - Parsed update_request_script tool arguments.
+ * @param ctx - Redux getState and dispatch.
+ */
+function updateRequestScript(
+  args: unknown,
+  ctx: AiToolContext
+): { ok: true; phase: 'pre' | 'post'; scriptIndex: number; isDirty: boolean } | { error: string } {
+  const tab = selectActiveTab(ctx.getState());
+  if (!tab || !isRequestTab(tab)) {
+    return { error: 'No active request tab.' };
+  }
+
+  let parsed: UpdateRequestScriptToolArgs;
+  try {
+    parsed = parseUpdateRequestScriptArgs(args);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Invalid tool arguments.';
+    return { error: message };
+  }
+
+  const draft = tab.draft;
+  if (!requestIdMatchesActiveTab(parsed.requestId, draft.id)) {
+    return {
+      error:
+        'The @ reference request id does not match the active request tab. Ask the user to open the referenced request first.'
+    };
+  }
+
+  const scripts = parsed.phase === 'pre' ? draft.pre_request_scripts : draft.post_request_scripts;
+  const arrayIndex = parsed.scriptIndex - 1;
+
+  if (arrayIndex >= scripts.length) {
+    return {
+      error: `Script index ${parsed.scriptIndex} is out of range for ${parsed.phase} scripts (count: ${scripts.length}).`
+    };
+  }
+
+  const target = scripts[arrayIndex];
+  if (target.kind === 'snippet') {
+    return {
+      error:
+        'Cannot edit a snippet-linked script via update_request_script. Ask the user to edit the snippet in the library or convert the row to inline code first.'
+    };
+  }
+
+  const nextCode = applyScriptUpdate(target.code ?? '', parsed.code, parsed.mode ?? 'replace');
+
+  const nextScripts = scripts.map((script, index) =>
+    index === arrayIndex ? { ...script, code: nextCode } : script
+  );
+
+  const nextDraft =
+    parsed.phase === 'pre'
+      ? {
+          ...draft,
+          pre_request_scripts: nextScripts,
+          pre_request_script: mirrorLegacyScriptString(nextScripts)
+        }
+      : {
+          ...draft,
+          post_request_scripts: nextScripts,
+          post_request_script: mirrorLegacyScriptString(nextScripts)
+        };
+
+  ctx.dispatch(setActiveDraft(nextDraft));
+
+  const updatedTab = selectActiveTab(ctx.getState());
+  if (!updatedTab || !isRequestTab(updatedTab)) {
+    return { error: 'No active request tab.' };
+  }
+
+  return {
+    ok: true,
+    phase: parsed.phase,
+    scriptIndex: parsed.scriptIndex,
+    isDirty: isTabDirty(updatedTab)
   };
 }

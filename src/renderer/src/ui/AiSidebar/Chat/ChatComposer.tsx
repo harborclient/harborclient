@@ -7,7 +7,9 @@ import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   clearSendError,
   selectHubModelGroups,
+  selectPendingComposerText,
   selectSendErrorByChat,
+  setPendingComposerText,
   setSelectedModel
 } from '#/renderer/src/store/slices/aiChatSlice';
 import { sendChatMessage } from '#/renderer/src/store/thunks/aiChat';
@@ -41,6 +43,7 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
   const dispatch = useAppDispatch();
   const sendErrorByChat = useAppSelector(selectSendErrorByChat);
   const hubModelGroups = useAppSelector(selectHubModelGroups);
+  const pendingComposerText = useAppSelector(selectPendingComposerText);
   const [draft, setDraft] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const wasSendingRef = useRef(false);
@@ -49,6 +52,23 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
   const selectedModelOption = resolveAiModelOption(modelId, aiSettings, hubModelGroups);
   const canSend = chatId != null && draft.trim().length > 0 && !sending && modelId.length > 0;
   const sendError = chatId != null ? sendErrorByChat[chatId] : undefined;
+
+  /**
+   * Applies one-shot composer text queued by external UI (for example script Ask AI buttons).
+   */
+  useEffect(() => {
+    if (pendingComposerText == null) {
+      return;
+    }
+
+    const text = pendingComposerText;
+    dispatch(setPendingComposerText(null));
+
+    queueMicrotask(() => {
+      setDraft(text);
+      textareaRef.current?.focus();
+    });
+  }, [dispatch, pendingComposerText]);
 
   /**
    * Returns focus to the prompt after a send completes and the textarea is re-enabled.

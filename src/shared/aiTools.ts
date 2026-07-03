@@ -19,7 +19,8 @@ export const AI_TOOL_NAMES = [
   'query_response_body',
   'send_active_request',
   'set_active_environment',
-  'update_active_request'
+  'update_active_request',
+  'update_request_script'
 ] as const;
 
 /**
@@ -85,6 +86,36 @@ export interface SetActiveEnvironmentToolArgs {
    * Environment name to resolve when id is omitted.
    */
   name?: string;
+}
+
+/**
+ * Arguments for the update_request_script tool.
+ */
+export interface UpdateRequestScriptToolArgs {
+  /**
+   * Saved request id from the @ reference, or the literal "active" for an unsaved tab.
+   */
+  requestId: number | 'active';
+
+  /**
+   * Script phase: pre-request or post-request.
+   */
+  phase: 'pre' | 'post';
+
+  /**
+   * 1-based index of the script in the phase array (matches @ref syntax).
+   */
+  scriptIndex: number;
+
+  /**
+   * JavaScript source to apply to the script.
+   */
+  code: string;
+
+  /**
+   * Whether to replace or append to existing inline script code; defaults to replace.
+   */
+  mode?: 'replace' | 'append';
 }
 
 /**
@@ -172,7 +203,7 @@ export const AI_TOOL_DEFINITIONS: ChatCompletionTool[] = [
     function: {
       name: 'get_active_request_details',
       description:
-        'Returns the full draft of the active editor request (headers, params, body, auth, scripts, cookies).',
+        'Returns the full draft of the active editor request (headers, params, body, auth, scripts, cookies). Includes pre_request_scripts and post_request_scripts arrays with 1-based index, name, kind (inline or snippet), and resolved source code for each script row.',
       parameters: { type: 'object', properties: {}, additionalProperties: false }
     }
   },
@@ -374,6 +405,44 @@ export const AI_TOOL_DEFINITIONS: ChatCompletionTool[] = [
         additionalProperties: false
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'update_request_script',
+      description:
+        'Updates a specific pre- or post-request script in the active editor request by 1-based index. Use when the user message contains @<request-id>.<pre|post>.<script-index> (for example @42.pre.3 or @active.post.1). Only inline scripts can be edited; snippet-linked scripts must be reported to the user. Changes update the editor draft only until the user saves.',
+      parameters: {
+        type: 'object',
+        properties: {
+          requestId: {
+            oneOf: [{ type: 'number' }, { type: 'string', enum: ['active'] }],
+            description:
+              'Saved request id from the @ reference, or "active" when the tab is unsaved.'
+          },
+          phase: {
+            type: 'string',
+            enum: ['pre', 'post'],
+            description: 'Script phase: pre-request (pre) or post-request (post).'
+          },
+          scriptIndex: {
+            type: 'number',
+            description: '1-based index of the script in the phase array.'
+          },
+          code: {
+            type: 'string',
+            description: 'JavaScript source to apply to the script.'
+          },
+          mode: {
+            type: 'string',
+            enum: ['replace', 'append'],
+            description: 'How to apply code; defaults to replace.'
+          }
+        },
+        required: ['requestId', 'phase', 'scriptIndex', 'code'],
+        additionalProperties: false
+      }
+    }
   }
 ];
 
@@ -394,4 +463,5 @@ You can inspect live app state and perform limited actions using the provided to
 8. Only call send_active_request when the user explicitly asks to send, run, or execute the active request. It returns a compact response summary by default; call get_active_response (with maxBodyChars when needed) or query_response_body if you need more detail from the response.
 9. Only call set_active_environment when the user explicitly asks to switch or clear the active environment.
 10. When the user asks to change, add, set, or modify the active request (URL, headers, params, body, auth, pre/post scripts, cookies), call get_active_request_details first if you need current values, then update_active_request to apply the change directly. Do not only describe manual steps. Post-request tests use hc.test and hc.expect(hc.response.code).to.equal(200); never use Postman pm syntax. Edits update the editor draft only until the user saves.
-11. After tool calls, summarize results clearly for the user. Do not paste large response bodies into your reply; refer to status, headers, preview, query results, and tests instead.`;
+11. When a user message contains @<request-id>.<pre|post>.<script-index> (for example @42.pre.3), call get_active_request first to read savedRequestId, then update_request_script using that numeric id (or "active" only when savedRequestId is null). Match phase and scriptIndex from the @ reference. Use hc test API in post scripts, never Postman pm syntax.
+12. After tool calls, summarize results clearly for the user. Do not paste large response bodies into your reply; refer to status, headers, preview, query results, and tests instead.`;

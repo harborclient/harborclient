@@ -61,7 +61,11 @@ import {
 } from '#/renderer/src/ui/shared/scriptPlaceholders';
 import { createHcCompletionSource } from '#/renderer/src/scripting/hcCompletions';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
+import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
+import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
+import { setPendingComposerText } from '#/renderer/src/store/slices/aiChatSlice';
+import { createNewChat } from '#/renderer/src/store/thunks/aiChat';
 import { createSnippet, updateSnippet } from '#/renderer/src/store/thunks/snippets';
 import {
   faAnglesDown,
@@ -72,7 +76,8 @@ import {
   faFloppyDisk,
   faGripVertical,
   faTrash,
-  faArrowUpRightFromSquare
+  faArrowUpRightFromSquare,
+  faWandMagicSparkles
 } from '#/renderer/src/fontawesome';
 
 const SCRIPT_EDITOR_MIN_HEIGHT = '125px';
@@ -121,6 +126,11 @@ interface Props {
    * Placeholder shown in empty inline editors.
    */
   placeholder: string;
+
+  /**
+   * Saved request id for AI @ references; omitted on unsaved tabs.
+   */
+  requestId?: number;
 }
 
 interface ScriptRowHeaderProps {
@@ -220,6 +230,16 @@ interface SortableScriptRowProps {
    * Opens the save-snippet modal for this row's current source code.
    */
   onSaveSnippet: (code: string) => void;
+
+  /**
+   * Whether AI chat is available for this user.
+   */
+  aiAvailable: boolean;
+
+  /**
+   * Opens the AI sidebar with a fresh chat prefilled for this script row.
+   */
+  onAskAi: () => void;
 }
 
 interface SaveSnippetNameModalProps {
@@ -587,7 +607,9 @@ function SortableScriptRow({
   onRemove,
   onToggleExpanded,
   onPatchCode,
-  onSaveSnippet
+  onSaveSnippet,
+  aiAvailable,
+  onAskAi
 }: SortableScriptRowProps): JSX.Element {
   const snippet =
     script.kind === 'snippet'
@@ -656,6 +678,18 @@ function SortableScriptRow({
           />
 
           <div className="ml-auto flex shrink-0 items-center gap-1">
+            {aiAvailable ? (
+              <Button
+                type="button"
+                variant="icon"
+                className={scriptRowIconButtonClass}
+                aria-label={`Ask AI about ${label}`}
+                onPointerDown={stopDragPointerDown}
+                onClick={onAskAi}
+              >
+                <FaIcon icon={faWandMagicSparkles} className={SCRIPT_ROW_ICON_CLASS} />
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="icon"
@@ -765,10 +799,12 @@ export function ScriptListEditor({
   variables,
   onEditVariables,
   snippets,
-  placeholder
+  placeholder,
+  requestId
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
+  const { aiAvailable, aiSettings } = useAiAvailability();
   const normalized = useMemo(() => normalizeScriptRefs(scripts), [scripts]);
   const sortableEnabled = normalized.length > 1;
   const [activeDragScriptId, setActiveDragScriptId] = useState<string | null>(null);
@@ -1047,6 +1083,17 @@ export function ScriptListEditor({
   };
 
   /**
+   * Opens the AI sidebar, starts a fresh chat, and prefills an @ script reference.
+   *
+   * @param scriptIndex - 1-based index of the script row in the phase array.
+   */
+  const handleAskAi = async (scriptIndex: number): Promise<void> => {
+    dispatch(setShowAiSidebar(true));
+    await dispatch(createNewChat(aiSettings));
+    dispatch(setPendingComposerText(`@${requestId ?? 'active'}.${phase}.${scriptIndex}\n\n`));
+  };
+
+  /**
    * Records the script row being dragged for overlay preview.
    *
    * @param event - Drag start event from dnd-kit.
@@ -1177,6 +1224,8 @@ export function ScriptListEditor({
               onToggleExpanded={() => patchScript(script.id, { expanded: !isExpanded })}
               onPatchCode={(code) => patchScript(script.id, { code })}
               onSaveSnippet={(code) => openSaveSnippetModal(script.id, code)}
+              aiAvailable={aiAvailable}
+              onAskAi={() => void handleAskAi(index + 1)}
             />
             {index < normalized.length - 1 ? <ScriptFlowArrow /> : null}
           </Fragment>

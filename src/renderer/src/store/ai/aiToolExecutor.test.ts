@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_RESPONSE_BODY_CHARS, RESPONSE_BODY_PREVIEW_CHARS } from '#/shared/aiChatContext';
 import { defaultAuth } from '#/shared/auth';
+import { createInlineScriptRef, createSnippetScriptRef } from '#/shared/scriptRefs';
 import type { Collection, Environment, KeyValue, SavedRequest, SendResult } from '#/shared/types';
 import { executeAiTool } from '#/renderer/src/store/ai/aiToolExecutor';
 import {
@@ -762,5 +763,299 @@ describe('executeAiTool', () => {
     );
 
     expect(result).toEqual({ error: 'Provide at least one field to update.' });
+  });
+
+  it('returns indexed pre and post scripts from get_active_request_details', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const preScript = createInlineScriptRef('console.log("pre");', 'Pre script');
+    const postScript = createInlineScriptRef(
+      "hc.test('ok', function () { hc.expect(hc.response.code).to.equal(200); });",
+      'Status test'
+    );
+
+    store.dispatch(
+      openTabWithDraft({
+        id: 20,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Script details',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [preScript],
+        post_request_scripts: [postScript],
+        comment: '',
+        auth: defaultAuth()
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_active_request_details',
+        {},
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result.pre_request_scripts).toEqual([
+      { index: 1, name: 'Pre script', kind: 'inline', code: 'console.log("pre");' }
+    ]);
+    expect(result.post_request_scripts[0]).toMatchObject({
+      index: 1,
+      name: 'Status test',
+      kind: 'inline'
+    });
+    expect(result.post_request_scripts[0].code).toContain("hc.test('ok'");
+  });
+
+  it('updates an inline script by phase and 1-based index via update_request_script', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const first = createInlineScriptRef('console.log("first");', 'First');
+    const second = createInlineScriptRef('console.log("second");', 'Second');
+
+    store.dispatch(
+      openTabWithDraft({
+        id: 21,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Indexed script',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [first, second],
+        post_request_scripts: [],
+        comment: '',
+        auth: defaultAuth()
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'update_request_script',
+        {
+          requestId: 21,
+          phase: 'pre',
+          scriptIndex: 2,
+          code: 'console.log("updated");'
+        },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    const draft = selectDraft(store.getState());
+    expect(result).toEqual({ ok: true, phase: 'pre', scriptIndex: 2, isDirty: true });
+    expect(draft.pre_request_scripts[1].code).toBe('console.log("updated");');
+    expect(draft.pre_request_scripts[0].code).toBe('console.log("first");');
+  });
+
+  it('appends to an inline script via update_request_script', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const script = createInlineScriptRef('console.log("start");');
+
+    store.dispatch(
+      openTabWithDraft({
+        id: 22,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Append script',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [script],
+        post_request_scripts: [],
+        comment: '',
+        auth: defaultAuth()
+      })
+    );
+
+    await executeAiTool(
+      'update_request_script',
+      {
+        requestId: 22,
+        phase: 'pre',
+        scriptIndex: 1,
+        code: 'console.log("end");',
+        mode: 'append'
+      },
+      { getState: store.getState, dispatch: store.dispatch }
+    );
+
+    expect(selectDraft(store.getState()).pre_request_scripts[0].code).toBe(
+      'console.log("start");\nconsole.log("end");'
+    );
+  });
+
+  it('returns an error when update_request_script index is out of range', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(
+      openTabWithDraft({
+        id: 23,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Out of range',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [createInlineScriptRef('only one')],
+        post_request_scripts: [],
+        comment: '',
+        auth: defaultAuth()
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'update_request_script',
+        {
+          requestId: 23,
+          phase: 'pre',
+          scriptIndex: 3,
+          code: 'noop();'
+        },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result.error).toContain('out of range');
+  });
+
+  it('returns an error when update_request_script targets a snippet-linked row', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(
+      openTabWithDraft({
+        id: 24,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Snippet row',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [createSnippetScriptRef('snippet-uuid', 'Shared snippet')],
+        post_request_scripts: [],
+        comment: '',
+        auth: defaultAuth()
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'update_request_script',
+        {
+          requestId: 24,
+          phase: 'pre',
+          scriptIndex: 1,
+          code: 'noop();'
+        },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result.error).toContain('snippet-linked');
+  });
+
+  it('returns an error when update_request_script request id does not match the active tab', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(
+      openTabWithDraft({
+        id: 25,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Wrong id',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [createInlineScriptRef('code')],
+        post_request_scripts: [],
+        comment: '',
+        auth: defaultAuth()
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'update_request_script',
+        {
+          requestId: 99,
+          phase: 'pre',
+          scriptIndex: 1,
+          code: 'noop();'
+        },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result.error).toContain('does not match the active request tab');
+  });
+
+  it('accepts requestId active for a saved request on the active tab', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const script = createInlineScriptRef('console.log("before");');
+
+    store.dispatch(
+      openTabWithDraft({
+        id: 3,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Saved request 3',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [script],
+        post_request_scripts: [],
+        comment: '',
+        auth: defaultAuth()
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'update_request_script',
+        {
+          requestId: 'active',
+          phase: 'pre',
+          scriptIndex: 1,
+          code: 'console.log("after");'
+        },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({ ok: true, phase: 'pre', scriptIndex: 1, isDirty: true });
+    expect(selectDraft(store.getState()).pre_request_scripts[0].code).toBe('console.log("after");');
   });
 });

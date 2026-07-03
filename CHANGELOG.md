@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(ai): implement update_request_script tool for inline script management. (`1d94931`)
 - chore(dependencies): update @harborclient/sdk to version 1.0.23 and adjust styles. (`a4df70e`)
 
 ## 1.9.17 - 2026-07-02

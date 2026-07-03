@@ -12,6 +12,10 @@ export interface AiChatState {
   historyOpen: boolean;
   sendingByChat: Record<number, boolean>;
   sendErrorByChat: Record<number, string>;
+  /**
+   * One-shot composer text set by external UI (for example script "Ask AI" buttons).
+   */
+  pendingComposerText: string | null;
 }
 
 const initialState: AiChatState = {
@@ -23,7 +27,8 @@ const initialState: AiChatState = {
   hubModelGroups: [],
   historyOpen: false,
   sendingByChat: {},
-  sendErrorByChat: {}
+  sendErrorByChat: {},
+  pendingComposerText: null
 };
 
 const aiChatSlice = createSlice({
@@ -136,6 +141,12 @@ const aiChatSlice = createSlice({
      */
     clearSendError(state, action: PayloadAction<number>) {
       delete state.sendErrorByChat[action.payload];
+    },
+    /**
+     * Queues text for the chat composer to consume on the next render.
+     */
+    setPendingComposerText(state, action: PayloadAction<string | null>) {
+      state.pendingComposerText = action.payload;
     }
   }
 });
@@ -154,7 +165,8 @@ export const {
   setHubModelGroups,
   setSending,
   setSendError,
-  clearSendError
+  clearSendError,
+  setPendingComposerText
 } = aiChatSlice.actions;
 
 /**
@@ -206,5 +218,11 @@ export const selectSendingByChat = (state: RootState): Record<number, boolean> =
  */
 export const selectSendErrorByChat = (state: RootState): Record<number, string> =>
   state.aiChat.sendErrorByChat;
+
+/**
+ * Returns composer text queued by external UI, or null when none is pending.
+ */
+export const selectPendingComposerText = (state: RootState): string | null =>
+  state.aiChat.pendingComposerText;
 
 export default aiChatSlice.reducer;

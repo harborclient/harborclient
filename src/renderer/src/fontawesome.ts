@@ -36,6 +36,7 @@ import {
   faTrash,
   faUsers,
   faUserShield,
+  faWandMagicSparkles,
   faWindowMaximize,
   faXmark
 } from '@fortawesome/free-solid-svg-icons';
@@ -77,6 +78,7 @@ library.add(
   faStore,
   faUsers,
   faUserShield,
+  faWandMagicSparkles,
   faWindowMaximize
 );
 config.autoAddCss = false;
@@ -118,6 +120,7 @@ export {
   faTrash,
   faUsers,
   faUserShield,
+  faWandMagicSparkles,
   faWindowMaximize,
   faXmark
 };

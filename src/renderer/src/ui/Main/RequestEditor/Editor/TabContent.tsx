@@ -137,6 +137,7 @@ export function TabContent({
         <ScriptListEditor
           phase="pre"
           scripts={draft.pre_request_scripts}
+          requestId={draft.id}
           onChange={(pre_request_scripts) =>
             update({
               pre_request_scripts,
@@ -153,6 +154,7 @@ export function TabContent({
         <ScriptListEditor
           phase="post"
           scripts={draft.post_request_scripts}
+          requestId={draft.id}
           onChange={(post_request_scripts) =>
             update({
               post_request_scripts,
