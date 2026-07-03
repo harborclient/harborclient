@@ -1,6 +1,7 @@
 import MiniSearch from 'minisearch';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import type { PluginCatalogCategory } from '#/shared/plugin/catalogCategories';
+import { DEFAULT_SEARCH_OPTIONS } from '#/shared/search/types';
 
 /**
  * Indexed fields for marketplace catalog search.
@@ -24,11 +25,8 @@ export function buildPluginCatalogSearchIndex(
 ): MiniSearch<PluginCatalogSearchDocument> {
   const index = new MiniSearch<PluginCatalogSearchDocument>({
     fields: ['name', 'summary', 'author', 'categoriesText'],
-    storeFields: ['id'],
-    searchOptions: {
-      prefix: true,
-      fuzzy: 0.2
-    }
+    storeFields: ['id', 'name', 'summary'],
+    searchOptions: DEFAULT_SEARCH_OPTIONS
   });
 
   index.addAll(
@@ -85,4 +83,30 @@ export function searchPluginCatalog(
     .search(trimmed)
     .map((hit) => byId.get(String(hit.id)))
     .filter((entry): entry is PluginCatalogEntry => entry !== undefined);
+}
+
+/**
+ * Returns plugin hits with scores for unified global search.
+ *
+ * @param index - MiniSearch index built from marketplace catalog rows.
+ * @param query - Raw search text.
+ */
+export function searchPluginHits(
+  index: MiniSearch<PluginCatalogSearchDocument>,
+  query: string
+): Array<{ id: string; score: number; name: string; summary: string }> {
+  const trimmed = query.trim();
+  if (!trimmed) {
+    return [];
+  }
+
+  return index.search(trimmed).map((result) => {
+    const stored = result as unknown as PluginCatalogSearchDocument;
+    return {
+      id: String(stored.id),
+      score: result.score,
+      name: stored.name,
+      summary: stored.summary
+    };
+  });
 }

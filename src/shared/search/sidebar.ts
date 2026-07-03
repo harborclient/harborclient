@@ -1,5 +1,6 @@
 import MiniSearch from 'minisearch';
 import type { Collection, Environment, Folder, SavedRequest } from '#/shared/types';
+import { DEFAULT_SEARCH_OPTIONS } from '#/shared/search/types';
 
 /**
  * Sidebar entities passed from the renderer for indexing and filtering.
@@ -52,13 +53,21 @@ export interface SidebarSearchFilter {
 }
 
 /**
+ * Sidebar entity kinds indexed for search.
+ */
+export type SidebarEntityKind = 'collection' | 'folder' | 'request' | 'environment';
+
+/**
  * Indexed fields for sidebar entity search.
  */
-type SidebarSearchDocument = {
+export type SidebarSearchDocument = {
   id: string;
+  kind: SidebarEntityKind;
   name: string;
   url?: string;
   method?: string;
+  collectionId?: number;
+  folderId?: number | null;
 };
 
 /**
@@ -67,10 +76,7 @@ type SidebarSearchDocument = {
  * @param kind - Entity category.
  * @param entityId - Numeric database id.
  */
-function sidebarDocumentId(
-  kind: 'collection' | 'folder' | 'request' | 'environment',
-  entityId: number
-): string {
+export function sidebarDocumentId(kind: SidebarEntityKind, entityId: number): string {
   return `${kind}:${entityId}`;
 }
 
@@ -79,8 +85,8 @@ function sidebarDocumentId(
  *
  * @param documentId - Composite id stored in the search index.
  */
-function parseSidebarDocumentId(documentId: string): {
-  kind: 'collection' | 'folder' | 'request' | 'environment';
+export function parseSidebarDocumentId(documentId: string): {
+  kind: SidebarEntityKind;
   entityId: number;
 } | null {
   const match = /^(collection|folder|request|environment):(\d+)$/.exec(documentId);
@@ -88,7 +94,7 @@ function parseSidebarDocumentId(documentId: string): {
     return null;
   }
   return {
-    kind: match[1] as 'collection' | 'folder' | 'request' | 'environment',
+    kind: match[1] as SidebarEntityKind,
     entityId: Number(match[2])
   };
 }
@@ -104,10 +110,9 @@ export function buildSidebarSearchIndex(
 ): MiniSearch<SidebarSearchDocument> {
   const index = new MiniSearch<SidebarSearchDocument>({
     fields: ['name', 'url', 'method'],
-    storeFields: ['id'],
+    storeFields: ['id', 'kind', 'name', 'url', 'method', 'collectionId', 'folderId'],
     searchOptions: {
-      prefix: true,
-      fuzzy: 0.2,
+      ...DEFAULT_SEARCH_OPTIONS,
       combineWith: 'AND'
     }
   });
@@ -117,13 +122,16 @@ export function buildSidebarSearchIndex(
   for (const collection of input.collections) {
     documents.push({
       id: sidebarDocumentId('collection', collection.id),
-      name: collection.name
+      kind: 'collection',
+      name: collection.name,
+      collectionId: collection.id
     });
   }
 
   for (const environment of input.environments) {
     documents.push({
       id: sidebarDocumentId('environment', environment.id),
+      kind: 'environment',
       name: environment.name
     });
   }
@@ -137,7 +145,9 @@ export function buildSidebarSearchIndex(
     for (const folder of folders) {
       documents.push({
         id: sidebarDocumentId('folder', folder.id),
-        name: folder.name
+        kind: 'folder',
+        name: folder.name,
+        collectionId: collection.id
       });
     }
 
@@ -149,9 +159,12 @@ export function buildSidebarSearchIndex(
     for (const request of requests) {
       documents.push({
         id: sidebarDocumentId('request', request.id),
+        kind: 'request',
         name: request.name,
         url: request.url,
-        method: request.method
+        method: request.method,
+        collectionId: request.collection_id,
+        folderId: request.folder_id
       });
     }
   }
@@ -283,4 +296,82 @@ export function searchSidebar(
   }
 
   return buildSidebarSearchFilter(input, hits);
+}
+
+/**
+ * Returns direct sidebar entity hits with scores for unified global search.
+ *
+ * @param input - Sidebar data used to resolve subtitles.
+ * @param index - MiniSearch index built from the same sidebar rows.
+ * @param query - Raw search text.
+ */
+export function searchSidebarEntities(
+  input: SidebarSearchInput,
+  index: MiniSearch<SidebarSearchDocument>,
+  query: string
+): Array<{
+  kind: SidebarEntityKind;
+  entityId: number;
+  score: number;
+  name: string;
+  method?: string;
+  collectionId?: number;
+  folderId?: number | null;
+}> {
+  const trimmed = query.trim();
+  if (!trimmed) {
+    return [];
+  }
+
+  return index.search(trimmed).flatMap((result) => {
+    const parsed = parseSidebarDocumentId(String(result.id));
+    if (parsed == null) {
+      return [];
+    }
+    const stored = result as unknown as SidebarSearchDocument;
+    return [
+      {
+        kind: parsed.kind,
+        entityId: parsed.entityId,
+        score: result.score,
+        name: stored.name ?? '',
+        method: stored.method,
+        collectionId: stored.collectionId,
+        folderId: stored.folderId
+      }
+    ];
+  });
+}
+
+/**
+ * Resolves a subtitle for a sidebar entity hit using loaded sidebar data.
+ *
+ * @param input - Sidebar data for name lookups.
+ * @param hit - Parsed sidebar entity hit.
+ */
+export function sidebarEntitySubtitle(
+  input: SidebarSearchInput,
+  hit: {
+    kind: SidebarEntityKind;
+    collectionId?: number;
+    folderId?: number | null;
+  }
+): string | undefined {
+  if (hit.kind === 'folder' && hit.collectionId != null) {
+    const collection = input.collections.find((candidate) => candidate.id === hit.collectionId);
+    return collection?.name;
+  }
+  if (hit.kind === 'request' && hit.collectionId != null) {
+    const collection = input.collections.find((candidate) => candidate.id === hit.collectionId);
+    const folderName =
+      hit.folderId != null
+        ? (input.foldersByCollection[hit.collectionId]?.find((folder) => folder.id === hit.folderId)
+            ?.name ?? null)
+        : null;
+    if (collection != null && folderName != null) {
+      return `${collection.name} / ${folderName}`;
+    }
+    return collection?.name;
+  }
+  return undefined;
 }

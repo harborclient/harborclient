@@ -1,7 +1,8 @@
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 
-import { buildSettingsSearchIndex, searchSettings } from '../catalog/settingsSearch';
-import type { SettingId } from '../catalog/catalog';
+import { searchSettings } from '#/shared/search/settings';
+import type { SettingId } from '#/shared/search/settingsCatalog';
+import { useSearchIndexes } from '#/renderer/src/search/useSearchIndexes';
 
 interface Result {
   /**
@@ -30,16 +31,12 @@ interface Result {
  */
 export function useSettingsSearch(): Result {
   const [query, setQuery] = useState('');
-
-  /**
-   * Builds a MiniSearch index over the settings catalog manifest once.
-   */
-  const searchIndex = useMemo(() => buildSettingsSearchIndex(), []);
+  const { settingsIndex } = useSearchIndexes();
 
   /**
    * Derives matched setting ids from the current query and search index.
    */
-  const matchedIds = useMemo(() => searchSettings(searchIndex, query), [searchIndex, query]);
+  const matchedIds = useMemo(() => searchSettings(settingsIndex, query), [settingsIndex, query]);
 
   const isSearching = query.trim().length > 0;
 

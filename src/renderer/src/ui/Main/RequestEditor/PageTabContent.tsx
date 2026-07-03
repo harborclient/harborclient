@@ -82,7 +82,7 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
   }, [page, tabId, collections, environments, pluginViews, dispatch]);
 
   if (page.type === 'settings') {
-    return <Settings initialSection={page.section} />;
+    return <Settings key={page.section} initialSection={page.section} />;
   }
 
   if (page.type === 'sharing-keys') {

@@ -75,10 +75,12 @@ import {
   ERROR_TOAST_ARIA_PROPS,
   SUCCESS_TOAST_ARIA_PROPS
 } from '#/renderer/src/ui/shared/toastA11y';
+import { SearchIndexProvider } from '#/renderer/src/search/SearchIndexProvider';
 import { PluginHost } from '#/renderer/src/plugins/PluginHost';
 import { PluginThemePrompt } from '#/renderer/src/plugins/PluginThemePrompt';
 import { ThemePickerModal } from '#/renderer/src/ui/modals/ThemePickerModal';
 import { ShortcutsReferenceModal } from '#/renderer/src/ui/modals/ShortcutsReferenceModal';
+import { SearchAnythingModal } from '#/renderer/src/ui/modals/SearchAnythingModal';
 import { applyThemeAttribute, subscribeContrastPreferenceChanges } from '#/renderer/src/theme';
 import { platformClassName } from '#/renderer/src/platform';
 
@@ -222,108 +224,113 @@ export default function App(): JSX.Element {
       value={{ theme: codeEditorTheme, setup: codeEditorSetup, fontSize: codeEditorFontSize }}
     >
       <SidebarExpansionProvider onExpandCollection={handleExpandCollection}>
-        <PluginHost />
-        <PluginThemePrompt />
-        <div className={`flex h-screen flex-col overflow-hidden ${platformClassName()}`}>
-          <BusyIndicator isBusy={isBusy} />
-          <TitleBar />
-          <a
-            href="#main-content"
-            className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-[14px] focus:text-text focus:shadow-md focus:outline focus:outline-2 focus:outline-accent"
-          >
-            Skip to main content
-          </a>
-          <div className="relative flex min-h-0 flex-1 overflow-hidden">
-            <AnimatedHorizontalPanel open={sidebarVisible}>
-              <Sidebar
-                onAddCollection={() => dispatch(openCollectionModal({ mode: 'create' }))}
-                onConfigureCollection={(id) => dispatch(openPageTab({ type: 'collection', id }))}
-                onConfigureEnvironment={(id) => dispatch(openPageTab({ type: 'environment', id }))}
-                onShareCollection={(collectionId, collectionName) => {
-                  dispatch(openShareModal({ collectionId, collectionName }));
-                  void dispatch(loadTrustedKeys());
-                }}
-                onLoadRequest={(req) => void dispatch(requestLoadRequest({ req }))}
-              />
-            </AnimatedHorizontalPanel>
-
-            <main
-              id="main-content"
-              tabIndex={-1}
-              className="flex min-w-0 flex-1 flex-col bg-surface"
+        <SearchIndexProvider>
+          <PluginHost />
+          <PluginThemePrompt />
+          <div className={`flex h-screen flex-col overflow-hidden ${platformClassName()}`}>
+            <BusyIndicator isBusy={isBusy} />
+            <TitleBar />
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-[14px] focus:text-text focus:shadow-md focus:outline focus:outline-2 focus:outline-accent"
             >
-              <RequestEditor
-                onEditVariables={() => {
-                  if (activeCollectionId == null) return;
-                  dispatch(openPageTab({ type: 'collection', id: activeCollectionId }));
-                }}
-              />
-            </main>
+              Skip to main content
+            </a>
+            <div className="relative flex min-h-0 flex-1 overflow-hidden">
+              <AnimatedHorizontalPanel open={sidebarVisible}>
+                <Sidebar
+                  onAddCollection={() => dispatch(openCollectionModal({ mode: 'create' }))}
+                  onConfigureCollection={(id) => dispatch(openPageTab({ type: 'collection', id }))}
+                  onConfigureEnvironment={(id) =>
+                    dispatch(openPageTab({ type: 'environment', id }))
+                  }
+                  onShareCollection={(collectionId, collectionName) => {
+                    dispatch(openShareModal({ collectionId, collectionName }));
+                    void dispatch(loadTrustedKeys());
+                  }}
+                  onLoadRequest={(req) => void dispatch(requestLoadRequest({ req }))}
+                />
+              </AnimatedHorizontalPanel>
 
-            <AnimatedHorizontalPanel open={aiSidebarVisible}>
-              <AiSidebar />
-            </AnimatedHorizontalPanel>
+              <main
+                id="main-content"
+                tabIndex={-1}
+                className="flex min-w-0 flex-1 flex-col bg-surface"
+              >
+                <RequestEditor
+                  onEditVariables={() => {
+                    if (activeCollectionId == null) return;
+                    dispatch(openPageTab({ type: 'collection', id: activeCollectionId }));
+                  }}
+                />
+              </main>
+
+              <AnimatedHorizontalPanel open={aiSidebarVisible}>
+                <AiSidebar />
+              </AnimatedHorizontalPanel>
+            </div>
+
+            <Footer
+              consoleOpen={showConsole}
+              entryCount={consoleEntries.length}
+              onToggleConsole={() => dispatch(toggleConsole())}
+              entries={consoleEntries}
+              onClear={() => dispatch(clearConsole())}
+              variablesOpen={showVariables}
+              onToggleVariables={() => dispatch(toggleVariables())}
+              globalVariables={globalVariables}
+              collectionVariables={activeCollection?.variables ?? []}
+              environmentVariables={activeEnvironment?.variables ?? []}
+              collectionName={activeCollection?.name}
+              environmentName={activeEnvironment?.name}
+              sidebarOpen={sidebarVisible}
+              onToggleSidebar={() => dispatch(toggleSidebar())}
+              aiSidebarOpen={aiSidebarVisible}
+              onToggleAiSidebar={() => dispatch(toggleAiSidebar())}
+              requestEditorOpen={requestEditorVisible}
+              onToggleRequestEditor={() => dispatch(toggleRequestEditor())}
+              responseEditorOpen={responseEditorVisible}
+              onToggleResponseEditor={() => dispatch(toggleResponseEditor())}
+            />
+
+            <CollectionModal />
+            <ShareModal />
+            <UnsavedLoadPrompt />
+            <QuitPrompt />
+            <AboutModal />
+            <UpdateModal />
+            <SyncModal />
+            <CollectionRunnerModal />
+            <AlertModal />
+            <ConfirmModal />
+            <ThemePickerModal />
+            <ShortcutsReferenceModal />
+            <SearchAnythingModal />
+            <PluginModalOverlay />
+
+            <Toaster
+              position="bottom-center"
+              containerStyle={{ bottom: 16 }}
+              toastOptions={{
+                duration: 2000,
+                ariaProps: DEFAULT_TOAST_ARIA_PROPS,
+                success: {
+                  ariaProps: SUCCESS_TOAST_ARIA_PROPS
+                },
+                error: {
+                  ariaProps: ERROR_TOAST_ARIA_PROPS
+                },
+                style: {
+                  background: 'var(--mac-control)',
+                  color: 'var(--mac-text)',
+                  border: '1px solid var(--mac-separator)',
+                  fontSize: '14px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                }
+              }}
+            />
           </div>
-
-          <Footer
-            consoleOpen={showConsole}
-            entryCount={consoleEntries.length}
-            onToggleConsole={() => dispatch(toggleConsole())}
-            entries={consoleEntries}
-            onClear={() => dispatch(clearConsole())}
-            variablesOpen={showVariables}
-            onToggleVariables={() => dispatch(toggleVariables())}
-            globalVariables={globalVariables}
-            collectionVariables={activeCollection?.variables ?? []}
-            environmentVariables={activeEnvironment?.variables ?? []}
-            collectionName={activeCollection?.name}
-            environmentName={activeEnvironment?.name}
-            sidebarOpen={sidebarVisible}
-            onToggleSidebar={() => dispatch(toggleSidebar())}
-            aiSidebarOpen={aiSidebarVisible}
-            onToggleAiSidebar={() => dispatch(toggleAiSidebar())}
-            requestEditorOpen={requestEditorVisible}
-            onToggleRequestEditor={() => dispatch(toggleRequestEditor())}
-            responseEditorOpen={responseEditorVisible}
-            onToggleResponseEditor={() => dispatch(toggleResponseEditor())}
-          />
-
-          <CollectionModal />
-          <ShareModal />
-          <UnsavedLoadPrompt />
-          <QuitPrompt />
-          <AboutModal />
-          <UpdateModal />
-          <SyncModal />
-          <CollectionRunnerModal />
-          <AlertModal />
-          <ConfirmModal />
-          <ThemePickerModal />
-          <ShortcutsReferenceModal />
-          <PluginModalOverlay />
-
-          <Toaster
-            position="bottom-center"
-            containerStyle={{ bottom: 16 }}
-            toastOptions={{
-              duration: 2000,
-              ariaProps: DEFAULT_TOAST_ARIA_PROPS,
-              success: {
-                ariaProps: SUCCESS_TOAST_ARIA_PROPS
-              },
-              error: {
-                ariaProps: ERROR_TOAST_ARIA_PROPS
-              },
-              style: {
-                background: 'var(--mac-control)',
-                color: 'var(--mac-text)',
-                border: '1px solid var(--mac-separator)',
-                fontSize: '14px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-              }
-            }}
-          />
-        </div>
+        </SearchIndexProvider>
       </SidebarExpansionProvider>
     </CodeEditorConfigProvider>
   );

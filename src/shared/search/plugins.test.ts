@@ -4,7 +4,7 @@ import {
   buildPluginCatalogSearchIndex,
   filterPluginCatalogByCategory,
   searchPluginCatalog
-} from '#/shared/plugin/catalogSearch';
+} from '#/shared/search/plugins';
 
 const samplePlugins: PluginCatalogEntry[] = [
   {

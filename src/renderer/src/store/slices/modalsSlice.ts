@@ -165,6 +165,7 @@ export interface ModalsState {
   pluginModal: PluginModalState | null;
   themePicker: { open: boolean } | null;
   shortcutsReference: { open: boolean } | null;
+  searchAnything: { open: boolean } | null;
 }
 
 const initialState: ModalsState = {
@@ -181,7 +182,8 @@ const initialState: ModalsState = {
   pluginThemePrompt: null,
   pluginModal: null,
   themePicker: null,
-  shortcutsReference: null
+  shortcutsReference: null,
+  searchAnything: null
 };
 
 const modalsSlice = createSlice({
@@ -652,6 +654,18 @@ const modalsSlice = createSlice({
       state.shortcutsReference = null;
     },
     /**
+     * Opens the global search command palette modal.
+     */
+    openSearchAnythingModal(state) {
+      state.searchAnything = { open: true };
+    },
+    /**
+     * Closes the global search command palette modal.
+     */
+    closeSearchAnythingModal(state) {
+      state.searchAnything = null;
+    },
+    /**
      * Opens or closes the host plugin modal overlay webview.
      */
     setPluginModal(state, action: PayloadAction<PluginModalState | null>) {
@@ -709,6 +723,8 @@ export const {
   closeThemePicker,
   openShortcutsReferenceModal,
   closeShortcutsReferenceModal,
+  openSearchAnythingModal,
+  closeSearchAnythingModal,
   setPluginModal
 } = modalsSlice.actions;
 
@@ -781,6 +797,12 @@ export const selectShortcutsReferenceModal = (state: RootState): { open: boolean
   state.modals.shortcutsReference;
 
 /**
+ * Returns global search command palette modal state when open.
+ */
+export const selectSearchAnythingModal = (state: RootState): { open: boolean } | null =>
+  state.modals.searchAnything;
+
+/**
  * Returns whether any Redux-backed modal should block overlay Escape navigation.
  */
 export const selectHasBlockingModal = (state: RootState): boolean => {
@@ -795,6 +817,7 @@ export const selectHasBlockingModal = (state: RootState): boolean => {
     modals.pluginThemePrompt != null ||
     modals.themePicker != null ||
     modals.shortcutsReference != null ||
+    modals.searchAnything != null ||
     modals.pluginModal != null ||
     modals.collectionRunner != null ||
     modals.about.open ||

@@ -1,0 +1,69 @@
+/**
+ * Search domains surfaced in the global command palette and grouped result lists.
+ */
+export type SearchDomain =
+  | 'collection'
+  | 'folder'
+  | 'request'
+  | 'environment'
+  | 'setting'
+  | 'plugin';
+
+/**
+ * Display order for grouped search results in the command palette.
+ */
+export const SEARCH_DOMAIN_ORDER: SearchDomain[] = [
+  'collection',
+  'folder',
+  'request',
+  'environment',
+  'setting',
+  'plugin'
+];
+
+/**
+ * Human-readable group labels keyed by search domain.
+ */
+export const SEARCH_DOMAIN_LABELS: Record<SearchDomain, string> = {
+  collection: 'Collections',
+  folder: 'Folders',
+  request: 'Requests',
+  environment: 'Environments',
+  setting: 'Settings',
+  plugin: 'Plugins'
+};
+
+/**
+ * Maximum number of results shown in the global command palette.
+ */
+export const SEARCH_ANYTHING_MAX_RESULTS = 8;
+
+/**
+ * One normalized hit returned by {@link searchAll} for rendering and navigation.
+ */
+export interface UnifiedSearchHit {
+  /** Result category used for grouping and navigation dispatch. */
+  domain: SearchDomain;
+  /** Stable identifier within the domain (composite sidebar id, setting id, plugin id). */
+  id: string;
+  /** Primary label shown in the result row. */
+  title: string;
+  /** Secondary context line (collection name, setting description, plugin summary). */
+  subtitle?: string;
+  /** HTTP method badge for request hits. */
+  method?: string;
+  /** MiniSearch relevance score for ordering within a domain. */
+  score: number;
+  /** Numeric collection id when the hit belongs to the collections tree. */
+  collectionId?: number;
+  /** Numeric folder id when the hit is scoped to a folder. */
+  folderId?: number | null;
+}
+
+/**
+ * Shared MiniSearch options used across HarborClient search indexes.
+ */
+export const DEFAULT_SEARCH_OPTIONS = {
+  prefix: true,
+  fuzzy: 0.2 as const
+};

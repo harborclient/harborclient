@@ -77,6 +77,9 @@ describe('resolveShortcuts', () => {
     expect(bindings.find((binding) => binding.id === 'shortcuts-reference')?.accelerator).toBe(
       'Alt+Shift+K'
     );
+    expect(bindings.find((binding) => binding.id === 'search-anything')?.accelerator).toBe(
+      'Alt+Shift+P'
+    );
     expect(bindings.find((binding) => binding.id === 'about')?.accelerator).toBe(
       'CmdOrCtrl+Shift+A'
     );
@@ -318,5 +321,19 @@ describe('acceleratorMatchesChord', () => {
 
     expect(acceleratorMatchesChord('Alt+Shift+O', altShiftO)).toBe(true);
     expect(acceleratorMatchesChord('Alt+Shift+O', { ...altShiftO, key: 'O' })).toBe(true);
+  });
+
+  it('matches Alt+Shift+P when Shift produces uppercase P or code is KeyP', () => {
+    const altShiftP: KeyChord = {
+      key: 'p',
+      code: 'KeyP',
+      control: false,
+      meta: false,
+      alt: true,
+      shift: true
+    };
+
+    expect(acceleratorMatchesChord('Alt+Shift+P', altShiftP)).toBe(true);
+    expect(acceleratorMatchesChord('Alt+Shift+P', { ...altShiftP, key: 'P' })).toBe(true);
   });
 });

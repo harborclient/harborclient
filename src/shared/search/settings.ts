@@ -1,6 +1,7 @@
 import MiniSearch from 'minisearch';
 
-import { SETTINGS_CATALOG, type SettingId } from './catalog';
+import { SETTINGS_CATALOG, type SettingId } from '#/shared/search/settingsCatalog';
+import { DEFAULT_SEARCH_OPTIONS } from '#/shared/search/types';
 
 /**
  * Indexed fields for settings catalog search.
@@ -20,10 +21,9 @@ type SettingsSearchDocument = {
 export function buildSettingsSearchIndex(): MiniSearch<SettingsSearchDocument> {
   const index = new MiniSearch<SettingsSearchDocument>({
     fields: ['id', 'label', 'description', 'keywords'],
-    storeFields: ['id'],
+    storeFields: ['id', 'label', 'description'],
     searchOptions: {
-      prefix: true,
-      fuzzy: 0.2,
+      ...DEFAULT_SEARCH_OPTIONS,
       combineWith: 'AND'
     }
   });
@@ -60,4 +60,30 @@ export function searchSettings(
   );
 
   return SETTINGS_CATALOG.filter((entry) => matchedIds.has(entry.id)).map((entry) => entry.id);
+}
+
+/**
+ * Returns settings hits with scores for unified global search.
+ *
+ * @param index - MiniSearch index built from {@link SETTINGS_CATALOG}.
+ * @param query - Raw search text.
+ */
+export function searchSettingsHits(
+  index: MiniSearch<SettingsSearchDocument>,
+  query: string
+): Array<{ id: SettingId; score: number; label: string; description: string }> {
+  const trimmed = query.trim();
+  if (!trimmed) {
+    return [];
+  }
+
+  return index.search(trimmed).map((result) => {
+    const stored = result as unknown as SettingsSearchDocument;
+    return {
+      id: stored.id,
+      score: result.score,
+      label: stored.label,
+      description: stored.description
+    };
+  });
 }

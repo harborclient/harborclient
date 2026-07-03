@@ -14,6 +14,7 @@ export interface NavigationState {
   activePluginFooterPanelId: string | null;
   activeSidebarPanelId: string | null;
   pendingPluginInstallId: string | null;
+  pendingMarketplaceSearch: string | null;
 }
 
 const initialState: NavigationState = {
@@ -28,7 +29,8 @@ const initialState: NavigationState = {
   showVariables: false,
   activePluginFooterPanelId: null,
   activeSidebarPanelId: null,
-  pendingPluginInstallId: null
+  pendingPluginInstallId: null,
+  pendingMarketplaceSearch: null
 };
 
 const navigationSlice = createSlice({
@@ -155,6 +157,18 @@ const navigationSlice = createSlice({
      */
     consumePendingPluginInstall(state) {
       state.pendingPluginInstallId = null;
+    },
+    /**
+     * Queues a marketplace search query requested from global search navigation.
+     */
+    setPendingMarketplaceSearch(state, action: PayloadAction<string>) {
+      state.pendingMarketplaceSearch = action.payload;
+    },
+    /**
+     * Clears a queued marketplace search after the Plugins page has applied it.
+     */
+    consumePendingMarketplaceSearch(state) {
+      state.pendingMarketplaceSearch = null;
     }
   }
 });
@@ -176,7 +190,9 @@ export const {
   toggleVariables,
   togglePluginFooterPanel,
   setPendingPluginInstall,
-  consumePendingPluginInstall
+  consumePendingPluginInstall,
+  setPendingMarketplaceSearch,
+  consumePendingMarketplaceSearch
 } = navigationSlice.actions;
 
 /**
@@ -243,5 +259,11 @@ export const selectActiveSidebarPanelId = (state: RootState): string | null =>
  */
 export const selectPendingPluginInstallId = (state: RootState): string | null =>
   state.navigation.pendingPluginInstallId;
+
+/**
+ * Returns the marketplace search query queued by global search navigation, if any.
+ */
+export const selectPendingMarketplaceSearch = (state: RootState): string | null =>
+  state.navigation.pendingMarketplaceSearch;
 
 export default navigationSlice.reducer;

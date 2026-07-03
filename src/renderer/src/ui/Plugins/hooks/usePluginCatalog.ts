@@ -4,8 +4,9 @@ import {
   buildPluginCatalogSearchIndex,
   filterPluginCatalogByCategory,
   searchPluginCatalog
-} from '#/shared/plugin/catalogSearch';
+} from '#/shared/search/plugins';
 import type { PluginCatalogCategory } from '#/shared/plugin/catalogCategories';
+import { useSearchIndexes } from '#/renderer/src/search/useSearchIndexes';
 
 interface UsePluginCatalogResult {
   /**
@@ -83,6 +84,7 @@ interface UsePluginCatalogResult {
  * Manages marketplace catalog loading, search, and category filtering.
  */
 export function usePluginCatalog(): UsePluginCatalogResult {
+  const { pluginsIndex: warmPluginsIndex, plugins: warmPlugins } = useSearchIndexes();
   const [catalog, setCatalog] = useState<PluginCatalog | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogError, setCatalogError] = useState<string | null>(null);
@@ -95,6 +97,10 @@ export function usePluginCatalog(): UsePluginCatalogResult {
    * Loads the marketplace catalog from configured sources.
    */
   const loadCatalog = useCallback(async (): Promise<void> => {
+    if (warmPlugins.length > 0 && catalog == null) {
+      setCatalog({ schemaVersion: 1, plugins: warmPlugins });
+      return;
+    }
     setCatalogLoading(true);
     setCatalogError(null);
     try {
@@ -105,7 +111,7 @@ export function usePluginCatalog(): UsePluginCatalogResult {
     } finally {
       setCatalogLoading(false);
     }
-  }, []);
+  }, [catalog, warmPlugins]);
 
   /**
    * Clears marketplace search/filter state when leaving the Marketplace section.
@@ -126,36 +132,37 @@ export function usePluginCatalog(): UsePluginCatalogResult {
   }, [catalog]);
 
   /**
-   * Builds a searchable index over the loaded marketplace catalog.
+   * Builds a searchable index over the loaded marketplace catalog, falling back to the warm index.
    */
   const catalogSearchIndex = useMemo(() => {
-    if (!catalog?.plugins.length) {
-      return null;
+    if (catalog?.plugins.length) {
+      return buildPluginCatalogSearchIndex(catalog.plugins);
     }
-    return buildPluginCatalogSearchIndex(catalog.plugins);
-  }, [catalog]);
+    return warmPluginsIndex;
+  }, [catalog, warmPluginsIndex]);
 
   /**
    * Filters marketplace catalog rows by category and search query.
    */
   const filteredCatalogPlugins = useMemo(() => {
-    if (!catalog?.plugins.length) {
+    const plugins = catalog?.plugins ?? warmPlugins;
+    if (!plugins.length) {
       return [];
     }
 
-    const byCategory = filterPluginCatalogByCategory(catalog.plugins, catalogCategoryFilter);
+    const byCategory = filterPluginCatalogByCategory(plugins, catalogCategoryFilter);
     if (!catalogSearchIndex) {
       return byCategory;
     }
 
-    const searched = searchPluginCatalog(catalog.plugins, catalogSearchIndex, catalogSearchQuery);
+    const searched = searchPluginCatalog(plugins, catalogSearchIndex, catalogSearchQuery);
     if (!catalogCategoryFilter) {
       return searched;
     }
 
     const categoryIds = new Set(byCategory.map((entry) => entry.id));
     return searched.filter((entry) => categoryIds.has(entry.id));
-  }, [catalog, catalogSearchIndex, catalogSearchQuery, catalogCategoryFilter]);
+  }, [catalog, warmPlugins, catalogSearchIndex, catalogSearchQuery, catalogCategoryFilter]);
 
   return {
     catalog,

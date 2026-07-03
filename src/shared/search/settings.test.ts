@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  buildSettingsSearchIndex,
-  searchSettings
-} from '#/renderer/src/ui/Settings/catalog/settingsSearch';
+import { buildSettingsSearchIndex, searchSettings } from '#/shared/search/settings';
 
 describe('settingsSearch', () => {
   const index = buildSettingsSearchIndex();

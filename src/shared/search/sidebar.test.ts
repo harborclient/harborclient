@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import type { Collection, Environment, Folder, SavedRequest } from '#/shared/types';
-import { buildSidebarSearchIndex, searchSidebar } from '#/shared/sidebarSearch';
+import { buildSidebarSearchIndex, searchSidebar } from '#/shared/search/sidebar';
 
 const collectionA: Collection = {
   id: 1,

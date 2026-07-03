@@ -234,6 +234,11 @@ export function buildMenu(
           accelerator: acceleratorFor(accelerators, 'toggle-response-editor'),
           click: () => sendMenuAction(window, 'toggle-response-editor')
         },
+        {
+          label: 'Search Anything',
+          accelerator: acceleratorFor(accelerators, 'search-anything'),
+          click: () => sendMenuAction(window, 'search-anything')
+        },
         { type: 'separator' },
         {
           label: 'Collections',

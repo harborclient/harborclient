@@ -1,11 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
-import type { Collection, Environment, Folder, SavedRequest } from '#/shared/types';
-import {
-  buildSidebarSearchIndex,
-  searchSidebar,
-  type SidebarSearchFilter,
-  type SidebarSearchInput
-} from '#/shared/sidebarSearch';
+import type { Collection, Folder } from '#/shared/types';
+import { searchSidebar, type SidebarSearchFilter } from '#/shared/search/sidebar';
+import { useSearchIndexes } from '#/renderer/src/search/useSearchIndexes';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { refreshCollectionContents } from '#/renderer/src/store/thunks';
 
@@ -41,16 +37,6 @@ interface Options {
    * Folders grouped by collection id.
    */
   foldersByCollection: Record<number, Folder[]>;
-
-  /**
-   * Saved requests grouped by collection id.
-   */
-  requestsByCollection: Record<number, SavedRequest[]>;
-
-  /**
-   * Environments in sidebar display order.
-   */
-  environments: Environment[];
 
   /**
    * Whether the Collections section body is visible.
@@ -150,8 +136,6 @@ function addIdsToSet(target: Set<number>, source: ReadonlySet<number>): boolean 
 export function useSidebarSearch({
   collections,
   foldersByCollection,
-  requestsByCollection,
-  environments,
   collectionsSectionExpanded,
   environmentsSectionExpanded,
   setCollectionsSectionExpanded,
@@ -164,6 +148,7 @@ export function useSidebarSearch({
   setExpandedFolderIds
 }: Options): Result {
   const dispatch = useAppDispatch();
+  const { sidebarInput, sidebarIndex } = useSearchIndexes();
   const [searchQuery, setSearchQuery] = useState('');
   const expansionSnapshotRef = useRef<ExpansionSnapshot | null>(null);
   const expansionStateRef = useRef({
@@ -191,29 +176,11 @@ export function useSidebarSearch({
   ]);
 
   /**
-   * Plain sidebar data shape shared with the search index builder.
-   */
-  const searchInput = useMemo<SidebarSearchInput>(
-    () => ({
-      collections,
-      foldersByCollection,
-      requestsByCollection,
-      environments
-    }),
-    [collections, foldersByCollection, requestsByCollection, environments]
-  );
-
-  /**
-   * Builds a MiniSearch index over the sidebar entities currently in memory.
-   */
-  const searchIndex = useMemo(() => buildSidebarSearchIndex(searchInput), [searchInput]);
-
-  /**
-   * Derives visibility sets from the current query and search index.
+   * Derives visibility sets from the current query and warm sidebar search index.
    */
   const searchFilter = useMemo(
-    () => searchSidebar(searchInput, searchIndex, searchQuery),
-    [searchInput, searchIndex, searchQuery]
+    () => (sidebarIndex == null ? null : searchSidebar(sidebarInput, sidebarIndex, searchQuery)),
+    [sidebarInput, sidebarIndex, searchQuery]
   );
 
   /**

@@ -1,5 +1,10 @@
 import { PageSidebar, SidebarLayout } from '@harborclient/sdk/components';
-import { useState, type JSX } from 'react';
+import { useEffect, useState, type JSX } from 'react';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import {
+  consumePendingMarketplaceSearch,
+  selectPendingMarketplaceSearch
+} from '#/renderer/src/store/slices/navigationSlice';
 import { InstalledView } from './InstalledView';
 import { InstallView } from './InstallView';
 import { MarketplaceView } from './MarketplaceView';
@@ -19,6 +24,8 @@ import type { PluginsSidebarSection } from './sidebarTypes';
  * Full-area plugin management with sidebar navigation.
  */
 export function Plugins(): JSX.Element {
+  const dispatch = useAppDispatch();
+  const pendingMarketplaceSearch = useAppSelector(selectPendingMarketplaceSearch);
   const [section, setSection] = useState<PluginsSidebarSection>('installed');
 
   const { plugins, loading, error, refresh } = usePluginList();
@@ -111,6 +118,23 @@ export function Plugins(): JSX.Element {
   });
 
   /**
+   * Applies a marketplace search query queued by global search navigation.
+   */
+  useEffect(() => {
+    if (pendingMarketplaceSearch == null) {
+      return;
+    }
+    void loadCatalog().then(() => {
+      setCatalogSearchQuery(pendingMarketplaceSearch);
+      setSection('marketplace');
+      dispatch(consumePendingMarketplaceSearch());
+    });
+  }, [dispatch, loadCatalog, pendingMarketplaceSearch, setCatalogSearchQuery]);
+
+  const visibleSection: PluginsSidebarSection =
+    pendingMarketplaceSearch != null ? 'marketplace' : section;
+
+  /**
    * Clears marketplace filters when leaving the Marketplace section and loads
    * section-specific data when entering Marketplace or Settings.
    *
@@ -136,13 +160,13 @@ export function Plugins(): JSX.Element {
         sidebar={
           <PageSidebar
             ariaLabel="Plugin sections"
-            selected={section}
+            selected={visibleSection}
             onSelect={handleSectionChange}
             items={PLUGIN_SECTIONS}
           />
         }
       >
-        {section === 'installed' ? (
+        {visibleSection === 'installed' ? (
           <InstalledView
             plugins={plugins}
             loading={loading}
@@ -157,7 +181,7 @@ export function Plugins(): JSX.Element {
             onRemove={(plugin) => void handleRemove(plugin)}
           />
         ) : null}
-        {section === 'marketplace' ? (
+        {visibleSection === 'marketplace' ? (
           <MarketplaceView
             catalog={catalog}
             catalogLoading={catalogLoading}
@@ -170,7 +194,7 @@ export function Plugins(): JSX.Element {
             onOpenCatalogDetail={openCatalogDetail}
           />
         ) : null}
-        {section === 'install' ? (
+        {visibleSection === 'install' ? (
           <InstallView
             gitInstallUrl={gitInstallUrl}
             gitInstallRef={gitInstallRef}
@@ -183,7 +207,7 @@ export function Plugins(): JSX.Element {
             onInstallFromGit={() => void handleInstallFromGit()}
           />
         ) : null}
-        {section === 'settings' ? (
+        {visibleSection === 'settings' ? (
           <PluginSourcesView
             settings={pluginSourcesDraft}
             hubSources={teamHubPluginSources}

@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   openAboutModal,
   openCollectionModal,
+  openSearchAnythingModal,
   openShortcutsReferenceModal,
   openSyncModal,
   openUpdateModal
@@ -220,6 +221,9 @@ export function useMenuActions(): void {
           break;
         case 'shortcuts-reference':
           dispatch(openShortcutsReferenceModal());
+          break;
+        case 'search-anything':
+          dispatch(openSearchAnythingModal());
           break;
         case 'check-for-updates':
           dispatch(openUpdateModal());

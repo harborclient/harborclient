@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(search): introduce global search functionality and related UI components. (`77cc15b`)
+
 ## 1.9.20 - 2026-07-03
 
 - feat(collection-runner): enhance modal to support single request execution. (`0cae7f7`)

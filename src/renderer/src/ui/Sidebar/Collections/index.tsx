@@ -32,7 +32,7 @@ import type {
   SavedRequest,
   SourceControlStatus
 } from '#/shared/types';
-import type { SidebarSearchFilter } from '#/shared/sidebarSearch';
+import type { SidebarSearchFilter } from '#/shared/search/sidebar';
 import { FaIcon } from '@harborclient/sdk/components';
 import { RowActionsMenu } from '@harborclient/sdk/components';
 import { buildReorderMenuGroup } from '@harborclient/sdk/components';

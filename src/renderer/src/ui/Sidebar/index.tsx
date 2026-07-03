@@ -246,8 +246,6 @@ export function Sidebar({
   const { searchQuery, setSearchQuery, searchFilter, searchLoading } = useSidebarSearch({
     collections,
     foldersByCollection,
-    requestsByCollection,
-    environments,
     collectionsSectionExpanded,
     environmentsSectionExpanded,
     setCollectionsSectionExpanded,

@@ -53,7 +53,8 @@ export type ShortcutId =
   | 'report-issue'
   | 'check-for-updates'
   | 'about'
-  | 'shortcuts-reference';
+  | 'shortcuts-reference'
+  | 'search-anything';
 
 /**
  * Electron menu role names used by built-in shortcuts.
@@ -468,6 +469,13 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'Alt+Shift+K',
     kind: 'action',
     actionId: 'shortcuts-reference'
+  },
+  {
+    id: 'search-anything',
+    label: 'Search anything',
+    defaultAccelerator: 'Alt+Shift+P',
+    kind: 'action',
+    actionId: 'search-anything'
   },
   {
     id: 'about',
