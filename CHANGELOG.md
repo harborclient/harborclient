@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(fontawesome): update icons in settings and script editor. (`d98988a`)
 - chore(dependencies): update @harborclient/sdk to version 1.0.26. (`233060d`)
 - feat(chat): enhance chat title generation and update dependencies. (`e9fdc3e`)
 - feat(chat): implement abort signal handling for chat steps. (`e6509cf`)

@@ -100,6 +100,7 @@ import {
   faFloppyDisk,
   faGripVertical,
   faPen,
+  faTerminal,
   faTrash,
   faArrowUpRightFromSquare,
   faWandMagicSparkles
@@ -112,6 +113,12 @@ const SCRIPT_ROW_TITLE_CLASS = 'text-[15px] font-medium text-text';
 
 /** Icon size shared by drag handle and row action buttons. */
 const SCRIPT_ROW_ICON_CLASS = 'h-4 w-4';
+
+/** Icon size for the snippet-link indicator beside script row titles. */
+const SCRIPT_ROW_SNIPPET_LINK_ICON_CLASS = 'h-3 w-3 shrink-0 text-warning';
+
+/** Accessible name and tooltip for snippet-linked script row indicators. */
+const SNIPPET_LIBRARY_LABEL = 'Snippet library';
 
 /** Left inset aligning the code preview with the script title (checkbox width + gap). */
 const SCRIPT_ROW_PREVIEW_INDENT_CLASS = 'pl-6';
@@ -524,6 +531,18 @@ function ScriptRowHeader({
   const labelInputRef = useRef<HTMLInputElement>(null);
   const accessibleLabel = scriptRowLabel(script, snippets);
   const placeholderLabel = scriptRowPlaceholder(script, snippets);
+  const isSnippetLinked = script.kind === 'snippet';
+  const ariaLabelSuffix = isSnippetLinked ? ' (linked to snippet)' : '';
+  const snippetLinkIcon = isSnippetLinked ? (
+    <span
+      role="img"
+      aria-label={SNIPPET_LIBRARY_LABEL}
+      title={SNIPPET_LIBRARY_LABEL}
+      className="inline-flex shrink-0"
+    >
+      <FaIcon icon={faTerminal} className={SCRIPT_ROW_SNIPPET_LINK_ICON_CLASS} aria-hidden />
+    </span>
+  ) : null;
 
   /**
    * Focuses and selects the label input when inline edit mode opens.
@@ -536,37 +555,41 @@ function ScriptRowHeader({
   }, [editingLabel]);
 
   const titleControl = editingLabel ? (
-    <Input
-      ref={labelInputRef}
-      variant="plain"
-      className={`min-w-0 flex-1 border-none bg-transparent p-0 ${SCRIPT_ROW_TITLE_CLASS} outline-none app-no-drag`}
-      type="text"
-      value={script.name ?? ''}
-      onChange={(event) => onNameChange(event.target.value)}
-      onBlur={() => setEditingLabel(false)}
-      onPointerDown={stopDragPointerDown}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === 'Escape') {
-          event.preventDefault();
-          setEditingLabel(false);
-        }
-      }}
-      aria-label={`Rename ${accessibleLabel}`}
-      placeholder={placeholderLabel}
-    />
+    <div className="flex min-w-0 flex-1 items-center gap-1">
+      <Input
+        ref={labelInputRef}
+        variant="plain"
+        className={`min-w-0 flex-1 border-none bg-transparent p-0 ${SCRIPT_ROW_TITLE_CLASS} outline-none app-no-drag`}
+        type="text"
+        value={script.name ?? ''}
+        onChange={(event) => onNameChange(event.target.value)}
+        onBlur={() => setEditingLabel(false)}
+        onPointerDown={stopDragPointerDown}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === 'Escape') {
+            event.preventDefault();
+            setEditingLabel(false);
+          }
+        }}
+        aria-label={`Rename ${accessibleLabel}${ariaLabelSuffix}`}
+        placeholder={placeholderLabel}
+      />
+      {snippetLinkIcon}
+    </div>
   ) : (
     <button
       type="button"
-      className={`min-w-0 flex-1 cursor-text border-none bg-transparent p-0 text-left ${SCRIPT_ROW_TITLE_CLASS} hover:opacity-80 app-no-drag`}
-      aria-label={`Rename ${accessibleLabel}`}
+      className={`flex min-w-0 flex-1 cursor-text items-center gap-1 border-none bg-transparent p-0 text-left ${SCRIPT_ROW_TITLE_CLASS} hover:opacity-80 app-no-drag`}
+      aria-label={`Rename ${accessibleLabel}${ariaLabelSuffix}`}
       onClick={() => setEditingLabel(true)}
       onPointerDown={stopDragPointerDown}
     >
       {script.name?.trim() ? (
-        <span className="truncate">{script.name.trim()}</span>
+        <span className="min-w-0 truncate">{script.name.trim()}</span>
       ) : (
-        <span className="truncate text-muted">{placeholderLabel}</span>
+        <span className="min-w-0 truncate text-muted">{placeholderLabel}</span>
       )}
+      {snippetLinkIcon}
     </button>
   );
 
@@ -577,7 +600,7 @@ function ScriptRowHeader({
         checked={script.enabled}
         onChange={(event) => onEnabledChange(event.target.checked)}
         onPointerDown={stopDragPointerDown}
-        aria-label={`Enable ${accessibleLabel}`}
+        aria-label={`Enable ${accessibleLabel}${ariaLabelSuffix}`}
         className="shrink-0"
       />
       <div className="min-w-0 flex-1">{titleControl}</div>
