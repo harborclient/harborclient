@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.9.22 - 2026-07-03
+
 - feat(scripts): enhance request handling with pre/post script arrays and tags. (`a5ab177`)
 - feat(requests): add tags field to request schema and related functionalities. (`9ef116f`)
 
