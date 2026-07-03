@@ -769,9 +769,19 @@ function addChatMessage(input: AddChatMessageInput): Promise<ChatMessage> {
  * Runs one LLM completion step with tool definitions.
  *
  * @param input - Model id and conversation messages for the step.
+ * @param stepRequestId - Optional client id used to cancel the in-flight step.
  */
-function completeChatStep(input: ChatStepInput): Promise<ChatStepResult> {
-  return ipcRenderer.invoke('chats:completeStep', input);
+function completeChatStep(input: ChatStepInput, stepRequestId?: string): Promise<ChatStepResult> {
+  return ipcRenderer.invoke('chats:completeStep', input, stepRequestId);
+}
+
+/**
+ * Aborts an in-flight LLM completion step via IPC.
+ *
+ * @param stepRequestId - Id passed to completeChatStep when the step was started.
+ */
+function cancelChatStep(stepRequestId: string): Promise<void> {
+  return ipcRenderer.invoke('chats:cancelStep', stepRequestId);
 }
 
 /**
@@ -2149,6 +2159,7 @@ const api: Api = {
   getChat,
   addChatMessage,
   completeChatStep,
+  cancelChatStep,
   listHubLlmModels,
   deleteChat,
   listStorageConnections,

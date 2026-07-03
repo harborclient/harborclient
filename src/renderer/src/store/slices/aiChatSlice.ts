@@ -13,6 +13,14 @@ export interface AiChatState {
   sendingByChat: Record<number, boolean>;
   sendErrorByChat: Record<number, string>;
   /**
+   * In-flight LLM step request ids keyed by chat id for cancellation.
+   */
+  activeStepRequestIdByChat: Record<number, string>;
+  /**
+   * Whether the user requested cancellation for a chat send loop.
+   */
+  cancelRequestedByChat: Record<number, boolean>;
+  /**
    * One-shot composer text set by external UI (for example script "Ask AI" buttons).
    */
   pendingComposerText: string | null;
@@ -28,6 +36,8 @@ const initialState: AiChatState = {
   historyOpen: false,
   sendingByChat: {},
   sendErrorByChat: {},
+  activeStepRequestIdByChat: {},
+  cancelRequestedByChat: {},
   pendingComposerText: null
 };
 
@@ -143,6 +153,32 @@ const aiChatSlice = createSlice({
       delete state.sendErrorByChat[action.payload];
     },
     /**
+     * Tracks the active LLM step request id for a chat send loop.
+     */
+    setActiveStepRequestId(
+      state,
+      action: PayloadAction<{ chatId: number; stepRequestId: string | null }>
+    ) {
+      if (action.payload.stepRequestId == null) {
+        delete state.activeStepRequestIdByChat[action.payload.chatId];
+      } else {
+        state.activeStepRequestIdByChat[action.payload.chatId] = action.payload.stepRequestId;
+      }
+    },
+    /**
+     * Marks a chat send loop as cancelled by the user.
+     */
+    requestChatCancel(state, action: PayloadAction<number>) {
+      state.cancelRequestedByChat[action.payload] = true;
+    },
+    /**
+     * Clears cancellation tracking for a chat send loop.
+     */
+    clearChatCancelState(state, action: PayloadAction<number>) {
+      delete state.activeStepRequestIdByChat[action.payload];
+      delete state.cancelRequestedByChat[action.payload];
+    },
+    /**
      * Queues text for the chat composer to consume on the next render.
      */
     setPendingComposerText(state, action: PayloadAction<string | null>) {
@@ -164,6 +200,9 @@ export const {
   setHistoryOpen,
   setHubModelGroups,
   setSending,
+  setActiveStepRequestId,
+  requestChatCancel,
+  clearChatCancelState,
   setSendError,
   clearSendError,
   setPendingComposerText
@@ -218,6 +257,18 @@ export const selectSendingByChat = (state: RootState): Record<number, boolean> =
  */
 export const selectSendErrorByChat = (state: RootState): Record<number, string> =>
   state.aiChat.sendErrorByChat;
+
+/**
+ * Returns in-flight LLM step request ids keyed by chat id.
+ */
+export const selectActiveStepRequestIdByChat = (state: RootState): Record<number, string> =>
+  state.aiChat.activeStepRequestIdByChat;
+
+/**
+ * Returns user-requested cancellation flags keyed by chat id.
+ */
+export const selectCancelRequestedByChat = (state: RootState): Record<number, boolean> =>
+  state.aiChat.cancelRequestedByChat;
 
 /**
  * Returns composer text queued by external UI, or null when none is pending.

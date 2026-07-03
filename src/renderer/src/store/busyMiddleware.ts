@@ -1,7 +1,12 @@
 import type { Middleware, UnknownAction } from '@reduxjs/toolkit';
 import { operationFinished, operationStarted } from '#/renderer/src/store/slices/uiSlice';
 
-const EXCLUDED_THUNKS = new Set(['tabs/sendRequest', 'tabs/cancelRequest', 'aiChat/sendMessage']);
+const EXCLUDED_THUNKS = new Set([
+  'tabs/sendRequest',
+  'tabs/cancelRequest',
+  'aiChat/sendMessage',
+  'aiChat/cancelMessage'
+]);
 
 const pendingRequests = new Set<string>();
 

@@ -62,19 +62,23 @@ import {
 import { createHcCompletionSource } from '#/renderer/src/scripting/hcCompletions';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
-import { useAppDispatch } from '#/renderer/src/store/hooks';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
 import { setPendingComposerText } from '#/renderer/src/store/slices/aiChatSlice';
 import { createNewChat } from '#/renderer/src/store/thunks/aiChat';
 import { createSnippet, updateSnippet } from '#/renderer/src/store/thunks/snippets';
+import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
+import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
 import {
   faAnglesDown,
   faAnglesUp,
   faCaretDown,
   faChevronDown,
   faChevronUp,
+  faClone,
   faFloppyDisk,
   faGripVertical,
+  faPen,
   faTrash,
   faArrowUpRightFromSquare,
   faWandMagicSparkles
@@ -230,6 +234,18 @@ interface SortableScriptRowProps {
    * Opens the save-snippet modal for this row's current source code.
    */
   onSaveSnippet: (code: string) => void;
+
+  /**
+   * Prompts before enabling edit mode on a linked snippet row.
+   *
+   * @returns Resolves to true when the user may enter edit mode.
+   */
+  onRequestEditSnippet: () => Promise<boolean>;
+
+  /**
+   * Clones this script row as a new inline entry inserted after the source row.
+   */
+  onClone: () => void;
 
   /**
    * Whether AI chat is available for this user.
@@ -608,6 +624,8 @@ function SortableScriptRow({
   onToggleExpanded,
   onPatchCode,
   onSaveSnippet,
+  onRequestEditSnippet,
+  onClone,
   aiAvailable,
   onAskAi
 }: SortableScriptRowProps): JSX.Element {
@@ -619,10 +637,17 @@ function SortableScriptRow({
   const snippetRevision = `${script.snippetUuid ?? ''}:${snippet?.updated_at ?? ''}`;
   const [snippetDraftCode, setSnippetDraftCode] = useState(librarySnippetCode);
   const [snippetRevisionSeen, setSnippetRevisionSeen] = useState(snippetRevision);
+  const [isEditingSnippet, setIsEditingSnippet] = useState(false);
   const saveSnippetCode = script.kind === 'inline' ? (script.code ?? '') : snippetDraftCode;
   const canSaveSnippet = Boolean(saveSnippetCode.trim());
   const saveSnippetLabel =
     script.kind === 'snippet' ? `Save snippet "${label}"` : `Save "${label}" as snippet`;
+  const editSnippetLabel = `Edit snippet "${label}"`;
+  const cloneLabel = `Clone ${label}`;
+  const removeLabel = `Remove ${label}`;
+  const reorderLabel = `Reorder script "${label}"`;
+  const expandToggleLabel = isExpanded ? `Collapse ${label}` : `Expand ${label}`;
+  const askAiLabel = `Ask AI about ${label}`;
   const editorPanelId = useId();
   const showCodePreview =
     !isExpanded && Boolean(buildCodePreview(resolveScriptSourceCode(script, snippets)));
@@ -630,7 +655,20 @@ function SortableScriptRow({
   if (snippetRevision !== snippetRevisionSeen) {
     setSnippetRevisionSeen(snippetRevision);
     setSnippetDraftCode(librarySnippetCode);
+    setIsEditingSnippet(false);
   }
+
+  /**
+   * Prompts before enabling edit mode on a linked snippet row.
+   */
+  const handleRequestEditSnippet = (): void => {
+    void (async () => {
+      const allowed = await onRequestEditSnippet();
+      if (allowed) {
+        setIsEditingSnippet(true);
+      }
+    })();
+  };
 
   const {
     attributes,
@@ -661,7 +699,8 @@ function SortableScriptRow({
               type="button"
               ref={setActivatorNodeRef}
               className={`inline-flex ${SCRIPT_ROW_ICON_CLASS} shrink-0 cursor-grab items-center justify-center rounded border-none bg-transparent p-0 text-muted outline-none focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing app-no-drag`}
-              aria-label={`Reorder script "${label}"`}
+              aria-label={reorderLabel}
+              title={reorderLabel}
               {...attributes}
               {...listeners}
             >
@@ -683,29 +722,57 @@ function SortableScriptRow({
                 type="button"
                 variant="icon"
                 className={scriptRowIconButtonClass}
-                aria-label={`Ask AI about ${label}`}
+                aria-label={askAiLabel}
+                title={askAiLabel}
                 onPointerDown={stopDragPointerDown}
                 onClick={onAskAi}
               >
                 <FaIcon icon={faWandMagicSparkles} className={SCRIPT_ROW_ICON_CLASS} />
               </Button>
             ) : null}
+            {script.kind === 'snippet' && !isEditingSnippet ? (
+              <Button
+                type="button"
+                variant="icon"
+                className={scriptRowIconButtonClass}
+                aria-label={editSnippetLabel}
+                title={editSnippetLabel}
+                onPointerDown={stopDragPointerDown}
+                onClick={handleRequestEditSnippet}
+              >
+                <FaIcon icon={faPen} className={SCRIPT_ROW_ICON_CLASS} />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="icon"
+                className={scriptRowIconButtonClass}
+                aria-label={saveSnippetLabel}
+                title={saveSnippetLabel}
+                disabled={!canSaveSnippet}
+                onPointerDown={stopDragPointerDown}
+                onClick={() => onSaveSnippet(saveSnippetCode)}
+              >
+                <FaIcon icon={faFloppyDisk} className={SCRIPT_ROW_ICON_CLASS} />
+              </Button>
+            )}
             <Button
               type="button"
               variant="icon"
               className={scriptRowIconButtonClass}
-              aria-label={saveSnippetLabel}
-              disabled={!canSaveSnippet}
+              aria-label={cloneLabel}
+              title={cloneLabel}
               onPointerDown={stopDragPointerDown}
-              onClick={() => onSaveSnippet(saveSnippetCode)}
+              onClick={onClone}
             >
-              <FaIcon icon={faFloppyDisk} className={SCRIPT_ROW_ICON_CLASS} />
+              <FaIcon icon={faClone} className={SCRIPT_ROW_ICON_CLASS} />
             </Button>
             <Button
               type="button"
               variant="icon"
               className={scriptRowIconButtonClass}
-              aria-label={`Remove ${label}`}
+              aria-label={removeLabel}
+              title={removeLabel}
               onPointerDown={stopDragPointerDown}
               onClick={onRemove}
             >
@@ -717,7 +784,8 @@ function SortableScriptRow({
               className={scriptRowIconButtonClass}
               aria-controls={editorPanelId}
               aria-expanded={isExpanded}
-              aria-label={isExpanded ? `Collapse ${label}` : `Expand ${label}`}
+              aria-label={expandToggleLabel}
+              title={expandToggleLabel}
               onPointerDown={stopDragPointerDown}
               onClick={onToggleExpanded}
             >
@@ -775,6 +843,7 @@ function SortableScriptRow({
           <CodeEditor
             value={snippetDraftCode}
             onChange={setSnippetDraftCode}
+            readOnly={!isEditingSnippet}
             language="javascript"
             completionSource={createHcCompletionSource(phase, variables)}
             placeholder={placeholder}
@@ -804,6 +873,12 @@ export function ScriptListEditor({
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
+  const warnWhenEditingSnippet = useAppSelector(
+    (state) => state.settings.general.warnWhenEditingSnippet
+  );
+  const warnWhenCloningSnippet = useAppSelector(
+    (state) => state.settings.general.warnWhenCloningSnippet
+  );
   const { aiAvailable, aiSettings } = useAiAvailability();
   const normalized = useMemo(() => normalizeScriptRefs(scripts), [scripts]);
   const sortableEnabled = normalized.length > 1;
@@ -1063,6 +1138,73 @@ export function ScriptListEditor({
   };
 
   /**
+   * Prompts before enabling edit mode on a linked snippet row.
+   *
+   * @param label - Display label shown in the confirmation message.
+   * @returns Resolves to true when the user may enter edit mode.
+   */
+  const handleRequestEditSnippet = async (label: string): Promise<boolean> => {
+    if (!warnWhenEditingSnippet) {
+      return true;
+    }
+
+    const result = await showConfirm(dispatch, {
+      title: 'Edit snippet?',
+      message: `Editing "${label}" will change the snippet library entry for every request that uses it.`,
+      confirmLabel: 'Edit snippet',
+      checkboxLabel: "Don't show this again"
+    });
+    if (result.confirmed && result.checkboxChecked) {
+      await dispatch(patchGeneralSettings({ warnWhenEditingSnippet: false }));
+    }
+    return result.confirmed;
+  };
+
+  /**
+   * Clones one script row as a detached inline copy inserted after the source row.
+   *
+   * @param id - Script list entry id.
+   * @param label - Display label shown in confirmation messages.
+   */
+  const handleCloneScript = async (id: string, label: string): Promise<void> => {
+    const script = normalized.find((entry) => entry.id === id);
+    if (!script) {
+      return;
+    }
+
+    if (script.kind === 'snippet' && warnWhenCloningSnippet) {
+      const result = await showConfirm(dispatch, {
+        title: 'Clone snippet?',
+        message: `The copy of "${label}" will no longer be linked to the original snippet library entry.`,
+        confirmLabel: 'Clone',
+        checkboxLabel: "Don't show this again"
+      });
+      if (!result.confirmed) {
+        return;
+      }
+      if (result.checkboxChecked) {
+        await dispatch(patchGeneralSettings({ warnWhenCloningSnippet: false }));
+      }
+    }
+
+    const code =
+      script.kind === 'inline' ? (script.code ?? '') : resolveScriptSourceCode(script, snippets);
+    const baseName = script.name?.trim() || label;
+    const clone = {
+      ...createInlineScriptRef(code, `${baseName} (copy)`),
+      expanded: script.expanded ?? true
+    };
+    const sourceIndex = normalized.findIndex((entry) => entry.id === id);
+    if (sourceIndex < 0) {
+      return;
+    }
+
+    const next = [...normalized];
+    next.splice(sourceIndex + 1, 0, clone);
+    updateScripts(next);
+  };
+
+  /**
    * Prompts before removing a script row, then updates the list when confirmed.
    *
    * @param id - Script list entry id.
@@ -1164,6 +1306,7 @@ export function ScriptListEditor({
           variant="secondary"
           className="shrink-0 rounded-full!"
           aria-label={allScriptsExpanded ? 'Collapse all scripts' : 'Expand all scripts'}
+          title={allScriptsExpanded ? 'Collapse all scripts' : 'Expand all scripts'}
           onClick={handleToggleExpandAll}
         >
           <FaIcon
@@ -1224,6 +1367,8 @@ export function ScriptListEditor({
               onToggleExpanded={() => patchScript(script.id, { expanded: !isExpanded })}
               onPatchCode={(code) => patchScript(script.id, { code })}
               onSaveSnippet={(code) => openSaveSnippetModal(script.id, code)}
+              onRequestEditSnippet={() => handleRequestEditSnippet(label)}
+              onClone={() => void handleCloneScript(script.id, label)}
               aiAvailable={aiAvailable}
               onAskAi={() => void handleAskAi(index + 1)}
             />

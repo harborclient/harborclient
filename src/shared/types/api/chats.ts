@@ -39,8 +39,15 @@ export interface ApiChats {
    * Runs one LLM completion step with tool definitions and returns text or tool calls.
    *
    * @param input - Model id and conversation messages for the step.
+   * @param stepRequestId - Optional client id used to cancel the in-flight step.
    */
-  completeChatStep: (input: ChatStepInput) => Promise<ChatStepResult>;
+  completeChatStep: (input: ChatStepInput, stepRequestId?: string) => Promise<ChatStepResult>;
+  /**
+   * Aborts an in-flight LLM completion step by its client-side step request id.
+   *
+   * @param stepRequestId - Id passed to completeChatStep when the step was started.
+   */
+  cancelChatStep: (stepRequestId: string) => Promise<void>;
   /**
    * Lists LLM models offered by configured Team Hubs for the current user.
    */

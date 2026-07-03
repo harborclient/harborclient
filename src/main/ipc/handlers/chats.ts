@@ -1,3 +1,8 @@
+import {
+  cancelActiveChatStep,
+  trackActiveChatStep,
+  untrackActiveChatStep
+} from '#/main/ai/activeChatSteps';
 import { runChatCompletionStep } from '#/main/ai/completeChatTurn';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { handle } from '#/main/ipc/handle';
@@ -24,9 +29,29 @@ export function registerChatHandlers(): void {
   );
 
   // Runs one LLM completion step for a chat turn.
-  handle('chats:completeStep', ipcArgSchemas.chatCompleteStep, (_event, input) =>
-    runChatCompletionStep(input)
+  handle(
+    'chats:completeStep',
+    ipcArgSchemas.chatCompleteStep,
+    async (_event, input, stepRequestId) => {
+      const controller = new AbortController();
+      if (stepRequestId) {
+        trackActiveChatStep(stepRequestId, controller);
+      }
+
+      try {
+        return await runChatCompletionStep(input, undefined, { signal: controller.signal });
+      } finally {
+        if (stepRequestId) {
+          untrackActiveChatStep(stepRequestId, controller);
+        }
+      }
+    }
   );
+
+  // Aborts an in-flight LLM completion step by its client-side step request id.
+  handle('chats:cancelStep', ipcArgSchemas.chatCancelStep, (_event, stepRequestId) => {
+    cancelActiveChatStep(stepRequestId);
+  });
 
   // Deletes an AI chat by id.
   handle('chats:delete', ipcArgSchemas.chatDelete, (_event, id) => {

@@ -577,8 +577,13 @@
   color: #32d2e2;
 }
 
+.hc-chat-composer-script-ref {
+  color: #32d2e2;
+}
+
 :root[data-theme='high-contrast'] .request-comment-editor .cm-variable-token,
-:root[data-theme='high-contrast'] .request-body-editor .cm-variable-token {
+:root[data-theme='high-contrast'] .request-body-editor .cm-variable-token,
+:root[data-theme='high-contrast'] .hc-chat-composer-script-ref {
   color: var(--mac-variable-token);
 }
 

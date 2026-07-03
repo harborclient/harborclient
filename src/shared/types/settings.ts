@@ -147,6 +147,16 @@ export interface GeneralSettings {
   warnWhenSwitchingThemes: boolean;
 
   /**
+   * When true, editing a linked snippet in the request script list shows a confirmation dialog.
+   */
+  warnWhenEditingSnippet: boolean;
+
+  /**
+   * When true, cloning a linked snippet in the request script list shows a confirmation dialog.
+   */
+  warnWhenCloningSnippet: boolean;
+
+  /**
    * CodeMirror syntax theme applied to all editor instances.
    */
   codeEditorTheme: CodeEditorTheme;

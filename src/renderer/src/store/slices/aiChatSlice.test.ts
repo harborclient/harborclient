@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import aiChatReducer, {
   appendMessage,
+  clearChatCancelState,
   closeChatTab,
   openChatTab,
+  requestChatCancel,
   restoreChatSession,
   setActiveChat,
+  setActiveStepRequestId,
   setChats
 } from '#/renderer/src/store/slices/aiChatSlice';
 
@@ -59,5 +62,20 @@ describe('aiChatSlice', () => {
     );
     expect(state.messagesByChat[4]).toHaveLength(1);
     expect(state.messagesByChat[4]?.[0]?.content).toBe('Hello');
+  });
+
+  it('tracks active step request ids and cancellation flags', () => {
+    let state = aiChatReducer(
+      undefined,
+      setActiveStepRequestId({ chatId: 2, stepRequestId: 'step-1' })
+    );
+    expect(state.activeStepRequestIdByChat[2]).toBe('step-1');
+
+    state = aiChatReducer(state, requestChatCancel(2));
+    expect(state.cancelRequestedByChat[2]).toBe(true);
+
+    state = aiChatReducer(state, clearChatCancelState(2));
+    expect(state.activeStepRequestIdByChat[2]).toBeUndefined();
+    expect(state.cancelRequestedByChat[2]).toBeUndefined();
   });
 });

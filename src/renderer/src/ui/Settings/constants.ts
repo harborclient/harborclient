@@ -48,6 +48,8 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   verifySsl: true,
   followRedirects: true,
   warnWhenSwitchingThemes: true,
+  warnWhenEditingSnippet: true,
+  warnWhenCloningSnippet: true,
   codeEditorTheme: 'default',
   codeEditorSetup: { ...DEFAULT_CODE_EDITOR_SETUP },
   proxy: { ...DEFAULT_PROXY_SETTINGS },

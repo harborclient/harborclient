@@ -1,4 +1,4 @@
-import { Button, Select, Textarea } from '@harborclient/sdk/components';
+import { Button, Select } from '@harborclient/sdk/components';
 import { useEffect, useRef, useState, type JSX, type KeyboardEvent } from 'react';
 import { getAvailableModels, resolveAiModelOption } from '#/shared/aiModels';
 import type { AiSettings } from '#/shared/types';
@@ -12,7 +12,8 @@ import {
   setPendingComposerText,
   setSelectedModel
 } from '#/renderer/src/store/slices/aiChatSlice';
-import { sendChatMessage } from '#/renderer/src/store/thunks/aiChat';
+import { sendChatMessage, cancelChatMessage } from '#/renderer/src/store/thunks/aiChat';
+import { ChatComposerTextarea } from './ChatComposerTextarea';
 
 interface Props {
   /**
@@ -91,6 +92,14 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
   };
 
   /**
+   * Dispatches the cancel thunk to stop the in-flight AI reply.
+   */
+  const handleStop = (): void => {
+    if (chatId == null || !sending) return;
+    void dispatch(cancelChatMessage(chatId));
+  };
+
+  /**
    * Dispatches the send thunk and clears the draft input.
    */
   const handleSend = async (): Promise<void> => {
@@ -111,9 +120,8 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
 
   return (
     <div className="flex shrink-0 flex-col gap-2 border-t border-separator p-3 app-no-drag">
-      <Textarea
+      <ChatComposerTextarea
         ref={textareaRef}
-        className="min-h-[72px] w-full resize-none text-[14px]"
         value={draft}
         placeholder="Type a message…"
         aria-label="Chat message"
@@ -144,8 +152,14 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
             </option>
           ))}
         </Select>
-        <Button type="button" disabled={!canSend} onClick={() => void handleSend()}>
-          Send
+        <Button
+          type="button"
+          className="rounded-full! w-[80px]"
+          disabled={sending ? false : !canSend}
+          aria-label={sending ? 'Stop generating' : undefined}
+          onClick={() => (sending ? handleStop() : void handleSend())}
+        >
+          {sending ? 'Stop' : 'Send'}
         </Button>
       </div>
       {sendError ? (

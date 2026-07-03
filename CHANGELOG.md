@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(chat): implement abort signal handling for chat steps. (`e6509cf`)
+
 ## 1.9.18 - 2026-07-03
 
 - feat(settings): add script timeout configuration and related tests. (`a438ac0`)

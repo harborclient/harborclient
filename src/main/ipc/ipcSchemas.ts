@@ -218,6 +218,8 @@ export const generalSettings = z.object({
   verifySsl: z.boolean(),
   followRedirects: z.boolean(),
   warnWhenSwitchingThemes: z.boolean(),
+  warnWhenEditingSnippet: z.boolean(),
+  warnWhenCloningSnippet: z.boolean(),
   codeEditorTheme: z.enum(CODE_EDITOR_THEME_IDS),
   codeEditorSetup: z.object({
     lineNumbers: z.boolean(),
@@ -491,7 +493,8 @@ export const ipcArgSchemas = {
   chatCreate: z.tuple([chatCreateInput]),
   chatGet: z.tuple([dbId]),
   chatAddMessage: z.tuple([chatAddMessageInput]),
-  chatCompleteStep: z.tuple([chatCompleteStepInput]),
+  chatCompleteStep: z.tuple([chatCompleteStepInput, requestId.optional()]),
+  chatCancelStep: z.tuple([requestId]),
   chatDelete: z.tuple([dbId]),
   saveRequest: z.tuple([saveRequestInput]),
   sendRequest: z.tuple([sendRequestInput, requestId.optional()]),

@@ -1,6 +1,9 @@
-import type { JSX } from 'react';
+import { useMemo, type JSX, type ReactNode } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import type { AiScriptReferenceValidationContext } from '#/shared/aiScriptReferences';
+import { processMarkdownChildren } from './renderScriptReferenceText';
+import { useAiScriptReferenceValidationContext } from './useAiScriptReferenceValidationContext';
 
 type Variant = 'user' | 'assistant';
 
@@ -62,16 +65,37 @@ function getVariantStyles(variant: Variant): VariantStyles {
 }
 
 /**
- * Builds react-markdown component overrides for a chat bubble variant.
+ * Applies `@` script reference highlighting to markdown children in prose elements.
+ *
+ * @param children - Rendered markdown children.
+ * @param context - Active tab state for semantic validation.
  */
-function createMarkdownComponents(variant: Variant): Components {
+function withScriptRefs(
+  children: ReactNode,
+  context: AiScriptReferenceValidationContext
+): ReactNode {
+  return processMarkdownChildren(children, context);
+}
+
+/**
+ * Builds react-markdown component overrides for a chat bubble variant.
+ *
+ * @param variant - User or assistant bubble styling.
+ * @param context - Active tab state for `@` reference highlighting.
+ */
+function createMarkdownComponents(
+  variant: Variant,
+  context: AiScriptReferenceValidationContext
+): Components {
   const styles = getVariantStyles(variant);
 
   return {
-    p: ({ children }) => <p className="mb-2 break-words last:mb-0">{children}</p>,
+    p: ({ children }) => (
+      <p className="mb-2 break-words last:mb-0">{withScriptRefs(children, context)}</p>
+    ),
     a: ({ href, children }) => (
       <a href={href} target="_blank" rel="noopener noreferrer" className={styles.link}>
-        {children}
+        {withScriptRefs(children, context)}
       </a>
     ),
     ul: ({ children }) => (
@@ -80,15 +104,41 @@ function createMarkdownComponents(variant: Variant): Components {
     ol: ({ children }) => (
       <ol className="my-2 list-decimal space-y-1 pl-5 last:mb-0 [&>li]:break-words">{children}</ol>
     ),
-    li: ({ children }) => <li className="break-words">{children}</li>,
-    blockquote: ({ children }) => <blockquote className={styles.blockquote}>{children}</blockquote>,
+    li: ({ children }) => <li className="break-words">{withScriptRefs(children, context)}</li>,
+    blockquote: ({ children }) => (
+      <blockquote className={styles.blockquote}>{withScriptRefs(children, context)}</blockquote>
+    ),
     hr: () => <hr className={styles.hr} />,
-    h1: ({ children }) => <h1 className="mb-2 text-[16px] font-semibold last:mb-0">{children}</h1>,
-    h2: ({ children }) => <h2 className="mb-2 text-[15px] font-semibold last:mb-0">{children}</h2>,
-    h3: ({ children }) => <h3 className="mb-2 text-[14px] font-semibold last:mb-0">{children}</h3>,
-    h4: ({ children }) => <h4 className="mb-2 text-[14px] font-medium last:mb-0">{children}</h4>,
-    h5: ({ children }) => <h5 className="mb-2 text-[14px] font-medium last:mb-0">{children}</h5>,
-    h6: ({ children }) => <h6 className="mb-2 text-[14px] font-medium last:mb-0">{children}</h6>,
+    h1: ({ children }) => (
+      <h1 className="mb-2 text-[16px] font-semibold last:mb-0">
+        {withScriptRefs(children, context)}
+      </h1>
+    ),
+    h2: ({ children }) => (
+      <h2 className="mb-2 text-[15px] font-semibold last:mb-0">
+        {withScriptRefs(children, context)}
+      </h2>
+    ),
+    h3: ({ children }) => (
+      <h3 className="mb-2 text-[14px] font-semibold last:mb-0">
+        {withScriptRefs(children, context)}
+      </h3>
+    ),
+    h4: ({ children }) => (
+      <h4 className="mb-2 text-[14px] font-medium last:mb-0">
+        {withScriptRefs(children, context)}
+      </h4>
+    ),
+    h5: ({ children }) => (
+      <h5 className="mb-2 text-[14px] font-medium last:mb-0">
+        {withScriptRefs(children, context)}
+      </h5>
+    ),
+    h6: ({ children }) => (
+      <h6 className="mb-2 text-[14px] font-medium last:mb-0">
+        {withScriptRefs(children, context)}
+      </h6>
+    ),
     pre: ({ children }) => <pre className={styles.pre}>{children}</pre>,
     code: ({ className, children }) => {
       const isBlock = typeof className === 'string' && className.includes('language-');
@@ -107,11 +157,15 @@ function createMarkdownComponents(variant: Variant): Components {
     thead: ({ children }) => <thead>{children}</thead>,
     tbody: ({ children }) => <tbody>{children}</tbody>,
     tr: ({ children }) => <tr>{children}</tr>,
-    th: ({ children }) => <th className={styles.tableHeader}>{children}</th>,
-    td: ({ children }) => <td className={styles.tableCell}>{children}</td>,
-    strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-    em: ({ children }) => <em className="italic">{children}</em>,
-    del: ({ children }) => <del className="opacity-80">{children}</del>
+    th: ({ children }) => (
+      <th className={styles.tableHeader}>{withScriptRefs(children, context)}</th>
+    ),
+    td: ({ children }) => <td className={styles.tableCell}>{withScriptRefs(children, context)}</td>,
+    strong: ({ children }) => (
+      <strong className="font-semibold">{withScriptRefs(children, context)}</strong>
+    ),
+    em: ({ children }) => <em className="italic">{withScriptRefs(children, context)}</em>,
+    del: ({ children }) => <del className="opacity-80">{withScriptRefs(children, context)}</del>
   };
 }
 
@@ -119,7 +173,15 @@ function createMarkdownComponents(variant: Variant): Components {
  * Renders chat message markdown with GFM support and bubble-aware styling.
  */
 export function MarkdownContent({ content, variant }: Props): JSX.Element {
-  const components = createMarkdownComponents(variant);
+  const validationContext = useAiScriptReferenceValidationContext();
+
+  /**
+   * Memoizes markdown component overrides for the bubble variant and active tab state.
+   */
+  const components = useMemo(
+    () => createMarkdownComponents(variant, validationContext),
+    [variant, validationContext]
+  );
 
   return (
     <div className="break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">

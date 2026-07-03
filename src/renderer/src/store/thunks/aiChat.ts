@@ -2,13 +2,16 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import { getAvailableModels } from '#/shared/aiModels';
 import type { AiSettings, ChatMessage, ChatStepMessage, ChatSummary } from '#/shared/types';
 import { executeAiToolCall } from '#/renderer/src/store/ai/aiToolExecutor';
-import type { ThunkApiConfig } from '#/renderer/src/store/redux';
+import type { RootState, ThunkApiConfig } from '#/renderer/src/store/redux';
 import {
   appendMessage,
+  clearChatCancelState,
   clearSendError,
   closeChatTab,
   openChatTab,
+  requestChatCancel,
   setActiveChat,
+  setActiveStepRequestId,
   setChats,
   setMessages,
   setSelectedModel,
@@ -19,6 +22,23 @@ import {
 } from '#/renderer/src/store/slices/aiChatSlice';
 
 const MAX_TOOL_ITERATIONS = 6;
+
+/**
+ * Returns whether a chat send was cancelled by the user.
+ *
+ * @param error - Error thrown while awaiting a chat step.
+ * @param state - Current Redux state.
+ * @param chatId - Chat id being sent to.
+ */
+function isUserChatCancellation(error: unknown, state: RootState, chatId: number): boolean {
+  if (state.aiChat.cancelRequestedByChat[chatId]) {
+    return true;
+  }
+  return (
+    (error instanceof DOMException && error.name === 'AbortError') ||
+    (error instanceof Error && error.name === 'AbortError')
+  );
+}
 
 /**
  * Maps persisted chat messages to LLM step messages.
@@ -209,15 +229,35 @@ export const sendChatMessage = createAsyncThunk<
   dispatch(setSending({ chatId, sending: true }));
 
   try {
+    dispatch(clearChatCancelState(chatId));
     const messages = historyToStepMessages(getState().aiChat.messagesByChat[chatId] ?? []);
     let assistantText: string | null = null;
 
     for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration += 1) {
-      const step = await window.api.completeChatStep({
-        model: modelId,
-        messages,
-        ...(hubId ? { hubId } : {})
-      });
+      if (getState().aiChat.cancelRequestedByChat[chatId]) {
+        break;
+      }
+
+      const stepRequestId = crypto.randomUUID();
+      dispatch(setActiveStepRequestId({ chatId, stepRequestId }));
+
+      let step;
+      try {
+        step = await window.api.completeChatStep(
+          {
+            model: modelId,
+            messages,
+            ...(hubId ? { hubId } : {})
+          },
+          stepRequestId
+        );
+      } finally {
+        dispatch(setActiveStepRequestId({ chatId, stepRequestId: null }));
+      }
+
+      if (getState().aiChat.cancelRequestedByChat[chatId]) {
+        break;
+      }
 
       if (step.toolCalls && step.toolCalls.length > 0) {
         messages.push({
@@ -227,6 +267,10 @@ export const sendChatMessage = createAsyncThunk<
         });
 
         for (const call of step.toolCalls) {
+          if (getState().aiChat.cancelRequestedByChat[chatId]) {
+            break;
+          }
+
           const result = await executeAiToolCall(call.name, call.arguments, {
             getState,
             dispatch
@@ -237,11 +281,19 @@ export const sendChatMessage = createAsyncThunk<
             content: result
           });
         }
+
+        if (getState().aiChat.cancelRequestedByChat[chatId]) {
+          break;
+        }
         continue;
       }
 
       assistantText = step.content;
       break;
+    }
+
+    if (getState().aiChat.cancelRequestedByChat[chatId]) {
+      return;
     }
 
     if (assistantText == null || assistantText.trim() === '') {
@@ -257,13 +309,36 @@ export const sendChatMessage = createAsyncThunk<
     dispatch(appendMessage(assistantMessage));
     await dispatch(refreshChatHistory());
   } catch (error) {
+    if (isUserChatCancellation(error, getState(), chatId)) {
+      return;
+    }
     const message =
       error instanceof Error ? error.message : 'Failed to get a response from the model.';
     dispatch(setSendError({ chatId, message }));
   } finally {
     dispatch(setSending({ chatId, sending: false }));
+    dispatch(clearChatCancelState(chatId));
   }
 });
+
+/**
+ * Cancels the in-flight AI reply for a chat tab.
+ */
+export const cancelChatMessage = createAsyncThunk<void, number, ThunkApiConfig>(
+  'aiChat/cancelMessage',
+  async (chatId, { dispatch, getState }) => {
+    if (!getState().aiChat.sendingByChat[chatId]) {
+      return;
+    }
+
+    dispatch(requestChatCancel(chatId));
+
+    const stepRequestId = getState().aiChat.activeStepRequestIdByChat[chatId];
+    if (stepRequestId) {
+      await window.api.cancelChatStep(stepRequestId);
+    }
+  }
+);
 
 /**
  * Deletes a chat from persistence and closes its tab.

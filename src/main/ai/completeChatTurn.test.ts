@@ -80,6 +80,50 @@ describe('runChatCompletionStep', () => {
     expect(result.toolCalls).toEqual([{ id: 'call_1', name: 'list_collections', arguments: '{}' }]);
   });
 
+  it('forwards an abort signal to the OpenAI SDK request', async () => {
+    const controller = new AbortController();
+    const create = vi.fn().mockResolvedValue({
+      choices: [{ message: { role: 'assistant', content: 'Done.' } }]
+    });
+    const mockClient = {
+      chat: {
+        completions: {
+          create
+        }
+      }
+    } as unknown as OpenAI;
+
+    await runChatCompletionStep(
+      { model: 'gpt-4o', messages: [{ role: 'user', content: 'Hi' }] },
+      { createClient: () => mockClient },
+      { signal: controller.signal }
+    );
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        signal: controller.signal
+      })
+    );
+  });
+
+  it('rethrows AbortError without wrapping it', async () => {
+    const create = vi.fn().mockRejectedValue(new DOMException('Chat step aborted.', 'AbortError'));
+    const mockClient = {
+      chat: {
+        completions: {
+          create
+        }
+      }
+    } as unknown as OpenAI;
+
+    await expect(
+      runChatCompletionStep(
+        { model: 'gpt-4o', messages: [{ role: 'user', content: 'Hi' }] },
+        { createClient: () => mockClient }
+      )
+    ).rejects.toMatchObject({ name: 'AbortError' });
+  });
+
   it('returns assistant text when no tool calls are present', async () => {
     const create = vi.fn().mockResolvedValue({
       choices: [{ message: { role: 'assistant', content: 'Done.' } }]

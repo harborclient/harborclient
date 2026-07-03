@@ -50,11 +50,26 @@ function isContextLengthExceeded(error: unknown): boolean {
 }
 
 /**
+ * Returns whether an error represents a user-initiated request abort.
+ *
+ * @param error - Error thrown by fetch or the OpenAI SDK.
+ */
+function isAbortError(error: unknown): boolean {
+  return (
+    (error instanceof DOMException && error.name === 'AbortError') ||
+    (error instanceof Error && error.name === 'AbortError')
+  );
+}
+
+/**
  * Normalizes LLM client failures into user-facing errors.
  *
  * @param error - Error thrown by the OpenAI SDK or local validation.
  */
 function toChatCompletionError(error: unknown): Error {
+  if (isAbortError(error)) {
+    return error instanceof Error ? error : new DOMException('Chat step aborted.', 'AbortError');
+  }
   if (isContextLengthExceeded(error)) {
     return new Error(CONTEXT_LENGTH_ERROR_MESSAGE);
   }
@@ -127,18 +142,30 @@ function toChatStepResult(response: ChatCompletion): ChatStepResult {
 }
 
 /**
+ * Optional runtime controls for one LLM completion step.
+ */
+export interface RunChatCompletionStepOptions {
+  /**
+   * Aborts the in-flight provider request when the user stops generation.
+   */
+  signal?: AbortSignal;
+}
+
+/**
  * Runs one LLM completion step with the Harbor system prompt and tool definitions attached.
  *
  * @param input - Model id and conversation messages from the renderer.
  * @param deps - Optional client factory override for tests.
+ * @param options - Optional abort signal for user cancellation.
  * @returns Assistant text and/or tool calls for the renderer to execute.
  */
 export async function runChatCompletionStep(
   input: ChatStepInput,
-  deps?: RunChatCompletionStepDeps
+  deps?: RunChatCompletionStepDeps,
+  options?: RunChatCompletionStepOptions
 ): Promise<ChatStepResult> {
   if (input.hubId?.trim()) {
-    return runHubChatCompletionStep(input);
+    return runHubChatCompletionStep(input, options);
   }
 
   const createClient =
@@ -160,13 +187,17 @@ export async function runChatCompletionStep(
       client.chat.completions.create({
         model: modelOption.id,
         messages,
-        tools: AI_TOOL_DEFINITIONS
+        tools: AI_TOOL_DEFINITIONS,
+        ...(options?.signal ? { signal: options.signal } : {})
       });
 
     let response: ChatCompletion;
     try {
       response = await request(buildMessages(input.messages));
     } catch (error) {
+      if (isAbortError(error)) {
+        throw error;
+      }
       if (!isContextLengthExceeded(error)) {
         throw error;
       }

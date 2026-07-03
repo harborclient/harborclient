@@ -231,6 +231,8 @@ describe('generalSettings', () => {
     verifySsl: true,
     followRedirects: true,
     warnWhenSwitchingThemes: true,
+    warnWhenEditingSnippet: true,
+    warnWhenCloningSnippet: true,
     codeEditorTheme: 'default' as const,
     codeEditorSetup: {
       lineNumbers: true,
@@ -400,6 +402,20 @@ describe('object schema happy paths', () => {
   it('sendRequest tuple accepts optional requestId', () => {
     expect(ipcArgSchemas.sendRequest.safeParse([validSendRequest]).success).toBe(true);
     expect(ipcArgSchemas.sendRequest.safeParse([validSendRequest, 'req-1']).success).toBe(true);
+  });
+
+  it('chatCompleteStep tuple accepts optional stepRequestId', () => {
+    const validStep = {
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: 'Hi' }]
+    };
+    expect(ipcArgSchemas.chatCompleteStep.safeParse([validStep]).success).toBe(true);
+    expect(ipcArgSchemas.chatCompleteStep.safeParse([validStep, 'step-1']).success).toBe(true);
+  });
+
+  it('chatCancelStep tuple requires a stepRequestId', () => {
+    expect(ipcArgSchemas.chatCancelStep.safeParse(['step-1']).success).toBe(true);
+    expect(ipcArgSchemas.chatCancelStep.safeParse([]).success).toBe(false);
   });
 
   it('shareCreate accepts optional recipientKid', () => {
