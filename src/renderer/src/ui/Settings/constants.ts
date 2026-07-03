@@ -43,6 +43,7 @@ export const DEFAULT_PROXY_SETTINGS: ProxySettings = {
  */
 export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   requestTimeoutMs: 30000,
+  scriptTimeoutMs: 5000,
   maxResponseSizeMb: 50,
   verifySsl: true,
   followRedirects: true,

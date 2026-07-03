@@ -338,6 +338,57 @@ describe('evaluateScript', () => {
     ]);
   });
 
+  it('queries HTML response bodies via hc.response.document()', async () => {
+    const { evaluateScript } = await import('#/main/scripting/scriptEvaluator');
+    const result = await evaluateScript({
+      phase: 'post',
+      script: `
+        const doc = hc.response.document();
+        hc.test('heading text', function() {
+          hc.expect(doc.querySelector('h1')?.textContent).to.equal('Hello');
+        });
+        hc.test('heading class', function() {
+          hc.expect(doc.querySelector('h1')?.getAttribute('class')).to.equal('title');
+        });
+        hc.test('list items', function() {
+          hc.expect(doc.querySelectorAll('li').length).to.equal(2);
+        });
+        hc.test('missing selector', function() {
+          hc.expect(doc.querySelector('missing')).to.equal(null);
+        });
+        hc.test('document cache', function() {
+          hc.expect(hc.response.document()).to.equal(doc);
+        });
+      `,
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        bodyType: 'none'
+      },
+      response: {
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'text/html' },
+        body: '<html><body><h1 class="title">Hello</h1><ul><li>One</li><li>Two</li></ul></body></html>',
+        timeMs: 12,
+        sizeBytes: 80
+      },
+      variables: {}
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.tests).toEqual([
+      { name: 'heading text', passed: true },
+      { name: 'heading class', passed: true },
+      { name: 'list items', passed: true },
+      { name: 'missing selector', passed: true },
+      { name: 'document cache', passed: true }
+    ]);
+  });
+
   it('returns scriptError when sandbox script throws', async () => {
     const { evaluateScript } = await import('#/main/scripting/scriptEvaluator');
     const request = {

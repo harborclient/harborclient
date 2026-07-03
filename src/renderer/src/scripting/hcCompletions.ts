@@ -73,7 +73,12 @@ const HC_RESPONSE: HcCompletionOption[] = [
   { label: 'headers', type: 'property', detail: 'Response headers map' },
   { label: 'responseTime', type: 'property', detail: 'Round-trip time in ms' },
   { label: 'text', type: 'method', detail: '() => response body string' },
-  { label: 'json', type: 'method', detail: '() => parsed JSON body' }
+  { label: 'json', type: 'method', detail: '() => parsed JSON body' },
+  {
+    label: 'document',
+    type: 'method',
+    detail: '() => { querySelector, querySelectorAll } — HTML body (Cheerio)'
+  }
 ];
 
 const CONSOLE: HcCompletionOption[] = [

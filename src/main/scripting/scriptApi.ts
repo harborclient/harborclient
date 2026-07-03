@@ -8,6 +8,10 @@ import type {
   SendResult
 } from '#/shared/types';
 import { resolveDynamicVariable, VARIABLE_TOKEN_PATTERN } from '@harborclient/sdk/variables';
+import {
+  parseResponseDocument,
+  type ScriptDocumentFacade
+} from '#/main/scripting/scriptResponseDocument';
 
 /**
  * Context fields passed into the hc sandbox without user script source.
@@ -298,6 +302,7 @@ export function createScriptApi(input: ScriptRunContextInput): ScriptApi {
 
   if (ctx.response) {
     const resp: SendResult = ctx.response;
+    let cachedDocument: ScriptDocumentFacade | undefined;
     hc.response = {
       get code() {
         return resp.status;
@@ -312,7 +317,11 @@ export function createScriptApi(input: ScriptRunContextInput): ScriptApi {
         return resp.timeMs;
       },
       text: () => resp.body,
-      json: () => JSON.parse(resp.body)
+      json: () => JSON.parse(resp.body),
+      document: () => {
+        cachedDocument ??= parseResponseDocument(resp.body);
+        return cachedDocument;
+      }
     };
   }
 

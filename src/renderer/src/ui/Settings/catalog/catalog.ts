@@ -2,6 +2,7 @@ import type { SettingsSection } from '#/shared/types';
 
 export type SettingId =
   | 'general.requestTimeoutMs'
+  | 'general.scriptTimeoutMs'
   | 'general.maxResponseSizeMb'
   | 'general.verifySsl'
   | 'general.followRedirects'
@@ -82,7 +83,7 @@ export type SettingEntry = FieldSettingEntry | SectionSettingEntry;
  */
 export const FORM_SECTION_DESCRIPTIONS: Record<FormSettingsSection, string> = {
   general:
-    'Set request timeouts, response size limits, SSL verification, and redirect following defaults.',
+    'Set request and script timeouts, response size limits, SSL verification, and redirect following defaults.',
   proxy: "Route HarborClient's outbound HTTP requests through a proxy server.",
   syntax: 'Choose a CodeMirror theme and editor behavior for request and response editors.',
   ai: 'Store API keys for OpenAI, Claude, and Google Gemini used by the AI sidebar.'
@@ -99,6 +100,15 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     label: 'Request timeout (ms)',
     description: 'Set to 0 to disable the limit.',
     keywords: ['timeout', 'milliseconds', 'request']
+  },
+  {
+    id: 'general.scriptTimeoutMs',
+    section: 'general',
+    kind: 'field',
+    label: 'Script timeout (ms)',
+    description:
+      'Maximum time for each pre- or post-request script. Set to 0 to disable. Applies per script in the run order.',
+    keywords: ['script', 'timeout', 'pre-request', 'post-request', 'milliseconds']
   },
   {
     id: 'general.maxResponseSizeMb',

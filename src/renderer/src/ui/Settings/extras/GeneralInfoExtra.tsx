@@ -12,9 +12,9 @@ export function GeneralInfoExtra(): JSX.Element {
       </span>
       <p className="m-0 mb-4 text-[16px] text-muted">
         These defaults apply to outbound HTTP requests sent from HarborClient. Control how long
-        requests may run, how large responses may be, whether TLS certificates are verified, and
-        whether redirects are followed automatically. You can also choose whether switching
-        appearance themes asks for confirmation.
+        requests and pre/post scripts may run, how large responses may be, whether TLS certificates
+        are verified, and whether redirects are followed automatically. You can also choose whether
+        switching appearance themes asks for confirmation.
       </p>
     </div>
   );

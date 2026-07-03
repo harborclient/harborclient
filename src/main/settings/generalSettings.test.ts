@@ -109,6 +109,19 @@ describe('generalSettings', () => {
     expect(getGeneralSettings().followRedirects).toBe(true);
   });
 
+  it('defaults scriptTimeoutMs to 5000 when unset', () => {
+    expect(getGeneralSettings().scriptTimeoutMs).toBe(5000);
+  });
+
+  it('normalizes invalid scriptTimeoutMs to the default', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      scriptTimeoutMs: -100
+    });
+
+    expect(getGeneralSettings().scriptTimeoutMs).toBe(DEFAULT_GENERAL_SETTINGS.scriptTimeoutMs);
+  });
+
   it('persists followRedirects false', () => {
     setGeneralSettings({
       ...DEFAULT_GENERAL_SETTINGS,

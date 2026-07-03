@@ -226,6 +226,7 @@ describe('storageConnection', () => {
 describe('generalSettings', () => {
   const validGeneralSettings = {
     requestTimeoutMs: 30000,
+    scriptTimeoutMs: 5000,
     maxResponseSizeMb: 50,
     verifySsl: true,
     followRedirects: true,
@@ -258,6 +259,15 @@ describe('generalSettings', () => {
       generalSettings.safeParse({
         ...validGeneralSettings,
         requestTimeoutMs: '30000'
+      }).success
+    ).toBe(false);
+  });
+
+  it('rejects non-number scriptTimeoutMs', () => {
+    expect(
+      generalSettings.safeParse({
+        ...validGeneralSettings,
+        scriptTimeoutMs: '5000'
       }).success
     ).toBe(false);
   });

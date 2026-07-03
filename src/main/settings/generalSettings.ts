@@ -15,6 +15,7 @@ export { DEFAULT_PROXY_SETTINGS };
 
 export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   requestTimeoutMs: 30000,
+  scriptTimeoutMs: 5000,
   maxResponseSizeMb: 50,
   verifySsl: true,
   followRedirects: true,
@@ -107,6 +108,10 @@ function normalizeSettings(input: Partial<GeneralSettings>): GeneralSettings {
     requestTimeoutMs: normalizeNonNegativeNumber(
       input.requestTimeoutMs,
       DEFAULT_GENERAL_SETTINGS.requestTimeoutMs
+    ),
+    scriptTimeoutMs: normalizeNonNegativeNumber(
+      input.scriptTimeoutMs,
+      DEFAULT_GENERAL_SETTINGS.scriptTimeoutMs
     ),
     maxResponseSizeMb: Math.min(
       normalizeNonNegativeNumber(

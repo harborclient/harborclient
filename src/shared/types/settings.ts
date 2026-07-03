@@ -122,6 +122,11 @@ export interface GeneralSettings {
   requestTimeoutMs: number;
 
   /**
+   * Maximum time in milliseconds for each pre- or post-request script run; 0 disables the limit.
+   */
+  scriptTimeoutMs: number;
+
+  /**
    * Maximum response body size in megabytes; 0 disables the limit.
    */
   maxResponseSizeMb: number;

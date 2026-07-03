@@ -18,6 +18,7 @@ import { GeneralFollowRedirectsField } from '../fields/GeneralFollowRedirectsFie
 import { GeneralWarnWhenSwitchingThemesField } from '../fields/GeneralWarnWhenSwitchingThemesField';
 import { GeneralMaxResponseSizeField } from '../fields/GeneralMaxResponseSizeField';
 import { GeneralRequestTimeoutField } from '../fields/GeneralRequestTimeoutField';
+import { GeneralScriptTimeoutField } from '../fields/GeneralScriptTimeoutField';
 import { GeneralVerifySslField } from '../fields/GeneralVerifySslField';
 import { ProxyAuthEnabledField } from '../fields/ProxyAuthEnabledField';
 import { ProxyEnabledField } from '../fields/ProxyEnabledField';
@@ -40,6 +41,7 @@ type SettingsSectionComponentProps = Record<string, never>;
  */
 export const SETTINGS_FIELD_REGISTRY: Record<FieldSettingId, ComponentType> = {
   'general.requestTimeoutMs': GeneralRequestTimeoutField,
+  'general.scriptTimeoutMs': GeneralScriptTimeoutField,
   'general.maxResponseSizeMb': GeneralMaxResponseSizeField,
   'general.verifySsl': GeneralVerifySslField,
   'general.followRedirects': GeneralFollowRedirectsField,

@@ -23,6 +23,7 @@ const FORM_SECTIONS = ['general', 'proxy', 'syntax', 'ai'] as const;
 
 const EXPECTED_FIELD_IDS: FieldSettingId[] = [
   'general.requestTimeoutMs',
+  'general.scriptTimeoutMs',
   'general.maxResponseSizeMb',
   'general.verifySsl',
   'general.followRedirects',

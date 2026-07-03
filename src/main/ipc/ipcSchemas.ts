@@ -213,6 +213,7 @@ export const scriptRunInput = z.object({
 
 export const generalSettings = z.object({
   requestTimeoutMs: z.number(),
+  scriptTimeoutMs: z.number(),
   maxResponseSizeMb: z.number().min(0).max(HARD_MAX_RESPONSE_SIZE_MB),
   verifySsl: z.boolean(),
   followRedirects: z.boolean(),

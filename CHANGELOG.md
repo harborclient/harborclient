@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(settings): add script timeout configuration and related tests. (`a438ac0`)
 - feat(ai): implement update_request_script tool for inline script management. (`1d94931`)
 - chore(dependencies): update @harborclient/sdk to version 1.0.23 and adjust styles. (`a4df70e`)
 

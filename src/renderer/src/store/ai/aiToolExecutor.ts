@@ -716,16 +716,25 @@ function parseUpdateRequestScriptArgs(args: unknown): UpdateRequestScriptToolArg
     throw new Error('Tool arguments must be an object.');
   }
 
-  const parsed = args as Partial<UpdateRequestScriptToolArgs>;
-  let requestId: number | 'active' | undefined = parsed.requestId;
+  const parsed = args as Partial<UpdateRequestScriptToolArgs> & {
+    requestId?: number | 'active' | string;
+  };
+  let requestId: number | 'active' | undefined;
+  const rawRequestId = parsed.requestId;
+  if (typeof rawRequestId === 'string') {
+    const trimmed = rawRequestId.trim();
+    if (trimmed === 'active') {
+      requestId = 'active';
+    } else if (/^\d+$/.test(trimmed)) {
+      requestId = Number(trimmed);
+    }
+  } else {
+    requestId = rawRequestId;
+  }
   const phase = parsed.phase;
   const scriptIndex = parsed.scriptIndex;
   const code = parsed.code;
   const mode = parsed.mode;
-
-  if (typeof requestId === 'string' && requestId !== 'active' && /^\d+$/.test(requestId.trim())) {
-    requestId = Number(requestId.trim());
-  }
 
   if (requestId !== 'active' && (typeof requestId !== 'number' || !Number.isFinite(requestId))) {
     throw new Error('requestId must be a number or "active".');

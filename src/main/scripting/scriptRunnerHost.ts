@@ -5,8 +5,16 @@ import {
   buildScriptPassthrough,
   sanitizeScriptErrorMessage
 } from '#/main/scripting/scriptEvaluator';
+import { getGeneralSettings } from '#/main/settings/generalSettings';
 
-const SCRIPT_TIMEOUT_MS = 5000;
+/**
+ * Resolves the script execution timeout from persisted general settings.
+ *
+ * @returns Timeout in milliseconds, or 0 when script timeouts are disabled.
+ */
+export function resolveScriptTimeoutMs(): number {
+  return getGeneralSettings().scriptTimeoutMs;
+}
 
 interface RunMessage {
   id: number;
@@ -30,7 +38,7 @@ type RunnerReply = SuccessReply | ErrorReply;
 interface PendingRun {
   input: ScriptRunInput;
   resolve: (result: ScriptRunResult) => void;
-  timeout: ReturnType<typeof setTimeout>;
+  timeout: ReturnType<typeof setTimeout> | undefined;
 }
 
 let runner: UtilityProcess | null = null;
@@ -159,16 +167,20 @@ export function runScriptInProcess(input: ScriptRunInput): Promise<ScriptRunResu
 
   const child = ensureRunner();
   const id = nextRunId++;
+  const timeoutMs = resolveScriptTimeoutMs();
 
   return new Promise<ScriptRunResult>((resolve) => {
-    const timeout = setTimeout(() => {
-      pendingRuns.delete(id);
-      resetRunner('Script execution timed out');
-      resolve({
-        ...passthrough,
-        error: sanitizeScriptErrorMessage('Script execution timed out')
-      });
-    }, SCRIPT_TIMEOUT_MS);
+    const timeout =
+      timeoutMs > 0
+        ? setTimeout(() => {
+            pendingRuns.delete(id);
+            resetRunner('Script execution timed out');
+            resolve({
+              ...passthrough,
+              error: sanitizeScriptErrorMessage('Script execution timed out')
+            });
+          }, timeoutMs)
+        : undefined;
 
     pendingRuns.set(id, { input, resolve, timeout });
 
