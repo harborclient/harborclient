@@ -1,3 +1,5 @@
+import type { SnippetScope } from '#/shared/snippetScope';
+
 /**
  * A reusable JavaScript snippet stored in the app-global registry.
  */
@@ -21,6 +23,11 @@ export interface Snippet {
    * JavaScript source executed when the snippet is referenced.
    */
   code: string;
+
+  /**
+   * Script phases where this snippet may be referenced.
+   */
+  scope: SnippetScope;
 
   /**
    * ISO 8601 timestamp when the snippet was created.

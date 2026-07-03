@@ -47,7 +47,15 @@ export interface SidebarExpansionState {
      */
     environments: boolean;
   };
+
+  /**
+   * Whether storage location name badges appear next to collection names.
+   */
+  showStorageLocationBadges: boolean;
 }
+
+/** Default request editor split height in pixels when both editors are visible. */
+export const DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT = 340;
 
 /**
  * Persisted visibility for the left and AI sidebars and request/response editors.
@@ -72,6 +80,11 @@ export interface PanelLayoutState {
    * Whether the response editor panel is shown in the main content area.
    */
   showResponseEditor: boolean;
+
+  /**
+   * Request editor panel height in pixels when both request and response editors are visible.
+   */
+  requestEditorSplitHeight: number;
 }
 
 /**
@@ -87,6 +100,11 @@ export interface AiChatSessionState {
    * Currently selected chat tab id, if any.
    */
   activeChatId: number | null;
+
+  /**
+   * When true, plain Enter submits the chat composer; when false, Ctrl/Cmd+Enter submits.
+   */
+  enterToSend: boolean;
 }
 
 /**
@@ -165,6 +183,11 @@ export interface GeneralSettings {
    * CodeMirror basicSetup options for editable editor instances.
    */
   codeEditorSetup: CodeEditorSetup;
+
+  /**
+   * CodeMirror editor font size applied to all editor instances.
+   */
+  codeEditorFontSize: string;
 
   /**
    * Global HTTP proxy applied to every outbound request.

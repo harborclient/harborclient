@@ -2,6 +2,7 @@ import { useMemo, type JSX, type ReactNode } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { AiScriptReferenceValidationContext } from '#/shared/aiScriptReferences';
+import { MarkdownCodeBlock } from './MarkdownCodeBlock';
 import { processMarkdownChildren } from './renderScriptReferenceText';
 import { useAiScriptReferenceValidationContext } from './useAiScriptReferenceValidationContext';
 
@@ -139,7 +140,12 @@ function createMarkdownComponents(
         {withScriptRefs(children, context)}
       </h6>
     ),
-    pre: ({ children }) => <pre className={styles.pre}>{children}</pre>,
+    pre: ({ children }) =>
+      variant === 'assistant' ? (
+        <MarkdownCodeBlock className={styles.pre}>{children}</MarkdownCodeBlock>
+      ) : (
+        <pre className={styles.pre}>{children}</pre>
+      ),
     code: ({ className, children }) => {
       const isBlock = typeof className === 'string' && className.includes('language-');
 

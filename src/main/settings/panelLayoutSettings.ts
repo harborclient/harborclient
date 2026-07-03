@@ -1,13 +1,20 @@
 import Store from 'electron-store';
-import type { PanelLayoutState } from '#/shared/types';
+import { DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT, type PanelLayoutState } from '#/shared/types';
 
 const STORE_KEY = 'panelLayout';
+
+/** Minimum request editor split height in pixels. */
+export const MIN_REQUEST_EDITOR_SPLIT_HEIGHT = 160;
+
+/** Maximum request editor split height in pixels. */
+export const MAX_REQUEST_EDITOR_SPLIT_HEIGHT = 2000;
 
 export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
   showSidebar: true,
   showAiSidebar: false,
   showRequestEditor: true,
-  showResponseEditor: true
+  showResponseEditor: true,
+  requestEditorSplitHeight: DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT
 };
 
 let store: Store<{ panelLayout: PanelLayoutState }> | null = null;
@@ -33,12 +40,30 @@ function getStore(): Store<{ panelLayout: PanelLayoutState }> {
  * @param input - Partial or raw panel layout.
  * @returns Sanitized panel layout state.
  */
+/**
+ * Clamps request editor split height to supported bounds.
+ *
+ * @param value - Raw height from storage or user input.
+ * @returns Normalized height in pixels.
+ */
+function normalizeRequestEditorSplitHeight(value: unknown): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_PANEL_LAYOUT.requestEditorSplitHeight;
+  }
+  return Math.min(
+    MAX_REQUEST_EDITOR_SPLIT_HEIGHT,
+    Math.max(MIN_REQUEST_EDITOR_SPLIT_HEIGHT, Math.round(parsed))
+  );
+}
+
 function normalizePanelLayout(input: Partial<PanelLayoutState>): PanelLayoutState {
   return {
     showSidebar: input.showSidebar !== false,
     showAiSidebar: input.showAiSidebar === true,
     showRequestEditor: input.showRequestEditor !== false,
-    showResponseEditor: input.showResponseEditor !== false
+    showResponseEditor: input.showResponseEditor !== false,
+    requestEditorSplitHeight: normalizeRequestEditorSplitHeight(input.requestEditorSplitHeight)
   };
 }
 

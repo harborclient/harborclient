@@ -1,4 +1,5 @@
 import { normalizeVariable } from '#/main/storage/collectionData';
+import { normalizeSnippetScope } from '#/shared/snippetScope';
 import { defaultAuth, normalizeAuth } from '#/shared/auth';
 import { readScriptRefsFromJson } from '#/shared/scriptRefs';
 import type {
@@ -213,6 +214,7 @@ export function rowToSnippet(row: Record<string, unknown>): Snippet {
     uuid: readString(row.uuid),
     name: readString(row.name),
     code: readString(row.code),
+    scope: normalizeSnippetScope(row.scope),
     created_at: readTimestamp(row.created_at),
     updated_at: readTimestamp(row.updated_at)
   };

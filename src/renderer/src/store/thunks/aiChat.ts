@@ -1,4 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
+import { DEFAULT_CHAT_TITLE } from '#/shared/aiChatTitle';
 import { getAvailableModels } from '#/shared/aiModels';
 import type { AiSettings, ChatMessage, ChatStepMessage, ChatSummary } from '#/shared/types';
 import { executeAiToolCall } from '#/renderer/src/store/ai/aiToolExecutor';
@@ -18,7 +19,8 @@ import {
   restoreChatSession,
   setHubModelGroups,
   setSendError,
-  setSending
+  setSending,
+  setEnterToSend
 } from '#/renderer/src/store/slices/aiChatSlice';
 
 const MAX_TOOL_ITERATIONS = 6;
@@ -65,6 +67,32 @@ export const refreshChatHistory = createAsyncThunk<ChatSummary[], void, ThunkApi
 );
 
 /**
+ * Generates a short AI title for a chat from the user's first message.
+ */
+export const generateChatTitle = createAsyncThunk<
+  string | null,
+  { chatId: number; prompt: string; model: string; hubId?: string },
+  ThunkApiConfig
+>('aiChat/generateTitle', async (input, { dispatch, getState }) => {
+  const chatSummary = getState().aiChat.chats.find((chat) => chat.id === input.chatId);
+  if (chatSummary?.title !== DEFAULT_CHAT_TITLE) {
+    return null;
+  }
+
+  try {
+    const title = await window.api.generateChatTitle(input);
+    if (title !== DEFAULT_CHAT_TITLE) {
+      await dispatch(refreshChatHistory());
+      return title;
+    }
+  } catch {
+    // Keep the default title when summarization fails.
+  }
+
+  return null;
+});
+
+/**
  * Loads a chat's messages into state and opens it as a tab.
  *
  * @param chatId - Chat id to load.
@@ -94,6 +122,9 @@ export const initializeAiChat = createAsyncThunk<void, AiSettings, ThunkApiConfi
   'aiChat/initialize',
   async (aiSettings, { dispatch, getState }) => {
     const { openTabIds, activeChatId } = getState().aiChat;
+    const session = await window.api.getAiChatSession();
+    dispatch(setEnterToSend(session.enterToSend));
+
     const hubModelGroups = await window.api.listHubLlmModels();
     dispatch(setHubModelGroups(hubModelGroups));
 
@@ -105,7 +136,6 @@ export const initializeAiChat = createAsyncThunk<void, AiSettings, ThunkApiConfi
     const availableModels = getAvailableModels(aiSettings, hubModelGroups);
     const defaultModel = availableModels[0]?.id;
     const existingChatIds = new Set(summaries.map((chat) => chat.id));
-    const session = await window.api.getAiChatSession();
     const validOpenTabIds = session.openTabIds.filter((id) => existingChatIds.has(id));
     const validActiveChatId =
       session.activeChatId != null && validOpenTabIds.includes(session.activeChatId)
@@ -226,6 +256,22 @@ export const sendChatMessage = createAsyncThunk<
     model: modelId
   });
   dispatch(appendMessage(userMessage));
+
+  const chatSummary = getState().aiChat.chats.find((chat) => chat.id === chatId);
+  const userMessages = (getState().aiChat.messagesByChat[chatId] ?? []).filter(
+    (message) => message.role === 'user'
+  );
+  if (userMessages.length === 1 && chatSummary?.title === DEFAULT_CHAT_TITLE) {
+    void dispatch(
+      generateChatTitle({
+        chatId,
+        prompt: trimmed,
+        model: modelId,
+        ...(hubId ? { hubId } : {})
+      })
+    );
+  }
+
   dispatch(setSending({ chatId, sending: true }));
 
   try {

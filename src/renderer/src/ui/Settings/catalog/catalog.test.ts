@@ -36,6 +36,7 @@ const EXPECTED_FIELD_IDS: FieldSettingId[] = [
   'proxy.username',
   'proxy.password',
   'syntax.codeEditorTheme',
+  'syntax.codeEditorFontSize',
   'syntax.lineNumbers',
   'syntax.foldGutter',
   'syntax.highlightActiveLine',

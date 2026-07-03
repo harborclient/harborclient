@@ -1,9 +1,8 @@
 import { Page } from '@harborclient/sdk/components';
-import { useEffect, type JSX } from 'react';
+import type { JSX } from 'react';
 
-import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectSettingsDraftLoadError } from '#/renderer/src/store/slices/settingsDraftSlice';
-import { loadSettingsDraft } from '#/renderer/src/store/thunks/settingsDraft';
 import type { SettingsSection } from '#/shared/types';
 
 import { settingsSectionMeta } from '../constants';
@@ -79,18 +78,6 @@ function SettingsDraftError(): JSX.Element | null {
  * Catalog-driven settings layout engine for section navigation.
  */
 export function SettingsRenderer({ section }: Props): JSX.Element | null {
-  const dispatch = useAppDispatch();
-
-  /**
-   * Loads the shared settings draft when a catalog-driven form section is shown.
-   */
-  useEffect(() => {
-    if (isManagementSettingsSection(section)) {
-      return;
-    }
-    void dispatch(loadSettingsDraft());
-  }, [dispatch, section]);
-
   if (isManagementSettingsSection(section)) {
     const SectionComponent = SETTINGS_SECTION_REGISTRY[section];
     return <SectionComponent />;

@@ -1,22 +1,62 @@
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  horizontalListSortingStrategy,
+  sortableKeyboardCoordinates
+} from '@dnd-kit/sortable';
 import { FaIcon, resolveTabListKeyAction } from '@harborclient/sdk/components';
-import { useMemo, type JSX, type KeyboardEvent } from 'react';
-import type { AiSettings } from '#/shared/types';
+import { useMemo, useState, type JSX, type KeyboardEvent } from 'react';
 
-import { faClockRotateLeft, faPlus } from '#/renderer/src/fontawesome';
+import { faComment } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
+  reorderChatTabs,
   selectActiveChatId,
   selectChatHistory,
-  selectHistoryOpen,
-  selectOpenChatTabIds
+  selectOpenChatTabIds,
+  setActiveChat
 } from '#/renderer/src/store/slices/aiChatSlice';
-import { closeChat, createNewChat, openExistingChat } from '#/renderer/src/store/thunks/aiChat';
-import { setActiveChat, setHistoryOpen } from '#/renderer/src/store/slices/aiChatSlice';
-import { ChatHistory } from './ChatHistory';
+import { closeChat } from '#/renderer/src/store/thunks/aiChat';
 import { ChatTabItem } from './ChatTabItem';
 
 /** Prefix for AI chat tab label element ids. */
 const AI_CHAT_TAB_ID_PREFIX = 'ai-chat-tab-';
+
+/** Prefix for AI chat sortable drag ids. */
+const AI_CHAT_TAB_SORT_PREFIX = 'ai-chat-tab-sort:';
+
+/**
+ * Builds a stable dnd-kit sortable id for an AI chat tab.
+ *
+ * @param chatId - Open chat id.
+ */
+function aiChatTabSortableId(chatId: number): string {
+  return `${AI_CHAT_TAB_SORT_PREFIX}${chatId}`;
+}
+
+/**
+ * Parses an AI chat sortable drag id back to its numeric chat id.
+ *
+ * @param dragId - Sortable id from dnd-kit.
+ */
+function parseAiChatTabSortableId(dragId: string): number | null {
+  if (!dragId.startsWith(AI_CHAT_TAB_SORT_PREFIX)) {
+    return null;
+  }
+  const chatId = Number.parseInt(dragId.slice(AI_CHAT_TAB_SORT_PREFIX.length), 10);
+  return Number.isNaN(chatId) ? null : chatId;
+}
 
 /**
  * Resolves the chat tab list index for arrow-key navigation from keyboard focus.
@@ -53,22 +93,21 @@ function resolveFocusedChatTabIndex(
   return openTabs.findIndex((tab) => tab.id === activeChatId);
 }
 
-interface Props {
-  /**
-   * AI provider settings used when creating new chats.
-   */
-  aiSettings: AiSettings;
-}
-
 /**
- * Tab bar for open AI chats with new-chat and history controls.
+ * Tab bar for open AI chats.
  */
-export function ChatTabBar({ aiSettings }: Props): JSX.Element {
+export function ChatTabBar(): JSX.Element {
   const dispatch = useAppDispatch();
   const chatHistory = useAppSelector(selectChatHistory);
   const openTabIds = useAppSelector(selectOpenChatTabIds);
   const activeChatId = useAppSelector(selectActiveChatId);
-  const historyOpen = useAppSelector(selectHistoryOpen);
+  const [activeDragChatId, setActiveDragChatId] = useState<number | null>(null);
+  const sortableEnabled = openTabIds.length >= 2;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   /**
    * Open tabs enriched with titles from chat history.
@@ -80,6 +119,60 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
         .filter((chat): chat is NonNullable<typeof chat> => chat != null),
     [chatHistory, openTabIds]
   );
+
+  /**
+   * Stable sortable ids for open AI chat tabs.
+   */
+  const sortableIds = useMemo(
+    () => openTabIds.map((chatId) => aiChatTabSortableId(chatId)),
+    [openTabIds]
+  );
+
+  /**
+   * Chat currently being dragged for overlay preview.
+   */
+  const activeDragChat = useMemo(() => {
+    if (activeDragChatId == null) {
+      return null;
+    }
+    return openTabs.find((chat) => chat.id === activeDragChatId) ?? null;
+  }, [activeDragChatId, openTabs]);
+
+  /**
+   * Records the chat tab being dragged for overlay preview.
+   *
+   * @param event - Drag start event from dnd-kit.
+   */
+  const handleDragStart = (event: DragStartEvent): void => {
+    setActiveDragChatId(parseAiChatTabSortableId(String(event.active.id)));
+  };
+
+  /**
+   * Persists a new chat tab order when a tab is dropped.
+   *
+   * @param event - Drag end event from dnd-kit.
+   */
+  const handleDragEnd = (event: DragEndEvent): void => {
+    const { active, over } = event;
+    setActiveDragChatId(null);
+    if (!over || !sortableEnabled) {
+      return;
+    }
+
+    const activeChatIdFromDrag = parseAiChatTabSortableId(String(active.id));
+    const overChatId = parseAiChatTabSortableId(String(over.id));
+    if (activeChatIdFromDrag == null || overChatId == null || activeChatIdFromDrag === overChatId) {
+      return;
+    }
+
+    const oldIndex = openTabIds.indexOf(activeChatIdFromDrag);
+    const newIndex = openTabIds.indexOf(overChatId);
+    if (oldIndex < 0 || newIndex < 0) {
+      return;
+    }
+
+    dispatch(reorderChatTabs(arrayMove(openTabIds, oldIndex, newIndex)));
+  };
 
   /**
    * Moves focus and selection across open chat tabs with arrow, Home, and End keys.
@@ -101,55 +194,45 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
   };
 
   return (
-    <div className="relative z-10 flex shrink-0 items-end gap-0 border-b border-separator bg-sidebar px-2 py-1 app-no-drag">
-      <div
-        role="tablist"
-        aria-label="Open AI chats"
-        className="flex min-w-0 flex-1 items-end overflow-x-auto overflow-y-hidden"
-        onKeyDown={handleTabListKeyDown}
+    <div className="relative z-10 flex shrink-0 items-end overflow-x-auto border-b border-separator bg-sidebar px-2 py-1 app-no-drag">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => setActiveDragChatId(null)}
       >
-        {openTabs.map((chat) => (
-          <ChatTabItem
-            key={chat.id}
-            chat={chat}
-            active={chat.id === activeChatId}
-            tabIndex={0}
-            onSelect={(chatId) => dispatch(setActiveChat(chatId))}
-            onClose={(chatId) => void dispatch(closeChat(chatId))}
-          />
-        ))}
-      </div>
-      <div className="relative flex shrink-0 items-end gap-0.5 px-1 -mb-1">
-        <button
-          type="button"
-          className="hc-tab-bar-icon-button mb-2.5 inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text app-no-drag"
-          title="Chat history"
-          aria-label="Chat history"
-          aria-haspopup="menu"
-          aria-expanded={historyOpen}
-          onClick={() => dispatch(setHistoryOpen(!historyOpen))}
+        <div
+          role="tablist"
+          aria-label="Open AI chats"
+          className="flex min-w-0 flex-1 items-end"
+          onKeyDown={handleTabListKeyDown}
         >
-          <FaIcon icon={faClockRotateLeft} className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          className="hc-tab-bar-icon-button mb-2.5 inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text app-no-drag"
-          title="New chat"
-          aria-label="New chat"
-          onClick={() => void dispatch(createNewChat(aiSettings))}
-        >
-          <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
-        </button>
-        {historyOpen && (
-          <ChatHistory
-            onClose={() => dispatch(setHistoryOpen(false))}
-            onOpenChat={(chatId) => {
-              dispatch(setHistoryOpen(false));
-              void dispatch(openExistingChat(chatId));
-            }}
-          />
-        )}
-      </div>
+          <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
+            {openTabs.map((chat) => (
+              <ChatTabItem
+                key={chat.id}
+                chat={chat}
+                active={chat.id === activeChatId}
+                tabIndex={0}
+                sortableId={aiChatTabSortableId(chat.id)}
+                sortableDisabled={!sortableEnabled}
+                onSelect={(chatId) => dispatch(setActiveChat(chatId))}
+                onClose={(chatId) => void dispatch(closeChat(chatId))}
+              />
+            ))}
+          </SortableContext>
+        </div>
+
+        <DragOverlay>
+          {activeDragChat ? (
+            <div className="flex items-center gap-1.5 rounded-t-lg border border-separator bg-surface px-3 py-2 text-[14px] font-medium shadow-md">
+              <FaIcon icon={faComment} className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              {activeDragChat.title}
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
     </div>
   );
 }

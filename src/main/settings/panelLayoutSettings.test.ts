@@ -27,8 +27,22 @@ describe('panelLayoutSettings', () => {
       showSidebar: true,
       showAiSidebar: false,
       showRequestEditor: true,
-      showResponseEditor: true
+      showResponseEditor: true,
+      requestEditorSplitHeight: 340
     });
+  });
+
+  it('clamps request editor split height to supported bounds', async () => {
+    mockGet.mockReturnValue({
+      showSidebar: true,
+      showAiSidebar: false,
+      showRequestEditor: true,
+      showResponseEditor: true,
+      requestEditorSplitHeight: 50
+    });
+    const { getPanelLayout } = await import('#/main/settings/panelLayoutSettings');
+
+    expect(getPanelLayout().requestEditorSplitHeight).toBe(160);
   });
 
   it('persists normalized layout state', async () => {
@@ -38,14 +52,16 @@ describe('panelLayoutSettings', () => {
       showSidebar: false,
       showAiSidebar: true,
       showRequestEditor: false,
-      showResponseEditor: true
+      showResponseEditor: true,
+      requestEditorSplitHeight: 420
     });
 
     expect(mockSet).toHaveBeenCalledWith('panelLayout', {
       showSidebar: false,
       showAiSidebar: true,
       showRequestEditor: false,
-      showResponseEditor: true
+      showResponseEditor: true,
+      requestEditorSplitHeight: 420
     });
   });
 });

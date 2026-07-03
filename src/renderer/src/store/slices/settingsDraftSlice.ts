@@ -1,4 +1,9 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import {
+  normalizeCodeEditorFontSize,
+  normalizeCodeEditorSetup,
+  normalizeCodeEditorTheme
+} from '#/shared/codeEditorSettings';
 import type { AiSettings, CodeEditorSetup, GeneralSettings, ProxySettings } from '#/shared/types';
 import type { RootState } from '#/renderer/src/store/redux';
 import {
@@ -33,20 +38,6 @@ const initialState: SettingsDraftState = {
 };
 
 /**
- * Deep-clones a settings draft snapshot for baseline comparison.
- *
- * @param state - Draft values to clone.
- */
-function cloneDraftSnapshot(
-  state: Pick<SettingsDraftState, 'general' | 'ai'>
-): SettingsDraftBaseline {
-  return {
-    general: structuredClone(state.general),
-    ai: structuredClone(state.ai)
-  };
-}
-
-/**
  * Returns true when two draft snapshots are equivalent.
  *
  * @param left - First snapshot.
@@ -57,6 +48,20 @@ function draftSnapshotsEqual(left: SettingsDraftBaseline, right: SettingsDraftBa
     JSON.stringify(left.general) === JSON.stringify(right.general) &&
     JSON.stringify(left.ai) === JSON.stringify(right.ai)
   );
+}
+
+/**
+ * Applies shared CodeMirror normalizers so draft and baseline share the same shape.
+ *
+ * @param general - Raw general settings from persistence or IPC.
+ */
+function normalizeDraftGeneral(general: GeneralSettings): GeneralSettings {
+  return {
+    ...general,
+    codeEditorTheme: normalizeCodeEditorTheme(general.codeEditorTheme),
+    codeEditorSetup: normalizeCodeEditorSetup(general.codeEditorSetup),
+    codeEditorFontSize: normalizeCodeEditorFontSize(general.codeEditorFontSize)
+  };
 }
 
 const settingsDraftSlice = createSlice({
@@ -85,9 +90,14 @@ const settingsDraftSlice = createSlice({
      * Replaces draft values and baseline after a successful load or save.
      */
     initSettingsDraft(state, action: PayloadAction<{ general: GeneralSettings; ai: AiSettings }>) {
-      state.general = structuredClone(action.payload.general);
-      state.ai = structuredClone(action.payload.ai);
-      state.baseline = cloneDraftSnapshot(action.payload);
+      const general = normalizeDraftGeneral(structuredClone(action.payload.general));
+      const ai = structuredClone(action.payload.ai);
+      state.general = general;
+      state.ai = ai;
+      state.baseline = {
+        general: structuredClone(general),
+        ai: structuredClone(ai)
+      };
       state.loadError = null;
     },
     /**

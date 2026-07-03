@@ -1,6 +1,6 @@
 import { TeamHubClient } from '@harborclient/team-hub-api';
 import { listTeamHubs } from '#/main/settings/teamHubSettings';
-import { AI_SYSTEM_PROMPT, AI_TOOL_DEFINITIONS } from '#/shared/aiTools';
+import { resolveChatStepMode } from '#/shared/chatStepMode';
 import type { ChatStepInput, ChatStepResult, HubLlmModelGroup } from '#/shared/types';
 
 /**
@@ -78,6 +78,7 @@ async function fetchHubChatStep(
   signal: AbortSignal
 ): Promise<ChatStepResult> {
   const combinedSignal = AbortSignal.any([AbortSignal.timeout(HUB_LLM_REQUEST_TIMEOUT_MS), signal]);
+  const stepMode = resolveChatStepMode(input);
 
   let response: Response;
   try {
@@ -90,9 +91,9 @@ async function fetchHubChatStep(
       },
       body: JSON.stringify({
         model: input.model,
-        messages: input.messages,
-        tools: AI_TOOL_DEFINITIONS,
-        systemPrompt: AI_SYSTEM_PROMPT
+        messages: stepMode.messages,
+        tools: stepMode.tools,
+        systemPrompt: stepMode.systemPrompt
       }),
       signal: combinedSignal
     });
@@ -190,10 +191,12 @@ export async function runHubChatCompletionStep(
     requestTimeoutMs: HUB_LLM_REQUEST_TIMEOUT_MS
   });
 
+  const stepMode = resolveChatStepMode(input);
+
   return client.completeChatStep({
     model: input.model,
-    messages: input.messages,
-    tools: AI_TOOL_DEFINITIONS as unknown as Record<string, unknown>[],
-    systemPrompt: AI_SYSTEM_PROMPT
+    messages: stepMode.messages,
+    tools: stepMode.tools as unknown as Record<string, unknown>[],
+    systemPrompt: stepMode.systemPrompt
   });
 }

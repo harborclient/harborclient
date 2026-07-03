@@ -5,7 +5,8 @@ const STORE_KEY = 'aiChatSession';
 
 export const DEFAULT_AI_CHAT_SESSION: AiChatSessionState = {
   openTabIds: [],
-  activeChatId: null
+  activeChatId: null,
+  enterToSend: true
 };
 
 let store: Store<{ aiChatSession: AiChatSessionState }> | null = null;
@@ -49,7 +50,11 @@ function normalizeAiChatSession(input: Partial<AiChatSessionState>): AiChatSessi
       ? activeCandidate
       : (openTabIds[0] ?? null);
 
-  return { openTabIds, activeChatId };
+  return {
+    openTabIds,
+    activeChatId,
+    enterToSend: input.enterToSend === false ? false : true
+  };
 }
 
 /**

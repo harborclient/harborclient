@@ -1,20 +1,26 @@
 /**
  * Default placeholder shown in empty pre-request script editors.
  */
-export const PRE_REQUEST_SCRIPT_PLACEHOLDER = `// hc.request.url = 'https://example.com';
-// hc.variables.set('token', 'abc');`;
+export const PRE_REQUEST_SCRIPT_PLACEHOLDER = `hc.request.url = 'https://example.com';
+hc.variables.set('token', 'abc');
+
+/ask How do I set a request header?`;
 
 /**
  * Default placeholder shown in empty post-request script editors.
  */
-export const POST_REQUEST_SCRIPT_PLACEHOLDER = `// hc.test("status is 200", () => {
-//   hc.expect(hc.response.code).to.equal(200);
-// });`;
+export const POST_REQUEST_SCRIPT_PLACEHOLDER = `hc.test("status is 200", () => {
+  hc.expect(hc.response.code).to.equal(200);
+});
+
+/ask How do I parse the response JSON?`;
 
 /**
  * Default placeholder for collection-level pre-request script editors.
  */
-export const COLLECTION_PRE_REQUEST_SCRIPT_PLACEHOLDER = `// hc.variables.set('token', 'abc');`;
+export const COLLECTION_PRE_REQUEST_SCRIPT_PLACEHOLDER = `hc.variables.set('token', 'abc');
+
+/ask How do I share variables across requests?`;
 
 /**
  * Documentation URL for request scripting help.

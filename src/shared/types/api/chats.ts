@@ -6,6 +6,7 @@ import type {
   ChatStepResult,
   ChatSummary,
   CreateChatInput,
+  GenerateChatTitleInput,
   HubLlmModelGroup
 } from '#/shared/types/ai';
 
@@ -35,6 +36,12 @@ export interface ApiChats {
    * @param input - Chat id, role, content, and optional model.
    */
   addChatMessage: (input: AddChatMessageInput) => Promise<ChatMessage>;
+  /**
+   * Summarizes the user's first message into a short chat title and persists it.
+   *
+   * @param input - Chat id, prompt text, and model routing fields.
+   */
+  generateChatTitle: (input: GenerateChatTitleInput) => Promise<string>;
   /**
    * Runs one LLM completion step with tool definitions and returns text or tool calls.
    *

@@ -4,11 +4,13 @@ import aiChatReducer, {
   clearChatCancelState,
   closeChatTab,
   openChatTab,
+  reorderChatTabs,
   requestChatCancel,
   restoreChatSession,
   setActiveChat,
   setActiveStepRequestId,
-  setChats
+  setChats,
+  setEnterToSend
 } from '#/renderer/src/store/slices/aiChatSlice';
 
 describe('aiChatSlice', () => {
@@ -38,6 +40,28 @@ describe('aiChatSlice', () => {
     state = aiChatReducer(state, closeChatTab(2));
     expect(state.openTabIds).toEqual([1]);
     expect(state.activeChatId).toBe(1);
+  });
+
+  it('reorders open chat tabs without changing the active chat', () => {
+    let state = aiChatReducer(undefined, openChatTab(1));
+    state = aiChatReducer(state, openChatTab(2));
+    state = aiChatReducer(state, openChatTab(3));
+
+    state = aiChatReducer(state, reorderChatTabs([3, 1, 2]));
+
+    expect(state.openTabIds).toEqual([3, 1, 2]);
+    expect(state.activeChatId).toBe(3);
+  });
+
+  it('ignores invalid chat tab reorder payloads', () => {
+    let state = aiChatReducer(undefined, openChatTab(1));
+    state = aiChatReducer(state, openChatTab(2));
+
+    state = aiChatReducer(state, reorderChatTabs([2]));
+    expect(state.openTabIds).toEqual([1, 2]);
+
+    state = aiChatReducer(state, reorderChatTabs([2, 99]));
+    expect(state.openTabIds).toEqual([1, 2]);
   });
 
   it('restores persisted chat session tabs', () => {
@@ -77,5 +101,12 @@ describe('aiChatSlice', () => {
     state = aiChatReducer(state, clearChatCancelState(2));
     expect(state.activeStepRequestIdByChat[2]).toBeUndefined();
     expect(state.cancelRequestedByChat[2]).toBeUndefined();
+  });
+
+  it('defaults enterToSend to true and updates via setEnterToSend', () => {
+    expect(aiChatReducer(undefined, { type: 'unknown' }).enterToSend).toBe(true);
+
+    const state = aiChatReducer(undefined, setEnterToSend(false));
+    expect(state.enterToSend).toBe(false);
   });
 });

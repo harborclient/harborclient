@@ -8,6 +8,7 @@ import {
   type KeyboardEvent,
   type Ref
 } from 'react';
+import { useAutoGrowTextarea } from '#/renderer/src/hooks/useAutoGrowTextarea';
 import { tokenizeChatComposerText } from '#/shared/aiScriptReferences';
 import { useAiScriptReferenceValidationContext } from './useAiScriptReferenceValidationContext';
 
@@ -95,6 +96,8 @@ export function ChatComposerTextarea({
     [value, validationContext]
   );
 
+  useAutoGrowTextarea(textareaRef, value);
+
   /**
    * Keeps the colored backdrop aligned with textarea scrolling.
    */
@@ -138,7 +141,7 @@ export function ChatComposerTextarea({
         placeholder={placeholder}
         aria-label={ariaLabel}
         disabled={disabled}
-        className={`relative min-h-[72px] w-full resize-none border-none bg-transparent px-2.5 py-1.5 text-[16px] text-transparent caret-text focus-visible:shadow-none ${className}`}
+        className={`relative w-full resize-none border-none bg-transparent px-2.5 py-1.5 text-[16px] text-transparent caret-text focus-visible:shadow-none ${className}`}
         onChange={onChange}
         onKeyDown={onKeyDown}
         onScroll={syncScroll}

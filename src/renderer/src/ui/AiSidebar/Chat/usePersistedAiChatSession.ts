@@ -1,13 +1,18 @@
 import { useEffect, useRef } from 'react';
 import { useAppSelector } from '#/renderer/src/store/hooks';
-import { selectActiveChatId, selectOpenChatTabIds } from '#/renderer/src/store/slices/aiChatSlice';
+import {
+  selectActiveChatId,
+  selectEnterToSend,
+  selectOpenChatTabIds
+} from '#/renderer/src/store/slices/aiChatSlice';
 
 /**
- * Persists open AI chat tabs and the active tab whenever session state changes.
+ * Persists open AI chat tabs, active tab, and composer keyboard preferences.
  */
 export function usePersistedAiChatSession(): void {
   const openTabIds = useAppSelector(selectOpenChatTabIds);
   const activeChatId = useAppSelector(selectActiveChatId);
+  const enterToSend = useAppSelector(selectEnterToSend);
   const hydratedRef = useRef(false);
 
   /**
@@ -20,10 +25,10 @@ export function usePersistedAiChatSession(): void {
   }, [openTabIds, activeChatId]);
 
   /**
-   * Writes chat tab session state to disk when tabs or selection change.
+   * Writes chat session state to disk when tabs, selection, or enter-to-send preference change.
    */
   useEffect(() => {
     if (!hydratedRef.current) return;
-    void window.api.setAiChatSession({ openTabIds, activeChatId });
-  }, [openTabIds, activeChatId]);
+    void window.api.setAiChatSession({ openTabIds, activeChatId, enterToSend });
+  }, [openTabIds, activeChatId, enterToSend]);
 }

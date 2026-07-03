@@ -240,6 +240,7 @@ describe('generalSettings', () => {
       highlightActiveLine: true,
       highlightActiveLineGutter: true
     },
+    codeEditorFontSize: '16px',
     proxy: {
       enabled: false,
       protocol: 'http' as const,

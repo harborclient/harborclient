@@ -95,7 +95,7 @@ describeSqlite('LocalDatabase environment order', () => {
 });
 
 describeSqlite('LocalDatabase chats', () => {
-  it('creates chats, stores messages, and auto-titles from the first user message', async () => {
+  it('creates chats, stores messages, and keeps the default title until updated', async () => {
     const { database } = await createRegistry();
 
     const chat = database.createChat({});
@@ -110,7 +110,7 @@ describeSqlite('LocalDatabase chats', () => {
     });
 
     const loaded = database.getChat(chat.id);
-    expect(loaded?.title).toBe('Hello there');
+    expect(loaded?.title).toBe('New Chat');
     expect(loaded?.messages).toHaveLength(2);
     expect(assistant.role).toBe('assistant');
 
@@ -119,6 +119,14 @@ describeSqlite('LocalDatabase chats', () => {
 
     database.deleteChat(chat.id);
     expect(database.getChat(chat.id)).toBeNull();
+  });
+
+  it('updates a chat title', async () => {
+    const { database } = await createRegistry();
+    const chat = database.createChat({});
+
+    database.updateChatTitle(chat.id, 'OAuth token refresh');
+    expect(database.getChat(chat.id)?.title).toBe('OAuth token refresh');
   });
 
   it('updates the stored model id for a chat', async () => {
@@ -136,9 +144,10 @@ describeSqlite('LocalDatabase snippets', () => {
 
     expect(database.listSnippets()).toEqual([]);
 
-    const created = database.createSnippet('Auth helper', 'console.log("auth");');
+    const created = database.createSnippet('Auth helper', 'console.log("auth");', 'pre-request');
     expect(created.name).toBe('Auth helper');
     expect(created.code).toBe('console.log("auth");');
+    expect(created.scope).toBe('pre-request');
     expect(created.uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
     expect(created.created_at).toBeTruthy();
     expect(created.updated_at).toBeTruthy();
@@ -149,11 +158,17 @@ describeSqlite('LocalDatabase snippets', () => {
       'Second snippet'
     ]);
 
-    const updated = database.updateSnippet(created.id, 'Auth helper v2', 'console.log("v2");');
+    const updated = database.updateSnippet(
+      created.id,
+      'Auth helper v2',
+      'console.log("v2");',
+      'post-request'
+    );
     expect(updated.id).toBe(created.id);
     expect(updated.uuid).toBe(created.uuid);
     expect(updated.name).toBe('Auth helper v2');
     expect(updated.code).toBe('console.log("v2");');
+    expect(updated.scope).toBe('post-request');
     expect(updated.updated_at >= created.updated_at).toBe(true);
 
     database.deleteSnippet(created.id);
@@ -163,6 +178,15 @@ describeSqlite('LocalDatabase snippets', () => {
   it('throws when updating a missing snippet', async () => {
     const { database } = await createRegistry();
 
-    expect(() => database.updateSnippet(999, 'Missing', 'code')).toThrow('Snippet not found');
+    expect(() => database.updateSnippet(999, 'Missing', 'code', 'any')).toThrow(
+      'Snippet not found'
+    );
+  });
+
+  it('defaults scope to any when omitted on create', async () => {
+    const { database } = await createRegistry();
+
+    const created = database.createSnippet('Generic helper', 'return true;');
+    expect(created.scope).toBe('any');
   });
 });

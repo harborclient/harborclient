@@ -64,10 +64,12 @@ import { RequestEditor } from '#/renderer/src/ui/Main/RequestEditor';
 import { TitleBar } from '#/renderer/src/ui/TitleBar';
 import { selectIsBusy } from '#/renderer/src/store/slices/uiSlice';
 import {
+  selectCodeEditorFontSize,
   selectCodeEditorSetup,
   selectCodeEditorTheme
 } from '#/renderer/src/store/slices/settingsSlice';
 import { Footer } from '#/renderer/src/ui/Footer';
+import { AnimatedHorizontalPanel } from '#/renderer/src/ui/shared/AnimatedHorizontalPanel';
 import {
   DEFAULT_TOAST_ARIA_PROPS,
   ERROR_TOAST_ARIA_PROPS,
@@ -104,6 +106,7 @@ export default function App(): JSX.Element {
   const globalVariables = useAppSelector((state) => state.settings.general.globalVariables);
   const codeEditorTheme = useAppSelector(selectCodeEditorTheme);
   const codeEditorSetup = useAppSelector(selectCodeEditorSetup);
+  const codeEditorFontSize = useAppSelector(selectCodeEditorFontSize);
 
   useMenuActions();
   useDeepLinks();
@@ -215,7 +218,9 @@ export default function App(): JSX.Element {
   );
 
   return (
-    <CodeEditorConfigProvider value={{ theme: codeEditorTheme, setup: codeEditorSetup }}>
+    <CodeEditorConfigProvider
+      value={{ theme: codeEditorTheme, setup: codeEditorSetup, fontSize: codeEditorFontSize }}
+    >
       <SidebarExpansionProvider onExpandCollection={handleExpandCollection}>
         <PluginHost />
         <PluginThemePrompt />
@@ -229,7 +234,7 @@ export default function App(): JSX.Element {
             Skip to main content
           </a>
           <div className="relative flex min-h-0 flex-1 overflow-hidden">
-            {sidebarVisible && (
+            <AnimatedHorizontalPanel open={sidebarVisible}>
               <Sidebar
                 onAddCollection={() => dispatch(openCollectionModal({ mode: 'create' }))}
                 onConfigureCollection={(id) => dispatch(openPageTab({ type: 'collection', id }))}
@@ -240,7 +245,7 @@ export default function App(): JSX.Element {
                 }}
                 onLoadRequest={(req) => void dispatch(requestLoadRequest({ req }))}
               />
-            )}
+            </AnimatedHorizontalPanel>
 
             <main
               id="main-content"
@@ -255,7 +260,9 @@ export default function App(): JSX.Element {
               />
             </main>
 
-            {aiSidebarVisible && <AiSidebar />}
+            <AnimatedHorizontalPanel open={aiSidebarVisible}>
+              <AiSidebar />
+            </AnimatedHorizontalPanel>
           </div>
 
           <Footer

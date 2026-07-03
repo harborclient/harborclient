@@ -7,7 +7,13 @@ import {
 } from '#/renderer/src/plugins/pluginHooks';
 import toast from 'react-hot-toast';
 import type { SavedRequest } from '#/shared/types';
-import { ResizeHandle, useResizable } from '@harborclient/sdk/components';
+import { faDatabase, faFileImport, faFolder, faGlobe, faXmark } from '#/renderer/src/fontawesome';
+import {
+  ResizeHandle,
+  Toolbar,
+  useResizable,
+  type ToolbarAction
+} from '@harborclient/sdk/components';
 import {
   isTeamHubProvider,
   providerTypesById,
@@ -29,7 +35,8 @@ import { setSelectedCollectionId } from '#/renderer/src/store/slices/collections
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import {
   selectActiveSidebarPanelId,
-  setActiveSidebarPanel
+  setActiveSidebarPanel,
+  setShowSidebar
 } from '#/renderer/src/store/slices/navigationSlice';
 import {
   createEnvironment,
@@ -45,6 +52,7 @@ import {
   exportEnvironment,
   exportRequest,
   importEnvironment,
+  importFromMenu,
   importRequest,
   mergeEnvironmentDown,
   moveRequestToFolder,
@@ -148,7 +156,11 @@ export function Sidebar({
     setExpandedCollectionIds,
     setExpandedFolderIds,
     revealCollection,
-    revealFolder
+    revealFolder,
+    showStorageLocationBadges,
+    toggleStorageLocationBadges,
+    toggleCollectionsSectionVisible,
+    toggleEnvironmentsSectionVisible
   } = useSidebarExpansion();
 
   useSidebarListNavigation(selectedCollectionId, activeEnvironmentId);
@@ -418,6 +430,74 @@ export function Sidebar({
   };
 
   /**
+   * Imports a collection, request, or environment via the same flow as File -> Import.
+   */
+  const handleImportFromMenu = useCallback((): void => {
+    void dispatch(importFromMenu()).catch((err: unknown) => {
+      showAlert(dispatch, formatErrorMessage(err, 'Failed to import'));
+    });
+  }, [dispatch]);
+
+  /**
+   * Toolbar actions for closing the sidebar, importing, section visibility, and storage badges.
+   */
+  const toolbarActions = useMemo((): ToolbarAction[] => {
+    return [
+      {
+        id: 'close-sidebar',
+        icon: faXmark,
+        label: 'Close sidebar',
+        title: 'Close sidebar',
+        onClick: () => dispatch(setShowSidebar(false))
+      },
+      {
+        id: 'import',
+        icon: faFileImport,
+        label: 'Import',
+        title: 'Import',
+        onClick: handleImportFromMenu
+      },
+      {
+        id: 'toggle-collections-section',
+        icon: faFolder,
+        label: 'Collections',
+        title: collectionsSectionVisible ? 'Hide collections section' : 'Show collections section',
+        ariaPressed: collectionsSectionVisible,
+        onClick: toggleCollectionsSectionVisible
+      },
+      {
+        id: 'toggle-environments-section',
+        icon: faGlobe,
+        label: 'Environments',
+        title: environmentsSectionVisible
+          ? 'Hide environments section'
+          : 'Show environments section',
+        ariaPressed: environmentsSectionVisible,
+        onClick: toggleEnvironmentsSectionVisible
+      },
+      {
+        id: 'toggle-storage-badges',
+        icon: faDatabase,
+        label: 'Storage location badges',
+        title: showStorageLocationBadges
+          ? 'Hide storage location badges'
+          : 'Show storage location badges',
+        ariaPressed: showStorageLocationBadges,
+        onClick: toggleStorageLocationBadges
+      }
+    ];
+  }, [
+    dispatch,
+    handleImportFromMenu,
+    collectionsSectionVisible,
+    environmentsSectionVisible,
+    toggleCollectionsSectionVisible,
+    toggleEnvironmentsSectionVisible,
+    showStorageLocationBadges,
+    toggleStorageLocationBadges
+  ]);
+
+  /**
    * Imports an environment from a JSON file selected via a native dialog.
    */
   const handleEnvironmentImport = async (): Promise<void> => {
@@ -487,6 +567,7 @@ export function Sidebar({
         ) : (
           <>
             <SidebarSearch value={searchQuery} onChange={setSearchQuery} />
+            <Toolbar ariaLabel="Collections sidebar" actions={toolbarActions} />
             <div className="flex-1 overflow-x-hidden overflow-y-auto px-2 pb-3">
               {searchLoading ? (
                 <p className="mt-1.5 text-[14px] text-muted" role="status">
@@ -514,6 +595,7 @@ export function Sidebar({
                         primaryConnectionId={primaryConnectionId}
                         connectionNamesById={connectionNamesById}
                         connectionTypesById={connectionTypesById}
+                        showStorageLocationBadges={showStorageLocationBadges}
                         gitStatusesByConnectionId={gitStatusesByConnectionId}
                         onOpenSourceControl={(connectionId, connectionName) =>
                           setGitPanel({ connectionId, connectionName })

@@ -143,4 +143,26 @@ describe('generalSettings', () => {
 
     expect(getGeneralSettings().warnWhenSwitchingThemes).toBe(false);
   });
+
+  it('defaults codeEditorFontSize to 16px when unset', () => {
+    expect(getGeneralSettings().codeEditorFontSize).toBe('16px');
+  });
+
+  it('normalizes invalid codeEditorFontSize to the default', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      codeEditorFontSize: '12rem'
+    });
+
+    expect(getGeneralSettings().codeEditorFontSize).toBe('16px');
+  });
+
+  it('clamps codeEditorFontSize below the minimum', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      codeEditorFontSize: '10px'
+    });
+
+    expect(getGeneralSettings().codeEditorFontSize).toBe('14px');
+  });
 });

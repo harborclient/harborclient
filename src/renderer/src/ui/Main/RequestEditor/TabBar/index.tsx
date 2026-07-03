@@ -1,6 +1,23 @@
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  horizontalListSortingStrategy,
+  sortableKeyboardCoordinates
+} from '@dnd-kit/sortable';
 import { FaIcon, resolveTabListKeyAction } from '@harborclient/sdk/components';
 import type { JSX, KeyboardEvent } from 'react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { isPageTab, isRequestTab, type Tab } from '#/renderer/src/store/drafts';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectCollections, selectEnvironments } from '#/renderer/src/store/selectors';
@@ -17,6 +34,30 @@ import { TabItem } from './TabItem';
 
 /** Prefix for request editor tab label element ids. */
 const REQUEST_TAB_ID_PREFIX = 'request-tab-';
+
+/** Prefix for request editor sortable drag ids. */
+const REQUEST_TAB_SORT_PREFIX = 'request-tab-sort:';
+
+/**
+ * Builds a stable dnd-kit sortable id for a request editor tab.
+ *
+ * @param tabId - Open tab id.
+ */
+function requestTabSortableId(tabId: string): string {
+  return `${REQUEST_TAB_SORT_PREFIX}${tabId}`;
+}
+
+/**
+ * Parses a request editor sortable drag id back to its tab id.
+ *
+ * @param dragId - Sortable id from dnd-kit.
+ */
+function parseRequestTabSortableId(dragId: string): string | null {
+  if (!dragId.startsWith(REQUEST_TAB_SORT_PREFIX)) {
+    return null;
+  }
+  return dragId.slice(REQUEST_TAB_SORT_PREFIX.length);
+}
 
 /**
  * Resolves the tab list index for arrow-key navigation from keyboard focus.
@@ -42,6 +83,22 @@ function resolveFocusedTabIndex(tabs: Tab[], activeTabId: string): number {
   }
 
   return tabs.findIndex((tab) => tab.tabId === activeTabId);
+}
+
+/**
+ * Resolves overlay preview text for a dragged request editor tab.
+ *
+ * @param tab - Tab being dragged.
+ * @param pageTitle - Resolved page tab title, when applicable.
+ */
+function requestTabDragLabel(tab: Tab, pageTitle?: string): string {
+  if (isPageTab(tab)) {
+    return pageTitle ?? 'Page';
+  }
+  if (isRequestTab(tab)) {
+    return `${tab.draft.method} ${tab.draft.name}`;
+  }
+  return 'Tab';
 }
 
 interface Props {
@@ -73,14 +130,40 @@ interface Props {
    * Opens a new blank request tab.
    */
   onNew: () => void;
+
+  /**
+   * Persists a new tab order after drag-and-drop reordering.
+   *
+   * @param orderedTabIds - Tab ids in display order.
+   */
+  onReorder: (orderedTabIds: string[]) => void;
 }
 
 /**
  * Horizontal tab bar for switching between open request editors and page tabs.
  */
-export function TabBar({ tabs, activeTabId, onSelect, onClose, onNew }: Props): JSX.Element {
+export function TabBar({
+  tabs,
+  activeTabId,
+  onSelect,
+  onClose,
+  onNew,
+  onReorder
+}: Props): JSX.Element {
   const collections = useAppSelector(selectCollections);
   const allEnvironments = useAppSelector(selectEnvironments);
+  const [activeDragTabId, setActiveDragTabId] = useState<string | null>(null);
+  const sortableEnabled = tabs.length >= 2;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  /**
+   * Stable sortable ids for open request editor tabs.
+   */
+  const sortableIds = useMemo(() => tabs.map((tab) => requestTabSortableId(tab.tabId)), [tabs]);
 
   /**
    * Resolves display metadata for each page tab using current entity names.
@@ -111,6 +194,54 @@ export function TabBar({ tabs, activeTabId, onSelect, onClose, onNew }: Props): 
     }
     return displays;
   }, [tabs, collections, allEnvironments]);
+
+  /**
+   * Tab currently being dragged for overlay preview.
+   */
+  const activeDragTab = useMemo(() => {
+    if (activeDragTabId == null) {
+      return null;
+    }
+    return tabs.find((tab) => tab.tabId === activeDragTabId) ?? null;
+  }, [activeDragTabId, tabs]);
+
+  /**
+   * Records the tab being dragged for overlay preview.
+   *
+   * @param event - Drag start event from dnd-kit.
+   */
+  const handleDragStart = (event: DragStartEvent): void => {
+    const tabId = parseRequestTabSortableId(String(event.active.id));
+    setActiveDragTabId(tabId);
+  };
+
+  /**
+   * Persists a new tab order when a tab is dropped.
+   *
+   * @param event - Drag end event from dnd-kit.
+   */
+  const handleDragEnd = (event: DragEndEvent): void => {
+    const { active, over } = event;
+    setActiveDragTabId(null);
+    if (!over || !sortableEnabled) {
+      return;
+    }
+
+    const activeTabIdFromDrag = parseRequestTabSortableId(String(active.id));
+    const overTabId = parseRequestTabSortableId(String(over.id));
+    if (activeTabIdFromDrag == null || overTabId == null || activeTabIdFromDrag === overTabId) {
+      return;
+    }
+
+    const tabIds = tabs.map((tab) => tab.tabId);
+    const oldIndex = tabIds.indexOf(activeTabIdFromDrag);
+    const newIndex = tabIds.indexOf(overTabId);
+    if (oldIndex < 0 || newIndex < 0) {
+      return;
+    }
+
+    onReorder(arrayMove(tabIds, oldIndex, newIndex));
+  };
 
   /**
    * Moves focus and selection across open tabs with arrow, Home, and End keys,
@@ -162,28 +293,48 @@ export function TabBar({ tabs, activeTabId, onSelect, onClose, onNew }: Props): 
 
   return (
     <div className="flex shrink-0 min-h-16 items-end gap-0 overflow-x-auto border-b border-separator bg-sidebar px-2 py-1 app-no-drag">
-      <div
-        role="tablist"
-        aria-label="Open tabs"
-        className="flex items-end"
-        onKeyDown={handleTabListKeyDown}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => setActiveDragTabId(null)}
       >
-        {tabs.map((tab) => {
-          const pageDisplay = pageTabDisplays.get(tab.tabId);
-          return (
-            <TabItem
-              key={tab.tabId}
-              tab={tab}
-              active={tab.tabId === activeTabId}
-              tabIndex={0}
-              pageTitle={pageDisplay?.title}
-              pageIcon={pageDisplay?.icon}
-              onSelect={onSelect}
-              onClose={onClose}
-            />
-          );
-        })}
-      </div>
+        <div
+          role="tablist"
+          aria-label="Open tabs"
+          className="flex items-end"
+          onKeyDown={handleTabListKeyDown}
+        >
+          <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
+            {tabs.map((tab) => {
+              const pageDisplay = pageTabDisplays.get(tab.tabId);
+              return (
+                <TabItem
+                  key={tab.tabId}
+                  tab={tab}
+                  active={tab.tabId === activeTabId}
+                  tabIndex={0}
+                  sortableId={requestTabSortableId(tab.tabId)}
+                  sortableDisabled={!sortableEnabled}
+                  pageTitle={pageDisplay?.title}
+                  pageIcon={pageDisplay?.icon}
+                  onSelect={onSelect}
+                  onClose={onClose}
+                />
+              );
+            })}
+          </SortableContext>
+        </div>
+
+        <DragOverlay>
+          {activeDragTab ? (
+            <div className="rounded-t-lg border border-separator bg-surface px-3 py-2 text-[14px] font-medium shadow-md">
+              {requestTabDragLabel(activeDragTab, pageTabDisplays.get(activeDragTab.tabId)?.title)}
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
       <div className="flex shrink-0 items-end ms-2 px-1 -mb-1">
         <button
           type="button"

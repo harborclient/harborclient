@@ -8,6 +8,7 @@ export interface NavigationState {
   showAiSidebar: boolean;
   showRequestEditor: boolean;
   showResponseEditor: boolean;
+  requestEditorSplitHeight: number;
   showConsole: boolean;
   showVariables: boolean;
   activePluginFooterPanelId: string | null;
@@ -22,6 +23,7 @@ const initialState: NavigationState = {
   showAiSidebar: false,
   showRequestEditor: true,
   showResponseEditor: true,
+  requestEditorSplitHeight: 340,
   showConsole: false,
   showVariables: false,
   activePluginFooterPanelId: null,
@@ -106,6 +108,12 @@ const navigationSlice = createSlice({
       state.showResponseEditor = action.payload;
     },
     /**
+     * Sets the request editor split height in pixels.
+     */
+    setRequestEditorSplitHeight(state, action: PayloadAction<number>) {
+      state.requestEditorSplitHeight = action.payload;
+    },
+    /**
      * Toggles the footer console panel.
      */
     toggleConsole(state) {
@@ -163,6 +171,7 @@ export const {
   setShowRequestEditor,
   toggleResponseEditor,
   setShowResponseEditor,
+  setRequestEditorSplitHeight,
   toggleConsole,
   toggleVariables,
   togglePluginFooterPanel,
@@ -206,6 +215,11 @@ export const selectShowRequestEditor = (state: RootState): boolean =>
  */
 export const selectShowResponseEditor = (state: RootState): boolean =>
   state.navigation.showResponseEditor;
+/**
+ * Returns the persisted request editor split height in pixels.
+ */
+export const selectRequestEditorSplitHeight = (state: RootState): number =>
+  state.navigation.requestEditorSplitHeight;
 /**
  * Returns whether the console panel is open.
  */

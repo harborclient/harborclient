@@ -12,13 +12,15 @@ describe('serializeSidebarExpansion', () => {
         { collections: false, environments: true },
         { collections: true, environments: false },
         new Set([1, 2]),
-        new Set([9])
+        new Set([9]),
+        false
       )
     ).toEqual({
       sections: { collections: false, environments: true },
       sectionVisibility: { collections: true, environments: false },
       collectionIds: [1, 2],
-      folderIds: [9]
+      folderIds: [9],
+      showStorageLocationBadges: false
     });
   });
 });

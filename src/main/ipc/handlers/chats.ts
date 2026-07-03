@@ -4,6 +4,7 @@ import {
   untrackActiveChatStep
 } from '#/main/ai/activeChatSteps';
 import { runChatCompletionStep } from '#/main/ai/completeChatTurn';
+import { runGenerateChatTitle } from '#/main/ai/generateChatTitle';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
@@ -26,6 +27,11 @@ export function registerChatHandlers(): void {
   // Appends a message to an AI chat.
   handle('chats:addMessage', ipcArgSchemas.chatAddMessage, (_event, input) =>
     getLocalDatabase().addChatMessage(input)
+  );
+
+  // Summarizes the user's first message into a short chat title.
+  handle('chats:generateTitle', ipcArgSchemas.chatGenerateTitle, (_event, input) =>
+    runGenerateChatTitle(input)
   );
 
   // Runs one LLM completion step for a chat turn.

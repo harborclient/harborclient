@@ -3,8 +3,8 @@ import type { ChatCompletion, ChatCompletionMessageParam } from 'openai/resource
 import { LlmClientFactory } from '#/main/ai/LlmClientFactory';
 import { runHubChatCompletionStep } from '#/main/ai/hubChatStep';
 import { truncateChatStepMessages } from '#/shared/aiChatContext';
+import { resolveChatStepMode } from '#/shared/chatStepMode';
 import { getAiModelById } from '#/shared/aiModels';
-import { AI_SYSTEM_PROMPT, AI_TOOL_DEFINITIONS } from '#/shared/aiTools';
 import type { ChatStepInput, ChatStepMessage, ChatStepResult, LlmProvider } from '#/shared/types';
 
 /**
@@ -176,10 +176,18 @@ export async function runChatCompletionStep(
     throw new Error(`Unknown model: ${input.model}`);
   }
 
+  const stepMode = resolveChatStepMode(input);
+
   const buildMessages = (stepMessages: ChatStepMessage[]): ChatCompletionMessageParam[] => [
-    { role: 'system', content: AI_SYSTEM_PROMPT },
+    {
+      role: 'system',
+      content: stepMode.systemPrompt
+    },
     ...toOpenAiMessages(stepMessages)
   ];
+
+  const tools = stepMode.tools;
+  const toolChoice = stepMode.toolChoice;
 
   try {
     const client = createClient(modelOption.provider);
@@ -187,21 +195,22 @@ export async function runChatCompletionStep(
       client.chat.completions.create({
         model: modelOption.id,
         messages,
-        tools: AI_TOOL_DEFINITIONS,
+        tools,
+        ...(toolChoice ? { tool_choice: toolChoice } : {}),
         ...(options?.signal ? { signal: options.signal } : {})
       });
 
     let response: ChatCompletion;
     try {
-      response = await request(buildMessages(input.messages));
+      response = await request(buildMessages(stepMode.messages));
     } catch (error) {
       if (isAbortError(error)) {
         throw error;
       }
-      if (!isContextLengthExceeded(error)) {
+      if (!isContextLengthExceeded(error) || stepMode.toolChoice) {
         throw error;
       }
-      response = await request(buildMessages(truncateChatStepMessages(input.messages, true)));
+      response = await request(buildMessages(truncateChatStepMessages(stepMode.messages, true)));
     }
 
     return toChatStepResult(response);

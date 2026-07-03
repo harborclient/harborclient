@@ -8,6 +8,7 @@ import navigationReducer, {
   toggleConsole,
   toggleRequestEditor,
   toggleResponseEditor,
+  setRequestEditorSplitHeight,
   toggleSidebar,
   toggleVariables
 } from '#/renderer/src/store/slices/navigationSlice';
@@ -19,6 +20,7 @@ describe('navigationSlice', () => {
     expect(state.showAiSidebar).toBe(false);
     expect(state.showRequestEditor).toBe(true);
     expect(state.showResponseEditor).toBe(true);
+    expect(state.requestEditorSplitHeight).toBe(340);
     expect(state.showConsole).toBe(false);
     expect(state.showVariables).toBe(false);
     expect(state.collectionSettingsDirty).toBe(false);
@@ -83,6 +85,11 @@ describe('navigationSlice', () => {
     state = navigationReducer(state, toggleResponseEditor());
     expect(state.showRequestEditor).toBe(false);
     expect(state.showResponseEditor).toBe(true);
+  });
+
+  it('sets request editor split height', () => {
+    const state = navigationReducer(undefined, setRequestEditorSplitHeight(480));
+    expect(state.requestEditorSplitHeight).toBe(480);
   });
 
   it('queues and clears pending plugin install ids from deep links', () => {

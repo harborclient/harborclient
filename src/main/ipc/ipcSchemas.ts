@@ -23,6 +23,7 @@ import type {
   ChatRole,
   ChatStepInput,
   CreateChatInput,
+  GenerateChatTitleInput,
   StorageConnection,
   GeneralSettings,
   PanelLayoutState,
@@ -99,6 +100,8 @@ export const editorTab = z.enum([
 ]);
 
 export const scriptPhase = z.enum(['pre', 'post']);
+
+export const snippetScope = z.enum(['pre-request', 'post-request', 'any']);
 
 export const nullableFolderId = z.union([dbId, z.null()]);
 
@@ -227,6 +230,7 @@ export const generalSettings = z.object({
     highlightActiveLine: z.boolean(),
     highlightActiveLineGutter: z.boolean()
   }),
+  codeEditorFontSize: z.string(),
   proxy: z.object({
     enabled: z.boolean(),
     protocol: z.enum(['http', 'https']),
@@ -403,6 +407,13 @@ export const chatAddMessageInput = z.object({
   model: z.string().optional()
 }) satisfies z.ZodType<AddChatMessageInput>;
 
+export const chatGenerateTitleInput = z.object({
+  chatId: dbId,
+  prompt: z.string().min(1),
+  model: z.string().min(1),
+  hubId: z.string().optional()
+}) satisfies z.ZodType<GenerateChatTitleInput>;
+
 export const chatCompleteStepInput = z.object({
   model: z.string().min(1),
   messages: z.array(
@@ -422,7 +433,15 @@ export const chatCompleteStepInput = z.object({
       name: z.string().optional()
     })
   ),
-  hubId: z.string().optional()
+  hubId: z.string().optional(),
+  scriptAsk: z
+    .object({
+      code: z.string(),
+      line: z.number().int().min(1),
+      phase: z.enum(['pre', 'post'])
+    })
+    .optional(),
+  chatTitlePrompt: z.string().optional()
 }) satisfies z.ZodType<ChatStepInput>;
 
 export const sidebarExpansion = z.object({
@@ -435,19 +454,22 @@ export const sidebarExpansion = z.object({
     environments: z.boolean()
   }),
   collectionIds: z.array(dbId),
-  folderIds: z.array(dbId)
+  folderIds: z.array(dbId),
+  showStorageLocationBadges: z.boolean()
 }) satisfies z.ZodType<SidebarExpansionState>;
 
 export const panelLayout = z.object({
   showSidebar: z.boolean(),
   showAiSidebar: z.boolean(),
   showRequestEditor: z.boolean(),
-  showResponseEditor: z.boolean()
+  showResponseEditor: z.boolean(),
+  requestEditorSplitHeight: z.number().int().min(160)
 }) satisfies z.ZodType<PanelLayoutState>;
 
 export const aiChatSession = z.object({
   openTabIds: z.array(dbId),
-  activeChatId: dbId.nullable()
+  activeChatId: dbId.nullable(),
+  enterToSend: z.boolean()
 }) satisfies z.ZodType<AiChatSessionState>;
 
 export const collectionRunnerConfig = z.object({
@@ -493,6 +515,7 @@ export const ipcArgSchemas = {
   chatCreate: z.tuple([chatCreateInput]),
   chatGet: z.tuple([dbId]),
   chatAddMessage: z.tuple([chatAddMessageInput]),
+  chatGenerateTitle: z.tuple([chatGenerateTitleInput]),
   chatCompleteStep: z.tuple([chatCompleteStepInput, requestId.optional()]),
   chatCancelStep: z.tuple([requestId]),
   chatDelete: z.tuple([dbId]),
@@ -544,8 +567,8 @@ export const ipcArgSchemas = {
     ipcScriptRefArray,
     ipcScriptRefArray
   ]),
-  snippetCreate: z.tuple([name, ipcScriptSource]),
-  snippetUpdate: z.tuple([dbId, name, ipcScriptSource]),
+  snippetCreate: z.tuple([name, ipcScriptSource, snippetScope]),
+  snippetUpdate: z.tuple([dbId, name, ipcScriptSource, snippetScope]),
   environmentUpdate: z.tuple([dbId, name, z.array(variable)]),
   collectionMove: z.tuple([dbId, connectionId]),
   collectionReorder: z.tuple([z.array(dbId)]),

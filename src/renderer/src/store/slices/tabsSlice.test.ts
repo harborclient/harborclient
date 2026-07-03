@@ -12,7 +12,8 @@ import tabsReducer, {
   loadRequest,
   newTab,
   openPageTab,
-  openTabWithDraft
+  openTabWithDraft,
+  reorderTabs
 } from '#/renderer/src/store/slices/tabsSlice';
 
 /**
@@ -302,6 +303,36 @@ describe('tabsSlice loadRequest', () => {
     const tab = asRequestTab(state.tabs.find((t) => t.tabId === tabId));
     expect(tab.response).toBeNull();
     expect(tab.testResults).toEqual([]);
+  });
+});
+
+describe('tabsSlice reorderTabs', () => {
+  it('reorders open tabs without changing the active tab', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    const firstTabId = state.activeTabId;
+    state = tabsReducer(state, newTab());
+    const secondTabId = state.activeTabId;
+    state = tabsReducer(state, newTab());
+    const thirdTabId = state.activeTabId;
+
+    state = tabsReducer(state, reorderTabs([firstTabId, thirdTabId, secondTabId]));
+
+    expect(state.tabs.map((tab) => tab.tabId)).toEqual([firstTabId, thirdTabId, secondTabId]);
+    expect(state.activeTabId).toBe(thirdTabId);
+  });
+
+  it('ignores invalid reorder payloads', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    const firstTabId = state.activeTabId;
+    state = tabsReducer(state, newTab());
+    const secondTabId = state.activeTabId;
+    const originalOrder = state.tabs.map((tab) => tab.tabId);
+
+    state = tabsReducer(state, reorderTabs([secondTabId]));
+    expect(state.tabs.map((tab) => tab.tabId)).toEqual(originalOrder);
+
+    state = tabsReducer(state, reorderTabs([secondTabId, firstTabId, 'missing-tab']));
+    expect(state.tabs.map((tab) => tab.tabId)).toEqual(originalOrder);
   });
 });
 

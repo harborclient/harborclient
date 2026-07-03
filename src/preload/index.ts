@@ -25,6 +25,7 @@ import type {
   ChatStepResult,
   CreateChatInput,
   GeneralSettings,
+  GenerateChatTitleInput,
   HubLlmModelGroup,
   ImportEntityResult,
   SharingIdentity,
@@ -275,9 +276,10 @@ function listSnippets(): Promise<Snippet[]> {
  *
  * @param name - Display name for the snippet.
  * @param code - JavaScript source.
+ * @param scope - Script phases where the snippet may be referenced.
  */
-function createSnippet(name: string, code: string): Promise<Snippet> {
-  return ipcRenderer.invoke('snippets:create', name, code);
+function createSnippet(name: string, code: string, scope: Snippet['scope']): Promise<Snippet> {
+  return ipcRenderer.invoke('snippets:create', name, code, scope);
 }
 
 /**
@@ -286,9 +288,15 @@ function createSnippet(name: string, code: string): Promise<Snippet> {
  * @param id - Snippet ID to update.
  * @param name - New display name.
  * @param code - Updated JavaScript source.
+ * @param scope - Script phases where the snippet may be referenced.
  */
-function updateSnippet(id: number, name: string, code: string): Promise<Snippet> {
-  return ipcRenderer.invoke('snippets:update', id, name, code);
+function updateSnippet(
+  id: number,
+  name: string,
+  code: string,
+  scope: Snippet['scope']
+): Promise<Snippet> {
+  return ipcRenderer.invoke('snippets:update', id, name, code, scope);
 }
 
 /**
@@ -763,6 +771,15 @@ function getChat(id: number): Promise<Chat | null> {
  */
 function addChatMessage(input: AddChatMessageInput): Promise<ChatMessage> {
   return ipcRenderer.invoke('chats:addMessage', input);
+}
+
+/**
+ * Summarizes the user's first message into a short chat title and persists it.
+ *
+ * @param input - Chat id, prompt text, and model routing fields.
+ */
+function generateChatTitle(input: GenerateChatTitleInput): Promise<string> {
+  return ipcRenderer.invoke('chats:generateTitle', input);
 }
 
 /**
@@ -2158,6 +2175,7 @@ const api: Api = {
   createChat,
   getChat,
   addChatMessage,
+  generateChatTitle,
   completeChatStep,
   cancelChatStep,
   listHubLlmModels,

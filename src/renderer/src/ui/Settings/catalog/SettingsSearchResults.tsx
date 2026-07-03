@@ -1,9 +1,8 @@
 import { Button, Page } from '@harborclient/sdk/components';
-import { useEffect, type JSX } from 'react';
+import type { JSX } from 'react';
 
-import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectSettingsDraftLoadError } from '#/renderer/src/store/slices/settingsDraftSlice';
-import { loadSettingsDraft } from '#/renderer/src/store/thunks/settingsDraft';
 import type { SettingsSection } from '#/shared/types';
 
 import { SettingsSaveFooter } from '../components/SettingsSaveFooter';
@@ -47,20 +46,8 @@ function SettingsDraftError(): JSX.Element | null {
  * Renders settings search results as inline field controls and section navigation cards.
  */
 export function SettingsSearchResults({ matchedIds, query, onNavigate }: Props): JSX.Element {
-  const dispatch = useAppDispatch();
-
   const fieldIds = matchedIds.filter((id): id is FieldSettingId => entryById(id).kind === 'field');
   const sectionIds = matchedIds.filter((id) => entryById(id).kind === 'section');
-
-  /**
-   * Loads the shared settings draft when search results include editable form fields.
-   */
-  useEffect(() => {
-    if (fieldIds.length === 0) {
-      return;
-    }
-    void dispatch(loadSettingsDraft());
-  }, [dispatch, fieldIds.length]);
 
   return (
     <Page embedded className="mb-6 flex flex-col" title="Search results">

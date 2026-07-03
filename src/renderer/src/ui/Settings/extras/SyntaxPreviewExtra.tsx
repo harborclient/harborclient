@@ -21,6 +21,7 @@ export function SyntaxPreviewExtra(): JSX.Element {
         minHeight="120px"
         themeOverride={general.codeEditorTheme}
         setupOverride={general.codeEditorSetup}
+        fontSize={general.codeEditorFontSize}
       />
     </div>
   );

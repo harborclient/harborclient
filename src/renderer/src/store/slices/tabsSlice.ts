@@ -293,6 +293,23 @@ const tabsSlice = createSlice({
       const keys = new Set(action.payload);
       const matching = state.tabs.filter((tab) => isPageTab(tab) && keys.has(pageRefKey(tab.page)));
       closeMatchingTabs(state, matching);
+    },
+    /**
+     * Reorders open tabs to match the tab bar display order after drag-and-drop.
+     */
+    reorderTabs(state, action: PayloadAction<string[]>) {
+      const orderedTabIds = action.payload;
+      if (orderedTabIds.length !== state.tabs.length) {
+        return;
+      }
+
+      const tabsById = new Map(state.tabs.map((tab) => [tab.tabId, tab]));
+      const reordered = orderedTabIds.map((tabId) => tabsById.get(tabId));
+      if (reordered.some((tab) => tab == null)) {
+        return;
+      }
+
+      state.tabs = reordered as Tab[];
     }
   }
 });
@@ -313,6 +330,7 @@ export const {
   closeTabsForEnvironment,
   updateActiveTabDraftAfterSave,
   restoreTabsState,
-  closePageTabsByKeys
+  closePageTabsByKeys,
+  reorderTabs
 } = tabsSlice.actions;
 export default tabsSlice.reducer;

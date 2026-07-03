@@ -124,6 +124,31 @@ export interface AddChatMessageInput {
 }
 
 /**
+ * Input for generating an AI chat title from the user's first message.
+ */
+export interface GenerateChatTitleInput {
+  /**
+   * Chat id to update when title generation succeeds.
+   */
+  chatId: number;
+
+  /**
+   * User's first message text to summarize.
+   */
+  prompt: string;
+
+  /**
+   * Provider-specific model id selected in the composer.
+   */
+  model: string;
+
+  /**
+   * Team Hub id when the selected model is hub-proxied.
+   */
+  hubId?: string;
+}
+
+/**
  * Role of a message in an LLM completion step (includes tool roles).
  */
 export type ChatStepMessageRole = 'system' | 'user' | 'assistant' | 'tool';
@@ -196,6 +221,36 @@ export interface ChatStepInput {
    * Team Hub id when the selected model is hub-proxied.
    */
   hubId?: string;
+
+  /**
+   * Inline script `/ask` context; switches to the mini-agent prompt and answer_script tool.
+   */
+  scriptAsk?: ScriptAskContext;
+
+  /**
+   * User's first message for AI chat title generation; switches to the title prompt and set_chat_title tool.
+   */
+  chatTitlePrompt?: string;
+}
+
+/**
+ * Context for an inline script `/ask` completion step.
+ */
+export interface ScriptAskContext {
+  /**
+   * Full JavaScript source from the script editor.
+   */
+  code: string;
+
+  /**
+   * 1-based line number where the user typed the slash command.
+   */
+  line: number;
+
+  /**
+   * Script phase: pre-request or post-request.
+   */
+  phase: 'pre' | 'post';
 }
 
 /**

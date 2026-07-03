@@ -1,6 +1,7 @@
 import { Button, Select } from '@harborclient/sdk/components';
 import { useEffect, useRef, useState, type JSX, type KeyboardEvent } from 'react';
 import { getAvailableModels, resolveAiModelOption } from '#/shared/aiModels';
+import { shouldSendChatOnKeyDown } from '#/shared/aiChatComposer';
 import type { AiSettings } from '#/shared/types';
 
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
@@ -9,6 +10,7 @@ import {
   selectHubModelGroups,
   selectPendingComposerText,
   selectSendErrorByChat,
+  selectEnterToSend,
   setPendingComposerText,
   setSelectedModel
 } from '#/renderer/src/store/slices/aiChatSlice';
@@ -45,6 +47,7 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
   const sendErrorByChat = useAppSelector(selectSendErrorByChat);
   const hubModelGroups = useAppSelector(selectHubModelGroups);
   const pendingComposerText = useAppSelector(selectPendingComposerText);
+  const enterToSend = useAppSelector(selectEnterToSend);
   const [draft, setDraft] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const wasSendingRef = useRef(false);
@@ -82,10 +85,19 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
   }, [sending]);
 
   /**
-   * Sends the current draft when Enter is pressed without Shift.
+   * Sends the current draft when Enter matches the configured submit shortcut.
    */
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>): void => {
-    if (event.key === 'Enter' && !event.shiftKey && canSend) {
+    if (
+      shouldSendChatOnKeyDown(
+        event.key,
+        event.shiftKey,
+        event.ctrlKey,
+        event.metaKey,
+        enterToSend
+      ) &&
+      canSend
+    ) {
       event.preventDefault();
       void handleSend();
     }

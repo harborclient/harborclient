@@ -24,21 +24,25 @@ import {
   FieldError,
   Input,
   Modal,
-  ModalFormLayout
+  ModalFormLayout,
+  Select
 } from '@harborclient/sdk/components';
 import {
   Fragment,
+  useCallback,
   useEffect,
   useId,
   useMemo,
   useRef,
   useState,
+  type ComponentProps,
   type CSSProperties,
   type JSX,
   type PointerEvent as ReactPointerEvent
 } from 'react';
 import toast from 'react-hot-toast';
-import type { ScriptRef, Snippet, Variable } from '#/shared/types';
+import type { CodeEditorSlashTrigger } from '@harborclient/sdk/components';
+import type { AiSettings, HubLlmModelGroup, ScriptRef, Snippet, Variable } from '#/shared/types';
 import {
   createInlineScriptRef,
   createSnippetScriptRef,
@@ -48,27 +52,44 @@ import {
   resolveScriptSourceCode,
   UNNAMED_SCRIPT_NAME
 } from '#/shared/scriptRefs';
-import { CodePreviewTooltip, buildCodePreview } from '#/renderer/src/ui/shared/CodePreviewTooltip';
+import { CodePreviewTooltip } from '#/renderer/src/ui/shared/CodePreviewTooltip';
+import { buildCodePreview } from '#/renderer/src/ui/shared/codePreview';
+import { SnippetEditModal } from '#/renderer/src/ui/shared/SnippetEditModal';
 import {
   createBlankSnippet,
-  SnippetEditModal,
   type SnippetEditDraft
-} from '#/renderer/src/ui/shared/SnippetEditModal';
+} from '#/renderer/src/ui/shared/snippetEditDraft';
 import { scriptRowIconButtonClass } from '#/renderer/src/ui/shared/classes';
 import {
   normalizeEditorPlaceholder,
   REQUEST_SCRIPTS_HELP_URL
 } from '#/renderer/src/ui/shared/scriptPlaceholders';
 import { createHcCompletionSource } from '#/renderer/src/scripting/hcCompletions';
+import { SCRIPT_ASK_COMMANDS } from '#/renderer/src/scripting/scriptAskCommands';
+import { runScriptAsk } from '#/renderer/src/scripting/runScriptAsk';
+import { resolveScriptAskModelId } from '#/renderer/src/scripting/scriptAskModel';
+import { ScriptAskModal } from '#/renderer/src/ui/shared/ScriptAskModal';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
+import { usePersistedScriptEditorUiState } from '#/renderer/src/hooks/usePersistedScriptEditorUiState';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import {
+  selectActiveChatId,
+  selectSelectedModelByChat
+} from '#/renderer/src/store/slices/aiChatSlice';
 import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
 import { setPendingComposerText } from '#/renderer/src/store/slices/aiChatSlice';
 import { createNewChat } from '#/renderer/src/store/thunks/aiChat';
 import { createSnippet, updateSnippet } from '#/renderer/src/store/thunks/snippets';
+import {
+  SNIPPET_SCOPE_OPTIONS,
+  snippetMatchesPhase,
+  snippetScopeForPhase,
+  type SnippetScope
+} from '#/shared/snippetScope';
 import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
 import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
+import { getAvailableModels } from '#/shared/aiModels';
 import {
   faAnglesDown,
   faAnglesUp,
@@ -256,6 +277,16 @@ interface SortableScriptRowProps {
    * Opens the AI sidebar with a fresh chat prefilled for this script row.
    */
   onAskAi: () => void;
+
+  /**
+   * AI provider settings for inline `/ask` requests.
+   */
+  aiSettings: AiSettings;
+
+  /**
+   * Team Hub model groups for inline `/ask` requests.
+   */
+  hubModelGroups: HubLlmModelGroup[];
 }
 
 interface SaveSnippetNameModalProps {
@@ -263,6 +294,11 @@ interface SaveSnippetNameModalProps {
    * Default snippet name shown in the input.
    */
   defaultName: string;
+
+  /**
+   * Default script phase scope for the saved snippet.
+   */
+  defaultScope: SnippetScope;
 
   /**
    * True while the save request is in flight.
@@ -280,11 +316,12 @@ interface SaveSnippetNameModalProps {
   onCancel: () => void;
 
   /**
-   * Persists the snippet under the entered name.
+   * Persists the snippet under the entered name and scope.
    *
    * @param name - Trimmed snippet name from the modal input.
+   * @param scope - Selected script phase scope.
    */
-  onSave: (name: string) => void;
+  onSave: (name: string, scope: SnippetScope) => void;
 }
 
 interface SnippetMenuProps {
@@ -297,6 +334,16 @@ interface SnippetMenuProps {
    * Snippet library entries shown in the menu.
    */
   snippets: Snippet[];
+
+  /**
+   * Total snippets in the library before phase filtering.
+   */
+  totalSnippetCount: number;
+
+  /**
+   * Active script phase used for empty-state messaging.
+   */
+  phase: 'pre' | 'post';
 
   /**
    * Called when the user picks a snippet from the menu.
@@ -385,12 +432,14 @@ function saveSnippetDefaultName(script: ScriptRef, snippets: Snippet[]): string 
  */
 function SaveSnippetNameModal({
   defaultName,
+  defaultScope,
   saving,
   error,
   onCancel,
   onSave
 }: SaveSnippetNameModalProps): JSX.Element {
   const [name, setName] = useState(defaultName);
+  const [scope, setScope] = useState<SnippetScope>(defaultScope);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   /**
@@ -413,29 +462,49 @@ function SaveSnippetNameModal({
       <ModalFormLayout
         error={error ? <FieldError spacing="modal">{error}</FieldError> : undefined}
         actions={
-          <Button type="button" disabled={saving} onClick={() => onSave(name)}>
+          <Button type="button" disabled={saving} onClick={() => onSave(name, scope)}>
             {saving ? 'Saving…' : 'Save'}
           </Button>
         }
       >
-        <div className="flex flex-col gap-1">
-          <label className="text-[14px] font-medium text-text" htmlFor="save-snippet-name">
-            Name
-          </label>
-          <Input
-            ref={nameInputRef}
-            id="save-snippet-name"
-            value={name}
-            disabled={saving}
-            onChange={(event) => setName(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                onSave(name);
-              }
-            }}
-            placeholder="Snippet name"
-          />
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-[14px] font-medium text-text" htmlFor="save-snippet-name">
+              Name
+            </label>
+            <Input
+              ref={nameInputRef}
+              id="save-snippet-name"
+              value={name}
+              disabled={saving}
+              onChange={(event) => setName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  onSave(name, scope);
+                }
+              }}
+              placeholder="Snippet name"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[14px] font-medium text-text" htmlFor="save-snippet-scope">
+              Runs in
+            </label>
+            <Select
+              id="save-snippet-scope"
+              className="w-full"
+              value={scope}
+              disabled={saving}
+              onChange={(event) => setScope(event.target.value as SnippetScope)}
+            >
+              {SNIPPET_SCOPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
       </ModalFormLayout>
     </Modal>
@@ -522,6 +591,8 @@ function ScriptRowHeader({
 function SnippetMenu({
   menuId,
   snippets,
+  totalSnippetCount,
+  phase,
   onSelect,
   onCreate,
   onClose
@@ -558,7 +629,7 @@ function SnippetMenu({
       id={menuId}
       role="menu"
       aria-label="Snippet library"
-      className="absolute left-0 top-full z-20 mt-0.5 max-h-64 min-w-full overflow-y-auto rounded-md border border-separator bg-surface py-1 shadow-md app-no-drag"
+      className="absolute left-0 top-full z-20 mt-0.5 max-h-64 min-w-full overflow-y-auto rounded-lg border border-separator bg-surface py-1 shadow-md app-no-drag"
     >
       <button
         type="button"
@@ -573,7 +644,11 @@ function SnippetMenu({
       </button>
       <div role="separator" className="my-1 border-t border-separator" aria-hidden="true" />
       {snippets.length === 0 ? (
-        <p className="px-3 py-2 text-[14px] text-muted">No snippets saved yet</p>
+        <p className="px-3 py-2 text-[14px] text-muted">
+          {totalSnippetCount === 0
+            ? 'No snippets saved yet'
+            : `No ${phase === 'pre' ? 'pre-request' : 'post-request'} snippets saved yet`}
+        </p>
       ) : (
         snippets.map((snippet) => (
           <button
@@ -605,6 +680,41 @@ function ScriptFlowArrow(): JSX.Element {
   );
 }
 
+type ScriptRowCodeEditorProps = {
+  /**
+   * Stable script row id used to persist editor height.
+   */
+  scriptId: string;
+} & Omit<
+  ComponentProps<typeof CodeEditor>,
+  | 'height'
+  | 'minHeight'
+  | 'onHeightChange'
+  | 'initialScrollTop'
+  | 'initialSelection'
+  | 'onViewStateChange'
+>;
+
+/**
+ * CodeEditor wrapper that restores and persists height, scroll, and selection per script row.
+ */
+function ScriptRowCodeEditor({ scriptId, ...props }: ScriptRowCodeEditorProps): JSX.Element {
+  const { height, onHeightChange, initialScrollTop, initialSelection, onViewStateChange } =
+    usePersistedScriptEditorUiState(scriptId, SCRIPT_EDITOR_MIN_HEIGHT);
+
+  return (
+    <CodeEditor
+      {...props}
+      minHeight={SCRIPT_EDITOR_MIN_HEIGHT}
+      height={height}
+      onHeightChange={onHeightChange}
+      initialScrollTop={initialScrollTop}
+      initialSelection={initialSelection}
+      onViewStateChange={onViewStateChange}
+    />
+  );
+}
+
 /**
  * One sortable script row with a draggable header and expandable editor body.
  */
@@ -627,7 +737,9 @@ function SortableScriptRow({
   onRequestEditSnippet,
   onClone,
   aiAvailable,
-  onAskAi
+  onAskAi,
+  aiSettings,
+  hubModelGroups
 }: SortableScriptRowProps): JSX.Element {
   const snippet =
     script.kind === 'snippet'
@@ -638,6 +750,70 @@ function SortableScriptRow({
   const [snippetDraftCode, setSnippetDraftCode] = useState(librarySnippetCode);
   const [snippetRevisionSeen, setSnippetRevisionSeen] = useState(snippetRevision);
   const [isEditingSnippet, setIsEditingSnippet] = useState(false);
+  const [askTrigger, setAskTrigger] = useState<CodeEditorSlashTrigger | null>(null);
+  const [inlineAskPending, setInlineAskPending] = useState(false);
+  const activeChatId = useAppSelector(selectActiveChatId);
+  const selectedModelByChat = useAppSelector(selectSelectedModelByChat);
+  const chatModelId = activeChatId != null ? selectedModelByChat[activeChatId] : undefined;
+  const availableModels = getAvailableModels(aiSettings, hubModelGroups);
+
+  /**
+   * Memoizes hc autocomplete so CodeEditor does not receive a new source each render.
+   */
+  const hcCompletionSource = useMemo(
+    () => createHcCompletionSource(phase, variables),
+    [phase, variables]
+  );
+
+  const onPatchCodeRef = useRef(onPatchCode);
+
+  /**
+   * Keeps the patch callback ref aligned with the latest parent handler.
+   */
+  useEffect(() => {
+    onPatchCodeRef.current = onPatchCode;
+  }, [onPatchCode]);
+
+  /**
+   * Stable script patch handler for CodeEditor onChange.
+   */
+  const handlePatchCode = useCallback((code: string): void => {
+    onPatchCodeRef.current(code);
+  }, []);
+
+  /**
+   * Routes slash commands: inline ask when args are present, modal for bare `/ask`.
+   */
+  const handleSlashCommand = useCallback(
+    (trigger: CodeEditorSlashTrigger): void => {
+      if (trigger.args.trim()) {
+        const modelId = resolveScriptAskModelId(availableModels, chatModelId);
+        if (!modelId) {
+          toast.error('No AI model available.');
+          return;
+        }
+
+        setInlineAskPending(true);
+        void runScriptAsk({
+          code: script.code ?? '',
+          line: trigger.line,
+          phase,
+          question: trigger.args.trim(),
+          modelId,
+          aiSettings,
+          hubModelGroups,
+          onCodeChange: handlePatchCode
+        }).finally(() => {
+          setInlineAskPending(false);
+        });
+        return;
+      }
+
+      setAskTrigger(trigger);
+    },
+    [aiSettings, availableModels, chatModelId, handlePatchCode, hubModelGroups, phase, script.code]
+  );
+
   const saveSnippetCode = script.kind === 'inline' ? (script.code ?? '') : snippetDraftCode;
   const canSaveSnippet = Boolean(saveSnippetCode.trim());
   const saveSnippetLabel =
@@ -690,7 +866,7 @@ function SortableScriptRow({
     <li
       ref={setNodeRef}
       style={style}
-      className="rounded-lg border border-separator bg-surface px-4 py-3 shadow-sm"
+      className="rounded-2xl border border-separator bg-surface px-4 py-3 shadow-sm"
     >
       <div className="flex flex-col gap-0.5">
         <div className="flex items-center gap-3">
@@ -819,17 +995,33 @@ function SortableScriptRow({
           aria-label={`${label} source editor`}
           className="mt-2 flex flex-col gap-2"
         >
-          <CodeEditor
+          <ScriptRowCodeEditor
+            scriptId={script.id}
             value={script.code ?? ''}
-            onChange={onPatchCode}
+            onChange={handlePatchCode}
+            editable={!inlineAskPending}
             language="javascript"
-            completionSource={createHcCompletionSource(phase, variables)}
+            completionSource={hcCompletionSource}
+            slashCommands={aiAvailable ? SCRIPT_ASK_COMMANDS : undefined}
+            onSlashCommand={aiAvailable ? handleSlashCommand : undefined}
             placeholder={placeholder}
+            placeholderHighlight
             variables={variables}
             onEditVariable={onEditVariables}
-            minHeight={SCRIPT_EDITOR_MIN_HEIGHT}
             aria-label={`${label} source`}
           />
+          {askTrigger ? (
+            <ScriptAskModal
+              trigger={askTrigger}
+              code={script.code ?? ''}
+              phase={phase}
+              aiSettings={aiSettings}
+              hubModelGroups={hubModelGroups}
+              preferredChatModelId={chatModelId}
+              onApply={handlePatchCode}
+              onClose={() => setAskTrigger(null)}
+            />
+          ) : null}
         </div>
       )}
 
@@ -840,16 +1032,18 @@ function SortableScriptRow({
           aria-label={`${label} source editor`}
           className="mt-2 flex flex-col gap-2"
         >
-          <CodeEditor
+          <ScriptRowCodeEditor
+            scriptId={script.id}
             value={snippetDraftCode}
             onChange={setSnippetDraftCode}
             readOnly={!isEditingSnippet}
             language="javascript"
-            completionSource={createHcCompletionSource(phase, variables)}
+            completionSource={hcCompletionSource}
+            slashCommands={aiAvailable ? SCRIPT_ASK_COMMANDS : undefined}
             placeholder={placeholder}
+            placeholderHighlight
             variables={variables}
             onEditVariable={onEditVariables}
-            minHeight={SCRIPT_EDITOR_MIN_HEIGHT}
             aria-label={`${label} source`}
           />
         </div>
@@ -879,8 +1073,12 @@ export function ScriptListEditor({
   const warnWhenCloningSnippet = useAppSelector(
     (state) => state.settings.general.warnWhenCloningSnippet
   );
-  const { aiAvailable, aiSettings } = useAiAvailability();
+  const { aiAvailable, aiSettings, hubModelGroups } = useAiAvailability();
   const normalized = useMemo(() => normalizeScriptRefs(scripts), [scripts]);
+  const compatibleSnippets = useMemo(
+    () => snippets.filter((snippet) => snippetMatchesPhase(snippet.scope, phase)),
+    [snippets, phase]
+  );
   const sortableEnabled = normalized.length > 1;
   const [activeDragScriptId, setActiveDragScriptId] = useState<string | null>(null);
   const [snippetMenuOpen, setSnippetMenuOpen] = useState(false);
@@ -970,7 +1168,7 @@ export function ScriptListEditor({
    * Opens the create-snippet modal from the snippet library menu.
    */
   const openCreateSnippetModal = (): void => {
-    setCreateSnippetDraft(createBlankSnippet());
+    setCreateSnippetDraft(createBlankSnippet(snippetScopeForPhase(phase)));
     setCreateSnippetError(null);
     setSnippetMenuOpen(false);
   };
@@ -1003,7 +1201,11 @@ export function ScriptListEditor({
 
     try {
       const created = await dispatch(
-        createSnippet({ name: trimmedName, code: createSnippetDraft.code })
+        createSnippet({
+          name: trimmedName,
+          code: createSnippetDraft.code,
+          scope: createSnippetDraft.scope
+        })
       ).unwrap();
       toast.success('Snippet created');
       updateScripts([
@@ -1053,7 +1255,7 @@ export function ScriptListEditor({
    *
    * @param name - Snippet name entered in the modal.
    */
-  const handleConfirmSaveSnippet = async (name: string): Promise<void> => {
+  const handleConfirmSaveSnippet = async (name: string, scope: SnippetScope): Promise<void> => {
     if (!saveSnippetTarget) {
       return;
     }
@@ -1081,7 +1283,7 @@ export function ScriptListEditor({
 
     try {
       if (script.kind === 'inline' || !linkedSnippet) {
-        const created = await dispatch(createSnippet({ name: trimmedName, code })).unwrap();
+        const created = await dispatch(createSnippet({ name: trimmedName, code, scope })).unwrap();
         replaceScript(script.id, linkScriptRefToSnippet(script, created.uuid, trimmedName));
         toast.success('Snippet saved');
         closeSaveSnippetModal();
@@ -1089,14 +1291,16 @@ export function ScriptListEditor({
       }
 
       if (trimmedName === linkedSnippet.name.trim()) {
-        await dispatch(updateSnippet({ id: linkedSnippet.id, name: trimmedName, code })).unwrap();
+        await dispatch(
+          updateSnippet({ id: linkedSnippet.id, name: trimmedName, code, scope })
+        ).unwrap();
         patchScript(script.id, { name: trimmedName });
         toast.success('Snippet saved');
         closeSaveSnippetModal();
         return;
       }
 
-      const created = await dispatch(createSnippet({ name: trimmedName, code })).unwrap();
+      const created = await dispatch(createSnippet({ name: trimmedName, code, scope })).unwrap();
       replaceScript(script.id, linkScriptRefToSnippet(script, created.uuid, trimmedName));
       toast.success('Snippet saved');
       closeSaveSnippetModal();
@@ -1277,7 +1481,7 @@ export function ScriptListEditor({
       >
         Add
       </Button>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2 mr-4">
         <div className="relative">
           <Button
             type="button"
@@ -1294,7 +1498,9 @@ export function ScriptListEditor({
           {snippetMenuOpen ? (
             <SnippetMenu
               menuId={snippetMenuId}
-              snippets={snippets}
+              snippets={compatibleSnippets}
+              totalSnippetCount={snippets.length}
+              phase={phase}
               onSelect={handleSnippetSelect}
               onCreate={openCreateSnippetModal}
               onClose={() => setSnippetMenuOpen(false)}
@@ -1371,6 +1577,8 @@ export function ScriptListEditor({
               onClone={() => void handleCloneScript(script.id, label)}
               aiAvailable={aiAvailable}
               onAskAi={() => void handleAskAi(index + 1)}
+              aiSettings={aiSettings}
+              hubModelGroups={hubModelGroups}
             />
             {index < normalized.length - 1 ? <ScriptFlowArrow /> : null}
           </Fragment>
@@ -1395,7 +1603,7 @@ export function ScriptListEditor({
       </SortableContext>
       <DragOverlay>
         {activeDragScript ? (
-          <div className="rounded-lg border border-separator bg-surface px-4 py-2 text-[14px] font-medium shadow-md">
+          <div className="rounded-2xl border border-separator bg-surface px-4 py-2 text-[14px] font-medium shadow-md">
             {scriptRowLabel(activeDragScript, snippets)}
           </div>
         ) : null}
@@ -1416,10 +1624,11 @@ export function ScriptListEditor({
         <SaveSnippetNameModal
           key={saveSnippetTarget.scriptId}
           defaultName={saveSnippetDefaultName(saveSnippetScript, snippets)}
+          defaultScope={snippetScopeForPhase(phase)}
           saving={saveSnippetSaving}
           error={saveSnippetError}
           onCancel={closeSaveSnippetModal}
-          onSave={(name) => void handleConfirmSaveSnippet(name)}
+          onSave={(name, scope) => void handleConfirmSaveSnippet(name, scope)}
         />
       ) : null}
 

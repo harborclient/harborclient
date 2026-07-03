@@ -1,9 +1,11 @@
 import { Page, SidebarLayout } from '@harborclient/sdk/components';
-import { useMemo, useState, type JSX } from 'react';
+import { useEffect, useMemo, useState, type JSX } from 'react';
 
 import { faPuzzlePiece } from '#/renderer/src/fontawesome';
 import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import { usePluginSettingsSections } from '#/renderer/src/plugins/pluginHooks';
+import { useAppDispatch } from '#/renderer/src/store/hooks';
+import { loadSettingsDraft } from '#/renderer/src/store/thunks/settingsDraft';
 import { SETTINGS_SECTIONS } from './constants';
 import { SettingsRenderer } from './catalog/SettingsRenderer';
 import { SettingsSearchResults } from './catalog/SettingsSearchResults';
@@ -22,9 +24,17 @@ interface Props {
  * Full-area application settings with sidebar navigation and catalog search.
  */
 export function Settings({ initialSection }: Props): JSX.Element {
+  const dispatch = useAppDispatch();
   const [section, setSection] = useState<SettingsSection>(initialSection);
   const pluginSections = usePluginSettingsSections();
   const { query, setQuery, matchedIds, isSearching } = useSettingsSearch();
+
+  /**
+   * Loads the shared settings draft once when the settings panel opens.
+   */
+  useEffect(() => {
+    void dispatch(loadSettingsDraft());
+  }, [dispatch]);
 
   const sidebarSections = useMemo(
     () => [

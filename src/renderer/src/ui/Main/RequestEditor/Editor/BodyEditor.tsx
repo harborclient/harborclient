@@ -5,7 +5,7 @@ import {
   CodeEditor,
   Radio
 } from '@harborclient/sdk/components';
-import type { JSX } from 'react';
+import { useCallback, type JSX } from 'react';
 import type { BodyType, Variable } from '#/shared/types';
 import { parseFormParts, serializeFormParts } from '#/shared/formData';
 import { parseUrlEncodedParts, serializeUrlEncodedParts } from '#/shared/urlencoded';
@@ -61,6 +61,16 @@ export function BodyEditor({
 }: Props): JSX.Element {
   const urlEncodedRows = bodyType === 'urlencoded' ? parseUrlEncodedParts(body) : [];
 
+  /**
+   * Stable body change handler for CodeEditor onChange.
+   */
+  const handleBodyChange = useCallback(
+    (nextBody: string): void => {
+      update({ body: nextBody });
+    },
+    [update]
+  );
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="mb-2 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border border-separator p-4">
@@ -101,7 +111,7 @@ export function BodyEditor({
         <div className="flex min-h-0 flex-1 flex-col border border-separator p-4">
           <CodeEditor
             value={body}
-            onChange={(nextBody) => update({ body: nextBody })}
+            onChange={handleBodyChange}
             language={bodyType === 'json' ? 'json' : 'text'}
             placeholder={bodyType === 'json' ? '{\n  "key": "value"\n}' : 'Request body'}
             variables={variables}

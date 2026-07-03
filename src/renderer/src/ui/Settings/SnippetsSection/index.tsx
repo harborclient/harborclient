@@ -10,6 +10,7 @@ import {
 import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { Snippet } from '#/shared/types';
+import { snippetScopeLabel } from '#/shared/snippetScope';
 import { faPlus } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectSnippets } from '#/renderer/src/store/selectors';
@@ -21,11 +22,11 @@ import {
 } from '#/renderer/src/store/thunks/snippets';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { CodePreviewTooltip } from '#/renderer/src/ui/shared/CodePreviewTooltip';
+import { SnippetEditModal } from '#/renderer/src/ui/shared/SnippetEditModal';
 import {
   createBlankSnippet,
-  SnippetEditModal,
   type SnippetEditDraft
-} from '#/renderer/src/ui/shared/SnippetEditModal';
+} from '#/renderer/src/ui/shared/snippetEditDraft';
 import { sectionEntryBySection } from '../catalog/catalog';
 import { SettingLabel } from '../components/SettingLabel';
 import { settingsSectionMeta } from '../constants';
@@ -93,7 +94,12 @@ export function SnippetsSection(): JSX.Element {
    * @param snippet - Snippet to edit.
    */
   const handleEdit = (snippet: Snippet): void => {
-    setEditingDraft({ id: snippet.id, name: snippet.name, code: snippet.code });
+    setEditingDraft({
+      id: snippet.id,
+      name: snippet.name,
+      code: snippet.code,
+      scope: snippet.scope
+    });
     setIsNew(false);
     setError(null);
   };
@@ -125,11 +131,22 @@ export function SnippetsSection(): JSX.Element {
     setError(null);
     try {
       if (isNew || editingDraft.id == null) {
-        await dispatch(createSnippet({ name: trimmedName, code: editingDraft.code })).unwrap();
+        await dispatch(
+          createSnippet({
+            name: trimmedName,
+            code: editingDraft.code,
+            scope: editingDraft.scope
+          })
+        ).unwrap();
         toast.success('Snippet created');
       } else {
         await dispatch(
-          updateSnippet({ id: editingDraft.id, name: trimmedName, code: editingDraft.code })
+          updateSnippet({
+            id: editingDraft.id,
+            name: trimmedName,
+            code: editingDraft.code,
+            scope: editingDraft.scope
+          })
         ).unwrap();
         toast.success('Snippet saved');
       }
@@ -203,6 +220,9 @@ export function SnippetsSection(): JSX.Element {
                 primary={
                   <div className="flex flex-col gap-1">
                     <ResourceListPrimary>{snippet.name}</ResourceListPrimary>
+                    <span className="text-[14px] text-muted">
+                      {snippetScopeLabel(snippet.scope)}
+                    </span>
                     <CodePreviewTooltip
                       code={snippet.code}
                       actionLabel={`Edit ${snippet.name}`}

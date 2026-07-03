@@ -5,6 +5,7 @@
 @theme {
   --color-surface: var(--mac-surface);
   --color-sidebar: var(--mac-sidebar);
+  --color-sidebar-toolbar: var(--mac-sidebar-toolbar);
   --color-sidebar-section: var(--mac-sidebar-section);
   --color-control: var(--mac-control);
   --color-field: var(--mac-field);
@@ -27,14 +28,14 @@
   --color-method-head: var(--mac-method-head);
   --color-method-options: var(--mac-method-options);
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --radius-xs: 0.0625rem;
-  --radius-sm: 0.125rem;
-  --radius-md: 0.1875rem;
-  --radius-lg: 0.25rem;
-  --radius-xl: 0.375rem;
-  --radius-2xl: 0.5rem;
-  --radius-3xl: 0.75rem;
-  --radius-4xl: 1rem;
+  --radius-xs: 0.125rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.625rem;
+  --radius-2xl: 0.75rem;
+  --radius-3xl: 1rem;
+  --radius-4xl: 1.25rem;
 }
 
 @layer base {
@@ -43,6 +44,7 @@
 
     --mac-surface: #f5f5f7;
     --mac-sidebar: #ececee;
+    --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 94%, black);
     --mac-sidebar-section: var(--mac-selection);
     --mac-control: #ffffff;
     --mac-field: var(--mac-control);
@@ -80,6 +82,7 @@
     :root {
       --mac-surface: #1e1e1e;
       --mac-sidebar: #252526;
+      --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 94%, black);
       --mac-sidebar-section: color-mix(in srgb, var(--mac-sidebar) 86%, black);
       --mac-control: #3a3a3c;
       --mac-field: color-mix(in srgb, black 16%, var(--mac-surface));
@@ -106,6 +109,7 @@
 
     --mac-surface: #000000;
     --mac-sidebar: #000000;
+    --mac-sidebar-toolbar: #141414;
     --mac-sidebar-section: #000000;
     --mac-control: #000000;
     --mac-field: #141414;
@@ -134,6 +138,7 @@
 
       --mac-surface: Canvas;
       --mac-sidebar: Canvas;
+      --mac-sidebar-toolbar: Canvas;
       --mac-sidebar-section: Canvas;
       --mac-control: Canvas;
       --mac-field: Field;
@@ -358,6 +363,11 @@
 
   :root[data-theme='high-contrast'] .hc-footer-icon,
   :root[data-theme='high-contrast'] .hc-footer-icon:hover {
+    color: var(--mac-resize-handle) !important;
+  }
+
+  :root[data-theme='high-contrast'] .hc-toolbar-action[aria-pressed='true'],
+  :root[data-theme='high-contrast'] .hc-toolbar-action[aria-pressed='true']:hover {
     color: var(--mac-resize-handle) !important;
   }
 
@@ -775,6 +785,9 @@
    */
   :root[data-theme='high-contrast'] .hc-footer-icon:focus-visible,
   :root[data-theme='high-contrast'] .hc-footer-icon:focus:not(:focus-visible),
+  :root[data-theme='high-contrast'] .hc-toolbar-action[aria-pressed='true']:focus-visible,
+  :root[data-theme='high-contrast']
+    .hc-toolbar-action[aria-pressed='true']:focus:not(:focus-visible),
   :root[data-theme='high-contrast'] .hc-footer-button:focus-visible,
   :root[data-theme='high-contrast'] .hc-footer-button:focus:not(:focus-visible) {
     outline: 2px solid var(--mac-accent);

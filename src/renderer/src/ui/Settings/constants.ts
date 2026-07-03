@@ -11,7 +11,10 @@ import type {
   ProxySettings,
   SqliteSettings
 } from '#/shared/types';
-import { DEFAULT_CODE_EDITOR_SETUP } from '#/shared/codeEditorSettings';
+import {
+  DEFAULT_CODE_EDITOR_FONT_SIZE,
+  DEFAULT_CODE_EDITOR_SETUP
+} from '#/shared/codeEditorSettings';
 import {
   faCode,
   faDatabase,
@@ -52,6 +55,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   warnWhenCloningSnippet: true,
   codeEditorTheme: 'default',
   codeEditorSetup: { ...DEFAULT_CODE_EDITOR_SETUP },
+  codeEditorFontSize: DEFAULT_CODE_EDITOR_FONT_SIZE,
   proxy: { ...DEFAULT_PROXY_SETTINGS },
   globalVariables: []
 };

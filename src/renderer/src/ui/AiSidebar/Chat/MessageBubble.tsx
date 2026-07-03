@@ -20,8 +20,8 @@ export function MessageBubble({ message }: Props): JSX.Element {
       <div
         className={
           isUser
-            ? 'max-w-[85%] rounded-lg bg-accent px-3 py-2 text-[14px] text-white'
-            : 'max-w-[85%] rounded-lg border border-separator bg-control px-3 py-2 text-[14px] text-text'
+            ? 'max-w-[85%] rounded-lg bg-accent px-3 py-2 text-[16px] text-white'
+            : 'max-w-[85%] rounded-lg bg-selection px-3 py-2 text-[16px] text-text'
         }
       >
         <MarkdownContent content={message.content} variant={isUser ? 'user' : 'assistant'} />

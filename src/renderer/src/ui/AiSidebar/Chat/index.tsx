@@ -48,7 +48,7 @@ export function AiChat({ aiSettings }: Props): JSX.Element {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <ChatTabBar aiSettings={aiSettings} />
+      <ChatTabBar />
       {activeChatId != null ? (
         <div
           role="tabpanel"

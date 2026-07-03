@@ -30,7 +30,7 @@ export function MessageList({ messages, sending }: Props): JSX.Element {
   }, [messages, sending]);
 
   if (messages.length === 0 && !sending) {
-    return <EmptyState variant="centered">Start the conversation</EmptyState>;
+    return <EmptyState variant="centered">Start the conversation.</EmptyState>;
   }
 
   return (

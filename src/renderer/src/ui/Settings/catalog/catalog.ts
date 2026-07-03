@@ -15,6 +15,7 @@ export type SettingId =
   | 'proxy.username'
   | 'proxy.password'
   | 'syntax.codeEditorTheme'
+  | 'syntax.codeEditorFontSize'
   | 'syntax.lineNumbers'
   | 'syntax.foldGutter'
   | 'syntax.highlightActiveLine'
@@ -206,6 +207,14 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     label: 'Theme',
     description: 'CodeMirror color theme applied to request and response editors.',
     keywords: ['syntax', 'highlighting', 'codemirror', 'colors']
+  },
+  {
+    id: 'syntax.codeEditorFontSize',
+    section: 'syntax',
+    kind: 'field',
+    label: 'Font size',
+    description: 'Font size applied to request and response editors.',
+    keywords: ['syntax', 'highlighting', 'codemirror', 'font', 'text size']
   },
   {
     id: 'syntax.lineNumbers',

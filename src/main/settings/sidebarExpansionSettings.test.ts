@@ -27,13 +27,15 @@ describe('sidebarExpansionSettings', () => {
       sections: { collections: true, environments: true },
       sectionVisibility: { collections: true, environments: true },
       collectionIds: [],
-      folderIds: []
+      folderIds: [],
+      showStorageLocationBadges: true
     });
     expect(mockGet).toHaveBeenCalledWith('sidebarExpansion', {
       sections: { collections: true, environments: true },
       sectionVisibility: { collections: true, environments: true },
       collectionIds: [],
-      folderIds: []
+      folderIds: [],
+      showStorageLocationBadges: true
     });
   });
 
@@ -49,7 +51,8 @@ describe('sidebarExpansionSettings', () => {
       sections: { collections: false, environments: false },
       sectionVisibility: { collections: true, environments: true },
       collectionIds: [1],
-      folderIds: [9]
+      folderIds: [9],
+      showStorageLocationBadges: true
     });
   });
 
@@ -60,14 +63,16 @@ describe('sidebarExpansionSettings', () => {
       sections: { collections: true, environments: false },
       sectionVisibility: { collections: false, environments: true },
       collectionIds: [2, 2, -3],
-      folderIds: [8]
+      folderIds: [8],
+      showStorageLocationBadges: false
     });
 
     expect(mockSet).toHaveBeenCalledWith('sidebarExpansion', {
       sections: { collections: true, environments: false },
       sectionVisibility: { collections: false, environments: true },
       collectionIds: [2],
-      folderIds: [8]
+      folderIds: [8],
+      showStorageLocationBadges: false
     });
   });
 });

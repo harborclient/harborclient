@@ -11,6 +11,7 @@ import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Settings/constants';
 export function useAiAvailability(): {
   aiAvailable: boolean;
   aiSettings: AiSettings;
+  hubModelGroups: HubLlmModelGroup[];
   loading: boolean;
 } {
   const [aiSettings, setAiSettings] = useState<AiSettings>(DEFAULT_AI_SETTINGS);
@@ -50,6 +51,7 @@ export function useAiAvailability(): {
   return {
     aiAvailable: !loading && hasAvailableAiModels(aiSettings, hubModelGroups),
     aiSettings,
+    hubModelGroups,
     loading
   };
 }

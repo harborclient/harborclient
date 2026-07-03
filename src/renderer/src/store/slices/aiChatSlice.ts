@@ -24,6 +24,11 @@ export interface AiChatState {
    * One-shot composer text set by external UI (for example script "Ask AI" buttons).
    */
   pendingComposerText: string | null;
+
+  /**
+   * When true, plain Enter submits the chat composer; when false, Ctrl/Cmd+Enter submits.
+   */
+  enterToSend: boolean;
 }
 
 const initialState: AiChatState = {
@@ -38,7 +43,8 @@ const initialState: AiChatState = {
   sendErrorByChat: {},
   activeStepRequestIdByChat: {},
   cancelRequestedByChat: {},
-  pendingComposerText: null
+  pendingComposerText: null,
+  enterToSend: true
 };
 
 const aiChatSlice = createSlice({
@@ -75,6 +81,22 @@ const aiChatSlice = createSlice({
     ) {
       state.openTabIds = action.payload.openTabIds;
       state.activeChatId = action.payload.activeChatId;
+    },
+    /**
+     * Reorders open chat tabs to match the tab bar display order after drag-and-drop.
+     */
+    reorderChatTabs(state, action: PayloadAction<number[]>) {
+      const orderedTabIds = action.payload;
+      if (orderedTabIds.length !== state.openTabIds.length) {
+        return;
+      }
+
+      const openTabIdSet = new Set(state.openTabIds);
+      if (orderedTabIds.some((id) => !openTabIdSet.has(id))) {
+        return;
+      }
+
+      state.openTabIds = orderedTabIds;
     },
     /**
      * Closes a chat tab and activates a neighbor when needed.
@@ -183,6 +205,12 @@ const aiChatSlice = createSlice({
      */
     setPendingComposerText(state, action: PayloadAction<string | null>) {
       state.pendingComposerText = action.payload;
+    },
+    /**
+     * Sets whether plain Enter submits the chat composer.
+     */
+    setEnterToSend(state, action: PayloadAction<boolean>) {
+      state.enterToSend = action.payload;
     }
   }
 });
@@ -192,6 +220,7 @@ export const {
   setActiveChat,
   openChatTab,
   restoreChatSession,
+  reorderChatTabs,
   closeChatTab,
   setMessages,
   appendMessage,
@@ -205,7 +234,8 @@ export const {
   clearChatCancelState,
   setSendError,
   clearSendError,
-  setPendingComposerText
+  setPendingComposerText,
+  setEnterToSend
 } = aiChatSlice.actions;
 
 /**
@@ -275,5 +305,10 @@ export const selectCancelRequestedByChat = (state: RootState): Record<number, bo
  */
 export const selectPendingComposerText = (state: RootState): string | null =>
   state.aiChat.pendingComposerText;
+
+/**
+ * Returns whether plain Enter submits the chat composer.
+ */
+export const selectEnterToSend = (state: RootState): boolean => state.aiChat.enterToSend;
 
 export default aiChatSlice.reducer;

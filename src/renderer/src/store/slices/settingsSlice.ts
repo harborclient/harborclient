@@ -1,5 +1,8 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import { DEFAULT_CODE_EDITOR_SETUP } from '#/shared/codeEditorSettings';
+import {
+  DEFAULT_CODE_EDITOR_FONT_SIZE,
+  DEFAULT_CODE_EDITOR_SETUP
+} from '#/shared/codeEditorSettings';
 import type { CodeEditorSetup, CodeEditorTheme, GeneralSettings } from '#/shared/types';
 import type { RootState } from '#/renderer/src/store/redux';
 
@@ -14,6 +17,7 @@ export const defaultGeneralSettings: GeneralSettings = {
   warnWhenCloningSnippet: true,
   codeEditorTheme: 'default',
   codeEditorSetup: { ...DEFAULT_CODE_EDITOR_SETUP },
+  codeEditorFontSize: DEFAULT_CODE_EDITOR_FONT_SIZE,
   proxy: {
     enabled: false,
     protocol: 'http',
@@ -60,5 +64,11 @@ export const selectCodeEditorTheme = (state: RootState): CodeEditorTheme =>
  */
 export const selectCodeEditorSetup = (state: RootState): CodeEditorSetup =>
   state.settings.general.codeEditorSetup;
+
+/**
+ * Returns the active CodeMirror font size from general settings.
+ */
+export const selectCodeEditorFontSize = (state: RootState): string =>
+  state.settings.general.codeEditorFontSize;
 
 export default settingsSlice.reducer;

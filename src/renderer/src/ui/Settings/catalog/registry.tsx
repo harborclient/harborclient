@@ -27,6 +27,7 @@ import { ProxyPasswordField } from '../fields/ProxyPasswordField';
 import { ProxyPortField } from '../fields/ProxyPortField';
 import { ProxyProtocolField } from '../fields/ProxyProtocolField';
 import { ProxyUsernameField } from '../fields/ProxyUsernameField';
+import { SyntaxCodeEditorFontSizeField } from '../fields/SyntaxCodeEditorFontSizeField';
 import { SyntaxCodeEditorThemeField } from '../fields/SyntaxCodeEditorThemeField';
 import { SyntaxFoldGutterField } from '../fields/SyntaxFoldGutterField';
 import { SyntaxHighlightActiveLineField } from '../fields/SyntaxHighlightActiveLineField';
@@ -54,6 +55,7 @@ export const SETTINGS_FIELD_REGISTRY: Record<FieldSettingId, ComponentType> = {
   'proxy.username': ProxyUsernameField,
   'proxy.password': ProxyPasswordField,
   'syntax.codeEditorTheme': SyntaxCodeEditorThemeField,
+  'syntax.codeEditorFontSize': SyntaxCodeEditorFontSizeField,
   'syntax.lineNumbers': SyntaxLineNumbersField,
   'syntax.foldGutter': SyntaxFoldGutterField,
   'syntax.highlightActiveLine': SyntaxHighlightActiveLineField,

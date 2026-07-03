@@ -8,12 +8,12 @@ import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 export function registerSnippetHandlers(): void {
   handle('snippets:list', ipcArgSchemas.none, () => getLocalDatabase().listSnippets());
 
-  handle('snippets:create', ipcArgSchemas.snippetCreate, (_event, name, code) =>
-    getLocalDatabase().createSnippet(name, code)
+  handle('snippets:create', ipcArgSchemas.snippetCreate, (_event, name, code, scope) =>
+    getLocalDatabase().createSnippet(name, code, scope)
   );
 
-  handle('snippets:update', ipcArgSchemas.snippetUpdate, (_event, id, name, code) =>
-    getLocalDatabase().updateSnippet(id, name, code)
+  handle('snippets:update', ipcArgSchemas.snippetUpdate, (_event, id, name, code, scope) =>
+    getLocalDatabase().updateSnippet(id, name, code, scope)
   );
 
   handle('snippets:delete', ipcArgSchemas.dbId, (_event, id) =>

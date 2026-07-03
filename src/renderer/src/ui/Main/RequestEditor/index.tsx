@@ -1,6 +1,7 @@
-import { useMemo, useRef, useState, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import type { RequestTabContext, ResponseTabContext } from '#/shared/plugin/types';
 import type { Variable } from '#/shared/types';
+import { DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT } from '#/shared/types';
 import { isPageTab, isRequestTab, isTabDirty } from '#/renderer/src/store/drafts';
 import {
   toPluginHttpResponse,
@@ -28,14 +29,17 @@ import {
 import {
   selectCollectionSettingsDirty,
   selectEnvironmentSettingsDirty,
+  selectRequestEditorSplitHeight,
   selectShowRequestEditor,
-  selectShowResponseEditor
+  selectShowResponseEditor,
+  setRequestEditorSplitHeight
 } from '#/renderer/src/store/slices/navigationSlice';
 import {
   setActiveDraft,
   newTab,
   setActiveTab,
-  closeTab
+  closeTab,
+  reorderTabs
 } from '#/renderer/src/store/slices/tabsSlice';
 import {
   sendRequest,
@@ -116,25 +120,52 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const environmentSettingsDirty = useAppSelector(selectEnvironmentSettingsDirty);
   const showRequestEditor = useAppSelector(selectShowRequestEditor);
   const showResponseEditor = useAppSelector(selectShowResponseEditor);
+  const persistedSplitHeight = useAppSelector(selectRequestEditorSplitHeight);
   const showSplitLayout = showRequestEditor && showResponseEditor;
 
   const hasOpenTabs = tabs.length > 0;
   const [closeTabPrompt, setCloseTabPrompt] = useState<CloseTabPrompt | null>(null);
   const splitRef = useRef<HTMLElement>(null);
+
+  /**
+   * Reads the split container height so max-size clamping tracks the live layout.
+   */
+  const getMaxSplitHeight = useCallback((): number => {
+    return (splitRef.current?.parentElement?.clientHeight ?? 600) - 160;
+  }, []);
+
+  /**
+   * Persists a committed request editor split height to Redux for electron-store sync.
+   */
+  const handleSplitHeightPersist = useCallback(
+    (size: number): void => {
+      dispatch(setRequestEditorSplitHeight(size));
+    },
+    [dispatch]
+  );
+
   const {
     size: editorHeight,
     minSize: editorMinSize,
     maxSize: editorMaxSize,
+    setSize,
     onResizeStart,
     onKeyboardResize
   } = useResizable({
     axis: 'y',
     direction: 1,
-    defaultSize: 340,
+    defaultSize: DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT,
     minSize: 160,
-    getMaxSize: () => (splitRef.current?.parentElement?.clientHeight ?? 600) - 160,
-    storageKey: 'hc.requestEditorHeight'
+    getMaxSize: getMaxSplitHeight,
+    onPersist: handleSplitHeightPersist
   });
+
+  /**
+   * Applies the electron-store split height when panel layout hydration updates Redux.
+   */
+  useEffect(() => {
+    setSize(persistedSplitHeight);
+  }, [persistedSplitHeight, setSize]);
 
   const activeCollectionId = draft.collection_id ?? selectedCollectionId;
   const activeCollection =
@@ -243,6 +274,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
         onSelect={(tabId) => dispatch(setActiveTab(tabId))}
         onClose={handleCloseTab}
         onNew={() => dispatch(newTab())}
+        onReorder={(orderedTabIds) => dispatch(reorderTabs(orderedTabIds))}
       />
       {hasOpenTabs ? (
         <div

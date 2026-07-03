@@ -7,7 +7,8 @@ describe('defaultSidebarExpansion', () => {
       sections: { collections: true, environments: true },
       sectionVisibility: { collections: true, environments: true },
       collectionIds: [],
-      folderIds: []
+      folderIds: [],
+      showStorageLocationBadges: true
     });
   });
 });
@@ -29,7 +30,8 @@ describe('normalizeSidebarExpansion', () => {
       sections: { collections: false, environments: true },
       sectionVisibility: { collections: true, environments: true },
       collectionIds: [1, 2],
-      folderIds: [10]
+      folderIds: [10],
+      showStorageLocationBadges: true
     });
   });
 
@@ -44,7 +46,8 @@ describe('normalizeSidebarExpansion', () => {
       sections: { collections: true, environments: false },
       sectionVisibility: { collections: true, environments: true },
       collectionIds: [5, 7],
-      folderIds: [12]
+      folderIds: [12],
+      showStorageLocationBadges: true
     });
   });
 
@@ -60,7 +63,26 @@ describe('normalizeSidebarExpansion', () => {
       sections: { collections: true, environments: true },
       sectionVisibility: { collections: false, environments: true },
       collectionIds: [],
-      folderIds: []
+      folderIds: [],
+      showStorageLocationBadges: true
+    });
+  });
+
+  it('preserves persisted storage badge visibility flag', () => {
+    expect(
+      normalizeSidebarExpansion({
+        sections: { collections: true, environments: true },
+        sectionVisibility: { collections: true, environments: true },
+        collectionIds: [],
+        folderIds: [],
+        showStorageLocationBadges: false
+      })
+    ).toEqual({
+      sections: { collections: true, environments: true },
+      sectionVisibility: { collections: true, environments: true },
+      collectionIds: [],
+      folderIds: [],
+      showStorageLocationBadges: false
     });
   });
 });

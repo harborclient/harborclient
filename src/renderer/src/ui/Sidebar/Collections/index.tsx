@@ -101,6 +101,11 @@ interface Props {
   connectionTypesById: Record<string, CollectionProviderKind>;
 
   /**
+   * Whether storage location name badges appear next to collection names.
+   */
+  showStorageLocationBadges: boolean;
+
+  /**
    * Git source-control status keyed by connection id.
    */
   gitStatusesByConnectionId: Record<string, SourceControlStatus>;
@@ -287,6 +292,7 @@ export function Collections({
   primaryConnectionId,
   connectionNamesById,
   connectionTypesById,
+  showStorageLocationBadges,
   gitStatusesByConnectionId,
   onOpenSourceControl,
   activeRequestId,
@@ -775,7 +781,7 @@ export function Collections({
                   >
                     <span className="inline-flex min-w-0 items-center gap-1.5">
                       <span className="truncate">{collection.name}</span>
-                      {connectionName != null && (
+                      {showStorageLocationBadges && connectionName != null && (
                         <span
                           className="shrink-0 rounded bg-info/15 px-1.5 py-0.5 text-[11px] font-medium text-info"
                           title={`Stored in ${connectionName}`}

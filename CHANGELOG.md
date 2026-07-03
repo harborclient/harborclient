@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(chat): enhance chat title generation and update dependencies. (`e9fdc3e`)
 - feat(chat): implement abort signal handling for chat steps. (`e6509cf`)
 
 ## 1.9.18 - 2026-07-03

@@ -1,5 +1,6 @@
 import { FaIcon, Spinner, TabCloseButton } from '@harborclient/sdk/components';
 import { METHOD_CLASSES, requestTabItem } from '#/renderer/src/ui/shared/classes';
+import { useSortableTabItem } from '#/renderer/src/ui/shared/useSortableTabItem';
 import type { JSX, KeyboardEvent } from 'react';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { isPageTab, isRequestTab, isTabDirty, type Tab } from '#/renderer/src/store/drafts';
@@ -20,6 +21,16 @@ interface Props {
    * Tab order index for the tab label; all tabs stay in sequential Tab order.
    */
   tabIndex: number;
+
+  /**
+   * Stable dnd-kit sortable id for this tab row.
+   */
+  sortableId: string;
+
+  /**
+   * When true, drag reordering is disabled for this tab.
+   */
+  sortableDisabled?: boolean;
 
   /**
    * Display title for page tabs (resolved from entity names when applicable).
@@ -72,12 +83,31 @@ function pageTabAccessibleName(title: string): string {
 }
 
 /**
+ * Native tooltip text showing the full tab title when the label is truncated.
+ *
+ * @param tab - Open editor tab.
+ * @param pageTitle - Resolved page tab title, when applicable.
+ * @returns Full display name for the tab label.
+ */
+function documentTabTitle(tab: Tab, pageTitle?: string): string {
+  if (isPageTab(tab)) {
+    return pageTitle ?? 'Page';
+  }
+  if (isRequestTab(tab)) {
+    return tab.draft.name;
+  }
+  return 'Tab';
+}
+
+/**
  * Single tab with request method badge or page icon, unsaved dot (left of method), and close button.
  */
 export function TabItem({
   tab,
   active,
   tabIndex,
+  sortableId,
+  sortableDisabled = false,
   pageTitle,
   pageIcon,
   onSelect,
@@ -100,18 +130,24 @@ export function TabItem({
     ? pageTabAccessibleName(pageTitle ?? 'Page')
     : requestTabAccessibleName(tab);
   const closeLabel = tabCloseAccessibleName(tab, pageTitle);
+  const title = documentTabTitle(tab, pageTitle);
+  const { setNodeRef, listeners, style } = useSortableTabItem(sortableId, sortableDisabled);
 
   return (
     <div
+      ref={setNodeRef}
+      style={style}
       role="tab"
       id={`request-tab-${tab.tabId}`}
       aria-controls={`request-tabpanel-${tab.tabId}`}
       aria-selected={active}
       aria-label={ariaLabel}
+      title={title}
       tabIndex={tabIndex}
-      className={`group -mb-1 flex max-w-[220px] min-h-12 shrink-0 cursor-pointer self-stretch items-stretch gap-2.5 rounded-t-md border border-b-0 px-4 ${requestTabItem(active)}`}
+      className={`group -mb-1 flex max-w-[220px] min-h-12 shrink-0 self-stretch items-stretch gap-2.5 rounded-t-lg border border-b-0 px-4 ${requestTabItem(active)} ${sortableDisabled ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'}`}
       onClick={() => onSelect(tab.tabId)}
       onKeyDown={handleTabKeyDown}
+      {...(sortableDisabled ? {} : listeners)}
     >
       <span className="flex min-w-0 flex-1 items-center gap-1.5 py-2 text-inherit app-no-drag">
         {isPage ? (
@@ -119,7 +155,7 @@ export function TabItem({
         ) : (
           <>
             <span
-              className={`h-1.5 w-1.5 shrink-0 rounded-full ${isTabDirty(tab) ? 'bg-muted' : 'bg-transparent'}`}
+              className={`h-1.5 w-1.5 shrink-0 rounded-full ${isTabDirty(tab) ? 'bg-accent' : 'bg-transparent'}`}
               aria-hidden="true"
             />
             <span
@@ -134,15 +170,20 @@ export function TabItem({
           {isPage ? (pageTitle ?? 'Page') : tab.draft.name}
         </span>
       </span>
-      <TabCloseButton
-        ariaLabel={closeLabel}
-        title={closeLabel}
-        tabIndex={0}
-        onClick={(event) => {
-          event.stopPropagation();
-          onClose(tab.tabId);
-        }}
-      />
+      <span
+        className="flex shrink-0 items-center self-center app-no-drag"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <TabCloseButton
+          ariaLabel={closeLabel}
+          title={closeLabel}
+          tabIndex={0}
+          onClick={(event) => {
+            event.stopPropagation();
+            onClose(tab.tabId);
+          }}
+        />
+      </span>
     </div>
   );
 }

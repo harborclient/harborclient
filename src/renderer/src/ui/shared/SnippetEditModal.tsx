@@ -4,30 +4,12 @@ import {
   FieldError,
   Input,
   Modal,
-  ModalFormLayout
+  ModalFormLayout,
+  Select
 } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import type { Snippet } from '#/shared/types';
-
-/**
- * Editable snippet fields shown in the create/edit modal.
- */
-export type SnippetEditDraft = {
-  /**
-   * Existing snippet database id when editing.
-   */
-  id?: number;
-
-  /**
-   * Display name for the snippet.
-   */
-  name: string;
-
-  /**
-   * JavaScript source saved with the snippet.
-   */
-  code: string;
-};
+import { SNIPPET_SCOPE_OPTIONS, type SnippetScope } from '#/shared/snippetScope';
+import type { SnippetEditDraft } from '#/renderer/src/ui/shared/snippetEditDraft';
 
 interface Props {
   /**
@@ -64,18 +46,6 @@ interface Props {
    * Persists the draft snippet.
    */
   onSave: () => void;
-}
-
-/**
- * Creates a blank snippet used when opening the create modal.
- *
- * @returns Default name and empty code for a new snippet draft.
- */
-export function createBlankSnippet(): Pick<Snippet, 'name' | 'code'> {
-  return {
-    name: 'Untitled Snippet',
-    code: ''
-  };
 }
 
 /**
@@ -120,6 +90,26 @@ export function SnippetEditModal({
               onChange={(event) => onChange({ ...draft, name: event.target.value })}
               placeholder="Snippet name"
             />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[14px] font-medium text-text" htmlFor="snippet-scope">
+              Runs in
+            </label>
+            <Select
+              id="snippet-scope"
+              className="w-full"
+              value={draft.scope}
+              disabled={saving}
+              onChange={(event) =>
+                onChange({ ...draft, scope: event.target.value as SnippetScope })
+              }
+            >
+              {SNIPPET_SCOPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
           </div>
           <div className="flex min-h-0 flex-1 flex-col gap-1">
             <label className="text-[14px] font-medium text-text" htmlFor="snippet-code">

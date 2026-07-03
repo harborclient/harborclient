@@ -1,5 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type { Snippet } from '#/shared/types';
+import type { SnippetScope } from '#/shared/snippetScope';
 import { setSnippets } from '#/renderer/src/store/slices/snippetsSlice';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
 import {
@@ -31,10 +32,10 @@ export const refreshSnippets = createAsyncThunk<
  */
 export const createSnippet = createAsyncThunk<
   Snippet,
-  { name: string; code: string },
+  { name: string; code: string; scope: SnippetScope },
   ThunkApiConfig
->('snippets/create', async ({ name, code }, { dispatch }) => {
-  const snippet = await window.api.createSnippet(name, code);
+>('snippets/create', async ({ name, code, scope }, { dispatch }) => {
+  const snippet = await window.api.createSnippet(name, code, scope);
   await dispatch(refreshSnippets());
   return snippet;
 });
@@ -44,10 +45,10 @@ export const createSnippet = createAsyncThunk<
  */
 export const updateSnippet = createAsyncThunk<
   Snippet,
-  { id: number; name: string; code: string },
+  { id: number; name: string; code: string; scope: SnippetScope },
   ThunkApiConfig
->('snippets/update', async ({ id, name, code }, { dispatch }) => {
-  const snippet = await window.api.updateSnippet(id, name, code);
+>('snippets/update', async ({ id, name, code, scope }, { dispatch }) => {
+  const snippet = await window.api.updateSnippet(id, name, code, scope);
   await dispatch(refreshSnippets());
   return snippet;
 });

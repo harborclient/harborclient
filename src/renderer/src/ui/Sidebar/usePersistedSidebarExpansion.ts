@@ -93,6 +93,21 @@ interface Result {
   setEnvironmentsSectionVisible: Dispatch<SetStateAction<boolean>>;
 
   /**
+   * Whether storage location name badges appear next to collection names.
+   */
+  showStorageLocationBadges: boolean;
+
+  /**
+   * Toggles storage location badge visibility in the collections list.
+   */
+  toggleStorageLocationBadges: () => void;
+
+  /**
+   * Sets storage location badge visibility explicitly.
+   */
+  setShowStorageLocationBadges: Dispatch<SetStateAction<boolean>>;
+
+  /**
    * Collection ids whose request trees are expanded.
    */
   expandedCollectionIds: Set<number>;
@@ -130,18 +145,21 @@ interface Result {
  * @param sectionVisibility - Section show/hide flags.
  * @param expandedCollectionIds - Expanded collection ids in memory.
  * @param expandedFolderIds - Expanded folder ids in memory.
+ * @param showStorageLocationBadges - Whether storage location badges are shown.
  */
 export function serializeSidebarExpansion(
   sections: SidebarExpansionState['sections'],
   sectionVisibility: SidebarExpansionState['sectionVisibility'],
   expandedCollectionIds: Set<number>,
-  expandedFolderIds: Set<number>
+  expandedFolderIds: Set<number>,
+  showStorageLocationBadges: boolean
 ): SidebarExpansionState {
   return {
     sections,
     sectionVisibility,
     collectionIds: [...expandedCollectionIds],
-    folderIds: [...expandedFolderIds]
+    folderIds: [...expandedFolderIds],
+    showStorageLocationBadges
   };
 }
 
@@ -197,6 +215,9 @@ export function usePersistedSidebarExpansion({
   const [environmentsSectionVisible, setEnvironmentsSectionVisible] = useState(
     defaults.sectionVisibility.environments
   );
+  const [showStorageLocationBadges, setShowStorageLocationBadges] = useState(
+    defaults.showStorageLocationBadges
+  );
   const [expandedCollectionIds, setExpandedCollectionIds] = useState<Set<number>>(new Set());
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<number>>(new Set());
   const restoredRef = useRef(false);
@@ -220,6 +241,7 @@ export function usePersistedSidebarExpansion({
       setEnvironmentsSectionExpanded(stored.sections.environments);
       setCollectionsSectionVisible(stored.sectionVisibility.collections);
       setEnvironmentsSectionVisible(stored.sectionVisibility.environments);
+      setShowStorageLocationBadges(stored.showStorageLocationBadges);
       setExpandedCollectionIds(new Set(validExpanded));
       setExpandedFolderIds(new Set(stored.folderIds));
       setLoaded(true);
@@ -252,7 +274,8 @@ export function usePersistedSidebarExpansion({
         environments: environmentsSectionVisible
       },
       expandedCollectionIds,
-      expandedFolderIds
+      expandedFolderIds,
+      showStorageLocationBadges
     );
 
     void window.api.setSidebarExpansion(snapshot);
@@ -263,7 +286,8 @@ export function usePersistedSidebarExpansion({
     collectionsSectionVisible,
     environmentsSectionVisible,
     expandedCollectionIds,
-    expandedFolderIds
+    expandedFolderIds,
+    showStorageLocationBadges
   ]);
 
   /**
@@ -340,6 +364,13 @@ export function usePersistedSidebarExpansion({
     setEnvironmentsSectionVisible((visible) => !visible);
   }, []);
 
+  /**
+   * Toggles storage location badge visibility in the collections list.
+   */
+  const toggleStorageLocationBadges = useCallback(() => {
+    setShowStorageLocationBadges((visible) => !visible);
+  }, []);
+
   return {
     loaded,
     collectionsSectionExpanded,
@@ -354,6 +385,9 @@ export function usePersistedSidebarExpansion({
     toggleEnvironmentsSectionVisible,
     setCollectionsSectionVisible,
     setEnvironmentsSectionVisible,
+    showStorageLocationBadges,
+    toggleStorageLocationBadges,
+    setShowStorageLocationBadges,
     expandedCollectionIds,
     expandedFolderIds,
     setExpandedCollectionIds,

@@ -3,7 +3,9 @@ import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { normalizeVariable } from '#/main/storage/collectionVariables';
 import { parseJson } from '#/shared/parseJson';
 import {
+  DEFAULT_CODE_EDITOR_FONT_SIZE,
   DEFAULT_CODE_EDITOR_SETUP,
+  normalizeCodeEditorFontSize,
   normalizeCodeEditorSetup,
   normalizeCodeEditorTheme
 } from '#/shared/codeEditorSettings';
@@ -24,6 +26,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   warnWhenCloningSnippet: true,
   codeEditorTheme: 'default',
   codeEditorSetup: { ...DEFAULT_CODE_EDITOR_SETUP },
+  codeEditorFontSize: DEFAULT_CODE_EDITOR_FONT_SIZE,
   proxy: { ...DEFAULT_PROXY_SETTINGS },
   globalVariables: []
 };
@@ -129,6 +132,7 @@ function normalizeSettings(input: Partial<GeneralSettings>): GeneralSettings {
     warnWhenCloningSnippet: input.warnWhenCloningSnippet !== false,
     codeEditorTheme: normalizeCodeEditorTheme(input.codeEditorTheme),
     codeEditorSetup: normalizeCodeEditorSetup(input.codeEditorSetup),
+    codeEditorFontSize: normalizeCodeEditorFontSize(input.codeEditorFontSize),
     proxy: normalizeProxySettings(input.proxy),
     globalVariables: normalizeGlobalVariables(input.globalVariables)
   };

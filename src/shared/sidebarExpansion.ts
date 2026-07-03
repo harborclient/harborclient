@@ -10,6 +10,8 @@ const DEFAULT_SECTION_VISIBILITY = {
   environments: true
 } as const;
 
+const DEFAULT_SHOW_STORAGE_LOCATION_BADGES = true;
+
 /**
  * Returns the default sidebar expansion state for first launch.
  */
@@ -18,7 +20,8 @@ export function defaultSidebarExpansion(): SidebarExpansionState {
     sections: { ...DEFAULT_SECTIONS },
     sectionVisibility: { ...DEFAULT_SECTION_VISIBILITY },
     collectionIds: [],
-    folderIds: []
+    folderIds: [],
+    showStorageLocationBadges: DEFAULT_SHOW_STORAGE_LOCATION_BADGES
   };
 }
 
@@ -85,6 +88,10 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
           : DEFAULT_SECTION_VISIBILITY.environments
     },
     collectionIds: normalizeIdList(raw.collectionIds),
-    folderIds: normalizeIdList(raw.folderIds)
+    folderIds: normalizeIdList(raw.folderIds),
+    showStorageLocationBadges:
+      typeof raw.showStorageLocationBadges === 'boolean'
+        ? raw.showStorageLocationBadges
+        : DEFAULT_SHOW_STORAGE_LOCATION_BADGES
   };
 }

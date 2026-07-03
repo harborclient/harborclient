@@ -10,6 +10,7 @@ import {
 } from '#/main/storage/entityMappers';
 import { trimRequiredName } from '#/main/storage/trimRequiredName';
 import { generateDocumentUuid } from '#/main/storage/uuid';
+import { DEFAULT_CHAT_TITLE, normalizeChatTitle } from '#/shared/aiChatTitle';
 import type {
   Chat,
   ChatMessage,
@@ -21,8 +22,6 @@ import type {
 } from '#/shared/types';
 
 const REGISTRY_DB_FILENAME = 'harborclient-registry.db';
-const DEFAULT_CHAT_TITLE = 'New Chat';
-const CHAT_TITLE_MAX_LENGTH = 40;
 
 /**
  * A single entry in the local collection registry.
@@ -188,6 +187,7 @@ export class LocalDatabase {
         uuid TEXT NOT NULL DEFAULT '',
         name TEXT NOT NULL,
         code TEXT NOT NULL DEFAULT '',
+        scope TEXT NOT NULL DEFAULT 'any',
         sort_order INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
         updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -201,6 +201,7 @@ export class LocalDatabase {
     this.migrateEnvironmentUuid();
     this.migrateEnvironmentSortOrder();
     this.migrateSnippetUuid();
+    this.migrateSnippetScope();
   }
 
   /**
@@ -275,6 +276,22 @@ export class LocalDatabase {
       }
     });
     backfill(rows);
+  }
+
+  /**
+   * Adds scope to legacy snippet rows when missing.
+   */
+  private migrateSnippetScope(): void {
+    const columns = this.getDb().prepare('PRAGMA table_info(snippets)').all() as Array<{
+      name: string;
+    }>;
+    if (columns.length === 0) {
+      return;
+    }
+    if (columns.some((col) => col.name === 'scope')) {
+      return;
+    }
+    this.getDb().exec("ALTER TABLE snippets ADD COLUMN scope TEXT NOT NULL DEFAULT 'any'");
   }
 
   /**
@@ -709,7 +726,7 @@ export class LocalDatabase {
   listSnippets(): Snippet[] {
     const rows = this.getDb()
       .prepare(
-        'SELECT id, uuid, name, code, created_at, updated_at FROM snippets ORDER BY sort_order ASC, name ASC'
+        'SELECT id, uuid, name, code, scope, created_at, updated_at FROM snippets ORDER BY sort_order ASC, name ASC'
       )
       .all() as Record<string, unknown>[];
 
@@ -721,43 +738,49 @@ export class LocalDatabase {
    *
    * @param name - Display name for the snippet.
    * @param code - JavaScript source.
+   * @param scope - Script phases where the snippet may be referenced.
    * @returns The newly created snippet.
    */
-  createSnippet(name: string, code: string): Snippet {
+  createSnippet(name: string, code: string, scope: Snippet['scope'] = 'any'): Snippet {
     const trimmedName = trimRequiredName(name, 'Snippet name');
     const snippetUuid = generateDocumentUuid();
     const sortOrder = this.nextSnippetSortOrder();
     const now = new Date().toISOString();
     const result = this.getDb()
       .prepare(
-        'INSERT INTO snippets (name, uuid, code, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+        'INSERT INTO snippets (name, uuid, code, scope, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
       )
-      .run(trimmedName, snippetUuid, code ?? '', sortOrder, now, now);
+      .run(trimmedName, snippetUuid, code ?? '', scope, sortOrder, now, now);
 
     const row = this.getDb()
-      .prepare('SELECT id, uuid, name, code, created_at, updated_at FROM snippets WHERE id = ?')
+      .prepare(
+        'SELECT id, uuid, name, code, scope, created_at, updated_at FROM snippets WHERE id = ?'
+      )
       .get(result.lastInsertRowid) as Record<string, unknown>;
 
     return rowToSnippet(row);
   }
 
   /**
-   * Updates a snippet's name and code.
+   * Updates a snippet's name, code, and scope.
    *
    * @param id - Snippet ID to update.
    * @param name - New display name.
    * @param code - Updated JavaScript source.
+   * @param scope - Script phases where the snippet may be referenced.
    * @returns The updated snippet.
    */
-  updateSnippet(id: number, name: string, code: string): Snippet {
+  updateSnippet(id: number, name: string, code: string, scope: Snippet['scope'] = 'any'): Snippet {
     const trimmedName = trimRequiredName(name, 'Snippet name');
     const now = new Date().toISOString();
     this.getDb()
-      .prepare('UPDATE snippets SET name = ?, code = ?, updated_at = ? WHERE id = ?')
-      .run(trimmedName, code ?? '', now, id);
+      .prepare('UPDATE snippets SET name = ?, code = ?, scope = ?, updated_at = ? WHERE id = ?')
+      .run(trimmedName, code ?? '', scope, now, id);
 
     const row = this.getDb()
-      .prepare('SELECT id, uuid, name, code, created_at, updated_at FROM snippets WHERE id = ?')
+      .prepare(
+        'SELECT id, uuid, name, code, scope, created_at, updated_at FROM snippets WHERE id = ?'
+      )
       .get(id) as Record<string, unknown> | undefined;
 
     if (!row) {
@@ -863,19 +886,6 @@ export class LocalDatabase {
       .prepare("UPDATE chats SET updated_at = datetime('now') WHERE id = ?")
       .run(input.chatId);
 
-    if (input.role === 'user' && chatRow.title === DEFAULT_CHAT_TITLE) {
-      const userCount = this.getDb()
-        .prepare("SELECT COUNT(*) AS count FROM chat_messages WHERE chat_id = ? AND role = 'user'")
-        .get(input.chatId) as { count: number };
-
-      if (userCount.count === 1) {
-        const nextTitle = truncateChatTitle(content);
-        this.getDb()
-          .prepare('UPDATE chats SET title = ? WHERE id = ?')
-          .run(nextTitle, input.chatId);
-      }
-    }
-
     const row = this.getDb()
       .prepare(
         'SELECT id, chat_id, role, content, model, created_at FROM chat_messages WHERE id = ?'
@@ -909,6 +919,27 @@ export class LocalDatabase {
     const result = this.getDb()
       .prepare('UPDATE chats SET model = ? WHERE id = ?')
       .run(trimmed, chatId);
+
+    if (result.changes === 0) {
+      throw new Error('Chat not found');
+    }
+  }
+
+  /**
+   * Updates the display title stored on a chat row.
+   *
+   * @param chatId - Chat id to update.
+   * @param title - New tab and history title.
+   */
+  updateChatTitle(chatId: number, title: string): void {
+    const normalized = normalizeChatTitle(title);
+    if (normalized === DEFAULT_CHAT_TITLE) {
+      throw new Error('Chat title must differ from the default title');
+    }
+
+    const result = this.getDb()
+      .prepare('UPDATE chats SET title = ? WHERE id = ?')
+      .run(normalized, chatId);
 
     if (result.changes === 0) {
       throw new Error('Chat not found');
@@ -1084,16 +1115,4 @@ export class LocalDatabase {
   clearPluginFsGrants(pluginId: string): void {
     this.getDb().prepare('DELETE FROM plugin_fs_grants WHERE plugin_id = ?').run(pluginId);
   }
-}
-
-/**
- * Truncates user message text for use as a chat tab title.
- *
- * @param content - Raw message content.
- */
-function truncateChatTitle(content: string): string {
-  const normalized = content.trim().replace(/\s+/g, ' ');
-  if (!normalized) return DEFAULT_CHAT_TITLE;
-  if (normalized.length <= CHAT_TITLE_MAX_LENGTH) return normalized;
-  return `${normalized.slice(0, CHAT_TITLE_MAX_LENGTH - 1)}…`;
 }

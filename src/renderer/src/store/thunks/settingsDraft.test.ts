@@ -72,4 +72,26 @@ describe('settingsDraft thunks', () => {
     expect(apiMock.setAiSettings).toHaveBeenCalled();
     expect(selectSettingsDraftDirty(store.getState() as never)).toBe(false);
   });
+
+  it('does not overwrite unsaved draft edits when a stale load completes', async () => {
+    apiMock.getGeneralSettings.mockResolvedValue(DEFAULT_GENERAL_SETTINGS);
+    apiMock.getAiSettings.mockResolvedValue(DEFAULT_AI_SETTINGS);
+
+    const store = configureStore({
+      reducer: {
+        settingsDraft: settingsDraftReducer,
+        settings: settingsReducer
+      }
+    });
+    const dispatch = store.dispatch as AppDispatch;
+
+    await dispatch(loadSettingsDraft());
+    dispatch(setDraftGeneralField({ key: 'codeEditorFontSize', value: '18px' }));
+    expect(selectSettingsDraftDirty(store.getState() as never)).toBe(true);
+
+    await dispatch(loadSettingsDraft());
+
+    expect(store.getState().settingsDraft.general.codeEditorFontSize).toBe('18px');
+    expect(selectSettingsDraftDirty(store.getState() as never)).toBe(true);
+  });
 });

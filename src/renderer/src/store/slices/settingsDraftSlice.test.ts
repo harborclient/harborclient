@@ -50,6 +50,38 @@ describe('settingsDraftSlice', () => {
     expect(selectSettingsDraftDirty(buildState(state))).toBe(true);
   });
 
+  it('marks the draft dirty when codeEditorFontSize changes', () => {
+    let state = settingsDraftReducer(
+      undefined,
+      initSettingsDraft({
+        general: DEFAULT_GENERAL_SETTINGS,
+        ai: DEFAULT_AI_SETTINGS
+      })
+    );
+
+    state = settingsDraftReducer(
+      state,
+      setDraftGeneralField({ key: 'codeEditorFontSize', value: '18px' })
+    );
+
+    expect(state.general.codeEditorFontSize).toBe('18px');
+    expect(selectSettingsDraftDirty(buildState(state))).toBe(true);
+  });
+
+  it('normalizes codeEditorFontSize when initializing the draft', () => {
+    const state = settingsDraftReducer(
+      undefined,
+      initSettingsDraft({
+        general: { ...DEFAULT_GENERAL_SETTINGS, codeEditorFontSize: '10px' },
+        ai: DEFAULT_AI_SETTINGS
+      })
+    );
+
+    expect(state.general.codeEditorFontSize).toBe('14px');
+    expect(state.baseline?.general.codeEditorFontSize).toBe('14px');
+    expect(selectSettingsDraftDirty(buildState(state))).toBe(false);
+  });
+
   it('updates general settings fields in the draft', () => {
     let state = settingsDraftReducer(
       undefined,
