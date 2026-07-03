@@ -419,6 +419,30 @@ describe('validateRequestExport', () => {
       })
     ).toBe(true);
   });
+
+  it('preserves script reference arrays and strips expanded on validate', () => {
+    const result = validateRequestExport({
+      ...validRequestExport,
+      pre_request_scripts: [
+        { id: 's1', enabled: true, kind: 'inline', code: 'console.log("one");', expanded: true },
+        {
+          id: 's2',
+          enabled: true,
+          kind: 'snippet',
+          snippetUuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+        }
+      ],
+      post_request_scripts: [
+        { id: 's3', enabled: false, kind: 'inline', code: 'console.log("post");', expanded: false }
+      ]
+    });
+
+    expect(result.pre_request_scripts).toHaveLength(2);
+    expect(result.pre_request_scripts?.[0]).not.toHaveProperty('expanded');
+    expect(result.pre_request_scripts?.[1]?.kind).toBe('snippet');
+    expect(result.post_request_scripts).toHaveLength(1);
+    expect(result.post_request_scripts?.[0]?.enabled).toBe(false);
+  });
 });
 
 describe('validateEnvironmentExport', () => {

@@ -13,6 +13,7 @@ import type {
   RequestExport
 } from '#/shared/types';
 import { parseJson } from '#/shared/parseJson';
+import { readScriptRefsFromJson } from '#/shared/scriptRefs';
 
 /**
  * Reads and parses a JSON file, throwing a descriptive error when parsing fails.
@@ -335,7 +336,10 @@ export function writeCollectionToDir(
  * @param requests - Request export rows.
  */
 export function manifestToCollectionExport(
-  manifest: CollectionManifest,
+  manifest: CollectionManifest & {
+    pre_request_scripts?: string;
+    post_request_scripts?: string;
+  },
   requests: ExportedRequest[]
 ): CollectionExport {
   const folders: ExportedFolder[] = manifest.folders.map((folder) => ({
@@ -354,6 +358,14 @@ export function manifestToCollectionExport(
     auth: manifest.auth,
     pre_request_script: manifest.pre_request_script,
     post_request_script: manifest.post_request_script,
+    pre_request_scripts: readScriptRefsFromJson(
+      manifest.pre_request_scripts,
+      manifest.pre_request_script
+    ),
+    post_request_scripts: readScriptRefsFromJson(
+      manifest.post_request_scripts,
+      manifest.post_request_script
+    ),
     folders,
     requests
   });
@@ -484,6 +496,8 @@ export function exportedRequestToRequestExport(request: ExportedRequest): Reques
     body: request.body,
     pre_request_script: request.pre_request_script,
     post_request_script: request.post_request_script,
+    pre_request_scripts: request.pre_request_scripts,
+    post_request_scripts: request.post_request_scripts,
     comment: request.comment,
     tags: request.tags
   });

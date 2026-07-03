@@ -70,7 +70,72 @@ describe('git file layout', () => {
     expect(exported.name).toBe('API');
     expect(exported.requests.length).toBe(1);
     expect(exported.requests[0]?.name).toBe('Health');
+    expect(exported.requests[0]?.pre_request_scripts).toBeUndefined();
+    expect(exported.requests[0]?.tags).toBe('');
     expect(existsSync(join(root, '.gitignore'))).toBe(true);
+
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('round-trips script arrays and tags in request files', () => {
+    const root = mkdtempSync(join(tmpdir(), 'hc-git-layout-'));
+    ensureHarborclientLayout(root);
+
+    const uuid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const preScripts = [
+      {
+        id: 'pre-1',
+        enabled: true,
+        kind: 'inline' as const,
+        code: 'console.log("pre");'
+      }
+    ];
+    const manifest: CollectionManifest = {
+      harborclientVersion: 1,
+      harborclientExport: 'collection',
+      uuid,
+      name: 'API',
+      variables: [],
+      headers: [],
+      auth: defaultAuth(),
+      pre_request_script: '',
+      post_request_script: '',
+      folders: [],
+      created_at: '2026-01-01T00:00:00.000Z'
+    };
+
+    const dir = collectionDir(root, uuid, manifest.name);
+    writeCollectionToDir(dir, manifest, [
+      {
+        uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        name: 'Health',
+        method: 'GET',
+        url: 'https://example.com/health',
+        headers: [],
+        params: [],
+        auth: defaultAuth(),
+        body: '',
+        body_type: 'none',
+        pre_request_script: 'console.log("pre");',
+        post_request_script: '',
+        pre_request_scripts: preScripts,
+        post_request_scripts: [],
+        comment: '',
+        tags: 'api, smoke',
+        sort_order: 0,
+        folder_name: null
+      }
+    ]);
+
+    const requestFile = join(dir, 'requests', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb-health.json');
+    const requestJson = JSON.parse(readFileSync(requestFile, 'utf-8'));
+    expect(requestJson.pre_request_scripts).toEqual(preScripts);
+    expect(requestJson.tags).toBe('api, smoke');
+
+    const { requests } = readCollectionFromDir(dir);
+    const exported = manifestToCollectionExport(manifest, requests);
+    expect(exported.requests[0]?.pre_request_scripts).toEqual(preScripts);
+    expect(exported.requests[0]?.tags).toBe('api, smoke');
 
     rmSync(root, { recursive: true, force: true });
   });

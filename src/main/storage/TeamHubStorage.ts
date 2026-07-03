@@ -5,6 +5,8 @@ import {
   registerImportedFolderInMaps,
   resolveImportFolderId,
   resolveImportedFolderUuid,
+  importedRequestScriptFields,
+  savedRequestToExportedRequest,
   serializeImportedRequestFields
 } from '#/main/storage/collectionImport';
 import {
@@ -32,6 +34,7 @@ import {
 } from '@harborclient/team-hub-api';
 import { defaultAuth, normalizeAuth } from '#/shared/auth';
 import { readScriptRefsFromJson, resolveScriptRefs } from '#/shared/scriptRefs';
+import { normalizeRequestTags } from '#/shared/requestTags';
 import type {
   AuthConfig,
   Collection,
@@ -566,41 +569,12 @@ export class TeamHubStorage implements IStorage {
     const folderNameById = new Map(folderRows.map((folder) => [folder.id, folder.name]));
     const folderUuidById = new Map(folderRows.map((folder) => [folder.id, folder.uuid]));
 
-    const requests = (await this.listRequests(id)).map(
-      ({
-        uuid,
-        name,
-        method,
-        url,
-        headers,
-        params,
-        auth,
-        body,
-        body_type,
-        pre_request_script,
-        post_request_script,
-        comment,
-        tags,
-        sort_order,
-        folder_id
-      }) => ({
-        uuid,
-        name,
-        method,
-        url,
-        headers,
-        params,
-        auth,
-        body,
-        body_type,
-        pre_request_script,
-        post_request_script,
-        comment,
-        tags,
-        sort_order,
-        folder_name: folder_id != null ? (folderNameById.get(folder_id) ?? null) : null,
-        folder_uuid: folder_id != null ? (folderUuidById.get(folder_id) ?? null) : null
-      })
+    const requests = (await this.listRequests(id)).map((request) =>
+      savedRequestToExportedRequest(
+        request,
+        request.folder_id != null ? (folderNameById.get(request.folder_id) ?? null) : null,
+        request.folder_id != null ? (folderUuidById.get(request.folder_id) ?? null) : null
+      )
     );
 
     return {
@@ -613,6 +587,8 @@ export class TeamHubStorage implements IStorage {
       auth: collection.auth,
       pre_request_script: collection.pre_request_script,
       post_request_script: collection.post_request_script,
+      pre_request_scripts: collection.pre_request_scripts,
+      post_request_scripts: collection.post_request_scripts,
       folders,
       requests
     };
@@ -633,7 +609,9 @@ export class TeamHubStorage implements IStorage {
       exportData.headers,
       exportData.pre_request_script,
       exportData.post_request_script,
-      exportData.auth ?? defaultAuth()
+      exportData.auth ?? defaultAuth(),
+      resolveScriptRefs(exportData.pre_request_scripts, exportData.pre_request_script),
+      resolveScriptRefs(exportData.post_request_scripts, exportData.post_request_script)
     );
 
     const folderMaps: ReturnType<typeof buildFolderImportMaps> = {
@@ -661,6 +639,7 @@ export class TeamHubStorage implements IStorage {
         folderMaps.folderIdByUuid,
         folderMaps.folderIdByName
       );
+      const scripts = importedRequestScriptFields(request);
       await this.saveRequest({
         collection_id: updated.id,
         folder_id: folderId,
@@ -673,12 +652,12 @@ export class TeamHubStorage implements IStorage {
         auth: request.auth ?? defaultAuth(),
         body: request.body,
         body_type: request.body_type,
-        pre_request_script: request.pre_request_script,
-        post_request_script: request.post_request_script,
-        pre_request_scripts: [],
-        post_request_scripts: [],
+        pre_request_script: scripts.pre_request_script,
+        post_request_script: scripts.post_request_script,
+        pre_request_scripts: scripts.pre_request_scripts,
+        post_request_scripts: scripts.post_request_scripts,
         comment: request.comment,
-        tags: request.tags
+        tags: normalizeRequestTags(request.tags)
       });
     }
 
@@ -739,7 +718,9 @@ export class TeamHubStorage implements IStorage {
       exportData.headers,
       exportData.pre_request_script,
       exportData.post_request_script,
-      exportData.auth ?? defaultAuth()
+      exportData.auth ?? defaultAuth(),
+      resolveScriptRefs(exportData.pre_request_scripts, exportData.pre_request_script),
+      resolveScriptRefs(exportData.post_request_scripts, exportData.post_request_script)
     );
 
     const existingFolders = await this.listFolders(id);
@@ -780,6 +761,7 @@ export class TeamHubStorage implements IStorage {
       const fields = serializeImportedRequestFields(request);
       const existingRequestId = fields.uuid ? requestUuidIndex.get(fields.uuid) : undefined;
 
+      const scripts = importedRequestScriptFields(request);
       await this.saveRequest({
         ...(existingRequestId != null ? { id: existingRequestId } : {}),
         collection_id: id,
@@ -793,10 +775,10 @@ export class TeamHubStorage implements IStorage {
         auth: request.auth ?? defaultAuth(),
         body: fields.body,
         body_type: fields.body_type,
-        pre_request_script: fields.pre_request_script,
-        post_request_script: fields.post_request_script,
-        pre_request_scripts: [],
-        post_request_scripts: [],
+        pre_request_script: scripts.pre_request_script,
+        post_request_script: scripts.post_request_script,
+        pre_request_scripts: scripts.pre_request_scripts,
+        post_request_scripts: scripts.post_request_scripts,
         comment: fields.comment,
         tags: fields.tags
       });

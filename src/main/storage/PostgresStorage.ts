@@ -7,6 +7,8 @@ import {
   resolveImportFolderId,
   resolveImportedCollectionUuid,
   resolveImportedFolderUuid,
+  savedRequestToExportedRequest,
+  serializeImportedCollectionScriptFields,
   serializeImportedRequestFields
 } from '#/main/storage/collectionImport';
 import {
@@ -768,13 +770,14 @@ export class PostgresStorage implements IStorage {
    */
   async exportCollectionData(id: number): Promise<CollectionExport> {
     const result = await this.getPool().query(
-      'SELECT name, uuid, variables, headers, auth, pre_request_script, post_request_script FROM collections WHERE id = $1',
+      `SELECT ${COLLECTION_COLUMNS} FROM collections WHERE id = $1`,
       [id]
     );
 
-    const row = result.rows[0];
+    const row = result.rows[0] as Record<string, unknown> | undefined;
     if (!row) throw new Error('Collection not found');
 
+    const collection = rowToCollection(row);
     const folderRecords = await this.listFolders(id);
     const folders = folderRecords.map(({ uuid, name, sort_order }) => ({
       uuid,
@@ -784,41 +787,12 @@ export class PostgresStorage implements IStorage {
     const folderNameById = new Map(folderRecords.map((folder) => [folder.id, folder.name]));
     const folderUuidById = new Map(folderRecords.map((folder) => [folder.id, folder.uuid]));
 
-    const requests = (await this.listRequests(id)).map(
-      ({
-        uuid,
-        name,
-        method,
-        url,
-        headers,
-        params,
-        auth,
-        body,
-        body_type,
-        pre_request_script,
-        post_request_script,
-        comment,
-        tags,
-        sort_order,
-        folder_id
-      }) => ({
-        uuid,
-        name,
-        method,
-        url,
-        headers,
-        params,
-        auth,
-        body,
-        body_type,
-        pre_request_script,
-        post_request_script,
-        comment,
-        tags,
-        sort_order,
-        folder_name: folder_id != null ? (folderNameById.get(folder_id) ?? null) : null,
-        folder_uuid: folder_id != null ? (folderUuidById.get(folder_id) ?? null) : null
-      })
+    const requests = (await this.listRequests(id)).map((request) =>
+      savedRequestToExportedRequest(
+        request,
+        request.folder_id != null ? (folderNameById.get(request.folder_id) ?? null) : null,
+        request.folder_id != null ? (folderUuidById.get(request.folder_id) ?? null) : null
+      )
     );
 
     const variables = parseJson<Partial<Variable>[]>(row.variables as string, []).map(
@@ -830,13 +804,15 @@ export class PostgresStorage implements IStorage {
     return {
       harborclientVersion: 1,
       harborclientExport: 'collection',
-      uuid: row.uuid as string,
-      name: row.name as string,
+      uuid: collection.uuid,
+      name: collection.name,
       variables: maskVariablesForExport(variables),
       headers,
       auth,
-      pre_request_script: (row.pre_request_script as string) ?? '',
-      post_request_script: (row.post_request_script as string) ?? '',
+      pre_request_script: collection.pre_request_script,
+      post_request_script: collection.post_request_script,
+      pre_request_scripts: collection.pre_request_scripts,
+      post_request_scripts: collection.post_request_scripts,
       folders,
       requests
     };
@@ -857,9 +833,10 @@ export class PostgresStorage implements IStorage {
       await client.query('BEGIN');
 
       const collectionUuid = resolveImportedCollectionUuid(exportData);
+      const collectionScripts = serializeImportedCollectionScriptFields(exportData);
       const collectionResult = await client.query(
-        `INSERT INTO collections (name, uuid, variables, headers, auth, pre_request_script, post_request_script, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `INSERT INTO collections (name, uuid, variables, headers, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          RETURNING ${COLLECTION_COLUMNS}`,
         [
           exportData.name,
@@ -867,8 +844,10 @@ export class PostgresStorage implements IStorage {
           JSON.stringify(exportData.variables),
           JSON.stringify(exportData.headers),
           JSON.stringify(exportData.auth ?? defaultAuth()),
-          exportData.pre_request_script,
-          exportData.post_request_script,
+          collectionScripts.pre_request_script,
+          collectionScripts.post_request_script,
+          collectionScripts.pre_request_scripts_json,
+          collectionScripts.post_request_scripts_json,
           now
         ]
       );
@@ -908,8 +887,8 @@ export class PostgresStorage implements IStorage {
         await client.query(
           `INSERT INTO requests (
             collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
-            pre_request_script, post_request_script, comment, tags, sort_order, uuid, created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
           [
             collectionId,
             folderId,
@@ -923,6 +902,8 @@ export class PostgresStorage implements IStorage {
             fields.body_type,
             fields.pre_request_script,
             fields.post_request_script,
+            fields.pre_request_scripts_json,
+            fields.post_request_scripts_json,
             fields.comment,
             fields.tags,
             fields.sort_order,
@@ -1004,15 +985,18 @@ export class PostgresStorage implements IStorage {
     try {
       await client.query('BEGIN');
 
+      const collectionScripts = serializeImportedCollectionScriptFields(exportData);
       await client.query(
-        'UPDATE collections SET name = $1, variables = $2, headers = $3, auth = $4, pre_request_script = $5, post_request_script = $6 WHERE id = $7',
+        'UPDATE collections SET name = $1, variables = $2, headers = $3, auth = $4, pre_request_script = $5, post_request_script = $6, pre_request_scripts = $7, post_request_scripts = $8 WHERE id = $9',
         [
           exportData.name,
           JSON.stringify(exportData.variables),
           JSON.stringify(exportData.headers),
           JSON.stringify(exportData.auth ?? defaultAuth()),
-          exportData.pre_request_script,
-          exportData.post_request_script,
+          collectionScripts.pre_request_script,
+          collectionScripts.post_request_script,
+          collectionScripts.pre_request_scripts_json,
+          collectionScripts.post_request_scripts_json,
           id
         ]
       );
@@ -1068,9 +1052,9 @@ export class PostgresStorage implements IStorage {
           await client.query(
             `UPDATE requests SET
               folder_id = $1, name = $2, method = $3, url = $4, headers = $5, params = $6, auth = $7,
-              body = $8, body_type = $9, pre_request_script = $10, post_request_script = $11, comment = $12, tags = $13,
-              sort_order = $14, updated_at = $15
-            WHERE id = $16 AND collection_id = $17`,
+              body = $8, body_type = $9, pre_request_script = $10, post_request_script = $11, pre_request_scripts = $12, post_request_scripts = $13, comment = $14, tags = $15,
+              sort_order = $16, updated_at = $17
+            WHERE id = $18 AND collection_id = $19`,
             [
               folderId,
               fields.name,
@@ -1083,6 +1067,8 @@ export class PostgresStorage implements IStorage {
               fields.body_type,
               fields.pre_request_script,
               fields.post_request_script,
+              fields.pre_request_scripts_json,
+              fields.post_request_scripts_json,
               fields.comment,
               fields.tags,
               fields.sort_order,
@@ -1097,8 +1083,8 @@ export class PostgresStorage implements IStorage {
         await client.query(
           `INSERT INTO requests (
             collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
-            pre_request_script, post_request_script, comment, tags, sort_order, uuid, created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
           [
             id,
             folderId,
@@ -1112,6 +1098,8 @@ export class PostgresStorage implements IStorage {
             fields.body_type,
             fields.pre_request_script,
             fields.post_request_script,
+            fields.pre_request_scripts_json,
+            fields.post_request_scripts_json,
             fields.comment,
             fields.tags,
             fields.sort_order,

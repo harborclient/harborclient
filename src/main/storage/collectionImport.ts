@@ -6,7 +6,10 @@ import type {
   Folder,
   SavedRequest
 } from '#/shared/types';
+import { bundleScriptFieldsWithLegacy } from '#/main/storage/scriptFields';
 import { resolveImportUuid } from '#/main/storage/uuid';
+import { normalizeRequestTags } from '#/shared/requestTags';
+import { mirrorLegacyScriptString, resolveScriptRefs } from '#/shared/scriptRefs';
 
 /**
  * Maps built during folder import for resolving request folder placement.
@@ -239,6 +242,69 @@ export function resolveImportedCollectionUuid(payload: CollectionExport): string
 }
 
 /**
+ * Converts a saved request into a portable export row with folder placement metadata.
+ *
+ * @param request - Saved request from storage.
+ * @param folderName - Folder display name, or null at collection root.
+ * @param folderUuid - Portable folder uuid, or null at collection root.
+ * @returns Export row without database ids.
+ */
+export function savedRequestToExportedRequest(
+  request: SavedRequest,
+  folderName: string | null,
+  folderUuid: string | null
+): ExportedRequest {
+  return {
+    uuid: request.uuid,
+    name: request.name,
+    method: request.method,
+    url: request.url,
+    headers: request.headers,
+    params: request.params,
+    auth: request.auth,
+    body: request.body,
+    body_type: request.body_type,
+    pre_request_script: request.pre_request_script,
+    post_request_script: request.post_request_script,
+    pre_request_scripts: request.pre_request_scripts,
+    post_request_scripts: request.post_request_scripts,
+    comment: request.comment,
+    tags: request.tags,
+    sort_order: request.sort_order,
+    folder_name: folderName,
+    folder_uuid: folderUuid
+  };
+}
+
+/**
+ * Resolves collection-level script columns from a portable export payload.
+ *
+ * @param payload - Validated collection export.
+ * @returns Legacy mirror strings and serialized script reference JSON columns.
+ */
+export function serializeImportedCollectionScriptFields(payload: CollectionExport): {
+  pre_request_script: string;
+  post_request_script: string;
+  pre_request_scripts_json: string;
+  post_request_scripts_json: string;
+} {
+  const preScripts = bundleScriptFieldsWithLegacy(
+    payload.pre_request_scripts,
+    payload.pre_request_script
+  );
+  const postScripts = bundleScriptFieldsWithLegacy(
+    payload.post_request_scripts,
+    payload.post_request_script
+  );
+  return {
+    pre_request_script: preScripts.legacy,
+    post_request_script: postScripts.legacy,
+    pre_request_scripts_json: preScripts.json,
+    post_request_scripts_json: postScripts.json
+  };
+}
+
+/**
  * Serializes request fields shared by insert and update during collection import.
  *
  * @param request - Exported request row.
@@ -255,11 +321,22 @@ export function serializeImportedRequestFields(request: ExportedRequest): {
   body_type: ExportedRequest['body_type'];
   pre_request_script: string;
   post_request_script: string;
+  pre_request_scripts_json: string;
+  post_request_scripts_json: string;
   comment: string;
   tags: string;
   sort_order: number;
   uuid: string;
 } {
+  const preScripts = bundleScriptFieldsWithLegacy(
+    request.pre_request_scripts,
+    request.pre_request_script
+  );
+  const postScripts = bundleScriptFieldsWithLegacy(
+    request.post_request_scripts,
+    request.post_request_script
+  );
+
   return {
     name: request.name,
     method: request.method,
@@ -269,11 +346,41 @@ export function serializeImportedRequestFields(request: ExportedRequest): {
     authJson: JSON.stringify(request.auth ?? defaultAuth()),
     body: request.body,
     body_type: request.body_type,
-    pre_request_script: request.pre_request_script,
-    post_request_script: request.post_request_script,
+    pre_request_script: preScripts.legacy,
+    post_request_script: postScripts.legacy,
+    pre_request_scripts_json: preScripts.json,
+    post_request_scripts_json: postScripts.json,
     comment: request.comment,
-    tags: request.tags,
+    tags: normalizeRequestTags(request.tags),
     sort_order: request.sort_order,
     uuid: resolveImportedRequestUuid(request)
+  };
+}
+
+/**
+ * Resolves script list fields from a portable request export row for saveRequest callers.
+ *
+ * @param request - Exported request row from a collection or request file.
+ * @returns Legacy mirror strings and canonical script reference arrays.
+ */
+export function importedRequestScriptFields(request: ExportedRequest): {
+  pre_request_script: string;
+  post_request_script: string;
+  pre_request_scripts: ReturnType<typeof resolveScriptRefs>;
+  post_request_scripts: ReturnType<typeof resolveScriptRefs>;
+} {
+  const preRequestScripts = resolveScriptRefs(
+    request.pre_request_scripts,
+    request.pre_request_script
+  );
+  const postRequestScripts = resolveScriptRefs(
+    request.post_request_scripts,
+    request.post_request_script
+  );
+  return {
+    pre_request_script: mirrorLegacyScriptString(preRequestScripts),
+    post_request_script: mirrorLegacyScriptString(postRequestScripts),
+    pre_request_scripts: preRequestScripts,
+    post_request_scripts: postRequestScripts
   };
 }

@@ -95,6 +95,8 @@ export function buildRequestExport(req: SavedRequest): RequestExport {
     body_type: req.body_type,
     pre_request_script: req.pre_request_script ?? '',
     post_request_script: req.post_request_script ?? '',
+    pre_request_scripts: req.pre_request_scripts,
+    post_request_scripts: req.post_request_scripts,
     comment: req.comment ?? '',
     tags: req.tags ?? ''
   };

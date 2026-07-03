@@ -37,6 +37,7 @@ import {
   buildFolderImportMaps,
   buildRequestUuidIndex,
   resolveImportFolderId,
+  serializeImportedCollectionScriptFields,
   serializeImportedRequestFields
 } from '#/main/storage/collectionImport';
 import { defaultAuth, normalizeAuth } from '#/shared/auth';
@@ -721,7 +722,8 @@ export class GitStorage implements IStorage {
       return this.updateCollectionFromImport(existingId, exportData);
     }
 
-    const manifest: CollectionManifest = {
+    const collectionScripts = serializeImportedCollectionScriptFields(exportData);
+    const manifest: GitStoredManifest = {
       harborclientVersion: 1,
       harborclientExport: 'collection',
       uuid,
@@ -729,8 +731,10 @@ export class GitStorage implements IStorage {
       variables: exportData.variables,
       headers: exportData.headers,
       auth: exportData.auth ?? defaultAuth(),
-      pre_request_script: exportData.pre_request_script,
-      post_request_script: exportData.post_request_script,
+      pre_request_script: collectionScripts.pre_request_script,
+      post_request_script: collectionScripts.post_request_script,
+      pre_request_scripts: collectionScripts.pre_request_scripts_json,
+      post_request_scripts: collectionScripts.post_request_scripts_json,
       folders: (exportData.folders ?? []).map((folder, index) => ({
         uuid: resolveImportUuid(folder.uuid),
         name: folder.name,
@@ -739,12 +743,13 @@ export class GitStorage implements IStorage {
       created_at: new Date().toISOString()
     };
     const dir = collectionDir(this.#root, uuid, manifest.name);
-    writeCollectionToDir(dir, manifest, exportData.requests);
+    const gitRequests = exportData.requests.map(exportedRequestToGitStored);
+    this.writeGitCollectionToDir(dir, manifest, gitRequests);
     const id = assignGitId(this.#idIndex, 'collectionIds', 'nextCollectionId', uuid);
     this.#collections.set(id, {
       dir,
       manifest,
-      requests: exportData.requests.map(exportedRequestToGitStored)
+      requests: gitRequests
     });
     saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
     return this.manifestToCollection(id, manifest);
@@ -783,14 +788,17 @@ export class GitStorage implements IStorage {
     const exportData = validateCollectionExport(data);
     const folderMaps = buildFolderImportMaps(this.buildFolders(id, loaded));
 
+    const collectionScripts = serializeImportedCollectionScriptFields(exportData);
     loaded.manifest = {
       ...loaded.manifest,
       name: exportData.name,
       variables: exportData.variables,
       headers: exportData.headers,
       auth: exportData.auth ?? defaultAuth(),
-      pre_request_script: exportData.pre_request_script,
-      post_request_script: exportData.post_request_script
+      pre_request_script: collectionScripts.pre_request_script,
+      post_request_script: collectionScripts.post_request_script,
+      pre_request_scripts: collectionScripts.pre_request_scripts_json,
+      post_request_scripts: collectionScripts.post_request_scripts_json
     };
 
     for (const folder of exportData.folders ?? []) {
@@ -832,6 +840,7 @@ export class GitStorage implements IStorage {
           : request.folder_name;
 
       const exported = exportedRequestToGitStored({
+        ...request,
         uuid: fields.uuid,
         name: fields.name,
         method: fields.method,

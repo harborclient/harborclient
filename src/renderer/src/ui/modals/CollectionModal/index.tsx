@@ -164,7 +164,7 @@ export function CollectionModal(): JSX.Element | null {
   return (
     <Modal
       onClose={handleClose}
-      className={showImportTab ? 'w-[40rem]' : 'w-[32rem]'}
+      className={showImportTab ? 'w-[min(60rem,calc(100vw-2rem))]' : 'w-[32rem]'}
       labelledBy="collection-modal-title"
       title={modalTitle}
       description={
@@ -182,6 +182,7 @@ export function CollectionModal(): JSX.Element | null {
           <div className="-mx-4 -mt-4 mb-4">
             <SegmentedTabs
               fullWidth
+              className="[&_button]:whitespace-nowrap"
               tabs={[
                 { value: 'create', label: 'Create new' },
                 { value: 'import', label: 'Import from file' },
@@ -219,17 +220,18 @@ export function CollectionModal(): JSX.Element | null {
           </SegmentedTabPanel>
 
           <SegmentedTabPanel value="create">
-            <Input
-              className="w-full"
-              type="text"
-              autoFocus
-              placeholder="Collection name"
-              value={collectionModal.name}
-              onChange={(e) => dispatch(setCollectionModalName(e.target.value))}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void handleSubmit();
-              }}
-            />
+            <FormGroup label="Collection name" labelTone="muted">
+              <Input
+                className="w-full"
+                type="text"
+                autoFocus
+                value={collectionModal.name}
+                onChange={(e) => dispatch(setCollectionModalName(e.target.value))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void handleSubmit();
+                }}
+              />
+            </FormGroup>
             {providerField}
             <ModalFooter spaced>
               <Button
@@ -258,17 +260,18 @@ export function CollectionModal(): JSX.Element | null {
               {collectionModal.submitError}
             </FieldError>
           )}
-          <Input
-            className="w-full"
-            type="text"
-            autoFocus
-            placeholder="Collection name"
-            value={collectionModal.name}
-            onChange={(e) => dispatch(setCollectionModalName(e.target.value))}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') void handleSubmit();
-            }}
-          />
+          <FormGroup label="Collection name" labelTone="muted">
+            <Input
+              className="w-full"
+              type="text"
+              autoFocus
+              value={collectionModal.name}
+              onChange={(e) => dispatch(setCollectionModalName(e.target.value))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSubmit();
+              }}
+            />
+          </FormGroup>
           {providerField}
           <ModalFooter spaced>
             <Button

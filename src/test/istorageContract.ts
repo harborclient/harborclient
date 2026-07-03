@@ -578,6 +578,79 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
       expect(importedRequests[0]?.folder_id).toBe(importedFolders[0]?.id);
     });
 
+    it('export and import preserve script arrays and tags', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Script Export');
+      const preScripts = [
+        {
+          id: 'pre-inline',
+          enabled: true,
+          kind: 'inline' as const,
+          code: 'console.log("pre-one");'
+        },
+        {
+          id: 'pre-snippet',
+          enabled: true,
+          kind: 'snippet' as const,
+          snippetUuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+        }
+      ];
+      const postScripts = [
+        {
+          id: 'post-inline',
+          enabled: true,
+          kind: 'inline' as const,
+          code: 'console.log("post-one");'
+        }
+      ];
+      const collectionPostScripts = [
+        {
+          id: 'collection-post',
+          enabled: true,
+          kind: 'inline' as const,
+          code: 'console.log("collection-post");'
+        }
+      ];
+
+      await db.updateCollection(
+        collection.id,
+        'Script Export',
+        [],
+        [],
+        '',
+        '',
+        defaultAuth(),
+        [],
+        collectionPostScripts
+      );
+      await db.saveRequest(
+        baseRequestInput(collection.id, {
+          name: 'Tagged Request',
+          pre_request_scripts: preScripts,
+          post_request_scripts: postScripts,
+          tags: 'api, smoke'
+        })
+      );
+
+      const exported = await db.exportCollectionData(collection.id);
+
+      expect(exported.post_request_scripts).toEqual(collectionPostScripts);
+      expect(exported.requests[0]?.pre_request_scripts).toEqual(preScripts);
+      expect(exported.requests[0]?.post_request_scripts).toEqual(postScripts);
+      expect(exported.requests[0]?.tags).toBe('api, smoke');
+
+      const imported = await db.importCollectionData(exported);
+      const importedCollection = (await db.listCollections()).find(
+        (item) => item.id === imported.id
+      );
+      const importedRequests = await db.listRequests(imported.id);
+
+      expect(importedCollection?.post_request_scripts).toEqual(collectionPostScripts);
+      expect(importedRequests[0]?.pre_request_scripts).toEqual(preScripts);
+      expect(importedRequests[0]?.post_request_scripts).toEqual(postScripts);
+      expect(importedRequests[0]?.tags).toBe('api, smoke');
+    });
+
     it('updateCollectionFromImport reuses folder id when uuid matches', async () => {
       const { db } = await createTestDb();
       const collection = await db.createCollection('Folder Uuid Import');

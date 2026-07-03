@@ -14,6 +14,7 @@ import {
   oauth2Config,
   variable
 } from '#/main/schemas/common';
+import { ipcScriptRefArray, scriptSource } from '#/main/schemas/scriptRef';
 import { CODE_EDITOR_THEME_IDS } from '#/shared/codeEditorSettings';
 import { requestExportSchema } from '#/main/storage/collectionSchemas';
 import type {
@@ -109,30 +110,9 @@ export const nullableFolderId = z.union([dbId, z.null()]);
 const ipcRequestBody = z.string().max(MAX_IPC_REQUEST_BODY_CHARS);
 
 /** Pre/post script source bounded for IPC. */
-const ipcScriptSource = z.string().max(MAX_IPC_SCRIPT_CHARS);
+const ipcScriptSource = scriptSource;
 
-/** Ordered script reference entry for request/collection script lists. */
-export const scriptRef = z.discriminatedUnion('kind', [
-  z.object({
-    id: z.string().min(1),
-    enabled: z.boolean(),
-    kind: z.literal('inline'),
-    name: z.string().optional(),
-    code: ipcScriptSource.optional(),
-    expanded: z.boolean().optional()
-  }),
-  z.object({
-    id: z.string().min(1),
-    enabled: z.boolean(),
-    kind: z.literal('snippet'),
-    name: z.string().optional(),
-    snippetUuid: z.string().min(1),
-    expanded: z.boolean().optional()
-  })
-]);
-
-/** Ordered script reference arrays bounded for IPC. */
-const ipcScriptRefArray = z.array(scriptRef).max(64);
+export { scriptRef } from '#/main/schemas/scriptRef';
 
 /** URL string bounded for IPC. */
 const ipcUrl = z.string().max(MAX_IPC_URL_CHARS);

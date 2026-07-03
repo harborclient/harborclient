@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { normalizeVariable } from '#/main/storage/collectionVariables';
 import { authConfig, bodyType, httpMethod, keyValue } from '#/main/schemas/common';
+import { exportScriptRefArray } from '#/main/schemas/scriptRef';
 import type {
   CollectionExport,
   EnvironmentExport,
@@ -146,6 +147,8 @@ const exportedRequestRow = z
     body_type: bodyType,
     pre_request_script: z.string().default(''),
     post_request_script: z.string().default(''),
+    pre_request_scripts: exportScriptRefArray,
+    post_request_scripts: exportScriptRefArray,
     comment: z.string().default(''),
     tags: z.string().default(''),
     sort_order: z.number().optional(),
@@ -173,6 +176,8 @@ const exportedRequestRow = z
     body_type: req.body_type,
     pre_request_script: req.pre_request_script,
     post_request_script: req.post_request_script,
+    pre_request_scripts: req.pre_request_scripts,
+    post_request_scripts: req.post_request_scripts,
     comment: req.comment,
     tags: req.tags,
     sort_order: req.sort_order,
@@ -211,6 +216,8 @@ const collectionExportFields = {
   auth: authConfig.optional(),
   pre_request_script: z.string().default(''),
   post_request_script: z.string().default(''),
+  pre_request_scripts: exportScriptRefArray,
+  post_request_scripts: exportScriptRefArray,
   requests: exportedRequests
 };
 
@@ -322,6 +329,8 @@ const requestExportRow = z
     body_type: bodyType,
     pre_request_script: z.string().default(''),
     post_request_script: z.string().default(''),
+    pre_request_scripts: exportScriptRefArray,
+    post_request_scripts: exportScriptRefArray,
     comment: z.string().default(''),
     tags: z.string().default('')
   })
@@ -348,6 +357,8 @@ const requestExportRow = z
     body_type: req.body_type,
     pre_request_script: req.pre_request_script,
     post_request_script: req.post_request_script,
+    pre_request_scripts: req.pre_request_scripts,
+    post_request_scripts: req.post_request_scripts,
     comment: req.comment,
     tags: req.tags
   }));

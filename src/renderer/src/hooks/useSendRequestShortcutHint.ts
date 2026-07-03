@@ -30,7 +30,7 @@ function capitalizeShortcutDisplay(display: string): string {
  */
 function buildSendRequestShortcutHint(accelerator: string): string {
   const display = capitalizeShortcutDisplay(formatAcceleratorDisplay(accelerator));
-  return `Press ${display} to send request`;
+  return `Press ${display} to send request.`;
 }
 
 const DEFAULT_SEND_REQUEST_SHORTCUT_HINT = buildSendRequestShortcutHint(

@@ -32,6 +32,8 @@ import {
   resolveImportFolderId,
   resolveImportedCollectionUuid,
   resolveImportedFolderUuid,
+  savedRequestToExportedRequest,
+  serializeImportedCollectionScriptFields,
   serializeImportedRequestFields
 } from '#/main/storage/collectionImport';
 import {
@@ -817,41 +819,12 @@ export class FirestoreStorage implements IStorage {
     const folderNameById = new Map(folderRecords.map((folder) => [folder.id, folder.name]));
     const folderUuidById = new Map(folderRecords.map((folder) => [folder.id, folder.uuid]));
 
-    const requests = (await this.listRequests(id)).map(
-      ({
-        uuid,
-        name,
-        method,
-        url,
-        headers,
-        params,
-        auth,
-        body,
-        body_type,
-        pre_request_script,
-        post_request_script,
-        comment,
-        tags,
-        sort_order,
-        folder_id
-      }) => ({
-        uuid,
-        name,
-        method,
-        url,
-        headers,
-        params,
-        auth,
-        body,
-        body_type,
-        pre_request_script,
-        post_request_script,
-        comment,
-        tags,
-        sort_order,
-        folder_name: folder_id != null ? (folderNameById.get(folder_id) ?? null) : null,
-        folder_uuid: folder_id != null ? (folderUuidById.get(folder_id) ?? null) : null
-      })
+    const requests = (await this.listRequests(id)).map((request) =>
+      savedRequestToExportedRequest(
+        request,
+        request.folder_id != null ? (folderNameById.get(request.folder_id) ?? null) : null,
+        request.folder_id != null ? (folderUuidById.get(request.folder_id) ?? null) : null
+      )
     );
 
     return {
@@ -864,6 +837,8 @@ export class FirestoreStorage implements IStorage {
       auth: collectionRecord.auth,
       pre_request_script: collectionRecord.pre_request_script,
       post_request_script: collectionRecord.post_request_script,
+      pre_request_scripts: collectionRecord.pre_request_scripts,
+      post_request_scripts: collectionRecord.post_request_scripts,
       folders,
       requests
     };
@@ -882,6 +857,7 @@ export class FirestoreStorage implements IStorage {
     const firestore = this.getFirestore();
     const folders = exportData.folders ?? [];
 
+    const collectionScripts = serializeImportedCollectionScriptFields(exportData);
     const collectionData = {
       id,
       uuid: resolveImportedCollectionUuid(exportData),
@@ -889,8 +865,10 @@ export class FirestoreStorage implements IStorage {
       variables: exportData.variables,
       headers: exportData.headers,
       auth: exportData.auth ?? defaultAuth(),
-      pre_request_script: exportData.pre_request_script,
-      post_request_script: exportData.post_request_script,
+      pre_request_script: collectionScripts.pre_request_script,
+      post_request_script: collectionScripts.post_request_script,
+      pre_request_scripts: collectionScripts.pre_request_scripts_json,
+      post_request_scripts: collectionScripts.post_request_scripts_json,
       created_at: now
     };
 
@@ -950,6 +928,8 @@ export class FirestoreStorage implements IStorage {
           body_type: fields.body_type,
           pre_request_script: fields.pre_request_script,
           post_request_script: fields.post_request_script,
+          pre_request_scripts: fields.pre_request_scripts_json,
+          post_request_scripts: fields.post_request_scripts_json,
           comment: fields.comment,
           tags: fields.tags,
           sort_order: fields.sort_order,
@@ -1039,13 +1019,16 @@ export class FirestoreStorage implements IStorage {
     }
 
     const existingCollection = collectionSnap.data() as Record<string, unknown>;
+    const collectionScripts = serializeImportedCollectionScriptFields(exportData);
     await updateDoc(collectionRef, {
       name: exportData.name,
       variables: exportData.variables,
       headers: exportData.headers,
       auth: exportData.auth ?? defaultAuth(),
-      pre_request_script: exportData.pre_request_script,
-      post_request_script: exportData.post_request_script
+      pre_request_script: collectionScripts.pre_request_script,
+      post_request_script: collectionScripts.post_request_script,
+      pre_request_scripts: collectionScripts.pre_request_scripts_json,
+      post_request_scripts: collectionScripts.post_request_scripts_json
     });
 
     const existingFolders = await this.listFolders(id);
@@ -1100,6 +1083,8 @@ export class FirestoreStorage implements IStorage {
           body_type: fields.body_type,
           pre_request_script: fields.pre_request_script,
           post_request_script: fields.post_request_script,
+          pre_request_scripts: fields.pre_request_scripts_json,
+          post_request_scripts: fields.post_request_scripts_json,
           comment: fields.comment,
           tags: fields.tags,
           sort_order: fields.sort_order,
@@ -1124,6 +1109,8 @@ export class FirestoreStorage implements IStorage {
         body_type: fields.body_type,
         pre_request_script: fields.pre_request_script,
         post_request_script: fields.post_request_script,
+        pre_request_scripts: fields.pre_request_scripts_json,
+        post_request_scripts: fields.post_request_scripts_json,
         comment: fields.comment,
         tags: fields.tags,
         sort_order: fields.sort_order,
@@ -1144,8 +1131,10 @@ export class FirestoreStorage implements IStorage {
       variables: exportData.variables,
       headers: exportData.headers,
       auth: exportData.auth ?? defaultAuth(),
-      pre_request_script: exportData.pre_request_script,
-      post_request_script: exportData.post_request_script
+      pre_request_script: collectionScripts.pre_request_script,
+      post_request_script: collectionScripts.post_request_script,
+      pre_request_scripts: collectionScripts.pre_request_scripts_json,
+      post_request_scripts: collectionScripts.post_request_scripts_json
     });
   }
 

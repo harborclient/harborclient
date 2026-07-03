@@ -10,6 +10,8 @@ import {
   resolveImportFolderId,
   resolveImportedCollectionUuid,
   resolveImportedFolderUuid,
+  savedRequestToExportedRequest,
+  serializeImportedCollectionScriptFields,
   serializeImportedRequestFields
 } from '#/main/storage/collectionImport';
 import {
@@ -808,23 +810,12 @@ export class SqliteStorage implements IStorage {
    */
   async exportCollectionData(id: number): Promise<CollectionExport> {
     const row = this.getDb()
-      .prepare(
-        'SELECT name, uuid, variables, headers, auth, pre_request_script, post_request_script FROM collections WHERE id = ?'
-      )
-      .get(id) as
-      | {
-          name: string;
-          uuid: string;
-          variables: string;
-          headers: string;
-          auth: string;
-          pre_request_script: string;
-          post_request_script: string;
-        }
-      | undefined;
+      .prepare(`SELECT ${COLLECTION_COLUMNS} FROM collections WHERE id = ?`)
+      .get(id) as Record<string, unknown> | undefined;
 
     if (!row) throw new Error('Collection not found');
 
+    const collection = rowToCollection(row);
     const folderRows = await this.listFolders(id);
     const folders = folderRows.map(({ uuid, name, sort_order }) => ({
       uuid,
@@ -834,57 +825,32 @@ export class SqliteStorage implements IStorage {
     const folderNameById = new Map(folderRows.map((folder) => [folder.id, folder.name]));
     const folderUuidById = new Map(folderRows.map((folder) => [folder.id, folder.uuid]));
 
-    const requests = (await this.listRequests(id)).map(
-      ({
-        uuid,
-        name,
-        method,
-        url,
-        headers,
-        params,
-        auth,
-        body,
-        body_type,
-        pre_request_script,
-        post_request_script,
-        comment,
-        tags,
-        sort_order,
-        folder_id
-      }) => ({
-        uuid,
-        name,
-        method,
-        url,
-        headers,
-        params,
-        auth,
-        body,
-        body_type,
-        pre_request_script,
-        post_request_script,
-        comment,
-        tags,
-        sort_order,
-        folder_name: folder_id != null ? (folderNameById.get(folder_id) ?? null) : null,
-        folder_uuid: folder_id != null ? (folderUuidById.get(folder_id) ?? null) : null
-      })
+    const requests = (await this.listRequests(id)).map((request) =>
+      savedRequestToExportedRequest(
+        request,
+        request.folder_id != null ? (folderNameById.get(request.folder_id) ?? null) : null,
+        request.folder_id != null ? (folderUuidById.get(request.folder_id) ?? null) : null
+      )
     );
 
-    const variables = parseJson<Partial<Variable>[]>(row.variables, []).map(normalizeVariable);
-    const headers = parseJson<KeyValue[]>(row.headers, []);
-    const auth = normalizeAuth(parseJson(row.auth, defaultAuth()));
+    const variables = parseJson<Partial<Variable>[]>(row.variables as string, []).map(
+      normalizeVariable
+    );
+    const headers = parseJson<KeyValue[]>(row.headers as string, []);
+    const auth = normalizeAuth(parseJson(row.auth as string, defaultAuth()));
 
     return {
       harborclientVersion: 1,
       harborclientExport: 'collection',
-      uuid: row.uuid,
-      name: row.name,
+      uuid: collection.uuid,
+      name: collection.name,
       variables: maskVariablesForExport(variables),
       headers,
       auth,
-      pre_request_script: row.pre_request_script ?? '',
-      post_request_script: row.post_request_script ?? '',
+      pre_request_script: collection.pre_request_script,
+      post_request_script: collection.post_request_script,
+      pre_request_scripts: collection.pre_request_scripts,
+      post_request_scripts: collection.post_request_scripts,
       folders,
       requests
     };
@@ -903,9 +869,10 @@ export class SqliteStorage implements IStorage {
 
     const importCollection = database.transaction((payload: CollectionExport) => {
       const collectionUuid = resolveImportedCollectionUuid(payload);
+      const collectionScripts = serializeImportedCollectionScriptFields(payload);
       const collectionResult = database
         .prepare(
-          'INSERT INTO collections (name, uuid, variables, headers, auth, pre_request_script, post_request_script) VALUES (?, ?, ?, ?, ?, ?, ?)'
+          'INSERT INTO collections (name, uuid, variables, headers, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
         )
         .run(
           payload.name,
@@ -913,8 +880,10 @@ export class SqliteStorage implements IStorage {
           JSON.stringify(payload.variables),
           JSON.stringify(payload.headers),
           JSON.stringify(payload.auth ?? defaultAuth()),
-          payload.pre_request_script,
-          payload.post_request_script
+          collectionScripts.pre_request_script,
+          collectionScripts.post_request_script,
+          collectionScripts.pre_request_scripts_json,
+          collectionScripts.post_request_scripts_json
         );
 
       const collectionId = Number(collectionResult.lastInsertRowid);
@@ -938,8 +907,8 @@ export class SqliteStorage implements IStorage {
       const insertRequest = database.prepare(
         `INSERT INTO requests (
         collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
-        pre_request_script, post_request_script, comment, tags, sort_order, uuid, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       );
 
       for (const request of payload.requests) {
@@ -964,6 +933,8 @@ export class SqliteStorage implements IStorage {
           fields.body_type,
           fields.pre_request_script,
           fields.post_request_script,
+          fields.pre_request_scripts_json,
+          fields.post_request_scripts_json,
           fields.comment,
           fields.tags,
           fields.sort_order,
@@ -1034,17 +1005,20 @@ export class SqliteStorage implements IStorage {
     const now = new Date().toISOString();
 
     const runUpdate = database.transaction((payload: CollectionExport) => {
+      const collectionScripts = serializeImportedCollectionScriptFields(payload);
       database
         .prepare(
-          'UPDATE collections SET name = ?, variables = ?, headers = ?, auth = ?, pre_request_script = ?, post_request_script = ? WHERE id = ?'
+          'UPDATE collections SET name = ?, variables = ?, headers = ?, auth = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ? WHERE id = ?'
         )
         .run(
           payload.name,
           JSON.stringify(payload.variables),
           JSON.stringify(payload.headers),
           JSON.stringify(payload.auth ?? defaultAuth()),
-          payload.pre_request_script,
-          payload.post_request_script,
+          collectionScripts.pre_request_script,
+          collectionScripts.post_request_script,
+          collectionScripts.pre_request_scripts_json,
+          collectionScripts.post_request_scripts_json,
           id
         );
 
@@ -1086,13 +1060,13 @@ export class SqliteStorage implements IStorage {
       const insertRequest = database.prepare(
         `INSERT INTO requests (
         collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
-        pre_request_script, post_request_script, comment, tags, sort_order, uuid, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       );
       const updateRequest = database.prepare(
         `UPDATE requests SET
           folder_id = ?, name = ?, method = ?, url = ?, headers = ?, params = ?, auth = ?,
-          body = ?, body_type = ?, pre_request_script = ?, post_request_script = ?, comment = ?, tags = ?,
+          body = ?, body_type = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
           sort_order = ?, updated_at = ?
         WHERE id = ? AND collection_id = ?`
       );
@@ -1120,6 +1094,8 @@ export class SqliteStorage implements IStorage {
             fields.body_type,
             fields.pre_request_script,
             fields.post_request_script,
+            fields.pre_request_scripts_json,
+            fields.post_request_scripts_json,
             fields.comment,
             fields.tags,
             fields.sort_order,
@@ -1143,6 +1119,8 @@ export class SqliteStorage implements IStorage {
           fields.body_type,
           fields.pre_request_script,
           fields.post_request_script,
+          fields.pre_request_scripts_json,
+          fields.post_request_scripts_json,
           fields.comment,
           fields.tags,
           fields.sort_order,
