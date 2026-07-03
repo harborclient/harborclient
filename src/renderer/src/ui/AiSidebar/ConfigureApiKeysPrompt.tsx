@@ -4,7 +4,8 @@ import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 
 /**
- * Prompt shown when the AI sidebar is open but no provider API keys are configured.
+ * Prompt shown when the AI sidebar is open but no personal API keys or Team Hub LLM
+ * models are available.
  */
 export function ConfigureApiKeysPrompt(): JSX.Element {
   const dispatch = useAppDispatch();
@@ -16,17 +17,33 @@ export function ConfigureApiKeysPrompt(): JSX.Element {
     dispatch(openPageTab({ type: 'settings', section: 'ai' }));
   };
 
+  /**
+   * Opens the Team Hub page so the user can connect to a hub with LLM access.
+   */
+  const handleOpenTeamHubs = (): void => {
+    dispatch(openPageTab({ type: 'team-hubs' }));
+  };
+
   return (
     <EmptyState variant="centered">
       <p className="m-0">
-        Configure API keys to use AI features.{' '}
+        Configure personal API keys or connect to a Team Hub with LLM access to use AI features.{' '}
         <button
           type="button"
           className="cursor-pointer border-none bg-transparent p-0 text-[14px] text-accent hover:underline app-no-drag"
           onClick={handleOpenAiSettings}
         >
           Open AI settings
+        </button>{' '}
+        or{' '}
+        <button
+          type="button"
+          className="cursor-pointer border-none bg-transparent p-0 text-[14px] text-accent hover:underline app-no-drag"
+          onClick={handleOpenTeamHubs}
+        >
+          connect a Team Hub
         </button>
+        .
       </p>
     </EmptyState>
   );

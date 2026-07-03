@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { prefersMoreContrast, shouldUseHighContrastTheme } from '#/renderer/src/theme';
+import {
+  applyThemeAttribute,
+  prefersMoreContrast,
+  shouldUseHighContrastTheme
+} from '#/renderer/src/theme';
 
 /**
  * Installs a stub for `window.matchMedia` used by contrast-preference detection.
@@ -41,5 +45,59 @@ describe('shouldUseHighContrastTheme', () => {
   it('reports OS contrast preference via prefersMoreContrast', () => {
     stubMatchMedia(true);
     expect(prefersMoreContrast()).toBe(true);
+  });
+});
+
+describe('applyThemeAttribute', () => {
+  interface StubElement {
+    attributes: Record<string, string>;
+    setAttribute(name: string, value: string): void;
+    getAttribute(name: string): string | null;
+    hasAttribute(name: string): boolean;
+    removeAttribute(name: string): void;
+  }
+
+  let root: StubElement;
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  /**
+   * Installs a minimal document stub for data-theme attribute tests.
+   */
+  function stubDocument(): void {
+    root = {
+      attributes: {},
+      setAttribute(name: string, value: string) {
+        this.attributes[name] = value;
+      },
+      getAttribute(name: string) {
+        return this.attributes[name] ?? null;
+      },
+      hasAttribute(name: string) {
+        return Object.hasOwn(this.attributes, name);
+      },
+      removeAttribute(name: string) {
+        delete this.attributes[name];
+      }
+    };
+    vi.stubGlobal('document', { documentElement: root });
+  }
+
+  it('sets data-theme for explicit dark and light selections', () => {
+    stubDocument();
+    applyThemeAttribute('dark');
+    expect(root.getAttribute('data-theme')).toBe('dark');
+
+    applyThemeAttribute('light');
+    expect(root.getAttribute('data-theme')).toBe('light');
+  });
+
+  it('removes data-theme for system preference', () => {
+    stubDocument();
+    applyThemeAttribute('dark');
+    applyThemeAttribute('system');
+    expect(root.hasAttribute('data-theme')).toBe(false);
   });
 });

@@ -65,7 +65,8 @@ import {
   reorderEnvironments,
   reorderFolders,
   reorderRequests,
-  focusSidebarItem
+  focusSidebarItem,
+  saveAllDirtyRequests
 } from '#/renderer/src/store/thunks';
 import { Button } from '@harborclient/sdk/components';
 import { SegmentedTabs, SegmentedTabPanel, SegmentedTabsGroup } from '@harborclient/sdk/components';
@@ -678,6 +679,38 @@ export function Sidebar({
                           }
                         }}
                         onShareCollection={onShareCollection}
+                        onSaveAllInCollection={async (collectionId) => {
+                          try {
+                            const result = await dispatch(
+                              saveAllDirtyRequests({ collectionId })
+                            ).unwrap();
+                            if (result.savedCount === 0) {
+                              toast('No unsaved requests in this collection');
+                            } else {
+                              toast.success(
+                                `Saved ${result.savedCount} request${result.savedCount === 1 ? '' : 's'}`
+                              );
+                            }
+                          } catch (err) {
+                            showAlert(dispatch, formatErrorMessage(err, 'Failed to save requests'));
+                          }
+                        }}
+                        onSaveAllInFolder={async (collectionId, folderId) => {
+                          try {
+                            const result = await dispatch(
+                              saveAllDirtyRequests({ collectionId, folderId })
+                            ).unwrap();
+                            if (result.savedCount === 0) {
+                              toast('No unsaved requests in this folder');
+                            } else {
+                              toast.success(
+                                `Saved ${result.savedCount} request${result.savedCount === 1 ? '' : 's'}`
+                              );
+                            }
+                          } catch (err) {
+                            showAlert(dispatch, formatErrorMessage(err, 'Failed to save requests'));
+                          }
+                        }}
                         onNewFolder={(collectionId) => {
                           setFolderModal({ mode: 'create', collectionId, name: '', error: null });
                         }}

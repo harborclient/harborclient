@@ -116,6 +116,17 @@ export const loadChat = createAsyncThunk<number, number, ThunkApiConfig>(
 );
 
 /**
+ * Refreshes Team Hub LLM models available to the chat composer and sidebar.
+ */
+export const refreshHubLlmModels = createAsyncThunk<void, void, ThunkApiConfig>(
+  'aiChat/refreshHubLlmModels',
+  async (_, { dispatch }) => {
+    const hubModelGroups = await window.api.listHubLlmModels();
+    dispatch(setHubModelGroups(hubModelGroups));
+  }
+);
+
+/**
  * Initializes AI chat state when the sidebar opens.
  */
 export const initializeAiChat = createAsyncThunk<void, AiSettings, ThunkApiConfig>(
@@ -125,8 +136,8 @@ export const initializeAiChat = createAsyncThunk<void, AiSettings, ThunkApiConfi
     const session = await window.api.getAiChatSession();
     dispatch(setEnterToSend(session.enterToSend));
 
-    const hubModelGroups = await window.api.listHubLlmModels();
-    dispatch(setHubModelGroups(hubModelGroups));
+    await dispatch(refreshHubLlmModels()).unwrap();
+    const hubModelGroups = getState().aiChat.hubModelGroups;
 
     if (openTabIds.length > 0 && activeChatId != null) {
       return;

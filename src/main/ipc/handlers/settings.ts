@@ -1,5 +1,6 @@
 import { app, nativeTheme } from 'electron';
 import { isPickThemeFlagEnabled } from '#/main/pickTheme';
+import { getStartupThemeOverride } from '#/main/startupTheme';
 import type { IStorage } from '#/main/storage/IStorage';
 import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { rebuildAppMenu, setMenuActiveTheme } from '#/main/appMenu';
@@ -131,9 +132,13 @@ export function registerSettingsHandlers(db: IStorage): void {
   handle('app:checkForUpdates', ipcArgSchemas.none, () => checkForUpdates());
 
   // Returns the persisted light/dark/system/high-contrast theme preference.
-  handle('theme:get', ipcArgSchemas.none, async () =>
-    parseThemeSource(await db.getSetting(THEME_SETTING_KEY))
-  );
+  handle('theme:get', ipcArgSchemas.none, async () => {
+    const override = getStartupThemeOverride();
+    if (override != null) {
+      return override;
+    }
+    return parseThemeSource(await db.getSetting(THEME_SETTING_KEY));
+  });
 
   // Persists and applies the light/dark/system/high-contrast theme preference.
   handle('theme:set', ipcArgSchemas.themeSet, async (event, theme) => {
@@ -152,6 +157,9 @@ export function registerSettingsHandlers(db: IStorage): void {
   handle('theme:shouldPrompt', ipcArgSchemas.none, async () => {
     if (isPickThemeFlagEnabled()) {
       return true;
+    }
+    if (getStartupThemeOverride() != null) {
+      return false;
     }
     return (await db.getSetting(THEME_PICKER_SEEN_KEY)) !== '1';
   });

@@ -1,21 +1,27 @@
 import { useEffect, useState } from 'react';
 import { hasAvailableAiModels } from '#/shared/aiModels';
-import type { AiSettings, HubLlmModelGroup } from '#/shared/types';
+import type { AiSettings } from '#/shared/types';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { selectHubModelGroups } from '#/renderer/src/store/slices/aiChatSlice';
+import { refreshHubLlmModels } from '#/renderer/src/store/thunks/aiChat';
 import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Settings/constants';
 
 /**
  * Loads AI provider settings and Team Hub models, then reports whether chat is available.
+ *
+ * Hub model groups are stored in Redux so refreshes from team hub changes propagate
+ * to every consumer of this hook.
  *
  * @returns AI availability flag, loaded settings for chat initialization, and loading state.
  */
 export function useAiAvailability(): {
   aiAvailable: boolean;
   aiSettings: AiSettings;
-  hubModelGroups: HubLlmModelGroup[];
   loading: boolean;
 } {
+  const dispatch = useAppDispatch();
+  const hubModelGroups = useAppSelector(selectHubModelGroups);
   const [aiSettings, setAiSettings] = useState<AiSettings>(DEFAULT_AI_SETTINGS);
-  const [hubModelGroups, setHubModelGroups] = useState<HubLlmModelGroup[]>([]);
   const [loading, setLoading] = useState(true);
 
   /**
@@ -26,13 +32,10 @@ export function useAiAvailability(): {
 
     const loadSettings = async (): Promise<void> => {
       try {
-        const [value, hubs] = await Promise.all([
-          window.api.getAiSettings(),
-          window.api.listHubLlmModels()
-        ]);
+        const value = await window.api.getAiSettings();
+        await dispatch(refreshHubLlmModels()).unwrap();
         if (!cancelled) {
           setAiSettings(value);
-          setHubModelGroups(hubs);
         }
       } finally {
         if (!cancelled) {
@@ -46,12 +49,11 @@ export function useAiAvailability(): {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [dispatch]);
 
   return {
     aiAvailable: !loading && hasAvailableAiModels(aiSettings, hubModelGroups),
     aiSettings,
-    hubModelGroups,
     loading
   };
 }

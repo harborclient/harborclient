@@ -8,6 +8,8 @@ import {
   draftFromSaved,
   emptyKeyValue,
   getDirtyTabs,
+  getDirtyTabsInCollection,
+  getDirtyTabsInFolder,
   isDraftDirty,
   isTabDirty,
   normalizeDraft,
@@ -164,6 +166,45 @@ describe('getDirtyTabs', () => {
 
     expect(getDirtyTabs([clean, dirty])).toEqual([dirty]);
     expect(getDirtyTabs([clean])).toEqual([]);
+  });
+});
+
+describe('getDirtyTabsInCollection', () => {
+  it('returns dirty tabs scoped to the collection', () => {
+    const dirtyInCollection = createTab({ ...sampleDraft(), collection_id: 1, id: 10 });
+    dirtyInCollection.draft.url = 'https://changed.example';
+    const dirtyOtherCollection = createTab({ ...sampleDraft(), collection_id: 2, id: 20 });
+    dirtyOtherCollection.draft.url = 'https://other.example';
+    const cleanInCollection = createTab({ ...sampleDraft(), collection_id: 1, id: 11 });
+
+    expect(
+      getDirtyTabsInCollection([dirtyInCollection, dirtyOtherCollection, cleanInCollection], 1)
+    ).toEqual([dirtyInCollection]);
+  });
+});
+
+describe('getDirtyTabsInFolder', () => {
+  it('returns dirty tabs scoped to the folder', () => {
+    const dirtyInFolder = createTab({
+      ...sampleDraft(),
+      collection_id: 1,
+      folder_id: 5,
+      id: 10
+    });
+    dirtyInFolder.draft.url = 'https://folder.example';
+    const dirtyRoot = createTab({ ...sampleDraft(), collection_id: 1, folder_id: null, id: 11 });
+    dirtyRoot.draft.url = 'https://root.example';
+    const dirtyOtherFolder = createTab({
+      ...sampleDraft(),
+      collection_id: 1,
+      folder_id: 6,
+      id: 12
+    });
+    dirtyOtherFolder.draft.url = 'https://other-folder.example';
+
+    expect(getDirtyTabsInFolder([dirtyInFolder, dirtyRoot, dirtyOtherFolder], 1, 5)).toEqual([
+      dirtyInFolder
+    ]);
   });
 });
 

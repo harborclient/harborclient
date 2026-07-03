@@ -109,6 +109,7 @@ export function getAvailableModels(
 ): AiModelOption[] {
   const hubModels = indexHubModels(hubGroups);
   const options: AiModelOption[] = [];
+  const includedIds = new Set<string>();
 
   for (const model of AI_MODELS) {
     const hub = hubModels.get(model.id);
@@ -120,6 +121,7 @@ export function getAvailableModels(
         hubId: hub.hubId,
         hubName: hub.hubName
       });
+      includedIds.add(model.id);
       continue;
     }
 
@@ -129,6 +131,25 @@ export function getAvailableModels(
         label: `${model.label} (Personal)`,
         source: 'personal'
       });
+      includedIds.add(model.id);
+    }
+  }
+
+  for (const group of hubGroups) {
+    for (const model of group.models) {
+      if (includedIds.has(model.id)) {
+        continue;
+      }
+
+      options.push({
+        id: model.id,
+        label: `${model.label} (Team Hub)`,
+        provider: model.provider,
+        source: 'hub',
+        hubId: group.hubId,
+        hubName: group.hubName
+      });
+      includedIds.add(model.id);
     }
   }
 

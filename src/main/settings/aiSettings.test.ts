@@ -92,6 +92,16 @@ describe('aiSettings', () => {
     expect(stored).toContain('"method":"safeStorage"');
   });
 
+  it('returns defaults when encrypted settings cannot be decrypted', () => {
+    settingsStore.aiSettings = JSON.stringify({
+      v: 1,
+      method: 'safeStorage',
+      ciphertext: Buffer.from('corrupt').toString('base64')
+    });
+
+    expect(getAiSettings()).toEqual(DEFAULT_AI_SETTINGS);
+  });
+
   it('migrates legacy plaintext settings to encrypted storage', () => {
     settingsStore.aiSettings = JSON.stringify({
       openaiApiKey: 'legacy-openai',

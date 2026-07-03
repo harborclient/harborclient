@@ -37,9 +37,12 @@ import { saveGlobalVariables } from '#/renderer/src/store/thunks/settings';
 import {
   cloneDraft,
   draftFromSaved,
+  getDirtyTabsInCollection,
+  getDirtyTabsInFolder,
   isPageTab,
   isRequestTab,
-  isTabDirty
+  isTabDirty,
+  type RequestTab
 } from '#/renderer/src/store/drafts';
 import { setSelectedCollectionId } from '#/renderer/src/store/slices/collectionsSlice';
 import { addConsoleEntry } from '#/renderer/src/store/slices/consoleSlice';
@@ -60,7 +63,7 @@ import {
   updateActiveTabDraftAfterSave,
   updateTab
 } from '#/renderer/src/store/slices/tabsSlice';
-import type { AppDispatch, ThunkApiConfig } from '#/renderer/src/store/redux';
+import type { AppDispatch, RootState, ThunkApiConfig } from '#/renderer/src/store/redux';
 import { selectActiveTab } from '#/renderer/src/store/selectors';
 import {
   moveRequestToFolder,
@@ -138,68 +141,129 @@ export const importRequest = createAsyncThunk<
 });
 
 /**
+ * Persists a single request tab draft to storage and syncs tab saved state.
+ *
+ * @param tab - Open request tab to save.
+ * @param getState - Reads current Redux state for collection selection and snippets.
+ * @param dispatch - Dispatches tab updates after persistence.
+ * @param collectionId - Explicit target collection id; overrides draft and selection when provided.
+ * @returns The saved request from storage.
+ */
+async function persistRequestTab(
+  tab: RequestTab,
+  getState: () => RootState,
+  dispatch: (action: ReturnType<typeof updateActiveTabDraftAfterSave>) => void,
+  collectionId?: number
+): Promise<SavedRequest> {
+  const state = getState();
+  const currentDraft = tab.draft;
+  const targetId =
+    collectionId ??
+    (currentDraft.id != null ? currentDraft.collection_id : undefined) ??
+    state.collections.selectedCollectionId;
+  if (targetId == null) {
+    throw new Error('Select a collection first');
+  }
+
+  const sameCollection = currentDraft.collection_id === targetId;
+  const shouldUpdate = currentDraft.id != null && sameCollection;
+  const preRequestScripts = autoNameUnnamedScripts(
+    normalizeScriptRefs(currentDraft.pre_request_scripts),
+    getState().snippets.snippets
+  );
+  const postRequestScripts = autoNameUnnamedScripts(
+    normalizeScriptRefs(currentDraft.post_request_scripts),
+    getState().snippets.snippets
+  );
+
+  const saved = await window.api.saveRequest({
+    id: shouldUpdate ? currentDraft.id : undefined,
+    collection_id: targetId,
+    folder_id: sameCollection ? (currentDraft.folder_id ?? null) : null,
+    name: currentDraft.name,
+    method: currentDraft.method,
+    url: currentDraft.url,
+    headers: currentDraft.headers.filter((h) => h.key.trim() || h.value.trim()),
+    params: currentDraft.params.filter((p) => p.key.trim() || p.value.trim()),
+    body: currentDraft.body,
+    body_type: currentDraft.body_type,
+    pre_request_script: mirrorLegacyScriptString(preRequestScripts),
+    post_request_script: mirrorLegacyScriptString(postRequestScripts),
+    pre_request_scripts: preRequestScripts,
+    post_request_scripts: postRequestScripts,
+    comment: currentDraft.comment ?? '',
+    auth: currentDraft.auth
+  });
+
+  const savedDraft = cloneDraft(draftFromSaved(saved));
+  dispatch(updateActiveTabDraftAfterSave({ tabId: tab.tabId, savedDraft }));
+  return saved;
+}
+
+/**
  * Persists the active tab draft to the selected or specified collection.
  */
 export const saveRequest = createAsyncThunk<SavedRequest, number | undefined, ThunkApiConfig>(
   'tabs/saveRequest',
   async (collectionId, { dispatch, getState }) => {
-    const state = getState();
-    const activeTab = selectActiveTab(state);
+    const activeTab = selectActiveTab(getState());
     if (!activeTab || !isRequestTab(activeTab)) throw new Error('No active tab');
 
-    const currentDraft = activeTab.draft;
-    // An already-saved request must persist back to its own collection. Falling
-    // back to the currently-selected collection would create a copy there and
-    // leave the original (e.g. a git-backed request) stale, so the draft's own
-    // collection takes precedence unless an explicit target was passed in.
-    const targetId =
-      collectionId ??
-      (currentDraft.id != null ? currentDraft.collection_id : undefined) ??
-      state.collections.selectedCollectionId;
-    if (targetId == null) {
-      throw new Error('Select a collection first');
-    }
-
-    const sameCollection = currentDraft.collection_id === targetId;
-    const shouldUpdate = currentDraft.id != null && sameCollection;
-    // Folders are scoped to a single collection, so a folder_id is only valid when
-    // saving back into the draft's own collection. Saving into a different collection
-    // creates a copy at the root; carrying the source folder_id would reference a
-    // folder that does not exist in the target and fail with "Folder not found".
-    const preRequestScripts = autoNameUnnamedScripts(
-      normalizeScriptRefs(currentDraft.pre_request_scripts),
-      getState().snippets.snippets
-    );
-    const postRequestScripts = autoNameUnnamedScripts(
-      normalizeScriptRefs(currentDraft.post_request_scripts),
-      getState().snippets.snippets
-    );
-
-    const saved = await window.api.saveRequest({
-      id: shouldUpdate ? currentDraft.id : undefined,
-      collection_id: targetId,
-      folder_id: sameCollection ? (currentDraft.folder_id ?? null) : null,
-      name: currentDraft.name,
-      method: currentDraft.method,
-      url: currentDraft.url,
-      headers: currentDraft.headers.filter((h) => h.key.trim() || h.value.trim()),
-      params: currentDraft.params.filter((p) => p.key.trim() || p.value.trim()),
-      body: currentDraft.body,
-      body_type: currentDraft.body_type,
-      pre_request_script: mirrorLegacyScriptString(preRequestScripts),
-      post_request_script: mirrorLegacyScriptString(postRequestScripts),
-      pre_request_scripts: preRequestScripts,
-      post_request_scripts: postRequestScripts,
-      comment: currentDraft.comment ?? '',
-      auth: currentDraft.auth
-    });
-
-    const savedDraft = cloneDraft(draftFromSaved(saved));
-    dispatch(updateActiveTabDraftAfterSave({ tabId: activeTab.tabId, savedDraft }));
-    await dispatch(refreshRequests(targetId));
+    const saved = await persistRequestTab(activeTab, getState, dispatch, collectionId);
+    await dispatch(refreshRequests(saved.collection_id));
     return saved;
   }
 );
+
+/**
+ * Payload for {@link saveAllDirtyRequests}.
+ */
+export interface SaveAllDirtyRequestsArgs {
+  /**
+   * Collection whose unsaved open tabs should be saved.
+   */
+  collectionId: number;
+
+  /**
+   * When set, only tabs in this folder are saved; omit for the whole collection.
+   */
+  folderId?: number;
+}
+
+/**
+ * Result of {@link saveAllDirtyRequests}.
+ */
+export interface SaveAllDirtyRequestsResult {
+  /**
+   * Number of tabs successfully persisted.
+   */
+  savedCount: number;
+}
+
+/**
+ * Saves every dirty open request tab in a collection or folder scope.
+ */
+export const saveAllDirtyRequests = createAsyncThunk<
+  SaveAllDirtyRequestsResult,
+  SaveAllDirtyRequestsArgs,
+  ThunkApiConfig
+>('tabs/saveAllDirtyRequests', async ({ collectionId, folderId }, { dispatch, getState }) => {
+  const tabs =
+    folderId != null
+      ? getDirtyTabsInFolder(getState().tabs.tabs, collectionId, folderId)
+      : getDirtyTabsInCollection(getState().tabs.tabs, collectionId);
+
+  if (tabs.length === 0) {
+    return { savedCount: 0 };
+  }
+
+  for (const tab of tabs) {
+    await persistRequestTab(tab, getState, dispatch, collectionId);
+  }
+
+  await dispatch(refreshCollectionContents(collectionId));
+  return { savedCount: tabs.length };
+});
 
 /**
  * Deletes a saved request and closes any editor tabs showing it.

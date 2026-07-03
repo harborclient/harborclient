@@ -19,6 +19,7 @@ import { faPlus, faUsers } from '#/renderer/src/fontawesome';
 
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { refreshCollections } from '#/renderer/src/store/thunks/collections';
+import { refreshHubLlmModels } from '#/renderer/src/store/thunks/aiChat';
 import { formatIpcErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
 import { createBlankTeamHub, validateTeamHubForm } from './constants';
@@ -188,6 +189,7 @@ export function TeamHubList({
       await window.api.saveTeamHub(payload);
       reload();
       await dispatch(refreshCollections());
+      void dispatch(refreshHubLlmModels());
       setEditingHub(null);
       setIsNew(false);
       toast.success('Team hub saved.');
@@ -237,6 +239,7 @@ export function TeamHubList({
       await window.api.deleteTeamHub(id);
       reload();
       await dispatch(refreshCollections());
+      void dispatch(refreshHubLlmModels());
       if (editingHub?.id === id) {
         handleCancelEdit();
       }

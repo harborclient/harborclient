@@ -39,11 +39,26 @@ export function shouldUseHighContrastTheme(theme: ThemeSource): boolean {
  * Applies the renderer theme attribute on the document root so CSS overrides
  * can target high-contrast mode without relying on nativeTheme alone.
  *
+ * Explicit light and dark selections set `data-theme` so palettes apply even
+ * when `prefers-color-scheme` does not follow Electron nativeTheme (for example
+ * under Playwright automation). System theme omits the attribute and uses OS
+ * color-scheme media queries instead.
+ *
  * @param theme - Persisted theme preference.
  */
 export function applyThemeAttribute(theme: ThemeSource): void {
   if (shouldUseHighContrastTheme(theme)) {
     document.documentElement.setAttribute('data-theme', 'high-contrast');
+    return;
+  }
+
+  if (theme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    return;
+  }
+
+  if (theme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
     return;
   }
 

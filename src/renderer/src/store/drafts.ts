@@ -297,6 +297,35 @@ export function getDirtyTabs(tabs: Tab[]): RequestTab[] {
 }
 
 /**
+ * Returns dirty open tabs belonging to a collection (root and all folders).
+ *
+ * @param tabs - Open tabs from the tab bar.
+ * @param collectionId - Collection whose unsaved requests should be saved.
+ * @returns Dirty request tabs whose draft belongs to the collection.
+ */
+export function getDirtyTabsInCollection(tabs: Tab[], collectionId: number): RequestTab[] {
+  return getDirtyTabs(tabs).filter((tab) => tab.draft.collection_id === collectionId);
+}
+
+/**
+ * Returns dirty open tabs belonging to a folder within a collection.
+ *
+ * @param tabs - Open tabs from the tab bar.
+ * @param collectionId - Parent collection id.
+ * @param folderId - Folder whose unsaved requests should be saved.
+ * @returns Dirty request tabs whose draft belongs to the folder.
+ */
+export function getDirtyTabsInFolder(
+  tabs: Tab[],
+  collectionId: number,
+  folderId: number
+): RequestTab[] {
+  return getDirtyTabs(tabs).filter(
+    (tab) => tab.draft.collection_id === collectionId && (tab.draft.folder_id ?? null) === folderId
+  );
+}
+
+/**
  * Returns a new unsaved request draft with default values.
  *
  * @returns Default RequestDraft for a new request.

@@ -4,36 +4,44 @@ import {
   ResizeHandle,
   useResizable
 } from '@harborclient/sdk/components';
-import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
-import type { AiSettings, HubLlmModelGroup } from '#/shared/types';
+import { useEffect, useMemo, useRef, type JSX } from 'react';
 import { hasAvailableAiModels } from '#/shared/aiModels';
 
 import { faClockRotateLeft, faPaperPlane, faPlus, faXmark } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
-import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
+import {
+  selectAiSidebarVisible,
+  setShowAiSidebar
+} from '#/renderer/src/store/slices/navigationSlice';
 import {
   selectEnterToSend,
   selectHistoryOpen,
+  selectHubModelGroups,
   setEnterToSend,
   setHistoryOpen
 } from '#/renderer/src/store/slices/aiChatSlice';
-import { createNewChat, openExistingChat } from '#/renderer/src/store/thunks/aiChat';
-import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Settings/constants';
+import {
+  createNewChat,
+  openExistingChat,
+  refreshHubLlmModels
+} from '#/renderer/src/store/thunks/aiChat';
+import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
 import { ChatHistory } from './Chat/ChatHistory';
 import { ConfigureApiKeysPrompt } from './ConfigureApiKeysPrompt';
 import { AiChat } from './Chat';
 
 /**
- * Right-side AI panel shell. Shows a configure-keys prompt when no API keys exist.
+ * Right-side AI panel shell. Shows a configure-access prompt when no personal keys
+ * or Team Hub LLM models are available.
  */
 export function AiSidebar(): JSX.Element {
   const dispatch = useAppDispatch();
+  const aiSidebarVisible = useAppSelector(selectAiSidebarVisible);
   const historyOpen = useAppSelector(selectHistoryOpen);
   const enterToSend = useAppSelector(selectEnterToSend);
+  const hubModelGroups = useAppSelector(selectHubModelGroups);
   const historyButtonRef = useRef<HTMLButtonElement>(null);
-  const [aiSettings, setAiSettings] = useState<AiSettings>(DEFAULT_AI_SETTINGS);
-  const [hubModelGroups, setHubModelGroups] = useState<HubLlmModelGroup[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { aiSettings, loading } = useAiAvailability();
 
   const {
     size: width,
@@ -51,34 +59,16 @@ export function AiSidebar(): JSX.Element {
   });
 
   /**
-   * Loads AI settings on mount so the empty-state prompt reflects stored keys.
+   * Refreshes hub LLM models whenever the sidebar opens so newly added Team Hubs
+   * are reflected without restarting the app.
    */
   useEffect(() => {
-    let cancelled = false;
+    if (!aiSidebarVisible) {
+      return;
+    }
 
-    const loadSettings = async (): Promise<void> => {
-      try {
-        const [value, hubs] = await Promise.all([
-          window.api.getAiSettings(),
-          window.api.listHubLlmModels()
-        ]);
-        if (!cancelled) {
-          setAiSettings(value);
-          setHubModelGroups(hubs);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void loadSettings();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    void dispatch(refreshHubLlmModels());
+  }, [aiSidebarVisible, dispatch]);
 
   /**
    * Toolbar actions for closing the AI sidebar, chat history, and new chat.

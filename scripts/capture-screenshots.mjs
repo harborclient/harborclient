@@ -6,7 +6,7 @@
  * menu (see src/main/menu.ts and src/shared/shortcuts.ts).
  */
 import { spawnSync } from 'node:child_process';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { _electron as electron } from 'playwright';
@@ -15,6 +15,8 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const defaultMacroPath = path.join(projectRoot, 'screenshots.macro.json');
 const defaultOutDir = path.join(projectRoot, 'images', 'screenshots');
 const mainEntry = path.join(projectRoot, 'out', 'main', 'index.js');
+const mainSourceRoot = path.join(projectRoot, 'src', 'main');
+const rendererSourceRoot = path.join(projectRoot, 'src', 'renderer');
 const defaultUserDataDir = path.join(
   process.env.HOME ?? process.env.USERPROFILE ?? '',
   '.config',
@@ -47,7 +49,9 @@ function parseArgs() {
     width: 1024,
     height: 576,
     build: false,
-    userDataDir: defaultUserDataDir
+    userDataDir: defaultUserDataDir,
+    from: null,
+    theme: 'dark'
   };
 
   for (let index = 0; index < args.length; index += 1) {
@@ -79,6 +83,16 @@ function parseArgs() {
     if (arg === '--user-data-dir' && args[index + 1]) {
       options.userDataDir = path.resolve(args[index + 1]);
       index += 1;
+      continue;
+    }
+    if (arg === '--from' && args[index + 1]) {
+      options.from = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === '--theme' && args[index + 1]) {
+      options.theme = args[index + 1];
+      index += 1;
     }
   }
 
@@ -103,6 +117,72 @@ function runOrExit(command, commandArgs) {
 }
 
 /**
+ * Returns the newest modification time under a directory tree.
+ *
+ * @param {string} directory - Root directory to scan.
+ * @returns Latest mtime in milliseconds, or 0 when empty.
+ */
+async function getDirectoryNewestMtime(directory) {
+  let newest = 0;
+  const entries = await readdir(directory, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      newest = Math.max(newest, await getDirectoryNewestMtime(entryPath));
+      continue;
+    }
+    if (!entry.isFile()) {
+      continue;
+    }
+    const entryStat = await stat(entryPath);
+    newest = Math.max(newest, entryStat.mtimeMs);
+  }
+
+  return newest;
+}
+
+/**
+ * Returns true when the bundled app output is older than source trees.
+ *
+ * @returns Whether `pnpm build` should run before launching Electron.
+ */
+async function isMainBuildStale() {
+  try {
+    const [builtStat, mainSourceMtime, rendererSourceMtime] = await Promise.all([
+      stat(mainEntry),
+      getDirectoryNewestMtime(mainSourceRoot),
+      getDirectoryNewestMtime(rendererSourceRoot)
+    ]);
+    const sourceMtime = Math.max(mainSourceMtime, rendererSourceMtime);
+    return sourceMtime > builtStat.mtimeMs;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Builds Playwright launch args for HarborClient, including app CLI switches.
+ *
+ * @param {object} options - Parsed screenshot runner options.
+ * @param {string} options.theme - Built-in theme id forwarded as `--theme`.
+ * @param {string} options.userDataDir - Electron profile directory.
+ * @returns Argument list passed to the packaged main entry.
+ */
+function buildElectronLaunchArgs(options) {
+  return [
+    mainEntry,
+    '--no-sandbox',
+    '--disable-gpu',
+    '--disable-software-rasterizer',
+    '--quit-without-warning',
+    '--theme',
+    options.theme,
+    `--user-data-dir=${options.userDataDir}`
+  ];
+}
+
+/**
  * Ensures the Electron build exists, optionally running `pnpm build`.
  *
  * @param {boolean} shouldBuild - When true, always rebuild before capture.
@@ -113,10 +193,16 @@ async function ensureBuild(shouldBuild) {
     return;
   }
 
+  let needsBuild = false;
   try {
     await readFile(mainEntry);
+    needsBuild = await isMainBuildStale();
   } catch {
-    console.log('Built app not found; running pnpm build…');
+    needsBuild = true;
+  }
+
+  if (needsBuild) {
+    console.log('Main process build is missing or stale; running pnpm build…');
     runOrExit('pnpm', ['build']);
   }
 }
@@ -160,30 +246,47 @@ function resolveShortcutAction(shortcut) {
 }
 
 /**
+ * Dismisses first-run or blocking modals that cover the main workspace.
+ *
+ * @param {import('playwright').Page} page - Main window page.
+ */
+async function dismissBlockingModals(page) {
+  const notNowButton = page.getByRole('button', { name: 'Not now' });
+  if (await notNowButton.isVisible().catch(() => false)) {
+    await notNowButton.click();
+    await page.waitForTimeout(200);
+  }
+}
+
+/**
  * Waits until the main HarborClient window is available and the request UI is ready.
+ *
+ * Plugin agent windows may appear during startup; they are ignored. The theme picker
+ * and other blocking modals are dismissed when detected.
  *
  * @param {import('playwright').ElectronApplication} app - Launched Electron app.
  * @returns Main window page.
  */
 async function waitForMainWindow(app) {
-  const deadline = Date.now() + 90_000;
+  const deadline = Date.now() + 180_000;
 
   while (Date.now() < deadline) {
     for (const window of app.windows()) {
-      const title = await window.title();
+      const title = await window.title().catch(() => '');
       if (title !== 'HarborClient') {
         continue;
       }
 
       await window.waitForLoadState('domcontentloaded', { timeout: 5_000 }).catch(() => undefined);
-      const requestUrl = window.getByLabel('Request URL');
-      if (await requestUrl.isVisible().catch(() => false)) {
+      await prepareMainWorkspace(window);
+
+      if (await isMainWorkspaceReady(window)) {
         return window;
       }
     }
 
     await new Promise((resolve) => {
-      setTimeout(resolve, 250);
+      setTimeout(resolve, 500);
     });
   }
 
@@ -227,24 +330,80 @@ async function sendMenuAction(app, action) {
   }, action);
 }
 
+/** Accessible names for configuration page tab close buttons. */
+const PAGE_TAB_CLOSE_PATTERN =
+  /^Close (General|Globals|Snippets|Storage|Shortcuts|Syntax highlighting|AI|Proxy|Backup & Restore|Plugins|Team Hub|Sharing Keys)/;
+
 /**
- * Resets UI state before each shot by closing overlays and modals.
- *
- * Avoids the frameless Linux title-bar window Close control, which would quit the app.
+ * Closes open configuration page tabs from the tab bar.
  *
  * @param {import('playwright').Page} page - Main window page.
- * @param {import('playwright').ElectronApplication} app - Launched Electron app.
  */
-async function resetState(page, app) {
+async function closePageTabs(page) {
+  const tabList = page.getByRole('tablist', { name: 'Open tabs' });
+  const pageTabCloseButtons = tabList.getByRole('button', { name: PAGE_TAB_CLOSE_PATTERN });
+  const pageTabCloseCount = await pageTabCloseButtons.count().catch(() => 0);
+  for (let index = 0; index < pageTabCloseCount; index += 1) {
+    const closeButton = pageTabCloseButtons.first();
+    if (!(await closeButton.isVisible().catch(() => false))) {
+      break;
+    }
+    await closeButton.click();
+    await page.waitForTimeout(150);
+  }
+}
+
+/**
+ * Returns true when the main workspace shell is ready for macro steps.
+ *
+ * @param {import('playwright').Page} page - Main window page.
+ * @returns Whether the collections sidebar or request editor is visible.
+ */
+async function isMainWorkspaceReady(page) {
+  if (await page.getByLabel('Request URL').isVisible().catch(() => false)) {
+    return true;
+  }
+
+  if (await page.getByRole('navigation', { name: 'Collections' }).isVisible().catch(() => false)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Clears persisted page tabs and modals so the workspace is reachable on startup.
+ *
+ * @param {import('playwright').Page} page - Main window page.
+ */
+async function prepareMainWorkspace(page) {
+  await dismissBlockingModals(page);
+
   for (let attempt = 0; attempt < 3; attempt += 1) {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(100);
   }
 
-  const cancelButton = page.getByRole('button', { name: 'Cancel' }).first();
-  if (await cancelButton.isVisible().catch(() => false)) {
-    await cancelButton.click();
-    await page.waitForTimeout(150);
+  await closePageTabs(page);
+}
+
+/**
+ * Resets UI state before each shot by closing page tabs, modals, and side panels.
+ *
+ * Settings, Plugins, Team Hub, and Sharing Keys open as page tabs rather than
+ * overlays. Escape dismisses modals and tabs; nested Team Hub views also need
+ * Back. Avoids the frameless Linux title-bar window Close control, which would
+ * quit the app.
+ *
+ * @param {import('playwright').Page} page - Main window page.
+ * @param {import('playwright').ElectronApplication} app - Launched Electron app.
+ */
+async function resetState(page, app) {
+  await dismissBlockingModals(page);
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(100);
   }
 
   const backButton = page.getByRole('button', { name: 'Back' });
@@ -253,14 +412,13 @@ async function resetState(page, app) {
     await page.waitForTimeout(150);
   }
 
-  const overlayHeaders = page.locator('h1').filter({
-    hasText: /^(Settings|Team Hubs|Sharing Keys|Manage users|Manage tokens)$/
-  });
-  const overlayClose = overlayHeaders.locator('..').getByRole('button', { name: 'Close' });
-  if (await overlayClose.isVisible().catch(() => false)) {
-    await overlayClose.click();
+  const cancelButton = page.getByRole('button', { name: 'Cancel' }).first();
+  if (await cancelButton.isVisible().catch(() => false)) {
+    await cancelButton.click();
     await page.waitForTimeout(150);
   }
+
+  await closePageTabs(page);
 
   const aiSidebar = page.locator("aside[aria-label='AI']");
   if (await aiSidebar.isVisible().catch(() => false)) {
@@ -270,6 +428,11 @@ async function resetState(page, app) {
 
   await page
     .getByLabel('Request URL')
+    .waitFor({ state: 'visible', timeout: 5_000 })
+    .catch(() => undefined);
+
+  await page
+    .getByRole('navigation', { name: 'Collections' })
     .waitFor({ state: 'visible', timeout: 5_000 })
     .catch(() => undefined);
 }
@@ -320,10 +483,25 @@ function buildLocator(page, target) {
   }
 
   if (target.text) {
-    return page.getByText(target.text, { exact: false }).first();
+    const textMatcher = parseNameMatcher(target.text);
+    return page.getByText(textMatcher, { exact: false }).first();
   }
 
   throw new Error(`Invalid click target: ${JSON.stringify(target)}`);
+}
+
+/**
+ * Resolves the Playwright timeout for a macro step.
+ *
+ * @param {Record<string, unknown>} step - Macro step definition.
+ * @param {number} defaultTimeout - Timeout when the step does not override it.
+ * @returns Timeout in milliseconds.
+ */
+function stepTimeout(step, defaultTimeout) {
+  if (typeof step.timeout === 'number' && step.timeout > 0) {
+    return step.timeout;
+  }
+  return defaultTimeout;
 }
 
 /**
@@ -352,7 +530,7 @@ async function runStep(page, app, step) {
 
   if (step.click) {
     const locator = buildLocator(page, step.click);
-    const timeout = step.optional ? 2_000 : 10_000;
+    const timeout = stepTimeout(step, step.optional ? 2_000 : 10_000);
     try {
       await locator.waitFor({ state: 'visible', timeout });
       await locator.click();
@@ -404,7 +582,7 @@ async function runStep(page, app, step) {
       return;
     }
     const locator = buildLocator(page, step.waitFor);
-    const timeout = step.optional ? 2_000 : 10_000;
+    const timeout = stepTimeout(step, step.optional ? 2_000 : 10_000);
     try {
       await locator.waitFor({ state: 'visible', timeout });
     } catch (error) {
@@ -505,17 +683,29 @@ async function main() {
   const options = parseArgs();
   console.log('Preparing HarborClient screenshot capture…');
   await ensureBuild(options.build);
-  const entries = await loadMacro(options.macro);
+  const allEntries = await loadMacro(options.macro);
+  const fromIndex =
+    options.from == null
+      ? 0
+      : allEntries.findIndex((entry) => entry.filename === options.from);
+  if (options.from != null && fromIndex < 0) {
+    throw new Error(`Unknown --from filename: ${options.from}`);
+  }
+  const entries = fromIndex > 0 ? allEntries.slice(fromIndex) : allEntries;
   await mkdir(options.out, { recursive: true });
 
-  console.log('Launching Electron app…');
+  const launchArgs = buildElectronLaunchArgs(options);
+
+  console.log(
+    `Launching Electron app (--theme ${options.theme}, --quit-without-warning)…`
+  );
   const app = await electron.launch({
-    args: [mainEntry, '--no-sandbox', `--user-data-dir=${options.userDataDir}`],
+    args: launchArgs,
     env: {
       ...process.env,
       ELECTRON_DISABLE_SANDBOX: '1'
     },
-    timeout: 120_000
+    timeout: 180_000
   });
 
   try {

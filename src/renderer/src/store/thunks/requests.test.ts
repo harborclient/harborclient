@@ -33,6 +33,7 @@ function createLocalStorageMock(): Storage {
 
 const saveRequestMock = vi.fn<(input: SaveRequestInput) => Promise<SavedRequest>>();
 const listRequestsMock = vi.fn<(collectionId: number) => Promise<SavedRequest[]>>();
+const listFoldersMock = vi.fn<(collectionId: number) => Promise<unknown[]>>();
 const cancelRequestMock = vi.fn<(requestId: string) => Promise<void>>();
 
 /**
@@ -69,6 +70,7 @@ beforeEach(() => {
     api: {
       saveRequest: saveRequestMock,
       listRequests: listRequestsMock,
+      listFolders: listFoldersMock,
       cancelRequest: cancelRequestMock
     }
   });
@@ -76,6 +78,8 @@ beforeEach(() => {
   saveRequestMock.mockImplementation((input) => Promise.resolve(savedFrom(input)));
   listRequestsMock.mockReset();
   listRequestsMock.mockResolvedValue([]);
+  listFoldersMock.mockReset();
+  listFoldersMock.mockResolvedValue([]);
   cancelRequestMock.mockReset();
   cancelRequestMock.mockResolvedValue(undefined);
 });
@@ -230,6 +234,96 @@ describe('saveRequest script lists', () => {
 
     const input = saveRequestMock.mock.calls.at(-1)?.[0];
     expect(input?.pre_request_scripts?.[0]?.name).toBe('console.log("hello world"');
+  });
+});
+
+describe('saveAllDirtyRequests', () => {
+  /**
+   * Opens a saved request tab and edits the draft so it is dirty.
+   *
+   * @param store - Redux store under test.
+   * @param draft - Saved request draft to open.
+   * @param editedUrl - URL applied to mark the tab dirty.
+   */
+  async function openDirtyTab(
+    store: Awaited<typeof import('#/renderer/src/store/redux')>['store'],
+    draft: Parameters<
+      Awaited<typeof import('#/renderer/src/store/slices/tabsSlice')>['openTabWithDraft']
+    >[0],
+    editedUrl = 'https://example.com/edited'
+  ): Promise<void> {
+    const { openTabWithDraft, setActiveDraft } =
+      await import('#/renderer/src/store/slices/tabsSlice');
+    store.dispatch(openTabWithDraft(draft));
+    const activeTab = store
+      .getState()
+      .tabs.tabs.find((tab) => tab.tabId === store.getState().tabs.activeTabId);
+    if (!activeTab || !isRequestTab(activeTab)) throw new Error('expected active tab');
+    store.dispatch(setActiveDraft({ ...activeTab.draft, url: editedUrl }));
+  }
+
+  const baseDraft = {
+    collection_id: 1,
+    name: 'Request',
+    method: 'GET' as const,
+    url: 'https://example.com',
+    headers: [],
+    params: [],
+    body: '',
+    body_type: 'none' as const,
+    pre_request_script: '',
+    post_request_script: '',
+    pre_request_scripts: [],
+    post_request_scripts: [],
+    comment: '',
+    auth: defaultAuth()
+  };
+
+  it('returns savedCount 0 when no tabs are dirty in the collection', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { openTabWithDraft } = await import('#/renderer/src/store/slices/tabsSlice');
+    const { saveAllDirtyRequests } = await import('#/renderer/src/store/thunks/requests');
+
+    store.dispatch(openTabWithDraft({ ...baseDraft, id: 1 }));
+
+    const result = await store.dispatch(saveAllDirtyRequests({ collectionId: 1 })).unwrap();
+
+    expect(result).toEqual({ savedCount: 0 });
+    expect(saveRequestMock).not.toHaveBeenCalled();
+  });
+
+  it('saves every dirty tab in the collection and skips clean tabs', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { openTabWithDraft } = await import('#/renderer/src/store/slices/tabsSlice');
+    const { saveAllDirtyRequests } = await import('#/renderer/src/store/thunks/requests');
+
+    store.dispatch(openTabWithDraft({ ...baseDraft, id: 1 }));
+    await openDirtyTab(store, { ...baseDraft, id: 2, folder_id: 5 }, 'https://example.com/a');
+    await openDirtyTab(store, { ...baseDraft, id: 3 }, 'https://example.com/b');
+
+    const result = await store.dispatch(saveAllDirtyRequests({ collectionId: 1 })).unwrap();
+
+    expect(result).toEqual({ savedCount: 2 });
+    expect(saveRequestMock).toHaveBeenCalledTimes(2);
+    expect(listFoldersMock).toHaveBeenCalledWith(1);
+    expect(listRequestsMock).toHaveBeenCalledWith(1);
+  });
+
+  it('saves only dirty tabs in the requested folder', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { saveAllDirtyRequests } = await import('#/renderer/src/store/thunks/requests');
+
+    await openDirtyTab(store, { ...baseDraft, id: 2, folder_id: 5 }, 'https://example.com/folder');
+    await openDirtyTab(store, { ...baseDraft, id: 3, folder_id: null }, 'https://example.com/root');
+
+    const result = await store
+      .dispatch(saveAllDirtyRequests({ collectionId: 1, folderId: 5 }))
+      .unwrap();
+
+    expect(result).toEqual({ savedCount: 1 });
+    expect(saveRequestMock).toHaveBeenCalledTimes(1);
+    expect(saveRequestMock.mock.calls[0]?.[0].id).toBe(2);
+    expect(saveRequestMock.mock.calls[0]?.[0].folder_id).toBe(5);
   });
 });
 

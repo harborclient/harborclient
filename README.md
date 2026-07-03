@@ -25,6 +25,10 @@ Use `pnpm dev -- --seed` to ensure the HarborClient Echo sample collection exist
 
 Use `pnpm dev -- --pick-theme` to open the appearance theme picker on launch (also shown automatically on first install).
 
+Use `pnpm dev -- --quit-without-warning` to quit without prompting when request tabs have unsaved changes.
+
+Use `pnpm dev -- --theme dark` to start with a built-in theme for this session (`light`, `dark`, `system`, or `high-contrast`).
+
 ## About HarborClient
 
 **HarborClient** is a free, open-source desktop API client for macOS, Windows, and Linux. It gives you a familiar Postman-style workspace—collections, environments, request scripts, and a tabbed editor—while keeping your work on your machine or on storage you control. There are no accounts, subscriptions, or required cloud sync.

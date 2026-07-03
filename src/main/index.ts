@@ -38,6 +38,8 @@ import {
 } from '#/main/window/navigationSecurity';
 import { attachDevContextMenu } from '#/main/window/devContextMenu';
 import { isDevModeFlagEnabled, isDeveloperToolsEnabled } from '#/main/devMode';
+import { isQuitWithoutWarningFlagEnabled } from '#/main/quitWithoutWarning';
+import { getStartupThemeOverride } from '#/main/startupTheme';
 import { disposeScriptRunner } from '#/main/scripting/scriptRunnerHost';
 import {
   PluginManager,
@@ -397,6 +399,18 @@ async function applyPersistedTheme(): Promise<ThemeSource> {
 }
 
 /**
+ * Marks the app as quitting and persists window geometry when a window is available.
+ *
+ * @param window - Window to save state from, when present and not destroyed.
+ */
+function beginQuitWithoutPrompt(window: BrowserWindow | null = mainWindow): void {
+  isQuitting = true;
+  if (window && !window.isDestroyed()) {
+    saveWindowState(window);
+  }
+}
+
+/**
  * Prompts the renderer to confirm close/quit when not already quitting.
  *
  * @param reason - Whether the user closed the window or quit the app.
@@ -419,6 +433,10 @@ function setupCloseHandlers(window: BrowserWindow): void {
   window.on('close', (event) => {
     if (isQuitting) {
       saveWindowState(window);
+      return;
+    }
+    if (isQuitWithoutWarningFlagEnabled()) {
+      beginQuitWithoutPrompt(window);
       return;
     }
     event.preventDefault();
@@ -831,6 +849,12 @@ app.whenReady().then(async () => {
 
     logVerbose('startup: applying persisted theme');
     const persistedTheme = await applyPersistedTheme();
+    const startupTheme = getStartupThemeOverride();
+    if (startupTheme != null) {
+      nativeTheme.themeSource = resolveNativeThemeSource(startupTheme);
+      logVerbose(`startup: --theme active; using ${startupTheme} for this session`);
+    }
+    const activeTheme = startupTheme ?? persistedTheme;
 
     logVerbose('startup: initializing plugin manager');
     if (isDevModeFlagEnabled()) {
@@ -839,6 +863,9 @@ app.whenReady().then(async () => {
     const disableAllPlugins = isDisablePluginsFlagEnabled();
     if (disableAllPlugins) {
       logVerbose('startup: --disable-plugins active; all plugins will stay inactive');
+    }
+    if (isQuitWithoutWarningFlagEnabled()) {
+      logVerbose('startup: --quit-without-warning active; unsaved changes will not block quit');
     }
     pluginManager = new PluginManager(app.getPath('userData'), app.getVersion(), {
       disableAllPlugins
@@ -851,6 +878,10 @@ app.whenReady().then(async () => {
     const pluginUiBroker = initPluginUiBroker(pluginManager);
     pluginUiBroker.setMainWindow(() => mainWindow);
     pluginUiBroker.setThemeGetter(async () => {
+      const override = getStartupThemeOverride();
+      if (override != null) {
+        return override;
+      }
       const value = await db.getSetting(THEME_SETTING_KEY);
       return (value ?? 'system') as ThemeSource;
     });
@@ -881,7 +912,7 @@ app.whenReady().then(async () => {
     mainWindow = createWindow();
     pluginManager.setNotifyWindow(() => mainWindow);
     setMenuWindow(mainWindow);
-    setMenuActiveTheme(persistedTheme);
+    setMenuActiveTheme(activeTheme);
     rebuildAppMenu();
     logVerbose('startup: main window created, waiting for ready-to-show');
 
@@ -933,6 +964,11 @@ app.on('before-quit', (event) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       saveWindowState(mainWindow);
     }
+    return;
+  }
+
+  if (isQuitWithoutWarningFlagEnabled()) {
+    beginQuitWithoutPrompt();
     return;
   }
 

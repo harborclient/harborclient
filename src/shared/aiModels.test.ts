@@ -39,6 +39,27 @@ describe('getAvailableModels', () => {
     ]);
   });
 
+  it('returns hub-only models that are not in the static catalog', () => {
+    const hubGroups: HubLlmModelGroup[] = [
+      {
+        hubId: 'hub-1',
+        hubName: 'Team Hub',
+        models: [{ id: 'gpt-4.1', label: 'GPT-4.1', provider: 'openai' }]
+      }
+    ];
+
+    expect(getAvailableModels(EMPTY_SETTINGS, hubGroups)).toEqual([
+      {
+        id: 'gpt-4.1',
+        label: 'GPT-4.1 (Team Hub)',
+        provider: 'openai',
+        source: 'hub',
+        hubId: 'hub-1',
+        hubName: 'Team Hub'
+      }
+    ]);
+  });
+
   it('prefers hub models over personal keys for the same model id', () => {
     const models = getAvailableModels({ ...EMPTY_SETTINGS, openaiApiKey: 'sk-test' }, HUB_GROUPS);
     const gpt4o = models.find((model) => model.id === 'gpt-4o');

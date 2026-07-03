@@ -42,24 +42,108 @@
     "menuAction": "settings"
   },
   {
+    "filename": "settings-globals.png",
+    "menuAction": "settings",
+    "steps": [
+      {
+        "click": {
+          "selector": "nav[aria-label='Settings sections']",
+          "role": "button",
+          "name": "Globals"
+        }
+      }
+    ]
+  },
+  {
+    "filename": "settings-snippets.png",
+    "menuAction": "settings",
+    "steps": [
+      {
+        "click": {
+          "selector": "nav[aria-label='Settings sections']",
+          "role": "button",
+          "name": "Snippets"
+        }
+      }
+    ]
+  },
+  {
     "filename": "settings-shortcuts.png",
     "menuAction": "settings",
-    "steps": [{ "click": { "role": "button", "name": "Shortcuts" } }]
+    "steps": [
+      {
+        "click": {
+          "selector": "nav[aria-label='Settings sections']",
+          "role": "button",
+          "name": "Shortcuts"
+        }
+      }
+    ]
+  },
+  {
+    "filename": "settings-syntax.png",
+    "menuAction": "settings",
+    "steps": [
+      {
+        "click": {
+          "selector": "nav[aria-label='Settings sections']",
+          "role": "button",
+          "name": "Syntax highlighting"
+        }
+      }
+    ]
   },
   {
     "filename": "settings-proxy.png",
     "menuAction": "settings",
-    "steps": [{ "click": { "role": "button", "name": "Proxy" } }]
+    "steps": [
+      {
+        "click": {
+          "selector": "nav[aria-label='Settings sections']",
+          "role": "button",
+          "name": "Proxy"
+        }
+      }
+    ]
   },
   {
     "filename": "settings-databases.png",
     "menuAction": "settings",
-    "steps": [{ "click": { "role": "button", "name": "Storage Locations" } }]
+    "steps": [
+      {
+        "click": {
+          "selector": "nav[aria-label='Settings sections']",
+          "role": "button",
+          "name": "Storage"
+        }
+      }
+    ]
+  },
+  {
+    "filename": "settings-backup-restore.png",
+    "menuAction": "settings",
+    "steps": [
+      {
+        "click": {
+          "selector": "nav[aria-label='Settings sections']",
+          "role": "button",
+          "name": "Backup & Restore"
+        }
+      }
+    ]
   },
   {
     "filename": "settings-ai.png",
     "menuAction": "settings",
-    "steps": [{ "click": { "role": "button", "name": "AI" } }]
+    "steps": [
+      {
+        "click": {
+          "selector": "nav[aria-label='Settings sections']",
+          "role": "button",
+          "name": "AI"
+        }
+      }
+    ]
   },
   {
     "filename": "ai-sidebar.png",
@@ -102,13 +186,38 @@
     ]
   },
   {
+    "filename": "plugins-marketplace.png",
+    "menuAction": "plugins",
+    "steps": [
+      {
+        "click": {
+          "selector": "nav[aria-label='Plugin sections']",
+          "role": "button",
+          "name": "Marketplace"
+        }
+      },
+      { "waitFor": { "role": "heading", "name": "Marketplace" } },
+      { "waitFor": { "ms": 3000 } }
+    ]
+  },
+  {
     "filename": "team-hubs.png",
     "menuAction": "team-hubs"
   },
   {
     "filename": "team-hubs-users.png",
     "menuAction": "team-hubs",
-    "steps": [{ "click": { "role": "button", "name": "Manage users" } }]
+    "steps": [
+      { "waitFor": { "ms": 1000 } },
+      {
+        "click": {
+          "selector": "main",
+          "role": "button",
+          "name": "Add"
+        }
+      },
+      { "waitFor": { "text": "Add team hub" }, "timeout": 15000 }
+    ]
   },
   {
     "filename": "sharing-keys.png",
@@ -156,10 +265,16 @@
     "filename": "edit-database.png",
     "menuAction": "settings",
     "steps": [
-      { "click": { "role": "button", "name": "Storage Locations" } },
       {
         "click": {
-          "selector": "li",
+          "selector": "nav[aria-label='Settings sections']",
+          "role": "button",
+          "name": "Storage"
+        }
+      },
+      { "waitFor": { "text": "Github" }, "timeout": 15000 },
+      {
+        "click": {
           "nearText": "Github",
           "role": "button",
           "name": "Edit"

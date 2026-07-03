@@ -196,6 +196,16 @@ interface Props {
   onShareCollection: (collectionId: number, collectionName: string) => void;
 
   /**
+   * Saves every dirty open request tab in the collection.
+   */
+  onSaveAllInCollection: (collectionId: number) => Promise<void> | void;
+
+  /**
+   * Saves every dirty open request tab in the folder.
+   */
+  onSaveAllInFolder: (collectionId: number, folderId: number) => Promise<void> | void;
+
+  /**
    * Creates a new folder in the given collection.
    */
   onNewFolder: (collectionId: number) => Promise<void> | void;
@@ -310,6 +320,8 @@ export function Collections({
   onExportCollection,
   onDuplicateCollection,
   onShareCollection,
+  onSaveAllInCollection,
+  onSaveAllInFolder,
   onNewFolder,
   onNewRequestInCollection,
   onImportRequest,
@@ -843,6 +855,10 @@ export function Collections({
                         {
                           label: 'Export',
                           onSelect: () => void onExportCollection(collection.id)
+                        },
+                        {
+                          label: 'Save all',
+                          onSelect: () => void onSaveAllInCollection(collection.id)
                         }
                       ],
                       [
@@ -1051,6 +1067,13 @@ export function Collections({
                                           label: 'Import Request',
                                           onSelect: () =>
                                             void onImportRequest(collection.id, folder.id)
+                                        }
+                                      ],
+                                      [
+                                        {
+                                          label: 'Save all',
+                                          onSelect: () =>
+                                            void onSaveAllInFolder(collection.id, folder.id)
                                         }
                                       ],
                                       [

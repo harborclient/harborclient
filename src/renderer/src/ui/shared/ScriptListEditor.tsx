@@ -75,10 +75,11 @@ import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveChatId,
-  selectSelectedModelByChat
+  selectHubModelGroups,
+  selectSelectedModelByChat,
+  setPendingComposerText
 } from '#/renderer/src/store/slices/aiChatSlice';
 import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
-import { setPendingComposerText } from '#/renderer/src/store/slices/aiChatSlice';
 import { createNewChat } from '#/renderer/src/store/thunks/aiChat';
 import { createSnippet, updateSnippet } from '#/renderer/src/store/thunks/snippets';
 import {
@@ -1096,7 +1097,8 @@ export function ScriptListEditor({
   const warnWhenCloningSnippet = useAppSelector(
     (state) => state.settings.general.warnWhenCloningSnippet
   );
-  const { aiAvailable, aiSettings, hubModelGroups } = useAiAvailability();
+  const { aiAvailable, aiSettings } = useAiAvailability();
+  const hubModelGroups = useAppSelector(selectHubModelGroups);
   const normalized = useMemo(() => normalizeScriptRefs(scripts), [scripts]);
   const compatibleSnippets = useMemo(
     () => snippets.filter((snippet) => snippetMatchesPhase(snippet.scope, phase)),

@@ -77,9 +77,16 @@ export function getAiSettings(): AiSettings {
   }
 
   if (isEncryptedSecret(parsed)) {
-    const decrypted = decryptSecret(parsed);
-    const settings = parseJson<Partial<AiSettings>>(decrypted, DEFAULT_AI_SETTINGS);
-    return normalizeSettings(settings);
+    try {
+      const decrypted = decryptSecret(parsed);
+      const settings = parseJson<Partial<AiSettings>>(decrypted, DEFAULT_AI_SETTINGS);
+      return normalizeSettings(settings);
+    } catch {
+      // OS keychain encryption may be unavailable (for example in CI or automated
+      // Electron launches). Treat unreadable secrets as unset rather than failing
+      // settings bootstrap across every section.
+      return DEFAULT_AI_SETTINGS;
+    }
   }
 
   throw new Error('Stored AI settings are invalid or corrupted.');
