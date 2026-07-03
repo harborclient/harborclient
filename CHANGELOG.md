@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.9.20 - 2026-07-03
+
 - feat(collection-runner): enhance modal to support single request execution. (`0cae7f7`)
 - feat(settings): enhance quit behavior and theme options. (`36176f6`)
 - feat(fontawesome): update icons in settings and script editor. (`d98988a`)
