@@ -174,6 +174,7 @@ describeSqlite('TeamHubStorage', () => {
         preRequestScript: '',
         postRequestScript: '',
         comment: '',
+        tags: '',
         folderId: folderServerId,
         sortOrder: 0,
         createdAt: '2026-01-01T00:00:00.000Z',
@@ -200,7 +201,8 @@ describeSqlite('TeamHubStorage', () => {
       post_request_script: '',
       pre_request_scripts: [],
       post_request_scripts: [],
-      comment: ''
+      comment: '',
+      tags: ''
     });
 
     expect(saved.id).toBeGreaterThan(0);
@@ -268,7 +270,8 @@ describeSqlite('TeamHubStorage', () => {
       post_request_script: '',
       pre_request_scripts: preScripts,
       post_request_scripts: [],
-      comment: ''
+      comment: '',
+      tags: ''
     });
 
     const createPayload = createRequest.mock.calls[0]?.[1] as { preRequestScript: string };
@@ -324,7 +327,8 @@ describeSqlite('TeamHubStorage', () => {
       post_request_script: '',
       pre_request_scripts: [defaultScript],
       post_request_scripts: [],
-      comment: ''
+      comment: '',
+      tags: ''
     });
 
     const createPayload = createRequest.mock.calls[0]?.[1] as { preRequestScript: string };
@@ -381,7 +385,8 @@ describeSqlite('TeamHubStorage', () => {
       post_request_script: '',
       pre_request_scripts: [createInlineScriptRef('console.log(1);')],
       post_request_scripts: [],
-      comment: ''
+      comment: '',
+      tags: ''
     });
 
     const createPayload = createRequest.mock.calls[0]?.[1] as { preRequestScript: string };

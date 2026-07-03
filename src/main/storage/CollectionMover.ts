@@ -347,7 +347,8 @@ async function copyCollectionContents(
       body_type: request.body_type,
       pre_request_script: request.pre_request_script,
       post_request_script: request.post_request_script,
-      comment: request.comment
+      comment: request.comment,
+      tags: request.tags
     });
   }
 }

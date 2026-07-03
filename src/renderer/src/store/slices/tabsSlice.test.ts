@@ -41,6 +41,7 @@ function sampleSaved(overrides: Partial<SavedRequest> = {}): SavedRequest {
     pre_request_scripts: [],
     post_request_scripts: [],
     comment: '',
+    tags: '',
     sort_order: 0,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
@@ -108,7 +109,8 @@ describe('tabsSlice closeTabsForRequest', () => {
         post_request_script: '',
         pre_request_scripts: [],
         post_request_scripts: [],
-        comment: ''
+        comment: '',
+        tags: ''
       })
     );
 
@@ -173,7 +175,8 @@ describe('tabsSlice closeTabsForCollection', () => {
         post_request_script: '',
         pre_request_scripts: [],
         post_request_scripts: [],
-        comment: ''
+        comment: '',
+        tags: ''
       })
     );
 
@@ -241,7 +244,8 @@ describe('tabsSlice loadRequest', () => {
         post_request_script: '',
         pre_request_scripts: [],
         post_request_scripts: [],
-        comment: ''
+        comment: '',
+        tags: ''
       })
     );
     const tabId = initial.activeTabId;
@@ -281,7 +285,8 @@ describe('tabsSlice loadRequest', () => {
         post_request_script: '',
         pre_request_scripts: [],
         post_request_scripts: [],
-        comment: ''
+        comment: '',
+        tags: ''
       })
     );
     const tabId = initial.activeTabId;

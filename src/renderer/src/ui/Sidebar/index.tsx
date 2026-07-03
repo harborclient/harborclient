@@ -7,7 +7,14 @@ import {
 } from '#/renderer/src/plugins/pluginHooks';
 import toast from 'react-hot-toast';
 import type { SavedRequest } from '#/shared/types';
-import { faDatabase, faFileImport, faFolder, faGlobe, faXmark } from '#/renderer/src/fontawesome';
+import {
+  faAnglesUp,
+  faDatabase,
+  faFileImport,
+  faFolder,
+  faGlobe,
+  faXmark
+} from '#/renderer/src/fontawesome';
 import {
   ResizeHandle,
   Toolbar,
@@ -243,20 +250,21 @@ export function Sidebar({
     pluginSidebarSections
   ]);
 
-  const { searchQuery, setSearchQuery, searchFilter, searchLoading } = useSidebarSearch({
-    collections,
-    foldersByCollection,
-    collectionsSectionExpanded,
-    environmentsSectionExpanded,
-    setCollectionsSectionExpanded,
-    setEnvironmentsSectionExpanded,
-    setCollectionsSectionVisible,
-    setEnvironmentsSectionVisible,
-    expandedCollectionIds,
-    expandedFolderIds,
-    setExpandedCollectionIds,
-    setExpandedFolderIds
-  });
+  const { searchQuery, setSearchQuery, searchFilter, searchLoading, collapseAllSidebarTrees } =
+    useSidebarSearch({
+      collections,
+      foldersByCollection,
+      collectionsSectionExpanded,
+      environmentsSectionExpanded,
+      setCollectionsSectionExpanded,
+      setEnvironmentsSectionExpanded,
+      setCollectionsSectionVisible,
+      setEnvironmentsSectionVisible,
+      expandedCollectionIds,
+      expandedFolderIds,
+      setExpandedCollectionIds,
+      setExpandedFolderIds
+    });
 
   /**
    * Environments visible for the current sidebar search filter.
@@ -457,6 +465,13 @@ export function Sidebar({
         onClick: handleImportFromMenu
       },
       {
+        id: 'collapse-all',
+        icon: faAnglesUp,
+        label: 'Collapse all',
+        title: 'Collapse all collections and folders',
+        onClick: collapseAllSidebarTrees
+      },
+      {
         id: 'toggle-collections-section',
         icon: faFolder,
         label: 'Collections',
@@ -488,6 +503,7 @@ export function Sidebar({
   }, [
     dispatch,
     handleImportFromMenu,
+    collapseAllSidebarTrees,
     collectionsSectionVisible,
     environmentsSectionVisible,
     toggleCollectionsSectionVisible,

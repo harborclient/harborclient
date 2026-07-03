@@ -23,6 +23,7 @@ const validRequest = {
   pre_request_scripts: [],
   post_request_scripts: [],
   comment: '',
+  tags: '',
   sort_order: 0
 };
 
@@ -53,7 +54,8 @@ const validRequestExport = {
   post_request_script: '',
   pre_request_scripts: [],
   post_request_scripts: [],
-  comment: ''
+  comment: '',
+  tags: ''
 };
 
 describe('validateCollectionExport', () => {

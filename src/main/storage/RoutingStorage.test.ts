@@ -578,6 +578,7 @@ describeSqlite('RoutingStorage duplicateRequest uuid', () => {
       pre_request_script: source.pre_request_script ?? '',
       post_request_script: source.post_request_script ?? '',
       comment: source.comment ?? '',
+      tags: source.tags ?? '',
       auth: source.auth
     });
 

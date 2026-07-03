@@ -89,6 +89,11 @@ export interface SavedRequest {
   comment: string;
 
   /**
+   * Comma-separated labels for organizing and searching requests.
+   */
+  tags: string;
+
+  /**
    * ID of the folder containing this request, or null when at collection root.
    */
   folder_id: number | null;
@@ -191,6 +196,11 @@ export interface RequestExport {
    * Free-form notes for this request.
    */
   comment: string;
+
+  /**
+   * Comma-separated labels for organizing and searching requests.
+   */
+  tags: string;
 }
 
 /**
@@ -276,6 +286,11 @@ export interface SaveRequestInput {
    * Free-form notes for this request.
    */
   comment: string;
+
+  /**
+   * Comma-separated labels for organizing and searching requests.
+   */
+  tags: string;
 
   /**
    * ID of the folder containing this request, or null when at collection root.

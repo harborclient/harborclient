@@ -36,6 +36,7 @@ const validSaveRequest = {
   pre_request_scripts: [],
   post_request_scripts: [],
   comment: '',
+  tags: '',
   auth: {
     type: 'none' as const,
     basic: { username: '', password: '' },

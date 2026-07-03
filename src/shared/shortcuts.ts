@@ -165,7 +165,7 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
   {
     id: 'plugins',
     label: 'Plugins',
-    defaultAccelerator: 'CmdOrCtrl+Shift+P',
+    defaultAccelerator: 'Alt+Shift+P',
     kind: 'action',
     actionId: 'plugins'
   },
@@ -473,7 +473,7 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
   {
     id: 'search-anything',
     label: 'Search anything',
-    defaultAccelerator: 'Alt+Shift+P',
+    defaultAccelerator: 'CmdOrCtrl+Shift+P',
     kind: 'action',
     actionId: 'search-anything'
   },

@@ -95,6 +95,7 @@ function draftForCollection(collectionId: number, name: string): RequestDraft {
     pre_request_scripts: [],
     post_request_scripts: [],
     comment: '',
+    tags: '',
     auth: defaultAuth()
   };
 }

@@ -310,6 +310,7 @@ export function rowToRequest(row: Record<string, unknown>): SavedRequest {
     pre_request_scripts: readScriptRefsFromJson(row.pre_request_scripts, preRequestScript),
     post_request_scripts: readScriptRefsFromJson(row.post_request_scripts, postRequestScript),
     comment: readString(row.comment),
+    tags: readString(row.tags),
     folder_id: row.folder_id != null ? readNullableNumber(row.folder_id) : null,
     sort_order: readNumber(row.sort_order),
     created_at: readTimestamp(row.created_at),

@@ -41,6 +41,7 @@ const sampleCollectionExport: CollectionExport = {
       pre_request_scripts: [],
       post_request_scripts: [],
       comment: '',
+      tags: '',
       sort_order: 0,
       folder_uuid: '55555555-5555-4555-8555-555555555555',
       folder_name: 'Auth'
@@ -104,7 +105,8 @@ describe('mintFreshRequestExportUuid', () => {
       post_request_script: '',
       pre_request_scripts: [],
       post_request_scripts: [],
-      comment: ''
+      comment: '',
+      tags: ''
     };
 
     const copy = mintFreshRequestExportUuid(request);

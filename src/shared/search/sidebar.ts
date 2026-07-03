@@ -1,6 +1,7 @@
 import MiniSearch from 'minisearch';
 import type { Collection, Environment, Folder, SavedRequest } from '#/shared/types';
 import { DEFAULT_SEARCH_OPTIONS } from '#/shared/search/types';
+import { normalizeRequestTags } from '#/shared/requestTags';
 
 /**
  * Sidebar entities passed from the renderer for indexing and filtering.
@@ -66,6 +67,10 @@ export type SidebarSearchDocument = {
   name: string;
   url?: string;
   method?: string;
+  /** Request notes indexed for search; omitted on non-request entities. */
+  comment?: string;
+  /** Comma-separated request tags indexed for search; omitted on non-request entities. */
+  tags?: string;
   collectionId?: number;
   folderId?: number | null;
 };
@@ -109,7 +114,7 @@ export function buildSidebarSearchIndex(
   input: SidebarSearchInput
 ): MiniSearch<SidebarSearchDocument> {
   const index = new MiniSearch<SidebarSearchDocument>({
-    fields: ['name', 'url', 'method'],
+    fields: ['name', 'url', 'method', 'comment', 'tags'],
     storeFields: ['id', 'kind', 'name', 'url', 'method', 'collectionId', 'folderId'],
     searchOptions: {
       ...DEFAULT_SEARCH_OPTIONS,
@@ -157,12 +162,16 @@ export function buildSidebarSearchIndex(
     }
 
     for (const request of requests) {
+      const trimmedComment = request.comment.trim();
+      const normalizedTags = normalizeRequestTags(request.tags ?? '');
       documents.push({
         id: sidebarDocumentId('request', request.id),
         kind: 'request',
         name: request.name,
         url: request.url,
         method: request.method,
+        comment: trimmedComment.length > 0 ? trimmedComment : undefined,
+        tags: normalizedTags.length > 0 ? normalizedTags : undefined,
         collectionId: request.collection_id,
         folderId: request.folder_id
       });
@@ -344,6 +353,45 @@ export function searchSidebarEntities(
 }
 
 /**
+ * Collection and folder names for a saved request breadcrumb.
+ */
+export interface SidebarRequestBreadcrumb {
+  /** Parent collection display name. */
+  collectionName?: string;
+  /** Parent folder display name when the request is nested. */
+  folderName?: string;
+}
+
+/**
+ * Resolves collection and folder names for a saved request breadcrumb.
+ *
+ * @param input - Sidebar data for name lookups.
+ * @param collectionId - Numeric collection id for the request.
+ * @param folderId - Numeric folder id when nested, otherwise null or undefined.
+ */
+export function sidebarRequestBreadcrumb(
+  input: SidebarSearchInput,
+  collectionId: number | undefined,
+  folderId: number | null | undefined
+): SidebarRequestBreadcrumb {
+  if (collectionId == null) {
+    return {};
+  }
+
+  const collection = input.collections.find((candidate) => candidate.id === collectionId);
+  const folderName =
+    folderId != null
+      ? (input.foldersByCollection[collectionId]?.find((folder) => folder.id === folderId)?.name ??
+        undefined)
+      : undefined;
+
+  return {
+    collectionName: collection?.name,
+    folderName
+  };
+}
+
+/**
  * Resolves a subtitle for a sidebar entity hit using loaded sidebar data.
  *
  * @param input - Sidebar data for name lookups.
@@ -362,16 +410,15 @@ export function sidebarEntitySubtitle(
     return collection?.name;
   }
   if (hit.kind === 'request' && hit.collectionId != null) {
-    const collection = input.collections.find((candidate) => candidate.id === hit.collectionId);
-    const folderName =
-      hit.folderId != null
-        ? (input.foldersByCollection[hit.collectionId]?.find((folder) => folder.id === hit.folderId)
-            ?.name ?? null)
-        : null;
-    if (collection != null && folderName != null) {
-      return `${collection.name} / ${folderName}`;
+    const { collectionName, folderName } = sidebarRequestBreadcrumb(
+      input,
+      hit.collectionId,
+      hit.folderId
+    );
+    if (collectionName != null && folderName != null) {
+      return `${collectionName} / ${folderName}`;
     }
-    return collection?.name;
+    return collectionName;
   }
   return undefined;
 }

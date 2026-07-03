@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction
+} from 'react';
 import type { Collection, Folder } from '#/shared/types';
 import { searchSidebar, type SidebarSearchFilter } from '#/shared/search/sidebar';
 import { useSearchIndexes } from '#/renderer/src/search/useSearchIndexes';
@@ -109,6 +117,11 @@ interface Result {
    * True while a non-empty query is active and some collection contents are still loading.
    */
   searchLoading: boolean;
+
+  /**
+   * Collapses all collection and folder trees, clears active search, and persists collapsed state.
+   */
+  collapseAllSidebarTrees: () => void;
 }
 
 /**
@@ -126,6 +139,19 @@ function addIdsToSet(target: Set<number>, source: ReadonlySet<number>): boolean 
     }
   }
   return changed;
+}
+
+/**
+ * Clears tree expansion on a search snapshot so collapse survives search exit.
+ *
+ * @param snapshot - Expansion state captured when sidebar search started.
+ */
+export function clearExpansionSnapshot(snapshot: ExpansionSnapshot): ExpansionSnapshot {
+  return {
+    ...snapshot,
+    expandedCollectionIds: new Set(),
+    expandedFolderIds: new Set()
+  };
 }
 
 /**
@@ -291,10 +317,26 @@ export function useSidebarSearch({
     setExpandedFolderIds
   ]);
 
+  /**
+   * Collapses all collection and folder trees, clears search when active, and keeps
+   * the collapsed state when search snapshots are restored.
+   */
+  const collapseAllSidebarTrees = useCallback((): void => {
+    setExpandedCollectionIds(new Set());
+    setExpandedFolderIds(new Set());
+
+    if (expansionSnapshotRef.current != null) {
+      expansionSnapshotRef.current = clearExpansionSnapshot(expansionSnapshotRef.current);
+    }
+
+    setSearchQuery((current) => (current.trim().length > 0 ? '' : current));
+  }, [setExpandedCollectionIds, setExpandedFolderIds]);
+
   return {
     searchQuery,
     setSearchQuery,
     searchFilter,
-    searchLoading
+    searchLoading,
+    collapseAllSidebarTrees
   };
 }

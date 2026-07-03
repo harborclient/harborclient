@@ -489,6 +489,7 @@ function convertRequestFile(
     pre_request_scripts: scriptRefsFromLegacyString(preRequestScript),
     post_request_scripts: scriptRefsFromLegacyString(postRequestScript),
     comment,
+    tags: '',
     sort_order: sortOrder,
     folder_name: folderPath
   };

@@ -177,6 +177,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -217,6 +218,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         sort_order: 0,
         created_at: '2026-01-01T00:00:00.000Z',
         updated_at: '2026-01-01T00:00:00.000Z'
@@ -265,6 +267,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -320,6 +323,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -384,6 +388,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -421,6 +426,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -477,6 +483,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -533,6 +540,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -570,6 +578,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -605,6 +614,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -645,6 +655,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -679,6 +690,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -714,6 +726,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -750,6 +763,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -790,6 +804,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [preScript],
         post_request_scripts: [postScript],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -835,6 +850,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [first, second],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -879,6 +895,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [script],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -919,6 +936,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [createInlineScriptRef('only one')],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -958,6 +976,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [createSnippetScriptRef('snippet-uuid', 'Shared snippet')],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -997,6 +1016,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [createInlineScriptRef('code')],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -1038,6 +1058,7 @@ describe('executeAiTool', () => {
         pre_request_scripts: [script],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );

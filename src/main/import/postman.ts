@@ -438,6 +438,7 @@ function convertRequestItem(
     pre_request_scripts: scriptRefsFromLegacyString(preRequestScript),
     post_request_scripts: scriptRefsFromLegacyString(postRequestScript),
     comment: typeof request.description === 'string' ? request.description : '',
+    tags: '',
     sort_order: sortOrder,
     folder_name: folderPath
   };

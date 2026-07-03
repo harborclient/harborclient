@@ -49,9 +49,7 @@ describe('resolveShortcuts', () => {
     expect(bindings.find((binding) => binding.id === 'sync')?.accelerator).toBe(
       'CmdOrCtrl+Shift+S'
     );
-    expect(bindings.find((binding) => binding.id === 'plugins')?.accelerator).toBe(
-      'CmdOrCtrl+Shift+P'
-    );
+    expect(bindings.find((binding) => binding.id === 'plugins')?.accelerator).toBe('Alt+Shift+P');
     expect(bindings.find((binding) => binding.id === 'team-hubs')?.accelerator).toBe(
       'CmdOrCtrl+Shift+H'
     );
@@ -78,7 +76,7 @@ describe('resolveShortcuts', () => {
       'Alt+Shift+K'
     );
     expect(bindings.find((binding) => binding.id === 'search-anything')?.accelerator).toBe(
-      'Alt+Shift+P'
+      'CmdOrCtrl+Shift+P'
     );
     expect(bindings.find((binding) => binding.id === 'about')?.accelerator).toBe(
       'CmdOrCtrl+Shift+A'
@@ -323,7 +321,7 @@ describe('acceleratorMatchesChord', () => {
     expect(acceleratorMatchesChord('Alt+Shift+O', { ...altShiftO, key: 'O' })).toBe(true);
   });
 
-  it('matches Alt+Shift+P when Shift produces uppercase P or code is KeyP', () => {
+  it('matches Alt+Shift+P for Plugins when Shift produces uppercase P or code is KeyP', () => {
     const altShiftP: KeyChord = {
       key: 'p',
       code: 'KeyP',

@@ -32,7 +32,8 @@ const sampleDraft = (): RequestDraft => ({
   post_request_script: '',
   pre_request_scripts: [],
   post_request_scripts: [],
-  comment: ''
+  comment: '',
+  tags: ''
 });
 
 describe('normalizeKeyValueRows', () => {
@@ -78,6 +79,7 @@ describe('normalizeDraft', () => {
       pre_request_scripts: [],
       post_request_scripts: [],
       comment: '',
+      tags: '',
       auth: defaultAuth()
     });
   });
@@ -225,7 +227,8 @@ describe('defaultDraft and emptyKeyValue', () => {
       post_request_script: '',
       pre_request_scripts: [],
       post_request_scripts: [],
-      comment: ''
+      comment: '',
+      tags: ''
     });
   });
 
@@ -269,6 +272,7 @@ describe('draftFromSaved', () => {
       pre_request_scripts: [],
       post_request_scripts: [],
       comment: '',
+      tags: '',
       folder_id: null,
       sort_order: 0,
       created_at: '2026-01-01T00:00:00.000Z',
@@ -291,7 +295,8 @@ describe('draftFromSaved', () => {
       post_request_script: '',
       pre_request_scripts: [],
       post_request_scripts: [],
-      comment: ''
+      comment: '',
+      tags: ''
     });
   });
 
@@ -316,6 +321,7 @@ describe('draftFromSaved', () => {
       pre_request_scripts: [],
       post_request_scripts: [],
       comment: '',
+      tags: '',
       folder_id: null,
       sort_order: 0,
       created_at: '2026-01-01T00:00:00.000Z',
@@ -343,6 +349,7 @@ describe('draftFromSaved', () => {
       pre_request_scripts: [],
       post_request_scripts: [],
       comment: '',
+      tags: '',
       folder_id: null,
       sort_order: 0,
       created_at: '2026-01-01T00:00:00.000Z',
@@ -370,6 +377,7 @@ describe('draftFromSaved', () => {
       pre_request_scripts: [],
       post_request_scripts: [],
       comment: '',
+      tags: '',
       folder_id: null,
       sort_order: 0,
       created_at: '2026-01-01T00:00:00.000Z',
@@ -397,6 +405,7 @@ describe('draftFromSaved', () => {
       pre_request_scripts: [],
       post_request_scripts: [],
       comment: '',
+      tags: '',
       folder_id: null,
       sort_order: 0,
       created_at: '2026-01-01T00:00:00.000Z',

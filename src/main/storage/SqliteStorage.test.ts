@@ -433,4 +433,53 @@ describeSqlite('SqliteStorage legacy migration', () => {
     );
     expect(saved.comment).toBe('Migrated comment');
   });
+
+  it('adds tags column to legacy requests table on init', async () => {
+    const userDataDir = mkdtempSync(join(tmpdir(), 'harborclient-db-'));
+    const dbPath = join(userDataDir, 'harborclient.db');
+
+    const legacyDb = new Database(dbPath);
+    legacyDb.exec(`
+      CREATE TABLE collections (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        variables TEXT NOT NULL DEFAULT '[]',
+        headers TEXT NOT NULL DEFAULT '[]',
+        pre_request_script TEXT NOT NULL DEFAULT '',
+        post_request_script TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE TABLE requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        collection_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        method TEXT NOT NULL DEFAULT 'GET',
+        url TEXT NOT NULL DEFAULT '',
+        headers TEXT NOT NULL DEFAULT '[]',
+        params TEXT NOT NULL DEFAULT '[]',
+        body TEXT NOT NULL DEFAULT '',
+        body_type TEXT NOT NULL DEFAULT 'none',
+        pre_request_script TEXT NOT NULL DEFAULT '',
+        post_request_script TEXT NOT NULL DEFAULT '',
+        comment TEXT NOT NULL DEFAULT '',
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE
+      );
+    `);
+    legacyDb.close();
+
+    const db = new SqliteStorage(userDataDir, DEFAULT_TEST_SETTINGS);
+    cleanups.push(async () => {
+      await db.close();
+      rmSync(userDataDir, { recursive: true, force: true });
+    });
+
+    await db.init();
+
+    const collection = await db.createCollection('Tagged');
+    const saved = await db.saveRequest(baseRequestInput(collection.id, { tags: 'api, staging' }));
+    expect(saved.tags).toBe('api, staging');
+  });
 });

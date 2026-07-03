@@ -17,6 +17,7 @@ import type { RequestDraft } from '#/renderer/src/store/drafts';
 import { AuthEditor } from './AuthEditor';
 import { BodyEditor } from './BodyEditor';
 import { CommentEditor } from './CommentEditor';
+import { RequestTagsInput } from './RequestTagsInput';
 import { CookiesEditor } from './CookiesEditor';
 import {
   headerKeySource,
@@ -167,7 +168,8 @@ export function TabContent({
           placeholder={POST_REQUEST_SCRIPT_PLACEHOLDER}
         />
       </SegmentedTabPanel>
-      <SegmentedTabPanel value="comment" className="flex min-h-0 flex-1 flex-col mb-4">
+      <SegmentedTabPanel value="comment" className="mb-4 flex min-h-0 flex-1 flex-col gap-2">
+        <RequestTagsInput value={draft.tags} onChange={(tags) => update({ tags })} />
         <CommentEditor
           value={draft.comment}
           onChange={(comment) => update({ comment })}

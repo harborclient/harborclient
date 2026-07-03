@@ -32,7 +32,8 @@ export function buildDefaultEchoCollectionExport(): CollectionExport {
     auth: defaultAuth(),
     pre_request_script: '',
     post_request_script: '',
-    comment: ''
+    comment: '',
+    tags: ''
   };
 
   const requests: ExportedRequest[] = [

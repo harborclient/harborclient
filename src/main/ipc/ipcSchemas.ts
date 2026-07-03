@@ -140,6 +140,9 @@ const ipcUrl = z.string().max(MAX_IPC_URL_CHARS);
 /** Request comment/description bounded for IPC. */
 const ipcComment = z.string().max(MAX_IPC_COMMENT_CHARS);
 
+/** Request tags string bounded for IPC. */
+const ipcTags = z.string().max(MAX_IPC_COMMENT_CHARS);
+
 export const saveRequestInput = z.object({
   id: dbId.optional(),
   collection_id: dbId,
@@ -155,6 +158,7 @@ export const saveRequestInput = z.object({
   pre_request_scripts: ipcScriptRefArray.optional().default([]),
   post_request_scripts: ipcScriptRefArray.optional().default([]),
   comment: ipcComment,
+  tags: ipcTags,
   auth: authConfig,
   folder_id: nullableFolderId.optional()
 }) satisfies z.ZodType<SaveRequestInput>;

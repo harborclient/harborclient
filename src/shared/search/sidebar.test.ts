@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import type { Collection, Environment, Folder, SavedRequest } from '#/shared/types';
-import { buildSidebarSearchIndex, searchSidebar } from '#/shared/search/sidebar';
+import {
+  buildSidebarSearchIndex,
+  searchSidebar,
+  searchSidebarEntities,
+  sidebarRequestBreadcrumb
+} from '#/shared/search/sidebar';
 
 const collectionA: Collection = {
   id: 1,
@@ -57,6 +62,7 @@ const requestListUsers: SavedRequest = {
   pre_request_scripts: [],
   post_request_scripts: [],
   comment: '',
+  tags: '',
   folder_id: 10,
   sort_order: 0,
   created_at: '2024-01-01T00:00:00.000Z',
@@ -79,7 +85,8 @@ const requestCreateUser: SavedRequest = {
   post_request_script: '',
   pre_request_scripts: [],
   post_request_scripts: [],
-  comment: '',
+  comment: 'Requires OAuth token refresh before send',
+  tags: 'oauth, payments',
   folder_id: 10,
   sort_order: 1,
   created_at: '2024-01-01T00:00:00.000Z',
@@ -103,6 +110,7 @@ const requestHealth: SavedRequest = {
   pre_request_scripts: [],
   post_request_scripts: [],
   comment: '',
+  tags: '',
   folder_id: null,
   sort_order: 0,
   created_at: '2024-01-01T00:00:00.000Z',
@@ -187,6 +195,21 @@ describe('searchSidebar', () => {
     expect(filter?.requestIds.has(100)).toBe(false);
   });
 
+  it('matches requests by comment notes', () => {
+    const filter = searchSidebar(sampleInput, index, 'OAuth token refresh');
+    expect(filter?.collectionIds.has(1)).toBe(true);
+    expect(filter?.folderIds.has(10)).toBe(true);
+    expect(filter?.requestIds.has(101)).toBe(true);
+    expect(filter?.requestIds.has(100)).toBe(false);
+    expect(filter?.requestIds.has(102)).toBe(false);
+  });
+
+  it('matches requests by tags', () => {
+    const filter = searchSidebar(sampleInput, index, 'payments');
+    expect(filter?.requestIds.has(101)).toBe(true);
+    expect(filter?.requestIds.has(100)).toBe(false);
+  });
+
   it('matches environments independently from collections', () => {
     const filter = searchSidebar(sampleInput, index, 'Production');
     expect(filter?.environmentIds.has(200)).toBe(true);
@@ -199,5 +222,53 @@ describe('searchSidebar', () => {
     expect(filter?.folderIds.size).toBe(0);
     expect(filter?.requestIds.size).toBe(0);
     expect(filter?.environmentIds.size).toBe(0);
+  });
+});
+
+describe('searchSidebarEntities', () => {
+  const index = buildSidebarSearchIndex(sampleInput);
+
+  it('returns request hits when comment notes match', () => {
+    const hits = searchSidebarEntities(sampleInput, index, 'OAuth token refresh');
+    expect(hits).toHaveLength(1);
+    expect(hits[0]).toMatchObject({
+      kind: 'request',
+      entityId: 101,
+      name: 'Submit payment',
+      method: 'POST',
+      collectionId: 1,
+      folderId: 10
+    });
+    expect(hits[0]?.score).toBeGreaterThan(0);
+  });
+
+  it('returns request hits when tags match', () => {
+    const hits = searchSidebarEntities(sampleInput, index, 'oauth');
+    expect(hits).toHaveLength(1);
+    expect(hits[0]?.entityId).toBe(101);
+  });
+});
+
+describe('sidebarRequestBreadcrumb', () => {
+  it('returns collection name for root-level requests', () => {
+    expect(sidebarRequestBreadcrumb(sampleInput, 1, null)).toEqual({
+      collectionName: 'Public API',
+      folderName: undefined
+    });
+  });
+
+  it('returns collection and folder names for nested requests', () => {
+    expect(sidebarRequestBreadcrumb(sampleInput, 1, 10)).toEqual({
+      collectionName: 'Public API',
+      folderName: 'Users'
+    });
+  });
+
+  it('returns empty names when collection id is missing or unknown', () => {
+    expect(sidebarRequestBreadcrumb(sampleInput, undefined, null)).toEqual({});
+    expect(sidebarRequestBreadcrumb(sampleInput, 999, null)).toEqual({
+      collectionName: undefined,
+      folderName: undefined
+    });
   });
 });

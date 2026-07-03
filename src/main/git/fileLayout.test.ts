@@ -53,6 +53,7 @@ describe('git file layout', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         sort_order: 0,
         folder_name: null
       }

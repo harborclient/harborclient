@@ -539,6 +539,7 @@ function convertEntry(entry: HarEntry, sortOrder: number): ExportedRequest | nul
     pre_request_script: '',
     post_request_script: '',
     comment: '',
+    tags: '',
     sort_order: sortOrder,
     folder_name: null
   };

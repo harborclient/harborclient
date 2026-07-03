@@ -502,6 +502,7 @@ export class FirestoreStorage implements IStorage {
     const preRequestScript = preScripts.legacy;
     const postRequestScript = postScripts.legacy;
     const comment = input.comment ?? '';
+    const tags = input.tags ?? '';
     const now = new Date().toISOString();
     const firestore = this.getFirestore();
     const folderId = input.folder_id ?? null;
@@ -535,6 +536,7 @@ export class FirestoreStorage implements IStorage {
           pre_request_scripts: preScripts.json,
           post_request_scripts: postScripts.json,
           comment,
+          tags,
           updated_at: now
         };
 
@@ -570,6 +572,7 @@ export class FirestoreStorage implements IStorage {
       pre_request_scripts: preScripts.json,
       post_request_scripts: postScripts.json,
       comment,
+      tags,
       sort_order: maxOrder + 1,
       created_at: createdAt,
       updated_at: now
@@ -828,6 +831,7 @@ export class FirestoreStorage implements IStorage {
         pre_request_script,
         post_request_script,
         comment,
+        tags,
         sort_order,
         folder_id
       }) => ({
@@ -843,6 +847,7 @@ export class FirestoreStorage implements IStorage {
         pre_request_script,
         post_request_script,
         comment,
+        tags,
         sort_order,
         folder_name: folder_id != null ? (folderNameById.get(folder_id) ?? null) : null,
         folder_uuid: folder_id != null ? (folderUuidById.get(folder_id) ?? null) : null
@@ -946,6 +951,7 @@ export class FirestoreStorage implements IStorage {
           pre_request_script: fields.pre_request_script,
           post_request_script: fields.post_request_script,
           comment: fields.comment,
+          tags: fields.tags,
           sort_order: fields.sort_order,
           created_at: now,
           updated_at: now
@@ -1095,6 +1101,7 @@ export class FirestoreStorage implements IStorage {
           pre_request_script: fields.pre_request_script,
           post_request_script: fields.post_request_script,
           comment: fields.comment,
+          tags: fields.tags,
           sort_order: fields.sort_order,
           updated_at: now
         });
@@ -1118,6 +1125,7 @@ export class FirestoreStorage implements IStorage {
         pre_request_script: fields.pre_request_script,
         post_request_script: fields.post_request_script,
         comment: fields.comment,
+        tags: fields.tags,
         sort_order: fields.sort_order,
         created_at: now,
         updated_at: now

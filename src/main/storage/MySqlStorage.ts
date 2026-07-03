@@ -113,6 +113,7 @@ export class MySqlStorage implements IStorage {
         pre_request_script LONGTEXT NOT NULL,
         post_request_script LONGTEXT NOT NULL,
         comment LONGTEXT NOT NULL DEFAULT (''),
+        tags LONGTEXT NOT NULL DEFAULT (''),
         sort_order INT NOT NULL DEFAULT 0,
         created_at VARCHAR(64) NOT NULL,
         updated_at VARCHAR(64) NOT NULL,
@@ -150,6 +151,7 @@ export class MySqlStorage implements IStorage {
     // MySQL has no `ADD COLUMN IF NOT EXISTS` (a MariaDB-only extension), so the
     // schema is migrated by checking information_schema before each ALTER.
     await this.addColumnIfMissing('requests', 'comment', "LONGTEXT NOT NULL DEFAULT ('')");
+    await this.addColumnIfMissing('requests', 'tags', "LONGTEXT NOT NULL DEFAULT ('')");
     await this.addColumnIfMissing('requests', 'folder_id', 'INT NULL');
     await this.addColumnIfMissing(
       'collections',
@@ -462,6 +464,7 @@ export class MySqlStorage implements IStorage {
     const preRequestScript = preScripts.legacy;
     const postRequestScript = postScripts.legacy;
     const comment = input.comment ?? '';
+    const tags = input.tags ?? '';
     const folderId = input.folder_id ?? null;
     const now = new Date().toISOString();
 
@@ -481,7 +484,7 @@ export class MySqlStorage implements IStorage {
         `UPDATE requests SET
           collection_id = ?, folder_id = ?, name = ?, method = ?, url = ?,
           headers = ?, params = ?, auth = ?, body = ?, body_type = ?,
-          pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?,
+          pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
           updated_at = ?
         WHERE id = ?`,
         [
@@ -500,6 +503,7 @@ export class MySqlStorage implements IStorage {
           preScripts.json,
           postScripts.json,
           comment,
+          tags,
           now,
           input.id
         ]
@@ -526,8 +530,8 @@ export class MySqlStorage implements IStorage {
     const [result] = await this.getPool().execute<ResultSetHeader>(
       `INSERT INTO requests (
         collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
-        pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, sort_order, uuid, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         input.collection_id,
         folderId,
@@ -544,6 +548,7 @@ export class MySqlStorage implements IStorage {
         preScripts.json,
         postScripts.json,
         comment,
+        tags,
         maxOrder + 1,
         requestUuid,
         now,
@@ -844,6 +849,7 @@ export class MySqlStorage implements IStorage {
         pre_request_script,
         post_request_script,
         comment,
+        tags,
         sort_order,
         folder_id
       }) => ({
@@ -859,6 +865,7 @@ export class MySqlStorage implements IStorage {
         pre_request_script,
         post_request_script,
         comment,
+        tags,
         sort_order,
         folder_name: folder_id != null ? (folderNameById.get(folder_id) ?? null) : null,
         folder_uuid: folder_id != null ? (folderUuidById.get(folder_id) ?? null) : null
@@ -944,8 +951,8 @@ export class MySqlStorage implements IStorage {
         await connection.execute(
           `INSERT INTO requests (
             collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
-            pre_request_script, post_request_script, comment, sort_order, uuid, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            pre_request_script, post_request_script, comment, tags, sort_order, uuid, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             collectionId,
             folderId,
@@ -960,6 +967,7 @@ export class MySqlStorage implements IStorage {
             fields.pre_request_script,
             fields.post_request_script,
             fields.comment,
+            fields.tags,
             fields.sort_order,
             fields.uuid,
             now,
@@ -1101,7 +1109,7 @@ export class MySqlStorage implements IStorage {
           await connection.execute(
             `UPDATE requests SET
               folder_id = ?, name = ?, method = ?, url = ?, headers = ?, params = ?, auth = ?,
-              body = ?, body_type = ?, pre_request_script = ?, post_request_script = ?, comment = ?,
+              body = ?, body_type = ?, pre_request_script = ?, post_request_script = ?, comment = ?, tags = ?,
               sort_order = ?, updated_at = ?
             WHERE id = ? AND collection_id = ?`,
             [
@@ -1117,6 +1125,7 @@ export class MySqlStorage implements IStorage {
               fields.pre_request_script,
               fields.post_request_script,
               fields.comment,
+              fields.tags,
               fields.sort_order,
               now,
               existingRequestId,
@@ -1129,8 +1138,8 @@ export class MySqlStorage implements IStorage {
         await connection.execute(
           `INSERT INTO requests (
             collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
-            pre_request_script, post_request_script, comment, sort_order, uuid, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            pre_request_script, post_request_script, comment, tags, sort_order, uuid, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             id,
             folderId,
@@ -1145,6 +1154,7 @@ export class MySqlStorage implements IStorage {
             fields.pre_request_script,
             fields.post_request_script,
             fields.comment,
+            fields.tags,
             fields.sort_order,
             fields.uuid,
             now,

@@ -56,6 +56,7 @@ const request: SavedRequest = {
   pre_request_scripts: [],
   post_request_scripts: [],
   comment: '',
+  tags: '',
   folder_id: 10,
   sort_order: 0,
   created_at: '2024-01-01T00:00:00.000Z',

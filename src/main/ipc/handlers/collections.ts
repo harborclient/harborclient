@@ -251,6 +251,7 @@ async function saveImportedRequest(
           body_type: exportData.body_type,
           ...scripts,
           comment: exportData.comment,
+          tags: exportData.tags,
           auth: exportData.auth ?? defaultAuth()
         });
         return { request, action: 'updated' };
@@ -273,6 +274,7 @@ async function saveImportedRequest(
     body_type: payload.body_type,
     ...scripts,
     comment: payload.comment,
+    tags: payload.tags,
     auth: payload.auth ?? defaultAuth()
   });
 

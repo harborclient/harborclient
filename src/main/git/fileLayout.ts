@@ -484,7 +484,8 @@ export function exportedRequestToRequestExport(request: ExportedRequest): Reques
     body: request.body,
     pre_request_script: request.pre_request_script,
     post_request_script: request.post_request_script,
-    comment: request.comment
+    comment: request.comment,
+    tags: request.tags
   });
 }
 

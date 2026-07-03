@@ -147,6 +147,7 @@ const exportedRequestRow = z
     pre_request_script: z.string().default(''),
     post_request_script: z.string().default(''),
     comment: z.string().default(''),
+    tags: z.string().default(''),
     sort_order: z.number().optional(),
     folder_name: z.union([z.string(), z.null()]).optional(),
     folder_uuid: z.union([z.string().uuid(), z.null()]).optional()
@@ -173,6 +174,7 @@ const exportedRequestRow = z
     pre_request_script: req.pre_request_script,
     post_request_script: req.post_request_script,
     comment: req.comment,
+    tags: req.tags,
     sort_order: req.sort_order,
     folder_name:
       typeof req.folder_name === 'string'
@@ -320,7 +322,8 @@ const requestExportRow = z
     body_type: bodyType,
     pre_request_script: z.string().default(''),
     post_request_script: z.string().default(''),
-    comment: z.string().default('')
+    comment: z.string().default(''),
+    tags: z.string().default('')
   })
   .superRefine((req, ctx) => {
     if (!req.name.trim()) {
@@ -345,7 +348,8 @@ const requestExportRow = z
     body_type: req.body_type,
     pre_request_script: req.pre_request_script,
     post_request_script: req.post_request_script,
-    comment: req.comment
+    comment: req.comment,
+    tags: req.tags
   }));
 
 /**

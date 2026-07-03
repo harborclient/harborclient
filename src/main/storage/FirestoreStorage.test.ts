@@ -108,6 +108,7 @@ describeFirestore('FirestoreStorage import and ID allocation', () => {
       pre_request_scripts: [],
       post_request_scripts: [],
       comment: '',
+      tags: '',
       sort_order: index,
       folder_name: null
     };
@@ -227,6 +228,7 @@ describeFirestore('FirestoreStorage import and ID allocation', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       });
     }

@@ -17,6 +17,7 @@ import {
   defaultAuth,
   resolveAuthVariables
 } from '#/shared/auth';
+import { normalizeRequestTags } from '#/shared/requestTags';
 import { toPluginHttpRequest, toPluginHttpResponse } from '#/shared/plugin/httpRequest';
 import { emitPluginAfterSend } from '#/renderer/src/plugins/pluginAfterSendBus';
 import {
@@ -94,7 +95,8 @@ export function buildRequestExport(req: SavedRequest): RequestExport {
     body_type: req.body_type,
     pre_request_script: req.pre_request_script ?? '',
     post_request_script: req.post_request_script ?? '',
-    comment: req.comment ?? ''
+    comment: req.comment ?? '',
+    tags: req.tags ?? ''
   };
 }
 
@@ -192,6 +194,7 @@ async function persistRequestTab(
     pre_request_scripts: preRequestScripts,
     post_request_scripts: postRequestScripts,
     comment: currentDraft.comment ?? '',
+    tags: normalizeRequestTags(currentDraft.tags ?? ''),
     auth: currentDraft.auth
   });
 
@@ -307,6 +310,7 @@ export const newRequestInFolder = createAsyncThunk<
     pre_request_scripts: [],
     post_request_scripts: [],
     comment: '',
+    tags: '',
     auth: defaultAuth()
   });
 
@@ -343,6 +347,7 @@ export const duplicateRequest = createAsyncThunk<SavedRequest, SavedRequest, Thu
       pre_request_scripts: req.pre_request_scripts ?? [],
       post_request_scripts: req.post_request_scripts ?? [],
       comment: req.comment ?? '',
+      tags: req.tags ?? '',
       auth: req.auth
     });
 
@@ -385,6 +390,7 @@ export const newRequestInCollection = createAsyncThunk<SavedRequest, number, Thu
       pre_request_scripts: [],
       post_request_scripts: [],
       comment: '',
+      tags: '',
       auth: defaultAuth()
     });
 

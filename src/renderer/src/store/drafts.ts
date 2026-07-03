@@ -15,6 +15,7 @@ import {
   normalizeScriptRefs,
   resolveScriptRefs
 } from '#/shared/scriptRefs';
+import { normalizeRequestTags } from '#/shared/requestTags';
 
 /**
  * Editable request state in the UI before or during save.
@@ -36,6 +37,7 @@ export interface RequestDraft {
   pre_request_scripts: ScriptRef[];
   post_request_scripts: ScriptRef[];
   comment: string;
+  tags: string;
 }
 
 /**
@@ -210,6 +212,7 @@ export function normalizeDraft(draft: RequestDraft): RequestDraft {
     pre_request_scripts: preRequestScripts,
     post_request_scripts: postRequestScripts,
     comment: draft.comment ?? '',
+    tags: normalizeRequestTags(draft.tags ?? ''),
     auth: normalizeAuth(draft.auth)
   };
 }
@@ -255,6 +258,7 @@ export function normalizeDraftForCompare(draft: RequestDraft): string {
     pre_request_scripts: normalizeScriptRefs(draft.pre_request_scripts),
     post_request_scripts: normalizeScriptRefs(draft.post_request_scripts),
     comment: draft.comment ?? '',
+    tags: normalizeRequestTags(draft.tags ?? ''),
     auth: draft.auth,
     headers: draft.headers.filter((h) => h.key.trim() || h.value.trim()),
     params: draft.params.filter((p) => p.key.trim() || p.value.trim())
@@ -343,7 +347,8 @@ export const defaultDraft = (): RequestDraft => ({
   post_request_script: '',
   pre_request_scripts: [],
   post_request_scripts: [],
-  comment: ''
+  comment: '',
+  tags: ''
 });
 
 /**
@@ -406,6 +411,7 @@ export function draftFromSaved(req: SavedRequest): RequestDraft {
     post_request_script: mirrorLegacyScriptString(postRequestScripts),
     pre_request_scripts: preRequestScripts,
     post_request_scripts: postRequestScripts,
-    comment: req.comment ?? ''
+    comment: req.comment ?? '',
+    tags: req.tags ?? ''
   });
 }

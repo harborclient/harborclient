@@ -143,6 +143,7 @@ export class SqliteStorage implements IStorage {
       pre_request_scripts TEXT NOT NULL DEFAULT '[]',
       post_request_scripts TEXT NOT NULL DEFAULT '[]',
       comment TEXT NOT NULL DEFAULT '',
+      tags TEXT NOT NULL DEFAULT '',
       sort_order INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -215,6 +216,10 @@ export class SqliteStorage implements IStorage {
     const hasRequestComment = requestColumns.some((col) => col.name === 'comment');
     if (!hasRequestComment) {
       this.#db.exec("ALTER TABLE requests ADD COLUMN comment TEXT NOT NULL DEFAULT ''");
+    }
+    const hasRequestTags = requestColumns.some((col) => col.name === 'tags');
+    if (!hasRequestTags) {
+      this.#db.exec("ALTER TABLE requests ADD COLUMN tags TEXT NOT NULL DEFAULT ''");
     }
     const hasFolderId = requestColumns.some((col) => col.name === 'folder_id');
     if (!hasFolderId) {
@@ -485,6 +490,7 @@ export class SqliteStorage implements IStorage {
     const preRequestScript = preScripts.legacy;
     const postRequestScript = postScripts.legacy;
     const comment = input.comment ?? '';
+    const tags = input.tags ?? '';
     const folderId = input.folder_id ?? null;
     const now = new Date().toISOString();
 
@@ -503,7 +509,7 @@ export class SqliteStorage implements IStorage {
           `UPDATE requests SET
           collection_id = ?, folder_id = ?, name = ?, method = ?, url = ?,
           headers = ?, params = ?, auth = ?, body = ?, body_type = ?,
-          pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?,
+          pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
           updated_at = ?
         WHERE id = ?`
         )
@@ -523,6 +529,7 @@ export class SqliteStorage implements IStorage {
           preScripts.json,
           postScripts.json,
           comment,
+          tags,
           now,
           input.id
         );
@@ -545,8 +552,8 @@ export class SqliteStorage implements IStorage {
       .prepare(
         `INSERT INTO requests (
         collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
-        pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, sort_order, uuid, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         input.collection_id,
@@ -564,6 +571,7 @@ export class SqliteStorage implements IStorage {
         preScripts.json,
         postScripts.json,
         comment,
+        tags,
         maxOrder.max_order + 1,
         requestUuid,
         now
@@ -840,6 +848,7 @@ export class SqliteStorage implements IStorage {
         pre_request_script,
         post_request_script,
         comment,
+        tags,
         sort_order,
         folder_id
       }) => ({
@@ -855,6 +864,7 @@ export class SqliteStorage implements IStorage {
         pre_request_script,
         post_request_script,
         comment,
+        tags,
         sort_order,
         folder_name: folder_id != null ? (folderNameById.get(folder_id) ?? null) : null,
         folder_uuid: folder_id != null ? (folderUuidById.get(folder_id) ?? null) : null
@@ -928,8 +938,8 @@ export class SqliteStorage implements IStorage {
       const insertRequest = database.prepare(
         `INSERT INTO requests (
         collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
-        pre_request_script, post_request_script, comment, sort_order, uuid, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        pre_request_script, post_request_script, comment, tags, sort_order, uuid, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       );
 
       for (const request of payload.requests) {
@@ -955,6 +965,7 @@ export class SqliteStorage implements IStorage {
           fields.pre_request_script,
           fields.post_request_script,
           fields.comment,
+          fields.tags,
           fields.sort_order,
           fields.uuid,
           now
@@ -1075,13 +1086,13 @@ export class SqliteStorage implements IStorage {
       const insertRequest = database.prepare(
         `INSERT INTO requests (
         collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
-        pre_request_script, post_request_script, comment, sort_order, uuid, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        pre_request_script, post_request_script, comment, tags, sort_order, uuid, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       );
       const updateRequest = database.prepare(
         `UPDATE requests SET
           folder_id = ?, name = ?, method = ?, url = ?, headers = ?, params = ?, auth = ?,
-          body = ?, body_type = ?, pre_request_script = ?, post_request_script = ?, comment = ?,
+          body = ?, body_type = ?, pre_request_script = ?, post_request_script = ?, comment = ?, tags = ?,
           sort_order = ?, updated_at = ?
         WHERE id = ? AND collection_id = ?`
       );
@@ -1110,6 +1121,7 @@ export class SqliteStorage implements IStorage {
             fields.pre_request_script,
             fields.post_request_script,
             fields.comment,
+            fields.tags,
             fields.sort_order,
             now,
             existingRequestId,
@@ -1132,6 +1144,7 @@ export class SqliteStorage implements IStorage {
           fields.pre_request_script,
           fields.post_request_script,
           fields.comment,
+          fields.tags,
           fields.sort_order,
           fields.uuid,
           now

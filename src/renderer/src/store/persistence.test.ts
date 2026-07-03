@@ -29,6 +29,7 @@ const sampleDraft = (overrides: Partial<RequestDraft> = {}): RequestDraft => ({
   pre_request_scripts: [],
   post_request_scripts: [],
   comment: '',
+  tags: '',
   auth: defaultAuth(),
   ...overrides
 });
@@ -230,7 +231,8 @@ describe('loadTabsFromStorage', () => {
       post_request_script: '',
       pre_request_scripts: [],
       post_request_scripts: [],
-      comment: ''
+      comment: '',
+      tags: ''
     });
     expect(isTabDirty(result.tabs[0])).toBe(false);
   });

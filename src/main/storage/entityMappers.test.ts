@@ -152,6 +152,7 @@ describe('entityMappers', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: 'List users',
+        tags: '',
         folder_id: null,
         sort_order: 1,
         created_at: '2024-01-04T00:00:00.000Z',
@@ -162,7 +163,8 @@ describe('entityMappers', () => {
         id: 4,
         folder_id: null,
         params: [{ key: 'page', value: '1', enabled: true }],
-        comment: 'List users'
+        comment: 'List users',
+        tags: ''
       });
     });
 

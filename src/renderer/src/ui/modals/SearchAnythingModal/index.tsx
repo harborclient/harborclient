@@ -13,7 +13,9 @@ import {
   groupUnifiedSearchHits,
   SEARCH_DOMAIN_LABELS,
   searchAll,
+  sidebarRequestBreadcrumb,
   type SearchDomain,
+  type SidebarSearchInput,
   type UnifiedSearchHit
 } from '#/shared/search';
 import { faFolder, faGear, faGlobe, faPaperPlane, faPuzzlePiece } from '#/renderer/src/fontawesome';
@@ -24,6 +26,7 @@ import {
   closeSearchAnythingModal,
   selectSearchAnythingModal
 } from '#/renderer/src/store/slices/modalsSlice';
+import { BreadcrumbPrefix } from '#/renderer/src/ui/Main/RequestEditor/Editor/BreadcrumbPrefix';
 import { METHOD_CLASSES } from '#/renderer/src/ui/shared/classes';
 
 /** Element id for the command palette search field. */
@@ -57,6 +60,26 @@ const DOMAIN_ICONS: Record<SearchDomain, IconDefinition> = {
   plugin: faPuzzlePiece
 };
 
+/**
+ * Builds an accessible label for a request search result row.
+ *
+ * @param hit - Unified search hit for a saved request.
+ * @param breadcrumb - Resolved collection and folder names for the request.
+ */
+function requestSearchResultLabel(
+  hit: UnifiedSearchHit,
+  breadcrumb: ReturnType<typeof sidebarRequestBreadcrumb>
+): string | undefined {
+  if (hit.domain !== 'request') {
+    return undefined;
+  }
+
+  const parts = [breadcrumb.collectionName, breadcrumb.folderName, hit.method, hit.title].filter(
+    (part): part is string => part != null && part.length > 0
+  );
+  return parts.length > 0 ? parts.join(', ') : undefined;
+}
+
 interface ModalBodyProps {
   /** Dismisses the search anything modal. */
   onClose: () => void;
@@ -71,6 +94,8 @@ interface SearchResultGroupProps {
   activeIndex: number;
   /** Flat ordered list index offset for the first hit in this group. */
   indexOffset: number;
+  /** Sidebar data used to resolve request breadcrumb names. */
+  sidebarInput: SidebarSearchInput;
   /** Activates a hit on click or Enter. */
   onActivate: (hit: UnifiedSearchHit) => void;
   /** Updates keyboard highlight when the pointer hovers a row. */
@@ -85,6 +110,7 @@ function SearchResultGroup({
   hits,
   activeIndex,
   indexOffset,
+  sidebarInput,
   onActivate,
   onHighlight
 }: SearchResultGroupProps): JSX.Element {
@@ -106,6 +132,15 @@ function SearchResultGroup({
         {hits.map((hit, localIndex) => {
           const flatIndex = indexOffset + localIndex;
           const isActive = flatIndex === activeIndex;
+          const requestBreadcrumb =
+            hit.domain === 'request'
+              ? sidebarRequestBreadcrumb(sidebarInput, hit.collectionId, hit.folderId)
+              : null;
+          const requestLabel =
+            requestBreadcrumb != null
+              ? requestSearchResultLabel(hit, requestBreadcrumb)
+              : undefined;
+
           return (
             <li
               key={`${hit.domain}:${hit.id}`}
@@ -118,16 +153,24 @@ function SearchResultGroup({
                 role="option"
                 id={`search-anything-result-${flatIndex}`}
                 aria-current={isActive ? 'true' : undefined}
+                aria-label={requestLabel}
                 className={searchResultRowClass(isActive)}
                 onClick={() => onActivate(hit)}
               >
-                {hit.domain === 'request' && hit.method != null ? (
-                  <span className="flex min-w-0 w-full items-center gap-1.5">
-                    <span
-                      className={`shrink-0 px-1 py-px text-[16px] ${METHOD_CLASSES[hit.method.toLowerCase()] ?? 'text-info'}`}
-                    >
-                      {hit.method}
-                    </span>
+                {hit.domain === 'request' ? (
+                  <span className="flex min-w-0 w-full items-center gap-1">
+                    <BreadcrumbPrefix
+                      collectionName={requestBreadcrumb?.collectionName}
+                      folderName={requestBreadcrumb?.folderName}
+                      compact
+                    />
+                    {hit.method != null ? (
+                      <span
+                        className={`shrink-0 px-1 py-px text-[16px] ${METHOD_CLASSES[hit.method.toLowerCase()] ?? 'text-info'}`}
+                      >
+                        {hit.method}
+                      </span>
+                    ) : null}
                     <span className="min-w-0 flex-1 truncate text-[16px]">{hit.title}</span>
                   </span>
                 ) : (
@@ -147,7 +190,7 @@ function SearchResultGroup({
  */
 function SearchAnythingModalBody({ onClose }: ModalBodyProps): JSX.Element {
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const { searchContext } = useSearchIndexes();
+  const { searchContext, sidebarInput } = useSearchIndexes();
   const activateHit = useActivateSearchHit();
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -282,6 +325,7 @@ function SearchAnythingModalBody({ onClose }: ModalBodyProps): JSX.Element {
               hits={group.hits}
               activeIndex={activeIndex}
               indexOffset={groupOffsets[groupIndex] ?? 0}
+              sidebarInput={sidebarInput}
               onActivate={handleActivate}
               onHighlight={setActiveIndex}
             />

@@ -463,6 +463,7 @@ export class GitStorage implements IStorage {
     );
     const preRequestScript = preScripts.legacy;
     const postRequestScript = postScripts.legacy;
+    const tags = input.tags ?? '';
 
     const exported: GitStoredRequest = {
       uuid: requestUuid,
@@ -479,6 +480,7 @@ export class GitStorage implements IStorage {
       pre_request_scripts: preScripts.json,
       post_request_scripts: postScripts.json,
       comment: input.comment,
+      tags,
       sort_order:
         loaded.requests.find((r) => resolveImportUuid(r.uuid) === requestUuid)?.sort_order ??
         loaded.requests.filter((row) => (row.folder_name ?? null) === (folderName ?? null)).length,
@@ -842,6 +844,7 @@ export class GitStorage implements IStorage {
         pre_request_script: fields.pre_request_script,
         post_request_script: fields.post_request_script,
         comment: fields.comment,
+        tags: fields.tags,
         sort_order: fields.sort_order,
         folder_name: folderName ?? request.folder_name ?? null
       });
@@ -1158,6 +1161,7 @@ export class GitStorage implements IStorage {
       pre_request_scripts: readScriptRefsFromJson(request.pre_request_scripts, preRequestScript),
       post_request_scripts: readScriptRefsFromJson(request.post_request_scripts, postRequestScript),
       comment: request.comment,
+      tags: request.tags,
       sort_order: request.sort_order ?? 0,
       created_at,
       updated_at

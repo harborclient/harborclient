@@ -256,6 +256,7 @@ export function serializeImportedRequestFields(request: ExportedRequest): {
   pre_request_script: string;
   post_request_script: string;
   comment: string;
+  tags: string;
   sort_order: number;
   uuid: string;
 } {
@@ -271,6 +272,7 @@ export function serializeImportedRequestFields(request: ExportedRequest): {
     pre_request_script: request.pre_request_script,
     post_request_script: request.post_request_script,
     comment: request.comment,
+    tags: request.tags,
     sort_order: request.sort_order,
     uuid: resolveImportedRequestUuid(request)
   };

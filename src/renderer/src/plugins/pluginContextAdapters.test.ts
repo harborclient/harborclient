@@ -30,6 +30,7 @@ function sampleDraft(overrides: Partial<RequestDraft> = {}): RequestDraft {
     pre_request_scripts: [],
     post_request_scripts: [],
     comment: '',
+    tags: '',
     ...overrides
   };
 }

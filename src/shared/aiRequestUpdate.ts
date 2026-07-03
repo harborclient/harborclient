@@ -82,6 +82,11 @@ export interface AiRequestDraft {
    * Free-form notes for the request.
    */
   comment: string;
+
+  /**
+   * Comma-separated tags for organizing requests.
+   */
+  tags: string;
 }
 
 /**

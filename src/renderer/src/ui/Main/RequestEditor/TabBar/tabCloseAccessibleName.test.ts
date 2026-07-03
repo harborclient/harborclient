@@ -20,7 +20,8 @@ describe('tabCloseAccessibleName', () => {
         post_request_script: '',
         pre_request_scripts: [],
         post_request_scripts: [],
-        comment: ''
+        comment: '',
+        tags: ''
       },
       savedDraft: {
         name: 'Get users',
@@ -35,7 +36,8 @@ describe('tabCloseAccessibleName', () => {
         post_request_script: '',
         pre_request_scripts: [],
         post_request_scripts: [],
-        comment: ''
+        comment: '',
+        tags: ''
       },
       response: null,
       sending: false,

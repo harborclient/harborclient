@@ -58,6 +58,7 @@ function savedFrom(input: SaveRequestInput): SavedRequest {
     pre_request_scripts: input.pre_request_scripts ?? [],
     post_request_scripts: input.post_request_scripts ?? [],
     comment: input.comment ?? '',
+    tags: input.tags ?? '',
     sort_order: 0,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z'
@@ -111,6 +112,7 @@ describe('saveRequest folder handling', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -146,6 +148,7 @@ describe('saveRequest folder handling', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -185,6 +188,7 @@ describe('saveRequest script lists', () => {
         pre_request_scripts: [first, second],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -226,6 +230,7 @@ describe('saveRequest script lists', () => {
         pre_request_scripts: [unnamedWithCode],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );
@@ -276,6 +281,7 @@ describe('saveAllDirtyRequests', () => {
     pre_request_scripts: [],
     post_request_scripts: [],
     comment: '',
+    tags: '',
     auth: defaultAuth()
   };
 
@@ -352,6 +358,7 @@ function sampleSaved(overrides: Partial<SavedRequest> = {}): SavedRequest {
     pre_request_scripts: [],
     post_request_scripts: [],
     comment: '',
+    tags: '',
     sort_order: 0,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
@@ -414,7 +421,8 @@ describe('requestLoadRequest', () => {
       post_request_script: '',
       pre_request_scripts: [],
       post_request_scripts: [],
-      comment: ''
+      comment: '',
+      tags: ''
     });
 
     await store.dispatch(requestLoadRequest({ req }));
@@ -452,7 +460,8 @@ describe('requestLoadRequest', () => {
       post_request_script: '',
       pre_request_scripts: [],
       post_request_scripts: [],
-      comment: ''
+      comment: '',
+      tags: ''
     });
 
     await store.dispatch(requestLoadRequest({ req, skipSettingsCheck: true, forceReload: true }));
@@ -508,6 +517,7 @@ describe('cancelRequest', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         comment: '',
+        tags: '',
         auth: defaultAuth()
       })
     );

@@ -201,6 +201,11 @@ export interface ExportedRequest {
   comment: string;
 
   /**
+   * Comma-separated labels for organizing and searching requests.
+   */
+  tags: string;
+
+  /**
    * Position within the collection for sidebar ordering.
    */
   sort_order: number;

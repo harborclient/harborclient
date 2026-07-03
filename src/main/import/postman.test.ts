@@ -211,7 +211,8 @@ describe('convertPostmanCollection', () => {
       method: 'POST',
       folder_name: 'Authentication',
       body_type: 'json',
-      comment: 'Authenticate using an API key.'
+      comment: 'Authenticate using an API key.',
+      tags: ''
     });
     expect(result.requests[1]).toMatchObject({
       name: 'List Pass Types',

@@ -154,6 +154,7 @@ function serverToRequest(
     postRequestScripts?: string;
     pre_request_scripts?: string;
     post_request_scripts?: string;
+    tags?: string;
   };
   const preRequestScript = record.preRequestScript;
   const postRequestScript = record.postRequestScript;
@@ -182,6 +183,7 @@ function serverToRequest(
     pre_request_scripts,
     post_request_scripts,
     comment: record.comment,
+    tags: extended.tags ?? '',
     folder_id: localFolderId,
     sort_order: record.sortOrder,
     created_at: record.createdAt,
@@ -212,6 +214,7 @@ function toServerRequestBody(
   pre_request_scripts: string;
   post_request_scripts: string;
   comment: string;
+  tags: string;
   folderId: string | null;
 } {
   const preResolved = resolveScriptRefs(input.pre_request_scripts, input.pre_request_script ?? '');
@@ -237,6 +240,7 @@ function toServerRequestBody(
     pre_request_scripts: preScripts.json,
     post_request_scripts: postScripts.json,
     comment: input.comment ?? '',
+    tags: input.tags ?? '',
     folderId: folderServerId
   };
 }
@@ -576,6 +580,7 @@ export class TeamHubStorage implements IStorage {
         pre_request_script,
         post_request_script,
         comment,
+        tags,
         sort_order,
         folder_id
       }) => ({
@@ -591,6 +596,7 @@ export class TeamHubStorage implements IStorage {
         pre_request_script,
         post_request_script,
         comment,
+        tags,
         sort_order,
         folder_name: folder_id != null ? (folderNameById.get(folder_id) ?? null) : null,
         folder_uuid: folder_id != null ? (folderUuidById.get(folder_id) ?? null) : null
@@ -671,7 +677,8 @@ export class TeamHubStorage implements IStorage {
         post_request_script: request.post_request_script,
         pre_request_scripts: [],
         post_request_scripts: [],
-        comment: request.comment
+        comment: request.comment,
+        tags: request.tags
       });
     }
 
@@ -790,7 +797,8 @@ export class TeamHubStorage implements IStorage {
         post_request_script: fields.post_request_script,
         pre_request_scripts: [],
         post_request_scripts: [],
-        comment: fields.comment
+        comment: fields.comment,
+        tags: fields.tags
       });
     }
 

@@ -31,6 +31,7 @@ export function baseRequestInput(
     pre_request_scripts: [],
     post_request_scripts: [],
     comment: '',
+    tags: '',
     auth: defaultAuth(),
     ...overrides
   };
@@ -200,7 +201,8 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
         body_type: 'json',
         pre_request_script: 'pre',
         post_request_script: 'post',
-        comment: 'Some notes'
+        comment: 'Some notes',
+        tags: ''
       });
 
       expect(updated.id).toBe(created.id);
@@ -308,7 +310,8 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
           url: 'https://api.example.com/users',
           pre_request_script: 'req pre',
           post_request_script: 'req post',
-          comment: 'Request notes'
+          comment: 'Request notes',
+          tags: ''
         })
       );
 
@@ -345,6 +348,7 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
             pre_request_script: 'req pre',
             post_request_script: 'req post',
             comment: 'Request notes',
+            tags: '',
             sort_order: 0,
             folder_name: null
           }
@@ -379,6 +383,7 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
             pre_request_script: '',
             post_request_script: '',
             comment: '',
+            tags: '',
             sort_order: 0
           }
         ]
