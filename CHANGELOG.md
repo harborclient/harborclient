@@ -3,6 +3,9 @@
 ## Unreleased
 
 - feat(requests): add tags field to request schema and related functionalities. (`9ef116f`)
+
+## 1.9.21 - 2026-07-03
+
 - feat(search): introduce global search functionality and related UI components. (`77cc15b`)
 
 ## 1.9.20 - 2026-07-03
