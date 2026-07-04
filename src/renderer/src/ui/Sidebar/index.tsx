@@ -585,7 +585,7 @@ export function Sidebar({
             <Toolbar ariaLabel="Collections sidebar" actions={toolbarActions} />
             <div className="flex-1 overflow-x-hidden overflow-y-auto px-2 pb-3">
               {searchLoading ? (
-                <p className="mt-1.5 text-[14px] text-muted" role="status">
+                <p className="mt-1.5 text-[16px] text-muted" role="status">
                   Loading…
                 </p>
               ) : null}
@@ -1035,7 +1035,7 @@ export function Sidebar({
             </SegmentedTabPanel>
 
             <SegmentedTabPanel value="import">
-              <p className="mb-4 text-[14px] text-muted">
+              <p className="mb-4 text-[16px] text-muted">
                 Choose a HarborClient environment export (.json) to import variables and settings.
               </p>
               <ModalFooter>

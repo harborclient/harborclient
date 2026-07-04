@@ -78,7 +78,10 @@ export function ResponseEditor({
 }: Props): JSX.Element {
   const pluginTabs = usePluginResponseTabs();
   const sendRequestShortcutHint = useSendRequestShortcutHint();
-  const [tab, setTab] = useState<string>('body');
+  const [tabState, setTabState] = useState(() => ({
+    response,
+    tab: 'body'
+  }));
 
   /**
    * Pretty-prints the response body for display in the read-only editor.
@@ -113,6 +116,22 @@ export function ResponseEditor({
    * Whether the Preview tab should appear for HTML or image responses.
    */
   const showPreviewTab = showHtmlPreview || showImagePreview;
+
+  let tab = tabState.tab;
+  if (response !== tabState.response) {
+    tab = response && showPreviewTab ? 'preview' : tabState.tab;
+    setTabState({ response, tab });
+  }
+
+  /**
+   * Updates the selected response tab while preserving the response identity used
+   * to detect newly completed sends.
+   *
+   * @param nextTab - Response view selected by the user.
+   */
+  const setTab = (nextTab: string): void => {
+    setTabState((current) => ({ ...current, tab: nextTab }));
+  };
 
   const hasTests = testResults.length > 0;
   const hasRedirects = (response?.redirects?.length ?? 0) > 0;

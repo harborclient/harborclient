@@ -40,7 +40,7 @@ export function SidebarSearch({ value, onChange, loading = false }: Props): JSX.
         />
       </FormGroup>
       {loading ? (
-        <p className="mt-1.5 text-[14px] text-muted" role="status">
+        <p className="mt-1.5 text-[16px] text-muted" role="status">
           Loading…
         </p>
       ) : null}

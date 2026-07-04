@@ -92,7 +92,7 @@ const SectionItem = memo(function SectionItem({
               className="h-3 w-3 text-muted"
             />
           </span>
-          <h2 className="m-0 text-[14px] font-medium uppercase tracking-wide text-muted">
+          <h2 className="m-0 text-[16px] font-medium uppercase tracking-wide text-muted">
             {title}
           </h2>
         </button>
@@ -102,7 +102,7 @@ const SectionItem = memo(function SectionItem({
             {onAdd ? (
               <button
                 type="button"
-                className="hc-sidebar-add-button inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text app-no-drag"
+                className="hc-sidebar-add-button inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-[16px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text app-no-drag"
                 title={addLabel ?? 'Add'}
                 aria-label={addLabel ?? 'Add'}
                 onClick={onAdd}

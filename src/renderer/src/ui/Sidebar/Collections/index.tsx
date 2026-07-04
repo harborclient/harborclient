@@ -728,10 +728,10 @@ export function Collections({
     >
       <div className="sidebar-source-list flex flex-col gap-0">
         {collections.length === 0 && (
-          <div className="px-2 py-1.5 text-[14px] text-muted">No collections yet</div>
+          <div className="px-2 py-1.5 text-[16px] text-muted">No collections yet</div>
         )}
         {searchActive && collections.length > 0 && collectionTrees.length === 0 && (
-          <div className="px-2 py-1.5 text-[14px] text-muted">
+          <div className="px-2 py-1.5 text-[16px] text-muted">
             No matching collections or requests
           </div>
         )}
@@ -785,7 +785,7 @@ export function Collections({
                   </button>
                   <button
                     type="button"
-                    className="min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left text-[14px] text-inherit app-no-drag"
+                    className="min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left text-[16px] text-inherit app-no-drag"
                     data-sidebar-collection-id={collection.id}
                     aria-current={selected ? 'true' : undefined}
                     onClick={() => onSelectCollection(collection.id)}
@@ -812,7 +812,7 @@ export function Collections({
                   {connectionType === 'git' && gitStatus != null && gitStatus.changedCount > 0 && (
                     <button
                       type="button"
-                      className="shrink-0 cursor-pointer rounded bg-warning/20 px-1.5 py-0.5 text-[14px] font-medium text-warning hover:bg-warning/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent app-no-drag"
+                      className="shrink-0 cursor-pointer rounded bg-warning/20 px-1.5 py-0.5 text-[16px] font-medium text-warning hover:bg-warning/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent app-no-drag"
                       aria-label={`Open source control (${gitStatus.changedCount} uncommitted change(s))`}
                       onClick={() =>
                         onOpenSourceControl(
@@ -928,7 +928,7 @@ export function Collections({
                       {loaded && folders.length === 0 && rootRequests.length === 0 && (
                         <div className="flex items-center gap-1 px-1.5 py-0">
                           <span className="inline-flex h-4 w-4 shrink-0" aria-hidden="true" />
-                          <span className="text-[14px] text-muted">No saved requests</span>
+                          <span className="text-[16px] text-muted">No saved requests</span>
                         </div>
                       )}
 
@@ -947,12 +947,12 @@ export function Collections({
                         }
                       >
                         {isRequestDragInCollection && dropTargetFolderId === null && (
-                          <div className="px-2 pb-0.5 text-[14px] text-info">
+                          <div className="px-2 pb-0.5 text-[16px] text-info">
                             Drop at collection root
                           </div>
                         )}
                         {isDraggingRequestHere && rootRequests.length === 0 && (
-                          <div className="px-2 py-1.5 text-[14px] text-muted">Collection root</div>
+                          <div className="px-2 py-1.5 text-[16px] text-muted">Collection root</div>
                         )}
                         <SortableContext
                           items={rootRequestIds}
@@ -1030,13 +1030,13 @@ export function Collections({
                                   </button>
                                   <button
                                     type="button"
-                                    className="min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left text-[14px] font-medium text-inherit app-no-drag"
+                                    className="min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left text-[16px] font-medium text-inherit app-no-drag"
                                     aria-current={folderSelected ? 'true' : undefined}
                                     onClick={() => onSelectFolder(collection.id, folder.id)}
                                   >
                                     {folder.name}
                                     {folderHighlighted && (
-                                      <span className="ml-1.5 text-[14px] font-normal text-info">
+                                      <span className="ml-1.5 text-[16px] font-normal text-info">
                                         Drop here
                                       </span>
                                     )}
@@ -1154,7 +1154,7 @@ export function Collections({
                                         className="inline-flex h-4 w-4 shrink-0"
                                         aria-hidden="true"
                                       />
-                                      <span className="text-[14px] text-muted">Empty folder</span>
+                                      <span className="text-[16px] text-muted">Empty folder</span>
                                     </div>
                                   )}
                                 </div>
@@ -1171,16 +1171,16 @@ export function Collections({
                       activeDragRequest ? (
                         <div className="flex items-center gap-1.5 rounded border border-separator bg-surface px-2 py-1 shadow-md">
                           <span
-                            className={`shrink-0 px-1 py-px text-[14px] ${METHOD_CLASSES[activeDragRequest.method.toLowerCase()] ?? 'text-info'}`}
+                            className={`shrink-0 px-1 py-px text-[16px] ${METHOD_CLASSES[activeDragRequest.method.toLowerCase()] ?? 'text-info'}`}
                           >
                             {activeDragRequest.method}
                           </span>
-                          <span className="truncate text-[14px]">{activeDragRequest.name}</span>
+                          <span className="truncate text-[16px]">{activeDragRequest.name}</span>
                         </div>
                       ) : dragCollectionId === collection.id &&
                         activeDragKind === 'folder' &&
                         activeDragFolder ? (
-                        <div className="rounded border border-separator bg-surface px-2 py-1 text-[14px] font-medium shadow-md">
+                        <div className="rounded border border-separator bg-surface px-2 py-1 text-[16px] font-medium shadow-md">
                           {activeDragFolder.name}
                         </div>
                       ) : null}
@@ -1195,7 +1195,7 @@ export function Collections({
 
       <DragOverlay>
         {activeDragCollection ? (
-          <div className="rounded border border-separator bg-surface px-2 py-1 text-[14px] font-medium shadow-md">
+          <div className="rounded border border-separator bg-surface px-2 py-1 text-[16px] font-medium shadow-md">
             {activeDragCollection.name}
           </div>
         ) : null}

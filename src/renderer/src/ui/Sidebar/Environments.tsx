@@ -197,10 +197,10 @@ export function Environments({
     >
       <div className="sidebar-source-list flex flex-col gap-0">
         {noMatches && (
-          <div className="px-2 py-1.5 text-[14px] text-muted">No matching environments</div>
+          <div className="px-2 py-1.5 text-[16px] text-muted">No matching environments</div>
         )}
         {!noMatches && environments.length === 0 && (
-          <div className="px-2 py-1.5 text-[14px] text-muted">No environments yet</div>
+          <div className="px-2 py-1.5 text-[16px] text-muted">No environments yet</div>
         )}
 
         <SortableContext items={environmentIds} strategy={verticalListSortingStrategy}>
@@ -219,7 +219,7 @@ export function Environments({
               >
                 <button
                   type="button"
-                  className="min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left text-[14px] text-inherit app-no-drag"
+                  className="min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left text-[16px] text-inherit app-no-drag"
                   data-sidebar-environment-id={environment.id}
                   aria-current={selected ? 'true' : undefined}
                   onClick={() => onSelectEnvironment(selected ? null : environment.id)}
@@ -305,7 +305,7 @@ export function Environments({
 
       <DragOverlay>
         {activeDragEnvironment ? (
-          <div className="rounded border border-separator bg-surface px-2 py-1 text-[14px] font-medium shadow-md">
+          <div className="rounded border border-separator bg-surface px-2 py-1 text-[16px] font-medium shadow-md">
             {activeDragEnvironment.name}
           </div>
         ) : null}
