@@ -1,24 +1,36 @@
-import { Button, Page } from '@harborclient/sdk/components';
-import type { JSX, KeyboardEvent } from 'react';
+import { FormGroup, Input, Page } from '@harborclient/sdk/components';
+import type { JSX } from 'react';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import type { PluginInfo } from '#/shared/plugin/types';
-import { faPuzzlePiece } from '#/renderer/src/fontawesome';
-import { VerifiedPublisherBadge } from '#/renderer/src/ui/shared/VerifiedPublisherBadge';
-import { ErrorMessages } from './ErrorMessages';
-import { isManagedInstall, resolveInstalledPluginSummary, stopRowActivation } from './helpers';
-import { TableExternalLink } from './TableExternalLink';
-import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
-
-/**
- * Fixed width for installed-plugin table action buttons so labels align.
- */
-const PLUGIN_TABLE_ACTION_BUTTON_CLASS = 'w-[6rem]';
+import { faPalette, faPuzzlePiece } from '#/renderer/src/fontawesome';
+import type { PluginManagementKind } from '#/renderer/src/ui/Plugins/constants';
+import { InstalledPluginCard } from './InstalledPluginCard';
 
 interface Props {
+  /**
+   * Whether this list shows plugins or themes.
+   */
+  kind: PluginManagementKind;
+
   /**
    * Installed plugin rows from the main process.
    */
   plugins: PluginInfo[];
+
+  /**
+   * Installed plugin rows after search filtering.
+   */
+  filteredPlugins: PluginInfo[];
+
+  /**
+   * Current search query for filtering installed entries.
+   */
+  searchQuery: string;
+
+  /**
+   * Updates the installed search query.
+   */
+  onSearchQueryChange: (query: string) => void;
 
   /**
    * Whether the plugin list is loading.
@@ -46,11 +58,6 @@ interface Props {
   onOpenDetail: (plugin: PluginInfo) => void;
 
   /**
-   * Handles keyboard activation on a table row.
-   */
-  onRowKeyDown: (event: KeyboardEvent<HTMLTableRowElement>, plugin: PluginInfo) => void;
-
-  /**
    * Toggles enablement for one plugin row.
    */
   onToggleEnabled: (plugin: PluginInfo) => void;
@@ -72,194 +79,92 @@ interface Props {
 }
 
 /**
- * Installed plugins table with enable, reload, update, and remove actions.
+ * Installed plugins or themes grid with enable, reload, update, and remove actions.
  */
 export function InstalledView({
+  kind,
   plugins,
+  filteredPlugins,
+  searchQuery,
+  onSearchQueryChange,
   loading,
   error,
   catalogById,
   gitUpdateBusyId,
   onOpenDetail,
-  onRowKeyDown,
   onToggleEnabled,
   onReload,
   onUpdateFromGit,
   onRemove
 }: Props): JSX.Element {
+  const isThemes = kind === 'themes';
+  const title = isThemes ? 'Installed themes' : 'Installed';
+  const emptyLabel = isThemes ? 'No themes installed yet.' : 'No plugins installed yet.';
+  const loadingLabel = isThemes ? 'Loading themes…' : 'Loading plugins…';
+  const searchId = isThemes ? 'theme-installed-search' : 'plugin-installed-search';
+  const searchLabel = isThemes ? 'Search installed themes' : 'Search installed plugins';
+  const searchPlaceholder = isThemes ? 'Search installed themes' : 'Search installed plugins';
+  const noMatchLabel = isThemes
+    ? 'No installed themes match your search.'
+    : 'No installed plugins match your search.';
+
   return (
     <Page
       embedded
-      title="Installed"
-      icon={faPuzzlePiece}
-      description="Enable, disable, update, and remove plugins installed on this machine."
+      title={title}
+      icon={isThemes ? faPalette : faPuzzlePiece}
+      description={
+        isThemes
+          ? 'Enable, disable, update, and remove theme plugins installed on this machine.'
+          : 'Enable, disable, update, and remove plugins installed on this machine.'
+      }
     >
+      <div className="mb-4">
+        <FormGroup className="border-none! p-0!" label={searchLabel} htmlFor={searchId} srOnly>
+          <Input
+            id={searchId}
+            type="search"
+            placeholder={searchPlaceholder}
+            value={searchQuery}
+            disabled={loading}
+            className="w-full max-w-md"
+            onChange={(event) => onSearchQueryChange(event.target.value)}
+          />
+        </FormGroup>
+      </div>
+
       {error ? <p className="text-danger">{error}</p> : null}
       {loading ? (
         <p className="text-muted" role="status">
-          Loading plugins…
+          {loadingLabel}
         </p>
       ) : null}
 
-      {!loading && plugins.length === 0 ? (
-        <p className="text-muted">No plugins installed yet.</p>
+      {!loading && plugins.length === 0 ? <p className="text-muted">{emptyLabel}</p> : null}
+
+      {!loading && plugins.length > 0 && filteredPlugins.length === 0 ? (
+        <p className="text-muted" role="status">
+          {noMatchLabel}
+        </p>
       ) : null}
 
-      {!loading && plugins.length > 0 ? (
-        <div className="overflow-x-auto rounded-md border border-separator">
-          <table className="w-full border-collapse text-[14px]">
-            <caption className="sr-only">Installed plugins</caption>
-            <thead>
-              <tr className="border-b border-separator bg-sidebar/40 text-left">
-                <th scope="col" className="px-3 py-2 font-medium text-text">
-                  Plugin
-                </th>
-                <th scope="col" className="px-3 py-2 text-center font-medium text-text">
-                  Version
-                </th>
-                <th scope="col" className="px-3 py-2 font-medium text-text">
-                  Publisher
-                </th>
-                <th scope="col" className="w-0 whitespace-nowrap px-3 py-2 font-medium text-text">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {plugins.map((plugin) => {
-                const gitUpdateBusy = gitUpdateBusyId === plugin.id;
-                const summary = resolveInstalledPluginSummary(plugin, catalogById.get(plugin.id));
-
-                return (
-                  <tr
-                    key={plugin.id}
-                    tabIndex={0}
-                    className="cursor-pointer border-b border-separator last:border-b-0 hover:bg-selection/40"
-                    aria-label={`View details for ${plugin.name}`}
-                    onClick={() => onOpenDetail(plugin)}
-                    onKeyDown={(event) => onRowKeyDown(event, plugin)}
-                  >
-                    <td className="max-w-0 w-[40%] px-3 py-2 align-middle">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium text-text">{plugin.name}</span>
-                        {plugin.signature?.status === 'invalid' ? (
-                          <span className="rounded bg-danger/20 px-1.5 py-0.5 text-[14px] text-danger">
-                            Invalid signature
-                          </span>
-                        ) : null}
-                        {plugin.signature?.status === 'untrusted' ? (
-                          <span className="rounded bg-danger/20 px-1.5 py-0.5 text-[14px] text-danger">
-                            Untrusted publisher
-                          </span>
-                        ) : null}
-                        {plugin.runtimeError && plugin.enabled ? (
-                          <span className="rounded bg-danger/20 px-1.5 py-0.5 text-[14px] text-danger">
-                            Error
-                          </span>
-                        ) : null}
-                        {plugin.manifest.homepage ? (
-                          <TableExternalLink
-                            href={plugin.manifest.homepage}
-                            label="Homepage"
-                            pluginName={plugin.name}
-                          />
-                        ) : null}
-                        {plugin.source === 'unpacked' ? (
-                          <span className="rounded bg-info/20 px-1.5 py-0.5 text-[14px] text-text">
-                            Development
-                          </span>
-                        ) : null}
-                        {plugin.source === 'git' ? (
-                          <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[14px] text-text">
-                            Git
-                          </span>
-                        ) : null}
-                      </div>
-                      {summary ? (
-                        <p className="m-0 min-w-0 truncate text-[14px] text-muted" title={summary}>
-                          {summary}
-                        </p>
-                      ) : null}
-                      <ErrorMessages plugin={plugin} />
-                    </td>
-                    <td className="px-3 py-2 text-center align-middle text-text">
-                      {plugin.version}
-                    </td>
-                    <td className="px-3 py-2 align-middle text-text">
-                      <div className="flex items-center gap-2">
-                        {plugin.manifest.author ? (
-                          plugin.manifest.author
-                        ) : (
-                          <span className="text-muted">—</span>
-                        )}
-                        {plugin.signature?.status === 'verified' ? (
-                          <VerifiedPublisherBadge
-                            author={plugin.signature.author ?? plugin.manifest.author}
-                          />
-                        ) : null}
-                      </div>
-                    </td>
-                    <td
-                      className="w-0 whitespace-nowrap px-3 py-2 align-middle"
-                      onClick={stopRowActivation}
-                      onMouseDown={stopRowActivation}
-                    >
-                      <div className="flex flex-nowrap gap-2 justify-end">
-                        <Button
-                          type="button"
-                          variant="toolbar"
-                          className={PLUGIN_TABLE_ACTION_BUTTON_CLASS}
-                          aria-label={
-                            plugin.enabled ? `Disable ${plugin.name}` : `Enable ${plugin.name}`
-                          }
-                          onClick={() => onToggleEnabled(plugin)}
-                        >
-                          {plugin.enabled ? 'Disable' : 'Enable'}
-                        </Button>
-                        {plugin.source === 'unpacked' ? (
-                          <Button
-                            type="button"
-                            variant="toolbar"
-                            className={PLUGIN_TABLE_ACTION_BUTTON_CLASS}
-                            aria-label={`Reload ${plugin.name}`}
-                            onClick={() => onReload(plugin)}
-                          >
-                            Reload
-                          </Button>
-                        ) : null}
-                        {plugin.source === 'git' ? (
-                          <Button
-                            type="button"
-                            variant="toolbar"
-                            className={PLUGIN_TABLE_ACTION_BUTTON_CLASS}
-                            disabled={gitUpdateBusy}
-                            aria-label={`Update ${plugin.name}`}
-                            onClick={() => onUpdateFromGit(plugin.id)}
-                          >
-                            {gitUpdateBusy ? 'Updating…' : 'Update'}
-                          </Button>
-                        ) : null}
-                        <Button
-                          type="button"
-                          variant="toolbar"
-                          className={`${PLUGIN_TABLE_ACTION_BUTTON_CLASS} ${toolbarDangerButtonClass}`}
-                          aria-label={
-                            isManagedInstall(plugin)
-                              ? `Uninstall ${plugin.name}`
-                              : `Remove ${plugin.name}`
-                          }
-                          onClick={() => onRemove(plugin)}
-                        >
-                          {isManagedInstall(plugin) ? 'Uninstall' : 'Remove'}
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      {!loading && filteredPlugins.length > 0 ? (
+        <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 lg:grid-cols-4">
+          {filteredPlugins.map((plugin) => (
+            <InstalledPluginCard
+              key={plugin.id}
+              kind={kind}
+              plugin={plugin}
+              catalogEntry={catalogById.get(plugin.id)}
+              gitUpdateBusy={gitUpdateBusyId === plugin.id}
+              onOpenDetail={onOpenDetail}
+              onToggleEnabled={onToggleEnabled}
+              onReload={onReload}
+              onUpdateFromGit={onUpdateFromGit}
+              onRemove={onRemove}
+            />
+          ))}
+        </ul>
       ) : null}
     </Page>
   );

@@ -1,5 +1,5 @@
 import type { PluginCatalog, PluginCatalogEntry } from '#/shared/plugin/catalog';
-import type { PluginInfo } from '#/shared/plugin/types';
+import type { PluginInfo, PluginSource } from '#/shared/plugin/types';
 import { markPluginForThemePrompt } from '#/renderer/src/plugins/pluginLoader';
 
 /**
@@ -102,6 +102,22 @@ export async function resolvePendingPluginInstallDeepLink(
  */
 export function isManagedInstall(plugin: PluginInfo): boolean {
   return plugin.source === 'installed' || plugin.source === 'git';
+}
+
+/**
+ * Returns the human-readable installation source label for the detail modal.
+ *
+ * @param source - How the plugin package was loaded on disk.
+ */
+export function installedPluginInstallationLabel(source: PluginSource): string {
+  switch (source) {
+    case 'git':
+      return 'Git';
+    case 'unpacked':
+      return 'Development';
+    case 'installed':
+      return 'File';
+  }
 }
 
 /**

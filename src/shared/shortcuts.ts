@@ -10,6 +10,7 @@ export type ShortcutId =
   | 'save'
   | 'settings'
   | 'plugins'
+  | 'themes'
   | 'team-hubs'
   | 'sharing-keys'
   | 'import'
@@ -168,6 +169,13 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'Alt+Shift+P',
     kind: 'action',
     actionId: 'plugins'
+  },
+  {
+    id: 'themes',
+    label: 'Themes',
+    defaultAccelerator: 'CmdOrCtrl+Shift+T',
+    kind: 'action',
+    actionId: 'themes'
   },
   {
     id: 'team-hubs',

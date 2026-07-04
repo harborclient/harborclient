@@ -1,6 +1,7 @@
 import type { JSX, KeyboardEvent } from 'react';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import { PLUGIN_CATALOG_CATEGORY_LABELS } from '#/shared/plugin/catalogCategories';
+import { catalogEntryIsTheme } from '#/shared/plugin/themeCategory';
 import { ScreenshotCarousel } from './ScreenshotCarousel';
 
 interface Props {
@@ -20,6 +21,7 @@ interface Props {
  */
 export function CatalogCard({ entry, onOpen }: Props): JSX.Element {
   const images = entry.screenshots ?? (entry.screenshot ? [entry.screenshot] : []);
+  const showCategories = !catalogEntryIsTheme(entry);
 
   /**
    * Opens the detail modal when the card is activated from the keyboard.
@@ -58,13 +60,18 @@ export function CatalogCard({ entry, onOpen }: Props): JSX.Element {
           <span className="shrink-0 text-[14px] text-muted">{entry.version}</span>
         </div>
         <p className="m-0 line-clamp-3 text-[14px] text-text">{entry.summary}</p>
-        <div className="mt-auto flex flex-wrap gap-1.5 pt-1.5">
-          {entry.categories.map((category) => (
-            <span key={category} className="rounded bg-accent/15 px-2 py-0.5 text-[14px] text-text">
-              {PLUGIN_CATALOG_CATEGORY_LABELS[category]}
-            </span>
-          ))}
-        </div>
+        {showCategories ? (
+          <div className="mt-auto flex flex-wrap gap-1.5 pt-1.5">
+            {entry.categories.map((category) => (
+              <span
+                key={category}
+                className="rounded bg-accent/15 px-2 py-0.5 text-[14px] text-text"
+              >
+                {PLUGIN_CATALOG_CATEGORY_LABELS[category]}
+              </span>
+            ))}
+          </div>
+        ) : null}
       </div>
     </li>
   );

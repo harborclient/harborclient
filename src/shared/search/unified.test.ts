@@ -14,7 +14,9 @@ import {
   type UnifiedSearchHit
 } from '#/shared/search/types';
 import { buildPluginCatalogSearchIndex } from '#/shared/search/plugins';
+import { buildInstalledPluginSearchIndex } from '#/shared/search/installedPlugins';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
+import type { PluginInfo } from '#/shared/plugin/types';
 
 const collection: Collection = {
   id: 1,
@@ -80,6 +82,56 @@ const plugins: PluginCatalogEntry[] = [
     author: 'HarborClient',
     categories: ['requests'],
     repoUrl: 'https://github.com/example/plugin-curl'
+  },
+  {
+    id: 'com.example.nord',
+    name: 'Nord',
+    version: '1.0.0',
+    summary: 'Nord color theme.',
+    author: 'HarborClient',
+    categories: ['themes'],
+    repoUrl: 'https://github.com/example/plugin-nord'
+  }
+];
+
+const installedPlugins: PluginInfo[] = [
+  {
+    id: 'com.example.curl',
+    name: 'cURL',
+    version: '1.0.0',
+    enabled: true,
+    path: '/tmp/curl',
+    source: 'git',
+    permissions: [],
+    manifest: {
+      id: 'com.example.curl',
+      name: 'cURL',
+      version: '1.0.0',
+      summary: 'Shows an equivalent curl command.',
+      author: 'HarborClient',
+      categories: ['requests'],
+      engines: { harborclient: '>=1.0.0' },
+      permissions: []
+    }
+  },
+  {
+    id: 'com.example.nord',
+    name: 'Nord',
+    version: '1.0.0',
+    enabled: true,
+    path: '/tmp/nord',
+    source: 'git',
+    permissions: [],
+    manifest: {
+      id: 'com.example.nord',
+      name: 'Nord',
+      version: '1.0.0',
+      summary: 'Nord color theme.',
+      author: 'HarborClient',
+      categories: ['themes'],
+      engines: { harborclient: '>=1.0.0' },
+      permissions: []
+    }
   }
 ];
 
@@ -95,8 +147,10 @@ function buildContext(): SearchAllContext {
     sidebarIndex: buildSidebarSearchIndex(sidebarInput),
     settingsIndex: buildSettingsSearchIndex(),
     pluginsIndex: buildPluginCatalogSearchIndex(plugins),
+    installedPluginsIndex: buildInstalledPluginSearchIndex(installedPlugins),
     sidebarInput,
-    plugins
+    plugins,
+    installedPlugins
   };
 }
 
@@ -108,7 +162,8 @@ describe('mergeSearchHitsRoundRobin', () => {
       request: [{ domain: 'request', id: 'request:100', title: 'C', score: 1 }],
       environment: [{ domain: 'environment', id: 'environment:200', title: 'D', score: 1 }],
       setting: [{ domain: 'setting', id: 'proxy.enabled', title: 'E', score: 1 }],
-      plugin: [{ domain: 'plugin', id: 'com.example.curl', title: 'F', score: 1 }]
+      plugin: [{ domain: 'plugin', id: 'com.example.curl', title: 'F', score: 1 }],
+      theme: [{ domain: 'theme', id: 'com.example.nord', title: 'G', score: 1 }]
     };
 
     const merged = mergeSearchHitsRoundRobin(grouped, 4);
@@ -132,6 +187,48 @@ describe('searchAll', () => {
     expect(hits.some((hit) => hit.domain === 'setting')).toBe(true);
   });
 
+  it('assigns theme catalog entries to the theme domain', () => {
+    const hits = searchAll('nord', buildContext());
+    expect(hits.some((hit) => hit.domain === 'theme' && hit.id === 'com.example.nord')).toBe(true);
+  });
+
+  it('assigns non-theme catalog entries to the plugin domain', () => {
+    const hits = searchAll('curl', buildContext());
+    expect(hits.some((hit) => hit.domain === 'plugin' && hit.id === 'com.example.curl')).toBe(true);
+    expect(hits.some((hit) => hit.id === 'com.example.curl' && hit.domain === 'theme')).toBe(false);
+  });
+
+  it('assigns installed theme plugins to the theme domain with installed source', () => {
+    const hits = searchAll('nord', buildContext());
+    expect(
+      hits.some(
+        (hit) =>
+          hit.domain === 'theme' &&
+          hit.id === 'com.example.nord' &&
+          hit.pluginListingSource === 'installed'
+      )
+    ).toBe(true);
+  });
+
+  it('assigns marketplace catalog entries with marketplace source', () => {
+    const hits = searchAll('curl', buildContext());
+    expect(
+      hits.some(
+        (hit) =>
+          hit.domain === 'plugin' &&
+          hit.id === 'com.example.curl' &&
+          hit.pluginListingSource === 'marketplace'
+      )
+    ).toBe(true);
+  });
+
+  it('can return the same plugin id from installed and marketplace sources', () => {
+    const hits = searchAll('curl', buildContext());
+    const curlHits = hits.filter((hit) => hit.id === 'com.example.curl');
+    expect(curlHits.some((hit) => hit.pluginListingSource === 'installed')).toBe(true);
+    expect(curlHits.some((hit) => hit.pluginListingSource === 'marketplace')).toBe(true);
+  });
+
   it('caps results at SEARCH_ANYTHING_MAX_RESULTS', () => {
     const manyHits: UnifiedSearchHit[] = Array.from({ length: 20 }, (_, index) => ({
       domain: 'setting',
@@ -146,7 +243,8 @@ describe('searchAll', () => {
       request: [],
       environment: [],
       setting: manyHits,
-      plugin: []
+      plugin: [],
+      theme: []
     };
 
     expect(mergeSearchHitsRoundRobin(grouped, SEARCH_ANYTHING_MAX_RESULTS)).toHaveLength(

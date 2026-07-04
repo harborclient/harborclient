@@ -1,14 +1,10 @@
-import {
-  useCallback,
-  useState,
-  type Dispatch,
-  type KeyboardEvent,
-  type SetStateAction
-} from 'react';
+import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
 import toast from 'react-hot-toast';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import type { PluginInfo } from '#/shared/plugin/types';
+import { pluginIsTheme } from '#/shared/plugin/themeCategory';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
+import type { PluginManagementKind } from '#/renderer/src/ui/Plugins/constants';
 import {
   showAlert,
   showConfirm,
@@ -17,6 +13,11 @@ import {
 import { isManagedInstall, queueThemePromptIfNeeded } from '../helpers';
 
 interface UsePluginInstallActionsArgs {
+  /**
+   * Whether installs are scoped to plugins or themes.
+   */
+  kind: PluginManagementKind;
+
   /**
    * Reloads the installed plugin list from the main process.
    */
@@ -125,11 +126,6 @@ interface UsePluginInstallActionsResult {
   handleCatalogInstall: (entry: PluginCatalogEntry) => Promise<void>;
 
   /**
-   * Re-clones a git-installed marketplace plugin from its stored origin.
-   */
-  handleCatalogUpdate: (pluginId: string) => Promise<void>;
-
-  /**
    * Opens the load-unpacked dialog.
    */
   handleLoadUnpacked: () => Promise<void>;
@@ -148,17 +144,13 @@ interface UsePluginInstallActionsResult {
    * Removes an installed or unpacked plugin after confirmation.
    */
   handleRemove: (plugin: PluginInfo) => Promise<void>;
-
-  /**
-   * Opens the detail modal when a table row is activated from the keyboard.
-   */
-  handleRowKeyDown: (event: KeyboardEvent<HTMLTableRowElement>, plugin: PluginInfo) => void;
 }
 
 /**
  * Manages plugin install, update, enable, and removal actions across Installed and Marketplace views.
  */
 export function usePluginInstallActions({
+  kind,
   refresh,
   openDetail,
   detailPlugin,
@@ -221,18 +213,69 @@ export function usePluginInstallActions({
   );
 
   /**
+   * Returns whether an installed plugin matches the active management kind.
+   *
+   * @param plugin - Newly installed plugin metadata.
+   * @returns True when the plugin belongs on the current tab.
+   */
+  const pluginMatchesKind = useCallback(
+    (plugin: PluginInfo): boolean => {
+      const isTheme = pluginIsTheme(plugin);
+      return kind === 'themes' ? isTheme : !isTheme;
+    },
+    [kind]
+  );
+
+  /**
+   * Explains why a plugin cannot be installed from the current tab.
+   */
+  const wrongKindInstallMessage = useCallback((): string => {
+    if (kind === 'themes') {
+      return 'This is a plugin, not a theme. Install it from the Plugins tab.';
+    }
+    return 'This is a theme. Install it from the Themes tab.';
+  }, [kind]);
+
+  /**
+   * Rolls back an install when the package kind does not match the active tab.
+   *
+   * @param plugin - Plugin that was just installed.
+   * @returns True when the install was rejected and rolled back.
+   */
+  const rejectWrongKindInstall = useCallback(
+    async (plugin: PluginInfo): Promise<boolean> => {
+      if (pluginMatchesKind(plugin)) {
+        return false;
+      }
+
+      if (isManagedInstall(plugin)) {
+        await window.api.uninstallPlugin(plugin.id);
+      } else {
+        await window.api.removeUnpackedPlugin(plugin.id);
+      }
+      await refresh();
+      showAlert(dispatch, wrongKindInstallMessage(), 'Wrong tab', { icon: 'warning' });
+      return true;
+    },
+    [dispatch, pluginMatchesKind, refresh, wrongKindInstallMessage]
+  );
+
+  /**
    * Opens the install-from-file dialog and shows the permissions modal.
    */
   const handleInstallFromFile = useCallback(async (): Promise<void> => {
     try {
       const installed = await window.api.installPlugin();
       if (installed) {
+        if (await rejectWrongKindInstall(installed)) {
+          return;
+        }
         setPendingInstall(installed);
       }
     } catch (err) {
       showPluginActionError('Install failed', err, 'The plugin could not be installed.');
     }
-  }, [showPluginActionError]);
+  }, [rejectWrongKindInstall, showPluginActionError]);
 
   /**
    * Clones a plugin from a public git repository URL.
@@ -248,6 +291,9 @@ export function usePluginInstallActions({
     try {
       const ref = gitInstallRef.trim() || undefined;
       const installed = await window.api.installPluginFromGit(url, ref);
+      if (await rejectWrongKindInstall(installed)) {
+        return;
+      }
       setGitInstallUrl('');
       setGitInstallRef('');
       setPendingInstall(installed);
@@ -256,7 +302,7 @@ export function usePluginInstallActions({
     } finally {
       setGitInstallBusy(false);
     }
-  }, [gitInstallUrl, gitInstallRef, showPluginActionError]);
+  }, [gitInstallUrl, gitInstallRef, rejectWrongKindInstall, showPluginActionError]);
 
   /**
    * Re-clones a git-installed plugin from its stored origin.
@@ -288,6 +334,9 @@ export function usePluginInstallActions({
       setCatalogActionBusyId(entry.id);
       try {
         const installed = await window.api.installPluginFromGit(entry.repoUrl, entry.ref);
+        if (await rejectWrongKindInstall(installed)) {
+          return;
+        }
         closeCatalogDetailAfterInstall();
         setPendingInstall(installed);
       } catch (err) {
@@ -296,27 +345,7 @@ export function usePluginInstallActions({
         setCatalogActionBusyId(null);
       }
     },
-    [closeCatalogDetailAfterInstall, showPluginActionError]
-  );
-
-  /**
-   * Re-clones a git-installed marketplace plugin from its stored origin.
-   *
-   * @param pluginId - Plugin manifest id.
-   */
-  const handleCatalogUpdate = useCallback(
-    async (pluginId: string): Promise<void> => {
-      setCatalogActionBusyId(pluginId);
-      try {
-        await window.api.updatePluginFromGit(pluginId);
-        await refresh();
-      } catch (err) {
-        showPluginActionError('Update failed', err, 'The plugin could not be updated.');
-      } finally {
-        setCatalogActionBusyId(null);
-      }
-    },
-    [refresh, showPluginActionError]
+    [closeCatalogDetailAfterInstall, rejectWrongKindInstall, showPluginActionError]
   );
 
   /**
@@ -326,12 +355,15 @@ export function usePluginInstallActions({
     try {
       const loaded = await window.api.loadUnpackedPlugin();
       if (loaded) {
+        if (await rejectWrongKindInstall(loaded)) {
+          return;
+        }
         setPendingInstall(loaded);
       }
     } catch (err) {
       showPluginActionError('Load failed', err, 'The unpacked plugin could not be loaded.');
     }
-  }, [showPluginActionError]);
+  }, [rejectWrongKindInstall, showPluginActionError]);
 
   /**
    * Toggles enablement for one plugin row.
@@ -395,22 +427,6 @@ export function usePluginInstallActions({
   );
 
   /**
-   * Opens the detail modal when a table row is activated from the keyboard.
-   *
-   * @param event - Keyboard event on the row.
-   * @param plugin - Plugin row to inspect.
-   */
-  const handleRowKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLTableRowElement>, plugin: PluginInfo): void => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        openDetail(plugin);
-      }
-    },
-    [openDetail]
-  );
-
-  /**
    * Updates the git install URL field and clears validation errors.
    */
   const onGitInstallUrlChange = useCallback((url: string): void => {
@@ -443,11 +459,9 @@ export function usePluginInstallActions({
     handleInstallFromGit,
     handleUpdateFromGit,
     handleCatalogInstall,
-    handleCatalogUpdate,
     handleLoadUnpacked,
     handleToggleEnabled,
     handleReload,
-    handleRemove,
-    handleRowKeyDown
+    handleRemove
   };
 }

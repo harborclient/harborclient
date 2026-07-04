@@ -59,6 +59,7 @@ export interface RequestTab {
 export type PageRef =
   | { type: 'settings'; section: SettingsSection }
   | { type: 'plugins' }
+  | { type: 'themes' }
   | { type: 'team-hubs' }
   | { type: 'sharing-keys' }
   | { type: 'plugin-view'; pluginId: string; viewId: string }
@@ -125,6 +126,8 @@ export function pageRefKey(page: PageRef): string {
       return 'settings';
     case 'plugins':
       return 'plugins';
+    case 'themes':
+      return 'themes';
     case 'team-hubs':
       return 'team-hubs';
     case 'sharing-keys':

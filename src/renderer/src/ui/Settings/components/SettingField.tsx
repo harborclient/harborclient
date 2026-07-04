@@ -1,10 +1,10 @@
-import { FormGroup } from '@harborclient/sdk/components';
 import type { ComponentProps, JSX, ReactNode } from 'react';
 
 import { entryById, type FieldSettingId } from '../catalog/catalog';
 import { SettingLabel } from './SettingLabel';
+import { SettingsField } from './SettingsField';
 
-type FormGroupProps = ComponentProps<typeof FormGroup>;
+type SettingsFieldProps = ComponentProps<typeof SettingsField>;
 
 interface Props {
   /**
@@ -30,11 +30,11 @@ interface Props {
   /**
    * Label and control placement preset.
    */
-  layout?: FormGroupProps['layout'];
+  layout?: SettingsFieldProps['layout'];
   /**
    * Label color style.
    */
-  labelTone?: FormGroupProps['labelTone'];
+  labelTone?: SettingsFieldProps['labelTone'];
   /**
    * Additional classes on the outer wrapper.
    */
@@ -83,7 +83,7 @@ export function SettingField({
 
   return (
     <div className="hc-setting-field">
-      <FormGroup
+      <SettingsField
         label={<SettingLabel settingId={settingId}>{entry.label}</SettingLabel>}
         description={description}
         descriptionId={description.length > 0 ? descriptionId : undefined}
@@ -95,7 +95,7 @@ export function SettingField({
         className={className}
       >
         {children}
-      </FormGroup>
+      </SettingsField>
     </div>
   );
 }

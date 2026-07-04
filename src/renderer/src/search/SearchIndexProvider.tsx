@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type JSX, type ReactNode } from 'react';
 import type { PluginCatalog } from '#/shared/plugin/catalog';
+import type { PluginInfo } from '#/shared/plugin/types';
 import {
+  buildInstalledPluginSearchIndex,
   buildPluginCatalogSearchIndex,
   buildSettingsSearchIndex,
   buildSidebarSearchIndex,
@@ -41,6 +43,8 @@ export function SearchIndexProvider({ children }: Props): JSX.Element {
 
   const [pluginCatalog, setPluginCatalog] = useState<PluginCatalog | null>(null);
   const [pluginsFetchSettled, setPluginsFetchSettled] = useState(false);
+  const [installedPlugins, setInstalledPlugins] = useState<PluginInfo[]>([]);
+  const [installedPluginsFetchSettled, setInstalledPluginsFetchSettled] = useState(false);
 
   /**
    * Plain sidebar data shape shared with search index builders.
@@ -80,13 +84,24 @@ export function SearchIndexProvider({ children }: Props): JSX.Element {
     return buildPluginCatalogSearchIndex(pluginCatalog.plugins);
   }, [pluginCatalog]);
 
+  /**
+   * Installed plugins index rebuilt when the main-process list changes.
+   */
+  const installedPluginsIndex = useMemo(() => {
+    if (installedPlugins.length === 0) {
+      return null;
+    }
+    return buildInstalledPluginSearchIndex(installedPlugins);
+  }, [installedPlugins]);
+
   const ready = useMemo<SearchIndexReady>(
     () => ({
       sidebar: collectionsListed,
       settings: true,
-      plugins: pluginsFetchSettled
+      plugins: pluginsFetchSettled,
+      installedPlugins: installedPluginsFetchSettled
     }),
-    [collectionsListed, pluginsFetchSettled]
+    [collectionsListed, pluginsFetchSettled, installedPluginsFetchSettled]
   );
 
   /**
@@ -97,10 +112,20 @@ export function SearchIndexProvider({ children }: Props): JSX.Element {
       sidebarIndex,
       settingsIndex,
       pluginsIndex,
+      installedPluginsIndex,
       sidebarInput,
-      plugins: pluginCatalog?.plugins ?? []
+      plugins: pluginCatalog?.plugins ?? [],
+      installedPlugins
     }),
-    [sidebarIndex, settingsIndex, pluginsIndex, sidebarInput, pluginCatalog]
+    [
+      sidebarIndex,
+      settingsIndex,
+      pluginsIndex,
+      installedPluginsIndex,
+      sidebarInput,
+      pluginCatalog,
+      installedPlugins
+    ]
   );
 
   const value = useMemo<SearchIndexContextValue>(
@@ -109,11 +134,23 @@ export function SearchIndexProvider({ children }: Props): JSX.Element {
       sidebarIndex,
       settingsIndex,
       pluginsIndex,
+      installedPluginsIndex,
       plugins: pluginCatalog?.plugins ?? [],
+      installedPlugins,
       ready,
       searchContext
     }),
-    [sidebarInput, sidebarIndex, settingsIndex, pluginsIndex, pluginCatalog, ready, searchContext]
+    [
+      sidebarInput,
+      sidebarIndex,
+      settingsIndex,
+      pluginsIndex,
+      installedPluginsIndex,
+      pluginCatalog,
+      installedPlugins,
+      ready,
+      searchContext
+    ]
   );
 
   /**
@@ -152,6 +189,41 @@ export function SearchIndexProvider({ children }: Props): JSX.Element {
       });
     return () => {
       active = false;
+    };
+  }, []);
+
+  /**
+   * Loads installed plugins on startup and rebuilds the index when the list changes.
+   */
+  useEffect(() => {
+    let active = true;
+
+    /**
+     * Refreshes installed plugin rows from the main process.
+     */
+    const refreshInstalledPlugins = async (): Promise<void> => {
+      try {
+        const next = await window.api.listPlugins();
+        if (active) {
+          setInstalledPlugins(next);
+        }
+      } catch {
+        // Global search degrades gracefully when the plugin list is unavailable.
+      } finally {
+        if (active) {
+          setInstalledPluginsFetchSettled(true);
+        }
+      }
+    };
+
+    void refreshInstalledPlugins();
+    const unsubscribe = window.api.onPluginsChanged(() => {
+      void refreshInstalledPlugins();
+    });
+
+    return () => {
+      active = false;
+      unsubscribe();
     };
   }, []);
 

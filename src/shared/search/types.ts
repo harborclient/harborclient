@@ -7,7 +7,8 @@ export type SearchDomain =
   | 'request'
   | 'environment'
   | 'setting'
-  | 'plugin';
+  | 'plugin'
+  | 'theme';
 
 /**
  * Display order for grouped search results in the command palette.
@@ -18,7 +19,8 @@ export const SEARCH_DOMAIN_ORDER: SearchDomain[] = [
   'request',
   'environment',
   'setting',
-  'plugin'
+  'plugin',
+  'theme'
 ];
 
 /**
@@ -30,7 +32,8 @@ export const SEARCH_DOMAIN_LABELS: Record<SearchDomain, string> = {
   request: 'Requests',
   environment: 'Environments',
   setting: 'Settings',
-  plugin: 'Plugins'
+  plugin: 'Plugins',
+  theme: 'Themes'
 };
 
 /**
@@ -39,12 +42,17 @@ export const SEARCH_DOMAIN_LABELS: Record<SearchDomain, string> = {
 export const SEARCH_ANYTHING_MAX_RESULTS = 8;
 
 /**
+ * Whether a plugin or theme hit comes from the installed list or marketplace catalog.
+ */
+export type PluginListingSource = 'installed' | 'marketplace';
+
+/**
  * One normalized hit returned by {@link searchAll} for rendering and navigation.
  */
 export interface UnifiedSearchHit {
   /** Result category used for grouping and navigation dispatch. */
   domain: SearchDomain;
-  /** Stable identifier within the domain (composite sidebar id, setting id, plugin id). */
+  /** Stable identifier within the domain (composite sidebar id, setting id, plugin or theme id). */
   id: string;
   /** Primary label shown in the result row. */
   title: string;
@@ -58,6 +66,8 @@ export interface UnifiedSearchHit {
   collectionId?: number;
   /** Numeric folder id when the hit is scoped to a folder. */
   folderId?: number | null;
+  /** Distinguishes installed vs marketplace plugin/theme hits in Search Anything. */
+  pluginListingSource?: PluginListingSource;
 }
 
 /**

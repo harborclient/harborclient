@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
+import { catalogEntryIsTheme } from '#/shared/plugin/themeCategory';
 import {
   buildPluginCatalogSearchIndex,
   filterPluginCatalogByCategory,
-  searchPluginCatalog
+  searchPluginCatalog,
+  searchPluginHits
 } from '#/shared/search/plugins';
 
 const samplePlugins: PluginCatalogEntry[] = [
@@ -33,6 +35,24 @@ const samplePlugins: PluginCatalogEntry[] = [
     author: 'HarborClient',
     categories: ['requests', 'logging'],
     repoUrl: 'https://github.com/example/plugin-history'
+  },
+  {
+    id: 'com.example.nord',
+    name: 'Nord',
+    version: '1.0.0',
+    summary: 'Nord color theme.',
+    author: 'HarborClient',
+    categories: ['themes', 'dark'],
+    repoUrl: 'https://github.com/example/plugin-nord'
+  },
+  {
+    id: 'com.example.solar',
+    name: 'Solar',
+    version: '1.0.0',
+    summary: 'Solar light theme.',
+    author: 'HarborClient',
+    categories: ['themes', 'light'],
+    repoUrl: 'https://github.com/example/plugin-solar'
   }
 ];
 
@@ -71,6 +91,11 @@ describe('searchPluginCatalog', () => {
   it('returns an empty list when nothing matches', () => {
     expect(searchPluginCatalog(samplePlugins, index, 'zzzzzzzzzzzz')).toEqual([]);
   });
+
+  it('matches theme catalog entries by name via searchPluginHits', () => {
+    const hits = searchPluginHits(index, 'nord');
+    expect(hits.map((hit) => hit.id)).toEqual(['com.example.nord']);
+  });
 });
 
 describe('filterPluginCatalogByCategory', () => {
@@ -85,6 +110,35 @@ describe('filterPluginCatalogByCategory', () => {
   });
 
   it('returns an empty list when no plugins match the category', () => {
-    expect(filterPluginCatalogByCategory(samplePlugins, 'themes')).toEqual([]);
+    expect(filterPluginCatalogByCategory(samplePlugins, 'auth')).toEqual([]);
+  });
+
+  it('returns theme plugins when filtering by themes category', () => {
+    expect(filterPluginCatalogByCategory(samplePlugins, 'themes').map((entry) => entry.id)).toEqual(
+      ['com.example.nord', 'com.example.solar']
+    );
+  });
+
+  it('returns theme plugins when filtering by appearance category', () => {
+    expect(filterPluginCatalogByCategory(samplePlugins, 'dark').map((entry) => entry.id)).toEqual([
+      'com.example.nord'
+    ]);
+    expect(filterPluginCatalogByCategory(samplePlugins, 'light').map((entry) => entry.id)).toEqual([
+      'com.example.solar'
+    ]);
+  });
+});
+
+describe('catalog kind partitioning', () => {
+  it('separates theme catalog entries from non-theme plugins', () => {
+    const themes = samplePlugins.filter(catalogEntryIsTheme);
+    const plugins = samplePlugins.filter((entry) => !catalogEntryIsTheme(entry));
+
+    expect(themes.map((entry) => entry.id)).toEqual(['com.example.nord', 'com.example.solar']);
+    expect(plugins.map((entry) => entry.id)).toEqual([
+      'com.example.demo',
+      'com.example.curl',
+      'com.example.history'
+    ]);
   });
 });

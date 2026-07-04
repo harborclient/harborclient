@@ -8,6 +8,7 @@ export type MenuActionId =
   | 'save'
   | 'settings'
   | 'plugins'
+  | 'themes'
   | 'team-hubs'
   | 'sharing-keys'
   | 'join-shared-collection'

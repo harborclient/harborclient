@@ -1,12 +1,18 @@
 import type { JSX } from 'react';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import type { PluginInfo, PluginGitPreview } from '#/shared/plugin/types';
+import type { PluginManagementKind } from '#/renderer/src/ui/Plugins/constants';
 import { findInstalledCatalogPlugin } from './helpers';
 import { EnableModal } from './EnableModal';
 import { PluginDetailModal } from './PluginDetailModal';
 import { resolveCatalogPluginScreenshotSrcs } from './resolvePluginScreenshot';
 
 interface Props {
+  /**
+   * Whether this screen shows plugins or themes.
+   */
+  kind: PluginManagementKind;
+
   /**
    * Installed plugin rows from the main process.
    */
@@ -48,9 +54,29 @@ interface Props {
   onCatalogInstall: (entry: PluginCatalogEntry) => void;
 
   /**
-   * Updates the installed catalog listing from git.
+   * Plugin id currently being updated from git, if any.
    */
-  onCatalogUpdate: (pluginId: string) => void;
+  gitUpdateBusyId: string | null;
+
+  /**
+   * Toggles enablement for one plugin row.
+   */
+  onToggleEnabled: (plugin: PluginInfo) => void;
+
+  /**
+   * Reloads one unpacked plugin from disk.
+   */
+  onReload: (plugin: PluginInfo) => void;
+
+  /**
+   * Re-clones a git-installed plugin from its stored origin.
+   */
+  onUpdateFromGit: (pluginId: string) => void;
+
+  /**
+   * Removes an installed or unpacked plugin after confirmation.
+   */
+  onRemove: (plugin: PluginInfo) => void;
 
   /**
    * Plugin shown in the installed detail modal, if any.
@@ -97,6 +123,7 @@ interface Props {
  * Renders plugin detail and enable-permission modals for the Plugins view.
  */
 export function PluginModals({
+  kind,
   plugins,
   catalogDetailEntry,
   catalogPreview,
@@ -105,7 +132,11 @@ export function PluginModals({
   catalogActionBusyId,
   onCloseCatalogDetail,
   onCatalogInstall,
-  onCatalogUpdate,
+  gitUpdateBusyId,
+  onToggleEnabled,
+  onReload,
+  onUpdateFromGit,
+  onRemove,
   detailPlugin,
   descriptionMarkdown,
   descriptionLoadState,
@@ -115,37 +146,47 @@ export function PluginModals({
   onCancelPendingInstall,
   onConfirmPendingInstall
 }: Props): JSX.Element {
+  const catalogInstalled = catalogDetailEntry
+    ? findInstalledCatalogPlugin(plugins, catalogDetailEntry.id)
+    : undefined;
+
   return (
     <>
       {catalogDetailEntry ? (
         <PluginDetailModal
           mode="catalog"
+          kind={kind}
           entry={catalogDetailEntry}
           preview={catalogPreview}
           previewLoadState={catalogPreviewLoadState}
           previewError={catalogPreviewError}
           screenshotSrcs={resolveCatalogPluginScreenshotSrcs(catalogDetailEntry, catalogPreview)}
-          installed={findInstalledCatalogPlugin(plugins, catalogDetailEntry.id)}
+          installed={catalogInstalled}
           actionBusy={catalogActionBusyId === catalogDetailEntry.id}
+          gitUpdateBusy={catalogInstalled != null && gitUpdateBusyId === catalogInstalled.id}
           onClose={onCloseCatalogDetail}
           onInstall={() => onCatalogInstall(catalogDetailEntry)}
-          onUpdate={() => {
-            const installed = findInstalledCatalogPlugin(plugins, catalogDetailEntry.id);
-            if (installed) {
-              onCatalogUpdate(installed.id);
-            }
-          }}
+          onToggleEnabled={onToggleEnabled}
+          onReload={onReload}
+          onUpdateFromGit={onUpdateFromGit}
+          onRemove={onRemove}
         />
       ) : null}
 
       {detailPlugin ? (
         <PluginDetailModal
           mode="installed"
+          kind={kind}
           plugin={detailPlugin}
           descriptionMarkdown={descriptionMarkdown}
           descriptionLoadState={descriptionLoadState}
           screenshotSrcs={detailScreenshotSrcs}
+          gitUpdateBusy={gitUpdateBusyId === detailPlugin.id}
           onClose={onCloseDetail}
+          onToggleEnabled={onToggleEnabled}
+          onReload={onReload}
+          onUpdateFromGit={onUpdateFromGit}
+          onRemove={onRemove}
         />
       ) : null}
 

@@ -1,6 +1,7 @@
 import { Button, FaIcon, Modal, ModalFooter, FieldError } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import type { PluginInfo } from '#/shared/plugin/types';
+import { pluginIsTheme } from '#/shared/plugin/themeCategory';
 
 import { faCircleCheck } from '#/renderer/src/fontawesome';
 import { PERMISSION_LABELS } from './constants';
@@ -23,9 +24,11 @@ interface Props {
 }
 
 /**
- * Post-install dialog listing requested permissions before enabling a plugin.
+ * Post-install dialog listing requested permissions before enabling a plugin or theme.
  */
 export function EnableModal({ plugin, onConfirm, onCancel }: Props): JSX.Element {
+  const noun = pluginIsTheme(plugin) ? 'theme' : 'plugin';
+
   return (
     <Modal
       onClose={onCancel}
@@ -43,7 +46,7 @@ export function EnableModal({ plugin, onConfirm, onCancel }: Props): JSX.Element
       ) : null}
       {plugin.signature?.status === 'unsigned' ? (
         <FieldError spacing="section" className="mb-3 mt-0" roleAlert>
-          This plugin is not signed by a trusted publisher. Only enable it if you trust the source.
+          This {noun} is not signed by a trusted publisher. Only enable it if you trust the source.
         </FieldError>
       ) : null}
       <ul className="mb-4 list-disc pl-5 text-[14px] text-text">
@@ -53,7 +56,7 @@ export function EnableModal({ plugin, onConfirm, onCancel }: Props): JSX.Element
       </ul>
       <ModalFooter>
         <Button type="button" onClick={onConfirm}>
-          {plugin.signature?.status === 'unsigned' ? 'Enable anyway' : 'Enable plugin'}
+          {plugin.signature?.status === 'unsigned' ? 'Enable anyway' : `Enable ${noun}`}
         </Button>
       </ModalFooter>
     </Modal>

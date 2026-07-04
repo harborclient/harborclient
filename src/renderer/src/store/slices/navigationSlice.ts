@@ -15,6 +15,7 @@ export interface NavigationState {
   activeSidebarPanelId: string | null;
   pendingPluginInstallId: string | null;
   pendingMarketplaceSearch: string | null;
+  pendingInstalledSearch: string | null;
 }
 
 const initialState: NavigationState = {
@@ -30,7 +31,8 @@ const initialState: NavigationState = {
   activePluginFooterPanelId: null,
   activeSidebarPanelId: null,
   pendingPluginInstallId: null,
-  pendingMarketplaceSearch: null
+  pendingMarketplaceSearch: null,
+  pendingInstalledSearch: null
 };
 
 const navigationSlice = createSlice({
@@ -169,6 +171,18 @@ const navigationSlice = createSlice({
      */
     consumePendingMarketplaceSearch(state) {
       state.pendingMarketplaceSearch = null;
+    },
+    /**
+     * Queues an installed search query requested from global search navigation.
+     */
+    setPendingInstalledSearch(state, action: PayloadAction<string>) {
+      state.pendingInstalledSearch = action.payload;
+    },
+    /**
+     * Clears a queued installed search after the Plugins page has applied it.
+     */
+    consumePendingInstalledSearch(state) {
+      state.pendingInstalledSearch = null;
     }
   }
 });
@@ -192,7 +206,9 @@ export const {
   setPendingPluginInstall,
   consumePendingPluginInstall,
   setPendingMarketplaceSearch,
-  consumePendingMarketplaceSearch
+  consumePendingMarketplaceSearch,
+  setPendingInstalledSearch,
+  consumePendingInstalledSearch
 } = navigationSlice.actions;
 
 /**
@@ -265,5 +281,11 @@ export const selectPendingPluginInstallId = (state: RootState): string | null =>
  */
 export const selectPendingMarketplaceSearch = (state: RootState): string | null =>
   state.navigation.pendingMarketplaceSearch;
+
+/**
+ * Returns the installed search query queued by global search navigation, if any.
+ */
+export const selectPendingInstalledSearch = (state: RootState): string | null =>
+  state.navigation.pendingInstalledSearch;
 
 export default navigationSlice.reducer;

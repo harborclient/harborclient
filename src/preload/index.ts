@@ -1319,6 +1319,25 @@ function deleteRequestEditorTab(key: string): Promise<void> {
 }
 
 /**
+ * Returns the persisted sidebar section for a page tab key.
+ *
+ * @param key - Page sidebar storage key such as `settings` or `plugins`.
+ */
+function getPageSidebarSection(key: string): Promise<string | null> {
+  return ipcRenderer.invoke('pageSidebar:getSection', key);
+}
+
+/**
+ * Persists the sidebar section for a page tab key.
+ *
+ * @param key - Page sidebar storage key such as `settings` or `plugins`.
+ * @param section - Section id to remember.
+ */
+function setPageSidebarSection(key: string, section: string): Promise<void> {
+  return ipcRenderer.invoke('pageSidebar:setSection', key, section);
+}
+
+/**
  * Returns persisted sidebar expansion for sections, collections, and folders.
  */
 function getSidebarExpansion(): Promise<SidebarExpansionState> {
@@ -2226,6 +2245,8 @@ const api: Api = {
   getRequestEditorTab,
   setRequestEditorTab,
   deleteRequestEditorTab,
+  getPageSidebarSection,
+  setPageSidebarSection,
   getSidebarExpansion,
   setSidebarExpansion,
   getPanelLayout,

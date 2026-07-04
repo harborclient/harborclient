@@ -6,6 +6,8 @@ import {
   searchPluginCatalog
 } from '#/shared/search/plugins';
 import type { PluginCatalogCategory } from '#/shared/plugin/catalogCategories';
+import { catalogEntryIsTheme } from '#/shared/plugin/themeCategory';
+import type { PluginManagementKind } from '#/renderer/src/ui/Plugins/constants';
 import { useSearchIndexes } from '#/renderer/src/search/useSearchIndexes';
 
 interface UsePluginCatalogResult {
@@ -82,8 +84,10 @@ interface UsePluginCatalogResult {
 
 /**
  * Manages marketplace catalog loading, search, and category filtering.
+ *
+ * @param kind - When "themes", only theme catalog entries are shown; otherwise themes are excluded.
  */
-export function usePluginCatalog(): UsePluginCatalogResult {
+export function usePluginCatalog(kind: PluginManagementKind = 'plugins'): UsePluginCatalogResult {
   const { pluginsIndex: warmPluginsIndex, plugins: warmPlugins } = useSearchIndexes();
   const [catalog, setCatalog] = useState<PluginCatalog | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(false);
@@ -122,6 +126,19 @@ export function usePluginCatalog(): UsePluginCatalogResult {
   }, []);
 
   /**
+   * Keeps catalog entries that match the active management kind (plugins vs themes).
+   */
+  const partitionCatalogByKind = useCallback(
+    (entries: PluginCatalogEntry[]): PluginCatalogEntry[] => {
+      if (kind === 'themes') {
+        return entries.filter(catalogEntryIsTheme);
+      }
+      return entries.filter((entry) => !catalogEntryIsTheme(entry));
+    },
+    [kind]
+  );
+
+  /**
    * Maps loaded marketplace catalog entries by plugin id for screenshot lookup.
    */
   const catalogById = useMemo(() => {
@@ -135,24 +152,30 @@ export function usePluginCatalog(): UsePluginCatalogResult {
    * Builds a searchable index over the loaded marketplace catalog, falling back to the warm index.
    */
   const catalogSearchIndex = useMemo(() => {
-    if (catalog?.plugins.length) {
-      return buildPluginCatalogSearchIndex(catalog.plugins);
+    const base = catalog?.plugins.length ? catalog.plugins : warmPlugins;
+    const partitioned = partitionCatalogByKind(base);
+    if (partitioned.length) {
+      return buildPluginCatalogSearchIndex(partitioned);
     }
-    return warmPluginsIndex;
-  }, [catalog, warmPluginsIndex]);
+    if (kind === 'plugins') {
+      return warmPluginsIndex;
+    }
+    return null;
+  }, [catalog, warmPlugins, warmPluginsIndex, kind, partitionCatalogByKind]);
 
   /**
-   * Filters marketplace catalog rows by category and search query.
+   * Filters marketplace catalog rows by kind, category, and search query.
    */
   const filteredCatalogPlugins = useMemo(() => {
-    const plugins = catalog?.plugins ?? warmPlugins;
+    const plugins = partitionCatalogByKind(catalog?.plugins ?? warmPlugins);
     if (!plugins.length) {
       return [];
     }
 
     const byCategory = filterPluginCatalogByCategory(plugins, catalogCategoryFilter);
+    const trimmed = catalogSearchQuery.trim();
     if (!catalogSearchIndex) {
-      return byCategory;
+      return trimmed ? [] : byCategory;
     }
 
     const searched = searchPluginCatalog(plugins, catalogSearchIndex, catalogSearchQuery);
@@ -162,7 +185,14 @@ export function usePluginCatalog(): UsePluginCatalogResult {
 
     const categoryIds = new Set(byCategory.map((entry) => entry.id));
     return searched.filter((entry) => categoryIds.has(entry.id));
-  }, [catalog, warmPlugins, catalogSearchIndex, catalogSearchQuery, catalogCategoryFilter]);
+  }, [
+    catalog,
+    warmPlugins,
+    catalogSearchIndex,
+    catalogSearchQuery,
+    catalogCategoryFilter,
+    partitionCatalogByKind
+  ]);
 
   return {
     catalog,

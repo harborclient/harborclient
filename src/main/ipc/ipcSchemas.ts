@@ -531,6 +531,7 @@ export const ipcArgSchemas = {
   ]),
   providerMarkCollectionDiscoverySkipped: z.tuple([connectionId]),
   setEditorTab: z.tuple([storageKey, editorTab]),
+  setPageSidebarSection: z.tuple([storageKey, z.string().min(1)]),
   sidebarExpansionSet: z.tuple([sidebarExpansion]),
   panelLayoutSet: z.tuple([panelLayout]),
   openTabsPayloadSet: z.tuple([z.string().min(1)]),

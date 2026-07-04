@@ -1,4 +1,13 @@
-import { Button, Modal, ModalFooter, ModalHeader, Spinner } from '@harborclient/sdk/components';
+import {
+  Badge,
+  Button,
+  FaIcon,
+  Modal,
+  ModalFooter,
+  ModalHeader,
+  Spinner
+} from '@harborclient/sdk/components';
+import { faBug, faGlobe } from '#/renderer/src/fontawesome';
 import { useMemo, type JSX } from 'react';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import { stripPluginScreenshotImagesFromMarkdown } from '#/shared/plugin/stripPluginScreenshotImagesFromMarkdown';
@@ -9,9 +18,11 @@ import type {
   PluginScreenshot
 } from '#/shared/plugin/types';
 
-import { PERMISSION_LABELS } from './constants';
+import { PERMISSION_DESCRIPTIONS, PERMISSION_NAMES, type PluginManagementKind } from './constants';
+import { installedPluginInstallationLabel } from './helpers';
 import { VerifiedPublisherBadge } from '#/renderer/src/ui/shared/VerifiedPublisherBadge';
 import { ErrorMessages } from './ErrorMessages';
+import { InstalledPluginFooterActions } from './InstalledPluginFooterActions';
 import { PluginReadmeMarkdown } from './PluginReadmeMarkdown';
 import { ScreenshotCarousel } from './ScreenshotCarousel';
 
@@ -87,19 +98,47 @@ interface CatalogProps {
    * Installs the plugin from its git repository URL.
    */
   onInstall: () => void;
-
-  /**
-   * Re-clones an installed git plugin from its stored origin.
-   */
-  onUpdate: () => void;
 }
 
-type Props = (InstalledProps | CatalogProps) & {
+interface InstalledActionProps {
   /**
-   * Closes the detail dialog.
+   * Whether this screen shows plugins or themes for footer copy.
    */
-  onClose: () => void;
-};
+  kind: PluginManagementKind;
+
+  /**
+   * Whether a git update is in progress for the open plugin.
+   */
+  gitUpdateBusy: boolean;
+
+  /**
+   * Toggles enablement for the open plugin.
+   */
+  onToggleEnabled: (plugin: PluginInfo) => void;
+
+  /**
+   * Reloads an unpacked plugin from disk.
+   */
+  onReload: (plugin: PluginInfo) => void;
+
+  /**
+   * Re-clones a git-installed plugin from its stored origin.
+   */
+  onUpdateFromGit: (pluginId: string) => void;
+
+  /**
+   * Removes or uninstalls the open plugin after confirmation.
+   */
+  onRemove: (plugin: PluginInfo) => void;
+}
+
+type Props = (InstalledProps | CatalogProps) &
+  InstalledActionProps & {
+    /**
+     * Closes the detail dialog.
+     */
+    onClose: () => void;
+  };
 
 const SCREENSHOT_FALLBACK_PATH = 'screenshot.png';
 
@@ -251,7 +290,7 @@ export function PluginDetailModal(props: Props): JSX.Element {
       Boolean(details?.hasDescription) ||
       descriptionMarkdown.length > 0 ||
       (descriptionLoadState === 'error' && Boolean(details?.hasDescription));
-  const closeDisabled = props.mode === 'catalog' ? props.actionBusy : false;
+  const closeDisabled = (props.mode === 'catalog' && props.actionBusy) || props.gitUpdateBusy;
 
   const detailBody = (
     <>
@@ -260,18 +299,64 @@ export function PluginDetailModal(props: Props): JSX.Element {
       ) : null}
 
       {props.mode === 'catalog' && props.previewError ? (
-        <p className="m-0 mb-4 text-[14px] text-danger" role="alert">
+        <p className="m-0 mb-4 text-[16px] text-danger" role="alert">
           {props.previewError}
         </p>
       ) : null}
 
-      {summary ? <p className="m-0 mb-4 text-[14px] text-text">{summary}</p> : null}
+      {summary ? <p className="m-0 mb-2 text-[16px] text-text">{summary}</p> : null}
+      {details?.homepage && details?.bugsUrl ? (
+        <>
+          <div className="mt-4 border-t border-separator pt-4"></div>
+          <div className="mb-2 flex flex-wrap gap-3 text-[16px]">
+            {details?.homepage ? (
+              <a
+                href={details.homepage}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-accent"
+              >
+                <FaIcon icon={faGlobe} className="h-3.5 w-3.5" aria-hidden />
+                Website
+              </a>
+            ) : null}
+            {details?.bugsUrl ? (
+              <a
+                href={details.bugsUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-accent"
+              >
+                <FaIcon icon={faBug} className="h-3.5 w-3.5" aria-hidden />
+                Report issue
+              </a>
+            ) : null}
+          </div>
+        </>
+      ) : null}
 
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[14px]">
+      <div className="mt-4 border-t border-separator pt-4"></div>
+
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[16px]">
         <dt className="text-muted">Version</dt>
         <dd className="m-0 text-text">{version}</dd>
         <dt className="text-muted">Publisher</dt>
-        <dd className="m-0 text-text">{details?.author ?? '—'}</dd>
+        <dd className="m-0 text-text">
+          <span className="inline-flex items-center gap-1.5">
+            {details?.author ?? '—'}
+            {isInstalled && props.plugin.signature?.status === 'verified' ? (
+              <VerifiedPublisherBadge />
+            ) : null}
+          </span>
+        </dd>
+        {isInstalled ? (
+          <>
+            <dt className="text-muted">Installation</dt>
+            <dd className="m-0 text-text">
+              {installedPluginInstallationLabel(props.plugin.source)}
+            </dd>
+          </>
+        ) : null}
         {isInstalled && props.plugin.source === 'unpacked' ? (
           <>
             <dt className="text-muted">Source</dt>
@@ -291,27 +376,19 @@ export function PluginDetailModal(props: Props): JSX.Element {
         ) : null}
       </dl>
 
-      <div className="mt-3 flex flex-wrap gap-3 text-[14px]">
-        {details?.homepage ? (
-          <a href={details.homepage} target="_blank" rel="noreferrer" className="text-accent">
-            Website
-          </a>
-        ) : null}
-        {details?.bugsUrl ? (
-          <a href={details.bugsUrl} target="_blank" rel="noreferrer" className="text-accent">
-            Report issue
-          </a>
-        ) : null}
-      </div>
-
       {isInstalled ? <ErrorMessages plugin={props.plugin} /> : null}
 
       {details && details.permissions.length > 0 ? (
         <div className="mt-4 border-t border-separator pt-4">
-          <h3 className="m-0 mb-2 text-[14px] font-medium text-text">Permissions</h3>
-          <ul className="m-0 list-disc pl-5 text-[14px] text-text">
+          <h3 className="m-0 mb-2 text-[16px] font-medium text-text">Permissions</h3>
+          <ul className="m-0 flex list-none flex-col gap-2 p-0">
             {details.permissions.map((permission) => (
-              <li key={permission}>{PERMISSION_LABELS[permission] ?? permission}</li>
+              <li key={permission} className="flex items-start gap-2 text-[16px] text-text">
+                <Badge variant="warning" className="shrink-0">
+                  {PERMISSION_NAMES[permission] ?? permission}
+                </Badge>
+                <span>{PERMISSION_DESCRIPTIONS[permission] ?? ''}</span>
+              </li>
             ))}
           </ul>
         </div>
@@ -319,16 +396,16 @@ export function PluginDetailModal(props: Props): JSX.Element {
         props.previewLoadState === 'loaded' &&
         !details?.permissions.length ? (
         <div className="mt-4 border-t border-separator pt-4">
-          <h3 className="m-0 mb-2 text-[14px] font-medium text-text">Permissions</h3>
-          <p className="m-0 text-[14px] text-muted">No permissions declared.</p>
+          <h3 className="m-0 mb-2 text-[16px] font-medium text-text">Permissions</h3>
+          <p className="m-0 text-[16px] text-muted">No permissions declared.</p>
         </div>
       ) : null}
 
       {showDescriptionSection ? (
-        <div className="mt-4 border-t border-separator pt-4">
+        <div className="mt-4 border-t border-separator border-t-2 pt-4">
           {descriptionLoadState === 'loading' ? (
             <div
-              className="flex items-center gap-2 text-[14px] text-muted"
+              className="flex items-center gap-2 text-[16px] text-muted"
               role="status"
               aria-label="Loading description"
             >
@@ -338,7 +415,7 @@ export function PluginDetailModal(props: Props): JSX.Element {
               <span>Loading description…</span>
             </div>
           ) : descriptionLoadState === 'error' ? (
-            <p className="m-0 text-[14px] text-danger" role="alert">
+            <p className="m-0 text-[16px] text-danger" role="alert">
               Could not load the plugin description.
             </p>
           ) : displayDescriptionMarkdown ? (
@@ -349,34 +426,28 @@ export function PluginDetailModal(props: Props): JSX.Element {
     </>
   );
 
-  const catalogActions =
-    props.mode === 'catalog' ? (
-      props.installed ? (
-        props.installed.source === 'git' ? (
-          <Button
-            type="button"
-            disabled={props.actionBusy}
-            aria-label={`Update ${props.entry.name}`}
-            onClick={props.onUpdate}
-          >
-            {props.actionBusy ? 'Updating…' : 'Update'}
-          </Button>
-        ) : (
-          <Button type="button" disabled aria-label={`${props.entry.name} is installed`}>
-            Installed
-          </Button>
-        )
-      ) : (
-        <Button
-          type="button"
-          disabled={props.actionBusy}
-          aria-label={`Install ${props.entry.name}`}
-          onClick={props.onInstall}
-        >
-          {props.actionBusy ? 'Installing…' : 'Install'}
-        </Button>
-      )
-    ) : null;
+  const installedPlugin = isInstalled ? props.plugin : props.installed;
+
+  const footerContent = installedPlugin ? (
+    <InstalledPluginFooterActions
+      kind={props.kind}
+      plugin={installedPlugin}
+      gitUpdateBusy={props.gitUpdateBusy}
+      onToggleEnabled={props.onToggleEnabled}
+      onReload={props.onReload}
+      onUpdateFromGit={props.onUpdateFromGit}
+      onRemove={props.onRemove}
+    />
+  ) : props.mode === 'catalog' ? (
+    <Button
+      type="button"
+      disabled={props.actionBusy}
+      aria-label={`Install ${props.entry.name}`}
+      onClick={props.onInstall}
+    >
+      {props.actionBusy ? 'Installing…' : 'Install'}
+    </Button>
+  ) : null;
 
   return (
     <Modal
@@ -387,25 +458,14 @@ export function PluginDetailModal(props: Props): JSX.Element {
     >
       <ModalHeader
         titleId="plugin-detail-title"
-        title={
-          <>
-            {title}
-            {isInstalled && props.plugin.signature?.status === 'verified' ? (
-              <VerifiedPublisherBadge
-                author={props.plugin.signature.author ?? props.plugin.manifest.author}
-              />
-            ) : null}
-          </>
-        }
+        title={title}
         closeDisabled={closeDisabled}
         onClose={onClose}
       />
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{detailBody}</div>
-      {props.mode === 'catalog' ? (
-        <ModalFooter className="shrink-0 border-t border-separator bg-surface px-4 pb-4 pt-3 shadow-[0_-8px_16px_-8px_rgba(0,0,0,0.12)]">
-          {catalogActions}
-        </ModalFooter>
-      ) : null}
+      <ModalFooter className="shrink-0 border-t border-separator bg-surface px-4 pb-4 pt-4 shadow-[0_-8px_16px_-8px_rgba(0,0,0,0.12)]">
+        <div className="flex flex-wrap gap-2">{footerContent}</div>
+      </ModalFooter>
     </Modal>
   );
 }

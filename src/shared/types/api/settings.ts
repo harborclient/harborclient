@@ -64,6 +64,19 @@ export interface ApiSettings {
    */
   deleteRequestEditorTab: (key: string) => Promise<void>;
   /**
+   * Returns the persisted sidebar section for a page tab key.
+   *
+   * @param key - Page sidebar storage key such as `settings` or `plugins`.
+   */
+  getPageSidebarSection: (key: string) => Promise<string | null>;
+  /**
+   * Persists the sidebar section for a page tab key.
+   *
+   * @param key - Page sidebar storage key such as `settings` or `plugins`.
+   * @param section - Section id to remember.
+   */
+  setPageSidebarSection: (key: string, section: string) => Promise<void>;
+  /**
    * Returns persisted sidebar expansion for sections, collections, and folders.
    */
   getSidebarExpansion: () => Promise<SidebarExpansionState>;

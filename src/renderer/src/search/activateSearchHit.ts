@@ -10,6 +10,7 @@ import { setSelectedCollectionId } from '#/renderer/src/store/slices/collections
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import { closeSearchAnythingModal } from '#/renderer/src/store/slices/modalsSlice';
 import {
+  setPendingInstalledSearch,
   setPendingMarketplaceSearch,
   setShowSidebar
 } from '#/renderer/src/store/slices/navigationSlice';
@@ -116,8 +117,25 @@ export function useActivateSearchHit(): (hit: UnifiedSearchHit, query: string) =
           return;
         }
         case 'plugin': {
+          const searchValue = query.trim() || hit.title;
+          if (hit.pluginListingSource === 'installed') {
+            dispatch(openPageTab({ type: 'plugins' }));
+            dispatch(setPendingInstalledSearch(searchValue));
+            return;
+          }
           dispatch(openPageTab({ type: 'plugins' }));
-          dispatch(setPendingMarketplaceSearch(hit.title || query.trim()));
+          dispatch(setPendingMarketplaceSearch(searchValue));
+          return;
+        }
+        case 'theme': {
+          const searchValue = query.trim() || hit.title;
+          if (hit.pluginListingSource === 'installed') {
+            dispatch(openPageTab({ type: 'themes' }));
+            dispatch(setPendingInstalledSearch(searchValue));
+            return;
+          }
+          dispatch(openPageTab({ type: 'themes' }));
+          dispatch(setPendingMarketplaceSearch(searchValue));
           return;
         }
       }

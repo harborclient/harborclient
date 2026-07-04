@@ -18,7 +18,7 @@ interface UsePluginDeepLinkInstallArgs {
   /**
    * Switches the active sidebar section.
    */
-  setSection: Dispatch<SetStateAction<PluginsSidebarSection>>;
+  setSection: (section: PluginsSidebarSection) => void;
 
   /**
    * Replaces the loaded marketplace catalog.

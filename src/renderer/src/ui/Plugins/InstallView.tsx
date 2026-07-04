@@ -1,8 +1,16 @@
-import { Button, FieldError, FormGroup, Input, Page } from '@harborclient/sdk/components';
+import { Button, FieldError, Input, Page } from '@harborclient/sdk/components';
 import type { JSX, KeyboardEvent } from 'react';
 import { faDownload } from '#/renderer/src/fontawesome';
+import type { PluginManagementKind } from '#/renderer/src/ui/Plugins/constants';
+import { pluginManagementNoun } from '#/renderer/src/ui/Plugins/constants';
+import { SettingsField } from '#/renderer/src/ui/Settings/components/SettingsField';
 
 interface Props {
+  /**
+   * Whether installs are scoped to plugins or themes.
+   */
+  kind: PluginManagementKind;
+
   /**
    * Repository URL entered by the user for git install.
    */
@@ -53,6 +61,7 @@ interface Props {
  * Install page with file, git, and unpacked plugin install options.
  */
 export function InstallView({
+  kind,
   gitInstallUrl,
   gitInstallRef,
   gitInstallError,
@@ -63,6 +72,11 @@ export function InstallView({
   onLoadUnpacked,
   onInstallFromGit
 }: Props): JSX.Element {
+  const noun = pluginManagementNoun(kind);
+  const isThemes = kind === 'themes';
+  const urlFieldId = isThemes ? 'theme-git-install-url' : 'plugin-git-install-url';
+  const refFieldId = isThemes ? 'theme-git-install-ref' : 'plugin-git-install-ref';
+
   /**
    * Submits the git install form when Enter is pressed in an input field.
    *
@@ -79,60 +93,50 @@ export function InstallView({
       embedded
       title="Install"
       icon={faDownload}
-      description="Add plugins from a package file, git repository, or unpacked source directory."
+      description={
+        isThemes
+          ? 'Add themes from a package file, git repository, or unpacked source directory.'
+          : 'Add plugins from a package file, git repository, or unpacked source directory.'
+      }
     >
       <div className="flex max-w-xl flex-col gap-6">
-        <div>
-          <Button type="button" variant="secondary" className="w-full" onClick={onInstallFromFile}>
-            Install from file
-          </Button>
-          <p className="mt-1 text-[14px] text-muted">
-            Select a <code className="text-text">.hcp</code> plugin package.
-          </p>
-        </div>
-
-        <div>
-          <Button type="button" variant="secondary" className="w-full" onClick={onLoadUnpacked}>
-            Load unpacked…
-          </Button>
-          <p className="mt-1 text-[14px] text-muted">
-            Load a plugin source directory in place for development.
-          </p>
-        </div>
-
-        <div className="rounded-md border border-separator p-4">
-          <h2 className="m-0 mb-1 text-[14px] font-medium text-text">Install from Git</h2>
-          <p className="m-0 mb-4 text-[14px] text-muted">
-            Enter a public repository URL. The repo must include a built{' '}
-            <code className="text-text">manifest.json</code> and entry files at the repository root.
-          </p>
-
+        <div className="flex flex-col gap-4 border border-separator p-4 rounded-md">
           {gitInstallError ? (
             <FieldError spacing="section" roleAlert>
               {gitInstallError}
             </FieldError>
           ) : null}
 
-          <FormGroup label="Repository URL" htmlFor="plugin-git-install-url" labelTone="muted">
+          <SettingsField
+            embedded
+            label="Install from Git"
+            htmlFor={urlFieldId}
+            description="Public repository URL using HTTP."
+          >
             <Input
-              id="plugin-git-install-url"
-              className="mb-3 w-full"
+              id={urlFieldId}
+              className="w-full"
               type="url"
-              placeholder="https://github.com/example/my-plugin.git"
+              placeholder={
+                isThemes
+                  ? 'https://github.com/example/my-theme.git'
+                  : 'https://github.com/example/my-plugin.git'
+              }
               value={gitInstallUrl}
               disabled={gitInstallBusy}
               onChange={(event) => onGitInstallUrlChange(event.target.value)}
               onKeyDown={handleKeyDown}
             />
-          </FormGroup>
-          <FormGroup
-            label="Branch or tag (optional)"
-            htmlFor="plugin-git-install-ref"
-            labelTone="muted"
+          </SettingsField>
+          <SettingsField
+            embedded
+            label="Branch or tag"
+            htmlFor={refFieldId}
+            description="Name of the branch or tag to install."
           >
             <Input
-              id="plugin-git-install-ref"
-              className="mb-4 w-full"
+              id={refFieldId}
+              className="w-full"
               type="text"
               placeholder="main"
               value={gitInstallRef}
@@ -140,7 +144,7 @@ export function InstallView({
               onChange={(event) => onGitInstallRefChange(event.target.value)}
               onKeyDown={handleKeyDown}
             />
-          </FormGroup>
+          </SettingsField>
           <Button
             type="button"
             disabled={gitInstallBusy || !gitInstallUrl.trim()}
@@ -148,6 +152,24 @@ export function InstallView({
           >
             {gitInstallBusy ? 'Cloning…' : 'Install from Git'}
           </Button>
+        </div>
+
+        <div className="flex flex-col gap-4 border border-separator p-4 rounded-md">
+          <div>
+            <Button type="button" className="w-full text-[16px]" onClick={onInstallFromFile}>
+              Install from file
+            </Button>
+            <p className="mt-1 text-[16px] text-muted">
+              Install a theme from a <code className="text-text">.hcp</code> package.
+            </p>
+          </div>
+
+          <div>
+            <Button type="button" className="w-full text-[16px]" onClick={onLoadUnpacked}>
+              Install from directory
+            </Button>
+            <p className="mt-1 text-[16px] text-muted">Install a {noun} from a directory.</p>
+          </div>
         </div>
       </div>
     </Page>

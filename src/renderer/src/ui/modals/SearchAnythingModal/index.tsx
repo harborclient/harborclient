@@ -18,7 +18,14 @@ import {
   type SidebarSearchInput,
   type UnifiedSearchHit
 } from '#/shared/search';
-import { faFolder, faGear, faGlobe, faPaperPlane, faPuzzlePiece } from '#/renderer/src/fontawesome';
+import {
+  faFolder,
+  faGear,
+  faGlobe,
+  faPalette,
+  faPaperPlane,
+  faPuzzlePiece
+} from '#/renderer/src/fontawesome';
 import { useActivateSearchHit } from '#/renderer/src/search/activateSearchHit';
 import { useSearchIndexes } from '#/renderer/src/search/useSearchIndexes';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
@@ -57,8 +64,23 @@ const DOMAIN_ICONS: Record<SearchDomain, IconDefinition> = {
   request: faPaperPlane,
   environment: faGlobe,
   setting: faGear,
-  plugin: faPuzzlePiece
+  plugin: faPuzzlePiece,
+  theme: faPalette
 };
+
+/**
+ * Builds an accessible label for a plugin or theme search result row.
+ *
+ * @param hit - Unified search hit for an installed or marketplace plugin/theme.
+ */
+function pluginSearchResultLabel(hit: UnifiedSearchHit): string | undefined {
+  if (hit.domain !== 'plugin' && hit.domain !== 'theme') {
+    return undefined;
+  }
+
+  const sourceLabel = hit.pluginListingSource === 'installed' ? 'Installed' : 'Marketplace';
+  return `${sourceLabel}, ${hit.title}`;
+}
 
 /**
  * Builds an accessible label for a request search result row.
@@ -140,10 +162,12 @@ function SearchResultGroup({
             requestBreadcrumb != null
               ? requestSearchResultLabel(hit, requestBreadcrumb)
               : undefined;
+          const pluginLabel = pluginSearchResultLabel(hit);
+          const rowLabel = requestLabel ?? pluginLabel;
 
           return (
             <li
-              key={`${hit.domain}:${hit.id}`}
+              key={`${hit.domain}:${hit.id}:${hit.pluginListingSource ?? 'default'}`}
               role="presentation"
               className="min-w-0"
               onMouseEnter={() => onHighlight(flatIndex)}
@@ -153,7 +177,7 @@ function SearchResultGroup({
                 role="option"
                 id={`search-anything-result-${flatIndex}`}
                 aria-current={isActive ? 'true' : undefined}
-                aria-label={requestLabel}
+                aria-label={rowLabel}
                 className={searchResultRowClass(isActive)}
                 onClick={() => onActivate(hit)}
               >
@@ -171,6 +195,16 @@ function SearchResultGroup({
                         {hit.method}
                       </span>
                     ) : null}
+                    <span className="min-w-0 flex-1 truncate text-[16px]">{hit.title}</span>
+                  </span>
+                ) : hit.domain === 'plugin' || hit.domain === 'theme' ? (
+                  <span className="flex min-w-0 w-full items-center gap-1">
+                    <BreadcrumbPrefix
+                      collectionName={
+                        hit.pluginListingSource === 'installed' ? 'Installed' : 'Marketplace'
+                      }
+                      compact
+                    />
                     <span className="min-w-0 flex-1 truncate text-[16px]">{hit.title}</span>
                   </span>
                 ) : (
@@ -292,7 +326,7 @@ function SearchAnythingModalBody({ onClose }: ModalBodyProps): JSX.Element {
           ref={searchInputRef}
           id={SEARCH_INPUT_ID}
           type="search"
-          placeholder="Search collections, requests, settings, plugins…"
+          placeholder="Search collections, requests, settings, plugins, themes…"
           value={query}
           className="w-full"
           autoComplete="off"

@@ -1,7 +1,9 @@
 import { createContext } from 'react';
 import type { PluginCatalog } from '#/shared/plugin/catalog';
+import type { PluginInfo } from '#/shared/plugin/types';
 import type { SearchAllContext, SidebarSearchInput } from '#/shared/search';
 import type {
+  buildInstalledPluginSearchIndex,
   buildPluginCatalogSearchIndex,
   buildSettingsSearchIndex,
   buildSidebarSearchIndex
@@ -17,6 +19,8 @@ export interface SearchIndexReady {
   settings: boolean;
   /** True once the marketplace catalog fetch completes (success or failure). */
   plugins: boolean;
+  /** True once the installed plugin list fetch completes (success or failure). */
+  installedPlugins: boolean;
 }
 
 /**
@@ -31,8 +35,12 @@ export interface SearchIndexContextValue {
   settingsIndex: ReturnType<typeof buildSettingsSearchIndex>;
   /** MiniSearch index over marketplace plugin metadata, when catalog is loaded. */
   pluginsIndex: ReturnType<typeof buildPluginCatalogSearchIndex> | null;
+  /** MiniSearch index over installed plugin metadata, when the list is loaded. */
+  installedPluginsIndex: ReturnType<typeof buildInstalledPluginSearchIndex> | null;
   /** Loaded marketplace catalog rows (empty when unavailable). */
   plugins: PluginCatalog['plugins'];
+  /** Installed plugin rows from the main process. */
+  installedPlugins: PluginInfo[];
   /** Per-domain readiness for UI feedback. */
   ready: SearchIndexReady;
   /** Prebuilt context object for {@link searchAll}. */

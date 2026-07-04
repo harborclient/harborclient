@@ -167,6 +167,11 @@ export function buildMenu(
           click: () => sendMenuAction(window, 'plugins')
         },
         {
+          label: 'Themes',
+          accelerator: acceleratorFor(accelerators, 'themes'),
+          click: () => sendMenuAction(window, 'themes')
+        },
+        {
           label: 'Team Hub',
           accelerator: acceleratorFor(accelerators, 'team-hubs'),
           click: () => sendMenuAction(window, 'team-hubs')

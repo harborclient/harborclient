@@ -1,32 +1,80 @@
 import { PageSidebar, SidebarLayout } from '@harborclient/sdk/components';
-import { useEffect, useState, type JSX } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, type JSX } from 'react';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
+  consumePendingInstalledSearch,
   consumePendingMarketplaceSearch,
+  selectPendingInstalledSearch,
   selectPendingMarketplaceSearch
 } from '#/renderer/src/store/slices/navigationSlice';
+import { usePersistedPageSidebarSection } from '#/renderer/src/hooks/usePersistedPageSidebarSection';
+import { pluginIsTheme } from '#/shared/plugin/themeCategory';
 import { InstalledView } from './InstalledView';
 import { InstallView } from './InstallView';
 import { MarketplaceView } from './MarketplaceView';
 import { PluginModals } from './PluginModals';
 import { PluginSourcesView } from './PluginSourcesView';
+import type { PluginManagementKind } from './constants';
 import { useCatalogDetailPreview } from './hooks/useCatalogDetailPreview';
+import { useInstalledPluginSearch } from './hooks/useInstalledPluginSearch';
 import { usePluginCatalog } from './hooks/usePluginCatalog';
 import { usePluginDeepLinkInstall } from './hooks/usePluginDeepLinkInstall';
 import { usePluginDetail } from './hooks/usePluginDetail';
 import { usePluginInstallActions } from './hooks/usePluginInstallActions';
 import { usePluginList } from './hooks/usePluginList';
 import { usePluginSources } from './hooks/usePluginSources';
-import { PLUGIN_SECTIONS } from './sidebarConstants';
+import { pluginSidebarSections } from './sidebarConstants';
 import type { PluginsSidebarSection } from './sidebarTypes';
 
+interface Props {
+  /**
+   * Whether this screen manages plugins or themes.
+   */
+  kind?: PluginManagementKind;
+}
+
 /**
- * Full-area plugin management with sidebar navigation.
+ * Full-area plugin or theme management with sidebar navigation.
  */
-export function Plugins(): JSX.Element {
+export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const pendingMarketplaceSearch = useAppSelector(selectPendingMarketplaceSearch);
-  const [section, setSection] = useState<PluginsSidebarSection>('installed');
+  const pendingInstalledSearch = useAppSelector(selectPendingInstalledSearch);
+  const pageKey = kind === 'themes' ? 'themes' : 'plugins';
+
+  /**
+   * Sidebar entries for the active management kind (themes omit Settings).
+   */
+  const sidebarItems = useMemo(() => pluginSidebarSections(kind), [kind]);
+
+  /**
+   * Validates sidebar section ids for the active plugin management kind.
+   */
+  const isValidSection = useCallback(
+    (candidate: string): candidate is PluginsSidebarSection =>
+      sidebarItems.some((entry) => entry.value === candidate),
+    [sidebarItems]
+  );
+
+  /**
+   * Sidebar section queued by Search Anything until the local search field applies it.
+   */
+  const navigationOverride = useMemo((): PluginsSidebarSection | undefined => {
+    if (pendingMarketplaceSearch != null) {
+      return 'marketplace';
+    }
+    if (pendingInstalledSearch != null) {
+      return 'installed';
+    }
+    return undefined;
+  }, [pendingInstalledSearch, pendingMarketplaceSearch]);
+
+  const { section, setSection } = usePersistedPageSidebarSection<PluginsSidebarSection>({
+    pageKey,
+    defaultSection: 'installed',
+    isValidSection,
+    navigationOverride
+  });
 
   const { plugins, loading, error, refresh } = usePluginList();
   const {
@@ -44,7 +92,7 @@ export function Plugins(): JSX.Element {
     filteredCatalogPlugins,
     loadCatalog,
     resetCatalogFilters
-  } = usePluginCatalog();
+  } = usePluginCatalog(kind);
   const {
     detailPlugin,
     descriptionMarkdown,
@@ -80,13 +128,12 @@ export function Plugins(): JSX.Element {
     handleInstallFromGit,
     handleUpdateFromGit,
     handleCatalogInstall,
-    handleCatalogUpdate,
     handleLoadUnpacked,
     handleToggleEnabled,
     handleReload,
-    handleRemove,
-    handleRowKeyDown
+    handleRemove
   } = usePluginInstallActions({
+    kind,
     refresh,
     openDetail,
     detailPlugin,
@@ -118,21 +165,95 @@ export function Plugins(): JSX.Element {
   });
 
   /**
-   * Applies a marketplace search query queued by global search navigation.
+   * Installed rows visible on this tab after filtering by plugin vs theme kind.
+   */
+  const visibleInstalledPlugins = useMemo(() => {
+    if (kind === 'themes') {
+      return plugins.filter(pluginIsTheme);
+    }
+    return plugins.filter((plugin) => !pluginIsTheme(plugin));
+  }, [plugins, kind]);
+
+  const {
+    searchQuery: installedSearchQuery,
+    setSearchQuery: setInstalledSearchQuery,
+    filteredPlugins: filteredInstalledPlugins
+  } = useInstalledPluginSearch(visibleInstalledPlugins);
+
+  /**
+   * Applies a marketplace search query queued by global search navigation before paint.
+   */
+  useLayoutEffect(() => {
+    if (pendingMarketplaceSearch == null) {
+      return;
+    }
+    setCatalogSearchQuery(pendingMarketplaceSearch);
+    setSection('marketplace');
+  }, [pendingMarketplaceSearch, setCatalogSearchQuery, setSection]);
+
+  /**
+   * Loads section-specific data when the sidebar section is restored from memory
+   * or navigation without passing through handleSectionChange.
+   */
+  useEffect(() => {
+    if (section === 'marketplace' && catalog == null && !catalogLoading) {
+      void loadCatalog();
+    }
+    if (
+      section === 'settings' &&
+      kind === 'plugins' &&
+      !pluginSourcesLoaded &&
+      !pluginSourcesBusy
+    ) {
+      void loadPluginSources();
+    }
+  }, [
+    section,
+    kind,
+    catalog,
+    catalogLoading,
+    loadCatalog,
+    pluginSourcesLoaded,
+    pluginSourcesBusy,
+    loadPluginSources
+  ]);
+
+  /**
+   * Clears marketplace search navigation after the query is applied locally.
    */
   useEffect(() => {
     if (pendingMarketplaceSearch == null) {
       return;
     }
-    void loadCatalog().then(() => {
-      setCatalogSearchQuery(pendingMarketplaceSearch);
-      setSection('marketplace');
-      dispatch(consumePendingMarketplaceSearch());
-    });
-  }, [dispatch, loadCatalog, pendingMarketplaceSearch, setCatalogSearchQuery]);
+    if (catalogSearchQuery.trim() !== pendingMarketplaceSearch.trim()) {
+      return;
+    }
+    dispatch(consumePendingMarketplaceSearch());
+  }, [catalogSearchQuery, dispatch, pendingMarketplaceSearch]);
 
-  const visibleSection: PluginsSidebarSection =
-    pendingMarketplaceSearch != null ? 'marketplace' : section;
+  /**
+   * Applies an installed search query queued by global search navigation before paint.
+   */
+  useLayoutEffect(() => {
+    if (pendingInstalledSearch == null) {
+      return;
+    }
+    setInstalledSearchQuery(pendingInstalledSearch);
+    setSection('installed');
+  }, [pendingInstalledSearch, setInstalledSearchQuery, setSection]);
+
+  /**
+   * Clears installed search navigation after the query is applied locally.
+   */
+  useEffect(() => {
+    if (pendingInstalledSearch == null) {
+      return;
+    }
+    if (installedSearchQuery.trim() !== pendingInstalledSearch.trim()) {
+      return;
+    }
+    dispatch(consumePendingInstalledSearch());
+  }, [dispatch, installedSearchQuery, pendingInstalledSearch]);
 
   /**
    * Clears marketplace filters when leaving the Marketplace section and loads
@@ -149,40 +270,46 @@ export function Plugins(): JSX.Element {
     if (next === 'marketplace' && catalog == null && !catalogLoading) {
       void loadCatalog();
     }
-    if (next === 'settings' && !pluginSourcesLoaded && !pluginSourcesBusy) {
+    if (next === 'settings' && kind === 'plugins' && !pluginSourcesLoaded && !pluginSourcesBusy) {
       void loadPluginSources();
     }
   };
+
+  const sidebarAriaLabel = kind === 'themes' ? 'Theme sections' : 'Plugin sections';
 
   return (
     <>
       <SidebarLayout
         sidebar={
           <PageSidebar
-            ariaLabel="Plugin sections"
-            selected={visibleSection}
+            ariaLabel={sidebarAriaLabel}
+            selected={section}
             onSelect={handleSectionChange}
-            items={PLUGIN_SECTIONS}
+            items={sidebarItems}
           />
         }
       >
-        {visibleSection === 'installed' ? (
+        {section === 'installed' ? (
           <InstalledView
-            plugins={plugins}
+            kind={kind}
+            plugins={visibleInstalledPlugins}
+            filteredPlugins={filteredInstalledPlugins}
+            searchQuery={installedSearchQuery}
+            onSearchQueryChange={setInstalledSearchQuery}
             loading={loading}
             error={error}
             catalogById={catalogById}
             gitUpdateBusyId={gitUpdateBusyId}
             onOpenDetail={openDetail}
-            onRowKeyDown={handleRowKeyDown}
             onToggleEnabled={(plugin) => void handleToggleEnabled(plugin)}
             onReload={(plugin) => void handleReload(plugin)}
             onUpdateFromGit={(pluginId) => void handleUpdateFromGit(pluginId)}
             onRemove={(plugin) => void handleRemove(plugin)}
           />
         ) : null}
-        {visibleSection === 'marketplace' ? (
+        {section === 'marketplace' ? (
           <MarketplaceView
+            kind={kind}
             catalog={catalog}
             catalogLoading={catalogLoading}
             catalogError={catalogError}
@@ -194,8 +321,9 @@ export function Plugins(): JSX.Element {
             onOpenCatalogDetail={openCatalogDetail}
           />
         ) : null}
-        {visibleSection === 'install' ? (
+        {section === 'install' ? (
           <InstallView
+            kind={kind}
             gitInstallUrl={gitInstallUrl}
             gitInstallRef={gitInstallRef}
             gitInstallError={gitInstallError}
@@ -207,7 +335,7 @@ export function Plugins(): JSX.Element {
             onInstallFromGit={() => void handleInstallFromGit()}
           />
         ) : null}
-        {visibleSection === 'settings' ? (
+        {kind === 'plugins' && section === 'settings' ? (
           <PluginSourcesView
             settings={pluginSourcesDraft}
             hubSources={teamHubPluginSources}
@@ -223,6 +351,7 @@ export function Plugins(): JSX.Element {
       </SidebarLayout>
 
       <PluginModals
+        kind={kind}
         plugins={plugins}
         catalogDetailEntry={catalogDetailEntry}
         catalogPreview={catalogPreview}
@@ -231,7 +360,11 @@ export function Plugins(): JSX.Element {
         catalogActionBusyId={catalogActionBusyId}
         onCloseCatalogDetail={closeCatalogDetail}
         onCatalogInstall={(entry) => void handleCatalogInstall(entry)}
-        onCatalogUpdate={(pluginId) => void handleCatalogUpdate(pluginId)}
+        gitUpdateBusyId={gitUpdateBusyId}
+        onToggleEnabled={(plugin) => void handleToggleEnabled(plugin)}
+        onReload={(plugin) => void handleReload(plugin)}
+        onUpdateFromGit={(pluginId) => void handleUpdateFromGit(pluginId)}
+        onRemove={(plugin) => void handleRemove(plugin)}
         detailPlugin={detailPlugin}
         descriptionMarkdown={descriptionMarkdown}
         descriptionLoadState={descriptionLoadState}

@@ -121,7 +121,7 @@ export function PluginReadmeMarkdown({ content }: Props): JSX.Element {
   const components = createReadmeMarkdownComponents();
 
   return (
-    <div className="break-words text-[14px] leading-relaxed text-text [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+    <div className="break-words text-[16px] leading-relaxed text-text [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
         {content}
       </ReactMarkdown>

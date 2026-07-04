@@ -6,6 +6,7 @@ import {
   faGear,
   faGlobe,
   faDatabase,
+  faPalette,
   faPuzzlePiece,
   faUsers
 } from '#/renderer/src/fontawesome';
@@ -50,6 +51,8 @@ export function pageTabMeta(page: PageRef, options: PageTabMetaOptions = {}): Pa
     }
     case 'plugins':
       return { title: 'Plugins', icon: faPuzzlePiece };
+    case 'themes':
+      return { title: 'Themes', icon: faPalette };
     case 'team-hubs':
       return { title: 'Team Hub', icon: faUsers };
     case 'sharing-keys':

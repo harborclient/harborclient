@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { PluginCatalog, PluginCatalogEntry } from '#/shared/plugin/catalog';
 import type { PluginInfo } from '#/shared/plugin/types';
 import {
+  installedPluginInstallationLabel,
   resolvePendingPluginInstallDeepLink,
   resolveInstalledPluginSummary
 } from '#/renderer/src/ui/Plugins/helpers';
@@ -120,5 +121,13 @@ describe('resolveInstalledPluginSummary', () => {
 
   it('returns undefined when neither manifest nor catalog provides a summary', () => {
     expect(resolveInstalledPluginSummary(basePlugin)).toBeUndefined();
+  });
+});
+
+describe('installedPluginInstallationLabel', () => {
+  it('maps plugin source values to detail modal labels', () => {
+    expect(installedPluginInstallationLabel('git')).toBe('Git');
+    expect(installedPluginInstallationLabel('unpacked')).toBe('Development');
+    expect(installedPluginInstallationLabel('installed')).toBe('File');
   });
 });

@@ -82,7 +82,7 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
   }, [page, tabId, collections, environments, pluginViews, dispatch]);
 
   if (page.type === 'settings') {
-    return <Settings key={page.section} initialSection={page.section} />;
+    return <Settings key="settings" initialSection={page.section} />;
   }
 
   if (page.type === 'sharing-keys') {
@@ -94,7 +94,11 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
   }
 
   if (page.type === 'plugins') {
-    return <Plugins />;
+    return <Plugins kind="plugins" />;
+  }
+
+  if (page.type === 'themes') {
+    return <Plugins kind="themes" />;
   }
 
   if (page.type === 'plugin-view') {

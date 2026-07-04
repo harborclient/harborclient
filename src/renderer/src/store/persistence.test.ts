@@ -469,6 +469,25 @@ describe('redux open-tab round trip', () => {
     expect(tab?.tabId).toBe('page-tab-1');
     expect('kind' in tab! && tab.kind === 'page' && tab.page.type).toBe('plugins');
   });
+
+  it('round-trips themes page tabs through parseOpenTabsFromRaw', () => {
+    const payload = JSON.stringify({
+      tabs: [
+        {
+          tabId: 'page-tab-themes',
+          kind: 'page',
+          page: { type: 'themes' }
+        }
+      ],
+      activeTabId: 'page-tab-themes'
+    });
+
+    const restored = parseOpenTabsFromRaw(payload);
+
+    expect(restored.tabs).toHaveLength(1);
+    const tab = restored.tabs[0];
+    expect('kind' in tab! && tab.kind === 'page' && tab.page.type).toBe('themes');
+  });
 });
 
 describe('persistActiveEnvironmentId', () => {

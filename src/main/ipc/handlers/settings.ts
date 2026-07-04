@@ -37,6 +37,7 @@ import {
   getRequestEditorTab,
   setRequestEditorTab
 } from '#/main/settings/requestEditorSettings';
+import { getPageSidebarSection, setPageSidebarSection } from '#/main/settings/pageSidebarSettings';
 import {
   getCollectionRunnerConfig,
   setCollectionRunnerConfig
@@ -549,6 +550,16 @@ export function registerSettingsHandlers(db: IStorage): void {
   // Clears the persisted request editor tab for a storage key.
   handle('requestEditor:deleteTab', ipcArgSchemas.storageKey, (_event, key) => {
     deleteRequestEditorTab(key);
+  });
+
+  // Returns the persisted sidebar section for a page tab key.
+  handle('pageSidebar:getSection', ipcArgSchemas.storageKey, (_event, key) =>
+    getPageSidebarSection(key)
+  );
+
+  // Persists the sidebar section for a page tab key.
+  handle('pageSidebar:setSection', ipcArgSchemas.setPageSidebarSection, (_event, key, section) => {
+    setPageSidebarSection(key, section);
   });
 
   // Returns persisted sidebar expansion for sections, collections, and folders.

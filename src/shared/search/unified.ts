@@ -1,4 +1,10 @@
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
+import type { PluginInfo } from '#/shared/plugin/types';
+import { catalogEntryIsTheme, pluginIsTheme } from '#/shared/plugin/themeCategory';
+import {
+  searchInstalledPluginHits,
+  type buildInstalledPluginSearchIndex
+} from '#/shared/search/installedPlugins';
 import { searchPluginHits, type buildPluginCatalogSearchIndex } from '#/shared/search/plugins';
 import { searchSettingsHits, type buildSettingsSearchIndex } from '#/shared/search/settings';
 import {
@@ -24,10 +30,14 @@ export interface SearchAllContext {
   settingsIndex: ReturnType<typeof buildSettingsSearchIndex>;
   /** Plugin catalog MiniSearch index, or null when catalog has not loaded. */
   pluginsIndex: ReturnType<typeof buildPluginCatalogSearchIndex> | null;
+  /** Installed plugins MiniSearch index, or null when the list is empty. */
+  installedPluginsIndex: ReturnType<typeof buildInstalledPluginSearchIndex> | null;
   /** Sidebar entities for subtitle resolution and navigation. */
   sidebarInput: SidebarSearchInput;
   /** Loaded marketplace catalog rows. */
   plugins: PluginCatalogEntry[];
+  /** Installed plugin rows from the main process. */
+  installedPlugins: PluginInfo[];
 }
 
 /**
@@ -105,7 +115,8 @@ export function searchAll(query: string, context: SearchAllContext): UnifiedSear
     request: [],
     environment: [],
     setting: [],
-    plugin: []
+    plugin: [],
+    theme: []
   };
 
   if (context.sidebarIndex != null) {
@@ -134,13 +145,33 @@ export function searchAll(query: string, context: SearchAllContext): UnifiedSear
   }
 
   if (context.pluginsIndex != null) {
+    const catalogById = new Map(context.plugins.map((entry) => [entry.id, entry]));
     for (const hit of searchPluginHits(context.pluginsIndex, trimmed)) {
-      grouped.plugin.push({
-        domain: 'plugin',
+      const entry = catalogById.get(hit.id);
+      const domain: SearchDomain = entry != null && catalogEntryIsTheme(entry) ? 'theme' : 'plugin';
+      grouped[domain].push({
+        domain,
         id: hit.id,
         title: hit.name,
         subtitle: hit.summary,
-        score: hit.score
+        score: hit.score,
+        pluginListingSource: 'marketplace'
+      });
+    }
+  }
+
+  if (context.installedPluginsIndex != null) {
+    const installedById = new Map(context.installedPlugins.map((plugin) => [plugin.id, plugin]));
+    for (const hit of searchInstalledPluginHits(context.installedPluginsIndex, trimmed)) {
+      const plugin = installedById.get(hit.id);
+      const domain: SearchDomain = plugin != null && pluginIsTheme(plugin) ? 'theme' : 'plugin';
+      grouped[domain].push({
+        domain,
+        id: hit.id,
+        title: hit.name,
+        subtitle: hit.summary,
+        score: hit.score,
+        pluginListingSource: 'installed'
       });
     }
   }

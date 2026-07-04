@@ -1,7 +1,9 @@
 import { Page, SidebarLayout } from '@harborclient/sdk/components';
-import { useEffect, useMemo, useState, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, type JSX } from 'react';
 
 import { faPuzzlePiece } from '#/renderer/src/fontawesome';
+import { usePersistedPageSidebarSection } from '#/renderer/src/hooks/usePersistedPageSidebarSection';
+import { normalizePageSidebarSection } from '#/shared/pageSidebarSection';
 import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import { usePluginSettingsSections } from '#/renderer/src/plugins/pluginHooks';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
@@ -25,16 +27,8 @@ interface Props {
  */
 export function Settings({ initialSection }: Props): JSX.Element {
   const dispatch = useAppDispatch();
-  const [section, setSection] = useState<SettingsSection>(initialSection);
   const pluginSections = usePluginSettingsSections();
   const { query, setQuery, matchedIds, isSearching } = useSettingsSearch();
-
-  /**
-   * Loads the shared settings draft once when the settings panel opens.
-   */
-  useEffect(() => {
-    void dispatch(loadSettingsDraft());
-  }, [dispatch]);
 
   const sidebarSections = useMemo(
     () => [
@@ -48,7 +42,45 @@ export function Settings({ initialSection }: Props): JSX.Element {
     [pluginSections]
   );
 
+  /**
+   * Treat menu opens with General as non-override so persisted memory wins.
+   */
+  const navigationOverride = useMemo(
+    () => (initialSection !== 'general' ? initialSection : undefined),
+    [initialSection]
+  );
+
+  /**
+   * Validates sidebar section ids against built-in allowlists and registered plugins.
+   */
+  const isValidSection = useCallback(
+    (candidate: string): candidate is SettingsSection => {
+      if (!normalizePageSidebarSection('settings', candidate)) {
+        return false;
+      }
+      if (!candidate.startsWith('plugin:')) {
+        return true;
+      }
+      return sidebarSections.some((entry) => entry.value === candidate);
+    },
+    [sidebarSections]
+  );
+
+  const { section, setSection } = usePersistedPageSidebarSection<SettingsSection>({
+    pageKey: 'settings',
+    defaultSection: 'general',
+    isValidSection,
+    navigationOverride
+  });
+
   const pluginSection = pluginSections.find((entry) => entry.id === section);
+
+  /**
+   * Loads the shared settings draft once when the settings panel opens.
+   */
+  useEffect(() => {
+    void dispatch(loadSettingsDraft());
+  }, [dispatch]);
 
   /**
    * Opens a management section from search results and clears the active query.

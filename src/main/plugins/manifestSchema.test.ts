@@ -49,6 +49,14 @@ describe('manifestSchema', () => {
     expect(manifest.categories).toEqual(['requests', 'utilities']);
   });
 
+  it('parses theme appearance categories alongside themes', () => {
+    const manifest = parsePluginManifest({
+      ...validManifest,
+      categories: ['themes', 'dark']
+    });
+    expect(manifest.categories).toEqual(['themes', 'dark']);
+  });
+
   it('strips unknown categories and removes duplicates', () => {
     const manifest = parsePluginManifest({
       ...validManifest,
