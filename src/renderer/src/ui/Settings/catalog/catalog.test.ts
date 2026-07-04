@@ -19,7 +19,7 @@ const MANAGEMENT_SECTIONS = [
   'backup-restore'
 ] as const;
 
-const FORM_SECTIONS = ['general', 'proxy', 'syntax', 'ai'] as const;
+const FORM_SECTIONS = ['general', 'proxy', 'syntax', 'ai', 'plugins'] as const;
 
 const EXPECTED_FIELD_IDS: FieldSettingId[] = [
   'general.requestTimeoutMs',
@@ -43,7 +43,9 @@ const EXPECTED_FIELD_IDS: FieldSettingId[] = [
   'syntax.highlightActiveLineGutter',
   'ai.openaiApiKey',
   'ai.claudeApiKey',
-  'ai.geminiApiKey'
+  'ai.geminiApiKey',
+  'plugins.addCatalogEndpointUrl',
+  'plugins.addTrustedEndpointUrl'
 ];
 
 describe('SETTINGS_CATALOG', () => {

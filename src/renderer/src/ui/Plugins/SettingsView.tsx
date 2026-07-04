@@ -3,6 +3,8 @@ import { useState, type JSX } from 'react';
 import type { PluginSource } from '#/shared/plugin/catalog';
 import { isHarborClientEndpoint } from '#/shared/plugin/catalog';
 import type { TeamHubPluginSource } from '#/shared/types';
+import type { FieldSettingId } from '#/renderer/src/ui/Settings/catalog/catalog';
+import { SettingField } from '#/renderer/src/ui/Settings/components/SettingField';
 
 import { parseDraftPluginSourceUrl } from './helpers';
 
@@ -58,12 +60,17 @@ interface Props {
    * Read-only plugin source rows provided by connected Team Hubs.
    */
   hubSources: TeamHubPluginSource[];
+
+  /**
+   * Catalog setting id for the add-endpoint field in this section.
+   */
+  addFieldSettingId: FieldSettingId;
 }
 
 /**
  * Renders one editable list of plugin catalog or trusted-key endpoints.
  */
-export function SourceListSection({
+export function SettingsView({
   sectionId,
   title,
   description,
@@ -72,7 +79,8 @@ export function SourceListSection({
   busy,
   onAdd,
   onUpdate,
-  onRemove
+  onRemove,
+  addFieldSettingId
 }: Props): JSX.Element {
   const [draftUrl, setDraftUrl] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
@@ -116,10 +124,10 @@ export function SourceListSection({
   return (
     <section className="space-y-3" aria-labelledby={`${sectionId}-title`}>
       <div>
-        <h3 id={`${sectionId}-title`} className="m-0 text-[14px] font-medium text-text">
+        <h3 id={`${sectionId}-title`} className="m-0 text-[16px] font-medium text-text">
           {title}
         </h3>
-        <p className="m-0 mt-1 text-[14px] text-muted">{description}</p>
+        <p className="m-0 mt-1 text-[16px] text-muted">{description}</p>
       </div>
 
       {sources.length === 0 && hubSources.length === 0 ? (
@@ -135,12 +143,11 @@ export function SourceListSection({
             return (
               <li
                 key={source.url}
-                className="flex flex-wrap items-start gap-2 rounded-md border border-separator bg-control p-3"
+                className="flex flex-wrap items-center gap-2 rounded-md border border-separator bg-control p-3"
               >
-                <div className="flex min-w-0 flex-1 items-start gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
                   <Checkbox
                     id={checkboxId}
-                    className="mt-1"
                     checked={source.enabled}
                     disabled={busy}
                     aria-label={`Enable ${source.url}`}
@@ -148,12 +155,13 @@ export function SourceListSection({
                       onUpdate(index, { ...source, enabled: event.target.checked });
                     }}
                   />
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 mt-1">
                     <FormGroup
                       label={source.url}
                       htmlFor={checkboxId}
                       layout="associated"
                       labelClassName="block break-all text-[14px] text-text"
+                      className="p-0! m-0!"
                     />
                     {untrusted ? (
                       <span className="mt-1 inline-block rounded bg-danger/20 px-1.5 py-0.5 text-[14px] text-danger">
@@ -216,8 +224,13 @@ export function SourceListSection({
         </p>
       ) : null}
 
-      <div>
-        <FormGroup label="Add endpoint URL" htmlFor={addInputId} labelTone="muted">
+      <div className="mt-4">
+        <SettingField
+          settingId={addFieldSettingId}
+          htmlFor={addInputId}
+          error={addError}
+          errorId={addErrorId}
+        >
           <div className="flex flex-wrap gap-2">
             <Input
               id={addInputId}
@@ -248,12 +261,7 @@ export function SourceListSection({
               Add
             </Button>
           </div>
-        </FormGroup>
-        {addError ? (
-          <p id={addErrorId} className="mt-2 text-[14px] text-danger" role="alert">
-            {addError}
-          </p>
-        ) : null}
+        </SettingField>
         {pendingUntrustedUrl ? (
           <p id={untrustedWarningId} className="mt-2 text-[14px] text-danger" role="alert">
             {pendingUntrustedUrl} is not hosted on harborclient.com. Third-party endpoints can list

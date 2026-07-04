@@ -23,6 +23,8 @@ export type SettingId =
   | 'ai.openaiApiKey'
   | 'ai.claudeApiKey'
   | 'ai.geminiApiKey'
+  | 'plugins.addCatalogEndpointUrl'
+  | 'plugins.addTrustedEndpointUrl'
   | 'globals'
   | 'snippets'
   | 'storage'
@@ -38,9 +40,14 @@ export type FieldSettingId = Exclude<
 >;
 
 /**
+ * Built-in settings sections rendered by the main Settings layout engine.
+ */
+export type MainFormSettingsSection = 'general' | 'proxy' | 'syntax' | 'ai';
+
+/**
  * Built-in settings sections that expose individual field entries in the catalog.
  */
-export type FormSettingsSection = 'general' | 'proxy' | 'syntax' | 'ai';
+export type FormSettingsSection = MainFormSettingsSection | 'plugins';
 
 /**
  * Catalog entry for an individual settings field.
@@ -87,7 +94,8 @@ export const FORM_SECTION_DESCRIPTIONS: Record<FormSettingsSection, string> = {
     'Set request and script timeouts, response size limits, SSL verification, and redirect following defaults.',
   proxy: "Route HarborClient's outbound HTTP requests through a proxy server.",
   syntax: 'Choose a CodeMirror theme and editor behavior for request and response editors.',
-  ai: 'Store API keys for OpenAI, Claude, and Google Gemini used by the AI sidebar.'
+  ai: 'Store API keys for OpenAI, Claude, and Google Gemini used by the AI sidebar.',
+  plugins: 'Configure marketplace catalog and trusted publisher key endpoints for plugin sources.'
 };
 
 /**
@@ -273,6 +281,22 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     keywords: ['google', 'gemini', 'api']
   },
   {
+    id: 'plugins.addCatalogEndpointUrl',
+    section: 'plugins',
+    kind: 'field',
+    label: 'Add endpoint URL',
+    description: 'Add a new endpoint URL to the list.',
+    keywords: ['endpoint', 'catalog', 'url', 'plugin sources', 'marketplace']
+  },
+  {
+    id: 'plugins.addTrustedEndpointUrl',
+    section: 'plugins',
+    kind: 'field',
+    label: 'Add endpoint URL',
+    description: 'Add a new endpoint URL to the list.',
+    keywords: ['endpoint', 'trusted', 'url', 'plugin sources', 'publisher', 'signing']
+  },
+  {
     id: 'globals',
     section: 'globals',
     kind: 'section',
@@ -378,6 +402,8 @@ export function sectionEntryBySection(section: SettingsSection): SectionSettingE
  *
  * @param section - Settings section id.
  */
-export function isFormSettingsSection(section: SettingsSection): section is FormSettingsSection {
+export function isFormSettingsSection(
+  section: SettingsSection
+): section is MainFormSettingsSection {
   return section === 'general' || section === 'proxy' || section === 'syntax' || section === 'ai';
 }

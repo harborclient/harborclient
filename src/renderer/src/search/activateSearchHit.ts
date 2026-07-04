@@ -108,8 +108,14 @@ export function useActivateSearchHit(): (hit: UnifiedSearchHit, query: string) =
         }
         case 'setting': {
           const entry = entryById(hit.id as SettingId);
-          const section = entry.section;
-          dispatch(openPageTab({ type: 'settings', section }));
+          if (entry.kind !== 'field') {
+            return;
+          }
+          if (entry.section === 'plugins') {
+            dispatch(openPageTab({ type: 'plugins' }));
+            return;
+          }
+          dispatch(openPageTab({ type: 'settings', section: entry.section }));
           requestAnimationFrame(() => {
             const fieldId = `setting-${hit.id.replaceAll('.', '-')}`;
             document.getElementById(fieldId)?.focus();

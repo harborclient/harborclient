@@ -65,8 +65,10 @@ export function UrlBar({
 
   return (
     <div className="flex items-center gap-2">
-      <div className={`request-url-bar flex min-w-0 flex-1 items-center mb-1 ps-2 ${fieldFrame}`}>
-        <MethodSelect value={method} onChange={onMethodChange} />
+      <div
+        className={`request-url-bar flex min-w-0 flex-1 items-center mb-1 ps-2 ${fieldFrame} rounded-full!`}
+      >
+        <MethodSelect value={method} onChange={onMethodChange} className="mt-0.5" />
         <div className="h-5 w-px shrink-0 bg-separator" />
         <VariableInput
           id={REQUEST_URL_INPUT_ID}

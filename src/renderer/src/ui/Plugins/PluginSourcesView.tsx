@@ -3,7 +3,7 @@ import type { JSX } from 'react';
 import type { PluginSource, PluginSourcesSettings } from '#/shared/plugin/catalog';
 import type { TeamHubPluginSourcesView } from '#/shared/types';
 import { faGear } from '#/renderer/src/fontawesome';
-import { SourceListSection } from './SourceListSection';
+import { SettingsView } from './SettingsView';
 import type { SourceKind } from './types';
 
 interface Props {
@@ -81,24 +81,26 @@ export function PluginSourcesView({
       ) : null}
 
       <div className="max-w-2xl space-y-6">
-        <SourceListSection
+        <SettingsView
           sectionId="plugin-catalog-sources"
           title="Catalog endpoints"
           description="JSON catalogs listing installable plugins for the Marketplace view."
           sources={settings.catalogs}
           hubSources={hubSources.catalogs}
           busy={busy}
+          addFieldSettingId="plugins.addCatalogEndpointUrl"
           onAdd={(url) => onAddSource('catalogs', url)}
           onUpdate={(index, source) => onUpdateSource('catalogs', index, source)}
           onRemove={(index) => onRemoveSource('catalogs', index)}
         />
-        <SourceListSection
+        <SettingsView
           sectionId="plugin-trusted-sources"
           title="Trusted publisher endpoints"
           description="JSON registries mapping publisher names to trusted signing key URLs."
           sources={settings.trusted}
           hubSources={hubSources.trusted}
           busy={busy}
+          addFieldSettingId="plugins.addTrustedEndpointUrl"
           onAdd={(url) => onAddSource('trusted', url)}
           onUpdate={(index, source) => onUpdateSource('trusted', index, source)}
           onRemove={(index) => onRemoveSource('trusted', index)}

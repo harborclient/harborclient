@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(plugins): update plugin settings and remove deprecated SourceListSection. (`3885cc9`)
 - feat(plugins): update CatalogCard and InstalledPluginCard to use Card component from @harborclient/sdk. (`bb3e737`)
 - fix(plugins): improve button alignment in InstalledPluginFooterActions. (`f3b52cf`)
 - fix(plugins): center align buttons in InstalledPluginFooterActions component. (`248b80d`)

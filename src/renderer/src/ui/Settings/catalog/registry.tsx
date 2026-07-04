@@ -40,7 +40,7 @@ type SettingsSectionComponentProps = Record<string, never>;
 /**
  * Maps catalog field ids to standalone field components.
  */
-export const SETTINGS_FIELD_REGISTRY: Record<FieldSettingId, ComponentType> = {
+export const SETTINGS_FIELD_REGISTRY: Partial<Record<FieldSettingId, ComponentType>> = {
   'general.requestTimeoutMs': GeneralRequestTimeoutField,
   'general.scriptTimeoutMs': GeneralScriptTimeoutField,
   'general.maxResponseSizeMb': GeneralMaxResponseSizeField,
@@ -101,7 +101,7 @@ export const FORM_SECTION_EXTRAS: Partial<Record<FormSettingsSection, ComponentT
  *
  * @param id - Catalog field id.
  */
-export function getFieldComponent(id: FieldSettingId): ComponentType {
+export function getFieldComponent(id: FieldSettingId): ComponentType | undefined {
   return SETTINGS_FIELD_REGISTRY[id];
 }
 
@@ -115,6 +115,9 @@ export function renderSettingFields(ids: FieldSettingId[]): JSX.Element {
     <>
       {ids.map((id) => {
         const FieldComponent = getFieldComponent(id);
+        if (FieldComponent == null) {
+          return null;
+        }
         return <FieldComponent key={id} />;
       })}
     </>
