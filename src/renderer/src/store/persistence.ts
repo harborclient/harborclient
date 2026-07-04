@@ -173,6 +173,9 @@ function normalizePersistedDraft(value: unknown): RequestDraft | null {
   if (value.comment !== undefined && typeof value.comment !== 'string') {
     return null;
   }
+  if (value.tags !== undefined && typeof value.tags !== 'string') {
+    return null;
+  }
 
   return normalizeDraft({
     id: value.id as number | undefined,
@@ -196,7 +199,8 @@ function normalizePersistedDraft(value: unknown): RequestDraft | null {
     post_request_scripts: Array.isArray(value.post_request_scripts)
       ? (value.post_request_scripts as RequestDraft['post_request_scripts'])
       : [],
-    comment: typeof value.comment === 'string' ? value.comment : ''
+    comment: typeof value.comment === 'string' ? value.comment : '',
+    tags: typeof value.tags === 'string' ? value.tags : ''
   } as RequestDraft);
 }
 

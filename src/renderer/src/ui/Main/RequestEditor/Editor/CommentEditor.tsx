@@ -15,6 +15,7 @@ import {
 import '@mdxeditor/editor/style.css';
 import type { Variable } from '#/shared/types';
 import { useCallback, useEffect, useMemo, useRef, type JSX } from 'react';
+import { FormGroup } from '@harborclient/sdk/components';
 
 import {
   createVariableCodeMirrorExtensions,
@@ -118,13 +119,18 @@ export function CommentEditor({ value, onChange, variables, onEditVariables }: P
       role="group"
       aria-label="Comment"
     >
+      <FormGroup label="Comment" className="border-none! p-0! mb-2">
+        <p className="text-sm text-muted text-[16px]">
+          Leave a comment to describe the request. Markdown is supported.
+        </p>
+      </FormGroup>
       <MDXEditor
         ref={editorRef}
         markdown={value}
         onChange={handleChange}
         plugins={plugins}
-        className="request-comment-editor app-no-drag min-h-0 flex-1 h-full bg-field"
-        contentEditableClassName="request-comment-editor-content bg-field"
+        className="request-comment-editor app-no-drag min-h-0 flex-1 h-full bg-field rounded-lg! border border-separator focus-within:outline focus-within:outline-2 focus-within:outline-offset-[-2px] focus-within:outline-accent"
+        contentEditableClassName="request-comment-editor-content bg-field outline-none"
       />
     </div>
   );

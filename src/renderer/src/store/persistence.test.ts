@@ -290,6 +290,18 @@ describe('loadTabsFromStorage', () => {
     expect(asRequestTab(result.tabs[0]).draft.auth.bearer.token).toBe('secret');
   });
 
+  it('restores request tags through persistTabs round trip', () => {
+    vi.stubGlobal('window', createWindowApiMock());
+    markTabsHydrated();
+    const tab = createTab(sampleDraft({ tags: 'api, auth' }));
+    persistTabs([tab], tab.tabId);
+
+    const result = loadTabsFromStorage();
+
+    expect(result.tabs).toHaveLength(1);
+    expect(asRequestTab(result.tabs[0]).draft.tags).toBe('api, auth');
+  });
+
   it('restores legacy key-value rows missing enabled', () => {
     const payload = {
       tabs: [
