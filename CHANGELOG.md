@@ -3,6 +3,9 @@
 ## Unreleased
 
 - chore(dependencies): upgrade @harborclient/sdk to version 1.0.33 and update plugin references. (`260006b`)
+
+## 1.9.25 - 2026-07-04
+
 - chore(dependencies): upgrade @harborclient/sdk to version 1.0.32. (`4818229`)
 - feat(tags): implement tag management in request editor. (`dceba7d`)
 - feat(plugins): update plugin settings and remove deprecated SourceListSection. (`3885cc9`)
