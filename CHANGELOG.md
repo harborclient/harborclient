@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- chore(plugins): update plugin reference to version 1.0.12 in catalog.json. (`fccc2b4`)
 - chore(plugins): update plugin reference to version 1.0.7 in catalog.json and adjust splash screen dimensions and version display. (`c5ce11c`)
 
 ## 1.9.26 - 2026-07-04

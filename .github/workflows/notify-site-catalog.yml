@@ -1,0 +1,26 @@
+name: Notify site catalog update
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - plugins/catalog.json
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger harborclient-site deploy
+        env:
+          SITE_DEPLOY_PAT: ${{ secrets.SITE_DEPLOY_PAT }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${SITE_DEPLOY_PAT}" \
+            https://api.github.com/repos/harborclient/harborclient-site/dispatches \
+            -d '{"event_type":"catalog-updated","client_payload":{"sha":"'"${{ github.sha }}"'","ref":"'"${{ github.ref }}"'"}}'
