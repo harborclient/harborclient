@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.9.27 - 2026-07-04
+
 - chore(dependencies): update @harborclient/sdk to version 1.0.34 and adjust UI text sizes in sidebar components. (`e285038`)
 - chore(plugins): add theme-nord entry back to catalog.json with version reference v1.0.6. (`16a4b94`)
 - fix(workflows): update GitHub API endpoint for site dispatch notifications. (`35ea5cd`)
