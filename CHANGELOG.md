@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(plugins): improve button alignment in InstalledPluginFooterActions. (`f3b52cf`)
 - fix(plugins): center align buttons in InstalledPluginFooterActions component. (`248b80d`)
 
 ## 1.9.24 - 2026-07-04
