@@ -50,24 +50,24 @@
       "ref": "v1.2.4"
     },
     {
-      "repoUrl": "https://github.com/harborclient/plugin-catppuccin-latte",
+      "repoUrl": "https://github.com/harborclient/theme-catppuccin-latte",
+      "ref": "v1.0.7"
+    },
+    {
+      "repoUrl": "https://github.com/harborclient/theme-nord",
+      "ref": "v1.0.6"
+    },
+    {
+      "repoUrl": "https://github.com/harborclient/theme-gruvbox",
       "ref": "v1.0.5"
     },
     {
-      "repoUrl": "https://github.com/harborclient/plugin-nord",
-      "ref": "v1.0.5"
+      "repoUrl": "https://github.com/harborclient/theme-dracula",
+      "ref": "v1.0.6"
     },
     {
-      "repoUrl": "https://github.com/harborclient/plugin-gruvbox",
-      "ref": "v1.0.4"
-    },
-    {
-      "repoUrl": "https://github.com/harborclient/plugin-dracula",
-      "ref": "v1.0.5"
-    },
-    {
-      "repoUrl": "https://github.com/harborclient/plugin-solarized",
-      "ref": "v1.0.9"
+      "repoUrl": "https://github.com/harborclient/theme-solarized",
+      "ref": "v1.0.10"
     }
   ]
 }
