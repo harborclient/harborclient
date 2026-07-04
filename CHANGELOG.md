@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.9.23 - 2026-07-04
+
 - feat(deep-links): add theme support to deep-link handling and related components. (`f8a042f`)
 - feat(themes): implement themes management and related functionalities. (`4a5ff2c`)
 
