@@ -16,7 +16,6 @@ import { useSendRequestShortcutHint } from '#/renderer/src/hooks/useSendRequestS
 import { faGlobe } from '#/renderer/src/fontawesome';
 import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import { usePluginResponseTabs } from '#/renderer/src/plugins/pluginHooks';
-import { isPluginTabId } from '#/renderer/src/plugins/pluginContextAdapters';
 import {
   bodyLanguage,
   formatBody,
@@ -160,25 +159,18 @@ export function ResponseEditor({
               !noResponsePluginTabs.some((entry) => entry.id === tab)
             ? pluginOnlyTab
             : tab;
+  const canCopyOrExport =
+    response != null && (effectiveTab === 'body' || effectiveTab === 'headers');
 
   /**
    * Copies the active tab content to the clipboard.
    */
   const handleCopy = async (): Promise<void> => {
-    if (
-      !response ||
-      isPluginTabId(effectiveTab) ||
-      effectiveTab === 'preview' ||
-      effectiveTab === 'redirects'
-    ) {
+    if (!canCopyOrExport || !response) {
       return;
     }
-    const text = responseTabText(
-      effectiveTab as 'body' | 'headers' | 'tests',
-      response.body,
-      response.headers,
-      testResults
-    );
+    const copyExportTab = effectiveTab as 'body' | 'headers';
+    const text = responseTabText(copyExportTab, response.body, response.headers, testResults);
     try {
       await navigator.clipboard.writeText(text);
       toast.success('Copied to clipboard');
@@ -191,25 +183,12 @@ export function ResponseEditor({
    * Exports the active tab content to a file via a native save dialog.
    */
   const handleExport = async (): Promise<void> => {
-    if (
-      !response ||
-      isPluginTabId(effectiveTab) ||
-      effectiveTab === 'preview' ||
-      effectiveTab === 'redirects'
-    ) {
+    if (!canCopyOrExport || !response) {
       return;
     }
-    const content = responseTabText(
-      effectiveTab as 'body' | 'headers' | 'tests',
-      response.body,
-      response.headers,
-      testResults
-    );
-    const defaultPath = responseTabExportPath(
-      effectiveTab as 'body' | 'headers' | 'tests',
-      response.body,
-      response.headers
-    );
+    const copyExportTab = effectiveTab as 'body' | 'headers';
+    const content = responseTabText(copyExportTab, response.body, response.headers, testResults);
+    const defaultPath = responseTabExportPath(copyExportTab, response.body, response.headers);
     try {
       const result = await window.api.saveTextFile(content, defaultPath);
       if (result.canceled) return;
@@ -389,13 +368,23 @@ export function ResponseEditor({
       <div className="flex min-h-0 flex-1 flex-col">
         <SegmentedTabsGroup value={effectiveTab} onChange={setTab} ariaLabel="Response view">
           <div className="mb-2 -mx-3 -mt-2 flex shrink-0 items-center justify-between gap-2 border-b border-separator">
-            <SegmentedTabs tabs={tabs} className="border-none" />
+            <SegmentedTabs tabs={tabs} className="border-none" editable={false} />
 
             <div className="flex shrink-0 items-center gap-1 mr-2">
-              <Button type="button" variant="toolbar" onClick={() => void handleCopy()}>
+              <Button
+                type="button"
+                variant="toolbar"
+                disabled={!canCopyOrExport}
+                onClick={() => void handleCopy()}
+              >
                 Copy
               </Button>
-              <Button type="button" variant="toolbar" onClick={() => void handleExport()}>
+              <Button
+                type="button"
+                variant="toolbar"
+                disabled={!canCopyOrExport}
+                onClick={() => void handleExport()}
+              >
                 Export
               </Button>
             </div>

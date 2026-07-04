@@ -292,6 +292,18 @@
 
 @layer components {
   /**
+   * Toolbar and icon SDK button variants omit disabled visuals; match primary/secondary.
+   */
+  .hc-button.border-none:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .hc-button.border-none:disabled:hover {
+    background-color: transparent;
+  }
+
+  /**
    * Request editor URL bar — larger method and URL text than default SDK 14px.
    */
   .request-url-bar .hc-method-select {

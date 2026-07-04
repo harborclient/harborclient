@@ -182,6 +182,7 @@ export function CollectionModal(): JSX.Element | null {
           <div className="-mx-4 -mt-4 mb-4">
             <SegmentedTabs
               fullWidth
+              editable={false}
               className="[&_button]:whitespace-nowrap"
               tabs={[
                 { value: 'create', label: 'Create new' },
