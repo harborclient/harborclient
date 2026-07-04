@@ -55,8 +55,8 @@ importers:
         specifier: ^0.1.1
         version: 0.1.1
       '@harborclient/sdk':
-        specifier: ^1.0.29
-        version: 1.0.29(@babel/runtime@7.29.7)(@codemirror/search@6.7.1)(@codemirror/theme-one-dark@6.1.3)(codemirror@6.0.2)(eslint@9.39.4(jiti@2.7.0))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.9.3)
+        specifier: ^1.0.30
+        version: 1.0.30(@babel/runtime@7.29.7)(@codemirror/search@6.7.1)(@codemirror/theme-one-dark@6.1.3)(codemirror@6.0.2)(eslint@9.39.4(jiti@2.7.0))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.9.3)
       '@harborclient/team-hub-api':
         specifier: ^0.1.1
         version: 0.1.1
@@ -1061,8 +1061,8 @@ packages:
     resolution: {integrity: sha512-19OYMs76482u6qDSSjdPjUX91dwD8YqIkib2oCcA+biZF0MhRQkB50eCpU8cuDkENyE480DMgFEJkDG8/qfdjg==}
     engines: {node: '>=24'}
 
-  '@harborclient/sdk@1.0.29':
-    resolution: {integrity: sha512-Ff6tCw9omE1L3gqJWr+eGQ+VpBm7zxrywPULDGoVvAU71+sI41XFHBdRx8+ogNUhuHvK+Z3PWjknjfnGikVxSw==}
+  '@harborclient/sdk@1.0.30':
+    resolution: {integrity: sha512-rxfBCVLvRry82n6Hk7kCYI3arSL545Jnqqn8L7cROOpHuVaJF+cIWlhA/UmhglxP0yj9yT5gd6OOmnXE/1eOeA==}
     hasBin: true
     peerDependencies:
       react: '>=18'
@@ -3083,6 +3083,10 @@ packages:
   clone@1.0.4:
     resolution: {integrity: sha512-JQHZ2QMW6l3aH/j6xCqQThY/9OH4D/9ls34cgkUBiEeocRTU04tHfKPBsUK1PqZCUQM7GiA0IIXJSuXHI64Kbg==}
     engines: {node: '>=0.8'}
+
+  clsx@2.1.1:
+    resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
+    engines: {node: '>=6'}
 
   cm6-theme-basic-light@0.2.0:
     resolution: {integrity: sha512-1prg2gv44sYfpHscP26uLT/ePrh0mlmVwMSoSd3zYKQ92Ab3jPRLzyCnpyOCQLJbK+YdNs4HvMRqMNYdy4pMhA==}
@@ -6317,6 +6321,9 @@ packages:
   tabbable@6.5.0:
     resolution: {integrity: sha512-wieBHXygIm7OyQOu5hQlkk62/WyCFYGlWg7L6/ZCUZwx0o398Zkn4pVmMyfYhfMG8kGrj/Krt8eIk6UKC6VzwA==}
 
+  tailwind-merge@3.6.0:
+    resolution: {integrity: sha512-uxL7qAVQriqRQPAyK3pj66VqskWqoZ37PW94jwOTwNfq/z9oyu1V+eqrZqtR2+fCiXdYOZe/Modt8GtvqNzu+w==}
+
   tailwindcss@4.3.1:
     resolution: {integrity: sha512-hk+TB1m+K8CYNrP6rjQaq/Y+4Zylwpa87mLYBKCunwnnQ9p+fHb7kmSfGqyEJoxF/O6CDyABWVFEafNSYKll+Q==}
 
@@ -8080,7 +8087,7 @@ snapshots:
     dependencies:
       undici: 6.27.0
 
-  '@harborclient/sdk@1.0.29(@babel/runtime@7.29.7)(@codemirror/search@6.7.1)(@codemirror/theme-one-dark@6.1.3)(codemirror@6.0.2)(eslint@9.39.4(jiti@2.7.0))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.9.3)':
+  '@harborclient/sdk@1.0.30(@babel/runtime@7.29.7)(@codemirror/search@6.7.1)(@codemirror/theme-one-dark@6.1.3)(codemirror@6.0.2)(eslint@9.39.4(jiti@2.7.0))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.9.3)':
     dependencies:
       '@codemirror/autocomplete': 6.20.3
       '@codemirror/lang-javascript': 6.2.5
@@ -8098,10 +8105,12 @@ snapshots:
       '@lezer/highlight': 1.2.3
       '@uiw/codemirror-themes-all': 4.25.10(@codemirror/language@6.12.3)(@codemirror/state@6.6.0)(@codemirror/view@6.43.1)
       '@uiw/react-codemirror': 4.25.10(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.3)(@codemirror/lint@6.9.7)(@codemirror/search@6.7.1)(@codemirror/state@6.6.0)(@codemirror/theme-one-dark@6.1.3)(@codemirror/view@6.43.1)(codemirror@6.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      clsx: 2.1.1
       esbuild: 0.25.12
       eslint-config-prettier: 10.1.8(eslint@9.39.4(jiti@2.7.0))
       globals: 17.7.0
       react: 19.2.7
+      tailwind-merge: 3.6.0
       typescript-eslint: 8.62.1(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
     transitivePeerDependencies:
       - '@babel/runtime'
@@ -10638,6 +10647,8 @@ snapshots:
       mimic-response: 1.0.1
 
   clone@1.0.4: {}
+
+  clsx@2.1.1: {}
 
   cm6-theme-basic-light@0.2.0(@codemirror/language@6.12.3)(@codemirror/state@6.6.0)(@codemirror/view@6.43.1)(@lezer/highlight@1.2.3):
     dependencies:
@@ -14770,6 +14781,8 @@ snapshots:
       '@pkgr/core': 0.3.6
 
   tabbable@6.5.0: {}
+
+  tailwind-merge@3.6.0: {}
 
   tailwindcss@4.3.1: {}
 

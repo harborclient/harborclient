@@ -9,6 +9,7 @@ import { InstalledPluginFooterActions } from './InstalledPluginFooterActions';
 import { resolveInstalledPluginSummary, stopRowActivation } from './helpers';
 import { loadInstalledPluginScreenshotSrcs } from './resolvePluginScreenshot';
 import { ScreenshotCarousel } from './ScreenshotCarousel';
+import { Card } from '@harborclient/sdk/components';
 
 interface Props {
   /**
@@ -121,83 +122,85 @@ export function InstalledPluginCard({
   };
 
   return (
-    <li className="flex h-full min-w-0 flex-col overflow-hidden rounded-md border border-separator bg-control">
-      {screenshotSrcs.length > 0 ? (
-        <ScreenshotCarousel variant="card" images={screenshotSrcs} stopPropagation />
-      ) : (
-        <div
-          className="flex aspect-video w-full items-center justify-center border-b border-separator bg-panel text-[14px] text-muted"
-          aria-hidden
+    <li>
+      <Card>
+        {screenshotSrcs.length > 0 ? (
+          <ScreenshotCarousel variant="card" images={screenshotSrcs} stopPropagation />
+        ) : (
+          <div
+            className="flex aspect-video w-full items-center justify-center border-b border-separator bg-panel text-[14px] text-muted"
+            aria-hidden
+          >
+            No preview
+          </div>
+        )}
+
+        <Card.Body
+          tabIndex={0}
+          role="button"
+          className="flex flex-1 cursor-pointer flex-col gap-1.5 hover:bg-selection/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
+          aria-label={`View details for ${plugin.name}`}
+          onClick={handleBodyClick}
+          onKeyDown={handleBodyKeyDown}
         >
-          No preview
-        </div>
-      )}
-
-      <div
-        tabIndex={0}
-        role="button"
-        className="flex flex-1 cursor-pointer flex-col gap-1.5 p-3 hover:bg-selection/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
-        aria-label={`View details for ${plugin.name}`}
-        onClick={handleBodyClick}
-        onKeyDown={handleBodyKeyDown}
-      >
-        <div className="flex items-baseline justify-between gap-2">
-          <h3 className="m-0 min-w-0 truncate text-[14px] font-semibold text-text">
-            {plugin.name}
-          </h3>
-          <span className="shrink-0 text-[14px] text-muted">{plugin.version}</span>
-        </div>
-        {summary ? <p className="m-0 line-clamp-3 text-[14px] text-text">{summary}</p> : null}
-        {showCategories ? (
-          <div className="mt-auto flex flex-wrap gap-1.5 pt-1.5">
-            {categories.map((category) => (
-              <span
-                key={category}
-                className="rounded bg-accent/15 px-2 py-0.5 text-[14px] text-text"
-              >
-                {PLUGIN_CATALOG_CATEGORY_LABELS[category]}
-              </span>
-            ))}
+          <div className="flex items-baseline justify-between gap-2">
+            <h3 className="m-0 min-w-0 truncate text-[14px] font-semibold text-text">
+              {plugin.name}
+            </h3>
+            <span className="shrink-0 text-[14px] text-muted">{plugin.version}</span>
           </div>
-        ) : null}
-        {showStatusBadges ? (
-          <div className={`flex flex-wrap gap-1.5 pt-1.5${showCategories ? '' : ' mt-auto'}`}>
-            {plugin.signature?.status === 'invalid' ? (
-              <span className="rounded bg-danger/20 px-2 py-0.5 text-[14px] text-danger">
-                Invalid signature
-              </span>
-            ) : null}
-            {plugin.signature?.status === 'untrusted' ? (
-              <span className="rounded bg-danger/20 px-2 py-0.5 text-[14px] text-danger">
-                Untrusted publisher
-              </span>
-            ) : null}
-            {plugin.runtimeError && plugin.enabled ? (
-              <span className="rounded bg-danger/20 px-2 py-0.5 text-[14px] text-danger">
-                Error
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-        <ErrorMessages plugin={plugin} />
-      </div>
+          {summary ? <p className="m-0 line-clamp-3 text-[14px] text-text">{summary}</p> : null}
+          {showCategories ? (
+            <div className="mt-auto flex flex-wrap gap-1.5 pt-1.5">
+              {categories.map((category) => (
+                <span
+                  key={category}
+                  className="rounded bg-accent/15 px-2 py-0.5 text-[14px] text-text"
+                >
+                  {PLUGIN_CATALOG_CATEGORY_LABELS[category]}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {showStatusBadges ? (
+            <div className={`flex flex-wrap gap-1.5 pt-1.5${showCategories ? '' : ' mt-auto'}`}>
+              {plugin.signature?.status === 'invalid' ? (
+                <span className="rounded bg-danger/20 px-2 py-0.5 text-[14px] text-danger">
+                  Invalid signature
+                </span>
+              ) : null}
+              {plugin.signature?.status === 'untrusted' ? (
+                <span className="rounded bg-danger/20 px-2 py-0.5 text-[14px] text-danger">
+                  Untrusted publisher
+                </span>
+              ) : null}
+              {plugin.runtimeError && plugin.enabled ? (
+                <span className="rounded bg-danger/20 px-2 py-0.5 text-[14px] text-danger">
+                  Error
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+          <ErrorMessages plugin={plugin} />
+        </Card.Body>
 
-      <div
-        className="flex flex-wrap gap-2 border-t border-separator p-3"
-        onClick={stopRowActivation}
-        onMouseDown={stopRowActivation}
-      >
-        <InstalledPluginFooterActions
-          kind={kind}
-          plugin={plugin}
-          gitUpdateBusy={gitUpdateBusy}
-          onToggleEnabled={onToggleEnabled}
-          onReload={onReload}
-          onUpdateFromGit={onUpdateFromGit}
-          onRemove={onRemove}
-          stopPropagation
-        />
-      </div>
+        <div
+          className="flex flex-wrap gap-2 border-t border-separator p-3"
+          onClick={stopRowActivation}
+          onMouseDown={stopRowActivation}
+        >
+          <InstalledPluginFooterActions
+            kind={kind}
+            plugin={plugin}
+            gitUpdateBusy={gitUpdateBusy}
+            onToggleEnabled={onToggleEnabled}
+            onReload={onReload}
+            onUpdateFromGit={onUpdateFromGit}
+            onRemove={onRemove}
+            stopPropagation
+          />
+        </div>
+      </Card>
     </li>
   );
 }
