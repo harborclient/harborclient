@@ -172,6 +172,10 @@ export function buildMenu(
           click: () => sendMenuAction(window, 'themes')
         },
         {
+          label: 'Cookies',
+          click: () => sendMenuAction(window, 'cookies')
+        },
+        {
           label: 'Team Hub',
           accelerator: acceleratorFor(accelerators, 'team-hubs'),
           click: () => sendMenuAction(window, 'team-hubs')

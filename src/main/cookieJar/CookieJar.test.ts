@@ -125,6 +125,35 @@ describeSqlite('getCookiesForDomain and setCookiesForDomain', () => {
   });
 });
 
+describeSqlite('listDomains', () => {
+  beforeEach(async () => {
+    await setupCookieJarTest();
+  });
+
+  afterEach(async () => {
+    await database.close();
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  it('returns an empty list when no cookies are saved', () => {
+    expect(jar.listDomains()).toEqual([]);
+  });
+
+  it('returns saved cookie domains in sorted order', () => {
+    jar.setCookiesForDomain('z.example.com', [{ key: 'session', value: 'abc', enabled: true }]);
+    jar.setCookiesForDomain('a.example.com', [{ key: 'theme', value: 'dark', enabled: true }]);
+
+    expect(jar.listDomains()).toEqual(['a.example.com', 'z.example.com']);
+  });
+
+  it('omits domains after their last cookie is removed', () => {
+    jar.setCookiesForDomain('example.com', [{ key: 'session', value: 'abc', enabled: true }]);
+    jar.setCookiesForDomain('example.com', []);
+
+    expect(jar.listDomains()).toEqual([]);
+  });
+});
+
 describeSqlite('buildCookieHeader', () => {
   beforeEach(async () => {
     await setupCookieJarTest();

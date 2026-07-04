@@ -60,6 +60,7 @@ export type PageRef =
   | { type: 'settings'; section: SettingsSection }
   | { type: 'plugins' }
   | { type: 'themes' }
+  | { type: 'cookies' }
   | { type: 'team-hubs' }
   | { type: 'sharing-keys' }
   | { type: 'plugin-view'; pluginId: string; viewId: string }
@@ -128,6 +129,8 @@ export function pageRefKey(page: PageRef): string {
       return 'plugins';
     case 'themes':
       return 'themes';
+    case 'cookies':
+      return 'cookies';
     case 'team-hubs':
       return 'team-hubs';
     case 'sharing-keys':

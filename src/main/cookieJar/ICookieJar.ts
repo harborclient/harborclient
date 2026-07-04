@@ -13,6 +13,13 @@ export interface ICookieJar {
   getCookiesForDomain(domain: string): KeyValue[];
 
   /**
+   * Returns all hostnames with persisted cookies.
+   *
+   * @returns Sorted cookie domains.
+   */
+  listDomains(): string[];
+
+  /**
    * Persists cookies for a hostname.
    *
    * @param domain - Hostname to update.

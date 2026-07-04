@@ -159,6 +159,9 @@ export function useMenuActions(): void {
         case 'themes':
           dispatch(openPageTab({ type: 'themes' }));
           break;
+        case 'cookies':
+          dispatch(openPageTab({ type: 'cookies' }));
+          break;
         case 'team-hubs':
           dispatch(openPageTab({ type: 'team-hubs' }));
           break;

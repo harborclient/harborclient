@@ -58,6 +58,15 @@ export class CookieJar implements ICookieJar {
   }
 
   /**
+   * Returns persisted cookie domains in a stable order for management UIs.
+   *
+   * @returns Sorted hostnames with at least one stored cookie.
+   */
+  listDomains(): string[] {
+    return Object.keys(this.getJarMap()).sort();
+  }
+
+  /**
    * Persists cookies for a hostname.
    *
    * @param domain - Hostname to update.

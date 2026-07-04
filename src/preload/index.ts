@@ -483,6 +483,13 @@ function getCookies(domain: string): Promise<KeyValue[]> {
 }
 
 /**
+ * Returns domains with saved cookies via IPC.
+ */
+function listCookieDomains(): Promise<string[]> {
+  return ipcRenderer.invoke('cookies:listDomains');
+}
+
+/**
  * Persists cookies for a hostname via IPC.
  *
  * @param domain - Hostname to update.
@@ -2162,6 +2169,7 @@ const api: Api = {
   sendRequest,
   cancelRequest,
   getCookies,
+  listCookieDomains,
   setCookies,
   runScript,
   onMenuAction,

@@ -46,6 +46,8 @@ export function pageTabCloseName(
       return 'Plugins';
     case 'themes':
       return 'Themes';
+    case 'cookies':
+      return 'Cookies';
     case 'team-hubs':
       return 'Team Hub';
     case 'sharing-keys':

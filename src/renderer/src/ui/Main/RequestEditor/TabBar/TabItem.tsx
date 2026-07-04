@@ -144,7 +144,7 @@ export function TabItem({
       aria-label={ariaLabel}
       title={title}
       tabIndex={tabIndex}
-      className={`group -mb-1 flex max-w-[220px] min-h-12 shrink-0 self-stretch items-stretch gap-2.5 rounded-t-lg border border-b-0 px-4 ${requestTabItem(active)} ${sortableDisabled ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'}`}
+      className={`group -mb-1 flex max-w-[220px] min-h-12 shrink-0 self-stretch items-stretch gap-2.5 rounded-t-lg border border-b-0 px-4 cursor-pointer ${requestTabItem(active)}`}
       onClick={() => onSelect(tab.tabId)}
       onKeyDown={handleTabKeyDown}
       {...(sortableDisabled ? {} : listeners)}

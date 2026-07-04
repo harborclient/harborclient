@@ -14,6 +14,7 @@ import { closeTab, openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { selectCollections, selectEnvironments } from '#/renderer/src/store/selectors';
 import { updateCollection, updateEnvironment } from '#/renderer/src/store/thunks';
 import { CollectionSettings } from '#/renderer/src/ui/CollectionSettings';
+import { Cookies } from '#/renderer/src/ui/Cookies';
 import { EnvironmentSettings } from '#/renderer/src/ui/EnvironmentSettings';
 import { PluginMainView } from '#/renderer/src/ui/PluginMainView';
 import { Plugins } from '#/renderer/src/ui/Plugins';
@@ -99,6 +100,10 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
 
   if (page.type === 'themes') {
     return <Plugins kind="themes" />;
+  }
+
+  if (page.type === 'cookies') {
+    return <Cookies />;
   }
 
   if (page.type === 'plugin-view') {

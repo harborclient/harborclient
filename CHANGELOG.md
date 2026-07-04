@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(cookies): implement cookie management UI and functionality. (`d611cb5`)
 - chore(dependencies): update @harborclient/sdk to version 1.0.35 and enhance UI button states for better accessibility. (`0dae321`)
 
 ## 1.9.27 - 2026-07-04

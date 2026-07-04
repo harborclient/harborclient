@@ -500,6 +500,25 @@ describe('redux open-tab round trip', () => {
     const tab = restored.tabs[0];
     expect('kind' in tab! && tab.kind === 'page' && tab.page.type).toBe('themes');
   });
+
+  it('round-trips cookies page tabs through parseOpenTabsFromRaw', () => {
+    const payload = JSON.stringify({
+      tabs: [
+        {
+          tabId: 'page-tab-cookies',
+          kind: 'page',
+          page: { type: 'cookies' }
+        }
+      ],
+      activeTabId: 'page-tab-cookies'
+    });
+
+    const restored = parseOpenTabsFromRaw(payload);
+
+    expect(restored.tabs).toHaveLength(1);
+    const tab = restored.tabs[0];
+    expect('kind' in tab! && tab.kind === 'page' && tab.page.type).toBe('cookies');
+  });
 });
 
 describe('persistActiveEnvironmentId', () => {

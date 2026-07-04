@@ -243,6 +243,8 @@ function normalizePageRef(value: unknown): PageRef | null {
       return { type: 'plugins' };
     case 'themes':
       return { type: 'themes' };
+    case 'cookies':
+      return { type: 'cookies' };
     case 'team-hubs':
       return { type: 'team-hubs' };
     case 'sharing-keys':

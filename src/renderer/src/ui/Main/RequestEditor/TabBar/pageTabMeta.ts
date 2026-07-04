@@ -2,6 +2,7 @@ import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { SettingsSection } from '#/shared/types';
 import type { PageRef } from '#/renderer/src/store/drafts';
 import {
+  faCookieBite,
   faFingerprint,
   faGear,
   faGlobe,
@@ -53,6 +54,8 @@ export function pageTabMeta(page: PageRef, options: PageTabMetaOptions = {}): Pa
       return { title: 'Plugins', icon: faPuzzlePiece };
     case 'themes':
       return { title: 'Themes', icon: faPalette };
+    case 'cookies':
+      return { title: 'Cookies', icon: faCookieBite };
     case 'team-hubs':
       return { title: 'Team Hub', icon: faUsers };
     case 'sharing-keys':

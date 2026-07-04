@@ -8,6 +8,16 @@ import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
  * @param cookieJar - Cookie jar instance shared by cookie handlers.
  */
 export function registerCookieHandlers(cookieJar: ICookieJar): void {
+  // Returns domains with persisted cookies.
+  handle('cookies:listDomains', ipcArgSchemas.none, () => {
+    try {
+      return cookieJar.listDomains();
+    } catch (err) {
+      console.warn('Failed to list cookie domains:', err);
+      throw err;
+    }
+  });
+
   // Returns cookies stored for a hostname.
   handle('cookies:getForDomain', ipcArgSchemas.domain, (_event, cookieDomain) => {
     try {

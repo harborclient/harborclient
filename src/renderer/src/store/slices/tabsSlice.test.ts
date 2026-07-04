@@ -146,6 +146,17 @@ describe('tabsSlice openPageTab', () => {
     }
   });
 
+  it('opens a cookies page tab', () => {
+    const initial = tabsReducer(undefined, { type: 'unknown' });
+    const state = tabsReducer(initial, openPageTab({ type: 'cookies' }));
+
+    const pageTab = state.tabs[state.tabs.length - 1];
+    expect(isPageTab(pageTab)).toBe(true);
+    if (isPageTab(pageTab)) {
+      expect(pageTab.page).toEqual({ type: 'cookies' });
+    }
+  });
+
   it('focuses an existing page tab instead of opening a duplicate', () => {
     let state = tabsReducer(undefined, { type: 'unknown' });
     state = tabsReducer(state, closeTab(state.activeTabId));

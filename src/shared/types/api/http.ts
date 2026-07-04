@@ -27,6 +27,10 @@ export interface ApiHttp {
    */
   getCookies: (domain: string) => Promise<KeyValue[]>;
   /**
+   * Returns all hostnames with saved cookies.
+   */
+  listCookieDomains: () => Promise<string[]>;
+  /**
    * Persists cookies for a hostname.
    *
    * @param domain - Hostname to update.

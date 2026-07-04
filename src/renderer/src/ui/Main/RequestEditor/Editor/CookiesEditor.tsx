@@ -1,10 +1,7 @@
-import { KeyValueEditor } from '@harborclient/sdk/components';
-import { useEffect, useMemo, useState, type JSX } from 'react';
-import type { KeyValue, Variable } from '#/shared/types';
-
-import { emptyKeyValue } from '#/renderer/src/store/drafts';
+import { useMemo, type JSX } from 'react';
+import type { Variable } from '#/shared/types';
 import { buildRuntimeVars, substituteWithMap } from '#/renderer/src/scripting/scriptOrchestration';
-import { cookieKeySource, cookieValueSource } from '#/renderer/src/autocomplete/sources';
+import { DomainCookiesEditor } from '#/renderer/src/ui/Cookies/DomainCookiesEditor';
 import { hostFromUrl } from './cookieHost';
 
 interface Props {
@@ -31,53 +28,6 @@ export function CookiesEditor({ url, variables }: Props): JSX.Element {
     return hostFromUrl(resolvedUrl);
   }, [url, variables]);
 
-  const [rows, setRows] = useState<KeyValue[]>([emptyKeyValue()]);
-  const [loadedHost, setLoadedHost] = useState<string | null>(null);
-  const loading = host !== null && loadedHost !== host;
-
-  /**
-   * Loads cookies for the resolved host whenever the URL changes.
-   */
-  useEffect(() => {
-    if (!host) return;
-
-    let cancelled = false;
-
-    void window.api
-      .getCookies(host)
-      .then((cookies) => {
-        if (cancelled) return;
-        setRows(cookies.length ? cookies : [emptyKeyValue()]);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        console.warn(`Failed to load cookies for ${host}:`, err);
-        setRows([emptyKeyValue()]);
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoadedHost(host);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [host]);
-
-  /**
-   * Updates local state and persists cookies for the current host.
-   *
-   * @param nextRows - Updated cookie rows.
-   */
-  const handleChange = (nextRows: KeyValue[]): void => {
-    setRows(nextRows);
-    if (!host) return;
-    void window.api.setCookies(host, nextRows).catch((err: unknown) => {
-      console.warn(`Failed to save cookies for ${host}:`, err);
-    });
-  };
-
   if (!host) {
     return <p className="text-[14px] text-muted">Enter a valid URL to manage cookies.</p>;
   }
@@ -87,19 +37,7 @@ export function CookiesEditor({ url, variables }: Props): JSX.Element {
       <p className="m-0 text-[16px] text-muted mb-2 border border-separator p-4">
         Cookies for <span className="font-medium text-text">{host}</span>
       </p>
-      {loading ? (
-        <p className="text-[14px] text-muted">Loading cookies…</p>
-      ) : (
-        <KeyValueEditor
-          rows={rows}
-          onChange={handleChange}
-          placeholderKey="name"
-          placeholderValue="value"
-          variables={variables}
-          keySource={cookieKeySource}
-          valueSource={cookieValueSource}
-        />
-      )}
+      <DomainCookiesEditor domain={host} variables={variables} />
     </div>
   );
 }
