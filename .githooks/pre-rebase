@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Abort rebase (including `git pull --rebase`) when CHANGELOG.md has local edits and
+# the upstream branch also changed that file since the merge-base.
+
+set -euo pipefail
+
+git_dir="$(git rev-parse --git-dir)"
+if [[ -e "$git_dir/CHERRY_PICK_HEAD" ]]; then
+  exit 0
+fi
+
+repo_root="$(git rev-parse --show-toplevel)"
+changelog="$repo_root/CHANGELOG.md"
+[[ -f "$changelog" ]] || exit 0
+
+# shellcheck source=scripts/changelog-merge-guard.sh
+source "$repo_root/scripts/changelog-merge-guard.sh"
+
+upstream="${1:?pre-rebase: missing upstream argument}"
+if ! upstream_ref="$(git rev-parse --verify "$upstream" 2>/dev/null)"; then
+  upstream_ref="$upstream"
+fi
+
+changelog_merge_guard_check "$upstream_ref"

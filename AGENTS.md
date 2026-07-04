@@ -167,7 +167,8 @@ should understand intent without opening the implementation.
 ## Changelog
 
 Git hooks live in `.githooks/` (activated by `pnpm install` via the `prepare`
-script, which sets `core.hooksPath` to `.githooks`).
+script, which sets `core.hooksPath` to `.githooks` and wraps `git pull` with
+[`scripts/safe-pull.sh`](scripts/safe-pull.sh)).
 
 The `pre-commit` hook blocks commits that stage a local SDK link override
 (`link:../harborclient-sdk`) in `package.json` or `pnpm-lock.yaml`. Remove the
@@ -201,3 +202,29 @@ What this means for you:
   triggers a release.
 - Don't run version-bump commands locally (`pnpm version`, `npm version`,
   etc.); use the release workflow instead so the changelog and tags stay in sync.
+
+### Pulling after a release
+
+The release workflow commits an updated `CHANGELOG.md` on `main`. If you also
+have **uncommitted** local edits to that file (for example after tweaking
+`## Unreleased` by hand), a normal pull can produce a merge conflict.
+
+After `pnpm install`, `git pull` runs through `scripts/safe-pull.sh`, which
+fetches upstream and **aborts early** when `CHANGELOG.md` is locally modified
+and upstream changed it since your merge-base. The `pre-rebase` hook applies the
+same check for `git pull --rebase` and other rebases.
+
+If the guard blocks you:
+
+1. Discard or stash local changelog edits (`git restore -- CHANGELOG.md` or
+   `git stash push -- CHANGELOG.md`).
+2. After a release landed on `main`, prefer taking upstream's file:
+   `git fetch origin && git checkout origin/main -- CHANGELOG.md`
+3. Pull again.
+
+To bypass the guard once: `git -c alias.pull= pull`.
+
+**Note:** The guard targets uncommitted local changelog edits combined with
+upstream changes. If you already **committed** changelog changes that diverge
+from a release commit on `main`, you still need a normal merge or rebase
+conflict resolution — stash/restore will not apply.

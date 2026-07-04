@@ -28,7 +28,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "format": "prettier --write . && node scripts/sort-priority-deps.mjs --write && prettier --write package.json",
     "format:check": "prettier --check . && node scripts/sort-priority-deps.mjs --check",
-    "prepare": "git config --local core.hooksPath .githooks 2>/dev/null || true",
+    "prepare": "bash scripts/setup-git-local-config.sh 2>/dev/null || true",
     "release": "gh workflow run Release --ref main -f release_type=patch",
     "release:patch": "gh workflow run Release --ref main -f release_type=patch",
     "release:minor": "gh workflow run Release --ref main -f release_type=minor",
