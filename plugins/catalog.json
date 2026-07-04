@@ -54,15 +54,15 @@
       "ref": "v1.0.7"
     },
     {
+      "repoUrl": "https://github.com/harborclient/theme-nord",
+      "ref": "v1.0.6"
+    },
+    {
       "repoUrl": "https://github.com/harborclient/theme-gruvbox",
       "ref": "v1.0.5"
     },
     {
       "repoUrl": "https://github.com/harborclient/theme-dracula",
-      "ref": "v1.0.6"
-    },
-    {
-      "repoUrl": "https://github.com/harborclient/theme-nord",
       "ref": "v1.0.6"
     },
     {

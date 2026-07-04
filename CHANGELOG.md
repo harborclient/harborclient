@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- chore(plugins): add theme-nord entry back to catalog.json with version reference v1.0.6. (`16a4b94`)
 - fix(workflows): update GitHub API endpoint for site dispatch notifications. (`35ea5cd`)
 - chore(plugins): reorder theme-nord entry in catalog.json and maintain version reference. (`ea6963e`)
 - chore(plugins): update plugin reference to version 1.0.12 in catalog.json. (`fccc2b4`)
