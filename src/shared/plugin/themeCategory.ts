@@ -47,3 +47,45 @@ export function catalogEntryIsTheme(entry: PluginCatalogEntry): boolean {
 export function pluginIsTheme(plugin: PluginInfo): boolean {
   return plugin.manifest.categories?.includes(THEME_CATEGORY) ?? false;
 }
+
+/**
+ * Returns theme appearance types declared on a marketplace catalog entry.
+ *
+ * Reads `contributes.themes[].type` emitted from each plugin manifest at catalog
+ * build time. Unrecognized values are dropped; duplicates are removed.
+ *
+ * @param entry - Marketplace catalog row for a theme plugin.
+ * @returns Distinct light, dark, or high-contrast type slugs from theme contributions.
+ */
+export function getCatalogEntryThemeTypes(entry: PluginCatalogEntry): ThemeAppearanceCategory[] {
+  const types: ThemeAppearanceCategory[] = [];
+  const seen = new Set<ThemeAppearanceCategory>();
+
+  for (const theme of entry.contributes?.themes ?? []) {
+    if (!isThemeAppearanceCategory(theme.type) || seen.has(theme.type)) {
+      continue;
+    }
+    seen.add(theme.type);
+    types.push(theme.type);
+  }
+
+  return types;
+}
+
+/**
+ * Filters theme catalog entries to those whose contributed theme type matches.
+ *
+ * @param plugins - Theme catalog rows in display order.
+ * @param appearance - Selected appearance slug, or empty string to return all themes.
+ * @returns Themes with a matching `contributes.themes[].type`, or the original list when unset.
+ */
+export function filterThemeCatalogByAppearance(
+  plugins: PluginCatalogEntry[],
+  appearance: ThemeAppearanceCategory | ''
+): PluginCatalogEntry[] {
+  if (!appearance) {
+    return plugins;
+  }
+
+  return plugins.filter((entry) => getCatalogEntryThemeTypes(entry).includes(appearance));
+}

@@ -63,11 +63,11 @@
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-dracula",
-      "ref": "v1.0.3"
+      "ref": "v1.0.4"
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-solarized",
-      "ref": "v1.0.7"
+      "ref": "v1.0.8"
     }
   ]
 }

@@ -9,7 +9,7 @@ const contributionEntry = z.object({
 });
 
 const themeContributionEntry = contributionEntry.extend({
-  type: z.enum(['light', 'dark'])
+  type: z.enum(['light', 'dark', 'high-contrast'])
 });
 
 const pluginPermission = z.enum([

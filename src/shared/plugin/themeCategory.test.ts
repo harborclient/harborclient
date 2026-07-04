@@ -4,6 +4,8 @@ import type { PluginCatalogCategory } from '#/shared/plugin/catalogCategories';
 import type { PluginInfo } from '#/shared/plugin/types';
 import {
   catalogEntryIsTheme,
+  filterThemeCatalogByAppearance,
+  getCatalogEntryThemeTypes,
   isThemeAppearanceCategory,
   pluginIsTheme,
   THEME_APPEARANCE_CATEGORIES
@@ -12,7 +14,10 @@ import {
 /**
  * Builds a minimal catalog entry for theme classification tests.
  */
-function catalogEntry(categories: PluginCatalogCategory[]): PluginCatalogEntry {
+function catalogEntry(
+  categories: PluginCatalogCategory[],
+  contributes?: PluginCatalogEntry['contributes']
+): PluginCatalogEntry {
   return {
     id: 'com.example.test',
     name: 'Test',
@@ -20,7 +25,8 @@ function catalogEntry(categories: PluginCatalogCategory[]): PluginCatalogEntry {
     summary: 'Summary',
     author: 'Author',
     categories,
-    repoUrl: 'https://github.com/example/test'
+    repoUrl: 'https://github.com/example/test',
+    ...(contributes ? { contributes } : {})
   };
 }
 
@@ -81,5 +87,66 @@ describe('isThemeAppearanceCategory', () => {
     expect(isThemeAppearanceCategory('themes')).toBe(false);
     expect(isThemeAppearanceCategory('editor')).toBe(false);
     expect(isThemeAppearanceCategory('unknown')).toBe(false);
+  });
+});
+
+describe('getCatalogEntryThemeTypes', () => {
+  it('returns contributed theme types from catalog entries', () => {
+    expect(
+      getCatalogEntryThemeTypes(
+        catalogEntry(['themes'], {
+          themes: [
+            { id: 'dark', title: 'Dark', type: 'dark' },
+            { id: 'light', title: 'Light', type: 'light' }
+          ]
+        })
+      )
+    ).toEqual(['dark', 'light']);
+  });
+
+  it('returns an empty list when theme contributions are absent', () => {
+    expect(getCatalogEntryThemeTypes(catalogEntry(['themes']))).toEqual([]);
+  });
+});
+
+describe('filterThemeCatalogByAppearance', () => {
+  const themes: PluginCatalogEntry[] = [
+    {
+      id: 'com.example.nord',
+      name: 'Nord',
+      version: '1.0.0',
+      summary: 'Summary',
+      author: 'Author',
+      categories: ['themes'],
+      repoUrl: 'https://github.com/example/nord',
+      contributes: {
+        themes: [{ id: 'nord', title: 'Nord', type: 'dark' }]
+      }
+    },
+    {
+      id: 'com.example.solar',
+      name: 'Solar',
+      version: '1.0.0',
+      summary: 'Summary',
+      author: 'Author',
+      categories: ['themes'],
+      repoUrl: 'https://github.com/example/solar',
+      contributes: {
+        themes: [{ id: 'solar', title: 'Solar', type: 'light' }]
+      }
+    }
+  ];
+
+  it('returns all themes when no appearance is selected', () => {
+    expect(filterThemeCatalogByAppearance(themes, '')).toEqual(themes);
+  });
+
+  it('filters themes by contributed theme type', () => {
+    expect(filterThemeCatalogByAppearance(themes, 'dark').map((entry) => entry.id)).toEqual([
+      'com.example.nord'
+    ]);
+    expect(filterThemeCatalogByAppearance(themes, 'light').map((entry) => entry.id)).toEqual([
+      'com.example.solar'
+    ]);
   });
 });

@@ -6,7 +6,11 @@ import {
   searchPluginCatalog
 } from '#/shared/search/plugins';
 import type { PluginCatalogCategory } from '#/shared/plugin/catalogCategories';
-import { catalogEntryIsTheme } from '#/shared/plugin/themeCategory';
+import {
+  catalogEntryIsTheme,
+  filterThemeCatalogByAppearance,
+  isThemeAppearanceCategory
+} from '#/shared/plugin/themeCategory';
 import type { PluginManagementKind } from '#/renderer/src/ui/Plugins/constants';
 import { useSearchIndexes } from '#/renderer/src/search/useSearchIndexes';
 
@@ -172,10 +176,17 @@ export function usePluginCatalog(kind: PluginManagementKind = 'plugins'): UsePlu
       return [];
     }
 
-    const byCategory = filterPluginCatalogByCategory(plugins, catalogCategoryFilter);
+    const appearanceFilter =
+      kind === 'themes' && isThemeAppearanceCategory(catalogCategoryFilter)
+        ? catalogCategoryFilter
+        : '';
+    const byAppearanceOrCategory =
+      kind === 'themes'
+        ? filterThemeCatalogByAppearance(plugins, appearanceFilter)
+        : filterPluginCatalogByCategory(plugins, catalogCategoryFilter);
     const trimmed = catalogSearchQuery.trim();
     if (!catalogSearchIndex) {
-      return trimmed ? [] : byCategory;
+      return trimmed ? [] : byAppearanceOrCategory;
     }
 
     const searched = searchPluginCatalog(plugins, catalogSearchIndex, catalogSearchQuery);
@@ -183,15 +194,16 @@ export function usePluginCatalog(kind: PluginManagementKind = 'plugins'): UsePlu
       return searched;
     }
 
-    const categoryIds = new Set(byCategory.map((entry) => entry.id));
-    return searched.filter((entry) => categoryIds.has(entry.id));
+    const filteredIds = new Set(byAppearanceOrCategory.map((entry) => entry.id));
+    return searched.filter((entry) => filteredIds.has(entry.id));
   }, [
     catalog,
     warmPlugins,
     catalogSearchIndex,
     catalogSearchQuery,
     catalogCategoryFilter,
-    partitionCatalogByKind
+    partitionCatalogByKind,
+    kind
   ]);
 
   return {

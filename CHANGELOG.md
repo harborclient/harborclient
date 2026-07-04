@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(themes): enhance theme contributions and filtering capabilities. (`4af5c5b`)
 - feat(deep-links): add theme support to deep-link handling and related components. (`f8a042f`)
 - feat(themes): implement themes management and related functionalities. (`4a5ff2c`)
 

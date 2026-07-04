@@ -75,6 +75,44 @@ describe('parsePluginCatalog', () => {
     });
   });
 
+  it('accepts optional theme contributions copied from manifests', () => {
+    expect(
+      parsePluginCatalog({
+        schemaVersion: 1,
+        plugins: [
+          {
+            id: 'com.example.theme',
+            name: 'Theme',
+            version: '1.0.0',
+            summary: 'A theme plugin.',
+            author: 'Example Inc.',
+            categories: ['themes'],
+            repoUrl: 'https://github.com/example/theme',
+            contributes: {
+              themes: [{ id: 'latte', title: 'Latte', type: 'light' }]
+            }
+          }
+        ]
+      })
+    ).toEqual({
+      schemaVersion: 1,
+      plugins: [
+        {
+          id: 'com.example.theme',
+          name: 'Theme',
+          version: '1.0.0',
+          summary: 'A theme plugin.',
+          author: 'Example Inc.',
+          categories: ['themes'],
+          repoUrl: 'https://github.com/example/theme',
+          contributes: {
+            themes: [{ id: 'latte', title: 'Latte', type: 'light' }]
+          }
+        }
+      ]
+    });
+  });
+
   it('accepts optional description markdown with plural screenshots', () => {
     expect(
       parsePluginCatalog({

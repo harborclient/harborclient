@@ -76,7 +76,7 @@ export interface PluginManifest {
     requestToolbarActions?: ManifestContributionEntry[];
     contextMenus?: ManifestContributionEntry[];
     statusBarItems?: ManifestContributionEntry[];
-    themes?: Array<ManifestContributionEntry & { type: 'light' | 'dark' }>;
+    themes?: Array<ManifestContributionEntry & { type: 'light' | 'dark' | 'high-contrast' }>;
     commands?: ManifestContributionEntry[];
     menus?: Array<{
       menu: 'file' | 'edit' | 'view' | 'help';
@@ -182,7 +182,7 @@ export interface RegisteredPluginTheme {
   pluginId: string;
   id: string;
   title: string;
-  type: 'light' | 'dark';
+  type: 'light' | 'dark' | 'high-contrast';
   colors?: Partial<Record<ThemeColorToken, string>>;
   stylesheet?: string;
 }

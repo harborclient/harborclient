@@ -42,7 +42,10 @@ const samplePlugins: PluginCatalogEntry[] = [
     version: '1.0.0',
     summary: 'Nord color theme.',
     author: 'HarborClient',
-    categories: ['themes', 'dark'],
+    categories: ['themes'],
+    contributes: {
+      themes: [{ id: 'nord', title: 'Nord', type: 'dark' }]
+    },
     repoUrl: 'https://github.com/example/plugin-nord'
   },
   {
@@ -51,7 +54,10 @@ const samplePlugins: PluginCatalogEntry[] = [
     version: '1.0.0',
     summary: 'Solar light theme.',
     author: 'HarborClient',
-    categories: ['themes', 'light'],
+    categories: ['themes'],
+    contributes: {
+      themes: [{ id: 'solar', title: 'Solar', type: 'light' }]
+    },
     repoUrl: 'https://github.com/example/plugin-solar'
   }
 ];
@@ -117,15 +123,6 @@ describe('filterPluginCatalogByCategory', () => {
     expect(filterPluginCatalogByCategory(samplePlugins, 'themes').map((entry) => entry.id)).toEqual(
       ['com.example.nord', 'com.example.solar']
     );
-  });
-
-  it('returns theme plugins when filtering by appearance category', () => {
-    expect(filterPluginCatalogByCategory(samplePlugins, 'dark').map((entry) => entry.id)).toEqual([
-      'com.example.nord'
-    ]);
-    expect(filterPluginCatalogByCategory(samplePlugins, 'light').map((entry) => entry.id)).toEqual([
-      'com.example.solar'
-    ]);
   });
 });
 

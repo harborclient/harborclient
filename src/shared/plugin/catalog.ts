@@ -52,6 +52,17 @@ function parseGitHubRepoUrl(url: string): string {
   return trimmed;
 }
 
+const catalogThemeContributionSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  type: z.enum(['light', 'dark', 'high-contrast'])
+});
+
+/**
+ * One theme contribution copied from manifest.contributes.themes into the marketplace catalog.
+ */
+export type CatalogThemeContribution = z.infer<typeof catalogThemeContributionSchema>;
+
 const pluginCatalogEntrySchema = z.object({
   id: pluginManifestId,
   name: z.string().min(1),
@@ -67,7 +78,13 @@ const pluginCatalogEntrySchema = z.object({
   screenshots: z.array(z.string().url()).optional(),
   /** Inlined Markdown description fetched from the plugin repository at build time. */
   description: z.string().min(1).optional(),
-  minAppVersion: z.string().min(1).optional()
+  minAppVersion: z.string().min(1).optional(),
+  /** Theme contributions copied from manifest.contributes.themes at catalog build time. */
+  contributes: z
+    .object({
+      themes: z.array(catalogThemeContributionSchema).optional()
+    })
+    .optional()
 });
 
 /**

@@ -111,4 +111,16 @@ describe('manifestSchema', () => {
       { id: 'schema-editor', title: 'Add JSON Schema' }
     ]);
   });
+
+  it('parses high-contrast theme contributions', () => {
+    const manifest = parsePluginManifest({
+      ...validManifest,
+      contributes: {
+        themes: [{ id: 'hc', title: 'High Contrast', type: 'high-contrast' }]
+      }
+    });
+    expect(manifest.contributes?.themes).toEqual([
+      { id: 'hc', title: 'High Contrast', type: 'high-contrast' }
+    ]);
+  });
 });
