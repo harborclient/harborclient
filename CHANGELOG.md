@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.9.24 - 2026-07-04
+
 - fix(deep-links): resolve theme installation issues in deep-link handling. (`0f8cb1d`)
 - feat(themes): enhance theme contributions and filtering capabilities. (`4af5c5b`)
 
