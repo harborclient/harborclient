@@ -11,10 +11,16 @@ import {
   showConfirm,
   formatIpcErrorMessage
 } from '#/renderer/src/ui/modals/dialogHelpers';
+import type { PluginManagementKind } from '../constants';
 import { resolvePendingPluginInstallDeepLink } from '../helpers';
 import type { PluginsSidebarSection } from '../sidebarTypes';
 
 interface UsePluginDeepLinkInstallArgs {
+  /**
+   * Whether this screen manages plugins or themes.
+   */
+  kind: PluginManagementKind;
+
   /**
    * Switches the active sidebar section.
    */
@@ -52,9 +58,10 @@ interface UsePluginDeepLinkInstallArgs {
 }
 
 /**
- * Handles harborclient:// plugin install deep links queued in navigation state.
+ * Handles harborclient:// plugin or theme install deep links queued in navigation state.
  */
 export function usePluginDeepLinkInstall({
+  kind,
   setSection,
   setCatalog,
   setCatalogLoading,
@@ -65,9 +72,10 @@ export function usePluginDeepLinkInstall({
 }: UsePluginDeepLinkInstallArgs): void {
   const dispatch = useAppDispatch();
   const pendingPluginInstallId = useAppSelector(selectPendingPluginInstallId);
+  const isThemes = kind === 'themes';
 
   /**
-   * Resolves a queued plugin install deep link against the marketplace catalog.
+   * Resolves a queued marketplace install deep link against the catalog.
    */
   useEffect(() => {
     if (!pendingPluginInstallId) {
@@ -123,7 +131,9 @@ export function usePluginDeepLinkInstall({
             dispatch,
             formatIpcErrorMessage(
               new Error(result.message),
-              'Could not load the plugin marketplace.'
+              isThemes
+                ? 'Could not load the theme marketplace.'
+                : 'Could not load the plugin marketplace.'
             ),
             'Marketplace unavailable'
           );
@@ -131,8 +141,10 @@ export function usePluginDeepLinkInstall({
         case 'not-found':
           showAlert(
             dispatch,
-            `Plugin "${pluginId}" was not found in the marketplace catalog.`,
-            'Plugin not found'
+            isThemes
+              ? `Theme "${pluginId}" was not found in the marketplace catalog.`
+              : `Plugin "${pluginId}" was not found in the marketplace catalog.`,
+            isThemes ? 'Theme not found' : 'Plugin not found'
           );
           break;
         case 'already-installed':
@@ -144,7 +156,10 @@ export function usePluginDeepLinkInstall({
         case 'install-error':
           showAlert(
             dispatch,
-            formatIpcErrorMessage(new Error(result.message), 'The plugin could not be installed.'),
+            formatIpcErrorMessage(
+              new Error(result.message),
+              isThemes ? 'The theme could not be installed.' : 'The plugin could not be installed.'
+            ),
             'Install failed',
             { icon: 'warning' }
           );
@@ -162,6 +177,7 @@ export function usePluginDeepLinkInstall({
     };
   }, [
     pendingPluginInstallId,
+    isThemes,
     dispatch,
     setSection,
     setCatalog,

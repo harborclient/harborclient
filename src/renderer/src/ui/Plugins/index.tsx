@@ -155,6 +155,7 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
   } = usePluginSources({ activeSection: section, setCatalog, loadCatalog });
 
   usePluginDeepLinkInstall({
+    kind,
     setSection,
     setCatalog,
     setCatalogLoading,

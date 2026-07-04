@@ -11,12 +11,18 @@ export function useDeepLinks(): void {
   const dispatch = useAppDispatch();
 
   /**
-   * Wires deep-link events into settings navigation and queued plugin installs.
+   * Wires deep-link events into page tabs and queued marketplace installs.
    */
   useEffect(() => {
     const unsubscribe = window.api.onDeepLink((payload) => {
       if (payload.action === 'install-plugin') {
         dispatch(openPageTab({ type: 'plugins' }));
+        dispatch(setPendingPluginInstall(payload.pluginId));
+        return;
+      }
+
+      if (payload.action === 'install-theme') {
+        dispatch(openPageTab({ type: 'themes' }));
         dispatch(setPendingPluginInstall(payload.pluginId));
       }
     });

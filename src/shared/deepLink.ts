@@ -8,10 +8,15 @@ const PLUGIN_MANIFEST_ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9.-]*\.[a-zA-Z][a-zA-Z0-9.
 /**
  * Parsed HarborClient deep-link action dispatched to the renderer.
  */
-export type HarborDeepLink = {
-  action: 'install-plugin';
-  pluginId: string;
-};
+export type HarborDeepLink =
+  | {
+      action: 'install-plugin';
+      pluginId: string;
+    }
+  | {
+      action: 'install-theme';
+      pluginId: string;
+    };
 
 /**
  * Returns whether a string is a valid plugin manifest id.
@@ -20,6 +25,31 @@ export type HarborDeepLink = {
  */
 function isPluginManifestId(value: string): boolean {
   return value.length >= 3 && PLUGIN_MANIFEST_ID_PATTERN.test(value);
+}
+
+/**
+ * Parses an install deep link for plugins or themes when the host and path match.
+ *
+ * @param parsed - Parsed harborclient:// URL.
+ * @param hostname - Expected URL hostname (`plugin` or `theme`).
+ * @param action - Deep-link action to return when valid.
+ * @returns Parsed install action, or null when invalid.
+ */
+function parseInstallDeepLink(
+  parsed: URL,
+  hostname: 'plugin' | 'theme',
+  action: HarborDeepLink['action']
+): HarborDeepLink | null {
+  if (parsed.hostname !== hostname || parsed.pathname !== '/install') {
+    return null;
+  }
+
+  const pluginId = parsed.searchParams.get('id')?.trim();
+  if (!pluginId || !isPluginManifestId(pluginId)) {
+    return null;
+  }
+
+  return { action, pluginId } as HarborDeepLink;
 }
 
 /**
@@ -48,19 +78,10 @@ export function parseHarborDeepLink(url: string): HarborDeepLink | null {
     return null;
   }
 
-  if (parsed.hostname !== 'plugin' || parsed.pathname !== '/install') {
-    return null;
-  }
-
-  const pluginId = parsed.searchParams.get('id')?.trim();
-  if (!pluginId || !isPluginManifestId(pluginId)) {
-    return null;
-  }
-
-  return {
-    action: 'install-plugin',
-    pluginId
-  };
+  return (
+    parseInstallDeepLink(parsed, 'plugin', 'install-plugin') ??
+    parseInstallDeepLink(parsed, 'theme', 'install-theme')
+  );
 }
 
 /**
@@ -71,4 +92,14 @@ export function parseHarborDeepLink(url: string): HarborDeepLink | null {
  */
 export function buildPluginInstallDeepLink(pluginId: string): string {
   return `${HARBOR_PROTOCOL}://plugin/install?id=${encodeURIComponent(pluginId)}`;
+}
+
+/**
+ * Builds a harborclient:// install URL for one marketplace theme id.
+ *
+ * @param pluginId - Catalog theme manifest id.
+ * @returns Deep-link URL suitable for docs and external links.
+ */
+export function buildThemeInstallDeepLink(pluginId: string): string {
+  return `${HARBOR_PROTOCOL}://theme/install?id=${encodeURIComponent(pluginId)}`;
 }
