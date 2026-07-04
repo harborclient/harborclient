@@ -91,7 +91,7 @@ export function InstalledPluginFooterActions({
       <Button
         type="button"
         variant="toolbar"
-        className="min-w-0 flex-1"
+        className="min-w-0 flex-1 justify-center"
         aria-label={`${toggleLabel} ${plugin.name}`}
         onClick={handleClickStop(() => onToggleEnabled(plugin))}
       >
@@ -101,7 +101,7 @@ export function InstalledPluginFooterActions({
         <Button
           type="button"
           variant="toolbar"
-          className="min-w-0 flex-1"
+          className="min-w-0 flex-1 justify-center"
           disabled={gitUpdateBusy}
           aria-label={`Update ${plugin.name}`}
           onClick={handleClickStop(() => onUpdateFromGit(plugin.id))}
@@ -113,7 +113,7 @@ export function InstalledPluginFooterActions({
         <Button
           type="button"
           variant="toolbar"
-          className="min-w-0 flex-1"
+          className="min-w-0 flex-1 justify-center"
           aria-label={`Reload ${plugin.name}`}
           onClick={handleClickStop(() => onReload(plugin))}
         >
@@ -123,7 +123,7 @@ export function InstalledPluginFooterActions({
       <Button
         type="button"
         variant="toolbar"
-        className={`min-w-0 flex-1 ${toolbarDangerButtonClass}`}
+        className={`min-w-0 flex-1 justify-center ${toolbarDangerButtonClass}`}
         aria-label={`${removeLabel} ${noun} ${plugin.name}`}
         onClick={handleClickStop(() => onRemove(plugin))}
       >

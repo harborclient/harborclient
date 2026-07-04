@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- fix(plugins): center align buttons in InstalledPluginFooterActions component. (`248b80d`)
+
 ## 1.9.24 - 2026-07-04
 
 - fix(deep-links): resolve theme installation issues in deep-link handling. (`0f8cb1d`)
