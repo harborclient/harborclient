@@ -1,6 +1,6 @@
 import { Modal } from '@harborclient/sdk/components';
 import { useEffect, type JSX } from 'react';
-import logoUrl from '@images/logo-square.png';
+import logoUrl from '@images/logo.png';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { closeAboutModal, selectAboutModal } from '#/renderer/src/store/slices/modalsSlice';
 import { fetchAppVersion } from '#/renderer/src/store/thunks';
@@ -30,16 +30,8 @@ export function AboutModal(): JSX.Element | null {
       title="HarborClient"
     >
       <div className="flex flex-col items-center text-center">
-        <img src={logoUrl} alt="HarborClient" className="mb-4 h-16 w-16 rounded-xl" />
+        <img src={logoUrl} alt="HarborClient" className="mb-4 h-26 w-40" />
         {about.version && <p className="m-0 text-[14px] text-muted">Version {about.version}</p>}
-        <a
-          href="https://harborclient.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-2 text-[14px] text-accent hover:underline"
-        >
-          Documentation
-        </a>
       </div>
     </Modal>
   );

@@ -61,7 +61,7 @@ const isDev = !app.isPackaged;
 const THEME_SETTING_KEY = 'theme';
 const MIN_SPLASH_MS = 600;
 const SPLASH_WIDTH = 420;
-const SPLASH_HEIGHT = 260;
+const SPLASH_HEIGHT = 280;
 
 let db: RoutingStorage;
 let pluginManager: PluginManager | undefined;
@@ -518,6 +518,20 @@ async function loadSplashPage(window: BrowserWindow): Promise<void> {
 }
 
 /**
+ * Writes the running app version into the already-loaded splash page.
+ *
+ * @param window - Splash browser window whose document should be updated.
+ * @param version - Application version reported by Electron package metadata.
+ */
+async function setSplashVersion(window: BrowserWindow, version: string): Promise<void> {
+  await window.webContents.executeJavaScript(
+    `(function(v){var e=document.getElementById('app-version');if(e)e.textContent='Version '+v;})(${JSON.stringify(
+      version
+    )})`
+  );
+}
+
+/**
  * Waits for a fixed duration (used to avoid splash flicker on fast startups).
  *
  * @param ms - Delay in milliseconds.
@@ -592,6 +606,7 @@ async function createSplashWindow(): Promise<BrowserWindow> {
   });
 
   await loadSplashPage(window);
+  await setSplashVersion(window, app.getVersion());
 
   window.show();
   window.focus();
