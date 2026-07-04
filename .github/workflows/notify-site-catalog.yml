@@ -22,5 +22,5 @@ jobs:
           curl -fsSL -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${SITE_DEPLOY_PAT}" \
-            https://api.github.com/repos/harborclient/harborclient-site/dispatches \
+            https://api.github.com/repos/harborclient/site/dispatches \
             -d '{"event_type":"catalog-updated","client_payload":{"sha":"'"${{ github.sha }}"'","ref":"'"${{ github.ref }}"'"}}'

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(workflows): update GitHub API endpoint for site dispatch notifications. (`35ea5cd`)
 - chore(plugins): reorder theme-nord entry in catalog.json and maintain version reference. (`ea6963e`)
 - chore(plugins): update plugin reference to version 1.0.12 in catalog.json. (`fccc2b4`)
 - chore(plugins): update plugin reference to version 1.0.7 in catalog.json and adjust splash screen dimensions and version display. (`c5ce11c`)
