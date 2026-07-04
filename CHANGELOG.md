@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- chore(plugins): update plugin reference to version 1.0.11 in catalog.json. (`cf29b8e`)
 - chore(dependencies): upgrade @harborclient/sdk to version 1.0.33 and update plugin references. (`260006b`)
 
 ## 1.9.25 - 2026-07-04
