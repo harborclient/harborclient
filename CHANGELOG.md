@@ -3,6 +3,9 @@
 ## Unreleased
 
 - chore(plugins): update plugin reference to version 1.0.7 in catalog.json and adjust splash screen dimensions and version display. (`c5ce11c`)
+
+## 1.9.26 - 2026-07-04
+
 - chore(plugins): update plugin repository URLs and versions in catalog.json. (`79168b1`)
 - chore(plugins): update plugin reference to version 1.0.11 in catalog.json. (`cf29b8e`)
 - chore(dependencies): upgrade @harborclient/sdk to version 1.0.33 and update plugin references. (`260006b`)
