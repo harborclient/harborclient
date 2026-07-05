@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.0.0 - 2026-07-05
+
 - feat(splash-screen): update splash screen dimensions and styles; enhance About dialog with logo link. (`73fbd60`)
 - feat(script-refs): introduce normalizeScriptRefsForCompare function and update related tests. (`8c6707c`)
 - chore(dependencies): update @harborclient/sdk to version 1.0.36. (`7efb32e`)
