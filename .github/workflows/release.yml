@@ -206,7 +206,8 @@ jobs:
 
     steps:
       - name: Install Rocky build dependencies
-        run: dnf install -y git rpm-build gcc gcc-c++ make python3
+        # libxcrypt-compat: electron-builder's bundled fpm Ruby needs libcrypt.so.1 (removed from RHEL 9 base).
+        run: dnf install -y git rpm-build gcc gcc-c++ make python3 libxcrypt-compat
 
       - name: Checkout release tag
         uses: actions/checkout@v4
