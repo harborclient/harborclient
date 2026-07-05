@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- chore(catalog): update plugin references to latest versions. (`30716cf`)
+
 ## 2.0.0 - 2026-07-05
 
 - feat(splash-screen): update splash screen dimensions and styles; enhance About dialog with logo link. (`73fbd60`)

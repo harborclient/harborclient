@@ -3,51 +3,51 @@
   "plugins": [
     {
       "repoUrl": "https://github.com/harborclient/plugin-aws-sigv4",
-      "ref": "v1.0.8"
+      "ref": "v1.0.9"
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-curl",
-      "ref": "v1.0.11"
+      "ref": "v1.0.12"
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-httpie",
-      "ref": "v1.0.6"
-    },
-    {
-      "repoUrl": "https://github.com/harborclient/plugin-json-validator",
-      "ref": "v1.0.4"
-    },
-    {
-      "repoUrl": "https://github.com/harborclient/plugin-load-tester",
       "ref": "v1.0.7"
     },
     {
+      "repoUrl": "https://github.com/harborclient/plugin-json-validator",
+      "ref": "v1.0.5"
+    },
+    {
+      "repoUrl": "https://github.com/harborclient/plugin-load-tester",
+      "ref": "v1.0.8"
+    },
+    {
       "repoUrl": "https://github.com/harborclient/plugin-dotenv",
-      "ref": "v1.0.10"
+      "ref": "v1.0.11"
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-echo",
-      "ref": "v1.0.5"
+      "ref": "v1.0.6"
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-history",
-      "ref": "v1.0.10"
+      "ref": "v1.0.11"
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-interval",
-      "ref": "v1.0.8"
+      "ref": "v1.0.9"
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-jwt",
-      "ref": "v1.0.5"
+      "ref": "v1.0.6"
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-openapi",
-      "ref": "v1.0.8"
+      "ref": "v1.0.9"
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-request-history",
-      "ref": "v1.2.4"
+      "ref": "v1.2.5"
     },
     {
       "repoUrl": "https://github.com/harborclient/theme-catppuccin-latte",
