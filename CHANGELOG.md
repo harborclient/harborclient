@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.0.3 - 2026-07-05
+
 - fix(workflow): add libxcrypt-compat dependency for RPM build support in release workflow. (`2cb51a4`)
 
 ## 2.0.2 - 2026-07-05

@@ -1,7 +1,7 @@
 {
   "name": "@harborclient/harborclient",
   "productName": "HarborClient",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "The free API client that keeps your work private: no accounts, no subscriptions, no lock-in.",
   "main": "./out/main/index.js",
   "desktopName": "harborclient",
