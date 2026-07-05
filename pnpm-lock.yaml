@@ -58,8 +58,8 @@ importers:
         specifier: ^0.1.2
         version: 0.1.2
       '@harborclient/sdk':
-        specifier: ^1.0.35
-        version: 1.0.35(@babel/runtime@7.29.7)(@codemirror/search@6.7.1)(@codemirror/theme-one-dark@6.1.3)(codemirror@6.0.2)(eslint@9.39.4(jiti@2.7.0))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.9.3)
+        specifier: ^1.0.36
+        version: 1.0.36(@babel/runtime@7.29.7)(@codemirror/search@6.7.1)(@codemirror/theme-one-dark@6.1.3)(codemirror@6.0.2)(eslint@9.39.4(jiti@2.7.0))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.9.3)
       '@harborclient/team-hub-api':
         specifier: ^0.1.1
         version: 0.1.1
@@ -1068,8 +1068,8 @@ packages:
     resolution: {integrity: sha512-6DNRB/TFa1zgqDVliifdoa77qjqt9PKhm6XEAzMo46/kIM55/jeCHrYQgxCPEJaby0z/Mnv1It+3ZYoqONLygg==}
     engines: {node: '>=24'}
 
-  '@harborclient/sdk@1.0.35':
-    resolution: {integrity: sha512-6/PmSySls2U6bjQaJq9fkWEsl8JO+A0GbNkCfsEArt97nNdKExJLBRlw4wtyJJJCZ8Hq+Ow4WKzKzVMwhF+zrw==}
+  '@harborclient/sdk@1.0.36':
+    resolution: {integrity: sha512-s6GyS5xR0MoL+tBbsbCT+lTf2rbXP48SHjl9tYrjDEM4SpCpl41eiij6VTmaOOQjRMxmW0LmKA/Z/YGJbfM3Kg==}
     hasBin: true
     peerDependencies:
       react: '>=18'
@@ -8098,7 +8098,7 @@ snapshots:
     dependencies:
       undici: 6.27.0
 
-  '@harborclient/sdk@1.0.35(@babel/runtime@7.29.7)(@codemirror/search@6.7.1)(@codemirror/theme-one-dark@6.1.3)(codemirror@6.0.2)(eslint@9.39.4(jiti@2.7.0))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.9.3)':
+  '@harborclient/sdk@1.0.36(@babel/runtime@7.29.7)(@codemirror/search@6.7.1)(@codemirror/theme-one-dark@6.1.3)(codemirror@6.0.2)(eslint@9.39.4(jiti@2.7.0))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.9.3)':
     dependencies:
       '@codemirror/autocomplete': 6.20.3
       '@codemirror/lang-javascript': 6.2.5

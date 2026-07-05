@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- chore(dependencies): update @harborclient/sdk to version 1.0.36. (`7efb32e`)
 - feat(about-modal): add social media links to About dialog. (`ef411dd`)
 - refactor(headers): replace MDN links with HeaderNameLink component. (`b239815`)
 - refactor(changelog): improve merge guard logic and documentation. (`27a32c7`)
