@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(about-modal): add social media links to About dialog. (`ef411dd`)
 - refactor(headers): replace MDN links with HeaderNameLink component. (`b239815`)
 - refactor(changelog): improve merge guard logic and documentation. (`27a32c7`)
 - feat(headers): enhance header display with MDN documentation links. (`64636ac`)

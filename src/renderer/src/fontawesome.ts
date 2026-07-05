@@ -49,6 +49,7 @@ import {
   faXmark
 } from '@fortawesome/free-solid-svg-icons';
 import { faComment } from '@fortawesome/free-regular-svg-icons';
+import { faGithub, faReddit, faXTwitter } from '@fortawesome/free-brands-svg-icons';
 
 library.add(
   faAngleLeft,
@@ -97,7 +98,10 @@ library.add(
   faUsers,
   faUserShield,
   faWandMagicSparkles,
-  faWindowMaximize
+  faWindowMaximize,
+  faGithub,
+  faReddit,
+  faXTwitter
 );
 config.autoAddCss = false;
 
@@ -129,6 +133,7 @@ export {
   faFingerprint,
   faFolder,
   faGear,
+  faGithub,
   faGlobe,
   faGripVertical,
   faInbox,
@@ -139,6 +144,7 @@ export {
   faPen,
   faPlus,
   faPuzzlePiece,
+  faReddit,
   faRobot,
   faServer,
   faStore,
@@ -149,5 +155,6 @@ export {
   faUserShield,
   faWandMagicSparkles,
   faWindowMaximize,
+  faXTwitter,
   faXmark
 };
