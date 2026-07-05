@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.0.1 - 2026-07-05
+
 - chore(catalog): update plugin references to latest versions. (`30716cf`)
 
 ## 2.0.0 - 2026-07-05
