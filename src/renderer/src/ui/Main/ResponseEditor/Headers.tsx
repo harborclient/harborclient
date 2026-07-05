@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 
-import { headerMdnDocsUrl } from './headerMdnDocs';
+import { HeaderNameLink } from './HeaderNameLink';
 
 interface Props {
   /**
@@ -23,15 +23,7 @@ export function Headers({ headers }: Props): JSX.Element {
             className={`grid grid-cols-[180px_1fr] gap-3 px-2.5 py-1.5 ${index > 0 ? 'border-t border-separator' : ''}`}
             key={key}
           >
-            <a
-              href={headerMdnDocsUrl(key)}
-              target="_blank"
-              rel="noreferrer"
-              className="break-words text-[14px] font-medium text-accent hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
-              aria-label={`${key} header documentation on MDN`}
-            >
-              {key}
-            </a>
+            <HeaderNameLink headerName={key} />
             <span className="break-words font-mono text-[14px] text-text-secondary">{value}</span>
           </div>
         ))
