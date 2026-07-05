@@ -46,6 +46,17 @@ const SOCIAL_LINKS: readonly SocialLink[] = [
 ];
 
 /**
+ * Intrinsic pixel dimensions of `images/logo.png` (used for layout and aspect ratio).
+ */
+const LOGO_WIDTH = 500;
+const LOGO_HEIGHT = 500;
+
+/**
+ * Public marketing site opened from the About dialog logo link.
+ */
+const WEBSITE_URL = 'https://harborclient.com';
+
+/**
  * About dialog showing the application name, version, and community links.
  */
 export function AboutModal(): JSX.Element | null {
@@ -65,12 +76,25 @@ export function AboutModal(): JSX.Element | null {
   return (
     <Modal
       onClose={() => dispatch(closeAboutModal())}
-      className="w-80"
-      labelledBy="about-modal-title"
-      title="HarborClient"
+      className="flex aspect-video w-[min(48rem,calc(100vw-2rem))] flex-col overflow-hidden px-6 !py-11"
+      label="HarborClient"
     >
-      <div className="flex flex-col items-center text-center">
-        <img src={logoUrl} alt="HarborClient" className="mb-4 h-26 w-40" />
+      <div className="flex flex-1 flex-col items-center justify-center text-center">
+        <a
+          href={WEBSITE_URL}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="HarborClient website"
+          className="mb-4 inline-block rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          <img
+            src={logoUrl}
+            alt=""
+            width={LOGO_WIDTH}
+            height={LOGO_HEIGHT}
+            className="h-auto w-48"
+          />
+        </a>
         {about.version && <p className="m-0 text-[14px] text-muted">Version {about.version}</p>}
         <nav aria-label="Social links" className="mt-4 flex items-center gap-2">
           {SOCIAL_LINKS.map(({ href, label, icon }) => (
@@ -80,7 +104,7 @@ export function AboutModal(): JSX.Element | null {
               target="_blank"
               rel="noreferrer"
               aria-label={label}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted hover:bg-selection hover:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="about-social-link inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-selection focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               <FaIcon icon={icon} className="h-5 w-5" />
             </a>

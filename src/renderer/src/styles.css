@@ -840,4 +840,26 @@
     outline-offset: 1px;
     box-shadow: none;
   }
+
+  /**
+   * About dialog social icons — pure black in light themes, pure white in dark.
+   */
+  .about-social-link {
+    color: #000000;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .about-social-link {
+      color: #ffffff;
+    }
+  }
+
+  :root[data-theme='dark'] .about-social-link,
+  :root[data-theme='high-contrast'] .about-social-link {
+    color: #ffffff;
+  }
+
+  :root[data-theme='light'] .about-social-link {
+    color: #000000;
+  }
 }

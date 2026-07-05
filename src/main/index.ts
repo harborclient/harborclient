@@ -60,8 +60,8 @@ const isDev = !app.isPackaged;
 
 const THEME_SETTING_KEY = 'theme';
 const MIN_SPLASH_MS = 600;
-const SPLASH_WIDTH = 420;
-const SPLASH_HEIGHT = 280;
+const SPLASH_WIDTH = 500;
+const SPLASH_HEIGHT = 400;
 
 let db: RoutingStorage;
 let pluginManager: PluginManager | undefined;

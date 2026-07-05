@@ -44,28 +44,44 @@
       .splash {
         display: flex;
         flex-direction: column;
-        align-items: center;
-        justify-content: center;
         width: 100%;
         height: 100%;
-        padding: 32px 40px;
+        padding: 36px 44px 32px;
         background: var(--surface);
         border-radius: 6px;
         box-shadow: 0 8px 32px var(--shadow);
         border: 1px solid var(--separator);
       }
 
+      .splash-main {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 0;
+      }
+
       .logo {
-        width: 220px;
+        width: 260px;
         height: auto;
-        margin-bottom: 12px;
+        aspect-ratio: 1 / 1;
+      }
+
+      .splash-footer {
+        display: flex;
+        flex-shrink: 0;
+        flex-direction: column;
+        gap: 16px;
+        margin-top: 12px;
       }
 
       .version {
-        margin: 0 0 20px;
+        margin: 0;
         color: var(--text-secondary);
         font-size: 14px;
         line-height: 1.4;
+        text-align: center;
       }
 
       .progress-track {
@@ -98,10 +114,14 @@
 
   <body>
     <div class="splash">
-      <img class="logo" src="./logo.png" alt="HarborClient" />
-      <p id="app-version" class="version"></p>
-      <div class="progress-track" aria-hidden="true">
-        <div class="progress-bar"></div>
+      <div class="splash-main">
+        <img class="logo" src="./logo.png" alt="HarborClient" width="500" height="500" />
+      </div>
+      <div class="splash-footer">
+        <p id="app-version" class="version"></p>
+        <div class="progress-track" aria-hidden="true">
+          <div class="progress-bar"></div>
+        </div>
       </div>
     </div>
   </body>
