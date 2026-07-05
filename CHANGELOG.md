@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.0.2 - 2026-07-05
+
 - feat(build): add RPM support and update maintainer information. (`9f47027`)
 
 ## 2.0.1 - 2026-07-05
