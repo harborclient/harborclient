@@ -206,25 +206,23 @@ What this means for you:
 ### Pulling after a release
 
 The release workflow commits an updated `CHANGELOG.md` on `main`. If you also
-have **uncommitted** local edits to that file (for example after tweaking
-`## Unreleased` by hand), a normal pull can produce a merge conflict.
+have local changelog differences — uncommitted edits or entries added by the
+post-commit hook in commits not yet on upstream — a normal pull can produce a
+merge conflict.
 
 After `pnpm install`, `git pull` runs through `scripts/safe-pull.sh`, which
-fetches upstream and **aborts early** when `CHANGELOG.md` is locally modified
-and upstream changed it since your merge-base. The `pre-rebase` hook applies the
-same check for `git pull --rebase` and other rebases.
+fetches upstream and **aborts early** when `CHANGELOG.md` differs locally
+(working tree, index, or `HEAD` since merge-base) and upstream also changed it
+since merge-base. The `pre-rebase` hook applies the same check for
+`git pull --rebase` and other rebases.
 
 If the guard blocks you:
 
-1. Discard or stash local changelog edits (`git restore -- CHANGELOG.md` or
-   `git stash push -- CHANGELOG.md`).
-2. After a release landed on `main`, prefer taking upstream's file:
+1. After a release landed on `main`, prefer taking upstream's file and
+   re-applying your `## Unreleased` lines:
    `git fetch origin && git checkout origin/main -- CHANGELOG.md`
+2. For uncommitted edits only, you can instead discard or stash:
+   `git restore -- CHANGELOG.md` or `git stash push -- CHANGELOG.md`
 3. Pull again.
 
 To bypass the guard once: `git -c alias.pull= pull`.
-
-**Note:** The guard targets uncommitted local changelog edits combined with
-upstream changes. If you already **committed** changelog changes that diverge
-from a release commit on `main`, you still need a normal merge or rebase
-conflict resolution — stash/restore will not apply.

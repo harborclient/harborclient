@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- refactor(changelog): improve merge guard logic and documentation. (`27a32c7`)
 - feat(headers): enhance header display with MDN documentation links. (`64636ac`)
 
 ## 1.9.29 - 2026-07-05
