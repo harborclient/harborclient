@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(headers): enhance header display with MDN documentation links. (`64636ac`)
 - chore(dependencies): update @harborclient/http to version 0.1.2 and enhance console output handling. (`9ea5260`)
 
 ## 1.9.28 - 2026-07-04
