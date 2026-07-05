@@ -12,7 +12,7 @@ import { defaultAuth, normalizeAuth, type AuthConfig } from '#/shared/auth';
 import { applyParamsToUrl } from '#/shared/queryParams';
 import {
   mirrorLegacyScriptString,
-  normalizeScriptRefs,
+  normalizeScriptRefsForCompare,
   resolveScriptRefs
 } from '#/shared/scriptRefs';
 import { normalizeRequestTags } from '#/shared/requestTags';
@@ -269,8 +269,8 @@ export function normalizeDraftForCompare(draft: RequestDraft): string {
     body_type: draft.body_type,
     pre_request_script: draft.pre_request_script ?? '',
     post_request_script: draft.post_request_script ?? '',
-    pre_request_scripts: normalizeScriptRefs(draft.pre_request_scripts),
-    post_request_scripts: normalizeScriptRefs(draft.post_request_scripts),
+    pre_request_scripts: normalizeScriptRefsForCompare(draft.pre_request_scripts),
+    post_request_scripts: normalizeScriptRefsForCompare(draft.post_request_scripts),
     comment: draft.comment ?? '',
     tags: normalizeRequestTags(draft.tags ?? ''),
     auth: draft.auth,

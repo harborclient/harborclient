@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import type { SavedRequest } from '#/shared/types';
+import { createInlineScriptRef } from '#/shared/scriptRefs';
 import {
   cloneDraft,
   createTab,
@@ -145,6 +146,36 @@ describe('isDraftDirty', () => {
     const saved = cloneDraft(draft);
     draft.headers.push(emptyKeyValue());
     draft.params.push(emptyKeyValue());
+
+    expect(isDraftDirty(draft, saved)).toBe(false);
+  });
+
+  it('does not mark dirty when only script expanded flags differ', () => {
+    const base = normalizeDraft({
+      ...sampleDraft(),
+      pre_request_scripts: [createInlineScriptRef('console.log("test");')],
+      post_request_scripts: [createInlineScriptRef('after();')]
+    });
+
+    const draft = cloneDraft(base);
+    draft.pre_request_scripts = draft.pre_request_scripts.map((script) => ({
+      ...script,
+      expanded: true
+    }));
+    draft.post_request_scripts = draft.post_request_scripts.map((script) => ({
+      ...script,
+      expanded: false
+    }));
+
+    const saved = cloneDraft(base);
+    saved.pre_request_scripts = saved.pre_request_scripts.map((script) => ({
+      ...script,
+      expanded: false
+    }));
+    saved.post_request_scripts = saved.post_request_scripts.map((script) => ({
+      ...script,
+      expanded: true
+    }));
 
     expect(isDraftDirty(draft, saved)).toBe(false);
   });

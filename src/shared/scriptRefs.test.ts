@@ -7,6 +7,7 @@ import {
   linkScriptRefToSnippet,
   mirrorLegacyScriptString,
   normalizeScriptRefs,
+  normalizeScriptRefsForCompare,
   readScriptRefsFromJson,
   resolveScriptRefs,
   scriptAutoNameFromCode,
@@ -35,6 +36,18 @@ describe('normalizeScriptRefs', () => {
     expect(normalizeScriptRefs([expanded, collapsed])).toEqual([
       expect.objectContaining({ expanded: true }),
       expect.objectContaining({ expanded: false })
+    ]);
+  });
+});
+
+describe('normalizeScriptRefsForCompare', () => {
+  it('omits expanded flags used only for editor UI state', () => {
+    const expanded = { ...createInlineScriptRef('code'), expanded: true };
+    const collapsed = { ...createInlineScriptRef('other'), expanded: false };
+
+    expect(normalizeScriptRefsForCompare([expanded, collapsed])).toEqual([
+      expect.not.objectContaining({ expanded: expect.anything() }),
+      expect.not.objectContaining({ expanded: expect.anything() })
     ]);
   });
 });

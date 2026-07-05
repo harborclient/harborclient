@@ -122,6 +122,23 @@ export function normalizeScriptRefs(refs: ScriptRef[] | undefined | null): Scrip
 }
 
 /**
+ * Normalizes script references for dirty-state and equality checks.
+ *
+ * Omits {@link ScriptRef.expanded}, which is editor UI state and is not
+ * persisted to storage.
+ *
+ * @param refs - Raw script references from drafts or forms.
+ * @returns Comparable script references without ephemeral UI fields.
+ */
+export function normalizeScriptRefsForCompare(refs: ScriptRef[] | undefined | null): ScriptRef[] {
+  return normalizeScriptRefs(refs).map((ref) => {
+    const comparable = { ...ref };
+    delete comparable.expanded;
+    return comparable;
+  });
+}
+
+/**
  * Resolves canonical script references, falling back to a legacy single string.
  *
  * @param refs - Stored script reference array, possibly empty.
