@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- fix(dependencies): update electron-builder to address compatibility issues. (`0355d56`)
+
 ## 2.0.3 - 2026-07-05
 
 - fix(workflow): add libxcrypt-compat dependency for RPM build support in release workflow. (`2cb51a4`)
