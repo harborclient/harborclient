@@ -5,6 +5,7 @@ import {
   formatTestsText,
   isHtmlResponse,
   isImageResponse,
+  isResponseCopyExportTab,
   resolveHtmlPreviewBaseUrl,
   responseBodyExportPath,
   responseTabExportPath,
@@ -12,6 +13,15 @@ import {
 } from '#/renderer/src/ui/shared/responseFormatUtils';
 
 describe('responseFormatUtils copy/export helpers', () => {
+  it('isResponseCopyExportTab allows only Body and Headers tabs', () => {
+    expect(isResponseCopyExportTab('body')).toBe(true);
+    expect(isResponseCopyExportTab('headers')).toBe(true);
+    expect(isResponseCopyExportTab('timing')).toBe(false);
+    expect(isResponseCopyExportTab('console')).toBe(false);
+    expect(isResponseCopyExportTab('preview')).toBe(false);
+    expect(isResponseCopyExportTab('tests')).toBe(false);
+  });
+
   it('formatHeadersText serializes headers as Key: Value lines', () => {
     expect(formatHeadersText({ 'Content-Type': 'application/json', 'X-Test': '1' })).toBe(
       'Content-Type: application/json\nX-Test: 1'
@@ -22,10 +32,10 @@ describe('responseFormatUtils copy/export helpers', () => {
   it('formatTestsText serializes pass and fail results', () => {
     expect(
       formatTestsText([
-        { name: 'status is 200', passed: true },
+        { name: 'status is 200', passed: true, scriptName: 'Request post-request script 1' },
         { name: 'has token', passed: false, error: 'missing field' }
       ])
-    ).toBe('PASS status is 200\nFAIL has token — missing field');
+    ).toBe('PASS [Request post-request script 1] status is 200\nFAIL has token — missing field');
   });
 
   it('responseBodyExportPath chooses json or txt extension', () => {

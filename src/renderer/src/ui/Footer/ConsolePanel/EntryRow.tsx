@@ -2,8 +2,7 @@ import { METHOD_CLASSES, statusDotClass } from '#/renderer/src/ui/shared/classes
 import type { JSX } from 'react';
 import type { ConsoleEntry } from '#/renderer/src/store';
 import { formatBytes } from '#/renderer/src/ui/shared/responseFormatUtils';
-import { RequestDetails } from './RequestDetails';
-import { ScriptDetails } from './ScriptDetails';
+import { ConsoleDetails } from '#/renderer/src/ui/shared/ConsoleDetails/ConsoleDetails';
 
 interface Props {
   entry: ConsoleEntry;
@@ -59,8 +58,12 @@ export function EntryRow({ entry, expanded, onToggle }: Props): JSX.Element {
         hidden={!expanded}
         className="border-t border-separator bg-surface px-3 py-3"
       >
-        <ScriptDetails entry={entry} />
-        <RequestDetails result={result} />
+        <ConsoleDetails
+          result={result}
+          logs={entry.logs}
+          tests={entry.tests}
+          scriptError={entry.scriptError}
+        />
       </div>
     </div>
   );

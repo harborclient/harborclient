@@ -108,6 +108,10 @@ export interface ScriptTestResult {
   name: string;
   passed: boolean;
   error?: string;
+  /**
+   * Display label of the pre/post script that produced this assertion.
+   */
+  scriptName?: string;
 }
 
 /**

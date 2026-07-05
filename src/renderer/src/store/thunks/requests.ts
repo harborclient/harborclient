@@ -489,7 +489,7 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
           allLogs.push(`[${slot.label}]`, ...result.logs);
         }
         if (result.tests.length) {
-          allTests.push(...result.tests);
+          allTests.push(...result.tests.map((test) => ({ ...test, scriptName: slot.label })));
         }
         if (result.error) {
           scriptErrors.push(`${slot.label}: ${result.error}`);
@@ -518,7 +518,14 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
     dispatch(
       updateTab({
         tabId,
-        updates: { sending: true, response: null, testResults: [], sendingRequestId: requestId }
+        updates: {
+          sending: true,
+          response: null,
+          testResults: [],
+          scriptLogs: [],
+          scriptError: undefined,
+          sendingRequestId: requestId
+        }
       })
     );
 
@@ -658,7 +665,12 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
         dispatch(
           updateTab({
             tabId,
-            updates: { response: result, testResults: allTests }
+            updates: {
+              response: result,
+              testResults: allTests,
+              scriptLogs: allLogs,
+              scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined
+            }
           })
         );
         dispatch(
@@ -698,7 +710,12 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
         dispatch(
           updateTab({
             tabId,
-            updates: { response: errorResult, testResults: allTests }
+            updates: {
+              response: errorResult,
+              testResults: allTests,
+              scriptLogs: allLogs,
+              scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined
+            }
           })
         );
         dispatch(

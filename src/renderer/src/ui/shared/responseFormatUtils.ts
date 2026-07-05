@@ -296,14 +296,31 @@ export function formatHeadersText(headers: Record<string, string>): string {
  * Serializes script test results as plain text for copy/export.
  *
  * @param testResults - hc.test results from the last send.
- * @returns One line per test (`PASS name` or `FAIL name — error`).
+ * @returns One line per test (`PASS [script] name` or `FAIL [script] name — error`).
  */
 export function formatTestsText(testResults: ScriptTestResult[]): string {
   return testResults
-    .map((test) =>
-      test.passed ? `PASS ${test.name}` : `FAIL ${test.name}${test.error ? ` — ${test.error}` : ''}`
-    )
+    .map((test) => {
+      const scriptPrefix = test.scriptName ? `[${test.scriptName}] ` : '';
+      return test.passed
+        ? `PASS ${scriptPrefix}${test.name}`
+        : `FAIL ${scriptPrefix}${test.name}${test.error ? ` — ${test.error}` : ''}`;
+    })
     .join('\n');
+}
+
+/**
+ * Response viewer tabs whose content can be copied or exported.
+ */
+export type ResponseCopyExportTab = 'body' | 'headers';
+
+/**
+ * Returns whether the selected response tab supports copy/export actions.
+ *
+ * @param tab - Selected response viewer tab id.
+ */
+export function isResponseCopyExportTab(tab: string): tab is ResponseCopyExportTab {
+  return tab === 'body' || tab === 'headers';
 }
 
 /**

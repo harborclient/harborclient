@@ -153,7 +153,7 @@ export function clearActiveResponse(): void {
   store.dispatch(
     updateTab({
       tabId: activeTabId,
-      updates: { response: null, testResults: [] }
+      updates: { response: null, testResults: [], scriptLogs: [], scriptError: undefined }
     })
   );
 }

@@ -319,7 +319,9 @@ describe('tabsSlice loadRequest', () => {
           ? {
               ...tab,
               response: { status: 200 } as SendResult,
-              testResults: [{ name: 'ok', passed: true }] as ScriptTestResult[]
+              testResults: [{ name: 'ok', passed: true }] as ScriptTestResult[],
+              scriptLogs: ['hello'],
+              scriptError: 'boom'
             }
           : tab
       )
@@ -330,6 +332,8 @@ describe('tabsSlice loadRequest', () => {
     const tab = asRequestTab(state.tabs.find((t) => t.tabId === tabId));
     expect(tab.response).toBeNull();
     expect(tab.testResults).toEqual([]);
+    expect(tab.scriptLogs).toEqual([]);
+    expect(tab.scriptError).toBeUndefined();
   });
 });
 

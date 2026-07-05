@@ -23,14 +23,17 @@ import {
   isHtmlResponse,
   isImageResponse,
   responseContentType,
+  isResponseCopyExportTab,
   responseTabExportPath,
   responseTabText
 } from '#/renderer/src/ui/shared/responseFormatUtils';
+import { ConsoleDetails } from '#/renderer/src/ui/shared/ConsoleDetails/ConsoleDetails';
 import { Headers } from './Headers';
 import { HtmlPreview } from './HtmlPreview';
 import { ImagePreview } from './ImagePreview';
 import { Redirects } from './Redirects';
 import { Tests } from './Tests';
+import { Timing } from './Timing';
 
 interface Props {
   /**
@@ -54,6 +57,16 @@ interface Props {
   testResults: ScriptTestResult[];
 
   /**
+   * Console output captured from scripts for the last send.
+   */
+  scriptLogs: string[];
+
+  /**
+   * Aggregated script runtime errors from the last send.
+   */
+  scriptError?: string;
+
+  /**
    * Cancels the in-flight request.
    */
   onCancel: () => void;
@@ -65,13 +78,15 @@ interface Props {
 }
 
 /**
- * Displays HTTP response status, timing, body, headers, and script test results.
+ * Displays HTTP response status, timing, body, headers, script tests, and console output.
  */
 export function ResponseEditor({
   response,
   responseTabContext,
   sending,
   testResults,
+  scriptLogs,
+  scriptError,
   onCancel,
   requestUrl
 }: Props): JSX.Element {
@@ -159,18 +174,16 @@ export function ResponseEditor({
               !noResponsePluginTabs.some((entry) => entry.id === tab)
             ? pluginOnlyTab
             : tab;
-  const canCopyOrExport =
-    response != null && (effectiveTab === 'body' || effectiveTab === 'headers');
+  const canCopyOrExport = response != null && isResponseCopyExportTab(tab);
 
   /**
    * Copies the active tab content to the clipboard.
    */
   const handleCopy = async (): Promise<void> => {
-    if (!canCopyOrExport || !response) {
+    if (!canCopyOrExport || !response || !isResponseCopyExportTab(tab)) {
       return;
     }
-    const copyExportTab = effectiveTab as 'body' | 'headers';
-    const text = responseTabText(copyExportTab, response.body, response.headers, testResults);
+    const text = responseTabText(tab, response.body, response.headers, testResults);
     try {
       await navigator.clipboard.writeText(text);
       toast.success('Copied to clipboard');
@@ -183,12 +196,11 @@ export function ResponseEditor({
    * Exports the active tab content to a file via a native save dialog.
    */
   const handleExport = async (): Promise<void> => {
-    if (!canCopyOrExport || !response) {
+    if (!canCopyOrExport || !response || !isResponseCopyExportTab(tab)) {
       return;
     }
-    const copyExportTab = effectiveTab as 'body' | 'headers';
-    const content = responseTabText(copyExportTab, response.body, response.headers, testResults);
-    const defaultPath = responseTabExportPath(copyExportTab, response.body, response.headers);
+    const content = responseTabText(tab, response.body, response.headers, testResults);
+    const defaultPath = responseTabExportPath(tab, response.body, response.headers);
     try {
       const result = await window.api.saveTextFile(content, defaultPath);
       if (result.canceled) return;
@@ -206,6 +218,8 @@ export function ResponseEditor({
       { value: 'body', label: 'Body' },
       ...(showPreviewTab ? [{ value: 'preview', label: 'Preview' }] : []),
       { value: 'headers', label: 'Headers' },
+      { value: 'timing', label: 'Timing' },
+      { value: 'console', label: 'Console' },
       { value: 'redirects', label: 'Redirects', hidden: !hasRedirects },
       {
         value: 'tests',
@@ -374,6 +388,7 @@ export function ResponseEditor({
               <Button
                 type="button"
                 variant="toolbar"
+                className="disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!canCopyOrExport}
                 onClick={() => void handleCopy()}
               >
@@ -382,6 +397,7 @@ export function ResponseEditor({
               <Button
                 type="button"
                 variant="toolbar"
+                className="disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!canCopyOrExport}
                 onClick={() => void handleExport()}
               >
@@ -412,6 +428,17 @@ export function ResponseEditor({
             )}
             <SegmentedTabPanel value="headers">
               <Headers headers={response.headers} />
+            </SegmentedTabPanel>
+            <SegmentedTabPanel value="timing">
+              <Timing response={response} />
+            </SegmentedTabPanel>
+            <SegmentedTabPanel value="console">
+              <ConsoleDetails
+                result={response}
+                logs={scriptLogs}
+                tests={testResults}
+                scriptError={scriptError}
+              />
             </SegmentedTabPanel>
             {hasRedirects && (
               <SegmentedTabPanel value="redirects">

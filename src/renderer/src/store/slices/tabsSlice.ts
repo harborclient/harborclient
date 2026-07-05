@@ -216,6 +216,8 @@ const tabsSlice = createSlice({
         existing.savedDraft = cloneDraft(freshDraft);
         existing.response = null;
         existing.testResults = [];
+        existing.scriptLogs = [];
+        existing.scriptError = undefined;
         return;
       }
 

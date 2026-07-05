@@ -2,7 +2,13 @@ import type { AuthConfig } from '#/shared/auth';
 import type { BodyType, HttpMethod, KeyValue } from '#/shared/types/common';
 import type { ScriptRef } from '#/shared/types/script';
 
-export type { RedirectHop, SendRequestInput, SendResult, SentRequest } from '@harborclient/http';
+export type {
+  RedirectHop,
+  RequestTimingPhases,
+  SendRequestInput,
+  SendResult,
+  SentRequest
+} from '@harborclient/http';
 
 /**
  * A saved HTTP request belonging to a collection.

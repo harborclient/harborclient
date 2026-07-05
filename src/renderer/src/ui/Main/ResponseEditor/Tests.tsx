@@ -24,6 +24,14 @@ export function Tests({ testResults }: Props): JSX.Element {
             aria-hidden="true"
           />
           <span className="sr-only">{test.passed ? 'Passed' : 'Failed'}</span>
+          {test.scriptName && (
+            <>
+              <span className="text-[14px] text-muted">{test.scriptName}</span>
+              <span className="text-[14px] text-muted" aria-hidden="true">
+                -
+              </span>
+            </>
+          )}
           <span className="text-[14px] text-text">{test.name}</span>
           {!test.passed && test.error && (
             <span className="text-[14px] text-danger">{test.error}</span>

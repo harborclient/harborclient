@@ -335,7 +335,8 @@ function persistedRequestTabToRequestTab(tab: PersistedRequestTab): RequestTab {
     response: null,
     sending: false,
     sendingRequestId: null,
-    testResults: []
+    testResults: [],
+    scriptLogs: []
   };
 }
 

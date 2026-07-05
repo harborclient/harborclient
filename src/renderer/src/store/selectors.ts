@@ -142,6 +142,28 @@ export const selectTestResults = (state: RootState): ScriptTestResult[] => {
 };
 
 /**
+ * Returns script console output for the active request tab.
+ */
+export const selectScriptLogs = (state: RootState): string[] => {
+  const tab = selectActiveTab(state);
+  if (tab && isRequestTab(tab)) {
+    return tab.scriptLogs;
+  }
+  return [];
+};
+
+/**
+ * Returns aggregated script runtime errors for the active request tab.
+ */
+export const selectScriptError = (state: RootState): string | undefined => {
+  const tab = selectActiveTab(state);
+  if (tab && isRequestTab(tab)) {
+    return tab.scriptError;
+  }
+  return undefined;
+};
+
+/**
  * Returns session console log entries.
  */
 export const selectConsoleEntries = (state: RootState): RootState['console']['consoleEntries'] =>

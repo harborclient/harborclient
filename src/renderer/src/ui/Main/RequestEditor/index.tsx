@@ -21,6 +21,8 @@ import {
   selectFoldersByCollection,
   selectRequestsByCollection,
   selectResponse,
+  selectScriptError,
+  selectScriptLogs,
   selectSelectedCollectionId,
   selectSending,
   selectTabs,
@@ -110,6 +112,8 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const response = useAppSelector(selectResponse);
   const sending = useAppSelector(selectSending);
   const testResults = useAppSelector(selectTestResults);
+  const scriptLogs = useAppSelector(selectScriptLogs);
+  const scriptError = useAppSelector(selectScriptError);
   const environments = useAppSelector(selectEnvironments);
   const collections = useAppSelector(selectCollections);
   const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
@@ -356,6 +360,8 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
                     responseTabContext={responseTabContext}
                     sending={sending}
                     testResults={testResults}
+                    scriptLogs={scriptLogs}
+                    scriptError={scriptError}
                     requestUrl={draft.url}
                     onCancel={() => void dispatch(cancelRequest(activeTabId))}
                   />

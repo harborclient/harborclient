@@ -51,6 +51,14 @@ export interface RequestTab {
   sending: boolean;
   sendingRequestId: string | null;
   testResults: ScriptTestResult[];
+  /**
+   * Console output captured from scripts for the latest completed send in this tab.
+   */
+  scriptLogs: string[];
+  /**
+   * Aggregated script runtime errors for the latest completed send in this tab.
+   */
+  scriptError?: string;
 }
 
 /**
@@ -372,7 +380,8 @@ export function createTab(draft: RequestDraft = defaultDraft()): RequestTab {
     response: null,
     sending: false,
     sendingRequestId: null,
-    testResults: []
+    testResults: [],
+    scriptLogs: []
   };
 }
 

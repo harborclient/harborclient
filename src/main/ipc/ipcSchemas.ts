@@ -160,6 +160,14 @@ export const sentRequest = z.object({
   bodyType: bodyType.optional()
 }) satisfies z.ZodType<SentRequest>;
 
+const requestTimingPhases = z.object({
+  stalledMs: z.number().optional(),
+  connectMs: z.number().optional(),
+  requestSentMs: z.number().optional(),
+  waitingMs: z.number().optional(),
+  downloadMs: z.number().optional()
+});
+
 export const sendResult = z.object({
   status: z.number(),
   statusText: z.string(),
@@ -170,7 +178,8 @@ export const sendResult = z.object({
   sizeBytes: z.number(),
   error: z.string().optional(),
   setCookieHeaders: z.array(z.string()).optional(),
-  request: sentRequest.optional()
+  request: sentRequest.optional(),
+  timing: requestTimingPhases.optional()
 }) satisfies z.ZodType<SendResult>;
 
 export const scriptRequestContext = z.object({
