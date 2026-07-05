@@ -108,7 +108,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            args: --linux
+            args: --linux AppImage deb
           - os: macos-latest
             args: --mac
           # windows-latest ships VS 2026 (v18); pnpm's bundled node-gyp 11 cannot
@@ -197,3 +197,36 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           DEBUG: electron-notarize*
         run: pnpm build && npx electron-builder build ${{ matrix.args }} --publish always
+
+  build-rpm:
+    needs: release
+    runs-on: ubuntu-latest
+    container:
+      image: rockylinux:9
+
+    steps:
+      - name: Install Rocky build dependencies
+        run: dnf install -y git rpm-build gcc gcc-c++ make python3
+
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.release.outputs.version }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and publish RPM
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: true
+        run: pnpm build && npx electron-builder build --linux rpm --publish always

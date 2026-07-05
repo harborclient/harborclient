@@ -38,8 +38,12 @@ linux:
   target:
     - AppImage
     - deb
+    - rpm
   category: Development
-  maintainer: harbor@example.com
+  maintainer: HarborClient <contact@harborclient.com>
+  vendor: HarborClient
+rpm:
+  packageCategory: Applications/Development
 mac:
   artifactName: harborclient-${version}-${arch}.${ext}
   target:

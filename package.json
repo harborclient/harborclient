@@ -21,6 +21,7 @@
     "postinstall": "node scripts/install-app-deps.mjs",
     "dist": "pnpm build && electron-builder",
     "dist:deb": "pnpm build && electron-builder --linux deb --publish never",
+    "dist:rpm": "pnpm build && electron-builder --linux rpm --publish never",
     "dist:linux": "pnpm build && electron-builder --linux --publish never",
     "test": "node scripts/test-with-native.mjs",
     "test:watch": "vitest",
