@@ -2,6 +2,16 @@ import type { Snippet } from '#/shared/types/snippet';
 import type { SnippetScope } from '#/shared/snippetScope';
 
 /**
+ * Result of reading a JavaScript file selected for snippet import.
+ */
+export type SnippetImportResult = {
+  /**
+   * Raw JavaScript source from the selected file.
+   */
+  code: string;
+};
+
+/**
  * IPC methods for reusable JavaScript snippets.
  */
 export interface ApiSnippets {
@@ -39,4 +49,12 @@ export interface ApiSnippets {
    * @param id - Snippet ID to delete.
    */
   deleteSnippet: (id: number) => Promise<void>;
+
+  /**
+   * Opens a native file picker for a `.js` file and returns its contents.
+   *
+   * @returns Imported source, or null when the dialog was canceled.
+   * @throws When the selected file is empty or whitespace-only.
+   */
+  importSnippetFile: () => Promise<SnippetImportResult | null>;
 }

@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import type { RequestDraft } from '#/renderer/src/store/drafts';
-import { asRequestTab, createTab, isRequestTab, isTabDirty } from '#/renderer/src/store/drafts';
+import {
+  asRequestTab,
+  createTab,
+  isPageTab,
+  isRequestTab,
+  isTabDirty
+} from '#/renderer/src/store/drafts';
 import {
   defaultTabState,
   LEGACY_OPEN_TABS_KEY,
@@ -518,6 +524,47 @@ describe('redux open-tab round trip', () => {
     expect(restored.tabs).toHaveLength(1);
     const tab = restored.tabs[0];
     expect('kind' in tab! && tab.kind === 'page' && tab.page.type).toBe('cookies');
+  });
+
+  it('round-trips snippets page tabs through parseOpenTabsFromRaw', () => {
+    const payload = JSON.stringify({
+      tabs: [
+        {
+          tabId: 'page-tab-snippets',
+          kind: 'page',
+          page: { type: 'snippets' }
+        }
+      ],
+      activeTabId: 'page-tab-snippets'
+    });
+
+    const restored = parseOpenTabsFromRaw(payload);
+
+    expect(restored.tabs).toHaveLength(1);
+    const tab = restored.tabs[0];
+    expect('kind' in tab! && tab.kind === 'page' && tab.page.type).toBe('snippets');
+  });
+
+  it('migrates legacy settings snippets tabs to the snippets page tab', () => {
+    const payload = JSON.stringify({
+      tabs: [
+        {
+          tabId: 'page-tab-snippets',
+          kind: 'page',
+          page: { type: 'settings', section: 'snippets' }
+        }
+      ],
+      activeTabId: 'page-tab-snippets'
+    });
+
+    const restored = parseOpenTabsFromRaw(payload);
+
+    expect(restored.tabs).toHaveLength(1);
+    const tab = restored.tabs[0];
+    expect(isPageTab(tab)).toBe(true);
+    if (isPageTab(tab)) {
+      expect(tab.page).toEqual({ type: 'snippets' });
+    }
   });
 });
 

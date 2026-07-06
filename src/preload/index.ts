@@ -314,6 +314,15 @@ function deleteSnippet(id: number): Promise<void> {
 }
 
 /**
+ * Reads a JavaScript file selected via a native open dialog for snippet import.
+ *
+ * @returns Imported source, or null when the dialog was canceled.
+ */
+function importSnippetFile(): Promise<{ code: string } | null> {
+  return ipcRenderer.invoke('snippets:importFile');
+}
+
+/**
  * Deep-copies an environment into a new record via IPC.
  *
  * @param id - Environment ID to duplicate.
@@ -2266,6 +2275,7 @@ const api: Api = {
   createSnippet,
   updateSnippet,
   deleteSnippet,
+  importSnippetFile,
   importEntity,
   listRequests,
   saveRequest,

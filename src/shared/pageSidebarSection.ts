@@ -17,7 +17,6 @@ const SETTINGS_BUILTIN_SECTIONS = new Set<string>([
   'shortcuts',
   'proxy',
   'globals',
-  'snippets',
   'ai',
   'backup-restore'
 ]);

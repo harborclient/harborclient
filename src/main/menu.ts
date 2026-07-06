@@ -172,6 +172,11 @@ export function buildMenu(
           click: () => sendMenuAction(window, 'themes')
         },
         {
+          label: 'Snippets',
+          accelerator: acceleratorFor(accelerators, 'snippets'),
+          click: () => sendMenuAction(window, 'snippets')
+        },
+        {
           label: 'Cookies',
           click: () => sendMenuAction(window, 'cookies')
         },

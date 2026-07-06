@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(snippets): introduce Snippets management feature. (`bdceb5e`)
 - docs(AGENTS): add HarborClient style guidelines for brand assets. (`8249deb`)
 - feat(chat): enhance ChatComposer with new icons and embedded textarea support. (`9a03d04`)
 - chore: update README.md for improved user guidance. (`1fe7b54`)

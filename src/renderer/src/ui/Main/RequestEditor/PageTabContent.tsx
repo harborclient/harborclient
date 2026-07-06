@@ -20,6 +20,7 @@ import { PluginMainView } from '#/renderer/src/ui/PluginMainView';
 import { Plugins } from '#/renderer/src/ui/Plugins';
 import { Settings } from '#/renderer/src/ui/Settings';
 import { SharingKeys } from '#/renderer/src/ui/SharingKeys';
+import { Snippets } from '#/renderer/src/ui/Snippets';
 import { TeamHub } from '#/renderer/src/ui/TeamHub';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
 
@@ -104,6 +105,10 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
 
   if (page.type === 'cookies') {
     return <Cookies />;
+  }
+
+  if (page.type === 'snippets') {
+    return <Snippets />;
   }
 
   if (page.type === 'plugin-view') {

@@ -24,7 +24,8 @@ import {
   faGlobe,
   faPalette,
   faPaperPlane,
-  faPuzzlePiece
+  faPuzzlePiece,
+  faTerminal
 } from '#/renderer/src/fontawesome';
 import { useActivateSearchHit } from '#/renderer/src/search/activateSearchHit';
 import { useSearchIndexes } from '#/renderer/src/search/useSearchIndexes';
@@ -64,6 +65,7 @@ const DOMAIN_ICONS: Record<SearchDomain, IconDefinition> = {
   request: faPaperPlane,
   environment: faGlobe,
   setting: faGear,
+  page: faTerminal,
   plugin: faPuzzlePiece,
   theme: faPalette
 };

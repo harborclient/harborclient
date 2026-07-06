@@ -9,6 +9,7 @@ export type MenuActionId =
   | 'settings'
   | 'plugins'
   | 'themes'
+  | 'snippets'
   | 'cookies'
   | 'team-hubs'
   | 'sharing-keys'

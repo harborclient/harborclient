@@ -41,3 +41,37 @@ export function createBlankSnippet(
     scope
   };
 }
+
+/**
+ * Derives a default snippet name from the first line of imported script source.
+ *
+ * @param code - JavaScript read from an imported file.
+ * @param maxLength - Maximum characters to keep from the first line.
+ * @returns Trimmed first line up to maxLength, or the blank-snippet default when empty.
+ */
+export function snippetNameFromScript(code: string, maxLength = 30): string {
+  const firstLine = code.split(/\r?\n/)[0]?.trim() ?? '';
+  if (!firstLine) {
+    return 'Untitled Snippet';
+  }
+
+  return firstLine.slice(0, maxLength);
+}
+
+/**
+ * Builds a create-modal draft from imported JavaScript source.
+ *
+ * @param code - JavaScript read from an imported file.
+ * @param scope - Default script phase scope for the imported snippet.
+ * @returns Draft pre-filled with derived name, imported code, and scope.
+ */
+export function createImportedSnippetDraft(
+  code: string,
+  scope: SnippetScope = 'any'
+): SnippetEditDraft {
+  return {
+    name: snippetNameFromScript(code),
+    code,
+    scope
+  };
+}

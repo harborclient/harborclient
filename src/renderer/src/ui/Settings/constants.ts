@@ -23,8 +23,7 @@ import {
   faGlobe,
   faKeyboard,
   faRobot,
-  faServer,
-  faTerminal
+  faServer
 } from '#/renderer/src/fontawesome';
 import type { SettingsSection } from './types';
 
@@ -153,7 +152,6 @@ export const SETTINGS_SECTIONS: Array<{
 }> = [
   { value: 'general', label: 'General', icon: faGear },
   { value: 'globals', label: 'Globals', icon: faGlobe },
-  { value: 'snippets', label: 'Snippets', icon: faTerminal },
   { value: 'storage', label: 'Storage', icon: faDatabase },
   { value: 'shortcuts', label: 'Shortcuts', icon: faKeyboard },
   { value: 'syntax', label: 'Syntax highlighting', icon: faCode },

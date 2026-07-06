@@ -48,6 +48,8 @@ export function pageTabCloseName(
       return 'Themes';
     case 'cookies':
       return 'Cookies';
+    case 'snippets':
+      return 'Snippets';
     case 'team-hubs':
       return 'Team Hub';
     case 'sharing-keys':

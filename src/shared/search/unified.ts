@@ -6,6 +6,7 @@ import {
   type buildInstalledPluginSearchIndex
 } from '#/shared/search/installedPlugins';
 import { searchPluginHits, type buildPluginCatalogSearchIndex } from '#/shared/search/plugins';
+import { searchPageHits } from '#/shared/search/pagesCatalog';
 import { searchSettingsHits, type buildSettingsSearchIndex } from '#/shared/search/settings';
 import {
   searchSidebarEntities,
@@ -115,6 +116,7 @@ export function searchAll(query: string, context: SearchAllContext): UnifiedSear
     request: [],
     environment: [],
     setting: [],
+    page: [],
     plugin: [],
     theme: []
   };
@@ -137,6 +139,16 @@ export function searchAll(query: string, context: SearchAllContext): UnifiedSear
   for (const hit of searchSettingsHits(context.settingsIndex, trimmed)) {
     grouped.setting.push({
       domain: 'setting',
+      id: hit.id,
+      title: hit.label,
+      subtitle: hit.description,
+      score: hit.score
+    });
+  }
+
+  for (const hit of searchPageHits(trimmed)) {
+    grouped.page.push({
+      domain: 'page',
       id: hit.id,
       title: hit.label,
       subtitle: hit.description,

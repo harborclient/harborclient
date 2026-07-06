@@ -58,6 +58,7 @@ import { buildCodePreview } from '#/renderer/src/ui/shared/codePreview';
 import { SnippetEditModal } from '#/renderer/src/ui/shared/SnippetEditModal';
 import {
   createBlankSnippet,
+  createImportedSnippetDraft,
   type SnippetEditDraft
 } from '#/renderer/src/ui/shared/snippetEditDraft';
 import { scriptRowIconButtonClass } from '#/renderer/src/ui/shared/classes';
@@ -99,9 +100,11 @@ import {
   faChevronDown,
   faChevronUp,
   faClone,
+  faFileImport,
   faFloppyDisk,
   faGripVertical,
   faPen,
+  faPlus,
   faTerminal,
   faTrash,
   faArrowUpRightFromSquare,
@@ -1228,6 +1231,24 @@ export function ScriptListEditor({
   };
 
   /**
+   * Reads a `.js` file and opens the create-snippet modal with imported source.
+   */
+  const handleImportSnippet = async (): Promise<void> => {
+    try {
+      const result = await window.api.importSnippetFile();
+      if (!result) {
+        return;
+      }
+
+      setCreateSnippetDraft(createImportedSnippetDraft(result.code, snippetScopeForPhase(phase)));
+      setCreateSnippetError(null);
+      setSnippetMenuOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to import snippet');
+    }
+  };
+
+  /**
    * Closes the create-snippet modal and clears transient error state.
    */
   const closeCreateSnippetModal = (): void => {
@@ -1549,20 +1570,35 @@ export function ScriptListEditor({
    */
   const addControls = (
     <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2">
-      <Button type="button" className="shrink-0 whitespace-nowrap" onClick={handleAddInline}>
+      <Button
+        type="button"
+        className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
+        onClick={handleAddInline}
+      >
+        <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
         Add
+      </Button>
+      <Button
+        type="button"
+        className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
+        aria-label="Import JavaScript snippet"
+        onClick={() => void handleImportSnippet()}
+      >
+        <FaIcon icon={faFileImport} className="h-3.5 w-3.5" />
+        Import
       </Button>
       <div className="flex shrink-0 items-center gap-2 mr-4">
         <div className="relative">
           <Button
             type="button"
             variant="secondary"
-            className="shrink-0 gap-2 whitespace-nowrap"
+            className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap"
             aria-haspopup="menu"
             aria-expanded={snippetMenuOpen}
             aria-controls={snippetMenuOpen ? snippetMenuId : undefined}
             onClick={() => setSnippetMenuOpen((open) => !open)}
           >
+            <FaIcon icon={faTerminal} className="h-3.5 w-3.5" aria-hidden />
             Snippet library...
             <FaIcon icon={faChevronDown} aria-hidden />
           </Button>

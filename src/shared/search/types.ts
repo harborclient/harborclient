@@ -7,6 +7,7 @@ export type SearchDomain =
   | 'request'
   | 'environment'
   | 'setting'
+  | 'page'
   | 'plugin'
   | 'theme';
 
@@ -19,6 +20,7 @@ export const SEARCH_DOMAIN_ORDER: SearchDomain[] = [
   'request',
   'environment',
   'setting',
+  'page',
   'plugin',
   'theme'
 ];
@@ -32,6 +34,7 @@ export const SEARCH_DOMAIN_LABELS: Record<SearchDomain, string> = {
   request: 'Requests',
   environment: 'Environments',
   setting: 'Settings',
+  page: 'Pages',
   plugin: 'Plugins',
   theme: 'Themes'
 };

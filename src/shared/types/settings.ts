@@ -215,7 +215,6 @@ export type SettingsSection =
   | 'shortcuts'
   | 'proxy'
   | 'globals'
-  | 'snippets'
   | 'ai'
   | 'backup-restore'
   | `plugin:${string}:${string}`;

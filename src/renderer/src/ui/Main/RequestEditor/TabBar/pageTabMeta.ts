@@ -9,6 +9,7 @@ import {
   faDatabase,
   faPalette,
   faPuzzlePiece,
+  faTerminal,
   faUsers
 } from '#/renderer/src/fontawesome';
 import { settingsSectionMeta } from '#/renderer/src/ui/Settings/constants';
@@ -56,6 +57,8 @@ export function pageTabMeta(page: PageRef, options: PageTabMetaOptions = {}): Pa
       return { title: 'Themes', icon: faPalette };
     case 'cookies':
       return { title: 'Cookies', icon: faCookieBite };
+    case 'snippets':
+      return { title: 'Snippets', icon: faTerminal };
     case 'team-hubs':
       return { title: 'Team Hub', icon: faUsers };
     case 'sharing-keys':

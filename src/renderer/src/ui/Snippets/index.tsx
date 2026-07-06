@@ -5,13 +5,14 @@ import {
   Page,
   ResourceList,
   ResourceListPrimary,
-  ResourceListRow
+  ResourceListRow,
+  SidebarLayout
 } from '@harborclient/sdk/components';
 import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { Snippet } from '#/shared/types';
 import { snippetScopeLabel } from '#/shared/snippetScope';
-import { faPlus } from '#/renderer/src/fontawesome';
+import { faFileImport, faPlus, faTerminal } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectSnippets } from '#/renderer/src/store/selectors';
 import {
@@ -25,17 +26,19 @@ import { CodePreviewTooltip } from '#/renderer/src/ui/shared/CodePreviewTooltip'
 import { SnippetEditModal } from '#/renderer/src/ui/shared/SnippetEditModal';
 import {
   createBlankSnippet,
+  createImportedSnippetDraft,
   type SnippetEditDraft
 } from '#/renderer/src/ui/shared/snippetEditDraft';
-import { sectionEntryBySection } from '../catalog/catalog';
-import { SettingLabel } from '../components/SettingLabel';
-import { settingsSectionMeta } from '../constants';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
 
+const SNIPPETS_PAGE_TITLE = 'Snippets';
+const SNIPPETS_PAGE_DESCRIPTION =
+  'Manage reusable JavaScript snippets for pre-request and post-request scripts.';
+
 /**
- * Settings page for managing reusable JavaScript snippets.
+ * Top-level tab for managing reusable JavaScript snippets.
  */
-export function SnippetsSection(): JSX.Element {
+export function Snippets(): JSX.Element {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
   const snippets = useAppSelector(selectSnippets);
@@ -45,11 +48,9 @@ export function SnippetsSection(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [editingDraft, setEditingDraft] = useState<SnippetEditDraft | null>(null);
   const [isNew, setIsNew] = useState(false);
-  const { label, icon } = settingsSectionMeta('snippets');
-  const catalogEntry = sectionEntryBySection('snippets');
 
   /**
-   * Loads snippets when the settings page opens.
+   * Loads snippets when the Snippets tab opens.
    */
   useEffect(() => {
     let cancelled = false;
@@ -86,6 +87,24 @@ export function SnippetsSection(): JSX.Element {
     setEditingDraft(createBlankSnippet());
     setIsNew(true);
     setError(null);
+  };
+
+  /**
+   * Reads a `.js` file and opens the create modal with imported source.
+   */
+  const handleImport = async (): Promise<void> => {
+    try {
+      const result = await window.api.importSnippetFile();
+      if (!result) {
+        return;
+      }
+
+      setEditingDraft(createImportedSnippetDraft(result.code));
+      setIsNew(true);
+      setError(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to import snippet');
+    }
   };
 
   /**
@@ -183,92 +202,104 @@ export function SnippetsSection(): JSX.Element {
   };
 
   return (
-    <Page
-      embedded
-      title={label}
-      description={catalogEntry?.description}
-      icon={icon}
-      actions={
-        <Button
-          type="button"
-          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
-          onClick={handleAdd}
-        >
-          <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
-          Add
-        </Button>
-      }
-    >
-      <div className="mb-6 flex flex-col gap-1">
-        <span className="text-[18px] font-medium text-text">
-          <SettingLabel settingId="snippets.items">Snippets</SettingLabel>
-        </span>
-        <p className="hc-form-group-description m-0 text-[14px] text-muted mb-2">
-          Create reusable JavaScript snippets for use in pre-request and post-request script lists.
-        </p>
-        <AsyncListState
-          loading={loading}
-          error={loadError}
-          onRetry={() => void dispatch(refreshSnippets())}
-          isEmpty={!loading && !loadError && snippets.length === 0}
-          emptyMessage="No snippets yet."
-        >
-          <ResourceList className="flex flex-col gap-4">
-            {snippets.map((snippet) => (
-              <ResourceListRow
-                key={snippet.id}
-                primary={
-                  <div className="flex flex-col gap-1">
-                    <ResourceListPrimary>{snippet.name}</ResourceListPrimary>
-                    <span className="text-[14px] text-muted">
-                      {snippetScopeLabel(snippet.scope)}
-                    </span>
-                    <CodePreviewTooltip
-                      code={snippet.code}
-                      actionLabel={`Edit ${snippet.name}`}
-                      onClick={() => handleEdit(snippet)}
-                      emptyLabel="Empty snippet"
-                    />
-                  </div>
-                }
-                actions={
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="toolbar"
-                      aria-label={`Edit ${snippet.name}`}
-                      onClick={() => handleEdit(snippet)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="toolbar"
-                      className={toolbarDangerButtonClass}
-                      aria-label={`Delete ${snippet.name}`}
-                      onClick={() => void handleDelete(snippet)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                }
-              />
-            ))}
-          </ResourceList>
-        </AsyncListState>
-      </div>
+    <SidebarLayout sidebar={null}>
+      <Page
+        embedded
+        title={SNIPPETS_PAGE_TITLE}
+        description={SNIPPETS_PAGE_DESCRIPTION}
+        icon={faTerminal}
+        actions={
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              type="button"
+              className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
+              onClick={handleAdd}
+            >
+              <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
+              Add
+            </Button>
+            <Button
+              type="button"
+              className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
+              aria-label="Import JavaScript snippet"
+              onClick={() => void handleImport()}
+            >
+              <FaIcon icon={faFileImport} className="h-3.5 w-3.5" />
+              Import
+            </Button>
+          </div>
+        }
+      >
+        <div className="mb-6 flex flex-col gap-1">
+          <span className="text-[18px] font-medium text-text">Snippets</span>
+          <p className="hc-form-group-description m-0 text-[14px] text-muted mb-2">
+            Create reusable JavaScript snippets for use in pre-request and post-request script
+            lists.
+          </p>
+          <AsyncListState
+            loading={loading}
+            error={loadError}
+            onRetry={() => void dispatch(refreshSnippets())}
+            isEmpty={!loading && !loadError && snippets.length === 0}
+            emptyMessage="No snippets yet."
+          >
+            <ResourceList className="flex flex-col gap-4">
+              {snippets.map((snippet) => (
+                <ResourceListRow
+                  key={snippet.id}
+                  primary={
+                    <div className="flex flex-col gap-1">
+                      <ResourceListPrimary>{snippet.name}</ResourceListPrimary>
+                      <span className="text-[14px] text-muted">
+                        {snippetScopeLabel(snippet.scope)}
+                      </span>
+                      <CodePreviewTooltip
+                        code={snippet.code}
+                        actionLabel={`Edit ${snippet.name}`}
+                        onClick={() => handleEdit(snippet)}
+                        emptyLabel="Empty snippet"
+                      />
+                    </div>
+                  }
+                  actions={
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="toolbar"
+                        aria-label={`Edit ${snippet.name}`}
+                        onClick={() => handleEdit(snippet)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="toolbar"
+                        className={toolbarDangerButtonClass}
+                        aria-label={`Delete ${snippet.name}`}
+                        onClick={() => void handleDelete(snippet)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  }
+                />
+              ))}
+            </ResourceList>
+          </AsyncListState>
+        </div>
 
-      {editingDraft && (
-        <SnippetEditModal
-          draft={editingDraft}
-          isNew={isNew}
-          saving={saving}
-          error={error}
-          onChange={setEditingDraft}
-          onCancel={handleCancelEdit}
-          onSave={() => void handleSave()}
-        />
-      )}
-    </Page>
+        {editingDraft && (
+          <SnippetEditModal
+            draft={editingDraft}
+            isNew={isNew}
+            saving={saving}
+            error={error}
+            onChange={setEditingDraft}
+            onCancel={handleCancelEdit}
+            onSave={() => void handleSave()}
+          />
+        )}
+      </Page>
+    </SidebarLayout>
   );
 }

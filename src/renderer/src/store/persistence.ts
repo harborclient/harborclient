@@ -67,7 +67,6 @@ const SETTINGS_SECTIONS = new Set<string>([
   'shortcuts',
   'proxy',
   'globals',
-  'snippets',
   'ai',
   'backup-restore'
 ]);
@@ -236,9 +235,14 @@ function normalizePageRef(value: unknown): PageRef | null {
 
   switch (value.type) {
     case 'settings': {
+      if (value.section === 'snippets') {
+        return { type: 'snippets' };
+      }
       const section = normalizeSettingsSection(value.section ?? 'general');
       return section ? { type: 'settings', section } : null;
     }
+    case 'snippets':
+      return { type: 'snippets' };
     case 'plugins':
       return { type: 'plugins' };
     case 'themes':

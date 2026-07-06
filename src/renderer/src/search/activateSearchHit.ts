@@ -144,6 +144,12 @@ export function useActivateSearchHit(): (hit: UnifiedSearchHit, query: string) =
           dispatch(setPendingMarketplaceSearch(searchValue));
           return;
         }
+        case 'page': {
+          if (hit.id === 'snippets') {
+            dispatch(openPageTab({ type: 'snippets' }));
+          }
+          return;
+        }
       }
     },
     [

@@ -162,6 +162,7 @@ describe('mergeSearchHitsRoundRobin', () => {
       request: [{ domain: 'request', id: 'request:100', title: 'C', score: 1 }],
       environment: [{ domain: 'environment', id: 'environment:200', title: 'D', score: 1 }],
       setting: [{ domain: 'setting', id: 'proxy.enabled', title: 'E', score: 1 }],
+      page: [{ domain: 'page', id: 'snippets', title: 'H', score: 1 }],
       plugin: [{ domain: 'plugin', id: 'com.example.curl', title: 'F', score: 1 }],
       theme: [{ domain: 'theme', id: 'com.example.nord', title: 'G', score: 1 }]
     };
@@ -185,6 +186,11 @@ describe('searchAll', () => {
   it('returns hits from multiple domains', () => {
     const hits = searchAll('proxy', buildContext());
     expect(hits.some((hit) => hit.domain === 'setting')).toBe(true);
+  });
+
+  it('returns snippets page hits from the page domain', () => {
+    const hits = searchAll('snippets', buildContext());
+    expect(hits.some((hit) => hit.domain === 'page' && hit.id === 'snippets')).toBe(true);
   });
 
   it('assigns theme catalog entries to the theme domain', () => {
@@ -243,6 +249,7 @@ describe('searchAll', () => {
       request: [],
       environment: [],
       setting: manyHits,
+      page: [],
       plugin: [],
       theme: []
     };

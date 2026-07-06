@@ -68,6 +68,7 @@ export type PageRef =
   | { type: 'settings'; section: SettingsSection }
   | { type: 'plugins' }
   | { type: 'themes' }
+  | { type: 'snippets' }
   | { type: 'cookies' }
   | { type: 'team-hubs' }
   | { type: 'sharing-keys' }
@@ -137,6 +138,8 @@ export function pageRefKey(page: PageRef): string {
       return 'plugins';
     case 'themes':
       return 'themes';
+    case 'snippets':
+      return 'snippets';
     case 'cookies':
       return 'cookies';
     case 'team-hubs':
