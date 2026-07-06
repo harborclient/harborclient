@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(chat): enhance ChatComposer with new icons and embedded textarea support. (`9a03d04`)
 - chore: update README.md for improved user guidance. (`1fe7b54`)
 - chore: update project description for clarity. (`9a96d69`)
 

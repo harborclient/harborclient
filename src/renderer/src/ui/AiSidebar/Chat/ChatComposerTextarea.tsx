@@ -8,7 +8,10 @@ import {
   type KeyboardEvent,
   type Ref
 } from 'react';
-import { useAutoGrowTextarea } from '#/renderer/src/hooks/useAutoGrowTextarea';
+import {
+  COMPOSER_EMBEDDED_TEXT_MIN_HEIGHT_PX,
+  useAutoGrowTextarea
+} from '#/renderer/src/hooks/useAutoGrowTextarea';
 import { tokenizeChatComposerText } from '#/shared/ai/scriptReferences';
 import { useAiScriptReferenceValidationContext } from './useAiScriptReferenceValidationContext';
 
@@ -52,6 +55,11 @@ interface Props {
    * Ref forwarded to the underlying native textarea.
    */
   ref?: Ref<HTMLTextAreaElement>;
+
+  /**
+   * When true, omits the outer field border so a parent shell can wrap textarea and toolbar.
+   */
+  embedded?: boolean;
 }
 
 /**
@@ -65,7 +73,8 @@ export function ChatComposerTextarea({
   disabled,
   'aria-label': ariaLabel,
   className = '',
-  ref
+  ref,
+  embedded = false
 }: Props): JSX.Element {
   const validationContext = useAiScriptReferenceValidationContext();
   const backdropRef = useRef<HTMLDivElement>(null);
@@ -96,7 +105,11 @@ export function ChatComposerTextarea({
     [value, validationContext]
   );
 
-  useAutoGrowTextarea(textareaRef, value);
+  useAutoGrowTextarea(
+    textareaRef,
+    value,
+    embedded ? { minHeight: COMPOSER_EMBEDDED_TEXT_MIN_HEIGHT_PX } : undefined
+  );
 
   /**
    * Keeps the colored backdrop aligned with textarea scrolling.
@@ -111,7 +124,7 @@ export function ChatComposerTextarea({
   };
 
   return (
-    <div className={`hc-chat-composer-textarea relative w-full ${fieldFrame}`}>
+    <div className={`hc-chat-composer-textarea relative w-full ${embedded ? '' : fieldFrame}`}>
       <div
         ref={backdropRef}
         aria-hidden

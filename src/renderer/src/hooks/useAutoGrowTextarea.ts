@@ -3,6 +3,9 @@ import { useLayoutEffect, type RefObject } from 'react';
 /** Default starting height for the AI chat composer prompt field. */
 export const COMPOSER_MIN_HEIGHT_PX = 72;
 
+/** Minimum textarea height when the composer toolbar is embedded in the same shell. */
+export const COMPOSER_EMBEDDED_TEXT_MIN_HEIGHT_PX = 44;
+
 /** Maximum auto-grown height (~12 lines) before the composer scrolls internally. */
 export const COMPOSER_MAX_HEIGHT_PX = 288;
 
