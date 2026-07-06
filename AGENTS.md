@@ -38,6 +38,19 @@ User-facing docs and plugin marketplace metadata live in the separate
 [harborclient-site](https://github.com/harborclient/harborclient-site)
 repository. Edit docs there and deploy with Docker (Nginx on port 8080).
 
+## HarborClient style
+
+When creating blog featured images, marketing visuals, or other brand-adjacent
+assets, use the "HarborClient style": a vintage nautical badge or poster look
+inspired by the HarborClient logo. Prefer a lighthouse, ocean waves, signal
+beams, anchors, ropes, ribbons, buoys, and framed maritime emblem shapes. Use a
+navy, white, and slate-blue palette with crisp vector illustration, strong
+contrast, bold editorial composition, and minimal red/orange accents only when
+useful. The primary brand color is `#0f2e56`, the secondary color is `#92a8b8`,
+and the variable accent color is `#32D2E2`. Avoid photorealism, clutter, people,
+third-party logos, and tiny paragraphs of text. Keep any image text short,
+high-contrast, and legible.
+
 ## Architecture
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for project layout, the IPC contract
