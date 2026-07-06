@@ -234,6 +234,7 @@ describe('generalSettings', () => {
     warnWhenSwitchingThemes: true,
     warnWhenEditingSnippet: true,
     warnWhenCloningSnippet: true,
+    warnWhenClickingReadonlySnippet: true,
     codeEditorTheme: 'default' as const,
     codeEditorSetup: {
       lineNumbers: true,

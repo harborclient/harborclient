@@ -216,6 +216,7 @@ export const generalSettings = z.object({
   warnWhenSwitchingThemes: z.boolean(),
   warnWhenEditingSnippet: z.boolean(),
   warnWhenCloningSnippet: z.boolean(),
+  warnWhenClickingReadonlySnippet: z.boolean(),
   codeEditorTheme: z.enum(CODE_EDITOR_THEME_IDS),
   codeEditorSetup: z.object({
     lineNumbers: z.boolean(),

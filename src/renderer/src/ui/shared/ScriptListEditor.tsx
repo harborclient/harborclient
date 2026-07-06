@@ -38,6 +38,7 @@ import {
   type ComponentProps,
   type CSSProperties,
   type JSX,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent
 } from 'react';
 import toast from 'react-hot-toast';
@@ -270,6 +271,11 @@ interface SortableScriptRowProps {
    * @returns Resolves to true when the user may enter edit mode.
    */
   onRequestEditSnippet: () => Promise<boolean>;
+
+  /**
+   * Shows an informational dialog when the user clicks a read-only linked snippet editor.
+   */
+  onReadonlySnippetClick: () => void;
 
   /**
    * Clones this script row as a new inline entry inserted after the source row.
@@ -759,6 +765,7 @@ function SortableScriptRow({
   onPatchCode,
   onSaveSnippet,
   onRequestEditSnippet,
+  onReadonlySnippetClick,
   onClone,
   aiAvailable,
   onAskAi,
@@ -868,6 +875,24 @@ function SortableScriptRow({
         setIsEditingSnippet(true);
       }
     })();
+  };
+
+  /**
+   * Shows the read-only snippet hint when the user clicks the editor, skipping tooltip actions.
+   *
+   * @param event - Click event from the snippet editor wrapper.
+   */
+  const handleReadonlySnippetEditorClick = (event: ReactMouseEvent<HTMLDivElement>): void => {
+    if (isEditingSnippet) {
+      return;
+    }
+
+    const target = event.target as HTMLElement;
+    if (target.closest('.hc-code-editor-tooltip')) {
+      return;
+    }
+
+    onReadonlySnippetClick();
   };
 
   const {
@@ -1055,6 +1080,7 @@ function SortableScriptRow({
           role="region"
           aria-label={`${label} source editor`}
           className="mt-2 flex flex-col gap-2"
+          onClick={handleReadonlySnippetEditorClick}
         >
           <ScriptRowCodeEditor
             scriptId={script.id}
@@ -1096,6 +1122,9 @@ export function ScriptListEditor({
   );
   const warnWhenCloningSnippet = useAppSelector(
     (state) => state.settings.general.warnWhenCloningSnippet
+  );
+  const warnWhenClickingReadonlySnippet = useAppSelector(
+    (state) => state.settings.general.warnWhenClickingReadonlySnippet
   );
   const { aiAvailable, aiSettings } = useAiAvailability();
   const hubModelGroups = useAppSelector(selectHubModelGroups);
@@ -1390,6 +1419,27 @@ export function ScriptListEditor({
   };
 
   /**
+   * Shows an informational dialog when the user clicks a read-only linked snippet editor.
+   *
+   * @param label - Display label shown in the dialog message.
+   */
+  const handleReadonlySnippetClick = async (label: string): Promise<void> => {
+    if (!warnWhenClickingReadonlySnippet) {
+      return;
+    }
+
+    const result = await showConfirm(dispatch, {
+      title: 'Read-only snippet',
+      message: `"${label}" is linked to the snippet library and is read-only until you click the edit (pen) button. Saving the snippet here updates it globally unless saved with a different name.`,
+      confirmLabel: 'OK',
+      checkboxLabel: "Don't show this again"
+    });
+    if (result.confirmed && result.checkboxChecked) {
+      await dispatch(patchGeneralSettings({ warnWhenClickingReadonlySnippet: false }));
+    }
+  };
+
+  /**
    * Clones one script row as a detached inline copy inserted after the source row.
    *
    * @param id - Script list entry id.
@@ -1595,6 +1645,7 @@ export function ScriptListEditor({
               onPatchCode={(code) => patchScript(script.id, { code })}
               onSaveSnippet={(code) => openSaveSnippetModal(script.id, code)}
               onRequestEditSnippet={() => handleRequestEditSnippet(label)}
+              onReadonlySnippetClick={() => void handleReadonlySnippetClick(label)}
               onClone={() => void handleCloneScript(script.id, label)}
               aiAvailable={aiAvailable}
               onAskAi={() => void handleAskAi(index + 1)}

@@ -144,6 +144,19 @@ describe('generalSettings', () => {
     expect(getGeneralSettings().warnWhenSwitchingThemes).toBe(false);
   });
 
+  it('defaults warnWhenClickingReadonlySnippet to true when unset', () => {
+    expect(getGeneralSettings().warnWhenClickingReadonlySnippet).toBe(true);
+  });
+
+  it('persists warnWhenClickingReadonlySnippet false', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      warnWhenClickingReadonlySnippet: false
+    });
+
+    expect(getGeneralSettings().warnWhenClickingReadonlySnippet).toBe(false);
+  });
+
   it('defaults codeEditorFontSize to 16px when unset', () => {
     expect(getGeneralSettings().codeEditorFontSize).toBe('16px');
   });

@@ -175,6 +175,11 @@ export interface GeneralSettings {
   warnWhenCloningSnippet: boolean;
 
   /**
+   * When true, clicking a read-only linked snippet in the script list shows an informational dialog.
+   */
+  warnWhenClickingReadonlySnippet: boolean;
+
+  /**
    * CodeMirror syntax theme applied to all editor instances.
    */
   codeEditorTheme: CodeEditorTheme;
