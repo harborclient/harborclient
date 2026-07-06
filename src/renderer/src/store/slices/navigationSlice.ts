@@ -11,6 +11,7 @@ export interface NavigationState {
   requestEditorSplitHeight: number;
   showConsole: boolean;
   showVariables: boolean;
+  showMcp: boolean;
   activePluginFooterPanelId: string | null;
   activeSidebarPanelId: string | null;
   pendingPluginInstallId: string | null;
@@ -28,6 +29,7 @@ const initialState: NavigationState = {
   requestEditorSplitHeight: 340,
   showConsole: false,
   showVariables: false,
+  showMcp: false,
   activePluginFooterPanelId: null,
   activeSidebarPanelId: null,
   pendingPluginInstallId: null,
@@ -124,6 +126,7 @@ const navigationSlice = createSlice({
       state.showConsole = !state.showConsole;
       if (state.showConsole) {
         state.showVariables = false;
+        state.showMcp = false;
         state.activePluginFooterPanelId = null;
       }
     },
@@ -134,6 +137,18 @@ const navigationSlice = createSlice({
       state.showVariables = !state.showVariables;
       if (state.showVariables) {
         state.showConsole = false;
+        state.showMcp = false;
+        state.activePluginFooterPanelId = null;
+      }
+    },
+    /**
+     * Toggles the footer MCP server panel.
+     */
+    toggleMcp(state) {
+      state.showMcp = !state.showMcp;
+      if (state.showMcp) {
+        state.showConsole = false;
+        state.showVariables = false;
         state.activePluginFooterPanelId = null;
       }
     },
@@ -146,6 +161,7 @@ const navigationSlice = createSlice({
       if (nextId) {
         state.showConsole = false;
         state.showVariables = false;
+        state.showMcp = false;
       }
     },
     /**
@@ -202,6 +218,7 @@ export const {
   setRequestEditorSplitHeight,
   toggleConsole,
   toggleVariables,
+  toggleMcp,
   togglePluginFooterPanel,
   setPendingPluginInstall,
   consumePendingPluginInstall,
@@ -260,6 +277,10 @@ export const selectShowConsole = (state: RootState): boolean => state.navigation
  * Returns whether the variables panel is open.
  */
 export const selectShowVariables = (state: RootState): boolean => state.navigation.showVariables;
+/**
+ * Returns whether the MCP server panel is open.
+ */
+export const selectShowMcp = (state: RootState): boolean => state.navigation.showMcp;
 /**
  * Returns the active plugin footer panel id, if any.
  */

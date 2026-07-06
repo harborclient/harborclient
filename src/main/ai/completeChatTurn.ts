@@ -2,6 +2,7 @@ import { APIError, type OpenAI } from 'openai';
 import type { ChatCompletion, ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { LlmClientFactory } from '#/main/ai/LlmClientFactory';
 import { runHubChatCompletionStep } from '#/main/ai/hubChatStep';
+import { mergeMcpClientTools } from '#/main/mcp/mergeMcpClientTools';
 import { truncateChatStepMessages } from '#/shared/ai/chatContext';
 import { resolveChatStepMode } from '#/shared/ai/chatStepMode';
 import { getAiModelById } from '#/shared/ai/models';
@@ -177,6 +178,8 @@ export async function runChatCompletionStep(
   }
 
   const stepMode = resolveChatStepMode(input);
+  const tools = mergeMcpClientTools(stepMode);
+  const toolChoice = stepMode.toolChoice;
 
   const buildMessages = (stepMessages: ChatStepMessage[]): ChatCompletionMessageParam[] => [
     {
@@ -185,9 +188,6 @@ export async function runChatCompletionStep(
     },
     ...toOpenAiMessages(stepMessages)
   ];
-
-  const tools = stepMode.tools;
-  const toolChoice = stepMode.toolChoice;
 
   try {
     const client = createClient(modelOption.provider);

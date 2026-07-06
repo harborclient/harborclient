@@ -18,6 +18,7 @@ import { registerSettingsHandlers } from '#/main/ipc/handlers/settings';
 import { registerBackupHandlers } from '#/main/ipc/handlers/backup';
 import { registerWindowHandlers } from '#/main/ipc/handlers/window';
 import { registerPluginHandlers } from '#/main/ipc/handlers/plugins';
+import { registerMcpHandlers } from '#/main/ipc/handlers/mcp';
 import type { PluginManager } from '#/main/plugins/PluginManager';
 
 /**
@@ -46,4 +47,5 @@ export function registerIpcHandlers(db: IStorage, pluginManager: PluginManager):
   registerBackupHandlers(db);
   registerWindowHandlers();
   registerPluginHandlers(pluginManager);
+  registerMcpHandlers();
 }

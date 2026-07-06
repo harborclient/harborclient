@@ -48,6 +48,8 @@ import {
 } from '#/main/plugins/PluginManager';
 import { disposePluginRunner } from '#/main/plugins/pluginRunnerHost';
 import { getPluginUiBroker, initPluginUiBroker } from '#/main/plugins/PluginUiBroker';
+import { bootstrapMcpHost } from '#/main/ipc/handlers/mcp';
+import { disposeMcpHost, getMcpToolBridge } from '#/main/mcp';
 import {
   ensureHarborPluginProtocolForSession,
   registerHarborPluginProtocol,
@@ -892,6 +894,7 @@ app.whenReady().then(async () => {
     logVerbose('startup: initializing plugin UI broker');
     const pluginUiBroker = initPluginUiBroker(pluginManager);
     pluginUiBroker.setMainWindow(() => mainWindow);
+    getMcpToolBridge().setMainWindow(() => mainWindow);
     pluginUiBroker.setThemeGetter(async () => {
       const override = getStartupThemeOverride();
       if (override != null) {
@@ -913,6 +916,7 @@ app.whenReady().then(async () => {
 
     logVerbose('startup: registering IPC handlers');
     registerIpcHandlers(db, pluginManager);
+    await bootstrapMcpHost();
 
     if (db instanceof RoutingStorage) {
       startGitWatchers(db, () => mainWindow);
@@ -998,6 +1002,7 @@ app.on('before-quit', (event) => {
 app.on('will-quit', () => {
   disposeScriptRunner();
   disposePluginRunner();
+  void disposeMcpHost();
   pluginManager?.dispose();
   void db.close();
 });

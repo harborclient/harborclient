@@ -6,6 +6,7 @@ import { useBeforeClose } from '#/renderer/src/hooks/useBeforeClose';
 import { useEscapeBack } from '#/renderer/src/hooks/useEscapeBack';
 import { useMenuActions } from '#/renderer/src/hooks/useMenuActions';
 import { useDeepLinks } from '#/renderer/src/hooks/useDeepLinks';
+import { useMcpServerStatus } from '#/renderer/src/hooks/useMcpServerStatus';
 import { usePersistedPanelLayout } from '#/renderer/src/hooks/usePersistedPanelLayout';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
@@ -23,12 +24,14 @@ import { clearConsole } from '#/renderer/src/store/slices/consoleSlice';
 import {
   selectAiSidebarVisible,
   selectShowConsole,
+  selectShowMcp,
   selectShowRequestEditor,
   selectShowResponseEditor,
   selectShowVariables,
   selectSidebarVisible,
   toggleAiSidebar,
   toggleConsole,
+  toggleMcp,
   toggleRequestEditor,
   toggleResponseEditor,
   toggleSidebar,
@@ -77,6 +80,7 @@ import {
 } from '#/renderer/src/ui/shared/toastA11y';
 import { SearchIndexProvider } from '#/renderer/src/search/SearchIndexProvider';
 import { PluginHost } from '#/renderer/src/plugins/PluginHost';
+import { McpHost } from '#/renderer/src/store/ai/McpHost';
 import { PluginThemePrompt } from '#/renderer/src/plugins/PluginThemePrompt';
 import { ThemePickerModal } from '#/renderer/src/ui/modals/ThemePickerModal';
 import { ShortcutsReferenceModal } from '#/renderer/src/ui/modals/ShortcutsReferenceModal';
@@ -104,6 +108,8 @@ export default function App(): JSX.Element {
   const responseEditorVisible = useAppSelector(selectShowResponseEditor);
   const showConsole = useAppSelector(selectShowConsole);
   const showVariables = useAppSelector(selectShowVariables);
+  const showMcp = useAppSelector(selectShowMcp);
+  const mcpServerStatus = useMcpServerStatus();
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const globalVariables = useAppSelector((state) => state.settings.general.globalVariables);
   const codeEditorTheme = useAppSelector(selectCodeEditorTheme);
@@ -226,6 +232,7 @@ export default function App(): JSX.Element {
       <SidebarExpansionProvider onExpandCollection={handleExpandCollection}>
         <SearchIndexProvider>
           <PluginHost />
+          <McpHost />
           <PluginThemePrompt />
           <div className={`flex h-screen flex-col overflow-hidden ${platformClassName()}`}>
             <BusyIndicator isBusy={isBusy} />
@@ -278,6 +285,10 @@ export default function App(): JSX.Element {
               onClear={() => dispatch(clearConsole())}
               variablesOpen={showVariables}
               onToggleVariables={() => dispatch(toggleVariables())}
+              mcpOpen={showMcp}
+              onToggleMcp={() => dispatch(toggleMcp())}
+              mcpServerRunning={mcpServerStatus.running}
+              onMcpStatusChange={() => void mcpServerStatus.refresh()}
               globalVariables={globalVariables}
               collectionVariables={activeCollection?.variables ?? []}
               environmentVariables={activeEnvironment?.variables ?? []}

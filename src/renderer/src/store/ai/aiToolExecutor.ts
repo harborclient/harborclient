@@ -27,6 +27,7 @@ import {
   type QueryResponseBodyError,
   type QueryResponseBodyResult
 } from '#/shared/ai/chatContext';
+import { isMcpPrefixedToolName } from '#/shared/mcpToolNames';
 import { hostFromUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/cookieHost';
 import { isRequestTab, isTabDirty } from '#/renderer/src/store/drafts';
 import { mirrorLegacyScriptString, resolveScriptSourceCode } from '#/shared/scriptRefs';
@@ -131,6 +132,15 @@ export async function executeAiTool(
   args: unknown,
   ctx: AiToolContext
 ): Promise<string> {
+  if (isMcpPrefixedToolName(name)) {
+    try {
+      return await window.api.mcpCallTool(name, args);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'MCP tool execution failed.';
+      return JSON.stringify({ error: message });
+    }
+  }
+
   if (!isAiToolName(name)) {
     return JSON.stringify({ error: `Unknown tool: ${name}` });
   }

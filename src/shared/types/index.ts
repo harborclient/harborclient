@@ -10,6 +10,7 @@ export * from '#/shared/types/settings';
 export * from '#/shared/types/ai';
 export * from '#/shared/types/storage';
 export * from '#/shared/types/teamHub';
+export * from '#/shared/types/mcp';
 export * from '#/shared/types/sharing';
 export * from '#/shared/types/app';
 export * from '#/shared/types/api';

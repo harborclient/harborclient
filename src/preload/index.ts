@@ -27,6 +27,11 @@ import type {
   GeneralSettings,
   GenerateChatTitleInput,
   HubLlmModelGroup,
+  McpClientServer,
+  McpClientServerStatus,
+  McpClientToolInfo,
+  McpServerSettings,
+  McpServerStatus,
   ImportEntityResult,
   SharingIdentity,
   ListCollectionsResult,
@@ -744,6 +749,112 @@ function getAiSettings(): Promise<AiSettings> {
  */
 function setAiSettings(settings: AiSettings): Promise<void> {
   return ipcRenderer.invoke('ai:setSettings', settings);
+}
+
+/**
+ * Returns persisted MCP server settings.
+ */
+function getMcpServerSettings(): Promise<McpServerSettings> {
+  return ipcRenderer.invoke('mcp:getServerSettings');
+}
+
+/**
+ * Persists MCP server settings and applies the HTTP listener lifecycle.
+ *
+ * @param settings - MCP server configuration to store.
+ */
+function setMcpServerSettings(settings: McpServerSettings): Promise<McpServerSettings> {
+  return ipcRenderer.invoke('mcp:setServerSettings', settings);
+}
+
+/**
+ * Returns whether the local MCP HTTP server is running.
+ */
+function getMcpServerStatus(): Promise<McpServerStatus> {
+  return ipcRenderer.invoke('mcp:getServerStatus');
+}
+
+/**
+ * Generates a new MCP server bearer token and persists it.
+ */
+function regenerateMcpServerToken(): Promise<McpServerSettings> {
+  return ipcRenderer.invoke('mcp:regenerateToken');
+}
+
+/**
+ * Lists configured remote MCP client servers.
+ */
+function listMcpClientServers(): Promise<McpClientServer[]> {
+  return ipcRenderer.invoke('mcp:listClientServers');
+}
+
+/**
+ * Creates or updates a remote MCP client server.
+ *
+ * @param server - Client server record to persist.
+ */
+function saveMcpClientServer(server: McpClientServer): Promise<McpClientServer[]> {
+  return ipcRenderer.invoke('mcp:saveClientServer', server);
+}
+
+/**
+ * Deletes a remote MCP client server by id.
+ *
+ * @param id - Client server id to remove.
+ */
+function deleteMcpClientServer(id: string): Promise<McpClientServer[]> {
+  return ipcRenderer.invoke('mcp:deleteClientServer', id);
+}
+
+/**
+ * Returns connection status for configured MCP client servers.
+ */
+function listMcpClientServerStatuses(): Promise<McpClientServerStatus[]> {
+  return ipcRenderer.invoke('mcp:listClientServerStatuses');
+}
+
+/**
+ * Lists cached MCP client tools available to the chat agent.
+ */
+function listMcpClientTools(): Promise<McpClientToolInfo[]> {
+  return ipcRenderer.invoke('mcp:listClientTools');
+}
+
+/**
+ * Invokes a prefixed MCP client tool on the matching remote server.
+ *
+ * @param prefixedName - Tool name with mcp__ prefix from the model.
+ * @param args - Parsed tool arguments object.
+ */
+function mcpCallTool(prefixedName: string, args: unknown): Promise<string> {
+  return ipcRenderer.invoke('mcp:callTool', prefixedName, args);
+}
+
+/**
+ * Subscribes to MCP server tool invocations routed from external MCP clients.
+ */
+function onMcpServerToolInvoke(
+  callback: (message: { requestId: number; name: string; args: unknown }) => void
+): () => void {
+  const listener = (_event: Electron.IpcRendererEvent, message: unknown): void => {
+    callback(message as never);
+  };
+  ipcRenderer.on('mcp:serverToolInvoke', listener);
+  return () => {
+    ipcRenderer.removeListener('mcp:serverToolInvoke', listener);
+  };
+}
+
+/**
+ * Completes an MCP server tool invocation with a result or error.
+ */
+function completeMcpServerTool(message: {
+  requestId: number;
+  ok: boolean;
+  result?: string;
+  error?: string;
+}): void {
+  ipcRenderer.send('mcp:serverToolComplete', message);
 }
 
 /**
@@ -2198,6 +2309,18 @@ const api: Api = {
   setGeneralSettings,
   getAiSettings,
   setAiSettings,
+  getMcpServerSettings,
+  setMcpServerSettings,
+  getMcpServerStatus,
+  regenerateMcpServerToken,
+  listMcpClientServers,
+  saveMcpClientServer,
+  deleteMcpClientServer,
+  listMcpClientServerStatuses,
+  listMcpClientTools,
+  mcpCallTool,
+  onMcpServerToolInvoke,
+  completeMcpServerTool,
   listChats,
   createChat,
   getChat,

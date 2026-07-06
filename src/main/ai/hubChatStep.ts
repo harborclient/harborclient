@@ -1,4 +1,5 @@
 import { TeamHubClient } from '@harborclient/team-hub-api';
+import { mergeMcpClientTools } from '#/main/mcp/mergeMcpClientTools';
 import { listTeamHubs } from '#/main/settings/teamHubSettings';
 import { resolveChatStepMode } from '#/shared/ai/chatStepMode';
 import type { ChatStepInput, ChatStepResult, HubLlmModelGroup } from '#/shared/types';
@@ -79,6 +80,7 @@ async function fetchHubChatStep(
 ): Promise<ChatStepResult> {
   const combinedSignal = AbortSignal.any([AbortSignal.timeout(HUB_LLM_REQUEST_TIMEOUT_MS), signal]);
   const stepMode = resolveChatStepMode(input);
+  const tools = mergeMcpClientTools(stepMode);
 
   let response: Response;
   try {
@@ -92,7 +94,7 @@ async function fetchHubChatStep(
       body: JSON.stringify({
         model: input.model,
         messages: stepMode.messages,
-        tools: stepMode.tools,
+        tools,
         systemPrompt: stepMode.systemPrompt
       }),
       signal: combinedSignal
@@ -192,11 +194,12 @@ export async function runHubChatCompletionStep(
   });
 
   const stepMode = resolveChatStepMode(input);
+  const tools = mergeMcpClientTools(stepMode);
 
   return client.completeChatStep({
     model: input.model,
     messages: stepMode.messages,
-    tools: stepMode.tools as unknown as Record<string, unknown>[],
+    tools: tools as unknown as Record<string, unknown>[],
     systemPrompt: stepMode.systemPrompt
   });
 }

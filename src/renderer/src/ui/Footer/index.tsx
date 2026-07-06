@@ -18,6 +18,7 @@ import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import { usePluginFooterPanels, usePluginStatusBarItems } from '#/renderer/src/plugins/pluginHooks';
 
 import { ConsolePanel } from './ConsolePanel';
+import { McpPanel } from './McpPanel';
 import { PluginFooterPanel } from './PluginFooterPanel';
 import { VariablesPanel } from './VariablesPanel';
 import { SHORTCUTS_REFERENCE_MODAL_ID } from '#/renderer/src/ui/modals/ShortcutsReferenceModal';
@@ -124,6 +125,26 @@ interface Props {
    * Toggles the response editor visible/hidden.
    */
   onToggleResponseEditor: () => void;
+
+  /**
+   * Whether the MCP server panel is currently open.
+   */
+  mcpOpen: boolean;
+
+  /**
+   * Toggles the MCP server panel open/closed.
+   */
+  onToggleMcp: () => void;
+
+  /**
+   * Whether the local MCP HTTP server is listening.
+   */
+  mcpServerRunning: boolean;
+
+  /**
+   * Refreshes MCP server runtime status after panel saves.
+   */
+  onMcpStatusChange?: () => void;
 }
 
 /**
@@ -149,7 +170,11 @@ export function Footer({
   requestEditorOpen,
   onToggleRequestEditor,
   responseEditorOpen,
-  onToggleResponseEditor
+  onToggleResponseEditor,
+  mcpOpen,
+  onToggleMcp,
+  mcpServerRunning,
+  onMcpStatusChange
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const pluginFooterPanels = usePluginFooterPanels();
@@ -227,6 +252,7 @@ export function Footer({
         collectionName={collectionName}
         environmentName={environmentName}
       />
+      <McpPanel open={mcpOpen} onClose={onToggleMcp} onStatusChange={onMcpStatusChange} />
       {pluginFooterPanels.map((panel) => (
         <PluginFooterPanel
           key={panel.id}
@@ -287,6 +313,22 @@ export function Footer({
               {variableCount > 0 && (
                 <span className="ml-1 text-[14px] text-muted">({variableCount})</span>
               )}
+            </FooterButton>
+            <FooterButton
+              active={mcpOpen}
+              onClick={onToggleMcp}
+              controlsId="footer-mcp-panel"
+              aria-label={mcpServerRunning ? 'MCP, server running' : 'MCP, server stopped'}
+            >
+              <span className="inline-flex items-center">
+                MCP
+                <span className="ml-1 inline-flex h-4 w-3 shrink-0 items-center justify-center">
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${mcpServerRunning ? 'bg-success' : 'bg-muted'}`}
+                    aria-hidden
+                  />
+                </span>
+              </span>
             </FooterButton>
             {pluginFooterPanels.map((panel) => (
               <FooterButton

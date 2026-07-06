@@ -94,7 +94,7 @@ export const FORM_SECTION_DESCRIPTIONS: Record<FormSettingsSection, string> = {
     'Set request and script timeouts, response size limits, SSL verification, and redirect following defaults.',
   proxy: "Route HarborClient's outbound HTTP requests through a proxy server.",
   syntax: 'Choose a CodeMirror theme and editor behavior for request and response editors.',
-  ai: 'Store API keys for OpenAI, Claude, and Google Gemini used by the AI sidebar.',
+  ai: 'Store API keys for OpenAI, Claude, and Google Gemini, and configure MCP server and client connections.',
   plugins: 'Configure marketplace catalog and trusted publisher key endpoints for plugin sources.'
 };
 

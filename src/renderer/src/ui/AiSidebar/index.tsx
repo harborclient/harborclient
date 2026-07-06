@@ -7,7 +7,7 @@ import {
 import { useEffect, useMemo, useRef, type JSX } from 'react';
 import { hasAvailableAiModels } from '#/shared/ai/models';
 
-import { faClockRotateLeft, faPaperPlane, faPlus, faXmark } from '#/renderer/src/fontawesome';
+import { faClockRotateLeft, faPaperPlane, faXmark } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectAiSidebarVisible,
@@ -20,11 +20,7 @@ import {
   setEnterToSend,
   setHistoryOpen
 } from '#/renderer/src/store/slices/aiChatSlice';
-import {
-  createNewChat,
-  openExistingChat,
-  refreshHubLlmModels
-} from '#/renderer/src/store/thunks/aiChat';
+import { openExistingChat, refreshHubLlmModels } from '#/renderer/src/store/thunks/aiChat';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
 import { ChatHistory } from './Chat/ChatHistory';
 import { ConfigureApiKeysPrompt } from './ConfigureApiKeysPrompt';
@@ -71,7 +67,7 @@ export function AiSidebar(): JSX.Element {
   }, [aiSidebarVisible, dispatch]);
 
   /**
-   * Toolbar actions for closing the AI sidebar, chat history, and new chat.
+   * Toolbar actions for closing the AI sidebar, chat history, and enter-to-send.
    */
   const toolbarActions = useMemo((): ToolbarAction[] => {
     return [
@@ -103,13 +99,6 @@ export function AiSidebar(): JSX.Element {
         ) : undefined
       },
       {
-        id: 'new-chat',
-        icon: faPlus,
-        label: 'New chat',
-        title: 'New chat',
-        onClick: () => void dispatch(createNewChat(aiSettings))
-      },
-      {
         id: 'enter-to-send',
         icon: faPaperPlane,
         label: 'Enter to send',
@@ -118,7 +107,7 @@ export function AiSidebar(): JSX.Element {
         onClick: () => dispatch(setEnterToSend(!enterToSend))
       }
     ];
-  }, [aiSettings, dispatch, enterToSend, historyOpen]);
+  }, [dispatch, enterToSend, historyOpen]);
 
   const showConfigurePrompt = !loading && !hasAvailableAiModels(aiSettings, hubModelGroups);
   const showChat = !loading && !showConfigurePrompt;

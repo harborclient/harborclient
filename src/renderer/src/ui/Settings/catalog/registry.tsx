@@ -6,6 +6,7 @@ import { GeneralInfoExtra } from '../extras/GeneralInfoExtra';
 import { ProxyInfoExtra } from '../extras/ProxyInfoExtra';
 import { SyntaxInfoExtra } from '../extras/SyntaxInfoExtra';
 import { SyntaxPreviewExtra } from '../extras/SyntaxPreviewExtra';
+import { McpSettingsExtra } from '../extras/McpSettingsExtra';
 import { BackupRestoreSection } from '../BackupRestoreSection';
 import { GlobalsSection } from '../GlobalsSection';
 import { SnippetsSection } from '../SnippetsSection';
@@ -93,7 +94,8 @@ export const FORM_SECTION_LEADING_EXTRAS: Partial<Record<FormSettingsSection, Co
  * Optional trailing content rendered after field components in a form section.
  */
 export const FORM_SECTION_EXTRAS: Partial<Record<FormSettingsSection, ComponentType>> = {
-  syntax: SyntaxPreviewExtra
+  syntax: SyntaxPreviewExtra,
+  ai: McpSettingsExtra
 };
 
 /**

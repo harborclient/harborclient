@@ -36,10 +36,13 @@ import type {
   SentRequest,
   TeamHub,
   ShortcutOverrides,
-  SidebarExpansionState
+  SidebarExpansionState,
+  McpClientServer,
+  McpServerSettings
 } from '#/shared/types';
 import type { CollectionRunnerConfig } from '#/shared/collectionRunner';
 import { pluginSourcesSchema } from '#/shared/plugin/catalog';
+import { AI_TOOL_NAMES } from '#/shared/ai/tools';
 
 export {
   bodyType,
@@ -387,6 +390,36 @@ export const aiSettings = z.object({
   geminiApiKey: z.string()
 }) satisfies z.ZodType<AiSettings>;
 
+/**
+ * Zod schema for MCP client HTTP header rows.
+ */
+export const mcpClientHeader = z.object({
+  key: z.string(),
+  value: z.string()
+});
+
+/**
+ * Zod schema for configured MCP client servers.
+ */
+export const mcpClientServer = z.object({
+  id: z.string(),
+  name: z.string().trim().min(1),
+  url: z.string().trim().min(1),
+  headers: z.array(mcpClientHeader),
+  enabled: z.boolean()
+}) satisfies z.ZodType<McpClientServer>;
+
+/**
+ * Zod schema for persisted MCP server settings.
+ */
+export const mcpServerSettings = z.object({
+  enabled: z.boolean(),
+  host: z.string().trim().min(1),
+  port: z.number().int().positive(),
+  token: z.string(),
+  exposedTools: z.array(z.enum(AI_TOOL_NAMES))
+}) satisfies z.ZodType<McpServerSettings>;
+
 export const chatRole = z.enum(['user', 'assistant']) satisfies z.ZodType<ChatRole>;
 
 export const chatCreateInput = z.object({
@@ -519,6 +552,9 @@ export const ipcArgSchemas = {
   scriptRun: z.tuple([scriptRunInput]),
   generalSettings: z.tuple([generalSettings]),
   aiSettings: z.tuple([aiSettings]),
+  mcpServerSettings: z.tuple([mcpServerSettings]),
+  mcpClientServer: z.tuple([mcpClientServer]),
+  mcpCallTool: z.tuple([z.string().min(1), z.unknown()]),
   storageConnection: z.tuple([storageConnection]),
   teamHub: z.tuple([teamHub]),
   teamHubUserUpdate: z.tuple([connectionId, connectionId, updateHubUserInput]),

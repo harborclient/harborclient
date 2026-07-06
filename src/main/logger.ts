@@ -2,8 +2,9 @@
  * Lightweight main-process logger with opt-in verbose and very-verbose modes.
  *
  * Verbose mode is enabled with `-v` / `--verbose` or `HARBOR_VERBOSE=1`. Very-verbose
- * mode adds outbound HTTP request logging on top of verbose output and is enabled with
- * `-vv` / `--very-verbose` or `HARBOR_VERBOSE=2`. In dev the flags must reach Electron,
+ * mode adds general outbound HTTP request logging on top of verbose output and is enabled with
+ * `-vv` / `--very-verbose` or `HARBOR_VERBOSE=2`. Verbose mode also logs MCP client/server
+ * connection lifecycle and outgoing MCP client HTTP requests. In dev the flags must reach
  * e.g. `pnpm dev -- -v` or `pnpm dev -- -vv`; in a packaged build use
  * `./HarborClient -v` or `./HarborClient -vv`. Standard warnings and errors always log
  * regardless of verbose mode.

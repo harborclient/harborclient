@@ -17,8 +17,9 @@ import {
 } from '@dnd-kit/sortable';
 import { FaIcon, resolveTabListKeyAction } from '@harborclient/sdk/components';
 import { useMemo, useState, type JSX, type KeyboardEvent } from 'react';
+import type { AiSettings } from '#/shared/types';
 
-import { faComment } from '#/renderer/src/fontawesome';
+import { faComment, faPlus } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   reorderChatTabs,
@@ -27,8 +28,15 @@ import {
   selectOpenChatTabIds,
   setActiveChat
 } from '#/renderer/src/store/slices/aiChatSlice';
-import { closeChat } from '#/renderer/src/store/thunks/aiChat';
+import { closeChat, createNewChat } from '#/renderer/src/store/thunks/aiChat';
 import { ChatTabItem } from './ChatTabItem';
+
+interface Props {
+  /**
+   * AI provider settings for model availability when creating a new chat.
+   */
+  aiSettings: AiSettings;
+}
 
 /** Prefix for AI chat tab label element ids. */
 const AI_CHAT_TAB_ID_PREFIX = 'ai-chat-tab-';
@@ -96,7 +104,7 @@ function resolveFocusedChatTabIndex(
 /**
  * Tab bar for open AI chats.
  */
-export function ChatTabBar(): JSX.Element {
+export function ChatTabBar({ aiSettings }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const chatHistory = useAppSelector(selectChatHistory);
   const openTabIds = useAppSelector(selectOpenChatTabIds);
@@ -193,6 +201,13 @@ export function ChatTabBar(): JSX.Element {
     });
   };
 
+  /**
+   * Opens a new chat tab and selects it.
+   */
+  const handleNewChat = (): void => {
+    void dispatch(createNewChat(aiSettings));
+  };
+
   return (
     <div className="relative z-10 flex shrink-0 items-end overflow-x-auto border-b border-separator bg-sidebar px-2 py-1 app-no-drag">
       <DndContext
@@ -205,7 +220,7 @@ export function ChatTabBar(): JSX.Element {
         <div
           role="tablist"
           aria-label="Open AI chats"
-          className="flex min-w-0 flex-1 items-end"
+          className="flex items-end"
           onKeyDown={handleTabListKeyDown}
         >
           <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
@@ -233,6 +248,17 @@ export function ChatTabBar(): JSX.Element {
           ) : null}
         </DragOverlay>
       </DndContext>
+      <div className="flex shrink-0 items-end ms-2 px-1 -mb-1">
+        <button
+          type="button"
+          className="hc-tab-new-button mb-2.5 inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text app-no-drag"
+          title="New chat"
+          aria-label="New chat"
+          onClick={handleNewChat}
+        >
+          <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
   );
 }

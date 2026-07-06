@@ -12,6 +12,7 @@ import type { ApiGit } from '#/shared/types/api/git';
 import type { ApiSharing } from '#/shared/types/api/sharing';
 import type { ApiBackup } from '#/shared/types/api/backup';
 import type { ApiPlugins } from '#/shared/types/api/plugins';
+import type { ApiMcp } from '#/shared/types/api/mcp';
 
 /**
  * IPC bridge API exposed to the renderer via contextBridge.
@@ -31,4 +32,5 @@ export interface Api
     ApiGit,
     ApiSharing,
     ApiBackup,
-    ApiPlugins {}
+    ApiPlugins,
+    ApiMcp {}
