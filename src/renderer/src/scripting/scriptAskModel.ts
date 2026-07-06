@@ -1,4 +1,4 @@
-import type { AiModelOption } from '#/shared/aiModels';
+import type { AiModelOption } from '#/shared/ai/models';
 
 const STORAGE_KEY = 'harborclient.scriptAskModelId';
 

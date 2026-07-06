@@ -1,6 +1,6 @@
-import { buildChatTitleSystemPrompt, CHAT_TITLE_TOOL } from '#/shared/aiChatTitle';
-import { buildScriptAskSystemPrompt, SCRIPT_ASK_TOOL } from '#/shared/aiScriptAsk';
-import { AI_SYSTEM_PROMPT, AI_TOOL_DEFINITIONS } from '#/shared/aiTools';
+import { buildChatTitleSystemPrompt, CHAT_TITLE_TOOL } from '#/shared/ai/chatTitle';
+import { buildScriptAskSystemPrompt, SCRIPT_ASK_TOOL } from '#/shared/ai/scriptAsk';
+import { AI_SYSTEM_PROMPT, AI_TOOL_DEFINITIONS } from '#/shared/ai/tools';
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 import type { ChatStepInput, ChatStepMessage } from '#/shared/types';
 

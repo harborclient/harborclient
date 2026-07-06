@@ -7,7 +7,7 @@ import {
   hasRequestUpdateFields,
   mergeKeyValues,
   type AiRequestDraft
-} from '#/shared/aiRequestUpdate';
+} from '#/shared/ai/requestUpdate';
 
 /**
  * Returns a sample draft for update tests.

@@ -1,5 +1,5 @@
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
-import type { UpdateActiveRequestToolArgs } from '#/shared/aiRequestUpdate';
+import type { UpdateActiveRequestToolArgs } from '#/shared/ai/requestUpdate';
 
 export type { UpdateActiveRequestToolArgs };
 

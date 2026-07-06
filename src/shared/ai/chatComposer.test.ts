@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shouldSendChatOnKeyDown } from '#/shared/aiChatComposer';
+import { shouldSendChatOnKeyDown } from '#/shared/ai/chatComposer';
 
 describe('shouldSendChatOnKeyDown', () => {
   it('sends on Enter when enterToSend is enabled', () => {

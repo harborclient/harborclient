@@ -4,7 +4,7 @@ import {
   isValidAiScriptReference,
   tokenizeChatComposerText,
   type AiScriptReferenceValidationContext
-} from '#/shared/aiScriptReferences';
+} from '#/shared/ai/scriptReferences';
 
 /**
  * Builds a validation context with sensible defaults for tests.

@@ -1,11 +1,11 @@
 import toast from 'react-hot-toast';
-import { resolveAiModelOption } from '#/shared/aiModels';
+import { resolveAiModelOption } from '#/shared/ai/models';
 import {
   appendScriptAskThinking,
   applyScriptAskAtLine,
   parseScriptAskResult,
   stripScriptAskThinking
-} from '#/shared/aiScriptAsk';
+} from '#/shared/ai/scriptAsk';
 import type { AiSettings, HubLlmModelGroup } from '#/shared/types';
 import { persistScriptAskModelId } from '#/renderer/src/scripting/scriptAskModel';
 

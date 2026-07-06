@@ -5,7 +5,7 @@ import {
   useResizable
 } from '@harborclient/sdk/components';
 import { useEffect, useMemo, useRef, type JSX } from 'react';
-import { hasAvailableAiModels } from '#/shared/aiModels';
+import { hasAvailableAiModels } from '#/shared/ai/models';
 
 import { faClockRotateLeft, faPaperPlane, faPlus, faXmark } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';

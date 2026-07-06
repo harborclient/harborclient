@@ -7,7 +7,7 @@ import {
   type KeyValueListMode,
   type ScriptUpdateMode,
   type UpdateActiveRequestToolArgs
-} from '#/shared/aiRequestUpdate';
+} from '#/shared/ai/requestUpdate';
 import {
   AI_TOOL_NAMES,
   type AiToolName,
@@ -17,7 +17,7 @@ import {
   type SendActiveRequestToolArgs,
   type SetActiveEnvironmentToolArgs,
   type UpdateRequestScriptToolArgs
-} from '#/shared/aiTools';
+} from '#/shared/ai/tools';
 import {
   DEFAULT_RESPONSE_BODY_CHARS,
   formatHttpResponseForAgent,
@@ -26,7 +26,7 @@ import {
   type FormatHttpResponseOptions,
   type QueryResponseBodyError,
   type QueryResponseBodyResult
-} from '#/shared/aiChatContext';
+} from '#/shared/ai/chatContext';
 import { hostFromUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/cookieHost';
 import { isRequestTab, isTabDirty } from '#/renderer/src/store/drafts';
 import { mirrorLegacyScriptString, resolveScriptSourceCode } from '#/shared/scriptRefs';

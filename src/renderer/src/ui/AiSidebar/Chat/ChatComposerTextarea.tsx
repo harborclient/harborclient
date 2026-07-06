@@ -9,7 +9,7 @@ import {
   type Ref
 } from 'react';
 import { useAutoGrowTextarea } from '#/renderer/src/hooks/useAutoGrowTextarea';
-import { tokenizeChatComposerText } from '#/shared/aiScriptReferences';
+import { tokenizeChatComposerText } from '#/shared/ai/scriptReferences';
 import { useAiScriptReferenceValidationContext } from './useAiScriptReferenceValidationContext';
 
 interface Props {

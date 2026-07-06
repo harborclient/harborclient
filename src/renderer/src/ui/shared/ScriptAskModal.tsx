@@ -9,8 +9,8 @@ import {
   type JSX,
   type KeyboardEvent
 } from 'react';
-import { getAvailableModels } from '#/shared/aiModels';
-import { removeScriptAskLine } from '#/shared/aiScriptAsk';
+import { getAvailableModels } from '#/shared/ai/models';
+import { removeScriptAskLine } from '#/shared/ai/scriptAsk';
 import type { AiSettings, HubLlmModelGroup } from '#/shared/types';
 import { runScriptAsk } from '#/renderer/src/scripting/runScriptAsk';
 import { resolveScriptAskModelId } from '#/renderer/src/scripting/scriptAskModel';

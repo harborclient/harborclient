@@ -10,7 +10,7 @@ import {
 } from '#/main/storage/entityMappers';
 import { trimRequiredName } from '#/main/storage/trimRequiredName';
 import { generateDocumentUuid } from '#/main/storage/uuid';
-import { DEFAULT_CHAT_TITLE, normalizeChatTitle } from '#/shared/aiChatTitle';
+import { DEFAULT_CHAT_TITLE, normalizeChatTitle } from '#/shared/ai/chatTitle';
 import type {
   Chat,
   ChatMessage,

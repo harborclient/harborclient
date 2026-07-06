@@ -1,7 +1,7 @@
 import { Button, Select } from '@harborclient/sdk/components';
 import { useEffect, useRef, useState, type JSX, type KeyboardEvent } from 'react';
-import { getAvailableModels, resolveAiModelOption } from '#/shared/aiModels';
-import { shouldSendChatOnKeyDown } from '#/shared/aiChatComposer';
+import { getAvailableModels, resolveAiModelOption } from '#/shared/ai/models';
+import { shouldSendChatOnKeyDown } from '#/shared/ai/chatComposer';
 import type { AiSettings } from '#/shared/types';
 
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';

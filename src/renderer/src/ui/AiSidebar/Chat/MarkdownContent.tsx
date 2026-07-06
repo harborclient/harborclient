@@ -1,7 +1,7 @@
 import { useMemo, type JSX, type ReactNode } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { AiScriptReferenceValidationContext } from '#/shared/aiScriptReferences';
+import type { AiScriptReferenceValidationContext } from '#/shared/ai/scriptReferences';
 import { MarkdownCodeBlock } from './MarkdownCodeBlock';
 import { processMarkdownChildren } from './renderScriptReferenceText';
 import { useAiScriptReferenceValidationContext } from './useAiScriptReferenceValidationContext';

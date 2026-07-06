@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { DEFAULT_CHAT_TITLE } from '#/shared/aiChatTitle';
-import { getAvailableModels } from '#/shared/aiModels';
+import { DEFAULT_CHAT_TITLE } from '#/shared/ai/chatTitle';
+import { getAvailableModels } from '#/shared/ai/models';
 import type { AiSettings, ChatMessage, ChatStepMessage, ChatSummary } from '#/shared/types';
 import { executeAiToolCall } from '#/renderer/src/store/ai/aiToolExecutor';
 import type { RootState, ThunkApiConfig } from '#/renderer/src/store/redux';

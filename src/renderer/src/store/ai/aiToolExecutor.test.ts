@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_RESPONSE_BODY_CHARS, RESPONSE_BODY_PREVIEW_CHARS } from '#/shared/aiChatContext';
+import { DEFAULT_RESPONSE_BODY_CHARS, RESPONSE_BODY_PREVIEW_CHARS } from '#/shared/ai/chatContext';
 import { defaultAuth } from '#/shared/auth';
 import { createInlineScriptRef, createSnippetScriptRef } from '#/shared/scriptRefs';
 import type { Collection, Environment, KeyValue, SavedRequest, SendResult } from '#/shared/types';

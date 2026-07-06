@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { hasAvailableAiModels } from '#/shared/aiModels';
+import { hasAvailableAiModels } from '#/shared/ai/models';
 import type { AiSettings } from '#/shared/types';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectHubModelGroups } from '#/renderer/src/store/slices/aiChatSlice';

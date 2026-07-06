@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- refactor(ai): reorganize imports and introduce chat context utilities. (`11f364b`)
 - fix(dependencies): update electron-builder to address compatibility issues. (`0355d56`)
 
 ## 2.0.3 - 2026-07-05

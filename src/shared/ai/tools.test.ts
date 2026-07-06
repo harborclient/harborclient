@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AI_SYSTEM_PROMPT, AI_TOOL_DEFINITIONS, AI_TOOL_NAMES } from '#/shared/aiTools';
+import { AI_SYSTEM_PROMPT, AI_TOOL_DEFINITIONS, AI_TOOL_NAMES } from '#/shared/ai/tools';
 
 describe('AI_TOOL_DEFINITIONS', () => {
   it('defines a unique tool name for each entry', () => {

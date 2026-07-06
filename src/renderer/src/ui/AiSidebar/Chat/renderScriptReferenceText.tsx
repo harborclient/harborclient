@@ -2,7 +2,7 @@ import { Children, cloneElement, isValidElement, type ReactElement, type ReactNo
 import {
   tokenizeChatComposerText,
   type AiScriptReferenceValidationContext
-} from '#/shared/aiScriptReferences';
+} from '#/shared/ai/scriptReferences';
 
 /** CSS class for valid `@` script reference tokens in chat prose. */
 const SCRIPT_REFERENCE_CLASS = 'hc-chat-composer-script-ref';

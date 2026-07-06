@@ -1,6 +1,6 @@
 import { runChatCompletionStep } from '#/main/ai/completeChatTurn';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
-import { DEFAULT_CHAT_TITLE, parseChatTitleResult } from '#/shared/aiChatTitle';
+import { DEFAULT_CHAT_TITLE, parseChatTitleResult } from '#/shared/ai/chatTitle';
 import type { GenerateChatTitleInput } from '#/shared/types';
 
 /**

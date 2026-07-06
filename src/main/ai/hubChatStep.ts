@@ -1,6 +1,6 @@
 import { TeamHubClient } from '@harborclient/team-hub-api';
 import { listTeamHubs } from '#/main/settings/teamHubSettings';
-import { resolveChatStepMode } from '#/shared/chatStepMode';
+import { resolveChatStepMode } from '#/shared/ai/chatStepMode';
 import type { ChatStepInput, ChatStepResult, HubLlmModelGroup } from '#/shared/types';
 
 /**

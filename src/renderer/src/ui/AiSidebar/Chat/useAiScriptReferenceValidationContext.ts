@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { AiScriptReferenceValidationContext } from '#/shared/aiScriptReferences';
+import type { AiScriptReferenceValidationContext } from '#/shared/ai/scriptReferences';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { isRequestTab } from '#/renderer/src/store/drafts';
 import { selectActiveTab } from '#/renderer/src/store/selectors';

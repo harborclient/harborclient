@@ -4,7 +4,7 @@ import {
   DEFAULT_CHAT_TITLE,
   normalizeChatTitle,
   parseChatTitleResult
-} from '#/shared/aiChatTitle';
+} from '#/shared/ai/chatTitle';
 
 describe('buildChatTitleSystemPrompt', () => {
   it('instructs the model to call set_chat_title', () => {

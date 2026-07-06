@@ -2,9 +2,9 @@ import { APIError, type OpenAI } from 'openai';
 import type { ChatCompletion, ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { LlmClientFactory } from '#/main/ai/LlmClientFactory';
 import { runHubChatCompletionStep } from '#/main/ai/hubChatStep';
-import { truncateChatStepMessages } from '#/shared/aiChatContext';
-import { resolveChatStepMode } from '#/shared/chatStepMode';
-import { getAiModelById } from '#/shared/aiModels';
+import { truncateChatStepMessages } from '#/shared/ai/chatContext';
+import { resolveChatStepMode } from '#/shared/ai/chatStepMode';
+import { getAiModelById } from '#/shared/ai/models';
 import type { ChatStepInput, ChatStepMessage, ChatStepResult, LlmProvider } from '#/shared/types';
 
 /**

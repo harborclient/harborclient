@@ -4,7 +4,7 @@ import {
   getAiModelById,
   getAvailableModels,
   hasAvailableAiModels
-} from '#/shared/aiModels';
+} from '#/shared/ai/models';
 import type { AiSettings, HubLlmModelGroup } from '#/shared/types';
 
 const EMPTY_SETTINGS: AiSettings = {

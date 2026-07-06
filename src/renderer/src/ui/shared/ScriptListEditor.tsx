@@ -90,7 +90,7 @@ import {
 } from '#/shared/snippetScope';
 import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
 import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
-import { getAvailableModels } from '#/shared/aiModels';
+import { getAvailableModels } from '#/shared/ai/models';
 import {
   faAnglesDown,
   faAnglesUp,
