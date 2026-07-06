@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- chore: update README.md for improved user guidance. (`1fe7b54`)
 - chore: update project description for clarity. (`9a96d69`)
 
 ## 2.0.4 - 2026-07-06
