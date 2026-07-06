@@ -1,6 +1,6 @@
 ![HarborClient](images/logo.png)
 
-The free API client that keeps your work private: no accounts, no subscriptions, no lock-in.
+The free API client that keeps your work private: no accounts, no subscriptions, no lock-in. Your work in a safe harbor that you control.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![GitHub release](https://img.shields.io/github/v/release/harborclient/harborclient)](https://github.com/harborclient/harborclient/releases/latest)

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- chore: update project description for clarity. (`9a96d69`)
 - feat(mcp): integrate Model Context Protocol SDK and enhance MCP functionality. (`8554da7`)
 - feat(settings): add warnWhenClickingReadonlySnippet setting. (`a4a4110`)
 - refactor(ai): reorganize imports and introduce chat context utilities. (`11f364b`)
