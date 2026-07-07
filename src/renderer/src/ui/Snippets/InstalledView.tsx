@@ -28,6 +28,7 @@ import {
   updateSnippet
 } from '#/renderer/src/store/thunks/snippets';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
+import { providerOptionLabel, useProviders } from '#/renderer/src/hooks/useProviders';
 import { CodePreviewTooltip } from '#/renderer/src/ui/shared/CodePreviewTooltip';
 import { SnippetEditModal } from '#/renderer/src/ui/shared/SnippetEditModal';
 import {
@@ -93,6 +94,21 @@ export function InstalledView({
   const packagesByCatalogId = useMemo(
     () => new Map(installedPackages.map((pkg) => [pkg.catalogId, pkg])),
     [installedPackages]
+  );
+  const { providers } = useProviders([]);
+
+  /**
+   * Resolves storage location labels for routed snippet rows.
+   */
+  const providerLabelById = useMemo(
+    () =>
+      new Map(
+        providers.map((provider) => [
+          provider.id,
+          `${provider.name || 'Untitled'} (${providerOptionLabel(provider)})`
+        ])
+      ),
+    [providers]
   );
 
   /**
@@ -199,7 +215,8 @@ export function InstalledView({
       id: snippet.id,
       name: snippet.name,
       code: snippet.code,
-      scope: snippet.scope
+      scope: snippet.scope,
+      connectionId: snippet.connectionId
     });
     setIsNew(false);
     setIsReadOnly(isMarketplaceSnippet);
@@ -238,7 +255,8 @@ export function InstalledView({
           createSnippet({
             name: trimmedName,
             code: editingDraft.code,
-            scope: editingDraft.scope
+            scope: editingDraft.scope,
+            connectionId: editingDraft.connectionId
           })
         ).unwrap();
         toast.success('Snippet created');
@@ -248,7 +266,8 @@ export function InstalledView({
             id: editingDraft.id,
             name: trimmedName,
             code: editingDraft.code,
-            scope: editingDraft.scope
+            scope: editingDraft.scope,
+            connectionId: editingDraft.connectionId
           })
         ).unwrap();
         toast.success('Snippet saved');
@@ -271,7 +290,8 @@ export function InstalledView({
     setEditingDraft({
       name: `${snippet.name} (clone)`,
       code: snippet.code,
-      scope: snippet.scope
+      scope: snippet.scope,
+      connectionId: snippet.connectionId
     });
     setIsNew(true);
     setIsReadOnly(false);
@@ -513,6 +533,15 @@ export function InstalledView({
                       </div>
                       <span className="text-[14px] text-muted">
                         {snippetScopeLabel(snippet.scope)}
+                        {!isMarketplaceSnippet && snippet.connectionId ? (
+                          <>
+                            {' '}
+                            ·{' '}
+                            {providerLabelById.get(snippet.connectionId) ??
+                              'Unknown storage location'}
+                          </>
+                        ) : null}
+                        {isMarketplaceSnippet ? <> · Local marketplace</> : null}
                       </span>
                       <CodePreviewTooltip
                         code={snippet.code}

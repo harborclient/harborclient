@@ -40,6 +40,7 @@ import {
   docToCollection,
   docToEnvironment,
   docToFolder,
+  docToProviderSnippet,
   docToRequest
 } from '#/main/storage/entityMappers';
 import { bundleScriptFieldsWithLegacy } from '#/main/storage/scriptFields';
@@ -57,8 +58,10 @@ import type {
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
+  Snippet,
   Variable
 } from '#/shared/types';
+import type { SnippetScope } from '#/shared/snippetScope';
 import { generateDocumentUuid } from '#/main/storage/uuid';
 
 /**
@@ -189,7 +192,7 @@ export class FirestoreStorage implements IStorage {
    * @returns The persisted uuid string.
    */
   private async ensureDocumentUuid(
-    collectionName: 'collections' | 'requests' | 'environments' | 'folders',
+    collectionName: 'collections' | 'requests' | 'environments' | 'folders' | 'snippets',
     docId: string,
     data: Record<string, unknown>
   ): Promise<string> {
@@ -461,6 +464,87 @@ export class FirestoreStorage implements IStorage {
    */
   async deleteEnvironment(id: number): Promise<void> {
     await deleteDoc(doc(this.getFirestore(), 'environments', String(id)));
+  }
+
+  /**
+   * Lists all snippets stored in this provider ordered for display.
+   */
+  async listSnippets(): Promise<Snippet[]> {
+    const firestore = this.getFirestore();
+    const snap = await getDocs(collection(firestore, 'snippets'));
+    const results: Snippet[] = [];
+    for (const document of snap.docs) {
+      const data = document.data() as Record<string, unknown>;
+      const uuid = await this.ensureDocumentUuid('snippets', document.id, data);
+      results.push(docToProviderSnippet(Number(document.id), { ...data, uuid }));
+    }
+    return results.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /**
+   * Creates a new snippet in this provider.
+   */
+  async createSnippet(
+    name: string,
+    code: string,
+    scope: SnippetScope = 'any',
+    uuid?: string
+  ): Promise<Snippet> {
+    const trimmedName = trimRequiredName(name, 'Snippet name');
+    const id = await this.nextId('snippets');
+    const now = new Date().toISOString();
+    const data = {
+      id,
+      uuid: uuid?.trim() || generateDocumentUuid(),
+      name: trimmedName,
+      code: code ?? '',
+      scope,
+      sort_order: id,
+      created_at: now,
+      updated_at: now
+    };
+
+    await setDoc(doc(this.getFirestore(), 'snippets', String(id)), data);
+    return docToProviderSnippet(id, data);
+  }
+
+  /**
+   * Updates a snippet's name, code, and scope in this provider.
+   */
+  async updateSnippet(
+    id: number,
+    name: string,
+    code: string,
+    scope: SnippetScope = 'any'
+  ): Promise<Snippet> {
+    const trimmedName = trimRequiredName(name, 'Snippet name');
+    const ref = doc(this.getFirestore(), 'snippets', String(id));
+    const snap = await getDoc(ref);
+    if (!snap.exists()) throw new Error('Snippet not found');
+
+    const existing = snap.data() as Record<string, unknown>;
+    const now = new Date().toISOString();
+    await updateDoc(ref, {
+      name: trimmedName,
+      code: code ?? '',
+      scope,
+      updated_at: now
+    });
+
+    return docToProviderSnippet(id, {
+      ...existing,
+      name: trimmedName,
+      code: code ?? '',
+      scope,
+      updated_at: now
+    });
+  }
+
+  /**
+   * Deletes a snippet from this provider.
+   */
+  async deleteSnippet(id: number): Promise<void> {
+    await deleteDoc(doc(this.getFirestore(), 'snippets', String(id)));
   }
 
   /**

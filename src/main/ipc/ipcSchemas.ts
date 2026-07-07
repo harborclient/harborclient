@@ -598,8 +598,9 @@ export const ipcArgSchemas = {
     ipcScriptRefArray,
     ipcScriptRefArray
   ]),
-  snippetCreate: z.tuple([name, ipcScriptSource, snippetScope]),
+  snippetCreate: z.tuple([name, ipcScriptSource, snippetScope, connectionId.optional()]),
   snippetUpdate: z.tuple([dbId, name, ipcScriptSource, snippetScope]),
+  snippetMove: z.tuple([dbId, connectionId]),
   snippetInstallFromGit: z.tuple([z.string().min(1), z.string().min(1).optional()]),
   snippetInstallFromPath: z.tuple([z.string().min(1)]),
   snippetLoadUnpackedFromPath: z.tuple([z.string().min(1)]),

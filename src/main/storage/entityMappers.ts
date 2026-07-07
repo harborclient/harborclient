@@ -204,6 +204,26 @@ export function rowToEnvironment(row: Record<string, unknown>): Environment {
 }
 
 /**
+ * Maps a raw provider database row to a Snippet object.
+ *
+ * Provider rows omit marketplace metadata; callers merge registry routing fields.
+ *
+ * @param row - Row fields including numeric `id`.
+ */
+export function rowToProviderSnippet(row: Record<string, unknown>): Snippet {
+  return {
+    id: readNumber(row.id),
+    uuid: readString(row.uuid),
+    name: readString(row.name),
+    code: readString(row.code),
+    scope: normalizeSnippetScope(row.scope),
+    source: 'local',
+    created_at: readTimestamp(row.created_at),
+    updated_at: readTimestamp(row.updated_at)
+  };
+}
+
+/**
  * Maps a raw database row to a Snippet object.
  *
  * @param row - Row fields including numeric `id`.
@@ -338,6 +358,12 @@ export const docToCollection = (id: number, data: Record<string, unknown>): Coll
  */
 export const docToEnvironment = (id: number, data: Record<string, unknown>): Environment =>
   rowToEnvironment({ ...data, id });
+
+/**
+ * Maps a Firestore snippet document to a Snippet object.
+ */
+export const docToProviderSnippet = (id: number, data: Record<string, unknown>): Snippet =>
+  rowToProviderSnippet({ ...data, id });
 
 /**
  * Maps a Firestore folder document to a Folder object.

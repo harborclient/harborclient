@@ -61,8 +61,8 @@ importers:
         specifier: ^1.0.36
         version: 1.0.36(@babel/runtime@7.29.7)(@codemirror/search@6.7.1)(@codemirror/theme-one-dark@6.1.3)(codemirror@6.0.2)(eslint@9.39.4(jiti@2.7.0))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.9.3)
       '@harborclient/team-hub-api':
-        specifier: ^0.1.1
-        version: 0.1.1
+        specifier: ^0.2.0
+        version: 0.2.0
       '@lezer/highlight':
         specifier: ^1.2.3
         version: 1.2.3
@@ -1077,8 +1077,8 @@ packages:
     peerDependencies:
       react: '>=18'
 
-  '@harborclient/team-hub-api@0.1.1':
-    resolution: {integrity: sha512-tmHkjk9YgC74kwD5oKKmYBVn3bQ8BmgzI/olRFvMvwg1jJ8CEvbK72OoFvwM51depPXJGrIBodPuUsw0HESS/A==}
+  '@harborclient/team-hub-api@0.2.0':
+    resolution: {integrity: sha512-0qqcz4SnoFCK7N6yLtdhnxS6kF7keSc/xciPVl700r/rlC7PXAr2q0/uo+aOoRQ6P7wMi6sBGogJiqqKhG9sFg==}
     engines: {node: '>=24'}
 
   '@hono/node-server@1.19.14':
@@ -8136,7 +8136,7 @@ snapshots:
       - supports-color
       - typescript
 
-  '@harborclient/team-hub-api@0.1.1':
+  '@harborclient/team-hub-api@0.2.0':
     dependencies:
       zod: 4.4.3
 

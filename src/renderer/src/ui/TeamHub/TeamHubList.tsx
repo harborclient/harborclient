@@ -287,6 +287,7 @@ export function TeamHubList({
                         storage: false,
                         llm: false,
                         pluginCatalog: false,
+                        snippets: false,
                         admin: false
                       }
                     }

@@ -99,6 +99,7 @@ function userTeamHubSessionMock(managementApi = false): SessionResponse {
 function withDefaultTeamHubClient(client: Partial<TeamHubClient>): Partial<TeamHubClient> {
   return {
     getSession: vi.fn().mockResolvedValue(userTeamHubSessionMock(false)),
+    listSnippets: vi.fn().mockResolvedValue([]),
     ...client
   };
 }
@@ -187,7 +188,7 @@ async function createRoutingFixtureWithHub(client: Partial<TeamHubClient>): Prom
 
   const router = new RoutingStorage(database, CONN_A.id, rootDir);
   router.mount(0, CONN_A, backendA);
-  router.mount(1, HUB_A, hubDb);
+  router.mount(1, HUB_A, hubDb, 'http://127.0.0.1:8788');
 
   cleanups.push(async () => {
     await router.close();
@@ -558,6 +559,86 @@ describeSqlite('RoutingStorage duplicateCollection', () => {
   });
 });
 
+describeSqlite('RoutingStorage snippets', () => {
+  it('createSnippet registers in snippet registry and provider with stable global id', async () => {
+    const { router, database } = await createRoutingFixture();
+    const created = await router.createSnippet('Auth helper', 'hc.setToken();', 'pre-request');
+
+    expect(created.id).toEqual(expect.any(Number));
+    expect(created.name).toBe('Auth helper');
+    expect(created.connectionId).toBe(CONN_A.id);
+    expect(created.source).toBe('local');
+
+    const entry = database.getSnippetRegistryEntry(created.id);
+    expect(entry?.connectionId).toBe(CONN_A.id);
+    expect(entry?.providerSnippetId).toEqual(expect.any(Number));
+
+    const listed = await router.listSnippets();
+    expect(listed).toHaveLength(1);
+    expect(listed[0]?.id).toBe(created.id);
+    expect(listed[0]?.code).toBe('hc.setToken();');
+  });
+
+  it('moveSnippet copies snippet data to another backend and keeps global id', async () => {
+    const { router, database } = await createRoutingFixture({ mountB: true });
+    const snippet = await router.createSnippet('Move me', 'console.log(1);', 'any');
+    const globalId = snippet.id;
+
+    const moved = await router.moveSnippet(globalId, CONN_B.id);
+
+    expect(moved.id).toBe(globalId);
+    expect(moved.connectionId).toBe(CONN_B.id);
+    expect(moved.uuid).toBe(snippet.uuid);
+    expect(moved.code).toBe('console.log(1);');
+
+    const entry = database.getSnippetRegistryEntry(globalId);
+    expect(entry?.connectionId).toBe(CONN_B.id);
+
+    const listed = await router.listSnippets();
+    expect(listed).toHaveLength(1);
+    expect(listed[0]?.id).toBe(globalId);
+    expect(listed[0]?.connectionId).toBe(CONN_B.id);
+  });
+
+  it('moveSnippet throws a clear error when the target hub does not support snippets', async () => {
+    const createSnippet = vi.fn().mockRejectedValue(
+      new TeamHubClientError('Not Found', {
+        status: 404,
+        method: 'POST',
+        path: '/snippets'
+      })
+    );
+    const { router, database } = await createRoutingFixtureWithHub({ createSnippet });
+
+    const snippet = await router.createSnippet('Move me', 'console.log(1);', 'any');
+
+    await expect(router.moveSnippet(snippet.id, HUB_A.id)).rejects.toThrow(
+      /does not respond to snippet storage routes/
+    );
+
+    const entry = database.getSnippetRegistryEntry(snippet.id);
+    expect(entry?.connectionId).toBe(CONN_A.id);
+  });
+
+  it('moveSnippet throws a permission error when the hub rejects snippet create with 403', async () => {
+    const createSnippet = vi.fn().mockRejectedValue(
+      new TeamHubClientError('Forbidden', {
+        status: 403,
+        method: 'POST',
+        path: '/snippets'
+      })
+    );
+    const { router, database } = await createRoutingFixtureWithHub({ createSnippet });
+
+    const snippet = await router.createSnippet('Move me', 'console.log(1);', 'any');
+
+    await expect(router.moveSnippet(snippet.id, HUB_A.id)).rejects.toThrow(/snippet create access/);
+
+    const entry = database.getSnippetRegistryEntry(snippet.id);
+    expect(entry?.connectionId).toBe(CONN_A.id);
+  });
+});
+
 describeSqlite('RoutingStorage duplicateRequest uuid', () => {
   it('saveRequest insert without uuid mints a fresh request uuid', async () => {
     const { router } = await createRoutingFixture();
@@ -774,6 +855,34 @@ describeSqlite('RoutingStorage syncTeamHub', () => {
     expect(database.listRegistry()).toEqual([]);
     expect(hubDb.getServerCollectionId(localId)).toBeUndefined();
     expect(listCollections).not.toHaveBeenCalled();
+  });
+
+  it('skips snippet sync when the hub does not expose /snippets', async () => {
+    const listCollections = vi.fn().mockResolvedValue([]);
+    const listSnippets = vi.fn().mockRejectedValue(
+      new TeamHubClientError('Not Found', {
+        status: 404,
+        method: 'GET',
+        path: '/snippets'
+      })
+    );
+    const { router, database } = await createRoutingFixtureWithHub({
+      listCollections,
+      listSnippets
+    });
+
+    database.addSnippetRegistryEntry({
+      name: 'Auth header',
+      connectionId: HUB_A.id,
+      providerSnippetId: 1,
+      uuid: '550e8400-e29b-41d4-a716-446655440099',
+      scope: 'any'
+    });
+
+    await expect(router.syncTeamHub(HUB_A.id)).resolves.toBeUndefined();
+
+    expect(listSnippets).toHaveBeenCalledTimes(1);
+    expect(database.listSnippetRegistry()).toHaveLength(1);
   });
 });
 

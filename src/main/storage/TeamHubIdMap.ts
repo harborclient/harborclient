@@ -5,7 +5,7 @@ import { dirname } from 'path';
 /**
  * Entity kinds stored in the team hub id map.
  */
-export type TeamHubEntityType = 'collection' | 'environment' | 'folder' | 'request';
+export type TeamHubEntityType = 'collection' | 'environment' | 'folder' | 'request' | 'snippet';
 
 /**
  * Persistent bidirectional map between HarborClient Server UUIDs and local numeric ids.

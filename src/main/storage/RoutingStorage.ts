@@ -1,6 +1,15 @@
 import { MoveCoordinator } from '#/main/storage/CollectionMover';
+import {
+  SnippetMoveCoordinator,
+  createSnippetRoutingInternals,
+  type SnippetRoutingInternals
+} from '#/main/storage/SnippetMover';
 import { createTeamHubStorage, teamHubIdMapPath } from '#/main/storage/createTeamHubStorage';
-import { LocalDatabase, type CollectionRegistryEntry } from '#/main/storage/LocalDatabase';
+import {
+  LocalDatabase,
+  type CollectionRegistryEntry,
+  type SnippetRegistryEntry
+} from '#/main/storage/LocalDatabase';
 import { MigrationManager } from '#/main/storage/DatabaseMigrator';
 import { createStorageInstance } from '#/main/storage/createStorageInstance';
 import { GitStorage } from '#/main/storage/GitStorage';
@@ -9,7 +18,9 @@ import type { IStorage } from '#/main/storage/IStorage';
 import { TeamHubStorage } from '#/main/storage/TeamHubStorage';
 import {
   addDetachedServerId,
+  addDetachedSnippetServerId,
   readDetachedServerIds,
+  readDetachedSnippetServerIds,
   removeDetachedSetting
 } from '#/main/storage/teamHubDetached';
 import type {
@@ -17,7 +28,10 @@ import type {
   ProviderDescriptor,
   RoutingInternals
 } from '#/main/storage/routingInternals';
-import { isTeamHubCollectionDeleteForbiddenError } from '@harborclient/team-hub-api';
+import {
+  isTeamHubCollectionDeleteForbiddenError,
+  isTeamHubSnippetsUnsupportedError
+} from '@harborclient/team-hub-api';
 import { logVerbose } from '#/main/logger';
 import { isStorageConnectionConfigured } from '#/main/settings/storageSettings';
 import { getSlotForConnection } from '#/main/settings/storageSlots';
@@ -35,11 +49,35 @@ import type {
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
+  Snippet,
   SourceControlStatus,
   TeamHub,
   Variable
 } from '#/shared/types';
+import type { SnippetScope } from '#/shared/snippetScope';
 import { defaultAuth } from '#/shared/auth';
+
+/**
+ * Numeric id offset so marketplace snippet ids never collide with registry global ids.
+ */
+export const MARKETPLACE_SNIPPET_ID_OFFSET = 2_000_000_000;
+
+/**
+ * Formats a marketplace snippet row id for the merged renderer list.
+ */
+export function toMarketplaceSnippetGlobalId(localId: number): number {
+  return MARKETPLACE_SNIPPET_ID_OFFSET + localId;
+}
+
+/**
+ * Decodes a merged-list snippet id back to a marketplace registry row id.
+ */
+export function fromMarketplaceSnippetGlobalId(id: number): number | null {
+  if (id < MARKETPLACE_SNIPPET_ID_OFFSET) {
+    return null;
+  }
+  return id - MARKETPLACE_SNIPPET_ID_OFFSET;
+}
 
 /**
  * Formats a backend error for user-facing collection list warnings.
@@ -71,6 +109,7 @@ export class RoutingStorage implements IStorage {
   private listCollectionWarnings: string[] = [];
   private internalsCache?: RoutingInternals;
   private moverCache?: MoveCoordinator;
+  private snippetMoverCache?: SnippetMoveCoordinator;
   private migratorCache?: MigrationManager;
 
   /**
@@ -92,6 +131,36 @@ export class RoutingStorage implements IStorage {
   }
 
   /**
+   * Lazily constructed snippet move coordinator sharing this router's internal context.
+   */
+  private get snippetMover(): SnippetMoveCoordinator {
+    return (this.snippetMoverCache ??= new SnippetMoveCoordinator(this.snippetInternals));
+  }
+
+  /**
+   * Shared internal context for snippet move helpers.
+   */
+  private get snippetInternals(): SnippetRoutingInternals {
+    return createSnippetRoutingInternals(
+      this.internals,
+      (entry, record) => this.buildSnippet(entry, record),
+      (connectionId, providerSnippetId) => {
+        const backend = this.byConnectionId.get(connectionId);
+        if (!backend || backend.connectionType !== 'team-hub') {
+          return undefined;
+        }
+        if (!(backend.db instanceof TeamHubStorage)) {
+          return undefined;
+        }
+        return backend.db.getServerSnippetId(providerSnippetId);
+      },
+      (hubId, serverSnippetId) => {
+        addDetachedSnippetServerId(this.database, hubId, serverSnippetId);
+      }
+    );
+  }
+
+  /**
    * Lazily constructed migration manager sharing this router's internal context.
    */
   private get migrator(): MigrationManager {
@@ -108,13 +177,14 @@ export class RoutingStorage implements IStorage {
   /**
    * Registers an initialized backend at the given slot.
    */
-  mount(slot: number, provider: ProviderDescriptor, db: IStorage): void {
+  mount(slot: number, provider: ProviderDescriptor, db: IStorage, teamHubBaseUrl?: string): void {
     const backend: MountedBackend = {
       slot,
       connectionId: provider.id,
       connectionName: provider.name,
       connectionType: provider.type,
-      db
+      db,
+      teamHubBaseUrl
     };
     this.byConnectionId.set(provider.id, backend);
     this.bySlot.set(slot, backend);
@@ -726,6 +796,135 @@ export class RoutingStorage implements IStorage {
   }
 
   /**
+   * Lists routed provider snippets merged with local marketplace snippets.
+   */
+  async listSnippets(): Promise<Snippet[]> {
+    const entries = this.database.listSnippetRegistry();
+    const recordsByConnection = new Map<string, Map<number, Snippet>>();
+
+    for (const connectionId of new Set(entries.map((entry) => entry.connectionId))) {
+      const backend = this.byConnectionId.get(connectionId);
+      if (!backend) {
+        continue;
+      }
+      try {
+        const records = await backend.db.listSnippets();
+        recordsByConnection.set(
+          connectionId,
+          new Map(records.map((record) => [record.id, record]))
+        );
+
+        const hubDb =
+          backend.connectionType === 'team-hub' && backend.db instanceof TeamHubStorage
+            ? backend.db
+            : undefined;
+        this.pruneOrphanSnippetRegistryEntries(
+          connectionId,
+          new Set(records.map((record) => record.id)),
+          hubDb,
+          backend.connectionName
+        );
+      } catch (err) {
+        if (isTeamHubSnippetsUnsupportedError(err)) {
+          logVerbose(
+            `Skipped snippets from "${backend.connectionName}"; server does not expose /snippets.`
+          );
+          continue;
+        }
+        console.warn(`Failed to read snippets from "${backend.connectionName}":`, err);
+      }
+    }
+
+    const routed = entries.map((entry) => {
+      const record = recordsByConnection.get(entry.connectionId)?.get(entry.providerSnippetId);
+      return this.buildSnippet(entry, record);
+    });
+
+    const marketplace = this.database.listMarketplaceSnippets().map((snippet) => ({
+      ...snippet,
+      id: toMarketplaceSnippetGlobalId(snippet.id)
+    }));
+
+    return [...routed, ...marketplace];
+  }
+
+  /**
+   * Creates a snippet in the default data provider and registers it.
+   */
+  async createSnippet(
+    name: string,
+    code: string,
+    scope: SnippetScope = 'any',
+    uuid?: string
+  ): Promise<Snippet> {
+    const backend = this.requireDefaultDataBackend();
+    return this.createSnippetOnBackend(name, code, scope, backend, uuid);
+  }
+
+  /**
+   * Creates a snippet on a specific provider and registers it.
+   */
+  async createSnippetInProvider(
+    name: string,
+    code: string,
+    scope: SnippetScope,
+    connectionId: string,
+    uuid?: string
+  ): Promise<Snippet> {
+    const backend = this.requireBackendByConnectionId(connectionId);
+    return this.createSnippetOnBackend(name, code, scope, backend, uuid);
+  }
+
+  /**
+   * Updates a snippet's data in its provider and registry metadata.
+   */
+  async updateSnippet(
+    id: number,
+    name: string,
+    code: string,
+    scope: SnippetScope = 'any'
+  ): Promise<Snippet> {
+    const marketplaceId = fromMarketplaceSnippetGlobalId(id);
+    if (marketplaceId != null) {
+      const updated = this.database.updateSnippet(marketplaceId, name, code, scope);
+      return { ...updated, id: toMarketplaceSnippetGlobalId(updated.id) };
+    }
+
+    const entry = this.requireSnippetEntry(id);
+    const backend = this.requireBackendByConnectionId(entry.connectionId);
+    const record = await backend.db.updateSnippet(entry.providerSnippetId, name, code, scope);
+    const updatedEntry = this.database.updateSnippetRegistryEntry(id, {
+      name: record.name,
+      uuid: record.uuid,
+      scope: record.scope
+    });
+    return this.buildSnippet(updatedEntry, record);
+  }
+
+  /**
+   * Deletes a routed snippet from its provider and the registry.
+   */
+  async deleteSnippet(id: number): Promise<void> {
+    const marketplaceId = fromMarketplaceSnippetGlobalId(id);
+    if (marketplaceId != null) {
+      this.database.deleteSnippet(marketplaceId);
+      return;
+    }
+
+    const entry = this.requireSnippetEntry(id);
+    const backend = this.requireBackendByConnectionId(entry.connectionId);
+    await backend.db.deleteSnippet(entry.providerSnippetId);
+    this.database.deleteSnippetRegistryEntry(id);
+  }
+
+  /**
+   * Moves a snippet's data to another provider, keeping its global id stable.
+   */
+  async moveSnippet(globalSnippetId: number, targetConnectionId: string): Promise<Snippet> {
+    return this.snippetMover.moveSnippet(globalSnippetId, targetConnectionId);
+  }
+
+  /**
    * Deep-copies a collection into a new collection on the same backend.
    *
    * @param id - Global collection id to duplicate.
@@ -748,7 +947,8 @@ export class RoutingStorage implements IStorage {
    * Deletes stale source copies left behind by interrupted collection moves.
    */
   async recoverPendingMoveCleanups(): Promise<void> {
-    return this.mover.recoverPendingMoveCleanups();
+    await this.mover.recoverPendingMoveCleanups();
+    await this.snippetMover.recoverPendingMoveCleanups();
   }
 
   /**
@@ -942,7 +1142,7 @@ export class RoutingStorage implements IStorage {
     }
 
     const db = await createTeamHubStorage(hub, this.userDataPath);
-    this.mount(slot, { id: hub.id, name: hub.name, type: 'team-hub' }, db);
+    this.mount(slot, { id: hub.id, name: hub.name, type: 'team-hub' }, db, hub.baseUrl);
   }
 
   /**
@@ -1211,6 +1411,66 @@ export class RoutingStorage implements IStorage {
       hubDb,
       backend.connectionName
     );
+
+    await this.syncTeamHubSnippets(hubId, hubDb, backend.connectionName);
+  }
+
+  /**
+   * Adds registry entries for server snippets not yet registered on a hub.
+   *
+   * @param hubId - Team hub connection id.
+   * @param hubDb - Mounted team hub storage backend.
+   * @param connectionName - Display name used in verbose logs.
+   */
+  private async syncTeamHubSnippets(
+    hubId: string,
+    hubDb: TeamHubStorage,
+    connectionName: string
+  ): Promise<void> {
+    if (await hubDb.hasManagementApi()) {
+      return;
+    }
+
+    const detached = readDetachedSnippetServerIds(this.database, hubId);
+    let serverSnippets: Snippet[];
+    try {
+      serverSnippets = await hubDb.listSnippets();
+    } catch (err) {
+      if (isTeamHubSnippetsUnsupportedError(err)) {
+        console.warn(
+          `Team hub "${connectionName}" does not respond to /snippets; snippet sync skipped. Confirm the hub server URL and version include snippet storage.`
+        );
+        return;
+      }
+      throw err;
+    }
+    const entries = this.database
+      .listSnippetRegistry()
+      .filter((entry) => entry.connectionId === hubId);
+    const registeredProviderIds = new Set(entries.map((entry) => entry.providerSnippetId));
+
+    for (const record of serverSnippets) {
+      const serverId = hubDb.getServerSnippetId(record.id);
+      if (!serverId) continue;
+
+      if (detached.has(serverId)) continue;
+      if (registeredProviderIds.has(record.id)) continue;
+
+      this.database.addSnippetRegistryEntry({
+        name: record.name,
+        connectionId: hubId,
+        providerSnippetId: record.id,
+        uuid: record.uuid,
+        scope: record.scope
+      });
+    }
+
+    this.pruneOrphanSnippetRegistryEntries(
+      hubId,
+      new Set(serverSnippets.map((record) => record.id)),
+      hubDb,
+      connectionName
+    );
   }
 
   /**
@@ -1239,6 +1499,30 @@ export class RoutingStorage implements IStorage {
       this.database.deleteRegistryEntry(entry.id);
       logVerbose(
         `Removed registry entry for collection "${entry.name}" on "${connectionName}" because it no longer exists on the remote provider.`
+      );
+    }
+  }
+
+  /**
+   * Removes snippet registry entries when their provider snippet id is absent remotely.
+   */
+  private pruneOrphanSnippetRegistryEntries(
+    connectionId: string,
+    remoteProviderIds: ReadonlySet<number>,
+    hubDb: TeamHubStorage | undefined,
+    connectionName: string
+  ): void {
+    const entries = this.database
+      .listSnippetRegistry()
+      .filter((entry) => entry.connectionId === connectionId);
+
+    for (const entry of entries) {
+      if (remoteProviderIds.has(entry.providerSnippetId)) continue;
+
+      hubDb?.forgetLocalSnippet(entry.providerSnippetId);
+      this.database.deleteSnippetRegistryEntry(entry.id);
+      logVerbose(
+        `Removed registry entry for snippet "${entry.name}" on "${connectionName}" because it no longer exists on the remote provider.`
       );
     }
   }
@@ -1384,6 +1668,74 @@ export class RoutingStorage implements IStorage {
   }
 
   /**
+   * Merges snippet registry metadata with backend snippet record fields.
+   */
+  private buildSnippet(entry: SnippetRegistryEntry, record: Snippet | undefined): Snippet {
+    const recordUuid = record?.uuid?.trim() ?? '';
+    const entryUuid = entry.uuid.trim();
+    const uuid = recordUuid || entryUuid;
+
+    if (recordUuid && recordUuid !== entryUuid) {
+      this.database.updateSnippetRegistryEntry(entry.id, { uuid: recordUuid });
+    }
+
+    return {
+      id: entry.id,
+      uuid,
+      name: entry.name,
+      code: record?.code ?? '',
+      scope: record?.scope ?? entry.scope,
+      source: 'local',
+      connectionId: entry.connectionId,
+      created_at: record?.created_at ?? entry.created_at,
+      updated_at: record?.updated_at ?? entry.created_at
+    };
+  }
+
+  /**
+   * Creates a snippet on a backend and registers it in the local registry.
+   */
+  private async createSnippetOnBackend(
+    name: string,
+    code: string,
+    scope: SnippetScope,
+    backend: MountedBackend,
+    uuid?: string
+  ): Promise<Snippet> {
+    const created = await backend.db.createSnippet(name, code, scope, uuid);
+    try {
+      const entry = this.database.addSnippetRegistryEntry({
+        name: created.name,
+        connectionId: backend.connectionId,
+        providerSnippetId: created.id,
+        uuid: created.uuid,
+        scope: created.scope
+      });
+      return this.buildSnippet(entry, created);
+    } catch (err) {
+      await this.compensateProviderSnippetCreate(backend, created.id);
+      throw err;
+    }
+  }
+
+  /**
+   * Deletes a provider snippet when registry registration fails after create.
+   */
+  private async compensateProviderSnippetCreate(
+    backend: MountedBackend,
+    providerSnippetId: number
+  ): Promise<void> {
+    try {
+      await backend.db.deleteSnippet(providerSnippetId);
+    } catch (cleanupErr) {
+      console.warn(
+        `Failed to clean up provider snippet ${providerSnippetId} after registry failure:`,
+        cleanupErr
+      );
+    }
+  }
+
+  /**
    * Encodes backend-scoped request ids into global ids for the UI.
    *
    * @param request - Backend-scoped saved request.
@@ -1524,6 +1876,17 @@ export class RoutingStorage implements IStorage {
     const entry = this.database.getRegistryEntry(id);
     if (!entry) {
       throw new Error(`Collection not found: ${id}`);
+    }
+    return entry;
+  }
+
+  /**
+   * Returns a snippet registry entry by global id or throws.
+   */
+  private requireSnippetEntry(id: number): SnippetRegistryEntry {
+    const entry = this.database.getSnippetRegistryEntry(id);
+    if (!entry) {
+      throw new Error(`Snippet not found: ${id}`);
     }
     return entry;
   }

@@ -23,8 +23,13 @@ import {
   rowToCollection,
   rowToEnvironment,
   rowToFolder,
+  rowToProviderSnippet,
   rowToRequest
 } from '#/main/storage/entityMappers';
+import {
+  CREATE_PROVIDER_SNIPPETS_TABLE_SQL,
+  PROVIDER_SNIPPET_COLUMNS
+} from '#/main/storage/providerSnippetSql';
 import {
   bundleScriptFieldsWithLegacy,
   migrateSqliteScriptArrayColumns
@@ -42,9 +47,11 @@ import type {
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
+  Snippet,
   SqliteSettings,
   Variable
 } from '#/shared/types';
+import type { SnippetScope } from '#/shared/snippetScope';
 import { parseJson } from '#/shared/parseJson';
 import { generateDocumentUuid } from '#/main/storage/uuid';
 
@@ -172,6 +179,8 @@ export class SqliteStorage implements IStorage {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE
     );
+
+    ${CREATE_PROVIDER_SNIPPETS_TABLE_SQL}
   `);
 
     const columns = this.#db.prepare('PRAGMA table_info(collections)').all() as Array<{
@@ -1171,6 +1180,83 @@ export class SqliteStorage implements IStorage {
    */
   async getSourceControlStatus(): Promise<null> {
     return null;
+  }
+
+  /**
+   * Lists all snippets stored in this provider ordered for display.
+   */
+  async listSnippets(): Promise<Snippet[]> {
+    const rows = this.getDb()
+      .prepare(`SELECT ${PROVIDER_SNIPPET_COLUMNS} FROM snippets ORDER BY sort_order ASC, name ASC`)
+      .all() as Record<string, unknown>[];
+
+    return rows.map(rowToProviderSnippet);
+  }
+
+  /**
+   * Creates a new snippet in this provider.
+   */
+  async createSnippet(
+    name: string,
+    code: string,
+    scope: SnippetScope = 'any',
+    uuid?: string
+  ): Promise<Snippet> {
+    const trimmedName = trimRequiredName(name, 'Snippet name');
+    const snippetUuid = uuid?.trim() || generateDocumentUuid();
+    const sortOrder = this.nextSnippetSortOrder();
+    const now = new Date().toISOString();
+    const result = this.getDb()
+      .prepare(
+        'INSERT INTO snippets (name, uuid, code, scope, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      )
+      .run(trimmedName, snippetUuid, code ?? '', scope, sortOrder, now, now);
+
+    const row = this.getDb()
+      .prepare(`SELECT ${PROVIDER_SNIPPET_COLUMNS} FROM snippets WHERE id = ?`)
+      .get(result.lastInsertRowid) as Record<string, unknown>;
+
+    return rowToProviderSnippet(row);
+  }
+
+  /**
+   * Updates a snippet's name, code, and scope in this provider.
+   */
+  async updateSnippet(
+    id: number,
+    name: string,
+    code: string,
+    scope: SnippetScope = 'any'
+  ): Promise<Snippet> {
+    const trimmedName = trimRequiredName(name, 'Snippet name');
+    const now = new Date().toISOString();
+    this.getDb()
+      .prepare('UPDATE snippets SET name = ?, code = ?, scope = ?, updated_at = ? WHERE id = ?')
+      .run(trimmedName, code ?? '', scope, now, id);
+
+    const row = this.getDb()
+      .prepare(`SELECT ${PROVIDER_SNIPPET_COLUMNS} FROM snippets WHERE id = ?`)
+      .get(id) as Record<string, unknown> | undefined;
+
+    if (!row) throw new Error('Snippet not found');
+    return rowToProviderSnippet(row);
+  }
+
+  /**
+   * Deletes a snippet from this provider.
+   */
+  async deleteSnippet(id: number): Promise<void> {
+    this.getDb().prepare('DELETE FROM snippets WHERE id = ?').run(id);
+  }
+
+  /**
+   * Returns the next sort order value for a new snippet row.
+   */
+  private nextSnippetSortOrder(): number {
+    const row = this.getDb()
+      .prepare('SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM snippets')
+      .get() as { max_order: number };
+    return row.max_order + 1;
   }
 
   /**

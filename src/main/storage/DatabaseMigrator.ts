@@ -1,6 +1,7 @@
 import type { RoutingInternals } from '#/main/storage/routingInternals';
 
 const MIGRATION_FLAG_KEY = '__migrated__';
+const SNIPPET_MIGRATION_FLAG_KEY = '__snippets_migrated__';
 const THEME_SETTING_KEY = 'theme';
 
 /**
@@ -78,5 +79,43 @@ export class MigrationManager {
     }
 
     this.internals.database.setSetting(MIGRATION_FLAG_KEY, '1');
+    await this.migrateSnippetRegistryIfNeeded();
+  }
+
+  /**
+   * Moves legacy local snippet rows into the default provider and registry.
+   */
+  async migrateSnippetRegistryIfNeeded(): Promise<void> {
+    if (this.internals.database.getSetting(SNIPPET_MIGRATION_FLAG_KEY) === '1') {
+      return;
+    }
+
+    const legacySnippets = this.internals.database.listLegacyLocalSnippets();
+    if (legacySnippets.length > 0) {
+      const defaultBackend = this.internals.resolveDefaultDataBackend();
+      for (const legacy of legacySnippets) {
+        try {
+          const created = await defaultBackend.db.createSnippet(
+            legacy.name,
+            legacy.code,
+            legacy.scope,
+            legacy.uuid
+          );
+          this.internals.database.addSnippetRegistryEntry({
+            id: legacy.id,
+            name: created.name,
+            connectionId: defaultBackend.connectionId,
+            providerSnippetId: created.id,
+            uuid: created.uuid,
+            scope: created.scope
+          });
+          this.internals.database.deleteLegacyLocalSnippet(legacy.id);
+        } catch (err) {
+          console.warn(`Failed to migrate legacy snippet "${legacy.name}":`, err);
+        }
+      }
+    }
+
+    this.internals.database.setSetting(SNIPPET_MIGRATION_FLAG_KEY, '1');
   }
 }

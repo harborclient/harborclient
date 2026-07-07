@@ -9,6 +9,7 @@ function emptyServices(): TeamHubServiceFlags {
     storage: false,
     llm: false,
     pluginCatalog: false,
+    snippets: false,
     admin: false
   };
 }
@@ -44,6 +45,23 @@ async function probePluginCatalogEnabled(client: TeamHubClient): Promise<boolean
 }
 
 /**
+ * Probes whether the Team Hub server exposes snippet storage routes.
+ *
+ * Snippets are core team hub storage alongside collections and environments.
+ * A failed probe usually indicates a server version or base URL mismatch.
+ *
+ * @param client - Authenticated Team Hub client.
+ * @returns True when `GET /snippets` is available on the hub server.
+ */
+async function probeSnippetsEnabled(client: TeamHubClient): Promise<boolean> {
+  try {
+    return await client.probeSnippetsServiceEnabled();
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Probes one team hub connection for server services and token capabilities.
  *
  * @param hub - Team hub connection to scan.
@@ -55,9 +73,10 @@ async function scanTeamHubSession(hub: TeamHub): Promise<TeamHubSessionScanResul
   try {
     await client.checkHealth();
     const session = await client.getSession();
-    const [llm, pluginCatalog] = await Promise.all([
+    const [llm, pluginCatalog, snippets] = await Promise.all([
       probeHubLlmEnabled(client, session.capabilities.managementApi),
-      probePluginCatalogEnabled(client)
+      probePluginCatalogEnabled(client),
+      probeSnippetsEnabled(client)
     ]);
 
     return {
@@ -66,7 +85,8 @@ async function scanTeamHubSession(hub: TeamHub): Promise<TeamHubSessionScanResul
         storage: true,
         admin: session.capabilities.managementApi,
         llm,
-        pluginCatalog
+        pluginCatalog,
+        snippets
       },
       managementApi: session.capabilities.managementApi
     };

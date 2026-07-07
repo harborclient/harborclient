@@ -29,6 +29,7 @@ import {
   type EnvironmentRecord,
   type FolderRecord,
   type SavedRequestRecord,
+  type SnippetRecord,
   type TeamHubAuthConfig,
   type TeamHubClient
 } from '@harborclient/team-hub-api';
@@ -45,8 +46,10 @@ import type {
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
+  Snippet,
   Variable
 } from '#/shared/types';
+import type { SnippetScope } from '#/shared/snippetScope';
 
 /**
  * Resolves script references from a Team Hub record, preferring the legacy string column.
@@ -117,6 +120,25 @@ function serverToEnvironment(record: EnvironmentRecord, localId: number): Enviro
     variables: record.variables.map(normalizeVariable),
     created_at: record.createdAt,
     deletion_locked: record.deletionLocked
+  };
+}
+
+/**
+ * Maps a server snippet record to the local {@link Snippet} shape.
+ *
+ * @param record - Snippet payload from HarborClient Server.
+ * @param localId - Numeric id assigned by {@link TeamHubIdMap}.
+ */
+function serverToSnippet(record: SnippetRecord, localId: number): Snippet {
+  return {
+    id: localId,
+    uuid: record.id,
+    name: record.name,
+    code: record.code,
+    scope: record.scope,
+    source: 'local',
+    created_at: record.createdAt,
+    updated_at: record.createdAt
   };
 }
 
@@ -286,6 +308,15 @@ export class TeamHubStorage implements IStorage {
   }
 
   /**
+   * Returns the server UUID for a mapped local snippet id.
+   *
+   * @param localSnippetId - Provider-local snippet id from the id map.
+   */
+  getServerSnippetId(localSnippetId: number): string | undefined {
+    return this.idMap.toServerId('snippet', localSnippetId);
+  }
+
+  /**
    * Drops the id map entry for a local collection without calling the server.
    *
    * Used when a collection was deleted remotely and the local registry is pruned.
@@ -296,6 +327,18 @@ export class TeamHubStorage implements IStorage {
     const serverId = this.getServerCollectionId(localCollectionId);
     if (serverId) {
       this.idMap.forget('collection', serverId);
+    }
+  }
+
+  /**
+   * Drops the id map entry for a local snippet without calling the server.
+   *
+   * @param localSnippetId - Provider-local snippet id from the id map.
+   */
+  forgetLocalSnippet(localSnippetId: number): void {
+    const serverId = this.getServerSnippetId(localSnippetId);
+    if (serverId) {
+      this.idMap.forget('snippet', serverId);
     }
   }
 
@@ -399,6 +442,63 @@ export class TeamHubStorage implements IStorage {
   async deleteEnvironment(id: number): Promise<void> {
     void id;
     throw new Error('Environments are not stored on team hubs.');
+  }
+
+  /**
+   * Lists all snippets from the server with ids translated to numeric form.
+   */
+  async listSnippets(): Promise<Snippet[]> {
+    const records = await this.client.listSnippets();
+    return records.map((record) =>
+      serverToSnippet(record, this.idMap.toLocalId('snippet', record.id))
+    );
+  }
+
+  /**
+   * Creates a snippet on the server and registers its UUID in the id map.
+   */
+  async createSnippet(
+    name: string,
+    code: string,
+    scope: SnippetScope = 'any',
+    uuid?: string
+  ): Promise<Snippet> {
+    const trimmedName = trimRequiredName(name, 'Snippet name');
+    const record = await this.client.createSnippet({
+      name: trimmedName,
+      code: code ?? '',
+      scope
+    });
+    const localId = this.idMap.toLocalId('snippet', record.id);
+    void uuid;
+    return serverToSnippet(record, localId);
+  }
+
+  /**
+   * Updates snippet metadata on the server.
+   */
+  async updateSnippet(
+    id: number,
+    name: string,
+    code: string,
+    scope: SnippetScope = 'any'
+  ): Promise<Snippet> {
+    const serverId = this.requireServerId('snippet', id);
+    const record = await this.client.updateSnippet(serverId, {
+      name: trimRequiredName(name, 'Snippet name'),
+      code: code ?? '',
+      scope
+    });
+    return serverToSnippet(record, id);
+  }
+
+  /**
+   * Deletes a snippet on the server and forgets its id map entry.
+   */
+  async deleteSnippet(id: number): Promise<void> {
+    const serverId = this.requireServerId('snippet', id);
+    await this.client.deleteSnippet(serverId);
+    this.idMap.forget('snippet', serverId);
   }
 
   /**
@@ -839,7 +939,7 @@ export class TeamHubStorage implements IStorage {
    * @param localId - Provider-local numeric id.
    */
   private requireServerId(
-    entityType: 'collection' | 'folder' | 'request',
+    entityType: 'collection' | 'folder' | 'request' | 'snippet',
     localId: number
   ): string {
     const serverId = this.idMap.toServerId(entityType, localId);

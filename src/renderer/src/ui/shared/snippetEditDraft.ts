@@ -24,6 +24,11 @@ export type SnippetEditDraft = {
    * Script phases where the snippet may be referenced.
    */
   scope: SnippetScope;
+
+  /**
+   * Storage connection id that should store this snippet.
+   */
+  connectionId?: string;
 };
 
 /**

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(snippets): implement snippet management features. (`06fe0e1`)
 - feat(snippets): add uninstall functionality for marketplace snippet bundles. (`9a28865`)
 
 ## 2.0.5 - 2026-07-07

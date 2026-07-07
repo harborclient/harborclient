@@ -20,6 +20,7 @@ import type {
   Snippet,
   Variable
 } from '#/shared/types';
+import type { SnippetScope } from '#/shared/snippetScope';
 
 const REGISTRY_DB_FILENAME = 'harborclient-registry.db';
 
@@ -80,6 +81,80 @@ export interface AddRegistryEntryInput {
 export type UpdateRegistryEntryInput = Partial<
   Pick<CollectionRegistryEntry, 'name' | 'connectionId' | 'providerCollectionId' | 'collectionUuid'>
 >;
+
+/**
+ * A single entry in the local snippet registry.
+ */
+export interface SnippetRegistryEntry {
+  /**
+   * Stable global snippet id exposed to the renderer.
+   */
+  id: number;
+
+  /**
+   * Display name shown in snippet lists.
+   */
+  name: string;
+
+  /**
+   * Portable snippet uuid mirrored from the provider for script references.
+   */
+  uuid: string;
+
+  /**
+   * Id of the storage connection that stores this snippet's data.
+   */
+  connectionId: string;
+
+  /**
+   * Id of the snippet within the provider's own store.
+   */
+  providerSnippetId: number;
+
+  /**
+   * Script phases where this snippet may be referenced.
+   */
+  scope: SnippetScope;
+
+  /**
+   * ISO 8601 timestamp when the registry entry was created.
+   */
+  created_at: string;
+}
+
+/**
+ * Input for creating a snippet registry entry.
+ */
+export interface AddSnippetRegistryEntryInput {
+  id?: number;
+  name: string;
+  connectionId: string;
+  providerSnippetId: number;
+  uuid?: string;
+  scope?: SnippetScope;
+}
+
+/**
+ * Mutable fields of a snippet registry entry.
+ */
+export type UpdateSnippetRegistryEntryInput = Partial<
+  Pick<SnippetRegistryEntry, 'name' | 'connectionId' | 'providerSnippetId' | 'uuid' | 'scope'>
+>;
+
+/**
+ * Maps a raw SQLite row to a snippet registry entry.
+ */
+function rowToSnippetRegistryEntry(row: Record<string, unknown>): SnippetRegistryEntry {
+  return {
+    id: row.id as number,
+    name: row.name as string,
+    uuid: (row.uuid as string) ?? '',
+    connectionId: row.connection_id as string,
+    providerSnippetId: row.provider_snippet_id as number,
+    scope: (row.scope as SnippetScope) ?? 'any',
+    created_at: row.created_at as string
+  };
+}
 
 /**
  * Maps a raw SQLite row to a collection registry entry.
@@ -192,6 +267,17 @@ export class LocalDatabase {
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
         updated_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
+
+      CREATE TABLE IF NOT EXISTS snippet_registry (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        uuid TEXT NOT NULL DEFAULT '',
+        connection_id TEXT NOT NULL,
+        provider_snippet_id INTEGER NOT NULL,
+        scope TEXT NOT NULL DEFAULT 'any',
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
     `);
     }
 
@@ -203,6 +289,25 @@ export class LocalDatabase {
     this.migrateSnippetUuid();
     this.migrateSnippetScope();
     this.migrateSnippetMarketplaceFields();
+    this.migrateSnippetRegistryTable();
+  }
+
+  /**
+   * Ensures the snippet registry table exists on legacy databases.
+   */
+  private migrateSnippetRegistryTable(): void {
+    this.getDb().exec(`
+      CREATE TABLE IF NOT EXISTS snippet_registry (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        uuid TEXT NOT NULL DEFAULT '',
+        connection_id TEXT NOT NULL,
+        provider_snippet_id INTEGER NOT NULL,
+        scope TEXT NOT NULL DEFAULT 'any',
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
   }
 
   /**
@@ -601,6 +706,134 @@ export class LocalDatabase {
   }
 
   /**
+   * Lists all snippet registry entries ordered for settings display.
+   *
+   * @returns Registry entries with connection routing metadata.
+   */
+  listSnippetRegistry(): SnippetRegistryEntry[] {
+    const rows = this.getDb()
+      .prepare(
+        'SELECT id, name, uuid, connection_id, provider_snippet_id, scope, created_at FROM snippet_registry ORDER BY sort_order ASC, name ASC'
+      )
+      .all() as Record<string, unknown>[];
+
+    return rows.map(rowToSnippetRegistryEntry);
+  }
+
+  /**
+   * Looks up a single snippet registry entry by global snippet id.
+   *
+   * @param id - Global snippet id.
+   * @returns The entry when found, otherwise undefined.
+   */
+  getSnippetRegistryEntry(id: number): SnippetRegistryEntry | undefined {
+    const row = this.getDb()
+      .prepare(
+        'SELECT id, name, uuid, connection_id, provider_snippet_id, scope, created_at FROM snippet_registry WHERE id = ?'
+      )
+      .get(id) as Record<string, unknown> | undefined;
+
+    return row ? rowToSnippetRegistryEntry(row) : undefined;
+  }
+
+  /**
+   * Registers a new snippet in the local routing registry.
+   *
+   * @param input - Registry entry fields including optional explicit id.
+   * @returns The persisted registry entry.
+   */
+  addSnippetRegistryEntry(input: AddSnippetRegistryEntryInput): SnippetRegistryEntry {
+    const sortOrder = this.nextSnippetRegistrySortOrder();
+    const snippetUuid = input.uuid?.trim() ?? '';
+    const scope = input.scope ?? 'any';
+
+    if (input.id != null) {
+      this.getDb()
+        .prepare(
+          'INSERT INTO snippet_registry (id, name, uuid, connection_id, provider_snippet_id, scope, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        )
+        .run(
+          input.id,
+          input.name.trim(),
+          snippetUuid,
+          input.connectionId,
+          input.providerSnippetId,
+          scope,
+          sortOrder
+        );
+      const entry = this.getSnippetRegistryEntry(input.id);
+      if (!entry) throw new Error('Snippet registry entry not found after insert');
+      return entry;
+    }
+
+    const result = this.getDb()
+      .prepare(
+        'INSERT INTO snippet_registry (name, uuid, connection_id, provider_snippet_id, scope, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
+      )
+      .run(
+        input.name.trim(),
+        snippetUuid,
+        input.connectionId,
+        input.providerSnippetId,
+        scope,
+        sortOrder
+      );
+
+    const entry = this.getSnippetRegistryEntry(Number(result.lastInsertRowid));
+    if (!entry) throw new Error('Snippet registry entry not found after insert');
+    return entry;
+  }
+
+  /**
+   * Updates snippet registry metadata for an existing entry.
+   *
+   * @param id - Global snippet id.
+   * @param fields - Partial fields to merge into the entry.
+   * @returns The updated registry entry.
+   */
+  updateSnippetRegistryEntry(
+    id: number,
+    fields: UpdateSnippetRegistryEntryInput
+  ): SnippetRegistryEntry {
+    const current = this.getSnippetRegistryEntry(id);
+    if (!current) throw new Error('Snippet registry entry not found');
+
+    const next: SnippetRegistryEntry = {
+      ...current,
+      ...fields
+    };
+
+    this.getDb()
+      .prepare(
+        'UPDATE snippet_registry SET name = ?, uuid = ?, connection_id = ?, provider_snippet_id = ?, scope = ? WHERE id = ?'
+      )
+      .run(next.name.trim(), next.uuid, next.connectionId, next.providerSnippetId, next.scope, id);
+
+    const updated = this.getSnippetRegistryEntry(id);
+    if (!updated) throw new Error('Snippet registry entry not found after update');
+    return updated;
+  }
+
+  /**
+   * Removes a snippet from the local routing registry.
+   *
+   * @param id - Global snippet id to delete.
+   */
+  deleteSnippetRegistryEntry(id: number): void {
+    this.getDb().prepare('DELETE FROM snippet_registry WHERE id = ?').run(id);
+  }
+
+  /**
+   * Returns the next sort order value for a new snippet registry entry.
+   */
+  private nextSnippetRegistrySortOrder(): number {
+    const row = this.getDb()
+      .prepare('SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM snippet_registry')
+      .get() as { max_order: number };
+    return row.max_order + 1;
+  }
+
+  /**
    * Lists all environments ordered for sidebar display.
    *
    * @returns All environments in the database.
@@ -741,6 +974,47 @@ export class LocalDatabase {
    */
   deleteEnvironment(id: number): void {
     this.getDb().prepare('DELETE FROM environments WHERE id = ?').run(id);
+  }
+
+  /**
+   * Lists marketplace snippets ordered for settings display.
+   *
+   * @returns Marketplace snippet rows stored in the local registry only.
+   */
+  listMarketplaceSnippets(): Snippet[] {
+    const rows = this.getDb()
+      .prepare(
+        "SELECT id, uuid, name, code, scope, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets WHERE source = 'marketplace' ORDER BY sort_order ASC, name ASC"
+      )
+      .all() as Record<string, unknown>[];
+
+    return rows.map(rowToSnippet);
+  }
+
+  /**
+   * Lists legacy local user snippets still stored in the registry table.
+   *
+   * Used during migration into provider-backed storage.
+   *
+   * @returns Local snippet rows not yet routed through providers.
+   */
+  listLegacyLocalSnippets(): Snippet[] {
+    const rows = this.getDb()
+      .prepare(
+        "SELECT id, uuid, name, code, scope, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets WHERE source = 'local' ORDER BY sort_order ASC, name ASC"
+      )
+      .all() as Record<string, unknown>[];
+
+    return rows.map(rowToSnippet);
+  }
+
+  /**
+   * Deletes a legacy local snippet row from the registry table after migration.
+   *
+   * @param id - Legacy local snippet id in the registry table.
+   */
+  deleteLegacyLocalSnippet(id: number): void {
+    this.getDb().prepare("DELETE FROM snippets WHERE id = ? AND source = 'local'").run(id);
   }
 
   /**

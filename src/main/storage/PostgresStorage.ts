@@ -20,8 +20,13 @@ import {
   rowToCollection,
   rowToEnvironment,
   rowToFolder,
+  rowToProviderSnippet,
   rowToRequest
 } from '#/main/storage/entityMappers';
+import {
+  CREATE_PROVIDER_SNIPPETS_TABLE_POSTGRES,
+  PROVIDER_SNIPPET_COLUMNS
+} from '#/main/storage/providerSnippetSql';
 import {
   bundleScriptFieldsWithLegacy,
   migratePostgresScriptArrayColumns
@@ -40,8 +45,10 @@ import type {
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
+  Snippet,
   Variable
 } from '#/shared/types';
+import type { SnippetScope } from '#/shared/snippetScope';
 import { parseJson } from '#/shared/parseJson';
 import { generateDocumentUuid } from '#/main/storage/uuid';
 
@@ -171,6 +178,8 @@ export class PostgresStorage implements IStorage {
         FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE
       )
     `);
+
+    await this.#pool.query(CREATE_PROVIDER_SNIPPETS_TABLE_POSTGRES);
 
     await this.#pool.query(`
       ALTER TABLE collections ADD COLUMN IF NOT EXISTS uuid TEXT NOT NULL DEFAULT ''
@@ -1158,6 +1167,75 @@ export class PostgresStorage implements IStorage {
    */
   async getSourceControlStatus(): Promise<null> {
     return null;
+  }
+
+  /**
+   * Lists all snippets stored in this provider ordered for display.
+   */
+  async listSnippets(): Promise<Snippet[]> {
+    const result = await this.getPool().query(
+      `SELECT ${PROVIDER_SNIPPET_COLUMNS} FROM snippets ORDER BY sort_order ASC, name ASC`
+    );
+    return result.rows.map((row) => rowToProviderSnippet(row as Record<string, unknown>));
+  }
+
+  /**
+   * Creates a new snippet in this provider.
+   */
+  async createSnippet(
+    name: string,
+    code: string,
+    scope: SnippetScope = 'any',
+    uuid?: string
+  ): Promise<Snippet> {
+    const trimmedName = trimRequiredName(name, 'Snippet name');
+    const snippetUuid = uuid?.trim() || generateDocumentUuid();
+    const now = new Date().toISOString();
+    const maxResult = await this.getPool().query(
+      'SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM snippets'
+    );
+    const sortOrder = Number(maxResult.rows[0]?.max_order ?? -1) + 1;
+    const insertResult = await this.getPool().query(
+      'INSERT INTO snippets (name, uuid, code, scope, sort_order, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING ' +
+        PROVIDER_SNIPPET_COLUMNS,
+      [trimmedName, snippetUuid, code ?? '', scope, sortOrder, now, now]
+    );
+    const row = insertResult.rows[0];
+    if (!row) throw new Error('Snippet not found after insert');
+    return rowToProviderSnippet(row as Record<string, unknown>);
+  }
+
+  /**
+   * Updates a snippet's name, code, and scope in this provider.
+   */
+  async updateSnippet(
+    id: number,
+    name: string,
+    code: string,
+    scope: SnippetScope = 'any'
+  ): Promise<Snippet> {
+    const trimmedName = trimRequiredName(name, 'Snippet name');
+    const now = new Date().toISOString();
+    const updateResult = await this.getPool().query(
+      'UPDATE snippets SET name = $1, code = $2, scope = $3, updated_at = $4 WHERE id = $5',
+      [trimmedName, code ?? '', scope, now, id]
+    );
+    if (updateResult.rowCount === 0) throw new Error('Snippet not found');
+
+    const selectResult = await this.getPool().query(
+      `SELECT ${PROVIDER_SNIPPET_COLUMNS} FROM snippets WHERE id = $1`,
+      [id]
+    );
+    const row = selectResult.rows[0];
+    if (!row) throw new Error('Snippet not found');
+    return rowToProviderSnippet(row as Record<string, unknown>);
+  }
+
+  /**
+   * Deletes a snippet from this provider.
+   */
+  async deleteSnippet(id: number): Promise<void> {
+    await this.getPool().query('DELETE FROM snippets WHERE id = $1', [id]);
   }
 
   /**

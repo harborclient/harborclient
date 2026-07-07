@@ -34,7 +34,7 @@ export function registerIpcHandlers(db: IStorage, pluginManager: PluginManager):
   registerChatHandlers();
   registerLlmHandlers();
   registerEnvironmentHandlers(db);
-  registerSnippetHandlers();
+  registerSnippetHandlers(db);
   registerRequestHandlers(db);
   registerNetworkHandlers(cookieJar);
   registerOAuthHandlers();

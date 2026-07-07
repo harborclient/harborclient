@@ -23,6 +23,7 @@ describe('scanTeamHubSessions', () => {
     storage: false,
     llm: false,
     pluginCatalog: false,
+    snippets: false,
     admin: false
   };
 
@@ -30,6 +31,7 @@ describe('scanTeamHubSessions', () => {
     storage: true,
     llm: true,
     pluginCatalog: true,
+    snippets: true,
     admin: false
   };
 
@@ -37,6 +39,7 @@ describe('scanTeamHubSessions', () => {
     storage: true,
     llm: true,
     pluginCatalog: true,
+    snippets: true,
     admin: true
   };
 
@@ -90,6 +93,10 @@ describe('scanTeamHubSessions', () => {
             })
           );
         }
+
+        if (url.endsWith('/snippets')) {
+          return Promise.resolve(jsonResponse({ snippets: [] }));
+        }
       }
 
       if (url.endsWith('/auth/session')) {
@@ -117,6 +124,10 @@ describe('scanTeamHubSessions', () => {
             trusted: ['https://harborclient.com/plugins/trusted.json']
           })
         );
+      }
+
+      if (url.endsWith('/snippets')) {
+        return Promise.resolve(jsonResponse({ snippets: [] }));
       }
 
       return Promise.resolve(jsonResponse({ error: 'Not found' }, 404));
@@ -170,6 +181,10 @@ describe('scanTeamHubSessions', () => {
         );
       }
 
+      if (url.endsWith('/snippets')) {
+        return Promise.resolve(jsonResponse({ snippets: [] }));
+      }
+
       return Promise.resolve(jsonResponse({ error: 'Not found' }, 404));
     });
     globalThis.fetch = fetchMock;
@@ -183,7 +198,8 @@ describe('scanTeamHubSessions', () => {
           storage: true,
           admin: false,
           llm: false,
-          pluginCatalog: true
+          pluginCatalog: true,
+          snippets: true
         },
         managementApi: false
       }
@@ -216,6 +232,10 @@ describe('scanTeamHubSessions', () => {
         return Promise.resolve(jsonResponse({ catalogs: [], trusted: [] }));
       }
 
+      if (url.endsWith('/snippets')) {
+        return Promise.resolve(jsonResponse({ snippets: [] }));
+      }
+
       return Promise.resolve(jsonResponse({ error: 'Not found' }, 404));
     });
     globalThis.fetch = fetchMock;
@@ -229,7 +249,59 @@ describe('scanTeamHubSessions', () => {
           storage: true,
           admin: false,
           llm: true,
-          pluginCatalog: false
+          pluginCatalog: false,
+          snippets: true
+        },
+        managementApi: false
+      }
+    ]);
+  });
+
+  it('marks snippets inactive when the snippets route returns 404', async () => {
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/health')) {
+        return Promise.resolve(jsonResponse({ status: 'ok', version: '1.0.0' }));
+      }
+
+      if (url.endsWith('/auth/session')) {
+        return Promise.resolve(
+          jsonResponse({
+            user: { id: 'user-alice', name: 'alice', role: 'user' },
+            token: { id: 'token-user', prefix: 'hbk_user' },
+            capabilities: { dataApi: true, managementApi: false, llm: true }
+          })
+        );
+      }
+
+      if (url.endsWith('/llm/models')) {
+        return Promise.resolve(jsonResponse({ models: [] }));
+      }
+
+      if (url.endsWith('/plugins/sources')) {
+        return Promise.resolve(jsonResponse({ catalogs: [], trusted: [] }));
+      }
+
+      if (url.endsWith('/snippets')) {
+        return Promise.resolve(jsonResponse({ error: 'Not found' }, 404));
+      }
+
+      return Promise.resolve(jsonResponse({ error: 'Not found' }, 404));
+    });
+    globalThis.fetch = fetchMock;
+
+    const results = await scanTeamHubSessions([userHub]);
+
+    expect(results).toEqual([
+      {
+        hubId: 'hub-user',
+        services: {
+          storage: true,
+          admin: false,
+          llm: true,
+          pluginCatalog: false,
+          snippets: false
         },
         managementApi: false
       }

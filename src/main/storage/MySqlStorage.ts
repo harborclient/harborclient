@@ -20,8 +20,13 @@ import {
   rowToCollection,
   rowToEnvironment,
   rowToFolder,
+  rowToProviderSnippet,
   rowToRequest
 } from '#/main/storage/entityMappers';
+import {
+  CREATE_PROVIDER_SNIPPETS_TABLE_MYSQL,
+  PROVIDER_SNIPPET_COLUMNS
+} from '#/main/storage/providerSnippetSql';
 import { bundleScriptFieldsWithLegacy } from '#/main/storage/scriptFields';
 import { trimRequiredName } from '#/main/storage/trimRequiredName';
 import { DEFAULT_AUTH_JSON, defaultAuth, normalizeAuth } from '#/shared/auth';
@@ -37,8 +42,10 @@ import type {
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
+  Snippet,
   Variable
 } from '#/shared/types';
+import type { SnippetScope } from '#/shared/snippetScope';
 import { parseJson } from '#/shared/parseJson';
 import { generateDocumentUuid } from '#/main/storage/uuid';
 
@@ -149,6 +156,8 @@ export class MySqlStorage implements IStorage {
         FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE
       )
     `);
+
+    await this.#pool.execute(CREATE_PROVIDER_SNIPPETS_TABLE_MYSQL);
 
     // MySQL has no `ADD COLUMN IF NOT EXISTS` (a MariaDB-only extension), so the
     // schema is migrated by checking information_schema before each ALTER.
@@ -1202,6 +1211,79 @@ export class MySqlStorage implements IStorage {
    */
   async getSourceControlStatus(): Promise<null> {
     return null;
+  }
+
+  /**
+   * Lists all snippets stored in this provider ordered for display.
+   */
+  async listSnippets(): Promise<Snippet[]> {
+    const [rows] = await this.getPool().execute<RowDataPacket[]>(
+      `SELECT ${PROVIDER_SNIPPET_COLUMNS} FROM snippets ORDER BY sort_order ASC, name ASC`
+    );
+    return rows.map(rowToProviderSnippet);
+  }
+
+  /**
+   * Creates a new snippet in this provider.
+   */
+  async createSnippet(
+    name: string,
+    code: string,
+    scope: SnippetScope = 'any',
+    uuid?: string
+  ): Promise<Snippet> {
+    const trimmedName = trimRequiredName(name, 'Snippet name');
+    const snippetUuid = uuid?.trim() || generateDocumentUuid();
+    const now = new Date().toISOString();
+    const [maxRows] = await this.getPool().execute<RowDataPacket[]>(
+      'SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM snippets'
+    );
+    const sortOrder = Number(maxRows[0]?.max_order ?? -1) + 1;
+    const [result] = await this.getPool().execute<ResultSetHeader>(
+      'INSERT INTO snippets (name, uuid, code, scope, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [trimmedName, snippetUuid, code ?? '', scope, sortOrder, now, now]
+    );
+
+    const [rows] = await this.getPool().execute<RowDataPacket[]>(
+      `SELECT ${PROVIDER_SNIPPET_COLUMNS} FROM snippets WHERE id = ?`,
+      [result.insertId]
+    );
+    const row = rows[0];
+    if (!row) throw new Error('Snippet not found after insert');
+    return rowToProviderSnippet(row);
+  }
+
+  /**
+   * Updates a snippet's name, code, and scope in this provider.
+   */
+  async updateSnippet(
+    id: number,
+    name: string,
+    code: string,
+    scope: SnippetScope = 'any'
+  ): Promise<Snippet> {
+    const trimmedName = trimRequiredName(name, 'Snippet name');
+    const now = new Date().toISOString();
+    const [result] = await this.getPool().execute<ResultSetHeader>(
+      'UPDATE snippets SET name = ?, code = ?, scope = ?, updated_at = ? WHERE id = ?',
+      [trimmedName, code ?? '', scope, now, id]
+    );
+    if (result.affectedRows === 0) throw new Error('Snippet not found');
+
+    const [rows] = await this.getPool().execute<RowDataPacket[]>(
+      `SELECT ${PROVIDER_SNIPPET_COLUMNS} FROM snippets WHERE id = ?`,
+      [id]
+    );
+    const row = rows[0];
+    if (!row) throw new Error('Snippet not found');
+    return rowToProviderSnippet(row);
+  }
+
+  /**
+   * Deletes a snippet from this provider.
+   */
+  async deleteSnippet(id: number): Promise<void> {
+    await this.getPool().execute('DELETE FROM snippets WHERE id = ?', [id]);
   }
 
   /**

@@ -1,6 +1,5 @@
-import { BrowserWindow, dialog } from 'electron';
-import { app } from 'electron';
-import { readFile } from 'fs/promises';
+import type { IStorage } from '#/main/storage/IStorage';
+import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
@@ -8,24 +7,57 @@ import { fetchSnippetCatalog } from '#/main/snippets/snippetCatalog';
 import { fetchSnippetPreviewFromGit } from '#/main/snippets/snippetPreview';
 import { getSnippetInstaller } from '#/main/snippets/SnippetInstaller';
 import type { SnippetImportResult } from '#/shared/types/api/snippets';
+import { BrowserWindow, dialog } from 'electron';
+import { app } from 'electron';
+import { readFile } from 'fs/promises';
 
 /**
  * Registers IPC handlers for reusable JavaScript snippet CRUD and marketplace install.
+ *
+ * @param db - Active storage router for routed snippet CRUD.
  */
-export function registerSnippetHandlers(): void {
-  handle('snippets:list', ipcArgSchemas.none, () => getLocalDatabase().listSnippets());
+export function registerSnippetHandlers(db: IStorage): void {
+  handle('snippets:list', ipcArgSchemas.none, () => {
+    if (db instanceof RoutingStorage) {
+      return db.listSnippets();
+    }
+    return getLocalDatabase().listSnippets();
+  });
 
-  handle('snippets:create', ipcArgSchemas.snippetCreate, (_event, name, code, scope) =>
-    getLocalDatabase().createSnippet(name, code, scope)
+  handle(
+    'snippets:create',
+    ipcArgSchemas.snippetCreate,
+    (_event, name, code, scope, connectionId) => {
+      if (connectionId && db instanceof RoutingStorage) {
+        return db.createSnippetInProvider(name, code, scope, connectionId);
+      }
+      if (db instanceof RoutingStorage) {
+        return db.createSnippet(name, code, scope);
+      }
+      return getLocalDatabase().createSnippet(name, code, scope);
+    }
   );
 
-  handle('snippets:update', ipcArgSchemas.snippetUpdate, (_event, id, name, code, scope) =>
-    getLocalDatabase().updateSnippet(id, name, code, scope)
-  );
+  handle('snippets:update', ipcArgSchemas.snippetUpdate, (_event, id, name, code, scope) => {
+    if (db instanceof RoutingStorage) {
+      return db.updateSnippet(id, name, code, scope);
+    }
+    return getLocalDatabase().updateSnippet(id, name, code, scope);
+  });
 
-  handle('snippets:delete', ipcArgSchemas.dbId, (_event, id) =>
-    getLocalDatabase().deleteSnippet(id)
-  );
+  handle('snippets:delete', ipcArgSchemas.dbId, (_event, id) => {
+    if (db instanceof RoutingStorage) {
+      return db.deleteSnippet(id);
+    }
+    return getLocalDatabase().deleteSnippet(id);
+  });
+
+  handle('snippets:move', ipcArgSchemas.snippetMove, (_event, id, targetConnectionId) => {
+    if (!(db instanceof RoutingStorage)) {
+      throw new Error('Snippet move is unavailable.');
+    }
+    return db.moveSnippet(id, targetConnectionId);
+  });
 
   handle(
     'snippets:importFile',

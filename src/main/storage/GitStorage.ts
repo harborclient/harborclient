@@ -11,17 +11,20 @@ import {
   collectionDir,
   createStoredFolder,
   deleteEnvironmentFile,
+  deleteSnippetFile,
   ensureHarborclientLayout,
   findCollectionDirByUuid,
   listCollectionUuidsOnDisk,
   manifestToCollectionExport,
   readAllEnvironments,
+  readAllSnippets,
   readCollectionFromDir,
   readGitProviderSettings,
   resolveHarborclientRoot,
   writeCollectionToDir,
   writeEnvironmentFile,
   writeGitProviderSettings,
+  writeSnippetFile,
   type CollectionManifest,
   type StoredFolderRow
 } from '#/main/git/fileLayout';
@@ -54,9 +57,12 @@ import type {
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
+  Snippet,
+  SnippetExport,
   SourceControlStatus,
   Variable
 } from '#/shared/types';
+import type { SnippetScope } from '#/shared/snippetScope';
 
 /**
  * Collection manifest persisted on disk including script array JSON columns.
@@ -144,6 +150,7 @@ export class GitStorage implements IStorage {
   #idIndex: GitIdIndexData;
   #collections = new Map<number, LoadedCollection>();
   #environments = new Map<number, EnvironmentExport>();
+  #snippets = new Map<number, SnippetExport>();
   #requestTimestamps = new Map<string, { created_at: string; updated_at: string }>();
   #providerSettings: Record<string, string> = {};
   #initialized = false;
@@ -174,6 +181,7 @@ export class GitStorage implements IStorage {
   async reloadFromDisk(): Promise<void> {
     this.#collections.clear();
     this.#environments.clear();
+    this.#snippets.clear();
     ensureHarborclientLayout(this.#root);
 
     const collectionUuids = new Set<string>();
@@ -221,6 +229,15 @@ export class GitStorage implements IStorage {
       this.#environments.set(envId, { ...env, uuid: envUuid });
     }
     pruneGitIdMap(this.#idIndex, 'environmentIds', envUuids);
+
+    const snippetUuids = new Set<string>();
+    for (const snippet of readAllSnippets(this.#root)) {
+      const snippetUuid = resolveImportUuid(snippet.uuid);
+      snippetUuids.add(snippetUuid);
+      const snippetId = assignGitId(this.#idIndex, 'snippetIds', 'nextSnippetId', snippetUuid);
+      this.#snippets.set(snippetId, { ...snippet, uuid: snippetUuid });
+    }
+    pruneGitIdMap(this.#idIndex, 'snippetIds', snippetUuids);
 
     saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
   }
@@ -393,6 +410,87 @@ export class GitStorage implements IStorage {
     deleteEnvironmentFile(this.#root, resolveImportUuid(existing.uuid));
     delete this.#idIndex.environmentIds[resolveImportUuid(existing.uuid)];
     this.#environments.delete(id);
+    saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async listSnippets(): Promise<Snippet[]> {
+    return [...this.#snippets.entries()]
+      .map(([id, snippet]) => this.exportToSnippet(id, snippet))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async createSnippet(
+    name: string,
+    code: string,
+    scope: SnippetScope = 'any',
+    uuid?: string
+  ): Promise<Snippet> {
+    const trimmedName = trimRequiredName(name, 'Snippet name');
+    const snippetUuid = uuid?.trim() || generateDocumentUuid();
+    const now = new Date().toISOString();
+    const exportData: SnippetExport = {
+      harborclientVersion: 1,
+      harborclientExport: 'snippet',
+      uuid: snippetUuid,
+      name: trimmedName,
+      code: code ?? '',
+      scope,
+      created_at: now,
+      updated_at: now
+    };
+    writeSnippetFile(this.#root, exportData);
+    const id = assignGitId(this.#idIndex, 'snippetIds', 'nextSnippetId', snippetUuid);
+    this.#snippets.set(id, exportData);
+    saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
+    return this.exportToSnippet(id, exportData);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async updateSnippet(
+    id: number,
+    name: string,
+    code: string,
+    scope: SnippetScope = 'any'
+  ): Promise<Snippet> {
+    const existing = this.#snippets.get(id);
+    if (!existing) {
+      throw new Error('Snippet not found');
+    }
+    const trimmedName = trimRequiredName(name, 'Snippet name');
+    const now = new Date().toISOString();
+    const updated: SnippetExport = {
+      ...existing,
+      name: trimmedName,
+      code: code ?? '',
+      scope,
+      updated_at: now
+    };
+    deleteSnippetFile(this.#root, resolveImportUuid(existing.uuid));
+    writeSnippetFile(this.#root, updated);
+    this.#snippets.set(id, updated);
+    saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
+    return this.exportToSnippet(id, updated);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async deleteSnippet(id: number): Promise<void> {
+    const existing = this.#snippets.get(id);
+    if (!existing) {
+      throw new Error('Snippet not found');
+    }
+    deleteSnippetFile(this.#root, resolveImportUuid(existing.uuid));
+    delete this.#idIndex.snippetIds[resolveImportUuid(existing.uuid)];
+    this.#snippets.delete(id);
     saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
   }
 
@@ -1119,6 +1217,26 @@ export class GitStorage implements IStorage {
       name: env.name,
       variables: env.variables,
       created_at: new Date().toISOString()
+    };
+  }
+
+  /**
+   * Converts a snippet export to a Snippet entity.
+   *
+   * @param id - Provider-local snippet id.
+   * @param snippet - Snippet export payload.
+   */
+  private exportToSnippet(id: number, snippet: SnippetExport): Snippet {
+    const now = new Date().toISOString();
+    return {
+      id,
+      uuid: resolveImportUuid(snippet.uuid),
+      name: snippet.name,
+      code: snippet.code,
+      scope: snippet.scope,
+      source: 'local',
+      created_at: snippet.created_at ?? now,
+      updated_at: snippet.updated_at ?? now
     };
   }
 

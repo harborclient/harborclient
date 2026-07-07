@@ -6,7 +6,8 @@ import type { SnippetScope } from '#/shared/snippetScope';
 export type SnippetSource = 'local' | 'marketplace';
 
 /**
- * A reusable JavaScript snippet stored in the app-global registry.
+ * A reusable JavaScript snippet stored in a provider backend or the local
+ * marketplace registry.
  */
 export interface Snippet {
   /**
@@ -40,6 +41,13 @@ export interface Snippet {
   source: SnippetSource;
 
   /**
+   * Id of the storage connection that stores this snippet.
+   *
+   * Omitted for marketplace snippets, which remain in the local registry only.
+   */
+  connectionId?: string;
+
+  /**
    * Marketplace bundle id when `source` is `marketplace`.
    */
   catalogId?: string;
@@ -63,4 +71,49 @@ export interface Snippet {
    * ISO 8601 timestamp when the snippet was last updated.
    */
   updated_at: string;
+}
+
+/**
+ * Portable snippet export file format for git-backed storage.
+ */
+export interface SnippetExport {
+  /**
+   * HarborClient export schema version for forward compatibility.
+   */
+  harborclientVersion: 1;
+
+  /**
+   * Discriminator identifying this file as a snippet export.
+   */
+  harborclientExport: 'snippet';
+
+  /**
+   * Stable portable identifier for deduplication and script references.
+   */
+  uuid: string;
+
+  /**
+   * Display name shown in settings and script pickers.
+   */
+  name: string;
+
+  /**
+   * JavaScript source executed when the snippet is referenced.
+   */
+  code: string;
+
+  /**
+   * Script phases where this snippet may be referenced.
+   */
+  scope: SnippetScope;
+
+  /**
+   * ISO 8601 timestamp when the snippet was created.
+   */
+  created_at?: string;
+
+  /**
+   * ISO 8601 timestamp when the snippet was last updated.
+   */
+  updated_at?: string;
 }

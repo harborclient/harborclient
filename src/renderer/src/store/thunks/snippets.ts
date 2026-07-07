@@ -11,7 +11,7 @@ import {
 const SNIPPETS_REFRESH_KEY = 'snippets';
 
 /**
- * Reloads all snippets from the local registry database.
+ * Reloads all routed and marketplace snippets from the main process.
  */
 export const refreshSnippets = createAsyncThunk<
   Awaited<ReturnType<typeof window.api.listSnippets>>,
@@ -32,25 +32,54 @@ export const refreshSnippets = createAsyncThunk<
  */
 export const createSnippet = createAsyncThunk<
   Snippet,
-  { name: string; code: string; scope: SnippetScope },
+  { name: string; code: string; scope: SnippetScope; connectionId?: string },
   ThunkApiConfig
->('snippets/create', async ({ name, code, scope }, { dispatch }) => {
-  const snippet = await window.api.createSnippet(name, code, scope);
+>('snippets/create', async ({ name, code, scope, connectionId }, { dispatch }) => {
+  const snippet = await window.api.createSnippet(name, code, scope, connectionId);
   await dispatch(refreshSnippets());
   return snippet;
 });
 
 /**
- * Updates a snippet and refreshes the snippets list.
+ * Updates a snippet, moving it first when the storage location changed.
  */
 export const updateSnippet = createAsyncThunk<
   Snippet,
-  { id: number; name: string; code: string; scope: SnippetScope },
+  {
+    id: number;
+    name: string;
+    code: string;
+    scope: SnippetScope;
+    connectionId?: string;
+  },
   ThunkApiConfig
->('snippets/update', async ({ id, name, code, scope }, { dispatch }) => {
-  const snippet = await window.api.updateSnippet(id, name, code, scope);
+>('snippets/update', async ({ id, name, code, scope, connectionId }, { dispatch, getState }) => {
+  const state = getState();
+  const snippet = state.snippets.snippets.find((item) => item.id === id);
+  const primaryConnectionId = await window.api.getActiveStorageId();
+  const currentConnectionId = snippet?.connectionId ?? primaryConnectionId;
+
+  if (connectionId && connectionId !== currentConnectionId) {
+    await window.api.moveSnippet(id, connectionId);
+
+    let updated: Snippet;
+    try {
+      updated = await window.api.updateSnippet(id, name, code, scope);
+    } catch (err) {
+      await dispatch(refreshSnippets());
+      throw new Error(
+        'Snippet was moved to the new database, but your changes could not be saved. Open the snippet again and save.',
+        { cause: err }
+      );
+    }
+
+    await dispatch(refreshSnippets());
+    return updated;
+  }
+
+  const updated = await window.api.updateSnippet(id, name, code, scope);
   await dispatch(refreshSnippets());
-  return snippet;
+  return updated;
 });
 
 /**

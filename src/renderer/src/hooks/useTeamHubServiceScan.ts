@@ -34,6 +34,7 @@ function emptyServices(): TeamHubServiceFlags {
     storage: false,
     llm: false,
     pluginCatalog: false,
+    snippets: false,
     admin: false
   };
 }

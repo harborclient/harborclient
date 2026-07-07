@@ -35,14 +35,46 @@ interface ServiceBadge {
  *
  * @param active - Whether the service is available on the hub server.
  * @param scanning - Whether the service scan is still running.
+ * @param needsAttention - When true, storage works but this core service is missing.
  * @returns Badge color preset for the service label.
  */
-function badgeVariant(active: boolean, scanning: boolean): BadgeVariant {
-  if (scanning || !active) {
+function badgeVariant(active: boolean, scanning: boolean, needsAttention = false): BadgeVariant {
+  if (scanning) {
+    return 'muted';
+  }
+
+  if (needsAttention) {
+    return 'muted';
+  }
+
+  if (!active) {
     return 'muted';
   }
 
   return 'success';
+}
+
+/**
+ * Returns an accessible label for one service badge.
+ *
+ * @param badge - Service badge metadata.
+ * @param scanning - Whether the service scan is still running.
+ * @param needsAttention - When true, storage works but this core service is missing.
+ */
+function serviceBadgeAriaLabel(
+  badge: ServiceBadge,
+  scanning: boolean,
+  needsAttention: boolean
+): string {
+  if (scanning) {
+    return `${badge.label}: scanning`;
+  }
+
+  if (needsAttention) {
+    return `${badge.label}: action required — hub server missing snippet storage routes`;
+  }
+
+  return `${badge.label}: ${badge.active ? 'available' : 'not available'}`;
 }
 
 /**
@@ -52,7 +84,8 @@ export function TeamHubServiceBadges({ services, scanning }: Props): JSX.Element
   const badges: ServiceBadge[] = [
     { label: 'Storage', active: services.storage },
     { label: 'LLM', active: services.llm },
-    { label: 'Plugins', active: services.pluginCatalog }
+    { label: 'Plugins', active: services.pluginCatalog },
+    { label: 'Snippets', active: services.snippets }
   ];
 
   if (services.admin) {
@@ -65,18 +98,21 @@ export function TeamHubServiceBadges({ services, scanning }: Props): JSX.Element
       aria-busy={scanning}
       aria-label={scanning ? 'Scanning hub services' : 'Hub services'}
     >
-      {badges.map((badge) => (
-        <span
-          key={badge.label}
-          aria-label={
-            scanning
-              ? `${badge.label}: scanning`
-              : `${badge.label}: ${badge.active ? 'available' : 'not available'}`
-          }
-        >
-          <Badge variant={badgeVariant(badge.active, scanning)}>{badge.label}</Badge>
-        </span>
-      ))}
+      {badges.map((badge) => {
+        const snippetsNeedsAttention =
+          badge.label === 'Snippets' && services.storage && !badge.active && !scanning;
+
+        return (
+          <span
+            key={badge.label}
+            aria-label={serviceBadgeAriaLabel(badge, scanning, snippetsNeedsAttention)}
+          >
+            <Badge variant={badgeVariant(badge.active, scanning, snippetsNeedsAttention)}>
+              {badge.label}
+            </Badge>
+          </span>
+        );
+      })}
     </div>
   );
 }

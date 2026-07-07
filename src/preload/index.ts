@@ -282,9 +282,15 @@ function listSnippets(): Promise<Snippet[]> {
  * @param name - Display name for the snippet.
  * @param code - JavaScript source.
  * @param scope - Script phases where the snippet may be referenced.
+ * @param connectionId - Optional storage connection id; defaults to active storage.
  */
-function createSnippet(name: string, code: string, scope: Snippet['scope']): Promise<Snippet> {
-  return ipcRenderer.invoke('snippets:create', name, code, scope);
+function createSnippet(
+  name: string,
+  code: string,
+  scope: Snippet['scope'],
+  connectionId?: string
+): Promise<Snippet> {
+  return ipcRenderer.invoke('snippets:create', name, code, scope, connectionId);
 }
 
 /**
@@ -311,6 +317,16 @@ function updateSnippet(
  */
 function deleteSnippet(id: number): Promise<void> {
   return ipcRenderer.invoke('snippets:delete', id);
+}
+
+/**
+ * Moves a snippet to another storage provider via IPC.
+ *
+ * @param id - Global snippet id from the registry.
+ * @param targetConnectionId - Destination storage connection id.
+ */
+function moveSnippet(id: number, targetConnectionId: string): Promise<Snippet> {
+  return ipcRenderer.invoke('snippets:move', id, targetConnectionId);
 }
 
 /**
@@ -2377,6 +2393,7 @@ const api: Api = {
   createSnippet,
   updateSnippet,
   deleteSnippet,
+  moveSnippet,
   importSnippetFile,
   getSnippetCatalog,
   previewSnippetFromGit,

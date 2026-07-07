@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { join } from 'path';
 import { maskVariablesForExport, validateCollectionExport } from '#/main/storage/collectionData';
 import { validateEnvironmentExport } from '#/main/storage/collectionData';
+import { validateSnippetExport } from '#/main/storage/snippetData';
 import { validateRequestExport } from '#/main/storage/collectionData';
 import { generateDocumentUuid, resolveImportUuid } from '#/main/storage/uuid';
 import { uuidSlugPrefix } from '#/main/git/slug';
@@ -10,7 +11,8 @@ import type {
   EnvironmentExport,
   ExportedFolder,
   ExportedRequest,
-  RequestExport
+  RequestExport,
+  SnippetExport
 } from '#/shared/types';
 import { parseJson } from '#/shared/parseJson';
 import { readScriptRefsFromJson } from '#/shared/scriptRefs';
@@ -152,6 +154,15 @@ export function environmentsDir(root: string): string {
 }
 
 /**
+ * Returns the snippets directory path under a HarborClient root.
+ *
+ * @param root - HarborClient data root.
+ */
+export function snippetsDir(root: string): string {
+  return join(root, 'snippets');
+}
+
+/**
  * Ensures the HarborClient directory layout exists and writes a default .gitignore.
  *
  * @param root - HarborClient data root.
@@ -159,6 +170,7 @@ export function environmentsDir(root: string): string {
 export function ensureHarborclientLayout(root: string): void {
   mkdirSync(collectionsDir(root), { recursive: true });
   mkdirSync(environmentsDir(root), { recursive: true });
+  mkdirSync(snippetsDir(root), { recursive: true });
   const gitignorePath = join(root, '.gitignore');
   if (!existsSync(gitignorePath)) {
     writeFileSync(gitignorePath, `${DEFAULT_HARBORCLIENT_GITIGNORE}\n`, 'utf-8');
@@ -472,6 +484,72 @@ export function deleteEnvironmentFile(root: string, uuid: string): void {
     const fileUuid = parseEnvironmentFileName(fileName);
     if (fileUuid === uuid) {
       rmSync(join(dir, fileName), { force: true });
+    }
+  }
+}
+
+/**
+ * Writes a snippet export file.
+ *
+ * @param root - HarborClient data root.
+ * @param data - Snippet export payload.
+ */
+export function writeSnippetFile(root: string, data: SnippetExport): void {
+  const dir = snippetsDir(root);
+  mkdirSync(dir, { recursive: true });
+  const uuid = resolveImportUuid(data.uuid);
+  const fileName = `${uuidSlugPrefix(uuid, data.name)}.json`;
+  writeFileSync(join(dir, fileName), JSON.stringify(data, null, 2), 'utf-8');
+}
+
+/**
+ * Reads all snippet export files under a HarborClient root.
+ *
+ * @param root - HarborClient data root.
+ */
+export function readAllSnippets(root: string): SnippetExport[] {
+  const dir = snippetsDir(root);
+  if (!existsSync(dir)) {
+    return [];
+  }
+
+  const snippets: SnippetExport[] = [];
+  for (const fileName of readdirSync(dir)) {
+    if (!fileName.endsWith('.json')) {
+      continue;
+    }
+    const snippetPath = join(dir, fileName);
+    const parsed = readJsonFile(snippetPath);
+    snippets.push(validateSnippetExport(parsed));
+  }
+  return snippets;
+}
+
+/**
+ * Deletes a snippet file by uuid.
+ *
+ * @param root - HarborClient data root.
+ * @param uuid - Snippet uuid.
+ */
+export function deleteSnippetFile(root: string, uuid: string): void {
+  const dir = snippetsDir(root);
+  if (!existsSync(dir)) {
+    return;
+  }
+
+  for (const fileName of readdirSync(dir)) {
+    if (!fileName.endsWith('.json')) {
+      continue;
+    }
+    const snippetPath = join(dir, fileName);
+    try {
+      const parsed = readJsonFile(snippetPath);
+      const exportData = validateSnippetExport(parsed);
+      if (resolveImportUuid(exportData.uuid) === uuid) {
+        rmSync(snippetPath, { force: true });
+      }
+    } catch {
+      // Ignore invalid snippet files when deleting by uuid.
     }
   }
 }

@@ -20,7 +20,7 @@ export interface ApiSnippets {
   /**
    * Lists all snippets ordered for settings display.
    *
-   * @returns All snippets from the local registry database.
+   * @returns Routed provider snippets merged with local marketplace snippets.
    */
   listSnippets: () => Promise<Snippet[]>;
 
@@ -30,9 +30,15 @@ export interface ApiSnippets {
    * @param name - Display name for the snippet.
    * @param code - JavaScript source.
    * @param scope - Script phases where the snippet may be referenced.
+   * @param connectionId - Optional storage connection id; defaults to active storage.
    * @returns The newly created snippet.
    */
-  createSnippet: (name: string, code: string, scope: SnippetScope) => Promise<Snippet>;
+  createSnippet: (
+    name: string,
+    code: string,
+    scope: SnippetScope,
+    connectionId?: string
+  ) => Promise<Snippet>;
 
   /**
    * Updates a snippet's name, code, and scope.
@@ -51,6 +57,15 @@ export interface ApiSnippets {
    * @param id - Snippet ID to delete.
    */
   deleteSnippet: (id: number) => Promise<void>;
+
+  /**
+   * Moves a snippet to another storage provider, keeping its global id stable.
+   *
+   * @param id - Global snippet id from the registry.
+   * @param targetConnectionId - Destination storage connection id.
+   * @returns The snippet with updated connection metadata.
+   */
+  moveSnippet: (id: number, targetConnectionId: string) => Promise<Snippet>;
 
   /**
    * Opens a native file picker for a `.js` file and returns its contents.

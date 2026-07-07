@@ -1,3 +1,4 @@
+import type { SnippetScope } from '#/shared/snippetScope';
 import type {
   AuthConfig,
   Collection,
@@ -8,6 +9,7 @@ import type {
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
+  Snippet,
   SourceControlStatus,
   Variable
 } from '#/shared/types';
@@ -261,4 +263,40 @@ export interface IStorage {
    * Closes the database connection.
    */
   close(): Promise<void>;
+
+  /**
+   * Lists all snippets stored in this provider ordered for display.
+   *
+   * @returns Provider-local snippet records.
+   */
+  listSnippets(): Promise<Snippet[]>;
+
+  /**
+   * Creates a new snippet in this provider.
+   *
+   * @param name - Display name for the snippet.
+   * @param code - JavaScript source.
+   * @param scope - Script phases where the snippet may be referenced.
+   * @param uuid - Optional stable identifier; generated when omitted.
+   * @returns The newly created provider-local snippet.
+   */
+  createSnippet(name: string, code: string, scope: SnippetScope, uuid?: string): Promise<Snippet>;
+
+  /**
+   * Updates a snippet's name, code, and scope in this provider.
+   *
+   * @param id - Provider-local snippet id.
+   * @param name - New display name.
+   * @param code - Updated JavaScript source.
+   * @param scope - Script phases where the snippet may be referenced.
+   * @returns The updated provider-local snippet.
+   */
+  updateSnippet(id: number, name: string, code: string, scope: SnippetScope): Promise<Snippet>;
+
+  /**
+   * Deletes a snippet from this provider.
+   *
+   * @param id - Provider-local snippet id.
+   */
+  deleteSnippet(id: number): Promise<void>;
 }

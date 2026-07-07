@@ -20,6 +20,10 @@ export interface MountedBackend {
   connectionName: string;
   connectionType: CollectionProviderKind;
   db: IStorage;
+  /**
+   * Team Hub base URL when {@link connectionType} is `team-hub`.
+   */
+  teamHubBaseUrl?: string;
 }
 
 /**

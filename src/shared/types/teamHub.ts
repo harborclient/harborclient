@@ -81,6 +81,11 @@ export interface TeamHubServiceFlags {
   pluginCatalog: boolean;
 
   /**
+   * When true, the hub server exposes snippet storage routes.
+   */
+  snippets: boolean;
+
+  /**
    * When true, this connection uses an admin token with management API access.
    */
   admin: boolean;

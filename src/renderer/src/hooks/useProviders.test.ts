@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { filterCollectionProviders, type ProviderOption } from '#/renderer/src/hooks/useProviders';
+import {
+  filterCollectionProviders,
+  filterSnippetProviders,
+  type ProviderOption
+} from '#/renderer/src/hooks/useProviders';
 
 const databaseProvider: ProviderOption = {
   id: 'db-1',
@@ -47,5 +51,24 @@ describe('filterCollectionProviders', () => {
     const adminHubIds = new Set(['db-1', 'hub-admin']);
 
     expect(filterCollectionProviders(providers, adminHubIds)).toEqual([databaseProvider]);
+  });
+});
+
+describe('filterSnippetProviders', () => {
+  it('omits team hubs without snippet storage while keeping databases', () => {
+    const providers = [databaseProvider, userHubProvider, adminHubProvider];
+    const unsupportedHubIds = new Set(['hub-admin']);
+
+    expect(filterSnippetProviders(providers, unsupportedHubIds)).toEqual([
+      databaseProvider,
+      userHubProvider
+    ]);
+  });
+
+  it('retains an unsupported hub when retainConnectionId matches', () => {
+    const providers = [databaseProvider, userHubProvider, adminHubProvider];
+    const unsupportedHubIds = new Set(['hub-admin']);
+
+    expect(filterSnippetProviders(providers, unsupportedHubIds, 'hub-admin')).toEqual(providers);
   });
 });

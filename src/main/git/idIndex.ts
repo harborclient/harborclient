@@ -26,6 +26,11 @@ export interface GitIdIndexData {
   nextEnvironmentId: number;
 
   /**
+   * Next numeric id to assign for snippets.
+   */
+  nextSnippetId: number;
+
+  /**
    * Collection uuid to local numeric id.
    */
   collectionIds: Record<string, number>;
@@ -44,6 +49,11 @@ export interface GitIdIndexData {
    * Environment uuid to local numeric id.
    */
   environmentIds: Record<string, number>;
+
+  /**
+   * Snippet uuid to local numeric id.
+   */
+  snippetIds: Record<string, number>;
 }
 
 /**
@@ -55,10 +65,12 @@ export function createEmptyGitIdIndex(): GitIdIndexData {
     nextFolderId: 1,
     nextRequestId: 1,
     nextEnvironmentId: 1,
+    nextSnippetId: 1,
     collectionIds: {},
     folderIds: {},
     requestIds: {},
-    environmentIds: {}
+    environmentIds: {},
+    snippetIds: {}
   };
 }
 
@@ -83,10 +95,12 @@ export function loadGitIdIndex(userDataPath: string, connectionId: string): GitI
       nextFolderId: parsed.nextFolderId ?? 1,
       nextRequestId: parsed.nextRequestId ?? 1,
       nextEnvironmentId: parsed.nextEnvironmentId ?? 1,
+      nextSnippetId: parsed.nextSnippetId ?? 1,
       collectionIds: parsed.collectionIds ?? {},
       folderIds: parsed.folderIds ?? {},
       requestIds: parsed.requestIds ?? {},
-      environmentIds: parsed.environmentIds ?? {}
+      environmentIds: parsed.environmentIds ?? {},
+      snippetIds: parsed.snippetIds ?? {}
     };
   } catch {
     return createEmptyGitIdIndex();
@@ -122,8 +136,13 @@ export function saveGitIdIndex(
  */
 export function assignGitId(
   index: GitIdIndexData,
-  mapKey: 'collectionIds' | 'folderIds' | 'requestIds' | 'environmentIds',
-  nextKey: 'nextCollectionId' | 'nextFolderId' | 'nextRequestId' | 'nextEnvironmentId',
+  mapKey: 'collectionIds' | 'folderIds' | 'requestIds' | 'environmentIds' | 'snippetIds',
+  nextKey:
+    | 'nextCollectionId'
+    | 'nextFolderId'
+    | 'nextRequestId'
+    | 'nextEnvironmentId'
+    | 'nextSnippetId',
   uuid: string
 ): number {
   const map = index[mapKey];
@@ -147,7 +166,7 @@ export function assignGitId(
  */
 export function pruneGitIdMap(
   index: GitIdIndexData,
-  mapKey: 'collectionIds' | 'folderIds' | 'requestIds' | 'environmentIds',
+  mapKey: 'collectionIds' | 'folderIds' | 'requestIds' | 'environmentIds' | 'snippetIds',
   activeUuids: Set<string>
 ): void {
   const map = index[mapKey];

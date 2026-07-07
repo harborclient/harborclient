@@ -36,6 +36,11 @@ export interface UseProvidersOptions {
   excludeAdminTeamHubs?: boolean;
 
   /**
+   * When true, omits team hubs whose servers do not expose snippet storage routes.
+   */
+  excludeSnippetUnsupportedTeamHubs?: boolean;
+
+  /**
    * Provider id to keep in the list even when it is an admin hub (current collection provider).
    */
   retainConnectionId?: string;
@@ -135,6 +140,50 @@ function adminHubIdsFromScanResults(
 }
 
 /**
+ * Builds hub ids whose servers do not expose snippet storage routes.
+ *
+ * @param scanResults - Session scan results from IPC, or undefined when the scan failed.
+ * @returns Hub ids that failed the snippet route probe.
+ */
+function snippetUnsupportedHubIdsFromScanResults(
+  scanResults: Awaited<ReturnType<typeof window.api.scanTeamHubSessions>> | undefined
+): Set<string> {
+  const unsupportedHubIds = new Set<string>();
+  if (scanResults === undefined) {
+    return unsupportedHubIds;
+  }
+
+  for (const result of scanResults) {
+    if (!result.services.snippets) {
+      unsupportedHubIds.add(result.hubId);
+    }
+  }
+
+  return unsupportedHubIds;
+}
+
+/**
+ * Removes team hubs that failed the snippet route probe from a provider list.
+ *
+ * @param providers - Full merged provider list from IPC.
+ * @param unsupportedHubIds - Hub connection ids without snippet storage routes.
+ * @param retainConnectionId - Optional provider id to keep even when snippets are unsupported.
+ * @returns Filtered provider options safe to show in snippet storage pickers.
+ */
+export function filterSnippetProviders(
+  providers: ProviderOption[],
+  unsupportedHubIds: ReadonlySet<string>,
+  retainConnectionId?: string
+): ProviderOption[] {
+  return providers.filter(
+    (provider) =>
+      provider.kind !== 'team-hub' ||
+      !unsupportedHubIds.has(provider.id) ||
+      provider.id === retainConnectionId
+  );
+}
+
+/**
  * Resolves the default provider id from a filtered provider list.
  *
  * @param providers - Provider options after optional admin-hub filtering.
@@ -161,7 +210,11 @@ export function useProviders(
   deps: readonly unknown[] = [],
   options: UseProvidersOptions = {}
 ): ProvidersState {
-  const { excludeAdminTeamHubs = false, retainConnectionId } = options;
+  const {
+    excludeAdminTeamHubs = false,
+    excludeSnippetUnsupportedTeamHubs = false,
+    retainConnectionId
+  } = options;
   const [providers, setProviders] = useState<ProviderOption[]>([]);
   const [primaryProviderId, setPrimaryProviderId] = useState('');
   const [loading, setLoading] = useState(true);
@@ -191,7 +244,7 @@ export function useProviders(
           window.api.listStorageConnections(),
           window.api.listTeamHubs(),
           window.api.getActiveStorageId(),
-          excludeAdminTeamHubs
+          excludeAdminTeamHubs || excludeSnippetUnsupportedTeamHubs
             ? window.api.scanTeamHubSessions().catch((): undefined => undefined)
             : Promise.resolve(undefined)
         ]);
@@ -212,13 +265,21 @@ export function useProviders(
             kind: 'team-hub' as const
           }))
         ];
-        const visibleProviders = excludeAdminTeamHubs
-          ? filterCollectionProviders(
-              merged,
-              adminHubIdsFromScanResults(scanResults),
-              retainConnectionId
-            )
-          : merged;
+        let visibleProviders = merged;
+        if (excludeAdminTeamHubs) {
+          visibleProviders = filterCollectionProviders(
+            visibleProviders,
+            adminHubIdsFromScanResults(scanResults),
+            retainConnectionId
+          );
+        }
+        if (excludeSnippetUnsupportedTeamHubs) {
+          visibleProviders = filterSnippetProviders(
+            visibleProviders,
+            snippetUnsupportedHubIdsFromScanResults(scanResults),
+            retainConnectionId
+          );
+        }
         setProviders(visibleProviders);
         setPrimaryProviderId(resolvePrimaryProviderId(visibleProviders, activeDatabaseId));
         setLoading(false);
@@ -233,7 +294,13 @@ export function useProviders(
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- caller supplies intentional refetch keys
-  }, [excludeAdminTeamHubs, retainConnectionId, reloadToken, ...deps]);
+  }, [
+    excludeAdminTeamHubs,
+    excludeSnippetUnsupportedTeamHubs,
+    retainConnectionId,
+    reloadToken,
+    ...deps
+  ]);
 
   return { providers, primaryProviderId, loading, error, reload };
 }
