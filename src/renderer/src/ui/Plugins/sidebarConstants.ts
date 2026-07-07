@@ -1,5 +1,11 @@
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { faDownload, faGear, faPuzzlePiece, faStore } from '#/renderer/src/fontawesome';
+import {
+  faDownload,
+  faGear,
+  faPuzzlePiece,
+  faStore,
+  faWandMagicSparkles
+} from '#/renderer/src/fontawesome';
 import type { PluginManagementKind } from './constants';
 import type { PluginsSidebarSection } from './sidebarTypes';
 
@@ -32,7 +38,12 @@ export function pluginSidebarSections(kind: PluginManagementKind): Array<{
   icon: IconDefinition;
 }> {
   if (kind === 'themes') {
-    return PLUGIN_SECTIONS.filter((item) => item.value !== 'settings');
+    return [
+      { value: 'installed', label: 'Installed', icon: faPuzzlePiece },
+      { value: 'marketplace', label: 'Marketplace', icon: faStore },
+      { value: 'creator', label: 'Creator', icon: faWandMagicSparkles },
+      { value: 'install', label: 'Install', icon: faDownload }
+    ];
   }
   return PLUGIN_SECTIONS;
 }

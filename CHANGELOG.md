@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(themes): introduce custom theme management and enhance theme functionality. (`c1987bc`)
 - feat(screenshots): enhance screenshot capturing and add new test scenarios. (`aa5d343`)
 
 ## 2.0.7 - 2026-07-07

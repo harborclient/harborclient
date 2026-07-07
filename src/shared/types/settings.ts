@@ -115,7 +115,8 @@ export type ThemeSource =
   | 'dark'
   | 'system'
   | 'high-contrast'
-  | `plugin:${string}:${string}`;
+  | `plugin:${string}:${string}`
+  | `custom:${string}`;
 
 /**
  * Request editor tab identifiers.

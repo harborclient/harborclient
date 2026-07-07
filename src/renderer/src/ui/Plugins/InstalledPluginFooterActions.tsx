@@ -51,6 +51,11 @@ interface Props {
    * does not fire. Omit in modal footers where propagation is not an issue.
    */
   stopPropagation?: boolean;
+
+  /**
+   * Switches to this theme plugin when provided on the Installed themes page.
+   */
+  onUseTheme?: (plugin: PluginInfo) => void;
 }
 
 /**
@@ -65,12 +70,14 @@ export function InstalledPluginFooterActions({
   onReload,
   onUpdateFromGit,
   onRemove,
-  stopPropagation = false
+  stopPropagation = false,
+  onUseTheme
 }: Props): JSX.Element {
   const noun = pluginManagementNoun(kind);
   const middleAction = resolveInstalledCardMiddleAction(plugin);
   const toggleLabel = installedCardToggleLabel(plugin.enabled);
   const removeLabel = isManagedInstall(plugin) ? 'Uninstall' : 'Remove';
+  const showUseTheme = kind === 'themes' && onUseTheme != null;
 
   /**
    * Stops event bubbling when embedded in an activatable card row.
@@ -88,15 +95,27 @@ export function InstalledPluginFooterActions({
 
   return (
     <>
-      <Button
-        type="button"
-        variant="toolbar"
-        className="min-w-0 flex-1 justify-center"
-        aria-label={`${toggleLabel} ${plugin.name}`}
-        onClick={handleClickStop(() => onToggleEnabled(plugin))}
-      >
-        {toggleLabel}
-      </Button>
+      {showUseTheme ? (
+        <Button
+          type="button"
+          variant="toolbar"
+          className="min-w-0 flex-1 justify-center"
+          aria-label={`Use ${plugin.name}`}
+          onClick={handleClickStop(() => onUseTheme(plugin))}
+        >
+          Use
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          variant="toolbar"
+          className="min-w-0 flex-1 justify-center"
+          aria-label={`${toggleLabel} ${plugin.name}`}
+          onClick={handleClickStop(() => onToggleEnabled(plugin))}
+        >
+          {toggleLabel}
+        </Button>
+      )}
       {middleAction === 'update' ? (
         <Button
           type="button"

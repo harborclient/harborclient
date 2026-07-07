@@ -38,8 +38,8 @@ import {
   attachRendererNavigationGuards,
   createRendererNavigationPolicy
 } from '#/main/window/navigationSecurity';
-import { attachDevContextMenu } from '#/main/window/devContextMenu';
-import { isDevModeFlagEnabled, isDeveloperToolsEnabled } from '#/main/devMode';
+import { attachWebContextMenu } from '#/main/window/webContextMenu';
+import { isDevModeFlagEnabled } from '#/main/devMode';
 import { isQuitWithoutWarningFlagEnabled } from '#/main/quitWithoutWarning';
 import { getStartupThemeOverride } from '#/main/startupTheme';
 import { disposeScriptRunner } from '#/main/scripting/scriptRunnerHost';
@@ -795,9 +795,7 @@ function createWindow(): BrowserWindow {
   setupFullscreenEscapeHandler(window);
   attachShortcutDispatch(window);
 
-  if (isDeveloperToolsEnabled()) {
-    attachDevContextMenu(window);
-  }
+  attachWebContextMenu(window);
 
   if (isDev && process.env['ELECTRON_RENDERER_URL']) {
     const rendererUrl = process.env['ELECTRON_RENDERER_URL'];

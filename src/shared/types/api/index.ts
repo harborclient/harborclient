@@ -12,6 +12,7 @@ import type { ApiGit } from '#/shared/types/api/git';
 import type { ApiSharing } from '#/shared/types/api/sharing';
 import type { ApiBackup } from '#/shared/types/api/backup';
 import type { ApiPlugins } from '#/shared/types/api/plugins';
+import type { ApiCustomThemes } from '#/shared/types/api/customThemes';
 import type { ApiMcp } from '#/shared/types/api/mcp';
 
 /**
@@ -33,4 +34,5 @@ export interface Api
     ApiSharing,
     ApiBackup,
     ApiPlugins,
-    ApiMcp {}
+    ApiMcp,
+    ApiCustomThemes {}

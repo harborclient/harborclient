@@ -81,6 +81,7 @@
     "openai": "^6.44.0",
     "pg": "^8.22.0",
     "react": "^19.1.0",
+    "react-colorful": "^5.7.0",
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.80.0",
     "react-hot-toast": "^2.6.0",

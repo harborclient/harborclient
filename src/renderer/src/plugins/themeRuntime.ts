@@ -1,4 +1,6 @@
+import { parseCustomThemeSource } from '#/shared/plugin/customThemeExport';
 import { parsePluginThemeValue } from '#/shared/plugin/types';
+import type { CustomThemeType } from '#/shared/types/customTheme';
 import type { ThemeSource } from '#/shared/types';
 import { getRegisteredPluginThemes } from '#/renderer/src/plugins/registry';
 import { applyThemeAttribute } from '#/renderer/src/theme';
@@ -12,6 +14,51 @@ const STYLE_ELEMENT_ID = 'harborclient-plugin-theme-style';
  */
 function toCssVariable(token: string): string {
   return `--mac-${token}`;
+}
+
+/**
+ * Builds CSS for custom theme token overrides.
+ *
+ * @param colors - Token overrides without the `--mac-` prefix.
+ * @param type - Base appearance mode for color-scheme.
+ */
+export function buildCustomThemeCss(colors: Record<string, string>, type: CustomThemeType): string {
+  const colorScheme = type === 'light' ? 'light' : 'dark';
+  const declarations = Object.entries(colors)
+    .map(([token, value]) => `  ${toCssVariable(token)}: ${value};`)
+    .join('\n');
+  return `:root[data-theme='custom'] {\n  color-scheme: ${colorScheme};\n${declarations}\n}\n`;
+}
+
+/**
+ * Removes injected theme CSS from the document.
+ */
+function clearInjectedThemeStyle(): void {
+  document.getElementById(STYLE_ELEMENT_ID)?.remove();
+}
+
+/**
+ * Applies a custom theme palette to the document root for live preview or persisted use.
+ *
+ * @param colors - Token overrides without the `--mac-` prefix.
+ * @param type - Base appearance mode for color-scheme.
+ */
+export function applyCustomThemeColors(
+  colors: Record<string, string>,
+  type: CustomThemeType
+): void {
+  document.documentElement.setAttribute('data-theme', 'custom');
+  clearInjectedThemeStyle();
+
+  const css = buildCustomThemeCss(colors, type);
+  if (!css.trim()) {
+    return;
+  }
+
+  const style = document.createElement('style');
+  style.id = STYLE_ELEMENT_ID;
+  style.textContent = css;
+  document.head.appendChild(style);
 }
 
 /**
@@ -37,13 +84,6 @@ function buildThemeCss(
   const rootBlock = declarations ? `${selector} {\n${declarations}\n}\n` : '';
   const stylesheetBlock = stylesheet && stylesheet.trim().length > 0 ? `\n${stylesheet}\n` : '';
   return `${rootBlock}${stylesheetBlock}`;
-}
-
-/**
- * Removes injected plugin theme CSS from the document.
- */
-function clearInjectedThemeStyle(): void {
-  document.getElementById(STYLE_ELEMENT_ID)?.remove();
 }
 
 /**
@@ -91,24 +131,7 @@ export async function applyPluginTheme(pluginId: string, themeId: string): Promi
  */
 export async function applyPersistedPluginTheme(): Promise<void> {
   const theme = await window.api.getTheme();
-  const parsed = parsePluginThemeValue(theme);
-  if (!parsed) {
-    clearInjectedThemeStyle();
-    applyThemeAttribute(theme);
-    return;
-  }
-
-  const registered = getRegisteredPluginThemes().some(
-    (entry) => entry.pluginId === parsed.pluginId && entry.id === parsed.themeId
-  );
-  if (!registered) {
-    clearInjectedThemeStyle();
-    document.documentElement.removeAttribute('data-theme');
-    await window.api.setTheme('system');
-    return;
-  }
-
-  await applyPluginTheme(parsed.pluginId, parsed.themeId);
+  await applyThemePreference(theme);
 }
 
 /**
@@ -125,11 +148,25 @@ export async function previewThemePreference(theme: string): Promise<void> {
 }
 
 /**
- * Applies a theme preference from Settings, including built-in and plugin themes.
+ * Applies a theme preference from Settings, including built-in, custom, and plugin themes.
  *
  * @param theme - Persisted theme preference.
  */
 export async function applyThemePreference(theme: string): Promise<void> {
+  const customParsed = parseCustomThemeSource(theme);
+  if (customParsed) {
+    const customTheme = await window.api.getCustomTheme(customParsed.id);
+    if (!customTheme) {
+      clearInjectedThemeStyle();
+      document.documentElement.removeAttribute('data-theme');
+      await window.api.setTheme('system');
+      return;
+    }
+
+    applyCustomThemeColors(customTheme.colors, customTheme.type);
+    return;
+  }
+
   const parsed = parsePluginThemeValue(theme);
   if (parsed) {
     await applyPluginTheme(parsed.pluginId, parsed.themeId);

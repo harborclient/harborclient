@@ -1,10 +1,22 @@
-import { formatPluginThemeValue } from '#/shared/plugin/types';
+import { formatCustomThemeValue } from '#/shared/plugin/customThemeExport';
 import type { ThemeMenuOption } from '#/shared/themes';
 import type { ThemeSource } from '#/shared/types';
 import {
   getRegisteredPluginThemes,
   subscribePluginRegistry
 } from '#/renderer/src/plugins/registry';
+import { formatPluginThemeValue } from '#/shared/plugin/types';
+
+/**
+ * Builds custom theme menu options from saved custom themes.
+ */
+async function buildCustomThemeMenuOptions(): Promise<ThemeMenuOption[]> {
+  const themes = await window.api.listCustomThemes();
+  return themes.map((theme) => ({
+    value: formatCustomThemeValue(theme.id),
+    label: theme.title
+  }));
+}
 
 /**
  * Builds plugin theme menu options from the renderer plugin registry.
@@ -17,12 +29,25 @@ function buildPluginThemeMenuOptions(): ThemeMenuOption[] {
 }
 
 /**
- * Pushes active theme and plugin theme options to the main process View menu.
+ * Pushes active theme and theme options to the main process View menu.
  *
  * @param activeTheme - Persisted appearance theme preference.
  */
 async function syncThemeMenuState(activeTheme: ThemeSource): Promise<void> {
-  await window.api.setMenuThemeMenuState(activeTheme, buildPluginThemeMenuOptions());
+  const customThemeOptions = await buildCustomThemeMenuOptions();
+  const pluginThemeOptions = buildPluginThemeMenuOptions();
+  await window.api.setMenuThemeMenuState(activeTheme, [
+    ...customThemeOptions,
+    ...pluginThemeOptions
+  ]);
+}
+
+/**
+ * Immediately refreshes the View menu theme list from saved custom and plugin themes.
+ */
+export async function syncThemeMenuNow(): Promise<void> {
+  const activeTheme = await window.api.getTheme();
+  await syncThemeMenuState(activeTheme);
 }
 
 /**

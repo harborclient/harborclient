@@ -2,7 +2,9 @@ import { useEffect, useState, type JSX, type KeyboardEvent } from 'react';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import { PLUGIN_CATALOG_CATEGORY_LABELS } from '#/shared/plugin/catalogCategories';
 import type { PluginInfo } from '#/shared/plugin/types';
+import { parsePluginThemeValue } from '#/shared/plugin/types';
 import { pluginIsTheme } from '#/shared/plugin/themeCategory';
+import type { ThemeSource } from '#/shared/types';
 import type { PluginManagementKind } from '#/renderer/src/ui/Plugins/constants';
 import { ErrorMessages } from './ErrorMessages';
 import { InstalledPluginFooterActions } from './InstalledPluginFooterActions';
@@ -56,6 +58,16 @@ interface Props {
    * Removes or uninstalls this plugin after confirmation.
    */
   onRemove: (plugin: PluginInfo) => void;
+
+  /**
+   * Switches to this theme plugin when provided on the Installed themes page.
+   */
+  onUseTheme?: (plugin: PluginInfo) => void;
+
+  /**
+   * Currently active appearance theme preference for active-state labeling.
+   */
+  activeTheme?: ThemeSource;
 }
 
 /**
@@ -70,12 +82,16 @@ export function InstalledPluginCard({
   onToggleEnabled,
   onReload,
   onUpdateFromGit,
-  onRemove
+  onRemove,
+  onUseTheme,
+  activeTheme = 'system'
 }: Props): JSX.Element {
   const [screenshotSrcs, setScreenshotSrcs] = useState<string[]>([]);
   const summary = resolveInstalledPluginSummary(plugin, catalogEntry);
   const categories = catalogEntry?.categories ?? plugin.manifest.categories ?? [];
   const showCategories = kind !== 'themes' && !pluginIsTheme(plugin) && categories.length > 0;
+  const isActiveThemePlugin =
+    kind === 'themes' && parsePluginThemeValue(activeTheme)?.pluginId === plugin.id;
   const showStatusBadges =
     plugin.signature?.status === 'invalid' ||
     plugin.signature?.status === 'untrusted' ||
@@ -150,6 +166,11 @@ export function InstalledPluginCard({
             <span className="shrink-0 text-[14px] text-muted">{plugin.version}</span>
           </div>
           {summary ? <p className="m-0 line-clamp-3 text-[14px] text-text">{summary}</p> : null}
+          {isActiveThemePlugin ? (
+            <span className="text-[14px] text-accent" role="status">
+              Active theme
+            </span>
+          ) : null}
           {showCategories ? (
             <div className="mt-auto flex flex-wrap gap-1.5 pt-1.5">
               {categories.map((category) => (
@@ -197,6 +218,7 @@ export function InstalledPluginCard({
             onReload={onReload}
             onUpdateFromGit={onUpdateFromGit}
             onRemove={onRemove}
+            onUseTheme={onUseTheme}
             stopPropagation
           />
         </div>

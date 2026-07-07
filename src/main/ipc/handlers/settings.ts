@@ -31,6 +31,8 @@ import {
   type SnippetRecord
 } from '@harborclient/team-hub-api';
 import type { TeamHubAdminCollectionContents, TeamHubAdminSnippet } from '#/shared/types';
+import { getCustomTheme } from '#/main/storage/customThemes';
+import { parseCustomThemeSource } from '#/shared/plugin/customThemeExport';
 import { getAiSettings, setAiSettings } from '#/main/settings/aiSettings';
 import { getGeneralSettings, setGeneralSettings } from '#/main/settings/generalSettings';
 import {
@@ -117,6 +119,9 @@ function parseThemeSource(value: string | undefined): ThemeSource {
   if (value?.startsWith('plugin:')) {
     return value as ThemeSource;
   }
+  if (value?.startsWith('custom:')) {
+    return value as ThemeSource;
+  }
   return 'system';
 }
 
@@ -133,6 +138,16 @@ function resolveNativeThemeSource(theme: ThemeSource): 'light' | 'dark' | 'syste
   if (theme === 'light' || theme === 'dark' || theme === 'system') {
     return theme;
   }
+
+  const customTheme = parseCustomThemeSource(theme);
+  if (customTheme) {
+    const stored = getCustomTheme(customTheme.id);
+    if (stored?.type === 'light') {
+      return 'light';
+    }
+    return 'dark';
+  }
+
   return 'dark';
 }
 

@@ -1,11 +1,24 @@
 import type { JSX } from 'react';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import type { PluginInfo, PluginGitPreview } from '#/shared/plugin/types';
+import type { PluginThemeVariant } from '#/renderer/src/ui/Plugins/listPluginThemeVariants';
 import type { PluginManagementKind } from '#/renderer/src/ui/Plugins/constants';
 import { findInstalledCatalogPlugin } from './helpers';
 import { EnableModal } from './EnableModal';
 import { PluginDetailModal } from './PluginDetailModal';
+import { UseThemeVariantModal } from './UseThemeVariantModal';
 import { resolveCatalogPluginScreenshotSrcs } from './resolvePluginScreenshot';
+
+/**
+ * State for the multi-variant theme picker shown from the Installed themes page.
+ */
+export interface UseThemeVariantPickerState {
+  /** Theme plugin awaiting variant selection. */
+  plugin: PluginInfo;
+
+  /** Selectable variants contributed by the plugin. */
+  variants: PluginThemeVariant[];
+}
 
 interface Props {
   /**
@@ -117,6 +130,26 @@ interface Props {
    * Confirms a pending install and enables the plugin.
    */
   onConfirmPendingInstall: () => void;
+
+  /**
+   * Multi-variant theme picker state for the Installed themes page.
+   */
+  useThemeVariantPicker: UseThemeVariantPickerState | null;
+
+  /**
+   * Closes the variant picker without applying a theme.
+   */
+  onCloseUseThemeVariantPicker: () => void;
+
+  /**
+   * Applies the selected variant from the picker modal.
+   */
+  onConfirmUseThemeVariant: (themeId: string) => void | Promise<void>;
+
+  /**
+   * Switches to a theme plugin from the Installed themes page.
+   */
+  onUsePluginTheme?: (plugin: PluginInfo) => void;
 }
 
 /**
@@ -144,7 +177,11 @@ export function PluginModals({
   onCloseDetail,
   pendingInstall,
   onCancelPendingInstall,
-  onConfirmPendingInstall
+  onConfirmPendingInstall,
+  useThemeVariantPicker,
+  onCloseUseThemeVariantPicker,
+  onConfirmUseThemeVariant,
+  onUsePluginTheme
 }: Props): JSX.Element {
   const catalogInstalled = catalogDetailEntry
     ? findInstalledCatalogPlugin(plugins, catalogDetailEntry.id)
@@ -170,6 +207,7 @@ export function PluginModals({
           onReload={onReload}
           onUpdateFromGit={onUpdateFromGit}
           onRemove={onRemove}
+          onUseTheme={onUsePluginTheme}
         />
       ) : null}
 
@@ -187,6 +225,16 @@ export function PluginModals({
           onReload={onReload}
           onUpdateFromGit={onUpdateFromGit}
           onRemove={onRemove}
+          onUseTheme={onUsePluginTheme}
+        />
+      ) : null}
+
+      {useThemeVariantPicker ? (
+        <UseThemeVariantModal
+          plugin={useThemeVariantPicker.plugin}
+          variants={useThemeVariantPicker.variants}
+          onCancel={onCloseUseThemeVariantPicker}
+          onConfirm={onConfirmUseThemeVariant}
         />
       ) : null}
 

@@ -1,8 +1,7 @@
 import { useEffect, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import { formatPluginThemeValue } from '#/shared/plugin/types';
-import type { ThemeSource } from '#/shared/types';
 import { usePluginThemes } from '#/renderer/src/plugins/pluginHooks';
+import { applyPluginThemePreference } from '#/renderer/src/plugins/applyPluginTheme';
 import { clearPendingThemePrompt, isPendingThemePrompt } from '#/renderer/src/plugins/pluginLoader';
 import {
   isActivePluginTheme,
@@ -10,23 +9,10 @@ import {
   selectThemePromptCandidates,
   themePromptKey
 } from '#/renderer/src/plugins/pluginThemePromptLogic';
-import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
 import { THEME_PROMPT_TOAST_LIVE_PROPS } from '#/renderer/src/ui/shared/toastA11y';
 
 /** Theme keys currently being offered so overlapping effect runs do not duplicate toasts. */
 const inFlightThemePromptKeys = new Set<string>();
-
-/**
- * Applies a plugin theme preference and persists it through the main-process settings API.
- *
- * @param pluginId - Plugin manifest id.
- * @param themeId - Theme id within the plugin manifest.
- */
-async function applyPluginThemePreference(pluginId: string, themeId: string): Promise<void> {
-  const value = formatPluginThemeValue(pluginId, themeId) as ThemeSource;
-  await applyThemePreference(value);
-  await window.api.setTheme(value);
-}
 
 interface ThemePromptToastProps {
   /** Human-readable theme title shown in the offer. */

@@ -11,10 +11,11 @@ describe('pluginSidebarSections', () => {
     ]);
   });
 
-  it('omits Settings on the Themes tab', () => {
+  it('omits Settings and adds Creator on the Themes tab', () => {
     expect(pluginSidebarSections('themes').map((item) => item.value)).toEqual([
       'installed',
       'marketplace',
+      'creator',
       'install'
     ]);
   });

@@ -453,5 +453,35 @@
       { "waitFor": { "role": "heading", "name": "Themes" } },
       { "waitFor": { "ms": 3000 } }
     ]
+  },
+  {
+    "filename": "themes-creator.png",
+    "menuAction": "themes",
+    "steps": [
+      {
+        "click": {
+          "selector": "nav[aria-label='Theme sections']",
+          "role": "button",
+          "name": "Creator"
+        }
+      },
+      { "waitFor": { "selector": "#creator-theme-title" } },
+      { "waitFor": { "ms": 500 } }
+    ]
+  },
+  {
+    "filename": "themes-installed.png",
+    "menuAction": "themes",
+    "steps": [
+      {
+        "click": {
+          "selector": "nav[aria-label='Theme sections']",
+          "role": "button",
+          "name": "Installed"
+        }
+      },
+      { "waitFor": { "role": "heading", "name": "Installed themes" } },
+      { "waitFor": { "ms": 1000 } }
+    ]
   }
 ]

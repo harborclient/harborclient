@@ -1859,6 +1859,53 @@ function removeTrustedKey(id: string): Promise<TrustedSharingKey[]> {
 }
 
 /**
+ * Lists all custom themes stored under `{userData}/custom_themes`.
+ */
+function listCustomThemes(): Promise<import('#/shared/types/customTheme').CustomTheme[]> {
+  return ipcRenderer.invoke('customThemes:list');
+}
+
+/**
+ * Returns one custom theme by id, or null when missing.
+ *
+ * @param id - Custom theme filename stem.
+ */
+function getCustomTheme(
+  id: string
+): Promise<import('#/shared/types/customTheme').CustomTheme | null> {
+  return ipcRenderer.invoke('customThemes:get', id);
+}
+
+/**
+ * Saves a custom theme export file and returns the stored record.
+ *
+ * @param input - Theme values to persist.
+ */
+function saveCustomTheme(
+  input: import('#/shared/types/api/customThemes').SaveCustomThemeInput
+): Promise<import('#/shared/types/customTheme').CustomTheme> {
+  return ipcRenderer.invoke('customThemes:save', input);
+}
+
+/**
+ * Deletes one custom theme file from disk.
+ *
+ * @param id - Custom theme filename stem.
+ */
+function deleteCustomTheme(id: string): Promise<void> {
+  return ipcRenderer.invoke('customThemes:delete', id);
+}
+
+/**
+ * Opens an import dialog and returns draft values without saving.
+ */
+function importCustomTheme(): Promise<
+  import('#/shared/types/customTheme').CustomThemeImportDraft | null
+> {
+  return ipcRenderer.invoke('customThemes:import');
+}
+
+/**
  * Writes text to a file via a native save dialog.
  *
  * @param content - UTF-8 text to write.
@@ -2598,6 +2645,11 @@ const api: Api = {
   importTrustedPublicKey,
   removeTrustedKey,
   saveTextFile,
+  listCustomThemes,
+  getCustomTheme,
+  saveCustomTheme,
+  deleteCustomTheme,
+  importCustomTheme,
   exportBackup,
   importBackup,
   restartApp,

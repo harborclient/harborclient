@@ -130,6 +130,11 @@ interface InstalledActionProps {
    * Removes or uninstalls the open plugin after confirmation.
    */
   onRemove: (plugin: PluginInfo) => void;
+
+  /**
+   * Switches to this theme plugin when provided on the Installed themes page.
+   */
+  onUseTheme?: (plugin: PluginInfo) => void;
 }
 
 type Props = (InstalledProps | CatalogProps) &
@@ -437,6 +442,7 @@ export function PluginDetailModal(props: Props): JSX.Element {
       onReload={props.onReload}
       onUpdateFromGit={props.onUpdateFromGit}
       onRemove={props.onRemove}
+      onUseTheme={props.onUseTheme}
     />
   ) : props.mode === 'catalog' ? (
     <Button

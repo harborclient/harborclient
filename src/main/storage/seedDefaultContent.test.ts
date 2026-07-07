@@ -148,7 +148,7 @@ describeSqlite('seedDefaultContentIfNeeded', () => {
   });
 
   it('skips seeding when the flag is already set', async () => {
-    const { router } = await createSeedFixture();
+    const { router, database } = await createSeedFixture();
     database.setSetting(DEFAULT_ECHO_COLLECTION_SEEDED_KEY, '1');
 
     await seedDefaultContentIfNeeded(router, database);
@@ -157,7 +157,7 @@ describeSqlite('seedDefaultContentIfNeeded', () => {
   });
 
   it('skips seeding when the registry already has entries and sets the flag', async () => {
-    const { router } = await createSeedFixture();
+    const { router, database } = await createSeedFixture();
 
     await router.createCollection('Existing');
 

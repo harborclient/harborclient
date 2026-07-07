@@ -17,6 +17,7 @@ import {
 import { ipcScriptRefArray, scriptSource } from '#/main/schemas/scriptRef';
 import { CODE_EDITOR_THEME_IDS } from '#/shared/codeEditorSettings';
 import { requestExportSchema } from '#/main/storage/collectionSchemas';
+import { customThemeSaveInputSchema } from '#/shared/plugin/customThemeExport';
 import type {
   AiChatSessionState,
   AiSettings,
@@ -82,7 +83,8 @@ export const name = z.string().trim().min(1, 'name is required');
 
 export const themeSource = z.union([
   z.enum(['light', 'dark', 'system', 'high-contrast']),
-  z.string().regex(/^plugin:[^:]+:[^:]+$/)
+  z.string().regex(/^plugin:[^:]+:[^:]+$/),
+  z.string().regex(/^custom:[^/\\]+$/)
 ]);
 
 const themeMenuOption = z.object({
@@ -748,5 +750,13 @@ export const ipcArgSchemas = {
   ]),
   pluginExecuteAgentCommand: z.tuple([pluginId, z.string().min(1), z.array(z.unknown())]),
   oauthFetchToken: z.tuple([z.string(), oauth2Config, z.boolean()]),
-  oauthClearToken: z.tuple([z.string().min(1)])
+  oauthClearToken: z.tuple([z.string().min(1)]),
+  customThemeId: z.tuple([
+    z
+      .string()
+      .regex(/^[a-zA-Z0-9_-]+$/)
+      .min(1)
+      .max(128)
+  ]),
+  customThemeSave: z.tuple([customThemeSaveInputSchema])
 } as const;
