@@ -1,6 +1,5 @@
 import {
   AsyncListState,
-  BackButton,
   Button,
   FieldError,
   FormGroup,
@@ -29,11 +28,6 @@ interface Props {
    * Admin team hub connection whose API tokens are being managed.
    */
   hub: TeamHub;
-
-  /**
-   * Returns to the team hub list view.
-   */
-  onBack: () => void;
 }
 
 /**
@@ -53,7 +47,7 @@ function formatOptionalTimestamp(value: string | null): string {
 /**
  * Team Hub API token administration view for operator tokens.
  */
-export function TeamTokensView({ hub, onBack }: Props): JSX.Element {
+export function TeamTokensView({ hub }: Props): JSX.Element {
   const { tokens, loading, error, reload } = useTeamHubTokens(hub.id);
   const { users } = useTeamHubUsers(hub.id);
   const userNamesById = useMemo(() => {
@@ -181,17 +175,14 @@ export function TeamTokensView({ hub, onBack }: Props): JSX.Element {
       icon={faUsers}
       description={`${hub.name || 'Untitled'} · ${hub.baseUrl}`}
       actions={
-        <>
-          <Button
-            type="button"
-            className="shrink-0 whitespace-nowrap"
-            onClick={handleCreateClick}
-            disabled={users.length === 0}
-          >
-            Create token
-          </Button>
-          <BackButton onClick={onBack} />
-        </>
+        <Button
+          type="button"
+          className="shrink-0 whitespace-nowrap"
+          onClick={handleCreateClick}
+          disabled={users.length === 0}
+        >
+          Create token
+        </Button>
       }
     >
       <AsyncListState

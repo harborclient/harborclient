@@ -27,9 +27,10 @@ import { scanTeamHubSessions } from '#/main/settings/teamHubSessionScan';
 import {
   TeamHubClient,
   type FolderRecord,
-  type SavedRequestRecord
+  type SavedRequestRecord,
+  type SnippetRecord
 } from '@harborclient/team-hub-api';
-import type { TeamHubAdminCollectionContents } from '#/shared/types';
+import type { TeamHubAdminCollectionContents, TeamHubAdminSnippet } from '#/shared/types';
 import { getAiSettings, setAiSettings } from '#/main/settings/aiSettings';
 import { getGeneralSettings, setGeneralSettings } from '#/main/settings/generalSettings';
 import {
@@ -81,6 +82,22 @@ function mapTeamHubAdminCollectionContents(
       folderId: request.folderId,
       sortOrder: request.sortOrder
     }))
+  };
+}
+
+/**
+ * Maps a hub server snippet record to renderer-facing admin snippet shape.
+ *
+ * @param snippet - Snippet record from the admin management API.
+ * @returns Snippet summary suitable for Team Hub admin UI.
+ */
+function mapTeamHubAdminSnippet(snippet: SnippetRecord): TeamHubAdminSnippet {
+  return {
+    id: snippet.id,
+    name: snippet.name,
+    code: snippet.code,
+    scope: snippet.scope,
+    deletionLocked: snippet.deletionLocked
   };
 }
 
@@ -419,6 +436,65 @@ export function registerSettingsHandlers(db: IStorage): void {
 
       const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
       return client.updateAdminEnvironmentDeletionLocked(environmentId, deletionLocked);
+    }
+  );
+
+  // Lists hub snippets using an admin token.
+  handle('teamHubs:listAdminSnippets', ipcArgSchemas.teamHubSnippetList, async (_event, hubId) => {
+    const hub = listTeamHubs().find((entry) => entry.id === hubId);
+    if (!hub) {
+      throw new Error(`Unknown team hub: ${hubId}`);
+    }
+
+    const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+    const snippets = await client.listAdminSnippets();
+    return snippets.map(mapTeamHubAdminSnippet);
+  });
+
+  // Creates a hub snippet using an admin token.
+  handle(
+    'teamHubs:createAdminSnippet',
+    ipcArgSchemas.teamHubSnippetCreate,
+    async (_event, hubId, input) => {
+      const hub = listTeamHubs().find((entry) => entry.id === hubId);
+      if (!hub) {
+        throw new Error(`Unknown team hub: ${hubId}`);
+      }
+
+      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const snippet = await client.createAdminSnippet(input);
+      return mapTeamHubAdminSnippet(snippet);
+    }
+  );
+
+  // Updates a hub snippet using an admin token.
+  handle(
+    'teamHubs:updateAdminSnippet',
+    ipcArgSchemas.teamHubSnippetUpdate,
+    async (_event, hubId, snippetId, input) => {
+      const hub = listTeamHubs().find((entry) => entry.id === hubId);
+      if (!hub) {
+        throw new Error(`Unknown team hub: ${hubId}`);
+      }
+
+      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const snippet = await client.updateAdminSnippet(snippetId, input);
+      return mapTeamHubAdminSnippet(snippet);
+    }
+  );
+
+  // Deletes a hub snippet using an admin token.
+  handle(
+    'teamHubs:deleteAdminSnippet',
+    ipcArgSchemas.teamHubSnippetDelete,
+    async (_event, hubId, snippetId) => {
+      const hub = listTeamHubs().find((entry) => entry.id === hubId);
+      if (!hub) {
+        throw new Error(`Unknown team hub: ${hubId}`);
+      }
+
+      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      await client.deleteAdminSnippet(snippetId);
     }
   );
 

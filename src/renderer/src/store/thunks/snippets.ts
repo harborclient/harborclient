@@ -7,6 +7,7 @@ import {
   beginRefreshGeneration,
   isLatestRefreshGeneration
 } from '#/renderer/src/store/refreshGeneration';
+import { withOfflineTeamHubSnippetError } from '#/renderer/src/store/thunks/snippetThunkErrors';
 
 const SNIPPETS_REFRESH_KEY = 'snippets';
 
@@ -35,7 +36,9 @@ export const createSnippet = createAsyncThunk<
   { name: string; code: string; scope: SnippetScope; connectionId?: string },
   ThunkApiConfig
 >('snippets/create', async ({ name, code, scope, connectionId }, { dispatch }) => {
-  const snippet = await window.api.createSnippet(name, code, scope, connectionId);
+  const snippet = await withOfflineTeamHubSnippetError(() =>
+    window.api.createSnippet(name, code, scope, connectionId)
+  );
   await dispatch(refreshSnippets());
   return snippet;
 });
@@ -60,11 +63,13 @@ export const updateSnippet = createAsyncThunk<
   const currentConnectionId = snippet?.connectionId ?? primaryConnectionId;
 
   if (connectionId && connectionId !== currentConnectionId) {
-    await window.api.moveSnippet(id, connectionId);
+    await withOfflineTeamHubSnippetError(() => window.api.moveSnippet(id, connectionId));
 
     let updated: Snippet;
     try {
-      updated = await window.api.updateSnippet(id, name, code, scope);
+      updated = await withOfflineTeamHubSnippetError(() =>
+        window.api.updateSnippet(id, name, code, scope)
+      );
     } catch (err) {
       await dispatch(refreshSnippets());
       throw new Error(
@@ -77,7 +82,9 @@ export const updateSnippet = createAsyncThunk<
     return updated;
   }
 
-  const updated = await window.api.updateSnippet(id, name, code, scope);
+  const updated = await withOfflineTeamHubSnippetError(() =>
+    window.api.updateSnippet(id, name, code, scope)
+  );
   await dispatch(refreshSnippets());
   return updated;
 });
@@ -88,7 +95,7 @@ export const updateSnippet = createAsyncThunk<
 export const deleteSnippet = createAsyncThunk<void, number, ThunkApiConfig>(
   'snippets/delete',
   async (id, { dispatch }) => {
-    await window.api.deleteSnippet(id);
+    await withOfflineTeamHubSnippetError(() => window.api.deleteSnippet(id));
     await dispatch(refreshSnippets());
   }
 );

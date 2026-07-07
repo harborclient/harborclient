@@ -434,6 +434,48 @@ describe('object schema happy paths', () => {
     expect(ipcArgSchemas.closeDecision.safeParse(['true']).success).toBe(false);
     expect(ipcArgSchemas.closeDecision.safeParse([]).success).toBe(false);
   });
+
+  it('teamHubSnippetCreate accepts name, code, and scope', () => {
+    expect(
+      ipcArgSchemas.teamHubSnippetCreate.safeParse([
+        'hub-1',
+        { name: 'Auth helper', code: 'console.log("ok");', scope: 'pre-request' }
+      ]).success
+    ).toBe(true);
+    expect(
+      ipcArgSchemas.teamHubSnippetCreate.safeParse([
+        'hub-1',
+        { name: '', code: 'console.log("ok");', scope: 'pre-request' }
+      ]).success
+    ).toBe(false);
+  });
+
+  it('teamHubSnippetUpdate requires snippet id and admin payload', () => {
+    expect(
+      ipcArgSchemas.teamHubSnippetUpdate.safeParse([
+        'hub-1',
+        '770e8400-e29b-41d4-a716-446655440003',
+        { name: 'Updated', code: 'console.log("ok");', scope: 'any' }
+      ]).success
+    ).toBe(true);
+    expect(
+      ipcArgSchemas.teamHubSnippetUpdate.safeParse([
+        'hub-1',
+        '',
+        { name: 'Updated', code: 'console.log("ok");', scope: 'any' }
+      ]).success
+    ).toBe(false);
+  });
+
+  it('teamHubSnippetDelete requires hub id and snippet id', () => {
+    expect(
+      ipcArgSchemas.teamHubSnippetDelete.safeParse([
+        'hub-1',
+        '770e8400-e29b-41d4-a716-446655440003'
+      ]).success
+    ).toBe(true);
+    expect(ipcArgSchemas.teamHubSnippetDelete.safeParse(['hub-1']).success).toBe(false);
+  });
 });
 
 describe('non-empty name schemas', () => {

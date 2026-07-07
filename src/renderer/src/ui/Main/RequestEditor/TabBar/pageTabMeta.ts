@@ -29,6 +29,8 @@ interface PageTabMetaOptions {
   environmentName?: string;
   /** Plugin view title when the page is a plugin main view. */
   pluginTitle?: string;
+  /** Team hub name when the page is team hub admin. */
+  teamHubName?: string;
 }
 
 /**
@@ -61,6 +63,8 @@ export function pageTabMeta(page: PageRef, options: PageTabMetaOptions = {}): Pa
       return { title: 'Snippets', icon: faTerminal };
     case 'team-hubs':
       return { title: 'Team Hub', icon: faUsers };
+    case 'team-hub-admin':
+      return { title: options.teamHubName ?? 'Untitled', icon: faUsers };
     case 'sharing-keys':
       return { title: 'Sharing Keys', icon: faFingerprint };
     case 'plugin-view':

@@ -1,6 +1,5 @@
 import {
   AsyncListState,
-  BackButton,
   Button,
   FieldError,
   FormGroup,
@@ -28,17 +27,12 @@ interface Props {
    * Admin team hub connection whose collections are being managed.
    */
   hub: TeamHub;
-
-  /**
-   * Returns to the team hub list view.
-   */
-  onBack: () => void;
 }
 
 /**
  * Team Hub collection administration view for operator tokens.
  */
-export function TeamCollectionsView({ hub, onBack }: Props): JSX.Element {
+export function TeamCollectionsView({ hub }: Props): JSX.Element {
   const { collections, loading, error, reload } = useTeamHubAdminCollections(hub.id);
   const [selectedCollection, setSelectedCollection] = useState<AdminResourceOption | null>(null);
   const [deletingCollection, setDeletingCollection] = useState<AdminResourceOption | null>(null);
@@ -102,11 +96,6 @@ export function TeamCollectionsView({ hub, onBack }: Props): JSX.Element {
     reload();
   }, selectedCollection != null);
 
-  /**
-   * Returns from the collections list to the hub list on Escape.
-   */
-  useEscapeBackCapture(onBack, selectedCollection == null);
-
   if (selectedCollection) {
     return (
       <TeamCollectionContentsView
@@ -127,7 +116,6 @@ export function TeamCollectionsView({ hub, onBack }: Props): JSX.Element {
       title="Collections"
       icon={faUsers}
       description={`${hub.name || 'Untitled'} · ${hub.baseUrl}`}
-      actions={<BackButton onClick={onBack} />}
     >
       <AsyncListState
         loading={loading}

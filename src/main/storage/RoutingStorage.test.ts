@@ -13,7 +13,8 @@ import { TeamHubStorage } from '#/main/storage/TeamHubStorage';
 import { TeamHubIdMap } from '#/main/storage/TeamHubIdMap';
 import type { SessionResponse, TeamHubClient } from '@harborclient/team-hub-api';
 import { TeamHubClientError } from '@harborclient/team-hub-api';
-import { detachedSettingKey } from '#/main/storage/teamHubDetached';
+import { detachedSettingKey, detachedSnippetSettingKey } from '#/main/storage/teamHubDetached';
+import { teamHubIdMapPath } from '#/main/storage/createTeamHubStorage';
 import { baseRequestInput } from '#/test/istorageContract';
 import { describeSqlite } from '#/test/nativeModules';
 
@@ -636,6 +637,64 @@ describeSqlite('RoutingStorage snippets', () => {
 
     const entry = database.getSnippetRegistryEntry(snippet.id);
     expect(entry?.connectionId).toBe(CONN_A.id);
+  });
+
+  it('deleteSnippet removes registry metadata when the provider backend is unavailable', async () => {
+    const { router, database } = await createRoutingFixture();
+    const entry = database.addSnippetRegistryEntry({
+      name: 'Offline snippet',
+      connectionId: 'missing-conn',
+      providerSnippetId: 1,
+      scope: 'any'
+    });
+
+    await router.deleteSnippet(entry.id);
+
+    expect(database.getSnippetRegistryEntry(entry.id)).toBeUndefined();
+    expect(await router.listSnippets()).toEqual([]);
+  });
+
+  it('deleteSnippet detaches hub snippets locally when the hub backend is unavailable', async () => {
+    const { router, database, rootDir } = await createRoutingFixture();
+    database.setSetting(
+      'teamHubs',
+      JSON.stringify([
+        {
+          id: HUB_A.id,
+          name: 'Local Admin',
+          baseUrl: 'http://127.0.0.1:8788',
+          token: 'hbk_test'
+        }
+      ])
+    );
+
+    const serverSnippetId = '770e8400-e29b-41d4-a716-446655440003';
+    const idMap = new TeamHubIdMap(teamHubIdMapPath(rootDir, HUB_A.id));
+    idMap.init();
+    const localProviderId = idMap.toLocalId('snippet', serverSnippetId);
+    idMap.close();
+
+    const entry = database.addSnippetRegistryEntry({
+      name: 'Hub snippet',
+      connectionId: HUB_A.id,
+      providerSnippetId: localProviderId,
+      uuid: serverSnippetId,
+      scope: 'any'
+    });
+
+    await router.deleteSnippet(entry.id);
+
+    expect(database.getSnippetRegistryEntry(entry.id)).toBeUndefined();
+    expect(await router.listSnippets()).toEqual([]);
+    const detached = JSON.parse(
+      database.getSetting(detachedSnippetSettingKey(HUB_A.id)) ?? '[]'
+    ) as string[];
+    expect(detached).toContain(serverSnippetId);
+
+    const idMapAfterDelete = new TeamHubIdMap(teamHubIdMapPath(rootDir, HUB_A.id));
+    idMapAfterDelete.init();
+    expect(idMapAfterDelete.toServerId('snippet', localProviderId)).toBeUndefined();
+    idMapAfterDelete.close();
   });
 });
 

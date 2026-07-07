@@ -9,7 +9,6 @@ import type {
 } from '#/shared/types';
 import {
   AsyncListState,
-  BackButton,
   Badge,
   Button,
   FieldError,
@@ -38,17 +37,12 @@ interface Props {
    * Admin team hub connection whose users are being managed.
    */
   hub: TeamHub;
-
-  /**
-   * Returns to the team hub list view.
-   */
-  onBack: () => void;
 }
 
 /**
  * Team Hub user administration view for operator tokens.
  */
-export function TeamManageView({ hub, onBack }: Props): JSX.Element {
+export function TeamManageView({ hub }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const { users, loading, error, reload } = useTeamHubUsers(hub.id);
   const [editingUser, setEditingUser] = useState<HubUserRecord | null>(null);
@@ -236,12 +230,9 @@ export function TeamManageView({ hub, onBack }: Props): JSX.Element {
       icon={faUsers}
       description={`${hub.name || 'Untitled'} · ${hub.baseUrl}`}
       actions={
-        <>
-          <Button type="button" className="shrink-0 whitespace-nowrap" onClick={handleCreateClick}>
-            Create user
-          </Button>
-          <BackButton onClick={onBack} />
-        </>
+        <Button type="button" className="shrink-0 whitespace-nowrap" onClick={handleCreateClick}>
+          Create user
+        </Button>
       }
     >
       <AsyncListState

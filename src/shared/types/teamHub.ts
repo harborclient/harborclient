@@ -1,5 +1,6 @@
 import type { HubLlmModel } from '#/shared/types/ai';
 import type { HttpMethod } from '#/shared/types/common';
+import type { SnippetScope } from '#/shared/snippetScope';
 
 /**
  * A configured HarborClient Team Hub connection.
@@ -299,6 +300,56 @@ export interface TeamHubAdminCollectionContents {
    * Saved requests in the collection.
    */
   requests: TeamHubAdminRequestSummary[];
+}
+
+/**
+ * Snippet record returned by Team Hub admin snippet management routes.
+ */
+export interface TeamHubAdminSnippet {
+  /**
+   * Snippet UUID on the hub server.
+   */
+  id: string;
+
+  /**
+   * Display name shown in snippet pickers.
+   */
+  name: string;
+
+  /**
+   * JavaScript source executed when the snippet is referenced.
+   */
+  code: string;
+
+  /**
+   * Script phases where the snippet may be referenced.
+   */
+  scope: SnippetScope;
+
+  /**
+   * When true, user-role tokens cannot delete the snippet.
+   */
+  deletionLocked: boolean;
+}
+
+/**
+ * Fields accepted when creating or updating a hub snippet via admin routes.
+ */
+export interface TeamHubAdminSnippetInput {
+  /**
+   * Display name shown in snippet pickers.
+   */
+  name: string;
+
+  /**
+   * JavaScript source executed when the snippet is referenced.
+   */
+  code: string;
+
+  /**
+   * Script phases where the snippet may be referenced.
+   */
+  scope: SnippetScope;
 }
 
 /**

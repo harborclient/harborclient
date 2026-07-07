@@ -22,6 +22,8 @@ import { isPageTab, isRequestTab, type Tab } from '#/renderer/src/store/drafts';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectCollections, selectEnvironments } from '#/renderer/src/store/selectors';
 import { getRegisteredMainViews } from '#/renderer/src/plugins/registry';
+import { useTeamHubs } from '#/renderer/src/hooks/useTeamHubs';
+import { resolveTeamHubAdminTabLabel } from '#/renderer/src/ui/TeamHub/teamHubDisplayName';
 
 import { faPlus } from '#/renderer/src/fontawesome';
 import { pageTabMeta } from './pageTabMeta';
@@ -152,6 +154,7 @@ export function TabBar({
 }: Props): JSX.Element {
   const collections = useAppSelector(selectCollections);
   const allEnvironments = useAppSelector(selectEnvironments);
+  const { teamHubs } = useTeamHubs();
   const [activeDragTabId, setActiveDragTabId] = useState<string | null>(null);
   const sortableEnabled = tabs.length >= 2;
 
@@ -179,6 +182,7 @@ export function TabBar({
       let collectionName: string | undefined;
       let environmentName: string | undefined;
       let pluginTitle: string | undefined;
+      let teamHubName: string | undefined;
 
       if (page.type === 'collection') {
         collectionName = collections.find((collection) => collection.id === page.id)?.name;
@@ -188,12 +192,22 @@ export function TabBar({
         pluginTitle = getRegisteredMainViews().find(
           (view) => view.pluginId === page.pluginId && view.id === page.viewId
         )?.title;
+      } else if (page.type === 'team-hub-admin') {
+        teamHubName = resolveTeamHubAdminTabLabel(page, teamHubs);
       }
 
-      displays.set(tab.tabId, pageTabMeta(page, { collectionName, environmentName, pluginTitle }));
+      displays.set(
+        tab.tabId,
+        pageTabMeta(page, {
+          collectionName,
+          environmentName,
+          pluginTitle,
+          teamHubName
+        })
+      );
     }
     return displays;
-  }, [tabs, collections, allEnvironments]);
+  }, [tabs, collections, allEnvironments, teamHubs]);
 
   /**
    * Tab currently being dragged for overlay preview.

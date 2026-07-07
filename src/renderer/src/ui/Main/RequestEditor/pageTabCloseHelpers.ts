@@ -1,5 +1,6 @@
-import type { Collection, Environment } from '#/shared/types';
+import type { Collection, Environment, TeamHub } from '#/shared/types';
 import type { PageRef } from '#/renderer/src/store/drafts';
+import { resolveTeamHubAdminTabLabel } from '#/renderer/src/ui/TeamHub/teamHubDisplayName';
 
 /**
  * Returns whether the active page tab has unsaved collection or environment edits.
@@ -32,12 +33,14 @@ export function isActivePageTabDirty(
  * @param page - Page reference for the tab being closed.
  * @param collections - Current collections for name lookup.
  * @param environments - Current environments for name lookup.
+ * @param teamHubs - Current team hubs for admin tab name lookup.
  * @returns Display name for the confirmation dialog.
  */
 export function pageTabCloseName(
   page: PageRef,
   collections: Collection[],
-  environments: Environment[]
+  environments: Environment[],
+  teamHubs: TeamHub[] = []
 ): string {
   switch (page.type) {
     case 'settings':
@@ -52,6 +55,8 @@ export function pageTabCloseName(
       return 'Snippets';
     case 'team-hubs':
       return 'Team Hub';
+    case 'team-hub-admin':
+      return resolveTeamHubAdminTabLabel(page, teamHubs);
     case 'sharing-keys':
       return 'Sharing Keys';
     case 'plugin-view':

@@ -65,6 +65,8 @@ import type {
   HubUserRecord,
   TeamHubAdminResourceOptions,
   TeamHubAdminCollectionContents,
+  TeamHubAdminSnippet,
+  TeamHubAdminSnippetInput,
   UpdateHubUserInput,
   CreateHubUserInput,
   CreatedHubUser,
@@ -1236,6 +1238,53 @@ function listTeamHubAdminCollectionContents(
  */
 function deleteTeamHubCollection(hubId: string, collectionId: string): Promise<void> {
   return ipcRenderer.invoke('teamHubs:deleteCollection', hubId, collectionId);
+}
+
+/**
+ * Lists hub snippets using an admin token via IPC.
+ *
+ * @param hubId - Team hub connection id with an admin token.
+ */
+function listTeamHubAdminSnippets(hubId: string): Promise<TeamHubAdminSnippet[]> {
+  return ipcRenderer.invoke('teamHubs:listAdminSnippets', hubId);
+}
+
+/**
+ * Creates a hub snippet using an admin token via IPC.
+ *
+ * @param hubId - Team hub connection id with an admin token.
+ * @param input - Snippet name, code, and scope.
+ */
+function createTeamHubAdminSnippet(
+  hubId: string,
+  input: TeamHubAdminSnippetInput
+): Promise<TeamHubAdminSnippet> {
+  return ipcRenderer.invoke('teamHubs:createAdminSnippet', hubId, input);
+}
+
+/**
+ * Updates a hub snippet using an admin token via IPC.
+ *
+ * @param hubId - Team hub connection id with an admin token.
+ * @param snippetId - Server snippet UUID.
+ * @param input - Updated snippet name, code, and scope.
+ */
+function updateTeamHubAdminSnippet(
+  hubId: string,
+  snippetId: string,
+  input: TeamHubAdminSnippetInput
+): Promise<TeamHubAdminSnippet> {
+  return ipcRenderer.invoke('teamHubs:updateAdminSnippet', hubId, snippetId, input);
+}
+
+/**
+ * Deletes a hub snippet using an admin token via IPC.
+ *
+ * @param hubId - Team hub connection id with an admin token.
+ * @param snippetId - Server snippet UUID.
+ */
+function deleteTeamHubAdminSnippet(hubId: string, snippetId: string): Promise<void> {
+  return ipcRenderer.invoke('teamHubs:deleteAdminSnippet', hubId, snippetId);
 }
 
 /**
@@ -2487,6 +2536,10 @@ const api: Api = {
   listTeamHubAdminResourceOptions,
   listTeamHubAdminCollectionContents,
   deleteTeamHubCollection,
+  listTeamHubAdminSnippets,
+  createTeamHubAdminSnippet,
+  updateTeamHubAdminSnippet,
+  deleteTeamHubAdminSnippet,
   deleteTeamHubRequest,
   deleteTeamHubEnvironment,
   updateTeamHubCollectionDeletionLocked,

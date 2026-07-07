@@ -50,6 +50,7 @@ import {
   focusSidebarItem
 } from '#/renderer/src/store/thunks';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebar/useSidebarExpansion';
+import { useTeamHubs } from '#/renderer/src/hooks/useTeamHubs';
 import { Button } from '@harborclient/sdk/components';
 import { Modal, ModalFooter } from '@harborclient/sdk/components';
 import { ResizeHandle, useResizable } from '@harborclient/sdk/components';
@@ -116,6 +117,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const scriptError = useAppSelector(selectScriptError);
   const environments = useAppSelector(selectEnvironments);
   const collections = useAppSelector(selectCollections);
+  const { teamHubs } = useTeamHubs();
   const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
@@ -257,7 +259,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
     ) {
       setCloseTabPrompt({
         tabId,
-        name: pageTabCloseName(tab.page, collections, environments)
+        name: pageTabCloseName(tab.page, collections, environments, teamHubs)
       });
       return;
     }

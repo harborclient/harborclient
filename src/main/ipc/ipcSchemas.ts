@@ -115,6 +115,13 @@ const ipcRequestBody = z.string().max(MAX_IPC_REQUEST_BODY_CHARS);
 /** Pre/post script source bounded for IPC. */
 const ipcScriptSource = scriptSource;
 
+/** Admin snippet create/update payload for Team Hub management routes. */
+export const adminSnippetInput = z.object({
+  name,
+  code: ipcScriptSource,
+  scope: snippetScope
+});
+
 export { scriptRef } from '#/main/schemas/scriptRef';
 
 /** URL string bounded for IPC. */
@@ -569,6 +576,10 @@ export const ipcArgSchemas = {
   teamHubEnvironmentDelete: z.tuple([connectionId, z.string().min(1)]),
   teamHubCollectionDeletionLocked: z.tuple([connectionId, z.string().min(1), z.boolean()]),
   teamHubEnvironmentDeletionLocked: z.tuple([connectionId, z.string().min(1), z.boolean()]),
+  teamHubSnippetList: z.tuple([connectionId]),
+  teamHubSnippetCreate: z.tuple([connectionId, adminSnippetInput]),
+  teamHubSnippetUpdate: z.tuple([connectionId, z.string().min(1), adminSnippetInput]),
+  teamHubSnippetDelete: z.tuple([connectionId, z.string().min(1)]),
   providerSync: z.tuple([connectionId]),
   providerListUnregisteredCollections: z.tuple([connectionId]),
   providerRegisterDiscoveredCollections: z.tuple([

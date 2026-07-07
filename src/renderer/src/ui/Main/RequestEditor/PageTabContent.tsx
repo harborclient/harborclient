@@ -22,6 +22,7 @@ import { Settings } from '#/renderer/src/ui/Settings';
 import { SharingKeys } from '#/renderer/src/ui/SharingKeys';
 import { Snippets } from '#/renderer/src/ui/Snippets';
 import { TeamHub } from '#/renderer/src/ui/TeamHub';
+import { TeamHubAdmin } from '#/renderer/src/ui/TeamHub/TeamHubAdmin';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
 
 interface Props {
@@ -92,7 +93,11 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
   }
 
   if (page.type === 'team-hubs') {
-    return <TeamHub onClose={handleClose} />;
+    return <TeamHub />;
+  }
+
+  if (page.type === 'team-hub-admin') {
+    return <TeamHubAdmin hubId={page.hubId} onClose={handleClose} />;
   }
 
   if (page.type === 'plugins') {

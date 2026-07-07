@@ -214,16 +214,13 @@ export default function App(): JSX.Element {
       : undefined;
 
   /**
-   * Closes the active page tab on Escape; Team Hub manages its own nested stack.
+   * Closes the active page tab on Escape.
    */
-  useEscapeBack(
-    () => {
-      if (activeTabId) {
-        dispatch(closeTab(activeTabId));
-      }
-    },
-    activePage != null && activePage.type !== 'team-hubs'
-  );
+  useEscapeBack(() => {
+    if (activeTabId) {
+      dispatch(closeTab(activeTabId));
+    }
+  }, activePage != null);
 
   return (
     <CodeEditorConfigProvider

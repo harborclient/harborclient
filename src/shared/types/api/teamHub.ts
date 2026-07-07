@@ -10,6 +10,8 @@ import type {
   TeamHub,
   TeamHubAdminCollectionContents,
   TeamHubAdminResourceOptions,
+  TeamHubAdminSnippet,
+  TeamHubAdminSnippetInput,
   TeamHubSessionScanResult,
   UpdateHubUserInput
 } from '#/shared/types/teamHub';
@@ -120,6 +122,41 @@ export interface ApiTeamHub {
    * @param collectionId - Server collection UUID.
    */
   deleteTeamHubCollection: (hubId: string, collectionId: string) => Promise<void>;
+  /**
+   * Lists hub snippets using an admin token.
+   *
+   * @param hubId - Team hub connection id with an admin token.
+   */
+  listTeamHubAdminSnippets: (hubId: string) => Promise<TeamHubAdminSnippet[]>;
+  /**
+   * Creates a hub snippet using an admin token.
+   *
+   * @param hubId - Team hub connection id with an admin token.
+   * @param input - Snippet name, code, and scope.
+   */
+  createTeamHubAdminSnippet: (
+    hubId: string,
+    input: TeamHubAdminSnippetInput
+  ) => Promise<TeamHubAdminSnippet>;
+  /**
+   * Updates a hub snippet using an admin token.
+   *
+   * @param hubId - Team hub connection id with an admin token.
+   * @param snippetId - Server snippet UUID.
+   * @param input - Updated snippet name, code, and scope.
+   */
+  updateTeamHubAdminSnippet: (
+    hubId: string,
+    snippetId: string,
+    input: TeamHubAdminSnippetInput
+  ) => Promise<TeamHubAdminSnippet>;
+  /**
+   * Deletes a hub snippet using an admin token.
+   *
+   * @param hubId - Team hub connection id with an admin token.
+   * @param snippetId - Server snippet UUID.
+   */
+  deleteTeamHubAdminSnippet: (hubId: string, snippetId: string) => Promise<void>;
   /**
    * Deletes a saved request on a hub collection using an admin token.
    *

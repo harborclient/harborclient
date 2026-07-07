@@ -545,6 +545,68 @@ describe('redux open-tab round trip', () => {
     expect('kind' in tab! && tab.kind === 'page' && tab.page.type).toBe('snippets');
   });
 
+  it('round-trips team hub admin page tabs through parseOpenTabsFromRaw', () => {
+    const payload = JSON.stringify({
+      tabs: [
+        {
+          tabId: 'page-tab-team-hub-admin',
+          kind: 'page',
+          page: { type: 'team-hub-admin', hubId: 'hub-123', label: 'Local' }
+        }
+      ],
+      activeTabId: 'page-tab-team-hub-admin'
+    });
+
+    const restored = parseOpenTabsFromRaw(payload);
+
+    expect(restored.tabs).toHaveLength(1);
+    const tab = restored.tabs[0];
+    expect(isPageTab(tab)).toBe(true);
+    if (isPageTab(tab)) {
+      expect(tab.page).toEqual({ type: 'team-hub-admin', hubId: 'hub-123', label: 'Local' });
+    }
+  });
+
+  it('ignores blank team hub admin tab labels during persistence restore', () => {
+    const payload = JSON.stringify({
+      tabs: [
+        {
+          tabId: 'page-tab-team-hub-admin',
+          kind: 'page',
+          page: { type: 'team-hub-admin', hubId: 'hub-123', label: '   ' }
+        }
+      ],
+      activeTabId: 'page-tab-team-hub-admin'
+    });
+
+    const restored = parseOpenTabsFromRaw(payload);
+
+    expect(restored.tabs).toHaveLength(1);
+    const tab = restored.tabs[0];
+    expect(isPageTab(tab)).toBe(true);
+    if (isPageTab(tab)) {
+      expect(tab.page).toEqual({ type: 'team-hub-admin', hubId: 'hub-123' });
+    }
+  });
+
+  it('does not restore team hub admin page tabs with an invalid hub id', () => {
+    const payload = JSON.stringify({
+      tabs: [
+        {
+          tabId: 'page-tab-team-hub-admin',
+          kind: 'page',
+          page: { type: 'team-hub-admin', hubId: '' }
+        }
+      ],
+      activeTabId: 'page-tab-team-hub-admin'
+    });
+
+    const restored = parseOpenTabsFromRaw(payload);
+
+    expect(restored.tabs).toHaveLength(1);
+    expect(isPageTab(restored.tabs[0])).toBe(false);
+  });
+
   it('migrates legacy settings snippets tabs to the snippets page tab', () => {
     const payload = JSON.stringify({
       tabs: [

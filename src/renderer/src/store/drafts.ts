@@ -71,6 +71,7 @@ export type PageRef =
   | { type: 'snippets' }
   | { type: 'cookies' }
   | { type: 'team-hubs' }
+  | { type: 'team-hub-admin'; hubId: string; label?: string }
   | { type: 'sharing-keys' }
   | { type: 'plugin-view'; pluginId: string; viewId: string }
   | { type: 'collection'; id: number }
@@ -144,6 +145,8 @@ export function pageRefKey(page: PageRef): string {
       return 'cookies';
     case 'team-hubs':
       return 'team-hubs';
+    case 'team-hub-admin':
+      return `team-hub-admin:${page.hubId}`;
     case 'sharing-keys':
       return 'sharing-keys';
     case 'plugin-view':

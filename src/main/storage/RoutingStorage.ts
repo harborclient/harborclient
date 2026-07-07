@@ -5,6 +5,7 @@ import {
   type SnippetRoutingInternals
 } from '#/main/storage/SnippetMover';
 import { createTeamHubStorage, teamHubIdMapPath } from '#/main/storage/createTeamHubStorage';
+import { TeamHubIdMap } from '#/main/storage/TeamHubIdMap';
 import {
   LocalDatabase,
   type CollectionRegistryEntry,
@@ -34,6 +35,7 @@ import {
 } from '@harborclient/team-hub-api';
 import { logVerbose } from '#/main/logger';
 import { isStorageConnectionConfigured } from '#/main/settings/storageSettings';
+import { parseJson } from '#/shared/parseJson';
 import { getSlotForConnection } from '#/main/settings/storageSlots';
 import { refreshTeamHubPluginSources } from '#/main/settings/teamHubPluginSources';
 import { unlinkSync } from 'fs';
@@ -912,9 +914,109 @@ export class RoutingStorage implements IStorage {
     }
 
     const entry = this.requireSnippetEntry(id);
-    const backend = this.requireBackendByConnectionId(entry.connectionId);
+    const backend = this.byConnectionId.get(entry.connectionId);
+    if (!backend) {
+      this.removeSnippetFromLocalRegistry(entry);
+      return;
+    }
+
     await backend.db.deleteSnippet(entry.providerSnippetId);
     this.database.deleteSnippetRegistryEntry(id);
+  }
+
+  /**
+   * Removes a snippet from the local registry without contacting its provider.
+   *
+   * Used when the backing connection is not mounted, for example when a team hub
+   * failed its health check during startup.
+   *
+   * @param entry - Snippet registry row to remove locally.
+   */
+  private removeSnippetFromLocalRegistry(entry: SnippetRegistryEntry): void {
+    const serverSnippetId = this.resolveTeamHubSnippetServerIdForDetach(entry);
+    if (serverSnippetId) {
+      addDetachedSnippetServerId(this.database, entry.connectionId, serverSnippetId);
+      this.forgetTeamHubSnippetIdMapEntry(entry.connectionId, serverSnippetId);
+    }
+
+    this.database.deleteSnippetRegistryEntry(entry.id);
+  }
+
+  /**
+   * Returns true when the connection id belongs to a configured team hub.
+   *
+   * @param connectionId - Storage or team hub connection id.
+   */
+  private isTeamHubConnection(connectionId: string): boolean {
+    const hubs = parseJson<TeamHub[]>(this.database.getSetting('teamHubs'), []);
+    return hubs.some((hub) => hub.id === connectionId);
+  }
+
+  /**
+   * Resolves a team hub snippet server UUID for local detach bookkeeping.
+   *
+   * @param entry - Snippet registry row being removed locally.
+   * @returns Server snippet UUID when the entry belongs to a team hub.
+   */
+  private resolveTeamHubSnippetServerIdForDetach(entry: SnippetRegistryEntry): string | undefined {
+    if (!this.isTeamHubConnection(entry.connectionId)) {
+      return undefined;
+    }
+
+    const backend = this.byConnectionId.get(entry.connectionId);
+    if (backend?.connectionType === 'team-hub' && backend.db instanceof TeamHubStorage) {
+      return backend.db.getServerSnippetId(entry.providerSnippetId);
+    }
+
+    const fromMap = this.readTeamHubSnippetServerIdFromIdMap(
+      entry.connectionId,
+      entry.providerSnippetId
+    );
+    if (fromMap) {
+      return fromMap;
+    }
+
+    const uuid = entry.uuid.trim();
+    return uuid.length > 0 ? uuid : undefined;
+  }
+
+  /**
+   * Reads a team hub snippet server UUID from the on-disk id map without mounting the hub.
+   *
+   * @param hubId - Team hub connection id.
+   * @param providerSnippetId - Provider-local snippet id from the registry.
+   */
+  private readTeamHubSnippetServerIdFromIdMap(
+    hubId: string,
+    providerSnippetId: number
+  ): string | undefined {
+    const idMap = new TeamHubIdMap(teamHubIdMapPath(this.userDataPath, hubId));
+    try {
+      idMap.init();
+      return idMap.toServerId('snippet', providerSnippetId);
+    } catch {
+      return undefined;
+    } finally {
+      idMap.close();
+    }
+  }
+
+  /**
+   * Removes a team hub snippet mapping from the on-disk id map without mounting the hub.
+   *
+   * @param hubId - Team hub connection id.
+   * @param serverSnippetId - Server-side snippet UUID to forget.
+   */
+  private forgetTeamHubSnippetIdMapEntry(hubId: string, serverSnippetId: string): void {
+    const idMap = new TeamHubIdMap(teamHubIdMapPath(this.userDataPath, hubId));
+    try {
+      idMap.init();
+      idMap.forget('snippet', serverSnippetId);
+    } catch {
+      // Missing or corrupt id map files are acceptable when dropping local metadata.
+    } finally {
+      idMap.close();
+    }
   }
 
   /**

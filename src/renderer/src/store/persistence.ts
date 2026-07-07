@@ -251,6 +251,17 @@ function normalizePageRef(value: unknown): PageRef | null {
       return { type: 'cookies' };
     case 'team-hubs':
       return { type: 'team-hubs' };
+    case 'team-hub-admin':
+      if (typeof value.hubId !== 'string' || value.hubId.length === 0) {
+        return null;
+      }
+      return {
+        type: 'team-hub-admin',
+        hubId: value.hubId,
+        ...(typeof value.label === 'string' && value.label.trim().length > 0
+          ? { label: value.label.trim() }
+          : {})
+      };
     case 'sharing-keys':
       return { type: 'sharing-keys' };
     case 'plugin-view':

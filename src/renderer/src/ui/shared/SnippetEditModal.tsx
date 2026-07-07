@@ -54,6 +54,11 @@ interface Props {
    * When true, shows marketplace snippet source in a read-only preview.
    */
   readOnly?: boolean;
+
+  /**
+   * When true, hides the storage-location picker for hub-admin snippet editing.
+   */
+  hideStorageLocation?: boolean;
 }
 
 /**
@@ -67,7 +72,8 @@ export function SnippetEditModal({
   onChange,
   onCancel,
   onSave,
-  readOnly = false
+  readOnly = false,
+  hideStorageLocation = false
 }: Props): JSX.Element {
   const providerSelectId = useId();
   const {
@@ -86,11 +92,11 @@ export function SnippetEditModal({
    * Defaults the storage location dropdown to the active database when creating.
    */
   useEffect(() => {
-    if (readOnly || draft.connectionId || !primaryProviderId) {
+    if (readOnly || hideStorageLocation || draft.connectionId || !primaryProviderId) {
       return;
     }
     onChange({ ...draft, connectionId: primaryProviderId });
-  }, [draft, onChange, primaryProviderId, readOnly]);
+  }, [draft, hideStorageLocation, onChange, primaryProviderId, readOnly]);
 
   const title = readOnly ? 'View snippet' : isNew ? 'Add snippet' : 'Edit snippet';
   const description = readOnly
@@ -155,7 +161,7 @@ export function SnippetEditModal({
               ))}
             </Select>
           </div>
-          {!readOnly ? (
+          {!readOnly && !hideStorageLocation ? (
             <FormGroup label="Storage location" htmlFor={providerSelectId} labelTone="muted">
               <Select
                 id={providerSelectId}

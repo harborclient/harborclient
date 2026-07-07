@@ -88,13 +88,6 @@ export function InstalledView({
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [expandedCatalogIds, setExpandedCatalogIds] = useState<Set<string>>(new Set());
 
-  /**
-   * Maps installed bundle summaries by catalog id for marketplace snippet metadata.
-   */
-  const packagesByCatalogId = useMemo(
-    () => new Map(installedPackages.map((pkg) => [pkg.catalogId, pkg])),
-    [installedPackages]
-  );
   const { providers } = useProviders([]);
 
   /**
@@ -127,6 +120,15 @@ export function InstalledView({
     }
     return map;
   }, [snippets]);
+
+  /**
+   * Snippet rows owned by the user rather than a marketplace bundle, for the flat
+   * "Custom snippets" list (bundle members are shown under their package group above).
+   */
+  const standaloneSnippets = useMemo(
+    () => snippets.filter((snippet) => !snippet.catalogId),
+    [snippets]
+  );
 
   /**
    * Toggles whether one installed bundle's snippet list is expanded.
@@ -493,100 +495,71 @@ export function InstalledView({
       ) : null}
 
       <div className="mb-6 flex flex-col gap-1">
-        <span className="text-[18px] font-medium text-text">All snippets</span>
+        <span className="text-[18px] font-medium text-text">Custom snippets</span>
         <AsyncListState
           loading={loading}
           error={loadError}
           onRetry={() => void dispatch(refreshSnippets())}
-          isEmpty={!loading && !loadError && snippets.length === 0}
+          isEmpty={!loading && !loadError && standaloneSnippets.length === 0}
           emptyMessage="No snippets yet."
         >
           <ResourceList className="flex flex-col gap-4">
-            {snippets.map((snippet) => {
-              const installedPackage = snippet.catalogId
-                ? packagesByCatalogId.get(snippet.catalogId)
-                : undefined;
-              const isMarketplaceSnippet =
-                snippet.source === 'marketplace' || snippet.catalogId != null;
-              const snippetVersion = snippet.catalogVersion ?? installedPackage?.version;
-              const snippetAuthor =
-                snippet.catalogAuthor ?? installedPackage?.author ?? 'Unknown publisher';
-
-              return (
-                <ResourceListRow
-                  key={snippet.id}
-                  primary={
-                    <div className="flex flex-col gap-1">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <ResourceListPrimary>{snippet.name}</ResourceListPrimary>
-                        {isMarketplaceSnippet ? (
-                          <span className="inline-flex items-center gap-1.5 text-[14px] text-muted">
-                            <span className="inline-flex items-center gap-1.5">
-                              {snippetAuthor}
-                              {installedPackage?.signature?.status === 'verified' ? (
-                                <VerifiedPublisherBadge />
-                              ) : null}
-                            </span>
-                            {snippetVersion ? <span>· v{snippetVersion}</span> : null}
-                          </span>
-                        ) : null}
-                      </div>
-                      <span className="text-[14px] text-muted">
-                        {snippetScopeLabel(snippet.scope)}
-                        {!isMarketplaceSnippet && snippet.connectionId ? (
-                          <>
-                            {' '}
-                            ·{' '}
-                            {providerLabelById.get(snippet.connectionId) ??
-                              'Unknown storage location'}
-                          </>
-                        ) : null}
-                        {isMarketplaceSnippet ? <> · Local marketplace</> : null}
-                      </span>
-                      <CodePreviewTooltip
-                        code={snippet.code}
-                        actionLabel={
-                          isMarketplaceSnippet ? `View ${snippet.name}` : `Edit ${snippet.name}`
-                        }
-                        onClick={() => handleEdit(snippet)}
-                        emptyLabel="Empty snippet"
-                      />
-                    </div>
-                  }
-                  actions={
-                    <div className="flex items-center gap-2">
-                      {!isMarketplaceSnippet ? (
-                        <Button
-                          type="button"
-                          variant="toolbar"
-                          aria-label={`Edit ${snippet.name}`}
-                          onClick={() => handleEdit(snippet)}
-                        >
-                          Edit
-                        </Button>
+            {standaloneSnippets.map((snippet) => (
+              <ResourceListRow
+                key={snippet.id}
+                primary={
+                  <div className="flex flex-col gap-1">
+                    <ResourceListPrimary>{snippet.name}</ResourceListPrimary>
+                    <span className="text-[14px] text-muted">
+                      {snippetScopeLabel(snippet.scope)}
+                      {snippet.connectionId ? (
+                        <>
+                          {' '}
+                          ·{' '}
+                          {providerLabelById.get(snippet.connectionId) ??
+                            'Unknown storage location'}
+                        </>
                       ) : null}
-                      <Button
-                        type="button"
-                        variant="toolbar"
-                        aria-label={`Clone ${snippet.name}`}
-                        onClick={() => handleClone(snippet)}
-                      >
-                        Clone
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="toolbar"
-                        className={toolbarDangerButtonClass}
-                        aria-label={`Delete ${snippet.name}`}
-                        onClick={() => void handleDelete(snippet)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  }
-                />
-              );
-            })}
+                    </span>
+                    <CodePreviewTooltip
+                      code={snippet.code}
+                      actionLabel={`Edit ${snippet.name}`}
+                      onClick={() => handleEdit(snippet)}
+                      emptyLabel="Empty snippet"
+                    />
+                  </div>
+                }
+                actions={
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="toolbar"
+                      aria-label={`Edit ${snippet.name}`}
+                      onClick={() => handleEdit(snippet)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="toolbar"
+                      aria-label={`Clone ${snippet.name}`}
+                      onClick={() => handleClone(snippet)}
+                    >
+                      Clone
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="toolbar"
+                      className={toolbarDangerButtonClass}
+                      aria-label={`Delete ${snippet.name}`}
+                      onClick={() => void handleDelete(snippet)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                }
+              />
+            ))}
           </ResourceList>
         </AsyncListState>
       </div>
