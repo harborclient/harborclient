@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(catalog): add new snippet reference for authentication. (`20a6987`)
+
 ## 2.0.8 - 2026-07-07
 
 - feat(menu): implement Creator tab undo/redo functionality. (`d7c8446`)
