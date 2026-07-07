@@ -13,6 +13,7 @@ import { MarketplaceView } from './MarketplaceView';
 import { SnippetDetailModal } from './SnippetDetailModal';
 import { useSnippetCatalog } from './hooks/useSnippetCatalog';
 import { useSnippetCatalogDetail } from './hooks/useSnippetCatalogDetail';
+import { useSnippetDeepLinkInstall } from './hooks/useSnippetDeepLinkInstall';
 import { useSnippetInstallActions } from './hooks/useSnippetInstallActions';
 import { useSnippetPackageList } from './hooks/useSnippetPackageList';
 import { SNIPPET_SECTIONS } from './sidebarConstants';
@@ -54,8 +55,11 @@ export function Snippets(): JSX.Element {
   const { installedPackages, refreshPackages } = useSnippetPackageList();
   const {
     catalog,
+    setCatalog,
     catalogLoading,
+    setCatalogLoading,
     catalogError,
+    setCatalogError,
     catalogSearchQuery,
     setCatalogSearchQuery,
     catalogCategoryFilter,
@@ -89,6 +93,7 @@ export function Snippets(): JSX.Element {
     fileInstallBusy,
     directoryInstallBusy,
     actionBusyId,
+    setActionBusyId,
     setGitInstallUrl,
     setGitInstallRef,
     handleInstallFromGit,
@@ -98,6 +103,16 @@ export function Snippets(): JSX.Element {
     handleUpdatePackage,
     handleUninstallPackage
   } = useSnippetInstallActions({ refresh: refreshAll });
+
+  useSnippetDeepLinkInstall({
+    setSection,
+    setCatalog,
+    setCatalogLoading,
+    setCatalogError,
+    setActionBusyId,
+    openCatalogDetail,
+    refresh: refreshAll
+  });
 
   /**
    * Applies a marketplace search query queued by global search navigation before paint.

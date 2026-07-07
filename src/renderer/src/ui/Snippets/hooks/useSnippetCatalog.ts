@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import type { SnippetCatalog, SnippetCatalogEntry } from '#/shared/snippet/catalog';
 import type { PluginCatalogCategory } from '#/shared/plugin/catalogCategories';
 import {
@@ -9,8 +9,11 @@ import {
 
 interface UseSnippetCatalogResult {
   catalog: SnippetCatalog | null;
+  setCatalog: Dispatch<SetStateAction<SnippetCatalog | null>>;
   catalogLoading: boolean;
+  setCatalogLoading: Dispatch<SetStateAction<boolean>>;
   catalogError: string | null;
+  setCatalogError: Dispatch<SetStateAction<string | null>>;
   catalogById: Map<string, SnippetCatalogEntry>;
   catalogSearchQuery: string;
   setCatalogSearchQuery: (query: string) => void;
@@ -74,8 +77,11 @@ export function useSnippetCatalog(): UseSnippetCatalogResult {
 
   return {
     catalog,
+    setCatalog,
     catalogLoading,
+    setCatalogLoading,
     catalogError,
+    setCatalogError,
     catalogById,
     catalogSearchQuery,
     setCatalogSearchQuery,

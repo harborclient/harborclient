@@ -16,6 +16,10 @@ export type HarborDeepLink =
   | {
       action: 'install-theme';
       pluginId: string;
+    }
+  | {
+      action: 'install-snippet';
+      pluginId: string;
     };
 
 /**
@@ -31,13 +35,13 @@ function isPluginManifestId(value: string): boolean {
  * Parses an install deep link for plugins or themes when the host and path match.
  *
  * @param parsed - Parsed harborclient:// URL.
- * @param hostname - Expected URL hostname (`plugin` or `theme`).
+ * @param hostname - Expected URL hostname (`plugin`, `theme`, or `snippet`).
  * @param action - Deep-link action to return when valid.
  * @returns Parsed install action, or null when invalid.
  */
 function parseInstallDeepLink(
   parsed: URL,
-  hostname: 'plugin' | 'theme',
+  hostname: 'plugin' | 'theme' | 'snippet',
   action: HarborDeepLink['action']
 ): HarborDeepLink | null {
   if (parsed.hostname !== hostname || parsed.pathname !== '/install') {
@@ -80,7 +84,8 @@ export function parseHarborDeepLink(url: string): HarborDeepLink | null {
 
   return (
     parseInstallDeepLink(parsed, 'plugin', 'install-plugin') ??
-    parseInstallDeepLink(parsed, 'theme', 'install-theme')
+    parseInstallDeepLink(parsed, 'theme', 'install-theme') ??
+    parseInstallDeepLink(parsed, 'snippet', 'install-snippet')
   );
 }
 
@@ -102,4 +107,14 @@ export function buildPluginInstallDeepLink(pluginId: string): string {
  */
 export function buildThemeInstallDeepLink(pluginId: string): string {
   return `${HARBOR_PROTOCOL}://theme/install?id=${encodeURIComponent(pluginId)}`;
+}
+
+/**
+ * Builds a harborclient:// install URL for one marketplace snippet bundle id.
+ *
+ * @param pluginId - Catalog snippet bundle manifest id.
+ * @returns Deep-link URL suitable for docs and external links.
+ */
+export function buildSnippetInstallDeepLink(pluginId: string): string {
+  return `${HARBOR_PROTOCOL}://snippet/install?id=${encodeURIComponent(pluginId)}`;
 }

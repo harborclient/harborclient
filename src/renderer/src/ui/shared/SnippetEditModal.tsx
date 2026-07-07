@@ -46,6 +46,11 @@ interface Props {
    * Persists the draft snippet.
    */
   onSave: () => void;
+
+  /**
+   * When true, shows marketplace snippet source in a read-only preview.
+   */
+  readOnly?: boolean;
 }
 
 /**
@@ -58,24 +63,36 @@ export function SnippetEditModal({
   error,
   onChange,
   onCancel,
-  onSave
+  onSave,
+  readOnly = false
 }: Props): JSX.Element {
+  const title = readOnly ? 'View snippet' : isNew ? 'Add snippet' : 'Edit snippet';
+  const description = readOnly
+    ? 'Read-only preview of a marketplace snippet. Clone it to make an editable copy.'
+    : 'Reusable JavaScript used in pre-request and post-request script lists.';
+
   return (
     <Modal
       className="flex w-[min(92vw,72rem)] max-h-[85vh] flex-col overflow-hidden"
       labelledBy="snippet-edit-title"
       onClose={onCancel}
-      title={isNew ? 'Add snippet' : 'Edit snippet'}
-      description="Reusable JavaScript used in pre-request and post-request script lists."
+      title={title}
+      description={description}
       closeDisabled={saving}
       disableEscape={saving}
     >
       <ModalFormLayout
         error={error ? <FieldError spacing="modal">{error}</FieldError> : undefined}
         actions={
-          <Button type="button" disabled={saving} onClick={() => void onSave()}>
-            {saving ? 'Saving…' : 'Save'}
-          </Button>
+          readOnly ? (
+            <Button type="button" onClick={onCancel}>
+              Close
+            </Button>
+          ) : (
+            <Button type="button" disabled={saving} onClick={() => void onSave()}>
+              {saving ? 'Saving…' : 'Save'}
+            </Button>
+          )
         }
       >
         <div className="flex flex-col gap-4">
@@ -86,6 +103,7 @@ export function SnippetEditModal({
             <Input
               id="snippet-name"
               value={draft.name}
+              readOnly={readOnly}
               disabled={saving}
               onChange={(event) => onChange({ ...draft, name: event.target.value })}
               placeholder="Snippet name"
@@ -99,7 +117,7 @@ export function SnippetEditModal({
               id="snippet-scope"
               className="w-full"
               value={draft.scope}
-              disabled={saving}
+              disabled={saving || readOnly}
               onChange={(event) =>
                 onChange({ ...draft, scope: event.target.value as SnippetScope })
               }
@@ -118,7 +136,8 @@ export function SnippetEditModal({
             <CodeEditor
               id="snippet-code"
               value={draft.code}
-              onChange={(code) => onChange({ ...draft, code })}
+              readOnly={readOnly}
+              onChange={readOnly ? undefined : (code) => onChange({ ...draft, code })}
               language="javascript"
               minHeight="500px"
               placeholder="// hc.variables.set('token', 'abc');"

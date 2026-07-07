@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
-import { setPendingPluginInstall } from '#/renderer/src/store/slices/navigationSlice';
+import {
+  setPendingPluginInstall,
+  setPendingSnippetInstall
+} from '#/renderer/src/store/slices/navigationSlice';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 
 /**
@@ -24,6 +27,12 @@ export function useDeepLinks(): void {
       if (payload.action === 'install-theme') {
         dispatch(openPageTab({ type: 'themes' }));
         dispatch(setPendingPluginInstall(payload.pluginId));
+        return;
+      }
+
+      if (payload.action === 'install-snippet') {
+        dispatch(openPageTab({ type: 'snippets' }));
+        dispatch(setPendingSnippetInstall(payload.pluginId));
       }
     });
 

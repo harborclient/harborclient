@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
 import toast from 'react-hot-toast';
 import type { SnippetCatalogEntry } from '#/shared/snippet/catalog';
 import type { InstalledSnippetPackage } from '#/shared/snippet/types';
@@ -20,6 +20,7 @@ interface UseSnippetInstallActionsResult {
   fileInstallBusy: boolean;
   directoryInstallBusy: boolean;
   actionBusyId: string | null;
+  setActionBusyId: Dispatch<SetStateAction<string | null>>;
   setGitInstallUrl: (url: string) => void;
   setGitInstallRef: (ref: string) => void;
   handleInstallFromGit: () => Promise<void>;
@@ -183,6 +184,7 @@ export function useSnippetInstallActions({
     fileInstallBusy,
     directoryInstallBusy,
     actionBusyId,
+    setActionBusyId,
     setGitInstallUrl,
     setGitInstallRef,
     handleInstallFromGit,

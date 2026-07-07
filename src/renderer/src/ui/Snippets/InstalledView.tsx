@@ -84,6 +84,7 @@ export function InstalledView({
   const [error, setError] = useState<string | null>(null);
   const [editingDraft, setEditingDraft] = useState<SnippetEditDraft | null>(null);
   const [isNew, setIsNew] = useState(false);
+  const [isReadOnly, setIsReadOnly] = useState(false);
   const [expandedCatalogIds, setExpandedCatalogIds] = useState<Set<string>>(new Set());
 
   /**
@@ -187,14 +188,12 @@ export function InstalledView({
   };
 
   /**
-   * Opens the edit modal for an existing local snippet.
+   * Opens the edit modal for a local snippet or a read-only view for marketplace snippets.
    *
-   * @param snippet - Snippet to edit.
+   * @param snippet - Snippet to edit or preview.
    */
   const handleEdit = (snippet: Snippet): void => {
-    if (snippet.source === 'marketplace' || snippet.catalogId) {
-      return;
-    }
+    const isMarketplaceSnippet = snippet.source === 'marketplace' || snippet.catalogId != null;
 
     setEditingDraft({
       id: snippet.id,
@@ -203,6 +202,7 @@ export function InstalledView({
       scope: snippet.scope
     });
     setIsNew(false);
+    setIsReadOnly(isMarketplaceSnippet);
     setError(null);
   };
 
@@ -212,6 +212,7 @@ export function InstalledView({
   const handleCancelEdit = (): void => {
     setEditingDraft(null);
     setIsNew(false);
+    setIsReadOnly(false);
     setError(null);
   };
 
@@ -219,7 +220,7 @@ export function InstalledView({
    * Persists the snippet draft through create or update IPC.
    */
   const handleSave = async (): Promise<void> => {
-    if (!editingDraft) {
+    if (!editingDraft || isReadOnly) {
       return;
     }
 
@@ -261,23 +262,20 @@ export function InstalledView({
   };
 
   /**
-   * Creates an editable local copy of one snippet.
+   * Opens the create-snippet modal prefilled from an existing snippet so the
+   * user can review the clone before saving it.
    *
    * @param snippet - Snippet to clone.
    */
-  const handleClone = async (snippet: Snippet): Promise<void> => {
-    try {
-      await dispatch(
-        createSnippet({
-          name: `${snippet.name} (clone)`,
-          code: snippet.code,
-          scope: snippet.scope
-        })
-      ).unwrap();
-      toast.success('Snippet cloned');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to clone snippet');
-    }
+  const handleClone = (snippet: Snippet): void => {
+    setEditingDraft({
+      name: `${snippet.name} (clone)`,
+      code: snippet.code,
+      scope: snippet.scope
+    });
+    setIsNew(true);
+    setIsReadOnly(false);
+    setError(null);
   };
 
   /**
@@ -408,23 +406,38 @@ export function InstalledView({
                     }
                   />
                   {isExpanded ? (
-                    <li className="flex flex-col gap-2 rounded-[10px] border border-separator/60 bg-selection/20 p-3">
+                    <li className="pl-4">
                       {bundleSnippets.length === 0 ? (
                         <span className="text-[14px] text-muted">No snippets in this bundle.</span>
                       ) : (
-                        bundleSnippets.map((snippet) => (
-                          <div key={snippet.id} className="flex items-center justify-between gap-3">
-                            <span className="text-[14px] text-text">{snippet.name}</span>
-                            <Button
-                              type="button"
-                              variant="toolbar"
-                              aria-label={`Clone ${snippet.name}`}
-                              onClick={() => void handleClone(snippet)}
-                            >
-                              Clone
-                            </Button>
-                          </div>
-                        ))
+                        <ResourceList className="flex flex-col gap-3">
+                          {bundleSnippets.map((snippet) => (
+                            <ResourceListRow
+                              key={snippet.id}
+                              primary={
+                                <div className="flex flex-col gap-1">
+                                  <ResourceListPrimary>{snippet.name}</ResourceListPrimary>
+                                  <CodePreviewTooltip
+                                    code={snippet.code}
+                                    actionLabel={`View ${snippet.name}`}
+                                    onClick={() => handleEdit(snippet)}
+                                    emptyLabel="Empty snippet"
+                                  />
+                                </div>
+                              }
+                              actions={
+                                <Button
+                                  type="button"
+                                  variant="toolbar"
+                                  aria-label={`Clone ${snippet.name}`}
+                                  onClick={() => handleClone(snippet)}
+                                >
+                                  Clone
+                                </Button>
+                              }
+                            />
+                          ))}
+                        </ResourceList>
                       )}
                     </li>
                   ) : null}
@@ -503,7 +516,7 @@ export function InstalledView({
                         type="button"
                         variant="toolbar"
                         aria-label={`Clone ${snippet.name}`}
-                        onClick={() => void handleClone(snippet)}
+                        onClick={() => handleClone(snippet)}
                       >
                         Clone
                       </Button>
@@ -529,6 +542,7 @@ export function InstalledView({
         <SnippetEditModal
           draft={editingDraft}
           isNew={isNew}
+          readOnly={isReadOnly}
           saving={saving}
           error={error}
           onChange={setEditingDraft}

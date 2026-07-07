@@ -18,6 +18,7 @@ export interface NavigationState {
   pendingMarketplaceSearch: string | null;
   pendingInstalledSearch: string | null;
   pendingSnippetMarketplaceSearch: string | null;
+  pendingSnippetInstallId: string | null;
 }
 
 const initialState: NavigationState = {
@@ -36,7 +37,8 @@ const initialState: NavigationState = {
   pendingPluginInstallId: null,
   pendingMarketplaceSearch: null,
   pendingInstalledSearch: null,
-  pendingSnippetMarketplaceSearch: null
+  pendingSnippetMarketplaceSearch: null,
+  pendingSnippetInstallId: null
 };
 
 const navigationSlice = createSlice({
@@ -213,6 +215,18 @@ const navigationSlice = createSlice({
      */
     consumePendingSnippetMarketplaceSearch(state) {
       state.pendingSnippetMarketplaceSearch = null;
+    },
+    /**
+     * Queues a marketplace snippet install requested via harborclient:// deep link.
+     */
+    setPendingSnippetInstall(state, action: PayloadAction<string>) {
+      state.pendingSnippetInstallId = action.payload;
+    },
+    /**
+     * Clears a queued deep-link snippet install after it has been handled.
+     */
+    consumePendingSnippetInstall(state) {
+      state.pendingSnippetInstallId = null;
     }
   }
 });
@@ -241,7 +255,9 @@ export const {
   setPendingInstalledSearch,
   consumePendingInstalledSearch,
   setPendingSnippetMarketplaceSearch,
-  consumePendingSnippetMarketplaceSearch
+  consumePendingSnippetMarketplaceSearch,
+  setPendingSnippetInstall,
+  consumePendingSnippetInstall
 } = navigationSlice.actions;
 
 /**
@@ -330,5 +346,11 @@ export const selectPendingInstalledSearch = (state: RootState): string | null =>
  */
 export const selectPendingSnippetMarketplaceSearch = (state: RootState): string | null =>
   state.navigation.pendingSnippetMarketplaceSearch;
+
+/**
+ * Returns the snippet bundle id queued by a harborclient:// install deep link, if any.
+ */
+export const selectPendingSnippetInstallId = (state: RootState): string | null =>
+  state.navigation.pendingSnippetInstallId;
 
 export default navigationSlice.reducer;
