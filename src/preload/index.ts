@@ -323,6 +323,108 @@ function importSnippetFile(): Promise<{ code: string } | null> {
 }
 
 /**
+ * Fetches the public snippet marketplace catalog via IPC.
+ */
+function getSnippetCatalog(): Promise<import('#/shared/snippet/catalog').SnippetCatalog> {
+  return ipcRenderer.invoke('snippets:catalog');
+}
+
+/**
+ * Fetches a snippet bundle preview from a public git repository via IPC.
+ *
+ * @param url - Public repository URL.
+ * @param ref - Optional branch or tag.
+ */
+function previewSnippetFromGit(
+  url: string,
+  ref?: string
+): Promise<import('#/shared/snippet/types').SnippetGitPreview> {
+  return ipcRenderer.invoke('snippets:previewFromGit', url, ref);
+}
+
+/**
+ * Installs a snippet bundle from a public git repository via IPC.
+ *
+ * @param url - Public repository URL.
+ * @param ref - Optional branch or tag.
+ */
+function installSnippetFromGit(
+  url: string,
+  ref?: string
+): Promise<import('#/shared/snippet/types').InstalledSnippetPackage> {
+  return ipcRenderer.invoke('snippets:installFromGit', url, ref);
+}
+
+/**
+ * Opens a native file picker for a `.hcs` or `.zip` snippet bundle and installs it via IPC.
+ */
+function installSnippet(): Promise<
+  import('#/shared/snippet/types').InstalledSnippetPackage | null
+> {
+  return ipcRenderer.invoke('snippets:install');
+}
+
+/**
+ * Installs a snippet bundle from an absolute archive path via IPC.
+ *
+ * @param path - Absolute path to a `.hcs` or `.zip` snippet package.
+ */
+function installSnippetFromPath(
+  path: string
+): Promise<import('#/shared/snippet/types').InstalledSnippetPackage> {
+  return ipcRenderer.invoke('snippets:installFromPath', path);
+}
+
+/**
+ * Opens a native directory picker and imports a snippet bundle via IPC.
+ */
+function loadUnpackedSnippet(): Promise<
+  import('#/shared/snippet/types').InstalledSnippetPackage | null
+> {
+  return ipcRenderer.invoke('snippets:loadUnpacked');
+}
+
+/**
+ * Imports a snippet bundle from an absolute directory path via IPC.
+ *
+ * @param path - Absolute path to an unpacked snippet bundle root.
+ */
+function loadUnpackedSnippetFromPath(
+  path: string
+): Promise<import('#/shared/snippet/types').InstalledSnippetPackage> {
+  return ipcRenderer.invoke('snippets:loadUnpackedFromPath', path);
+}
+
+/**
+ * Updates an installed snippet bundle from its stored git origin via IPC.
+ *
+ * @param catalogId - Snippet bundle id from snippets.json.
+ */
+function updateSnippetFromGit(
+  catalogId: string
+): Promise<import('#/shared/snippet/types').InstalledSnippetPackage> {
+  return ipcRenderer.invoke('snippets:updateFromGit', catalogId);
+}
+
+/**
+ * Uninstalls one marketplace snippet bundle via IPC.
+ *
+ * @param catalogId - Snippet bundle id from snippets.json.
+ */
+function uninstallSnippetPackage(catalogId: string): Promise<void> {
+  return ipcRenderer.invoke('snippets:uninstallPackage', catalogId);
+}
+
+/**
+ * Lists installed marketplace snippet bundles via IPC.
+ */
+function listInstalledSnippetPackages(): Promise<
+  import('#/shared/snippet/types').InstalledSnippetPackage[]
+> {
+  return ipcRenderer.invoke('snippets:listInstalledPackages');
+}
+
+/**
  * Deep-copies an environment into a new record via IPC.
  *
  * @param id - Environment ID to duplicate.
@@ -2276,6 +2378,16 @@ const api: Api = {
   updateSnippet,
   deleteSnippet,
   importSnippetFile,
+  getSnippetCatalog,
+  previewSnippetFromGit,
+  installSnippetFromGit,
+  installSnippet,
+  installSnippetFromPath,
+  loadUnpackedSnippet,
+  loadUnpackedSnippetFromPath,
+  updateSnippetFromGit,
+  uninstallSnippetPackage,
+  listInstalledSnippetPackages,
   importEntity,
   listRequests,
   saveRequest,

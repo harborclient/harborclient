@@ -1,12 +1,14 @@
 import { createContext } from 'react';
 import type { PluginCatalog } from '#/shared/plugin/catalog';
 import type { PluginInfo } from '#/shared/plugin/types';
+import type { SnippetCatalog } from '#/shared/snippet/catalog';
 import type { SearchAllContext, SidebarSearchInput } from '#/shared/search';
 import type {
   buildInstalledPluginSearchIndex,
   buildPluginCatalogSearchIndex,
   buildSettingsSearchIndex,
-  buildSidebarSearchIndex
+  buildSidebarSearchIndex,
+  buildSnippetCatalogSearchIndexForSearch
 } from '#/shared/search';
 
 /**
@@ -21,6 +23,8 @@ export interface SearchIndexReady {
   plugins: boolean;
   /** True once the installed plugin list fetch completes (success or failure). */
   installedPlugins: boolean;
+  /** True once the snippet marketplace catalog fetch completes (success or failure). */
+  snippets: boolean;
 }
 
 /**
@@ -41,6 +45,10 @@ export interface SearchIndexContextValue {
   plugins: PluginCatalog['plugins'];
   /** Installed plugin rows from the main process. */
   installedPlugins: PluginInfo[];
+  /** MiniSearch index over marketplace snippet bundle metadata, when catalog is loaded. */
+  snippetsIndex: ReturnType<typeof buildSnippetCatalogSearchIndexForSearch> | null;
+  /** Loaded marketplace snippet catalog rows (empty when unavailable). */
+  snippets: SnippetCatalog['snippets'];
   /** Per-domain readiness for UI feedback. */
   ready: SearchIndexReady;
   /** Prebuilt context object for {@link searchAll}. */

@@ -1,12 +1,16 @@
 import { BrowserWindow, dialog } from 'electron';
+import { app } from 'electron';
 import { readFile } from 'fs/promises';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
+import { fetchSnippetCatalog } from '#/main/snippets/snippetCatalog';
+import { fetchSnippetPreviewFromGit } from '#/main/snippets/snippetPreview';
+import { getSnippetInstaller } from '#/main/snippets/SnippetInstaller';
 import type { SnippetImportResult } from '#/shared/types/api/snippets';
 
 /**
- * Registers IPC handlers for reusable JavaScript snippet CRUD.
+ * Registers IPC handlers for reusable JavaScript snippet CRUD and marketplace install.
  */
 export function registerSnippetHandlers(): void {
   handle('snippets:list', ipcArgSchemas.none, () => getLocalDatabase().listSnippets());
@@ -47,5 +51,60 @@ export function registerSnippetHandlers(): void {
 
       return { code: raw };
     }
+  );
+
+  handle('snippets:catalog', ipcArgSchemas.none, () => fetchSnippetCatalog());
+
+  handle('snippets:previewFromGit', ipcArgSchemas.snippetPreviewFromGit, (_event, url, ref) =>
+    fetchSnippetPreviewFromGit(url, ref)
+  );
+
+  handle('snippets:installFromGit', ipcArgSchemas.snippetInstallFromGit, (_event, url, ref) =>
+    getSnippetInstaller(app.getVersion()).installFromGit(url, ref)
+  );
+
+  handle('snippets:install', ipcArgSchemas.none, async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Install snippet bundle',
+      properties: ['openFile'],
+      filters: [{ name: 'HarborClient snippet bundle', extensions: ['hcs', 'zip'] }]
+    });
+    if (canceled || filePaths.length === 0) {
+      return null;
+    }
+    return getSnippetInstaller(app.getVersion()).installFromFile(filePaths[0]);
+  });
+
+  handle('snippets:installFromPath', ipcArgSchemas.snippetInstallFromPath, (_event, path) =>
+    getSnippetInstaller(app.getVersion()).installFromFile(path)
+  );
+
+  handle('snippets:loadUnpacked', ipcArgSchemas.none, async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Load unpacked snippet bundle',
+      properties: ['openDirectory']
+    });
+    if (canceled || filePaths.length === 0) {
+      return null;
+    }
+    return getSnippetInstaller(app.getVersion()).loadUnpacked(filePaths[0]);
+  });
+
+  handle(
+    'snippets:loadUnpackedFromPath',
+    ipcArgSchemas.snippetLoadUnpackedFromPath,
+    (_event, path) => getSnippetInstaller(app.getVersion()).loadUnpacked(path)
+  );
+
+  handle('snippets:updateFromGit', ipcArgSchemas.snippetCatalogId, (_event, catalogId) =>
+    getSnippetInstaller(app.getVersion()).updateFromGit(catalogId)
+  );
+
+  handle('snippets:uninstallPackage', ipcArgSchemas.snippetCatalogId, (_event, catalogId) => {
+    getSnippetInstaller(app.getVersion()).uninstallPackage(catalogId);
+  });
+
+  handle('snippets:listInstalledPackages', ipcArgSchemas.none, () =>
+    getSnippetInstaller(app.getVersion()).listInstalledPackages()
   );
 }

@@ -209,12 +209,21 @@ export function rowToEnvironment(row: Record<string, unknown>): Environment {
  * @param row - Row fields including numeric `id`.
  */
 export function rowToSnippet(row: Record<string, unknown>): Snippet {
+  const source = row.source === 'marketplace' ? 'marketplace' : 'local';
+  const catalogId = typeof row.catalog_id === 'string' ? row.catalog_id : undefined;
+  const catalogVersion = typeof row.catalog_version === 'string' ? row.catalog_version : undefined;
+  const catalogAuthor = typeof row.catalog_author === 'string' ? row.catalog_author : undefined;
+
   return {
     id: readNumber(row.id),
     uuid: readString(row.uuid),
     name: readString(row.name),
     code: readString(row.code),
     scope: normalizeSnippetScope(row.scope),
+    source,
+    ...(catalogId ? { catalogId } : {}),
+    ...(catalogVersion ? { catalogVersion } : {}),
+    ...(catalogAuthor ? { catalogAuthor } : {}),
     created_at: readTimestamp(row.created_at),
     updated_at: readTimestamp(row.updated_at)
   };

@@ -1,305 +1,218 @@
-import {
-  AsyncListState,
-  Button,
-  FaIcon,
-  Page,
-  ResourceList,
-  ResourceListPrimary,
-  ResourceListRow,
-  SidebarLayout
-} from '@harborclient/sdk/components';
-import { useEffect, useState, type JSX } from 'react';
-import toast from 'react-hot-toast';
-import type { Snippet } from '#/shared/types';
-import { snippetScopeLabel } from '#/shared/snippetScope';
-import { faFileImport, faPlus, faTerminal } from '#/renderer/src/fontawesome';
+import { PageSidebar, SidebarLayout } from '@harborclient/sdk/components';
+import { useCallback, useEffect, useLayoutEffect, useMemo, type JSX } from 'react';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
-import { selectSnippets } from '#/renderer/src/store/selectors';
 import {
-  createSnippet,
-  deleteSnippet,
-  refreshSnippets,
-  updateSnippet
-} from '#/renderer/src/store/thunks/snippets';
-import { useConfirm } from '#/renderer/src/hooks/useConfirm';
-import { CodePreviewTooltip } from '#/renderer/src/ui/shared/CodePreviewTooltip';
-import { SnippetEditModal } from '#/renderer/src/ui/shared/SnippetEditModal';
-import {
-  createBlankSnippet,
-  createImportedSnippetDraft,
-  type SnippetEditDraft
-} from '#/renderer/src/ui/shared/snippetEditDraft';
-import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
-
-const SNIPPETS_PAGE_TITLE = 'Snippets';
-const SNIPPETS_PAGE_DESCRIPTION =
-  'Manage reusable JavaScript snippets for pre-request and post-request scripts.';
+  consumePendingSnippetMarketplaceSearch,
+  selectPendingSnippetMarketplaceSearch
+} from '#/renderer/src/store/slices/navigationSlice';
+import { refreshSnippets } from '#/renderer/src/store/thunks/snippets';
+import { usePersistedPageSidebarSection } from '#/renderer/src/hooks/usePersistedPageSidebarSection';
+import { InstalledView } from './InstalledView';
+import { InstallView } from './InstallView';
+import { MarketplaceView } from './MarketplaceView';
+import { SnippetDetailModal } from './SnippetDetailModal';
+import { useSnippetCatalog } from './hooks/useSnippetCatalog';
+import { useSnippetCatalogDetail } from './hooks/useSnippetCatalogDetail';
+import { useSnippetInstallActions } from './hooks/useSnippetInstallActions';
+import { useSnippetPackageList } from './hooks/useSnippetPackageList';
+import { SNIPPET_SECTIONS } from './sidebarConstants';
+import type { SnippetsSidebarSection } from './sidebarTypes';
 
 /**
- * Top-level tab for managing reusable JavaScript snippets.
+ * Full-area snippet management with installed list, marketplace browse, and git install.
  */
 export function Snippets(): JSX.Element {
   const dispatch = useAppDispatch();
-  const confirm = useConfirm();
-  const snippets = useAppSelector(selectSnippets);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [editingDraft, setEditingDraft] = useState<SnippetEditDraft | null>(null);
-  const [isNew, setIsNew] = useState(false);
+  const pendingSnippetMarketplaceSearch = useAppSelector(selectPendingSnippetMarketplaceSearch);
 
   /**
-   * Loads snippets when the Snippets tab opens.
+   * Validates sidebar section ids for the Snippets tab.
+   */
+  const isValidSection = useCallback(
+    (candidate: string): candidate is SnippetsSidebarSection =>
+      SNIPPET_SECTIONS.some((entry) => entry.value === candidate),
+    []
+  );
+
+  /**
+   * Sidebar section queued by Search Anything until the marketplace search field applies it.
+   */
+  const navigationOverride = useMemo((): SnippetsSidebarSection | undefined => {
+    if (pendingSnippetMarketplaceSearch != null) {
+      return 'marketplace';
+    }
+    return undefined;
+  }, [pendingSnippetMarketplaceSearch]);
+
+  const { section, setSection } = usePersistedPageSidebarSection<SnippetsSidebarSection>({
+    pageKey: 'snippets',
+    defaultSection: 'installed',
+    isValidSection,
+    navigationOverride
+  });
+
+  const { installedPackages, refreshPackages } = useSnippetPackageList();
+  const {
+    catalog,
+    catalogLoading,
+    catalogError,
+    catalogSearchQuery,
+    setCatalogSearchQuery,
+    catalogCategoryFilter,
+    setCatalogCategoryFilter,
+    filteredCatalogSnippets,
+    loadCatalog,
+    resetCatalogFilters
+  } = useSnippetCatalog();
+  const {
+    catalogDetailEntry,
+    catalogPreview,
+    catalogPreviewLoadState,
+    catalogPreviewError,
+    openCatalogDetail,
+    closeCatalogDetail,
+    resetCatalogDetail
+  } = useSnippetCatalogDetail();
+
+  /**
+   * Reloads snippets and installed package summaries after marketplace mutations.
+   */
+  const refreshAll = useCallback(async (): Promise<void> => {
+    await Promise.all([refreshPackages(), dispatch(refreshSnippets()).unwrap()]);
+  }, [dispatch, refreshPackages]);
+
+  const {
+    gitInstallUrl,
+    gitInstallRef,
+    gitInstallError,
+    gitInstallBusy,
+    fileInstallBusy,
+    directoryInstallBusy,
+    actionBusyId,
+    setGitInstallUrl,
+    setGitInstallRef,
+    handleInstallFromGit,
+    handleInstallFromFile,
+    handleLoadUnpacked,
+    handleInstallCatalogEntry,
+    handleUpdatePackage,
+    handleUninstallPackage
+  } = useSnippetInstallActions({ refresh: refreshAll });
+
+  /**
+   * Applies a marketplace search query queued by global search navigation before paint.
+   */
+  useLayoutEffect(() => {
+    if (pendingSnippetMarketplaceSearch == null) {
+      return;
+    }
+    setCatalogSearchQuery(pendingSnippetMarketplaceSearch);
+    setSection('marketplace');
+  }, [pendingSnippetMarketplaceSearch, setCatalogSearchQuery, setSection]);
+
+  /**
+   * Loads marketplace catalog data when the section is restored from memory or navigation.
    */
   useEffect(() => {
-    let cancelled = false;
-
-    /**
-     * Fetches snippets and surfaces load failures inline.
-     */
-    const load = async (): Promise<void> => {
-      setLoading(true);
-      setLoadError(null);
-      try {
-        await dispatch(refreshSnippets()).unwrap();
-      } catch (err) {
-        if (!cancelled) {
-          setLoadError(err instanceof Error ? err.message : 'Failed to load snippets');
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [dispatch]);
-
-  /**
-   * Opens the create snippet modal with a blank draft.
-   */
-  const handleAdd = (): void => {
-    setEditingDraft(createBlankSnippet());
-    setIsNew(true);
-    setError(null);
-  };
-
-  /**
-   * Reads a `.js` file and opens the create modal with imported source.
-   */
-  const handleImport = async (): Promise<void> => {
-    try {
-      const result = await window.api.importSnippetFile();
-      if (!result) {
-        return;
-      }
-
-      setEditingDraft(createImportedSnippetDraft(result.code));
-      setIsNew(true);
-      setError(null);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to import snippet');
+    if (section === 'marketplace' && catalog == null && !catalogLoading) {
+      void loadCatalog();
     }
-  };
+  }, [section, catalog, catalogLoading, loadCatalog]);
 
   /**
-   * Opens the edit modal for an existing snippet.
+   * Clears marketplace search navigation after the query is applied locally.
+   */
+  useEffect(() => {
+    if (pendingSnippetMarketplaceSearch == null) {
+      return;
+    }
+    if (catalogSearchQuery.trim() !== pendingSnippetMarketplaceSearch.trim()) {
+      return;
+    }
+    dispatch(consumePendingSnippetMarketplaceSearch());
+  }, [catalogSearchQuery, dispatch, pendingSnippetMarketplaceSearch]);
+
+  /**
+   * Clears marketplace filters when leaving the Marketplace section and loads
+   * section-specific data when entering Marketplace.
    *
-   * @param snippet - Snippet to edit.
+   * @param next - Sidebar section to show.
    */
-  const handleEdit = (snippet: Snippet): void => {
-    setEditingDraft({
-      id: snippet.id,
-      name: snippet.name,
-      code: snippet.code,
-      scope: snippet.scope
-    });
-    setIsNew(false);
-    setError(null);
-  };
-
-  /**
-   * Closes the edit modal and clears transient error state.
-   */
-  const handleCancelEdit = (): void => {
-    setEditingDraft(null);
-    setIsNew(false);
-    setError(null);
-  };
-
-  /**
-   * Persists the snippet draft through create or update IPC.
-   */
-  const handleSave = async (): Promise<void> => {
-    if (!editingDraft) {
-      return;
+  const handleSectionChange = (next: SnippetsSidebarSection): void => {
+    if (section === 'marketplace' && next !== 'marketplace') {
+      resetCatalogDetail();
+      resetCatalogFilters();
     }
-
-    const trimmedName = editingDraft.name.trim();
-    if (!trimmedName) {
-      setError('Snippet name is required.');
-      return;
-    }
-
-    setSaving(true);
-    setError(null);
-    try {
-      if (isNew || editingDraft.id == null) {
-        await dispatch(
-          createSnippet({
-            name: trimmedName,
-            code: editingDraft.code,
-            scope: editingDraft.scope
-          })
-        ).unwrap();
-        toast.success('Snippet created');
-      } else {
-        await dispatch(
-          updateSnippet({
-            id: editingDraft.id,
-            name: trimmedName,
-            code: editingDraft.code,
-            scope: editingDraft.scope
-          })
-        ).unwrap();
-        toast.success('Snippet saved');
-      }
-      handleCancelEdit();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save snippet');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  /**
-   * Deletes a snippet after confirmation.
-   *
-   * @param snippet - Snippet to delete.
-   */
-  const handleDelete = async (snippet: Snippet): Promise<void> => {
-    const confirmed = await confirm({
-      title: 'Delete snippet',
-      message: `Delete "${snippet.name}"? Requests referencing this snippet will stop running it.`,
-      confirmLabel: 'Delete',
-      variant: 'danger'
-    });
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      await dispatch(deleteSnippet(snippet.id)).unwrap();
-      toast.success('Snippet deleted');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete snippet');
+    setSection(next);
+    if (next === 'marketplace' && catalog == null && !catalogLoading) {
+      void loadCatalog();
     }
   };
 
   return (
-    <SidebarLayout sidebar={null}>
-      <Page
-        embedded
-        title={SNIPPETS_PAGE_TITLE}
-        description={SNIPPETS_PAGE_DESCRIPTION}
-        icon={faTerminal}
-        actions={
-          <div className="flex shrink-0 items-center gap-2">
-            <Button
-              type="button"
-              className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
-              onClick={handleAdd}
-            >
-              <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
-              Add
-            </Button>
-            <Button
-              type="button"
-              className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
-              aria-label="Import JavaScript snippet"
-              onClick={() => void handleImport()}
-            >
-              <FaIcon icon={faFileImport} className="h-3.5 w-3.5" />
-              Import
-            </Button>
-          </div>
+    <>
+      <SidebarLayout
+        sidebar={
+          <PageSidebar
+            ariaLabel="Snippet sections"
+            selected={section}
+            onSelect={handleSectionChange}
+            items={SNIPPET_SECTIONS}
+          />
         }
       >
-        <div className="mb-6 flex flex-col gap-1">
-          <span className="text-[18px] font-medium text-text">Snippets</span>
-          <p className="hc-form-group-description m-0 text-[14px] text-muted mb-2">
-            Create reusable JavaScript snippets for use in pre-request and post-request script
-            lists.
-          </p>
-          <AsyncListState
-            loading={loading}
-            error={loadError}
-            onRetry={() => void dispatch(refreshSnippets())}
-            isEmpty={!loading && !loadError && snippets.length === 0}
-            emptyMessage="No snippets yet."
-          >
-            <ResourceList className="flex flex-col gap-4">
-              {snippets.map((snippet) => (
-                <ResourceListRow
-                  key={snippet.id}
-                  primary={
-                    <div className="flex flex-col gap-1">
-                      <ResourceListPrimary>{snippet.name}</ResourceListPrimary>
-                      <span className="text-[14px] text-muted">
-                        {snippetScopeLabel(snippet.scope)}
-                      </span>
-                      <CodePreviewTooltip
-                        code={snippet.code}
-                        actionLabel={`Edit ${snippet.name}`}
-                        onClick={() => handleEdit(snippet)}
-                        emptyLabel="Empty snippet"
-                      />
-                    </div>
-                  }
-                  actions={
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="toolbar"
-                        aria-label={`Edit ${snippet.name}`}
-                        onClick={() => handleEdit(snippet)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="toolbar"
-                        className={toolbarDangerButtonClass}
-                        aria-label={`Delete ${snippet.name}`}
-                        onClick={() => void handleDelete(snippet)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  }
-                />
-              ))}
-            </ResourceList>
-          </AsyncListState>
-        </div>
-
-        {editingDraft && (
-          <SnippetEditModal
-            draft={editingDraft}
-            isNew={isNew}
-            saving={saving}
-            error={error}
-            onChange={setEditingDraft}
-            onCancel={handleCancelEdit}
-            onSave={() => void handleSave()}
+        {section === 'installed' ? (
+          <InstalledView
+            installedPackages={installedPackages}
+            actionBusyId={actionBusyId}
+            refreshPackages={refreshPackages}
+            onUpdatePackage={(catalogId) => void handleUpdatePackage(catalogId)}
+            onUninstallPackage={(catalogId) => void handleUninstallPackage(catalogId)}
           />
-        )}
-      </Page>
-    </SidebarLayout>
+        ) : null}
+        {section === 'marketplace' ? (
+          <MarketplaceView
+            catalogLoading={catalogLoading}
+            catalogError={catalogError}
+            catalogSearchQuery={catalogSearchQuery}
+            catalogCategoryFilter={catalogCategoryFilter}
+            filteredCatalogSnippets={filteredCatalogSnippets}
+            onSearchChange={setCatalogSearchQuery}
+            onCategoryChange={(category) =>
+              setCatalogCategoryFilter(category as typeof catalogCategoryFilter)
+            }
+            onOpenCatalogDetail={openCatalogDetail}
+            onRetryLoad={() => void loadCatalog()}
+          />
+        ) : null}
+        {section === 'install' ? (
+          <InstallView
+            gitInstallUrl={gitInstallUrl}
+            gitInstallRef={gitInstallRef}
+            gitInstallError={gitInstallError}
+            gitInstallBusy={gitInstallBusy}
+            fileInstallBusy={fileInstallBusy}
+            directoryInstallBusy={directoryInstallBusy}
+            onGitInstallUrlChange={setGitInstallUrl}
+            onGitInstallRefChange={setGitInstallRef}
+            onInstallFromGit={() => void handleInstallFromGit()}
+            onInstallFromFile={() => void handleInstallFromFile()}
+            onLoadUnpacked={() => void handleLoadUnpacked()}
+          />
+        ) : null}
+      </SidebarLayout>
+
+      {catalogDetailEntry ? (
+        <SnippetDetailModal
+          entry={catalogDetailEntry}
+          preview={catalogPreview}
+          previewLoadState={catalogPreviewLoadState}
+          previewError={catalogPreviewError}
+          actionBusy={actionBusyId === catalogDetailEntry.id}
+          onClose={closeCatalogDetail}
+          onInstall={() => void handleInstallCatalogEntry(catalogDetailEntry)}
+        />
+      ) : null}
+    </>
   );
 }

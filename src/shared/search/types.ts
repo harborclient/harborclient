@@ -9,7 +9,8 @@ export type SearchDomain =
   | 'setting'
   | 'page'
   | 'plugin'
-  | 'theme';
+  | 'theme'
+  | 'snippet';
 
 /**
  * Display order for grouped search results in the command palette.
@@ -22,7 +23,8 @@ export const SEARCH_DOMAIN_ORDER: SearchDomain[] = [
   'setting',
   'page',
   'plugin',
-  'theme'
+  'theme',
+  'snippet'
 ];
 
 /**
@@ -36,7 +38,8 @@ export const SEARCH_DOMAIN_LABELS: Record<SearchDomain, string> = {
   setting: 'Settings',
   page: 'Pages',
   plugin: 'Plugins',
-  theme: 'Themes'
+  theme: 'Themes',
+  snippet: 'Snippet bundles'
 };
 
 /**

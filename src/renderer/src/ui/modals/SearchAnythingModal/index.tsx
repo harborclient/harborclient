@@ -67,7 +67,8 @@ const DOMAIN_ICONS: Record<SearchDomain, IconDefinition> = {
   setting: faGear,
   page: faTerminal,
   plugin: faPuzzlePiece,
-  theme: faPalette
+  theme: faPalette,
+  snippet: faTerminal
 };
 
 /**

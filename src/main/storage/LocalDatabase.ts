@@ -202,6 +202,7 @@ export class LocalDatabase {
     this.migrateEnvironmentSortOrder();
     this.migrateSnippetUuid();
     this.migrateSnippetScope();
+    this.migrateSnippetMarketplaceFields();
   }
 
   /**
@@ -292,6 +293,30 @@ export class LocalDatabase {
       return;
     }
     this.getDb().exec("ALTER TABLE snippets ADD COLUMN scope TEXT NOT NULL DEFAULT 'any'");
+  }
+
+  /**
+   * Adds marketplace origin columns to legacy snippet rows when missing.
+   */
+  private migrateSnippetMarketplaceFields(): void {
+    const columns = this.getDb().prepare('PRAGMA table_info(snippets)').all() as Array<{
+      name: string;
+    }>;
+    if (columns.length === 0) {
+      return;
+    }
+    if (!columns.some((col) => col.name === 'source')) {
+      this.getDb().exec("ALTER TABLE snippets ADD COLUMN source TEXT NOT NULL DEFAULT 'local'");
+    }
+    if (!columns.some((col) => col.name === 'catalog_id')) {
+      this.getDb().exec('ALTER TABLE snippets ADD COLUMN catalog_id TEXT');
+    }
+    if (!columns.some((col) => col.name === 'catalog_version')) {
+      this.getDb().exec('ALTER TABLE snippets ADD COLUMN catalog_version TEXT');
+    }
+    if (!columns.some((col) => col.name === 'catalog_author')) {
+      this.getDb().exec('ALTER TABLE snippets ADD COLUMN catalog_author TEXT');
+    }
   }
 
   /**
@@ -726,7 +751,7 @@ export class LocalDatabase {
   listSnippets(): Snippet[] {
     const rows = this.getDb()
       .prepare(
-        'SELECT id, uuid, name, code, scope, created_at, updated_at FROM snippets ORDER BY sort_order ASC, name ASC'
+        'SELECT id, uuid, name, code, scope, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets ORDER BY sort_order ASC, name ASC'
       )
       .all() as Record<string, unknown>[];
 
@@ -748,13 +773,13 @@ export class LocalDatabase {
     const now = new Date().toISOString();
     const result = this.getDb()
       .prepare(
-        'INSERT INTO snippets (name, uuid, code, scope, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO snippets (name, uuid, code, scope, source, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
       )
-      .run(trimmedName, snippetUuid, code ?? '', scope, sortOrder, now, now);
+      .run(trimmedName, snippetUuid, code ?? '', scope, 'local', sortOrder, now, now);
 
     const row = this.getDb()
       .prepare(
-        'SELECT id, uuid, name, code, scope, created_at, updated_at FROM snippets WHERE id = ?'
+        'SELECT id, uuid, name, code, scope, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets WHERE id = ?'
       )
       .get(result.lastInsertRowid) as Record<string, unknown>;
 
@@ -779,7 +804,7 @@ export class LocalDatabase {
 
     const row = this.getDb()
       .prepare(
-        'SELECT id, uuid, name, code, scope, created_at, updated_at FROM snippets WHERE id = ?'
+        'SELECT id, uuid, name, code, scope, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets WHERE id = ?'
       )
       .get(id) as Record<string, unknown> | undefined;
 
@@ -787,6 +812,130 @@ export class LocalDatabase {
       throw new Error('Snippet not found');
     }
     return rowToSnippet(row);
+  }
+
+  /**
+   * Inserts or updates a marketplace snippet row keyed by stable UUID.
+   *
+   * @param input - Marketplace snippet fields to persist.
+   * @returns Upserted snippet row.
+   */
+  upsertMarketplaceSnippet(input: {
+    uuid: string;
+    name: string;
+    code: string;
+    scope: Snippet['scope'];
+    catalogId: string;
+    catalogVersion: string;
+    catalogAuthor?: string;
+  }): Snippet {
+    const trimmedName = trimRequiredName(input.name, 'Snippet name');
+    const now = new Date().toISOString();
+    const existing = this.getDb()
+      .prepare('SELECT id FROM snippets WHERE uuid = ?')
+      .get(input.uuid) as { id: number } | undefined;
+
+    if (existing) {
+      this.getDb()
+        .prepare(
+          'UPDATE snippets SET name = ?, code = ?, scope = ?, source = ?, catalog_id = ?, catalog_version = ?, catalog_author = ?, updated_at = ? WHERE id = ?'
+        )
+        .run(
+          trimmedName,
+          input.code,
+          input.scope,
+          'marketplace',
+          input.catalogId,
+          input.catalogVersion,
+          input.catalogAuthor ?? null,
+          now,
+          existing.id
+        );
+    } else {
+      const sortOrder = this.nextSnippetSortOrder();
+      this.getDb()
+        .prepare(
+          'INSERT INTO snippets (name, uuid, code, scope, source, catalog_id, catalog_version, catalog_author, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        )
+        .run(
+          trimmedName,
+          input.uuid,
+          input.code,
+          input.scope,
+          'marketplace',
+          input.catalogId,
+          input.catalogVersion,
+          input.catalogAuthor ?? null,
+          sortOrder,
+          now,
+          now
+        );
+    }
+
+    const row = this.getDb()
+      .prepare(
+        'SELECT id, uuid, name, code, scope, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets WHERE uuid = ?'
+      )
+      .get(input.uuid) as Record<string, unknown>;
+
+    return rowToSnippet(row);
+  }
+
+  /**
+   * Lists marketplace snippet rows imported from one bundle id.
+   *
+   * @param catalogId - Marketplace bundle id from snippets.json.
+   * @returns Snippet rows tagged with the bundle id.
+   */
+  listMarketplaceSnippetsByCatalogId(catalogId: string): Snippet[] {
+    const rows = this.getDb()
+      .prepare(
+        'SELECT id, uuid, name, code, scope, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets WHERE catalog_id = ? ORDER BY sort_order ASC, name ASC'
+      )
+      .all(catalogId) as Record<string, unknown>[];
+
+    return rows.map(rowToSnippet);
+  }
+
+  /**
+   * Deletes all marketplace snippet rows imported from one bundle id.
+   *
+   * @param catalogId - Marketplace bundle id from snippets.json.
+   */
+  deleteSnippetsByCatalogId(catalogId: string): void {
+    this.getDb().prepare('DELETE FROM snippets WHERE catalog_id = ?').run(catalogId);
+  }
+
+  /**
+   * Backfills missing marketplace publisher names on snippet rows for one bundle.
+   *
+   * @param catalogId - Marketplace bundle id from snippets.json.
+   * @param author - Publisher name from the installed bundle summary.
+   */
+  backfillCatalogAuthor(catalogId: string, author: string): void {
+    const trimmedAuthor = author.trim();
+    if (!trimmedAuthor) {
+      return;
+    }
+
+    this.getDb()
+      .prepare(
+        "UPDATE snippets SET catalog_author = ? WHERE catalog_id = ? AND (catalog_author IS NULL OR catalog_author = '')"
+      )
+      .run(trimmedAuthor, catalogId);
+  }
+
+  /**
+   * Ensures snippet rows linked to a bundle id are tagged as marketplace imports.
+   *
+   * @param catalogId - Marketplace bundle id from snippets.json.
+   */
+  ensureMarketplaceSource(catalogId: string): void {
+    this.getDb()
+      .prepare(
+        "UPDATE snippets SET source = 'marketplace' WHERE catalog_id = ? AND source != 'marketplace'"
+      )
+      .run(catalogId);
   }
 
   /**

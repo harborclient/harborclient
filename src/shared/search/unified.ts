@@ -1,5 +1,6 @@
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import type { PluginInfo } from '#/shared/plugin/types';
+import type { SnippetCatalogEntry } from '#/shared/snippet/catalog';
 import { catalogEntryIsTheme, pluginIsTheme } from '#/shared/plugin/themeCategory';
 import {
   searchInstalledPluginHits,
@@ -8,6 +9,10 @@ import {
 import { searchPluginHits, type buildPluginCatalogSearchIndex } from '#/shared/search/plugins';
 import { searchPageHits } from '#/shared/search/pagesCatalog';
 import { searchSettingsHits, type buildSettingsSearchIndex } from '#/shared/search/settings';
+import {
+  searchSnippetHits,
+  type buildSnippetCatalogSearchIndexForSearch
+} from '#/shared/search/snippets';
 import {
   searchSidebarEntities,
   sidebarEntitySubtitle,
@@ -39,6 +44,10 @@ export interface SearchAllContext {
   plugins: PluginCatalogEntry[];
   /** Installed plugin rows from the main process. */
   installedPlugins: PluginInfo[];
+  /** Snippet catalog MiniSearch index, or null when catalog has not loaded. */
+  snippetsIndex: ReturnType<typeof buildSnippetCatalogSearchIndexForSearch> | null;
+  /** Loaded marketplace snippet bundle rows. */
+  snippets: SnippetCatalogEntry[];
 }
 
 /**
@@ -118,7 +127,8 @@ export function searchAll(query: string, context: SearchAllContext): UnifiedSear
     setting: [],
     page: [],
     plugin: [],
-    theme: []
+    theme: [],
+    snippet: []
   };
 
   if (context.sidebarIndex != null) {
@@ -184,6 +194,20 @@ export function searchAll(query: string, context: SearchAllContext): UnifiedSear
         subtitle: hit.summary,
         score: hit.score,
         pluginListingSource: 'installed'
+      });
+    }
+  }
+
+  if (context.snippetsIndex != null) {
+    const catalogById = new Map(context.snippets.map((entry) => [entry.id, entry]));
+    for (const hit of searchSnippetHits(context.snippetsIndex, trimmed)) {
+      const entry = catalogById.get(hit.id);
+      grouped.snippet.push({
+        domain: 'snippet',
+        id: hit.id,
+        title: hit.name,
+        subtitle: entry?.summary ?? hit.summary,
+        score: hit.score
       });
     }
   }

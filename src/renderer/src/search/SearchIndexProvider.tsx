@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState, type JSX, type ReactNode } from 'react';
 import type { PluginCatalog } from '#/shared/plugin/catalog';
 import type { PluginInfo } from '#/shared/plugin/types';
+import type { SnippetCatalog } from '#/shared/snippet/catalog';
 import {
   buildInstalledPluginSearchIndex,
   buildPluginCatalogSearchIndex,
   buildSettingsSearchIndex,
   buildSidebarSearchIndex,
+  buildSnippetCatalogSearchIndexForSearch,
   type SearchAllContext,
   type SidebarSearchInput
 } from '#/shared/search';
@@ -43,6 +45,8 @@ export function SearchIndexProvider({ children }: Props): JSX.Element {
 
   const [pluginCatalog, setPluginCatalog] = useState<PluginCatalog | null>(null);
   const [pluginsFetchSettled, setPluginsFetchSettled] = useState(false);
+  const [snippetCatalog, setSnippetCatalog] = useState<SnippetCatalog | null>(null);
+  const [snippetsFetchSettled, setSnippetsFetchSettled] = useState(false);
   const [installedPlugins, setInstalledPlugins] = useState<PluginInfo[]>([]);
   const [installedPluginsFetchSettled, setInstalledPluginsFetchSettled] = useState(false);
 
@@ -94,14 +98,25 @@ export function SearchIndexProvider({ children }: Props): JSX.Element {
     return buildInstalledPluginSearchIndex(installedPlugins);
   }, [installedPlugins]);
 
+  /**
+   * Snippet catalog index rebuilt when catalog data changes.
+   */
+  const snippetsIndex = useMemo(() => {
+    if (snippetCatalog == null || snippetCatalog.snippets.length === 0) {
+      return null;
+    }
+    return buildSnippetCatalogSearchIndexForSearch(snippetCatalog.snippets);
+  }, [snippetCatalog]);
+
   const ready = useMemo<SearchIndexReady>(
     () => ({
       sidebar: collectionsListed,
       settings: true,
       plugins: pluginsFetchSettled,
-      installedPlugins: installedPluginsFetchSettled
+      installedPlugins: installedPluginsFetchSettled,
+      snippets: snippetsFetchSettled
     }),
-    [collectionsListed, pluginsFetchSettled, installedPluginsFetchSettled]
+    [collectionsListed, pluginsFetchSettled, installedPluginsFetchSettled, snippetsFetchSettled]
   );
 
   /**
@@ -113,18 +128,22 @@ export function SearchIndexProvider({ children }: Props): JSX.Element {
       settingsIndex,
       pluginsIndex,
       installedPluginsIndex,
+      snippetsIndex,
       sidebarInput,
       plugins: pluginCatalog?.plugins ?? [],
-      installedPlugins
+      installedPlugins,
+      snippets: snippetCatalog?.snippets ?? []
     }),
     [
       sidebarIndex,
       settingsIndex,
       pluginsIndex,
       installedPluginsIndex,
+      snippetsIndex,
       sidebarInput,
       pluginCatalog,
-      installedPlugins
+      installedPlugins,
+      snippetCatalog
     ]
   );
 
@@ -135,8 +154,10 @@ export function SearchIndexProvider({ children }: Props): JSX.Element {
       settingsIndex,
       pluginsIndex,
       installedPluginsIndex,
+      snippetsIndex,
       plugins: pluginCatalog?.plugins ?? [],
       installedPlugins,
+      snippets: snippetCatalog?.snippets ?? [],
       ready,
       searchContext
     }),
@@ -146,8 +167,10 @@ export function SearchIndexProvider({ children }: Props): JSX.Element {
       settingsIndex,
       pluginsIndex,
       installedPluginsIndex,
+      snippetsIndex,
       pluginCatalog,
       installedPlugins,
+      snippetCatalog,
       ready,
       searchContext
     ]
@@ -185,6 +208,31 @@ export function SearchIndexProvider({ children }: Props): JSX.Element {
       .finally(() => {
         if (active) {
           setPluginsFetchSettled(true);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  /**
+   * Loads the marketplace snippet catalog on startup for global search readiness.
+   */
+  useEffect(() => {
+    let active = true;
+    void window.api
+      .getSnippetCatalog()
+      .then((catalog) => {
+        if (active) {
+          setSnippetCatalog(catalog);
+        }
+      })
+      .catch(() => {
+        // Global search degrades gracefully when the catalog is unavailable.
+      })
+      .finally(() => {
+        if (active) {
+          setSnippetsFetchSettled(true);
         }
       });
     return () => {

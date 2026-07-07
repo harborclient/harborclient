@@ -148,6 +148,7 @@ describeSqlite('LocalDatabase snippets', () => {
     expect(created.name).toBe('Auth helper');
     expect(created.code).toBe('console.log("auth");');
     expect(created.scope).toBe('pre-request');
+    expect(created.source).toBe('local');
     expect(created.uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
     expect(created.created_at).toBeTruthy();
     expect(created.updated_at).toBeTruthy();
@@ -188,5 +189,77 @@ describeSqlite('LocalDatabase snippets', () => {
 
     const created = database.createSnippet('Generic helper', 'return true;');
     expect(created.scope).toBe('any');
+    expect(created.source).toBe('local');
+  });
+
+  it('upserts, lists, and deletes marketplace snippets by catalog id', async () => {
+    const { database } = await createRegistry();
+    const uuid = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+
+    const created = database.upsertMarketplaceSnippet({
+      uuid,
+      name: 'Tester',
+      code: 'hc.test("ok", () => true);',
+      scope: 'post-request',
+      catalogId: 'com.example.snippets.tester',
+      catalogVersion: '1.0.0',
+      catalogAuthor: 'HarborClient'
+    });
+
+    expect(created.source).toBe('marketplace');
+    expect(created.catalogId).toBe('com.example.snippets.tester');
+    expect(created.catalogVersion).toBe('1.0.0');
+    expect(created.catalogAuthor).toBe('HarborClient');
+
+    const updated = database.upsertMarketplaceSnippet({
+      uuid,
+      name: 'Tester v2',
+      code: 'hc.test("ok", () => response.status === 200);',
+      scope: 'post-request',
+      catalogId: 'com.example.snippets.tester',
+      catalogVersion: '1.0.1',
+      catalogAuthor: 'HarborClient'
+    });
+
+    expect(updated.id).toBe(created.id);
+    expect(updated.name).toBe('Tester v2');
+    expect(updated.catalogVersion).toBe('1.0.1');
+    expect(database.listMarketplaceSnippetsByCatalogId('com.example.snippets.tester')).toHaveLength(
+      1
+    );
+
+    database.deleteSnippetsByCatalogId('com.example.snippets.tester');
+    expect(database.listMarketplaceSnippetsByCatalogId('com.example.snippets.tester')).toEqual([]);
+  });
+
+  it('backfills missing catalog author and ensures marketplace source for bundle rows', async () => {
+    const { database } = await createRegistry();
+    const catalogId = 'com.example.snippets.backfill';
+
+    database.upsertMarketplaceSnippet({
+      uuid: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+      name: 'Legacy import',
+      code: 'hc.test("ok", () => true);',
+      scope: 'any',
+      catalogId,
+      catalogVersion: '1.0.0'
+    });
+
+    const before = database.listMarketplaceSnippetsByCatalogId(catalogId)[0];
+    expect(before?.catalogAuthor).toBeUndefined();
+    expect(before?.source).toBe('marketplace');
+
+    database.backfillCatalogAuthor(catalogId, 'HarborClient');
+    const afterAuthor = database.listMarketplaceSnippetsByCatalogId(catalogId)[0];
+    expect(afterAuthor?.catalogAuthor).toBe('HarborClient');
+
+    const internalDb = (
+      database as unknown as { getDb(): import('better-sqlite3').Database }
+    ).getDb();
+    internalDb.prepare("UPDATE snippets SET source = 'local' WHERE catalog_id = ?").run(catalogId);
+    database.ensureMarketplaceSource(catalogId);
+    const afterSource = database.listMarketplaceSnippetsByCatalogId(catalogId)[0];
+    expect(afterSource?.source).toBe('marketplace');
+    expect(afterSource?.catalogAuthor).toBe('HarborClient');
   });
 });

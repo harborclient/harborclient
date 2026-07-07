@@ -13,6 +13,8 @@ import {
   type SearchDomain,
   type UnifiedSearchHit
 } from '#/shared/search/types';
+import type { SnippetCatalogEntry } from '#/shared/snippet/catalog';
+import { buildSnippetCatalogSearchIndexForSearch } from '#/shared/search/snippets';
 import { buildPluginCatalogSearchIndex } from '#/shared/search/plugins';
 import { buildInstalledPluginSearchIndex } from '#/shared/search/installedPlugins';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
@@ -94,6 +96,19 @@ const plugins: PluginCatalogEntry[] = [
   }
 ];
 
+const snippets: SnippetCatalogEntry[] = [
+  {
+    id: 'com.example.snippets.tester',
+    name: 'Response tester',
+    version: '1.0.0',
+    summary: 'Runs tests to ensure a successful response.',
+    author: 'HarborClient',
+    categories: ['testing'],
+    repoUrl: 'https://github.com/example/snippet-tester',
+    snippets: [{ name: 'Tester', where: 'post-request', file: 'dist/tester.js' }]
+  }
+];
+
 const installedPlugins: PluginInfo[] = [
   {
     id: 'com.example.curl',
@@ -148,9 +163,11 @@ function buildContext(): SearchAllContext {
     settingsIndex: buildSettingsSearchIndex(),
     pluginsIndex: buildPluginCatalogSearchIndex(plugins),
     installedPluginsIndex: buildInstalledPluginSearchIndex(installedPlugins),
+    snippetsIndex: buildSnippetCatalogSearchIndexForSearch(snippets),
     sidebarInput,
     plugins,
-    installedPlugins
+    installedPlugins,
+    snippets
   };
 }
 
@@ -164,7 +181,8 @@ describe('mergeSearchHitsRoundRobin', () => {
       setting: [{ domain: 'setting', id: 'proxy.enabled', title: 'E', score: 1 }],
       page: [{ domain: 'page', id: 'snippets', title: 'H', score: 1 }],
       plugin: [{ domain: 'plugin', id: 'com.example.curl', title: 'F', score: 1 }],
-      theme: [{ domain: 'theme', id: 'com.example.nord', title: 'G', score: 1 }]
+      theme: [{ domain: 'theme', id: 'com.example.nord', title: 'G', score: 1 }],
+      snippet: [{ domain: 'snippet', id: 'com.example.tester', title: 'I', score: 1 }]
     };
 
     const merged = mergeSearchHitsRoundRobin(grouped, 4);
@@ -228,6 +246,13 @@ describe('searchAll', () => {
     ).toBe(true);
   });
 
+  it('assigns snippet catalog entries to the snippet domain', () => {
+    const hits = searchAll('tester', buildContext());
+    expect(
+      hits.some((hit) => hit.domain === 'snippet' && hit.id === 'com.example.snippets.tester')
+    ).toBe(true);
+  });
+
   it('can return the same plugin id from installed and marketplace sources', () => {
     const hits = searchAll('curl', buildContext());
     const curlHits = hits.filter((hit) => hit.id === 'com.example.curl');
@@ -251,7 +276,8 @@ describe('searchAll', () => {
       setting: manyHits,
       page: [],
       plugin: [],
-      theme: []
+      theme: [],
+      snippet: []
     };
 
     expect(mergeSearchHitsRoundRobin(grouped, SEARCH_ANYTHING_MAX_RESULTS)).toHaveLength(

@@ -69,5 +69,11 @@
       "repoUrl": "https://github.com/harborclient/theme-solarized",
       "ref": "v1.0.10"
     }
+  ],
+  "snippets": [
+    {
+      "repoUrl": "https://github.com/harborclient/snippet-testing",
+      "ref": "v1.0.0"
+    }
   ]
 }

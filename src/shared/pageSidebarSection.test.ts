@@ -11,6 +11,7 @@ describe('normalizePageSidebarKey', () => {
     expect(normalizePageSidebarKey('plugins')).toBe('plugins');
     expect(normalizePageSidebarKey('themes')).toBe('themes');
     expect(normalizePageSidebarKey('sharing-keys')).toBe('sharing-keys');
+    expect(normalizePageSidebarKey('snippets')).toBe('snippets');
   });
 
   it('rejects unknown keys', () => {
@@ -31,6 +32,13 @@ describe('normalizePageSidebarSection', () => {
     expect(normalizePageSidebarSection('plugins', 'marketplace')).toBe('marketplace');
     expect(normalizePageSidebarSection('plugins', 'settings')).toBe('settings');
     expect(normalizePageSidebarSection('themes', 'install')).toBe('install');
+  });
+
+  it('accepts snippet management sections', () => {
+    expect(normalizePageSidebarSection('snippets', 'installed')).toBe('installed');
+    expect(normalizePageSidebarSection('snippets', 'marketplace')).toBe('marketplace');
+    expect(normalizePageSidebarSection('snippets', 'install')).toBe('install');
+    expect(normalizePageSidebarSection('snippets', 'settings')).toBeNull();
   });
 
   it('rejects settings on themes and unknown sections', () => {

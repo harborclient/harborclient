@@ -1,6 +1,11 @@
 import type { SnippetScope } from '#/shared/snippetScope';
 
 /**
+ * Origin of a snippet row in the local registry.
+ */
+export type SnippetSource = 'local' | 'marketplace';
+
+/**
  * A reusable JavaScript snippet stored in the app-global registry.
  */
 export interface Snippet {
@@ -28,6 +33,26 @@ export interface Snippet {
    * Script phases where this snippet may be referenced.
    */
   scope: SnippetScope;
+
+  /**
+   * Whether the snippet was created locally or imported from the marketplace.
+   */
+  source: SnippetSource;
+
+  /**
+   * Marketplace bundle id when `source` is `marketplace`.
+   */
+  catalogId?: string;
+
+  /**
+   * Installed marketplace bundle version when `source` is `marketplace`.
+   */
+  catalogVersion?: string;
+
+  /**
+   * Marketplace bundle publisher when `source` is `marketplace`.
+   */
+  catalogAuthor?: string;
 
   /**
    * ISO 8601 timestamp when the snippet was created.

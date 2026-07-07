@@ -12,6 +12,7 @@ import { closeSearchAnythingModal } from '#/renderer/src/store/slices/modalsSlic
 import {
   setPendingInstalledSearch,
   setPendingMarketplaceSearch,
+  setPendingSnippetMarketplaceSearch,
   setShowSidebar
 } from '#/renderer/src/store/slices/navigationSlice';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
@@ -148,6 +149,12 @@ export function useActivateSearchHit(): (hit: UnifiedSearchHit, query: string) =
           if (hit.id === 'snippets') {
             dispatch(openPageTab({ type: 'snippets' }));
           }
+          return;
+        }
+        case 'snippet': {
+          const searchValue = query.trim() || hit.title;
+          dispatch(openPageTab({ type: 'snippets' }));
+          dispatch(setPendingSnippetMarketplaceSearch(searchValue));
           return;
         }
       }

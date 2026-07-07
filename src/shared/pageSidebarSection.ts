@@ -1,13 +1,14 @@
 /**
  * Stable keys for page tabs that use a sidebar section picker.
  */
-export type PageSidebarKey = 'settings' | 'plugins' | 'themes' | 'sharing-keys';
+export type PageSidebarKey = 'settings' | 'plugins' | 'themes' | 'sharing-keys' | 'snippets';
 
 const PAGE_SIDEBAR_KEYS = new Set<PageSidebarKey>([
   'settings',
   'plugins',
   'themes',
-  'sharing-keys'
+  'sharing-keys',
+  'snippets'
 ]);
 
 const SETTINGS_BUILTIN_SECTIONS = new Set<string>([
@@ -26,6 +27,8 @@ const PLUGINS_SECTIONS = new Set<string>(['installed', 'marketplace', 'install',
 const THEMES_SECTIONS = new Set<string>(['installed', 'marketplace', 'install']);
 
 const SHARING_KEYS_SECTIONS = new Set<string>(['identity', 'trusted']);
+
+const SNIPPETS_SECTIONS = new Set<string>(['installed', 'marketplace', 'install']);
 
 /**
  * Returns whether a value is a supported page sidebar storage key.
@@ -64,6 +67,8 @@ export function isAllowedPageSidebarSection(key: PageSidebarKey, section: string
       return THEMES_SECTIONS.has(section);
     case 'sharing-keys':
       return SHARING_KEYS_SECTIONS.has(section);
+    case 'snippets':
+      return SNIPPETS_SECTIONS.has(section);
   }
 }
 

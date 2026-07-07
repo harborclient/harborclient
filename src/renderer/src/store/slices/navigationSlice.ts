@@ -17,6 +17,7 @@ export interface NavigationState {
   pendingPluginInstallId: string | null;
   pendingMarketplaceSearch: string | null;
   pendingInstalledSearch: string | null;
+  pendingSnippetMarketplaceSearch: string | null;
 }
 
 const initialState: NavigationState = {
@@ -34,7 +35,8 @@ const initialState: NavigationState = {
   activeSidebarPanelId: null,
   pendingPluginInstallId: null,
   pendingMarketplaceSearch: null,
-  pendingInstalledSearch: null
+  pendingInstalledSearch: null,
+  pendingSnippetMarketplaceSearch: null
 };
 
 const navigationSlice = createSlice({
@@ -199,6 +201,18 @@ const navigationSlice = createSlice({
      */
     consumePendingInstalledSearch(state) {
       state.pendingInstalledSearch = null;
+    },
+    /**
+     * Queues a snippet marketplace search query requested from global search navigation.
+     */
+    setPendingSnippetMarketplaceSearch(state, action: PayloadAction<string>) {
+      state.pendingSnippetMarketplaceSearch = action.payload;
+    },
+    /**
+     * Clears a queued snippet marketplace search after the Snippets page has applied it.
+     */
+    consumePendingSnippetMarketplaceSearch(state) {
+      state.pendingSnippetMarketplaceSearch = null;
     }
   }
 });
@@ -225,7 +239,9 @@ export const {
   setPendingMarketplaceSearch,
   consumePendingMarketplaceSearch,
   setPendingInstalledSearch,
-  consumePendingInstalledSearch
+  consumePendingInstalledSearch,
+  setPendingSnippetMarketplaceSearch,
+  consumePendingSnippetMarketplaceSearch
 } = navigationSlice.actions;
 
 /**
@@ -308,5 +324,11 @@ export const selectPendingMarketplaceSearch = (state: RootState): string | null 
  */
 export const selectPendingInstalledSearch = (state: RootState): string | null =>
   state.navigation.pendingInstalledSearch;
+
+/**
+ * Returns the snippet marketplace search query queued by global search navigation, if any.
+ */
+export const selectPendingSnippetMarketplaceSearch = (state: RootState): string | null =>
+  state.navigation.pendingSnippetMarketplaceSearch;
 
 export default navigationSlice.reducer;
