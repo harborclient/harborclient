@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- chore(deps): update @harborclient/sdk to version 1.0.40 and update snippet reference to v1.0.2. (`26abadd`)
+
 ## 2.0.6 - 2026-07-07
 
 - feat(team-hub): implement admin snippet management features. (`19a8d8c`)

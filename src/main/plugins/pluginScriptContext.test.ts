@@ -177,7 +177,7 @@ describe('createScriptContext', () => {
 
     context.run(`
       console.log('first');
-      hc.test('first test', function() { hc.expect(true).be.ok(); });
+      hc.test('first test', function() { hc.expect(true).to.be.ok(); });
     `);
     const result = context.run(`
       console.log('second');

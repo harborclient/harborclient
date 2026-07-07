@@ -105,16 +105,16 @@ function makeHeaderApi(getRows: () => KeyValue[]): {
  * Builds a chai-lite expect matcher with the same messages as the legacy bootstrap.
  *
  * @param actual - Value under assertion.
- * @returns Matcher object with `to` and `be` chains.
+ * @returns Matcher object with a Chai-style `to` chain (`to.equal`, `to.be.ok`, etc.).
  */
 function makeExpect(actual: unknown): {
   to: {
     equal: (expected: unknown) => void;
     eql: (expected: unknown) => void;
     include: (substr: string) => void;
-  };
-  be: {
-    ok: () => void;
+    be: {
+      ok: () => void;
+    };
   };
 } {
   return {
@@ -135,12 +135,12 @@ function makeExpect(actual: unknown): {
             `Expected ${JSON.stringify(actual)} to include ${JSON.stringify(substr)}`
           );
         }
-      }
-    },
-    be: {
-      ok: () => {
-        if (!actual) {
-          throw new Error(`Expected truthy value but got ${JSON.stringify(actual)}`);
+      },
+      be: {
+        ok: () => {
+          if (!actual) {
+            throw new Error(`Expected truthy value but got ${JSON.stringify(actual)}`);
+          }
         }
       }
     }
