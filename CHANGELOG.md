@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.0.7 - 2026-07-07
+
 - chore(deps): update @harborclient/sdk to version 1.0.40 and update snippet reference to v1.0.2. (`26abadd`)
 
 ## 2.0.6 - 2026-07-07
