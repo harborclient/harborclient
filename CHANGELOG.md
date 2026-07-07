@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(snippets): add uninstall functionality for marketplace snippet bundles. (`9a28865`)
+
 ## 2.0.5 - 2026-07-07
 
 - feat(snippets): implement deep link support for snippet installation. (`2376701`)

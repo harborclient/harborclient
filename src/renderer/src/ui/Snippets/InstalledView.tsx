@@ -279,6 +279,26 @@ export function InstalledView({
   };
 
   /**
+   * Uninstalls one marketplace snippet bundle after confirmation.
+   *
+   * @param pkg - Installed bundle summary to remove.
+   */
+  const handleUninstallPackage = async (pkg: InstalledSnippetPackage): Promise<void> => {
+    const snippetLabel = pkg.snippetCount === 1 ? 'snippet' : 'snippets';
+    const confirmed = await confirm({
+      title: 'Uninstall snippet bundle',
+      message: `Uninstall "${pkg.name}"? This removes ${pkg.snippetCount} imported ${snippetLabel} from your library.`,
+      confirmLabel: 'Uninstall',
+      variant: 'danger'
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    onUninstallPackage(pkg.catalogId);
+  };
+
+  /**
    * Deletes a snippet after confirmation.
    *
    * @param snippet - Snippet to delete.
@@ -370,10 +390,14 @@ export function InstalledView({
                           <ResourceListPrimary>{pkg.name}</ResourceListPrimary>
                         </span>
                         <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-1 pl-[18px] text-[14px] text-muted">
-                          <span>
-                            {pkg.author ?? 'Unknown publisher'} · v{pkg.version}
+                          <span className="inline-flex items-center gap-1.5">
+                            {pkg.author ?? 'Unknown publisher'}
+                            {pkg.signature?.status === 'verified' ? (
+                              <VerifiedPublisherBadge />
+                            ) : null}
                           </span>
-                          {pkg.signature?.status === 'verified' ? <VerifiedPublisherBadge /> : null}
+                          <span aria-hidden="true">·</span>
+                          <span>v{pkg.version}</span>
                           <span aria-hidden="true">·</span>
                           <span>
                             {pkg.snippetCount} snippet{pkg.snippetCount === 1 ? '' : 's'}
@@ -398,7 +422,7 @@ export function InstalledView({
                           variant="toolbar"
                           className={toolbarDangerButtonClass}
                           disabled={actionBusyId === pkg.catalogId}
-                          onClick={() => onUninstallPackage(pkg.catalogId)}
+                          onClick={() => void handleUninstallPackage(pkg)}
                         >
                           Uninstall
                         </Button>
@@ -477,13 +501,13 @@ export function InstalledView({
                         <ResourceListPrimary>{snippet.name}</ResourceListPrimary>
                         {isMarketplaceSnippet ? (
                           <span className="inline-flex items-center gap-1.5 text-[14px] text-muted">
-                            <span>
+                            <span className="inline-flex items-center gap-1.5">
                               {snippetAuthor}
-                              {snippetVersion ? ` · v${snippetVersion}` : null}
+                              {installedPackage?.signature?.status === 'verified' ? (
+                                <VerifiedPublisherBadge />
+                              ) : null}
                             </span>
-                            {installedPackage?.signature?.status === 'verified' ? (
-                              <VerifiedPublisherBadge />
-                            ) : null}
+                            {snippetVersion ? <span>· v{snippetVersion}</span> : null}
                           </span>
                         ) : null}
                       </div>
