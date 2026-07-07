@@ -1,5 +1,5 @@
 import { Button, FormGroup, Input, Page, Select } from '@harborclient/sdk/components';
-import type { JSX } from 'react';
+import { useEffect, type JSX } from 'react';
 import type { CustomTheme } from '#/shared/types/customTheme';
 import { faWandMagicSparkles } from '#/renderer/src/fontawesome';
 import { ColorTokenGrid } from '#/renderer/src/ui/Plugins/ColorTokenGrid';
@@ -28,9 +28,12 @@ export function CustomThemeView({ editingId, onSaved }: Props): JSX.Element {
     busy,
     error,
     canSave,
+    canUndo,
+    canRedo,
     renamePrompt,
     handleColorChange,
     handleTitleChange,
+    handleTitleBlur,
     handleTypeChange,
     handleDiscard,
     handleSave,
@@ -38,8 +41,36 @@ export function CustomThemeView({ editingId, onSaved }: Props): JSX.Element {
     handleRenameSaveAsNew,
     handleRenameCancel,
     handleExport,
-    handleImport
+    handleImport,
+    undo,
+    redo
   } = useCustomTheme({ editingId, onSaved });
+
+  /**
+   * Routes Edit menu undo/redo actions to the Creator history while this view is mounted.
+   */
+  useEffect(() => {
+    const unsubscribe = window.api.onMenuAction((action) => {
+      if (action === 'undo') {
+        undo();
+        return;
+      }
+      if (action === 'redo') {
+        redo();
+      }
+    });
+    return unsubscribe;
+  }, [undo, redo]);
+
+  /**
+   * Keeps the main-process Edit menu undo/redo items aligned with Creator history availability.
+   */
+  useEffect(() => {
+    void window.api.setMenuCreatorUndoRedo(true, canUndo, canRedo);
+    return () => {
+      void window.api.setMenuCreatorUndoRedo(false, false, false);
+    };
+  }, [canUndo, canRedo]);
 
   return (
     <>
@@ -60,6 +91,24 @@ export function CustomThemeView({ editingId, onSaved }: Props): JSX.Element {
         description="Design a custom appearance theme with live preview across HarborClient."
         actions={
           <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="toolbar"
+              disabled={busy || loading || !canUndo}
+              aria-label="Undo theme change"
+              onClick={() => undo()}
+            >
+              Undo
+            </Button>
+            <Button
+              type="button"
+              variant="toolbar"
+              disabled={busy || loading || !canRedo}
+              aria-label="Redo theme change"
+              onClick={() => redo()}
+            >
+              Redo
+            </Button>
             <Button
               type="button"
               variant="toolbar"
@@ -98,6 +147,7 @@ export function CustomThemeView({ editingId, onSaved }: Props): JSX.Element {
                   value={draft.title}
                   disabled={busy}
                   onChange={(event) => handleTitleChange(event.target.value)}
+                  onBlur={() => handleTitleBlur()}
                 />
               </FormGroup>
               <FormGroup label="Appearance" htmlFor="creator-theme-type">

@@ -44,7 +44,9 @@ export type MenuActionId =
   | 'about'
   | 'check-for-updates'
   | 'shortcuts-reference'
-  | 'search-anything';
+  | 'search-anything'
+  | 'undo'
+  | 'redo';
 
 /**
  * Top-level application menu labels shown in the Linux in-app menu bar.

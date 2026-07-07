@@ -736,6 +736,21 @@ function setMenuThemeMenuState(theme: ThemeSource, options: ThemeMenuOption[]): 
 }
 
 /**
+ * Syncs Creator undo/redo ownership and enabled state to the Edit menu in the main process.
+ *
+ * @param active - Whether the Creator tab is open and should own undo/redo.
+ * @param canUndo - Whether an undo step is available in the Creator history.
+ * @param canRedo - Whether a redo step is available in the Creator history.
+ */
+function setMenuCreatorUndoRedo(
+  active: boolean,
+  canUndo: boolean,
+  canRedo: boolean
+): Promise<void> {
+  return ipcRenderer.invoke('menu:setCreatorUndoRedo', active, canUndo, canRedo);
+}
+
+/**
  * Subscribes to View menu appearance theme selection events from the main process.
  *
  * @param callback - Handler invoked with the selected theme and label.
@@ -2527,6 +2542,7 @@ const api: Api = {
   setMenuCollectionsVisible,
   setMenuEnvironmentsVisible,
   setMenuThemeMenuState,
+  setMenuCreatorUndoRedo,
   onMenuSelectTheme,
   popupMenuSubmenu,
   getAppVersion,

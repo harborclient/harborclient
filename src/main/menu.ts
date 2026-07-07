@@ -115,6 +115,9 @@ function acceleratorFor(accelerators: Map<ShortcutId, string>, id: ShortcutId): 
  * @param activeTheme - Appearance theme used to mark the active View menu checkmark.
  * @param pluginThemeOptions - Plugin-provided theme menu options.
  * @param onThemeMenuClick - Rebuilds the menu after a theme item click.
+ * @param creatorUndoRedoActive - Whether the Creator tab owns Edit menu undo/redo.
+ * @param creatorCanUndo - Whether Creator undo is currently available.
+ * @param creatorCanRedo - Whether Creator redo is currently available.
  * @returns The constructed application menu.
  */
 export function buildMenu(
@@ -127,7 +130,10 @@ export function buildMenu(
   environmentsVisible = true,
   activeTheme: ThemeSource = 'system',
   pluginThemeOptions: ThemeMenuOption[] = [],
-  onThemeMenuClick?: () => void
+  onThemeMenuClick?: () => void,
+  creatorUndoRedoActive = false,
+  creatorCanUndo = false,
+  creatorCanRedo = false
 ): Menu {
   const accelerators = resolveAcceleratorMap(getShortcutOverrides());
 
@@ -207,8 +213,22 @@ export function buildMenu(
     {
       label: 'Edit',
       submenu: [
-        { role: 'undo', accelerator: acceleratorFor(accelerators, 'undo') },
-        { role: 'redo', accelerator: acceleratorFor(accelerators, 'redo') },
+        creatorUndoRedoActive
+          ? {
+              label: 'Undo',
+              accelerator: acceleratorFor(accelerators, 'undo'),
+              enabled: creatorCanUndo,
+              click: () => sendMenuAction(window, 'undo')
+            }
+          : { role: 'undo', accelerator: acceleratorFor(accelerators, 'undo') },
+        creatorUndoRedoActive
+          ? {
+              label: 'Redo',
+              accelerator: acceleratorFor(accelerators, 'redo'),
+              enabled: creatorCanRedo,
+              click: () => sendMenuAction(window, 'redo')
+            }
+          : { role: 'redo', accelerator: acceleratorFor(accelerators, 'redo') },
         { type: 'separator' },
         { role: 'cut', accelerator: acceleratorFor(accelerators, 'cut') },
         { role: 'copy', accelerator: acceleratorFor(accelerators, 'copy') },

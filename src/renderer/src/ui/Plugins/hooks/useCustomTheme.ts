@@ -12,6 +12,7 @@ import {
   getDefaultCustomThemePalette
 } from '#/renderer/src/ui/Plugins/customThemeDefaults';
 import { shouldPromptRenamedThemeSave } from '#/renderer/src/ui/Plugins/shouldPromptRenamedThemeSave';
+import { useThemeHistory } from '#/renderer/src/ui/Plugins/hooks/useThemeHistory';
 
 /**
  * State shown when saving a renamed existing custom theme.
@@ -70,9 +71,12 @@ export interface UseCustomThemeResult {
   busy: boolean;
   error: string | null;
   canSave: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
   renamePrompt: RenamedThemeSavePrompt | null;
   handleColorChange: (token: ThemeColorToken, value: string) => void;
   handleTitleChange: (title: string) => void;
+  handleTitleBlur: () => void;
   handleTypeChange: (type: CustomThemeType) => void;
   handleDiscard: () => void;
   handleSave: () => Promise<void>;
@@ -81,6 +85,8 @@ export interface UseCustomThemeResult {
   handleRenameCancel: () => void;
   handleExport: () => Promise<void>;
   handleImport: () => Promise<void>;
+  undo: () => void;
+  redo: () => void;
 }
 
 /**
@@ -94,12 +100,25 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [renamePrompt, setRenamePrompt] = useState<RenamedThemeSavePrompt | null>(null);
-  const [draft, setDraft] = useState<CustomThemeDraft>({
-    title: DEFAULT_CUSTOM_THEME_TITLE,
-    type: 'light',
-    colors: getDefaultCustomThemePalette('light')
-  });
-  const persistedDraftRef = useRef<CustomThemeDraft>(draft);
+  const initialDraft = useMemo<CustomThemeDraft>(
+    () => ({
+      title: DEFAULT_CUSTOM_THEME_TITLE,
+      type: 'light',
+      colors: getDefaultCustomThemePalette('light')
+    }),
+    []
+  );
+  const {
+    present: draft,
+    canUndo,
+    canRedo,
+    setPresent,
+    record,
+    undo,
+    redo,
+    reset: resetHistory
+  } = useThemeHistory(initialDraft);
+  const persistedDraftRef = useRef<CustomThemeDraft>(initialDraft);
   const activeThemeRef = useRef<string>('system');
 
   /**
@@ -124,7 +143,7 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
           type,
           colors: readActiveThemePalette(type)
         };
-        setDraft(seeded);
+        resetHistory(seeded);
         persistedDraftRef.current = seeded;
         setLoading(false);
       })();
@@ -150,7 +169,7 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
           type: 'light',
           colors: getDefaultCustomThemePalette('light')
         };
-        setDraft(seeded);
+        resetHistory(seeded);
         persistedDraftRef.current = seeded;
         setLoading(false);
         return;
@@ -162,7 +181,7 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
         type: theme.type,
         colors: { ...theme.colors }
       };
-      setDraft(loaded);
+      resetHistory(loaded);
       persistedDraftRef.current = loaded;
       setLoading(false);
     });
@@ -170,7 +189,7 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
     return () => {
       active = false;
     };
-  }, [editingId]);
+  }, [editingId, resetHistory]);
 
   /**
    * Live-previews the draft palette across the whole app while the Creator is open.
@@ -192,43 +211,62 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
   }, []);
 
   /**
-   * Updates one token color in the draft.
+   * Updates one token color in the draft, coalescing rapid picker drags into one undo step.
    */
-  const handleColorChange = useCallback((token: ThemeColorToken, value: string): void => {
-    setDraft((current) => ({
-      ...current,
-      colors: {
-        ...current.colors,
-        [token]: value
-      }
-    }));
-  }, []);
+  const handleColorChange = useCallback(
+    (token: ThemeColorToken, value: string): void => {
+      record(
+        {
+          ...draft,
+          colors: {
+            ...draft.colors,
+            [token]: value
+          }
+        },
+        { debounce: true }
+      );
+    },
+    [draft, record]
+  );
 
   /**
-   * Updates the theme title in the draft.
+   * Updates the theme title in the draft without recording an undo step until blur.
    */
-  const handleTitleChange = useCallback((title: string): void => {
-    setDraft((current) => ({ ...current, title }));
-  }, []);
+  const handleTitleChange = useCallback(
+    (title: string): void => {
+      setPresent({ ...draft, title });
+    },
+    [draft, setPresent]
+  );
+
+  /**
+   * Commits the current title edit as one undo step when the title field loses focus.
+   */
+  const handleTitleBlur = useCallback((): void => {
+    record(draft);
+  }, [draft, record]);
 
   /**
    * Reseeds the draft palette when the base appearance mode changes.
    */
-  const handleTypeChange = useCallback((type: CustomThemeType): void => {
-    setDraft((current) => ({
-      ...current,
-      type,
-      colors: getDefaultCustomThemePalette(type)
-    }));
-  }, []);
+  const handleTypeChange = useCallback(
+    (type: CustomThemeType): void => {
+      record({
+        ...draft,
+        type,
+        colors: getDefaultCustomThemePalette(type)
+      });
+    },
+    [draft, record]
+  );
 
   /**
    * Resets the draft to the last loaded or saved snapshot and restores the active theme.
    */
   const handleDiscard = useCallback((): void => {
-    setDraft(persistedDraftRef.current);
+    resetHistory(persistedDraftRef.current);
     void applyThemePreference(activeThemeRef.current);
-  }, []);
+  }, [resetHistory]);
 
   /**
    * Persists the current draft, optionally creating a new theme file.
@@ -252,7 +290,7 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
           type: saved.type,
           colors: { ...saved.colors }
         };
-        setDraft(nextDraft);
+        resetHistory(nextDraft);
         persistedDraftRef.current = nextDraft;
         const themeValue = formatCustomThemeValue(saved.id);
         await window.api.setTheme(themeValue);
@@ -266,7 +304,7 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
         setBusy(false);
       }
     },
-    [draft, onSaved]
+    [draft, onSaved, resetHistory]
   );
 
   /**
@@ -337,16 +375,16 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
       if (!imported) {
         return;
       }
-      setDraft((current) => ({
-        ...current,
+      record({
+        ...draft,
         title: imported.title,
         type: imported.type,
         colors: { ...imported.colors }
-      }));
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
-  }, []);
+  }, [draft, record]);
 
   const canSave = useMemo(() => draft.title.trim().length > 0, [draft.title]);
 
@@ -356,9 +394,12 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
     busy,
     error,
     canSave,
+    canUndo,
+    canRedo,
     renamePrompt,
     handleColorChange,
     handleTitleChange,
+    handleTitleBlur,
     handleTypeChange,
     handleDiscard,
     handleSave,
@@ -366,6 +407,8 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
     handleRenameSaveAsNew,
     handleRenameCancel,
     handleExport,
-    handleImport
+    handleImport,
+    undo,
+    redo
   };
 }

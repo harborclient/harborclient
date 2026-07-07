@@ -65,6 +65,14 @@ export interface ApiWindow {
    */
   setMenuThemeMenuState: (theme: ThemeSource, options: ThemeMenuOption[]) => Promise<void>;
   /**
+   * Syncs Creator undo/redo ownership and enabled state to the Edit menu in the main process.
+   *
+   * @param active - Whether the Creator tab is open and should own undo/redo.
+   * @param canUndo - Whether an undo step is available in the Creator history.
+   * @param canRedo - Whether a redo step is available in the Creator history.
+   */
+  setMenuCreatorUndoRedo: (active: boolean, canUndo: boolean, canRedo: boolean) => Promise<void>;
+  /**
    * Subscribes to View menu appearance theme selection events from the main process.
    *
    * @param callback - Handler invoked with the selected theme and label.

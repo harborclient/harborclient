@@ -12,6 +12,9 @@ let collectionsVisible = true;
 let environmentsVisible = true;
 let activeTheme: ThemeSource = 'system';
 let pluginThemeOptions: ThemeMenuOption[] = [];
+let creatorUndoRedoActive = false;
+let creatorCanUndo = false;
+let creatorCanRedo = false;
 
 /**
  * Returns the sidebar visibility state reflected in the View menu checkbox.
@@ -204,6 +207,27 @@ export function setMenuThemeMenuState(theme: ThemeSource, options: ThemeMenuOpti
 }
 
 /**
+ * Updates Edit menu Undo/Redo items for the Creator and rebuilds when values change.
+ *
+ * @param active - Whether the Creator tab is open and should own undo/redo.
+ * @param canUndo - Whether an undo step is available in the Creator history.
+ * @param canRedo - Whether a redo step is available in the Creator history.
+ */
+export function setMenuCreatorUndoRedo(active: boolean, canUndo: boolean, canRedo: boolean): void {
+  if (
+    creatorUndoRedoActive === active &&
+    creatorCanUndo === canUndo &&
+    creatorCanRedo === canRedo
+  ) {
+    return;
+  }
+  creatorUndoRedoActive = active;
+  creatorCanUndo = canUndo;
+  creatorCanRedo = canRedo;
+  rebuildAppMenu();
+}
+
+/**
  * Registers the browser window used when rebuilding the application menu.
  *
  * @param window - Active main window, or null when closed.
@@ -230,7 +254,10 @@ export function rebuildAppMenu(): void {
       environmentsVisible,
       activeTheme,
       pluginThemeOptions,
-      rebuildAppMenu
+      rebuildAppMenu,
+      creatorUndoRedoActive,
+      creatorCanUndo,
+      creatorCanRedo
     )
   );
 }

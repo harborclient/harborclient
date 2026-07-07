@@ -560,6 +560,7 @@ export const ipcArgSchemas = {
   menuCollectionsVisible: z.tuple([z.boolean()]),
   menuEnvironmentsVisible: z.tuple([z.boolean()]),
   menuThemeMenuState: z.tuple([themeSource, z.array(themeMenuOption)]),
+  menuCreatorUndoRedo: z.tuple([z.boolean(), z.boolean(), z.boolean()]),
   menuPopupSubmenu: z.tuple([rootMenuLabel, z.number(), z.number()]),
   chatCreate: z.tuple([chatCreateInput]),
   chatGet: z.tuple([dbId]),

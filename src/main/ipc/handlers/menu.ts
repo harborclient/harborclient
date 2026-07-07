@@ -6,6 +6,7 @@ import {
   setMenuRequestEditorVisible,
   setMenuResponseEditorVisible,
   setMenuSidebarVisible,
+  setMenuCreatorUndoRedo,
   setMenuThemeMenuState
 } from '#/main/appMenu';
 import { handle } from '#/main/ipc/handle';
@@ -63,6 +64,15 @@ export function registerMenuHandlers(): void {
   handle('menu:setThemeMenuState', ipcArgSchemas.menuThemeMenuState, (_event, theme, options) => {
     setMenuThemeMenuState(theme as ThemeSource, options as ThemeMenuOption[]);
   });
+
+  // Updates Edit menu undo/redo ownership and enabled state for the Creator tab.
+  handle(
+    'menu:setCreatorUndoRedo',
+    ipcArgSchemas.menuCreatorUndoRedo,
+    (_event, active, canUndo, canRedo) => {
+      setMenuCreatorUndoRedo(active, canUndo, canRedo);
+    }
+  );
 
   // Shows an application menu submenu at screen coordinates.
   handle('menu:popupSubmenu', ipcArgSchemas.menuPopupSubmenu, (event, label, x, y) => {

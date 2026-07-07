@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(menu): implement Creator tab undo/redo functionality. (`d7c8446`)
 - feat(themes): introduce custom theme management and enhance theme functionality. (`c1987bc`)
 - feat(screenshots): enhance screenshot capturing and add new test scenarios. (`aa5d343`)
 
