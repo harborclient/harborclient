@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.0.6 - 2026-07-07
+
 - feat(team-hub): implement admin snippet management features. (`19a8d8c`)
 - feat(snippets): implement snippet management features. (`06fe0e1`)
 - feat(snippets): add uninstall functionality for marketplace snippet bundles. (`9a28865`)
