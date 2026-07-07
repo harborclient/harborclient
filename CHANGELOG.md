@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.0.5 - 2026-07-07
+
 - feat(snippets): implement deep link support for snippet installation. (`2376701`)
 - feat(snippets): enhance snippet management with catalog and installation features. (`9018a76`)
 - feat(snippets): introduce Snippets management feature. (`bdceb5e`)
