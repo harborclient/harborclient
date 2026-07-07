@@ -5,7 +5,9 @@ import { initLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import {
   seedDefaultContentIfNeeded,
   isSeedFlagEnabled,
-  seedEchoCollectionIfMissing
+  seedEchoCollectionIfMissing,
+  seedDefaultEchoSnippets,
+  ensureEchoPostSnippetScripts
 } from '#/main/storage/seedDefaultContent';
 import { createStorageInstance } from '#/main/storage/createStorageInstance';
 import { registerIpcHandlers } from '#/main/ipc';
@@ -351,7 +353,9 @@ async function createStorage(): Promise<RoutingStorage> {
 
   if (isSeedFlagEnabled()) {
     try {
+      await seedDefaultEchoSnippets(router);
       const created = await seedEchoCollectionIfMissing(router);
+      await ensureEchoPostSnippetScripts(router);
       logVerbose(
         created
           ? 'createStorage: --seed imported HarborClient Echo collection'
@@ -943,7 +947,7 @@ app.whenReady().then(async () => {
     closeSplash();
     console.error('Failed to initialize application:', err);
     dialog.showErrorBox(
-      'Harbor Client failed to start',
+      'HarborClient failed to start',
       err instanceof Error ? err.message : String(err)
     );
     app.quit();

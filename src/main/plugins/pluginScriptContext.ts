@@ -18,7 +18,7 @@ export interface PluginScriptRunResult {
   request: ReturnType<ReturnType<typeof createScriptApi>['readResult']>['request'];
 
   /**
-   * Ephemeral variable sets from hc.variables.set during this context lifetime.
+   * Ephemeral variable sets from hc.request.variables.set during this context lifetime.
    */
   variableSets: Record<string, string>;
 

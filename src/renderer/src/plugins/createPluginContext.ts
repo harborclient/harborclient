@@ -152,6 +152,16 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
 
   const assertUi = (): void => assertPermission('ui');
 
+  const assertNetwork = (): void => {
+    assertPermission('network');
+    const general = store.getState().settings.general;
+    if (!general.allowScriptNetworkRequests && !general.allowedNetworkPlugins.includes(pluginId)) {
+      throw new Error(
+        `Plugin ${pluginId} cannot make network requests. Enable "Allow script network requests" in Settings → General or allow this plugin during install.`
+      );
+    }
+  };
+
   /**
    * Returns whether an IPC error indicates the plugin main runtime is inactive.
    *
@@ -494,7 +504,7 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
         logRequestToConsole(payload as PluginConsoleLogPayload);
       },
       sendHttpRequest: async (input) => {
-        assertUi();
+        assertNetwork();
         return sendHttpRequestForPlugin(input);
       },
       clearResponse: async () => {

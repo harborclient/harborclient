@@ -281,7 +281,7 @@ export const AI_TOOL_DEFINITIONS: ChatCompletionTool[] = [
     function: {
       name: 'update_active_request',
       description:
-        'Modifies the request open in the editor (method, URL, params, headers, body, auth, pre/post scripts, cookies). Call get_active_request_details first when you need current values. Use Harbor hc API in scripts, not Postman pm. Changes appear in the editor immediately but are not saved until the user saves.',
+        'Modifies the request open in the editor (method, URL, params, headers, body, auth, pre/post scripts, cookies). Call get_active_request_details first when you need current values. Use Harbor hc API in scripts, not Postman pm (hc.request.variables/collection.variables/environment.variables/globals with get/set/clear, hc.cookies, hc.execution.setNextRequest/skipRequest, await hc.sendRequest when enabled in Settings → General). Changes appear in the editor immediately but are not saved until the user saves.',
       parameters: {
         type: 'object',
         properties: {

@@ -20,6 +20,7 @@ const pluginPermission = z.enum([
   'filesystem:read',
   'filesystem:write',
   'http',
+  'network',
   'ipc',
   'server'
 ]) satisfies z.ZodType<PluginPermission>;

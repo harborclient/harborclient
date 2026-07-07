@@ -59,6 +59,14 @@ export interface RequestTab {
    * Aggregated script runtime errors for the latest completed send in this tab.
    */
   scriptError?: string;
+  /**
+   * Next request name from hc.execution.setNextRequest for collection runner flow control.
+   */
+  scriptNextRequest?: string | null;
+  /**
+   * When true, hc.execution.skipRequest() skipped the latest send in this tab.
+   */
+  scriptSkipRequest?: boolean;
 }
 
 /**

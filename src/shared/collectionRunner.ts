@@ -244,3 +244,34 @@ export function buildPendingCollectionRunnerResults(
     testsFailed: 0
   }));
 }
+
+/**
+ * Resolves the next request index after a collection runner step.
+ *
+ * @param orderedRequests - Requests in run order for the active target.
+ * @param currentIndex - Index of the request that just finished.
+ * @param nextRequest - Directive from hc.execution.setNextRequest, if any.
+ * @returns Next index to run, or null to stop the run.
+ */
+export function resolveCollectionRunnerNextIndex(
+  orderedRequests: SavedRequest[],
+  currentIndex: number,
+  nextRequest: string | null | undefined
+): number | null {
+  if (nextRequest === null) {
+    return null;
+  }
+
+  if (nextRequest === undefined) {
+    const next = currentIndex + 1;
+    return next < orderedRequests.length ? next : null;
+  }
+
+  const matchIndex = orderedRequests.findIndex((request) => request.name === nextRequest);
+  if (matchIndex >= 0) {
+    return matchIndex;
+  }
+
+  const fallback = currentIndex + 1;
+  return fallback < orderedRequests.length ? fallback : null;
+}

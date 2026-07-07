@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyCollectionVariableSets,
+  applyCookieChanges,
+  applyRuntimeVariableClears,
   applyScriptRequestMutations,
+  applyVariableClears,
   buildRuntimeVars,
   buildScriptSlots,
   mergeVariableSets,
   substituteWithMap
 } from '#/renderer/src/scripting/scriptOrchestration';
 import { createInlineScriptRef, createSnippetScriptRef } from '#/shared/scriptRefs';
+import { defaultAuth } from '#/shared/auth';
 import type { ScriptRunResult, Snippet } from '#/shared/types';
 
 const snippetLookup = new Map<string, Snippet>([
@@ -17,7 +21,7 @@ const snippetLookup = new Map<string, Snippet>([
       id: 1,
       uuid: 'snippet-1',
       name: 'Auth helper',
-      code: "hc.variables.set('token', 'live');",
+      code: "hc.request.variables.set('token', 'live');",
       scope: 'any',
       source: 'local',
       created_at: '2026-01-01T00:00:00.000Z',
@@ -92,6 +96,43 @@ describe('applyCollectionVariableSets', () => {
   });
 });
 
+describe('applyVariableClears', () => {
+  it('removes cleared keys from persisted variable rows', () => {
+    expect(
+      applyVariableClears(
+        [
+          { key: 'token', value: 'abc', defaultValue: '', share: false },
+          { key: 'host', value: 'example.com', defaultValue: '', share: false }
+        ],
+        ['token']
+      )
+    ).toEqual([{ key: 'host', value: 'example.com', defaultValue: '', share: false }]);
+  });
+});
+
+describe('applyRuntimeVariableClears', () => {
+  it('removes cleared keys from the runtime map', () => {
+    expect(applyRuntimeVariableClears({ token: 'abc', host: 'example.com' }, ['token'])).toEqual({
+      host: 'example.com'
+    });
+  });
+});
+
+describe('applyCookieChanges', () => {
+  it('applies cookie sets and clears on seeded rows', () => {
+    expect(
+      applyCookieChanges(
+        [
+          { key: 'session', value: 'old', enabled: true },
+          { key: 'theme', value: 'dark', enabled: true }
+        ],
+        { session: 'new' },
+        ['theme']
+      )
+    ).toEqual([{ key: 'session', value: 'new', enabled: true }]);
+  });
+});
+
 describe('applyScriptRequestMutations', () => {
   it('applies request mutations from script result', () => {
     const current = {
@@ -100,7 +141,8 @@ describe('applyScriptRequestMutations', () => {
       headers: [{ key: 'X-Test', value: '1', enabled: true }],
       params: [{ key: 'q', value: 'search', enabled: true }],
       body: '',
-      bodyType: 'none' as const
+      bodyType: 'none' as const,
+      auth: defaultAuth()
     };
     const result: ScriptRunResult = {
       request: {
@@ -109,12 +151,23 @@ describe('applyScriptRequestMutations', () => {
         headers: [{ key: 'Authorization', value: 'Bearer token', enabled: true }],
         params: current.params,
         body: '{"ok":true}',
-        bodyType: 'json'
+        bodyType: 'json',
+        auth: {
+          ...defaultAuth(),
+          type: 'bearer',
+          bearer: { token: 'script-token' }
+        }
       },
       variableSets: {},
+      variableClears: [],
       collectionVariableSets: {},
+      collectionVariableClears: [],
       environmentVariableSets: {},
+      environmentVariableClears: [],
       globalVariableSets: {},
+      globalVariableClears: [],
+      cookieSets: {},
+      cookieClears: [],
       collectionHeaders: [],
       tests: [],
       logs: []
@@ -126,7 +179,12 @@ describe('applyScriptRequestMutations', () => {
       headers: [{ key: 'Authorization', value: 'Bearer token', enabled: true }],
       params: [{ key: 'q', value: 'search', enabled: true }],
       body: '{"ok":true}',
-      bodyType: 'none'
+      bodyType: 'none',
+      auth: {
+        ...defaultAuth(),
+        type: 'bearer',
+        bearer: { token: 'script-token' }
+      }
     });
   });
 });
@@ -182,7 +240,7 @@ describe('buildScriptSlots', () => {
 
     expect(slots).toHaveLength(2);
     expect(slots[0]?.source).toBe('collection inline');
-    expect(slots[1]?.source).toBe("hc.variables.set('token', 'live');");
+    expect(slots[1]?.source).toBe("hc.request.variables.set('token', 'live');");
   });
 
   it('filters empty scripts', () => {

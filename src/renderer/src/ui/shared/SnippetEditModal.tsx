@@ -194,7 +194,7 @@ export function SnippetEditModal({
               onChange={readOnly ? undefined : (code) => onChange({ ...draft, code })}
               language="javascript"
               minHeight="500px"
-              placeholder="// hc.variables.set('token', 'abc');"
+              placeholder="// hc.request.variables.set('token', 'abc');"
               aria-labelledby="snippet-code"
             />
           </div>

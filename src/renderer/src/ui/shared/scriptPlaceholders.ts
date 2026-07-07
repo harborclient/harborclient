@@ -2,7 +2,8 @@
  * Default placeholder shown in empty pre-request script editors.
  */
 export const PRE_REQUEST_SCRIPT_PLACEHOLDER = `hc.request.url = 'https://example.com';
-hc.variables.set('token', 'abc');
+hc.request.variables.set('token', 'abc');
+hc.cookies.set('session', 'value');
 
 /ask How do I set a request header?`;
 
@@ -13,12 +14,14 @@ export const POST_REQUEST_SCRIPT_PLACEHOLDER = `hc.test("status is 200", () => {
   hc.expect(hc.response.code).to.equal(200);
 });
 
+// await hc.sendRequest({ url: 'https://api.example.com' }); // requires Settings → General
+
 /ask How do I parse the response JSON?`;
 
 /**
  * Default placeholder for collection-level pre-request script editors.
  */
-export const COLLECTION_PRE_REQUEST_SCRIPT_PLACEHOLDER = `hc.variables.set('token', 'abc');
+export const COLLECTION_PRE_REQUEST_SCRIPT_PLACEHOLDER = `hc.request.variables.set('token', 'abc');
 
 /ask How do I share variables across requests?`;
 

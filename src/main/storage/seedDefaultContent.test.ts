@@ -10,8 +10,13 @@ import {
   buildDefaultEchoCollectionExport,
   DEFAULT_ECHO_COLLECTION_SEEDED_KEY,
   DEFAULT_ECHO_COLLECTION_UUID,
+  DEFAULT_ECHO_POST_UUID,
+  DEFAULT_ECHO_SNIPPET_ASSERT_STATUS_UUID,
+  DEFAULT_ECHO_SNIPPET_PARSE_JSON_UUID,
+  ensureEchoPostSnippetScripts,
   isSeedFlagEnabled,
   seedDefaultContentIfNeeded,
+  seedDefaultEchoSnippets,
   seedEchoCollectionIfMissing
 } from '#/main/storage/seedDefaultContent';
 import type { SqliteSettings, StorageConnection } from '#/shared/types';
@@ -86,6 +91,21 @@ describe('buildDefaultEchoCollectionExport', () => {
       'Echo PUT',
       'Echo DELETE'
     ]);
+    expect(validated.requests[1]?.post_request_scripts).toHaveLength(2);
+  });
+});
+
+describeSqlite('seedDefaultEchoSnippets', () => {
+  it('creates the default echo post-request snippets', async () => {
+    const { router } = await createSeedFixture();
+
+    await seedDefaultEchoSnippets(router);
+
+    const snippets = await router.listSnippets();
+    expect(snippets.map((snippet) => snippet.uuid).sort()).toEqual([
+      DEFAULT_ECHO_SNIPPET_ASSERT_STATUS_UUID,
+      DEFAULT_ECHO_SNIPPET_PARSE_JSON_UUID
+    ]);
   });
 });
 
@@ -128,7 +148,7 @@ describeSqlite('seedDefaultContentIfNeeded', () => {
   });
 
   it('skips seeding when the flag is already set', async () => {
-    const { router, database } = await createSeedFixture();
+    const { router } = await createSeedFixture();
     database.setSetting(DEFAULT_ECHO_COLLECTION_SEEDED_KEY, '1');
 
     await seedDefaultContentIfNeeded(router, database);
@@ -137,7 +157,7 @@ describeSqlite('seedDefaultContentIfNeeded', () => {
   });
 
   it('skips seeding when the registry already has entries and sets the flag', async () => {
-    const { router, database } = await createSeedFixture();
+    const { router } = await createSeedFixture();
 
     await router.createCollection('Existing');
 
@@ -197,5 +217,46 @@ describeSqlite('seedEchoCollectionIfMissing', () => {
       'Existing',
       'HarborClient Echo'
     ]);
+  });
+});
+
+describeSqlite('ensureEchoPostSnippetScripts', () => {
+  it('adds default snippet references to Echo POST', async () => {
+    const { router } = await createSeedFixture();
+
+    await seedDefaultEchoSnippets(router);
+    await seedEchoCollectionIfMissing(router);
+
+    const collection = await router.findCollectionByUuid(DEFAULT_ECHO_COLLECTION_UUID);
+    expect(collection).not.toBeNull();
+
+    const before = await router.findRequestByUuid(collection!.id, DEFAULT_ECHO_POST_UUID);
+    expect(before?.post_request_scripts).toHaveLength(2);
+
+    await router.saveRequest({
+      id: before!.id,
+      uuid: before!.uuid,
+      collection_id: before!.collection_id,
+      name: before!.name,
+      method: before!.method,
+      url: before!.url,
+      headers: before!.headers,
+      params: before!.params,
+      auth: before!.auth,
+      body: before!.body,
+      body_type: before!.body_type,
+      pre_request_script: before!.pre_request_script,
+      post_request_script: before!.post_request_script,
+      pre_request_scripts: before!.pre_request_scripts,
+      post_request_scripts: [],
+      comment: before!.comment,
+      tags: before!.tags
+    });
+
+    await ensureEchoPostSnippetScripts(router);
+
+    const after = await router.findRequestByUuid(collection!.id, DEFAULT_ECHO_POST_UUID);
+    expect(after?.post_request_scripts).toHaveLength(2);
+    expect(after?.post_request_scripts?.every((script) => script.kind === 'snippet')).toBe(true);
   });
 });

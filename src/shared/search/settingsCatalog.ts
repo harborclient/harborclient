@@ -3,6 +3,7 @@ import type { SettingsSection } from '#/shared/types';
 export type SettingId =
   | 'general.requestTimeoutMs'
   | 'general.scriptTimeoutMs'
+  | 'general.allowScriptNetworkRequests'
   | 'general.maxResponseSizeMb'
   | 'general.verifySsl'
   | 'general.followRedirects'
@@ -117,6 +118,15 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     description:
       'Maximum time for each pre- or post-request script. Set to 0 to disable. Applies per script in the run order.',
     keywords: ['script', 'timeout', 'pre-request', 'post-request', 'milliseconds']
+  },
+  {
+    id: 'general.allowScriptNetworkRequests',
+    section: 'general',
+    kind: 'field',
+    label: 'Allow script network requests',
+    description:
+      'When enabled, pre- and post-request scripts may call hc.sendRequest for outbound HTTP.',
+    keywords: ['script', 'network', 'sendRequest', 'http', 'permission']
   },
   {
     id: 'general.maxResponseSizeMb',

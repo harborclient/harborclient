@@ -198,7 +198,8 @@ export const scriptRequestContext = z.object({
   headers: z.array(keyValue),
   params: z.array(keyValue),
   body: ipcRequestBody,
-  bodyType: bodyType
+  bodyType: bodyType,
+  auth: authConfig.optional()
 }) satisfies z.ZodType<ScriptRequestContext>;
 
 export const scriptRunInput = z.object({
@@ -211,15 +212,27 @@ export const scriptRunInput = z.object({
     .object({
       id: z.number().int().nullable(),
       name: z.string(),
-      headers: z.array(keyValue)
+      headers: z.array(keyValue),
+      auth: authConfig.optional()
     })
     .optional(),
-  environment: z.object({ name: z.string() }).optional()
+  environment: z.object({ name: z.string() }).optional(),
+  cookies: z.array(keyValue).optional(),
+  info: z
+    .object({
+      eventName: z.enum(['prerequest', 'test']),
+      requestName: z.string(),
+      requestId: z.string(),
+      iteration: z.number().int().nonnegative()
+    })
+    .optional()
 }) satisfies z.ZodType<ScriptRunInput>;
 
 export const generalSettings = z.object({
   requestTimeoutMs: z.number(),
   scriptTimeoutMs: z.number(),
+  allowScriptNetworkRequests: z.boolean(),
+  allowedNetworkPlugins: z.array(z.string()),
   maxResponseSizeMb: z.number().min(0).max(HARD_MAX_RESPONSE_SIZE_MB),
   verifySsl: z.boolean(),
   followRedirects: z.boolean(),

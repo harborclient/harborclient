@@ -1,4 +1,4 @@
-import type { ScriptRequestContext, ScriptRunResult, Variable } from '#/shared/types';
+import type { ScriptRequestContext, ScriptRunResult, Variable, KeyValue } from '#/shared/types';
 import { resolveDynamicVariable, VARIABLE_TOKEN_PATTERN } from '@harborclient/sdk/variables';
 import type { ScriptRef, Snippet } from '#/shared/types';
 import { buildScopedScriptSlots, type ScriptSlot } from '#/renderer/src/scripting/scriptResolution';
@@ -47,7 +47,7 @@ export function substituteWithMap(text: string, runtimeVars: Record<string, stri
  * Merges ephemeral variable sets from a script run into the runtime map.
  *
  * @param runtimeVars - Current runtime variables.
- * @param variableSets - New values set by hc.variables.set or hc.collection.variables.set.
+ * @param variableSets - New values set by hc.request.variables.set or hc.collection.variables.set.
  * @returns Updated runtime variable map.
  */
 export function mergeVariableSets(
@@ -55,6 +55,43 @@ export function mergeVariableSets(
   variableSets: Record<string, string>
 ): Record<string, string> {
   return { ...runtimeVars, ...variableSets };
+}
+
+/**
+ * Removes cleared keys from a runtime variable map.
+ *
+ * @param runtimeVars - Current runtime variables.
+ * @param clears - Keys removed via hc.*.variables.clear or hc.globals.clear during send.
+ * @returns Updated runtime variable map without cleared keys.
+ */
+export function applyRuntimeVariableClears(
+  runtimeVars: Record<string, string>,
+  clears: string[]
+): Record<string, string> {
+  if (clears.length === 0) {
+    return runtimeVars;
+  }
+  const clearSet = new Set(clears.map((key) => key.trim()).filter(Boolean));
+  const next = { ...runtimeVars };
+  for (const key of clearSet) {
+    delete next[key];
+  }
+  return next;
+}
+
+/**
+ * Removes cleared keys from a persisted variable list.
+ *
+ * @param variables - Current collection, environment, or global variable rows.
+ * @param clears - Keys removed via hc.*.variables.clear or hc.globals.clear during send.
+ * @returns Variable list with cleared keys removed.
+ */
+export function applyVariableClears(variables: Variable[], clears: string[]): Variable[] {
+  if (clears.length === 0) {
+    return variables;
+  }
+  const clearSet = new Set(clears.map((key) => key.trim().toLowerCase()).filter(Boolean));
+  return variables.filter((variable) => !clearSet.has(variable.key.trim().toLowerCase()));
 }
 
 /**
@@ -95,6 +132,53 @@ export function applyCollectionVariableSets(
 }
 
 /**
+ * Applies script cookie mutations onto seeded cookie rows for the request host.
+ *
+ * @param cookies - Cookie rows loaded for the request host at send start.
+ * @param cookieSets - Values set via hc.cookies.set during send.
+ * @param cookieClears - Names cleared via hc.cookies.clear during send.
+ * @returns Updated cookie rows ready for persistence.
+ */
+export function applyCookieChanges(
+  cookies: KeyValue[],
+  cookieSets: Record<string, string>,
+  cookieClears: string[]
+): KeyValue[] {
+  let rows = cookies.map((cookie) => ({ ...cookie }));
+
+  if (cookieClears.length > 0) {
+    const clearSet = new Set(cookieClears.map((name) => name.trim().toLowerCase()).filter(Boolean));
+    rows = rows.filter((cookie) => !clearSet.has(cookie.key.trim().toLowerCase()));
+  }
+
+  if (Object.keys(cookieSets).length === 0) {
+    return rows;
+  }
+
+  const indexByKey = new Map<string, number>();
+  for (let i = 0; i < rows.length; i++) {
+    const key = rows[i].key.trim();
+    if (key) {
+      indexByKey.set(key.toLowerCase(), i);
+    }
+  }
+
+  for (const [rawName, value] of Object.entries(cookieSets)) {
+    const name = rawName.trim();
+    if (!name) continue;
+
+    const existingIndex = indexByKey.get(name.toLowerCase());
+    if (existingIndex !== undefined) {
+      rows[existingIndex] = { ...rows[existingIndex], value, enabled: true };
+    } else {
+      rows.push({ key: name, value, enabled: true });
+    }
+  }
+
+  return rows;
+}
+
+/**
  * Applies sandbox request mutations onto a working request context.
  *
  * @param current - Current request context.
@@ -111,7 +195,8 @@ export function applyScriptRequestMutations(
     headers: result.request.headers.map((header) => ({ ...header })),
     params: current.params,
     body: result.request.body,
-    bodyType: current.bodyType
+    bodyType: current.bodyType,
+    auth: result.request.auth
   };
 }
 

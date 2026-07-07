@@ -8,6 +8,7 @@ import {
   DEFAULT_GENERAL_SETTINGS,
   DEFAULT_PROXY_SETTINGS,
   getGeneralSettings,
+  isPluginNetworkAllowed,
   setGeneralSettings
 } from '#/main/settings/generalSettings';
 
@@ -103,6 +104,49 @@ describe('generalSettings', () => {
     });
 
     expect(getGeneralSettings().globalVariables).toEqual([]);
+  });
+
+  it('defaults allowScriptNetworkRequests to false when unset', () => {
+    expect(getGeneralSettings().allowScriptNetworkRequests).toBe(false);
+  });
+
+  it('persists allowScriptNetworkRequests true', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      allowScriptNetworkRequests: true
+    });
+
+    expect(getGeneralSettings().allowScriptNetworkRequests).toBe(true);
+  });
+
+  it('defaults allowedNetworkPlugins to [] when unset', () => {
+    expect(getGeneralSettings().allowedNetworkPlugins).toEqual([]);
+  });
+
+  it('normalizes allowedNetworkPlugins to unique trimmed ids', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      allowedNetworkPlugins: [' com.example.a ', 'com.example.a', '', 'com.example.b']
+    });
+
+    expect(getGeneralSettings().allowedNetworkPlugins).toEqual(['com.example.a', 'com.example.b']);
+  });
+
+  it('isPluginNetworkAllowed honors global and per-plugin allowlists', () => {
+    expect(isPluginNetworkAllowed('com.example.plugin')).toBe(false);
+
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      allowedNetworkPlugins: ['com.example.plugin']
+    });
+    expect(isPluginNetworkAllowed('com.example.plugin')).toBe(true);
+    expect(isPluginNetworkAllowed('com.example.other')).toBe(false);
+
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      allowScriptNetworkRequests: true
+    });
+    expect(isPluginNetworkAllowed('com.example.other')).toBe(true);
   });
 
   it('defaults followRedirects to true when unset', () => {

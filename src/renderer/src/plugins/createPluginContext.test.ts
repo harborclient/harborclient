@@ -98,6 +98,20 @@ describe('createPluginContext runtime surfaces', () => {
     await expect(hc.host.updateEnvironmentVariables(1, [])).rejects.toThrow(/lacks permission: ui/);
   });
 
+  it('rejects hc.host.sendHttpRequest without the network permission', async () => {
+    const hc = createPluginContext('com.example.test', createManifest(['ui']));
+    await expect(
+      hc.host.sendHttpRequest({
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        bodyType: 'none'
+      })
+    ).rejects.toThrow(/lacks permission: network/);
+  });
+
   it('rejects hc.fs.watchFile without the filesystem:read permission', () => {
     const hc = createPluginContext('com.example.test', createManifest(['ui']));
     expect(() => hc.fs.watchFile('/tmp/example.env', () => {})).toThrow(

@@ -18,6 +18,8 @@ export { DEFAULT_PROXY_SETTINGS };
 export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   requestTimeoutMs: 30000,
   scriptTimeoutMs: 5000,
+  allowScriptNetworkRequests: false,
+  allowedNetworkPlugins: [],
   maxResponseSizeMb: 50,
   verifySsl: true,
   followRedirects: true,
@@ -104,6 +106,23 @@ function normalizeGlobalVariables(input: unknown): Variable[] {
 }
 
 /**
+ * Normalizes the plugin allowlist used when script network requests are disabled globally.
+ *
+ * @param input - Raw plugin id list from storage or user input.
+ * @returns Unique trimmed plugin manifest ids.
+ */
+function normalizeAllowedNetworkPlugins(input: unknown): string[] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+  const ids = input
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  return [...new Set(ids)];
+}
+
+/**
  * Normalizes a general settings object with defaults for invalid fields.
  *
  * @param input - Raw settings from storage or user input.
@@ -119,6 +138,8 @@ function normalizeSettings(input: Partial<GeneralSettings>): GeneralSettings {
       input.scriptTimeoutMs,
       DEFAULT_GENERAL_SETTINGS.scriptTimeoutMs
     ),
+    allowScriptNetworkRequests: input.allowScriptNetworkRequests === true,
+    allowedNetworkPlugins: normalizeAllowedNetworkPlugins(input.allowedNetworkPlugins),
     maxResponseSizeMb: Math.min(
       normalizeNonNegativeNumber(
         input.maxResponseSizeMb,
@@ -160,4 +181,18 @@ export function getGeneralSettings(): GeneralSettings {
  */
 export function setGeneralSettings(input: GeneralSettings): void {
   getLocalDatabase().setSetting(STORE_KEY, JSON.stringify(normalizeSettings(input)));
+}
+
+/**
+ * Returns whether a plugin may perform outbound HTTP through hc.host.sendHttpRequest.
+ *
+ * @param pluginId - Plugin manifest id.
+ * @returns True when global script network access is enabled or the plugin is allowlisted.
+ */
+export function isPluginNetworkAllowed(pluginId: string): boolean {
+  const settings = getGeneralSettings();
+  if (settings.allowScriptNetworkRequests) {
+    return true;
+  }
+  return settings.allowedNetworkPlugins.includes(pluginId);
 }

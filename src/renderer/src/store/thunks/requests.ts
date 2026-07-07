@@ -23,17 +23,22 @@ import { emitPluginAfterSend } from '#/renderer/src/plugins/pluginAfterSendBus';
 import {
   applyScriptRequestMutations,
   applyCollectionVariableSets,
+  applyRuntimeVariableClears,
+  applyVariableClears,
+  applyCookieChanges,
   buildRuntimeVars,
   buildScriptSlots,
   mergeVariableSets,
   substituteWithMap
 } from '#/renderer/src/scripting/scriptOrchestration';
+import { hostFromUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/cookieHost';
 import { buildSnippetLookup } from '#/renderer/src/scripting/scriptResolution';
 import {
   autoNameUnnamedScripts,
   mirrorLegacyScriptString,
   normalizeScriptRefs
 } from '#/shared/scriptRefs';
+import { buildScriptRunInfo } from '#/shared/types/script';
 import { saveGlobalVariables } from '#/renderer/src/store/thunks/settings';
 import {
   cloneDraft,
@@ -433,9 +438,18 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
     let globalVarSets: Record<string, string> = {};
     let collectionVarSets: Record<string, string> = {};
     let envVarSets: Record<string, string> = {};
+    let runtimeVarClears: string[] = [];
+    let collectionVarClears: string[] = [];
+    let envVarClears: string[] = [];
+    let globalVarClears: string[] = [];
+    let cookieVarSets: Record<string, string> = {};
+    let cookieVarClears: string[] = [];
+    let scriptNextRequest: string | null | undefined;
+    let scriptSkipRequest = false;
     let collectionHeaderRows: KeyValue[] = collection
       ? (collection.headers ?? []).map((header) => ({ ...header }))
       : [];
+    let collectionAuthConfig = collection?.auth ? structuredClone(collection.auth) : defaultAuth();
     const allLogs: string[] = [];
     const allTests: ScriptTestResult[] = [];
     const scriptErrors: string[] = [];
@@ -446,8 +460,12 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
       headers: currentDraft.headers.map((header) => ({ ...header })),
       params: currentDraft.params.map((param) => ({ ...param })),
       body: currentDraft.body,
-      bodyType: currentDraft.body_type
+      bodyType: currentDraft.body_type,
+      auth: structuredClone(currentDraft.auth)
     };
+
+    const cookieHost = hostFromUrl(substituteWithMap(currentDraft.url, runtimeVars));
+    let cookieRows: KeyValue[] = cookieHost != null ? await window.api.getCookies(cookieHost) : [];
 
     /**
      * Runs pre- or post-request scripts for one phase slot.
@@ -475,10 +493,16 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
           request: scriptRequest,
           response,
           variables: runtimeVars,
+          cookies: cookieRows,
+          info: buildScriptRunInfo(slot.phase, {
+            requestName: currentDraft.name,
+            requestId: currentDraft.id ?? null
+          }),
           collection: {
             id: collection?.id ?? null,
             name: collection?.name ?? '',
-            headers: collectionHeaderRows
+            headers: collectionHeaderRows,
+            auth: collectionAuthConfig
           },
           environment: {
             name: environment?.name ?? ''
@@ -500,10 +524,30 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
         runtimeVars = mergeVariableSets(runtimeVars, result.globalVariableSets);
         runtimeVars = mergeVariableSets(runtimeVars, result.collectionVariableSets);
         runtimeVars = mergeVariableSets(runtimeVars, result.environmentVariableSets);
+        runtimeVars = applyRuntimeVariableClears(runtimeVars, result.variableClears);
+        runtimeVars = applyRuntimeVariableClears(runtimeVars, result.globalVariableClears);
+        runtimeVars = applyRuntimeVariableClears(runtimeVars, result.collectionVariableClears);
+        runtimeVars = applyRuntimeVariableClears(runtimeVars, result.environmentVariableClears);
         globalVarSets = { ...globalVarSets, ...result.globalVariableSets };
         collectionVarSets = { ...collectionVarSets, ...result.collectionVariableSets };
         envVarSets = { ...envVarSets, ...result.environmentVariableSets };
+        runtimeVarClears = [...runtimeVarClears, ...result.variableClears];
+        collectionVarClears = [...collectionVarClears, ...result.collectionVariableClears];
+        envVarClears = [...envVarClears, ...result.environmentVariableClears];
+        globalVarClears = [...globalVarClears, ...result.globalVariableClears];
+        cookieVarSets = { ...cookieVarSets, ...result.cookieSets };
+        cookieVarClears = [...cookieVarClears, ...result.cookieClears];
+        cookieRows = applyCookieChanges(cookieRows, result.cookieSets, result.cookieClears);
         collectionHeaderRows = result.collectionHeaders;
+        if (result.collectionAuth) {
+          collectionAuthConfig = result.collectionAuth;
+        }
+        if (result.nextRequest !== undefined) {
+          scriptNextRequest = result.nextRequest;
+        }
+        if (result.skipRequest) {
+          scriptSkipRequest = true;
+        }
       }
     };
 
@@ -524,6 +568,8 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
           testResults: [],
           scriptLogs: [],
           scriptError: undefined,
+          scriptNextRequest: undefined,
+          scriptSkipRequest: false,
           sendingRequestId: requestId
         }
       })
@@ -532,80 +578,122 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
     try {
       await runScriptPhase('pre');
 
-      const resolvedUrl = substituteWithMap(scriptRequest.url, runtimeVars);
-      const collectionHeaders = collectionHeaderRows.map((header) => ({
-        ...header,
-        value: substituteWithMap(header.value, runtimeVars)
-      }));
-      const draftHeaders = scriptRequest.headers.map((header) => ({
-        ...header,
-        value: substituteWithMap(header.value, runtimeVars)
-      }));
-      const effectiveAuth =
-        currentDraft.auth.type !== 'none' ? currentDraft.auth : (collection?.auth ?? defaultAuth());
-      const resolvedAuth = resolveAuthVariables(effectiveAuth, (text) =>
-        substituteWithMap(text, runtimeVars)
-      );
-      let authValue = buildAuthHeaderValue(resolvedAuth);
-      const manualHasAuth = [...collectionHeaders, ...draftHeaders].some(
-        (header) =>
-          header.enabled &&
-          header.key.trim().toLowerCase() === 'authorization' &&
-          header.value.trim() !== ''
-      );
-      if (!authValue && resolvedAuth.type === 'oauth2' && !manualHasAuth) {
-        const usesRequestAuth = currentDraft.auth.type === 'oauth2';
-        const cacheKey =
-          usesRequestAuth && currentDraft.id != null
-            ? buildOAuthCacheKey('request', currentDraft.id)
-            : !usesRequestAuth && collection?.id != null
-              ? buildOAuthCacheKey('collection', collection.id)
-              : '';
-        const tokenResult = await window.api.oauthFetchToken(cacheKey, resolvedAuth.oauth2, false);
-        authValue = buildOAuthAuthHeaderValue(tokenResult);
-        if (!authValue) {
-          throw new Error('OAuth token response contained an invalid access token.');
+      let result: SendResult;
+
+      if (scriptSkipRequest) {
+        result = {
+          status: 0,
+          statusText: 'Skipped',
+          headers: {},
+          body: '',
+          timeMs: 0,
+          sizeBytes: 0,
+          error: 'Request skipped by script'
+        };
+      } else {
+        const resolvedUrl = substituteWithMap(scriptRequest.url, runtimeVars);
+        const collectionHeaders = collectionHeaderRows.map((header) => ({
+          ...header,
+          value: substituteWithMap(header.value, runtimeVars)
+        }));
+        const draftHeaders = scriptRequest.headers.map((header) => ({
+          ...header,
+          value: substituteWithMap(header.value, runtimeVars)
+        }));
+        const effectiveAuth =
+          scriptRequest.auth && scriptRequest.auth.type !== 'none'
+            ? scriptRequest.auth
+            : collectionAuthConfig;
+        const resolvedAuth = resolveAuthVariables(effectiveAuth, (text) =>
+          substituteWithMap(text, runtimeVars)
+        );
+        let authValue = buildAuthHeaderValue(resolvedAuth);
+        const manualHasAuth = [...collectionHeaders, ...draftHeaders].some(
+          (header) =>
+            header.enabled &&
+            header.key.trim().toLowerCase() === 'authorization' &&
+            header.value.trim() !== ''
+        );
+        if (!authValue && resolvedAuth.type === 'oauth2' && !manualHasAuth) {
+          const usesRequestAuth = scriptRequest.auth?.type === 'oauth2';
+          const cacheKey =
+            usesRequestAuth && currentDraft.id != null
+              ? buildOAuthCacheKey('request', currentDraft.id)
+              : !usesRequestAuth && collection?.id != null
+                ? buildOAuthCacheKey('collection', collection.id)
+                : '';
+          const tokenResult = await window.api.oauthFetchToken(
+            cacheKey,
+            resolvedAuth.oauth2,
+            false
+          );
+          authValue = buildOAuthAuthHeaderValue(tokenResult);
+          if (!authValue) {
+            throw new Error('OAuth token response contained an invalid access token.');
+          }
         }
+        const headers =
+          authValue && !manualHasAuth
+            ? [
+                { key: 'Authorization', value: authValue, enabled: true },
+                ...collectionHeaders,
+                ...draftHeaders
+              ]
+            : [...collectionHeaders, ...draftHeaders];
+        const params = scriptRequest.params.map((param) => ({
+          ...param,
+          value: substituteWithMap(param.value, runtimeVars)
+        }));
+        const body = substituteWithMap(scriptRequest.body, runtimeVars);
+
+        const sendInput = {
+          method: scriptRequest.method,
+          url: resolvedUrl,
+          headers,
+          params,
+          body,
+          bodyType: scriptRequest.bodyType,
+          ...(currentDraft.id != null ? { sourceRequestId: currentDraft.id } : {}),
+          ...(currentDraft.name.trim() ? { sourceRequestName: currentDraft.name } : {})
+        };
+
+        result = await window.api.sendRequest(sendInput, requestId);
+
+        if (!result.error) {
+          emitPluginAfterSend(toPluginHttpRequest(sendInput), toPluginHttpResponse(result));
+        }
+
+        await runScriptPhase('post', result);
       }
-      const headers =
-        authValue && !manualHasAuth
-          ? [
-              { key: 'Authorization', value: authValue, enabled: true },
-              ...collectionHeaders,
-              ...draftHeaders
-            ]
-          : [...collectionHeaders, ...draftHeaders];
-      const params = scriptRequest.params.map((param) => ({
-        ...param,
-        value: substituteWithMap(param.value, runtimeVars)
-      }));
-      const body = substituteWithMap(scriptRequest.body, runtimeVars);
-
-      const sendInput = {
-        method: scriptRequest.method,
-        url: resolvedUrl,
-        headers,
-        params,
-        body,
-        bodyType: scriptRequest.bodyType,
-        ...(currentDraft.id != null ? { sourceRequestId: currentDraft.id } : {}),
-        ...(currentDraft.name.trim() ? { sourceRequestName: currentDraft.name } : {})
-      };
-
-      const result = await window.api.sendRequest(sendInput, requestId);
-
-      if (!result.error) {
-        emitPluginAfterSend(toPluginHttpRequest(sendInput), toPluginHttpResponse(result));
-      }
-
-      await runScriptPhase('post', result);
 
       const persistErrors: string[] = [];
+
+      if (
+        cookieHost != null &&
+        (Object.keys(cookieVarSets).length > 0 || cookieVarClears.length > 0)
+      ) {
+        try {
+          await window.api.setCookies(
+            cookieHost,
+            applyCookieChanges(cookieRows, cookieVarSets, cookieVarClears)
+          );
+        } catch (err) {
+          persistErrors.push(
+            err instanceof Error ? err.message : 'Failed to save cookie changes from script'
+          );
+        }
+      }
 
       if (collection) {
         const headersChanged =
           JSON.stringify(collectionHeaderRows) !== JSON.stringify(collection.headers ?? []);
-        const hasCollectionChanges = Object.keys(collectionVarSets).length > 0 || headersChanged;
+        const authChanged =
+          JSON.stringify(collectionAuthConfig) !== JSON.stringify(collection.auth ?? defaultAuth());
+        const hasCollectionChanges =
+          Object.keys(collectionVarSets).length > 0 ||
+          collectionVarClears.length > 0 ||
+          headersChanged ||
+          authChanged;
 
         if (hasCollectionChanges) {
           try {
@@ -613,13 +701,16 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
               updateCollection({
                 id: collection.id,
                 name: collection.name,
-                variables: applyCollectionVariableSets(collection.variables, collectionVarSets),
+                variables: applyVariableClears(
+                  applyCollectionVariableSets(collection.variables, collectionVarSets),
+                  collectionVarClears
+                ),
                 headers: collectionHeaderRows,
                 preRequestScript: collection.pre_request_script,
                 postRequestScript: collection.post_request_script,
                 preRequestScripts: collection.pre_request_scripts,
                 postRequestScripts: collection.post_request_scripts,
-                auth: collection.auth,
+                auth: collectionAuthConfig,
                 connectionId: collection.connectionId
               })
             ).unwrap();
@@ -631,13 +722,16 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
         }
       }
 
-      if (environment && Object.keys(envVarSets).length > 0) {
+      if (environment && (Object.keys(envVarSets).length > 0 || envVarClears.length > 0)) {
         try {
           await dispatch(
             updateEnvironment({
               id: environment.id,
               name: environment.name,
-              variables: applyCollectionVariableSets(environment.variables, envVarSets)
+              variables: applyVariableClears(
+                applyCollectionVariableSets(environment.variables, envVarSets),
+                envVarClears
+              )
             })
           ).unwrap();
         } catch (err) {
@@ -647,10 +741,15 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
         }
       }
 
-      if (Object.keys(globalVarSets).length > 0) {
+      if (Object.keys(globalVarSets).length > 0 || globalVarClears.length > 0) {
         try {
           await dispatch(
-            saveGlobalVariables(applyCollectionVariableSets(globalVariables, globalVarSets))
+            saveGlobalVariables(
+              applyVariableClears(
+                applyCollectionVariableSets(globalVariables, globalVarSets),
+                globalVarClears
+              )
+            )
           ).unwrap();
         } catch (err) {
           persistErrors.push(
@@ -669,7 +768,9 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
               response: result,
               testResults: allTests,
               scriptLogs: allLogs,
-              scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined
+              scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined,
+              scriptNextRequest,
+              scriptSkipRequest
             }
           })
         );

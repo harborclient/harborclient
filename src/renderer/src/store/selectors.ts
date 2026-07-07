@@ -164,6 +164,28 @@ export const selectScriptError = (state: RootState): string | undefined => {
 };
 
 /**
+ * Returns the next request name from hc.execution.setNextRequest on the active tab.
+ */
+export const selectScriptNextRequest = (state: RootState): string | null | undefined => {
+  const tab = selectActiveTab(state);
+  if (tab && isRequestTab(tab)) {
+    return tab.scriptNextRequest;
+  }
+  return undefined;
+};
+
+/**
+ * Returns whether hc.execution.skipRequest skipped the latest send on the active tab.
+ */
+export const selectScriptSkipRequest = (state: RootState): boolean => {
+  const tab = selectActiveTab(state);
+  if (tab && isRequestTab(tab)) {
+    return tab.scriptSkipRequest === true;
+  }
+  return false;
+};
+
+/**
  * Returns session console log entries.
  */
 export const selectConsoleEntries = (state: RootState): RootState['console']['consoleEntries'] =>

@@ -131,6 +131,155 @@ export function defaultOAuth2Config(): OAuth2Config {
 export const DEFAULT_AUTH_JSON = JSON.stringify(defaultAuth());
 
 /**
+ * Flat auth shape exposed by hc.request.auth and hc.collection.auth in scripts.
+ */
+export type ScriptAuthInput = {
+  type?: AuthType;
+  token?: string;
+  username?: string;
+  password?: string;
+  tokenUrl?: string;
+  clientId?: string;
+  clientSecret?: string;
+  scope?: string;
+  audience?: string;
+  clientAuth?: OAuth2ClientAuth;
+};
+
+/**
+ * Flat field names accepted by hc.*.auth.update().
+ */
+export type ScriptAuthField = keyof ScriptAuthInput;
+
+/**
+ * Returns the flat auth shape for the active auth type in a config.
+ *
+ * @param auth - Normalized auth configuration.
+ * @returns Flat object suitable for hc.*.auth.get().
+ */
+export function flattenAuthConfig(auth: AuthConfig): ScriptAuthInput {
+  switch (auth.type) {
+    case 'basic':
+      return {
+        type: 'basic',
+        username: auth.basic.username,
+        password: auth.basic.password
+      };
+    case 'bearer':
+      return {
+        type: 'bearer',
+        token: auth.bearer.token
+      };
+    case 'oauth2':
+      return {
+        type: 'oauth2',
+        tokenUrl: auth.oauth2.tokenUrl,
+        clientId: auth.oauth2.clientId,
+        clientSecret: auth.oauth2.clientSecret,
+        scope: auth.oauth2.scope,
+        audience: auth.oauth2.audience,
+        clientAuth: auth.oauth2.clientAuth
+      };
+    default:
+      return { type: 'none' };
+  }
+}
+
+/**
+ * Merges a flat script auth input onto an existing auth config.
+ *
+ * Preserves credential values in inactive sub-objects so switching type
+ * matches the Auth tab behavior.
+ *
+ * @param current - Current normalized auth configuration.
+ * @param input - Flat partial auth from hc.*.auth.set().
+ * @returns Updated auth config.
+ */
+export function applyScriptAuthSet(current: AuthConfig, input: unknown): AuthConfig {
+  if (input == null || typeof input !== 'object') {
+    throw new Error('auth.set requires an auth object');
+  }
+
+  const record = input as Record<string, unknown>;
+  const next = normalizeAuth(current);
+
+  if (record.type !== undefined) {
+    const type = String(record.type);
+    if (type !== 'none' && type !== 'basic' && type !== 'bearer' && type !== 'oauth2') {
+      throw new Error(`Invalid auth type: ${type}`);
+    }
+    next.type = type;
+  }
+
+  if (record.token !== undefined) {
+    next.bearer.token = String(record.token);
+  }
+  if (record.username !== undefined) {
+    next.basic.username = String(record.username);
+  }
+  if (record.password !== undefined) {
+    next.basic.password = String(record.password);
+  }
+  if (record.tokenUrl !== undefined) {
+    next.oauth2.tokenUrl = String(record.tokenUrl);
+  }
+  if (record.clientId !== undefined) {
+    next.oauth2.clientId = String(record.clientId);
+  }
+  if (record.clientSecret !== undefined) {
+    next.oauth2.clientSecret = String(record.clientSecret);
+  }
+  if (record.scope !== undefined) {
+    next.oauth2.scope = String(record.scope);
+  }
+  if (record.audience !== undefined) {
+    next.oauth2.audience = String(record.audience);
+  }
+  if (record.clientAuth !== undefined) {
+    const clientAuth = String(record.clientAuth);
+    if (clientAuth !== 'body' && clientAuth !== 'header') {
+      throw new Error(`Invalid oauth2 clientAuth: ${clientAuth}`);
+    }
+    next.oauth2.clientAuth = clientAuth;
+  }
+
+  return next;
+}
+
+/**
+ * Updates a single flat auth field on an existing auth config.
+ *
+ * @param current - Current normalized auth configuration.
+ * @param field - Flat field name from hc.*.auth.update().
+ * @param value - New value for the field.
+ * @returns Updated auth config.
+ */
+export function applyScriptAuthUpdate(
+  current: AuthConfig,
+  field: unknown,
+  value: unknown
+): AuthConfig {
+  const key = String(field) as ScriptAuthField;
+  const validFields: ScriptAuthField[] = [
+    'type',
+    'token',
+    'username',
+    'password',
+    'tokenUrl',
+    'clientId',
+    'clientSecret',
+    'scope',
+    'audience',
+    'clientAuth'
+  ];
+  if (!validFields.includes(key)) {
+    throw new Error(`Invalid auth field: ${key}`);
+  }
+
+  return applyScriptAuthSet(current, { [key]: value });
+}
+
+/**
  * Builds a stable cache key for OAuth token storage.
  *
  * @param scope - Whether the auth config belongs to a saved request or collection.

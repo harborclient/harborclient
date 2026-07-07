@@ -1,10 +1,12 @@
 import { utilityProcess, type UtilityProcess } from 'electron';
 import { join } from 'path';
-import type { ScriptRunInput, ScriptRunResult } from '#/shared/types';
+import type { ScriptRunInput, ScriptRunResult, SendRequestInput, SendResult } from '#/shared/types';
+import type { ICookieJar } from '#/main/cookieJar/ICookieJar';
 import {
   buildScriptPassthrough,
   sanitizeScriptErrorMessage
 } from '#/main/scripting/scriptEvaluator';
+import { executeHttpSend, isScriptNetworkAllowed } from '#/main/network/executeHttpSend';
 import { getGeneralSettings } from '#/main/settings/generalSettings';
 
 /**
@@ -35,6 +37,31 @@ interface ErrorReply {
 
 type RunnerReply = SuccessReply | ErrorReply;
 
+interface NetRequestMessage {
+  kind: 'net';
+  runId: number;
+  netId: number;
+  req: SendRequestInput;
+}
+
+interface NetSuccessReply {
+  kind: 'net-reply';
+  runId: number;
+  netId: number;
+  ok: true;
+  result: SendResult;
+}
+
+interface NetErrorReply {
+  kind: 'net-reply';
+  runId: number;
+  netId: number;
+  ok: false;
+  error: string;
+}
+
+type ChildMessage = RunnerReply | NetRequestMessage;
+
 interface PendingRun {
   input: ScriptRunInput;
   resolve: (result: ScriptRunResult) => void;
@@ -44,6 +71,16 @@ interface PendingRun {
 let runner: UtilityProcess | null = null;
 let nextRunId = 1;
 const pendingRuns = new Map<number, PendingRun>();
+let scriptCookieJar: ICookieJar | null = null;
+
+/**
+ * Supplies the cookie jar used by hc.sendRequest network bridging.
+ *
+ * @param cookieJar - Shared cookie jar from IPC registration.
+ */
+export function initScriptRunnerHost(cookieJar: ICookieJar): void {
+  scriptCookieJar = cookieJar;
+}
 
 /**
  * Resolves the built script runner entry path beside the main bundle.
@@ -101,28 +138,94 @@ function resetRunner(message: string): void {
 }
 
 /**
+ * Handles an hc.sendRequest bridge call from the utility process runner.
+ *
+ * @param child - Utility process that initiated the network call.
+ * @param message - Network request payload from the script sandbox.
+ */
+async function handleScriptNetworkRequest(
+  child: UtilityProcess,
+  message: NetRequestMessage
+): Promise<void> {
+  const reply = (payload: NetSuccessReply | NetErrorReply): void => {
+    child.postMessage(payload);
+  };
+
+  if (!isScriptNetworkAllowed()) {
+    reply({
+      kind: 'net-reply',
+      runId: message.runId,
+      netId: message.netId,
+      ok: false,
+      error: 'Script network requests are disabled in Settings → General'
+    });
+    return;
+  }
+
+  if (!scriptCookieJar) {
+    reply({
+      kind: 'net-reply',
+      runId: message.runId,
+      netId: message.netId,
+      ok: false,
+      error: 'Script network bridge is not initialized'
+    });
+    return;
+  }
+
+  try {
+    const result = await executeHttpSend(message.req, scriptCookieJar);
+    reply({
+      kind: 'net-reply',
+      runId: message.runId,
+      netId: message.netId,
+      ok: true,
+      result
+    });
+  } catch (err) {
+    const rawMessage =
+      err && typeof err === 'object' && 'message' in err
+        ? String((err as { message: unknown }).message)
+        : String(err);
+    reply({
+      kind: 'net-reply',
+      runId: message.runId,
+      netId: message.netId,
+      ok: false,
+      error: sanitizeScriptErrorMessage(rawMessage)
+    });
+  }
+}
+
+/**
  * Attaches lifecycle and message handlers to a newly spawned runner process.
  *
  * @param child - Utility process forked from the script runner entry.
  */
 function attachRunnerHandlers(child: UtilityProcess): void {
-  child.on('message', (message: RunnerReply) => {
-    const pending = pendingRuns.get(message.id);
+  child.on('message', (message: ChildMessage) => {
+    if ('kind' in message && message.kind === 'net') {
+      void handleScriptNetworkRequest(child, message);
+      return;
+    }
+
+    const reply = message as RunnerReply;
+    const pending = pendingRuns.get(reply.id);
     if (!pending) {
       return;
     }
 
     clearTimeout(pending.timeout);
-    pendingRuns.delete(message.id);
+    pendingRuns.delete(reply.id);
 
-    if (message.ok) {
-      pending.resolve(message.result);
+    if (reply.ok) {
+      pending.resolve(reply.result);
       return;
     }
 
     pending.resolve({
       ...buildScriptPassthrough(pending.input),
-      error: sanitizeScriptErrorMessage(message.error)
+      error: sanitizeScriptErrorMessage(reply.error)
     });
   });
 

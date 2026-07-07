@@ -22,11 +22,18 @@ const TOP_LEVEL: HcCompletionOption[] = [
 ];
 
 const HC_ROOT: HcCompletionOption[] = [
+  { label: 'info', type: 'property', detail: 'Script run metadata (read-only)' },
   { label: 'request', type: 'property', detail: 'Read/write outgoing request' },
-  { label: 'variables', type: 'property', detail: 'Get/set ephemeral variables' },
   { label: 'collection', type: 'property', detail: 'Collection metadata, variables, and headers' },
   { label: 'environment', type: 'property', detail: 'Environment metadata and variables' },
-  { label: 'globals', type: 'property', detail: 'Get/set app-wide global variables' },
+  { label: 'globals', type: 'property', detail: 'Get/set/clear app-wide global variables' },
+  { label: 'cookies', type: 'property', detail: 'Get/set/clear cookies for the request host' },
+  { label: 'execution', type: 'property', detail: 'Collection runner flow control' },
+  {
+    label: 'sendRequest',
+    type: 'function',
+    detail: '(req) => Promise<Response> — requires Settings → General'
+  },
   { label: 'test', type: 'function', detail: '(name, fn) => void' },
   { label: 'expect', type: 'function', detail: '(actual) => Expect' },
   { label: 'response', type: 'property', detail: 'Post-request response (post scripts only)' }
@@ -36,7 +43,9 @@ const HC_REQUEST: HcCompletionOption[] = [
   { label: 'method', type: 'property', detail: 'HTTP method string' },
   { label: 'url', type: 'property', detail: 'Request URL string' },
   { label: 'body', type: 'property', detail: 'Request body string' },
-  { label: 'headers', type: 'property', detail: 'Request headers API' }
+  { label: 'headers', type: 'property', detail: 'Request headers API' },
+  { label: 'auth', type: 'property', detail: 'Request auth API' },
+  { label: 'variables', type: 'property', detail: 'Get/set ephemeral variables' }
 ];
 
 const HC_REQUEST_HEADERS: HcCompletionOption[] = [
@@ -45,9 +54,14 @@ const HC_REQUEST_HEADERS: HcCompletionOption[] = [
   { label: 'toObject', type: 'method', detail: '() => Record<string, string>' }
 ];
 
-const HC_VARIABLES: HcCompletionOption[] = [
+const HC_VARIABLE_BAG: HcCompletionOption[] = [
   { label: 'get', type: 'method', detail: '(key) => string | undefined' },
   { label: 'set', type: 'method', detail: '(key, value) => void' },
+  { label: 'clear', type: 'method', detail: '(key) => void' }
+];
+
+const HC_VARIABLES: HcCompletionOption[] = [
+  ...HC_VARIABLE_BAG,
   {
     label: 'replaceIn',
     type: 'method',
@@ -55,16 +69,45 @@ const HC_VARIABLES: HcCompletionOption[] = [
   }
 ];
 
+const HC_COOKIES: HcCompletionOption[] = [
+  { label: 'get', type: 'method', detail: '(name) => string | undefined' },
+  { label: 'set', type: 'method', detail: '(name, value) => void' },
+  { label: 'clear', type: 'method', detail: '(name) => void' }
+];
+
+const HC_EXECUTION: HcCompletionOption[] = [
+  { label: 'setNextRequest', type: 'method', detail: '(name | null) => void' },
+  { label: 'skipRequest', type: 'method', detail: '() => void' }
+];
+
+const HC_INFO: HcCompletionOption[] = [
+  { label: 'eventName', type: 'property', detail: '"prerequest" | "test"' },
+  { label: 'requestName', type: 'property', detail: 'Saved request display name' },
+  { label: 'requestId', type: 'property', detail: 'Saved request id string, or empty' },
+  {
+    label: 'iteration',
+    type: 'property',
+    detail: 'Collection run iteration (0 when not data-driven)'
+  }
+];
+
 const HC_COLLECTION: HcCompletionOption[] = [
   { label: 'id', type: 'property', detail: 'Collection database id (read-only)' },
   { label: 'name', type: 'property', detail: 'Collection display name (read-only)' },
   { label: 'variables', type: 'property', detail: 'Get/set collection variables' },
-  { label: 'headers', type: 'property', detail: 'Collection headers API' }
+  { label: 'headers', type: 'property', detail: 'Collection headers API' },
+  { label: 'auth', type: 'property', detail: 'Collection auth API' }
 ];
 
 const HC_ENVIRONMENT: HcCompletionOption[] = [
   { label: 'name', type: 'property', detail: 'Environment display name (read-only)' },
   { label: 'variables', type: 'property', detail: 'Get/set environment variables' }
+];
+
+const HC_AUTH: HcCompletionOption[] = [
+  { label: 'get', type: 'method', detail: '() => { type, token?, username?, ... }' },
+  { label: 'set', type: 'method', detail: '(auth) => void — flat auth object' },
+  { label: 'update', type: 'method', detail: "(field, value) => void — e.g. 'type', 'token'" }
 ];
 
 const HC_RESPONSE: HcCompletionOption[] = [
@@ -91,13 +134,18 @@ const GROUPS: Record<string, HcCompletionOption[]> = {
   hc: HC_ROOT,
   'hc.request': HC_REQUEST,
   'hc.request.headers': HC_REQUEST_HEADERS,
-  'hc.variables': HC_VARIABLES,
+  'hc.request.auth': HC_AUTH,
+  'hc.request.variables': HC_VARIABLES,
   'hc.collection': HC_COLLECTION,
-  'hc.collection.variables': HC_VARIABLES,
+  'hc.collection.variables': HC_VARIABLE_BAG,
   'hc.collection.headers': HC_REQUEST_HEADERS,
+  'hc.collection.auth': HC_AUTH,
   'hc.environment': HC_ENVIRONMENT,
-  'hc.environment.variables': HC_VARIABLES,
-  'hc.globals': HC_VARIABLES,
+  'hc.environment.variables': HC_VARIABLE_BAG,
+  'hc.globals': HC_VARIABLE_BAG,
+  'hc.cookies': HC_COOKIES,
+  'hc.execution': HC_EXECUTION,
+  'hc.info': HC_INFO,
   'hc.response': HC_RESPONSE,
   console: CONSOLE
 };

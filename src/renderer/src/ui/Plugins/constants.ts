@@ -26,6 +26,7 @@ export const PERMISSION_NAMES: Record<PluginPermission, string> = {
   'filesystem:read': 'Filesystem: Read',
   'filesystem:write': 'Filesystem: Write',
   http: 'HTTP',
+  network: 'Network',
   ipc: 'IPC',
   server: 'Server'
 };
@@ -41,6 +42,7 @@ export const PERMISSION_DESCRIPTIONS: Record<PluginPermission, string> = {
   'filesystem:read': 'Read from allowlisted filesystem paths',
   'filesystem:write': 'Write to allowlisted filesystem paths',
   http: 'HTTP request hooks in the main process',
+  network: 'Outbound HTTP through hc.host.sendHttpRequest',
   ipc: 'Custom IPC between renderer and main plugin halves',
   server: 'Local HTTP echo server for incoming requests'
 };
@@ -56,6 +58,7 @@ export const PERMISSION_LABELS: Record<PluginPermission, string> = {
   'filesystem:read': 'Read from allowlisted filesystem paths',
   'filesystem:write': 'Write to allowlisted filesystem paths',
   http: 'HTTP request hooks in the main process',
+  network: 'Outbound HTTP through hc.host.sendHttpRequest',
   ipc: 'Custom IPC between renderer and main plugin halves',
   server: 'Local HTTP echo server for incoming requests'
 };

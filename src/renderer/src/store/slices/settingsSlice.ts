@@ -9,6 +9,8 @@ import type { RootState } from '#/renderer/src/store/redux';
 export const defaultGeneralSettings: GeneralSettings = {
   requestTimeoutMs: 30000,
   scriptTimeoutMs: 5000,
+  allowScriptNetworkRequests: false,
+  allowedNetworkPlugins: [],
   maxResponseSizeMb: 50,
   verifySsl: true,
   followRedirects: true,

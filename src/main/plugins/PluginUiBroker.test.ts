@@ -16,6 +16,10 @@ vi.mock('#/main/plugins/pluginFsOperations', () => ({
   watchFileForPlugin: vi.fn()
 }));
 
+vi.mock('#/main/settings/generalSettings', () => ({
+  isPluginNetworkAllowed: vi.fn(() => true)
+}));
+
 vi.mock('electron', () => {
   const sessionHandlers = new Map<
     string,
@@ -298,6 +302,38 @@ describe('PluginUiBroker host bridge invoke', () => {
     broker.completeHostBridgeInvokeForTests({ requestId: 1, ok: true, result: sendResult });
 
     await expect(resultPromise).resolves.toEqual(sendResult);
+  });
+
+  it('rejects host.sendHttpRequest when network access is disabled for the plugin', async () => {
+    const { isPluginNetworkAllowed } = await import('#/main/settings/generalSettings');
+    vi.mocked(isPluginNetworkAllowed).mockReturnValue(false);
+
+    const manager = {
+      assertPermission: vi.fn()
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.registerIpcHandlers();
+
+    const sender = { id: 6 } as WebContents;
+    registerSession(sender, {
+      pluginId: 'com.test.network',
+      role: 'view',
+      contributionId: 'load',
+      kind: 'requestTabs'
+    });
+
+    await expect(
+      broker.handleInvoke(sender, 'host.sendHttpRequest', {
+        input: {
+          method: 'GET',
+          url: 'https://example.test',
+          headers: [],
+          params: [],
+          body: '',
+          bodyType: 'none'
+        }
+      })
+    ).rejects.toThrow(/cannot make network requests/);
   });
 });
 

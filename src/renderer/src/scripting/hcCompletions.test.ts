@@ -54,12 +54,15 @@ describe('createHcCompletionSource', () => {
     expect(result).not.toBeNull();
     expect(labels(result!.options).sort()).toEqual([
       'collection',
+      'cookies',
       'environment',
+      'execution',
       'expect',
       'globals',
+      'info',
       'request',
-      'test',
-      'variables'
+      'sendRequest',
+      'test'
     ]);
   });
 
@@ -69,13 +72,16 @@ describe('createHcCompletionSource', () => {
 
     expect(labels(result!.options).sort()).toEqual([
       'collection',
+      'cookies',
       'environment',
+      'execution',
       'expect',
       'globals',
+      'info',
       'request',
       'response',
-      'test',
-      'variables'
+      'sendRequest',
+      'test'
     ]);
   });
 
@@ -83,14 +89,35 @@ describe('createHcCompletionSource', () => {
     const source = createHcCompletionSource('pre', variables);
     const result = await complete(source, mockContext('hc.collection.variables.'));
 
-    expect(labels(result!.options).sort()).toEqual(['get', 'replaceIn', 'set']);
+    expect(labels(result!.options).sort()).toEqual(['clear', 'get', 'set']);
+  });
+
+  it('lists request variable helpers including replaceIn', async () => {
+    const source = createHcCompletionSource('pre', variables);
+    const result = await complete(source, mockContext('hc.request.variables.'));
+
+    expect(labels(result!.options).sort()).toEqual(['clear', 'get', 'replaceIn', 'set']);
+  });
+
+  it('lists cookie helpers', async () => {
+    const source = createHcCompletionSource('pre', variables);
+    const result = await complete(source, mockContext('hc.cookies.'));
+
+    expect(labels(result!.options).sort()).toEqual(['clear', 'get', 'set']);
+  });
+
+  it('lists execution helpers', async () => {
+    const source = createHcCompletionSource('pre', variables);
+    const result = await complete(source, mockContext('hc.execution.'));
+
+    expect(labels(result!.options).sort()).toEqual(['setNextRequest', 'skipRequest']);
   });
 
   it('lists collection members', async () => {
     const source = createHcCompletionSource('pre', variables);
     const result = await complete(source, mockContext('hc.collection.'));
 
-    expect(labels(result!.options).sort()).toEqual(['headers', 'id', 'name', 'variables']);
+    expect(labels(result!.options).sort()).toEqual(['auth', 'headers', 'id', 'name', 'variables']);
   });
 
   it('lists collection header helpers', async () => {
@@ -111,14 +138,28 @@ describe('createHcCompletionSource', () => {
     const source = createHcCompletionSource('pre', variables);
     const result = await complete(source, mockContext('hc.environment.variables.'));
 
-    expect(labels(result!.options).sort()).toEqual(['get', 'replaceIn', 'set']);
+    expect(labels(result!.options).sort()).toEqual(['clear', 'get', 'set']);
   });
 
   it('lists global variable helpers', async () => {
     const source = createHcCompletionSource('pre', variables);
     const result = await complete(source, mockContext('hc.globals.'));
 
-    expect(labels(result!.options).sort()).toEqual(['get', 'replaceIn', 'set']);
+    expect(labels(result!.options).sort()).toEqual(['clear', 'get', 'set']);
+  });
+
+  it('lists request members', async () => {
+    const source = createHcCompletionSource('pre', variables);
+    const result = await complete(source, mockContext('hc.request.'));
+
+    expect(labels(result!.options).sort()).toEqual([
+      'auth',
+      'body',
+      'headers',
+      'method',
+      'url',
+      'variables'
+    ]);
   });
 
   it('lists request header helpers', async () => {

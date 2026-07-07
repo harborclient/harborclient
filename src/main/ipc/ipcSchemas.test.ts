@@ -228,6 +228,8 @@ describe('generalSettings', () => {
   const validGeneralSettings = {
     requestTimeoutMs: 30000,
     scriptTimeoutMs: 5000,
+    allowScriptNetworkRequests: false,
+    allowedNetworkPlugins: [],
     maxResponseSizeMb: 50,
     verifySsl: true,
     followRedirects: true,

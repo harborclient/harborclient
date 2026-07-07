@@ -1,5 +1,27 @@
 [
   {
+    "setupOnly": true,
+    "menuAction": "settings",
+    "steps": [
+      {
+        "click": {
+          "selector": "nav[aria-label='Settings sections']",
+          "role": "button",
+          "name": "Syntax highlighting"
+        }
+      },
+      { "waitFor": { "selector": "#setting-syntax-codeEditorTheme" } },
+      {
+        "select": {
+          "into": { "selector": "#setting-syntax-codeEditorTheme" },
+          "value": "dracula"
+        }
+      },
+      { "click": { "role": "button", "name": "Save" } },
+      { "waitFor": { "ms": 500 } }
+    ]
+  },
+  {
     "filename": "request-response.png",
     "steps": [
       {
@@ -226,38 +248,28 @@
   {
     "filename": "post-request-script.png",
     "steps": [
+      { "waitFor": { "selector": "#sidebar-search" }, "timeout": 15000 },
       {
-        "click": {
-          "selector": "nav[aria-label='Collections']",
-          "role": "button",
-          "name": "/ATW/"
-        }
-      },
-      {
-        "click": {
-          "selector": "nav[aria-label='Collections']",
-          "nearText": "ATW",
-          "role": "button",
-          "name": "Expand"
-        },
+        "click": { "role": "button", "name": "Close without saving" },
         "optional": true
       },
-      {
-        "click": {
-          "selector": "nav[aria-label='Collections']",
-          "role": "button",
-          "name": "/Authentication/"
-        }
-      },
-      {
-        "click": {
-          "selector": "nav[aria-label='Collections']",
-          "role": "button",
-          "name": "/API Grant/"
-        }
-      },
+      { "menuAction": "new-request" },
+      { "waitFor": { "selector": "[aria-label='Request URL']" }, "timeout": 15000 },
       { "click": { "role": "tab", "name": "PostRequest" } },
-      { "waitFor": { "role": "tab", "name": "PostRequest" } }
+      { "click": { "role": "button", "name": "Snippet library..." } },
+      { "click": { "role": "menuitem", "name": "Assert status 200" } },
+      { "click": { "role": "button", "name": "Snippet library..." } },
+      { "click": { "role": "menuitem", "name": "Parse response JSON" } },
+      { "click": { "role": "button", "name": "Remove Inline script" } },
+      {
+        "click": {
+          "selector": ".hc-modal",
+          "role": "button",
+          "name": "Remove"
+        }
+      },
+      { "waitFor": { "text": "/Snippet: Parse response JSON/" }, "timeout": 15000 },
+      { "waitFor": { "ms": 500 } }
     ],
     "capture": { "selector": "section[aria-label='Request editor']" }
   },
@@ -285,7 +297,161 @@
   },
   {
     "filename": "sidebar.png",
-    "steps": [{ "waitFor": { "role": "navigation", "name": "Collections" } }],
-    "capture": { "role": "navigation", "name": "Collections" }
+    "steps": [{ "waitFor": { "selector": "#sidebar-search" } }],
+    "capture": { "selector": "aside:has(#sidebar-search)" }
+  },
+  {
+    "filename": "search-anything-empty.png",
+    "menuAction": "search-anything",
+    "steps": [{ "waitFor": { "selector": "#search-anything-input" } }, { "waitFor": { "ms": 500 } }]
+  },
+  {
+    "filename": "search-anything-results.png",
+    "menuAction": "search-anything",
+    "steps": [
+      { "waitFor": { "selector": "#search-anything-input" } },
+      {
+        "type": {
+          "into": { "selector": "#search-anything-input" },
+          "text": "auth"
+        }
+      },
+      { "waitFor": { "selector": "#search-anything-results" } },
+      { "waitFor": { "ms": 500 } }
+    ]
+  },
+  {
+    "filename": "search-sidebar.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      {
+        "type": {
+          "into": { "selector": "#sidebar-search" },
+          "text": "auth"
+        }
+      },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "aside:has(#sidebar-search)" }
+  },
+  {
+    "filename": "search-settings.png",
+    "menuAction": "settings",
+    "steps": [
+      { "waitFor": { "selector": "#settings-search" } },
+      {
+        "type": {
+          "into": { "selector": "#settings-search" },
+          "text": "timeout"
+        }
+      },
+      { "waitFor": { "role": "heading", "name": "Search results" } },
+      { "waitFor": { "ms": 500 } }
+    ]
+  },
+  {
+    "filename": "search-plugins-marketplace.png",
+    "menuAction": "plugins",
+    "steps": [
+      {
+        "click": {
+          "selector": "nav[aria-label='Plugin sections']",
+          "role": "button",
+          "name": "Marketplace"
+        }
+      },
+      { "waitFor": { "role": "heading", "name": "Marketplace" } },
+      { "waitFor": { "selector": "#plugin-catalog-search" } },
+      {
+        "type": {
+          "into": { "selector": "#plugin-catalog-search" },
+          "text": "curl"
+        }
+      },
+      { "waitFor": { "ms": 500 } }
+    ]
+  },
+  {
+    "filename": "search-plugins-installed.png",
+    "menuAction": "plugins",
+    "steps": [
+      {
+        "click": {
+          "selector": "nav[aria-label='Plugin sections']",
+          "role": "button",
+          "name": "Installed"
+        }
+      },
+      { "waitFor": { "role": "heading", "name": "Installed" } },
+      { "waitFor": { "selector": "#plugin-installed-search" } },
+      {
+        "type": {
+          "into": { "selector": "#plugin-installed-search" },
+          "text": "curl"
+        }
+      },
+      { "waitFor": { "ms": 500 } }
+    ]
+  },
+  {
+    "filename": "cookies.png",
+    "menuAction": "cookies",
+    "steps": [
+      { "waitFor": { "role": "tab", "name": "Cookies" } },
+      { "waitFor": { "selector": "#cookies-domain-search" } },
+      { "waitFor": { "ms": 500 } }
+    ]
+  },
+  {
+    "filename": "http-methods-post-body.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections'] [data-sidebar-collection-id]",
+          "nearText": "HarborClient Echo"
+        }
+      },
+      { "waitFor": { "text": "Echo GET" }, "timeout": 30000 },
+      { "click": { "text": "Echo POST" } },
+      { "click": { "role": "tab", "name": "Body" } },
+      { "waitFor": { "selector": "[aria-label='JSON body']" }, "timeout": 15000 },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "section[aria-label='Request editor']" }
+  },
+  {
+    "filename": "response-viewer-echo-post.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections'] [data-sidebar-collection-id]",
+          "nearText": "HarborClient Echo"
+        }
+      },
+      { "waitFor": { "text": "Echo GET" }, "timeout": 30000 },
+      { "click": { "text": "Echo POST" } },
+      { "send": true },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "section[aria-label='Response']" }
+  },
+  {
+    "filename": "themes-marketplace.png",
+    "menuAction": "themes",
+    "steps": [
+      {
+        "click": {
+          "selector": "nav[aria-label='Theme sections']",
+          "role": "button",
+          "name": "Marketplace"
+        }
+      },
+      { "waitFor": { "role": "heading", "name": "Themes" } },
+      { "waitFor": { "ms": 3000 } }
+    ]
   }
 ]

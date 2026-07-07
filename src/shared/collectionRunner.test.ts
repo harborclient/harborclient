@@ -6,7 +6,8 @@ import {
   getCollectionRunnerRequests,
   getRequestsInRunOrder,
   isCollectionRunnerRequestFailure,
-  normalizeCollectionRunnerConfig
+  normalizeCollectionRunnerConfig,
+  resolveCollectionRunnerNextIndex
 } from '#/shared/collectionRunner';
 import type { Folder, SavedRequest } from '#/shared/types';
 
@@ -179,5 +180,26 @@ describe('buildPendingCollectionRunnerResults', () => {
         testsFailed: 0
       }
     ]);
+  });
+});
+
+describe('resolveCollectionRunnerNextIndex', () => {
+  const requests = [
+    sampleRequest({ id: 1, name: 'Login', sort_order: 0 }),
+    sampleRequest({ id: 2, name: 'Profile', sort_order: 1 }),
+    sampleRequest({ id: 3, name: 'Logout', sort_order: 2 })
+  ];
+
+  it('advances sequentially when no directive is set', () => {
+    expect(resolveCollectionRunnerNextIndex(requests, 0, undefined)).toBe(1);
+    expect(resolveCollectionRunnerNextIndex(requests, 2, undefined)).toBeNull();
+  });
+
+  it('jumps to a named request when setNextRequest matches', () => {
+    expect(resolveCollectionRunnerNextIndex(requests, 0, 'Logout')).toBe(2);
+  });
+
+  it('stops the run when setNextRequest is null', () => {
+    expect(resolveCollectionRunnerNextIndex(requests, 0, null)).toBeNull();
   });
 });

@@ -16,6 +16,7 @@ import {
 import type { PluginPermission } from '#/shared/plugin/types';
 import { toActiveTheme } from '#/shared/plugin/types';
 import type { ThemeSource } from '#/shared/types';
+import { isPluginNetworkAllowed } from '#/main/settings/generalSettings';
 
 /** Permission required for each broker operation. */
 const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
@@ -49,7 +50,7 @@ const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
   'host.listCollectionRequests': 'ui',
   'host.getCollectionMetadata': 'ui',
   'host.logRequestToConsole': 'ui',
-  'host.sendHttpRequest': 'ui',
+  'host.sendHttpRequest': 'network',
   'host.clearResponse': 'ui',
   'view.getContext': 'ui',
   'view.reportSize': 'ui',
@@ -534,6 +535,11 @@ export class PluginUiBroker {
       return;
     }
     this.#pluginManager.assertPermission(pluginId, required);
+    if (required === 'network' && !isPluginNetworkAllowed(pluginId)) {
+      throw new Error(
+        `Plugin ${pluginId} cannot make network requests. Enable "Allow script network requests" in Settings → General or allow this plugin during install.`
+      );
+    }
   }
 
   /**

@@ -310,7 +310,7 @@ export function Cookies(): JSX.Element {
       <Page
         embedded
         title={selectedDomain ?? 'Cookies'}
-        description="Manage saved cookies for every domain Harbor Client has captured or that you add manually."
+        description="Manage saved cookies for every domain HarborClient has captured or that you add manually."
         icon={faCookieBite}
         actions={
           selectedDomain ? (

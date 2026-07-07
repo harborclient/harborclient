@@ -145,6 +145,17 @@ export interface GeneralSettings {
   scriptTimeoutMs: number;
 
   /**
+   * When true, pre/post scripts may call hc.sendRequest for outbound HTTP.
+   */
+  allowScriptNetworkRequests: boolean;
+
+  /**
+   * Plugin manifest ids allowed to call hc.host.sendHttpRequest when
+   * {@link allowScriptNetworkRequests} is false.
+   */
+  allowedNetworkPlugins: string[];
+
+  /**
    * Maximum response body size in megabytes; 0 disables the limit.
    */
   maxResponseSizeMb: number;

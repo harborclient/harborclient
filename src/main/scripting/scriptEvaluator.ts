@@ -1,7 +1,8 @@
 import 'ses';
 import { transform } from 'esbuild';
 import type { ScriptRunInput, ScriptRunResult } from '#/shared/types';
-import { createScriptApi } from '#/main/scripting/scriptApi';
+import { normalizeAuth } from '#/shared/auth';
+import { createScriptApi, type ScriptApiOptions } from '#/main/scripting/scriptApi';
 
 /** esbuild target for lowering modern user script syntax before compartment execution. */
 const SCRIPT_TRANSPILE_TARGET = 'es2020';
@@ -16,10 +17,17 @@ export function buildScriptPassthrough(input: ScriptRunInput): ScriptRunResult {
   return {
     request: input.request,
     variableSets: {},
+    variableClears: [],
     collectionVariableSets: {},
+    collectionVariableClears: [],
     environmentVariableSets: {},
+    environmentVariableClears: [],
     globalVariableSets: {},
+    globalVariableClears: [],
+    cookieSets: {},
+    cookieClears: [],
     collectionHeaders: input.collection?.headers ?? [],
+    collectionAuth: normalizeAuth(input.collection?.auth),
     tests: [],
     logs: []
   };
@@ -95,6 +103,16 @@ async function transpileUserScript(source: string): Promise<string> {
 }
 
 /**
+ * Wraps user script source in an async IIFE so await hc.sendRequest works in the sandbox.
+ *
+ * @param source - Raw user-authored script source.
+ * @returns Source wrapped for async compartment evaluation.
+ */
+function wrapScriptForAsyncEvaluation(source: string): string {
+  return `(async () => {\n${source}\n})()`;
+}
+
+/**
  * Runs a pre/post script inside a SES Compartment with the hc API.
  *
  * User source is transpiled with esbuild before execution so modern JavaScript
@@ -104,18 +122,24 @@ async function transpileUserScript(source: string): Promise<string> {
  * a locked-down utilityProcess; unit tests call it directly without `lockdown()`.
  *
  * @param input - Script source, phase, request/response context, and variables.
+ * @param options - Optional runtime hooks such as hc.sendRequest transport.
  * @returns Mutated request, variable sets, tests, and logs from the sandbox.
  */
-export async function evaluateScript(input: ScriptRunInput): Promise<ScriptRunResult> {
+export async function evaluateScript(
+  input: ScriptRunInput,
+  options?: ScriptApiOptions
+): Promise<ScriptRunResult> {
   const passthrough = buildScriptPassthrough(input);
 
   if (!input.script.trim()) {
     return passthrough;
   }
 
+  const wrappedSource = wrapScriptForAsyncEvaluation(input.script);
+
   let compiledScript: string;
   try {
-    compiledScript = await transpileUserScript(input.script);
+    compiledScript = await transpileUserScript(wrappedSource);
   } catch (err) {
     return {
       ...passthrough,
@@ -124,7 +148,7 @@ export async function evaluateScript(input: ScriptRunInput): Promise<ScriptRunRe
   }
 
   try {
-    const api = createScriptApi(input);
+    const api = createScriptApi(input, options);
     const compartment = new Compartment({
       globals: {
         hc: api.hc,
@@ -134,7 +158,7 @@ export async function evaluateScript(input: ScriptRunInput): Promise<ScriptRunRe
       },
       __options__: true
     });
-    compartment.evaluate(compiledScript);
+    await compartment.evaluate(compiledScript);
     return api.readResult();
   } catch (err) {
     const rawMessage =

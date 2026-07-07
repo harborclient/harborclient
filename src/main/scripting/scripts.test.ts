@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { defaultAuth } from '#/shared/auth';
 
 describe('evaluateScript', () => {
   it('returns passthrough for empty script', async () => {
@@ -22,22 +23,29 @@ describe('evaluateScript', () => {
     expect(result).toEqual({
       request,
       variableSets: {},
+      variableClears: [],
       collectionVariableSets: {},
+      collectionVariableClears: [],
       environmentVariableSets: {},
+      environmentVariableClears: [],
       globalVariableSets: {},
+      globalVariableClears: [],
+      cookieSets: {},
+      cookieClears: [],
       collectionHeaders: [],
+      collectionAuth: defaultAuth(),
       tests: [],
       logs: []
     });
   });
 
-  it('resolves dynamic variables via hc.variables.replaceIn', async () => {
+  it('resolves dynamic variables via hc.request.variables.replaceIn', async () => {
     const { evaluateScript } = await import('#/main/scripting/scriptEvaluator');
     const result = await evaluateScript({
       phase: 'pre',
       script: `
-        const resolved = hc.variables.replaceIn('{{$guid}}');
-        hc.variables.set('resolvedGuid', resolved);
+        const resolved = hc.request.variables.replaceIn('{{$guid}}');
+        hc.request.variables.set('resolvedGuid', resolved);
       `,
       request: {
         method: 'GET',
@@ -61,8 +69,8 @@ describe('evaluateScript', () => {
     const result = await evaluateScript({
       phase: 'pre',
       script: `
-        const resolved = hc.variables.replaceIn('{{host}}');
-        hc.variables.set('resolvedHost', resolved);
+        const resolved = hc.request.variables.replaceIn('{{host}}');
+        hc.request.variables.set('resolvedHost', resolved);
       `,
       request: {
         method: 'GET',
@@ -85,7 +93,7 @@ describe('evaluateScript', () => {
       phase: 'pre',
       script: `
         hc.request.url = 'https://api.example.com';
-        hc.variables.set('token', 'abc123');
+        hc.request.variables.set('token', 'abc123');
         console.log('pre ran');
       `,
       request: {
@@ -439,13 +447,13 @@ describe('evaluateScript', () => {
     const result = await evaluateScript({
       phase: 'pre',
       script: `
-        const host = hc.variables.get('host');
+        const host = hc.request.variables.get('host');
         const { token = 'default' } = { token: 'abc123' };
         const buildUrl = (base, path) => \`\${base}/\${path}\`;
         const maybeHost = host?.toUpperCase?.() ?? 'UNKNOWN';
         hc.request.url = buildUrl('https://api.example.com', 'v1/status');
-        hc.variables.set('token', token);
-        hc.variables.set('hostUpper', maybeHost);
+        hc.request.variables.set('token', token);
+        hc.request.variables.set('hostUpper', maybeHost);
         console.log(...['modern', 'syntax']);
       `,
       request: {
@@ -495,8 +503,8 @@ describe('evaluateScript', () => {
       script: `
         const ts = Date.now();
         const rand = Math.random();
-        hc.variables.set('hasTime', String(ts > 0));
-        hc.variables.set('hasRandom', String(rand >= 0 && rand <= 1));
+        hc.request.variables.set('hasTime', String(ts > 0));
+        hc.request.variables.set('hasRandom', String(rand >= 0 && rand <= 1));
       `,
       request: {
         method: 'GET',
@@ -511,5 +519,103 @@ describe('evaluateScript', () => {
 
     expect(result.error).toBeUndefined();
     expect(result.variableSets).toEqual({ hasTime: 'true', hasRandom: 'true' });
+  });
+
+  it('supports await hc.sendRequest via injected transport', async () => {
+    const { evaluateScript } = await import('#/main/scripting/scriptEvaluator');
+    const result = await evaluateScript(
+      {
+        phase: 'pre',
+        script: `
+          const response = await hc.sendRequest({ url: 'https://api.example.com/token' });
+          hc.request.variables.set('status', String(response.code));
+        `,
+        request: {
+          method: 'GET',
+          url: 'https://example.com',
+          headers: [],
+          params: [],
+          body: '',
+          bodyType: 'none'
+        },
+        variables: {}
+      },
+      {
+        sendRequest: async () => ({
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          body: '{"token":"abc"}',
+          timeMs: 5,
+          sizeBytes: 15
+        })
+      }
+    );
+
+    expect(result.error).toBeUndefined();
+    expect(result.variableSets).toEqual({ status: '200' });
+  });
+
+  it('records execution flow directives from hc.execution', async () => {
+    const { evaluateScript } = await import('#/main/scripting/scriptEvaluator');
+    const result = await evaluateScript({
+      phase: 'pre',
+      script: `
+        hc.execution.setNextRequest('Logout');
+        hc.execution.skipRequest();
+      `,
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        bodyType: 'none'
+      },
+      variables: {}
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.nextRequest).toBe('Logout');
+    expect(result.skipRequest).toBe(true);
+  });
+
+  it('mutates request and collection auth via hc.*.auth', async () => {
+    const { evaluateScript } = await import('#/main/scripting/scriptEvaluator');
+    const result = await evaluateScript({
+      phase: 'pre',
+      script: `
+        hc.request.auth.set({ type: 'bearer', token: '{{idToken}}' });
+        hc.collection.auth.set({ type: 'basic', username: 'alice', password: 'secret' });
+        hc.collection.auth.update('type', 'none');
+      `,
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        bodyType: 'none'
+      },
+      variables: {},
+      collection: {
+        id: 1,
+        name: 'Demo',
+        headers: [],
+        auth: defaultAuth()
+      }
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.request.auth).toEqual({
+      ...defaultAuth(),
+      type: 'bearer',
+      bearer: { token: '{{idToken}}' }
+    });
+    expect(result.collectionAuth).toEqual({
+      ...defaultAuth(),
+      type: 'none',
+      basic: { username: 'alice', password: 'secret' }
+    });
   });
 });

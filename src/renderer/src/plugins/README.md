@@ -1,4 +1,4 @@
-# Harbor Client plugin system
+# HarborClient plugin system
 
 Internal architecture guide for contributors and maintainers working on the plugin
 subsystem. This document explains how plugins are discovered, installed, activated,
@@ -13,7 +13,7 @@ For plugin **authoring** (manifest format, SDK API, publishing), see the
 
 ## Overview
 
-Plugins are installable packages that extend Harbor Client with UI panels, settings
+Plugins are installable packages that extend HarborClient with UI panels, settings
 sections, HTTP hooks, storage, databases, and main-process logic. Each plugin ships
 a `manifest.json` and one or both entry points:
 
@@ -515,7 +515,7 @@ Permissions declared in `manifest.json` are checked at:
 
 ### Signatures
 
-Trusted publishers must sign every release. Harbor Client rejects installs when
+Trusted publishers must sign every release. HarborClient rejects installs when
 `manifest.author` matches a trusted publisher but the signature is missing or invalid.
 
 ### Database

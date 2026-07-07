@@ -21,6 +21,7 @@ export type PluginPermission =
   | 'filesystem:read'
   | 'filesystem:write'
   | 'http'
+  | 'network'
   | 'ipc'
   | 'server';
 

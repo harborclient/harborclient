@@ -171,14 +171,15 @@ async function isMainBuildStale() {
  */
 function buildElectronLaunchArgs(options) {
   return [
+    `--user-data-dir=${options.userDataDir}`,
     mainEntry,
     '--no-sandbox',
     '--disable-gpu',
     '--disable-software-rasterizer',
     '--quit-without-warning',
+    '--seed',
     '--theme',
-    options.theme,
-    `--user-data-dir=${options.userDataDir}`
+    options.theme
   ];
 }
 
@@ -554,6 +555,22 @@ async function runStep(page, app, step) {
     return;
   }
 
+  if (step.select) {
+    const target = step.select.into ?? step.select;
+    const locator = buildLocator(page, target);
+    const timeout = stepTimeout(step, 10_000);
+    await locator.waitFor({ state: 'visible', timeout });
+    if (step.select.label != null) {
+      await locator.selectOption({ label: String(step.select.label) });
+    } else if (step.select.value != null) {
+      await locator.selectOption(String(step.select.value));
+    } else {
+      throw new Error(`select step requires value or label: ${JSON.stringify(step)}`);
+    }
+    await page.waitForTimeout(150);
+    return;
+  }
+
   if (step.press) {
     await page.keyboard.press(String(step.press));
     await page.waitForTimeout(100);
@@ -666,6 +683,12 @@ async function loadMacro(macroPath) {
     throw new Error('Macro file must contain a JSON array');
   }
   for (const entry of parsed) {
+    if (entry.setupOnly === true) {
+      if (!entry.menuAction && !entry.shortcut && !Array.isArray(entry.steps)) {
+        throw new Error('Setup entry requires menuAction, shortcut, or steps');
+      }
+      continue;
+    }
     if (typeof entry.filename !== 'string' || entry.filename.trim().length === 0) {
       throw new Error('Each macro entry requires a non-empty filename');
     }
@@ -684,14 +707,16 @@ async function main() {
   console.log('Preparing HarborClient screenshot capture…');
   await ensureBuild(options.build);
   const allEntries = await loadMacro(options.macro);
+  const setupEntries = allEntries.filter((entry) => entry.setupOnly === true);
+  const captureEntriesAll = allEntries.filter((entry) => entry.setupOnly !== true);
   const fromIndex =
     options.from == null
       ? 0
-      : allEntries.findIndex((entry) => entry.filename === options.from);
+      : captureEntriesAll.findIndex((entry) => entry.filename === options.from);
   if (options.from != null && fromIndex < 0) {
     throw new Error(`Unknown --from filename: ${options.from}`);
   }
-  const entries = fromIndex > 0 ? allEntries.slice(fromIndex) : allEntries;
+  const entries = fromIndex > 0 ? captureEntriesAll.slice(fromIndex) : captureEntriesAll;
   await mkdir(options.out, { recursive: true });
 
   const launchArgs = buildElectronLaunchArgs(options);
@@ -716,6 +741,13 @@ async function main() {
     await page.waitForTimeout(500);
 
     const written = [];
+
+    for (const setupEntry of setupEntries) {
+      console.log('Running setup…');
+      await runEntrySteps(page, app, setupEntry);
+      await page.waitForTimeout(300);
+      await resetState(page, app);
+    }
 
     for (const entry of entries) {
       const outputPath = path.join(options.out, entry.filename);

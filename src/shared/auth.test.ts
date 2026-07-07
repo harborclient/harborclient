@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyScriptAuthSet,
+  applyScriptAuthUpdate,
   buildAuthHeaderValue,
   buildOAuthAuthHeaderValue,
   defaultAuth,
   defaultOAuth2Config,
   encodeBasicAuth,
+  flattenAuthConfig,
   normalizeAuth,
   resolveAuthVariables
 } from '#/shared/auth';
@@ -166,5 +169,102 @@ describe('buildOAuthAuthHeaderValue', () => {
         tokenType: 'Bearer'
       })
     ).toBeNull();
+  });
+});
+
+describe('flattenAuthConfig', () => {
+  it('returns flat bearer shape', () => {
+    const auth = {
+      ...defaultAuth(),
+      type: 'bearer' as const,
+      bearer: { token: 'tok' }
+    };
+    expect(flattenAuthConfig(auth)).toEqual({ type: 'bearer', token: 'tok' });
+  });
+
+  it('returns flat basic shape', () => {
+    const auth = {
+      ...defaultAuth(),
+      type: 'basic' as const,
+      basic: { username: 'alice', password: 'secret' }
+    };
+    expect(flattenAuthConfig(auth)).toEqual({
+      type: 'basic',
+      username: 'alice',
+      password: 'secret'
+    });
+  });
+
+  it('returns flat oauth2 shape', () => {
+    const auth = {
+      ...defaultAuth(),
+      type: 'oauth2' as const,
+      oauth2: {
+        ...defaultOAuth2Config(),
+        tokenUrl: 'https://example.com/token',
+        clientId: 'id',
+        clientSecret: 'secret',
+        scope: 'read',
+        audience: 'api',
+        clientAuth: 'header' as const
+      }
+    };
+    expect(flattenAuthConfig(auth)).toEqual({
+      type: 'oauth2',
+      tokenUrl: 'https://example.com/token',
+      clientId: 'id',
+      clientSecret: 'secret',
+      scope: 'read',
+      audience: 'api',
+      clientAuth: 'header'
+    });
+  });
+
+  it('returns none shape', () => {
+    expect(flattenAuthConfig(defaultAuth())).toEqual({ type: 'none' });
+  });
+});
+
+describe('applyScriptAuthSet', () => {
+  it('sets bearer token and preserves other credential stores', () => {
+    const current = {
+      ...defaultAuth(),
+      type: 'basic' as const,
+      basic: { username: 'alice', password: 'secret' }
+    };
+    const next = applyScriptAuthSet(current, { type: 'bearer', token: '{{idToken}}' });
+    expect(next.type).toBe('bearer');
+    expect(next.bearer.token).toBe('{{idToken}}');
+    expect(next.basic.username).toBe('alice');
+  });
+
+  it('throws for invalid type', () => {
+    expect(() => applyScriptAuthSet(defaultAuth(), { type: 'digest' })).toThrow(
+      'Invalid auth type: digest'
+    );
+  });
+
+  it('throws when input is not an object', () => {
+    expect(() => applyScriptAuthSet(defaultAuth(), null)).toThrow(
+      'auth.set requires an auth object'
+    );
+  });
+});
+
+describe('applyScriptAuthUpdate', () => {
+  it('updates a single flat field', () => {
+    const current = {
+      ...defaultAuth(),
+      type: 'bearer' as const,
+      bearer: { token: 'old' }
+    };
+    const next = applyScriptAuthUpdate(current, 'token', '{{idToken}}');
+    expect(next.bearer.token).toBe('{{idToken}}');
+  });
+
+  it('throws for invalid field', () => {
+    expect(() => applyScriptAuthUpdate(defaultAuth(), 'invalid', 'x')).toThrow(
+      'Invalid auth field: invalid'
+    );
   });
 });

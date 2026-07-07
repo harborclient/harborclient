@@ -6,6 +6,7 @@ import {
   getCollectionRunnerRequests,
   isCollectionRunnerRequestFailure,
   normalizeCollectionRunnerConfig,
+  resolveCollectionRunnerNextIndex,
   type CollectionRunnerConfig
 } from '#/shared/collectionRunner';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
@@ -23,6 +24,8 @@ import {
   selectFoldersByCollection,
   selectRequestsByCollection,
   selectResponse,
+  selectScriptNextRequest,
+  selectScriptSkipRequest,
   selectTestResults
 } from '#/renderer/src/store/selectors';
 import { refreshCollectionContents } from '#/renderer/src/store/thunks/collections';
@@ -101,8 +104,17 @@ export const runCollectionRequests = createAsyncThunk<void, void, ThunkApiConfig
       dispatch(setActiveEnvironmentId(config.environmentId));
     }
 
+    const maxSteps = Math.max(orderedRequests.length * 10, orderedRequests.length);
+    let steps = 0;
+    let index = 0;
+
     try {
-      for (let index = 0; index < orderedRequests.length; index += 1) {
+      while (index >= 0 && index < orderedRequests.length) {
+        steps += 1;
+        if (steps > maxSteps) {
+          break;
+        }
+
         if (isCollectionRunnerCancelled(getState())) {
           dispatch(skipRemainingCollectionRunnerRequests());
           break;
@@ -124,13 +136,16 @@ export const runCollectionRequests = createAsyncThunk<void, void, ThunkApiConfig
 
         const response = selectResponse(getState());
         const testResults = selectTestResults(getState());
+        const scriptSkipRequest = selectScriptSkipRequest(getState());
+        const scriptNextRequest = selectScriptNextRequest(getState());
         const { testsPassed, testsFailed } = countTestResults(testResults);
-        const failed = isCollectionRunnerRequestFailure(response, testResults);
+        const failed =
+          !scriptSkipRequest && isCollectionRunnerRequestFailure(response, testResults);
 
         dispatch(
           appendCollectionRunnerResult({
             requestId: request.id,
-            status: failed ? 'failed' : 'passed',
+            status: scriptSkipRequest ? 'skipped' : failed ? 'failed' : 'passed',
             httpStatus: response?.status,
             httpError: response?.error,
             testsPassed,
@@ -143,9 +158,20 @@ export const runCollectionRequests = createAsyncThunk<void, void, ThunkApiConfig
           break;
         }
 
-        if (config.delayMs > 0 && index < orderedRequests.length - 1) {
+        const nextIndex = resolveCollectionRunnerNextIndex(
+          orderedRequests,
+          index,
+          scriptNextRequest
+        );
+        if (nextIndex === null) {
+          break;
+        }
+
+        if (config.delayMs > 0 && nextIndex !== index) {
           await sleep(config.delayMs);
         }
+
+        index = nextIndex;
       }
     } finally {
       if (config.environmentMode === 'override') {

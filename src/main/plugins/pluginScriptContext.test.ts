@@ -27,15 +27,15 @@ describe('createScriptContext', () => {
     expect(result.value).toEqual({ foo: 'bar' });
   });
 
-  it('exposes hc.variables and hc.globals like pre/post scripts', () => {
+  it('exposes hc.request.variables and hc.globals like pre/post scripts', () => {
     const context = createScriptContext({
       variables: { host: 'example.com' }
     });
 
     const result = context.run(`
-      hc.variables.set('token', 'abc');
+      hc.request.variables.set('token', 'abc');
       hc.globals.set('baseUrl', 'https://api.example.com');
-      hc.variables.get('host');
+      hc.request.variables.get('host');
     `);
 
     expect(result.error).toBeUndefined();
