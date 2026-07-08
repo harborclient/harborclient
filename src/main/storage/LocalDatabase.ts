@@ -1038,11 +1038,17 @@ export class LocalDatabase {
    * @param name - Display name for the snippet.
    * @param code - JavaScript source.
    * @param scope - Script phases where the snippet may be referenced.
+   * @param uuid - Optional stable identifier; generated when omitted.
    * @returns The newly created snippet.
    */
-  createSnippet(name: string, code: string, scope: Snippet['scope'] = 'any'): Snippet {
+  createSnippet(
+    name: string,
+    code: string,
+    scope: Snippet['scope'] = 'any',
+    uuid?: string
+  ): Snippet {
     const trimmedName = trimRequiredName(name, 'Snippet name');
-    const snippetUuid = generateDocumentUuid();
+    const snippetUuid = uuid?.trim() || generateDocumentUuid();
     const sortOrder = this.nextSnippetSortOrder();
     const now = new Date().toISOString();
     const result = this.getDb()

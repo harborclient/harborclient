@@ -5,6 +5,20 @@ import type {
   ExportedRequest,
   RequestExport
 } from '#/shared/types';
+import type { SnippetExport } from '#/shared/types/snippet';
+
+/**
+ * Returns a copy of a snippet export with a fresh uuid.
+ *
+ * @param data - Validated snippet export payload.
+ * @returns A shallow copy with a new uuid assigned.
+ */
+export function mintFreshSnippetExportUuid(data: SnippetExport): SnippetExport {
+  return {
+    ...data,
+    uuid: generateDocumentUuid()
+  };
+}
 
 /**
  * Generates a new RFC 4122 UUID v4 for a document.

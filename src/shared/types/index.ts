@@ -1,6 +1,7 @@
 export type { CodeEditorSetup, CodeEditorTheme, ScriptPhase } from '@harborclient/sdk';
 
 export * from '#/shared/types/common';
+export * from '#/shared/harborclientExport';
 export * from '#/shared/types/environment';
 export * from '#/shared/types/snippet';
 export * from '#/shared/types/collection';

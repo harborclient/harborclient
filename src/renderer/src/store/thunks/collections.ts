@@ -20,7 +20,10 @@ import {
   setSelectedCollectionId
 } from '#/renderer/src/store/slices/collectionsSlice';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
-import { setShowSidebar } from '#/renderer/src/store/slices/navigationSlice';
+import {
+  setShowSidebar,
+  bumpCustomThemesReloadNonce
+} from '#/renderer/src/store/slices/navigationSlice';
 import {
   closeTabsForCollection,
   closeTabsForRequest,
@@ -34,6 +37,8 @@ import {
   isLatestRefreshGeneration
 } from '#/renderer/src/store/refreshGeneration';
 import { refreshEnvironments } from '#/renderer/src/store/thunks/environments';
+import { refreshSnippets } from '#/renderer/src/store/thunks/snippets';
+import { syncThemeMenuNow } from '#/renderer/src/plugins/themeMenuSync';
 
 const COLLECTIONS_REFRESH_KEY = 'collections';
 
@@ -343,6 +348,19 @@ export const importFromMenu = createAsyncThunk<ImportEntityResult | null, void, 
           })
         );
         toast.success('Run results imported');
+        break;
+      }
+      case 'snippet': {
+        await dispatch(refreshSnippets());
+        dispatch(openPageTab({ type: 'snippets' }));
+        toast.success(result.action === 'updated' ? 'Snippet updated' : 'Snippet imported');
+        break;
+      }
+      case 'theme': {
+        dispatch(bumpCustomThemesReloadNonce());
+        await syncThemeMenuNow();
+        dispatch(openPageTab({ type: 'themes' }));
+        toast.success(result.action === 'updated' ? 'Theme updated' : 'Theme imported');
         break;
       }
     }

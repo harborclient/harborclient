@@ -192,6 +192,14 @@ describeSqlite('LocalDatabase snippets', () => {
     expect(created.source).toBe('local');
   });
 
+  it('preserves a provided uuid on create', async () => {
+    const { database } = await createRegistry();
+    const uuid = '22222222-2222-4222-8222-222222222222';
+
+    const created = database.createSnippet('Stable helper', 'return true;', 'any', uuid);
+    expect(created.uuid).toBe(uuid);
+  });
+
   it('upserts, lists, and deletes marketplace snippets by catalog id', async () => {
     const { database } = await createRegistry();
     const uuid = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';

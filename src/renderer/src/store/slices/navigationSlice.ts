@@ -19,6 +19,7 @@ export interface NavigationState {
   pendingInstalledSearch: string | null;
   pendingSnippetMarketplaceSearch: string | null;
   pendingSnippetInstallId: string | null;
+  customThemesReloadNonce: number;
 }
 
 const initialState: NavigationState = {
@@ -38,7 +39,8 @@ const initialState: NavigationState = {
   pendingMarketplaceSearch: null,
   pendingInstalledSearch: null,
   pendingSnippetMarketplaceSearch: null,
-  pendingSnippetInstallId: null
+  pendingSnippetInstallId: null,
+  customThemesReloadNonce: 0
 };
 
 const navigationSlice = createSlice({
@@ -227,6 +229,12 @@ const navigationSlice = createSlice({
      */
     consumePendingSnippetInstall(state) {
       state.pendingSnippetInstallId = null;
+    },
+    /**
+     * Bumps the custom themes reload nonce so the Themes screen refreshes installed themes.
+     */
+    bumpCustomThemesReloadNonce(state) {
+      state.customThemesReloadNonce += 1;
     }
   }
 });
@@ -257,7 +265,8 @@ export const {
   setPendingSnippetMarketplaceSearch,
   consumePendingSnippetMarketplaceSearch,
   setPendingSnippetInstall,
-  consumePendingSnippetInstall
+  consumePendingSnippetInstall,
+  bumpCustomThemesReloadNonce
 } = navigationSlice.actions;
 
 /**
@@ -352,5 +361,10 @@ export const selectPendingSnippetMarketplaceSearch = (state: RootState): string 
  */
 export const selectPendingSnippetInstallId = (state: RootState): string | null =>
   state.navigation.pendingSnippetInstallId;
+/**
+ * Returns the custom themes reload nonce used to refresh the Themes installed list.
+ */
+export const selectCustomThemesReloadNonce = (state: RootState): number =>
+  state.navigation.customThemesReloadNonce;
 
 export default navigationSlice.reducer;

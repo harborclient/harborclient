@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(import): enhance import functionality for snippets and themes. (`9a47438`)
 - feat(run-results): implement export and import functionality for run results. (`6146468`)
 - feat(catalog): add new snippet reference for authentication. (`20a6987`)
 

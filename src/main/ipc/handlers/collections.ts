@@ -25,7 +25,10 @@ import {
   openImportFile
 } from '#/main/ipc/handlers/importDialogs';
 import { importEnvironmentData } from '#/main/ipc/handlers/environments';
+import { importCustomThemeData } from '#/main/ipc/handlers/customThemeImport';
+import { importSnippetData } from '#/main/ipc/handlers/snippetImport';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
+import { readHarborclientExport } from '#/shared/harborclientExport';
 import type {
   Collection,
   CollectionExport,
@@ -90,20 +93,6 @@ function requestScriptFieldsFromExport(exportData: RequestExport): {
     pre_request_scripts: preRequestScripts,
     post_request_scripts: postRequestScripts
   };
-}
-
-/**
- * Reads the HarborClient export discriminator from parsed JSON.
- *
- * @param parsed - Parsed JSON payload from an import file.
- * @returns Export kind string, or null when absent or not a string.
- */
-function readHarborclientExport(parsed: unknown): string | null {
-  if (!parsed || typeof parsed !== 'object') {
-    return null;
-  }
-  const value = (parsed as { harborclientExport?: unknown }).harborclientExport;
-  return typeof value === 'string' ? value : null;
 }
 
 /**
@@ -552,6 +541,30 @@ export function registerCollectionHandlers(db: IStorage): void {
       return {
         kind: 'run-results',
         data
+      } satisfies ImportEntityResult;
+    }
+
+    if (exportKind === 'snippet') {
+      const snippetResult = await importSnippetData(db, win, parsed);
+      if (!snippetResult) {
+        return null;
+      }
+      return {
+        kind: 'snippet',
+        snippet: snippetResult.snippet,
+        action: snippetResult.action
+      } satisfies ImportEntityResult;
+    }
+
+    if (exportKind === 'theme') {
+      const themeResult = await importCustomThemeData(win, parsed);
+      if (!themeResult) {
+        return null;
+      }
+      return {
+        kind: 'theme',
+        theme: themeResult.theme,
+        action: themeResult.action
       } satisfies ImportEntityResult;
     }
 

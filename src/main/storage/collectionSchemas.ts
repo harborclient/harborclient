@@ -11,7 +11,6 @@ import type {
   ScriptTestResult,
   Variable
 } from '#/shared/types';
-import type { RunResultsExport } from '#/shared/collectionRunner';
 
 /**
  * Validates an optional portable document uuid from an export file.

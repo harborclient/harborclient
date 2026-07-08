@@ -229,11 +229,19 @@ export async function confirmRequestScripts(win: BrowserWindow | null): Promise<
  */
 export async function confirmDuplicateImport(
   win: BrowserWindow | null,
-  kind: 'collection' | 'request' | 'environment',
+  kind: 'collection' | 'request' | 'environment' | 'snippet' | 'theme',
   existingName: string
 ): Promise<DuplicateImportChoice> {
   const kindLabel =
-    kind === 'collection' ? 'Collection' : kind === 'request' ? 'Request' : 'Environment';
+    kind === 'collection'
+      ? 'Collection'
+      : kind === 'request'
+        ? 'Request'
+        : kind === 'environment'
+          ? 'Environment'
+          : kind === 'snippet'
+            ? 'Snippet'
+            : 'Theme';
 
   const messageBoxOptions = {
     type: 'question' as const,

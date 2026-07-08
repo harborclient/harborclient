@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   consumePendingInstalledSearch,
   consumePendingMarketplaceSearch,
+  selectCustomThemesReloadNonce,
   selectPendingInstalledSearch,
   selectPendingMarketplaceSearch
 } from '#/renderer/src/store/slices/navigationSlice';
@@ -52,6 +53,7 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const pendingMarketplaceSearch = useAppSelector(selectPendingMarketplaceSearch);
   const pendingInstalledSearch = useAppSelector(selectPendingInstalledSearch);
+  const customThemesReloadNonce = useAppSelector(selectCustomThemesReloadNonce);
   const pageKey = kind === 'themes' ? 'themes' : 'plugins';
   const [customThemes, setCustomThemes] = useState<CustomTheme[]>([]);
   const [customThemesLoading, setCustomThemesLoading] = useState(kind === 'themes');
@@ -116,7 +118,7 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
       cancelled = true;
       unsubscribe();
     };
-  }, [kind]);
+  }, [kind, customThemesReloadNonce]);
 
   /**
    * Sidebar entries for the active management kind (themes omit Settings).
