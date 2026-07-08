@@ -20,12 +20,17 @@ interface Props {
    * Settings section to show when the overlay opens.
    */
   initialSection: SettingsSection;
+
+  /**
+   * When set, focuses the matching global variable row in the Globals section.
+   */
+  focusVariableKey?: string;
 }
 
 /**
  * Full-area application settings with sidebar navigation and catalog search.
  */
-export function Settings({ initialSection }: Props): JSX.Element {
+export function Settings({ initialSection, focusVariableKey }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const pluginSections = usePluginSettingsSections();
   const { query, setQuery, matchedIds, isSearching } = useSettingsSearch();
@@ -128,7 +133,7 @@ export function Settings({ initialSection }: Props): JSX.Element {
           </div>
         </Page>
       ) : (
-        <SettingsRenderer section={section} />
+        <SettingsRenderer section={section} focusVariableKey={focusVariableKey} />
       )}
     </SidebarLayout>
   );

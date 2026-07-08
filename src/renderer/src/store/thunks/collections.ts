@@ -11,6 +11,7 @@ import type {
   Variable
 } from '#/shared/types';
 import { mirrorLegacyScriptString } from '#/shared/scriptRefs';
+import { resolveImportedRunnerTargetIds } from '#/shared/collectionRunner';
 import {
   focusSidebarItem as focusSidebarItemAction,
   setCollections,
@@ -20,7 +21,12 @@ import {
 } from '#/renderer/src/store/slices/collectionsSlice';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import { setShowSidebar } from '#/renderer/src/store/slices/navigationSlice';
-import { closeTabsForCollection, closeTabsForRequest } from '#/renderer/src/store/slices/tabsSlice';
+import {
+  closeTabsForCollection,
+  closeTabsForRequest,
+  openPageTab
+} from '#/renderer/src/store/slices/tabsSlice';
+import { importCollectionRunnerResults } from '#/renderer/src/store/slices/modalsSlice';
 import type { AppDispatch, ThunkApiConfig } from '#/renderer/src/store/redux';
 import {
   beginRefreshGeneration,
@@ -314,6 +320,29 @@ export const importFromMenu = createAsyncThunk<ImportEntityResult | null, void, 
         await dispatch(refreshEnvironments());
         dispatch(setActiveEnvironmentId(result.environment.id));
         toast.success(result.action === 'updated' ? 'Environment updated' : 'Environment imported');
+        break;
+      }
+      case 'run-results': {
+        const state = getState();
+        const { collectionId, requestId } = resolveImportedRunnerTargetIds(
+          result.data,
+          state.collections.collections,
+          state.collections.requestsByCollection
+        );
+        dispatch(
+          importCollectionRunnerResults({
+            ...result.data,
+            collectionId,
+            requestId
+          })
+        );
+        dispatch(
+          openPageTab({
+            type: 'collection-runner',
+            collectionId: collectionId > 0 ? collectionId : 0
+          })
+        );
+        toast.success('Run results imported');
         break;
       }
     }

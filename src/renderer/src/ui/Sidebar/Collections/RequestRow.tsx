@@ -5,8 +5,24 @@ import type { SavedRequest } from '#/shared/types';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { usePluginContextMenuItems } from '#/renderer/src/plugins/pluginHooks';
 import { buildPluginContextMenuGroups } from '#/renderer/src/plugins/pluginContextMenuHelpers';
+import {
+  buildSendRuntimeVars,
+  resolveRequestUrl
+} from '#/renderer/src/scripting/resolveRequestUrl';
+import {
+  selectActiveEnvironmentId,
+  selectCollections,
+  selectEnvironments
+} from '#/renderer/src/store/selectors';
+import { useAppSelector } from '#/renderer/src/store/hooks';
 import { requestDragId } from '#/renderer/src/ui/Sidebar/Collections/utils';
-import { type JSX } from 'react';
+import { type JSX, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
+import {
+  buildDevInspectMenuGroups,
+  useDeveloperToolsEnabled,
+  type InspectPoint
+} from '#/renderer/src/ui/shared/devInspectContextMenu';
 import { SortableRow } from './SortableRow';
 
 interface Props {
@@ -101,12 +117,58 @@ export function RequestRow({
   dragDisabled = false
 }: Props): JSX.Element {
   const confirm = useConfirm();
+  const developerToolsEnabled = useDeveloperToolsEnabled();
+  const [inspectPoint, setInspectPoint] = useState<InspectPoint | undefined>(undefined);
   const pluginContextMenuItems = usePluginContextMenuItems();
+  const globalVariables = useAppSelector((state) => state.settings.general.globalVariables);
+  const collections = useAppSelector(selectCollections);
+  const environments = useAppSelector(selectEnvironments);
+  const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
+
+  /**
+   * Resolves the saved request URL with current globals, collection, and environment variables.
+   */
+  const resolvedUrl = useMemo(() => {
+    const collection = collections.find((entry) => entry.id === req.collection_id);
+    const environment = activeEnvironmentId
+      ? environments.find((entry) => entry.id === activeEnvironmentId)
+      : undefined;
+    const runtimeVars = buildSendRuntimeVars(
+      globalVariables,
+      collection?.variables ?? [],
+      environment?.variables ?? []
+    );
+    return resolveRequestUrl(req.url, req.params, runtimeVars);
+  }, [
+    activeEnvironmentId,
+    collections,
+    environments,
+    globalVariables,
+    req.collection_id,
+    req.params,
+    req.url
+  ]);
 
   const reorderItems = [
     ...(canMoveUp ? [{ label: 'Move up', onSelect: onMoveUp }] : []),
     ...(canMoveDown ? [{ label: 'Move down', onSelect: onMoveDown }] : [])
   ];
+
+  const copyItem =
+    req.url.trim() !== ''
+      ? [
+          {
+            label: 'Copy',
+            onSelect: () => {
+              void navigator.clipboard.writeText(resolvedUrl).then(() => {
+                toast.success('Copied to clipboard');
+              });
+            }
+          }
+        ]
+      : [];
+
+  const menuId = `request-${req.id}`;
 
   return (
     <SortableRow
@@ -115,6 +177,12 @@ export function RequestRow({
       dragHandleLabel={`Reorder request "${req.name}"`}
       disabled={dragDisabled}
       compact
+      onRowContextMenu={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setInspectPoint({ x: event.clientX, y: event.clientY });
+        onOpenChange(menuId);
+      }}
     >
       <button
         type="button"
@@ -130,11 +198,11 @@ export function RequestRow({
         <span className="truncate text-[16px]">{req.name}</span>
       </button>
       <RowActionsMenu
-        menuId={`request-${req.id}`}
+        menuId={menuId}
         openMenuId={openMenuId}
         onOpenChange={onOpenChange}
         groups={[
-          [{ label: 'Run', onSelect: onRunRequest }],
+          [...copyItem, { label: 'Run', onSelect: onRunRequest }],
           ...(reorderItems.length > 0 ? [reorderItems] : []),
           [
             {
@@ -173,7 +241,8 @@ export function RequestRow({
                 })();
               }
             }
-          ]
+          ],
+          ...buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled)
         ]}
       />
     </SortableRow>

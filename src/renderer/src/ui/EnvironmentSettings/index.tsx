@@ -20,6 +20,11 @@ interface Props {
   environment: Environment;
 
   /**
+   * When set, focuses the matching variable row in the table.
+   */
+  focusVariableKey?: string;
+
+  /**
    * Persists environment name and variables.
    *
    * @param id - Environment ID to update.
@@ -51,6 +56,7 @@ export function EnvironmentSettings(props: Props): JSX.Element {
  */
 function EnvironmentSettingsForm({
   environment,
+  focusVariableKey,
   onSave,
   onClose,
   onDirtyChange
@@ -138,7 +144,7 @@ function EnvironmentSettingsForm({
           Use variables in request URLs with {'{{variable}}'} syntax. When value is empty, the
           default is used. Environment variables override collection variables with the same key.
         </p>
-        <VariableTable variables={variables} onChange={setVariables} />
+        <VariableTable variables={variables} onChange={setVariables} focusKey={focusVariableKey} />
       </div>
     </Page>
   );

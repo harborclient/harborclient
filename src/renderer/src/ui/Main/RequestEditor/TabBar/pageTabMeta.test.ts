@@ -17,4 +17,19 @@ describe('pageTabMeta', () => {
     expect(meta.title).toBe('Untitled');
     expect(meta.title).not.toBe('Team Hub');
   });
+
+  it('uses the resolved runner target name for collection runner tabs', () => {
+    const meta = pageTabMeta(
+      { type: 'collection-runner', collectionId: 1 },
+      { runnerTargetName: 'Demo API' }
+    );
+
+    expect(meta.title).toBe('Run Demo API');
+  });
+
+  it('falls back to Runner when no collection runner target name is resolved', () => {
+    const meta = pageTabMeta({ type: 'collection-runner', collectionId: 1 });
+
+    expect(meta.title).toBe('Runner');
+  });
 });

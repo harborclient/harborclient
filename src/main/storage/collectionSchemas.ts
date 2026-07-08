@@ -8,8 +8,10 @@ import type {
   ExportedFolder,
   ExportedRequest,
   RequestExport,
+  ScriptTestResult,
   Variable
 } from '#/shared/types';
+import type { RunResultsExport } from '#/shared/collectionRunner';
 
 /**
  * Validates an optional portable document uuid from an export file.
@@ -452,5 +454,114 @@ export function formatEnvironmentImportError(error: z.ZodError): string {
   }
 
   const pathLabel = path.length > 0 ? path.join('.') : 'environment file';
+  return issue.message ? `${pathLabel}: ${issue.message}` : pathLabel;
+}
+
+const scriptTestResultRow = z.object({
+  name: z.string(),
+  passed: z.boolean(),
+  error: z.string().optional(),
+  scriptName: z.string().optional()
+}) satisfies z.ZodType<ScriptTestResult>;
+
+const importSendResult = z.object({
+  status: z.number(),
+  statusText: z.string(),
+  headers: z.record(z.string(), z.string()),
+  body: z.string(),
+  bodyBase64: z.string().optional(),
+  timeMs: z.number(),
+  sizeBytes: z.number(),
+  error: z.string().optional(),
+  setCookieHeaders: z.array(z.string()).optional(),
+  request: z.unknown().optional(),
+  timing: z.unknown().optional()
+});
+
+const collectionRunnerResultStatus = z.enum(['pending', 'running', 'passed', 'failed', 'skipped']);
+
+const collectionRunnerRequestResultRow = z.object({
+  requestId: z.number().int(),
+  requestName: z.string(),
+  requestMethod: httpMethod,
+  status: collectionRunnerResultStatus,
+  httpStatus: z.number().optional(),
+  httpError: z.string().optional(),
+  testsPassed: z.number().int().nonnegative(),
+  testsFailed: z.number().int().nonnegative(),
+  response: importSendResult.nullable().optional(),
+  testResults: z.array(scriptTestResultRow).optional(),
+  scriptLogs: z.array(z.string()).optional(),
+  scriptError: z.string().optional(),
+  requestUrl: z.string().optional()
+});
+
+/**
+ * Validates portable collection or request run-results export files for import.
+ */
+export const runResultsExportSchema = z
+  .object({
+    harborclientVersion: z.literal(1),
+    harborclientExport: z.enum(['collection-run-results', 'request-run-results']),
+    delay: z.number().nonnegative(),
+    stopOnFailure: z.boolean(),
+    environment: z.object({
+      mode: z.enum(['active', 'override']),
+      id: z.number().int().positive().nullable(),
+      name: z.string().nullable()
+    }),
+    collection: z
+      .object({
+        uuid: z.string().uuid(),
+        name: z.string(),
+        folderName: z.string().nullable().optional()
+      })
+      .optional(),
+    request: z
+      .object({
+        uuid: z.string().uuid(),
+        name: z.string(),
+        method: httpMethod
+      })
+      .optional(),
+    results: z.array(collectionRunnerRequestResultRow).min(1)
+  })
+  .superRefine((data, ctx) => {
+    if (data.harborclientExport === 'request-run-results' && !data.request) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'request metadata is required for request run results',
+        path: ['request']
+      });
+    }
+  });
+
+/**
+ * Maps a Zod validation failure to a user-facing run-results import error fragment.
+ *
+ * @param error - Zod error from runResultsExportSchema.safeParse.
+ * @returns Message suffix after the "Invalid run results file:" prefix.
+ */
+export function formatRunResultsImportError(error: z.ZodError): string {
+  const issue = error.issues[0];
+  if (!issue) {
+    return 'invalid run results file';
+  }
+
+  const path = issue.path;
+
+  if (path[0] === 'harborclientVersion') {
+    return 'unsupported format version';
+  }
+
+  if (path[0] === 'harborclientExport') {
+    return 'not a HarborClient run results export';
+  }
+
+  if (path[0] === 'results') {
+    return 'results must include at least one request row';
+  }
+
+  const pathLabel = path.length > 0 ? path.join('.') : 'run results file';
   return issue.message ? `${pathLabel}: ${issue.message}` : pathLabel;
 }

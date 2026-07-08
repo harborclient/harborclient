@@ -57,13 +57,13 @@ import { CollectionModal } from '#/renderer/src/ui/modals/CollectionModal';
 import { ConfirmModal } from '#/renderer/src/ui/modals/ConfirmModal';
 import { PluginModalOverlay } from '#/renderer/src/ui/PluginModalOverlay';
 import { ShareModal } from '#/renderer/src/ui/modals/ShareModal';
-import { CollectionRunnerModal } from '#/renderer/src/ui/modals/CollectionRunnerModal';
 import { QuitPrompt } from '#/renderer/src/ui/modals/QuitPrompt';
 import { UnsavedLoadPrompt } from '#/renderer/src/ui/modals/UnsavedLoadPrompt';
 import { AiSidebar } from '#/renderer/src/ui/AiSidebar';
 import { Sidebar } from '#/renderer/src/ui/Sidebar';
 import { SidebarExpansionProvider } from '#/renderer/src/ui/Sidebar/SidebarExpansionProvider';
 import { RequestEditor } from '#/renderer/src/ui/Main/RequestEditor';
+import { resolveVariableEditTarget } from '#/renderer/src/ui/Main/RequestEditor/resolveVariableEditTarget';
 import { TitleBar } from '#/renderer/src/ui/TitleBar';
 import { selectIsBusy } from '#/renderer/src/store/slices/uiSlice';
 import {
@@ -262,9 +262,46 @@ export default function App(): JSX.Element {
                 className="flex min-w-0 flex-1 flex-col bg-surface"
               >
                 <RequestEditor
-                  onEditVariables={() => {
-                    if (activeCollectionId == null) return;
-                    dispatch(openPageTab({ type: 'collection', id: activeCollectionId }));
+                  onEditVariables={(key) => {
+                    const target = resolveVariableEditTarget({
+                      key,
+                      globalVariables,
+                      collectionVariables: activeCollection?.variables ?? [],
+                      environmentVariables: activeEnvironment?.variables ?? [],
+                      activeCollectionId,
+                      activeEnvironmentId
+                    });
+                    if (target == null) return;
+
+                    if (target.scope === 'environment' && target.environmentId != null) {
+                      dispatch(
+                        openPageTab({
+                          type: 'environment',
+                          id: target.environmentId,
+                          focusVariableKey: key
+                        })
+                      );
+                      return;
+                    }
+
+                    if (target.scope === 'collection' && target.collectionId != null) {
+                      dispatch(
+                        openPageTab({
+                          type: 'collection',
+                          id: target.collectionId,
+                          focusVariableKey: key
+                        })
+                      );
+                      return;
+                    }
+
+                    dispatch(
+                      openPageTab({
+                        type: 'settings',
+                        section: 'globals',
+                        focusVariableKey: key
+                      })
+                    );
                   }}
                 />
               </main>
@@ -308,7 +345,6 @@ export default function App(): JSX.Element {
             <AboutModal />
             <UpdateModal />
             <SyncModal />
-            <CollectionRunnerModal />
             <AlertModal />
             <ConfirmModal />
             <ThemePickerModal />

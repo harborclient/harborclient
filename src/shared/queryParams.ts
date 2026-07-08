@@ -87,6 +87,69 @@ function enabledParams(params: KeyValue[]): KeyValue[] {
   return params.filter((row) => row.enabled && row.key.trim());
 }
 
+const SEND_URL_PROTOCOLS = new Set(['http:', 'https:']);
+
+/**
+ * Returns whether a URL string is a root-relative path (`/api`), not protocol-relative (`//cdn`).
+ *
+ * @param url - Trimmed URL string.
+ */
+function isRootRelativePath(url: string): boolean {
+  return url.startsWith('/') && !url.startsWith('//');
+}
+
+/**
+ * Appends query parameters via string concatenation for root-relative paths.
+ *
+ * @param trimmed - Trimmed base URL that failed absolute URL parsing.
+ * @param activeParams - Enabled key-value pairs to append.
+ */
+function appendQueryFallback(trimmed: string, activeParams: KeyValue[]): string {
+  const separator = trimmed.includes('?') ? '&' : '?';
+  const query = activeParams
+    .map((param) => `${encodeURIComponent(param.key.trim())}=${encodeURIComponent(param.value)}`)
+    .join('&');
+  return `${trimmed}${separator}${query}`;
+}
+
+/**
+ * Appends enabled query parameters to a base URL for outbound sends.
+ *
+ * Matches `@harborclient/http` QueryString.buildUrl so renderer-side URL previews
+ * (for example sidebar Copy) align with the URL the main process sends.
+ *
+ * @param baseUrl - Request URL before query string merging.
+ * @param params - Key-value pairs to append as search params.
+ * @returns URL with merged query parameters.
+ */
+export function buildSendUrl(baseUrl: string, params: KeyValue[]): string {
+  const trimmed = baseUrl.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  const active = enabledParams(params);
+  if (active.length === 0) {
+    return trimmed;
+  }
+
+  try {
+    const url = new URL(trimmed);
+    if (!SEND_URL_PROTOCOLS.has(url.protocol)) {
+      return trimmed;
+    }
+    for (const param of active) {
+      url.searchParams.set(param.key.trim(), param.value);
+    }
+    return url.toString();
+  } catch {
+    if (!isRootRelativePath(trimmed)) {
+      return trimmed;
+    }
+    return appendQueryFallback(trimmed, active);
+  }
+}
+
 /**
  * Rebuilds a URL query string from enabled params without re-encoding raw text.
  *

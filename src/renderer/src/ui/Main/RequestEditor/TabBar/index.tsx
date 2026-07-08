@@ -20,10 +20,19 @@ import type { JSX, KeyboardEvent } from 'react';
 import { useMemo, useState } from 'react';
 import { isPageTab, isRequestTab, type Tab } from '#/renderer/src/store/drafts';
 import { useAppSelector } from '#/renderer/src/store/hooks';
-import { selectCollections, selectEnvironments } from '#/renderer/src/store/selectors';
+import {
+  selectCollections,
+  selectEnvironments,
+  selectFoldersByCollection,
+  selectRequestsByCollection
+} from '#/renderer/src/store/selectors';
 import { getRegisteredMainViews } from '#/renderer/src/plugins/registry';
 import { useTeamHubs } from '#/renderer/src/hooks/useTeamHubs';
 import { resolveTeamHubAdminTabLabel } from '#/renderer/src/ui/TeamHub/teamHubDisplayName';
+import {
+  resolveRunnerTargetNames,
+  runnerTargetLabel
+} from '#/renderer/src/ui/CollectionRunner/resolveRunnerTargetName';
 
 import { faPlus } from '#/renderer/src/fontawesome';
 import { pageTabMeta } from './pageTabMeta';
@@ -154,6 +163,8 @@ export function TabBar({
 }: Props): JSX.Element {
   const collections = useAppSelector(selectCollections);
   const allEnvironments = useAppSelector(selectEnvironments);
+  const foldersByCollection = useAppSelector(selectFoldersByCollection);
+  const requestsByCollection = useAppSelector(selectRequestsByCollection);
   const { teamHubs } = useTeamHubs();
   const [activeDragTabId, setActiveDragTabId] = useState<string | null>(null);
   const sortableEnabled = tabs.length >= 2;
@@ -183,11 +194,24 @@ export function TabBar({
       let environmentName: string | undefined;
       let pluginTitle: string | undefined;
       let teamHubName: string | undefined;
+      let runnerTargetName: string | undefined;
 
       if (page.type === 'collection') {
         collectionName = collections.find((collection) => collection.id === page.id)?.name;
       } else if (page.type === 'environment') {
         environmentName = allEnvironments.find((environment) => environment.id === page.id)?.name;
+      } else if (page.type === 'collection-runner') {
+        const names = resolveRunnerTargetNames(
+          {
+            collectionId: page.collectionId,
+            folderId: page.folderId,
+            requestId: page.requestId
+          },
+          collections,
+          foldersByCollection[page.collectionId] ?? [],
+          requestsByCollection[page.collectionId] ?? []
+        );
+        runnerTargetName = runnerTargetLabel(names);
       } else if (page.type === 'plugin-view') {
         pluginTitle = getRegisteredMainViews().find(
           (view) => view.pluginId === page.pluginId && view.id === page.viewId
@@ -202,12 +226,13 @@ export function TabBar({
           collectionName,
           environmentName,
           pluginTitle,
-          teamHubName
+          teamHubName,
+          runnerTargetName
         })
       );
     }
     return displays;
-  }, [tabs, collections, allEnvironments, teamHubs]);
+  }, [tabs, collections, allEnvironments, foldersByCollection, requestsByCollection, teamHubs]);
 
   /**
    * Tab currently being dragged for overlay preview.

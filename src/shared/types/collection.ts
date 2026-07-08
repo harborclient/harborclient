@@ -1,4 +1,5 @@
 import type { AuthConfig } from '#/shared/auth';
+import type { RunResultsExport } from '#/shared/collectionRunner';
 import type { Environment } from '#/shared/types/environment';
 import type { SavedRequest } from '#/shared/types/request';
 import type { ScriptRef } from '#/shared/types/script';
@@ -337,4 +338,5 @@ export type ImportAction = 'created' | 'updated';
 export type ImportEntityResult =
   | { kind: 'collection'; collection: Collection; action: ImportAction }
   | { kind: 'request'; request: SavedRequest; action: ImportAction }
-  | { kind: 'environment'; environment: Environment; action: ImportAction };
+  | { kind: 'environment'; environment: Environment; action: ImportAction }
+  | { kind: 'run-results'; data: RunResultsExport };

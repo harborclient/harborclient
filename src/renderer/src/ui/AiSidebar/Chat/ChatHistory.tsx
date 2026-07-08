@@ -18,6 +18,10 @@ import {
   splitRecentAndOlder,
   type ChatHistoryGroup
 } from '#/renderer/src/ui/AiSidebar/Chat/chatHistoryGrouping';
+import {
+  buildDevInspectMenuGroups,
+  useDeveloperToolsEnabled
+} from '#/renderer/src/ui/shared/devInspectContextMenu';
 import type { ChatSummary } from '#/shared/types';
 
 /** Stable id for the portaled chat history menu element. */
@@ -120,6 +124,7 @@ function ChatHistoryRow({
   onOpenChat
 }: ChatHistoryRowProps): JSX.Element {
   const dispatch = useAppDispatch();
+  const developerToolsEnabled = useDeveloperToolsEnabled();
   const menuId = `chat-history-${chat.id}`;
 
   return (
@@ -151,7 +156,8 @@ function ChatHistoryRow({
                 variant: 'danger',
                 onSelect: () => void dispatch(deleteChatThunk(chat.id))
               }
-            ]
+            ],
+            ...buildDevInspectMenuGroups(undefined, menuId, developerToolsEnabled)
           ]}
         />
       </div>

@@ -655,22 +655,74 @@
   flex-direction: column;
   gap: 6px;
   padding: 8px 12px;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--mac-text);
 }
 
-.request-comment-editor .cm-variable-tooltip-muted {
+.request-comment-editor .cm-variable-tooltip-value-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.request-comment-editor .cm-variable-tooltip-value {
+  box-sizing: border-box;
+  flex: 1 1 0%;
+  min-width: 0;
+  border-radius: 8px;
+  border: 1px solid var(--mac-separator);
+  background-color: var(--mac-field);
+  padding: 6px 10px;
+  font-size: 16px;
+  color: var(--mac-text);
+  cursor: default;
+}
+
+.request-comment-editor .cm-variable-tooltip-value-muted {
   color: var(--mac-muted);
+}
+
+.request-comment-editor .cm-variable-tooltip-copy {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9999px;
+  border: none;
+  background-color: transparent;
+  color: var(--mac-muted);
+  cursor: pointer;
+}
+
+.request-comment-editor .cm-variable-tooltip-copy:hover {
+  background-color: var(--mac-selection);
+  color: var(--mac-text);
+}
+
+.request-comment-editor .cm-variable-tooltip-copy-icon {
+  display: block;
 }
 
 .request-comment-editor .cm-variable-tooltip-edit {
   align-self: flex-start;
-  background: none;
-  border: none;
-  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  border-radius: 9999px;
+  border: 1px solid var(--mac-separator);
+  background-color: var(--mac-control);
+  padding: 4px 12px;
+  font-size: 15px;
+  color: var(--mac-text);
   cursor: pointer;
-  font-size: 14px;
-  color: var(--mac-accent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.request-comment-editor .cm-variable-tooltip-edit:hover {
+  background-color: var(--mac-selection);
 }
 
 /**

@@ -5,12 +5,17 @@ import type { Variable } from '#/shared/types';
 interface Props {
   variables: Variable[];
   onChange: (variables: Variable[]) => void;
+
+  /**
+   * When set, focuses the matching variable row in the table.
+   */
+  focusVariableKey?: string;
 }
 
 /**
  * Collection variables editor for the Variables tab.
  */
-export function VariablesSection({ variables, onChange }: Props): JSX.Element {
+export function VariablesSection({ variables, onChange, focusVariableKey }: Props): JSX.Element {
   return (
     <div className="mb-6 flex flex-col gap-1">
       <span className="text-[18px] text-muted">Variables</span>
@@ -18,7 +23,7 @@ export function VariablesSection({ variables, onChange }: Props): JSX.Element {
         Use variables in request URLs with {'{{variable}}'} syntax. When value is empty, the default
         is used. Values are omitted from export unless Share is checked.
       </p>
-      <VariableTable variables={variables} onChange={onChange} />
+      <VariableTable variables={variables} onChange={onChange} focusKey={focusVariableKey} />
     </div>
   );
 }

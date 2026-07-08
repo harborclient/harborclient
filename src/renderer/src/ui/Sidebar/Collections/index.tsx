@@ -41,6 +41,11 @@ import { buildPluginContextMenuGroups } from '#/renderer/src/plugins/pluginConte
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { faChevronDown, faChevronRight } from '#/renderer/src/fontawesome';
 import { METHOD_CLASSES, sourceRow } from '#/renderer/src/ui/shared/classes';
+import {
+  buildDevInspectMenuGroups,
+  useDeveloperToolsEnabled,
+  type InspectPoint
+} from '#/renderer/src/ui/shared/devInspectContextMenu';
 import { DropZone } from '#/renderer/src/ui/Sidebar/Collections/DropZone';
 import { focusCollectionSettings } from '#/renderer/src/ui/CollectionSettings/focusCollectionSettings';
 import { RequestRow } from '#/renderer/src/ui/Sidebar/Collections/RequestRow';
@@ -347,7 +352,11 @@ export function Collections({
   const confirm = useConfirm();
   const searchActive = searchFilter != null;
   const pluginContextMenuItems = usePluginContextMenuItems();
+  const developerToolsEnabled = useDeveloperToolsEnabled();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [inspectPointsByMenuId, setInspectPointsByMenuId] = useState<Record<string, InspectPoint>>(
+    {}
+  );
   const [activeDragKind, setActiveDragKind] = useState<DragKind | null>(null);
   const [activeDragRequest, setActiveDragRequest] = useState<SavedRequest | null>(null);
   const [activeDragFolder, setActiveDragFolder] = useState<Folder | null>(null);
@@ -773,6 +782,16 @@ export function Collections({
                   dragHandleLabel={`Reorder collection "${collection.name}"`}
                   disabled={searchActive}
                   compact
+                  onRowContextMenu={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const menuId = `collection-${collection.id}`;
+                    setInspectPointsByMenuId((prev) => ({
+                      ...prev,
+                      [menuId]: { x: event.clientX, y: event.clientY }
+                    }));
+                    setOpenMenuId(menuId);
+                  }}
                 >
                   <button
                     type="button"
@@ -910,7 +929,12 @@ export function Collections({
                             })();
                           }
                         }
-                      ]
+                      ],
+                      ...buildDevInspectMenuGroups(
+                        inspectPointsByMenuId[`collection-${collection.id}`],
+                        `collection-${collection.id}`,
+                        developerToolsEnabled
+                      )
                     ]}
                   />
                 </SortableRow>
@@ -1102,7 +1126,12 @@ export function Collections({
                                               folderRequests.map((req) => req.id)
                                             )
                                         }
-                                      ]
+                                      ],
+                                      ...buildDevInspectMenuGroups(
+                                        inspectPointsByMenuId[`folder-${folder.id}`],
+                                        `folder-${folder.id}`,
+                                        developerToolsEnabled
+                                      )
                                     ]}
                                   />
                                 </SortableRow>

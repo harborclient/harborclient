@@ -36,7 +36,12 @@ import { SyntaxHighlightActiveLineGutterField } from '../fields/SyntaxHighlightA
 import { SyntaxLineNumbersField } from '../fields/SyntaxLineNumbersField';
 import type { FieldSettingId, FormSettingsSection } from './catalog';
 
-type SettingsSectionComponentProps = Record<string, never>;
+export type SettingsSectionComponentProps = {
+  /**
+   * When set, focuses the matching variable row in sections that support it.
+   */
+  focusVariableKey?: string;
+};
 
 /**
  * Maps catalog field ids to standalone field components.

@@ -180,6 +180,28 @@ export function isImageResponse(headers?: Record<string, string>): boolean {
 }
 
 /**
+ * Chooses the initial response tab when the editor mounts or remounts.
+ *
+ * HTML and image responses open on Preview so rendered content is visible
+ * immediately; everything else defaults to Body.
+ *
+ * @param response - Last send result, or null before the first send.
+ * @returns Tab value for `SegmentedTabsGroup`.
+ */
+export function defaultResponseTab(
+  response: {
+    body: string;
+    headers?: Record<string, string>;
+  } | null
+): string {
+  if (!response) return 'body';
+  if (isHtmlResponse(response.body, response.headers) || isImageResponse(response.headers)) {
+    return 'preview';
+  }
+  return 'body';
+}
+
+/**
  * Wraps an HTML fragment in a minimal document shell with preview CSP.
  *
  * @param body - Raw HTML fragment.

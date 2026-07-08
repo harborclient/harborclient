@@ -1,4 +1,10 @@
-import type { Folder, SavedRequest, ScriptTestResult } from '#/shared/types';
+import type {
+  Folder,
+  HttpMethod,
+  SavedRequest,
+  ScriptTestResult,
+  SendResult
+} from '#/shared/types';
 
 /**
  * How the collection runner resolves variables during a run.
@@ -60,6 +66,11 @@ export interface CollectionRunnerRequestResult {
   requestName: string;
 
   /**
+   * HTTP verb for the saved request (GET, POST, etc.).
+   */
+  requestMethod: HttpMethod;
+
+  /**
    * Current status for this row in the run list.
    */
   status: CollectionRunnerResultStatus;
@@ -83,6 +94,339 @@ export interface CollectionRunnerRequestResult {
    * Count of failing hc.test assertions from the last send.
    */
   testsFailed: number;
+
+  /**
+   * Full HTTP response from the last send, when available.
+   */
+  response?: SendResult | null;
+
+  /**
+   * hc.test results from pre/post scripts for the last send.
+   */
+  testResults?: ScriptTestResult[];
+
+  /**
+   * Console output captured from scripts for the last send.
+   */
+  scriptLogs?: string[];
+
+  /**
+   * Aggregated script runtime errors from the last send.
+   */
+  scriptError?: string;
+
+  /**
+   * Request URL used for the last send (for response preview plugins).
+   */
+  requestUrl?: string;
+}
+
+/**
+ * Discriminator for portable collection or request run-results export files.
+ */
+export type RunResultsExportKind = 'collection-run-results' | 'request-run-results';
+
+/**
+ * Environment settings stored in a run-results export file.
+ */
+export interface RunResultsExportEnvironment {
+  /**
+   * Whether the run used the active environment or an override.
+   */
+  mode: CollectionRunnerEnvironmentMode;
+
+  /**
+   * Override environment database id, or null when mode is active.
+   */
+  id: number | null;
+
+  /**
+   * Human-readable environment name at export time.
+   */
+  name: string | null;
+}
+
+/**
+ * Collection metadata stored in a run-results export file.
+ */
+export interface RunResultsExportCollection {
+  /**
+   * Stable portable collection identifier.
+   */
+  uuid: string;
+
+  /**
+   * Display name of the collection at export time.
+   */
+  name: string;
+
+  /**
+   * Folder name when the run targeted a folder; omitted for collection-wide runs.
+   */
+  folderName?: string | null;
+}
+
+/**
+ * Request metadata stored in a single-request run-results export file.
+ */
+export interface RunResultsExportRequest {
+  /**
+   * Stable portable request identifier.
+   */
+  uuid: string;
+
+  /**
+   * Display name of the request at export time.
+   */
+  name: string;
+
+  /**
+   * HTTP verb for the saved request.
+   */
+  method: HttpMethod;
+}
+
+/**
+ * Portable export file for collection or request runner results.
+ */
+export interface RunResultsExport {
+  /**
+   * HarborClient export schema version for forward compatibility.
+   */
+  harborclientVersion: 1;
+
+  /**
+   * Discriminator identifying collection-wide or single-request run results.
+   */
+  harborclientExport: RunResultsExportKind;
+
+  /**
+   * Milliseconds waited between requests during the run.
+   */
+  delay: number;
+
+  /**
+   * Whether the run stopped after the first failure.
+   */
+  stopOnFailure: boolean;
+
+  /**
+   * Environment mode and identity used during the run.
+   */
+  environment: RunResultsExportEnvironment;
+
+  /**
+   * Collection metadata when the export includes collection context.
+   */
+  collection?: RunResultsExportCollection;
+
+  /**
+   * Request metadata when the export is a single-request run.
+   */
+  request?: RunResultsExportRequest;
+
+  /**
+   * Per-request outcome rows from the completed run.
+   */
+  results: CollectionRunnerRequestResult[];
+}
+
+/**
+ * Inputs for building a portable run-results export payload.
+ */
+export interface BuildRunResultsExportArgs {
+  /**
+   * When set, the export is a single-request run.
+   */
+  requestId: number | null;
+
+  /**
+   * Collection display name at export time.
+   */
+  collectionName: string;
+
+  /**
+   * Folder display name when the run targeted a folder.
+   */
+  folderName: string | null;
+
+  /**
+   * Request display name when the run targeted one request.
+   */
+  requestName: string | null;
+
+  /**
+   * Portable collection uuid, when available.
+   */
+  collectionUuid: string | null;
+
+  /**
+   * Portable request uuid for single-request runs.
+   */
+  requestUuid: string | null;
+
+  /**
+   * HTTP method for single-request runs.
+   */
+  requestMethod: HttpMethod | null;
+
+  /**
+   * Runner delay-between-requests setting in milliseconds.
+   */
+  delayMs: number;
+
+  /**
+   * Runner stop-on-failure setting.
+   */
+  stopOnFailure: boolean;
+
+  /**
+   * Runner environment mode at export time.
+   */
+  environmentMode: CollectionRunnerEnvironmentMode;
+
+  /**
+   * Override environment id when mode is override.
+   */
+  environmentId: number | null;
+
+  /**
+   * Human-readable environment name at export time.
+   */
+  environmentName: string | null;
+
+  /**
+   * Completed per-request result rows to serialize.
+   */
+  results: CollectionRunnerRequestResult[];
+}
+
+/**
+ * Aggregate pass/fail counts derived from runner result rows.
+ */
+export interface CollectionRunnerSummary {
+  /**
+   * Number of requests that passed.
+   */
+  passed: number;
+
+  /**
+   * Number of requests that failed.
+   */
+  failed: number;
+
+  /**
+   * Number of requests that were skipped.
+   */
+  skipped: number;
+}
+
+/**
+ * Counts passed, failed, and skipped rows from a result list.
+ *
+ * @param results - Runner result rows, typically from a completed or imported run.
+ * @returns Summary counts for progress display and import hydration.
+ */
+export function summarizeRunnerResults(
+  results: CollectionRunnerRequestResult[]
+): CollectionRunnerSummary {
+  let passed = 0;
+  let failed = 0;
+  let skipped = 0;
+  for (const result of results) {
+    if (result.status === 'passed') {
+      passed += 1;
+    } else if (result.status === 'failed') {
+      failed += 1;
+    } else if (result.status === 'skipped') {
+      skipped += 1;
+    }
+  }
+  return { passed, failed, skipped };
+}
+
+/**
+ * Builds a portable run-results export from active runner state and resolved entity metadata.
+ *
+ * @param args - Runner configuration, target names, and completed result rows.
+ * @returns JSON-serializable export payload for save-to-disk.
+ */
+export function buildRunResultsExport(args: BuildRunResultsExportArgs): RunResultsExport {
+  const isRequestRun = args.requestId != null;
+  const exportKind: RunResultsExportKind = isRequestRun
+    ? 'request-run-results'
+    : 'collection-run-results';
+
+  const payload: RunResultsExport = {
+    harborclientVersion: 1,
+    harborclientExport: exportKind,
+    delay: args.delayMs,
+    stopOnFailure: args.stopOnFailure,
+    environment: {
+      mode: args.environmentMode,
+      id: args.environmentMode === 'override' ? args.environmentId : null,
+      name: args.environmentName
+    },
+    results: args.results
+  };
+
+  if (args.collectionUuid) {
+    payload.collection = {
+      uuid: args.collectionUuid,
+      name: args.collectionName,
+      ...(args.folderName ? { folderName: args.folderName } : {})
+    };
+  }
+
+  if (isRequestRun && args.requestUuid && args.requestName && args.requestMethod) {
+    payload.request = {
+      uuid: args.requestUuid,
+      name: args.requestName,
+      method: args.requestMethod
+    };
+  }
+
+  return payload;
+}
+
+/**
+ * Resolves local collection and request ids from portable uuids in an import file.
+ *
+ * @param data - Parsed run-results export from disk.
+ * @param collections - Collections currently loaded in the workspace.
+ * @param requestsByCollection - Saved requests keyed by collection id.
+ * @returns Local ids when matches exist, or detached placeholders when not found.
+ */
+export function resolveImportedRunnerTargetIds(
+  data: RunResultsExport,
+  collections: Array<{ id: number; uuid: string }>,
+  requestsByCollection: Record<number, Array<{ id: number; uuid: string }>>
+): { collectionId: number; requestId: number | null } {
+  let collectionId = 0;
+  if (data.collection?.uuid) {
+    const collection = collections.find((item) => item.uuid === data.collection?.uuid);
+    if (collection) {
+      collectionId = collection.id;
+    }
+  }
+
+  let requestId: number | null = null;
+  if (data.request?.uuid) {
+    const searchCollectionIds =
+      collectionId > 0 ? [collectionId] : Object.keys(requestsByCollection).map(Number);
+    for (const id of searchCollectionIds) {
+      const match = (requestsByCollection[id] ?? []).find(
+        (request) => request.uuid === data.request?.uuid
+      );
+      if (match) {
+        collectionId = id;
+        requestId = match.id;
+        break;
+      }
+    }
+  }
+
+  return { collectionId, requestId };
 }
 
 /**
@@ -239,6 +583,7 @@ export function buildPendingCollectionRunnerResults(
   return requests.map((request) => ({
     requestId: request.id,
     requestName: request.name,
+    requestMethod: request.method,
     status: 'pending',
     testsPassed: 0,
     testsFailed: 0

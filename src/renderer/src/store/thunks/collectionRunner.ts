@@ -15,21 +15,18 @@ import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environments
 import {
   appendCollectionRunnerResult,
   finishCollectionRunner,
-  selectCollectionRunnerModal,
+  selectCollectionRunner,
   setCollectionRunnerRequestRunning,
   skipRemainingCollectionRunnerRequests,
   startCollectionRunner
 } from '#/renderer/src/store/slices/modalsSlice';
+import { draftFromSaved } from '#/renderer/src/store/drafts';
 import {
   selectFoldersByCollection,
-  selectRequestsByCollection,
-  selectResponse,
-  selectScriptNextRequest,
-  selectScriptSkipRequest,
-  selectTestResults
+  selectRequestsByCollection
 } from '#/renderer/src/store/selectors';
 import { refreshCollectionContents } from '#/renderer/src/store/thunks/collections';
-import { requestLoadRequest, sendRequest } from '#/renderer/src/store/thunks/requests';
+import { executeRequestDraft } from '#/renderer/src/store/thunks/requests';
 
 /**
  * Waits for the configured delay between collection runner requests.
@@ -43,12 +40,13 @@ function sleep(delayMs: number): Promise<void> {
 }
 
 /**
- * Returns true when the collection runner modal has been cancelled.
+ * Returns true when the collection runner has been cancelled or closed.
  *
  * @param state - Current Redux state.
  */
 function isCollectionRunnerCancelled(state: RootState): boolean {
-  return Boolean(selectCollectionRunnerModal(state)?.cancelled);
+  const runner = selectCollectionRunner(state);
+  return runner == null || runner.cancelled;
 }
 
 /**
@@ -57,8 +55,8 @@ function isCollectionRunnerCancelled(state: RootState): boolean {
 export const runCollectionRequests = createAsyncThunk<void, void, ThunkApiConfig>(
   'collectionRunner/run',
   async (_, { dispatch, getState }) => {
-    const runner = selectCollectionRunnerModal(getState());
-    if (!runner || runner.phase !== 'configure') {
+    const runner = selectCollectionRunner(getState());
+    if (!runner || (runner.phase !== 'configure' && runner.phase !== 'complete')) {
       return;
     }
 
@@ -123,21 +121,19 @@ export const runCollectionRequests = createAsyncThunk<void, void, ThunkApiConfig
         const request = orderedRequests[index];
         dispatch(setCollectionRunnerRequestRunning(request.id));
 
-        await dispatch(
-          requestLoadRequest({ req: request, skipSettingsCheck: true, forceReload: true })
-        ).unwrap();
-
         if (isCollectionRunnerCancelled(getState())) {
           dispatch(skipRemainingCollectionRunnerRequests());
           break;
         }
 
-        await dispatch(sendRequest()).unwrap();
+        const draft = draftFromSaved(request);
+        const requestId = crypto.randomUUID();
+        const outcome = await executeRequestDraft({ draft, requestId }, { dispatch, getState });
 
-        const response = selectResponse(getState());
-        const testResults = selectTestResults(getState());
-        const scriptSkipRequest = selectScriptSkipRequest(getState());
-        const scriptNextRequest = selectScriptNextRequest(getState());
+        const response = outcome.response;
+        const testResults = outcome.testResults;
+        const scriptSkipRequest = outcome.scriptSkipRequest;
+        const scriptNextRequest = outcome.scriptNextRequest;
         const { testsPassed, testsFailed } = countTestResults(testResults);
         const failed =
           !scriptSkipRequest && isCollectionRunnerRequestFailure(response, testResults);
@@ -149,7 +145,12 @@ export const runCollectionRequests = createAsyncThunk<void, void, ThunkApiConfig
             httpStatus: response?.status,
             httpError: response?.error,
             testsPassed,
-            testsFailed
+            testsFailed,
+            response,
+            testResults,
+            scriptLogs: outcome.scriptLogs,
+            scriptError: outcome.scriptError,
+            requestUrl: draft.url
           })
         );
 
@@ -179,7 +180,7 @@ export const runCollectionRequests = createAsyncThunk<void, void, ThunkApiConfig
       }
       dispatch(finishCollectionRunner());
 
-      const summary = selectCollectionRunnerModal(getState())?.summary;
+      const summary = selectCollectionRunner(getState())?.summary;
       if (summary) {
         toast.success(
           `Run complete: ${summary.passed} passed, ${summary.failed} failed${

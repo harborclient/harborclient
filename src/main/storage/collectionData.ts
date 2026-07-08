@@ -4,9 +4,12 @@ import {
   formatCollectionImportError,
   formatEnvironmentImportError,
   formatRequestImportError,
-  requestExportSchema
+  formatRunResultsImportError,
+  requestExportSchema,
+  runResultsExportSchema
 } from '#/main/storage/collectionSchemas';
 import type { CollectionExport, EnvironmentExport, RequestExport, Variable } from '#/shared/types';
+import type { RunResultsExport } from '#/shared/collectionRunner';
 
 export { normalizeVariable } from '#/main/storage/collectionVariables';
 
@@ -122,4 +125,24 @@ export function validateEnvironmentExport(data: unknown): EnvironmentExport {
   }
 
   return result.data;
+}
+
+/**
+ * Validates and normalizes imported run-results export data.
+ *
+ * @param data - Parsed JSON payload from an export file.
+ * @returns Normalized run-results export.
+ * @throws When the payload is invalid.
+ */
+export function validateRunResultsExport(data: unknown): RunResultsExport {
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid run results file: expected a JSON object');
+  }
+
+  const result = runResultsExportSchema.safeParse(data);
+  if (!result.success) {
+    throw new Error(`Invalid run results file: ${formatRunResultsImportError(result.error)}`);
+  }
+
+  return result.data as RunResultsExport;
 }

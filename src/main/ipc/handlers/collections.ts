@@ -5,7 +5,8 @@ import {
   requestExportContainsScripts,
   validateCollectionExport,
   validateEnvironmentExport,
-  validateRequestExport
+  validateRequestExport,
+  validateRunResultsExport
 } from '#/main/storage/collectionData';
 import { convertPostmanCollection, isPostmanCollection } from '#/main/import/postman';
 import { convertBrunoCollection, isBrunoCollectionManifest } from '#/main/import/bruno';
@@ -366,6 +367,37 @@ export function registerCollectionHandlers(db: IStorage): void {
     return { canceled: false, path: filePath };
   });
 
+  // Exports run results to a JSON file via a native save dialog.
+  handle('runResults:export', ipcArgSchemas.runResultsExport, async (_event, data) => {
+    const win = BrowserWindow.getFocusedWindow();
+    const defaultName = data.request?.name ?? data.collection?.name ?? 'run-results';
+    const dialogOptions = {
+      defaultPath: `${defaultName}.json`,
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    };
+    const { canceled, filePath } = win
+      ? await dialog.showSaveDialog(win, dialogOptions)
+      : await dialog.showSaveDialog(dialogOptions);
+
+    if (canceled || !filePath) {
+      return { canceled: true };
+    }
+
+    await writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    return { canceled: false, path: filePath };
+  });
+
+  // Imports run results from a JSON file selected via a native open dialog.
+  handle('runResults:import', ipcArgSchemas.none, async () => {
+    const win = BrowserWindow.getFocusedWindow();
+    const file = await openImportFile(win);
+    if (!file) {
+      return null;
+    }
+
+    return validateRunResultsExport(file.parsed);
+  });
+
   // Imports a collection from a JSON file selected via a native open dialog.
   handle('collections:import', ipcArgSchemas.none, async () => {
     const win = BrowserWindow.getFocusedWindow();
@@ -512,6 +544,14 @@ export function registerCollectionHandlers(db: IStorage): void {
         kind: 'request',
         request: result.request,
         action: result.action
+      } satisfies ImportEntityResult;
+    }
+
+    if (exportKind === 'collection-run-results' || exportKind === 'request-run-results') {
+      const data = validateRunResultsExport(parsed);
+      return {
+        kind: 'run-results',
+        data
       } satisfies ImportEntityResult;
     }
 

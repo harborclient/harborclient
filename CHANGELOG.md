@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(run-results): implement export and import functionality for run results. (`6146468`)
 - feat(catalog): add new snippet reference for authentication. (`20a6987`)
 
 ## 2.0.8 - 2026-07-07

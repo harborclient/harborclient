@@ -1,4 +1,4 @@
-import { createAsyncThunk } from '@reduxjs/toolkit';
+import { createAsyncThunk, type ThunkDispatch, type UnknownAction } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
 import type {
   CollectionExportResult,
@@ -48,6 +48,7 @@ import {
   isPageTab,
   isRequestTab,
   isTabDirty,
+  type RequestDraft,
   type RequestTab
 } from '#/renderer/src/store/drafts';
 import { setSelectedCollectionId } from '#/renderer/src/store/slices/collectionsSlice';
@@ -408,148 +409,453 @@ export const newRequestInCollection = createAsyncThunk<SavedRequest, number, Thu
 );
 
 /**
+ * Outcome of executing a request draft without touching editor tabs.
+ */
+export interface RequestRunOutcome {
+  /**
+   * HTTP response or synthetic skipped/error result from the send pipeline.
+   */
+  response: SendResult;
+  /**
+   * Post-request script test assertions collected during the run.
+   */
+  testResults: ScriptTestResult[];
+  /**
+   * Console output captured from pre/post scripts.
+   */
+  scriptLogs: string[];
+  /**
+   * Aggregated script runtime errors, when any script failed.
+   */
+  scriptError?: string;
+  /**
+   * Next request name from hc.execution.setNextRequest for collection runner flow control.
+   */
+  scriptNextRequest?: string | null;
+  /**
+   * When true, hc.execution.skipRequest() skipped the HTTP send.
+   */
+  scriptSkipRequest: boolean;
+}
+
+/**
+ * Arguments for {@link executeRequestDraft}.
+ */
+export interface ExecuteRequestDraftArgs {
+  /**
+   * Request draft to send, including saved id and collection metadata when available.
+   */
+  draft: RequestDraft;
+  /**
+   * Correlation id passed to the main-process HTTP layer for cancellation.
+   */
+  requestId: string;
+}
+
+/**
+ * Runs pre/post scripts, sends HTTP, persists script side effects, and records console output
+ * for a request draft without creating or mutating editor tabs.
+ *
+ * @param args - Draft and in-flight request id for the send pipeline.
+ * @param deps - Redux dispatch and state accessors.
+ * @returns Response, script output, and runner flow-control fields from the completed run.
+ */
+export async function executeRequestDraft(
+  args: ExecuteRequestDraftArgs,
+  deps: { dispatch: ThunkDispatch<RootState, unknown, UnknownAction>; getState: () => RootState }
+): Promise<RequestRunOutcome> {
+  const { draft: currentDraft, requestId } = args;
+  const { dispatch, getState } = deps;
+  const state = getState();
+  const collectionId = currentDraft.collection_id ?? state.collections.selectedCollectionId;
+  const collection = collectionId
+    ? state.collections.collections.find((c) => c.id === collectionId)
+    : undefined;
+  const activeEnvironmentId = state.environments.activeEnvironmentId;
+  const environment = activeEnvironmentId
+    ? state.environments.environments.find((env) => env.id === activeEnvironmentId)
+    : undefined;
+  const globalVariables = state.settings.general.globalVariables;
+
+  let runtimeVars = {
+    ...buildRuntimeVars(globalVariables),
+    ...buildRuntimeVars(collection?.variables ?? []),
+    ...buildRuntimeVars(environment?.variables ?? [])
+  };
+  let globalVarSets: Record<string, string> = {};
+  let collectionVarSets: Record<string, string> = {};
+  let envVarSets: Record<string, string> = {};
+  let runtimeVarClears: string[] = [];
+  let collectionVarClears: string[] = [];
+  let envVarClears: string[] = [];
+  let globalVarClears: string[] = [];
+  let cookieVarSets: Record<string, string> = {};
+  let cookieVarClears: string[] = [];
+  let scriptNextRequest: string | null | undefined;
+  let scriptSkipRequest = false;
+  let collectionHeaderRows: KeyValue[] = collection
+    ? (collection.headers ?? []).map((header) => ({ ...header }))
+    : [];
+  let collectionAuthConfig = collection?.auth ? structuredClone(collection.auth) : defaultAuth();
+  const allLogs: string[] = [];
+  const allTests: ScriptTestResult[] = [];
+  const scriptErrors: string[] = [];
+
+  let scriptRequest: ScriptRequestContext = {
+    method: currentDraft.method,
+    url: currentDraft.url,
+    headers: currentDraft.headers.map((header) => ({ ...header })),
+    params: currentDraft.params.map((param) => ({ ...param })),
+    body: currentDraft.body,
+    bodyType: currentDraft.body_type,
+    auth: structuredClone(currentDraft.auth)
+  };
+
+  const cookieHost = hostFromUrl(substituteWithMap(currentDraft.url, runtimeVars));
+  let cookieRows: KeyValue[] = cookieHost != null ? await window.api.getCookies(cookieHost) : [];
+
+  /**
+   * Runs pre- or post-request scripts for one phase slot.
+   */
+  const runScriptPhase = async (phase: 'pre' | 'post', response?: SendResult): Promise<void> => {
+    const snippetLookup = buildSnippetLookup(state.snippets.snippets);
+    const slots = buildScriptSlots(
+      collection?.pre_request_scripts,
+      collection?.post_request_scripts,
+      currentDraft.pre_request_scripts,
+      currentDraft.post_request_scripts,
+      collection?.pre_request_script ?? '',
+      collection?.post_request_script ?? '',
+      currentDraft.pre_request_script,
+      currentDraft.post_request_script,
+      phase,
+      snippetLookup
+    );
+
+    for (const slot of slots) {
+      const scriptSource = substituteWithMap(slot.source, runtimeVars);
+      const result: ScriptRunResult = await window.api.runScript({
+        phase: slot.phase,
+        script: scriptSource,
+        request: scriptRequest,
+        response,
+        variables: runtimeVars,
+        cookies: cookieRows,
+        info: buildScriptRunInfo(slot.phase, {
+          requestName: currentDraft.name,
+          requestId: currentDraft.id ?? null
+        }),
+        collection: {
+          id: collection?.id ?? null,
+          name: collection?.name ?? '',
+          headers: collectionHeaderRows,
+          auth: collectionAuthConfig
+        },
+        environment: {
+          name: environment?.name ?? ''
+        }
+      });
+
+      if (result.logs.length) {
+        allLogs.push(`[${slot.label}]`, ...result.logs);
+      }
+      if (result.tests.length) {
+        allTests.push(...result.tests.map((test) => ({ ...test, scriptName: slot.label })));
+      }
+      if (result.error) {
+        scriptErrors.push(`${slot.label}: ${result.error}`);
+      }
+
+      scriptRequest = applyScriptRequestMutations(scriptRequest, result);
+      runtimeVars = mergeVariableSets(runtimeVars, result.variableSets);
+      runtimeVars = mergeVariableSets(runtimeVars, result.globalVariableSets);
+      runtimeVars = mergeVariableSets(runtimeVars, result.collectionVariableSets);
+      runtimeVars = mergeVariableSets(runtimeVars, result.environmentVariableSets);
+      runtimeVars = applyRuntimeVariableClears(runtimeVars, result.variableClears);
+      runtimeVars = applyRuntimeVariableClears(runtimeVars, result.globalVariableClears);
+      runtimeVars = applyRuntimeVariableClears(runtimeVars, result.collectionVariableClears);
+      runtimeVars = applyRuntimeVariableClears(runtimeVars, result.environmentVariableClears);
+      globalVarSets = { ...globalVarSets, ...result.globalVariableSets };
+      collectionVarSets = { ...collectionVarSets, ...result.collectionVariableSets };
+      envVarSets = { ...envVarSets, ...result.environmentVariableSets };
+      runtimeVarClears = [...runtimeVarClears, ...result.variableClears];
+      collectionVarClears = [...collectionVarClears, ...result.collectionVariableClears];
+      envVarClears = [...envVarClears, ...result.environmentVariableClears];
+      globalVarClears = [...globalVarClears, ...result.globalVariableClears];
+      cookieVarSets = { ...cookieVarSets, ...result.cookieSets };
+      cookieVarClears = [...cookieVarClears, ...result.cookieClears];
+      cookieRows = applyCookieChanges(cookieRows, result.cookieSets, result.cookieClears);
+      collectionHeaderRows = result.collectionHeaders;
+      if (result.collectionAuth) {
+        collectionAuthConfig = result.collectionAuth;
+      }
+      if (result.nextRequest !== undefined) {
+        scriptNextRequest = result.nextRequest;
+      }
+      if (result.skipRequest) {
+        scriptSkipRequest = true;
+      }
+    }
+  };
+
+  try {
+    await runScriptPhase('pre');
+
+    let result: SendResult;
+
+    if (scriptSkipRequest) {
+      result = {
+        status: 0,
+        statusText: 'Skipped',
+        headers: {},
+        body: '',
+        timeMs: 0,
+        sizeBytes: 0,
+        error: 'Request skipped by script'
+      };
+    } else {
+      const resolvedUrl = substituteWithMap(scriptRequest.url, runtimeVars);
+      const collectionHeaders = collectionHeaderRows.map((header) => ({
+        ...header,
+        value: substituteWithMap(header.value, runtimeVars)
+      }));
+      const draftHeaders = scriptRequest.headers.map((header) => ({
+        ...header,
+        value: substituteWithMap(header.value, runtimeVars)
+      }));
+      const effectiveAuth =
+        scriptRequest.auth && scriptRequest.auth.type !== 'none'
+          ? scriptRequest.auth
+          : collectionAuthConfig;
+      const resolvedAuth = resolveAuthVariables(effectiveAuth, (text) =>
+        substituteWithMap(text, runtimeVars)
+      );
+      let authValue = buildAuthHeaderValue(resolvedAuth);
+      const manualHasAuth = [...collectionHeaders, ...draftHeaders].some(
+        (header) =>
+          header.enabled &&
+          header.key.trim().toLowerCase() === 'authorization' &&
+          header.value.trim() !== ''
+      );
+      if (!authValue && resolvedAuth.type === 'oauth2' && !manualHasAuth) {
+        const usesRequestAuth = scriptRequest.auth?.type === 'oauth2';
+        const cacheKey =
+          usesRequestAuth && currentDraft.id != null
+            ? buildOAuthCacheKey('request', currentDraft.id)
+            : !usesRequestAuth && collection?.id != null
+              ? buildOAuthCacheKey('collection', collection.id)
+              : '';
+        const tokenResult = await window.api.oauthFetchToken(cacheKey, resolvedAuth.oauth2, false);
+        authValue = buildOAuthAuthHeaderValue(tokenResult);
+        if (!authValue) {
+          throw new Error('OAuth token response contained an invalid access token.');
+        }
+      }
+      const headers =
+        authValue && !manualHasAuth
+          ? [
+              { key: 'Authorization', value: authValue, enabled: true },
+              ...collectionHeaders,
+              ...draftHeaders
+            ]
+          : [...collectionHeaders, ...draftHeaders];
+      const params = scriptRequest.params.map((param) => ({
+        ...param,
+        value: substituteWithMap(param.value, runtimeVars)
+      }));
+      const body = substituteWithMap(scriptRequest.body, runtimeVars);
+
+      const sendInput = {
+        method: scriptRequest.method,
+        url: resolvedUrl,
+        headers,
+        params,
+        body,
+        bodyType: scriptRequest.bodyType,
+        ...(currentDraft.id != null ? { sourceRequestId: currentDraft.id } : {}),
+        ...(currentDraft.name.trim() ? { sourceRequestName: currentDraft.name } : {})
+      };
+
+      result = await window.api.sendRequest(sendInput, requestId);
+
+      if (!result.error) {
+        emitPluginAfterSend(toPluginHttpRequest(sendInput), toPluginHttpResponse(result));
+      }
+
+      await runScriptPhase('post', result);
+    }
+
+    const persistErrors: string[] = [];
+
+    if (
+      cookieHost != null &&
+      (Object.keys(cookieVarSets).length > 0 || cookieVarClears.length > 0)
+    ) {
+      try {
+        await window.api.setCookies(
+          cookieHost,
+          applyCookieChanges(cookieRows, cookieVarSets, cookieVarClears)
+        );
+      } catch (err) {
+        persistErrors.push(
+          err instanceof Error ? err.message : 'Failed to save cookie changes from script'
+        );
+      }
+    }
+
+    if (collection) {
+      const headersChanged =
+        JSON.stringify(collectionHeaderRows) !== JSON.stringify(collection.headers ?? []);
+      const authChanged =
+        JSON.stringify(collectionAuthConfig) !== JSON.stringify(collection.auth ?? defaultAuth());
+      const hasCollectionChanges =
+        Object.keys(collectionVarSets).length > 0 ||
+        collectionVarClears.length > 0 ||
+        headersChanged ||
+        authChanged;
+
+      if (hasCollectionChanges) {
+        try {
+          await dispatch(
+            updateCollection({
+              id: collection.id,
+              name: collection.name,
+              variables: applyVariableClears(
+                applyCollectionVariableSets(collection.variables, collectionVarSets),
+                collectionVarClears
+              ),
+              headers: collectionHeaderRows,
+              preRequestScript: collection.pre_request_script,
+              postRequestScript: collection.post_request_script,
+              preRequestScripts: collection.pre_request_scripts,
+              postRequestScripts: collection.post_request_scripts,
+              auth: collectionAuthConfig,
+              connectionId: collection.connectionId
+            })
+          ).unwrap();
+        } catch (err) {
+          persistErrors.push(
+            err instanceof Error ? err.message : 'Failed to save collection changes from script'
+          );
+        }
+      }
+    }
+
+    if (environment && (Object.keys(envVarSets).length > 0 || envVarClears.length > 0)) {
+      try {
+        await dispatch(
+          updateEnvironment({
+            id: environment.id,
+            name: environment.name,
+            variables: applyVariableClears(
+              applyCollectionVariableSets(environment.variables, envVarSets),
+              envVarClears
+            )
+          })
+        ).unwrap();
+      } catch (err) {
+        persistErrors.push(
+          err instanceof Error ? err.message : 'Failed to save environment changes from script'
+        );
+      }
+    }
+
+    if (Object.keys(globalVarSets).length > 0 || globalVarClears.length > 0) {
+      try {
+        await dispatch(
+          saveGlobalVariables(
+            applyVariableClears(
+              applyCollectionVariableSets(globalVariables, globalVarSets),
+              globalVarClears
+            )
+          )
+        ).unwrap();
+      } catch (err) {
+        persistErrors.push(
+          err instanceof Error ? err.message : 'Failed to save global variable changes from script'
+        );
+      }
+    }
+
+    dispatch(
+      addConsoleEntry({
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        requestName: currentDraft.name,
+        collectionName: collection?.name,
+        result,
+        logs: allLogs.length ? allLogs : undefined,
+        tests: allTests.length ? allTests : undefined,
+        scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined
+      })
+    );
+
+    if (scriptErrors.length) {
+      toast.error(`Script error: ${scriptErrors[0]}`);
+    }
+
+    if (persistErrors.length) {
+      toast.error(`Failed to persist script changes: ${persistErrors[0]}`);
+    }
+
+    return {
+      response: result,
+      testResults: allTests,
+      scriptLogs: allLogs,
+      scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined,
+      scriptNextRequest,
+      scriptSkipRequest
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const errorResult: SendResult = {
+      status: 0,
+      statusText: 'Error',
+      headers: {},
+      body: '',
+      timeMs: 0,
+      sizeBytes: 0,
+      error: message
+    };
+
+    dispatch(
+      addConsoleEntry({
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        requestName: currentDraft.name,
+        collectionName: collection?.name,
+        result: errorResult,
+        logs: allLogs.length ? allLogs : undefined,
+        tests: allTests.length ? allTests : undefined,
+        scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined
+      })
+    );
+    toast.error(message);
+
+    return {
+      response: errorResult,
+      testResults: allTests,
+      scriptLogs: allLogs,
+      scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined,
+      scriptSkipRequest: false
+    };
+  }
+}
+
+/**
  * Sends the active tab request, running pre/post scripts and recording console output.
  */
-export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
+export const sendRequest = createAsyncThunk<void, string | undefined, ThunkApiConfig>(
   'tabs/sendRequest',
-  async (_, { dispatch, getState }) => {
+  async (tabIdArg, { dispatch, getState }) => {
     const state = getState();
-    const activeTab = selectActiveTab(state);
+    const activeTab = tabIdArg
+      ? state.tabs.tabs.find((tab) => tab.tabId === tabIdArg)
+      : selectActiveTab(state);
     if (!activeTab || !isRequestTab(activeTab) || activeTab.sending) return;
 
     const tabId = activeTab.tabId;
     const requestId = crypto.randomUUID();
-    const currentDraft = activeTab.draft;
-    const collectionId = currentDraft.collection_id ?? state.collections.selectedCollectionId;
-    const collection = collectionId
-      ? state.collections.collections.find((c) => c.id === collectionId)
-      : undefined;
-    const activeEnvironmentId = state.environments.activeEnvironmentId;
-    const environment = activeEnvironmentId
-      ? state.environments.environments.find((env) => env.id === activeEnvironmentId)
-      : undefined;
-    const globalVariables = state.settings.general.globalVariables;
-
-    let runtimeVars = {
-      ...buildRuntimeVars(globalVariables),
-      ...buildRuntimeVars(collection?.variables ?? []),
-      ...buildRuntimeVars(environment?.variables ?? [])
-    };
-    let globalVarSets: Record<string, string> = {};
-    let collectionVarSets: Record<string, string> = {};
-    let envVarSets: Record<string, string> = {};
-    let runtimeVarClears: string[] = [];
-    let collectionVarClears: string[] = [];
-    let envVarClears: string[] = [];
-    let globalVarClears: string[] = [];
-    let cookieVarSets: Record<string, string> = {};
-    let cookieVarClears: string[] = [];
-    let scriptNextRequest: string | null | undefined;
-    let scriptSkipRequest = false;
-    let collectionHeaderRows: KeyValue[] = collection
-      ? (collection.headers ?? []).map((header) => ({ ...header }))
-      : [];
-    let collectionAuthConfig = collection?.auth ? structuredClone(collection.auth) : defaultAuth();
-    const allLogs: string[] = [];
-    const allTests: ScriptTestResult[] = [];
-    const scriptErrors: string[] = [];
-
-    let scriptRequest: ScriptRequestContext = {
-      method: currentDraft.method,
-      url: currentDraft.url,
-      headers: currentDraft.headers.map((header) => ({ ...header })),
-      params: currentDraft.params.map((param) => ({ ...param })),
-      body: currentDraft.body,
-      bodyType: currentDraft.body_type,
-      auth: structuredClone(currentDraft.auth)
-    };
-
-    const cookieHost = hostFromUrl(substituteWithMap(currentDraft.url, runtimeVars));
-    let cookieRows: KeyValue[] = cookieHost != null ? await window.api.getCookies(cookieHost) : [];
-
-    /**
-     * Runs pre- or post-request scripts for one phase slot.
-     */
-    const runScriptPhase = async (phase: 'pre' | 'post', response?: SendResult): Promise<void> => {
-      const snippetLookup = buildSnippetLookup(state.snippets.snippets);
-      const slots = buildScriptSlots(
-        collection?.pre_request_scripts,
-        collection?.post_request_scripts,
-        currentDraft.pre_request_scripts,
-        currentDraft.post_request_scripts,
-        collection?.pre_request_script ?? '',
-        collection?.post_request_script ?? '',
-        currentDraft.pre_request_script,
-        currentDraft.post_request_script,
-        phase,
-        snippetLookup
-      );
-
-      for (const slot of slots) {
-        const scriptSource = substituteWithMap(slot.source, runtimeVars);
-        const result: ScriptRunResult = await window.api.runScript({
-          phase: slot.phase,
-          script: scriptSource,
-          request: scriptRequest,
-          response,
-          variables: runtimeVars,
-          cookies: cookieRows,
-          info: buildScriptRunInfo(slot.phase, {
-            requestName: currentDraft.name,
-            requestId: currentDraft.id ?? null
-          }),
-          collection: {
-            id: collection?.id ?? null,
-            name: collection?.name ?? '',
-            headers: collectionHeaderRows,
-            auth: collectionAuthConfig
-          },
-          environment: {
-            name: environment?.name ?? ''
-          }
-        });
-
-        if (result.logs.length) {
-          allLogs.push(`[${slot.label}]`, ...result.logs);
-        }
-        if (result.tests.length) {
-          allTests.push(...result.tests.map((test) => ({ ...test, scriptName: slot.label })));
-        }
-        if (result.error) {
-          scriptErrors.push(`${slot.label}: ${result.error}`);
-        }
-
-        scriptRequest = applyScriptRequestMutations(scriptRequest, result);
-        runtimeVars = mergeVariableSets(runtimeVars, result.variableSets);
-        runtimeVars = mergeVariableSets(runtimeVars, result.globalVariableSets);
-        runtimeVars = mergeVariableSets(runtimeVars, result.collectionVariableSets);
-        runtimeVars = mergeVariableSets(runtimeVars, result.environmentVariableSets);
-        runtimeVars = applyRuntimeVariableClears(runtimeVars, result.variableClears);
-        runtimeVars = applyRuntimeVariableClears(runtimeVars, result.globalVariableClears);
-        runtimeVars = applyRuntimeVariableClears(runtimeVars, result.collectionVariableClears);
-        runtimeVars = applyRuntimeVariableClears(runtimeVars, result.environmentVariableClears);
-        globalVarSets = { ...globalVarSets, ...result.globalVariableSets };
-        collectionVarSets = { ...collectionVarSets, ...result.collectionVariableSets };
-        envVarSets = { ...envVarSets, ...result.environmentVariableSets };
-        runtimeVarClears = [...runtimeVarClears, ...result.variableClears];
-        collectionVarClears = [...collectionVarClears, ...result.collectionVariableClears];
-        envVarClears = [...envVarClears, ...result.environmentVariableClears];
-        globalVarClears = [...globalVarClears, ...result.globalVariableClears];
-        cookieVarSets = { ...cookieVarSets, ...result.cookieSets };
-        cookieVarClears = [...cookieVarClears, ...result.cookieClears];
-        cookieRows = applyCookieChanges(cookieRows, result.cookieSets, result.cookieClears);
-        collectionHeaderRows = result.collectionHeaders;
-        if (result.collectionAuth) {
-          collectionAuthConfig = result.collectionAuth;
-        }
-        if (result.nextRequest !== undefined) {
-          scriptNextRequest = result.nextRequest;
-        }
-        if (result.skipRequest) {
-          scriptSkipRequest = true;
-        }
-      }
-    };
 
     /**
      * Returns whether the tab still owns the in-flight send.
@@ -576,262 +882,25 @@ export const sendRequest = createAsyncThunk<void, void, ThunkApiConfig>(
     );
 
     try {
-      await runScriptPhase('pre');
-
-      let result: SendResult;
-
-      if (scriptSkipRequest) {
-        result = {
-          status: 0,
-          statusText: 'Skipped',
-          headers: {},
-          body: '',
-          timeMs: 0,
-          sizeBytes: 0,
-          error: 'Request skipped by script'
-        };
-      } else {
-        const resolvedUrl = substituteWithMap(scriptRequest.url, runtimeVars);
-        const collectionHeaders = collectionHeaderRows.map((header) => ({
-          ...header,
-          value: substituteWithMap(header.value, runtimeVars)
-        }));
-        const draftHeaders = scriptRequest.headers.map((header) => ({
-          ...header,
-          value: substituteWithMap(header.value, runtimeVars)
-        }));
-        const effectiveAuth =
-          scriptRequest.auth && scriptRequest.auth.type !== 'none'
-            ? scriptRequest.auth
-            : collectionAuthConfig;
-        const resolvedAuth = resolveAuthVariables(effectiveAuth, (text) =>
-          substituteWithMap(text, runtimeVars)
-        );
-        let authValue = buildAuthHeaderValue(resolvedAuth);
-        const manualHasAuth = [...collectionHeaders, ...draftHeaders].some(
-          (header) =>
-            header.enabled &&
-            header.key.trim().toLowerCase() === 'authorization' &&
-            header.value.trim() !== ''
-        );
-        if (!authValue && resolvedAuth.type === 'oauth2' && !manualHasAuth) {
-          const usesRequestAuth = scriptRequest.auth?.type === 'oauth2';
-          const cacheKey =
-            usesRequestAuth && currentDraft.id != null
-              ? buildOAuthCacheKey('request', currentDraft.id)
-              : !usesRequestAuth && collection?.id != null
-                ? buildOAuthCacheKey('collection', collection.id)
-                : '';
-          const tokenResult = await window.api.oauthFetchToken(
-            cacheKey,
-            resolvedAuth.oauth2,
-            false
-          );
-          authValue = buildOAuthAuthHeaderValue(tokenResult);
-          if (!authValue) {
-            throw new Error('OAuth token response contained an invalid access token.');
-          }
-        }
-        const headers =
-          authValue && !manualHasAuth
-            ? [
-                { key: 'Authorization', value: authValue, enabled: true },
-                ...collectionHeaders,
-                ...draftHeaders
-              ]
-            : [...collectionHeaders, ...draftHeaders];
-        const params = scriptRequest.params.map((param) => ({
-          ...param,
-          value: substituteWithMap(param.value, runtimeVars)
-        }));
-        const body = substituteWithMap(scriptRequest.body, runtimeVars);
-
-        const sendInput = {
-          method: scriptRequest.method,
-          url: resolvedUrl,
-          headers,
-          params,
-          body,
-          bodyType: scriptRequest.bodyType,
-          ...(currentDraft.id != null ? { sourceRequestId: currentDraft.id } : {}),
-          ...(currentDraft.name.trim() ? { sourceRequestName: currentDraft.name } : {})
-        };
-
-        result = await window.api.sendRequest(sendInput, requestId);
-
-        if (!result.error) {
-          emitPluginAfterSend(toPluginHttpRequest(sendInput), toPluginHttpResponse(result));
-        }
-
-        await runScriptPhase('post', result);
-      }
-
-      const persistErrors: string[] = [];
-
-      if (
-        cookieHost != null &&
-        (Object.keys(cookieVarSets).length > 0 || cookieVarClears.length > 0)
-      ) {
-        try {
-          await window.api.setCookies(
-            cookieHost,
-            applyCookieChanges(cookieRows, cookieVarSets, cookieVarClears)
-          );
-        } catch (err) {
-          persistErrors.push(
-            err instanceof Error ? err.message : 'Failed to save cookie changes from script'
-          );
-        }
-      }
-
-      if (collection) {
-        const headersChanged =
-          JSON.stringify(collectionHeaderRows) !== JSON.stringify(collection.headers ?? []);
-        const authChanged =
-          JSON.stringify(collectionAuthConfig) !== JSON.stringify(collection.auth ?? defaultAuth());
-        const hasCollectionChanges =
-          Object.keys(collectionVarSets).length > 0 ||
-          collectionVarClears.length > 0 ||
-          headersChanged ||
-          authChanged;
-
-        if (hasCollectionChanges) {
-          try {
-            await dispatch(
-              updateCollection({
-                id: collection.id,
-                name: collection.name,
-                variables: applyVariableClears(
-                  applyCollectionVariableSets(collection.variables, collectionVarSets),
-                  collectionVarClears
-                ),
-                headers: collectionHeaderRows,
-                preRequestScript: collection.pre_request_script,
-                postRequestScript: collection.post_request_script,
-                preRequestScripts: collection.pre_request_scripts,
-                postRequestScripts: collection.post_request_scripts,
-                auth: collectionAuthConfig,
-                connectionId: collection.connectionId
-              })
-            ).unwrap();
-          } catch (err) {
-            persistErrors.push(
-              err instanceof Error ? err.message : 'Failed to save collection changes from script'
-            );
-          }
-        }
-      }
-
-      if (environment && (Object.keys(envVarSets).length > 0 || envVarClears.length > 0)) {
-        try {
-          await dispatch(
-            updateEnvironment({
-              id: environment.id,
-              name: environment.name,
-              variables: applyVariableClears(
-                applyCollectionVariableSets(environment.variables, envVarSets),
-                envVarClears
-              )
-            })
-          ).unwrap();
-        } catch (err) {
-          persistErrors.push(
-            err instanceof Error ? err.message : 'Failed to save environment changes from script'
-          );
-        }
-      }
-
-      if (Object.keys(globalVarSets).length > 0 || globalVarClears.length > 0) {
-        try {
-          await dispatch(
-            saveGlobalVariables(
-              applyVariableClears(
-                applyCollectionVariableSets(globalVariables, globalVarSets),
-                globalVarClears
-              )
-            )
-          ).unwrap();
-        } catch (err) {
-          persistErrors.push(
-            err instanceof Error
-              ? err.message
-              : 'Failed to save global variable changes from script'
-          );
-        }
-      }
+      const outcome = await executeRequestDraft(
+        { draft: activeTab.draft, requestId },
+        { dispatch, getState }
+      );
 
       if (isRequestStillActive()) {
         dispatch(
           updateTab({
             tabId,
             updates: {
-              response: result,
-              testResults: allTests,
-              scriptLogs: allLogs,
-              scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined,
-              scriptNextRequest,
-              scriptSkipRequest
+              response: outcome.response,
+              testResults: outcome.testResults,
+              scriptLogs: outcome.scriptLogs,
+              scriptError: outcome.scriptError,
+              scriptNextRequest: outcome.scriptNextRequest,
+              scriptSkipRequest: outcome.scriptSkipRequest
             }
           })
         );
-        dispatch(
-          addConsoleEntry({
-            id: crypto.randomUUID(),
-            timestamp: Date.now(),
-            requestName: currentDraft.name,
-            collectionName: collection?.name,
-            result,
-            logs: allLogs.length ? allLogs : undefined,
-            tests: allTests.length ? allTests : undefined,
-            scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined
-          })
-        );
-
-        if (scriptErrors.length) {
-          toast.error(`Script error: ${scriptErrors[0]}`);
-        }
-
-        if (persistErrors.length) {
-          toast.error(`Failed to persist script changes: ${persistErrors[0]}`);
-        }
-      }
-    } catch (err) {
-      if (isRequestStillActive()) {
-        const message = err instanceof Error ? err.message : String(err);
-        const errorResult: SendResult = {
-          status: 0,
-          statusText: 'Error',
-          headers: {},
-          body: '',
-          timeMs: 0,
-          sizeBytes: 0,
-          error: message
-        };
-
-        dispatch(
-          updateTab({
-            tabId,
-            updates: {
-              response: errorResult,
-              testResults: allTests,
-              scriptLogs: allLogs,
-              scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined
-            }
-          })
-        );
-        dispatch(
-          addConsoleEntry({
-            id: crypto.randomUUID(),
-            timestamp: Date.now(),
-            requestName: currentDraft.name,
-            collectionName: collection?.name,
-            result: errorResult,
-            logs: allLogs.length ? allLogs : undefined,
-            tests: allTests.length ? allTests : undefined,
-            scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined
-          })
-        );
-        toast.error(message);
       }
     } finally {
       if (isRequestStillActive()) {
@@ -878,7 +947,7 @@ export const closeRequestTab = createAsyncThunk<void, string, ThunkApiConfig>(
  * Opens a saved request in a tab (sync action wrapper).
  */
 export function dispatchLoadRequest(dispatch: AppDispatch, req: SavedRequest): void {
-  dispatch(loadRequest(req));
+  dispatch(loadRequest({ req }));
 }
 
 /**
@@ -895,6 +964,7 @@ export interface RequestLoadRequestArgs {
   req: SavedRequest;
   skipSettingsCheck?: boolean;
   forceReload?: boolean;
+  activate?: boolean;
 }
 
 /**
@@ -902,7 +972,10 @@ export interface RequestLoadRequestArgs {
  */
 export const requestLoadRequest = createAsyncThunk<void, RequestLoadRequestArgs, ThunkApiConfig>(
   'modals/requestLoadRequest',
-  async ({ req, skipSettingsCheck = false, forceReload = false }, { dispatch, getState }) => {
+  async (
+    { req, skipSettingsCheck = false, forceReload = false, activate = true },
+    { dispatch, getState }
+  ) => {
     const state = getState();
     const activeTab = state.tabs.tabs.find((tab) => tab.tabId === state.tabs.activeTabId);
     const collectionDirty =
@@ -927,7 +1000,7 @@ export const requestLoadRequest = createAsyncThunk<void, RequestLoadRequestArgs,
       return;
     }
 
-    dispatch(loadRequest(req));
+    dispatch(loadRequest({ req, activate }));
   }
 );
 

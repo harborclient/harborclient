@@ -8,7 +8,8 @@ import {
   type DecorationSet,
   type ViewUpdate
 } from '@codemirror/view';
-import { VARIABLE_NAME_CHARS, getVariableTooltipContent } from '@harborclient/sdk/variables';
+import { buildVariableTooltipDom } from '@harborclient/sdk/components';
+import { VARIABLE_NAME_CHARS } from '@harborclient/sdk/variables';
 import type { Variable } from '#/shared/types';
 
 const variableMatcher = new MatchDecorator({
@@ -71,45 +72,6 @@ function findVariableAtPos(
 }
 
 /**
- * Builds DOM content for a variable tooltip in fenced code blocks.
- *
- * @param key - Variable name from the token.
- * @param variables - Collection-scoped variables for resolution.
- * @param onEditVariable - Optional callback to open collection settings.
- */
-function buildVariableTooltipDom(
-  key: string,
-  variables: Variable[],
-  onEditVariable?: () => void
-): HTMLDivElement {
-  const content = getVariableTooltipContent(key, variables);
-  const dom = document.createElement('div');
-  dom.className = 'cm-variable-tooltip';
-
-  const valueEl = document.createElement('div');
-  valueEl.textContent = content.text;
-  if (content.muted) {
-    valueEl.className = 'cm-variable-tooltip-muted';
-  }
-  dom.appendChild(valueEl);
-
-  if (onEditVariable) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = 'Edit value';
-    btn.className = 'cm-variable-tooltip-edit app-no-drag';
-    btn.setAttribute('aria-label', `Edit value for ${key}`);
-    btn.addEventListener('mousedown', (event) => {
-      event.preventDefault();
-      onEditVariable();
-    });
-    dom.appendChild(btn);
-  }
-
-  return dom;
-}
-
-/**
  * Builds a hover tooltip extension for {{variable}} tokens in CodeMirror.
  *
  * @param variables - Collection-scoped variables for resolution.
@@ -117,7 +79,7 @@ function buildVariableTooltipDom(
  */
 function variableTooltipExtension(
   variables: Variable[],
-  onEditVariable?: () => void
+  onEditVariable?: (key: string) => void
 ): ReturnType<typeof hoverTooltip> {
   return hoverTooltip((view, pos) => {
     const match = findVariableAtPos(view.state.doc, pos);
@@ -144,7 +106,7 @@ function variableTooltipExtension(
  */
 export function createVariableCodeMirrorExtensions(
   variables: Variable[],
-  onEditVariable?: () => void
+  onEditVariable?: (key: string) => void
 ): Extension[] {
   return [variableHighlighter, variableTooltipExtension(variables, onEditVariable)];
 }

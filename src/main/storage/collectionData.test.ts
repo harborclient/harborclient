@@ -5,7 +5,8 @@ import {
   requestExportContainsScripts,
   validateCollectionExport,
   validateEnvironmentExport,
-  validateRequestExport
+  validateRequestExport,
+  validateRunResultsExport
 } from '#/main/storage/collectionData';
 
 const validKeyValue = { key: 'Accept', value: 'application/json', enabled: true };
@@ -485,6 +486,59 @@ describe('validateEnvironmentExport', () => {
   it('rejects missing environment names', () => {
     expect(() => validateEnvironmentExport({ ...validEnvironmentExport, name: '   ' })).toThrow(
       'Invalid environment file: environment name is required'
+    );
+  });
+});
+
+const validRunResultsExport = {
+  harborclientVersion: 1 as const,
+  harborclientExport: 'collection-run-results' as const,
+  delay: 100,
+  stopOnFailure: false,
+  environment: { mode: 'active' as const, id: null, name: 'Active environment' },
+  collection: {
+    uuid: '550e8400-e29b-41d4-a716-446655440000',
+    name: 'Demo API'
+  },
+  results: [
+    {
+      requestId: 1,
+      requestName: 'Health',
+      requestMethod: 'GET' as const,
+      status: 'passed' as const,
+      testsPassed: 1,
+      testsFailed: 0
+    }
+  ]
+};
+
+describe('validateRunResultsExport', () => {
+  it('accepts a valid collection run-results export', () => {
+    const result = validateRunResultsExport(validRunResultsExport);
+    expect(result.harborclientExport).toBe('collection-run-results');
+    expect(result.results).toHaveLength(1);
+  });
+
+  it('rejects non-object payloads', () => {
+    expect(() => validateRunResultsExport(null)).toThrow(
+      'Invalid run results file: expected a JSON object'
+    );
+  });
+
+  it('rejects wrong harborclientExport discriminator', () => {
+    expect(() =>
+      validateRunResultsExport({ ...validRunResultsExport, harborclientExport: 'collection' })
+    ).toThrow('Invalid run results file: not a HarborClient run results export');
+  });
+
+  it('rejects request run exports without request metadata', () => {
+    expect(() =>
+      validateRunResultsExport({
+        ...validRunResultsExport,
+        harborclientExport: 'request-run-results'
+      })
+    ).toThrow(
+      'Invalid run results file: request: request metadata is required for request run results'
     );
   });
 });

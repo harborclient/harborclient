@@ -6,15 +6,16 @@ import modalsReducer, {
   cancelCollectionRunner,
   closeAboutModal,
   closeCollectionModal,
-  closeCollectionRunnerModal,
+  closeCollectionRunner,
   closeShareModal,
   closeSyncModal,
   finishCollectionRunner,
   finishSync,
+  importCollectionRunnerResults,
   incrementSyncCompleted,
   openAboutModal,
   openCollectionModal,
-  openCollectionRunnerModal,
+  openCollectionRunner,
   openShareModal,
   openSyncModal,
   selectHasBlockingModal,
@@ -232,7 +233,7 @@ describe('modalsSlice', () => {
   it('tracks collection runner configuration, progress, and summary', () => {
     let state = modalsReducer(
       undefined,
-      openCollectionRunnerModal({
+      openCollectionRunner({
         collectionId: 1,
         collectionName: 'Demo API',
         config: { delayMs: 100, stopOnFailure: true }
@@ -255,6 +256,7 @@ describe('modalsSlice', () => {
           {
             requestId: 10,
             requestName: 'Health',
+            requestMethod: 'GET',
             status: 'pending',
             testsPassed: 0,
             testsFailed: 0
@@ -282,14 +284,14 @@ describe('modalsSlice', () => {
 
     state = modalsReducer(state, cancelCollectionRunner());
     state = modalsReducer(state, skipRemainingCollectionRunnerRequests());
-    state = modalsReducer(state, closeCollectionRunnerModal());
+    state = modalsReducer(state, closeCollectionRunner());
     expect(state.collectionRunner).toBeNull();
   });
 
   it('stores request scope when opening the collection runner for one request', () => {
     const state = modalsReducer(
       undefined,
-      openCollectionRunnerModal({
+      openCollectionRunner({
         collectionId: 1,
         collectionName: 'Demo API',
         requestId: 42,
@@ -299,6 +301,108 @@ describe('modalsSlice', () => {
     expect(state.collectionRunner?.requestId).toBe(42);
     expect(state.collectionRunner?.requestName).toBe('Health');
     expect(state.collectionRunner?.folderId).toBeNull();
+  });
+
+  it('allows config updates in the complete phase', () => {
+    let state = modalsReducer(
+      undefined,
+      openCollectionRunner({ collectionId: 1, collectionName: 'Demo API' })
+    );
+    state = modalsReducer(
+      state,
+      startCollectionRunner({
+        results: [
+          {
+            requestId: 10,
+            requestName: 'Health',
+            requestMethod: 'GET',
+            status: 'pending',
+            testsPassed: 0,
+            testsFailed: 0
+          }
+        ]
+      })
+    );
+    state = modalsReducer(state, finishCollectionRunner());
+    state = modalsReducer(state, setCollectionRunnerConfig({ delayMs: 250 }));
+
+    expect(state.collectionRunner?.phase).toBe('complete');
+    expect(state.collectionRunner?.delayMs).toBe(250);
+  });
+
+  it('does not retarget the runner while a run is in progress', () => {
+    let state = modalsReducer(
+      undefined,
+      openCollectionRunner({ collectionId: 1, collectionName: 'First' })
+    );
+    state = modalsReducer(
+      state,
+      startCollectionRunner({
+        results: [
+          {
+            requestId: 10,
+            requestName: 'Health',
+            requestMethod: 'GET',
+            status: 'pending',
+            testsPassed: 0,
+            testsFailed: 0
+          }
+        ]
+      })
+    );
+    state = modalsReducer(
+      state,
+      openCollectionRunner({ collectionId: 2, collectionName: 'Second' })
+    );
+
+    expect(state.collectionRunner?.collectionId).toBe(1);
+    expect(state.collectionRunner?.collectionName).toBe('First');
+    expect(state.collectionRunner?.running).toBe(true);
+  });
+
+  it('hydrates imported run results into a detached read-only runner view', () => {
+    const state = modalsReducer(
+      undefined,
+      importCollectionRunnerResults({
+        harborclientVersion: 1,
+        harborclientExport: 'collection-run-results',
+        delay: 250,
+        stopOnFailure: true,
+        environment: { mode: 'override', id: 3, name: 'Staging' },
+        collection: {
+          uuid: '550e8400-e29b-41d4-a716-446655440000',
+          name: 'Demo API'
+        },
+        results: [
+          {
+            requestId: 10,
+            requestName: 'Health',
+            requestMethod: 'GET',
+            status: 'passed',
+            testsPassed: 1,
+            testsFailed: 0
+          },
+          {
+            requestId: 11,
+            requestName: 'Users',
+            requestMethod: 'GET',
+            status: 'failed',
+            testsPassed: 0,
+            testsFailed: 1
+          }
+        ],
+        collectionId: 0,
+        requestId: null
+      })
+    );
+
+    expect(state.collectionRunner?.imported).toBe(true);
+    expect(state.collectionRunner?.phase).toBe('complete');
+    expect(state.collectionRunner?.running).toBe(false);
+    expect(state.collectionRunner?.delayMs).toBe(250);
+    expect(state.collectionRunner?.environmentName).toBe('Staging');
+    expect(state.collectionRunner?.summary).toEqual({ passed: 1, failed: 1, skipped: 0 });
+    expect(state.collectionRunner?.completed).toBe(2);
   });
 
   it('opens and closes the plugin modal overlay', () => {

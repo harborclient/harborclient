@@ -35,6 +35,11 @@ interface Props {
   collection: Collection;
 
   /**
+   * When set, switches to the Variables tab and focuses the matching row.
+   */
+  focusVariableKey?: string;
+
+  /**
    * Persists collection name, variables, headers, scripts, and database.
    *
    * @param id - Collection ID to update.
@@ -82,12 +87,21 @@ export function CollectionSettings(props: Props): JSX.Element {
  */
 function CollectionSettingsForm({
   collection,
+  focusVariableKey,
   onSave,
   onClose,
   onDirtyChange
 }: Props): JSX.Element {
   const pluginTabs = usePluginCollectionSettingsTabs();
-  const [tab, setTab] = useState<string>('general');
+  const [tab, setTab] = useState<string>(focusVariableKey ? 'variables' : 'general');
+  const [lastFocusVariableKey, setLastFocusVariableKey] = useState(focusVariableKey);
+
+  if (focusVariableKey && focusVariableKey !== lastFocusVariableKey) {
+    setLastFocusVariableKey(focusVariableKey);
+    if (tab !== 'variables') {
+      setTab('variables');
+    }
+  }
   const [name, setName] = useState(collection.name);
   const [variables, setVariables] = useState<Variable[]>(
     collection.variables.length
@@ -294,7 +308,11 @@ function CollectionSettingsForm({
             />
           </SegmentedTabPanel>
           <SegmentedTabPanel value="variables">
-            <VariablesSection variables={variables} onChange={setVariables} />
+            <VariablesSection
+              variables={variables}
+              onChange={setVariables}
+              focusVariableKey={focusVariableKey}
+            />
           </SegmentedTabPanel>
           <SegmentedTabPanel value="headers">
             <HeadersSection headers={headers} variables={variables} onChange={setHeaders} />

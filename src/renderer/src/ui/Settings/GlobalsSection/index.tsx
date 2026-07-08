@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { saveGlobalVariables } from '#/renderer/src/store/thunks/settings';
 import { settingsSectionMeta } from '../constants';
 import { SettingLabel } from '../components/SettingLabel';
+import type { SettingsSectionComponentProps } from '../catalog/registry';
 
 /**
  * Serializes globals form state for dirty comparison and form remount keys.
@@ -20,12 +21,13 @@ function serializeGlobalsForm(variables: Variable[]): string {
 /**
  * App-wide global variables managed from Settings → Globals.
  */
-export function GlobalsSection(): JSX.Element {
+export function GlobalsSection({ focusVariableKey }: SettingsSectionComponentProps): JSX.Element {
   const savedVariables = useAppSelector((state) => state.settings.general.globalVariables);
   return (
     <GlobalsSectionForm
       key={serializeGlobalsForm(savedVariables)}
       savedVariables={savedVariables}
+      focusVariableKey={focusVariableKey}
     />
   );
 }
@@ -35,12 +37,17 @@ interface FormProps {
    * Persisted global variables from app settings.
    */
   savedVariables: Variable[];
+
+  /**
+   * When set, focuses the matching variable row in the table.
+   */
+  focusVariableKey?: string;
 }
 
 /**
  * Editable globals form keyed by saved variables so state resets when persistence changes.
  */
-function GlobalsSectionForm({ savedVariables }: FormProps): JSX.Element {
+function GlobalsSectionForm({ savedVariables, focusVariableKey }: FormProps): JSX.Element {
   const dispatch = useAppDispatch();
   const [variables, setVariables] = useState<Variable[]>(
     savedVariables.length
@@ -90,7 +97,7 @@ function GlobalsSectionForm({ savedVariables }: FormProps): JSX.Element {
           When value is empty, the default is used. Global variables have the lowest precedence;
           collection and environment variables override globals with the same key.
         </p>
-        <VariableTable variables={variables} onChange={setVariables} />
+        <VariableTable variables={variables} onChange={setVariables} focusKey={focusVariableKey} />
 
         <div className="flex gap-2 mt-4">
           <Button onClick={() => void handleSave()} disabled={!isDirty || saving}>

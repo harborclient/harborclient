@@ -82,7 +82,7 @@ import type {
   Variable,
   KeyValue
 } from '#/shared/types';
-import type { CollectionRunnerConfig } from '#/shared/collectionRunner';
+import type { CollectionRunnerConfig, RunResultsExport } from '#/shared/collectionRunner';
 
 /**
  * Lists all collections via IPC.
@@ -201,6 +201,25 @@ function importRequest(
   folderId?: number | null
 ): Promise<SavedRequest | null> {
   return ipcRenderer.invoke('requests:import', collectionId, folderId);
+}
+
+/**
+ * Exports run results to a JSON file via IPC.
+ *
+ * @param data - Portable run-results export payload.
+ * @returns Whether the dialog was canceled and the saved path when written.
+ */
+function exportRunResults(data: RunResultsExport): Promise<CollectionExportResult> {
+  return ipcRenderer.invoke('runResults:export', data);
+}
+
+/**
+ * Imports run results from a JSON file via IPC.
+ *
+ * @returns Parsed run-results export, or null when the dialog was canceled.
+ */
+function importRunResults(): Promise<RunResultsExport | null> {
+  return ipcRenderer.invoke('runResults:import');
 }
 
 /**
@@ -840,6 +859,23 @@ function onThemeChanged(callback: (theme: ThemeSource) => void): () => void {
   };
   ipcRenderer.on('theme:changed', listener);
   return () => ipcRenderer.removeListener('theme:changed', listener);
+}
+
+/**
+ * Returns whether developer tooling (DevTools, Inspect Element) is available.
+ */
+function isDeveloperToolsEnabled(): Promise<boolean> {
+  return ipcRenderer.invoke('app:isDeveloperToolsEnabled');
+}
+
+/**
+ * Inspects the DOM node at viewport coordinates and opens DevTools when enabled.
+ *
+ * @param x - Horizontal coordinate relative to the viewport.
+ * @param y - Vertical coordinate relative to the viewport.
+ */
+function inspectElement(x: number, y: number): Promise<void> {
+  return ipcRenderer.invoke('window:inspectElement', { x, y });
 }
 
 /**
@@ -2490,6 +2526,8 @@ const api: Api = {
   importCollection,
   exportRequest,
   importRequest,
+  exportRunResults,
+  importRunResults,
   moveCollection,
   reorderCollections,
   listEnvironments,
@@ -2553,6 +2591,8 @@ const api: Api = {
   shouldPickTheme,
   markThemePickerSeen,
   onThemeChanged,
+  isDeveloperToolsEnabled,
+  inspectElement,
   minimizeWindow,
   toggleMaximizeWindow,
   closeWindow,

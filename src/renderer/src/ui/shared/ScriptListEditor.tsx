@@ -152,7 +152,7 @@ interface Props {
   /**
    * Opens collection settings to edit variables.
    */
-  onEditVariables?: () => void;
+  onEditVariables?: (key: string) => void;
 
   /**
    * Available snippet library entries for the picker.
@@ -231,7 +231,7 @@ interface SortableScriptRowProps {
   /**
    * Opens collection settings to edit variables.
    */
-  onEditVariables?: () => void;
+  onEditVariables?: (key: string) => void;
 
   /**
    * When false, drag reordering is disabled but the grip handle stays visible.

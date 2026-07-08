@@ -23,6 +23,11 @@ import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { SortableRow } from '#/renderer/src/ui/Sidebar/Collections/SortableRow';
 import { focusEnvironmentSettings } from '#/renderer/src/ui/EnvironmentSettings/focusEnvironmentSettings';
 import { sourceRow } from '#/renderer/src/ui/shared/classes';
+import {
+  buildDevInspectMenuGroups,
+  useDeveloperToolsEnabled,
+  type InspectPoint
+} from '#/renderer/src/ui/shared/devInspectContextMenu';
 
 interface Props {
   /**
@@ -119,7 +124,11 @@ export function Environments({
   noMatches = false
 }: Props): JSX.Element {
   const confirm = useConfirm();
+  const developerToolsEnabled = useDeveloperToolsEnabled();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [inspectPointsByMenuId, setInspectPointsByMenuId] = useState<Record<string, InspectPoint>>(
+    {}
+  );
   const [activeDragEnvironment, setActiveDragEnvironment] = useState<Environment | null>(null);
 
   const sensors = useSensors(
@@ -216,6 +225,16 @@ export function Environments({
                 dragHandleLabel={`Reorder environment "${environment.name}"`}
                 disabled={searchActive}
                 compact
+                onRowContextMenu={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  const menuId = `environment-${environment.id}`;
+                  setInspectPointsByMenuId((prev) => ({
+                    ...prev,
+                    [menuId]: { x: event.clientX, y: event.clientY }
+                  }));
+                  setOpenMenuId(menuId);
+                }}
               >
                 <button
                   type="button"
@@ -294,7 +313,12 @@ export function Environments({
                           })();
                         }
                       }
-                    ]
+                    ],
+                    ...buildDevInspectMenuGroups(
+                      inspectPointsByMenuId[`environment-${environment.id}`],
+                      `environment-${environment.id}`,
+                      developerToolsEnabled
+                    )
                   ]}
                 />
               </SortableRow>

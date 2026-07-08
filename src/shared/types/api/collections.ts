@@ -1,4 +1,5 @@
 import type { AuthConfig } from '#/shared/auth';
+import type { RunResultsExport } from '#/shared/collectionRunner';
 import type {
   Collection,
   CollectionExportResult,
@@ -94,6 +95,19 @@ export interface ApiCollections {
    * @returns The imported request, or null when the dialog was canceled.
    */
   importRequest: (collectionId: number, folderId?: number | null) => Promise<SavedRequest | null>;
+  /**
+   * Exports run results to a JSON file via a native save dialog.
+   *
+   * @param data - Portable run-results export payload.
+   * @returns Whether the dialog was canceled and the saved path when written.
+   */
+  exportRunResults: (data: RunResultsExport) => Promise<CollectionExportResult>;
+  /**
+   * Imports run results from a JSON file via a native open dialog.
+   *
+   * @returns Parsed run-results export, or null when the dialog was canceled.
+   */
+  importRunResults: () => Promise<RunResultsExport | null>;
   /**
    * Exports an environment to a JSON file via a native save dialog.
    *

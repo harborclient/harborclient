@@ -1,7 +1,7 @@
 import { FaIcon } from '@harborclient/sdk/components';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { type CSSProperties, type JSX, type ReactNode } from 'react';
+import { type CSSProperties, type JSX, type MouseEvent, type ReactNode } from 'react';
 
 import { faGripVertical } from '#/renderer/src/fontawesome';
 
@@ -35,6 +35,11 @@ interface Props {
    * When true, uses a smaller drag handle to match compact sidebar rows.
    */
   compact?: boolean;
+
+  /**
+   * Called when the user right-clicks the row container.
+   */
+  onRowContextMenu?: (event: MouseEvent<HTMLDivElement>) => void;
 }
 
 /**
@@ -47,7 +52,8 @@ export function SortableRow({
   dragHandleLabel,
   children,
   disabled = false,
-  compact = false
+  compact = false,
+  onRowContextMenu
 }: Props): JSX.Element {
   const controlSize = compact ? 'h-4 w-4' : 'h-5 w-5';
 
@@ -63,7 +69,7 @@ export function SortableRow({
 
   if (disabled) {
     return (
-      <div className={`group ${className}`}>
+      <div className={`group ${className}`} onContextMenu={onRowContextMenu}>
         <span className={`inline-flex shrink-0 ${controlSize}`} aria-hidden="true" />
         {children}
       </div>
@@ -77,7 +83,7 @@ export function SortableRow({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className={className}>
+    <div ref={setNodeRef} style={style} className={className} onContextMenu={onRowContextMenu}>
       <button
         type="button"
         ref={setActivatorNodeRef}

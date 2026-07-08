@@ -61,7 +61,16 @@ function tabBelongsToCollection(tab: Tab, collectionId: number): boolean {
   if (isRequestTab(tab)) {
     return tab.draft.collection_id === collectionId;
   }
-  return tab.page.type === 'collection' && tab.page.id === collectionId;
+  if (!isPageTab(tab)) {
+    return false;
+  }
+  if (tab.page.type === 'collection') {
+    return tab.page.id === collectionId;
+  }
+  if (tab.page.type === 'collection-runner') {
+    return tab.page.collectionId === collectionId;
+  }
+  return false;
 }
 
 /**
@@ -171,7 +180,12 @@ const tabsSlice = createSlice({
       const page = action.payload;
       const existing = findPageTab(state.tabs, page);
       if (existing && isPageTab(existing)) {
-        if (page.type === 'settings') {
+        if (
+          page.type === 'settings' ||
+          page.type === 'collection' ||
+          page.type === 'environment' ||
+          page.type === 'collection-runner'
+        ) {
           existing.page = page;
         }
         state.activeTabId = existing.tabId;
@@ -206,11 +220,13 @@ const tabsSlice = createSlice({
     /**
      * Opens a saved request in a tab or focuses an existing tab.
      */
-    loadRequest(state, action: PayloadAction<SavedRequest>) {
-      const req = action.payload;
+    loadRequest(state, action: PayloadAction<{ req: SavedRequest; activate?: boolean }>) {
+      const { req, activate = true } = action.payload;
       const existing = state.tabs.find((t) => isRequestTab(t) && t.draft.id === req.id);
       if (existing && isRequestTab(existing)) {
-        state.activeTabId = existing.tabId;
+        if (activate) {
+          state.activeTabId = existing.tabId;
+        }
         const freshDraft = cloneDraft(draftFromSaved(req));
         existing.draft = freshDraft;
         existing.savedDraft = cloneDraft(freshDraft);
@@ -223,7 +239,9 @@ const tabsSlice = createSlice({
 
       const tab = createTab(draftFromSaved(req));
       state.tabs.push(tab);
-      state.activeTabId = tab.tabId;
+      if (activate) {
+        state.activeTabId = tab.tabId;
+      }
     },
     /**
      * Merges partial updates into a tab by id.

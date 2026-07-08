@@ -1,4 +1,5 @@
 import { contentEditableRef$, useCellValue } from '@mdxeditor/editor';
+import { Button, VariableTooltipValue } from '@harborclient/sdk/components';
 import { getVariableTooltipContent } from '@harborclient/sdk/variables';
 import { useCallback, useEffect, useId, useRef, useState, type JSX } from 'react';
 
@@ -155,24 +156,28 @@ export function VariableHighlightComposer(): JSX.Element | null {
     <div
       id={tooltipId}
       role="tooltip"
-      className="pointer-events-auto fixed z-50 flex max-w-sm -translate-x-1/2 -translate-y-full flex-col gap-2 rounded-md border border-separator bg-surface px-4 py-3 text-[14px] text-text shadow-md after:pointer-events-auto after:absolute after:-bottom-2 after:left-0 after:right-0 after:h-2 after:content-[''] app-no-drag"
+      className="pointer-events-auto fixed z-50 flex max-w-sm -translate-x-1/2 -translate-y-full flex-col gap-2 rounded-md border border-separator bg-surface px-4 py-3 text-[16px] text-text shadow-md after:pointer-events-auto after:absolute after:-bottom-2 after:left-0 after:right-0 after:h-2 after:content-[''] app-no-drag"
       style={{ top: tooltip.top - 4, left: tooltip.left }}
       onMouseEnter={cancelHide}
       onMouseLeave={scheduleHide}
     >
-      <span className={tooltipContent.muted ? 'text-muted' : undefined}>{tooltipContent.text}</span>
+      <VariableTooltipValue
+        value={tooltipContent.text}
+        variableKey={tooltip.key}
+        muted={tooltipContent.muted}
+      />
       {onEditVariable && (
-        <button
-          type="button"
-          className="-mx-1 self-start rounded px-1 py-0.5 text-[14px] text-accent hover:underline app-no-drag"
+        <Button
+          variant="secondary"
+          className="self-start"
           aria-label={`Edit value for ${tooltip.key}`}
           onClick={() => {
-            onEditVariable();
+            onEditVariable(tooltip.key);
             setTooltip(null);
           }}
         >
           Edit value
-        </button>
+        </Button>
       )}
     </div>
   );

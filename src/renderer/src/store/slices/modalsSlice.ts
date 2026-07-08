@@ -1,11 +1,21 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { SavedRequest, TrustedSharingKey, UpdateCheckResult } from '#/shared/types';
+import type {
+  SavedRequest,
+  ScriptTestResult,
+  SendResult,
+  TrustedSharingKey,
+  UpdateCheckResult
+} from '#/shared/types';
 import type {
   CollectionRunnerConfig,
   CollectionRunnerRequestResult,
-  CollectionRunnerResultStatus
+  CollectionRunnerResultStatus,
+  RunResultsExport
 } from '#/shared/collectionRunner';
-import { DEFAULT_COLLECTION_RUNNER_CONFIG } from '#/shared/collectionRunner';
+import {
+  DEFAULT_COLLECTION_RUNNER_CONFIG,
+  summarizeRunnerResults
+} from '#/shared/collectionRunner';
 import type { RootState } from '#/renderer/src/store/redux';
 
 export type CollectionModalMode = 'create' | 'create-and-save';
@@ -120,9 +130,9 @@ export interface CollectionRunnerSummary {
 }
 
 /**
- * Collection runner modal state spanning configuration, progress, and summary.
+ * Collection runner state spanning configuration, progress, and summary.
  */
-export interface CollectionRunnerModalState {
+export interface CollectionRunnerState {
   collectionId: number;
   folderId: number | null;
   collectionName: string;
@@ -140,6 +150,14 @@ export interface CollectionRunnerModalState {
   total: number;
   results: CollectionRunnerRequestResult[];
   summary: CollectionRunnerSummary;
+  /**
+   * When true, state was loaded from an imported run-results file and is read-only.
+   */
+  imported?: boolean;
+  /**
+   * Human-readable environment name from export or override selection.
+   */
+  environmentName?: string | null;
 }
 
 /**
@@ -158,7 +176,7 @@ export interface ModalsState {
   about: AboutModalState;
   update: UpdateModalState;
   syncModal: SyncModalState;
-  collectionRunner: CollectionRunnerModalState | null;
+  collectionRunner: CollectionRunnerState | null;
   alertModal: AlertModalState | null;
   confirmModal: ConfirmModalState | null;
   pluginThemePrompt: PluginThemePromptState | null;
@@ -439,9 +457,9 @@ const modalsSlice = createSlice({
       state.syncModal.running = false;
     },
     /**
-     * Opens the collection runner modal for a collection, folder, or single request target.
+     * Opens the collection runner for a collection, folder, or single request target.
      */
-    openCollectionRunnerModal(
+    openCollectionRunner(
       state,
       action: PayloadAction<{
         collectionId: number;
@@ -453,6 +471,9 @@ const modalsSlice = createSlice({
         config?: Partial<CollectionRunnerConfig>;
       }>
     ) {
+      if (state.collectionRunner?.running) {
+        return;
+      }
       const config = {
         ...DEFAULT_COLLECTION_RUNNER_CONFIG,
         ...action.payload.config
@@ -478,16 +499,20 @@ const modalsSlice = createSlice({
       };
     },
     /**
-     * Closes the collection runner modal and clears run state.
+     * Clears collection runner state when the runner tab is closed.
      */
-    closeCollectionRunnerModal(state) {
+    closeCollectionRunner(state) {
       state.collectionRunner = null;
     },
     /**
-     * Updates editable runner settings while the modal is in configure phase.
+     * Updates editable runner settings while the runner is not in progress.
      */
     setCollectionRunnerConfig(state, action: PayloadAction<Partial<CollectionRunnerConfig>>) {
-      if (!state.collectionRunner || state.collectionRunner.phase !== 'configure') {
+      if (
+        !state.collectionRunner ||
+        (state.collectionRunner.phase !== 'configure' &&
+          state.collectionRunner.phase !== 'complete')
+      ) {
         return;
       }
       if (action.payload.delayMs != null) {
@@ -547,6 +572,11 @@ const modalsSlice = createSlice({
         httpError?: string;
         testsPassed: number;
         testsFailed: number;
+        response?: SendResult | null;
+        testResults?: ScriptTestResult[];
+        scriptLogs?: string[];
+        scriptError?: string;
+        requestUrl?: string;
       }>
     ) {
       if (!state.collectionRunner) {
@@ -563,6 +593,11 @@ const modalsSlice = createSlice({
       row.httpError = action.payload.httpError;
       row.testsPassed = action.payload.testsPassed;
       row.testsFailed = action.payload.testsFailed;
+      row.response = action.payload.response;
+      row.testResults = action.payload.testResults;
+      row.scriptLogs = action.payload.scriptLogs;
+      row.scriptError = action.payload.scriptError;
+      row.requestUrl = action.payload.requestUrl;
       state.collectionRunner.completed += 1;
       if (action.payload.status === 'passed') {
         state.collectionRunner.summary.passed += 1;
@@ -604,6 +639,42 @@ const modalsSlice = createSlice({
       }
       state.collectionRunner.running = false;
       state.collectionRunner.phase = 'complete';
+    },
+    /**
+     * Replaces runner state with imported run-results for a detached read-only view.
+     */
+    importCollectionRunnerResults(
+      state,
+      action: PayloadAction<
+        RunResultsExport & {
+          collectionId: number;
+          requestId: number | null;
+        }
+      >
+    ) {
+      const { collectionId, requestId, ...data } = action.payload;
+      const summary = summarizeRunnerResults(data.results);
+      state.collectionRunner = {
+        collectionId,
+        folderId: null,
+        collectionName: data.collection?.name ?? 'Imported collection',
+        folderName: data.collection?.folderName ?? null,
+        requestId,
+        requestName: data.request?.name ?? null,
+        phase: 'complete',
+        delayMs: data.delay,
+        stopOnFailure: data.stopOnFailure,
+        environmentMode: data.environment.mode,
+        environmentId: data.environment.id,
+        environmentName: data.environment.name,
+        running: false,
+        cancelled: false,
+        completed: data.results.length,
+        total: data.results.length,
+        results: data.results,
+        summary,
+        imported: true
+      };
     },
     /**
      * Opens or closes the global alert dialog.
@@ -706,8 +777,8 @@ export const {
   setSyncProviderStatus,
   incrementSyncCompleted,
   finishSync,
-  openCollectionRunnerModal,
-  closeCollectionRunnerModal,
+  openCollectionRunner,
+  closeCollectionRunner,
   setCollectionRunnerConfig,
   startCollectionRunner,
   setCollectionRunnerRequestRunning,
@@ -715,6 +786,7 @@ export const {
   skipRemainingCollectionRunnerRequests,
   cancelCollectionRunner,
   finishCollectionRunner,
+  importCollectionRunnerResults,
   setAlertModal,
   setConfirmModal,
   openPluginThemePrompt,
@@ -759,9 +831,9 @@ export const selectUpdateModal = (state: RootState): UpdateModalState => state.m
  */
 export const selectSyncModal = (state: RootState): SyncModalState => state.modals.syncModal;
 /**
- * Returns collection runner modal state when open.
+ * Returns collection runner state when a runner tab is active.
  */
-export const selectCollectionRunnerModal = (state: RootState): CollectionRunnerModalState | null =>
+export const selectCollectionRunner = (state: RootState): CollectionRunnerState | null =>
   state.modals.collectionRunner;
 /**
  * Returns alert dialog state when open.
@@ -819,7 +891,6 @@ export const selectHasBlockingModal = (state: RootState): boolean => {
     modals.shortcutsReference != null ||
     modals.searchAnything != null ||
     modals.pluginModal != null ||
-    modals.collectionRunner != null ||
     modals.about.open ||
     modals.update.open ||
     modals.syncModal.open

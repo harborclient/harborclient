@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import {
   buildPendingCollectionRunnerResults,
+  buildRunResultsExport,
   DEFAULT_COLLECTION_RUNNER_CONFIG,
   getCollectionRunnerRequests,
   getRequestsInRunOrder,
   isCollectionRunnerRequestFailure,
   normalizeCollectionRunnerConfig,
-  resolveCollectionRunnerNextIndex
+  resolveCollectionRunnerNextIndex,
+  summarizeRunnerResults
 } from '#/shared/collectionRunner';
 import type { Folder, SavedRequest } from '#/shared/types';
 
@@ -168,6 +170,7 @@ describe('buildPendingCollectionRunnerResults', () => {
       {
         requestId: 1,
         requestName: 'One',
+        requestMethod: 'GET',
         status: 'pending',
         testsPassed: 0,
         testsFailed: 0
@@ -175,10 +178,22 @@ describe('buildPendingCollectionRunnerResults', () => {
       {
         requestId: 2,
         requestName: 'Two',
+        requestMethod: 'GET',
         status: 'pending',
         testsPassed: 0,
         testsFailed: 0
       }
+    ]);
+  });
+
+  it('copies each request method into pending rows', () => {
+    const requests = [
+      sampleRequest({ id: 1, name: 'Create', sort_order: 0, method: 'POST' }),
+      sampleRequest({ id: 2, name: 'Remove', sort_order: 1, method: 'DELETE' })
+    ];
+    expect(buildPendingCollectionRunnerResults(requests).map((row) => row.requestMethod)).toEqual([
+      'POST',
+      'DELETE'
     ]);
   });
 });
@@ -201,5 +216,109 @@ describe('resolveCollectionRunnerNextIndex', () => {
 
   it('stops the run when setNextRequest is null', () => {
     expect(resolveCollectionRunnerNextIndex(requests, 0, null)).toBeNull();
+  });
+});
+
+describe('summarizeRunnerResults', () => {
+  it('counts passed, failed, and skipped rows', () => {
+    expect(
+      summarizeRunnerResults([
+        {
+          requestId: 1,
+          requestName: 'A',
+          requestMethod: 'GET',
+          status: 'passed',
+          testsPassed: 1,
+          testsFailed: 0
+        },
+        {
+          requestId: 2,
+          requestName: 'B',
+          requestMethod: 'GET',
+          status: 'failed',
+          testsPassed: 0,
+          testsFailed: 1
+        },
+        {
+          requestId: 3,
+          requestName: 'C',
+          requestMethod: 'GET',
+          status: 'skipped',
+          testsPassed: 0,
+          testsFailed: 0
+        }
+      ])
+    ).toEqual({ passed: 1, failed: 1, skipped: 1 });
+  });
+});
+
+describe('buildRunResultsExport', () => {
+  const results = [
+    {
+      requestId: 1,
+      requestName: 'Health',
+      requestMethod: 'GET' as const,
+      status: 'passed' as const,
+      testsPassed: 1,
+      testsFailed: 0,
+      response: {
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        body: '{}',
+        timeMs: 5,
+        sizeBytes: 2
+      }
+    }
+  ];
+
+  it('builds a collection run export with collection metadata', () => {
+    const payload = buildRunResultsExport({
+      requestId: null,
+      collectionName: 'Demo API',
+      folderName: null,
+      requestName: null,
+      collectionUuid: '550e8400-e29b-41d4-a716-446655440000',
+      requestUuid: null,
+      requestMethod: null,
+      delayMs: 100,
+      stopOnFailure: true,
+      environmentMode: 'override',
+      environmentId: 3,
+      environmentName: 'Staging',
+      results
+    });
+
+    expect(payload.harborclientExport).toBe('collection-run-results');
+    expect(payload.delay).toBe(100);
+    expect(payload.stopOnFailure).toBe(true);
+    expect(payload.environment).toEqual({ mode: 'override', id: 3, name: 'Staging' });
+    expect(payload.collection?.uuid).toBe('550e8400-e29b-41d4-a716-446655440000');
+    expect(payload.results).toEqual(results);
+  });
+
+  it('builds a request run export with request metadata', () => {
+    const payload = buildRunResultsExport({
+      requestId: 42,
+      collectionName: 'Demo API',
+      folderName: null,
+      requestName: 'Health',
+      collectionUuid: '550e8400-e29b-41d4-a716-446655440000',
+      requestUuid: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
+      requestMethod: 'GET',
+      delayMs: 0,
+      stopOnFailure: false,
+      environmentMode: 'active',
+      environmentId: null,
+      environmentName: 'Active environment',
+      results
+    });
+
+    expect(payload.harborclientExport).toBe('request-run-results');
+    expect(payload.request).toEqual({
+      uuid: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Health',
+      method: 'GET'
+    });
   });
 });

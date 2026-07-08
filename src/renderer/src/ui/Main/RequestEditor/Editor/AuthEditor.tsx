@@ -31,7 +31,7 @@ interface Props {
   /**
    * Opens collection settings to edit variables.
    */
-  onEditVariables?: () => void;
+  onEditVariables?: (key: string) => void;
 
   /**
    * Stable cache key for OAuth token storage on saved requests or collections.

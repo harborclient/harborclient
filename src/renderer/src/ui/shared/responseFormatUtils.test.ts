@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildHtmlPreviewSrcdoc,
+  defaultResponseTab,
   formatHeadersText,
   formatTestsText,
   isHtmlResponse,
@@ -104,6 +105,39 @@ describe('isImageResponse', () => {
   it('returns false when content-type is missing', () => {
     expect(isImageResponse({})).toBe(false);
     expect(isImageResponse(undefined)).toBe(false);
+  });
+});
+
+describe('defaultResponseTab', () => {
+  it('returns preview for HTML responses', () => {
+    expect(
+      defaultResponseTab({
+        body: '<html><body>Hi</body></html>',
+        headers: { 'content-type': 'text/html' }
+      })
+    ).toBe('preview');
+  });
+
+  it('returns preview for image responses', () => {
+    expect(
+      defaultResponseTab({
+        body: '',
+        headers: { 'content-type': 'image/png' }
+      })
+    ).toBe('preview');
+  });
+
+  it('returns body for JSON responses', () => {
+    expect(
+      defaultResponseTab({
+        body: '{"ok":true}',
+        headers: { 'content-type': 'application/json' }
+      })
+    ).toBe('body');
+  });
+
+  it('returns body for null response', () => {
+    expect(defaultResponseTab(null)).toBe('body');
   });
 });
 

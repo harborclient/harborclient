@@ -11,7 +11,7 @@ export const highlightVariables$ = Cell<Variable[]>([]);
 /**
  * Optional callback that opens collection settings to edit variables.
  */
-export const highlightOnEditVariable$ = Cell<(() => void) | undefined>(undefined);
+export const highlightOnEditVariable$ = Cell<((key: string) => void) | undefined>(undefined);
 
 interface VariableHighlightPluginParams {
   /**
@@ -22,7 +22,7 @@ interface VariableHighlightPluginParams {
   /**
    * Opens collection settings to edit the hovered variable.
    */
-  onEditVariable?: () => void;
+  onEditVariable?: (key: string) => void;
 }
 
 /**

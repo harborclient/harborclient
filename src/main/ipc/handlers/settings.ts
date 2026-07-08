@@ -1,4 +1,5 @@
 import { app, nativeTheme } from 'electron';
+import { isDeveloperToolsEnabled } from '#/main/devMode';
 import { isPickThemeFlagEnabled } from '#/main/pickTheme';
 import { getStartupThemeOverride } from '#/main/startupTheme';
 import type { IStorage } from '#/main/storage/IStorage';
@@ -160,6 +161,9 @@ function resolveNativeThemeSource(theme: ThemeSource): 'light' | 'dark' | 'syste
 export function registerSettingsHandlers(db: IStorage): void {
   // Returns the application semver from package metadata.
   handle('app:getVersion', ipcArgSchemas.none, () => app.getVersion());
+
+  // Returns whether developer tooling (DevTools, Inspect Element) is available.
+  handle('app:isDeveloperToolsEnabled', ipcArgSchemas.none, () => isDeveloperToolsEnabled());
 
   // Compares the running version against the latest GitHub release.
   handle('app:checkForUpdates', ipcArgSchemas.none, () => checkForUpdates());

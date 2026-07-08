@@ -14,6 +14,7 @@ import { closeTab, openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { selectCollections, selectEnvironments } from '#/renderer/src/store/selectors';
 import { updateCollection, updateEnvironment } from '#/renderer/src/store/thunks';
 import { CollectionSettings } from '#/renderer/src/ui/CollectionSettings';
+import { CollectionRunner } from '#/renderer/src/ui/CollectionRunner';
 import { Cookies } from '#/renderer/src/ui/Cookies';
 import { EnvironmentSettings } from '#/renderer/src/ui/EnvironmentSettings';
 import { PluginMainView } from '#/renderer/src/ui/PluginMainView';
@@ -65,6 +66,14 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
       return;
     }
 
+    if (page.type === 'collection-runner') {
+      const exists = collections.some((collection) => collection.id === page.collectionId);
+      if (!exists) {
+        dispatch(closeTab(tabId));
+      }
+      return;
+    }
+
     if (page.type === 'environment') {
       const exists = environments.some((environment) => environment.id === page.id);
       if (!exists) {
@@ -85,7 +94,13 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
   }, [page, tabId, collections, environments, pluginViews, dispatch]);
 
   if (page.type === 'settings') {
-    return <Settings key="settings" initialSection={page.section} />;
+    return (
+      <Settings
+        key="settings"
+        initialSection={page.section}
+        focusVariableKey={page.focusVariableKey}
+      />
+    );
   }
 
   if (page.type === 'sharing-keys') {
@@ -129,6 +144,7 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
     return (
       <CollectionSettings
         collection={collection}
+        focusVariableKey={page.focusVariableKey}
         onDirtyChange={(dirty) => dispatch(setCollectionSettingsDirty(dirty))}
         onSave={async (
           id: number,
@@ -178,6 +194,7 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
     return (
       <EnvironmentSettings
         environment={environment}
+        focusVariableKey={page.focusVariableKey}
         onDirtyChange={(dirty) => dispatch(setEnvironmentSettingsDirty(dirty))}
         onSave={async (id: number, name: string, variables: Variable[]) => {
           try {
@@ -190,6 +207,10 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
         onClose={handleClose}
       />
     );
+  }
+
+  if (page.type === 'collection-runner') {
+    return <CollectionRunner page={page} />;
   }
 
   return null;

@@ -127,6 +127,17 @@ export interface ApiWindow {
    */
   onThemeChanged: (callback: (theme: ThemeSource) => void) => () => void;
   /**
+   * Returns whether developer tooling (DevTools, Inspect Element) is available.
+   */
+  isDeveloperToolsEnabled: () => Promise<boolean>;
+  /**
+   * Inspects the DOM node at viewport coordinates and opens DevTools when enabled.
+   *
+   * @param x - Horizontal coordinate relative to the viewport.
+   * @param y - Vertical coordinate relative to the viewport.
+   */
+  inspectElement: (x: number, y: number) => Promise<void>;
+  /**
    * Minimizes the focused application window.
    */
   minimizeWindow: () => Promise<void>;

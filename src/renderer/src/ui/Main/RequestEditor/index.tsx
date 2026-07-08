@@ -29,6 +29,10 @@ import {
   selectTestResults
 } from '#/renderer/src/store/selectors';
 import {
+  cancelCollectionRunner,
+  closeCollectionRunner
+} from '#/renderer/src/store/slices/modalsSlice';
+import {
   selectCollectionSettingsDirty,
   selectEnvironmentSettingsDirty,
   selectRequestEditorSplitHeight,
@@ -66,7 +70,7 @@ interface Props {
   /**
    * Opens collection settings to edit variables.
    */
-  onEditVariables: () => void;
+  onEditVariables: (key: string) => void;
 }
 
 interface CloseTabPrompt {
@@ -265,6 +269,10 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
     }
 
     if (isPageTab(tab)) {
+      if (tab.page.type === 'collection-runner') {
+        dispatch(cancelCollectionRunner());
+        dispatch(closeCollectionRunner());
+      }
       dispatch(closeTab(tabId));
       return;
     }

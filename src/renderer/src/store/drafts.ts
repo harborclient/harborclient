@@ -73,7 +73,7 @@ export interface RequestTab {
  * Reference to a configuration page shown inside a tab.
  */
 export type PageRef =
-  | { type: 'settings'; section: SettingsSection }
+  | { type: 'settings'; section: SettingsSection; focusVariableKey?: string }
   | { type: 'plugins' }
   | { type: 'themes' }
   | { type: 'snippets' }
@@ -82,8 +82,14 @@ export type PageRef =
   | { type: 'team-hub-admin'; hubId: string; label?: string }
   | { type: 'sharing-keys' }
   | { type: 'plugin-view'; pluginId: string; viewId: string }
-  | { type: 'collection'; id: number }
-  | { type: 'environment'; id: number };
+  | { type: 'collection'; id: number; focusVariableKey?: string }
+  | { type: 'environment'; id: number; focusVariableKey?: string }
+  | {
+      type: 'collection-runner';
+      collectionId: number;
+      folderId?: number | null;
+      requestId?: number | null;
+    };
 
 /**
  * Tab that hosts a settings, plugins, or other configuration page.
@@ -163,6 +169,8 @@ export function pageRefKey(page: PageRef): string {
       return `collection:${page.id}`;
     case 'environment':
       return `environment:${page.id}`;
+    case 'collection-runner':
+      return 'collection-runner';
   }
 }
 

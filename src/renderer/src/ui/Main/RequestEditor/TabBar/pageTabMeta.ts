@@ -8,6 +8,7 @@ import {
   faGlobe,
   faDatabase,
   faPalette,
+  faPlay,
   faPuzzlePiece,
   faTerminal,
   faUsers
@@ -31,6 +32,8 @@ interface PageTabMetaOptions {
   pluginTitle?: string;
   /** Team hub name when the page is team hub admin. */
   teamHubName?: string;
+  /** Primary run target label when the page is the collection runner. */
+  runnerTargetName?: string;
 }
 
 /**
@@ -73,5 +76,10 @@ export function pageTabMeta(page: PageRef, options: PageTabMetaOptions = {}): Pa
       return { title: options.collectionName ?? 'Collection', icon: faDatabase };
     case 'environment':
       return { title: options.environmentName ?? 'Environment', icon: faGlobe };
+    case 'collection-runner':
+      return {
+        title: options.runnerTargetName ? `Run ${options.runnerTargetName}` : 'Runner',
+        icon: faPlay
+      };
   }
 }

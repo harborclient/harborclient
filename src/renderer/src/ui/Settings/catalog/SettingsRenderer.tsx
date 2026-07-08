@@ -26,6 +26,11 @@ interface Props {
    * Built-in settings section to render in normal navigation mode.
    */
   section: SettingsSection;
+
+  /**
+   * When set, focuses the matching variable row in management sections that support it.
+   */
+  focusVariableKey?: string;
 }
 
 /**
@@ -77,10 +82,10 @@ function SettingsDraftError(): JSX.Element | null {
 /**
  * Catalog-driven settings layout engine for section navigation.
  */
-export function SettingsRenderer({ section }: Props): JSX.Element | null {
+export function SettingsRenderer({ section, focusVariableKey }: Props): JSX.Element | null {
   if (isManagementSettingsSection(section)) {
     const SectionComponent = SETTINGS_SECTION_REGISTRY[section];
-    return <SectionComponent />;
+    return <SectionComponent focusVariableKey={focusVariableKey} />;
   }
 
   if (isFormSettingsSection(section)) {

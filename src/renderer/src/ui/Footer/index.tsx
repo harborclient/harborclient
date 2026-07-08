@@ -3,15 +3,24 @@ import { useEffect, useMemo, useRef, type JSX } from 'react';
 import type { Variable } from '#/shared/types';
 import type { ConsoleEntry } from '#/renderer/src/store';
 
-import { faInbox, faPaperPlane, faRobot, faTableColumns } from '#/renderer/src/fontawesome';
+import {
+  faInbox,
+  faMagnifyingGlass,
+  faPaperPlane,
+  faRobot,
+  faTableColumns
+} from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActivePluginFooterPanelId,
   togglePluginFooterPanel
 } from '#/renderer/src/store/slices/navigationSlice';
 import {
+  closeSearchAnythingModal,
   closeShortcutsReferenceModal,
+  openSearchAnythingModal,
   openShortcutsReferenceModal,
+  selectSearchAnythingModal,
   selectShortcutsReferenceModal
 } from '#/renderer/src/store/slices/modalsSlice';
 import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
@@ -181,6 +190,7 @@ export function Footer({
   const statusBarItems = usePluginStatusBarItems();
   const activePluginFooterPanelId = useAppSelector(selectActivePluginFooterPanelId);
   const shortcutsReferenceOpen = useAppSelector(selectShortcutsReferenceModal)?.open === true;
+  const searchAnythingOpen = useAppSelector(selectSearchAnythingModal)?.open === true;
   const footerRef = useRef<HTMLElement>(null);
   const leftGroupRef = useRef<HTMLDivElement>(null);
   const rightIconsRef = useRef<HTMLDivElement>(null);
@@ -269,6 +279,14 @@ export function Footer({
         className="relative z-50 flex shrink-0 items-center justify-between border-t border-separator bg-sidebar px-2 py-0.5 app-no-drag"
       >
         <div className={`${segmentGroup} min-w-0 flex-1`}>
+          <FooterIcon
+            onClick={() =>
+              dispatch(searchAnythingOpen ? closeSearchAnythingModal() : openSearchAnythingModal())
+            }
+            icon={faMagnifyingGlass}
+            active={searchAnythingOpen}
+            label="search anything"
+          />
           {leftStatusItems.map((item) => (
             <div key={item.id} className="overflow-hidden px-1" style={{ width: 120, height: 20 }}>
               <PluginSurface

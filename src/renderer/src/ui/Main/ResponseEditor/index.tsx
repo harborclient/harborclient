@@ -6,7 +6,7 @@ import {
   CodeEditor,
   FaIcon
 } from '@harborclient/sdk/components';
-import { focusableReadonlyClass, statusDotClass } from '#/renderer/src/ui/shared/classes';
+import { focusableReadonlyClass } from '#/renderer/src/ui/shared/classes';
 import { useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { ResponseTabContext } from '#/shared/plugin/types';
@@ -18,8 +18,8 @@ import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import { usePluginResponseTabs } from '#/renderer/src/plugins/pluginHooks';
 import {
   bodyLanguage,
+  defaultResponseTab,
   formatBody,
-  formatBytes,
   isHtmlResponse,
   isImageResponse,
   responseContentType,
@@ -28,6 +28,7 @@ import {
   responseTabText
 } from '#/renderer/src/ui/shared/responseFormatUtils';
 import { ConsoleDetails } from '#/renderer/src/ui/shared/ConsoleDetails/ConsoleDetails';
+import { ResponseSummary } from './ResponseSummary';
 import { Headers } from './Headers';
 import { HtmlPreview } from './HtmlPreview';
 import { ImagePreview } from './ImagePreview';
@@ -92,9 +93,9 @@ export function ResponseEditor({
 }: Props): JSX.Element {
   const pluginTabs = usePluginResponseTabs();
   const sendRequestShortcutHint = useSendRequestShortcutHint();
-  const [tabState, setTabState] = useState(() => ({
+  const [tabState, setTabState] = useState<{ response: SendResult | null; tab: string }>(() => ({
     response,
-    tab: 'body'
+    tab: defaultResponseTab(response)
   }));
 
   /**
@@ -341,32 +342,8 @@ export function ResponseEditor({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col p-3">
-      <div className="mb-2 flex items-center gap-3 text-[14px] border-b border-separator p-3 -mx-3 -mt-2">
-        <span
-          tabIndex={0}
-          aria-label={responseStatusLabel(response)}
-          className={`inline-flex items-center gap-1.5 font-medium text-text ${focusableReadonlyClass}`}
-        >
-          <span
-            className={`inline-block h-2 w-2 shrink-0 rounded-full ${statusDotClass(response.status)}`}
-            aria-hidden="true"
-          />
-          {response.error ? 'Error' : `${response.status} ${response.statusText}`}
-        </span>
-        <span
-          tabIndex={0}
-          aria-label={responseTimeLabel(response.timeMs)}
-          className={`text-muted ${focusableReadonlyClass}`}
-        >
-          {response.timeMs} ms
-        </span>
-        <span
-          tabIndex={0}
-          aria-label={responseSizeLabel(response.sizeBytes)}
-          className={`text-muted ${focusableReadonlyClass}`}
-        >
-          {formatBytes(response.sizeBytes)}
-        </span>
+      <div className="mb-2 flex items-center border-b border-separator p-3 -mx-3 -mt-2">
+        <ResponseSummary response={response} />
       </div>
 
       {response.error && (
@@ -473,39 +450,6 @@ export function ResponseEditor({
       </div>
     </div>
   );
-}
-
-/**
- * Accessible name for the response status metric tab stop.
- *
- * @param response - Last send result shown in the response editor.
- * @returns Screen-reader label for the HTTP status or error state.
- */
-function responseStatusLabel(response: SendResult): string {
-  if (response.error) {
-    return 'Response status: Error';
-  }
-  return `Response status: ${response.status} ${response.statusText}`;
-}
-
-/**
- * Accessible name for the response timing metric tab stop.
- *
- * @param timeMs - Round-trip time in milliseconds.
- * @returns Screen-reader label for response duration.
- */
-function responseTimeLabel(timeMs: number): string {
-  return `Response time: ${timeMs} milliseconds`;
-}
-
-/**
- * Accessible name for the response size metric tab stop.
- *
- * @param sizeBytes - Response body size in bytes.
- * @returns Screen-reader label for formatted response size.
- */
-function responseSizeLabel(sizeBytes: number): string {
-  return `Response size: ${formatBytes(sizeBytes)}`;
 }
 
 /**

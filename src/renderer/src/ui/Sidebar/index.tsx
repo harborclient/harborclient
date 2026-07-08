@@ -81,7 +81,8 @@ import { Input } from '@harborclient/sdk/components';
 import { Modal, ModalFooter } from '@harborclient/sdk/components';
 import { FieldError } from '@harborclient/sdk/components';
 import { formatErrorMessage, showAlert, showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
-import { openCollectionRunnerModal } from '#/renderer/src/store/slices/modalsSlice';
+import { openCollectionRunner } from '#/renderer/src/store/slices/modalsSlice';
+import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { Collections } from './Collections';
 import { GitSourceControlPanel } from '#/renderer/src/ui/modals/GitSourceControlPanel';
 import { Environments } from './Environments';
@@ -632,30 +633,51 @@ export function Sidebar({
                         onConfigureCollection={onConfigureCollection}
                         onRunCollection={(collectionId, collectionName) => {
                           dispatch(
-                            openCollectionRunnerModal({
+                            openCollectionRunner({
                               collectionId,
                               collectionName
+                            })
+                          );
+                          dispatch(
+                            openPageTab({
+                              type: 'collection-runner',
+                              collectionId
                             })
                           );
                         }}
                         onRunFolder={(collectionId, folderId, collectionName, folderName) => {
                           dispatch(
-                            openCollectionRunnerModal({
+                            openCollectionRunner({
                               collectionId,
                               folderId,
                               collectionName,
                               folderName
                             })
                           );
+                          dispatch(
+                            openPageTab({
+                              type: 'collection-runner',
+                              collectionId,
+                              folderId
+                            })
+                          );
                         }}
                         onRunRequest={(req, collectionName) => {
                           dispatch(
-                            openCollectionRunnerModal({
+                            openCollectionRunner({
                               collectionId: req.collection_id,
                               folderId: req.folder_id ?? null,
                               collectionName,
                               requestId: req.id,
                               requestName: req.name
+                            })
+                          );
+                          dispatch(
+                            openPageTab({
+                              type: 'collection-runner',
+                              collectionId: req.collection_id,
+                              folderId: req.folder_id ?? null,
+                              requestId: req.id
                             })
                           );
                         }}

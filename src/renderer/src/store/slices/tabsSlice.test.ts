@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import type { SavedRequest, ScriptTestResult, SendResult } from '#/shared/types';
-import { asRequestTab, draftFromSaved, isPageTab, isTabDirty } from '#/renderer/src/store/drafts';
+import {
+  asRequestTab,
+  draftFromSaved,
+  isPageTab,
+  isRequestTab,
+  isTabDirty
+} from '#/renderer/src/store/drafts';
 import tabsReducer, {
   activateNextTab,
   activatePreviousTab,
@@ -13,7 +19,8 @@ import tabsReducer, {
   newTab,
   openPageTab,
   openTabWithDraft,
-  reorderTabs
+  reorderTabs,
+  setActiveTab
 } from '#/renderer/src/store/slices/tabsSlice';
 
 /**
@@ -185,6 +192,90 @@ describe('tabsSlice openPageTab', () => {
       expect(settingsTab.page).toEqual({ type: 'settings', section: 'ai' });
     }
   });
+
+  it('updates focusVariableKey on an existing collection settings tab', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, closeTab(state.activeTabId));
+    state = tabsReducer(
+      state,
+      openPageTab({ type: 'collection', id: 99, focusVariableKey: 'first' })
+    );
+    const existingTabId = state.activeTabId;
+    state = tabsReducer(state, newTab());
+    state = tabsReducer(
+      state,
+      openPageTab({ type: 'collection', id: 99, focusVariableKey: 'second' })
+    );
+
+    expect(state.tabs).toHaveLength(2);
+    expect(state.activeTabId).toBe(existingTabId);
+    const collectionTab = state.tabs.find((tab) => tab.tabId === existingTabId);
+    expect(collectionTab).toBeDefined();
+    expect(isPageTab(collectionTab!)).toBe(true);
+    if (isPageTab(collectionTab!)) {
+      expect(collectionTab.page).toEqual({
+        type: 'collection',
+        id: 99,
+        focusVariableKey: 'second'
+      });
+    }
+  });
+
+  it('updates focusVariableKey on an existing environment settings tab', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, closeTab(state.activeTabId));
+    state = tabsReducer(
+      state,
+      openPageTab({ type: 'environment', id: 7, focusVariableKey: 'first' })
+    );
+    const existingTabId = state.activeTabId;
+    state = tabsReducer(state, newTab());
+    state = tabsReducer(
+      state,
+      openPageTab({ type: 'environment', id: 7, focusVariableKey: 'second' })
+    );
+
+    expect(state.tabs).toHaveLength(2);
+    expect(state.activeTabId).toBe(existingTabId);
+    const environmentTab = state.tabs.find((tab) => tab.tabId === existingTabId);
+    expect(environmentTab).toBeDefined();
+    expect(isPageTab(environmentTab!)).toBe(true);
+    if (isPageTab(environmentTab!)) {
+      expect(environmentTab.page).toEqual({
+        type: 'environment',
+        id: 7,
+        focusVariableKey: 'second'
+      });
+    }
+  });
+
+  it('retargets an existing collection runner tab instead of opening a duplicate', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, closeTab(state.activeTabId));
+    state = tabsReducer(
+      state,
+      openPageTab({ type: 'collection-runner', collectionId: 1, requestId: 10 })
+    );
+    const existingTabId = state.activeTabId;
+    state = tabsReducer(state, newTab());
+    state = tabsReducer(
+      state,
+      openPageTab({ type: 'collection-runner', collectionId: 2, folderId: 5 })
+    );
+
+    expect(state.tabs).toHaveLength(2);
+    expect(state.activeTabId).toBe(existingTabId);
+    const runnerTab = state.tabs.find((tab) => tab.tabId === existingTabId);
+    expect(runnerTab).toBeDefined();
+    expect(isPageTab(runnerTab!)).toBe(true);
+    if (isPageTab(runnerTab!)) {
+      expect(runnerTab.page).toEqual({
+        type: 'collection-runner',
+        collectionId: 2,
+        folderId: 5
+      });
+    }
+  });
 });
 
 describe('tabsSlice closeTabsForCollection', () => {
@@ -230,6 +321,21 @@ describe('tabsSlice closeTabsForCollection', () => {
     expect(state.tabs).toHaveLength(1);
     expect(isPageTab(state.tabs[0]!)).toBe(false);
   });
+
+  it('closes matching collection runner page tabs', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, closeTab(state.activeTabId));
+    state = tabsReducer(
+      state,
+      openPageTab({ type: 'collection-runner', collectionId: 99, requestId: 5 })
+    );
+    state = tabsReducer(state, newTab());
+
+    state = tabsReducer(state, closeTabsForCollection(99));
+
+    expect(state.tabs).toHaveLength(1);
+    expect(isPageTab(state.tabs[0]!)).toBe(false);
+  });
 });
 
 describe('tabsSlice closeTabsForEnvironment', () => {
@@ -251,7 +357,7 @@ describe('tabsSlice loadRequest', () => {
     const initial = tabsReducer(undefined, { type: 'unknown' });
     const req = sampleSaved();
 
-    const state = tabsReducer(initial, loadRequest(req));
+    const state = tabsReducer(initial, loadRequest({ req }));
 
     expect(state.tabs).toHaveLength(initial.tabs.length + 1);
     expect(asRequestTab(state.tabs[state.tabs.length - 1]).draft).toEqual(draftFromSaved(req));
@@ -289,7 +395,7 @@ describe('tabsSlice loadRequest', () => {
       collection_id: 20
     });
 
-    const state = tabsReducer(initial, loadRequest(updated));
+    const state = tabsReducer(initial, loadRequest({ req: updated }));
     const tab = asRequestTab(state.tabs.find((t) => t.tabId === tabId));
 
     expect(state.activeTabId).toBe(tabId);
@@ -338,13 +444,47 @@ describe('tabsSlice loadRequest', () => {
       )
     };
 
-    const state = tabsReducer(withSendState, loadRequest(sampleSaved()));
+    const state = tabsReducer(withSendState, loadRequest({ req: sampleSaved() }));
 
     const tab = asRequestTab(state.tabs.find((t) => t.tabId === tabId));
     expect(tab.response).toBeNull();
     expect(tab.testResults).toEqual([]);
     expect(tab.scriptLogs).toEqual([]);
     expect(tab.scriptError).toBeUndefined();
+  });
+
+  it('does not change activeTabId when loading a new request with activate false', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, openPageTab({ type: 'collection-runner', collectionId: 1 }));
+    const runnerTabId = state.activeTabId;
+
+    const req = sampleSaved({ id: 55 });
+    state = tabsReducer(state, loadRequest({ req, activate: false }));
+
+    expect(state.activeTabId).toBe(runnerTabId);
+    expect(state.tabs.some((tab) => isRequestTab(tab) && tab.draft.id === 55)).toBe(true);
+  });
+
+  it('does not change activeTabId when reloading an existing request with activate false', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, openPageTab({ type: 'collection-runner', collectionId: 1 }));
+    const runnerTabId = state.activeTabId;
+    const req = sampleSaved({ id: 56, url: 'https://example.com/v1' });
+
+    state = tabsReducer(state, loadRequest({ req }));
+    state = tabsReducer(state, setActiveTab(runnerTabId));
+    state = tabsReducer(
+      state,
+      loadRequest({
+        req: sampleSaved({ id: 56, url: 'https://example.com/v2', params: [] }),
+        activate: false
+      })
+    );
+
+    expect(state.activeTabId).toBe(runnerTabId);
+    const requestTab = state.tabs.find((tab) => isRequestTab(tab) && tab.draft.id === 56);
+    expect(requestTab).toBeDefined();
+    expect(asRequestTab(requestTab).draft.url).toBe('https://example.com/v2');
   });
 });
 

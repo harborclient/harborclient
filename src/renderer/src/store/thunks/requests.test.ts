@@ -481,7 +481,7 @@ describe('requestLoadRequest', () => {
     await resetPendingLoadRequest(store);
     const req = sampleSaved({ id: 103, url: 'https://example.com/old' });
 
-    store.dispatch(loadRequest(req));
+    store.dispatch(loadRequest({ req }));
 
     await store.dispatch(requestLoadRequest({ req: sampleSaved({ id: 103 }) }));
 
@@ -494,6 +494,77 @@ describe('requestLoadRequest', () => {
         store.getState().tabs.tabs.find((tab) => isRequestTab(tab) && tab.draft.id === 103)
       ).draft.url
     ).toBe('https://example.com/users');
+  });
+
+  it('loads a request without activating the tab when activate is false', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { openPageTab } = await import('#/renderer/src/store/slices/tabsSlice');
+    const { requestLoadRequest } = await import('#/renderer/src/store/thunks/requests');
+    await resetPendingLoadRequest(store);
+    store.dispatch(openPageTab({ type: 'collection-runner', collectionId: 10 }));
+    const runnerTabId = store.getState().tabs.activeTabId;
+    const req = sampleSaved({ id: 104 });
+
+    await store.dispatch(
+      requestLoadRequest({ req, skipSettingsCheck: true, forceReload: true, activate: false })
+    );
+
+    expect(store.getState().tabs.activeTabId).toBe(runnerTabId);
+    expect(
+      store.getState().tabs.tabs.some((tab) => isRequestTab(tab) && tab.draft.id === 104)
+    ).toBe(true);
+  });
+});
+
+describe('sendRequest', () => {
+  it('sends from the given tab without requiring it to be active', async () => {
+    const sendRequestApiMock = vi.fn().mockResolvedValue({
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      body: '{}',
+      timeMs: 5,
+      sizeBytes: 2
+    });
+    const runScriptMock = vi.fn().mockResolvedValue({ logs: [], tests: [], error: undefined });
+
+    vi.stubGlobal('window', {
+      api: {
+        saveRequest: saveRequestMock,
+        listRequests: listRequestsMock,
+        listFolders: listFoldersMock,
+        cancelRequest: cancelRequestMock,
+        sendRequest: sendRequestApiMock,
+        runScript: runScriptMock,
+        getCookies: vi.fn().mockResolvedValue([]),
+        pushPluginHttpAfterSend: vi.fn().mockResolvedValue(undefined)
+      }
+    });
+
+    const { store } = await import('#/renderer/src/store/redux');
+    const { loadRequest, openPageTab, setActiveTab } =
+      await import('#/renderer/src/store/slices/tabsSlice');
+    const { sendRequest } = await import('#/renderer/src/store/thunks/requests');
+
+    store.dispatch(openPageTab({ type: 'collection-runner', collectionId: 10 }));
+    const runnerTabId = store.getState().tabs.activeTabId;
+    store.dispatch(loadRequest({ req: sampleSaved({ id: 200 }) }));
+    const requestTab = store
+      .getState()
+      .tabs.tabs.find((tab) => isRequestTab(tab) && tab.draft.id === 200);
+    if (!requestTab || !isRequestTab(requestTab)) {
+      throw new Error('expected request tab');
+    }
+    store.dispatch(setActiveTab(runnerTabId));
+
+    await store.dispatch(sendRequest(requestTab.tabId)).unwrap();
+
+    expect(store.getState().tabs.activeTabId).toBe(runnerTabId);
+    expect(sendRequestApiMock).toHaveBeenCalledTimes(1);
+    const updatedTab = asRequestTab(
+      store.getState().tabs.tabs.find((tab) => tab.tabId === requestTab.tabId)
+    );
+    expect(updatedTab.response?.status).toBe(200);
   });
 });
 

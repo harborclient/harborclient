@@ -16,7 +16,7 @@ import {
 } from '#/main/schemas/common';
 import { ipcScriptRefArray, scriptSource } from '#/main/schemas/scriptRef';
 import { CODE_EDITOR_THEME_IDS } from '#/shared/codeEditorSettings';
-import { requestExportSchema } from '#/main/storage/collectionSchemas';
+import { requestExportSchema, runResultsExportSchema } from '#/main/storage/collectionSchemas';
 import { customThemeSaveInputSchema } from '#/shared/plugin/customThemeExport';
 import type {
   AiChatSessionState,
@@ -643,6 +643,7 @@ export const ipcArgSchemas = {
   requestReorder: z.tuple([dbId, nullableFolderId, z.array(dbId)]),
   requestMove: z.tuple([dbId, nullableFolderId, dbId]),
   requestExport: z.tuple([requestExportSchema]),
+  runResultsExport: z.tuple([runResultsExportSchema]),
   requestImport: z.tuple([dbId, nullableFolderId.optional()]),
   importAuto: z.tuple([dbId.nullable()]),
   shareCreate: z.tuple([dbId, recipientKid.optional()]),
@@ -759,5 +760,6 @@ export const ipcArgSchemas = {
       .min(1)
       .max(128)
   ]),
-  customThemeSave: z.tuple([customThemeSaveInputSchema])
+  customThemeSave: z.tuple([customThemeSaveInputSchema]),
+  inspectElement: z.tuple([z.object({ x: z.number(), y: z.number() })])
 } as const;

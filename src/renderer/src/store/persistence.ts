@@ -279,6 +279,29 @@ function normalizePageRef(value: unknown): PageRef | null {
         return null;
       }
       return { type: 'environment', id: value.id };
+    case 'collection-runner': {
+      if (typeof value.collectionId !== 'number' || !Number.isFinite(value.collectionId)) {
+        return null;
+      }
+      const folderId =
+        value.folderId == null
+          ? null
+          : typeof value.folderId === 'number' && Number.isFinite(value.folderId)
+            ? value.folderId
+            : null;
+      const requestId =
+        value.requestId == null
+          ? null
+          : typeof value.requestId === 'number' && Number.isFinite(value.requestId)
+            ? value.requestId
+            : null;
+      return {
+        type: 'collection-runner',
+        collectionId: value.collectionId,
+        folderId,
+        requestId
+      };
+    }
     default:
       return null;
   }

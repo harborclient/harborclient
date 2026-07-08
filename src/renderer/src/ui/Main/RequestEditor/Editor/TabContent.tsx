@@ -57,7 +57,7 @@ interface Props {
   /**
    * Opens collection settings to edit variables.
    */
-  onEditVariables?: () => void;
+  onEditVariables?: (key: string) => void;
 
   /**
    * Registered plugin request editor tabs.
