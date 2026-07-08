@@ -25,6 +25,7 @@ import {
   type ScriptDocumentFacade
 } from '#/main/scripting/scriptResponseDocument';
 import { scriptExpect } from '#/main/scripting/scriptExpect';
+import { createResponseAssertionSubject } from '#/main/scripting/scriptResponseAssertions';
 
 /**
  * Context fields passed into the hc sandbox without user script source.
@@ -562,6 +563,7 @@ export function createScriptApi(
   if (ctx.response) {
     const resp: SendResult = ctx.response;
     let cachedDocument: ScriptDocumentFacade | undefined;
+    const responseSubject = createResponseAssertionSubject(resp);
     hc.response = {
       get code() {
         return resp.status;
@@ -574,6 +576,9 @@ export function createScriptApi(
       },
       get responseTime() {
         return resp.timeMs;
+      },
+      get to() {
+        return scriptExpect(responseSubject).to;
       },
       text: () => resp.body,
       json: () => JSON.parse(resp.body),

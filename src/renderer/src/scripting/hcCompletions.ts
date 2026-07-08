@@ -115,6 +115,7 @@ const HC_RESPONSE: HcCompletionOption[] = [
   { label: 'status', type: 'property', detail: 'HTTP status text' },
   { label: 'headers', type: 'property', detail: 'Response headers map' },
   { label: 'responseTime', type: 'property', detail: 'Round-trip time in ms' },
+  { label: 'to', type: 'property', detail: 'Chai response assertions (post only)' },
   { label: 'text', type: 'method', detail: '() => response body string' },
   { label: 'json', type: 'method', detail: '() => parsed JSON body' },
   {
@@ -122,6 +123,30 @@ const HC_RESPONSE: HcCompletionOption[] = [
     type: 'method',
     detail: '() => { querySelector, querySelectorAll } — HTML body (Cheerio)'
   }
+];
+
+const HC_RESPONSE_TO: HcCompletionOption[] = [
+  { label: 'have', type: 'property', detail: 'Response have matchers' },
+  { label: 'be', type: 'property', detail: 'Response be matchers' },
+  { label: 'not', type: 'property', detail: 'Negated assertion' }
+];
+
+const HC_RESPONSE_TO_HAVE: HcCompletionOption[] = [
+  { label: 'status', type: 'method', detail: '(code | statusText) => void' },
+  { label: 'header', type: 'method', detail: '(name, value?) => void' },
+  { label: 'body', type: 'method', detail: '(expected?) => void' },
+  { label: 'jsonBody', type: 'method', detail: '(expected?) => void' }
+];
+
+const HC_RESPONSE_TO_BE: HcCompletionOption[] = [
+  { label: 'json', type: 'property', detail: 'JSON content-type and valid body' },
+  { label: 'ok', type: 'property', detail: '2xx status' },
+  { label: 'withBody', type: 'property', detail: 'Non-empty response body' },
+  { label: 'success', type: 'property', detail: '2xx status' },
+  { label: 'clientError', type: 'property', detail: '4xx status' },
+  { label: 'notFound', type: 'property', detail: '404 status' },
+  { label: 'unauthorized', type: 'property', detail: '401 status' },
+  { label: 'error', type: 'property', detail: '4xx or 5xx status' }
 ];
 
 const CONSOLE: HcCompletionOption[] = [
@@ -147,6 +172,9 @@ const GROUPS: Record<string, HcCompletionOption[]> = {
   'hc.execution': HC_EXECUTION,
   'hc.info': HC_INFO,
   'hc.response': HC_RESPONSE,
+  'hc.response.to': HC_RESPONSE_TO,
+  'hc.response.to.have': HC_RESPONSE_TO_HAVE,
+  'hc.response.to.be': HC_RESPONSE_TO_BE,
   console: CONSOLE
 };
 

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- chore(dependencies): update @harborclient/sdk to v1.0.46 and refactor response assertions. (`c1720b3`)
 - chore(dependencies): update @harborclient/sdk to v1.0.45 and add chai with type definitions. (`115cdd5`)
 
 ## 2.0.10 - 2026-07-08
