@@ -1,4 +1,5 @@
 import type { HubLlmModel } from '#/shared/types/ai';
+import type { CollectionRunnerSummary, RunResultsExportKind } from '#/shared/collectionRunner';
 import type { HttpMethod } from '#/shared/types/common';
 import type { SnippetScope } from '#/shared/snippetScope';
 
@@ -350,6 +351,46 @@ export interface TeamHubAdminSnippetInput {
    * Script phases where the snippet may be referenced.
    */
   scope: SnippetScope;
+}
+
+/**
+ * Run result record returned by Team Hub admin run-result management routes.
+ */
+export interface TeamHubAdminRunResult {
+  /**
+   * Run result UUID on the hub server.
+   */
+  id: string;
+
+  /**
+   * User-facing label for list rows.
+   */
+  label: string;
+
+  /**
+   * Whether the snapshot is a collection-wide or single-request run.
+   */
+  kind: RunResultsExportKind;
+
+  /**
+   * Collection display name captured at save time.
+   */
+  collectionName: string | null;
+
+  /**
+   * Request display name when the run targeted one request.
+   */
+  requestName: string | null;
+
+  /**
+   * Pass/fail/skip counts derived from the saved result rows.
+   */
+  summary: CollectionRunnerSummary;
+
+  /**
+   * ISO timestamp when the run result was saved.
+   */
+  createdAt: string;
 }
 
 /**

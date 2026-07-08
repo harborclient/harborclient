@@ -58,6 +58,11 @@ import type {
 } from '#/shared/types';
 import type { SnippetScope } from '#/shared/snippetScope';
 import { defaultAuth } from '#/shared/auth';
+import type {
+  SavedRunResult,
+  SavedRunResultSummary,
+  SaveRunResultInput
+} from '#/shared/collectionRunner';
 
 /**
  * Numeric id offset so marketplace snippet ids never collide with registry global ids.
@@ -922,6 +927,139 @@ export class RoutingStorage implements IStorage {
 
     await backend.db.deleteSnippet(entry.providerSnippetId);
     this.database.deleteSnippetRegistryEntry(id);
+  }
+
+  /**
+   * Lists run result snapshots from every mounted provider with global ids.
+   */
+  async listRunResults(): Promise<SavedRunResultSummary[]> {
+    const merged: SavedRunResultSummary[] = [];
+
+    for (const backend of this.byConnectionId.values()) {
+      try {
+        const records = await backend.db.listRunResults();
+        for (const record of records) {
+          merged.push({
+            ...record,
+            id: encodeGlobalId(backend.slot, record.id),
+            connectionId: backend.connectionId
+          });
+        }
+      } catch (err) {
+        console.warn(`Failed to read run results from "${backend.connectionName}":`, err);
+      }
+    }
+
+    return merged.sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  }
+
+  /**
+   * Saves a run result snapshot on the default data provider.
+   */
+  async saveRunResult(input: SaveRunResultInput): Promise<SavedRunResult>;
+
+  /**
+   * Saves a run result snapshot on a specific mounted provider.
+   */
+  async saveRunResult(connectionId: string, input: SaveRunResultInput): Promise<SavedRunResult>;
+
+  /**
+   * Saves a run result snapshot and returns a routed global snapshot row.
+   */
+  async saveRunResult(
+    connectionIdOrInput: string | SaveRunResultInput,
+    maybeInput?: SaveRunResultInput
+  ): Promise<SavedRunResult> {
+    if (typeof connectionIdOrInput === 'string') {
+      if (!maybeInput) {
+        throw new Error('Run result payload is required.');
+      }
+      const backend = this.requireBackendByConnectionId(connectionIdOrInput);
+      const record = await backend.db.saveRunResult(maybeInput);
+      return {
+        ...record,
+        id: encodeGlobalId(backend.slot, record.id),
+        connectionId: backend.connectionId
+      };
+    }
+
+    const backend = this.requireDefaultDataBackend();
+    const record = await backend.db.saveRunResult(connectionIdOrInput);
+    return {
+      ...record,
+      id: encodeGlobalId(backend.slot, record.id),
+      connectionId: backend.connectionId
+    };
+  }
+
+  /**
+   * Loads a run result snapshot by routed global id.
+   */
+  async getRunResult(id: number): Promise<SavedRunResult | null> {
+    const { slot, localId } = decodeGlobalId(id);
+    const backend = this.bySlot.get(slot);
+    if (!backend) {
+      return null;
+    }
+
+    const record = await backend.db.getRunResult(localId);
+    if (!record) {
+      return null;
+    }
+
+    return {
+      ...record,
+      id,
+      connectionId: backend.connectionId
+    };
+  }
+
+  /**
+   * Deletes a run result snapshot from the backend identified by its global id.
+   */
+  async deleteRunResult(id: number): Promise<void> {
+    const { slot, localId } = decodeGlobalId(id);
+    const backend = this.bySlot.get(slot);
+    if (!backend) {
+      throw new Error(`Database backend for slot ${slot} is unavailable.`);
+    }
+    await backend.db.deleteRunResult(localId);
+  }
+
+  /**
+   * Resolves a run result UUID by probing mounted Team Hub providers.
+   *
+   * @param uuid - Stable portable run result identifier from a deep link.
+   * @returns Routed snapshot when a hub exposes the UUID, otherwise null.
+   */
+  async resolveRunResultByUuid(uuid: string): Promise<SavedRunResult | null> {
+    const trimmedUuid = uuid.trim();
+    if (!trimmedUuid) {
+      return null;
+    }
+
+    for (const backend of this.byConnectionId.values()) {
+      if (backend.connectionType !== 'team-hub' || !(backend.db instanceof TeamHubStorage)) {
+        continue;
+      }
+
+      try {
+        const record = await backend.db.fetchRunResultByUuid(trimmedUuid);
+        if (!record) {
+          continue;
+        }
+
+        return {
+          ...record,
+          id: encodeGlobalId(backend.slot, record.id),
+          connectionId: backend.connectionId
+        };
+      } catch (err) {
+        console.warn(`Failed to resolve run result from "${backend.connectionName}":`, err);
+      }
+    }
+
+    return null;
   }
 
   /**

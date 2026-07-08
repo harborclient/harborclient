@@ -29,6 +29,7 @@ export type MenuActionId =
   | 'toggle-response-editor'
   | 'toggle-collections-section'
   | 'toggle-environments-section'
+  | 'toggle-run-results-section'
   | 'send-request'
   | 'previous-request-tab'
   | 'next-request-tab'

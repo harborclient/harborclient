@@ -10,6 +10,7 @@ let requestEditorVisible = true;
 let responseEditorVisible = true;
 let collectionsVisible = true;
 let environmentsVisible = true;
+let runResultsVisible = true;
 let activeTheme: ThemeSource = 'system';
 let pluginThemeOptions: ThemeMenuOption[] = [];
 let creatorUndoRedoActive = false;
@@ -56,6 +57,13 @@ export function getMenuCollectionsVisible(): boolean {
  */
 export function getMenuEnvironmentsVisible(): boolean {
   return environmentsVisible;
+}
+
+/**
+ * Returns the Run Results section visibility state reflected in the View menu checkbox.
+ */
+export function getMenuRunResultsVisible(): boolean {
+  return runResultsVisible;
 }
 
 /**
@@ -147,6 +155,19 @@ export function setMenuEnvironmentsVisible(visible: boolean): void {
     return;
   }
   environmentsVisible = visible;
+  rebuildAppMenu();
+}
+
+/**
+ * Updates the View menu Run Results checkbox and rebuilds the menu when the value changes.
+ *
+ * @param visible - Whether the Run Results section is currently visible in the sidebar.
+ */
+export function setMenuRunResultsVisible(visible: boolean): void {
+  if (runResultsVisible === visible) {
+    return;
+  }
+  runResultsVisible = visible;
   rebuildAppMenu();
 }
 
@@ -252,6 +273,7 @@ export function rebuildAppMenu(): void {
       responseEditorVisible,
       collectionsVisible,
       environmentsVisible,
+      runResultsVisible,
       activeTheme,
       pluginThemeOptions,
       rebuildAppMenu,

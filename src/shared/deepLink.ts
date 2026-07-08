@@ -20,7 +20,14 @@ export type HarborDeepLink =
   | {
       action: 'install-snippet';
       pluginId: string;
+    }
+  | {
+      action: 'open-run-results';
+      uuid: string;
     };
+
+const RUN_RESULT_UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /**
  * Returns whether a string is a valid plugin manifest id.
@@ -57,6 +64,25 @@ function parseInstallDeepLink(
 }
 
 /**
+ * Parses a harborclient://run/<uuid> deep link when the host and path match.
+ *
+ * @param parsed - Parsed harborclient:// URL.
+ * @returns Parsed open-run-results action, or null when invalid.
+ */
+function parseRunResultsDeepLink(parsed: URL): HarborDeepLink | null {
+  if (parsed.hostname !== 'run') {
+    return null;
+  }
+
+  const uuid = parsed.pathname.replace(/^\/+/, '').trim();
+  if (!uuid || !RUN_RESULT_UUID_PATTERN.test(uuid)) {
+    return null;
+  }
+
+  return { action: 'open-run-results', uuid };
+}
+
+/**
  * Parses a harborclient:// URL into a supported deep-link action.
  *
  * Only plugin ids from the query string are trusted; repository URLs must be
@@ -85,7 +111,8 @@ export function parseHarborDeepLink(url: string): HarborDeepLink | null {
   return (
     parseInstallDeepLink(parsed, 'plugin', 'install-plugin') ??
     parseInstallDeepLink(parsed, 'theme', 'install-theme') ??
-    parseInstallDeepLink(parsed, 'snippet', 'install-snippet')
+    parseInstallDeepLink(parsed, 'snippet', 'install-snippet') ??
+    parseRunResultsDeepLink(parsed)
   );
 }
 
@@ -117,4 +144,14 @@ export function buildThemeInstallDeepLink(pluginId: string): string {
  */
 export function buildSnippetInstallDeepLink(pluginId: string): string {
   return `${HARBOR_PROTOCOL}://snippet/install?id=${encodeURIComponent(pluginId)}`;
+}
+
+/**
+ * Builds a harborclient:// run-results URL for one saved snapshot UUID.
+ *
+ * @param uuid - Stable run result UUID from storage or a Team Hub share link.
+ * @returns Deep-link URL suitable for clipboard copy and external links.
+ */
+export function buildRunResultsDeepLink(uuid: string): string {
+  return `${HARBOR_PROTOCOL}://run/${encodeURIComponent(uuid)}`;
 }

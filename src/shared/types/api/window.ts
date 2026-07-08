@@ -58,6 +58,12 @@ export interface ApiWindow {
    */
   setMenuEnvironmentsVisible: (visible: boolean) => Promise<void>;
   /**
+   * Syncs Run Results section visibility to the View menu checkbox in the main process.
+   *
+   * @param visible - Whether the Run Results section is currently visible in the sidebar.
+   */
+  setMenuRunResultsVisible: (visible: boolean) => Promise<void>;
+  /**
    * Syncs active theme and plugin theme options to the View menu in the main process.
    *
    * @param theme - Persisted appearance theme preference.

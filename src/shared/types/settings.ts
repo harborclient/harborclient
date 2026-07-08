@@ -21,6 +21,11 @@ export interface SidebarExpansionState {
      * Whether the Environments section body is visible.
      */
     environments: boolean;
+
+    /**
+     * Whether the Run Results section body is visible.
+     */
+    runResults: boolean;
   };
 
   /**
@@ -46,6 +51,11 @@ export interface SidebarExpansionState {
      * Whether the Environments section is shown in the sidebar.
      */
     environments: boolean;
+
+    /**
+     * Whether the Run Results section is shown in the sidebar.
+     */
+    runResults: boolean;
   };
 
   /**

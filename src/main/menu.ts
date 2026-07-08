@@ -128,6 +128,7 @@ export function buildMenu(
   responseEditorVisible = true,
   collectionsVisible = true,
   environmentsVisible = true,
+  runResultsVisible = true,
   activeTheme: ThemeSource = 'system',
   pluginThemeOptions: ThemeMenuOption[] = [],
   onThemeMenuClick?: () => void,
@@ -282,6 +283,13 @@ export function buildMenu(
           checked: environmentsVisible,
           accelerator: acceleratorFor(accelerators, 'toggle-environments-section'),
           click: () => sendMenuAction(window, 'toggle-environments-section')
+        },
+        {
+          label: 'Run Results',
+          type: 'checkbox',
+          checked: runResultsVisible,
+          accelerator: acceleratorFor(accelerators, 'toggle-run-results-section'),
+          click: () => sendMenuAction(window, 'toggle-run-results-section')
         },
         { type: 'separator' },
         {

@@ -6,18 +6,19 @@ import {
   type PageRef,
   type RequestDraft
 } from '#/renderer/src/store/drafts';
-import type {
-  Collection,
-  Environment,
-  ScriptTestResult,
-  SendResult,
-  Snippet
-} from '#/shared/types';
+import type { Environment, ScriptTestResult, SendResult, Snippet } from '#/shared/types';
 
 /**
- * Returns all collections in sidebar order.
+ * Returns all collections.
  */
-export const selectCollections = (state: RootState): Collection[] => state.collections.collections;
+export const selectCollections = (state: RootState): RootState['collections']['collections'] =>
+  state.collections.collections;
+
+/**
+ * Returns all saved run result summaries loaded in the store.
+ */
+export const selectRunResults = (state: RootState): RootState['runResults']['items'] =>
+  state.runResults.items;
 /**
  * Returns whether the collections list has been loaded at least once.
  */

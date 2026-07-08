@@ -61,6 +61,11 @@ import type {
   Snippet,
   Variable
 } from '#/shared/types';
+import type {
+  ProviderRunResult,
+  ProviderRunResultSummary,
+  SaveRunResultInput
+} from '#/shared/collectionRunner';
 import type { SnippetScope } from '#/shared/snippetScope';
 import { generateDocumentUuid } from '#/main/storage/uuid';
 
@@ -545,6 +550,37 @@ export class FirestoreStorage implements IStorage {
    */
   async deleteSnippet(id: number): Promise<void> {
     await deleteDoc(doc(this.getFirestore(), 'snippets', String(id)));
+  }
+
+  /**
+   * Firestore-backed storage does not persist run result snapshots.
+   */
+  async listRunResults(): Promise<ProviderRunResultSummary[]> {
+    return [];
+  }
+
+  /**
+   * Firestore-backed storage does not persist run result snapshots.
+   */
+  async saveRunResult(input: SaveRunResultInput): Promise<ProviderRunResult> {
+    void input;
+    throw new Error('Run results are not supported for this storage provider');
+  }
+
+  /**
+   * Firestore-backed storage does not persist run result snapshots.
+   */
+  async getRunResult(id: number): Promise<ProviderRunResult | null> {
+    void id;
+    throw new Error('Run results are not supported for this storage provider');
+  }
+
+  /**
+   * Firestore-backed storage does not persist run result snapshots.
+   */
+  async deleteRunResult(id: number): Promise<void> {
+    void id;
+    throw new Error('Run results are not supported for this storage provider');
   }
 
   /**

@@ -6,6 +6,7 @@ import {
   resolveImportedRunnerTargetIds,
   type CollectionRunnerRequestResult
 } from '#/shared/collectionRunner';
+import { buildRunResultsDeepLink } from '#/shared/deepLink';
 import type { PageRef } from '#/renderer/src/store/drafts';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
@@ -22,7 +23,8 @@ import {
   selectRequestsByCollection
 } from '#/renderer/src/store/selectors';
 import { runCollectionRequests } from '#/renderer/src/store/thunks/collectionRunner';
-import { Button } from '@harborclient/sdk/components';
+import { saveRunResult } from '#/renderer/src/store/thunks/runResults';
+import { Button, FaIcon } from '@harborclient/sdk/components';
 import { FormGroup } from '@harborclient/sdk/components';
 import { Checkbox, Input, Radio, Select } from '@harborclient/sdk/components';
 import {
@@ -31,8 +33,10 @@ import {
   type RunnerTargetRef
 } from '#/renderer/src/ui/CollectionRunner/resolveRunnerTargetName';
 import { CollectionRunnerResultModal } from '#/renderer/src/ui/CollectionRunner/CollectionRunnerResultModal';
+import { CollectionRunnerSaveModal } from '#/renderer/src/ui/CollectionRunner/CollectionRunnerSaveModal';
 import { ResponseSummary } from '#/renderer/src/ui/Main/ResponseEditor/ResponseSummary';
 import { METHOD_CLASSES } from '#/renderer/src/ui/shared/classes';
+import { faLink } from '#/renderer/src/fontawesome';
 
 interface Props {
   /**
@@ -130,6 +134,13 @@ export function CollectionRunner({ page }: Props): JSX.Element {
   }, [runner, targetNames]);
 
   const canExport = Boolean(runner && runner.results.length > 0 && !runner.running);
+  // Saving again is allowed even after a prior save, since the user may want to
+  // additionally save (or move) the same run results to a different data source.
+  const canSave = Boolean(
+    runner && runner.phase === 'complete' && runner.results.length > 0 && !runner.running
+  );
+  const canCopyDeepLink = Boolean(runner?.savedToTeamHub && runner.savedRunUuid);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
 
   /**
    * Initializes or retargets runner state when the page tab opens or changes target.
@@ -249,11 +260,11 @@ export function CollectionRunner({ page }: Props): JSX.Element {
   }, []);
 
   /**
-   * Exports the current run results to a JSON file via the native save dialog.
+   * Builds the portable export payload for the current runner state.
    */
-  const handleExport = useCallback((): void => {
+  const buildCurrentRunResultsPayload = useCallback(() => {
     if (!runner || runner.results.length === 0) {
-      return;
+      return null;
     }
 
     const collection = collections.find((item) => item.id === runner.collectionId);
@@ -267,7 +278,7 @@ export function CollectionRunner({ page }: Props): JSX.Element {
         ? environments.find((item) => item.id === runner.environmentId)
         : undefined;
 
-    const payload = buildRunResultsExport({
+    return buildRunResultsExport({
       requestId: runner.requestId,
       collectionName: runner.collectionName,
       folderName: runner.folderName,
@@ -285,13 +296,72 @@ export function CollectionRunner({ page }: Props): JSX.Element {
         (runner.environmentMode === 'active' ? 'Active environment' : null),
       results: runner.results
     });
+  }, [collections, environments, requestsByCollection, runner]);
+
+  /**
+   * Exports the current run results to a JSON file via the native save dialog.
+   */
+  const handleExport = useCallback((): void => {
+    const payload = buildCurrentRunResultsPayload();
+    if (!payload) {
+      return;
+    }
 
     void window.api.exportRunResults(payload).then((result) => {
       if (!result.canceled && result.path) {
         toast.success('Run results exported');
       }
     });
-  }, [collections, environments, requestsByCollection, runner]);
+  }, [buildCurrentRunResultsPayload]);
+
+  /**
+   * Opens the save destination modal for the completed run.
+   */
+  const handleSave = useCallback((): void => {
+    if (!canSave) {
+      return;
+    }
+    setSaveModalOpen(true);
+  }, [canSave]);
+
+  /**
+   * Persists the completed run to the selected storage provider.
+   *
+   * @param connectionId - Provider connection id chosen in the save modal.
+   * @param savedToTeamHub - True when the destination is a Team Hub provider.
+   */
+  const handleSaveConfirm = useCallback(
+    (connectionId: string, savedToTeamHub: boolean): void => {
+      const payload = buildCurrentRunResultsPayload();
+      if (!payload) {
+        return;
+      }
+
+      setSaveModalOpen(false);
+      void dispatch(
+        saveRunResult({
+          connectionId,
+          input: { payload },
+          savedToTeamHub
+        })
+      );
+    },
+    [buildCurrentRunResultsPayload, dispatch]
+  );
+
+  /**
+   * Copies a Team Hub deep link for the saved run result UUID.
+   */
+  const handleCopyDeepLink = useCallback((): void => {
+    if (!runner?.savedRunUuid || !runner.savedToTeamHub) {
+      return;
+    }
+
+    const url = buildRunResultsDeepLink(runner.savedRunUuid);
+    void navigator.clipboard.writeText(url).then(() => {
+      toast.success('Run result link copied');
+    });
+  }, [runner]);
 
   /**
    * Imports run results from disk into the detached read-only runner view.
@@ -314,7 +384,18 @@ export function CollectionRunner({ page }: Props): JSX.Element {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5">
       <div className="mb-4 flex items-start justify-between gap-4">
-        <h1 className="m-0 min-w-0 text-[18px] font-semibold text-text">{title}</h1>
+        <div className="flex min-w-0 items-center gap-2">
+          <h1 className="m-0 min-w-0 text-[18px] font-semibold text-text">{title}</h1>
+          <button
+            type="button"
+            className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent text-muted hover:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="Copy run result link"
+            disabled={!canCopyDeepLink}
+            onClick={handleCopyDeepLink}
+          >
+            <FaIcon icon={faLink} className="h-4 w-4" />
+          </button>
+        </div>
         <div className="flex shrink-0 items-center gap-2">
           <Button type="button" variant="secondary" disabled={!canExport} onClick={handleExport}>
             Export
@@ -470,17 +551,24 @@ export function CollectionRunner({ page }: Props): JSX.Element {
                 />
               </div>
 
-              <p
-                className="m-0 text-[16px] border border-md border-separator p-4 mb-3"
+              <div
+                className="mb-3 flex items-center justify-between gap-3 border border-md border-separator p-4"
                 role="status"
                 aria-live="polite"
               >
-                {runner.phase === 'running'
-                  ? `Running ${runner.completed} of ${runner.total} requests…`
-                  : `Finished: ${runner.summary.passed} passed, ${runner.summary.failed} failed${
-                      runner.summary.skipped > 0 ? `, ${runner.summary.skipped} skipped` : ''
-                    }`}
-              </p>
+                <p className="m-0 text-[16px]">
+                  {runner.phase === 'running'
+                    ? `Running ${runner.completed} of ${runner.total} requests…`
+                    : `Finished: ${runner.summary.passed} passed, ${runner.summary.failed} failed${
+                        runner.summary.skipped > 0 ? `, ${runner.summary.skipped} skipped` : ''
+                      }`}
+                </p>
+                {runner.phase === 'complete' ? (
+                  <Button type="button" disabled={!canSave} onClick={handleSave}>
+                    Save
+                  </Button>
+                ) : null}
+              </div>
 
               <ul className="m-0 list-none space-y-3 p-0">
                 {runner.results.map((result) => {
@@ -566,6 +654,11 @@ export function CollectionRunner({ page }: Props): JSX.Element {
       ) : null}
 
       <CollectionRunnerResultModal result={selectedResult} onClose={handleCloseResultModal} />
+      <CollectionRunnerSaveModal
+        open={saveModalOpen}
+        onClose={() => setSaveModalOpen(false)}
+        onSave={handleSaveConfirm}
+      />
     </div>
   );
 }

@@ -67,6 +67,7 @@ import type {
   TeamHubAdminCollectionContents,
   TeamHubAdminSnippet,
   TeamHubAdminSnippetInput,
+  TeamHubAdminRunResult,
   UpdateHubUserInput,
   CreateHubUserInput,
   CreatedHubUser,
@@ -82,7 +83,13 @@ import type {
   Variable,
   KeyValue
 } from '#/shared/types';
-import type { CollectionRunnerConfig, RunResultsExport } from '#/shared/collectionRunner';
+import type {
+  CollectionRunnerConfig,
+  RunResultsExport,
+  SavedRunResult,
+  SavedRunResultSummary,
+  SaveRunResultInput
+} from '#/shared/collectionRunner';
 
 /**
  * Lists all collections via IPC.
@@ -220,6 +227,50 @@ function exportRunResults(data: RunResultsExport): Promise<CollectionExportResul
  */
 function importRunResults(): Promise<RunResultsExport | null> {
   return ipcRenderer.invoke('runResults:import');
+}
+
+/**
+ * Lists saved run result snapshots from all storage providers via IPC.
+ */
+function listSavedRunResults(): Promise<SavedRunResultSummary[]> {
+  return ipcRenderer.invoke('runResults:list');
+}
+
+/**
+ * Saves a run result snapshot to a storage provider via IPC.
+ *
+ * @param connectionId - Database connection or team hub id.
+ * @param input - Label and portable export payload.
+ */
+function saveRunResult(connectionId: string, input: SaveRunResultInput): Promise<SavedRunResult> {
+  return ipcRenderer.invoke('runResults:save', connectionId, input);
+}
+
+/**
+ * Loads a saved run result snapshot by routed global id via IPC.
+ *
+ * @param id - Global run result id.
+ */
+function getSavedRunResult(id: number): Promise<SavedRunResult | null> {
+  return ipcRenderer.invoke('runResults:get', id);
+}
+
+/**
+ * Deletes a saved run result snapshot via IPC.
+ *
+ * @param id - Global run result id.
+ */
+function deleteSavedRunResult(id: number): Promise<void> {
+  return ipcRenderer.invoke('runResults:delete', id);
+}
+
+/**
+ * Resolves a run result UUID across mounted Team Hub providers via IPC.
+ *
+ * @param uuid - Stable portable run result identifier.
+ */
+function resolveRunResultByUuid(uuid: string): Promise<SavedRunResult | null> {
+  return ipcRenderer.invoke('runResults:getByUuid', uuid);
 }
 
 /**
@@ -742,6 +793,15 @@ function setMenuCollectionsVisible(visible: boolean): Promise<void> {
  */
 function setMenuEnvironmentsVisible(visible: boolean): Promise<void> {
   return ipcRenderer.invoke('menu:setEnvironmentsVisible', visible);
+}
+
+/**
+ * Syncs Run Results section visibility to the View menu checkbox in the main process.
+ *
+ * @param visible - Whether the Run Results section is currently visible in the sidebar.
+ */
+function setMenuRunResultsVisible(visible: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setRunResultsVisible', visible);
 }
 
 /**
@@ -1336,6 +1396,25 @@ function updateTeamHubAdminSnippet(
  */
 function deleteTeamHubAdminSnippet(hubId: string, snippetId: string): Promise<void> {
   return ipcRenderer.invoke('teamHubs:deleteAdminSnippet', hubId, snippetId);
+}
+
+/**
+ * Lists hub run results using an admin token via IPC.
+ *
+ * @param hubId - Team hub connection id with an admin token.
+ */
+function listTeamHubAdminRunResults(hubId: string): Promise<TeamHubAdminRunResult[]> {
+  return ipcRenderer.invoke('teamHubs:listAdminRunResults', hubId);
+}
+
+/**
+ * Deletes a hub run result using an admin token via IPC.
+ *
+ * @param hubId - Team hub connection id with an admin token.
+ * @param runResultId - Server run result UUID.
+ */
+function deleteTeamHubRunResult(hubId: string, runResultId: string): Promise<void> {
+  return ipcRenderer.invoke('teamHubs:deleteRunResult', hubId, runResultId);
 }
 
 /**
@@ -2528,6 +2607,11 @@ const api: Api = {
   importRequest,
   exportRunResults,
   importRunResults,
+  listSavedRunResults,
+  saveRunResult,
+  getSavedRunResult,
+  deleteSavedRunResult,
+  resolveRunResultByUuid,
   moveCollection,
   reorderCollections,
   listEnvironments,
@@ -2579,6 +2663,7 @@ const api: Api = {
   setMenuResponseEditorVisible,
   setMenuCollectionsVisible,
   setMenuEnvironmentsVisible,
+  setMenuRunResultsVisible,
   setMenuThemeMenuState,
   setMenuCreatorUndoRedo,
   onMenuSelectTheme,
@@ -2643,6 +2728,8 @@ const api: Api = {
   createTeamHubAdminSnippet,
   updateTeamHubAdminSnippet,
   deleteTeamHubAdminSnippet,
+  listTeamHubAdminRunResults,
+  deleteTeamHubRunResult,
   deleteTeamHubRequest,
   deleteTeamHubEnvironment,
   updateTeamHubCollectionDeletionLocked,

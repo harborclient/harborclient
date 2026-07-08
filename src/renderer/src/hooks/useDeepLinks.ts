@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
+import { openRunResultByUuid } from '#/renderer/src/store/thunks/runResults';
 import {
   setPendingPluginInstall,
   setPendingSnippetInstall
@@ -33,6 +34,11 @@ export function useDeepLinks(): void {
       if (payload.action === 'install-snippet') {
         dispatch(openPageTab({ type: 'snippets' }));
         dispatch(setPendingSnippetInstall(payload.pluginId));
+        return;
+      }
+
+      if (payload.action === 'open-run-results') {
+        void dispatch(openRunResultByUuid(payload.uuid));
       }
     });
 

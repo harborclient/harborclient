@@ -54,13 +54,12 @@ Work currently landing on `main` or in frequent release cycles:
   and scripts, and working with responses.
 - **Plugin ecosystem** — marketplace catalog growth, signed packages, and clearer
   developer APIs via [`@harborclient/sdk`](https://github.com/harborclient/harborclient-sdk).
-- **Import fidelity** — closer Postman and Bruno conversion with clearer
-  warnings when features are skipped.
 
 ## Planned
 
 Features we intend to build in HarborClient itself (not only via plugins):
 
+- **Popout windows** -- Sidebars, request tabs, and others can popup into their own window.
 - **Nested collection folders** — today, Postman and Bruno imports flatten nested
   folders to a single level; native multi-level folders in the sidebar and
   export format.

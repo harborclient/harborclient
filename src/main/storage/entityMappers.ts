@@ -3,6 +3,12 @@ import { normalizeSnippetScope } from '#/shared/snippetScope';
 import { defaultAuth, normalizeAuth } from '#/shared/auth';
 import { readScriptRefsFromJson } from '#/shared/scriptRefs';
 import type {
+  ProviderRunResult,
+  ProviderRunResultSummary,
+  RunResultsExport,
+  RunResultsExportKind
+} from '#/shared/collectionRunner';
+import type {
   BodyType,
   Chat,
   ChatMessage,
@@ -126,6 +132,20 @@ function readTimestamp(value: unknown): string {
 }
 
 /**
+ * Coerces an unknown value to a string or null when absent or blank.
+ *
+ * @param value - Raw field value.
+ * @returns Trimmed string or null.
+ */
+function readNullableString(value: unknown): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const text = typeof value === 'string' ? value.trim() : String(value).trim();
+  return text === '' ? null : text;
+}
+
+/**
  * Parses a JSON array from an array or JSON string field.
  *
  * @param value - Raw field value.
@@ -220,6 +240,49 @@ export function rowToProviderSnippet(row: Record<string, unknown>): Snippet {
     source: 'local',
     created_at: readTimestamp(row.created_at),
     updated_at: readTimestamp(row.updated_at)
+  };
+}
+
+/**
+ * Maps a raw provider run-results row to list metadata without the payload column.
+ *
+ * @param row - Row fields including numeric `id` and summary count columns.
+ */
+export function rowToProviderRunResultSummary(
+  row: Record<string, unknown>
+): ProviderRunResultSummary {
+  return {
+    id: readNumber(row.id),
+    uuid: readString(row.uuid),
+    label: readString(row.label),
+    kind: readString(row.kind, 'collection-run-results') as RunResultsExportKind,
+    collectionName: readNullableString(row.collection_name),
+    requestName: readNullableString(row.request_name),
+    summary: {
+      passed: readNumber(row.summary_passed),
+      failed: readNumber(row.summary_failed),
+      skipped: readNumber(row.summary_skipped)
+    },
+    createdAt: readTimestamp(row.created_at)
+  };
+}
+
+/**
+ * Maps a raw provider run-results row to a full {@link ProviderRunResult}.
+ *
+ * @param row - Row fields including serialized `payload` JSON.
+ */
+export function rowToProviderRunResult(row: Record<string, unknown>): ProviderRunResult {
+  return {
+    ...rowToProviderRunResultSummary(row),
+    payload: parseJson<RunResultsExport>(readString(row.payload), {
+      harborclientVersion: 1,
+      harborclientExport: 'collection-run-results',
+      delay: 0,
+      stopOnFailure: false,
+      environment: { mode: 'active', id: null, name: null },
+      results: []
+    })
   };
 }
 

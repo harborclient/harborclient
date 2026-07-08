@@ -31,7 +31,15 @@ import {
   type SavedRequestRecord,
   type SnippetRecord
 } from '@harborclient/team-hub-api';
-import type { TeamHubAdminCollectionContents, TeamHubAdminSnippet } from '#/shared/types';
+import type {
+  TeamHubAdminCollectionContents,
+  TeamHubAdminRunResult,
+  TeamHubAdminSnippet
+} from '#/shared/types';
+import {
+  asTeamHubRunResultClient,
+  type TeamHubRunResultRecord
+} from '#/main/storage/teamHubRunResultApi';
 import { getCustomTheme } from '#/main/storage/customThemes';
 import { parseCustomThemeSource } from '#/shared/plugin/customThemeExport';
 import { getAiSettings, setAiSettings } from '#/main/settings/aiSettings';
@@ -101,6 +109,24 @@ function mapTeamHubAdminSnippet(snippet: SnippetRecord): TeamHubAdminSnippet {
     code: snippet.code,
     scope: snippet.scope,
     deletionLocked: snippet.deletionLocked
+  };
+}
+
+/**
+ * Maps a hub server run result record to renderer-facing admin run result shape.
+ *
+ * @param record - Run result record from the admin management API.
+ * @returns Run result summary suitable for Team Hub admin UI.
+ */
+function mapTeamHubAdminRunResult(record: TeamHubRunResultRecord): TeamHubAdminRunResult {
+  return {
+    id: record.id,
+    label: record.label,
+    kind: record.kind,
+    collectionName: record.collectionName,
+    requestName: record.requestName,
+    summary: record.summary,
+    createdAt: record.createdAt
   };
 }
 
@@ -514,6 +540,37 @@ export function registerSettingsHandlers(db: IStorage): void {
 
       const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
       await client.deleteAdminSnippet(snippetId);
+    }
+  );
+
+  // Lists hub run results using an admin token.
+  handle(
+    'teamHubs:listAdminRunResults',
+    ipcArgSchemas.teamHubRunResultList,
+    async (_event, hubId) => {
+      const hub = listTeamHubs().find((entry) => entry.id === hubId);
+      if (!hub) {
+        throw new Error(`Unknown team hub: ${hubId}`);
+      }
+
+      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const records = await asTeamHubRunResultClient(client).listAdminRunResults();
+      return records.map(mapTeamHubAdminRunResult);
+    }
+  );
+
+  // Deletes a hub run result using an admin token, regardless of creator.
+  handle(
+    'teamHubs:deleteRunResult',
+    ipcArgSchemas.teamHubRunResultDelete,
+    async (_event, hubId, runResultId) => {
+      const hub = listTeamHubs().find((entry) => entry.id === hubId);
+      if (!hub) {
+        throw new Error(`Unknown team hub: ${hubId}`);
+      }
+
+      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      await asTeamHubRunResultClient(client).deleteAdminRunResult(runResultId);
     }
   );
 

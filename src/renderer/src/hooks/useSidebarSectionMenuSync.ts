@@ -7,7 +7,7 @@ import { focusFirstEnvironmentSidebar } from '#/renderer/src/ui/Sidebar/focusFir
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebar/useSidebarExpansion';
 
 /**
- * Keeps View menu Collections and Environments checkboxes aligned with sidebar section visibility.
+ * Keeps View menu Collections, Environments, and Run Results checkboxes aligned with sidebar section visibility.
  */
 export function useSidebarSectionMenuSync(): void {
   const dispatch = useAppDispatch();
@@ -15,8 +15,10 @@ export function useSidebarSectionMenuSync(): void {
   const {
     collectionsSectionVisible,
     environmentsSectionVisible,
+    runResultsSectionVisible,
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
+    toggleRunResultsSectionVisible,
     setCollectionsSectionVisible,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionVisible,
@@ -38,6 +40,13 @@ export function useSidebarSectionMenuSync(): void {
   }, [environmentsSectionVisible]);
 
   /**
+   * Syncs Run Results section visibility to the View menu checkbox.
+   */
+  useEffect(() => {
+    void window.api.setMenuRunResultsVisible(runResultsSectionVisible);
+  }, [runResultsSectionVisible]);
+
+  /**
    * Handles View menu toggles and sidebar list focus shortcuts.
    */
   useEffect(() => {
@@ -48,6 +57,9 @@ export function useSidebarSectionMenuSync(): void {
           break;
         case 'toggle-environments-section':
           toggleEnvironmentsSectionVisible();
+          break;
+        case 'toggle-run-results-section':
+          toggleRunResultsSectionVisible();
           break;
         case 'focus-first-collection':
           focusFirstCollectionSidebar(dispatch, store.getState, {
@@ -69,6 +81,7 @@ export function useSidebarSectionMenuSync(): void {
     store,
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
+    toggleRunResultsSectionVisible,
     setCollectionsSectionVisible,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionVisible,

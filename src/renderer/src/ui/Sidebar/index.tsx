@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import type { SavedRequest } from '#/shared/types';
 import {
   faAnglesUp,
+  faClockRotateLeft,
   faDatabase,
   faFileImport,
   faFolder,
@@ -82,10 +83,13 @@ import { Modal, ModalFooter } from '@harborclient/sdk/components';
 import { FieldError } from '@harborclient/sdk/components';
 import { formatErrorMessage, showAlert, showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
 import { openCollectionRunner } from '#/renderer/src/store/slices/modalsSlice';
+import { selectRunResults } from '#/renderer/src/store/slices/runResultsSlice';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
+import { deleteRunResult, openSavedRunResult } from '#/renderer/src/store/thunks/runResults';
 import { Collections } from './Collections';
 import { GitSourceControlPanel } from '#/renderer/src/ui/modals/GitSourceControlPanel';
 import { Environments } from './Environments';
+import { RunResults } from './RunResults';
 import { Section } from './Section';
 import { SidebarSearch } from './SidebarSearch';
 import { useSidebarExpansion } from './useSidebarExpansion';
@@ -137,6 +141,7 @@ export function Sidebar({
   const selectedFolderId = useAppSelector(selectSelectedFolderId);
   const draft = useAppSelector(selectDraft);
   const environments = useAppSelector(selectEnvironments);
+  const runResults = useAppSelector(selectRunResults);
   const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
   const activeSidebarPanelId = useAppSelector(selectActiveSidebarPanelId);
   const pluginSidebarPanels = usePluginSidebarPanels();
@@ -154,10 +159,13 @@ export function Sidebar({
   const {
     collectionsSectionExpanded,
     environmentsSectionExpanded,
+    runResultsSectionExpanded,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
+    setRunResultsSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
+    runResultsSectionVisible,
     setCollectionsSectionVisible,
     setEnvironmentsSectionVisible,
     expandedCollectionIds,
@@ -169,7 +177,8 @@ export function Sidebar({
     showStorageLocationBadges,
     toggleStorageLocationBadges,
     toggleCollectionsSectionVisible,
-    toggleEnvironmentsSectionVisible
+    toggleEnvironmentsSectionVisible,
+    toggleRunResultsSectionVisible
   } = useSidebarExpansion();
 
   useSidebarListNavigation(selectedCollectionId, activeEnvironmentId);
@@ -192,6 +201,11 @@ export function Sidebar({
         return;
       }
 
+      if (key === 'runResults') {
+        setRunResultsSectionExpanded((current) => (current === isEnter ? current : isEnter));
+        return;
+      }
+
       setPluginSectionExpanded((current) => {
         const previous = current[key] ?? true;
         if (previous === isEnter) {
@@ -200,7 +214,7 @@ export function Sidebar({
         return { ...current, [key]: isEnter };
       });
     },
-    [setCollectionsSectionExpanded, setEnvironmentsSectionExpanded]
+    [setCollectionsSectionExpanded, setEnvironmentsSectionExpanded, setRunResultsSectionExpanded]
   );
 
   const accordion = useAccordionProvider({
@@ -230,6 +244,10 @@ export function Sidebar({
       desiredExpansion.environments = environmentsSectionExpanded;
     }
 
+    if (runResultsSectionVisible) {
+      desiredExpansion.runResults = runResultsSectionExpanded;
+    }
+
     for (const section of pluginSidebarSections) {
       desiredExpansion[section.id] = pluginSectionExpanded[section.id] ?? true;
     }
@@ -245,8 +263,10 @@ export function Sidebar({
     toggle,
     collectionsSectionExpanded,
     environmentsSectionExpanded,
+    runResultsSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
+    runResultsSectionVisible,
     pluginSectionExpanded,
     pluginSidebarSections
   ]);
@@ -491,6 +511,14 @@ export function Sidebar({
         onClick: toggleEnvironmentsSectionVisible
       },
       {
+        id: 'toggle-run-results-section',
+        icon: faClockRotateLeft,
+        label: 'Run results',
+        title: runResultsSectionVisible ? 'Hide run results section' : 'Show run results section',
+        ariaPressed: runResultsSectionVisible,
+        onClick: toggleRunResultsSectionVisible
+      },
+      {
         id: 'toggle-storage-badges',
         icon: faDatabase,
         label: 'Storage location badges',
@@ -507,8 +535,10 @@ export function Sidebar({
     collapseAllSidebarTrees,
     collectionsSectionVisible,
     environmentsSectionVisible,
+    runResultsSectionVisible,
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
+    toggleRunResultsSectionVisible,
     showStorageLocationBadges,
     toggleStorageLocationBadges
   ]);
@@ -921,6 +951,28 @@ export function Sidebar({
                         }}
                         onReorderEnvironments={async (orderedEnvironmentIds) => {
                           await dispatch(reorderEnvironments({ orderedEnvironmentIds }));
+                        }}
+                      />
+                    </Section>
+                  </nav>
+                ) : null}
+
+                {runResultsSectionVisible ? (
+                  <nav aria-label="Run results" data-sidebar-section="runResults">
+                    <Section
+                      itemKey="runResults"
+                      title="Run Results"
+                      initialEntered={runResultsSectionExpanded}
+                    >
+                      <RunResults
+                        runResults={runResults}
+                        connectionNamesById={connectionNamesById}
+                        showStorageLocationBadges={showStorageLocationBadges}
+                        onSelectRunResult={(id) => {
+                          void dispatch(openSavedRunResult(id));
+                        }}
+                        onDeleteRunResult={async (id) => {
+                          await dispatch(deleteRunResult(id));
                         }}
                       />
                     </Section>

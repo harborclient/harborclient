@@ -17,15 +17,23 @@ import {
 import {
   maskVariablesForExport,
   normalizeVariable,
-  validateCollectionExport
+  validateCollectionExport,
+  validateRunResultsExport
 } from '#/main/storage/collectionData';
+import { saveRunResultInputSchema } from '#/main/storage/collectionSchemas';
 import {
   rowToCollection,
   rowToEnvironment,
   rowToFolder,
+  rowToProviderRunResult,
+  rowToProviderRunResultSummary,
   rowToProviderSnippet,
   rowToRequest
 } from '#/main/storage/entityMappers';
+import {
+  CREATE_PROVIDER_RUN_RESULTS_TABLE_SQL,
+  PROVIDER_RUN_RESULT_COLUMNS
+} from '#/main/storage/providerRunResultSql';
 import {
   CREATE_PROVIDER_SNIPPETS_TABLE_SQL,
   PROVIDER_SNIPPET_COLUMNS
@@ -35,6 +43,13 @@ import {
   migrateSqliteScriptArrayColumns
 } from '#/main/storage/scriptFields';
 import { trimRequiredName } from '#/main/storage/trimRequiredName';
+import {
+  buildSavedRunLabel,
+  extractSavedRunMetadata,
+  type ProviderRunResult,
+  type ProviderRunResultSummary,
+  type SaveRunResultInput
+} from '#/shared/collectionRunner';
 import { DEFAULT_AUTH_JSON, defaultAuth, normalizeAuth } from '#/shared/auth';
 import type { IStorage } from '#/main/storage/IStorage';
 import type {
@@ -181,6 +196,8 @@ export class SqliteStorage implements IStorage {
     );
 
     ${CREATE_PROVIDER_SNIPPETS_TABLE_SQL}
+
+    ${CREATE_PROVIDER_RUN_RESULTS_TABLE_SQL}
   `);
 
     const columns = this.#db.prepare('PRAGMA table_info(collections)').all() as Array<{
@@ -247,10 +264,12 @@ export class SqliteStorage implements IStorage {
     this.migrateDocumentUuidColumn('requests');
     this.migrateDocumentUuidColumn('environments');
     this.migrateDocumentUuidColumn('folders');
+    this.migrateDocumentUuidColumn('run_results');
     this.backfillDocumentUuids('collections');
     this.backfillDocumentUuids('requests');
     this.backfillDocumentUuids('environments');
     this.backfillDocumentUuids('folders');
+    this.backfillDocumentUuids('run_results');
     migrateSqliteScriptArrayColumns(this.getDb(), 'collections');
     migrateSqliteScriptArrayColumns(this.getDb(), 'requests');
   }
@@ -258,10 +277,10 @@ export class SqliteStorage implements IStorage {
   /**
    * Adds a uuid column to a document table when missing from legacy databases.
    *
-   * @param table - Table name (`collections`, `requests`, `environments`, or `folders`).
+   * @param table - Table name (`collections`, `requests`, `environments`, `folders`, or `run_results`).
    */
   private migrateDocumentUuidColumn(
-    table: 'collections' | 'requests' | 'environments' | 'folders'
+    table: 'collections' | 'requests' | 'environments' | 'folders' | 'run_results'
   ): void {
     const columns = this.getDb().prepare(`PRAGMA table_info(${table})`).all() as Array<{
       name: string;
@@ -275,10 +294,10 @@ export class SqliteStorage implements IStorage {
   /**
    * Assigns uuids to rows that were created before uuid support existed.
    *
-   * @param table - Table name (`collections`, `requests`, `environments`, or `folders`).
+   * @param table - Table name (`collections`, `requests`, `environments`, `folders`, or `run_results`).
    */
   private backfillDocumentUuids(
-    table: 'collections' | 'requests' | 'environments' | 'folders'
+    table: 'collections' | 'requests' | 'environments' | 'folders' | 'run_results'
   ): void {
     const database = this.getDb();
     const rows = database
@@ -1247,6 +1266,74 @@ export class SqliteStorage implements IStorage {
    */
   async deleteSnippet(id: number): Promise<void> {
     this.getDb().prepare('DELETE FROM snippets WHERE id = ?').run(id);
+  }
+
+  /**
+   * Lists persisted run result snapshots ordered by newest first.
+   */
+  async listRunResults(): Promise<ProviderRunResultSummary[]> {
+    const rows = this.getDb()
+      .prepare(
+        `SELECT ${PROVIDER_RUN_RESULT_COLUMNS} FROM run_results ORDER BY created_at DESC, id DESC`
+      )
+      .all() as Record<string, unknown>[];
+
+    return rows.map(rowToProviderRunResultSummary);
+  }
+
+  /**
+   * Saves a run result snapshot with derived list metadata.
+   */
+  async saveRunResult(input: SaveRunResultInput): Promise<ProviderRunResult> {
+    const parsed = saveRunResultInputSchema.parse(input);
+    const payload = validateRunResultsExport(parsed.payload);
+    const metadata = extractSavedRunMetadata(payload);
+    const label = parsed.label?.trim() || buildSavedRunLabel(payload);
+    const uuid = generateDocumentUuid();
+    const now = new Date().toISOString();
+    const result = this.getDb()
+      .prepare(
+        `INSERT INTO run_results (
+          uuid, label, kind, collection_name, request_name,
+          summary_passed, summary_failed, summary_skipped, payload, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        uuid,
+        label,
+        metadata.kind,
+        metadata.collectionName,
+        metadata.requestName,
+        metadata.summary.passed,
+        metadata.summary.failed,
+        metadata.summary.skipped,
+        JSON.stringify(payload),
+        now
+      );
+
+    const row = this.getDb()
+      .prepare(`SELECT ${PROVIDER_RUN_RESULT_COLUMNS} FROM run_results WHERE id = ?`)
+      .get(result.lastInsertRowid) as Record<string, unknown>;
+
+    return rowToProviderRunResult(row);
+  }
+
+  /**
+   * Loads a run result snapshot by provider-local id.
+   */
+  async getRunResult(id: number): Promise<ProviderRunResult | null> {
+    const row = this.getDb()
+      .prepare(`SELECT ${PROVIDER_RUN_RESULT_COLUMNS} FROM run_results WHERE id = ?`)
+      .get(id) as Record<string, unknown> | undefined;
+
+    return row ? rowToProviderRunResult(row) : null;
+  }
+
+  /**
+   * Deletes a run result snapshot from this provider.
+   */
+  async deleteRunResult(id: number): Promise<void> {
+    this.getDb().prepare('DELETE FROM run_results WHERE id = ?').run(id);
   }
 
   /**

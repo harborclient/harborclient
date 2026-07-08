@@ -9,15 +9,15 @@ describe('serializeSidebarExpansion', () => {
   it('serializes section flags and expanded ids', () => {
     expect(
       serializeSidebarExpansion(
-        { collections: false, environments: true },
-        { collections: true, environments: false },
+        { collections: false, environments: true, runResults: false },
+        { collections: true, environments: false, runResults: true },
         new Set([1, 2]),
         new Set([9]),
         false
       )
     ).toEqual({
-      sections: { collections: false, environments: true },
-      sectionVisibility: { collections: true, environments: false },
+      sections: { collections: false, environments: true, runResults: false },
+      sectionVisibility: { collections: true, environments: false, runResults: true },
       collectionIds: [1, 2],
       folderIds: [9],
       showStorageLocationBadges: false

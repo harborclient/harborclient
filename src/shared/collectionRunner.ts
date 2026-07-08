@@ -302,6 +302,136 @@ export interface BuildRunResultsExportArgs {
 }
 
 /**
+ * Summary metadata for a persisted run result row (list views omit the full payload).
+ */
+export interface SavedRunResultSummary {
+  /**
+   * Global id encoded with the provider slot namespace.
+   */
+  id: number;
+
+  /**
+   * Stable portable identifier used in deep links and deduplication.
+   */
+  uuid: string;
+
+  /**
+   * Storage connection id (database connection or team hub) that owns the snapshot.
+   */
+  connectionId: string;
+
+  /**
+   * User-facing label for sidebar and list rows.
+   */
+  label: string;
+
+  /**
+   * Whether the snapshot is a collection-wide or single-request run.
+   */
+  kind: RunResultsExportKind;
+
+  /**
+   * Collection display name captured at save time.
+   */
+  collectionName: string | null;
+
+  /**
+   * Request display name when the run targeted one request.
+   */
+  requestName: string | null;
+
+  /**
+   * Pass/fail/skip counts derived from the saved result rows.
+   */
+  summary: CollectionRunnerSummary;
+
+  /**
+   * ISO timestamp when the run result was saved.
+   */
+  createdAt: string;
+}
+
+/**
+ * Full persisted run result including the portable export payload.
+ */
+export interface SavedRunResult extends SavedRunResultSummary {
+  /**
+   * Complete run-results export body stored with the snapshot.
+   */
+  payload: RunResultsExport;
+}
+
+/**
+ * Provider-local run result metadata without connection routing fields.
+ */
+export interface ProviderRunResultSummary {
+  /**
+   * Provider-local numeric id.
+   */
+  id: number;
+
+  /**
+   * Stable portable identifier used in deep links and deduplication.
+   */
+  uuid: string;
+
+  /**
+   * User-facing label for sidebar and list rows.
+   */
+  label: string;
+
+  /**
+   * Whether the snapshot is a collection-wide or single-request run.
+   */
+  kind: RunResultsExportKind;
+
+  /**
+   * Collection display name captured at save time.
+   */
+  collectionName: string | null;
+
+  /**
+   * Request display name when the run targeted one request.
+   */
+  requestName: string | null;
+
+  /**
+   * Pass/fail/skip counts derived from the saved result rows.
+   */
+  summary: CollectionRunnerSummary;
+
+  /**
+   * ISO timestamp when the run result was saved.
+   */
+  createdAt: string;
+}
+
+/**
+ * Provider-local run result including the stored export payload.
+ */
+export interface ProviderRunResult extends ProviderRunResultSummary {
+  /**
+   * Complete run-results export body stored with the snapshot.
+   */
+  payload: RunResultsExport;
+}
+
+/**
+ * Inputs for saving a run result to a storage provider.
+ */
+export interface SaveRunResultInput {
+  /**
+   * Optional display label; generated from payload metadata when omitted.
+   */
+  label?: string;
+
+  /**
+   * Portable export payload to persist.
+   */
+  payload: RunResultsExport;
+}
+
+/**
  * Aggregate pass/fail counts derived from runner result rows.
  */
 export interface CollectionRunnerSummary {
@@ -387,6 +517,39 @@ export function buildRunResultsExport(args: BuildRunResultsExportArgs): RunResul
   }
 
   return payload;
+}
+
+/**
+ * Builds a default sidebar label from run-results export metadata.
+ *
+ * @param payload - Saved or exported run-results body.
+ * @returns Short human-readable label for list rows.
+ */
+export function buildSavedRunLabel(payload: RunResultsExport): string {
+  const target =
+    payload.request?.name ?? payload.collection?.folderName ?? payload.collection?.name ?? 'Run';
+  const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  return `${target} — ${timestamp}`;
+}
+
+/**
+ * Derives list metadata from a run-results export payload.
+ *
+ * @param payload - Portable export body being saved.
+ * @returns Kind, names, and summary counts for persistence and list views.
+ */
+export function extractSavedRunMetadata(payload: RunResultsExport): {
+  kind: RunResultsExportKind;
+  collectionName: string | null;
+  requestName: string | null;
+  summary: CollectionRunnerSummary;
+} {
+  return {
+    kind: payload.harborclientExport,
+    collectionName: payload.collection?.name ?? null,
+    requestName: payload.request?.name ?? null,
+    summary: summarizeRunnerResults(payload.results)
+  };
 }
 
 /**

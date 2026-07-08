@@ -12,6 +12,7 @@ import type {
   TeamHubAdminResourceOptions,
   TeamHubAdminSnippet,
   TeamHubAdminSnippetInput,
+  TeamHubAdminRunResult,
   TeamHubSessionScanResult,
   UpdateHubUserInput
 } from '#/shared/types/teamHub';
@@ -157,6 +158,19 @@ export interface ApiTeamHub {
    * @param snippetId - Server snippet UUID.
    */
   deleteTeamHubAdminSnippet: (hubId: string, snippetId: string) => Promise<void>;
+  /**
+   * Lists hub run results using an admin token.
+   *
+   * @param hubId - Team hub connection id with an admin token.
+   */
+  listTeamHubAdminRunResults: (hubId: string) => Promise<TeamHubAdminRunResult[]>;
+  /**
+   * Deletes a hub run result using an admin token.
+   *
+   * @param hubId - Team hub connection id with an admin token.
+   * @param runResultId - Server run result UUID.
+   */
+  deleteTeamHubRunResult: (hubId: string, runResultId: string) => Promise<void>;
   /**
    * Deletes a saved request on a hub collection using an admin token.
    *

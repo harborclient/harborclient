@@ -9,6 +9,7 @@ import navigationReducer from '#/renderer/src/store/slices/navigationSlice';
 import modalsReducer from '#/renderer/src/store/slices/modalsSlice';
 import settingsReducer from '#/renderer/src/store/slices/settingsSlice';
 import settingsDraftReducer from '#/renderer/src/store/slices/settingsDraftSlice';
+import runResultsReducer from '#/renderer/src/store/slices/runResultsSlice';
 import snippetsReducer from '#/renderer/src/store/slices/snippetsSlice';
 import aiChatReducer from '#/renderer/src/store/slices/aiChatSlice';
 import { persistActiveEnvironmentId, persistTabs } from '#/renderer/src/store/persistence';
@@ -25,6 +26,7 @@ export const store = configureStore({
     settings: settingsReducer,
     settingsDraft: settingsDraftReducer,
     snippets: snippetsReducer,
+    runResults: runResultsReducer,
     aiChat: aiChatReducer
   },
   /**

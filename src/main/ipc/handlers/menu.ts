@@ -5,6 +5,7 @@ import {
   setMenuEnvironmentsVisible,
   setMenuRequestEditorVisible,
   setMenuResponseEditorVisible,
+  setMenuRunResultsVisible,
   setMenuSidebarVisible,
   setMenuCreatorUndoRedo,
   setMenuThemeMenuState
@@ -59,6 +60,11 @@ export function registerMenuHandlers(): void {
       setMenuEnvironmentsVisible(visible);
     }
   );
+
+  // Updates the View menu checkmark for Run Results section visibility.
+  handle('menu:setRunResultsVisible', ipcArgSchemas.menuRunResultsVisible, (_event, visible) => {
+    setMenuRunResultsVisible(visible);
+  });
 
   // Updates View menu theme checkmarks and plugin theme entries from renderer state.
   handle('menu:setThemeMenuState', ipcArgSchemas.menuThemeMenuState, (_event, theme, options) => {

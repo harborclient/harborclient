@@ -13,6 +13,7 @@ import { registerLlmHandlers } from '#/main/ipc/handlers/llm';
 import { registerMenuHandlers } from '#/main/ipc/handlers/menu';
 import { registerNetworkHandlers } from '#/main/ipc/handlers/network';
 import { registerOAuthHandlers } from '#/main/ipc/handlers/oauth';
+import { registerRunResultHandlers } from '#/main/ipc/handlers/runResults';
 import { registerRequestHandlers } from '#/main/ipc/handlers/requests';
 import { registerSettingsHandlers } from '#/main/ipc/handlers/settings';
 import { registerBackupHandlers } from '#/main/ipc/handlers/backup';
@@ -36,6 +37,7 @@ export function registerIpcHandlers(db: IStorage, pluginManager: PluginManager):
   registerLlmHandlers();
   registerEnvironmentHandlers(db);
   registerSnippetHandlers(db);
+  registerRunResultHandlers(db);
   registerRequestHandlers(db);
   registerNetworkHandlers(cookieJar);
   registerOAuthHandlers();

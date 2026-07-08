@@ -1,3 +1,8 @@
+import type {
+  ProviderRunResult,
+  ProviderRunResultSummary,
+  SaveRunResultInput
+} from '#/shared/collectionRunner';
 import type { SnippetScope } from '#/shared/snippetScope';
 import type {
   AuthConfig,
@@ -299,4 +304,34 @@ export interface IStorage {
    * @param id - Provider-local snippet id.
    */
   deleteSnippet(id: number): Promise<void>;
+
+  /**
+   * Lists persisted run result snapshots ordered for display.
+   *
+   * @returns Provider-local run result summaries without payload bodies.
+   */
+  listRunResults(): Promise<ProviderRunResultSummary[]>;
+
+  /**
+   * Saves a run result snapshot to this provider.
+   *
+   * @param input - Display label override and portable export payload.
+   * @returns The newly persisted provider-local run result.
+   */
+  saveRunResult(input: SaveRunResultInput): Promise<ProviderRunResult>;
+
+  /**
+   * Loads a run result snapshot by provider-local id.
+   *
+   * @param id - Provider-local run result id.
+   * @returns Full run result when found, otherwise null.
+   */
+  getRunResult(id: number): Promise<ProviderRunResult | null>;
+
+  /**
+   * Deletes a run result snapshot from this provider.
+   *
+   * @param id - Provider-local run result id.
+   */
+  deleteRunResult(id: number): Promise<void>;
 }

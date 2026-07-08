@@ -35,6 +35,11 @@ import { bundleScriptFieldsWithLegacy } from '#/main/storage/scriptFields';
 import { readScriptRefsFromJson } from '#/shared/scriptRefs';
 import { trimRequiredName } from '#/main/storage/trimRequiredName';
 import type { IStorage } from '#/main/storage/IStorage';
+import type {
+  ProviderRunResult,
+  ProviderRunResultSummary,
+  SaveRunResultInput
+} from '#/shared/collectionRunner';
 import { generateDocumentUuid, resolveImportUuid } from '#/main/storage/uuid';
 import {
   buildFolderImportMaps,
@@ -492,6 +497,37 @@ export class GitStorage implements IStorage {
     delete this.#idIndex.snippetIds[resolveImportUuid(existing.uuid)];
     this.#snippets.delete(id);
     saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
+  }
+
+  /**
+   * Git-backed storage does not persist run result snapshots.
+   */
+  async listRunResults(): Promise<ProviderRunResultSummary[]> {
+    return [];
+  }
+
+  /**
+   * Git-backed storage does not persist run result snapshots.
+   */
+  async saveRunResult(input: SaveRunResultInput): Promise<ProviderRunResult> {
+    void input;
+    throw new Error('Run results are not supported for this storage provider');
+  }
+
+  /**
+   * Git-backed storage does not persist run result snapshots.
+   */
+  async getRunResult(id: number): Promise<ProviderRunResult | null> {
+    void id;
+    throw new Error('Run results are not supported for this storage provider');
+  }
+
+  /**
+   * Git-backed storage does not persist run result snapshots.
+   */
+  async deleteRunResult(id: number): Promise<void> {
+    void id;
+    throw new Error('Run results are not supported for this storage provider');
   }
 
   /**

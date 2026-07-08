@@ -536,6 +536,14 @@ export const runResultsExportSchema = z
   });
 
 /**
+ * Validates run-results payloads saved to storage providers.
+ */
+export const saveRunResultInputSchema = z.object({
+  label: z.string().trim().min(1).optional(),
+  payload: runResultsExportSchema
+});
+
+/**
  * Maps a Zod validation failure to a user-facing run-results import error fragment.
  *
  * @param error - Zod error from runResultsExportSchema.safeParse.

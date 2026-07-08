@@ -6,6 +6,7 @@ export * from '#/renderer/src/store/thunks/modals';
 export * from '#/renderer/src/store/thunks/sync';
 export * from '#/renderer/src/store/thunks/aiChat';
 export * from '#/renderer/src/store/thunks/collectionRunner';
+export * from '#/renderer/src/store/thunks/runResults';
 export * from '#/renderer/src/store/thunks/settings';
 export * from '#/renderer/src/store/thunks/tabs';
 
@@ -13,6 +14,7 @@ import type { AppDispatch } from '#/renderer/src/store/redux';
 import { setGeneralSettingsState } from '#/renderer/src/store/slices/settingsSlice';
 import { refreshCollections } from '#/renderer/src/store/thunks/collections';
 import { refreshEnvironments } from '#/renderer/src/store/thunks/environments';
+import { refreshRunResults } from '#/renderer/src/store/thunks/runResults';
 import { refreshSnippets } from '#/renderer/src/store/thunks/snippets';
 import { hydrateOpenTabs } from '#/renderer/src/store/thunks/tabs';
 
@@ -24,6 +26,7 @@ export function initializeStore(dispatch: AppDispatch): void {
   void dispatch(refreshCollections());
   void dispatch(refreshEnvironments());
   void dispatch(refreshSnippets());
+  void dispatch(refreshRunResults());
   void window.api.getGeneralSettings().then((settings) => {
     dispatch(setGeneralSettingsState(settings));
   });

@@ -16,7 +16,11 @@ import {
 } from '#/main/schemas/common';
 import { ipcScriptRefArray, scriptSource } from '#/main/schemas/scriptRef';
 import { CODE_EDITOR_THEME_IDS } from '#/shared/codeEditorSettings';
-import { requestExportSchema, runResultsExportSchema } from '#/main/storage/collectionSchemas';
+import {
+  requestExportSchema,
+  runResultsExportSchema,
+  saveRunResultInputSchema
+} from '#/main/storage/collectionSchemas';
 import { customThemeSaveInputSchema } from '#/shared/plugin/customThemeExport';
 import type {
   AiChatSessionState,
@@ -496,11 +500,13 @@ export const chatCompleteStepInput = z.object({
 export const sidebarExpansion = z.object({
   sections: z.object({
     collections: z.boolean(),
-    environments: z.boolean()
+    environments: z.boolean(),
+    runResults: z.boolean()
   }),
   sectionVisibility: z.object({
     collections: z.boolean(),
-    environments: z.boolean()
+    environments: z.boolean(),
+    runResults: z.boolean()
   }),
   collectionIds: z.array(dbId),
   folderIds: z.array(dbId),
@@ -559,6 +565,7 @@ export const ipcArgSchemas = {
   menuResponseEditorVisible: z.tuple([z.boolean()]),
   menuCollectionsVisible: z.tuple([z.boolean()]),
   menuEnvironmentsVisible: z.tuple([z.boolean()]),
+  menuRunResultsVisible: z.tuple([z.boolean()]),
   menuThemeMenuState: z.tuple([themeSource, z.array(themeMenuOption)]),
   menuCreatorUndoRedo: z.tuple([z.boolean(), z.boolean(), z.boolean()]),
   menuPopupSubmenu: z.tuple([rootMenuLabel, z.number(), z.number()]),
@@ -596,6 +603,8 @@ export const ipcArgSchemas = {
   teamHubSnippetCreate: z.tuple([connectionId, adminSnippetInput]),
   teamHubSnippetUpdate: z.tuple([connectionId, z.string().min(1), adminSnippetInput]),
   teamHubSnippetDelete: z.tuple([connectionId, z.string().min(1)]),
+  teamHubRunResultList: z.tuple([connectionId]),
+  teamHubRunResultDelete: z.tuple([connectionId, z.string().min(1)]),
   providerSync: z.tuple([connectionId]),
   providerListUnregisteredCollections: z.tuple([connectionId]),
   providerRegisterDiscoveredCollections: z.tuple([
@@ -644,6 +653,8 @@ export const ipcArgSchemas = {
   requestMove: z.tuple([dbId, nullableFolderId, dbId]),
   requestExport: z.tuple([requestExportSchema]),
   runResultsExport: z.tuple([runResultsExportSchema]),
+  runResultsSave: z.tuple([z.string().min(1), saveRunResultInputSchema]),
+  runResultUuid: z.tuple([z.string().uuid()]),
   requestImport: z.tuple([dbId, nullableFolderId.optional()]),
   importAuto: z.tuple([dbId.nullable()]),
   shareCreate: z.tuple([dbId, recipientKid.optional()]),

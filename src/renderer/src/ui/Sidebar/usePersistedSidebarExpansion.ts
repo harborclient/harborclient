@@ -43,6 +43,11 @@ interface Result {
   environmentsSectionExpanded: boolean;
 
   /**
+   * Whether the Run Results section body is visible.
+   */
+  runResultsSectionExpanded: boolean;
+
+  /**
    * Toggles the Collections section expanded state.
    */
   toggleCollectionsSection: () => void;
@@ -51,6 +56,11 @@ interface Result {
    * Toggles the Environments section expanded state.
    */
   toggleEnvironmentsSection: () => void;
+
+  /**
+   * Toggles the Run Results section expanded state.
+   */
+  toggleRunResultsSection: () => void;
 
   /**
    * Sets the Collections section expanded state explicitly.
@@ -63,6 +73,11 @@ interface Result {
   setEnvironmentsSectionExpanded: Dispatch<SetStateAction<boolean>>;
 
   /**
+   * Sets the Run Results section expanded state explicitly.
+   */
+  setRunResultsSectionExpanded: Dispatch<SetStateAction<boolean>>;
+
+  /**
    * Whether the Collections section is rendered in the sidebar.
    */
   collectionsSectionVisible: boolean;
@@ -71,6 +86,11 @@ interface Result {
    * Whether the Environments section is rendered in the sidebar.
    */
   environmentsSectionVisible: boolean;
+
+  /**
+   * Whether the Run Results section is rendered in the sidebar.
+   */
+  runResultsSectionVisible: boolean;
 
   /**
    * Toggles the Collections section visibility.
@@ -83,6 +103,11 @@ interface Result {
   toggleEnvironmentsSectionVisible: () => void;
 
   /**
+   * Toggles the Run Results section visibility.
+   */
+  toggleRunResultsSectionVisible: () => void;
+
+  /**
    * Sets the Collections section visibility explicitly.
    */
   setCollectionsSectionVisible: Dispatch<SetStateAction<boolean>>;
@@ -91,6 +116,11 @@ interface Result {
    * Sets the Environments section visibility explicitly.
    */
   setEnvironmentsSectionVisible: Dispatch<SetStateAction<boolean>>;
+
+  /**
+   * Sets the Run Results section visibility explicitly.
+   */
+  setRunResultsSectionVisible: Dispatch<SetStateAction<boolean>>;
 
   /**
    * Whether storage location name badges appear next to collection names.
@@ -209,11 +239,17 @@ export function usePersistedSidebarExpansion({
   const [environmentsSectionExpanded, setEnvironmentsSectionExpanded] = useState(
     defaults.sections.environments
   );
+  const [runResultsSectionExpanded, setRunResultsSectionExpanded] = useState(
+    defaults.sections.runResults
+  );
   const [collectionsSectionVisible, setCollectionsSectionVisible] = useState(
     defaults.sectionVisibility.collections
   );
   const [environmentsSectionVisible, setEnvironmentsSectionVisible] = useState(
     defaults.sectionVisibility.environments
+  );
+  const [runResultsSectionVisible, setRunResultsSectionVisible] = useState(
+    defaults.sectionVisibility.runResults
   );
   const [showStorageLocationBadges, setShowStorageLocationBadges] = useState(
     defaults.showStorageLocationBadges
@@ -239,8 +275,10 @@ export function usePersistedSidebarExpansion({
       const validExpanded = stored.collectionIds.filter((id) => validCollectionIds.has(id));
       setCollectionsSectionExpanded(stored.sections.collections);
       setEnvironmentsSectionExpanded(stored.sections.environments);
+      setRunResultsSectionExpanded(stored.sections.runResults);
       setCollectionsSectionVisible(stored.sectionVisibility.collections);
       setEnvironmentsSectionVisible(stored.sectionVisibility.environments);
+      setRunResultsSectionVisible(stored.sectionVisibility.runResults);
       setShowStorageLocationBadges(stored.showStorageLocationBadges);
       setExpandedCollectionIds(new Set(validExpanded));
       setExpandedFolderIds(new Set(stored.folderIds));
@@ -267,11 +305,13 @@ export function usePersistedSidebarExpansion({
     const snapshot = serializeSidebarExpansion(
       {
         collections: collectionsSectionExpanded,
-        environments: environmentsSectionExpanded
+        environments: environmentsSectionExpanded,
+        runResults: runResultsSectionExpanded
       },
       {
         collections: collectionsSectionVisible,
-        environments: environmentsSectionVisible
+        environments: environmentsSectionVisible,
+        runResults: runResultsSectionVisible
       },
       expandedCollectionIds,
       expandedFolderIds,
@@ -283,8 +323,10 @@ export function usePersistedSidebarExpansion({
     loaded,
     collectionsSectionExpanded,
     environmentsSectionExpanded,
+    runResultsSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
+    runResultsSectionVisible,
     expandedCollectionIds,
     expandedFolderIds,
     showStorageLocationBadges
@@ -351,6 +393,13 @@ export function usePersistedSidebarExpansion({
   }, []);
 
   /**
+   * Toggles the Run Results section expanded state.
+   */
+  const toggleRunResultsSection = useCallback(() => {
+    setRunResultsSectionExpanded((open) => !open);
+  }, []);
+
+  /**
    * Toggles the Collections section visibility.
    */
   const toggleCollectionsSectionVisible = useCallback(() => {
@@ -365,6 +414,13 @@ export function usePersistedSidebarExpansion({
   }, []);
 
   /**
+   * Toggles the Run Results section visibility.
+   */
+  const toggleRunResultsSectionVisible = useCallback(() => {
+    setRunResultsSectionVisible((visible) => !visible);
+  }, []);
+
+  /**
    * Toggles storage location badge visibility in the collections list.
    */
   const toggleStorageLocationBadges = useCallback(() => {
@@ -375,16 +431,22 @@ export function usePersistedSidebarExpansion({
     loaded,
     collectionsSectionExpanded,
     environmentsSectionExpanded,
+    runResultsSectionExpanded,
     toggleCollectionsSection,
     toggleEnvironmentsSection,
+    toggleRunResultsSection,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
+    setRunResultsSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
+    runResultsSectionVisible,
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
+    toggleRunResultsSectionVisible,
     setCollectionsSectionVisible,
     setEnvironmentsSectionVisible,
+    setRunResultsSectionVisible,
     showStorageLocationBadges,
     toggleStorageLocationBadges,
     setShowStorageLocationBadges,

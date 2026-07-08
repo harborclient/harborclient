@@ -158,6 +158,21 @@ export interface CollectionRunnerState {
    * Human-readable environment name from export or override selection.
    */
   environmentName?: string | null;
+
+  /**
+   * UUID assigned when the run was saved to storage.
+   */
+  savedRunUuid?: string | null;
+
+  /**
+   * Storage connection id when the run was saved.
+   */
+  savedConnectionId?: string | null;
+
+  /**
+   * True when the run was saved to a Team Hub provider.
+   */
+  savedToTeamHub?: boolean;
 }
 
 /**
@@ -649,10 +664,14 @@ const modalsSlice = createSlice({
         RunResultsExport & {
           collectionId: number;
           requestId: number | null;
+          savedRunUuid?: string | null;
+          savedConnectionId?: string | null;
+          savedToTeamHub?: boolean;
         }
       >
     ) {
-      const { collectionId, requestId, ...data } = action.payload;
+      const { collectionId, requestId, savedRunUuid, savedConnectionId, savedToTeamHub, ...data } =
+        action.payload;
       const summary = summarizeRunnerResults(data.results);
       state.collectionRunner = {
         collectionId,
@@ -673,8 +692,29 @@ const modalsSlice = createSlice({
         total: data.results.length,
         results: data.results,
         summary,
-        imported: true
+        imported: true,
+        savedRunUuid: savedRunUuid ?? null,
+        savedConnectionId: savedConnectionId ?? null,
+        savedToTeamHub: savedToTeamHub ?? false
       };
+    },
+    /**
+     * Records that the active collection runner run was saved to storage.
+     */
+    markCollectionRunnerSaved(
+      state,
+      action: PayloadAction<{
+        savedRunUuid: string;
+        savedConnectionId: string;
+        savedToTeamHub: boolean;
+      }>
+    ) {
+      if (!state.collectionRunner) {
+        return;
+      }
+      state.collectionRunner.savedRunUuid = action.payload.savedRunUuid;
+      state.collectionRunner.savedConnectionId = action.payload.savedConnectionId;
+      state.collectionRunner.savedToTeamHub = action.payload.savedToTeamHub;
     },
     /**
      * Opens or closes the global alert dialog.
@@ -787,6 +827,7 @@ export const {
   cancelCollectionRunner,
   finishCollectionRunner,
   importCollectionRunnerResults,
+  markCollectionRunnerSaved,
   setAlertModal,
   setConfirmModal,
   openPluginThemePrompt,

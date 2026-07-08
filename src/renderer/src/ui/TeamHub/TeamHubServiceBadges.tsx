@@ -83,6 +83,9 @@ function serviceBadgeAriaLabel(
 export function TeamHubServiceBadges({ services, scanning }: Props): JSX.Element {
   const badges: ServiceBadge[] = [
     { label: 'Storage', active: services.storage },
+    // Run results share the same storage routes as collections/environments, so
+    // this badge always mirrors the Storage badge rather than being independently probed.
+    { label: 'Run Results', active: services.storage },
     { label: 'LLM', active: services.llm },
     { label: 'Plugins', active: services.pluginCatalog },
     { label: 'Snippets', active: services.snippets }

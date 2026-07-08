@@ -37,6 +37,7 @@ export type ShortcutId =
   | 'toggle-response-editor'
   | 'toggle-collections-section'
   | 'toggle-environments-section'
+  | 'toggle-run-results-section'
   | 'send-request'
   | 'previous-request-tab'
   | 'next-request-tab'
@@ -359,6 +360,13 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'CmdOrCtrl+Shift+E',
     kind: 'action',
     actionId: 'toggle-environments-section'
+  },
+  {
+    id: 'toggle-run-results-section',
+    label: 'Toggle run results section',
+    defaultAccelerator: 'CmdOrCtrl+Shift+G',
+    kind: 'action',
+    actionId: 'toggle-run-results-section'
   },
   {
     id: 'send-request',

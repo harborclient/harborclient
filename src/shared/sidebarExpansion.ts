@@ -2,12 +2,14 @@ import type { SidebarExpansionState } from '#/shared/types/settings';
 
 const DEFAULT_SECTIONS = {
   collections: true,
-  environments: true
+  environments: true,
+  runResults: true
 } as const;
 
 const DEFAULT_SECTION_VISIBILITY = {
   collections: true,
-  environments: true
+  environments: true,
+  runResults: true
 } as const;
 
 const DEFAULT_SHOW_STORAGE_LOCATION_BADGES = true;
@@ -75,7 +77,11 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
       environments:
         sectionsRaw && typeof sectionsRaw.environments === 'boolean'
           ? sectionsRaw.environments
-          : DEFAULT_SECTIONS.environments
+          : DEFAULT_SECTIONS.environments,
+      runResults:
+        sectionsRaw && typeof sectionsRaw.runResults === 'boolean'
+          ? sectionsRaw.runResults
+          : DEFAULT_SECTIONS.runResults
     },
     sectionVisibility: {
       collections:
@@ -85,7 +91,11 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
       environments:
         visibilityRaw && typeof visibilityRaw.environments === 'boolean'
           ? visibilityRaw.environments
-          : DEFAULT_SECTION_VISIBILITY.environments
+          : DEFAULT_SECTION_VISIBILITY.environments,
+      runResults:
+        visibilityRaw && typeof visibilityRaw.runResults === 'boolean'
+          ? visibilityRaw.runResults
+          : DEFAULT_SECTION_VISIBILITY.runResults
     },
     collectionIds: normalizeIdList(raw.collectionIds),
     folderIds: normalizeIdList(raw.folderIds),

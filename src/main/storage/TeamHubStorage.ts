@@ -12,19 +12,27 @@ import {
 import {
   maskVariablesForExport,
   normalizeVariable,
-  validateCollectionExport
+  validateCollectionExport,
+  validateRunResultsExport
 } from '#/main/storage/collectionData';
+import { saveRunResultInputSchema } from '#/main/storage/collectionSchemas';
 import {
   bundleScriptFieldsWithLegacy,
   teamHubScriptColumn,
   teamHubScriptRefsFromColumn
 } from '#/main/storage/scriptFields';
 import type { TeamHubIdMap } from '#/main/storage/TeamHubIdMap';
+import {
+  asTeamHubRunResultClient,
+  type TeamHubRunResultDetail,
+  type TeamHubRunResultRecord
+} from '#/main/storage/teamHubRunResultApi';
 import { trimRequiredName } from '#/main/storage/trimRequiredName';
 import { resolveImportUuid } from '#/main/storage/uuid';
 import type { IStorage } from '#/main/storage/IStorage';
 import {
   toTeamHubAuth,
+  TeamHubClientError,
   type CollectionRecord,
   type EnvironmentRecord,
   type FolderRecord,
@@ -34,6 +42,11 @@ import {
   type TeamHubClient
 } from '@harborclient/team-hub-api';
 import { defaultAuth, normalizeAuth } from '#/shared/auth';
+import {
+  type ProviderRunResult,
+  type ProviderRunResultSummary,
+  type SaveRunResultInput
+} from '#/shared/collectionRunner';
 import { readScriptRefsFromJson, resolveScriptRefs } from '#/shared/scriptRefs';
 import { normalizeRequestTags } from '#/shared/requestTags';
 import type {
@@ -139,6 +152,41 @@ function serverToSnippet(record: SnippetRecord, localId: number): Snippet {
     source: 'local',
     created_at: record.createdAt,
     updated_at: record.createdAt
+  };
+}
+
+/**
+ * Maps a Team Hub run result list row to provider-local summary metadata.
+ *
+ * @param record - Run result payload from HarborClient Server.
+ * @param localId - Numeric id assigned by {@link TeamHubIdMap}.
+ */
+function serverToRunResultSummary(
+  record: TeamHubRunResultRecord,
+  localId: number
+): ProviderRunResultSummary {
+  return {
+    id: localId,
+    uuid: record.id,
+    label: record.label,
+    kind: record.kind,
+    collectionName: record.collectionName,
+    requestName: record.requestName,
+    summary: record.summary,
+    createdAt: record.createdAt
+  };
+}
+
+/**
+ * Maps a Team Hub run result detail row to a provider-local snapshot.
+ *
+ * @param record - Run result payload from HarborClient Server.
+ * @param localId - Numeric id assigned by {@link TeamHubIdMap}.
+ */
+function serverToRunResult(record: TeamHubRunResultDetail, localId: number): ProviderRunResult {
+  return {
+    ...serverToRunResultSummary(record, localId),
+    payload: validateRunResultsExport(record.payload)
   };
 }
 
@@ -499,6 +547,83 @@ export class TeamHubStorage implements IStorage {
     const serverId = this.requireServerId('snippet', id);
     await this.client.deleteSnippet(serverId);
     this.idMap.forget('snippet', serverId);
+  }
+
+  /**
+   * Lists run result snapshots from the server with ids translated to numeric form.
+   */
+  async listRunResults(): Promise<ProviderRunResultSummary[]> {
+    const records = await asTeamHubRunResultClient(this.client).listRunResults();
+    return records.map((record) =>
+      serverToRunResultSummary(record, this.idMap.toLocalId('run_result', record.id))
+    );
+  }
+
+  /**
+   * Saves a run result snapshot on the server and registers its UUID in the id map.
+   */
+  async saveRunResult(input: SaveRunResultInput): Promise<ProviderRunResult> {
+    const parsed = saveRunResultInputSchema.parse(input);
+    const payload = validateRunResultsExport(parsed.payload);
+    const record = await asTeamHubRunResultClient(this.client).createRunResult({
+      ...(parsed.label ? { label: parsed.label } : {}),
+      payload: payload as unknown as Record<string, unknown>
+    });
+    const localId = this.idMap.toLocalId('run_result', record.id);
+    return serverToRunResult(record, localId);
+  }
+
+  /**
+   * Loads a run result snapshot by provider-local id.
+   */
+  async getRunResult(id: number): Promise<ProviderRunResult | null> {
+    const serverId = this.idMap.toServerId('run_result', id);
+    if (!serverId) {
+      return null;
+    }
+
+    try {
+      const record = await asTeamHubRunResultClient(this.client).getRunResult(serverId);
+      return serverToRunResult(record, id);
+    } catch (err) {
+      if (err instanceof TeamHubClientError && err.status === 404) {
+        return null;
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Loads a run result snapshot by server UUID without requiring a prior id map entry.
+   *
+   * @param uuid - Stable run result UUID from a deep link or export file.
+   * @returns Provider-local snapshot when found on this hub, otherwise null.
+   */
+  async fetchRunResultByUuid(uuid: string): Promise<ProviderRunResult | null> {
+    const trimmedUuid = uuid.trim();
+    if (!trimmedUuid) {
+      return null;
+    }
+
+    try {
+      const record = await asTeamHubRunResultClient(this.client).getRunResult(trimmedUuid);
+      const localId = this.idMap.toLocalId('run_result', record.id);
+      return serverToRunResult(record, localId);
+    } catch (err) {
+      if (err instanceof TeamHubClientError && err.status === 404) {
+        return null;
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Deletes a run result snapshot on the server and forgets its id map entry.
+   */
+  async deleteRunResult(id: number): Promise<void> {
+    const serverId = this.requireServerId('run_result', id);
+    await asTeamHubRunResultClient(this.client).deleteRunResult(serverId);
+    this.idMap.forget('run_result', serverId);
   }
 
   /**
@@ -939,7 +1064,7 @@ export class TeamHubStorage implements IStorage {
    * @param localId - Provider-local numeric id.
    */
   private requireServerId(
-    entityType: 'collection' | 'folder' | 'request' | 'snippet',
+    entityType: 'collection' | 'folder' | 'request' | 'run_result' | 'snippet',
     localId: number
   ): string {
     const serverId = this.idMap.toServerId(entityType, localId);

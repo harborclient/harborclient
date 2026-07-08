@@ -45,6 +45,11 @@ import type {
   Snippet,
   Variable
 } from '#/shared/types';
+import type {
+  ProviderRunResult,
+  ProviderRunResultSummary,
+  SaveRunResultInput
+} from '#/shared/collectionRunner';
 import type { SnippetScope } from '#/shared/snippetScope';
 import { parseJson } from '#/shared/parseJson';
 import { generateDocumentUuid } from '#/main/storage/uuid';
@@ -1284,6 +1289,37 @@ export class MySqlStorage implements IStorage {
    */
   async deleteSnippet(id: number): Promise<void> {
     await this.getPool().execute('DELETE FROM snippets WHERE id = ?', [id]);
+  }
+
+  /**
+   * MySQL-backed storage does not persist run result snapshots.
+   */
+  async listRunResults(): Promise<ProviderRunResultSummary[]> {
+    return [];
+  }
+
+  /**
+   * MySQL-backed storage does not persist run result snapshots.
+   */
+  async saveRunResult(input: SaveRunResultInput): Promise<ProviderRunResult> {
+    void input;
+    throw new Error('Run results are not supported for this storage provider');
+  }
+
+  /**
+   * MySQL-backed storage does not persist run result snapshots.
+   */
+  async getRunResult(id: number): Promise<ProviderRunResult | null> {
+    void id;
+    throw new Error('Run results are not supported for this storage provider');
+  }
+
+  /**
+   * MySQL-backed storage does not persist run result snapshots.
+   */
+  async deleteRunResult(id: number): Promise<void> {
+    void id;
+    throw new Error('Run results are not supported for this storage provider');
   }
 
   /**

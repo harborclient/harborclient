@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { useTeamHubs } from '#/renderer/src/hooks/useTeamHubs';
 import {
   faArrowsRotate,
+  faClockRotateLeft,
   faDatabase,
   faFingerprint,
   faTerminal,
@@ -17,12 +18,13 @@ import {
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { TeamCollectionsView } from '#/renderer/src/ui/TeamHub/TeamCollectionsView';
 import { TeamManageView } from '#/renderer/src/ui/TeamHub/TeamManageView';
+import { TeamRunResultsView } from '#/renderer/src/ui/TeamHub/TeamRunResultsView';
 import { TeamSnippetsView } from '#/renderer/src/ui/TeamHub/TeamSnippetsView';
 import { TeamTokensView } from '#/renderer/src/ui/TeamHub/TeamTokensView';
 import { getReloadConfigAlertMessage } from '#/renderer/src/ui/TeamHub/teamHubReloadHelpers';
 import { formatIpcErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
 
-type TeamHubAdminSection = 'users' | 'tokens' | 'collections' | 'snippets';
+type TeamHubAdminSection = 'users' | 'tokens' | 'collections' | 'snippets' | 'run-results';
 type TeamHubAdminSidebarItem = TeamHubAdminSection | 'reload';
 
 interface Props {
@@ -71,6 +73,7 @@ export function TeamHubAdmin({ hubId, onClose }: Props): JSX.Element {
       { value: 'tokens', label: 'Manage tokens', icon: faFingerprint },
       { value: 'collections', label: 'Manage collections', icon: faDatabase },
       { value: 'snippets', label: 'Manage snippets', icon: faTerminal },
+      { value: 'run-results', label: 'Manage run results', icon: faClockRotateLeft },
       {
         value: 'reload',
         label: reloading ? 'Reloading…' : 'Reload',
@@ -158,8 +161,10 @@ export function TeamHubAdmin({ hubId, onClose }: Props): JSX.Element {
         <TeamTokensView hub={hub} />
       ) : section === 'collections' ? (
         <TeamCollectionsView hub={hub} />
-      ) : (
+      ) : section === 'snippets' ? (
         <TeamSnippetsView hub={hub} />
+      ) : (
+        <TeamRunResultsView hub={hub} />
       )}
     </SidebarLayout>
   );

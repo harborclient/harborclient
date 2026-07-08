@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildPluginInstallDeepLink,
+  buildRunResultsDeepLink,
   buildSnippetInstallDeepLink,
   buildThemeInstallDeepLink,
   parseHarborDeepLink
@@ -36,6 +37,13 @@ describe('parseHarborDeepLink', () => {
     });
   });
 
+  it('parses a valid run results open URL', () => {
+    expect(parseHarborDeepLink('harborclient://run/550e8400-e29b-41d4-a716-446655440000')).toEqual({
+      action: 'open-run-results',
+      uuid: '550e8400-e29b-41d4-a716-446655440000'
+    });
+  });
+
   it('returns null for the wrong protocol', () => {
     expect(
       parseHarborDeepLink('https://harborclient.com/plugin/install?id=com.example.plugin')
@@ -61,6 +69,7 @@ describe('parseHarborDeepLink', () => {
     expect(
       parseHarborDeepLink('harborclient://theme/update?id=com.harborclient.plugins.dracula')
     ).toBeNull();
+    expect(parseHarborDeepLink('harborclient://run/not-a-uuid')).toBeNull();
   });
 });
 
@@ -90,6 +99,16 @@ describe('buildSnippetInstallDeepLink', () => {
     expect(parseHarborDeepLink(url)).toEqual({
       action: 'install-snippet',
       pluginId: 'com.harborclient.snippets.testing'
+    });
+  });
+});
+
+describe('buildRunResultsDeepLink', () => {
+  it('builds a run results URL that round-trips through the parser', () => {
+    const url = buildRunResultsDeepLink('550e8400-e29b-41d4-a716-446655440000');
+    expect(parseHarborDeepLink(url)).toEqual({
+      action: 'open-run-results',
+      uuid: '550e8400-e29b-41d4-a716-446655440000'
     });
   });
 });

@@ -40,8 +40,8 @@
   "packageManager": "pnpm@10.17.1",
   "dependencies": {
     "@harborclient/http": "^0.1.2",
-    "@harborclient/sdk": "^1.0.42",
-    "@harborclient/team-hub-api": "^0.2.1",
+    "@harborclient/sdk": "^1.0.43",
+    "@harborclient/team-hub-api": "^0.3.1",
     "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/lang-javascript": "^6.2.4",
     "@codemirror/lang-json": "^6.0.2",

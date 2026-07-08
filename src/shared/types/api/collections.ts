@@ -1,5 +1,10 @@
 import type { AuthConfig } from '#/shared/auth';
-import type { RunResultsExport } from '#/shared/collectionRunner';
+import type {
+  RunResultsExport,
+  SavedRunResult,
+  SavedRunResultSummary,
+  SaveRunResultInput
+} from '#/shared/collectionRunner';
 import type {
   Collection,
   CollectionExportResult,
@@ -108,6 +113,35 @@ export interface ApiCollections {
    * @returns Parsed run-results export, or null when the dialog was canceled.
    */
   importRunResults: () => Promise<RunResultsExport | null>;
+  /**
+   * Lists saved run result snapshots from all storage providers.
+   */
+  listSavedRunResults: () => Promise<SavedRunResultSummary[]>;
+  /**
+   * Saves a run result snapshot to the chosen storage provider.
+   *
+   * @param connectionId - Database connection or team hub id.
+   * @param input - Label and portable export payload.
+   */
+  saveRunResult: (connectionId: string, input: SaveRunResultInput) => Promise<SavedRunResult>;
+  /**
+   * Loads a saved run result snapshot by routed global id.
+   *
+   * @param id - Global run result id.
+   */
+  getSavedRunResult: (id: number) => Promise<SavedRunResult | null>;
+  /**
+   * Deletes a saved run result snapshot.
+   *
+   * @param id - Global run result id.
+   */
+  deleteSavedRunResult: (id: number) => Promise<void>;
+  /**
+   * Resolves a run result UUID across mounted Team Hub providers.
+   *
+   * @param uuid - Stable portable run result identifier.
+   */
+  resolveRunResultByUuid: (uuid: string) => Promise<SavedRunResult | null>;
   /**
    * Exports an environment to a JSON file via a native save dialog.
    *
