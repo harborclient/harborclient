@@ -24,6 +24,7 @@ import {
   parseResponseDocument,
   type ScriptDocumentFacade
 } from '#/main/scripting/scriptResponseDocument';
+import { scriptExpect } from '#/main/scripting/scriptExpect';
 
 /**
  * Context fields passed into the hc sandbox without user script source.
@@ -263,52 +264,6 @@ function makeAuthApi(getAuth: () => AuthConfig): {
       auth.basic = next.basic;
       auth.bearer = next.bearer;
       auth.oauth2 = next.oauth2;
-    }
-  };
-}
-
-/**
- * Builds a chai-lite expect matcher with the same messages as the legacy bootstrap.
- *
- * @param actual - Value under assertion.
- * @returns Matcher object with a Chai-style `to` chain (`to.equal`, `to.be.ok`, etc.).
- */
-function makeExpect(actual: unknown): {
-  to: {
-    equal: (expected: unknown) => void;
-    eql: (expected: unknown) => void;
-    include: (substr: string) => void;
-    be: {
-      ok: () => void;
-    };
-  };
-} {
-  return {
-    to: {
-      equal: (expected: unknown) => {
-        if (actual !== expected) {
-          throw new Error(`Expected ${JSON.stringify(expected)} but got ${JSON.stringify(actual)}`);
-        }
-      },
-      eql: (expected: unknown) => {
-        if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-          throw new Error(`Expected ${JSON.stringify(expected)} but got ${JSON.stringify(actual)}`);
-        }
-      },
-      include: (substr: string) => {
-        if (typeof actual !== 'string' || actual.indexOf(substr) === -1) {
-          throw new Error(
-            `Expected ${JSON.stringify(actual)} to include ${JSON.stringify(substr)}`
-          );
-        }
-      },
-      be: {
-        ok: () => {
-          if (!actual) {
-            throw new Error(`Expected truthy value but got ${JSON.stringify(actual)}`);
-          }
-        }
-      }
     }
   };
 }
@@ -580,7 +535,8 @@ export function createScriptApi(
         });
       }
     },
-    expect: (actual: unknown) => makeExpect(actual)
+    /** Chai BDD expect; see https://www.chaijs.com/api/bdd/ */
+    expect: scriptExpect
   };
 
   if (options?.sendRequest) {

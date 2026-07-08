@@ -35,7 +35,7 @@ const HC_ROOT: HcCompletionOption[] = [
     detail: '(req) => Promise<Response> — requires Settings → General'
   },
   { label: 'test', type: 'function', detail: '(name, fn) => void' },
-  { label: 'expect', type: 'function', detail: '(actual) => Expect' },
+  { label: 'expect', type: 'function', detail: '(actual) => Chai BDD assertion' },
   { label: 'response', type: 'property', detail: 'Post-request response (post scripts only)' }
 ];
 

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- chore(dependencies): update @harborclient/sdk to v1.0.45 and add chai with type definitions. (`115cdd5`)
+
 ## 2.0.10 - 2026-07-08
 
 - feat(ui): enhance VariablesPanel and ResponseEditor with improved layouts and functionality. (`ac4a627`)
