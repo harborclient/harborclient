@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.0.9 - 2026-07-08
+
 - feat(scrollbars): integrate OverlayScrollbars and add scrollbar auto-hide feature. (`df61a0d`)
 - feat(run-results): implement run results management and UI enhancements. (`9b8d65d`)
 - feat(import): enhance import functionality for snippets and themes. (`9a47438`)
