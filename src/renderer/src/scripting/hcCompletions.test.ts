@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { Completion, CompletionContext, CompletionSource } from '@codemirror/autocomplete';
 import type { Variable } from '#/shared/types';
-import { createHcCompletionSource } from '#/renderer/src/scripting/hcCompletions';
+import {
+  createHcCompletionSource,
+  createLiveHcCompletionSource
+} from '#/renderer/src/scripting/hcCompletions';
 
 /**
  * Builds a minimal CompletionContext for testing matchBefore-based sources.
@@ -13,6 +16,18 @@ function mockContext(before: string): CompletionContext {
   return {
     pos,
     explicit: false,
+    state: {
+      doc: {
+        sliceString: (from: number, to: number) => before.slice(from, to),
+        lineAt: (linePos: number) => {
+          const lastNewline = before.lastIndexOf('\n', linePos - 1);
+          const from = lastNewline === -1 ? 0 : lastNewline + 1;
+          const nextNewline = before.indexOf('\n', from);
+          const to = nextNewline === -1 ? before.length : nextNewline;
+          return { from, to, text: before.slice(from, to) };
+        }
+      }
+    },
     matchBefore: (regex: RegExp) => {
       const match = before.match(new RegExp(`${regex.source}$`));
       if (!match) return null;
@@ -176,6 +191,45 @@ describe('createHcCompletionSource', () => {
     expect(labels(result!.options)).toEqual(['host']);
   });
 
+  it('reads the latest variables from a getter on each completion query', async () => {
+    let currentVariables: Variable[] = [
+      { key: 'host', value: 'api.example.com', defaultValue: '', share: false }
+    ];
+    const source = createHcCompletionSource('pre', () => currentVariables);
+
+    const firstResult = await complete(source, mockContext('const url = "{{ho'));
+    expect(labels(firstResult!.options)).toEqual(['host']);
+
+    currentVariables = [{ key: 'token', value: 'abc', defaultValue: 'fallback', share: false }];
+
+    const secondResult = await complete(source, mockContext('const url = "{{to'));
+    expect(labels(secondResult!.options)).toEqual(['token']);
+  });
+
+  it('reads the latest phase and variables from live getters', async () => {
+    let currentPhase: 'pre' | 'post' = 'pre';
+    let currentVariables: Variable[] = [
+      { key: 'host', value: 'api.example.com', defaultValue: '', share: false }
+    ];
+    const source = createLiveHcCompletionSource(
+      () => currentPhase,
+      () => currentVariables
+    );
+
+    const preResult = await complete(source, mockContext('hc.'));
+    expect(labels(preResult!.options).sort()).not.toContain('response');
+
+    currentPhase = 'post';
+
+    const postResult = await complete(source, mockContext('hc.'));
+    expect(labels(postResult!.options).sort()).toContain('response');
+
+    currentVariables = [{ key: 'token', value: 'abc', defaultValue: 'fallback', share: false }];
+
+    const variableResult = await complete(source, mockContext('const url = "{{to'));
+    expect(labels(variableResult!.options)).toEqual(['token']);
+  });
+
   it('returns null when nothing matches', async () => {
     const source = createHcCompletionSource('pre', variables);
     expect(await complete(source, mockContext('const x = 1;'))).toBeNull();
@@ -186,5 +240,154 @@ describe('createHcCompletionSource', () => {
     const result = await complete(source, mockContext('hc.re'));
 
     expect(labels(result!.options)).toEqual(['request']);
+  });
+
+  it('completes hc.expect(...).to. with common Chai matchers in post scripts', async () => {
+    const source = createHcCompletionSource('post', variables);
+    const result = await complete(source, mockContext('hc.expect(hc.response.code).to.'));
+
+    expect(result).not.toBeNull();
+    expect(labels(result!.options)).toEqual(
+      expect.arrayContaining(['equal', 'eql', 'be', 'have', 'not'])
+    );
+  });
+
+  it('completes hc.expect(...).to. with common Chai matchers in pre scripts', async () => {
+    const source = createHcCompletionSource('pre', variables);
+    const result = await complete(source, mockContext('hc.expect(true).to.'));
+
+    expect(result).not.toBeNull();
+    expect(labels(result!.options)).toEqual(
+      expect.arrayContaining(['equal', 'eql', 'be', 'have', 'not'])
+    );
+  });
+
+  it('filters hc.expect(...).to.eq to equal and eql', async () => {
+    const source = createHcCompletionSource('post', variables);
+    const result = await complete(source, mockContext('hc.expect(hc.response.code).to.eq'));
+
+    expect(labels(result!.options).sort()).toEqual(['eql', 'equal']);
+  });
+
+  it('completes hc.expect with nested call arguments', async () => {
+    const source = createHcCompletionSource('post', variables);
+    const result = await complete(source, mockContext('hc.expect(hc.response.json()).to.'));
+
+    expect(result).not.toBeNull();
+    expect(labels(result!.options)).toEqual(expect.arrayContaining(['equal', 'eql']));
+  });
+
+  it('completes hc.response.to. with chain starters in post scripts', async () => {
+    const source = createHcCompletionSource('post', variables);
+    const result = await complete(source, mockContext('hc.response.to.'));
+
+    expect(result).not.toBeNull();
+    expect(labels(result!.options)).toEqual(
+      expect.arrayContaining(['have', 'be', 'not', 'status'])
+    );
+    expect(labels(result!.options)).not.toEqual(expect.arrayContaining(['notFound']));
+  });
+
+  it('completes indented hc.response.to. inside real script lines', async () => {
+    const source = createHcCompletionSource('post', variables);
+    const result = await complete(source, mockContext('  hc.response.to.'));
+
+    expect(result).not.toBeNull();
+    expect(labels(result!.options)).toEqual(expect.arrayContaining(['have', 'status']));
+  });
+
+  it('completes hc.response.to. inside hc.test callbacks', async () => {
+    const source = createHcCompletionSource('post', variables);
+    const result = await complete(source, mockContext('hc.test("x", function() { hc.response.to.'));
+
+    expect(result).not.toBeNull();
+    expect(labels(result!.options)).toEqual(expect.arrayContaining(['have', 'be']));
+  });
+
+  it('completes hc.response.to.have. inside hc.test callbacks', async () => {
+    const source = createHcCompletionSource('post', variables);
+    const result = await complete(
+      source,
+      mockContext('hc.test("x", function() { hc.response.to.have.')
+    );
+
+    expect(labels(result!.options)).toEqual(expect.arrayContaining(['status', 'header']));
+  });
+
+  it('completes hc.expect(hc.response.status).to. unchanged after response chain fix', async () => {
+    const source = createHcCompletionSource('post', variables);
+    const result = await complete(source, mockContext('hc.expect(hc.response.status).to.'));
+
+    expect(result).not.toBeNull();
+    expect(labels(result!.options)).toEqual(
+      expect.arrayContaining(['equal', 'eql', 'be', 'have', 'not'])
+    );
+  });
+
+  it('returns null for hc.response.to. in pre scripts', async () => {
+    const source = createHcCompletionSource('pre', variables);
+    expect(await complete(source, mockContext('hc.response.to.'))).toBeNull();
+  });
+
+  it('completes hc.response.to.have. with response have matchers', async () => {
+    const source = createHcCompletionSource('post', variables);
+    const result = await complete(source, mockContext('hc.response.to.have.'));
+
+    expect(labels(result!.options)).toEqual(
+      expect.arrayContaining(['status', 'header', 'jsonBody', 'notFound'])
+    );
+  });
+
+  it('bounds chai chain lookback to the current line for long scripts', async () => {
+    const source = createHcCompletionSource('post', variables);
+    const longPrefix = `// ${'x'.repeat(5000)}\n`.repeat(3);
+    const result = await complete(source, mockContext(`${longPrefix}hc.expect(true).to.`));
+
+    expect(result).not.toBeNull();
+    expect(labels(result!.options)).toEqual(expect.arrayContaining(['equal', 'eql']));
+  });
+
+  it('skips dotted-path fallback when receiver is an hc.response.to chain', async () => {
+    const source = createHcCompletionSource('pre', variables);
+    const result = await complete(source, mockContext('hc.response.to.'));
+
+    expect(result).toBeNull();
+  });
+
+  it('skips dotted-path fallback when receiver is an hc.expect chain with no matches', async () => {
+    const source = createHcCompletionSource('post', variables);
+    const result = await complete(source, mockContext('hc.expect(hc.response.code).to.zzz'));
+
+    expect(result).toBeNull();
+  });
+
+  it('still completes unrelated dotted paths on lines that also contain hc.expect', async () => {
+    const source = createHcCompletionSource('pre', variables);
+    const result = await complete(source, mockContext('hc.expect(x).to.equal(1); hc.request.'));
+
+    expect(result).not.toBeNull();
+    expect(labels(result!.options).sort()).toEqual([
+      'auth',
+      'body',
+      'headers',
+      'method',
+      'url',
+      'variables'
+    ]);
+  });
+
+  it('still completes unrelated dotted paths when expect is absent', async () => {
+    const source = createHcCompletionSource('pre', variables);
+    const result = await complete(source, mockContext('hc.request.'));
+
+    expect(result).not.toBeNull();
+    expect(labels(result!.options).sort()).toEqual([
+      'auth',
+      'body',
+      'headers',
+      'method',
+      'url',
+      'variables'
+    ]);
   });
 });

@@ -42,6 +42,7 @@ import {
   type PointerEvent as ReactPointerEvent
 } from 'react';
 import toast from 'react-hot-toast';
+import type { CompletionSource } from '@codemirror/autocomplete';
 import type { CodeEditorSlashTrigger } from '@harborclient/sdk/components';
 import type { AiSettings, HubLlmModelGroup, ScriptRef, Snippet, Variable } from '#/shared/types';
 import {
@@ -66,7 +67,7 @@ import {
   normalizeEditorPlaceholder,
   REQUEST_SCRIPTS_HELP_URL
 } from '#/renderer/src/ui/shared/scriptPlaceholders';
-import { createHcCompletionSource } from '#/renderer/src/scripting/hcCompletions';
+import { createLiveHcCompletionSource } from '#/renderer/src/scripting/hcCompletions';
 import { SCRIPT_ASK_COMMANDS } from '#/renderer/src/scripting/scriptAskCommands';
 import { runScriptAsk } from '#/renderer/src/scripting/runScriptAsk';
 import { resolveScriptAskModelId } from '#/renderer/src/scripting/scriptAskModel';
@@ -791,12 +792,30 @@ function SortableScriptRow({
   const chatModelId = activeChatId != null ? selectedModelByChat[activeChatId] : undefined;
   const availableModels = getAvailableModels(aiSettings, hubModelGroups);
 
+  const phaseRef = useRef(phase);
+  const variablesRef = useRef(variables);
+  const hcCompletionSourceRef = useRef<ReturnType<typeof createLiveHcCompletionSource> | null>(
+    null
+  );
+
   /**
-   * Memoizes hc autocomplete so CodeEditor does not receive a new source each render.
+   * Keeps phase and variables refs aligned and lazily builds the live completion source once.
    */
-  const hcCompletionSource = useMemo(
-    () => createHcCompletionSource(phase, variables),
-    [phase, variables]
+  useEffect(() => {
+    phaseRef.current = phase;
+    variablesRef.current = variables;
+    hcCompletionSourceRef.current ??= createLiveHcCompletionSource(
+      () => phaseRef.current,
+      () => variablesRef.current
+    );
+  }, [phase, variables]);
+
+  /**
+   * Stable delegate passed to CodeEditor; forwards to the live source stored in a ref.
+   */
+  const hcCompletionSource = useMemo<CompletionSource>(
+    () => (context) => hcCompletionSourceRef.current?.(context) ?? null,
+    []
   );
 
   const onPatchCodeRef = useRef(onPatchCode);
