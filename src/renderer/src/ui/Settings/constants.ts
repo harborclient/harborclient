@@ -51,6 +51,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   maxResponseSizeMb: 50,
   verifySsl: true,
   followRedirects: true,
+  scrollbarAutoHide: false,
   warnWhenSwitchingThemes: true,
   warnWhenEditingSnippet: true,
   warnWhenCloningSnippet: true,

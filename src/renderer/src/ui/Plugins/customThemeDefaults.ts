@@ -13,6 +13,10 @@ import {
   HC_METHOD_POST,
   HC_METHOD_PUT,
   HC_MUTED,
+  HC_SCROLLBAR_THUMB,
+  HC_SCROLLBAR_THUMB_ACTIVE,
+  HC_SCROLLBAR_THUMB_HOVER,
+  HC_SCROLLBAR_TRACK,
   HC_SELECTION,
   HC_SEPARATOR,
   HC_SUCCESS,
@@ -54,7 +58,11 @@ export const LIGHT_CUSTOM_THEME_PALETTE: CustomThemePalette = {
   'method-patch': '#7b5ea7',
   'method-delete': '#c0392b',
   'method-head': '#6e6e73',
-  'method-options': '#6e6e73'
+  'method-options': '#6e6e73',
+  'scrollbar-track': 'rgba(0, 0, 0, 0.06)',
+  'scrollbar-thumb': 'rgba(0, 0, 0, 0.44)',
+  'scrollbar-thumb-hover': 'rgba(0, 0, 0, 0.55)',
+  'scrollbar-thumb-active': 'rgba(0, 0, 0, 0.66)'
 };
 
 /**
@@ -83,7 +91,11 @@ export const DARK_CUSTOM_THEME_PALETTE: CustomThemePalette = {
   'method-patch': '#7b5ea7',
   'method-delete': '#c0392b',
   'method-head': '#6e6e73',
-  'method-options': '#6e6e73'
+  'method-options': '#6e6e73',
+  'scrollbar-track': 'rgba(255, 255, 255, 0.06)',
+  'scrollbar-thumb': 'rgba(255, 255, 255, 0.44)',
+  'scrollbar-thumb-hover': 'rgba(255, 255, 255, 0.55)',
+  'scrollbar-thumb-active': 'rgba(255, 255, 255, 0.66)'
 };
 
 /**
@@ -112,7 +124,11 @@ export const HIGH_CONTRAST_CUSTOM_THEME_PALETTE: CustomThemePalette = {
   'method-patch': HC_METHOD_PATCH,
   'method-delete': HC_METHOD_DELETE,
   'method-head': HC_METHOD_HEAD,
-  'method-options': HC_METHOD_OPTIONS
+  'method-options': HC_METHOD_OPTIONS,
+  'scrollbar-track': HC_SCROLLBAR_TRACK,
+  'scrollbar-thumb': HC_SCROLLBAR_THUMB,
+  'scrollbar-thumb-hover': HC_SCROLLBAR_THUMB_HOVER,
+  'scrollbar-thumb-active': HC_SCROLLBAR_THUMB_ACTIVE
 };
 
 /**

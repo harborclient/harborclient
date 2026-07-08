@@ -15,6 +15,7 @@ import { AiClaudeApiKeyField } from '../fields/AiClaudeApiKeyField';
 import { AiGeminiApiKeyField } from '../fields/AiGeminiApiKeyField';
 import { AiOpenAiApiKeyField } from '../fields/AiOpenAiApiKeyField';
 import { GeneralFollowRedirectsField } from '../fields/GeneralFollowRedirectsField';
+import { GeneralScrollbarAutoHideField } from '../fields/GeneralScrollbarAutoHideField';
 import { GeneralWarnWhenSwitchingThemesField } from '../fields/GeneralWarnWhenSwitchingThemesField';
 import { GeneralMaxResponseSizeField } from '../fields/GeneralMaxResponseSizeField';
 import { GeneralRequestTimeoutField } from '../fields/GeneralRequestTimeoutField';
@@ -53,6 +54,7 @@ export const SETTINGS_FIELD_REGISTRY: Partial<Record<FieldSettingId, ComponentTy
   'general.maxResponseSizeMb': GeneralMaxResponseSizeField,
   'general.verifySsl': GeneralVerifySslField,
   'general.followRedirects': GeneralFollowRedirectsField,
+  'general.scrollbarAutoHide': GeneralScrollbarAutoHideField,
   'general.warnWhenSwitchingThemes': GeneralWarnWhenSwitchingThemesField,
   'proxy.enabled': ProxyEnabledField,
   'proxy.protocol': ProxyProtocolField,

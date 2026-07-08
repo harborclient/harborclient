@@ -175,6 +175,19 @@ describe('generalSettings', () => {
     expect(getGeneralSettings().followRedirects).toBe(false);
   });
 
+  it('defaults scrollbarAutoHide to false when unset', () => {
+    expect(getGeneralSettings().scrollbarAutoHide).toBe(false);
+  });
+
+  it('persists scrollbarAutoHide true', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      scrollbarAutoHide: true
+    });
+
+    expect(getGeneralSettings().scrollbarAutoHide).toBe(true);
+  });
+
   it('defaults warnWhenSwitchingThemes to true when unset', () => {
     expect(getGeneralSettings().warnWhenSwitchingThemes).toBe(true);
   });

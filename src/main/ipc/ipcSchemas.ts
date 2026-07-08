@@ -242,6 +242,7 @@ export const generalSettings = z.object({
   maxResponseSizeMb: z.number().min(0).max(HARD_MAX_RESPONSE_SIZE_MB),
   verifySsl: z.boolean(),
   followRedirects: z.boolean(),
+  scrollbarAutoHide: z.boolean(),
   warnWhenSwitchingThemes: z.boolean(),
   warnWhenEditingSnippet: z.boolean(),
   warnWhenCloningSnippet: z.boolean(),

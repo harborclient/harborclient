@@ -182,6 +182,11 @@ export interface GeneralSettings {
   followRedirects: boolean;
 
   /**
+   * When true, custom OverlayScrollbars handles fade out when idle.
+   */
+  scrollbarAutoHide: boolean;
+
+  /**
    * When true, switching appearance themes from the View menu shows a confirmation dialog.
    */
   warnWhenSwitchingThemes: boolean;

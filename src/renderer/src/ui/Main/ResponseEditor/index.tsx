@@ -1,3 +1,4 @@
+import { Scrollbars } from '#/renderer/src/components/Scrollbars';
 import {
   Button,
   SegmentedTabs,
@@ -383,7 +384,7 @@ export function ResponseEditor({
             </div>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col overflow-auto">
+          <Scrollbars axis="both" className="flex min-h-0 flex-1 flex-col">
             <SegmentedTabPanel value="body">
               <CodeEditor
                 readOnly
@@ -445,7 +446,7 @@ export function ResponseEditor({
                   />
                 </SegmentedTabPanel>
               ))}
-          </div>
+          </Scrollbars>
         </SegmentedTabsGroup>
       </div>
     </div>

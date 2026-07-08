@@ -1,3 +1,4 @@
+import { Scrollbars } from '#/renderer/src/components/Scrollbars';
 import {
   DndContext,
   DragOverlay,
@@ -209,56 +210,61 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
   };
 
   return (
-    <div className="relative z-10 flex shrink-0 items-end overflow-x-auto border-b border-separator bg-sidebar px-2 py-1 app-no-drag">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragCancel={() => setActiveDragChatId(null)}
-      >
-        <div
-          role="tablist"
-          aria-label="Open AI chats"
-          className="flex items-end"
-          onKeyDown={handleTabListKeyDown}
+    <Scrollbars
+      axis="horizontal"
+      className="hc-tab-bar-scroll relative z-10 shrink-0 border-b border-separator bg-sidebar px-2 app-no-drag"
+    >
+      <div className="flex w-max flex-nowrap items-end py-1">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={() => setActiveDragChatId(null)}
         >
-          <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
-            {openTabs.map((chat) => (
-              <ChatTabItem
-                key={chat.id}
-                chat={chat}
-                active={chat.id === activeChatId}
-                tabIndex={0}
-                sortableId={aiChatTabSortableId(chat.id)}
-                sortableDisabled={!sortableEnabled}
-                onSelect={(chatId) => dispatch(setActiveChat(chatId))}
-                onClose={(chatId) => void dispatch(closeChat(chatId))}
-              />
-            ))}
-          </SortableContext>
-        </div>
+          <div
+            role="tablist"
+            aria-label="Open AI chats"
+            className="flex items-end"
+            onKeyDown={handleTabListKeyDown}
+          >
+            <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
+              {openTabs.map((chat) => (
+                <ChatTabItem
+                  key={chat.id}
+                  chat={chat}
+                  active={chat.id === activeChatId}
+                  tabIndex={0}
+                  sortableId={aiChatTabSortableId(chat.id)}
+                  sortableDisabled={!sortableEnabled}
+                  onSelect={(chatId) => dispatch(setActiveChat(chatId))}
+                  onClose={(chatId) => void dispatch(closeChat(chatId))}
+                />
+              ))}
+            </SortableContext>
+          </div>
 
-        <DragOverlay>
-          {activeDragChat ? (
-            <div className="flex items-center gap-1.5 rounded-t-lg border border-separator bg-surface px-3 py-2 text-[14px] font-medium shadow-md">
-              <FaIcon icon={faComment} className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              {activeDragChat.title}
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
-      <div className="flex shrink-0 items-end ms-2 px-1 -mb-1">
-        <button
-          type="button"
-          className="hc-tab-new-button mb-2.5 inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text app-no-drag"
-          title="New chat"
-          aria-label="New chat"
-          onClick={handleNewChat}
-        >
-          <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
-        </button>
+          <DragOverlay>
+            {activeDragChat ? (
+              <div className="flex items-center gap-1.5 rounded-t-lg border border-separator bg-surface px-3 py-2 text-[14px] font-medium shadow-md">
+                <FaIcon icon={faComment} className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                {activeDragChat.title}
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+        <div className="flex shrink-0 items-end ms-2 px-1 -mb-1">
+          <button
+            type="button"
+            className="hc-tab-new-button mb-2.5 inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text app-no-drag"
+            title="New chat"
+            aria-label="New chat"
+            onClick={handleNewChat}
+          >
+            <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
-    </div>
+    </Scrollbars>
   );
 }

@@ -1,6 +1,40 @@
 @import 'tailwindcss';
 @import '@harborclient/sdk/styles.css';
+@import 'overlayscrollbars/overlayscrollbars.css';
 @source "../../../node_modules/@harborclient/sdk/dist/components";
+
+/**
+ * OverlayScrollbars theme mapped to HarborClient scrollbar color tokens.
+ * Unlayered so structural vars (--os-size, etc.) override library defaults.
+ */
+.os-theme-harbor.os-scrollbar {
+  box-sizing: border-box;
+  --os-size: 10px;
+  --os-padding-perpendicular: 2px;
+  --os-padding-axis: 2px;
+  --os-track-border-radius: 10px;
+  --os-handle-border-radius: 10px;
+  --os-handle-interactive-area-offset: 4px;
+  --os-handle-bg: var(--mac-scrollbar-thumb);
+  --os-handle-bg-hover: var(--mac-scrollbar-thumb-hover);
+  --os-handle-bg-active: var(--mac-scrollbar-thumb-active);
+  --os-track-bg: var(--mac-scrollbar-track);
+}
+
+/**
+ * Horizontal tab bar scroll regions: shrink to the tab row and sit flush on the
+ * bar bottom edge. OverlayScrollbars host/padding default to stretch alignment,
+ * which leaves a sliver of empty space below tabs.
+ */
+.hc-tab-bar-scroll[data-overlayscrollbars~='host'] {
+  align-items: flex-end !important;
+  height: auto !important;
+}
+
+.hc-tab-bar-scroll[data-overlayscrollbars~='host'] [data-overlayscrollbars-padding] {
+  align-items: flex-end !important;
+  height: auto !important;
+}
 
 @theme {
   --color-surface: var(--mac-surface);
@@ -27,6 +61,10 @@
   --color-method-delete: var(--mac-method-delete);
   --color-method-head: var(--mac-method-head);
   --color-method-options: var(--mac-method-options);
+  --color-scrollbar-track: var(--mac-scrollbar-track);
+  --color-scrollbar-thumb: var(--mac-scrollbar-thumb);
+  --color-scrollbar-thumb-hover: var(--mac-scrollbar-thumb-hover);
+  --color-scrollbar-thumb-active: var(--mac-scrollbar-thumb-active);
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --radius-xs: 0.125rem;
   --radius-sm: 0.25rem;
@@ -66,6 +104,10 @@
     --mac-method-delete: #c0392b;
     --mac-method-head: #6e6e73;
     --mac-method-options: #6e6e73;
+    --mac-scrollbar-track: rgba(0, 0, 0, 0.06);
+    --mac-scrollbar-thumb: rgba(0, 0, 0, 0.44);
+    --mac-scrollbar-thumb-hover: rgba(0, 0, 0, 0.55);
+    --mac-scrollbar-thumb-active: rgba(0, 0, 0, 0.66);
 
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
     font-size: 14px;
@@ -97,6 +139,10 @@
       --mac-warning: #ff9f0a;
       --mac-success: #30d158;
       --mac-info: rgba(255, 255, 255, 0.55);
+      --mac-scrollbar-track: rgba(255, 255, 255, 0.06);
+      --mac-scrollbar-thumb: rgba(255, 255, 255, 0.44);
+      --mac-scrollbar-thumb-hover: rgba(255, 255, 255, 0.55);
+      --mac-scrollbar-thumb-active: rgba(255, 255, 255, 0.66);
     }
   }
 
@@ -120,6 +166,10 @@
     --mac-warning: #ff9f0a;
     --mac-success: #30d158;
     --mac-info: rgba(255, 255, 255, 0.55);
+    --mac-scrollbar-track: rgba(255, 255, 255, 0.06);
+    --mac-scrollbar-thumb: rgba(255, 255, 255, 0.44);
+    --mac-scrollbar-thumb-hover: rgba(255, 255, 255, 0.55);
+    --mac-scrollbar-thumb-active: rgba(255, 255, 255, 0.66);
   }
 
   :root[data-theme='light'] {
@@ -152,6 +202,10 @@
     --mac-info: #ffffff;
     --mac-resize-handle: #ffd60a;
     --mac-variable-token: #5fe3f0;
+    --mac-scrollbar-track: transparent;
+    --mac-scrollbar-thumb: #9e9e9e;
+    --mac-scrollbar-thumb-hover: #d0d0d0;
+    --mac-scrollbar-thumb-active: #ffffff;
   }
 
   /**
@@ -188,6 +242,10 @@
       --mac-method-options: CanvasText;
       --mac-resize-handle: CanvasText;
       --mac-variable-token: LinkText;
+      --mac-scrollbar-track: Canvas;
+      --mac-scrollbar-thumb: GrayText;
+      --mac-scrollbar-thumb-hover: CanvasText;
+      --mac-scrollbar-thumb-active: CanvasText;
     }
 
     input:focus-visible,
@@ -466,6 +524,50 @@
    */
   .hc-scroll-stable {
     scrollbar-gutter: stable;
+  }
+
+  /**
+   * Native scrollbar styling driven by theme tokens. Covers CodeMirror, MDXEditor,
+   * modals, dropdowns, and SDK layouts that keep native overflow scrolling.
+   */
+  * {
+    scrollbar-color: var(--mac-scrollbar-thumb) var(--mac-scrollbar-track);
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: var(--mac-scrollbar-track);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: var(--mac-scrollbar-thumb);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    min-height: 40px;
+  }
+
+  *::-webkit-scrollbar-thumb:horizontal {
+    min-height: unset;
+    min-width: 40px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--mac-scrollbar-thumb-hover);
+  }
+
+  *::-webkit-scrollbar-thumb:active {
+    background: var(--mac-scrollbar-thumb-active);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *::-webkit-scrollbar-thumb {
+      transition: none;
+    }
   }
 
   .hc-script-row-icon-button {

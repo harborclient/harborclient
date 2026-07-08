@@ -1600,7 +1600,6 @@ export function ScriptListEditor({
           >
             <FaIcon icon={faTerminal} className="h-3.5 w-3.5" aria-hidden />
             Snippet library...
-            <FaIcon icon={faChevronDown} aria-hidden />
           </Button>
           {snippetMenuOpen ? (
             <SnippetMenu

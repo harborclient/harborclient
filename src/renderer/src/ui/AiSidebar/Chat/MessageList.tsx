@@ -1,3 +1,4 @@
+import { Scrollbars } from '#/renderer/src/components/Scrollbars';
 import { EmptyState } from '@harborclient/sdk/components';
 import { useEffect, useRef, type JSX } from 'react';
 import type { ChatMessage } from '#/shared/types';
@@ -34,18 +35,20 @@ export function MessageList({ messages, sending }: Props): JSX.Element {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
-      {messages.map((message) => (
-        <MessageBubble key={message.id} message={message} />
-      ))}
-      {sending && (
-        <div className="flex justify-start" role="status" aria-live="polite">
-          <div className="rounded-lg border border-separator bg-control px-3 py-2 text-[14px] text-muted">
-            Thinking…
+    <Scrollbars axis="vertical">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 p-3">
+        {messages.map((message) => (
+          <MessageBubble key={message.id} message={message} />
+        ))}
+        {sending && (
+          <div className="flex justify-start" role="status" aria-live="polite">
+            <div className="rounded-lg border border-separator bg-control px-3 py-2 text-[14px] text-muted">
+              Thinking…
+            </div>
           </div>
-        </div>
-      )}
-      <div ref={bottomRef} />
-    </div>
+        )}
+        <div ref={bottomRef} />
+      </div>
+    </Scrollbars>
   );
 }

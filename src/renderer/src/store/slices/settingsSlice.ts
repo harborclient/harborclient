@@ -14,6 +14,7 @@ export const defaultGeneralSettings: GeneralSettings = {
   maxResponseSizeMb: 50,
   verifySsl: true,
   followRedirects: true,
+  scrollbarAutoHide: false,
   warnWhenSwitchingThemes: true,
   warnWhenEditingSnippet: true,
   warnWhenCloningSnippet: true,
@@ -73,5 +74,11 @@ export const selectCodeEditorSetup = (state: RootState): CodeEditorSetup =>
  */
 export const selectCodeEditorFontSize = (state: RootState): string =>
   state.settings.general.codeEditorFontSize;
+
+/**
+ * Returns whether custom OverlayScrollbars handles should auto-hide when idle.
+ */
+export const selectScrollbarAutoHide = (state: RootState): boolean =>
+  state.settings.general.scrollbarAutoHide;
 
 export default settingsSlice.reducer;

@@ -57,6 +57,18 @@ export const HC_METHOD_OPTIONS = HC_TEXT;
 /** Variable token highlight; >=7:1 on {@link HC_SURFACE}. */
 export const HC_VARIABLE_TOKEN = '#5fe3f0';
 
+/** Scrollbar track; ~7:1 on {@link HC_SURFACE}. */
+export const HC_SCROLLBAR_TRACK = 'transparent';
+
+/** Scrollbar thumb; ~7:1 on {@link HC_SURFACE}. */
+export const HC_SCROLLBAR_THUMB = '#9e9e9e';
+
+/** Scrollbar thumb hover; ~10:1 on {@link HC_SURFACE}. */
+export const HC_SCROLLBAR_THUMB_HOVER = '#d0d0d0';
+
+/** Scrollbar thumb active; 21:1 on {@link HC_SURFACE}. */
+export const HC_SCROLLBAR_THUMB_ACTIVE = '#ffffff';
+
 /** Primary accent button label on {@link HC_RESIZE_HANDLE}. */
 export const HC_PRIMARY_BUTTON_TEXT = '#000000';
 

@@ -32,7 +32,11 @@ const themeColorTokenSchema = z.enum([
   'method-patch',
   'method-delete',
   'method-head',
-  'method-options'
+  'method-options',
+  'scrollbar-track',
+  'scrollbar-thumb',
+  'scrollbar-thumb-hover',
+  'scrollbar-thumb-active'
 ]);
 
 const customThemeIdSchema = z

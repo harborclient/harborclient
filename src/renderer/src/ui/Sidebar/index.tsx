@@ -1,4 +1,5 @@
 import { ControlledAccordion, useAccordionProvider } from '@szhsin/react-accordion';
+import { Scrollbars } from '#/renderer/src/components/Scrollbars';
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import {
@@ -602,19 +603,19 @@ export function Sidebar({
           </nav>
         )}
         {activeSidebarPanel ? (
-          <div className="flex-1 overflow-x-hidden overflow-y-auto px-2 py-2">
+          <Scrollbars axis="vertical" className="flex-1 min-h-0 px-2 py-2">
             <PluginSurface
               pluginId={activeSidebarPanel.pluginId}
               contributionId={activeSidebarPanel.contributionId}
               kind="sidebarPanels"
               minHeight={240}
             />
-          </div>
+          </Scrollbars>
         ) : (
           <>
             <SidebarSearch value={searchQuery} onChange={setSearchQuery} />
             <Toolbar ariaLabel="Collections sidebar" actions={toolbarActions} />
-            <div className="flex-1 overflow-x-hidden overflow-y-auto px-2 pb-3">
+            <Scrollbars axis="vertical" className="flex-1 min-h-0 px-2 pb-3">
               {searchLoading ? (
                 <p className="mt-1.5 text-[16px] text-muted" role="status">
                   Loading…
@@ -1009,7 +1010,7 @@ export function Sidebar({
                   );
                 })}
               </ControlledAccordion>
-            </div>
+            </Scrollbars>
           </>
         )}
       </aside>

@@ -1,3 +1,4 @@
+import { Scrollbars } from '#/renderer/src/components/Scrollbars';
 import {
   DndContext,
   DragOverlay,
@@ -331,60 +332,67 @@ export function TabBar({
   };
 
   return (
-    <div className="flex shrink-0 min-h-16 items-end gap-0 overflow-x-auto border-b border-separator bg-sidebar px-2 py-1 app-no-drag">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragCancel={() => setActiveDragTabId(null)}
-      >
-        <div
-          role="tablist"
-          aria-label="Open tabs"
-          className="flex items-end"
-          onKeyDown={handleTabListKeyDown}
-        >
-          <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
-            {tabs.map((tab) => {
-              const pageDisplay = pageTabDisplays.get(tab.tabId);
-              return (
-                <TabItem
-                  key={tab.tabId}
-                  tab={tab}
-                  active={tab.tabId === activeTabId}
-                  tabIndex={0}
-                  sortableId={requestTabSortableId(tab.tabId)}
-                  sortableDisabled={!sortableEnabled}
-                  pageTitle={pageDisplay?.title}
-                  pageIcon={pageDisplay?.icon}
-                  onSelect={onSelect}
-                  onClose={onClose}
-                />
-              );
-            })}
-          </SortableContext>
-        </div>
-
-        <DragOverlay>
-          {activeDragTab ? (
-            <div className="rounded-t-lg border border-separator bg-surface px-3 py-2 text-[14px] font-medium shadow-md">
-              {requestTabDragLabel(activeDragTab, pageTabDisplays.get(activeDragTab.tabId)?.title)}
+    <div className="flex shrink-0 min-h-16 items-end border-b border-separator bg-sidebar px-2 app-no-drag">
+      <Scrollbars axis="horizontal" className="hc-tab-bar-scroll min-w-0 flex-1">
+        <div className="flex w-max flex-nowrap items-end py-1">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragCancel={() => setActiveDragTabId(null)}
+          >
+            <div
+              role="tablist"
+              aria-label="Open tabs"
+              className="flex items-end"
+              onKeyDown={handleTabListKeyDown}
+            >
+              <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
+                {tabs.map((tab) => {
+                  const pageDisplay = pageTabDisplays.get(tab.tabId);
+                  return (
+                    <TabItem
+                      key={tab.tabId}
+                      tab={tab}
+                      active={tab.tabId === activeTabId}
+                      tabIndex={0}
+                      sortableId={requestTabSortableId(tab.tabId)}
+                      sortableDisabled={!sortableEnabled}
+                      pageTitle={pageDisplay?.title}
+                      pageIcon={pageDisplay?.icon}
+                      onSelect={onSelect}
+                      onClose={onClose}
+                    />
+                  );
+                })}
+              </SortableContext>
             </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
-      <div className="flex shrink-0 items-end ms-2 px-1 -mb-1">
-        <button
-          type="button"
-          className="hc-tab-new-button mb-2.5 inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text app-no-drag"
-          title="New tab"
-          aria-label="New tab"
-          onClick={onNew}
-        >
-          <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
-        </button>
-      </div>
+
+            <DragOverlay>
+              {activeDragTab ? (
+                <div className="rounded-t-lg border border-separator bg-surface px-3 py-2 text-[14px] font-medium shadow-md">
+                  {requestTabDragLabel(
+                    activeDragTab,
+                    pageTabDisplays.get(activeDragTab.tabId)?.title
+                  )}
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+          <div className="flex shrink-0 items-end ms-2 px-1 -mb-1">
+            <button
+              type="button"
+              className="hc-tab-new-button mb-2.5 inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text app-no-drag"
+              title="New tab"
+              aria-label="New tab"
+              onClick={onNew}
+            >
+              <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      </Scrollbars>
     </div>
   );
 }

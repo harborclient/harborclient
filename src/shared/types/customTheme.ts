@@ -121,7 +121,11 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   'method-patch': 'PATCH',
   'method-delete': 'DELETE',
   'method-head': 'HEAD',
-  'method-options': 'OPTIONS'
+  'method-options': 'OPTIONS',
+  'scrollbar-track': 'Scrollbar track',
+  'scrollbar-thumb': 'Scrollbar thumb',
+  'scrollbar-thumb-hover': 'Scrollbar thumb hover',
+  'scrollbar-thumb-active': 'Scrollbar thumb active'
 };
 
 /**
@@ -154,6 +158,15 @@ export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
       'method-delete',
       'method-head',
       'method-options'
+    ]
+  },
+  {
+    label: 'Scrollbar',
+    tokens: [
+      'scrollbar-track',
+      'scrollbar-thumb',
+      'scrollbar-thumb-hover',
+      'scrollbar-thumb-active'
     ]
   }
 ];

@@ -25,6 +25,32 @@ describe('customThemeExport', () => {
     expect(validateCustomThemeExport(sampleExport)).toEqual(sampleExport);
   });
 
+  it('validates scrollbar color tokens in theme exports', () => {
+    const exportWithScrollbars = {
+      ...sampleExport,
+      theme: {
+        ...sampleExport.theme,
+        'scrollbar-track': 'transparent',
+        'scrollbar-thumb': 'rgba(0, 0, 0, 0.28)',
+        'scrollbar-thumb-hover': 'rgba(0, 0, 0, 0.42)',
+        'scrollbar-thumb-active': 'rgba(0, 0, 0, 0.55)'
+      }
+    };
+
+    expect(validateCustomThemeExport(exportWithScrollbars)).toEqual(exportWithScrollbars);
+  });
+
+  it('rejects unknown theme tokens in exports', () => {
+    const result = customThemeExportSchema.safeParse({
+      ...sampleExport,
+      theme: {
+        ...sampleExport.theme,
+        'scrollbar-invalid': '#000000'
+      }
+    });
+    expect(result.success).toBe(false);
+  });
+
   it('rejects export files with the wrong discriminator', () => {
     const result = customThemeExportSchema.safeParse({
       ...sampleExport,

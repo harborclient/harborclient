@@ -1,3 +1,4 @@
+import { Scrollbars } from '#/renderer/src/components/Scrollbars';
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import type { RequestTabContext, ResponseTabContext } from '#/shared/plugin/types';
 import type { Variable } from '#/shared/types';
@@ -313,38 +314,43 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
                   style={showSplitLayout ? { height: editorHeight } : undefined}
                   className={
                     showSplitLayout
-                      ? 'shrink-0 overflow-auto'
-                      : 'flex min-h-0 flex-1 flex-col overflow-auto'
+                      ? 'flex shrink-0 min-h-0 flex-col'
+                      : 'flex min-h-0 flex-1 flex-col'
                   }
                 >
-                  <Editor
-                    key={`editor-${activeTabId}`}
-                    tabId={activeTabId}
-                    draft={draft}
-                    requestTabContext={requestTabContext}
-                    onChange={(next) => dispatch(setActiveDraft(next))}
-                    onSend={() => void dispatch(sendRequest())}
-                    sending={sending}
-                    variables={activeVariables}
-                    collectionName={activeCollectionName}
-                    folderName={activeFolderName}
-                    onEditVariables={onEditVariables}
-                    onCollectionClick={() => {
-                      if (activeCollectionId == null) return;
-                      dispatch(focusSidebarItem({ collectionId: activeCollectionId }));
-                      revealCollection(activeCollectionId);
-                    }}
-                    onFolderClick={() => {
-                      if (activeCollectionId == null || activeFolderId == null) return;
-                      dispatch(
-                        focusSidebarItem({
-                          collectionId: activeCollectionId,
-                          folderId: activeFolderId
-                        })
-                      );
-                      revealFolder(activeCollectionId, activeFolderId);
-                    }}
-                  />
+                  <Scrollbars
+                    axis="both"
+                    className={showSplitLayout ? 'h-full min-h-0' : 'min-h-0 flex-1'}
+                  >
+                    <Editor
+                      key={`editor-${activeTabId}`}
+                      tabId={activeTabId}
+                      draft={draft}
+                      requestTabContext={requestTabContext}
+                      onChange={(next) => dispatch(setActiveDraft(next))}
+                      onSend={() => void dispatch(sendRequest())}
+                      sending={sending}
+                      variables={activeVariables}
+                      collectionName={activeCollectionName}
+                      folderName={activeFolderName}
+                      onEditVariables={onEditVariables}
+                      onCollectionClick={() => {
+                        if (activeCollectionId == null) return;
+                        dispatch(focusSidebarItem({ collectionId: activeCollectionId }));
+                        revealCollection(activeCollectionId);
+                      }}
+                      onFolderClick={() => {
+                        if (activeCollectionId == null || activeFolderId == null) return;
+                        dispatch(
+                          focusSidebarItem({
+                            collectionId: activeCollectionId,
+                            folderId: activeFolderId
+                          })
+                        );
+                        revealFolder(activeCollectionId, activeFolderId);
+                      }}
+                    />
+                  </Scrollbars>
                 </section>
               ) : null}
               {showSplitLayout ? (

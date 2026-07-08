@@ -7,6 +7,7 @@ export type SettingId =
   | 'general.maxResponseSizeMb'
   | 'general.verifySsl'
   | 'general.followRedirects'
+  | 'general.scrollbarAutoHide'
   | 'general.warnWhenSwitchingThemes'
   | 'proxy.enabled'
   | 'proxy.protocol'
@@ -91,7 +92,7 @@ export type SettingEntry = FieldSettingEntry | SectionSettingEntry;
  */
 export const FORM_SECTION_DESCRIPTIONS: Record<FormSettingsSection, string> = {
   general:
-    'Set request and script timeouts, response size limits, SSL verification, and redirect following defaults.',
+    'Set request and script timeouts, response size limits, SSL verification, redirect following defaults, and scrollbar visibility.',
   proxy: "Route HarborClient's outbound HTTP requests through a proxy server.",
   syntax: 'Choose a CodeMirror theme and editor behavior for request and response editors.',
   ai: 'Store API keys for OpenAI, Claude, and Google Gemini, and configure MCP server and client connections.',
@@ -151,6 +152,15 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     label: 'Follow redirects',
     description: 'When disabled, 3xx responses are returned without following Location.',
     keywords: ['redirect', '3xx', 'location']
+  },
+  {
+    id: 'general.scrollbarAutoHide',
+    section: 'general',
+    kind: 'field',
+    label: 'Auto-hide scrollbars',
+    description:
+      'When enabled, custom scrollbars fade out when you are not scrolling. When disabled, they stay visible while content overflows.',
+    keywords: ['scrollbar', 'scroll', 'overlay', 'auto-hide', 'visibility']
   },
   {
     id: 'general.warnWhenSwitchingThemes',
