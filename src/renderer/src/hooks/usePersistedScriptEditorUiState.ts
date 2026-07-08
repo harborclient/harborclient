@@ -211,6 +211,38 @@ export function persistScriptEditorUiState(
   }
 }
 
+/**
+ * Moves persisted editor UI state from one script row id to another.
+ *
+ * Used after save when storage round-trips regenerate {@link ScriptRef.id} values.
+ *
+ * @param fromScriptId - Previous script row id with stored UI state.
+ * @param toScriptId - New script row id to receive the stored UI state.
+ * @param minPx - Minimum allowed height used when parsing stored JSON.
+ */
+export function migrateScriptEditorUiState(
+  fromScriptId: string,
+  toScriptId: string,
+  minPx = 125
+): void {
+  if (fromScriptId === toScriptId) {
+    return;
+  }
+
+  try {
+    const existing = loadPersistedScriptEditorUiState(fromScriptId, minPx);
+    if (!existing) {
+      return;
+    }
+
+    persistScriptEditorUiState(toScriptId, existing, minPx);
+    localStorage.removeItem(scriptEditorUiStorageKey(fromScriptId));
+    localStorage.removeItem(scriptEditorHeightStorageKey(fromScriptId));
+  } catch {
+    // Ignore quota or privacy-mode failures.
+  }
+}
+
 interface PersistedScriptEditorUiStateResult {
   /**
    * Explicit CSS height when a size has been stored or resized.
@@ -250,10 +282,10 @@ export function usePersistedScriptEditorUiState(
   minHeightCss: string
 ): PersistedScriptEditorUiStateResult {
   const minPx = parseScriptEditorMinHeightPx(minHeightCss);
-  const [initialState] = useState<PersistedScriptEditorUiState | null>(() =>
+  const [loadedState] = useState<PersistedScriptEditorUiState | null>(() =>
     loadPersistedScriptEditorUiState(scriptId, minPx)
   );
-  const [heightPx, setHeightPx] = useState<number | null>(() => initialState?.heightPx ?? null);
+  const [heightPx, setHeightPx] = useState<number | null>(() => loadedState?.heightPx ?? null);
 
   /**
    * Merges a partial UI state patch into localStorage.
@@ -293,8 +325,8 @@ export function usePersistedScriptEditorUiState(
   return {
     height: `${heightPx ?? minPx}px`,
     onHeightChange,
-    initialScrollTop: initialState?.scrollTop,
-    initialSelection: initialState?.selection,
+    initialScrollTop: loadedState?.scrollTop,
+    initialSelection: loadedState?.selection,
     onViewStateChange
   };
 }

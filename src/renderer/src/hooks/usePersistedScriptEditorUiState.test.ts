@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   loadPersistedScriptEditorUiState,
+  migrateScriptEditorUiState,
   parsePersistedScriptEditorUiState,
   parseScriptEditorMinHeightPx,
   persistScriptEditorUiState,
@@ -133,5 +134,46 @@ describe('persistScriptEditorUiState', () => {
       scrollTop: 55,
       selection: { anchor: 1, head: 3 }
     });
+  });
+});
+
+describe('migrateScriptEditorUiState', () => {
+  it('moves unified UI state to a new script id and removes the old key', () => {
+    const fromId = 'script-old';
+    const toId = 'script-new';
+    localStorage.setItem(
+      scriptEditorUiStorageKey(fromId),
+      JSON.stringify({ heightPx: 280, scrollTop: 12, selection: { anchor: 2, head: 5 } })
+    );
+
+    migrateScriptEditorUiState(fromId, toId, MIN_PX);
+
+    expect(localStorage.getItem(scriptEditorUiStorageKey(fromId))).toBeNull();
+    expect(JSON.parse(localStorage.getItem(scriptEditorUiStorageKey(toId))!)).toEqual({
+      heightPx: 280,
+      scrollTop: 12,
+      selection: { anchor: 2, head: 5 }
+    });
+  });
+
+  it('migrates legacy height-only keys before moving to the new script id', () => {
+    const fromId = 'script-legacy';
+    const toId = 'script-new';
+    localStorage.setItem(scriptEditorHeightStorageKey(fromId), '240');
+
+    migrateScriptEditorUiState(fromId, toId, MIN_PX);
+
+    expect(localStorage.getItem(scriptEditorHeightStorageKey(fromId))).toBeNull();
+    expect(localStorage.getItem(scriptEditorUiStorageKey(fromId))).toBeNull();
+    expect(JSON.parse(localStorage.getItem(scriptEditorUiStorageKey(toId))!)).toEqual({
+      heightPx: 240
+    });
+  });
+
+  it('no-ops when ids match or the source has no stored UI state', () => {
+    migrateScriptEditorUiState(SCRIPT_ID, SCRIPT_ID, MIN_PX);
+    migrateScriptEditorUiState('missing-old', 'missing-new', MIN_PX);
+
+    expect(localStorage.getItem(scriptEditorUiStorageKey('missing-new'))).toBeNull();
   });
 });

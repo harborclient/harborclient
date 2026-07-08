@@ -5,6 +5,7 @@ import {
   createSnippetScriptRef,
   ensureDefaultScriptRef,
   linkScriptRefToSnippet,
+  mergeScriptRefsUiState,
   mirrorLegacyScriptString,
   normalizeScriptRefs,
   normalizeScriptRefsForCompare,
@@ -108,6 +109,55 @@ describe('readScriptRefsFromJson', () => {
   it('parses stored JSON arrays', () => {
     const inline = createInlineScriptRef('stored');
     expect(readScriptRefsFromJson(JSON.stringify([inline]), '')).toEqual([inline]);
+  });
+});
+
+describe('mergeScriptRefsUiState', () => {
+  it('preserves expanded flags from the pre-save draft when storage omits them', () => {
+    const before = [
+      { ...createInlineScriptRef('one'), expanded: true },
+      { ...createInlineScriptRef('two'), expanded: false }
+    ];
+    const after = [createInlineScriptRef('one'), createInlineScriptRef('two')];
+
+    const { merged, idMigrations } = mergeScriptRefsUiState(before, after);
+
+    expect(merged).toEqual([
+      expect.objectContaining({ id: after[0]?.id, expanded: true }),
+      expect.objectContaining({ id: after[1]?.id, expanded: false })
+    ]);
+    expect(idMigrations).toEqual([
+      { from: before[0]!.id, to: after[0]!.id },
+      { from: before[1]!.id, to: after[1]!.id }
+    ]);
+  });
+
+  it('matches by index and reports id migrations when storage regenerates row ids', () => {
+    const before = [{ ...createInlineScriptRef('code'), expanded: true }];
+    const after = [{ ...createInlineScriptRef('code'), id: 'regenerated-id' }];
+
+    const { merged, idMigrations } = mergeScriptRefsUiState(before, after);
+
+    expect(merged).toEqual([expect.objectContaining({ id: 'regenerated-id', expanded: true })]);
+    expect(idMigrations).toEqual([{ from: before[0]!.id, to: 'regenerated-id' }]);
+  });
+
+  it('does not overwrite expanded when the saved payload already includes it', () => {
+    const before = [{ ...createInlineScriptRef('code'), expanded: true }];
+    const after = [{ ...createInlineScriptRef('code'), expanded: false }];
+
+    const { merged } = mergeScriptRefsUiState(before, after);
+
+    expect(merged[0]?.expanded).toBe(false);
+  });
+
+  it('leaves rows unchanged when the pre-save draft never set expanded', () => {
+    const before = [createInlineScriptRef('code')];
+    const after = [createInlineScriptRef('code')];
+
+    const { merged } = mergeScriptRefsUiState(before, after);
+
+    expect(merged[0]).not.toHaveProperty('expanded');
   });
 });
 

@@ -1067,6 +1067,7 @@ function SortableScriptRow({
           className="mt-2 flex flex-col gap-2"
         >
           <ScriptRowCodeEditor
+            key={script.id}
             scriptId={script.id}
             value={script.code ?? ''}
             onChange={handlePatchCode}
@@ -1105,6 +1106,7 @@ function SortableScriptRow({
           onClick={handleReadonlySnippetEditorClick}
         >
           <ScriptRowCodeEditor
+            key={script.id}
             scriptId={script.id}
             value={snippetDraftCode}
             onChange={setSnippetDraftCode}

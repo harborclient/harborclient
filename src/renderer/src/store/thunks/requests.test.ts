@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import { createInlineScriptRef } from '#/shared/scriptRefs';
 import { asRequestTab, isRequestTab } from '#/renderer/src/store/drafts';
+import { scriptEditorUiStorageKey } from '#/renderer/src/hooks/usePersistedScriptEditorUiState';
 import type { SaveRequestInput, SavedRequest } from '#/shared/types';
 
 // react-hot-toast pulls in the DOM at import time; stub it for the Node test env.
@@ -239,6 +240,67 @@ describe('saveRequest script lists', () => {
 
     const input = saveRequestMock.mock.calls.at(-1)?.[0];
     expect(input?.pre_request_scripts?.[0]?.name).toBe('console.log("hello world"');
+  });
+
+  it('preserves expanded script UI state and migrates editor height keys after save', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { openTabWithDraft } = await import('#/renderer/src/store/slices/tabsSlice');
+    const { saveRequest } = await import('#/renderer/src/store/thunks/requests');
+
+    const expandedScript = {
+      ...createInlineScriptRef('console.log("keep open");'),
+      expanded: true
+    };
+    localStorage.setItem(
+      scriptEditorUiStorageKey(expandedScript.id),
+      JSON.stringify({ heightPx: 300 })
+    );
+
+    store.dispatch(
+      openTabWithDraft({
+        id: 42,
+        collection_id: 1,
+        name: 'Expanded script save',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: 'console.log("keep open");',
+        post_request_script: '',
+        pre_request_scripts: [expandedScript],
+        post_request_scripts: [],
+        comment: '',
+        tags: '',
+        auth: defaultAuth()
+      })
+    );
+
+    saveRequestMock.mockImplementation(async (input) => {
+      const regenerated = createInlineScriptRef('console.log("keep open");');
+      return savedFrom({
+        ...input,
+        id: 42,
+        pre_request_scripts: [regenerated],
+        pre_request_script: 'console.log("keep open");'
+      });
+    });
+
+    await store.dispatch(saveRequest(1));
+
+    const activeTabId = store.getState().tabs.activeTabId;
+    const tab = asRequestTab(
+      store.getState().tabs.tabs.find((entry) => entry.tabId === activeTabId)
+    );
+    const savedScript = tab.draft.pre_request_scripts[0];
+
+    expect(savedScript?.expanded).toBe(true);
+    expect(savedScript?.id).not.toBe(expandedScript.id);
+    expect(localStorage.getItem(scriptEditorUiStorageKey(expandedScript.id))).toBeNull();
+    expect(JSON.parse(localStorage.getItem(scriptEditorUiStorageKey(savedScript!.id))!)).toEqual({
+      heightPx: 300
+    });
   });
 });
 

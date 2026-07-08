@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(storage): implement script editor UI state migration and enhance script reference merging. (`fa26113`)
 - feat(completions): enhance hcCompletions with Chai matchers and live completion sources. (`45e4817`)
 - chore(dependencies): update @harborclient/sdk to v1.0.46 and refactor response assertions. (`c1720b3`)
 - chore(dependencies): update @harborclient/sdk to v1.0.45 and add chai with type definitions. (`115cdd5`)

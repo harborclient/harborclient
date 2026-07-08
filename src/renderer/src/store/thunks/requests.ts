@@ -35,9 +35,11 @@ import { hostFromUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/cookieH
 import { buildSnippetLookup } from '#/renderer/src/scripting/scriptResolution';
 import {
   autoNameUnnamedScripts,
+  mergeScriptRefsUiState,
   mirrorLegacyScriptString,
   normalizeScriptRefs
 } from '#/shared/scriptRefs';
+import { migrateScriptEditorUiState } from '#/renderer/src/hooks/usePersistedScriptEditorUiState';
 import { buildScriptRunInfo } from '#/shared/types/script';
 import { saveGlobalVariables } from '#/renderer/src/store/thunks/settings';
 import {
@@ -207,6 +209,23 @@ async function persistRequestTab(
   });
 
   const savedDraft = cloneDraft(draftFromSaved(saved));
+
+  const preMerge = mergeScriptRefsUiState(
+    currentDraft.pre_request_scripts,
+    savedDraft.pre_request_scripts
+  );
+  savedDraft.pre_request_scripts = preMerge.merged;
+
+  const postMerge = mergeScriptRefsUiState(
+    currentDraft.post_request_scripts,
+    savedDraft.post_request_scripts
+  );
+  savedDraft.post_request_scripts = postMerge.merged;
+
+  for (const migration of [...preMerge.idMigrations, ...postMerge.idMigrations]) {
+    migrateScriptEditorUiState(migration.from, migration.to);
+  }
+
   dispatch(updateActiveTabDraftAfterSave({ tabId: tab.tabId, savedDraft }));
   return saved;
 }

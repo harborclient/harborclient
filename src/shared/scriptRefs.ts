@@ -306,6 +306,85 @@ export function autoNameUnnamedScripts(
 }
 
 /**
+ * One script row id change reported when storage round-trips regenerate list keys.
+ */
+export interface ScriptRefIdMigration {
+  /**
+   * Previous {@link ScriptRef.id} from the pre-save editor draft.
+   */
+  from: string;
+
+  /**
+   * New {@link ScriptRef.id} from the saved storage payload.
+   */
+  to: string;
+}
+
+/**
+ * Result of merging ephemeral script UI state into a post-save script list.
+ */
+export interface MergeScriptRefsUiStateResult {
+  /**
+   * Saved script references with editor UI fields restored from the pre-save draft.
+   */
+  merged: ScriptRef[];
+
+  /**
+   * Id pairs to migrate persisted CodeEditor UI state in localStorage.
+   */
+  idMigrations: ScriptRefIdMigration[];
+}
+
+/**
+ * Copies ephemeral {@link ScriptRef.expanded} from a pre-save list onto a saved list.
+ *
+ * Matches rows by id first, then by index when storage regenerates ids. Reports id
+ * changes so callers can migrate localStorage editor UI keys.
+ *
+ * @param before - Script references from the editor draft before save.
+ * @param after - Script references returned from storage after save.
+ * @returns Merged list and any id migrations detected during index fallback matching.
+ */
+export function mergeScriptRefsUiState(
+  before: ScriptRef[] | undefined | null,
+  after: ScriptRef[] | undefined | null
+): MergeScriptRefsUiStateResult {
+  const previous = normalizeScriptRefs(before);
+  const saved = normalizeScriptRefs(after);
+  const beforeById = new Map(previous.map((ref) => [ref.id, ref]));
+  const idMigrations: ScriptRefIdMigration[] = [];
+  const consumedBeforeIds = new Set<string>();
+
+  const merged = saved.map((savedRef, index) => {
+    let beforeRef = beforeById.get(savedRef.id);
+    if (beforeRef) {
+      consumedBeforeIds.add(beforeRef.id);
+    } else {
+      const indexMatch = previous[index];
+      if (indexMatch && !consumedBeforeIds.has(indexMatch.id)) {
+        beforeRef = indexMatch;
+        consumedBeforeIds.add(indexMatch.id);
+        if (indexMatch.id !== savedRef.id) {
+          idMigrations.push({ from: indexMatch.id, to: savedRef.id });
+        }
+      }
+    }
+
+    if (!beforeRef || typeof beforeRef.expanded !== 'boolean') {
+      return savedRef;
+    }
+
+    if (typeof savedRef.expanded === 'boolean') {
+      return savedRef;
+    }
+
+    return { ...savedRef, expanded: beforeRef.expanded };
+  });
+
+  return { merged, idMigrations };
+}
+
+/**
  * Returns whether any enabled script references exist in the list.
  *
  * @param refs - Script references to inspect.
