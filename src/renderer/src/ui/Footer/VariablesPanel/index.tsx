@@ -54,8 +54,8 @@ export function VariablesPanel({
       storageKey="hc.variablesHeight"
       title={
         <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-[14px] font-medium text-text">Variables in this request</span>
-          <span className="truncate text-[14px] text-muted">{contextLine}</span>
+          <span className="text-[16px] font-medium text-text">Variables in this request</span>
+          <span className="truncate text-[16px] text-muted">{contextLine}</span>
         </div>
       }
     >
@@ -66,9 +66,35 @@ export function VariablesPanel({
             or environment.
           </EmptyState>
         ) : (
-          variables.map((variable) => (
-            <VariableRow key={`${variable.scope}-${variable.key}`} variable={variable} />
-          ))
+          <table className="w-full border-collapse text-[16px]">
+            <caption className="sr-only">Variables in scope for this request</caption>
+            <colgroup>
+              <col />
+              <col className="w-full" />
+              <col />
+            </colgroup>
+            <thead className="sticky top-0 z-10 bg-surface">
+              <tr className="border-b border-separator bg-sidebar/40 text-left">
+                <th scope="col" className="whitespace-nowrap px-3 py-2 font-medium text-text">
+                  Variable
+                </th>
+                <th scope="col" className="px-3 py-2 font-medium text-text">
+                  Value
+                </th>
+                <th
+                  scope="col"
+                  className="whitespace-nowrap px-3 py-2 text-right font-medium text-text"
+                >
+                  Scope
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {variables.map((variable) => (
+                <VariableRow key={`${variable.scope}-${variable.key}`} variable={variable} />
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
     </Resizable>

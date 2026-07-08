@@ -62,6 +62,7 @@ style, and path aliases.
 Never use native browser dialogs (`alert`, `confirm`, `prompt`) in the renderer.
 They block the Electron renderer thread and break visual consistency.
 
+- Never use 14px text sizes. Always choose 16px.
 - Use custom modals built on [`Modal`](src/renderer/src/components/Modal/index.tsx) for
   blocking messages and confirmations (`AlertModal`, `ConfirmModal`, or
   feature-specific dialogs like `QuitPrompt`).

@@ -24,6 +24,7 @@ import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
 import { createBlankTeamHub, validateTeamHubForm } from './constants';
 import { TeamHubForm } from './TeamHubForm';
 import { TeamHubServiceBadges } from './TeamHubServiceBadges';
+import { TeamHubStatusDot } from './TeamHubStatusDot';
 
 interface Props {
   /**
@@ -231,7 +232,17 @@ export function TeamHubList({
             {teamHubs.map((hub) => (
               <ResourceListRow
                 key={hub.id}
-                primary={<ResourceListPrimary>{hub.name || 'Untitled'}</ResourceListPrimary>}
+                primary={
+                  <ResourceListPrimary>
+                    <span className="flex items-center gap-1.5">
+                      <TeamHubStatusDot
+                        online={serviceFlagsByHubId.get(hub.id)?.storage ?? false}
+                        scanning={scanning}
+                      />
+                      {hub.name || 'Untitled'}
+                    </span>
+                  </ResourceListPrimary>
+                }
                 secondary={hub.baseUrl}
                 meta={
                   <TeamHubServiceBadges

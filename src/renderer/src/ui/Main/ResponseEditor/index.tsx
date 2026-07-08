@@ -179,6 +179,15 @@ export function ResponseEditor({
   const canCopyOrExport = response != null && isResponseCopyExportTab(tab);
 
   /**
+   * Preview and plugin response tabs render iframe or fill-mode plugin surfaces
+   * that must stretch to the remaining editor height. OverlayScrollbars breaks
+   * that flex chain, so those tabs use a plain overflow-hidden container instead.
+   */
+  const usesFillLayout =
+    effectiveTab === 'preview' ||
+    pluginTabs.some((entry) => entry.when !== 'noResponse' && entry.id === effectiveTab);
+
+  /**
    * Copies the active tab content to the clipboard.
    */
   const handleCopy = async (): Promise<void> => {
@@ -341,6 +350,76 @@ export function ResponseEditor({
     );
   }
 
+  /**
+   * Tab panel bodies rendered inside either a fill-height container or Scrollbars
+   * depending on whether the active tab needs to stretch (preview, plugin tabs).
+   */
+  const tabPanels = (
+    <>
+      <SegmentedTabPanel value="body">
+        <CodeEditor
+          readOnly
+          value={formattedBody || '(empty body)'}
+          language={responseBodyLanguage}
+        />
+      </SegmentedTabPanel>
+      {showPreviewTab && (
+        <SegmentedTabPanel value="preview" className="flex min-h-0 flex-1 flex-col">
+          {showHtmlPreview ? (
+            <HtmlPreview body={response.body} requestUrl={requestUrl} />
+          ) : (
+            <ImagePreview
+              bodyBase64={response.bodyBase64}
+              contentType={responseContentType(response.headers)}
+            />
+          )}
+        </SegmentedTabPanel>
+      )}
+      <SegmentedTabPanel value="headers">
+        <Headers headers={response.headers} />
+      </SegmentedTabPanel>
+      <SegmentedTabPanel value="timing">
+        <Timing response={response} />
+      </SegmentedTabPanel>
+      <SegmentedTabPanel value="console">
+        <ConsoleDetails
+          result={response}
+          logs={scriptLogs}
+          tests={testResults}
+          scriptError={scriptError}
+        />
+      </SegmentedTabPanel>
+      {hasRedirects && (
+        <SegmentedTabPanel value="redirects">
+          <Redirects redirects={response.redirects ?? []} />
+        </SegmentedTabPanel>
+      )}
+      {hasTests && (
+        <SegmentedTabPanel value="tests">
+          <Tests testResults={testResults} />
+        </SegmentedTabPanel>
+      )}
+      {pluginTabs
+        .filter((entry) => entry.when !== 'noResponse')
+        .map((entry) => (
+          <SegmentedTabPanel
+            key={entry.id}
+            value={entry.id}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            <PluginSurface
+              pluginId={entry.pluginId}
+              contributionId={entry.contributionId}
+              kind="responseTabs"
+              context={responseTabContext}
+              resizeMode="fill"
+              className="h-full"
+            />
+          </SegmentedTabPanel>
+        ))}
+    </>
+  );
+
   return (
     <div className="flex min-h-0 flex-1 flex-col p-3">
       <div className="mb-2 flex items-center border-b border-separator p-3 -mx-3 -mt-2">
@@ -384,69 +463,13 @@ export function ResponseEditor({
             </div>
           </div>
 
-          <Scrollbars axis="both" className="flex min-h-0 flex-1 flex-col">
-            <SegmentedTabPanel value="body">
-              <CodeEditor
-                readOnly
-                value={formattedBody || '(empty body)'}
-                language={responseBodyLanguage}
-              />
-            </SegmentedTabPanel>
-            {showPreviewTab && (
-              <SegmentedTabPanel value="preview" className="flex min-h-0 flex-1 flex-col">
-                {showHtmlPreview ? (
-                  <HtmlPreview body={response.body} requestUrl={requestUrl} />
-                ) : (
-                  <ImagePreview
-                    bodyBase64={response.bodyBase64}
-                    contentType={responseContentType(response.headers)}
-                  />
-                )}
-              </SegmentedTabPanel>
-            )}
-            <SegmentedTabPanel value="headers">
-              <Headers headers={response.headers} />
-            </SegmentedTabPanel>
-            <SegmentedTabPanel value="timing">
-              <Timing response={response} />
-            </SegmentedTabPanel>
-            <SegmentedTabPanel value="console">
-              <ConsoleDetails
-                result={response}
-                logs={scriptLogs}
-                tests={testResults}
-                scriptError={scriptError}
-              />
-            </SegmentedTabPanel>
-            {hasRedirects && (
-              <SegmentedTabPanel value="redirects">
-                <Redirects redirects={response.redirects ?? []} />
-              </SegmentedTabPanel>
-            )}
-            {hasTests && (
-              <SegmentedTabPanel value="tests">
-                <Tests testResults={testResults} />
-              </SegmentedTabPanel>
-            )}
-            {pluginTabs
-              .filter((entry) => entry.when !== 'noResponse')
-              .map((entry) => (
-                <SegmentedTabPanel
-                  key={entry.id}
-                  value={entry.id}
-                  className="flex min-h-0 flex-1 flex-col"
-                >
-                  <PluginSurface
-                    pluginId={entry.pluginId}
-                    contributionId={entry.contributionId}
-                    kind="responseTabs"
-                    context={responseTabContext}
-                    resizeMode="fill"
-                    className="h-full"
-                  />
-                </SegmentedTabPanel>
-              ))}
-          </Scrollbars>
+          {usesFillLayout ? (
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{tabPanels}</div>
+          ) : (
+            <Scrollbars axis="both" className="flex min-h-0 flex-1 flex-col">
+              {tabPanels}
+            </Scrollbars>
+          )}
         </SegmentedTabsGroup>
       </div>
     </div>

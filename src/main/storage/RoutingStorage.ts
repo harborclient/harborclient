@@ -1317,7 +1317,7 @@ export class RoutingStorage implements IStorage {
       try {
         await router.mountTeamHub(hub, slot);
       } catch (err) {
-        console.warn(`Failed to initialize team hub "${hub.name}":`, err);
+        logVerbose('team-hub:mount-failed', { hubId: hub.id, name: hub.name, err });
       }
     }
 

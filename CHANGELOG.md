@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(ui): enhance VariablesPanel and ResponseEditor with improved layouts and functionality. (`ac4a627`)
+
 ## 2.0.9 - 2026-07-08
 
 - feat(scrollbars): integrate OverlayScrollbars and add scrollbar auto-hide feature. (`df61a0d`)
