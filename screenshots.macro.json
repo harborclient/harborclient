@@ -483,5 +483,603 @@
       { "waitFor": { "role": "heading", "name": "Installed themes" } },
       { "waitFor": { "ms": 1000 } }
     ]
+  },
+  {
+    "filename": "collections-expand-select.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections']",
+          "role": "button",
+          "name": "/ATW/"
+        }
+      },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections']",
+          "nearText": "ATW",
+          "role": "button",
+          "name": "Expand"
+        },
+        "optional": true
+      },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "aside:has(#sidebar-search)" }
+  },
+  {
+    "filename": "collections-saved-requests-folders.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections']",
+          "role": "button",
+          "name": "/ATW/"
+        }
+      },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections']",
+          "nearText": "ATW",
+          "role": "button",
+          "name": "Expand"
+        },
+        "optional": true
+      },
+      {
+        "click": {
+          "selector": "[data-sidebar-folder-id]",
+          "nearText": "Organization / Pass Types",
+          "role": "button",
+          "name": "Expand folder"
+        },
+        "optional": true
+      },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "aside:has(#sidebar-search)" }
+  },
+  {
+    "filename": "collections-folders.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections']",
+          "role": "button",
+          "name": "/ATW/"
+        }
+      },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections']",
+          "nearText": "ATW",
+          "role": "button",
+          "name": "Expand"
+        },
+        "optional": true
+      },
+      {
+        "click": {
+          "nearText": "Organization / Pass Types",
+          "role": "button",
+          "name": "Row actions"
+        }
+      },
+      { "waitFor": { "role": "menuitem", "name": "New Request" } },
+      { "waitFor": { "ms": 300 } }
+    ],
+    "capture": { "selector": "aside:has(#sidebar-search)" }
+  },
+  {
+    "filename": "collections-add-modal-create.png",
+    "menuAction": "new-collection",
+    "steps": [
+      { "waitFor": { "role": "tab", "name": "Create new" } },
+      {
+        "type": {
+          "into": { "selector": ".hc-modal input[type='text']" },
+          "text": "My API"
+        }
+      },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": ".hc-modal" }
+  },
+  {
+    "filename": "collections-add-modal-import.png",
+    "menuAction": "new-collection",
+    "steps": [
+      { "waitFor": { "role": "tab", "name": "Create new" } },
+      { "click": { "role": "tab", "name": "Import from file" } },
+      { "waitFor": { "role": "button", "name": "Import file" } },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": ".hc-modal" }
+  },
+  {
+    "filename": "collections-add-modal-join.png",
+    "menuAction": "join-shared-collection",
+    "steps": [
+      { "waitFor": { "role": "tab", "name": "Join shared collection" } },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": ".hc-modal" }
+  },
+  {
+    "filename": "collections-row-menu.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "nearText": "HarborClient Echo",
+          "role": "button",
+          "name": "Row actions"
+        }
+      },
+      { "waitFor": { "role": "menuitem", "name": "Settings" } },
+      { "waitFor": { "ms": 300 } }
+    ],
+    "capture": { "selector": "aside:has(#sidebar-search)" }
+  },
+  {
+    "filename": "collections-delete-collection.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "nearText": "HarborClient Echo",
+          "role": "button",
+          "name": "Row actions"
+        }
+      },
+      { "click": { "role": "menuitem", "name": "Delete" } },
+      { "waitFor": { "text": "Delete collection" }, "timeout": 10000 },
+      { "waitFor": { "ms": 300 } }
+    ],
+    "capture": { "selector": ".hc-modal" }
+  },
+  {
+    "filename": "collections-delete-request.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections'] [data-sidebar-collection-id]",
+          "nearText": "HarborClient Echo"
+        }
+      },
+      { "waitFor": { "text": "Echo GET" }, "timeout": 30000 },
+      {
+        "click": {
+          "nearText": "Echo GET",
+          "role": "button",
+          "name": "Row actions"
+        }
+      },
+      { "click": { "role": "menuitem", "name": "Delete" } },
+      { "waitFor": { "text": "/Delete/" }, "timeout": 10000 },
+      { "waitFor": { "ms": 300 } }
+    ],
+    "capture": { "selector": ".hc-modal" }
+  },
+  {
+    "filename": "collections-settings-general.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "nearText": "HarborClient Echo",
+          "role": "button",
+          "name": "Row actions"
+        }
+      },
+      { "click": { "role": "menuitem", "name": "Settings" } },
+      { "waitFor": { "selector": "#collection-settings-name" }, "timeout": 15000 },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "main" }
+  },
+  {
+    "filename": "collections-settings-variables.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "nearText": "HarborClient Echo",
+          "role": "button",
+          "name": "Row actions"
+        }
+      },
+      { "click": { "role": "menuitem", "name": "Settings" } },
+      { "waitFor": { "selector": "#collection-settings-name" }, "timeout": 15000 },
+      { "click": { "role": "tab", "name": "Variables" } },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "main" }
+  },
+  {
+    "filename": "collections-settings-headers.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "nearText": "HarborClient Echo",
+          "role": "button",
+          "name": "Row actions"
+        }
+      },
+      { "click": { "role": "menuitem", "name": "Settings" } },
+      { "waitFor": { "selector": "#collection-settings-name" }, "timeout": 15000 },
+      { "click": { "role": "tab", "name": "Headers" } },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "main" }
+  },
+  {
+    "filename": "collections-settings-authorization.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "nearText": "HarborClient Echo",
+          "role": "button",
+          "name": "Row actions"
+        }
+      },
+      { "click": { "role": "menuitem", "name": "Settings" } },
+      { "waitFor": { "selector": "#collection-settings-name" }, "timeout": 15000 },
+      { "click": { "role": "tab", "name": "Authorization" } },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "main" }
+  },
+  {
+    "filename": "collections-settings-prerequest.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "nearText": "HarborClient Echo",
+          "role": "button",
+          "name": "Row actions"
+        }
+      },
+      { "click": { "role": "menuitem", "name": "Settings" } },
+      { "waitFor": { "selector": "#collection-settings-name" }, "timeout": 15000 },
+      { "click": { "role": "tab", "name": "PreRequest" } },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "main" }
+  },
+  {
+    "filename": "collections-runner-config.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 60000 },
+      {
+        "type": {
+          "into": { "selector": "#sidebar-search" },
+          "text": "HarborClient Echo"
+        }
+      },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections'] button[data-sidebar-collection-id]",
+          "nearText": "HarborClient Echo"
+        }
+      },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections'] div.group:has(button[data-sidebar-collection-id][aria-current='true']) button[aria-label='Expand']"
+        },
+        "optional": true
+      },
+      { "waitFor": { "text": "Echo GET" }, "timeout": 60000 },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections'] div.group:has(button[data-sidebar-collection-id][aria-current='true']) button.hc-row-actions-menu-trigger"
+        }
+      },
+      { "click": { "role": "menuitem", "name": "Run" } },
+      { "waitFor": { "selector": "#collection-runner-delay" }, "timeout": 15000 },
+      { "waitFor": { "text": "/4 requests will run/" }, "timeout": 15000 },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "main" }
+  },
+  {
+    "filename": "collections-runner-results.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 60000 },
+      {
+        "type": {
+          "into": { "selector": "#sidebar-search" },
+          "text": "HarborClient Echo"
+        }
+      },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections'] button[data-sidebar-collection-id]",
+          "nearText": "HarborClient Echo"
+        }
+      },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections'] div.group:has(button[data-sidebar-collection-id][aria-current='true']) button[aria-label='Expand']"
+        },
+        "optional": true
+      },
+      { "waitFor": { "text": "Echo GET" }, "timeout": 60000 },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections'] div.group:has(button[data-sidebar-collection-id][aria-current='true']) button.hc-row-actions-menu-trigger"
+        }
+      },
+      { "click": { "role": "menuitem", "name": "Run" } },
+      { "waitFor": { "selector": "#collection-runner-delay" }, "timeout": 15000 },
+      { "waitFor": { "text": "/4 requests will run/" }, "timeout": 15000 },
+      { "click": { "selector": "main button:has-text('Run'):not([disabled])" } },
+      { "waitFor": { "selector": "[aria-label='Collection run progress']" }, "timeout": 60000 },
+      { "waitFor": { "text": "/Finished: 4 passed, 0 failed/" }, "timeout": 180000 },
+      { "waitFor": { "ms": 3000 } }
+    ],
+    "capture": { "selector": "main" }
+  },
+  {
+    "filename": "collections-share-access.png",
+    "menuAction": "sharing-keys",
+    "steps": [{ "waitFor": { "ms": 1000 } }]
+  },
+  {
+    "filename": "requests-editor-tabs.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections'] [data-sidebar-collection-id]",
+          "nearText": "HarborClient Echo"
+        }
+      },
+      { "waitFor": { "text": "Echo GET" }, "timeout": 30000 },
+      { "click": { "text": "Echo GET" } },
+      { "click": { "role": "tab", "name": "Params" } },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "section[aria-label='Request editor']" }
+  },
+  {
+    "filename": "requests-params.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections'] [data-sidebar-collection-id]",
+          "nearText": "HarborClient Echo"
+        }
+      },
+      { "waitFor": { "text": "Echo GET" }, "timeout": 30000 },
+      { "click": { "text": "Echo GET" } },
+      { "click": { "role": "tab", "name": "Params" } },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "section[aria-label='Request editor']" }
+  },
+  {
+    "filename": "requests-headers.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections'] [data-sidebar-collection-id]",
+          "nearText": "HarborClient Echo"
+        }
+      },
+      { "waitFor": { "text": "Echo GET" }, "timeout": 30000 },
+      { "click": { "text": "Echo GET" } },
+      { "click": { "role": "tab", "name": "Headers" } },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "section[aria-label='Request editor']" }
+  },
+  {
+    "filename": "requests-authorization.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections'] [data-sidebar-collection-id]",
+          "nearText": "HarborClient Echo"
+        }
+      },
+      { "waitFor": { "text": "Echo GET" }, "timeout": 30000 },
+      { "click": { "text": "Echo GET" } },
+      { "click": { "role": "tab", "name": "Authorization" } },
+      { "waitFor": { "selector": "#auth-type" }, "timeout": 15000 },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "section[aria-label='Request editor']" }
+  },
+  {
+    "filename": "requests-cookies.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections'] [data-sidebar-collection-id]",
+          "nearText": "HarborClient Echo"
+        }
+      },
+      { "waitFor": { "text": "Echo GET" }, "timeout": 30000 },
+      { "click": { "text": "Echo GET" } },
+      { "click": { "role": "tab", "name": "Cookies" } },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "section[aria-label='Request editor']" }
+  },
+  {
+    "filename": "requests-notes.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections'] [data-sidebar-collection-id]",
+          "nearText": "HarborClient Echo"
+        }
+      },
+      { "waitFor": { "text": "Echo GET" }, "timeout": 30000 },
+      { "click": { "text": "Echo GET" } },
+      { "click": { "role": "tab", "name": "Notes" } },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "section[aria-label='Request editor']" }
+  },
+  {
+    "filename": "requests-pre-request.png",
+    "steps": [
+      { "click": { "role": "button", "name": "Close without saving" }, "optional": true },
+      { "menuAction": "new-request" },
+      { "waitFor": { "selector": "[aria-label='Request URL']" }, "timeout": 15000 },
+      { "click": { "role": "tab", "name": "PreRequest" } },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "section[aria-label='Request editor']" }
+  },
+  {
+    "filename": "requests-response-empty.png",
+    "steps": [
+      { "click": { "role": "button", "name": "Close without saving" }, "optional": true },
+      { "menuAction": "new-request" },
+      { "waitFor": { "selector": "[aria-label='Request URL']" }, "timeout": 15000 },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "section[aria-label='Response']" }
+  },
+  {
+    "filename": "requests-response-headers.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections'] [data-sidebar-collection-id]",
+          "nearText": "HarborClient Echo"
+        }
+      },
+      { "waitFor": { "text": "Echo GET" }, "timeout": 30000 },
+      { "click": { "text": "Echo POST" } },
+      { "send": true },
+      {
+        "click": {
+          "selector": "section[aria-label='Response']",
+          "role": "tab",
+          "name": "Headers"
+        }
+      },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "section[aria-label='Response']" }
+  },
+  {
+    "filename": "requests-response-tests.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections'] [data-sidebar-collection-id]",
+          "nearText": "HarborClient Echo"
+        }
+      },
+      { "waitFor": { "text": "Echo GET" }, "timeout": 30000 },
+      { "click": { "text": "Echo POST" } },
+      { "send": true },
+      { "waitFor": { "ms": 1000 } },
+      {
+        "click": {
+          "selector": "section[aria-label='Response']",
+          "role": "tab",
+          "name": "/Tests/"
+        }
+      },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "section[aria-label='Response']" }
+  },
+  {
+    "filename": "requests-console.png",
+    "steps": [
+      { "click": { "role": "button", "name": "Close without saving" }, "optional": true },
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections'] [data-sidebar-collection-id]",
+          "nearText": "HarborClient Echo"
+        }
+      },
+      { "waitFor": { "text": "Echo GET" }, "timeout": 30000 },
+      { "click": { "text": "Echo GET" } },
+      { "send": true },
+      { "click": { "text": "Console" } },
+      { "waitFor": { "selector": "#footer-console-panel" }, "timeout": 10000 },
+      { "waitFor": { "ms": 500 } }
+    ]
+  },
+  {
+    "filename": "requests-tab-bar.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      { "waitFor": { "text": "HarborClient Echo" }, "timeout": 30000 },
+      {
+        "click": {
+          "selector": "nav[aria-label='Collections'] [data-sidebar-collection-id]",
+          "nearText": "HarborClient Echo"
+        }
+      },
+      { "waitFor": { "text": "Echo GET" }, "timeout": 30000 },
+      { "click": { "text": "Echo GET" } },
+      { "menuAction": "new-request" },
+      { "waitFor": { "selector": "[aria-label='Request URL']" }, "timeout": 15000 },
+      {
+        "type": {
+          "into": { "selector": "[aria-label='Request URL']" },
+          "text": "https://echo.harborclient.com/get?edited=1"
+        }
+      },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "[role='tablist'][aria-label='Open tabs']" }
+  },
+  {
+    "filename": "requests-environment.png",
+    "steps": [
+      { "waitFor": { "selector": "#sidebar-search" } },
+      {
+        "click": {
+          "selector": "nav[aria-label='Environments'] [data-sidebar-environment-id]"
+        },
+        "optional": true
+      },
+      { "waitFor": { "ms": 500 } }
+    ],
+    "capture": { "selector": "aside:has(#sidebar-search)" }
   }
 ]

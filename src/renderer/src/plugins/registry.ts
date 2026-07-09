@@ -8,6 +8,7 @@ import type {
   RegisteredPluginTheme,
   RegisteredRequestTab,
   RegisteredRequestToolbarAction,
+  RegisteredScriptEditorAction,
   RegisteredResponseTab,
   RegisteredSettingsSection,
   RegisteredSidebarPanel,
@@ -33,6 +34,7 @@ interface MutableRegistryState {
   statusBarItems: RegisteredStatusBarItem[];
   menuItems: RegisteredMenuItem[];
   requestToolbarActions: RegisteredRequestToolbarAction[];
+  scriptEditorActions: RegisteredScriptEditorAction[];
   contextMenuItems: RegisteredContextMenuItem[];
 }
 
@@ -50,6 +52,7 @@ interface CachedRegistrySnapshot {
   statusBarItems: RegisteredStatusBarItem[];
   menuItems: RegisteredMenuItem[];
   requestToolbarActions: RegisteredRequestToolbarAction[];
+  scriptEditorActions: RegisteredScriptEditorAction[];
   contextMenuItems: RegisteredContextMenuItem[];
 }
 
@@ -67,6 +70,7 @@ const state: MutableRegistryState = {
   statusBarItems: [],
   menuItems: [],
   requestToolbarActions: [],
+  scriptEditorActions: [],
   contextMenuItems: []
 };
 
@@ -92,6 +96,7 @@ function emptySnapshot(): CachedRegistrySnapshot {
     statusBarItems: [],
     menuItems: [],
     requestToolbarActions: [],
+    scriptEditorActions: [],
     contextMenuItems: []
   };
 }
@@ -183,6 +188,9 @@ function rebuildCachedSnapshots(): void {
     menuItems: sortMenuItems(state.menuItems),
     requestToolbarActions: sortByOrderThenTitle(
       state.requestToolbarActions.map((entry) => ({ ...entry, title: entry.title }))
+    ),
+    scriptEditorActions: sortByOrderThenTitle(
+      state.scriptEditorActions.map((entry) => ({ ...entry, title: entry.title }))
     ),
     contextMenuItems: sortByOrderThenTitle(
       state.contextMenuItems.map((entry) => ({ ...entry, title: entry.title }))
@@ -519,6 +527,26 @@ export function registerRequestToolbarActionContribution(
 }
 
 /**
+ * Registers a script editor row action contribution.
+ *
+ * @param pluginId - Plugin manifest id.
+ * @param action - Script editor action contribution metadata.
+ */
+export function registerScriptEditorActionContribution(
+  pluginId: string,
+  action: Omit<RegisteredScriptEditorAction, 'pluginId'>
+): Disposable {
+  const entry: RegisteredScriptEditorAction = { pluginId, ...action };
+  return registerContribution(
+    state.scriptEditorActions,
+    pluginId,
+    action.id,
+    entry,
+    (item) => item.pluginId === pluginId && item.id === action.id
+  );
+}
+
+/**
  * Registers a sidebar context menu item contribution.
  *
  * @param pluginId - Plugin manifest id.
@@ -561,6 +589,7 @@ export function unregisterContribution(
     | 'statusBarItems'
     | 'menuItems'
     | 'requestToolbarActions'
+    | 'scriptEditorActions'
     | 'contextMenuItems',
   contributionId: string
 ): void {
@@ -651,6 +680,12 @@ export function unregisterContribution(
         (item) => item.pluginId === pluginId && item.id === contributionId
       );
       break;
+    case 'scriptEditorActions':
+      filter(
+        state.scriptEditorActions,
+        (item) => item.pluginId === pluginId && item.id === contributionId
+      );
+      break;
     case 'contextMenuItems':
       filter(
         state.contextMenuItems,
@@ -686,6 +721,9 @@ export function clearPluginContributions(pluginId: string): void {
   state.requestToolbarActions = state.requestToolbarActions.filter(
     (item) => item.pluginId !== pluginId
   );
+  state.scriptEditorActions = state.scriptEditorActions.filter(
+    (item) => item.pluginId !== pluginId
+  );
   state.contextMenuItems = state.contextMenuItems.filter((item) => item.pluginId !== pluginId);
   emitChange();
 }
@@ -709,5 +747,7 @@ export const getRegisteredStatusBarItems = (): RegisteredStatusBarItem[] =>
 export const getRegisteredMenuItems = (): RegisteredMenuItem[] => cachedSnapshot.menuItems;
 export const getRegisteredRequestToolbarActions = (): RegisteredRequestToolbarAction[] =>
   cachedSnapshot.requestToolbarActions;
+export const getRegisteredScriptEditorActions = (): RegisteredScriptEditorAction[] =>
+  cachedSnapshot.scriptEditorActions;
 export const getRegisteredContextMenuItems = (): RegisteredContextMenuItem[] =>
   cachedSnapshot.contextMenuItems;

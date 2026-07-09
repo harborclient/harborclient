@@ -5,6 +5,7 @@ import type {
   SavedRequest,
   ScriptRef,
   ScriptTestResult,
+  ScriptExecutionEvent,
   SendResult,
   SettingsSection
 } from '#/shared/types';
@@ -55,6 +56,10 @@ export interface RequestTab {
    * Console output captured from scripts for the latest completed send in this tab.
    */
   scriptLogs: string[];
+  /**
+   * Ordered variable and flow-control activity from scripts for the latest completed send.
+   */
+  executionEvents: ScriptExecutionEvent[];
   /**
    * Aggregated script runtime errors for the latest completed send in this tab.
    */
@@ -403,7 +408,8 @@ export function createTab(draft: RequestDraft = defaultDraft()): RequestTab {
     sending: false,
     sendingRequestId: null,
     testResults: [],
-    scriptLogs: []
+    scriptLogs: [],
+    executionEvents: []
   };
 }
 

@@ -6,7 +6,13 @@ import {
   type PageRef,
   type RequestDraft
 } from '#/renderer/src/store/drafts';
-import type { Environment, ScriptTestResult, SendResult, Snippet } from '#/shared/types';
+import type {
+  Environment,
+  ScriptExecutionEvent,
+  ScriptTestResult,
+  SendResult,
+  Snippet
+} from '#/shared/types';
 
 /**
  * Returns all collections.
@@ -149,6 +155,17 @@ export const selectScriptLogs = (state: RootState): string[] => {
   const tab = selectActiveTab(state);
   if (tab && isRequestTab(tab)) {
     return tab.scriptLogs;
+  }
+  return [];
+};
+
+/**
+ * Returns execution activity for the active request tab.
+ */
+export const selectExecutionEvents = (state: RootState): ScriptExecutionEvent[] => {
+  const tab = selectActiveTab(state);
+  if (tab && isRequestTab(tab)) {
+    return tab.executionEvents;
   }
   return [];
 };

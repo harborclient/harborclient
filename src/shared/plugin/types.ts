@@ -75,6 +75,7 @@ export interface PluginManifest {
     collectionSettingsTabs?: ManifestContributionEntry[];
     footerPanels?: ManifestContributionEntry[];
     requestToolbarActions?: ManifestContributionEntry[];
+    scriptEditorActions?: ManifestContributionEntry[];
     contextMenus?: ManifestContributionEntry[];
     statusBarItems?: ManifestContributionEntry[];
     themes?: Array<ManifestContributionEntry & { type: 'light' | 'dark' | 'high-contrast' }>;
@@ -301,6 +302,20 @@ export interface RegisteredRequestToolbarAction {
   command: string;
   icon?: string;
   order?: number;
+}
+
+/**
+ * Registered script editor row action contribution.
+ */
+export interface RegisteredScriptEditorAction {
+  pluginId: string;
+  id: string;
+  title: string;
+  command: string;
+  icon?: string;
+  order?: number;
+  /** When set, limits the action to specific script phases. */
+  phases?: Array<'pre' | 'post'>;
 }
 
 /**

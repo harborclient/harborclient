@@ -189,6 +189,49 @@ export interface ScriptRunInput {
 }
 
 /**
+ * Variable scope for execution log entries emitted by the script sandbox.
+ */
+export type ScriptExecutionVariableScope = 'request' | 'collection' | 'environment' | 'global';
+
+/**
+ * Variable mutation action recorded in the execution log.
+ */
+export type ScriptExecutionVariableAction = 'set' | 'update' | 'clear';
+
+/**
+ * Flow-control action recorded in the execution log.
+ */
+export type ScriptExecutionFlowAction = 'set-next-request' | 'skip-request';
+
+/**
+ * Ordered execution activity captured during a script run for the console inspector.
+ */
+export type ScriptExecutionEvent =
+  | {
+      type: 'variable';
+      scope: ScriptExecutionVariableScope;
+      action: ScriptExecutionVariableAction;
+      key: string;
+      value?: string;
+      /**
+       * Display label of the pre/post script that produced this event.
+       */
+      scriptName?: string;
+    }
+  | {
+      type: 'flow';
+      action: ScriptExecutionFlowAction;
+      /**
+       * Target request name for set-next-request, or null when the run should stop.
+       */
+      nextRequest?: string | null;
+      /**
+       * Display label of the pre/post script that produced this event.
+       */
+      scriptName?: string;
+    };
+
+/**
  * Result of a single hc.test assertion.
  */
 export interface ScriptTestResult {
@@ -262,5 +305,9 @@ export interface ScriptRunResult {
   skipRequest?: boolean;
   tests: ScriptTestResult[];
   logs: string[];
+  /**
+   * Ordered variable and flow-control activity emitted during this script run.
+   */
+  executionEvents: ScriptExecutionEvent[];
   error?: string;
 }

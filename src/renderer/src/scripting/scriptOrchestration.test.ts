@@ -170,7 +170,8 @@ describe('applyScriptRequestMutations', () => {
       cookieClears: [],
       collectionHeaders: [],
       tests: [],
-      logs: []
+      logs: [],
+      executionEvents: []
     };
 
     expect(applyScriptRequestMutations(current, result)).toEqual({

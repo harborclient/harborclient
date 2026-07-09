@@ -167,6 +167,85 @@ describe('createScriptApi execution', () => {
     const result = api.readResult();
     expect(result.nextRequest).toBe('Login');
     expect(result.skipRequest).toBe(true);
+    expect(result.executionEvents).toEqual([
+      { type: 'flow', action: 'set-next-request', nextRequest: 'Login' },
+      { type: 'flow', action: 'skip-request' }
+    ]);
+  });
+
+  it('records stop-run flow when setNextRequest receives null', () => {
+    const api = createScriptApi(baseInput);
+    const hc = api.hc as {
+      execution: {
+        setNextRequest: (name: string | null) => void;
+      };
+    };
+
+    hc.execution.setNextRequest(null);
+
+    const result = api.readResult();
+    expect(result.executionEvents).toEqual([
+      { type: 'flow', action: 'set-next-request', nextRequest: null }
+    ]);
+  });
+});
+
+describe('createScriptApi execution events', () => {
+  it('records set, update, and clear variable activity in call order', () => {
+    const api = createScriptApi(baseInput);
+    const hc = api.hc as {
+      request: {
+        variables: {
+          set: (k: string, v: string) => void;
+          clear: (k: string) => void;
+        };
+      };
+      collection: {
+        variables: {
+          set: (k: string, v: string) => void;
+        };
+      };
+      globals: {
+        set: (k: string, v: string) => void;
+      };
+    };
+
+    hc.request.variables.set('token', 'new');
+    hc.collection.variables.set('token', 'collection');
+    hc.globals.set('token', 'global');
+    hc.request.variables.clear('token');
+
+    const result = api.readResult();
+    expect(result.executionEvents).toEqual([
+      { type: 'variable', scope: 'request', action: 'update', key: 'token', value: 'new' },
+      {
+        type: 'variable',
+        scope: 'collection',
+        action: 'update',
+        key: 'token',
+        value: 'collection'
+      },
+      { type: 'variable', scope: 'global', action: 'update', key: 'token', value: 'global' },
+      { type: 'variable', scope: 'request', action: 'clear', key: 'token' }
+    ]);
+  });
+
+  it('records set instead of update when a key had no prior value in that scope', () => {
+    const api = createScriptApi(baseInput);
+    const hc = api.hc as {
+      environment: {
+        variables: {
+          set: (k: string, v: string) => void;
+        };
+      };
+    };
+
+    hc.environment.variables.set('apiKey', 'secret');
+
+    const result = api.readResult();
+    expect(result.executionEvents).toEqual([
+      { type: 'variable', scope: 'environment', action: 'set', key: 'apiKey', value: 'secret' }
+    ]);
   });
 });
 

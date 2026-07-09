@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'rea
 import type { RequestTabContext, ResponseTabContext } from '#/shared/plugin/types';
 import type { Variable } from '#/shared/types';
 import { DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT } from '#/shared/types';
-import { isPageTab, isRequestTab, isTabDirty } from '#/renderer/src/store/drafts';
+import { isPageTab, isRequestTab, isTabDirty, type Tab } from '#/renderer/src/store/drafts';
 import {
   toPluginHttpResponse,
   toPluginRequestDraft,
@@ -19,6 +19,7 @@ import {
   selectCollections,
   selectDraft,
   selectEnvironments,
+  selectExecutionEvents,
   selectFoldersByCollection,
   selectRequestsByCollection,
   selectResponse,
@@ -79,6 +80,43 @@ interface CloseTabPrompt {
   name: string;
 }
 
+interface CloseManyPrompt {
+  /**
+   * Tab ids the user asked to close in one bulk action.
+   */
+  tabIds: string[];
+
+  /**
+   * Number of tabs in the bulk action that have unsaved changes.
+   */
+  dirtyCount: number;
+}
+
+/**
+ * Returns whether closing a tab should prompt for unsaved changes.
+ *
+ * @param tab - Open tab being evaluated.
+ * @param activeTabId - Currently selected tab id.
+ * @param collectionSettingsDirty - Whether collection settings have unsaved edits.
+ * @param environmentSettingsDirty - Whether environment settings have unsaved edits.
+ */
+function isDirtyForClose(
+  tab: Tab,
+  activeTabId: string,
+  collectionSettingsDirty: boolean,
+  environmentSettingsDirty: boolean
+): boolean {
+  if (isRequestTab(tab)) {
+    return isTabDirty(tab);
+  }
+
+  if (isPageTab(tab) && tab.tabId === activeTabId) {
+    return isActivePageTabDirty(tab.page, collectionSettingsDirty, environmentSettingsDirty);
+  }
+
+  return false;
+}
+
 /**
  * Merges global, collection, and environment variables; higher scopes win on duplicate keys.
  */
@@ -119,6 +157,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const sending = useAppSelector(selectSending);
   const testResults = useAppSelector(selectTestResults);
   const scriptLogs = useAppSelector(selectScriptLogs);
+  const executionEvents = useAppSelector(selectExecutionEvents);
   const scriptError = useAppSelector(selectScriptError);
   const environments = useAppSelector(selectEnvironments);
   const collections = useAppSelector(selectCollections);
@@ -136,6 +175,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
 
   const hasOpenTabs = tabs.length > 0;
   const [closeTabPrompt, setCloseTabPrompt] = useState<CloseTabPrompt | null>(null);
+  const [closeManyPrompt, setCloseManyPrompt] = useState<CloseManyPrompt | null>(null);
   const splitRef = useRef<HTMLElement>(null);
 
   /**
@@ -244,6 +284,72 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   }, [activeFolderId, activeCollectionId, foldersByCollection]);
 
   /**
+   * Closes tabs immediately without prompting, including collection-runner cleanup.
+   *
+   * @param tabIds - Tabs to close.
+   */
+  const closeTabsImmediately = (tabIds: string[]): void => {
+    for (const tabId of tabIds) {
+      const tab = tabs.find((entry) => entry.tabId === tabId);
+      if (!tab) {
+        continue;
+      }
+
+      if (isPageTab(tab)) {
+        if (tab.page.type === 'collection-runner') {
+          dispatch(cancelCollectionRunner());
+          dispatch(closeCollectionRunner());
+        }
+        dispatch(closeTab(tabId));
+        continue;
+      }
+
+      void dispatch(closeRequestTab(tabId));
+    }
+  };
+
+  /**
+   * Closes multiple tabs, showing one combined prompt when any are dirty.
+   *
+   * @param tabIds - Tabs to close.
+   */
+  const handleCloseMany = (tabIds: string[]): void => {
+    const uniqueTabIds = [...new Set(tabIds)];
+    const tabsToClose = uniqueTabIds
+      .map((tabId) => tabs.find((tab) => tab.tabId === tabId))
+      .filter((tab): tab is Tab => tab != null);
+
+    if (tabsToClose.length === 0) {
+      return;
+    }
+
+    const dirtyCount = tabsToClose.filter((tab) =>
+      isDirtyForClose(tab, activeTabId, collectionSettingsDirty, environmentSettingsDirty)
+    ).length;
+
+    if (dirtyCount > 0) {
+      setCloseManyPrompt({ tabIds: uniqueTabIds, dirtyCount });
+      return;
+    }
+
+    closeTabsImmediately(uniqueTabIds);
+  };
+
+  /**
+   * Closes every tab that has no unsaved changes.
+   */
+  const handleCloseSaved = (): void => {
+    const savedTabIds = tabs
+      .filter(
+        (tab) =>
+          !isDirtyForClose(tab, activeTabId, collectionSettingsDirty, environmentSettingsDirty)
+      )
+      .map((tab) => tab.tabId);
+
+    handleCloseMany(savedTabIds);
+  };
+
+  /**
    * Closes a tab, prompting when it has unsaved changes.
    */
   const handleCloseTab = (tabId: string): void => {
@@ -288,6 +394,8 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
         activeTabId={activeTabId}
         onSelect={(tabId) => dispatch(setActiveTab(tabId))}
         onClose={handleCloseTab}
+        onCloseMany={handleCloseMany}
+        onCloseSaved={handleCloseSaved}
         onNew={() => dispatch(newTab())}
         onReorder={(orderedTabIds) => dispatch(reorderTabs(orderedTabIds))}
       />
@@ -377,6 +485,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
                     sending={sending}
                     testResults={testResults}
                     scriptLogs={scriptLogs}
+                    executionEvents={executionEvents}
                     scriptError={scriptError}
                     requestUrl={draft.url}
                     onCancel={() => void dispatch(cancelRequest(activeTabId))}
@@ -409,6 +518,32 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
                   void dispatch(closeRequestTab(closeTabPrompt.tabId));
                 }
                 setCloseTabPrompt(null);
+              }}
+            >
+              Close without saving
+            </Button>
+          </ModalFooter>
+        </Modal>
+      )}
+
+      {closeManyPrompt && (
+        <Modal
+          onClose={() => setCloseManyPrompt(null)}
+          labelledBy="request-close-many-tabs-title"
+          title="Unsaved changes"
+          description={
+            closeManyPrompt.dirtyCount === 1 ? (
+              <>1 tab has unsaved changes. Close without saving?</>
+            ) : (
+              <>{closeManyPrompt.dirtyCount} tabs have unsaved changes. Close without saving?</>
+            )
+          }
+        >
+          <ModalFooter>
+            <Button
+              onClick={() => {
+                closeTabsImmediately(closeManyPrompt.tabIds);
+                setCloseManyPrompt(null);
               }}
             >
               Close without saving

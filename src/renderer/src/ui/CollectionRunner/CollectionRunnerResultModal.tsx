@@ -74,6 +74,7 @@ export function CollectionRunnerResultModal({ result, onClose }: Props): JSX.Ele
           sending={false}
           testResults={result.testResults ?? []}
           scriptLogs={result.scriptLogs ?? []}
+          executionEvents={result.executionEvents ?? []}
           scriptError={result.scriptError}
           requestUrl={result.requestUrl ?? ''}
           onCancel={() => {}}

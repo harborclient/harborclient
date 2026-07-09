@@ -149,6 +149,7 @@ export const runCollectionRequests = createAsyncThunk<void, void, ThunkApiConfig
             response,
             testResults,
             scriptLogs: outcome.scriptLogs,
+            executionEvents: outcome.executionEvents,
             scriptError: outcome.scriptError,
             requestUrl: draft.url
           })

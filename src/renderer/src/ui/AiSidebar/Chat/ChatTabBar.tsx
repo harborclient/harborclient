@@ -30,7 +30,29 @@ import {
   setActiveChat
 } from '#/renderer/src/store/slices/aiChatSlice';
 import { closeChat, createNewChat } from '#/renderer/src/store/thunks/aiChat';
+import { TabContextMenu } from '#/renderer/src/ui/shared/TabContextMenu';
+import {
+  buildTabCloseMenuGroups,
+  chatIdsWithMessages
+} from '#/renderer/src/ui/shared/tabContextMenuHelpers';
 import { ChatTabItem } from './ChatTabItem';
+
+interface ChatContextMenuState {
+  /**
+   * Chat tab that was right-clicked.
+   */
+  chatId: number;
+
+  /**
+   * Viewport X coordinate for the menu.
+   */
+  x: number;
+
+  /**
+   * Viewport Y coordinate for the menu.
+   */
+  y: number;
+}
 
 interface Props {
   /**
@@ -110,7 +132,9 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
   const chatHistory = useAppSelector(selectChatHistory);
   const openTabIds = useAppSelector(selectOpenChatTabIds);
   const activeChatId = useAppSelector(selectActiveChatId);
+  const messagesByChat = useAppSelector((state) => state.aiChat.messagesByChat);
   const [activeDragChatId, setActiveDragChatId] = useState<number | null>(null);
+  const [contextMenu, setContextMenu] = useState<ChatContextMenuState | null>(null);
   const sortableEnabled = openTabIds.length >= 2;
 
   const sensors = useSensors(
@@ -146,6 +170,31 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
     }
     return openTabs.find((chat) => chat.id === activeDragChatId) ?? null;
   }, [activeDragChatId, openTabs]);
+
+  /**
+   * Menu groups for the open chat tab context menu, when one is visible.
+   */
+  const contextMenuGroups = useMemo(() => {
+    if (contextMenu == null) {
+      return [];
+    }
+
+    return buildTabCloseMenuGroups(openTabIds, contextMenu.chatId, {
+      onClose: (chatId) => {
+        void dispatch(closeChat(chatId));
+      },
+      onCloseMany: (chatIds) => {
+        for (const chatId of chatIds) {
+          void dispatch(closeChat(chatId));
+        }
+      },
+      onCloseSaved: () => {
+        for (const chatId of chatIdsWithMessages(openTabIds, messagesByChat)) {
+          void dispatch(closeChat(chatId));
+        }
+      }
+    });
+  }, [contextMenu, dispatch, messagesByChat, openTabIds]);
 
   /**
    * Records the chat tab being dragged for overlay preview.
@@ -239,6 +288,13 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
                   sortableDisabled={!sortableEnabled}
                   onSelect={(chatId) => dispatch(setActiveChat(chatId))}
                   onClose={(chatId) => void dispatch(closeChat(chatId))}
+                  onContextMenu={(chatId, event) => {
+                    setContextMenu({
+                      chatId,
+                      x: event.clientX,
+                      y: event.clientY
+                    });
+                  }}
                 />
               ))}
             </SortableContext>
@@ -265,6 +321,13 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
           </button>
         </div>
       </div>
+      {contextMenu && (
+        <TabContextMenu
+          groups={contextMenuGroups}
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </Scrollbars>
   );
 }

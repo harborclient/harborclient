@@ -1,6 +1,8 @@
 import type {
   BodyType,
   KeyValue,
+  ScriptExecutionEvent,
+  ScriptExecutionVariableScope,
   ScriptPhase,
   ScriptRequestContext,
   ScriptRunInfo,
@@ -63,6 +65,7 @@ interface ScriptApiState {
   collectionAuth: AuthConfig;
   tests: ScriptTestResult[];
   logs: string[];
+  executionEvents: ScriptExecutionEvent[];
   phase: ScriptPhase;
   nextRequest: string | null | undefined;
   skipRequest: boolean;
@@ -96,15 +99,19 @@ export interface ScriptApi {
 /**
  * Builds a variable bag with get, set, and clear keyed by name.
  *
+ * @param scope - Variable scope label recorded in execution events.
  * @param getSets - Returns the mutable set map for this scope.
  * @param getClears - Returns the mutable clear set for this scope.
  * @param getFallback - Resolves values from the merged runtime variable map.
+ * @param emit - Appends a variable execution event in call order.
  * @returns Variable bag API shared by request, collection, environment, and global scopes.
  */
 function makeVariableBag(
+  scope: ScriptExecutionVariableScope,
   getSets: () => Record<string, string>,
   getClears: () => Set<string>,
-  getFallback: (key: string) => string | undefined
+  getFallback: (key: string) => string | undefined,
+  emit: (event: ScriptExecutionEvent) => void
 ): {
   get: (key: string) => string | undefined;
   set: (key: string, value: unknown) => void;
@@ -124,11 +131,36 @@ function makeVariableBag(
     },
     set: (key: string, value: unknown) => {
       const k = String(key);
-      getClears().delete(k);
-      getSets()[k] = String(value);
+      const sets = getSets();
+      const clears = getClears();
+      let priorValue: string | undefined;
+      if (Object.prototype.hasOwnProperty.call(sets, k)) {
+        priorValue = sets[k];
+      } else if (clears.has(k)) {
+        priorValue = undefined;
+      } else {
+        priorValue = getFallback(k);
+      }
+
+      const v = String(value);
+      emit({
+        type: 'variable',
+        scope,
+        action: priorValue !== undefined ? 'update' : 'set',
+        key: k,
+        value: v
+      });
+      clears.delete(k);
+      sets[k] = v;
     },
     clear: (key: string) => {
       const k = String(key);
+      emit({
+        type: 'variable',
+        scope,
+        action: 'clear',
+        key: k
+      });
       delete getSets()[k];
       getClears().add(k);
     }
@@ -389,6 +421,7 @@ export function createScriptApi(
     collectionAuth: normalizeAuth(input.collection?.auth),
     tests: [],
     logs: [],
+    executionEvents: [],
     phase: input.phase,
     nextRequest: undefined,
     skipRequest: false
@@ -405,6 +438,10 @@ export function createScriptApi(
   };
 
   const resolveSeededVariable = (key: string): string | undefined => state.variables[key];
+
+  const emitExecutionEvent = (event: ScriptExecutionEvent): void => {
+    state.executionEvents.push(event);
+  };
 
   const info: ScriptRunInfo =
     input.info ??
@@ -452,9 +489,11 @@ export function createScriptApi(
       auth: makeAuthApi(() => state.request.auth!),
       variables: {
         ...makeVariableBag(
+          'request',
           () => state.variableSets,
           () => state.variableClears,
-          resolveRuntimeVariable
+          resolveRuntimeVariable,
+          emitExecutionEvent
         ),
         replaceIn: (template: unknown) => {
           const text = String(template);
@@ -483,9 +522,11 @@ export function createScriptApi(
         return ctx.collection ? ctx.collection.name : '';
       },
       variables: makeVariableBag(
+        'collection',
         () => state.collectionVariableSets,
         () => state.collectionVariableClears,
-        resolveSeededVariable
+        resolveSeededVariable,
+        emitExecutionEvent
       ),
       headers: makeHeaderApi(() => state.collectionHeaders),
       auth: makeAuthApi(() => state.collectionAuth)
@@ -495,15 +536,19 @@ export function createScriptApi(
         return ctx.environment ? ctx.environment.name : '';
       },
       variables: makeVariableBag(
+        'environment',
         () => state.environmentVariableSets,
         () => state.environmentVariableClears,
-        resolveSeededVariable
+        resolveSeededVariable,
+        emitExecutionEvent
       )
     },
     globals: makeVariableBag(
+      'global',
       () => state.globalVariableSets,
       () => state.globalVariableClears,
-      resolveSeededVariable
+      resolveSeededVariable,
+      emitExecutionEvent
     ),
     /**
      * Cookie bag for the request host resolved at send start. URL changes mid-script
@@ -517,9 +562,18 @@ export function createScriptApi(
     execution: {
       setNextRequest: (name: unknown) => {
         state.nextRequest = name == null ? null : String(name);
+        emitExecutionEvent({
+          type: 'flow',
+          action: 'set-next-request',
+          nextRequest: state.nextRequest
+        });
       },
       skipRequest: () => {
         state.skipRequest = true;
+        emitExecutionEvent({
+          type: 'flow',
+          action: 'skip-request'
+        });
       }
     },
     test: (name: unknown, fn: () => void) => {
@@ -618,7 +672,8 @@ export function createScriptApi(
       nextRequest: state.nextRequest,
       skipRequest: state.skipRequest || undefined,
       tests: state.tests ?? [],
-      logs: state.logs ?? []
+      logs: state.logs ?? [],
+      executionEvents: state.executionEvents ?? []
     })
   };
 }

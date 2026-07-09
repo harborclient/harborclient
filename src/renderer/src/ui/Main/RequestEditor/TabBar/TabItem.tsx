@@ -1,7 +1,7 @@
 import { FaIcon, Spinner, TabCloseButton } from '@harborclient/sdk/components';
 import { METHOD_CLASSES, requestTabItem } from '#/renderer/src/ui/shared/classes';
 import { useSortableTabItem } from '#/renderer/src/ui/shared/useSortableTabItem';
-import type { JSX, KeyboardEvent } from 'react';
+import type { JSX, KeyboardEvent, MouseEvent } from 'react';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { isPageTab, isRequestTab, isTabDirty, type Tab } from '#/renderer/src/store/drafts';
 import { tabCloseAccessibleName } from './tabCloseAccessibleName';
@@ -55,6 +55,14 @@ interface Props {
    * @param tabId - Tab to close.
    */
   onClose: (tabId: string) => void;
+
+  /**
+   * Called when the user opens the tab context menu.
+   *
+   * @param tabId - Tab that was right-clicked.
+   * @param event - Native context menu event.
+   */
+  onContextMenu?: (tabId: string, event: MouseEvent<HTMLDivElement>) => void;
 }
 
 /**
@@ -111,7 +119,8 @@ export function TabItem({
   pageTitle,
   pageIcon,
   onSelect,
-  onClose
+  onClose,
+  onContextMenu
 }: Props): JSX.Element {
   /**
    * Activates this tab when the user presses Enter or Space on the tab control.
@@ -146,6 +155,10 @@ export function TabItem({
       tabIndex={tabIndex}
       className={`group -mb-1 flex max-w-[220px] min-h-12 shrink-0 self-stretch items-stretch gap-2.5 rounded-t-lg border border-b-0 px-4 cursor-pointer ${requestTabItem(active)}`}
       onClick={() => onSelect(tab.tabId)}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        onContextMenu?.(tab.tabId, event);
+      }}
       onKeyDown={handleTabKeyDown}
       {...(sortableDisabled ? {} : listeners)}
     >

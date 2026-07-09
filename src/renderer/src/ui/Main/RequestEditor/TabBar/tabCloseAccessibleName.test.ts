@@ -43,7 +43,8 @@ describe('tabCloseAccessibleName', () => {
       sending: false,
       sendingRequestId: null,
       testResults: [],
-      scriptLogs: []
+      scriptLogs: [],
+      executionEvents: []
     };
 
     expect(tabCloseAccessibleName(tab)).toBe('Close Get users, unsaved');

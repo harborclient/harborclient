@@ -2,7 +2,7 @@ import { FaIcon, TabCloseButton } from '@harborclient/sdk/components';
 import { faComment } from '#/renderer/src/fontawesome';
 import { requestTabItem } from '#/renderer/src/ui/shared/classes';
 import { useSortableTabItem } from '#/renderer/src/ui/shared/useSortableTabItem';
-import type { JSX, KeyboardEvent } from 'react';
+import type { JSX, KeyboardEvent, MouseEvent } from 'react';
 import type { ChatSummary } from '#/shared/types';
 
 interface Props {
@@ -40,6 +40,14 @@ interface Props {
    * Called when the user closes this tab.
    */
   onClose: (chatId: number) => void;
+
+  /**
+   * Called when the user opens the tab context menu.
+   *
+   * @param chatId - Chat tab that was right-clicked.
+   * @param event - Native context menu event.
+   */
+  onContextMenu?: (chatId: number, event: MouseEvent<HTMLDivElement>) => void;
 }
 
 /**
@@ -52,7 +60,8 @@ export function ChatTabItem({
   sortableId,
   sortableDisabled = false,
   onSelect,
-  onClose
+  onClose,
+  onContextMenu
 }: Props): JSX.Element {
   /**
    * Activates the tab when Enter or Space is pressed on the tab container.
@@ -79,6 +88,10 @@ export function ChatTabItem({
       tabIndex={tabIndex}
       className={`group -mb-1 flex max-w-[180px] min-h-12 shrink-0 self-stretch items-stretch gap-2.5 rounded-t-lg border border-b-0 px-3 ${requestTabItem(active)} ${sortableDisabled ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'}`}
       onClick={() => onSelect(chat.id)}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        onContextMenu?.(chat.id, event);
+      }}
       onKeyDown={handleKeyDown}
       {...(sortableDisabled ? {} : listeners)}
     >

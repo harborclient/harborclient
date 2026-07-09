@@ -8,6 +8,7 @@ import type {
   ScriptRequestContext,
   ScriptRunResult,
   ScriptTestResult,
+  ScriptExecutionEvent,
   SendResult
 } from '#/shared/types';
 import {
@@ -444,6 +445,10 @@ export interface RequestRunOutcome {
    */
   scriptLogs: string[];
   /**
+   * Ordered variable and flow-control activity from pre/post scripts.
+   */
+  executionEvents: ScriptExecutionEvent[];
+  /**
    * Aggregated script runtime errors, when any script failed.
    */
   scriptError?: string;
@@ -518,6 +523,7 @@ export async function executeRequestDraft(
   let collectionAuthConfig = collection?.auth ? structuredClone(collection.auth) : defaultAuth();
   const allLogs: string[] = [];
   const allTests: ScriptTestResult[] = [];
+  const allExecutionEvents: ScriptExecutionEvent[] = [];
   const scriptErrors: string[] = [];
 
   let scriptRequest: ScriptRequestContext = {
@@ -577,6 +583,11 @@ export async function executeRequestDraft(
 
       if (result.logs.length) {
         allLogs.push(`[${slot.label}]`, ...result.logs);
+      }
+      if (result.executionEvents.length) {
+        allExecutionEvents.push(
+          ...result.executionEvents.map((event) => ({ ...event, scriptName: slot.label }))
+        );
       }
       if (result.tests.length) {
         allTests.push(...result.tests.map((test) => ({ ...test, scriptName: slot.label })));
@@ -805,6 +816,7 @@ export async function executeRequestDraft(
         result,
         logs: allLogs.length ? allLogs : undefined,
         tests: allTests.length ? allTests : undefined,
+        executionEvents: allExecutionEvents.length ? allExecutionEvents : undefined,
         scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined
       })
     );
@@ -821,6 +833,7 @@ export async function executeRequestDraft(
       response: result,
       testResults: allTests,
       scriptLogs: allLogs,
+      executionEvents: allExecutionEvents,
       scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined,
       scriptNextRequest,
       scriptSkipRequest
@@ -846,6 +859,7 @@ export async function executeRequestDraft(
         result: errorResult,
         logs: allLogs.length ? allLogs : undefined,
         tests: allTests.length ? allTests : undefined,
+        executionEvents: allExecutionEvents.length ? allExecutionEvents : undefined,
         scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined
       })
     );
@@ -855,6 +869,7 @@ export async function executeRequestDraft(
       response: errorResult,
       testResults: allTests,
       scriptLogs: allLogs,
+      executionEvents: allExecutionEvents,
       scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined,
       scriptSkipRequest: false
     };
@@ -892,6 +907,7 @@ export const sendRequest = createAsyncThunk<void, string | undefined, ThunkApiCo
           response: null,
           testResults: [],
           scriptLogs: [],
+          executionEvents: [],
           scriptError: undefined,
           scriptNextRequest: undefined,
           scriptSkipRequest: false,
@@ -914,6 +930,7 @@ export const sendRequest = createAsyncThunk<void, string | undefined, ThunkApiCo
               response: outcome.response,
               testResults: outcome.testResults,
               scriptLogs: outcome.scriptLogs,
+              executionEvents: outcome.executionEvents,
               scriptError: outcome.scriptError,
               scriptNextRequest: outcome.scriptNextRequest,
               scriptSkipRequest: outcome.scriptSkipRequest

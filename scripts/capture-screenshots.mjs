@@ -257,6 +257,32 @@ async function dismissBlockingModals(page) {
     await notNowButton.click();
     await page.waitForTimeout(200);
   }
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const modal = page.locator('.hc-modal');
+    if (!(await modal.isVisible().catch(() => false))) {
+      break;
+    }
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(150);
+  }
+}
+
+/**
+ * Dismisses visible react-hot-toast notifications before taking a screenshot.
+ *
+ * @param {import('playwright').Page} page - Main window page.
+ */
+async function dismissToasts(page) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const toastDismissButtons = page.locator('.react-hot-toast button');
+    const toastCount = await toastDismissButtons.count().catch(() => 0);
+    if (toastCount === 0) {
+      break;
+    }
+    await toastDismissButtons.first().click().catch(() => undefined);
+    await page.waitForTimeout(100);
+  }
 }
 
 /**
@@ -333,7 +359,7 @@ async function sendMenuAction(app, action) {
 
 /** Accessible names for configuration page tab close buttons. */
 const PAGE_TAB_CLOSE_PATTERN =
-  /^Close (General|Globals|Snippets|Storage|Shortcuts|Syntax highlighting|AI|Proxy|Backup & Restore|Plugins|Team Hub|Sharing Keys)/;
+  /^Close (General|Globals|Snippets|Storage|Shortcuts|Syntax highlighting|AI|Proxy|Backup & Restore|Plugins|Team Hub|Sharing Keys|Run |Collection|Environment)/;
 
 /**
  * Closes open configuration page tabs from the tab bar.
@@ -452,6 +478,42 @@ function parseNameMatcher(name) {
 }
 
 /**
+ * Locates a collections sidebar row from a collection name shown on the row button.
+ *
+ * @param {import('playwright').Page} page - Main window page.
+ * @param {string} collectionName - Visible collection name in the sidebar.
+ * @returns Locator for the matching collection row container.
+ */
+function collectionSidebarRow(page, collectionName) {
+  return page
+    .locator("nav[aria-label='Collections'] div.group")
+    .filter({
+      has: page.locator('button[data-sidebar-collection-id]', { hasText: collectionName })
+    });
+}
+
+/**
+ * Returns true when a macro target should resolve inside a single collection row.
+ *
+ * @param {Record<string, string>} target - Locator descriptor.
+ * @returns Whether the target is scoped to the collections nav without a tighter selector.
+ */
+function shouldScopeToCollectionRow(target) {
+  if (!target.nearText) {
+    return false;
+  }
+
+  if (target.selector?.includes('data-sidebar-collection-id')) {
+    return false;
+  }
+
+  return (
+    target.selector == null ||
+    target.selector.includes("aria-label='Collections'")
+  );
+}
+
+/**
  * Builds a Playwright locator from a macro target descriptor.
  *
  * @param {import('playwright').Page} page - Main window page.
@@ -464,7 +526,11 @@ function buildLocator(page, target) {
   if (target.selector) {
     let container = page.locator(target.selector);
     if (target.nearText) {
-      container = container.filter({ hasText: target.nearText });
+      if (shouldScopeToCollectionRow(target)) {
+        container = collectionSidebarRow(page, target.nearText);
+      } else {
+        container = container.filter({ hasText: target.nearText });
+      }
     }
     if (target.role && nameMatcher) {
       return container.getByRole(target.role, { name: nameMatcher }).first();
@@ -474,11 +540,13 @@ function buildLocator(page, target) {
 
   if (target.role && nameMatcher) {
     if (target.nearText) {
-      return page
+      const collectionRow = collectionSidebarRow(page, target.nearText);
+      const collectionScoped = collectionRow.getByRole(target.role, { name: nameMatcher });
+      const genericScoped = page
         .locator('*')
         .filter({ hasText: target.nearText })
-        .getByRole(target.role, { name: nameMatcher })
-        .first();
+        .getByRole(target.role, { name: nameMatcher });
+      return collectionScoped.or(genericScoped).first();
     }
     return page.getByRole(target.role, { name: nameMatcher }).first();
   }
@@ -648,6 +716,8 @@ async function runEntrySteps(page, app, entry) {
  * @param {string} outputPath - Destination PNG path.
  */
 async function captureEntry(page, entry, outputPath) {
+  await dismissToasts(page);
+
   const capture = entry.capture ?? 'window';
 
   if (capture === 'window') {

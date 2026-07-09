@@ -450,6 +450,7 @@ describe('tabsSlice loadRequest', () => {
     expect(tab.response).toBeNull();
     expect(tab.testResults).toEqual([]);
     expect(tab.scriptLogs).toEqual([]);
+    expect(tab.executionEvents).toEqual([]);
     expect(tab.scriptError).toBeUndefined();
   });
 

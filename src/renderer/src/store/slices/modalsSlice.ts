@@ -1,6 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
   SavedRequest,
+  ScriptExecutionEvent,
   ScriptTestResult,
   SendResult,
   TrustedSharingKey,
@@ -590,6 +591,7 @@ const modalsSlice = createSlice({
         response?: SendResult | null;
         testResults?: ScriptTestResult[];
         scriptLogs?: string[];
+        executionEvents?: ScriptExecutionEvent[];
         scriptError?: string;
         requestUrl?: string;
       }>
@@ -611,6 +613,7 @@ const modalsSlice = createSlice({
       row.response = action.payload.response;
       row.testResults = action.payload.testResults;
       row.scriptLogs = action.payload.scriptLogs;
+      row.executionEvents = action.payload.executionEvents;
       row.scriptError = action.payload.scriptError;
       row.requestUrl = action.payload.requestUrl;
       state.collectionRunner.completed += 1;

@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { ScriptTestResult, SendResult } from '#/shared/types';
+import type { ScriptExecutionEvent, ScriptTestResult, SendResult } from '#/shared/types';
 
 /**
  * A single entry in the global session console log.
@@ -12,6 +12,10 @@ export interface ConsoleEntry {
   result: SendResult;
   logs?: string[];
   tests?: ScriptTestResult[];
+  /**
+   * Ordered variable and flow-control activity from pre/post scripts for this send.
+   */
+  executionEvents?: ScriptExecutionEvent[];
   scriptError?: string;
 }
 

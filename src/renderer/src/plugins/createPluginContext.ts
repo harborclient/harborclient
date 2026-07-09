@@ -23,6 +23,7 @@ import {
   registerMenuItemContribution,
   registerRequestTabContribution,
   registerRequestToolbarActionContribution,
+  registerScriptEditorActionContribution,
   registerResponseTabContribution,
   registerSettingsSectionContribution,
   registerSidebarPanelContribution,
@@ -405,6 +406,11 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
         assertUi();
         assertManifestContribution(manifest, 'requestToolbarActions', action.id);
         return registerRequestToolbarActionContribution(pluginId, action);
+      },
+      registerScriptEditorAction: (action) => {
+        assertUi();
+        assertManifestContribution(manifest, 'scriptEditorActions', action.id);
+        return registerScriptEditorActionContribution(pluginId, action);
       },
       registerContextMenuItem: (item) => {
         assertUi();

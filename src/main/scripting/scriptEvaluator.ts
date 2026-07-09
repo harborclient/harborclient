@@ -29,7 +29,8 @@ export function buildScriptPassthrough(input: ScriptRunInput): ScriptRunResult {
     collectionHeaders: input.collection?.headers ?? [],
     collectionAuth: normalizeAuth(input.collection?.auth),
     tests: [],
-    logs: []
+    logs: [],
+    executionEvents: []
   };
 }
 

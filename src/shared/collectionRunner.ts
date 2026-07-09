@@ -3,6 +3,7 @@ import type {
   HttpMethod,
   SavedRequest,
   ScriptTestResult,
+  ScriptExecutionEvent,
   SendResult
 } from '#/shared/types';
 
@@ -109,6 +110,11 @@ export interface CollectionRunnerRequestResult {
    * Console output captured from scripts for the last send.
    */
   scriptLogs?: string[];
+
+  /**
+   * Ordered variable and flow-control activity from scripts for the last send.
+   */
+  executionEvents?: ScriptExecutionEvent[];
 
   /**
    * Aggregated script runtime errors from the last send.

@@ -63,6 +63,8 @@ import {
   type SnippetEditDraft
 } from '#/renderer/src/ui/shared/snippetEditDraft';
 import { scriptRowIconButtonClass } from '#/renderer/src/ui/shared/classes';
+import { usePluginScriptEditorActions } from '#/renderer/src/plugins/pluginHooks';
+import type { RegisteredScriptEditorAction } from '#/shared/plugin/types';
 import {
   normalizeEditorPlaceholder,
   REQUEST_SCRIPTS_HELP_URL
@@ -305,6 +307,11 @@ interface SortableScriptRowProps {
    * Team Hub model groups for inline `/ask` requests.
    */
   hubModelGroups: HubLlmModelGroup[];
+
+  /**
+   * Plugin row action buttons registered for this script phase.
+   */
+  scriptEditorActions: RegisteredScriptEditorAction[];
 }
 
 interface SaveSnippetNameModalProps {
@@ -774,7 +781,8 @@ function SortableScriptRow({
   aiAvailable,
   onAskAi,
   aiSettings,
-  hubModelGroups
+  hubModelGroups,
+  scriptEditorActions
 }: SortableScriptRowProps): JSX.Element {
   const snippet =
     script.kind === 'snippet'
@@ -878,8 +886,8 @@ function SortableScriptRow({
   const expandToggleLabel = isExpanded ? `Collapse ${label}` : `Expand ${label}`;
   const askAiLabel = `Ask AI about ${label}`;
   const editorPanelId = useId();
-  const showCodePreview =
-    !isExpanded && Boolean(buildCodePreview(resolveScriptSourceCode(script, snippets)));
+  const scriptSourceCode = resolveScriptSourceCode(script, snippets);
+  const showCodePreview = !isExpanded && Boolean(buildCodePreview(scriptSourceCode));
 
   if (snippetRevision !== snippetRevisionSeen) {
     setSnippetRevisionSeen(snippetRevision);
@@ -964,6 +972,36 @@ function SortableScriptRow({
           />
 
           <div className="ml-auto flex shrink-0 items-center gap-1">
+            {scriptEditorActions.map((action) => (
+              <Button
+                key={`${action.pluginId}:${action.id}`}
+                type="button"
+                variant="icon"
+                className={scriptRowIconButtonClass}
+                aria-label={action.title}
+                title={action.title}
+                onPointerDown={stopDragPointerDown}
+                onClick={() =>
+                  void window.api.executePluginAgentCommand(action.pluginId, action.command, [
+                    {
+                      phase,
+                      scriptId: script.id,
+                      code: scriptSourceCode
+                    }
+                  ])
+                }
+              >
+                {action.icon ? (
+                  <span aria-hidden="true" className="text-[14px] leading-none">
+                    {action.icon}
+                  </span>
+                ) : (
+                  <span aria-hidden="true" className="text-[12px] font-semibold leading-none">
+                    {action.title.charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </Button>
+            ))}
             {aiAvailable ? (
               <Button
                 type="button"
@@ -1152,6 +1190,7 @@ export function ScriptListEditor({
   );
   const { aiAvailable, aiSettings } = useAiAvailability();
   const hubModelGroups = useAppSelector(selectHubModelGroups);
+  const scriptEditorActions = usePluginScriptEditorActions(phase);
   const normalized = useMemo(() => normalizeScriptRefs(scripts), [scripts]);
   const compatibleSnippets = useMemo(
     () => snippets.filter((snippet) => snippetMatchesPhase(snippet.scope, phase)),
@@ -1707,6 +1746,7 @@ export function ScriptListEditor({
               onAskAi={() => void handleAskAi(index + 1)}
               aiSettings={aiSettings}
               hubModelGroups={hubModelGroups}
+              scriptEditorActions={scriptEditorActions}
             />
             {index < normalized.length - 1 ? <ScriptFlowArrow /> : null}
           </Fragment>

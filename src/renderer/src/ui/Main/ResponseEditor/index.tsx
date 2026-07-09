@@ -11,7 +11,7 @@ import { focusableReadonlyClass } from '#/renderer/src/ui/shared/classes';
 import { useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { ResponseTabContext } from '#/shared/plugin/types';
-import type { ScriptTestResult, SendResult } from '#/shared/types';
+import type { ScriptExecutionEvent, ScriptTestResult, SendResult } from '#/shared/types';
 
 import { useSendRequestShortcutHint } from '#/renderer/src/hooks/useSendRequestShortcutHint';
 import { faGlobe } from '#/renderer/src/fontawesome';
@@ -64,6 +64,11 @@ interface Props {
   scriptLogs: string[];
 
   /**
+   * Ordered variable and flow-control activity from scripts for the last send.
+   */
+  executionEvents: ScriptExecutionEvent[];
+
+  /**
    * Aggregated script runtime errors from the last send.
    */
   scriptError?: string;
@@ -88,6 +93,7 @@ export function ResponseEditor({
   sending,
   testResults,
   scriptLogs,
+  executionEvents,
   scriptError,
   onCancel,
   requestUrl
@@ -386,6 +392,7 @@ export function ResponseEditor({
           result={response}
           logs={scriptLogs}
           tests={testResults}
+          executionEvents={executionEvents}
           scriptError={scriptError}
         />
       </SegmentedTabPanel>

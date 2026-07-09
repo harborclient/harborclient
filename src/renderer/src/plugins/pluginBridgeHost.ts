@@ -7,6 +7,7 @@ import type {
   RegisteredMenuItem,
   RegisteredRequestTab,
   RegisteredRequestToolbarAction,
+  RegisteredScriptEditorAction,
   RegisteredResponseTab,
   RegisteredSettingsSection,
   RegisteredSidebarPanel,
@@ -23,6 +24,7 @@ import {
   registerMenuItemContribution,
   registerRequestTabContribution,
   registerRequestToolbarActionContribution,
+  registerScriptEditorActionContribution,
   registerResponseTabContribution,
   registerSettingsSectionContribution,
   registerSidebarPanelContribution,
@@ -66,6 +68,7 @@ type ContributionKind =
   | 'statusBarItems'
   | 'menuItems'
   | 'requestToolbarActions'
+  | 'scriptEditorActions'
   | 'contextMenuItems';
 
 interface ContributionMessage {
@@ -183,6 +186,12 @@ export function applyContributionMessage(message: ContributionMessage): void {
       registerRequestToolbarActionContribution(
         message.pluginId,
         contribution as Omit<RegisteredRequestToolbarAction, 'pluginId'>
+      );
+      break;
+    case 'scriptEditorActions':
+      registerScriptEditorActionContribution(
+        message.pluginId,
+        contribution as Omit<RegisteredScriptEditorAction, 'pluginId'>
       );
       break;
     case 'contextMenuItems':

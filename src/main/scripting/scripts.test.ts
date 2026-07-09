@@ -35,7 +35,8 @@ describe('evaluateScript', () => {
       collectionHeaders: [],
       collectionAuth: defaultAuth(),
       tests: [],
-      logs: []
+      logs: [],
+      executionEvents: []
     });
   });
 

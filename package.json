@@ -35,7 +35,7 @@
     "release:minor": "gh workflow run Release --ref main -f release_type=minor",
     "release:major": "gh workflow run Release --ref main -f release_type=major",
     "kill": "pkill -f \"harborclient/node_modules/.pnpm/electron\"",
-    "screenshots": "node scripts/capture-screenshots.mjs"
+    "screenshots": "node scripts/capture-screenshots.mjs --build"
   },
   "packageManager": "pnpm@10.17.1",
   "dependencies": {

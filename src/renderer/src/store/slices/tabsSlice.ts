@@ -233,6 +233,7 @@ const tabsSlice = createSlice({
         existing.response = null;
         existing.testResults = [];
         existing.scriptLogs = [];
+        existing.executionEvents = [];
         existing.scriptError = undefined;
         return;
       }

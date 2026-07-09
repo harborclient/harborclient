@@ -8,6 +8,7 @@ import type {
   RegisteredPluginTheme,
   RegisteredRequestTab,
   RegisteredRequestToolbarAction,
+  RegisteredScriptEditorAction,
   RegisteredResponseTab,
   RegisteredSettingsSection,
   RegisteredSidebarPanel,
@@ -23,6 +24,7 @@ import {
   getRegisteredPluginThemes,
   getRegisteredRequestTabs,
   getRegisteredRequestToolbarActions,
+  getRegisteredScriptEditorActions,
   getRegisteredResponseTabs,
   getRegisteredSettingsSections,
   getRegisteredSidebarPanels,
@@ -120,6 +122,25 @@ export function usePluginRequestToolbarActions(): RegisteredRequestToolbarAction
     subscribePluginRegistry,
     getRegisteredRequestToolbarActions,
     () => []
+  );
+}
+
+/**
+ * Subscribes to plugin script editor row action contributions for one phase.
+ *
+ * @param phase - Script phase whose rows should receive the actions.
+ */
+export function usePluginScriptEditorActions(
+  phase: 'pre' | 'post'
+): RegisteredScriptEditorAction[] {
+  const actions = useSyncExternalStore(
+    subscribePluginRegistry,
+    getRegisteredScriptEditorActions,
+    () => []
+  );
+
+  return actions.filter(
+    (action) => !action.phases || action.phases.length === 0 || action.phases.includes(phase)
   );
 }
 

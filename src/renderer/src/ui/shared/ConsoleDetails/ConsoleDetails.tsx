@@ -1,9 +1,15 @@
 import { ControlledAccordion, useAccordionProvider } from '@szhsin/react-accordion';
 import type { JSX } from 'react';
-import type { ScriptTestResult, SendResult } from '#/shared/types';
+import type { ScriptExecutionEvent, ScriptTestResult, SendResult } from '#/shared/types';
 
 import { formatBytes } from '#/renderer/src/ui/shared/responseFormatUtils';
 import { CollapsibleSection } from './CollapsibleSection';
+import {
+  formatFlowExecutionDetail,
+  formatFlowExecutionLabel,
+  formatVariableExecutionDetail,
+  formatVariableExecutionLabel
+} from './executionEventLabels';
 import { KeyValueTable, type KeyValueRow } from './KeyValueTable';
 
 interface Props {
@@ -21,6 +27,11 @@ interface Props {
    * hc.test assertion results captured from scripts for this send.
    */
   tests?: readonly ScriptTestResult[];
+
+  /**
+   * Ordered variable and flow-control activity captured from scripts for this send.
+   */
+  executionEvents?: readonly ScriptExecutionEvent[];
 
   /**
    * Aggregated script runtime errors for this send.
@@ -45,10 +56,23 @@ interface OutputDetailsProps {
   scriptError?: string;
 }
 
+interface TraceDetailsProps {
+  /**
+   * Ordered variable and flow-control activity captured while scripts ran.
+   */
+  executionEvents: readonly ScriptExecutionEvent[];
+}
+
 /**
  * Renders reusable request/response console details for footer rows and response tabs.
  */
-export function ConsoleDetails({ result, logs = [], tests = [], scriptError }: Props): JSX.Element {
+export function ConsoleDetails({
+  result,
+  logs = [],
+  tests = [],
+  executionEvents = [],
+  scriptError
+}: Props): JSX.Element {
   const accordion = useAccordionProvider({
     allowMultiple: true,
     transition: true,
@@ -94,6 +118,9 @@ export function ConsoleDetails({ result, logs = [], tests = [], scriptError }: P
         </CollapsibleSection>
         <CollapsibleSection itemKey="output" title="Output" initialEntered>
           <OutputDetails logs={logs} tests={tests} scriptError={scriptError} />
+        </CollapsibleSection>
+        <CollapsibleSection itemKey="trace" title="Trace" initialEntered>
+          <TraceDetails executionEvents={executionEvents} />
         </CollapsibleSection>
       </ControlledAccordion>
     </div>
@@ -150,6 +177,64 @@ function OutputDetails({ logs, tests, scriptError }: OutputDetailsProps): JSX.El
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Renders ordered variable and flow-control trace rows for a single send.
+ */
+function TraceDetails({ executionEvents }: TraceDetailsProps): JSX.Element {
+  if (executionEvents.length === 0) {
+    return (
+      <div className="px-2.5 py-2 text-center text-[14px] text-muted">No trace</div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-md border border-separator">
+      {executionEvents.map((event, index) => {
+        const label =
+          event.type === 'variable'
+            ? formatVariableExecutionLabel(event)
+            : formatFlowExecutionLabel(event);
+        const detail =
+          event.type === 'variable'
+            ? formatVariableExecutionDetail(event)
+            : formatFlowExecutionDetail(event);
+
+        return (
+          <div
+            key={`${event.type}-${event.scriptName ?? 'script'}-${index}`}
+            className={`flex items-center gap-2 px-2.5 py-1.5 ${index > 0 ? 'border-t border-separator' : ''}`}
+          >
+            <span
+              className={`inline-block h-2 w-2 shrink-0 rounded-full ${event.type === 'variable' ? 'bg-accent' : 'bg-warning'}`}
+              aria-hidden="true"
+            />
+            <span className="sr-only">
+              {event.type === 'variable' ? 'Variable change' : 'Flow change'}
+            </span>
+            {event.scriptName && (
+              <>
+                <span className="text-[14px] text-muted">{event.scriptName}</span>
+                <span className="text-[14px] text-muted" aria-hidden="true">
+                  -
+                </span>
+              </>
+            )}
+            <span className="text-[14px] text-text">{label}</span>
+            {detail && (
+              <>
+                <span className="text-[14px] text-muted" aria-hidden="true">
+                  -
+                </span>
+                <span className="min-w-0 truncate font-mono text-[14px] text-text">{detail}</span>
+              </>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

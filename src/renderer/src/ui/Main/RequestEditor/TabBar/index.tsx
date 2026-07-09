@@ -43,6 +43,25 @@ import {
   resolveRequestTabIdFromFocusTarget
 } from './focusRequestTabPanel';
 import { TabItem } from './TabItem';
+import { TabContextMenu } from '#/renderer/src/ui/shared/TabContextMenu';
+import { buildTabCloseMenuGroups } from '#/renderer/src/ui/shared/tabContextMenuHelpers';
+
+interface TabContextMenuState {
+  /**
+   * Tab that was right-clicked.
+   */
+  tabId: string;
+
+  /**
+   * Viewport X coordinate for the menu.
+   */
+  x: number;
+
+  /**
+   * Viewport Y coordinate for the menu.
+   */
+  y: number;
+}
 
 /** Prefix for request editor tab label element ids. */
 const REQUEST_TAB_ID_PREFIX = 'request-tab-';
@@ -139,6 +158,18 @@ interface Props {
   onClose: (tabId: string) => void;
 
   /**
+   * Closes multiple tabs, prompting once when any have unsaved changes.
+   *
+   * @param tabIds - Tabs to close.
+   */
+  onCloseMany: (tabIds: string[]) => void;
+
+  /**
+   * Closes every tab that has no unsaved changes.
+   */
+  onCloseSaved: () => void;
+
+  /**
    * Opens a new blank request tab.
    */
   onNew: () => void;
@@ -159,6 +190,8 @@ export function TabBar({
   activeTabId,
   onSelect,
   onClose,
+  onCloseMany,
+  onCloseSaved,
   onNew,
   onReorder
 }: Props): JSX.Element {
@@ -168,6 +201,7 @@ export function TabBar({
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
   const { teamHubs } = useTeamHubs();
   const [activeDragTabId, setActiveDragTabId] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<TabContextMenuState | null>(null);
   const sortableEnabled = tabs.length >= 2;
 
   const sensors = useSensors(
@@ -179,6 +213,26 @@ export function TabBar({
    * Stable sortable ids for open request editor tabs.
    */
   const sortableIds = useMemo(() => tabs.map((tab) => requestTabSortableId(tab.tabId)), [tabs]);
+
+  /**
+   * Stable tab ids in display order for context menu close actions.
+   */
+  const orderedTabIds = useMemo(() => tabs.map((tab) => tab.tabId), [tabs]);
+
+  /**
+   * Menu groups for the open tab context menu, when one is visible.
+   */
+  const contextMenuGroups = useMemo(() => {
+    if (contextMenu == null) {
+      return [];
+    }
+
+    return buildTabCloseMenuGroups(orderedTabIds, contextMenu.tabId, {
+      onClose,
+      onCloseMany,
+      onCloseSaved
+    });
+  }, [contextMenu, onClose, onCloseMany, onCloseSaved, orderedTabIds]);
 
   /**
    * Resolves display metadata for each page tab using current entity names.
@@ -363,6 +417,13 @@ export function TabBar({
                       pageIcon={pageDisplay?.icon}
                       onSelect={onSelect}
                       onClose={onClose}
+                      onContextMenu={(tabId, event) => {
+                        setContextMenu({
+                          tabId,
+                          x: event.clientX,
+                          y: event.clientY
+                        });
+                      }}
                     />
                   );
                 })}
@@ -393,6 +454,13 @@ export function TabBar({
           </div>
         </div>
       </Scrollbars>
+      {contextMenu && (
+        <TabContextMenu
+          groups={contextMenuGroups}
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   );
 }
