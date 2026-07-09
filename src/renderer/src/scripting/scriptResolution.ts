@@ -39,9 +39,56 @@ export interface SnippetModuleMap {
   modules: Record<string, string>;
 
   /**
-   * Filenames that appear on more than one snippet row.
+   * Filenames that appear on more than one importable source.
    */
   conflicts: string[];
+}
+
+/**
+ * One importable JavaScript module keyed by a `.js` filename.
+ */
+interface ImportableModuleSource {
+  /**
+   * Import path key, for example `pass-testing.js` or `utils/helpers.js`.
+   */
+  name: string;
+
+  /**
+   * Trimmed module source code.
+   */
+  code: string;
+}
+
+/**
+ * Builds a filename-keyed module map from an ordered list of importable sources.
+ *
+ * Later entries overwrite earlier ones for the same name; duplicate filenames
+ * are recorded in {@link SnippetModuleMap.conflicts}.
+ *
+ * @param sources - Importable modules in precedence order.
+ * @returns Module map and any ambiguous import filenames.
+ */
+function buildModuleMapFromSources(sources: ImportableModuleSource[]): SnippetModuleMap {
+  const modules: Record<string, string> = {};
+  const conflicts: string[] = [];
+  const seen = new Map<string, number>();
+
+  for (const source of sources) {
+    const name = source.name.trim();
+    if (!isImportableSnippetName(name)) {
+      continue;
+    }
+
+    const count = (seen.get(name) ?? 0) + 1;
+    seen.set(name, count);
+    if (count === 2) {
+      conflicts.push(name);
+    }
+
+    modules[name] = source.code.trim();
+  }
+
+  return { modules, conflicts };
 }
 
 /**
@@ -55,26 +102,79 @@ export interface SnippetModuleMap {
  * @returns Module map and any ambiguous import filenames.
  */
 export function buildSnippetModuleMap(snippets: Snippet[]): SnippetModuleMap {
-  const modules: Record<string, string> = {};
-  const conflicts: string[] = [];
-  const seen = new Map<string, number>();
+  const sources: ImportableModuleSource[] = [];
+  for (const snippet of snippets) {
+    const name = snippet.name.trim();
+    if (!isImportableSnippetName(name)) {
+      continue;
+    }
+    sources.push({ name, code: snippet.code });
+  }
+
+  return buildModuleMapFromSources(sources);
+}
+
+/**
+ * Collects importable inline script modules from one or more script reference lists.
+ *
+ * Disabled inline scripts are included so they remain importable as helper-only
+ * modules even when they do not run as their own slot.
+ *
+ * @param refLists - Script reference arrays from a request, collection, or both.
+ * @returns Importable inline modules keyed by script display name.
+ */
+export function collectInlineScriptModules(
+  refLists: Array<ScriptRef[] | undefined | null>
+): ImportableModuleSource[] {
+  const sources: ImportableModuleSource[] = [];
+
+  for (const refs of refLists) {
+    for (const ref of normalizeScriptRefs(refs)) {
+      if (ref.kind !== 'inline') {
+        continue;
+      }
+
+      const name = ref.name?.trim() ?? '';
+      const code = (ref.code ?? '').trim();
+      if (!isImportableSnippetName(name) || !code) {
+        continue;
+      }
+
+      sources.push({ name, code });
+    }
+  }
+
+  return sources;
+}
+
+/**
+ * Builds the full import module map for a send operation.
+ *
+ * Library snippets are included first; inline scripts from the request and
+ * collection lists are merged afterward. Duplicate filenames across any source
+ * are recorded as conflicts.
+ *
+ * @param snippets - Snippet library entries loaded from the registry.
+ * @param inlineRefLists - Inline script lists from the active request and collection.
+ * @returns Module map and any ambiguous import filenames.
+ */
+export function buildScriptModuleMap(
+  snippets: Snippet[],
+  inlineRefLists: Array<ScriptRef[] | undefined | null>
+): SnippetModuleMap {
+  const sources: ImportableModuleSource[] = [];
 
   for (const snippet of snippets) {
     const name = snippet.name.trim();
     if (!isImportableSnippetName(name)) {
       continue;
     }
-
-    const count = (seen.get(name) ?? 0) + 1;
-    seen.set(name, count);
-    if (count === 2) {
-      conflicts.push(name);
-    }
-
-    modules[name] = snippet.code.trim();
+    sources.push({ name, code: snippet.code });
   }
 
-  return { modules, conflicts };
+  sources.push(...collectInlineScriptModules(inlineRefLists));
+
+  return buildModuleMapFromSources(sources);
 }
 
 /**

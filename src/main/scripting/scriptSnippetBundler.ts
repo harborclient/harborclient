@@ -64,14 +64,14 @@ export function createSnippetImportPlugin(
   ): { contents: string; loader: 'js' } | { errors: Array<{ text: string }> } => {
     if (conflictSet.has(snippetKey)) {
       return {
-        errors: [{ text: `Ambiguous import: multiple snippets named "${snippetKey}"` }]
+        errors: [{ text: `Ambiguous import: multiple modules named "${snippetKey}"` }]
       };
     }
 
     const source = modules[snippetKey];
     if (source === undefined) {
       return {
-        errors: [{ text: `Cannot find snippet "${snippetKey}"` }]
+        errors: [{ text: `Cannot find module "${snippetKey}"` }]
       };
     }
 
@@ -128,7 +128,8 @@ export function createSnippetImportPlugin(
  * @param source - Raw user-authored script source for the running slot.
  * @param modules - Snippet sources keyed by import filename.
  * @param conflicts - Filenames that map to more than one snippet row.
- * @returns Bundled JavaScript with imports resolved and inlined.
+ * @returns Bundled JavaScript with imports resolved and inlined, or an empty string
+ * when the entry module only exports bindings with no top-level side effects.
  * @throws esbuild build errors when the script or imports are invalid.
  */
 export async function bundleUserScript(
@@ -153,9 +154,11 @@ export async function bundleUserScript(
     plugins: [createSnippetImportPlugin(source, modules, conflicts)]
   });
 
-  const output = result.outputFiles[0]?.text;
-  if (!output) {
-    throw new Error('Script bundling produced no output');
+  const output = result.outputFiles[0]?.text ?? '';
+  if (!output.trim()) {
+    // Export-only entry modules (no top-level side effects) tree-shake to empty
+    // output; that is valid when the slot runs as a helper library, not an error.
+    return '';
   }
 
   return output;

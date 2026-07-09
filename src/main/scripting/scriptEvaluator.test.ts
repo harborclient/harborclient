@@ -108,6 +108,20 @@ describe('evaluateScript snippet imports', () => {
     expect(result.variableSets.done).toBe('yes');
   });
 
+  it('succeeds for export-only scripts with no top-level side effects', async () => {
+    const result = await evaluateScript({
+      ...baseInput,
+      script: `
+        export const before = () => {
+          console.log('BEFORE!');
+        };
+      `
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.tests).toHaveLength(0);
+  });
+
   it('returns a compile error for missing snippet imports', async () => {
     const result = await evaluateScript({
       ...baseInput,
@@ -115,7 +129,7 @@ describe('evaluateScript snippet imports', () => {
       snippetModules: {}
     });
 
-    expect(result.error).toContain('Cannot find snippet "missing.js"');
+    expect(result.error).toContain('Cannot find module "missing.js"');
   });
 
   it('returns a compile error for ambiguous snippet imports', async () => {

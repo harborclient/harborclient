@@ -35,7 +35,7 @@ import {
 import { hostFromUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/cookieHost';
 import {
   buildSnippetLookup,
-  buildSnippetModuleMap
+  buildScriptModuleMap
 } from '#/renderer/src/scripting/scriptResolution';
 import {
   autoNameUnnamedScripts,
@@ -550,8 +550,14 @@ export async function executeRequestDraft(
    */
   const runScriptPhase = async (phase: 'pre' | 'post', response?: SendResult): Promise<void> => {
     const snippetLookup = buildSnippetLookup(state.snippets.snippets);
-    const { modules: snippetModules, conflicts: snippetModuleConflicts } = buildSnippetModuleMap(
-      state.snippets.snippets
+    const { modules: snippetModules, conflicts: snippetModuleConflicts } = buildScriptModuleMap(
+      state.snippets.snippets,
+      [
+        collection?.pre_request_scripts,
+        collection?.post_request_scripts,
+        currentDraft.pre_request_scripts,
+        currentDraft.post_request_scripts
+      ]
     );
     const slots = buildScriptSlots(
       collection?.pre_request_scripts,

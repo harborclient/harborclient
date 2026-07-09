@@ -254,6 +254,11 @@ interface SortableScriptRowProps {
   isExpanded: boolean;
 
   /**
+   * Importable module filenames for `./` import path autocomplete.
+   */
+  importableModuleNames: string[];
+
+  /**
    * Script phase used for hc autocomplete suggestions.
    */
   phase: 'pre' | 'post';
@@ -1153,6 +1158,7 @@ function SortableScriptRow({
   snippets,
   label,
   isExpanded,
+  importableModuleNames,
   phase,
   placeholder,
   variables,
@@ -1201,34 +1207,25 @@ function SortableScriptRow({
 
   const phaseRef = useRef(phase);
   const variablesRef = useRef(variables);
-  const importableSnippetNames = useMemo(
-    () =>
-      [
-        ...new Set(
-          snippets.map((entry) => entry.name.trim()).filter((name) => isImportableSnippetName(name))
-        )
-      ].sort(),
-    [snippets]
-  );
-  const importableSnippetNamesRef = useRef(importableSnippetNames);
+  const importableModuleNamesRef = useRef(importableModuleNames);
   const hcCompletionSourceRef = useRef<ReturnType<typeof createLiveHcCompletionSource> | null>(
     null
   );
 
   /**
-   * Keeps phase, variables, and importable snippet names refs aligned and lazily builds
+   * Keeps phase, variables, and importable module names refs aligned and lazily builds
    * the live completion source once.
    */
   useEffect(() => {
     phaseRef.current = phase;
     variablesRef.current = variables;
-    importableSnippetNamesRef.current = importableSnippetNames;
+    importableModuleNamesRef.current = importableModuleNames;
     hcCompletionSourceRef.current ??= createLiveHcCompletionSource(
       () => phaseRef.current,
       () => variablesRef.current,
-      () => importableSnippetNamesRef.current
+      () => importableModuleNamesRef.current
     );
-  }, [phase, variables, importableSnippetNames]);
+  }, [phase, variables, importableModuleNames]);
 
   /**
    * Stable delegate passed to CodeEditor; forwards to the live source stored in a ref.
@@ -1798,6 +1795,21 @@ export function ScriptListEditor({
   const compatibleSnippets = useMemo(
     () => snippets.filter((snippet) => snippetMatchesPhase(snippet.scope, phase)),
     [snippets, phase]
+  );
+  const importableModuleNames = useMemo(
+    () =>
+      [
+        ...new Set([
+          ...snippets
+            .map((entry) => entry.name.trim())
+            .filter((name) => isImportableSnippetName(name)),
+          ...normalized
+            .filter((ref) => ref.kind === 'inline')
+            .map((ref) => ref.name?.trim() ?? '')
+            .filter((name) => isImportableSnippetName(name))
+        ])
+      ].sort(),
+    [snippets, normalized]
   );
   const sortableEnabled = normalized.length > 1;
   const [activeDragScriptId, setActiveDragScriptId] = useState<string | null>(null);
@@ -2425,6 +2437,7 @@ export function ScriptListEditor({
     snippets,
     label,
     isExpanded,
+    importableModuleNames,
     phase,
     placeholder: editorPlaceholder,
     variables,

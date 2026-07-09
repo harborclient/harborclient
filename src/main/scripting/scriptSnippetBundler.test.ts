@@ -48,21 +48,44 @@ describe('bundleUserScript', () => {
     expect(bundled).toContain('42');
   });
 
-  it('errors when a snippet import is missing', async () => {
+  it('inlines sibling inline-script modules', async () => {
+    const bundled = await bundleUserScript(
+      "import { before } from './before.js';\nbefore();",
+      {
+        'before.js': "export const before = () => { return 'BEFORE!'; };"
+      },
+      []
+    );
+
+    expect(bundled).toContain('BEFORE!');
+    expect(bundled).not.toMatch(/^\s*import\s/m);
+  });
+
+  it('returns empty output for export-only entry scripts', async () => {
+    const bundled = await bundleUserScript(
+      "export const before = () => { console.log('BEFORE!'); };",
+      {},
+      []
+    );
+
+    expect(bundled).toBe('');
+  });
+
+  it('errors when a module import is missing', async () => {
     await expect(
       bundleUserScript("import { x } from './missing.js';", {}, [])
     ).rejects.toMatchObject({
-      errors: [{ text: 'Cannot find snippet "missing.js"' }]
+      errors: [{ text: 'Cannot find module "missing.js"' }]
     });
   });
 
-  it('errors when a snippet filename is ambiguous', async () => {
+  it('errors when a module filename is ambiguous', async () => {
     await expect(
       bundleUserScript("import { x } from './dup.js';", { 'dup.js': 'export const x = 1;' }, [
         'dup.js'
       ])
     ).rejects.toMatchObject({
-      errors: [{ text: 'Ambiguous import: multiple snippets named "dup.js"' }]
+      errors: [{ text: 'Ambiguous import: multiple modules named "dup.js"' }]
     });
   });
 

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(scripting): enhance module import handling and testing. (`87d263e`)
+
 ## 2.0.13 - 2026-07-09
 
 - feat(scripting): enhance snippet import functionality and introduce module bundling. (`3122417`)
