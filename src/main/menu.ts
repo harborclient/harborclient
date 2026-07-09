@@ -324,6 +324,10 @@ export function buildMenu(
       label: 'Help',
       submenu: [
         {
+          label: 'Getting Started',
+          click: () => sendMenuAction(window, 'getting-started')
+        },
+        {
           label: 'Documentation',
           accelerator: acceleratorFor(accelerators, 'documentation'),
           click: () => void shell.openExternal('https://harborclient.com/')

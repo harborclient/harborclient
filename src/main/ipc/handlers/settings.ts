@@ -132,6 +132,7 @@ function mapTeamHubAdminRunResult(record: TeamHubRunResultRecord): TeamHubAdminR
 
 const THEME_SETTING_KEY = 'theme';
 const THEME_PICKER_SEEN_KEY = 'themePickerSeen';
+const GETTING_STARTED_SEEN_KEY = 'gettingStartedSeen';
 
 /**
  * Validates and returns a theme source value.
@@ -230,6 +231,16 @@ export function registerSettingsHandlers(db: IStorage): void {
   // Marks the first-run theme picker as seen so it is not shown again.
   handle('theme:markPickerSeen', ipcArgSchemas.none, async () => {
     await db.setSetting(THEME_PICKER_SEEN_KEY, '1');
+  });
+
+  // Returns whether the Getting Started tab should open automatically on launch.
+  handle('getting-started:shouldOpen', ipcArgSchemas.none, async () => {
+    return (await db.getSetting(GETTING_STARTED_SEEN_KEY)) !== '1';
+  });
+
+  // Marks Getting Started as seen so it is not auto-opened on future launches.
+  handle('getting-started:markSeen', ipcArgSchemas.none, async () => {
+    await db.setSetting(GETTING_STARTED_SEEN_KEY, '1');
   });
 
   // Returns general HTTP execution settings (timeout, size limit, SSL verify).

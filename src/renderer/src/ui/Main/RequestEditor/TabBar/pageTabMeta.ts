@@ -2,6 +2,7 @@ import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { SettingsSection } from '#/shared/types';
 import type { PageRef } from '#/renderer/src/store/drafts';
 import {
+  faBook,
   faCookieBite,
   faFingerprint,
   faGear,
@@ -45,6 +46,8 @@ interface PageTabMetaOptions {
  */
 export function pageTabMeta(page: PageRef, options: PageTabMetaOptions = {}): PageTabDisplay {
   switch (page.type) {
+    case 'getting-started':
+      return { title: 'Getting Started', icon: faBook };
     case 'settings': {
       if (page.section.startsWith('plugin:')) {
         return { title: 'Settings', icon: faGear };

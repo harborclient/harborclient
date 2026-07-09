@@ -28,6 +28,7 @@ import { SnippetDetailPage } from '#/renderer/src/ui/Snippets/SnippetDetailPage'
 import { SnippetEditPage } from '#/renderer/src/ui/Snippets/SnippetEditPage';
 import { TeamHub } from '#/renderer/src/ui/TeamHub';
 import { TeamHubAdmin } from '#/renderer/src/ui/TeamHub/TeamHubAdmin';
+import { GettingStartedPage } from '#/renderer/src/ui/GettingStarted/GettingStartedPage';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
 
 interface Props {
@@ -96,6 +97,10 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
       }
     }
   }, [page, tabId, collections, environments, pluginViews, dispatch]);
+
+  if (page.type === 'getting-started') {
+    return <GettingStartedPage />;
+  }
 
   if (page.type === 'settings') {
     return (

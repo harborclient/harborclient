@@ -43,6 +43,8 @@ export function pageTabCloseName(
   teamHubs: TeamHub[] = []
 ): string {
   switch (page.type) {
+    case 'getting-started':
+      return 'Getting Started';
     case 'settings':
       return 'Settings';
     case 'plugins':

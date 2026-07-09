@@ -93,6 +93,7 @@ export type SnippetEditTabMode = 'new' | 'edit' | 'clone' | 'import';
  * Reference to a configuration page shown inside a tab.
  */
 export type PageRef =
+  | { type: 'getting-started' }
   | { type: 'settings'; section: SettingsSection; focusVariableKey?: string }
   | { type: 'plugins' }
   | { type: 'themes' }
@@ -190,6 +191,8 @@ export function asRequestTab(tab: Tab | undefined): RequestTab {
  */
 export function pageRefKey(page: PageRef): string {
   switch (page.type) {
+    case 'getting-started':
+      return 'getting-started';
     case 'settings':
       return 'settings';
     case 'plugins':

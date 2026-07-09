@@ -190,6 +190,26 @@ export default function App(): JSX.Element {
     };
   }, [dispatch]);
 
+  /**
+   * Opens the Getting Started tab once on first launch, then marks it seen.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    void window.api.shouldOpenGettingStarted().then((shouldOpen) => {
+      if (cancelled || !shouldOpen) {
+        return;
+      }
+
+      dispatch(openPageTab({ type: 'getting-started' }));
+      void window.api.markGettingStartedSeen();
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dispatch]);
+
   const activeCollectionId = draft.collection_id ?? selectedCollectionId;
 
   /**

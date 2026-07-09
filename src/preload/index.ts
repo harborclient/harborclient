@@ -915,6 +915,20 @@ function markThemePickerSeen(): Promise<void> {
 }
 
 /**
+ * Returns whether the Getting Started tab should open automatically on launch.
+ */
+function shouldOpenGettingStarted(): Promise<boolean> {
+  return ipcRenderer.invoke('getting-started:shouldOpen');
+}
+
+/**
+ * Marks Getting Started as seen so it is not auto-opened on future launches.
+ */
+function markGettingStartedSeen(): Promise<void> {
+  return ipcRenderer.invoke('getting-started:markSeen');
+}
+
+/**
  * Subscribes to theme preference change notifications from the main process.
  *
  * @param callback - Called with the new persisted theme preference.
@@ -2690,6 +2704,8 @@ const api: Api = {
   previewTheme,
   shouldPickTheme,
   markThemePickerSeen,
+  shouldOpenGettingStarted,
+  markGettingStartedSeen,
   onThemeChanged,
   isDeveloperToolsEnabled,
   inspectElement,

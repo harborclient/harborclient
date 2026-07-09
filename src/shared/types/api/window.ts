@@ -126,6 +126,14 @@ export interface ApiWindow {
    */
   markThemePickerSeen: () => Promise<void>;
   /**
+   * Returns whether the Getting Started tab should open automatically on launch.
+   */
+  shouldOpenGettingStarted: () => Promise<boolean>;
+  /**
+   * Marks Getting Started as seen so it is not auto-opened on future launches.
+   */
+  markGettingStartedSeen: () => Promise<void>;
+  /**
    * Subscribes to theme preference changes pushed from the main process.
    *
    * @param callback - Called with the new persisted theme preference.

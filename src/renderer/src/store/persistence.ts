@@ -234,6 +234,8 @@ function normalizePageRef(value: unknown): PageRef | null {
   }
 
   switch (value.type) {
+    case 'getting-started':
+      return { type: 'getting-started' };
     case 'settings': {
       if (value.section === 'snippets') {
         return { type: 'snippets' };

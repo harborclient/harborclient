@@ -171,6 +171,9 @@ export function useMenuActions(): void {
         case 'sharing-keys':
           dispatch(openPageTab({ type: 'sharing-keys' }));
           break;
+        case 'getting-started':
+          dispatch(openPageTab({ type: 'getting-started' }));
+          break;
         case 'join-shared-collection':
           dispatch(openCollectionModal({ mode: 'create', tab: 'join' }));
           break;

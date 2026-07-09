@@ -545,6 +545,25 @@ describe('redux open-tab round trip', () => {
     expect('kind' in tab! && tab.kind === 'page' && tab.page.type).toBe('snippets');
   });
 
+  it('round-trips getting-started page tabs through parseOpenTabsFromRaw', () => {
+    const payload = JSON.stringify({
+      tabs: [
+        {
+          tabId: 'page-tab-getting-started',
+          kind: 'page',
+          page: { type: 'getting-started' }
+        }
+      ],
+      activeTabId: 'page-tab-getting-started'
+    });
+
+    const restored = parseOpenTabsFromRaw(payload);
+
+    expect(restored.tabs).toHaveLength(1);
+    const tab = restored.tabs[0];
+    expect('kind' in tab! && tab.kind === 'page' && tab.page.type).toBe('getting-started');
+  });
+
   it('round-trips team hub admin page tabs through parseOpenTabsFromRaw', () => {
     const payload = JSON.stringify({
       tabs: [

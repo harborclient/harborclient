@@ -40,6 +40,7 @@ export type MenuActionId =
   | 'set-method-delete'
   | 'set-method-head'
   | 'set-method-options'
+  | 'getting-started'
   | 'documentation'
   | 'report-issue'
   | 'about'
