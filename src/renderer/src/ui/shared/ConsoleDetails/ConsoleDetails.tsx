@@ -186,9 +186,7 @@ function OutputDetails({ logs, tests, scriptError }: OutputDetailsProps): JSX.El
  */
 function TraceDetails({ executionEvents }: TraceDetailsProps): JSX.Element {
   if (executionEvents.length === 0) {
-    return (
-      <div className="px-2.5 py-2 text-center text-[14px] text-muted">No trace</div>
-    );
+    return <div className="px-2.5 py-2 text-center text-[14px] text-muted">No trace</div>;
   }
 
   return (

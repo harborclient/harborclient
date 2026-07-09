@@ -81,5 +81,13 @@ export function pageTabMeta(page: PageRef, options: PageTabMetaOptions = {}): Pa
         title: options.runnerTargetName ? `Run ${options.runnerTargetName}` : 'Runner',
         icon: faPlay
       };
+    case 'plugin-detail':
+      return {
+        title: page.label,
+        icon: page.kind === 'themes' ? faPalette : faPuzzlePiece
+      };
+    case 'snippet-detail':
+    case 'snippet-edit':
+      return { title: page.label, icon: faTerminal };
   }
 }

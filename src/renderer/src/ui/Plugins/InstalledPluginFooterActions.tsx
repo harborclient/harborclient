@@ -56,6 +56,11 @@ interface Props {
    * Switches to this theme plugin when provided on the Installed themes page.
    */
   onUseTheme?: (plugin: PluginInfo) => void;
+
+  /**
+   * Button sizing for card footers vs page header toolbars.
+   */
+  layout?: 'card' | 'header';
 }
 
 /**
@@ -71,13 +76,16 @@ export function InstalledPluginFooterActions({
   onUpdateFromGit,
   onRemove,
   stopPropagation = false,
-  onUseTheme
+  onUseTheme,
+  layout = 'card'
 }: Props): JSX.Element {
   const noun = pluginManagementNoun(kind);
   const middleAction = resolveInstalledCardMiddleAction(plugin);
   const toggleLabel = installedCardToggleLabel(plugin.enabled);
   const removeLabel = isManagedInstall(plugin) ? 'Uninstall' : 'Remove';
   const showUseTheme = kind === 'themes' && onUseTheme != null;
+  const buttonClassName =
+    layout === 'header' ? 'min-w-0 justify-center' : 'min-w-0 flex-1 justify-center';
 
   /**
    * Stops event bubbling when embedded in an activatable card row.
@@ -99,7 +107,7 @@ export function InstalledPluginFooterActions({
         <Button
           type="button"
           variant="toolbar"
-          className="min-w-0 flex-1 justify-center"
+          className={buttonClassName}
           aria-label={`Use ${plugin.name}`}
           onClick={handleClickStop(() => onUseTheme(plugin))}
         >
@@ -109,7 +117,7 @@ export function InstalledPluginFooterActions({
         <Button
           type="button"
           variant="toolbar"
-          className="min-w-0 flex-1 justify-center"
+          className={buttonClassName}
           aria-label={`${toggleLabel} ${plugin.name}`}
           onClick={handleClickStop(() => onToggleEnabled(plugin))}
         >
@@ -120,7 +128,7 @@ export function InstalledPluginFooterActions({
         <Button
           type="button"
           variant="toolbar"
-          className="min-w-0 flex-1 justify-center"
+          className={buttonClassName}
           disabled={gitUpdateBusy}
           aria-label={`Update ${plugin.name}`}
           onClick={handleClickStop(() => onUpdateFromGit(plugin.id))}
@@ -132,7 +140,7 @@ export function InstalledPluginFooterActions({
         <Button
           type="button"
           variant="toolbar"
-          className="min-w-0 flex-1 justify-center"
+          className={buttonClassName}
           aria-label={`Reload ${plugin.name}`}
           onClick={handleClickStop(() => onReload(plugin))}
         >
@@ -142,7 +150,7 @@ export function InstalledPluginFooterActions({
       <Button
         type="button"
         variant="toolbar"
-        className={`min-w-0 flex-1 justify-center ${toolbarDangerButtonClass}`}
+        className={`${buttonClassName} ${toolbarDangerButtonClass}`}
         aria-label={`${removeLabel} ${noun} ${plugin.name}`}
         onClick={handleClickStop(() => onRemove(plugin))}
       >

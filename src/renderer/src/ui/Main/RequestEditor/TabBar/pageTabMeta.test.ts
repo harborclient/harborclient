@@ -32,4 +32,26 @@ describe('pageTabMeta', () => {
 
     expect(meta.title).toBe('Runner');
   });
+
+  it('uses the stored label for plugin detail tabs', () => {
+    const meta = pageTabMeta({
+      type: 'plugin-detail',
+      kind: 'plugins',
+      source: 'installed',
+      id: 'curl',
+      label: 'cURL'
+    });
+
+    expect(meta.title).toBe('cURL');
+  });
+
+  it('uses the stored label for snippet edit tabs', () => {
+    const meta = pageTabMeta({
+      type: 'snippet-edit',
+      mode: 'new',
+      label: 'New snippet'
+    });
+
+    expect(meta.title).toBe('New snippet');
+  });
 });

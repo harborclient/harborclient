@@ -4,6 +4,11 @@ import { useState } from 'react';
 
 import { faAngleLeft, faAngleRight } from '#/renderer/src/fontawesome';
 import { ScreenshotLightbox } from './ScreenshotLightbox';
+import {
+  screenshotCarouselImageFrameClassName,
+  screenshotCarouselLightboxEnabled,
+  type ScreenshotCarouselVariant
+} from './screenshotCarouselVariants';
 
 interface Props {
   /**
@@ -12,9 +17,9 @@ interface Props {
   images: string[];
 
   /**
-   * Visual context for card grid vs detail modal spacing.
+   * Visual context for card grid, detail modal, or page tab spacing.
    */
-  variant: 'card' | 'modal';
+  variant: ScreenshotCarouselVariant;
 
   /**
    * Optional wrapper class names.
@@ -26,19 +31,6 @@ interface Props {
    * Used by marketplace cards that open a modal on click.
    */
   stopPropagation?: boolean;
-}
-
-/**
- * Returns the image frame classes for card and modal variants.
- *
- * @param variant - Card grid or detail modal layout.
- */
-function imageFrameClassName(variant: Props['variant']): string {
-  const base = 'aspect-video w-full object-cover object-top';
-  if (variant === 'card') {
-    return `${base} border-b border-separator`;
-  }
-  return `${base} rounded-md border border-separator`;
 }
 
 /**
@@ -61,7 +53,7 @@ export function ScreenshotCarousel({
 
   const hasMultiple = imageCount > 1;
   const currentImage = images[currentIndex];
-  const lightboxEnabled = variant === 'modal';
+  const lightboxEnabled = screenshotCarouselLightboxEnabled(variant);
 
   /**
    * Moves to the previous screenshot, wrapping to the last slide.
@@ -122,13 +114,13 @@ export function ScreenshotCarousel({
   };
 
   /**
-   * Opens the full-size screenshot lightbox in the plugin detail modal.
+   * Opens the full-size screenshot lightbox for modal and tab detail views.
    */
   const handleOpenLightbox = (): void => {
     setLightboxOpen(true);
   };
 
-  const frameClassName = imageFrameClassName(variant);
+  const frameClassName = screenshotCarouselImageFrameClassName(variant);
   const previewLabel = hasMultiple
     ? `View screenshot ${currentIndex + 1} of ${imageCount} in full size`
     : 'View screenshot in full size';

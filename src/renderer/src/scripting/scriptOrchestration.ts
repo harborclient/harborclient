@@ -193,10 +193,12 @@ export function applyScriptRequestMutations(
     method: result.request.method,
     url: result.request.url,
     headers: result.request.headers.map((header) => ({ ...header })),
-    params: current.params,
+    params: result.request.params.map((param) => ({ ...param })),
     body: result.request.body,
     bodyType: current.bodyType,
-    auth: result.request.auth
+    auth: result.request.auth,
+    tags: result.request.tags ?? '',
+    comment: result.request.comment ?? ''
   };
 }
 

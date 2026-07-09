@@ -1,12 +1,4 @@
-import {
-  Badge,
-  Button,
-  FaIcon,
-  Modal,
-  ModalFooter,
-  ModalHeader,
-  Spinner
-} from '@harborclient/sdk/components';
+import { Badge, FaIcon, Spinner } from '@harborclient/sdk/components';
 import { faBug, faGlobe } from '#/renderer/src/fontawesome';
 import { useMemo, type JSX } from 'react';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
@@ -18,11 +10,10 @@ import type {
   PluginScreenshot
 } from '#/shared/plugin/types';
 
-import { PERMISSION_DESCRIPTIONS, PERMISSION_NAMES, type PluginManagementKind } from './constants';
+import { PERMISSION_DESCRIPTIONS, PERMISSION_NAMES } from './constants';
 import { installedPluginInstallationLabel } from './helpers';
 import { VerifiedPublisherBadge } from '#/renderer/src/ui/shared/VerifiedPublisherBadge';
 import { ErrorMessages } from './ErrorMessages';
-import { InstalledPluginFooterActions } from './InstalledPluginFooterActions';
 import { PluginReadmeMarkdown } from './PluginReadmeMarkdown';
 import { ScreenshotCarousel } from './ScreenshotCarousel';
 
@@ -88,62 +79,9 @@ interface CatalogProps {
    * Installed plugin row when this catalog id is already present.
    */
   installed: PluginInfo | undefined;
-
-  /**
-   * Whether an install or update action is in progress for this listing.
-   */
-  actionBusy: boolean;
-
-  /**
-   * Installs the plugin from its git repository URL.
-   */
-  onInstall: () => void;
 }
 
-interface InstalledActionProps {
-  /**
-   * Whether this screen shows plugins or themes for footer copy.
-   */
-  kind: PluginManagementKind;
-
-  /**
-   * Whether a git update is in progress for the open plugin.
-   */
-  gitUpdateBusy: boolean;
-
-  /**
-   * Toggles enablement for the open plugin.
-   */
-  onToggleEnabled: (plugin: PluginInfo) => void;
-
-  /**
-   * Reloads an unpacked plugin from disk.
-   */
-  onReload: (plugin: PluginInfo) => void;
-
-  /**
-   * Re-clones a git-installed plugin from its stored origin.
-   */
-  onUpdateFromGit: (pluginId: string) => void;
-
-  /**
-   * Removes or uninstalls the open plugin after confirmation.
-   */
-  onRemove: (plugin: PluginInfo) => void;
-
-  /**
-   * Switches to this theme plugin when provided on the Installed themes page.
-   */
-  onUseTheme?: (plugin: PluginInfo) => void;
-}
-
-type Props = (InstalledProps | CatalogProps) &
-  InstalledActionProps & {
-    /**
-     * Closes the detail dialog.
-     */
-    onClose: () => void;
-  };
+type Props = InstalledProps | CatalogProps;
 
 const SCREENSHOT_FALLBACK_PATH = 'screenshot.png';
 
@@ -160,7 +98,7 @@ function screenshotRelativePath(screenshot: PluginScreenshot): string {
  * Collects manifest and catalog screenshot paths used to dedupe README images.
  *
  * @param manifest - Parsed plugin manifest when available.
- * @param entry - Marketplace listing when the modal is in catalog mode.
+ * @param entry - Marketplace listing when the view is in catalog mode.
  * @param screenshotSrcs - Resolved carousel URLs when a preview is shown.
  */
 function collectPluginScreenshotImageRefs(
@@ -217,7 +155,7 @@ function manifestDetails(
  * Resolves marketplace description Markdown, preferring the catalog payload
  * over a live git preview fetch.
  *
- * @param entry - Marketplace listing when the modal is in catalog mode.
+ * @param entry - Marketplace listing when the view is in catalog mode.
  * @param preview - Remote preview payload when manifest fetch succeeded.
  * @returns Description body suitable for {@link PluginReadmeMarkdown}.
  */
@@ -233,15 +171,13 @@ function resolveCatalogDescriptionMarkdown(
 }
 
 /**
- * Read-only plugin detail modal shared by installed plugins and marketplace previews.
+ * Read-only plugin detail body for detail tabs.
  */
-export function PluginDetailModal(props: Props): JSX.Element {
-  const { onClose } = props;
+export function PluginDetailContent(props: Props): JSX.Element {
   const isInstalled = props.mode === 'installed';
   const plugin = isInstalled ? props.plugin : props.installed;
   const manifest = isInstalled ? props.plugin.manifest : props.preview?.manifest;
   const entry = props.mode === 'catalog' ? props.entry : undefined;
-  const title = isInstalled ? props.plugin.name : (entry?.name ?? 'Plugin');
   const summary = entry?.summary ?? manifest?.summary;
   const version = isInstalled
     ? props.plugin.version
@@ -295,12 +231,11 @@ export function PluginDetailModal(props: Props): JSX.Element {
       Boolean(details?.hasDescription) ||
       descriptionMarkdown.length > 0 ||
       (descriptionLoadState === 'error' && Boolean(details?.hasDescription));
-  const closeDisabled = (props.mode === 'catalog' && props.actionBusy) || props.gitUpdateBusy;
 
-  const detailBody = (
-    <>
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto">
       {screenshotSrcs && screenshotSrcs.length > 0 ? (
-        <ScreenshotCarousel variant="modal" images={screenshotSrcs} />
+        <ScreenshotCarousel variant="tab" images={screenshotSrcs} />
       ) : null}
 
       {props.mode === 'catalog' && props.previewError ? (
@@ -428,50 +363,6 @@ export function PluginDetailModal(props: Props): JSX.Element {
           ) : null}
         </div>
       ) : null}
-    </>
-  );
-
-  const installedPlugin = isInstalled ? props.plugin : props.installed;
-
-  const footerContent = installedPlugin ? (
-    <InstalledPluginFooterActions
-      kind={props.kind}
-      plugin={installedPlugin}
-      gitUpdateBusy={props.gitUpdateBusy}
-      onToggleEnabled={props.onToggleEnabled}
-      onReload={props.onReload}
-      onUpdateFromGit={props.onUpdateFromGit}
-      onRemove={props.onRemove}
-      onUseTheme={props.onUseTheme}
-    />
-  ) : props.mode === 'catalog' ? (
-    <Button
-      type="button"
-      disabled={props.actionBusy}
-      aria-label={`Install ${props.entry.name}`}
-      onClick={props.onInstall}
-    >
-      {props.actionBusy ? 'Installing…' : 'Install'}
-    </Button>
-  ) : null;
-
-  return (
-    <Modal
-      onClose={onClose}
-      className="flex w-[min(46.2rem,calc(100vw-2rem))] max-h-[85vh] flex-col overflow-hidden !p-0"
-      labelledBy="plugin-detail-title"
-      disableEscape={closeDisabled}
-    >
-      <ModalHeader
-        titleId="plugin-detail-title"
-        title={title}
-        closeDisabled={closeDisabled}
-        onClose={onClose}
-      />
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{detailBody}</div>
-      <ModalFooter className="shrink-0 border-t border-separator bg-surface px-4 pb-4 pt-4 shadow-[0_-8px_16px_-8px_rgba(0,0,0,0.12)]">
-        <div className="flex flex-wrap gap-2">{footerContent}</div>
-      </ModalFooter>
-    </Modal>
+    </div>
   );
 }

@@ -149,14 +149,16 @@ describe('applyScriptRequestMutations', () => {
         method: 'POST',
         url: 'https://new.example',
         headers: [{ key: 'Authorization', value: 'Bearer token', enabled: true }],
-        params: current.params,
+        params: [{ key: 'page', value: '2', enabled: true }],
         body: '{"ok":true}',
         bodyType: 'json',
         auth: {
           ...defaultAuth(),
           type: 'bearer',
           bearer: { token: 'script-token' }
-        }
+        },
+        tags: 'scripted',
+        comment: 'Updated by script'
       },
       variableSets: {},
       variableClears: [],
@@ -178,14 +180,16 @@ describe('applyScriptRequestMutations', () => {
       method: 'POST',
       url: 'https://new.example',
       headers: [{ key: 'Authorization', value: 'Bearer token', enabled: true }],
-      params: [{ key: 'q', value: 'search', enabled: true }],
+      params: [{ key: 'page', value: '2', enabled: true }],
       body: '{"ok":true}',
       bodyType: 'none',
       auth: {
         ...defaultAuth(),
         type: 'bearer',
         bearer: { token: 'script-token' }
-      }
+      },
+      tags: 'scripted',
+      comment: 'Updated by script'
     });
   });
 });

@@ -139,7 +139,7 @@ describe('createHcCompletionSource', () => {
     const source = createHcCompletionSource('pre', variables);
     const result = await complete(source, mockContext('hc.collection.headers.'));
 
-    expect(labels(result!.options).sort()).toEqual(['get', 'toObject', 'upsert']);
+    expect(labels(result!.options).sort()).toEqual(['clear', 'get', 'set']);
   });
 
   it('lists environment members', async () => {
@@ -172,6 +172,8 @@ describe('createHcCompletionSource', () => {
       'body',
       'headers',
       'method',
+      'notes',
+      'params',
       'url',
       'variables'
     ]);
@@ -181,7 +183,21 @@ describe('createHcCompletionSource', () => {
     const source = createHcCompletionSource('pre', variables);
     const result = await complete(source, mockContext('hc.request.headers.'));
 
-    expect(labels(result!.options).sort()).toEqual(['get', 'toObject', 'upsert']);
+    expect(labels(result!.options).sort()).toEqual(['clear', 'get', 'set']);
+  });
+
+  it('lists request params helpers', async () => {
+    const source = createHcCompletionSource('pre', variables);
+    const result = await complete(source, mockContext('hc.request.params.'));
+
+    expect(labels(result!.options).sort()).toEqual(['clear', 'get', 'set']);
+  });
+
+  it('lists request notes helpers', async () => {
+    const source = createHcCompletionSource('pre', variables);
+    const result = await complete(source, mockContext('hc.request.notes.'));
+
+    expect(labels(result!.options).sort()).toEqual(['clear', 'get', 'set']);
   });
 
   it('completes collection variables inside {{ }}', async () => {
@@ -371,6 +387,8 @@ describe('createHcCompletionSource', () => {
       'body',
       'headers',
       'method',
+      'notes',
+      'params',
       'url',
       'variables'
     ]);
@@ -386,6 +404,8 @@ describe('createHcCompletionSource', () => {
       'body',
       'headers',
       'method',
+      'notes',
+      'params',
       'url',
       'variables'
     ]);

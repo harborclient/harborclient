@@ -28,16 +28,15 @@ import { MarketplaceView } from './MarketplaceView';
 import { PluginModals } from './PluginModals';
 import { PluginSourcesView } from './PluginSourcesView';
 import type { PluginManagementKind } from './constants';
-import { useCatalogDetailPreview } from './hooks/useCatalogDetailPreview';
 import { useInstalledPluginSearch } from './hooks/useInstalledPluginSearch';
 import { usePluginCatalog } from './hooks/usePluginCatalog';
 import { usePluginDeepLinkInstall } from './hooks/usePluginDeepLinkInstall';
-import { usePluginDetail } from './hooks/usePluginDetail';
 import { usePluginInstallActions } from './hooks/usePluginInstallActions';
 import { usePluginList } from './hooks/usePluginList';
 import { usePluginSources } from './hooks/usePluginSources';
 import { pluginSidebarSections } from './sidebarConstants';
 import type { PluginsSidebarSection } from './sidebarTypes';
+import { openCatalogPluginDetailTab, openInstalledPluginDetailTab } from './pluginDetailTabHelpers';
 
 interface Props {
   /**
@@ -171,24 +170,19 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
     loadCatalog,
     resetCatalogFilters
   } = usePluginCatalog(kind);
-  const {
-    detailPlugin,
-    descriptionMarkdown,
-    descriptionLoadState,
-    detailScreenshotSrcs,
-    openDetail,
-    closeDetail
-  } = usePluginDetail({ plugins, catalogById });
-  const {
-    catalogDetailEntry,
-    catalogPreview,
-    catalogPreviewLoadState,
-    catalogPreviewError,
-    openCatalogDetail,
-    closeCatalogDetail,
-    resetCatalogDetail,
-    closeCatalogDetailAfterInstall
-  } = useCatalogDetailPreview({ plugins, openDetail, setCatalogError });
+
+  /**
+   * Opens an installed plugin or theme in a dedicated detail tab.
+   *
+   * @param plugin - Installed plugin row to inspect.
+   */
+  const openPluginDetailInTab = useCallback(
+    (plugin: PluginInfo): void => {
+      openInstalledPluginDetailTab(dispatch, kind, plugin);
+    },
+    [dispatch, kind]
+  );
+
   const {
     pendingInstall,
     setPendingInstall,
@@ -198,14 +192,12 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
     gitInstallError,
     gitInstallBusy,
     gitUpdateBusyId,
-    catalogActionBusyId,
     setCatalogActionBusyId,
     onGitInstallUrlChange,
     onGitInstallRefChange,
     handleInstallFromFile,
     handleInstallFromGit,
     handleUpdateFromGit,
-    handleCatalogInstall,
     handleLoadUnpacked,
     handleToggleEnabled,
     handleReload,
@@ -213,10 +205,10 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
   } = usePluginInstallActions({
     kind,
     refresh,
-    openDetail,
-    detailPlugin,
-    closeDetail,
-    closeCatalogDetailAfterInstall
+    openDetail: openPluginDetailInTab,
+    detailPlugin: null,
+    closeDetail: () => {},
+    closeCatalogDetailAfterInstall: () => {}
   });
   const {
     pluginSourcesDraft,
@@ -239,7 +231,7 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
     setCatalogLoading,
     setCatalogError,
     setCatalogActionBusyId,
-    openDetail,
+    openDetail: openPluginDetailInTab,
     setPendingInstall
   });
 
@@ -342,7 +334,6 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
    */
   const handleSectionChange = (next: PluginsSidebarSection): void => {
     if (section === 'marketplace' && next !== 'marketplace') {
-      resetCatalogDetail();
       resetCatalogFilters();
     }
     if (section === 'creator' && next !== 'creator') {
@@ -507,7 +498,7 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
             error={error}
             catalogById={catalogById}
             gitUpdateBusyId={gitUpdateBusyId}
-            onOpenDetail={openDetail}
+            onOpenDetail={openPluginDetailInTab}
             onToggleEnabled={(plugin) => void handleToggleEnabled(plugin)}
             onReload={(plugin) => void handleReload(plugin)}
             onUpdateFromGit={(pluginId) => void handleUpdateFromGit(pluginId)}
@@ -546,7 +537,9 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
             filteredCatalogPlugins={filteredCatalogPlugins}
             onSearchQueryChange={setCatalogSearchQuery}
             onCategoryFilterChange={setCatalogCategoryFilter}
-            onOpenCatalogDetail={openCatalogDetail}
+            onOpenCatalogDetail={(entry) =>
+              openCatalogPluginDetailTab(dispatch, kind, entry, plugins)
+            }
           />
         ) : null}
         {section === 'install' ? (
@@ -579,34 +572,12 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
       </SidebarLayout>
 
       <PluginModals
-        kind={kind}
-        plugins={plugins}
-        catalogDetailEntry={catalogDetailEntry}
-        catalogPreview={catalogPreview}
-        catalogPreviewLoadState={catalogPreviewLoadState}
-        catalogPreviewError={catalogPreviewError}
-        catalogActionBusyId={catalogActionBusyId}
-        onCloseCatalogDetail={closeCatalogDetail}
-        onCatalogInstall={(entry) => void handleCatalogInstall(entry)}
-        gitUpdateBusyId={gitUpdateBusyId}
-        onToggleEnabled={(plugin) => void handleToggleEnabled(plugin)}
-        onReload={(plugin) => void handleReload(plugin)}
-        onUpdateFromGit={(pluginId) => void handleUpdateFromGit(pluginId)}
-        onRemove={(plugin) => void handleRemove(plugin)}
-        onUsePluginTheme={
-          kind === 'themes' ? (plugin) => void handleUsePluginTheme(plugin) : undefined
-        }
-        useThemeVariantPicker={kind === 'themes' ? useThemeVariantPicker : null}
-        onCloseUseThemeVariantPicker={() => setUseThemeVariantPicker(null)}
-        onConfirmUseThemeVariant={(themeId) => handleConfirmUseThemeVariant(themeId)}
-        detailPlugin={detailPlugin}
-        descriptionMarkdown={descriptionMarkdown}
-        descriptionLoadState={descriptionLoadState}
-        detailScreenshotSrcs={detailScreenshotSrcs}
-        onCloseDetail={closeDetail}
         pendingInstall={pendingInstall}
         onCancelPendingInstall={() => void closePendingInstall(false)}
         onConfirmPendingInstall={() => void closePendingInstall(true)}
+        useThemeVariantPicker={kind === 'themes' ? useThemeVariantPicker : null}
+        onCloseUseThemeVariantPicker={() => setUseThemeVariantPicker(null)}
+        onConfirmUseThemeVariant={(themeId) => handleConfirmUseThemeVariant(themeId)}
       />
     </>
   );

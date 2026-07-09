@@ -21,21 +21,12 @@ import {
 } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectSnippets } from '#/renderer/src/store/selectors';
-import {
-  createSnippet,
-  deleteSnippet,
-  refreshSnippets,
-  updateSnippet
-} from '#/renderer/src/store/thunks/snippets';
+import { deleteSnippet, refreshSnippets } from '#/renderer/src/store/thunks/snippets';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { providerOptionLabel, useProviders } from '#/renderer/src/hooks/useProviders';
 import { CodePreviewTooltip } from '#/renderer/src/ui/shared/CodePreviewTooltip';
-import { SnippetEditModal } from '#/renderer/src/ui/shared/SnippetEditModal';
-import {
-  createBlankSnippet,
-  createImportedSnippetDraft,
-  type SnippetEditDraft
-} from '#/renderer/src/ui/shared/snippetEditDraft';
+import { createImportedSnippetDraft } from '#/renderer/src/ui/shared/snippetEditDraft';
+import { openSnippetEditTab } from './snippetTabHelpers';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
 import { VerifiedPublisherBadge } from '#/renderer/src/ui/shared/VerifiedPublisherBadge';
 
@@ -81,11 +72,6 @@ export function InstalledView({
   const snippets = useAppSelector(selectSnippets);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [editingDraft, setEditingDraft] = useState<SnippetEditDraft | null>(null);
-  const [isNew, setIsNew] = useState(false);
-  const [isReadOnly, setIsReadOnly] = useState(false);
   const [expandedCatalogIds, setExpandedCatalogIds] = useState<Set<string>>(new Set());
 
   const { providers } = useProviders([]);
@@ -179,16 +165,14 @@ export function InstalledView({
   }, [dispatch, refreshPackages]);
 
   /**
-   * Opens the create snippet modal with a blank draft.
+   * Opens the create snippet tab with a blank draft.
    */
   const handleAdd = (): void => {
-    setEditingDraft(createBlankSnippet());
-    setIsNew(true);
-    setError(null);
+    openSnippetEditTab(dispatch, { mode: 'new', label: 'New snippet' });
   };
 
   /**
-   * Reads a `.js` file and opens the create modal with imported source.
+   * Reads a `.js` file and opens the create tab with imported source.
    */
   const handleImport = async (): Promise<void> => {
     try {
@@ -197,107 +181,44 @@ export function InstalledView({
         return;
       }
 
-      setEditingDraft(createImportedSnippetDraft(result.code));
-      setIsNew(true);
-      setError(null);
+      openSnippetEditTab(dispatch, {
+        mode: 'import',
+        seedCode: result.code,
+        label: createImportedSnippetDraft(result.code).name
+      });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to import snippet');
     }
   };
 
   /**
-   * Opens the edit modal for a local snippet or a read-only view for marketplace snippets.
+   * Opens the edit tab for a local snippet or a read-only view for marketplace snippets.
    *
    * @param snippet - Snippet to edit or preview.
    */
   const handleEdit = (snippet: Snippet): void => {
     const isMarketplaceSnippet = snippet.source === 'marketplace' || snippet.catalogId != null;
 
-    setEditingDraft({
-      id: snippet.id,
-      name: snippet.name,
-      code: snippet.code,
-      scope: snippet.scope,
-      connectionId: snippet.connectionId
+    openSnippetEditTab(dispatch, {
+      mode: 'edit',
+      snippetId: snippet.id,
+      readOnly: isMarketplaceSnippet,
+      label: snippet.name
     });
-    setIsNew(false);
-    setIsReadOnly(isMarketplaceSnippet);
-    setError(null);
   };
 
   /**
-   * Closes the edit modal and clears transient error state.
-   */
-  const handleCancelEdit = (): void => {
-    setEditingDraft(null);
-    setIsNew(false);
-    setIsReadOnly(false);
-    setError(null);
-  };
-
-  /**
-   * Persists the snippet draft through create or update IPC.
-   */
-  const handleSave = async (): Promise<void> => {
-    if (!editingDraft || isReadOnly) {
-      return;
-    }
-
-    const trimmedName = editingDraft.name.trim();
-    if (!trimmedName) {
-      setError('Snippet name is required.');
-      return;
-    }
-
-    setSaving(true);
-    setError(null);
-    try {
-      if (isNew || editingDraft.id == null) {
-        await dispatch(
-          createSnippet({
-            name: trimmedName,
-            code: editingDraft.code,
-            scope: editingDraft.scope,
-            connectionId: editingDraft.connectionId
-          })
-        ).unwrap();
-        toast.success('Snippet created');
-      } else {
-        await dispatch(
-          updateSnippet({
-            id: editingDraft.id,
-            name: trimmedName,
-            code: editingDraft.code,
-            scope: editingDraft.scope,
-            connectionId: editingDraft.connectionId
-          })
-        ).unwrap();
-        toast.success('Snippet saved');
-      }
-      handleCancelEdit();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save snippet');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  /**
-   * Opens the create-snippet modal prefilled from an existing snippet so the
+   * Opens the create-snippet tab prefilled from an existing snippet so the
    * user can review the clone before saving it.
    *
    * @param snippet - Snippet to clone.
    */
   const handleClone = (snippet: Snippet): void => {
-    setEditingDraft({
-      name: `${snippet.name} (clone)`,
-      code: snippet.code,
-      scope: snippet.scope,
-      connectionId: snippet.connectionId
+    openSnippetEditTab(dispatch, {
+      mode: 'clone',
+      snippetId: snippet.id,
+      label: `${snippet.name} (clone)`
     });
-    setIsNew(true);
-    setIsReadOnly(false);
-    setError(null);
   };
 
   /**
@@ -563,19 +484,6 @@ export function InstalledView({
           </ResourceList>
         </AsyncListState>
       </div>
-
-      {editingDraft ? (
-        <SnippetEditModal
-          draft={editingDraft}
-          isNew={isNew}
-          readOnly={isReadOnly}
-          saving={saving}
-          error={error}
-          onChange={setEditingDraft}
-          onCancel={handleCancelEdit}
-          onSave={() => void handleSave()}
-        />
-      ) : null}
     </Page>
   );
 }

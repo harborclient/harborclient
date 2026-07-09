@@ -67,5 +67,9 @@ export function pageTabCloseName(
       return environments.find((environment) => environment.id === page.id)?.name ?? 'Environment';
     case 'collection-runner':
       return 'Collection Runner';
+    case 'plugin-detail':
+    case 'snippet-detail':
+    case 'snippet-edit':
+      return page.label;
   }
 }

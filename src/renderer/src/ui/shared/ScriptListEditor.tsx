@@ -85,6 +85,7 @@ import {
   setPendingComposerText
 } from '#/renderer/src/store/slices/aiChatSlice';
 import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
+import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { createNewChat } from '#/renderer/src/store/thunks/aiChat';
 import { createSnippet, updateSnippet } from '#/renderer/src/store/thunks/snippets';
 import {
@@ -105,6 +106,7 @@ import {
   faClone,
   faFileImport,
   faFloppyDisk,
+  faGear,
   faGripVertical,
   faPen,
   faPlus,
@@ -1250,6 +1252,13 @@ export function ScriptListEditor({
   };
 
   /**
+   * Opens application settings on the syntax highlighting section.
+   */
+  const handleOpenSyntaxSettings = (): void => {
+    dispatch(openPageTab({ type: 'settings', section: 'syntax' }));
+  };
+
+  /**
    * Replaces the script list with a normalized copy.
    *
    * @param next - Updated script references.
@@ -1673,6 +1682,16 @@ export function ScriptListEditor({
             />
           ) : null}
         </div>
+        <Button
+          type="button"
+          variant="secondary"
+          className="shrink-0"
+          aria-label="Syntax highlighting settings"
+          title="Syntax highlighting settings"
+          onClick={handleOpenSyntaxSettings}
+        >
+          <FaIcon icon={faGear} className="h-4 w-4" aria-hidden />
+        </Button>
         <Button
           type="button"
           variant="secondary"

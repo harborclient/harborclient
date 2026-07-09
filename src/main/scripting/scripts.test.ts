@@ -173,9 +173,9 @@ describe('evaluateScript', () => {
       script: `
         console.log(hc.collection.name);
         console.log(String(hc.collection.id));
-        hc.collection.headers.upsert('Authorization', 'Bearer token');
+        hc.collection.headers.set('Authorization', 'Bearer token');
         console.log(hc.collection.headers.get('Authorization'));
-        console.log(JSON.stringify(hc.collection.headers.toObject()));
+        console.log(JSON.stringify(hc.collection.headers.get()));
       `,
       request: {
         method: 'GET',

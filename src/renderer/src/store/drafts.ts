@@ -75,6 +75,21 @@ export interface RequestTab {
 }
 
 /**
+ * Plugin or theme management kind stored on plugin detail tabs.
+ */
+export type PluginDetailPageKind = 'plugins' | 'themes';
+
+/**
+ * Whether a plugin detail tab shows an installed row or a marketplace listing.
+ */
+export type PluginDetailPageSource = 'installed' | 'catalog';
+
+/**
+ * Snippet edit tab mode for create, edit, clone, or import flows.
+ */
+export type SnippetEditTabMode = 'new' | 'edit' | 'clone' | 'import';
+
+/**
  * Reference to a configuration page shown inside a tab.
  */
 export type PageRef =
@@ -94,6 +109,22 @@ export type PageRef =
       collectionId: number;
       folderId?: number | null;
       requestId?: number | null;
+    }
+  | {
+      type: 'plugin-detail';
+      kind: PluginDetailPageKind;
+      source: PluginDetailPageSource;
+      id: string;
+      label: string;
+    }
+  | { type: 'snippet-detail'; catalogId: string; label: string }
+  | {
+      type: 'snippet-edit';
+      mode: SnippetEditTabMode;
+      snippetId?: number;
+      readOnly?: boolean;
+      seedCode?: string;
+      label: string;
     };
 
 /**
@@ -176,6 +207,12 @@ export function pageRefKey(page: PageRef): string {
       return `environment:${page.id}`;
     case 'collection-runner':
       return 'collection-runner';
+    case 'plugin-detail':
+      return `plugin-detail:${page.kind}:${page.source}:${page.id}`;
+    case 'snippet-detail':
+      return `snippet-detail:${page.catalogId}`;
+    case 'snippet-edit':
+      return `snippet-edit:${page.snippetId ?? page.mode}`;
   }
 }
 

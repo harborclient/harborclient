@@ -19,9 +19,12 @@ import { Cookies } from '#/renderer/src/ui/Cookies';
 import { EnvironmentSettings } from '#/renderer/src/ui/EnvironmentSettings';
 import { PluginMainView } from '#/renderer/src/ui/PluginMainView';
 import { Plugins } from '#/renderer/src/ui/Plugins';
+import { PluginDetailPage } from '#/renderer/src/ui/Plugins/PluginDetailPage';
 import { Settings } from '#/renderer/src/ui/Settings';
 import { SharingKeys } from '#/renderer/src/ui/SharingKeys';
 import { Snippets } from '#/renderer/src/ui/Snippets';
+import { SnippetDetailPage } from '#/renderer/src/ui/Snippets/SnippetDetailPage';
+import { SnippetEditPage } from '#/renderer/src/ui/Snippets/SnippetEditPage';
 import { TeamHub } from '#/renderer/src/ui/TeamHub';
 import { TeamHubAdmin } from '#/renderer/src/ui/TeamHub/TeamHubAdmin';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
@@ -129,6 +132,18 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
 
   if (page.type === 'snippets') {
     return <Snippets />;
+  }
+
+  if (page.type === 'plugin-detail') {
+    return <PluginDetailPage page={page} tabId={tabId} />;
+  }
+
+  if (page.type === 'snippet-detail') {
+    return <SnippetDetailPage page={page} tabId={tabId} />;
+  }
+
+  if (page.type === 'snippet-edit') {
+    return <SnippetEditPage page={page} tabId={tabId} />;
   }
 
   if (page.type === 'plugin-view') {

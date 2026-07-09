@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(roadmap): update roadmap to reflect current project status and planned features. (`accbd0a`)
 - feat(screenshots): enhance screenshot capturing and add new collection-related images. (`9ab7f77`)
 - feat(storage): implement script editor UI state migration and enhance script reference merging. (`fa26113`)
 - feat(completions): enhance hcCompletions with Chai matchers and live completion sources. (`45e4817`)

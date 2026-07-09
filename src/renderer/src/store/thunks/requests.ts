@@ -533,7 +533,9 @@ export async function executeRequestDraft(
     params: currentDraft.params.map((param) => ({ ...param })),
     body: currentDraft.body,
     bodyType: currentDraft.body_type,
-    auth: structuredClone(currentDraft.auth)
+    auth: structuredClone(currentDraft.auth),
+    tags: currentDraft.tags ?? '',
+    comment: currentDraft.comment ?? ''
   };
 
   const cookieHost = hostFromUrl(substituteWithMap(currentDraft.url, runtimeVars));
@@ -804,6 +806,64 @@ export async function executeRequestDraft(
         persistErrors.push(
           err instanceof Error ? err.message : 'Failed to save global variable changes from script'
         );
+      }
+    }
+
+    if (currentDraft.id != null && collectionId != null) {
+      const savedRequests = state.collections.requestsByCollection[collectionId] ?? [];
+      const savedRequest = savedRequests.find((request) => request.id === currentDraft.id);
+      const normalizedTags = normalizeRequestTags(scriptRequest.tags ?? '');
+      const normalizedComment = scriptRequest.comment ?? '';
+      const notesChanged =
+        savedRequest != null &&
+        (normalizeRequestTags(savedRequest.tags ?? '') !== normalizedTags ||
+          (savedRequest.comment ?? '') !== normalizedComment);
+
+      if (notesChanged) {
+        try {
+          await window.api.saveRequest({
+            id: savedRequest.id,
+            collection_id: savedRequest.collection_id,
+            folder_id: savedRequest.folder_id ?? null,
+            name: savedRequest.name,
+            method: savedRequest.method,
+            url: savedRequest.url,
+            headers: savedRequest.headers,
+            params: savedRequest.params,
+            body: savedRequest.body,
+            body_type: savedRequest.body_type,
+            pre_request_script: savedRequest.pre_request_script ?? '',
+            post_request_script: savedRequest.post_request_script ?? '',
+            pre_request_scripts: savedRequest.pre_request_scripts ?? [],
+            post_request_scripts: savedRequest.post_request_scripts ?? [],
+            comment: normalizedComment,
+            tags: normalizedTags,
+            auth: savedRequest.auth
+          });
+          await dispatch(refreshRequests(collectionId)).unwrap();
+
+          const openTab = getState().tabs.tabs.find(
+            (tab) => isRequestTab(tab) && tab.draft.id === currentDraft.id
+          );
+          if (openTab && isRequestTab(openTab)) {
+            dispatch(
+              updateTab({
+                tabId: openTab.tabId,
+                updates: {
+                  draft: {
+                    ...openTab.draft,
+                    tags: normalizedTags,
+                    comment: normalizedComment
+                  }
+                }
+              })
+            );
+          }
+        } catch (err) {
+          persistErrors.push(
+            err instanceof Error ? err.message : 'Failed to save request notes from script'
+          );
+        }
       }
     }
 

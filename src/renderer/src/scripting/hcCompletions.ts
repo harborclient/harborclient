@@ -44,14 +44,26 @@ const HC_REQUEST: HcCompletionOption[] = [
   { label: 'url', type: 'property', detail: 'Request URL string' },
   { label: 'body', type: 'property', detail: 'Request body string' },
   { label: 'headers', type: 'property', detail: 'Request headers API' },
+  { label: 'params', type: 'property', detail: 'Request query params API' },
+  { label: 'notes', type: 'property', detail: 'Request tags & comment API' },
   { label: 'auth', type: 'property', detail: 'Request auth API' },
   { label: 'variables', type: 'property', detail: 'Get/set ephemeral variables' }
 ];
 
-const HC_REQUEST_HEADERS: HcCompletionOption[] = [
-  { label: 'get', type: 'method', detail: '(key) => string | undefined' },
-  { label: 'upsert', type: 'method', detail: '(key, value) => void' },
-  { label: 'toObject', type: 'method', detail: '() => Record<string, string>' }
+const HC_PARAMETER_BAG: HcCompletionOption[] = [
+  {
+    label: 'get',
+    type: 'method',
+    detail: '() => Record<string, string> | (key) => string | undefined'
+  },
+  { label: 'set', type: 'method', detail: '(entries) => void | (key, value) => void' },
+  { label: 'clear', type: 'method', detail: '() => void' }
+];
+
+const HC_NOTES_BAG: HcCompletionOption[] = [
+  { label: 'get', type: 'method', detail: '() => { tags, comment } | (field) => string' },
+  { label: 'set', type: 'method', detail: '(entries) => void | (field, value) => void' },
+  { label: 'clear', type: 'method', detail: '() => void' }
 ];
 
 const HC_VARIABLE_BAG: HcCompletionOption[] = [
@@ -250,12 +262,14 @@ const GROUPS: Record<string, HcCompletionOption[]> = {
   '': TOP_LEVEL,
   hc: HC_ROOT,
   'hc.request': HC_REQUEST,
-  'hc.request.headers': HC_REQUEST_HEADERS,
+  'hc.request.headers': HC_PARAMETER_BAG,
+  'hc.request.params': HC_PARAMETER_BAG,
+  'hc.request.notes': HC_NOTES_BAG,
   'hc.request.auth': HC_AUTH,
   'hc.request.variables': HC_VARIABLES,
   'hc.collection': HC_COLLECTION,
   'hc.collection.variables': HC_VARIABLE_BAG,
-  'hc.collection.headers': HC_REQUEST_HEADERS,
+  'hc.collection.headers': HC_PARAMETER_BAG,
   'hc.collection.auth': HC_AUTH,
   'hc.environment': HC_ENVIRONMENT,
   'hc.environment.variables': HC_VARIABLE_BAG,

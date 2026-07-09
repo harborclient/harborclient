@@ -305,6 +305,167 @@ describe('createScriptApi auth bag', () => {
   });
 });
 
+describe('createScriptApi parameter bags', () => {
+  it('exposes get/set/clear for request params', () => {
+    const api = createScriptApi({
+      ...baseInput,
+      request: {
+        ...baseInput.request,
+        params: [{ key: 'q', value: 'search', enabled: true }]
+      }
+    });
+    const hc = api.hc as {
+      request: {
+        params: {
+          get: {
+            (): Record<string, string>;
+            (key: string): string | undefined;
+          };
+          set: {
+            (entries: Record<string, unknown>): void;
+            (key: string, value: unknown): void;
+          };
+          clear: () => void;
+        };
+      };
+    };
+
+    expect(hc.request.params.get('q')).toBe('search');
+    hc.request.params.set({ foo: 'bar', bar: 'foo' });
+    hc.request.params.set('extra', 'value');
+
+    expect(hc.request.params.get()).toEqual({
+      q: 'search',
+      foo: 'bar',
+      bar: 'foo',
+      extra: 'value'
+    });
+
+    hc.request.params.clear();
+    expect(hc.request.params.get()).toEqual({});
+
+    const result = api.readResult();
+    expect(result.request.params).toEqual([]);
+  });
+
+  it('exposes case-insensitive get/set/clear for request headers', () => {
+    const api = createScriptApi({
+      ...baseInput,
+      request: {
+        ...baseInput.request,
+        headers: [{ key: 'X-Test', value: '1', enabled: true }]
+      }
+    });
+    const hc = api.hc as {
+      request: {
+        headers: {
+          get: {
+            (): Record<string, string>;
+            (key: string): string | undefined;
+          };
+          set: {
+            (entries: Record<string, unknown>): void;
+            (key: string, value: unknown): void;
+          };
+          clear: () => void;
+        };
+      };
+    };
+
+    hc.request.headers.set('authorization', 'Bearer token');
+    expect(hc.request.headers.get('Authorization')).toBe('Bearer token');
+    expect(hc.request.headers.get()).toEqual({
+      'X-Test': '1',
+      authorization: 'Bearer token'
+    });
+
+    hc.request.headers.clear();
+    expect(hc.request.headers.get()).toEqual({});
+  });
+
+  it('exposes get/set/clear for collection headers', () => {
+    const api = createScriptApi({
+      ...baseInput,
+      collection: {
+        id: 1,
+        name: 'Demo',
+        headers: [{ key: 'X-Api-Key', value: 'secret', enabled: true }]
+      }
+    });
+    const hc = api.hc as {
+      collection: {
+        headers: {
+          get: {
+            (): Record<string, string>;
+            (key: string): string | undefined;
+          };
+          set: {
+            (entries: Record<string, unknown>): void;
+            (key: string, value: unknown): void;
+          };
+          clear: () => void;
+        };
+      };
+    };
+
+    hc.collection.headers.set('Authorization', 'Bearer token');
+    expect(hc.collection.headers.get()).toEqual({
+      'X-Api-Key': 'secret',
+      Authorization: 'Bearer token'
+    });
+
+    const result = api.readResult();
+    expect(result.collectionHeaders).toEqual([
+      { key: 'X-Api-Key', value: 'secret', enabled: true },
+      { key: 'Authorization', value: 'Bearer token', enabled: true }
+    ]);
+  });
+});
+
+describe('createScriptApi notes bag', () => {
+  it('exposes get/set/clear for request tags and comment', () => {
+    const api = createScriptApi({
+      ...baseInput,
+      request: {
+        ...baseInput.request,
+        tags: 'api, smoke',
+        comment: 'Initial note'
+      }
+    });
+    const hc = api.hc as {
+      request: {
+        notes: {
+          get: {
+            (): { tags: string; comment: string };
+            (field: 'tags' | 'comment'): string;
+          };
+          set: {
+            (entries: { tags?: unknown; comment?: unknown }): void;
+            (field: 'tags' | 'comment', value: unknown): void;
+          };
+          clear: () => void;
+        };
+      };
+    };
+
+    expect(hc.request.notes.get()).toEqual({ tags: 'api, smoke', comment: 'Initial note' });
+    expect(hc.request.notes.get('tags')).toBe('api, smoke');
+
+    hc.request.notes.set({ tags: 'foo, bar', comment: 'Hello world' });
+    expect(hc.request.notes.get('comment')).toBe('Hello world');
+
+    hc.request.notes.set('tags', 'updated');
+    expect(hc.request.notes.get('tags')).toBe('updated');
+
+    hc.request.notes.clear();
+    expect(hc.request.notes.get()).toEqual({ tags: '', comment: '' });
+
+    const result = api.readResult();
+    expect(result.request.tags).toBe('');
+    expect(result.request.comment).toBe('');
+  });
+});
+
 describe('createScriptApi sendRequest', () => {
   it('uses the injected transport when provided', async () => {
     const sendResult: SendResult = {

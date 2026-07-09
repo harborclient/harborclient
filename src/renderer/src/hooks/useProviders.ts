@@ -229,6 +229,11 @@ export function useProviders(
   }, []);
 
   /**
+   * Stable serialization of caller-supplied refetch keys for the effect dependency list.
+   */
+  const extraEffectDepsKey = JSON.stringify(deps);
+
+  /**
    * Fetches database connections, team hubs, the active database id, and optionally
    * admin capability scan results for collection provider filtering.
    */
@@ -293,13 +298,12 @@ export function useProviders(
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- caller supplies intentional refetch keys
   }, [
     excludeAdminTeamHubs,
     excludeSnippetUnsupportedTeamHubs,
     retainConnectionId,
     reloadToken,
-    ...deps
+    extraEffectDepsKey
   ]);
 
   return { providers, primaryProviderId, loading, error, reload };

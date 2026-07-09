@@ -228,43 +228,167 @@ function makeCookieBag(
 }
 
 /**
- * Builds a case-insensitive header accessor over mutable key/value rows.
- *
- * @param getRows - Returns the header rows mutated by upsert.
- * @returns Header get/upsert/toObject helpers shared by request and collection headers.
+ * Options for {@link makeParameterBag} key matching behavior.
  */
-function makeHeaderApi(getRows: () => KeyValue[]): {
-  get: (key: string) => string | undefined;
-  upsert: (key: string, value: string) => void;
-  toObject: () => Record<string, string>;
+interface ParameterBagOptions {
+  /**
+   * When true, get/set/clear match keys case-insensitively (headers).
+   */
+  caseInsensitive: boolean;
+}
+
+/**
+ * Builds a parameter bag over mutable key/value rows with batch and single set.
+ *
+ * @param getRows - Returns the rows mutated by set and clear.
+ * @param options - Whether keys are matched case-insensitively.
+ * @returns Parameter bag API shared by hc.request.params, hc.request.headers, and hc.collection.headers.
+ */
+function makeParameterBag(
+  getRows: () => KeyValue[],
+  options: ParameterBagOptions
+): {
+  get: {
+    (): Record<string, string>;
+    (key: string): string | undefined;
+  };
+  set: {
+    (entries: Record<string, unknown>): void;
+    (key: string, value: unknown): void;
+  };
+  clear: () => void;
 } {
+  const normalizeKey = (key: string): string => String(key).trim();
+  const keysEqual = (left: string, right: string): boolean => {
+    const a = normalizeKey(left);
+    const b = normalizeKey(right);
+    return options.caseInsensitive ? a.toLowerCase() === b.toLowerCase() : a === b;
+  };
+
+  const findRow = (key: string): KeyValue | undefined => {
+    const rows = getRows();
+    return rows.find((row) => row.enabled && keysEqual(row.key, key));
+  };
+
+  const upsert = (key: string, value: unknown): void => {
+    const k = String(key);
+    const v = String(value);
+    const rows = getRows();
+    const existing = rows.find((row) => row.enabled && keysEqual(row.key, k));
+    if (existing) {
+      existing.value = v;
+    } else {
+      rows.push({ key: k, value: v, enabled: true });
+    }
+  };
+
+  const getAll = (): Record<string, string> => {
+    const map: Record<string, string> = {};
+    for (const row of getRows()) {
+      if (row.enabled && row.key.trim()) {
+        map[row.key.trim()] = row.value;
+      }
+    }
+    return map;
+  };
+
+  const get = ((key?: string): Record<string, string> | string | undefined => {
+    if (key === undefined) {
+      return getAll();
+    }
+    const row = findRow(key);
+    return row ? row.value : undefined;
+  }) as {
+    (): Record<string, string>;
+    (key: string): string | undefined;
+  };
+
+  const set = ((first: unknown, second?: unknown): void => {
+    if (first != null && typeof first === 'object' && !Array.isArray(first)) {
+      for (const [key, value] of Object.entries(first as Record<string, unknown>)) {
+        upsert(key, value);
+      }
+      return;
+    }
+    upsert(String(first), second);
+  }) as {
+    (entries: Record<string, unknown>): void;
+    (key: string, value: unknown): void;
+  };
+
   return {
-    get: (key: string) => {
-      const k = String(key).toLowerCase();
-      const row = getRows().find((h) => h.enabled && h.key.trim().toLowerCase() === k);
-      return row ? row.value : undefined;
-    },
-    upsert: (key: string, value: string) => {
-      const k = String(key);
-      const v = String(value);
-      const rows = getRows();
-      const existing = rows.find(
-        (h) => h.enabled && h.key.trim().toLowerCase() === k.toLowerCase()
-      );
-      if (existing) {
-        existing.value = v;
-      } else {
-        rows.push({ key: k, value: v, enabled: true });
+    get,
+    set,
+    clear: () => {
+      getRows().length = 0;
+    }
+  };
+}
+
+/**
+ * Builds a notes bag over request tags and comment fields.
+ *
+ * @param getRequest - Returns the mutable script request context.
+ * @returns Notes get/set/clear API for hc.request.notes.
+ */
+function makeNotesBag(getRequest: () => ScriptRequestContext): {
+  get: {
+    (): { tags: string; comment: string };
+    (field: 'tags' | 'comment'): string;
+  };
+  set: {
+    (entries: { tags?: unknown; comment?: unknown }): void;
+    (field: 'tags' | 'comment', value: unknown): void;
+  };
+  clear: () => void;
+} {
+  const getAll = (): { tags: string; comment: string } => {
+    const request = getRequest();
+    return {
+      tags: request.tags ?? '',
+      comment: request.comment ?? ''
+    };
+  };
+
+  const get = ((field?: 'tags' | 'comment'): { tags: string; comment: string } | string => {
+    const notes = getAll();
+    if (field === undefined) {
+      return notes;
+    }
+    return notes[field];
+  }) as {
+    (): { tags: string; comment: string };
+    (field: 'tags' | 'comment'): string;
+  };
+
+  const set = ((first: unknown, second?: unknown): void => {
+    const request = getRequest();
+    if (first != null && typeof first === 'object' && !Array.isArray(first)) {
+      const entries = first as { tags?: unknown; comment?: unknown };
+      if (entries.tags !== undefined) {
+        request.tags = String(entries.tags);
       }
-    },
-    toObject: () => {
-      const map: Record<string, string> = {};
-      for (const h of getRows()) {
-        if (h.enabled && h.key.trim()) {
-          map[h.key.trim()] = h.value;
-        }
+      if (entries.comment !== undefined) {
+        request.comment = String(entries.comment);
       }
-      return map;
+      return;
+    }
+    const field = String(first);
+    if (field === 'tags' || field === 'comment') {
+      request[field] = String(second);
+    }
+  }) as {
+    (entries: { tags?: unknown; comment?: unknown }): void;
+    (field: 'tags' | 'comment', value: unknown): void;
+  };
+
+  return {
+    get,
+    set,
+    clear: () => {
+      const request = getRequest();
+      request.tags = '';
+      request.comment = '';
     }
   };
 }
@@ -485,7 +609,9 @@ export function createScriptApi(
       set body(v: unknown) {
         state.request.body = String(v);
       },
-      headers: makeHeaderApi(() => state.request.headers),
+      headers: makeParameterBag(() => state.request.headers, { caseInsensitive: true }),
+      params: makeParameterBag(() => state.request.params, { caseInsensitive: false }),
+      notes: makeNotesBag(() => state.request),
       auth: makeAuthApi(() => state.request.auth!),
       variables: {
         ...makeVariableBag(
@@ -528,7 +654,7 @@ export function createScriptApi(
         resolveSeededVariable,
         emitExecutionEvent
       ),
-      headers: makeHeaderApi(() => state.collectionHeaders),
+      headers: makeParameterBag(() => state.collectionHeaders, { caseInsensitive: true }),
       auth: makeAuthApi(() => state.collectionAuth)
     },
     environment: {
@@ -693,7 +819,9 @@ export function defaultScriptContextInput(): ScriptRunContextInput {
       params: [],
       body: '',
       bodyType: 'none',
-      auth: defaultAuth()
+      auth: defaultAuth(),
+      tags: '',
+      comment: ''
     },
     variables: {},
     info: buildScriptRunInfo('pre')

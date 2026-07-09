@@ -302,6 +302,10 @@ function normalizePageRef(value: unknown): PageRef | null {
         requestId
       };
     }
+    case 'plugin-detail':
+    case 'snippet-detail':
+    case 'snippet-edit':
+      return null;
     default:
       return null;
   }

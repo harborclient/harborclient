@@ -57,6 +57,14 @@ export interface ScriptRequestContext {
    * Request-level auth config; mutated by hc.request.auth during script execution.
    */
   auth?: AuthConfig;
+  /**
+   * Comma-separated request tags; mutated by hc.request.notes during script execution.
+   */
+  tags?: string;
+  /**
+   * Free-form request comment; mutated by hc.request.notes during script execution.
+   */
+  comment?: string;
 }
 
 /**

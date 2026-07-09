@@ -10,12 +10,11 @@ import { usePersistedPageSidebarSection } from '#/renderer/src/hooks/usePersiste
 import { InstalledView } from './InstalledView';
 import { InstallView } from './InstallView';
 import { MarketplaceView } from './MarketplaceView';
-import { SnippetDetailModal } from './SnippetDetailModal';
 import { useSnippetCatalog } from './hooks/useSnippetCatalog';
-import { useSnippetCatalogDetail } from './hooks/useSnippetCatalogDetail';
 import { useSnippetDeepLinkInstall } from './hooks/useSnippetDeepLinkInstall';
 import { useSnippetInstallActions } from './hooks/useSnippetInstallActions';
 import { useSnippetPackageList } from './hooks/useSnippetPackageList';
+import { openSnippetCatalogDetailTab } from './snippetTabHelpers';
 import { SNIPPET_SECTIONS } from './sidebarConstants';
 import type { SnippetsSidebarSection } from './sidebarTypes';
 
@@ -68,15 +67,6 @@ export function Snippets(): JSX.Element {
     loadCatalog,
     resetCatalogFilters
   } = useSnippetCatalog();
-  const {
-    catalogDetailEntry,
-    catalogPreview,
-    catalogPreviewLoadState,
-    catalogPreviewError,
-    openCatalogDetail,
-    closeCatalogDetail,
-    resetCatalogDetail
-  } = useSnippetCatalogDetail();
 
   /**
    * Reloads snippets and installed package summaries after marketplace mutations.
@@ -99,7 +89,6 @@ export function Snippets(): JSX.Element {
     handleInstallFromGit,
     handleInstallFromFile,
     handleLoadUnpacked,
-    handleInstallCatalogEntry,
     handleUpdatePackage,
     handleUninstallPackage
   } = useSnippetInstallActions({ refresh: refreshAll });
@@ -110,7 +99,7 @@ export function Snippets(): JSX.Element {
     setCatalogLoading,
     setCatalogError,
     setActionBusyId,
-    openCatalogDetail,
+    openCatalogDetail: (entry) => openSnippetCatalogDetailTab(dispatch, entry),
     refresh: refreshAll
   });
 
@@ -155,7 +144,6 @@ export function Snippets(): JSX.Element {
    */
   const handleSectionChange = (next: SnippetsSidebarSection): void => {
     if (section === 'marketplace' && next !== 'marketplace') {
-      resetCatalogDetail();
       resetCatalogFilters();
     }
     setSection(next);
@@ -196,7 +184,7 @@ export function Snippets(): JSX.Element {
             onCategoryChange={(category) =>
               setCatalogCategoryFilter(category as typeof catalogCategoryFilter)
             }
-            onOpenCatalogDetail={openCatalogDetail}
+            onOpenCatalogDetail={(entry) => openSnippetCatalogDetailTab(dispatch, entry)}
             onRetryLoad={() => void loadCatalog()}
           />
         ) : null}
@@ -216,18 +204,6 @@ export function Snippets(): JSX.Element {
           />
         ) : null}
       </SidebarLayout>
-
-      {catalogDetailEntry ? (
-        <SnippetDetailModal
-          entry={catalogDetailEntry}
-          preview={catalogPreview}
-          previewLoadState={catalogPreviewLoadState}
-          previewError={catalogPreviewError}
-          actionBusy={actionBusyId === catalogDetailEntry.id}
-          onClose={closeCatalogDetail}
-          onInstall={() => void handleInstallCatalogEntry(catalogDetailEntry)}
-        />
-      ) : null}
     </>
   );
 }

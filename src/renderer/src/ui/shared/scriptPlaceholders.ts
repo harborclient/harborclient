@@ -28,7 +28,7 @@ export const COLLECTION_PRE_REQUEST_SCRIPT_PLACEHOLDER = `hc.request.variables.s
 /**
  * Documentation URL for request scripting help.
  */
-export const REQUEST_SCRIPTS_HELP_URL = 'https://harborclient.com/request-scripts';
+export const REQUEST_SCRIPTS_HELP_URL = 'https://harborclient.com/scripting';
 
 /**
  * Normalizes placeholder text so literal \\n sequences render as line breaks in CodeMirror.
