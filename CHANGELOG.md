@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.0.11 - 2026-07-09
+
 - feat(roadmap): update roadmap to reflect current project status and planned features. (`accbd0a`)
 - feat(screenshots): enhance screenshot capturing and add new collection-related images. (`9ab7f77`)
 - feat(storage): implement script editor UI state migration and enhance script reference merging. (`fa26113`)
