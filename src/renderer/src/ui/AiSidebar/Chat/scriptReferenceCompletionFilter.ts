@@ -6,11 +6,54 @@ import {
   type TransactionSpec
 } from '@codemirror/state';
 import {
+  AI_SCRIPT_REFERENCE_PATTERN,
   findAiScriptReferenceCandidates,
   resolveAiScriptReferenceName,
   type AiScriptReferenceValidationContext,
   type ParsedAiScriptReference
 } from '#/shared/ai/scriptReferences';
+
+const ANCHORED_REFERENCE_PATTERN = new RegExp(`^${AI_SCRIPT_REFERENCE_PATTERN.source}`);
+
+/**
+ * Parses a script reference match anchored at the start of `text`, ignoring the leading
+ * word-boundary requirement so a caret-adjacent reference can be detected and repaired.
+ *
+ * @param text - Document substring starting at the candidate `@` token.
+ */
+function parseAnchoredReference(text: string): ParsedAiScriptReference | null {
+  const match = ANCHORED_REFERENCE_PATTERN.exec(text);
+  if (match == null) {
+    return null;
+  }
+
+  const requestIdRaw = match[1];
+  const phase = match[2];
+  const scriptIndexRaw = match[3];
+  if (requestIdRaw == null || phase == null || scriptIndexRaw == null) {
+    return null;
+  }
+  if (phase !== 'pre' && phase !== 'post') {
+    return null;
+  }
+
+  const scriptIndex = Number(scriptIndexRaw);
+  if (!Number.isInteger(scriptIndex) || scriptIndex < 1) {
+    return null;
+  }
+
+  const requestId =
+    requestIdRaw === 'active'
+      ? 'active'
+      : Number.isFinite(Number(requestIdRaw))
+        ? Number(requestIdRaw)
+        : null;
+  if (requestId == null) {
+    return null;
+  }
+
+  return { requestId, phase, scriptIndex, start: 0, end: match[0].length, text: match[0] };
+}
 
 /**
  * Extends a transaction so the caret sits after a completed script reference badge,
@@ -60,9 +103,16 @@ export function createScriptReferenceCompletionFilter(
     }
 
     const head = tr.newSelection.main.head;
-    const beforeDoc = tr.startState.doc.toString();
     const afterDocUncorrected = tr.newDoc.toString();
     const candidates = findAiScriptReferenceCandidates(afterDocUncorrected);
+
+    // Deletions must never have boundary characters re-inserted: the repair logic below exists
+    // to fix separators eroded by typing into/against a reference, not to resist removing them.
+    // Letting deletes through unmodified allows backspace to progress into the atomic reference
+    // itself (CodeMirror's atomic-range handling in @codemirror/commands then removes it whole).
+    if (tr.isUserEvent('delete')) {
+      return tr;
+    }
 
     for (const candidate of candidates) {
       const resolvedName = resolveAiScriptReferenceName(candidate, context);
@@ -75,20 +125,6 @@ export function createScriptReferenceCompletionFilter(
         /\s/.test(tr.newDoc.sliceString(candidate.end, candidate.end + 1));
 
       if (head > candidate.start && head < candidate.end) {
-        // #region agent log
-        fetch('http://127.0.0.1:7634/ingest/c3368b90-dc8c-409b-b6ba-5e08697b30c9', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'e65097' },
-          body: JSON.stringify({
-            sessionId: 'e65097',
-            location: 'scriptReferenceCompletionFilter.ts:filter',
-            message: 'action=caret-inside-reference',
-            data: { beforeDoc, afterDocUncorrected, head, candidate, resolvedName },
-            timestamp: Date.now(),
-            hypothesisId: 'H4'
-          })
-        }).catch(() => {});
-        // #endregion agent log
         return withCaretAfterReference(tr, candidate);
       }
 
@@ -101,41 +137,31 @@ export function createScriptReferenceCompletionFilter(
         });
 
         if (editTouchesReferenceEnd) {
-          // #region agent log
-          fetch('http://127.0.0.1:7634/ingest/c3368b90-dc8c-409b-b6ba-5e08697b30c9', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'e65097' },
-            body: JSON.stringify({
-              sessionId: 'e65097',
-              location: 'scriptReferenceCompletionFilter.ts:filter',
-              message: 'action=insert-space-and-caret',
-              data: { beforeDoc, afterDocUncorrected, head, candidate, resolvedName },
-              timestamp: Date.now(),
-              hypothesisId: 'H4'
-            })
-          }).catch(() => {});
-          // #endregion agent log
           return withCaretAfterReference(tr, candidate);
         }
       }
     }
 
-    // #region agent log
-    if (afterDocUncorrected !== beforeDoc) {
-      fetch('http://127.0.0.1:7634/ingest/c3368b90-dc8c-409b-b6ba-5e08697b30c9', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'e65097' },
-        body: JSON.stringify({
-          sessionId: 'e65097',
-          location: 'scriptReferenceCompletionFilter.ts:filter',
-          message: 'action=none',
-          data: { beforeDoc, afterDocUncorrected, head, candidates },
-          timestamp: Date.now(),
-          hypothesisId: 'H4'
-        })
-      }).catch(() => {});
+    const hasLeadingBoundary = head === 0 || /\s/.test(tr.newDoc.sliceString(head - 1, head));
+    if (!hasLeadingBoundary) {
+      const anchored = parseAnchoredReference(tr.newDoc.sliceString(head));
+      if (anchored != null) {
+        const shifted: ParsedAiScriptReference = {
+          ...anchored,
+          start: head,
+          end: head + anchored.end
+        };
+        const resolvedName = resolveAiScriptReferenceName(shifted, context);
+        if (resolvedName != null) {
+          const insertSpace = ChangeSet.of([{ from: head, insert: ' ' }], tr.newDoc.length);
+          return {
+            changes: tr.changes.compose(insertSpace),
+            selection: { anchor: head, head }
+          };
+        }
+      }
     }
-    // #endregion agent log
+
     return tr;
   });
 }

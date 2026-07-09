@@ -1,4 +1,5 @@
 import type { ScriptRef, Snippet } from '#/shared/types';
+import { isImportableSnippetName } from '#/shared/snippetImport';
 import { normalizeScriptRefs, resolveScriptRefs } from '#/shared/scriptRefs';
 import { orderScriptRefsByStage } from '#/shared/scriptStage';
 
@@ -26,6 +27,54 @@ export function buildSnippetLookup(snippets: Snippet[]): Map<string, Snippet> {
     }
   }
   return lookup;
+}
+
+/**
+ * Result of building importable snippet modules for script bundling.
+ */
+export interface SnippetModuleMap {
+  /**
+   * Snippet JavaScript source keyed by import filename.
+   */
+  modules: Record<string, string>;
+
+  /**
+   * Filenames that appear on more than one snippet row.
+   */
+  conflicts: string[];
+}
+
+/**
+ * Builds a filename-keyed map of importable snippets for relative ESM imports.
+ *
+ * Only snippets whose {@link Snippet.name} passes {@link isImportableSnippetName}
+ * are included. Duplicate filenames are recorded in {@link SnippetModuleMap.conflicts}
+ * rather than overwriting an arbitrary row.
+ *
+ * @param snippets - Snippet library entries loaded from the registry.
+ * @returns Module map and any ambiguous import filenames.
+ */
+export function buildSnippetModuleMap(snippets: Snippet[]): SnippetModuleMap {
+  const modules: Record<string, string> = {};
+  const conflicts: string[] = [];
+  const seen = new Map<string, number>();
+
+  for (const snippet of snippets) {
+    const name = snippet.name.trim();
+    if (!isImportableSnippetName(name)) {
+      continue;
+    }
+
+    const count = (seen.get(name) ?? 0) + 1;
+    seen.set(name, count);
+    if (count === 2) {
+      conflicts.push(name);
+    }
+
+    modules[name] = snippet.code.trim();
+  }
+
+  return { modules, conflicts };
 }
 
 /**

@@ -7,6 +7,7 @@ import { fetchSnippetCatalog } from '#/main/snippets/snippetCatalog';
 import { fetchSnippetPreviewFromGit } from '#/main/snippets/snippetPreview';
 import { getSnippetInstaller } from '#/main/snippets/SnippetInstaller';
 import type { SnippetImportResult } from '#/shared/types/api/snippets';
+import { parseSnippetBundle } from '#/shared/snippetBundle';
 import { BrowserWindow, dialog } from 'electron';
 import { app } from 'electron';
 import { readFile } from 'fs/promises';
@@ -61,12 +62,19 @@ export function registerSnippetHandlers(db: IStorage): void {
 
   handle(
     'snippets:importFile',
-    ipcArgSchemas.none,
-    async (): Promise<SnippetImportResult | null> => {
+    ipcArgSchemas.importSnippetFile,
+    async (_event, includeBundle): Promise<SnippetImportResult | null> => {
       const win = BrowserWindow.getFocusedWindow();
+      const filters = includeBundle
+        ? [
+            { name: 'JavaScript or JSON', extensions: ['js', 'json'] },
+            { name: 'JavaScript', extensions: ['js'] },
+            { name: 'JSON', extensions: ['json'] }
+          ]
+        : [{ name: 'JavaScript', extensions: ['js'] }];
       const dialogOptions = {
         properties: ['openFile'] as Array<'openFile'>,
-        filters: [{ name: 'JavaScript', extensions: ['js'] }]
+        filters
       };
       const { canceled, filePaths } = win
         ? await dialog.showOpenDialog(win, dialogOptions)
@@ -76,12 +84,20 @@ export function registerSnippetHandlers(db: IStorage): void {
         return null;
       }
 
-      const raw = await readFile(filePaths[0], 'utf-8');
+      const filePath = filePaths[0];
+      const raw = await readFile(filePath, 'utf-8');
       if (!raw.trim()) {
         throw new Error('Cannot import an empty script.');
       }
 
-      return { code: raw };
+      if (filePath.toLowerCase().endsWith('.json')) {
+        return {
+          kind: 'bundle',
+          bundle: parseSnippetBundle(raw)
+        };
+      }
+
+      return { kind: 'js', code: raw };
     }
   );
 

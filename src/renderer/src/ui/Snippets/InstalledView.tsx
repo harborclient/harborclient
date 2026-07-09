@@ -178,7 +178,7 @@ export function InstalledView({
   const handleImport = async (): Promise<void> => {
     try {
       const result = await window.api.importSnippetFile();
-      if (!result) {
+      if (!result || result.kind !== 'js') {
         return;
       }
 

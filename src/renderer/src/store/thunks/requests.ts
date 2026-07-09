@@ -33,7 +33,10 @@ import {
   substituteWithMap
 } from '#/renderer/src/scripting/scriptOrchestration';
 import { hostFromUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/cookieHost';
-import { buildSnippetLookup } from '#/renderer/src/scripting/scriptResolution';
+import {
+  buildSnippetLookup,
+  buildSnippetModuleMap
+} from '#/renderer/src/scripting/scriptResolution';
 import {
   autoNameUnnamedScripts,
   mergeScriptRefsUiState,
@@ -547,6 +550,9 @@ export async function executeRequestDraft(
    */
   const runScriptPhase = async (phase: 'pre' | 'post', response?: SendResult): Promise<void> => {
     const snippetLookup = buildSnippetLookup(state.snippets.snippets);
+    const { modules: snippetModules, conflicts: snippetModuleConflicts } = buildSnippetModuleMap(
+      state.snippets.snippets
+    );
     const slots = buildScriptSlots(
       collection?.pre_request_scripts,
       collection?.post_request_scripts,
@@ -562,9 +568,17 @@ export async function executeRequestDraft(
 
     for (const slot of slots) {
       const scriptSource = substituteWithMap(slot.source, runtimeVars);
+      const substitutedSnippetModules = Object.fromEntries(
+        Object.entries(snippetModules).map(([name, code]) => [
+          name,
+          substituteWithMap(code, runtimeVars)
+        ])
+      );
       const result: ScriptRunResult = await window.api.runScript({
         phase: slot.phase,
         script: scriptSource,
+        snippetModules: substitutedSnippetModules,
+        snippetModuleConflicts,
         request: scriptRequest,
         response,
         variables: runtimeVars,

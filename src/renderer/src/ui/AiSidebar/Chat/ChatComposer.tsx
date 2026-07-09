@@ -69,8 +69,7 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
     dispatch(setPendingComposerText(null));
 
     queueMicrotask(() => {
-      setDraft(text);
-      composerRef.current?.focus();
+      composerRef.current?.setTextAndFocusEnd(text);
     });
   }, [dispatch, pendingComposerText]);
 
@@ -124,20 +123,6 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
           enterToSend={enterToSend}
           canSubmit={canSend}
           onChange={(nextValue) => {
-            // #region agent log
-            fetch('http://127.0.0.1:7634/ingest/c3368b90-dc8c-409b-b6ba-5e08697b30c9', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'e65097' },
-              body: JSON.stringify({
-                sessionId: 'e65097',
-                location: 'ChatComposer.tsx:onChange',
-                message: 'setDraft called',
-                data: { previousDraft: draft, nextValue },
-                timestamp: Date.now(),
-                hypothesisId: 'H3'
-              })
-            }).catch(() => {});
-            // #endregion agent log
             setDraft(nextValue);
             if (chatId != null) {
               dispatch(clearSendError(chatId));

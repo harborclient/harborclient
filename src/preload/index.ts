@@ -84,6 +84,7 @@ import type {
   Variable,
   KeyValue
 } from '#/shared/types';
+import type { SnippetImportResult } from '#/shared/types/api/snippets';
 import type {
   CollectionRunnerConfig,
   RunResultsExport,
@@ -406,12 +407,13 @@ function moveSnippet(id: number, targetConnectionId: string): Promise<Snippet> {
 }
 
 /**
- * Reads a JavaScript file selected via a native open dialog for snippet import.
+ * Reads a JavaScript or snippets bundle file selected via a native open dialog.
  *
- * @returns Imported source, or null when the dialog was canceled.
+ * @param includeBundle - When true, the dialog also accepts snippets bundle JSON.
+ * @returns Imported source or bundle, or null when the dialog was canceled.
  */
-function importSnippetFile(): Promise<{ code: string } | null> {
-  return ipcRenderer.invoke('snippets:importFile');
+function importSnippetFile(includeBundle?: boolean): Promise<SnippetImportResult | null> {
+  return ipcRenderer.invoke('snippets:importFile', includeBundle);
 }
 
 /**

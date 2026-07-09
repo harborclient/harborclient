@@ -3,6 +3,7 @@ import { transform } from 'esbuild';
 import type { ScriptRunInput, ScriptRunResult } from '#/shared/types';
 import { normalizeAuth } from '#/shared/auth';
 import { createScriptApi, type ScriptApiOptions } from '#/main/scripting/scriptApi';
+import { bundleUserScript, scriptUsesModuleSyntax } from '#/main/scripting/scriptSnippetBundler';
 
 /** esbuild target for lowering modern user script syntax before compartment execution. */
 const SCRIPT_TRANSPILE_TARGET = 'es2020';
@@ -105,6 +106,33 @@ async function transpileUserScript(source: string): Promise<string> {
 }
 
 /**
+ * Compiles user script source for SES compartment evaluation.
+ *
+ * Scripts without module syntax use the fast syntax-only transform path.
+ * Scripts with `import`/`export` are bundled against {@link ScriptRunInput.snippetModules}
+ * first so relative snippet imports resolve before the async IIFE wrap.
+ *
+ * @param source - Raw user-authored script source.
+ * @param snippetModules - Importable snippet sources keyed by filename.
+ * @param snippetModuleConflicts - Ambiguous snippet filenames.
+ * @returns Transpiled script source safe to evaluate in the hc compartment.
+ */
+async function compileUserScript(
+  source: string,
+  snippetModules: Record<string, string>,
+  snippetModuleConflicts: string[]
+): Promise<string> {
+  let executableSource = source;
+
+  if (scriptUsesModuleSyntax(source)) {
+    executableSource = await bundleUserScript(source, snippetModules, snippetModuleConflicts);
+  }
+
+  const wrappedSource = wrapScriptForAsyncEvaluation(executableSource);
+  return transpileUserScript(wrappedSource);
+}
+
+/**
  * Wraps user script source in an async IIFE so await hc.sendRequest works in the sandbox.
  *
  * @param source - Raw user-authored script source.
@@ -137,11 +165,13 @@ export async function evaluateScript(
     return passthrough;
   }
 
-  const wrappedSource = wrapScriptForAsyncEvaluation(input.script);
-
   let compiledScript: string;
   try {
-    compiledScript = await transpileUserScript(wrappedSource);
+    compiledScript = await compileUserScript(
+      input.script,
+      input.snippetModules ?? {},
+      input.snippetModuleConflicts ?? []
+    );
   } catch (err) {
     return {
       ...passthrough,

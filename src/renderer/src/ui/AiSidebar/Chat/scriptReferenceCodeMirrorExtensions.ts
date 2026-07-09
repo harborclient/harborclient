@@ -15,8 +15,12 @@ import {
   type AiScriptReferenceValidationContext,
   type ParsedAiScriptReference
 } from '#/shared/ai/scriptReferences';
-import { createScriptReferenceBadgeElement } from './scriptReferenceBadgeDom';
+import {
+  createScriptReferenceBadgeElement,
+  SCRIPT_REFERENCE_REMOVE_ATTR
+} from './scriptReferenceBadgeDom';
 import { createScriptReferenceCompletionFilter } from './scriptReferenceCompletionFilter';
+import { getScriptReferenceRemovalRange } from './scriptReferenceRemoval';
 
 /**
  * CodeMirror widget that renders a resolved script reference as a badge.
@@ -24,30 +28,46 @@ import { createScriptReferenceCompletionFilter } from './scriptReferenceCompleti
 class ScriptReferenceWidget extends WidgetType {
   /**
    * @param label - Resolved script display name.
+   * @param from - Document start offset of the `@` reference token.
+   * @param to - Document end offset (exclusive) of the `@` reference token.
    */
-  constructor(private readonly label: string) {
+  constructor(
+    private readonly label: string,
+    private readonly from: number,
+    private readonly to: number
+  ) {
     super();
   }
 
   /**
-   * Compares widget labels so identical badges can be reused across updates.
+   * Compares widget identity so identical badges can be reused across updates.
    */
   eq(other: ScriptReferenceWidget): boolean {
-    return other.label === this.label;
+    return other.label === this.label && other.from === this.from && other.to === this.to;
   }
 
   /**
-   * Builds the badge DOM node for the widget decoration.
+   * Builds the badge DOM node for the widget decoration, including a remove control.
    */
-  toDOM(): HTMLElement {
-    return createScriptReferenceBadgeElement(this.label);
+  toDOM(view: EditorView): HTMLElement {
+    return createScriptReferenceBadgeElement(this.label, {
+      onRemove: () => {
+        const { from, to } = getScriptReferenceRemovalRange(view.state.doc, this.from, this.to);
+        view.dispatch({
+          changes: { from, to },
+          selection: { anchor: from, head: from }
+        });
+      }
+    });
   }
 
   /**
-   * Allows the editor to receive pointer events around the widget normally.
+   * Keeps remove-button clicks from changing editor selection while allowing normal caret
+   * placement elsewhere on the badge.
    */
-  ignoreEvent(): boolean {
-    return false;
+  ignoreEvent(event: Event): boolean {
+    const target = event.target;
+    return target instanceof Element && target.closest(`[${SCRIPT_REFERENCE_REMOVE_ATTR}]`) != null;
   }
 
   /**
@@ -164,7 +184,7 @@ function createScriptReferenceHighlighter(context: AiScriptReferenceValidationCo
       }
 
       return Decoration.replace({
-        widget: new ScriptReferenceWidget(label),
+        widget: new ScriptReferenceWidget(label, parsed.start, parsed.end),
         inclusive: false,
         side: 1
       });

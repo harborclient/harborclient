@@ -204,6 +204,22 @@ export interface ScriptRunInput {
    * Mutable object bag threaded across sequential scripts within one send.
    */
   data?: Record<string, unknown>;
+
+  /**
+   * Importable snippet sources keyed by filename (for example `utils/foo.js`).
+   *
+   * Populated at send time from the snippet library for relative `import`
+   * resolution during script bundling.
+   */
+  snippetModules?: Record<string, string>;
+
+  /**
+   * Snippet filenames that appear on more than one library row.
+   *
+   * When a script imports one of these names, bundling fails with an
+   * ambiguous-import error instead of picking an arbitrary snippet.
+   */
+  snippetModuleConflicts?: string[];
 }
 
 /**

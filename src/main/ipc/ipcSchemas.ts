@@ -234,7 +234,9 @@ export const scriptRunInput = z.object({
       iteration: z.number().int().nonnegative()
     })
     .optional(),
-  data: z.record(z.string(), z.unknown()).optional()
+  data: z.record(z.string(), z.unknown()).optional(),
+  snippetModules: z.record(z.string(), ipcScriptSource).optional(),
+  snippetModuleConflicts: z.array(z.string()).optional()
 }) satisfies z.ZodType<ScriptRunInput>;
 
 export const generalSettings = z.object({
@@ -654,6 +656,7 @@ export const ipcArgSchemas = {
   ]),
   snippetUpdate: z.tuple([dbId, name, ipcScriptSource, snippetScope, scriptStage.optional()]),
   snippetMove: z.tuple([dbId, connectionId]),
+  importSnippetFile: z.tuple([z.boolean().optional()]),
   snippetInstallFromGit: z.tuple([z.string().min(1), z.string().min(1).optional()]),
   snippetInstallFromPath: z.tuple([z.string().min(1)]),
   snippetLoadUnpackedFromPath: z.tuple([z.string().min(1)]),

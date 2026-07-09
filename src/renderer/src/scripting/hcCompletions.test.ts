@@ -61,6 +61,65 @@ const variables: Variable[] = [
   { key: 'token', value: 'abc', defaultValue: 'fallback', share: false }
 ];
 
+const importableSnippetNames = ['pass-testing.js', 'utils/foo.js', 'utils/bar.js'];
+
+describe('createHcCompletionSource import paths', () => {
+  it('suggests top-level files and folders after ./', async () => {
+    const source = createHcCompletionSource('pre', variables, importableSnippetNames);
+    const result = await complete(source, mockContext("import { passTest } from './"));
+
+    expect(result).not.toBeNull();
+    expect(labels(result!.options).sort()).toEqual(['pass-testing.js', 'utils/']);
+  });
+
+  it('suggests files inside a folder prefix', async () => {
+    const source = createHcCompletionSource('pre', variables, importableSnippetNames);
+    const result = await complete(source, mockContext("import { passTest } from './utils/"));
+
+    expect(result).not.toBeNull();
+    expect(labels(result!.options).sort()).toEqual(['bar.js', 'foo.js']);
+  });
+
+  it('filters file suggestions by partial segment', async () => {
+    const source = createHcCompletionSource('pre', variables, importableSnippetNames);
+    const result = await complete(source, mockContext("import { passTest } from './utils/f"));
+
+    expect(result).not.toBeNull();
+    expect(labels(result!.options)).toEqual(['foo.js']);
+  });
+
+  it('supports bare import statements', async () => {
+    const source = createHcCompletionSource('pre', variables, importableSnippetNames);
+    const result = await complete(source, mockContext("import './"));
+
+    expect(result).not.toBeNull();
+    expect(labels(result!.options).sort()).toEqual(['pass-testing.js', 'utils/']);
+  });
+
+  it('supports dynamic import statements', async () => {
+    const source = createHcCompletionSource('pre', variables, importableSnippetNames);
+    const result = await complete(source, mockContext("import('./utils/"));
+
+    expect(result).not.toBeNull();
+    expect(labels(result!.options).sort()).toEqual(['bar.js', 'foo.js']);
+  });
+
+  it('does not suggest snippet paths for bare package imports', async () => {
+    const source = createHcCompletionSource('pre', variables, importableSnippetNames);
+    const result = await complete(source, mockContext("import dayjs from 'lodash"));
+
+    expect(result).toBeNull();
+  });
+
+  it('falls back to hc completions when snippet names are omitted', async () => {
+    const source = createHcCompletionSource('pre', variables);
+    const result = await complete(source, mockContext('hc.request.'));
+
+    expect(result).not.toBeNull();
+    expect(labels(result!.options)).toContain('url');
+  });
+});
+
 describe('createHcCompletionSource', () => {
   it('lists hc members for pre scripts without response', async () => {
     const source = createHcCompletionSource('pre', variables);

@@ -2,6 +2,7 @@ import { CodeEditor, FieldError, FormGroup, Input, Select } from '@harborclient/
 import type { JSX } from 'react';
 import { useEffect, useId } from 'react';
 import { SNIPPET_SCOPE_OPTIONS, type SnippetScope } from '#/shared/snippetScope';
+import { isImportableSnippetName } from '#/shared/snippetImport';
 import { SCRIPT_STAGE_OPTIONS } from '#/shared/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
 import type { SnippetEditDraft } from '#/renderer/src/ui/shared/snippetEditDraft';
@@ -68,6 +69,7 @@ export function SnippetEditFields({
     retainConnectionId: draft.connectionId
   });
   const resolvedProviderId = draft.connectionId ?? primaryProviderId ?? providers[0]?.id ?? '';
+  const importableName = isImportableSnippetName(draft.name);
 
   /**
    * Defaults the storage location dropdown to the active database when creating.
@@ -93,6 +95,13 @@ export function SnippetEditFields({
           onChange={(event) => onChange({ ...draft, name: event.target.value })}
           placeholder="Snippet name"
         />
+        {importableName ? (
+          <p className="mt-1 text-[16px] text-muted">
+            Other scripts can import this snippet with{' '}
+            <code className="text-text">{`import ... from './${draft.name.trim()}'`}</code>.
+            Renaming may break those imports.
+          </p>
+        ) : null}
       </div>
       <div className="flex shrink-0 flex-col gap-1">
         <label className="text-[16px] font-medium text-text" htmlFor="snippet-scope">

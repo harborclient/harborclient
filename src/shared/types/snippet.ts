@@ -128,3 +128,53 @@ export interface SnippetExport {
    */
   updated_at?: string;
 }
+
+/**
+ * One script row serialized inside a snippets bundle export.
+ */
+export interface SnippetBundleEntry {
+  /**
+   * Display name for the script row.
+   */
+  name: string;
+
+  /**
+   * Resolved JavaScript source for the script row.
+   */
+  code: string;
+
+  /**
+   * Request stages where this script may run.
+   */
+  scope: SnippetScope;
+
+  /**
+   * Stage within the phase script list (before, run, or after).
+   */
+  stage: ScriptStage;
+
+  /**
+   * Stable snippet uuid when the row referenced a library snippet.
+   */
+  uuid?: string;
+}
+
+/**
+ * Portable export format for a pre- or post-request script list bundle.
+ */
+export interface SnippetBundleExport {
+  /**
+   * HarborClient export schema version for forward compatibility.
+   */
+  harborclientVersion: 1;
+
+  /**
+   * Discriminator identifying this file as a snippets bundle export.
+   */
+  harborclientExport: 'snippets-bundle';
+
+  /**
+   * Ordered script entries from the exported phase.
+   */
+  snippets: SnippetBundleEntry[];
+}

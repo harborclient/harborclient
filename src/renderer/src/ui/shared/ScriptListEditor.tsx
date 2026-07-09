@@ -75,6 +75,7 @@ import {
   REQUEST_SCRIPTS_HELP_URL
 } from '#/renderer/src/ui/shared/scriptPlaceholders';
 import { createLiveHcCompletionSource } from '#/renderer/src/scripting/hcCompletions';
+import { isImportableSnippetName } from '#/shared/snippetImport';
 import { SCRIPT_ASK_COMMANDS } from '#/renderer/src/scripting/scriptAskCommands';
 import { runScriptAsk } from '#/renderer/src/scripting/runScriptAsk';
 import { resolveScriptAskModelId } from '#/renderer/src/scripting/scriptAskModel';
@@ -116,6 +117,7 @@ import {
 import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
 import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
 import { getAvailableModels } from '#/shared/ai/models';
+import { buildSnippetBundle } from '#/shared/snippetBundle';
 import {
   faAnglesDown,
   faAnglesUp,
@@ -123,6 +125,7 @@ import {
   faChevronDown,
   faChevronUp,
   faFileImport,
+  faFileExport,
   faGear,
   faPlus,
   faTerminal,
@@ -1198,21 +1201,34 @@ function SortableScriptRow({
 
   const phaseRef = useRef(phase);
   const variablesRef = useRef(variables);
+  const importableSnippetNames = useMemo(
+    () =>
+      [
+        ...new Set(
+          snippets.map((entry) => entry.name.trim()).filter((name) => isImportableSnippetName(name))
+        )
+      ].sort(),
+    [snippets]
+  );
+  const importableSnippetNamesRef = useRef(importableSnippetNames);
   const hcCompletionSourceRef = useRef<ReturnType<typeof createLiveHcCompletionSource> | null>(
     null
   );
 
   /**
-   * Keeps phase and variables refs aligned and lazily builds the live completion source once.
+   * Keeps phase, variables, and importable snippet names refs aligned and lazily builds
+   * the live completion source once.
    */
   useEffect(() => {
     phaseRef.current = phase;
     variablesRef.current = variables;
+    importableSnippetNamesRef.current = importableSnippetNames;
     hcCompletionSourceRef.current ??= createLiveHcCompletionSource(
       () => phaseRef.current,
-      () => variablesRef.current
+      () => variablesRef.current,
+      () => importableSnippetNamesRef.current
     );
-  }, [phase, variables]);
+  }, [phase, variables, importableSnippetNames]);
 
   /**
    * Stable delegate passed to CodeEditor; forwards to the live source stored in a ref.
@@ -1961,12 +1977,26 @@ export function ScriptListEditor({
   };
 
   /**
-   * Reads a `.js` file and opens the create-snippet modal with imported source.
+   * Reads a `.js` or snippets bundle `.json` file and imports it into the script list.
    */
   const handleImportSnippet = async (): Promise<void> => {
     try {
-      const result = await window.api.importSnippetFile();
+      const result = await window.api.importSnippetFile(true);
       if (!result) {
+        return;
+      }
+
+      if (result.kind === 'bundle') {
+        const groups = splitScriptRefsByGroup(normalized);
+        for (const entry of result.bundle.snippets) {
+          const scriptRef = createInlineScriptRef(entry.code, entry.name, entry.stage);
+          const group = scriptStageGroup(normalizeScriptStage(entry.stage));
+          groups[group] = [...groups[group], scriptRef];
+        }
+        updateScripts(mergeScriptRefGroups(groups));
+        const count = result.bundle.snippets.length;
+        toast.success(`Imported ${count} script${count === 1 ? '' : 's'}`);
+        setSnippetMenuOpen(false);
         return;
       }
 
@@ -1975,6 +2005,25 @@ export function ScriptListEditor({
       setSnippetMenuOpen(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to import snippet');
+    }
+  };
+
+  /**
+   * Exports the current phase script list as a snippets bundle JSON file.
+   */
+  const handleExportSnippets = async (): Promise<void> => {
+    try {
+      const bundle = buildSnippetBundle(normalized, snippets, phase);
+      const result = await window.api.saveTextFile(
+        JSON.stringify(bundle, null, 2),
+        `${phase}-request-snippets.json`
+      );
+      if (result.canceled) {
+        return;
+      }
+      toast.success('Snippets bundle exported');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to export snippets bundle');
     }
   };
 
@@ -2463,42 +2512,53 @@ export function ScriptListEditor({
         <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
         Add
       </Button>
+      <div className="relative">
+        <Button
+          type="button"
+          variant="secondary"
+          className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap"
+          aria-haspopup="menu"
+          aria-expanded={snippetMenuOpen}
+          aria-controls={snippetMenuOpen ? snippetMenuId : undefined}
+          onClick={() => setSnippetMenuOpen((open) => !open)}
+        >
+          <FaIcon icon={faTerminal} className="h-3.5 w-3.5" aria-hidden />
+          Snippets
+        </Button>
+        {snippetMenuOpen ? (
+          <SnippetMenu
+            menuId={snippetMenuId}
+            snippets={compatibleSnippets}
+            totalSnippetCount={snippets.length}
+            phase={phase}
+            onSelect={handleSnippetSelect}
+            onCreate={openCreateSnippetModal}
+            onClose={() => setSnippetMenuOpen(false)}
+          />
+        ) : null}
+      </div>
       <Button
         type="button"
         variant="secondary"
         className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
-        aria-label="Import JavaScript snippet"
+        aria-label="Import JavaScript snippet or snippets bundle"
         onClick={() => void handleImportSnippet()}
       >
         <FaIcon icon={faFileImport} className="h-3.5 w-3.5" />
         Import
       </Button>
+      <Button
+        type="button"
+        variant="secondary"
+        className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
+        aria-label="Export snippets bundle"
+        disabled={normalized.length === 0}
+        onClick={() => void handleExportSnippets()}
+      >
+        <FaIcon icon={faFileExport} className="h-3.5 w-3.5" />
+        Export
+      </Button>
       <div className="flex shrink-0 items-center gap-2 mr-4">
-        <div className="relative">
-          <Button
-            type="button"
-            variant="secondary"
-            className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap"
-            aria-haspopup="menu"
-            aria-expanded={snippetMenuOpen}
-            aria-controls={snippetMenuOpen ? snippetMenuId : undefined}
-            onClick={() => setSnippetMenuOpen((open) => !open)}
-          >
-            <FaIcon icon={faTerminal} className="h-3.5 w-3.5" aria-hidden />
-            Snippets
-          </Button>
-          {snippetMenuOpen ? (
-            <SnippetMenu
-              menuId={snippetMenuId}
-              snippets={compatibleSnippets}
-              totalSnippetCount={snippets.length}
-              phase={phase}
-              onSelect={handleSnippetSelect}
-              onCreate={openCreateSnippetModal}
-              onClose={() => setSnippetMenuOpen(false)}
-            />
-          ) : null}
-        </div>
         <Button
           type="button"
           variant="secondary"

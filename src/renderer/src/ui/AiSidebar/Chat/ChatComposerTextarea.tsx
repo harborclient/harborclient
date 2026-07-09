@@ -27,6 +27,16 @@ export interface ChatComposerTextareaHandle {
    * Moves keyboard focus into the composer editor.
    */
   focus: () => void;
+
+  /**
+   * Replaces the entire draft with `text`, places the caret at the end, and focuses the editor.
+   *
+   * Unlike setting the `value` prop, this dispatches directly on the live CodeMirror view so the
+   * caret lands after the inserted text instead of defaulting to position 0.
+   *
+   * @param text - Full draft text to insert.
+   */
+  setTextAndFocusEnd: (text: string) => void;
 }
 
 interface Props {
@@ -106,41 +116,6 @@ export function ChatComposerTextarea({
   const editorRef = useRef<ReactCodeMirrorRef | null>(null);
   const onSubmitRef = useRef(onSubmit);
 
-  // #region agent log
-  useEffect(() => {
-    const liveDoc = editorRef.current?.view?.state.doc.toString();
-    fetch('http://127.0.0.1:7634/ingest/c3368b90-dc8c-409b-b6ba-5e08697b30c9', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'e65097' },
-      body: JSON.stringify({
-        sessionId: 'e65097',
-        location: 'ChatComposerTextarea.tsx:value-prop-effect',
-        message: 'value prop changed',
-        data: { valueProp: value, liveDoc, mismatch: liveDoc != null && liveDoc !== value },
-        timestamp: Date.now(),
-        hypothesisId: 'H3'
-      })
-    }).catch(() => {});
-  }, [value]);
-  // #endregion agent log
-
-  // #region agent log
-  useEffect(() => {
-    fetch('http://127.0.0.1:7634/ingest/c3368b90-dc8c-409b-b6ba-5e08697b30c9', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'e65097' },
-      body: JSON.stringify({
-        sessionId: 'e65097',
-        location: 'ChatComposerTextarea.tsx:validationContext-effect',
-        message: 'validationContext identity changed',
-        data: { validationContext },
-        timestamp: Date.now(),
-        hypothesisId: 'H2'
-      })
-    }).catch(() => {});
-  }, [validationContext]);
-  // #endregion agent log
-
   /**
    * Keeps the submit shortcut wired to the latest parent callback.
    */
@@ -155,7 +130,29 @@ export function ChatComposerTextarea({
     editorRef.current?.view?.focus();
   }, []);
 
-  useImperativeHandle(ref, () => ({ focus: focusEditor }), [focusEditor]);
+  /**
+   * Replaces the draft with `text` and places the caret at the end, dispatching directly on the
+   * live view so the selection update lands in the same transaction as the text change (see
+   * `focus: () => void` above, which only moves DOM focus and leaves the caret wherever the
+   * document's mapped selection already was).
+   */
+  const setTextAndFocusEnd = useCallback((text: string): void => {
+    const view = editorRef.current?.view;
+    if (view == null) {
+      return;
+    }
+
+    view.dispatch({
+      changes: { from: 0, to: view.state.doc.length, insert: text },
+      selection: { anchor: text.length, head: text.length }
+    });
+    view.focus();
+  }, []);
+
+  useImperativeHandle(ref, () => ({ focus: focusEditor, setTextAndFocusEnd }), [
+    focusEditor,
+    setTextAndFocusEnd
+  ]);
 
   /**
    * Builds CodeMirror extensions for script badges, submit shortcuts, and field chrome.
@@ -263,23 +260,7 @@ export function ChatComposerTextarea({
             )
           });
         }}
-        onChange={(nextValue) => {
-          // #region agent log
-          fetch('http://127.0.0.1:7634/ingest/c3368b90-dc8c-409b-b6ba-5e08697b30c9', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'e65097' },
-            body: JSON.stringify({
-              sessionId: 'e65097',
-              location: 'ChatComposerTextarea.tsx:onChange',
-              message: 'CodeMirror onChange fired',
-              data: { nextValue },
-              timestamp: Date.now(),
-              hypothesisId: 'H1_H3'
-            })
-          }).catch(() => {});
-          // #endregion agent log
-          onChange(nextValue);
-        }}
+        onChange={onChange}
       />
     </div>
   );

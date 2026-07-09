@@ -591,6 +591,130 @@ function dottedPathCompletions(
 }
 
 /**
+ * Matches an incomplete `from './path` or `from "./path` string ending at the cursor.
+ */
+const IMPORT_FROM_PATTERN = /\bfrom\s*['"]([^'"]*)$/;
+
+/**
+ * Matches bare or dynamic `import './path` / `import('./path` strings ending at the cursor.
+ */
+const IMPORT_BARE_OR_DYNAMIC_PATTERN = /\bimport\s*\(?\s*['"]([^'"]*)$/;
+
+/**
+ * Importable snippet filenames, or a getter returning the latest snapshot.
+ */
+type SnippetNamesSource = string[] | (() => string[]);
+
+/**
+ * Resolves importable snippet filenames from a plain array or live getter.
+ *
+ * @param source - Snippet filenames or a getter returning the latest array.
+ * @returns Current importable snippet names for completion.
+ */
+function resolveSnippetNames(source: SnippetNamesSource): string[] {
+  return typeof source === 'function' ? source() : source;
+}
+
+/**
+ * Extracts the partial import path inside an opening quote when the cursor is in one.
+ *
+ * @param lineBeforeCursor - Text from the start of the line through the cursor.
+ * @returns Partial path inside the quote, or null when not in an import string.
+ */
+function extractImportPartial(lineBeforeCursor: string): string | null {
+  const fromMatch = lineBeforeCursor.match(IMPORT_FROM_PATTERN);
+  if (fromMatch) {
+    return fromMatch[1];
+  }
+
+  const bareMatch = lineBeforeCursor.match(IMPORT_BARE_OR_DYNAMIC_PATTERN);
+  if (bareMatch) {
+    return bareMatch[1];
+  }
+
+  return null;
+}
+
+/**
+ * Builds directory-style completions for relative snippet import paths.
+ *
+ * @param context - CodeMirror completion context.
+ * @param snippetNames - Importable snippet filenames (for example `utils/foo.js`).
+ */
+function importPathCompletions(
+  context: CompletionContext,
+  snippetNames: string[]
+): { from: number; options: Completion[] } | null {
+  if (snippetNames.length === 0) {
+    return null;
+  }
+
+  const line = context.state.doc.lineAt(context.pos);
+  const lineBeforeCursor = context.state.doc.sliceString(line.from, context.pos);
+  const partial = extractImportPartial(lineBeforeCursor);
+  if (partial === null || !partial.startsWith('./')) {
+    return null;
+  }
+
+  const relative = partial.slice(2);
+  const lastSlash = relative.lastIndexOf('/');
+  const dirPrefix = lastSlash >= 0 ? relative.slice(0, lastSlash + 1) : '';
+  const segmentPartial = lastSlash >= 0 ? relative.slice(lastSlash + 1) : relative;
+  const segmentLower = segmentPartial.toLowerCase();
+
+  const folderCandidates = new Set<string>();
+  const fileCandidates = new Set<string>();
+
+  for (const name of snippetNames) {
+    if (!name.startsWith(dirPrefix)) {
+      continue;
+    }
+
+    const remainder = name.slice(dirPrefix.length);
+    if (!remainder) {
+      continue;
+    }
+
+    const slashIndex = remainder.indexOf('/');
+    if (slashIndex >= 0) {
+      const folderSegment = remainder.slice(0, slashIndex);
+      if (!segmentLower || folderSegment.toLowerCase().startsWith(segmentLower)) {
+        folderCandidates.add(`${folderSegment}/`);
+      }
+      continue;
+    }
+
+    if (!segmentLower || remainder.toLowerCase().startsWith(segmentLower)) {
+      fileCandidates.add(remainder);
+    }
+  }
+
+  const options: Completion[] = [
+    ...[...folderCandidates].sort().map((folder) => ({
+      label: folder,
+      type: 'folder',
+      detail: 'Snippet folder',
+      apply: folder
+    })),
+    ...[...fileCandidates].sort().map((file) => ({
+      label: file,
+      type: 'file',
+      detail: 'Snippet module',
+      apply: file
+    }))
+  ];
+
+  if (options.length === 0) {
+    return null;
+  }
+
+  return {
+    from: context.pos - segmentPartial.length,
+    options
+  };
+}
+
+/**
  * Collection variables, or a getter returning the latest snapshot for stable closures.
  */
 type VariablesSource = Variable[] | (() => Variable[]);
@@ -614,11 +738,13 @@ function resolveVariables(source: VariablesSource): Variable[] {
  *
  * @param getPhase - Returns the current script phase.
  * @param getVariables - Returns the latest collection variables snapshot.
+ * @param getSnippetNames - Returns importable snippet filenames for `./` import completion.
  * @returns Stable completion source for CodeEditor.
  */
 export function createLiveHcCompletionSource(
   getPhase: () => ScriptPhase,
-  getVariables: () => Variable[]
+  getVariables: () => Variable[],
+  getSnippetNames: () => string[] = () => []
 ): CompletionSource {
   let cachedPhase: ScriptPhase | undefined;
   let cachedSource: CompletionSource | undefined;
@@ -632,7 +758,7 @@ export function createLiveHcCompletionSource(
     const phase = getPhase();
     if (cachedPhase !== phase || !cachedSource) {
       cachedPhase = phase;
-      cachedSource = createHcCompletionSource(phase, getVariables);
+      cachedSource = createHcCompletionSource(phase, getVariables, getSnippetNames);
     }
 
     return cachedSource(context);
@@ -645,18 +771,24 @@ export function createLiveHcCompletionSource(
  * @param phase - Whether the editor is for a pre- or post-request script.
  * @param variables - Collection variables for {{key}} completion, or a getter
  *   returning the latest snapshot when array identity churns each render.
+ * @param snippetNames - Importable snippet filenames for relative import completion,
+ *   or a getter returning the latest snapshot.
  * @returns Completion source; returns null when no HarborClient-specific match applies.
  */
 export function createHcCompletionSource(
   phase: ScriptPhase,
-  variables: VariablesSource
+  variables: VariablesSource,
+  snippetNames: SnippetNamesSource = []
 ): CompletionSource {
   /**
-   * Returns variable or hc API completions for the current cursor context.
+   * Returns variable, import-path, or hc API completions for the current cursor context.
    *
    * @param context - CodeMirror completion context at the cursor.
    */
   return (context) => {
+    const importMatch = importPathCompletions(context, resolveSnippetNames(snippetNames));
+    if (importMatch) return importMatch;
+
     const variableMatch = variableCompletions(context, resolveVariables(variables));
     if (variableMatch) return variableMatch;
 

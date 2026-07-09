@@ -1,4 +1,5 @@
 import type { Snippet } from '#/shared/types/snippet';
+import type { SnippetBundleExport } from '#/shared/types/snippet';
 import type { SnippetScope } from '#/shared/snippetScope';
 import type { ScriptStage } from '@harborclient/sdk';
 import type { SnippetCatalog } from '#/shared/snippet/catalog';
@@ -7,12 +8,37 @@ import type { InstalledSnippetPackage, SnippetGitPreview } from '#/shared/snippe
 /**
  * Result of reading a JavaScript file selected for snippet import.
  */
-export type SnippetImportResult = {
+export type SnippetJsImportResult = {
+  /**
+   * Discriminator for a single JavaScript file import.
+   */
+  kind: 'js';
+
   /**
    * Raw JavaScript source from the selected file.
    */
   code: string;
 };
+
+/**
+ * Result of reading a snippets bundle JSON file selected for import.
+ */
+export type SnippetBundleImportResult = {
+  /**
+   * Discriminator for a snippets bundle JSON import.
+   */
+  kind: 'bundle';
+
+  /**
+   * Parsed snippets bundle export payload.
+   */
+  bundle: SnippetBundleExport;
+};
+
+/**
+ * Result of reading a snippet import file from disk.
+ */
+export type SnippetImportResult = SnippetJsImportResult | SnippetBundleImportResult;
 
 /**
  * IPC methods for reusable JavaScript snippets.
@@ -77,12 +103,14 @@ export interface ApiSnippets {
   moveSnippet: (id: number, targetConnectionId: string) => Promise<Snippet>;
 
   /**
-   * Opens a native file picker for a `.js` file and returns its contents.
+   * Opens a native file picker for a `.js` file, or `.js`/`.json` when
+   * `includeBundle` is true, and returns its parsed contents.
    *
-   * @returns Imported source, or null when the dialog was canceled.
-   * @throws When the selected file is empty or whitespace-only.
+   * @param includeBundle - When true, the dialog also accepts snippets bundle JSON.
+   * @returns Imported source or bundle, or null when the dialog was canceled.
+   * @throws When the selected file is empty, invalid, or whitespace-only.
    */
-  importSnippetFile: () => Promise<SnippetImportResult | null>;
+  importSnippetFile: (includeBundle?: boolean) => Promise<SnippetImportResult | null>;
 
   /**
    * Fetches the public snippet marketplace catalog.
