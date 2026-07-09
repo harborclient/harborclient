@@ -60,7 +60,8 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   codeEditorSetup: { ...DEFAULT_CODE_EDITOR_SETUP },
   codeEditorFontSize: DEFAULT_CODE_EDITOR_FONT_SIZE,
   proxy: { ...DEFAULT_PROXY_SETTINGS },
-  globalVariables: []
+  globalVariables: [],
+  logFilePath: ''
 };
 
 /**

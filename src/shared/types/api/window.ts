@@ -189,4 +189,11 @@ export interface ApiWindow {
    * @returns Selected absolute directory path, or null when canceled.
    */
   selectDirectory: (defaultPath: string) => Promise<string | null>;
+  /**
+   * Opens a native save dialog.
+   *
+   * @param defaultPath - Initial file path shown in the dialog, if any.
+   * @returns Selected absolute file path, or null when canceled.
+   */
+  selectSaveFile: (defaultPath: string) => Promise<string | null>;
 }

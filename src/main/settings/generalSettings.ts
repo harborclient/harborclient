@@ -1,4 +1,5 @@
 import { DEFAULT_PROXY_SETTINGS, HARD_MAX_RESPONSE_SIZE_MB } from '@harborclient/http';
+import { configureFileLogger } from '#/main/fileLogger';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { normalizeVariable } from '#/main/storage/collectionVariables';
 import { parseJson } from '#/shared/parseJson';
@@ -32,7 +33,8 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   codeEditorSetup: { ...DEFAULT_CODE_EDITOR_SETUP },
   codeEditorFontSize: DEFAULT_CODE_EDITOR_FONT_SIZE,
   proxy: { ...DEFAULT_PROXY_SETTINGS },
-  globalVariables: []
+  globalVariables: [],
+  logFilePath: ''
 };
 
 const STORE_KEY = 'general';
@@ -159,7 +161,8 @@ function normalizeSettings(input: Partial<GeneralSettings>): GeneralSettings {
     codeEditorSetup: normalizeCodeEditorSetup(input.codeEditorSetup),
     codeEditorFontSize: normalizeCodeEditorFontSize(input.codeEditorFontSize),
     proxy: normalizeProxySettings(input.proxy),
-    globalVariables: normalizeGlobalVariables(input.globalVariables)
+    globalVariables: normalizeGlobalVariables(input.globalVariables),
+    logFilePath: typeof input.logFilePath === 'string' ? input.logFilePath.trim() : ''
   };
 }
 
@@ -182,7 +185,9 @@ export function getGeneralSettings(): GeneralSettings {
  * @param input - Settings to store.
  */
 export function setGeneralSettings(input: GeneralSettings): void {
-  getLocalDatabase().setSetting(STORE_KEY, JSON.stringify(normalizeSettings(input)));
+  const normalized = normalizeSettings(input);
+  getLocalDatabase().setSetting(STORE_KEY, JSON.stringify(normalized));
+  configureFileLogger(normalized);
 }
 
 /**

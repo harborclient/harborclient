@@ -15,6 +15,7 @@ import { AiClaudeApiKeyField } from '../fields/AiClaudeApiKeyField';
 import { AiGeminiApiKeyField } from '../fields/AiGeminiApiKeyField';
 import { AiOpenAiApiKeyField } from '../fields/AiOpenAiApiKeyField';
 import { GeneralFollowRedirectsField } from '../fields/GeneralFollowRedirectsField';
+import { GeneralLogFilePathField } from '../fields/GeneralLogFilePathField';
 import { GeneralScrollbarAutoHideField } from '../fields/GeneralScrollbarAutoHideField';
 import { GeneralWarnWhenSwitchingThemesField } from '../fields/GeneralWarnWhenSwitchingThemesField';
 import { GeneralMaxResponseSizeField } from '../fields/GeneralMaxResponseSizeField';
@@ -56,6 +57,7 @@ export const SETTINGS_FIELD_REGISTRY: Partial<Record<FieldSettingId, ComponentTy
   'general.followRedirects': GeneralFollowRedirectsField,
   'general.scrollbarAutoHide': GeneralScrollbarAutoHideField,
   'general.warnWhenSwitchingThemes': GeneralWarnWhenSwitchingThemesField,
+  'general.logFilePath': GeneralLogFilePathField,
   'proxy.enabled': ProxyEnabledField,
   'proxy.protocol': ProxyProtocolField,
   'proxy.host': ProxyHostField,

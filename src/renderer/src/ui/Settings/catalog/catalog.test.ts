@@ -24,6 +24,7 @@ const EXPECTED_FIELD_IDS: FieldSettingId[] = [
   'general.followRedirects',
   'general.scrollbarAutoHide',
   'general.warnWhenSwitchingThemes',
+  'general.logFilePath',
   'proxy.enabled',
   'proxy.protocol',
   'proxy.host',

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(logging): integrate Winston for file logging with daily rotation. (`b2324e1`)
 - feat(getting-started): implement Getting Started feature with documentation and UI integration. (`266123a`)
 - fix(docs): update internalDocumentIDStore in docsSearchIndex.json. (`249a3b5`)
 - fix(docs): update docsSearchIndex.json with new internal document IDs. (`bd47ea4`)

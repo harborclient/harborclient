@@ -1936,6 +1936,16 @@ function selectDirectory(defaultPath: string): Promise<string | null> {
 }
 
 /**
+ * Opens a native save dialog via IPC.
+ *
+ * @param defaultPath - Initial file path shown in the dialog; main process fills a default when empty.
+ * @returns Selected absolute file path, or null when canceled.
+ */
+function selectSaveFile(defaultPath: string): Promise<string | null> {
+  return ipcRenderer.invoke('dialog:saveFile', defaultPath);
+}
+
+/**
  * Creates a signed, encrypted share token for a specific recipient via IPC.
  *
  * @param collectionId - Global collection id to share.
@@ -2809,6 +2819,7 @@ const api: Api = {
   confirmClose,
   selectFiles,
   selectDirectory,
+  selectSaveFile,
   createShareToken,
   joinSharedCollection,
   getSharingIdentity,

@@ -230,6 +230,11 @@ export interface GeneralSettings {
    * App-wide variables for {{key}} substitution; lowest precedence in the variable chain.
    */
   globalVariables: Variable[];
+
+  /**
+   * Absolute path to a rotating log file; empty disables file logging.
+   */
+  logFilePath: string;
 }
 
 /**

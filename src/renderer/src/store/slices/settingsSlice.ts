@@ -31,7 +31,8 @@ export const defaultGeneralSettings: GeneralSettings = {
     username: '',
     password: ''
   },
-  globalVariables: []
+  globalVariables: [],
+  logFilePath: ''
 };
 
 export interface SettingsState {

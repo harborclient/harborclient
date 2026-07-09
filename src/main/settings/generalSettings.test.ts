@@ -175,6 +175,19 @@ describe('generalSettings', () => {
     expect(getGeneralSettings().followRedirects).toBe(false);
   });
 
+  it('defaults logFilePath to empty when unset', () => {
+    expect(getGeneralSettings().logFilePath).toBe('');
+  });
+
+  it('trims stored logFilePath', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      logFilePath: ' /tmp/harborclient.log '
+    });
+
+    expect(getGeneralSettings().logFilePath).toBe('/tmp/harborclient.log');
+  });
+
   it('defaults scrollbarAutoHide to false when unset', () => {
     expect(getGeneralSettings().scrollbarAutoHide).toBe(false);
   });

@@ -255,7 +255,8 @@ describe('generalSettings', () => {
       username: '',
       password: ''
     },
-    globalVariables: []
+    globalVariables: [],
+    logFilePath: ''
   };
 
   it('parses generalSettings with numeric timeout and boolean verifySsl', () => {

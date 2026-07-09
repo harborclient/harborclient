@@ -1,5 +1,6 @@
 import { BrowserWindow, dialog } from 'electron';
 import { writeFile } from 'fs/promises';
+import { getDefaultLogFilePath } from '#/main/fileLogger';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 
@@ -23,6 +24,27 @@ export function registerFileHandlers(): void {
     }
 
     return filePaths[0];
+  });
+
+  // Opens a native save dialog and returns the chosen absolute file path.
+  handle('dialog:saveFile', ipcArgSchemas.saveFile, async (_event, defaultPath) => {
+    const win = BrowserWindow.getFocusedWindow();
+    const dialogOptions = {
+      defaultPath: defaultPath.trim() || getDefaultLogFilePath(),
+      filters: [
+        { name: 'Log files', extensions: ['log'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    };
+    const { canceled, filePath } = win
+      ? await dialog.showSaveDialog(win, dialogOptions)
+      : await dialog.showSaveDialog(dialogOptions);
+
+    if (canceled || !filePath) {
+      return null;
+    }
+
+    return filePath;
   });
 
   // Writes arbitrary text to a file chosen via a native save dialog.

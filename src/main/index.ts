@@ -28,6 +28,8 @@ import { startGitWatchers } from '#/main/git/gitWatcher';
 import { rebuildAppMenu, setMenuActiveTheme, setMenuWindow } from '#/main/appMenu';
 import { attachShortcutDispatch } from '#/main/shortcutDispatch';
 import { isVerbose, logVerbose } from '#/main/logger';
+import { configureFileLogger } from '#/main/fileLogger';
+import { getGeneralSettings } from '#/main/settings/generalSettings';
 import {
   loadWindowState,
   restoreWindowPresentation,
@@ -283,6 +285,7 @@ async function createStorage(): Promise<RoutingStorage> {
   const userDataPath = app.getPath('userData');
   logVerbose('createStorage: userData path', userDataPath);
   const database = await initLocalDatabase(userDataPath);
+  configureFileLogger(getGeneralSettings());
   logVerbose('createStorage: local database initialized');
   migrateTeamHubSettings(database, userDataPath);
   migrateStorageSettingsKeys(database);

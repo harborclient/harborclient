@@ -9,6 +9,7 @@ export type SettingId =
   | 'general.followRedirects'
   | 'general.scrollbarAutoHide'
   | 'general.warnWhenSwitchingThemes'
+  | 'general.logFilePath'
   | 'proxy.enabled'
   | 'proxy.protocol'
   | 'proxy.host'
@@ -92,7 +93,7 @@ export type SettingEntry = FieldSettingEntry | SectionSettingEntry;
  */
 export const FORM_SECTION_DESCRIPTIONS: Record<FormSettingsSection, string> = {
   general:
-    'Set request and script timeouts, response size limits, SSL verification, redirect following defaults, and scrollbar visibility.',
+    'Set request and script timeouts, response size limits, SSL verification, redirect following defaults, scrollbar visibility, and optional diagnostic log file output.',
   proxy: "Route HarborClient's outbound HTTP requests through a proxy server.",
   syntax: 'Choose a CodeMirror theme and editor behavior for request and response editors.',
   ai: 'Store API keys for OpenAI, Claude, and Google Gemini, and configure MCP server and client connections.',
@@ -170,6 +171,15 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     description:
       'When enabled, switching appearance themes from the View menu shows a confirmation dialog.',
     keywords: ['theme', 'appearance', 'confirm', 'warning']
+  },
+  {
+    id: 'general.logFilePath',
+    section: 'general',
+    kind: 'field',
+    label: 'Log file path',
+    description:
+      'When set, verbose and request diagnostics are written to this rotating log file regardless of -v or -vv flags. Leave empty to disable.',
+    keywords: ['log', 'logging', 'file', 'verbose', 'diagnostics', 'debug']
   },
   {
     id: 'proxy.enabled',

@@ -8,7 +8,12 @@
  * e.g. `pnpm dev -- -v` or `pnpm dev -- -vv`; in a packaged build use
  * `./HarborClient -v` or `./HarborClient -vv`. Standard warnings and errors always log
  * regardless of verbose mode.
+ *
+ * When a log file path is configured in Settings → General, {@link logVerbose} and
+ * {@link logRequest} always write to the rotating file regardless of verbose flags.
  */
+
+import { writeRequestLog, writeVerboseLog } from '#/main/fileLogger';
 
 /**
  * Determines whether very-verbose logging should be enabled for this process.
@@ -61,6 +66,7 @@ export const isVerbose: boolean = detectVerbose() || isVeryVerbose;
  * @param args - Values forwarded to `console.log`.
  */
 export function logVerbose(...args: unknown[]): void {
+  writeVerboseLog(...args);
   if (isVerbose) {
     console.log('[verbose]', ...args);
   }
@@ -75,6 +81,7 @@ export function logVerbose(...args: unknown[]): void {
  * @param args - Values forwarded to `console.log`.
  */
 export function logRequest(...args: unknown[]): void {
+  writeRequestLog(...args);
   if (isVeryVerbose) {
     console.log('[request]', ...args);
   }

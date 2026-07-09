@@ -269,7 +269,8 @@ export const generalSettings = z.object({
     username: z.string(),
     password: z.string()
   }),
-  globalVariables: z.array(variable)
+  globalVariables: z.array(variable),
+  logFilePath: z.string()
 }) satisfies z.ZodType<GeneralSettings>;
 
 /**
@@ -679,6 +680,7 @@ export const ipcArgSchemas = {
   importAuto: z.tuple([dbId.nullable()]),
   shareCreate: z.tuple([dbId, recipientKid.optional()]),
   openDirectory: z.tuple([z.string()]),
+  saveFile: z.tuple([z.string()]),
   saveTextFile: z.tuple([z.string().max(MAX_IPC_REQUEST_BODY_CHARS), z.string()]),
   backupExport: z.tuple([z.record(z.string(), z.string())]),
   gitCommit: z.tuple([connectionId, z.string().trim().min(1), z.boolean().optional()]),
