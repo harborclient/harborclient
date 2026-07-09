@@ -200,6 +200,10 @@ export interface ScriptRunInput {
    * Cookies for the request host resolved at send start, seeded from the cookie jar.
    */
   cookies?: KeyValue[];
+  /**
+   * Mutable object bag threaded across sequential scripts within one send.
+   */
+  data?: Record<string, unknown>;
 }
 
 /**
@@ -323,5 +327,9 @@ export interface ScriptRunResult {
    * Ordered variable and flow-control activity emitted during this script run.
    */
   executionEvents: ScriptExecutionEvent[];
+  /**
+   * Mutable object bag after this script run, forwarded to the next script slot.
+   */
+  data: Record<string, unknown>;
   error?: string;
 }

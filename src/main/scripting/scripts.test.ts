@@ -36,8 +36,85 @@ describe('evaluateScript', () => {
       collectionAuth: defaultAuth(),
       tests: [],
       logs: [],
-      executionEvents: []
+      executionEvents: [],
+      data: {}
     });
+  });
+
+  it('round-trips hc.data mutations through the result', async () => {
+    const { evaluateScript } = await import('#/main/scripting/scriptEvaluator');
+    const request = {
+      method: 'GET' as const,
+      url: 'https://example.com',
+      headers: [],
+      params: [],
+      body: '',
+      bodyType: 'none' as const
+    };
+
+    const result = await evaluateScript({
+      phase: 'pre',
+      script: `
+        hc.data.mocks = { user: { id: 123, name: 'Ada' } };
+        hc.data.token = 'abc';
+      `,
+      request,
+      variables: {},
+      data: {}
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.data).toEqual({
+      mocks: { user: { id: 123, name: 'Ada' } },
+      token: 'abc'
+    });
+  });
+
+  it('supports hc.data reassignment', async () => {
+    const { evaluateScript } = await import('#/main/scripting/scriptEvaluator');
+    const request = {
+      method: 'GET' as const,
+      url: 'https://example.com',
+      headers: [],
+      params: [],
+      body: '',
+      bodyType: 'none' as const
+    };
+
+    const result = await evaluateScript({
+      phase: 'pre',
+      script: `hc.data = { replaced: true };`,
+      request,
+      variables: {},
+      data: { original: true }
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.data).toEqual({ replaced: true });
+  });
+
+  it('preserves incoming data on runtime error', async () => {
+    const { evaluateScript } = await import('#/main/scripting/scriptEvaluator');
+    const request = {
+      method: 'GET' as const,
+      url: 'https://example.com',
+      headers: [],
+      params: [],
+      body: '',
+      bodyType: 'none' as const
+    };
+    const incomingData = { mocks: { id: 1 } };
+
+    const result = await evaluateScript({
+      phase: 'pre',
+      script: `throw new Error('boom');`,
+      request,
+      variables: {},
+      data: incomingData
+    });
+
+    expect(result.error).toBeTruthy();
+    expect(result.data).toEqual(incomingData);
   });
 
   it('resolves dynamic variables via hc.request.variables.replaceIn', async () => {

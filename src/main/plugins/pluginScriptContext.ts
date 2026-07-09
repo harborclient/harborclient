@@ -55,6 +55,11 @@ export interface PluginScriptRunResult {
   logs: string[];
 
   /**
+   * Mutable object bag after hc.data mutations in this context lifetime.
+   */
+  data: Record<string, unknown>;
+
+  /**
    * Sanitized runtime error message when script evaluation throws.
    */
   error?: string;
@@ -114,7 +119,8 @@ export function createScriptContext(init?: Partial<ScriptRunContextInput>): Plug
     response: init?.response,
     variables: init?.variables ?? defaults.variables,
     collection: init?.collection,
-    environment: init?.environment
+    environment: init?.environment,
+    data: init?.data
   };
 
   const api = createScriptApi(merged);

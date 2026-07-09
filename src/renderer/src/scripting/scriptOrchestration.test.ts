@@ -174,7 +174,8 @@ describe('applyScriptRequestMutations', () => {
       collectionHeaders: [],
       tests: [],
       logs: [],
-      executionEvents: []
+      executionEvents: [],
+      data: {}
     };
 
     expect(applyScriptRequestMutations(current, result)).toEqual({

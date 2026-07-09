@@ -525,6 +525,7 @@ export async function executeRequestDraft(
   const allTests: ScriptTestResult[] = [];
   const allExecutionEvents: ScriptExecutionEvent[] = [];
   const scriptErrors: string[] = [];
+  let scriptData: Record<string, unknown> = {};
 
   let scriptRequest: ScriptRequestContext = {
     method: currentDraft.method,
@@ -580,7 +581,8 @@ export async function executeRequestDraft(
         },
         environment: {
           name: environment?.name ?? ''
-        }
+        },
+        data: scriptData
       });
 
       if (result.logs.length) {
@@ -627,6 +629,7 @@ export async function executeRequestDraft(
       if (result.skipRequest) {
         scriptSkipRequest = true;
       }
+      scriptData = result.data;
     }
   };
 

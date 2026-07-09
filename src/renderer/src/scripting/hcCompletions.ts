@@ -28,6 +28,11 @@ const HC_ROOT: HcCompletionOption[] = [
   { label: 'environment', type: 'property', detail: 'Environment metadata and variables' },
   { label: 'globals', type: 'property', detail: 'Get/set/clear app-wide global variables' },
   { label: 'cookies', type: 'property', detail: 'Get/set/clear cookies for the request host' },
+  {
+    label: 'data',
+    type: 'property',
+    detail: 'Mutable object shared across scripts in this send (pre → post)'
+  },
   { label: 'execution', type: 'property', detail: 'Collection runner flow control' },
   {
     label: 'sendRequest',

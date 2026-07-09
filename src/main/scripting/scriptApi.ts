@@ -69,6 +69,7 @@ interface ScriptApiState {
   phase: ScriptPhase;
   nextRequest: string | null | undefined;
   skipRequest: boolean;
+  data: Record<string, unknown>;
 }
 
 /**
@@ -548,7 +549,8 @@ export function createScriptApi(
     executionEvents: [],
     phase: input.phase,
     nextRequest: undefined,
-    skipRequest: false
+    skipRequest: false,
+    data: input.data ? { ...input.data } : {}
   };
 
   const resolveRuntimeVariable = (key: string): string | undefined => {
@@ -685,6 +687,16 @@ export function createScriptApi(
       () => state.cookieSets,
       () => state.cookieClears
     ),
+    /**
+     * Mutable object shared across scripts in the current send (pre through post).
+     */
+    get data() {
+      return state.data;
+    },
+    set data(v: unknown) {
+      state.data =
+        v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+    },
     execution: {
       setNextRequest: (name: unknown) => {
         state.nextRequest = name == null ? null : String(name);
@@ -799,7 +811,8 @@ export function createScriptApi(
       skipRequest: state.skipRequest || undefined,
       tests: state.tests ?? [],
       logs: state.logs ?? [],
-      executionEvents: state.executionEvents ?? []
+      executionEvents: state.executionEvents ?? [],
+      data: state.data
     })
   };
 }
@@ -824,6 +837,7 @@ export function defaultScriptContextInput(): ScriptRunContextInput {
       comment: ''
     },
     variables: {},
+    data: {},
     info: buildScriptRunInfo('pre')
   };
 }

@@ -77,11 +77,11 @@
   "snippets": [
     {
       "repoUrl": "https://github.com/harborclient/snippet-auth",
-      "ref": "v1.0.3"
+      "ref": "v1.0.4"
     },
     {
       "repoUrl": "https://github.com/harborclient/snippet-testing",
-      "ref": "v1.0.5"
+      "ref": "v1.0.6"
     }
   ]
 }

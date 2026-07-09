@@ -70,6 +70,7 @@ describe('createHcCompletionSource', () => {
     expect(labels(result!.options).sort()).toEqual([
       'collection',
       'cookies',
+      'data',
       'environment',
       'execution',
       'expect',
@@ -88,6 +89,7 @@ describe('createHcCompletionSource', () => {
     expect(labels(result!.options).sort()).toEqual([
       'collection',
       'cookies',
+      'data',
       'environment',
       'execution',
       'expect',

@@ -190,4 +190,15 @@ describe('createScriptContext', () => {
       { name: 'second test', passed: true }
     ]);
   });
+
+  it('persists hc.data across multiple run() calls', () => {
+    const context = createScriptContext({ variables: {} });
+
+    context.run(`hc.data.mocks = { user: { id: 42 } };`);
+    const result = context.run(`hc.data.mocks.user.id;`);
+
+    expect(result.error).toBeUndefined();
+    expect(result.value).toBe(42);
+    expect(result.data).toEqual({ mocks: { user: { id: 42 } } });
+  });
 });

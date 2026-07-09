@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(scripting): introduce hc.data for mutable state across scripts. (`104cfb4`)
+
 ## 2.0.12 - 2026-07-09
 
 - fix(tests): update service configurations and enhance theme styling. (`ff8cb2f`)

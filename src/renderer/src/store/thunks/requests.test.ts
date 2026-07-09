@@ -630,6 +630,116 @@ describe('sendRequest', () => {
   });
 });
 
+describe('executeRequestDraft hc.data threading', () => {
+  it('forwards data from one script slot to the next', async () => {
+    const sendRequestApiMock = vi.fn().mockResolvedValue({
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      body: '{}',
+      timeMs: 5,
+      sizeBytes: 2
+    });
+    const firstScript = createInlineScriptRef('hc.data.mocks = { id: 1 };', 'Define mocks');
+    const secondScript = createInlineScriptRef('hc.data.mocks.id;', 'Use mocks');
+    const runScriptMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        request: {
+          method: 'GET' as const,
+          url: 'https://example.com',
+          headers: [],
+          params: [],
+          body: '',
+          bodyType: 'none' as const
+        },
+        variableSets: {},
+        variableClears: [],
+        collectionVariableSets: {},
+        collectionVariableClears: [],
+        environmentVariableSets: {},
+        environmentVariableClears: [],
+        globalVariableSets: {},
+        globalVariableClears: [],
+        cookieSets: {},
+        cookieClears: [],
+        collectionHeaders: [],
+        tests: [],
+        logs: [],
+        executionEvents: [],
+        data: { mocks: { id: 1 } }
+      })
+      .mockResolvedValueOnce({
+        request: {
+          method: 'GET' as const,
+          url: 'https://example.com',
+          headers: [],
+          params: [],
+          body: '',
+          bodyType: 'none' as const
+        },
+        variableSets: {},
+        variableClears: [],
+        collectionVariableSets: {},
+        collectionVariableClears: [],
+        environmentVariableSets: {},
+        environmentVariableClears: [],
+        globalVariableSets: {},
+        globalVariableClears: [],
+        cookieSets: {},
+        cookieClears: [],
+        collectionHeaders: [],
+        tests: [],
+        logs: [],
+        executionEvents: [],
+        data: { mocks: { id: 1 } }
+      });
+
+    vi.stubGlobal('window', {
+      api: {
+        saveRequest: saveRequestMock,
+        listRequests: listRequestsMock,
+        listFolders: listFoldersMock,
+        cancelRequest: cancelRequestMock,
+        sendRequest: sendRequestApiMock,
+        runScript: runScriptMock,
+        getCookies: vi.fn().mockResolvedValue([]),
+        pushPluginHttpAfterSend: vi.fn().mockResolvedValue(undefined)
+      }
+    });
+
+    const { store } = await import('#/renderer/src/store/redux');
+    const { executeRequestDraft } = await import('#/renderer/src/store/thunks/requests');
+
+    await executeRequestDraft(
+      {
+        draft: {
+          name: 'Threaded data',
+          method: 'GET',
+          url: 'https://example.com',
+          headers: [],
+          params: [],
+          body: '',
+          body_type: 'none',
+          pre_request_script: '',
+          post_request_script: '',
+          pre_request_scripts: [firstScript, secondScript],
+          post_request_scripts: [],
+          comment: '',
+          tags: '',
+          auth: defaultAuth()
+        },
+        requestId: 'req-thread-data'
+      },
+      { dispatch: store.dispatch, getState: store.getState }
+    );
+
+    expect(runScriptMock).toHaveBeenCalledTimes(2);
+    expect(runScriptMock.mock.calls[0]?.[0]?.data).toEqual({});
+    expect(runScriptMock.mock.calls[1]?.[0]?.data).toEqual({ mocks: { id: 1 } });
+  });
+});
+
 describe('cancelRequest', () => {
   it('cancels the in-flight request for the given tab id', async () => {
     const { store } = await import('#/renderer/src/store/redux');

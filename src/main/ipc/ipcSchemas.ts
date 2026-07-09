@@ -233,7 +233,8 @@ export const scriptRunInput = z.object({
       requestId: z.string(),
       iteration: z.number().int().nonnegative()
     })
-    .optional()
+    .optional(),
+  data: z.record(z.string(), z.unknown()).optional()
 }) satisfies z.ZodType<ScriptRunInput>;
 
 export const generalSettings = z.object({

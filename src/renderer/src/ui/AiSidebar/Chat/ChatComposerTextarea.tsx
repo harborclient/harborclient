@@ -106,6 +106,41 @@ export function ChatComposerTextarea({
   const editorRef = useRef<ReactCodeMirrorRef | null>(null);
   const onSubmitRef = useRef(onSubmit);
 
+  // #region agent log
+  useEffect(() => {
+    const liveDoc = editorRef.current?.view?.state.doc.toString();
+    fetch('http://127.0.0.1:7634/ingest/c3368b90-dc8c-409b-b6ba-5e08697b30c9', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'e65097' },
+      body: JSON.stringify({
+        sessionId: 'e65097',
+        location: 'ChatComposerTextarea.tsx:value-prop-effect',
+        message: 'value prop changed',
+        data: { valueProp: value, liveDoc, mismatch: liveDoc != null && liveDoc !== value },
+        timestamp: Date.now(),
+        hypothesisId: 'H3'
+      })
+    }).catch(() => {});
+  }, [value]);
+  // #endregion agent log
+
+  // #region agent log
+  useEffect(() => {
+    fetch('http://127.0.0.1:7634/ingest/c3368b90-dc8c-409b-b6ba-5e08697b30c9', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'e65097' },
+      body: JSON.stringify({
+        sessionId: 'e65097',
+        location: 'ChatComposerTextarea.tsx:validationContext-effect',
+        message: 'validationContext identity changed',
+        data: { validationContext },
+        timestamp: Date.now(),
+        hypothesisId: 'H2'
+      })
+    }).catch(() => {});
+  }, [validationContext]);
+  // #endregion agent log
+
   /**
    * Keeps the submit shortcut wired to the latest parent callback.
    */
@@ -229,6 +264,20 @@ export function ChatComposerTextarea({
           });
         }}
         onChange={(nextValue) => {
+          // #region agent log
+          fetch('http://127.0.0.1:7634/ingest/c3368b90-dc8c-409b-b6ba-5e08697b30c9', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'e65097' },
+            body: JSON.stringify({
+              sessionId: 'e65097',
+              location: 'ChatComposerTextarea.tsx:onChange',
+              message: 'CodeMirror onChange fired',
+              data: { nextValue },
+              timestamp: Date.now(),
+              hypothesisId: 'H1_H3'
+            })
+          }).catch(() => {});
+          // #endregion agent log
           onChange(nextValue);
         }}
       />

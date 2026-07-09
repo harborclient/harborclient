@@ -466,6 +466,31 @@ describe('createScriptApi notes bag', () => {
   });
 });
 
+describe('createScriptApi hc.data', () => {
+  it('seeds hc.data from input and returns mutations in readResult', () => {
+    const api = createScriptApi({
+      ...baseInput,
+      data: { seed: 'value' }
+    });
+    const hc = api.hc as { data: Record<string, unknown> };
+
+    expect(hc.data).toEqual({ seed: 'value' });
+    hc.data.mocks = { user: { id: 1 } };
+    expect(api.readResult().data).toEqual({ seed: 'value', mocks: { user: { id: 1 } } });
+  });
+
+  it('supports full reassignment via hc.data setter', () => {
+    const api = createScriptApi({
+      ...baseInput,
+      data: { original: true }
+    });
+    const hc = api.hc as { data: Record<string, unknown> };
+
+    hc.data = { replaced: true };
+    expect(api.readResult().data).toEqual({ replaced: true });
+  });
+});
+
 describe('createScriptApi sendRequest', () => {
   it('uses the injected transport when provided', async () => {
     const sendResult: SendResult = {

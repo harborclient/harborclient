@@ -30,7 +30,8 @@ export function buildScriptPassthrough(input: ScriptRunInput): ScriptRunResult {
     collectionAuth: normalizeAuth(input.collection?.auth),
     tests: [],
     logs: [],
-    executionEvents: []
+    executionEvents: [],
+    data: input.data ?? {}
   };
 }
 

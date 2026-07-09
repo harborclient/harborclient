@@ -11,12 +11,12 @@ import {
 } from '@codemirror/view';
 import {
   AI_SCRIPT_REFERENCE_PATTERN,
-  findAiScriptReferenceCandidates,
   resolveAiScriptReferenceName,
   type AiScriptReferenceValidationContext,
   type ParsedAiScriptReference
 } from '#/shared/ai/scriptReferences';
 import { createScriptReferenceBadgeElement } from './scriptReferenceBadgeDom';
+import { createScriptReferenceCompletionFilter } from './scriptReferenceCompletionFilter';
 
 /**
  * CodeMirror widget that renders a resolved script reference as a badge.
@@ -200,80 +200,7 @@ function createScriptReferenceHighlighter(context: AiScriptReferenceValidationCo
     return view.plugin(scriptReferencePlugin)?.decorations ?? Decoration.none;
   });
 
-  return [scriptReferencePlugin, atomicRanges, createScriptReferenceSelectionExtension(context)];
-}
-
-/**
- * Returns whether a document edit inserted text at the end of a script reference.
- *
- * @param candidate - Parsed `@` script reference.
- * @param changeFrom - Start offset of the inserted range in the new document.
- * @param changeTo - End offset of the inserted range in the new document.
- */
-function isScriptReferenceCompletionInsert(
-  candidate: ParsedAiScriptReference,
-  changeFrom: number,
-  changeTo: number
-): boolean {
-  return changeTo === candidate.end && changeFrom >= candidate.start;
-}
-
-/**
- * Keeps the caret after a script reference badge instead of snapping to its start.
- *
- * CodeMirror atomic replace widgets can pull the selection to the beginning of the
- * hidden `@` token when a reference becomes valid while typing.
- *
- * @param context - Active tab state for semantic validation.
- */
-function createScriptReferenceSelectionExtension(
-  context: AiScriptReferenceValidationContext
-): Extension {
-  return EditorView.updateListener.of((update) => {
-    if (!update.docChanged) {
-      return;
-    }
-
-    const changedTransaction = update.transactions.find((transaction) => transaction.docChanged);
-    if (changedTransaction == null) {
-      return;
-    }
-
-    const { state } = update.view;
-    const head = state.selection.main.head;
-    const candidates = findAiScriptReferenceCandidates(state.doc.toString());
-
-    for (const candidate of candidates) {
-      if (resolveAiScriptReferenceName(candidate, context) == null) {
-        continue;
-      }
-
-      if (head > candidate.start && head < candidate.end) {
-        update.view.dispatch({
-          selection: { anchor: candidate.end, head: candidate.end }
-        });
-        return;
-      }
-
-      if (head !== candidate.start) {
-        continue;
-      }
-
-      let completedReference = false;
-      changedTransaction.changes.iterChangedRanges((_fromA, _toA, fromB, toB) => {
-        if (isScriptReferenceCompletionInsert(candidate, fromB, toB)) {
-          completedReference = true;
-        }
-      });
-
-      if (completedReference) {
-        update.view.dispatch({
-          selection: { anchor: candidate.end, head: candidate.end }
-        });
-        return;
-      }
-    }
-  });
+  return [scriptReferencePlugin, atomicRanges, createScriptReferenceCompletionFilter(context)];
 }
 
 interface SubmitKeymapOptions {
