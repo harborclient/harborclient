@@ -1,19 +1,33 @@
-import { Textarea, fieldFrame } from '@harborclient/sdk/components';
+import { fieldFrame } from '@harborclient/sdk/components';
+import CodeMirror, { type ReactCodeMirrorRef } from '@uiw/react-codemirror';
+import { EditorView } from '@codemirror/view';
 import {
   useCallback,
+  useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
-  type ChangeEvent,
   type JSX,
-  type KeyboardEvent,
   type Ref
 } from 'react';
 import {
   COMPOSER_EMBEDDED_TEXT_MIN_HEIGHT_PX,
-  useAutoGrowTextarea
+  COMPOSER_MAX_HEIGHT_PX,
+  COMPOSER_MIN_HEIGHT_PX
 } from '#/renderer/src/hooks/useAutoGrowTextarea';
-import { tokenizeChatComposerText } from '#/shared/ai/scriptReferences';
+import {
+  chatComposerSubmitCompartment,
+  createScriptReferenceBadgeExtensions,
+  createSubmitKeymap
+} from './scriptReferenceCodeMirrorExtensions';
 import { useAiScriptReferenceValidationContext } from './useAiScriptReferenceValidationContext';
+
+export interface ChatComposerTextareaHandle {
+  /**
+   * Moves keyboard focus into the composer editor.
+   */
+  focus: () => void;
+}
 
 interface Props {
   /**
@@ -24,12 +38,22 @@ interface Props {
   /**
    * Called when the draft changes.
    */
-  onChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
+  onChange: (value: string) => void;
 
   /**
-   * Optional keyboard handler (for example Enter to send).
+   * Called when the configured submit shortcut is pressed.
    */
-  onKeyDown?: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
+  onSubmit: () => void;
+
+  /**
+   * Whether the submit shortcut should send the current draft.
+   */
+  canSubmit: boolean;
+
+  /**
+   * When true, plain Enter submits instead of inserting a newline.
+   */
+  enterToSend: boolean;
 
   /**
    * Placeholder shown when the draft is empty.
@@ -47,14 +71,14 @@ interface Props {
   'aria-label'?: string;
 
   /**
-   * Additional classes applied to the textarea element.
+   * Additional classes applied to the editor root element.
    */
   className?: string;
 
   /**
-   * Ref forwarded to the underlying native textarea.
+   * Ref forwarded to the composer focus handle.
    */
-  ref?: Ref<HTMLTextAreaElement>;
+  ref?: Ref<ChatComposerTextareaHandle>;
 
   /**
    * When true, omits the outer field border so a parent shell can wrap textarea and toolbar.
@@ -63,101 +87,150 @@ interface Props {
 }
 
 /**
- * Multiline chat prompt that highlights valid `@` script references in the variable token color.
+ * Multiline chat prompt that renders valid `@` script references as inline name badges.
  */
 export function ChatComposerTextarea({
   value,
   onChange,
-  onKeyDown,
+  onSubmit,
+  canSubmit,
+  enterToSend,
   placeholder,
-  disabled,
+  disabled = false,
   'aria-label': ariaLabel,
   className = '',
   ref,
   embedded = false
 }: Props): JSX.Element {
   const validationContext = useAiScriptReferenceValidationContext();
-  const backdropRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<ReactCodeMirrorRef | null>(null);
+  const onSubmitRef = useRef(onSubmit);
 
   /**
-   * Forwards the native textarea ref to parent callers and the local scroll-sync ref.
-   *
-   * @param node - Mounted textarea element, or null on unmount.
+   * Keeps the submit shortcut wired to the latest parent callback.
    */
-  const setTextareaRef = useCallback(
-    (node: HTMLTextAreaElement | null): void => {
-      textareaRef.current = node;
-      if (typeof ref === 'function') {
-        ref(node);
-      } else if (ref != null) {
-        ref.current = node;
-      }
-    },
-    [ref]
+  useEffect(() => {
+    onSubmitRef.current = onSubmit;
+  }, [onSubmit]);
+
+  /**
+   * Focuses the underlying CodeMirror contenteditable surface.
+   */
+  const focusEditor = useCallback((): void => {
+    editorRef.current?.view?.focus();
+  }, []);
+
+  useImperativeHandle(ref, () => ({ focus: focusEditor }), [focusEditor]);
+
+  /**
+   * Builds CodeMirror extensions for script badges, submit shortcuts, and field chrome.
+   */
+  const extensions = useMemo(
+    () => [
+      EditorView.lineWrapping,
+      EditorView.contentAttributes.of({
+        'aria-label': ariaLabel ?? 'Chat message',
+        'aria-disabled': String(disabled),
+        role: 'textbox',
+        'aria-multiline': 'true'
+      }),
+      EditorView.theme({
+        '&': {
+          backgroundColor: 'transparent'
+        },
+        '.cm-scroller': {
+          overflow: 'auto'
+        },
+        '.cm-content': {
+          padding: '6px 10px',
+          fontFamily: 'inherit'
+        },
+        '.cm-line': {
+          padding: 0
+        },
+        '.cm-placeholder': {
+          color: 'var(--mac-muted)'
+        },
+        '&.cm-focused': {
+          outline: 'none'
+        }
+      }),
+      ...createScriptReferenceBadgeExtensions(validationContext),
+      chatComposerSubmitCompartment.of([])
+    ],
+    [ariaLabel, disabled, validationContext]
   );
 
   /**
-   * Splits the draft into plain text and highlightable `@` script reference spans.
+   * Reconfigures submit shortcuts when send eligibility or Enter behavior changes.
    */
-  const tokens = useMemo(
-    () => tokenizeChatComposerText(value, validationContext),
-    [value, validationContext]
-  );
-
-  useAutoGrowTextarea(
-    textareaRef,
-    value,
-    embedded ? { minHeight: COMPOSER_EMBEDDED_TEXT_MIN_HEIGHT_PX } : undefined
-  );
-
-  /**
-   * Keeps the colored backdrop aligned with textarea scrolling.
-   */
-  const syncScroll = (): void => {
-    const textarea = textareaRef.current;
-    const backdrop = backdropRef.current;
-    if (textarea && backdrop) {
-      backdrop.scrollTop = textarea.scrollTop;
-      backdrop.scrollLeft = textarea.scrollLeft;
+  useEffect(() => {
+    const view = editorRef.current?.view;
+    if (view == null) {
+      return;
     }
-  };
+
+    view.dispatch({
+      effects: chatComposerSubmitCompartment.reconfigure(
+        createSubmitKeymap({
+          enterToSend,
+          canSubmit,
+          onSubmit: () => {
+            onSubmitRef.current();
+          }
+        })
+      )
+    });
+  }, [canSubmit, enterToSend]);
+
+  const minHeightPx = embedded ? COMPOSER_EMBEDDED_TEXT_MIN_HEIGHT_PX : COMPOSER_MIN_HEIGHT_PX;
 
   return (
-    <div className={`hc-chat-composer-textarea relative w-full ${embedded ? '' : fieldFrame}`}>
-      <div
-        ref={backdropRef}
-        aria-hidden
-        className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words px-2.5 py-1.5 text-[16px] text-text"
-      >
-        {value ? (
-          tokens.map((token, index) =>
-            token.highlight ? (
-              <span
-                key={index}
-                className="hc-chat-composer-script-ref hc-variable-input-token-variable text-[#32D2E2]"
-              >
-                {token.text}
-              </span>
-            ) : (
-              <span key={index}>{token.text}</span>
-            )
-          )
-        ) : (
-          <span className="text-muted">{placeholder}</span>
-        )}
-      </div>
-      <Textarea
-        ref={setTextareaRef}
-        variant="plain"
+    <div
+      className={`hc-chat-composer-textarea hc-chat-composer-codemirror relative w-full ${embedded ? '' : fieldFrame}`}
+    >
+      <CodeMirror
+        ref={editorRef}
         value={value}
         placeholder={placeholder}
-        aria-label={ariaLabel}
-        disabled={disabled}
-        className={`relative w-full resize-none border-none bg-transparent px-2.5 py-1.5 text-[16px] text-transparent caret-text focus-visible:shadow-none ${className}`}
-        onChange={onChange}
-        onKeyDown={onKeyDown}
-        onScroll={syncScroll}
+        theme="none"
+        editable={!disabled}
+        readOnly={disabled}
+        basicSetup={{
+          lineNumbers: false,
+          foldGutter: false,
+          highlightActiveLine: false,
+          highlightActiveLineGutter: false,
+          highlightSelectionMatches: false,
+          autocompletion: false,
+          bracketMatching: false,
+          closeBrackets: false,
+          searchKeymap: false,
+          indentOnInput: false,
+          syntaxHighlighting: false,
+          defaultKeymap: true,
+          historyKeymap: true
+        }}
+        minHeight={`${minHeightPx}px`}
+        maxHeight={`${COMPOSER_MAX_HEIGHT_PX}px`}
+        className={`relative w-full text-[16px] text-text ${className}`.trim()}
+        extensions={extensions}
+        onCreateEditor={(view) => {
+          view.dispatch({
+            effects: chatComposerSubmitCompartment.reconfigure(
+              createSubmitKeymap({
+                enterToSend,
+                canSubmit,
+                onSubmit: () => {
+                  onSubmitRef.current();
+                }
+              })
+            )
+          });
+        }}
+        onChange={(nextValue) => {
+          onChange(nextValue);
+        }}
       />
     </div>
   );

@@ -1,14 +1,13 @@
 import { Children, cloneElement, isValidElement, type ReactElement, type ReactNode } from 'react';
 import {
+  resolveAiScriptReferenceName,
   tokenizeChatComposerText,
   type AiScriptReferenceValidationContext
 } from '#/shared/ai/scriptReferences';
-
-/** CSS class for valid `@` script reference tokens in chat prose. */
-const SCRIPT_REFERENCE_CLASS = 'hc-chat-composer-script-ref';
+import { ScriptReferenceBadge } from './ScriptReferenceBadge';
 
 /**
- * Renders plain text with valid `@` script references highlighted in the variable token color.
+ * Renders plain text with valid `@` script references shown as name badges.
  *
  * @param text - Markdown text node content.
  * @param context - Active tab state for semantic validation.
@@ -26,15 +25,18 @@ export function renderScriptReferenceText(
     return text;
   }
 
-  return tokens.map((token, index) =>
-    token.highlight ? (
-      <span key={index} className={SCRIPT_REFERENCE_CLASS}>
-        {token.text}
-      </span>
-    ) : (
-      token.text
-    )
-  );
+  return tokens.map((token, index) => {
+    if (!token.highlight || token.reference == null) {
+      return token.text;
+    }
+
+    const label = resolveAiScriptReferenceName(token.reference, context);
+    if (label == null) {
+      return token.text;
+    }
+
+    return <ScriptReferenceBadge key={index} label={label} />;
+  });
 }
 
 /**

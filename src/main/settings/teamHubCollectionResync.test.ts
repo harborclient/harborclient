@@ -55,17 +55,38 @@ describe('resyncUserTeamHubsSharingServer', () => {
       {
         hubId: 'hub-admin',
         managementApi: true,
-        services: { storage: true, llm: false, pluginCatalog: false, snippets: false, admin: true }
+        services: {
+          storage: true,
+          llm: false,
+          openai: false,
+          pluginCatalog: false,
+          snippets: false,
+          admin: true
+        }
       },
       {
         hubId: 'hub-user',
         managementApi: false,
-        services: { storage: true, llm: false, pluginCatalog: false, snippets: false, admin: false }
+        services: {
+          storage: true,
+          llm: false,
+          openai: false,
+          pluginCatalog: false,
+          snippets: false,
+          admin: false
+        }
       },
       {
         hubId: 'hub-other',
         managementApi: false,
-        services: { storage: true, llm: false, pluginCatalog: false, snippets: false, admin: false }
+        services: {
+          storage: true,
+          llm: false,
+          openai: false,
+          pluginCatalog: false,
+          snippets: false,
+          admin: false
+        }
       }
     ]);
 
@@ -86,12 +107,26 @@ describe('resyncUserTeamHubsSharingServer', () => {
       {
         hubId: 'hub-admin',
         managementApi: true,
-        services: { storage: true, llm: false, pluginCatalog: false, snippets: false, admin: true }
+        services: {
+          storage: true,
+          llm: false,
+          openai: false,
+          pluginCatalog: false,
+          snippets: false,
+          admin: true
+        }
       },
       {
         hubId: 'hub-user',
         managementApi: false,
-        services: { storage: true, llm: false, pluginCatalog: false, snippets: false, admin: false }
+        services: {
+          storage: true,
+          llm: false,
+          openai: false,
+          pluginCatalog: false,
+          snippets: false,
+          admin: false
+        }
       }
     ]);
 

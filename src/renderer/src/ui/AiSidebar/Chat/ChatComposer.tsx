@@ -1,7 +1,6 @@
 import { Button, FaIcon, Select, fieldFrame } from '@harborclient/sdk/components';
-import { useEffect, useRef, useState, type JSX, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type JSX } from 'react';
 import { getAvailableModels, resolveAiModelOption } from '#/shared/ai/models';
-import { shouldSendChatOnKeyDown } from '#/shared/ai/chatComposer';
 import type { AiSettings } from '#/shared/types';
 import { faArrowUp, faStop } from '#/renderer/src/fontawesome';
 
@@ -16,7 +15,7 @@ import {
   setSelectedModel
 } from '#/renderer/src/store/slices/aiChatSlice';
 import { sendChatMessage, cancelChatMessage } from '#/renderer/src/store/thunks/aiChat';
-import { ChatComposerTextarea } from './ChatComposerTextarea';
+import { ChatComposerTextarea, type ChatComposerTextareaHandle } from './ChatComposerTextarea';
 
 interface Props {
   /**
@@ -50,7 +49,7 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
   const pendingComposerText = useAppSelector(selectPendingComposerText);
   const enterToSend = useAppSelector(selectEnterToSend);
   const [draft, setDraft] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const composerRef = useRef<ChatComposerTextareaHandle>(null);
   const wasSendingRef = useRef(false);
   const availableModels = getAvailableModels(aiSettings, hubModelGroups);
   const modelId = selectedModel ?? availableModels[0]?.id ?? '';
@@ -71,38 +70,19 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
 
     queueMicrotask(() => {
       setDraft(text);
-      textareaRef.current?.focus();
+      composerRef.current?.focus();
     });
   }, [dispatch, pendingComposerText]);
 
   /**
-   * Returns focus to the prompt after a send completes and the textarea is re-enabled.
+   * Returns focus to the prompt after a send completes and the editor is re-enabled.
    */
   useEffect(() => {
     if (wasSendingRef.current && !sending) {
-      textareaRef.current?.focus();
+      composerRef.current?.focus();
     }
     wasSendingRef.current = sending;
   }, [sending]);
-
-  /**
-   * Sends the current draft when Enter matches the configured submit shortcut.
-   */
-  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>): void => {
-    if (
-      shouldSendChatOnKeyDown(
-        event.key,
-        event.shiftKey,
-        event.ctrlKey,
-        event.metaKey,
-        enterToSend
-      ) &&
-      canSend
-    ) {
-      event.preventDefault();
-      void handleSend();
-    }
-  };
 
   /**
    * Dispatches the cancel thunk to stop the in-flight AI reply.
@@ -135,19 +115,23 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
     <div className="flex shrink-0 flex-col gap-2 border-t border-separator p-3 app-no-drag">
       <div className={`flex flex-col ${fieldFrame}`}>
         <ChatComposerTextarea
-          ref={textareaRef}
+          ref={composerRef}
           embedded
           value={draft}
           placeholder="Type a message…"
           aria-label="Chat message"
           disabled={chatId == null || sending}
-          onChange={(event) => {
-            setDraft(event.target.value);
+          enterToSend={enterToSend}
+          canSubmit={canSend}
+          onChange={(nextValue) => {
+            setDraft(nextValue);
             if (chatId != null) {
               dispatch(clearSendError(chatId));
             }
           }}
-          onKeyDown={handleKeyDown}
+          onSubmit={() => {
+            void handleSend();
+          }}
         />
         <div className="flex items-center justify-between gap-2 px-2 pb-2 pt-0">
           <Select

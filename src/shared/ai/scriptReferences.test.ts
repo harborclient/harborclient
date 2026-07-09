@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   findAiScriptReferenceCandidates,
   isValidAiScriptReference,
+  resolveAiScriptReferenceName,
   tokenizeChatComposerText,
   type AiScriptReferenceValidationContext
 } from '#/shared/ai/scriptReferences';
+import type { ScriptRef, Snippet } from '#/shared/types';
 
 /**
  * Builds a validation context with sensible defaults for tests.
@@ -19,6 +21,40 @@ function context(
     activeRequestId: 42,
     preScriptCount: 2,
     postScriptCount: 1,
+    ...overrides
+  };
+}
+
+/**
+ * Builds a minimal inline script row for name-resolution tests.
+ *
+ * @param overrides - Partial script fields to override.
+ */
+function inlineScript(overrides: Partial<ScriptRef> = {}): ScriptRef {
+  return {
+    id: 'script-1',
+    enabled: true,
+    kind: 'inline',
+    ...overrides
+  };
+}
+
+/**
+ * Builds a minimal snippet row for name-resolution tests.
+ *
+ * @param overrides - Partial snippet fields to override.
+ */
+function snippet(overrides: Partial<Snippet> = {}): Snippet {
+  return {
+    id: 1,
+    uuid: 'snippet-uuid',
+    name: 'Auth helper',
+    code: 'console.log("auth");',
+    scope: 'any',
+    stage: 'main',
+    source: 'local',
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
     ...overrides
   };
 }
@@ -108,10 +144,78 @@ describe('isValidAiScriptReference', () => {
   });
 });
 
+describe('resolveAiScriptReferenceName', () => {
+  it('returns the inline script name when set', () => {
+    const [candidate] = findAiScriptReferenceCandidates('@active.pre.1');
+    expect(candidate).toBeDefined();
+
+    expect(
+      resolveAiScriptReferenceName(
+        candidate!,
+        context({
+          preScripts: [inlineScript({ name: 'Set auth token' })]
+        })
+      )
+    ).toBe('Set auth token');
+  });
+
+  it('returns the linked snippet name for snippet scripts', () => {
+    const [candidate] = findAiScriptReferenceCandidates('@42.post.1');
+    expect(candidate).toBeDefined();
+
+    expect(
+      resolveAiScriptReferenceName(
+        candidate!,
+        context({
+          postScripts: [
+            inlineScript({ id: 'script-2', kind: 'snippet', snippetUuid: 'snippet-uuid' })
+          ],
+          snippets: [snippet({ name: 'Auth helper' })]
+        })
+      )
+    ).toBe('Auth helper');
+  });
+
+  it('returns Missing snippet when the linked snippet is absent', () => {
+    const [candidate] = findAiScriptReferenceCandidates('@42.post.1');
+    expect(candidate).toBeDefined();
+
+    expect(
+      resolveAiScriptReferenceName(
+        candidate!,
+        context({
+          postScripts: [
+            inlineScript({ id: 'script-2', kind: 'snippet', snippetUuid: 'missing-uuid' })
+          ],
+          snippets: []
+        })
+      )
+    ).toBe('Missing snippet');
+  });
+
+  it('returns null for out-of-range references', () => {
+    const [candidate] = findAiScriptReferenceCandidates('@active.pre.3');
+    expect(candidate).toBeDefined();
+
+    expect(
+      resolveAiScriptReferenceName(
+        candidate!,
+        context({
+          preScripts: [
+            inlineScript({ name: 'First' }),
+            inlineScript({ id: 'script-2', name: 'Second' })
+          ]
+        })
+      )
+    ).toBeNull();
+  });
+});
+
 describe('tokenizeChatComposerText', () => {
   it('highlights only valid references', () => {
+    const [candidate] = findAiScriptReferenceCandidates('@active.pre.1');
     expect(tokenizeChatComposerText('@active.pre.1', context())).toEqual([
-      { text: '@active.pre.1', highlight: true }
+      { text: '@active.pre.1', highlight: true, reference: candidate }
     ]);
 
     expect(tokenizeChatComposerText('@active.pre.9', context())).toEqual([
@@ -120,17 +224,19 @@ describe('tokenizeChatComposerText', () => {
   });
 
   it('splits mixed plain and highlighted segments', () => {
+    const candidates = findAiScriptReferenceCandidates('Fix @42.pre.2 and @42.pre.9');
     expect(tokenizeChatComposerText('Fix @42.pre.2 and @42.pre.9', context())).toEqual([
       { text: 'Fix ', highlight: false },
-      { text: '@42.pre.2', highlight: true },
+      { text: '@42.pre.2', highlight: true, reference: candidates[0] },
       { text: ' and ', highlight: false },
       { text: '@42.pre.9', highlight: false }
     ]);
   });
 
   it('leaves trailing plain text after a parsed reference', () => {
+    const [candidate] = findAiScriptReferenceCandidates('@active.pre.1extra');
     expect(tokenizeChatComposerText('@active.pre.1extra', context())).toEqual([
-      { text: '@active.pre.1', highlight: true },
+      { text: '@active.pre.1', highlight: true, reference: candidate },
       { text: 'extra', highlight: false }
     ]);
   });

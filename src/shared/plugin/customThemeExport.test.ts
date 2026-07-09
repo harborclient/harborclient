@@ -45,11 +45,11 @@ describe('customThemeExport', () => {
       ...sampleExport,
       theme: {
         ...sampleExport.theme,
-        'script-stage-before-all': '#0b72d4',
+        'script-stage-before-all': '#1360ae',
         'script-stage-before-each': '#0a84ff',
         'script-stage-main': '#32d2e2',
         'script-stage-after-each': '#ff9f0a',
-        'script-stage-after-all': '#e8910f'
+        'script-stage-after-all': '#ae7213'
       }
     };
 

@@ -9,6 +9,8 @@ import {
   type DragEndEvent,
   type DragStartEvent
 } from '@dnd-kit/core';
+import type { DraggableAttributes } from '@dnd-kit/core';
+import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
 import {
   SortableContext,
   arrayMove,
@@ -122,7 +124,6 @@ import {
   faChevronUp,
   faFileImport,
   faGear,
-  faGripVertical,
   faPlus,
   faTerminal,
   faArrowUpRightFromSquare,
@@ -134,8 +135,11 @@ const SCRIPT_EDITOR_MIN_HEIGHT = '125px';
 /** Title and label typography for script row headers. */
 const SCRIPT_ROW_TITLE_CLASS = 'text-[15px] font-medium text-text';
 
-/** Icon size shared by drag handle and row action buttons. */
+/** Icon size shared by row action buttons. */
 const SCRIPT_ROW_ICON_CLASS = 'h-4 w-4';
+
+/** Width and shape of the stage-colored left strip on script rows. */
+const SCRIPT_ROW_STAGE_BORDER_CLASS = 'w-[3px] shrink-0 self-stretch rounded-l-2xl';
 
 /** Icon size for the snippet-link indicator beside script row titles. */
 const SCRIPT_ROW_SNIPPET_LINK_ICON_CLASS = 'h-3 w-3 shrink-0 text-warning';
@@ -267,7 +271,7 @@ interface SortableScriptRowProps {
   onEditVariables?: (key: string) => void;
 
   /**
-   * When false, drag reordering is disabled but the grip handle stays visible.
+   * When false, drag reordering is disabled but the stage border strip stays visible.
    */
   sortable: boolean;
 
@@ -371,7 +375,7 @@ interface SortableScriptRowProps {
   onOpenInTab?: () => void;
 
   /**
-   * When true, hides the drag reorder handle.
+   * When true, hides the draggable stage border strip (decorative strip only).
    */
   hideDragHandle?: boolean;
 
@@ -1070,6 +1074,74 @@ function ScriptRowCodeEditor({ scriptId, ...props }: ScriptRowCodeEditorProps): 
   );
 }
 
+interface ScriptRowStageBorderProps {
+  /**
+   * Script execution stage used to pick the strip color.
+   */
+  stage: ScriptStage;
+
+  /**
+   * Accessible name when the strip is a drag activator.
+   */
+  reorderLabel: string;
+
+  /**
+   * When true, wires the strip as the dnd-kit drag activator.
+   */
+  draggable: boolean;
+
+  /**
+   * dnd-kit activator ref for the draggable strip button.
+   */
+  setActivatorNodeRef?: (element: HTMLElement | null) => void;
+
+  /**
+   * dnd-kit draggable attributes for keyboard and ARIA on the activator.
+   */
+  attributes?: DraggableAttributes;
+
+  /**
+   * dnd-kit pointer and keyboard listeners for the activator.
+   */
+  listeners?: SyntheticListenerMap;
+}
+
+/**
+ * Renders the stage-colored left strip on a script row, optionally as the drag handle.
+ *
+ * @param props - Stage, drag wiring, and accessible reorder label.
+ * @returns Decorative span or draggable button strip.
+ */
+function ScriptRowStageBorder({
+  stage,
+  reorderLabel,
+  draggable,
+  setActivatorNodeRef,
+  attributes,
+  listeners
+}: ScriptRowStageBorderProps): JSX.Element {
+  const stripStyle: CSSProperties = {
+    backgroundColor: scriptStageBorderColor(stage)
+  };
+
+  if (draggable) {
+    return (
+      <button
+        type="button"
+        ref={setActivatorNodeRef}
+        className={`${SCRIPT_ROW_STAGE_BORDER_CLASS} cursor-grab border-none p-0 outline-none focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing app-no-drag`}
+        style={stripStyle}
+        aria-label={reorderLabel}
+        title={reorderLabel}
+        {...attributes}
+        {...listeners}
+      />
+    );
+  }
+
+  return <span className={SCRIPT_ROW_STAGE_BORDER_CLASS} style={stripStyle} aria-hidden="true" />;
+}
+
 /**
  * One sortable script row with a draggable header and expandable editor body.
  */
@@ -1378,10 +1450,16 @@ function SortableScriptRow({
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.45 : undefined,
-    borderLeftWidth: 2,
-    borderLeftColor: scriptStageBorderColor(readScriptRefStage(script))
+    opacity: isDragging ? 0.45 : undefined
   };
+
+  const rowShellClassName = editorFill
+    ? 'flex min-h-0 flex-1 rounded-2xl border border-l-0 border-separator bg-surface shadow-sm'
+    : 'flex rounded-2xl border border-l-0 border-separator bg-surface shadow-sm';
+
+  const rowContentClassName = editorFill
+    ? 'flex min-h-0 min-w-0 flex-1 flex-col px-4 py-3'
+    : 'flex min-w-0 flex-1 flex-col px-4 py-3';
 
   /**
    * Renders the inline or snippet script source editor, optionally filling available height.
@@ -1475,128 +1553,105 @@ function SortableScriptRow({
   };
 
   const editorPanelClassName = editorFill
-    ? 'mt-2 flex min-h-0 flex-1 flex-col gap-2'
+    ? 'mt-2 flex min-h-0 flex-1 flex-col gap-2 overflow-hidden'
     : 'mt-2 flex flex-col gap-2';
 
   return (
     <>
-      <li
-        ref={setNodeRef}
-        style={style}
-        className={
-          editorFill
-            ? 'flex min-h-0 flex-1 flex-col rounded-2xl border border-separator bg-surface px-4 py-3 shadow-sm'
-            : 'rounded-2xl border border-separator bg-surface px-4 py-3 shadow-sm'
-        }
-      >
-        <div className={editorFill ? 'flex shrink-0 flex-col gap-0.5' : 'flex flex-col gap-0.5'}>
-          <div className="flex min-w-0 items-center gap-3">
-            {sortable && !hideDragHandle ? (
-              <button
-                type="button"
-                ref={setActivatorNodeRef}
-                className={`inline-flex ${SCRIPT_ROW_ICON_CLASS} shrink-0 cursor-grab items-center justify-center rounded border-none bg-transparent p-0 text-muted outline-none focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing app-no-drag`}
-                aria-label={reorderLabel}
-                title={reorderLabel}
-                {...attributes}
-                {...listeners}
-              >
-                <FaIcon icon={faGripVertical} className={SCRIPT_ROW_ICON_CLASS} />
-              </button>
-            ) : (
-              <span
-                className={`inline-flex ${SCRIPT_ROW_ICON_CLASS} shrink-0`}
-                aria-hidden="true"
+      <li ref={setNodeRef} style={style} className={rowShellClassName}>
+        <ScriptRowStageBorder
+          stage={readScriptRefStage(script)}
+          reorderLabel={reorderLabel}
+          draggable={sortable && !hideDragHandle}
+          setActivatorNodeRef={setActivatorNodeRef}
+          attributes={attributes}
+          listeners={listeners}
+        />
+        <div className={rowContentClassName}>
+          <div className={editorFill ? 'flex shrink-0 flex-col gap-0.5' : 'flex flex-col gap-0.5'}>
+            <div className="flex min-w-0 items-center gap-3">
+              <ScriptRowHeader
+                script={script}
+                snippets={snippets}
+                onEnabledChange={onEnabledChange}
+                onNameChange={onNameChange}
               />
-            )}
-            <ScriptRowHeader
-              script={script}
-              snippets={snippets}
-              onEnabledChange={onEnabledChange}
-              onNameChange={onNameChange}
-            />
 
-            <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1 overflow-x-auto">
-              {scriptEditorActions.map((action) => (
-                <Button
-                  key={`${action.pluginId}:${action.id}`}
-                  type="button"
-                  variant="icon"
-                  className={scriptRowIconButtonClass}
-                  aria-label={action.title}
-                  title={action.title}
-                  onPointerDown={stopDragPointerDown}
-                  onClick={() =>
-                    void window.api.executePluginAgentCommand(action.pluginId, action.command, [
-                      {
-                        phase,
-                        scriptId: script.id,
-                        code: scriptSourceCode
-                      }
-                    ])
-                  }
-                >
-                  {action.icon ? (
-                    <span aria-hidden="true" className="text-[14px] leading-none">
-                      {action.icon}
-                    </span>
-                  ) : (
-                    <span aria-hidden="true" className="text-[12px] font-semibold leading-none">
-                      {action.title.charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                </Button>
-              ))}
-              {aiAvailable ? (
-                <Button
-                  type="button"
-                  variant="icon"
-                  className={scriptRowIconButtonClass}
-                  aria-label={askAiLabel}
-                  title={askAiLabel}
-                  onPointerDown={stopDragPointerDown}
-                  onClick={onAskAi}
-                >
-                  <FaIcon icon={faWandMagicSparkles} className={SCRIPT_ROW_ICON_CLASS} />
-                </Button>
-              ) : null}
-              <div onPointerDown={stopDragPointerDown}>
-                <RowActionsMenu
-                  menuId={rowMenuId}
-                  openMenuId={openRowMenuId}
-                  onOpenChange={onOpenRowMenuChange}
-                  groups={rowActionMenuGroups}
-                  className={scriptRowIconButtonClass}
-                />
-              </div>
-              {!forceExpanded ? (
-                <Button
-                  type="button"
-                  variant="icon"
-                  className={scriptRowIconButtonClass}
-                  aria-controls={editorPanelId}
-                  aria-expanded={rowExpanded}
-                  aria-label={expandToggleLabel}
-                  title={expandToggleLabel}
-                  onPointerDown={stopDragPointerDown}
-                  onClick={onToggleExpanded}
-                >
-                  <FaIcon
-                    icon={rowExpanded ? faChevronUp : faChevronDown}
-                    className={SCRIPT_ROW_ICON_CLASS}
+              <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1">
+                {scriptEditorActions.map((action) => (
+                  <Button
+                    key={`${action.pluginId}:${action.id}`}
+                    type="button"
+                    variant="icon"
+                    className={scriptRowIconButtonClass}
+                    aria-label={action.title}
+                    title={action.title}
+                    onPointerDown={stopDragPointerDown}
+                    onClick={() =>
+                      void window.api.executePluginAgentCommand(action.pluginId, action.command, [
+                        {
+                          phase,
+                          scriptId: script.id,
+                          code: scriptSourceCode
+                        }
+                      ])
+                    }
+                  >
+                    {action.icon ? (
+                      <span aria-hidden="true" className="text-[14px] leading-none">
+                        {action.icon}
+                      </span>
+                    ) : (
+                      <span aria-hidden="true" className="text-[12px] font-semibold leading-none">
+                        {action.title.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </Button>
+                ))}
+                {aiAvailable ? (
+                  <Button
+                    type="button"
+                    variant="icon"
+                    className={scriptRowIconButtonClass}
+                    aria-label={askAiLabel}
+                    title={askAiLabel}
+                    onPointerDown={stopDragPointerDown}
+                    onClick={onAskAi}
+                  >
+                    <FaIcon icon={faWandMagicSparkles} className={SCRIPT_ROW_ICON_CLASS} />
+                  </Button>
+                ) : null}
+                <div className="shrink-0" onPointerDown={stopDragPointerDown}>
+                  <RowActionsMenu
+                    menuId={rowMenuId}
+                    openMenuId={openRowMenuId}
+                    onOpenChange={onOpenRowMenuChange}
+                    groups={rowActionMenuGroups}
                   />
-                </Button>
-              ) : null}
+                </div>
+                {!forceExpanded ? (
+                  <Button
+                    type="button"
+                    variant="icon"
+                    className={scriptRowIconButtonClass}
+                    aria-controls={editorPanelId}
+                    aria-expanded={rowExpanded}
+                    aria-label={expandToggleLabel}
+                    title={expandToggleLabel}
+                    onPointerDown={stopDragPointerDown}
+                    onClick={onToggleExpanded}
+                  >
+                    <FaIcon
+                      icon={rowExpanded ? faChevronUp : faChevronDown}
+                      className={SCRIPT_ROW_ICON_CLASS}
+                    />
+                  </Button>
+                ) : null}
+              </div>
             </div>
-          </div>
 
-          {showCodePreview ? (
-            <div className="flex gap-3">
-              <span
-                className={`inline-flex ${SCRIPT_ROW_ICON_CLASS} shrink-0`}
-                aria-hidden="true"
-              />
-              <div className={`min-w-0 flex-1 ${SCRIPT_ROW_PREVIEW_INDENT_CLASS}`}>
+            {showCodePreview ? (
+              <div className={`min-w-0 ${SCRIPT_ROW_PREVIEW_INDENT_CLASS}`}>
                 <CodePreviewTooltip
                   code={resolveScriptSourceCode(script, snippets)}
                   actionLabel={`Expand ${label}`}
@@ -1604,44 +1659,44 @@ function SortableScriptRow({
                   onPointerDown={stopDragPointerDown}
                 />
               </div>
-            </div>
-          ) : null}
-        </div>
-
-        {rowExpanded && script.kind === 'inline' && (
-          <div
-            id={editorPanelId}
-            role="region"
-            aria-label={`${label} source editor`}
-            className={editorPanelClassName}
-          >
-            {renderScriptCodeEditor(editorFill)}
-            {askTrigger ? (
-              <ScriptAskModal
-                trigger={askTrigger}
-                code={script.code ?? ''}
-                phase={phase}
-                aiSettings={aiSettings}
-                hubModelGroups={hubModelGroups}
-                preferredChatModelId={chatModelId}
-                onApply={handlePatchCode}
-                onClose={() => setAskTrigger(null)}
-              />
             ) : null}
           </div>
-        )}
 
-        {rowExpanded && script.kind === 'snippet' && (
-          <div
-            id={editorPanelId}
-            role="region"
-            aria-label={`${label} source editor`}
-            className={editorPanelClassName}
-            onClick={handleReadonlySnippetEditorClick}
-          >
-            {renderScriptCodeEditor(editorFill)}
-          </div>
-        )}
+          {rowExpanded && script.kind === 'inline' && (
+            <div
+              id={editorPanelId}
+              role="region"
+              aria-label={`${label} source editor`}
+              className={editorPanelClassName}
+            >
+              {renderScriptCodeEditor(editorFill)}
+              {askTrigger ? (
+                <ScriptAskModal
+                  trigger={askTrigger}
+                  code={script.code ?? ''}
+                  phase={phase}
+                  aiSettings={aiSettings}
+                  hubModelGroups={hubModelGroups}
+                  preferredChatModelId={chatModelId}
+                  onApply={handlePatchCode}
+                  onClose={() => setAskTrigger(null)}
+                />
+              ) : null}
+            </div>
+          )}
+
+          {rowExpanded && script.kind === 'snippet' && (
+            <div
+              id={editorPanelId}
+              role="region"
+              aria-label={`${label} source editor`}
+              className={editorPanelClassName}
+              onClick={handleReadonlySnippetEditorClick}
+            >
+              {renderScriptCodeEditor(editorFill)}
+            </div>
+          )}
+        </div>
       </li>
 
       <div
@@ -2599,8 +2654,17 @@ export function ScriptListEditor({
       {scriptList}
       <DragOverlay>
         {activeDragScript ? (
-          <div className="rounded-2xl border border-separator bg-surface px-4 py-2 text-[14px] font-medium shadow-md">
-            {scriptRowLabel(activeDragScript, snippets)}
+          <div className="flex overflow-hidden rounded-2xl border border-l-0 border-separator bg-surface shadow-md">
+            <span
+              className={SCRIPT_ROW_STAGE_BORDER_CLASS}
+              style={{
+                backgroundColor: scriptStageBorderColor(readScriptRefStage(activeDragScript))
+              }}
+              aria-hidden="true"
+            />
+            <div className="px-4 py-2 text-[14px] font-medium">
+              {scriptRowLabel(activeDragScript, snippets)}
+            </div>
           </div>
         ) : null}
       </DragOverlay>

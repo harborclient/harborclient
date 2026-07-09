@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { AiScriptReferenceValidationContext } from '#/shared/ai/scriptReferences';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { isRequestTab } from '#/renderer/src/store/drafts';
-import { selectActiveTab } from '#/renderer/src/store/selectors';
+import { selectActiveTab, selectSnippets } from '#/renderer/src/store/selectors';
 
 /**
  * Builds validation context from the active request tab for `@` script references.
@@ -24,7 +24,9 @@ function buildValidationContext(
     hasActiveRequestTab: true,
     activeRequestId: tab.draft.id,
     preScriptCount: tab.draft.pre_request_scripts.length,
-    postScriptCount: tab.draft.post_request_scripts.length
+    postScriptCount: tab.draft.post_request_scripts.length,
+    preScripts: tab.draft.pre_request_scripts,
+    postScripts: tab.draft.post_request_scripts
   };
 }
 
@@ -33,9 +35,16 @@ function buildValidationContext(
  */
 export function useAiScriptReferenceValidationContext(): AiScriptReferenceValidationContext {
   const activeTab = useAppSelector(selectActiveTab);
+  const snippets = useAppSelector(selectSnippets);
 
   /**
-   * Memoizes script counts and request id from the active tab for highlight validation.
+   * Memoizes script counts, script rows, and snippet lookup data from the active tab.
    */
-  return useMemo(() => buildValidationContext(activeTab), [activeTab]);
+  return useMemo(
+    () => ({
+      ...buildValidationContext(activeTab),
+      snippets
+    }),
+    [activeTab, snippets]
+  );
 }

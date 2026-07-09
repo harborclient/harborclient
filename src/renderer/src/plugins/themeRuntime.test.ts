@@ -21,13 +21,13 @@ describe('buildCustomThemeCss', () => {
     const css = buildCustomThemeCss(
       {
         'script-stage-main': '#32d2e2',
-        'script-stage-before-all': '#0b72d4'
+        'script-stage-before-all': '#1360ae'
       },
       'dark'
     );
 
     expect(css).toContain('--mac-script-stage-main: #32d2e2;');
-    expect(css).toContain('--mac-script-stage-before-all: #0b72d4;');
+    expect(css).toContain('--mac-script-stage-before-all: #1360ae;');
   });
 
   it('uses light color-scheme for light custom themes', () => {

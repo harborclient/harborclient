@@ -1,3 +1,5 @@
+import type { ScriptRef, Snippet } from '#/shared/types';
+
 /**
  * Regex matching `@<request-id>.<pre|post>.<script-index>` script references in chat text.
  */
@@ -61,6 +63,21 @@ export interface AiScriptReferenceValidationContext {
    * Number of post-request scripts on the active draft.
    */
   postScriptCount: number;
+
+  /**
+   * Pre-request script rows on the active draft, when available for name resolution.
+   */
+  preScripts?: ScriptRef[];
+
+  /**
+   * Post-request script rows on the active draft, when available for name resolution.
+   */
+  postScripts?: ScriptRef[];
+
+  /**
+   * Snippet library used to resolve snippet-linked script names.
+   */
+  snippets?: Snippet[];
 }
 
 /**
@@ -76,6 +93,11 @@ export interface ChatComposerTextToken {
    * When true, the segment is a valid `@` script reference and should be highlighted.
    */
   highlight: boolean;
+
+  /**
+   * Parsed reference metadata when {@link highlight} is true.
+   */
+  reference?: ParsedAiScriptReference;
 }
 
 /**
@@ -189,6 +211,53 @@ export function isValidAiScriptReference(
 }
 
 /**
+ * Returns the display name for a script row, matching the request editor list labels.
+ *
+ * @param script - Script reference entry from the active draft.
+ * @param snippets - Snippet library lookup source.
+ */
+function scriptReferenceDisplayName(script: ScriptRef, snippets: Snippet[]): string {
+  if (script.name?.trim()) {
+    return script.name.trim();
+  }
+
+  if (script.kind === 'snippet') {
+    const snippet = snippets.find((entry) => entry.uuid === script.snippetUuid);
+    return snippet ? snippet.name : 'Missing snippet';
+  }
+
+  return 'Inline script';
+}
+
+/**
+ * Resolves the display name for a valid `@` script reference on the active request tab.
+ *
+ * @param reference - Parsed `@` script reference.
+ * @param context - Active tab script rows and snippet library.
+ * @returns Script name when resolvable, otherwise null.
+ */
+export function resolveAiScriptReferenceName(
+  reference: ParsedAiScriptReference,
+  context: AiScriptReferenceValidationContext
+): string | null {
+  if (!isValidAiScriptReference(reference, context)) {
+    return null;
+  }
+
+  const scripts = reference.phase === 'pre' ? context.preScripts : context.postScripts;
+  if (scripts == null) {
+    return null;
+  }
+
+  const script = scripts[reference.scriptIndex - 1];
+  if (script == null) {
+    return null;
+  }
+
+  return scriptReferenceDisplayName(script, context.snippets ?? []);
+}
+
+/**
  * Splits composer text into plain and highlightable `@` script reference segments.
  *
  * @param text - Composer draft.
@@ -213,7 +282,11 @@ export function tokenizeChatComposerText(
       tokens.push({ text: text.slice(lastIndex, candidate.start), highlight: false });
     }
 
-    tokens.push({ text: candidate.text, highlight });
+    tokens.push({
+      text: candidate.text,
+      highlight,
+      reference: highlight ? candidate : undefined
+    });
     lastIndex = candidate.end;
   }
 

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(tests): update service configurations and enhance theme styling. (`ff8cb2f`)
 - feat(docs): implement documentation indexing and enhance team hub integration. (`48c7f55`)
 - chore(dependencies): update @harborclient/sdk to v1.0.50 and improve editor layouts. (`a139cf8`)
 - feat(snippets): enhance snippet detail functionality and UI. (`a999819`)

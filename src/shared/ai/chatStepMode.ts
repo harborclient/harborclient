@@ -21,7 +21,10 @@ function filterToolsForChatStep(
     return tools;
   }
 
-  return tools.filter((tool) => tool.function?.name !== 'search_docs');
+  return tools.filter((tool) => {
+    const name = tool.type === 'function' ? tool.function.name : tool.custom.name;
+    return name !== 'search_docs';
+  });
 }
 
 /**
