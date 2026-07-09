@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(docs): update docsSearchIndex.json with new internal document IDs. (`bd47ea4`)
 - feat(scripting): enhance module import handling and testing. (`87d263e`)
 
 ## 2.0.13 - 2026-07-09
