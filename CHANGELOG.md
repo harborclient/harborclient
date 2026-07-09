@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.0.13 - 2026-07-09
+
 - feat(scripting): enhance snippet import functionality and introduce module bundling. (`3122417`)
 - feat(scripting): introduce hc.data for mutable state across scripts. (`104cfb4`)
 
