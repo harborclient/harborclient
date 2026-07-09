@@ -17,6 +17,19 @@ describe('buildCustomThemeCss', () => {
     expect(css).toContain('--mac-accent: rgba(10, 132, 255, 0.5);');
   });
 
+  it('maps script stage tokens to --mac-script-stage-* variables', () => {
+    const css = buildCustomThemeCss(
+      {
+        'script-stage-main': '#32d2e2',
+        'script-stage-before-all': '#0b72d4'
+      },
+      'dark'
+    );
+
+    expect(css).toContain('--mac-script-stage-main: #32d2e2;');
+    expect(css).toContain('--mac-script-stage-before-all: #0b72d4;');
+  });
+
   it('uses light color-scheme for light custom themes', () => {
     const css = buildCustomThemeCss({ surface: '#ffffff' }, 'light');
     expect(css).toContain('color-scheme: light;');

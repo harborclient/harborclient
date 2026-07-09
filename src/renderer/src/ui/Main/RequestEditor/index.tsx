@@ -55,6 +55,7 @@ import {
   closeRequestTab,
   focusSidebarItem
 } from '#/renderer/src/store/thunks';
+import { mergeRequestVariables } from '#/renderer/src/hooks/useMergedRequestVariables';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebar/useSidebarExpansion';
 import { useTeamHubs } from '#/renderer/src/hooks/useTeamHubs';
 import { Button } from '@harborclient/sdk/components';
@@ -125,20 +126,7 @@ function mergeVariables(
   collectionVars: Variable[],
   envVars: Variable[]
 ): Variable[] {
-  const map = new Map<string, Variable>();
-  for (const variable of globalVars) {
-    const key = variable.key.trim();
-    if (key) map.set(key, variable);
-  }
-  for (const variable of collectionVars) {
-    const key = variable.key.trim();
-    if (key) map.set(key, variable);
-  }
-  for (const variable of envVars) {
-    const key = variable.key.trim();
-    if (key) map.set(key, variable);
-  }
-  return Array.from(map.values());
+  return mergeRequestVariables(globalVars, collectionVars, envVars);
 }
 
 /**
@@ -437,6 +425,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
                       requestTabContext={requestTabContext}
                       onChange={(next) => dispatch(setActiveDraft(next))}
                       onSend={() => void dispatch(sendRequest())}
+                      onCancel={() => void dispatch(cancelRequest(activeTabId))}
                       sending={sending}
                       variables={activeVariables}
                       collectionName={activeCollectionName}

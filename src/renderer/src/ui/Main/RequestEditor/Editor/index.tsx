@@ -37,7 +37,12 @@ interface Props {
   onSend: () => void;
 
   /**
-   * Disables Send while a request is in flight.
+   * Called when the user cancels an in-flight request from the URL bar.
+   */
+  onCancel: () => void;
+
+  /**
+   * Whether a request is in flight; swaps Send for a stop icon when true.
    */
   sending: boolean;
 
@@ -81,6 +86,7 @@ export function Editor({
   requestTabContext,
   onChange,
   onSend,
+  onCancel,
   sending,
   variables,
   collectionName,
@@ -139,6 +145,7 @@ export function Editor({
           onMethodChange={(method) => update({ method })}
           onUrlChange={handleUrlChange}
           onSend={onSend}
+          onCancel={onCancel}
           onEditVariables={onEditVariables}
         />
       </div>

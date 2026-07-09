@@ -3,26 +3,78 @@ import {
   PLUGIN_CATALOG_CATEGORY_LABELS
 } from '#/shared/plugin/catalogCategories';
 import type { SnippetCatalogEntry } from '#/shared/snippet/catalog';
-import { DEFAULT_SEARCH_OPTIONS } from '#/shared/search/types';
-import MiniSearch from 'minisearch';
+import {
+  createTextSearchIndex,
+  searchTextIndex,
+  type HarborSearchIndex
+} from '#/shared/search/oramaIndex';
 
 /**
- * Builds a MiniSearch index for snippet marketplace catalog entries.
+ * Indexed fields for snippet marketplace catalog search.
+ */
+type SnippetCatalogSearchDocument = {
+  id: string;
+  name: string;
+  summary: string;
+  author: string;
+  description: string;
+  categoriesText: string;
+};
+
+const SNIPPET_CATALOG_SEARCH_SCHEMA = {
+  id: 'string',
+  name: 'string',
+  summary: 'string',
+  author: 'string',
+  description: 'string',
+  categoriesText: 'string'
+} as const;
+
+const SNIPPET_CATALOG_UI_PROPERTIES = ['name', 'summary', 'author', 'description'];
+const SNIPPET_CATALOG_SEARCH_PROPERTIES = [
+  'name',
+  'summary',
+  'author',
+  'description',
+  'categoriesText'
+];
+
+/**
+ * Maps a snippet catalog row to searchable document fields for the UI catalog index.
+ *
+ * @param entry - Marketplace snippet bundle row.
+ */
+function snippetCatalogUiDocument(entry: SnippetCatalogEntry): SnippetCatalogSearchDocument {
+  return {
+    id: entry.id,
+    name: entry.name,
+    summary: entry.summary,
+    author: entry.author,
+    description: entry.description ?? '',
+    categoriesText: entry.categories.join(' ')
+  };
+}
+
+/**
+ * Maps a snippet catalog row to searchable document fields for global search.
+ *
+ * @param entry - Marketplace snippet bundle row.
+ */
+function snippetCatalogSearchDocument(entry: SnippetCatalogEntry): SnippetCatalogSearchDocument {
+  return snippetCatalogUiDocument(entry);
+}
+
+/**
+ * Builds an Orama index for snippet marketplace catalog entries.
  *
  * @param entries - Catalog entries to index.
  * @returns Search index keyed by bundle id.
  */
-export function buildSnippetCatalogSearchIndex(
-  entries: SnippetCatalogEntry[]
-): MiniSearch<SnippetCatalogEntry> {
-  const index = new MiniSearch<SnippetCatalogEntry>({
-    idField: 'id',
-    fields: ['name', 'summary', 'author', 'description'],
-    storeFields: ['id', 'name', 'summary', 'author'],
-    searchOptions: DEFAULT_SEARCH_OPTIONS
-  });
-  index.addAll(entries);
-  return index;
+export function buildSnippetCatalogSearchIndex(entries: SnippetCatalogEntry[]): HarborSearchIndex {
+  return createTextSearchIndex(
+    SNIPPET_CATALOG_SEARCH_SCHEMA,
+    entries.map(snippetCatalogUiDocument)
+  );
 }
 
 /**
@@ -51,7 +103,7 @@ export function filterSnippetCatalogByCategory(
  * @returns Matching catalog entries in relevance order.
  */
 export function searchSnippetCatalog(
-  index: MiniSearch<SnippetCatalogEntry>,
+  index: HarborSearchIndex,
   entries: SnippetCatalogEntry[],
   query: string
 ): SnippetCatalogEntry[] {
@@ -61,59 +113,36 @@ export function searchSnippetCatalog(
   }
 
   const byId = new Map(entries.map((entry) => [entry.id, entry]));
-  return index
-    .search(trimmed)
-    .map((result) => byId.get(String(result.id)))
+  return searchTextIndex<SnippetCatalogSearchDocument>(index, trimmed, {
+    properties: SNIPPET_CATALOG_UI_PROPERTIES
+  })
+    .map((hit) => byId.get(hit.id))
     .filter((entry): entry is SnippetCatalogEntry => entry !== undefined);
 }
 
 /**
- * Indexed fields for snippet marketplace catalog search.
- */
-type SnippetCatalogSearchDocument = {
-  id: string;
-  name: string;
-  summary: string;
-  author: string;
-  categoriesText: string;
-};
-
-/**
- * Builds a MiniSearch index over marketplace snippet bundle metadata.
+ * Builds an Orama index over marketplace snippet bundle metadata.
  *
  * @param entries - Catalog rows to index.
  * @returns Search index keyed by bundle id.
  */
 export function buildSnippetCatalogSearchIndexForSearch(
   entries: SnippetCatalogEntry[]
-): MiniSearch<SnippetCatalogSearchDocument> {
-  const index = new MiniSearch<SnippetCatalogSearchDocument>({
-    fields: ['name', 'summary', 'author', 'categoriesText'],
-    storeFields: ['id', 'name', 'summary'],
-    searchOptions: DEFAULT_SEARCH_OPTIONS
-  });
-
-  index.addAll(
-    entries.map((entry) => ({
-      id: entry.id,
-      name: entry.name,
-      summary: entry.summary,
-      author: entry.author,
-      categoriesText: entry.categories.join(' ')
-    }))
+): HarborSearchIndex {
+  return createTextSearchIndex(
+    SNIPPET_CATALOG_SEARCH_SCHEMA,
+    entries.map(snippetCatalogSearchDocument)
   );
-
-  return index;
 }
 
 /**
  * Returns snippet marketplace hits with scores for unified global search.
  *
- * @param index - MiniSearch index built from marketplace catalog rows.
+ * @param index - Orama index built from marketplace catalog rows.
  * @param query - Raw search text.
  */
 export function searchSnippetHits(
-  index: MiniSearch<SnippetCatalogSearchDocument>,
+  index: HarborSearchIndex,
   query: string
 ): Array<{ id: string; score: number; name: string; summary: string }> {
   const trimmed = query.trim();
@@ -121,15 +150,14 @@ export function searchSnippetHits(
     return [];
   }
 
-  return index.search(trimmed).map((result) => {
-    const stored = result as unknown as SnippetCatalogSearchDocument;
-    return {
-      id: String(stored.id),
-      score: result.score,
-      name: stored.name,
-      summary: stored.summary
-    };
-  });
+  return searchTextIndex<SnippetCatalogSearchDocument>(index, trimmed, {
+    properties: SNIPPET_CATALOG_SEARCH_PROPERTIES
+  }).map((hit) => ({
+    id: hit.document.id,
+    score: hit.score,
+    name: hit.document.name,
+    summary: hit.document.summary
+  }));
 }
 
 export { PLUGIN_CATALOG_CATEGORIES, PLUGIN_CATALOG_CATEGORY_LABELS };

@@ -53,6 +53,12 @@ Most API clients tie your collections to a vendor account and a hosted sync serv
 
 HarborClient does not claim full Postman feature parity; some Postman settings and scripts may need adjustment after import.
 
+### Team Hub
+
+Connect HarborClient to a self-hosted [Team Hub](https://github.com/harborclient/team-hub) for shared collections, hub-proxied AI models, and centralized plugin sources. In **Settings → Team Hubs**, each hub row shows service badges (storage, admin, LLM, **OpenAI**, plugin catalog, snippets). The **OpenAI** badge is green when the hub exposes an OpenAI provider key via `GET /llm/models` (`capabilities.openai`).
+
+When you chat with a hub model, documentation search (`search_docs`) runs on the hub when OpenAI and the bundled docs index are available — no local OpenAI key is required. Hubs without OpenAI disable docs search for hub chats even if other providers (Claude, Gemini) are configured.
+
 ### Try it now
 
 1. **Download** the latest release for your OS from [GitHub Releases](https://github.com/harborclient/harborclient/releases/latest)

@@ -333,7 +333,8 @@ export class SnippetInstaller {
           uuid,
           name: entry.name,
           code,
-          scope: entry.where,
+          scope: entry.phase,
+          stage: entry['stage'],
           catalogId: manifest.id,
           catalogVersion: manifest.version,
           catalogAuthor: manifest.author

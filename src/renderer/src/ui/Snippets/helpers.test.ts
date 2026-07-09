@@ -11,7 +11,9 @@ const sampleEntry: SnippetCatalogEntry = {
   author: 'HarborClient',
   categories: ['testing'],
   repoUrl: 'https://github.com/harborclient/snippet-testing',
-  snippets: [{ name: 'Assert status', where: 'post-request', file: 'assert-status.js' }]
+  snippets: [
+    { name: 'Assert status', phase: 'post-request', stage: 'main', file: 'assert-status.js' }
+  ]
 };
 
 const sampleCatalog: SnippetCatalog = {

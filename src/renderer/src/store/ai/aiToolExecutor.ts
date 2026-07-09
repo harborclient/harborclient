@@ -14,6 +14,7 @@ import {
   type GetActiveResponseToolArgs,
   type ListRequestsToolArgs,
   type QueryResponseBodyToolArgs,
+  type SearchDocsToolArgs,
   type SendActiveRequestToolArgs,
   type SetActiveEnvironmentToolArgs,
   type UpdateRequestScriptToolArgs
@@ -175,6 +176,8 @@ export async function executeAiTool(
         return JSON.stringify(await updateActiveRequest(args, ctx));
       case 'update_request_script':
         return JSON.stringify(updateRequestScript(args, ctx));
+      case 'search_docs':
+        return await window.api.searchDocs(args as SearchDocsToolArgs);
       default: {
         const exhaustive: never = name;
         return JSON.stringify({ error: `Unhandled tool: ${String(exhaustive)}` });

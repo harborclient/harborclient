@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 import type { Snippet } from '#/shared/types';
 import type { InstalledSnippetPackage } from '#/shared/snippet/types';
 import { snippetScopeLabel } from '#/shared/snippetScope';
+import { scriptStageLabel } from '#/shared/scriptStage';
 import {
   faChevronDown,
   faChevronRight,
@@ -272,7 +273,7 @@ export function InstalledView({
     <Page
       embedded
       title="Installed"
-      description="Manage reusable JavaScript snippets for pre-request and post-request scripts."
+      description="Manage reusable JavaScript snippets for the pre-request and post-request stages."
       icon={faTerminal}
       actions={
         <div className="flex shrink-0 items-center gap-2">
@@ -445,7 +446,7 @@ export function InstalledView({
                   <div className="flex flex-col gap-1">
                     <ResourceListPrimary>{snippet.name}</ResourceListPrimary>
                     <span className="text-[14px] text-muted">
-                      {snippetScopeLabel(snippet.scope)}
+                      {snippetScopeLabel(snippet.scope)} · {scriptStageLabel(snippet.stage)}
                       {snippet.connectionId ? (
                         <>
                           {' '}

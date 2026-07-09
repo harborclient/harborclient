@@ -21,6 +21,8 @@ import type {
   Variable
 } from '#/shared/types';
 import type { SnippetScope } from '#/shared/snippetScope';
+import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '#/shared/scriptStage';
+import type { ScriptStage } from '@harborclient/sdk';
 
 const REGISTRY_DB_FILENAME = 'harborclient-registry.db';
 
@@ -263,6 +265,7 @@ export class LocalDatabase {
         name TEXT NOT NULL,
         code TEXT NOT NULL DEFAULT '',
         scope TEXT NOT NULL DEFAULT 'any',
+        stage TEXT NOT NULL DEFAULT 'main',
         sort_order INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
         updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -275,6 +278,7 @@ export class LocalDatabase {
         connection_id TEXT NOT NULL,
         provider_snippet_id INTEGER NOT NULL,
         scope TEXT NOT NULL DEFAULT 'any',
+        stage TEXT NOT NULL DEFAULT 'main',
         sort_order INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
@@ -288,6 +292,8 @@ export class LocalDatabase {
     this.migrateEnvironmentSortOrder();
     this.migrateSnippetUuid();
     this.migrateSnippetScope();
+    this.migrateSnippetStage();
+    this.migrateChatMessageRole();
     this.migrateSnippetMarketplaceFields();
     this.migrateSnippetRegistryTable();
   }
@@ -304,6 +310,7 @@ export class LocalDatabase {
         connection_id TEXT NOT NULL,
         provider_snippet_id INTEGER NOT NULL,
         scope TEXT NOT NULL DEFAULT 'any',
+        stage TEXT NOT NULL DEFAULT 'main',
         sort_order INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
@@ -398,6 +405,46 @@ export class LocalDatabase {
       return;
     }
     this.getDb().exec("ALTER TABLE snippets ADD COLUMN scope TEXT NOT NULL DEFAULT 'any'");
+  }
+
+  /**
+   * Migrates legacy snippet `role` columns to `stage` when missing.
+   */
+  private migrateSnippetStage(): void {
+    const columns = this.getDb().prepare('PRAGMA table_info(snippets)').all() as Array<{
+      name: string;
+    }>;
+    if (columns.length === 0) {
+      return;
+    }
+    if (columns.some((col) => col.name === 'stage')) {
+      this.getDb().exec("UPDATE snippets SET stage = 'main' WHERE stage = 'run'");
+      return;
+    }
+    if (columns.some((col) => col.name === 'role')) {
+      this.getDb().exec('ALTER TABLE snippets RENAME COLUMN role TO stage');
+      this.getDb().exec("UPDATE snippets SET stage = 'main' WHERE stage = 'run'");
+      return;
+    }
+    this.getDb().exec("ALTER TABLE snippets ADD COLUMN stage TEXT NOT NULL DEFAULT 'main'");
+  }
+
+  /**
+   * Restores the chat message author column when a rename pass used `stage` by mistake.
+   */
+  private migrateChatMessageRole(): void {
+    const columns = this.getDb().prepare('PRAGMA table_info(chat_messages)').all() as Array<{
+      name: string;
+    }>;
+    if (columns.length === 0) {
+      return;
+    }
+    if (columns.some((col) => col.name === 'role')) {
+      return;
+    }
+    if (columns.some((col) => col.name === 'stage')) {
+      this.getDb().exec('ALTER TABLE chat_messages RENAME COLUMN stage TO role');
+    }
   }
 
   /**
@@ -984,7 +1031,7 @@ export class LocalDatabase {
   listMarketplaceSnippets(): Snippet[] {
     const rows = this.getDb()
       .prepare(
-        "SELECT id, uuid, name, code, scope, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets WHERE source = 'marketplace' ORDER BY sort_order ASC, name ASC"
+        "SELECT id, uuid, name, code, scope, stage, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets WHERE source = 'marketplace' ORDER BY sort_order ASC, name ASC"
       )
       .all() as Record<string, unknown>[];
 
@@ -1001,7 +1048,7 @@ export class LocalDatabase {
   listLegacyLocalSnippets(): Snippet[] {
     const rows = this.getDb()
       .prepare(
-        "SELECT id, uuid, name, code, scope, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets WHERE source = 'local' ORDER BY sort_order ASC, name ASC"
+        "SELECT id, uuid, name, code, scope, stage, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets WHERE source = 'local' ORDER BY sort_order ASC, name ASC"
       )
       .all() as Record<string, unknown>[];
 
@@ -1025,7 +1072,7 @@ export class LocalDatabase {
   listSnippets(): Snippet[] {
     const rows = this.getDb()
       .prepare(
-        'SELECT id, uuid, name, code, scope, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets ORDER BY sort_order ASC, name ASC'
+        'SELECT id, uuid, name, code, scope, stage, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets ORDER BY sort_order ASC, name ASC'
       )
       .all() as Record<string, unknown>[];
 
@@ -1045,21 +1092,33 @@ export class LocalDatabase {
     name: string,
     code: string,
     scope: Snippet['scope'] = 'any',
+    stage: ScriptStage = DEFAULT_SCRIPT_STAGE,
     uuid?: string
   ): Snippet {
     const trimmedName = trimRequiredName(name, 'Snippet name');
     const snippetUuid = uuid?.trim() || generateDocumentUuid();
     const sortOrder = this.nextSnippetSortOrder();
     const now = new Date().toISOString();
+    const normalizedRole = normalizeScriptStage(stage);
     const result = this.getDb()
       .prepare(
-        'INSERT INTO snippets (name, uuid, code, scope, source, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO snippets (name, uuid, code, scope, stage, source, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
       )
-      .run(trimmedName, snippetUuid, code ?? '', scope, 'local', sortOrder, now, now);
+      .run(
+        trimmedName,
+        snippetUuid,
+        code ?? '',
+        scope,
+        normalizedRole,
+        'local',
+        sortOrder,
+        now,
+        now
+      );
 
     const row = this.getDb()
       .prepare(
-        'SELECT id, uuid, name, code, scope, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets WHERE id = ?'
+        'SELECT id, uuid, name, code, scope, stage, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets WHERE id = ?'
       )
       .get(result.lastInsertRowid) as Record<string, unknown>;
 
@@ -1075,16 +1134,25 @@ export class LocalDatabase {
    * @param scope - Script phases where the snippet may be referenced.
    * @returns The updated snippet.
    */
-  updateSnippet(id: number, name: string, code: string, scope: Snippet['scope'] = 'any'): Snippet {
+  updateSnippet(
+    id: number,
+    name: string,
+    code: string,
+    scope: Snippet['scope'] = 'any',
+    stage: ScriptStage = DEFAULT_SCRIPT_STAGE
+  ): Snippet {
     const trimmedName = trimRequiredName(name, 'Snippet name');
     const now = new Date().toISOString();
+    const normalizedRole = normalizeScriptStage(stage);
     this.getDb()
-      .prepare('UPDATE snippets SET name = ?, code = ?, scope = ?, updated_at = ? WHERE id = ?')
-      .run(trimmedName, code ?? '', scope, now, id);
+      .prepare(
+        'UPDATE snippets SET name = ?, code = ?, scope = ?, stage = ?, updated_at = ? WHERE id = ?'
+      )
+      .run(trimmedName, code ?? '', scope, normalizedRole, now, id);
 
     const row = this.getDb()
       .prepare(
-        'SELECT id, uuid, name, code, scope, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets WHERE id = ?'
+        'SELECT id, uuid, name, code, scope, stage, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets WHERE id = ?'
       )
       .get(id) as Record<string, unknown> | undefined;
 
@@ -1105,12 +1173,14 @@ export class LocalDatabase {
     name: string;
     code: string;
     scope: Snippet['scope'];
+    stage: Snippet['stage'];
     catalogId: string;
     catalogVersion: string;
     catalogAuthor?: string;
   }): Snippet {
     const trimmedName = trimRequiredName(input.name, 'Snippet name');
     const now = new Date().toISOString();
+    const normalizedRole = normalizeScriptStage(input.stage);
     const existing = this.getDb()
       .prepare('SELECT id FROM snippets WHERE uuid = ?')
       .get(input.uuid) as { id: number } | undefined;
@@ -1118,12 +1188,13 @@ export class LocalDatabase {
     if (existing) {
       this.getDb()
         .prepare(
-          'UPDATE snippets SET name = ?, code = ?, scope = ?, source = ?, catalog_id = ?, catalog_version = ?, catalog_author = ?, updated_at = ? WHERE id = ?'
+          'UPDATE snippets SET name = ?, code = ?, scope = ?, stage = ?, source = ?, catalog_id = ?, catalog_version = ?, catalog_author = ?, updated_at = ? WHERE id = ?'
         )
         .run(
           trimmedName,
           input.code,
           input.scope,
+          normalizedRole,
           'marketplace',
           input.catalogId,
           input.catalogVersion,
@@ -1135,13 +1206,14 @@ export class LocalDatabase {
       const sortOrder = this.nextSnippetSortOrder();
       this.getDb()
         .prepare(
-          'INSERT INTO snippets (name, uuid, code, scope, source, catalog_id, catalog_version, catalog_author, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+          'INSERT INTO snippets (name, uuid, code, scope, stage, source, catalog_id, catalog_version, catalog_author, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         )
         .run(
           trimmedName,
           input.uuid,
           input.code,
           input.scope,
+          normalizedRole,
           'marketplace',
           input.catalogId,
           input.catalogVersion,
@@ -1154,7 +1226,7 @@ export class LocalDatabase {
 
     const row = this.getDb()
       .prepare(
-        'SELECT id, uuid, name, code, scope, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets WHERE uuid = ?'
+        'SELECT id, uuid, name, code, scope, stage, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets WHERE uuid = ?'
       )
       .get(input.uuid) as Record<string, unknown>;
 
@@ -1170,7 +1242,7 @@ export class LocalDatabase {
   listMarketplaceSnippetsByCatalogId(catalogId: string): Snippet[] {
     const rows = this.getDb()
       .prepare(
-        'SELECT id, uuid, name, code, scope, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets WHERE catalog_id = ? ORDER BY sort_order ASC, name ASC'
+        'SELECT id, uuid, name, code, scope, stage, source, catalog_id, catalog_version, catalog_author, created_at, updated_at FROM snippets WHERE catalog_id = ? ORDER BY sort_order ASC, name ASC'
       )
       .all(catalogId) as Record<string, unknown>[];
 

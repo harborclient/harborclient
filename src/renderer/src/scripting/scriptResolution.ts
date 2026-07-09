@@ -1,5 +1,6 @@
 import type { ScriptRef, Snippet } from '#/shared/types';
 import { normalizeScriptRefs, resolveScriptRefs } from '#/shared/scriptRefs';
+import { orderScriptRefsByStage } from '#/shared/scriptStage';
 
 /**
  * Ordered script slot to run for a send operation.
@@ -70,7 +71,7 @@ export function expandScriptRefsToSlots(
   snippetLookup: Map<string, Snippet>
 ): ScriptSlot[] {
   const slots: ScriptSlot[] = [];
-  const normalized = normalizeScriptRefs(refs);
+  const normalized = orderScriptRefsByStage(normalizeScriptRefs(refs));
 
   normalized.forEach((ref, index) => {
     const source = resolveScriptRefSource(ref, snippetLookup);

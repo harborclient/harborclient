@@ -256,9 +256,9 @@
       { "menuAction": "new-request" },
       { "waitFor": { "selector": "[aria-label='Request URL']" }, "timeout": 15000 },
       { "click": { "role": "tab", "name": "PostRequest" } },
-      { "click": { "role": "button", "name": "Snippet library..." } },
+      { "click": { "role": "button", "name": "Snippets" } },
       { "click": { "role": "menuitem", "name": "Assert status 200" } },
-      { "click": { "role": "button", "name": "Snippet library..." } },
+      { "click": { "role": "button", "name": "Snippets" } },
       { "click": { "role": "menuitem", "name": "Parse response JSON" } },
       { "click": { "role": "button", "name": "Remove Inline script" } },
       {

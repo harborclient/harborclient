@@ -25,8 +25,10 @@ import {
   Input,
   Modal,
   ModalFormLayout,
+  RowActionsMenu,
   Select
 } from '@harborclient/sdk/components';
+import type { MenuItem } from '@harborclient/sdk/components';
 import {
   Fragment,
   useCallback,
@@ -45,6 +47,7 @@ import toast from 'react-hot-toast';
 import type { CompletionSource } from '@codemirror/autocomplete';
 import type { CodeEditorSlashTrigger } from '@harborclient/sdk/components';
 import type { AiSettings, HubLlmModelGroup, ScriptRef, Snippet, Variable } from '#/shared/types';
+import type { ScriptStage } from '@harborclient/sdk';
 import {
   createInlineScriptRef,
   createSnippetScriptRef,
@@ -94,6 +97,20 @@ import {
   snippetScopeForPhase,
   type SnippetScope
 } from '#/shared/snippetScope';
+import {
+  DEFAULT_SCRIPT_STAGE,
+  SCRIPT_EDITOR_GROUP_HEADINGS,
+  SCRIPT_STAGE_OPTIONS,
+  mergeScriptRefGroups,
+  normalizeScriptStage,
+  readScriptRefStage,
+  scriptRowStageSuffix,
+  scriptStageBorderColor,
+  scriptStageGroup,
+  shouldShowScriptSectionHeadings,
+  splitScriptRefsByGroup,
+  type ScriptEditorGroup
+} from '#/shared/scriptStage';
 import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
 import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
 import { getAvailableModels } from '#/shared/ai/models';
@@ -103,15 +120,11 @@ import {
   faCaretDown,
   faChevronDown,
   faChevronUp,
-  faClone,
   faFileImport,
-  faFloppyDisk,
   faGear,
   faGripVertical,
-  faPen,
   faPlus,
   faTerminal,
-  faTrash,
   faArrowUpRightFromSquare,
   faWandMagicSparkles
 } from '#/renderer/src/fontawesome';
@@ -173,6 +186,21 @@ interface Props {
    * Saved request id for AI @ references; omitted on unsaved tabs.
    */
   requestId?: number;
+
+  /**
+   * Open request tab id; when set, rows offer "Open tab" to pop out a script editor page tab.
+   */
+  sourceTabId?: string;
+
+  /**
+   * When `single`, renders one focused script row with a fill-height editor.
+   */
+  variant?: 'list' | 'single';
+
+  /**
+   * Script row id to render when `variant` is `single`.
+   */
+  focusScriptId?: string;
 }
 
 interface ScriptRowHeaderProps {
@@ -314,6 +342,48 @@ interface SortableScriptRowProps {
    * Plugin row action buttons registered for this script phase.
    */
   scriptEditorActions: RegisteredScriptEditorAction[];
+
+  /**
+   * Whether the row's Stage value may be changed from the script editor.
+   */
+  stageEditable: boolean;
+
+  /**
+   * Applies a new stage to this script row.
+   *
+   * @param stage - Selected script stage.
+   */
+  onStageSelect: (stage: ScriptStage) => void;
+
+  /**
+   * Id of the currently open row actions menu, or null when all are closed.
+   */
+  openRowMenuId: string | null;
+
+  /**
+   * Called when a row actions menu opens or closes.
+   */
+  onOpenRowMenuChange: (menuId: string | null) => void;
+
+  /**
+   * Opens a live-linked script editor page tab for this row.
+   */
+  onOpenInTab?: () => void;
+
+  /**
+   * When true, hides the drag reorder handle.
+   */
+  hideDragHandle?: boolean;
+
+  /**
+   * When true, the code editor grows to fill available vertical space.
+   */
+  editorFill?: boolean;
+
+  /**
+   * When true, keeps the editor expanded and hides the collapse toggle.
+   */
+  forceExpanded?: boolean;
 }
 
 interface SaveSnippetNameModalProps {
@@ -326,6 +396,11 @@ interface SaveSnippetNameModalProps {
    * Default script phase scope for the saved snippet.
    */
   defaultScope: SnippetScope;
+
+  /**
+   * Default stage for the saved snippet.
+   */
+  defaultStage: ScriptStage;
 
   /**
    * True while the save request is in flight.
@@ -347,8 +422,23 @@ interface SaveSnippetNameModalProps {
    *
    * @param name - Trimmed snippet name from the modal input.
    * @param scope - Selected script phase scope.
+   * @param stage - Selected script stage.
    */
-  onSave: (name: string, scope: SnippetScope) => void;
+  onSave: (name: string, scope: SnippetScope, stage: ScriptStage) => void;
+}
+
+interface AddScriptStageModalProps {
+  /**
+   * Closes the modal without adding a script.
+   */
+  onCancel: () => void;
+
+  /**
+   * Creates a blank inline script with the selected stage.
+   *
+   * @param stage - Selected script stage.
+   */
+  onConfirm: (stage: ScriptStage) => void;
 }
 
 interface SnippetMenuProps {
@@ -391,12 +481,46 @@ interface SnippetMenuProps {
 }
 
 /**
+ * Returns whether a script row's Stage value can be edited from the list editor.
+ *
+ * @param script - Script reference for the row.
+ * @param snippets - Snippet library used to resolve marketplace-linked rows.
+ * @returns True for inline scripts and non-marketplace snippet links.
+ */
+function isScriptStageEditable(script: ScriptRef, snippets: Snippet[]): boolean {
+  if (script.kind === 'inline') {
+    return true;
+  }
+
+  const linked = snippets.find((entry) => entry.uuid === script.snippetUuid);
+  return linked?.source !== 'marketplace';
+}
+
+/**
  * Stops pointer events from bubbling to the drag activator on header controls.
  *
  * @param event - Pointer event from a nested interactive control.
  */
 function stopDragPointerDown(event: ReactPointerEvent): void {
   event.stopPropagation();
+}
+
+/**
+ * Returns the base display name for one script row without the stage suffix.
+ *
+ * @param script - Script reference entry.
+ * @param snippets - Snippet library lookup source.
+ * @returns Base label for the row header.
+ */
+function scriptRowBaseLabel(script: ScriptRef, snippets: Snippet[]): string {
+  if (script.name?.trim()) {
+    return script.name.trim();
+  }
+  if (script.kind === 'snippet') {
+    const snippet = snippets.find((entry) => entry.uuid === script.snippetUuid);
+    return snippet ? `Snippet: ${snippet.name}` : 'Missing snippet';
+  }
+  return 'Inline script';
 }
 
 /**
@@ -407,14 +531,7 @@ function stopDragPointerDown(event: ReactPointerEvent): void {
  * @returns Display label for the row header.
  */
 function scriptRowLabel(script: ScriptRef, snippets: Snippet[]): string {
-  if (script.name?.trim()) {
-    return script.name.trim();
-  }
-  if (script.kind === 'snippet') {
-    const snippet = snippets.find((entry) => entry.uuid === script.snippetUuid);
-    return snippet ? `Snippet: ${snippet.name}` : 'Missing snippet';
-  }
-  return 'Inline script';
+  return `${scriptRowBaseLabel(script, snippets)}${scriptRowStageSuffix(readScriptRefStage(script))}`;
 }
 
 /**
@@ -460,6 +577,7 @@ function saveSnippetDefaultName(script: ScriptRef, snippets: Snippet[]): string 
 function SaveSnippetNameModal({
   defaultName,
   defaultScope,
+  defaultStage,
   saving,
   error,
   onCancel,
@@ -467,6 +585,7 @@ function SaveSnippetNameModal({
 }: SaveSnippetNameModalProps): JSX.Element {
   const [name, setName] = useState(defaultName);
   const [scope, setScope] = useState<SnippetScope>(defaultScope);
+  const [stage, setStage] = useState<ScriptStage>(defaultStage);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   /**
@@ -489,7 +608,7 @@ function SaveSnippetNameModal({
       <ModalFormLayout
         error={error ? <FieldError spacing="modal">{error}</FieldError> : undefined}
         actions={
-          <Button type="button" disabled={saving} onClick={() => onSave(name, scope)}>
+          <Button type="button" disabled={saving} onClick={() => onSave(name, scope, stage)}>
             {saving ? 'Saving…' : 'Save'}
           </Button>
         }
@@ -508,7 +627,7 @@ function SaveSnippetNameModal({
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
                   event.preventDefault();
-                  onSave(name, scope);
+                  onSave(name, scope, stage);
                 }
               }}
               placeholder="Snippet name"
@@ -516,7 +635,7 @@ function SaveSnippetNameModal({
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[14px] font-medium text-text" htmlFor="save-snippet-scope">
-              Runs in
+              Request stage
             </label>
             <Select
               id="save-snippet-scope"
@@ -532,6 +651,67 @@ function SaveSnippetNameModal({
               ))}
             </Select>
           </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[14px] font-medium text-text" htmlFor="save-snippet-stage">
+              Stage
+            </label>
+            <Select
+              id="save-snippet-stage"
+              className="w-full"
+              value={stage}
+              disabled={saving}
+              onChange={(event) => setStage(event.target.value as ScriptStage)}
+            >
+              {SCRIPT_STAGE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </div>
+      </ModalFormLayout>
+    </Modal>
+  );
+}
+
+/**
+ * Modal for choosing the stage before adding a blank inline script.
+ */
+function AddScriptStageModal({ onCancel, onConfirm }: AddScriptStageModalProps): JSX.Element {
+  const [stage, setStage] = useState<ScriptStage>(DEFAULT_SCRIPT_STAGE);
+  const stageSelectId = useId();
+
+  return (
+    <Modal
+      labelledBy="add-script-stage-title"
+      onClose={onCancel}
+      title="Add script"
+      description="Choose the script stage for this row within the current request stage."
+    >
+      <ModalFormLayout
+        actions={
+          <Button type="button" onClick={() => onConfirm(stage)}>
+            Add script
+          </Button>
+        }
+      >
+        <div className="flex flex-col gap-1">
+          <label className="text-[14px] font-medium text-text" htmlFor={stageSelectId}>
+            Stage
+          </label>
+          <Select
+            id={stageSelectId}
+            className="w-full"
+            value={stage}
+            onChange={(event) => setStage(event.target.value as ScriptStage)}
+          >
+            {SCRIPT_STAGE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
         </div>
       </ModalFormLayout>
     </Modal>
@@ -551,6 +731,7 @@ function ScriptRowHeader({
   const labelInputRef = useRef<HTMLInputElement>(null);
   const accessibleLabel = scriptRowLabel(script, snippets);
   const placeholderLabel = scriptRowPlaceholder(script, snippets);
+  const stageSuffix = scriptRowStageSuffix(readScriptRefStage(script));
   const isSnippetLinked = script.kind === 'snippet';
   const ariaLabelSuffix = isSnippetLinked ? ' (linked to snippet)' : '';
   const snippetLinkIcon = isSnippetLinked ? (
@@ -594,6 +775,11 @@ function ScriptRowHeader({
         aria-label={`Rename ${accessibleLabel}${ariaLabelSuffix}`}
         placeholder={placeholderLabel}
       />
+      {stageSuffix ? (
+        <span className="shrink-0" aria-hidden>
+          {stageSuffix}
+        </span>
+      ) : null}
       {snippetLinkIcon}
     </div>
   ) : (
@@ -605,9 +791,15 @@ function ScriptRowHeader({
       onPointerDown={stopDragPointerDown}
     >
       {script.name?.trim() ? (
-        <span className="min-w-0 truncate">{script.name.trim()}</span>
+        <span className="min-w-0 truncate">
+          {script.name.trim()}
+          {stageSuffix}
+        </span>
       ) : (
-        <span className="min-w-0 truncate text-muted">{placeholderLabel}</span>
+        <span className="min-w-0 truncate text-muted">
+          {placeholderLabel}
+          {stageSuffix}
+        </span>
       )}
       {snippetLinkIcon}
     </button>
@@ -690,7 +882,7 @@ function SnippetMenu({
         <p className="px-3 py-2 text-[14px] text-muted">
           {totalSnippetCount === 0
             ? 'No snippets saved yet'
-            : `No ${phase === 'pre' ? 'pre-request' : 'post-request'} snippets saved yet`}
+            : `No snippets saved for the ${phase === 'pre' ? 'pre-request' : 'post-request'} stage yet`}
         </p>
       ) : (
         snippets.map((snippet) => (
@@ -708,6 +900,126 @@ function SnippetMenu({
           </button>
         ))
       )}
+    </div>
+  );
+}
+
+/** Accessible labels for bulk enable checkboxes on script group headings. */
+const SCRIPT_GROUP_ENABLE_LABELS: Record<ScriptEditorGroup, string> = {
+  before: 'Enable all before scripts',
+  main: 'Enable all main scripts',
+  after: 'Enable all after scripts'
+};
+
+/**
+ * Returns muted help copy shown under each Before/Main/After group heading.
+ *
+ * @param group - Editor group for the heading.
+ * @param phase - Active request stage tab (`pre` or `post`).
+ * @returns One-line description of when scripts in the group run.
+ */
+function scriptGroupHeadingDescription(group: ScriptEditorGroup, phase: 'pre' | 'post'): string {
+  switch (group) {
+    case 'before':
+      return 'Scripts that run before main';
+    case 'main':
+      return phase === 'pre'
+        ? 'Scripts that run before the request'
+        : 'Scripts that run after the request';
+    case 'after':
+      return 'Scripts that run after main';
+  }
+}
+
+type ScriptGroupEnabledState = 'all' | 'none' | 'mixed';
+
+/**
+ * Derives the bulk-enable checkbox state for one script editor group.
+ *
+ * @param scripts - Scripts in the before, main, or after group.
+ * @returns Whether all, none, or a mix of scripts are enabled.
+ */
+function scriptGroupEnabledState(scripts: ScriptRef[]): ScriptGroupEnabledState {
+  const enabledCount = scripts.filter((script) => script.enabled).length;
+  if (enabledCount === 0) {
+    return 'none';
+  }
+  if (enabledCount === scripts.length) {
+    return 'all';
+  }
+  return 'mixed';
+}
+
+interface ScriptGroupHeadingProps {
+  /**
+   * Editor group whose heading and bulk-enable checkbox are rendered.
+   */
+  group: ScriptEditorGroup;
+
+  /**
+   * Active request stage tab used for Main-group help copy.
+   */
+  phase: 'pre' | 'post';
+
+  /**
+   * Scripts in the group used to derive checkbox checked/indeterminate state.
+   */
+  scripts: ScriptRef[];
+
+  /**
+   * Stable id referenced by the parent section `aria-labelledby`.
+   */
+  headingId: string;
+
+  /**
+   * Called when the bulk-enable checkbox toggles all scripts in the group.
+   */
+  onEnabledChange: (enabled: boolean) => void;
+}
+
+/**
+ * Renders a Before/Main/After heading with bulk-enable checkbox and help blurb.
+ */
+function ScriptGroupHeading({
+  group,
+  phase,
+  scripts,
+  headingId,
+  onEnabledChange
+}: ScriptGroupHeadingProps): JSX.Element {
+  const checkboxRef = useRef<HTMLInputElement>(null);
+  const enabledState = useMemo(() => scriptGroupEnabledState(scripts), [scripts]);
+  const checked = enabledState === 'all';
+  const descriptionId = `${headingId}-description`;
+
+  /**
+   * Reflects mixed enablement across rows via the native indeterminate checkbox state.
+   */
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = enabledState === 'mixed';
+    }
+  }, [enabledState]);
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2">
+        <input
+          ref={checkboxRef}
+          type="checkbox"
+          checked={checked}
+          onChange={(event) => onEnabledChange(event.target.checked)}
+          aria-label={SCRIPT_GROUP_ENABLE_LABELS[group]}
+          aria-describedby={descriptionId}
+          className="shrink-0"
+        />
+        <h3 id={headingId} className="m-0 mt-1 text-[14px] font-medium text-script-group-heading">
+          {SCRIPT_EDITOR_GROUP_HEADINGS[group]}
+        </h3>
+      </div>
+      <p id={descriptionId} className="m-0 text-[14px] text-muted">
+        {scriptGroupHeadingDescription(group, phase)}
+      </p>
     </div>
   );
 }
@@ -784,7 +1096,15 @@ function SortableScriptRow({
   onAskAi,
   aiSettings,
   hubModelGroups,
-  scriptEditorActions
+  scriptEditorActions,
+  stageEditable,
+  onStageSelect,
+  openRowMenuId,
+  onOpenRowMenuChange,
+  onOpenInTab,
+  hideDragHandle = false,
+  editorFill = false,
+  forceExpanded = false
 }: SortableScriptRowProps): JSX.Element {
   const snippet =
     script.kind === 'snippet'
@@ -797,6 +1117,8 @@ function SortableScriptRow({
   const [isEditingSnippet, setIsEditingSnippet] = useState(false);
   const [askTrigger, setAskTrigger] = useState<CodeEditorSlashTrigger | null>(null);
   const [inlineAskPending, setInlineAskPending] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const fullScreenHostRef = useRef<HTMLDivElement>(null);
   const activeChatId = useAppSelector(selectActiveChatId);
   const selectedModelByChat = useAppSelector(selectSelectedModelByChat);
   const chatModelId = activeChatId != null ? selectedModelByChat[activeChatId] : undefined;
@@ -877,19 +1199,73 @@ function SortableScriptRow({
     [aiSettings, availableModels, chatModelId, handlePatchCode, hubModelGroups, phase, script.code]
   );
 
+  /**
+   * Exits native full screen when this row's host element is active.
+   */
+  const exitFullScreen = useCallback((): void => {
+    if (document.fullscreenElement === fullScreenHostRef.current) {
+      void document.exitFullscreen();
+    }
+  }, []);
+
+  /**
+   * Opens the native full screen editor for this script row.
+   */
+  const enterFullScreen = useCallback((): void => {
+    setIsFullScreen(true);
+  }, []);
+
+  /**
+   * Requests native full screen once the host element is mounted and visible.
+   */
+  useEffect(() => {
+    if (!isFullScreen) {
+      return;
+    }
+
+    const host = fullScreenHostRef.current;
+    if (!host) {
+      return;
+    }
+
+    void host.requestFullscreen().catch(() => {
+      setIsFullScreen(false);
+      toast.error('Could not enter full screen.');
+    });
+  }, [isFullScreen]);
+
+  /**
+   * Keeps local full screen state aligned with the browser Fullscreen API.
+   */
+  useEffect(() => {
+    const hostElement = fullScreenHostRef.current;
+
+    const handleFullscreenChange = (): void => {
+      if (document.fullscreenElement !== fullScreenHostRef.current) {
+        setIsFullScreen(false);
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      if (hostElement != null && document.fullscreenElement === hostElement) {
+        void document.exitFullscreen();
+      }
+    };
+  }, []);
+
   const saveSnippetCode = script.kind === 'inline' ? (script.code ?? '') : snippetDraftCode;
   const canSaveSnippet = Boolean(saveSnippetCode.trim());
-  const saveSnippetLabel =
-    script.kind === 'snippet' ? `Save snippet "${label}"` : `Save "${label}" as snippet`;
-  const editSnippetLabel = `Edit snippet "${label}"`;
-  const cloneLabel = `Clone ${label}`;
-  const removeLabel = `Remove ${label}`;
   const reorderLabel = `Reorder script "${label}"`;
-  const expandToggleLabel = isExpanded ? `Collapse ${label}` : `Expand ${label}`;
+  const rowExpanded = forceExpanded || isExpanded;
+  const expandToggleLabel = rowExpanded ? `Collapse ${label}` : `Expand ${label}`;
   const askAiLabel = `Ask AI about ${label}`;
   const editorPanelId = useId();
+  const fullScreenTitleId = useId();
+  const rowMenuId = `script-row-${script.id}`;
   const scriptSourceCode = resolveScriptSourceCode(script, snippets);
-  const showCodePreview = !isExpanded && Boolean(buildCodePreview(scriptSourceCode));
+  const showCodePreview = !rowExpanded && Boolean(buildCodePreview(scriptSourceCode));
 
   if (snippetRevision !== snippetRevisionSeen) {
     setSnippetRevisionSeen(snippetRevision);
@@ -898,16 +1274,78 @@ function SortableScriptRow({
   }
 
   /**
-   * Prompts before enabling edit mode on a linked snippet row.
+   * Builds hamburger menu groups for save, edit, clone, and delete row actions.
    */
-  const handleRequestEditSnippet = (): void => {
-    void (async () => {
-      const allowed = await onRequestEditSnippet();
-      if (allowed) {
-        setIsEditingSnippet(true);
+  const rowActionMenuGroups = useMemo((): MenuItem[][] => {
+    const primaryActions: MenuItem[] = [];
+
+    if (script.kind === 'snippet' && !isEditingSnippet) {
+      primaryActions.push({
+        label: 'Edit snippet',
+        onSelect: () => {
+          void (async () => {
+            const allowed = await onRequestEditSnippet();
+            if (allowed) {
+              setIsEditingSnippet(true);
+            }
+          })();
+        }
+      });
+    } else if (canSaveSnippet) {
+      primaryActions.push({
+        label: script.kind === 'snippet' ? 'Save snippet' : 'Save as snippet',
+        onSelect: () => {
+          onSaveSnippet(saveSnippetCode);
+        }
+      });
+    }
+
+    const settingsActions: MenuItem[] = [];
+    if (stageEditable) {
+      const currentStage = normalizeScriptStage(readScriptRefStage(script));
+      for (const option of SCRIPT_STAGE_OPTIONS) {
+        settingsActions.push({
+          label: option.label,
+          checked: option.value === currentStage,
+          onSelect: () => onStageSelect(option.value)
+        });
       }
-    })();
-  };
+    }
+
+    const viewActions: MenuItem[] = [
+      {
+        label: 'Full screen',
+        onSelect: enterFullScreen
+      }
+    ];
+    if (onOpenInTab) {
+      viewActions.unshift({
+        label: 'Open tab',
+        onSelect: onOpenInTab
+      });
+    }
+
+    return [
+      ...(primaryActions.length > 0 ? [primaryActions] : []),
+      ...(settingsActions.length > 0 ? [settingsActions] : []),
+      viewActions,
+      [{ label: 'Clone', onSelect: onClone }],
+      [{ label: 'Delete', variant: 'danger', onSelect: onRemove }]
+    ];
+  }, [
+    canSaveSnippet,
+    enterFullScreen,
+    isEditingSnippet,
+    onClone,
+    onOpenInTab,
+    onStageSelect,
+    onRemove,
+    onRequestEditSnippet,
+    onSaveSnippet,
+    stageEditable,
+    saveSnippetCode,
+    script
+  ]);
 
   /**
    * Shows the read-only snippet hint when the user clicks the editor, skipping tooltip actions.
@@ -940,175 +1378,25 @@ function SortableScriptRow({
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.45 : undefined
+    opacity: isDragging ? 0.45 : undefined,
+    borderLeftWidth: 2,
+    borderLeftColor: scriptStageBorderColor(readScriptRefStage(script))
   };
 
-  return (
-    <li
-      ref={setNodeRef}
-      style={style}
-      className="rounded-2xl border border-separator bg-surface px-4 py-3 shadow-sm"
-    >
-      <div className="flex flex-col gap-0.5">
-        <div className="flex items-center gap-3">
-          {sortable ? (
-            <button
-              type="button"
-              ref={setActivatorNodeRef}
-              className={`inline-flex ${SCRIPT_ROW_ICON_CLASS} shrink-0 cursor-grab items-center justify-center rounded border-none bg-transparent p-0 text-muted outline-none focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing app-no-drag`}
-              aria-label={reorderLabel}
-              title={reorderLabel}
-              {...attributes}
-              {...listeners}
-            >
-              <FaIcon icon={faGripVertical} className={SCRIPT_ROW_ICON_CLASS} />
-            </button>
-          ) : (
-            <span className={`inline-flex ${SCRIPT_ROW_ICON_CLASS} shrink-0`} aria-hidden="true" />
-          )}
-          <ScriptRowHeader
-            script={script}
-            snippets={snippets}
-            onEnabledChange={onEnabledChange}
-            onNameChange={onNameChange}
-          />
+  /**
+   * Renders the inline or snippet script source editor, optionally filling available height.
+   *
+   * @param fill - When true, uses a flex-growing CodeEditor instead of persisted row height.
+   * @returns Code editor element for the current script row.
+   */
+  const renderScriptCodeEditor = (fill: boolean): JSX.Element => {
+    const editorClassName = fill ? 'min-h-0 flex-1' : undefined;
+    const editorMinHeight = fill ? '0' : SCRIPT_EDITOR_MIN_HEIGHT;
 
-          <div className="ml-auto flex shrink-0 items-center gap-1">
-            {scriptEditorActions.map((action) => (
-              <Button
-                key={`${action.pluginId}:${action.id}`}
-                type="button"
-                variant="icon"
-                className={scriptRowIconButtonClass}
-                aria-label={action.title}
-                title={action.title}
-                onPointerDown={stopDragPointerDown}
-                onClick={() =>
-                  void window.api.executePluginAgentCommand(action.pluginId, action.command, [
-                    {
-                      phase,
-                      scriptId: script.id,
-                      code: scriptSourceCode
-                    }
-                  ])
-                }
-              >
-                {action.icon ? (
-                  <span aria-hidden="true" className="text-[14px] leading-none">
-                    {action.icon}
-                  </span>
-                ) : (
-                  <span aria-hidden="true" className="text-[12px] font-semibold leading-none">
-                    {action.title.charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </Button>
-            ))}
-            {aiAvailable ? (
-              <Button
-                type="button"
-                variant="icon"
-                className={scriptRowIconButtonClass}
-                aria-label={askAiLabel}
-                title={askAiLabel}
-                onPointerDown={stopDragPointerDown}
-                onClick={onAskAi}
-              >
-                <FaIcon icon={faWandMagicSparkles} className={SCRIPT_ROW_ICON_CLASS} />
-              </Button>
-            ) : null}
-            {script.kind === 'snippet' && !isEditingSnippet ? (
-              <Button
-                type="button"
-                variant="icon"
-                className={scriptRowIconButtonClass}
-                aria-label={editSnippetLabel}
-                title={editSnippetLabel}
-                onPointerDown={stopDragPointerDown}
-                onClick={handleRequestEditSnippet}
-              >
-                <FaIcon icon={faPen} className={SCRIPT_ROW_ICON_CLASS} />
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="icon"
-                className={scriptRowIconButtonClass}
-                aria-label={saveSnippetLabel}
-                title={saveSnippetLabel}
-                disabled={!canSaveSnippet}
-                onPointerDown={stopDragPointerDown}
-                onClick={() => onSaveSnippet(saveSnippetCode)}
-              >
-                <FaIcon icon={faFloppyDisk} className={SCRIPT_ROW_ICON_CLASS} />
-              </Button>
-            )}
-            <Button
-              type="button"
-              variant="icon"
-              className={scriptRowIconButtonClass}
-              aria-label={cloneLabel}
-              title={cloneLabel}
-              onPointerDown={stopDragPointerDown}
-              onClick={onClone}
-            >
-              <FaIcon icon={faClone} className={SCRIPT_ROW_ICON_CLASS} />
-            </Button>
-            <Button
-              type="button"
-              variant="icon"
-              className={scriptRowIconButtonClass}
-              aria-label={removeLabel}
-              title={removeLabel}
-              onPointerDown={stopDragPointerDown}
-              onClick={onRemove}
-            >
-              <FaIcon icon={faTrash} className={SCRIPT_ROW_ICON_CLASS} />
-            </Button>
-            <Button
-              type="button"
-              variant="icon"
-              className={scriptRowIconButtonClass}
-              aria-controls={editorPanelId}
-              aria-expanded={isExpanded}
-              aria-label={expandToggleLabel}
-              title={expandToggleLabel}
-              onPointerDown={stopDragPointerDown}
-              onClick={onToggleExpanded}
-            >
-              <FaIcon
-                icon={isExpanded ? faChevronUp : faChevronDown}
-                className={SCRIPT_ROW_ICON_CLASS}
-              />
-            </Button>
-          </div>
-        </div>
-
-        {showCodePreview ? (
-          <div className="flex gap-3">
-            <span className={`inline-flex ${SCRIPT_ROW_ICON_CLASS} shrink-0`} aria-hidden="true" />
-            <div className={`min-w-0 flex-1 ${SCRIPT_ROW_PREVIEW_INDENT_CLASS}`}>
-              <CodePreviewTooltip
-                code={resolveScriptSourceCode(script, snippets)}
-                actionLabel={`Expand ${label}`}
-                onClick={onToggleExpanded}
-                onPointerDown={stopDragPointerDown}
-              />
-            </div>
-          </div>
-        ) : null}
-      </div>
-
-      {isExpanded && script.kind === 'inline' && (
-        <div
-          id={editorPanelId}
-          role="region"
-          aria-label={`${label} source editor`}
-          className="mt-2 flex flex-col gap-2"
-        >
-          <ScriptRowCodeEditor
-            key={script.id}
-            scriptId={script.id}
+    if (script.kind === 'inline') {
+      if (fill) {
+        return (
+          <CodeEditor
             value={script.code ?? ''}
             onChange={handlePatchCode}
             editable={!inlineAskPending}
@@ -1120,49 +1408,287 @@ function SortableScriptRow({
             placeholderHighlight
             variables={variables}
             onEditVariable={onEditVariables}
+            minHeight={editorMinHeight}
+            className={editorClassName}
             aria-label={`${label} source`}
           />
-          {askTrigger ? (
-            <ScriptAskModal
-              trigger={askTrigger}
-              code={script.code ?? ''}
-              phase={phase}
-              aiSettings={aiSettings}
-              hubModelGroups={hubModelGroups}
-              preferredChatModelId={chatModelId}
-              onApply={handlePatchCode}
-              onClose={() => setAskTrigger(null)}
+        );
+      }
+
+      return (
+        <ScriptRowCodeEditor
+          key={script.id}
+          scriptId={script.id}
+          value={script.code ?? ''}
+          onChange={handlePatchCode}
+          editable={!inlineAskPending}
+          language="javascript"
+          completionSource={hcCompletionSource}
+          slashCommands={aiAvailable ? SCRIPT_ASK_COMMANDS : undefined}
+          onSlashCommand={aiAvailable ? handleSlashCommand : undefined}
+          placeholder={placeholder}
+          placeholderHighlight
+          variables={variables}
+          onEditVariable={onEditVariables}
+          aria-label={`${label} source`}
+        />
+      );
+    }
+
+    if (fill) {
+      return (
+        <CodeEditor
+          value={snippetDraftCode}
+          onChange={setSnippetDraftCode}
+          readOnly={!isEditingSnippet}
+          language="javascript"
+          completionSource={hcCompletionSource}
+          slashCommands={aiAvailable ? SCRIPT_ASK_COMMANDS : undefined}
+          placeholder={placeholder}
+          placeholderHighlight
+          variables={variables}
+          onEditVariable={onEditVariables}
+          minHeight={editorMinHeight}
+          className={editorClassName}
+          aria-label={`${label} source`}
+        />
+      );
+    }
+
+    return (
+      <ScriptRowCodeEditor
+        key={script.id}
+        scriptId={script.id}
+        value={snippetDraftCode}
+        onChange={setSnippetDraftCode}
+        readOnly={!isEditingSnippet}
+        language="javascript"
+        completionSource={hcCompletionSource}
+        slashCommands={aiAvailable ? SCRIPT_ASK_COMMANDS : undefined}
+        placeholder={placeholder}
+        placeholderHighlight
+        variables={variables}
+        onEditVariable={onEditVariables}
+        aria-label={`${label} source`}
+      />
+    );
+  };
+
+  const editorPanelClassName = editorFill
+    ? 'mt-2 flex min-h-0 flex-1 flex-col gap-2'
+    : 'mt-2 flex flex-col gap-2';
+
+  return (
+    <>
+      <li
+        ref={setNodeRef}
+        style={style}
+        className={
+          editorFill
+            ? 'flex min-h-0 flex-1 flex-col rounded-2xl border border-separator bg-surface px-4 py-3 shadow-sm'
+            : 'rounded-2xl border border-separator bg-surface px-4 py-3 shadow-sm'
+        }
+      >
+        <div className={editorFill ? 'flex shrink-0 flex-col gap-0.5' : 'flex flex-col gap-0.5'}>
+          <div className="flex min-w-0 items-center gap-3">
+            {sortable && !hideDragHandle ? (
+              <button
+                type="button"
+                ref={setActivatorNodeRef}
+                className={`inline-flex ${SCRIPT_ROW_ICON_CLASS} shrink-0 cursor-grab items-center justify-center rounded border-none bg-transparent p-0 text-muted outline-none focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing app-no-drag`}
+                aria-label={reorderLabel}
+                title={reorderLabel}
+                {...attributes}
+                {...listeners}
+              >
+                <FaIcon icon={faGripVertical} className={SCRIPT_ROW_ICON_CLASS} />
+              </button>
+            ) : (
+              <span
+                className={`inline-flex ${SCRIPT_ROW_ICON_CLASS} shrink-0`}
+                aria-hidden="true"
+              />
+            )}
+            <ScriptRowHeader
+              script={script}
+              snippets={snippets}
+              onEnabledChange={onEnabledChange}
+              onNameChange={onNameChange}
             />
+
+            <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1 overflow-x-auto">
+              {scriptEditorActions.map((action) => (
+                <Button
+                  key={`${action.pluginId}:${action.id}`}
+                  type="button"
+                  variant="icon"
+                  className={scriptRowIconButtonClass}
+                  aria-label={action.title}
+                  title={action.title}
+                  onPointerDown={stopDragPointerDown}
+                  onClick={() =>
+                    void window.api.executePluginAgentCommand(action.pluginId, action.command, [
+                      {
+                        phase,
+                        scriptId: script.id,
+                        code: scriptSourceCode
+                      }
+                    ])
+                  }
+                >
+                  {action.icon ? (
+                    <span aria-hidden="true" className="text-[14px] leading-none">
+                      {action.icon}
+                    </span>
+                  ) : (
+                    <span aria-hidden="true" className="text-[12px] font-semibold leading-none">
+                      {action.title.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </Button>
+              ))}
+              {aiAvailable ? (
+                <Button
+                  type="button"
+                  variant="icon"
+                  className={scriptRowIconButtonClass}
+                  aria-label={askAiLabel}
+                  title={askAiLabel}
+                  onPointerDown={stopDragPointerDown}
+                  onClick={onAskAi}
+                >
+                  <FaIcon icon={faWandMagicSparkles} className={SCRIPT_ROW_ICON_CLASS} />
+                </Button>
+              ) : null}
+              <div onPointerDown={stopDragPointerDown}>
+                <RowActionsMenu
+                  menuId={rowMenuId}
+                  openMenuId={openRowMenuId}
+                  onOpenChange={onOpenRowMenuChange}
+                  groups={rowActionMenuGroups}
+                  className={scriptRowIconButtonClass}
+                />
+              </div>
+              {!forceExpanded ? (
+                <Button
+                  type="button"
+                  variant="icon"
+                  className={scriptRowIconButtonClass}
+                  aria-controls={editorPanelId}
+                  aria-expanded={rowExpanded}
+                  aria-label={expandToggleLabel}
+                  title={expandToggleLabel}
+                  onPointerDown={stopDragPointerDown}
+                  onClick={onToggleExpanded}
+                >
+                  <FaIcon
+                    icon={rowExpanded ? faChevronUp : faChevronDown}
+                    className={SCRIPT_ROW_ICON_CLASS}
+                  />
+                </Button>
+              ) : null}
+            </div>
+          </div>
+
+          {showCodePreview ? (
+            <div className="flex gap-3">
+              <span
+                className={`inline-flex ${SCRIPT_ROW_ICON_CLASS} shrink-0`}
+                aria-hidden="true"
+              />
+              <div className={`min-w-0 flex-1 ${SCRIPT_ROW_PREVIEW_INDENT_CLASS}`}>
+                <CodePreviewTooltip
+                  code={resolveScriptSourceCode(script, snippets)}
+                  actionLabel={`Expand ${label}`}
+                  onClick={onToggleExpanded}
+                  onPointerDown={stopDragPointerDown}
+                />
+              </div>
+            </div>
           ) : null}
         </div>
-      )}
 
-      {isExpanded && script.kind === 'snippet' && (
-        <div
-          id={editorPanelId}
-          role="region"
-          aria-label={`${label} source editor`}
-          className="mt-2 flex flex-col gap-2"
-          onClick={handleReadonlySnippetEditorClick}
-        >
-          <ScriptRowCodeEditor
-            key={script.id}
-            scriptId={script.id}
-            value={snippetDraftCode}
-            onChange={setSnippetDraftCode}
-            readOnly={!isEditingSnippet}
-            language="javascript"
-            completionSource={hcCompletionSource}
-            slashCommands={aiAvailable ? SCRIPT_ASK_COMMANDS : undefined}
-            placeholder={placeholder}
-            placeholderHighlight
-            variables={variables}
-            onEditVariable={onEditVariables}
-            aria-label={`${label} source`}
-          />
-        </div>
-      )}
-    </li>
+        {rowExpanded && script.kind === 'inline' && (
+          <div
+            id={editorPanelId}
+            role="region"
+            aria-label={`${label} source editor`}
+            className={editorPanelClassName}
+          >
+            {renderScriptCodeEditor(editorFill)}
+            {askTrigger ? (
+              <ScriptAskModal
+                trigger={askTrigger}
+                code={script.code ?? ''}
+                phase={phase}
+                aiSettings={aiSettings}
+                hubModelGroups={hubModelGroups}
+                preferredChatModelId={chatModelId}
+                onApply={handlePatchCode}
+                onClose={() => setAskTrigger(null)}
+              />
+            ) : null}
+          </div>
+        )}
+
+        {rowExpanded && script.kind === 'snippet' && (
+          <div
+            id={editorPanelId}
+            role="region"
+            aria-label={`${label} source editor`}
+            className={editorPanelClassName}
+            onClick={handleReadonlySnippetEditorClick}
+          >
+            {renderScriptCodeEditor(editorFill)}
+          </div>
+        )}
+      </li>
+
+      <div
+        ref={fullScreenHostRef}
+        className={isFullScreen ? 'flex h-full w-full min-h-0 flex-col bg-surface p-4' : 'hidden'}
+        aria-hidden={!isFullScreen}
+      >
+        {isFullScreen ? (
+          <>
+            <div className="flex shrink-0 items-center justify-between gap-3 pb-3">
+              <h2
+                id={fullScreenTitleId}
+                className="m-0 min-w-0 truncate text-[16px] font-medium text-text"
+              >
+                {label}
+              </h2>
+              <Button type="button" onClick={exitFullScreen} aria-label="Exit full screen">
+                Exit full screen
+              </Button>
+            </div>
+            <p role="status" aria-live="polite" className="sr-only">
+              Full screen editor open
+            </p>
+            <div
+              role="region"
+              aria-labelledby={fullScreenTitleId}
+              className="flex min-h-0 flex-1 flex-col"
+              onClick={script.kind === 'snippet' ? handleReadonlySnippetEditorClick : undefined}
+            >
+              {renderScriptCodeEditor(true)}
+            </div>
+            {askTrigger && script.kind === 'inline' ? (
+              <ScriptAskModal
+                trigger={askTrigger}
+                code={script.code ?? ''}
+                phase={phase}
+                aiSettings={aiSettings}
+                hubModelGroups={hubModelGroups}
+                preferredChatModelId={chatModelId}
+                onApply={handlePatchCode}
+                onClose={() => setAskTrigger(null)}
+              />
+            ) : null}
+          </>
+        ) : null}
+      </div>
+    </>
   );
 }
 
@@ -1177,7 +1703,10 @@ export function ScriptListEditor({
   onEditVariables,
   snippets,
   placeholder,
-  requestId
+  requestId,
+  sourceTabId,
+  variant = 'list',
+  focusScriptId
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
@@ -1194,12 +1723,15 @@ export function ScriptListEditor({
   const hubModelGroups = useAppSelector(selectHubModelGroups);
   const scriptEditorActions = usePluginScriptEditorActions(phase);
   const normalized = useMemo(() => normalizeScriptRefs(scripts), [scripts]);
+  const scriptGroups = useMemo(() => splitScriptRefsByGroup(normalized), [normalized]);
   const compatibleSnippets = useMemo(
     () => snippets.filter((snippet) => snippetMatchesPhase(snippet.scope, phase)),
     [snippets, phase]
   );
   const sortableEnabled = normalized.length > 1;
   const [activeDragScriptId, setActiveDragScriptId] = useState<string | null>(null);
+  const [addScriptStageModalOpen, setAddScriptStageModalOpen] = useState(false);
+  const [openRowMenuId, setOpenRowMenuId] = useState<string | null>(null);
   const [snippetMenuOpen, setSnippetMenuOpen] = useState(false);
   const [saveSnippetTarget, setSaveSnippetTarget] = useState<{
     scriptId: string;
@@ -1223,9 +1755,24 @@ export function ScriptListEditor({
   );
 
   /**
-   * Stable sortable ids for script rows.
+   * Stable sortable ids for script rows grouped by stage.
    */
-  const scriptIds = useMemo(() => normalized.map((script) => script.id), [normalized]);
+  const scriptGroupIds = useMemo(
+    () => ({
+      before: scriptGroups.before.map((script) => script.id),
+      main: scriptGroups.main.map((script) => script.id),
+      after: scriptGroups.after.map((script) => script.id)
+    }),
+    [scriptGroups]
+  );
+
+  /**
+   * Whether Before/Run/After section headings should appear above non-empty groups.
+   */
+  const showSectionHeadings = useMemo(
+    () => shouldShowScriptSectionHeadings(scriptGroups),
+    [scriptGroups]
+  );
 
   /**
    * Script row currently shown in the drag overlay.
@@ -1259,7 +1806,7 @@ export function ScriptListEditor({
   };
 
   /**
-   * Replaces the script list with a normalized copy.
+   * Replaces the script list with a normalized copy merged from editor groups.
    *
    * @param next - Updated script references.
    */
@@ -1268,11 +1815,60 @@ export function ScriptListEditor({
   };
 
   /**
-   * Adds a new empty inline script at the end of the list.
+   * Replaces one group in the script editor while preserving the other groups.
+   *
+   * @param group - Editor group being updated.
+   * @param nextGroupScripts - Updated scripts for that group.
    */
-  const handleAddInline = (): void => {
-    const created = { ...createInlineScriptRef('', UNNAMED_SCRIPT_NAME), expanded: true };
-    updateScripts([...normalized, created]);
+  const updateScriptGroup = (group: ScriptEditorGroup, nextGroupScripts: ScriptRef[]): void => {
+    const groups = splitScriptRefsByGroup(normalized);
+    updateScripts(
+      mergeScriptRefGroups({
+        ...groups,
+        [group]: nextGroupScripts
+      })
+    );
+  };
+
+  /**
+   * Enables or disables every script in one editor group.
+   *
+   * @param group - Before, run, or after group being toggled.
+   * @param enabled - Whether all scripts in the group should run at send time.
+   */
+  const handleGroupEnabledChange = (group: ScriptEditorGroup, enabled: boolean): void => {
+    updateScriptGroup(
+      group,
+      scriptGroups[group].map((script) => ({ ...script, enabled }))
+    );
+  };
+
+  /**
+   * Opens the stage picker before adding a blank inline script.
+   */
+  const handleOpenAddScriptModal = (): void => {
+    setAddScriptStageModalOpen(true);
+  };
+
+  /**
+   * Adds a new empty inline script with the selected stage.
+   *
+   * @param stage - Stage chosen in the add-script modal.
+   */
+  const handleConfirmAddInline = (stage: ScriptStage): void => {
+    const created = {
+      ...createInlineScriptRef('', UNNAMED_SCRIPT_NAME, stage),
+      expanded: true
+    };
+    const groups = splitScriptRefsByGroup(normalized);
+    const group = scriptStageGroup(stage);
+    updateScripts(
+      mergeScriptRefGroups({
+        ...groups,
+        [group]: [...groups[group], created]
+      })
+    );
+    setAddScriptStageModalOpen(false);
   };
 
   /**
@@ -1286,8 +1882,18 @@ export function ScriptListEditor({
       return;
     }
     const snippet = snippets.find((entry) => entry.uuid === trimmedUuid);
-    const created = { ...createSnippetScriptRef(trimmedUuid, snippet?.name), expanded: true };
-    updateScripts([...normalized, created]);
+    const created = {
+      ...createSnippetScriptRef(trimmedUuid, snippet?.name, snippet?.stage ?? DEFAULT_SCRIPT_STAGE),
+      expanded: true
+    };
+    const groups = splitScriptRefsByGroup(normalized);
+    const group = scriptStageGroup(normalizeScriptStage(created.stage));
+    updateScripts(
+      mergeScriptRefGroups({
+        ...groups,
+        [group]: [...groups[group], created]
+      })
+    );
   };
 
   /**
@@ -1348,14 +1954,23 @@ export function ScriptListEditor({
         createSnippet({
           name: trimmedName,
           code: createSnippetDraft.code,
-          scope: createSnippetDraft.scope
+          scope: createSnippetDraft.scope,
+          stage: createSnippetDraft.stage
         })
       ).unwrap();
       toast.success('Snippet created');
-      updateScripts([
-        ...normalized,
-        { ...createSnippetScriptRef(created.uuid, created.name), expanded: true }
-      ]);
+      const groups = splitScriptRefsByGroup(normalized);
+      const scriptRef = {
+        ...createSnippetScriptRef(created.uuid, created.name, created.stage),
+        expanded: true
+      };
+      const group = scriptStageGroup(normalizeScriptStage(scriptRef.stage));
+      updateScripts(
+        mergeScriptRefGroups({
+          ...groups,
+          [group]: [...groups[group], scriptRef]
+        })
+      );
       closeCreateSnippetModal();
     } catch (err) {
       setCreateSnippetError(err instanceof Error ? err.message : 'Failed to save snippet');
@@ -1399,7 +2014,11 @@ export function ScriptListEditor({
    *
    * @param name - Snippet name entered in the modal.
    */
-  const handleConfirmSaveSnippet = async (name: string, scope: SnippetScope): Promise<void> => {
+  const handleConfirmSaveSnippet = async (
+    name: string,
+    scope: SnippetScope,
+    stage: ScriptStage
+  ): Promise<void> => {
     if (!saveSnippetTarget) {
       return;
     }
@@ -1427,7 +2046,9 @@ export function ScriptListEditor({
 
     try {
       if (script.kind === 'inline' || !linkedSnippet) {
-        const created = await dispatch(createSnippet({ name: trimmedName, code, scope })).unwrap();
+        const created = await dispatch(
+          createSnippet({ name: trimmedName, code, scope, stage })
+        ).unwrap();
         replaceScript(script.id, linkScriptRefToSnippet(script, created.uuid, trimmedName));
         toast.success('Snippet saved');
         closeSaveSnippetModal();
@@ -1436,7 +2057,7 @@ export function ScriptListEditor({
 
       if (trimmedName === linkedSnippet.name.trim()) {
         await dispatch(
-          updateSnippet({ id: linkedSnippet.id, name: trimmedName, code, scope })
+          updateSnippet({ id: linkedSnippet.id, name: trimmedName, code, scope, stage })
         ).unwrap();
         patchScript(script.id, { name: trimmedName });
         toast.success('Snippet saved');
@@ -1444,7 +2065,9 @@ export function ScriptListEditor({
         return;
       }
 
-      const created = await dispatch(createSnippet({ name: trimmedName, code, scope })).unwrap();
+      const created = await dispatch(
+        createSnippet({ name: trimmedName, code, scope, stage })
+      ).unwrap();
       replaceScript(script.id, linkScriptRefToSnippet(script, created.uuid, trimmedName));
       toast.success('Snippet saved');
       closeSaveSnippetModal();
@@ -1461,6 +2084,45 @@ export function ScriptListEditor({
   const saveSnippetScript = saveSnippetTarget
     ? (normalized.find((entry) => entry.id === saveSnippetTarget.scriptId) ?? null)
     : null;
+
+  /**
+   * Updates a script row's stage and moves it into the matching editor group.
+   *
+   * @param id - Script list entry id.
+   * @param stage - New stage for the row.
+   */
+  const handleStageChange = (id: string, stage: ScriptStage): void => {
+    const script = normalized.find((entry) => entry.id === id);
+    if (!script) {
+      return;
+    }
+
+    const normalizedRole = normalizeScriptStage(stage);
+    if (normalizeScriptStage(readScriptRefStage(script)) === normalizedRole) {
+      return;
+    }
+
+    const groups = splitScriptRefsByGroup(normalized);
+    const sourceGroup = scriptStageGroup(normalizeScriptStage(readScriptRefStage(script)));
+    const targetGroup = scriptStageGroup(normalizedRole);
+    const nextScript = { ...script, stage: normalizedRole };
+
+    if (sourceGroup === targetGroup) {
+      updateScriptGroup(
+        sourceGroup,
+        groups[sourceGroup].map((entry) => (entry.id === id ? nextScript : entry))
+      );
+      return;
+    }
+
+    updateScripts(
+      mergeScriptRefGroups({
+        ...groups,
+        [sourceGroup]: groups[sourceGroup].filter((entry) => entry.id !== id),
+        [targetGroup]: [...groups[targetGroup], nextScript]
+      })
+    );
+  };
 
   /**
    * Updates one script reference by id.
@@ -1560,17 +2222,23 @@ export function ScriptListEditor({
       script.kind === 'inline' ? (script.code ?? '') : resolveScriptSourceCode(script, snippets);
     const baseName = script.name?.trim() || label;
     const clone = {
-      ...createInlineScriptRef(code, `${baseName} (copy)`),
+      ...createInlineScriptRef(
+        code,
+        `${baseName} (copy)`,
+        normalizeScriptStage(readScriptRefStage(script))
+      ),
       expanded: script.expanded ?? true
     };
-    const sourceIndex = normalized.findIndex((entry) => entry.id === id);
+    const groups = splitScriptRefsByGroup(normalized);
+    const group = scriptStageGroup(normalizeScriptStage(clone.stage));
+    const sourceIndex = groups[group].findIndex((entry) => entry.id === id);
     if (sourceIndex < 0) {
       return;
     }
 
-    const next = [...normalized];
-    next.splice(sourceIndex + 1, 0, clone);
-    updateScripts(next);
+    const nextGroup = [...groups[group]];
+    nextGroup.splice(sourceIndex + 1, 0, clone);
+    updateScriptGroup(group, nextGroup);
   };
 
   /**
@@ -1580,10 +2248,10 @@ export function ScriptListEditor({
    * @param label - Display label shown in the confirmation message.
    */
   const handleRemoveScript = async (id: string, label: string): Promise<void> => {
-    const phaseLabel = phase === 'pre' ? 'pre-request' : 'post-request';
+    const stageLabel = phase === 'pre' ? 'pre-request' : 'post-request';
     const confirmed = await confirm({
       title: 'Remove script',
-      message: `Remove "${label}" from the ${phaseLabel} scripts?`,
+      message: `Remove "${label}" from the ${stageLabel} stage?`,
       confirmLabel: 'Remove',
       variant: 'danger'
     });
@@ -1591,6 +2259,28 @@ export function ScriptListEditor({
       return;
     }
     removeScript(id);
+  };
+
+  /**
+   * Opens or focuses a live-linked script editor page tab for one script row.
+   *
+   * @param scriptId - Script list entry id.
+   * @param label - Tab title shown in the tab bar.
+   */
+  const handleOpenInTab = (scriptId: string, label: string): void => {
+    if (!sourceTabId) {
+      return;
+    }
+
+    dispatch(
+      openPageTab({
+        type: 'script-editor',
+        requestTabId: sourceTabId,
+        phase,
+        scriptId,
+        label
+      })
+    );
   };
 
   /**
@@ -1603,6 +2293,65 @@ export function ScriptListEditor({
     await dispatch(createNewChat(aiSettings));
     dispatch(setPendingComposerText(`@${requestId ?? 'active'}.${phase}.${scriptIndex}\n\n`));
   };
+
+  /**
+   * Shared row props for list and single-script render modes.
+   *
+   * @param script - Script reference for the row.
+   * @param label - Accessible row label.
+   * @param isExpanded - Whether the inline editor is expanded.
+   * @param scriptIndex - 1-based index within the phase script array.
+   * @param rowOptions - Optional layout overrides for pop-out tab mode.
+   * @returns Props spread onto {@link SortableScriptRow}.
+   */
+  const buildScriptRowProps = (
+    script: ScriptRef,
+    label: string,
+    isExpanded: boolean,
+    scriptIndex: number,
+    rowOptions?: {
+      hideDragHandle?: boolean;
+      editorFill?: boolean;
+      forceExpanded?: boolean;
+      sortable?: boolean;
+      includeOpenInTab?: boolean;
+    }
+  ): SortableScriptRowProps => ({
+    script,
+    snippets,
+    label,
+    isExpanded,
+    phase,
+    placeholder: editorPlaceholder,
+    variables,
+    onEditVariables,
+    sortable: rowOptions?.sortable ?? false,
+    onEnabledChange: (enabled) => patchScript(script.id, { enabled }),
+    onNameChange: (name) => patchScript(script.id, { name }),
+    stageEditable: isScriptStageEditable(script, snippets),
+    onStageSelect: (stage) => handleStageChange(script.id, stage),
+    openRowMenuId,
+    onOpenRowMenuChange: setOpenRowMenuId,
+    onRemove: () => void handleRemoveScript(script.id, label),
+    onToggleExpanded: () => patchScript(script.id, { expanded: !isExpanded }),
+    onPatchCode: (code) => patchScript(script.id, { code }),
+    onSaveSnippet: (code) => openSaveSnippetModal(script.id, code),
+    onRequestEditSnippet: () => handleRequestEditSnippet(label),
+    onReadonlySnippetClick: () => void handleReadonlySnippetClick(label),
+    onClone: () => void handleCloneScript(script.id, label),
+    aiAvailable,
+    onAskAi: () => void handleAskAi(scriptIndex + 1),
+    aiSettings,
+    hubModelGroups,
+    scriptEditorActions,
+    onOpenInTab:
+      rowOptions?.includeOpenInTab && sourceTabId
+        ? () => handleOpenInTab(script.id, label)
+        : undefined,
+    hideDragHandle: rowOptions?.hideDragHandle,
+    editorFill: rowOptions?.editorFill,
+    forceExpanded: rowOptions?.forceExpanded
+  });
 
   /**
    * Records the script row being dragged for overlay preview.
@@ -1625,13 +2374,25 @@ export function ScriptListEditor({
       return;
     }
 
-    const oldIndex = normalized.findIndex((script) => script.id === active.id);
-    const newIndex = normalized.findIndex((script) => script.id === over.id);
+    const activeScript = normalized.find((script) => script.id === active.id);
+    const overScript = normalized.find((script) => script.id === over.id);
+    if (!activeScript || !overScript) {
+      return;
+    }
+
+    const group = scriptStageGroup(normalizeScriptStage(activeScript.stage));
+    if (group !== scriptStageGroup(normalizeScriptStage(overScript.stage))) {
+      return;
+    }
+
+    const groupScripts = scriptGroups[group];
+    const oldIndex = groupScripts.findIndex((script) => script.id === active.id);
+    const newIndex = groupScripts.findIndex((script) => script.id === over.id);
     if (oldIndex < 0 || newIndex < 0) {
       return;
     }
 
-    updateScripts(arrayMove(normalized, oldIndex, newIndex));
+    updateScriptGroup(group, arrayMove(groupScripts, oldIndex, newIndex));
   };
 
   /**
@@ -1642,13 +2403,14 @@ export function ScriptListEditor({
       <Button
         type="button"
         className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
-        onClick={handleAddInline}
+        onClick={handleOpenAddScriptModal}
       >
         <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
         Add
       </Button>
       <Button
         type="button"
+        variant="secondary"
         className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
         aria-label="Import JavaScript snippet"
         onClick={() => void handleImportSnippet()}
@@ -1668,7 +2430,7 @@ export function ScriptListEditor({
             onClick={() => setSnippetMenuOpen((open) => !open)}
           >
             <FaIcon icon={faTerminal} className="h-3.5 w-3.5" aria-hidden />
-            Snippet library...
+            Snippets
           </Button>
           {snippetMenuOpen ? (
             <SnippetMenu
@@ -1716,7 +2478,9 @@ export function ScriptListEditor({
   const scriptListHeader = (
     <div className="flex shrink-0 flex-wrap items-center gap-2">
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <p className="m-0 text-[14px] text-muted">Scripts run in order. Drag to reorder.</p>
+        <p className="m-0 text-[14px] text-muted">
+          Scripts run in order within each group. Drag to reorder inside a group.
+        </p>
         <a
           href={REQUEST_SCRIPTS_HELP_URL}
           target="_blank"
@@ -1732,46 +2496,93 @@ export function ScriptListEditor({
   );
 
   /**
-   * Renders the ordered script row list.
+   * Renders one grouped script list with optional drag handles.
+   *
+   * @param group - Editor stage group.
+   * @param groupScripts - Scripts stored in that group.
+   * @param groupLabel - Accessible name for the list.
+   * @param showHeading - Whether to render a visible section heading above the list.
+   */
+  const renderScriptGroup = (
+    group: ScriptEditorGroup,
+    groupScripts: ScriptRef[],
+    groupLabel: string,
+    showHeading: boolean
+  ): JSX.Element | null => {
+    if (groupScripts.length === 0) {
+      return null;
+    }
+
+    const groupSortable = groupScripts.length > 1;
+    const list = (
+      <ul className="flex flex-col" aria-label={groupLabel}>
+        {groupScripts.map((script, index) => {
+          const label = scriptRowLabel(script, snippets);
+          const isExpanded = script.expanded ?? false;
+          const scriptIndex = normalized.findIndex((entry) => entry.id === script.id);
+
+          return (
+            <Fragment key={script.id}>
+              <SortableScriptRow
+                {...buildScriptRowProps(script, label, isExpanded, scriptIndex + 1, {
+                  sortable: groupSortable,
+                  includeOpenInTab: true
+                })}
+              />
+              {index < groupScripts.length - 1 ? <ScriptFlowArrow /> : null}
+            </Fragment>
+          );
+        })}
+      </ul>
+    );
+
+    const sortableList = groupSortable ? (
+      <SortableContext items={scriptGroupIds[group]} strategy={verticalListSortingStrategy}>
+        {list}
+      </SortableContext>
+    ) : (
+      list
+    );
+
+    if (!showHeading) {
+      return sortableList;
+    }
+
+    const headingId = `${phase}-${group}-scripts-heading`;
+
+    return (
+      <section aria-labelledby={headingId} className="flex flex-col gap-2">
+        <ScriptGroupHeading
+          group={group}
+          phase={phase}
+          scripts={groupScripts}
+          headingId={headingId}
+          onEnabledChange={(enabled) => handleGroupEnabledChange(group, enabled)}
+        />
+        {sortableList}
+      </section>
+    );
+  };
+
+  /**
+   * Renders the grouped script row lists.
    */
   const scriptList = (
-    <ul className="flex flex-col" aria-label={`${phase} request scripts`}>
-      {normalized.map((script, index) => {
-        const label = scriptRowLabel(script, snippets);
-        const isExpanded = script.expanded ?? false;
-
-        return (
-          <Fragment key={script.id}>
-            <SortableScriptRow
-              script={script}
-              snippets={snippets}
-              label={label}
-              isExpanded={isExpanded}
-              phase={phase}
-              placeholder={editorPlaceholder}
-              variables={variables}
-              onEditVariables={onEditVariables}
-              sortable={sortableEnabled}
-              onEnabledChange={(enabled) => patchScript(script.id, { enabled })}
-              onNameChange={(name) => patchScript(script.id, { name })}
-              onRemove={() => void handleRemoveScript(script.id, label)}
-              onToggleExpanded={() => patchScript(script.id, { expanded: !isExpanded })}
-              onPatchCode={(code) => patchScript(script.id, { code })}
-              onSaveSnippet={(code) => openSaveSnippetModal(script.id, code)}
-              onRequestEditSnippet={() => handleRequestEditSnippet(label)}
-              onReadonlySnippetClick={() => void handleReadonlySnippetClick(label)}
-              onClone={() => void handleCloneScript(script.id, label)}
-              aiAvailable={aiAvailable}
-              onAskAi={() => void handleAskAi(index + 1)}
-              aiSettings={aiSettings}
-              hubModelGroups={hubModelGroups}
-              scriptEditorActions={scriptEditorActions}
-            />
-            {index < normalized.length - 1 ? <ScriptFlowArrow /> : null}
-          </Fragment>
-        );
-      })}
-    </ul>
+    <div className="flex flex-col gap-4">
+      {renderScriptGroup(
+        'before',
+        scriptGroups.before,
+        `${phase} before scripts`,
+        showSectionHeadings
+      )}
+      {renderScriptGroup('main', scriptGroups.main, `${phase} main scripts`, showSectionHeadings)}
+      {renderScriptGroup(
+        'after',
+        scriptGroups.after,
+        `${phase} after scripts`,
+        showSectionHeadings
+      )}
+    </div>
   );
 
   /**
@@ -1785,9 +2596,7 @@ export function ScriptListEditor({
       onDragEnd={handleDragEnd}
       onDragCancel={() => setActiveDragScriptId(null)}
     >
-      <SortableContext items={scriptIds} strategy={verticalListSortingStrategy}>
-        {scriptList}
-      </SortableContext>
+      {scriptList}
       <DragOverlay>
         {activeDragScript ? (
           <div className="rounded-2xl border border-separator bg-surface px-4 py-2 text-[14px] font-medium shadow-md">
@@ -1800,22 +2609,25 @@ export function ScriptListEditor({
     scriptList
   );
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
-      {scriptListHeader}
-      <div className="hc-scroll-stable flex min-h-0 flex-1 flex-col overflow-y-auto pb-3">
-        {scriptListBody}
-      </div>
-
+  const modals = (
+    <>
       {saveSnippetTarget && saveSnippetScript ? (
         <SaveSnippetNameModal
           key={saveSnippetTarget.scriptId}
           defaultName={saveSnippetDefaultName(saveSnippetScript, snippets)}
           defaultScope={snippetScopeForPhase(phase)}
+          defaultStage={normalizeScriptStage(saveSnippetScript.stage)}
           saving={saveSnippetSaving}
           error={saveSnippetError}
           onCancel={closeSaveSnippetModal}
-          onSave={(name, scope) => void handleConfirmSaveSnippet(name, scope)}
+          onSave={(name, scope, stage) => void handleConfirmSaveSnippet(name, scope, stage)}
+        />
+      ) : null}
+
+      {addScriptStageModalOpen ? (
+        <AddScriptStageModal
+          onCancel={() => setAddScriptStageModalOpen(false)}
+          onConfirm={handleConfirmAddInline}
         />
       ) : null}
 
@@ -1830,6 +2642,45 @@ export function ScriptListEditor({
           onSave={() => void handleSaveCreateSnippet()}
         />
       ) : null}
+    </>
+  );
+
+  if (variant === 'single') {
+    const focusedScript = focusScriptId
+      ? normalized.find((script) => script.id === focusScriptId)
+      : undefined;
+
+    if (!focusedScript) {
+      return <></>;
+    }
+
+    const label = scriptRowLabel(focusedScript, snippets);
+    const scriptIndex = normalized.findIndex((entry) => entry.id === focusedScript.id);
+
+    return (
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col p-4">
+        <ul className="flex min-h-0 flex-1 flex-col" aria-label={`${phase} script editor`}>
+          <SortableScriptRow
+            {...buildScriptRowProps(focusedScript, label, true, scriptIndex + 1, {
+              hideDragHandle: true,
+              editorFill: true,
+              forceExpanded: true
+            })}
+          />
+        </ul>
+        {modals}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      {scriptListHeader}
+      <div className="hc-scroll-stable flex min-h-0 flex-1 flex-col overflow-y-auto pb-3">
+        {scriptListBody}
+      </div>
+
+      {modals}
     </div>
   );
 }

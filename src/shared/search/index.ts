@@ -1,3 +1,4 @@
+export * from '#/shared/search/oramaIndex';
 export * from '#/shared/search/types';
 export * from '#/shared/search/sidebar';
 export * from '#/shared/search/settings';

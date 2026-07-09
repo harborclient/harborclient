@@ -250,6 +250,7 @@ export function TeamHubList({
                       serviceFlagsByHubId.get(hub.id) ?? {
                         storage: false,
                         llm: false,
+                        openai: false,
                         pluginCatalog: false,
                         snippets: false,
                         admin: false

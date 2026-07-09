@@ -10,3 +10,5 @@ dist
 *.scratch.md
 REVIEW.md
 plugins/signing.pem
+scripts/.env
+scripts/.cache/

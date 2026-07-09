@@ -15,6 +15,7 @@ import {
 import { useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import { snippetScopeLabel } from '#/shared/snippetScope';
+import { DEFAULT_SCRIPT_STAGE } from '#/shared/scriptStage';
 import type { TeamHub, TeamHubAdminSnippet } from '#/shared/types';
 
 import { faPlus, faTerminal } from '#/renderer/src/fontawesome';
@@ -69,7 +70,8 @@ export function TeamSnippetsView({ hub }: Props): JSX.Element {
     setEditingDraft({
       name: snippet.name,
       code: snippet.code,
-      scope: snippet.scope
+      scope: snippet.scope,
+      stage: DEFAULT_SCRIPT_STAGE
     });
     setEditingSnippetId(snippet.id);
     setIsNew(false);

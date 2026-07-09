@@ -30,13 +30,13 @@ import {
  * Live search indexes and source data used by {@link searchAll}.
  */
 export interface SearchAllContext {
-  /** Sidebar MiniSearch index, or null when sidebar data is not ready. */
+  /** Sidebar Orama index, or null when sidebar data is not ready. */
   sidebarIndex: ReturnType<typeof buildSidebarSearchIndex> | null;
-  /** Settings MiniSearch index (always available once built). */
+  /** Settings Orama index (always available once built). */
   settingsIndex: ReturnType<typeof buildSettingsSearchIndex>;
-  /** Plugin catalog MiniSearch index, or null when catalog has not loaded. */
+  /** Plugin catalog Orama index, or null when catalog has not loaded. */
   pluginsIndex: ReturnType<typeof buildPluginCatalogSearchIndex> | null;
-  /** Installed plugins MiniSearch index, or null when the list is empty. */
+  /** Installed plugins Orama index, or null when the list is empty. */
   installedPluginsIndex: ReturnType<typeof buildInstalledPluginSearchIndex> | null;
   /** Sidebar entities for subtitle resolution and navigation. */
   sidebarInput: SidebarSearchInput;
@@ -44,7 +44,7 @@ export interface SearchAllContext {
   plugins: PluginCatalogEntry[];
   /** Installed plugin rows from the main process. */
   installedPlugins: PluginInfo[];
-  /** Snippet catalog MiniSearch index, or null when catalog has not loaded. */
+  /** Snippet catalog Orama index, or null when catalog has not loaded. */
   snippetsIndex: ReturnType<typeof buildSnippetCatalogSearchIndexForSearch> | null;
   /** Loaded marketplace snippet bundle rows. */
   snippets: SnippetCatalogEntry[];

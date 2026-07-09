@@ -20,6 +20,7 @@ import { EnvironmentSettings } from '#/renderer/src/ui/EnvironmentSettings';
 import { PluginMainView } from '#/renderer/src/ui/PluginMainView';
 import { Plugins } from '#/renderer/src/ui/Plugins';
 import { PluginDetailPage } from '#/renderer/src/ui/Plugins/PluginDetailPage';
+import { ScriptEditorTab } from '#/renderer/src/ui/Main/RequestEditor/ScriptEditorTab';
 import { Settings } from '#/renderer/src/ui/Settings';
 import { SharingKeys } from '#/renderer/src/ui/SharingKeys';
 import { Snippets } from '#/renderer/src/ui/Snippets';
@@ -144,6 +145,10 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
 
   if (page.type === 'snippet-edit') {
     return <SnippetEditPage page={page} tabId={tabId} />;
+  }
+
+  if (page.type === 'script-editor') {
+    return <ScriptEditorTab page={page} tabId={tabId} />;
   }
 
   if (page.type === 'plugin-view') {

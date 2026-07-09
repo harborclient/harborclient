@@ -87,6 +87,7 @@ export function TeamHubServiceBadges({ services, scanning }: Props): JSX.Element
     // this badge always mirrors the Storage badge rather than being independently probed.
     { label: 'Run Results', active: services.storage },
     { label: 'LLM', active: services.llm },
+    { label: 'OpenAI', active: services.openai },
     { label: 'Plugins', active: services.pluginCatalog },
     { label: 'Snippets', active: services.snippets }
   ];

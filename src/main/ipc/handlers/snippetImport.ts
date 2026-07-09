@@ -65,8 +65,14 @@ export async function importSnippetData(
     if (choice === 'update') {
       const snippet =
         db instanceof RoutingStorage
-          ? await db.updateSnippet(existing.id, data.name, data.code, data.scope)
-          : getLocalDatabase().updateSnippet(existing.id, data.name, data.code, data.scope);
+          ? await db.updateSnippet(existing.id, data.name, data.code, data.scope, data.stage)
+          : getLocalDatabase().updateSnippet(
+              existing.id,
+              data.name,
+              data.code,
+              data.scope,
+              data.stage
+            );
       return { snippet, action: 'updated' };
     }
     payload = mintFreshSnippetExportUuid(data);
@@ -75,7 +81,13 @@ export async function importSnippetData(
   const targetUuid = resolveImportUuid(payload.uuid);
   const snippet =
     db instanceof RoutingStorage
-      ? await db.createSnippet(payload.name, payload.code, payload.scope, targetUuid)
-      : getLocalDatabase().createSnippet(payload.name, payload.code, payload.scope, targetUuid);
+      ? await db.createSnippet(payload.name, payload.code, payload.scope, payload.stage, targetUuid)
+      : getLocalDatabase().createSnippet(
+          payload.name,
+          payload.code,
+          payload.scope,
+          payload.stage,
+          targetUuid
+        );
   return { snippet, action: 'created' };
 }

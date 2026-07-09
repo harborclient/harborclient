@@ -53,7 +53,7 @@ describe('importSnippetData', () => {
   });
 
   it('updates an existing snippet when the user chooses update', async () => {
-    database.createSnippet('Existing', 'old();', 'any', snippetExport.uuid);
+    database.createSnippet('Existing', 'old();', 'any', 'main', snippetExport.uuid);
     confirmDuplicateImport.mockResolvedValue('update');
 
     const result = await importSnippetData({} as never, null, {
@@ -69,7 +69,7 @@ describe('importSnippetData', () => {
   });
 
   it('creates a copy with a fresh uuid when the user chooses copy', async () => {
-    database.createSnippet('Existing', 'old();', 'any', snippetExport.uuid);
+    database.createSnippet('Existing', 'old();', 'any', 'main', snippetExport.uuid);
     confirmDuplicateImport.mockResolvedValue('copy');
 
     const result = await importSnippetData({} as never, null, {
@@ -84,7 +84,7 @@ describe('importSnippetData', () => {
   });
 
   it('returns null when the user cancels a duplicate import', async () => {
-    database.createSnippet('Existing', 'old();', 'any', snippetExport.uuid);
+    database.createSnippet('Existing', 'old();', 'any', 'main', snippetExport.uuid);
     confirmDuplicateImport.mockResolvedValue('cancel');
 
     const result = await importSnippetData({} as never, null, snippetExport);

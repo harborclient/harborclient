@@ -2,6 +2,9 @@ import { z } from 'zod';
 import { MAX_IPC_SCRIPT_CHARS } from '#/main/ipc/ipcLimits';
 import type { ScriptRef } from '#/shared/types/script';
 
+/** Script stage within a pre/post script list. */
+export const scriptStage = z.enum(['before-all', 'before-each', 'main', 'after-each', 'after-all']);
+
 /** Pre/post script source bounded for IPC and portable export. */
 export const scriptSource = z.string().max(MAX_IPC_SCRIPT_CHARS);
 
@@ -13,7 +16,8 @@ export const scriptRef = z.discriminatedUnion('kind', [
     kind: z.literal('inline'),
     name: z.string().optional(),
     code: scriptSource.optional(),
-    expanded: z.boolean().optional()
+    expanded: z.boolean().optional(),
+    stage: scriptStage.optional()
   }),
   z.object({
     id: z.string().min(1),
@@ -21,7 +25,8 @@ export const scriptRef = z.discriminatedUnion('kind', [
     kind: z.literal('snippet'),
     name: z.string().optional(),
     snippetUuid: z.string().min(1),
-    expanded: z.boolean().optional()
+    expanded: z.boolean().optional(),
+    stage: scriptStage.optional()
   })
 ]);
 
@@ -36,22 +41,24 @@ export const MAX_SCRIPT_REFS = 64;
  */
 function stripExpandedFromScriptRef(ref: ScriptRef): ScriptRef {
   if (ref.kind === 'inline') {
-    const { code, enabled, id, kind, name } = ref;
+    const { code, enabled, id, kind, name, stage } = ref;
     return {
       id,
       enabled,
       kind,
       ...(name ? { name } : {}),
-      ...(code !== undefined ? { code } : {})
+      ...(code !== undefined ? { code } : {}),
+      ...(stage ? { stage } : {})
     };
   }
-  const { enabled, id, kind, name, snippetUuid } = ref;
+  const { enabled, id, kind, name, snippetUuid, stage } = ref;
   return {
     id,
     enabled,
     kind,
     snippetUuid,
-    ...(name ? { name } : {})
+    ...(name ? { name } : {}),
+    ...(stage ? { stage } : {})
   };
 }
 

@@ -20,6 +20,7 @@ import { registerBackupHandlers } from '#/main/ipc/handlers/backup';
 import { registerWindowHandlers } from '#/main/ipc/handlers/window';
 import { registerPluginHandlers } from '#/main/ipc/handlers/plugins';
 import { registerCustomThemeHandlers } from '#/main/ipc/handlers/customThemes';
+import { registerDocsHandlers } from '#/main/ipc/handlers/docs';
 import { registerMcpHandlers } from '#/main/ipc/handlers/mcp';
 import type { PluginManager } from '#/main/plugins/PluginManager';
 
@@ -50,6 +51,7 @@ export function registerIpcHandlers(db: IStorage, pluginManager: PluginManager):
   registerBackupHandlers(db);
   registerWindowHandlers();
   registerPluginHandlers(pluginManager);
+  registerDocsHandlers();
   registerMcpHandlers();
   registerCustomThemeHandlers();
 }

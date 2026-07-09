@@ -4,6 +4,7 @@ import type { SnippetCatalogEntry } from '#/shared/snippet/catalog';
 import type { SnippetGitPreview } from '#/shared/snippet/types';
 import { stripPluginScreenshotImagesFromMarkdown } from '#/shared/plugin/stripPluginScreenshotImagesFromMarkdown';
 import { snippetScopeLabel } from '#/shared/snippetScope';
+import { scriptStageLabel } from '#/shared/scriptStage';
 import { ScreenshotCarousel } from '#/renderer/src/ui/Plugins/ScreenshotCarousel';
 import { PluginReadmeMarkdown } from '#/renderer/src/ui/Plugins/PluginReadmeMarkdown';
 
@@ -102,7 +103,8 @@ export function SnippetDetailContent({
           <ul className="m-0 list-disc pl-5 text-[16px] text-text">
             {(preview?.snippets ?? entry.snippets).map((snippet) => (
               <li key={`${snippet.name}-${snippet.file}`}>
-                {snippet.name} ({snippetScopeLabel(snippet.where)})
+                {snippet.name} ({snippetScopeLabel(snippet.phase)} ·{' '}
+                {scriptStageLabel(snippet['stage'])})
               </li>
             ))}
           </ul>

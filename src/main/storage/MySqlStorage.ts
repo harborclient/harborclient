@@ -51,6 +51,8 @@ import type {
   SaveRunResultInput
 } from '#/shared/collectionRunner';
 import type { SnippetScope } from '#/shared/snippetScope';
+import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '#/shared/scriptStage';
+import type { ScriptStage } from '@harborclient/sdk';
 import { parseJson } from '#/shared/parseJson';
 import { generateDocumentUuid } from '#/main/storage/uuid';
 
@@ -203,6 +205,8 @@ export class MySqlStorage implements IStorage {
       'post_request_scripts',
       "LONGTEXT NOT NULL DEFAULT ('[]')"
     );
+    await this.addColumnIfMissing('snippets', 'stage', "VARCHAR(32) NOT NULL DEFAULT 'main'");
+    await this.getPool().execute("UPDATE snippets SET stage = 'main' WHERE stage = 'run'");
     await this.backfillDocumentUuids('collections');
     await this.backfillDocumentUuids('requests');
     await this.backfillDocumentUuids('environments');
@@ -1235,18 +1239,20 @@ export class MySqlStorage implements IStorage {
     name: string,
     code: string,
     scope: SnippetScope = 'any',
+    stage: ScriptStage = DEFAULT_SCRIPT_STAGE,
     uuid?: string
   ): Promise<Snippet> {
     const trimmedName = trimRequiredName(name, 'Snippet name');
     const snippetUuid = uuid?.trim() || generateDocumentUuid();
     const now = new Date().toISOString();
+    const normalizedRole = normalizeScriptStage(stage);
     const [maxRows] = await this.getPool().execute<RowDataPacket[]>(
       'SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM snippets'
     );
     const sortOrder = Number(maxRows[0]?.max_order ?? -1) + 1;
     const [result] = await this.getPool().execute<ResultSetHeader>(
-      'INSERT INTO snippets (name, uuid, code, scope, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [trimmedName, snippetUuid, code ?? '', scope, sortOrder, now, now]
+      'INSERT INTO snippets (name, uuid, code, scope, stage, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [trimmedName, snippetUuid, code ?? '', scope, normalizedRole, sortOrder, now, now]
     );
 
     const [rows] = await this.getPool().execute<RowDataPacket[]>(
@@ -1265,13 +1271,15 @@ export class MySqlStorage implements IStorage {
     id: number,
     name: string,
     code: string,
-    scope: SnippetScope = 'any'
+    scope: SnippetScope = 'any',
+    stage: ScriptStage = DEFAULT_SCRIPT_STAGE
   ): Promise<Snippet> {
     const trimmedName = trimRequiredName(name, 'Snippet name');
     const now = new Date().toISOString();
+    const normalizedRole = normalizeScriptStage(stage);
     const [result] = await this.getPool().execute<ResultSetHeader>(
-      'UPDATE snippets SET name = ?, code = ?, scope = ?, updated_at = ? WHERE id = ?',
-      [trimmedName, code ?? '', scope, now, id]
+      'UPDATE snippets SET name = ?, code = ?, scope = ?, stage = ?, updated_at = ? WHERE id = ?',
+      [trimmedName, code ?? '', scope, normalizedRole, now, id]
     );
     if (result.affectedRows === 0) throw new Error('Snippet not found');
 

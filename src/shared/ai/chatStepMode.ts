@@ -5,6 +5,26 @@ import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 import type { ChatStepInput, ChatStepMessage } from '#/shared/types';
 
 /**
+ * Removes tools that should not be offered for the current chat step context.
+ *
+ * @param tools - Full Harbor tool definitions for a step.
+ * @param input - Renderer-provided step input with optional hub routing.
+ * @param hubHasOpenAi - When false for a hub chat, documentation search is disabled.
+ */
+function filterToolsForChatStep(
+  tools: ChatCompletionTool[],
+  input: ChatStepInput,
+  hubHasOpenAi?: boolean
+): ChatCompletionTool[] {
+  const hubId = input.hubId?.trim();
+  if (!hubId || hubHasOpenAi !== false) {
+    return tools;
+  }
+
+  return tools.filter((tool) => tool.function?.name !== 'search_docs');
+}
+
+/**
  * Resolved prompt, tools, and messages for one LLM completion step.
  */
 export interface ChatStepModeConfig {
@@ -33,9 +53,13 @@ export interface ChatStepModeConfig {
  * Resolves system prompt, tools, and messages for a chat completion step.
  *
  * @param input - Renderer-provided step input with optional mode flags.
+ * @param options - Optional hub capability hints for tool gating.
  * @returns Configuration for the provider request.
  */
-export function resolveChatStepMode(input: ChatStepInput): ChatStepModeConfig {
+export function resolveChatStepMode(
+  input: ChatStepInput,
+  options?: { hubHasOpenAi?: boolean }
+): ChatStepModeConfig {
   const chatTitlePrompt = input.chatTitlePrompt?.trim();
   if (chatTitlePrompt) {
     return {
@@ -57,7 +81,7 @@ export function resolveChatStepMode(input: ChatStepInput): ChatStepModeConfig {
 
   return {
     systemPrompt: AI_SYSTEM_PROMPT,
-    tools: AI_TOOL_DEFINITIONS,
+    tools: filterToolsForChatStep(AI_TOOL_DEFINITIONS, input, options?.hubHasOpenAi),
     messages: input.messages
   };
 }

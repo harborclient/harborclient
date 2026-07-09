@@ -2,6 +2,8 @@ import { CodeEditor, FieldError, FormGroup, Input, Select } from '@harborclient/
 import type { JSX } from 'react';
 import { useEffect, useId } from 'react';
 import { SNIPPET_SCOPE_OPTIONS, type SnippetScope } from '#/shared/snippetScope';
+import { SCRIPT_STAGE_OPTIONS } from '#/shared/scriptStage';
+import type { ScriptStage } from '@harborclient/sdk';
 import type { SnippetEditDraft } from '#/renderer/src/ui/shared/snippetEditDraft';
 import { providerOptionLabel, useProviders } from '#/renderer/src/hooks/useProviders';
 
@@ -94,7 +96,7 @@ export function SnippetEditFields({
       </div>
       <div className="flex shrink-0 flex-col gap-1">
         <label className="text-[16px] font-medium text-text" htmlFor="snippet-scope">
-          Runs in
+          Request stage
         </label>
         <Select
           id="snippet-scope"
@@ -104,6 +106,24 @@ export function SnippetEditFields({
           onChange={(event) => onChange({ ...draft, scope: event.target.value as SnippetScope })}
         >
           {SNIPPET_SCOPE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Select>
+      </div>
+      <div className="flex shrink-0 flex-col gap-1">
+        <label className="text-[16px] font-medium text-text" htmlFor="snippet-stage">
+          Stage
+        </label>
+        <Select
+          id="snippet-stage"
+          className="w-full"
+          value={draft.stage}
+          disabled={saving || readOnly}
+          onChange={(event) => onChange({ ...draft, stage: event.target.value as ScriptStage })}
+        >
+          {SCRIPT_STAGE_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>

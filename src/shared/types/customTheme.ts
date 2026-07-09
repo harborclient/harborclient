@@ -125,7 +125,12 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   'scrollbar-track': 'Scrollbar track',
   'scrollbar-thumb': 'Scrollbar thumb',
   'scrollbar-thumb-hover': 'Scrollbar thumb hover',
-  'scrollbar-thumb-active': 'Scrollbar thumb active'
+  'scrollbar-thumb-active': 'Scrollbar thumb active',
+  'script-stage-before-all': 'Before all',
+  'script-stage-before-each': 'Before each',
+  'script-stage-main': 'Main',
+  'script-stage-after-each': 'After each',
+  'script-stage-after-all': 'After all'
 };
 
 /**
@@ -167,6 +172,16 @@ export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
       'scrollbar-thumb',
       'scrollbar-thumb-hover',
       'scrollbar-thumb-active'
+    ]
+  },
+  {
+    label: 'Script stages',
+    tokens: [
+      'script-stage-before-all',
+      'script-stage-before-each',
+      'script-stage-main',
+      'script-stage-after-each',
+      'script-stage-after-all'
     ]
   }
 ];

@@ -40,6 +40,22 @@ describe('customThemeExport', () => {
     expect(validateCustomThemeExport(exportWithScrollbars)).toEqual(exportWithScrollbars);
   });
 
+  it('validates script stage color tokens in theme exports', () => {
+    const exportWithScriptStages = {
+      ...sampleExport,
+      theme: {
+        ...sampleExport.theme,
+        'script-stage-before-all': '#0b72d4',
+        'script-stage-before-each': '#0a84ff',
+        'script-stage-main': '#32d2e2',
+        'script-stage-after-each': '#ff9f0a',
+        'script-stage-after-all': '#e8910f'
+      }
+    };
+
+    expect(validateCustomThemeExport(exportWithScriptStages)).toEqual(exportWithScriptStages);
+  });
+
   it('rejects unknown theme tokens in exports', () => {
     const result = customThemeExportSchema.safeParse({
       ...sampleExport,

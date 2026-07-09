@@ -27,7 +27,7 @@ interface Result {
 }
 
 /**
- * Manages settings search state and derives matched catalog ids from a MiniSearch index.
+ * Manages settings search state and derives matched catalog ids from an Orama index.
  */
 export function useSettingsSearch(): Result {
   const [query, setQuery] = useState('');

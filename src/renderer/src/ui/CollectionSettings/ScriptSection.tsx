@@ -49,7 +49,7 @@ export function ScriptSection({
 }: Props): JSX.Element {
   const snippets = useAppSelector(selectSnippets);
 
-  const label = phase === 'pre' ? 'Pre-request scripts' : 'Post-request scripts';
+  const label = phase === 'pre' ? 'Pre-request stage' : 'Post-request stage';
 
   return (
     <div className="mb-6 flex min-h-0 flex-1 flex-col gap-1">

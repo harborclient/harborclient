@@ -1,5 +1,6 @@
 import type { Snippet } from '#/shared/types/snippet';
 import type { SnippetScope } from '#/shared/snippetScope';
+import type { ScriptStage } from '@harborclient/sdk';
 import type { SnippetCatalog } from '#/shared/snippet/catalog';
 import type { InstalledSnippetPackage, SnippetGitPreview } from '#/shared/snippet/types';
 
@@ -37,19 +38,27 @@ export interface ApiSnippets {
     name: string,
     code: string,
     scope: SnippetScope,
+    stage?: ScriptStage,
     connectionId?: string
   ) => Promise<Snippet>;
 
   /**
-   * Updates a snippet's name, code, and scope.
+   * Updates a snippet's name, code, scope, and stage.
    *
    * @param id - Snippet ID to update.
    * @param name - New display name.
    * @param code - Updated JavaScript source.
    * @param scope - Script phases where the snippet may be referenced.
+   * @param stage - Default stage when added to a script list.
    * @returns The updated snippet.
    */
-  updateSnippet: (id: number, name: string, code: string, scope: SnippetScope) => Promise<Snippet>;
+  updateSnippet: (
+    id: number,
+    name: string,
+    code: string,
+    scope: SnippetScope,
+    stage?: ScriptStage
+  ) => Promise<Snippet>;
 
   /**
    * Deletes a snippet by id.

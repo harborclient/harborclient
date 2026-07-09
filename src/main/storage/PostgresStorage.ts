@@ -54,6 +54,8 @@ import type {
   SaveRunResultInput
 } from '#/shared/collectionRunner';
 import type { SnippetScope } from '#/shared/snippetScope';
+import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '#/shared/scriptStage';
+import type { ScriptStage } from '@harborclient/sdk';
 import { parseJson } from '#/shared/parseJson';
 import { generateDocumentUuid } from '#/main/storage/uuid';
 
@@ -208,6 +210,10 @@ export class PostgresStorage implements IStorage {
     await this.backfillDocumentUuids('folders');
     await migratePostgresScriptArrayColumns(this.getPool(), 'collections');
     await migratePostgresScriptArrayColumns(this.getPool(), 'requests');
+    await this.getPool().query(
+      "ALTER TABLE snippets ADD COLUMN IF NOT EXISTS stage TEXT NOT NULL DEFAULT 'main'"
+    );
+    await this.getPool().query("UPDATE snippets SET stage = 'main' WHERE stage = 'run'");
   }
 
   /**
@@ -1191,19 +1197,21 @@ export class PostgresStorage implements IStorage {
     name: string,
     code: string,
     scope: SnippetScope = 'any',
+    stage: ScriptStage = DEFAULT_SCRIPT_STAGE,
     uuid?: string
   ): Promise<Snippet> {
     const trimmedName = trimRequiredName(name, 'Snippet name');
     const snippetUuid = uuid?.trim() || generateDocumentUuid();
     const now = new Date().toISOString();
+    const normalizedRole = normalizeScriptStage(stage);
     const maxResult = await this.getPool().query(
       'SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM snippets'
     );
     const sortOrder = Number(maxResult.rows[0]?.max_order ?? -1) + 1;
     const insertResult = await this.getPool().query(
-      'INSERT INTO snippets (name, uuid, code, scope, sort_order, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING ' +
+      'INSERT INTO snippets (name, uuid, code, scope, stage, sort_order, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING ' +
         PROVIDER_SNIPPET_COLUMNS,
-      [trimmedName, snippetUuid, code ?? '', scope, sortOrder, now, now]
+      [trimmedName, snippetUuid, code ?? '', scope, normalizedRole, sortOrder, now, now]
     );
     const row = insertResult.rows[0];
     if (!row) throw new Error('Snippet not found after insert');
@@ -1217,13 +1225,15 @@ export class PostgresStorage implements IStorage {
     id: number,
     name: string,
     code: string,
-    scope: SnippetScope = 'any'
+    scope: SnippetScope = 'any',
+    stage: ScriptStage = DEFAULT_SCRIPT_STAGE
   ): Promise<Snippet> {
     const trimmedName = trimRequiredName(name, 'Snippet name');
     const now = new Date().toISOString();
+    const normalizedRole = normalizeScriptStage(stage);
     const updateResult = await this.getPool().query(
-      'UPDATE snippets SET name = $1, code = $2, scope = $3, updated_at = $4 WHERE id = $5',
-      [trimmedName, code ?? '', scope, now, id]
+      'UPDATE snippets SET name = $1, code = $2, scope = $3, stage = $4, updated_at = $5 WHERE id = $6',
+      [trimmedName, code ?? '', scope, normalizedRole, now, id]
     );
     if (updateResult.rowCount === 0) throw new Error('Snippet not found');
 

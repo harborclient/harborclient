@@ -23,6 +23,7 @@ const listRequestsMock = vi.fn<(collectionId: number) => Promise<SavedRequest[]>
 const sendRequestMock = vi.fn<(req: unknown, requestId?: string) => Promise<SendResult>>();
 const getCookiesMock = vi.fn<(domain: string) => Promise<KeyValue[]>>();
 const setCookiesMock = vi.fn<(domain: string, cookies: KeyValue[]) => Promise<void>>();
+const searchDocsMock = vi.fn<(args: { query: string }) => Promise<string>>();
 
 /**
  * Minimal in-memory localStorage mock for store persistence subscribers.
@@ -54,6 +55,7 @@ beforeEach(() => {
       pushPluginHttpAfterSend: vi.fn().mockResolvedValue(undefined),
       getCookies: getCookiesMock,
       setCookies: setCookiesMock,
+      searchDocs: searchDocsMock,
       runScript: vi.fn().mockResolvedValue({ logs: [], tests: [], error: undefined }),
       cancelRequest: vi.fn()
     }
@@ -65,6 +67,8 @@ beforeEach(() => {
   getCookiesMock.mockResolvedValue([]);
   setCookiesMock.mockReset();
   setCookiesMock.mockResolvedValue(undefined);
+  searchDocsMock.mockReset();
+  searchDocsMock.mockResolvedValue('[]');
 });
 
 afterEach(() => {
@@ -1078,5 +1082,30 @@ describe('executeAiTool', () => {
 
     expect(result).toEqual({ ok: true, phase: 'pre', scriptIndex: 1, isDirty: true });
     expect(selectDraft(store.getState()).pre_request_scripts[0].code).toBe('console.log("after");');
+  });
+
+  it('delegates search_docs to window.api.searchDocs', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const payload = JSON.stringify([
+      {
+        title: 'Scripting',
+        heading: 'Pre-request scripts',
+        url: 'https://harborclient.com/scripting',
+        source: 'site',
+        path: 'scripting.md',
+        score: 0.9,
+        snippet: 'Pre-request scripts run before each request.'
+      }
+    ]);
+    searchDocsMock.mockResolvedValue(payload);
+
+    const result = await executeAiTool(
+      'search_docs',
+      { query: 'pre-request scripts', limit: 3 },
+      { getState: store.getState, dispatch: store.dispatch }
+    );
+
+    expect(searchDocsMock).toHaveBeenCalledWith({ query: 'pre-request scripts', limit: 3 });
+    expect(result).toBe(payload);
   });
 });

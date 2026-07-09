@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { compareVersions, normalizeVersion } from '#/main/settings/versionCompare';
+import { scriptStage } from '#/main/schemas/scriptRef';
 import { sanitizePluginCatalogCategories } from '#/shared/plugin/catalogCategories';
+import type { ScriptStage } from '@harborclient/sdk';
 import type { SnippetScope } from '#/shared/snippetScope';
 
 const snippetScopeSchema = z.enum([
@@ -19,7 +21,8 @@ const screenshotEntry = z.union([
 
 const snippetManifestEntrySchema = z.object({
   name: z.string().min(1),
-  where: snippetScopeSchema,
+  phase: snippetScopeSchema,
+  stage: scriptStage,
   file: z.string().min(1),
   uuid: z.string().min(1).optional()
 });
@@ -40,7 +43,8 @@ export interface SnippetManifest {
   engines: { harborclient: string };
   snippets: Array<{
     name: string;
-    where: SnippetScope;
+    phase: SnippetScope;
+    stage: ScriptStage;
     file: string;
     uuid?: string;
   }>;

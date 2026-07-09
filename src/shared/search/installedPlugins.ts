@@ -1,6 +1,9 @@
-import MiniSearch from 'minisearch';
 import type { PluginInfo } from '#/shared/plugin/types';
-import { DEFAULT_SEARCH_OPTIONS } from '#/shared/search/types';
+import {
+  createTextSearchIndex,
+  searchTextIndex,
+  type HarborSearchIndex
+} from '#/shared/search/oramaIndex';
 
 /**
  * Indexed fields for installed plugin search.
@@ -12,6 +15,16 @@ type InstalledPluginSearchDocument = {
   author: string;
   categoriesText: string;
 };
+
+const INSTALLED_PLUGIN_SEARCH_SCHEMA = {
+  id: 'string',
+  name: 'string',
+  summary: 'string',
+  author: 'string',
+  categoriesText: 'string'
+} as const;
+
+const INSTALLED_PLUGIN_SEARCH_PROPERTIES = ['name', 'summary', 'author', 'categoriesText'];
 
 /**
  * Maps an installed plugin row to searchable document fields.
@@ -29,36 +42,29 @@ function installedPluginSearchDocument(plugin: PluginInfo): InstalledPluginSearc
 }
 
 /**
- * Builds a MiniSearch index over installed plugin metadata.
+ * Builds an Orama index over installed plugin metadata.
  *
  * @param plugins - Installed plugin rows to index.
  * @returns Search index keyed by plugin id.
  */
-export function buildInstalledPluginSearchIndex(
-  plugins: PluginInfo[]
-): MiniSearch<InstalledPluginSearchDocument> {
-  const index = new MiniSearch<InstalledPluginSearchDocument>({
-    fields: ['name', 'summary', 'author', 'categoriesText'],
-    storeFields: ['id', 'name', 'summary'],
-    searchOptions: DEFAULT_SEARCH_OPTIONS
-  });
-
-  index.addAll(plugins.map(installedPluginSearchDocument));
-
-  return index;
+export function buildInstalledPluginSearchIndex(plugins: PluginInfo[]): HarborSearchIndex {
+  return createTextSearchIndex(
+    INSTALLED_PLUGIN_SEARCH_SCHEMA,
+    plugins.map(installedPluginSearchDocument)
+  );
 }
 
 /**
  * Filters installed plugins by a user query using the prebuilt search index.
  *
  * @param plugins - Full installed listing in display order.
- * @param index - MiniSearch index built from the same plugin rows.
+ * @param index - Orama index built from the same plugin rows.
  * @param query - Raw search text from the installed filter field.
  * @returns Matching plugins in relevance order, or the original list when the query is empty.
  */
 export function searchInstalledPlugins(
   plugins: PluginInfo[],
-  index: MiniSearch<InstalledPluginSearchDocument>,
+  index: HarborSearchIndex,
   query: string
 ): PluginInfo[] {
   const trimmed = query.trim();
@@ -67,20 +73,21 @@ export function searchInstalledPlugins(
   }
 
   const byId = new Map(plugins.map((plugin) => [plugin.id, plugin]));
-  return index
-    .search(trimmed)
-    .map((hit) => byId.get(String(hit.id)))
+  return searchTextIndex<InstalledPluginSearchDocument>(index, trimmed, {
+    properties: INSTALLED_PLUGIN_SEARCH_PROPERTIES
+  })
+    .map((hit) => byId.get(hit.id))
     .filter((plugin): plugin is PluginInfo => plugin !== undefined);
 }
 
 /**
  * Returns installed plugin hits with scores for unified global search.
  *
- * @param index - MiniSearch index built from installed plugin rows.
+ * @param index - Orama index built from installed plugin rows.
  * @param query - Raw search text.
  */
 export function searchInstalledPluginHits(
-  index: MiniSearch<InstalledPluginSearchDocument>,
+  index: HarborSearchIndex,
   query: string
 ): Array<{ id: string; score: number; name: string; summary: string }> {
   const trimmed = query.trim();
@@ -88,13 +95,12 @@ export function searchInstalledPluginHits(
     return [];
   }
 
-  return index.search(trimmed).map((result) => {
-    const stored = result as unknown as InstalledPluginSearchDocument;
-    return {
-      id: String(stored.id),
-      score: result.score,
-      name: stored.name,
-      summary: stored.summary
-    };
-  });
+  return searchTextIndex<InstalledPluginSearchDocument>(index, trimmed, {
+    properties: INSTALLED_PLUGIN_SEARCH_PROPERTIES
+  }).map((hit) => ({
+    id: hit.document.id,
+    score: hit.score,
+    name: hit.document.name,
+    summary: hit.document.summary
+  }));
 }

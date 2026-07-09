@@ -62,7 +62,12 @@ export const LIGHT_CUSTOM_THEME_PALETTE: CustomThemePalette = {
   'scrollbar-track': 'rgba(0, 0, 0, 0.06)',
   'scrollbar-thumb': 'rgba(0, 0, 0, 0.44)',
   'scrollbar-thumb-hover': 'rgba(0, 0, 0, 0.55)',
-  'scrollbar-thumb-active': 'rgba(0, 0, 0, 0.66)'
+  'scrollbar-thumb-active': 'rgba(0, 0, 0, 0.66)',
+  'script-stage-before-all': '#0b72d4',
+  'script-stage-before-each': '#0a84ff',
+  'script-stage-main': '#32d2e2',
+  'script-stage-after-each': '#ff9f0a',
+  'script-stage-after-all': '#e8910f'
 };
 
 /**
@@ -95,7 +100,12 @@ export const DARK_CUSTOM_THEME_PALETTE: CustomThemePalette = {
   'scrollbar-track': 'rgba(255, 255, 255, 0.06)',
   'scrollbar-thumb': 'rgba(255, 255, 255, 0.44)',
   'scrollbar-thumb-hover': 'rgba(255, 255, 255, 0.55)',
-  'scrollbar-thumb-active': 'rgba(255, 255, 255, 0.66)'
+  'scrollbar-thumb-active': 'rgba(255, 255, 255, 0.66)',
+  'script-stage-before-all': '#0b72d4',
+  'script-stage-before-each': '#0a84ff',
+  'script-stage-main': '#32d2e2',
+  'script-stage-after-each': '#ff9f0a',
+  'script-stage-after-all': '#e8910f'
 };
 
 /**
@@ -128,7 +138,12 @@ export const HIGH_CONTRAST_CUSTOM_THEME_PALETTE: CustomThemePalette = {
   'scrollbar-track': HC_SCROLLBAR_TRACK,
   'scrollbar-thumb': HC_SCROLLBAR_THUMB,
   'scrollbar-thumb-hover': HC_SCROLLBAR_THUMB_HOVER,
-  'scrollbar-thumb-active': HC_SCROLLBAR_THUMB_ACTIVE
+  'scrollbar-thumb-active': HC_SCROLLBAR_THUMB_ACTIVE,
+  'script-stage-before-all': '#0b72d4',
+  'script-stage-before-each': '#0a84ff',
+  'script-stage-main': '#32d2e2',
+  'script-stage-after-each': '#ff9f0a',
+  'script-stage-after-all': '#e8910f'
 };
 
 /**

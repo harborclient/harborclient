@@ -36,7 +36,8 @@ describe('createImportedSnippetDraft', () => {
     expect(createImportedSnippetDraft(code)).toEqual({
       name: '// Auth helper',
       code,
-      scope: 'any'
+      scope: 'any',
+      stage: 'main'
     });
   });
 
@@ -45,7 +46,8 @@ describe('createImportedSnippetDraft', () => {
     expect(createImportedSnippetDraft(code, 'pre-request')).toEqual({
       name: 'console.log("pre");',
       code,
-      scope: 'pre-request'
+      scope: 'pre-request',
+      stage: 'main'
     });
   });
 });

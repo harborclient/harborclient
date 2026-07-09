@@ -55,7 +55,7 @@ async function buildSnippetArchive(
       name: 'Archive Snippets',
       version: '1.0.0',
       engines: { harborclient: '>=1.0.0' },
-      snippets: [{ name: 'Hello', where: 'pre-request', file: 'hello.js' }]
+      snippets: [{ name: 'Hello', phase: 'pre-request', stage: 'main', file: 'hello.js' }]
     })
   );
   zip.file('hello.js', "console.log('hello');");
@@ -95,7 +95,7 @@ function writeSnippetBundle(rootDir: string): string {
       version: '1.0.0',
       author: 'HarborClient',
       engines: { harborclient: '>=1.0.0' },
-      snippets: [{ name: 'World', where: 'post-request', file: 'world.js' }]
+      snippets: [{ name: 'World', phase: 'post-request', stage: 'main', file: 'world.js' }]
     })
   );
   writeFileSync(join(bundleDir, 'world.js'), "console.log('world');");
@@ -286,6 +286,7 @@ describeSqlite('SnippetInstaller', () => {
       name: 'Legacy import',
       code: "console.log('legacy');",
       scope: 'any',
+      stage: 'main',
       catalogId: TEST_BUNDLE_ID,
       catalogVersion: '1.0.0'
     });
@@ -330,7 +331,7 @@ describe('SnippetInstaller engine checks', () => {
         name: 'Future Snippets',
         version: '1.0.0',
         engines: { harborclient: '>=99.0.0' },
-        snippets: [{ name: 'Future', where: 'any', file: 'future.js' }]
+        snippets: [{ name: 'Future', phase: 'any', stage: 'main', file: 'future.js' }]
       })
     );
     writeFileSync(join(bundleDir, 'future.js'), "console.log('future');");

@@ -67,6 +67,8 @@ import type {
   SaveRunResultInput
 } from '#/shared/collectionRunner';
 import type { SnippetScope } from '#/shared/snippetScope';
+import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '#/shared/scriptStage';
+import type { ScriptStage } from '@harborclient/sdk';
 import { generateDocumentUuid } from '#/main/storage/uuid';
 
 /**
@@ -493,17 +495,20 @@ export class FirestoreStorage implements IStorage {
     name: string,
     code: string,
     scope: SnippetScope = 'any',
+    stage: ScriptStage = DEFAULT_SCRIPT_STAGE,
     uuid?: string
   ): Promise<Snippet> {
     const trimmedName = trimRequiredName(name, 'Snippet name');
     const id = await this.nextId('snippets');
     const now = new Date().toISOString();
+    const normalizedRole = normalizeScriptStage(stage);
     const data = {
       id,
       uuid: uuid?.trim() || generateDocumentUuid(),
       name: trimmedName,
       code: code ?? '',
       scope,
+      stage: normalizedRole,
       sort_order: id,
       created_at: now,
       updated_at: now
@@ -520,7 +525,8 @@ export class FirestoreStorage implements IStorage {
     id: number,
     name: string,
     code: string,
-    scope: SnippetScope = 'any'
+    scope: SnippetScope = 'any',
+    stage: ScriptStage = DEFAULT_SCRIPT_STAGE
   ): Promise<Snippet> {
     const trimmedName = trimRequiredName(name, 'Snippet name');
     const ref = doc(this.getFirestore(), 'snippets', String(id));
@@ -529,10 +535,12 @@ export class FirestoreStorage implements IStorage {
 
     const existing = snap.data() as Record<string, unknown>;
     const now = new Date().toISOString();
+    const normalizedRole = normalizeScriptStage(stage);
     await updateDoc(ref, {
       name: trimmedName,
       code: code ?? '',
       scope,
+      stage: normalizedRole,
       updated_at: now
     });
 
@@ -541,6 +549,7 @@ export class FirestoreStorage implements IStorage {
       name: trimmedName,
       code: code ?? '',
       scope,
+      stage: normalizedRole,
       updated_at: now
     });
   }

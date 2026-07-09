@@ -1,4 +1,6 @@
 import { TeamHubClient } from '@harborclient/team-hub-api';
+import { getHubOpenAiCapability, setHubOpenAiCapability } from '#/main/ai/hubCapabilities';
+import { logVerbose } from '#/main/logger';
 import { mergeMcpClientTools } from '#/main/mcp/mergeMcpClientTools';
 import { listTeamHubs } from '#/main/settings/teamHubSettings';
 import { resolveChatStepMode } from '#/shared/ai/chatStepMode';
@@ -47,6 +49,18 @@ function isAbortError(error: unknown): boolean {
 }
 
 /**
+ * Logs each tool call's name and arguments in verbose mode (`-v`) so hub-proxied
+ * tool usage can be inspected in the terminal without opening DevTools.
+ *
+ * @param result - Chat step result returned by the hub proxy.
+ */
+function logToolCalls(result: ChatStepResult): void {
+  for (const call of result.toolCalls ?? []) {
+    logVerbose('[ai-tool-call]', call.name, call.arguments);
+  }
+}
+
+/**
  * Parses a failed hub response into a human-readable error message.
  *
  * @param response - Non-success fetch response.
@@ -79,7 +93,10 @@ async function fetchHubChatStep(
   signal: AbortSignal
 ): Promise<ChatStepResult> {
   const combinedSignal = AbortSignal.any([AbortSignal.timeout(HUB_LLM_REQUEST_TIMEOUT_MS), signal]);
-  const stepMode = resolveChatStepMode(input);
+  const hubId = input.hubId?.trim();
+  const stepMode = resolveChatStepMode(input, {
+    hubHasOpenAi: hubId ? getHubOpenAiCapability(hubId) : undefined
+  });
   const tools = mergeMcpClientTools(stepMode);
 
   let response: Response;
@@ -117,10 +134,12 @@ async function fetchHubChatStep(
   }
 
   const json = (await response.json()) as ChatStepResult;
-  return {
+  const result: ChatStepResult = {
     content: json.content ?? null,
     ...(json.toolCalls && json.toolCalls.length > 0 ? { toolCalls: json.toolCalls } : {})
   };
+  logToolCalls(result);
+  return result;
 }
 
 /**
@@ -140,12 +159,14 @@ export async function listHubLlmModels(): Promise<HubLlmModelGroup[]> {
           token: hub.token,
           requestTimeoutMs: HUB_LLM_REQUEST_TIMEOUT_MS
         });
-        const models = await client.listLlmModels();
-        if (models.length > 0) {
+        const listing = await client.listLlmModels();
+        setHubOpenAiCapability(hub.id, listing.capabilities.openai);
+        if (listing.models.length > 0) {
           groups.push({
             hubId: hub.id,
             hubName: hub.name,
-            models
+            models: listing.models,
+            hasOpenAi: listing.capabilities.openai
           });
         }
       } catch {
@@ -193,13 +214,17 @@ export async function runHubChatCompletionStep(
     requestTimeoutMs: HUB_LLM_REQUEST_TIMEOUT_MS
   });
 
-  const stepMode = resolveChatStepMode(input);
+  const stepMode = resolveChatStepMode(input, {
+    hubHasOpenAi: getHubOpenAiCapability(hubId)
+  });
   const tools = mergeMcpClientTools(stepMode);
 
-  return client.completeChatStep({
+  const result = await client.completeChatStep({
     model: input.model,
     messages: stepMode.messages,
     tools: tools as unknown as Record<string, unknown>[],
     systemPrompt: stepMode.systemPrompt
   });
+  logToolCalls(result);
+  return result;
 }

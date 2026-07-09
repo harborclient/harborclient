@@ -57,6 +57,8 @@ import type {
   Variable
 } from '#/shared/types';
 import type { SnippetScope } from '#/shared/snippetScope';
+import { DEFAULT_SCRIPT_STAGE } from '#/shared/scriptStage';
+import type { ScriptStage } from '@harborclient/sdk';
 import { defaultAuth } from '#/shared/auth';
 import type {
   SavedRunResult,
@@ -862,10 +864,11 @@ export class RoutingStorage implements IStorage {
     name: string,
     code: string,
     scope: SnippetScope = 'any',
+    stage: ScriptStage = DEFAULT_SCRIPT_STAGE,
     uuid?: string
   ): Promise<Snippet> {
     const backend = this.requireDefaultDataBackend();
-    return this.createSnippetOnBackend(name, code, scope, backend, uuid);
+    return this.createSnippetOnBackend(name, code, scope, stage, backend, uuid);
   }
 
   /**
@@ -876,10 +879,11 @@ export class RoutingStorage implements IStorage {
     code: string,
     scope: SnippetScope,
     connectionId: string,
+    stage: ScriptStage = DEFAULT_SCRIPT_STAGE,
     uuid?: string
   ): Promise<Snippet> {
     const backend = this.requireBackendByConnectionId(connectionId);
-    return this.createSnippetOnBackend(name, code, scope, backend, uuid);
+    return this.createSnippetOnBackend(name, code, scope, stage, backend, uuid);
   }
 
   /**
@@ -889,17 +893,24 @@ export class RoutingStorage implements IStorage {
     id: number,
     name: string,
     code: string,
-    scope: SnippetScope = 'any'
+    scope: SnippetScope = 'any',
+    stage: ScriptStage = DEFAULT_SCRIPT_STAGE
   ): Promise<Snippet> {
     const marketplaceId = fromMarketplaceSnippetGlobalId(id);
     if (marketplaceId != null) {
-      const updated = this.database.updateSnippet(marketplaceId, name, code, scope);
+      const updated = this.database.updateSnippet(marketplaceId, name, code, scope, stage);
       return { ...updated, id: toMarketplaceSnippetGlobalId(updated.id) };
     }
 
     const entry = this.requireSnippetEntry(id);
     const backend = this.requireBackendByConnectionId(entry.connectionId);
-    const record = await backend.db.updateSnippet(entry.providerSnippetId, name, code, scope);
+    const record = await backend.db.updateSnippet(
+      entry.providerSnippetId,
+      name,
+      code,
+      scope,
+      stage
+    );
     const updatedEntry = this.database.updateSnippetRegistryEntry(id, {
       name: record.name,
       uuid: record.uuid,
@@ -1925,6 +1936,7 @@ export class RoutingStorage implements IStorage {
       name: entry.name,
       code: record?.code ?? '',
       scope: record?.scope ?? entry.scope,
+      stage: record?.stage ?? DEFAULT_SCRIPT_STAGE,
       source: 'local',
       connectionId: entry.connectionId,
       created_at: record?.created_at ?? entry.created_at,
@@ -1939,10 +1951,11 @@ export class RoutingStorage implements IStorage {
     name: string,
     code: string,
     scope: SnippetScope,
+    stage: ScriptStage,
     backend: MountedBackend,
     uuid?: string
   ): Promise<Snippet> {
-    const created = await backend.db.createSnippet(name, code, scope, uuid);
+    const created = await backend.db.createSnippet(name, code, scope, stage, uuid);
     try {
       const entry = this.database.addSnippetRegistryEntry({
         name: created.name,

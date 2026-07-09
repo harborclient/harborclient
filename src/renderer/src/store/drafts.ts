@@ -125,6 +125,13 @@ export type PageRef =
       readOnly?: boolean;
       seedCode?: string;
       label: string;
+    }
+  | {
+      type: 'script-editor';
+      requestTabId: string;
+      phase: 'pre' | 'post';
+      scriptId: string;
+      label: string;
     };
 
 /**
@@ -213,6 +220,8 @@ export function pageRefKey(page: PageRef): string {
       return `snippet-detail:${page.catalogId}`;
     case 'snippet-edit':
       return `snippet-edit:${page.snippetId ?? page.mode}`;
+    case 'script-editor':
+      return `script-editor:${page.requestTabId}:${page.phase}:${page.scriptId}`;
   }
 }
 

@@ -1,5 +1,6 @@
 import { normalizeVariable } from '#/main/storage/collectionData';
 import { normalizeSnippetScope } from '#/shared/snippetScope';
+import { normalizeScriptStage } from '#/shared/scriptStage';
 import { defaultAuth, normalizeAuth } from '#/shared/auth';
 import { readScriptRefsFromJson } from '#/shared/scriptRefs';
 import type {
@@ -237,6 +238,7 @@ export function rowToProviderSnippet(row: Record<string, unknown>): Snippet {
     name: readString(row.name),
     code: readString(row.code),
     scope: normalizeSnippetScope(row.scope),
+    stage: normalizeScriptStage(row.stage),
     source: 'local',
     created_at: readTimestamp(row.created_at),
     updated_at: readTimestamp(row.updated_at)
@@ -303,6 +305,7 @@ export function rowToSnippet(row: Record<string, unknown>): Snippet {
     name: readString(row.name),
     code: readString(row.code),
     scope: normalizeSnippetScope(row.scope),
+    stage: normalizeScriptStage(row.stage),
     source,
     ...(catalogId ? { catalogId } : {}),
     ...(catalogVersion ? { catalogVersion } : {}),

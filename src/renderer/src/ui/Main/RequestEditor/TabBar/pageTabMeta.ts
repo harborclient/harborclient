@@ -88,6 +88,7 @@ export function pageTabMeta(page: PageRef, options: PageTabMetaOptions = {}): Pa
       };
     case 'snippet-detail':
     case 'snippet-edit':
+    case 'script-editor':
       return { title: page.label, icon: faTerminal };
   }
 }

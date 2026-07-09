@@ -7,6 +7,8 @@ import {
   searchSidebarEntities,
   sidebarRequestBreadcrumb
 } from '#/shared/search/sidebar';
+import { searchTextIndex } from '#/shared/search/oramaIndex';
+import type { SidebarSearchDocument } from '#/shared/search/sidebar';
 
 const collectionA: Collection = {
   id: 1,
@@ -181,7 +183,10 @@ describe('searchSidebar', () => {
   });
 
   it('matches requests by url', () => {
-    const hits = index.search('health.delta.local/status');
+    const hits = searchTextIndex<SidebarSearchDocument>(index, 'health.delta.local/status', {
+      properties: ['name', 'url', 'method', 'comment', 'tags'],
+      threshold: 0
+    });
     const filter = searchSidebar(sampleInput, index, 'health.delta.local/status');
     expect(hits.map((hit) => hit.id)).toEqual(['request:102']);
     expect(filter?.requestIds.has(102)).toBe(true);

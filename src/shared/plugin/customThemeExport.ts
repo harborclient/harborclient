@@ -36,7 +36,12 @@ const themeColorTokenSchema = z.enum([
   'scrollbar-track',
   'scrollbar-thumb',
   'scrollbar-thumb-hover',
-  'scrollbar-thumb-active'
+  'scrollbar-thumb-active',
+  'script-stage-before-all',
+  'script-stage-before-each',
+  'script-stage-main',
+  'script-stage-after-each',
+  'script-stage-after-all'
 ]);
 
 const customThemeIdSchema = z

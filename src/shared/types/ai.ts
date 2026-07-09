@@ -291,6 +291,11 @@ export interface HubLlmModelGroup {
    * Models the authenticated user may use on this hub.
    */
   models: HubLlmModel[];
+
+  /**
+   * When true, the hub has an OpenAI provider key for docs search and OpenAI models.
+   */
+  hasOpenAi: boolean;
 }
 
 /**

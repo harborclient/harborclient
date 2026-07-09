@@ -2,6 +2,7 @@ import { APIError, type OpenAI } from 'openai';
 import type { ChatCompletion, ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { LlmClientFactory } from '#/main/ai/LlmClientFactory';
 import { runHubChatCompletionStep } from '#/main/ai/hubChatStep';
+import { logVerbose } from '#/main/logger';
 import { mergeMcpClientTools } from '#/main/mcp/mergeMcpClientTools';
 import { truncateChatStepMessages } from '#/shared/ai/chatContext';
 import { resolveChatStepMode } from '#/shared/ai/chatStepMode';
@@ -120,6 +121,9 @@ function toOpenAiMessages(messages: ChatStepMessage[]): ChatCompletionMessagePar
 /**
  * Maps an OpenAI chat completion into a renderer-safe step result.
  *
+ * Logs each tool call's name and arguments in verbose mode (`-v`) so tool
+ * usage can be inspected in the terminal without opening DevTools.
+ *
  * @param response - OpenAI SDK chat completion result.
  */
 function toChatStepResult(response: ChatCompletion): ChatStepResult {
@@ -135,6 +139,12 @@ function toChatStepResult(response: ChatCompletion): ChatStepResult {
       name: call.function.name,
       arguments: call.function.arguments
     }));
+
+  if (toolCalls && toolCalls.length > 0) {
+    for (const call of toolCalls) {
+      logVerbose('[ai-tool-call]', call.name, call.arguments);
+    }
+  }
 
   return {
     content: typeof message.content === 'string' ? message.content : null,

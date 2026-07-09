@@ -1,4 +1,6 @@
 import { normalizeSnippetScope, type SnippetScope } from '#/shared/snippetScope';
+import { normalizeScriptStage } from '#/shared/scriptStage';
+import type { ScriptStage } from '@harborclient/sdk';
 import type { SnippetExport } from '#/shared/types/snippet';
 
 /**
@@ -28,6 +30,7 @@ export function validateSnippetExport(data: unknown): SnippetExport {
   }
 
   const scope = normalizeSnippetScope(record.scope);
+  const stage = normalizeScriptStage(record.stage ?? record.role);
   const code = typeof record.code === 'string' ? record.code : '';
   const createdAt = typeof record.created_at === 'string' ? record.created_at : undefined;
   const updatedAt = typeof record.updated_at === 'string' ? record.updated_at : undefined;
@@ -39,6 +42,7 @@ export function validateSnippetExport(data: unknown): SnippetExport {
     name,
     code,
     scope,
+    stage,
     ...(createdAt ? { created_at: createdAt } : {}),
     ...(updatedAt ? { updated_at: updatedAt } : {})
   };
@@ -54,6 +58,7 @@ export function snippetExportToFields(exportData: SnippetExport): {
   name: string;
   code: string;
   scope: SnippetScope;
+  stage: ScriptStage;
   created_at: string;
   updated_at: string;
 } {
@@ -63,6 +68,7 @@ export function snippetExportToFields(exportData: SnippetExport): {
     name: exportData.name,
     code: exportData.code,
     scope: exportData.scope,
+    stage: exportData.stage,
     created_at: exportData.created_at ?? now,
     updated_at: exportData.updated_at ?? now
   };

@@ -63,6 +63,7 @@ describe('linkScriptRefToSnippet', () => {
       kind: 'snippet',
       snippetUuid: 'snippet-uuid',
       name: 'Auth helper',
+      stage: 'main',
       expanded: true
     });
   });

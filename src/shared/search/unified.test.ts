@@ -105,7 +105,7 @@ const snippets: SnippetCatalogEntry[] = [
     author: 'HarborClient',
     categories: ['testing'],
     repoUrl: 'https://github.com/example/snippet-tester',
-    snippets: [{ name: 'Tester', where: 'post-request', file: 'dist/tester.js' }]
+    snippets: [{ name: 'Tester', phase: 'post-request', stage: 'main', file: 'dist/tester.js' }]
   }
 ];
 

@@ -35,13 +35,14 @@
     "release:minor": "gh workflow run Release --ref main -f release_type=minor",
     "release:major": "gh workflow run Release --ref main -f release_type=major",
     "kill": "pkill -f \"harborclient/node_modules/.pnpm/electron\"",
-    "screenshots": "node scripts/capture-screenshots.mjs --build"
+    "screenshots": "node scripts/capture-screenshots.mjs --build",
+    "index-docs": "node scripts/index-docs.mjs"
   },
   "packageManager": "pnpm@10.17.1",
   "dependencies": {
     "@harborclient/http": "^0.1.2",
-    "@harborclient/sdk": "^1.0.50",
-    "@harborclient/team-hub-api": "^0.3.1",
+    "@harborclient/sdk": "^1.0.52",
+    "@harborclient/team-hub-api": "^0.3.3",
     "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/lang-javascript": "^6.2.4",
     "@codemirror/lang-json": "^6.0.2",
@@ -59,6 +60,7 @@
     "@lezer/highlight": "^1.2.3",
     "@mdxeditor/editor": "^4.0.4",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@orama/orama": "^3.1.18",
     "@reduxjs/toolkit": "^2.12.0",
     "@szhsin/react-accordion": "^1.4.2",
     "@uiw/codemirror-themes-all": "^4.25.10",
@@ -75,7 +77,6 @@
     "isomorphic-git": "^1.38.5",
     "jmespath": "^0.16.0",
     "jszip": "^3.10.1",
-    "minisearch": "^7.2.0",
     "multer": "^2.2.0",
     "mysql2": "^3.22.5",
     "nanoid": "3.3.8",

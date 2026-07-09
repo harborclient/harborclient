@@ -99,6 +99,7 @@ export class MigrationManager {
             legacy.name,
             legacy.code,
             legacy.scope,
+            undefined,
             legacy.uuid
           );
           this.internals.database.addSnippetRegistryEntry({

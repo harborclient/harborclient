@@ -22,6 +22,7 @@ describe('scanTeamHubSessions', () => {
   const emptyServices = {
     storage: false,
     llm: false,
+    openai: false,
     pluginCatalog: false,
     snippets: false,
     admin: false
@@ -30,6 +31,7 @@ describe('scanTeamHubSessions', () => {
   const userServices = {
     storage: true,
     llm: true,
+    openai: true,
     pluginCatalog: true,
     snippets: true,
     admin: false
@@ -38,6 +40,7 @@ describe('scanTeamHubSessions', () => {
   const adminServices = {
     storage: true,
     llm: true,
+    openai: false,
     pluginCatalog: true,
     snippets: true,
     admin: true
@@ -82,7 +85,7 @@ describe('scanTeamHubSessions', () => {
         }
 
         if (url.endsWith('/admin/llm/models')) {
-          return Promise.resolve(jsonResponse({ models: [] }));
+          return Promise.resolve(jsonResponse({ models: [], capabilities: { openai: false } }));
         }
 
         if (url.endsWith('/plugins/sources')) {
@@ -112,7 +115,8 @@ describe('scanTeamHubSessions', () => {
       if (url.endsWith('/llm/models')) {
         return Promise.resolve(
           jsonResponse({
-            models: [{ id: 'gpt-4o', label: 'GPT-4o', provider: 'openai' }]
+            models: [{ id: 'gpt-4o', label: 'GPT-4o', provider: 'openai' }],
+            capabilities: { openai: true }
           })
         );
       }
@@ -198,6 +202,7 @@ describe('scanTeamHubSessions', () => {
           storage: true,
           admin: false,
           llm: false,
+          openai: false,
           pluginCatalog: true,
           snippets: true
         },
@@ -225,7 +230,7 @@ describe('scanTeamHubSessions', () => {
       }
 
       if (url.endsWith('/llm/models')) {
-        return Promise.resolve(jsonResponse({ models: [] }));
+        return Promise.resolve(jsonResponse({ models: [], capabilities: { openai: true } }));
       }
 
       if (url.endsWith('/plugins/sources')) {
@@ -249,6 +254,7 @@ describe('scanTeamHubSessions', () => {
           storage: true,
           admin: false,
           llm: true,
+          openai: true,
           pluginCatalog: false,
           snippets: true
         },
@@ -276,7 +282,7 @@ describe('scanTeamHubSessions', () => {
       }
 
       if (url.endsWith('/llm/models')) {
-        return Promise.resolve(jsonResponse({ models: [] }));
+        return Promise.resolve(jsonResponse({ models: [], capabilities: { openai: true } }));
       }
 
       if (url.endsWith('/plugins/sources')) {
@@ -300,6 +306,7 @@ describe('scanTeamHubSessions', () => {
           storage: true,
           admin: false,
           llm: true,
+          openai: true,
           pluginCatalog: false,
           snippets: false
         },

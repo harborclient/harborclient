@@ -54,4 +54,16 @@ describe('pageTabMeta', () => {
 
     expect(meta.title).toBe('New snippet');
   });
+
+  it('uses the stored label for script editor tabs', () => {
+    const meta = pageTabMeta({
+      type: 'script-editor',
+      requestTabId: 'tab-1',
+      phase: 'pre',
+      scriptId: 'script-1',
+      label: 'Auth helper'
+    });
+
+    expect(meta.title).toBe('Auth helper');
+  });
 });

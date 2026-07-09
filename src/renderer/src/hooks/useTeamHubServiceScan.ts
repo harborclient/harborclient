@@ -33,6 +33,7 @@ function emptyServices(): TeamHubServiceFlags {
   return {
     storage: false,
     llm: false,
+    openai: false,
     pluginCatalog: false,
     snippets: false,
     admin: false

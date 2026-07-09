@@ -157,7 +157,7 @@ export const SETTINGS_SECTIONS: Array<{
   { value: 'globals', label: 'Globals', icon: faGlobe },
   { value: 'storage', label: 'Storage', icon: faDatabase },
   { value: 'shortcuts', label: 'Shortcuts', icon: faKeyboard },
-  { value: 'syntax', label: 'Syntax highlighting', icon: faCode },
+  { value: 'syntax', label: 'Scripting', icon: faCode },
   { value: 'ai', label: 'AI & MCP', icon: faRobot },
   { value: 'proxy', label: 'Proxy', icon: faServer },
   { value: 'backup-restore', label: 'Backup & Restore', icon: faFloppyDisk }

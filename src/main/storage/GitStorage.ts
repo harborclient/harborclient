@@ -68,6 +68,8 @@ import type {
   Variable
 } from '#/shared/types';
 import type { SnippetScope } from '#/shared/snippetScope';
+import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '#/shared/scriptStage';
+import type { ScriptStage } from '@harborclient/sdk';
 
 /**
  * Collection manifest persisted on disk including script array JSON columns.
@@ -434,11 +436,13 @@ export class GitStorage implements IStorage {
     name: string,
     code: string,
     scope: SnippetScope = 'any',
+    stage: ScriptStage = DEFAULT_SCRIPT_STAGE,
     uuid?: string
   ): Promise<Snippet> {
     const trimmedName = trimRequiredName(name, 'Snippet name');
     const snippetUuid = uuid?.trim() || generateDocumentUuid();
     const now = new Date().toISOString();
+    const normalizedRole = normalizeScriptStage(stage);
     const exportData: SnippetExport = {
       harborclientVersion: 1,
       harborclientExport: 'snippet',
@@ -446,6 +450,7 @@ export class GitStorage implements IStorage {
       name: trimmedName,
       code: code ?? '',
       scope,
+      stage: normalizedRole,
       created_at: now,
       updated_at: now
     };
@@ -463,7 +468,8 @@ export class GitStorage implements IStorage {
     id: number,
     name: string,
     code: string,
-    scope: SnippetScope = 'any'
+    scope: SnippetScope = 'any',
+    stage: ScriptStage = DEFAULT_SCRIPT_STAGE
   ): Promise<Snippet> {
     const existing = this.#snippets.get(id);
     if (!existing) {
@@ -471,11 +477,13 @@ export class GitStorage implements IStorage {
     }
     const trimmedName = trimRequiredName(name, 'Snippet name');
     const now = new Date().toISOString();
+    const normalizedRole = normalizeScriptStage(stage);
     const updated: SnippetExport = {
       ...existing,
       name: trimmedName,
       code: code ?? '',
       scope,
+      stage: normalizedRole,
       updated_at: now
     };
     deleteSnippetFile(this.#root, resolveImportUuid(existing.uuid));
@@ -1270,6 +1278,7 @@ export class GitStorage implements IStorage {
       name: snippet.name,
       code: snippet.code,
       scope: snippet.scope,
+      stage: snippet.stage,
       source: 'local',
       created_at: snippet.created_at ?? now,
       updated_at: snippet.updated_at ?? now

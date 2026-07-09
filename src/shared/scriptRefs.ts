@@ -1,5 +1,10 @@
 import type { ScriptRef } from '#/shared/types/script';
 import type { Snippet } from '#/shared/types/snippet';
+import {
+  DEFAULT_SCRIPT_STAGE,
+  normalizeScriptStage,
+  readScriptRefStage
+} from '#/shared/scriptStage';
 
 /**
  * Default display label for newly added inline scripts before the user names them.
@@ -16,14 +21,20 @@ export const SCRIPT_AUTO_NAME_MAX_LENGTH = 25;
  *
  * @param code - Initial JavaScript source.
  * @param name - Optional display label.
+ * @param stage - Stage within the phase script list.
  * @returns A new inline {@link ScriptRef}.
  */
-export function createInlineScriptRef(code = '', name?: string): ScriptRef {
+export function createInlineScriptRef(
+  code = '',
+  name?: string,
+  stage = DEFAULT_SCRIPT_STAGE
+): ScriptRef {
   return {
     id: crypto.randomUUID(),
     enabled: true,
     kind: 'inline',
     code,
+    stage: normalizeScriptStage(stage),
     ...(name?.trim() ? { name: name.trim() } : {})
   };
 }
@@ -33,14 +44,20 @@ export function createInlineScriptRef(code = '', name?: string): ScriptRef {
  *
  * @param snippetUuid - Stable uuid of the referenced snippet.
  * @param name - Optional display label override.
+ * @param stage - Stage within the phase script list.
  * @returns A new snippet {@link ScriptRef}.
  */
-export function createSnippetScriptRef(snippetUuid: string, name?: string): ScriptRef {
+export function createSnippetScriptRef(
+  snippetUuid: string,
+  name?: string,
+  stage = DEFAULT_SCRIPT_STAGE
+): ScriptRef {
   return {
     id: crypto.randomUUID(),
     enabled: true,
     kind: 'snippet',
     snippetUuid: snippetUuid.trim(),
+    stage: normalizeScriptStage(stage),
     ...(name?.trim() ? { name: name.trim() } : {})
   };
 }
@@ -66,6 +83,7 @@ export function linkScriptRefToSnippet(
     enabled: script.enabled,
     kind: 'snippet',
     snippetUuid: trimmedUuid,
+    stage: normalizeScriptStage(readScriptRefStage(script)),
     ...(typeof script.expanded === 'boolean' ? { expanded: script.expanded } : {}),
     ...(trimmedName ? { name: trimmedName } : {})
   };
@@ -113,6 +131,7 @@ export function normalizeScriptRefs(refs: ScriptRef[] | undefined | null): Scrip
     id: ref.id.trim(),
     enabled: ref.enabled,
     kind: ref.kind,
+    stage: normalizeScriptStage(readScriptRefStage(ref)),
     ...(ref.name?.trim() ? { name: ref.name.trim() } : {}),
     ...(typeof ref.expanded === 'boolean' ? { expanded: ref.expanded } : {}),
     ...(ref.kind === 'inline'

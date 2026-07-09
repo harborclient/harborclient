@@ -59,6 +59,7 @@ function buildInitialDraft(
       name: `${snippet.name} (clone)`,
       code: snippet.code,
       scope: snippet.scope,
+      stage: snippet.stage,
       connectionId: snippet.connectionId
     };
   }
@@ -68,6 +69,7 @@ function buildInitialDraft(
     name: snippet.name,
     code: snippet.code,
     scope: snippet.scope,
+    stage: snippet.stage,
     connectionId: snippet.connectionId
   };
 }
@@ -104,7 +106,7 @@ export function SnippetEditPage({ page, tabId }: Props): JSX.Element {
   const readOnly = page.readOnly === true;
   const description = readOnly
     ? 'Read-only preview of a marketplace snippet. Clone it to make an editable copy.'
-    : 'Reusable JavaScript used in pre-request and post-request script lists.';
+    : 'Reusable JavaScript used in the pre-request and post-request stages.';
 
   /**
    * Persists the snippet draft through create or update IPC.
@@ -129,6 +131,7 @@ export function SnippetEditPage({ page, tabId }: Props): JSX.Element {
             name: trimmedName,
             code: draft.code,
             scope: draft.scope,
+            stage: draft.stage,
             connectionId: draft.connectionId
           })
         ).unwrap();
@@ -140,6 +143,7 @@ export function SnippetEditPage({ page, tabId }: Props): JSX.Element {
             name: trimmedName,
             code: draft.code,
             scope: draft.scope,
+            stage: draft.stage,
             connectionId: draft.connectionId
           })
         ).unwrap();

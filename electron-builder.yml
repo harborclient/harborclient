@@ -15,6 +15,8 @@ extraResources:
     to: icon.png
   - from: plugins/catalog.json
     to: plugins/catalog.json
+  - from: resources/docsSearchIndex.json
+    to: docsSearchIndex.json
 directories:
   buildResources: build
   output: release

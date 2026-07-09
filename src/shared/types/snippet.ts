@@ -1,4 +1,5 @@
 import type { SnippetScope } from '#/shared/snippetScope';
+import type { ScriptStage } from '@harborclient/sdk';
 
 /**
  * Origin of a snippet row in the local registry.
@@ -31,9 +32,14 @@ export interface Snippet {
   code: string;
 
   /**
-   * Script phases where this snippet may be referenced.
+   * Request stages where this snippet may be referenced.
    */
   scope: SnippetScope;
+
+  /**
+   * Default script stage when the snippet is added to a request stage script list.
+   */
+  stage: ScriptStage;
 
   /**
    * Whether the snippet was created locally or imported from the marketplace.
@@ -103,9 +109,14 @@ export interface SnippetExport {
   code: string;
 
   /**
-   * Script phases where this snippet may be referenced.
+   * Request stages where this snippet may be referenced.
    */
   scope: SnippetScope;
+
+  /**
+   * Default script stage when the snippet is added to a request stage script list.
+   */
+  stage: ScriptStage;
 
   /**
    * ISO 8601 timestamp when the snippet was created.

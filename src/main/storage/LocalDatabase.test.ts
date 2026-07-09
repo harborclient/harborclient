@@ -196,7 +196,7 @@ describeSqlite('LocalDatabase snippets', () => {
     const { database } = await createRegistry();
     const uuid = '22222222-2222-4222-8222-222222222222';
 
-    const created = database.createSnippet('Stable helper', 'return true;', 'any', uuid);
+    const created = database.createSnippet('Stable helper', 'return true;', 'any', 'main', uuid);
     expect(created.uuid).toBe(uuid);
   });
 
@@ -209,6 +209,7 @@ describeSqlite('LocalDatabase snippets', () => {
       name: 'Tester',
       code: 'hc.test("ok", () => true);',
       scope: 'post-request',
+      stage: 'main',
       catalogId: 'com.example.snippets.tester',
       catalogVersion: '1.0.0',
       catalogAuthor: 'HarborClient'
@@ -224,6 +225,7 @@ describeSqlite('LocalDatabase snippets', () => {
       name: 'Tester v2',
       code: 'hc.test("ok", () => response.status === 200);',
       scope: 'post-request',
+      stage: 'before-each',
       catalogId: 'com.example.snippets.tester',
       catalogVersion: '1.0.1',
       catalogAuthor: 'HarborClient'
@@ -232,6 +234,7 @@ describeSqlite('LocalDatabase snippets', () => {
     expect(updated.id).toBe(created.id);
     expect(updated.name).toBe('Tester v2');
     expect(updated.catalogVersion).toBe('1.0.1');
+    expect(updated.stage).toBe('before-each');
     expect(database.listMarketplaceSnippetsByCatalogId('com.example.snippets.tester')).toHaveLength(
       1
     );
@@ -249,6 +252,7 @@ describeSqlite('LocalDatabase snippets', () => {
       name: 'Legacy import',
       code: 'hc.test("ok", () => true);',
       scope: 'any',
+      stage: 'main',
       catalogId,
       catalogVersion: '1.0.0'
     });

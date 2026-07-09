@@ -1,5 +1,7 @@
+import { FaIcon } from '@harborclient/sdk/components';
 import { useEffect, type JSX } from 'react';
 import type { AiSettings } from '#/shared/types';
+import { faComment } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveChatId,
@@ -65,8 +67,15 @@ export function AiChat({ aiSettings }: Props): JSX.Element {
           />
         </div>
       ) : (
-        <div className="flex flex-1 items-center justify-center p-4 text-[14px] text-muted">
-          Open or create a chat to begin
+        <div className="flex flex-1 items-center justify-center p-4">
+          <div
+            role="status"
+            aria-label="Open or create a chat to begin."
+            className="flex flex-col items-center gap-3 text-muted"
+          >
+            <FaIcon icon={faComment} className="h-12 w-12" aria-hidden />
+            <p className="m-0 text-[16px]">Open or create a chat to begin.</p>
+          </div>
         </div>
       )}
     </div>

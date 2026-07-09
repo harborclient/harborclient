@@ -1,4 +1,5 @@
 import type { OAuthFetchTokenResult } from '#/shared/auth';
+import type { SearchDocsToolArgs } from '#/shared/ai/tools';
 import type { HarborDeepLink } from '#/shared/deepLink';
 import type { MenuSelectThemePayload, ThemeMenuOption } from '#/shared/themes';
 import type { PluginHttpRequest, PluginHttpResponse } from '@harborclient/sdk';
@@ -360,9 +361,10 @@ function createSnippet(
   name: string,
   code: string,
   scope: Snippet['scope'],
+  stage?: Snippet['stage'],
   connectionId?: string
 ): Promise<Snippet> {
-  return ipcRenderer.invoke('snippets:create', name, code, scope, connectionId);
+  return ipcRenderer.invoke('snippets:create', name, code, scope, stage, connectionId);
 }
 
 /**
@@ -372,14 +374,16 @@ function createSnippet(
  * @param name - New display name.
  * @param code - Updated JavaScript source.
  * @param scope - Script phases where the snippet may be referenced.
+ * @param stage - Default stage when added to a script list.
  */
 function updateSnippet(
   id: number,
   name: string,
   code: string,
-  scope: Snippet['scope']
+  scope: Snippet['scope'],
+  stage?: Snippet['stage']
 ): Promise<Snippet> {
-  return ipcRenderer.invoke('snippets:update', id, name, code, scope);
+  return ipcRenderer.invoke('snippets:update', id, name, code, scope, stage);
 }
 
 /**
@@ -1071,6 +1075,15 @@ function mcpCallTool(prefixedName: string, args: unknown): Promise<string> {
 }
 
 /**
+ * Searches HarborClient site and SDK documentation for the AI assistant.
+ *
+ * @param args - Query text and optional limit/source filter.
+ */
+function searchDocs(args: SearchDocsToolArgs): Promise<string> {
+  return ipcRenderer.invoke('docs:search', args);
+}
+
+/**
  * Subscribes to MCP server tool invocations routed from external MCP clients.
  */
 function onMcpServerToolInvoke(
@@ -1125,7 +1138,7 @@ function getChat(id: number): Promise<Chat | null> {
 /**
  * Appends a message to a chat thread.
  *
- * @param input - Chat id, role, content, and optional model.
+ * @param input - Chat id, stage, content, and optional model.
  */
 function addChatMessage(input: AddChatMessageInput): Promise<ChatMessage> {
   return ipcRenderer.invoke('chats:addMessage', input);
@@ -2695,6 +2708,7 @@ const api: Api = {
   listMcpClientServerStatuses,
   listMcpClientTools,
   mcpCallTool,
+  searchDocs,
   onMcpServerToolInvoke,
   completeMcpServerTool,
   listChats,

@@ -533,7 +533,7 @@ function buildLocator(page, target) {
       }
     }
     if (target.role && nameMatcher) {
-      return container.getByRole(target.role, { name: nameMatcher }).first();
+      return container.getByRole(target.stage, { name: nameMatcher }).first();
     }
     return container.first();
   }
@@ -541,14 +541,14 @@ function buildLocator(page, target) {
   if (target.role && nameMatcher) {
     if (target.nearText) {
       const collectionRow = collectionSidebarRow(page, target.nearText);
-      const collectionScoped = collectionRow.getByRole(target.role, { name: nameMatcher });
+      const collectionScoped = collectionRow.getByRole(target.stage, { name: nameMatcher });
       const genericScoped = page
         .locator('*')
         .filter({ hasText: target.nearText })
-        .getByRole(target.role, { name: nameMatcher });
+        .getByRole(target.stage, { name: nameMatcher });
       return collectionScoped.or(genericScoped).first();
     }
-    return page.getByRole(target.role, { name: nameMatcher }).first();
+    return page.getByRole(target.stage, { name: nameMatcher }).first();
   }
 
   if (target.text) {

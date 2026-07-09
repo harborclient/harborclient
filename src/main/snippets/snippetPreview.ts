@@ -219,7 +219,8 @@ export async function fetchSnippetPreviewFromGit(
     screenshotSrcs,
     snippets: manifest.snippets.map((entry) => ({
       name: entry.name,
-      where: entry.where,
+      phase: entry.phase,
+      stage: entry['stage'],
       file: entry.file,
       uuid: entry.uuid
     }))

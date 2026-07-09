@@ -24,7 +24,7 @@ export const PAGES_CATALOG: PageCatalogEntry[] = [
   {
     id: 'snippets',
     label: 'Snippets',
-    description: 'Manage reusable JavaScript snippets for pre-request and post-request scripts.',
+    description: 'Manage reusable JavaScript snippets for the pre-request and post-request stages.',
     keywords: ['scripts', 'library', 'javascript']
   }
 ];

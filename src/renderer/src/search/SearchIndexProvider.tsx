@@ -32,7 +32,7 @@ interface Props {
 }
 
 /**
- * Warms MiniSearch indexes for sidebar, settings, and plugins at app startup
+ * Warms Orama indexes for sidebar, settings, and plugins at app startup
  * and rebuilds them when underlying domain data changes.
  */
 export function SearchIndexProvider({ children }: Props): JSX.Element {

@@ -1,10 +1,10 @@
-import type { ScriptPhase } from '@harborclient/sdk';
+import type { ScriptPhase, ScriptStage } from '@harborclient/sdk';
 import type { AuthConfig } from '#/shared/auth';
 import type { BodyType, HttpMethod, KeyValue } from '#/shared/types/common';
 import type { SendResult } from '#/shared/types/request';
 
 /**
- * A single script entry in an ordered pre/post request script list.
+ * A single script entry in an ordered pre-request or post-request stage script list.
  */
 export interface ScriptRef {
   /**
@@ -41,6 +41,12 @@ export interface ScriptRef {
    * When true, the script editor body is expanded in the list UI.
    */
   expanded?: boolean;
+
+  /**
+   * Stage controlling when the script runs within its request stage list.
+   * Defaults to `run` when omitted for legacy rows.
+   */
+  stage?: ScriptStage;
 }
 
 /**

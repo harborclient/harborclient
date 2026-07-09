@@ -4,6 +4,7 @@ import type {
   SaveRunResultInput
 } from '#/shared/collectionRunner';
 import type { SnippetScope } from '#/shared/snippetScope';
+import type { ScriptStage } from '@harborclient/sdk';
 import type {
   AuthConfig,
   Collection,
@@ -285,18 +286,31 @@ export interface IStorage {
    * @param uuid - Optional stable identifier; generated when omitted.
    * @returns The newly created provider-local snippet.
    */
-  createSnippet(name: string, code: string, scope: SnippetScope, uuid?: string): Promise<Snippet>;
+  createSnippet(
+    name: string,
+    code: string,
+    scope: SnippetScope,
+    stage?: ScriptStage,
+    uuid?: string
+  ): Promise<Snippet>;
 
   /**
-   * Updates a snippet's name, code, and scope in this provider.
+   * Updates a snippet's name, code, scope, and stage in this provider.
    *
    * @param id - Provider-local snippet id.
    * @param name - New display name.
    * @param code - Updated JavaScript source.
    * @param scope - Script phases where the snippet may be referenced.
+   * @param stage - Default stage when added to a script list.
    * @returns The updated provider-local snippet.
    */
-  updateSnippet(id: number, name: string, code: string, scope: SnippetScope): Promise<Snippet>;
+  updateSnippet(
+    id: number,
+    name: string,
+    code: string,
+    scope: SnippetScope,
+    stage?: ScriptStage
+  ): Promise<Snippet>;
 
   /**
    * Deletes a snippet from this provider.

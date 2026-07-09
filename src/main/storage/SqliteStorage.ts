@@ -36,6 +36,7 @@ import {
 } from '#/main/storage/providerRunResultSql';
 import {
   CREATE_PROVIDER_SNIPPETS_TABLE_SQL,
+  migrateSqliteSnippetStageColumn,
   PROVIDER_SNIPPET_COLUMNS
 } from '#/main/storage/providerSnippetSql';
 import {
@@ -67,6 +68,8 @@ import type {
   Variable
 } from '#/shared/types';
 import type { SnippetScope } from '#/shared/snippetScope';
+import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '#/shared/scriptStage';
+import type { ScriptStage } from '@harborclient/sdk';
 import { parseJson } from '#/shared/parseJson';
 import { generateDocumentUuid } from '#/main/storage/uuid';
 
@@ -272,6 +275,7 @@ export class SqliteStorage implements IStorage {
     this.backfillDocumentUuids('run_results');
     migrateSqliteScriptArrayColumns(this.getDb(), 'collections');
     migrateSqliteScriptArrayColumns(this.getDb(), 'requests');
+    migrateSqliteSnippetStageColumn(this.getDb());
   }
 
   /**
@@ -1219,17 +1223,19 @@ export class SqliteStorage implements IStorage {
     name: string,
     code: string,
     scope: SnippetScope = 'any',
+    stage: ScriptStage = DEFAULT_SCRIPT_STAGE,
     uuid?: string
   ): Promise<Snippet> {
     const trimmedName = trimRequiredName(name, 'Snippet name');
     const snippetUuid = uuid?.trim() || generateDocumentUuid();
     const sortOrder = this.nextSnippetSortOrder();
     const now = new Date().toISOString();
+    const normalizedRole = normalizeScriptStage(stage);
     const result = this.getDb()
       .prepare(
-        'INSERT INTO snippets (name, uuid, code, scope, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO snippets (name, uuid, code, scope, stage, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
       )
-      .run(trimmedName, snippetUuid, code ?? '', scope, sortOrder, now, now);
+      .run(trimmedName, snippetUuid, code ?? '', scope, normalizedRole, sortOrder, now, now);
 
     const row = this.getDb()
       .prepare(`SELECT ${PROVIDER_SNIPPET_COLUMNS} FROM snippets WHERE id = ?`)
@@ -1245,13 +1251,17 @@ export class SqliteStorage implements IStorage {
     id: number,
     name: string,
     code: string,
-    scope: SnippetScope = 'any'
+    scope: SnippetScope = 'any',
+    stage: ScriptStage = DEFAULT_SCRIPT_STAGE
   ): Promise<Snippet> {
     const trimmedName = trimRequiredName(name, 'Snippet name');
     const now = new Date().toISOString();
+    const normalizedRole = normalizeScriptStage(stage);
     this.getDb()
-      .prepare('UPDATE snippets SET name = ?, code = ?, scope = ?, updated_at = ? WHERE id = ?')
-      .run(trimmedName, code ?? '', scope, now, id);
+      .prepare(
+        'UPDATE snippets SET name = ?, code = ?, scope = ?, stage = ?, updated_at = ? WHERE id = ?'
+      )
+      .run(trimmedName, code ?? '', scope, normalizedRole, now, id);
 
     const row = this.getDb()
       .prepare(`SELECT ${PROVIDER_SNIPPET_COLUMNS} FROM snippets WHERE id = ?`)

@@ -33,6 +33,11 @@ interface Props {
   draft: RequestDraft;
 
   /**
+   * Open request tab id used to live-link script editor page tabs.
+   */
+  tabId: string;
+
+  /**
    * Whether the body tab is available for the current method.
    */
   showBody: boolean;
@@ -75,6 +80,7 @@ interface Props {
  */
 export function TabContent({
   draft,
+  tabId,
   showBody,
   update,
   onParamsChange,
@@ -139,6 +145,7 @@ export function TabContent({
           phase="pre"
           scripts={draft.pre_request_scripts}
           requestId={draft.id}
+          sourceTabId={tabId}
           onChange={(pre_request_scripts) =>
             update({
               pre_request_scripts,
@@ -156,6 +163,7 @@ export function TabContent({
           phase="post"
           scripts={draft.post_request_scripts}
           requestId={draft.id}
+          sourceTabId={tabId}
           onChange={(post_request_scripts) =>
             update({
               post_request_scripts,

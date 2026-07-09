@@ -17,7 +17,8 @@ const HUB_GROUPS: HubLlmModelGroup[] = [
   {
     hubId: 'hub-1',
     hubName: 'Team Hub',
-    models: [{ id: 'gpt-4o', label: 'GPT-4o', provider: 'openai' }]
+    models: [{ id: 'gpt-4o', label: 'GPT-4o', provider: 'openai' }],
+    hasOpenAi: true
   }
 ];
 
@@ -44,7 +45,8 @@ describe('getAvailableModels', () => {
       {
         hubId: 'hub-1',
         hubName: 'Team Hub',
-        models: [{ id: 'gpt-4.1', label: 'GPT-4.1', provider: 'openai' }]
+        models: [{ id: 'gpt-4.1', label: 'GPT-4.1', provider: 'openai' }],
+        hasOpenAi: true
       }
     ];
 

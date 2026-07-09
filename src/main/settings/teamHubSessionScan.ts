@@ -1,4 +1,5 @@
 import { TeamHubClient, TeamHubClientError } from '@harborclient/team-hub-api';
+import { setHubOpenAiCapability } from '#/main/ai/hubCapabilities';
 import type { TeamHub, TeamHubServiceFlags, TeamHubSessionScanResult } from '#/shared/types';
 
 /**
@@ -8,6 +9,7 @@ function emptyServices(): TeamHubServiceFlags {
   return {
     storage: false,
     llm: false,
+    openai: false,
     pluginCatalog: false,
     snippets: false,
     admin: false
@@ -15,17 +17,25 @@ function emptyServices(): TeamHubServiceFlags {
 }
 
 /**
- * Probes whether the Team Hub server has LLM support configured.
+ * Probes hub LLM availability and OpenAI capability flags.
  *
  * @param client - Authenticated Team Hub client.
  * @param managementApi - When true, probes the admin LLM models route.
- * @returns True when the LLM route responds without a 503 status.
  */
-async function probeHubLlmEnabled(client: TeamHubClient, managementApi: boolean): Promise<boolean> {
+async function probeHubLlmCapabilities(
+  client: TeamHubClient,
+  managementApi: boolean
+): Promise<{ llm: boolean; openai: boolean }> {
   try {
-    return await client.probeLlmServiceEnabled(managementApi);
+    const listing = managementApi
+      ? await client.listAdminLlmModels()
+      : await client.listLlmModels();
+    return {
+      llm: true,
+      openai: listing.capabilities.openai
+    };
   } catch {
-    return false;
+    return { llm: false, openai: false };
   }
 }
 
@@ -73,18 +83,23 @@ async function scanTeamHubSession(hub: TeamHub): Promise<TeamHubSessionScanResul
   try {
     await client.checkHealth();
     const session = await client.getSession();
-    const [llm, pluginCatalog, snippets] = await Promise.all([
-      probeHubLlmEnabled(client, session.capabilities.managementApi),
+    const [llmCapabilities, pluginCatalog, snippets] = await Promise.all([
+      session.capabilities.llm || session.capabilities.managementApi
+        ? probeHubLlmCapabilities(client, session.capabilities.managementApi)
+        : Promise.resolve({ llm: false, openai: false }),
       probePluginCatalogEnabled(client),
       probeSnippetsEnabled(client)
     ]);
+
+    setHubOpenAiCapability(hub.id, llmCapabilities.openai);
 
     return {
       hubId: hub.id,
       services: {
         storage: true,
         admin: session.capabilities.managementApi,
-        llm,
+        llm: llmCapabilities.llm,
+        openai: llmCapabilities.openai,
         pluginCatalog,
         snippets
       },

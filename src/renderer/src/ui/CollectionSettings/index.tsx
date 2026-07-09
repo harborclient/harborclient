@@ -328,7 +328,7 @@ function CollectionSettingsForm({
           <SegmentedTabPanel value="pre" className="flex min-h-0 flex-1 flex-col">
             <ScriptSection
               phase="pre"
-              description="Runs before every request in this collection, before the request-level pre-request script. Supports {{variable}} syntax."
+              description="Runs in the collection pre-request stage before every request, ahead of each request's pre-request stage. Supports {{variable}} syntax."
               placeholder={COLLECTION_PRE_REQUEST_SCRIPT_PLACEHOLDER}
               scripts={preRequestScripts}
               onChange={setPreRequestScripts}
@@ -338,7 +338,7 @@ function CollectionSettingsForm({
           <SegmentedTabPanel value="post" className="flex min-h-0 flex-1 flex-col">
             <ScriptSection
               phase="post"
-              description="Runs after every request in this collection, after the request-level post-request script. Supports {{variable}} syntax."
+              description="Runs in the collection post-request stage after every request, following each request's post-request stage. Supports {{variable}} syntax."
               placeholder={POST_REQUEST_SCRIPT_PLACEHOLDER}
               scripts={postRequestScripts}
               onChange={setPostRequestScripts}

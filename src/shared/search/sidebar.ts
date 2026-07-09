@@ -1,6 +1,9 @@
-import MiniSearch from 'minisearch';
 import type { Collection, Environment, Folder, SavedRequest } from '#/shared/types';
-import { DEFAULT_SEARCH_OPTIONS } from '#/shared/search/types';
+import {
+  createTextSearchIndex,
+  searchTextIndex,
+  type HarborSearchIndex
+} from '#/shared/search/oramaIndex';
 import { normalizeRequestTags } from '#/shared/requestTags';
 
 /**
@@ -65,15 +68,30 @@ export type SidebarSearchDocument = {
   id: string;
   kind: SidebarEntityKind;
   name: string;
-  url?: string;
-  method?: string;
-  /** Request notes indexed for search; omitted on non-request entities. */
-  comment?: string;
-  /** Comma-separated request tags indexed for search; omitted on non-request entities. */
-  tags?: string;
-  collectionId?: number;
-  folderId?: number | null;
+  url: string;
+  method: string;
+  comment: string;
+  tags: string;
+  collectionId: number;
+  folderId: number;
 };
+
+const SIDEBAR_SEARCH_SCHEMA = {
+  id: 'string',
+  kind: 'string',
+  name: 'string',
+  url: 'string',
+  method: 'string',
+  comment: 'string',
+  tags: 'string',
+  collectionId: 'number',
+  folderId: 'number'
+} as const;
+
+const SIDEBAR_SEARCH_PROPERTIES = ['name', 'url', 'method', 'comment', 'tags'];
+
+/** Sentinel folder id when a request is not nested in a folder. */
+const NO_FOLDER_ID = -1;
 
 /**
  * Builds a composite document id for one sidebar entity kind.
@@ -105,23 +123,30 @@ export function parseSidebarDocumentId(documentId: string): {
 }
 
 /**
- * Builds a MiniSearch index over collections, folders, requests, and environments.
+ * Normalizes a nullable folder id for Orama indexing.
+ *
+ * @param folderId - Folder id from the database, or null/undefined when unset.
+ */
+function sidebarFolderIdForIndex(folderId: number | null | undefined): number {
+  return folderId ?? NO_FOLDER_ID;
+}
+
+/**
+ * Restores a nullable folder id from an indexed sidebar document.
+ *
+ * @param folderId - Folder id stored in the search index.
+ */
+function sidebarFolderIdFromIndex(folderId: number): number | null {
+  return folderId >= 0 ? folderId : null;
+}
+
+/**
+ * Builds an Orama index over collections, folders, requests, and environments.
  *
  * @param input - Sidebar data currently available in the renderer store.
  * @returns Search index keyed by composite entity ids.
  */
-export function buildSidebarSearchIndex(
-  input: SidebarSearchInput
-): MiniSearch<SidebarSearchDocument> {
-  const index = new MiniSearch<SidebarSearchDocument>({
-    fields: ['name', 'url', 'method', 'comment', 'tags'],
-    storeFields: ['id', 'kind', 'name', 'url', 'method', 'collectionId', 'folderId'],
-    searchOptions: {
-      ...DEFAULT_SEARCH_OPTIONS,
-      combineWith: 'AND'
-    }
-  });
-
+export function buildSidebarSearchIndex(input: SidebarSearchInput): HarborSearchIndex {
   const documents: SidebarSearchDocument[] = [];
 
   for (const collection of input.collections) {
@@ -129,7 +154,12 @@ export function buildSidebarSearchIndex(
       id: sidebarDocumentId('collection', collection.id),
       kind: 'collection',
       name: collection.name,
-      collectionId: collection.id
+      url: '',
+      method: '',
+      comment: '',
+      tags: '',
+      collectionId: collection.id,
+      folderId: NO_FOLDER_ID
     });
   }
 
@@ -137,7 +167,13 @@ export function buildSidebarSearchIndex(
     documents.push({
       id: sidebarDocumentId('environment', environment.id),
       kind: 'environment',
-      name: environment.name
+      name: environment.name,
+      url: '',
+      method: '',
+      comment: '',
+      tags: '',
+      collectionId: 0,
+      folderId: NO_FOLDER_ID
     });
   }
 
@@ -152,7 +188,12 @@ export function buildSidebarSearchIndex(
         id: sidebarDocumentId('folder', folder.id),
         kind: 'folder',
         name: folder.name,
-        collectionId: collection.id
+        url: '',
+        method: '',
+        comment: '',
+        tags: '',
+        collectionId: collection.id,
+        folderId: NO_FOLDER_ID
       });
     }
 
@@ -170,20 +211,19 @@ export function buildSidebarSearchIndex(
         name: request.name,
         url: request.url,
         method: request.method,
-        comment: trimmedComment.length > 0 ? trimmedComment : undefined,
-        tags: normalizedTags.length > 0 ? normalizedTags : undefined,
+        comment: trimmedComment,
+        tags: normalizedTags,
         collectionId: request.collection_id,
-        folderId: request.folder_id
+        folderId: sidebarFolderIdForIndex(request.folder_id)
       });
     }
   }
 
-  index.addAll(documents);
-  return index;
+  return createTextSearchIndex(SIDEBAR_SEARCH_SCHEMA, documents);
 }
 
 /**
- * Computes hierarchical visibility sets from direct MiniSearch hits.
+ * Computes hierarchical visibility sets from direct Orama hits.
  *
  * @param input - Sidebar data used to resolve parent/child relationships.
  * @param hits - Parsed direct search hits by entity kind.
@@ -262,13 +302,13 @@ function buildSidebarSearchFilter(
  * Filters sidebar entities by a user query using the prebuilt search index.
  *
  * @param input - Sidebar data currently available in the renderer store.
- * @param index - MiniSearch index built from the same sidebar rows.
+ * @param index - Orama index built from the same sidebar rows.
  * @param query - Raw search text from the sidebar search field.
  * @returns Visibility sets for tree filtering, or null when the query is empty.
  */
 export function searchSidebar(
   input: SidebarSearchInput,
-  index: MiniSearch<SidebarSearchDocument>,
+  index: HarborSearchIndex,
   query: string
 ): SidebarSearchFilter | null {
   const trimmed = query.trim();
@@ -283,8 +323,11 @@ export function searchSidebar(
     environments: new Set<number>()
   };
 
-  for (const result of index.search(trimmed)) {
-    const parsed = parseSidebarDocumentId(String(result.id));
+  for (const result of searchTextIndex<SidebarSearchDocument>(index, trimmed, {
+    properties: SIDEBAR_SEARCH_PROPERTIES,
+    threshold: 0
+  })) {
+    const parsed = parseSidebarDocumentId(result.id);
     if (parsed == null) {
       continue;
     }
@@ -311,12 +354,12 @@ export function searchSidebar(
  * Returns direct sidebar entity hits with scores for unified global search.
  *
  * @param input - Sidebar data used to resolve subtitles.
- * @param index - MiniSearch index built from the same sidebar rows.
+ * @param index - Orama index built from the same sidebar rows.
  * @param query - Raw search text.
  */
 export function searchSidebarEntities(
   input: SidebarSearchInput,
-  index: MiniSearch<SidebarSearchDocument>,
+  index: HarborSearchIndex,
   query: string
 ): Array<{
   kind: SidebarEntityKind;
@@ -332,21 +375,25 @@ export function searchSidebarEntities(
     return [];
   }
 
-  return index.search(trimmed).flatMap((result) => {
-    const parsed = parseSidebarDocumentId(String(result.id));
+  return searchTextIndex<SidebarSearchDocument>(index, trimmed, {
+    properties: SIDEBAR_SEARCH_PROPERTIES,
+    threshold: 0
+  }).flatMap((result) => {
+    const parsed = parseSidebarDocumentId(result.id);
     if (parsed == null) {
       return [];
     }
-    const stored = result as unknown as SidebarSearchDocument;
+    const stored = result.document;
+    const folderId = sidebarFolderIdFromIndex(stored.folderId);
     return [
       {
         kind: parsed.kind,
         entityId: parsed.entityId,
         score: result.score,
-        name: stored.name ?? '',
-        method: stored.method,
-        collectionId: stored.collectionId,
-        folderId: stored.folderId
+        name: stored.name,
+        method: stored.method.length > 0 ? stored.method : undefined,
+        collectionId: stored.collectionId > 0 ? stored.collectionId : undefined,
+        folderId
       }
     ];
   });

@@ -79,7 +79,8 @@ export class SnippetMoveCoordinator {
         created.id,
         record.name,
         record.code,
-        record.scope
+        record.scope,
+        record.stage
       );
       targetProviderSnippetId = updated.id;
 
@@ -152,6 +153,7 @@ export class SnippetMoveCoordinator {
         record.name,
         record.code,
         record.scope,
+        record.stage,
         record.uuid
       );
     } catch (err) {

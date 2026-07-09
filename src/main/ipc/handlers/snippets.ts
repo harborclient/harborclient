@@ -27,22 +27,22 @@ export function registerSnippetHandlers(db: IStorage): void {
   handle(
     'snippets:create',
     ipcArgSchemas.snippetCreate,
-    (_event, name, code, scope, connectionId) => {
+    (_event, name, code, scope, stage, connectionId) => {
       if (connectionId && db instanceof RoutingStorage) {
-        return db.createSnippetInProvider(name, code, scope, connectionId);
+        return db.createSnippetInProvider(name, code, scope, connectionId, stage);
       }
       if (db instanceof RoutingStorage) {
-        return db.createSnippet(name, code, scope);
+        return db.createSnippet(name, code, scope, stage);
       }
-      return getLocalDatabase().createSnippet(name, code, scope);
+      return getLocalDatabase().createSnippet(name, code, scope, stage);
     }
   );
 
-  handle('snippets:update', ipcArgSchemas.snippetUpdate, (_event, id, name, code, scope) => {
+  handle('snippets:update', ipcArgSchemas.snippetUpdate, (_event, id, name, code, scope, stage) => {
     if (db instanceof RoutingStorage) {
-      return db.updateSnippet(id, name, code, scope);
+      return db.updateSnippet(id, name, code, scope, stage);
     }
-    return getLocalDatabase().updateSnippet(id, name, code, scope);
+    return getLocalDatabase().updateSnippet(id, name, code, scope, stage);
   });
 
   handle('snippets:delete', ipcArgSchemas.dbId, (_event, id) => {

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { scriptStage } from '#/main/schemas/scriptRef';
 import { sanitizePluginCatalogCategories } from '#/shared/plugin/catalogCategories';
 import type { SnippetScope } from '#/shared/snippetScope';
 
@@ -51,7 +52,8 @@ function parseGitHubRepoUrl(url: string): string {
 
 const snippetCatalogSnippetEntrySchema = z.object({
   name: z.string().min(1),
-  where: snippetScopeSchema,
+  phase: snippetScopeSchema,
+  stage: scriptStage,
   file: z.string().min(1),
   uuid: z.string().min(1).optional()
 });

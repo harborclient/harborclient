@@ -5,3 +5,4 @@ docs
 pnpm-lock.yaml
 LICENSE.md
 CHANGELOG.md
+resources/docsSearchIndex.json

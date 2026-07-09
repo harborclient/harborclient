@@ -23,7 +23,7 @@ interface Result {
 }
 
 /**
- * Manages installed plugin search state and derives filtered rows from a MiniSearch index.
+ * Manages installed plugin search state and derives filtered rows from an Orama index.
  *
  * @param plugins - Installed plugin rows already filtered by plugin vs theme kind.
  */

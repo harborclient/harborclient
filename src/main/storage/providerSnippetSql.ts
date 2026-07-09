@@ -1,8 +1,10 @@
 /**
  * Shared SQL DDL and column lists for provider-backed snippet tables.
  */
+import type Database from 'better-sqlite3';
+
 export const PROVIDER_SNIPPET_COLUMNS =
-  'id, uuid, name, code, scope, sort_order, created_at, updated_at';
+  'id, uuid, name, code, scope, stage, sort_order, created_at, updated_at';
 
 /**
  * SQL fragment for creating the snippets table in SQL-backed providers.
@@ -14,6 +16,7 @@ CREATE TABLE IF NOT EXISTS snippets (
   name TEXT NOT NULL,
   code TEXT NOT NULL DEFAULT '',
   scope TEXT NOT NULL DEFAULT 'any',
+  stage TEXT NOT NULL DEFAULT 'main',
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -30,6 +33,7 @@ CREATE TABLE IF NOT EXISTS snippets (
   name VARCHAR(255) NOT NULL,
   code LONGTEXT NOT NULL,
   scope VARCHAR(32) NOT NULL DEFAULT 'any',
+  stage VARCHAR(32) NOT NULL DEFAULT 'main',
   sort_order INT NOT NULL DEFAULT 0,
   created_at VARCHAR(64) NOT NULL,
   updated_at VARCHAR(64) NOT NULL
@@ -46,8 +50,44 @@ CREATE TABLE IF NOT EXISTS snippets (
   name TEXT NOT NULL,
   code TEXT NOT NULL DEFAULT '',
   scope TEXT NOT NULL DEFAULT 'any',
+  stage TEXT NOT NULL DEFAULT 'main',
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL
 )
 `.trim();
+
+/**
+ * Migrates legacy snippet `role` columns to `stage` in SQLite provider databases.
+ *
+ * @param db - Open SQLite database handle.
+ */
+export function migrateSqliteSnippetStageColumn(db: Database.Database): void {
+  const columns = db.prepare('PRAGMA table_info(snippets)').all() as Array<{ name: string }>;
+  if (columns.length === 0) {
+    return;
+  }
+  if (columns.some((col) => col.name === 'stage')) {
+    migrateSqliteSnippetStageRunToMain(db);
+    return;
+  }
+  if (columns.some((col) => col.name === 'role')) {
+    db.exec('ALTER TABLE snippets RENAME COLUMN role TO stage');
+    migrateSqliteSnippetStageRunToMain(db);
+    return;
+  }
+  db.exec("ALTER TABLE snippets ADD COLUMN stage TEXT NOT NULL DEFAULT 'main'");
+}
+
+/**
+ * Rewrites legacy snippet stage value `run` to `main`.
+ *
+ * @param db - Open SQLite database handle.
+ */
+export function migrateSqliteSnippetStageRunToMain(db: Database.Database): void {
+  const columns = db.prepare('PRAGMA table_info(snippets)').all() as Array<{ name: string }>;
+  if (!columns.some((col) => col.name === 'stage')) {
+    return;
+  }
+  db.exec("UPDATE snippets SET stage = 'main' WHERE stage = 'run'");
+}

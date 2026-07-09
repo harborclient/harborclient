@@ -173,6 +173,7 @@ export function EditorTabs({
         <div className="flex min-h-0 flex-1 flex-col px-4">
           <TabContent
             draft={draft}
+            tabId={tabId}
             showBody={showBody}
             update={update}
             onParamsChange={onParamsChange}

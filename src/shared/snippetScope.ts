@@ -1,12 +1,12 @@
 import type { ScriptPhase } from '#/shared/types';
 
 /**
- * Where a reusable snippet may be referenced in script lists.
+ * Where a reusable snippet may be referenced across request stages.
  */
 export type SnippetScope = 'pre-request' | 'post-request' | 'any';
 
 /**
- * Select options for snippet scope fields in settings and script editors.
+ * Select options for snippet request-stage fields in settings and script editors.
  */
 export const SNIPPET_SCOPE_OPTIONS: { value: SnippetScope; label: string }[] = [
   { value: 'pre-request', label: 'Pre-request' },

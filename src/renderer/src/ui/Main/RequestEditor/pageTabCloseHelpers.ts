@@ -70,6 +70,7 @@ export function pageTabCloseName(
     case 'plugin-detail':
     case 'snippet-detail':
     case 'snippet-edit':
+    case 'script-editor':
       return page.label;
   }
 }

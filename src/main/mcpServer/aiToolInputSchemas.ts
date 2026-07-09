@@ -78,6 +78,11 @@ const AI_TOOL_INPUT_SHAPES: Record<AiToolName, Record<string, z.ZodType>> = {
     scriptIndex: z.number(),
     code: z.string(),
     mode: z.enum(['replace', 'append']).optional()
+  },
+  search_docs: {
+    query: z.string(),
+    limit: z.number().optional(),
+    source: z.enum(['site', 'sdk']).optional()
   }
 };
 

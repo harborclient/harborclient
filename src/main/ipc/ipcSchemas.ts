@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { scriptStage } from '#/main/schemas/scriptRef';
 import {
   MAX_IPC_COMMENT_CHARS,
   MAX_IPC_REQUEST_BODY_CHARS,
@@ -125,10 +126,11 @@ const ipcScriptSource = scriptSource;
 export const adminSnippetInput = z.object({
   name,
   code: ipcScriptSource,
-  scope: snippetScope
+  scope: snippetScope,
+  stage: scriptStage.optional()
 });
 
-export { scriptRef } from '#/main/schemas/scriptRef';
+export { scriptRef, scriptStage } from '#/main/schemas/scriptRef';
 
 /** URL string bounded for IPC. */
 const ipcUrl = z.string().max(MAX_IPC_URL_CHARS);
@@ -586,6 +588,13 @@ export const ipcArgSchemas = {
   mcpServerSettings: z.tuple([mcpServerSettings]),
   mcpClientServer: z.tuple([mcpClientServer]),
   mcpCallTool: z.tuple([z.string().min(1), z.unknown()]),
+  searchDocs: z.tuple([
+    z.object({
+      query: z.string().min(1),
+      limit: z.number().optional(),
+      source: z.enum(['site', 'sdk']).optional()
+    })
+  ]),
   storageConnection: z.tuple([storageConnection]),
   teamHub: z.tuple([teamHub]),
   teamHubUserUpdate: z.tuple([connectionId, connectionId, updateHubUserInput]),
@@ -635,8 +644,14 @@ export const ipcArgSchemas = {
     ipcScriptRefArray,
     ipcScriptRefArray
   ]),
-  snippetCreate: z.tuple([name, ipcScriptSource, snippetScope, connectionId.optional()]),
-  snippetUpdate: z.tuple([dbId, name, ipcScriptSource, snippetScope]),
+  snippetCreate: z.tuple([
+    name,
+    ipcScriptSource,
+    snippetScope,
+    scriptStage.optional(),
+    connectionId.optional()
+  ]),
+  snippetUpdate: z.tuple([dbId, name, ipcScriptSource, snippetScope, scriptStage.optional()]),
   snippetMove: z.tuple([dbId, connectionId]),
   snippetInstallFromGit: z.tuple([z.string().min(1), z.string().min(1).optional()]),
   snippetInstallFromPath: z.tuple([z.string().min(1)]),

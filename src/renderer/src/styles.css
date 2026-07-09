@@ -65,6 +65,11 @@
   --color-scrollbar-thumb: var(--mac-scrollbar-thumb);
   --color-scrollbar-thumb-hover: var(--mac-scrollbar-thumb-hover);
   --color-scrollbar-thumb-active: var(--mac-scrollbar-thumb-active);
+  --color-script-stage-before-all: var(--mac-script-stage-before-all);
+  --color-script-stage-before-each: var(--mac-script-stage-before-each);
+  --color-script-stage-main: var(--mac-script-stage-main);
+  --color-script-stage-after-each: var(--mac-script-stage-after-each);
+  --color-script-stage-after-all: var(--mac-script-stage-after-all);
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --radius-xs: 0.125rem;
   --radius-sm: 0.25rem;
@@ -108,6 +113,11 @@
     --mac-scrollbar-thumb: rgba(0, 0, 0, 0.44);
     --mac-scrollbar-thumb-hover: rgba(0, 0, 0, 0.55);
     --mac-scrollbar-thumb-active: rgba(0, 0, 0, 0.66);
+    --mac-script-stage-before-all: #0b72d4;
+    --mac-script-stage-before-each: #0a84ff;
+    --mac-script-stage-main: #32d2e2;
+    --mac-script-stage-after-each: #ff9f0a;
+    --mac-script-stage-after-all: #e8910f;
 
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
     font-size: 14px;
@@ -143,6 +153,11 @@
       --mac-scrollbar-thumb: rgba(255, 255, 255, 0.44);
       --mac-scrollbar-thumb-hover: rgba(255, 255, 255, 0.55);
       --mac-scrollbar-thumb-active: rgba(255, 255, 255, 0.66);
+      --mac-script-stage-before-all: #0b72d4;
+      --mac-script-stage-before-each: #0a84ff;
+      --mac-script-stage-main: #32d2e2;
+      --mac-script-stage-after-each: #ff9f0a;
+      --mac-script-stage-after-all: #e8910f;
     }
   }
 
@@ -170,6 +185,11 @@
     --mac-scrollbar-thumb: rgba(255, 255, 255, 0.44);
     --mac-scrollbar-thumb-hover: rgba(255, 255, 255, 0.55);
     --mac-scrollbar-thumb-active: rgba(255, 255, 255, 0.66);
+    --mac-script-stage-before-all: #0b72d4;
+    --mac-script-stage-before-each: #0a84ff;
+    --mac-script-stage-main: #32d2e2;
+    --mac-script-stage-after-each: #ff9f0a;
+    --mac-script-stage-after-all: #e8910f;
   }
 
   :root[data-theme='light'] {
@@ -206,6 +226,11 @@
     --mac-scrollbar-thumb: #9e9e9e;
     --mac-scrollbar-thumb-hover: #d0d0d0;
     --mac-scrollbar-thumb-active: #ffffff;
+    --mac-script-stage-before-all: #0b72d4;
+    --mac-script-stage-before-each: #0a84ff;
+    --mac-script-stage-main: #32d2e2;
+    --mac-script-stage-after-each: #ff9f0a;
+    --mac-script-stage-after-all: #e8910f;
   }
 
   /**
@@ -246,6 +271,11 @@
       --mac-scrollbar-thumb: GrayText;
       --mac-scrollbar-thumb-hover: CanvasText;
       --mac-scrollbar-thumb-active: CanvasText;
+      --mac-script-stage-before-all: LinkText;
+      --mac-script-stage-before-each: LinkText;
+      --mac-script-stage-main: Highlight;
+      --mac-script-stage-after-each: CanvasText;
+      --mac-script-stage-after-all: LinkText;
     }
 
     input:focus-visible,
@@ -498,7 +528,28 @@
 
 @layer utilities {
   /**
-   * Circular hover/focus background for document-style tab bar icon buttons. Must
+   * High-contrast Before/Run/After labels in the script list editor.
+   */
+  .text-script-group-heading {
+    color: #000000;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .text-script-group-heading {
+      color: #ffffff;
+    }
+  }
+
+  :root[data-theme='dark'] .text-script-group-heading,
+  :root[data-theme='high-contrast'] .text-script-group-heading {
+    color: #ffffff;
+  }
+
+  :root[data-theme='light'] .text-script-group-heading {
+    color: #000000;
+  }
+
+  /**
    * live in utilities so this overrides Tailwind's rounded-md on the same element.
    * Drop self-stretch so the control stays square instead of a full-height pill.
    *

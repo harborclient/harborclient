@@ -33,6 +33,7 @@ const DEFAULT_ECHO_SNIPPET_DEFINITIONS = [
     uuid: DEFAULT_ECHO_SNIPPET_ASSERT_STATUS_UUID,
     name: 'Assert status 200',
     scope: 'post-request' as const,
+    stage: 'main' as const,
     code: `hc.test('Status is 200', () => {
   hc.expect(hc.response.code).to.equal(200);
 });`
@@ -41,6 +42,7 @@ const DEFAULT_ECHO_SNIPPET_DEFINITIONS = [
     uuid: DEFAULT_ECHO_SNIPPET_PARSE_JSON_UUID,
     name: 'Parse response JSON',
     scope: 'post-request' as const,
+    stage: 'main' as const,
     code: `const body = hc.response.json();
 hc.variables.set('lastEchoId', body.id ?? '');`
   }
@@ -142,11 +144,23 @@ export async function seedDefaultEchoSnippets(router: RoutingStorage): Promise<v
   for (const snippet of DEFAULT_ECHO_SNIPPET_DEFINITIONS) {
     const existing = existingByUuid.get(snippet.uuid);
     if (existing) {
-      await router.updateSnippet(existing.id, snippet.name, snippet.code, snippet.scope);
+      await router.updateSnippet(
+        existing.id,
+        snippet.name,
+        snippet.code,
+        snippet.scope,
+        snippet.stage
+      );
       continue;
     }
 
-    await router.createSnippet(snippet.name, snippet.code, snippet.scope, snippet.uuid);
+    await router.createSnippet(
+      snippet.name,
+      snippet.code,
+      snippet.scope,
+      snippet.stage,
+      snippet.uuid
+    );
   }
 }
 

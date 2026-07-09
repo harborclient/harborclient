@@ -67,7 +67,7 @@ export function SnippetEditModal({
   const title = readOnly ? 'View snippet' : isNew ? 'Add snippet' : 'Edit snippet';
   const description = readOnly
     ? 'Read-only preview of a marketplace snippet. Clone it to make an editable copy.'
-    : 'Reusable JavaScript used in pre-request and post-request script lists.';
+    : 'Reusable JavaScript used in the pre-request and post-request stages.';
 
   return (
     <Modal

@@ -63,6 +63,8 @@ import type {
   Variable
 } from '#/shared/types';
 import type { SnippetScope } from '#/shared/snippetScope';
+import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '#/shared/scriptStage';
+import type { ScriptStage } from '@harborclient/sdk';
 
 /**
  * Resolves script references from a Team Hub record, preferring the legacy string column.
@@ -149,6 +151,7 @@ function serverToSnippet(record: SnippetRecord, localId: number): Snippet {
     name: record.name,
     code: record.code,
     scope: record.scope,
+    stage: normalizeScriptStage((record as { stage?: string }).stage),
     source: 'local',
     created_at: record.createdAt,
     updated_at: record.createdAt
@@ -339,7 +342,7 @@ export class TeamHubStorage implements IStorage {
   }
 
   /**
-   * Returns whether the hub token has management API access (admin role).
+   * Returns whether the hub token has management API access (admin stage).
    */
   async hasManagementApi(): Promise<boolean> {
     const session = await this.client.getSession();
@@ -509,14 +512,17 @@ export class TeamHubStorage implements IStorage {
     name: string,
     code: string,
     scope: SnippetScope = 'any',
+    stage: ScriptStage = DEFAULT_SCRIPT_STAGE,
     uuid?: string
   ): Promise<Snippet> {
     const trimmedName = trimRequiredName(name, 'Snippet name');
+    const normalizedRole = normalizeScriptStage(stage);
     const record = await this.client.createSnippet({
       name: trimmedName,
       code: code ?? '',
-      scope
-    });
+      scope,
+      stage: normalizedRole
+    } as Parameters<TeamHubClient['createSnippet']>[0]);
     const localId = this.idMap.toLocalId('snippet', record.id);
     void uuid;
     return serverToSnippet(record, localId);
@@ -529,14 +535,17 @@ export class TeamHubStorage implements IStorage {
     id: number,
     name: string,
     code: string,
-    scope: SnippetScope = 'any'
+    scope: SnippetScope = 'any',
+    stage: ScriptStage = DEFAULT_SCRIPT_STAGE
   ): Promise<Snippet> {
     const serverId = this.requireServerId('snippet', id);
+    const normalizedRole = normalizeScriptStage(stage);
     const record = await this.client.updateSnippet(serverId, {
       name: trimRequiredName(name, 'Snippet name'),
       code: code ?? '',
-      scope
-    });
+      scope,
+      stage: normalizedRole
+    } as Parameters<TeamHubClient['updateSnippet']>[1]);
     return serverToSnippet(record, id);
   }
 

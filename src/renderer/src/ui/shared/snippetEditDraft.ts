@@ -1,5 +1,7 @@
 import type { Snippet } from '#/shared/types';
 import type { SnippetScope } from '#/shared/snippetScope';
+import type { ScriptStage } from '@harborclient/sdk';
+import { DEFAULT_SCRIPT_STAGE } from '#/shared/scriptStage';
 
 /**
  * Editable snippet fields shown in the create/edit modal.
@@ -21,9 +23,14 @@ export type SnippetEditDraft = {
   code: string;
 
   /**
-   * Script phases where the snippet may be referenced.
+   * Request stage where the snippet may be referenced.
    */
   scope: SnippetScope;
+
+  /**
+   * Default script stage when the snippet is added to a request stage script list.
+   */
+  stage: ScriptStage;
 
   /**
    * Storage connection id that should store this snippet.
@@ -38,12 +45,14 @@ export type SnippetEditDraft = {
  * @returns Default name, empty code, and scope for a new snippet draft.
  */
 export function createBlankSnippet(
-  scope: SnippetScope = 'any'
-): Pick<Snippet, 'name' | 'code' | 'scope'> {
+  scope: SnippetScope = 'any',
+  stage: ScriptStage = DEFAULT_SCRIPT_STAGE
+): Pick<Snippet, 'name' | 'code' | 'scope' | 'stage'> {
   return {
     name: 'Untitled Snippet',
     code: '',
-    scope
+    scope,
+    stage
   };
 }
 
@@ -72,11 +81,13 @@ export function snippetNameFromScript(code: string, maxLength = 30): string {
  */
 export function createImportedSnippetDraft(
   code: string,
-  scope: SnippetScope = 'any'
+  scope: SnippetScope = 'any',
+  stage: ScriptStage = DEFAULT_SCRIPT_STAGE
 ): SnippetEditDraft {
   return {
     name: snippetNameFromScript(code),
     code,
-    scope
+    scope,
+    stage
   };
 }

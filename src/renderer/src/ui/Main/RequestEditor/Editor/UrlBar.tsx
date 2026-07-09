@@ -1,7 +1,14 @@
-import { Button, MethodSelect, VariableInput, fieldFrame } from '@harborclient/sdk/components';
+import {
+  Button,
+  FaIcon,
+  MethodSelect,
+  VariableInput,
+  fieldFrame
+} from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import type { HttpMethod, Variable } from '#/shared/types';
 
+import { faStop } from '#/renderer/src/fontawesome';
 import { usePluginRequestToolbarActions } from '#/renderer/src/plugins/pluginHooks';
 import { urlSource } from '#/renderer/src/autocomplete/sources';
 import { REQUEST_URL_INPUT_ID } from '#/renderer/src/ui/Main/RequestEditor/Editor/focusRequestUrl';
@@ -23,7 +30,7 @@ interface Props {
   variables: Variable[];
 
   /**
-   * Disables Send while a request is in flight.
+   * Whether a request is in flight; swaps Send for a stop icon when true.
    */
   sending: boolean;
 
@@ -43,6 +50,11 @@ interface Props {
   onSend: () => void;
 
   /**
+   * Called when the user clicks the stop icon during an in-flight request.
+   */
+  onCancel: () => void;
+
+  /**
    * Opens collection settings to edit variables.
    */
   onEditVariables?: (key: string) => void;
@@ -59,6 +71,7 @@ export function UrlBar({
   onMethodChange,
   onUrlChange,
   onSend,
+  onCancel,
   onEditVariables
 }: Props): JSX.Element {
   const toolbarActions = usePluginRequestToolbarActions();
@@ -99,11 +112,11 @@ export function UrlBar({
       ))}
       <Button
         type="button"
-        onClick={onSend}
-        disabled={sending}
+        onClick={() => (sending ? onCancel() : onSend())}
+        aria-label={sending ? 'Cancel request' : undefined}
         className="hc-send-button inline-flex w-24 shrink-0 items-center justify-center"
       >
-        {sending ? 'Sending…' : 'Send'}
+        {sending ? <FaIcon icon={faStop} className="h-3.5 w-3.5" aria-hidden /> : 'Send'}
       </Button>
     </div>
   );

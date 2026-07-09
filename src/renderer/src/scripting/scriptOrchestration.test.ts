@@ -23,6 +23,7 @@ const snippetLookup = new Map<string, Snippet>([
       name: 'Auth helper',
       code: "hc.request.variables.set('token', 'live');",
       scope: 'any',
+      stage: 'main',
       source: 'local',
       created_at: '2026-01-01T00:00:00.000Z',
       updated_at: '2026-01-01T00:00:00.000Z'

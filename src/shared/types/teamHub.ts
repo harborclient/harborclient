@@ -78,6 +78,11 @@ export interface TeamHubServiceFlags {
   llm: boolean;
 
   /**
+   * When true, the hub provides OpenAI-backed services (embeddings, OpenAI models, docs search).
+   */
+  openai: boolean;
+
+  /**
    * When true, the hub server publishes plugin catalog or trusted URLs.
    */
   pluginCatalog: boolean;
@@ -396,7 +401,7 @@ export interface TeamHubAdminRunResult {
 /**
  * Config section name reported by `POST /admin/config/reload`.
  */
-export type ReloadConfigSectionName = 'db' | 'redis' | 'llm' | 'plugins' | 'server';
+export type ReloadConfigSectionName = 'db' | 'redis' | 'llm' | 'plugins' | 'docs' | 'server';
 
 /**
  * Outcome for a single config section during reload.

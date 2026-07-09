@@ -33,19 +33,19 @@ export interface SearchIndexReady {
 export interface SearchIndexContextValue {
   /** Sidebar entity data used to build and query the sidebar index. */
   sidebarInput: SidebarSearchInput;
-  /** MiniSearch index over collections, folders, requests, and environments. */
+  /** Orama index over collections, folders, requests, and environments. */
   sidebarIndex: ReturnType<typeof buildSidebarSearchIndex> | null;
-  /** MiniSearch index over the settings catalog manifest. */
+  /** Orama index over the settings catalog manifest. */
   settingsIndex: ReturnType<typeof buildSettingsSearchIndex>;
-  /** MiniSearch index over marketplace plugin metadata, when catalog is loaded. */
+  /** Orama index over marketplace plugin metadata, when catalog is loaded. */
   pluginsIndex: ReturnType<typeof buildPluginCatalogSearchIndex> | null;
-  /** MiniSearch index over installed plugin metadata, when the list is loaded. */
+  /** Orama index over installed plugin metadata, when the list is loaded. */
   installedPluginsIndex: ReturnType<typeof buildInstalledPluginSearchIndex> | null;
   /** Loaded marketplace catalog rows (empty when unavailable). */
   plugins: PluginCatalog['plugins'];
   /** Installed plugin rows from the main process. */
   installedPlugins: PluginInfo[];
-  /** MiniSearch index over marketplace snippet bundle metadata, when catalog is loaded. */
+  /** Orama index over marketplace snippet bundle metadata, when catalog is loaded. */
   snippetsIndex: ReturnType<typeof buildSnippetCatalogSearchIndexForSearch> | null;
   /** Loaded marketplace snippet catalog rows (empty when unavailable). */
   snippets: SnippetCatalog['snippets'];

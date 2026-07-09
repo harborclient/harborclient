@@ -13,6 +13,7 @@ import type { ApiSharing } from '#/shared/types/api/sharing';
 import type { ApiBackup } from '#/shared/types/api/backup';
 import type { ApiPlugins } from '#/shared/types/api/plugins';
 import type { ApiCustomThemes } from '#/shared/types/api/customThemes';
+import type { ApiDocs } from '#/shared/types/api/docs';
 import type { ApiMcp } from '#/shared/types/api/mcp';
 
 /**
@@ -34,5 +35,6 @@ export interface Api
     ApiSharing,
     ApiBackup,
     ApiPlugins,
+    ApiDocs,
     ApiMcp,
     ApiCustomThemes {}

@@ -66,7 +66,7 @@ export interface UnifiedSearchHit {
   subtitle?: string;
   /** HTTP method badge for request hits. */
   method?: string;
-  /** MiniSearch relevance score for ordering within a domain. */
+  /** Orama relevance score for ordering within a domain. */
   score: number;
   /** Numeric collection id when the hit belongs to the collections tree. */
   collectionId?: number;
@@ -77,9 +77,19 @@ export interface UnifiedSearchHit {
 }
 
 /**
- * Shared MiniSearch options used across HarborClient search indexes.
+ * Shared Orama full-text options used across HarborClient search indexes.
  */
 export const DEFAULT_SEARCH_OPTIONS = {
-  prefix: true,
-  fuzzy: 0.2 as const
-};
+  /** Edit distance for typo-tolerant matching (approximates prior MiniSearch fuzzy). */
+  tolerance: 1,
+  /** Match any query term; sidebar and settings override to 0 for AND matching. */
+  threshold: 1
+} as const;
+
+/**
+ * Orama options requiring every query term to match (sidebar and settings search).
+ */
+export const AND_SEARCH_OPTIONS = {
+  tolerance: DEFAULT_SEARCH_OPTIONS.tolerance,
+  threshold: 0
+} as const;

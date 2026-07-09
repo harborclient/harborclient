@@ -586,13 +586,15 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
           id: 'pre-inline',
           enabled: true,
           kind: 'inline' as const,
-          code: 'console.log("pre-one");'
+          code: 'console.log("pre-one");',
+          stage: 'main' as const
         },
         {
           id: 'pre-snippet',
           enabled: true,
           kind: 'snippet' as const,
-          snippetUuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+          snippetUuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          stage: 'main' as const
         }
       ];
       const postScripts = [
@@ -600,7 +602,8 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
           id: 'post-inline',
           enabled: true,
           kind: 'inline' as const,
-          code: 'console.log("post-one");'
+          code: 'console.log("post-one");',
+          stage: 'main' as const
         }
       ];
       const collectionPostScripts = [
@@ -608,7 +611,8 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
           id: 'collection-post',
           enabled: true,
           kind: 'inline' as const,
-          code: 'console.log("collection-post");'
+          code: 'console.log("collection-post");',
+          stage: 'main' as const
         }
       ];
 
