@@ -655,9 +655,10 @@
 }
 
 /**
- * CodeMirror layout for the request body tab — fills remaining editor height below the type picker.
+ * CodeMirror layout for editors that fill remaining vertical space in a flex column.
  */
-.request-body-editor {
+.request-body-editor,
+.snippet-code-editor {
   display: flex;
   flex: 1 1 0%;
   flex-direction: column;
@@ -666,7 +667,8 @@
   resize: none;
 }
 
-.request-body-editor .cm-editor {
+.request-body-editor .cm-editor,
+.snippet-code-editor .cm-editor {
   flex: 1 1 0%;
   min-height: 0;
   height: 100%;

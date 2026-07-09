@@ -40,7 +40,7 @@
   "packageManager": "pnpm@10.17.1",
   "dependencies": {
     "@harborclient/http": "^0.1.2",
-    "@harborclient/sdk": "^1.0.48",
+    "@harborclient/sdk": "^1.0.50",
     "@harborclient/team-hub-api": "^0.3.1",
     "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/lang-javascript": "^6.2.4",
@@ -133,7 +133,6 @@
       "esbuild"
     ],
     "overrides": {
-      "@harborclient/sdk": "link:../sdk",
       "@harborclient/sdk>@types/react": "^19.1.2",
       "@harborclient/sdk>@types/react-dom": "^19.1.2"
     }

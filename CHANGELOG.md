@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- chore(dependencies): update @harborclient/sdk to v1.0.50 and improve editor layouts. (`a139cf8`)
 - feat(snippets): enhance snippet detail functionality and UI. (`a999819`)
 
 ## 2.0.11 - 2026-07-09

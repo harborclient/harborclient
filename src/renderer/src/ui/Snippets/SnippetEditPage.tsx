@@ -182,12 +182,13 @@ export function SnippetEditPage({ page, tabId }: Props): JSX.Element {
         </div>
       ) : null}
       {draft ? (
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <SnippetEditFields
             draft={draft}
             isNew={isNew}
             saving={saving}
             readOnly={readOnly}
+            fillHeight
             onChange={setEditedDraft}
           />
         </div>

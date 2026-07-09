@@ -32,6 +32,11 @@ interface Props {
   hideStorageLocation?: boolean;
 
   /**
+   * When true, stretches the JavaScript editor to fill remaining vertical space.
+   */
+  fillHeight?: boolean;
+
+  /**
    * Updates the draft fields while editing.
    */
   onChange: (draft: SnippetEditDraft) => void;
@@ -46,6 +51,7 @@ export function SnippetEditFields({
   saving,
   readOnly = false,
   hideStorageLocation = false,
+  fillHeight = false,
   onChange
 }: Props): JSX.Element {
   const providerSelectId = useId();
@@ -72,8 +78,8 @@ export function SnippetEditFields({
   }, [draft, hideStorageLocation, onChange, primaryProviderId, readOnly]);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
+    <div className={fillHeight ? 'flex min-h-0 flex-1 flex-col gap-4' : 'flex flex-col gap-4'}>
+      <div className="flex shrink-0 flex-col gap-1">
         <label className="text-[16px] font-medium text-text" htmlFor="snippet-name">
           Name
         </label>
@@ -86,7 +92,7 @@ export function SnippetEditFields({
           placeholder="Snippet name"
         />
       </div>
-      <div className="flex flex-col gap-1">
+      <div className="flex shrink-0 flex-col gap-1">
         <label className="text-[16px] font-medium text-text" htmlFor="snippet-scope">
           Runs in
         </label>
@@ -105,7 +111,12 @@ export function SnippetEditFields({
         </Select>
       </div>
       {!readOnly && !hideStorageLocation ? (
-        <FormGroup label="Storage location" htmlFor={providerSelectId} labelTone="muted">
+        <FormGroup
+          className="shrink-0"
+          label="Storage location"
+          htmlFor={providerSelectId}
+          labelTone="muted"
+        >
           <Select
             id={providerSelectId}
             value={resolvedProviderId}
@@ -136,7 +147,8 @@ export function SnippetEditFields({
           readOnly={readOnly}
           onChange={readOnly ? undefined : (code) => onChange({ ...draft, code })}
           language="javascript"
-          minHeight="500px"
+          minHeight={fillHeight ? '0' : '500px'}
+          className={fillHeight ? 'snippet-code-editor' : undefined}
           placeholder="// hc.request.variables.set('token', 'abc');"
           aria-labelledby="snippet-code"
         />
