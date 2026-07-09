@@ -69,11 +69,11 @@ export function TeamHubAdmin({ hubId, onClose }: Props): JSX.Element {
    */
   const sidebarItems = useMemo((): PageSidebarItem<TeamHubAdminSidebarItem>[] => {
     return [
-      { value: 'users', label: 'Manage users', icon: faUsers },
-      { value: 'tokens', label: 'Manage tokens', icon: faFingerprint },
-      { value: 'collections', label: 'Manage collections', icon: faDatabase },
-      { value: 'snippets', label: 'Manage snippets', icon: faTerminal },
-      { value: 'run-results', label: 'Manage run results', icon: faClockRotateLeft },
+      { value: 'users', label: 'Users', icon: faUsers },
+      { value: 'tokens', label: 'Tokens', icon: faFingerprint },
+      { value: 'collections', label: 'Collections', icon: faDatabase },
+      { value: 'snippets', label: 'Snippets', icon: faTerminal },
+      { value: 'run-results', label: 'Run results', icon: faClockRotateLeft },
       {
         value: 'reload',
         label: reloading ? 'Reloading…' : 'Reload',

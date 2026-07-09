@@ -1,14 +1,17 @@
 import { Button, Page, Spinner } from '@harborclient/sdk/components';
-import { useEffect, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, type JSX } from 'react';
 import type { PageRef } from '#/renderer/src/store/drafts';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { closeTab } from '#/renderer/src/store/slices/tabsSlice';
 import { refreshSnippets } from '#/renderer/src/store/thunks/snippets';
 import { faTerminal } from '#/renderer/src/fontawesome';
+import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
+import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
 import { SnippetDetailContent } from './SnippetDetailContent';
 import { useSnippetCatalog } from './hooks/useSnippetCatalog';
 import { useSnippetCatalogDetail } from './hooks/useSnippetCatalogDetail';
 import { useSnippetInstallActions } from './hooks/useSnippetInstallActions';
+import { useSnippetPackageList } from './hooks/useSnippetPackageList';
 
 interface Props {
   /**
@@ -28,6 +31,7 @@ interface Props {
 export function SnippetDetailPage({ page, tabId }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const { catalogById, catalogLoading, loadCatalog } = useSnippetCatalog();
+  const { installedPackages, packagesLoading, refreshPackages } = useSnippetPackageList();
   const {
     catalogDetailEntry,
     catalogPreview,
@@ -37,15 +41,28 @@ export function SnippetDetailPage({ page, tabId }: Props): JSX.Element {
   } = useSnippetCatalogDetail();
 
   /**
+   * Closes this detail tab.
+   */
+  const handleCloseTab = useCallback((): void => {
+    dispatch(closeTab(tabId));
+  }, [dispatch, tabId]);
+
+  /**
    * Reloads snippets and installed package summaries after marketplace mutations.
    */
-  const refreshAll = async (): Promise<void> => {
-    await dispatch(refreshSnippets()).unwrap();
-  };
+  const refreshAll = useCallback(async (): Promise<void> => {
+    await Promise.all([refreshPackages(), dispatch(refreshSnippets()).unwrap()]);
+  }, [dispatch, refreshPackages]);
 
-  const { actionBusyId, handleInstallCatalogEntry } = useSnippetInstallActions({
-    refresh: refreshAll
-  });
+  const { actionBusyId, handleInstallCatalogEntry, handleUpdatePackage, handleUninstallPackage } =
+    useSnippetInstallActions({
+      refresh: refreshAll
+    });
+
+  const installedPackage = useMemo(
+    () => installedPackages.find((pkg) => pkg.catalogId === page.catalogId),
+    [installedPackages, page.catalogId]
+  );
 
   /**
    * Loads marketplace catalog data when this tab opens.
@@ -67,19 +84,89 @@ export function SnippetDetailPage({ page, tabId }: Props): JSX.Element {
   }, [page.catalogId, catalogById, openCatalogDetail]);
 
   /**
-   * Closes the tab when the marketplace listing cannot be resolved after catalog load.
+   * Closes the tab when the listing cannot be resolved and the bundle is not installed locally.
    */
   useEffect(() => {
-    if (catalogLoading) {
+    if (catalogLoading || packagesLoading) {
+      return;
+    }
+    if (installedPackage) {
       return;
     }
     if (catalogById.size > 0 && !catalogById.has(page.catalogId)) {
       dispatch(closeTab(tabId));
     }
-  }, [page.catalogId, catalogById, catalogLoading, dispatch, tabId]);
+  }, [
+    page.catalogId,
+    catalogById,
+    catalogLoading,
+    installedPackage,
+    packagesLoading,
+    dispatch,
+    tabId
+  ]);
 
   const entry = catalogById.get(page.catalogId) ?? catalogDetailEntry;
-  const isLoading = catalogLoading && !entry;
+  const isLoading = (catalogLoading || packagesLoading) && !entry && !installedPackage;
+
+  /**
+   * Uninstalls the open bundle after confirmation and closes this tab on success.
+   */
+  const handleUninstallInstalledPackage = async (): Promise<void> => {
+    if (!installedPackage) {
+      return;
+    }
+
+    const snippetLabel = installedPackage.snippetCount === 1 ? 'snippet' : 'snippets';
+    const confirmed = await showConfirm(dispatch, {
+      title: 'Uninstall snippet bundle',
+      message: `Uninstall "${installedPackage.name}"? This removes ${installedPackage.snippetCount} imported ${snippetLabel} from your library.`,
+      confirmLabel: 'Uninstall',
+      variant: 'danger'
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    const succeeded = await handleUninstallPackage(installedPackage.catalogId);
+    if (succeeded) {
+      handleCloseTab();
+    }
+  };
+
+  const headerActions = installedPackage ? (
+    <div className="flex shrink-0 items-center gap-2">
+      {installedPackage.installSource == null || installedPackage.installSource === 'git' ? (
+        <Button
+          type="button"
+          variant="toolbar"
+          disabled={actionBusyId === installedPackage.catalogId}
+          onClick={() => void handleUpdatePackage(installedPackage.catalogId)}
+        >
+          Update
+        </Button>
+      ) : null}
+      <Button
+        type="button"
+        variant="toolbar"
+        className={toolbarDangerButtonClass}
+        disabled={actionBusyId === installedPackage.catalogId}
+        onClick={() => void handleUninstallInstalledPackage()}
+      >
+        Uninstall
+      </Button>
+    </div>
+  ) : entry ? (
+    <div className="flex shrink-0 items-center gap-2">
+      <Button
+        type="button"
+        disabled={actionBusyId === entry.id}
+        onClick={() => void handleInstallCatalogEntry(entry)}
+      >
+        {actionBusyId === entry.id ? 'Installing…' : 'Install'}
+      </Button>
+    </div>
+  ) : undefined;
 
   return (
     <Page
@@ -87,19 +174,7 @@ export function SnippetDetailPage({ page, tabId }: Props): JSX.Element {
       title={page.label}
       icon={faTerminal}
       className="flex min-h-0 flex-1 flex-col overflow-hidden p-6 pt-0!"
-      actions={
-        entry ? (
-          <div className="flex shrink-0 items-center gap-2">
-            <Button
-              type="button"
-              disabled={actionBusyId === entry.id}
-              onClick={() => void handleInstallCatalogEntry(entry)}
-            >
-              {actionBusyId === entry.id ? 'Installing…' : 'Install'}
-            </Button>
-          </div>
-        ) : undefined
-      }
+      actions={headerActions}
     >
       {isLoading ? (
         <div className="flex items-center gap-2 text-[16px] text-muted" role="status">

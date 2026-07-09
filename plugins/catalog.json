@@ -50,6 +50,10 @@
       "ref": "v1.2.5"
     },
     {
+      "repoUrl": "https://github.com/harborclient/plugin-pm-to-hc",
+      "ref": "v1.0.0"
+    },
+    {
       "repoUrl": "https://github.com/harborclient/theme-catppuccin-latte",
       "ref": "v1.0.7"
     },

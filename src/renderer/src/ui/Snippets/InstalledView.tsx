@@ -26,7 +26,7 @@ import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { providerOptionLabel, useProviders } from '#/renderer/src/hooks/useProviders';
 import { CodePreviewTooltip } from '#/renderer/src/ui/shared/CodePreviewTooltip';
 import { createImportedSnippetDraft } from '#/renderer/src/ui/shared/snippetEditDraft';
-import { openSnippetEditTab } from './snippetTabHelpers';
+import { openSnippetCatalogDetailTab, openSnippetEditTab } from './snippetTabHelpers';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
 import { VerifiedPublisherBadge } from '#/renderer/src/ui/shared/VerifiedPublisherBadge';
 
@@ -350,6 +350,19 @@ export function InstalledView({
                     }
                     actions={
                       <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          type="button"
+                          variant="toolbar"
+                          disabled={actionBusyId === pkg.catalogId}
+                          onClick={() =>
+                            openSnippetCatalogDetailTab(dispatch, {
+                              id: pkg.catalogId,
+                              name: pkg.name
+                            })
+                          }
+                        >
+                          Details
+                        </Button>
                         {pkg.installSource == null || pkg.installSource === 'git' ? (
                           <Button
                             type="button"

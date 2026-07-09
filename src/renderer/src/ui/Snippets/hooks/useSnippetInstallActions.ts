@@ -28,7 +28,7 @@ interface UseSnippetInstallActionsResult {
   handleLoadUnpacked: () => Promise<void>;
   handleInstallCatalogEntry: (entry: SnippetCatalogEntry) => Promise<void>;
   handleUpdatePackage: (catalogId: string) => Promise<void>;
-  handleUninstallPackage: (catalogId: string) => Promise<void>;
+  handleUninstallPackage: (catalogId: string) => Promise<boolean>;
 }
 
 /**
@@ -159,16 +159,19 @@ export function useSnippetInstallActions({
    * Uninstalls one marketplace snippet bundle.
    *
    * @param catalogId - Snippet bundle id from snippets.json.
+   * @returns Whether uninstall completed successfully.
    */
   const handleUninstallPackage = useCallback(
-    async (catalogId: string): Promise<void> => {
+    async (catalogId: string): Promise<boolean> => {
       setActionBusyId(catalogId);
       try {
         await window.api.uninstallSnippetPackage(catalogId);
         toast.success('Snippet bundle removed');
         await refresh();
+        return true;
       } catch (err) {
         showAlert(dispatch, formatIpcErrorMessage(err, 'Failed to uninstall snippet bundle'));
+        return false;
       } finally {
         setActionBusyId(null);
       }

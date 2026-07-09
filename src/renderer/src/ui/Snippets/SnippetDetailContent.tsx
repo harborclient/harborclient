@@ -1,10 +1,40 @@
 import { Spinner } from '@harborclient/sdk/components';
-import type { JSX } from 'react';
+import { useMemo, type JSX } from 'react';
 import type { SnippetCatalogEntry } from '#/shared/snippet/catalog';
 import type { SnippetGitPreview } from '#/shared/snippet/types';
+import { stripPluginScreenshotImagesFromMarkdown } from '#/shared/plugin/stripPluginScreenshotImagesFromMarkdown';
 import { snippetScopeLabel } from '#/shared/snippetScope';
 import { ScreenshotCarousel } from '#/renderer/src/ui/Plugins/ScreenshotCarousel';
 import { PluginReadmeMarkdown } from '#/renderer/src/ui/Plugins/PluginReadmeMarkdown';
+
+const SCREENSHOT_FALLBACK_PATH = 'screenshot.png';
+
+/**
+ * Collects catalog screenshot paths used to dedupe README images.
+ *
+ * @param entry - Marketplace listing being inspected.
+ * @param screenshotSrcs - Resolved carousel URLs when a preview is shown.
+ * @returns Manifest-relative paths and catalog URLs that match README image targets.
+ */
+function collectSnippetScreenshotImageRefs(
+  entry: SnippetCatalogEntry,
+  screenshotSrcs: string[]
+): string[] {
+  const refs: string[] = [];
+
+  if (entry.screenshots?.length) {
+    refs.push(...entry.screenshots);
+  }
+  if (entry.screenshot) {
+    refs.push(entry.screenshot);
+  }
+
+  if (refs.length === 0 && screenshotSrcs.length > 0) {
+    refs.push(SCREENSHOT_FALLBACK_PATH);
+  }
+
+  return refs;
+}
 
 interface Props {
   /**
@@ -37,11 +67,23 @@ export function SnippetDetailContent({
   previewLoadState,
   previewError
 }: Props): JSX.Element {
-  const screenshotSrcs = preview?.screenshotSrcs.length
-    ? preview.screenshotSrcs
-    : (entry.screenshots ?? []);
-  const description =
+  /**
+   * Resolves carousel screenshot URLs from git preview or catalog listing.
+   */
+  const screenshotSrcs = useMemo(
+    () => (preview?.screenshotSrcs.length ? preview.screenshotSrcs : (entry.screenshots ?? [])),
+    [preview, entry.screenshots]
+  );
+  const descriptionMarkdown =
     preview?.descriptionMarkdown ?? entry.description ?? 'No description available.';
+
+  /**
+   * Removes screenshot images from the description body when the carousel already shows them.
+   */
+  const displayDescriptionMarkdown = useMemo(() => {
+    const screenshotRefs = collectSnippetScreenshotImageRefs(entry, screenshotSrcs);
+    return stripPluginScreenshotImagesFromMarkdown(descriptionMarkdown, screenshotRefs);
+  }, [descriptionMarkdown, entry, screenshotSrcs]);
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
@@ -75,7 +117,7 @@ export function SnippetDetailContent({
 
         {previewError ? <p className="m-0 text-[16px] text-danger">{previewError}</p> : null}
 
-        <PluginReadmeMarkdown content={description} />
+        <PluginReadmeMarkdown content={displayDescriptionMarkdown} />
       </div>
     </div>
   );

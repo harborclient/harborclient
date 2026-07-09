@@ -1,17 +1,24 @@
-import type { SnippetCatalogEntry } from '#/shared/snippet/catalog';
 import type { AppDispatch } from '#/renderer/src/store/redux';
 import type { SnippetEditTabMode } from '#/renderer/src/store/drafts';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 
 /**
+ * Minimal identity for opening a snippet bundle detail tab.
+ */
+export type SnippetCatalogDetailTarget = {
+  id: string;
+  name: string;
+};
+
+/**
  * Opens or focuses a tab showing one marketplace snippet bundle listing.
  *
  * @param dispatch - Redux dispatch function.
- * @param entry - Marketplace listing to inspect.
+ * @param entry - Marketplace listing or installed package identity to inspect.
  */
 export function openSnippetCatalogDetailTab(
   dispatch: AppDispatch,
-  entry: SnippetCatalogEntry
+  entry: SnippetCatalogDetailTarget
 ): void {
   dispatch(
     openPageTab({

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(snippets): enhance snippet detail functionality and UI. (`a999819`)
+
 ## 2.0.11 - 2026-07-09
 
 - feat(roadmap): update roadmap to reflect current project status and planned features. (`accbd0a`)
