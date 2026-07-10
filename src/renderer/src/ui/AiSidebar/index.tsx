@@ -7,7 +7,7 @@ import {
 import { useEffect, useMemo, useRef, type JSX } from 'react';
 import { hasAvailableAiModels } from '#/shared/ai/models';
 
-import { faClockRotateLeft, faPaperPlane } from '#/renderer/src/fontawesome';
+import { faClockRotateLeft, faCircleCheck } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectAiSidebarVisible } from '#/renderer/src/store/slices/navigationSlice';
 import {
@@ -90,7 +90,7 @@ export function AiSidebar(): JSX.Element {
       },
       {
         id: 'enter-to-send',
-        icon: faPaperPlane,
+        icon: faCircleCheck,
         label: 'Enter to send',
         title: enterToSend ? 'Enter sends message' : 'Use Ctrl+Enter to send',
         ariaPressed: enterToSend,

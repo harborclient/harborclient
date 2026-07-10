@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(aiSidebar): replace send icon with confirmation icon. (`4cdd661`)
 - refactor: update HarborClient SDK reference and enhance footer UI components. (`02dc064`)
 
 ## 2.0.17 - 2026-07-10
