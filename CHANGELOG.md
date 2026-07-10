@@ -3,6 +3,9 @@
 ## Unreleased
 
 - feat(teamHub): add Accept Team Hub Invite functionality. (`a875960`)
+
+## 2.0.15 - 2026-07-10
+
 - feat(teamHub): implement Team Hub invitation management and token storage. (`5f83aae`)
 - feat(settings): add new warning preferences for unsaved changes and requests. (`6cd5c4f`)
 
