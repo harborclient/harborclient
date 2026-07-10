@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.0.17 - 2026-07-10
+
 - feat(action-menu): implement Action menu functionality and refactor related components. (`7c7418c`)
 - feat(aiChat): add startNewChatWithPrompt thunk for initiating chats with user prompts. (`1019fb8`)
 - fix: update references to HarborClient in comments and code. (`6997b96`)
