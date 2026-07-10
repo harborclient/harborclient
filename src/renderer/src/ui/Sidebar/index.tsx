@@ -12,10 +12,8 @@ import {
   faAnglesUp,
   faClockRotateLeft,
   faDatabase,
-  faFileImport,
   faFolder,
-  faGlobe,
-  faXmark
+  faGlobe
 } from '#/renderer/src/fontawesome';
 import {
   ResizeHandle,
@@ -44,8 +42,7 @@ import { setSelectedCollectionId } from '#/renderer/src/store/slices/collections
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import {
   selectActiveSidebarPanelId,
-  setActiveSidebarPanel,
-  setShowSidebar
+  setActiveSidebarPanel
 } from '#/renderer/src/store/slices/navigationSlice';
 import {
   createEnvironment,
@@ -61,7 +58,6 @@ import {
   exportEnvironment,
   exportRequest,
   importEnvironment,
-  importFromMenu,
   importRequest,
   mergeEnvironmentDown,
   moveRequestToFolder,
@@ -465,40 +461,10 @@ export function Sidebar({
   };
 
   /**
-   * Imports a collection, request, or environment via the same flow as File -> Import.
-   */
-  const handleImportFromMenu = useCallback((): void => {
-    void dispatch(importFromMenu()).catch((err: unknown) => {
-      showAlert(dispatch, formatErrorMessage(err, 'Failed to import'));
-    });
-  }, [dispatch]);
-
-  /**
-   * Toolbar actions for closing the sidebar, importing, section visibility, and storage badges.
+   * Toolbar actions for section visibility and storage badges.
    */
   const toolbarActions = useMemo((): ToolbarAction[] => {
     return [
-      {
-        id: 'close-sidebar',
-        icon: faXmark,
-        label: 'Close sidebar',
-        title: 'Close sidebar',
-        onClick: () => dispatch(setShowSidebar(false))
-      },
-      {
-        id: 'import',
-        icon: faFileImport,
-        label: 'Import',
-        title: 'Import',
-        onClick: handleImportFromMenu
-      },
-      {
-        id: 'collapse-all',
-        icon: faAnglesUp,
-        label: 'Collapse all',
-        title: 'Collapse all collections and folders',
-        onClick: collapseAllSidebarTrees
-      },
       {
         id: 'toggle-collections-section',
         icon: faFolder,
@@ -537,9 +503,6 @@ export function Sidebar({
       }
     ];
   }, [
-    dispatch,
-    handleImportFromMenu,
-    collapseAllSidebarTrees,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
@@ -549,6 +512,21 @@ export function Sidebar({
     showStorageLocationBadges,
     toggleStorageLocationBadges
   ]);
+
+  /**
+   * Right-aligned toolbar toggles such as collapse-all.
+   */
+  const toolbarToggles = useMemo((): ToolbarAction[] => {
+    return [
+      {
+        id: 'collapse-all',
+        icon: faAnglesUp,
+        label: 'Collapse all',
+        title: 'Collapse all collections and folders',
+        onClick: collapseAllSidebarTrees
+      }
+    ];
+  }, [collapseAllSidebarTrees]);
 
   /**
    * Imports an environment from a JSON file selected via a native dialog.
@@ -620,7 +598,11 @@ export function Sidebar({
         ) : (
           <>
             <SidebarSearch value={searchQuery} onChange={setSearchQuery} />
-            <Toolbar ariaLabel="Collections sidebar" actions={toolbarActions} />
+            <Toolbar
+              ariaLabel="Collections sidebar"
+              actions={toolbarActions}
+              toggles={toolbarToggles}
+            />
             <Scrollbars axis="vertical" className="flex-1 min-h-0 px-2 pb-3">
               {searchLoading ? (
                 <p className="mt-1.5 text-[16px] text-muted" role="status">

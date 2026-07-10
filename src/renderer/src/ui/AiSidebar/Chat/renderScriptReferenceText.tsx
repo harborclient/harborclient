@@ -1,20 +1,24 @@
 import { Children, cloneElement, isValidElement, type ReactElement, type ReactNode } from 'react';
 import {
-  resolveAiScriptReferenceName,
+  resolveAiScriptReferenceLabel,
   tokenizeChatComposerText,
   type AiScriptReferenceValidationContext
 } from '#/shared/ai/scriptReferences';
 import { ScriptReferenceBadge } from './ScriptReferenceBadge';
+
+type BubbleVariant = 'user' | 'assistant';
 
 /**
  * Renders plain text with valid `@` script references shown as name badges.
  *
  * @param text - Markdown text node content.
  * @param context - Active tab state for semantic validation.
+ * @param bubbleVariant - User or assistant bubble styling context.
  */
 export function renderScriptReferenceText(
   text: string,
-  context: AiScriptReferenceValidationContext
+  context: AiScriptReferenceValidationContext,
+  bubbleVariant: BubbleVariant
 ): ReactNode {
   if (text.length === 0) {
     return text;
@@ -30,12 +34,18 @@ export function renderScriptReferenceText(
       return token.text;
     }
 
-    const label = resolveAiScriptReferenceName(token.reference, context);
+    const label = resolveAiScriptReferenceLabel(token.reference, context);
     if (label == null) {
       return token.text;
     }
 
-    return <ScriptReferenceBadge key={index} label={label} />;
+    return (
+      <ScriptReferenceBadge
+        key={index}
+        label={label}
+        variant={bubbleVariant === 'user' ? 'onAccent' : 'default'}
+      />
+    );
   });
 }
 
@@ -44,14 +54,16 @@ export function renderScriptReferenceText(
  *
  * @param children - Rendered markdown children for a prose element.
  * @param context - Active tab state for semantic validation.
+ * @param bubbleVariant - User or assistant bubble styling context.
  */
 export function processMarkdownChildren(
   children: ReactNode,
-  context: AiScriptReferenceValidationContext
+  context: AiScriptReferenceValidationContext,
+  bubbleVariant: BubbleVariant
 ): ReactNode {
   return Children.map(children, (child) => {
     if (typeof child === 'string') {
-      return renderScriptReferenceText(child, context);
+      return renderScriptReferenceText(child, context, bubbleVariant);
     }
 
     if (typeof child === 'number' || typeof child === 'boolean' || child == null) {
@@ -59,7 +71,7 @@ export function processMarkdownChildren(
     }
 
     if (Array.isArray(child)) {
-      return processMarkdownChildren(child, context);
+      return processMarkdownChildren(child, context, bubbleVariant);
     }
 
     if (isValidElement(child)) {
@@ -71,7 +83,7 @@ export function processMarkdownChildren(
       return cloneElement(
         element,
         undefined,
-        processMarkdownChildren(element.props.children, context)
+        processMarkdownChildren(element.props.children, context, bubbleVariant)
       );
     }
 

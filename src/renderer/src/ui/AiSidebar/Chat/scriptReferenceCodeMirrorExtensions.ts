@@ -11,7 +11,7 @@ import {
 } from '@codemirror/view';
 import {
   AI_SCRIPT_REFERENCE_PATTERN,
-  resolveAiScriptReferenceName,
+  resolveAiScriptReferenceLabel,
   type AiScriptReferenceValidationContext,
   type ParsedAiScriptReference
 } from '#/shared/ai/scriptReferences';
@@ -125,6 +125,8 @@ function parseScriptReferenceMatch(
   const requestIdRaw = match[1];
   const phase = match[2];
   const scriptIndexRaw = match[3];
+  const selectionStartRaw = match[4];
+  const selectionEndRaw = match[5];
 
   if (requestIdRaw == null || phase == null || scriptIndexRaw == null) {
     return null;
@@ -150,13 +152,28 @@ function parseScriptReferenceMatch(
     return null;
   }
 
+  let selection: ParsedAiScriptReference['selection'];
+  if (selectionStartRaw != null && selectionEndRaw != null) {
+    const selectionStart = Number(selectionStartRaw);
+    const selectionEnd = Number(selectionEndRaw);
+    if (
+      Number.isInteger(selectionStart) &&
+      Number.isInteger(selectionEnd) &&
+      selectionStart >= 0 &&
+      selectionEnd > selectionStart
+    ) {
+      selection = { start: selectionStart, end: selectionEnd };
+    }
+  }
+
   return {
     requestId,
     phase,
     scriptIndex,
     start,
     end: start + text.length,
-    text
+    text,
+    selection
   };
 }
 
@@ -178,7 +195,7 @@ function createScriptReferenceHighlighter(context: AiScriptReferenceValidationCo
         return null;
       }
 
-      const label = resolveAiScriptReferenceName(parsed, context);
+      const label = resolveAiScriptReferenceLabel(parsed, context);
       if (label == null) {
         return null;
       }

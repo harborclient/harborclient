@@ -121,10 +121,10 @@ export function ResponseSummary({
       </div>
 
       {showActions && (
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-2">
           <Button
             type="button"
-            variant="toolbar"
+            variant="secondary"
             className="disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canCopyOrExport}
             onClick={onCopy}
@@ -133,7 +133,7 @@ export function ResponseSummary({
           </Button>
           <Button
             type="button"
-            variant="toolbar"
+            variant="secondary"
             className="disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canCopyOrExport}
             onClick={onExport}
@@ -143,7 +143,7 @@ export function ResponseSummary({
           {onClear != null && (
             <Button
               type="button"
-              variant="toolbar"
+              variant="secondary"
               className="disabled:cursor-not-allowed disabled:opacity-50"
               disabled={!canClear}
               onClick={onClear}

@@ -7,12 +7,9 @@ import {
 import { useEffect, useMemo, useRef, type JSX } from 'react';
 import { hasAvailableAiModels } from '#/shared/ai/models';
 
-import { faClockRotateLeft, faPaperPlane, faXmark } from '#/renderer/src/fontawesome';
+import { faClockRotateLeft, faPaperPlane } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
-import {
-  selectAiSidebarVisible,
-  setShowAiSidebar
-} from '#/renderer/src/store/slices/navigationSlice';
+import { selectAiSidebarVisible } from '#/renderer/src/store/slices/navigationSlice';
 import {
   selectEnterToSend,
   selectHistoryOpen,
@@ -67,17 +64,10 @@ export function AiSidebar(): JSX.Element {
   }, [aiSidebarVisible, dispatch]);
 
   /**
-   * Toolbar actions for closing the AI sidebar, chat history, and enter-to-send.
+   * Toolbar actions for chat history and enter-to-send.
    */
   const toolbarActions = useMemo((): ToolbarAction[] => {
     return [
-      {
-        id: 'close-ai-sidebar',
-        icon: faXmark,
-        label: 'Close AI sidebar',
-        title: 'Close AI sidebar',
-        onClick: () => dispatch(setShowAiSidebar(false))
-      },
       {
         id: 'chat-history',
         icon: faClockRotateLeft,

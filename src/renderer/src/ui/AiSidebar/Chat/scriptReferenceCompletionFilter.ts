@@ -8,7 +8,7 @@ import {
 import {
   AI_SCRIPT_REFERENCE_PATTERN,
   findAiScriptReferenceCandidates,
-  resolveAiScriptReferenceName,
+  resolveAiScriptReferenceLabel,
   type AiScriptReferenceValidationContext,
   type ParsedAiScriptReference
 } from '#/shared/ai/scriptReferences';
@@ -30,6 +30,8 @@ function parseAnchoredReference(text: string): ParsedAiScriptReference | null {
   const requestIdRaw = match[1];
   const phase = match[2];
   const scriptIndexRaw = match[3];
+  const selectionStartRaw = match[4];
+  const selectionEndRaw = match[5];
   if (requestIdRaw == null || phase == null || scriptIndexRaw == null) {
     return null;
   }
@@ -52,7 +54,29 @@ function parseAnchoredReference(text: string): ParsedAiScriptReference | null {
     return null;
   }
 
-  return { requestId, phase, scriptIndex, start: 0, end: match[0].length, text: match[0] };
+  let selection: ParsedAiScriptReference['selection'];
+  if (selectionStartRaw != null && selectionEndRaw != null) {
+    const selectionStart = Number(selectionStartRaw);
+    const selectionEnd = Number(selectionEndRaw);
+    if (
+      Number.isInteger(selectionStart) &&
+      Number.isInteger(selectionEnd) &&
+      selectionStart >= 0 &&
+      selectionEnd > selectionStart
+    ) {
+      selection = { start: selectionStart, end: selectionEnd };
+    }
+  }
+
+  return {
+    requestId,
+    phase,
+    scriptIndex,
+    start: 0,
+    end: match[0].length,
+    text: match[0],
+    selection
+  };
 }
 
 /**
@@ -115,7 +139,7 @@ export function createScriptReferenceCompletionFilter(
     }
 
     for (const candidate of candidates) {
-      const resolvedName = resolveAiScriptReferenceName(candidate, context);
+      const resolvedName = resolveAiScriptReferenceLabel(candidate, context);
       if (resolvedName == null) {
         continue;
       }
@@ -151,7 +175,7 @@ export function createScriptReferenceCompletionFilter(
           start: head,
           end: head + anchored.end
         };
-        const resolvedName = resolveAiScriptReferenceName(shifted, context);
+        const resolvedName = resolveAiScriptReferenceLabel(shifted, context);
         if (resolvedName != null) {
           const insertSpace = ChangeSet.of([{ from: head, insert: ' ' }], tr.newDoc.length);
           return {

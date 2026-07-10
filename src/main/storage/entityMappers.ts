@@ -326,7 +326,8 @@ export function rowToChatSummary(row: Record<string, unknown>): ChatSummary {
     id: readNumber(row.id),
     title: readString(row.title),
     ...(model ? { model } : {}),
-    updated_at: readTimestamp(row.updated_at)
+    updated_at: readTimestamp(row.updated_at),
+    message_count: readNumber(row.message_count)
   };
 }
 
@@ -359,6 +360,7 @@ export function rowToChat(
 ): Chat {
   return {
     ...rowToChatSummary(summaryRow),
+    message_count: messageRows.length,
     created_at: readTimestamp(summaryRow.created_at),
     messages: messageRows.map(rowToChatMessage)
   };

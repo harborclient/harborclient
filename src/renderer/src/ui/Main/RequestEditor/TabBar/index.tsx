@@ -17,8 +17,7 @@ import {
   sortableKeyboardCoordinates
 } from '@dnd-kit/sortable';
 import { FaIcon, resolveTabListKeyAction } from '@harborclient/sdk/components';
-import type { JSX, KeyboardEvent } from 'react';
-import { useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState, type JSX, type KeyboardEvent } from 'react';
 import { isPageTab, isRequestTab, type Tab } from '#/renderer/src/store/drafts';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import {
@@ -45,6 +44,8 @@ import {
 import { TabItem } from './TabItem';
 import { TabContextMenu } from '#/renderer/src/ui/shared/TabContextMenu';
 import { buildTabCloseMenuGroups } from '#/renderer/src/ui/shared/tabContextMenuHelpers';
+import { ClosingTabShell } from '#/renderer/src/ui/shared/ClosingTabShell';
+import { useExitingTabItems } from '#/renderer/src/ui/shared/useExitingTabItems';
 
 interface TabContextMenuState {
   /**
@@ -203,6 +204,33 @@ export function TabBar({
   const [activeDragTabId, setActiveDragTabId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<TabContextMenuState | null>(null);
   const sortableEnabled = tabs.length >= 2;
+  const { exiting, completeExit, getExitingBefore, removedIds } = useExitingTabItems(
+    tabs,
+    (tab) => tab.tabId
+  );
+
+  /**
+   * Moves focus to the active tab when the focused tab row was just removed.
+   */
+  useEffect(() => {
+    if (removedIds.length === 0) {
+      return;
+    }
+
+    const focusedTab = document.activeElement?.closest('[role="tab"]');
+    if (!(focusedTab instanceof HTMLElement) || !focusedTab.id.startsWith(REQUEST_TAB_ID_PREFIX)) {
+      return;
+    }
+
+    const focusedTabId = focusedTab.id.slice(REQUEST_TAB_ID_PREFIX.length);
+    if (!removedIds.includes(focusedTabId) || !activeTabId) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      focusRequestTabControl(activeTabId);
+    });
+  }, [activeTabId, removedIds]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -238,8 +266,14 @@ export function TabBar({
    * Resolves display metadata for each page tab using current entity names.
    */
   const pageTabDisplays = useMemo(() => {
+    const liveTabIds = new Set(tabs.map((tab) => tab.tabId));
+    const tabsForDisplay = [
+      ...tabs,
+      ...exiting.map((entry) => entry.item).filter((tab) => !liveTabIds.has(tab.tabId))
+    ];
+
     const displays = new Map<string, ReturnType<typeof pageTabMeta>>();
-    for (const tab of tabs) {
+    for (const tab of tabsForDisplay) {
       if (!isPageTab(tab)) {
         continue;
       }
@@ -293,7 +327,15 @@ export function TabBar({
       );
     }
     return displays;
-  }, [tabs, collections, allEnvironments, foldersByCollection, requestsByCollection, teamHubs]);
+  }, [
+    tabs,
+    exiting,
+    collections,
+    allEnvironments,
+    foldersByCollection,
+    requestsByCollection,
+    teamHubs
+  ]);
 
   /**
    * Tab currently being dragged for overlay preview.
@@ -412,25 +454,70 @@ export function TabBar({
                 {tabs.map((tab) => {
                   const pageDisplay = pageTabDisplays.get(tab.tabId);
                   return (
-                    <TabItem
-                      key={tab.tabId}
-                      tab={tab}
-                      active={tab.tabId === activeTabId}
-                      tabIndex={0}
-                      sortableId={requestTabSortableId(tab.tabId)}
-                      sortableDisabled={!sortableEnabled}
-                      pageTitle={pageDisplay?.title}
-                      pageIcon={pageDisplay?.icon}
-                      onSelect={onSelect}
-                      onClose={onClose}
-                      onContextMenu={(tabId, event) => {
-                        setContextMenu({
-                          tabId,
-                          x: event.clientX,
-                          y: event.clientY
-                        });
-                      }}
-                    />
+                    <Fragment key={tab.tabId}>
+                      {getExitingBefore(tab.tabId).map((exitingTab) => {
+                        const exitingPageDisplay = pageTabDisplays.get(exitingTab.item.tabId);
+                        return (
+                          <ClosingTabShell
+                            key={exitingTab.exitKey}
+                            onComplete={() => completeExit(exitingTab.exitKey)}
+                          >
+                            <TabItem
+                              tab={exitingTab.item}
+                              active={false}
+                              exiting
+                              tabIndex={-1}
+                              sortableId={requestTabSortableId(exitingTab.item.tabId)}
+                              sortableDisabled
+                              pageTitle={exitingPageDisplay?.title}
+                              pageIcon={exitingPageDisplay?.icon}
+                              onSelect={onSelect}
+                              onClose={onClose}
+                            />
+                          </ClosingTabShell>
+                        );
+                      })}
+                      <TabItem
+                        tab={tab}
+                        active={tab.tabId === activeTabId}
+                        tabIndex={0}
+                        sortableId={requestTabSortableId(tab.tabId)}
+                        sortableDisabled={!sortableEnabled}
+                        pageTitle={pageDisplay?.title}
+                        pageIcon={pageDisplay?.icon}
+                        onSelect={onSelect}
+                        onClose={onClose}
+                        onContextMenu={(tabId, event) => {
+                          setContextMenu({
+                            tabId,
+                            x: event.clientX,
+                            y: event.clientY
+                          });
+                        }}
+                      />
+                    </Fragment>
+                  );
+                })}
+                {getExitingBefore(null).map((exitingTab) => {
+                  const exitingPageDisplay = pageTabDisplays.get(exitingTab.item.tabId);
+                  return (
+                    <ClosingTabShell
+                      key={exitingTab.exitKey}
+                      onComplete={() => completeExit(exitingTab.exitKey)}
+                    >
+                      <TabItem
+                        tab={exitingTab.item}
+                        active={false}
+                        exiting
+                        tabIndex={-1}
+                        sortableId={requestTabSortableId(exitingTab.item.tabId)}
+                        sortableDisabled
+                        pageTitle={exitingPageDisplay?.title}
+                        pageIcon={exitingPageDisplay?.icon}
+                        onSelect={onSelect}
+                        onClose={onClose}
+                      />
+                    </ClosingTabShell>
                   );
                 })}
               </SortableContext>

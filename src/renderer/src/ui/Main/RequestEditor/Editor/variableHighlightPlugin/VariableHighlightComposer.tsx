@@ -16,6 +16,12 @@ interface TooltipState {
   left: number;
 }
 
+/** Delay after the pointer stops moving before a hover tooltip is shown. */
+const TOOLTIP_SHOW_DELAY_MS = 500;
+
+/** Grace period before hiding so the pointer can reach the tooltip. */
+const TOOLTIP_HIDE_DELAY_MS = 400;
+
 /**
  * Resolves the main rich-text contenteditable element inside the MDXEditor wrapper.
  *
@@ -42,6 +48,7 @@ export function VariableHighlightComposer(): JSX.Element | null {
   const contentEditableRef = useCellValue(contentEditableRef$);
   const matchesRef = useRef<VariableHighlightMatch[]>([]);
   const hideTimerRef = useRef<number | null>(null);
+  const showTimerRef = useRef<number | null>(null);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const tooltipId = useId();
 
@@ -60,8 +67,36 @@ export function VariableHighlightComposer(): JSX.Element | null {
    */
   const scheduleHide = useCallback((): void => {
     cancelHide();
-    hideTimerRef.current = window.setTimeout(() => setTooltip(null), 400);
+    hideTimerRef.current = window.setTimeout(() => setTooltip(null), TOOLTIP_HIDE_DELAY_MS);
   }, [cancelHide]);
+
+  /**
+   * Clears any pending tooltip show timer.
+   */
+  const cancelShow = useCallback((): void => {
+    if (showTimerRef.current != null) {
+      window.clearTimeout(showTimerRef.current);
+      showTimerRef.current = null;
+    }
+  }, []);
+
+  /**
+   * Shows the tooltip once the pointer has stopped moving for {@link TOOLTIP_SHOW_DELAY_MS}.
+   *
+   * @param key - Variable name from the hovered {{key}} token.
+   * @param top - Screen Y coordinate for tooltip placement.
+   * @param left - Screen X coordinate for tooltip placement.
+   */
+  const scheduleShow = useCallback(
+    (key: string, top: number, left: number): void => {
+      cancelShow();
+      showTimerRef.current = window.setTimeout(() => {
+        showTimerRef.current = null;
+        setTooltip({ key, top, left });
+      }, TOOLTIP_SHOW_DELAY_MS);
+    },
+    [cancelShow]
+  );
 
   /**
    * Refreshes CSS Custom Highlight ranges for variable tokens in the rich-text area.
@@ -110,7 +145,7 @@ export function VariableHighlightComposer(): JSX.Element | null {
     }
 
     /**
-     * Shows a tooltip when the pointer is over a highlighted {{variable}} token.
+     * Shows a tooltip when the pointer rests over a highlighted {{variable}} token.
      *
      * @param event - Mouse move event from the contenteditable root.
      */
@@ -119,32 +154,44 @@ export function VariableHighlightComposer(): JSX.Element | null {
       const match = findVariableHighlightAtPoint(matchesRef.current, event.clientX, event.clientY);
 
       if (!match) {
+        cancelShow();
         scheduleHide();
         return;
       }
 
       const rect = match.range.getBoundingClientRect();
-      setTooltip({
-        key: match.key,
-        top: rect.top,
-        left: rect.left + rect.width / 2
-      });
+      scheduleShow(match.key, rect.top, rect.left + rect.width / 2);
+    };
+
+    /**
+     * Cancels a pending show and hides the tooltip when the pointer leaves the editor.
+     */
+    const handleMouseLeave = (): void => {
+      cancelShow();
+      scheduleHide();
     };
 
     root.addEventListener('mousemove', handleMouseMove);
-    root.addEventListener('mouseleave', scheduleHide);
+    root.addEventListener('mouseleave', handleMouseLeave);
 
     return () => {
       root.removeEventListener('mousemove', handleMouseMove);
-      root.removeEventListener('mouseleave', scheduleHide);
+      root.removeEventListener('mouseleave', handleMouseLeave);
       cancelHide();
+      cancelShow();
     };
-  }, [contentEditableRef, cancelHide, scheduleHide]);
+  }, [contentEditableRef, cancelHide, cancelShow, scheduleHide, scheduleShow]);
 
   /**
    * Clears pending tooltip timers when the composer unmounts.
    */
-  useEffect(() => () => cancelHide(), [cancelHide]);
+  useEffect(
+    () => () => {
+      cancelHide();
+      cancelShow();
+    },
+    [cancelHide, cancelShow]
+  );
 
   const tooltipContent = tooltip ? getVariableTooltipContent(tooltip.key, variables) : null;
 

@@ -3,6 +3,7 @@ import {
   buildPluginInstallDeepLink,
   buildRunResultsDeepLink,
   buildSnippetInstallDeepLink,
+  buildTeamHubJoinDeepLink,
   buildThemeInstallDeepLink,
   parseHarborDeepLink
 } from '#/shared/deepLink';
@@ -42,6 +43,30 @@ describe('parseHarborDeepLink', () => {
       action: 'open-run-results',
       uuid: '550e8400-e29b-41d4-a716-446655440000'
     });
+  });
+
+  it('parses a valid Team Hub join URL', () => {
+    expect(
+      parseHarborDeepLink(
+        'harborclient://team-hub/join?url=http%3A%2F%2F127.0.0.1%3A8788&code=hbi_testinvitationcode123'
+      )
+    ).toEqual({
+      action: 'join-team-hub',
+      baseUrl: 'http://127.0.0.1:8788',
+      code: 'hbi_testinvitationcode123'
+    });
+  });
+
+  it('returns null for invalid Team Hub join URLs', () => {
+    expect(parseHarborDeepLink('harborclient://team-hub/join')).toBeNull();
+    expect(
+      parseHarborDeepLink(
+        'harborclient://team-hub/join?url=ftp://example.com&code=hbi_abc123456789'
+      )
+    ).toBeNull();
+    expect(
+      parseHarborDeepLink('harborclient://team-hub/join?url=http://127.0.0.1:8788&code=not-valid')
+    ).toBeNull();
   });
 
   it('returns null for the wrong protocol', () => {
@@ -109,6 +134,17 @@ describe('buildRunResultsDeepLink', () => {
     expect(parseHarborDeepLink(url)).toEqual({
       action: 'open-run-results',
       uuid: '550e8400-e29b-41d4-a716-446655440000'
+    });
+  });
+});
+
+describe('buildTeamHubJoinDeepLink', () => {
+  it('builds a join URL that round-trips through the parser', () => {
+    const url = buildTeamHubJoinDeepLink('http://127.0.0.1:8788', 'hbi_testinvitationcode123');
+    expect(parseHarborDeepLink(url)).toEqual({
+      action: 'join-team-hub',
+      baseUrl: 'http://127.0.0.1:8788',
+      code: 'hbi_testinvitationcode123'
     });
   });
 });

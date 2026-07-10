@@ -14,8 +14,12 @@ import { selectChatHistory } from '#/renderer/src/store/slices/aiChatSlice';
 import { deleteChatThunk } from '#/renderer/src/store/thunks/aiChat';
 import {
   filterChats,
+  filterChatsWithMessages,
   groupChatsByDay,
+  hasRecentDayGroups,
   splitRecentAndOlder,
+  truncateFlatChats,
+  truncateGroupChats,
   type ChatHistoryGroup
 } from '#/renderer/src/ui/AiSidebar/Chat/chatHistoryGrouping';
 import {
@@ -96,6 +100,18 @@ interface ChatHistoryGroupSectionProps {
   onOpenChat: (chatId: number) => void;
 }
 
+interface ChatHistoryShowMoreButtonProps {
+  /**
+   * Accessible name describing what additional items will be revealed.
+   */
+  label: string;
+
+  /**
+   * Reveals the remaining hidden items.
+   */
+  onClick: () => void;
+}
+
 /**
  * Computes fixed menu coordinates aligned to the right edge of the anchor button.
  *
@@ -166,6 +182,25 @@ function ChatHistoryRow({
 }
 
 /**
+ * Shared Show more control for section and flat-list pagination.
+ */
+function ChatHistoryShowMoreButton({
+  label,
+  onClick
+}: ChatHistoryShowMoreButtonProps): JSX.Element {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      className="mx-1 mt-1 w-[calc(100%-0.5rem)] cursor-pointer rounded-md border-none bg-transparent px-2 py-1.5 text-left text-[16px] text-accent hover:bg-selection app-no-drag"
+      onClick={onClick}
+    >
+      Show more
+    </button>
+  );
+}
+
+/**
  * Renders one day section with a muted heading and chat rows.
  */
 function ChatHistoryGroupSection({
@@ -204,24 +239,46 @@ export function ChatHistory({ anchorRef, onClose, onOpenChat }: Props): JSX.Elem
   const [position, setPosition] = useState<MenuPosition | null>(null);
   const [query, setQuery] = useState('');
   const [showOlder, setShowOlder] = useState(false);
+  const [expandedGroupKeys, setExpandedGroupKeys] = useState<ReadonlySet<string>>(() => new Set());
+  const [showAllFlat, setShowAllFlat] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const filteredChats = useMemo(() => filterChats(chats, query), [chats, query]);
+  /**
+   * Chats with at least one persisted message for the history popover.
+   */
+  const chatsWithMessages = useMemo(() => filterChatsWithMessages(chats), [chats]);
+
+  const filteredChats = useMemo(
+    () => filterChats(chatsWithMessages, query),
+    [chatsWithMessages, query]
+  );
   const groups = useMemo(() => groupChatsByDay(filteredChats, new Date()), [filteredChats]);
   const { recent, older } = useMemo(() => splitRecentAndOlder(groups), [groups]);
+  const hasRecent = useMemo(() => hasRecentDayGroups(groups), [groups]);
   const isSearching = query.trim().length > 0;
 
   /**
    * Groups shown in the scroll region based on search and Show more state.
    */
   const visibleGroups = useMemo((): ChatHistoryGroup[] => {
-    if (isSearching) {
+    if (isSearching || !hasRecent) {
       return groups;
     }
 
     return showOlder ? [...recent, ...older] : recent;
-  }, [groups, isSearching, older, recent, showOlder]);
+  }, [groups, hasRecent, isSearching, older, recent, showOlder]);
+
+  /**
+   * Flat chat list shown when no Today or Yesterday groups exist.
+   */
+  const flatHistory = useMemo(() => {
+    if (isSearching || hasRecent) {
+      return null;
+    }
+
+    return truncateFlatChats(filteredChats, showAllFlat);
+  }, [filteredChats, hasRecent, isSearching, showAllFlat]);
 
   /**
    * Focuses the search field when the history panel opens.
@@ -229,6 +286,18 @@ export function ChatHistory({ anchorRef, onClose, onOpenChat }: Props): JSX.Elem
   useEffect(() => {
     searchInputRef.current?.focus();
   }, []);
+
+  /**
+   * Updates the search query and resets pagination state for the new filter.
+   *
+   * @param nextQuery - Updated search text.
+   */
+  const handleQueryChange = (nextQuery: string): void => {
+    setQuery(nextQuery);
+    setExpandedGroupKeys(new Set());
+    setShowOlder(false);
+    setShowAllFlat(false);
+  };
 
   /**
    * Tracks anchor movement while the menu is open so fixed coordinates stay aligned.
@@ -322,37 +391,81 @@ export function ChatHistory({ anchorRef, onClose, onOpenChat }: Props): JSX.Elem
             placeholder="Search chats"
             value={query}
             className="w-full"
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => handleQueryChange(event.target.value)}
           />
         </FormGroup>
       </div>
 
       <div className="flex-1 overflow-y-auto py-1">
-        {chats.length === 0 ? (
+        {chatsWithMessages.length === 0 ? (
           <EmptyState className="px-3 py-2">No previous chats</EmptyState>
         ) : filteredChats.length === 0 ? (
           <EmptyState className="px-3 py-2">No matching chats</EmptyState>
         ) : (
           <>
-            {visibleGroups.map((group) => (
-              <ChatHistoryGroupSection
-                key={group.key}
-                group={group}
-                openMenuId={openMenuId}
-                onOpenMenuChange={setOpenMenuId}
-                onOpenChat={onOpenChat}
-              />
-            ))}
+            {isSearching ? (
+              visibleGroups.map((group) => (
+                <ChatHistoryGroupSection
+                  key={group.key}
+                  group={group}
+                  openMenuId={openMenuId}
+                  onOpenMenuChange={setOpenMenuId}
+                  onOpenChat={onOpenChat}
+                />
+              ))
+            ) : hasRecent ? (
+              <>
+                {visibleGroups.map((group) => {
+                  const isExpanded = expandedGroupKeys.has(group.key);
+                  const { group: truncatedGroup, hasMore } = truncateGroupChats(group, isExpanded);
 
-            {!isSearching && older.length > 0 && !showOlder ? (
-              <button
-                type="button"
-                className="mx-1 mt-1 w-[calc(100%-0.5rem)] cursor-pointer rounded-md border-none bg-transparent px-2 py-1.5 text-left text-[14px] text-accent hover:bg-selection app-no-drag"
-                onClick={() => setShowOlder(true)}
-              >
-                Show more
-              </button>
-            ) : null}
+                  return (
+                    <div key={group.key}>
+                      <ChatHistoryGroupSection
+                        group={truncatedGroup}
+                        openMenuId={openMenuId}
+                        onOpenMenuChange={setOpenMenuId}
+                        onOpenChat={onOpenChat}
+                      />
+                      {hasMore ? (
+                        <ChatHistoryShowMoreButton
+                          label={`Show more chats from ${group.label}`}
+                          onClick={() => {
+                            setExpandedGroupKeys((previous) => new Set([...previous, group.key]));
+                          }}
+                        />
+                      ) : null}
+                    </div>
+                  );
+                })}
+
+                {older.length > 0 && !showOlder ? (
+                  <ChatHistoryShowMoreButton
+                    label="Show more chat history"
+                    onClick={() => setShowOlder(true)}
+                  />
+                ) : null}
+              </>
+            ) : (
+              <>
+                {flatHistory?.chats.map((chat) => (
+                  <ChatHistoryRow
+                    key={chat.id}
+                    chat={chat}
+                    openMenuId={openMenuId}
+                    onOpenMenuChange={setOpenMenuId}
+                    onOpenChat={onOpenChat}
+                  />
+                ))}
+
+                {flatHistory?.hasMore ? (
+                  <ChatHistoryShowMoreButton
+                    label="Show more chats"
+                    onClick={() => setShowAllFlat(true)}
+                  />
+                ) : null}
+              </>
+            )}
           </>
         )}
       </div>

@@ -1,7 +1,9 @@
 import { useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
+import { buildTeamHubJoinDeepLink } from '#/shared/deepLink';
 import type {
   CreateHubUserInput,
+  CreateInvitedHubUserInput,
   HubUserRecord,
   TeamHub,
   TeamHubAdminResourceOptions,
@@ -22,14 +24,17 @@ import {
   ResourceListRow
 } from '@harborclient/sdk/components';
 import { faUsers } from '#/renderer/src/fontawesome';
+import { useTeamHubInvitations } from '#/renderer/src/hooks/useTeamHubInvitations';
 import { useTeamHubUsers } from '#/renderer/src/hooks/useTeamHubUsers';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { refreshCollections } from '#/renderer/src/store/thunks/collections';
+import { TeamInvitationLinkDialog } from '#/renderer/src/ui/TeamHub/TeamInvitationLinkDialog';
 import { TeamSecretDialog } from '#/renderer/src/ui/TeamHub/TeamSecretDialog';
 import { TeamUserForm } from '#/renderer/src/ui/TeamHub/TeamUserForm';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
 
 const editFormId = 'team-user-edit-form';
+const inviteFormId = 'team-user-invite-form';
 const createFormId = 'team-user-create-form';
 
 interface Props {
@@ -40,21 +45,58 @@ interface Props {
 }
 
 /**
+ * Maps invitation lifecycle status to badge variant styling.
+ *
+ * @param status - Derived invitation status from the server.
+ */
+function invitationBadgeVariant(status: string): 'success' | 'warning' | 'danger' | 'muted' {
+  if (status === 'pending') {
+    return 'warning';
+  }
+  if (status === 'redeemed') {
+    return 'success';
+  }
+  if (status === 'revoked' || status === 'expired') {
+    return 'danger';
+  }
+  return 'muted';
+}
+
+/**
  * Team Hub user administration view for operator tokens.
  */
 export function TeamManageView({ hub }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const { users, loading, error, reload } = useTeamHubUsers(hub.id);
+  const {
+    invitations,
+    loading: invitationsLoading,
+    error: invitationsError,
+    reload: reloadInvitations
+  } = useTeamHubInvitations(hub.id);
   const [editingUser, setEditingUser] = useState<HubUserRecord | null>(null);
+  const [invitingUser, setInvitingUser] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
   const [createdSecret, setCreatedSecret] = useState<string | null>(null);
+  const [invitationLink, setInvitationLink] = useState<string | null>(null);
   const [deletingUser, setDeletingUser] = useState<HubUserRecord | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [revokingInvitationId, setRevokingInvitationId] = useState<string | null>(null);
+  const [reissuingUserId, setReissuingUserId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [resourceOptions, setResourceOptions] = useState<TeamHubAdminResourceOptions | null>(null);
   const [optionsLoading, setOptionsLoading] = useState(false);
+
+  /**
+   * Resolves a user display name from the loaded user list.
+   *
+   * @param userId - User account identifier from an invitation record.
+   */
+  const resolveUserName = (userId: string): string => {
+    return users.find((user) => user.id === userId)?.name || userId;
+  };
 
   /**
    * Loads autocomplete options for the selected hub.
@@ -79,6 +121,20 @@ export function TeamManageView({ hub }: Props): JSX.Element {
   };
 
   /**
+   * Closes the invite modal and clears action errors.
+   */
+  const closeInviteModal = (): void => {
+    if (saving) {
+      return;
+    }
+
+    setInvitingUser(false);
+    setResourceOptions(null);
+    setOptionsLoading(false);
+    setActionError(null);
+  };
+
+  /**
    * Closes the create modal and clears action errors.
    */
   const closeCreateModal = (): void => {
@@ -90,6 +146,15 @@ export function TeamManageView({ hub }: Props): JSX.Element {
     setResourceOptions(null);
     setOptionsLoading(false);
     setActionError(null);
+  };
+
+  /**
+   * Opens the invite user modal and loads resource options.
+   */
+  const handleInviteClick = (): void => {
+    setActionError(null);
+    setInvitingUser(true);
+    loadResourceOptions();
   };
 
   /**
@@ -177,6 +242,30 @@ export function TeamManageView({ hub }: Props): JSX.Element {
   };
 
   /**
+   * Creates an invited user account and shows the one-time join link.
+   *
+   * @param input - User fields for the invited account.
+   */
+  const handleInviteUser = async (input: CreateInvitedHubUserInput): Promise<void> => {
+    setSaving(true);
+    setActionError(null);
+
+    try {
+      const created = await window.api.createTeamHubInvitedUser(hub.id, input);
+      setInvitingUser(false);
+      setInvitationLink(buildTeamHubJoinDeepLink(hub.baseUrl, created.secret));
+      reload();
+      reloadInvitations();
+      await dispatch(refreshCollections());
+      toast.success('Invitation created.');
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /**
    * Creates a user account and shows the one-time token secret.
    *
    * @param input - User fields for the new account.
@@ -223,6 +312,47 @@ export function TeamManageView({ hub }: Props): JSX.Element {
     }
   };
 
+  /**
+   * Revokes a pending invitation so it can no longer be redeemed.
+   *
+   * @param invitationId - Invitation record identifier.
+   */
+  const handleRevokeInvitation = async (invitationId: string): Promise<void> => {
+    setRevokingInvitationId(invitationId);
+    setActionError(null);
+
+    try {
+      await window.api.revokeTeamHubInvitation(hub.id, invitationId);
+      reloadInvitations();
+      toast.success('Invitation revoked.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRevokingInvitationId(null);
+    }
+  };
+
+  /**
+   * Reissues an onboarding invitation for an existing user account.
+   *
+   * @param userId - User account identifier.
+   */
+  const handleReissueInvitation = async (userId: string): Promise<void> => {
+    setReissuingUserId(userId);
+    setActionError(null);
+
+    try {
+      const created = await window.api.createTeamHubUserInvitation(hub.id, userId);
+      setInvitationLink(buildTeamHubJoinDeepLink(hub.baseUrl, created.secret));
+      reloadInvitations();
+      toast.success('Invitation reissued.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setReissuingUserId(null);
+    }
+  };
+
   return (
     <Page
       embedded
@@ -230,9 +360,19 @@ export function TeamManageView({ hub }: Props): JSX.Element {
       icon={faUsers}
       description={`${hub.name || 'Untitled'} · ${hub.baseUrl}`}
       actions={
-        <Button type="button" className="shrink-0 whitespace-nowrap" onClick={handleCreateClick}>
-          Create user
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            type="button"
+            variant="toolbar"
+            className="whitespace-nowrap"
+            onClick={handleCreateClick}
+          >
+            Create user
+          </Button>
+          <Button type="button" className="whitespace-nowrap" onClick={handleInviteClick}>
+            Invite user
+          </Button>
+        </div>
       }
     >
       <AsyncListState
@@ -273,6 +413,59 @@ export function TeamManageView({ hub }: Props): JSX.Element {
         </ResourceList>
       </AsyncListState>
 
+      <div className="mt-8">
+        <h3 className="mb-3 text-[15px] font-semibold">Invitations</h3>
+        <AsyncListState
+          loading={invitationsLoading}
+          error={invitationsError}
+          onRetry={reloadInvitations}
+          isEmpty={invitations.length === 0}
+          emptyMessage="No invitations found."
+        >
+          <ResourceList>
+            {invitations.map((invitation) => (
+              <ResourceListRow
+                key={invitation.id}
+                primary={
+                  <div className="flex min-w-0 items-center gap-2">
+                    <ResourceListPrimary>{resolveUserName(invitation.userId)}</ResourceListPrimary>
+                    <Badge variant={invitationBadgeVariant(invitation.status)}>
+                      {invitation.status}
+                    </Badge>
+                  </div>
+                }
+                secondary={`${invitation.codePrefix} · expires ${new Date(invitation.expiresAt).toLocaleString()}`}
+                actions={
+                  <>
+                    {invitation.status === 'pending' ? (
+                      <Button
+                        type="button"
+                        variant="toolbar"
+                        className={toolbarDangerButtonClass}
+                        disabled={revokingInvitationId === invitation.id}
+                        onClick={() => void handleRevokeInvitation(invitation.id)}
+                      >
+                        {revokingInvitationId === invitation.id ? 'Revoking…' : 'Revoke'}
+                      </Button>
+                    ) : null}
+                    {invitation.status !== 'pending' ? (
+                      <Button
+                        type="button"
+                        variant="toolbar"
+                        disabled={reissuingUserId === invitation.userId}
+                        onClick={() => void handleReissueInvitation(invitation.userId)}
+                      >
+                        {reissuingUserId === invitation.userId ? 'Reissuing…' : 'Reissue'}
+                      </Button>
+                    ) : null}
+                  </>
+                }
+              />
+            ))}
+          </ResourceList>
+        </AsyncListState>
+      </div>
+
       {editingUser && (
         <Modal
           className="w-[520px]"
@@ -307,6 +500,37 @@ export function TeamManageView({ hub }: Props): JSX.Element {
         </Modal>
       )}
 
+      {invitingUser && (
+        <Modal
+          className="w-[520px]"
+          labelledBy="team-user-invite-title"
+          onClose={closeInviteModal}
+          title="Invite user"
+          description="Creates a user account and a one-time join link. Share the link instead of handing off a raw API token."
+          closeDisabled={saving}
+          disableEscape={saving}
+        >
+          <ModalFormLayout
+            error={actionError ? <FieldError spacing="modal">{actionError}</FieldError> : null}
+            actions={
+              <Button type="submit" form={inviteFormId} disabled={saving}>
+                {saving ? 'Inviting…' : 'Create invitation'}
+              </Button>
+            }
+          >
+            <TeamUserForm
+              key="invite-user"
+              mode="create"
+              disabled={saving}
+              resourceOptions={resourceOptions}
+              optionsLoading={optionsLoading}
+              formId={inviteFormId}
+              onSubmit={handleInviteUser}
+            />
+          </ModalFormLayout>
+        </Modal>
+      )}
+
       {creatingUser && (
         <Modal
           className="w-[520px]"
@@ -336,6 +560,15 @@ export function TeamManageView({ hub }: Props): JSX.Element {
             />
           </ModalFormLayout>
         </Modal>
+      )}
+
+      {invitationLink && (
+        <TeamInvitationLinkDialog
+          title="Invitation created"
+          description="Copy this join link now. It contains a one-time invitation code and will not be shown again."
+          joinLink={invitationLink}
+          onClose={() => setInvitationLink(null)}
+        />
       )}
 
       {createdSecret && (

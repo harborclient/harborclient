@@ -73,6 +73,7 @@ import {
   selectCodeEditorTheme
 } from '#/renderer/src/store/slices/settingsSlice';
 import { Footer } from '#/renderer/src/ui/Footer';
+import { FooterPanels } from '#/renderer/src/ui/Footer/FooterPanels';
 import { AnimatedHorizontalPanel } from '#/renderer/src/ui/shared/AnimatedHorizontalPanel';
 import {
   DEFAULT_TOAST_ARIA_PROPS,
@@ -86,6 +87,7 @@ import { PluginThemePrompt } from '#/renderer/src/plugins/PluginThemePrompt';
 import { ThemePickerModal } from '#/renderer/src/ui/modals/ThemePickerModal';
 import { ShortcutsReferenceModal } from '#/renderer/src/ui/modals/ShortcutsReferenceModal';
 import { SearchAnythingModal } from '#/renderer/src/ui/modals/SearchAnythingModal';
+import { TeamHubJoinDeepLinkHost } from '#/renderer/src/ui/TeamHub/TeamHubJoinDeepLinkHost';
 import { applyThemeAttribute, subscribeContrastPreferenceChanges } from '#/renderer/src/theme';
 import { platformClassName } from '#/renderer/src/platform';
 
@@ -302,7 +304,7 @@ export default function App(): JSX.Element {
               <main
                 id="main-content"
                 tabIndex={-1}
-                className="flex min-w-0 flex-1 flex-col bg-surface"
+                className="relative flex min-w-0 flex-1 flex-col bg-surface"
               >
                 <RequestEditor
                   onEditVariables={(key) => {
@@ -361,6 +363,24 @@ export default function App(): JSX.Element {
                     );
                   }}
                 />
+                <FooterPanels
+                  consoleOpen={showConsole}
+                  onToggleConsole={() => dispatch(toggleConsole())}
+                  entries={consoleEntries}
+                  onClear={() => dispatch(clearConsole())}
+                  variablesOpen={showVariables}
+                  onToggleVariables={() => dispatch(toggleVariables())}
+                  mcpOpen={showMcp}
+                  onToggleMcp={() => dispatch(toggleMcp())}
+                  onMcpStatusChange={() => void mcpServerStatus.refresh()}
+                  globalVariables={globalVariables}
+                  collectionVariables={activeCollection?.variables ?? []}
+                  folderVariables={activeFolder?.variables ?? []}
+                  environmentVariables={activeEnvironment?.variables ?? []}
+                  collectionName={activeCollection?.name}
+                  folderName={activeFolder?.name}
+                  environmentName={activeEnvironment?.name}
+                />
               </main>
 
               <AnimatedHorizontalPanel open={aiSidebarVisible}>
@@ -372,21 +392,15 @@ export default function App(): JSX.Element {
               consoleOpen={showConsole}
               entryCount={consoleEntries.length}
               onToggleConsole={() => dispatch(toggleConsole())}
-              entries={consoleEntries}
-              onClear={() => dispatch(clearConsole())}
               variablesOpen={showVariables}
               onToggleVariables={() => dispatch(toggleVariables())}
               mcpOpen={showMcp}
               onToggleMcp={() => dispatch(toggleMcp())}
               mcpServerRunning={mcpServerStatus.running}
-              onMcpStatusChange={() => void mcpServerStatus.refresh()}
               globalVariables={globalVariables}
               collectionVariables={activeCollection?.variables ?? []}
               folderVariables={activeFolder?.variables ?? []}
               environmentVariables={activeEnvironment?.variables ?? []}
-              collectionName={activeCollection?.name}
-              folderName={activeFolder?.name}
-              environmentName={activeEnvironment?.name}
               sidebarOpen={sidebarVisible}
               onToggleSidebar={() => dispatch(toggleSidebar())}
               aiSidebarOpen={aiSidebarVisible}
@@ -410,6 +424,7 @@ export default function App(): JSX.Element {
             <ShortcutsReferenceModal />
             <SearchAnythingModal />
             <PluginModalOverlay />
+            <TeamHubJoinDeepLinkHost />
 
             <Toaster
               position="bottom-center"

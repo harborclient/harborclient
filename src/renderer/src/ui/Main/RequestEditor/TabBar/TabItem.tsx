@@ -33,6 +33,11 @@ interface Props {
   sortableDisabled?: boolean;
 
   /**
+   * When true, renders a non-interactive snapshot for the close animation.
+   */
+  exiting?: boolean;
+
+  /**
    * Display title for page tabs (resolved from entity names when applicable).
    */
   pageTitle?: string;
@@ -116,6 +121,7 @@ export function TabItem({
   tabIndex,
   sortableId,
   sortableDisabled = false,
+  exiting = false,
   pageTitle,
   pageIcon,
   onSelect,
@@ -140,27 +146,35 @@ export function TabItem({
     : requestTabAccessibleName(tab);
   const closeLabel = tabCloseAccessibleName(tab, pageTitle);
   const title = documentTabTitle(tab, pageTitle);
-  const { setNodeRef, listeners, style } = useSortableTabItem(sortableId, sortableDisabled);
+  const { setNodeRef, listeners, style } = useSortableTabItem(
+    sortableId,
+    sortableDisabled || exiting
+  );
+  const showActive = exiting ? false : active;
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
+      ref={exiting ? undefined : setNodeRef}
+      style={exiting ? undefined : style}
       role="tab"
-      id={`request-tab-${tab.tabId}`}
-      aria-controls={`request-tabpanel-${tab.tabId}`}
-      aria-selected={active}
+      id={exiting ? undefined : `request-tab-${tab.tabId}`}
+      aria-controls={exiting ? undefined : `request-tabpanel-${tab.tabId}`}
+      aria-selected={showActive}
       aria-label={ariaLabel}
       title={title}
-      tabIndex={tabIndex}
-      className={`group -mb-1 flex max-w-[220px] min-h-12 shrink-0 self-stretch items-stretch gap-2.5 rounded-t-lg border border-b-0 px-4 cursor-pointer ${requestTabItem(active)}`}
-      onClick={() => onSelect(tab.tabId)}
-      onContextMenu={(event) => {
-        event.preventDefault();
-        onContextMenu?.(tab.tabId, event);
-      }}
-      onKeyDown={handleTabKeyDown}
-      {...(sortableDisabled ? {} : listeners)}
+      tabIndex={exiting ? -1 : tabIndex}
+      className={`group -mb-1 flex max-w-[220px] min-h-12 shrink-0 self-stretch items-stretch gap-2.5 rounded-t-lg border border-b-0 px-4 ${exiting ? 'pointer-events-none' : 'cursor-pointer'} ${requestTabItem(showActive)}`}
+      onClick={exiting ? undefined : () => onSelect(tab.tabId)}
+      onContextMenu={
+        exiting
+          ? undefined
+          : (event) => {
+              event.preventDefault();
+              onContextMenu?.(tab.tabId, event);
+            }
+      }
+      onKeyDown={exiting ? undefined : handleTabKeyDown}
+      {...(sortableDisabled || exiting ? {} : listeners)}
     >
       <span className="flex min-w-0 flex-1 items-center gap-1.5 py-2 text-inherit app-no-drag">
         {isPage ? (
@@ -183,20 +197,22 @@ export function TabItem({
           {isPage ? (pageTitle ?? 'Page') : tab.draft.name}
         </span>
       </span>
-      <span
-        className="flex shrink-0 items-center self-center app-no-drag"
-        onPointerDown={(event) => event.stopPropagation()}
-      >
-        <TabCloseButton
-          ariaLabel={closeLabel}
-          title={closeLabel}
-          tabIndex={0}
-          onClick={(event) => {
-            event.stopPropagation();
-            onClose(tab.tabId);
-          }}
-        />
-      </span>
+      {!exiting && (
+        <span
+          className="flex shrink-0 items-center self-center app-no-drag"
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <TabCloseButton
+            ariaLabel={closeLabel}
+            title={closeLabel}
+            tabIndex={0}
+            onClick={(event) => {
+              event.stopPropagation();
+              onClose(tab.tabId);
+            }}
+          />
+        </span>
+      )}
     </div>
   );
 }

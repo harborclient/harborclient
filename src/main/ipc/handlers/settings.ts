@@ -34,7 +34,8 @@ import {
 import type {
   TeamHubAdminCollectionContents,
   TeamHubAdminRunResult,
-  TeamHubAdminSnippet
+  TeamHubAdminSnippet,
+  TeamHubVerifiedSession
 } from '#/shared/types';
 import {
   asTeamHubRunResultClient,
@@ -67,6 +68,25 @@ import {
   validateShortcuts
 } from '#/main/settings/shortcutSettings';
 import type { ThemeSource } from '#/shared/types';
+
+/**
+ * Verifies a Team Hub bearer token via `GET /auth/session`.
+ *
+ * @param baseUrl - Team Hub server base URL.
+ * @param token - Bearer token prefixed with `hbk_`.
+ * @returns Session user and capability flags for renderer confirmation UI.
+ */
+async function verifyTeamHubBearerSession(
+  baseUrl: string,
+  token: string
+): Promise<TeamHubVerifiedSession> {
+  const client = new TeamHubClient({ baseUrl, token });
+  const session = await client.getSession();
+  return {
+    user: session.user,
+    capabilities: session.capabilities
+  };
+}
 
 /**
  * Maps server folder and request records to renderer-facing admin summaries.
@@ -348,6 +368,100 @@ export function registerSettingsHandlers(db: IStorage): void {
 
     return created;
   });
+
+  // Creates a Team Hub user account and onboarding invitation using an admin token.
+  handle(
+    'teamHubs:createInvitedUser',
+    ipcArgSchemas.teamHubInvitedUserCreate,
+    async (_event, hubId, input) => {
+      const hub = listTeamHubs().find((entry) => entry.id === hubId);
+      if (!hub) {
+        throw new Error(`Unknown team hub: ${hubId}`);
+      }
+
+      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const created = await client.createAdminInvitedUser(input);
+
+      if (db instanceof RoutingStorage) {
+        await resyncUserTeamHubsSharingServer(db, hubId, listTeamHubs());
+      }
+
+      return created;
+    }
+  );
+
+  // Issues a replacement onboarding invitation for an existing user account.
+  handle(
+    'teamHubs:createUserInvitation',
+    ipcArgSchemas.teamHubUserInvitationCreate,
+    async (_event, hubId, userId, input) => {
+      const hub = listTeamHubs().find((entry) => entry.id === hubId);
+      if (!hub) {
+        throw new Error(`Unknown team hub: ${hubId}`);
+      }
+
+      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      return client.createAdminUserInvitation(userId, input ?? {});
+    }
+  );
+
+  // Lists onboarding invitations for operator review and recovery.
+  handle('teamHubs:listInvitations', ipcArgSchemas.teamHubInvitationList, async (_event, hubId) => {
+    const hub = listTeamHubs().find((entry) => entry.id === hubId);
+    if (!hub) {
+      throw new Error(`Unknown team hub: ${hubId}`);
+    }
+
+    const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+    return client.listAdminInvitations();
+  });
+
+  // Revokes a pending onboarding invitation.
+  handle(
+    'teamHubs:revokeInvitation',
+    ipcArgSchemas.teamHubInvitationRevoke,
+    async (_event, hubId, invitationId) => {
+      const hub = listTeamHubs().find((entry) => entry.id === hubId);
+      if (!hub) {
+        throw new Error(`Unknown team hub: ${hubId}`);
+      }
+
+      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      await client.revokeAdminInvitation(invitationId);
+    }
+  );
+
+  // Returns invited user details for confirmation without consuming the invitation.
+  handle(
+    'teamHubs:previewInvitation',
+    ipcArgSchemas.teamHubInvitationPreview,
+    async (_event, baseUrl, code) => {
+      const client = new TeamHubClient({ baseUrl });
+      return client.previewInvitation({ secret: code });
+    }
+  );
+
+  // Redeems an invitation, verifies the issued bearer token, and returns both results.
+  handle(
+    'teamHubs:redeemInvitation',
+    ipcArgSchemas.teamHubInvitationRedeem,
+    async (_event, baseUrl, code, tokenName) => {
+      const client = new TeamHubClient({ baseUrl });
+      const redeemed = await client.redeemInvitation({
+        secret: code,
+        tokenName
+      });
+      const session = await verifyTeamHubBearerSession(baseUrl, redeemed.secret);
+      return { secret: redeemed.secret, session };
+    }
+  );
+
+  // Verifies a bearer token against session introspection without persisting it.
+  handle(
+    'teamHubs:verifySession',
+    ipcArgSchemas.teamHubSessionVerify,
+    async (_event, baseUrl, token) => verifyTeamHubBearerSession(baseUrl, token)
+  );
 
   // Lists Team Hub API tokens using an admin token on the given hub connection.
   handle('teamHubs:listTokens', ipcArgSchemas.teamHubTokenList, async (_event, hubId) => {

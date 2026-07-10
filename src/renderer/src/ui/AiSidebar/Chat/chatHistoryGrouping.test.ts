@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import type { ChatSummary } from '#/shared/types';
 import {
+  CHAT_HISTORY_SECTION_ITEM_LIMIT,
   CHAT_HISTORY_TODAY_KEY,
   CHAT_HISTORY_YESTERDAY_KEY,
   filterChats,
+  filterChatsWithMessages,
   groupChatsByDay,
-  splitRecentAndOlder
+  hasRecentDayGroups,
+  splitRecentAndOlder,
+  truncateFlatChats,
+  truncateGroupChats
 } from '#/renderer/src/ui/AiSidebar/Chat/chatHistoryGrouping';
 
 const NOW = new Date('2026-07-03T15:00:00');
@@ -16,10 +21,22 @@ const NOW = new Date('2026-07-03T15:00:00');
  * @param id - Chat id.
  * @param title - Display title.
  * @param updatedAt - ISO updated timestamp.
+ * @param messageCount - Persisted message count for history filtering tests.
  */
-function chat(id: number, title: string, updatedAt: string): ChatSummary {
-  return { id, title, updated_at: updatedAt };
+function chat(id: number, title: string, updatedAt: string, messageCount = 1): ChatSummary {
+  return { id, title, updated_at: updatedAt, message_count: messageCount };
 }
+
+describe('filterChatsWithMessages', () => {
+  it('keeps chats with messages and excludes empty chats', () => {
+    const chats = [
+      chat(1, 'Saved chat', '2026-07-03T10:00:00', 2),
+      chat(2, 'Empty chat', '2026-07-02T10:00:00', 0)
+    ];
+
+    expect(filterChatsWithMessages(chats)).toEqual([chats[0]]);
+  });
+});
 
 describe('filterChats', () => {
   const chats = [
@@ -85,5 +102,90 @@ describe('splitRecentAndOlder', () => {
     ]);
     expect(older).toHaveLength(1);
     expect(older[0]?.chats).toHaveLength(1);
+  });
+});
+
+describe('hasRecentDayGroups', () => {
+  it('returns true when Today or Yesterday groups exist', () => {
+    const groups = groupChatsByDay(
+      [chat(1, 'Today', '2026-07-03T09:00:00'), chat(2, 'Yesterday', '2026-07-02T09:00:00')],
+      NOW
+    );
+
+    expect(hasRecentDayGroups(groups)).toBe(true);
+  });
+
+  it('returns false when only older day groups exist', () => {
+    const groups = groupChatsByDay([chat(1, 'Older', '2026-06-01T09:00:00')], NOW);
+
+    expect(hasRecentDayGroups(groups)).toBe(false);
+  });
+});
+
+describe('truncateGroupChats', () => {
+  const largeGroup = {
+    key: CHAT_HISTORY_TODAY_KEY,
+    label: 'Today',
+    chats: Array.from({ length: CHAT_HISTORY_SECTION_ITEM_LIMIT + 3 }, (_, index) =>
+      chat(index + 1, `Chat ${index + 1}`, '2026-07-03T09:00:00')
+    )
+  };
+
+  it('returns the full group when at or below the section limit', () => {
+    const smallGroup = {
+      key: CHAT_HISTORY_TODAY_KEY,
+      label: 'Today',
+      chats: largeGroup.chats.slice(0, CHAT_HISTORY_SECTION_ITEM_LIMIT)
+    };
+
+    expect(truncateGroupChats(smallGroup, false)).toEqual({
+      group: smallGroup,
+      hasMore: false
+    });
+  });
+
+  it('truncates to the section limit when collapsed', () => {
+    const result = truncateGroupChats(largeGroup, false);
+
+    expect(result.hasMore).toBe(true);
+    expect(result.group.chats).toHaveLength(CHAT_HISTORY_SECTION_ITEM_LIMIT);
+    expect(result.group.chats).toEqual(largeGroup.chats.slice(0, CHAT_HISTORY_SECTION_ITEM_LIMIT));
+  });
+
+  it('returns the full group when expanded', () => {
+    expect(truncateGroupChats(largeGroup, true)).toEqual({
+      group: largeGroup,
+      hasMore: false
+    });
+  });
+});
+
+describe('truncateFlatChats', () => {
+  const chats = Array.from({ length: CHAT_HISTORY_SECTION_ITEM_LIMIT + 2 }, (_, index) =>
+    chat(index + 1, `Chat ${index + 1}`, '2026-06-01T09:00:00')
+  );
+
+  it('returns all chats when at or below the section limit', () => {
+    const smallChats = chats.slice(0, CHAT_HISTORY_SECTION_ITEM_LIMIT);
+
+    expect(truncateFlatChats(smallChats, false)).toEqual({
+      chats: smallChats,
+      hasMore: false
+    });
+  });
+
+  it('truncates to the section limit when collapsed', () => {
+    const result = truncateFlatChats(chats, false);
+
+    expect(result.hasMore).toBe(true);
+    expect(result.chats).toHaveLength(CHAT_HISTORY_SECTION_ITEM_LIMIT);
+    expect(result.chats).toEqual(chats.slice(0, CHAT_HISTORY_SECTION_ITEM_LIMIT));
+  });
+
+  it('returns all chats when expanded', () => {
+    expect(truncateFlatChats(chats, true)).toEqual({
+      chats,
+      hasMore: false
+    });
   });
 });

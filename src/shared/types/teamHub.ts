@@ -607,3 +607,203 @@ export interface CreatedHubToken {
    */
   secret: string;
 }
+
+/**
+ * Computed lifecycle status for an onboarding invitation.
+ */
+export type HubInvitationStatus = 'pending' | 'redeemed' | 'revoked' | 'expired';
+
+/**
+ * Onboarding invitation metadata returned by admin routes.
+ */
+export interface HubInvitationRecord {
+  /**
+   * Stable invitation record identifier.
+   */
+  id: string;
+
+  /**
+   * Invited user account identifier.
+   */
+  userId: string;
+
+  /**
+   * Non-secret prefix shown in operator listings.
+   */
+  codePrefix: string;
+
+  /**
+   * ISO 8601 timestamp when the invitation expires.
+   */
+  expiresAt: string;
+
+  /**
+   * ISO 8601 timestamp when the invitation was redeemed, if ever.
+   */
+  redeemedAt: string | null;
+
+  /**
+   * ISO 8601 timestamp when the invitation was revoked, if ever.
+   */
+  revokedAt: string | null;
+
+  /**
+   * ISO 8601 timestamp when the invitation was created.
+   */
+  createdAt: string;
+
+  /**
+   * Derived lifecycle status for operator UI.
+   */
+  status: HubInvitationStatus;
+}
+
+/**
+ * Fields required to create an invited user and onboarding invitation.
+ */
+export interface CreateInvitedHubUserInput extends CreateHubUserInput {
+  /**
+   * Hours until the invitation expires; server default applies when omitted.
+   */
+  expiresInHours?: number;
+}
+
+/**
+ * Response from creating an invited user or reissuing an invitation.
+ */
+export interface CreatedInvitedHubUser {
+  /**
+   * Invited user account.
+   */
+  user: HubUserRecord;
+
+  /**
+   * Metadata for the onboarding invitation.
+   */
+  invitation: HubInvitationRecord;
+
+  /**
+   * One-time plaintext invitation secret.
+   */
+  secret: string;
+}
+
+/**
+ * Request body for reissuing an invitation for an existing user.
+ */
+export interface CreateUserInvitationInput {
+  /**
+   * Hours until the replacement invitation expires; server default applies when omitted.
+   */
+  expiresInHours?: number;
+}
+
+/**
+ * User details returned by invitation preview without issuing a token.
+ */
+export interface HubInvitationPreviewUser {
+  /**
+   * Display name for the invited account.
+   */
+  name: string;
+
+  /**
+   * Role that will be granted when the invitation is redeemed.
+   */
+  role: 'admin' | 'user';
+
+  /**
+   * Collection ids the invited user may access, or `['*']` for all collections.
+   */
+  collectionAccess: string[];
+
+  /**
+   * Environment ids the invited user may access, or `['*']` for all environments.
+   */
+  environmentAccess: string[];
+
+  /**
+   * Whether the invited user may call hub-proxied LLM routes.
+   */
+  llmAccess: boolean;
+
+  /**
+   * LLM model ids the invited user may use, or `['*']` for all hub-offered models.
+   */
+  llmModels: string[];
+}
+
+/**
+ * Response body from invitation preview routes.
+ */
+export interface HubInvitationPreview {
+  /**
+   * Non-sensitive invited user details for confirmation UI.
+   */
+  user: HubInvitationPreviewUser;
+
+  /**
+   * ISO 8601 timestamp when the invitation expires.
+   */
+  expiresAt: string;
+}
+
+/**
+ * Verified Team Hub session returned after redeeming an invitation.
+ */
+export interface TeamHubVerifiedSession {
+  /**
+   * User account owning the authenticated bearer token.
+   */
+  user: {
+    /**
+     * Stable user account identifier.
+     */
+    id: string;
+
+    /**
+     * Unique display name for the account.
+     */
+    name: string;
+
+    /**
+     * Account role determining API capabilities.
+     */
+    role: 'admin' | 'user';
+  };
+
+  /**
+   * Derived capability flags for clients such as HarborClient.
+   */
+  capabilities: {
+    /**
+     * When true, the token may call entity data routes.
+     */
+    dataApi: boolean;
+
+    /**
+     * When true, the token may call management routes.
+     */
+    managementApi: boolean;
+
+    /**
+     * When true, the token may call hub-proxied LLM routes.
+     */
+    llm: boolean;
+  };
+}
+
+/**
+ * Result of redeeming an invitation and verifying the issued bearer token.
+ */
+export interface TeamHubInvitationRedeemResult {
+  /**
+   * One-time plaintext bearer token secret.
+   */
+  secret: string;
+
+  /**
+   * Verified session for the redeemed bearer token.
+   */
+  session: TeamHubVerifiedSession;
+}

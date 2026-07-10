@@ -47,7 +47,7 @@ import {
 } from 'react';
 import toast from 'react-hot-toast';
 import type { CompletionSource } from '@codemirror/autocomplete';
-import type { CodeEditorSlashTrigger } from '@harborclient/sdk/components';
+import type { CodeEditorSlashTrigger, CodeEditorTextSelection } from '@harborclient/sdk/components';
 import type { AiSettings, HubLlmModelGroup, ScriptRef, Snippet, Variable } from '#/shared/types';
 import type { ScriptStage } from '@harborclient/sdk';
 import {
@@ -130,6 +130,7 @@ import {
   faPlus,
   faTerminal,
   faArrowUpRightFromSquare,
+  faCopy,
   faWandMagicSparkles
 } from '#/renderer/src/fontawesome';
 
@@ -339,6 +340,13 @@ interface SortableScriptRowProps {
    * Opens the AI sidebar with a fresh chat prefilled for this script row.
    */
   onAskAi: () => void;
+
+  /**
+   * Copies the selected script range into the AI chat composer as an `@` reference tag.
+   *
+   * @param selection - Character offsets into the script source.
+   */
+  onCopySelectionToChat: (selection: { from: number; to: number }) => void;
 
   /**
    * AI provider settings for inline `/ask` requests.
@@ -1175,6 +1183,7 @@ function SortableScriptRow({
   onClone,
   aiAvailable,
   onAskAi,
+  onCopySelectionToChat,
   aiSettings,
   hubModelGroups,
   scriptEditorActions,
@@ -1250,6 +1259,29 @@ function SortableScriptRow({
   const handlePatchCode = useCallback((code: string): void => {
     onPatchCodeRef.current(code);
   }, []);
+
+  /**
+   * Selection toolbar actions for inline script editors when AI chat is available.
+   */
+  const copyToChatSelectionActions = useMemo(
+    () =>
+      aiAvailable
+        ? [
+            {
+              id: 'copy-to-chat',
+              label: 'Copy to chat',
+              ariaLabel: `Copy selection from ${label} to chat`,
+              icon: faCopy,
+              shortcutHint: 'Ctrl+L',
+              key: 'Ctrl-l',
+              onSelect: (selection: CodeEditorTextSelection): void => {
+                onCopySelectionToChat({ from: selection.from, to: selection.to });
+              }
+            }
+          ]
+        : undefined,
+    [aiAvailable, label, onCopySelectionToChat]
+  );
 
   /**
    * Routes slash commands: inline ask when args are present, modal for bare `/ask`.
@@ -1495,6 +1527,7 @@ function SortableScriptRow({
             completionSource={hcCompletionSource}
             slashCommands={aiAvailable ? SCRIPT_ASK_COMMANDS : undefined}
             onSlashCommand={aiAvailable ? handleSlashCommand : undefined}
+            selectionActions={copyToChatSelectionActions}
             placeholder={placeholder}
             placeholderHighlight
             variables={variables}
@@ -1517,6 +1550,7 @@ function SortableScriptRow({
           completionSource={hcCompletionSource}
           slashCommands={aiAvailable ? SCRIPT_ASK_COMMANDS : undefined}
           onSlashCommand={aiAvailable ? handleSlashCommand : undefined}
+          selectionActions={copyToChatSelectionActions}
           placeholder={placeholder}
           placeholderHighlight
           variables={variables}
@@ -1535,6 +1569,7 @@ function SortableScriptRow({
           language="javascript"
           completionSource={hcCompletionSource}
           slashCommands={aiAvailable ? SCRIPT_ASK_COMMANDS : undefined}
+          selectionActions={copyToChatSelectionActions}
           placeholder={placeholder}
           placeholderHighlight
           variables={variables}
@@ -1556,6 +1591,7 @@ function SortableScriptRow({
         language="javascript"
         completionSource={hcCompletionSource}
         slashCommands={aiAvailable ? SCRIPT_ASK_COMMANDS : undefined}
+        selectionActions={copyToChatSelectionActions}
         placeholder={placeholder}
         placeholderHighlight
         variables={variables}
@@ -1789,6 +1825,7 @@ export function ScriptListEditor({
   );
   const { aiAvailable, aiSettings } = useAiAvailability();
   const hubModelGroups = useAppSelector(selectHubModelGroups);
+  const activeChatId = useAppSelector(selectActiveChatId);
   const scriptEditorActions = usePluginScriptEditorActions(phase);
   const normalized = useMemo(() => normalizeScriptRefs(scripts), [scripts]);
   const scriptGroups = useMemo(() => splitScriptRefsByGroup(normalized), [normalized]);
@@ -2411,6 +2448,28 @@ export function ScriptListEditor({
   };
 
   /**
+   * Opens the AI sidebar and inserts a script reference with the selected source range.
+   *
+   * @param scriptIndex - 1-based index of the script row in the phase array.
+   * @param selection - Character offsets into the script source.
+   */
+  const handleCopySelectionToChat = async (
+    scriptIndex: number,
+    selection: { from: number; to: number }
+  ): Promise<void> => {
+    dispatch(setShowAiSidebar(true));
+    if (activeChatId == null) {
+      await dispatch(createNewChat(aiSettings));
+    }
+
+    dispatch(
+      setPendingComposerText(
+        `@${requestId ?? 'active'}.${phase}.${scriptIndex}#${selection.from}.${selection.to}`
+      )
+    );
+  };
+
+  /**
    * Shared row props for list and single-script render modes.
    *
    * @param script - Script reference for the row.
@@ -2458,6 +2517,7 @@ export function ScriptListEditor({
     onClone: () => void handleCloneScript(script.id, label),
     aiAvailable,
     onAskAi: () => void handleAskAi(scriptIndex + 1),
+    onCopySelectionToChat: (selection) => void handleCopySelectionToChat(scriptIndex, selection),
     aiSettings,
     hubModelGroups,
     scriptEditorActions,
@@ -2606,9 +2666,6 @@ export function ScriptListEditor({
   const scriptListHeader = (
     <div className="flex shrink-0 flex-wrap items-center gap-2">
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <p className="m-0 text-[14px] text-muted">
-          Scripts run in order within each group. Drag to reorder inside a group.
-        </p>
         <a
           href={REQUEST_SCRIPTS_HELP_URL}
           target="_blank"

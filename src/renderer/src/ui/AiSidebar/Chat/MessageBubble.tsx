@@ -20,7 +20,7 @@ export function MessageBubble({ message }: Props): JSX.Element {
       <div
         className={
           isUser
-            ? 'max-w-[95%] rounded-lg bg-accent px-3 py-2 text-[16px] text-white'
+            ? 'hc-user-message-bubble max-w-[95%] rounded-lg bg-accent px-3 py-2 text-[16px] text-white'
             : 'max-w-[95%] rounded-lg bg-control px-3 py-2 text-[16px] text-text'
         }
       >

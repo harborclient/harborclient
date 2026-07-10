@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(teamHub): implement Team Hub invitation management and token storage. (`5f83aae`)
 - feat(settings): add new warning preferences for unsaved changes and requests. (`6cd5c4f`)
 
 ## 2.0.14 - 2026-07-10

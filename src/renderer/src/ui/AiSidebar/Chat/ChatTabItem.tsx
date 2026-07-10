@@ -32,6 +32,11 @@ interface Props {
   sortableDisabled?: boolean;
 
   /**
+   * When true, renders a non-interactive snapshot for the close animation.
+   */
+  exiting?: boolean;
+
+  /**
    * Called when the user selects this tab.
    */
   onSelect: (chatId: number) => void;
@@ -59,6 +64,7 @@ export function ChatTabItem({
   tabIndex,
   sortableId,
   sortableDisabled = false,
+  exiting = false,
   onSelect,
   onClose,
   onContextMenu
@@ -73,45 +79,55 @@ export function ChatTabItem({
     }
   };
 
-  const { setNodeRef, listeners, style } = useSortableTabItem(sortableId, sortableDisabled);
+  const { setNodeRef, listeners, style } = useSortableTabItem(
+    sortableId,
+    sortableDisabled || exiting
+  );
+  const showActive = exiting ? false : active;
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
+      ref={exiting ? undefined : setNodeRef}
+      style={exiting ? undefined : style}
       role="tab"
-      id={`ai-chat-tab-${chat.id}`}
-      aria-controls={`ai-chat-panel-${chat.id}`}
-      aria-selected={active}
+      id={exiting ? undefined : `ai-chat-tab-${chat.id}`}
+      aria-controls={exiting ? undefined : `ai-chat-panel-${chat.id}`}
+      aria-selected={showActive}
       aria-label={chat.title}
       title={chat.title}
-      tabIndex={tabIndex}
-      className={`group -mb-1 flex max-w-[180px] min-h-12 shrink-0 self-stretch items-stretch gap-2.5 rounded-t-lg border border-b-0 px-3 ${requestTabItem(active)} ${sortableDisabled ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'}`}
-      onClick={() => onSelect(chat.id)}
-      onContextMenu={(event) => {
-        event.preventDefault();
-        onContextMenu?.(chat.id, event);
-      }}
-      onKeyDown={handleKeyDown}
-      {...(sortableDisabled ? {} : listeners)}
+      tabIndex={exiting ? -1 : tabIndex}
+      className={`group -mb-1 flex max-w-[180px] min-h-12 shrink-0 self-stretch items-stretch gap-2.5 rounded-t-lg border border-b-0 px-3 ${requestTabItem(showActive)} ${exiting ? 'pointer-events-none' : sortableDisabled ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'}`}
+      onClick={exiting ? undefined : () => onSelect(chat.id)}
+      onContextMenu={
+        exiting
+          ? undefined
+          : (event) => {
+              event.preventDefault();
+              onContextMenu?.(chat.id, event);
+            }
+      }
+      onKeyDown={exiting ? undefined : handleKeyDown}
+      {...(sortableDisabled || exiting ? {} : listeners)}
     >
       <span className="flex min-w-0 flex-1 items-center gap-1.5 py-2 text-inherit app-no-drag">
         <FaIcon icon={faComment} className="h-3.5 w-3.5 shrink-0" aria-hidden />
         <span className="truncate text-[16px]">{chat.title}</span>
       </span>
-      <span
-        className="flex shrink-0 items-center self-center app-no-drag"
-        onPointerDown={(event) => event.stopPropagation()}
-      >
-        <TabCloseButton
-          ariaLabel={`Close ${chat.title}`}
-          tabIndex={0}
-          onClick={(event) => {
-            event.stopPropagation();
-            onClose(chat.id);
-          }}
-        />
-      </span>
+      {!exiting && (
+        <span
+          className="flex shrink-0 items-center self-center app-no-drag"
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <TabCloseButton
+            ariaLabel={`Close ${chat.title}`}
+            tabIndex={0}
+            onClick={(event) => {
+              event.stopPropagation();
+              onClose(chat.id);
+            }}
+          />
+        </span>
+      )}
     </div>
   );
 }

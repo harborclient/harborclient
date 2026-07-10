@@ -585,4 +585,32 @@ describe('IPC size limits', () => {
     expect(ipcArgSchemas.oauthClearToken.safeParse(['request:1']).success).toBe(true);
     expect(ipcArgSchemas.oauthClearToken.safeParse(['']).success).toBe(false);
   });
+
+  it('teamHubInvitationPreview accepts base URL and invitation code', () => {
+    expect(
+      ipcArgSchemas.teamHubInvitationPreview.safeParse([
+        'http://127.0.0.1:8788',
+        'hbi_testinvitationcode123'
+      ]).success
+    ).toBe(true);
+    expect(
+      ipcArgSchemas.teamHubInvitationPreview.safeParse(['http://127.0.0.1:8788']).success
+    ).toBe(false);
+  });
+
+  it('teamHubInvitationRedeem accepts optional token label', () => {
+    expect(
+      ipcArgSchemas.teamHubInvitationRedeem.safeParse([
+        'http://127.0.0.1:8788',
+        'hbi_testinvitationcode123'
+      ]).success
+    ).toBe(true);
+    expect(
+      ipcArgSchemas.teamHubInvitationRedeem.safeParse([
+        'http://127.0.0.1:8788',
+        'hbi_testinvitationcode123',
+        'Onboarding token'
+      ]).success
+    ).toBe(true);
+  });
 });

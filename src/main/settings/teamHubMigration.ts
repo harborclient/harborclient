@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, renameSync } from 'fs';
 import { join } from 'path';
 import type { LocalDatabase } from '#/main/storage/LocalDatabase';
+import { storeTeamHubToken } from '#/main/settings/teamHubSecrets';
 import { parseJson } from '#/shared/parseJson';
 import type { TeamHub } from '#/shared/types';
 
@@ -88,6 +89,39 @@ function migrateTeamHubIdMapFiles(userDataPath: string): void {
 }
 
 /**
+ * Moves inline plaintext bearer tokens from `teamHubs` JSON into encrypted sidecar storage.
+ *
+ * @param database - Local registry holding app settings.
+ */
+function migrateTeamHubInlineTokens(database: LocalDatabase): void {
+  const raw = database.getSetting(TEAM_HUBS_KEY);
+  if (raw === undefined || raw.trim() === '') {
+    return;
+  }
+
+  const hubs = parseJson<Array<TeamHub & { token?: string }>>(raw, []);
+  if (hubs.length === 0) {
+    return;
+  }
+
+  let changed = false;
+  const nextHubs = hubs.map((hub) => {
+    const token = hub.token?.trim() ?? '';
+    if (!token) {
+      return { id: hub.id, name: hub.name, baseUrl: hub.baseUrl };
+    }
+
+    storeTeamHubToken(hub.id, token);
+    changed = true;
+    return { id: hub.id, name: hub.name, baseUrl: hub.baseUrl };
+  });
+
+  if (changed) {
+    database.setSetting(TEAM_HUBS_KEY, JSON.stringify(nextHubs));
+  }
+}
+
+/**
  * One-time migration from service-hub naming to team-hub naming for settings and id-map files.
  *
  * Idempotent: safe to run on every startup.
@@ -99,6 +133,7 @@ export function migrateTeamHubSettings(database: LocalDatabase, userDataPath: st
   migrateTeamHubListKey(database);
   migrateDetachedSettingKeys(database);
   migrateTeamHubIdMapFiles(userDataPath);
+  migrateTeamHubInlineTokens(database);
 
   // Touch list parse so corrupt legacy JSON fails early during migration rather than later.
   parseJson<TeamHub[]>(database.getSetting(TEAM_HUBS_KEY), []);

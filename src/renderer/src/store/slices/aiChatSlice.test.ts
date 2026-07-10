@@ -17,7 +17,9 @@ describe('aiChatSlice', () => {
   it('stores chat history summaries', () => {
     const state = aiChatReducer(
       undefined,
-      setChats([{ id: 1, title: 'First chat', updated_at: '2024-01-01T00:00:00.000Z' }])
+      setChats([
+        { id: 1, title: 'First chat', updated_at: '2024-01-01T00:00:00.000Z', message_count: 1 }
+      ])
     );
     expect(state.chats).toHaveLength(1);
     expect(state.chats[0]?.title).toBe('First chat');

@@ -37,6 +37,14 @@ export interface ChatComposerTextareaHandle {
    * @param text - Full draft text to insert.
    */
   setTextAndFocusEnd: (text: string) => void;
+
+  /**
+   * Appends a reference token to the current draft, inserting a separator when needed, and focuses
+   * the editor with the caret at the end.
+   *
+   * @param text - Reference token or snippet to append.
+   */
+  appendReferenceAtEnd: (text: string) => void;
 }
 
 interface Props {
@@ -149,10 +157,32 @@ export function ChatComposerTextarea({
     view.focus();
   }, []);
 
-  useImperativeHandle(ref, () => ({ focus: focusEditor, setTextAndFocusEnd }), [
-    focusEditor,
-    setTextAndFocusEnd
-  ]);
+  /**
+   * Appends a reference token to the current draft and places the caret after the insertion.
+   */
+  const appendReferenceAtEnd = useCallback((text: string): void => {
+    const view = editorRef.current?.view;
+    if (view == null) {
+      return;
+    }
+
+    const current = view.state.doc.toString();
+    const separator = current.trim().length > 0 && !/\s$/.test(current) ? ' ' : '';
+    const insert = `${separator}${text}`;
+    const insertAt = current.length;
+
+    view.dispatch({
+      changes: { from: insertAt, to: insertAt, insert },
+      selection: { anchor: insertAt + insert.length, head: insertAt + insert.length }
+    });
+    view.focus();
+  }, []);
+
+  useImperativeHandle(
+    ref,
+    () => ({ focus: focusEditor, setTextAndFocusEnd, appendReferenceAtEnd }),
+    [appendReferenceAtEnd, focusEditor, setTextAndFocusEnd]
+  );
 
   /**
    * Builds CodeMirror extensions for script badges, submit shortcuts, and field chrome.

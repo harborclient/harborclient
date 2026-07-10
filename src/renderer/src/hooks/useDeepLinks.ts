@@ -3,7 +3,8 @@ import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { openRunResultByUuid } from '#/renderer/src/store/thunks/runResults';
 import {
   setPendingPluginInstall,
-  setPendingSnippetInstall
+  setPendingSnippetInstall,
+  setPendingTeamHubJoin
 } from '#/renderer/src/store/slices/navigationSlice';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 
@@ -39,6 +40,12 @@ export function useDeepLinks(): void {
 
       if (payload.action === 'open-run-results') {
         void dispatch(openRunResultByUuid(payload.uuid));
+        return;
+      }
+
+      if (payload.action === 'join-team-hub') {
+        dispatch(openPageTab({ type: 'team-hubs' }));
+        dispatch(setPendingTeamHubJoin({ baseUrl: payload.baseUrl, code: payload.code }));
       }
     });
 

@@ -70,12 +70,14 @@ function getVariantStyles(variant: Variant): VariantStyles {
  *
  * @param children - Rendered markdown children.
  * @param context - Active tab state for semantic validation.
+ * @param bubbleVariant - User or assistant bubble styling context.
  */
 function withScriptRefs(
   children: ReactNode,
-  context: AiScriptReferenceValidationContext
+  context: AiScriptReferenceValidationContext,
+  bubbleVariant: Variant
 ): ReactNode {
-  return processMarkdownChildren(children, context);
+  return processMarkdownChildren(children, context, bubbleVariant);
 }
 
 /**
@@ -92,11 +94,11 @@ function createMarkdownComponents(
 
   return {
     p: ({ children }) => (
-      <p className="mb-2 break-words last:mb-0">{withScriptRefs(children, context)}</p>
+      <p className="mb-2 break-words last:mb-0">{withScriptRefs(children, context, variant)}</p>
     ),
     a: ({ href, children }) => (
       <a href={href} target="_blank" rel="noopener noreferrer" className={styles.link}>
-        {withScriptRefs(children, context)}
+        {withScriptRefs(children, context, variant)}
       </a>
     ),
     ul: ({ children }) => (
@@ -105,39 +107,43 @@ function createMarkdownComponents(
     ol: ({ children }) => (
       <ol className="my-2 list-decimal space-y-1 pl-5 last:mb-0 [&>li]:break-words">{children}</ol>
     ),
-    li: ({ children }) => <li className="break-words">{withScriptRefs(children, context)}</li>,
+    li: ({ children }) => (
+      <li className="break-words">{withScriptRefs(children, context, variant)}</li>
+    ),
     blockquote: ({ children }) => (
-      <blockquote className={styles.blockquote}>{withScriptRefs(children, context)}</blockquote>
+      <blockquote className={styles.blockquote}>
+        {withScriptRefs(children, context, variant)}
+      </blockquote>
     ),
     hr: () => <hr className={styles.hr} />,
     h1: ({ children }) => (
       <h1 className="mb-2 text-[16px] font-semibold last:mb-0">
-        {withScriptRefs(children, context)}
+        {withScriptRefs(children, context, variant)}
       </h1>
     ),
     h2: ({ children }) => (
       <h2 className="mb-2 text-[15px] font-semibold last:mb-0">
-        {withScriptRefs(children, context)}
+        {withScriptRefs(children, context, variant)}
       </h2>
     ),
     h3: ({ children }) => (
       <h3 className="mb-2 text-[14px] font-semibold last:mb-0">
-        {withScriptRefs(children, context)}
+        {withScriptRefs(children, context, variant)}
       </h3>
     ),
     h4: ({ children }) => (
       <h4 className="mb-2 text-[14px] font-medium last:mb-0">
-        {withScriptRefs(children, context)}
+        {withScriptRefs(children, context, variant)}
       </h4>
     ),
     h5: ({ children }) => (
       <h5 className="mb-2 text-[14px] font-medium last:mb-0">
-        {withScriptRefs(children, context)}
+        {withScriptRefs(children, context, variant)}
       </h5>
     ),
     h6: ({ children }) => (
       <h6 className="mb-2 text-[14px] font-medium last:mb-0">
-        {withScriptRefs(children, context)}
+        {withScriptRefs(children, context, variant)}
       </h6>
     ),
     pre: ({ children }) =>
@@ -164,14 +170,18 @@ function createMarkdownComponents(
     tbody: ({ children }) => <tbody>{children}</tbody>,
     tr: ({ children }) => <tr>{children}</tr>,
     th: ({ children }) => (
-      <th className={styles.tableHeader}>{withScriptRefs(children, context)}</th>
+      <th className={styles.tableHeader}>{withScriptRefs(children, context, variant)}</th>
     ),
-    td: ({ children }) => <td className={styles.tableCell}>{withScriptRefs(children, context)}</td>,
+    td: ({ children }) => (
+      <td className={styles.tableCell}>{withScriptRefs(children, context, variant)}</td>
+    ),
     strong: ({ children }) => (
-      <strong className="font-semibold">{withScriptRefs(children, context)}</strong>
+      <strong className="font-semibold">{withScriptRefs(children, context, variant)}</strong>
     ),
-    em: ({ children }) => <em className="italic">{withScriptRefs(children, context)}</em>,
-    del: ({ children }) => <del className="opacity-80">{withScriptRefs(children, context)}</del>
+    em: ({ children }) => <em className="italic">{withScriptRefs(children, context, variant)}</em>,
+    del: ({ children }) => (
+      <del className="opacity-80">{withScriptRefs(children, context, variant)}</del>
+    )
   };
 }
 

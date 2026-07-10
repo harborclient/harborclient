@@ -41,6 +41,7 @@ import { buildPluginContextMenuGroups } from '#/renderer/src/plugins/pluginConte
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { faChevronDown, faChevronRight } from '#/renderer/src/fontawesome';
 import { METHOD_CLASSES, sourceRow } from '#/renderer/src/ui/shared/classes';
+import { AnimatedCollapse } from '#/renderer/src/ui/shared/AnimatedCollapse';
 import {
   buildDevInspectMenuGroups,
   useDeveloperToolsEnabled,
@@ -946,7 +947,7 @@ export function Collections({
                   />
                 </SortableRow>
 
-                {expanded && (
+                <AnimatedCollapse open={expanded}>
                   <DndContext
                     sensors={sensors}
                     collisionDetection={collectionCollisionDetection}
@@ -1158,8 +1159,8 @@ export function Collections({
                                 </SortableRow>
                               </DropZone>
 
-                              {folderExpanded && (
-                                <div className="ml-6 flex flex-col gap-0 py-0">
+                              <AnimatedCollapse open={folderExpanded} className="ml-6">
+                                <div className="flex flex-col gap-0 py-0">
                                   <SortableContext
                                     items={folderRequestIds}
                                     strategy={verticalListSortingStrategy}
@@ -1208,7 +1209,7 @@ export function Collections({
                                     </div>
                                   )}
                                 </div>
-                              )}
+                              </AnimatedCollapse>
                             </div>
                           );
                         })}
@@ -1236,7 +1237,7 @@ export function Collections({
                       ) : null}
                     </DragOverlay>
                   </DndContext>
-                )}
+                </AnimatedCollapse>
               </div>
             );
           })}

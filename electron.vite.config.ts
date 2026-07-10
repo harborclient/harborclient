@@ -13,6 +13,38 @@ import type { Plugin } from 'vite';
 const PLUGIN_STATIC_ASSETS = ['pluginShell.html', 'pluginBootstrap.js'] as const;
 
 /**
+ * CodeMirror packages that must resolve to a single copy in the renderer bundle.
+ * A linked `@harborclient/sdk` installs its own `@codemirror/*` tree; mixing those
+ * extensions with the host app's copies breaks CodeMirror instanceof checks.
+ */
+const CODEMIRROR_DEDUPE_PACKAGES = [
+  '@codemirror/autocomplete',
+  '@codemirror/lang-javascript',
+  '@codemirror/lang-json',
+  '@codemirror/language',
+  '@codemirror/lint',
+  '@codemirror/legacy-modes',
+  '@codemirror/state',
+  '@codemirror/view',
+  '@lezer/highlight',
+  '@uiw/codemirror-themes-all',
+  '@uiw/react-codemirror'
+] as const;
+
+/**
+ * Builds Vite resolve aliases that pin CodeMirror imports to this app's node_modules.
+ *
+ * @returns Alias map for renderer resolve configuration.
+ */
+function buildCodemirrorAliases(): Record<string, string> {
+  const aliases: Record<string, string> = {};
+  for (const packageName of CODEMIRROR_DEDUPE_PACKAGES) {
+    aliases[packageName] = resolve(__dirname, 'node_modules', ...packageName.split('/'));
+  }
+  return aliases;
+}
+
+/**
  * Prepended to main-process bundles so ESBUILD_BINARY_PATH is set before hoisted
  * require("esbuild") runs in packaged apps (asar cannot execute nested binaries).
  */
@@ -100,11 +132,13 @@ export default defineConfig({
       force: true
     },
     resolve: {
+      dedupe: [...CODEMIRROR_DEDUPE_PACKAGES],
       alias: {
         '@images': resolve(__dirname, 'images'),
         '@harborclient/sdk/react': resolve(__dirname, 'node_modules/react'),
         '@harborclient/sdk/react-dom': resolve(__dirname, 'node_modules/react-dom'),
-        '@harborclient/sdk/jsx-runtime': resolve(__dirname, 'node_modules/react/jsx-runtime')
+        '@harborclient/sdk/jsx-runtime': resolve(__dirname, 'node_modules/react/jsx-runtime'),
+        ...buildCodemirrorAliases()
       }
     },
     build: {

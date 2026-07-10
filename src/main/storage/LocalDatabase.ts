@@ -1306,7 +1306,12 @@ export class LocalDatabase {
    */
   listChats(): ChatSummary[] {
     const rows = this.getDb()
-      .prepare('SELECT id, title, model, updated_at FROM chats ORDER BY updated_at DESC, id DESC')
+      .prepare(
+        `SELECT c.id, c.title, c.model, c.updated_at,
+          (SELECT COUNT(*) FROM chat_messages m WHERE m.chat_id = c.id) AS message_count
+         FROM chats c
+         ORDER BY c.updated_at DESC, c.id DESC`
+      )
       .all() as Record<string, unknown>[];
 
     return rows.map(rowToChatSummary);

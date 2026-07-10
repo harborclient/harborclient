@@ -66,6 +66,11 @@ export interface ChatSummary {
    * ISO timestamp when the chat was last updated.
    */
   updated_at: string;
+
+  /**
+   * Number of persisted messages in this chat thread.
+   */
+  message_count: number;
 }
 
 /**

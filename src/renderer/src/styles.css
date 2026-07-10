@@ -820,10 +820,22 @@
   vertical-align: baseline;
 }
 
+.hc-user-message-bubble .hc-script-reference-badge {
+  border-color: rgb(255 255 255 / 0.3);
+  background-color: rgb(255 255 255 / 0.2);
+  color: rgb(255 255 255);
+}
+
 :root[data-theme='high-contrast'] .hc-script-reference-badge {
   border-color: var(--mac-accent);
   background-color: color-mix(in srgb, var(--mac-accent) 12%, transparent);
   color: var(--mac-accent);
+}
+
+:root[data-theme='high-contrast'] .hc-user-message-bubble .hc-script-reference-badge {
+  border-color: rgb(255 255 255 / 0.4);
+  background-color: rgb(255 255 255 / 0.2);
+  color: rgb(255 255 255);
 }
 
 :root[data-theme='high-contrast'] .request-comment-editor .cm-variable-token,

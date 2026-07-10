@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildAiScriptSelectionContextMessage,
   findAiScriptReferenceCandidates,
   isValidAiScriptReference,
+  resolveAiScriptReferenceLabel,
   resolveAiScriptReferenceName,
+  stripAiScriptReferences,
   tokenizeChatComposerText,
   type AiScriptReferenceValidationContext
 } from '#/shared/ai/scriptReferences';
@@ -108,6 +111,37 @@ describe('findAiScriptReferenceCandidates', () => {
     expect(matches[0]?.text).toBe('@active.pre.1');
     expect(matches[1]?.text).toBe('@42.post.1');
   });
+
+  it('parses optional selection suffixes', () => {
+    expect(findAiScriptReferenceCandidates('@active.pre.1#10.42')).toEqual([
+      expect.objectContaining({
+        requestId: 'active',
+        phase: 'pre',
+        scriptIndex: 1,
+        text: '@active.pre.1#10.42',
+        selection: { start: 10, end: 42 }
+      })
+    ]);
+  });
+
+  it('rejects malformed selection suffixes', () => {
+    expect(findAiScriptReferenceCandidates('@active.pre.1#10')).toEqual([
+      expect.objectContaining({
+        text: '@active.pre.1'
+      })
+    ]);
+    expect(findAiScriptReferenceCandidates('@active.pre.1#10.')).toEqual([
+      expect.objectContaining({
+        text: '@active.pre.1'
+      })
+    ]);
+    expect(findAiScriptReferenceCandidates('@active.pre.1#10.5extra')).toEqual([
+      expect.objectContaining({
+        text: '@active.pre.1#10.5',
+        selection: undefined
+      })
+    ]);
+  });
 });
 
 describe('isValidAiScriptReference', () => {
@@ -211,6 +245,67 @@ describe('resolveAiScriptReferenceName', () => {
   });
 });
 
+describe('resolveAiScriptReferenceLabel', () => {
+  it('returns the script name when no selection suffix is present', () => {
+    const [candidate] = findAiScriptReferenceCandidates('@active.pre.1');
+    expect(candidate).toBeDefined();
+
+    expect(
+      resolveAiScriptReferenceLabel(
+        candidate!,
+        context({
+          preScripts: [inlineScript({ name: 'Set auth token', code: 'line1\nline2\nline3' })]
+        })
+      )
+    ).toBe('Set auth token');
+  });
+
+  it('appends a single-line range when the selection stays on one line', () => {
+    const [candidate] = findAiScriptReferenceCandidates('@active.pre.1#6.11');
+    expect(candidate).toBeDefined();
+
+    expect(
+      resolveAiScriptReferenceLabel(
+        candidate!,
+        context({
+          preScripts: [inlineScript({ name: 'Set auth token', code: 'line1\nline2\nline3' })]
+        })
+      )
+    ).toBe('Set auth token (line 2)');
+  });
+
+  it('appends a multi-line range when the selection spans lines', () => {
+    const [candidate] = findAiScriptReferenceCandidates('@42.post.1#0.12');
+    expect(candidate).toBeDefined();
+
+    expect(
+      resolveAiScriptReferenceLabel(
+        candidate!,
+        context({
+          postScripts: [inlineScript({ name: 'Assert status', code: 'line1\nline2\nline3' })]
+        })
+      )
+    ).toBe('Assert status (lines 1-2)');
+  });
+
+  it('falls back to the script name when snippet source is unavailable', () => {
+    const [candidate] = findAiScriptReferenceCandidates('@42.post.1#0.4');
+    expect(candidate).toBeDefined();
+
+    expect(
+      resolveAiScriptReferenceLabel(
+        candidate!,
+        context({
+          postScripts: [
+            inlineScript({ id: 'script-2', kind: 'snippet', snippetUuid: 'missing-uuid' })
+          ],
+          snippets: []
+        })
+      )
+    ).toBe('Missing snippet');
+  });
+});
+
 describe('tokenizeChatComposerText', () => {
   it('highlights only valid references', () => {
     const [candidate] = findAiScriptReferenceCandidates('@active.pre.1');
@@ -245,5 +340,95 @@ describe('tokenizeChatComposerText', () => {
     expect(tokenizeChatComposerText('email@example.com', context())).toEqual([
       { text: 'email@example.com', highlight: false }
     ]);
+  });
+});
+
+describe('buildAiScriptSelectionContextMessage', () => {
+  const fullScript = 'line1\nline2\nline3';
+
+  it('returns null when the message has no script references', () => {
+    expect(buildAiScriptSelectionContextMessage('Explain login flow', context())).toBeNull();
+  });
+
+  it('returns null when references have no selection suffix', () => {
+    expect(buildAiScriptSelectionContextMessage('Fix @active.pre.1 please', context())).toBeNull();
+  });
+
+  it('returns null when the selection reference fails active-tab validation', () => {
+    expect(
+      buildAiScriptSelectionContextMessage(
+        'Fix @active.pre.9#0.5 please',
+        context({
+          preScripts: [inlineScript({ name: 'Set auth token', code: fullScript })]
+        })
+      )
+    ).toBeNull();
+  });
+
+  it('includes full source, selected substring, line span, and focus wording', () => {
+    const message = buildAiScriptSelectionContextMessage(
+      'What does this do? @active.pre.1#6.11',
+      context({
+        preScripts: [inlineScript({ name: 'Set auth token', code: fullScript })]
+      })
+    );
+
+    expect(message).not.toBeNull();
+    expect(message).toContain(
+      'The user selected part of a script and is asking specifically about the SELECTED TEXT below.'
+    );
+    expect(message).toContain('Reference @active.pre.1#6.11');
+    expect(message).toContain('script "Set auth token"');
+    expect(message).toContain('Full script source:');
+    expect(message).toContain(fullScript);
+    expect(message).toContain('Selected text (characters 6–11, line 2):');
+    expect(message).toContain('line2');
+    expect(message).toContain('Focus your answer and any script edits on the selected region.');
+    expect(message).toContain('update_request_script');
+  });
+
+  it('includes multi-line selection spans in the context block', () => {
+    const message = buildAiScriptSelectionContextMessage(
+      'Review @42.post.1#0.12',
+      context({
+        postScripts: [inlineScript({ name: 'Assert status', code: fullScript })]
+      })
+    );
+
+    expect(message).not.toBeNull();
+    expect(message).toContain('Selected text (characters 0–12, lines 1-2):');
+    expect(message).toContain('line1\nline2');
+    expect(message).toContain('of request id 42');
+  });
+});
+
+describe('stripAiScriptReferences', () => {
+  it('removes a single script reference token', () => {
+    expect(stripAiScriptReferences('Fix @33.pre.3 auth')).toBe('Fix auth');
+  });
+
+  it('removes selection suffixes with the reference token', () => {
+    expect(stripAiScriptReferences('Fix @33.pre.3#10.20 auth')).toBe('Fix auth');
+  });
+
+  it('removes multiple script reference tokens', () => {
+    expect(stripAiScriptReferences('Check @42.pre.2 and @42.post.1')).toBe('Check and');
+  });
+
+  it('returns an empty string when the message contains only script references', () => {
+    expect(stripAiScriptReferences('@active.pre.1')).toBe('');
+  });
+
+  it('leaves plain text unchanged when no script references are present', () => {
+    expect(stripAiScriptReferences('Explain login flow')).toBe('Explain login flow');
+  });
+
+  it('does not strip email addresses or references without a leading boundary', () => {
+    expect(stripAiScriptReferences('email@example.com')).toBe('email@example.com');
+    expect(stripAiScriptReferences('foo@active.pre.1')).toBe('foo@active.pre.1');
+  });
+
+  it('removes only the parsed reference prefix when extra text follows', () => {
+    expect(stripAiScriptReferences('@active.pre.1extra')).toBe('extra');
   });
 });

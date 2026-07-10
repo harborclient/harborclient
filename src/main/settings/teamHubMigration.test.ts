@@ -34,10 +34,9 @@ describe('teamHubMigration', () => {
   });
 
   it('copies legacy serviceHubs into teamHubs when teamHubs is unset', () => {
-    const legacyValue = JSON.stringify([
+    settingsStore.serviceHubs = JSON.stringify([
       { id: 'hub-1', name: 'Team Hub', baseUrl: 'http://127.0.0.1:8788', token: 'hbk_test' }
     ]);
-    settingsStore.serviceHubs = legacyValue;
 
     migrateTeamHubSettings(
       {
@@ -51,7 +50,11 @@ describe('teamHubMigration', () => {
       userDataPath
     );
 
-    expect(settingsStore.teamHubs).toBe(legacyValue);
+    expect(JSON.parse(settingsStore.teamHubs ?? '[]')).toEqual([
+      { id: 'hub-1', name: 'Team Hub', baseUrl: 'http://127.0.0.1:8788' }
+    ]);
+    expect(settingsStore.teamHubSecrets).toBeTruthy();
+    expect(JSON.parse(settingsStore.teamHubSecrets ?? '{}')).toHaveProperty('hub-1');
     expect(settingsStore.serviceHubs).toBe('');
   });
 
@@ -78,6 +81,30 @@ describe('teamHubMigration', () => {
     expect(existsSync(join(userDataPath, 'service-hub-hub-1.db'))).toBe(false);
   });
 
+  it('moves inline bearer tokens into encrypted sidecar storage', () => {
+    settingsStore.teamHubs = JSON.stringify([
+      { id: 'hub-1', name: 'Team Hub', baseUrl: 'http://127.0.0.1:8788', token: 'hbk_test' }
+    ]);
+
+    migrateTeamHubSettings(
+      {
+        getSetting: (key) => settingsStore[key],
+        setSetting: (key, value) => {
+          settingsStore[key] = value;
+        },
+        listSettingKeysWithPrefix: (prefix) =>
+          Object.keys(settingsStore).filter((key) => key.startsWith(prefix))
+      } as LocalDatabase,
+      userDataPath
+    );
+
+    expect(JSON.parse(settingsStore.teamHubs ?? '[]')).toEqual([
+      { id: 'hub-1', name: 'Team Hub', baseUrl: 'http://127.0.0.1:8788' }
+    ]);
+    expect(settingsStore.teamHubSecrets).toBeTruthy();
+    expect(JSON.parse(settingsStore.teamHubSecrets ?? '{}')).toHaveProperty('hub-1');
+  });
+
   it('is idempotent when teamHubs is already populated', () => {
     settingsStore.teamHubs = JSON.stringify([
       { id: 'hub-1', name: 'Existing', baseUrl: 'http://127.0.0.1:8788', token: 'hbk_test' }
@@ -99,8 +126,10 @@ describe('teamHubMigration', () => {
     );
 
     expect(JSON.parse(settingsStore.teamHubs ?? '[]')).toEqual([
-      { id: 'hub-1', name: 'Existing', baseUrl: 'http://127.0.0.1:8788', token: 'hbk_test' }
+      { id: 'hub-1', name: 'Existing', baseUrl: 'http://127.0.0.1:8788' }
     ]);
+    expect(settingsStore.teamHubSecrets).toBeTruthy();
+    expect(JSON.parse(settingsStore.teamHubSecrets ?? '{}')).toHaveProperty('hub-1');
     expect(settingsStore.serviceHubs).toBe(
       JSON.stringify([
         { id: 'legacy', name: 'Legacy', baseUrl: 'http://127.0.0.1:8789', token: 'hbk_old' }

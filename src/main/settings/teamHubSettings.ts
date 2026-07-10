@@ -1,83 +1,132 @@
 import { randomUUID } from 'crypto';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
+import {
+  deleteTeamHubToken,
+  getTeamHubToken,
+  storeTeamHubToken
+} from '#/main/settings/teamHubSecrets';
 import { parseJson } from '#/shared/parseJson';
 import type { TeamHub } from '#/shared/types';
 
 const TEAM_HUBS_KEY = 'teamHubs';
 
 /**
- * Persists the team hub list to the local registry.
- *
- * @param hubs - Team hubs to store.
+ * Team hub metadata persisted without bearer tokens in the registry JSON blob.
  */
-function persistTeamHubs(hubs: TeamHub[]): void {
-  getLocalDatabase().setSetting(TEAM_HUBS_KEY, JSON.stringify(hubs));
+interface StoredTeamHub {
+  /**
+   * Unique team hub identifier.
+   */
+  id: string;
+
+  /**
+   * User-defined display name.
+   */
+  name: string;
+
+  /**
+   * HarborClient Team Hub base URL.
+   */
+  baseUrl: string;
+
+  /**
+   * Legacy inline bearer token migrated to the encrypted sidecar.
+   */
+  token?: string;
+}
+
+/**
+ * Persists team hub metadata to the local registry.
+ *
+ * @param hubs - Team hub metadata rows without bearer tokens.
+ */
+function persistTeamHubMetadata(hubs: StoredTeamHub[]): void {
+  getLocalDatabase().setSetting(
+    TEAM_HUBS_KEY,
+    JSON.stringify(hubs.map(({ id, name, baseUrl }) => ({ id, name, baseUrl })))
+  );
 }
 
 /**
  * Trims fields and removes trailing slashes from the base URL.
  *
  * @param input - Raw team hub from storage or user input.
- * @returns Normalized team hub record.
+ * @returns Normalized team hub record with token resolved from the sidecar when omitted.
  */
-function normalizeTeamHub(input: TeamHub): TeamHub {
+function normalizeTeamHub(input: StoredTeamHub | TeamHub): TeamHub {
+  const id = input.id.trim();
+  const inlineToken = 'token' in input ? String(input.token ?? '').trim() : '';
+  const token = inlineToken || getTeamHubToken(id) || '';
+
   return {
-    id: input.id.trim(),
+    id,
     name: input.name.trim(),
     baseUrl: input.baseUrl.trim().replace(/\/+$/, ''),
-    token: input.token.trim()
+    token
   };
 }
 
 /**
- * Lists all configured team hubs.
+ * Lists all configured team hubs with bearer tokens resolved from encrypted storage.
  *
  * @returns Normalized team hub records from local storage.
  */
 export function listTeamHubs(): TeamHub[] {
-  const stored = parseJson<TeamHub[]>(getLocalDatabase().getSetting(TEAM_HUBS_KEY), []);
+  const stored = parseJson<StoredTeamHub[]>(getLocalDatabase().getSetting(TEAM_HUBS_KEY), []);
   return stored.map(normalizeTeamHub);
 }
 
 /**
- * Creates or updates a team hub.
+ * Creates or updates a team hub and stores its bearer token in encrypted storage.
  *
  * @param input - Team hub to persist; blank id inserts a new record.
  * @returns Updated list of all team hubs.
  */
 export function saveTeamHub(input: TeamHub): TeamHub[] {
+  const id = input.id.trim() || randomUUID();
   const normalized = normalizeTeamHub({
     ...input,
-    id: input.id.trim() || randomUUID()
+    id
   });
-  const hubs = listTeamHubs();
-  const index = hubs.findIndex((hub) => hub.id === normalized.id);
 
-  if (index >= 0) {
-    hubs[index] = normalized;
-  } else {
-    hubs.push(normalized);
+  if (normalized.token) {
+    storeTeamHubToken(id, normalized.token);
   }
 
-  persistTeamHubs(hubs);
-  return hubs;
+  const stored = parseJson<StoredTeamHub[]>(getLocalDatabase().getSetting(TEAM_HUBS_KEY), []);
+  const metadata: StoredTeamHub = {
+    id: normalized.id,
+    name: normalized.name,
+    baseUrl: normalized.baseUrl
+  };
+  const index = stored.findIndex((hub) => hub.id === normalized.id);
+
+  if (index >= 0) {
+    stored[index] = metadata;
+  } else {
+    stored.push(metadata);
+  }
+
+  persistTeamHubMetadata(stored);
+  return listTeamHubs();
 }
 
 /**
- * Deletes a team hub by id.
+ * Deletes a team hub by id and removes its encrypted bearer token.
  *
  * @param id - Team hub id to remove.
  * @returns Updated list of all team hubs.
  * @throws When no team hub matches the given id.
  */
 export function deleteTeamHub(id: string): TeamHub[] {
-  const hubs = listTeamHubs();
-  const nextHubs = hubs.filter((hub) => hub.id !== id);
+  const stored = parseJson<StoredTeamHub[]>(getLocalDatabase().getSetting(TEAM_HUBS_KEY), []);
+  const nextStored = stored.filter((hub) => hub.id !== id);
 
-  if (nextHubs.length === hubs.length) {
+  if (nextStored.length === stored.length) {
     throw new Error(`Unknown team hub: ${id}`);
   }
 
-  persistTeamHubs(nextHubs);
-  return nextHubs;
+  persistTeamHubMetadata(nextStored);
+  deleteTeamHubToken(id);
+  return listTeamHubs();
 }

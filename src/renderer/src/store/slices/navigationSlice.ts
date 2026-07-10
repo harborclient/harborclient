@@ -20,6 +20,7 @@ export interface NavigationState {
   pendingInstalledSearch: string | null;
   pendingSnippetMarketplaceSearch: string | null;
   pendingSnippetInstallId: string | null;
+  pendingTeamHubJoin: { baseUrl: string; code: string } | null;
   customThemesReloadNonce: number;
 }
 
@@ -42,6 +43,7 @@ const initialState: NavigationState = {
   pendingInstalledSearch: null,
   pendingSnippetMarketplaceSearch: null,
   pendingSnippetInstallId: null,
+  pendingTeamHubJoin: null,
   customThemesReloadNonce: 0
 };
 
@@ -239,6 +241,18 @@ const navigationSlice = createSlice({
       state.pendingSnippetInstallId = null;
     },
     /**
+     * Queues a Team Hub join deep link for the onboarding modal.
+     */
+    setPendingTeamHubJoin(state, action: PayloadAction<{ baseUrl: string; code: string }>) {
+      state.pendingTeamHubJoin = action.payload;
+    },
+    /**
+     * Clears a queued Team Hub join deep link after it has been handled.
+     */
+    consumePendingTeamHubJoin(state) {
+      state.pendingTeamHubJoin = null;
+    },
+    /**
      * Bumps the custom themes reload nonce so the Themes screen refreshes installed themes.
      */
     bumpCustomThemesReloadNonce(state) {
@@ -275,6 +289,8 @@ export const {
   consumePendingSnippetMarketplaceSearch,
   setPendingSnippetInstall,
   consumePendingSnippetInstall,
+  setPendingTeamHubJoin,
+  consumePendingTeamHubJoin,
   bumpCustomThemesReloadNonce
 } = navigationSlice.actions;
 
@@ -375,6 +391,12 @@ export const selectPendingSnippetMarketplaceSearch = (state: RootState): string 
  */
 export const selectPendingSnippetInstallId = (state: RootState): string | null =>
   state.navigation.pendingSnippetInstallId;
+/**
+ * Returns the Team Hub join deep link queued for onboarding, if any.
+ */
+export const selectPendingTeamHubJoin = (
+  state: RootState
+): { baseUrl: string; code: string } | null => state.navigation.pendingTeamHubJoin;
 /**
  * Returns the custom themes reload nonce used to refresh the Themes installed list.
  */

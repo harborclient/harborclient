@@ -4,6 +4,9 @@ import type { ChatSummary } from '#/shared/types';
 export const CHAT_HISTORY_TODAY_KEY = 'today';
 export const CHAT_HISTORY_YESTERDAY_KEY = 'yesterday';
 
+/** Maximum chats shown per day section before a section-level Show more control. */
+export const CHAT_HISTORY_SECTION_ITEM_LIMIT = 12;
+
 /**
  * Chats grouped under a day label for the history dropdown.
  */
@@ -78,6 +81,15 @@ export function filterChats(chats: ChatSummary[], query: string): ChatSummary[] 
 }
 
 /**
+ * Excludes chats that have no persisted messages from history lists.
+ *
+ * @param chats - Chat summaries from persistence.
+ */
+export function filterChatsWithMessages(chats: ChatSummary[]): ChatSummary[] {
+  return chats.filter((chat) => chat.message_count > 0);
+}
+
+/**
  * Groups chats by calendar day while preserving the incoming list order.
  *
  * @param chats - Filtered chat summaries, typically newest-first.
@@ -124,4 +136,60 @@ export function splitRecentAndOlder(groups: ChatHistoryGroup[]): {
   }
 
   return { recent, older };
+}
+
+/**
+ * Returns whether any day group is Today or Yesterday.
+ *
+ * @param groups - Ordered day groups from {@link groupChatsByDay}.
+ */
+export function hasRecentDayGroups(groups: ChatHistoryGroup[]): boolean {
+  return groups.some(
+    (group) => group.key === CHAT_HISTORY_TODAY_KEY || group.key === CHAT_HISTORY_YESTERDAY_KEY
+  );
+}
+
+/**
+ * Truncates a day group's chats to the section item limit unless expanded.
+ *
+ * @param group - Day group to render.
+ * @param isExpanded - Whether the user has expanded this section.
+ * @returns Visible group and whether more chats remain hidden.
+ */
+export function truncateGroupChats(
+  group: ChatHistoryGroup,
+  isExpanded: boolean
+): { group: ChatHistoryGroup; hasMore: boolean } {
+  if (isExpanded || group.chats.length <= CHAT_HISTORY_SECTION_ITEM_LIMIT) {
+    return { group, hasMore: false };
+  }
+
+  return {
+    group: {
+      ...group,
+      chats: group.chats.slice(0, CHAT_HISTORY_SECTION_ITEM_LIMIT)
+    },
+    hasMore: true
+  };
+}
+
+/**
+ * Truncates a flat chat list when no Today/Yesterday sections are shown.
+ *
+ * @param chats - Filtered chat summaries, typically newest-first.
+ * @param showAll - Whether the user has expanded the flat list.
+ * @returns Visible chats and whether more chats remain hidden.
+ */
+export function truncateFlatChats(
+  chats: ChatSummary[],
+  showAll: boolean
+): { chats: ChatSummary[]; hasMore: boolean } {
+  if (showAll || chats.length <= CHAT_HISTORY_SECTION_ITEM_LIMIT) {
+    return { chats, hasMore: false };
+  }
+
+  return {
+    chats: chats.slice(0, CHAT_HISTORY_SECTION_ITEM_LIMIT),
+    hasMore: true
+  };
 }

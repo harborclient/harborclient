@@ -3,6 +3,7 @@ import type { AiScriptReferenceValidationContext } from '#/shared/ai/scriptRefer
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { isRequestTab } from '#/renderer/src/store/drafts';
 import { selectActiveTab, selectSnippets } from '#/renderer/src/store/selectors';
+import type { Snippet } from '#/shared/types';
 
 /**
  * Builds validation context from the active request tab for `@` script references.
@@ -11,7 +12,7 @@ import { selectActiveTab, selectSnippets } from '#/renderer/src/store/selectors'
  */
 function buildValidationContext(
   tab: ReturnType<typeof selectActiveTab>
-): AiScriptReferenceValidationContext {
+): Omit<AiScriptReferenceValidationContext, 'snippets'> {
   if (!tab || !isRequestTab(tab)) {
     return {
       hasActiveRequestTab: false,
@@ -31,6 +32,22 @@ function buildValidationContext(
 }
 
 /**
+ * Builds the full validation context used by chat UI and send-time script expansion.
+ *
+ * @param tab - Active editor tab, if any.
+ * @param snippets - Snippet library for resolving snippet-linked script names and source.
+ */
+export function buildAiScriptReferenceValidationContext(
+  tab: ReturnType<typeof selectActiveTab>,
+  snippets: Snippet[]
+): AiScriptReferenceValidationContext {
+  return {
+    ...buildValidationContext(tab),
+    snippets
+  };
+}
+
+/**
  * Returns the active request tab state used to validate `@` script references in chat UI.
  */
 export function useAiScriptReferenceValidationContext(): AiScriptReferenceValidationContext {
@@ -41,10 +58,7 @@ export function useAiScriptReferenceValidationContext(): AiScriptReferenceValida
    * Memoizes script counts, script rows, and snippet lookup data from the active tab.
    */
   return useMemo(
-    () => ({
-      ...buildValidationContext(activeTab),
-      snippets
-    }),
+    () => buildAiScriptReferenceValidationContext(activeTab, snippets),
     [activeTab, snippets]
   );
 }

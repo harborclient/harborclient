@@ -410,6 +410,42 @@ export const createHubUserInput = z.object({
 });
 
 /**
+ * Zod schema for creating an invited Team Hub user sent over IPC.
+ */
+export const createInvitedHubUserInput = createHubUserInput.extend({
+  expiresInHours: z.number().int().positive().optional()
+});
+
+/**
+ * Zod schema for reissuing a Team Hub invitation sent over IPC.
+ */
+export const createUserInvitationInput = z.object({
+  expiresInHours: z.number().int().positive().optional()
+});
+
+/**
+ * Zod schema for public Team Hub invitation preview and redeem calls.
+ */
+export const teamHubInvitationPublic = z.tuple([
+  z.string().trim().min(1),
+  z.string().trim().min(1)
+]);
+
+/**
+ * Zod schema for redeeming a Team Hub invitation with an optional token label.
+ */
+export const teamHubInvitationRedeem = z.tuple([
+  z.string().trim().min(1),
+  z.string().trim().min(1),
+  z.string().trim().min(1).optional()
+]);
+
+/**
+ * Zod schema for verifying a Team Hub bearer token against session introspection.
+ */
+export const teamHubSessionVerify = z.tuple([z.string().trim().min(1), z.string().trim().min(1)]);
+
+/**
  * Zod schema for creating a Team Hub API token sent over IPC.
  */
 export const createHubTokenInput = z.object({
@@ -606,6 +642,17 @@ export const ipcArgSchemas = {
   teamHubUserUpdate: z.tuple([connectionId, connectionId, updateHubUserInput]),
   teamHubUserDelete: z.tuple([connectionId, connectionId]),
   teamHubUserCreate: z.tuple([connectionId, createHubUserInput]),
+  teamHubInvitedUserCreate: z.tuple([connectionId, createInvitedHubUserInput]),
+  teamHubUserInvitationCreate: z.tuple([
+    connectionId,
+    connectionId,
+    createUserInvitationInput.optional()
+  ]),
+  teamHubInvitationList: z.tuple([connectionId]),
+  teamHubInvitationRevoke: z.tuple([connectionId, z.string().min(1)]),
+  teamHubInvitationPreview: teamHubInvitationPublic,
+  teamHubInvitationRedeem: teamHubInvitationRedeem,
+  teamHubSessionVerify: teamHubSessionVerify,
   teamHubTokenList: z.tuple([connectionId]),
   teamHubTokenCreate: z.tuple([connectionId, connectionId, createHubTokenInput]),
   teamHubTokenDelete: z.tuple([connectionId, connectionId]),

@@ -1,6 +1,7 @@
 import { runChatCompletionStep } from '#/main/ai/completeChatTurn';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { DEFAULT_CHAT_TITLE, parseChatTitleResult } from '#/shared/ai/chatTitle';
+import { stripAiScriptReferences } from '#/shared/ai/scriptReferences';
 import type { GenerateChatTitleInput } from '#/shared/types';
 
 /**
@@ -18,7 +19,7 @@ export async function runGenerateChatTitle(input: GenerateChatTitleInput): Promi
     return chat?.title ?? DEFAULT_CHAT_TITLE;
   }
 
-  const prompt = input.prompt.trim();
+  const prompt = stripAiScriptReferences(input.prompt).trim();
   if (!prompt) {
     return chat.title;
   }

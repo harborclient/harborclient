@@ -2,9 +2,14 @@ import type {
   AdminEntityConfig,
   CreateHubTokenInput,
   CreateHubUserInput,
+  CreateInvitedHubUserInput,
+  CreateUserInvitationInput,
   CreatedHubToken,
   CreatedHubUser,
+  CreatedInvitedHubUser,
   HubApiTokenRecord,
+  HubInvitationPreview,
+  HubInvitationRecord,
   HubUserRecord,
   ReloadConfigResponse,
   TeamHub,
@@ -13,7 +18,9 @@ import type {
   TeamHubAdminSnippet,
   TeamHubAdminSnippetInput,
   TeamHubAdminRunResult,
+  TeamHubInvitationRedeemResult,
   TeamHubSessionScanResult,
+  TeamHubVerifiedSession,
   UpdateHubUserInput
 } from '#/shared/types/teamHub';
 
@@ -75,6 +82,67 @@ export interface ApiTeamHub {
    * @param input - User fields for the new account.
    */
   createTeamHubUser: (hubId: string, input: CreateHubUserInput) => Promise<CreatedHubUser>;
+  /**
+   * Creates a Team Hub user account and onboarding invitation using an admin token.
+   *
+   * @param hubId - Team hub connection id with an admin token.
+   * @param input - User fields and optional invitation expiry.
+   */
+  createTeamHubInvitedUser: (
+    hubId: string,
+    input: CreateInvitedHubUserInput
+  ) => Promise<CreatedInvitedHubUser>;
+  /**
+   * Issues a replacement onboarding invitation for an existing user account.
+   *
+   * @param hubId - Team hub connection id with an admin token.
+   * @param userId - User account identifier.
+   * @param input - Optional invitation expiry override.
+   */
+  createTeamHubUserInvitation: (
+    hubId: string,
+    userId: string,
+    input?: CreateUserInvitationInput
+  ) => Promise<CreatedInvitedHubUser>;
+  /**
+   * Lists onboarding invitations for operator review and recovery.
+   *
+   * @param hubId - Team hub connection id with an admin token.
+   */
+  listTeamHubInvitations: (hubId: string) => Promise<HubInvitationRecord[]>;
+  /**
+   * Revokes a pending onboarding invitation.
+   *
+   * @param hubId - Team hub connection id with an admin token.
+   * @param invitationId - Invitation record identifier.
+   */
+  revokeTeamHubInvitation: (hubId: string, invitationId: string) => Promise<void>;
+  /**
+   * Returns invited user details for confirmation without consuming the invitation.
+   *
+   * @param baseUrl - Team Hub server base URL.
+   * @param code - Invitation secret prefixed with `hbi_`.
+   */
+  previewTeamHubInvitation: (baseUrl: string, code: string) => Promise<HubInvitationPreview>;
+  /**
+   * Redeems an invitation, verifies the issued bearer token, and returns both results.
+   *
+   * @param baseUrl - Team Hub server base URL.
+   * @param code - Invitation secret prefixed with `hbi_`.
+   * @param tokenName - Optional label for the issued API token.
+   */
+  redeemTeamHubInvitation: (
+    baseUrl: string,
+    code: string,
+    tokenName?: string
+  ) => Promise<TeamHubInvitationRedeemResult>;
+  /**
+   * Verifies a bearer token against `GET /auth/session` without persisting it.
+   *
+   * @param baseUrl - Team Hub server base URL.
+   * @param token - Bearer token prefixed with `hbk_`.
+   */
+  verifyTeamHubSession: (baseUrl: string, token: string) => Promise<TeamHubVerifiedSession>;
   /**
    * Lists Team Hub API tokens using an admin token on the given hub connection.
    *

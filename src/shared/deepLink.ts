@@ -24,7 +24,14 @@ export type HarborDeepLink =
   | {
       action: 'open-run-results';
       uuid: string;
+    }
+  | {
+      action: 'join-team-hub';
+      baseUrl: string;
+      code: string;
     };
+
+const TEAM_HUB_INVITATION_PREFIX = 'hbi_';
 
 const RUN_RESULT_UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -83,6 +90,56 @@ function parseRunResultsDeepLink(parsed: URL): HarborDeepLink | null {
 }
 
 /**
+ * Returns whether a string looks like a Team Hub invitation secret.
+ *
+ * @param value - Candidate invitation code from a deep-link query parameter.
+ */
+function isTeamHubInvitationCode(value: string): boolean {
+  return (
+    value.startsWith(TEAM_HUB_INVITATION_PREFIX) &&
+    value.length > TEAM_HUB_INVITATION_PREFIX.length + 8
+  );
+}
+
+/**
+ * Returns whether a string is a valid HTTP or HTTPS base URL for a Team Hub server.
+ *
+ * @param value - Candidate Team Hub base URL from a deep-link query parameter.
+ */
+function isTeamHubBaseUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Parses a harborclient://team-hub/join deep link when the host and path match.
+ *
+ * @param parsed - Parsed harborclient:// URL.
+ * @returns Parsed join-team-hub action, or null when invalid.
+ */
+function parseTeamHubJoinDeepLink(parsed: URL): HarborDeepLink | null {
+  if (parsed.hostname !== 'team-hub' || parsed.pathname !== '/join') {
+    return null;
+  }
+
+  const baseUrl = parsed.searchParams.get('url')?.trim();
+  const code = parsed.searchParams.get('code')?.trim();
+  if (!baseUrl || !code || !isTeamHubBaseUrl(baseUrl) || !isTeamHubInvitationCode(code)) {
+    return null;
+  }
+
+  return {
+    action: 'join-team-hub',
+    baseUrl: baseUrl.replace(/\/+$/, ''),
+    code
+  };
+}
+
+/**
  * Parses a harborclient:// URL into a supported deep-link action.
  *
  * Only plugin ids from the query string are trusted; repository URLs must be
@@ -112,7 +169,8 @@ export function parseHarborDeepLink(url: string): HarborDeepLink | null {
     parseInstallDeepLink(parsed, 'plugin', 'install-plugin') ??
     parseInstallDeepLink(parsed, 'theme', 'install-theme') ??
     parseInstallDeepLink(parsed, 'snippet', 'install-snippet') ??
-    parseRunResultsDeepLink(parsed)
+    parseRunResultsDeepLink(parsed) ??
+    parseTeamHubJoinDeepLink(parsed)
   );
 }
 
@@ -154,4 +212,19 @@ export function buildSnippetInstallDeepLink(pluginId: string): string {
  */
 export function buildRunResultsDeepLink(uuid: string): string {
   return `${HARBOR_PROTOCOL}://run/${encodeURIComponent(uuid)}`;
+}
+
+/**
+ * Builds a harborclient:// join URL for one Team Hub onboarding invitation.
+ *
+ * @param baseUrl - Team Hub server base URL shared with the invitee.
+ * @param code - One-time invitation secret prefixed with `hbi_`.
+ * @returns Deep-link URL suitable for clipboard copy and external links.
+ */
+export function buildTeamHubJoinDeepLink(baseUrl: string, code: string): string {
+  const params = new URLSearchParams({
+    url: baseUrl.trim().replace(/\/+$/, ''),
+    code: code.trim()
+  });
+  return `${HARBOR_PROTOCOL}://team-hub/join?${params.toString()}`;
 }

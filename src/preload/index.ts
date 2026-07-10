@@ -62,6 +62,8 @@ import type {
   SaveTextFileResult,
   TeamHub,
   TeamHubSessionScanResult,
+  TeamHubInvitationRedeemResult,
+  TeamHubVerifiedSession,
   ReloadConfigResponse,
   HubUserRecord,
   TeamHubAdminResourceOptions,
@@ -72,6 +74,11 @@ import type {
   UpdateHubUserInput,
   CreateHubUserInput,
   CreatedHubUser,
+  CreateInvitedHubUserInput,
+  CreateUserInvitationInput,
+  CreatedInvitedHubUser,
+  HubInvitationPreview,
+  HubInvitationRecord,
   HubApiTokenRecord,
   CreateHubTokenInput,
   CreatedHubToken,
@@ -1349,6 +1356,88 @@ function deleteTeamHubUser(hubId: string, userId: string): Promise<void> {
  */
 function createTeamHubUser(hubId: string, input: CreateHubUserInput): Promise<CreatedHubUser> {
   return ipcRenderer.invoke('teamHubs:createUser', hubId, input);
+}
+
+/**
+ * Creates a Team Hub user account and onboarding invitation via IPC.
+ *
+ * @param hubId - Team hub connection id with an admin token.
+ * @param input - User fields and optional invitation expiry.
+ */
+function createTeamHubInvitedUser(
+  hubId: string,
+  input: CreateInvitedHubUserInput
+): Promise<CreatedInvitedHubUser> {
+  return ipcRenderer.invoke('teamHubs:createInvitedUser', hubId, input);
+}
+
+/**
+ * Issues a replacement onboarding invitation for an existing user account via IPC.
+ *
+ * @param hubId - Team hub connection id with an admin token.
+ * @param userId - User account identifier.
+ * @param input - Optional invitation expiry override.
+ */
+function createTeamHubUserInvitation(
+  hubId: string,
+  userId: string,
+  input?: CreateUserInvitationInput
+): Promise<CreatedInvitedHubUser> {
+  return ipcRenderer.invoke('teamHubs:createUserInvitation', hubId, userId, input);
+}
+
+/**
+ * Lists onboarding invitations via IPC using an admin token on the given hub.
+ *
+ * @param hubId - Team hub connection id with an admin token.
+ */
+function listTeamHubInvitations(hubId: string): Promise<HubInvitationRecord[]> {
+  return ipcRenderer.invoke('teamHubs:listInvitations', hubId);
+}
+
+/**
+ * Revokes a pending onboarding invitation via IPC.
+ *
+ * @param hubId - Team hub connection id with an admin token.
+ * @param invitationId - Invitation record identifier.
+ */
+function revokeTeamHubInvitation(hubId: string, invitationId: string): Promise<void> {
+  return ipcRenderer.invoke('teamHubs:revokeInvitation', hubId, invitationId);
+}
+
+/**
+ * Returns invited user details for confirmation without consuming the invitation.
+ *
+ * @param baseUrl - Team Hub server base URL.
+ * @param code - Invitation secret prefixed with `hbi_`.
+ */
+function previewTeamHubInvitation(baseUrl: string, code: string): Promise<HubInvitationPreview> {
+  return ipcRenderer.invoke('teamHubs:previewInvitation', baseUrl, code);
+}
+
+/**
+ * Redeems an invitation, verifies the issued bearer token, and returns both results.
+ *
+ * @param baseUrl - Team Hub server base URL.
+ * @param code - Invitation secret prefixed with `hbi_`.
+ * @param tokenName - Optional label for the issued API token.
+ */
+function redeemTeamHubInvitation(
+  baseUrl: string,
+  code: string,
+  tokenName?: string
+): Promise<TeamHubInvitationRedeemResult> {
+  return ipcRenderer.invoke('teamHubs:redeemInvitation', baseUrl, code, tokenName);
+}
+
+/**
+ * Verifies a bearer token against session introspection without persisting it.
+ *
+ * @param baseUrl - Team Hub server base URL.
+ * @param token - Bearer token prefixed with `hbk_`.
+ */
+function verifyTeamHubSession(baseUrl: string, token: string): Promise<TeamHubVerifiedSession> {
+  return ipcRenderer.invoke('teamHubs:verifySession', baseUrl, token);
 }
 
 /**
@@ -2798,6 +2887,13 @@ const api: Api = {
   updateTeamHubUser,
   deleteTeamHubUser,
   createTeamHubUser,
+  createTeamHubInvitedUser,
+  createTeamHubUserInvitation,
+  listTeamHubInvitations,
+  revokeTeamHubInvitation,
+  previewTeamHubInvitation,
+  redeemTeamHubInvitation,
+  verifyTeamHubSession,
   listTeamHubTokens,
   createTeamHubUserToken,
   deleteTeamHubToken,

@@ -2,9 +2,26 @@ import { FaIcon } from '@harborclient/sdk/components';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { faCode, faXmark } from '#/renderer/src/fontawesome';
 
-/** Shared Tailwind classes for script reference badges in chat UI. */
+/** Shared Tailwind classes for script reference badges on neutral backgrounds. */
 export const SCRIPT_REFERENCE_BADGE_CLASS =
   'hc-script-reference-badge inline-flex max-w-full items-center gap-1 rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 align-middle font-medium text-accent';
+
+/** Badge styling for user message bubbles that use a solid accent background. */
+export const SCRIPT_REFERENCE_BADGE_ON_ACCENT_CLASS =
+  'hc-script-reference-badge inline-flex max-w-full items-center gap-1 rounded-full border border-white/30 bg-white/20 px-2 py-0.5 align-middle font-medium text-white';
+
+export type ScriptReferenceBadgeVariant = 'default' | 'onAccent';
+
+/**
+ * Returns Tailwind classes for a script reference badge variant.
+ *
+ * @param variant - Default accent chip or white-on-accent chip for user bubbles.
+ */
+export function getScriptReferenceBadgeClass(variant: ScriptReferenceBadgeVariant): string {
+  return variant === 'onAccent'
+    ? SCRIPT_REFERENCE_BADGE_ON_ACCENT_CLASS
+    : SCRIPT_REFERENCE_BADGE_CLASS;
+}
 
 /** Attribute marking the composer badge remove control for CodeMirror event handling. */
 export const SCRIPT_REFERENCE_REMOVE_ATTR = 'data-script-reference-remove';

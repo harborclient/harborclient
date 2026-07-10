@@ -69,9 +69,18 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
     dispatch(setPendingComposerText(null));
 
     queueMicrotask(() => {
+      if (draft.trim().length > 0) {
+        const separator = /\s$/.test(draft) ? '' : ' ';
+        const nextDraft = `${draft}${separator}${text}`;
+        setDraft(nextDraft);
+        composerRef.current?.appendReferenceAtEnd(text);
+        return;
+      }
+
+      setDraft(text);
       composerRef.current?.setTextAndFocusEnd(text);
     });
-  }, [dispatch, pendingComposerText]);
+  }, [dispatch, draft, pendingComposerText]);
 
   /**
    * Returns focus to the prompt after a send completes and the editor is re-enabled.
@@ -111,8 +120,8 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
   };
 
   return (
-    <div className="flex shrink-0 flex-col gap-2 border-t border-separator p-3 app-no-drag">
-      <div className={`flex flex-col ${fieldFrame}`}>
+    <div className="flex shrink-0 flex-col gap-2 p-3 app-no-drag">
+      <div className={`flex flex-col ${fieldFrame} rounded-2xl!`}>
         <ChatComposerTextarea
           ref={composerRef}
           embedded
@@ -154,7 +163,7 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
           <Button
             type="button"
             variant={sending || canSend ? 'primary' : 'secondary'}
-            className="size-8 shrink-0 p-0"
+            className="h-[32px] w-[32px] min-h-[32px] min-w-[32px] max-h-[32px] max-w-[32px] shrink-0 p-0"
             disabled={sending ? false : !canSend}
             aria-label={sending ? 'Stop generating' : 'Send message'}
             onClick={() => (sending ? handleStop() : void handleSend())}

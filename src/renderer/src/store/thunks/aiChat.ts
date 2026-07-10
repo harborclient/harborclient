@@ -1,9 +1,12 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { DEFAULT_CHAT_TITLE } from '#/shared/ai/chatTitle';
 import { getAvailableModels } from '#/shared/ai/models';
+import { buildAiScriptSelectionContextMessage } from '#/shared/ai/scriptReferences';
 import type { AiSettings, ChatMessage, ChatStepMessage, ChatSummary } from '#/shared/types';
 import { executeAiToolCall } from '#/renderer/src/store/ai/aiToolExecutor';
 import type { RootState, ThunkApiConfig } from '#/renderer/src/store/redux';
+import { buildAiScriptReferenceValidationContext } from '#/renderer/src/ui/AiSidebar/Chat/useAiScriptReferenceValidationContext';
+import { selectActiveTab, selectSnippets } from '#/renderer/src/store/selectors';
 import {
   appendMessage,
   clearChatCancelState,
@@ -288,6 +291,16 @@ export const sendChatMessage = createAsyncThunk<
   try {
     dispatch(clearChatCancelState(chatId));
     const messages = historyToStepMessages(getState().aiChat.messagesByChat[chatId] ?? []);
+    const selectionContext = buildAiScriptSelectionContextMessage(
+      trimmed,
+      buildAiScriptReferenceValidationContext(
+        selectActiveTab(getState()),
+        selectSnippets(getState())
+      )
+    );
+    if (selectionContext != null) {
+      messages.push({ role: 'system', content: selectionContext });
+    }
     let assistantText: string | null = null;
 
     for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration += 1) {

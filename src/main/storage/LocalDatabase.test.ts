@@ -101,6 +101,7 @@ describeSqlite('LocalDatabase chats', () => {
     const chat = database.createChat({});
     expect(chat.title).toBe('New Chat');
     expect(chat.messages).toEqual([]);
+    expect(chat.message_count).toBe(0);
 
     database.addChatMessage({ chatId: chat.id, role: 'user', content: '  Hello there  ' });
     const assistant = database.addChatMessage({
@@ -116,6 +117,13 @@ describeSqlite('LocalDatabase chats', () => {
 
     const summaries = database.listChats();
     expect(summaries[0]?.id).toBe(chat.id);
+    expect(summaries[0]?.message_count).toBe(2);
+
+    const emptyChat = database.createChat({});
+    const summariesWithEmpty = database.listChats();
+    expect(summariesWithEmpty.find((summary) => summary.id === emptyChat.id)?.message_count).toBe(
+      0
+    );
 
     database.deleteChat(chat.id);
     expect(database.getChat(chat.id)).toBeNull();

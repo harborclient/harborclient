@@ -17,7 +17,7 @@ import {
   sortableKeyboardCoordinates
 } from '@dnd-kit/sortable';
 import { FaIcon, resolveTabListKeyAction } from '@harborclient/sdk/components';
-import { useMemo, useState, type JSX, type KeyboardEvent } from 'react';
+import { Fragment, useEffect, useMemo, useState, type JSX, type KeyboardEvent } from 'react';
 import type { AiSettings } from '#/shared/types';
 
 import { faComment, faPlus } from '#/renderer/src/fontawesome';
@@ -35,6 +35,8 @@ import {
   buildTabCloseMenuGroups,
   chatIdsWithMessages
 } from '#/renderer/src/ui/shared/tabContextMenuHelpers';
+import { ClosingTabShell } from '#/renderer/src/ui/shared/ClosingTabShell';
+import { useExitingTabItems } from '#/renderer/src/ui/shared/useExitingTabItems';
 import { ChatTabItem } from './ChatTabItem';
 
 interface ChatContextMenuState {
@@ -135,7 +137,6 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
   const messagesByChat = useAppSelector((state) => state.aiChat.messagesByChat);
   const [activeDragChatId, setActiveDragChatId] = useState<number | null>(null);
   const [contextMenu, setContextMenu] = useState<ChatContextMenuState | null>(null);
-  const sortableEnabled = openTabIds.length >= 2;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -153,6 +154,12 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
     [chatHistory, openTabIds]
   );
 
+  const sortableEnabled = openTabIds.length >= 2;
+  const { completeExit, getExitingBefore, removedIds } = useExitingTabItems(
+    openTabs,
+    (chat) => chat.id
+  );
+
   /**
    * Stable sortable ids for open AI chat tabs.
    */
@@ -160,6 +167,33 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
     () => openTabIds.map((chatId) => aiChatTabSortableId(chatId)),
     [openTabIds]
   );
+
+  /**
+   * Moves focus to the active chat tab when the focused tab row was just removed.
+   */
+  useEffect(() => {
+    if (removedIds.length === 0) {
+      return;
+    }
+
+    const focusedTab = document.activeElement?.closest('[role="tab"]');
+    if (!(focusedTab instanceof HTMLElement) || !focusedTab.id.startsWith(AI_CHAT_TAB_ID_PREFIX)) {
+      return;
+    }
+
+    const focusedChatId = Number.parseInt(focusedTab.id.slice(AI_CHAT_TAB_ID_PREFIX.length), 10);
+    if (
+      Number.isNaN(focusedChatId) ||
+      !removedIds.includes(focusedChatId) ||
+      activeChatId == null
+    ) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      document.getElementById(`ai-chat-tab-${activeChatId}`)?.focus();
+    });
+  }, [activeChatId, removedIds]);
 
   /**
    * Chat currently being dragged for overlay preview.
@@ -279,23 +313,58 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
           >
             <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
               {openTabs.map((chat) => (
-                <ChatTabItem
-                  key={chat.id}
-                  chat={chat}
-                  active={chat.id === activeChatId}
-                  tabIndex={0}
-                  sortableId={aiChatTabSortableId(chat.id)}
-                  sortableDisabled={!sortableEnabled}
-                  onSelect={(chatId) => dispatch(setActiveChat(chatId))}
-                  onClose={(chatId) => void dispatch(closeChat(chatId))}
-                  onContextMenu={(chatId, event) => {
-                    setContextMenu({
-                      chatId,
-                      x: event.clientX,
-                      y: event.clientY
-                    });
-                  }}
-                />
+                <Fragment key={chat.id}>
+                  {getExitingBefore(chat.id).map((exitingTab) => (
+                    <ClosingTabShell
+                      key={exitingTab.exitKey}
+                      onComplete={() => completeExit(exitingTab.exitKey)}
+                    >
+                      <ChatTabItem
+                        chat={exitingTab.item}
+                        active={false}
+                        exiting
+                        tabIndex={-1}
+                        sortableId={aiChatTabSortableId(exitingTab.item.id)}
+                        sortableDisabled
+                        onSelect={(chatId) => dispatch(setActiveChat(chatId))}
+                        onClose={(chatId) => void dispatch(closeChat(chatId))}
+                      />
+                    </ClosingTabShell>
+                  ))}
+                  <ChatTabItem
+                    chat={chat}
+                    active={chat.id === activeChatId}
+                    tabIndex={0}
+                    sortableId={aiChatTabSortableId(chat.id)}
+                    sortableDisabled={!sortableEnabled}
+                    onSelect={(chatId) => dispatch(setActiveChat(chatId))}
+                    onClose={(chatId) => void dispatch(closeChat(chatId))}
+                    onContextMenu={(chatId, event) => {
+                      setContextMenu({
+                        chatId,
+                        x: event.clientX,
+                        y: event.clientY
+                      });
+                    }}
+                  />
+                </Fragment>
+              ))}
+              {getExitingBefore(null).map((exitingTab) => (
+                <ClosingTabShell
+                  key={exitingTab.exitKey}
+                  onComplete={() => completeExit(exitingTab.exitKey)}
+                >
+                  <ChatTabItem
+                    chat={exitingTab.item}
+                    active={false}
+                    exiting
+                    tabIndex={-1}
+                    sortableId={aiChatTabSortableId(exitingTab.item.id)}
+                    sortableDisabled
+                    onSelect={(chatId) => dispatch(setActiveChat(chatId))}
+                    onClose={(chatId) => void dispatch(closeChat(chatId))}
+                  />
+                </ClosingTabShell>
               ))}
             </SortableContext>
           </div>

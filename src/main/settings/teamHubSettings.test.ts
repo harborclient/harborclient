@@ -41,6 +41,14 @@ describe('teamHubSettings', () => {
     expect(saved[0]?.baseUrl).toBe('http://127.0.0.1:8788');
     expect(saved[0]?.token).toBe('hbk_test');
     expect(saved[0]?.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    expect(JSON.parse(settingsStore.teamHubs ?? '[]')).toEqual([
+      {
+        id: saved[0]?.id,
+        name: 'Team Hub',
+        baseUrl: 'http://127.0.0.1:8788'
+      }
+    ]);
+    expect(settingsStore.teamHubSecrets).toBeTruthy();
   });
 
   it('updates an existing team hub by id', () => {

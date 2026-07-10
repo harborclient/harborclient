@@ -1,9 +1,11 @@
 import type { ScriptRef, Snippet } from '#/shared/types';
 
 /**
- * Regex matching `@<request-id>.<pre|post>.<script-index>` script references in chat text.
+ * Regex matching `@<request-id>.<pre|post>.<script-index>` script references in chat text,
+ * with an optional `#<selection-start>.<selection-end>` suffix for selected code ranges.
  */
-export const AI_SCRIPT_REFERENCE_PATTERN = /@(active|\d+)\.(pre|post)\.(\d+)(?!\d)/g;
+export const AI_SCRIPT_REFERENCE_PATTERN =
+  /@(active|\d+)\.(pre|post)\.(\d+)(?:#(\d+)\.(\d+))?(?!\d)/g;
 
 /**
  * A parsed `@` script reference with character offsets in the source text.
@@ -38,6 +40,21 @@ export interface ParsedAiScriptReference {
    * Exact matched substring, including the leading `@`.
    */
   text: string;
+
+  /**
+   * Character offsets into the referenced script source when the user selected a range.
+   */
+  selection?: {
+    /**
+     * Start offset (inclusive) in the script source.
+     */
+    start: number;
+
+    /**
+     * End offset (exclusive) in the script source.
+     */
+    end: number;
+  };
 }
 
 /**
@@ -126,6 +143,8 @@ function parseScriptReferenceMatch(match: RegExpMatchArray): ParsedAiScriptRefer
   const requestIdRaw = match[1];
   const phase = match[2];
   const scriptIndexRaw = match[3];
+  const selectionStartRaw = match[4];
+  const selectionEndRaw = match[5];
 
   if (requestIdRaw == null || phase == null || scriptIndexRaw == null) {
     return null;
@@ -151,13 +170,28 @@ function parseScriptReferenceMatch(match: RegExpMatchArray): ParsedAiScriptRefer
     return null;
   }
 
+  let selection: ParsedAiScriptReference['selection'];
+  if (selectionStartRaw != null && selectionEndRaw != null) {
+    const selectionStart = Number(selectionStartRaw);
+    const selectionEnd = Number(selectionEndRaw);
+    if (
+      Number.isInteger(selectionStart) &&
+      Number.isInteger(selectionEnd) &&
+      selectionStart >= 0 &&
+      selectionEnd > selectionStart
+    ) {
+      selection = { start: selectionStart, end: selectionEnd };
+    }
+  }
+
   return {
     requestId,
     phase,
     scriptIndex,
     start,
     end: start + text.length,
-    text
+    text,
+    selection
   };
 }
 
@@ -183,6 +217,26 @@ export function findAiScriptReferenceCandidates(text: string): ParsedAiScriptRef
   }
 
   return matches;
+}
+
+/**
+ * Removes valid `@` script reference tokens from plain text.
+ *
+ * @param text - Composer or title prompt text that may contain `@` references.
+ * @returns Text with script references removed and whitespace collapsed.
+ */
+export function stripAiScriptReferences(text: string): string {
+  const candidates = findAiScriptReferenceCandidates(text);
+  if (candidates.length === 0) {
+    return text.replace(/\s+/g, ' ').trim();
+  }
+
+  let stripped = text;
+  for (const candidate of [...candidates].sort((left, right) => right.start - left.start)) {
+    stripped = stripped.slice(0, candidate.start) + stripped.slice(candidate.end);
+  }
+
+  return stripped.replace(/\s+/g, ' ').trim();
 }
 
 /**
@@ -255,6 +309,217 @@ export function resolveAiScriptReferenceName(
   }
 
   return scriptReferenceDisplayName(script, context.snippets ?? []);
+}
+
+/**
+ * Resolves the JavaScript source for a script row on the active request tab.
+ *
+ * @param script - Script reference entry from the active draft.
+ * @param snippets - Snippet library lookup source.
+ * @returns Script source text, or null when unavailable.
+ */
+function resolveScriptSourceCode(script: ScriptRef, snippets: Snippet[]): string | null {
+  if (script.kind === 'inline') {
+    return script.code ?? '';
+  }
+
+  if (script.kind === 'snippet') {
+    const linkedSnippet = snippets.find((entry) => entry.uuid === script.snippetUuid);
+    return linkedSnippet?.code ?? null;
+  }
+
+  return null;
+}
+
+/**
+ * Returns the 1-based line number for a character offset in script source.
+ *
+ * @param source - Script source text.
+ * @param offset - Character offset into the source.
+ */
+function lineNumberAtOffset(source: string, offset: number): number {
+  const clamped = Math.min(Math.max(0, offset), source.length);
+  let line = 1;
+
+  for (let index = 0; index < clamped; index += 1) {
+    if (source[index] === '\n') {
+      line += 1;
+    }
+  }
+
+  return line;
+}
+
+/**
+ * Formats a selection range as a human-readable line span for badge labels.
+ *
+ * @param source - Script source text.
+ * @param selection - Character offsets into the script source.
+ * @returns Line span label such as `(line 3)` or `(lines 3-5)`.
+ */
+function formatScriptSelectionLineRange(
+  source: string,
+  selection: NonNullable<ParsedAiScriptReference['selection']>
+): string {
+  const clampedStart = Math.min(Math.max(0, selection.start), source.length);
+  const clampedEnd = Math.min(Math.max(clampedStart, selection.end), source.length);
+  const startLine = lineNumberAtOffset(source, clampedStart);
+  const endLine = lineNumberAtOffset(source, Math.max(clampedStart, clampedEnd - 1));
+
+  if (startLine === endLine) {
+    return `(line ${startLine})`;
+  }
+
+  return `(lines ${startLine}-${endLine})`;
+}
+
+/**
+ * Resolves the badge label for a valid `@` script reference, including selection line ranges.
+ *
+ * @param reference - Parsed `@` script reference.
+ * @param context - Active tab script rows and snippet library.
+ * @returns Script name with optional line range, or null when not resolvable.
+ */
+export function resolveAiScriptReferenceLabel(
+  reference: ParsedAiScriptReference,
+  context: AiScriptReferenceValidationContext
+): string | null {
+  const name = resolveAiScriptReferenceName(reference, context);
+  if (name == null) {
+    return null;
+  }
+
+  if (reference.selection == null) {
+    return name;
+  }
+
+  const scripts = reference.phase === 'pre' ? context.preScripts : context.postScripts;
+  if (scripts == null) {
+    return name;
+  }
+
+  const script = scripts[reference.scriptIndex - 1];
+  if (script == null) {
+    return name;
+  }
+
+  const source = resolveScriptSourceCode(script, context.snippets ?? []);
+  if (source == null) {
+    return name;
+  }
+
+  return `${name} ${formatScriptSelectionLineRange(source, reference.selection)}`;
+}
+
+/**
+ * Clamps selection offsets to script source bounds and returns the selected substring.
+ *
+ * @param source - Full script source text.
+ * @param selection - Character offsets from the `@` reference suffix.
+ */
+function clampScriptSelection(
+  source: string,
+  selection: NonNullable<ParsedAiScriptReference['selection']>
+): { start: number; end: number; text: string } {
+  const start = Math.min(Math.max(0, selection.start), source.length);
+  const end = Math.min(Math.max(start, selection.end), source.length);
+
+  return {
+    start,
+    end,
+    text: source.slice(start, end)
+  };
+}
+
+/**
+ * Formats the line span label for agent context without surrounding parentheses.
+ *
+ * @param source - Script source text.
+ * @param selection - Clamped character offsets into the script source.
+ */
+function formatScriptSelectionLineSpan(
+  source: string,
+  selection: { start: number; end: number }
+): string {
+  return formatScriptSelectionLineRange(source, selection).replace(/^\(|\)$/g, '');
+}
+
+/**
+ * Formats one resolved selection reference for the agent context block.
+ *
+ * @param reference - Parsed `@` script reference with a selection suffix.
+ * @param context - Active tab script rows and snippet library.
+ * @returns Context block for one reference, or null when not resolvable.
+ */
+function formatScriptSelectionContextBlock(
+  reference: ParsedAiScriptReference,
+  context: AiScriptReferenceValidationContext
+): string | null {
+  if (reference.selection == null || !isValidAiScriptReference(reference, context)) {
+    return null;
+  }
+
+  const scripts = reference.phase === 'pre' ? context.preScripts : context.postScripts;
+  const script = scripts?.[reference.scriptIndex - 1];
+  if (script == null) {
+    return null;
+  }
+
+  const source = resolveScriptSourceCode(script, context.snippets ?? []);
+  if (source == null) {
+    return null;
+  }
+
+  const name = resolveAiScriptReferenceName(reference, context) ?? 'Unnamed script';
+  const clampedSelection = clampScriptSelection(source, reference.selection);
+  const phaseLabel = reference.phase === 'pre' ? 'pre-request' : 'post-request';
+  const requestLabel =
+    reference.requestId === 'active'
+      ? 'of the active request'
+      : `of request id ${reference.requestId}`;
+  const lineSpan = formatScriptSelectionLineSpan(source, clampedSelection);
+
+  return [
+    `Reference ${reference.text} — script "${name}" (${phaseLabel} script ${reference.scriptIndex} ${requestLabel}).`,
+    'Full script source:',
+    '```js',
+    source,
+    '```',
+    `Selected text (characters ${clampedSelection.start}–${clampedSelection.end}, ${lineSpan}):`,
+    '```js',
+    clampedSelection.text,
+    '```'
+  ].join('\n');
+}
+
+/**
+ * Builds an ephemeral system message that expands `@` script references with selection suffixes.
+ *
+ * The returned text is injected into the LLM step messages only; it is not persisted in chat
+ * history so the composer can keep rendering compact badges.
+ *
+ * @param text - User message that may contain `@` script references.
+ * @param context - Active tab script rows and snippet library.
+ * @returns Formatted context block, or null when no valid selection references are present.
+ */
+export function buildAiScriptSelectionContextMessage(
+  text: string,
+  context: AiScriptReferenceValidationContext
+): string | null {
+  const blocks = findAiScriptReferenceCandidates(text)
+    .map((reference) => formatScriptSelectionContextBlock(reference, context))
+    .filter((block): block is string => block != null);
+
+  if (blocks.length === 0) {
+    return null;
+  }
+
+  const header =
+    'The user selected part of a script and is asking specifically about the SELECTED TEXT below.';
+  const footer =
+    'Focus your answer and any script edits on the selected region. When editing, use update_request_script with the same phase and scriptIndex from the reference, and respect the #start.end character offsets from the @ tag.';
+
+  return [header, '', ...blocks, '', footer].join('\n');
 }
 
 /**

@@ -112,7 +112,7 @@ export function ConsoleDetails({
         <CollapsibleSection itemKey="response" title="Response" initialEntered={sections.response}>
           <KeyValueTable rows={responseHeaderRows} emptyMessage="No headers" />
         </CollapsibleSection>
-        <CollapsibleSection itemKey="output" title="Output" initialEntered={sections.output}>
+        <CollapsibleSection itemKey="output" title="Logs" initialEntered={sections.output}>
           <OutputDetails logs={logs} tests={tests} scriptError={scriptError} />
         </CollapsibleSection>
         <CollapsibleSection itemKey="trace" title="Trace" initialEntered={sections.trace}>

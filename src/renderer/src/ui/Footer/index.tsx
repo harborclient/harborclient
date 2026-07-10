@@ -1,7 +1,6 @@
 import { FooterButton, FooterIcon, segmentGroup } from '@harborclient/sdk/components';
 import { useEffect, useMemo, useRef, type JSX } from 'react';
 import type { Variable } from '#/shared/types';
-import type { ConsoleEntry } from '#/renderer/src/store';
 
 import {
   faInbox,
@@ -26,10 +25,6 @@ import {
 import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import { usePluginFooterPanels, usePluginStatusBarItems } from '#/renderer/src/plugins/pluginHooks';
 
-import { ConsolePanel } from './ConsolePanel';
-import { McpPanel } from './McpPanel';
-import { PluginFooterPanel } from './PluginFooterPanel';
-import { VariablesPanel } from './VariablesPanel';
 import { SHORTCUTS_REFERENCE_MODAL_ID } from '#/renderer/src/ui/modals/ShortcutsReferenceModal';
 import { handleFooterBarTabNavigation } from '#/renderer/src/ui/Footer/footerBarTabNavigation';
 import { effectiveCount, resolveScopedVariables } from './VariablesPanel/resolve';
@@ -46,19 +41,9 @@ interface Props {
   entryCount: number;
 
   /**
-   * Console log entries, newest first.
-   */
-  entries: ConsoleEntry[];
-
-  /**
    * Toggles the console panel open/closed.
    */
   onToggleConsole: () => void;
-
-  /**
-   * Clears all console entries.
-   */
-  onClear: () => void;
 
   /**
    * Whether the variables panel is currently open.
@@ -89,21 +74,6 @@ interface Props {
    * Variables from the active environment.
    */
   environmentVariables: Variable[];
-
-  /**
-   * Name of the active collection, if any.
-   */
-  collectionName?: string;
-
-  /**
-   * Name of the active folder, if any.
-   */
-  folderName?: string;
-
-  /**
-   * Name of the active environment, if any.
-   */
-  environmentName?: string;
 
   /**
    * Whether the sidebar is currently visible.
@@ -159,31 +129,21 @@ interface Props {
    * Whether the local MCP HTTP server is listening.
    */
   mcpServerRunning: boolean;
-
-  /**
-   * Refreshes MCP server runtime status after panel saves.
-   */
-  onMcpStatusChange?: () => void;
 }
 
 /**
- * Persistent window footer with Console and Variables slide-up panels.
+ * Persistent window footer bar with toggles for slide-up panels and layout controls.
  */
 export function Footer({
   consoleOpen,
   entryCount,
-  entries,
   onToggleConsole,
-  onClear,
   variablesOpen,
   onToggleVariables,
   globalVariables,
   collectionVariables,
   folderVariables,
   environmentVariables,
-  collectionName,
-  folderName,
-  environmentName,
   sidebarOpen,
   onToggleSidebar,
   aiSidebarOpen,
@@ -194,8 +154,7 @@ export function Footer({
   onToggleResponseEditor,
   mcpOpen,
   onToggleMcp,
-  mcpServerRunning,
-  onMcpStatusChange
+  mcpServerRunning
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const pluginFooterPanels = usePluginFooterPanels();
@@ -239,7 +198,7 @@ export function Footer({
   }, []);
 
   /**
-   * Merges collection and environment variables for the footer variables panel.
+   * Merges scoped variables for the footer variables badge count.
    */
   const resolvedVariables = useMemo(
     () =>
@@ -266,170 +225,140 @@ export function Footer({
   );
 
   return (
-    <div className="relative shrink-0">
-      <ConsolePanel
-        entries={entries}
-        open={consoleOpen}
-        onClose={onToggleConsole}
-        onClear={onClear}
-      />
-      <VariablesPanel
-        variables={resolvedVariables}
-        open={variablesOpen}
-        onClose={onToggleVariables}
-        collectionName={collectionName}
-        folderName={folderName}
-        environmentName={environmentName}
-      />
-      <McpPanel open={mcpOpen} onClose={onToggleMcp} onStatusChange={onMcpStatusChange} />
-      {pluginFooterPanels.map((panel) => (
-        <PluginFooterPanel
-          key={panel.id}
-          id={panel.id}
-          pluginId={panel.pluginId}
-          contributionId={panel.contributionId}
-          title={panel.title}
-          open={activePluginFooterPanelId === panel.id}
-          onClose={() => dispatch(togglePluginFooterPanel(panel.id))}
+    <footer
+      ref={footerRef}
+      className="relative z-50 flex shrink-0 items-center justify-between border-t border-separator bg-sidebar px-2 py-0.5 app-no-drag"
+    >
+      <div className={`${segmentGroup} min-w-0 flex-1`}>
+        <FooterIcon
+          onClick={() =>
+            dispatch(searchAnythingOpen ? closeSearchAnythingModal() : openSearchAnythingModal())
+          }
+          icon={faMagnifyingGlass}
+          active={searchAnythingOpen}
+          label="search anything"
         />
-      ))}
-      <footer
-        ref={footerRef}
-        className="relative z-50 flex shrink-0 items-center justify-between border-t border-separator bg-sidebar px-2 py-0.5 app-no-drag"
-      >
-        <div className={`${segmentGroup} min-w-0 flex-1`}>
-          <FooterIcon
+        {leftStatusItems.map((item) => (
+          <div key={item.id} className="overflow-hidden px-1" style={{ width: 120, height: 20 }}>
+            <PluginSurface
+              pluginId={item.pluginId}
+              contributionId={item.contributionId}
+              kind="statusBarItems"
+              resizeMode="fill"
+              style={{ minHeight: 20, height: 20, width: 120 }}
+            />
+          </div>
+        ))}
+        <div ref={leftGroupRef} className="inline-flex min-w-0 items-center">
+          <FooterButton
+            active={shortcutsReferenceOpen}
             onClick={() =>
-              dispatch(searchAnythingOpen ? closeSearchAnythingModal() : openSearchAnythingModal())
+              dispatch(
+                shortcutsReferenceOpen
+                  ? closeShortcutsReferenceModal()
+                  : openShortcutsReferenceModal()
+              )
             }
-            icon={faMagnifyingGlass}
-            active={searchAnythingOpen}
-            label="search anything"
-          />
-          {leftStatusItems.map((item) => (
-            <div key={item.id} className="overflow-hidden px-1" style={{ width: 120, height: 20 }}>
-              <PluginSurface
-                pluginId={item.pluginId}
-                contributionId={item.contributionId}
-                kind="statusBarItems"
-                resizeMode="fill"
-                style={{ minHeight: 20, height: 20, width: 120 }}
-              />
-            </div>
-          ))}
-          <div ref={leftGroupRef} className="inline-flex min-w-0 items-center">
+            controlsId={SHORTCUTS_REFERENCE_MODAL_ID}
+          >
+            Shortcuts
+          </FooterButton>
+          <FooterButton
+            active={consoleOpen}
+            onClick={onToggleConsole}
+            controlsId="footer-console-panel"
+          >
+            Console
+            {entryCount > 0 && <span className="ml-1 text-[14px] text-muted">({entryCount})</span>}
+          </FooterButton>
+          <FooterButton
+            active={variablesOpen}
+            onClick={onToggleVariables}
+            controlsId="footer-variables-panel"
+          >
+            Variables
+            {variableCount > 0 && (
+              <span className="ml-1 text-[14px] text-muted">({variableCount})</span>
+            )}
+          </FooterButton>
+          <FooterButton
+            active={mcpOpen}
+            onClick={onToggleMcp}
+            controlsId="footer-mcp-panel"
+            aria-label={mcpServerRunning ? 'MCP, server running' : 'MCP, server stopped'}
+          >
+            <span className="inline-flex items-center">
+              MCP
+              <span className="ml-1 inline-flex h-4 w-3 shrink-0 items-center justify-center">
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${mcpServerRunning ? 'bg-success' : 'bg-muted'}`}
+                  aria-hidden
+                />
+              </span>
+            </span>
+          </FooterButton>
+          {pluginFooterPanels.map((panel) => (
             <FooterButton
-              active={shortcutsReferenceOpen}
-              onClick={() =>
-                dispatch(
-                  shortcutsReferenceOpen
-                    ? closeShortcutsReferenceModal()
-                    : openShortcutsReferenceModal()
-                )
-              }
-              controlsId={SHORTCUTS_REFERENCE_MODAL_ID}
+              key={panel.id}
+              active={activePluginFooterPanelId === panel.id}
+              onClick={() => dispatch(togglePluginFooterPanel(panel.id))}
+              controlsId={`footer-plugin-panel-${panel.id}`}
             >
-              Shortcuts
-            </FooterButton>
-            <FooterButton
-              active={consoleOpen}
-              onClick={onToggleConsole}
-              controlsId="footer-console-panel"
-            >
-              Console
-              {entryCount > 0 && (
-                <span className="ml-1 text-[14px] text-muted">({entryCount})</span>
-              )}
-            </FooterButton>
-            <FooterButton
-              active={variablesOpen}
-              onClick={onToggleVariables}
-              controlsId="footer-variables-panel"
-            >
-              Variables
-              {variableCount > 0 && (
-                <span className="ml-1 text-[14px] text-muted">({variableCount})</span>
-              )}
-            </FooterButton>
-            <FooterButton
-              active={mcpOpen}
-              onClick={onToggleMcp}
-              controlsId="footer-mcp-panel"
-              aria-label={mcpServerRunning ? 'MCP, server running' : 'MCP, server stopped'}
-            >
-              <span className="inline-flex items-center">
-                MCP
-                <span className="ml-1 inline-flex h-4 w-3 shrink-0 items-center justify-center">
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${mcpServerRunning ? 'bg-success' : 'bg-muted'}`}
-                    aria-hidden
+              {panel.title}
+              {panel.hasIndicator ? (
+                <span className="ml-1 inline-flex h-4 w-3 shrink-0 items-center overflow-hidden">
+                  <PluginSurface
+                    pluginId={panel.pluginId}
+                    contributionId={panel.contributionId}
+                    kind="footerPanels"
+                    slot="indicator"
+                    style={{ minHeight: 16, height: 16, width: 12 }}
                   />
                 </span>
-              </span>
+              ) : null}
             </FooterButton>
-            {pluginFooterPanels.map((panel) => (
-              <FooterButton
-                key={panel.id}
-                active={activePluginFooterPanelId === panel.id}
-                onClick={() => dispatch(togglePluginFooterPanel(panel.id))}
-                controlsId={`footer-plugin-panel-${panel.id}`}
-              >
-                {panel.title}
-                {panel.hasIndicator ? (
-                  <span className="ml-1 inline-flex h-4 w-3 shrink-0 items-center overflow-hidden">
-                    <PluginSurface
-                      pluginId={panel.pluginId}
-                      contributionId={panel.contributionId}
-                      kind="footerPanels"
-                      slot="indicator"
-                      style={{ minHeight: 16, height: 16, width: 12 }}
-                    />
-                  </span>
-                ) : null}
-              </FooterButton>
-            ))}
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-0.5">
-          {rightStatusItems.map((item) => (
-            <div key={item.id} className="overflow-hidden px-1" style={{ width: 120, height: 20 }}>
-              <PluginSurface
-                pluginId={item.pluginId}
-                contributionId={item.contributionId}
-                kind="statusBarItems"
-                resizeMode="fill"
-                style={{ minHeight: 20, height: 20, width: 120 }}
-              />
-            </div>
           ))}
-          <div ref={rightIconsRef} className="flex items-center gap-1.5">
-            <FooterIcon
-              onClick={onToggleRequestEditor}
-              icon={faPaperPlane}
-              active={requestEditorOpen}
-              label="request editor"
-            />
-            <FooterIcon
-              onClick={onToggleResponseEditor}
-              icon={faInbox}
-              active={responseEditorOpen}
-              label="response editor"
-            />
-            <FooterIcon
-              onClick={onToggleSidebar}
-              icon={faTableColumns}
-              active={sidebarOpen}
-              label="sidebar"
-            />
-            <FooterIcon
-              onClick={onToggleAiSidebar}
-              icon={faRobot}
-              active={aiSidebarOpen}
-              label="agent chat"
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-0.5">
+        {rightStatusItems.map((item) => (
+          <div key={item.id} className="overflow-hidden px-1" style={{ width: 120, height: 20 }}>
+            <PluginSurface
+              pluginId={item.pluginId}
+              contributionId={item.contributionId}
+              kind="statusBarItems"
+              resizeMode="fill"
+              style={{ minHeight: 20, height: 20, width: 120 }}
             />
           </div>
+        ))}
+        <div ref={rightIconsRef} className="flex items-center gap-1.5">
+          <FooterIcon
+            onClick={onToggleRequestEditor}
+            icon={faPaperPlane}
+            active={requestEditorOpen}
+            label="request editor"
+          />
+          <FooterIcon
+            onClick={onToggleResponseEditor}
+            icon={faInbox}
+            active={responseEditorOpen}
+            label="response editor"
+          />
+          <FooterIcon
+            onClick={onToggleSidebar}
+            icon={faTableColumns}
+            active={sidebarOpen}
+            label="sidebar"
+          />
+          <FooterIcon
+            onClick={onToggleAiSidebar}
+            icon={faRobot}
+            active={aiSidebarOpen}
+            label="agent chat"
+          />
         </div>
-      </footer>
-    </div>
+      </div>
+    </footer>
   );
 }
