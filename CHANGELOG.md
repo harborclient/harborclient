@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(folders): enhance folder management with new properties and update functionality. (`54727ce`)
 - feat(logging): integrate Winston for file logging with daily rotation. (`b2324e1`)
 - feat(getting-started): implement Getting Started feature with documentation and UI integration. (`266123a`)
 - fix(docs): update internalDocumentIDStore in docsSearchIndex.json. (`249a3b5`)

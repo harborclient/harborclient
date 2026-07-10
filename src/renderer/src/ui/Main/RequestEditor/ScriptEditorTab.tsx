@@ -1,4 +1,4 @@
-import { useEffect, type JSX } from 'react';
+import { useEffect, useMemo, type JSX } from 'react';
 import type { PageRef } from '#/renderer/src/store/drafts';
 import { isRequestTab } from '#/renderer/src/store/drafts';
 import { mirrorLegacyScriptString } from '#/shared/scriptRefs';
@@ -7,7 +7,8 @@ import { selectSnippets } from '#/renderer/src/store/selectors';
 import {
   selectActiveEnvironmentId,
   selectCollections,
-  selectEnvironments
+  selectEnvironments,
+  selectFoldersByCollection
 } from '#/renderer/src/store/selectors';
 import { closeTab, openPageTab, updateTab } from '#/renderer/src/store/slices/tabsSlice';
 import { useMergedRequestVariables } from '#/renderer/src/hooks/useMergedRequestVariables';
@@ -39,11 +40,16 @@ export function ScriptEditorTab({ page, tabId }: Props): JSX.Element {
   const snippets = useAppSelector(selectSnippets);
   const collections = useAppSelector(selectCollections);
   const environments = useAppSelector(selectEnvironments);
+  const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
   const globalVariables = useAppSelector((state) => state.settings.general.globalVariables);
   const requestTab = tabs.find((entry) => entry.tabId === page.requestTabId);
   const draft = requestTab && isRequestTab(requestTab) ? requestTab.draft : null;
-  const variables = useMergedRequestVariables(draft?.collection_id);
+  const activeFolderId = useMemo(() => {
+    if (draft?.collection_id == null) return null;
+    return draft.folder_id ?? null;
+  }, [draft?.collection_id, draft?.folder_id]);
+  const variables = useMergedRequestVariables(draft?.collection_id, activeFolderId);
   const scriptsKey = page.phase === 'pre' ? 'pre_request_scripts' : 'post_request_scripts';
   const legacyKey = page.phase === 'pre' ? 'pre_request_script' : 'post_request_script';
   const scripts = draft?.[scriptsKey] ?? [];
@@ -79,12 +85,21 @@ export function ScriptEditorTab({ page, tabId }: Props): JSX.Element {
         ? environments.find((entry) => entry.id === activeEnvironmentId)
         : undefined;
 
+    const activeFolder =
+      draft?.collection_id != null && activeFolderId != null
+        ? (foldersByCollection[draft.collection_id] ?? []).find(
+            (entry) => entry.id === activeFolderId
+          )
+        : undefined;
+
     const target = resolveVariableEditTarget({
       key,
       globalVariables,
       collectionVariables: activeCollection?.variables ?? [],
+      folderVariables: activeFolder?.variables ?? [],
       environmentVariables: activeEnvironment?.variables ?? [],
       activeCollectionId: draft?.collection_id ?? null,
+      activeFolderId,
       activeEnvironmentId
     });
     if (target == null) {
@@ -107,6 +122,18 @@ export function ScriptEditorTab({ page, tabId }: Props): JSX.Element {
         openPageTab({
           type: 'collection',
           id: target.collectionId,
+          focusVariableKey: key
+        })
+      );
+      return;
+    }
+
+    if (target.scope === 'folder' && target.folderId != null) {
+      dispatch(
+        openPageTab({
+          type: 'folder',
+          collectionId: target.collectionId ?? draft?.collection_id ?? 0,
+          id: target.folderId,
           focusVariableKey: key
         })
       );

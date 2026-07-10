@@ -37,6 +37,7 @@ import {
 import {
   selectCollectionSettingsDirty,
   selectEnvironmentSettingsDirty,
+  selectFolderSettingsDirty,
   selectRequestEditorSplitHeight,
   selectShowRequestEditor,
   selectShowResponseEditor,
@@ -105,14 +106,20 @@ function isDirtyForClose(
   tab: Tab,
   activeTabId: string,
   collectionSettingsDirty: boolean,
-  environmentSettingsDirty: boolean
+  environmentSettingsDirty: boolean,
+  folderSettingsDirty: boolean
 ): boolean {
   if (isRequestTab(tab)) {
     return isTabDirty(tab);
   }
 
   if (isPageTab(tab) && tab.tabId === activeTabId) {
-    return isActivePageTabDirty(tab.page, collectionSettingsDirty, environmentSettingsDirty);
+    return isActivePageTabDirty(
+      tab.page,
+      collectionSettingsDirty,
+      environmentSettingsDirty,
+      folderSettingsDirty
+    );
   }
 
   return false;
@@ -124,9 +131,10 @@ function isDirtyForClose(
 function mergeVariables(
   globalVars: Variable[],
   collectionVars: Variable[],
+  folderVars: Variable[],
   envVars: Variable[]
 ): Variable[] {
-  return mergeRequestVariables(globalVars, collectionVars, envVars);
+  return mergeRequestVariables(globalVars, collectionVars, folderVars, envVars);
 }
 
 /**
@@ -156,6 +164,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const selectedCollectionId = useAppSelector(selectSelectedCollectionId);
   const collectionSettingsDirty = useAppSelector(selectCollectionSettingsDirty);
   const environmentSettingsDirty = useAppSelector(selectEnvironmentSettingsDirty);
+  const folderSettingsDirty = useAppSelector(selectFolderSettingsDirty);
   const showRequestEditor = useAppSelector(selectShowRequestEditor);
   const showResponseEditor = useAppSelector(selectShowResponseEditor);
   const persistedSplitHeight = useAppSelector(selectRequestEditorSplitHeight);
@@ -216,16 +225,40 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const globalVariables = useAppSelector((state) => state.settings.general.globalVariables);
 
   /**
-   * Merges global, collection, and environment variables for editor substitution.
+   * Resolves the folder id for the active draft from saved state or draft fields.
+   */
+  const activeFolderId = useMemo(() => {
+    if (activeCollectionId == null) return null;
+    if (draft.id != null) {
+      const saved = (requestsByCollection[activeCollectionId] ?? []).find(
+        (request) => request.id === draft.id
+      );
+      if (saved) return saved.folder_id;
+    }
+    return draft.folder_id ?? null;
+  }, [draft.folder_id, draft.id, activeCollectionId, requestsByCollection]);
+
+  /**
+   * Looks up the active folder record for variable merging and breadcrumb display.
+   */
+  const activeFolder = useMemo(() => {
+    if (activeFolderId == null || activeCollectionId == null) return undefined;
+    const folders = foldersByCollection[activeCollectionId] ?? [];
+    return folders.find((folder) => folder.id === activeFolderId);
+  }, [activeFolderId, activeCollectionId, foldersByCollection]);
+
+  /**
+   * Merges global, collection, folder, and environment variables for editor substitution.
    */
   const activeVariables = useMemo(
     () =>
       mergeVariables(
         globalVariables,
         activeCollection?.variables ?? [],
+        activeFolder?.variables ?? [],
         activeEnvironment?.variables ?? []
       ),
-    [globalVariables, activeCollection, activeEnvironment]
+    [globalVariables, activeCollection, activeFolder, activeEnvironment]
   );
 
   /**
@@ -249,27 +282,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   );
 
   const activeCollectionName = activeCollection?.name;
-  /**
-   * Resolves the folder id for the active draft from saved state or draft fields.
-   */
-  const activeFolderId = useMemo(() => {
-    if (activeCollectionId == null) return null;
-    if (draft.id != null) {
-      const saved = (requestsByCollection[activeCollectionId] ?? []).find(
-        (request) => request.id === draft.id
-      );
-      if (saved) return saved.folder_id;
-    }
-    return draft.folder_id ?? null;
-  }, [draft.folder_id, draft.id, activeCollectionId, requestsByCollection]);
-  /**
-   * Looks up the folder name for breadcrumb display in the request editor.
-   */
-  const activeFolderName = useMemo(() => {
-    if (activeFolderId == null || activeCollectionId == null) return undefined;
-    const folders = foldersByCollection[activeCollectionId] ?? [];
-    return folders.find((folder) => folder.id === activeFolderId)?.name;
-  }, [activeFolderId, activeCollectionId, foldersByCollection]);
+  const activeFolderName = activeFolder?.name;
 
   /**
    * Closes tabs immediately without prompting, including collection-runner cleanup.
@@ -312,7 +325,13 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
     }
 
     const dirtyCount = tabsToClose.filter((tab) =>
-      isDirtyForClose(tab, activeTabId, collectionSettingsDirty, environmentSettingsDirty)
+      isDirtyForClose(
+        tab,
+        activeTabId,
+        collectionSettingsDirty,
+        environmentSettingsDirty,
+        folderSettingsDirty
+      )
     ).length;
 
     if (dirtyCount > 0) {
@@ -330,7 +349,13 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
     const savedTabIds = tabs
       .filter(
         (tab) =>
-          !isDirtyForClose(tab, activeTabId, collectionSettingsDirty, environmentSettingsDirty)
+          !isDirtyForClose(
+            tab,
+            activeTabId,
+            collectionSettingsDirty,
+            environmentSettingsDirty,
+            folderSettingsDirty
+          )
       )
       .map((tab) => tab.tabId);
 
@@ -354,7 +379,12 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
     if (
       tabId === activeTabId &&
       isPageTab(tab) &&
-      isActivePageTabDirty(tab.page, collectionSettingsDirty, environmentSettingsDirty)
+      isActivePageTabDirty(
+        tab.page,
+        collectionSettingsDirty,
+        environmentSettingsDirty,
+        folderSettingsDirty
+      )
     ) {
       setCloseTabPrompt({
         tabId,

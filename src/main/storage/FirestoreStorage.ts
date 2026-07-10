@@ -34,6 +34,8 @@ import {
   resolveImportedFolderUuid,
   savedRequestToExportedRequest,
   serializeImportedCollectionScriptFields,
+  exportedFolderFromFolder,
+  serializeImportedFolderFields,
   serializeImportedRequestFields
 } from '#/main/storage/collectionImport';
 import {
@@ -763,6 +765,13 @@ export class FirestoreStorage implements IStorage {
       collection_id: collectionId,
       name: trimmedName,
       sort_order: maxOrder + 1,
+      variables: [],
+      headers: [],
+      auth: defaultAuth(),
+      pre_request_script: '',
+      post_request_script: '',
+      pre_request_scripts: '[]',
+      post_request_scripts: '[]',
       created_at: createdAt
     };
 
@@ -786,6 +795,50 @@ export class FirestoreStorage implements IStorage {
     const existing = snap.data() as Record<string, unknown>;
     await updateDoc(ref, { name: trimmedName });
     return docToFolder(id, { ...existing, name: trimmedName });
+  }
+
+  /**
+   * Updates a folder's name, variables, headers, auth, and scripts.
+   *
+   * @param id - Folder ID to update.
+   * @param name - New display name.
+   * @param variables - Folder-scoped variables.
+   * @param headers - Headers sent with every request in the folder.
+   * @param preRequestScript - Script run before each request in the folder.
+   * @param postRequestScript - Script run after each request in the folder.
+   * @param auth - Default Authorization settings for requests in the folder.
+   * @returns The updated folder.
+   */
+  async updateFolder(
+    id: number,
+    name: string,
+    variables: Variable[],
+    headers: KeyValue[],
+    preRequestScript: string,
+    postRequestScript: string,
+    auth: AuthConfig,
+    preRequestScripts: ScriptRef[] = [],
+    postRequestScripts: ScriptRef[] = []
+  ): Promise<Folder> {
+    const trimmedName = trimRequiredName(name, 'Folder name');
+    const ref = doc(this.getFirestore(), 'folders', String(id));
+    const snap = await getDoc(ref);
+    if (!snap.exists()) throw new Error('Folder not found');
+
+    const preScripts = bundleScriptFieldsWithLegacy(preRequestScripts, preRequestScript);
+    const postScripts = bundleScriptFieldsWithLegacy(postRequestScripts, postRequestScript);
+    const patch = {
+      name: trimmedName,
+      variables,
+      headers,
+      auth,
+      pre_request_script: preScripts.legacy,
+      post_request_script: postScripts.legacy,
+      pre_request_scripts: preScripts.json,
+      post_request_scripts: postScripts.json
+    };
+    await updateDoc(ref, patch);
+    return docToFolder(id, { ...(snap.data() as Record<string, unknown>), ...patch });
   }
 
   /**
@@ -940,11 +993,7 @@ export class FirestoreStorage implements IStorage {
     const collectionUuid = await this.ensureDocumentUuid('collections', String(id), data);
     const collectionRecord = docToCollection(id, { ...data, uuid: collectionUuid });
     const folderRecords = await this.listFolders(id);
-    const folders = folderRecords.map(({ uuid, name, sort_order }) => ({
-      uuid,
-      name,
-      sort_order
-    }));
+    const folders = folderRecords.map(exportedFolderFromFolder);
     const folderNameById = new Map(folderRecords.map((folder) => [folder.id, folder.name]));
     const folderUuidById = new Map(folderRecords.map((folder) => [folder.id, folder.uuid]));
 
@@ -1016,6 +1065,7 @@ export class FirestoreStorage implements IStorage {
     folders.forEach((folder, index) => {
       const folderId = folderIds[index];
       const folderUuid = resolveImportedFolderUuid(folder);
+      const folderFields = serializeImportedFolderFields(folder);
       registerImportedFolderInMaps(folderMaps, folderId, folder.name, folderUuid);
       writes.push({
         ref: doc(firestore, 'folders', String(folderId)),
@@ -1025,6 +1075,13 @@ export class FirestoreStorage implements IStorage {
           collection_id: id,
           name: folder.name,
           sort_order: folder.sort_order,
+          variables: folder.variables ?? [],
+          headers: folder.headers ?? [],
+          auth: folder.auth ?? defaultAuth(),
+          pre_request_script: folderFields.pre_request_script,
+          post_request_script: folderFields.post_request_script,
+          pre_request_scripts: folderFields.pre_request_scripts_json,
+          post_request_scripts: folderFields.post_request_scripts_json,
           created_at: now
         }
       });
@@ -1166,21 +1223,37 @@ export class FirestoreStorage implements IStorage {
     for (const folder of exportData.folders ?? []) {
       const plan = planImportedFolderUpsert(folder, folderMaps);
       if (plan.action === 'update') {
+        const folderFields = serializeImportedFolderFields(folder);
         await updateDoc(doc(firestore, 'folders', String(plan.existingId)), {
           name: plan.name,
-          sort_order: plan.sort_order
+          sort_order: plan.sort_order,
+          variables: folder.variables ?? [],
+          headers: folder.headers ?? [],
+          auth: folder.auth ?? defaultAuth(),
+          pre_request_script: folderFields.pre_request_script,
+          post_request_script: folderFields.post_request_script,
+          pre_request_scripts: folderFields.pre_request_scripts_json,
+          post_request_scripts: folderFields.post_request_scripts_json
         });
         registerImportedFolderInMaps(folderMaps, plan.existingId, plan.name, plan.uuid);
         continue;
       }
 
       const folderId = await this.nextId('folders');
+      const folderFields = serializeImportedFolderFields(folder);
       await setDoc(doc(firestore, 'folders', String(folderId)), {
         id: folderId,
         uuid: plan.uuid,
         collection_id: id,
         name: plan.name,
         sort_order: plan.sort_order,
+        variables: folder.variables ?? [],
+        headers: folder.headers ?? [],
+        auth: folder.auth ?? defaultAuth(),
+        pre_request_script: folderFields.pre_request_script,
+        post_request_script: folderFields.post_request_script,
+        pre_request_scripts: folderFields.pre_request_scripts_json,
+        post_request_scripts: folderFields.post_request_scripts_json,
         created_at: now
       });
       registerImportedFolderInMaps(folderMaps, folderId, plan.name, plan.uuid);

@@ -34,6 +34,35 @@ export function registerRequestHandlers(db: IStorage): void {
     db.renameFolder(id, folderName)
   );
 
+  // Updates a folder's name, variables, headers, auth, and scripts.
+  handle(
+    'folders:update',
+    ipcArgSchemas.folderUpdate,
+    (
+      _event,
+      id,
+      folderName,
+      variables,
+      headers,
+      preRequestScript,
+      postRequestScript,
+      auth,
+      preRequestScripts,
+      postRequestScripts
+    ) =>
+      db.updateFolder(
+        id,
+        folderName,
+        variables,
+        headers,
+        preRequestScript,
+        postRequestScript,
+        auth,
+        preRequestScripts,
+        postRequestScripts
+      )
+  );
+
   // Deletes a folder and its requests.
   handle('folders:delete', ipcArgSchemas.dbId, (_event, id) => db.deleteFolder(id));
 

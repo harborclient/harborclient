@@ -3,8 +3,9 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { SqliteSettings } from '#/shared/types';
+import { defaultAuth } from '#/shared/auth';
 import { createInlineScriptRef } from '#/shared/scriptRefs';
+import type { SqliteSettings } from '#/shared/types';
 import { SqliteStorage } from '#/main/storage/SqliteStorage';
 import {
   baseRequestInput,
@@ -219,6 +220,31 @@ describeSqlite('SqliteStorage uuid import', () => {
     const imported = await db.importCollectionData(exported);
     const importedFolders = await db.listFolders(imported.id);
     expect(importedFolders[0]?.uuid).toBe(folder.uuid);
+  });
+
+  it('round-trips folder settings through export and import', async () => {
+    const { db } = await createTestDb();
+    const collection = await db.createCollection('Folder Settings');
+    const folder = await db.createFolder(collection.id, 'Auth');
+    const variables = [
+      { key: 'token', value: 'secret', defaultValue: 'fallback', share: false },
+      { key: 'publicId', value: 'visible', defaultValue: '', share: true }
+    ];
+    const headers = [{ key: 'X-Test', value: '1', enabled: true }];
+    await db.updateFolder(folder.id, 'Auth', variables, headers, '', '', defaultAuth(), [], []);
+
+    const exported = await db.exportCollectionData(collection.id);
+    expect(exported.folders?.[0]?.variables).toEqual([
+      { key: 'token', value: '', defaultValue: 'fallback', share: false },
+      { key: 'publicId', value: 'visible', defaultValue: '', share: true }
+    ]);
+
+    const imported = await db.importCollectionData(exported);
+    const importedFolders = await db.listFolders(imported.id);
+
+    expect(importedFolders).toHaveLength(1);
+    expect(importedFolders[0]?.variables).toEqual(exported.folders?.[0]?.variables);
+    expect(importedFolders[0]?.headers).toEqual(headers);
   });
 
   it('updateCollectionFromImport reuses folder by uuid when name changes', async () => {

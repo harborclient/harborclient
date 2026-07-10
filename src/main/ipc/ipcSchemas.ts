@@ -669,6 +669,17 @@ export const ipcArgSchemas = {
   environmentReorder: z.tuple([z.array(dbId)]),
   folderCreate: z.tuple([dbId, name]),
   folderRename: z.tuple([dbId, name]),
+  folderUpdate: z.tuple([
+    dbId,
+    name,
+    z.array(variable),
+    z.array(keyValue),
+    z.string(),
+    z.string(),
+    authConfig,
+    ipcScriptRefArray,
+    ipcScriptRefArray
+  ]),
   folderReorder: z.tuple([dbId, z.array(dbId)]),
   requestReorder: z.tuple([dbId, nullableFolderId, z.array(dbId)]),
   requestMove: z.tuple([dbId, nullableFolderId, dbId]),

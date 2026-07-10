@@ -138,7 +138,7 @@ detailed audit of known gaps and proposed fixes.
 - **Minimum font size:** Never use font sizes below **14px** in renderer UI.
   Avoid `text-[11px]`, `text-[12px]`, `text-[13px]`, `text-xs`, and `prose-sm`
   (Typography’s `sm` preset can render nested elements smaller than 14px). Use
-  `text-[14px]` as the minimum for labels, body text, badges, and metadata.
+  `text-[16px]` as the minimum for labels, body text, badges, and metadata.
   Headings may be larger.
 
 When fixing existing UI, prefer improving shared primitives (`Modal`,

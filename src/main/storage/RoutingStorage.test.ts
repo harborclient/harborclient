@@ -11,6 +11,7 @@ import { GitStorage } from '#/main/storage/GitStorage';
 import { SqliteStorage } from '#/main/storage/SqliteStorage';
 import { TeamHubStorage } from '#/main/storage/TeamHubStorage';
 import { TeamHubIdMap } from '#/main/storage/TeamHubIdMap';
+import { TeamHubFolderSettings } from '#/main/storage/TeamHubFolderSettings';
 import type { SessionResponse, TeamHubClient } from '@harborclient/team-hub-api';
 import { TeamHubClientError } from '@harborclient/team-hub-api';
 import { detachedSettingKey, detachedSnippetSettingKey } from '#/main/storage/teamHubDetached';
@@ -154,13 +155,17 @@ async function createRoutingFixture(options?: { mountB?: boolean }): Promise<{
  */
 function createTeamHubStorage(client: Partial<TeamHubClient>): TeamHubStorage {
   const dir = mkdtempSync(join(tmpdir(), 'harborclient-routing-hub-'));
-  const idMap = new TeamHubIdMap(join(dir, 'team-hub-test.db'));
+  const dbPath = join(dir, 'team-hub-test.db');
+  const idMap = new TeamHubIdMap(dbPath);
   idMap.init();
+  const folderSettings = new TeamHubFolderSettings(dbPath);
+  folderSettings.init();
   cleanups.push(() => {
     idMap.close();
+    folderSettings.close();
     rmSync(dir, { recursive: true, force: true });
   });
-  return new TeamHubStorage(client as TeamHubClient, idMap);
+  return new TeamHubStorage(client as TeamHubClient, idMap, folderSettings);
 }
 
 /**

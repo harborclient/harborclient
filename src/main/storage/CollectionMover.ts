@@ -317,6 +317,17 @@ async function copyCollectionContents(
   );
   for (const folder of sortedFolders) {
     const createdFolder = await targetBackend.db.createFolder(targetCollectionId, folder.name);
+    await targetBackend.db.updateFolder(
+      createdFolder.id,
+      folder.name,
+      folder.variables,
+      folder.headers,
+      folder.pre_request_script,
+      folder.post_request_script,
+      folder.auth,
+      folder.pre_request_scripts,
+      folder.post_request_scripts
+    );
     folderIdMap.set(folder.id, createdFolder.id);
   }
   if (sortedFolders.length > 0) {

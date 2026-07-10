@@ -605,6 +605,50 @@ export class RoutingStorage implements IStorage {
   }
 
   /**
+   * Updates a folder's name, variables, headers, auth, and scripts.
+   *
+   * @param id - Folder ID to update.
+   * @param name - New display name.
+   * @param variables - Folder-scoped variables.
+   * @param headers - Headers sent with every request in the folder.
+   * @param preRequestScript - Script run before each request in the folder.
+   * @param postRequestScript - Script run after each request in the folder.
+   * @param auth - Default Authorization settings for requests in the folder.
+   * @returns The updated folder.
+   */
+  async updateFolder(
+    id: number,
+    name: string,
+    variables: Variable[],
+    headers: KeyValue[],
+    preRequestScript: string,
+    postRequestScript: string,
+    auth: AuthConfig,
+    preRequestScripts: ScriptRef[] = [],
+    postRequestScripts: ScriptRef[] = []
+  ): Promise<Folder> {
+    const { slot, localId } = decodeGlobalId(id);
+    const backend = this.bySlot.get(slot);
+    if (!backend) {
+      throw new Error(`Database backend for slot ${slot} is unavailable.`);
+    }
+    const updated = await backend.db.updateFolder(
+      localId,
+      name,
+      variables,
+      headers,
+      preRequestScript,
+      postRequestScript,
+      auth,
+      preRequestScripts,
+      postRequestScripts
+    );
+    const entry = this.findEntryForBackendCollection(backend.connectionId, updated.collection_id);
+    const globalCollectionId = entry?.id ?? updated.collection_id;
+    return this.toGlobalFolder(updated, backend, globalCollectionId);
+  }
+
+  /**
    * Deletes a folder and all requests inside it.
    *
    * @param id - Folder ID to delete.

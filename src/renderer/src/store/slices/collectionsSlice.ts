@@ -65,6 +65,24 @@ const collectionsSlice = createSlice({
       action: PayloadAction<{ collectionId: number; folders: Folder[] }>
     ) {
       state.foldersByCollection[action.payload.collectionId] = action.payload.folders;
+    },
+    /**
+     * Replaces one folder row in a collection cache after a successful save.
+     */
+    upsertFolderInCollection(
+      state,
+      action: PayloadAction<{ collectionId: number; folder: Folder }>
+    ) {
+      const { collectionId, folder } = action.payload;
+      const folders = state.foldersByCollection[collectionId] ?? [];
+      const index = folders.findIndex((entry) => entry.id === folder.id);
+      if (index === -1) {
+        state.foldersByCollection[collectionId] = [...folders, folder];
+        return;
+      }
+      const next = [...folders];
+      next[index] = folder;
+      state.foldersByCollection[collectionId] = next;
     }
   }
 });
@@ -74,6 +92,7 @@ export const {
   focusSidebarItem,
   setCollections,
   setRequestsForCollection,
-  setFoldersForCollection
+  setFoldersForCollection,
+  upsertFolderInCollection
 } = collectionsSlice.actions;
 export default collectionsSlice.reducer;

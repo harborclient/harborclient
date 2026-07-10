@@ -26,6 +26,11 @@ interface Props {
   collectionName?: string;
 
   /**
+   * Name of the active folder, if any.
+   */
+  folderName?: string;
+
+  /**
    * Name of the active environment, if any.
    */
   environmentName?: string;
@@ -39,11 +44,15 @@ export function VariablesPanel({
   open,
   onClose,
   collectionName,
+  folderName,
   environmentName
 }: Props): JSX.Element {
-  const contextLine = [collectionName ?? 'No collection', environmentName ?? 'No environment'].join(
-    ' · '
-  );
+  const contextParts = [
+    collectionName ?? 'No collection',
+    folderName ?? 'No folder',
+    environmentName ?? 'No environment'
+  ];
+  const contextLine = contextParts.join(' · ');
 
   return (
     <Resizable
@@ -62,8 +71,8 @@ export function VariablesPanel({
       <div className="min-h-0 flex-1 overflow-auto">
         {variables.length === 0 ? (
           <EmptyState variant="centered" className="h-full">
-            No variables in scope. Add variables in Settings → Globals, or to the active collection
-            or environment.
+            No variables in scope. Add variables in Settings → Globals, or to the active collection,
+            folder, or environment.
           </EmptyState>
         ) : (
           <table className="w-full border-collapse text-[16px]">

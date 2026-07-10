@@ -370,12 +370,21 @@ export function rowToChat(
  * @param row - Row or document fields including numeric `id`.
  */
 export function rowToFolder(row: Record<string, unknown>): Folder {
+  const preRequestScript = readString(row.pre_request_script);
+  const postRequestScript = readString(row.post_request_script);
   return {
     id: readNumber(row.id),
     uuid: readString(row.uuid),
     collection_id: readNumber(row.collection_id),
     name: readString(row.name),
     sort_order: readNumber(row.sort_order),
+    variables: readVariables(row.variables),
+    headers: readJsonArray<KeyValue>(row.headers, []),
+    auth: readAuth(row.auth),
+    pre_request_script: preRequestScript,
+    post_request_script: postRequestScript,
+    pre_request_scripts: readScriptRefsFromJson(row.pre_request_scripts, preRequestScript),
+    post_request_scripts: readScriptRefsFromJson(row.post_request_scripts, postRequestScript),
     created_at: readTimestamp(row.created_at)
   };
 }

@@ -272,16 +272,6 @@ function CollectionSettingsForm({
       className="flex min-h-0 flex-1 flex-col p-6 pt-0!"
       title="Collection Settings"
       description="Manage collection settings and configuration"
-      footer={
-        <ModalFooter>
-          <Button
-            onClick={() => void handleSave()}
-            disabled={!name.trim() || !resolvedConnectionId || saving}
-          >
-            {saving ? 'Saving…' : 'Save'}
-          </Button>
-        </ModalFooter>
-      }
     >
       <SegmentedTabsGroup
         value={tab}
@@ -361,6 +351,14 @@ function CollectionSettingsForm({
               />
             </SegmentedTabPanel>
           ))}
+          <ModalFooter spaced>
+            <Button
+              onClick={() => void handleSave()}
+              disabled={!name.trim() || !resolvedConnectionId || saving}
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </Button>
+          </ModalFooter>
         </div>
       </SegmentedTabsGroup>
     </Page>

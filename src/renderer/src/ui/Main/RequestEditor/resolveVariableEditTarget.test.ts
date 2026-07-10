@@ -6,8 +6,10 @@ describe('resolveVariableEditTarget', () => {
     key: 'apiUrl',
     globalVariables: [{ key: 'apiUrl', value: 'global', defaultValue: '', share: false }],
     collectionVariables: [{ key: 'apiUrl', value: 'collection', defaultValue: '', share: false }],
+    folderVariables: [{ key: 'apiUrl', value: 'folder', defaultValue: '', share: false }],
     environmentVariables: [{ key: 'apiUrl', value: 'env', defaultValue: '', share: false }],
     activeCollectionId: 10,
+    activeFolderId: 15,
     activeEnvironmentId: 20
   };
 
@@ -31,11 +33,26 @@ describe('resolveVariableEditTarget', () => {
     expect(
       resolveVariableEditTarget({
         ...baseInput,
-        environmentVariables: []
+        environmentVariables: [],
+        folderVariables: [],
+        activeFolderId: null
       })
     ).toEqual({
       scope: 'collection',
       collectionId: 10
+    });
+  });
+
+  it('prefers folder scope when the key exists in folder and collection but not environment', () => {
+    expect(
+      resolveVariableEditTarget({
+        ...baseInput,
+        environmentVariables: []
+      })
+    ).toEqual({
+      scope: 'folder',
+      collectionId: 10,
+      folderId: 15
     });
   });
 
@@ -44,20 +61,41 @@ describe('resolveVariableEditTarget', () => {
       resolveVariableEditTarget({
         ...baseInput,
         collectionVariables: [],
-        environmentVariables: []
+        folderVariables: [],
+        environmentVariables: [],
+        activeFolderId: null
       })
     ).toEqual({
       scope: 'global'
     });
   });
 
-  it('falls back to the active collection when the key is undefined everywhere', () => {
+  it('falls back to the active folder when the key is undefined everywhere', () => {
     expect(
       resolveVariableEditTarget({
         ...baseInput,
         key: 'missing',
         globalVariables: [],
         collectionVariables: [],
+        folderVariables: [],
+        environmentVariables: []
+      })
+    ).toEqual({
+      scope: 'folder',
+      collectionId: 10,
+      folderId: 15
+    });
+  });
+
+  it('falls back to the active collection when no folder is active', () => {
+    expect(
+      resolveVariableEditTarget({
+        ...baseInput,
+        key: 'missing',
+        activeFolderId: null,
+        globalVariables: [],
+        collectionVariables: [],
+        folderVariables: [],
         environmentVariables: []
       })
     ).toEqual({

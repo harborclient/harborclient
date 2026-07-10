@@ -9,6 +9,8 @@ import {
   resolveImportedFolderUuid,
   savedRequestToExportedRequest,
   serializeImportedCollectionScriptFields,
+  exportedFolderFromFolder,
+  serializeImportedFolderFields,
   serializeImportedRequestFields
 } from '#/main/storage/collectionImport';
 import {
@@ -202,6 +204,33 @@ export class MySqlStorage implements IStorage {
     );
     await this.addColumnIfMissing(
       'requests',
+      'post_request_scripts',
+      "LONGTEXT NOT NULL DEFAULT ('[]')"
+    );
+    await this.addColumnIfMissing('folders', 'variables', "LONGTEXT NOT NULL DEFAULT ('[]')");
+    await this.addColumnIfMissing('folders', 'headers', "LONGTEXT NOT NULL DEFAULT ('[]')");
+    await this.addColumnIfMissing(
+      'folders',
+      'pre_request_script',
+      "LONGTEXT NOT NULL DEFAULT ('')"
+    );
+    await this.addColumnIfMissing(
+      'folders',
+      'post_request_script',
+      "LONGTEXT NOT NULL DEFAULT ('')"
+    );
+    await this.addColumnIfMissing(
+      'folders',
+      'auth',
+      `LONGTEXT NOT NULL DEFAULT ('${DEFAULT_AUTH_JSON.replace(/'/g, "''")}')`
+    );
+    await this.addColumnIfMissing(
+      'folders',
+      'pre_request_scripts',
+      "LONGTEXT NOT NULL DEFAULT ('[]')"
+    );
+    await this.addColumnIfMissing(
+      'folders',
       'post_request_scripts',
       "LONGTEXT NOT NULL DEFAULT ('[]')"
     );
@@ -664,6 +693,59 @@ export class MySqlStorage implements IStorage {
   }
 
   /**
+   * Updates a folder's name, variables, headers, auth, and scripts.
+   *
+   * @param id - Folder ID to update.
+   * @param name - New display name.
+   * @param variables - Folder-scoped variables.
+   * @param headers - Headers sent with every request in the folder.
+   * @param preRequestScript - Script run before each request in the folder.
+   * @param postRequestScript - Script run after each request in the folder.
+   * @param auth - Default Authorization settings for requests in the folder.
+   * @returns The updated folder.
+   */
+  async updateFolder(
+    id: number,
+    name: string,
+    variables: Variable[],
+    headers: KeyValue[],
+    preRequestScript: string,
+    postRequestScript: string,
+    auth: AuthConfig,
+    preRequestScripts: ScriptRef[] = [],
+    postRequestScripts: ScriptRef[] = []
+  ): Promise<Folder> {
+    const trimmedName = trimRequiredName(name, 'Folder name');
+    const preScripts = bundleScriptFieldsWithLegacy(preRequestScripts, preRequestScript);
+    const postScripts = bundleScriptFieldsWithLegacy(postRequestScripts, postRequestScript);
+    const [result] = await this.getPool().execute<ResultSetHeader>(
+      `UPDATE folders SET name = ?, variables = ?, headers = ?, auth = ?,
+        pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?
+       WHERE id = ?`,
+      [
+        trimmedName,
+        JSON.stringify(variables),
+        JSON.stringify(headers),
+        JSON.stringify(auth),
+        preScripts.legacy,
+        postScripts.legacy,
+        preScripts.json,
+        postScripts.json,
+        id
+      ]
+    );
+    if (result.affectedRows === 0) throw new Error('Folder not found');
+
+    const [rows] = await this.getPool().execute<RowDataPacket[]>(
+      'SELECT * FROM folders WHERE id = ?',
+      [id]
+    );
+    const row = rows[0];
+    if (!row) throw new Error('Folder not found');
+    return rowToFolder(row);
+  }
+
+  /**
    * Deletes a folder and all requests inside it.
    *
    * @param id - Folder ID to delete.
@@ -848,11 +930,7 @@ export class MySqlStorage implements IStorage {
 
     const collection = rowToCollection(row);
     const folderRecords = await this.listFolders(id);
-    const folders = folderRecords.map(({ uuid, name, sort_order }) => ({
-      uuid,
-      name,
-      sort_order
-    }));
+    const folders = folderRecords.map(exportedFolderFromFolder);
     const folderNameById = new Map(folderRecords.map((folder) => [folder.id, folder.name]));
     const folderUuidById = new Map(folderRecords.map((folder) => [folder.id, folder.uuid]));
 
@@ -929,9 +1007,26 @@ export class MySqlStorage implements IStorage {
 
       for (const folder of exportData.folders ?? []) {
         const folderUuid = resolveImportedFolderUuid(folder);
+        const folderFields = serializeImportedFolderFields(folder);
         const [folderResult] = await connection.execute<ResultSetHeader>(
-          'INSERT INTO folders (collection_id, name, sort_order, uuid, created_at) VALUES (?, ?, ?, ?, ?)',
-          [collectionId, folder.name, folder.sort_order, folderUuid, now]
+          `INSERT INTO folders (
+            collection_id, name, sort_order, uuid, variables, headers, auth,
+            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            collectionId,
+            folder.name,
+            folder.sort_order,
+            folderUuid,
+            folderFields.variablesJson,
+            folderFields.headersJson,
+            folderFields.authJson,
+            folderFields.pre_request_script,
+            folderFields.post_request_script,
+            folderFields.pre_request_scripts_json,
+            folderFields.post_request_scripts_json,
+            now
+          ]
         );
         registerImportedFolderInMaps(folderMaps, folderResult.insertId, folder.name, folderUuid);
       }
@@ -1076,17 +1171,49 @@ export class MySqlStorage implements IStorage {
       for (const folder of exportData.folders ?? []) {
         const plan = planImportedFolderUpsert(folder, folderMaps);
         if (plan.action === 'update') {
+          const folderFields = serializeImportedFolderFields(folder);
           await connection.execute(
-            'UPDATE folders SET name = ?, sort_order = ? WHERE id = ? AND collection_id = ?',
-            [plan.name, plan.sort_order, plan.existingId, id]
+            `UPDATE folders SET name = ?, sort_order = ?, variables = ?, headers = ?, auth = ?,
+              pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?
+             WHERE id = ? AND collection_id = ?`,
+            [
+              plan.name,
+              plan.sort_order,
+              folderFields.variablesJson,
+              folderFields.headersJson,
+              folderFields.authJson,
+              folderFields.pre_request_script,
+              folderFields.post_request_script,
+              folderFields.pre_request_scripts_json,
+              folderFields.post_request_scripts_json,
+              plan.existingId,
+              id
+            ]
           );
           registerImportedFolderInMaps(folderMaps, plan.existingId, plan.name, plan.uuid);
           continue;
         }
 
+        const folderFields = serializeImportedFolderFields(folder);
         const [folderResult] = await connection.execute<ResultSetHeader>(
-          'INSERT INTO folders (collection_id, name, sort_order, uuid, created_at) VALUES (?, ?, ?, ?, ?)',
-          [id, plan.name, plan.sort_order, plan.uuid, now]
+          `INSERT INTO folders (
+            collection_id, name, sort_order, uuid, variables, headers, auth,
+            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            id,
+            plan.name,
+            plan.sort_order,
+            plan.uuid,
+            folderFields.variablesJson,
+            folderFields.headersJson,
+            folderFields.authJson,
+            folderFields.pre_request_script,
+            folderFields.post_request_script,
+            folderFields.pre_request_scripts_json,
+            folderFields.post_request_scripts_json,
+            now
+          ]
         );
         registerImportedFolderInMaps(folderMaps, folderResult.insertId, plan.name, plan.uuid);
       }

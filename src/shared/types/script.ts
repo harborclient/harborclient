@@ -74,6 +74,28 @@ export interface ScriptRequestContext {
 }
 
 /**
+ * Folder context passed into a pre/post script sandbox.
+ */
+export interface ScriptFolderContext {
+  /**
+   * Folder database id, or null when the request is not in a folder.
+   */
+  id: number | null;
+  /**
+   * Display name of the folder, or empty when none is associated.
+   */
+  name: string;
+  /**
+   * Raw folder headers (unsubstituted {{var}} values).
+   */
+  headers: KeyValue[];
+  /**
+   * Folder-level auth config; mutated by hc.folder.auth during script execution.
+   */
+  auth?: AuthConfig;
+}
+
+/**
  * Collection context passed into a pre/post script sandbox.
  */
 export interface ScriptCollectionContext {
@@ -193,6 +215,10 @@ export interface ScriptRunInput {
    */
   collection?: ScriptCollectionContext;
   /**
+   * Active folder metadata and headers when the request belongs to a folder.
+   */
+  folder?: ScriptFolderContext;
+  /**
    * Active environment metadata when an environment is selected.
    */
   environment?: ScriptEnvironmentContext;
@@ -225,7 +251,12 @@ export interface ScriptRunInput {
 /**
  * Variable scope for execution log entries emitted by the script sandbox.
  */
-export type ScriptExecutionVariableScope = 'request' | 'collection' | 'environment' | 'global';
+export type ScriptExecutionVariableScope =
+  | 'request'
+  | 'collection'
+  | 'folder'
+  | 'environment'
+  | 'global';
 
 /**
  * Variable mutation action recorded in the execution log.
@@ -304,6 +335,22 @@ export interface ScriptRunResult {
    * Collection auth after hc.collection.auth mutations; persisted after send.
    */
   collectionAuth?: AuthConfig;
+  /**
+   * Values set via hc.folder.variables.set; persisted to the folder after send.
+   */
+  folderVariableSets: Record<string, string>;
+  /**
+   * Keys removed via hc.folder.variables.clear; persisted to the folder after send.
+   */
+  folderVariableClears: string[];
+  /**
+   * Folder headers after hc.folder.headers mutations; persisted after send.
+   */
+  folderHeaders: KeyValue[];
+  /**
+   * Folder auth after hc.folder.auth mutations; persisted after send.
+   */
+  folderAuth?: AuthConfig;
   /**
    * Values set via hc.environment.variables.set; persisted to the active environment after send.
    */

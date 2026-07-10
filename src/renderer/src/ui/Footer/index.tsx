@@ -81,6 +81,11 @@ interface Props {
   collectionVariables: Variable[];
 
   /**
+   * Variables from the active folder.
+   */
+  folderVariables: Variable[];
+
+  /**
    * Variables from the active environment.
    */
   environmentVariables: Variable[];
@@ -89,6 +94,11 @@ interface Props {
    * Name of the active collection, if any.
    */
   collectionName?: string;
+
+  /**
+   * Name of the active folder, if any.
+   */
+  folderName?: string;
 
   /**
    * Name of the active environment, if any.
@@ -169,8 +179,10 @@ export function Footer({
   onToggleVariables,
   globalVariables,
   collectionVariables,
+  folderVariables,
   environmentVariables,
   collectionName,
+  folderName,
   environmentName,
   sidebarOpen,
   onToggleSidebar,
@@ -230,8 +242,14 @@ export function Footer({
    * Merges collection and environment variables for the footer variables panel.
    */
   const resolvedVariables = useMemo(
-    () => resolveScopedVariables(globalVariables, collectionVariables, environmentVariables),
-    [globalVariables, collectionVariables, environmentVariables]
+    () =>
+      resolveScopedVariables(
+        globalVariables ?? [],
+        collectionVariables ?? [],
+        folderVariables ?? [],
+        environmentVariables ?? []
+      ),
+    [globalVariables, collectionVariables, folderVariables, environmentVariables]
   );
   const variableCount = effectiveCount(resolvedVariables);
 
@@ -260,6 +278,7 @@ export function Footer({
         open={variablesOpen}
         onClose={onToggleVariables}
         collectionName={collectionName}
+        folderName={folderName}
         environmentName={environmentName}
       />
       <McpPanel open={mcpOpen} onClose={onToggleMcp} onStatusChange={onMcpStatusChange} />

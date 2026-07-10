@@ -8,6 +8,7 @@ import {
   faGear,
   faGlobe,
   faDatabase,
+  faFolder,
   faPalette,
   faPlay,
   faPuzzlePiece,
@@ -29,6 +30,8 @@ interface PageTabMetaOptions {
   collectionName?: string;
   /** Environment name when the page is environment settings. */
   environmentName?: string;
+  /** Folder name when the page is folder settings. */
+  folderName?: string;
   /** Plugin view title when the page is a plugin main view. */
   pluginTitle?: string;
   /** Team hub name when the page is team hub admin. */
@@ -77,6 +80,8 @@ export function pageTabMeta(page: PageRef, options: PageTabMetaOptions = {}): Pa
       return { title: options.pluginTitle ?? 'Plugin', icon: faPuzzlePiece };
     case 'collection':
       return { title: options.collectionName ?? 'Collection', icon: faDatabase };
+    case 'folder':
+      return { title: options.folderName ?? 'Folder', icon: faFolder };
     case 'environment':
       return { title: options.environmentName ?? 'Environment', icon: faGlobe };
     case 'collection-runner':

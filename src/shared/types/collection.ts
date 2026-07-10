@@ -124,6 +124,41 @@ export interface Folder {
   sort_order: number;
 
   /**
+   * Folder-scoped variables for {{key}} substitution in requests.
+   */
+  variables: Variable[];
+
+  /**
+   * Headers sent with every request in this folder.
+   */
+  headers: KeyValue[];
+
+  /**
+   * Default Authorization settings inherited by requests unless overridden.
+   */
+  auth: AuthConfig;
+
+  /**
+   * JavaScript run before every request in this folder (before request-level pre script).
+   */
+  pre_request_script: string;
+
+  /**
+   * JavaScript run after every request in this folder (after request-level post script).
+   */
+  post_request_script: string;
+
+  /**
+   * Ordered folder pre-request scripts; canonical source when non-empty.
+   */
+  pre_request_scripts: ScriptRef[];
+
+  /**
+   * Ordered folder post-request scripts; canonical source when non-empty.
+   */
+  post_request_scripts: ScriptRef[];
+
+  /**
    * ISO 8601 timestamp when the folder was created.
    */
   created_at: string;
@@ -242,6 +277,41 @@ export interface ExportedFolder {
    * Position among sibling folders for sidebar ordering.
    */
   sort_order: number;
+
+  /**
+   * Folder-scoped variables for {{key}} substitution in requests.
+   */
+  variables?: Variable[];
+
+  /**
+   * Headers sent with every request in this folder.
+   */
+  headers?: KeyValue[];
+
+  /**
+   * Default Authorization settings inherited by requests unless overridden.
+   */
+  auth?: AuthConfig;
+
+  /**
+   * JavaScript run before every request in this folder.
+   */
+  pre_request_script?: string;
+
+  /**
+   * JavaScript run after every request in this folder.
+   */
+  post_request_script?: string;
+
+  /**
+   * Ordered folder pre-request scripts when exported from a newer HarborClient build.
+   */
+  pre_request_scripts?: ScriptRef[];
+
+  /**
+   * Ordered folder post-request scripts when exported from a newer HarborClient build.
+   */
+  post_request_scripts?: ScriptRef[];
 }
 
 /**

@@ -1,11 +1,13 @@
 import type { ScriptExecutionEvent } from '#/shared/types';
 
-const SCOPE_LABELS: Record<'request' | 'collection' | 'environment' | 'global', string> = {
-  request: 'Request',
-  collection: 'Collection',
-  environment: 'Environment',
-  global: 'Global'
-};
+const SCOPE_LABELS: Record<'request' | 'collection' | 'folder' | 'environment' | 'global', string> =
+  {
+    request: 'Request',
+    collection: 'Collection',
+    folder: 'Folder',
+    environment: 'Environment',
+    global: 'Global'
+  };
 
 /**
  * Returns a short action label for a variable execution event.

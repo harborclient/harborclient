@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
+import { FOLDER_SETTINGS_DEFAULTS } from '#/shared/testFixtures/folder';
 import {
   buildPendingCollectionRunnerResults,
   buildRunResultsExport,
@@ -81,7 +82,8 @@ describe('getRequestsInRunOrder', () => {
       uuid: 'f1',
       name: 'Folder A',
       sort_order: 0,
-      created_at: '2026-01-01T00:00:00.000Z'
+      created_at: '2026-01-01T00:00:00.000Z',
+      ...FOLDER_SETTINGS_DEFAULTS
     },
     {
       id: 11,
@@ -89,7 +91,8 @@ describe('getRequestsInRunOrder', () => {
       uuid: 'f2',
       name: 'Folder B',
       sort_order: 1,
-      created_at: '2026-01-01T00:00:00.000Z'
+      created_at: '2026-01-01T00:00:00.000Z',
+      ...FOLDER_SETTINGS_DEFAULTS
     }
   ];
 
@@ -120,7 +123,8 @@ describe('getCollectionRunnerRequests', () => {
       uuid: 'f1',
       name: 'Folder A',
       sort_order: 0,
-      created_at: '2026-01-01T00:00:00.000Z'
+      created_at: '2026-01-01T00:00:00.000Z',
+      ...FOLDER_SETTINGS_DEFAULTS
     }
   ];
 

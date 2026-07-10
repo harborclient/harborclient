@@ -100,14 +100,14 @@ export function teamHubScriptRefsFromColumn(raw: string | undefined | null): Scr
  * Adds script array columns to a SQLite-backed table when missing.
  *
  * @param db - Open better-sqlite3 database handle.
- * @param table - Table name (`collections` or `requests`).
+ * @param table - Table name (`collections`, `requests`, or `folders`).
  */
 export function migrateSqliteScriptArrayColumns(
   db: {
     prepare: (sql: string) => { all: () => Array<{ name: string }> };
     exec: (sql: string) => void;
   },
-  table: 'collections' | 'requests'
+  table: 'collections' | 'requests' | 'folders'
 ): void {
   const columns = db.prepare(`PRAGMA table_info(${table})`).all();
   if (!columns.some((col) => col.name === 'pre_request_scripts')) {
@@ -122,11 +122,11 @@ export function migrateSqliteScriptArrayColumns(
  * Adds script array columns to a Postgres-backed table when missing.
  *
  * @param pool - Connected Postgres pool.
- * @param table - Table name (`collections` or `requests`).
+ * @param table - Table name (`collections`, `requests`, or `folders`).
  */
 export async function migratePostgresScriptArrayColumns(
   pool: { query: (sql: string) => Promise<unknown> },
-  table: 'collections' | 'requests'
+  table: 'collections' | 'requests' | 'folders'
 ): Promise<void> {
   await pool.query(
     `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS pre_request_scripts TEXT NOT NULL DEFAULT '[]'`

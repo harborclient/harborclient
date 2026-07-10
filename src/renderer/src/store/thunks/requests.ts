@@ -61,7 +61,8 @@ import { setSelectedCollectionId } from '#/renderer/src/store/slices/collections
 import { addConsoleEntry } from '#/renderer/src/store/slices/consoleSlice';
 import {
   selectCollectionSettingsDirty,
-  selectEnvironmentSettingsDirty
+  selectEnvironmentSettingsDirty,
+  selectFolderSettingsDirty
 } from '#/renderer/src/store/slices/navigationSlice';
 import {
   openCollectionModal,
@@ -82,7 +83,8 @@ import {
   moveRequestToFolder,
   refreshCollectionContents,
   refreshRequests,
-  updateCollection
+  updateCollection,
+  updateFolder
 } from '#/renderer/src/store/thunks/collections';
 import { updateEnvironment } from '#/renderer/src/store/thunks/environments';
 
@@ -498,6 +500,13 @@ export async function executeRequestDraft(
   const collection = collectionId
     ? state.collections.collections.find((c) => c.id === collectionId)
     : undefined;
+  const folderId = currentDraft.folder_id ?? null;
+  const folder =
+    collectionId != null && folderId != null
+      ? (state.collections.foldersByCollection[collectionId] ?? []).find(
+          (item) => item.id === folderId
+        )
+      : undefined;
   const activeEnvironmentId = state.environments.activeEnvironmentId;
   const environment = activeEnvironmentId
     ? state.environments.environments.find((env) => env.id === activeEnvironmentId)
@@ -507,13 +516,16 @@ export async function executeRequestDraft(
   let runtimeVars = {
     ...buildRuntimeVars(globalVariables),
     ...buildRuntimeVars(collection?.variables ?? []),
+    ...buildRuntimeVars(folder?.variables ?? []),
     ...buildRuntimeVars(environment?.variables ?? [])
   };
   let globalVarSets: Record<string, string> = {};
   let collectionVarSets: Record<string, string> = {};
+  let folderVarSets: Record<string, string> = {};
   let envVarSets: Record<string, string> = {};
   let runtimeVarClears: string[] = [];
   let collectionVarClears: string[] = [];
+  let folderVarClears: string[] = [];
   let envVarClears: string[] = [];
   let globalVarClears: string[] = [];
   let cookieVarSets: Record<string, string> = {};
@@ -523,7 +535,11 @@ export async function executeRequestDraft(
   let collectionHeaderRows: KeyValue[] = collection
     ? (collection.headers ?? []).map((header) => ({ ...header }))
     : [];
+  let folderHeaderRows: KeyValue[] = folder
+    ? (folder.headers ?? []).map((header) => ({ ...header }))
+    : [];
   let collectionAuthConfig = collection?.auth ? structuredClone(collection.auth) : defaultAuth();
+  let folderAuthConfig = folder?.auth ? structuredClone(folder.auth) : defaultAuth();
   const allLogs: string[] = [];
   const allTests: ScriptTestResult[] = [];
   const allExecutionEvents: ScriptExecutionEvent[] = [];
@@ -555,6 +571,8 @@ export async function executeRequestDraft(
       [
         collection?.pre_request_scripts,
         collection?.post_request_scripts,
+        folder?.pre_request_scripts,
+        folder?.post_request_scripts,
         currentDraft.pre_request_scripts,
         currentDraft.post_request_scripts
       ]
@@ -562,10 +580,14 @@ export async function executeRequestDraft(
     const slots = buildScriptSlots(
       collection?.pre_request_scripts,
       collection?.post_request_scripts,
+      folder?.pre_request_scripts,
+      folder?.post_request_scripts,
       currentDraft.pre_request_scripts,
       currentDraft.post_request_scripts,
       collection?.pre_request_script ?? '',
       collection?.post_request_script ?? '',
+      folder?.pre_request_script ?? '',
+      folder?.post_request_script ?? '',
       currentDraft.pre_request_script,
       currentDraft.post_request_script,
       phase,
@@ -599,6 +621,14 @@ export async function executeRequestDraft(
           headers: collectionHeaderRows,
           auth: collectionAuthConfig
         },
+        folder: folder
+          ? {
+              id: folder.id,
+              name: folder.name,
+              headers: folderHeaderRows,
+              auth: folderAuthConfig
+            }
+          : undefined,
         environment: {
           name: environment?.name ?? ''
         },
@@ -624,24 +654,32 @@ export async function executeRequestDraft(
       runtimeVars = mergeVariableSets(runtimeVars, result.variableSets);
       runtimeVars = mergeVariableSets(runtimeVars, result.globalVariableSets);
       runtimeVars = mergeVariableSets(runtimeVars, result.collectionVariableSets);
+      runtimeVars = mergeVariableSets(runtimeVars, result.folderVariableSets);
       runtimeVars = mergeVariableSets(runtimeVars, result.environmentVariableSets);
       runtimeVars = applyRuntimeVariableClears(runtimeVars, result.variableClears);
       runtimeVars = applyRuntimeVariableClears(runtimeVars, result.globalVariableClears);
       runtimeVars = applyRuntimeVariableClears(runtimeVars, result.collectionVariableClears);
+      runtimeVars = applyRuntimeVariableClears(runtimeVars, result.folderVariableClears);
       runtimeVars = applyRuntimeVariableClears(runtimeVars, result.environmentVariableClears);
       globalVarSets = { ...globalVarSets, ...result.globalVariableSets };
       collectionVarSets = { ...collectionVarSets, ...result.collectionVariableSets };
+      folderVarSets = { ...folderVarSets, ...result.folderVariableSets };
       envVarSets = { ...envVarSets, ...result.environmentVariableSets };
       runtimeVarClears = [...runtimeVarClears, ...result.variableClears];
       collectionVarClears = [...collectionVarClears, ...result.collectionVariableClears];
+      folderVarClears = [...folderVarClears, ...result.folderVariableClears];
       envVarClears = [...envVarClears, ...result.environmentVariableClears];
       globalVarClears = [...globalVarClears, ...result.globalVariableClears];
       cookieVarSets = { ...cookieVarSets, ...result.cookieSets };
       cookieVarClears = [...cookieVarClears, ...result.cookieClears];
       cookieRows = applyCookieChanges(cookieRows, result.cookieSets, result.cookieClears);
       collectionHeaderRows = result.collectionHeaders;
+      folderHeaderRows = result.folderHeaders;
       if (result.collectionAuth) {
         collectionAuthConfig = result.collectionAuth;
+      }
+      if (result.folderAuth) {
+        folderAuthConfig = result.folderAuth;
       }
       if (result.nextRequest !== undefined) {
         scriptNextRequest = result.nextRequest;
@@ -674,6 +712,10 @@ export async function executeRequestDraft(
         ...header,
         value: substituteWithMap(header.value, runtimeVars)
       }));
+      const folderHeaders = folderHeaderRows.map((header) => ({
+        ...header,
+        value: substituteWithMap(header.value, runtimeVars)
+      }));
       const draftHeaders = scriptRequest.headers.map((header) => ({
         ...header,
         value: substituteWithMap(header.value, runtimeVars)
@@ -681,12 +723,14 @@ export async function executeRequestDraft(
       const effectiveAuth =
         scriptRequest.auth && scriptRequest.auth.type !== 'none'
           ? scriptRequest.auth
-          : collectionAuthConfig;
+          : folderAuthConfig.type !== 'none'
+            ? folderAuthConfig
+            : collectionAuthConfig;
       const resolvedAuth = resolveAuthVariables(effectiveAuth, (text) =>
         substituteWithMap(text, runtimeVars)
       );
       let authValue = buildAuthHeaderValue(resolvedAuth);
-      const manualHasAuth = [...collectionHeaders, ...draftHeaders].some(
+      const manualHasAuth = [...collectionHeaders, ...folderHeaders, ...draftHeaders].some(
         (header) =>
           header.enabled &&
           header.key.trim().toLowerCase() === 'authorization' &&
@@ -694,12 +738,18 @@ export async function executeRequestDraft(
       );
       if (!authValue && resolvedAuth.type === 'oauth2' && !manualHasAuth) {
         const usesRequestAuth = scriptRequest.auth?.type === 'oauth2';
+        const usesFolderAuth =
+          !usesRequestAuth &&
+          scriptRequest.auth?.type === 'none' &&
+          folderAuthConfig.type === 'oauth2';
         const cacheKey =
           usesRequestAuth && currentDraft.id != null
             ? buildOAuthCacheKey('request', currentDraft.id)
-            : !usesRequestAuth && collection?.id != null
-              ? buildOAuthCacheKey('collection', collection.id)
-              : '';
+            : usesFolderAuth && folder?.id != null
+              ? buildOAuthCacheKey('folder', folder.id)
+              : !usesRequestAuth && collection?.id != null
+                ? buildOAuthCacheKey('collection', collection.id)
+                : '';
         const tokenResult = await window.api.oauthFetchToken(cacheKey, resolvedAuth.oauth2, false);
         authValue = buildOAuthAuthHeaderValue(tokenResult);
         if (!authValue) {
@@ -711,9 +761,10 @@ export async function executeRequestDraft(
           ? [
               { key: 'Authorization', value: authValue, enabled: true },
               ...collectionHeaders,
+              ...folderHeaders,
               ...draftHeaders
             ]
-          : [...collectionHeaders, ...draftHeaders];
+          : [...collectionHeaders, ...folderHeaders, ...draftHeaders];
       const params = scriptRequest.params.map((param) => ({
         ...param,
         value: substituteWithMap(param.value, runtimeVars)
@@ -791,6 +842,44 @@ export async function executeRequestDraft(
         } catch (err) {
           persistErrors.push(
             err instanceof Error ? err.message : 'Failed to save collection changes from script'
+          );
+        }
+      }
+    }
+
+    if (folder && collectionId != null) {
+      const headersChanged =
+        JSON.stringify(folderHeaderRows) !== JSON.stringify(folder.headers ?? []);
+      const authChanged =
+        JSON.stringify(folderAuthConfig) !== JSON.stringify(folder.auth ?? defaultAuth());
+      const hasFolderChanges =
+        Object.keys(folderVarSets).length > 0 ||
+        folderVarClears.length > 0 ||
+        headersChanged ||
+        authChanged;
+
+      if (hasFolderChanges) {
+        try {
+          await dispatch(
+            updateFolder({
+              id: folder.id,
+              collectionId,
+              name: folder.name,
+              variables: applyVariableClears(
+                applyCollectionVariableSets(folder.variables, folderVarSets),
+                folderVarClears
+              ),
+              headers: folderHeaderRows,
+              preRequestScript: folder.pre_request_script,
+              postRequestScript: folder.post_request_script,
+              preRequestScripts: folder.pre_request_scripts,
+              postRequestScripts: folder.post_request_scripts,
+              auth: folderAuthConfig
+            })
+          ).unwrap();
+        } catch (err) {
+          persistErrors.push(
+            err instanceof Error ? err.message : 'Failed to save folder changes from script'
           );
         }
       }
@@ -1107,8 +1196,13 @@ export const requestLoadRequest = createAsyncThunk<void, RequestLoadRequestArgs,
       isPageTab(activeTab) &&
       activeTab.page.type === 'environment' &&
       selectEnvironmentSettingsDirty(state);
+    const folderDirty =
+      activeTab != null &&
+      isPageTab(activeTab) &&
+      activeTab.page.type === 'folder' &&
+      selectFolderSettingsDirty(state);
 
-    if (!skipSettingsCheck && (collectionDirty || environmentDirty)) {
+    if (!skipSettingsCheck && (collectionDirty || environmentDirty || folderDirty)) {
       dispatch(setPendingLoadRequest({ req, reason: 'settings' }));
       return;
     }

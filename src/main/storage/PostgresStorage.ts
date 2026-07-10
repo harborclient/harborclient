@@ -9,6 +9,8 @@ import {
   resolveImportedFolderUuid,
   savedRequestToExportedRequest,
   serializeImportedCollectionScriptFields,
+  exportedFolderFromFolder,
+  serializeImportedFolderFields,
   serializeImportedRequestFields
 } from '#/main/storage/collectionImport';
 import {
@@ -210,10 +212,27 @@ export class PostgresStorage implements IStorage {
     await this.backfillDocumentUuids('folders');
     await migratePostgresScriptArrayColumns(this.getPool(), 'collections');
     await migratePostgresScriptArrayColumns(this.getPool(), 'requests');
+    await migratePostgresScriptArrayColumns(this.getPool(), 'folders');
     await this.getPool().query(
       "ALTER TABLE snippets ADD COLUMN IF NOT EXISTS stage TEXT NOT NULL DEFAULT 'main'"
     );
     await this.getPool().query("UPDATE snippets SET stage = 'main' WHERE stage = 'run'");
+
+    await this.getPool().query(
+      "ALTER TABLE folders ADD COLUMN IF NOT EXISTS variables TEXT NOT NULL DEFAULT '[]'"
+    );
+    await this.getPool().query(
+      "ALTER TABLE folders ADD COLUMN IF NOT EXISTS headers TEXT NOT NULL DEFAULT '[]'"
+    );
+    await this.getPool().query(
+      "ALTER TABLE folders ADD COLUMN IF NOT EXISTS pre_request_script TEXT NOT NULL DEFAULT ''"
+    );
+    await this.getPool().query(
+      "ALTER TABLE folders ADD COLUMN IF NOT EXISTS post_request_script TEXT NOT NULL DEFAULT ''"
+    );
+    await this.getPool().query(
+      `ALTER TABLE folders ADD COLUMN IF NOT EXISTS auth TEXT NOT NULL DEFAULT '${DEFAULT_AUTH_JSON.replace(/'/g, "''")}'`
+    );
   }
 
   /**
@@ -619,6 +638,53 @@ export class PostgresStorage implements IStorage {
   }
 
   /**
+   * Updates a folder's name, variables, headers, auth, and scripts.
+   *
+   * @param id - Folder ID to update.
+   * @param name - New display name.
+   * @param variables - Folder-scoped variables.
+   * @param headers - Headers sent with every request in the folder.
+   * @param preRequestScript - Script run before each request in the folder.
+   * @param postRequestScript - Script run after each request in the folder.
+   * @param auth - Default Authorization settings for requests in the folder.
+   * @returns The updated folder.
+   */
+  async updateFolder(
+    id: number,
+    name: string,
+    variables: Variable[],
+    headers: KeyValue[],
+    preRequestScript: string,
+    postRequestScript: string,
+    auth: AuthConfig,
+    preRequestScripts: ScriptRef[] = [],
+    postRequestScripts: ScriptRef[] = []
+  ): Promise<Folder> {
+    const trimmedName = trimRequiredName(name, 'Folder name');
+    const preScripts = bundleScriptFieldsWithLegacy(preRequestScripts, preRequestScript);
+    const postScripts = bundleScriptFieldsWithLegacy(postRequestScripts, postRequestScript);
+    const result = await this.getPool().query(
+      `UPDATE folders SET name = $1, variables = $2, headers = $3, auth = $4,
+        pre_request_script = $5, post_request_script = $6, pre_request_scripts = $7, post_request_scripts = $8
+       WHERE id = $9 RETURNING *`,
+      [
+        trimmedName,
+        JSON.stringify(variables),
+        JSON.stringify(headers),
+        JSON.stringify(auth),
+        preScripts.legacy,
+        postScripts.legacy,
+        preScripts.json,
+        postScripts.json,
+        id
+      ]
+    );
+    const row = result.rows[0];
+    if (!row) throw new Error('Folder not found');
+    return rowToFolder(row);
+  }
+
+  /**
    * Deletes a folder and all requests inside it.
    *
    * @param id - Folder ID to delete.
@@ -799,11 +865,7 @@ export class PostgresStorage implements IStorage {
 
     const collection = rowToCollection(row);
     const folderRecords = await this.listFolders(id);
-    const folders = folderRecords.map(({ uuid, name, sort_order }) => ({
-      uuid,
-      name,
-      sort_order
-    }));
+    const folders = folderRecords.map(exportedFolderFromFolder);
     const folderNameById = new Map(folderRecords.map((folder) => [folder.id, folder.name]));
     const folderUuidById = new Map(folderRecords.map((folder) => [folder.id, folder.uuid]));
 
@@ -881,11 +943,28 @@ export class PostgresStorage implements IStorage {
 
       for (const folder of exportData.folders ?? []) {
         const folderUuid = resolveImportedFolderUuid(folder);
+        const folderFields = serializeImportedFolderFields(folder);
         const folderResult = await client.query(
-          `INSERT INTO folders (collection_id, name, sort_order, uuid, created_at)
-           VALUES ($1, $2, $3, $4, $5)
+          `INSERT INTO folders (
+            collection_id, name, sort_order, uuid, variables, headers, auth,
+            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at
+          )
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
            RETURNING id`,
-          [collectionId, folder.name, folder.sort_order, folderUuid, now]
+          [
+            collectionId,
+            folder.name,
+            folder.sort_order,
+            folderUuid,
+            folderFields.variablesJson,
+            folderFields.headersJson,
+            folderFields.authJson,
+            folderFields.pre_request_script,
+            folderFields.post_request_script,
+            folderFields.pre_request_scripts_json,
+            folderFields.post_request_scripts_json,
+            now
+          ]
         );
         registerImportedFolderInMaps(
           folderMaps,
@@ -1030,19 +1109,51 @@ export class PostgresStorage implements IStorage {
       for (const folder of exportData.folders ?? []) {
         const plan = planImportedFolderUpsert(folder, folderMaps);
         if (plan.action === 'update') {
+          const folderFields = serializeImportedFolderFields(folder);
           await client.query(
-            'UPDATE folders SET name = $1, sort_order = $2 WHERE id = $3 AND collection_id = $4',
-            [plan.name, plan.sort_order, plan.existingId, id]
+            `UPDATE folders SET name = $1, sort_order = $2, variables = $3, headers = $4, auth = $5,
+              pre_request_script = $6, post_request_script = $7, pre_request_scripts = $8, post_request_scripts = $9
+             WHERE id = $10 AND collection_id = $11`,
+            [
+              plan.name,
+              plan.sort_order,
+              folderFields.variablesJson,
+              folderFields.headersJson,
+              folderFields.authJson,
+              folderFields.pre_request_script,
+              folderFields.post_request_script,
+              folderFields.pre_request_scripts_json,
+              folderFields.post_request_scripts_json,
+              plan.existingId,
+              id
+            ]
           );
           registerImportedFolderInMaps(folderMaps, plan.existingId, plan.name, plan.uuid);
           continue;
         }
 
+        const folderFields = serializeImportedFolderFields(folder);
         const folderResult = await client.query(
-          `INSERT INTO folders (collection_id, name, sort_order, uuid, created_at)
-           VALUES ($1, $2, $3, $4, $5)
+          `INSERT INTO folders (
+            collection_id, name, sort_order, uuid, variables, headers, auth,
+            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at
+          )
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
            RETURNING id`,
-          [id, plan.name, plan.sort_order, plan.uuid, now]
+          [
+            id,
+            plan.name,
+            plan.sort_order,
+            plan.uuid,
+            folderFields.variablesJson,
+            folderFields.headersJson,
+            folderFields.authJson,
+            folderFields.pre_request_script,
+            folderFields.post_request_script,
+            folderFields.pre_request_scripts_json,
+            folderFields.post_request_scripts_json,
+            now
+          ]
         );
         registerImportedFolderInMaps(
           folderMaps,

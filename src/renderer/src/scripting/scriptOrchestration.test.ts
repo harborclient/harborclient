@@ -71,6 +71,14 @@ describe('substituteWithMap', () => {
     expect(first).toMatch(/^\d+$/);
     expect(second).toMatch(/^\d+$/);
   });
+
+  it('applies chained filters to resolved values', () => {
+    expect(substituteWithMap('{{name|trim|upper}}', { name: '  hello  ' })).toBe('HELLO');
+  });
+
+  it('leaves tokens unchanged when a filter is unknown', () => {
+    expect(substituteWithMap('{{name|unknown}}', { name: 'hello' })).toBe('{{name|unknown}}');
+  });
 });
 
 describe('mergeVariableSets', () => {
@@ -165,6 +173,8 @@ describe('applyScriptRequestMutations', () => {
       variableClears: [],
       collectionVariableSets: {},
       collectionVariableClears: [],
+      folderVariableSets: {},
+      folderVariableClears: [],
       environmentVariableSets: {},
       environmentVariableClears: [],
       globalVariableSets: {},
@@ -172,6 +182,7 @@ describe('applyScriptRequestMutations', () => {
       cookieSets: {},
       cookieClears: [],
       collectionHeaders: [],
+      folderHeaders: [],
       tests: [],
       logs: [],
       executionEvents: [],
@@ -204,7 +215,11 @@ describe('buildScriptSlots', () => {
         [],
         [],
         [],
+        [],
+        [],
         'collection pre',
+        '',
+        '',
         '',
         'request pre',
         '',
@@ -221,8 +236,12 @@ describe('buildScriptSlots', () => {
         [],
         [],
         [],
+        [],
+        [],
         '',
         'collection post',
+        '',
+        '',
         '',
         'request post',
         'post',
@@ -235,8 +254,12 @@ describe('buildScriptSlots', () => {
     const slots = buildScriptSlots(
       [createInlineScriptRef('collection inline')],
       [],
+      [],
+      [],
       [createSnippetScriptRef('snippet-1', 'Auth helper')],
       [],
+      '',
+      '',
       '',
       '',
       '',
@@ -255,8 +278,12 @@ describe('buildScriptSlots', () => {
       buildScriptSlots(
         [],
         [],
+        [],
+        [],
         [createInlineScriptRef('request pre')],
         [],
+        '',
+        '',
         '',
         '',
         '',

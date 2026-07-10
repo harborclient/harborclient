@@ -268,6 +268,13 @@ describe('createHcCompletionSource', () => {
     expect(labels(result!.options)).toEqual(['host']);
   });
 
+  it('completes filter names after | inside {{ }}', async () => {
+    const source = createHcCompletionSource('pre', variables);
+    const result = await complete(source, mockContext('const url = "{{host|u'));
+
+    expect(labels(result!.options)).toEqual(['upper', 'urlencode']);
+  });
+
   it('reads the latest variables from a getter on each completion query', async () => {
     let currentVariables: Variable[] = [
       { key: 'host', value: 'api.example.com', defaultValue: '', share: false }

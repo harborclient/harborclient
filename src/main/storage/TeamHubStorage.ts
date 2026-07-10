@@ -7,6 +7,8 @@ import {
   resolveImportedFolderUuid,
   importedRequestScriptFields,
   savedRequestToExportedRequest,
+  exportedFolderFromFolder,
+  resolveImportedFolderSettings,
   serializeImportedRequestFields
 } from '#/main/storage/collectionImport';
 import {
@@ -22,6 +24,7 @@ import {
   teamHubScriptRefsFromColumn
 } from '#/main/storage/scriptFields';
 import type { TeamHubIdMap } from '#/main/storage/TeamHubIdMap';
+import type { TeamHubFolderSettings } from '#/main/storage/TeamHubFolderSettings';
 import {
   asTeamHubRunResultClient,
   type TeamHubRunResultDetail,
@@ -54,6 +57,7 @@ import type {
   Collection,
   CollectionExport,
   Environment,
+  ExportedFolder,
   Folder,
   KeyValue,
   SaveRequestInput,
@@ -207,6 +211,13 @@ function serverToFolder(record: FolderRecord, localId: number, localCollectionId
     collection_id: localCollectionId,
     name: record.name,
     sort_order: record.sortOrder,
+    variables: [],
+    headers: [],
+    auth: defaultAuth(),
+    pre_request_script: '',
+    post_request_script: '',
+    pre_request_scripts: [],
+    post_request_scripts: [],
     created_at: record.createdAt
   };
 }
@@ -328,10 +339,12 @@ export class TeamHubStorage implements IStorage {
   /**
    * @param client - Typed HTTP client for the hub's HarborClient Server instance.
    * @param idMap - Persistent UUID to numeric id map for this hub.
+   * @param folderSettings - Local overlay for folder variables, headers, auth, and scripts.
    */
   constructor(
     private readonly client: TeamHubClient,
-    private readonly idMap: TeamHubIdMap
+    private readonly idMap: TeamHubIdMap,
+    private readonly folderSettings: TeamHubFolderSettings
   ) {}
 
   /**
@@ -686,6 +699,53 @@ export class TeamHubStorage implements IStorage {
   }
 
   /**
+   * Merges locally stored folder settings into a server-backed folder row.
+   *
+   * @param folder - Folder mapped from the server API.
+   * @param serverId - Folder UUID from HarborClient Server.
+   */
+  private mergeFolderSettings(folder: Folder, serverId: string): Folder {
+    const stored = this.folderSettings.get(serverId);
+    if (!stored) {
+      return folder;
+    }
+    return {
+      ...folder,
+      variables: stored.variables,
+      headers: stored.headers,
+      auth: stored.auth,
+      pre_request_script: stored.pre_request_script,
+      post_request_script: stored.post_request_script,
+      pre_request_scripts: stored.pre_request_scripts,
+      post_request_scripts: stored.post_request_scripts
+    };
+  }
+
+  /**
+   * Persists folder settings from an import payload into the local overlay.
+   *
+   * @param localFolderId - Provider-local folder id after create or upsert.
+   * @param folder - Exported folder row from the import payload.
+   */
+  private async applyImportedFolderSettings(
+    localFolderId: number,
+    folder: ExportedFolder
+  ): Promise<void> {
+    const settings = resolveImportedFolderSettings(folder);
+    await this.updateFolder(
+      localFolderId,
+      folder.name,
+      settings.variables,
+      settings.headers,
+      settings.preRequestScript,
+      settings.postRequestScript,
+      settings.auth,
+      settings.preRequestScripts,
+      settings.postRequestScripts
+    );
+  }
+
+  /**
    * Lists folders in a collection with ids translated to numeric form.
    *
    * @param collectionId - Provider-local collection id.
@@ -694,7 +754,10 @@ export class TeamHubStorage implements IStorage {
     const collectionServerId = this.requireServerId('collection', collectionId);
     const records = await this.client.listFolders(collectionServerId);
     return records.map((record) =>
-      serverToFolder(record, this.idMap.toLocalId('folder', record.id), collectionId)
+      this.mergeFolderSettings(
+        serverToFolder(record, this.idMap.toLocalId('folder', record.id), collectionId),
+        record.id
+      )
     );
   }
 
@@ -728,6 +791,43 @@ export class TeamHubStorage implements IStorage {
   }
 
   /**
+   * Updates a folder name on the server and persists other settings in the local overlay.
+   *
+   * @param id - Provider-local folder id.
+   * @param name - New display name.
+   * @param variables - Folder-scoped variables (stored locally).
+   * @param headers - Folder headers (stored locally).
+   * @param preRequestScript - Folder pre-request script (stored locally).
+   * @param postRequestScript - Folder post-request script (stored locally).
+   * @param auth - Folder auth (stored locally).
+   * @returns The updated folder with locally stored settings merged.
+   */
+  async updateFolder(
+    id: number,
+    name: string,
+    variables: Variable[],
+    headers: KeyValue[],
+    preRequestScript: string,
+    postRequestScript: string,
+    auth: AuthConfig,
+    preRequestScripts: ScriptRef[] = [],
+    postRequestScripts: ScriptRef[] = []
+  ): Promise<Folder> {
+    const serverId = this.requireServerId('folder', id);
+    this.folderSettings.put(serverId, {
+      variables,
+      headers,
+      auth,
+      preRequestScript,
+      postRequestScript,
+      preRequestScripts,
+      postRequestScripts
+    });
+    const renamed = await this.renameFolder(id, name);
+    return this.mergeFolderSettings(renamed, serverId);
+  }
+
+  /**
    * Deletes a folder on the server.
    *
    * @param id - Provider-local folder id.
@@ -735,6 +835,7 @@ export class TeamHubStorage implements IStorage {
   async deleteFolder(id: number): Promise<void> {
     const serverId = this.requireServerId('folder', id);
     await this.client.deleteFolder(serverId);
+    this.folderSettings.delete(serverId);
     this.idMap.forget('folder', serverId);
   }
 
@@ -795,11 +896,7 @@ export class TeamHubStorage implements IStorage {
     }
 
     const folderRows = await this.listFolders(id);
-    const folders = folderRows.map(({ uuid, name, sort_order }) => ({
-      uuid,
-      name,
-      sort_order
-    }));
+    const folders = folderRows.map(exportedFolderFromFolder);
     const folderNameById = new Map(folderRows.map((folder) => [folder.id, folder.name]));
     const folderUuidById = new Map(folderRows.map((folder) => [folder.id, folder.uuid]));
 
@@ -857,6 +954,7 @@ export class TeamHubStorage implements IStorage {
 
     for (const folder of exportData.folders ?? []) {
       const createdFolder = await this.createFolder(updated.id, folder.name);
+      await this.applyImportedFolderSettings(createdFolder.id, folder);
       const importUuid = resolveImportedFolderUuid(folder);
       registerImportedFolderInMaps(folderMaps, createdFolder.id, folder.name, importUuid);
       orderedFolderIds.push(createdFolder.id);
@@ -964,16 +1062,14 @@ export class TeamHubStorage implements IStorage {
     for (const folder of exportData.folders ?? []) {
       const plan = planImportedFolderUpsert(folder, folderMaps);
       if (plan.action === 'update') {
-        const existingFolder = existingFolders.find((item) => item.id === plan.existingId);
-        if (existingFolder != null && existingFolder.name !== plan.name) {
-          await this.renameFolder(plan.existingId, plan.name);
-        }
+        await this.applyImportedFolderSettings(plan.existingId, folder);
         registerImportedFolderInMaps(folderMaps, plan.existingId, plan.name, plan.uuid);
         orderedFolderIds.push(plan.existingId);
         continue;
       }
 
       const createdFolder = await this.createFolder(id, plan.name);
+      await this.applyImportedFolderSettings(createdFolder.id, folder);
       registerImportedFolderInMaps(folderMaps, createdFolder.id, plan.name, plan.uuid);
       orderedFolderIds.push(createdFolder.id);
     }

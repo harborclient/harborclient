@@ -39,7 +39,14 @@ const exportedFolderRow = z
   .object({
     uuid: optionalDocumentUuid,
     name: z.string(),
-    sort_order: z.number().optional()
+    sort_order: z.number().optional(),
+    variables: importVariables.optional(),
+    headers: z.array(keyValue).optional(),
+    auth: authConfig.optional(),
+    pre_request_script: z.string().optional(),
+    post_request_script: z.string().optional(),
+    pre_request_scripts: exportScriptRefArray,
+    post_request_scripts: exportScriptRefArray
   })
   .superRefine((folder, ctx) => {
     if (!folder.name.trim()) {
@@ -53,7 +60,14 @@ const exportedFolderRow = z
   .transform((folder) => ({
     uuid: folder.uuid,
     name: folder.name.trim(),
-    sort_order: folder.sort_order
+    sort_order: folder.sort_order,
+    variables: folder.variables,
+    headers: folder.headers,
+    auth: folder.auth,
+    pre_request_script: folder.pre_request_script,
+    post_request_script: folder.post_request_script,
+    pre_request_scripts: folder.pre_request_scripts,
+    post_request_scripts: folder.post_request_scripts
   }));
 
 /**
@@ -111,7 +125,14 @@ export const exportedFolders = z
       (folder, index): ExportedFolder => ({
         uuid: folder.uuid,
         name: folder.name,
-        sort_order: typeof folder.sort_order === 'number' ? folder.sort_order : index
+        sort_order: typeof folder.sort_order === 'number' ? folder.sort_order : index,
+        variables: folder.variables,
+        headers: folder.headers,
+        auth: folder.auth,
+        pre_request_script: folder.pre_request_script,
+        post_request_script: folder.post_request_script,
+        pre_request_scripts: folder.pre_request_scripts,
+        post_request_scripts: folder.post_request_scripts
       })
     )
   )

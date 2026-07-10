@@ -247,12 +247,17 @@ export function TabBar({
       const page = tab.page;
       let collectionName: string | undefined;
       let environmentName: string | undefined;
+      let folderName: string | undefined;
       let pluginTitle: string | undefined;
       let teamHubName: string | undefined;
       let runnerTargetName: string | undefined;
 
       if (page.type === 'collection') {
         collectionName = collections.find((collection) => collection.id === page.id)?.name;
+      } else if (page.type === 'folder') {
+        folderName = (foldersByCollection[page.collectionId] ?? []).find(
+          (folder) => folder.id === page.id
+        )?.name;
       } else if (page.type === 'environment') {
         environmentName = allEnvironments.find((environment) => environment.id === page.id)?.name;
       } else if (page.type === 'collection-runner') {
@@ -280,6 +285,7 @@ export function TabBar({
         pageTabMeta(page, {
           collectionName,
           environmentName,
+          folderName,
           pluginTitle,
           teamHubName,
           runnerTargetName

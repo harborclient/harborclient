@@ -16,6 +16,10 @@ import type {
 } from '#/shared/types';
 import { parseJson } from '#/shared/parseJson';
 import { readScriptRefsFromJson } from '#/shared/scriptRefs';
+import type { AuthConfig } from '#/shared/auth';
+import { defaultAuth } from '#/shared/auth';
+import type { KeyValue, Variable } from '#/shared/types/common';
+import type { ScriptRef } from '#/shared/types/script';
 
 /**
  * Reads and parses a JSON file, throwing a descriptive error when parsing fails.
@@ -52,6 +56,41 @@ export interface StoredFolderRow {
    * Position among sibling folders.
    */
   sort_order: number;
+
+  /**
+   * Folder-scoped variables for {{key}} substitution in requests.
+   */
+  variables?: Variable[];
+
+  /**
+   * Headers sent with every request in this folder.
+   */
+  headers?: KeyValue[];
+
+  /**
+   * Default Authorization settings inherited by requests unless overridden.
+   */
+  auth?: AuthConfig;
+
+  /**
+   * JavaScript run before every request in this folder.
+   */
+  pre_request_script?: string;
+
+  /**
+   * JavaScript run after every request in this folder.
+   */
+  post_request_script?: string;
+
+  /**
+   * Ordered folder pre-request scripts.
+   */
+  pre_request_scripts?: ScriptRef[];
+
+  /**
+   * Ordered folder post-request scripts.
+   */
+  post_request_scripts?: ScriptRef[];
 }
 
 /**
@@ -247,7 +286,14 @@ export function readCollectionFromDir(dir: string): {
     folders: ((raw.folders as StoredFolderRow[]) ?? []).map((folder, index) => ({
       uuid: resolveImportUuid(folder.uuid),
       name: String(folder.name ?? '').trim(),
-      sort_order: folder.sort_order ?? index
+      sort_order: folder.sort_order ?? index,
+      variables: folder.variables ?? [],
+      headers: folder.headers ?? [],
+      auth: folder.auth ?? defaultAuth(),
+      pre_request_script: folder.pre_request_script ?? '',
+      post_request_script: folder.post_request_script ?? '',
+      pre_request_scripts: folder.pre_request_scripts ?? [],
+      post_request_scripts: folder.post_request_scripts ?? []
     })),
     created_at: String(raw.created_at ?? new Date().toISOString())
   };
@@ -357,7 +403,14 @@ export function manifestToCollectionExport(
   const folders: ExportedFolder[] = manifest.folders.map((folder) => ({
     uuid: folder.uuid,
     name: folder.name,
-    sort_order: folder.sort_order
+    sort_order: folder.sort_order,
+    variables: maskVariablesForExport(folder.variables ?? []),
+    headers: folder.headers ?? [],
+    auth: folder.auth ?? defaultAuth(),
+    pre_request_script: folder.pre_request_script ?? '',
+    post_request_script: folder.post_request_script ?? '',
+    pre_request_scripts: folder.pre_request_scripts ?? [],
+    post_request_scripts: folder.post_request_scripts ?? []
   }));
 
   return validateCollectionExport({
@@ -591,7 +644,14 @@ export function createStoredFolder(name: string, sort_order: number): StoredFold
   return {
     uuid: generateDocumentUuid(),
     name: name.trim(),
-    sort_order
+    sort_order,
+    variables: [],
+    headers: [],
+    auth: defaultAuth(),
+    pre_request_script: '',
+    post_request_script: '',
+    pre_request_scripts: [],
+    post_request_scripts: []
   };
 }
 

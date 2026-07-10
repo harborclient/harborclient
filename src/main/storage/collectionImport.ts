@@ -1,12 +1,17 @@
 import { defaultAuth } from '#/shared/auth';
 import type {
+  AuthConfig,
   CollectionExport,
   ExportedFolder,
   ExportedRequest,
   Folder,
-  SavedRequest
+  KeyValue,
+  SavedRequest,
+  ScriptRef,
+  Variable
 } from '#/shared/types';
 import { bundleScriptFieldsWithLegacy } from '#/main/storage/scriptFields';
+import { maskVariablesForExport } from '#/main/storage/collectionData';
 import { resolveImportUuid } from '#/main/storage/uuid';
 import { normalizeRequestTags } from '#/shared/requestTags';
 import { mirrorLegacyScriptString, resolveScriptRefs } from '#/shared/scriptRefs';
@@ -301,6 +306,135 @@ export function serializeImportedCollectionScriptFields(payload: CollectionExpor
     post_request_script: postScripts.legacy,
     pre_request_scripts_json: preScripts.json,
     post_request_scripts_json: postScripts.json
+  };
+}
+
+/**
+ * Converts a persisted folder row into a portable export shape.
+ *
+ * @param folder - Folder loaded from storage.
+ * @returns Portable folder export row.
+ */
+export function exportedFolderFromFolder(folder: Folder): ExportedFolder {
+  return {
+    uuid: folder.uuid,
+    name: folder.name,
+    sort_order: folder.sort_order,
+    variables: maskVariablesForExport(folder.variables),
+    headers: folder.headers,
+    auth: folder.auth,
+    pre_request_script: folder.pre_request_script,
+    post_request_script: folder.post_request_script,
+    pre_request_scripts: folder.pre_request_scripts,
+    post_request_scripts: folder.post_request_scripts
+  };
+}
+
+/**
+ * Resolves folder-level script columns from a portable export row.
+ *
+ * @param folder - Exported folder row.
+ * @returns Serialized folder settings columns for SQL persistence.
+ */
+export function serializeImportedFolderFields(folder: ExportedFolder): {
+  variablesJson: string;
+  headersJson: string;
+  authJson: string;
+  pre_request_script: string;
+  post_request_script: string;
+  pre_request_scripts_json: string;
+  post_request_scripts_json: string;
+} {
+  const preScripts = bundleScriptFieldsWithLegacy(
+    folder.pre_request_scripts,
+    folder.pre_request_script ?? ''
+  );
+  const postScripts = bundleScriptFieldsWithLegacy(
+    folder.post_request_scripts,
+    folder.post_request_script ?? ''
+  );
+  return {
+    variablesJson: JSON.stringify(folder.variables ?? []),
+    headersJson: JSON.stringify(folder.headers ?? []),
+    authJson: JSON.stringify(folder.auth ?? defaultAuth()),
+    pre_request_script: preScripts.legacy,
+    post_request_script: postScripts.legacy,
+    pre_request_scripts_json: preScripts.json,
+    post_request_scripts_json: postScripts.json
+  };
+}
+
+/**
+ * Resolves folder settings from a portable export row with safe defaults for legacy exports.
+ *
+ * @param folder - Exported folder row from a collection import payload.
+ * @returns Normalized folder settings suitable for storage updateFolder calls.
+ */
+export function resolveImportedFolderSettings(folder: ExportedFolder): {
+  variables: Variable[];
+  headers: KeyValue[];
+  auth: AuthConfig;
+  preRequestScript: string;
+  postRequestScript: string;
+  preRequestScripts: ScriptRef[];
+  postRequestScripts: ScriptRef[];
+} {
+  const preRequestScript = folder.pre_request_script ?? '';
+  const postRequestScript = folder.post_request_script ?? '';
+  return {
+    variables: folder.variables ?? [],
+    headers: folder.headers ?? [],
+    auth: folder.auth ?? defaultAuth(),
+    preRequestScript,
+    postRequestScript,
+    preRequestScripts: resolveScriptRefs(folder.pre_request_scripts, preRequestScript),
+    postRequestScripts: resolveScriptRefs(folder.post_request_scripts, postRequestScript)
+  };
+}
+
+/**
+ * Converts a portable folder export row into a git manifest folder row.
+ *
+ * @param folder - Exported folder row.
+ * @param index - Fallback sort order when the export omits one.
+ * @returns Stored folder row for collection.json.
+ */
+export function importedFolderToStoredRow(
+  folder: ExportedFolder,
+  index = 0
+): {
+  uuid: string;
+  name: string;
+  sort_order: number;
+  variables: Variable[];
+  headers: KeyValue[];
+  auth: AuthConfig;
+  pre_request_script: string;
+  post_request_script: string;
+  pre_request_scripts: ScriptRef[];
+  post_request_scripts: ScriptRef[];
+} {
+  const preScripts = bundleScriptFieldsWithLegacy(
+    folder.pre_request_scripts,
+    folder.pre_request_script ?? ''
+  );
+  const postScripts = bundleScriptFieldsWithLegacy(
+    folder.post_request_scripts,
+    folder.post_request_script ?? ''
+  );
+  const preRefs = resolveScriptRefs(folder.pre_request_scripts, folder.pre_request_script ?? '');
+  const postRefs = resolveScriptRefs(folder.post_request_scripts, folder.post_request_script ?? '');
+  return {
+    uuid: resolveImportUuid(folder.uuid),
+    name: folder.name.trim(),
+    sort_order: folder.sort_order ?? index,
+    variables: folder.variables ?? [],
+    headers: folder.headers ?? [],
+    auth: folder.auth ?? defaultAuth(),
+    pre_request_script: preScripts.legacy,
+    post_request_script: postScripts.legacy,
+    pre_request_scripts: preRefs,
+    post_request_scripts: postRefs
   };
 }
 

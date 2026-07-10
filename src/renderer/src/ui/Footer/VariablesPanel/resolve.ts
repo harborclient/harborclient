@@ -1,6 +1,6 @@
 import type { Variable } from '#/shared/types';
 
-export type VariableScope = 'global' | 'collection' | 'environment';
+export type VariableScope = 'global' | 'collection' | 'folder' | 'environment';
 
 export interface ResolvedVariable {
   key: string;
@@ -10,15 +10,17 @@ export interface ResolvedVariable {
 }
 
 /**
- * Resolves global, collection, and environment variables with scope and override info.
- * Precedence: environment overrides collection overrides global.
+ * Resolves global, collection, folder, and environment variables with scope and override info.
+ * Precedence: environment overrides folder overrides collection overrides global.
  */
 export function resolveScopedVariables(
-  globalVars: Variable[],
-  collectionVars: Variable[],
-  envVars: Variable[]
+  globalVars: Variable[] = [],
+  collectionVars: Variable[] = [],
+  folderVars: Variable[] = [],
+  envVars: Variable[] = []
 ): ResolvedVariable[] {
   const collectionKeys = new Set(collectionVars.map((v) => v.key.trim()).filter(Boolean));
+  const folderKeys = new Set(folderVars.map((v) => v.key.trim()).filter(Boolean));
   const envKeys = new Set(envVars.map((v) => v.key.trim()).filter(Boolean));
   const rows: ResolvedVariable[] = [];
 
@@ -29,7 +31,7 @@ export function resolveScopedVariables(
       key,
       value: variable.value !== '' ? variable.value : variable.defaultValue,
       scope: 'global',
-      overridden: collectionKeys.has(key) || envKeys.has(key)
+      overridden: collectionKeys.has(key) || folderKeys.has(key) || envKeys.has(key)
     });
   }
 
@@ -40,6 +42,17 @@ export function resolveScopedVariables(
       key,
       value: variable.value !== '' ? variable.value : variable.defaultValue,
       scope: 'collection',
+      overridden: folderKeys.has(key) || envKeys.has(key)
+    });
+  }
+
+  for (const variable of folderVars) {
+    const key = variable.key.trim();
+    if (!key) continue;
+    rows.push({
+      key,
+      value: variable.value !== '' ? variable.value : variable.defaultValue,
+      scope: 'folder',
       overridden: envKeys.has(key)
     });
   }

@@ -1,5 +1,5 @@
 import { BusyIndicator, CodeEditorConfigProvider } from '@harborclient/sdk/components';
-import { useCallback, useEffect, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, type JSX } from 'react';
 import { Toaster } from 'react-hot-toast';
 import type { Collection, Environment } from '#/shared/types';
 import { useBeforeClose } from '#/renderer/src/hooks/useBeforeClose';
@@ -18,6 +18,7 @@ import {
   selectDraft,
   selectEnvironments,
   selectFoldersByCollection,
+  selectRequestsByCollection,
   selectSelectedCollectionId
 } from '#/renderer/src/store/selectors';
 import { clearConsole } from '#/renderer/src/store/slices/consoleSlice';
@@ -111,6 +112,7 @@ export default function App(): JSX.Element {
   const showMcp = useAppSelector(selectShowMcp);
   const mcpServerStatus = useMcpServerStatus();
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
+  const requestsByCollection = useAppSelector(selectRequestsByCollection);
   const globalVariables = useAppSelector((state) => state.settings.general.globalVariables);
   const codeEditorTheme = useAppSelector(selectCodeEditorTheme);
   const codeEditorSetup = useAppSelector(selectCodeEditorSetup);
@@ -233,6 +235,24 @@ export default function App(): JSX.Element {
       ? environments.find((env: Environment) => env.id === activeEnvironmentId)
       : undefined;
 
+  const activeFolderId = useMemo(() => {
+    if (activeCollectionId == null) return null;
+    if (draft.id != null) {
+      const saved = (requestsByCollection[activeCollectionId] ?? []).find(
+        (request) => request.id === draft.id
+      );
+      if (saved) return saved.folder_id;
+    }
+    return draft.folder_id ?? null;
+  }, [activeCollectionId, draft.folder_id, draft.id, requestsByCollection]);
+
+  const activeFolder = useMemo(() => {
+    if (activeCollectionId == null || activeFolderId == null) return undefined;
+    return (foldersByCollection[activeCollectionId] ?? []).find(
+      (folder) => folder.id === activeFolderId
+    );
+  }, [activeCollectionId, activeFolderId, foldersByCollection]);
+
   /**
    * Closes the active page tab on Escape.
    */
@@ -265,6 +285,9 @@ export default function App(): JSX.Element {
                 <Sidebar
                   onAddCollection={() => dispatch(openCollectionModal({ mode: 'create' }))}
                   onConfigureCollection={(id) => dispatch(openPageTab({ type: 'collection', id }))}
+                  onConfigureFolder={(collectionId, folderId) =>
+                    dispatch(openPageTab({ type: 'folder', collectionId, id: folderId }))
+                  }
                   onConfigureEnvironment={(id) =>
                     dispatch(openPageTab({ type: 'environment', id }))
                   }
@@ -287,8 +310,10 @@ export default function App(): JSX.Element {
                       key,
                       globalVariables,
                       collectionVariables: activeCollection?.variables ?? [],
+                      folderVariables: activeFolder?.variables ?? [],
                       environmentVariables: activeEnvironment?.variables ?? [],
                       activeCollectionId,
+                      activeFolderId,
                       activeEnvironmentId
                     });
                     if (target == null) return;
@@ -298,6 +323,18 @@ export default function App(): JSX.Element {
                         openPageTab({
                           type: 'environment',
                           id: target.environmentId,
+                          focusVariableKey: key
+                        })
+                      );
+                      return;
+                    }
+
+                    if (target.scope === 'folder' && target.folderId != null) {
+                      dispatch(
+                        openPageTab({
+                          type: 'folder',
+                          collectionId: target.collectionId ?? activeCollectionId ?? 0,
+                          id: target.folderId,
                           focusVariableKey: key
                         })
                       );
@@ -345,8 +382,10 @@ export default function App(): JSX.Element {
               onMcpStatusChange={() => void mcpServerStatus.refresh()}
               globalVariables={globalVariables}
               collectionVariables={activeCollection?.variables ?? []}
+              folderVariables={activeFolder?.variables ?? []}
               environmentVariables={activeEnvironment?.variables ?? []}
               collectionName={activeCollection?.name}
+              folderName={activeFolder?.name}
               environmentName={activeEnvironment?.name}
               sidebarOpen={sidebarVisible}
               onToggleSidebar={() => dispatch(toggleSidebar())}

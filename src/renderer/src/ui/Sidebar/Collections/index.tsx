@@ -48,6 +48,7 @@ import {
 } from '#/renderer/src/ui/shared/devInspectContextMenu';
 import { DropZone } from '#/renderer/src/ui/Sidebar/Collections/DropZone';
 import { focusCollectionSettings } from '#/renderer/src/ui/CollectionSettings/focusCollectionSettings';
+import { focusFolderSettings } from '#/renderer/src/ui/FolderSettings/focusFolderSettings';
 import { RequestRow } from '#/renderer/src/ui/Sidebar/Collections/RequestRow';
 import { SortableRow } from '#/renderer/src/ui/Sidebar/Collections/SortableRow';
 import {
@@ -164,6 +165,11 @@ interface Props {
    * Called when the user opens collection settings.
    */
   onConfigureCollection: (id: number) => void;
+
+  /**
+   * Called when the user opens folder settings.
+   */
+  onConfigureFolder: (collectionId: number, folderId: number) => void;
 
   /**
    * Opens the collection runner for an entire collection.
@@ -324,6 +330,7 @@ export function Collections({
   onSelectFolder,
   onExpandCollection,
   onConfigureCollection,
+  onConfigureFolder,
   onRunCollection,
   onRunFolder,
   onRunRequest,
@@ -1057,6 +1064,15 @@ export function Collections({
                                     className="min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left text-[16px] font-medium text-inherit app-no-drag"
                                     aria-current={folderSelected ? 'true' : undefined}
                                     onClick={() => onSelectFolder(collection.id, folder.id)}
+                                    onDoubleClick={() =>
+                                      onConfigureFolder(collection.id, folder.id)
+                                    }
+                                    onKeyDown={(event) => {
+                                      if (event.key !== 'Enter') return;
+                                      event.preventDefault();
+                                      onConfigureFolder(collection.id, folder.id);
+                                      focusFolderSettings();
+                                    }}
                                   >
                                     {folder.name}
                                     {folderHighlighted && (
@@ -1108,6 +1124,11 @@ export function Collections({
                                           label: 'Rename',
                                           onSelect: () =>
                                             void onRenameFolder(folder.id, collection.id)
+                                        },
+                                        {
+                                          label: 'Settings',
+                                          onSelect: () =>
+                                            onConfigureFolder(collection.id, folder.id)
                                         }
                                       ],
                                       ...buildPluginContextMenuGroups(

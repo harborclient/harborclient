@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
+import { FOLDER_SETTINGS_DEFAULTS } from '#/shared/testFixtures/folder';
 import type { Collection, Environment, Folder, SavedRequest } from '#/shared/types';
 import { buildSettingsSearchIndex } from '#/shared/search/settings';
 import { buildSidebarSearchIndex } from '#/shared/search/sidebar';
@@ -40,7 +41,8 @@ const folder: Folder = {
   uuid: 'folder-users',
   name: 'Users',
   sort_order: 0,
-  created_at: '2024-01-01T00:00:00.000Z'
+  created_at: '2024-01-01T00:00:00.000Z',
+  ...FOLDER_SETTINGS_DEFAULTS
 };
 
 const request: SavedRequest = {

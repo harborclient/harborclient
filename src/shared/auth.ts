@@ -286,7 +286,7 @@ export function applyScriptAuthUpdate(
  * @param id - Saved entity id.
  * @returns Cache key used by the main-process token store.
  */
-export function buildOAuthCacheKey(scope: 'request' | 'collection', id: number): string {
+export function buildOAuthCacheKey(scope: 'request' | 'collection' | 'folder', id: number): string {
   return `${scope}:${id}`;
 }
 

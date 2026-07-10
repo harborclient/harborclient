@@ -21,7 +21,10 @@ import {
   normalizeAuth,
   type AuthConfig
 } from '#/shared/auth';
-import { resolveDynamicVariable, VARIABLE_TOKEN_PATTERN } from '@harborclient/sdk/variables';
+import {
+  resolveDynamicVariable,
+  substituteVariablesWithResolver
+} from '@harborclient/sdk/variables';
 import {
   parseResponseDocument,
   type ScriptDocumentFacade
@@ -54,6 +57,8 @@ interface ScriptApiState {
   variableClears: Set<string>;
   collectionVariableSets: Record<string, string>;
   collectionVariableClears: Set<string>;
+  folderVariableSets: Record<string, string>;
+  folderVariableClears: Set<string>;
   environmentVariableSets: Record<string, string>;
   environmentVariableClears: Set<string>;
   globalVariableSets: Record<string, string>;
@@ -63,6 +68,8 @@ interface ScriptApiState {
   cookieClears: Set<string>;
   collectionHeaders: KeyValue[];
   collectionAuth: AuthConfig;
+  folderHeaders: KeyValue[];
+  folderAuth: AuthConfig;
   tests: ScriptTestResult[];
   logs: string[];
   executionEvents: ScriptExecutionEvent[];
@@ -522,7 +529,8 @@ export function createScriptApi(
     response: input.response,
     variables: input.variables,
     collection: input.collection,
-    environment: input.environment
+    environment: input.environment,
+    folder: input.folder
   };
 
   const state: ScriptApiState = {
@@ -535,6 +543,8 @@ export function createScriptApi(
     variableClears: new Set<string>(),
     collectionVariableSets: {},
     collectionVariableClears: new Set<string>(),
+    folderVariableSets: {},
+    folderVariableClears: new Set<string>(),
     environmentVariableSets: {},
     environmentVariableClears: new Set<string>(),
     globalVariableSets: {},
@@ -544,6 +554,8 @@ export function createScriptApi(
     cookieClears: new Set<string>(),
     collectionHeaders: input.collection?.headers ? [...input.collection.headers] : [],
     collectionAuth: normalizeAuth(input.collection?.auth),
+    folderHeaders: input.folder?.headers ? [...input.folder.headers] : [],
+    folderAuth: normalizeAuth(input.folder?.auth),
     tests: [],
     logs: [],
     executionEvents: [],
@@ -625,19 +637,17 @@ export function createScriptApi(
         ),
         replaceIn: (template: unknown) => {
           const text = String(template);
-          const pattern = new RegExp(VARIABLE_TOKEN_PATTERN.source, 'g');
-          return text.replace(pattern, (match, key: string) => {
+          return substituteVariablesWithResolver(text, (key) => {
             if (Object.prototype.hasOwnProperty.call(state.variableSets, key)) {
               return state.variableSets[key];
             }
             if (state.variableClears.has(key)) {
-              return match;
+              return undefined;
             }
             if (Object.prototype.hasOwnProperty.call(state.variables, key)) {
               return state.variables[key];
             }
-            const dynamic = resolveDynamicVariable(key);
-            return dynamic !== undefined ? dynamic : match;
+            return resolveDynamicVariable(key);
           });
         }
       }
@@ -658,6 +668,23 @@ export function createScriptApi(
       ),
       headers: makeParameterBag(() => state.collectionHeaders, { caseInsensitive: true }),
       auth: makeAuthApi(() => state.collectionAuth)
+    },
+    folder: {
+      get id() {
+        return ctx.folder ? ctx.folder.id : null;
+      },
+      get name() {
+        return ctx.folder ? ctx.folder.name : '';
+      },
+      variables: makeVariableBag(
+        'folder',
+        () => state.folderVariableSets,
+        () => state.folderVariableClears,
+        resolveSeededVariable,
+        emitExecutionEvent
+      ),
+      headers: makeParameterBag(() => state.folderHeaders, { caseInsensitive: true }),
+      auth: makeAuthApi(() => state.folderAuth)
     },
     environment: {
       get name() {
@@ -799,6 +826,8 @@ export function createScriptApi(
       variableClears: [...state.variableClears],
       collectionVariableSets: state.collectionVariableSets ?? {},
       collectionVariableClears: [...state.collectionVariableClears],
+      folderVariableSets: state.folderVariableSets ?? {},
+      folderVariableClears: [...state.folderVariableClears],
       environmentVariableSets: state.environmentVariableSets ?? {},
       environmentVariableClears: [...state.environmentVariableClears],
       globalVariableSets: state.globalVariableSets ?? {},
@@ -807,6 +836,8 @@ export function createScriptApi(
       cookieClears: [...state.cookieClears],
       collectionHeaders: state.collectionHeaders ?? [],
       collectionAuth: state.collectionAuth,
+      folderHeaders: state.folderHeaders ?? [],
+      folderAuth: state.folderAuth,
       nextRequest: state.nextRequest,
       skipRequest: state.skipRequest || undefined,
       tests: state.tests ?? [],

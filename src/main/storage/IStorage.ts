@@ -160,6 +160,32 @@ export interface IStorage {
   renameFolder(id: number, name: string): Promise<Folder>;
 
   /**
+   * Updates a folder's name, variables, headers, auth, and scripts.
+   *
+   * @param id - Folder ID to update.
+   * @param name - New display name.
+   * @param variables - Folder-scoped variables.
+   * @param headers - Headers sent with every request in the folder.
+   * @param preRequestScript - Script run before each request in the folder.
+   * @param postRequestScript - Script run after each request in the folder.
+   * @param auth - Default Authorization settings for requests in the folder.
+   * @param preRequestScripts - Ordered folder pre-request script references.
+   * @param postRequestScripts - Ordered folder post-request script references.
+   * @returns The updated folder.
+   */
+  updateFolder(
+    id: number,
+    name: string,
+    variables: Variable[],
+    headers: KeyValue[],
+    preRequestScript: string,
+    postRequestScript: string,
+    auth: AuthConfig,
+    preRequestScripts?: ScriptRef[],
+    postRequestScripts?: ScriptRef[]
+  ): Promise<Folder>;
+
+  /**
    * Deletes a folder and all requests inside it.
    *
    * @param id - Folder ID to delete.

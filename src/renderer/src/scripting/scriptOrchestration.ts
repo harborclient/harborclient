@@ -1,5 +1,5 @@
 import type { ScriptRequestContext, ScriptRunResult, Variable, KeyValue } from '#/shared/types';
-import { resolveDynamicVariable, VARIABLE_TOKEN_PATTERN } from '@harborclient/sdk/variables';
+import { substituteVariablesFromMap } from '@harborclient/sdk/variables';
 import type { ScriptRef, Snippet } from '#/shared/types';
 import { buildScopedScriptSlots, type ScriptSlot } from '#/renderer/src/scripting/scriptResolution';
 
@@ -31,16 +31,7 @@ export function buildRuntimeVars(variables: Variable[]): Record<string, string> 
  * @returns Text with known variables substituted.
  */
 export function substituteWithMap(text: string, runtimeVars: Record<string, string>): string {
-  const pattern = new RegExp(VARIABLE_TOKEN_PATTERN.source, 'g');
-
-  return text.replace(pattern, (match, key: string) => {
-    const value = runtimeVars[key];
-    if (value !== undefined) {
-      return value;
-    }
-    const dynamic = resolveDynamicVariable(key);
-    return dynamic !== undefined ? dynamic : match;
-  });
+  return substituteVariablesFromMap(text, runtimeVars);
 }
 
 /**
@@ -211,10 +202,14 @@ export function applyScriptRequestMutations(
  *
  * @param collectionPreScripts - Collection pre-request script references.
  * @param collectionPostScripts - Collection post-request script references.
+ * @param folderPreScripts - Folder pre-request script references.
+ * @param folderPostScripts - Folder post-request script references.
  * @param requestPreScripts - Request pre-request script references.
  * @param requestPostScripts - Request post-request script references.
  * @param collectionPreLegacy - Legacy collection pre-request script string.
  * @param collectionPostLegacy - Legacy collection post-request script string.
+ * @param folderPreLegacy - Legacy folder pre-request script string.
+ * @param folderPostLegacy - Legacy folder post-request script string.
  * @param requestPreLegacy - Legacy request pre-request script string.
  * @param requestPostLegacy - Legacy request post-request script string.
  * @param phase - Which phase to collect.
@@ -224,10 +219,14 @@ export function applyScriptRequestMutations(
 export function buildScriptSlots(
   collectionPreScripts: ScriptRef[] | undefined | null,
   collectionPostScripts: ScriptRef[] | undefined | null,
+  folderPreScripts: ScriptRef[] | undefined | null,
+  folderPostScripts: ScriptRef[] | undefined | null,
   requestPreScripts: ScriptRef[] | undefined | null,
   requestPostScripts: ScriptRef[] | undefined | null,
   collectionPreLegacy: string,
   collectionPostLegacy: string,
+  folderPreLegacy: string,
+  folderPostLegacy: string,
   requestPreLegacy: string,
   requestPostLegacy: string,
   phase: 'pre' | 'post',
@@ -240,6 +239,13 @@ export function buildScriptSlots(
         collectionPreLegacy,
         'pre',
         'Collection pre-request',
+        snippetLookup
+      ),
+      ...buildScopedScriptSlots(
+        folderPreScripts,
+        folderPreLegacy,
+        'pre',
+        'Folder pre-request',
         snippetLookup
       ),
       ...buildScopedScriptSlots(
@@ -258,6 +264,13 @@ export function buildScriptSlots(
       collectionPostLegacy,
       'post',
       'Collection post-request',
+      snippetLookup
+    ),
+    ...buildScopedScriptSlots(
+      folderPostScripts,
+      folderPostLegacy,
+      'post',
+      'Folder post-request',
       snippetLookup
     ),
     ...buildScopedScriptSlots(

@@ -87,21 +87,23 @@ export function Name({
           />
         </div>
       ) : (
-        <button
-          type="button"
-          className="flex w-full min-w-0 cursor-text items-center gap-1 border-none bg-transparent p-0 text-left text-[15px] font-semibold text-text hover:opacity-80 app-no-drag"
-          onClick={() => setEditingName(true)}
-        >
+        <div className="flex w-full min-w-0 items-center gap-1">
           <BreadcrumbPrefix
             collectionName={collectionName}
             folderName={folderName}
             onCollectionClick={onCollectionClick}
             onFolderClick={onFolderClick}
           />
-          <span className="shrink-0 whitespace-nowrap">
-            {name ? name : <span className="text-muted">Request name</span>}
-          </span>
-        </button>
+          <button
+            type="button"
+            className="flex min-w-0 flex-1 cursor-text items-center border-none bg-transparent p-0 text-left text-[15px] font-semibold text-text hover:opacity-80 app-no-drag"
+            onClick={() => setEditingName(true)}
+          >
+            <span className="shrink-0 whitespace-nowrap">
+              {name ? name : <span className="text-muted">Request name</span>}
+            </span>
+          </button>
+        </div>
       )}
     </div>
   );

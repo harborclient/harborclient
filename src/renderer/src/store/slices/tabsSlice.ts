@@ -183,6 +183,7 @@ const tabsSlice = createSlice({
         if (
           page.type === 'settings' ||
           page.type === 'collection' ||
+          page.type === 'folder' ||
           page.type === 'environment' ||
           page.type === 'collection-runner'
         ) {

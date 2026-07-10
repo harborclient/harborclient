@@ -44,6 +44,7 @@ import { generateDocumentUuid, resolveImportUuid } from '#/main/storage/uuid';
 import {
   buildFolderImportMaps,
   buildRequestUuidIndex,
+  importedFolderToStoredRow,
   resolveImportFolderId,
   serializeImportedCollectionScriptFields,
   serializeImportedRequestFields
@@ -722,6 +723,51 @@ export class GitStorage implements IStorage {
   /**
    * @inheritdoc
    */
+  async updateFolder(
+    id: number,
+    name: string,
+    variables: Variable[],
+    headers: KeyValue[],
+    preRequestScript: string,
+    postRequestScript: string,
+    auth: AuthConfig,
+    preRequestScripts: ScriptRef[] = [],
+    postRequestScripts: ScriptRef[] = []
+  ): Promise<Folder> {
+    const trimmedName = trimRequiredName(name, 'Folder name');
+    const preScripts = bundleScriptFieldsWithLegacy(preRequestScripts, preRequestScript);
+    const postScripts = bundleScriptFieldsWithLegacy(postRequestScripts, postRequestScript);
+    for (const [collectionId, loaded] of this.#collections.entries()) {
+      const folder = loaded.manifest.folders.find(
+        (row) => this.#idIndex.folderIds[row.uuid] === id
+      );
+      if (folder) {
+        const oldName = folder.name;
+        folder.name = trimmedName;
+        folder.variables = variables;
+        folder.headers = headers;
+        folder.auth = auth;
+        folder.pre_request_script = preScripts.legacy;
+        folder.post_request_script = postScripts.legacy;
+        folder.pre_request_scripts = preRequestScripts;
+        folder.post_request_scripts = postRequestScripts;
+        if (oldName !== trimmedName) {
+          for (const request of loaded.requests) {
+            if (request.folder_name === oldName) {
+              request.folder_name = trimmedName;
+            }
+          }
+        }
+        this.persistCollection(collectionId);
+        return this.storedFolderToFolder(collectionId, folder, id);
+      }
+    }
+    throw new Error('Folder not found');
+  }
+
+  /**
+   * @inheritdoc
+   */
   async deleteFolder(id: number): Promise<void> {
     for (const [collectionId, loaded] of this.#collections.entries()) {
       const folder = loaded.manifest.folders.find(
@@ -877,11 +923,9 @@ export class GitStorage implements IStorage {
       post_request_script: collectionScripts.post_request_script,
       pre_request_scripts: collectionScripts.pre_request_scripts_json,
       post_request_scripts: collectionScripts.post_request_scripts_json,
-      folders: (exportData.folders ?? []).map((folder, index) => ({
-        uuid: resolveImportUuid(folder.uuid),
-        name: folder.name,
-        sort_order: folder.sort_order ?? index
-      })),
+      folders: (exportData.folders ?? []).map((folder, index) =>
+        importedFolderToStoredRow(folder, index)
+      ),
       created_at: new Date().toISOString()
     };
     const dir = collectionDir(this.#root, uuid, manifest.name);
@@ -950,18 +994,12 @@ export class GitStorage implements IStorage {
       const existing = existingByUuid ?? existingByName;
 
       if (existing) {
-        existing.name = folder.name;
-        existing.sort_order = folder.sort_order;
-        existing.uuid = folderUuid;
+        Object.assign(existing, importedFolderToStoredRow(folder, existing.sort_order));
         assignGitId(this.#idIndex, 'folderIds', 'nextFolderId', existing.uuid);
         continue;
       }
 
-      const stored = {
-        uuid: folderUuid,
-        name: folder.name,
-        sort_order: folder.sort_order
-      };
+      const stored = importedFolderToStoredRow(folder, loaded.manifest.folders.length);
       loaded.manifest.folders.push(stored);
       assignGitId(this.#idIndex, 'folderIds', 'nextFolderId', stored.uuid);
     }
@@ -1238,12 +1276,21 @@ export class GitStorage implements IStorage {
     folder: StoredFolderRow,
     folderId: number
   ): Folder {
+    const preRequestScript = folder.pre_request_script ?? '';
+    const postRequestScript = folder.post_request_script ?? '';
     return {
       id: folderId,
       collection_id: collectionId,
       uuid: folder.uuid,
       name: folder.name,
       sort_order: folder.sort_order,
+      variables: folder.variables ?? [],
+      headers: folder.headers ?? [],
+      auth: folder.auth ?? defaultAuth(),
+      pre_request_script: preRequestScript,
+      post_request_script: postRequestScript,
+      pre_request_scripts: folder.pre_request_scripts ?? [],
+      post_request_scripts: folder.post_request_scripts ?? [],
       created_at: new Date().toISOString()
     };
   }

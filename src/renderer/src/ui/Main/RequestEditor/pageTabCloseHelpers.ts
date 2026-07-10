@@ -13,13 +13,17 @@ import { resolveTeamHubAdminTabLabel } from '#/renderer/src/ui/TeamHub/teamHubDi
 export function isActivePageTabDirty(
   page: PageRef | null,
   collectionDirty: boolean,
-  environmentDirty: boolean
+  environmentDirty: boolean,
+  folderDirty: boolean
 ): boolean {
   if (!page) {
     return false;
   }
   if (page.type === 'collection') {
     return collectionDirty;
+  }
+  if (page.type === 'folder') {
+    return folderDirty;
   }
   if (page.type === 'environment') {
     return environmentDirty;
@@ -65,6 +69,8 @@ export function pageTabCloseName(
       return 'Plugin';
     case 'collection':
       return collections.find((collection) => collection.id === page.id)?.name ?? 'Collection';
+    case 'folder':
+      return 'Folder';
     case 'environment':
       return environments.find((environment) => environment.id === page.id)?.name ?? 'Environment';
     case 'collection-runner':

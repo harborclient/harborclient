@@ -9,11 +9,11 @@ import {
   type ViewUpdate
 } from '@codemirror/view';
 import { buildVariableTooltipDom } from '@harborclient/sdk/components';
-import { VARIABLE_NAME_CHARS } from '@harborclient/sdk/variables';
+import { parseVariableTokens, VARIABLE_TOKEN_PATTERN } from '@harborclient/sdk/variables';
 import type { Variable } from '#/shared/types';
 
 const variableMatcher = new MatchDecorator({
-  regexp: new RegExp(`\\{\\{\\s*([${VARIABLE_NAME_CHARS}]+)\\s*\\}\\}`, 'g'),
+  regexp: new RegExp(VARIABLE_TOKEN_PATTERN.source, 'g'),
   decoration: Decoration.mark({ class: 'cm-variable-token' })
 });
 
@@ -53,19 +53,14 @@ const variableHighlighter = ViewPlugin.fromClass(
  * @returns Variable key and token range, or null when not inside a token.
  */
 function findVariableAtPos(
-  doc: { lineAt: (pos: number) => { from: number; text: string } },
+  doc: { lineAt: (pos: number) => { from: number; text: string }; toString: () => string },
   pos: number
 ): { key: string; start: number; end: number } | null {
-  const line = doc.lineAt(pos);
-  const pattern = new RegExp(`\\{\\{\\s*([${VARIABLE_NAME_CHARS}]+)\\s*\\}\\}`, 'g');
-
-  for (const match of line.text.matchAll(pattern)) {
-    const start = line.from + (match.index ?? 0);
-    const end = start + match[0].length;
-    if (pos < start || pos > end) {
-      continue;
+  const fullText = doc.toString();
+  for (const token of parseVariableTokens(fullText)) {
+    if (pos >= token.start && pos <= token.end) {
+      return { key: token.key, start: token.start, end: token.end };
     }
-    return { key: match[1], start, end };
   }
 
   return null;

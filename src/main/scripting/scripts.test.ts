@@ -26,6 +26,8 @@ describe('evaluateScript', () => {
       variableClears: [],
       collectionVariableSets: {},
       collectionVariableClears: [],
+      folderVariableSets: {},
+      folderVariableClears: [],
       environmentVariableSets: {},
       environmentVariableClears: [],
       globalVariableSets: {},
@@ -33,7 +35,9 @@ describe('evaluateScript', () => {
       cookieSets: {},
       cookieClears: [],
       collectionHeaders: [],
+      folderHeaders: [],
       collectionAuth: defaultAuth(),
+      folderAuth: defaultAuth(),
       tests: [],
       logs: [],
       executionEvents: [],
@@ -163,6 +167,29 @@ describe('evaluateScript', () => {
 
     expect(result.error).toBeUndefined();
     expect(result.variableSets.resolvedHost).toBe('api.example.com');
+  });
+
+  it('applies chained filters via hc.request.variables.replaceIn', async () => {
+    const { evaluateScript } = await import('#/main/scripting/scriptEvaluator');
+    const result = await evaluateScript({
+      phase: 'pre',
+      script: `
+        const resolved = hc.request.variables.replaceIn('{{name|trim|upper}}');
+        hc.request.variables.set('resolvedName', resolved);
+      `,
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        bodyType: 'none'
+      },
+      variables: { name: '  hello  ' }
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.variableSets.resolvedName).toBe('HELLO');
   });
 
   it('mutates request url and sets variables in pre script', async () => {

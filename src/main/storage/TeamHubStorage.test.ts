@@ -6,6 +6,7 @@ import { TeamHubStorage } from '#/main/storage/TeamHubStorage';
 import { defaultAuth } from '#/shared/auth';
 import { createInlineScriptRef } from '#/shared/scriptRefs';
 import { TeamHubIdMap } from '#/main/storage/TeamHubIdMap';
+import { TeamHubFolderSettings } from '#/main/storage/TeamHubFolderSettings';
 import type { TeamHubClient } from '@harborclient/team-hub-api';
 import { describeSqlite } from '#/test/nativeModules';
 
@@ -17,13 +18,17 @@ describeSqlite('TeamHubStorage', () => {
    */
   function createStorage(client: Partial<TeamHubClient>): TeamHubStorage {
     const dir = mkdtempSync(join(tmpdir(), 'harborclient-shub-'));
-    const idMap = new TeamHubIdMap(join(dir, 'team-hub-test.db'));
+    const dbPath = join(dir, 'team-hub-test.db');
+    const idMap = new TeamHubIdMap(dbPath);
     idMap.init();
+    const folderSettings = new TeamHubFolderSettings(dbPath);
+    folderSettings.init();
     cleanups.push(() => {
       idMap.close();
+      folderSettings.close();
       rmSync(dir, { recursive: true, force: true });
     });
-    return new TeamHubStorage(client as TeamHubClient, idMap);
+    return new TeamHubStorage(client as TeamHubClient, idMap, folderSettings);
   }
 
   afterEach(() => {
@@ -393,5 +398,251 @@ describeSqlite('TeamHubStorage', () => {
     expect(createPayload.preRequestScript).toBe('console.log(1);');
     expect(saved.pre_request_scripts).toHaveLength(1);
     expect(saved.pre_request_scripts[0]?.code).toBe('console.log(1);');
+  });
+
+  it('persists folder settings locally and returns them from listFolders', async () => {
+    const collectionServerId = '770e8400-e29b-41d4-a716-446655440010';
+    const folderServerId = '880e8400-e29b-41d4-a716-446655440011';
+    const folderRecord = {
+      id: folderServerId,
+      collectionId: collectionServerId,
+      name: 'Users',
+      sortOrder: 0,
+      createdAt: '2026-01-01T00:00:00.000Z'
+    };
+
+    const db = createStorage({
+      renameFolder: vi.fn().mockResolvedValue(folderRecord),
+      listFolders: vi.fn().mockResolvedValue([folderRecord]),
+      deleteFolder: vi.fn().mockResolvedValue(undefined)
+    });
+
+    const idMap = (db as unknown as { idMap: TeamHubIdMap }).idMap;
+    const collectionId = idMap.toLocalId('collection', collectionServerId);
+    const folderId = idMap.toLocalId('folder', folderServerId);
+    const variables = [
+      { key: 'apiUrl', value: 'https://example.com', defaultValue: '', share: false }
+    ];
+
+    await db.updateFolder(
+      folderId,
+      'Users',
+      variables,
+      [{ key: 'X-Test', value: '1', enabled: true }],
+      'console.log("pre");',
+      '',
+      { ...defaultAuth(), type: 'bearer', bearer: { token: 'folder-token' } },
+      [createInlineScriptRef('console.log("pre");')],
+      []
+    );
+
+    const folders = await db.listFolders(collectionId);
+    expect(folders).toHaveLength(1);
+    expect(folders[0]?.variables).toEqual(variables);
+    expect(folders[0]?.headers).toEqual([{ key: 'X-Test', value: '1', enabled: true }]);
+    expect(folders[0]?.auth.type).toBe('bearer');
+    expect(folders[0]?.pre_request_scripts).toHaveLength(1);
+  });
+
+  it('removes local folder settings when deleteFolder runs', async () => {
+    const collectionServerId = '770e8400-e29b-41d4-a716-446655440012';
+    const folderServerId = '880e8400-e29b-41d4-a716-446655440013';
+    const folderRecord = {
+      id: folderServerId,
+      collectionId: collectionServerId,
+      name: 'Auth',
+      sortOrder: 0,
+      createdAt: '2026-01-01T00:00:00.000Z'
+    };
+
+    const db = createStorage({
+      renameFolder: vi.fn().mockResolvedValue(folderRecord),
+      listFolders: vi.fn().mockResolvedValue([folderRecord]),
+      deleteFolder: vi.fn().mockResolvedValue(undefined)
+    });
+
+    const idMap = (db as unknown as { idMap: TeamHubIdMap }).idMap;
+    const collectionId = idMap.toLocalId('collection', collectionServerId);
+    const folderId = idMap.toLocalId('folder', folderServerId);
+
+    await db.updateFolder(
+      folderId,
+      'Auth',
+      [{ key: 'token', value: 'secret', defaultValue: '', share: false }],
+      [],
+      '',
+      '',
+      defaultAuth()
+    );
+
+    await db.deleteFolder(folderId);
+
+    const folders = await db.listFolders(collectionId);
+    expect(folders[0]?.variables).toEqual([]);
+  });
+
+  it('includes folder settings in exportCollectionData', async () => {
+    const collectionServerId = '550e8400-e29b-41d4-a716-446655440014';
+    const folderServerId = '880e8400-e29b-41d4-a716-446655440015';
+    const folderRecord = {
+      id: folderServerId,
+      collectionId: collectionServerId,
+      name: 'Billing',
+      sortOrder: 0,
+      createdAt: '2026-01-01T00:00:00.000Z'
+    };
+
+    const db = createStorage({
+      listCollections: vi.fn().mockResolvedValue([
+        {
+          id: collectionServerId,
+          name: 'Team API',
+          variables: [],
+          headers: [],
+          auth: defaultAuth(),
+          preRequestScript: '',
+          postRequestScript: '',
+          createdAt: '2026-01-01T00:00:00.000Z'
+        }
+      ]),
+      renameFolder: vi.fn().mockResolvedValue(folderRecord),
+      listFolders: vi.fn().mockResolvedValue([folderRecord]),
+      listRequests: vi.fn().mockResolvedValue([])
+    });
+
+    const idMap = (db as unknown as { idMap: TeamHubIdMap }).idMap;
+    const collectionId = idMap.toLocalId('collection', collectionServerId);
+    const folderId = idMap.toLocalId('folder', folderServerId);
+    const variables = [{ key: 'plan', value: 'pro', defaultValue: '', share: false }];
+
+    await db.updateFolder(folderId, 'Billing', variables, [], '', '', defaultAuth());
+
+    const exported = await db.exportCollectionData(collectionId);
+    expect(exported.folders ?? []).toHaveLength(1);
+    expect(exported.folders?.[0]?.variables).toEqual([
+      { key: 'plan', value: '', defaultValue: '', share: false }
+    ]);
+  });
+
+  it('importCollectionData restores folder settings from export payload', async () => {
+    const collectionServerId = '550e8400-e29b-41d4-a716-446655440020';
+    const folderServerId = '880e8400-e29b-41d4-a716-446655440021';
+    const folderRecord = {
+      id: folderServerId,
+      collectionId: collectionServerId,
+      name: 'Users',
+      sortOrder: 0,
+      createdAt: '2026-01-01T00:00:00.000Z'
+    };
+    const collectionRecord = {
+      id: collectionServerId,
+      name: 'Imported',
+      variables: [],
+      headers: [],
+      auth: defaultAuth(),
+      preRequestScript: '',
+      postRequestScript: '',
+      createdAt: '2026-01-01T00:00:00.000Z'
+    };
+    const variables = [
+      { key: 'apiUrl', value: 'https://example.com', defaultValue: '', share: false }
+    ];
+
+    const db = createStorage({
+      createCollection: vi.fn().mockResolvedValue(collectionRecord),
+      updateCollection: vi.fn().mockResolvedValue({ ...collectionRecord, name: 'Imported' }),
+      createFolder: vi.fn().mockResolvedValue(folderRecord),
+      renameFolder: vi.fn().mockResolvedValue(folderRecord),
+      listFolders: vi.fn().mockResolvedValue([folderRecord]),
+      reorderFolders: vi.fn().mockResolvedValue(undefined)
+    });
+
+    const imported = await db.importCollectionData({
+      harborclientVersion: 1,
+      harborclientExport: 'collection',
+      uuid: collectionServerId,
+      name: 'Imported',
+      variables: [],
+      headers: [],
+      auth: defaultAuth(),
+      pre_request_script: '',
+      post_request_script: '',
+      folders: [
+        {
+          uuid: folderServerId,
+          name: 'Users',
+          sort_order: 0,
+          variables,
+          headers: [{ key: 'X-Test', value: '1', enabled: true }]
+        }
+      ],
+      requests: []
+    });
+
+    const folders = await db.listFolders(imported.id);
+    expect(folders).toHaveLength(1);
+    expect(folders[0]?.variables).toEqual(variables);
+    expect(folders[0]?.headers).toEqual([{ key: 'X-Test', value: '1', enabled: true }]);
+  });
+
+  it('updateCollectionFromImport merges folder settings on existing folder uuid', async () => {
+    const collectionServerId = '550e8400-e29b-41d4-a716-446655440022';
+    const folderServerId = '880e8400-e29b-41d4-a716-446655440023';
+    const folderRecord = {
+      id: folderServerId,
+      collectionId: collectionServerId,
+      name: 'Users',
+      sortOrder: 0,
+      createdAt: '2026-01-01T00:00:00.000Z'
+    };
+    const collectionRecord = {
+      id: collectionServerId,
+      name: 'Team API',
+      variables: [],
+      headers: [],
+      auth: defaultAuth(),
+      preRequestScript: '',
+      postRequestScript: '',
+      createdAt: '2026-01-01T00:00:00.000Z'
+    };
+    const updatedVariables = [{ key: 'token', value: 'updated', defaultValue: '', share: false }];
+
+    const db = createStorage({
+      updateCollection: vi.fn().mockResolvedValue(collectionRecord),
+      renameFolder: vi.fn().mockResolvedValue(folderRecord),
+      listFolders: vi.fn().mockResolvedValue([folderRecord]),
+      reorderFolders: vi.fn().mockResolvedValue(undefined),
+      listRequests: vi.fn().mockResolvedValue([])
+    });
+
+    const idMap = (db as unknown as { idMap: TeamHubIdMap }).idMap;
+    const collectionId = idMap.toLocalId('collection', collectionServerId);
+    const folderId = idMap.toLocalId('folder', folderServerId);
+
+    await db.updateCollectionFromImport(collectionId, {
+      harborclientVersion: 1,
+      harborclientExport: 'collection',
+      uuid: collectionServerId,
+      name: 'Team API',
+      variables: [],
+      headers: [],
+      auth: defaultAuth(),
+      pre_request_script: '',
+      post_request_script: '',
+      folders: [
+        {
+          uuid: folderServerId,
+          name: 'Users',
+          sort_order: 0,
+          variables: updatedVariables
+        }
+      ],
+      requests: []
+    });
+
+    const folders = await db.listFolders(collectionId);
+    expect(folders).toHaveLength(1);
+    expect(folders[0]?.id).toBe(folderId);
+    expect(folders[0]?.variables).toEqual(updatedVariables);
   });
 });

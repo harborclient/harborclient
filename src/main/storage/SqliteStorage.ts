@@ -12,6 +12,8 @@ import {
   resolveImportedFolderUuid,
   savedRequestToExportedRequest,
   serializeImportedCollectionScriptFields,
+  exportedFolderFromFolder,
+  serializeImportedFolderFields,
   serializeImportedRequestFields
 } from '#/main/storage/collectionImport';
 import {
@@ -275,7 +277,29 @@ export class SqliteStorage implements IStorage {
     this.backfillDocumentUuids('run_results');
     migrateSqliteScriptArrayColumns(this.getDb(), 'collections');
     migrateSqliteScriptArrayColumns(this.getDb(), 'requests');
+    migrateSqliteScriptArrayColumns(this.getDb(), 'folders');
     migrateSqliteSnippetStageColumn(this.getDb());
+
+    const folderColumns = this.getDb().prepare('PRAGMA table_info(folders)').all() as Array<{
+      name: string;
+    }>;
+    if (!folderColumns.some((col) => col.name === 'variables')) {
+      this.#db.exec("ALTER TABLE folders ADD COLUMN variables TEXT NOT NULL DEFAULT '[]'");
+    }
+    if (!folderColumns.some((col) => col.name === 'headers')) {
+      this.#db.exec("ALTER TABLE folders ADD COLUMN headers TEXT NOT NULL DEFAULT '[]'");
+    }
+    if (!folderColumns.some((col) => col.name === 'pre_request_script')) {
+      this.#db.exec("ALTER TABLE folders ADD COLUMN pre_request_script TEXT NOT NULL DEFAULT ''");
+    }
+    if (!folderColumns.some((col) => col.name === 'post_request_script')) {
+      this.#db.exec("ALTER TABLE folders ADD COLUMN post_request_script TEXT NOT NULL DEFAULT ''");
+    }
+    if (!folderColumns.some((col) => col.name === 'auth')) {
+      this.#db.exec(
+        `ALTER TABLE folders ADD COLUMN auth TEXT NOT NULL DEFAULT '${DEFAULT_AUTH_JSON.replace(/'/g, "''")}'`
+      );
+    }
   }
 
   /**
@@ -692,6 +716,56 @@ export class SqliteStorage implements IStorage {
   }
 
   /**
+   * Updates a folder's name, variables, headers, auth, and scripts.
+   *
+   * @param id - Folder ID to update.
+   * @param name - New display name.
+   * @param variables - Folder-scoped variables.
+   * @param headers - Headers sent with every request in the folder.
+   * @param preRequestScript - Script run before each request in the folder.
+   * @param postRequestScript - Script run after each request in the folder.
+   * @param auth - Default Authorization settings for requests in the folder.
+   * @returns The updated folder.
+   */
+  async updateFolder(
+    id: number,
+    name: string,
+    variables: Variable[],
+    headers: KeyValue[],
+    preRequestScript: string,
+    postRequestScript: string,
+    auth: AuthConfig,
+    preRequestScripts: ScriptRef[] = [],
+    postRequestScripts: ScriptRef[] = []
+  ): Promise<Folder> {
+    const trimmedName = trimRequiredName(name, 'Folder name');
+    const preScripts = bundleScriptFieldsWithLegacy(preRequestScripts, preRequestScript);
+    const postScripts = bundleScriptFieldsWithLegacy(postRequestScripts, postRequestScript);
+    this.getDb()
+      .prepare(
+        'UPDATE folders SET name = ?, variables = ?, headers = ?, auth = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ? WHERE id = ?'
+      )
+      .run(
+        trimmedName,
+        JSON.stringify(variables),
+        JSON.stringify(headers),
+        JSON.stringify(auth),
+        preScripts.legacy,
+        postScripts.legacy,
+        preScripts.json,
+        postScripts.json,
+        id
+      );
+
+    const row = this.getDb().prepare('SELECT * FROM folders WHERE id = ?').get(id) as
+      | Record<string, unknown>
+      | undefined;
+
+    if (!row) throw new Error('Folder not found');
+    return rowToFolder(row);
+  }
+
+  /**
    * Deletes a folder and all requests inside it.
    *
    * @param id - Folder ID to delete.
@@ -849,11 +923,7 @@ export class SqliteStorage implements IStorage {
 
     const collection = rowToCollection(row);
     const folderRows = await this.listFolders(id);
-    const folders = folderRows.map(({ uuid, name, sort_order }) => ({
-      uuid,
-      name,
-      sort_order
-    }));
+    const folders = folderRows.map(exportedFolderFromFolder);
     const folderNameById = new Map(folderRows.map((folder) => [folder.id, folder.name]));
     const folderUuidById = new Map(folderRows.map((folder) => [folder.id, folder.uuid]));
 
@@ -927,11 +997,27 @@ export class SqliteStorage implements IStorage {
 
       for (const folder of payload.folders ?? []) {
         const folderUuid = resolveImportedFolderUuid(folder);
+        const folderFields = serializeImportedFolderFields(folder);
         const folderResult = database
           .prepare(
-            'INSERT INTO folders (collection_id, name, sort_order, uuid) VALUES (?, ?, ?, ?)'
+            `INSERT INTO folders (
+              collection_id, name, sort_order, uuid, variables, headers, auth,
+              pre_request_script, post_request_script, pre_request_scripts, post_request_scripts
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
-          .run(collectionId, folder.name, folder.sort_order, folderUuid);
+          .run(
+            collectionId,
+            folder.name,
+            folder.sort_order,
+            folderUuid,
+            folderFields.variablesJson,
+            folderFields.headersJson,
+            folderFields.authJson,
+            folderFields.pre_request_script,
+            folderFields.post_request_script,
+            folderFields.pre_request_scripts_json,
+            folderFields.post_request_scripts_json
+          );
         const folderId = Number(folderResult.lastInsertRowid);
         registerImportedFolderInMaps(folderMaps, folderId, folder.name, folderUuid);
       }
@@ -1062,20 +1148,51 @@ export class SqliteStorage implements IStorage {
       for (const folder of payload.folders ?? []) {
         const plan = planImportedFolderUpsert(folder, folderMaps);
         if (plan.action === 'update') {
+          const folderFields = serializeImportedFolderFields(folder);
           database
             .prepare(
-              'UPDATE folders SET name = ?, sort_order = ? WHERE id = ? AND collection_id = ?'
+              `UPDATE folders SET name = ?, sort_order = ?, variables = ?, headers = ?, auth = ?,
+                pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?
+               WHERE id = ? AND collection_id = ?`
             )
-            .run(plan.name, plan.sort_order, plan.existingId, id);
+            .run(
+              plan.name,
+              plan.sort_order,
+              folderFields.variablesJson,
+              folderFields.headersJson,
+              folderFields.authJson,
+              folderFields.pre_request_script,
+              folderFields.post_request_script,
+              folderFields.pre_request_scripts_json,
+              folderFields.post_request_scripts_json,
+              plan.existingId,
+              id
+            );
           registerImportedFolderInMaps(folderMaps, plan.existingId, plan.name, plan.uuid);
           continue;
         }
 
+        const folderFields = serializeImportedFolderFields(folder);
         const folderResult = database
           .prepare(
-            'INSERT INTO folders (collection_id, name, sort_order, uuid) VALUES (?, ?, ?, ?)'
+            `INSERT INTO folders (
+              collection_id, name, sort_order, uuid, variables, headers, auth,
+              pre_request_script, post_request_script, pre_request_scripts, post_request_scripts
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
-          .run(id, plan.name, plan.sort_order, plan.uuid);
+          .run(
+            id,
+            plan.name,
+            plan.sort_order,
+            plan.uuid,
+            folderFields.variablesJson,
+            folderFields.headersJson,
+            folderFields.authJson,
+            folderFields.pre_request_script,
+            folderFields.post_request_script,
+            folderFields.pre_request_scripts_json,
+            folderFields.post_request_scripts_json
+          );
         registerImportedFolderInMaps(
           folderMaps,
           Number(folderResult.lastInsertRowid),

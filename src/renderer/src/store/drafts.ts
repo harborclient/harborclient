@@ -104,6 +104,7 @@ export type PageRef =
   | { type: 'sharing-keys' }
   | { type: 'plugin-view'; pluginId: string; viewId: string }
   | { type: 'collection'; id: number; focusVariableKey?: string }
+  | { type: 'folder'; collectionId: number; id: number; focusVariableKey?: string }
   | { type: 'environment'; id: number; focusVariableKey?: string }
   | {
       type: 'collection-runner';
@@ -213,6 +214,8 @@ export function pageRefKey(page: PageRef): string {
       return `plugin-view:${page.pluginId}:${page.viewId}`;
     case 'collection':
       return `collection:${page.id}`;
+    case 'folder':
+      return `folder:${page.id}`;
     case 'environment':
       return `environment:${page.id}`;
     case 'collection-runner':

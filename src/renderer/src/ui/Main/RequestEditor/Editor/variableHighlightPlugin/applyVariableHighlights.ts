@@ -1,4 +1,4 @@
-import { VARIABLE_TOKEN_PATTERN } from '@harborclient/sdk/variables';
+import { parseVariableTokens } from '@harborclient/sdk/variables';
 
 /** CSS Custom Highlight registry name for {{variable}} tokens in rich text. */
 export const VARIABLE_HIGHLIGHT_NAME = 'hc-variable-token';
@@ -27,19 +27,11 @@ export interface VariableHighlightMatch {
  * @returns Ordered matches with keys and character offsets.
  */
 export function findVariableKeysInText(text: string): VariableTextMatch[] {
-  const matches: VariableTextMatch[] = [];
-  const pattern = new RegExp(VARIABLE_TOKEN_PATTERN.source, 'g');
-
-  for (const match of text.matchAll(pattern)) {
-    const index = match.index ?? 0;
-    matches.push({
-      key: match[1],
-      start: index,
-      end: index + match[0].length
-    });
-  }
-
-  return matches;
+  return parseVariableTokens(text).map((token) => ({
+    key: token.key,
+    start: token.start,
+    end: token.end
+  }));
 }
 
 /**
@@ -50,19 +42,19 @@ export function findVariableKeysInText(text: string): VariableTextMatch[] {
  */
 export function collectVariableHighlightMatches(root: Node): VariableHighlightMatch[] {
   const matches: VariableHighlightMatch[] = [];
-  const pattern = new RegExp(VARIABLE_TOKEN_PATTERN.source, 'g');
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
 
   let textNode = walker.nextNode();
   while (textNode) {
     const text = textNode.textContent ?? '';
-    for (const match of text.matchAll(pattern)) {
-      const index = match.index ?? 0;
+
+    for (const token of parseVariableTokens(text)) {
       const range = document.createRange();
-      range.setStart(textNode, index);
-      range.setEnd(textNode, index + match[0].length);
-      matches.push({ key: match[1], range });
+      range.setStart(textNode, token.start);
+      range.setEnd(textNode, token.end);
+      matches.push({ key: token.key, range });
     }
+
     textNode = walker.nextNode();
   }
 

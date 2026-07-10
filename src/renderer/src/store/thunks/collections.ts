@@ -17,7 +17,8 @@ import {
   setCollections,
   setFoldersForCollection,
   setRequestsForCollection,
-  setSelectedCollectionId
+  setSelectedCollectionId,
+  upsertFolderInCollection
 } from '#/renderer/src/store/slices/collectionsSlice';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import {
@@ -406,6 +407,64 @@ export const renameFolder = createAsyncThunk<
   await dispatch(refreshFolders(collectionId));
   return folder;
 });
+
+/**
+ * Updates folder metadata including variables, headers, auth, and scripts.
+ */
+export const updateFolder = createAsyncThunk<
+  Folder,
+  {
+    id: number;
+    collectionId: number;
+    name: string;
+    variables: Variable[];
+    headers: KeyValue[];
+    preRequestScript: string;
+    postRequestScript: string;
+    preRequestScripts?: ScriptRef[];
+    postRequestScripts?: ScriptRef[];
+    auth: AuthConfig;
+  },
+  ThunkApiConfig
+>(
+  'collections/updateFolder',
+  async (
+    {
+      id,
+      collectionId,
+      name,
+      variables,
+      headers,
+      preRequestScript,
+      postRequestScript,
+      preRequestScripts = [],
+      postRequestScripts = [],
+      auth
+    },
+    { dispatch }
+  ) => {
+    const legacyPre =
+      preRequestScripts.length > 0 ? mirrorLegacyScriptString(preRequestScripts) : preRequestScript;
+    const legacyPost =
+      postRequestScripts.length > 0
+        ? mirrorLegacyScriptString(postRequestScripts)
+        : postRequestScript;
+    const folder = await window.api.updateFolder(
+      id,
+      name,
+      variables,
+      headers,
+      legacyPre,
+      legacyPost,
+      auth,
+      preRequestScripts,
+      postRequestScripts
+    );
+    dispatch(upsertFolderInCollection({ collectionId, folder }));
+    await dispatch(refreshFolders(collectionId));
+    return folder;
+  }
+);
 
 /**
  * Deletes a folder and closes any open tabs for requests it contained.

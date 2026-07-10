@@ -35,8 +35,6 @@ settings and scripts may need adjustment after migration.
 
 Features we intend to build in HarborClient itself (not only via plugins):
 
-- **Before each script** — Script stages (`before-all`, `before-each`, `main`, `after-each`, `after-all`) for setup/teardown around main scripts. Shipped.
-- **Folders settings** -- Give folders settings just like collections.
 - **Nested folders** -- Native multi-level folders in the sidebar and
   export format.
 - **Git over SSH** -- today, Git remotes require HTTPS with a token or OAuth; SSH

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
+import { FOLDER_SETTINGS_DEFAULTS } from '#/shared/testFixtures/folder';
 import {
   docToCollection,
   docToEnvironment,
@@ -133,7 +134,10 @@ describe('entityMappers', () => {
         created_at: '2024-01-03T00:00:00.000Z'
       };
 
-      expect(rowToFolder(row)).toEqual(row);
+      expect(rowToFolder(row)).toEqual({
+        ...row,
+        ...FOLDER_SETTINGS_DEFAULTS
+      });
     });
 
     it('rowToRequest parses nullable folder_id and JSON header/param arrays', () => {

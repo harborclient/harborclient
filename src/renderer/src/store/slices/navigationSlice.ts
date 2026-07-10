@@ -4,6 +4,7 @@ import type { RootState } from '#/renderer/src/store/redux';
 export interface NavigationState {
   collectionSettingsDirty: boolean;
   environmentSettingsDirty: boolean;
+  folderSettingsDirty: boolean;
   showSidebar: boolean;
   showAiSidebar: boolean;
   showRequestEditor: boolean;
@@ -25,6 +26,7 @@ export interface NavigationState {
 const initialState: NavigationState = {
   collectionSettingsDirty: false,
   environmentSettingsDirty: false,
+  folderSettingsDirty: false,
   showSidebar: true,
   showAiSidebar: false,
   showRequestEditor: true,
@@ -64,6 +66,12 @@ const navigationSlice = createSlice({
      */
     setEnvironmentSettingsDirty(state, action: PayloadAction<boolean>) {
       state.environmentSettingsDirty = action.payload;
+    },
+    /**
+     * Tracks unsaved edits in folder settings.
+     */
+    setFolderSettingsDirty(state, action: PayloadAction<boolean>) {
+      state.folderSettingsDirty = action.payload;
     },
     /**
      * Toggles sidebar visibility.
@@ -243,6 +251,7 @@ export const {
   setActiveSidebarPanel,
   setCollectionSettingsDirty,
   setEnvironmentSettingsDirty,
+  setFolderSettingsDirty,
   toggleSidebar,
   setShowSidebar,
   toggleAiSidebar,
@@ -279,6 +288,11 @@ export const selectCollectionSettingsDirty = (state: RootState): boolean =>
  */
 export const selectEnvironmentSettingsDirty = (state: RootState): boolean =>
   state.navigation.environmentSettingsDirty;
+/**
+ * Returns whether folder settings have unsaved edits.
+ */
+export const selectFolderSettingsDirty = (state: RootState): boolean =>
+  state.navigation.folderSettingsDirty;
 /**
  * Returns the user sidebar visibility preference.
  */

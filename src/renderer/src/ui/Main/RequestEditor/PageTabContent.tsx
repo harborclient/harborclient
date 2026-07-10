@@ -8,12 +8,18 @@ import type { PageRef } from '#/renderer/src/store/drafts';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   setCollectionSettingsDirty,
-  setEnvironmentSettingsDirty
+  setEnvironmentSettingsDirty,
+  setFolderSettingsDirty
 } from '#/renderer/src/store/slices/navigationSlice';
 import { closeTab, openPageTab } from '#/renderer/src/store/slices/tabsSlice';
-import { selectCollections, selectEnvironments } from '#/renderer/src/store/selectors';
-import { updateCollection, updateEnvironment } from '#/renderer/src/store/thunks';
+import {
+  selectCollections,
+  selectEnvironments,
+  selectFoldersByCollection
+} from '#/renderer/src/store/selectors';
+import { updateCollection, updateEnvironment, updateFolder } from '#/renderer/src/store/thunks';
 import { CollectionSettings } from '#/renderer/src/ui/CollectionSettings';
+import { FolderSettings } from '#/renderer/src/ui/FolderSettings';
 import { CollectionRunner } from '#/renderer/src/ui/CollectionRunner';
 import { Cookies } from '#/renderer/src/ui/Cookies';
 import { EnvironmentSettings } from '#/renderer/src/ui/EnvironmentSettings';
@@ -50,6 +56,7 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
   const dispatch = useAppDispatch();
   const collections = useAppSelector(selectCollections);
   const environments = useAppSelector(selectEnvironments);
+  const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const pluginViews = usePluginMainViews();
 
   /**
@@ -87,6 +94,16 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
       return;
     }
 
+    if (page.type === 'folder') {
+      const exists = (foldersByCollection[page.collectionId] ?? []).some(
+        (folder) => folder.id === page.id
+      );
+      if (!exists) {
+        dispatch(closeTab(tabId));
+      }
+      return;
+    }
+
     if (page.type === 'plugin-view') {
       const namespacedId = pluginContributionId(page.pluginId, page.viewId);
       const exists = pluginViews.some(
@@ -96,7 +113,7 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
         dispatch(closeTab(tabId));
       }
     }
-  }, [page, tabId, collections, environments, pluginViews, dispatch]);
+  }, [page, tabId, collections, environments, foldersByCollection, pluginViews, dispatch]);
 
   if (page.type === 'getting-started') {
     return <GettingStartedPage />;
@@ -203,6 +220,55 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
             toast.success('Collection updated');
           } catch (err) {
             showAlert(dispatch, formatErrorMessage(err, 'Failed to update collection'));
+          }
+        }}
+        onClose={handleClose}
+      />
+    );
+  }
+
+  if (page.type === 'folder') {
+    const folder = (foldersByCollection[page.collectionId] ?? []).find(
+      (entry) => entry.id === page.id
+    );
+    if (!folder) {
+      return null;
+    }
+
+    return (
+      <FolderSettings
+        folder={folder}
+        focusVariableKey={page.focusVariableKey}
+        onDirtyChange={(dirty) => dispatch(setFolderSettingsDirty(dirty))}
+        onSave={async (
+          id: number,
+          collectionId: number,
+          name: string,
+          variables: Variable[],
+          headers: KeyValue[],
+          preRequestScripts: ScriptRef[],
+          postRequestScripts: ScriptRef[],
+          auth: AuthConfig
+        ) => {
+          try {
+            await dispatch(
+              updateFolder({
+                id,
+                collectionId,
+                name,
+                variables,
+                headers,
+                preRequestScript: mirrorLegacyScriptString(preRequestScripts),
+                postRequestScript: mirrorLegacyScriptString(postRequestScripts),
+                preRequestScripts,
+                postRequestScripts,
+                auth
+              })
+            ).unwrap();
+            toast.success('Folder updated');
+          } catch (err) {
+            showAlert(dispatch, formatErrorMessage(err, 'Failed to update folder'));
+            throw err;
           }
         }}
         onClose={handleClose}

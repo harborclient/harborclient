@@ -2,6 +2,7 @@ import type { Completion, CompletionContext, CompletionSource } from '@codemirro
 import type { ScriptPhase, Variable } from '#/shared/types';
 import {
   DYNAMIC_VARIABLE_NAMES,
+  FILTER_NAMES,
   getDynamicVariableDescription,
   VARIABLE_NAME_CHARS
 } from '@harborclient/sdk/variables';
@@ -513,6 +514,55 @@ function chaiChainCompletions(
 const VARIABLE_COMPLETION_PATTERN = new RegExp(`\\{\\{\\s*[${VARIABLE_NAME_CHARS}]*$`);
 
 /**
+ * Matches an incomplete filter name after `|` inside `{{ }}`.
+ */
+const FILTER_COMPLETION_PATTERN = /\{\{\s*[^}|]*\|\s*\w*$/;
+
+/**
+ * Builds filter-name completions after `|` inside `{{ }}` placeholders.
+ *
+ * @param context - CodeMirror completion context.
+ */
+function filterCompletions(
+  context: CompletionContext
+): { from: number; options: Completion[] } | null {
+  const match = context.matchBefore(FILTER_COMPLETION_PATTERN);
+  if (!match) {
+    return null;
+  }
+
+  const braceIndex = match.text.indexOf('{{');
+  if (braceIndex === -1) {
+    return null;
+  }
+
+  const inner = match.text.slice(braceIndex + 2);
+  const pipeIndex = inner.lastIndexOf('|');
+  if (pipeIndex === -1) {
+    return null;
+  }
+
+  const afterPipe = inner.slice(pipeIndex + 1);
+  const partial = afterPipe.trimStart().toLowerCase();
+  const from =
+    match.from + braceIndex + 2 + pipeIndex + 1 + (afterPipe.length - afterPipe.trimStart().length);
+
+  const options: Completion[] = FILTER_NAMES.filter(
+    (name) => !partial || name.toLowerCase().startsWith(partial)
+  ).map((name) => ({
+    label: name,
+    type: 'function',
+    apply: name
+  }));
+
+  if (options.length === 0) {
+    return null;
+  }
+
+  return { from, options };
+}
+
+/**
  * Builds variable completions inside {{ }} placeholders.
  *
  * @param context - CodeMirror completion context.
@@ -522,6 +572,11 @@ function variableCompletions(
   context: CompletionContext,
   variables: Variable[]
 ): { from: number; options: Completion[] } | null {
+  const filterResult = filterCompletions(context);
+  if (filterResult) {
+    return filterResult;
+  }
+
   const match = context.matchBefore(VARIABLE_COMPLETION_PATTERN);
   if (!match) return null;
 

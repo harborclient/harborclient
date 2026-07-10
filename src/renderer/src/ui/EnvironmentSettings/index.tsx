@@ -106,45 +106,50 @@ function EnvironmentSettingsForm({
   return (
     <Page
       embedded
-      className="flex min-h-0 flex-1 flex-col overflow-y-auto p-6 pt-0!"
+      className="flex min-h-0 flex-1 flex-col p-6 pt-0!"
       title="Environment Settings"
       description="Manage environment settings and configuration"
-      footer={
-        <ModalFooter>
+    >
+      <div className="hc-scroll-stable -mx-6 flex min-h-0 flex-1 flex-col overflow-y-auto px-6">
+        <div className="mb-6">
+          <FormGroup
+            label="Name"
+            htmlFor={ENVIRONMENT_SETTINGS_NAME_INPUT_ID}
+            labelTone="muted"
+            description="Name shown in the sidebar and environment selector."
+          >
+            <Input
+              id={ENVIRONMENT_SETTINGS_NAME_INPUT_ID}
+              className="w-full"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSave();
+                if (e.key === 'Escape') onClose();
+              }}
+            />
+          </FormGroup>
+        </div>
+
+        <div className="mb-6 flex flex-col gap-1">
+          <span className="text-[18px] text-muted">Variables</span>
+          <p className="hc-form-group-description m-0 text-[14px] text-muted mb-2">
+            Use variables in request URLs with {'{{variable}}'} syntax. When value is empty, the
+            default is used. Environment variables override collection variables with the same key.
+          </p>
+          <VariableTable
+            variables={variables}
+            onChange={setVariables}
+            focusKey={focusVariableKey}
+          />
+        </div>
+
+        <ModalFooter spaced>
           <Button onClick={() => void handleSave()} disabled={!name.trim() || saving}>
             {saving ? 'Saving…' : 'Save'}
           </Button>
         </ModalFooter>
-      }
-    >
-      <div className="mb-6">
-        <FormGroup
-          label="Name"
-          htmlFor={ENVIRONMENT_SETTINGS_NAME_INPUT_ID}
-          labelTone="muted"
-          description="Name shown in the sidebar and environment selector."
-        >
-          <Input
-            id={ENVIRONMENT_SETTINGS_NAME_INPUT_ID}
-            className="w-full"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') void handleSave();
-              if (e.key === 'Escape') onClose();
-            }}
-          />
-        </FormGroup>
-      </div>
-
-      <div className="mb-6 flex flex-col gap-1">
-        <span className="text-[18px] text-muted">Variables</span>
-        <p className="hc-form-group-description m-0 text-[14px] text-muted mb-2">
-          Use variables in request URLs with {'{{variable}}'} syntax. When value is empty, the
-          default is used. Environment variables override collection variables with the same key.
-        </p>
-        <VariableTable variables={variables} onChange={setVariables} focusKey={focusVariableKey} />
       </div>
     </Page>
   );

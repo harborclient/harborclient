@@ -619,6 +619,43 @@ function renameFolder(id: number, name: string): Promise<Folder> {
 }
 
 /**
+ * Updates a folder's name, variables, headers, auth, and scripts.
+ *
+ * @param id - Folder ID to update.
+ * @param name - New display name.
+ * @param variables - Folder-scoped variables.
+ * @param headers - Headers sent with every request in the folder.
+ * @param preRequestScript - Folder pre-request script.
+ * @param postRequestScript - Folder post-request script.
+ * @param auth - Default Authorization settings for requests in the folder.
+ * @returns The updated folder.
+ */
+function updateFolder(
+  id: number,
+  name: string,
+  variables: Variable[],
+  headers: KeyValue[],
+  preRequestScript: string,
+  postRequestScript: string,
+  auth: AuthConfig,
+  preRequestScripts?: ScriptRef[],
+  postRequestScripts?: ScriptRef[]
+): Promise<Folder> {
+  return ipcRenderer.invoke(
+    'folders:update',
+    id,
+    name,
+    variables,
+    headers,
+    preRequestScript,
+    postRequestScript,
+    auth,
+    preRequestScripts,
+    postRequestScripts
+  );
+}
+
+/**
  * Deletes a folder and all requests inside it.
  *
  * @param id - Folder ID to delete.
@@ -2684,6 +2721,7 @@ const api: Api = {
   listFolders,
   createFolder,
   renameFolder,
+  updateFolder,
   deleteFolder,
   reorderFolders,
   reorderRequests,

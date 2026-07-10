@@ -109,6 +109,11 @@ interface Props {
   onConfigureCollection: (id: number) => void;
 
   /**
+   * Opens the folder settings view.
+   */
+  onConfigureFolder: (collectionId: number, folderId: number) => void;
+
+  /**
    * Opens the environment settings view.
    */
   onConfigureEnvironment: (id: number) => void;
@@ -130,6 +135,7 @@ interface Props {
 export function Sidebar({
   onAddCollection,
   onConfigureCollection,
+  onConfigureFolder,
   onConfigureEnvironment,
   onShareCollection,
   onLoadRequest
@@ -662,6 +668,7 @@ export function Sidebar({
                         }}
                         onExpandCollection={handleExpandCollection}
                         onConfigureCollection={onConfigureCollection}
+                        onConfigureFolder={onConfigureFolder}
                         onRunCollection={(collectionId, collectionName) => {
                           dispatch(
                             openCollectionRunner({
