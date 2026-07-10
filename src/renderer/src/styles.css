@@ -505,6 +505,11 @@
     color: var(--mac-resize-handle) !important;
   }
 
+  :root[data-theme='high-contrast'] .hc-action-menu-toggle {
+    background-color: var(--mac-resize-handle) !important;
+    color: #000000 !important;
+  }
+
   /**
    * Selected collection, folder, and request rows in the collections sidebar.
    */
@@ -1092,7 +1097,9 @@
   :root[data-theme='high-contrast']
     .hc-toolbar-action[aria-pressed='true']:focus:not(:focus-visible),
   :root[data-theme='high-contrast'] .hc-footer-button:focus-visible,
-  :root[data-theme='high-contrast'] .hc-footer-button:focus:not(:focus-visible) {
+  :root[data-theme='high-contrast'] .hc-footer-button:focus:not(:focus-visible),
+  :root[data-theme='high-contrast'] .hc-action-menu-toggle:focus-visible,
+  :root[data-theme='high-contrast'] .hc-action-menu-toggle:focus:not(:focus-visible) {
     outline: 2px solid var(--mac-accent);
     outline-offset: 1px;
     box-shadow: none;

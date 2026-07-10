@@ -1,14 +1,10 @@
-import { FooterButton, FooterIcon, segmentGroup } from '@harborclient/sdk/components';
+import { FaIcon, FooterButton, FooterIcon } from '@harborclient/sdk/components';
 import { useEffect, useMemo, useRef, type JSX } from 'react';
 import type { Variable } from '#/shared/types';
 
-import {
-  faInbox,
-  faMagnifyingGlass,
-  faPaperPlane,
-  faRobot,
-  faTableColumns
-} from '#/renderer/src/fontawesome';
+import { faInbox, faPaperPlane, faRobot, faTableColumns } from '#/renderer/src/fontawesome';
+import { iconActionMenu, ACTION_MENU_ICON_CLASS } from '#/renderer/src/icons/customIcons';
+import { actionMenuToggleClass, footerButtonGroup } from '#/renderer/src/ui/shared/classes';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActivePluginFooterPanelId,
@@ -227,17 +223,19 @@ export function Footer({
   return (
     <footer
       ref={footerRef}
-      className="relative z-50 flex shrink-0 items-center justify-between border-t border-separator bg-sidebar px-2 py-0.5 app-no-drag"
+      className="relative z-50 flex shrink-0 items-center justify-between border-t border-separator bg-sidebar py-0 app-no-drag"
     >
-      <div className={`${segmentGroup} min-w-0 flex-1`}>
-        <FooterIcon
-          onClick={() => dispatch(actionMenuOpen ? closeActionMenuModal() : openActionMenuModal())}
-          icon={faMagnifyingGlass}
-          active={actionMenuOpen}
-          label="Action menu"
-          title="Action menu"
-          className="mr-2"
-        />
+      <button
+        type="button"
+        onClick={() => dispatch(actionMenuOpen ? closeActionMenuModal() : openActionMenuModal())}
+        aria-pressed={actionMenuOpen}
+        aria-label={actionMenuOpen ? 'Hide Action menu' : 'Show Action menu'}
+        title="Action menu"
+        className={actionMenuToggleClass(actionMenuOpen)}
+      >
+        <FaIcon icon={iconActionMenu} className={ACTION_MENU_ICON_CLASS} />
+      </button>
+      <div className={`${footerButtonGroup} flex-1`}>
         {leftStatusItems.map((item) => (
           <div key={item.id} className="overflow-hidden px-1" style={{ width: 120, height: 20 }}>
             <PluginSurface
@@ -320,7 +318,7 @@ export function Footer({
           ))}
         </div>
       </div>
-      <div className="flex shrink-0 items-center gap-0.5">
+      <div className="flex shrink-0 items-center gap-0.5 pr-2">
         {rightStatusItems.map((item) => (
           <div key={item.id} className="overflow-hidden px-1" style={{ width: 120, height: 20 }}>
             <PluginSurface
@@ -337,24 +335,28 @@ export function Footer({
             onClick={onToggleRequestEditor}
             icon={faPaperPlane}
             active={requestEditorOpen}
+            activeStyle="selection"
             label="request editor"
           />
           <FooterIcon
             onClick={onToggleResponseEditor}
             icon={faInbox}
             active={responseEditorOpen}
+            activeStyle="selection"
             label="response editor"
           />
           <FooterIcon
             onClick={onToggleSidebar}
             icon={faTableColumns}
             active={sidebarOpen}
+            activeStyle="selection"
             label="sidebar"
           />
           <FooterIcon
             onClick={onToggleAiSidebar}
             icon={faRobot}
             active={aiSidebarOpen}
+            activeStyle="selection"
             label="agent chat"
           />
         </div>

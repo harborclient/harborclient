@@ -49,6 +49,7 @@ import {
   selectActionMenuModal
 } from '#/renderer/src/store/slices/modalsSlice';
 import { startNewChatWithPrompt } from '#/renderer/src/store/thunks/aiChat';
+import { ACTION_MENU_ICON_CLASS, iconActionMenu } from '#/renderer/src/icons/customIcons';
 import { BreadcrumbPrefix } from '#/renderer/src/ui/Main/RequestEditor/Editor/BreadcrumbPrefix';
 import { METHOD_CLASSES } from '#/renderer/src/ui/shared/classes';
 
@@ -684,22 +685,32 @@ function ActionMenuModalBody({ onClose }: ModalBodyProps): JSX.Element {
         <label htmlFor={ACTION_MENU_INPUT_ID} className="sr-only">
           Action menu
         </label>
-        <Input
-          ref={searchInputRef}
-          id={ACTION_MENU_INPUT_ID}
-          type="search"
-          placeholder="Action menu… · Type / for commands · Type # for actions"
-          value={query}
-          className="w-full"
-          autoComplete="off"
-          aria-controls="action-menu-results"
-          aria-expanded={
-            hasActionSuggestions || hasSlashSuggestions || hasSlashArmedCommand || hasSearchResults
-          }
-          aria-activedescendant={activeDescendantId}
-          onChange={(event) => handleQueryChange(event.target.value)}
-          onKeyDown={handleInputKeyDown}
-        />
+        <div className="relative min-w-0">
+          <FaIcon
+            icon={iconActionMenu}
+            className={`${ACTION_MENU_ICON_CLASS} pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted`}
+            aria-hidden
+          />
+          <Input
+            ref={searchInputRef}
+            id={ACTION_MENU_INPUT_ID}
+            type="search"
+            placeholder="Action menu… · Type / for commands · Type # for actions"
+            value={query}
+            className="w-full pl-10"
+            autoComplete="off"
+            aria-controls="action-menu-results"
+            aria-expanded={
+              hasActionSuggestions ||
+              hasSlashSuggestions ||
+              hasSlashArmedCommand ||
+              hasSearchResults
+            }
+            aria-activedescendant={activeDescendantId}
+            onChange={(event) => handleQueryChange(event.target.value)}
+            onKeyDown={handleInputKeyDown}
+          />
+        </div>
 
         <div
           id="action-menu-results"

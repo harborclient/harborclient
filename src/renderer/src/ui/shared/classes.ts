@@ -56,6 +56,13 @@ export const roundIconButtonClass =
 export const scriptRowIconButtonClass =
   'hc-script-row-icon-button focus-visible:bg-selection focus-visible:text-text';
 
+/**
+ * Compact inset container for footer panel toggles and plugin status bar slots.
+ * Uses tight padding unlike SDK `segmentGroup`, which targets full-width tab headers.
+ */
+export const footerButtonGroup =
+  'inline-flex min-w-0 items-center rounded-md p-0.5 shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)] app-no-drag';
+
 export const METHOD_CLASSES: Record<string, string> = {
   get: 'text-method-get',
   post: 'text-method-post',
@@ -65,6 +72,19 @@ export const METHOD_CLASSES: Record<string, string> = {
   head: 'text-method-head',
   options: 'text-method-options'
 };
+
+/**
+ * Always-on accent highlight for the footer's Action menu toggle — flush against
+ * the footer's left edge and stretched to its full height, distinct from the
+ * other footer toggles which only highlight while active.
+ *
+ * @param active - Whether the Action menu is currently open.
+ */
+export function actionMenuToggleClass(active: boolean): string {
+  const base =
+    'hc-action-menu-toggle flex shrink-0 cursor-pointer items-center justify-center self-stretch bg-accent px-2.5 text-white app-no-drag';
+  return active ? `${base} shadow-inner` : `${base} hover:brightness-110`;
+}
 
 /**
  * Status dot color class for an HTTP response code.
