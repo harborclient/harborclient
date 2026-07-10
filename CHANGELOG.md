@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.0.18 - 2026-07-10
+
 - chore: update @harborclient/sdk dependency to version 1.0.63. (`0924aac`)
 - fix(aiSidebar): replace send icon with confirmation icon. (`4cdd661`)
 - refactor: update HarborClient SDK reference and enhance footer UI components. (`02dc064`)
