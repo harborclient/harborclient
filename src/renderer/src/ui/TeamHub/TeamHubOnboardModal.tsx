@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { HubInvitationPreview } from '#/shared/types';
+import { hasTeamHubJoinDisplayMetadata } from '#/shared/deepLink';
+import type { HubInvitationPreview, TeamHubVerifiedSession } from '#/shared/types';
+import type { TeamHubJoinPayload } from '#/renderer/src/store/slices/navigationSlice';
 import {
   Badge,
   Button,
@@ -17,14 +19,9 @@ import { createBlankTeamHub } from '#/renderer/src/ui/TeamHub/constants';
 
 interface Props {
   /**
-   * Team Hub server base URL from the join deep link.
+   * Parsed join payload from an HTTPS invite link or harborclient:// deep link.
    */
-  baseUrl: string;
-
-  /**
-   * Invitation secret prefixed with `hbi_`.
-   */
-  code: string;
+  join: TeamHubJoinPayload;
 
   /**
    * Closes the onboarding modal without saving a connection.
@@ -33,20 +30,53 @@ interface Props {
 }
 
 /**
- * Guided modal that previews, redeems, and saves a Team Hub connection from a join deep link.
+ * Builds invitation preview details from link query metadata when available.
+ *
+ * @param join - Parsed join payload from an invite link.
  */
-export function TeamHubOnboardModal({ baseUrl, code, onClose }: Props): JSX.Element {
+function buildLinkPreview(join: TeamHubJoinPayload): HubInvitationPreview | null {
+  if (!hasTeamHubJoinDisplayMetadata(join) || !join.name || !join.role || !join.expiresAt) {
+    return null;
+  }
+
+  return {
+    user: {
+      name: join.name,
+      role: join.role,
+      collectionAccess: [],
+      environmentAccess: [],
+      snippetAccess: [],
+      llmAccess: false,
+      llmModels: []
+    },
+    expiresAt: join.expiresAt
+  };
+}
+
+/**
+ * Guided modal that confirms invite details, redeems the invitation, and saves the connection.
+ */
+export function TeamHubOnboardModal({ join, onClose }: Props): JSX.Element {
   const dispatch = useAppDispatch();
-  const [preview, setPreview] = useState<HubInvitationPreview | null>(null);
-  const [connectionName, setConnectionName] = useState('');
-  const [loadingPreview, setLoadingPreview] = useState(true);
+  const linkPreview = useMemo(() => buildLinkPreview(join), [join]);
+  const [legacyPreview, setLegacyPreview] = useState<HubInvitationPreview | null>(null);
+  const [verifiedSession, setVerifiedSession] = useState<TeamHubVerifiedSession | null>(null);
+  const [connectionName, setConnectionName] = useState(join.name ?? join.hubName ?? '');
+  const [loadingLegacyPreview, setLoadingLegacyPreview] = useState(linkPreview == null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [openedAt] = useState(() => Date.now());
+
+  const preview = linkPreview ?? legacyPreview;
 
   /**
-   * Loads invitation preview details for operator confirmation.
+   * Loads invitation preview details only for legacy links that omit display metadata.
    */
   useEffect(() => {
+    if (linkPreview) {
+      return;
+    }
+
     let cancelled = false;
 
     void Promise.resolve()
@@ -54,30 +84,30 @@ export function TeamHubOnboardModal({ baseUrl, code, onClose }: Props): JSX.Elem
         if (cancelled) {
           return;
         }
-        setLoadingPreview(true);
+        setLoadingLegacyPreview(true);
         setError(null);
-        return window.api.previewTeamHubInvitation(baseUrl, code);
+        return window.api.previewTeamHubInvitation(join.baseUrl, join.code);
       })
       .then((result) => {
         if (cancelled || result === undefined) {
           return;
         }
-        setPreview(result);
+        setLegacyPreview(result);
         setConnectionName(result.user.name);
-        setLoadingPreview(false);
+        setLoadingLegacyPreview(false);
       })
       .catch((err: unknown) => {
         if (cancelled) {
           return;
         }
         setError(err instanceof Error ? err.message : String(err));
-        setLoadingPreview(false);
+        setLoadingLegacyPreview(false);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [baseUrl, code]);
+  }, [join.baseUrl, join.code, linkPreview]);
 
   /**
    * Redeems the invitation, verifies the issued token, and saves the new connection.
@@ -89,17 +119,19 @@ export function TeamHubOnboardModal({ baseUrl, code, onClose }: Props): JSX.Elem
 
     setSaving(true);
     setError(null);
+    setVerifiedSession(null);
 
     try {
       const redeemed = await window.api.redeemTeamHubInvitation(
-        baseUrl,
-        code,
+        join.baseUrl,
+        join.code,
         `${preview.user.name} onboarding`
       );
+      setVerifiedSession(redeemed.session);
       const hub = {
         ...createBlankTeamHub(),
         name: connectionName.trim() || preview.user.name,
-        baseUrl,
+        baseUrl: join.baseUrl,
         token: redeemed.secret
       };
       await window.api.saveTeamHub(hub);
@@ -112,12 +144,17 @@ export function TeamHubOnboardModal({ baseUrl, code, onClose }: Props): JSX.Elem
     } finally {
       setSaving(false);
     }
-  }, [baseUrl, code, connectionName, dispatch, onClose, preview, saving]);
+  }, [connectionName, dispatch, join.baseUrl, join.code, onClose, preview, saving]);
 
   const httpWarning =
-    baseUrl.startsWith('http://') && !/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(baseUrl)
+    join.baseUrl.startsWith('http://') &&
+    !/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(join.baseUrl)
       ? 'This Team Hub uses HTTP. Your API token will be sent in cleartext over the network.'
       : null;
+
+  const expired = preview?.expiresAt != null && Date.parse(preview.expiresAt) <= openedAt;
+
+  const loadingPreview = linkPreview == null && loadingLegacyPreview;
 
   return (
     <Modal
@@ -135,7 +172,7 @@ export function TeamHubOnboardModal({ baseUrl, code, onClose }: Props): JSX.Elem
         actions={
           <Button
             type="button"
-            disabled={loadingPreview || saving || !preview}
+            disabled={loadingPreview || saving || !preview || expired}
             onClick={() => void handleJoin()}
           >
             {saving ? 'Joining…' : 'Join Team Hub'}
@@ -143,20 +180,30 @@ export function TeamHubOnboardModal({ baseUrl, code, onClose }: Props): JSX.Elem
         }
       >
         <FormGroup label="Team hub URL" htmlFor="team-hub-onboard-url">
-          <Input id="team-hub-onboard-url" type="url" variant="surface" readOnly value={baseUrl} />
+          <Input
+            id="team-hub-onboard-url"
+            type="url"
+            variant="surface"
+            readOnly
+            value={join.baseUrl}
+          />
         </FormGroup>
 
         {loadingPreview ? (
           <p className="text-[14px] text-muted">Loading invitation details…</p>
         ) : preview ? (
           <>
+            {join.hubName ? <p className="text-[14px] text-muted">Hub: {join.hubName}</p> : null}
             <div className="flex items-center gap-2 text-[14px]">
               <span className="font-medium">{preview.user.name}</span>
               <Badge variant="success">{preview.user.role}</Badge>
             </div>
-            <p className="text-[13px] text-muted">
+            <p className={`text-[13px] ${expired ? 'text-danger' : 'text-muted'}`}>
               Invitation expires {new Date(preview.expiresAt).toLocaleString()}.
             </p>
+            {join.accessSummary ? (
+              <p className="text-[13px] text-muted">{join.accessSummary}</p>
+            ) : null}
             <FormGroup label="Connection name" htmlFor="team-hub-onboard-name">
               <Input
                 id="team-hub-onboard-name"
@@ -168,6 +215,12 @@ export function TeamHubOnboardModal({ baseUrl, code, onClose }: Props): JSX.Elem
               />
             </FormGroup>
           </>
+        ) : null}
+
+        {verifiedSession ? (
+          <p className="text-[13px] text-muted">
+            Verified as {verifiedSession.user.name} ({verifiedSession.user.role}).
+          </p>
         ) : null}
 
         {httpWarning ? (

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(teamHub): enhance Team Hub invitation and menu functionality. (`e10084c`)
 - feat(teamHub): add Accept Team Hub Invite functionality. (`a875960`)
 
 ## 2.0.15 - 2026-07-10

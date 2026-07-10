@@ -1,9 +1,10 @@
 import { useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import { buildTeamHubJoinDeepLink } from '#/shared/deepLink';
+import { buildTeamHubJoinUrl, summarizeInvitationAccess } from '#/shared/deepLink';
 import type {
   CreateHubUserInput,
   CreateInvitedHubUserInput,
+  CreatedInvitedHubUser,
   HubUserRecord,
   TeamHub,
   TeamHubAdminResourceOptions,
@@ -60,6 +61,24 @@ function invitationBadgeVariant(status: string): 'success' | 'warning' | 'danger
     return 'danger';
   }
   return 'muted';
+}
+
+/**
+ * Builds the HTTPS invite link shared with a newly created or reissued invitation.
+ *
+ * @param created - Invitation create response from the Team Hub admin API.
+ * @param hub - Admin hub connection providing the public base URL and label.
+ */
+function buildInvitationLink(created: CreatedInvitedHubUser, hub: TeamHub): string {
+  return buildTeamHubJoinUrl({
+    baseUrl: hub.baseUrl,
+    code: created.secret,
+    name: created.user.name,
+    role: created.user.role,
+    expiresAt: created.invitation.expiresAt,
+    hubName: hub.name,
+    accessSummary: summarizeInvitationAccess(created.user)
+  });
 }
 
 /**
@@ -253,7 +272,7 @@ export function TeamManageView({ hub }: Props): JSX.Element {
     try {
       const created = await window.api.createTeamHubInvitedUser(hub.id, input);
       setInvitingUser(false);
-      setInvitationLink(buildTeamHubJoinDeepLink(hub.baseUrl, created.secret));
+      setInvitationLink(buildInvitationLink(created, hub));
       reload();
       reloadInvitations();
       await dispatch(refreshCollections());
@@ -343,7 +362,7 @@ export function TeamManageView({ hub }: Props): JSX.Element {
 
     try {
       const created = await window.api.createTeamHubUserInvitation(hub.id, userId);
-      setInvitationLink(buildTeamHubJoinDeepLink(hub.baseUrl, created.secret));
+      setInvitationLink(buildInvitationLink(created, hub));
       reloadInvitations();
       toast.success('Invitation reissued.');
     } catch (err: unknown) {
@@ -565,7 +584,7 @@ export function TeamManageView({ hub }: Props): JSX.Element {
       {invitationLink && (
         <TeamInvitationLinkDialog
           title="Invitation created"
-          description="Copy this join link now. It contains a one-time invitation code and will not be shown again."
+          description="Copy this https:// invite link now and send it to the invitee. They should click the link or paste it into File → Accept Team Hub Invite. The one-time invitation code will not be shown again."
           joinLink={invitationLink}
           onClose={() => setInvitationLink(null)}
         />

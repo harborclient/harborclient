@@ -13,7 +13,7 @@ interface Props {
   description: string;
 
   /**
-   * harborclient:// join deep link to copy and share.
+   * HTTPS invite link to copy and share.
    */
   joinLink: string;
 

@@ -54,7 +54,7 @@ export type MenuActionId =
 /**
  * Top-level application menu labels shown in the Linux in-app menu bar.
  */
-export type RootMenuLabel = 'File' | 'Edit' | 'View' | 'Help';
+export type RootMenuLabel = 'File' | 'Edit' | 'View' | 'Team' | 'Help';
 
 /**
  * Result of comparing the running app version against the latest GitHub release.

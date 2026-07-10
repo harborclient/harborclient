@@ -15,6 +15,7 @@ export type ShortcutId =
   | 'team-hubs'
   | 'accept-team-hub-invite'
   | 'sharing-keys'
+  | 'join-shared-collection'
   | 'import'
   | 'undo'
   | 'redo'
@@ -207,6 +208,13 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'CmdOrCtrl+Shift+K',
     kind: 'action',
     actionId: 'sharing-keys'
+  },
+  {
+    id: 'join-shared-collection',
+    label: 'Join shared collection',
+    defaultAccelerator: 'CmdOrCtrl+Shift+L',
+    kind: 'action',
+    actionId: 'join-shared-collection'
   },
   {
     id: 'import',

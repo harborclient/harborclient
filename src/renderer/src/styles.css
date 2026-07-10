@@ -48,6 +48,7 @@
   --color-text-secondary: var(--mac-text-secondary);
   --color-muted: var(--mac-muted);
   --color-accent: var(--mac-accent);
+  --color-tab-underline: var(--mac-tab-underline, var(--mac-accent));
   --color-selection: var(--mac-selection);
   --color-danger: var(--mac-danger);
   --color-danger-light: var(--mac-danger-light);
@@ -143,6 +144,7 @@
       --mac-text-secondary: rgba(255, 255, 255, 0.65);
       --mac-muted: rgba(255, 255, 255, 0.58);
       --mac-accent: #0a84ff;
+      --mac-tab-underline: #ffffff;
       --mac-selection: rgba(10, 132, 255, 0.22);
       --mac-danger: #ff453a;
       --mac-danger-light: #ff6961;
@@ -175,6 +177,7 @@
     --mac-text-secondary: rgba(255, 255, 255, 0.65);
     --mac-muted: rgba(255, 255, 255, 0.58);
     --mac-accent: #0a84ff;
+    --mac-tab-underline: #ffffff;
     --mac-selection: rgba(10, 132, 255, 0.22);
     --mac-danger: #ff453a;
     --mac-danger-light: #ff6961;
@@ -214,6 +217,7 @@
     --mac-text-secondary: #ffffff;
     --mac-muted: #d0d0d0;
     --mac-accent: #4dabff;
+    --mac-tab-underline: #ffffff;
     --mac-selection: #14487a;
     --mac-danger: #ff8a80;
     --mac-danger-light: #ffb4af;

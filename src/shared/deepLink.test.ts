@@ -4,9 +4,21 @@ import {
   buildRunResultsDeepLink,
   buildSnippetInstallDeepLink,
   buildTeamHubJoinDeepLink,
+  buildTeamHubJoinUrl,
   buildThemeInstallDeepLink,
-  parseHarborDeepLink
+  parseHarborDeepLink,
+  parseTeamHubInviteLink
 } from '#/shared/deepLink';
+
+const sampleInviteParams = {
+  baseUrl: 'https://teamhub.example.com',
+  code: 'hbi_testinvitationcode1234567890',
+  name: 'Alice',
+  role: 'user' as const,
+  expiresAt: '2099-01-01T00:00:00.000Z',
+  hubName: 'Acme Team Hub',
+  accessSummary: 'Collections: all'
+};
 
 describe('parseHarborDeepLink', () => {
   it('parses a valid plugin install URL', () => {
@@ -45,15 +57,22 @@ describe('parseHarborDeepLink', () => {
     });
   });
 
-  it('parses a valid Team Hub join URL', () => {
+  it('parses a valid Team Hub join URL with display metadata', () => {
+    expect(parseHarborDeepLink(buildTeamHubJoinDeepLink(sampleInviteParams))).toEqual({
+      action: 'join-team-hub',
+      ...sampleInviteParams
+    });
+  });
+
+  it('parses a legacy Team Hub join URL with only url and code', () => {
     expect(
       parseHarborDeepLink(
-        'harborclient://team-hub/join?url=http%3A%2F%2F127.0.0.1%3A8788&code=hbi_testinvitationcode123'
+        'harborclient://team-hub/join?url=http%3A%2F%2F127.0.0.1%3A8788&code=hbi_testinvitationcode1234567890'
       )
     ).toEqual({
       action: 'join-team-hub',
       baseUrl: 'http://127.0.0.1:8788',
-      code: 'hbi_testinvitationcode123'
+      code: 'hbi_testinvitationcode1234567890'
     });
   });
 
@@ -61,7 +80,7 @@ describe('parseHarborDeepLink', () => {
     expect(parseHarborDeepLink('harborclient://team-hub/join')).toBeNull();
     expect(
       parseHarborDeepLink(
-        'harborclient://team-hub/join?url=ftp://example.com&code=hbi_abc123456789'
+        'harborclient://team-hub/join?url=ftp://example.com&code=hbi_abc123456789012345678'
       )
     ).toBeNull();
     expect(
@@ -95,6 +114,24 @@ describe('parseHarborDeepLink', () => {
       parseHarborDeepLink('harborclient://theme/update?id=com.harborclient.plugins.dracula')
     ).toBeNull();
     expect(parseHarborDeepLink('harborclient://run/not-a-uuid')).toBeNull();
+  });
+});
+
+describe('parseTeamHubInviteLink', () => {
+  it('parses an HTTPS join link with the secret in the fragment', () => {
+    const url = buildTeamHubJoinUrl(sampleInviteParams);
+    expect(parseTeamHubInviteLink(url)).toEqual({
+      action: 'join-team-hub',
+      ...sampleInviteParams
+    });
+  });
+
+  it('parses harborclient:// join links for backward compatibility', () => {
+    const url = buildTeamHubJoinDeepLink(sampleInviteParams);
+    expect(parseTeamHubInviteLink(url)).toEqual({
+      action: 'join-team-hub',
+      ...sampleInviteParams
+    });
   });
 });
 
@@ -138,13 +175,12 @@ describe('buildRunResultsDeepLink', () => {
   });
 });
 
-describe('buildTeamHubJoinDeepLink', () => {
-  it('builds a join URL that round-trips through the parser', () => {
-    const url = buildTeamHubJoinDeepLink('http://127.0.0.1:8788', 'hbi_testinvitationcode123');
-    expect(parseHarborDeepLink(url)).toEqual({
+describe('buildTeamHubJoinUrl', () => {
+  it('builds an HTTPS join URL that round-trips through parseTeamHubInviteLink', () => {
+    const url = buildTeamHubJoinUrl(sampleInviteParams);
+    expect(parseTeamHubInviteLink(url)).toEqual({
       action: 'join-team-hub',
-      baseUrl: 'http://127.0.0.1:8788',
-      code: 'hbi_testinvitationcode123'
+      ...sampleInviteParams
     });
   });
 });

@@ -18,10 +18,6 @@ export function TeamHubJoinDeepLinkHost(): JSX.Element | null {
   }
 
   return (
-    <TeamHubOnboardModal
-      baseUrl={pendingJoin.baseUrl}
-      code={pendingJoin.code}
-      onClose={() => dispatch(consumePendingTeamHubJoin())}
-    />
+    <TeamHubOnboardModal join={pendingJoin} onClose={() => dispatch(consumePendingTeamHubJoin())} />
   );
 }

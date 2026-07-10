@@ -45,7 +45,17 @@ export function useDeepLinks(): void {
 
       if (payload.action === 'join-team-hub') {
         dispatch(openPageTab({ type: 'team-hubs' }));
-        dispatch(setPendingTeamHubJoin({ baseUrl: payload.baseUrl, code: payload.code }));
+        dispatch(
+          setPendingTeamHubJoin({
+            baseUrl: payload.baseUrl,
+            code: payload.code,
+            name: payload.name,
+            role: payload.role,
+            expiresAt: payload.expiresAt,
+            hubName: payload.hubName,
+            accessSummary: payload.accessSummary
+          })
+        );
       }
     });
 

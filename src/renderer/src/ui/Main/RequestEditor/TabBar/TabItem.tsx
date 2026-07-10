@@ -163,7 +163,7 @@ export function TabItem({
       aria-label={ariaLabel}
       title={title}
       tabIndex={exiting ? -1 : tabIndex}
-      className={`group -mb-1 flex max-w-[220px] min-h-12 shrink-0 self-stretch items-stretch gap-2.5 rounded-t-lg border border-b-0 px-4 ${exiting ? 'pointer-events-none' : 'cursor-pointer'} ${requestTabItem(showActive)}`}
+      className={`group -mb-1 flex max-w-[220px] min-h-12 shrink-0 self-stretch items-stretch gap-2.5 rounded-t-lg border border-b-2 px-4 ${exiting ? 'pointer-events-none' : 'cursor-pointer'} ${requestTabItem(showActive)}`}
       onClick={exiting ? undefined : () => onSelect(tab.tabId)}
       onContextMenu={
         exiting

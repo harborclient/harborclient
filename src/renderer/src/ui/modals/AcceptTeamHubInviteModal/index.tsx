@@ -1,5 +1,5 @@
 import { useCallback, useState, type JSX } from 'react';
-import { parseHarborDeepLink } from '#/shared/deepLink';
+import { parseTeamHubInviteLink } from '#/shared/deepLink';
 import {
   Button,
   FieldError,
@@ -20,10 +20,10 @@ const INVITE_INPUT_ID = 'accept-team-hub-invite-input';
 const INVITE_ERROR_ID = 'accept-team-hub-invite-error';
 
 const INVALID_INVITE_MESSAGE =
-  "That doesn't look like a valid Team Hub invite link. Paste the full harborclient:// link you received.";
+  "That doesn't look like a valid Team Hub invite link. Paste the full https://.../join link you received.";
 
 /**
- * Modal that accepts a pasted Team Hub invitation deep link and hands off to the join flow.
+ * Modal that accepts a pasted Team Hub invitation link and hands off to the join flow.
  */
 export function AcceptTeamHubInviteModal(): JSX.Element | null {
   const dispatch = useAppDispatch();
@@ -41,7 +41,7 @@ export function AcceptTeamHubInviteModal(): JSX.Element | null {
   }, [dispatch]);
 
   /**
-   * Parses the pasted deep link and queues the existing Team Hub onboarding modal.
+   * Parses the pasted invite link and queues the Team Hub onboarding modal.
    */
   const handleAccept = useCallback((): void => {
     const trimmed = inviteInput.trim();
@@ -50,14 +50,24 @@ export function AcceptTeamHubInviteModal(): JSX.Element | null {
       return;
     }
 
-    const payload = parseHarborDeepLink(trimmed);
-    if (!payload || payload.action !== 'join-team-hub') {
+    const payload = parseTeamHubInviteLink(trimmed);
+    if (!payload) {
       setError(INVALID_INVITE_MESSAGE);
       return;
     }
 
     dispatch(openPageTab({ type: 'team-hubs' }));
-    dispatch(setPendingTeamHubJoin({ baseUrl: payload.baseUrl, code: payload.code }));
+    dispatch(
+      setPendingTeamHubJoin({
+        baseUrl: payload.baseUrl,
+        code: payload.code,
+        name: payload.name,
+        role: payload.role,
+        expiresAt: payload.expiresAt,
+        hubName: payload.hubName,
+        accessSummary: payload.accessSummary
+      })
+    );
     handleClose();
   }, [dispatch, handleClose, inviteInput]);
 
@@ -72,7 +82,7 @@ export function AcceptTeamHubInviteModal(): JSX.Element | null {
       labelledBy="accept-team-hub-invite-title"
       onClose={handleClose}
       title="Accept Team Hub Invite"
-      description="Paste the harborclient:// invitation link you received from a Team Hub administrator."
+      description="Paste the https:// invitation link you received from a Team Hub administrator."
     >
       <FormGroup label="Invitation link" htmlFor={INVITE_INPUT_ID}>
         <Textarea
@@ -80,7 +90,7 @@ export function AcceptTeamHubInviteModal(): JSX.Element | null {
           autoFocus
           variant="surface"
           className="min-h-28 resize-y font-mono text-[14px]"
-          placeholder="harborclient://team-hub/join?url=...&code=hbi_..."
+          placeholder="https://teamhub.example.com/join?...#code=hbi_..."
           value={inviteInput}
           aria-invalid={error != null}
           aria-describedby={error != null ? INVITE_ERROR_ID : undefined}

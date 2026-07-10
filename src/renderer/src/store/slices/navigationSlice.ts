@@ -1,6 +1,46 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '#/renderer/src/store/redux';
 
+/**
+ * Parsed Team Hub join payload queued from invite links and deep links.
+ */
+export interface TeamHubJoinPayload {
+  /**
+   * Team Hub server base URL used for redemption.
+   */
+  baseUrl: string;
+
+  /**
+   * One-time invitation secret prefixed with `hbi_`.
+   */
+  code: string;
+
+  /**
+   * Invited user display name from the invite link, when present.
+   */
+  name?: string;
+
+  /**
+   * Invited user role from the invite link, when present.
+   */
+  role?: 'admin' | 'user';
+
+  /**
+   * ISO-8601 invitation expiry from the invite link, when present.
+   */
+  expiresAt?: string;
+
+  /**
+   * Friendly hub label from the invite link, when present.
+   */
+  hubName?: string;
+
+  /**
+   * Human-readable access summary from the invite link, when present.
+   */
+  accessSummary?: string;
+}
+
 export interface NavigationState {
   collectionSettingsDirty: boolean;
   environmentSettingsDirty: boolean;
@@ -20,7 +60,7 @@ export interface NavigationState {
   pendingInstalledSearch: string | null;
   pendingSnippetMarketplaceSearch: string | null;
   pendingSnippetInstallId: string | null;
-  pendingTeamHubJoin: { baseUrl: string; code: string } | null;
+  pendingTeamHubJoin: TeamHubJoinPayload | null;
   customThemesReloadNonce: number;
 }
 
@@ -243,7 +283,7 @@ const navigationSlice = createSlice({
     /**
      * Queues a Team Hub join deep link for the onboarding modal.
      */
-    setPendingTeamHubJoin(state, action: PayloadAction<{ baseUrl: string; code: string }>) {
+    setPendingTeamHubJoin(state, action: PayloadAction<TeamHubJoinPayload>) {
       state.pendingTeamHubJoin = action.payload;
     },
     /**

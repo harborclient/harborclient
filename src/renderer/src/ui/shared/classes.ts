@@ -20,11 +20,13 @@ export function sourceRow(selected: boolean, compact = false): string {
  *
  * @param active - Whether this tab is the selected editor.
  * @returns Border, background, and text color classes for the tab shell.
+ *          Active tabs use a 2px bottom underline; inactive tabs reserve the
+ *          same space with a transparent bottom border.
  */
 export function requestTabItem(active: boolean): string {
   return active
-    ? 'border-separator/70 bg-selection text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent'
-    : 'border-separator/50 bg-control/20 text-muted hover:bg-selection/60 hover:text-text focus-visible:bg-selection/60 focus-visible:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent';
+    ? 'border-separator/70 border-b-tab-underline bg-selection text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent'
+    : 'border-separator/50 border-b-transparent bg-control/20 text-muted hover:bg-selection/60 hover:text-text focus-visible:bg-selection/60 focus-visible:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent';
 }
 
 export const separator = 'h-px bg-separator';

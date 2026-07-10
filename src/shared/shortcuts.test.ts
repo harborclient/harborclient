@@ -44,7 +44,7 @@ describe('resolveShortcuts', () => {
     expect(save?.accelerator).toBe('CmdOrCtrl+Alt+S');
   });
 
-  it('includes default bindings for File menu shortcuts', () => {
+  it('includes default bindings for team shortcuts', () => {
     const bindings = resolveShortcuts({});
     expect(bindings.find((binding) => binding.id === 'sync')?.accelerator).toBe(
       'CmdOrCtrl+Shift+S'
@@ -55,6 +55,9 @@ describe('resolveShortcuts', () => {
     );
     expect(bindings.find((binding) => binding.id === 'sharing-keys')?.accelerator).toBe(
       'CmdOrCtrl+Shift+K'
+    );
+    expect(bindings.find((binding) => binding.id === 'join-shared-collection')?.accelerator).toBe(
+      'CmdOrCtrl+Shift+L'
     );
     expect(bindings.find((binding) => binding.id === 'import')?.accelerator).toBe(
       'CmdOrCtrl+Shift+I'

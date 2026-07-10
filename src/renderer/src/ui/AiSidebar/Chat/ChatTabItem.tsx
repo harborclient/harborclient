@@ -96,7 +96,7 @@ export function ChatTabItem({
       aria-label={chat.title}
       title={chat.title}
       tabIndex={exiting ? -1 : tabIndex}
-      className={`group -mb-1 flex max-w-[180px] min-h-12 shrink-0 self-stretch items-stretch gap-2.5 rounded-t-lg border border-b-0 px-3 ${requestTabItem(showActive)} ${exiting ? 'pointer-events-none' : sortableDisabled ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'}`}
+      className={`group -mb-1 flex max-w-[180px] min-h-12 shrink-0 self-stretch items-stretch gap-2.5 rounded-t-lg border border-b-2 px-3 ${requestTabItem(showActive)} ${exiting ? 'pointer-events-none' : sortableDisabled ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'}`}
       onClick={exiting ? undefined : () => onSelect(chat.id)}
       onContextMenu={
         exiting

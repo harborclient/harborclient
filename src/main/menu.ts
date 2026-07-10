@@ -103,7 +103,7 @@ function acceleratorFor(accelerators: Map<ShortcutId, string>, id: ShortcutId): 
 }
 
 /**
- * Builds the application menu with File, Edit, View, and Help menus.
+ * Builds the application menu with File, Edit, View, Team, and Help menus.
  *
  * @param window - Browser window that receives custom menu actions.
  * @param sidebarVisible - Whether the sidebar checkbox should appear checked.
@@ -191,26 +191,6 @@ export function buildMenu(
         {
           label: 'Cookies',
           click: () => sendMenuAction(window, 'cookies')
-        },
-        { type: 'separator' },
-        {
-          label: 'Team Hub',
-          accelerator: acceleratorFor(accelerators, 'team-hubs'),
-          click: () => sendMenuAction(window, 'team-hubs')
-        },
-        {
-          label: 'Accept Team Hub Invite',
-          accelerator: acceleratorFor(accelerators, 'accept-team-hub-invite'),
-          click: () => sendMenuAction(window, 'accept-team-hub-invite')
-        },
-        {
-          label: 'Sharing Keys',
-          accelerator: acceleratorFor(accelerators, 'sharing-keys'),
-          click: () => sendMenuAction(window, 'sharing-keys')
-        },
-        {
-          label: 'Join Shared Collection',
-          click: () => sendMenuAction(window, 'join-shared-collection')
         },
         { type: 'separator' },
         { role: 'quit' }
@@ -323,6 +303,31 @@ export function buildMenu(
             ]
           : []),
         ...buildThemeMenuItems(window, activeTheme, pluginThemeOptions, onThemeMenuClick)
+      ]
+    },
+    {
+      label: 'Team',
+      submenu: [
+        {
+          label: 'Team Hub',
+          accelerator: acceleratorFor(accelerators, 'team-hubs'),
+          click: () => sendMenuAction(window, 'team-hubs')
+        },
+        {
+          label: 'Accept Team Hub Invite',
+          accelerator: acceleratorFor(accelerators, 'accept-team-hub-invite'),
+          click: () => sendMenuAction(window, 'accept-team-hub-invite')
+        },
+        {
+          label: 'Sharing Keys',
+          accelerator: acceleratorFor(accelerators, 'sharing-keys'),
+          click: () => sendMenuAction(window, 'sharing-keys')
+        },
+        {
+          label: 'Join Shared Collection',
+          accelerator: acceleratorFor(accelerators, 'join-shared-collection'),
+          click: () => sendMenuAction(window, 'join-shared-collection')
+        }
       ]
     },
     {

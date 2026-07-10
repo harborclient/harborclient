@@ -97,7 +97,7 @@ const themeMenuOption = z.object({
   label: z.string().min(1)
 });
 
-export const rootMenuLabel = z.enum(['File', 'Edit', 'View', 'Help']);
+export const rootMenuLabel = z.enum(['File', 'Edit', 'View', 'Team', 'Help']);
 
 export const editorTab = z.enum([
   'params',

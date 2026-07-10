@@ -153,6 +153,11 @@ export interface HubUserRecord {
   environmentAccess: string[];
 
   /**
+   * Snippet ids the user may access, or `['*']` for all snippets.
+   */
+  snippetAccess: string[];
+
+  /**
    * When true, the user may call hub-proxied LLM routes.
    */
   llmAccess: boolean;
@@ -721,6 +726,11 @@ export interface HubInvitationPreviewUser {
    * Environment ids the invited user may access, or `['*']` for all environments.
    */
   environmentAccess: string[];
+
+  /**
+   * Snippet ids the invited user may access, or `['*']` for all snippets.
+   */
+  snippetAccess: string[];
 
   /**
    * Whether the invited user may call hub-proxied LLM routes.

@@ -1,7 +1,7 @@
 import type { JSX, MouseEvent } from 'react';
 import type { RootMenuLabel } from '#/shared/types';
 
-const ROOT_MENU_LABELS: RootMenuLabel[] = ['File', 'Edit', 'View', 'Help'];
+const ROOT_MENU_LABELS: RootMenuLabel[] = ['File', 'Edit', 'View', 'Team', 'Help'];
 
 const menuButtonClass =
   'cursor-pointer rounded-sm border-none bg-transparent px-2.5 py-1 text-[14px] text-text hover:bg-selection app-no-drag';
@@ -18,7 +18,7 @@ function openSubmenu(label: RootMenuLabel, event: MouseEvent<HTMLButtonElement>)
 }
 
 /**
- * In-app menu bar for frameless Linux windows where the OS does not render File/Edit/View/Help.
+ * In-app menu bar for frameless Linux windows where the OS does not render File/Edit/View/Team/Help.
  */
 export function LinuxMenuBar(): JSX.Element {
   return (
