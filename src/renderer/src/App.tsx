@@ -88,6 +88,7 @@ import { ThemePickerModal } from '#/renderer/src/ui/modals/ThemePickerModal';
 import { ShortcutsReferenceModal } from '#/renderer/src/ui/modals/ShortcutsReferenceModal';
 import { SearchAnythingModal } from '#/renderer/src/ui/modals/SearchAnythingModal';
 import { TeamHubJoinDeepLinkHost } from '#/renderer/src/ui/TeamHub/TeamHubJoinDeepLinkHost';
+import { AcceptTeamHubInviteModal } from '#/renderer/src/ui/modals/AcceptTeamHubInviteModal';
 import { applyThemeAttribute, subscribeContrastPreferenceChanges } from '#/renderer/src/theme';
 import { platformClassName } from '#/renderer/src/platform';
 
@@ -424,6 +425,7 @@ export default function App(): JSX.Element {
             <ShortcutsReferenceModal />
             <SearchAnythingModal />
             <PluginModalOverlay />
+            <AcceptTeamHubInviteModal />
             <TeamHubJoinDeepLinkHost />
 
             <Toaster

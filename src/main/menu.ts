@@ -162,6 +162,11 @@ export function buildMenu(
           accelerator: acceleratorFor(accelerators, 'save'),
           click: () => sendMenuAction(window, 'save')
         },
+        {
+          label: 'Import',
+          accelerator: acceleratorFor(accelerators, 'import'),
+          click: () => sendMenuAction(window, 'import')
+        },
         { type: 'separator' },
         {
           label: 'Settings',
@@ -187,16 +192,16 @@ export function buildMenu(
           label: 'Cookies',
           click: () => sendMenuAction(window, 'cookies')
         },
+        { type: 'separator' },
         {
           label: 'Team Hub',
           accelerator: acceleratorFor(accelerators, 'team-hubs'),
           click: () => sendMenuAction(window, 'team-hubs')
         },
-        { type: 'separator' },
         {
-          label: 'Import',
-          accelerator: acceleratorFor(accelerators, 'import'),
-          click: () => sendMenuAction(window, 'import')
+          label: 'Accept Team Hub Invite',
+          accelerator: acceleratorFor(accelerators, 'accept-team-hub-invite'),
+          click: () => sendMenuAction(window, 'accept-team-hub-invite')
         },
         {
           label: 'Sharing Keys',

@@ -12,6 +12,7 @@ export type MenuActionId =
   | 'snippets'
   | 'cookies'
   | 'team-hubs'
+  | 'accept-team-hub-invite'
   | 'sharing-keys'
   | 'join-shared-collection'
   | 'sync'

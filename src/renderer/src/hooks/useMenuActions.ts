@@ -5,6 +5,7 @@ import type { MenuActionId } from '#/shared/types/app';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   openAboutModal,
+  openAcceptTeamHubInviteModal,
   openCollectionModal,
   openSearchAnythingModal,
   openShortcutsReferenceModal,
@@ -167,6 +168,9 @@ export function useMenuActions(): void {
           break;
         case 'team-hubs':
           dispatch(openPageTab({ type: 'team-hubs' }));
+          break;
+        case 'accept-team-hub-invite':
+          dispatch(openAcceptTeamHubInviteModal());
           break;
         case 'sharing-keys':
           dispatch(openPageTab({ type: 'sharing-keys' }));

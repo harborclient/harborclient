@@ -199,6 +199,7 @@ export interface ModalsState {
   pluginModal: PluginModalState | null;
   themePicker: { open: boolean } | null;
   shortcutsReference: { open: boolean } | null;
+  acceptTeamHubInvite: { open: boolean } | null;
   searchAnything: { open: boolean } | null;
 }
 
@@ -217,6 +218,7 @@ const initialState: ModalsState = {
   pluginModal: null,
   themePicker: null,
   shortcutsReference: null,
+  acceptTeamHubInvite: null,
   searchAnything: null
 };
 
@@ -768,6 +770,18 @@ const modalsSlice = createSlice({
       state.shortcutsReference = null;
     },
     /**
+     * Opens the modal where users paste a Team Hub invitation deep link.
+     */
+    openAcceptTeamHubInviteModal(state) {
+      state.acceptTeamHubInvite = { open: true };
+    },
+    /**
+     * Closes the Team Hub invitation paste modal.
+     */
+    closeAcceptTeamHubInviteModal(state) {
+      state.acceptTeamHubInvite = null;
+    },
+    /**
      * Opens the global search command palette modal.
      */
     openSearchAnythingModal(state) {
@@ -839,6 +853,8 @@ export const {
   closeThemePicker,
   openShortcutsReferenceModal,
   closeShortcutsReferenceModal,
+  openAcceptTeamHubInviteModal,
+  closeAcceptTeamHubInviteModal,
   openSearchAnythingModal,
   closeSearchAnythingModal,
   setPluginModal
@@ -913,6 +929,12 @@ export const selectShortcutsReferenceModal = (state: RootState): { open: boolean
   state.modals.shortcutsReference;
 
 /**
+ * Returns Team Hub invitation paste modal state when open.
+ */
+export const selectAcceptTeamHubInviteModal = (state: RootState): { open: boolean } | null =>
+  state.modals.acceptTeamHubInvite;
+
+/**
  * Returns global search command palette modal state when open.
  */
 export const selectSearchAnythingModal = (state: RootState): { open: boolean } | null =>
@@ -933,6 +955,7 @@ export const selectHasBlockingModal = (state: RootState): boolean => {
     modals.pluginThemePrompt != null ||
     modals.themePicker != null ||
     modals.shortcutsReference != null ||
+    modals.acceptTeamHubInvite != null ||
     modals.searchAnything != null ||
     modals.pluginModal != null ||
     modals.about.open ||

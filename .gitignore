@@ -5,6 +5,7 @@ dist
 *.db
 .DS_Store
 *.log
+.*-audit.json
 .eslintcache
 *.scratch.txt
 *.scratch.md

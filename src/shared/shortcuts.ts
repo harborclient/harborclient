@@ -13,6 +13,7 @@ export type ShortcutId =
   | 'themes'
   | 'snippets'
   | 'team-hubs'
+  | 'accept-team-hub-invite'
   | 'sharing-keys'
   | 'import'
   | 'undo'
@@ -192,6 +193,13 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'CmdOrCtrl+Shift+H',
     kind: 'action',
     actionId: 'team-hubs'
+  },
+  {
+    id: 'accept-team-hub-invite',
+    label: 'Accept Team Hub Invite',
+    defaultAccelerator: 'CmdOrCtrl+Shift+J',
+    kind: 'action',
+    actionId: 'accept-team-hub-invite'
   },
   {
     id: 'sharing-keys',
