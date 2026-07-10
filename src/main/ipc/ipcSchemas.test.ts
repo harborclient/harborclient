@@ -235,6 +235,8 @@ describe('generalSettings', () => {
     followRedirects: true,
     scrollbarAutoHide: false,
     warnWhenSwitchingThemes: true,
+    warnWhenExitingWithUnsavedChanges: true,
+    warnWhenClosingUnsavedRequests: true,
     warnWhenEditingSnippet: true,
     warnWhenCloningSnippet: true,
     warnWhenClickingReadonlySnippet: true,

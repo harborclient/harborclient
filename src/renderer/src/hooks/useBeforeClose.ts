@@ -11,7 +11,11 @@ import { selectTabs } from '#/renderer/src/store/selectors';
 export function useBeforeClose(): void {
   const dispatch = useAppDispatch();
   const tabs = useAppSelector(selectTabs);
+  const warnWhenExitingWithUnsavedChanges = useAppSelector(
+    (state) => state.settings.general.warnWhenExitingWithUnsavedChanges
+  );
   const tabsRef = useRef(tabs);
+  const warnWhenExitingRef = useRef(warnWhenExitingWithUnsavedChanges);
 
   /**
    * Keeps the latest tabs list available to the before-close handler without resubscribing.
@@ -21,11 +25,18 @@ export function useBeforeClose(): void {
   });
 
   /**
+   * Keeps the latest exit-warning preference available to the before-close handler.
+   */
+  useEffect(() => {
+    warnWhenExitingRef.current = warnWhenExitingWithUnsavedChanges;
+  });
+
+  /**
    * Confirms window close when no tabs are dirty; otherwise shows the quit prompt.
    */
   useEffect(() => {
     const unsubscribe = window.api.onBeforeClose(() => {
-      const dirtyTabs = getDirtyTabs(tabsRef.current);
+      const dirtyTabs = warnWhenExitingRef.current ? getDirtyTabs(tabsRef.current) : [];
       if (dirtyTabs.length > 0) {
         dispatch(setQuitPrompt(dirtyTabs.map((tab) => tab.draft.name)));
         return;

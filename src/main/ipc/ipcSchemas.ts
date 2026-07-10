@@ -249,6 +249,8 @@ export const generalSettings = z.object({
   followRedirects: z.boolean(),
   scrollbarAutoHide: z.boolean(),
   warnWhenSwitchingThemes: z.boolean(),
+  warnWhenExitingWithUnsavedChanges: z.boolean(),
+  warnWhenClosingUnsavedRequests: z.boolean(),
   warnWhenEditingSnippet: z.boolean(),
   warnWhenCloningSnippet: z.boolean(),
   warnWhenClickingReadonlySnippet: z.boolean(),

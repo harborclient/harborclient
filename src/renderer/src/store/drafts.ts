@@ -476,6 +476,31 @@ export function syncDraftUrlWithParams(draft: RequestDraft): RequestDraft {
 }
 
 /**
+ * Resolves the folder id to persist when saving an existing request.
+ *
+ * Prefers the live sidebar cache over the tab draft so a sidebar move is not
+ * overwritten by stale draft state.
+ *
+ * @param draft - Tab draft being saved.
+ * @param collectionId - Target collection id for the save.
+ * @param requestsByCollection - Cached saved requests keyed by collection id.
+ * @returns Folder id to write, or null for collection root.
+ */
+export function resolvePersistFolderId(
+  draft: RequestDraft,
+  collectionId: number,
+  requestsByCollection: Record<number, SavedRequest[]>
+): number | null {
+  if (draft.id == null) {
+    return draft.folder_id ?? null;
+  }
+  const saved = (requestsByCollection[collectionId] ?? []).find(
+    (request) => request.id === draft.id
+  );
+  return saved?.folder_id ?? draft.folder_id ?? null;
+}
+
+/**
  * Converts a saved request from the database into an editable draft.
  *
  * @param req - Saved request to load into the editor.

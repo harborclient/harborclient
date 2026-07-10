@@ -1,9 +1,10 @@
-import { ControlledAccordion, useAccordionProvider } from '@szhsin/react-accordion';
+import { ControlledAccordion } from '@szhsin/react-accordion';
 import type { JSX } from 'react';
 import type { ScriptExecutionEvent, ScriptTestResult, SendResult } from '#/shared/types';
 
 import { formatBytes } from '#/renderer/src/ui/shared/responseFormatUtils';
 import { CollapsibleSection } from './CollapsibleSection';
+import { usePersistedConsoleSectionExpansion } from './usePersistedConsoleSectionExpansion';
 import {
   formatFlowExecutionDetail,
   formatFlowExecutionLabel,
@@ -73,12 +74,7 @@ export function ConsoleDetails({
   executionEvents = [],
   scriptError
 }: Props): JSX.Element {
-  const accordion = useAccordionProvider({
-    allowMultiple: true,
-    transition: true,
-    transitionTimeout: 200,
-    mountOnEnter: true
-  });
+  const { sections, accordion } = usePersistedConsoleSectionExpansion();
   const generalRows: KeyValueRow[] = [
     { label: 'Request URL', value: result.request?.url ?? '-' },
     { label: 'Request Method', value: result.request?.method ?? '-' },
@@ -107,19 +103,19 @@ export function ConsoleDetails({
       )}
 
       <ControlledAccordion providerValue={accordion}>
-        <CollapsibleSection itemKey="general" title="General" initialEntered>
+        <CollapsibleSection itemKey="general" title="General" initialEntered={sections.general}>
           <KeyValueTable rows={generalRows} />
         </CollapsibleSection>
-        <CollapsibleSection itemKey="request" title="Request" initialEntered>
+        <CollapsibleSection itemKey="request" title="Request" initialEntered={sections.request}>
           <KeyValueTable rows={requestHeaderRows} emptyMessage="No headers" />
         </CollapsibleSection>
-        <CollapsibleSection itemKey="response" title="Response" initialEntered>
+        <CollapsibleSection itemKey="response" title="Response" initialEntered={sections.response}>
           <KeyValueTable rows={responseHeaderRows} emptyMessage="No headers" />
         </CollapsibleSection>
-        <CollapsibleSection itemKey="output" title="Output" initialEntered>
+        <CollapsibleSection itemKey="output" title="Output" initialEntered={sections.output}>
           <OutputDetails logs={logs} tests={tests} scriptError={scriptError} />
         </CollapsibleSection>
-        <CollapsibleSection itemKey="trace" title="Trace" initialEntered>
+        <CollapsibleSection itemKey="trace" title="Trace" initialEntered={sections.trace}>
           <TraceDetails executionEvents={executionEvents} />
         </CollapsibleSection>
       </ControlledAccordion>

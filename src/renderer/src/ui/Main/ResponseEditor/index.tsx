@@ -19,14 +19,12 @@ import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import { usePluginResponseTabs } from '#/renderer/src/plugins/pluginHooks';
 import {
   bodyLanguage,
+  buildResponseExport,
   defaultResponseTab,
   formatBody,
   isHtmlResponse,
   isImageResponse,
-  responseContentType,
-  isResponseCopyExportTab,
-  responseTabExportPath,
-  responseTabText
+  responseContentType
 } from '#/renderer/src/ui/shared/responseFormatUtils';
 import { ConsoleDetails } from '#/renderer/src/ui/shared/ConsoleDetails/ConsoleDetails';
 import { ResponseSummary } from './ResponseSummary';
@@ -79,6 +77,12 @@ interface Props {
   onCancel: () => void;
 
   /**
+   * Clears the last send result on the active request tab. Omitted in read-only
+   * embeds such as the collection runner result modal.
+   */
+  onClear?: () => void;
+
+  /**
    * URL of the active request, used to resolve relative assets in HTML preview.
    */
   requestUrl: string;
@@ -96,6 +100,7 @@ export function ResponseEditor({
   executionEvents,
   scriptError,
   onCancel,
+  onClear,
   requestUrl
 }: Props): JSX.Element {
   const pluginTabs = usePluginResponseTabs();
@@ -182,7 +187,8 @@ export function ResponseEditor({
               !noResponsePluginTabs.some((entry) => entry.id === tab)
             ? pluginOnlyTab
             : tab;
-  const canCopyOrExport = response != null && isResponseCopyExportTab(tab);
+  const canCopyOrExport = response != null;
+  const canClear = response != null && onClear != null;
 
   /**
    * Preview and plugin response tabs render iframe or fill-mode plugin surfaces
@@ -194,13 +200,21 @@ export function ResponseEditor({
     pluginTabs.some((entry) => entry.when !== 'noResponse' && entry.id === effectiveTab);
 
   /**
-   * Copies the active tab content to the clipboard.
+   * Copies the full response export payload to the clipboard.
    */
   const handleCopy = async (): Promise<void> => {
-    if (!canCopyOrExport || !response || !isResponseCopyExportTab(tab)) {
+    if (!canCopyOrExport || !response) {
       return;
     }
-    const text = responseTabText(tab, response.body, response.headers, testResults);
+    const payload = buildResponseExport(
+      response,
+      testResults,
+      scriptLogs,
+      executionEvents,
+      scriptError,
+      requestUrl
+    );
+    const text = JSON.stringify(payload, null, 2);
     try {
       await navigator.clipboard.writeText(text);
       toast.success('Copied to clipboard');
@@ -210,16 +224,33 @@ export function ResponseEditor({
   };
 
   /**
-   * Exports the active tab content to a file via a native save dialog.
+   * Clears the last send result and related script output on the active tab.
    */
-  const handleExport = async (): Promise<void> => {
-    if (!canCopyOrExport || !response || !isResponseCopyExportTab(tab)) {
+  const handleClear = (): void => {
+    if (!canClear || !onClear) {
       return;
     }
-    const content = responseTabText(tab, response.body, response.headers, testResults);
-    const defaultPath = responseTabExportPath(tab, response.body, response.headers);
+    onClear();
+  };
+
+  /**
+   * Exports the full response export payload to a file via a native save dialog.
+   */
+  const handleExport = async (): Promise<void> => {
+    if (!canCopyOrExport || !response) {
+      return;
+    }
+    const payload = buildResponseExport(
+      response,
+      testResults,
+      scriptLogs,
+      executionEvents,
+      scriptError,
+      requestUrl
+    );
+    const content = JSON.stringify(payload, null, 2);
     try {
-      const result = await window.api.saveTextFile(content, defaultPath);
+      const result = await window.api.saveTextFile(content, 'response.json');
       if (result.canceled) return;
       toast.success('Response exported');
     } catch {
@@ -430,7 +461,15 @@ export function ResponseEditor({
   return (
     <div className="flex min-h-0 flex-1 flex-col p-3">
       <div className="mb-2 flex items-center border-b border-separator p-3 -mx-3 -mt-2">
-        <ResponseSummary response={response} />
+        <ResponseSummary
+          response={response}
+          className="w-full"
+          onCopy={() => void handleCopy()}
+          onExport={() => void handleExport()}
+          onClear={onClear != null ? handleClear : undefined}
+          canCopyOrExport={canCopyOrExport}
+          canClear={canClear}
+        />
       </div>
 
       {response.error && (
@@ -445,29 +484,8 @@ export function ResponseEditor({
 
       <div className="flex min-h-0 flex-1 flex-col">
         <SegmentedTabsGroup value={effectiveTab} onChange={setTab} ariaLabel="Response view">
-          <div className="mb-2 -mx-3 -mt-2 flex shrink-0 items-center justify-between gap-2 border-b border-separator">
-            <SegmentedTabs tabs={tabs} className="border-none" editable={false} />
-
-            <div className="flex shrink-0 items-center gap-1 mr-2">
-              <Button
-                type="button"
-                variant="toolbar"
-                className="disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={!canCopyOrExport}
-                onClick={() => void handleCopy()}
-              >
-                Copy
-              </Button>
-              <Button
-                type="button"
-                variant="toolbar"
-                className="disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={!canCopyOrExport}
-                onClick={() => void handleExport()}
-              >
-                Export
-              </Button>
-            </div>
+          <div className="mb-2 -mx-3 -mt-2 flex shrink-0 items-center gap-2 border-b border-separator">
+            <SegmentedTabs tabs={tabs} className="border-none" />
           </div>
 
           {usesFillLayout ? (

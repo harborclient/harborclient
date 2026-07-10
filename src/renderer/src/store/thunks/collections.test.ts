@@ -48,6 +48,8 @@ const updateCollectionMock =
   >();
 const moveCollectionMock = vi.fn<(id: number, targetConnectionId: string) => Promise<Collection>>();
 const listRequestsMock = vi.fn<(collectionId: number) => Promise<unknown[]>>();
+const moveRequestMock =
+  vi.fn<(requestId: number, folderId: number | null, index: number) => Promise<void>>();
 
 /**
  * Builds a minimal collection row for listCollections mocks.
@@ -109,7 +111,8 @@ beforeEach(() => {
       getActiveStorageId: getActiveStorageIdMock,
       updateCollection: updateCollectionMock,
       moveCollection: moveCollectionMock,
-      listRequests: listRequestsMock
+      listRequests: listRequestsMock,
+      moveRequest: moveRequestMock
     }
   });
   deleteCollectionMock.mockReset();
@@ -125,6 +128,8 @@ beforeEach(() => {
   moveCollectionMock.mockReset();
   listRequestsMock.mockReset();
   listRequestsMock.mockResolvedValue([]);
+  moveRequestMock.mockReset();
+  moveRequestMock.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -278,5 +283,81 @@ describe('updateCollection', () => {
     const collection = store.getState().collections.collections.find((item) => item.id === 1);
     expect(collection?.connectionId).toBe('conn-b');
     expect(collection?.name).toBe('Original');
+  });
+});
+
+describe('moveRequestToFolder', () => {
+  it('syncs folder_id on open tabs after moving a request in the sidebar', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { openTabWithDraft } = await import('#/renderer/src/store/slices/tabsSlice');
+    const { moveRequestToFolder } = await import('#/renderer/src/store/thunks/collections');
+
+    store.dispatch(
+      openTabWithDraft({
+        id: 5,
+        collection_id: 1,
+        folder_id: 10,
+        name: 'Moved Request',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [],
+        post_request_scripts: [],
+        comment: '',
+        tags: '',
+        auth: defaultAuth()
+      })
+    );
+
+    listRequestsMock.mockResolvedValueOnce([
+      {
+        id: 5,
+        uuid: '',
+        collection_id: 1,
+        folder_id: 20,
+        name: 'Moved Request',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [],
+        post_request_scripts: [],
+        comment: '',
+        tags: '',
+        auth: defaultAuth(),
+        sort_order: 0,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z'
+      }
+    ]);
+
+    await store.dispatch(
+      moveRequestToFolder({
+        collectionId: 1,
+        requestId: 5,
+        folderId: 20,
+        index: 0
+      })
+    );
+
+    expect(moveRequestMock).toHaveBeenCalledWith(5, 20, 0);
+
+    const tab = store
+      .getState()
+      .tabs.tabs.find((entry) => isRequestTab(entry) && entry.draft.id === 5);
+    expect(tab && isRequestTab(tab)).toBe(true);
+    if (tab && isRequestTab(tab)) {
+      expect(tab.draft.folder_id).toBe(20);
+      expect(tab.savedDraft.folder_id).toBe(20);
+    }
   });
 });

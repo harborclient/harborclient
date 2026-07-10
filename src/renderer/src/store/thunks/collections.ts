@@ -28,7 +28,8 @@ import {
 import {
   closeTabsForCollection,
   closeTabsForRequest,
-  openPageTab
+  openPageTab,
+  syncRequestFolderInTabs
 } from '#/renderer/src/store/slices/tabsSlice';
 import { importCollectionRunnerResults } from '#/renderer/src/store/slices/modalsSlice';
 import type { AppDispatch, ThunkApiConfig } from '#/renderer/src/store/redux';
@@ -519,6 +520,7 @@ export const moveRequestToFolder = createAsyncThunk<
 >('collections/moveRequest', async ({ collectionId, requestId, folderId, index }, { dispatch }) => {
   await window.api.moveRequest(requestId, folderId, index);
   await dispatch(refreshRequests(collectionId));
+  dispatch(syncRequestFolderInTabs({ requestId, folderId }));
 });
 
 /**

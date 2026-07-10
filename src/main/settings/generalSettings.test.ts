@@ -214,6 +214,32 @@ describe('generalSettings', () => {
     expect(getGeneralSettings().warnWhenSwitchingThemes).toBe(false);
   });
 
+  it('defaults warnWhenExitingWithUnsavedChanges to true when unset', () => {
+    expect(getGeneralSettings().warnWhenExitingWithUnsavedChanges).toBe(true);
+  });
+
+  it('persists warnWhenExitingWithUnsavedChanges false', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      warnWhenExitingWithUnsavedChanges: false
+    });
+
+    expect(getGeneralSettings().warnWhenExitingWithUnsavedChanges).toBe(false);
+  });
+
+  it('defaults warnWhenClosingUnsavedRequests to true when unset', () => {
+    expect(getGeneralSettings().warnWhenClosingUnsavedRequests).toBe(true);
+  });
+
+  it('persists warnWhenClosingUnsavedRequests false', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      warnWhenClosingUnsavedRequests: false
+    });
+
+    expect(getGeneralSettings().warnWhenClosingUnsavedRequests).toBe(false);
+  });
+
   it('defaults warnWhenClickingReadonlySnippet to true when unset', () => {
     expect(getGeneralSettings().warnWhenClickingReadonlySnippet).toBe(true);
   });

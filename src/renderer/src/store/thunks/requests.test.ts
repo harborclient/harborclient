@@ -162,6 +162,69 @@ describe('saveRequest folder handling', () => {
     expect(input.collection_id).toBe(2);
     expect(input.folder_id).toBeNull();
   });
+
+  it('prefers sidebar folder_id over stale tab draft when saving after a sidebar move', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { setRequestsForCollection } =
+      await import('#/renderer/src/store/slices/collectionsSlice');
+    const { openTabWithDraft } = await import('#/renderer/src/store/slices/tabsSlice');
+    const { saveRequest } = await import('#/renderer/src/store/thunks/requests');
+
+    store.dispatch(
+      openTabWithDraft({
+        id: 5,
+        collection_id: 1,
+        folder_id: 10,
+        name: 'Moved Request',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [],
+        post_request_scripts: [],
+        comment: '',
+        tags: '',
+        auth: defaultAuth()
+      })
+    );
+
+    store.dispatch(
+      setRequestsForCollection({
+        collectionId: 1,
+        requests: [
+          {
+            ...savedFrom({
+              id: 5,
+              collection_id: 1,
+              folder_id: 20,
+              name: 'Moved Request',
+              method: 'GET',
+              url: 'https://example.com',
+              headers: [],
+              params: [],
+              body: '',
+              body_type: 'none',
+              pre_request_script: '',
+              post_request_script: '',
+              comment: '',
+              tags: '',
+              auth: defaultAuth()
+            })
+          }
+        ]
+      })
+    );
+
+    await store.dispatch(saveRequest(1));
+
+    expect(saveRequestMock).toHaveBeenCalledTimes(1);
+    const input = saveRequestMock.mock.calls[0][0];
+    expect(input.folder_id).toBe(20);
+  });
 });
 
 describe('saveRequest script lists', () => {

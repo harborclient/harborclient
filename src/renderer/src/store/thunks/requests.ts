@@ -54,6 +54,7 @@ import {
   isPageTab,
   isRequestTab,
   isTabDirty,
+  resolvePersistFolderId,
   type RequestDraft,
   type RequestTab
 } from '#/renderer/src/store/drafts';
@@ -193,11 +194,16 @@ async function persistRequestTab(
     normalizeScriptRefs(currentDraft.post_request_scripts),
     getState().snippets.snippets
   );
+  const persistFolderId = sameCollection
+    ? shouldUpdate
+      ? resolvePersistFolderId(currentDraft, targetId, state.collections.requestsByCollection)
+      : (currentDraft.folder_id ?? null)
+    : null;
 
   const saved = await window.api.saveRequest({
     id: shouldUpdate ? currentDraft.id : undefined,
     collection_id: targetId,
-    folder_id: sameCollection ? (currentDraft.folder_id ?? null) : null,
+    folder_id: persistFolderId,
     name: currentDraft.name,
     method: currentDraft.method,
     url: currentDraft.url,

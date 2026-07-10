@@ -10,6 +10,7 @@ import {
   toPluginRequestTabContext,
   pluginRequestKey
 } from '#/renderer/src/plugins/pluginContextAdapters';
+import { clearActiveResponse } from '#/renderer/src/plugins/hostRequestCommands';
 import { buildRuntimeVars } from '#/renderer/src/scripting/scriptOrchestration';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
@@ -101,16 +102,19 @@ interface CloseManyPrompt {
  * @param activeTabId - Currently selected tab id.
  * @param collectionSettingsDirty - Whether collection settings have unsaved edits.
  * @param environmentSettingsDirty - Whether environment settings have unsaved edits.
+ * @param folderSettingsDirty - Whether folder settings have unsaved edits.
+ * @param warnWhenClosingUnsavedRequests - Whether request-tab close prompts are enabled.
  */
 function isDirtyForClose(
   tab: Tab,
   activeTabId: string,
   collectionSettingsDirty: boolean,
   environmentSettingsDirty: boolean,
-  folderSettingsDirty: boolean
+  folderSettingsDirty: boolean,
+  warnWhenClosingUnsavedRequests: boolean
 ): boolean {
   if (isRequestTab(tab)) {
-    return isTabDirty(tab);
+    return warnWhenClosingUnsavedRequests && isTabDirty(tab);
   }
 
   if (isPageTab(tab) && tab.tabId === activeTabId) {
@@ -223,6 +227,9 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
       ? environments.find((env) => env.id === activeEnvironmentId)
       : undefined;
   const globalVariables = useAppSelector((state) => state.settings.general.globalVariables);
+  const warnWhenClosingUnsavedRequests = useAppSelector(
+    (state) => state.settings.general.warnWhenClosingUnsavedRequests
+  );
 
   /**
    * Resolves the folder id for the active draft from saved state or draft fields.
@@ -330,7 +337,8 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
         activeTabId,
         collectionSettingsDirty,
         environmentSettingsDirty,
-        folderSettingsDirty
+        folderSettingsDirty,
+        warnWhenClosingUnsavedRequests
       )
     ).length;
 
@@ -354,7 +362,8 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
             activeTabId,
             collectionSettingsDirty,
             environmentSettingsDirty,
-            folderSettingsDirty
+            folderSettingsDirty,
+            warnWhenClosingUnsavedRequests
           )
       )
       .map((tab) => tab.tabId);
@@ -371,7 +380,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
       return;
     }
 
-    if (isRequestTab(tab) && isTabDirty(tab)) {
+    if (isRequestTab(tab) && warnWhenClosingUnsavedRequests && isTabDirty(tab)) {
       setCloseTabPrompt({ tabId, name: tab.draft.name });
       return;
     }
@@ -508,6 +517,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
                     scriptError={scriptError}
                     requestUrl={draft.url}
                     onCancel={() => void dispatch(cancelRequest(activeTabId))}
+                    onClear={clearActiveResponse}
                   />
                 </section>
               ) : null}

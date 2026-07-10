@@ -9,6 +9,8 @@ export type SettingId =
   | 'general.followRedirects'
   | 'general.scrollbarAutoHide'
   | 'general.warnWhenSwitchingThemes'
+  | 'general.warnWhenExitingWithUnsavedChanges'
+  | 'general.warnWhenClosingUnsavedRequests'
   | 'general.logFilePath'
   | 'proxy.enabled'
   | 'proxy.protocol'
@@ -171,6 +173,24 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     description:
       'When enabled, switching appearance themes from the View menu shows a confirmation dialog.',
     keywords: ['theme', 'appearance', 'confirm', 'warning']
+  },
+  {
+    id: 'general.warnWhenExitingWithUnsavedChanges',
+    section: 'general',
+    kind: 'field',
+    label: 'Warn when exiting the app with unsaved changes',
+    description:
+      'When enabled, quitting or closing the app with unsaved request tabs shows a confirmation dialog.',
+    keywords: ['quit', 'exit', 'close', 'unsaved', 'warning', 'confirm']
+  },
+  {
+    id: 'general.warnWhenClosingUnsavedRequests',
+    section: 'general',
+    kind: 'field',
+    label: 'Warn when closing unsaved requests',
+    description:
+      'When enabled, closing a request tab with unsaved edits shows a confirmation dialog.',
+    keywords: ['tab', 'close', 'request', 'unsaved', 'warning', 'confirm']
   },
   {
     id: 'general.logFilePath',

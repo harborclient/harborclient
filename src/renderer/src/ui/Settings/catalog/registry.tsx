@@ -18,6 +18,8 @@ import { GeneralFollowRedirectsField } from '../fields/GeneralFollowRedirectsFie
 import { GeneralLogFilePathField } from '../fields/GeneralLogFilePathField';
 import { GeneralScrollbarAutoHideField } from '../fields/GeneralScrollbarAutoHideField';
 import { GeneralWarnWhenSwitchingThemesField } from '../fields/GeneralWarnWhenSwitchingThemesField';
+import { GeneralWarnWhenExitingWithUnsavedChangesField } from '../fields/GeneralWarnWhenExitingWithUnsavedChangesField';
+import { GeneralWarnWhenClosingUnsavedRequestsField } from '../fields/GeneralWarnWhenClosingUnsavedRequestsField';
 import { GeneralMaxResponseSizeField } from '../fields/GeneralMaxResponseSizeField';
 import { GeneralRequestTimeoutField } from '../fields/GeneralRequestTimeoutField';
 import { GeneralScriptTimeoutField } from '../fields/GeneralScriptTimeoutField';
@@ -57,6 +59,8 @@ export const SETTINGS_FIELD_REGISTRY: Partial<Record<FieldSettingId, ComponentTy
   'general.followRedirects': GeneralFollowRedirectsField,
   'general.scrollbarAutoHide': GeneralScrollbarAutoHideField,
   'general.warnWhenSwitchingThemes': GeneralWarnWhenSwitchingThemesField,
+  'general.warnWhenExitingWithUnsavedChanges': GeneralWarnWhenExitingWithUnsavedChangesField,
+  'general.warnWhenClosingUnsavedRequests': GeneralWarnWhenClosingUnsavedRequestsField,
   'general.logFilePath': GeneralLogFilePathField,
   'proxy.enabled': ProxyEnabledField,
   'proxy.protocol': ProxyProtocolField,

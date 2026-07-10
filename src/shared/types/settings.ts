@@ -192,6 +192,16 @@ export interface GeneralSettings {
   warnWhenSwitchingThemes: boolean;
 
   /**
+   * When true, quitting or closing the app with unsaved request tabs shows a confirmation dialog.
+   */
+  warnWhenExitingWithUnsavedChanges: boolean;
+
+  /**
+   * When true, closing a request tab with unsaved edits shows a confirmation dialog.
+   */
+  warnWhenClosingUnsavedRequests: boolean;
+
+  /**
    * When true, editing a linked snippet in the request script list shows a confirmation dialog.
    */
   warnWhenEditingSnippet: boolean;

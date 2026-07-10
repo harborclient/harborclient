@@ -302,6 +302,22 @@ const tabsSlice = createSlice({
       }
     },
     /**
+     * Updates folder placement on every open tab editing the given saved request.
+     */
+    syncRequestFolderInTabs(
+      state,
+      action: PayloadAction<{ requestId: number; folderId: number | null }>
+    ) {
+      const { requestId, folderId } = action.payload;
+      for (const tab of state.tabs) {
+        if (!isRequestTab(tab) || tab.draft.id !== requestId) {
+          continue;
+        }
+        tab.draft.folder_id = folderId;
+        tab.savedDraft.folder_id = folderId;
+      }
+    },
+    /**
      * Replaces all open tabs after async hydration from electron-store.
      */
     restoreTabsState(state, action: PayloadAction<{ tabs: Tab[]; activeTabId: string }>) {
@@ -351,6 +367,7 @@ export const {
   closeTabsForCollection,
   closeTabsForEnvironment,
   updateActiveTabDraftAfterSave,
+  syncRequestFolderInTabs,
   restoreTabsState,
   closePageTabsByKeys,
   reorderTabs

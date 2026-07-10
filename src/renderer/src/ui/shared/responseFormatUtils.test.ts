@@ -1,64 +1,206 @@
 import { describe, expect, it } from 'vitest';
+import type { SendResult } from '#/shared/types';
 import {
   buildHtmlPreviewSrcdoc,
+  buildResponseExport,
   defaultResponseTab,
-  formatHeadersText,
-  formatTestsText,
   isHtmlResponse,
   isImageResponse,
-  isResponseCopyExportTab,
-  resolveHtmlPreviewBaseUrl,
-  responseBodyExportPath,
-  responseTabExportPath,
-  responseTabText
+  resolveHtmlPreviewBaseUrl
 } from '#/renderer/src/ui/shared/responseFormatUtils';
 
-describe('responseFormatUtils copy/export helpers', () => {
-  it('isResponseCopyExportTab allows only Body and Headers tabs', () => {
-    expect(isResponseCopyExportTab('body')).toBe(true);
-    expect(isResponseCopyExportTab('headers')).toBe(true);
-    expect(isResponseCopyExportTab('timing')).toBe(false);
-    expect(isResponseCopyExportTab('console')).toBe(false);
-    expect(isResponseCopyExportTab('preview')).toBe(false);
-    expect(isResponseCopyExportTab('tests')).toBe(false);
-  });
+const sampleResponse = (overrides: Partial<SendResult> = {}): SendResult => ({
+  status: 200,
+  statusText: 'OK',
+  headers: { 'content-type': 'application/json' },
+  body: '{"foo":"bar"}',
+  timeMs: 333,
+  sizeBytes: 124554,
+  ...overrides
+});
 
-  it('formatHeadersText serializes headers as Key: Value lines', () => {
-    expect(formatHeadersText({ 'Content-Type': 'application/json', 'X-Test': '1' })).toBe(
-      'Content-Type: application/json\nX-Test: 1'
+describe('buildResponseExport', () => {
+  it('maps sent request metadata to method, url, and header key/value pairs', () => {
+    const payload = buildResponseExport(
+      sampleResponse({
+        request: {
+          method: 'GET',
+          url: 'https://echo.harborclient.com/get',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: '',
+          bodyType: 'none'
+        }
+      }),
+      [],
+      [],
+      []
     );
-    expect(formatHeadersText({})).toBe('');
+
+    expect(payload.request).toEqual({
+      method: 'GET',
+      url: 'https://echo.harborclient.com/get',
+      headers: [
+        { key: 'Content-Type', value: 'application/json' },
+        { key: 'Accept', value: 'application/json' }
+      ]
+    });
   });
 
-  it('formatTestsText serializes pass and fail results', () => {
+  it('falls back to requestUrl when sent-request metadata is absent', () => {
+    const payload = buildResponseExport(
+      sampleResponse(),
+      [],
+      [],
+      [],
+      undefined,
+      'https://echo.harborclient.com/get'
+    );
+
+    expect(payload.request).toEqual({
+      method: 'GET',
+      url: 'https://echo.harborclient.com/get',
+      headers: []
+    });
+  });
+
+  it('parses JSON bodies and preserves headers and export metadata', () => {
+    const payload = buildResponseExport(
+      sampleResponse({
+        headers: { 'content-type': 'application/json', connection: 'keep-alive' }
+      }),
+      [],
+      [],
+      []
+    );
+
+    expect(payload.harborclientVersion).toBe(1);
+    expect(payload.harborclientExport).toBe('response');
+    expect(payload.body).toEqual({ foo: 'bar' });
+    expect(payload.headers).toEqual({
+      'content-type': 'application/json',
+      connection: 'keep-alive'
+    });
+  });
+
+  it('uses raw string for non-JSON bodies and null for empty bodies', () => {
+    expect(buildResponseExport(sampleResponse({ body: 'plain text' }), [], [], []).body).toBe(
+      'plain text'
+    );
+    expect(buildResponseExport(sampleResponse({ body: '' }), [], [], []).body).toBeNull();
+  });
+
+  it('includes full timing values when present', () => {
+    const payload = buildResponseExport(
+      sampleResponse({
+        timeMs: 333,
+        sizeBytes: 124554,
+        timing: {
+          stalledMs: 1,
+          connectMs: 2,
+          requestSentMs: 3,
+          waitingMs: 300,
+          downloadMs: 27
+        }
+      }),
+      [],
+      [],
+      []
+    );
+
+    expect(payload.timing).toEqual({
+      totalTime: 333,
+      size: 124554,
+      stalledMs: 1,
+      connectMs: 2,
+      requestSentMs: 3,
+      waitingMs: 300,
+      downloadMs: 27
+    });
+  });
+
+  it('omits undefined timing phases from the export', () => {
     expect(
-      formatTestsText([
-        { name: 'status is 200', passed: true, scriptName: 'Request post-request script 1' },
-        { name: 'has token', passed: false, error: 'missing field' }
-      ])
-    ).toBe('PASS [Request post-request script 1] status is 200\nFAIL has token — missing field');
+      buildResponseExport(sampleResponse({ timing: { waitingMs: 50 } }), [], [], []).timing
+    ).toEqual({
+      totalTime: 333,
+      size: 124554,
+      waitingMs: 50
+    });
   });
 
-  it('responseBodyExportPath chooses json or txt extension', () => {
-    expect(responseBodyExportPath('{"a":1}', { 'content-type': 'application/json' })).toBe(
-      'response.json'
+  it('assembles console output, formatted traces, and script errors', () => {
+    const payload = buildResponseExport(
+      sampleResponse(),
+      [],
+      ['Hello world', 'second line'],
+      [
+        {
+          type: 'variable',
+          scope: 'request',
+          action: 'set',
+          key: 'token',
+          value: 'abc',
+          scriptName: 'Request post-request script 1'
+        },
+        {
+          type: 'flow',
+          action: 'set-next-request',
+          nextRequest: 'Login',
+          scriptName: 'Request post-request script 2'
+        }
+      ],
+      'TypeError: boom'
     );
-    expect(responseBodyExportPath('plain text')).toBe('response.txt');
+
+    expect(payload.console).toEqual({
+      output: 'Hello world\nsecond line',
+      traces: [
+        '[Request post-request script 1] Set Request variable - token = abc',
+        '[Request post-request script 2] Set next request - Login'
+      ],
+      error: 'TypeError: boom'
+    });
   });
 
-  it('responseTabExportPath returns tab-specific default filenames', () => {
-    expect(responseTabExportPath('body', '{"a":1}', {})).toBe('response.json');
-    expect(responseTabExportPath('headers', '', {})).toBe('response-headers.txt');
-    expect(responseTabExportPath('tests', '', {})).toBe('response-tests.txt');
+  it('omits console.error when no script error is present', () => {
+    expect(buildResponseExport(sampleResponse(), [], [], []).console).toEqual({
+      output: '',
+      traces: []
+    });
+    expect(buildResponseExport(sampleResponse(), [], [], []).console.error).toBeUndefined();
   });
 
-  it('responseTabText returns serialized content for each tab', () => {
-    const headers = { 'Content-Type': 'text/plain' };
-    const tests = [{ name: 'ok', passed: true }];
+  it('maps test results to label, success, and output with failure suffix', () => {
+    const payload = buildResponseExport(
+      sampleResponse(),
+      [
+        {
+          name: 'status is 200',
+          passed: true,
+          scriptName: 'Request post-request script 1'
+        },
+        {
+          name: 'has token',
+          passed: false,
+          error: 'missing field'
+        }
+      ],
+      [],
+      []
+    );
 
-    expect(responseTabText('body', '{"a":1}', headers, tests)).toBe('{\n  "a": 1\n}');
-    expect(responseTabText('headers', '', headers, tests)).toBe('Content-Type: text/plain');
-    expect(responseTabText('tests', '', headers, tests)).toBe('PASS ok');
+    expect(payload.tests).toEqual([
+      {
+        label: 'Request post-request script 1',
+        success: true,
+        output: 'status is 200'
+      },
+      {
+        label: 'Script',
+        success: false,
+        output: 'has token — missing field'
+      }
+    ]);
   });
 });
 

@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import type { SendResult } from '#/shared/types';
+import { Button } from '@harborclient/sdk/components';
 import { focusableReadonlyClass, statusDotClass } from '#/renderer/src/ui/shared/classes';
 import { formatBytes } from '#/renderer/src/ui/shared/responseFormatUtils';
 
@@ -13,6 +14,31 @@ interface Props {
    * Optional class names for the summary row container.
    */
   className?: string;
+
+  /**
+   * Copies the full response export payload to the clipboard.
+   */
+  onCopy?: () => void;
+
+  /**
+   * Exports the full response export payload to a file.
+   */
+  onExport?: () => void;
+
+  /**
+   * Clears the last send result on the active request tab.
+   */
+  onClear?: () => void;
+
+  /**
+   * Whether copy and export actions are enabled.
+   */
+  canCopyOrExport?: boolean;
+
+  /**
+   * Whether the clear action is enabled.
+   */
+  canClear?: boolean;
 }
 
 /**
@@ -51,34 +77,82 @@ function responseSizeLabel(sizeBytes: number): string {
 /**
  * Compact HTTP status, timing, and size summary shared by the response editor and runner.
  */
-export function ResponseSummary({ response, className }: Props): JSX.Element {
+export function ResponseSummary({
+  response,
+  className,
+  onCopy,
+  onExport,
+  onClear,
+  canCopyOrExport = true,
+  canClear = true
+}: Props): JSX.Element {
+  const showActions = onCopy != null && onExport != null;
+
   return (
-    <div className={`flex items-center gap-3 text-[14px] ${className ?? ''}`}>
-      <span
-        tabIndex={0}
-        aria-label={responseStatusLabel(response)}
-        className={`inline-flex items-center gap-1.5 font-medium text-text ${focusableReadonlyClass}`}
-      >
+    <div
+      className={`flex w-full items-center justify-between gap-3 text-[14px] ${className ?? ''}`}
+    >
+      <div className="flex items-center gap-3">
         <span
-          className={`inline-block h-2 w-2 shrink-0 rounded-full ${statusDotClass(response.status)}`}
-          aria-hidden="true"
-        />
-        {response.error ? 'Error' : `${response.status} ${response.statusText}`}
-      </span>
-      <span
-        tabIndex={0}
-        aria-label={responseTimeLabel(response.timeMs)}
-        className={`text-muted ${focusableReadonlyClass}`}
-      >
-        {response.timeMs} ms
-      </span>
-      <span
-        tabIndex={0}
-        aria-label={responseSizeLabel(response.sizeBytes)}
-        className={`text-muted ${focusableReadonlyClass}`}
-      >
-        {formatBytes(response.sizeBytes)}
-      </span>
+          tabIndex={0}
+          aria-label={responseStatusLabel(response)}
+          className={`inline-flex items-center gap-1.5 font-medium text-text ${focusableReadonlyClass}`}
+        >
+          <span
+            className={`inline-block h-2 w-2 shrink-0 rounded-full ${statusDotClass(response.status)}`}
+            aria-hidden="true"
+          />
+          {response.error ? 'Error' : `${response.status} ${response.statusText}`}
+        </span>
+        <span
+          tabIndex={0}
+          aria-label={responseTimeLabel(response.timeMs)}
+          className={`text-muted ${focusableReadonlyClass}`}
+        >
+          {response.timeMs} ms
+        </span>
+        <span
+          tabIndex={0}
+          aria-label={responseSizeLabel(response.sizeBytes)}
+          className={`text-muted ${focusableReadonlyClass}`}
+        >
+          {formatBytes(response.sizeBytes)}
+        </span>
+      </div>
+
+      {showActions && (
+        <div className="flex shrink-0 items-center gap-1">
+          <Button
+            type="button"
+            variant="toolbar"
+            className="disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!canCopyOrExport}
+            onClick={onCopy}
+          >
+            Copy
+          </Button>
+          <Button
+            type="button"
+            variant="toolbar"
+            className="disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!canCopyOrExport}
+            onClick={onExport}
+          >
+            Export
+          </Button>
+          {onClear != null && (
+            <Button
+              type="button"
+              variant="toolbar"
+              className="disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={!canClear}
+              onClick={onClear}
+            >
+              Clear
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

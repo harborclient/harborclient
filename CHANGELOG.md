@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(settings): add new warning preferences for unsaved changes and requests. (`6cd5c4f`)
+
 ## 2.0.14 - 2026-07-10
 
 - feat(folders): enhance folder management with new properties and update functionality. (`54727ce`)

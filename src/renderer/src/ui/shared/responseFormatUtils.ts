@@ -1,4 +1,10 @@
-import type { BodyType, ScriptTestResult } from '#/shared/types';
+import type { BodyType, ScriptExecutionEvent, ScriptTestResult, SendResult } from '#/shared/types';
+import {
+  formatFlowExecutionDetail,
+  formatFlowExecutionLabel,
+  formatVariableExecutionDetail,
+  formatVariableExecutionLabel
+} from '#/renderer/src/ui/shared/ConsoleDetails/executionEventLabels';
 
 /**
  * Pretty-prints JSON response bodies when valid; returns raw text otherwise.
@@ -303,93 +309,242 @@ export function formatBytes(bytes: number): string {
 }
 
 /**
- * Serializes response headers as HTTP-style `Key: Value` lines for copy/export.
- *
- * @param headers - Response headers map.
- * @returns Header lines joined by newlines, or an empty string when none.
+ * One request header entry in response exports.
  */
-export function formatHeadersText(headers: Record<string, string>): string {
-  return Object.entries(headers)
-    .map(([key, value]) => `${key}: ${value}`)
-    .join('\n');
+export interface ResponseExportHeader {
+  key: string;
+  value: string;
 }
 
 /**
- * Serializes script test results as plain text for copy/export.
+ * Outgoing request metadata included in response exports.
+ */
+export interface ResponseExportRequest {
+  method: string;
+  url: string;
+  headers: ResponseExportHeader[];
+}
+
+/**
+ * Parsed or raw response body included in response exports.
+ */
+export type ResponseExportBody = unknown;
+
+/**
+ * Timing summary exported with the full response payload.
+ */
+export interface ResponseExportTiming {
+  totalTime: number;
+  size: number;
+  stalledMs?: number;
+  connectMs?: number;
+  requestSentMs?: number;
+  waitingMs?: number;
+  downloadMs?: number;
+}
+
+/**
+ * Console output and trace data included in response exports.
+ */
+export interface ResponseExportConsole {
+  output: string;
+  traces: string[];
+  error?: string;
+}
+
+/**
+ * One hc.test result in response exports.
+ */
+export interface ResponseExportTest {
+  label: string;
+  success: boolean;
+  output: string;
+}
+
+/**
+ * HarborClient portable export payload for a full HTTP response.
+ */
+export interface ResponseExportPayload {
+  harborclientVersion: 1;
+  harborclientExport: 'response';
+  request: ResponseExportRequest;
+  body: ResponseExportBody;
+  headers: Record<string, string>;
+  timing: ResponseExportTiming;
+  console: ResponseExportConsole;
+  tests: ResponseExportTest[];
+}
+
+/**
+ * Serializes one script execution event as a trace line matching the console Trace panel.
+ *
+ * @param event - Variable or flow-control activity from script execution.
+ * @returns Human-readable trace string for export.
+ */
+function formatExecutionEventTrace(event: ScriptExecutionEvent): string {
+  const label =
+    event.type === 'variable'
+      ? formatVariableExecutionLabel(event)
+      : formatFlowExecutionLabel(event);
+  const detail =
+    event.type === 'variable'
+      ? formatVariableExecutionDetail(event)
+      : formatFlowExecutionDetail(event);
+
+  const parts: string[] = [];
+  if (event.scriptName) {
+    parts.push(`[${event.scriptName}]`);
+  }
+  parts.push(label);
+  if (detail) {
+    parts.push('-', detail);
+  }
+  return parts.join(' ');
+}
+
+/**
+ * Chooses the export body value from raw response text.
+ *
+ * @param body - Raw response body string.
+ * @returns Parsed JSON when valid, raw string otherwise, or null when empty.
+ */
+function responseExportBody(body: string): ResponseExportBody {
+  if (!body) {
+    return null;
+  }
+  if (isValidJson(body)) {
+    return JSON.parse(body) as unknown;
+  }
+  return body;
+}
+
+/**
+ * Builds request metadata for full response export.
+ *
+ * @param response - Last send result to export.
+ * @param requestUrlFallback - Draft URL used when sent-request metadata is absent.
+ * @returns Outgoing request method, URL, and headers as key/value pairs.
+ */
+function buildResponseExportRequest(
+  response: SendResult,
+  requestUrlFallback?: string
+): ResponseExportRequest {
+  if (response.request) {
+    return {
+      method: response.request.method,
+      url: response.request.url,
+      headers: Object.entries(response.request.headers).map(([key, value]) => ({ key, value }))
+    };
+  }
+
+  return {
+    method: 'GET',
+    url: requestUrlFallback ?? '',
+    headers: []
+  };
+}
+
+/**
+ * Builds timing object for full response export.
+ *
+ * @param response - Last send result.
+ * @returns Timing summary with total time, size, and optional phase breakdown.
+ */
+function buildResponseExportTiming(response: SendResult): ResponseExportTiming {
+  const timing: ResponseExportTiming = {
+    totalTime: response.timeMs,
+    size: response.sizeBytes
+  };
+
+  if (response.timing?.stalledMs != null) {
+    timing.stalledMs = response.timing.stalledMs;
+  }
+  if (response.timing?.connectMs != null) {
+    timing.connectMs = response.timing.connectMs;
+  }
+  if (response.timing?.requestSentMs != null) {
+    timing.requestSentMs = response.timing.requestSentMs;
+  }
+  if (response.timing?.waitingMs != null) {
+    timing.waitingMs = response.timing.waitingMs;
+  }
+  if (response.timing?.downloadMs != null) {
+    timing.downloadMs = response.timing.downloadMs;
+  }
+
+  return timing;
+}
+
+/**
+ * Builds the console section for full response export.
+ *
+ * @param scriptLogs - Console output captured from scripts.
+ * @param executionEvents - Ordered variable and flow-control activity.
+ * @param scriptError - Aggregated script runtime errors, when present.
+ * @returns Console output, formatted traces, and optional error text.
+ */
+function buildResponseExportConsole(
+  scriptLogs: readonly string[],
+  executionEvents: readonly ScriptExecutionEvent[],
+  scriptError?: string
+): ResponseExportConsole {
+  const console: ResponseExportConsole = {
+    output: scriptLogs.join('\n'),
+    traces: executionEvents.map(formatExecutionEventTrace)
+  };
+  if (scriptError) {
+    console.error = scriptError;
+  }
+  return console;
+}
+
+/**
+ * Maps hc.test results into response export test entries.
  *
  * @param testResults - hc.test results from the last send.
- * @returns One line per test (`PASS [script] name` or `FAIL [script] name — error`).
+ * @returns Export test rows with label, success, and output text.
  */
-export function formatTestsText(testResults: ScriptTestResult[]): string {
-  return testResults
-    .map((test) => {
-      const scriptPrefix = test.scriptName ? `[${test.scriptName}] ` : '';
-      return test.passed
-        ? `PASS ${scriptPrefix}${test.name}`
-        : `FAIL ${scriptPrefix}${test.name}${test.error ? ` — ${test.error}` : ''}`;
-    })
-    .join('\n');
+function buildResponseExportTests(testResults: readonly ScriptTestResult[]): ResponseExportTest[] {
+  return testResults.map((test) => {
+    let output = test.name;
+    if (!test.passed && test.error) {
+      output += ` — ${test.error}`;
+    }
+    return {
+      label: test.scriptName ?? 'Script',
+      success: test.passed,
+      output
+    };
+  });
 }
 
 /**
- * Response viewer tabs whose content can be copied or exported.
- */
-export type ResponseCopyExportTab = 'body' | 'headers';
-
-/**
- * Returns whether the selected response tab supports copy/export actions.
+ * Assembles a HarborClient response export payload from send result and script output.
  *
- * @param tab - Selected response viewer tab id.
- */
-export function isResponseCopyExportTab(tab: string): tab is ResponseCopyExportTab {
-  return tab === 'body' || tab === 'headers';
-}
-
-/**
- * Default save-dialog filename for a response body export.
- *
- * @param body - Raw response body string.
- * @param headers - Response headers map.
- * @returns `response.json` when JSON, otherwise `response.txt`.
- */
-export function responseBodyExportPath(body: string, headers?: Record<string, string>): string {
-  return bodyLanguage(body, headers) === 'json' ? 'response.json' : 'response.txt';
-}
-
-/**
- * Default save-dialog filename for the active response viewer tab.
- *
- * @param tab - Active Body, Headers, or Tests tab.
- * @param body - Raw response body string.
- * @param headers - Response headers map.
- * @returns Suggested filename for the native save dialog.
- */
-export function responseTabExportPath(
-  tab: 'body' | 'headers' | 'tests',
-  body: string,
-  headers: Record<string, string>
-): string {
-  if (tab === 'headers') return 'response-headers.txt';
-  if (tab === 'tests') return 'response-tests.txt';
-  return responseBodyExportPath(body, headers);
-}
-
-/**
- * Text content for the active response viewer tab (copy/export).
- *
- * @param tab - Active Body, Headers, or Tests tab.
- * @param body - Raw response body string.
- * @param headers - Response headers map.
+ * @param response - Last send result to export.
  * @param testResults - hc.test results from the last send.
- * @returns Serialized tab content.
+ * @param scriptLogs - Console output captured from scripts.
+ * @param executionEvents - Ordered variable and flow-control activity.
+ * @param scriptError - Aggregated script runtime errors, when present.
+ * @param requestUrlFallback - Draft URL used when sent-request metadata is absent.
+ * @returns Full response export object for copy or file export.
  */
-export function responseTabText(
-  tab: 'body' | 'headers' | 'tests',
-  body: string,
-  headers: Record<string, string>,
-  testResults: ScriptTestResult[]
-): string {
-  if (tab === 'headers') return formatHeadersText(headers);
-  if (tab === 'tests') return formatTestsText(testResults);
-  return formatBody(body);
+export function buildResponseExport(
+  response: SendResult,
+  testResults: readonly ScriptTestResult[],
+  scriptLogs: readonly string[],
+  executionEvents: readonly ScriptExecutionEvent[],
+  scriptError?: string,
+  requestUrlFallback?: string
+): ResponseExportPayload {
+  return {
+    harborclientVersion: 1,
+    harborclientExport: 'response',
+    request: buildResponseExportRequest(response, requestUrlFallback),
+    body: responseExportBody(response.body),
+    headers: response.headers,
+    timing: buildResponseExportTiming(response),
+    console: buildResponseExportConsole(scriptLogs, executionEvents, scriptError),
+    tests: buildResponseExportTests(testResults)
+  };
 }
