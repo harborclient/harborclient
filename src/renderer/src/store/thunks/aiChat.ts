@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { DEFAULT_CHAT_TITLE } from '#/shared/ai/chatTitle';
-import { getAvailableModels } from '#/shared/ai/models';
+import { getAvailableModels, resolveAiModelOption } from '#/shared/ai/models';
 import { buildAiScriptSelectionContextMessage } from '#/shared/ai/scriptReferences';
 import type { AiSettings, ChatMessage, ChatStepMessage, ChatSummary } from '#/shared/types';
 import { executeAiToolCall } from '#/renderer/src/store/ai/aiToolExecutor';
@@ -219,6 +219,43 @@ export const createNewChat = createAsyncThunk<void, AiSettings, ThunkApiConfig>(
     await dispatch(refreshChatHistory());
   }
 );
+
+/**
+ * Creates a new chat tab and immediately sends the first user message.
+ */
+export const startNewChatWithPrompt = createAsyncThunk<
+  void,
+  { aiSettings: AiSettings; prompt: string },
+  ThunkApiConfig
+>('aiChat/startNewChatWithPrompt', async ({ aiSettings, prompt }, { dispatch, getState }) => {
+  const trimmed = prompt.trim();
+  if (!trimmed) {
+    return;
+  }
+
+  await dispatch(createNewChat(aiSettings));
+
+  const chatId = getState().aiChat.activeChatId;
+  if (chatId == null) {
+    return;
+  }
+
+  const modelId = getState().aiChat.selectedModelByChat[chatId];
+  if (!modelId) {
+    return;
+  }
+
+  const modelOption = resolveAiModelOption(modelId, aiSettings, getState().aiChat.hubModelGroups);
+
+  await dispatch(
+    sendChatMessage({
+      chatId,
+      content: trimmed,
+      model: modelId,
+      hubId: modelOption?.source === 'hub' ? modelOption.hubId : undefined
+    })
+  );
+});
 
 /**
  * Opens an existing chat from history.

@@ -11,11 +11,16 @@ import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { FaIcon, Input, Modal } from '@harborclient/sdk/components';
 import {
   groupUnifiedSearchHits,
+  isSlashCommandQuery,
+  matchSlashCommandSuggestions,
+  resolveSlashCommand,
   SEARCH_DOMAIN_LABELS,
   searchAll,
   sidebarRequestBreadcrumb,
+  type ResolvedSlashCommand,
   type SearchDomain,
   type SidebarSearchInput,
+  type SlashCommandDefinition,
   type UnifiedSearchHit
 } from '#/shared/search';
 import {
@@ -25,15 +30,19 @@ import {
   faPalette,
   faPaperPlane,
   faPuzzlePiece,
-  faTerminal
+  faTerminal,
+  faWandMagicSparkles
 } from '#/renderer/src/fontawesome';
+import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
 import { useActivateSearchHit } from '#/renderer/src/search/activateSearchHit';
 import { useSearchIndexes } from '#/renderer/src/search/useSearchIndexes';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
 import {
   closeSearchAnythingModal,
   selectSearchAnythingModal
 } from '#/renderer/src/store/slices/modalsSlice';
+import { startNewChatWithPrompt } from '#/renderer/src/store/thunks/aiChat';
 import { BreadcrumbPrefix } from '#/renderer/src/ui/Main/RequestEditor/Editor/BreadcrumbPrefix';
 import { METHOD_CLASSES } from '#/renderer/src/ui/shared/classes';
 
@@ -222,16 +231,159 @@ function SearchResultGroup({
   );
 }
 
+interface SlashCommandSuggestionsProps {
+  /** Matching slash commands for the current query prefix. */
+  suggestions: SlashCommandDefinition[];
+  /** Index of the keyboard-highlighted suggestion row. */
+  activeIndex: number;
+  /** Fills the input with a selected command keyword. */
+  onSelect: (keyword: string) => void;
+  /** Updates keyboard highlight when the pointer hovers a row. */
+  onHighlight: (index: number) => void;
+}
+
+/**
+ * Renders slash command suggestions while the user is still typing a keyword.
+ */
+function SlashCommandSuggestions({
+  suggestions,
+  activeIndex,
+  onSelect,
+  onHighlight
+}: SlashCommandSuggestionsProps): JSX.Element {
+  return (
+    <div className="mb-2 min-w-0">
+      <div className="mb-1 flex items-center gap-2 bg-sidebar-section px-2 py-1">
+        <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+          <FaIcon icon={faTerminal} className="h-3 w-3 text-muted" aria-hidden />
+        </span>
+        <h2 className="m-0 text-[14px] font-medium uppercase tracking-wide text-muted">Commands</h2>
+      </div>
+      <ul className="m-0 min-w-0 list-none p-0" role="listbox" aria-label="Commands">
+        {suggestions.map((suggestion, index) => {
+          const isActive = index === activeIndex;
+
+          return (
+            <li
+              key={suggestion.id}
+              role="presentation"
+              className="min-w-0"
+              onMouseEnter={() => onHighlight(index)}
+            >
+              <button
+                type="button"
+                role="option"
+                id={`search-anything-suggestion-${index}`}
+                aria-current={isActive ? 'true' : undefined}
+                aria-label={`${suggestion.label}, ${suggestion.description}`}
+                className={searchResultRowClass(isActive)}
+                onClick={() => onSelect(suggestion.keyword)}
+              >
+                <span className="flex min-w-0 w-full items-start gap-2">
+                  <FaIcon
+                    icon={faWandMagicSparkles}
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted"
+                    aria-hidden
+                  />
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="truncate text-[16px]">{suggestion.label}</span>
+                    <span className="truncate text-[14px] text-muted">
+                      {suggestion.description}
+                    </span>
+                  </span>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+interface ArmedSlashCommandProps {
+  /** Fully resolved slash command and argument preview. */
+  resolved: ResolvedSlashCommand;
+}
+
+/**
+ * Renders the armed slash command row shown once a command keyword is fully matched.
+ */
+function ArmedSlashCommand({ resolved }: ArmedSlashCommandProps): JSX.Element {
+  const preview = resolved.argument.length > 0 ? resolved.argument : 'Type your question…';
+
+  return (
+    <div className="mb-2 min-w-0">
+      <div className="mb-1 flex items-center gap-2 bg-sidebar-section px-2 py-1">
+        <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+          <FaIcon icon={faTerminal} className="h-3 w-3 text-muted" aria-hidden />
+        </span>
+        <h2 className="m-0 text-[14px] font-medium uppercase tracking-wide text-muted">Commands</h2>
+      </div>
+      <ul className="m-0 min-w-0 list-none p-0" role="listbox" aria-label="Commands">
+        <li role="presentation" className="min-w-0">
+          <div
+            id="search-anything-command-armed"
+            role="option"
+            aria-current="true"
+            aria-label={`${resolved.command.label}, ${preview}`}
+            className={searchResultRowClass(true)}
+          >
+            <span className="flex min-w-0 w-full items-start gap-2">
+              <FaIcon
+                icon={faWandMagicSparkles}
+                className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted"
+                aria-hidden
+              />
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="truncate text-[16px]">{resolved.command.label}</span>
+                <span
+                  className={`truncate text-[14px] ${resolved.argument.length > 0 ? 'text-text' : 'text-muted'}`}
+                >
+                  {preview}
+                </span>
+              </span>
+            </span>
+          </div>
+        </li>
+      </ul>
+      <p className="px-2 py-1 text-[14px] text-muted" role="status">
+        Press Enter to start a new chat.
+      </p>
+    </div>
+  );
+}
+
 /**
  * Modal body for the global command palette with debounced unified search.
  */
 function SearchAnythingModalBody({ onClose }: ModalBodyProps): JSX.Element {
+  const dispatch = useAppDispatch();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { searchContext, sidebarInput } = useSearchIndexes();
   const activateHit = useActivateSearchHit();
+  const { aiSettings, aiAvailable } = useAiAvailability();
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
+  const [commandError, setCommandError] = useState<string | null>(null);
+  const slashMode = isSlashCommandQuery(query);
+  const suggestions = useMemo(
+    () => (slashMode ? matchSlashCommandSuggestions(query) : []),
+    [query, slashMode]
+  );
+  const resolvedCommand = useMemo(
+    () => (slashMode ? resolveSlashCommand(query) : null),
+    [query, slashMode]
+  );
+
+  /**
+   * Updates the query and clears any slash-command validation error from a prior submit attempt.
+   */
+  const handleQueryChange = useCallback((nextQuery: string): void => {
+    setCommandError(null);
+    setQuery(nextQuery);
+  }, []);
 
   /**
    * Debounces query updates and resets keyboard highlight before running unified search.
@@ -249,10 +401,13 @@ function SearchAnythingModalBody({ onClose }: ModalBodyProps): JSX.Element {
   /**
    * Unified search hits capped for the command palette dropdown.
    */
-  const hits = useMemo(
-    () => searchAll(debouncedQuery, searchContext),
-    [debouncedQuery, searchContext]
-  );
+  const hits = useMemo(() => {
+    if (slashMode) {
+      return [];
+    }
+
+    return searchAll(debouncedQuery, searchContext);
+  }, [debouncedQuery, searchContext, slashMode]);
 
   /**
    * Hits grouped by domain for section headings.
@@ -290,10 +445,78 @@ function SearchAnythingModalBody({ onClose }: ModalBodyProps): JSX.Element {
   );
 
   /**
-   * Handles keyboard navigation within the result list.
+   * Fills the input with a selected slash command keyword and returns focus to the field.
+   */
+  const handleSelectSuggestion = useCallback(
+    (keyword: string): void => {
+      handleQueryChange(`/${keyword} `);
+      searchInputRef.current?.focus();
+    },
+    [handleQueryChange]
+  );
+
+  /**
+   * Opens the AI sidebar, creates a new chat, and submits the resolved slash command prompt.
+   */
+  const handleSubmitCommand = useCallback(async (): Promise<void> => {
+    if (resolvedCommand == null) {
+      return;
+    }
+
+    if (!aiAvailable) {
+      setCommandError('Configure an AI provider in Settings before using /ask.');
+      return;
+    }
+
+    if (resolvedCommand.argument.trim().length === 0) {
+      setCommandError('Type a question after /ask.');
+      return;
+    }
+
+    onClose();
+    dispatch(setShowAiSidebar(true));
+    await dispatch(
+      startNewChatWithPrompt({
+        aiSettings,
+        prompt: resolvedCommand.argument
+      })
+    );
+  }, [aiAvailable, aiSettings, dispatch, onClose, resolvedCommand]);
+
+  /**
+   * Handles keyboard navigation within search results and slash command rows.
    */
   const handleInputKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
+      if (slashMode) {
+        if (resolvedCommand != null) {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            void handleSubmitCommand();
+          }
+          return;
+        }
+
+        if (suggestions.length === 0) {
+          return;
+        }
+
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          setActiveIndex((current) => (current + 1) % suggestions.length);
+        } else if (event.key === 'ArrowUp') {
+          event.preventDefault();
+          setActiveIndex((current) => (current - 1 + suggestions.length) % suggestions.length);
+        } else if (event.key === 'Enter') {
+          event.preventDefault();
+          const suggestion = suggestions[activeIndex];
+          if (suggestion != null) {
+            handleSelectSuggestion(suggestion.keyword);
+          }
+        }
+        return;
+      }
+
       if (hits.length === 0) {
         return;
       }
@@ -311,8 +534,29 @@ function SearchAnythingModalBody({ onClose }: ModalBodyProps): JSX.Element {
         }
       }
     },
-    [activeIndex, handleActivate, hits]
+    [
+      activeIndex,
+      handleActivate,
+      handleSelectSuggestion,
+      handleSubmitCommand,
+      hits,
+      resolvedCommand,
+      slashMode,
+      suggestions
+    ]
   );
+
+  const hasSlashSuggestions = slashMode && resolvedCommand == null && suggestions.length > 0;
+  const hasSlashArmedCommand = slashMode && resolvedCommand != null;
+  const hasSearchResults = !slashMode && hits.length > 0;
+  const showNoSearchResults = !slashMode && debouncedQuery.trim().length > 0 && hits.length === 0;
+  const activeDescendantId = hasSlashArmedCommand
+    ? 'search-anything-command-armed'
+    : hasSlashSuggestions
+      ? `search-anything-suggestion-${activeIndex}`
+      : hasSearchResults
+        ? `search-anything-result-${activeIndex}`
+        : undefined;
 
   return (
     <Modal
@@ -329,16 +573,14 @@ function SearchAnythingModalBody({ onClose }: ModalBodyProps): JSX.Element {
           ref={searchInputRef}
           id={SEARCH_INPUT_ID}
           type="search"
-          placeholder="Search collections, requests, settings, plugins, themes…"
+          placeholder="Search collections, requests, settings… · Type / for commands"
           value={query}
           className="w-full"
           autoComplete="off"
           aria-controls="search-anything-results"
-          aria-expanded={hits.length > 0}
-          aria-activedescendant={
-            hits.length > 0 ? `search-anything-result-${activeIndex}` : undefined
-          }
-          onChange={(event) => setQuery(event.target.value)}
+          aria-expanded={hasSlashSuggestions || hasSlashArmedCommand || hasSearchResults}
+          aria-activedescendant={activeDescendantId}
+          onChange={(event) => handleQueryChange(event.target.value)}
           onKeyDown={handleInputKeyDown}
         />
 
@@ -349,7 +591,32 @@ function SearchAnythingModalBody({ onClose }: ModalBodyProps): JSX.Element {
           aria-live="polite"
           aria-label="Search results"
         >
-          {debouncedQuery.trim().length > 0 && hits.length === 0 ? (
+          {commandError ? (
+            <p className="px-2 py-1.5 text-[14px] text-danger" role="alert">
+              {commandError}
+            </p>
+          ) : null}
+
+          {hasSlashArmedCommand && resolvedCommand != null ? (
+            <ArmedSlashCommand resolved={resolvedCommand} />
+          ) : null}
+
+          {hasSlashSuggestions ? (
+            <SlashCommandSuggestions
+              suggestions={suggestions}
+              activeIndex={activeIndex}
+              onSelect={handleSelectSuggestion}
+              onHighlight={setActiveIndex}
+            />
+          ) : null}
+
+          {slashMode && resolvedCommand == null && suggestions.length === 0 ? (
+            <p className="px-2 py-1.5 text-[14px] text-muted" role="status">
+              No matching commands.
+            </p>
+          ) : null}
+
+          {showNoSearchResults ? (
             <p className="px-2 py-1.5 text-[14px] text-muted" role="status">
               No results match your search.
             </p>

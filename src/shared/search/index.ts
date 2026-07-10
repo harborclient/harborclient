@@ -8,3 +8,4 @@ export * from '#/shared/search/installedPlugins';
 export * from '#/shared/search/pagesCatalog';
 export * from '#/shared/search/snippets';
 export * from '#/shared/search/unified';
+export * from '#/shared/search/slashCommands';

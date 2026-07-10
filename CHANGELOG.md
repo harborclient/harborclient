@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(aiChat): add startNewChatWithPrompt thunk for initiating chats with user prompts. (`1019fb8`)
 - fix: update references to HarborClient in comments and code. (`6997b96`)
 
 ## 2.0.16 - 2026-07-10
