@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.0.14 - 2026-07-10
+
 - feat(folders): enhance folder management with new properties and update functionality. (`54727ce`)
 - feat(logging): integrate Winston for file logging with daily rotation. (`b2324e1`)
 - feat(getting-started): implement Getting Started feature with documentation and UI integration. (`266123a`)
