@@ -1,4 +1,5 @@
 import type {
+  RegisteredAction,
   RegisteredCollectionSettingsTab,
   RegisteredContextMenuItem,
   RegisteredFooterPanel,
@@ -36,6 +37,7 @@ interface MutableRegistryState {
   requestToolbarActions: RegisteredRequestToolbarAction[];
   scriptEditorActions: RegisteredScriptEditorAction[];
   contextMenuItems: RegisteredContextMenuItem[];
+  actions: RegisteredAction[];
 }
 
 interface CachedRegistrySnapshot {
@@ -54,6 +56,7 @@ interface CachedRegistrySnapshot {
   requestToolbarActions: RegisteredRequestToolbarAction[];
   scriptEditorActions: RegisteredScriptEditorAction[];
   contextMenuItems: RegisteredContextMenuItem[];
+  actions: RegisteredAction[];
 }
 
 const state: MutableRegistryState = {
@@ -71,7 +74,8 @@ const state: MutableRegistryState = {
   menuItems: [],
   requestToolbarActions: [],
   scriptEditorActions: [],
-  contextMenuItems: []
+  contextMenuItems: [],
+  actions: []
 };
 
 const listeners = new Set<Listener>();
@@ -97,7 +101,8 @@ function emptySnapshot(): CachedRegistrySnapshot {
     menuItems: [],
     requestToolbarActions: [],
     scriptEditorActions: [],
-    contextMenuItems: []
+    contextMenuItems: [],
+    actions: []
   };
 }
 
@@ -140,6 +145,21 @@ function sortMenuItems(entries: RegisteredMenuItem[]): RegisteredMenuItem[] {
       return leftOrder - rightOrder;
     }
     return (left.label ?? left.command).localeCompare(right.label ?? right.command);
+  });
+}
+
+/**
+ * Sorts action menu contributions by namespace then label.
+ *
+ * @param entries - Action menu contributions.
+ */
+function sortActions(entries: RegisteredAction[]): RegisteredAction[] {
+  return [...entries].sort((left, right) => {
+    const namespaceCompare = left.namespace.localeCompare(right.namespace);
+    if (namespaceCompare !== 0) {
+      return namespaceCompare;
+    }
+    return left.label.localeCompare(right.label);
   });
 }
 
@@ -194,7 +214,8 @@ function rebuildCachedSnapshots(): void {
     ),
     contextMenuItems: sortByOrderThenTitle(
       state.contextMenuItems.map((entry) => ({ ...entry, title: entry.title }))
-    )
+    ),
+    actions: sortActions(state.actions)
   };
 }
 
@@ -567,6 +588,29 @@ export function registerContextMenuItemContribution(
 }
 
 /**
+ * Registers an Action menu quick-open contribution.
+ *
+ * @param pluginId - Plugin manifest id.
+ * @param action - Action menu contribution metadata.
+ */
+export function registerActionContribution(
+  pluginId: string,
+  action: Omit<RegisteredAction, 'pluginId'>
+): Disposable {
+  const entry: RegisteredAction = { pluginId, ...action };
+  return registerContribution(
+    state.actions,
+    pluginId,
+    `${action.namespace}:${action.label}`,
+    entry,
+    (existing) =>
+      existing.pluginId === pluginId &&
+      existing.namespace === action.namespace &&
+      existing.label === action.label
+  );
+}
+
+/**
  * Removes one contribution from the registry by kind and manifest id.
  *
  * @param pluginId - Plugin manifest id.
@@ -590,7 +634,8 @@ export function unregisterContribution(
     | 'menuItems'
     | 'requestToolbarActions'
     | 'scriptEditorActions'
-    | 'contextMenuItems',
+    | 'contextMenuItems'
+    | 'actions',
   contributionId: string
 ): void {
   const filter = <T extends { pluginId: string }>(
@@ -692,6 +737,14 @@ export function unregisterContribution(
         (item) => item.pluginId === pluginId && item.id === contributionId
       );
       break;
+    case 'actions': {
+      const [namespace, label] = contributionId.split(':');
+      filter(
+        state.actions,
+        (item) => item.pluginId === pluginId && item.namespace === namespace && item.label === label
+      );
+      break;
+    }
     default:
       break;
   }
@@ -725,6 +778,7 @@ export function clearPluginContributions(pluginId: string): void {
     (item) => item.pluginId !== pluginId
   );
   state.contextMenuItems = state.contextMenuItems.filter((item) => item.pluginId !== pluginId);
+  state.actions = state.actions.filter((item) => item.pluginId !== pluginId);
   emitChange();
 }
 
@@ -751,3 +805,4 @@ export const getRegisteredScriptEditorActions = (): RegisteredScriptEditorAction
   cachedSnapshot.scriptEditorActions;
 export const getRegisteredContextMenuItems = (): RegisteredContextMenuItem[] =>
   cachedSnapshot.contextMenuItems;
+export const getRegisteredActions = (): RegisteredAction[] => cachedSnapshot.actions;

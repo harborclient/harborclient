@@ -59,7 +59,7 @@ export type ShortcutId =
   | 'check-for-updates'
   | 'about'
   | 'shortcuts-reference'
-  | 'search-anything';
+  | 'action-menu';
 
 /**
  * Electron menu role names used by built-in shortcuts.
@@ -511,11 +511,11 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     actionId: 'shortcuts-reference'
   },
   {
-    id: 'search-anything',
-    label: 'Search anything',
+    id: 'action-menu',
+    label: 'Action menu',
     defaultAccelerator: 'CmdOrCtrl+Shift+P',
     kind: 'action',
-    actionId: 'search-anything'
+    actionId: 'action-menu'
   },
   {
     id: 'about',
@@ -549,8 +549,15 @@ export function normalizeShortcutOverrides(raw: unknown): ShortcutOverrides {
     return {};
   }
 
+  const entries = Object.entries(raw);
+  const legacyActionMenu = entries.find(([key]) => key === 'search-anything');
+  const migratedEntries =
+    legacyActionMenu != null && !entries.some(([key]) => key === 'action-menu')
+      ? [...entries, ['action-menu', legacyActionMenu[1]] as const]
+      : entries;
+
   const result: ShortcutOverrides = {};
-  for (const [key, value] of Object.entries(raw)) {
+  for (const [key, value] of migratedEntries) {
     if (!SHORTCUT_DEF_BY_ID.has(key as ShortcutId)) {
       continue;
     }

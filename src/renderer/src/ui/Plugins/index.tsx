@@ -134,7 +134,7 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
   );
 
   /**
-   * Sidebar section queued by Search Anything until the local search field applies it.
+   * Sidebar section queued by Action menu until the local search field applies it.
    */
   const navigationOverride = useMemo((): PluginsSidebarSection | undefined => {
     if (pendingMarketplaceSearch != null) {

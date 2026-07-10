@@ -332,6 +332,16 @@ export interface RegisteredContextMenuItem {
 }
 
 /**
+ * Registered Action menu quick-open contribution.
+ */
+export interface RegisteredAction {
+  pluginId: string;
+  namespace: string;
+  label: string;
+  commandId: string;
+}
+
+/**
  * Registered footer status bar item contribution.
  */
 export interface RegisteredStatusBarItem {

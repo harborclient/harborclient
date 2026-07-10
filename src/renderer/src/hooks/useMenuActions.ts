@@ -7,7 +7,7 @@ import {
   openAboutModal,
   openAcceptTeamHubInviteModal,
   openCollectionModal,
-  openSearchAnythingModal,
+  openActionMenuModal,
   openShortcutsReferenceModal,
   openSyncModal,
   openUpdateModal
@@ -238,8 +238,8 @@ export function useMenuActions(): void {
         case 'shortcuts-reference':
           dispatch(openShortcutsReferenceModal());
           break;
-        case 'search-anything':
-          dispatch(openSearchAnythingModal());
+        case 'action-menu':
+          dispatch(openActionMenuModal());
           break;
         case 'check-for-updates':
           dispatch(openUpdateModal());

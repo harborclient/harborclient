@@ -78,7 +78,7 @@ describe('resolveShortcuts', () => {
     expect(bindings.find((binding) => binding.id === 'shortcuts-reference')?.accelerator).toBe(
       'Alt+Shift+K'
     );
-    expect(bindings.find((binding) => binding.id === 'search-anything')?.accelerator).toBe(
+    expect(bindings.find((binding) => binding.id === 'action-menu')?.accelerator).toBe(
       'CmdOrCtrl+Shift+P'
     );
     expect(bindings.find((binding) => binding.id === 'about')?.accelerator).toBe(

@@ -1,5 +1,5 @@
 /**
- * Stable identifiers for top-level page tabs surfaced in Search Anything.
+ * Stable identifiers for top-level page tabs surfaced in Action menu.
  */
 export type PageId = 'snippets';
 
@@ -18,7 +18,7 @@ export interface PageCatalogEntry {
 }
 
 /**
- * Top-level page tabs indexed by Search Anything.
+ * Top-level page tabs indexed by Action menu.
  */
 export const PAGES_CATALOG: PageCatalogEntry[] = [
   {

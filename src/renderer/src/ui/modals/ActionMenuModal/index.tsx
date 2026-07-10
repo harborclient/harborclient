@@ -10,13 +10,17 @@ import {
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { FaIcon, Input, Modal } from '@harborclient/sdk/components';
 import {
+  actionCommandDisplayLabel,
   groupUnifiedSearchHits,
+  isActionQuery,
   isSlashCommandQuery,
+  matchActionSuggestions,
   matchSlashCommandSuggestions,
   resolveSlashCommand,
   SEARCH_DOMAIN_LABELS,
   searchAll,
   sidebarRequestBreadcrumb,
+  type ActionCommandDefinition,
   type ResolvedSlashCommand,
   type SearchDomain,
   type SidebarSearchInput,
@@ -24,6 +28,7 @@ import {
   type UnifiedSearchHit
 } from '#/shared/search';
 import {
+  faBars,
   faFolder,
   faGear,
   faGlobe,
@@ -35,19 +40,20 @@ import {
 } from '#/renderer/src/fontawesome';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
 import { useActivateSearchHit } from '#/renderer/src/search/activateSearchHit';
+import { useActionCommands } from '#/renderer/src/search/useActionCommands';
 import { useSearchIndexes } from '#/renderer/src/search/useSearchIndexes';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
 import {
-  closeSearchAnythingModal,
-  selectSearchAnythingModal
+  closeActionMenuModal,
+  selectActionMenuModal
 } from '#/renderer/src/store/slices/modalsSlice';
 import { startNewChatWithPrompt } from '#/renderer/src/store/thunks/aiChat';
 import { BreadcrumbPrefix } from '#/renderer/src/ui/Main/RequestEditor/Editor/BreadcrumbPrefix';
 import { METHOD_CLASSES } from '#/renderer/src/ui/shared/classes';
 
-/** Element id for the command palette search field. */
-const SEARCH_INPUT_ID = 'search-anything-input';
+/** Element id for the Action menu search field. */
+const ACTION_MENU_INPUT_ID = 'action-menu-input';
 
 /** Debounce delay before running unified search against warm indexes. */
 const SEARCH_DEBOUNCE_MS = 150;
@@ -115,7 +121,7 @@ function requestSearchResultLabel(
 }
 
 interface ModalBodyProps {
-  /** Dismisses the search anything modal. */
+  /** Dismisses the Action menu modal. */
   onClose: () => void;
 }
 
@@ -187,7 +193,7 @@ function SearchResultGroup({
               <button
                 type="button"
                 role="option"
-                id={`search-anything-result-${flatIndex}`}
+                id={`action-menu-result-${flatIndex}`}
                 aria-current={isActive ? 'true' : undefined}
                 aria-label={rowLabel}
                 className={searchResultRowClass(isActive)}
@@ -273,7 +279,7 @@ function SlashCommandSuggestions({
               <button
                 type="button"
                 role="option"
-                id={`search-anything-suggestion-${index}`}
+                id={`action-menu-suggestion-${index}`}
                 aria-current={isActive ? 'true' : undefined}
                 aria-label={`${suggestion.label}, ${suggestion.description}`}
                 className={searchResultRowClass(isActive)}
@@ -290,6 +296,79 @@ function SlashCommandSuggestions({
                     <span className="truncate text-[14px] text-muted">
                       {suggestion.description}
                     </span>
+                  </span>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+interface ActionSuggestionsProps {
+  /** Matching actions for the current query prefix. */
+  suggestions: ActionCommandDefinition[];
+  /** Index of the keyboard-highlighted suggestion row. */
+  activeIndex: number;
+  /** Runs the selected action. */
+  onSelect: (id: string) => void;
+  /** Updates keyboard highlight when the pointer hovers a row. */
+  onHighlight: (index: number) => void;
+}
+
+/**
+ * Renders Action menu quick-open suggestions while the user filters with `#`.
+ */
+function ActionSuggestions({
+  suggestions,
+  activeIndex,
+  onSelect,
+  onHighlight
+}: ActionSuggestionsProps): JSX.Element {
+  return (
+    <div className="mb-2 min-w-0">
+      <div className="mb-1 flex items-center gap-2 bg-sidebar-section px-2 py-1">
+        <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+          <FaIcon icon={faBars} className="h-3 w-3 text-muted" aria-hidden />
+        </span>
+        <h2 className="m-0 text-[14px] font-medium uppercase tracking-wide text-muted">Actions</h2>
+      </div>
+      <ul className="m-0 min-w-0 list-none p-0" role="listbox" aria-label="Actions">
+        {suggestions.map((suggestion, index) => {
+          const isActive = index === activeIndex;
+          const displayLabel = actionCommandDisplayLabel(suggestion);
+
+          return (
+            <li
+              key={suggestion.id}
+              role="presentation"
+              className="min-w-0"
+              onMouseEnter={() => onHighlight(index)}
+            >
+              <button
+                type="button"
+                role="option"
+                id={`action-menu-action-${index}`}
+                aria-current={isActive ? 'true' : undefined}
+                aria-label={displayLabel}
+                className={searchResultRowClass(isActive)}
+                onClick={() => onSelect(suggestion.id)}
+              >
+                <span className="flex min-w-0 w-full items-start gap-2">
+                  <FaIcon
+                    icon={faBars}
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted"
+                    aria-hidden
+                  />
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="truncate text-[16px]">{displayLabel}</span>
+                    {suggestion.description != null && suggestion.description.length > 0 ? (
+                      <span className="truncate text-[14px] text-muted">
+                        {suggestion.description}
+                      </span>
+                    ) : null}
                   </span>
                 </span>
               </button>
@@ -323,7 +402,7 @@ function ArmedSlashCommand({ resolved }: ArmedSlashCommandProps): JSX.Element {
       <ul className="m-0 min-w-0 list-none p-0" role="listbox" aria-label="Commands">
         <li role="presentation" className="min-w-0">
           <div
-            id="search-anything-command-armed"
+            id="action-menu-command-armed"
             role="option"
             aria-current="true"
             aria-label={`${resolved.command.label}, ${preview}`}
@@ -357,7 +436,7 @@ function ArmedSlashCommand({ resolved }: ArmedSlashCommandProps): JSX.Element {
 /**
  * Modal body for the global command palette with debounced unified search.
  */
-function SearchAnythingModalBody({ onClose }: ModalBodyProps): JSX.Element {
+function ActionMenuModalBody({ onClose }: ModalBodyProps): JSX.Element {
   const dispatch = useAppDispatch();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { searchContext, sidebarInput } = useSearchIndexes();
@@ -367,10 +446,16 @@ function SearchAnythingModalBody({ onClose }: ModalBodyProps): JSX.Element {
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const [commandError, setCommandError] = useState<string | null>(null);
+  const { actions, runAction } = useActionCommands();
   const slashMode = isSlashCommandQuery(query);
+  const actionMode = isActionQuery(query);
   const suggestions = useMemo(
     () => (slashMode ? matchSlashCommandSuggestions(query) : []),
     [query, slashMode]
+  );
+  const actionSuggestions = useMemo(
+    () => (actionMode ? matchActionSuggestions(query, actions) : []),
+    [actionMode, actions, query]
   );
   const resolvedCommand = useMemo(
     () => (slashMode ? resolveSlashCommand(query) : null),
@@ -402,12 +487,12 @@ function SearchAnythingModalBody({ onClose }: ModalBodyProps): JSX.Element {
    * Unified search hits capped for the command palette dropdown.
    */
   const hits = useMemo(() => {
-    if (slashMode) {
+    if (slashMode || actionMode) {
       return [];
     }
 
     return searchAll(debouncedQuery, searchContext);
-  }, [debouncedQuery, searchContext, slashMode]);
+  }, [actionMode, debouncedQuery, searchContext, slashMode]);
 
   /**
    * Hits grouped by domain for section headings.
@@ -488,6 +573,29 @@ function SearchAnythingModalBody({ onClose }: ModalBodyProps): JSX.Element {
    */
   const handleInputKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
+      if (actionMode) {
+        if (actionSuggestions.length === 0) {
+          return;
+        }
+
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          setActiveIndex((current) => (current + 1) % actionSuggestions.length);
+        } else if (event.key === 'ArrowUp') {
+          event.preventDefault();
+          setActiveIndex(
+            (current) => (current - 1 + actionSuggestions.length) % actionSuggestions.length
+          );
+        } else if (event.key === 'Enter') {
+          event.preventDefault();
+          const suggestion = actionSuggestions[activeIndex];
+          if (suggestion != null) {
+            runAction(suggestion.id);
+          }
+        }
+        return;
+      }
+
       if (slashMode) {
         if (resolvedCommand != null) {
           if (event.key === 'Enter') {
@@ -535,57 +643,66 @@ function SearchAnythingModalBody({ onClose }: ModalBodyProps): JSX.Element {
       }
     },
     [
+      actionMode,
+      actionSuggestions,
       activeIndex,
       handleActivate,
       handleSelectSuggestion,
       handleSubmitCommand,
       hits,
       resolvedCommand,
+      runAction,
       slashMode,
       suggestions
     ]
   );
 
+  const hasActionSuggestions = actionMode && actionSuggestions.length > 0;
   const hasSlashSuggestions = slashMode && resolvedCommand == null && suggestions.length > 0;
   const hasSlashArmedCommand = slashMode && resolvedCommand != null;
-  const hasSearchResults = !slashMode && hits.length > 0;
-  const showNoSearchResults = !slashMode && debouncedQuery.trim().length > 0 && hits.length === 0;
-  const activeDescendantId = hasSlashArmedCommand
-    ? 'search-anything-command-armed'
-    : hasSlashSuggestions
-      ? `search-anything-suggestion-${activeIndex}`
-      : hasSearchResults
-        ? `search-anything-result-${activeIndex}`
-        : undefined;
+  const hasSearchResults = !slashMode && !actionMode && hits.length > 0;
+  const showNoSearchResults =
+    !slashMode && !actionMode && debouncedQuery.trim().length > 0 && hits.length === 0;
+  const activeDescendantId = hasActionSuggestions
+    ? `action-menu-action-${activeIndex}`
+    : hasSlashArmedCommand
+      ? 'action-menu-command-armed'
+      : hasSlashSuggestions
+        ? `action-menu-suggestion-${activeIndex}`
+        : hasSearchResults
+          ? `action-menu-result-${activeIndex}`
+          : undefined;
 
   return (
     <Modal
-      label="Search anything"
+      label="Action menu"
       onClose={onClose}
       className="flex w-[min(42rem,calc(100vw-2rem))] max-h-[70vh] flex-col self-start overflow-hidden mt-[12vh]"
       overlayClassName="bg-black/35"
     >
       <div className="flex min-w-0 flex-col gap-2 overflow-hidden p-1">
-        <label htmlFor={SEARCH_INPUT_ID} className="sr-only">
-          Search anything
+        <label htmlFor={ACTION_MENU_INPUT_ID} className="sr-only">
+          Action menu
         </label>
         <Input
           ref={searchInputRef}
-          id={SEARCH_INPUT_ID}
+          id={ACTION_MENU_INPUT_ID}
           type="search"
-          placeholder="Search collections, requests, settings… · Type / for commands"
+          placeholder="Action menu… · Type / for commands · Type # for actions"
           value={query}
           className="w-full"
           autoComplete="off"
-          aria-controls="search-anything-results"
-          aria-expanded={hasSlashSuggestions || hasSlashArmedCommand || hasSearchResults}
+          aria-controls="action-menu-results"
+          aria-expanded={
+            hasActionSuggestions || hasSlashSuggestions || hasSlashArmedCommand || hasSearchResults
+          }
           aria-activedescendant={activeDescendantId}
           onChange={(event) => handleQueryChange(event.target.value)}
           onKeyDown={handleInputKeyDown}
         />
 
         <div
-          id="search-anything-results"
+          id="action-menu-results"
           className="min-w-0 max-h-[min(24rem,50vh)] overflow-x-hidden overflow-y-auto"
           role="region"
           aria-live="polite"
@@ -594,6 +711,21 @@ function SearchAnythingModalBody({ onClose }: ModalBodyProps): JSX.Element {
           {commandError ? (
             <p className="px-2 py-1.5 text-[14px] text-danger" role="alert">
               {commandError}
+            </p>
+          ) : null}
+
+          {hasActionSuggestions ? (
+            <ActionSuggestions
+              suggestions={actionSuggestions}
+              activeIndex={activeIndex}
+              onSelect={runAction}
+              onHighlight={setActiveIndex}
+            />
+          ) : null}
+
+          {actionMode && actionSuggestions.length === 0 ? (
+            <p className="px-2 py-1.5 text-[14px] text-muted" role="status">
+              No matching actions.
             </p>
           ) : null}
 
@@ -643,20 +775,20 @@ function SearchAnythingModalBody({ onClose }: ModalBodyProps): JSX.Element {
 /**
  * Global command palette for searching collections, settings, and plugins.
  */
-export function SearchAnythingModal(): JSX.Element | null {
+export function ActionMenuModal(): JSX.Element | null {
   const dispatch = useAppDispatch();
-  const searchAnything = useAppSelector(selectSearchAnythingModal);
+  const actionMenu = useAppSelector(selectActionMenuModal);
 
   /**
-   * Closes the search anything modal.
+   * Closes the Action menu modal.
    */
   const handleClose = useCallback((): void => {
-    dispatch(closeSearchAnythingModal());
+    dispatch(closeActionMenuModal());
   }, [dispatch]);
 
-  if (searchAnything?.open !== true) {
+  if (actionMenu?.open !== true) {
     return null;
   }
 
-  return <SearchAnythingModalBody key="search-anything" onClose={handleClose} />;
+  return <ActionMenuModalBody key="action-menu" onClose={handleClose} />;
 }

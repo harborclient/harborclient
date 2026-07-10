@@ -15,11 +15,11 @@ import {
   togglePluginFooterPanel
 } from '#/renderer/src/store/slices/navigationSlice';
 import {
-  closeSearchAnythingModal,
+  closeActionMenuModal,
   closeShortcutsReferenceModal,
-  openSearchAnythingModal,
+  openActionMenuModal,
   openShortcutsReferenceModal,
-  selectSearchAnythingModal,
+  selectActionMenuModal,
   selectShortcutsReferenceModal
 } from '#/renderer/src/store/slices/modalsSlice';
 import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
@@ -161,7 +161,7 @@ export function Footer({
   const statusBarItems = usePluginStatusBarItems();
   const activePluginFooterPanelId = useAppSelector(selectActivePluginFooterPanelId);
   const shortcutsReferenceOpen = useAppSelector(selectShortcutsReferenceModal)?.open === true;
-  const searchAnythingOpen = useAppSelector(selectSearchAnythingModal)?.open === true;
+  const actionMenuOpen = useAppSelector(selectActionMenuModal)?.open === true;
   const footerRef = useRef<HTMLElement>(null);
   const leftGroupRef = useRef<HTMLDivElement>(null);
   const rightIconsRef = useRef<HTMLDivElement>(null);
@@ -231,12 +231,12 @@ export function Footer({
     >
       <div className={`${segmentGroup} min-w-0 flex-1`}>
         <FooterIcon
-          onClick={() =>
-            dispatch(searchAnythingOpen ? closeSearchAnythingModal() : openSearchAnythingModal())
-          }
+          onClick={() => dispatch(actionMenuOpen ? closeActionMenuModal() : openActionMenuModal())}
           icon={faMagnifyingGlass}
-          active={searchAnythingOpen}
-          label="search anything"
+          active={actionMenuOpen}
+          label="Action menu"
+          title="Action menu"
+          className="mr-2"
         />
         {leftStatusItems.map((item) => (
           <div key={item.id} className="overflow-hidden px-1" style={{ width: 120, height: 20 }}>

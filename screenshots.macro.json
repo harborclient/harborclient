@@ -301,22 +301,22 @@
     "capture": { "selector": "aside:has(#sidebar-search)" }
   },
   {
-    "filename": "search-anything-empty.png",
-    "menuAction": "search-anything",
-    "steps": [{ "waitFor": { "selector": "#search-anything-input" } }, { "waitFor": { "ms": 500 } }]
+    "filename": "action-menu-empty.png",
+    "menuAction": "action-menu",
+    "steps": [{ "waitFor": { "selector": "#action-menu-input" } }, { "waitFor": { "ms": 500 } }]
   },
   {
-    "filename": "search-anything-results.png",
-    "menuAction": "search-anything",
+    "filename": "action-menu-results.png",
+    "menuAction": "action-menu",
     "steps": [
-      { "waitFor": { "selector": "#search-anything-input" } },
+      { "waitFor": { "selector": "#action-menu-input" } },
       {
         "type": {
-          "into": { "selector": "#search-anything-input" },
+          "into": { "selector": "#action-menu-input" },
           "text": "auth"
         }
       },
-      { "waitFor": { "selector": "#search-anything-results" } },
+      { "waitFor": { "selector": "#action-menu-results" } },
       { "waitFor": { "ms": 500 } }
     ]
   },

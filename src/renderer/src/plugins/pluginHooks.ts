@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 import type {
   RegisteredCollectionSettingsTab,
   RegisteredContextMenuItem,
+  RegisteredAction,
   RegisteredFooterPanel,
   RegisteredMainView,
   RegisteredMenuItem,
@@ -17,6 +18,7 @@ import type {
 } from '#/shared/plugin/types';
 import {
   getRegisteredCollectionSettingsTabs,
+  getRegisteredActions,
   getRegisteredContextMenuItems,
   getRegisteredFooterPanels,
   getRegisteredMainViews,
@@ -149,4 +151,11 @@ export function usePluginScriptEditorActions(
  */
 export function usePluginContextMenuItems(): RegisteredContextMenuItem[] {
   return useSyncExternalStore(subscribePluginRegistry, getRegisteredContextMenuItems, () => []);
+}
+
+/**
+ * Subscribes to plugin Action menu quick-open contributions.
+ */
+export function usePluginActions(): RegisteredAction[] {
+  return useSyncExternalStore(subscribePluginRegistry, getRegisteredActions, () => []);
 }

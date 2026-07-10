@@ -1,4 +1,5 @@
 import type {
+  RegisteredAction,
   RegisteredCollectionSettingsTab,
   RegisteredContextMenuItem,
   RegisteredFooterPanel,
@@ -16,6 +17,7 @@ import type {
   ThemeContribution
 } from '#/shared/plugin/types';
 import {
+  registerActionContribution,
   registerCollectionSettingsTabContribution,
   registerContextMenuItemContribution,
   registerFooterPanelContribution,
@@ -69,7 +71,8 @@ type ContributionKind =
   | 'menuItems'
   | 'requestToolbarActions'
   | 'scriptEditorActions'
-  | 'contextMenuItems';
+  | 'contextMenuItems'
+  | 'actions';
 
 interface ContributionMessage {
   pluginId: string;
@@ -198,6 +201,12 @@ export function applyContributionMessage(message: ContributionMessage): void {
       registerContextMenuItemContribution(
         message.pluginId,
         contribution as Omit<RegisteredContextMenuItem, 'pluginId'>
+      );
+      break;
+    case 'actions':
+      registerActionContribution(
+        message.pluginId,
+        contribution as Omit<RegisteredAction, 'pluginId'>
       );
       break;
     default:

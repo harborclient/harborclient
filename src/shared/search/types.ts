@@ -72,7 +72,7 @@ export interface UnifiedSearchHit {
   collectionId?: number;
   /** Numeric folder id when the hit is scoped to a folder. */
   folderId?: number | null;
-  /** Distinguishes installed vs marketplace plugin/theme hits in Search Anything. */
+  /** Distinguishes installed vs marketplace plugin/theme hits in Action menu. */
   pluginListingSource?: PluginListingSource;
 }
 

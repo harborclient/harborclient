@@ -200,7 +200,7 @@ export interface ModalsState {
   themePicker: { open: boolean } | null;
   shortcutsReference: { open: boolean } | null;
   acceptTeamHubInvite: { open: boolean } | null;
-  searchAnything: { open: boolean } | null;
+  actionMenu: { open: boolean } | null;
 }
 
 const initialState: ModalsState = {
@@ -219,7 +219,7 @@ const initialState: ModalsState = {
   themePicker: null,
   shortcutsReference: null,
   acceptTeamHubInvite: null,
-  searchAnything: null
+  actionMenu: null
 };
 
 const modalsSlice = createSlice({
@@ -782,16 +782,16 @@ const modalsSlice = createSlice({
       state.acceptTeamHubInvite = null;
     },
     /**
-     * Opens the global search command palette modal.
+     * Opens the Action menu modal.
      */
-    openSearchAnythingModal(state) {
-      state.searchAnything = { open: true };
+    openActionMenuModal(state) {
+      state.actionMenu = { open: true };
     },
     /**
-     * Closes the global search command palette modal.
+     * Closes the Action menu modal.
      */
-    closeSearchAnythingModal(state) {
-      state.searchAnything = null;
+    closeActionMenuModal(state) {
+      state.actionMenu = null;
     },
     /**
      * Opens or closes the host plugin modal overlay webview.
@@ -855,8 +855,8 @@ export const {
   closeShortcutsReferenceModal,
   openAcceptTeamHubInviteModal,
   closeAcceptTeamHubInviteModal,
-  openSearchAnythingModal,
-  closeSearchAnythingModal,
+  openActionMenuModal,
+  closeActionMenuModal,
   setPluginModal
 } = modalsSlice.actions;
 
@@ -937,8 +937,8 @@ export const selectAcceptTeamHubInviteModal = (state: RootState): { open: boolea
 /**
  * Returns global search command palette modal state when open.
  */
-export const selectSearchAnythingModal = (state: RootState): { open: boolean } | null =>
-  state.modals.searchAnything;
+export const selectActionMenuModal = (state: RootState): { open: boolean } | null =>
+  state.modals.actionMenu;
 
 /**
  * Returns whether any Redux-backed modal should block overlay Escape navigation.
@@ -956,7 +956,7 @@ export const selectHasBlockingModal = (state: RootState): boolean => {
     modals.themePicker != null ||
     modals.shortcutsReference != null ||
     modals.acceptTeamHubInvite != null ||
-    modals.searchAnything != null ||
+    modals.actionMenu != null ||
     modals.pluginModal != null ||
     modals.about.open ||
     modals.update.open ||

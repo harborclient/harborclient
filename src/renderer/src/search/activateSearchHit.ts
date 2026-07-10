@@ -8,7 +8,7 @@ import { useSearchIndexes } from '#/renderer/src/search/useSearchIndexes';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { setSelectedCollectionId } from '#/renderer/src/store/slices/collectionsSlice';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
-import { closeSearchAnythingModal } from '#/renderer/src/store/slices/modalsSlice';
+import { closeActionMenuModal } from '#/renderer/src/store/slices/modalsSlice';
 import {
   setPendingInstalledSearch,
   setPendingMarketplaceSearch,
@@ -51,7 +51,7 @@ export function useActivateSearchHit(): (hit: UnifiedSearchHit, query: string) =
 
   return useCallback(
     (hit: UnifiedSearchHit, query: string) => {
-      dispatch(closeSearchAnythingModal());
+      dispatch(closeActionMenuModal());
 
       switch (hit.domain) {
         case 'request': {

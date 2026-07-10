@@ -1,5 +1,5 @@
 /**
- * One slash command surfaced in Search Anything command mode.
+ * One slash command surfaced in Action menu command mode.
  */
 export interface SlashCommandDefinition {
   /** Stable command id used for dispatch. */
@@ -13,7 +13,7 @@ export interface SlashCommandDefinition {
 }
 
 /**
- * Slash commands available from the Search Anything command palette.
+ * Slash commands available from the Action menu command palette.
  */
 export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   {
@@ -35,7 +35,7 @@ export interface ResolvedSlashCommand {
 }
 
 /**
- * Returns whether the query should enter Search Anything command mode.
+ * Returns whether the query should enter Action menu command mode.
  *
  * @param query - Raw search input value.
  */

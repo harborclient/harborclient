@@ -15,6 +15,7 @@ import {
 } from '#/shared/plugin/types';
 import type { ThemeSource } from '#/shared/types';
 import {
+  registerActionContribution,
   registerCollectionSettingsTabContribution,
   registerContextMenuItemContribution,
   registerFooterPanelContribution,
@@ -270,6 +271,30 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
       execute: async (id, ...args) => {
         const [ownerId, commandId] = id.includes(':') ? id.split(':', 2) : [pluginId, id];
         await executePluginCommand(ownerId, commandId, ...args);
+      }
+    },
+    actions: {
+      register: (namespace, handlers) => {
+        assertUi();
+        const disposables: Disposable[] = [];
+        for (const [label, handler] of Object.entries(handlers)) {
+          const commandId = `action:${namespace}:${label}`;
+          disposables.push(registerCommand(pluginId, commandId, handler));
+          disposables.push(
+            registerActionContribution(pluginId, {
+              namespace,
+              label,
+              commandId
+            })
+          );
+        }
+        return {
+          dispose: () => {
+            for (const disposable of disposables) {
+              disposable.dispose();
+            }
+          }
+        };
       }
     },
     themes: {

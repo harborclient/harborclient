@@ -86,7 +86,7 @@ import { McpHost } from '#/renderer/src/store/ai/McpHost';
 import { PluginThemePrompt } from '#/renderer/src/plugins/PluginThemePrompt';
 import { ThemePickerModal } from '#/renderer/src/ui/modals/ThemePickerModal';
 import { ShortcutsReferenceModal } from '#/renderer/src/ui/modals/ShortcutsReferenceModal';
-import { SearchAnythingModal } from '#/renderer/src/ui/modals/SearchAnythingModal';
+import { ActionMenuModal } from '#/renderer/src/ui/modals/ActionMenuModal';
 import { TeamHubJoinDeepLinkHost } from '#/renderer/src/ui/TeamHub/TeamHubJoinDeepLinkHost';
 import { AcceptTeamHubInviteModal } from '#/renderer/src/ui/modals/AcceptTeamHubInviteModal';
 import { applyThemeAttribute, subscribeContrastPreferenceChanges } from '#/renderer/src/theme';
@@ -423,7 +423,7 @@ export default function App(): JSX.Element {
             <ConfirmModal />
             <ThemePickerModal />
             <ShortcutsReferenceModal />
-            <SearchAnythingModal />
+            <ActionMenuModal />
             <PluginModalOverlay />
             <AcceptTeamHubInviteModal />
             <TeamHubJoinDeepLinkHost />

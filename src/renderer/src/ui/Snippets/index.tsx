@@ -35,7 +35,7 @@ export function Snippets(): JSX.Element {
   );
 
   /**
-   * Sidebar section queued by Search Anything until the marketplace search field applies it.
+   * Sidebar section queued by Action menu until the marketplace search field applies it.
    */
   const navigationOverride = useMemo((): SnippetsSidebarSection | undefined => {
     if (pendingSnippetMarketplaceSearch != null) {

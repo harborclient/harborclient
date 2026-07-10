@@ -47,7 +47,7 @@ export type MenuActionId =
   | 'about'
   | 'check-for-updates'
   | 'shortcuts-reference'
-  | 'search-anything'
+  | 'action-menu'
   | 'undo'
   | 'redo';
 
