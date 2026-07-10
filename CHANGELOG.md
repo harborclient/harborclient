@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- fix: update references to HarborClient in comments and code. (`6997b96`)
+
 ## 2.0.16 - 2026-07-10
 
 - feat(teamHub): enhance Team Hub invitation and menu functionality. (`e10084c`)

@@ -163,7 +163,7 @@ export interface RunChatCompletionStepOptions {
 }
 
 /**
- * Runs one LLM completion step with the Harbor system prompt and tool definitions attached.
+ * Runs one LLM completion step with the HarborClient system prompt and tool definitions attached.
  *
  * @param input - Model id and conversation messages from the renderer.
  * @param deps - Optional client factory override for tests.

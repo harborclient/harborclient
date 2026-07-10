@@ -11,9 +11,9 @@ import {
 } from '@codemirror/view';
 import {
   AI_SCRIPT_REFERENCE_PATTERN,
+  parseAiScriptReferenceMatch,
   resolveAiScriptReferenceLabel,
-  type AiScriptReferenceValidationContext,
-  type ParsedAiScriptReference
+  type AiScriptReferenceValidationContext
 } from '#/shared/ai/scriptReferences';
 import {
   createScriptReferenceBadgeElement,
@@ -112,72 +112,6 @@ function isScriptReferenceBoundaryAt(doc: EditorView['state']['doc'], index: num
 }
 
 /**
- * Parses one regex match into a structured script reference.
- *
- * @param match - RegExp match for {@link AI_SCRIPT_REFERENCE_PATTERN}.
- * @param start - Document start offset of the match.
- */
-function parseScriptReferenceMatch(
-  match: RegExpExecArray,
-  start: number
-): ParsedAiScriptReference | null {
-  const text = match[0];
-  const requestIdRaw = match[1];
-  const phase = match[2];
-  const scriptIndexRaw = match[3];
-  const selectionStartRaw = match[4];
-  const selectionEndRaw = match[5];
-
-  if (requestIdRaw == null || phase == null || scriptIndexRaw == null) {
-    return null;
-  }
-
-  if (phase !== 'pre' && phase !== 'post') {
-    return null;
-  }
-
-  const scriptIndex = Number(scriptIndexRaw);
-  if (!Number.isInteger(scriptIndex) || scriptIndex < 1) {
-    return null;
-  }
-
-  const requestId =
-    requestIdRaw === 'active'
-      ? 'active'
-      : Number.isFinite(Number(requestIdRaw))
-        ? Number(requestIdRaw)
-        : null;
-
-  if (requestId == null) {
-    return null;
-  }
-
-  let selection: ParsedAiScriptReference['selection'];
-  if (selectionStartRaw != null && selectionEndRaw != null) {
-    const selectionStart = Number(selectionStartRaw);
-    const selectionEnd = Number(selectionEndRaw);
-    if (
-      Number.isInteger(selectionStart) &&
-      Number.isInteger(selectionEnd) &&
-      selectionStart >= 0 &&
-      selectionEnd > selectionStart
-    ) {
-      selection = { start: selectionStart, end: selectionEnd };
-    }
-  }
-
-  return {
-    requestId,
-    phase,
-    scriptIndex,
-    start,
-    end: start + text.length,
-    text,
-    selection
-  };
-}
-
-/**
  * Builds CodeMirror extensions that render valid `@` script references as atomic badges.
  *
  * @param context - Active tab state for semantic validation and name resolution.
@@ -190,7 +124,7 @@ function createScriptReferenceHighlighter(context: AiScriptReferenceValidationCo
         return null;
       }
 
-      const parsed = parseScriptReferenceMatch(match, pos);
+      const parsed = parseAiScriptReferenceMatch(match, pos);
       if (parsed == null) {
         return null;
       }

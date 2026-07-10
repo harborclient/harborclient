@@ -8,6 +8,7 @@ import {
 import {
   AI_SCRIPT_REFERENCE_PATTERN,
   findAiScriptReferenceCandidates,
+  parseAiScriptReferenceMatch,
   resolveAiScriptReferenceLabel,
   type AiScriptReferenceValidationContext,
   type ParsedAiScriptReference
@@ -27,56 +28,7 @@ function parseAnchoredReference(text: string): ParsedAiScriptReference | null {
     return null;
   }
 
-  const requestIdRaw = match[1];
-  const phase = match[2];
-  const scriptIndexRaw = match[3];
-  const selectionStartRaw = match[4];
-  const selectionEndRaw = match[5];
-  if (requestIdRaw == null || phase == null || scriptIndexRaw == null) {
-    return null;
-  }
-  if (phase !== 'pre' && phase !== 'post') {
-    return null;
-  }
-
-  const scriptIndex = Number(scriptIndexRaw);
-  if (!Number.isInteger(scriptIndex) || scriptIndex < 1) {
-    return null;
-  }
-
-  const requestId =
-    requestIdRaw === 'active'
-      ? 'active'
-      : Number.isFinite(Number(requestIdRaw))
-        ? Number(requestIdRaw)
-        : null;
-  if (requestId == null) {
-    return null;
-  }
-
-  let selection: ParsedAiScriptReference['selection'];
-  if (selectionStartRaw != null && selectionEndRaw != null) {
-    const selectionStart = Number(selectionStartRaw);
-    const selectionEnd = Number(selectionEndRaw);
-    if (
-      Number.isInteger(selectionStart) &&
-      Number.isInteger(selectionEnd) &&
-      selectionStart >= 0 &&
-      selectionEnd > selectionStart
-    ) {
-      selection = { start: selectionStart, end: selectionEnd };
-    }
-  }
-
-  return {
-    requestId,
-    phase,
-    scriptIndex,
-    start: 0,
-    end: match[0].length,
-    text: match[0],
-    selection
-  };
+  return parseAiScriptReferenceMatch(match, 0);
 }
 
 /**

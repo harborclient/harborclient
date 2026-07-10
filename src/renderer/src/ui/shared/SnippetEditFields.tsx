@@ -1,12 +1,22 @@
 import { CodeEditor, FieldError, FormGroup, Input, Select } from '@harborclient/sdk/components';
+import type { CodeEditorTextSelection } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import { useEffect, useId } from 'react';
+import { useCallback, useEffect, useId, useMemo } from 'react';
 import { SNIPPET_SCOPE_OPTIONS, type SnippetScope } from '#/shared/snippetScope';
 import { isImportableSnippetName } from '#/shared/snippetImport';
 import { SCRIPT_STAGE_OPTIONS } from '#/shared/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
 import type { SnippetEditDraft } from '#/renderer/src/ui/shared/snippetEditDraft';
 import { providerOptionLabel, useProviders } from '#/renderer/src/hooks/useProviders';
+import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import {
+  selectActiveChatId,
+  setPendingComposerText
+} from '#/renderer/src/store/slices/aiChatSlice';
+import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
+import { createNewChat } from '#/renderer/src/store/thunks/aiChat';
+import { faCopy } from '#/renderer/src/fontawesome';
 
 interface Props {
   /**
@@ -40,6 +50,11 @@ interface Props {
   fillHeight?: boolean;
 
   /**
+   * UUID of the persisted snippet, when editing an existing library entry.
+   */
+  snippetUuid?: string;
+
+  /**
    * Updates the draft fields while editing.
    */
   onChange: (draft: SnippetEditDraft) => void;
@@ -55,8 +70,12 @@ export function SnippetEditFields({
   readOnly = false,
   hideStorageLocation = false,
   fillHeight = false,
+  snippetUuid,
   onChange
 }: Props): JSX.Element {
+  const dispatch = useAppDispatch();
+  const { aiAvailable, aiSettings } = useAiAvailability();
+  const activeChatId = useAppSelector(selectActiveChatId);
   const providerSelectId = useId();
   const {
     providers,
@@ -80,6 +99,50 @@ export function SnippetEditFields({
     }
     onChange({ ...draft, connectionId: primaryProviderId });
   }, [draft, hideStorageLocation, onChange, primaryProviderId, readOnly]);
+
+  /**
+   * Opens the AI sidebar and inserts a snippet reference with the selected source range.
+   *
+   * @param selection - Character offsets into the snippet source.
+   */
+  const handleCopySelectionToChat = useCallback(
+    async (selection: { from: number; to: number }): Promise<void> => {
+      if (snippetUuid == null) {
+        return;
+      }
+
+      dispatch(setShowAiSidebar(true));
+      if (activeChatId == null) {
+        await dispatch(createNewChat(aiSettings));
+      }
+
+      dispatch(setPendingComposerText(`@snippet.${snippetUuid}#${selection.from}.${selection.to}`));
+    },
+    [activeChatId, aiSettings, dispatch, snippetUuid]
+  );
+
+  /**
+   * Selection toolbar actions for the snippet code editor when AI chat is available.
+   */
+  const copyToChatSelectionActions = useMemo(
+    () =>
+      aiAvailable && snippetUuid != null
+        ? [
+            {
+              id: 'copy-to-chat',
+              label: 'Copy to chat',
+              ariaLabel: `Copy selection from ${draft.name} to chat`,
+              icon: faCopy,
+              shortcutHint: 'Ctrl+L',
+              key: 'Ctrl-l',
+              onSelect: (selection: CodeEditorTextSelection): void => {
+                void handleCopySelectionToChat({ from: selection.from, to: selection.to });
+              }
+            }
+          ]
+        : undefined,
+    [aiAvailable, draft.name, handleCopySelectionToChat, snippetUuid]
+  );
 
   return (
     <div className={fillHeight ? 'flex min-h-0 flex-1 flex-col gap-4' : 'flex flex-col gap-4'}>
@@ -176,6 +239,7 @@ export function SnippetEditFields({
           readOnly={readOnly}
           onChange={readOnly ? undefined : (code) => onChange({ ...draft, code })}
           language="javascript"
+          selectionActions={copyToChatSelectionActions}
           minHeight={fillHeight ? '0' : '500px'}
           className={fillHeight ? 'snippet-code-editor' : undefined}
           placeholder="// hc.request.variables.set('token', 'abc');"

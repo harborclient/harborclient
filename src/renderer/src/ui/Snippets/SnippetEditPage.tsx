@@ -104,6 +104,10 @@ export function SnippetEditPage({ page, tabId }: Props): JSX.Element {
 
   const isNew = page.mode === 'new' || page.mode === 'clone' || page.mode === 'import';
   const readOnly = page.readOnly === true;
+  const snippetUuid =
+    page.mode === 'edit' && page.snippetId != null
+      ? snippets.find((entry) => entry.id === page.snippetId)?.uuid
+      : undefined;
   const description = readOnly
     ? 'Read-only preview of a marketplace snippet. Clone it to make an editable copy.'
     : 'Reusable JavaScript used in the pre-request and post-request stages.';
@@ -193,6 +197,7 @@ export function SnippetEditPage({ page, tabId }: Props): JSX.Element {
             saving={saving}
             readOnly={readOnly}
             fillHeight
+            snippetUuid={snippetUuid}
             onChange={setEditedDraft}
           />
         </div>

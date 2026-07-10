@@ -142,6 +142,44 @@ describe('findAiScriptReferenceCandidates', () => {
       })
     ]);
   });
+
+  it('finds standalone snippet references by uuid', () => {
+    const uuid = '550e8400-e29b-41d4-a716-446655440000';
+    expect(findAiScriptReferenceCandidates(`@snippet.${uuid}`)).toEqual([
+      expect.objectContaining({
+        kind: 'snippet',
+        snippetUuid: uuid,
+        text: `@snippet.${uuid}`
+      })
+    ]);
+  });
+
+  it('parses snippet references with selection suffixes', () => {
+    const uuid = '550e8400-e29b-41d4-a716-446655440000';
+    expect(findAiScriptReferenceCandidates(`@snippet.${uuid}#10.42`)).toEqual([
+      expect.objectContaining({
+        kind: 'snippet',
+        snippetUuid: uuid,
+        text: `@snippet.${uuid}#10.42`,
+        selection: { start: 10, end: 42 }
+      })
+    ]);
+  });
+
+  it('finds mixed request-script and snippet references', () => {
+    const uuid = '550e8400-e29b-41d4-a716-446655440000';
+    const matches = findAiScriptReferenceCandidates(`@active.pre.1 and @snippet.${uuid}`);
+    expect(matches).toHaveLength(2);
+    expect(matches[0]).toEqual(
+      expect.objectContaining({ kind: 'request-script', text: '@active.pre.1' })
+    );
+    expect(matches[1]).toEqual(expect.objectContaining({ kind: 'snippet', snippetUuid: uuid }));
+  });
+
+  it('rejects malformed snippet references', () => {
+    expect(findAiScriptReferenceCandidates('@snippet.not-a-uuid')).toEqual([]);
+    expect(findAiScriptReferenceCandidates('@snippet.550e8400')).toEqual([]);
+  });
 });
 
 describe('isValidAiScriptReference', () => {
@@ -175,6 +213,28 @@ describe('isValidAiScriptReference', () => {
     const [candidate] = findAiScriptReferenceCandidates('@active.pre.3');
     expect(candidate).toBeDefined();
     expect(isValidAiScriptReference(candidate!, context({ preScriptCount: 2 }))).toBe(false);
+  });
+
+  it('accepts snippet references when the uuid exists in the library', () => {
+    const uuid = '550e8400-e29b-41d4-a716-446655440000';
+    const [candidate] = findAiScriptReferenceCandidates(`@snippet.${uuid}`);
+    expect(candidate).toBeDefined();
+    expect(
+      isValidAiScriptReference(
+        candidate!,
+        context({
+          hasActiveRequestTab: false,
+          snippets: [snippet({ uuid })]
+        })
+      )
+    ).toBe(true);
+  });
+
+  it('rejects snippet references when the uuid is not in the library', () => {
+    const uuid = '550e8400-e29b-41d4-a716-446655440000';
+    const [candidate] = findAiScriptReferenceCandidates(`@snippet.${uuid}`);
+    expect(candidate).toBeDefined();
+    expect(isValidAiScriptReference(candidate!, context({ snippets: [] }))).toBe(false);
   });
 });
 
@@ -243,6 +303,22 @@ describe('resolveAiScriptReferenceName', () => {
       )
     ).toBeNull();
   });
+
+  it('returns the snippet name for standalone snippet references', () => {
+    const uuid = '550e8400-e29b-41d4-a716-446655440000';
+    const [candidate] = findAiScriptReferenceCandidates(`@snippet.${uuid}`);
+    expect(candidate).toBeDefined();
+
+    expect(
+      resolveAiScriptReferenceName(
+        candidate!,
+        context({
+          hasActiveRequestTab: false,
+          snippets: [snippet({ uuid, name: 'Auth helper' })]
+        })
+      )
+    ).toBe('Auth helper');
+  });
 });
 
 describe('resolveAiScriptReferenceLabel', () => {
@@ -303,6 +379,22 @@ describe('resolveAiScriptReferenceLabel', () => {
         })
       )
     ).toBe('Missing snippet');
+  });
+
+  it('appends line range for standalone snippet references with selections', () => {
+    const uuid = '550e8400-e29b-41d4-a716-446655440000';
+    const [candidate] = findAiScriptReferenceCandidates(`@snippet.${uuid}#6.11`);
+    expect(candidate).toBeDefined();
+
+    expect(
+      resolveAiScriptReferenceLabel(
+        candidate!,
+        context({
+          hasActiveRequestTab: false,
+          snippets: [snippet({ uuid, name: 'Auth helper', code: 'line1\nline2\nline3' })]
+        })
+      )
+    ).toBe('Auth helper (line 2)');
   });
 });
 
@@ -383,7 +475,7 @@ describe('buildAiScriptSelectionContextMessage', () => {
     expect(message).toContain(fullScript);
     expect(message).toContain('Selected text (characters 6–11, line 2):');
     expect(message).toContain('line2');
-    expect(message).toContain('Focus your answer and any script edits on the selected region.');
+    expect(message).toContain('Focus your answer on the selected region.');
     expect(message).toContain('update_request_script');
   });
 
@@ -400,6 +492,29 @@ describe('buildAiScriptSelectionContextMessage', () => {
     expect(message).toContain('line1\nline2');
     expect(message).toContain('of request id 42');
   });
+
+  it('includes snippet source, selection, and no-edit-tool guidance', () => {
+    const uuid = '550e8400-e29b-41d4-a716-446655440000';
+    const snippetCode = 'line1\nline2\nline3';
+    const message = buildAiScriptSelectionContextMessage(
+      `Review @snippet.${uuid}#6.11`,
+      context({
+        hasActiveRequestTab: false,
+        snippets: [snippet({ uuid, name: 'Auth helper', code: snippetCode })]
+      })
+    );
+
+    expect(message).not.toBeNull();
+    expect(message).toContain(`Reference @snippet.${uuid}#6.11`);
+    expect(message).toContain('standalone library snippet "Auth helper"');
+    expect(message).toContain('Full snippet source:');
+    expect(message).toContain(snippetCode);
+    expect(message).toContain('Selected text (characters 6–11, line 2):');
+    expect(message).toContain('line2');
+    expect(message).toContain('cannot be edited via tools');
+    expect(message).toContain('paste back into the snippet editor');
+    expect(message).not.toContain('update_request_script');
+  });
 });
 
 describe('stripAiScriptReferences', () => {
@@ -409,6 +524,11 @@ describe('stripAiScriptReferences', () => {
 
   it('removes selection suffixes with the reference token', () => {
     expect(stripAiScriptReferences('Fix @33.pre.3#10.20 auth')).toBe('Fix auth');
+  });
+
+  it('removes snippet reference tokens', () => {
+    const uuid = '550e8400-e29b-41d4-a716-446655440000';
+    expect(stripAiScriptReferences(`Fix @snippet.${uuid}#10.20 auth`)).toBe('Fix auth');
   });
 
   it('removes multiple script reference tokens', () => {

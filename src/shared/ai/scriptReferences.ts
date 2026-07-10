@@ -1,31 +1,19 @@
 import type { ScriptRef, Snippet } from '#/shared/types';
 
 /**
- * Regex matching `@<request-id>.<pre|post>.<script-index>` script references in chat text,
- * with an optional `#<selection-start>.<selection-end>` suffix for selected code ranges.
+ * Regex matching `@` script references in chat text:
+ * - Request scripts: `@<request-id>.<pre|post>.<script-index>`
+ * - Standalone snippets: `@snippet.<uuid>`
+ *
+ * Both forms accept an optional `#<selection-start>.<selection-end>` suffix.
  */
 export const AI_SCRIPT_REFERENCE_PATTERN =
-  /@(active|\d+)\.(pre|post)\.(\d+)(?:#(\d+)\.(\d+))?(?!\d)/g;
+  /@(?:(active|\d+)\.(pre|post)\.(\d+)|snippet\.([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}))(?:#(\d+)\.(\d+))?(?!\d)/g;
 
 /**
- * A parsed `@` script reference with character offsets in the source text.
+ * Shared fields for every parsed `@` script reference.
  */
-export interface ParsedAiScriptReference {
-  /**
-   * Saved request id from the reference, or the literal `active`.
-   */
-  requestId: number | 'active';
-
-  /**
-   * Script phase: pre-request or post-request.
-   */
-  phase: 'pre' | 'post';
-
-  /**
-   * 1-based index of the script in the phase array.
-   */
-  scriptIndex: number;
-
+interface ParsedAiScriptReferenceBase {
   /**
    * Start offset of the full `@` token in the source text.
    */
@@ -56,6 +44,51 @@ export interface ParsedAiScriptReference {
     end: number;
   };
 }
+
+/**
+ * A parsed `@` reference to a request script row.
+ */
+export interface ParsedRequestScriptReference extends ParsedAiScriptReferenceBase {
+  /**
+   * Discriminator for request-script references.
+   */
+  kind: 'request-script';
+
+  /**
+   * Saved request id from the reference, or the literal `active`.
+   */
+  requestId: number | 'active';
+
+  /**
+   * Script phase: pre-request or post-request.
+   */
+  phase: 'pre' | 'post';
+
+  /**
+   * 1-based index of the script in the phase array.
+   */
+  scriptIndex: number;
+}
+
+/**
+ * A parsed `@` reference to a standalone library snippet.
+ */
+export interface ParsedSnippetReference extends ParsedAiScriptReferenceBase {
+  /**
+   * Discriminator for standalone snippet references.
+   */
+  kind: 'snippet';
+
+  /**
+   * UUID of the snippet in the library.
+   */
+  snippetUuid: string;
+}
+
+/**
+ * A parsed `@` script reference with character offsets in the source text.
+ */
+export type ParsedAiScriptReference = ParsedRequestScriptReference | ParsedSnippetReference;
 
 /**
  * Active request tab state used to decide whether an `@` reference is highlightable.
@@ -133,18 +166,62 @@ function isScriptReferenceBoundary(text: string, index: number): boolean {
 }
 
 /**
+ * Parses selection suffix groups from a regex match.
+ *
+ * @param selectionStartRaw - Captured selection start group.
+ * @param selectionEndRaw - Captured selection end group.
+ */
+function parseSelectionSuffix(
+  selectionStartRaw: string | undefined,
+  selectionEndRaw: string | undefined
+): ParsedAiScriptReference['selection'] {
+  if (selectionStartRaw == null || selectionEndRaw == null) {
+    return undefined;
+  }
+
+  const selectionStart = Number(selectionStartRaw);
+  const selectionEnd = Number(selectionEndRaw);
+  if (
+    Number.isInteger(selectionStart) &&
+    Number.isInteger(selectionEnd) &&
+    selectionStart >= 0 &&
+    selectionEnd > selectionStart
+  ) {
+    return { start: selectionStart, end: selectionEnd };
+  }
+
+  return undefined;
+}
+
+/**
  * Parses one regex match into a structured script reference.
  *
  * @param match - RegExp match for {@link AI_SCRIPT_REFERENCE_PATTERN}.
+ * @param start - Document start offset of the match.
  */
-function parseScriptReferenceMatch(match: RegExpMatchArray): ParsedAiScriptReference | null {
+export function parseAiScriptReferenceMatch(
+  match: RegExpMatchArray,
+  start: number
+): ParsedAiScriptReference | null {
   const text = match[0];
-  const start = match.index ?? 0;
   const requestIdRaw = match[1];
   const phase = match[2];
   const scriptIndexRaw = match[3];
-  const selectionStartRaw = match[4];
-  const selectionEndRaw = match[5];
+  const snippetUuid = match[4];
+  const selectionStartRaw = match[5];
+  const selectionEndRaw = match[6];
+  const selection = parseSelectionSuffix(selectionStartRaw, selectionEndRaw);
+
+  if (snippetUuid != null) {
+    return {
+      kind: 'snippet',
+      snippetUuid,
+      start,
+      end: start + text.length,
+      text,
+      selection
+    };
+  }
 
   if (requestIdRaw == null || phase == null || scriptIndexRaw == null) {
     return null;
@@ -170,21 +247,8 @@ function parseScriptReferenceMatch(match: RegExpMatchArray): ParsedAiScriptRefer
     return null;
   }
 
-  let selection: ParsedAiScriptReference['selection'];
-  if (selectionStartRaw != null && selectionEndRaw != null) {
-    const selectionStart = Number(selectionStartRaw);
-    const selectionEnd = Number(selectionEndRaw);
-    if (
-      Number.isInteger(selectionStart) &&
-      Number.isInteger(selectionEnd) &&
-      selectionStart >= 0 &&
-      selectionEnd > selectionStart
-    ) {
-      selection = { start: selectionStart, end: selectionEnd };
-    }
-  }
-
   return {
+    kind: 'request-script',
     requestId,
     phase,
     scriptIndex,
@@ -210,7 +274,7 @@ export function findAiScriptReferenceCandidates(text: string): ParsedAiScriptRef
       continue;
     }
 
-    const parsed = parseScriptReferenceMatch(match);
+    const parsed = parseAiScriptReferenceMatch(match, start);
     if (parsed) {
       matches.push(parsed);
     }
@@ -240,17 +304,21 @@ export function stripAiScriptReferences(text: string): string {
 }
 
 /**
- * Returns whether a parsed `@` reference resolves against the active request tab.
+ * Returns whether a parsed `@` reference resolves against the active request tab or snippet library.
  *
- * Mirrors `update_request_script` validation in the AI tool executor.
+ * Mirrors `update_request_script` validation in the AI tool executor for request-script kind.
  *
  * @param reference - Parsed `@` script reference.
- * @param context - Active tab script counts and request id.
+ * @param context - Active tab script counts, request id, and snippet library.
  */
 export function isValidAiScriptReference(
   reference: ParsedAiScriptReference,
   context: AiScriptReferenceValidationContext
 ): boolean {
+  if (reference.kind === 'snippet') {
+    return (context.snippets ?? []).some((entry) => entry.uuid === reference.snippetUuid);
+  }
+
   if (!context.hasActiveRequestTab) {
     return false;
   }
@@ -284,11 +352,11 @@ function scriptReferenceDisplayName(script: ScriptRef, snippets: Snippet[]): str
 }
 
 /**
- * Resolves the display name for a valid `@` script reference on the active request tab.
+ * Resolves the display name for a valid `@` script reference.
  *
  * @param reference - Parsed `@` script reference.
  * @param context - Active tab script rows and snippet library.
- * @returns Script name when resolvable, otherwise null.
+ * @returns Script or snippet name when resolvable, otherwise null.
  */
 export function resolveAiScriptReferenceName(
   reference: ParsedAiScriptReference,
@@ -296,6 +364,11 @@ export function resolveAiScriptReferenceName(
 ): string | null {
   if (!isValidAiScriptReference(reference, context)) {
     return null;
+  }
+
+  if (reference.kind === 'snippet') {
+    const snippet = (context.snippets ?? []).find((entry) => entry.uuid === reference.snippetUuid);
+    return snippet?.name ?? null;
   }
 
   const scripts = reference.phase === 'pre' ? context.preScripts : context.postScripts;
@@ -329,6 +402,31 @@ function resolveScriptSourceCode(script: ScriptRef, snippets: Snippet[]): string
   }
 
   return null;
+}
+
+/**
+ * Resolves the JavaScript source for a parsed `@` reference.
+ *
+ * @param reference - Parsed `@` script reference.
+ * @param context - Active tab script rows and snippet library.
+ * @returns Script or snippet source text, or null when unavailable.
+ */
+function resolveReferenceSourceCode(
+  reference: ParsedAiScriptReference,
+  context: AiScriptReferenceValidationContext
+): string | null {
+  if (reference.kind === 'snippet') {
+    const snippet = (context.snippets ?? []).find((entry) => entry.uuid === reference.snippetUuid);
+    return snippet?.code ?? null;
+  }
+
+  const scripts = reference.phase === 'pre' ? context.preScripts : context.postScripts;
+  const script = scripts?.[reference.scriptIndex - 1];
+  if (script == null) {
+    return null;
+  }
+
+  return resolveScriptSourceCode(script, context.snippets ?? []);
 }
 
 /**
@@ -393,17 +491,7 @@ export function resolveAiScriptReferenceLabel(
     return name;
   }
 
-  const scripts = reference.phase === 'pre' ? context.preScripts : context.postScripts;
-  if (scripts == null) {
-    return name;
-  }
-
-  const script = scripts[reference.scriptIndex - 1];
-  if (script == null) {
-    return name;
-  }
-
-  const source = resolveScriptSourceCode(script, context.snippets ?? []);
+  const source = resolveReferenceSourceCode(reference, context);
   if (source == null) {
     return name;
   }
@@ -459,25 +547,34 @@ function formatScriptSelectionContextBlock(
     return null;
   }
 
-  const scripts = reference.phase === 'pre' ? context.preScripts : context.postScripts;
-  const script = scripts?.[reference.scriptIndex - 1];
-  if (script == null) {
-    return null;
-  }
-
-  const source = resolveScriptSourceCode(script, context.snippets ?? []);
+  const source = resolveReferenceSourceCode(reference, context);
   if (source == null) {
     return null;
   }
 
   const name = resolveAiScriptReferenceName(reference, context) ?? 'Unnamed script';
   const clampedSelection = clampScriptSelection(source, reference.selection);
+  const lineSpan = formatScriptSelectionLineSpan(source, clampedSelection);
+
+  if (reference.kind === 'snippet') {
+    return [
+      `Reference ${reference.text} — standalone library snippet "${name}" (not linked to any specific request).`,
+      'Full snippet source:',
+      '```js',
+      source,
+      '```',
+      `Selected text (characters ${clampedSelection.start}–${clampedSelection.end}, ${lineSpan}):`,
+      '```js',
+      clampedSelection.text,
+      '```'
+    ].join('\n');
+  }
+
   const phaseLabel = reference.phase === 'pre' ? 'pre-request' : 'post-request';
   const requestLabel =
     reference.requestId === 'active'
       ? 'of the active request'
       : `of request id ${reference.requestId}`;
-  const lineSpan = formatScriptSelectionLineSpan(source, clampedSelection);
 
   return [
     `Reference ${reference.text} — script "${name}" (${phaseLabel} script ${reference.scriptIndex} ${requestLabel}).`,
@@ -506,7 +603,8 @@ export function buildAiScriptSelectionContextMessage(
   text: string,
   context: AiScriptReferenceValidationContext
 ): string | null {
-  const blocks = findAiScriptReferenceCandidates(text)
+  const candidates = findAiScriptReferenceCandidates(text);
+  const blocks = candidates
     .map((reference) => formatScriptSelectionContextBlock(reference, context))
     .filter((block): block is string => block != null);
 
@@ -516,10 +614,29 @@ export function buildAiScriptSelectionContextMessage(
 
   const header =
     'The user selected part of a script and is asking specifically about the SELECTED TEXT below.';
-  const footer =
-    'Focus your answer and any script edits on the selected region. When editing, use update_request_script with the same phase and scriptIndex from the reference, and respect the #start.end character offsets from the @ tag.';
 
-  return [header, '', ...blocks, '', footer].join('\n');
+  const hasRequestScriptReference = candidates.some(
+    (reference) => reference.kind === 'request-script' && reference.selection != null
+  );
+  const hasSnippetReference = candidates.some(
+    (reference) => reference.kind === 'snippet' && reference.selection != null
+  );
+
+  const footerParts: string[] = ['Focus your answer on the selected region.'];
+
+  if (hasRequestScriptReference) {
+    footerParts.push(
+      'When editing request scripts, use update_request_script with the same phase and scriptIndex from the reference, and respect the #start.end character offsets from the @ tag.'
+    );
+  }
+
+  if (hasSnippetReference) {
+    footerParts.push(
+      'Standalone library snippets referenced with @snippet.<uuid> cannot be edited via tools. Propose replacement code in your reply for the user to paste back into the snippet editor.'
+    );
+  }
+
+  return [header, '', ...blocks, '', footerParts.join(' ')].join('\n');
 }
 
 /**
