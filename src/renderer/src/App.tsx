@@ -89,7 +89,11 @@ import { ShortcutsReferenceModal } from '#/renderer/src/ui/modals/ShortcutsRefer
 import { ActionMenuModal } from '#/renderer/src/ui/modals/ActionMenuModal';
 import { TeamHubJoinDeepLinkHost } from '#/renderer/src/ui/TeamHub/TeamHubJoinDeepLinkHost';
 import { AcceptTeamHubInviteModal } from '#/renderer/src/ui/modals/AcceptTeamHubInviteModal';
-import { applyThemeAttribute, subscribeContrastPreferenceChanges } from '#/renderer/src/theme';
+import {
+  subscribeColorSchemePreferenceChanges,
+  subscribeContrastPreferenceChanges
+} from '#/renderer/src/theme';
+import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
 import { platformClassName } from '#/renderer/src/platform';
 
 /**
@@ -144,19 +148,19 @@ export default function App(): JSX.Element {
   }, [dispatch]);
 
   /**
-   * Applies the high-contrast CSS override on launch and when the OS contrast
-   * preference changes while the user keeps theme set to System.
+   * Applies the persisted theme palette on launch and when OS appearance
+   * preferences change while the user keeps theme set to System.
    */
   useEffect(() => {
     let cancelled = false;
 
     /**
-     * Loads the persisted theme and applies the matching root attribute.
+     * Loads the persisted theme and applies the matching palette.
      */
     const applyFromSettings = (): void => {
       void window.api.getTheme().then((theme) => {
         if (!cancelled) {
-          applyThemeAttribute(theme);
+          void applyThemePreference(theme);
         }
       });
     };
@@ -165,8 +169,20 @@ export default function App(): JSX.Element {
     const unsubscribeContrast = subscribeContrastPreferenceChanges(
       () => window.api.getTheme(),
       (theme) => {
+        if (!cancelled && theme === 'system') {
+          void applyThemePreference(theme);
+        }
+      }
+    );
+    const unsubscribeColorScheme = subscribeColorSchemePreferenceChanges(
+      () => window.api.getTheme(),
+      () => {
         if (!cancelled) {
-          applyThemeAttribute(theme);
+          void window.api.getTheme().then((theme) => {
+            if (theme === 'system') {
+              void applyThemePreference(theme);
+            }
+          });
         }
       }
     );
@@ -174,6 +190,7 @@ export default function App(): JSX.Element {
     return () => {
       cancelled = true;
       unsubscribeContrast();
+      unsubscribeColorScheme();
     };
   }, []);
 

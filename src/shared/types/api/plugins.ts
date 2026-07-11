@@ -285,6 +285,20 @@ export interface ApiPlugins {
     args?: unknown[]
   ) => Promise<void>;
   /**
+   * Invokes one import handler phase in a plugin agent webview.
+   */
+  invokePluginImportHandler: (
+    pluginId: string,
+    registrationId: string,
+    phase: 'canImport' | 'import',
+    file: {
+      name: string;
+      path: string;
+      extension: string;
+      contents: string;
+    }
+  ) => Promise<unknown>;
+  /**
    * Subscribes to contribution registry updates from plugin agent webviews.
    */
   onPluginsContributions: (
@@ -294,6 +308,17 @@ export interface ApiPlugins {
       kind?: string;
       contribution?: Record<string, unknown>;
       contributionId?: string;
+    }) => void
+  ) => () => void;
+  /**
+   * Subscribes to import handler metadata synced from plugin agent webviews.
+   */
+  onPluginsImportHandlers: (
+    callback: (message: {
+      pluginId: string;
+      op: 'register' | 'unregister';
+      registrationId: string;
+      extensions?: string[];
     }) => void
   ) => () => void;
   /**

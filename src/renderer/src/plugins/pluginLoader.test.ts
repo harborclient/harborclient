@@ -156,6 +156,7 @@ beforeEach(() => {
       reportPluginRuntimeError: reportPluginRuntimeErrorMock,
       setPluginEnabled: setPluginEnabledMock,
       getTheme: vi.fn(async () => 'system'),
+      getCustomTheme: vi.fn(async () => null),
       onPluginsAgentReady: vi.fn(() => () => {}),
       onPluginsAgentFailed: vi.fn(() => () => {})
     }

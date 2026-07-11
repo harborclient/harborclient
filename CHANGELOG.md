@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(themes): add built-in themes and enhance theme management. (`678e050`)
+
 ## 2.0.18 - 2026-07-10
 
 - chore: update @harborclient/sdk dependency to version 1.0.63. (`0924aac`)

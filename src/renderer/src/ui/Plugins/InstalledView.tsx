@@ -106,6 +106,11 @@ interface Props {
   onDeleteCustomTheme?: (theme: CustomTheme) => void;
 
   /**
+   * Restores one built-in theme to its packaged canonical palette.
+   */
+  onRestoreBuiltinTheme?: (theme: CustomTheme) => void;
+
+  /**
    * Refreshes the custom theme list after Use/delete actions.
    */
   onCustomThemesChanged?: () => void;
@@ -139,6 +144,7 @@ export function InstalledView({
   activeTheme = 'system',
   onEditCustomTheme,
   onDeleteCustomTheme,
+  onRestoreBuiltinTheme,
   onCustomThemesChanged,
   onUsePluginTheme
 }: Props): JSX.Element {
@@ -216,6 +222,7 @@ export function InstalledView({
                 activeTheme={activeTheme}
                 onEdit={(id) => onEditCustomTheme?.(id)}
                 onDelete={(entry) => onDeleteCustomTheme?.(entry)}
+                onRestore={(entry) => onRestoreBuiltinTheme?.(entry)}
                 onThemesChanged={() => onCustomThemesChanged?.()}
               />
             ))}

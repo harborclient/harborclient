@@ -592,6 +592,7 @@ const pluginEntryKind = z.enum(['renderer', 'main']);
  */
 export const ipcArgSchemas = {
   none: z.tuple([]),
+  appLogVerbose: z.tuple([z.string(), z.record(z.string(), z.unknown()).optional()]),
   name: z.tuple([name]),
   collectionCreate: z.tuple([name, connectionId.optional()]),
   dbId: z.tuple([dbId]),
@@ -614,6 +615,8 @@ export const ipcArgSchemas = {
   menuThemeMenuState: z.tuple([themeSource, z.array(themeMenuOption)]),
   menuCreatorUndoRedo: z.tuple([z.boolean(), z.boolean(), z.boolean()]),
   menuPopupSubmenu: z.tuple([rootMenuLabel, z.number(), z.number()]),
+  menuGetSubmenuSnapshot: z.tuple([rootMenuLabel]),
+  menuActivateSubmenuItem: z.tuple([rootMenuLabel, z.number().int().nonnegative()]),
   chatCreate: z.tuple([chatCreateInput]),
   chatGet: z.tuple([dbId]),
   chatAddMessage: z.tuple([chatAddMessageInput]),
@@ -737,7 +740,7 @@ export const ipcArgSchemas = {
   runResultsSave: z.tuple([z.string().min(1), saveRunResultInputSchema]),
   runResultUuid: z.tuple([z.string().uuid()]),
   requestImport: z.tuple([dbId, nullableFolderId.optional()]),
-  importAuto: z.tuple([dbId.nullable()]),
+  importAuto: z.tuple([dbId.nullable(), z.array(z.string()).optional()]),
   shareCreate: z.tuple([dbId, recipientKid.optional()]),
   openDirectory: z.tuple([z.string()]),
   saveFile: z.tuple([z.string()]),
@@ -844,6 +847,17 @@ export const ipcArgSchemas = {
     })
   ]),
   pluginExecuteAgentCommand: z.tuple([pluginId, z.string().min(1), z.array(z.unknown())]),
+  pluginInvokeImportHandler: z.tuple([
+    pluginId,
+    z.string().min(1),
+    z.enum(['canImport', 'import']),
+    z.object({
+      name: z.string(),
+      path: z.string(),
+      extension: z.string(),
+      contents: z.string()
+    })
+  ]),
   oauthFetchToken: z.tuple([z.string(), oauth2Config, z.boolean()]),
   oauthClearToken: z.tuple([z.string().min(1)]),
   customThemeId: z.tuple([

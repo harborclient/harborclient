@@ -1,6 +1,7 @@
 import type { PluginInfo } from '#/shared/plugin/types';
 import { buildPluginAgentUrl } from '#/shared/plugin/pluginSurface';
 import { clearPluginContributions } from '#/renderer/src/plugins/registry';
+import { clearPluginImportHandlers } from '#/renderer/src/plugins/pluginImportHandlers';
 import { applyPersistedPluginTheme } from '#/renderer/src/plugins/themeRuntime';
 
 /** Tracks hidden agent webviews mounted for enabled plugins. */
@@ -376,6 +377,7 @@ export function getAgentLoadPhaseForTests(pluginId: string): AgentLoadPhase | un
 export async function unloadPlugin(pluginId: string): Promise<void> {
   unmountAgentWebview(pluginId);
   clearPluginContributions(pluginId);
+  clearPluginImportHandlers(pluginId);
   try {
     await window.api.deactivatePluginMain(pluginId);
   } catch {

@@ -17,6 +17,7 @@ import type { PluginPermission } from '#/shared/plugin/types';
 import { toActiveTheme } from '#/shared/plugin/types';
 import type { ThemeSource } from '#/shared/types';
 import { isPluginNetworkAllowed } from '#/main/settings/generalSettings';
+import { logImportVerbose } from '#/main/import/importVerboseLog';
 
 /** Permission required for each broker operation. */
 const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
@@ -55,7 +56,10 @@ const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
   'view.getContext': 'ui',
   'view.reportSize': 'ui',
   'ui.openModal': 'ui',
-  'ui.closeModal': 'ui'
+  'ui.closeModal': 'ui',
+  'imports.registerHandler': 'ui',
+  'imports.unregisterHandler': 'ui',
+  'imports.invokeComplete': 'ui'
 };
 
 /** Host bridge operations that must round-trip a result to the plugin webview. */
@@ -64,11 +68,15 @@ const HOST_BRIDGE_RETURN_OPS = new Set([
   'host.createEnvironmentWithVariables',
   'host.createCollection',
   'host.listCollectionRequests',
-  'host.getCollectionMetadata'
+  'host.getCollectionMetadata',
+  'commands.execute'
 ]);
 
 /** Maximum wait for the host renderer to complete a return-value host bridge call. */
 const HOST_BRIDGE_INVOKE_TIMEOUT_MS = 60_000;
+
+/** Maximum wait for an agent webview to complete an import handler invocation. */
+const AGENT_IMPORT_INVOKE_TIMEOUT_MS = 60_000;
 
 interface PendingHostBridgeInvoke {
   resolve: (value: unknown) => void;
@@ -81,6 +89,27 @@ interface HostBridgeCompleteMessage {
   ok: boolean;
   result?: unknown;
   error?: string;
+}
+
+interface AgentImportInvokeCompleteMessage {
+  requestId: number;
+  ok: boolean;
+  result?: unknown;
+  error?: string;
+}
+
+interface PendingAgentImportInvoke {
+  resolve: (value: unknown) => void;
+  reject: (reason?: unknown) => void;
+  timeout: ReturnType<typeof setTimeout>;
+}
+
+/** Serializable import file forwarded from File → Import. */
+export interface BrokerImportFile {
+  name: string;
+  path: string;
+  extension: string;
+  contents: string;
 }
 
 interface PluginWebviewSession {
@@ -106,7 +135,9 @@ export class PluginUiBroker {
    */
   readonly #viewContextCache = new Map<string, unknown>();
   readonly #pendingHostBridge = new Map<number, PendingHostBridgeInvoke>();
+  readonly #pendingAgentImportInvoke = new Map<number, PendingAgentImportInvoke>();
   #nextHostBridgeRequestId = 1;
+  #nextAgentImportRequestId = 1;
   #mainWindow: (() => BrowserWindow | null) | null = null;
   #getTheme: (() => Promise<ThemeSource>) | null = null;
 
@@ -291,6 +322,62 @@ export class PluginUiBroker {
         return;
       }
     }
+    throw new Error(`Plugin agent is not active: ${pluginId}`);
+  }
+
+  /**
+   * Invokes one registered import handler phase in a plugin agent webview.
+   *
+   * @param pluginId - Target plugin manifest id.
+   * @param registrationId - Handler registration id from the agent webview.
+   * @param phase - Import detection or execution phase.
+   * @param file - Selected import file from File → Import.
+   * @returns `canImport` boolean result or undefined after a successful import.
+   */
+  invokeImportHandler(
+    pluginId: string,
+    registrationId: string,
+    phase: 'canImport' | 'import',
+    file: BrokerImportFile
+  ): Promise<unknown> {
+    for (const [webContentsId, session] of this.#sessions.entries()) {
+      if (session.role !== 'agent' || session.pluginId !== pluginId) {
+        continue;
+      }
+      const target = this.#getWebContentsById(webContentsId);
+      if (!target) {
+        continue;
+      }
+
+      const requestId = this.#nextAgentImportRequestId++;
+      logImportVerbose('broker invokeImportHandler', {
+        pluginId,
+        registrationId,
+        phase,
+        requestId,
+        fileName: file.name,
+        extension: file.extension
+      });
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          this.#pendingAgentImportInvoke.delete(requestId);
+          logImportVerbose('broker invokeImportHandler timeout', {
+            pluginId,
+            registrationId,
+            phase,
+            requestId
+          });
+          reject(new Error(`Plugin import handler invocation timed out: ${phase}`));
+        }, AGENT_IMPORT_INVOKE_TIMEOUT_MS);
+
+        this.#pendingAgentImportInvoke.set(requestId, { resolve, reject, timeout });
+        target.send('plugin-ui:event', {
+          channel: 'imports.invoke',
+          payload: { requestId, registrationId, phase, file }
+        });
+      });
+    }
+
     throw new Error(`Plugin agent is not active: ${pluginId}`);
   }
 
@@ -501,6 +588,47 @@ export class PluginUiBroker {
         this.executeCommand(targetPluginId, commandId, args ?? []);
         return undefined;
       }
+      case 'imports.registerHandler': {
+        const { registrationId, extensions } = payload as {
+          registrationId: string;
+          extensions: string[];
+        };
+        this.#mainWindow?.()?.webContents.send('plugins:importHandlers', {
+          pluginId: session.pluginId,
+          op: 'register',
+          registrationId,
+          extensions
+        });
+        logImportVerbose('broker imports.registerHandler', {
+          pluginId: session.pluginId,
+          registrationId,
+          extensions
+        });
+        return undefined;
+      }
+      case 'imports.unregisterHandler': {
+        const { registrationId } = payload as { registrationId: string };
+        this.#mainWindow?.()?.webContents.send('plugins:importHandlers', {
+          pluginId: session.pluginId,
+          op: 'unregister',
+          registrationId
+        });
+        logImportVerbose('broker imports.unregisterHandler', {
+          pluginId: session.pluginId,
+          registrationId
+        });
+        return undefined;
+      }
+      case 'imports.invokeComplete': {
+        const complete = payload as AgentImportInvokeCompleteMessage;
+        logImportVerbose('broker imports.invokeComplete', {
+          requestId: complete.requestId,
+          ok: complete.ok,
+          error: complete.error
+        });
+        this.#completeAgentImportInvoke(complete);
+        return undefined;
+      }
       case 'ui.showToast':
       case 'ui.openModal':
       case 'ui.closeModal':
@@ -509,8 +637,7 @@ export class PluginUiBroker {
       case 'host.sendRequest':
       case 'host.updateEnvironmentVariables':
       case 'host.logRequestToConsole':
-      case 'host.clearResponse':
-      case 'commands.execute': {
+      case 'host.clearResponse': {
         this.#mainWindow?.()?.webContents.send('plugins:hostBridge', {
           pluginId: session.pluginId,
           op,
@@ -602,6 +729,37 @@ export class PluginUiBroker {
    */
   completeHostBridgeInvokeForTests(message: HostBridgeCompleteMessage): void {
     this.#completeHostBridgeInvoke(message);
+  }
+
+  /**
+   * Resolves or rejects a pending agent import invoke when the agent webview replies.
+   *
+   * @param message - Completion payload from the agent webview bridge.
+   */
+  #completeAgentImportInvoke(message: AgentImportInvokeCompleteMessage): void {
+    const pending = this.#pendingAgentImportInvoke.get(message.requestId);
+    if (!pending) {
+      return;
+    }
+
+    clearTimeout(pending.timeout);
+    this.#pendingAgentImportInvoke.delete(message.requestId);
+
+    if (message.ok) {
+      pending.resolve(message.result);
+      return;
+    }
+
+    pending.reject(new Error(message.error ?? 'Plugin import handler invocation failed.'));
+  }
+
+  /**
+   * Completes a pending agent import invoke — exposed for unit tests.
+   *
+   * @param message - Completion payload matching {@link AgentImportInvokeCompleteMessage}.
+   */
+  completeAgentImportInvokeForTests(message: AgentImportInvokeCompleteMessage): void {
+    this.#completeAgentImportInvoke(message);
   }
 
   /**

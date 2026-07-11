@@ -448,6 +448,31 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
   };
 
   /**
+   * Restores one built-in theme to its packaged canonical palette.
+   *
+   * @param theme - Built-in theme to restore.
+   */
+  const handleRestoreBuiltinTheme = async (theme: CustomTheme): Promise<void> => {
+    const confirmed = await showConfirm(dispatch, {
+      title: 'Restore built-in theme?',
+      message: `Restore "${theme.title}" to its original colors? Your edits will be replaced.`,
+      confirmLabel: 'Restore',
+      cancelLabel: 'Cancel',
+      variant: 'danger'
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    await window.api.restoreBuiltinTheme(theme.id);
+    const active = await window.api.getTheme();
+    if (active === theme.id) {
+      await applyThemePreference(theme.id);
+    }
+    await loadCustomThemes();
+  };
+
+  /**
    * Uninstalls one custom theme after confirmation and reverts the active theme when needed.
    *
    * @param theme - Custom theme to uninstall.
@@ -512,6 +537,9 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
             onEditCustomTheme={kind === 'themes' ? handleEditCustomTheme : undefined}
             onDeleteCustomTheme={
               kind === 'themes' ? (theme) => void handleDeleteCustomTheme(theme) : undefined
+            }
+            onRestoreBuiltinTheme={
+              kind === 'themes' ? (theme) => void handleRestoreBuiltinTheme(theme) : undefined
             }
             onCustomThemesChanged={kind === 'themes' ? () => void loadCustomThemes() : undefined}
           />

@@ -335,6 +335,46 @@ describe('PluginUiBroker host bridge invoke', () => {
       })
     ).rejects.toThrow(/cannot make network requests/);
   });
+
+  it('round-trips harborclient commands.execute through plugins:hostBridgeInvoke', async () => {
+    const send = vi.fn();
+    const mockWindow = {
+      isDestroyed: () => false,
+      webContents: { send }
+    };
+    const manager = {
+      assertPermission: vi.fn()
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.setMainWindow(() => mockWindow as never);
+    broker.registerIpcHandlers();
+
+    const sender = { id: 7 } as WebContents;
+    registerSession(sender, {
+      pluginId: 'com.harborclient.plugins.openapi',
+      role: 'agent',
+      contributionId: 'openapi',
+      kind: 'mainViews'
+    });
+
+    const payload = {
+      pluginId: 'harborclient',
+      commandId: 'openMainView',
+      args: ['com.harborclient.plugins.openapi', 'import']
+    };
+    const resultPromise = broker.handleInvoke(sender, 'commands.execute', payload);
+
+    expect(send).toHaveBeenCalledWith('plugins:hostBridgeInvoke', {
+      requestId: 1,
+      pluginId: 'com.harborclient.plugins.openapi',
+      op: 'commands.execute',
+      payload
+    });
+
+    broker.completeHostBridgeInvokeForTests({ requestId: 1, ok: true, result: undefined });
+
+    await expect(resultPromise).resolves.toBeUndefined();
+  });
 });
 
 describe('PluginUiBroker filesystem operations', () => {
@@ -500,5 +540,96 @@ describe('PluginUiBroker pushHttpAfterSend', () => {
     });
     expect(getPluginPermissions).toHaveBeenCalledWith('com.harborclient.plugins.history');
     expect(getPluginPermissions).not.toHaveBeenCalledWith('com.harborclient.plugins.aws-sigv4');
+  });
+});
+
+describe('PluginUiBroker import handlers', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('forwards imports.registerHandler through plugins:importHandlers', async () => {
+    const send = vi.fn();
+    const mockWindow = {
+      isDestroyed: () => false,
+      webContents: { send }
+    };
+    const manager = {
+      assertPermission: vi.fn()
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.setMainWindow(() => mockWindow as never);
+    broker.registerIpcHandlers();
+
+    const sender = { id: 9 } as WebContents;
+    registerSession(sender, {
+      pluginId: 'com.harborclient.plugins.openapi',
+      role: 'agent'
+    });
+
+    await broker.handleInvoke(sender, 'imports.registerHandler', {
+      registrationId: '1',
+      extensions: ['.yaml', '.json']
+    });
+
+    expect(send).toHaveBeenCalledWith('plugins:importHandlers', {
+      pluginId: 'com.harborclient.plugins.openapi',
+      op: 'register',
+      registrationId: '1',
+      extensions: ['.yaml', '.json']
+    });
+  });
+
+  it('round-trips import handler invocations through the agent webview', async () => {
+    const hostSend = vi.fn();
+    const mockWindow = {
+      isDestroyed: () => false,
+      webContents: { send: hostSend }
+    };
+    const agentSend = vi.fn();
+    const manager = {
+      assertPermission: vi.fn()
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.setMainWindow(() => mockWindow as never);
+    broker.registerIpcHandlers();
+
+    const sender = { id: 10 } as WebContents;
+    registerSession(sender, {
+      pluginId: 'com.harborclient.plugins.openapi',
+      role: 'agent'
+    });
+    vi.mocked(webContents.fromId).mockReturnValue({ send: agentSend } as never);
+
+    const file = {
+      name: 'petstore.yaml',
+      path: '/tmp/petstore.yaml',
+      extension: '.yaml',
+      contents: 'openapi: 3.0.3'
+    };
+    const resultPromise = broker.invokeImportHandler(
+      'com.harborclient.plugins.openapi',
+      '1',
+      'canImport',
+      file
+    );
+
+    expect(agentSend).toHaveBeenCalledWith('plugin-ui:event', {
+      channel: 'imports.invoke',
+      payload: {
+        requestId: 1,
+        registrationId: '1',
+        phase: 'canImport',
+        file
+      }
+    });
+
+    broker.completeAgentImportInvokeForTests({
+      requestId: 1,
+      ok: true,
+      result: true
+    });
+
+    await expect(resultPromise).resolves.toBe(true);
   });
 });

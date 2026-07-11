@@ -338,6 +338,7 @@ Used by the host renderer for plugin management, storage/database access with ex
 | -------------------------------------------- | -------------------------------------------------------------------- |
 | `plugins:changed`                            | Plugin list or state changed                                         |
 | `plugins:contributions`                      | Contribution register/unregister from agent webview                  |
+| `plugins:importHandlers`                     | Import handler metadata register/unregister from agent webview       |
 | `plugins:hostBridge`                         | Void host-side action (toast, load request, clear response, etc.)    |
 | `plugins:hostBridgeInvoke`                   | Return-value host bridge call (HTTP send, collection metadata, etc.) |
 | `plugins:hostBridgeComplete`                 | Host renderer reply completing a correlated invoke (renderer → main) |
@@ -363,22 +364,24 @@ The SDK view-host (`harbor-plugin://host/view-host.js`) builds the full
 
 **Broker operations (`plugins:uiBridge`):**
 
-| Operation                                          | Permission                             | Target                                                        |
-| -------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------- |
-| `storage.get/set`                                  | `storage`                              | PluginManager                                                 |
-| `database.*`                                       | `database`                             | PluginDatabaseManager                                         |
-| `fs.pickFile`, `fs.pickDirectory`, `fs.saveFile`   | `filesystem:pick`                      | PluginManager via shared fs helpers (`pluginFsOperations`)    |
-| `fs.readFile`, `fs.writeFile`, `fs.watchFile`      | `filesystem:read` / `filesystem:write` | PluginManager via shared fs helpers                           |
-| `ipc.invoke`                                       | `ipc`                                  | SES runner (lazy-activates main if inactive)                  |
-| `registerContribution/unregisterContribution`      | `ui`                                   | Host renderer via `plugins:contributions`                     |
-| `themes.register`, `themes.unregister`             | `ui`                                   | Host renderer via `plugins:contributions` (`kind: 'themes'`)  |
-| `ui.showToast`, `commands.execute`                 | `ui`                                   | Host renderer via `plugins:hostBridge` (void)                 |
-| `commands.executeRemote`                           | `ui`                                   | Another plugin's agent webview                                |
-| `host.openRequestDraft`, `host.loadRequest`, …     | `ui`                                   | Host renderer via `plugins:hostBridge` (void)                 |
-| `host.sendHttpRequest`, `host.createCollection`, … | `ui`                                   | Host renderer via `plugins:hostBridgeInvoke` (returns result) |
-| `themes.getActive`                                 | `ui`                                   | Main process theme getter                                     |
-| `view.getContext`                                  | `ui`                                   | Cached context snapshot for a view contribution               |
-| `view.reportSize`                                  | `ui`                                   | Host renderer via `plugins:surfaceResize`                     |
+| Operation                                              | Permission                             | Target                                                         |
+| ------------------------------------------------------ | -------------------------------------- | -------------------------------------------------------------- |
+| `storage.get/set`                                      | `storage`                              | PluginManager                                                  |
+| `database.*`                                           | `database`                             | PluginDatabaseManager                                          |
+| `fs.pickFile`, `fs.pickDirectory`, `fs.saveFile`       | `filesystem:pick`                      | PluginManager via shared fs helpers (`pluginFsOperations`)     |
+| `fs.readFile`, `fs.writeFile`, `fs.watchFile`          | `filesystem:read` / `filesystem:write` | PluginManager via shared fs helpers                            |
+| `ipc.invoke`                                           | `ipc`                                  | SES runner (lazy-activates main if inactive)                   |
+| `registerContribution/unregisterContribution`          | `ui`                                   | Host renderer via `plugins:contributions`                      |
+| `themes.register`, `themes.unregister`                 | `ui`                                   | Host renderer via `plugins:contributions` (`kind: 'themes'`)   |
+| `ui.showToast`, `commands.execute`                     | `ui`                                   | Host renderer via `plugins:hostBridge` (void)                  |
+| `commands.executeRemote`                               | `ui`                                   | Another plugin's agent webview                                 |
+| `host.openRequestDraft`, `host.loadRequest`, …         | `ui`                                   | Host renderer via `plugins:hostBridge` (void)                  |
+| `host.sendHttpRequest`, `host.createCollection`, …     | `ui`                                   | Host renderer via `plugins:hostBridgeInvoke` (returns result)  |
+| `imports.registerHandler`, `imports.unregisterHandler` | `ui`                                   | Host renderer via `plugins:importHandlers` (metadata only)     |
+| `imports.invokeComplete`                               | `ui`                                   | Resolves pending import handler invocations from host renderer |
+| `themes.getActive`                                     | `ui`                                   | Main process theme getter                                      |
+| `view.getContext`                                      | `ui`                                   | Cached context snapshot for a view contribution                |
+| `view.reportSize`                                      | `ui`                                   | Host renderer via `plugins:surfaceResize`                      |
 
 **Push events to webviews (`plugin-ui:event`):**
 

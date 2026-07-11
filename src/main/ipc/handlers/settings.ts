@@ -1,4 +1,5 @@
 import { app, nativeTheme } from 'electron';
+import { logImportVerboseFromRenderer } from '#/main/import/importVerboseLog';
 import { isDeveloperToolsEnabled } from '#/main/devMode';
 import { isPickThemeFlagEnabled } from '#/main/pickTheme';
 import { getStartupThemeOverride } from '#/main/startupTheme';
@@ -214,6 +215,11 @@ export function registerSettingsHandlers(db: IStorage): void {
 
   // Compares the running version against the latest GitHub release.
   handle('app:checkForUpdates', ipcArgSchemas.none, () => checkForUpdates());
+
+  // Forwards renderer import diagnostics to the main-process verbose log stream.
+  handle('app:logVerbose', ipcArgSchemas.appLogVerbose, (_event, step, detail) => {
+    logImportVerboseFromRenderer(step, detail);
+  });
 
   // Returns the persisted light/dark/system/high-contrast theme preference.
   handle('theme:get', ipcArgSchemas.none, async () => {

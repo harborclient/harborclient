@@ -159,9 +159,13 @@ export interface ApiCollections {
    * Imports a collection, request, or environment from a JSON file via File -> Import.
    *
    * @param activeCollectionId - Selected collection id; required when importing a request.
+   * @param pluginExtensions - Additional file extensions registered by enabled plugins.
    * @returns The imported entity, or null when the dialog was canceled.
    */
-  importEntity: (activeCollectionId: number | null) => Promise<ImportEntityResult | null>;
+  importEntity: (
+    activeCollectionId: number | null,
+    pluginExtensions?: string[]
+  ) => Promise<ImportEntityResult | null>;
   /**
    * Moves a collection and its requests to another database connection.
    *

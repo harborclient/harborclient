@@ -1,5 +1,6 @@
 import { BrowserWindow, dialog } from 'electron';
 import { writeFile } from 'fs/promises';
+import { basename } from 'path';
 import {
   collectionExportContainsScripts,
   requestExportContainsScripts,
@@ -28,6 +29,7 @@ import { importEnvironmentData } from '#/main/ipc/handlers/environments';
 import { importCustomThemeData } from '#/main/ipc/handlers/customThemeImport';
 import { importSnippetData } from '#/main/ipc/handlers/snippetImport';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
+import { logImportVerbose } from '#/main/import/importVerboseLog';
 import { readHarborclientExport } from '#/shared/harborclientExport';
 import type {
   Collection,
@@ -435,141 +437,174 @@ export function registerCollectionHandlers(db: IStorage): void {
   });
 
   // Auto-detects and imports a collection, request, or environment from File -> Import.
-  handle('imports:auto', ipcArgSchemas.importAuto, async (_event, activeCollectionId) => {
-    const win = BrowserWindow.getFocusedWindow();
-    const file = await openImportFile(win);
-    if (!file) {
-      return null;
-    }
-
-    const { parsed } = file;
-
-    if (isPostmanCollection(parsed)) {
-      const result = await importCollectionFromParsed(db, win, parsed, {
-        collectionDir: file.collectionDir,
-        fileName: file.fileName
+  handle(
+    'imports:auto',
+    ipcArgSchemas.importAuto,
+    async (_event, activeCollectionId, pluginExtensions) => {
+      logImportVerbose('imports:auto start', {
+        activeCollectionId,
+        pluginExtensions: pluginExtensions ?? []
       });
-      if (!result) {
+      const win = BrowserWindow.getFocusedWindow();
+      const file = await openImportFile(win, pluginExtensions ?? []);
+      if (!file) {
+        logImportVerbose('imports:auto canceled');
         return null;
       }
-      return {
-        kind: 'collection',
-        collection: result.collection,
-        action: result.action
-      } satisfies ImportEntityResult;
-    }
 
-    if (isBrunoCollectionManifest(parsed)) {
-      const result = await importCollectionFromParsed(db, win, parsed, {
-        collectionDir: file.collectionDir,
-        fileName: file.fileName
+      const { parsed } = file;
+
+      if (parsed != null) {
+        if (isPostmanCollection(parsed)) {
+          logImportVerbose('imports:auto classified', { kind: 'postman-collection' });
+          const result = await importCollectionFromParsed(db, win, parsed, {
+            collectionDir: file.collectionDir,
+            fileName: file.fileName
+          });
+          if (!result) {
+            return null;
+          }
+          return {
+            kind: 'collection',
+            collection: result.collection,
+            action: result.action
+          } satisfies ImportEntityResult;
+        }
+
+        if (isBrunoCollectionManifest(parsed)) {
+          logImportVerbose('imports:auto classified', { kind: 'bruno-collection' });
+          const result = await importCollectionFromParsed(db, win, parsed, {
+            collectionDir: file.collectionDir,
+            fileName: file.fileName
+          });
+          if (!result) {
+            return null;
+          }
+          return {
+            kind: 'collection',
+            collection: result.collection,
+            action: result.action
+          } satisfies ImportEntityResult;
+        }
+
+        if (isHarArchive(parsed)) {
+          logImportVerbose('imports:auto classified', { kind: 'har-archive' });
+          const result = await importCollectionFromParsed(db, win, parsed, {
+            collectionDir: file.collectionDir,
+            fileName: file.fileName
+          });
+          if (!result) {
+            return null;
+          }
+          return {
+            kind: 'collection',
+            collection: result.collection,
+            action: result.action
+          } satisfies ImportEntityResult;
+        }
+
+        const exportKind = readHarborclientExport(parsed);
+
+        if (exportKind === 'collection') {
+          logImportVerbose('imports:auto classified', { kind: 'harborclient-collection' });
+          const result = await importCollectionFromParsed(db, win, parsed, {
+            collectionDir: file.collectionDir,
+            fileName: file.fileName
+          });
+          if (!result) {
+            return null;
+          }
+          return {
+            kind: 'collection',
+            collection: result.collection,
+            action: result.action
+          } satisfies ImportEntityResult;
+        }
+
+        if (exportKind === 'environment') {
+          logImportVerbose('imports:auto classified', { kind: 'environment' });
+          const exportData = validateEnvironmentExport(parsed);
+          const environmentResult = await importEnvironmentData(db, win, exportData);
+          if (!environmentResult) {
+            return null;
+          }
+          return {
+            kind: 'environment',
+            environment: environmentResult.environment,
+            action: environmentResult.action
+          } satisfies ImportEntityResult;
+        }
+
+        if (exportKind === 'request') {
+          logImportVerbose('imports:auto classified', { kind: 'request' });
+          if (activeCollectionId == null) {
+            throw new Error('Select a collection before importing a request.');
+          }
+
+          const exportData = validateRequestExport(parsed);
+          const result = await saveImportedRequest(db, win, exportData, activeCollectionId, null);
+          if (!result) {
+            return null;
+          }
+          return {
+            kind: 'request',
+            request: result.request,
+            action: result.action
+          } satisfies ImportEntityResult;
+        }
+
+        if (exportKind === 'collection-run-results' || exportKind === 'request-run-results') {
+          logImportVerbose('imports:auto classified', { kind: 'run-results', exportKind });
+          const data = validateRunResultsExport(parsed);
+          return {
+            kind: 'run-results',
+            data
+          } satisfies ImportEntityResult;
+        }
+
+        if (exportKind === 'snippet') {
+          logImportVerbose('imports:auto classified', { kind: 'snippet' });
+          const snippetResult = await importSnippetData(db, win, parsed);
+          if (!snippetResult) {
+            return null;
+          }
+          return {
+            kind: 'snippet',
+            snippet: snippetResult.snippet,
+            action: snippetResult.action
+          } satisfies ImportEntityResult;
+        }
+
+        if (exportKind === 'theme') {
+          logImportVerbose('imports:auto classified', { kind: 'theme' });
+          const themeResult = await importCustomThemeData(win, parsed);
+          if (!themeResult) {
+            return null;
+          }
+          return {
+            kind: 'theme',
+            theme: themeResult.theme,
+            action: themeResult.action
+          } satisfies ImportEntityResult;
+        }
+      }
+
+      logImportVerbose('imports:auto classified', {
+        kind: 'plugin-file',
+        fileName: basename(file.filePath),
+        extension: file.extension
       });
-      if (!result) {
-        return null;
-      }
       return {
-        kind: 'collection',
-        collection: result.collection,
-        action: result.action
+        kind: 'plugin-file',
+        file: {
+          name: basename(file.filePath),
+          path: file.filePath,
+          extension: file.extension,
+          contents: file.raw
+        }
       } satisfies ImportEntityResult;
     }
-
-    if (isHarArchive(parsed)) {
-      const result = await importCollectionFromParsed(db, win, parsed, {
-        collectionDir: file.collectionDir,
-        fileName: file.fileName
-      });
-      if (!result) {
-        return null;
-      }
-      return {
-        kind: 'collection',
-        collection: result.collection,
-        action: result.action
-      } satisfies ImportEntityResult;
-    }
-
-    const exportKind = readHarborclientExport(parsed);
-
-    if (exportKind === 'collection') {
-      const result = await importCollectionFromParsed(db, win, parsed, {
-        collectionDir: file.collectionDir,
-        fileName: file.fileName
-      });
-      if (!result) {
-        return null;
-      }
-      return {
-        kind: 'collection',
-        collection: result.collection,
-        action: result.action
-      } satisfies ImportEntityResult;
-    }
-
-    if (exportKind === 'environment') {
-      const exportData = validateEnvironmentExport(parsed);
-      const environmentResult = await importEnvironmentData(db, win, exportData);
-      if (!environmentResult) {
-        return null;
-      }
-      return {
-        kind: 'environment',
-        environment: environmentResult.environment,
-        action: environmentResult.action
-      } satisfies ImportEntityResult;
-    }
-
-    if (exportKind === 'request') {
-      if (activeCollectionId == null) {
-        throw new Error('Select a collection before importing a request.');
-      }
-
-      const exportData = validateRequestExport(parsed);
-      const result = await saveImportedRequest(db, win, exportData, activeCollectionId, null);
-      if (!result) {
-        return null;
-      }
-      return {
-        kind: 'request',
-        request: result.request,
-        action: result.action
-      } satisfies ImportEntityResult;
-    }
-
-    if (exportKind === 'collection-run-results' || exportKind === 'request-run-results') {
-      const data = validateRunResultsExport(parsed);
-      return {
-        kind: 'run-results',
-        data
-      } satisfies ImportEntityResult;
-    }
-
-    if (exportKind === 'snippet') {
-      const snippetResult = await importSnippetData(db, win, parsed);
-      if (!snippetResult) {
-        return null;
-      }
-      return {
-        kind: 'snippet',
-        snippet: snippetResult.snippet,
-        action: snippetResult.action
-      } satisfies ImportEntityResult;
-    }
-
-    if (exportKind === 'theme') {
-      const themeResult = await importCustomThemeData(win, parsed);
-      if (!themeResult) {
-        return null;
-      }
-      return {
-        kind: 'theme',
-        theme: themeResult.theme,
-        action: themeResult.action
-      } satisfies ImportEntityResult;
-    }
-
-    throw new Error('Unrecognized HarborClient export file.');
-  });
+  );
 
   // Moves a collection to a different database connection.
   handle('collections:move', ipcArgSchemas.collectionMove, (_event, id, targetConnectionId) => {

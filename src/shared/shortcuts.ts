@@ -801,6 +801,49 @@ export function formatAcceleratorDisplay(accelerator: string): string {
 }
 
 /**
+ * Formats an Electron accelerator for display beside application menu items.
+ *
+ * Maps `CmdOrCtrl` to `Cmd` on macOS and `Ctrl` on Windows and Linux so custom
+ * in-app menus show the same labels users expect from native OS menus.
+ *
+ * @param accelerator - Electron accelerator string.
+ * @param platform - Node.js platform from `process.platform`.
+ * @returns Human-readable accelerator such as `Ctrl+Shift+N` or `Cmd+,`.
+ */
+export function formatMenuAcceleratorDisplay(
+  accelerator: string,
+  platform: NodeJS.Platform
+): string {
+  const cmdOrCtrl = platform === 'darwin' ? 'Cmd' : 'Ctrl';
+  const keyDisplayNames: Record<string, string> = {
+    Plus: '+',
+    Minus: '-',
+    Equal: '=',
+    Comma: ',',
+    Period: '.',
+    ',': ',',
+    '-': '-',
+    '+': '+'
+  };
+
+  return accelerator
+    .replace(/CmdOrCtrl/gi, cmdOrCtrl)
+    .replace(/CommandOrControl/gi, cmdOrCtrl)
+    .replace(/Command/gi, 'Cmd')
+    .replace(/Control/gi, 'Ctrl')
+    .replace(/Cmd/gi, 'Cmd')
+    .replace(/Meta/gi, 'Cmd')
+    .replace(/Alt/gi, 'Alt')
+    .replace(/Shift/gi, 'Shift')
+    .split('+')
+    .map((part) => {
+      const trimmed = part.trim();
+      return keyDisplayNames[trimmed] ?? trimmed;
+    })
+    .join('+');
+}
+
+/**
  * Modifier and key state from an Electron `before-input-event` or DOM keyboard event.
  */
 export interface KeyChord {

@@ -10,6 +10,7 @@ import {
   ensureEchoPostSnippetScripts
 } from '#/main/storage/seedDefaultContent';
 import { createStorageInstance } from '#/main/storage/createStorageInstance';
+import { seedMissingBuiltinThemes } from '#/main/storage/customThemes';
 import { registerIpcHandlers } from '#/main/ipc';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import {
@@ -868,6 +869,13 @@ app.whenReady().then(async () => {
 
     logVerbose('startup: initializing storage');
     db = await createStorage();
+
+    logVerbose('startup: seeding built-in theme files');
+    try {
+      seedMissingBuiltinThemes();
+    } catch (err) {
+      console.warn('Built-in theme seed failed; continuing startup without seed:', err);
+    }
 
     logVerbose('startup: applying persisted theme');
     const persistedTheme = await applyPersistedTheme();

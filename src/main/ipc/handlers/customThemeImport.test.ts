@@ -14,7 +14,9 @@ vi.mock('#/main/ipc/handlers/importDialogs', () => ({
 
 vi.mock('electron', () => ({
   app: {
-    getPath
+    getPath,
+    isPackaged: false,
+    getAppPath: vi.fn(() => join(process.cwd()))
   }
 }));
 
@@ -104,5 +106,25 @@ describe('importCustomThemeData', () => {
 
     expect(result).toBeNull();
     expect(listCustomThemes()).toHaveLength(1);
+  });
+
+  it('creates a copy instead of updating a built-in theme with the same title', async () => {
+    const { listCustomThemes, seedMissingBuiltinThemes } =
+      await import('#/main/storage/customThemes');
+    const { importCustomThemeData } = await import('#/main/ipc/handlers/customThemeImport');
+
+    seedMissingBuiltinThemes();
+
+    const result = await importCustomThemeData(null, {
+      ...themeExport,
+      title: 'Light'
+    });
+
+    expect(result?.action).toBe('created');
+    expect(result?.theme.id).not.toBe('light');
+    expect(listCustomThemes().some((theme) => theme.id === 'light' && theme.builtin === true)).toBe(
+      true
+    );
+    expect(listCustomThemes()).toHaveLength(4);
   });
 });

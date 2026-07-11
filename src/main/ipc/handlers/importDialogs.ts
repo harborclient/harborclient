@@ -1,7 +1,8 @@
 import { BrowserWindow, dialog } from 'electron';
 import { stat } from 'fs/promises';
 import { readFile } from 'fs/promises';
-import { join, dirname, basename } from 'path';
+import { join, dirname, basename, extname } from 'path';
+import { logImportVerbose } from '#/main/import/importVerboseLog';
 import { isBrunoCollectionManifest } from '#/main/import/bruno';
 import {
   getSuppressPostmanImportWarning,
@@ -23,14 +24,19 @@ export type ImportFileSelection = {
   raw: string;
 
   /**
-   * Parsed JSON payload from the selected import file.
+   * Parsed JSON payload from the selected import file, or null for non-JSON plugin formats.
    */
-  parsed: unknown;
+  parsed: unknown | null;
 
   /**
    * Absolute path to the JSON file read (HarborClient export or bruno.json).
    */
   filePath: string;
+
+  /**
+   * Normalized extension with a leading dot (for example `.json`).
+   */
+  extension: string;
 
   /**
    * Absolute path to the Bruno collection root when a manifest was loaded.
@@ -60,6 +66,48 @@ function importFileBaseName(filePath: string): string {
 }
 
 /**
+ * Returns a normalized dot-prefixed extension for an import file path.
+ *
+ * @param filePath - Absolute path to an import file.
+ * @returns Lowercase extension such as `.json`, or an empty string when absent.
+ */
+function importFileExtension(filePath: string): string {
+  const extension = extname(filePath).trim().toLowerCase();
+  return extension.length > 0 ? extension : '';
+}
+
+/**
+ * Merges built-in import extensions with plugin-registered extensions for the picker.
+ *
+ * @param pluginExtensions - Additional extensions without leading dots.
+ * @returns Deduplicated lowercase extensions for Electron dialog filters.
+ */
+function mergeImportDialogExtensions(pluginExtensions: string[] = []): string[] {
+  const merged = new Set(['json', 'har']);
+  for (const extension of pluginExtensions) {
+    const normalized = extension.trim().toLowerCase().replace(/^\./, '');
+    if (normalized) {
+      merged.add(normalized);
+    }
+  }
+  return [...merged];
+}
+
+/**
+ * Parses file contents for built-in import detection when applicable.
+ *
+ * @param raw - UTF-8 file contents.
+ * @param extension - Normalized dot-prefixed extension.
+ * @returns Parsed JSON value for JSON/HAR files, otherwise null.
+ */
+function parseImportFileContents(raw: string, extension: string): unknown | null {
+  if (extension === '.json' || extension === '.har') {
+    return JSON.parse(raw) as unknown;
+  }
+  return null;
+}
+
+/**
  * Reads bruno.json from a directory and returns a parsed import selection.
  *
  * @param collectionDir - Absolute path to the selected Bruno collection folder.
@@ -80,7 +128,8 @@ async function readBrunoCollectionSelection(collectionDir: string): Promise<Impo
     parsed,
     filePath: manifestPath,
     collectionDir,
-    fileName: importFileBaseName(manifestPath)
+    fileName: importFileBaseName(manifestPath),
+    extension: importFileExtension(manifestPath)
   };
 }
 
@@ -91,23 +140,27 @@ async function readBrunoCollectionSelection(collectionDir: string): Promise<Impo
  * collection folder directly. Other platforms remain file-only; select bruno.json.
  *
  * @param win - Focused browser window for modal dialogs, if any.
+ * @param pluginExtensions - Additional file extensions registered by enabled plugins.
  * @returns Parsed import selection, or null when the dialog was canceled.
  */
 export async function openImportFile(
-  win: BrowserWindow | null
+  win: BrowserWindow | null,
+  pluginExtensions: string[] = []
 ): Promise<ImportFileSelection | null> {
   const isDarwin = process.platform === 'darwin';
+  const dialogExtensions = mergeImportDialogExtensions(pluginExtensions);
   const dialogOptions = {
     properties: isDarwin
       ? (['openFile', 'openDirectory'] as Array<'openFile' | 'openDirectory'>)
       : (['openFile'] as Array<'openFile'>),
-    filters: [{ name: 'Import files', extensions: ['json', 'har'] }]
+    filters: [{ name: 'Import files', extensions: dialogExtensions }]
   };
   const { canceled, filePaths } = win
     ? await dialog.showOpenDialog(win, dialogOptions)
     : await dialog.showOpenDialog(dialogOptions);
 
   if (canceled || filePaths.length === 0) {
+    logImportVerbose('dialog canceled');
     return null;
   }
 
@@ -115,21 +168,36 @@ export async function openImportFile(
   const selectedStat = await stat(selectedPath);
 
   if (selectedStat.isDirectory()) {
-    return readBrunoCollectionSelection(selectedPath);
+    const selection = await readBrunoCollectionSelection(selectedPath);
+    logImportVerbose('dialog selected directory', {
+      path: selectedPath,
+      extension: selection.extension,
+      parsed: selection.parsed != null
+    });
+    return selection;
   }
 
   const raw = await readFile(selectedPath, 'utf-8');
-  const parsed = JSON.parse(raw) as unknown;
+  const extension = importFileExtension(selectedPath);
+  const parsed = parseImportFileContents(raw, extension);
   const selection: ImportFileSelection = {
     raw,
     parsed,
     filePath: selectedPath,
-    fileName: importFileBaseName(selectedPath)
+    fileName: importFileBaseName(selectedPath),
+    extension
   };
 
-  if (isBrunoCollectionManifest(parsed)) {
+  if (parsed != null && isBrunoCollectionManifest(parsed)) {
     selection.collectionDir = dirname(selectedPath);
   }
+
+  logImportVerbose('dialog selected file', {
+    path: selectedPath,
+    extension,
+    parsed: parsed != null,
+    dialogExtensions
+  });
 
   return selection;
 }

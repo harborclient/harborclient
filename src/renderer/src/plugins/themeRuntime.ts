@@ -1,9 +1,11 @@
 import { parseCustomThemeSource } from '#/shared/plugin/customThemeExport';
 import { parsePluginThemeValue } from '#/shared/plugin/types';
+import type { BuiltinThemeId } from '#/shared/builtinThemes';
+import { isBuiltinThemeSource } from '#/shared/builtinThemes';
 import type { CustomThemeType } from '#/shared/types/customTheme';
 import type { ThemeSource } from '#/shared/types';
 import { getRegisteredPluginThemes } from '#/renderer/src/plugins/registry';
-import { applyThemeAttribute } from '#/renderer/src/theme';
+import { applyThemeAttribute, resolveSystemBuiltinTheme } from '#/renderer/src/theme';
 
 const STYLE_ELEMENT_ID = 'harborclient-plugin-theme-style';
 
@@ -31,6 +33,25 @@ export function buildCustomThemeCss(colors: Record<string, string>, type: Custom
 }
 
 /**
+ * Builds CSS for built-in theme token overrides loaded from JSON palettes.
+ *
+ * @param colors - Token overrides without the `--mac-` prefix.
+ * @param dataTheme - Semantic root theme attribute for the built-in palette.
+ * @param type - Base appearance mode for color-scheme.
+ */
+export function buildBuiltinThemeCss(
+  colors: Record<string, string>,
+  dataTheme: BuiltinThemeId,
+  type: CustomThemeType
+): string {
+  const colorScheme = type === 'light' ? 'light' : 'dark';
+  const declarations = Object.entries(colors)
+    .map(([token, value]) => `  ${toCssVariable(token)}: ${value};`)
+    .join('\n');
+  return `:root[data-theme='${dataTheme}'] {\n  color-scheme: ${colorScheme};\n${declarations}\n}\n`;
+}
+
+/**
  * Removes injected theme CSS from the document.
  */
 function clearInjectedThemeStyle(): void {
@@ -51,6 +72,33 @@ export function applyCustomThemeColors(
   clearInjectedThemeStyle();
 
   const css = buildCustomThemeCss(colors, type);
+  if (!css.trim()) {
+    return;
+  }
+
+  const style = document.createElement('style');
+  style.id = STYLE_ELEMENT_ID;
+  style.textContent = css;
+  document.head.appendChild(style);
+}
+
+/**
+ * Applies a built-in theme palette from its JSON file while preserving semantic
+ * `data-theme` attributes used by accessibility overrides.
+ *
+ * @param colors - Token overrides without the `--mac-` prefix.
+ * @param type - Base appearance mode for color-scheme.
+ * @param dataTheme - Semantic built-in theme attribute value.
+ */
+export function applyBuiltinThemeColors(
+  colors: Record<string, string>,
+  type: CustomThemeType,
+  dataTheme: BuiltinThemeId
+): void {
+  document.documentElement.setAttribute('data-theme', dataTheme);
+  clearInjectedThemeStyle();
+
+  const css = buildBuiltinThemeCss(colors, dataTheme, type);
   if (!css.trim()) {
     return;
   }
@@ -127,6 +175,42 @@ export async function applyPluginTheme(pluginId: string, themeId: string): Promi
 }
 
 /**
+ * Resolves the effective built-in palette id for a persisted theme preference.
+ *
+ * @param theme - Persisted built-in or system theme preference.
+ * @returns Built-in theme id whose JSON palette should be applied.
+ */
+export function resolveBuiltinThemeId(theme: ThemeSource): BuiltinThemeId {
+  if (theme === 'system') {
+    return resolveSystemBuiltinTheme();
+  }
+
+  if (isBuiltinThemeSource(theme)) {
+    return theme;
+  }
+
+  return 'light';
+}
+
+/**
+ * Applies a built-in or system theme preference using its JSON palette.
+ *
+ * @param theme - Persisted built-in or system theme preference.
+ */
+async function applyBuiltinThemePreference(theme: ThemeSource): Promise<void> {
+  const effectiveTheme = resolveBuiltinThemeId(theme);
+  const stored = await window.api.getCustomTheme(effectiveTheme);
+
+  if (!stored) {
+    clearInjectedThemeStyle();
+    applyThemeAttribute(theme);
+    return;
+  }
+
+  applyBuiltinThemeColors(stored.colors, stored.type, effectiveTheme);
+}
+
+/**
  * Re-applies the persisted theme, falling back to System when a plugin theme is unavailable.
  */
 export async function applyPersistedPluginTheme(): Promise<void> {
@@ -170,6 +254,11 @@ export async function applyThemePreference(theme: string): Promise<void> {
   const parsed = parsePluginThemeValue(theme);
   if (parsed) {
     await applyPluginTheme(parsed.pluginId, parsed.themeId);
+    return;
+  }
+
+  if (theme === 'light' || theme === 'dark' || theme === 'high-contrast' || theme === 'system') {
+    await applyBuiltinThemePreference(theme as ThemeSource);
     return;
   }
 

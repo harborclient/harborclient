@@ -1,6 +1,11 @@
 import type { HarborDeepLink } from '#/shared/deepLink';
 import type { MenuSelectThemePayload, ThemeMenuOption } from '#/shared/themes';
-import type { MenuActionId, RootMenuLabel, UpdateCheckResult } from '#/shared/types/app';
+import type {
+  MenuActionId,
+  AppSubmenuItemSnapshot,
+  RootMenuLabel,
+  UpdateCheckResult
+} from '#/shared/types/app';
 import type { ThemeSource } from '#/shared/types/settings';
 
 /**
@@ -94,6 +99,19 @@ export interface ApiWindow {
    */
   popupMenuSubmenu: (label: RootMenuLabel, x: number, y: number) => Promise<void>;
   /**
+   * Returns a serializable snapshot of a root application submenu for Linux in-app menus.
+   *
+   * @param label - Root menu label to describe.
+   */
+  getAppSubmenuSnapshot: (label: RootMenuLabel) => Promise<AppSubmenuItemSnapshot[]>;
+  /**
+   * Activates an item from a root application submenu snapshot by index.
+   *
+   * @param label - Root menu label that owns the item.
+   * @param index - Flat item index from {@link getAppSubmenuSnapshot}.
+   */
+  activateAppSubmenuItem: (label: RootMenuLabel, index: number) => Promise<void>;
+  /**
    * Returns the application version from package.json.
    */
   getAppVersion: () => Promise<string>;
@@ -101,6 +119,13 @@ export interface ApiWindow {
    * Fetches the latest GitHub release and compares it to the running version.
    */
   checkForUpdates: () => Promise<UpdateCheckResult>;
+  /**
+   * Forwards renderer diagnostics to the main-process verbose log stream when `-v` is enabled.
+   *
+   * @param step - Short step label.
+   * @param detail - Optional structured fields for the step.
+   */
+  logVerbose: (step: string, detail?: Record<string, unknown>) => Promise<void>;
   /**
    * Returns the persisted theme preference.
    */

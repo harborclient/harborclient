@@ -37,6 +37,7 @@ import type {
   SharingIdentity,
   ListCollectionsResult,
   MenuActionId,
+  AppSubmenuItemSnapshot,
   RootMenuLabel,
   PanelLayoutState,
   PemExportResult,
@@ -558,10 +559,14 @@ function importEnvironment(): Promise<Environment | null> {
  * Imports a collection, request, or environment from File -> Import via IPC.
  *
  * @param activeCollectionId - Selected collection id; required when importing a request.
+ * @param pluginExtensions - Additional file extensions registered by enabled plugins.
  * @returns The imported entity, or null when the dialog was canceled.
  */
-function importEntity(activeCollectionId: number | null): Promise<ImportEntityResult | null> {
-  return ipcRenderer.invoke('imports:auto', activeCollectionId);
+function importEntity(
+  activeCollectionId: number | null,
+  pluginExtensions?: string[]
+): Promise<ImportEntityResult | null> {
+  return ipcRenderer.invoke('imports:auto', activeCollectionId, pluginExtensions);
 }
 
 /**
@@ -906,6 +911,25 @@ function popupMenuSubmenu(label: RootMenuLabel, x: number, y: number): Promise<v
 }
 
 /**
+ * Returns a serializable snapshot of a root application submenu for Linux in-app menus.
+ *
+ * @param label - Root menu label to describe.
+ */
+function getAppSubmenuSnapshot(label: RootMenuLabel): Promise<AppSubmenuItemSnapshot[]> {
+  return ipcRenderer.invoke('menu:getSubmenuSnapshot', label);
+}
+
+/**
+ * Activates an item from a root application submenu snapshot by index.
+ *
+ * @param label - Root menu label that owns the item.
+ * @param index - Flat item index from {@link getAppSubmenuSnapshot}.
+ */
+function activateAppSubmenuItem(label: RootMenuLabel, index: number): Promise<void> {
+  return ipcRenderer.invoke('menu:activateSubmenuItem', label, index);
+}
+
+/**
  * Returns the application version from package.json.
  */
 function getAppVersion(): Promise<string> {
@@ -917,6 +941,16 @@ function getAppVersion(): Promise<string> {
  */
 function checkForUpdates(): Promise<UpdateCheckResult> {
   return ipcRenderer.invoke('app:checkForUpdates');
+}
+
+/**
+ * Forwards renderer diagnostics to the main-process verbose log stream.
+ *
+ * @param step - Short step label.
+ * @param detail - Optional structured fields for the step.
+ */
+function logVerbose(step: string, detail?: Record<string, unknown>): Promise<void> {
+  return ipcRenderer.invoke('app:logVerbose', step, detail);
 }
 
 /**
@@ -2192,6 +2226,17 @@ function deleteCustomTheme(id: string): Promise<void> {
 }
 
 /**
+ * Restores one built-in theme file from its packaged canonical export.
+ *
+ * @param id - Reserved built-in theme filename stem.
+ */
+function restoreBuiltinTheme(
+  id: string
+): Promise<import('#/shared/types/customTheme').CustomTheme> {
+  return ipcRenderer.invoke('customThemes:restoreBuiltin', id);
+}
+
+/**
  * Opens an import dialog and returns draft values without saving.
  */
 function importCustomTheme(): Promise<
@@ -2642,6 +2687,28 @@ function executePluginAgentCommand(
 }
 
 /**
+ * Invokes one import handler phase in a plugin agent webview.
+ *
+ * @param pluginId - Target plugin manifest id.
+ * @param registrationId - Agent-scoped handler registration id.
+ * @param phase - Import detection or execution phase.
+ * @param file - Selected import file from File → Import.
+ */
+function invokePluginImportHandler(
+  pluginId: string,
+  registrationId: string,
+  phase: 'canImport' | 'import',
+  file: {
+    name: string;
+    path: string;
+    extension: string;
+    contents: string;
+  }
+): Promise<unknown> {
+  return ipcRenderer.invoke('plugins:invokeImportHandler', pluginId, registrationId, phase, file);
+}
+
+/**
  * Subscribes to contribution registry updates from plugin agent webviews.
  */
 function onPluginsContributions(
@@ -2659,6 +2726,26 @@ function onPluginsContributions(
   ipcRenderer.on('plugins:contributions', listener);
   return () => {
     ipcRenderer.removeListener('plugins:contributions', listener);
+  };
+}
+
+/**
+ * Subscribes to import handler metadata synced from plugin agent webviews.
+ */
+function onPluginsImportHandlers(
+  callback: (message: {
+    pluginId: string;
+    op: 'register' | 'unregister';
+    registrationId: string;
+    extensions?: string[];
+  }) => void
+): () => void {
+  const listener = (_event: Electron.IpcRendererEvent, message: unknown): void => {
+    callback(message as never);
+  };
+  ipcRenderer.on('plugins:importHandlers', listener);
+  return () => {
+    ipcRenderer.removeListener('plugins:importHandlers', listener);
   };
 }
 
@@ -2834,8 +2921,11 @@ const api: Api = {
   setMenuCreatorUndoRedo,
   onMenuSelectTheme,
   popupMenuSubmenu,
+  getAppSubmenuSnapshot,
+  activateAppSubmenuItem,
   getAppVersion,
   checkForUpdates,
+  logVerbose,
   getTheme,
   setTheme,
   previewTheme,
@@ -2969,6 +3059,7 @@ const api: Api = {
   getCustomTheme,
   saveCustomTheme,
   deleteCustomTheme,
+  restoreBuiltinTheme,
   importCustomTheme,
   exportBackup,
   importBackup,
@@ -3013,7 +3104,9 @@ const api: Api = {
   pushPluginViewContext,
   pushPluginHttpAfterSend,
   executePluginAgentCommand,
+  invokePluginImportHandler,
   onPluginsContributions,
+  onPluginsImportHandlers,
   onPluginsHostBridge,
   onPluginsHostBridgeInvoke,
   completePluginHostBridge,

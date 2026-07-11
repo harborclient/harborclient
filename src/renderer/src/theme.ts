@@ -1,3 +1,4 @@
+import type { BuiltinThemeId } from '#/shared/builtinThemes';
 import type { ThemeSource } from '#/shared/types';
 
 /**
@@ -11,6 +12,19 @@ export function prefersMoreContrast(): boolean {
   }
 
   return window.matchMedia('(prefers-contrast: more)').matches;
+}
+
+/**
+ * Returns whether the OS prefers a dark color scheme.
+ *
+ * @returns True when `prefers-color-scheme: dark` matches.
+ */
+export function prefersDarkColorScheme(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
 /**
@@ -33,6 +47,23 @@ export function shouldUseHighContrastTheme(theme: ThemeSource): boolean {
   }
 
   return false;
+}
+
+/**
+ * Resolves the built-in palette id that System should apply from OS preferences.
+ *
+ * @returns Built-in theme id for the current system appearance.
+ */
+export function resolveSystemBuiltinTheme(): BuiltinThemeId {
+  if (shouldUseHighContrastTheme('system')) {
+    return 'high-contrast';
+  }
+
+  if (prefersDarkColorScheme()) {
+    return 'dark';
+  }
+
+  return 'light';
 }
 
 /**
@@ -83,6 +114,37 @@ export function subscribeContrastPreferenceChanges(
    */
   const handleChange = (): void => {
     void getTheme().then(onApply);
+  };
+
+  mediaQuery.addEventListener('change', handleChange);
+
+  return () => {
+    mediaQuery.removeEventListener('change', handleChange);
+  };
+}
+
+/**
+ * Subscribes to OS color-scheme changes and reapplies the theme when System is active.
+ *
+ * @param getTheme - Loads the persisted theme preference.
+ * @param onApply - Called when the system theme should be reapplied.
+ * @returns Cleanup function that removes the media-query listener.
+ */
+export function subscribeColorSchemePreferenceChanges(
+  getTheme: () => Promise<ThemeSource>,
+  onApply: () => void
+): () => void {
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+  /**
+   * Reapplies the system theme when the OS color scheme changes.
+   */
+  const handleChange = (): void => {
+    void getTheme().then((theme) => {
+      if (theme === 'system') {
+        onApply();
+      }
+    });
   };
 
   mediaQuery.addEventListener('change', handleChange);

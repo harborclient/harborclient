@@ -1,4 +1,5 @@
 import type { BrowserWindow } from 'electron';
+import { isBuiltinThemeId } from '#/shared/builtinThemes';
 import { listCustomThemes, saveCustomTheme } from '#/main/storage/customThemes';
 import { confirmDuplicateImport } from '#/main/ipc/handlers/importDialogs';
 import { validateCustomThemeExport } from '#/shared/plugin/customThemeExport';
@@ -28,7 +29,9 @@ export interface CustomThemeImportResult {
  */
 function findExistingThemeByTitle(title: string): CustomTheme | undefined {
   const trimmedTitle = title.trim();
-  return listCustomThemes().find((theme) => theme.title.trim() === trimmedTitle);
+  return listCustomThemes().find(
+    (theme) => !isBuiltinThemeId(theme.id) && theme.title.trim() === trimmedTitle
+  );
 }
 
 /**

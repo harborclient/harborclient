@@ -3,6 +3,7 @@ import {
   applyContributionMessage,
   handlePluginHostBridgeInvoke
 } from '#/renderer/src/plugins/pluginBridgeHost';
+import * as hostCommands from '#/renderer/src/plugins/hostCommands';
 import * as hostRequestCommands from '#/renderer/src/plugins/hostRequestCommands';
 import {
   clearPluginContributions,
@@ -38,6 +39,62 @@ describe('handlePluginHostBridgeInvoke', () => {
     });
 
     expect(result).toEqual(sendResult);
+  });
+
+  it('executes harborclient commands through handlePluginHostBridgeInvoke', async () => {
+    const executeMock = vi
+      .spyOn(hostCommands, 'executeHostPluginCommand')
+      .mockResolvedValue(undefined);
+
+    const result = await handlePluginHostBridgeInvoke({
+      requestId: 2,
+      pluginId: 'com.harborclient.plugins.openapi',
+      op: 'commands.execute',
+      payload: {
+        pluginId: 'harborclient',
+        commandId: 'openMainView',
+        args: ['com.harborclient.plugins.openapi', 'import']
+      }
+    });
+
+    expect(result).toBeUndefined();
+    expect(executeMock).toHaveBeenCalledWith(
+      'openMainView',
+      'com.harborclient.plugins.openapi',
+      'import'
+    );
+  });
+
+  it('propagates executeHostPluginCommand failures', async () => {
+    vi.spyOn(hostCommands, 'executeHostPluginCommand').mockRejectedValue(new Error('tab failed'));
+
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 3,
+        pluginId: 'com.harborclient.plugins.openapi',
+        op: 'commands.execute',
+        payload: {
+          pluginId: 'harborclient',
+          commandId: 'openMainView',
+          args: ['com.harborclient.plugins.openapi', 'import']
+        }
+      })
+    ).rejects.toThrow('tab failed');
+  });
+
+  it('rejects commands.execute for non-harborclient owners', async () => {
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 4,
+        pluginId: 'com.harborclient.plugins.openapi',
+        op: 'commands.execute',
+        payload: {
+          pluginId: 'com.other.plugin',
+          commandId: 'openMainView',
+          args: []
+        }
+      })
+    ).rejects.toThrow(/Unsupported commands.execute target/);
   });
 });
 

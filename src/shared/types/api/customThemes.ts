@@ -56,6 +56,13 @@ export interface ApiCustomThemes {
   deleteCustomTheme: (id: string) => Promise<void>;
 
   /**
+   * Restores one built-in theme file from its packaged canonical export.
+   *
+   * @param id - Reserved built-in theme filename stem.
+   */
+  restoreBuiltinTheme: (id: string) => Promise<CustomTheme>;
+
+  /**
    * Opens an import dialog and returns draft values without saving.
    */
   importCustomTheme: () => Promise<CustomThemeImportDraft | null>;

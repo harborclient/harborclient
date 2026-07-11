@@ -3,6 +3,7 @@ import {
   acceleratorMatchesChord,
   bindingsToOverrides,
   formatAcceleratorDisplay,
+  formatMenuAcceleratorDisplay,
   getShortcutDef,
   normalizeAcceleratorForCompare,
   normalizeShortcutOverrides,
@@ -232,6 +233,23 @@ describe('formatAcceleratorDisplay', () => {
     expect(formatAcceleratorDisplay('CmdOrCtrl+Shift+N')).toBe('ctrl-shift-n');
     expect(formatAcceleratorDisplay('CmdOrCtrl+,')).toBe('ctrl-comma');
     expect(formatAcceleratorDisplay('F11')).toBe('f11');
+  });
+});
+
+describe('formatMenuAcceleratorDisplay', () => {
+  it('maps CmdOrCtrl to Ctrl on Linux and Windows', () => {
+    expect(formatMenuAcceleratorDisplay('CmdOrCtrl+S', 'linux')).toBe('Ctrl+S');
+    expect(formatMenuAcceleratorDisplay('CmdOrCtrl+Shift+N', 'win32')).toBe('Ctrl+Shift+N');
+    expect(formatMenuAcceleratorDisplay('CmdOrCtrl+,', 'linux')).toBe('Ctrl+,');
+  });
+
+  it('maps CmdOrCtrl to Cmd on macOS', () => {
+    expect(formatMenuAcceleratorDisplay('CmdOrCtrl+Shift+N', 'darwin')).toBe('Cmd+Shift+N');
+    expect(formatMenuAcceleratorDisplay('CmdOrCtrl+S', 'darwin')).toBe('Cmd+S');
+  });
+
+  it('passes through function keys unchanged', () => {
+    expect(formatMenuAcceleratorDisplay('F11', 'linux')).toBe('F11');
   });
 });
 

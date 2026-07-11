@@ -57,6 +57,32 @@ export type MenuActionId =
 export type RootMenuLabel = 'File' | 'Edit' | 'View' | 'Team' | 'Help';
 
 /**
+ * Serializable application submenu entry for Linux in-app dropdown menus.
+ *
+ * Native GTK menus on Linux do not always follow Electron nativeTheme overrides,
+ * so the renderer draws themed dropdowns from this snapshot instead.
+ */
+export type AppSubmenuItemSnapshot =
+  | {
+      /** Flat index in the root submenu used to activate the item in the main process. */
+      index: number;
+      kind: 'separator';
+    }
+  | {
+      /** Flat index in the root submenu used to activate the item in the main process. */
+      index: number;
+      kind: 'normal' | 'checkbox';
+      /** Visible menu label. */
+      label: string;
+      /** Whether a checkbox item is currently checked. */
+      checked?: boolean;
+      /** Whether the item can be activated. */
+      enabled: boolean;
+      /** Keyboard shortcut hint shown beside the label. */
+      accelerator?: string;
+    };
+
+/**
  * Result of comparing the running app version against the latest GitHub release.
  */
 export interface UpdateCheckResult {

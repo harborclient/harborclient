@@ -12,10 +12,12 @@ import { formatPluginThemeValue } from '#/shared/plugin/types';
  */
 async function buildCustomThemeMenuOptions(): Promise<ThemeMenuOption[]> {
   const themes = await window.api.listCustomThemes();
-  return themes.map((theme) => ({
-    value: formatCustomThemeValue(theme.id),
-    label: theme.title
-  }));
+  return themes
+    .filter((theme) => theme.builtin !== true)
+    .map((theme) => ({
+      value: formatCustomThemeValue(theme.id),
+      label: theme.title
+    }));
 }
 
 /**

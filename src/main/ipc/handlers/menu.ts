@@ -1,4 +1,5 @@
 import { BrowserWindow, Menu } from 'electron';
+import { activateAppSubmenuItem, getAppSubmenuSnapshot } from '#/main/appMenuSnapshot';
 import {
   setMenuAiSidebarVisible,
   setMenuCollectionsVisible,
@@ -77,6 +78,25 @@ export function registerMenuHandlers(): void {
     ipcArgSchemas.menuCreatorUndoRedo,
     (_event, active, canUndo, canRedo) => {
       setMenuCreatorUndoRedo(active, canUndo, canRedo);
+    }
+  );
+
+  // Returns a serializable snapshot of a root application submenu for Linux in-app menus.
+  handle('menu:getSubmenuSnapshot', ipcArgSchemas.menuGetSubmenuSnapshot, (_event, label) => {
+    return getAppSubmenuSnapshot(label);
+  });
+
+  // Activates an item from a root application submenu snapshot by index.
+  handle(
+    'menu:activateSubmenuItem',
+    ipcArgSchemas.menuActivateSubmenuItem,
+    (event, label, index) => {
+      const window = BrowserWindow.fromWebContents(event.sender);
+      if (!window) {
+        return;
+      }
+
+      activateAppSubmenuItem(label, index, window, event.sender);
     }
   );
 

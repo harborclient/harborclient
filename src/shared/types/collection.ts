@@ -407,10 +407,36 @@ export type ImportAction = 'created' | 'updated';
 /**
  * Result of a unified File -> Import action that auto-detects export type.
  */
+export type ImportFilePayload = {
+  /**
+   * Base file name including extension.
+   */
+  name: string;
+
+  /**
+   * Absolute path to the selected file.
+   */
+  path: string;
+
+  /**
+   * Normalized extension with a leading dot (for example `.json`).
+   */
+  extension: string;
+
+  /**
+   * Raw UTF-8 file contents.
+   */
+  contents: string;
+};
+
+/**
+ * Result of a unified File -> Import action that auto-detects export type.
+ */
 export type ImportEntityResult =
   | { kind: 'collection'; collection: Collection; action: ImportAction }
   | { kind: 'request'; request: SavedRequest; action: ImportAction }
   | { kind: 'environment'; environment: Environment; action: ImportAction }
   | { kind: 'snippet'; snippet: Snippet; action: ImportAction }
   | { kind: 'theme'; theme: CustomTheme; action: ImportAction }
-  | { kind: 'run-results'; data: RunResultsExport };
+  | { kind: 'run-results'; data: RunResultsExport }
+  | { kind: 'plugin-file'; file: ImportFilePayload };

@@ -17,6 +17,8 @@ extraResources:
     to: plugins/catalog.json
   - from: resources/docsSearchIndex.json
     to: docsSearchIndex.json
+  - from: resources/builtin_themes
+    to: builtin_themes
 directories:
   buildResources: build
   output: release

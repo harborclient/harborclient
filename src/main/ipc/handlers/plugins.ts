@@ -483,6 +483,14 @@ export function registerPluginHandlers(pluginManager: PluginManager): void {
       getPluginUiBroker().executeCommand(pluginId, commandId, args ?? []);
     }
   );
+
+  handle(
+    'plugins:invokeImportHandler',
+    ipcArgSchemas.pluginInvokeImportHandler,
+    (_event, pluginId, registrationId, phase, file) => {
+      return getPluginUiBroker().invokeImportHandler(pluginId, registrationId, phase, file);
+    }
+  );
 }
 
 /**

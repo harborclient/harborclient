@@ -52,6 +52,11 @@ import {
 } from '#/renderer/src/plugins/hostRequestCommands';
 import { subscribePluginAfterSend } from '#/renderer/src/plugins/pluginAfterSendBus';
 import { createPluginDatabaseApi } from '#/shared/plugin/pluginDatabaseApi';
+import type { ImportHandler } from '#/shared/plugin/importHandlers';
+import {
+  normalizeImportExtensions,
+  registerImportHandlerContribution
+} from '#/renderer/src/plugins/pluginImportHandlers';
 
 const commandHandlers = new Map<string, Set<(...args: unknown[]) => void | Promise<void>>>();
 
@@ -541,6 +546,18 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
       clearResponse: async () => {
         assertUi();
         clearActiveResponse();
+      }
+    },
+    imports: {
+      registerHandler: (extensions: string | string[], handler: ImportHandler) => {
+        assertUi();
+        const normalizedExtensions = normalizeImportExtensions(extensions);
+        if (normalizedExtensions.length === 0) {
+          throw new Error(
+            'At least one file extension is required for import handler registration.'
+          );
+        }
+        return registerImportHandlerContribution(pluginId, normalizedExtensions, handler);
       }
     }
   };

@@ -55,6 +55,11 @@ import {
 import toast from 'react-hot-toast';
 import { store } from '#/renderer/src/store/redux';
 import { setPluginModal } from '#/renderer/src/store/slices/modalsSlice';
+import {
+  registerBridgedImportHandler,
+  unregisterBridgedImportHandler
+} from '#/renderer/src/plugins/pluginImportHandlers';
+import { logImportVerbose } from '#/renderer/src/import/importVerboseLog';
 
 type ContributionKind =
   | 'settingsSections'
@@ -86,6 +91,14 @@ interface HostBridgeMessage {
   pluginId: string;
   op: string;
   payload?: unknown;
+}
+
+/** Import handler metadata synced from a plugin agent webview. */
+interface ImportHandlerMessage {
+  pluginId: string;
+  op: 'register' | 'unregister';
+  registrationId: string;
+  extensions?: string[];
 }
 
 /** Correlated host bridge invoke that must return a result to the plugin webview. */
@@ -215,6 +228,30 @@ export function applyContributionMessage(message: ContributionMessage): void {
 }
 
 /**
+ * Applies one import handler register/unregister message from a plugin agent webview.
+ *
+ * @param message - Import handler sync payload from the main-process broker.
+ */
+export function applyImportHandlerMessage(message: ImportHandlerMessage): void {
+  if (message.op === 'unregister') {
+    unregisterBridgedImportHandler(message.pluginId, message.registrationId);
+    logImportVerbose('bridge import handler unregistered', {
+      pluginId: message.pluginId,
+      registrationId: message.registrationId
+    });
+    return;
+  }
+
+  const extensions = message.extensions ?? [];
+  registerBridgedImportHandler(message.pluginId, message.registrationId, extensions);
+  logImportVerbose('bridge import handler registered', {
+    pluginId: message.pluginId,
+    registrationId: message.registrationId,
+    extensions
+  });
+}
+
+/**
  * Handles void host-side operations requested by isolated plugin webviews.
  *
  * @param message - Host bridge payload from the main-process broker.
@@ -252,24 +289,6 @@ export async function handlePluginHostBridge(message: HostBridgeMessage): Promis
         return;
       }
       store.dispatch(setPluginModal(null));
-      return;
-    }
-    case 'commands.execute': {
-      const {
-        pluginId: targetPluginId,
-        commandId,
-        args
-      } = payload as {
-        pluginId?: string;
-        commandId: string;
-        args?: unknown[];
-      };
-      const ownerId = targetPluginId ?? pluginId;
-      if (ownerId === 'harborclient') {
-        await executeHostPluginCommand(commandId, ...(args ?? []));
-        return;
-      }
-      await window.api.executePluginAgentCommand(ownerId, commandId, args ?? []);
       return;
     }
     case 'host.openRequestDraft':
@@ -335,6 +354,25 @@ export async function handlePluginHostBridgeInvoke(
     }
     case 'host.sendHttpRequest':
       return sendHttpRequestForPlugin((payload as { input: never }).input);
+    case 'commands.execute': {
+      const {
+        pluginId: targetPluginId,
+        commandId,
+        args
+      } = payload as {
+        pluginId?: string;
+        commandId: string;
+        args?: unknown[];
+      };
+      const ownerId = targetPluginId ?? pluginId;
+      if (ownerId !== 'harborclient') {
+        throw new Error(`Unsupported commands.execute target: ${ownerId}`);
+      }
+      logImportVerbose('hostBridge commands.execute start', { commandId, args });
+      await executeHostPluginCommand(commandId, ...(args ?? []));
+      logImportVerbose('hostBridge commands.execute ok', { commandId });
+      return undefined;
+    }
     default:
       throw new Error(`Unsupported plugin host bridge invoke operation: ${op}`);
   }
@@ -347,8 +385,28 @@ export function startPluginBridgeHost(): () => void {
   const unsubContributions = window.api.onPluginsContributions((message) => {
     applyContributionMessage(message as ContributionMessage);
   });
+  const unsubImportHandlers = window.api.onPluginsImportHandlers((message) => {
+    applyImportHandlerMessage(message as ImportHandlerMessage);
+  });
   const unsubHostBridge = window.api.onPluginsHostBridge((message) => {
-    void handlePluginHostBridge(message as HostBridgeMessage);
+    void (async () => {
+      try {
+        await handlePluginHostBridge(message as HostBridgeMessage);
+      } catch (error) {
+        const hostMessage = message as HostBridgeMessage;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('[import] hostBridge failed', {
+          pluginId: hostMessage.pluginId,
+          op: hostMessage.op,
+          error: errorMessage
+        });
+        void window.api.logVerbose('hostBridge failed', {
+          pluginId: hostMessage.pluginId,
+          op: hostMessage.op,
+          error: errorMessage
+        });
+      }
+    })();
   });
   const unsubHostBridgeInvoke = window.api.onPluginsHostBridgeInvoke((message) => {
     void (async () => {
@@ -370,6 +428,7 @@ export function startPluginBridgeHost(): () => void {
   });
   return () => {
     unsubContributions();
+    unsubImportHandlers();
     unsubHostBridge();
     unsubHostBridgeInvoke();
   };

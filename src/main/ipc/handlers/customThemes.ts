@@ -3,6 +3,7 @@ import {
   deleteCustomTheme,
   getCustomTheme,
   listCustomThemes,
+  restoreBuiltinTheme,
   saveCustomTheme,
   type SaveCustomThemeInput
 } from '#/main/storage/customThemes';
@@ -33,6 +34,10 @@ export function registerCustomThemeHandlers(): void {
 
   handle('customThemes:delete', ipcArgSchemas.customThemeId, (_event, id) => {
     deleteCustomTheme(id);
+  });
+
+  handle('customThemes:restoreBuiltin', ipcArgSchemas.customThemeId, (_event, id) => {
+    return restoreBuiltinTheme(id);
   });
 
   handle('customThemes:import', ipcArgSchemas.none, async () => {

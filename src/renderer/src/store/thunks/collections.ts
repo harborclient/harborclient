@@ -41,6 +41,12 @@ import {
 import { refreshEnvironments } from '#/renderer/src/store/thunks/environments';
 import { refreshSnippets } from '#/renderer/src/store/thunks/snippets';
 import { syncThemeMenuNow } from '#/renderer/src/plugins/themeMenuSync';
+import {
+  getRegisteredImportExtensions,
+  getImportHandlerSnapshot,
+  runPluginImportHandlers
+} from '#/renderer/src/plugins/pluginImportHandlers';
+import { logImportVerbose } from '#/renderer/src/import/importVerboseLog';
 
 const COLLECTIONS_REFRESH_KEY = 'collections';
 
@@ -305,8 +311,29 @@ export const importFromMenu = createAsyncThunk<ImportEntityResult | null, void, 
   'collections/importFromMenu',
   async (_, { dispatch, getState }) => {
     const selectedId = getState().collections.selectedCollectionId;
-    const result = await window.api.importEntity(selectedId);
-    if (!result) return null;
+    const pluginExtensions = getRegisteredImportExtensions();
+    const handlerSnapshot = getImportHandlerSnapshot();
+    logImportVerbose('menu thunk start', {
+      pluginExtensions,
+      handlerCount: handlerSnapshot.length,
+      handlers: handlerSnapshot
+    });
+    const result = await window.api.importEntity(selectedId, pluginExtensions);
+    if (!result) {
+      logImportVerbose('menu thunk canceled');
+      return null;
+    }
+
+    logImportVerbose('menu thunk result', { kind: result.kind });
+
+    if (result.kind === 'plugin-file') {
+      await runPluginImportHandlers(result.file);
+      logImportVerbose('menu thunk plugin handler completed', {
+        fileName: result.file.name,
+        extension: result.file.extension
+      });
+      return null;
+    }
 
     switch (result.kind) {
       case 'collection': {

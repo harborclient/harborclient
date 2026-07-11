@@ -28,6 +28,11 @@ export interface CustomTheme {
    * Token overrides without the `--mac-` prefix.
    */
   colors: Partial<Record<ThemeColorToken, string>>;
+
+  /**
+   * True when this record is a reserved built-in theme that cannot be uninstalled.
+   */
+  builtin?: boolean;
 }
 
 /**
