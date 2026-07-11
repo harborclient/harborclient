@@ -61,9 +61,9 @@ import { PluginModalOverlay } from '#/renderer/src/ui/PluginModalOverlay';
 import { ShareModal } from '#/renderer/src/ui/modals/ShareModal';
 import { QuitPrompt } from '#/renderer/src/ui/modals/QuitPrompt';
 import { UnsavedLoadPrompt } from '#/renderer/src/ui/modals/UnsavedLoadPrompt';
-import { AiSidebar } from '#/renderer/src/ui/AiSidebar';
-import { Sidebar } from '#/renderer/src/ui/Sidebar';
-import { SidebarExpansionProvider } from '#/renderer/src/ui/Sidebar/SidebarExpansionProvider';
+import { AiSidebar } from '#/renderer/src/ui/sidebars/AiSidebar';
+import { CollectionSidebar } from '#/renderer/src/ui/sidebars/CollectionSidebar';
+import { SidebarExpansionProvider } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarExpansionProvider';
 import { RequestEditor } from '#/renderer/src/ui/Main/RequestEditor';
 import { resolveVariableEditTarget } from '#/renderer/src/ui/Main/RequestEditor/resolveVariableEditTarget';
 import { TitleBar } from '#/renderer/src/ui/TitleBar';
@@ -303,7 +303,7 @@ export default function App(): JSX.Element {
             </a>
             <div className="relative flex min-h-0 flex-1 overflow-hidden">
               <AnimatedHorizontalPanel open={sidebarVisible}>
-                <Sidebar
+                <CollectionSidebar
                   onAddCollection={() => dispatch(openCollectionModal({ mode: 'create' }))}
                   onConfigureCollection={(id) => dispatch(openPageTab({ type: 'collection', id }))}
                   onConfigureFolder={(collectionId, folderId) =>

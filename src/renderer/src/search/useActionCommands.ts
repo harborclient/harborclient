@@ -28,7 +28,7 @@ import {
   runSync,
   saveFromMenu
 } from '#/renderer/src/store/thunks';
-import { useSidebarExpansion } from '#/renderer/src/ui/Sidebar/useSidebarExpansion';
+import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
 
 interface UseActionCommandsResult {

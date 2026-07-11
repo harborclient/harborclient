@@ -66,7 +66,7 @@ import {
   focusSidebarItem
 } from '#/renderer/src/store/thunks';
 import { mergeRequestVariables } from '#/renderer/src/hooks/useMergedRequestVariables';
-import { useSidebarExpansion } from '#/renderer/src/ui/Sidebar/useSidebarExpansion';
+import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
 import { useTeamHubs } from '#/renderer/src/hooks/useTeamHubs';
 import { Button } from '@harborclient/sdk/components';
 import { Modal, ModalFooter } from '@harborclient/sdk/components';

@@ -3,7 +3,14 @@ import type { JSX } from 'react';
 import type { Variable } from '#/shared/types';
 
 interface Props {
+  /**
+   * Draft collection-scoped variables shown in the table.
+   */
   variables: Variable[];
+
+  /**
+   * Updates the draft variables when the user edits the table.
+   */
   onChange: (variables: Variable[]) => void;
 
   /**

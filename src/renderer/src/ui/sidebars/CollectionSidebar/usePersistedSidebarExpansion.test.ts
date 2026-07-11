@@ -3,7 +3,7 @@ import {
   advanceSidebarExpansionPersistGate,
   serializeSidebarExpansion,
   shouldPersistSidebarExpansion
-} from '#/renderer/src/ui/Sidebar/usePersistedSidebarExpansion';
+} from '#/renderer/src/ui/sidebars/CollectionSidebar/usePersistedSidebarExpansion';
 
 describe('serializeSidebarExpansion', () => {
   it('serializes section flags and expanded ids', () => {

@@ -48,12 +48,12 @@ import {
   useDeveloperToolsEnabled,
   type InspectPoint
 } from '#/renderer/src/ui/shared/devInspectContextMenu';
-import { DropZone } from '#/renderer/src/ui/Sidebar/Collections/DropZone';
+import { DropZone } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/DropZone';
 import { focusCollectionSettings } from '#/renderer/src/ui/CollectionSettings/focusCollectionSettings';
 import { focusFolderSettings } from '#/renderer/src/ui/FolderSettings/focusFolderSettings';
-import { DocumentRow } from '#/renderer/src/ui/Sidebar/Collections/DocumentRow';
-import { RequestRow } from '#/renderer/src/ui/Sidebar/Collections/RequestRow';
-import { SortableRow } from '#/renderer/src/ui/Sidebar/Collections/SortableRow';
+import { DocumentRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/DocumentRow';
+import { RequestRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/RequestRow';
+import { SortableRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/SortableRow';
 import {
   collectionCollisionDetection,
   collectionDragId,
@@ -66,7 +66,7 @@ import {
   requestDragId,
   resolveRequestDropTarget,
   type DragKind
-} from '#/renderer/src/ui/Sidebar/Collections/utils';
+} from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/utils';
 
 interface Props {
   /**

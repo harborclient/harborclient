@@ -1,6 +1,6 @@
 import { useContext } from 'react';
-import { SidebarExpansionContext } from '#/renderer/src/ui/Sidebar/sidebarExpansionContext';
-import type { SidebarExpansionContextValue } from '#/renderer/src/ui/Sidebar/sidebarExpansionContext';
+import { SidebarExpansionContext } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarExpansionContext';
+import type { SidebarExpansionContextValue } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarExpansionContext';
 
 /**
  * Returns persisted sidebar expansion state and reveal helpers.

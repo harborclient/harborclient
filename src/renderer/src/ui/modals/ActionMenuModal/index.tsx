@@ -8,7 +8,7 @@ import {
   type KeyboardEvent
 } from 'react';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { FaIcon, Input, Modal } from '@harborclient/sdk/components';
+import { FaIcon, Input, Modal, portalToBody } from '@harborclient/sdk/components';
 import {
   actionCommandDisplayLabel,
   groupUnifiedSearchHits,
@@ -679,8 +679,8 @@ function ActionMenuModalBody({ onClose }: ModalBodyProps): JSX.Element {
     <Modal
       label="Action menu"
       onClose={onClose}
-      className="flex w-[min(42rem,calc(100vw-2rem))] max-h-[70vh] flex-col self-start overflow-hidden mt-[12vh]"
-      overlayClassName="bg-black/35"
+      className="absolute left-1/2 top-[calc(12vh-40px)] z-10 flex w-[min(42rem,calc(100vw-2rem))] max-h-[70vh] -translate-x-1/2 flex-col overflow-hidden"
+      overlayClassName="z-50 bg-black/35"
     >
       <div className="flex min-w-0 flex-col gap-2 overflow-hidden p-1">
         <label htmlFor={ACTION_MENU_INPUT_ID} className="sr-only">
@@ -786,6 +786,9 @@ function ActionMenuModalBody({ onClose }: ModalBodyProps): JSX.Element {
 
 /**
  * Global command palette for searching collections, settings, and plugins.
+ *
+ * Portaled to `document.body` so fixed positioning stays centered on the full
+ * viewport when sidebars are open.
  */
 export function ActionMenuModal(): JSX.Element | null {
   const dispatch = useAppDispatch();
@@ -802,5 +805,5 @@ export function ActionMenuModal(): JSX.Element | null {
     return null;
   }
 
-  return <ActionMenuModalBody key="action-menu" onClose={handleClose} />;
+  return portalToBody(<ActionMenuModalBody key="action-menu" onClose={handleClose} />);
 }

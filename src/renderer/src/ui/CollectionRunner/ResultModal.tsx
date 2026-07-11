@@ -25,7 +25,7 @@ interface Props {
 /**
  * Modal that embeds the response editor for a completed collection runner request.
  */
-export function CollectionRunnerResultModal({ result, onClose }: Props): JSX.Element | null {
+export function ResultModal({ result, onClose }: Props): JSX.Element | null {
   /**
    * Read-only plugin context for response tabs inside the runner result modal.
    */

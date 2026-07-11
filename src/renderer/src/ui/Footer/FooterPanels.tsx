@@ -7,7 +7,6 @@ import {
   togglePluginFooterPanel
 } from '#/renderer/src/store/slices/navigationSlice';
 import { usePluginFooterPanels } from '#/renderer/src/plugins/pluginHooks';
-
 import { ConsolePanel } from './ConsolePanel';
 import { McpPanel } from './McpPanel';
 import { PluginFooterPanel } from './PluginFooterPanel';

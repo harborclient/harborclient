@@ -4,8 +4,19 @@ import type { KeyValue, Variable } from '#/shared/types';
 import { headerKeySource, headerValueSource } from '#/renderer/src/autocomplete/sources';
 
 interface Props {
+  /**
+   * Draft collection headers sent with every request in the collection.
+   */
   headers: KeyValue[];
+
+  /**
+   * Collection-scoped variables for autocomplete in header values.
+   */
   variables: Variable[];
+
+  /**
+   * Updates the draft headers when the user edits the table.
+   */
   onChange: (headers: KeyValue[]) => void;
 }
 

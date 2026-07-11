@@ -20,7 +20,7 @@ import type { Environment } from '#/shared/types';
 import { RowActionsMenu } from '@harborclient/sdk/components';
 import { buildReorderMenuGroup } from '@harborclient/sdk/components';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
-import { SortableRow } from '#/renderer/src/ui/Sidebar/Collections/SortableRow';
+import { SortableRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/SortableRow';
 import { focusEnvironmentSettings } from '#/renderer/src/ui/EnvironmentSettings/focusEnvironmentSettings';
 import { sourceRow } from '#/renderer/src/ui/shared/classes';
 import {
@@ -28,6 +28,7 @@ import {
   useDeveloperToolsEnabled,
   type InspectPoint
 } from '#/renderer/src/ui/shared/devInspectContextMenu';
+import { environmentDragId, parseEnvironmentDragId } from './utils';
 
 interface Props {
   /**
@@ -86,25 +87,6 @@ interface Props {
    * When true, shows a no-match message instead of an empty list.
    */
   noMatches?: boolean;
-}
-
-/**
- * Builds a stable dnd-kit id for an environment row.
- *
- * @param id - Environment database id.
- */
-function environmentDragId(id: number): string {
-  return `environment:${id}`;
-}
-
-/**
- * Parses an environment drag id back to its numeric id.
- *
- * @param dragId - Sortable id from dnd-kit.
- */
-function parseEnvironmentDragId(dragId: string): number | null {
-  const match = /^environment:(\d+)$/.exec(dragId);
-  return match ? Number(match[1]) : null;
 }
 
 /**

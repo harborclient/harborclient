@@ -79,7 +79,7 @@ const SectionItem = memo(function SectionItem({
   const { status, isMounted, isEnter } = state;
 
   return (
-    <div ref={itemElementRef} className="mb-3">
+    <div ref={itemElementRef} className="mb-1">
       <div className="-mx-2 mb-1 flex items-center justify-between gap-2 bg-sidebar-section px-2 py-1">
         <button
           {...buttonProps}

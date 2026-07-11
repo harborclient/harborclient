@@ -5,7 +5,7 @@ import { buildAiScriptSelectionContextMessage } from '#/shared/ai/scriptReferenc
 import type { AiSettings, ChatMessage, ChatStepMessage, ChatSummary } from '#/shared/types';
 import { executeAiToolCall } from '#/renderer/src/store/ai/aiToolExecutor';
 import type { RootState, ThunkApiConfig } from '#/renderer/src/store/redux';
-import { buildAiScriptReferenceValidationContext } from '#/renderer/src/ui/AiSidebar/Chat/useAiScriptReferenceValidationContext';
+import { buildAiScriptReferenceValidationContext } from '#/renderer/src/ui/sidebars/AiSidebar/Chat/useAiScriptReferenceValidationContext';
 import { selectActiveTab, selectSnippets } from '#/renderer/src/store/selectors';
 import {
   appendMessage,

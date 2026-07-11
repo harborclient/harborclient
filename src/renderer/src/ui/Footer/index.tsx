@@ -20,7 +20,6 @@ import {
 } from '#/renderer/src/store/slices/modalsSlice';
 import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import { usePluginFooterPanels, usePluginStatusBarItems } from '#/renderer/src/plugins/pluginHooks';
-
 import { SHORTCUTS_REFERENCE_MODAL_ID } from '#/renderer/src/ui/modals/ShortcutsReferenceModal';
 import { handleFooterBarTabNavigation } from '#/renderer/src/ui/Footer/footerBarTabNavigation';
 import { effectiveCount, resolveScopedVariables } from './VariablesPanel/resolve';

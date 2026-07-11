@@ -159,7 +159,7 @@ interface Props {
 /**
  * Left sidebar with collapsible collections and environments sections.
  */
-export function Sidebar({
+export function CollectionSidebar({
   onAddCollection,
   onConfigureCollection,
   onConfigureFolder,
@@ -1135,6 +1135,7 @@ export function Sidebar({
           </>
         )}
       </aside>
+
       <ResizeHandle
         orientation="vertical"
         value={width}

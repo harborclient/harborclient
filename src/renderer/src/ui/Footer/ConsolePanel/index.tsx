@@ -1,8 +1,8 @@
-import { Button, Resizable, EmptyState } from '@harborclient/sdk/components';
+import { EmptyState, FaIcon, FooterButton, FooterPanel } from '@harborclient/sdk/components';
 import { useCallback, useState, type JSX } from 'react';
 import type { ConsoleEntry } from '#/renderer/src/store';
-
 import { EntryRow } from './EntryRow';
+import { faEraser } from '@fortawesome/free-solid-svg-icons';
 
 interface Props {
   /**
@@ -50,45 +50,34 @@ export function ConsolePanel({ entries, open, onClose, onClear }: Props): JSX.El
   const effectiveExpandedId = open ? expandedId : null;
 
   return (
-    <Resizable
+    <FooterPanel
       id="footer-console-panel"
       open={open}
       onClose={handleClose}
       closeLabel="console"
       storageKey="hc.consoleHeight"
-      title={
-        <div className="flex items-center gap-2 text-[14px] font-medium text-text">
-          <span>Console</span>
-          {entries.length > 0 && (
-            <span className="text-[14px] font-normal text-muted">({entries.length})</span>
-          )}
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onClear}
-            disabled={entries.length === 0}
-          >
-            Clear
-          </Button>
-        </div>
-      }
+      title="Console"
+      description="Console entries for the recent requests."
+      buttons={[
+        <FooterButton key="close" onClick={onClear} title="Clear">
+          <FaIcon icon={faEraser} />
+        </FooterButton>
+      ]}
     >
-      <div className="min-h-0 flex-1 overflow-auto">
-        {entries.length === 0 ? (
-          <EmptyState variant="centered" className="h-full">
-            No requests logged yet. Send a request to see it here.
-          </EmptyState>
-        ) : (
-          entries.map((entry) => (
-            <EntryRow
-              key={entry.id}
-              entry={entry}
-              expanded={effectiveExpandedId === entry.id}
-              onToggle={() => toggleExpanded(entry.id)}
-            />
-          ))
-        )}
-      </div>
-    </Resizable>
+      {entries.length === 0 ? (
+        <EmptyState variant="centered" className="h-full">
+          No requests logged yet. Send a request to see it here.
+        </EmptyState>
+      ) : (
+        entries.map((entry) => (
+          <EntryRow
+            key={entry.id}
+            entry={entry}
+            expanded={effectiveExpandedId === entry.id}
+            onToggle={() => toggleExpanded(entry.id)}
+          />
+        ))
+      )}
+    </FooterPanel>
   );
 }

@@ -36,7 +36,7 @@ interface Props {
 /**
  * Modal for choosing a storage provider before saving collection run results.
  */
-export function CollectionRunnerSaveModal({ open, onClose, onSave }: Props): JSX.Element | null {
+export function SaveModal({ open, onClose, onSave }: Props): JSX.Element | null {
   const providerSelectId = useId();
   const {
     providers,

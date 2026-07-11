@@ -1,4 +1,4 @@
-import { Resizable } from '@harborclient/sdk/components';
+import { FooterPanel } from '@harborclient/sdk/components';
 import { type JSX } from 'react';
 import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import type { PluginContributionKind } from '#/shared/plugin/pluginSurface';
@@ -49,25 +49,22 @@ export function PluginFooterPanel({
   const kind: PluginContributionKind = 'footerPanels';
 
   return (
-    <Resizable
+    <FooterPanel
       id={`footer-plugin-panel-${id}`}
       open={open}
       onClose={onClose}
       closeLabel={title}
       storageKey={`hc.footerPanel.${id}`}
       unmountWhenClosed
-      headerless
     >
-      <div className="flex min-h-0 flex-1 flex-col">
-        <PluginSurface
-          pluginId={pluginId}
-          contributionId={contributionId}
-          kind={kind}
-          minHeight={160}
-          className="h-full"
-          resizeMode="fill"
-        />
-      </div>
-    </Resizable>
+      <PluginSurface
+        pluginId={pluginId}
+        contributionId={contributionId}
+        kind={kind}
+        minHeight={160}
+        className="h-full"
+        resizeMode="fill"
+      />
+    </FooterPanel>
   );
 }

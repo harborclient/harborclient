@@ -6,24 +6,54 @@ import { providerOptionLabel } from '#/renderer/src/hooks/useProviders';
 import { COLLECTION_SETTINGS_NAME_INPUT_ID } from '#/renderer/src/ui/CollectionSettings/focusCollectionSettings';
 
 interface Props {
+  /**
+   * Draft collection display name shown in the name field.
+   */
   name: string;
+
+  /**
+   * Updates the draft name when the user edits the input.
+   */
   onNameChange: (name: string) => void;
+
+  /**
+   * Selected provider connection id for the collection database.
+   */
   connectionId: string;
+
+  /**
+   * Available provider options for the provider select.
+   */
   providers: ProviderOption[];
+
+  /**
+   * Updates the draft connection id when the user picks a provider.
+   */
   onConnectionIdChange: (connectionId: string) => void;
+
   /**
    * True while providers are loading from IPC.
    */
   providersLoading: boolean;
+
   /**
    * Bootstrap error message when provider list IPC fails; null otherwise.
    */
   providersError: string | null;
+
   /**
    * Retries loading providers after a bootstrap failure.
    */
   onProvidersRetry: () => void;
+
+  /**
+   * Persists the collection settings form (triggered by Enter in the name field).
+   */
   onSave: () => void;
+
+  /**
+   * Closes the settings view without saving (triggered by Escape in the name field).
+   */
   onClose: () => void;
 }
 

@@ -15,7 +15,7 @@ import {
   selectEnvironments
 } from '#/renderer/src/store/selectors';
 import { useAppSelector } from '#/renderer/src/store/hooks';
-import { requestDragId } from '#/renderer/src/ui/Sidebar/Collections/utils';
+import { requestDragId } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/utils';
 import { type JSX, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import {

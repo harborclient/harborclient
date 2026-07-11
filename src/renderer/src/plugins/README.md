@@ -287,8 +287,8 @@ as `plugin:{pluginId}:{contributionId}`.
 | Registry bucket          | Host component                                                                               | Hook                                  |
 | ------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------- |
 | `settingsSections`       | [`Settings/index.tsx`](../ui/Settings/index.tsx)                                             | `usePluginSettingsSections`           |
-| `sidebarPanels`          | [`Sidebar/index.tsx`](../ui/Sidebar/index.tsx)                                               | `usePluginSidebarPanels`              |
-| `sidebarSections`        | [`Sidebar/index.tsx`](../ui/Sidebar/index.tsx)                                               | `usePluginSidebarSections`            |
+| `sidebarPanels`          | [`CollectionSidebar/index.tsx`](../ui/sidebars/CollectionSidebar/index.tsx)                  | `usePluginSidebarPanels`              |
+| `sidebarSections`        | [`CollectionSidebar/index.tsx`](../ui/sidebars/CollectionSidebar/index.tsx)                  | `usePluginSidebarSections`            |
 | `mainViews`              | [`PluginMainView`](../ui/PluginMainView/index.tsx) via Redux                                 | `usePluginMainViews`                  |
 | `requestTabs`            | [`Main/RequestEditor/Editor/TabContent.tsx`](../ui/Main/RequestEditor/Editor/TabContent.tsx) | `usePluginRequestTabs`                |
 | `responseTabs`           | [`Main/ResponseEditor/index.tsx`](../ui/Main/ResponseEditor/index.tsx)                       | `usePluginResponseTabs`               |

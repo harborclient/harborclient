@@ -29,71 +29,20 @@ import { FormGroup } from '@harborclient/sdk/components';
 import { Checkbox, Input, Radio, Select } from '@harborclient/sdk/components';
 import {
   resolveRunnerTargetNames,
-  runnerPageTitle,
-  type RunnerTargetRef
+  runnerPageTitle
 } from '#/renderer/src/ui/CollectionRunner/resolveRunnerTargetName';
-import { CollectionRunnerResultModal } from '#/renderer/src/ui/CollectionRunner/CollectionRunnerResultModal';
-import { CollectionRunnerSaveModal } from '#/renderer/src/ui/CollectionRunner/CollectionRunnerSaveModal';
+import { ResultModal } from '#/renderer/src/ui/CollectionRunner/ResultModal';
+import { SaveModal } from '#/renderer/src/ui/CollectionRunner/SaveModal';
 import { ResponseSummary } from '#/renderer/src/ui/Main/ResponseEditor/ResponseSummary';
 import { METHOD_CLASSES } from '#/renderer/src/ui/shared/classes';
 import { faLink } from '#/renderer/src/fontawesome';
+import { resultStatusLabel, runnerMatchesTarget } from './utils';
 
 interface Props {
   /**
    * Active collection runner page tab identity.
    */
   page: Extract<PageRef, { type: 'collection-runner' }>;
-}
-
-/**
- * Returns a human-readable label for a collection runner result row.
- *
- * @param result - Result row from the active collection run.
- * @returns Status text paired with color indicators elsewhere in the UI.
- */
-function resultStatusLabel(result: CollectionRunnerRequestResult): string {
-  switch (result.status) {
-    case 'pending':
-      return 'Pending';
-    case 'running':
-      return 'Running…';
-    case 'passed':
-      return 'Passed';
-    case 'failed':
-      if (result.httpError) {
-        return `Failed: ${result.httpError}`;
-      }
-      if (result.httpStatus != null && result.httpStatus >= 400) {
-        return `Failed: HTTP ${result.httpStatus}`;
-      }
-      if (result.testsFailed > 0) {
-        return `Failed: ${result.testsFailed} test${result.testsFailed === 1 ? '' : 's'} failed`;
-      }
-      return 'Failed';
-    case 'skipped':
-      return 'Skipped';
-  }
-}
-
-/**
- * Returns whether runner state matches the page tab target identity.
- *
- * @param runner - Active collection runner state, if any.
- * @param target - Page tab target identity.
- * @returns True when both refer to the same collection, folder, or request run.
- */
-function runnerMatchesTarget(
-  runner: ReturnType<typeof selectCollectionRunner>,
-  target: RunnerTargetRef
-): boolean {
-  if (!runner) {
-    return false;
-  }
-  return (
-    runner.collectionId === target.collectionId &&
-    runner.folderId === (target.folderId ?? null) &&
-    runner.requestId === (target.requestId ?? null)
-  );
 }
 
 /**
@@ -653,8 +602,8 @@ export function CollectionRunner({ page }: Props): JSX.Element {
         </div>
       ) : null}
 
-      <CollectionRunnerResultModal result={selectedResult} onClose={handleCloseResultModal} />
-      <CollectionRunnerSaveModal
+      <ResultModal result={selectedResult} onClose={handleCloseResultModal} />
+      <SaveModal
         open={saveModalOpen}
         onClose={() => setSaveModalOpen(false)}
         onSave={handleSaveConfirm}

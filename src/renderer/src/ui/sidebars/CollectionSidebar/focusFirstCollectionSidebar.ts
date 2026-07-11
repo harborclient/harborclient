@@ -6,7 +6,7 @@ import {
   focusSidebarCollectionRowById,
   SIDEBAR_COLLECTION_ID_ATTR,
   sidebarCollectionRowSelector
-} from '#/renderer/src/ui/Sidebar/sidebarListNavigation';
+} from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarListNavigation';
 
 export { SIDEBAR_COLLECTION_ID_ATTR, sidebarCollectionRowSelector };
 

@@ -21,7 +21,7 @@ import {
   truncateFlatChats,
   truncateGroupChats,
   type ChatHistoryGroup
-} from '#/renderer/src/ui/AiSidebar/Chat/chatHistoryGrouping';
+} from '#/renderer/src/ui/sidebars/AiSidebar/Chat/chatHistoryGrouping';
 import {
   buildDevInspectMenuGroups,
   useDeveloperToolsEnabled

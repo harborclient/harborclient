@@ -12,19 +12,10 @@ import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { hostFromUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/cookieHost';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
 import { DomainCookiesEditor } from './DomainCookiesEditor';
+import { hasPersistedCookieRows } from './utils';
 
 const addDomainInputId = 'cookies-add-domain';
 const addDomainErrorId = 'cookies-add-domain-error';
-
-/**
- * Returns whether cookie rows contain a persisted name/value pair.
- *
- * @param rows - Cookie rows from the key/value editor.
- * @returns True when at least one row has a key or value.
- */
-function hasPersistedCookieRows(rows: { key: string; value: string }[]): boolean {
-  return rows.some((row) => row.key.trim() || row.value.trim());
-}
 
 /**
  * Full-page manager for saved cookies across every persisted domain.
