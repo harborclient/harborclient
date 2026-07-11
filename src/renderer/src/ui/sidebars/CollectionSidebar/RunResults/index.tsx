@@ -1,55 +1,45 @@
 import { useState, type JSX } from 'react';
-import type { SavedRunResultSummary } from '#/shared/collectionRunner';
 import { RowActionsMenu } from '@harborclient/sdk/components';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { selectRunResults } from '#/renderer/src/store/slices/runResultsSlice';
+import { deleteRunResult, openSavedRunResult } from '#/renderer/src/store/thunks/runResults';
 import { SortableRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/SortableRow';
+import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
+import { useSidebarProviders } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarProvidersContext';
 import { sourceRow } from '#/renderer/src/ui/shared/classes';
 import { runResultDragId, runResultSummaryText, runResultStatusDotClass } from './utils';
 
-interface Props {
-  /**
-   * Saved run result rows in sidebar display order.
-   */
-  runResults: SavedRunResultSummary[];
-
-  /**
-   * Maps connection ids to display names for the storage location badge.
-   */
-  connectionNamesById: Record<string, string>;
-
-  /**
-   * Whether the storage location badge should be rendered, toggled from the
-   * sidebar toolbar alongside the Collections storage location badges.
-   */
-  showStorageLocationBadges: boolean;
+/**
+ * Run results list with row actions and no drag reordering. Sources saved run
+ * results and dispatches its own open/delete actions rather than receiving them
+ * from the sidebar shell.
+ */
+export function RunResults(): JSX.Element {
+  const dispatch = useAppDispatch();
+  const confirm = useConfirm();
+  const runResults = useAppSelector(selectRunResults);
+  const { connectionNamesById } = useSidebarProviders();
+  const { showStorageLocationBadges } = useSidebarExpansion();
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   /**
    * Opens a saved run result in the read-only collection runner tab.
    *
    * @param id - Global run result id from storage routing.
    */
-  onSelectRunResult: (id: number) => void;
+  const onSelectRunResult = (id: number): void => {
+    void dispatch(openSavedRunResult(id));
+  };
 
   /**
    * Deletes a saved run result snapshot.
    *
    * @param id - Global run result id from storage routing.
    */
-  onDeleteRunResult: (id: number) => Promise<void>;
-}
-
-/**
- * Run results list with row actions and no drag reordering.
- */
-export function RunResults({
-  runResults,
-  connectionNamesById,
-  showStorageLocationBadges,
-  onSelectRunResult,
-  onDeleteRunResult
-}: Props): JSX.Element {
-  const confirm = useConfirm();
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const onDeleteRunResult = async (id: number): Promise<void> => {
+    await dispatch(deleteRunResult(id));
+  };
 
   return (
     <div className="sidebar-source-list flex flex-col gap-0">

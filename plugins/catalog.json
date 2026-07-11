@@ -3,15 +3,15 @@
   "plugins": [
     {
       "repoUrl": "https://github.com/harborclient/plugin-aws-sigv4",
-      "ref": "v1.0.9"
+      "ref": "v1.0.11"
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-curl",
-      "ref": "v1.0.12"
+      "ref": "v1.0.13"
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-httpie",
-      "ref": "v1.0.7"
+      "ref": "v1.0.8"
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-json-validator",
@@ -23,15 +23,15 @@
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-dotenv",
-      "ref": "v1.0.11"
+      "ref": "v1.0.12"
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-echo",
-      "ref": "v1.0.6"
+      "ref": "v1.0.7"
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-history",
-      "ref": "v1.0.11"
+      "ref": "v1.0.12"
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-interval",

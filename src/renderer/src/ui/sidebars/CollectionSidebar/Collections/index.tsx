@@ -16,24 +16,24 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
+import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
+import type { Collection, CollectionDocument, Folder, SavedRequest } from '#/shared/types';
+import { useAppSelector } from '#/renderer/src/store/hooks';
 import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type Dispatch,
-  type JSX,
-  type SetStateAction
-} from 'react';
-import type {
-  Collection,
-  CollectionDocument,
-  CollectionProviderKind,
-  Folder,
-  SavedRequest,
-  SourceControlStatus
-} from '#/shared/types';
-import type { SidebarSearchFilter } from '#/shared/search/sidebar';
+  selectActiveDocumentId,
+  selectCollections,
+  selectDocumentsByCollection,
+  selectDraft,
+  selectFoldersByCollection,
+  selectRequestsByCollection,
+  selectSelectedCollectionId,
+  selectSelectedFolderId
+} from '#/renderer/src/store/selectors';
+import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
+import { useSidebarProviders } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarProvidersContext';
+import { useSidebarGit } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarGitContext';
+import { useSidebarSearchContext } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarSearchContext';
+import { useCollectionActions } from '#/renderer/src/ui/sidebars/CollectionSidebar/useCollectionActions';
 import { FaIcon } from '@harborclient/sdk/components';
 import { RowActionsMenu } from '@harborclient/sdk/components';
 import { buildReorderMenuGroup } from '@harborclient/sdk/components';
@@ -68,351 +68,71 @@ import {
   type DragKind
 } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/utils';
 
-interface Props {
-  /**
-   * Collections shown in the sidebar, in display order.
-   */
-  collections: Collection[];
-
-  /**
-   * Folders grouped by collection id.
-   */
-  foldersByCollection: Record<number, Folder[]>;
-
-  /**
-   * Saved requests grouped by collection id.
-   */
-  requestsByCollection: Record<number, SavedRequest[]>;
-
-  /**
-   * Markdown documents grouped by collection id.
-   */
-  documentsByCollection: Record<number, CollectionDocument[]>;
-
-  /**
-   * Currently selected collection id, if any.
-   */
-  selectedCollectionId: number | null;
-
-  /**
-   * Currently selected folder id, if any.
-   */
-  selectedFolderId: number | null;
-
-  /**
-   * Default connection id used when a collection has no explicit connection.
-   */
-  primaryConnectionId: string;
-
-  /**
-   * Human-readable connection names keyed by connection id.
-   */
-  connectionNamesById: Record<string, string>;
-
-  /**
-   * Database provider types keyed by connection id.
-   */
-  connectionTypesById: Record<string, CollectionProviderKind>;
-
-  /**
-   * Whether storage location name badges appear next to collection names.
-   */
-  showStorageLocationBadges: boolean;
-
-  /**
-   * Git source-control status keyed by connection id.
-   */
-  gitStatusesByConnectionId: Record<string, SourceControlStatus>;
-
-  /**
-   * Opens the in-app source-control panel for a git connection.
-   */
-  onOpenSourceControl: (connectionId: string, connectionName: string) => void;
-
-  /**
-   * Id of the request currently open in the editor, for row highlighting.
-   */
-  activeRequestId?: number;
-
-  /**
-   * Id of the markdown document currently open in the editor, for row highlighting.
-   */
-  activeDocumentId?: number;
-
-  /**
-   * Collection ids whose request trees are expanded.
-   */
-  expandedCollectionIds: Set<number>;
-
-  /**
-   * Folder ids whose request lists are expanded.
-   */
-  expandedFolderIds: Set<number>;
-
-  /**
-   * Updates expanded collection ids.
-   */
-  setExpandedCollectionIds: Dispatch<SetStateAction<Set<number>>>;
-
-  /**
-   * Updates expanded folder ids.
-   */
-  setExpandedFolderIds: Dispatch<SetStateAction<Set<number>>>;
-
-  /**
-   * Called when the user selects a collection row.
-   */
-  onSelectCollection: (id: number) => void;
-
-  /**
-   * Called when the user selects a folder row.
-   */
-  onSelectFolder: (collectionId: number, folderId: number) => void;
-
-  /**
-   * Called when a collection is expanded so its contents can be loaded.
-   */
-  onExpandCollection: (id: number) => void;
-
-  /**
-   * Called when the user opens collection settings.
-   */
-  onConfigureCollection: (id: number) => void;
-
-  /**
-   * Called when the user opens folder settings.
-   */
-  onConfigureFolder: (collectionId: number, folderId: number) => void;
-
-  /**
-   * Opens the collection runner for an entire collection.
-   */
-  onRunCollection: (collectionId: number, collectionName: string) => void;
-
-  /**
-   * Opens the collection runner scoped to one folder.
-   */
-  onRunFolder: (
-    collectionId: number,
-    folderId: number,
-    collectionName: string,
-    folderName: string
-  ) => void;
-
-  /**
-   * Opens the collection runner scoped to one saved request.
-   */
-  onRunRequest: (req: SavedRequest, collectionName: string) => void;
-
-  /**
-   * Deletes a collection after user confirmation.
-   */
-  onDeleteCollection: (id: number) => Promise<void>;
-
-  /**
-   * Exports a collection to disk.
-   */
-  onExportCollection: (id: number) => Promise<void> | void;
-
-  /**
-   * Duplicates a collection and its contents.
-   */
-  onDuplicateCollection: (id: number) => Promise<void> | void;
-
-  /**
-   * Opens the share flow for a shared collection.
-   */
-  onShareCollection: (collectionId: number, collectionName: string) => void;
-
-  /**
-   * Saves every dirty open request tab in the collection.
-   */
-  onSaveAllInCollection: (collectionId: number) => Promise<void> | void;
-
-  /**
-   * Saves every dirty open request tab in the folder.
-   */
-  onSaveAllInFolder: (collectionId: number, folderId: number) => Promise<void> | void;
-
-  /**
-   * Creates a new folder in the given collection.
-   */
-  onNewFolder: (collectionId: number) => Promise<void> | void;
-
-  /**
-   * Creates a new request at the collection root.
-   */
-  onNewRequestInCollection: (id: number) => Promise<void> | void;
-
-  /**
-   * Imports a request from a JSON file into a collection or folder.
-   */
-  onImportRequest: (collectionId: number, folderId?: number | null) => Promise<void> | void;
-
-  /**
-   * Creates a new request inside a folder.
-   */
-  onNewRequestInFolder: (collectionId: number, folderId: number) => Promise<void> | void;
-
-  /**
-   * Creates a new markdown document at the collection root.
-   */
-  onNewDocumentInCollection: (collectionId: number) => Promise<void> | void;
-
-  /**
-   * Creates a new markdown document inside a folder.
-   */
-  onNewDocumentInFolder: (collectionId: number, folderId: number) => Promise<void> | void;
-
-  /**
-   * Renames a folder within a collection.
-   */
-  onRenameFolder: (id: number, collectionId: number) => Promise<void> | void;
-
-  /**
-   * Deletes a folder and any requests it contains.
-   */
-  onDeleteFolder: (id: number, collectionId: number, requestIds: number[]) => Promise<void> | void;
-
-  /**
-   * Persists a new top-level collection order after drag-and-drop.
-   */
-  onReorderCollections: (orderedCollectionIds: number[]) => Promise<void> | void;
-
-  /**
-   * Persists a new folder order within a collection after drag-and-drop.
-   */
-  onReorderFolders: (collectionId: number, orderedFolderIds: number[]) => Promise<void> | void;
-
-  /**
-   * Persists a new request order within a folder or collection root.
-   */
-  onReorderRequests: (
-    collectionId: number,
-    folderId: number | null,
-    orderedRequestIds: number[]
-  ) => Promise<void> | void;
-
-  /**
-   * Moves a request to another folder or collection root at the given index.
-   */
-  onMoveRequest: (
-    collectionId: number,
-    requestId: number,
-    folderId: number | null,
-    index: number
-  ) => Promise<void> | void;
-
-  /**
-   * Loads a saved request into the editor.
-   */
-  onLoadRequest: (req: SavedRequest) => void;
-
-  /**
-   * Loads a markdown document into the editor.
-   */
-  onLoadDocument: (doc: CollectionDocument) => void;
-
-  /**
-   * Opens the rename modal for a markdown document.
-   */
-  onRenameDocument: (doc: CollectionDocument) => void;
-
-  /**
-   * Deletes a saved request.
-   */
-  onDeleteRequest: (id: number) => Promise<void>;
-
-  /**
-   * Deletes a markdown document.
-   */
-  onDeleteDocument: (id: number, collectionId: number) => Promise<void>;
-
-  /**
-   * Persists a new document order within a folder or collection root.
-   */
-  onReorderDocuments: (
-    collectionId: number,
-    folderId: number | null,
-    orderedDocumentIds: number[]
-  ) => Promise<void> | void;
-
-  /**
-   * Duplicates a saved request.
-   */
-  onDuplicateRequest: (req: SavedRequest) => Promise<void>;
-
-  /**
-   * Exports a saved request to a JSON file.
-   */
-  onExportRequest: (req: SavedRequest) => Promise<void> | void;
-
-  /**
-   * Visibility filter from sidebar search, or null when search is inactive.
-   */
-  searchFilter?: SidebarSearchFilter | null;
-}
-
 /**
  * Collections list with expandable folders and drag-and-drop organization.
+ *
+ * Sources its data from the store, expansion state from the sidebar expansion
+ * context, provider/git metadata from their contexts, and its actions from
+ * {@link useCollectionActions}, so the sidebar shell no longer threads dozens
+ * of props through this component.
  */
-export function Collections({
-  collections,
-  foldersByCollection,
-  requestsByCollection,
-  documentsByCollection,
-  selectedCollectionId,
-  selectedFolderId,
-  primaryConnectionId,
-  connectionNamesById,
-  connectionTypesById,
-  showStorageLocationBadges,
-  gitStatusesByConnectionId,
-  onOpenSourceControl,
-  activeRequestId,
-  activeDocumentId,
-  expandedCollectionIds,
-  expandedFolderIds,
-  setExpandedCollectionIds,
-  setExpandedFolderIds,
-  onSelectCollection,
-  onSelectFolder,
-  onExpandCollection,
-  onConfigureCollection,
-  onConfigureFolder,
-  onRunCollection,
-  onRunFolder,
-  onRunRequest,
-  onDeleteCollection,
-  onExportCollection,
-  onDuplicateCollection,
-  onShareCollection,
-  onSaveAllInCollection,
-  onSaveAllInFolder,
-  onNewFolder,
-  onNewRequestInCollection,
-  onImportRequest,
-  onNewRequestInFolder,
-  onNewDocumentInCollection,
-  onNewDocumentInFolder,
-  onRenameFolder,
-  onDeleteFolder,
-  onReorderCollections,
-  onReorderFolders,
-  onReorderRequests,
-  onMoveRequest,
-  onLoadRequest,
-  onLoadDocument,
-  onRenameDocument,
-  onDeleteDocument,
-  onReorderDocuments,
-  onDeleteRequest,
-  onDuplicateRequest,
-  onExportRequest,
-  searchFilter = null
-}: Props): JSX.Element {
+export function Collections(): JSX.Element {
+  const collections = useAppSelector(selectCollections);
+  const foldersByCollection = useAppSelector(selectFoldersByCollection);
+  const requestsByCollection = useAppSelector(selectRequestsByCollection);
+  const documentsByCollection = useAppSelector(selectDocumentsByCollection);
+  const selectedCollectionId = useAppSelector(selectSelectedCollectionId);
+  const selectedFolderId = useAppSelector(selectSelectedFolderId);
+  const draft = useAppSelector(selectDraft);
+  const activeRequestId = draft.id;
+  const activeDocumentId = useAppSelector(selectActiveDocumentId);
+  const {
+    expandedCollectionIds,
+    expandedFolderIds,
+    setExpandedCollectionIds,
+    setExpandedFolderIds,
+    showStorageLocationBadges
+  } = useSidebarExpansion();
+  const { primaryConnectionId, connectionNamesById, connectionTypesById } = useSidebarProviders();
+  const { gitStatusesByConnectionId, openSourceControl: onOpenSourceControl } = useSidebarGit();
+  const { searchFilter, searchActive } = useSidebarSearchContext();
+  const {
+    onExpandCollection,
+    onSelectCollection,
+    onSelectFolder,
+    onConfigureCollection,
+    onConfigureFolder,
+    onRunCollection,
+    onRunFolder,
+    onRunRequest,
+    onDeleteCollection,
+    onExportCollection,
+    onDuplicateCollection,
+    onShareCollection,
+    onSaveAllInCollection,
+    onSaveAllInFolder,
+    onNewFolder,
+    onNewRequestInCollection,
+    onImportRequest,
+    onNewRequestInFolder,
+    onNewDocumentInCollection,
+    onNewDocumentInFolder,
+    onRenameFolder,
+    onDeleteFolder,
+    onReorderCollections,
+    onReorderFolders,
+    onReorderRequests,
+    onMoveRequest,
+    onLoadRequest,
+    onLoadDocument,
+    onRenameDocument,
+    onDeleteDocument,
+    onReorderDocuments,
+    onDeleteRequest,
+    onDuplicateRequest,
+    onExportRequest
+  } = useCollectionActions();
   const confirm = useConfirm();
-  const searchActive = searchFilter != null;
   const pluginContextMenuItems = usePluginContextMenuItems();
   const developerToolsEnabled = useDeveloperToolsEnabled();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);

@@ -16,12 +16,26 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { useMemo, useState, type JSX } from 'react';
+import toast from 'react-hot-toast';
 import type { Environment } from '#/shared/types';
 import { RowActionsMenu } from '@harborclient/sdk/components';
 import { buildReorderMenuGroup } from '@harborclient/sdk/components';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { selectActiveEnvironmentId, selectEnvironments } from '#/renderer/src/store/selectors';
+import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
+import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
+import {
+  deleteEnvironment,
+  duplicateEnvironment,
+  exportEnvironment,
+  mergeEnvironmentDown,
+  reorderEnvironments
+} from '#/renderer/src/store/thunks';
 import { SortableRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/SortableRow';
+import { useSidebarSearchContext } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarSearchContext';
 import { focusEnvironmentSettings } from '#/renderer/src/ui/EnvironmentSettings/focusEnvironmentSettings';
+import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
 import { sourceRow } from '#/renderer/src/ui/shared/classes';
 import {
   buildDevInspectMenuGroups,
@@ -30,82 +44,95 @@ import {
 } from '#/renderer/src/ui/shared/devInspectContextMenu';
 import { environmentDragId, parseEnvironmentDragId } from './utils';
 
-interface Props {
-  /**
-   * All saved environments in sidebar display order.
-   */
-  environments: Environment[];
+/**
+ * Environment list with active-row highlight, drag reordering, and row actions.
+ * Sources environments and the active id from the store, respects the sidebar
+ * search filter, and dispatches its own environment actions.
+ */
+export function Environments(): JSX.Element {
+  const dispatch = useAppDispatch();
+  const confirm = useConfirm();
+  const allEnvironments = useAppSelector(selectEnvironments);
+  const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
+  const { searchFilter, searchActive } = useSidebarSearchContext();
 
   /**
-   * ID of the active environment, or null when none is selected.
+   * Environments visible for the current sidebar search filter.
    */
-  activeEnvironmentId: number | null;
+  const environments = useMemo(() => {
+    if (searchFilter == null) {
+      return allEnvironments;
+    }
+    return allEnvironments.filter((environment) => searchFilter.environmentIds.has(environment.id));
+  }, [allEnvironments, searchFilter]);
 
   /**
-   * Called when the user selects or deselects an environment.
-   *
-   * @param id - Environment ID, or null to clear the active environment.
+   * True when search is active but no environments matched the query.
    */
-  onSelectEnvironment: (id: number | null) => void;
+  const noMatches = searchFilter != null && allEnvironments.length > 0 && environments.length === 0;
+
+  /**
+   * Sets or clears the active environment.
+   */
+  const onSelectEnvironment = (id: number | null): void => {
+    dispatch(setActiveEnvironmentId(id));
+  };
 
   /**
    * Opens the environment settings view.
    */
-  onConfigureEnvironment: (id: number) => void;
+  const onConfigureEnvironment = (id: number): void => {
+    dispatch(openPageTab({ type: 'environment', id }));
+  };
 
   /**
    * Deletes an environment.
    */
-  onDeleteEnvironment: (id: number) => Promise<void>;
+  const onDeleteEnvironment = async (id: number): Promise<void> => {
+    await dispatch(deleteEnvironment(id));
+  };
 
   /**
    * Exports an environment to a JSON file.
    */
-  onExportEnvironment: (id: number) => void;
+  const onExportEnvironment = async (id: number): Promise<void> => {
+    const result = await dispatch(exportEnvironment(id)).unwrap();
+    if (!result.canceled) {
+      toast.success('Environment exported');
+    }
+  };
 
   /**
    * Duplicates an environment and its variables.
    */
-  onDuplicateEnvironment: (id: number) => Promise<void>;
+  const onDuplicateEnvironment = async (id: number): Promise<void> => {
+    try {
+      await dispatch(duplicateEnvironment(id)).unwrap();
+      toast.success('Environment duplicated');
+    } catch (err) {
+      showAlert(dispatch, formatErrorMessage(err, 'Failed to duplicate environment'));
+    }
+  };
 
   /**
    * Merges an environment into the one directly below it.
    */
-  onMergeEnvironmentDown: (id: number) => Promise<void>;
+  const onMergeEnvironmentDown = async (id: number): Promise<void> => {
+    try {
+      await dispatch(mergeEnvironmentDown(id)).unwrap();
+      toast.success('Environments merged');
+    } catch (err) {
+      showAlert(dispatch, formatErrorMessage(err, 'Failed to merge environments'));
+    }
+  };
 
   /**
    * Persists a new environment order after drag-and-drop or menu moves.
    */
-  onReorderEnvironments: (orderedEnvironmentIds: number[]) => Promise<void> | void;
+  const onReorderEnvironments = async (orderedEnvironmentIds: number[]): Promise<void> => {
+    await dispatch(reorderEnvironments({ orderedEnvironmentIds }));
+  };
 
-  /**
-   * When true, renders rows without drag-and-drop reordering.
-   */
-  searchActive?: boolean;
-
-  /**
-   * When true, shows a no-match message instead of an empty list.
-   */
-  noMatches?: boolean;
-}
-
-/**
- * Environment list with active-row highlight, drag reordering, and row actions.
- */
-export function Environments({
-  environments,
-  activeEnvironmentId,
-  onSelectEnvironment,
-  onConfigureEnvironment,
-  onDeleteEnvironment,
-  onExportEnvironment,
-  onDuplicateEnvironment,
-  onMergeEnvironmentDown,
-  onReorderEnvironments,
-  searchActive = false,
-  noMatches = false
-}: Props): JSX.Element {
-  const confirm = useConfirm();
   const developerToolsEnabled = useDeveloperToolsEnabled();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [inspectPointsByMenuId, setInspectPointsByMenuId] = useState<Record<string, InspectPoint>>(

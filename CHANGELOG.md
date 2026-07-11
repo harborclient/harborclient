@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- chore(sidebar): refactor and enhance sidebar functionality. (`731d210`)
 - refactor: reorganize sidebar components and update dependencies. (`58ac899`)
 - feat(documents): implement markdown document management features. (`2f5a61c`)
 - feat(settings): add wrapTabs option for improved tab management. (`1157309`)

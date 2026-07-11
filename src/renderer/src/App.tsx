@@ -38,19 +38,9 @@ import {
   toggleSidebar,
   toggleVariables
 } from '#/renderer/src/store/slices/navigationSlice';
-import {
-  openCollectionModal,
-  openShareModal,
-  openThemePicker
-} from '#/renderer/src/store/slices/modalsSlice';
+import { openThemePicker } from '#/renderer/src/store/slices/modalsSlice';
 import { closeTab, openPageTab } from '#/renderer/src/store/slices/tabsSlice';
-import {
-  initializeStore,
-  loadTrustedKeys,
-  refreshCollectionContents,
-  requestLoadDocument,
-  requestLoadRequest
-} from '#/renderer/src/store/thunks';
+import { initializeStore, refreshCollectionContents } from '#/renderer/src/store/thunks';
 import { AboutModal } from '#/renderer/src/ui/modals/AboutModal';
 import { SyncModal } from '#/renderer/src/ui/modals/SyncModal';
 import { UpdateModal } from '#/renderer/src/ui/modals/UpdateModal';
@@ -303,22 +293,7 @@ export default function App(): JSX.Element {
             </a>
             <div className="relative flex min-h-0 flex-1 overflow-hidden">
               <AnimatedHorizontalPanel open={sidebarVisible}>
-                <CollectionSidebar
-                  onAddCollection={() => dispatch(openCollectionModal({ mode: 'create' }))}
-                  onConfigureCollection={(id) => dispatch(openPageTab({ type: 'collection', id }))}
-                  onConfigureFolder={(collectionId, folderId) =>
-                    dispatch(openPageTab({ type: 'folder', collectionId, id: folderId }))
-                  }
-                  onConfigureEnvironment={(id) =>
-                    dispatch(openPageTab({ type: 'environment', id }))
-                  }
-                  onShareCollection={(collectionId, collectionName) => {
-                    dispatch(openShareModal({ collectionId, collectionName }));
-                    void dispatch(loadTrustedKeys());
-                  }}
-                  onLoadRequest={(req) => void dispatch(requestLoadRequest({ req }))}
-                  onLoadDocument={(doc) => void dispatch(requestLoadDocument({ doc }))}
-                />
+                <CollectionSidebar />
               </AnimatedHorizontalPanel>
 
               <main
