@@ -75,6 +75,7 @@ async function truncateMySqlTables(settings: MySqlSettings): Promise<void> {
   try {
     await connection.execute('SET FOREIGN_KEY_CHECKS = 0');
     await connection.execute('TRUNCATE TABLE requests');
+    await connection.execute('TRUNCATE TABLE documents');
     await connection.execute('TRUNCATE TABLE folders');
     await connection.execute('TRUNCATE TABLE collections');
     await connection.execute('TRUNCATE TABLE environments');
@@ -95,7 +96,7 @@ async function truncatePostgresTables(settings: PostgresSettings): Promise<void>
   });
   try {
     await pool.query(`
-      TRUNCATE TABLE requests, folders, collections, environments, settings
+      TRUNCATE TABLE requests, documents, folders, collections, environments, settings
       RESTART IDENTITY CASCADE
     `);
   } finally {

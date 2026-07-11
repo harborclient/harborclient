@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(tests): add truncation for documents in MySQL and Postgres tables. (`10b743c`)
 - chore(dependencies): update @harborclient/sdk and plugin versions. (`944858f`)
 - chore(sidebar): refactor and enhance sidebar functionality. (`731d210`)
 - refactor: reorganize sidebar components and update dependencies. (`58ac899`)
