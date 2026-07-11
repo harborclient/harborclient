@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.0.19 - 2026-07-11
+
 - feat(themes): add built-in themes and enhance theme management. (`678e050`)
 
 ## 2.0.18 - 2026-07-10
