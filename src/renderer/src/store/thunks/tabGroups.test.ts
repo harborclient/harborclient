@@ -5,7 +5,8 @@ import { draftFromSaved } from '#/renderer/src/store/drafts';
 import type { SavedRequest } from '#/shared/types';
 import {
   buildTabGroupExport,
-  resolveTabGroupMembersFromOpenTabs
+  resolveTabGroupMembersFromOpenTabs,
+  resolveTabGroupMembersFromRequests
 } from '#/renderer/src/store/thunks/tabGroups';
 import type { TabGroup } from '#/shared/types/tabGroup';
 import { validateTabGroupExport } from '#/shared/types/tabGroup';
@@ -76,6 +77,31 @@ describe('resolveTabGroupMembersFromOpenTabs', () => {
     });
 
     expect(members).toEqual([
+      {
+        requestUuid: 'request-uuid-7',
+        collectionId: 3,
+        requestName: 'Get users'
+      }
+    ]);
+  });
+});
+
+describe('resolveTabGroupMembersFromRequests', () => {
+  it('builds tab group members from saved requests in caller order', () => {
+    const secondRequest: SavedRequest = {
+      ...savedRequest,
+      id: 8,
+      uuid: 'request-uuid-8',
+      collection_id: 4,
+      name: 'Create user'
+    };
+
+    expect(resolveTabGroupMembersFromRequests([secondRequest, savedRequest])).toEqual([
+      {
+        requestUuid: 'request-uuid-8',
+        collectionId: 4,
+        requestName: 'Create user'
+      },
       {
         requestUuid: 'request-uuid-7',
         collectionId: 3,

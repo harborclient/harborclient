@@ -150,6 +150,9 @@ const SCRIPT_ROW_SNIPPET_LINK_ICON_CLASS = 'h-3 w-3 shrink-0 text-warning';
 /** Accessible name and tooltip for snippet-linked script row indicators. */
 const SNIPPET_LIBRARY_LABEL = 'Snippet library';
 
+/** Menu id for the snippet library picker in the script list header. */
+const SNIPPET_LIBRARY_MENU_ID = 'snippet-library';
+
 /** Left inset aligning the code preview with the script title (checkbox width + gap). */
 const SCRIPT_ROW_PREVIEW_INDENT_CLASS = 'pl-6';
 
@@ -458,45 +461,6 @@ interface AddScriptStageModalProps {
    * @param stage - Selected script stage.
    */
   onConfirm: (stage: ScriptStage) => void;
-}
-
-interface SnippetMenuProps {
-  /**
-   * DOM id wired to the snippet picker trigger via aria-controls.
-   */
-  menuId: string;
-
-  /**
-   * Snippet library entries shown in the menu.
-   */
-  snippets: Snippet[];
-
-  /**
-   * Total snippets in the library before phase filtering.
-   */
-  totalSnippetCount: number;
-
-  /**
-   * Active script phase used for empty-state messaging.
-   */
-  phase: 'pre' | 'post';
-
-  /**
-   * Called when the user picks a snippet from the menu.
-   *
-   * @param uuid - Selected snippet uuid.
-   */
-  onSelect: (uuid: string) => void;
-
-  /**
-   * Opens the create-snippet modal from the menu.
-   */
-  onCreate: () => void;
-
-  /**
-   * Closes the snippet picker menu.
-   */
-  onClose: () => void;
 }
 
 /**
@@ -835,90 +799,6 @@ function ScriptRowHeader({
         className="shrink-0"
       />
       <div className="min-w-0 flex-1">{titleControl}</div>
-    </div>
-  );
-}
-
-/**
- * Dropdown menu for choosing a snippet from the library.
- */
-function SnippetMenu({
-  menuId,
-  snippets,
-  totalSnippetCount,
-  phase,
-  onSelect,
-  onCreate,
-  onClose
-}: SnippetMenuProps): JSX.Element {
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  /**
-   * Closes the menu on outside click or Escape.
-   */
-  useEffect(() => {
-    const handleMouseDown = (event: MouseEvent): void => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-
-    const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [onClose]);
-
-  return (
-    <div
-      ref={rootRef}
-      id={menuId}
-      role="menu"
-      aria-label="Snippet library"
-      className="absolute left-0 top-full z-20 mt-0.5 max-h-64 min-w-full overflow-y-auto rounded-lg border border-separator bg-surface py-1 shadow-md app-no-drag"
-    >
-      <button
-        type="button"
-        role="menuitem"
-        className="block w-full cursor-pointer border-none bg-transparent px-3 py-2 text-left text-[14px] text-text hover:bg-selection app-no-drag"
-        onClick={() => {
-          onCreate();
-          onClose();
-        }}
-      >
-        Create a snippet
-      </button>
-      <div role="separator" className="my-1 border-t border-separator" aria-hidden="true" />
-      {snippets.length === 0 ? (
-        <p className="px-3 py-2 text-[14px] text-muted">
-          {totalSnippetCount === 0
-            ? 'No snippets saved yet'
-            : `No snippets saved for the ${phase === 'pre' ? 'pre-request' : 'post-request'} stage yet`}
-        </p>
-      ) : (
-        snippets.map((snippet) => (
-          <button
-            key={snippet.uuid}
-            type="button"
-            role="menuitem"
-            className="block w-full cursor-pointer border-none bg-transparent px-3 py-2 text-left text-[14px] text-text hover:bg-selection app-no-drag"
-            onClick={() => {
-              onSelect(snippet.uuid);
-              onClose();
-            }}
-          >
-            <span className="block truncate">{snippet.name}</span>
-          </button>
-        ))
-      )}
     </div>
   );
 }
@@ -1851,7 +1731,6 @@ export function ScriptListEditor({
   const [activeDragScriptId, setActiveDragScriptId] = useState<string | null>(null);
   const [addScriptStageModalOpen, setAddScriptStageModalOpen] = useState(false);
   const [openRowMenuId, setOpenRowMenuId] = useState<string | null>(null);
-  const [snippetMenuOpen, setSnippetMenuOpen] = useState(false);
   const [saveSnippetTarget, setSaveSnippetTarget] = useState<{
     scriptId: string;
     code: string;
@@ -1861,7 +1740,6 @@ export function ScriptListEditor({
   const [createSnippetDraft, setCreateSnippetDraft] = useState<SnippetEditDraft | null>(null);
   const [createSnippetSaving, setCreateSnippetSaving] = useState(false);
   const [createSnippetError, setCreateSnippetError] = useState<string | null>(null);
-  const snippetMenuId = useId();
 
   /**
    * Placeholder text with literal \\n sequences expanded for CodeMirror display.
@@ -1995,34 +1873,42 @@ export function ScriptListEditor({
    *
    * @param uuid - Snippet uuid selected in the picker.
    */
-  const handleSnippetSelect = (uuid: string): void => {
-    const trimmedUuid = uuid.trim();
-    if (!trimmedUuid) {
-      return;
-    }
-    const snippet = snippets.find((entry) => entry.uuid === trimmedUuid);
-    const created = {
-      ...createSnippetScriptRef(trimmedUuid, snippet?.name, snippet?.stage ?? DEFAULT_SCRIPT_STAGE),
-      expanded: true
-    };
-    const groups = splitScriptRefsByGroup(normalized);
-    const group = scriptStageGroup(normalizeScriptStage(created.stage));
-    updateScripts(
-      mergeScriptRefGroups({
-        ...groups,
-        [group]: [...groups[group], created]
-      })
-    );
-  };
+  const handleSnippetSelect = useCallback(
+    (uuid: string): void => {
+      const trimmedUuid = uuid.trim();
+      if (!trimmedUuid) {
+        return;
+      }
+      const snippet = snippets.find((entry) => entry.uuid === trimmedUuid);
+      const created = {
+        ...createSnippetScriptRef(
+          trimmedUuid,
+          snippet?.name,
+          snippet?.stage ?? DEFAULT_SCRIPT_STAGE
+        ),
+        expanded: true
+      };
+      const groups = splitScriptRefsByGroup(normalized);
+      const group = scriptStageGroup(normalizeScriptStage(created.stage));
+      onChange(
+        normalizeScriptRefs(
+          mergeScriptRefGroups({
+            ...groups,
+            [group]: [...groups[group], created]
+          })
+        )
+      );
+    },
+    [normalized, onChange, snippets]
+  );
 
   /**
    * Opens the create-snippet modal from the snippet library menu.
    */
-  const openCreateSnippetModal = (): void => {
+  const openCreateSnippetModal = useCallback((): void => {
     setCreateSnippetDraft(createBlankSnippet(snippetScopeForPhase(phase)));
     setCreateSnippetError(null);
-    setSnippetMenuOpen(false);
-  };
+  }, [phase]);
 
   /**
    * Reads a `.js` or snippets bundle `.json` file and imports it into the script list.
@@ -2044,17 +1930,41 @@ export function ScriptListEditor({
         updateScripts(mergeScriptRefGroups(groups));
         const count = result.bundle.snippets.length;
         toast.success(`Imported ${count} script${count === 1 ? '' : 's'}`);
-        setSnippetMenuOpen(false);
         return;
       }
 
       setCreateSnippetDraft(createImportedSnippetDraft(result.code, snippetScopeForPhase(phase)));
       setCreateSnippetError(null);
-      setSnippetMenuOpen(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to import snippet');
     }
   };
+
+  /**
+   * Builds grouped menu entries for the snippet library picker.
+   */
+  const snippetMenuGroups = useMemo((): MenuItem[][] => {
+    const createGroup: MenuItem[] = [
+      { label: 'Create a snippet', onSelect: openCreateSnippetModal }
+    ];
+
+    if (compatibleSnippets.length > 0) {
+      return [
+        createGroup,
+        compatibleSnippets.map((snippet) => ({
+          label: snippet.name,
+          onSelect: () => handleSnippetSelect(snippet.uuid)
+        }))
+      ];
+    }
+
+    const emptyMessage =
+      snippets.length === 0
+        ? 'No snippets saved yet'
+        : `No snippets saved for the ${phase === 'pre' ? 'pre-request' : 'post-request'} stage yet`;
+
+    return [createGroup, [{ label: emptyMessage, disabled: true, onSelect: () => undefined }]];
+  }, [compatibleSnippets, handleSnippetSelect, openCreateSnippetModal, phase, snippets.length]);
 
   /**
    * Exports the current phase script list as a snippets bundle JSON file.
@@ -2584,31 +2494,17 @@ export function ScriptListEditor({
         <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
         Add
       </Button>
-      <div className="relative">
-        <Button
-          type="button"
-          variant="secondary"
-          className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap"
-          aria-haspopup="menu"
-          aria-expanded={snippetMenuOpen}
-          aria-controls={snippetMenuOpen ? snippetMenuId : undefined}
-          onClick={() => setSnippetMenuOpen((open) => !open)}
-        >
-          <FaIcon icon={faCode} className="h-3.5 w-3.5" aria-hidden />
-          Snippets
-        </Button>
-        {snippetMenuOpen ? (
-          <SnippetMenu
-            menuId={snippetMenuId}
-            snippets={compatibleSnippets}
-            totalSnippetCount={snippets.length}
-            phase={phase}
-            onSelect={handleSnippetSelect}
-            onCreate={openCreateSnippetModal}
-            onClose={() => setSnippetMenuOpen(false)}
-          />
-        ) : null}
-      </div>
+      <RowActionsMenu
+        menuId={SNIPPET_LIBRARY_MENU_ID}
+        openMenuId={openRowMenuId}
+        onOpenChange={setOpenRowMenuId}
+        groups={snippetMenuGroups}
+        triggerVariant="secondary"
+        triggerIcon={faCode}
+        triggerLabel="Snippets"
+        triggerAriaLabel="Snippets"
+        triggerClassName="inline-flex shrink-0 items-center gap-2 whitespace-nowrap"
+      />
       <Button
         type="button"
         variant="secondary"

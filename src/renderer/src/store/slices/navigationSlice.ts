@@ -53,6 +53,7 @@ export interface NavigationState {
   showConsole: boolean;
   showVariables: boolean;
   showMcp: boolean;
+  showTerminal: boolean;
   activePluginFooterPanelId: string | null;
   activeSidebarPanelId: string | null;
   pendingPluginInstallId: string | null;
@@ -76,6 +77,7 @@ const initialState: NavigationState = {
   showConsole: false,
   showVariables: false,
   showMcp: false,
+  showTerminal: false,
   activePluginFooterPanelId: null,
   activeSidebarPanelId: null,
   pendingPluginInstallId: null,
@@ -183,6 +185,7 @@ const navigationSlice = createSlice({
       if (state.showConsole) {
         state.showVariables = false;
         state.showMcp = false;
+        state.showTerminal = false;
         state.activePluginFooterPanelId = null;
       }
     },
@@ -194,6 +197,7 @@ const navigationSlice = createSlice({
       if (state.showVariables) {
         state.showConsole = false;
         state.showMcp = false;
+        state.showTerminal = false;
         state.activePluginFooterPanelId = null;
       }
     },
@@ -205,6 +209,19 @@ const navigationSlice = createSlice({
       if (state.showMcp) {
         state.showConsole = false;
         state.showVariables = false;
+        state.showTerminal = false;
+        state.activePluginFooterPanelId = null;
+      }
+    },
+    /**
+     * Toggles the footer terminal panel.
+     */
+    toggleTerminal(state) {
+      state.showTerminal = !state.showTerminal;
+      if (state.showTerminal) {
+        state.showConsole = false;
+        state.showVariables = false;
+        state.showMcp = false;
         state.activePluginFooterPanelId = null;
       }
     },
@@ -218,6 +235,7 @@ const navigationSlice = createSlice({
         state.showConsole = false;
         state.showVariables = false;
         state.showMcp = false;
+        state.showTerminal = false;
       }
     },
     /**
@@ -318,6 +336,7 @@ export const {
   toggleConsole,
   toggleVariables,
   toggleMcp,
+  toggleTerminal,
   togglePluginFooterPanel,
   setPendingPluginInstall,
   consumePendingPluginInstall,
@@ -392,6 +411,10 @@ export const selectShowVariables = (state: RootState): boolean => state.navigati
  * Returns whether the MCP server panel is open.
  */
 export const selectShowMcp = (state: RootState): boolean => state.navigation.showMcp;
+/**
+ * Returns whether the terminal panel is open.
+ */
+export const selectShowTerminal = (state: RootState): boolean => state.navigation.showTerminal;
 /**
  * Returns the active plugin footer panel id, if any.
  */

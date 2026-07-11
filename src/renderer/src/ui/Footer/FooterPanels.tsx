@@ -11,6 +11,7 @@ import { ConsolePanel } from './ConsolePanel';
 import { McpPanel } from './McpPanel';
 import { PluginFooterPanel } from './PluginFooterPanel';
 import { VariablesPanel } from './VariablesPanel';
+import { TerminalPanel } from './TerminalPanel';
 import { resolveScopedVariables } from './VariablesPanel/resolve';
 
 interface Props {
@@ -90,6 +91,16 @@ interface Props {
   onToggleMcp: () => void;
 
   /**
+   * Whether the terminal panel is currently open.
+   */
+  terminalOpen: boolean;
+
+  /**
+   * Toggles the terminal panel open/closed.
+   */
+  onToggleTerminal: () => void;
+
+  /**
    * Refreshes MCP server runtime status after panel saves.
    */
   onMcpStatusChange?: () => void;
@@ -115,6 +126,8 @@ export function FooterPanels({
   environmentName,
   mcpOpen,
   onToggleMcp,
+  terminalOpen,
+  onToggleTerminal,
   onMcpStatusChange
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
@@ -152,6 +165,7 @@ export function FooterPanels({
         environmentName={environmentName}
       />
       <McpPanel open={mcpOpen} onClose={onToggleMcp} onStatusChange={onMcpStatusChange} />
+      <TerminalPanel open={terminalOpen} onClose={onToggleTerminal} />
       {pluginFooterPanels.map((panel) => (
         <PluginFooterPanel
           key={panel.id}

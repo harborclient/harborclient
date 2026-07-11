@@ -95,7 +95,12 @@ export type SnippetEditTabMode = 'new' | 'edit' | 'clone' | 'import';
  */
 export type PageRef =
   | { type: 'getting-started' }
-  | { type: 'settings'; section: SettingsSection; focusVariableKey?: string }
+  | {
+      type: 'settings';
+      section: SettingsSection;
+      focusVariableKey?: string;
+      focusSettingId?: string;
+    }
   | { type: 'plugins' }
   | { type: 'themes' }
   | { type: 'snippets' }
@@ -112,6 +117,7 @@ export type PageRef =
       collectionId: number;
       folderId?: number | null;
       requestId?: number | null;
+      requestIds?: number[] | null;
     }
   | {
       type: 'plugin-detail';

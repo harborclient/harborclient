@@ -7,7 +7,6 @@ import {
   openAboutModal,
   openAcceptTeamHubInviteModal,
   openCollectionModal,
-  openTabGroupModal,
   openActionMenuModal,
   openShortcutsReferenceModal,
   openSyncModal,
@@ -35,6 +34,7 @@ import {
   dispatchNewRequest,
   importFromMenu,
   patchGeneralSettings,
+  requestCreateTabGroupFromOpenTabs,
   runSync,
   saveFromMenu,
   sendRequest
@@ -243,7 +243,7 @@ export function useMenuActions(): void {
           dispatch(openActionMenuModal());
           break;
         case 'create-tab-group':
-          dispatch(openTabGroupModal({ mode: 'create' }));
+          void dispatch(requestCreateTabGroupFromOpenTabs());
           break;
         case 'check-for-updates':
           dispatch(openUpdateModal());

@@ -1,0 +1,149 @@
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { nanoid } from 'nanoid';
+import type { RootState } from '#/renderer/src/store/redux';
+
+/**
+ * Persisted metadata for one footer terminal tab.
+ */
+export interface TerminalTab {
+  /**
+   * Stable tab id used by Redux, persistence, and IPC.
+   */
+  id: string;
+
+  /**
+   * Display label shown in the vertical terminal switcher.
+   */
+  title: string;
+
+  /**
+   * Working directory for the shell; blank values use the user home directory.
+   */
+  cwd: string;
+}
+
+/**
+ * Footer terminal layout state persisted across app restarts.
+ */
+export interface TerminalsState {
+  /**
+   * Ordered terminal tabs.
+   */
+  terminals: TerminalTab[];
+
+  /**
+   * Active terminal tab id, if any.
+   */
+  activeTerminalId: string | null;
+}
+
+const initialState: TerminalsState = {
+  terminals: [],
+  activeTerminalId: null
+};
+
+/**
+ * Builds the next default terminal title based on existing tab count.
+ *
+ * @param count - Number of terminals already present.
+ * @returns A human-readable default title.
+ */
+function defaultTerminalTitle(count: number): string {
+  return `Terminal ${count + 1}`;
+}
+
+const terminalsSlice = createSlice({
+  name: 'terminals',
+  initialState,
+  reducers: {
+    /**
+     * Replaces terminal layout state after hydration from localStorage.
+     */
+    hydrateTerminals(state, action: PayloadAction<TerminalsState>) {
+      state.terminals = action.payload.terminals;
+      state.activeTerminalId = action.payload.activeTerminalId;
+    },
+
+    /**
+     * Adds a new terminal tab and selects it.
+     */
+    addTerminal(state) {
+      const tab: TerminalTab = {
+        id: nanoid(),
+        title: defaultTerminalTitle(state.terminals.length),
+        cwd: ''
+      };
+      state.terminals.push(tab);
+      state.activeTerminalId = tab.id;
+    },
+
+    /**
+     * Removes one terminal tab and selects a neighboring tab when needed.
+     */
+    removeTerminal(state, action: PayloadAction<string>) {
+      const index = state.terminals.findIndex((terminal) => terminal.id === action.payload);
+      if (index < 0) {
+        return;
+      }
+
+      state.terminals.splice(index, 1);
+
+      if (state.activeTerminalId !== action.payload) {
+        return;
+      }
+
+      const next = state.terminals[index] ?? state.terminals[index - 1] ?? null;
+      state.activeTerminalId = next?.id ?? null;
+    },
+
+    /**
+     * Selects one terminal tab in the vertical switcher.
+     */
+    setActiveTerminal(state, action: PayloadAction<string>) {
+      if (state.terminals.some((terminal) => terminal.id === action.payload)) {
+        state.activeTerminalId = action.payload;
+      }
+    },
+
+    /**
+     * Renames one terminal tab.
+     */
+    renameTerminal(state, action: PayloadAction<{ id: string; title: string }>) {
+      const terminal = state.terminals.find((entry) => entry.id === action.payload.id);
+      if (!terminal) {
+        return;
+      }
+
+      const title = action.payload.title.trim();
+      terminal.title = title.length > 0 ? title : terminal.title;
+    }
+  }
+});
+
+export const { hydrateTerminals, addTerminal, removeTerminal, setActiveTerminal, renameTerminal } =
+  terminalsSlice.actions;
+
+/**
+ * Returns all footer terminal tabs.
+ */
+export const selectTerminals = (state: RootState): TerminalTab[] => state.terminals.terminals;
+
+/**
+ * Returns the active footer terminal tab id, if any.
+ */
+export const selectActiveTerminalId = (state: RootState): string | null =>
+  state.terminals.activeTerminalId;
+
+/**
+ * Returns the active footer terminal tab, if any.
+ */
+export const selectActiveTerminal = (state: RootState): TerminalTab | null => {
+  const activeId = state.terminals.activeTerminalId;
+  if (activeId == null) {
+    return null;
+  }
+
+  return state.terminals.terminals.find((terminal) => terminal.id === activeId) ?? null;
+};
+
+export default terminalsSlice.reducer;

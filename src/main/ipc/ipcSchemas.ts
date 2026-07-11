@@ -275,6 +275,8 @@ export const generalSettings = z.object({
   warnWhenEditingSnippet: z.boolean(),
   warnWhenCloningSnippet: z.boolean(),
   warnWhenClickingReadonlySnippet: z.boolean(),
+  warnWhenCreatingTabGroup: z.boolean(),
+  warnWhenOpeningTabGroup: z.boolean(),
   codeEditorTheme: z.enum(CODE_EDITOR_THEME_IDS),
   codeEditorSetup: z.object({
     lineNumbers: z.boolean(),
@@ -947,5 +949,20 @@ export const ipcArgSchemas = {
   tabGroupsRename: z.tuple([z.number().int().positive(), z.string().trim().min(1)]),
   tabGroupsClone: z.tuple([z.number().int().positive(), z.string().trim().min(1)]),
   tabGroupsDelete: z.tuple([z.number().int().positive()]),
-  tabGroupsReorder: z.tuple([z.array(dbId)])
+  tabGroupsReorder: z.tuple([z.array(dbId)]),
+  terminalCreate: z.tuple([
+    z.object({
+      id: z.string().min(1),
+      cwd: z.string().optional(),
+      cols: z.number().int().positive(),
+      rows: z.number().int().positive()
+    })
+  ]),
+  terminalId: z.tuple([z.string().min(1)]),
+  terminalWrite: z.tuple([z.string().min(1), z.string()]),
+  terminalResize: z.tuple([
+    z.string().min(1),
+    z.number().int().positive(),
+    z.number().int().positive()
+  ])
 } as const;

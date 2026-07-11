@@ -1,5 +1,5 @@
 import { Page, SidebarLayout } from '@harborclient/sdk/components';
-import { useCallback, useEffect, useMemo, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 
 import { faPuzzlePiece } from '#/renderer/src/fontawesome';
 import { usePersistedPageSidebarSection } from '#/renderer/src/hooks/usePersistedPageSidebarSection';
@@ -25,15 +25,26 @@ interface Props {
    * When set, focuses the matching global variable row in the Globals section.
    */
   focusVariableKey?: string;
+
+  /**
+   * When set, scrolls to the matching catalog group anchor in management sections.
+   */
+  focusSettingId?: string;
 }
 
 /**
  * Full-area application settings with sidebar navigation and catalog search.
  */
-export function Settings({ initialSection, focusVariableKey }: Props): JSX.Element {
+export function Settings({
+  initialSection,
+  focusVariableKey,
+  focusSettingId: focusSettingIdProp
+}: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const pluginSections = usePluginSettingsSections();
   const { query, setQuery, matchedIds, isSearching } = useSettingsSearch();
+  const [searchFocusSettingId, setSearchFocusSettingId] = useState<string | undefined>();
+  const focusSettingId = searchFocusSettingId ?? focusSettingIdProp;
 
   const sidebarSections = useMemo(
     () => [
@@ -88,11 +99,23 @@ export function Settings({ initialSection, focusVariableKey }: Props): JSX.Eleme
   }, [dispatch]);
 
   /**
-   * Opens a management section from search results and clears the active query.
+   * Opens a section from search results, optionally focusing a catalog group anchor.
    */
-  const handleNavigateFromSearch = (nextSection: SettingsSection): void => {
+  const handleNavigateFromSearch = (
+    nextSection: SettingsSection,
+    nextFocusSettingId?: string
+  ): void => {
     setSection(nextSection);
     setQuery('');
+    setSearchFocusSettingId(nextFocusSettingId);
+  };
+
+  /**
+   * Clears pending group focus when the user picks a sidebar section directly.
+   */
+  const handleSelectSection = (nextSection: SettingsSection): void => {
+    setSearchFocusSettingId(undefined);
+    setSection(nextSection);
   };
 
   return (
@@ -101,7 +124,7 @@ export function Settings({ initialSection, focusVariableKey }: Props): JSX.Eleme
         <SettingsSidebar
           ariaLabel="Settings sections"
           selected={section}
-          onSelect={setSection}
+          onSelect={handleSelectSection}
           items={sidebarSections}
           searchValue={query}
           onSearchChange={setQuery}
@@ -133,7 +156,12 @@ export function Settings({ initialSection, focusVariableKey }: Props): JSX.Eleme
           </div>
         </Page>
       ) : (
-        <SettingsRenderer section={section} focusVariableKey={focusVariableKey} />
+        <SettingsRenderer
+          section={section}
+          focusVariableKey={focusVariableKey}
+          focusSettingId={focusSettingId}
+          onFocusSettingHandled={() => setSearchFocusSettingId(undefined)}
+        />
       )}
     </SidebarLayout>
   );

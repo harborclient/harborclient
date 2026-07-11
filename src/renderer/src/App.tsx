@@ -26,6 +26,7 @@ import {
   selectAiSidebarVisible,
   selectShowConsole,
   selectShowMcp,
+  selectShowTerminal,
   selectShowRequestEditor,
   selectShowResponseEditor,
   selectShowVariables,
@@ -33,6 +34,7 @@ import {
   toggleAiSidebar,
   toggleConsole,
   toggleMcp,
+  toggleTerminal,
   toggleRequestEditor,
   toggleResponseEditor,
   toggleSidebar,
@@ -110,6 +112,7 @@ export default function App(): JSX.Element {
   const showConsole = useAppSelector(selectShowConsole);
   const showVariables = useAppSelector(selectShowVariables);
   const showMcp = useAppSelector(selectShowMcp);
+  const showTerminal = useAppSelector(selectShowTerminal);
   const mcpServerStatus = useMcpServerStatus();
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
@@ -369,6 +372,8 @@ export default function App(): JSX.Element {
                   onToggleVariables={() => dispatch(toggleVariables())}
                   mcpOpen={showMcp}
                   onToggleMcp={() => dispatch(toggleMcp())}
+                  terminalOpen={showTerminal}
+                  onToggleTerminal={() => dispatch(toggleTerminal())}
                   onMcpStatusChange={() => void mcpServerStatus.refresh()}
                   globalVariables={globalVariables}
                   collectionVariables={activeCollection?.variables ?? []}
@@ -395,6 +400,8 @@ export default function App(): JSX.Element {
               onToggleVariables={() => dispatch(toggleVariables())}
               mcpOpen={showMcp}
               onToggleMcp={() => dispatch(toggleMcp())}
+              terminalOpen={showTerminal}
+              onToggleTerminal={() => dispatch(toggleTerminal())}
               mcpServerRunning={mcpServerStatus.running}
               globalVariables={globalVariables}
               collectionVariables={activeCollection?.variables ?? []}

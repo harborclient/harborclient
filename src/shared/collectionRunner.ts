@@ -719,6 +719,34 @@ export function getCollectionRunnerRequests(
 }
 
 /**
+ * Returns saved requests for an explicit id list, preserving caller order.
+ *
+ * @param requestIds - Request database ids in the desired run order.
+ * @param requestsByCollection - Cached requests keyed by collection id.
+ * @returns Matching saved requests, omitting ids that no longer exist.
+ */
+export function getRequestsByIds(
+  requestIds: number[],
+  requestsByCollection: Record<number, SavedRequest[]>
+): SavedRequest[] {
+  const byId = new Map<number, SavedRequest>();
+  for (const requests of Object.values(requestsByCollection)) {
+    for (const request of requests) {
+      byId.set(request.id, request);
+    }
+  }
+
+  const ordered: SavedRequest[] = [];
+  for (const requestId of requestIds) {
+    const match = byId.get(requestId);
+    if (match) {
+      ordered.push(match);
+    }
+  }
+  return ordered;
+}
+
+/**
  * Returns test pass/fail counts for a script test result list.
  *
  * @param testResults - hc.test results from the last send.

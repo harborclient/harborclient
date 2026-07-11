@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { entryById, type SettingId } from '#/shared/search/settingsCatalog';
+import { settingAnchorId } from '#/renderer/src/ui/Settings/settingAnchorId';
 import { parseSidebarDocumentId } from '#/shared/search/sidebar';
 import type { SidebarSearchInput } from '#/shared/search/sidebar';
 import type { UnifiedSearchHit } from '#/shared/search/types';
@@ -109,6 +110,16 @@ export function useActivateSearchHit(): (hit: UnifiedSearchHit, query: string) =
         }
         case 'setting': {
           const entry = entryById(hit.id as SettingId);
+          if (entry.kind === 'group') {
+            dispatch(
+              openPageTab({
+                type: 'settings',
+                section: entry.section,
+                focusSettingId: entry.id
+              })
+            );
+            return;
+          }
           if (entry.kind !== 'field') {
             return;
           }
@@ -118,8 +129,7 @@ export function useActivateSearchHit(): (hit: UnifiedSearchHit, query: string) =
           }
           dispatch(openPageTab({ type: 'settings', section: entry.section }));
           requestAnimationFrame(() => {
-            const fieldId = `setting-${hit.id.replaceAll('.', '-')}`;
-            document.getElementById(fieldId)?.focus();
+            document.getElementById(settingAnchorId(hit.id))?.focus();
           });
           return;
         }

@@ -7,6 +7,7 @@ import {
   DEFAULT_COLLECTION_RUNNER_CONFIG,
   firstRunResultMethod,
   getCollectionRunnerRequests,
+  getRequestsByIds,
   getRequestsInRunOrder,
   isCollectionRunnerRequestFailure,
   normalizeCollectionRunnerConfig,
@@ -376,5 +377,21 @@ describe('buildRunResultsExport', () => {
       name: 'Health',
       method: 'GET'
     });
+  });
+});
+
+describe('getRequestsByIds', () => {
+  it('returns matching requests in caller order across collections', () => {
+    const requestsByCollection: Record<number, SavedRequest[]> = {
+      1: [
+        sampleRequest({ id: 1, name: 'A', sort_order: 0 }),
+        sampleRequest({ id: 2, name: 'B', sort_order: 1 })
+      ],
+      2: [sampleRequest({ id: 3, name: 'C', sort_order: 0, collection_id: 2 })]
+    };
+
+    expect(getRequestsByIds([3, 1, 99], requestsByCollection).map((request) => request.id)).toEqual(
+      [3, 1]
+    );
   });
 });

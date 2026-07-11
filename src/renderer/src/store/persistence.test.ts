@@ -12,13 +12,16 @@ import {
   defaultTabState,
   LEGACY_OPEN_TABS_KEY,
   loadTabsFromStorage,
+  loadTerminalLayout,
   markTabsHydrated,
   OPEN_TABS_KEY,
   parseOpenTabsFromRaw,
   persistActiveEnvironmentId,
   persistTabs,
+  persistTerminalLayout,
   resetInitialTabStateForTests,
   resetTabsHydratedForTests,
+  TERMINAL_LAYOUT_KEY,
   type PersistedOpenTabs
 } from '#/renderer/src/store/persistence';
 
@@ -672,5 +675,48 @@ describe('persistActiveEnvironmentId', () => {
     });
 
     expect(() => persistActiveEnvironmentId(null)).not.toThrow();
+  });
+});
+
+describe('terminal layout persistence', () => {
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', createLocalStorageMock());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('loads an empty layout when nothing is persisted', () => {
+    expect(loadTerminalLayout()).toEqual({ terminals: [], activeTerminalId: null });
+  });
+
+  it('salvages valid terminal tabs and active selection', () => {
+    localStorage.setItem(
+      TERMINAL_LAYOUT_KEY,
+      JSON.stringify({
+        terminals: [
+          { id: 't-1', title: 'Terminal 1', cwd: '' },
+          { id: 't-2', title: 'Build', cwd: '/tmp' }
+        ],
+        activeTerminalId: 't-2'
+      })
+    );
+
+    expect(loadTerminalLayout()).toEqual({
+      terminals: [
+        { id: 't-1', title: 'Terminal 1', cwd: '' },
+        { id: 't-2', title: 'Build', cwd: '/tmp' }
+      ],
+      activeTerminalId: 't-2'
+    });
+  });
+
+  it('persists terminal layout to localStorage', () => {
+    persistTerminalLayout([{ id: 't-1', title: 'Terminal 1', cwd: '' }], 't-1');
+    expect(JSON.parse(localStorage.getItem(TERMINAL_LAYOUT_KEY) ?? '{}')).toEqual({
+      terminals: [{ id: 't-1', title: 'Terminal 1', cwd: '' }],
+      activeTerminalId: 't-1'
+    });
   });
 });

@@ -18,6 +18,27 @@ interface SidebarExpansionControls {
 }
 
 /**
+ * Reveals the sidebar, expands the Environments section, selects the given
+ * environment, and focuses its row for keyboard navigation.
+ *
+ * @param dispatch - Redux dispatch for navigation and selection updates.
+ * @param environmentId - Environment database id to highlight in the sidebar.
+ * @param expansion - Sidebar section visibility and expansion setters.
+ */
+export function focusEnvironmentSidebarById(
+  dispatch: AppDispatch,
+  environmentId: number,
+  expansion: SidebarExpansionControls
+): void {
+  dispatch(setShowSidebar(true));
+  dispatch(setActiveSidebarPanel(null));
+  expansion.setEnvironmentsSectionVisible(true);
+  expansion.setEnvironmentsSectionExpanded(true);
+  dispatch(setActiveEnvironmentId(environmentId));
+  focusSidebarEnvironmentRowById(environmentId, true);
+}
+
+/**
  * Focuses the first environment in the sidebar and selects it for keyboard navigation.
  *
  * Reveals the sidebar and Environments section when hidden. No-ops when there are
@@ -32,16 +53,10 @@ export function focusFirstEnvironmentSidebar(
   getState: () => RootState,
   expansion: SidebarExpansionControls
 ): void {
-  dispatch(setShowSidebar(true));
-  dispatch(setActiveSidebarPanel(null));
-  expansion.setEnvironmentsSectionVisible(true);
-  expansion.setEnvironmentsSectionExpanded(true);
-
   const firstEnvironment = selectEnvironments(getState())[0];
   if (firstEnvironment == null) {
     return;
   }
 
-  dispatch(setActiveEnvironmentId(firstEnvironment.id));
-  focusSidebarEnvironmentRowById(firstEnvironment.id, true);
+  focusEnvironmentSidebarById(dispatch, firstEnvironment.id, expansion);
 }

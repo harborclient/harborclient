@@ -11,6 +11,17 @@ export function environmentVariableCount(variables: Variable[]): number {
 }
 
 /**
+ * Returns a compact summary label for an environment row.
+ *
+ * @param variables - Environment-scoped variable rows.
+ * @returns Variable count label for the row metadata column.
+ */
+export function environmentSummaryText(variables: Variable[]): string {
+  const count = environmentVariableCount(variables);
+  return count === 1 ? '1 variable' : `${count} variables`;
+}
+
+/**
  * Builds a stable dnd-kit id for an environment row.
  *
  * @param id - Environment database id.

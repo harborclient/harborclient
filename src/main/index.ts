@@ -56,6 +56,7 @@ import { disposePluginRunner } from '#/main/plugins/pluginRunnerHost';
 import { getPluginUiBroker, initPluginUiBroker } from '#/main/plugins/PluginUiBroker';
 import { bootstrapMcpHost } from '#/main/ipc/handlers/mcp';
 import { disposeMcpHost, getMcpToolBridge } from '#/main/mcp';
+import { killAllTerminals, killTerminalsForWebContents } from '#/main/terminal/terminalHost';
 import {
   ensureHarborPluginProtocolForSession,
   registerHarborPluginProtocol,
@@ -799,6 +800,9 @@ function createWindow(): BrowserWindow {
   });
 
   setupCloseHandlers(window);
+  window.webContents.on('destroyed', () => {
+    killTerminalsForWebContents(window.webContents);
+  });
   setupFullscreenEscapeHandler(window);
   attachShortcutDispatch(window);
 
@@ -1016,6 +1020,7 @@ app.on('before-quit', (event) => {
  * renderer can unload plugins while the runner is still active.
  */
 app.on('will-quit', () => {
+  killAllTerminals();
   disposeScriptRunner();
   disposePluginRunner();
   void disposeMcpHost();

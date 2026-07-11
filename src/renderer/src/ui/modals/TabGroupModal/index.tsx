@@ -15,9 +15,12 @@ import {
   setTabGroupModalName,
   setTabGroupModalSubmitError
 } from '#/renderer/src/store/slices/modalsSlice';
+import { selectRequestsByCollection } from '#/renderer/src/store/selectors';
+import type { SavedRequest } from '#/shared/types';
 import {
   cloneTabGroup,
   createTabGroupFromOpenTabs,
+  createTabGroupFromRequests,
   renameTabGroup
 } from '#/renderer/src/store/thunks/tabGroups';
 import { formatErrorMessage } from '#/renderer/src/ui/modals/dialogHelpers';
@@ -28,6 +31,7 @@ import { formatErrorMessage } from '#/renderer/src/ui/modals/dialogHelpers';
 export function TabGroupModal(): JSX.Element | null {
   const dispatch = useAppDispatch();
   const tabGroupModal = useAppSelector(selectTabGroupModal);
+  const requestsByCollection = useAppSelector(selectRequestsByCollection);
 
   /**
    * Closes the tab group modal and resets modal state.
@@ -55,6 +59,19 @@ export function TabGroupModal(): JSX.Element | null {
       if (tabGroupModal.mode === 'create') {
         await dispatch(createTabGroupFromOpenTabs(name)).unwrap();
         toast.success('Tab group created');
+      } else if (tabGroupModal.mode === 'createFromSelection') {
+        const requestIds = tabGroupModal.requestIds ?? [];
+        const byId = new Map<number, SavedRequest>();
+        for (const requests of Object.values(requestsByCollection)) {
+          for (const request of requests) {
+            byId.set(request.id, request);
+          }
+        }
+        const selectedRequests = requestIds
+          .map((id) => byId.get(id))
+          .filter((request): request is SavedRequest => request != null);
+        await dispatch(createTabGroupFromRequests({ name, requests: selectedRequests })).unwrap();
+        toast.success('Tab group created');
       } else if (tabGroupModal.mode === 'rename' && tabGroupModal.groupId != null) {
         await dispatch(renameTabGroup({ id: tabGroupModal.groupId, name })).unwrap();
         toast.success('Tab group renamed');
@@ -69,7 +86,7 @@ export function TabGroupModal(): JSX.Element | null {
         setTabGroupModalSubmitError(
           formatErrorMessage(
             err,
-            tabGroupModal.mode === 'create'
+            tabGroupModal.mode === 'create' || tabGroupModal.mode === 'createFromSelection'
               ? 'Failed to create tab group'
               : tabGroupModal.mode === 'rename'
                 ? 'Failed to rename tab group'
@@ -78,21 +95,25 @@ export function TabGroupModal(): JSX.Element | null {
         )
       );
     }
-  }, [dispatch, tabGroupModal]);
+  }, [dispatch, requestsByCollection, tabGroupModal]);
 
   if (!tabGroupModal) {
     return null;
   }
 
   const title =
-    tabGroupModal.mode === 'create'
+    tabGroupModal.mode === 'create' || tabGroupModal.mode === 'createFromSelection'
       ? 'Create tab group'
       : tabGroupModal.mode === 'rename'
         ? 'Rename tab group'
         : 'Clone tab group';
 
   const submitLabel =
-    tabGroupModal.mode === 'create' ? 'Create' : tabGroupModal.mode === 'rename' ? 'Save' : 'Clone';
+    tabGroupModal.mode === 'create' || tabGroupModal.mode === 'createFromSelection'
+      ? 'Create'
+      : tabGroupModal.mode === 'rename'
+        ? 'Save'
+        : 'Clone';
 
   return (
     <Modal onClose={handleClose} labelledBy="tab-group-modal-title" title={title}>

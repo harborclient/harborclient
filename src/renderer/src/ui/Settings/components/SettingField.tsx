@@ -1,6 +1,7 @@
 import type { ComponentProps, JSX, ReactNode } from 'react';
 
 import { entryById, type FieldSettingId } from '../catalog/catalog';
+import { settingAnchorId } from '../settingAnchorId';
 import { SettingLabel } from './SettingLabel';
 import { SettingsField } from './SettingsField';
 
@@ -47,7 +48,7 @@ interface Props {
  * @param settingId - Catalog field id.
  */
 function settingControlId(settingId: FieldSettingId): string {
-  return `setting-${settingId.replaceAll('.', '-')}`;
+  return settingAnchorId(settingId);
 }
 
 /**

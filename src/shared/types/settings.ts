@@ -242,6 +242,16 @@ export interface GeneralSettings {
   warnWhenClickingReadonlySnippet: boolean;
 
   /**
+   * When true, creating a tab group from open request tabs shows a confirmation dialog.
+   */
+  warnWhenCreatingTabGroup: boolean;
+
+  /**
+   * When true, clicking a tab group in the sidebar shows a confirmation dialog before opening tabs.
+   */
+  warnWhenOpeningTabGroup: boolean;
+
+  /**
    * CodeMirror syntax theme applied to all editor instances.
    */
   codeEditorTheme: CodeEditorTheme;

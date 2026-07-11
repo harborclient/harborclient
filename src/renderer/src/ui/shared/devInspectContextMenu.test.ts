@@ -81,7 +81,7 @@ describe('buildDevInspectMenuGroups', () => {
     expect(groups[0]).toHaveLength(1);
     expect(groups[0]?.[0]?.label).toBe('Inspect Element');
 
-    groups[0]?.[0]?.onSelect();
+    groups[0]?.[0]?.onSelect?.();
     expect(window.api.inspectElement).toHaveBeenCalledWith(12, 34);
   });
 });

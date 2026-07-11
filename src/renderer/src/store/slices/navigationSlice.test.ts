@@ -7,6 +7,7 @@ import navigationReducer, {
   toggleAiSidebar,
   toggleConsole,
   toggleMcp,
+  toggleTerminal,
   toggleRequestEditor,
   toggleResponseEditor,
   setRequestEditorSplitHeight,
@@ -25,6 +26,7 @@ describe('navigationSlice', () => {
     expect(state.showConsole).toBe(false);
     expect(state.showVariables).toBe(false);
     expect(state.showMcp).toBe(false);
+    expect(state.showTerminal).toBe(false);
     expect(state.collectionSettingsDirty).toBe(false);
     expect(state.environmentSettingsDirty).toBe(false);
   });
@@ -34,11 +36,25 @@ describe('navigationSlice', () => {
     expect(state.showConsole).toBe(true);
     expect(state.showVariables).toBe(false);
     expect(state.showMcp).toBe(false);
+    expect(state.showTerminal).toBe(false);
 
     state = navigationReducer(state, toggleVariables());
     expect(state.showConsole).toBe(false);
     expect(state.showVariables).toBe(true);
     expect(state.showMcp).toBe(false);
+    expect(state.showTerminal).toBe(false);
+  });
+
+  it('toggles terminal panel exclusively with other footer panels', () => {
+    let state = navigationReducer(undefined, toggleConsole());
+    expect(state.showConsole).toBe(true);
+
+    state = navigationReducer(state, toggleTerminal());
+    expect(state.showConsole).toBe(false);
+    expect(state.showTerminal).toBe(true);
+
+    state = navigationReducer(state, toggleTerminal());
+    expect(state.showTerminal).toBe(false);
   });
 
   it('toggles MCP panel exclusively with console', () => {

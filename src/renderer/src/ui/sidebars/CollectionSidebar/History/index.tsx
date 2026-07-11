@@ -1,5 +1,5 @@
 import { Button, EmptyState, FaIcon, RowActionsMenu } from '@harborclient/sdk/components';
-import { useCallback, useState, type JSX } from 'react';
+import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
 import type { RequestHistoryEntry } from '#/shared/types/requestHistory';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
@@ -11,8 +11,10 @@ import {
   openRequestHistoryRun
 } from '#/renderer/src/store/thunks/requestHistory';
 import { loadSavedRequest, openRequestDraft } from '#/renderer/src/plugins/hostRequestCommands';
+import { useSidebarRowSelection } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarRowSelection';
 import { faEraser, faPersonRunning } from '#/renderer/src/fontawesome';
-import { METHOD_CLASSES, statusDotClass } from '#/renderer/src/ui/shared/classes';
+import { METHOD_CLASSES, sourceRow, statusDotClass } from '#/renderer/src/ui/shared/classes';
+import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
 import { formatRelativeTime } from './utils';
 
 /**
@@ -109,6 +111,20 @@ export function History(): JSX.Element {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   /**
+   * History entry ids in on-screen list order for shift-click range selection.
+   */
+  const visibleOrder = useMemo(() => entries.map((entry) => entry.id), [entries]);
+
+  const {
+    selectionCount,
+    selectedOrdered,
+    clearSelection,
+    handleRowClick,
+    handleBeforeContextMenu,
+    isSelected
+  } = useSidebarRowSelection(visibleOrder);
+
+  /**
    * Opens a history entry in the request editor or collection runner.
    */
   const handleOpenEntry = useCallback(
@@ -144,8 +160,44 @@ export function History(): JSX.Element {
     [confirm, dispatch]
   );
 
+  /**
+   * Deletes all currently multi-selected history entries after confirmation.
+   */
+  const handleDeleteSelected = useCallback(async (): Promise<void> => {
+    if (selectedOrdered.length === 0) {
+      return;
+    }
+
+    const count = selectedOrdered.length;
+    const confirmed = await confirm({
+      title: 'Delete history entries',
+      message: `Delete ${count} selected ${count === 1 ? 'entry' : 'entries'} from history?`,
+      confirmLabel: 'Delete',
+      variant: 'danger'
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      for (const id of selectedOrdered) {
+        await dispatch(deleteRequestHistory(id));
+      }
+      clearSelection();
+    } catch (err) {
+      showAlert(dispatch, formatErrorMessage(err, 'Failed to delete history entries'));
+    }
+  }, [clearSelection, confirm, dispatch, selectedOrdered]);
+
   return (
-    <div className="flex flex-col gap-0.5">
+    <div
+      className="flex flex-col gap-0.5"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          clearSelection();
+        }
+      }}
+    >
       {entries.length === 0 ? (
         <EmptyState variant="inline" className="pr-2 py-1.5">
           No requests yet
@@ -156,14 +208,17 @@ export function History(): JSX.Element {
         const methodClass = METHOD_CLASSES[entry.method.toLowerCase()] ?? 'text-info';
         const normalized = normalizeRequestHistoryEntry(entry);
         const menuId = `history-entry-${entry.id}`;
+        const selected = isSelected(entry.id);
+        const showBulkMenu = selected && selectionCount > 1;
 
         return (
           <div
             key={entry.id}
-            className="group flex items-center gap-1 rounded-md pr-1.5 pl-0 py-0.5 hover:bg-selection/60"
+            className={sourceRow(selected, true)}
             onContextMenu={(event) => {
               event.preventDefault();
               event.stopPropagation();
+              handleBeforeContextMenu(entry.id);
               setOpenMenuId(menuId);
             }}
           >
@@ -172,7 +227,14 @@ export function History(): JSX.Element {
               className="flex min-w-0 flex-1 items-center gap-2 py-0.5 text-left text-[16px] text-text hover:bg-transparent"
               title={isRun ? normalized.name : entry.url}
               aria-label={historyEntryAriaLabel(entry)}
-              onClick={() => handleOpenEntry(entry)}
+              aria-selected={selected ? 'true' : undefined}
+              onClick={(event: MouseEvent<HTMLButtonElement>) => {
+                handleRowClick(
+                  entry.id,
+                  { shiftKey: event.shiftKey, ctrlOrMetaKey: event.ctrlKey || event.metaKey },
+                  () => handleOpenEntry(entry)
+                );
+              }}
             >
               <span className={`shrink-0 font-medium uppercase ${methodClass}`} aria-hidden>
                 {entry.method}
@@ -202,17 +264,31 @@ export function History(): JSX.Element {
               menuId={menuId}
               openMenuId={openMenuId}
               onOpenChange={setOpenMenuId}
-              groups={[
-                [
-                  {
-                    label: 'Delete',
-                    variant: 'danger',
-                    onSelect: () => {
-                      void handleDeleteEntry(entry);
-                    }
-                  }
-                ]
-              ]}
+              groups={
+                showBulkMenu
+                  ? [
+                      [
+                        {
+                          label: 'Delete',
+                          variant: 'danger' as const,
+                          onSelect: () => {
+                            void handleDeleteSelected();
+                          }
+                        }
+                      ]
+                    ]
+                  : [
+                      [
+                        {
+                          label: 'Delete',
+                          variant: 'danger',
+                          onSelect: () => {
+                            void handleDeleteEntry(entry);
+                          }
+                        }
+                      ]
+                    ]
+              }
             />
           </div>
         );

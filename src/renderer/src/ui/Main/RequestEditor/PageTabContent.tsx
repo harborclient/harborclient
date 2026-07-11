@@ -79,6 +79,9 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
     }
 
     if (page.type === 'collection-runner') {
+      if (page.requestIds != null && page.requestIds.length > 0) {
+        return;
+      }
       const exists = collections.some((collection) => collection.id === page.collectionId);
       if (!exists) {
         dispatch(closeTab(tabId));
@@ -125,6 +128,7 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
         key="settings"
         initialSection={page.section}
         focusVariableKey={page.focusVariableKey}
+        focusSettingId={page.focusSettingId}
       />
     );
   }

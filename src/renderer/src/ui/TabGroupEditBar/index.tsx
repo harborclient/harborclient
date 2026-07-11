@@ -40,7 +40,7 @@ export function TabGroupEditBar(): JSX.Element | null {
   }
 
   return (
-    <div className="flex shrink-0 items-center justify-between gap-4 border-t border-separator bg-surface px-4 py-3 app-no-drag">
+    <div className="tab-group-edit-bar-attention flex shrink-0 items-center justify-between gap-4 border-t border-separator bg-surface px-4 py-3 app-no-drag">
       <p className="m-0 min-w-0 flex-1 text-[16px] text-text" role="status" aria-live="polite">
         Editing tab group &ldquo;{editingGroup.name}&rdquo;. Open request tabs to add them and close
         tabs to remove them, then click Save.

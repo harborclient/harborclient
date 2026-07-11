@@ -7,6 +7,7 @@ export interface RunnerTargetRef {
   collectionId: number;
   folderId?: number | null;
   requestId?: number | null;
+  requestIds?: number[] | null;
 }
 
 /**

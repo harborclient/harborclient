@@ -33,11 +33,31 @@ export function resultStatusLabel(result: CollectionRunnerRequestResult): string
 }
 
 /**
+ * Returns whether two request id lists match in order and membership.
+ *
+ * @param left - First request id list.
+ * @param right - Second request id list.
+ * @returns True when both lists contain the same ids in the same order.
+ */
+function requestIdListsMatch(
+  left: number[] | null | undefined,
+  right: number[] | null | undefined
+): boolean {
+  if (left == null || right == null) {
+    return left == null && right == null;
+  }
+  if (left.length !== right.length) {
+    return false;
+  }
+  return left.every((id, index) => id === right[index]);
+}
+
+/**
  * Returns whether runner state matches the page tab target identity.
  *
  * @param runner - Active collection runner state, if any.
  * @param target - Page tab target identity.
- * @returns True when both refer to the same collection, folder, or request run.
+ * @returns True when both refer to the same collection, folder, request, or selection run.
  */
 export function runnerMatchesTarget(
   runner: ReturnType<typeof selectCollectionRunner>,
@@ -46,6 +66,14 @@ export function runnerMatchesTarget(
   if (!runner) {
     return false;
   }
+
+  if (runner.requestIds != null || target.requestIds != null) {
+    return (
+      runner.collectionId === target.collectionId &&
+      requestIdListsMatch(runner.requestIds, target.requestIds)
+    );
+  }
+
   return (
     runner.collectionId === target.collectionId &&
     runner.folderId === (target.folderId ?? null) &&

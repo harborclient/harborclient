@@ -3,15 +3,25 @@ import {
   FooterButton,
   FooterIcon,
   FOOTER_STATUS_BAR_SLOT_HEIGHT,
-  footerBarPaddingClass
+  footerBarPaddingClass,
+  RowActionsMenu
 } from '@harborclient/sdk/components';
-import { useEffect, useMemo, useRef, type JSX } from 'react';
+import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import type { Variable } from '#/shared/types';
 
-import { faInbox, faPaperPlane, faRobot, faTableColumns } from '#/renderer/src/fontawesome';
+import {
+  faInbox,
+  faPaperPlane,
+  faRobot,
+  faSun,
+  faTableColumns,
+  faTerminal
+} from '#/renderer/src/fontawesome';
 import { iconActionMenu, ACTION_MENU_ICON_CLASS } from '#/renderer/src/icons/customIcons';
 import { actionMenuToggleClass, footerButtonGroup } from '#/renderer/src/ui/shared/classes';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { selectActiveEnvironmentId, selectEnvironments } from '#/renderer/src/store/selectors';
+import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import {
   selectActivePluginFooterPanelId,
   togglePluginFooterPanel
@@ -29,6 +39,9 @@ import { usePluginFooterPanels, usePluginStatusBarItems } from '#/renderer/src/p
 import { SHORTCUTS_REFERENCE_MODAL_ID } from '#/renderer/src/ui/modals/ShortcutsReferenceModal';
 import { handleFooterBarTabNavigation } from '#/renderer/src/ui/Footer/footerBarTabNavigation';
 import { effectiveCount, resolveScopedVariables } from './VariablesPanel/resolve';
+
+/** Stable menu id for the footer environment picker. */
+const FOOTER_ENVIRONMENT_MENU_ID = 'footer-environment-menu';
 
 interface Props {
   /**
@@ -127,6 +140,16 @@ interface Props {
   onToggleMcp: () => void;
 
   /**
+   * Whether the terminal panel is currently open.
+   */
+  terminalOpen: boolean;
+
+  /**
+   * Toggles the terminal panel open/closed.
+   */
+  onToggleTerminal: () => void;
+
+  /**
    * Whether the local MCP HTTP server is listening.
    */
   mcpServerRunning: boolean;
@@ -155,6 +178,8 @@ export function Footer({
   onToggleResponseEditor,
   mcpOpen,
   onToggleMcp,
+  terminalOpen,
+  onToggleTerminal,
   mcpServerRunning
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
@@ -163,6 +188,9 @@ export function Footer({
   const activePluginFooterPanelId = useAppSelector(selectActivePluginFooterPanelId);
   const shortcutsReferenceOpen = useAppSelector(selectShortcutsReferenceModal)?.open === true;
   const actionMenuOpen = useAppSelector(selectActionMenuModal)?.open === true;
+  const environments = useAppSelector(selectEnvironments);
+  const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
+  const [envMenuOpen, setEnvMenuOpen] = useState<string | null>(null);
   const footerRef = useRef<HTMLElement>(null);
   const leftGroupRef = useRef<HTMLDivElement>(null);
   const rightIconsRef = useRef<HTMLDivElement>(null);
@@ -214,6 +242,33 @@ export function Footer({
   const variableCount = effectiveCount(resolvedVariables);
 
   /**
+   * Resolves the active environment display name for the footer status line.
+   */
+  const activeEnvironmentName = useMemo(() => {
+    if (activeEnvironmentId == null) {
+      return null;
+    }
+    return environments.find((env) => env.id === activeEnvironmentId)?.name ?? null;
+  }, [activeEnvironmentId, environments]);
+
+  /**
+   * Environment picker menu groups with a checkmark on the active environment.
+   */
+  const environmentMenuGroups = useMemo(
+    () => [
+      environments.map((environment) => ({
+        label: environment.name,
+        checked: environment.id === activeEnvironmentId,
+        onSelect: () =>
+          dispatch(
+            setActiveEnvironmentId(environment.id === activeEnvironmentId ? null : environment.id)
+          )
+      }))
+    ],
+    [activeEnvironmentId, dispatch, environments]
+  );
+
+  /**
    * Status bar items grouped by alignment for stable footer layout.
    */
   const leftStatusItems = useMemo(
@@ -262,6 +317,19 @@ export function Footer({
             </div>
           ))}
           <div ref={leftGroupRef} className="inline-flex min-w-0 items-center">
+            <RowActionsMenu
+              menuId={FOOTER_ENVIRONMENT_MENU_ID}
+              openMenuId={envMenuOpen}
+              onOpenChange={setEnvMenuOpen}
+              placement="up"
+              triggerVariant="toolbar"
+              triggerIcon={faSun}
+              triggerLabel={activeEnvironmentName ?? 'Environment'}
+              triggerTitle={activeEnvironmentName ?? 'Environment'}
+              triggerAriaLabel="Select environment"
+              triggerClassName="hc-footer-button w-[10rem] min-w-[10rem] justify-start gap-1 overflow-hidden rounded-md border-none bg-transparent px-2 py-0.5 text-left text-[16px] text-muted hover:bg-transparent hover:text-text"
+              groups={environmentMenuGroups}
+            />
             <FooterButton
               active={shortcutsReferenceOpen}
               onClick={() =>
@@ -311,6 +379,17 @@ export function Footer({
                 </span>
               </span>
             </FooterButton>
+            <FooterButton
+              active={terminalOpen}
+              onClick={onToggleTerminal}
+              controlsId="footer-terminal-panel"
+            >
+              <span className="inline-flex items-center gap-1">
+                <FaIcon icon={faTerminal} className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                Terminal
+              </span>
+            </FooterButton>
+
             {pluginFooterPanels.map((panel) => (
               <FooterButton
                 key={panel.id}
@@ -354,7 +433,7 @@ export function Footer({
               />
             </div>
           ))}
-          <div ref={rightIconsRef} className="flex items-center gap-1.5">
+          <div ref={rightIconsRef} className="flex items-center gap-2">
             <FooterIcon
               onClick={onToggleRequestEditor}
               icon={faPaperPlane}

@@ -15,7 +15,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
-import { useMemo, useState, type JSX } from 'react';
+import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
 import toast from 'react-hot-toast';
 import type { Environment } from '#/shared/types';
 import { RowActionsMenu } from '@harborclient/sdk/components';
@@ -33,6 +33,7 @@ import {
   reorderEnvironments
 } from '#/renderer/src/store/thunks';
 import { SortableRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/SortableRow';
+import { useSidebarRowSelection } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarRowSelection';
 import { useSidebarSearchContext } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarSearchContext';
 import { focusEnvironmentSettings } from '#/renderer/src/ui/EnvironmentSettings/focusEnvironmentSettings';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
@@ -42,7 +43,7 @@ import {
   useDeveloperToolsEnabled,
   type InspectPoint
 } from '#/renderer/src/ui/shared/devInspectContextMenu';
-import { environmentDragId, environmentVariableCount, parseEnvironmentDragId } from './utils';
+import { environmentDragId, environmentSummaryText, parseEnvironmentDragId } from './utils';
 
 /**
  * Environment list with active-row highlight, drag reordering, and row actions.
@@ -72,9 +73,26 @@ export function Environments(): JSX.Element {
   const noMatches = searchFilter != null && allEnvironments.length > 0 && environments.length === 0;
 
   /**
-   * Sets or clears the active environment.
+   * Environment ids in on-screen list order for shift-click range selection.
    */
-  const onSelectEnvironment = (id: number | null): void => {
+  const visibleOrder = useMemo(
+    () => environments.map((environment) => environment.id),
+    [environments]
+  );
+
+  const {
+    selectionCount,
+    selectedOrdered,
+    clearSelection,
+    handleRowClick,
+    handleBeforeContextMenu,
+    isSelected
+  } = useSidebarRowSelection(visibleOrder);
+
+  /**
+   * Sets the active environment.
+   */
+  const onSelectEnvironment = (id: number): void => {
     dispatch(setActiveEnvironmentId(id));
   };
 
@@ -132,6 +150,35 @@ export function Environments(): JSX.Element {
   const onReorderEnvironments = async (orderedEnvironmentIds: number[]): Promise<void> => {
     await dispatch(reorderEnvironments({ orderedEnvironmentIds }));
   };
+
+  /**
+   * Deletes all currently multi-selected environments after confirmation.
+   */
+  const handleDeleteSelected = useCallback(async (): Promise<void> => {
+    if (selectedOrdered.length === 0) {
+      return;
+    }
+
+    const count = selectedOrdered.length;
+    const confirmed = await confirm({
+      title: 'Delete environments',
+      message: `Delete ${count} selected environment${count === 1 ? '' : 's'}?`,
+      confirmLabel: 'Delete',
+      variant: 'danger'
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      for (const id of selectedOrdered) {
+        await dispatch(deleteEnvironment(id));
+      }
+      clearSelection();
+    } catch (err) {
+      showAlert(dispatch, formatErrorMessage(err, 'Failed to delete environments'));
+    }
+  }, [clearSelection, confirm, dispatch, selectedOrdered]);
 
   const developerToolsEnabled = useDeveloperToolsEnabled();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -213,7 +260,14 @@ export function Environments(): JSX.Element {
       onDragEnd={(event) => void handleDragEnd(event)}
       onDragCancel={() => setActiveDragEnvironment(null)}
     >
-      <div className="sidebar-source-list flex flex-col gap-0">
+      <div
+        className="sidebar-source-list flex flex-col gap-0"
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            clearSelection();
+          }
+        }}
+      >
         {noMatches && (
           <div className="px-2 py-1.5 text-[16px] text-muted">No matching environments</div>
         )}
@@ -223,22 +277,26 @@ export function Environments(): JSX.Element {
 
         <SortableContext items={environmentIds} strategy={verticalListSortingStrategy}>
           {environments.map((environment, environmentIndex) => {
-            const selected = activeEnvironmentId === environment.id;
+            const isActive = activeEnvironmentId === environment.id;
+            const multiSelected = isSelected(environment.id);
+            const rowHighlighted = isActive || multiSelected;
+            const showBulkMenu = multiSelected && selectionCount > 1;
             const environmentBelow = environments[environmentIndex + 1];
-            const variableCount = environmentVariableCount(environment.variables);
+            const variableSummary = environmentSummaryText(environment.variables);
+            const menuId = `environment-${environment.id}`;
 
             return (
               <SortableRow
                 key={environment.id}
                 id={environmentDragId(environment.id)}
-                className={sourceRow(selected, true)}
+                className={sourceRow(rowHighlighted, true)}
                 dragHandleLabel={`Reorder environment "${environment.name}"`}
                 disabled={searchActive}
                 compact
                 onRowContextMenu={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
-                  const menuId = `environment-${environment.id}`;
+                  handleBeforeContextMenu(environment.id);
                   setInspectPointsByMenuId((prev) => ({
                     ...prev,
                     [menuId]: { x: event.clientX, y: event.clientY }
@@ -250,9 +308,16 @@ export function Environments(): JSX.Element {
                   type="button"
                   className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-inherit app-no-drag"
                   data-sidebar-environment-id={environment.id}
-                  aria-current={selected ? 'true' : undefined}
-                  aria-label={`${environment.name}, ${variableCount} variables`}
-                  onClick={() => onSelectEnvironment(selected ? null : environment.id)}
+                  aria-current={isActive ? 'true' : undefined}
+                  aria-selected={multiSelected ? 'true' : undefined}
+                  aria-label={`${environment.name}, ${variableSummary}`}
+                  onClick={(event: MouseEvent<HTMLButtonElement>) => {
+                    handleRowClick(
+                      environment.id,
+                      { shiftKey: event.shiftKey, ctrlOrMetaKey: event.ctrlKey || event.metaKey },
+                      () => onSelectEnvironment(environment.id)
+                    );
+                  }}
                   onDoubleClick={() => onConfigureEnvironment(environment.id)}
                   onKeyDown={(e) => {
                     if (e.key !== 'Enter') return;
@@ -262,78 +327,90 @@ export function Environments(): JSX.Element {
                   }}
                 >
                   <span className="min-w-0 flex-1 truncate text-[16px]">{environment.name}</span>
-                  <span className="shrink-0 tabular-nums text-[16px] text-muted">
-                    {variableCount}
-                  </span>
+                  <span className="shrink-0 text-[16px] text-muted">{variableSummary}</span>
                 </button>
                 <RowActionsMenu
-                  menuId={`environment-${environment.id}`}
+                  menuId={menuId}
                   openMenuId={openMenuId}
                   onOpenChange={setOpenMenuId}
-                  groups={[
-                    ...buildReorderMenuGroup(
-                      environmentIndex,
-                      environments.length,
-                      (direction) => void moveEnvironment(environment.id, direction)
-                    ),
-                    [
-                      {
-                        label: 'Settings',
-                        onSelect: () => onConfigureEnvironment(environment.id)
-                      },
-                      {
-                        label: 'Export',
-                        onSelect: () => onExportEnvironment(environment.id)
-                      },
-                      {
-                        label: 'Duplicate',
-                        onSelect: () => void onDuplicateEnvironment(environment.id)
-                      },
-                      ...(environmentBelow
-                        ? [
+                  groups={
+                    showBulkMenu
+                      ? [
+                          [
                             {
-                              label: 'Merge down',
+                              label: 'Delete',
+                              variant: 'danger' as const,
+                              onSelect: () => {
+                                void handleDeleteSelected();
+                              }
+                            }
+                          ]
+                        ]
+                      : [
+                          ...buildReorderMenuGroup(
+                            environmentIndex,
+                            environments.length,
+                            (direction) => void moveEnvironment(environment.id, direction)
+                          ),
+                          [
+                            {
+                              label: 'Settings',
+                              onSelect: () => onConfigureEnvironment(environment.id)
+                            },
+                            {
+                              label: 'Export',
+                              onSelect: () => onExportEnvironment(environment.id)
+                            },
+                            {
+                              label: 'Duplicate',
+                              onSelect: () => void onDuplicateEnvironment(environment.id)
+                            },
+                            ...(environmentBelow
+                              ? [
+                                  {
+                                    label: 'Merge down',
+                                    onSelect: () => {
+                                      void (async () => {
+                                        const confirmed = await confirm({
+                                          title: 'Merge environment down',
+                                          message: `Merge "${environment.name}" into "${environmentBelow.name}"? The merged environment will be named "${environment.name}".`,
+                                          confirmLabel: 'Merge down'
+                                        });
+                                        if (confirmed) {
+                                          void onMergeEnvironmentDown(environment.id);
+                                        }
+                                      })();
+                                    }
+                                  }
+                                ]
+                              : [])
+                          ],
+                          [
+                            {
+                              label: 'Delete',
+                              variant: 'danger',
                               onSelect: () => {
                                 void (async () => {
                                   const confirmed = await confirm({
-                                    title: 'Merge environment down',
-                                    message: `Merge "${environment.name}" into "${environmentBelow.name}"? The merged environment will be named "${environment.name}".`,
-                                    confirmLabel: 'Merge down'
+                                    title: 'Delete environment',
+                                    message: `Delete environment "${environment.name}"?`,
+                                    confirmLabel: 'Delete',
+                                    variant: 'danger'
                                   });
                                   if (confirmed) {
-                                    void onMergeEnvironmentDown(environment.id);
+                                    void onDeleteEnvironment(environment.id);
                                   }
                                 })();
                               }
                             }
-                          ]
-                        : [])
-                    ],
-                    [
-                      {
-                        label: 'Delete',
-                        variant: 'danger',
-                        onSelect: () => {
-                          void (async () => {
-                            const confirmed = await confirm({
-                              title: 'Delete environment',
-                              message: `Delete environment "${environment.name}"?`,
-                              confirmLabel: 'Delete',
-                              variant: 'danger'
-                            });
-                            if (confirmed) {
-                              void onDeleteEnvironment(environment.id);
-                            }
-                          })();
-                        }
-                      }
-                    ],
-                    ...buildDevInspectMenuGroups(
-                      inspectPointsByMenuId[`environment-${environment.id}`],
-                      `environment-${environment.id}`,
-                      developerToolsEnabled
-                    )
-                  ]}
+                          ],
+                          ...buildDevInspectMenuGroups(
+                            inspectPointsByMenuId[menuId],
+                            menuId,
+                            developerToolsEnabled
+                          )
+                        ]
+                  }
                 />
               </SortableRow>
             );

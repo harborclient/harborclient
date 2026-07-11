@@ -141,6 +141,11 @@ export interface CollectionRunnerState {
   folderName: string | null;
   requestId: number | null;
   requestName: string | null;
+  /**
+   * When set, the runner executes this explicit request list instead of a
+   * collection, folder, or single-request target.
+   */
+  requestIds: number[] | null;
   phase: CollectionRunnerPhase;
   delayMs: number;
   stopOnFailure: boolean;
@@ -193,7 +198,7 @@ export interface PendingLoadDocument {
   reason: 'settings' | 'dirty-tab';
 }
 
-export type TabGroupModalMode = 'create' | 'rename' | 'clone';
+export type TabGroupModalMode = 'create' | 'rename' | 'clone' | 'createFromSelection';
 
 /**
  * Tab group modal state for create, rename, and clone flows.
@@ -201,6 +206,10 @@ export type TabGroupModalMode = 'create' | 'rename' | 'clone';
 export interface TabGroupModalState {
   mode: TabGroupModalMode;
   groupId?: number;
+  /**
+   * Saved request ids used when creating a tab group from a sidebar selection.
+   */
+  requestIds?: number[];
   name: string;
   submitError: string | null;
 }
@@ -278,11 +287,17 @@ const modalsSlice = createSlice({
      */
     openTabGroupModal(
       state,
-      action: PayloadAction<{ mode: TabGroupModalMode; groupId?: number; name?: string }>
+      action: PayloadAction<{
+        mode: TabGroupModalMode;
+        groupId?: number;
+        requestIds?: number[];
+        name?: string;
+      }>
     ) {
       state.tabGroupModal = {
         mode: action.payload.mode,
         groupId: action.payload.groupId,
+        requestIds: action.payload.requestIds,
         name: action.payload.name ?? '',
         submitError: null
       };
@@ -554,6 +569,7 @@ const modalsSlice = createSlice({
         folderName?: string | null;
         requestId?: number | null;
         requestName?: string | null;
+        requestIds?: number[] | null;
         config?: Partial<CollectionRunnerConfig>;
       }>
     ) {
@@ -571,6 +587,7 @@ const modalsSlice = createSlice({
         folderName: action.payload.folderName ?? null,
         requestId: action.payload.requestId ?? null,
         requestName: action.payload.requestName ?? null,
+        requestIds: action.payload.requestIds ?? null,
         phase: 'configure',
         delayMs: config.delayMs,
         stopOnFailure: config.stopOnFailure,
@@ -753,6 +770,7 @@ const modalsSlice = createSlice({
         folderName: data.collection?.folderName ?? null,
         requestId,
         requestName: data.request?.name ?? null,
+        requestIds: null,
         phase: 'complete',
         delayMs: data.delay,
         stopOnFailure: data.stopOnFailure,

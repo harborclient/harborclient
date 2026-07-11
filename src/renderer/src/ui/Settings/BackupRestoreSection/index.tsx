@@ -1,21 +1,45 @@
 import { Button, Page } from '@harborclient/sdk/components';
-import { useState, type JSX } from 'react';
+import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import { useDispatch } from 'react-redux';
 
+import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
-import { sectionEntryBySection } from '../catalog/catalog';
+import { entryById, sectionEntryBySection } from '../catalog/catalog';
 import { SettingLabel } from '../components/SettingLabel';
 import { settingsSectionMeta } from '../constants';
+import { settingAnchorId } from '../settingAnchorId';
+import type { SettingsSectionComponentProps } from '../catalog/registry';
+import { ConfirmationsTable } from './ConfirmationsTable';
 import { applyLocalStorageSnapshot, collectLocalStorageSnapshot } from './helpers';
+
+const CONFIRMATIONS_GROUP_ID = 'backup-restore.confirmations';
 
 /**
  * Backup and restore settings for exporting and importing all local app data.
  */
-export function BackupRestoreSection(): JSX.Element {
-  const dispatch = useDispatch();
+export function BackupRestoreSection({
+  focusSettingId,
+  onFocusSettingHandled
+}: SettingsSectionComponentProps): JSX.Element {
+  const dispatch = useAppDispatch();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /**
+   * Scrolls the confirmations group into view when opened from settings or global search.
+   */
+  useEffect(() => {
+    if (focusSettingId !== CONFIRMATIONS_GROUP_ID) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      document.getElementById(settingAnchorId(CONFIRMATIONS_GROUP_ID))?.scrollIntoView({
+        block: 'start'
+      });
+      onFocusSettingHandled?.();
+    });
+  }, [focusSettingId, onFocusSettingHandled]);
 
   /**
    * Exports all local HarborClient data to a `.hcb` backup file.
@@ -67,6 +91,7 @@ export function BackupRestoreSection(): JSX.Element {
 
   const { label, icon } = settingsSectionMeta('backup-restore');
   const backupCatalog = sectionEntryBySection('backup-restore');
+  const confirmationsCatalog = entryById(CONFIRMATIONS_GROUP_ID);
 
   return (
     <Page
@@ -135,6 +160,23 @@ export function BackupRestoreSection(): JSX.Element {
             {error}
           </p>
         ) : null}
+      </div>
+
+      <div
+        id={settingAnchorId(CONFIRMATIONS_GROUP_ID)}
+        className="mb-6 flex flex-col gap-3 scroll-mt-4"
+      >
+        <div className="flex flex-col gap-1">
+          <span className="text-[18px] font-medium text-text">
+            <SettingLabel settingId={CONFIRMATIONS_GROUP_ID}>
+              {confirmationsCatalog.label}
+            </SettingLabel>
+          </span>
+          <p className="hc-form-group-description m-0 text-[14px] text-muted mb-2">
+            {confirmationsCatalog.description}
+          </p>
+        </div>
+        <ConfirmationsTable />
       </div>
     </Page>
   );

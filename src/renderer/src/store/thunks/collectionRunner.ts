@@ -4,6 +4,7 @@ import {
   buildPendingCollectionRunnerResults,
   countTestResults,
   getCollectionRunnerRequests,
+  getRequestsByIds,
   isCollectionRunnerRequestFailure,
   normalizeCollectionRunnerConfig,
   resolveCollectionRunnerNextIndex,
@@ -66,25 +67,31 @@ export const runCollectionRequests = createAsyncThunk<void, void, ThunkApiConfig
       return;
     }
 
-    const { collectionId, folderId, requestId } = runner;
+    const { collectionId, folderId, requestId, requestIds } = runner;
     let state = getState();
     let requests = selectRequestsByCollection(state)[collectionId];
     let folders = selectFoldersByCollection(state)[collectionId];
 
-    if (!requests?.length) {
-      await dispatch(refreshCollectionContents(collectionId)).unwrap();
-      state = getState();
-      requests = selectRequestsByCollection(state)[collectionId] ?? [];
-      folders = selectFoldersByCollection(state)[collectionId] ?? [];
-    }
+    let orderedRequests: Awaited<ReturnType<typeof getCollectionRunnerRequests>>;
 
-    const orderedRequests = getCollectionRunnerRequests(
-      collectionId,
-      folderId,
-      requestId,
-      requests ?? [],
-      folders ?? []
-    );
+    if (requestIds != null && requestIds.length > 0) {
+      orderedRequests = getRequestsByIds(requestIds, selectRequestsByCollection(state));
+    } else {
+      if (!requests?.length) {
+        await dispatch(refreshCollectionContents(collectionId)).unwrap();
+        state = getState();
+        requests = selectRequestsByCollection(state)[collectionId] ?? [];
+        folders = selectFoldersByCollection(state)[collectionId] ?? [];
+      }
+
+      orderedRequests = getCollectionRunnerRequests(
+        collectionId,
+        folderId,
+        requestId,
+        requests ?? [],
+        folders ?? []
+      );
+    }
 
     if (orderedRequests.length === 0) {
       return;
@@ -107,15 +114,17 @@ export const runCollectionRequests = createAsyncThunk<void, void, ThunkApiConfig
       folders ?? [],
       requests ?? []
     );
-    void dispatch(
-      recordRequestHistoryRun({
-        method: orderedRequests[0].method,
-        name: runnerTargetLabel(targetNames),
-        collectionId,
-        folderId: folderId ?? null,
-        requestId: requestId ?? null
-      })
-    );
+    if (requestIds == null || requestIds.length === 0) {
+      void dispatch(
+        recordRequestHistoryRun({
+          method: orderedRequests[0].method,
+          name: runnerTargetLabel(targetNames),
+          collectionId,
+          folderId: folderId ?? null,
+          requestId: requestId ?? null
+        })
+      );
+    }
 
     await window.api.setCollectionRunnerConfig(config);
 

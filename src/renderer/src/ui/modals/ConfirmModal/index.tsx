@@ -40,7 +40,7 @@ function ConfirmModalContent({ confirmModal, dispatch }: ConfirmModalContentProp
 
   return (
     <Modal onClose={handleCancel} labelledBy="confirm-modal-title" title={confirmModal.title}>
-      <p className="mb-4 text-[14px] text-muted">{confirmModal.message}</p>
+      <p className="mb-4 text-[16px] text-muted">{confirmModal.message}</p>
       {confirmModal.checkboxLabel ? (
         <div className="mb-4 flex items-center gap-2">
           <Checkbox
@@ -48,7 +48,7 @@ function ConfirmModalContent({ confirmModal, dispatch }: ConfirmModalContentProp
             checked={checkboxChecked}
             onChange={(event) => setCheckboxChecked(event.target.checked)}
           />
-          <label htmlFor={CONFIRM_MODAL_CHECKBOX_ID} className="text-[14px] text-muted">
+          <label htmlFor={CONFIRM_MODAL_CHECKBOX_ID} className="text-[16px] text-muted">
             {confirmModal.checkboxLabel}
           </label>
         </div>

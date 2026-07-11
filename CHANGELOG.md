@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(terminal): integrate terminal functionality into the application. (`7de2b9e`)
+
 ## 2.1.0 - 2026-07-11
 
 - fix(tests): add truncation for documents in MySQL and Postgres tables. (`10b743c`)

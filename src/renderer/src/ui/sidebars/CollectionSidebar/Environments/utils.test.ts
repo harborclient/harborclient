@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { environmentDragId, environmentVariableCount, parseEnvironmentDragId } from './utils';
+import {
+  environmentDragId,
+  environmentSummaryText,
+  environmentVariableCount,
+  parseEnvironmentDragId
+} from './utils';
 
 describe('environmentDragId', () => {
   it('builds a stable sortable id', () => {
@@ -15,6 +20,23 @@ describe('parseEnvironmentDragId', () => {
   it('returns null for invalid drag ids', () => {
     expect(parseEnvironmentDragId('request:42')).toBeNull();
     expect(parseEnvironmentDragId('environment:')).toBeNull();
+  });
+});
+
+describe('environmentSummaryText', () => {
+  it('formats singular and plural variable counts', () => {
+    expect(environmentSummaryText([])).toBe('0 variables');
+    expect(
+      environmentSummaryText([
+        { key: 'apiUrl', value: 'https://example.com', defaultValue: '', share: false }
+      ])
+    ).toBe('1 variable');
+    expect(
+      environmentSummaryText([
+        { key: 'apiUrl', value: 'https://example.com', defaultValue: '', share: false },
+        { key: 'token', value: 'secret', defaultValue: '', share: false }
+      ])
+    ).toBe('2 variables');
   });
 });
 

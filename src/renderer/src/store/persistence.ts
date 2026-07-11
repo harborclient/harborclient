@@ -14,6 +14,7 @@ import {
   type Tab
 } from '#/renderer/src/store/drafts';
 import type { BodyType, HttpMethod, KeyValue, SettingsSection } from '#/shared/types';
+import type { TerminalTab } from '#/renderer/src/store/slices/terminalsSlice';
 
 /** When false, persistTabs is a no-op so the default startup tab does not clobber electron-store. */
 let tabsHydrated = false;
@@ -21,6 +22,7 @@ let tabsHydrated = false;
 export const OPEN_TABS_KEY = 'harborclient.openTabs';
 export const LEGACY_OPEN_TABS_KEY = 'harbor-client.openTabs';
 export const ACTIVE_ENVIRONMENT_KEY = 'harborclient.activeEnvironmentId';
+export const TERMINAL_LAYOUT_KEY = 'harborclient.terminalLayout';
 
 /**
  * Persisted request tab shape (draft only, no response/sending).
@@ -62,6 +64,14 @@ export type PersistedTab = PersistedRequestTab | PersistedPageTab | PersistedMar
 export interface PersistedOpenTabs {
   tabs: PersistedTab[];
   activeTabId: string;
+}
+
+/**
+ * Persisted footer terminal layout (tab metadata only).
+ */
+export interface PersistedTerminalLayout {
+  terminals: TerminalTab[];
+  activeTerminalId: string | null;
 }
 
 const HTTP_METHODS = new Set<HttpMethod>([
@@ -313,11 +323,17 @@ function normalizePageRef(value: unknown): PageRef | null {
           : typeof value.requestId === 'number' && Number.isFinite(value.requestId)
             ? value.requestId
             : null;
+      const requestIds = Array.isArray(value.requestIds)
+        ? value.requestIds.filter(
+            (entry): entry is number => typeof entry === 'number' && Number.isFinite(entry)
+          )
+        : undefined;
       return {
         type: 'collection-runner',
         collectionId: value.collectionId,
         folderId,
-        requestId
+        requestId,
+        ...(requestIds != null && requestIds.length > 0 ? { requestIds } : {})
       };
     }
     case 'plugin-detail':
@@ -691,6 +707,95 @@ export function persistActiveEnvironmentId(id: number | null): void {
     } else {
       localStorage.setItem(ACTIVE_ENVIRONMENT_KEY, String(id));
     }
+  } catch {
+    // Ignore quota or privacy-mode failures.
+  }
+}
+
+/**
+ * Salvages one persisted terminal tab entry.
+ *
+ * @param value - Candidate terminal tab from persisted storage.
+ * @returns Salvaged terminal tab or null when required fields are invalid.
+ */
+function salvagePersistedTerminalTab(value: unknown): TerminalTab | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  if (typeof value.id !== 'string' || value.id.length === 0) {
+    return null;
+  }
+
+  if (typeof value.title !== 'string' || value.title.length === 0) {
+    return null;
+  }
+
+  return {
+    id: value.id,
+    title: value.title,
+    cwd: typeof value.cwd === 'string' ? value.cwd : ''
+  };
+}
+
+/**
+ * Loads persisted footer terminal layout from localStorage.
+ */
+export function loadTerminalLayout(): PersistedTerminalLayout {
+  try {
+    const raw = localStorage.getItem(TERMINAL_LAYOUT_KEY);
+    if (!raw) {
+      return { terminals: [], activeTerminalId: null };
+    }
+
+    const parsed: unknown = JSON.parse(raw);
+    if (!isRecord(parsed) || !Array.isArray(parsed.terminals)) {
+      return { terminals: [], activeTerminalId: null };
+    }
+
+    const seenIds = new Set<string>();
+    const terminals: TerminalTab[] = [];
+    for (const entry of parsed.terminals) {
+      const salvaged = salvagePersistedTerminalTab(entry);
+      if (!salvaged || seenIds.has(salvaged.id)) {
+        continue;
+      }
+      seenIds.add(salvaged.id);
+      terminals.push(salvaged);
+    }
+
+    const activeTerminalId =
+      typeof parsed.activeTerminalId === 'string' &&
+      terminals.some((terminal) => terminal.id === parsed.activeTerminalId)
+        ? parsed.activeTerminalId
+        : (terminals[0]?.id ?? null);
+
+    return { terminals, activeTerminalId };
+  } catch {
+    return { terminals: [], activeTerminalId: null };
+  }
+}
+
+/**
+ * Persists footer terminal layout to localStorage.
+ *
+ * @param terminals - Terminal tab metadata to store.
+ * @param activeTerminalId - Active terminal tab id, if any.
+ */
+export function persistTerminalLayout(
+  terminals: TerminalTab[],
+  activeTerminalId: string | null
+): void {
+  try {
+    const payload: PersistedTerminalLayout = {
+      terminals: terminals.map((terminal) => ({
+        id: terminal.id,
+        title: terminal.title,
+        cwd: terminal.cwd
+      })),
+      activeTerminalId
+    };
+    localStorage.setItem(TERMINAL_LAYOUT_KEY, JSON.stringify(payload));
   } catch {
     // Ignore quota or privacy-mode failures.
   }

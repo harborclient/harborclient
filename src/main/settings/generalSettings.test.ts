@@ -253,6 +253,32 @@ describe('generalSettings', () => {
     expect(getGeneralSettings().warnWhenClosingUnsavedRequests).toBe(false);
   });
 
+  it('defaults warnWhenCreatingTabGroup to true when unset', () => {
+    expect(getGeneralSettings().warnWhenCreatingTabGroup).toBe(true);
+  });
+
+  it('persists warnWhenCreatingTabGroup false', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      warnWhenCreatingTabGroup: false
+    });
+
+    expect(getGeneralSettings().warnWhenCreatingTabGroup).toBe(false);
+  });
+
+  it('defaults warnWhenOpeningTabGroup to true when unset', () => {
+    expect(getGeneralSettings().warnWhenOpeningTabGroup).toBe(true);
+  });
+
+  it('persists warnWhenOpeningTabGroup false', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      warnWhenOpeningTabGroup: false
+    });
+
+    expect(getGeneralSettings().warnWhenOpeningTabGroup).toBe(false);
+  });
+
   it('defaults warnWhenClickingReadonlySnippet to true when unset', () => {
     expect(getGeneralSettings().warnWhenClickingReadonlySnippet).toBe(true);
   });

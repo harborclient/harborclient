@@ -21,9 +21,9 @@ interface Props {
   query: string;
 
   /**
-   * Opens a management section and clears the active search query.
+   * Opens a management section from search results and clears the active query.
    */
-  onNavigate: (section: SettingsSection) => void;
+  onNavigate: (section: SettingsSection, focusSettingId?: string) => void;
 }
 
 /**
@@ -48,6 +48,7 @@ function SettingsDraftError(): JSX.Element | null {
 export function SettingsSearchResults({ matchedIds, query, onNavigate }: Props): JSX.Element {
   const fieldIds = matchedIds.filter((id): id is FieldSettingId => entryById(id).kind === 'field');
   const sectionIds = matchedIds.filter((id) => entryById(id).kind === 'section');
+  const groupIds = matchedIds.filter((id) => entryById(id).kind === 'group');
 
   return (
     <Page embedded className="mb-6 flex flex-col" title="Search results">
@@ -87,6 +88,38 @@ export function SettingsSearchResults({ matchedIds, query, onNavigate }: Props):
                         type="button"
                         variant="secondary"
                         onClick={() => onNavigate(entry.section)}
+                      >
+                        Open
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {groupIds.length > 0 ? (
+            <div className="flex flex-col gap-3">
+              {groupIds.map((id) => {
+                const entry = entryById(id);
+                if (entry.kind !== 'group') {
+                  return null;
+                }
+
+                return (
+                  <div
+                    key={entry.id}
+                    className="flex flex-col gap-2 rounded-md border border-separator bg-sidebar px-4 py-3"
+                  >
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[14px] font-medium text-text">{entry.label}</span>
+                      <p className="m-0 text-[14px] text-muted">{entry.description}</p>
+                    </div>
+                    <div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => onNavigate(entry.section, entry.id)}
                       >
                         Open
                       </Button>

@@ -27,7 +27,8 @@ import {
   selectSelectedCollectionId
 } from '#/renderer/src/store/selectors';
 import { selectActiveSidebarPanelId } from '#/renderer/src/store/slices/navigationSlice';
-import { openCollectionModal, openTabGroupModal } from '#/renderer/src/store/slices/modalsSlice';
+import { openCollectionModal } from '#/renderer/src/store/slices/modalsSlice';
+import { requestCreateTabGroupFromOpenTabs } from '#/renderer/src/store/thunks/tabGroups';
 import { Collections } from './Collections';
 import { Environments } from './Environments';
 import { History, HistoryHeaderActions } from './History';
@@ -80,7 +81,7 @@ function SidebarContent(): JSX.Element {
     toggleTabGroupsSectionVisible
   } = useSidebarExpansion();
 
-  const { searchQuery, setSearchQuery, searchLoading, collapseAllSidebarTrees } =
+  const { searchQuery, setSearchQuery, searchActive, searchLoading, collapseAllSidebarTrees } =
     useSidebarSearchContext();
   const { openAddEnvironment } = useSidebarModals();
   const { accordion, pluginSectionExpanded } = useSidebarAccordion();
@@ -236,7 +237,7 @@ function SidebarContent(): JSX.Element {
                       onAdd={() => dispatch(openCollectionModal({ mode: 'create' }))}
                       addLabel="Add Collection"
                     >
-                      <Collections />
+                      <Collections key={searchActive ? 'search' : 'browse'} />
                     </Section>
                   </nav>
                 ) : null}
@@ -287,7 +288,7 @@ function SidebarContent(): JSX.Element {
                       itemKey="tabGroups"
                       title="Tab Groups"
                       initialEntered={tabGroupsSectionExpanded}
-                      onAdd={() => dispatch(openTabGroupModal({ mode: 'create' }))}
+                      onAdd={() => void dispatch(requestCreateTabGroupFromOpenTabs())}
                       addLabel="Add Tab Group"
                     >
                       <TabGroups />

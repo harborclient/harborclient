@@ -22,7 +22,7 @@ import {
   RowActionsMenu,
   buildReorderMenuGroup
 } from '@harborclient/sdk/components';
-import { useCallback, useMemo, useState, type JSX } from 'react';
+import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
 import type { TabGroup } from '#/shared/types/tabGroup';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
@@ -32,11 +32,14 @@ import {
   deleteTabGroup,
   editTabGroup,
   exportTabGroup,
-  openTabGroup,
+  requestOpenTabGroup,
   reorderTabGroups
 } from '#/renderer/src/store/thunks/tabGroups';
 import { faLayerGroup } from '#/renderer/src/fontawesome';
 import { SortableRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/SortableRow';
+import { useSidebarRowSelection } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarRowSelection';
+import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
+import { sourceRow } from '#/renderer/src/ui/shared/classes';
 import { parseTabGroupDragId, tabGroupDragId, tabGroupSummaryText } from './utils';
 
 /**
@@ -48,6 +51,20 @@ export function TabGroups(): JSX.Element {
   const groups = useAppSelector(selectTabGroups);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [activeDragGroup, setActiveDragGroup] = useState<TabGroup | null>(null);
+
+  /**
+   * Tab group ids in on-screen list order for shift-click range selection.
+   */
+  const visibleOrder = useMemo(() => groups.map((group) => group.id), [groups]);
+
+  const {
+    selectionCount,
+    selectedOrdered,
+    clearSelection,
+    handleRowClick,
+    handleBeforeContextMenu,
+    isSelected
+  } = useSidebarRowSelection(visibleOrder);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -66,7 +83,7 @@ export function TabGroups(): JSX.Element {
    */
   const handleOpenGroup = useCallback(
     (group: TabGroup): void => {
-      void dispatch(openTabGroup(group.id));
+      void dispatch(requestOpenTabGroup(group.id));
     },
     [dispatch]
   );
@@ -90,6 +107,35 @@ export function TabGroups(): JSX.Element {
     },
     [confirm, dispatch]
   );
+
+  /**
+   * Deletes all currently multi-selected tab groups after confirmation.
+   */
+  const handleDeleteSelected = useCallback(async (): Promise<void> => {
+    if (selectedOrdered.length === 0) {
+      return;
+    }
+
+    const count = selectedOrdered.length;
+    const confirmed = await confirm({
+      title: 'Delete tab groups',
+      message: `Delete ${count} selected tab group${count === 1 ? '' : 's'}?`,
+      confirmLabel: 'Delete',
+      variant: 'danger'
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      for (const id of selectedOrdered) {
+        await dispatch(deleteTabGroup(id));
+      }
+      clearSelection();
+    } catch (err) {
+      showAlert(dispatch, formatErrorMessage(err, 'Failed to delete tab groups'));
+    }
+  }, [clearSelection, confirm, dispatch, selectedOrdered]);
 
   /**
    * Persists a new tab group order after drag-and-drop or menu moves.
@@ -163,7 +209,14 @@ export function TabGroups(): JSX.Element {
       onDragEnd={(event) => void handleDragEnd(event)}
       onDragCancel={() => setActiveDragGroup(null)}
     >
-      <div className="flex flex-col gap-0.5">
+      <div
+        className="flex flex-col gap-0.5"
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            clearSelection();
+          }
+        }}
+      >
         {groups.length === 0 ? (
           <EmptyState variant="inline" className="py-1.5 pr-2 text-center">
             No tab groups yet.
@@ -172,24 +225,34 @@ export function TabGroups(): JSX.Element {
         <SortableContext items={groupIds} strategy={verticalListSortingStrategy}>
           {groups.map((group, groupIndex) => {
             const menuId = `tab-group-${group.id}`;
+            const selected = isSelected(group.id);
+            const showBulkMenu = selected && selectionCount > 1;
 
             return (
               <SortableRow
                 key={group.id}
                 id={tabGroupDragId(group.id)}
-                className="group flex items-center gap-1 rounded-md py-0.5 pr-1.5 pl-0 hover:bg-selection/60"
+                className={sourceRow(selected, true)}
                 dragHandleLabel={`Reorder tab group "${group.name}"`}
                 compact
                 onRowContextMenu={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
+                  handleBeforeContextMenu(group.id);
                   setOpenMenuId(menuId);
                 }}
               >
                 <Button
                   variant="toolbar"
                   className="min-w-0 flex-1 justify-start gap-2 rounded-md px-2 py-1 text-left text-[16px] text-text hover:bg-transparent"
-                  onClick={() => handleOpenGroup(group)}
+                  aria-selected={selected ? 'true' : undefined}
+                  onClick={(event: MouseEvent<HTMLButtonElement>) => {
+                    handleRowClick(
+                      group.id,
+                      { shiftKey: event.shiftKey, ctrlOrMetaKey: event.ctrlKey || event.metaKey },
+                      () => handleOpenGroup(group)
+                    );
+                  }}
                 >
                   <FaIcon
                     icon={faLayerGroup}
@@ -205,58 +268,72 @@ export function TabGroups(): JSX.Element {
                   menuId={menuId}
                   openMenuId={openMenuId}
                   onOpenChange={setOpenMenuId}
-                  groups={[
-                    ...buildReorderMenuGroup(
-                      groupIndex,
-                      groups.length,
-                      (direction) => void moveTabGroup(group.id, direction)
-                    ),
-                    [
-                      {
-                        label: 'Edit',
-                        onSelect: () => {
-                          void dispatch(editTabGroup(group.id));
-                        }
-                      },
-                      {
-                        label: 'Rename',
-                        onSelect: () =>
-                          dispatch(
-                            openTabGroupModal({
-                              mode: 'rename',
-                              groupId: group.id,
-                              name: group.name
-                            })
-                          )
-                      },
-                      {
-                        label: 'Clone',
-                        onSelect: () =>
-                          dispatch(
-                            openTabGroupModal({
-                              mode: 'clone',
-                              groupId: group.id,
-                              name: `Copy of ${group.name}`
-                            })
-                          )
-                      },
-                      {
-                        label: 'Export',
-                        onSelect: () => {
-                          void dispatch(exportTabGroup(group.id));
-                        }
-                      }
-                    ],
-                    [
-                      {
-                        label: 'Delete',
-                        variant: 'danger',
-                        onSelect: () => {
-                          void handleDeleteGroup(group);
-                        }
-                      }
-                    ]
-                  ]}
+                  groups={
+                    showBulkMenu
+                      ? [
+                          [
+                            {
+                              label: 'Delete',
+                              variant: 'danger' as const,
+                              onSelect: () => {
+                                void handleDeleteSelected();
+                              }
+                            }
+                          ]
+                        ]
+                      : [
+                          ...buildReorderMenuGroup(
+                            groupIndex,
+                            groups.length,
+                            (direction) => void moveTabGroup(group.id, direction)
+                          ),
+                          [
+                            {
+                              label: 'Edit',
+                              onSelect: () => {
+                                void dispatch(editTabGroup(group.id));
+                              }
+                            },
+                            {
+                              label: 'Rename',
+                              onSelect: () =>
+                                dispatch(
+                                  openTabGroupModal({
+                                    mode: 'rename',
+                                    groupId: group.id,
+                                    name: group.name
+                                  })
+                                )
+                            },
+                            {
+                              label: 'Clone',
+                              onSelect: () =>
+                                dispatch(
+                                  openTabGroupModal({
+                                    mode: 'clone',
+                                    groupId: group.id,
+                                    name: `Copy of ${group.name}`
+                                  })
+                                )
+                            },
+                            {
+                              label: 'Export',
+                              onSelect: () => {
+                                void dispatch(exportTabGroup(group.id));
+                              }
+                            }
+                          ],
+                          [
+                            {
+                              label: 'Delete',
+                              variant: 'danger',
+                              onSelect: () => {
+                                void handleDeleteGroup(group);
+                              }
+                            }
+                          ]
+                        ]
+                  }
                 />
               </SortableRow>
             );

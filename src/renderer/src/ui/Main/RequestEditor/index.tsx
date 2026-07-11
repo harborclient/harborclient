@@ -66,11 +66,11 @@ import {
   closeRequestTab,
   focusSidebarItem
 } from '#/renderer/src/store/thunks';
+import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
 import { mergeRequestVariables } from '#/renderer/src/hooks/useMergedRequestVariables';
 import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
 import { useTeamHubs } from '#/renderer/src/hooks/useTeamHubs';
-import { Button } from '@harborclient/sdk/components';
-import { Modal, ModalFooter } from '@harborclient/sdk/components';
+import { Button, Checkbox, Modal, ModalFooter } from '@harborclient/sdk/components';
 import { ResizeHandle, useResizable } from '@harborclient/sdk/components';
 import { Editor } from './Editor';
 import { NoOpenRequests } from './NoOpenRequests';
@@ -208,6 +208,8 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const hasOpenTabs = tabs.length > 0;
   const [closeTabPrompt, setCloseTabPrompt] = useState<CloseTabPrompt | null>(null);
   const [closeManyPrompt, setCloseManyPrompt] = useState<CloseManyPrompt | null>(null);
+  const [closeTabDontAskAgain, setCloseTabDontAskAgain] = useState(false);
+  const [closeManyDontAskAgain, setCloseManyDontAskAgain] = useState(false);
   const splitRef = useRef<HTMLElement>(null);
 
   /**
@@ -592,25 +594,45 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
 
       {closeTabPrompt && (
         <Modal
-          onClose={() => setCloseTabPrompt(null)}
+          onClose={() => {
+            setCloseTabPrompt(null);
+            setCloseTabDontAskAgain(false);
+          }}
           labelledBy="request-close-tab-title"
           title="Unsaved changes"
           description={
             <>&ldquo;{closeTabPrompt.name}&rdquo; has unsaved changes. Close without saving?</>
           }
         >
+          <div className="mb-4 flex items-center gap-2">
+            <Checkbox
+              id="request-close-tab-dont-ask-again"
+              checked={closeTabDontAskAgain}
+              onChange={(event) => setCloseTabDontAskAgain(event.target.checked)}
+            />
+            <label htmlFor="request-close-tab-dont-ask-again" className="text-[16px] text-muted">
+              Don&apos;t show this again
+            </label>
+          </div>
           <ModalFooter>
             <Button
               onClick={() => {
-                const tab = tabs.find((entry) => entry.tabId === closeTabPrompt.tabId);
-                if (tab && isPageTab(tab)) {
-                  dispatch(closeTab(closeTabPrompt.tabId));
-                } else if (tab && isMarkdownTab(tab)) {
-                  void dispatch(closeMarkdownTab(closeTabPrompt.tabId));
-                } else {
-                  void dispatch(closeRequestTab(closeTabPrompt.tabId));
-                }
-                setCloseTabPrompt(null);
+                void (async (): Promise<void> => {
+                  if (closeTabDontAskAgain) {
+                    await dispatch(patchGeneralSettings({ warnWhenClosingUnsavedRequests: false }));
+                  }
+
+                  const tab = tabs.find((entry) => entry.tabId === closeTabPrompt.tabId);
+                  if (tab && isPageTab(tab)) {
+                    dispatch(closeTab(closeTabPrompt.tabId));
+                  } else if (tab && isMarkdownTab(tab)) {
+                    void dispatch(closeMarkdownTab(closeTabPrompt.tabId));
+                  } else {
+                    void dispatch(closeRequestTab(closeTabPrompt.tabId));
+                  }
+                  setCloseTabPrompt(null);
+                  setCloseTabDontAskAgain(false);
+                })();
               }}
             >
               Close without saving
@@ -621,7 +643,10 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
 
       {closeManyPrompt && (
         <Modal
-          onClose={() => setCloseManyPrompt(null)}
+          onClose={() => {
+            setCloseManyPrompt(null);
+            setCloseManyDontAskAgain(false);
+          }}
           labelledBy="request-close-many-tabs-title"
           title="Unsaved changes"
           description={
@@ -632,11 +657,31 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
             )
           }
         >
+          <div className="mb-4 flex items-center gap-2">
+            <Checkbox
+              id="request-close-many-tabs-dont-ask-again"
+              checked={closeManyDontAskAgain}
+              onChange={(event) => setCloseManyDontAskAgain(event.target.checked)}
+            />
+            <label
+              htmlFor="request-close-many-tabs-dont-ask-again"
+              className="text-[16px] text-muted"
+            >
+              Don&apos;t show this again
+            </label>
+          </div>
           <ModalFooter>
             <Button
               onClick={() => {
-                closeTabsImmediately(closeManyPrompt.tabIds);
-                setCloseManyPrompt(null);
+                void (async (): Promise<void> => {
+                  if (closeManyDontAskAgain) {
+                    await dispatch(patchGeneralSettings({ warnWhenClosingUnsavedRequests: false }));
+                  }
+
+                  closeTabsImmediately(closeManyPrompt.tabIds);
+                  setCloseManyPrompt(null);
+                  setCloseManyDontAskAgain(false);
+                })();
               }}
             >
               Close without saving

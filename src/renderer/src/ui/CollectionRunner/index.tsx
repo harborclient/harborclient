@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import {
   buildRunResultsExport,
   getCollectionRunnerRequests,
+  getRequestsByIds,
   resolveImportedRunnerTargetIds,
   type CollectionRunnerRequestResult
 } from '#/shared/collectionRunner';
@@ -59,6 +60,8 @@ export function CollectionRunner({ page }: Props): JSX.Element {
   const collectionId = page.collectionId;
   const folderId = page.folderId ?? null;
   const requestId = page.requestId ?? null;
+  const requestIds = page.requestIds ?? null;
+  const isSelectionRun = requestIds != null && requestIds.length > 0;
 
   const targetNames = useMemo(
     () =>
@@ -72,6 +75,9 @@ export function CollectionRunner({ page }: Props): JSX.Element {
   );
 
   const title = useMemo(() => {
+    if (isSelectionRun) {
+      return `Run ${requestIds.length} selected request${requestIds.length === 1 ? '' : 's'}`;
+    }
     if (runner?.imported) {
       return runnerPageTitle({
         collectionName: runner.collectionName,
@@ -80,7 +86,7 @@ export function CollectionRunner({ page }: Props): JSX.Element {
       });
     }
     return runnerPageTitle(targetNames);
-  }, [runner, targetNames]);
+  }, [isSelectionRun, requestIds, runner, targetNames]);
 
   const canExport = Boolean(runner && runner.results.length > 0 && !runner.running);
   // Saving again is allowed even after a prior save, since the user may want to
@@ -103,7 +109,7 @@ export function CollectionRunner({ page }: Props): JSX.Element {
       return;
     }
 
-    if (runnerMatchesTarget(runner, { collectionId, folderId, requestId })) {
+    if (runnerMatchesTarget(runner, { collectionId, folderId, requestId, requestIds })) {
       return;
     }
 
@@ -112,7 +118,8 @@ export function CollectionRunner({ page }: Props): JSX.Element {
         collectionId,
         folderId,
         requestId,
-        collectionName: targetNames.collectionName,
+        requestIds,
+        collectionName: isSelectionRun ? 'Selected requests' : targetNames.collectionName,
         folderName: targetNames.folderName,
         requestName: targetNames.requestName
       })
@@ -124,13 +131,17 @@ export function CollectionRunner({ page }: Props): JSX.Element {
     collectionId,
     folderId,
     requestId,
+    requestIds,
+    isSelectionRun,
     targetNames.collectionName,
     targetNames.folderName,
     targetNames.requestName
   ]);
 
   const runnerTargetKey = runner
-    ? `${runner.collectionId}:${runner.folderId ?? 'root'}:${runner.requestId ?? 'all'}`
+    ? runner.requestIds != null && runner.requestIds.length > 0
+      ? `selection:${runner.requestIds.join(',')}`
+      : `${runner.collectionId}:${runner.folderId ?? 'root'}:${runner.requestId ?? 'all'}`
     : null;
 
   /**
@@ -160,6 +171,9 @@ export function CollectionRunner({ page }: Props): JSX.Element {
   const orderedRequests = useMemo(() => {
     if (!runner) {
       return [];
+    }
+    if (runner.requestIds != null && runner.requestIds.length > 0) {
+      return getRequestsByIds(runner.requestIds, requestsByCollection);
     }
     return getCollectionRunnerRequests(
       runner.collectionId,

@@ -12,8 +12,11 @@ import {
   selectEditingTabGroupId,
   selectEditSessionHiddenTabIds
 } from '#/renderer/src/store/slices/tabGroupSlice';
+import { openTabGroupModal } from '#/renderer/src/store/slices/modalsSlice';
 import { refreshRequests } from '#/renderer/src/store/thunks/collections';
-import type { ThunkApiConfig } from '#/renderer/src/store/redux';
+import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
+import type { AppDispatch, ThunkApiConfig } from '#/renderer/src/store/redux';
+import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
 
 /**
  * Finds a saved request by uuid, preferring the stored collection id when present.
@@ -126,6 +129,58 @@ export const refreshTabGroups = createAsyncThunk<void, void, ThunkApiConfig>(
 );
 
 /**
+ * Prompts before opening the create tab group modal, then opens it when confirmed.
+ */
+export const requestCreateTabGroupFromOpenTabs = createAsyncThunk<void, void, ThunkApiConfig>(
+  'tabGroups/requestCreateFromOpenTabs',
+  async (_arg, { dispatch, getState }) => {
+    const warnWhenCreatingTabGroup = getState().settings.general.warnWhenCreatingTabGroup;
+
+    if (warnWhenCreatingTabGroup) {
+      const result = await showConfirm(dispatch as AppDispatch, {
+        title: 'Create tab group?',
+        message: 'The tab group will be created from the currently opened request tabs.',
+        confirmLabel: 'Create tab group',
+        checkboxLabel: "Don't show this again"
+      });
+      if (!result.confirmed) {
+        return;
+      }
+      if (result.checkboxChecked) {
+        await dispatch(patchGeneralSettings({ warnWhenCreatingTabGroup: false }));
+      }
+    }
+
+    dispatch(openTabGroupModal({ mode: 'create' }));
+  }
+);
+
+/**
+ * Builds tab group members from saved requests in caller order.
+ *
+ * @param requests - Saved requests to include in the tab group.
+ * @returns Ordered tab group members for persistence, deduped by request uuid.
+ */
+export function resolveTabGroupMembersFromRequests(requests: SavedRequest[]): TabGroupRequest[] {
+  const members: TabGroupRequest[] = [];
+  const seenUuids = new Set<string>();
+
+  for (const request of requests) {
+    if (seenUuids.has(request.uuid)) {
+      continue;
+    }
+    seenUuids.add(request.uuid);
+    members.push({
+      requestUuid: request.uuid,
+      collectionId: request.collection_id,
+      requestName: request.name
+    });
+  }
+
+  return members;
+}
+
+/**
  * Creates a tab group from all open saved request tabs.
  */
 export const createTabGroupFromOpenTabs = createAsyncThunk<void, string, ThunkApiConfig>(
@@ -163,6 +218,24 @@ export const createTabGroupFromOpenTabs = createAsyncThunk<void, string, ThunkAp
     dispatch(setTabGroups(items));
   }
 );
+
+/**
+ * Creates a tab group from an explicit saved request list.
+ */
+export const createTabGroupFromRequests = createAsyncThunk<
+  void,
+  { name: string; requests: SavedRequest[] },
+  ThunkApiConfig
+>('tabGroups/createFromRequests', async ({ name, requests }, { dispatch }) => {
+  const members = resolveTabGroupMembersFromRequests(requests);
+
+  if (members.length === 0) {
+    throw new Error('No requests to add');
+  }
+
+  const items = await window.api.createTabGroup({ name, requests: members });
+  dispatch(setTabGroups(items));
+});
 
 /**
  * Renames a tab group and refreshes the cached list.
@@ -243,6 +316,33 @@ export const exportTabGroup = createAsyncThunk<void, number, ThunkApiConfig>(
     if (!result.canceled) {
       toast.success('Tab group exported');
     }
+  }
+);
+
+/**
+ * Prompts before opening a tab group from the sidebar, then opens it when confirmed.
+ */
+export const requestOpenTabGroup = createAsyncThunk<void, number, ThunkApiConfig>(
+  'tabGroups/requestOpen',
+  async (groupId, { dispatch, getState }) => {
+    const warnWhenOpeningTabGroup = getState().settings.general.warnWhenOpeningTabGroup;
+
+    if (warnWhenOpeningTabGroup) {
+      const result = await showConfirm(dispatch as AppDispatch, {
+        title: 'Open all tabs in the request editor?',
+        message: 'All saved requests in this tab group will be opened.',
+        confirmLabel: 'Open',
+        checkboxLabel: "Don't show again"
+      });
+      if (!result.confirmed) {
+        return;
+      }
+      if (result.checkboxChecked) {
+        await dispatch(patchGeneralSettings({ warnWhenOpeningTabGroup: false }));
+      }
+    }
+
+    await dispatch(openTabGroup(groupId));
   }
 );
 

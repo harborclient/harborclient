@@ -32,6 +32,16 @@ describe('settingsSearch', () => {
     expect(results).toContain('globals');
   });
 
+  it('matches the confirmations group by label keyword', () => {
+    const results = searchSettings(index, 'confirmation');
+    expect(results).toContain('backup-restore.confirmations');
+  });
+
+  it('matches the confirmations group by dont ask again keyword', () => {
+    const results = searchSettings(index, "don't ask again");
+    expect(results).toContain('backup-restore.confirmations');
+  });
+
   it('returns results in catalog manifest order', () => {
     const results = searchSettings(index, 'api');
     const firstIndex = results.indexOf('ai.openaiApiKey');

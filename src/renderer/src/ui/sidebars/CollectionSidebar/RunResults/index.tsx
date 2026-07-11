@@ -1,4 +1,4 @@
-import { useCallback, useState, type JSX } from 'react';
+import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
 import { Button, EmptyState, FaIcon, RowActionsMenu } from '@harborclient/sdk/components';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
@@ -10,9 +10,11 @@ import {
 } from '#/renderer/src/store/thunks/runResults';
 import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
 import { useSidebarProviders } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarProvidersContext';
+import { useSidebarRowSelection } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarRowSelection';
 import { formatRelativeTime } from '#/renderer/src/ui/sidebars/CollectionSidebar/History/utils';
 import { faEraser } from '#/renderer/src/fontawesome';
-import { METHOD_CLASSES } from '#/renderer/src/ui/shared/classes';
+import { METHOD_CLASSES, sourceRow } from '#/renderer/src/ui/shared/classes';
+import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
 import { formatRunResultRowDate, runResultSummaryText, runResultStatusDotClass } from './utils';
 
 /**
@@ -89,6 +91,20 @@ export function RunResults(): JSX.Element {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   /**
+   * Run result ids in on-screen list order for shift-click range selection.
+   */
+  const visibleOrder = useMemo(() => runResults.map((runResult) => runResult.id), [runResults]);
+
+  const {
+    selectionCount,
+    selectedOrdered,
+    clearSelection,
+    handleRowClick,
+    handleBeforeContextMenu,
+    isSelected
+  } = useSidebarRowSelection(visibleOrder);
+
+  /**
    * Opens a saved run result in the read-only collection runner tab.
    *
    * @param id - Global run result id from storage routing.
@@ -106,8 +122,42 @@ export function RunResults(): JSX.Element {
     await dispatch(deleteRunResult(id));
   };
 
+  /**
+   * Deletes all currently multi-selected run results after confirmation.
+   */
+  const handleDeleteSelected = useCallback(async (): Promise<void> => {
+    if (selectedOrdered.length === 0) {
+      return;
+    }
+
+    const count = selectedOrdered.length;
+    const confirmed = await confirm({
+      title: 'Delete runs',
+      message: `Delete ${count} selected run${count === 1 ? '' : 's'}?`,
+      confirmLabel: 'Delete',
+      variant: 'danger'
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await Promise.all(selectedOrdered.map((id) => dispatch(deleteRunResult(id))));
+      clearSelection();
+    } catch (err) {
+      showAlert(dispatch, formatErrorMessage(err, 'Failed to delete runs'));
+    }
+  }, [clearSelection, confirm, dispatch, selectedOrdered]);
+
   return (
-    <div className="flex flex-col gap-0.5">
+    <div
+      className="flex flex-col gap-0.5"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          clearSelection();
+        }
+      }}
+    >
       {runResults.length === 0 ? (
         <EmptyState variant="inline" className="pr-2 py-1.5">
           No saved runs yet
@@ -121,14 +171,17 @@ export function RunResults(): JSX.Element {
         const methodClass = METHOD_CLASSES[method?.toLowerCase() ?? ''] ?? 'text-info';
         const summaryText = runResultSummaryText(runResult.summary);
         const rowDate = formatRunResultRowDate(runResult.createdAt);
+        const selected = isSelected(runResult.id);
+        const showBulkMenu = selected && selectionCount > 1;
 
         return (
           <div
             key={runResult.id}
-            className="group flex items-center gap-1 rounded-md pr-1.5 pl-0 py-0.5 hover:bg-selection/60"
+            className={sourceRow(selected, true)}
             onContextMenu={(event) => {
               event.preventDefault();
               event.stopPropagation();
+              handleBeforeContextMenu(runResult.id);
               setOpenMenuId(menuId);
             }}
           >
@@ -138,7 +191,14 @@ export function RunResults(): JSX.Element {
               data-sidebar-run-result-id={runResult.id}
               title={runResult.label}
               aria-label={runResultAriaLabel(rowDate, method, summaryText, runResult.createdAt)}
-              onClick={() => onSelectRunResult(runResult.id)}
+              aria-selected={selected ? 'true' : undefined}
+              onClick={(event: MouseEvent<HTMLButtonElement>) => {
+                handleRowClick(
+                  runResult.id,
+                  { shiftKey: event.shiftKey, ctrlOrMetaKey: event.ctrlKey || event.metaKey },
+                  () => onSelectRunResult(runResult.id)
+                );
+              }}
             >
               {method ? (
                 <span className={`shrink-0 font-medium uppercase ${methodClass}`} aria-hidden>
@@ -171,27 +231,41 @@ export function RunResults(): JSX.Element {
               menuId={menuId}
               openMenuId={openMenuId}
               onOpenChange={setOpenMenuId}
-              groups={[
-                [
-                  {
-                    label: 'Delete',
-                    variant: 'danger',
-                    onSelect: () => {
-                      void (async () => {
-                        const confirmed = await confirm({
-                          title: 'Delete run',
-                          message: `Delete saved run "${runResult.label}"?`,
-                          confirmLabel: 'Delete',
-                          variant: 'danger'
-                        });
-                        if (confirmed) {
-                          void onDeleteRunResult(runResult.id);
+              groups={
+                showBulkMenu
+                  ? [
+                      [
+                        {
+                          label: 'Delete',
+                          variant: 'danger' as const,
+                          onSelect: () => {
+                            void handleDeleteSelected();
+                          }
                         }
-                      })();
-                    }
-                  }
-                ]
-              ]}
+                      ]
+                    ]
+                  : [
+                      [
+                        {
+                          label: 'Delete',
+                          variant: 'danger',
+                          onSelect: () => {
+                            void (async () => {
+                              const confirmed = await confirm({
+                                title: 'Delete run',
+                                message: `Delete saved run "${runResult.label}"?`,
+                                confirmLabel: 'Delete',
+                                variant: 'danger'
+                              });
+                              if (confirmed) {
+                                void onDeleteRunResult(runResult.id);
+                              }
+                            })();
+                          }
+                        }
+                      ]
+                    ]
+              }
             />
           </div>
         );

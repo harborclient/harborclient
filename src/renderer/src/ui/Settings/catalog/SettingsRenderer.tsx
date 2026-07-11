@@ -31,6 +31,16 @@ interface Props {
    * When set, focuses the matching variable row in management sections that support it.
    */
   focusVariableKey?: string;
+
+  /**
+   * When set, scrolls to the matching catalog group anchor in management sections that support it.
+   */
+  focusSettingId?: string;
+
+  /**
+   * Called after a requested group anchor has been scrolled into view.
+   */
+  onFocusSettingHandled?: () => void;
 }
 
 /**
@@ -82,10 +92,21 @@ function SettingsDraftError(): JSX.Element | null {
 /**
  * Catalog-driven settings layout engine for section navigation.
  */
-export function SettingsRenderer({ section, focusVariableKey }: Props): JSX.Element | null {
+export function SettingsRenderer({
+  section,
+  focusVariableKey,
+  focusSettingId,
+  onFocusSettingHandled
+}: Props): JSX.Element | null {
   if (isManagementSettingsSection(section)) {
     const SectionComponent = SETTINGS_SECTION_REGISTRY[section];
-    return <SectionComponent focusVariableKey={focusVariableKey} />;
+    return (
+      <SectionComponent
+        focusVariableKey={focusVariableKey}
+        focusSettingId={focusSettingId}
+        onFocusSettingHandled={onFocusSettingHandled}
+      />
+    );
   }
 
   if (isFormSettingsSection(section)) {

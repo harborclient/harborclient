@@ -13,6 +13,7 @@ export * from '#/renderer/src/store/thunks/requestHistory';
 export * from '#/renderer/src/store/thunks/tabGroups';
 export * from '#/renderer/src/store/thunks/settings';
 export * from '#/renderer/src/store/thunks/tabs';
+export * from '#/renderer/src/store/thunks/terminals';
 
 import type { AppDispatch } from '#/renderer/src/store/redux';
 import { setGeneralSettingsState } from '#/renderer/src/store/slices/settingsSlice';
@@ -23,12 +24,14 @@ import { refreshRequestHistory } from '#/renderer/src/store/thunks/requestHistor
 import { refreshTabGroups } from '#/renderer/src/store/thunks/tabGroups';
 import { refreshSnippets } from '#/renderer/src/store/thunks/snippets';
 import { hydrateOpenTabs } from '#/renderer/src/store/thunks/tabs';
+import { hydrateTerminalLayout } from '#/renderer/src/store/thunks/terminals';
 
 /**
  * Dispatches initial data loads on app mount.
  */
 export function initializeStore(dispatch: AppDispatch): void {
   void dispatch(hydrateOpenTabs());
+  void dispatch(hydrateTerminalLayout());
   void dispatch(refreshCollections());
   void dispatch(refreshEnvironments());
   void dispatch(refreshSnippets());

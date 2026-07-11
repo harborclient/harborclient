@@ -301,6 +301,20 @@ describe('modalsSlice', () => {
     expect(state.collectionRunner?.requestId).toBe(42);
     expect(state.collectionRunner?.requestName).toBe('Health');
     expect(state.collectionRunner?.folderId).toBeNull();
+    expect(state.collectionRunner?.requestIds).toBeNull();
+  });
+
+  it('stores explicit request ids when opening a selection run', () => {
+    const state = modalsReducer(
+      undefined,
+      openCollectionRunner({
+        collectionId: 0,
+        collectionName: 'Selected requests',
+        requestIds: [10, 20, 30]
+      })
+    );
+    expect(state.collectionRunner?.requestIds).toEqual([10, 20, 30]);
+    expect(state.collectionRunner?.requestId).toBeNull();
   });
 
   it('allows config updates in the complete phase', () => {

@@ -146,17 +146,21 @@ export function TabBar({
       } else if (page.type === 'environment') {
         environmentName = allEnvironments.find((environment) => environment.id === page.id)?.name;
       } else if (page.type === 'collection-runner') {
-        const names = resolveRunnerTargetNames(
-          {
-            collectionId: page.collectionId,
-            folderId: page.folderId,
-            requestId: page.requestId
-          },
-          collections,
-          foldersByCollection[page.collectionId] ?? [],
-          requestsByCollection[page.collectionId] ?? []
-        );
-        runnerTargetName = runnerTargetLabel(names);
+        if (page.requestIds != null && page.requestIds.length > 0) {
+          runnerTargetName = `${page.requestIds.length} request${page.requestIds.length === 1 ? '' : 's'}`;
+        } else {
+          const names = resolveRunnerTargetNames(
+            {
+              collectionId: page.collectionId,
+              folderId: page.folderId,
+              requestId: page.requestId
+            },
+            collections,
+            foldersByCollection[page.collectionId] ?? [],
+            requestsByCollection[page.collectionId] ?? []
+          );
+          runnerTargetName = runnerTargetLabel(names);
+        }
       } else if (page.type === 'plugin-view') {
         pluginTitle = getRegisteredMainViews().find(
           (view) => view.pluginId === page.pluginId && view.id === page.viewId

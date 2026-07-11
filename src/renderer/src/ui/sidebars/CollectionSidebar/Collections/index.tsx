@@ -16,7 +16,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
-import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
+import { useEffect, useMemo, useRef, useState, type JSX, type MouseEvent } from 'react';
 import { toContainerItemRefs } from '#/shared/collectionContainerOrder';
 import type { Collection, CollectionDocument, Folder, SavedRequest } from '#/shared/types';
 import { useAppSelector } from '#/renderer/src/store/hooks';
@@ -55,6 +55,10 @@ import { focusFolderSettings } from '#/renderer/src/ui/FolderSettings/focusFolde
 import { DocumentRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/DocumentRow';
 import { RequestRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/RequestRow';
 import { SortableRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/SortableRow';
+import {
+  applySidebarSelectionClick,
+  orderSelectedIds
+} from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarSelectionUtils';
 import {
   mergeContainerItems,
   collectionCollisionDetection,
@@ -135,12 +139,18 @@ export function Collections(): JSX.Element {
     onMoveDocument,
     onDeleteRequest,
     onDuplicateRequest,
-    onExportRequest
+    onExportRequest,
+    onOpenSelectedRequests,
+    onCreateTabGroupFromSelection,
+    onDeleteSelectedRequests,
+    onRunSelectedRequests
   } = useCollectionActions();
   const confirm = useConfirm();
   const pluginContextMenuItems = usePluginContextMenuItems();
   const developerToolsEnabled = useDeveloperToolsEnabled();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [selectedRequestIds, setSelectedRequestIds] = useState<Set<number>>(() => new Set());
+  const [selectionAnchorId, setSelectionAnchorId] = useState<number | null>(null);
   const [inspectPointsByMenuId, setInspectPointsByMenuId] = useState<Record<string, InspectPoint>>(
     {}
   );
@@ -218,6 +228,41 @@ export function Collections(): JSX.Element {
       else next.add(folderId);
       return next;
     });
+  };
+
+  /**
+   * Selects a collection row and expands it on first click, or collapses it when
+   * the row was already expanded (reveal helpers are expand-only).
+   *
+   * @param collectionId - Collection id for the clicked row.
+   * @param wasExpanded - Whether the collection tree was expanded before selection.
+   */
+  const handleCollectionNameClick = (collectionId: number, wasExpanded: boolean): void => {
+    clearRequestSelection();
+    onSelectCollection(collectionId);
+    if (wasExpanded) {
+      toggleCollection(collectionId);
+    }
+  };
+
+  /**
+   * Selects a folder row and expands it on first click, or collapses it when the
+   * folder was already expanded (reveal helpers are expand-only).
+   *
+   * @param collectionId - Parent collection id.
+   * @param folderId - Folder id for the clicked row.
+   * @param wasExpanded - Whether the folder tree was expanded before selection.
+   */
+  const handleFolderNameClick = (
+    collectionId: number,
+    folderId: number,
+    wasExpanded: boolean
+  ): void => {
+    clearRequestSelection();
+    onSelectFolder(collectionId, folderId);
+    if (wasExpanded) {
+      toggleFolder(folderId);
+    }
   };
 
   /**
@@ -299,6 +344,14 @@ export function Collections(): JSX.Element {
   };
 
   /**
+   * Clears the current request multi-selection.
+   */
+  const clearRequestSelection = (): void => {
+    setSelectedRequestIds(new Set());
+    setSelectionAnchorId(null);
+  };
+
+  /**
    * Precomputes per-collection folder and root item groupings for rendering.
    */
   const collectionTrees = useMemo(() => {
@@ -329,6 +382,113 @@ export function Collections(): JSX.Element {
 
     return trees.filter(({ collection }) => searchFilter.collectionIds.has(collection.id));
   }, [collections, foldersByCollection, requestsByCollection, documentsByCollection, searchFilter]);
+
+  /**
+   * Request ids in on-screen sidebar order for shift-click range selection.
+   */
+  const visibleRequestOrder = useMemo(() => {
+    const ids: number[] = [];
+
+    for (const { collection, folders, rootItems } of collectionTrees) {
+      const expanded =
+        searchActive && searchFilter != null
+          ? searchFilter.collectionIds.has(collection.id)
+          : expandedCollectionIds.has(collection.id);
+      if (!expanded) {
+        continue;
+      }
+
+      for (const item of rootItems) {
+        if (item.kind === 'request') {
+          ids.push(item.id);
+        }
+      }
+
+      for (const folder of folders) {
+        const folderExpanded =
+          searchActive && searchFilter != null
+            ? searchFilter.folderIds.has(folder.id)
+            : expandedFolderIds.has(folder.id);
+        if (!folderExpanded) {
+          continue;
+        }
+
+        const folderItems = mergeContainerItems(
+          requestsByCollection[collection.id] ?? [],
+          documentsByCollection[collection.id] ?? [],
+          folder.id
+        ).filter(
+          (item) =>
+            searchFilter == null || item.kind === 'document' || searchFilter.requestIds.has(item.id)
+        );
+        for (const item of folderItems) {
+          if (item.kind === 'request') {
+            ids.push(item.id);
+          }
+        }
+      }
+    }
+
+    return ids;
+  }, [
+    collectionTrees,
+    expandedCollectionIds,
+    expandedFolderIds,
+    requestsByCollection,
+    documentsByCollection,
+    searchActive,
+    searchFilter
+  ]);
+
+  /**
+   * Selected requests resolved from the store in visible sidebar order.
+   */
+  const selectedRequestsOrdered = useMemo(() => {
+    const orderedIds = orderSelectedIds(selectedRequestIds, visibleRequestOrder);
+    const byId = new Map<number, SavedRequest>();
+    for (const requests of Object.values(requestsByCollection)) {
+      for (const request of requests) {
+        byId.set(request.id, request);
+      }
+    }
+    return orderedIds
+      .map((id) => byId.get(id))
+      .filter((request): request is SavedRequest => request != null);
+  }, [selectedRequestIds, visibleRequestOrder, requestsByCollection]);
+
+  /**
+   * Handles primary and modifier clicks on a saved request row.
+   */
+  const handleRequestRowClick = (req: SavedRequest, event: MouseEvent<HTMLButtonElement>): void => {
+    const result = applySidebarSelectionClick(
+      selectedRequestIds,
+      selectionAnchorId,
+      visibleRequestOrder,
+      req.id,
+      {
+        shiftKey: event.shiftKey,
+        ctrlOrMetaKey: event.ctrlKey || event.metaKey
+      }
+    );
+
+    setSelectedRequestIds(result.selectedIds);
+    setSelectionAnchorId(result.anchorId);
+
+    if (result.shouldOpen) {
+      onLoadRequest(req);
+    }
+  };
+
+  /**
+   * Ensures the context menu targets the clicked row when it is not already selected.
+   */
+  const handleRequestBeforeContextMenu = (req: SavedRequest): void => {
+    if (selectedRequestIds.has(req.id)) {
+      return;
+    }
+    setSelectedRequestIds(new Set([req.id]));
+    setSelectionAnchorId(req.id);
+  };
 
   /**
    * Stable sortable ids for top-level collection rows.
@@ -543,7 +703,14 @@ export function Collections(): JSX.Element {
       onDragEnd={(event) => void handleCollectionDragEnd(event)}
       onDragCancel={clearCollectionDragState}
     >
-      <div className="sidebar-source-list flex flex-col gap-0">
+      <div
+        className="sidebar-source-list flex flex-col gap-0"
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            clearRequestSelection();
+          }
+        }}
+      >
         {collections.length === 0 && (
           <div className="px-2 py-1.5 text-[16px] text-muted">No collections yet</div>
         )}
@@ -617,7 +784,7 @@ export function Collections(): JSX.Element {
                     className="ml-0.5 min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left text-[16px] leading-none text-inherit app-no-drag"
                     data-sidebar-collection-id={collection.id}
                     aria-current={selected ? 'true' : undefined}
-                    onClick={() => onSelectCollection(collection.id)}
+                    onClick={() => handleCollectionNameClick(collection.id, expanded)}
                     onDoubleClick={() => onConfigureCollection(collection.id)}
                     onKeyDown={(e) => {
                       if (e.key !== 'Enter') return;
@@ -678,14 +845,24 @@ export function Collections(): JSX.Element {
                         }
                       ],
                       [
-                        { label: 'New Folder', onSelect: () => void onNewFolder(collection.id) },
                         {
-                          label: 'New Request',
-                          onSelect: () => void onNewRequestInCollection(collection.id)
-                        },
-                        {
-                          label: 'New Markdown',
-                          onSelect: () => void onNewDocumentInCollection(collection.id)
+                          label: 'New',
+                          submenu: [
+                            [
+                              {
+                                label: 'New Folder',
+                                onSelect: () => void onNewFolder(collection.id)
+                              },
+                              {
+                                label: 'New Request',
+                                onSelect: () => void onNewRequestInCollection(collection.id)
+                              },
+                              {
+                                label: 'New Markdown',
+                                onSelect: () => void onNewDocumentInCollection(collection.id)
+                              }
+                            ]
+                          ]
                         },
                         {
                           label: 'Import',
@@ -805,8 +982,12 @@ export function Collections(): JSX.Element {
                                     key={`request-${req.id}`}
                                     req={req}
                                     activeRequestId={activeRequestId}
+                                    selected={selectedRequestIds.has(req.id)}
+                                    selectionCount={selectedRequestIds.size}
                                     openMenuId={openMenuId}
                                     onOpenChange={setOpenMenuId}
+                                    onRowClick={handleRequestRowClick}
+                                    onBeforeContextMenu={handleRequestBeforeContextMenu}
                                     canMoveUp={itemIndex > 0}
                                     canMoveDown={itemIndex < rootItems.length - 1}
                                     onMoveUp={() =>
@@ -821,10 +1002,29 @@ export function Collections(): JSX.Element {
                                       )
                                     }
                                     onRunRequest={() => onRunRequest(req, collection.name)}
-                                    onLoadRequest={onLoadRequest}
                                     onDeleteRequest={onDeleteRequest}
                                     onDuplicateRequest={onDuplicateRequest}
                                     onExportRequest={onExportRequest}
+                                    onRunSelected={() =>
+                                      onRunSelectedRequests(selectedRequestsOrdered)
+                                    }
+                                    onOpenSelected={() =>
+                                      onOpenSelectedRequests(selectedRequestsOrdered)
+                                    }
+                                    onNewTabGroupFromSelected={() =>
+                                      onCreateTabGroupFromSelection(
+                                        selectedRequestsOrdered.map((request) => request.id)
+                                      )
+                                    }
+                                    onDeleteSelected={() => {
+                                      void onDeleteSelectedRequests(selectedRequestsOrdered).then(
+                                        (deleted) => {
+                                          if (deleted) {
+                                            clearRequestSelection();
+                                          }
+                                        }
+                                      );
+                                    }}
                                     dragDisabled={searchActive}
                                   />
                                 );
@@ -849,7 +1049,10 @@ export function Collections(): JSX.Element {
                                   onMoveDown={() =>
                                     void moveContainerItemInList(collection.id, null, item, 'down')
                                   }
-                                  onLoadDocument={onLoadDocument}
+                                  onLoadDocument={(doc) => {
+                                    clearRequestSelection();
+                                    onLoadDocument(doc);
+                                  }}
                                   onRenameDocument={onRenameDocument}
                                   onDeleteDocument={onDeleteDocument}
                                   dragDisabled={searchActive}
@@ -916,7 +1119,13 @@ export function Collections(): JSX.Element {
                                     type="button"
                                     className="ml-0.5 min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left text-[16px] font-medium leading-none text-inherit app-no-drag"
                                     aria-current={folderSelected ? 'true' : undefined}
-                                    onClick={() => onSelectFolder(collection.id, folder.id)}
+                                    onClick={() =>
+                                      handleFolderNameClick(
+                                        collection.id,
+                                        folder.id,
+                                        folderExpanded
+                                      )
+                                    }
                                     onDoubleClick={() =>
                                       onConfigureFolder(collection.id, folder.id)
                                     }
@@ -959,14 +1168,27 @@ export function Collections(): JSX.Element {
                                       ),
                                       [
                                         {
-                                          label: 'New Request',
-                                          onSelect: () =>
-                                            void onNewRequestInFolder(collection.id, folder.id)
-                                        },
-                                        {
-                                          label: 'New Markdown',
-                                          onSelect: () =>
-                                            void onNewDocumentInFolder(collection.id, folder.id)
+                                          label: 'New',
+                                          submenu: [
+                                            [
+                                              {
+                                                label: 'New Request',
+                                                onSelect: () =>
+                                                  void onNewRequestInFolder(
+                                                    collection.id,
+                                                    folder.id
+                                                  )
+                                              },
+                                              {
+                                                label: 'New Markdown',
+                                                onSelect: () =>
+                                                  void onNewDocumentInFolder(
+                                                    collection.id,
+                                                    folder.id
+                                                  )
+                                              }
+                                            ]
+                                          ]
                                         },
                                         {
                                           label: 'Import Request',
@@ -1035,8 +1257,12 @@ export function Collections(): JSX.Element {
                                             key={`request-${req.id}`}
                                             req={req}
                                             activeRequestId={activeRequestId}
+                                            selected={selectedRequestIds.has(req.id)}
+                                            selectionCount={selectedRequestIds.size}
                                             openMenuId={openMenuId}
                                             onOpenChange={setOpenMenuId}
+                                            onRowClick={handleRequestRowClick}
+                                            onBeforeContextMenu={handleRequestBeforeContextMenu}
                                             canMoveUp={itemIndex > 0}
                                             canMoveDown={itemIndex < folderItems.length - 1}
                                             onMoveUp={() =>
@@ -1056,10 +1282,29 @@ export function Collections(): JSX.Element {
                                               )
                                             }
                                             onRunRequest={() => onRunRequest(req, collection.name)}
-                                            onLoadRequest={onLoadRequest}
                                             onDeleteRequest={onDeleteRequest}
                                             onDuplicateRequest={onDuplicateRequest}
                                             onExportRequest={onExportRequest}
+                                            onRunSelected={() =>
+                                              onRunSelectedRequests(selectedRequestsOrdered)
+                                            }
+                                            onOpenSelected={() =>
+                                              onOpenSelectedRequests(selectedRequestsOrdered)
+                                            }
+                                            onNewTabGroupFromSelected={() =>
+                                              onCreateTabGroupFromSelection(
+                                                selectedRequestsOrdered.map((request) => request.id)
+                                              )
+                                            }
+                                            onDeleteSelected={() => {
+                                              void onDeleteSelectedRequests(
+                                                selectedRequestsOrdered
+                                              ).then((deleted) => {
+                                                if (deleted) {
+                                                  clearRequestSelection();
+                                                }
+                                              });
+                                            }}
                                             dragDisabled={searchActive}
                                           />
                                         );
@@ -1094,7 +1339,10 @@ export function Collections(): JSX.Element {
                                               'down'
                                             )
                                           }
-                                          onLoadDocument={onLoadDocument}
+                                          onLoadDocument={(doc) => {
+                                            clearRequestSelection();
+                                            onLoadDocument(doc);
+                                          }}
                                           onRenameDocument={onRenameDocument}
                                           onDeleteDocument={onDeleteDocument}
                                           dragDisabled={searchActive}

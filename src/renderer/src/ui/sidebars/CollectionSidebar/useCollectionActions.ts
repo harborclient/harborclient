@@ -6,8 +6,12 @@ import { isTeamHubProvider } from '#/renderer/src/hooks/useProviders';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectCollections } from '#/renderer/src/store/selectors';
 import { setSelectedCollectionId } from '#/renderer/src/store/slices/collectionsSlice';
-import { openCollectionRunner, openShareModal } from '#/renderer/src/store/slices/modalsSlice';
-import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
+import {
+  openCollectionRunner,
+  openShareModal,
+  openTabGroupModal
+} from '#/renderer/src/store/slices/modalsSlice';
+import { loadRequest, openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import {
   deleteCollection,
   deleteDocument,
@@ -25,6 +29,7 @@ import {
   newRequestInCollection,
   newRequestInFolder,
   refreshCollectionContents,
+  refreshRequests,
   reorderCollections,
   reorderDocuments,
   reorderContainerItems,
@@ -251,6 +256,26 @@ export interface CollectionActions {
    * Exports a saved request to a JSON file.
    */
   onExportRequest: (req: SavedRequest) => Promise<void>;
+
+  /**
+   * Opens every saved request in the selection as editor tabs.
+   */
+  onOpenSelectedRequests: (requests: SavedRequest[]) => void;
+
+  /**
+   * Opens the tab group modal to create a group from a sidebar selection.
+   */
+  onCreateTabGroupFromSelection: (requestIds: number[]) => void;
+
+  /**
+   * Deletes every saved request in the selection after one confirmation.
+   */
+  onDeleteSelectedRequests: (requests: SavedRequest[]) => Promise<boolean>;
+
+  /**
+   * Opens the collection runner for an explicit saved request selection.
+   */
+  onRunSelectedRequests: (requests: SavedRequest[]) => void;
 }
 
 /**
@@ -490,6 +515,64 @@ export function useCollectionActions(): CollectionActions {
       if (!result.canceled) {
         toast.success('Request exported');
       }
+    },
+    onOpenSelectedRequests: (requests) => {
+      requests.forEach((req, index) => {
+        dispatch(loadRequest({ req, activate: index === 0 }));
+      });
+    },
+    onCreateTabGroupFromSelection: (requestIds) => {
+      dispatch(
+        openTabGroupModal({
+          mode: 'createFromSelection',
+          requestIds,
+          name: ''
+        })
+      );
+    },
+    onDeleteSelectedRequests: async (requests) => {
+      if (requests.length === 0) {
+        return false;
+      }
+
+      const confirmed = await showConfirm(dispatch, {
+        title: 'Delete requests',
+        message: `Delete ${requests.length} selected request${requests.length === 1 ? '' : 's'}?`,
+        confirmLabel: 'Delete',
+        variant: 'danger'
+      });
+      if (!confirmed) {
+        return false;
+      }
+
+      try {
+        await Promise.all(requests.map((req) => dispatch(deleteRequest(req.id))));
+        const collectionIds = new Set(requests.map((req) => req.collection_id));
+        for (const collectionId of collectionIds) {
+          await dispatch(refreshRequests(collectionId));
+        }
+        return true;
+      } catch (err) {
+        showAlert(dispatch, formatErrorMessage(err, 'Failed to delete requests'));
+        return false;
+      }
+    },
+    onRunSelectedRequests: (requests) => {
+      const requestIds = requests.map((req) => req.id);
+      dispatch(
+        openCollectionRunner({
+          collectionId: 0,
+          collectionName: 'Selected requests',
+          requestIds
+        })
+      );
+      dispatch(
+        openPageTab({
+          type: 'collection-runner',
+          collectionId: 0,
+          requestIds
+        })
+      );
     }
   };
 }

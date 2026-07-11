@@ -16,7 +16,7 @@ import {
 } from '#/renderer/src/store/selectors';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { requestDragId } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/utils';
-import { type JSX, useMemo, useState } from 'react';
+import { type JSX, type MouseEvent, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   buildDevInspectMenuGroups,
@@ -37,6 +37,16 @@ interface Props {
   activeRequestId?: number;
 
   /**
+   * Whether this row is part of the current multi-selection.
+   */
+  selected: boolean;
+
+  /**
+   * Number of selected request rows in the sidebar.
+   */
+  selectionCount: number;
+
+  /**
    * Id of the open row actions menu, if any.
    */
   openMenuId: string | null;
@@ -45,6 +55,16 @@ interface Props {
    * Called when a row actions menu opens or closes.
    */
   onOpenChange: (menuId: string | null) => void;
+
+  /**
+   * Handles primary and modifier clicks on the request row label.
+   */
+  onRowClick: (req: SavedRequest, event: MouseEvent<HTMLButtonElement>) => void;
+
+  /**
+   * Updates selection before opening the context menu when needed.
+   */
+  onBeforeContextMenu: (req: SavedRequest) => void;
 
   /**
    * Whether the request can move one position up within its list.
@@ -72,11 +92,6 @@ interface Props {
   onRunRequest: () => void;
 
   /**
-   * Loads the request into the editor.
-   */
-  onLoadRequest: (req: SavedRequest) => void;
-
-  /**
    * Deletes the saved request.
    */
   onDeleteRequest: (id: number) => Promise<void>;
@@ -92,6 +107,26 @@ interface Props {
   onExportRequest: (req: SavedRequest) => Promise<void> | void;
 
   /**
+   * Runs every request in the current multi-selection.
+   */
+  onRunSelected: () => void;
+
+  /**
+   * Opens every request in the current multi-selection.
+   */
+  onOpenSelected: () => void;
+
+  /**
+   * Creates a tab group from the current multi-selection.
+   */
+  onNewTabGroupFromSelected: () => void;
+
+  /**
+   * Deletes every request in the current multi-selection.
+   */
+  onDeleteSelected: () => void;
+
+  /**
    * When true, renders the row without drag-and-drop reordering.
    */
   dragDisabled?: boolean;
@@ -103,17 +138,24 @@ interface Props {
 export function RequestRow({
   req,
   activeRequestId,
+  selected,
+  selectionCount,
   openMenuId,
   onOpenChange,
+  onRowClick,
+  onBeforeContextMenu,
   canMoveUp,
   canMoveDown,
   onMoveUp,
   onMoveDown,
   onRunRequest,
-  onLoadRequest,
   onDeleteRequest,
   onDuplicateRequest,
   onExportRequest,
+  onRunSelected,
+  onOpenSelected,
+  onNewTabGroupFromSelected,
+  onDeleteSelected,
   dragDisabled = false
 }: Props): JSX.Element {
   const confirm = useConfirm();
@@ -169,17 +211,20 @@ export function RequestRow({
       : [];
 
   const menuId = `request-${req.id}`;
+  const showBulkMenu = selected && selectionCount > 1;
+  const rowHighlighted = activeRequestId === req.id || selected;
 
   return (
     <SortableRow
       id={requestDragId(req.id)}
-      className={sourceRow(activeRequestId === req.id, true)}
+      className={sourceRow(rowHighlighted, true)}
       dragHandleLabel={`Reorder request "${req.name}"`}
       disabled={dragDisabled}
       compact
       onRowContextMenu={(event) => {
         event.preventDefault();
         event.stopPropagation();
+        onBeforeContextMenu(req);
         setInspectPoint({ x: event.clientX, y: event.clientY });
         onOpenChange(menuId);
       }}
@@ -188,7 +233,8 @@ export function RequestRow({
         type="button"
         className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-inherit app-no-drag"
         aria-current={activeRequestId === req.id ? 'true' : undefined}
-        onClick={() => onLoadRequest(req)}
+        aria-selected={selected ? 'true' : undefined}
+        onClick={(event) => onRowClick(req, event)}
       >
         <span
           className={`shrink-0 px-1 py-px text-[16px] ${METHOD_CLASSES[req.method.toLowerCase()] ?? 'text-info'}`}
@@ -201,49 +247,66 @@ export function RequestRow({
         menuId={menuId}
         openMenuId={openMenuId}
         onOpenChange={onOpenChange}
-        groups={[
-          [...copyItem, { label: 'Run', onSelect: onRunRequest }],
-          ...(reorderItems.length > 0 ? [reorderItems] : []),
-          [
-            {
-              label: 'Duplicate',
-              onSelect: () => void onDuplicateRequest(req)
-            },
-            {
-              label: 'Export',
-              onSelect: () => void onExportRequest(req)
-            }
-          ],
-          ...buildPluginContextMenuGroups(
-            'request',
-            {
-              requestId: req.id,
-              collectionId: req.collection_id,
-              folderId: req.folder_id
-            },
-            pluginContextMenuItems
-          ),
-          [
-            {
-              label: 'Delete',
-              variant: 'danger' as const,
-              onSelect: () => {
-                void (async () => {
-                  const confirmed = await confirm({
-                    title: 'Delete request',
-                    message: `Delete request "${req.name}"?`,
-                    confirmLabel: 'Delete',
-                    variant: 'danger'
-                  });
-                  if (confirmed) {
-                    void onDeleteRequest(req.id);
+        groups={
+          showBulkMenu
+            ? [
+                [{ label: 'Run', onSelect: onRunSelected }],
+                [{ label: 'Open', onSelect: onOpenSelected }],
+                [{ label: 'New Tab Group', onSelect: onNewTabGroupFromSelected }],
+                [
+                  {
+                    label: 'Delete',
+                    variant: 'danger' as const,
+                    onSelect: () => {
+                      void onDeleteSelected();
+                    }
                   }
-                })();
-              }
-            }
-          ],
-          ...buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled)
-        ]}
+                ]
+              ]
+            : [
+                [...copyItem, { label: 'Run', onSelect: onRunRequest }],
+                ...(reorderItems.length > 0 ? [reorderItems] : []),
+                [
+                  {
+                    label: 'Duplicate',
+                    onSelect: () => void onDuplicateRequest(req)
+                  },
+                  {
+                    label: 'Export',
+                    onSelect: () => void onExportRequest(req)
+                  }
+                ],
+                ...buildPluginContextMenuGroups(
+                  'request',
+                  {
+                    requestId: req.id,
+                    collectionId: req.collection_id,
+                    folderId: req.folder_id
+                  },
+                  pluginContextMenuItems
+                ),
+                [
+                  {
+                    label: 'Delete',
+                    variant: 'danger' as const,
+                    onSelect: () => {
+                      void (async () => {
+                        const confirmed = await confirm({
+                          title: 'Delete request',
+                          message: `Delete request "${req.name}"?`,
+                          confirmLabel: 'Delete',
+                          variant: 'danger'
+                        });
+                        if (confirmed) {
+                          void onDeleteRequest(req.id);
+                        }
+                      })();
+                    }
+                  }
+                ],
+                ...buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled)
+              ]
+        }
       />
     </SortableRow>
   );

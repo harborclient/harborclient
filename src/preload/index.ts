@@ -100,6 +100,12 @@ import type {
 } from '#/shared/types';
 import type { SnippetImportResult } from '#/shared/types/api/snippets';
 import type {
+  CreateTerminalInput,
+  CreateTerminalResult,
+  TerminalDataEvent,
+  TerminalExitEvent
+} from '#/shared/types/api/terminal';
+import type {
   CollectionRunnerConfig,
   RunResultsExport,
   SavedRunResult,
@@ -1408,6 +1414,71 @@ function completeMcpServerTool(message: {
   error?: string;
 }): void {
   ipcRenderer.send('mcp:serverToolComplete', message);
+}
+
+/**
+ * Spawns a shell in a pseudo-terminal owned by the calling renderer.
+ *
+ * @param input - Tab id, optional cwd, and initial terminal dimensions.
+ */
+function createTerminal(input: CreateTerminalInput): Promise<CreateTerminalResult> {
+  return ipcRenderer.invoke('terminal:create', input);
+}
+
+/**
+ * Sends raw input to an active terminal session.
+ *
+ * @param id - Terminal tab id.
+ * @param data - Bytes to write to shell stdin.
+ */
+function writeTerminal(id: string, data: string): void {
+  ipcRenderer.send('terminal:write', id, data);
+}
+
+/**
+ * Resizes an active terminal session.
+ *
+ * @param id - Terminal tab id.
+ * @param cols - New width in columns.
+ * @param rows - New height in rows.
+ */
+function resizeTerminal(id: string, cols: number, rows: number): void {
+  ipcRenderer.send('terminal:resize', id, cols, rows);
+}
+
+/**
+ * Kills one terminal session.
+ *
+ * @param id - Terminal tab id.
+ */
+function killTerminal(id: string): Promise<void> {
+  return ipcRenderer.invoke('terminal:kill', id);
+}
+
+/**
+ * Subscribes to streamed terminal output from the main process.
+ *
+ * @param callback - Handler invoked for each output chunk.
+ */
+function onTerminalData(callback: (event: TerminalDataEvent) => void): () => void {
+  const listener = (_event: Electron.IpcRendererEvent, payload: TerminalDataEvent): void => {
+    callback(payload);
+  };
+  ipcRenderer.on('terminal:data', listener);
+  return () => ipcRenderer.removeListener('terminal:data', listener);
+}
+
+/**
+ * Subscribes to shell exit notifications from the main process.
+ *
+ * @param callback - Handler invoked when a shell process exits.
+ */
+function onTerminalExit(callback: (event: TerminalExitEvent) => void): () => void {
+  const listener = (_event: Electron.IpcRendererEvent, payload: TerminalExitEvent): void => {
+    callback(payload);
+  };
+  ipcRenderer.on('terminal:exit', listener);
+  return () => ipcRenderer.removeListener('terminal:exit', listener);
 }
 
 /**
@@ -3183,6 +3254,12 @@ const api: Api = {
   searchDocs,
   onMcpServerToolInvoke,
   completeMcpServerTool,
+  createTerminal,
+  writeTerminal,
+  resizeTerminal,
+  killTerminal,
+  onTerminalData,
+  onTerminalExit,
   listChats,
   createChat,
   getChat,

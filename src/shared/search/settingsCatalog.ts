@@ -9,9 +9,6 @@ export type SettingId =
   | 'general.followRedirects'
   | 'general.scrollbarAutoHide'
   | 'general.wrapTabs'
-  | 'general.warnWhenSwitchingThemes'
-  | 'general.warnWhenExitingWithUnsavedChanges'
-  | 'general.warnWhenClosingUnsavedRequests'
   | 'general.logFilePath'
   | 'proxy.enabled'
   | 'proxy.protocol'
@@ -34,14 +31,20 @@ export type SettingId =
   | 'globals'
   | 'storage'
   | 'shortcuts'
-  | 'backup-restore';
+  | 'backup-restore'
+  | 'backup-restore.confirmations';
 
 /**
- * Catalog ids for individual settings fields (excludes management section ids).
+ * Catalog ids for management settings groups within a section panel.
+ */
+export type GroupSettingId = 'backup-restore.confirmations';
+
+/**
+ * Catalog ids for individual settings fields (excludes management section and group ids).
  */
 export type FieldSettingId = Exclude<
   SettingId,
-  'globals' | 'storage' | 'shortcuts' | 'backup-restore'
+  'globals' | 'storage' | 'shortcuts' | 'backup-restore' | GroupSettingId
 >;
 
 /**
@@ -87,9 +90,26 @@ export interface SectionSettingEntry {
 }
 
 /**
+ * Catalog entry for a searchable subgroup within a management settings panel.
+ */
+export interface GroupSettingEntry {
+  /** Stable group identifier shown in tooltips and used for search. */
+  id: GroupSettingId;
+  /** Management section that owns this group in normal navigation. */
+  section: SettingsSection;
+  kind: 'group';
+  /** Primary label shown above the group content. */
+  label: string;
+  /** Helper text rendered below the label and indexed for search. */
+  description: string;
+  /** Optional search synonyms beyond label and description text. */
+  keywords?: string[];
+}
+
+/**
  * One row in the settings catalog manifest.
  */
-export type SettingEntry = FieldSettingEntry | SectionSettingEntry;
+export type SettingEntry = FieldSettingEntry | SectionSettingEntry | GroupSettingEntry;
 
 /**
  * Page descriptions for form sections rendered by the layout engine.
@@ -174,33 +194,6 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     description:
       'When enabled, request tabs and AI chat tabs wrap onto multiple rows instead of scrolling horizontally.',
     keywords: ['wrap', 'tabs', 'overflow', 'scroll']
-  },
-  {
-    id: 'general.warnWhenSwitchingThemes',
-    section: 'general',
-    kind: 'field',
-    label: 'Warn when switching themes',
-    description:
-      'When enabled, switching appearance themes from the View menu shows a confirmation dialog.',
-    keywords: ['theme', 'appearance', 'confirm', 'warning']
-  },
-  {
-    id: 'general.warnWhenExitingWithUnsavedChanges',
-    section: 'general',
-    kind: 'field',
-    label: 'Warn when exiting the app with unsaved changes',
-    description:
-      'When enabled, quitting or closing the app with unsaved request tabs shows a confirmation dialog.',
-    keywords: ['quit', 'exit', 'close', 'unsaved', 'warning', 'confirm']
-  },
-  {
-    id: 'general.warnWhenClosingUnsavedRequests',
-    section: 'general',
-    kind: 'field',
-    label: 'Warn when closing unsaved requests',
-    description:
-      'When enabled, closing a request tab with unsaved edits shows a confirmation dialog.',
-    keywords: ['tab', 'close', 'request', 'unsaved', 'warning', 'confirm']
   },
   {
     id: 'general.logFilePath',
@@ -387,6 +380,26 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     description:
       'Export everything HarborClient stores locally into a backup file, or restore from a backup.',
     keywords: ['export', 'import']
+  },
+  {
+    id: 'backup-restore.confirmations',
+    section: 'backup-restore',
+    kind: 'group',
+    label: 'Show confirmations',
+    description:
+      'Choose which confirmation prompts HarborClient shows. Uncheck a row to suppress that prompt permanently, including after choosing "Don\'t ask again" in a dialog.',
+    keywords: [
+      'confirmation',
+      'confirm',
+      'warn',
+      'warning',
+      'prompt',
+      "don't ask again",
+      'theme',
+      'unsaved',
+      'snippet',
+      'tab group'
+    ]
   }
 ];
 

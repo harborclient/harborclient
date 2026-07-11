@@ -25,6 +25,7 @@ import { registerPluginHandlers } from '#/main/ipc/handlers/plugins';
 import { registerCustomThemeHandlers } from '#/main/ipc/handlers/customThemes';
 import { registerDocsHandlers } from '#/main/ipc/handlers/docs';
 import { registerMcpHandlers } from '#/main/ipc/handlers/mcp';
+import { registerTerminalHandlers } from '#/main/ipc/handlers/terminal';
 import type { PluginManager } from '#/main/plugins/PluginManager';
 
 /**
@@ -59,5 +60,6 @@ export function registerIpcHandlers(db: IStorage, pluginManager: PluginManager):
   registerPluginHandlers(pluginManager);
   registerDocsHandlers();
   registerMcpHandlers();
+  registerTerminalHandlers();
   registerCustomThemeHandlers();
 }

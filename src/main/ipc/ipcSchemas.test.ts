@@ -241,6 +241,8 @@ describe('generalSettings', () => {
     warnWhenEditingSnippet: true,
     warnWhenCloningSnippet: true,
     warnWhenClickingReadonlySnippet: true,
+    warnWhenCreatingTabGroup: true,
+    warnWhenOpeningTabGroup: true,
     codeEditorTheme: 'default' as const,
     codeEditorSetup: {
       lineNumbers: true,

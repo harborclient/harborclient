@@ -59,6 +59,8 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   warnWhenEditingSnippet: true,
   warnWhenCloningSnippet: true,
   warnWhenClickingReadonlySnippet: true,
+  warnWhenCreatingTabGroup: true,
+  warnWhenOpeningTabGroup: true,
   codeEditorTheme: 'default',
   codeEditorSetup: { ...DEFAULT_CODE_EDITOR_SETUP },
   codeEditorFontSize: DEFAULT_CODE_EDITOR_FONT_SIZE,

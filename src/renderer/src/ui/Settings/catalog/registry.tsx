@@ -18,9 +18,6 @@ import { GeneralFollowRedirectsField } from '../fields/GeneralFollowRedirectsFie
 import { GeneralLogFilePathField } from '../fields/GeneralLogFilePathField';
 import { GeneralScrollbarAutoHideField } from '../fields/GeneralScrollbarAutoHideField';
 import { GeneralWrapTabsField } from '../fields/GeneralWrapTabsField';
-import { GeneralWarnWhenSwitchingThemesField } from '../fields/GeneralWarnWhenSwitchingThemesField';
-import { GeneralWarnWhenExitingWithUnsavedChangesField } from '../fields/GeneralWarnWhenExitingWithUnsavedChangesField';
-import { GeneralWarnWhenClosingUnsavedRequestsField } from '../fields/GeneralWarnWhenClosingUnsavedRequestsField';
 import { GeneralMaxResponseSizeField } from '../fields/GeneralMaxResponseSizeField';
 import { GeneralRequestTimeoutField } from '../fields/GeneralRequestTimeoutField';
 import { GeneralScriptTimeoutField } from '../fields/GeneralScriptTimeoutField';
@@ -46,6 +43,16 @@ export type SettingsSectionComponentProps = {
    * When set, focuses the matching variable row in sections that support it.
    */
   focusVariableKey?: string;
+
+  /**
+   * When set, scrolls to the matching catalog group anchor in sections that support it.
+   */
+  focusSettingId?: string;
+
+  /**
+   * Called after a requested group anchor has been scrolled into view.
+   */
+  onFocusSettingHandled?: () => void;
 };
 
 /**
@@ -60,9 +67,6 @@ export const SETTINGS_FIELD_REGISTRY: Partial<Record<FieldSettingId, ComponentTy
   'general.followRedirects': GeneralFollowRedirectsField,
   'general.scrollbarAutoHide': GeneralScrollbarAutoHideField,
   'general.wrapTabs': GeneralWrapTabsField,
-  'general.warnWhenSwitchingThemes': GeneralWarnWhenSwitchingThemesField,
-  'general.warnWhenExitingWithUnsavedChanges': GeneralWarnWhenExitingWithUnsavedChangesField,
-  'general.warnWhenClosingUnsavedRequests': GeneralWarnWhenClosingUnsavedRequestsField,
   'general.logFilePath': GeneralLogFilePathField,
   'proxy.enabled': ProxyEnabledField,
   'proxy.protocol': ProxyProtocolField,

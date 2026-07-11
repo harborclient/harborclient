@@ -24,9 +24,6 @@ const EXPECTED_FIELD_IDS: FieldSettingId[] = [
   'general.followRedirects',
   'general.scrollbarAutoHide',
   'general.wrapTabs',
-  'general.warnWhenSwitchingThemes',
-  'general.warnWhenExitingWithUnsavedChanges',
-  'general.warnWhenClosingUnsavedRequests',
   'general.logFilePath',
   'proxy.enabled',
   'proxy.protocol',
@@ -92,5 +89,12 @@ describe('SETTINGS_CATALOG', () => {
     expect(() => sectionEntryBySection('general' as SettingsSection)).toThrow(
       /No section catalog entry/
     );
+  });
+
+  it('registers the backup-restore confirmations group', () => {
+    const entry = entryById('backup-restore.confirmations');
+    expect(entry.kind).toBe('group');
+    expect(entry.section).toBe('backup-restore');
+    expect(entry.label).toBe('Show confirmations');
   });
 });

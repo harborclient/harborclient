@@ -14,7 +14,12 @@ import requestHistoryReducer from '#/renderer/src/store/slices/requestHistorySli
 import tabGroupsReducer from '#/renderer/src/store/slices/tabGroupSlice';
 import snippetsReducer from '#/renderer/src/store/slices/snippetsSlice';
 import aiChatReducer from '#/renderer/src/store/slices/aiChatSlice';
-import { persistActiveEnvironmentId, persistTabs } from '#/renderer/src/store/persistence';
+import terminalsReducer from '#/renderer/src/store/slices/terminalsSlice';
+import {
+  persistActiveEnvironmentId,
+  persistTabs,
+  persistTerminalLayout
+} from '#/renderer/src/store/persistence';
 
 export const store = configureStore({
   reducer: {
@@ -31,7 +36,8 @@ export const store = configureStore({
     runResults: runResultsReducer,
     requestHistory: requestHistoryReducer,
     tabGroups: tabGroupsReducer,
-    aiChat: aiChatReducer
+    aiChat: aiChatReducer,
+    terminals: terminalsReducer
   },
   /**
    * Registers default RTK middleware plus busy tracking.
@@ -59,4 +65,5 @@ store.subscribe(() => {
   const state = store.getState();
   persistTabs(state.tabs.tabs, state.tabs.activeTabId);
   persistActiveEnvironmentId(state.environments.activeEnvironmentId);
+  persistTerminalLayout(state.terminals.terminals, state.terminals.activeTerminalId);
 });
