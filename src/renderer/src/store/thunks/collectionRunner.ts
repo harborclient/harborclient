@@ -22,11 +22,17 @@ import {
 } from '#/renderer/src/store/slices/modalsSlice';
 import { draftFromSaved } from '#/renderer/src/store/drafts';
 import {
+  selectCollections,
   selectFoldersByCollection,
   selectRequestsByCollection
 } from '#/renderer/src/store/selectors';
 import { refreshCollectionContents } from '#/renderer/src/store/thunks/collections';
 import { executeRequestDraft } from '#/renderer/src/store/thunks/requests';
+import { recordRequestHistoryRun } from '#/renderer/src/store/thunks/requestHistory';
+import {
+  resolveRunnerTargetNames,
+  runnerTargetLabel
+} from '#/renderer/src/ui/CollectionRunner/resolveRunnerTargetName';
 
 /**
  * Waits for the configured delay between collection runner requests.
@@ -95,6 +101,22 @@ export const runCollectionRequests = createAsyncThunk<void, void, ThunkApiConfig
       startCollectionRunner({ results: buildPendingCollectionRunnerResults(orderedRequests) })
     );
 
+    const targetNames = resolveRunnerTargetNames(
+      { collectionId, folderId, requestId },
+      selectCollections(state),
+      folders ?? [],
+      requests ?? []
+    );
+    void dispatch(
+      recordRequestHistoryRun({
+        method: orderedRequests[0].method,
+        name: runnerTargetLabel(targetNames),
+        collectionId,
+        folderId: folderId ?? null,
+        requestId: requestId ?? null
+      })
+    );
+
     await window.api.setCollectionRunnerConfig(config);
 
     const previousEnvironmentId = state.environments.activeEnvironmentId;
@@ -128,7 +150,10 @@ export const runCollectionRequests = createAsyncThunk<void, void, ThunkApiConfig
 
         const draft = draftFromSaved(request);
         const requestId = crypto.randomUUID();
-        const outcome = await executeRequestDraft({ draft, requestId }, { dispatch, getState });
+        const outcome = await executeRequestDraft(
+          { draft, requestId, recordHistory: false },
+          { dispatch, getState }
+        );
 
         const response = outcome.response;
         const testResults = outcome.testResults;

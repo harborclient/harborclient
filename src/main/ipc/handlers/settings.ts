@@ -62,6 +62,7 @@ import { getOpenTabsPayload, setOpenTabsPayload } from '#/main/settings/openTabs
 import { getPanelLayout, setPanelLayout } from '#/main/settings/panelLayoutSettings';
 import { getSidebarExpansion, setSidebarExpansion } from '#/main/settings/sidebarExpansionSettings';
 import { checkForUpdates } from '#/main/settings/updateCheck';
+import { applyZoomFactorPreview, roundZoomFactor, setZoomFactor } from '#/main/window/zoom';
 import {
   getResolvedShortcuts,
   resetShortcuts,
@@ -257,6 +258,21 @@ export function registerSettingsHandlers(db: IStorage): void {
   // Marks the first-run theme picker as seen so it is not shown again.
   handle('theme:markPickerSeen', ipcArgSchemas.none, async () => {
     await db.setSetting(THEME_PICKER_SEEN_KEY, '1');
+  });
+
+  // Returns the current main-window zoom factor.
+  handle('zoom:get', ipcArgSchemas.none, async (event) => {
+    return roundZoomFactor(event.sender.zoomFactor);
+  });
+
+  // Applies a zoom factor without persisting it (used by the theme picker preview).
+  handle('zoom:preview', ipcArgSchemas.zoomSet, async (event, factor) => {
+    applyZoomFactorPreview(event.sender, factor);
+  });
+
+  // Persists and applies the main-window zoom factor.
+  handle('zoom:set', ipcArgSchemas.zoomSet, async (event, factor) => {
+    setZoomFactor(event.sender, factor);
   });
 
   // Returns whether the Getting Started tab should open automatically on launch.

@@ -6,6 +6,8 @@ export * from '#/shared/types/environment';
 export * from '#/shared/types/snippet';
 export * from '#/shared/types/collection';
 export * from '#/shared/types/request';
+export * from '#/shared/types/requestHistory';
+export * from '#/shared/types/tabGroup';
 export * from '#/shared/types/script';
 export * from '#/shared/types/settings';
 export * from '#/shared/types/ai';

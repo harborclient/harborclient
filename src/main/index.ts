@@ -42,6 +42,7 @@ import {
   createRendererNavigationPolicy
 } from '#/main/window/navigationSecurity';
 import { attachWebContextMenu } from '#/main/window/webContextMenu';
+import { restoreZoomFactor } from '#/main/window/zoom';
 import { isDevModeFlagEnabled } from '#/main/devMode';
 import { isQuitWithoutWarningFlagEnabled } from '#/main/quitWithoutWarning';
 import { getStartupThemeOverride } from '#/main/startupTheme';
@@ -671,6 +672,8 @@ function createWindow(): BrowserWindow {
       webviewTag: true
     }
   });
+
+  restoreZoomFactor(window.webContents);
 
   let revealed = false;
 

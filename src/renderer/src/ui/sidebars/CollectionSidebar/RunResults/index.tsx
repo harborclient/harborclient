@@ -1,19 +1,84 @@
-import { useState, type JSX } from 'react';
-import { RowActionsMenu } from '@harborclient/sdk/components';
+import { useCallback, useState, type JSX } from 'react';
+import { Button, EmptyState, FaIcon, RowActionsMenu } from '@harborclient/sdk/components';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectRunResults } from '#/renderer/src/store/slices/runResultsSlice';
-import { deleteRunResult, openSavedRunResult } from '#/renderer/src/store/thunks/runResults';
-import { SortableRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/SortableRow';
+import {
+  clearRunResults,
+  deleteRunResult,
+  openSavedRunResult
+} from '#/renderer/src/store/thunks/runResults';
 import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
 import { useSidebarProviders } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarProvidersContext';
-import { sourceRow } from '#/renderer/src/ui/shared/classes';
-import { runResultDragId, runResultSummaryText, runResultStatusDotClass } from './utils';
+import { formatRelativeTime } from '#/renderer/src/ui/sidebars/CollectionSidebar/History/utils';
+import { faEraser } from '#/renderer/src/fontawesome';
+import { METHOD_CLASSES } from '#/renderer/src/ui/shared/classes';
+import { formatRunResultRowDate, runResultSummaryText, runResultStatusDotClass } from './utils';
 
 /**
- * Run results list with row actions and no drag reordering. Sources saved run
- * results and dispatches its own open/delete actions rather than receiving them
- * from the sidebar shell.
+ * Header actions for the Runs sidebar section.
+ */
+export function RunsHeaderActions(): JSX.Element {
+  const dispatch = useAppDispatch();
+  const confirm = useConfirm();
+  const runResults = useAppSelector(selectRunResults);
+  const isEmpty = runResults.length === 0;
+
+  /**
+   * Clears all saved run results after confirmation.
+   */
+  const handleClearRuns = useCallback(async (): Promise<void> => {
+    const confirmed = await confirm({
+      title: 'Clear runs',
+      message: 'Clear all saved runs?',
+      confirmLabel: 'Clear',
+      variant: 'danger'
+    });
+    if (confirmed) {
+      void dispatch(clearRunResults());
+    }
+  }, [confirm, dispatch]);
+
+  return (
+    <Button
+      variant="toolbar"
+      className="text-muted hover:text-text disabled:cursor-not-allowed disabled:opacity-50"
+      aria-label="Clear all runs"
+      disabled={isEmpty}
+      onClick={() => {
+        void handleClearRuns();
+      }}
+    >
+      <FaIcon icon={faEraser} className="h-3.5 w-3.5" />
+    </Button>
+  );
+}
+
+/**
+ * Returns the accessible label for a saved run row.
+ *
+ * @param rowDate - Formatted save date shown in the row.
+ * @param method - HTTP method of the first request, when known.
+ * @param summaryText - Pass/fail summary for screen readers.
+ * @param createdAt - ISO timestamp when the run was saved.
+ * @returns Screen-reader label describing the row action and metadata.
+ */
+function runResultAriaLabel(
+  rowDate: string,
+  method: string | null | undefined,
+  summaryText: string,
+  createdAt: string
+): string {
+  const time = formatRelativeTime(Date.parse(createdAt));
+  if (method) {
+    return `Open run ${rowDate}, ${method}, ${summaryText}, ${time}`;
+  }
+  return `Open run ${rowDate}, ${summaryText}, ${time}`;
+}
+
+/**
+ * Saved runs list with row actions. Sources saved run results and dispatches
+ * its own open/delete actions rather than receiving them from the sidebar shell.
  */
 export function RunResults(): JSX.Element {
   const dispatch = useAppDispatch();
@@ -42,52 +107,66 @@ export function RunResults(): JSX.Element {
   };
 
   return (
-    <div className="sidebar-source-list flex flex-col gap-0">
+    <div className="flex flex-col gap-0.5">
       {runResults.length === 0 ? (
-        <div className="px-2 py-1.5 text-[16px] text-muted">No saved run results yet</div>
+        <EmptyState variant="inline" className="pr-2 py-1.5">
+          No saved runs yet
+        </EmptyState>
       ) : null}
 
       {runResults.map((runResult) => {
         const menuId = `run-result-${runResult.id}`;
         const connectionName = connectionNamesById[runResult.connectionId] ?? null;
+        const method = runResult.firstRequestMethod;
+        const methodClass = METHOD_CLASSES[method?.toLowerCase() ?? ''] ?? 'text-info';
+        const summaryText = runResultSummaryText(runResult.summary);
+        const rowDate = formatRunResultRowDate(runResult.createdAt);
 
         return (
-          <SortableRow
+          <div
             key={runResult.id}
-            id={runResultDragId(runResult.id)}
-            className={sourceRow(false, true)}
-            dragHandleLabel={`Run result "${runResult.label}"`}
-            disabled
-            compact
-            onRowContextMenu={(event) => {
+            className="group flex items-center gap-1 rounded-md pr-1.5 pl-0 py-0.5 hover:bg-selection/60"
+            onContextMenu={(event) => {
               event.preventDefault();
               event.stopPropagation();
               setOpenMenuId(menuId);
             }}
           >
-            <button
-              type="button"
-              className="min-w-0 flex-1 cursor-pointer border-none bg-transparent py-0 text-left text-inherit app-no-drag"
+            <Button
+              variant="toolbar"
+              className="flex min-w-0 flex-1 items-center gap-2 py-0.5 text-left text-[16px] text-text hover:bg-transparent"
               data-sidebar-run-result-id={runResult.id}
-              aria-label={`Open run result ${runResult.label}, ${runResultSummaryText(runResult.summary)}`}
+              title={runResult.label}
+              aria-label={runResultAriaLabel(rowDate, method, summaryText, runResult.createdAt)}
               onClick={() => onSelectRunResult(runResult.id)}
             >
-              <span className="flex min-w-0 items-center gap-1.5">
-                <span
-                  className={`inline-block h-2 w-2 shrink-0 rounded-full ${runResultStatusDotClass(runResult.summary)}`}
-                  aria-hidden="true"
-                />
-                <span className="truncate text-[16px] text-text">{runResult.label}</span>
-                {showStorageLocationBadges && connectionName != null && (
+              {method ? (
+                <span className={`shrink-0 font-medium uppercase ${methodClass}`} aria-hidden>
+                  {method}
+                </span>
+              ) : null}
+              <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                <span className="min-w-0 truncate text-[16px] text-text">{rowDate}</span>
+                {showStorageLocationBadges && connectionName != null ? (
                   <span
                     className="shrink-0 rounded bg-info/15 px-1.5 py-0.5 text-[11px] font-medium text-info"
                     title={`Stored in ${connectionName}`}
                   >
                     {connectionName}
                   </span>
-                )}
+                ) : null}
               </span>
-            </button>
+              <span className="flex shrink-0 items-center gap-1.5">
+                <span
+                  className={`inline-block h-2 w-2 shrink-0 rounded-full ${runResultStatusDotClass(runResult.summary)}`}
+                  aria-hidden="true"
+                />
+                <span className="sr-only">{summaryText}</span>
+              </span>
+              <span className="shrink-0 text-muted">
+                {formatRelativeTime(Date.parse(runResult.createdAt))}
+              </span>
+            </Button>
             <RowActionsMenu
               menuId={menuId}
               openMenuId={openMenuId}
@@ -100,8 +179,8 @@ export function RunResults(): JSX.Element {
                     onSelect: () => {
                       void (async () => {
                         const confirmed = await confirm({
-                          title: 'Delete run result',
-                          message: `Delete saved run result "${runResult.label}"?`,
+                          title: 'Delete run',
+                          message: `Delete saved run "${runResult.label}"?`,
                           confirmLabel: 'Delete',
                           variant: 'danger'
                         });
@@ -114,7 +193,7 @@ export function RunResults(): JSX.Element {
                 ]
               ]}
             />
-          </SortableRow>
+          </div>
         );
       })}
     </div>

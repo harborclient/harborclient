@@ -36,6 +36,8 @@ import {
   rowToProviderSnippet,
   rowToRequest
 } from '#/main/storage/entityMappers';
+import { assertContainerItemOrder, planContainerItemMove } from '#/main/storage/containerReorder';
+import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
 import {
   CREATE_PROVIDER_RUN_RESULTS_TABLE_SQL,
   PROVIDER_RUN_RESULT_COLUMNS
@@ -821,6 +823,66 @@ export class SqliteStorage implements IStorage {
   }
 
   /**
+   * Reorders requests and markdown documents together within a folder or collection root.
+   *
+   * @param collectionId - Collection containing the items.
+   * @param folderId - Folder ID, or null for root-level items.
+   * @param items - Request and document refs in desired unified sidebar order.
+   */
+  async reorderContainerItems(
+    collectionId: number,
+    folderId: number | null,
+    items: ContainerItemRef[]
+  ): Promise<void> {
+    const requests = await this.listRequests(collectionId);
+    const documents = await this.listDocuments(collectionId);
+    assertContainerItemOrder(collectionId, folderId, items, requests, documents);
+
+    if (folderId != null) {
+      const folderRow = this.getDb()
+        .prepare('SELECT collection_id FROM folders WHERE id = ?')
+        .get(folderId) as { collection_id: number } | undefined;
+      if (!folderRow || folderRow.collection_id !== collectionId) {
+        throw new Error('Folder not found');
+      }
+    }
+
+    const reorder = this.getDb().transaction((ordered: ContainerItemRef[]) => {
+      const updateRequestWithFolder = this.getDb().prepare(
+        'UPDATE requests SET sort_order = ?, folder_id = ? WHERE id = ? AND collection_id = ?'
+      );
+      const updateRequestRoot = this.getDb().prepare(
+        'UPDATE requests SET sort_order = ?, folder_id = NULL WHERE id = ? AND collection_id = ?'
+      );
+      const updateDocumentWithFolder = this.getDb().prepare(
+        'UPDATE documents SET sort_order = ?, folder_id = ? WHERE id = ? AND collection_id = ?'
+      );
+      const updateDocumentRoot = this.getDb().prepare(
+        'UPDATE documents SET sort_order = ?, folder_id = NULL WHERE id = ? AND collection_id = ?'
+      );
+
+      ordered.forEach((item, unifiedIndex) => {
+        if (item.kind === 'request') {
+          if (folderId == null) {
+            updateRequestRoot.run(unifiedIndex, item.id, collectionId);
+          } else {
+            updateRequestWithFolder.run(unifiedIndex, folderId, item.id, collectionId);
+          }
+          return;
+        }
+
+        if (folderId == null) {
+          updateDocumentRoot.run(unifiedIndex, item.id, collectionId);
+        } else {
+          updateDocumentWithFolder.run(unifiedIndex, folderId, item.id, collectionId);
+        }
+      });
+    });
+
+    reorder(items);
+  }
+
+  /**
    * Reorders requests within a folder or at collection root.
    *
    * @param collectionId - Collection containing the requests.
@@ -851,84 +913,39 @@ export class SqliteStorage implements IStorage {
    * @param index - Zero-based position within the destination container.
    */
   async moveRequest(requestId: number, folderId: number | null, index: number): Promise<void> {
-    const database = this.getDb();
+    const row = this.getDb().prepare('SELECT * FROM requests WHERE id = ?').get(requestId) as
+      | Record<string, unknown>
+      | undefined;
+    if (!row) throw new Error('Request not found');
 
-    const listInContainer = (
-      collectionId: number,
-      targetFolderId: number | null
-    ): SavedRequest[] => {
-      const rows = database
-        .prepare(
-          `SELECT * FROM requests WHERE collection_id = ?
-           AND ((? IS NULL AND folder_id IS NULL) OR folder_id = ?)
-           ORDER BY sort_order ASC, name ASC`
-        )
-        .all(collectionId, targetFolderId, targetFolderId) as Record<string, unknown>[];
-      return rows.map(rowToRequest);
-    };
+    const request = rowToRequest(row);
+    const collectionId = request.collection_id;
+    const sourceFolderId = request.folder_id ?? null;
 
-    const reindexContainer = (targetFolderId: number | null, orderedIds: number[]): void => {
-      const updateSort = database.prepare('UPDATE requests SET sort_order = ? WHERE id = ?');
-      const updateFolder =
-        targetFolderId == null
-          ? database.prepare('UPDATE requests SET folder_id = NULL WHERE id = ?')
-          : database.prepare('UPDATE requests SET folder_id = ? WHERE id = ?');
-
-      orderedIds.forEach((id, sortIndex) => {
-        if (targetFolderId == null) {
-          updateFolder.run(id);
-        } else {
-          updateFolder.run(targetFolderId, id);
-        }
-        updateSort.run(sortIndex, id);
-      });
-    };
-
-    // Wrap the read, validate, and reindex steps in a single transaction so a
-    // concurrent move or mid-operation failure cannot leave duplicate or
-    // gap-filled sort_order values across the source and destination containers.
-    const runMove = database.transaction((): void => {
-      const row = database.prepare('SELECT * FROM requests WHERE id = ?').get(requestId) as
-        | Record<string, unknown>
-        | undefined;
-
-      if (!row) throw new Error('Request not found');
-
-      const request = rowToRequest(row);
-      const collectionId = request.collection_id;
-      const oldFolderId = request.folder_id;
-
-      if (folderId != null) {
-        const folderRow = database
-          .prepare('SELECT collection_id FROM folders WHERE id = ?')
-          .get(folderId) as { collection_id: number } | undefined;
-        if (!folderRow || folderRow.collection_id !== collectionId) {
-          throw new Error('Folder not found');
-        }
+    if (folderId != null) {
+      const folderRow = this.getDb()
+        .prepare('SELECT collection_id FROM folders WHERE id = ?')
+        .get(folderId) as { collection_id: number } | undefined;
+      if (!folderRow || folderRow.collection_id !== collectionId) {
+        throw new Error('Folder not found');
       }
+    }
 
-      if (oldFolderId === folderId) {
-        const siblings = listInContainer(collectionId, folderId)
-          .map((item) => item.id)
-          .filter((id) => id !== requestId);
-        siblings.splice(index, 0, requestId);
-        reindexContainer(folderId, siblings);
-        return;
-      }
+    const requests = await this.listRequests(collectionId);
+    const documents = await this.listDocuments(collectionId);
+    const plan = planContainerItemMove(
+      requests,
+      documents,
+      { kind: 'request', id: requestId },
+      sourceFolderId,
+      folderId,
+      index
+    );
 
-      const oldIds = listInContainer(collectionId, oldFolderId)
-        .map((item) => item.id)
-        .filter((id) => id !== requestId);
-      reindexContainer(oldFolderId, oldIds);
-
-      const newIds = listInContainer(collectionId, folderId)
-        .map((item) => item.id)
-        .filter((id) => id !== requestId);
-      newIds.splice(index, 0, requestId);
-      reindexContainer(folderId, newIds);
-    });
-
-    runMove();
+    if (plan.sourceOrder) {
+      await this.reorderContainerItems(collectionId, sourceFolderId, plan.sourceOrder);
+    }
+    await this.reorderContainerItems(collectionId, folderId, plan.destinationOrder);
   }
 
   /**
@@ -1053,81 +1070,39 @@ export class SqliteStorage implements IStorage {
    * @param index - Zero-based position within the destination container.
    */
   async moveDocument(documentId: number, folderId: number | null, index: number): Promise<void> {
-    const database = this.getDb();
+    const row = this.getDb().prepare('SELECT * FROM documents WHERE id = ?').get(documentId) as
+      | Record<string, unknown>
+      | undefined;
+    if (!row) throw new Error('Document not found');
 
-    const listInContainer = (
-      collectionId: number,
-      targetFolderId: number | null
-    ): CollectionDocument[] => {
-      const rows = database
-        .prepare(
-          `SELECT * FROM documents WHERE collection_id = ?
-           AND ((? IS NULL AND folder_id IS NULL) OR folder_id = ?)
-           ORDER BY sort_order ASC, name ASC`
-        )
-        .all(collectionId, targetFolderId, targetFolderId) as Record<string, unknown>[];
-      return rows.map(rowToDocument);
-    };
+    const document = rowToDocument(row);
+    const collectionId = document.collection_id;
+    const sourceFolderId = document.folder_id ?? null;
 
-    const reindexContainer = (targetFolderId: number | null, orderedIds: number[]): void => {
-      const updateSort = database.prepare('UPDATE documents SET sort_order = ? WHERE id = ?');
-      const updateFolder =
-        targetFolderId == null
-          ? database.prepare('UPDATE documents SET folder_id = NULL WHERE id = ?')
-          : database.prepare('UPDATE documents SET folder_id = ? WHERE id = ?');
-
-      orderedIds.forEach((id, sortIndex) => {
-        if (targetFolderId == null) {
-          updateFolder.run(id);
-        } else {
-          updateFolder.run(targetFolderId, id);
-        }
-        updateSort.run(sortIndex, id);
-      });
-    };
-
-    const runMove = database.transaction((): void => {
-      const row = database.prepare('SELECT * FROM documents WHERE id = ?').get(documentId) as
-        | Record<string, unknown>
-        | undefined;
-
-      if (!row) throw new Error('Document not found');
-
-      const document = rowToDocument(row);
-      const collectionId = document.collection_id;
-      const oldFolderId = document.folder_id;
-
-      if (folderId != null) {
-        const folderRow = database
-          .prepare('SELECT collection_id FROM folders WHERE id = ?')
-          .get(folderId) as { collection_id: number } | undefined;
-        if (!folderRow || folderRow.collection_id !== collectionId) {
-          throw new Error('Folder not found');
-        }
+    if (folderId != null) {
+      const folderRow = this.getDb()
+        .prepare('SELECT collection_id FROM folders WHERE id = ?')
+        .get(folderId) as { collection_id: number } | undefined;
+      if (!folderRow || folderRow.collection_id !== collectionId) {
+        throw new Error('Folder not found');
       }
+    }
 
-      if (oldFolderId === folderId) {
-        const siblings = listInContainer(collectionId, folderId)
-          .map((item) => item.id)
-          .filter((id) => id !== documentId);
-        siblings.splice(index, 0, documentId);
-        reindexContainer(folderId, siblings);
-        return;
-      }
+    const requests = await this.listRequests(collectionId);
+    const documents = await this.listDocuments(collectionId);
+    const plan = planContainerItemMove(
+      requests,
+      documents,
+      { kind: 'document', id: documentId },
+      sourceFolderId,
+      folderId,
+      index
+    );
 
-      const oldIds = listInContainer(collectionId, oldFolderId)
-        .map((item) => item.id)
-        .filter((id) => id !== documentId);
-      reindexContainer(oldFolderId, oldIds);
-
-      const newIds = listInContainer(collectionId, folderId)
-        .map((item) => item.id)
-        .filter((id) => id !== documentId);
-      newIds.splice(index, 0, documentId);
-      reindexContainer(folderId, newIds);
-    });
-
-    runMove();
+    if (plan.sourceOrder) {
+      await this.reorderContainerItems(collectionId, sourceFolderId, plan.sourceOrder);
+    }
+    await this.reorderContainerItems(collectionId, folderId, plan.destinationOrder);
   }
 
   /**

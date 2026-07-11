@@ -283,3 +283,179 @@ describeSqlite('LocalDatabase snippets', () => {
     expect(afterSource?.catalogAuthor).toBe('HarborClient');
   });
 });
+
+describeSqlite('LocalDatabase request history', () => {
+  it('persists, lists newest-first, and prunes beyond the cap', async () => {
+    const { database } = await createRegistry();
+
+    for (let index = 0; index < 3; index += 1) {
+      database.addRequestHistory(
+        {
+          id: 1_000 + index,
+          method: 'GET',
+          url: `https://example.com/${index}`,
+          status: 200,
+          statusText: 'OK',
+          ts: 1_000 + index,
+          name: `Request ${index}`
+        },
+        2
+      );
+    }
+
+    const items = database.listRequestHistory(2);
+    expect(items).toHaveLength(2);
+    expect(items.map((item) => item.name)).toEqual(['Request 2', 'Request 1']);
+  });
+
+  it('clears all persisted request history entries', async () => {
+    const { database } = await createRegistry();
+
+    database.addRequestHistory({
+      id: 42,
+      method: 'POST',
+      url: 'https://example.com',
+      status: 201,
+      statusText: 'Created',
+      ts: Date.now(),
+      name: 'Create item'
+    });
+
+    expect(database.listRequestHistory()).toHaveLength(1);
+    database.clearRequestHistory();
+    expect(database.listRequestHistory()).toEqual([]);
+  });
+
+  it('persists run entries with collection runner target metadata', async () => {
+    const { database } = await createRegistry();
+
+    database.addRequestHistory({
+      id: 99,
+      kind: 'run',
+      method: 'POST',
+      url: '',
+      status: 0,
+      statusText: '',
+      ts: 2_000,
+      name: 'HarborClient Echo',
+      runCollectionId: 10,
+      runFolderId: null,
+      runRequestId: null
+    });
+
+    expect(database.listRequestHistory()).toEqual([
+      {
+        id: 99,
+        kind: 'run',
+        method: 'POST',
+        url: '',
+        status: 0,
+        statusText: '',
+        ts: 2_000,
+        name: 'HarborClient Echo',
+        runCollectionId: 10,
+        runFolderId: null,
+        runRequestId: null,
+        headers: {},
+        params: [],
+        body: undefined,
+        bodyType: undefined,
+        savedRequestId: undefined
+      }
+    ]);
+  });
+
+  it('deletes one persisted request history entry by id', async () => {
+    const { database } = await createRegistry();
+
+    database.addRequestHistory({
+      id: 1,
+      method: 'GET',
+      url: 'https://example.com/one',
+      status: 200,
+      statusText: 'OK',
+      ts: 1,
+      name: 'One'
+    });
+    database.addRequestHistory({
+      id: 2,
+      method: 'GET',
+      url: 'https://example.com/two',
+      status: 200,
+      statusText: 'OK',
+      ts: 2,
+      name: 'Two'
+    });
+
+    const remaining = database.deleteRequestHistory(1);
+
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0]?.id).toBe(2);
+  });
+});
+
+describeSqlite('LocalDatabase tab groups', () => {
+  it('creates, lists, renames, clones, and deletes tab groups', async () => {
+    const { database } = await createRegistry();
+
+    const created = database.createTabGroup({
+      name: 'Auth flows',
+      requests: [
+        { requestUuid: 'uuid-1', collectionId: 1, requestName: 'Login' },
+        { requestUuid: 'uuid-2', collectionId: 1, requestName: 'Refresh' }
+      ]
+    });
+
+    expect(created).toHaveLength(1);
+    expect(created[0]).toMatchObject({
+      name: 'Auth flows',
+      requests: [
+        { requestUuid: 'uuid-1', collectionId: 1, requestName: 'Login' },
+        { requestUuid: 'uuid-2', collectionId: 1, requestName: 'Refresh' }
+      ]
+    });
+
+    const renamed = database.renameTabGroup(created[0]!.id, 'Auth');
+    expect(renamed[0]?.name).toBe('Auth');
+
+    const updated = database.updateTabGroup(created[0]!.id, [
+      { requestUuid: 'uuid-2', collectionId: 1, requestName: 'Refresh' },
+      { requestUuid: 'uuid-3', collectionId: 2, requestName: 'Logout' }
+    ]);
+    expect(updated[0]?.requests).toEqual([
+      { requestUuid: 'uuid-2', collectionId: 1, requestName: 'Refresh' },
+      { requestUuid: 'uuid-3', collectionId: 2, requestName: 'Logout' }
+    ]);
+
+    const cloned = database.cloneTabGroup(created[0]!.id, 'Auth copy');
+    expect(cloned).toHaveLength(2);
+    expect(cloned[1]?.name).toBe('Auth copy');
+    expect(cloned[1]?.requests).toEqual(updated[0]?.requests);
+
+    const remaining = database.deleteTabGroup(created[0]!.id);
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0]?.name).toBe('Auth copy');
+  });
+
+  it('reorderTabGroups persists sidebar order', async () => {
+    const { database } = await createRegistry();
+
+    const first = database.createTabGroup({
+      name: 'Alpha',
+      requests: [{ requestUuid: 'uuid-1' }]
+    });
+    const second = database.createTabGroup({
+      name: 'Beta',
+      requests: [{ requestUuid: 'uuid-2' }]
+    });
+    const third = database.createTabGroup({
+      name: 'Gamma',
+      requests: [{ requestUuid: 'uuid-3' }]
+    });
+
+    const ids = [first[0]!.id, second[1]!.id, third[2]!.id];
+    const reordered = database.reorderTabGroups([ids[2]!, ids[0]!, ids[1]!]);
+
+    expect(reordered.map((group) => group.name)).toEqual(['Gamma', 'Alpha', 'Beta']);
+  });
+});

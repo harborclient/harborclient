@@ -1,4 +1,10 @@
-import { FaIcon, FooterButton, FooterIcon } from '@harborclient/sdk/components';
+import {
+  FaIcon,
+  FooterButton,
+  FooterIcon,
+  FOOTER_STATUS_BAR_SLOT_HEIGHT,
+  footerBarPaddingClass
+} from '@harborclient/sdk/components';
 import { useEffect, useMemo, useRef, type JSX } from 'react';
 import type { Variable } from '#/shared/types';
 
@@ -222,7 +228,7 @@ export function Footer({
   return (
     <footer
       ref={footerRef}
-      className="relative z-50 flex shrink-0 items-center justify-between border-t border-separator bg-sidebar py-0 app-no-drag"
+      className="relative z-50 flex shrink-0 items-stretch border-t border-separator bg-sidebar app-no-drag"
     >
       <button
         type="button"
@@ -234,130 +240,150 @@ export function Footer({
       >
         <FaIcon icon={iconActionMenu} className={ACTION_MENU_ICON_CLASS} />
       </button>
-      <div className={`${footerButtonGroup} flex-1`}>
-        {leftStatusItems.map((item) => (
-          <div key={item.id} className="overflow-hidden px-1" style={{ width: 120, height: 20 }}>
-            <PluginSurface
-              pluginId={item.pluginId}
-              contributionId={item.contributionId}
-              kind="statusBarItems"
-              resizeMode="fill"
-              style={{ minHeight: 20, height: 20, width: 120 }}
-            />
-          </div>
-        ))}
-        <div ref={leftGroupRef} className="inline-flex min-w-0 items-center">
-          <FooterButton
-            active={shortcutsReferenceOpen}
-            onClick={() =>
-              dispatch(
-                shortcutsReferenceOpen
-                  ? closeShortcutsReferenceModal()
-                  : openShortcutsReferenceModal()
-              )
-            }
-            controlsId={SHORTCUTS_REFERENCE_MODAL_ID}
-          >
-            Shortcuts
-          </FooterButton>
-          <FooterButton
-            active={consoleOpen}
-            onClick={onToggleConsole}
-            controlsId="footer-console-panel"
-          >
-            Console
-            {entryCount > 0 && <span className="ml-1 text-[14px] text-muted">({entryCount})</span>}
-          </FooterButton>
-          <FooterButton
-            active={variablesOpen}
-            onClick={onToggleVariables}
-            controlsId="footer-variables-panel"
-          >
-            Variables
-            {variableCount > 0 && (
-              <span className="ml-1 text-[14px] text-muted">({variableCount})</span>
-            )}
-          </FooterButton>
-          <FooterButton
-            active={mcpOpen}
-            onClick={onToggleMcp}
-            controlsId="footer-mcp-panel"
-            aria-label={mcpServerRunning ? 'MCP, server running' : 'MCP, server stopped'}
-          >
-            <span className="inline-flex items-center">
-              MCP
-              <span className="ml-1 inline-flex h-4 w-3 shrink-0 items-center justify-center">
-                <span
-                  className={`h-1.5 w-1.5 rounded-full ${mcpServerRunning ? 'bg-success' : 'bg-muted'}`}
-                  aria-hidden
-                />
-              </span>
-            </span>
-          </FooterButton>
-          {pluginFooterPanels.map((panel) => (
-            <FooterButton
-              key={panel.id}
-              active={activePluginFooterPanelId === panel.id}
-              onClick={() => dispatch(togglePluginFooterPanel(panel.id))}
-              controlsId={`footer-plugin-panel-${panel.id}`}
+      <div className={`flex min-w-0 flex-1 items-center justify-between ${footerBarPaddingClass}`}>
+        <div className={`${footerButtonGroup} min-w-0 flex-1`}>
+          {leftStatusItems.map((item) => (
+            <div
+              key={item.id}
+              className="overflow-hidden px-1"
+              style={{ width: 120, height: FOOTER_STATUS_BAR_SLOT_HEIGHT }}
             >
-              {panel.title}
-              {panel.hasIndicator ? (
-                <span className="ml-1 inline-flex h-4 w-3 shrink-0 items-center overflow-hidden">
-                  <PluginSurface
-                    pluginId={panel.pluginId}
-                    contributionId={panel.contributionId}
-                    kind="footerPanels"
-                    slot="indicator"
-                    style={{ minHeight: 16, height: 16, width: 12 }}
+              <PluginSurface
+                pluginId={item.pluginId}
+                contributionId={item.contributionId}
+                kind="statusBarItems"
+                resizeMode="fill"
+                style={{
+                  minHeight: FOOTER_STATUS_BAR_SLOT_HEIGHT,
+                  height: FOOTER_STATUS_BAR_SLOT_HEIGHT,
+                  width: 120
+                }}
+              />
+            </div>
+          ))}
+          <div ref={leftGroupRef} className="inline-flex min-w-0 items-center">
+            <FooterButton
+              active={shortcutsReferenceOpen}
+              onClick={() =>
+                dispatch(
+                  shortcutsReferenceOpen
+                    ? closeShortcutsReferenceModal()
+                    : openShortcutsReferenceModal()
+                )
+              }
+              controlsId={SHORTCUTS_REFERENCE_MODAL_ID}
+            >
+              Shortcuts
+            </FooterButton>
+            <FooterButton
+              active={consoleOpen}
+              onClick={onToggleConsole}
+              controlsId="footer-console-panel"
+            >
+              Console
+              {entryCount > 0 && (
+                <span className="ml-1 text-[14px] text-muted">({entryCount})</span>
+              )}
+            </FooterButton>
+            <FooterButton
+              active={variablesOpen}
+              onClick={onToggleVariables}
+              controlsId="footer-variables-panel"
+            >
+              Variables
+              {variableCount > 0 && (
+                <span className="ml-1 text-[14px] text-muted">({variableCount})</span>
+              )}
+            </FooterButton>
+            <FooterButton
+              active={mcpOpen}
+              onClick={onToggleMcp}
+              controlsId="footer-mcp-panel"
+              aria-label={mcpServerRunning ? 'MCP, server running' : 'MCP, server stopped'}
+            >
+              <span className="inline-flex items-center">
+                MCP
+                <span className="ml-1 inline-flex h-4 w-3 shrink-0 items-center justify-center">
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${mcpServerRunning ? 'bg-success' : 'bg-muted'}`}
+                    aria-hidden
                   />
                 </span>
-              ) : null}
+              </span>
             </FooterButton>
-          ))}
+            {pluginFooterPanels.map((panel) => (
+              <FooterButton
+                key={panel.id}
+                active={activePluginFooterPanelId === panel.id}
+                onClick={() => dispatch(togglePluginFooterPanel(panel.id))}
+                controlsId={`footer-plugin-panel-${panel.id}`}
+              >
+                {panel.title}
+                {panel.hasIndicator ? (
+                  <span className="ml-1 inline-flex h-4 w-3 shrink-0 items-center overflow-hidden">
+                    <PluginSurface
+                      pluginId={panel.pluginId}
+                      contributionId={panel.contributionId}
+                      kind="footerPanels"
+                      slot="indicator"
+                      style={{ minHeight: 16, height: 16, width: 12 }}
+                    />
+                  </span>
+                ) : null}
+              </FooterButton>
+            ))}
+          </div>
         </div>
-      </div>
-      <div className="flex shrink-0 items-center gap-0.5 pr-2">
-        {rightStatusItems.map((item) => (
-          <div key={item.id} className="overflow-hidden px-1" style={{ width: 120, height: 20 }}>
-            <PluginSurface
-              pluginId={item.pluginId}
-              contributionId={item.contributionId}
-              kind="statusBarItems"
-              resizeMode="fill"
-              style={{ minHeight: 20, height: 20, width: 120 }}
+        <div className="flex shrink-0 items-center gap-0.5 pr-2">
+          {rightStatusItems.map((item) => (
+            <div
+              key={item.id}
+              className="overflow-hidden px-1"
+              style={{ width: 120, height: FOOTER_STATUS_BAR_SLOT_HEIGHT }}
+            >
+              <PluginSurface
+                pluginId={item.pluginId}
+                contributionId={item.contributionId}
+                kind="statusBarItems"
+                resizeMode="fill"
+                style={{
+                  minHeight: FOOTER_STATUS_BAR_SLOT_HEIGHT,
+                  height: FOOTER_STATUS_BAR_SLOT_HEIGHT,
+                  width: 120
+                }}
+              />
+            </div>
+          ))}
+          <div ref={rightIconsRef} className="flex items-center gap-1.5">
+            <FooterIcon
+              onClick={onToggleRequestEditor}
+              icon={faPaperPlane}
+              active={requestEditorOpen}
+              activeStyle="selection"
+              label="request editor"
+            />
+            <FooterIcon
+              onClick={onToggleResponseEditor}
+              icon={faInbox}
+              active={responseEditorOpen}
+              activeStyle="selection"
+              label="response editor"
+            />
+            <FooterIcon
+              onClick={onToggleSidebar}
+              icon={faTableColumns}
+              active={sidebarOpen}
+              activeStyle="selection"
+              label="sidebar"
+            />
+            <FooterIcon
+              onClick={onToggleAiSidebar}
+              icon={faRobot}
+              active={aiSidebarOpen}
+              activeStyle="selection"
+              label="agent chat"
             />
           </div>
-        ))}
-        <div ref={rightIconsRef} className="flex items-center gap-1.5">
-          <FooterIcon
-            onClick={onToggleRequestEditor}
-            icon={faPaperPlane}
-            active={requestEditorOpen}
-            activeStyle="selection"
-            label="request editor"
-          />
-          <FooterIcon
-            onClick={onToggleResponseEditor}
-            icon={faInbox}
-            active={responseEditorOpen}
-            activeStyle="selection"
-            label="response editor"
-          />
-          <FooterIcon
-            onClick={onToggleSidebar}
-            icon={faTableColumns}
-            active={sidebarOpen}
-            activeStyle="selection"
-            label="sidebar"
-          />
-          <FooterIcon
-            onClick={onToggleAiSidebar}
-            icon={faRobot}
-            active={aiSidebarOpen}
-            activeStyle="selection"
-            label="agent chat"
-          />
         </div>
       </div>
     </footer>

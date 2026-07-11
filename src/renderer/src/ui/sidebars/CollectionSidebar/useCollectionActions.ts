@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import toast from 'react-hot-toast';
+import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
 import type { CollectionDocument, SavedRequest } from '#/shared/types';
 import { isTeamHubProvider } from '#/renderer/src/hooks/useProviders';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
@@ -20,11 +21,13 @@ import {
   importRequest,
   loadTrustedKeys,
   moveRequestToFolder,
+  moveDocumentToFolder,
   newRequestInCollection,
   newRequestInFolder,
   refreshCollectionContents,
   reorderCollections,
   reorderDocuments,
+  reorderContainerItems,
   reorderFolders,
   reorderRequests,
   requestLoadDocument,
@@ -213,6 +216,25 @@ export interface CollectionActions {
     collectionId: number,
     folderId: number | null,
     orderedDocumentIds: number[]
+  ) => Promise<void>;
+
+  /**
+   * Persists unified sidebar order for requests and markdown documents in one container.
+   */
+  onReorderContainerItems: (
+    collectionId: number,
+    folderId: number | null,
+    items: ContainerItemRef[]
+  ) => Promise<void>;
+
+  /**
+   * Moves a markdown document to another folder or collection root at the given index.
+   */
+  onMoveDocument: (
+    collectionId: number,
+    documentId: number,
+    folderId: number | null,
+    index: number
   ) => Promise<void>;
 
   /**
@@ -446,6 +468,12 @@ export function useCollectionActions(): CollectionActions {
     },
     onReorderDocuments: async (collectionId, folderId, orderedDocumentIds) => {
       await dispatch(reorderDocuments({ collectionId, folderId, orderedDocumentIds }));
+    },
+    onReorderContainerItems: async (collectionId, folderId, items) => {
+      await dispatch(reorderContainerItems({ collectionId, folderId, items }));
+    },
+    onMoveDocument: async (collectionId, documentId, folderId, index) => {
+      await dispatch(moveDocumentToFolder({ collectionId, documentId, folderId, index }));
     },
     onDeleteRequest: async (id) => {
       await dispatch(deleteRequest(id));

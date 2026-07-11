@@ -21,6 +21,7 @@ import {
 import { normalizeRequestTags } from '#/shared/requestTags';
 import { toPluginHttpRequest, toPluginHttpResponse } from '#/shared/plugin/httpRequest';
 import { emitPluginAfterSend } from '#/renderer/src/plugins/pluginAfterSendBus';
+import { recordRequestHistoryFromSend } from '#/renderer/src/store/thunks/requestHistory';
 import {
   applyScriptRequestMutations,
   applyCollectionVariableSets,
@@ -485,6 +486,10 @@ export interface ExecuteRequestDraftArgs {
    * Correlation id passed to the main-process HTTP layer for cancellation.
    */
   requestId: string;
+  /**
+   * When false, suppresses recording a history entry for this send. Defaults to true.
+   */
+  recordHistory?: boolean;
 }
 
 /**
@@ -499,7 +504,7 @@ export async function executeRequestDraft(
   args: ExecuteRequestDraftArgs,
   deps: { dispatch: ThunkDispatch<RootState, unknown, UnknownAction>; getState: () => RootState }
 ): Promise<RequestRunOutcome> {
-  const { draft: currentDraft, requestId } = args;
+  const { draft: currentDraft, requestId, recordHistory = true } = args;
   const { dispatch, getState } = deps;
   const state = getState();
   const collectionId = currentDraft.collection_id ?? state.collections.selectedCollectionId;
@@ -792,6 +797,9 @@ export async function executeRequestDraft(
 
       if (!result.error) {
         emitPluginAfterSend(toPluginHttpRequest(sendInput), toPluginHttpResponse(result));
+        if (recordHistory !== false) {
+          void dispatch(recordRequestHistoryFromSend({ sendInput, result }));
+        }
       }
 
       await runScriptPhase('post', result);

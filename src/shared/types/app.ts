@@ -49,7 +49,8 @@ export type MenuActionId =
   | 'shortcuts-reference'
   | 'action-menu'
   | 'undo'
-  | 'redo';
+  | 'redo'
+  | 'create-tab-group';
 
 /**
  * Top-level application menu labels shown in the Linux in-app menu bar.

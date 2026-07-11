@@ -1,5 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
+import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
 import type {
   AuthConfig,
   Collection,
@@ -540,6 +541,19 @@ export const reorderRequests = createAsyncThunk<
 );
 
 /**
+ * Persists unified sidebar order for requests and markdown documents in one container.
+ */
+export const reorderContainerItems = createAsyncThunk<
+  void,
+  { collectionId: number; folderId: number | null; items: ContainerItemRef[] },
+  ThunkApiConfig
+>('collections/reorderContainerItems', async ({ collectionId, folderId, items }, { dispatch }) => {
+  await window.api.reorderContainerItems(collectionId, folderId, items);
+  await dispatch(refreshRequests(collectionId));
+  await dispatch(refreshDocuments(collectionId));
+});
+
+/**
  * Moves a request into a folder (or back to the collection root) at a specific index.
  */
 export const moveRequestToFolder = createAsyncThunk<
@@ -549,6 +563,7 @@ export const moveRequestToFolder = createAsyncThunk<
 >('collections/moveRequest', async ({ collectionId, requestId, folderId, index }, { dispatch }) => {
   await window.api.moveRequest(requestId, folderId, index);
   await dispatch(refreshRequests(collectionId));
+  await dispatch(refreshDocuments(collectionId));
   dispatch(syncRequestFolderInTabs({ requestId, folderId }));
 });
 

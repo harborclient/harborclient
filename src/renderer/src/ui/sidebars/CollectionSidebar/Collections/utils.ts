@@ -1,13 +1,21 @@
 import { closestCenter, pointerWithin, type CollisionDetection } from '@dnd-kit/core';
-import type { SavedRequest } from '#/shared/types';
+import {
+  mergeContainerItems,
+  type ContainerItem,
+  type ContainerItemRef
+} from '#/shared/collectionContainerOrder';
+import type { CollectionDocument, SavedRequest } from '#/shared/types';
+
+export type { ContainerItem, ContainerItemRef };
+export { mergeContainerItems };
 
 /**
  * Kind of draggable sidebar item within a collection.
  */
-export type DragKind = 'folder' | 'request';
+export type DragKind = 'folder' | 'request' | 'document';
 
 /**
- * Parsed drag id for folder or request sortable items.
+ * Parsed drag id for folder, request, or document sortable items.
  */
 export interface ParsedDragId {
   kind: DragKind;
@@ -42,6 +50,24 @@ export function requestDragId(requestId: number): string {
 }
 
 /**
+ * Builds a stable drag id for a markdown document row.
+ *
+ * @param documentId Saved document id.
+ */
+export function documentDragId(documentId: number): string {
+  return `document:${documentId}`;
+}
+
+/**
+ * Builds a stable drag id for a merged request or document row.
+ *
+ * @param item - Container item reference.
+ */
+export function containerItemDragId(item: ContainerItemRef): string {
+  return item.kind === 'request' ? requestDragId(item.id) : documentDragId(item.id);
+}
+
+/**
  * Builds a droppable id for the collection root container.
  *
  * @param collectionId Registry collection id.
@@ -60,13 +86,14 @@ export function dropFolderId(folderId: number): string {
 }
 
 /**
- * Parses a folder or request drag id into its kind and numeric id.
+ * Parses a folder, request, or document drag id into its kind and numeric id.
  *
  * @param value Raw dnd-kit item id.
  */
 export function parseDragId(value: string): ParsedDragId | null {
   const [kind, idValue] = value.split(':');
-  if (kind !== 'folder' && kind !== 'request') return null;
+  if (kind !== 'folder' && kind !== 'request' && kind !== 'document') return null;
+  if (idValue === '') return null;
   const id = Number(idValue);
   if (!Number.isFinite(id)) return null;
   return { kind, id };
@@ -108,7 +135,8 @@ export function parseDropTarget(
  */
 export function resolveRequestDropTarget(
   overId: string,
-  requests: SavedRequest[]
+  requests: SavedRequest[],
+  documents: CollectionDocument[] = []
 ): number | null | undefined {
   const overDrop = parseDropTarget(overId);
   if (overDrop) return overDrop.folderId;
@@ -124,7 +152,72 @@ export function resolveRequestDropTarget(
     return request.folder_id ?? null;
   }
 
+  if (parsed.kind === 'document') {
+    const document = documents.find((doc) => doc.id === parsed.id);
+    if (!document) return undefined;
+    return document.folder_id ?? null;
+  }
+
   return undefined;
+}
+
+/**
+ * Resolves which folder container a markdown document would drop into from the current over id.
+ *
+ * @param overId Active dnd-kit over id.
+ * @param documents Documents in the collection being dragged within.
+ * @param requests Requests in the same collection, used when hovering a request row.
+ * @returns folder id, null for collection root, or undefined when not a valid target.
+ */
+export function resolveDocumentDropTarget(
+  overId: string,
+  documents: CollectionDocument[],
+  requests: SavedRequest[]
+): number | null | undefined {
+  const overDrop = parseDropTarget(overId);
+  if (overDrop) return overDrop.folderId;
+
+  const parsed = parseDragId(overId);
+  if (!parsed) return undefined;
+
+  if (parsed.kind === 'folder') return parsed.id;
+
+  if (parsed.kind === 'document') {
+    const document = documents.find((doc) => doc.id === parsed.id);
+    if (!document) return undefined;
+    return document.folder_id ?? null;
+  }
+
+  if (parsed.kind === 'request') {
+    const request = requests.find((req) => req.id === parsed.id);
+    if (!request) return undefined;
+    return request.folder_id ?? null;
+  }
+
+  return undefined;
+}
+
+/**
+ * Resolves the unified insertion index for a drop target within a merged container list.
+ *
+ * @param items - Current merged container order.
+ * @param overId - Active dnd-kit over id.
+ * @returns Zero-based unified index, or undefined when the target is invalid.
+ */
+export function findUnifiedIndex(items: ContainerItemRef[], overId: string): number | undefined {
+  if (parseDropTarget(overId) != null) {
+    return items.length;
+  }
+
+  const parsed = parseDragId(overId);
+  if (!parsed) return undefined;
+
+  if (parsed.kind === 'folder') {
+    return items.length;
+  }
+
+  const index = items.findIndex((item) => item.kind === parsed.kind && item.id === parsed.id);
+  return index >= 0 ? index : undefined;
 }
 
 /**

@@ -49,6 +49,8 @@ import {
   docToProviderSnippet,
   docToRequest
 } from '#/main/storage/entityMappers';
+import { assertContainerItemOrder, planContainerItemMove } from '#/main/storage/containerReorder';
+import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
 import { bundleScriptFieldsWithLegacy } from '#/main/storage/scriptFields';
 import { trimRequiredName } from '#/main/storage/trimRequiredName';
 import { defaultAuth } from '#/shared/auth';
@@ -975,6 +977,41 @@ export class FirestoreStorage implements IStorage {
   }
 
   /**
+   * Reorders requests and markdown documents together within a folder or collection root.
+   *
+   * @param collectionId - Collection containing the items.
+   * @param folderId - Folder ID, or null for root-level items.
+   * @param items - Request and document refs in desired unified sidebar order.
+   */
+  async reorderContainerItems(
+    collectionId: number,
+    folderId: number | null,
+    items: ContainerItemRef[]
+  ): Promise<void> {
+    const firestore = this.getFirestore();
+    const requests = await this.listRequests(collectionId);
+    const documents = await this.listDocuments(collectionId);
+    assertContainerItemOrder(collectionId, folderId, items, requests, documents);
+
+    if (folderId != null) {
+      const folderSnap = await getDoc(doc(firestore, 'folders', String(folderId)));
+      if (!folderSnap.exists()) throw new Error('Folder not found');
+      const folderData = folderSnap.data() as Record<string, unknown>;
+      if (folderData.collection_id !== collectionId) throw new Error('Folder not found');
+    }
+
+    const batch = writeBatch(firestore);
+    items.forEach((item, unifiedIndex) => {
+      const collectionName = item.kind === 'request' ? 'requests' : 'documents';
+      batch.update(doc(firestore, collectionName, String(item.id)), {
+        sort_order: unifiedIndex,
+        folder_id: folderId
+      });
+    });
+    await batch.commit();
+  }
+
+  /**
    * Reorders documents within a folder or at collection root.
    *
    * @param collectionId - Collection containing the documents.
@@ -1024,7 +1061,7 @@ export class FirestoreStorage implements IStorage {
 
     const document = docToDocument(documentId, snap.data() as Record<string, unknown>);
     const collectionId = document.collection_id;
-    const oldFolderId = document.folder_id;
+    const sourceFolderId = document.folder_id ?? null;
 
     if (folderId != null) {
       const folderSnap = await getDoc(doc(firestore, 'folders', String(folderId)));
@@ -1033,41 +1070,21 @@ export class FirestoreStorage implements IStorage {
       if (folderData.collection_id !== collectionId) throw new Error('Folder not found');
     }
 
-    const allDocuments = await this.listDocuments(collectionId);
+    const requests = await this.listRequests(collectionId);
+    const documents = await this.listDocuments(collectionId);
+    const plan = planContainerItemMove(
+      requests,
+      documents,
+      { kind: 'document', id: documentId },
+      sourceFolderId,
+      folderId,
+      index
+    );
 
-    const listInContainer = (targetFolderId: number | null): number[] =>
-      allDocuments
-        .filter(
-          (item) =>
-            (targetFolderId == null && item.folder_id == null) || item.folder_id === targetFolderId
-        )
-        .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
-        .map((item) => item.id);
-
-    const batch = writeBatch(firestore);
-    const stageReindex = (targetFolderId: number | null, orderedIds: number[]): void => {
-      orderedIds.forEach((id, sortIndex) => {
-        batch.update(doc(firestore, 'documents', String(id)), {
-          sort_order: sortIndex,
-          folder_id: targetFolderId
-        });
-      });
-    };
-
-    if (oldFolderId === folderId) {
-      const siblings = listInContainer(folderId).filter((id) => id !== documentId);
-      siblings.splice(index, 0, documentId);
-      stageReindex(folderId, siblings);
-    } else {
-      const oldIds = listInContainer(oldFolderId).filter((id) => id !== documentId);
-      stageReindex(oldFolderId, oldIds);
-
-      const newIds = listInContainer(folderId).filter((id) => id !== documentId);
-      newIds.splice(index, 0, documentId);
-      stageReindex(folderId, newIds);
+    if (plan.sourceOrder) {
+      await this.reorderContainerItems(collectionId, sourceFolderId, plan.sourceOrder);
     }
-
-    await batch.commit();
+    await this.reorderContainerItems(collectionId, folderId, plan.destinationOrder);
   }
 
   /**
@@ -1141,7 +1158,7 @@ export class FirestoreStorage implements IStorage {
 
     const request = docToRequest(requestId, snap.data() as Record<string, unknown>);
     const collectionId = request.collection_id;
-    const oldFolderId = request.folder_id;
+    const sourceFolderId = request.folder_id ?? null;
 
     if (folderId != null) {
       const folderSnap = await getDoc(doc(firestore, 'folders', String(folderId)));
@@ -1150,44 +1167,21 @@ export class FirestoreStorage implements IStorage {
       if (folderData.collection_id !== collectionId) throw new Error('Folder not found');
     }
 
-    const allRequests = await this.listRequests(collectionId);
+    const requests = await this.listRequests(collectionId);
+    const documents = await this.listDocuments(collectionId);
+    const plan = planContainerItemMove(
+      requests,
+      documents,
+      { kind: 'request', id: requestId },
+      sourceFolderId,
+      folderId,
+      index
+    );
 
-    const listInContainer = (targetFolderId: number | null): number[] =>
-      allRequests
-        .filter(
-          (item) =>
-            (targetFolderId == null && item.folder_id == null) || item.folder_id === targetFolderId
-        )
-        .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
-        .map((item) => item.id);
-
-    // Stage all source- and destination-container updates into a single batch so
-    // the move commits atomically; a partial commit cannot leave duplicate or
-    // gap-filled sort_order values across the two containers.
-    const batch = writeBatch(firestore);
-    const stageReindex = (targetFolderId: number | null, orderedIds: number[]): void => {
-      orderedIds.forEach((id, sortIndex) => {
-        batch.update(doc(firestore, 'requests', String(id)), {
-          sort_order: sortIndex,
-          folder_id: targetFolderId
-        });
-      });
-    };
-
-    if (oldFolderId === folderId) {
-      const siblings = listInContainer(folderId).filter((id) => id !== requestId);
-      siblings.splice(index, 0, requestId);
-      stageReindex(folderId, siblings);
-    } else {
-      const oldIds = listInContainer(oldFolderId).filter((id) => id !== requestId);
-      stageReindex(oldFolderId, oldIds);
-
-      const newIds = listInContainer(folderId).filter((id) => id !== requestId);
-      newIds.splice(index, 0, requestId);
-      stageReindex(folderId, newIds);
+    if (plan.sourceOrder) {
+      await this.reorderContainerItems(collectionId, sourceFolderId, plan.sourceOrder);
     }
-
-    await batch.commit();
+    await this.reorderContainerItems(collectionId, folderId, plan.destinationOrder);
   }
 
   /**

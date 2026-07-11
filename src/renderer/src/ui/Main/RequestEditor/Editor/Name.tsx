@@ -73,7 +73,7 @@ export function Name({
           <Input
             ref={nameInputRef}
             variant="plain"
-            className="min-w-0 flex-1 border-none bg-transparent p-0 text-[15px] font-semibold text-text outline-none app-no-drag"
+            className="min-w-0 flex-1 border-none bg-transparent p-0 text-[16px] font-semibold text-text outline-none app-no-drag"
             type="text"
             value={name}
             onChange={(e) => onNameChange(e.target.value)}
@@ -96,7 +96,7 @@ export function Name({
           />
           <button
             type="button"
-            className="flex min-w-0 flex-1 cursor-text items-center border-none bg-transparent p-0 text-left text-[15px] font-semibold text-text hover:opacity-80 app-no-drag"
+            className="flex min-w-0 flex-1 cursor-text items-center border-none bg-transparent p-0 text-left text-[16px] font-semibold text-text hover:opacity-80 app-no-drag"
             onClick={() => setEditingName(true)}
           >
             <span className="shrink-0 whitespace-nowrap">

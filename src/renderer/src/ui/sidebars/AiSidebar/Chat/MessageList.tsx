@@ -31,11 +31,15 @@ export function MessageList({ messages, sending }: Props): JSX.Element {
   }, [messages, sending]);
 
   if (messages.length === 0 && !sending) {
-    return <EmptyState variant="centered">Start the conversation.</EmptyState>;
+    return (
+      <EmptyState variant="centered" className="flex-1 min-h-0">
+        Start the conversation.
+      </EmptyState>
+    );
   }
 
   return (
-    <Scrollbars axis="vertical">
+    <Scrollbars axis="vertical" className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1 flex-col gap-4 p-3">
         {messages.map((message) => (
           <MessageBubble key={message.id} message={message} />

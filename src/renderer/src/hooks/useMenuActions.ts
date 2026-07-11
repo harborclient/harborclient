@@ -7,6 +7,7 @@ import {
   openAboutModal,
   openAcceptTeamHubInviteModal,
   openCollectionModal,
+  openTabGroupModal,
   openActionMenuModal,
   openShortcutsReferenceModal,
   openSyncModal,
@@ -240,6 +241,9 @@ export function useMenuActions(): void {
           break;
         case 'action-menu':
           dispatch(openActionMenuModal());
+          break;
+        case 'create-tab-group':
+          dispatch(openTabGroupModal({ mode: 'create' }));
           break;
         case 'check-for-updates':
           dispatch(openUpdateModal());

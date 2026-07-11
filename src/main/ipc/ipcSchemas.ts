@@ -18,6 +18,7 @@ import {
 } from '#/main/schemas/common';
 import { ipcScriptRefArray, scriptSource } from '#/main/schemas/scriptRef';
 import { CODE_EDITOR_THEME_IDS } from '#/shared/codeEditorSettings';
+import { MAX_ZOOM_FACTOR, MIN_ZOOM_FACTOR } from '#/shared/zoomPresets';
 import {
   requestExportSchema,
   runResultsExportSchema,
@@ -45,6 +46,8 @@ import type {
   TeamHub,
   ShortcutOverrides,
   SidebarExpansionState,
+  RequestHistoryEntry,
+  CreateTabGroupInput,
   McpClientServer,
   McpServerSettings
 } from '#/shared/types';
@@ -98,6 +101,8 @@ const themeMenuOption = z.object({
   value: themeSource,
   label: z.string().min(1)
 });
+
+export const zoomFactor = z.number().min(MIN_ZOOM_FACTOR).max(MAX_ZOOM_FACTOR);
 
 export const rootMenuLabel = z.enum(['File', 'Edit', 'View', 'Team', 'Help']);
 
@@ -562,17 +567,51 @@ export const sidebarExpansion = z.object({
   sections: z.object({
     collections: z.boolean(),
     environments: z.boolean(),
-    runResults: z.boolean()
+    runResults: z.boolean(),
+    history: z.boolean(),
+    tabGroups: z.boolean()
   }),
   sectionVisibility: z.object({
     collections: z.boolean(),
     environments: z.boolean(),
-    runResults: z.boolean()
+    runResults: z.boolean(),
+    history: z.boolean(),
+    tabGroups: z.boolean()
   }),
   collectionIds: z.array(dbId),
   folderIds: z.array(dbId),
   showStorageLocationBadges: z.boolean()
 }) satisfies z.ZodType<SidebarExpansionState>;
+
+export const requestHistoryEntry = z.object({
+  id: z.number().int(),
+  method: z.string().min(1),
+  url: z.string(),
+  status: z.number().int(),
+  statusText: z.string(),
+  ts: z.number().int(),
+  savedRequestId: z.number().int().positive().optional(),
+  name: z.string().optional(),
+  headers: z.record(z.string(), z.string()).optional(),
+  params: z.array(z.object({ key: z.string(), value: z.string() })).optional(),
+  body: z.string().optional(),
+  bodyType: bodyType.optional(),
+  kind: z.enum(['request', 'run']).optional(),
+  runCollectionId: z.number().int().positive().optional(),
+  runFolderId: z.number().int().positive().nullable().optional(),
+  runRequestId: z.number().int().positive().nullable().optional()
+}) satisfies z.ZodType<RequestHistoryEntry>;
+
+export const tabGroupRequest = z.object({
+  requestUuid: z.string().trim().min(1),
+  collectionId: z.number().int().positive().optional(),
+  requestName: z.string().optional()
+});
+
+export const createTabGroupInput = z.object({
+  name: z.string().trim().min(1),
+  requests: z.array(tabGroupRequest)
+}) satisfies z.ZodType<CreateTabGroupInput>;
 
 export const panelLayout = z.object({
   showSidebar: z.boolean(),
@@ -620,6 +659,7 @@ export const ipcArgSchemas = {
   label: z.tuple([label]),
   labelAndPublicKey: z.tuple([label, publicKeyPem]),
   themeSet: z.tuple([themeSource]),
+  zoomSet: z.tuple([zoomFactor]),
   closeDecision: z.tuple([z.boolean()]),
   menuSidebarVisible: z.tuple([z.boolean()]),
   menuAiSidebarVisible: z.tuple([z.boolean()]),
@@ -630,6 +670,7 @@ export const ipcArgSchemas = {
   menuRunResultsVisible: z.tuple([z.boolean()]),
   menuThemeMenuState: z.tuple([themeSource, z.array(themeMenuOption)]),
   menuCreatorUndoRedo: z.tuple([z.boolean(), z.boolean(), z.boolean()]),
+  menuTabGroupAvailable: z.tuple([z.boolean()]),
   menuPopupSubmenu: z.tuple([rootMenuLabel, z.number(), z.number()]),
   menuGetSubmenuSnapshot: z.tuple([rootMenuLabel]),
   menuActivateSubmenuItem: z.tuple([rootMenuLabel, z.number().int().nonnegative()]),
@@ -751,6 +792,15 @@ export const ipcArgSchemas = {
   folderReorder: z.tuple([dbId, z.array(dbId)]),
   requestReorder: z.tuple([dbId, nullableFolderId, z.array(dbId)]),
   requestMove: z.tuple([dbId, nullableFolderId, dbId]),
+  containerItemRef: z.object({
+    kind: z.enum(['request', 'document']),
+    id: dbId
+  }),
+  containerItemsReorder: z.tuple([
+    dbId,
+    nullableFolderId,
+    z.array(z.object({ kind: z.enum(['request', 'document']), id: dbId }))
+  ]),
   documentList: z.tuple([dbId]),
   documentSave: z.tuple([saveDocumentInput]),
   documentDelete: z.tuple([dbId]),
@@ -889,5 +939,13 @@ export const ipcArgSchemas = {
       .max(128)
   ]),
   customThemeSave: z.tuple([customThemeSaveInputSchema]),
-  inspectElement: z.tuple([z.object({ x: z.number(), y: z.number() })])
+  inspectElement: z.tuple([z.object({ x: z.number(), y: z.number() })]),
+  requestHistoryAdd: z.tuple([requestHistoryEntry]),
+  requestHistoryDelete: z.tuple([z.number().int()]),
+  tabGroupsCreate: z.tuple([createTabGroupInput]),
+  tabGroupsUpdate: z.tuple([z.number().int().positive(), z.array(tabGroupRequest)]),
+  tabGroupsRename: z.tuple([z.number().int().positive(), z.string().trim().min(1)]),
+  tabGroupsClone: z.tuple([z.number().int().positive(), z.string().trim().min(1)]),
+  tabGroupsDelete: z.tuple([z.number().int().positive()]),
+  tabGroupsReorder: z.tuple([z.array(dbId)])
 } as const;

@@ -1,24 +1,10 @@
 import { Scrollbars } from '#/renderer/src/components/Scrollbars';
 import {
-  DndContext,
-  DragOverlay,
-  KeyboardSensor,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-  type DragStartEvent
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  arrayMove,
-  horizontalListSortingStrategy,
-  rectSortingStrategy,
-  sortableKeyboardCoordinates
-} from '@dnd-kit/sortable';
-import { FaIcon, resolveTabListKeyAction } from '@harborclient/sdk/components';
-import { Fragment, useEffect, useMemo, useState, type JSX, type KeyboardEvent } from 'react';
+  TabBar as SdkTabBar,
+  buildTabCloseMenuGroups,
+  type TabBarItem
+} from '@harborclient/sdk/components';
+import { useMemo, type JSX, type ReactNode } from 'react';
 import { isMarkdownTab, isPageTab, isRequestTab, type Tab } from '#/renderer/src/store/drafts';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectWrapTabs } from '#/renderer/src/store/slices/settingsSlice';
@@ -35,105 +21,14 @@ import {
   resolveRunnerTargetNames,
   runnerTargetLabel
 } from '#/renderer/src/ui/CollectionRunner/resolveRunnerTargetName';
+import { selectEditingTabGroupId } from '#/renderer/src/store/slices/tabGroupSlice';
+import { isOpenSavedRequestTab } from '#/renderer/src/store/thunks/tabGroups';
 
-import { faPlus } from '#/renderer/src/fontawesome';
 import { pageTabMeta } from './pageTabMeta';
 import { focusRequestTabControl } from './focusFirstRequestTab';
-import {
-  focusFirstFocusableInRequestTabPanel,
-  resolveRequestTabIdFromFocusTarget
-} from './focusRequestTabPanel';
-import { TabItem } from './TabItem';
-import { TabContextMenu } from '#/renderer/src/ui/shared/TabContextMenu';
-import { buildTabCloseMenuGroups } from '#/renderer/src/ui/shared/tabContextMenuHelpers';
-import { ClosingTabShell } from '#/renderer/src/ui/shared/ClosingTabShell';
-import { useExitingTabItems } from '#/renderer/src/ui/shared/useExitingTabItems';
-
-interface TabContextMenuState {
-  /**
-   * Tab that was right-clicked.
-   */
-  tabId: string;
-
-  /**
-   * Viewport X coordinate for the menu.
-   */
-  x: number;
-
-  /**
-   * Viewport Y coordinate for the menu.
-   */
-  y: number;
-}
-
-/** Prefix for request editor tab label element ids. */
-const REQUEST_TAB_ID_PREFIX = 'request-tab-';
-
-/** Prefix for request editor sortable drag ids. */
-const REQUEST_TAB_SORT_PREFIX = 'request-tab-sort:';
-
-/**
- * Builds a stable dnd-kit sortable id for a request editor tab.
- *
- * @param tabId - Open tab id.
- */
-function requestTabSortableId(tabId: string): string {
-  return `${REQUEST_TAB_SORT_PREFIX}${tabId}`;
-}
-
-/**
- * Parses a request editor sortable drag id back to its tab id.
- *
- * @param dragId - Sortable id from dnd-kit.
- */
-function parseRequestTabSortableId(dragId: string): string | null {
-  if (!dragId.startsWith(REQUEST_TAB_SORT_PREFIX)) {
-    return null;
-  }
-  return dragId.slice(REQUEST_TAB_SORT_PREFIX.length);
-}
-
-/**
- * Resolves the tab list index for arrow-key navigation from keyboard focus.
- *
- * Uses the focused tab label when focus is inside a tab row; falls back to the
- * currently selected tab when focus is elsewhere in the tab list.
- *
- * @param tabs - Open tabs in display order.
- * @param activeTabId - Currently selected tab id.
- * @returns Index into `tabs`, or `-1` when the list is empty.
- */
-function resolveFocusedTabIndex(tabs: Tab[], activeTabId: string): number {
-  const activeElement = document.activeElement;
-  if (activeElement instanceof HTMLElement) {
-    const tabElement = activeElement.closest('[role="tab"]');
-    if (tabElement instanceof HTMLElement && tabElement.id.startsWith(REQUEST_TAB_ID_PREFIX)) {
-      const tabId = tabElement.id.slice(REQUEST_TAB_ID_PREFIX.length);
-      const focusedIndex = tabs.findIndex((tab) => tab.tabId === tabId);
-      if (focusedIndex >= 0) {
-        return focusedIndex;
-      }
-    }
-  }
-
-  return tabs.findIndex((tab) => tab.tabId === activeTabId);
-}
-
-/**
- * Resolves overlay preview text for a dragged request editor tab.
- *
- * @param tab - Tab being dragged.
- * @param pageTitle - Resolved page tab title, when applicable.
- */
-function requestTabDragLabel(tab: Tab, pageTitle?: string): string {
-  if (isPageTab(tab)) {
-    return pageTitle ?? 'Page';
-  }
-  if (isRequestTab(tab)) {
-    return `${tab.draft.method} ${tab.draft.name}`;
-  }
-  return 'Tab';
-}
+import { focusFirstFocusableInRequestTabPanel } from './focusRequestTabPanel';
+import { buildRequestTabBarItems } from './buildRequestTabBarItems';
+import { mergeVisibleTabOrder } from './mergeVisibleTabOrder';
 
 interface Props {
   /**
@@ -183,6 +78,11 @@ interface Props {
    * @param orderedTabIds - Tab ids in display order.
    */
   onReorder: (orderedTabIds: string[]) => void;
+
+  /**
+   * Open tab ids hidden from the tab bar during tab group edit mode.
+   */
+  hiddenTabIds?: ReadonlySet<string>;
 }
 
 /**
@@ -196,87 +96,35 @@ export function TabBar({
   onCloseMany,
   onCloseSaved,
   onNew,
-  onReorder
+  onReorder,
+  hiddenTabIds
 }: Props): JSX.Element {
   const collections = useAppSelector(selectCollections);
   const allEnvironments = useAppSelector(selectEnvironments);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
+  const editingTabGroupId = useAppSelector(selectEditingTabGroupId);
   const { teamHubs } = useTeamHubs();
   const wrapTabs = useAppSelector(selectWrapTabs);
-  const [activeDragTabId, setActiveDragTabId] = useState<string | null>(null);
-  const [contextMenu, setContextMenu] = useState<TabContextMenuState | null>(null);
-  const sortableEnabled = tabs.length >= 2;
-  const { exiting, completeExit, getExitingBefore, removedIds } = useExitingTabItems(
-    tabs,
-    (tab) => tab.tabId
-  );
 
   /**
-   * Moves focus to the active tab when the focused tab row was just removed.
+   * Tabs rendered in the tab bar, excluding those hidden during tab group edit mode.
    */
-  useEffect(() => {
-    if (removedIds.length === 0) {
-      return;
+  const visibleTabs = useMemo(() => {
+    if (hiddenTabIds == null || hiddenTabIds.size === 0) {
+      return tabs;
     }
 
-    const focusedTab = document.activeElement?.closest('[role="tab"]');
-    if (!(focusedTab instanceof HTMLElement) || !focusedTab.id.startsWith(REQUEST_TAB_ID_PREFIX)) {
-      return;
-    }
-
-    const focusedTabId = focusedTab.id.slice(REQUEST_TAB_ID_PREFIX.length);
-    if (!removedIds.includes(focusedTabId) || !activeTabId) {
-      return;
-    }
-
-    requestAnimationFrame(() => {
-      focusRequestTabControl(activeTabId);
-    });
-  }, [activeTabId, removedIds]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-
-  /**
-   * Stable sortable ids for open request editor tabs.
-   */
-  const sortableIds = useMemo(() => tabs.map((tab) => requestTabSortableId(tab.tabId)), [tabs]);
-
-  /**
-   * Stable tab ids in display order for context menu close actions.
-   */
-  const orderedTabIds = useMemo(() => tabs.map((tab) => tab.tabId), [tabs]);
-
-  /**
-   * Menu groups for the open tab context menu, when one is visible.
-   */
-  const contextMenuGroups = useMemo(() => {
-    if (contextMenu == null) {
-      return [];
-    }
-
-    return buildTabCloseMenuGroups(orderedTabIds, contextMenu.tabId, {
-      onClose,
-      onCloseMany,
-      onCloseSaved
-    });
-  }, [contextMenu, onClose, onCloseMany, onCloseSaved, orderedTabIds]);
+    return tabs.filter((tab) => !hiddenTabIds.has(tab.tabId));
+  }, [hiddenTabIds, tabs]);
 
   /**
    * Resolves display metadata for each page tab using current entity names.
    */
   const pageTabDisplays = useMemo(() => {
-    const liveTabIds = new Set(tabs.map((tab) => tab.tabId));
-    const tabsForDisplay = [
-      ...tabs,
-      ...exiting.map((entry) => entry.item).filter((tab) => !liveTabIds.has(tab.tabId))
-    ];
-
     const displays = new Map<string, ReturnType<typeof pageTabMeta>>();
-    for (const tab of tabsForDisplay) {
+
+    for (const tab of visibleTabs) {
       if (!isPageTab(tab)) {
         continue;
       }
@@ -329,10 +177,10 @@ export function TabBar({
         })
       );
     }
+
     return displays;
   }, [
-    tabs,
-    exiting,
+    visibleTabs,
     collections,
     allEnvironments,
     foldersByCollection,
@@ -341,238 +189,96 @@ export function TabBar({
   ]);
 
   /**
-   * Tab currently being dragged for overlay preview.
+   * Tab ids that should appear highlighted during tab group edit mode.
    */
-  const activeDragTab = useMemo(() => {
-    if (activeDragTabId == null) {
-      return null;
+  const highlightedTabIds = useMemo(() => {
+    if (editingTabGroupId == null) {
+      return undefined;
     }
-    return tabs.find((tab) => tab.tabId === activeDragTabId) ?? null;
-  }, [activeDragTabId, tabs]);
+
+    return new Set(visibleTabs.filter((tab) => isOpenSavedRequestTab(tab)).map((tab) => tab.tabId));
+  }, [editingTabGroupId, visibleTabs]);
 
   /**
-   * Records the tab being dragged for overlay preview.
-   *
-   * @param event - Drag start event from dnd-kit.
+   * Maps visible request editor tabs into SDK tab bar rows.
    */
-  const handleDragStart = (event: DragStartEvent): void => {
-    const tabId = parseRequestTabSortableId(String(event.active.id));
-    setActiveDragTabId(tabId);
-  };
-
-  /**
-   * Persists a new tab order when a tab is dropped.
-   *
-   * @param event - Drag end event from dnd-kit.
-   */
-  const handleDragEnd = (event: DragEndEvent): void => {
-    const { active, over } = event;
-    setActiveDragTabId(null);
-    if (!over || !sortableEnabled) {
-      return;
-    }
-
-    const activeTabIdFromDrag = parseRequestTabSortableId(String(active.id));
-    const overTabId = parseRequestTabSortableId(String(over.id));
-    if (activeTabIdFromDrag == null || overTabId == null || activeTabIdFromDrag === overTabId) {
-      return;
-    }
-
-    const tabIds = tabs.map((tab) => tab.tabId);
-    const oldIndex = tabIds.indexOf(activeTabIdFromDrag);
-    const newIndex = tabIds.indexOf(overTabId);
-    if (oldIndex < 0 || newIndex < 0) {
-      return;
-    }
-
-    onReorder(arrayMove(tabIds, oldIndex, newIndex));
-  };
-
-  /**
-   * Moves focus and selection across open tabs with arrow, Home, and End keys,
-   * and moves Down from a focused request tab into its editor panel.
-   *
-   * @param event - Keyboard event from the tab list container.
-   */
-  const handleTabListKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
-    if (event.key === 'ArrowDown') {
-      const focusedTabId = resolveRequestTabIdFromFocusTarget(document.activeElement);
-      if (focusedTabId != null) {
-        const focusedTab = tabs.find((tab) => tab.tabId === focusedTabId);
-        if (focusedTab != null && (isRequestTab(focusedTab) || isMarkdownTab(focusedTab))) {
-          event.preventDefault();
-
-          /**
-           * Waits for React to mount the linked tab panel before focusing inside it.
-           */
-          const focusPanel = (): void => {
-            focusFirstFocusableInRequestTabPanel(focusedTabId);
-          };
-
-          if (focusedTabId !== activeTabId) {
-            onSelect(focusedTabId);
-            requestAnimationFrame(() => {
-              requestAnimationFrame(focusPanel);
-            });
-          } else {
-            requestAnimationFrame(focusPanel);
-          }
-
-          return;
-        }
-      }
-    }
-
-    const currentIndex = resolveFocusedTabIndex(tabs, activeTabId);
-    const nextIndex = resolveTabListKeyAction(event.key, currentIndex, tabs.length);
-    if (nextIndex === null) return;
-
-    event.preventDefault();
-    const nextTab = tabs[nextIndex];
-    onSelect(nextTab.tabId);
-
-    requestAnimationFrame(() => {
-      focusRequestTabControl(nextTab.tabId);
-    });
-  };
-
-  const tabRowClassName = wrapTabs
-    ? 'w-full min-w-0 py-1'
-    : 'flex w-max flex-nowrap items-end py-1';
-  const tabListClassName = wrapTabs ? 'flex min-w-0 w-full flex-wrap items-end' : 'flex items-end';
-  const sortStrategy = wrapTabs ? rectSortingStrategy : horizontalListSortingStrategy;
-
-  const newTabButton = (
-    <div className="flex shrink-0 items-end ms-2 px-1 -mb-1">
-      <button
-        type="button"
-        className="hc-tab-new-button mb-2.5 inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text app-no-drag"
-        title="New tab"
-        aria-label="New tab"
-        onClick={onNew}
-      >
-        <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
-      </button>
-    </div>
+  const tabBarItems = useMemo(
+    (): TabBarItem<string>[] =>
+      buildRequestTabBarItems({
+        tabs: visibleTabs,
+        activeTabId,
+        pageTabDisplays,
+        highlightedTabIds
+      }),
+    [activeTabId, highlightedTabIds, pageTabDisplays, visibleTabs]
   );
 
-  const tabRow = (
-    <div className={tabRowClassName}>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragCancel={() => setActiveDragTabId(null)}
-      >
-        <div
-          role="tablist"
-          aria-label="Open tabs"
-          className={tabListClassName}
-          onKeyDown={handleTabListKeyDown}
-        >
-          <SortableContext items={sortableIds} strategy={sortStrategy}>
-            {tabs.map((tab) => {
-              const pageDisplay = pageTabDisplays.get(tab.tabId);
-              return (
-                <Fragment key={tab.tabId}>
-                  {getExitingBefore(tab.tabId).map((exitingTab) => {
-                    const exitingPageDisplay = pageTabDisplays.get(exitingTab.item.tabId);
-                    return (
-                      <ClosingTabShell
-                        key={exitingTab.exitKey}
-                        onComplete={() => completeExit(exitingTab.exitKey)}
-                      >
-                        <TabItem
-                          tab={exitingTab.item}
-                          active={false}
-                          exiting
-                          tabIndex={-1}
-                          sortableId={requestTabSortableId(exitingTab.item.tabId)}
-                          sortableDisabled
-                          pageTitle={exitingPageDisplay?.title}
-                          pageIcon={exitingPageDisplay?.icon}
-                          onSelect={onSelect}
-                          onClose={onClose}
-                        />
-                      </ClosingTabShell>
-                    );
-                  })}
-                  <TabItem
-                    tab={tab}
-                    active={tab.tabId === activeTabId}
-                    tabIndex={0}
-                    sortableId={requestTabSortableId(tab.tabId)}
-                    sortableDisabled={!sortableEnabled}
-                    pageTitle={pageDisplay?.title}
-                    pageIcon={pageDisplay?.icon}
-                    onSelect={onSelect}
-                    onClose={onClose}
-                    onContextMenu={(tabId, event) => {
-                      setContextMenu({
-                        tabId,
-                        x: event.clientX,
-                        y: event.clientY
-                      });
-                    }}
-                  />
-                </Fragment>
-              );
-            })}
-            {getExitingBefore(null).map((exitingTab) => {
-              const exitingPageDisplay = pageTabDisplays.get(exitingTab.item.tabId);
-              return (
-                <ClosingTabShell
-                  key={exitingTab.exitKey}
-                  onComplete={() => completeExit(exitingTab.exitKey)}
-                >
-                  <TabItem
-                    tab={exitingTab.item}
-                    active={false}
-                    exiting
-                    tabIndex={-1}
-                    sortableId={requestTabSortableId(exitingTab.item.tabId)}
-                    sortableDisabled
-                    pageTitle={exitingPageDisplay?.title}
-                    pageIcon={exitingPageDisplay?.icon}
-                    onSelect={onSelect}
-                    onClose={onClose}
-                  />
-                </ClosingTabShell>
-              );
-            })}
-          </SortableContext>
-          {wrapTabs ? newTabButton : null}
-        </div>
-
-        <DragOverlay>
-          {activeDragTab ? (
-            <div className="rounded-t-lg border border-separator bg-surface px-3 py-2 text-[14px] font-medium shadow-md">
-              {requestTabDragLabel(activeDragTab, pageTabDisplays.get(activeDragTab.tabId)?.title)}
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
-      {wrapTabs ? null : newTabButton}
-    </div>
+  /**
+   * Wraps the tab row in the app horizontal scrollbar when tabs do not wrap.
+   */
+  const renderScrollContainer = (row: ReactNode): ReactNode => (
+    <Scrollbars axis="horizontal" className="hc-tab-bar-scroll min-w-0 flex-1">
+      {row}
+    </Scrollbars>
   );
 
   return (
-    <div className="flex shrink-0 min-h-16 items-end border-b border-separator bg-sidebar px-2 app-no-drag">
-      {wrapTabs ? (
-        <div className="min-w-0 flex-1">{tabRow}</div>
-      ) : (
-        <Scrollbars axis="horizontal" className="hc-tab-bar-scroll min-w-0 flex-1">
-          {tabRow}
-        </Scrollbars>
-      )}
-      {contextMenu && (
-        <TabContextMenu
-          groups={contextMenuGroups}
-          position={{ x: contextMenu.x, y: contextMenu.y }}
-          onClose={() => setContextMenu(null)}
-        />
-      )}
-    </div>
+    <SdkTabBar
+      tabs={tabBarItems}
+      activeId={activeTabId}
+      wrap={wrapTabs}
+      ariaLabel="Open tabs"
+      tabIdPrefix="request-tab-"
+      panelIdPrefix="request-tabpanel-"
+      sortablePrefix="request-tab-sort:"
+      className="min-h-16"
+      maxTabWidthClass="max-w-[220px]"
+      newTab={{
+        ariaLabel: 'New tab',
+        title: 'New tab',
+        onClick: onNew
+      }}
+      onSelect={onSelect}
+      onClose={onClose}
+      onReorder={(reorderedVisibleIds) => {
+        onReorder(
+          mergeVisibleTabOrder(
+            tabs.map((tab) => tab.tabId),
+            hiddenTabIds ?? new Set<string>(),
+            reorderedVisibleIds
+          )
+        );
+      }}
+      buildContextMenuGroups={(targetId, orderedIds) =>
+        buildTabCloseMenuGroups(orderedIds, targetId, {
+          onClose,
+          onCloseMany,
+          onCloseSaved
+        })
+      }
+      onFocusTab={focusRequestTabControl}
+      onArrowDownIntoPanel={(tabId) => {
+        const tab = visibleTabs.find((entry) => entry.tabId === tabId);
+        if (tab == null || (!isRequestTab(tab) && !isMarkdownTab(tab))) {
+          return false;
+        }
+
+        if (tabId !== activeTabId) {
+          onSelect(tabId);
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              focusFirstFocusableInRequestTabPanel(tabId);
+            });
+          });
+        } else {
+          requestAnimationFrame(() => {
+            focusFirstFocusableInRequestTabPanel(tabId);
+          });
+        }
+
+        return true;
+      }}
+      renderScrollContainer={wrapTabs ? undefined : renderScrollContainer}
+    />
   );
 }

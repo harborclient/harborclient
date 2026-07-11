@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { mergeContainerItems } from '#/shared/collectionContainerOrder';
 import type { IStorage } from '#/main/storage/IStorage';
 import { defaultAuth } from '#/shared/auth';
 import type { CollectionExport, SaveDocumentInput, SaveRequestInput } from '#/shared/types';
@@ -792,6 +793,78 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
       expect(importedDocuments).toHaveLength(1);
       expect(importedDocuments[0]?.folder_id).toBe(importedFolders[0]?.id);
       expect(importedDocuments[0]?.content).toBe('# Hello');
+    });
+  });
+
+  describe(`${label} container ordering`, () => {
+    it('reorderContainerItems interleaves a document between two requests', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Ordering');
+      const first = await db.saveRequest(baseRequestInput(collection.id, { name: 'First' }));
+      const second = await db.saveRequest(baseRequestInput(collection.id, { name: 'Second' }));
+      const doc = await db.saveDocument(baseDocumentInput(collection.id, { name: 'Notes.md' }));
+
+      await db.reorderContainerItems(collection.id, null, [
+        { kind: 'request', id: first.id },
+        { kind: 'request', id: second.id },
+        { kind: 'document', id: doc.id }
+      ]);
+
+      await db.reorderContainerItems(collection.id, null, [
+        { kind: 'request', id: first.id },
+        { kind: 'document', id: doc.id },
+        { kind: 'request', id: second.id }
+      ]);
+
+      const requests = await db.listRequests(collection.id);
+      const documents = await db.listDocuments(collection.id);
+      const merged = mergeContainerItems(requests, documents, null);
+
+      expect(merged.map((item) => `${item.kind}:${item.name}`)).toEqual([
+        'request:First',
+        'document:Notes.md',
+        'request:Second'
+      ]);
+    });
+
+    it('moveDocument places a document at a unified index between requests', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Ordering');
+      await db.saveRequest(baseRequestInput(collection.id, { name: 'First' }));
+      await db.saveRequest(baseRequestInput(collection.id, { name: 'Second' }));
+      const doc = await db.saveDocument(baseDocumentInput(collection.id, { name: 'Notes.md' }));
+
+      await db.moveDocument(doc.id, null, 1);
+
+      const requests = await db.listRequests(collection.id);
+      const documents = await db.listDocuments(collection.id);
+      const merged = mergeContainerItems(requests, documents, null);
+
+      expect(merged.map((item) => `${item.kind}:${item.name}`)).toEqual([
+        'request:First',
+        'document:Notes.md',
+        'request:Second'
+      ]);
+    });
+
+    it('moveRequest places a request at a unified index between documents', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Ordering');
+      await db.saveDocument(baseDocumentInput(collection.id, { name: 'A.md' }));
+      await db.saveDocument(baseDocumentInput(collection.id, { name: 'B.md' }));
+      const request = await db.saveRequest(baseRequestInput(collection.id, { name: 'Middle' }));
+
+      await db.moveRequest(request.id, null, 1);
+
+      const requests = await db.listRequests(collection.id);
+      const documents = await db.listDocuments(collection.id);
+      const merged = mergeContainerItems(requests, documents, null);
+
+      expect(merged.map((item) => `${item.kind}:${item.name}`)).toEqual([
+        'document:A.md',
+        'request:Middle',
+        'document:B.md'
+      ]);
     });
   });
 }

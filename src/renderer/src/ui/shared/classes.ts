@@ -2,6 +2,10 @@
  * Shared macOS-style Tailwind class strings.
  */
 
+import { tabItem as requestTabItem } from '@harborclient/sdk/components';
+
+export { requestTabItem };
+
 /**
  * Tailwind classes for a sidebar source row (collection, folder, or request).
  *
@@ -11,22 +15,8 @@
 export function sourceRow(selected: boolean, compact = false): string {
   const py = compact ? 'py-0' : 'py-0.5';
   return selected
-    ? `group flex items-center gap-1 rounded-md bg-selection px-1.5 ${py} app-no-drag`
-    : `group flex items-center gap-1 rounded-md px-1.5 ${py} hover:bg-selection/60 app-no-drag`;
-}
-
-/**
- * Active/inactive surface classes for a request tab in the tab bar.
- *
- * @param active - Whether this tab is the selected editor.
- * @returns Border, background, and text color classes for the tab shell.
- *          Active tabs use a 2px bottom underline; inactive tabs reserve the
- *          same space with a transparent bottom border.
- */
-export function requestTabItem(active: boolean): string {
-  return active
-    ? 'border-separator/70 border-b-tab-underline bg-selection text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent'
-    : 'border-separator/50 border-b-transparent bg-control/20 text-muted hover:bg-selection/60 hover:text-text focus-visible:bg-selection/60 focus-visible:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent';
+    ? `group flex items-center gap-1 rounded-md bg-selection pr-1.5 pl-0 ${py} app-no-drag`
+    : `group flex items-center gap-1 rounded-md pr-1.5 pl-0 ${py} hover:bg-selection/60 app-no-drag`;
 }
 
 export const separator = 'h-px bg-separator';

@@ -15,6 +15,7 @@ import { MigrationManager } from '#/main/storage/DatabaseMigrator';
 import { createStorageInstance } from '#/main/storage/createStorageInstance';
 import { GitStorage } from '#/main/storage/GitStorage';
 import { decodeGlobalId, encodeGlobalId } from '#/main/storage/idNamespace';
+import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
 import type { IStorage } from '#/main/storage/IStorage';
 import { TeamHubStorage } from '#/main/storage/TeamHubStorage';
 import {
@@ -698,6 +699,27 @@ export class RoutingStorage implements IStorage {
       this.decodeLocalIdForBackend(requestId, backend)
     );
     await backend.db.reorderRequests(entry.providerCollectionId, localFolderId, localRequestIds);
+  }
+
+  /**
+   * Reorders requests and markdown documents together within a folder or collection root.
+   */
+  async reorderContainerItems(
+    collectionId: number,
+    folderId: number | null,
+    items: ContainerItemRef[]
+  ): Promise<void> {
+    const entry = this.requireEntry(collectionId);
+    const backend = this.requireBackendByConnectionId(entry.connectionId);
+    const localFolderId = folderId != null ? this.decodeLocalIdForBackend(folderId, backend) : null;
+    const localItems = items.map((item) => ({
+      kind: item.kind,
+      id:
+        item.kind === 'request'
+          ? this.decodeLocalIdForBackend(item.id, backend)
+          : this.decodeLocalIdForBackend(item.id, backend)
+    }));
+    await backend.db.reorderContainerItems(entry.providerCollectionId, localFolderId, localItems);
   }
 
   /**

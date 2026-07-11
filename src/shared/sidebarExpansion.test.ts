@@ -4,8 +4,20 @@ import { defaultSidebarExpansion, normalizeSidebarExpansion } from '#/shared/sid
 describe('defaultSidebarExpansion', () => {
   it('starts with all sections expanded and empty tree ids', () => {
     expect(defaultSidebarExpansion()).toEqual({
-      sections: { collections: true, environments: true, runResults: true },
-      sectionVisibility: { collections: true, environments: true, runResults: true },
+      sections: {
+        collections: true,
+        environments: true,
+        runResults: true,
+        history: true,
+        tabGroups: true
+      },
+      sectionVisibility: {
+        collections: true,
+        environments: true,
+        runResults: true,
+        history: true,
+        tabGroups: true
+      },
       collectionIds: [],
       folderIds: [],
       showStorageLocationBadges: true
@@ -27,8 +39,20 @@ describe('normalizeSidebarExpansion', () => {
         folderIds: [10, 0, -1]
       })
     ).toEqual({
-      sections: { collections: false, environments: true, runResults: true },
-      sectionVisibility: { collections: true, environments: true, runResults: true },
+      sections: {
+        collections: false,
+        environments: true,
+        runResults: true,
+        history: true,
+        tabGroups: true
+      },
+      sectionVisibility: {
+        collections: true,
+        environments: true,
+        runResults: true,
+        history: true,
+        tabGroups: true
+      },
       collectionIds: [1, 2],
       folderIds: [10],
       showStorageLocationBadges: true
@@ -43,8 +67,20 @@ describe('normalizeSidebarExpansion', () => {
         folderIds: [12]
       })
     ).toEqual({
-      sections: { collections: true, environments: false, runResults: true },
-      sectionVisibility: { collections: true, environments: true, runResults: true },
+      sections: {
+        collections: true,
+        environments: false,
+        runResults: true,
+        history: true,
+        tabGroups: true
+      },
+      sectionVisibility: {
+        collections: true,
+        environments: true,
+        runResults: true,
+        history: true,
+        tabGroups: true
+      },
       collectionIds: [5, 7],
       folderIds: [12],
       showStorageLocationBadges: true
@@ -60,8 +96,20 @@ describe('normalizeSidebarExpansion', () => {
         folderIds: []
       })
     ).toEqual({
-      sections: { collections: true, environments: true, runResults: true },
-      sectionVisibility: { collections: false, environments: true, runResults: true },
+      sections: {
+        collections: true,
+        environments: true,
+        runResults: true,
+        history: true,
+        tabGroups: true
+      },
+      sectionVisibility: {
+        collections: false,
+        environments: true,
+        runResults: true,
+        history: true,
+        tabGroups: true
+      },
       collectionIds: [],
       folderIds: [],
       showStorageLocationBadges: true
@@ -78,8 +126,20 @@ describe('normalizeSidebarExpansion', () => {
         showStorageLocationBadges: false
       })
     ).toEqual({
-      sections: { collections: true, environments: true, runResults: true },
-      sectionVisibility: { collections: true, environments: true, runResults: true },
+      sections: {
+        collections: true,
+        environments: true,
+        runResults: true,
+        history: true,
+        tabGroups: true
+      },
+      sectionVisibility: {
+        collections: true,
+        environments: true,
+        runResults: true,
+        history: true,
+        tabGroups: true
+      },
       collectionIds: [],
       folderIds: [],
       showStorageLocationBadges: false

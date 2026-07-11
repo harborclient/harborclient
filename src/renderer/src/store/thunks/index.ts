@@ -9,6 +9,8 @@ export * from '#/renderer/src/store/thunks/sync';
 export * from '#/renderer/src/store/thunks/aiChat';
 export * from '#/renderer/src/store/thunks/collectionRunner';
 export * from '#/renderer/src/store/thunks/runResults';
+export * from '#/renderer/src/store/thunks/requestHistory';
+export * from '#/renderer/src/store/thunks/tabGroups';
 export * from '#/renderer/src/store/thunks/settings';
 export * from '#/renderer/src/store/thunks/tabs';
 
@@ -17,6 +19,8 @@ import { setGeneralSettingsState } from '#/renderer/src/store/slices/settingsSli
 import { refreshCollections } from '#/renderer/src/store/thunks/collections';
 import { refreshEnvironments } from '#/renderer/src/store/thunks/environments';
 import { refreshRunResults } from '#/renderer/src/store/thunks/runResults';
+import { refreshRequestHistory } from '#/renderer/src/store/thunks/requestHistory';
+import { refreshTabGroups } from '#/renderer/src/store/thunks/tabGroups';
 import { refreshSnippets } from '#/renderer/src/store/thunks/snippets';
 import { hydrateOpenTabs } from '#/renderer/src/store/thunks/tabs';
 
@@ -29,6 +33,8 @@ export function initializeStore(dispatch: AppDispatch): void {
   void dispatch(refreshEnvironments());
   void dispatch(refreshSnippets());
   void dispatch(refreshRunResults());
+  void dispatch(refreshRequestHistory());
+  void dispatch(refreshTabGroups());
   void window.api.getGeneralSettings().then((settings) => {
     dispatch(setGeneralSettingsState(settings));
   });

@@ -3,13 +3,17 @@ import type { SidebarExpansionState } from '#/shared/types/settings';
 const DEFAULT_SECTIONS = {
   collections: true,
   environments: true,
-  runResults: true
+  runResults: true,
+  history: true,
+  tabGroups: true
 } as const;
 
 const DEFAULT_SECTION_VISIBILITY = {
   collections: true,
   environments: true,
-  runResults: true
+  runResults: true,
+  history: true,
+  tabGroups: true
 } as const;
 
 const DEFAULT_SHOW_STORAGE_LOCATION_BADGES = true;
@@ -81,7 +85,15 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
       runResults:
         sectionsRaw && typeof sectionsRaw.runResults === 'boolean'
           ? sectionsRaw.runResults
-          : DEFAULT_SECTIONS.runResults
+          : DEFAULT_SECTIONS.runResults,
+      history:
+        sectionsRaw && typeof sectionsRaw.history === 'boolean'
+          ? sectionsRaw.history
+          : DEFAULT_SECTIONS.history,
+      tabGroups:
+        sectionsRaw && typeof sectionsRaw.tabGroups === 'boolean'
+          ? sectionsRaw.tabGroups
+          : DEFAULT_SECTIONS.tabGroups
     },
     sectionVisibility: {
       collections:
@@ -95,7 +107,15 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
       runResults:
         visibilityRaw && typeof visibilityRaw.runResults === 'boolean'
           ? visibilityRaw.runResults
-          : DEFAULT_SECTION_VISIBILITY.runResults
+          : DEFAULT_SECTION_VISIBILITY.runResults,
+      history:
+        visibilityRaw && typeof visibilityRaw.history === 'boolean'
+          ? visibilityRaw.history
+          : DEFAULT_SECTION_VISIBILITY.history,
+      tabGroups:
+        visibilityRaw && typeof visibilityRaw.tabGroups === 'boolean'
+          ? visibilityRaw.tabGroups
+          : DEFAULT_SECTION_VISIBILITY.tabGroups
     },
     collectionIds: normalizeIdList(raw.collectionIds),
     folderIds: normalizeIdList(raw.folderIds),

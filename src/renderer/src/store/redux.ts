@@ -10,6 +10,8 @@ import modalsReducer from '#/renderer/src/store/slices/modalsSlice';
 import settingsReducer from '#/renderer/src/store/slices/settingsSlice';
 import settingsDraftReducer from '#/renderer/src/store/slices/settingsDraftSlice';
 import runResultsReducer from '#/renderer/src/store/slices/runResultsSlice';
+import requestHistoryReducer from '#/renderer/src/store/slices/requestHistorySlice';
+import tabGroupsReducer from '#/renderer/src/store/slices/tabGroupSlice';
 import snippetsReducer from '#/renderer/src/store/slices/snippetsSlice';
 import aiChatReducer from '#/renderer/src/store/slices/aiChatSlice';
 import { persistActiveEnvironmentId, persistTabs } from '#/renderer/src/store/persistence';
@@ -27,6 +29,8 @@ export const store = configureStore({
     settingsDraft: settingsDraftReducer,
     snippets: snippetsReducer,
     runResults: runResultsReducer,
+    requestHistory: requestHistoryReducer,
+    tabGroups: tabGroupsReducer,
     aiChat: aiChatReducer
   },
   /**

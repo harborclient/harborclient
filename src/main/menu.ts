@@ -118,6 +118,7 @@ function acceleratorFor(accelerators: Map<ShortcutId, string>, id: ShortcutId): 
  * @param creatorUndoRedoActive - Whether the Creator tab owns Edit menu undo/redo.
  * @param creatorCanUndo - Whether Creator undo is currently available.
  * @param creatorCanRedo - Whether Creator redo is currently available.
+ * @param tabGroupAvailable - Whether at least one saved request tab is open for tab groups.
  * @returns The constructed application menu.
  */
 export function buildMenu(
@@ -134,7 +135,8 @@ export function buildMenu(
   onThemeMenuClick?: () => void,
   creatorUndoRedoActive = false,
   creatorCanUndo = false,
-  creatorCanRedo = false
+  creatorCanRedo = false,
+  tabGroupAvailable = false
 ): Menu {
   const accelerators = resolveAcceleratorMap(getShortcutOverrides());
 
@@ -215,6 +217,12 @@ export function buildMenu(
               click: () => sendMenuAction(window, 'redo')
             }
           : { role: 'redo', accelerator: acceleratorFor(accelerators, 'redo') },
+        { type: 'separator' },
+        {
+          label: 'Create Tab Group',
+          enabled: tabGroupAvailable,
+          click: () => sendMenuAction(window, 'create-tab-group')
+        },
         { type: 'separator' },
         { role: 'cut', accelerator: acceleratorFor(accelerators, 'cut') },
         { role: 'copy', accelerator: acceleratorFor(accelerators, 'copy') },

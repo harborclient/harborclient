@@ -17,6 +17,7 @@ import type { Environment } from '#/shared/types/environment';
 import type { KeyValue, Variable } from '#/shared/types/common';
 import type { ScriptRef } from '#/shared/types/script';
 import type { SavedRequest } from '#/shared/types/request';
+import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
 
 /**
  * IPC methods for collections.
@@ -259,4 +260,16 @@ export interface ApiCollections {
    * @param index - Zero-based position within the destination container.
    */
   moveRequest: (requestId: number, folderId: number | null, index: number) => Promise<void>;
+  /**
+   * Reorders requests and markdown documents together within a folder or collection root.
+   *
+   * @param collectionId - Collection containing the items.
+   * @param folderId - Folder ID, or null for root-level items.
+   * @param items - Request and document refs in desired unified sidebar order.
+   */
+  reorderContainerItems: (
+    collectionId: number,
+    folderId: number | null,
+    items: ContainerItemRef[]
+  ) => Promise<void>;
 }

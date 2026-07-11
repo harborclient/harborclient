@@ -19,6 +19,7 @@ import {
 import { clearActiveResponse } from '#/renderer/src/plugins/hostRequestCommands';
 import { buildRuntimeVars } from '#/renderer/src/scripting/scriptOrchestration';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { selectEditSessionHiddenTabIds } from '#/renderer/src/store/slices/tabGroupSlice';
 import {
   selectActiveEnvironmentId,
   selectActiveMarkdownTab,
@@ -161,6 +162,13 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const { revealCollection, revealFolder } = useSidebarExpansion();
   const tabs = useAppSelector(selectTabs);
+  const editSessionHiddenTabIds = useAppSelector(selectEditSessionHiddenTabIds);
+
+  /**
+   * Tab ids hidden from the tab bar during tab group edit mode.
+   */
+  const hiddenTabIds = useMemo(() => new Set(editSessionHiddenTabIds), [editSessionHiddenTabIds]);
+
   const activeTabId = useAppSelector(selectActiveTabId);
   const activePage = useAppSelector(selectActivePage);
   const activeMarkdownTab = useAppSelector(selectActiveMarkdownTab);
@@ -188,6 +196,14 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const showResponseEditor = useAppSelector(selectShowResponseEditor);
   const persistedSplitHeight = useAppSelector(selectRequestEditorSplitHeight);
   const showSplitLayout = showRequestEditor && showResponseEditor;
+
+  /**
+   * Keeps the native Edit menu Create Tab Group item in sync with open saved request tabs.
+   */
+  useEffect(() => {
+    const hasOpenSavedRequests = tabs.some((tab) => isRequestTab(tab) && tab.draft.id != null);
+    void window.api.setTabGroupAvailable(hasOpenSavedRequests);
+  }, [tabs]);
 
   const hasOpenTabs = tabs.length > 0;
   const [closeTabPrompt, setCloseTabPrompt] = useState<CloseTabPrompt | null>(null);
@@ -453,6 +469,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
       <TabBar
         tabs={tabs}
         activeTabId={activeTabId}
+        hiddenTabIds={hiddenTabIds.size > 0 ? hiddenTabIds : undefined}
         onSelect={(tabId) => dispatch(setActiveTab(tabId))}
         onClose={handleCloseTab}
         onCloseMany={handleCloseMany}

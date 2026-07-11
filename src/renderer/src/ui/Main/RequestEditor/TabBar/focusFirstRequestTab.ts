@@ -10,7 +10,7 @@ const FOCUS_TAB_MAX_ATTEMPTS = 6;
  * Builds the DOM id for a main editor tab control.
  *
  * @param tabId - Open tab id.
- * @returns Element id used by {@link TabItem}.
+ * @returns Element id used by the request editor tab bar.
  */
 export function requestTabElementId(tabId: string): string {
   return `request-tab-${tabId}`;

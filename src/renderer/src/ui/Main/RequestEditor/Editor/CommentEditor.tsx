@@ -66,6 +66,29 @@ interface Props {
   description?: string;
 }
 
+/** Selector for the MDXEditor scroll container inside the comment editor shell. */
+const COMMENT_EDITOR_SCROLL_ROOT = '.mdxeditor-root-contenteditable';
+
+/** Selector for the Lexical contenteditable surface. */
+const COMMENT_EDITOR_CONTENT = '.request-comment-editor-content';
+
+/**
+ * Returns whether a viewport Y coordinate is below the last top-level block in the editor.
+ *
+ * @param editable - Lexical contenteditable root element.
+ * @param clientY - Pointer Y position in viewport pixels.
+ * @returns True when the click is in empty space below rendered markdown blocks.
+ */
+function isBelowEditorContent(editable: HTMLElement, clientY: number): boolean {
+  const blocks = editable.querySelectorAll(':scope > *');
+  if (blocks.length === 0) {
+    return true;
+  }
+
+  const lastBlock = blocks[blocks.length - 1]!;
+  return clientY > lastBlock.getBoundingClientRect().bottom;
+}
+
 /**
  * Markdown comment editor for request notes using MDXEditor.
  */
@@ -78,6 +101,7 @@ export function CommentEditor({
   description = 'Leave a comment to describe the request. Markdown is supported.'
 }: Props): JSX.Element {
   const editorRef = useRef<MDXEditorMethods>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
   const lastEmittedRef = useRef(value);
 
   /**
@@ -130,6 +154,50 @@ export function CommentEditor({
     lastEmittedRef.current = value;
   }, [value]);
 
+  /**
+   * Focuses the editor at the end when the user clicks empty space below markdown content
+   * or on the scroll container gutter, since Lexical does not place the caret there by default.
+   */
+  useEffect(() => {
+    const shell = shellRef.current;
+    if (!shell) {
+      return;
+    }
+
+    const scrollRoot = shell.querySelector(COMMENT_EDITOR_SCROLL_ROOT);
+    if (!(scrollRoot instanceof HTMLElement)) {
+      return;
+    }
+
+    /**
+     * Moves focus and selection to the document end for below-content or gutter clicks.
+     *
+     * @param event - Mousedown on the MDXEditor scroll container.
+     */
+    const handleMouseDown = (event: MouseEvent): void => {
+      const editable = scrollRoot.querySelector(COMMENT_EDITOR_CONTENT);
+      if (!(editable instanceof HTMLElement)) {
+        return;
+      }
+
+      const clickedScrollGutter = event.target === scrollRoot;
+      const clickedBelowContent =
+        editable.contains(event.target as Node) && isBelowEditorContent(editable, event.clientY);
+
+      if (!clickedScrollGutter && !clickedBelowContent) {
+        return;
+      }
+
+      event.preventDefault();
+      editorRef.current?.focus(undefined, { defaultSelection: 'rootEnd' });
+    };
+
+    scrollRoot.addEventListener('mousedown', handleMouseDown);
+    return () => {
+      scrollRoot.removeEventListener('mousedown', handleMouseDown);
+    };
+  }, []);
+
   return (
     <div
       className="flex h-full min-h-0 flex-1 flex-col border border-separator p-4"
@@ -139,14 +207,16 @@ export function CommentEditor({
       <FormGroup label={label} className="border-none! p-0! mb-2">
         <p className="text-sm text-muted text-[16px]">{description}</p>
       </FormGroup>
-      <MDXEditor
-        ref={editorRef}
-        markdown={value}
-        onChange={handleChange}
-        plugins={plugins}
-        className="request-comment-editor app-no-drag min-h-0 flex-1 h-full bg-field rounded-lg! border border-separator focus-within:outline focus-within:outline-2 focus-within:outline-offset-[-2px] focus-within:outline-accent"
-        contentEditableClassName="request-comment-editor-content bg-field outline-none"
-      />
+      <div ref={shellRef} className="flex min-h-0 flex-1 flex-col">
+        <MDXEditor
+          ref={editorRef}
+          markdown={value}
+          onChange={handleChange}
+          plugins={plugins}
+          className="request-comment-editor app-no-drag min-h-0 flex-1 h-full bg-field rounded-lg! border border-separator focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent"
+          contentEditableClassName="request-comment-editor-content bg-field outline-none"
+        />
+      </div>
     </div>
   );
 }

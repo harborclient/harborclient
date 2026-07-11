@@ -26,6 +26,16 @@ export interface SidebarExpansionState {
      * Whether the Run Results section body is visible.
      */
     runResults: boolean;
+
+    /**
+     * Whether the History section body is visible.
+     */
+    history: boolean;
+
+    /**
+     * Whether the Tab Groups section body is visible.
+     */
+    tabGroups: boolean;
   };
 
   /**
@@ -56,6 +66,16 @@ export interface SidebarExpansionState {
      * Whether the Run Results section is shown in the sidebar.
      */
     runResults: boolean;
+
+    /**
+     * Whether the History section is shown in the sidebar.
+     */
+    history: boolean;
+
+    /**
+     * Whether the Tab Groups section is shown in the sidebar.
+     */
+    tabGroups: boolean;
   };
 
   /**

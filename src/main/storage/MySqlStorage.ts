@@ -29,6 +29,8 @@ import {
   rowToProviderSnippet,
   rowToRequest
 } from '#/main/storage/entityMappers';
+import { assertContainerItemOrder, planContainerItemMove } from '#/main/storage/containerReorder';
+import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
 import {
   CREATE_PROVIDER_SNIPPETS_TABLE_MYSQL,
   PROVIDER_SNIPPET_COLUMNS
@@ -815,6 +817,60 @@ export class MySqlStorage implements IStorage {
   }
 
   /**
+   * Reorders requests and markdown documents together within a folder or collection root.
+   *
+   * @param collectionId - Collection containing the items.
+   * @param folderId - Folder ID, or null for root-level items.
+   * @param items - Request and document refs in desired unified sidebar order.
+   */
+  async reorderContainerItems(
+    collectionId: number,
+    folderId: number | null,
+    items: ContainerItemRef[]
+  ): Promise<void> {
+    const requests = await this.listRequests(collectionId);
+    const documents = await this.listDocuments(collectionId);
+    assertContainerItemOrder(collectionId, folderId, items, requests, documents);
+
+    if (folderId != null) {
+      const [folderRows] = await this.getPool().execute<RowDataPacket[]>(
+        'SELECT collection_id FROM folders WHERE id = ?',
+        [folderId]
+      );
+      const folderRow = folderRows[0];
+      if (!folderRow || folderRow.collection_id !== collectionId) {
+        throw new Error('Folder not found');
+      }
+    }
+
+    const connection = await this.getPool().getConnection();
+    try {
+      await connection.beginTransaction();
+      for (let unifiedIndex = 0; unifiedIndex < items.length; unifiedIndex++) {
+        const item = items[unifiedIndex];
+        if (item.kind === 'request') {
+          await connection.execute(
+            'UPDATE requests SET sort_order = ?, folder_id = ? WHERE id = ? AND collection_id = ?',
+            [unifiedIndex, folderId, item.id, collectionId]
+          );
+          continue;
+        }
+
+        await connection.execute(
+          'UPDATE documents SET sort_order = ?, folder_id = ? WHERE id = ? AND collection_id = ?',
+          [unifiedIndex, folderId, item.id, collectionId]
+        );
+      }
+      await connection.commit();
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
+  }
+
+  /**
    * Reorders requests within a folder or at collection root.
    *
    * @param collectionId - Collection containing the requests.
@@ -852,89 +908,43 @@ export class MySqlStorage implements IStorage {
    * @param index - Zero-based position within the destination container.
    */
   async moveRequest(requestId: number, folderId: number | null, index: number): Promise<void> {
-    // Run the read, validate, and reindex steps on a single connection wrapped
-    // in a transaction so a concurrent move or mid-operation failure cannot
-    // leave duplicate or gap-filled sort_order values across the source and
-    // destination containers.
-    const connection = await this.getPool().getConnection();
+    const [requestRows] = await this.getPool().execute<RowDataPacket[]>(
+      'SELECT * FROM requests WHERE id = ?',
+      [requestId]
+    );
+    const requestRow = requestRows[0];
+    if (!requestRow) throw new Error('Request not found');
 
-    const listInContainer = async (
-      collectionId: number,
-      targetFolderId: number | null
-    ): Promise<number[]> => {
-      const [rows] = await connection.execute<RowDataPacket[]>(
-        `SELECT id FROM requests WHERE collection_id = ?
-         AND ((? IS NULL AND folder_id IS NULL) OR folder_id = ?)
-         ORDER BY sort_order ASC, name ASC`,
-        [collectionId, targetFolderId, targetFolderId]
+    const request = rowToRequest(requestRow);
+    const collectionId = request.collection_id;
+    const sourceFolderId = request.folder_id ?? null;
+
+    if (folderId != null) {
+      const [folderRows] = await this.getPool().execute<RowDataPacket[]>(
+        'SELECT collection_id FROM folders WHERE id = ?',
+        [folderId]
       );
-      return rows.map((row) => row.id as number);
-    };
-
-    const reindexContainer = async (
-      targetFolderId: number | null,
-      orderedIds: number[]
-    ): Promise<void> => {
-      for (let sortIndex = 0; sortIndex < orderedIds.length; sortIndex++) {
-        await connection.execute('UPDATE requests SET sort_order = ?, folder_id = ? WHERE id = ?', [
-          sortIndex,
-          targetFolderId,
-          orderedIds[sortIndex]
-        ]);
+      const folderRow = folderRows[0];
+      if (!folderRow || folderRow.collection_id !== collectionId) {
+        throw new Error('Folder not found');
       }
-    };
-
-    try {
-      await connection.beginTransaction();
-
-      const [requestRows] = await connection.execute<RowDataPacket[]>(
-        'SELECT * FROM requests WHERE id = ?',
-        [requestId]
-      );
-      const requestRow = requestRows[0];
-      if (!requestRow) throw new Error('Request not found');
-
-      const request = rowToRequest(requestRow);
-      const collectionId = request.collection_id;
-      const oldFolderId = request.folder_id;
-
-      if (folderId != null) {
-        const [folderRows] = await connection.execute<RowDataPacket[]>(
-          'SELECT collection_id FROM folders WHERE id = ?',
-          [folderId]
-        );
-        const folderRow = folderRows[0];
-        if (!folderRow || folderRow.collection_id !== collectionId) {
-          throw new Error('Folder not found');
-        }
-      }
-
-      if (oldFolderId === folderId) {
-        const siblings = (await listInContainer(collectionId, folderId)).filter(
-          (id) => id !== requestId
-        );
-        siblings.splice(index, 0, requestId);
-        await reindexContainer(folderId, siblings);
-      } else {
-        const oldIds = (await listInContainer(collectionId, oldFolderId)).filter(
-          (id) => id !== requestId
-        );
-        await reindexContainer(oldFolderId, oldIds);
-
-        const newIds = (await listInContainer(collectionId, folderId)).filter(
-          (id) => id !== requestId
-        );
-        newIds.splice(index, 0, requestId);
-        await reindexContainer(folderId, newIds);
-      }
-
-      await connection.commit();
-    } catch (err) {
-      await connection.rollback();
-      throw err;
-    } finally {
-      connection.release();
     }
+
+    const requests = await this.listRequests(collectionId);
+    const documents = await this.listDocuments(collectionId);
+    const plan = planContainerItemMove(
+      requests,
+      documents,
+      { kind: 'request', id: requestId },
+      sourceFolderId,
+      folderId,
+      index
+    );
+
+    if (plan.sourceOrder) {
+      await this.reorderContainerItems(collectionId, sourceFolderId, plan.sourceOrder);
+    }
+    await this.reorderContainerItems(collectionId, folderId, plan.destinationOrder);
   }
 
   /**
@@ -1063,84 +1073,43 @@ export class MySqlStorage implements IStorage {
    * @param index - Zero-based position within the destination container.
    */
   async moveDocument(documentId: number, folderId: number | null, index: number): Promise<void> {
-    const connection = await this.getPool().getConnection();
+    const [documentRows] = await this.getPool().execute<RowDataPacket[]>(
+      'SELECT * FROM documents WHERE id = ?',
+      [documentId]
+    );
+    const documentRow = documentRows[0];
+    if (!documentRow) throw new Error('Document not found');
 
-    const listInContainer = async (
-      collectionId: number,
-      targetFolderId: number | null
-    ): Promise<number[]> => {
-      const [rows] = await connection.execute<RowDataPacket[]>(
-        `SELECT id FROM documents WHERE collection_id = ?
-         AND ((? IS NULL AND folder_id IS NULL) OR folder_id = ?)
-         ORDER BY sort_order ASC, name ASC`,
-        [collectionId, targetFolderId, targetFolderId]
+    const document = rowToDocument(documentRow);
+    const collectionId = document.collection_id;
+    const sourceFolderId = document.folder_id ?? null;
+
+    if (folderId != null) {
+      const [folderRows] = await this.getPool().execute<RowDataPacket[]>(
+        'SELECT collection_id FROM folders WHERE id = ?',
+        [folderId]
       );
-      return rows.map((row) => row.id as number);
-    };
-
-    const reindexContainer = async (
-      targetFolderId: number | null,
-      orderedIds: number[]
-    ): Promise<void> => {
-      for (let sortIndex = 0; sortIndex < orderedIds.length; sortIndex++) {
-        await connection.execute(
-          'UPDATE documents SET sort_order = ?, folder_id = ? WHERE id = ?',
-          [sortIndex, targetFolderId, orderedIds[sortIndex]]
-        );
+      const folderRow = folderRows[0];
+      if (!folderRow || folderRow.collection_id !== collectionId) {
+        throw new Error('Folder not found');
       }
-    };
-
-    try {
-      await connection.beginTransaction();
-
-      const [documentRows] = await connection.execute<RowDataPacket[]>(
-        'SELECT * FROM documents WHERE id = ?',
-        [documentId]
-      );
-      const documentRow = documentRows[0];
-      if (!documentRow) throw new Error('Document not found');
-
-      const document = rowToDocument(documentRow);
-      const collectionId = document.collection_id;
-      const oldFolderId = document.folder_id;
-
-      if (folderId != null) {
-        const [folderRows] = await connection.execute<RowDataPacket[]>(
-          'SELECT collection_id FROM folders WHERE id = ?',
-          [folderId]
-        );
-        const folderRow = folderRows[0];
-        if (!folderRow || folderRow.collection_id !== collectionId) {
-          throw new Error('Folder not found');
-        }
-      }
-
-      if (oldFolderId === folderId) {
-        const siblings = (await listInContainer(collectionId, folderId)).filter(
-          (id) => id !== documentId
-        );
-        siblings.splice(index, 0, documentId);
-        await reindexContainer(folderId, siblings);
-      } else {
-        const oldIds = (await listInContainer(collectionId, oldFolderId)).filter(
-          (id) => id !== documentId
-        );
-        await reindexContainer(oldFolderId, oldIds);
-
-        const newIds = (await listInContainer(collectionId, folderId)).filter(
-          (id) => id !== documentId
-        );
-        newIds.splice(index, 0, documentId);
-        await reindexContainer(folderId, newIds);
-      }
-
-      await connection.commit();
-    } catch (err) {
-      await connection.rollback();
-      throw err;
-    } finally {
-      connection.release();
     }
+
+    const requests = await this.listRequests(collectionId);
+    const documents = await this.listDocuments(collectionId);
+    const plan = planContainerItemMove(
+      requests,
+      documents,
+      { kind: 'document', id: documentId },
+      sourceFolderId,
+      folderId,
+      index
+    );
+
+    if (plan.sourceOrder) {
+      await this.reorderContainerItems(collectionId, sourceFolderId, plan.sourceOrder);
+    }
+    await this.reorderContainerItems(collectionId, folderId, plan.destinationOrder);
   }
 
   /**

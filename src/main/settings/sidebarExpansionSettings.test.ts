@@ -24,15 +24,39 @@ describe('sidebarExpansionSettings', () => {
     const { getSidebarExpansion } = await import('#/main/settings/sidebarExpansionSettings');
 
     expect(getSidebarExpansion()).toEqual({
-      sections: { collections: true, environments: true, runResults: true },
-      sectionVisibility: { collections: true, environments: true, runResults: true },
+      sections: {
+        collections: true,
+        environments: true,
+        runResults: true,
+        history: true,
+        tabGroups: true
+      },
+      sectionVisibility: {
+        collections: true,
+        environments: true,
+        runResults: true,
+        history: true,
+        tabGroups: true
+      },
       collectionIds: [],
       folderIds: [],
       showStorageLocationBadges: true
     });
     expect(mockGet).toHaveBeenCalledWith('sidebarExpansion', {
-      sections: { collections: true, environments: true, runResults: true },
-      sectionVisibility: { collections: true, environments: true, runResults: true },
+      sections: {
+        collections: true,
+        environments: true,
+        runResults: true,
+        history: true,
+        tabGroups: true
+      },
+      sectionVisibility: {
+        collections: true,
+        environments: true,
+        runResults: true,
+        history: true,
+        tabGroups: true
+      },
       collectionIds: [],
       folderIds: [],
       showStorageLocationBadges: true
@@ -48,8 +72,20 @@ describe('sidebarExpansionSettings', () => {
     const { getSidebarExpansion } = await import('#/main/settings/sidebarExpansionSettings');
 
     expect(getSidebarExpansion()).toEqual({
-      sections: { collections: false, environments: false, runResults: true },
-      sectionVisibility: { collections: true, environments: true, runResults: true },
+      sections: {
+        collections: false,
+        environments: false,
+        runResults: true,
+        history: true,
+        tabGroups: true
+      },
+      sectionVisibility: {
+        collections: true,
+        environments: true,
+        runResults: true,
+        history: true,
+        tabGroups: true
+      },
       collectionIds: [1],
       folderIds: [9],
       showStorageLocationBadges: true
@@ -60,16 +96,40 @@ describe('sidebarExpansionSettings', () => {
     const { setSidebarExpansion } = await import('#/main/settings/sidebarExpansionSettings');
 
     setSidebarExpansion({
-      sections: { collections: true, environments: false, runResults: true },
-      sectionVisibility: { collections: false, environments: true, runResults: false },
+      sections: {
+        collections: true,
+        environments: false,
+        runResults: true,
+        history: true,
+        tabGroups: true
+      },
+      sectionVisibility: {
+        collections: false,
+        environments: true,
+        runResults: false,
+        history: true,
+        tabGroups: true
+      },
       collectionIds: [2, 2, -3],
       folderIds: [8],
       showStorageLocationBadges: false
     });
 
     expect(mockSet).toHaveBeenCalledWith('sidebarExpansion', {
-      sections: { collections: true, environments: false, runResults: true },
-      sectionVisibility: { collections: false, environments: true, runResults: false },
+      sections: {
+        collections: true,
+        environments: false,
+        runResults: true,
+        history: true,
+        tabGroups: true
+      },
+      sectionVisibility: {
+        collections: false,
+        environments: true,
+        runResults: false,
+        history: true,
+        tabGroups: true
+      },
       collectionIds: [2],
       folderIds: [8],
       showStorageLocationBadges: false

@@ -48,6 +48,16 @@ interface Result {
   runResultsSectionExpanded: boolean;
 
   /**
+   * Whether the History section body is visible.
+   */
+  historySectionExpanded: boolean;
+
+  /**
+   * Whether the Tab Groups section body is visible.
+   */
+  tabGroupsSectionExpanded: boolean;
+
+  /**
    * Toggles the Collections section expanded state.
    */
   toggleCollectionsSection: () => void;
@@ -61,6 +71,16 @@ interface Result {
    * Toggles the Run Results section expanded state.
    */
   toggleRunResultsSection: () => void;
+
+  /**
+   * Toggles the History section expanded state.
+   */
+  toggleHistorySection: () => void;
+
+  /**
+   * Toggles the Tab Groups section expanded state.
+   */
+  toggleTabGroupsSection: () => void;
 
   /**
    * Sets the Collections section expanded state explicitly.
@@ -78,6 +98,16 @@ interface Result {
   setRunResultsSectionExpanded: Dispatch<SetStateAction<boolean>>;
 
   /**
+   * Sets the History section expanded state explicitly.
+   */
+  setHistorySectionExpanded: Dispatch<SetStateAction<boolean>>;
+
+  /**
+   * Sets the Tab Groups section expanded state explicitly.
+   */
+  setTabGroupsSectionExpanded: Dispatch<SetStateAction<boolean>>;
+
+  /**
    * Whether the Collections section is rendered in the sidebar.
    */
   collectionsSectionVisible: boolean;
@@ -91,6 +121,16 @@ interface Result {
    * Whether the Run Results section is rendered in the sidebar.
    */
   runResultsSectionVisible: boolean;
+
+  /**
+   * Whether the History section is rendered in the sidebar.
+   */
+  historySectionVisible: boolean;
+
+  /**
+   * Whether the Tab Groups section is rendered in the sidebar.
+   */
+  tabGroupsSectionVisible: boolean;
 
   /**
    * Toggles the Collections section visibility.
@@ -108,6 +148,16 @@ interface Result {
   toggleRunResultsSectionVisible: () => void;
 
   /**
+   * Toggles the History section visibility.
+   */
+  toggleHistorySectionVisible: () => void;
+
+  /**
+   * Toggles the Tab Groups section visibility.
+   */
+  toggleTabGroupsSectionVisible: () => void;
+
+  /**
    * Sets the Collections section visibility explicitly.
    */
   setCollectionsSectionVisible: Dispatch<SetStateAction<boolean>>;
@@ -121,6 +171,16 @@ interface Result {
    * Sets the Run Results section visibility explicitly.
    */
   setRunResultsSectionVisible: Dispatch<SetStateAction<boolean>>;
+
+  /**
+   * Sets the History section visibility explicitly.
+   */
+  setHistorySectionVisible: Dispatch<SetStateAction<boolean>>;
+
+  /**
+   * Sets the Tab Groups section visibility explicitly.
+   */
+  setTabGroupsSectionVisible: Dispatch<SetStateAction<boolean>>;
 
   /**
    * Whether storage location name badges appear next to collection names.
@@ -242,6 +302,10 @@ export function usePersistedSidebarExpansion({
   const [runResultsSectionExpanded, setRunResultsSectionExpanded] = useState(
     defaults.sections.runResults
   );
+  const [historySectionExpanded, setHistorySectionExpanded] = useState(defaults.sections.history);
+  const [tabGroupsSectionExpanded, setTabGroupsSectionExpanded] = useState(
+    defaults.sections.tabGroups
+  );
   const [collectionsSectionVisible, setCollectionsSectionVisible] = useState(
     defaults.sectionVisibility.collections
   );
@@ -250,6 +314,12 @@ export function usePersistedSidebarExpansion({
   );
   const [runResultsSectionVisible, setRunResultsSectionVisible] = useState(
     defaults.sectionVisibility.runResults
+  );
+  const [historySectionVisible, setHistorySectionVisible] = useState(
+    defaults.sectionVisibility.history
+  );
+  const [tabGroupsSectionVisible, setTabGroupsSectionVisible] = useState(
+    defaults.sectionVisibility.tabGroups
   );
   const [showStorageLocationBadges, setShowStorageLocationBadges] = useState(
     defaults.showStorageLocationBadges
@@ -276,9 +346,13 @@ export function usePersistedSidebarExpansion({
       setCollectionsSectionExpanded(stored.sections.collections);
       setEnvironmentsSectionExpanded(stored.sections.environments);
       setRunResultsSectionExpanded(stored.sections.runResults);
+      setHistorySectionExpanded(stored.sections.history);
+      setTabGroupsSectionExpanded(stored.sections.tabGroups);
       setCollectionsSectionVisible(stored.sectionVisibility.collections);
       setEnvironmentsSectionVisible(stored.sectionVisibility.environments);
       setRunResultsSectionVisible(stored.sectionVisibility.runResults);
+      setHistorySectionVisible(stored.sectionVisibility.history);
+      setTabGroupsSectionVisible(stored.sectionVisibility.tabGroups);
       setShowStorageLocationBadges(stored.showStorageLocationBadges);
       setExpandedCollectionIds(new Set(validExpanded));
       setExpandedFolderIds(new Set(stored.folderIds));
@@ -306,12 +380,16 @@ export function usePersistedSidebarExpansion({
       {
         collections: collectionsSectionExpanded,
         environments: environmentsSectionExpanded,
-        runResults: runResultsSectionExpanded
+        runResults: runResultsSectionExpanded,
+        history: historySectionExpanded,
+        tabGroups: tabGroupsSectionExpanded
       },
       {
         collections: collectionsSectionVisible,
         environments: environmentsSectionVisible,
-        runResults: runResultsSectionVisible
+        runResults: runResultsSectionVisible,
+        history: historySectionVisible,
+        tabGroups: tabGroupsSectionVisible
       },
       expandedCollectionIds,
       expandedFolderIds,
@@ -324,9 +402,13 @@ export function usePersistedSidebarExpansion({
     collectionsSectionExpanded,
     environmentsSectionExpanded,
     runResultsSectionExpanded,
+    historySectionExpanded,
+    tabGroupsSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
+    historySectionVisible,
+    tabGroupsSectionVisible,
     expandedCollectionIds,
     expandedFolderIds,
     showStorageLocationBadges
@@ -400,6 +482,20 @@ export function usePersistedSidebarExpansion({
   }, []);
 
   /**
+   * Toggles the History section expanded state.
+   */
+  const toggleHistorySection = useCallback(() => {
+    setHistorySectionExpanded((open) => !open);
+  }, []);
+
+  /**
+   * Toggles the Tab Groups section expanded state.
+   */
+  const toggleTabGroupsSection = useCallback(() => {
+    setTabGroupsSectionExpanded((open) => !open);
+  }, []);
+
+  /**
    * Toggles the Collections section visibility.
    */
   const toggleCollectionsSectionVisible = useCallback(() => {
@@ -421,6 +517,20 @@ export function usePersistedSidebarExpansion({
   }, []);
 
   /**
+   * Toggles the History section visibility.
+   */
+  const toggleHistorySectionVisible = useCallback(() => {
+    setHistorySectionVisible((visible) => !visible);
+  }, []);
+
+  /**
+   * Toggles the Tab Groups section visibility.
+   */
+  const toggleTabGroupsSectionVisible = useCallback(() => {
+    setTabGroupsSectionVisible((visible) => !visible);
+  }, []);
+
+  /**
    * Toggles storage location badge visibility in the collections list.
    */
   const toggleStorageLocationBadges = useCallback(() => {
@@ -432,21 +542,33 @@ export function usePersistedSidebarExpansion({
     collectionsSectionExpanded,
     environmentsSectionExpanded,
     runResultsSectionExpanded,
+    historySectionExpanded,
+    tabGroupsSectionExpanded,
     toggleCollectionsSection,
     toggleEnvironmentsSection,
     toggleRunResultsSection,
+    toggleHistorySection,
+    toggleTabGroupsSection,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
     setRunResultsSectionExpanded,
+    setHistorySectionExpanded,
+    setTabGroupsSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
+    historySectionVisible,
+    tabGroupsSectionVisible,
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
     toggleRunResultsSectionVisible,
+    toggleHistorySectionVisible,
+    toggleTabGroupsSectionVisible,
     setCollectionsSectionVisible,
     setEnvironmentsSectionVisible,
     setRunResultsSectionVisible,
+    setHistorySectionVisible,
+    setTabGroupsSectionVisible,
     showStorageLocationBadges,
     toggleStorageLocationBadges,
     setShowStorageLocationBadges,

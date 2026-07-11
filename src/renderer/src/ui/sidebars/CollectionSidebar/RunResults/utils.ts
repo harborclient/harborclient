@@ -37,3 +37,13 @@ export function runResultStatusDotClass(summary: SavedRunResultSummary['summary'
   }
   return 'bg-muted';
 }
+
+/**
+ * Formats a saved run's creation timestamp for sidebar row display.
+ *
+ * @param createdAt - ISO timestamp when the run result was saved.
+ * @returns Date/time string such as `2026-07-11 10:23:03`.
+ */
+export function formatRunResultRowDate(createdAt: string): string {
+  return new Date(createdAt).toISOString().replace('T', ' ').slice(0, 19);
+}

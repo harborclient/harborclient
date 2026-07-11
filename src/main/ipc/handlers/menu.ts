@@ -9,6 +9,7 @@ import {
   setMenuRunResultsVisible,
   setMenuSidebarVisible,
   setMenuCreatorUndoRedo,
+  setMenuTabGroupAvailable,
   setMenuThemeMenuState
 } from '#/main/appMenu';
 import { handle } from '#/main/ipc/handle';
@@ -80,6 +81,10 @@ export function registerMenuHandlers(): void {
       setMenuCreatorUndoRedo(active, canUndo, canRedo);
     }
   );
+
+  handle('menu:setTabGroupAvailable', ipcArgSchemas.menuTabGroupAvailable, (_event, available) => {
+    setMenuTabGroupAvailable(available);
+  });
 
   // Returns a serializable snapshot of a root application submenu for Linux in-app menus.
   handle('menu:getSubmenuSnapshot', ipcArgSchemas.menuGetSubmenuSnapshot, (_event, label) => {

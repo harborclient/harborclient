@@ -8,7 +8,8 @@ export const HARBORCLIENT_EXPORT_KINDS = [
   'snippet',
   'theme',
   'collection-run-results',
-  'request-run-results'
+  'request-run-results',
+  'tab_group'
 ] as const;
 
 /**

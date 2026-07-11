@@ -40,7 +40,7 @@ export function BreadcrumbPrefix({
   if (!collectionName && !folderName) return null;
 
   const segmentClass = compact
-    ? 'truncate text-[15px] font-normal text-muted hover:text-text'
+    ? 'truncate text-[16px] font-normal text-muted hover:text-text'
     : 'truncate font-normal text-muted hover:text-text';
   const separator = (
     <svg
@@ -75,7 +75,7 @@ export function BreadcrumbPrefix({
           <>
             <button
               type="button"
-              className={`${segmentClass} max-w-full shrink cursor-pointer border-none bg-transparent p-0 app-no-drag`}
+              className={`${segmentClass} max-w-full shrink cursor-pointer border-none bg-transparent text-[16px] p-0 app-no-drag`}
               onClick={(event) => handleSegmentClick(event, onCollectionClick)}
             >
               {collectionName}
@@ -93,7 +93,7 @@ export function BreadcrumbPrefix({
           <>
             <button
               type="button"
-              className={`${segmentClass} max-w-full shrink cursor-pointer border-none bg-transparent p-0 app-no-drag`}
+              className={`${segmentClass} max-w-full shrink cursor-pointer border-none bg-transparent p-0 text-[16px] app-no-drag`}
               onClick={(event) => handleSegmentClick(event, onFolderClick)}
             >
               {folderName}

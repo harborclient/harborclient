@@ -1,3 +1,15 @@
+import type { Variable } from '#/shared/types';
+
+/**
+ * Counts persisted environment variables (non-empty keys only).
+ *
+ * @param variables - Environment-scoped variable rows.
+ * @returns Number of variables with a non-empty key.
+ */
+export function environmentVariableCount(variables: Variable[]): number {
+  return variables.filter((variable) => variable.key.trim() !== '').length;
+}
+
 /**
  * Builds a stable dnd-kit id for an environment row.
  *

@@ -2,7 +2,8 @@ import { FaIcon, RowActionsMenu } from '@harborclient/sdk/components';
 import { sourceRow } from '#/renderer/src/ui/shared/classes';
 import type { CollectionDocument } from '#/shared/types';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
-import { faFileLines } from '#/renderer/src/fontawesome';
+import { faMarkdown } from '#/renderer/src/fontawesome';
+import { documentDragId } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/utils';
 import {
   buildDevInspectMenuGroups,
   useDeveloperToolsEnabled,
@@ -66,6 +67,11 @@ interface Props {
    * Deletes the markdown document.
    */
   onDeleteDocument: (id: number, collectionId: number) => Promise<void>;
+
+  /**
+   * When true, renders the row without drag-and-drop reordering.
+   */
+  dragDisabled?: boolean;
 }
 
 /**
@@ -82,7 +88,8 @@ export function DocumentRow({
   onMoveDown,
   onLoadDocument,
   onRenameDocument,
-  onDeleteDocument
+  onDeleteDocument,
+  dragDisabled = false
 }: Props): JSX.Element {
   const confirm = useConfirm();
   const developerToolsEnabled = useDeveloperToolsEnabled();
@@ -97,10 +104,10 @@ export function DocumentRow({
 
   return (
     <SortableRow
-      id={`document:${doc.id}`}
+      id={documentDragId(doc.id)}
       className={sourceRow(activeDocumentId === doc.id, true)}
       dragHandleLabel={`Reorder document "${doc.name}"`}
-      disabled
+      disabled={dragDisabled}
       compact
       onRowContextMenu={(event) => {
         event.preventDefault();
@@ -116,7 +123,7 @@ export function DocumentRow({
         onClick={() => onLoadDocument(doc)}
         onDoubleClick={() => onRenameDocument(doc)}
       >
-        <FaIcon icon={faFileLines} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
+        <FaIcon icon={faMarkdown} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
         <span className="truncate text-[16px]">{doc.name}</span>
       </button>
       <RowActionsMenu

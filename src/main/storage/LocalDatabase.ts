@@ -16,15 +16,99 @@ import type {
   ChatMessage,
   ChatRole,
   ChatSummary,
+  CreateTabGroupInput,
   Environment,
+  RequestHistoryEntry,
   Snippet,
+  TabGroup,
+  TabGroupRequest,
   Variable
 } from '#/shared/types';
+import { REQUEST_HISTORY_CAP } from '#/shared/types/requestHistory';
 import type { SnippetScope } from '#/shared/snippetScope';
 import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '#/shared/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
 
 const REGISTRY_DB_FILENAME = 'harborclient-registry.db';
+
+/**
+ * Row shape returned from request_history queries.
+ */
+interface RequestHistoryRow {
+  id: number;
+  method: string;
+  url: string;
+  status: number;
+  status_text: string;
+  ts: number;
+  saved_request_id: number | null;
+  name: string | null;
+  headers: string;
+  params: string;
+  body: string | null;
+  body_type: string | null;
+  kind: string | null;
+  run_collection_id: number | null;
+  run_folder_id: number | null;
+  run_request_id: number | null;
+}
+
+/**
+ * Parses stored request headers JSON, falling back to an empty object.
+ *
+ * @param raw - JSON-encoded headers column value.
+ * @returns Parsed headers or an empty object on failure.
+ */
+function parseRequestHistoryHeaders(raw: string): Record<string, string> {
+  try {
+    return JSON.parse(raw) as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Parses stored query parameters JSON, falling back to an empty list.
+ *
+ * @param raw - JSON-encoded params column value.
+ * @returns Parsed query parameters or an empty list on failure.
+ */
+function parseRequestHistoryParams(raw: string): RequestHistoryEntry['params'] {
+  try {
+    return JSON.parse(raw) as RequestHistoryEntry['params'];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Maps a database row to a {@link RequestHistoryEntry}.
+ *
+ * @param row - SQLite row from request_history.
+ * @returns Parsed request history entry for the UI and editor.
+ */
+function rowToRequestHistoryEntry(row: RequestHistoryRow): RequestHistoryEntry {
+  const kind = row.kind === 'run' ? 'run' : row.kind === 'request' ? 'request' : undefined;
+
+  return {
+    id: row.id,
+    method: row.method,
+    url: row.url,
+    status: row.status,
+    statusText: row.status_text,
+    ts: row.ts,
+    savedRequestId: row.saved_request_id ?? undefined,
+    name: row.name ?? undefined,
+    headers: parseRequestHistoryHeaders(row.headers),
+    params: parseRequestHistoryParams(row.params),
+    body: row.body ?? undefined,
+    bodyType: (row.body_type as RequestHistoryEntry['bodyType'] | null) ?? undefined,
+    kind,
+    runCollectionId: row.run_collection_id ?? undefined,
+    runFolderId: row.run_folder_id,
+    runRequestId: row.run_request_id
+  };
+}
 
 /**
  * A single entry in the local collection registry.
@@ -282,6 +366,42 @@ export class LocalDatabase {
         sort_order INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
+
+      CREATE TABLE IF NOT EXISTS request_history (
+        id               INTEGER PRIMARY KEY,
+        method           TEXT    NOT NULL,
+        url              TEXT    NOT NULL,
+        status           INTEGER NOT NULL,
+        status_text      TEXT    NOT NULL,
+        ts               INTEGER NOT NULL,
+        saved_request_id INTEGER,
+        name             TEXT,
+        headers          TEXT    NOT NULL DEFAULT '{}',
+        params           TEXT    NOT NULL DEFAULT '[]',
+        body             TEXT,
+        body_type        TEXT,
+        kind             TEXT,
+        run_collection_id INTEGER,
+        run_folder_id    INTEGER,
+        run_request_id   INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS idx_request_history_ts ON request_history (ts DESC);
+
+      CREATE TABLE IF NOT EXISTS tab_groups (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        name       TEXT    NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS tab_group_requests (
+        group_id      INTEGER NOT NULL REFERENCES tab_groups(id) ON DELETE CASCADE,
+        request_uuid  TEXT    NOT NULL,
+        collection_id INTEGER,
+        request_name  TEXT,
+        sort_order    INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (group_id, request_uuid)
+      );
     `);
     }
 
@@ -296,6 +416,77 @@ export class LocalDatabase {
     this.migrateChatMessageRole();
     this.migrateSnippetMarketplaceFields();
     this.migrateSnippetRegistryTable();
+    this.migrateRequestHistoryTable();
+    this.migrateTabGroupsTable();
+  }
+
+  /**
+   * Ensures tab group tables exist on legacy databases.
+   */
+  private migrateTabGroupsTable(): void {
+    this.getDb().exec(`
+      CREATE TABLE IF NOT EXISTS tab_groups (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        name       TEXT    NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS tab_group_requests (
+        group_id      INTEGER NOT NULL REFERENCES tab_groups(id) ON DELETE CASCADE,
+        request_uuid  TEXT    NOT NULL,
+        collection_id INTEGER,
+        request_name  TEXT,
+        sort_order    INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (group_id, request_uuid)
+      );
+    `);
+  }
+
+  /**
+   * Ensures the request history table exists on legacy databases.
+   */
+  private migrateRequestHistoryTable(): void {
+    this.getDb().exec(`
+      CREATE TABLE IF NOT EXISTS request_history (
+        id               INTEGER PRIMARY KEY,
+        method           TEXT    NOT NULL,
+        url              TEXT    NOT NULL,
+        status           INTEGER NOT NULL,
+        status_text      TEXT    NOT NULL,
+        ts               INTEGER NOT NULL,
+        saved_request_id INTEGER,
+        name             TEXT,
+        headers          TEXT    NOT NULL DEFAULT '{}',
+        params           TEXT    NOT NULL DEFAULT '[]',
+        body             TEXT,
+        body_type        TEXT,
+        kind             TEXT,
+        run_collection_id INTEGER,
+        run_folder_id    INTEGER,
+        run_request_id   INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS idx_request_history_ts ON request_history (ts DESC);
+    `);
+
+    const columns = this.getDb().prepare('PRAGMA table_info(request_history)').all() as Array<{
+      name: string;
+    }>;
+    if (columns.length === 0) {
+      return;
+    }
+    if (!columns.some((col) => col.name === 'kind')) {
+      this.getDb().exec('ALTER TABLE request_history ADD COLUMN kind TEXT');
+    }
+    if (!columns.some((col) => col.name === 'run_collection_id')) {
+      this.getDb().exec('ALTER TABLE request_history ADD COLUMN run_collection_id INTEGER');
+    }
+    if (!columns.some((col) => col.name === 'run_folder_id')) {
+      this.getDb().exec('ALTER TABLE request_history ADD COLUMN run_folder_id INTEGER');
+    }
+    if (!columns.some((col) => col.name === 'run_request_id')) {
+      this.getDb().exec('ALTER TABLE request_history ADD COLUMN run_request_id INTEGER');
+    }
   }
 
   /**
@@ -1411,6 +1602,93 @@ export class LocalDatabase {
   }
 
   /**
+   * Loads persisted request history entries, newest first.
+   *
+   * @param cap - Maximum number of entries to return.
+   * @returns Request history entries ordered newest-first.
+   */
+  listRequestHistory(cap = REQUEST_HISTORY_CAP): RequestHistoryEntry[] {
+    const rows = this.getDb()
+      .prepare(
+        `SELECT id, method, url, status, status_text, ts, saved_request_id, name, headers, params, body, body_type,
+                kind, run_collection_id, run_folder_id, run_request_id
+         FROM request_history
+         ORDER BY ts DESC
+         LIMIT ?`
+      )
+      .all(cap) as RequestHistoryRow[];
+
+    return rows.map(rowToRequestHistoryEntry);
+  }
+
+  /**
+   * Inserts a request history entry and prunes older rows beyond the cap.
+   *
+   * @param entry - Captured request to persist.
+   * @param cap - Maximum number of entries to retain.
+   * @returns Updated request history list ordered newest-first.
+   */
+  addRequestHistory(entry: RequestHistoryEntry, cap = REQUEST_HISTORY_CAP): RequestHistoryEntry[] {
+    const db = this.getDb();
+    const insert = db.prepare(
+      `INSERT OR REPLACE INTO request_history
+        (id, method, url, status, status_text, ts, saved_request_id, name, headers, params, body, body_type,
+         kind, run_collection_id, run_folder_id, run_request_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+    const prune = db.prepare(
+      `DELETE FROM request_history
+       WHERE id NOT IN (
+         SELECT id FROM request_history ORDER BY ts DESC LIMIT ?
+       )`
+    );
+
+    const transaction = db.transaction(() => {
+      insert.run(
+        entry.id,
+        entry.method,
+        entry.url,
+        entry.status,
+        entry.statusText,
+        entry.ts,
+        entry.savedRequestId ?? null,
+        entry.name ?? null,
+        JSON.stringify(entry.headers ?? {}),
+        JSON.stringify(entry.params ?? []),
+        entry.body ?? null,
+        entry.bodyType ?? null,
+        entry.kind ?? null,
+        entry.runCollectionId ?? null,
+        entry.runFolderId ?? null,
+        entry.runRequestId ?? null
+      );
+      prune.run(cap);
+    });
+
+    transaction();
+    return this.listRequestHistory(cap);
+  }
+
+  /**
+   * Removes all persisted request history entries.
+   */
+  clearRequestHistory(): void {
+    this.getDb().prepare('DELETE FROM request_history').run();
+  }
+
+  /**
+   * Removes one persisted request history entry by id.
+   *
+   * @param id - History entry id to delete.
+   * @param cap - Maximum number of entries to return after deletion.
+   * @returns Updated request history list ordered newest-first.
+   */
+  deleteRequestHistory(id: number, cap = REQUEST_HISTORY_CAP): RequestHistoryEntry[] {
+    this.getDb().prepare('DELETE FROM request_history WHERE id = ?').run(id);
+    return this.listRequestHistory(cap);
+  }
+
+  /**
    * Updates the last-selected model id stored on a chat row.
    *
    * @param chatId - Chat id to update.
@@ -1620,5 +1898,200 @@ export class LocalDatabase {
    */
   clearPluginFsGrants(pluginId: string): void {
     this.getDb().prepare('DELETE FROM plugin_fs_grants WHERE plugin_id = ?').run(pluginId);
+  }
+
+  /**
+   * Loads all tab groups with their saved request members.
+   *
+   * @returns Tab groups ordered by sort order then name.
+   */
+  listTabGroups(): TabGroup[] {
+    const groupRows = this.getDb()
+      .prepare(
+        'SELECT id, name, created_at, updated_at FROM tab_groups ORDER BY sort_order ASC, name ASC'
+      )
+      .all() as Array<{
+      id: number;
+      name: string;
+      created_at: number;
+      updated_at: number;
+    }>;
+
+    const requestRows = this.getDb()
+      .prepare(
+        `SELECT group_id, request_uuid, collection_id, request_name
+         FROM tab_group_requests
+         ORDER BY sort_order ASC, request_uuid ASC`
+      )
+      .all() as Array<{
+      group_id: number;
+      request_uuid: string;
+      collection_id: number | null;
+      request_name: string | null;
+    }>;
+
+    const requestsByGroup = new Map<number, TabGroupRequest[]>();
+    for (const row of requestRows) {
+      const members = requestsByGroup.get(row.group_id) ?? [];
+      members.push({
+        requestUuid: row.request_uuid,
+        collectionId: row.collection_id ?? undefined,
+        requestName: row.request_name ?? undefined
+      });
+      requestsByGroup.set(row.group_id, members);
+    }
+
+    return groupRows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      requests: requestsByGroup.get(row.id) ?? [],
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    }));
+  }
+
+  /**
+   * Returns the next sort order for a new tab group.
+   */
+  private nextTabGroupSortOrder(): number {
+    const row = this.getDb()
+      .prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM tab_groups')
+      .get() as { next_order: number };
+    return row.next_order;
+  }
+
+  /**
+   * Inserts request members for one tab group.
+   *
+   * @param groupId - Parent tab group id.
+   * @param requests - Ordered saved request references.
+   */
+  private insertTabGroupRequests(groupId: number, requests: TabGroupRequest[]): void {
+    const insert = this.getDb().prepare(
+      `INSERT INTO tab_group_requests (group_id, request_uuid, collection_id, request_name, sort_order)
+       VALUES (?, ?, ?, ?, ?)`
+    );
+
+    requests.forEach((request, index) => {
+      insert.run(
+        groupId,
+        request.requestUuid,
+        request.collectionId ?? null,
+        request.requestName ?? null,
+        index
+      );
+    });
+  }
+
+  /**
+   * Creates a tab group and returns the refreshed list.
+   *
+   * @param input - Group name and ordered request members.
+   * @returns Updated tab group list.
+   */
+  createTabGroup(input: CreateTabGroupInput): TabGroup[] {
+    const trimmedName = trimRequiredName(input.name, 'Tab group name');
+    const now = Date.now();
+    const sortOrder = this.nextTabGroupSortOrder();
+    const db = this.getDb();
+
+    const transaction = db.transaction(() => {
+      const result = db
+        .prepare(
+          'INSERT INTO tab_groups (name, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?)'
+        )
+        .run(trimmedName, sortOrder, now, now);
+      const groupId = Number(result.lastInsertRowid);
+      this.insertTabGroupRequests(groupId, input.requests);
+    });
+
+    transaction();
+    return this.listTabGroups();
+  }
+
+  /**
+   * Replaces the saved requests in a tab group and returns the refreshed list.
+   *
+   * @param id - Tab group id.
+   * @param requests - Ordered saved request members.
+   * @returns Updated tab group list.
+   */
+  updateTabGroup(id: number, requests: TabGroupRequest[]): TabGroup[] {
+    const source = this.listTabGroups().find((group) => group.id === id);
+    if (!source) {
+      throw new Error(`Tab group ${id} not found`);
+    }
+
+    const db = this.getDb();
+    const transaction = db.transaction(() => {
+      db.prepare('DELETE FROM tab_group_requests WHERE group_id = ?').run(id);
+      this.insertTabGroupRequests(id, requests);
+      db.prepare('UPDATE tab_groups SET updated_at = ? WHERE id = ?').run(Date.now(), id);
+    });
+
+    transaction();
+    return this.listTabGroups();
+  }
+
+  /**
+   * Renames a tab group and returns the refreshed list.
+   *
+   * @param id - Tab group id.
+   * @param name - New display name.
+   * @returns Updated tab group list.
+   */
+  renameTabGroup(id: number, name: string): TabGroup[] {
+    const trimmedName = trimRequiredName(name, 'Tab group name');
+    this.getDb()
+      .prepare('UPDATE tab_groups SET name = ?, updated_at = ? WHERE id = ?')
+      .run(trimmedName, Date.now(), id);
+    return this.listTabGroups();
+  }
+
+  /**
+   * Clones a tab group under a new name and returns the refreshed list.
+   *
+   * @param id - Source tab group id.
+   * @param name - Name for the cloned group.
+   * @returns Updated tab group list.
+   */
+  cloneTabGroup(id: number, name: string): TabGroup[] {
+    const source = this.listTabGroups().find((group) => group.id === id);
+    if (!source) {
+      throw new Error(`Tab group ${id} not found`);
+    }
+
+    return this.createTabGroup({
+      name,
+      requests: source.requests.map((request) => ({ ...request }))
+    });
+  }
+
+  /**
+   * Deletes a tab group and returns the refreshed list.
+   *
+   * @param id - Tab group id.
+   * @returns Updated tab group list.
+   */
+  deleteTabGroup(id: number): TabGroup[] {
+    this.getDb().prepare('DELETE FROM tab_groups WHERE id = ?').run(id);
+    return this.listTabGroups();
+  }
+
+  /**
+   * Persists a new sidebar order for tab groups and returns the refreshed list.
+   *
+   * @param orderedIds - Tab group ids in desired order.
+   * @returns Updated tab group list.
+   */
+  reorderTabGroups(orderedIds: number[]): TabGroup[] {
+    const reorder = this.getDb().transaction((ids: number[]) => {
+      const stmt = this.getDb().prepare('UPDATE tab_groups SET sort_order = ? WHERE id = ?');
+      ids.forEach((id, index) => {
+        stmt.run(index, id);
+      });
+    });
+    reorder(orderedIds);
+    return this.listTabGroups();
   }
 }

@@ -54,6 +54,20 @@ export const deleteRunResult = createAsyncThunk<number, number, ThunkApiConfig>(
 );
 
 /**
+ * Deletes all saved run result snapshots currently loaded in the sidebar.
+ */
+export const clearRunResults = createAsyncThunk<void, void, ThunkApiConfig>(
+  'runResults/clear',
+  async (_arg, { dispatch, getState }) => {
+    const ids = getState().runResults.items.map((item) => item.id);
+    for (const id of ids) {
+      await window.api.deleteSavedRunResult(id);
+    }
+    dispatch(setRunResults([]));
+  }
+);
+
+/**
  * Returns whether a connection id refers to a configured Team Hub.
  *
  * @param connectionId - Provider connection id from a saved run result row.

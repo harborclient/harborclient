@@ -46,6 +46,7 @@ import { SyncModal } from '#/renderer/src/ui/modals/SyncModal';
 import { UpdateModal } from '#/renderer/src/ui/modals/UpdateModal';
 import { AlertModal } from '#/renderer/src/ui/modals/AlertModal';
 import { CollectionModal } from '#/renderer/src/ui/modals/CollectionModal';
+import { TabGroupModal } from '#/renderer/src/ui/modals/TabGroupModal';
 import { ConfirmModal } from '#/renderer/src/ui/modals/ConfirmModal';
 import { PluginModalOverlay } from '#/renderer/src/ui/PluginModalOverlay';
 import { ShareModal } from '#/renderer/src/ui/modals/ShareModal';
@@ -64,6 +65,7 @@ import {
   selectCodeEditorTheme
 } from '#/renderer/src/store/slices/settingsSlice';
 import { Footer } from '#/renderer/src/ui/Footer';
+import { TabGroupEditBar } from '#/renderer/src/ui/TabGroupEditBar';
 import { FooterPanels } from '#/renderer/src/ui/Footer/FooterPanels';
 import { AnimatedHorizontalPanel } from '#/renderer/src/ui/shared/AnimatedHorizontalPanel';
 import {
@@ -383,6 +385,8 @@ export default function App(): JSX.Element {
               </AnimatedHorizontalPanel>
             </div>
 
+            <TabGroupEditBar />
+
             <Footer
               consoleOpen={showConsole}
               entryCount={consoleEntries.length}
@@ -407,6 +411,7 @@ export default function App(): JSX.Element {
             />
 
             <CollectionModal />
+            <TabGroupModal />
             <ShareModal />
             <UnsavedLoadPrompt />
             <QuitPrompt />

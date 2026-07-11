@@ -136,6 +136,20 @@ export const reorderDocuments = createAsyncThunk<
 });
 
 /**
+ * Moves a markdown document into a folder (or back to the collection root) at a specific index.
+ */
+export const moveDocumentToFolder = createAsyncThunk<
+  void,
+  { collectionId: number; documentId: number; folderId: number | null; index: number },
+  ThunkApiConfig
+>('documents/move', async ({ collectionId, documentId, folderId, index }, { dispatch }) => {
+  await window.api.moveDocument(documentId, folderId, index);
+  await dispatch(refreshDocuments(collectionId));
+  const { refreshRequests } = await import('#/renderer/src/store/thunks/collections');
+  await dispatch(refreshRequests(collectionId));
+});
+
+/**
  * Payload for {@link requestLoadDocument}.
  */
 export interface RequestLoadDocumentArgs {

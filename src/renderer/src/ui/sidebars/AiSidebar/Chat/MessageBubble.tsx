@@ -1,3 +1,4 @@
+import { fieldFrame } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import type { ChatMessage } from '#/shared/types';
 import { MarkdownContent } from './MarkdownContent';
@@ -10,22 +11,20 @@ interface Props {
 }
 
 /**
- * Renders a single chat message bubble aligned by role.
+ * Renders a full-width chat message bubble styled by role.
  */
 export function MessageBubble({ message }: Props): JSX.Element {
   const isUser = message.role === 'user';
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={
-          isUser
-            ? 'hc-user-message-bubble max-w-[95%] rounded-lg bg-accent px-3 py-2 text-[16px] text-white'
-            : 'max-w-[95%] rounded-lg bg-control px-3 py-2 text-[16px] text-text'
-        }
-      >
-        <MarkdownContent content={message.content} variant={isUser ? 'user' : 'assistant'} />
-      </div>
+    <div
+      className={
+        isUser
+          ? `${fieldFrame} w-full p-3 text-[16px] text-text`
+          : 'w-full p-3 text-[16px] text-text'
+      }
+    >
+      <MarkdownContent content={message.content} variant={isUser ? 'user' : 'assistant'} />
     </div>
   );
 }

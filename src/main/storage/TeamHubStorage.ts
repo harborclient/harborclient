@@ -35,6 +35,8 @@ import {
 } from '#/main/storage/teamHubRunResultApi';
 import { trimRequiredName } from '#/main/storage/trimRequiredName';
 import { resolveImportUuid } from '#/main/storage/uuid';
+import { assertContainerItemOrder, planContainerItemMove } from '#/main/storage/containerReorder';
+import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
 import type { IStorage } from '#/main/storage/IStorage';
 import {
   toTeamHubAuth,
@@ -50,6 +52,7 @@ import {
 } from '@harborclient/team-hub-api';
 import { defaultAuth, normalizeAuth } from '#/shared/auth';
 import {
+  firstRunResultMethod,
   type ProviderRunResult,
   type ProviderRunResultSummary,
   type SaveRunResultInput
@@ -178,6 +181,17 @@ function serverToRunResultSummary(
   record: TeamHubRunResultRecord,
   localId: number
 ): ProviderRunResultSummary {
+  let firstRequestMethod: ProviderRunResultSummary['firstRequestMethod'] = null;
+  if ('payload' in record && record.payload != null) {
+    try {
+      firstRequestMethod = firstRunResultMethod(
+        validateRunResultsExport(record.payload as TeamHubRunResultDetail['payload'])
+      );
+    } catch {
+      firstRequestMethod = null;
+    }
+  }
+
   return {
     id: localId,
     uuid: record.id,
@@ -186,6 +200,7 @@ function serverToRunResultSummary(
     collectionName: record.collectionName,
     requestName: record.requestName,
     summary: record.summary,
+    firstRequestMethod,
     createdAt: record.createdAt
   };
 }
@@ -804,12 +819,77 @@ export class TeamHubStorage implements IStorage {
   }
 
   /**
+   * Reorders requests and markdown documents together within a folder or collection root on the server.
+   *
+   * @param collectionId - Provider-local collection id.
+   * @param folderId - Provider-local folder id, or null for collection root.
+   * @param items - Request and document refs in desired unified sidebar order.
+   */
+  async reorderContainerItems(
+    collectionId: number,
+    folderId: number | null,
+    items: ContainerItemRef[]
+  ): Promise<void> {
+    const requests = await this.listRequests(collectionId);
+    const documents = await this.listDocuments(collectionId);
+    assertContainerItemOrder(collectionId, folderId, items, requests, documents);
+
+    if (folderId != null) {
+      const folders = await this.listFolders(collectionId);
+      if (!folders.some((folder) => folder.id === folderId)) {
+        throw new Error('Folder not found');
+      }
+    }
+
+    const folderServerId = folderId != null ? this.requireServerId('folder', folderId) : null;
+
+    for (let unifiedIndex = 0; unifiedIndex < items.length; unifiedIndex++) {
+      const item = items[unifiedIndex];
+      if (item.kind === 'request') {
+        const requestServerId = this.requireServerId('request', item.id);
+        await this.client.moveRequest(requestServerId, {
+          folderId: folderServerId,
+          index: unifiedIndex
+        });
+        continue;
+      }
+
+      const documentServerId = this.requireServerId('document', item.id);
+      await this.client.moveDocument(documentServerId, {
+        folderId: folderServerId,
+        index: unifiedIndex
+      });
+    }
+  }
+
+  /**
    * Moves a document to another folder or collection root at a given index on the server.
    */
   async moveDocument(documentId: number, folderId: number | null, index: number): Promise<void> {
-    const serverId = this.requireServerId('document', documentId);
-    const folderServerId = folderId != null ? this.requireServerId('folder', folderId) : null;
-    await this.client.moveDocument(serverId, { folderId: folderServerId, index });
+    const { collectionId, sourceFolderId } = await this.findDocumentContainer(documentId);
+
+    if (folderId != null) {
+      const folders = await this.listFolders(collectionId);
+      if (!folders.some((folder) => folder.id === folderId)) {
+        throw new Error('Folder not found');
+      }
+    }
+
+    const requests = await this.listRequests(collectionId);
+    const documents = await this.listDocuments(collectionId);
+    const plan = planContainerItemMove(
+      requests,
+      documents,
+      { kind: 'document', id: documentId },
+      sourceFolderId,
+      folderId,
+      index
+    );
+
+    if (plan.sourceOrder) {
+      await this.reorderContainerItems(collectionId, sourceFolderId, plan.sourceOrder);
+    }
+    await this.reorderContainerItems(collectionId, folderId, plan.destinationOrder);
   }
 
   /**
@@ -989,12 +1069,30 @@ export class TeamHubStorage implements IStorage {
    * Moves a request to another folder or collection root on the server.
    */
   async moveRequest(requestId: number, folderId: number | null, index: number): Promise<void> {
-    const requestServerId = this.requireServerId('request', requestId);
-    const folderServerId = folderId != null ? this.requireServerId('folder', folderId) : null;
-    await this.client.moveRequest(requestServerId, {
-      folderId: folderServerId,
+    const { collectionId, sourceFolderId } = await this.findRequestContainer(requestId);
+
+    if (folderId != null) {
+      const folders = await this.listFolders(collectionId);
+      if (!folders.some((folder) => folder.id === folderId)) {
+        throw new Error('Folder not found');
+      }
+    }
+
+    const requests = await this.listRequests(collectionId);
+    const documents = await this.listDocuments(collectionId);
+    const plan = planContainerItemMove(
+      requests,
+      documents,
+      { kind: 'request', id: requestId },
+      sourceFolderId,
+      folderId,
       index
-    });
+    );
+
+    if (plan.sourceOrder) {
+      await this.reorderContainerItems(collectionId, sourceFolderId, plan.sourceOrder);
+    }
+    await this.reorderContainerItems(collectionId, folderId, plan.destinationOrder);
   }
 
   /**
@@ -1340,6 +1438,50 @@ export class TeamHubStorage implements IStorage {
       localCollectionId,
       localFolderId
     );
+  }
+
+  /**
+   * Resolves the collection and source folder for a provider-local request id.
+   *
+   * @param requestId - Provider-local request id.
+   */
+  private async findRequestContainer(
+    requestId: number
+  ): Promise<{ collectionId: number; sourceFolderId: number | null }> {
+    const collections = await this.listCollections();
+    for (const collection of collections) {
+      const requests = await this.listRequests(collection.id);
+      const request = requests.find((item) => item.id === requestId);
+      if (request) {
+        return {
+          collectionId: collection.id,
+          sourceFolderId: request.folder_id ?? null
+        };
+      }
+    }
+    throw new Error('Request not found');
+  }
+
+  /**
+   * Resolves the collection and source folder for a provider-local document id.
+   *
+   * @param documentId - Provider-local document id.
+   */
+  private async findDocumentContainer(
+    documentId: number
+  ): Promise<{ collectionId: number; sourceFolderId: number | null }> {
+    const collections = await this.listCollections();
+    for (const collection of collections) {
+      const documents = await this.listDocuments(collection.id);
+      const document = documents.find((item) => item.id === documentId);
+      if (document) {
+        return {
+          collectionId: collection.id,
+          sourceFolderId: document.folder_id ?? null
+        };
+      }
+    }
+    throw new Error('Document not found');
   }
 
   /**

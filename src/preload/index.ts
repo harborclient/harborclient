@@ -92,7 +92,11 @@ import type {
   TrustedSharingKey,
   UpdateCheckResult,
   Variable,
-  KeyValue
+  KeyValue,
+  RequestHistoryEntry,
+  CreateTabGroupInput,
+  TabGroup,
+  TabGroupRequest
 } from '#/shared/types';
 import type { SnippetImportResult } from '#/shared/types/api/snippets';
 import type {
@@ -274,6 +278,102 @@ function getSavedRunResult(id: number): Promise<SavedRunResult | null> {
  */
 function deleteSavedRunResult(id: number): Promise<void> {
   return ipcRenderer.invoke('runResults:delete', id);
+}
+
+/**
+ * Lists persisted request history entries via IPC.
+ */
+function listRequestHistory(): Promise<RequestHistoryEntry[]> {
+  return ipcRenderer.invoke('requestHistory:list');
+}
+
+/**
+ * Persists a completed request and prunes entries beyond the configured cap.
+ *
+ * @param entry - Captured request/response metadata to store.
+ */
+function addRequestHistory(entry: RequestHistoryEntry): Promise<RequestHistoryEntry[]> {
+  return ipcRenderer.invoke('requestHistory:add', entry);
+}
+
+/**
+ * Removes all persisted request history entries via IPC.
+ */
+function clearRequestHistory(): Promise<void> {
+  return ipcRenderer.invoke('requestHistory:clear');
+}
+
+/**
+ * Removes one persisted request history entry via IPC.
+ *
+ * @param id - History entry id to delete.
+ */
+function deleteRequestHistory(id: number): Promise<RequestHistoryEntry[]> {
+  return ipcRenderer.invoke('requestHistory:delete', id);
+}
+
+/**
+ * Lists persisted tab groups via IPC.
+ */
+function listTabGroups(): Promise<TabGroup[]> {
+  return ipcRenderer.invoke('tabGroups:list');
+}
+
+/**
+ * Creates a tab group and returns the refreshed list.
+ *
+ * @param input - Group name and ordered request members.
+ */
+function createTabGroup(input: CreateTabGroupInput): Promise<TabGroup[]> {
+  return ipcRenderer.invoke('tabGroups:create', input);
+}
+
+/**
+ * Replaces tab group members and returns the refreshed list.
+ *
+ * @param id - Tab group id.
+ * @param requests - Ordered saved request members.
+ */
+function updateTabGroup(id: number, requests: TabGroupRequest[]): Promise<TabGroup[]> {
+  return ipcRenderer.invoke('tabGroups:update', id, requests);
+}
+
+/**
+ * Renames a tab group and returns the refreshed list.
+ *
+ * @param id - Tab group id.
+ * @param name - New display name.
+ */
+function renameTabGroup(id: number, name: string): Promise<TabGroup[]> {
+  return ipcRenderer.invoke('tabGroups:rename', id, name);
+}
+
+/**
+ * Clones a tab group and returns the refreshed list.
+ *
+ * @param id - Source tab group id.
+ * @param name - Name for the cloned group.
+ */
+function cloneTabGroup(id: number, name: string): Promise<TabGroup[]> {
+  return ipcRenderer.invoke('tabGroups:clone', id, name);
+}
+
+/**
+ * Deletes a tab group and returns the refreshed list.
+ *
+ * @param id - Tab group id.
+ */
+function deleteTabGroup(id: number): Promise<TabGroup[]> {
+  return ipcRenderer.invoke('tabGroups:delete', id);
+}
+
+/**
+ * Persists a new sidebar order for tab groups and returns the refreshed list.
+ *
+ * @param orderedTabGroupIds - Tab group ids in desired order.
+ */
+function reorderTabGroups(orderedTabGroupIds: number[]): Promise<TabGroup[]> {
+  return ipcRenderer.invoke('tabGroups:reorder', orderedTabGroupIds);
 }
 
 /**
@@ -715,6 +815,21 @@ function moveRequest(requestId: number, folderId: number | null, index: number):
 }
 
 /**
+ * Reorders requests and markdown documents together within a folder or collection root.
+ *
+ * @param collectionId - Collection containing the items.
+ * @param folderId - Folder ID, or null for root-level items.
+ * @param items - Request and document refs in desired unified sidebar order.
+ */
+function reorderContainerItems(
+  collectionId: number,
+  folderId: number | null,
+  items: Array<{ kind: 'request' | 'document'; id: number }>
+): Promise<void> {
+  return ipcRenderer.invoke('collections:reorder-container-items', collectionId, folderId, items);
+}
+
+/**
  * Lists all markdown documents in a collection.
  *
  * @param collectionId - Collection to query.
@@ -942,6 +1057,15 @@ function setMenuCreatorUndoRedo(
 }
 
 /**
+ * Syncs tab-group availability to the Edit menu in the main process.
+ *
+ * @param available - Whether at least one saved request tab is open.
+ */
+function setTabGroupAvailable(available: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setTabGroupAvailable', available);
+}
+
+/**
  * Subscribes to View menu appearance theme selection events from the main process.
  *
  * @param callback - Handler invoked with the selected theme and label.
@@ -1047,6 +1171,31 @@ function shouldPickTheme(): Promise<boolean> {
  */
 function markThemePickerSeen(): Promise<void> {
   return ipcRenderer.invoke('theme:markPickerSeen');
+}
+
+/**
+ * Returns the current main-window zoom factor.
+ */
+function getZoomFactor(): Promise<number> {
+  return ipcRenderer.invoke('zoom:get');
+}
+
+/**
+ * Applies a zoom factor without persisting it (theme picker live preview).
+ *
+ * @param factor - Target zoom factor.
+ */
+function previewZoomFactor(factor: number): Promise<void> {
+  return ipcRenderer.invoke('zoom:preview', factor);
+}
+
+/**
+ * Persists and applies the main-window zoom factor.
+ *
+ * @param factor - Target zoom factor.
+ */
+function setZoomFactor(factor: number): Promise<void> {
+  return ipcRenderer.invoke('zoom:set', factor);
 }
 
 /**
@@ -2920,6 +3069,17 @@ const api: Api = {
   saveRunResult,
   getSavedRunResult,
   deleteSavedRunResult,
+  listRequestHistory,
+  addRequestHistory,
+  clearRequestHistory,
+  deleteRequestHistory,
+  listTabGroups,
+  createTabGroup,
+  updateTabGroup,
+  renameTabGroup,
+  cloneTabGroup,
+  deleteTabGroup,
+  reorderTabGroups,
   resolveRunResultByUuid,
   moveCollection,
   reorderCollections,
@@ -2959,6 +3119,7 @@ const api: Api = {
   reorderFolders,
   reorderRequests,
   moveRequest,
+  reorderContainerItems,
   listDocuments,
   saveDocument,
   deleteDocument,
@@ -2981,6 +3142,7 @@ const api: Api = {
   setMenuRunResultsVisible,
   setMenuThemeMenuState,
   setMenuCreatorUndoRedo,
+  setTabGroupAvailable,
   onMenuSelectTheme,
   popupMenuSubmenu,
   getAppSubmenuSnapshot,
@@ -2993,6 +3155,9 @@ const api: Api = {
   previewTheme,
   shouldPickTheme,
   markThemePickerSeen,
+  getZoomFactor,
+  previewZoomFactor,
+  setZoomFactor,
   shouldOpenGettingStarted,
   markGettingStartedSeen,
   onThemeChanged,

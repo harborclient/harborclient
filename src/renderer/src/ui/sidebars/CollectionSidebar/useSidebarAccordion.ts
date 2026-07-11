@@ -32,18 +32,24 @@ export function useSidebarAccordion(): Result {
     collectionsSectionExpanded,
     environmentsSectionExpanded,
     runResultsSectionExpanded,
+    historySectionExpanded,
+    tabGroupsSectionExpanded,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
     setRunResultsSectionExpanded,
+    setHistorySectionExpanded,
+    setTabGroupsSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
-    runResultsSectionVisible
+    runResultsSectionVisible,
+    historySectionVisible,
+    tabGroupsSectionVisible
   } = useSidebarExpansion();
 
   /**
    * Writes accordion item state into the persisted sidebar expansion booleans.
    *
-   * @param key - Accordion item key (`collections`, `environments`, `runResults`, or a plugin section id).
+   * @param key - Accordion item key (`collections`, `environments`, `runResults`, `history`, or a plugin section id).
    * @param isEnter - Whether the section body should be expanded.
    */
   const applySectionExpanded = useCallback(
@@ -63,6 +69,16 @@ export function useSidebarAccordion(): Result {
         return;
       }
 
+      if (key === 'history') {
+        setHistorySectionExpanded((current) => (current === isEnter ? current : isEnter));
+        return;
+      }
+
+      if (key === 'tabGroups') {
+        setTabGroupsSectionExpanded((current) => (current === isEnter ? current : isEnter));
+        return;
+      }
+
       setPluginSectionExpanded((current) => {
         const previous = current[key] ?? true;
         if (previous === isEnter) {
@@ -71,7 +87,13 @@ export function useSidebarAccordion(): Result {
         return { ...current, [key]: isEnter };
       });
     },
-    [setCollectionsSectionExpanded, setEnvironmentsSectionExpanded, setRunResultsSectionExpanded]
+    [
+      setCollectionsSectionExpanded,
+      setEnvironmentsSectionExpanded,
+      setRunResultsSectionExpanded,
+      setHistorySectionExpanded,
+      setTabGroupsSectionExpanded
+    ]
   );
 
   const accordion = useAccordionProvider({
@@ -105,6 +127,14 @@ export function useSidebarAccordion(): Result {
       desiredExpansion.runResults = runResultsSectionExpanded;
     }
 
+    if (historySectionVisible) {
+      desiredExpansion.history = historySectionExpanded;
+    }
+
+    if (tabGroupsSectionVisible) {
+      desiredExpansion.tabGroups = tabGroupsSectionExpanded;
+    }
+
     for (const section of pluginSidebarSections) {
       desiredExpansion[section.id] = pluginSectionExpanded[section.id] ?? true;
     }
@@ -121,9 +151,13 @@ export function useSidebarAccordion(): Result {
     collectionsSectionExpanded,
     environmentsSectionExpanded,
     runResultsSectionExpanded,
+    historySectionExpanded,
+    tabGroupsSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
+    historySectionVisible,
+    tabGroupsSectionVisible,
     pluginSectionExpanded,
     pluginSidebarSections
   ]);

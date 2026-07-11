@@ -79,20 +79,20 @@ const SectionItem = memo(function SectionItem({
   const { status, isMounted, isEnter } = state;
 
   return (
-    <div ref={itemElementRef} className="mb-1">
-      <div className="-mx-2 mb-1 flex items-center justify-between gap-2 bg-sidebar-section px-2 py-1">
+    <div ref={itemElementRef} className="-mr-2 mb-1">
+      <div className="hc-sidebar-section-header mb-1 flex items-center justify-between gap-2 bg-sidebar-section pr-2 py-0.5">
         <button
           {...buttonProps}
           type="button"
-          className="inline-flex min-w-0 flex-1 cursor-pointer items-center gap-1 border-none bg-transparent p-0 text-left app-no-drag"
+          className="inline-flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-left app-no-drag"
         >
-          <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+          <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
             <FaIcon
               icon={isEnter ? faChevronDown : faChevronRight}
-              className="h-3 w-3 text-muted"
+              className="h-2 w-2 text-muted"
             />
           </span>
-          <h2 className="m-0 text-[16px] font-medium uppercase tracking-wide text-muted">
+          <h2 className="m-0 text-[15px] font-medium uppercase leading-none tracking-wide text-muted">
             {title}
           </h2>
         </button>
@@ -119,7 +119,7 @@ const SectionItem = memo(function SectionItem({
             display: status === 'exited' ? 'none' : undefined,
             ...transitionStyle
           }}
-          className="motion-reduce:transition-none"
+          className="transition-[height] duration-200 ease-out motion-reduce:transition-none"
         >
           <div {...panelProps} ref={panelRef as Ref<HTMLDivElement>}>
             {children}

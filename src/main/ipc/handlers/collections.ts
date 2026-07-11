@@ -622,6 +622,14 @@ export function registerCollectionHandlers(db: IStorage): void {
     return db.reorderCollections(orderedCollectionIds);
   });
 
+  // Reorders requests and markdown documents together within a folder or collection root.
+  handle(
+    'collections:reorder-container-items',
+    ipcArgSchemas.containerItemsReorder,
+    (_event, collectionId, folderId, items) =>
+      db.reorderContainerItems(collectionId, folderId, items)
+  );
+
   // Opens a native file picker and returns selected absolute file paths.
   handle('dialog:openFiles', ipcArgSchemas.none, async () => {
     const win = BrowserWindow.getFocusedWindow();

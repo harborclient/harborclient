@@ -5,6 +5,7 @@ import {
   buildPendingCollectionRunnerResults,
   buildRunResultsExport,
   DEFAULT_COLLECTION_RUNNER_CONFIG,
+  firstRunResultMethod,
   getCollectionRunnerRequests,
   getRequestsInRunOrder,
   isCollectionRunnerRequestFailure,
@@ -253,6 +254,57 @@ describe('summarizeRunnerResults', () => {
         }
       ])
     ).toEqual({ passed: 1, failed: 1, skipped: 1 });
+  });
+});
+
+describe('firstRunResultMethod', () => {
+  it('returns the first result row method when present', () => {
+    const payload = buildRunResultsExport({
+      requestId: null,
+      collectionName: 'Demo',
+      folderName: null,
+      requestName: null,
+      collectionUuid: '550e8400-e29b-41d4-a716-446655440000',
+      requestUuid: null,
+      requestMethod: null,
+      delayMs: 0,
+      stopOnFailure: false,
+      environmentMode: 'active',
+      environmentId: null,
+      environmentName: null,
+      results: [
+        {
+          requestId: 1,
+          requestName: 'Health',
+          requestMethod: 'DELETE',
+          status: 'passed',
+          testsPassed: 1,
+          testsFailed: 0
+        }
+      ]
+    });
+
+    expect(firstRunResultMethod(payload)).toBe('DELETE');
+  });
+
+  it('falls back to single-request export method when results are empty', () => {
+    const payload = buildRunResultsExport({
+      requestId: 1,
+      collectionName: 'Demo',
+      folderName: null,
+      requestName: 'Health',
+      collectionUuid: '550e8400-e29b-41d4-a716-446655440000',
+      requestUuid: '660e8400-e29b-41d4-a716-446655440001',
+      requestMethod: 'POST',
+      delayMs: 0,
+      stopOnFailure: false,
+      environmentMode: 'active',
+      environmentId: null,
+      environmentName: null,
+      results: []
+    });
+
+    expect(firstRunResultMethod(payload)).toBe('POST');
   });
 });
 

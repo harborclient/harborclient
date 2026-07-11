@@ -15,6 +15,7 @@
     "muted": "#d0d0d0",
     "accent": "#4dabff",
     "selection": "#14487a",
+    "tab-unsaved": "#ffd60a",
     "danger": "#ff8a80",
     "danger-light": "#ffb4af",
     "warning": "#ffb340",

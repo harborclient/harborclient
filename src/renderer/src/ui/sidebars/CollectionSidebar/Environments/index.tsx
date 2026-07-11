@@ -42,7 +42,7 @@ import {
   useDeveloperToolsEnabled,
   type InspectPoint
 } from '#/renderer/src/ui/shared/devInspectContextMenu';
-import { environmentDragId, parseEnvironmentDragId } from './utils';
+import { environmentDragId, environmentVariableCount, parseEnvironmentDragId } from './utils';
 
 /**
  * Environment list with active-row highlight, drag reordering, and row actions.
@@ -225,6 +225,7 @@ export function Environments(): JSX.Element {
           {environments.map((environment, environmentIndex) => {
             const selected = activeEnvironmentId === environment.id;
             const environmentBelow = environments[environmentIndex + 1];
+            const variableCount = environmentVariableCount(environment.variables);
 
             return (
               <SortableRow
@@ -247,9 +248,10 @@ export function Environments(): JSX.Element {
               >
                 <button
                   type="button"
-                  className="min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left text-[16px] text-inherit app-no-drag"
+                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-inherit app-no-drag"
                   data-sidebar-environment-id={environment.id}
                   aria-current={selected ? 'true' : undefined}
+                  aria-label={`${environment.name}, ${variableCount} variables`}
                   onClick={() => onSelectEnvironment(selected ? null : environment.id)}
                   onDoubleClick={() => onConfigureEnvironment(environment.id)}
                   onKeyDown={(e) => {
@@ -259,7 +261,10 @@ export function Environments(): JSX.Element {
                     focusEnvironmentSettings();
                   }}
                 >
-                  {environment.name}
+                  <span className="min-w-0 flex-1 truncate text-[16px]">{environment.name}</span>
+                  <span className="shrink-0 tabular-nums text-[16px] text-muted">
+                    {variableCount}
+                  </span>
                 </button>
                 <RowActionsMenu
                   menuId={`environment-${environment.id}`}

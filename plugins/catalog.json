@@ -15,11 +15,11 @@
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-json-validator",
-      "ref": "v1.0.5"
+      "ref": "v1.0.7"
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-load-tester",
-      "ref": "v1.0.8"
+      "ref": "v1.0.9"
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-dotenv",
@@ -35,23 +35,19 @@
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-interval",
-      "ref": "v1.0.9"
-    },
-    {
-      "repoUrl": "https://github.com/harborclient/plugin-jwt",
-      "ref": "v1.0.6"
-    },
-    {
-      "repoUrl": "https://github.com/harborclient/plugin-openapi",
       "ref": "v1.0.10"
     },
     {
-      "repoUrl": "https://github.com/harborclient/plugin-request-history",
-      "ref": "v1.2.5"
+      "repoUrl": "https://github.com/harborclient/plugin-jwt",
+      "ref": "v1.0.7"
+    },
+    {
+      "repoUrl": "https://github.com/harborclient/plugin-openapi",
+      "ref": "v1.0.11"
     },
     {
       "repoUrl": "https://github.com/harborclient/plugin-pm-to-hc",
-      "ref": "v1.0.0"
+      "ref": "v1.0.1"
     },
     {
       "repoUrl": "https://github.com/harborclient/theme-catppuccin-latte",

@@ -17,8 +17,7 @@ type BubbleVariant = 'user' | 'assistant';
  */
 export function renderScriptReferenceText(
   text: string,
-  context: AiScriptReferenceValidationContext,
-  bubbleVariant: BubbleVariant
+  context: AiScriptReferenceValidationContext
 ): ReactNode {
   if (text.length === 0) {
     return text;
@@ -39,13 +38,7 @@ export function renderScriptReferenceText(
       return token.text;
     }
 
-    return (
-      <ScriptReferenceBadge
-        key={index}
-        label={label}
-        variant={bubbleVariant === 'user' ? 'onAccent' : 'default'}
-      />
-    );
+    return <ScriptReferenceBadge key={index} label={label} variant="default" />;
   });
 }
 
@@ -63,7 +56,7 @@ export function processMarkdownChildren(
 ): ReactNode {
   return Children.map(children, (child) => {
     if (typeof child === 'string') {
-      return renderScriptReferenceText(child, context, bubbleVariant);
+      return renderScriptReferenceText(child, context);
     }
 
     if (typeof child === 'number' || typeof child === 'boolean' || child == null) {

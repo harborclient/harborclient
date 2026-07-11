@@ -193,8 +193,21 @@ export interface PendingLoadDocument {
   reason: 'settings' | 'dirty-tab';
 }
 
+export type TabGroupModalMode = 'create' | 'rename' | 'clone';
+
+/**
+ * Tab group modal state for create, rename, and clone flows.
+ */
+export interface TabGroupModalState {
+  mode: TabGroupModalMode;
+  groupId?: number;
+  name: string;
+  submitError: string | null;
+}
+
 export interface ModalsState {
   collectionModal: CollectionModalState | null;
+  tabGroupModal: TabGroupModalState | null;
   share: ShareModalState | null;
   pendingLoadRequest: PendingLoadRequest | null;
   pendingLoadDocument: PendingLoadDocument | null;
@@ -215,6 +228,7 @@ export interface ModalsState {
 
 const initialState: ModalsState = {
   collectionModal: null,
+  tabGroupModal: null,
   share: null,
   pendingLoadRequest: null,
   pendingLoadDocument: null,
@@ -258,6 +272,43 @@ const modalsSlice = createSlice({
      */
     closeCollectionModal(state) {
       state.collectionModal = null;
+    },
+    /**
+     * Opens the tab group modal for create, rename, or clone.
+     */
+    openTabGroupModal(
+      state,
+      action: PayloadAction<{ mode: TabGroupModalMode; groupId?: number; name?: string }>
+    ) {
+      state.tabGroupModal = {
+        mode: action.payload.mode,
+        groupId: action.payload.groupId,
+        name: action.payload.name ?? '',
+        submitError: null
+      };
+    },
+    /**
+     * Closes the tab group modal.
+     */
+    closeTabGroupModal(state) {
+      state.tabGroupModal = null;
+    },
+    /**
+     * Updates the tab group name field in the modal.
+     */
+    setTabGroupModalName(state, action: PayloadAction<string>) {
+      if (state.tabGroupModal) {
+        state.tabGroupModal.name = action.payload;
+        state.tabGroupModal.submitError = null;
+      }
+    },
+    /**
+     * Sets an inline submit error on the tab group modal.
+     */
+    setTabGroupModalSubmitError(state, action: PayloadAction<string | null>) {
+      if (state.tabGroupModal) {
+        state.tabGroupModal.submitError = action.payload;
+      }
     },
     /**
      * Switches the active tab within the collection modal.
@@ -875,7 +926,11 @@ export const {
   closeAcceptTeamHubInviteModal,
   openActionMenuModal,
   closeActionMenuModal,
-  setPluginModal
+  setPluginModal,
+  openTabGroupModal,
+  closeTabGroupModal,
+  setTabGroupModalName,
+  setTabGroupModalSubmitError
 } = modalsSlice.actions;
 
 /**
@@ -883,6 +938,13 @@ export const {
  */
 export const selectCollectionModal = (state: RootState): CollectionModalState | null =>
   state.modals.collectionModal;
+
+/**
+ * Returns tab group modal state when open.
+ */
+export const selectTabGroupModal = (state: RootState): TabGroupModalState | null =>
+  state.modals.tabGroupModal;
+
 /**
  * Returns share modal state when open.
  */
@@ -971,6 +1033,7 @@ export const selectHasBlockingModal = (state: RootState): boolean => {
   const modals = state.modals;
   return (
     modals.collectionModal != null ||
+    modals.tabGroupModal != null ||
     modals.share != null ||
     modals.pendingLoadRequest != null ||
     modals.pendingLoadDocument != null ||

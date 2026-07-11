@@ -16,6 +16,8 @@ import type { ApiPlugins } from '#/shared/types/api/plugins';
 import type { ApiCustomThemes } from '#/shared/types/api/customThemes';
 import type { ApiDocs } from '#/shared/types/api/docs';
 import type { ApiMcp } from '#/shared/types/api/mcp';
+import type { ApiRequestHistory } from '#/shared/types/api/requestHistory';
+import type { ApiTabGroups } from '#/shared/types/api/tabGroup';
 
 /**
  * IPC bridge API exposed to the renderer via contextBridge.
@@ -39,4 +41,6 @@ export interface Api
     ApiPlugins,
     ApiDocs,
     ApiMcp,
+    ApiRequestHistory,
+    ApiTabGroups,
     ApiCustomThemes {}

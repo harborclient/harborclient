@@ -38,6 +38,7 @@ import { registerCommand } from '#/renderer/src/plugins/createPluginContext';
 import { addConsoleEntry } from '#/renderer/src/store/slices/consoleSlice';
 import { emitPluginAfterSend } from '#/renderer/src/plugins/pluginAfterSendBus';
 import { toPluginHttpRequest, toPluginHttpResponse } from '#/shared/plugin/httpRequest';
+import { recordRequestHistoryFromSend } from '#/renderer/src/store/thunks/requestHistory';
 
 const HOST_PLUGIN_ID = 'harborclient';
 
@@ -107,6 +108,7 @@ export async function sendHttpRequestForPlugin(input: SendRequestInput): Promise
     const result = await window.api.sendRequest(input);
     if (!result.error) {
       emitPluginAfterSend(toPluginHttpRequest(input), toPluginHttpResponse(result));
+      void store.dispatch(recordRequestHistoryFromSend({ sendInput: input, result }));
     }
     return result;
   } catch (error) {

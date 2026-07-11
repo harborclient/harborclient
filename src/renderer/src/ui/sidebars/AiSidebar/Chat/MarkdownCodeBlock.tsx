@@ -1,14 +1,19 @@
-import { Button, FaIcon } from '@harborclient/sdk/components';
-import { useRef, useState, type JSX, type ReactNode } from 'react';
+import { Button, CodeEditor, FaIcon } from '@harborclient/sdk/components';
+import { useState, type JSX, type ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import { faCircleCheck, faCopy } from '#/renderer/src/fontawesome';
 import { roundIconButtonClass } from '#/renderer/src/ui/shared/classes';
+import {
+  extractCodeBlockContent,
+  mapFenceLanguageToCodeEditorLanguage,
+  type PreElementNode
+} from './markdownCodeBlockUtils';
 
 interface Props {
   /**
-   * Tailwind classes for the underlying pre element.
+   * `pre` hast node from react-markdown with the raw fenced source.
    */
-  className: string;
+  node?: PreElementNode;
 
   /**
    * Rendered code element from react-markdown.
@@ -17,17 +22,17 @@ interface Props {
 }
 
 /**
- * Renders a fenced code block with a copy-to-clipboard control for assistant messages.
+ * Renders a fenced code block with themed syntax highlighting and copy support.
  */
-export function MarkdownCodeBlock({ className, children }: Props): JSX.Element {
-  const preRef = useRef<HTMLPreElement>(null);
+export function MarkdownCodeBlock({ node, children }: Props): JSX.Element {
   const [copied, setCopied] = useState(false);
+  const { text, language } = extractCodeBlockContent(children, node);
+  const editorLanguage = mapFenceLanguageToCodeEditorLanguage(language);
 
   /**
    * Copies the code block text to the clipboard and shows brief confirmation.
    */
   const handleCopy = async (): Promise<void> => {
-    const text = preRef.current?.textContent ?? '';
     if (!text) return;
 
     try {
@@ -43,7 +48,7 @@ export function MarkdownCodeBlock({ className, children }: Props): JSX.Element {
   const copyLabel = copied ? 'Copied' : 'Copy code';
 
   return (
-    <div className="group/code relative">
+    <div className="group/code relative my-2 last:mb-0">
       <Button
         type="button"
         variant="icon"
@@ -53,9 +58,15 @@ export function MarkdownCodeBlock({ className, children }: Props): JSX.Element {
       >
         <FaIcon icon={copied ? faCircleCheck : faCopy} />
       </Button>
-      <pre ref={preRef} className={`${className} pt-7 pr-9`}>
-        {children}
-      </pre>
+      <CodeEditor
+        readOnly
+        value={text}
+        language={editorLanguage}
+        minHeight="0"
+        lint={false}
+        className="pt-7 pr-9"
+        aria-label={language ? `Code block: ${language}` : 'Code block'}
+      />
     </div>
   );
 }

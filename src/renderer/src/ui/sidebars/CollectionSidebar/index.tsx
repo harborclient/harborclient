@@ -8,9 +8,11 @@ import {
 } from '#/renderer/src/plugins/pluginHooks';
 import {
   faSquareMinus,
+  faClock,
   faClockRotateLeft,
   faCloud,
   faFolder,
+  faLayerGroup,
   faSun
 } from '#/renderer/src/fontawesome';
 import {
@@ -25,10 +27,12 @@ import {
   selectSelectedCollectionId
 } from '#/renderer/src/store/selectors';
 import { selectActiveSidebarPanelId } from '#/renderer/src/store/slices/navigationSlice';
-import { openCollectionModal } from '#/renderer/src/store/slices/modalsSlice';
+import { openCollectionModal, openTabGroupModal } from '#/renderer/src/store/slices/modalsSlice';
 import { Collections } from './Collections';
 import { Environments } from './Environments';
-import { RunResults } from './RunResults';
+import { History, HistoryHeaderActions } from './History';
+import { RunResults, RunsHeaderActions } from './RunResults';
+import { TabGroups } from './TabGroups';
 import { Section } from './Section';
 import { SidebarSearch } from './SidebarSearch';
 import { SidebarPanelSwitcher } from './SidebarPanelSwitcher';
@@ -45,7 +49,7 @@ import { useSidebarAccordion } from './useSidebarAccordion';
 /**
  * Inner sidebar body rendered inside the sidebar context providers. Composes
  * the panel switcher, search field, section toolbar, and the collapsible
- * Collections/Environments/Run Results sections. Sections source their own
+ * Collections/Runs/History/Environments/Tab Groups sections. Sections source their own
  * data and actions, so this shell only wires layout and shared UI state.
  */
 function SidebarContent(): JSX.Element {
@@ -60,14 +64,20 @@ function SidebarContent(): JSX.Element {
     collectionsSectionExpanded,
     environmentsSectionExpanded,
     runResultsSectionExpanded,
+    historySectionExpanded,
+    tabGroupsSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
+    historySectionVisible,
+    tabGroupsSectionVisible,
     showStorageLocationBadges,
     toggleStorageLocationBadges,
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
-    toggleRunResultsSectionVisible
+    toggleRunResultsSectionVisible,
+    toggleHistorySectionVisible,
+    toggleTabGroupsSectionVisible
   } = useSidebarExpansion();
 
   const { searchQuery, setSearchQuery, searchLoading, collapseAllSidebarTrees } =
@@ -114,6 +124,22 @@ function SidebarContent(): JSX.Element {
         onClick: toggleCollectionsSectionVisible
       },
       {
+        id: 'toggle-run-results-section',
+        icon: faClockRotateLeft,
+        label: 'Runs',
+        title: runResultsSectionVisible ? 'Hide runs section' : 'Show runs section',
+        ariaPressed: runResultsSectionVisible,
+        onClick: toggleRunResultsSectionVisible
+      },
+      {
+        id: 'toggle-history-section',
+        icon: faClock,
+        label: 'History',
+        title: historySectionVisible ? 'Hide history section' : 'Show history section',
+        ariaPressed: historySectionVisible,
+        onClick: toggleHistorySectionVisible
+      },
+      {
         id: 'toggle-environments-section',
         icon: faSun,
         label: 'Environments',
@@ -124,12 +150,12 @@ function SidebarContent(): JSX.Element {
         onClick: toggleEnvironmentsSectionVisible
       },
       {
-        id: 'toggle-run-results-section',
-        icon: faClockRotateLeft,
-        label: 'Run results',
-        title: runResultsSectionVisible ? 'Hide run results section' : 'Show run results section',
-        ariaPressed: runResultsSectionVisible,
-        onClick: toggleRunResultsSectionVisible
+        id: 'toggle-tab-groups-section',
+        icon: faLayerGroup,
+        label: 'Tab Groups',
+        title: tabGroupsSectionVisible ? 'Hide tab groups section' : 'Show tab groups section',
+        ariaPressed: tabGroupsSectionVisible,
+        onClick: toggleTabGroupsSectionVisible
       },
       {
         id: 'toggle-storage-badges',
@@ -145,9 +171,13 @@ function SidebarContent(): JSX.Element {
   }, [
     collectionsSectionVisible,
     environmentsSectionVisible,
+    historySectionVisible,
+    tabGroupsSectionVisible,
     runResultsSectionVisible,
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
+    toggleHistorySectionVisible,
+    toggleTabGroupsSectionVisible,
     toggleRunResultsSectionVisible,
     showStorageLocationBadges,
     toggleStorageLocationBadges
@@ -189,7 +219,7 @@ function SidebarContent(): JSX.Element {
               actions={toolbarActions}
               toggles={toolbarToggles}
             />
-            <Scrollbars axis="vertical" className="flex-1 min-h-0 px-2 pb-3">
+            <Scrollbars axis="vertical" className="flex-1 min-h-0 pr-2 pb-3">
               {searchLoading ? (
                 <p className="mt-1.5 text-[16px] text-muted" role="status">
                   Loading…
@@ -211,6 +241,32 @@ function SidebarContent(): JSX.Element {
                   </nav>
                 ) : null}
 
+                {runResultsSectionVisible ? (
+                  <nav aria-label="Runs" data-sidebar-section="runResults">
+                    <Section
+                      itemKey="runResults"
+                      title="Runs"
+                      initialEntered={runResultsSectionExpanded}
+                      headerActions={<RunsHeaderActions />}
+                    >
+                      <RunResults />
+                    </Section>
+                  </nav>
+                ) : null}
+
+                {historySectionVisible ? (
+                  <nav aria-label="History" data-sidebar-section="history">
+                    <Section
+                      itemKey="history"
+                      title="History"
+                      initialEntered={historySectionExpanded}
+                      headerActions={<HistoryHeaderActions />}
+                    >
+                      <History />
+                    </Section>
+                  </nav>
+                ) : null}
+
                 {environmentsSectionVisible ? (
                   <nav aria-label="Environments" data-sidebar-section="environments">
                     <Section
@@ -225,14 +281,16 @@ function SidebarContent(): JSX.Element {
                   </nav>
                 ) : null}
 
-                {runResultsSectionVisible ? (
-                  <nav aria-label="Run results" data-sidebar-section="runResults">
+                {tabGroupsSectionVisible ? (
+                  <nav aria-label="Tab Groups" data-sidebar-section="tabGroups">
                     <Section
-                      itemKey="runResults"
-                      title="Run Results"
-                      initialEntered={runResultsSectionExpanded}
+                      itemKey="tabGroups"
+                      title="Tab Groups"
+                      initialEntered={tabGroupsSectionExpanded}
+                      onAdd={() => dispatch(openTabGroupModal({ mode: 'create' }))}
+                      addLabel="Add Tab Group"
                     >
-                      <RunResults />
+                      <TabGroups />
                     </Section>
                   </nav>
                 ) : null}
@@ -286,7 +344,7 @@ function SidebarContent(): JSX.Element {
 }
 
 /**
- * Left sidebar with collapsible collections, environments, and run-results
+ * Left sidebar with collapsible collections, environments, history, and run-results
  * sections. Mounts the sidebar context providers (providers, git, search, and
  * modals) so each section can own its own data and actions.
  */

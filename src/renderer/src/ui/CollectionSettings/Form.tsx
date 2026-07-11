@@ -260,7 +260,7 @@ export function Form({
   return (
     <Page
       embedded
-      className="flex min-h-0 flex-1 flex-col p-6 pt-0!"
+      className="collection-settings-page flex min-h-0 flex-1 flex-col p-6 pt-0!"
       title="Collection Settings"
       description="Manage collection settings and configuration"
     >

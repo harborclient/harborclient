@@ -13,6 +13,8 @@ import { registerLlmHandlers } from '#/main/ipc/handlers/llm';
 import { registerMenuHandlers } from '#/main/ipc/handlers/menu';
 import { registerNetworkHandlers } from '#/main/ipc/handlers/network';
 import { registerOAuthHandlers } from '#/main/ipc/handlers/oauth';
+import { registerRequestHistoryHandlers } from '#/main/ipc/handlers/requestHistory';
+import { registerTabGroupHandlers } from '#/main/ipc/handlers/tabGroups';
 import { registerRunResultHandlers } from '#/main/ipc/handlers/runResults';
 import { registerDocumentHandlers } from '#/main/ipc/handlers/documents';
 import { registerRequestHandlers } from '#/main/ipc/handlers/requests';
@@ -40,6 +42,8 @@ export function registerIpcHandlers(db: IStorage, pluginManager: PluginManager):
   registerEnvironmentHandlers(db);
   registerSnippetHandlers(db);
   registerRunResultHandlers(db);
+  registerRequestHistoryHandlers();
+  registerTabGroupHandlers();
   registerRequestHandlers(db);
   registerDocumentHandlers(db);
   registerNetworkHandlers(cookieJar);

@@ -3,6 +3,7 @@ import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { AiScriptReferenceValidationContext } from '#/shared/ai/scriptReferences';
 import { MarkdownCodeBlock } from './MarkdownCodeBlock';
+import type { PreElementNode } from './markdownCodeBlockUtils';
 import { processMarkdownChildren } from './renderScriptReferenceText';
 import { useAiScriptReferenceValidationContext } from './useAiScriptReferenceValidationContext';
 
@@ -15,7 +16,7 @@ interface Props {
   content: string;
 
   /**
-   * Bubble styling variant for user (accent) or assistant (control) messages.
+   * Bubble styling variant for user (form shell) or assistant (plain) messages.
    */
   variant: Variant;
 }
@@ -24,7 +25,6 @@ interface VariantStyles {
   link: string;
   inlineCode: string;
   blockCode: string;
-  pre: string;
   blockquote: string;
   table: string;
   tableCell: string;
@@ -32,37 +32,23 @@ interface VariantStyles {
   hr: string;
 }
 
-/**
- * Returns Tailwind classes tuned for markdown inside a chat bubble variant.
- */
-function getVariantStyles(variant: Variant): VariantStyles {
-  if (variant === 'user') {
-    return {
-      link: 'text-white/90 underline underline-offset-2 hover:text-white',
-      inlineCode: 'rounded bg-white/20 px-1 py-0.5 font-mono text-[14px]',
-      blockCode: 'font-mono text-[14px]',
-      pre: 'my-2 overflow-x-auto rounded-md border border-white/20 bg-black/20 p-2 last:mb-0',
-      blockquote:
-        'my-2 border-l-2 border-white/40 pl-3 text-white/90 last:mb-0 [&>p]:mb-1 [&>p:last-child]:mb-0',
-      table: 'my-2 w-full border-collapse text-left text-[14px] last:mb-0',
-      tableCell: 'border border-white/25 px-2 py-1 align-top',
-      tableHeader: 'border border-white/25 bg-white/10 px-2 py-1 font-semibold align-top',
-      hr: 'my-3 border-white/25'
-    };
-  }
+const markdownStyles: VariantStyles = {
+  link: 'text-accent underline underline-offset-2 hover:opacity-90',
+  inlineCode: 'rounded bg-selection px-1 py-0.5 font-mono text-[14px]',
+  blockCode: 'font-mono text-[14px]',
+  blockquote:
+    'my-2 border-l-2 border-separator pl-3 text-muted last:mb-0 [&>p]:mb-1 [&>p:last-child]:mb-0',
+  table: 'my-2 w-full border-collapse text-left text-[14px] last:mb-0',
+  tableCell: 'border border-separator px-2 py-1 align-top',
+  tableHeader: 'border border-separator bg-sidebar px-2 py-1 font-semibold align-top',
+  hr: 'my-3 border-separator'
+};
 
-  return {
-    link: 'text-accent underline underline-offset-2 hover:opacity-90',
-    inlineCode: 'rounded bg-selection px-1 py-0.5 font-mono text-[14px]',
-    blockCode: 'font-mono text-[14px]',
-    pre: 'my-2 overflow-x-auto rounded-md border border-separator bg-surface p-2 last:mb-0',
-    blockquote:
-      'my-2 border-l-2 border-separator pl-3 text-muted last:mb-0 [&>p]:mb-1 [&>p:last-child]:mb-0',
-    table: 'my-2 w-full border-collapse text-left text-[14px] last:mb-0',
-    tableCell: 'border border-separator px-2 py-1 align-top',
-    tableHeader: 'border border-separator bg-sidebar px-2 py-1 font-semibold align-top',
-    hr: 'my-3 border-separator'
-  };
+/**
+ * Returns Tailwind classes tuned for markdown inside a chat bubble.
+ */
+function getVariantStyles(): VariantStyles {
+  return markdownStyles;
 }
 
 /**
@@ -90,7 +76,7 @@ function createMarkdownComponents(
   variant: Variant,
   context: AiScriptReferenceValidationContext
 ): Components {
-  const styles = getVariantStyles(variant);
+  const styles = getVariantStyles();
 
   return {
     p: ({ children }) => (
@@ -146,12 +132,9 @@ function createMarkdownComponents(
         {withScriptRefs(children, context, variant)}
       </h6>
     ),
-    pre: ({ children }) =>
-      variant === 'assistant' ? (
-        <MarkdownCodeBlock className={styles.pre}>{children}</MarkdownCodeBlock>
-      ) : (
-        <pre className={styles.pre}>{children}</pre>
-      ),
+    pre: ({ node, children }) => (
+      <MarkdownCodeBlock node={node as PreElementNode | undefined}>{children}</MarkdownCodeBlock>
+    ),
     code: ({ className, children }) => {
       const isBlock = typeof className === 'string' && className.includes('language-');
 

@@ -16,6 +16,7 @@ let pluginThemeOptions: ThemeMenuOption[] = [];
 let creatorUndoRedoActive = false;
 let creatorCanUndo = false;
 let creatorCanRedo = false;
+let tabGroupAvailable = false;
 
 /**
  * Returns the sidebar visibility state reflected in the View menu checkbox.
@@ -249,6 +250,19 @@ export function setMenuCreatorUndoRedo(active: boolean, canUndo: boolean, canRed
 }
 
 /**
+ * Updates the Edit menu Create Tab Group item and rebuilds when the value changes.
+ *
+ * @param available - Whether at least one saved request tab is open.
+ */
+export function setMenuTabGroupAvailable(available: boolean): void {
+  if (tabGroupAvailable === available) {
+    return;
+  }
+  tabGroupAvailable = available;
+  rebuildAppMenu();
+}
+
+/**
  * Registers the browser window used when rebuilding the application menu.
  *
  * @param window - Active main window, or null when closed.
@@ -279,7 +293,8 @@ export function rebuildAppMenu(): void {
       rebuildAppMenu,
       creatorUndoRedoActive,
       creatorCanUndo,
-      creatorCanRedo
+      creatorCanRedo,
+      tabGroupAvailable
     )
   );
 }

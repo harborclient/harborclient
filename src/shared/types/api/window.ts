@@ -84,6 +84,12 @@ export interface ApiWindow {
    */
   setMenuCreatorUndoRedo: (active: boolean, canUndo: boolean, canRedo: boolean) => Promise<void>;
   /**
+   * Syncs tab-group availability to the Edit menu in the main process.
+   *
+   * @param available - Whether at least one saved request tab is open.
+   */
+  setTabGroupAvailable: (available: boolean) => Promise<void>;
+  /**
    * Subscribes to View menu appearance theme selection events from the main process.
    *
    * @param callback - Handler invoked with the selected theme and label.
@@ -150,6 +156,22 @@ export interface ApiWindow {
    * Marks the first-run theme picker as seen so it is not shown again.
    */
   markThemePickerSeen: () => Promise<void>;
+  /**
+   * Returns the current main-window zoom factor.
+   */
+  getZoomFactor: () => Promise<number>;
+  /**
+   * Applies a zoom factor without persisting it (theme picker live preview).
+   *
+   * @param factor - Target zoom factor.
+   */
+  previewZoomFactor: (factor: number) => Promise<void>;
+  /**
+   * Persists and applies the main-window zoom factor.
+   *
+   * @param factor - Target zoom factor.
+   */
+  setZoomFactor: (factor: number) => Promise<void>;
   /**
    * Returns whether the Getting Started tab should open automatically on launch.
    */

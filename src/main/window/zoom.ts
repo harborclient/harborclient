@@ -1,24 +1,71 @@
 import type { WebContents } from 'electron';
+import {
+  DEFAULT_ZOOM_FACTOR,
+  getPersistedZoomFactor,
+  MAX_ZOOM_FACTOR,
+  MIN_ZOOM_FACTOR,
+  roundZoomFactor,
+  setPersistedZoomFactor
+} from '#/main/settings/zoomSettings';
 
-/** Minimum zoom factor allowed for the main renderer. */
-export const MIN_ZOOM_FACTOR = 0.3;
-
-/** Maximum zoom factor allowed for the main renderer. */
-export const MAX_ZOOM_FACTOR = 5;
-
-/** Default zoom factor for the main renderer (100%). */
-export const DEFAULT_ZOOM_FACTOR = 1;
+export {
+  DEFAULT_ZOOM_FACTOR,
+  MAX_ZOOM_FACTOR,
+  MIN_ZOOM_FACTOR,
+  roundZoomFactor
+} from '#/main/settings/zoomSettings';
 
 /** Zoom step applied by View menu and keyboard shortcuts. */
 export const ZOOM_STEP = 0.1;
 
 /**
- * Rounds a zoom factor to one decimal place for stable menu stepping.
+ * Normalizes a zoom factor to supported bounds and one-decimal precision.
  *
  * @param factor - Raw zoom factor value.
  */
-export function roundZoomFactor(factor: number): number {
-  return Math.round(factor * 10) / 10;
+function normalizeZoomFactor(factor: number): number {
+  return Math.min(MAX_ZOOM_FACTOR, Math.max(MIN_ZOOM_FACTOR, roundZoomFactor(factor)));
+}
+
+/**
+ * Applies a zoom factor to the main renderer without persisting it.
+ *
+ * @param webContents - Main renderer web contents to scale.
+ * @param factor - Target zoom factor.
+ */
+export function applyZoomFactorPreview(webContents: WebContents, factor: number): void {
+  webContents.zoomFactor = normalizeZoomFactor(factor);
+}
+
+/**
+ * Applies a zoom factor to the main renderer and persists it for the next launch.
+ *
+ * @param webContents - Main renderer web contents to scale.
+ * @param factor - Target zoom factor.
+ */
+export function setZoomFactor(webContents: WebContents, factor: number): void {
+  const normalized = normalizeZoomFactor(factor);
+  webContents.zoomFactor = normalized;
+  setPersistedZoomFactor(normalized);
+}
+
+/**
+ * Applies a zoom factor to the main renderer and persists it for the next launch.
+ *
+ * @param webContents - Main renderer web contents to scale.
+ * @param factor - Target zoom factor.
+ */
+function applyZoomFactor(webContents: WebContents, factor: number): void {
+  setZoomFactor(webContents, factor);
+}
+
+/**
+ * Restores the persisted main-window zoom factor.
+ *
+ * @param webContents - Main renderer web contents to scale.
+ */
+export function restoreZoomFactor(webContents: WebContents): void {
+  applyZoomFactor(webContents, getPersistedZoomFactor());
 }
 
 /**
@@ -28,7 +75,7 @@ export function roundZoomFactor(factor: number): number {
  */
 export function stepZoomIn(webContents: WebContents): void {
   const next = roundZoomFactor(webContents.zoomFactor + ZOOM_STEP);
-  webContents.zoomFactor = Math.min(next, MAX_ZOOM_FACTOR);
+  applyZoomFactor(webContents, Math.min(next, MAX_ZOOM_FACTOR));
 }
 
 /**
@@ -38,7 +85,7 @@ export function stepZoomIn(webContents: WebContents): void {
  */
 export function stepZoomOut(webContents: WebContents): void {
   const next = roundZoomFactor(webContents.zoomFactor - ZOOM_STEP);
-  webContents.zoomFactor = Math.max(next, MIN_ZOOM_FACTOR);
+  applyZoomFactor(webContents, Math.max(next, MIN_ZOOM_FACTOR));
 }
 
 /**
@@ -47,5 +94,5 @@ export function stepZoomOut(webContents: WebContents): void {
  * @param webContents - Main renderer web contents to scale.
  */
 export function resetZoom(webContents: WebContents): void {
-  webContents.zoomFactor = DEFAULT_ZOOM_FACTOR;
+  applyZoomFactor(webContents, DEFAULT_ZOOM_FACTOR);
 }

@@ -34,6 +34,8 @@ import { maskVariablesForExport, validateCollectionExport } from '#/main/storage
 import { bundleScriptFieldsWithLegacy } from '#/main/storage/scriptFields';
 import { readScriptRefsFromJson } from '#/shared/scriptRefs';
 import { trimRequiredName } from '#/main/storage/trimRequiredName';
+import { assertContainerItemOrder, planContainerItemMove } from '#/main/storage/containerReorder';
+import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
 import type { IStorage } from '#/main/storage/IStorage';
 import type {
   ProviderRunResult,
@@ -902,6 +904,66 @@ export class GitStorage implements IStorage {
   /**
    * @inheritdoc
    */
+  async reorderContainerItems(
+    collectionId: number,
+    folderId: number | null,
+    items: ContainerItemRef[]
+  ): Promise<void> {
+    const loaded = this.requireCollection(collectionId);
+    const requests = await this.listRequests(collectionId);
+    const documents = await this.listDocuments(collectionId);
+    assertContainerItemOrder(collectionId, folderId, items, requests, documents);
+
+    const targetFolder =
+      folderId != null
+        ? loaded.manifest.folders.find(
+            (folder) => this.#idIndex.folderIds[folder.uuid] === folderId
+          )
+        : undefined;
+    if (folderId != null && !targetFolder) {
+      throw new Error('Folder not found');
+    }
+
+    const folderName = targetFolder?.name ?? null;
+    const folderUuid = targetFolder?.uuid ?? null;
+    const requestById = new Map(
+      loaded.requests.map((request) => [
+        this.#idIndex.requestIds[resolveImportUuid(request.uuid)],
+        request
+      ])
+    );
+    const documentById = new Map(
+      loaded.documents.map((document) => [
+        this.#idIndex.documentIds[resolveImportUuid(document.uuid)],
+        document
+      ])
+    );
+
+    items.forEach((item, unifiedIndex) => {
+      if (item.kind === 'request') {
+        const request = requestById.get(item.id);
+        if (request) {
+          request.sort_order = unifiedIndex;
+          request.folder_name = folderName;
+          request.folder_uuid = folderUuid;
+        }
+        return;
+      }
+
+      const document = documentById.get(item.id);
+      if (document) {
+        document.sort_order = unifiedIndex;
+        document.folder_name = folderName;
+        document.folder_uuid = folderUuid;
+      }
+    });
+
+    this.persistCollection(collectionId);
+  }
+
+  /**
+   * @inheritdoc
+   */
   async moveRequest(requestId: number, folderId: number | null, index: number): Promise<void> {
     for (const [collectionId, loaded] of this.#collections.entries()) {
       const request = loaded.requests.find(
@@ -911,31 +973,35 @@ export class GitStorage implements IStorage {
         continue;
       }
 
-      const targetFolder =
-        folderId != null
-          ? loaded.manifest.folders.find((f) => this.#idIndex.folderIds[f.uuid] === folderId)
-          : undefined;
-      if (folderId != null && !targetFolder) {
-        throw new Error('Folder not found');
+      if (folderId != null) {
+        const targetFolder = loaded.manifest.folders.find(
+          (folder) => this.#idIndex.folderIds[folder.uuid] === folderId
+        );
+        if (!targetFolder) {
+          throw new Error('Folder not found');
+        }
       }
 
-      const targetFolderName = targetFolder?.name ?? null;
-      request.folder_name = targetFolderName;
-      request.folder_uuid = targetFolder?.uuid ?? null;
-
-      const targetContainer = loaded.requests.filter(
-        (row) => row !== request && (row.folder_name ?? null) === targetFolderName
-      );
-      targetContainer.splice(index, 0, request);
-      for (let i = 0; i < targetContainer.length; i++) {
-        targetContainer[i].sort_order = i;
+      const requests = await this.listRequests(collectionId);
+      const documents = await this.listDocuments(collectionId);
+      const savedRequest = requests.find((row) => row.id === requestId);
+      if (!savedRequest) {
+        throw new Error('Request not found');
       }
-
-      const remaining = loaded.requests.filter(
-        (row) => row !== request && (row.folder_name ?? null) !== targetFolderName
+      const sourceFolderId = savedRequest.folder_id ?? null;
+      const plan = planContainerItemMove(
+        requests,
+        documents,
+        { kind: 'request', id: requestId },
+        sourceFolderId,
+        folderId,
+        index
       );
-      loaded.requests = [...remaining, ...targetContainer];
-      this.persistCollection(collectionId);
+
+      if (plan.sourceOrder) {
+        await this.reorderContainerItems(collectionId, sourceFolderId, plan.sourceOrder);
+      }
+      await this.reorderContainerItems(collectionId, folderId, plan.destinationOrder);
       return;
     }
     throw new Error('Request not found');
@@ -1111,40 +1177,35 @@ export class GitStorage implements IStorage {
         continue;
       }
 
-      const targetFolder =
-        folderId != null
-          ? loaded.manifest.folders.find((f) => this.#idIndex.folderIds[f.uuid] === folderId)
-          : undefined;
-      if (folderId != null && !targetFolder) {
-        throw new Error('Folder not found');
+      if (folderId != null) {
+        const targetFolder = loaded.manifest.folders.find(
+          (folder) => this.#idIndex.folderIds[folder.uuid] === folderId
+        );
+        if (!targetFolder) {
+          throw new Error('Folder not found');
+        }
       }
 
-      const targetFolderName = targetFolder?.name ?? null;
-      const targetFolderUuid = targetFolder?.uuid ?? null;
-      document.folder_name = targetFolderName;
-      document.folder_uuid = targetFolderUuid;
-
-      const targetContainer = loaded.documents.filter(
-        (row) =>
-          row !== document &&
-          (row.folder_uuid ?? null) === targetFolderUuid &&
-          (row.folder_name ?? null) === targetFolderName
-      );
-      targetContainer.splice(index, 0, document);
-      for (let i = 0; i < targetContainer.length; i++) {
-        targetContainer[i].sort_order = i;
+      const requests = await this.listRequests(collectionId);
+      const documents = await this.listDocuments(collectionId);
+      const savedDocument = documents.find((row) => row.id === documentId);
+      if (!savedDocument) {
+        throw new Error('Document not found');
       }
-
-      const remaining = loaded.documents.filter(
-        (row) =>
-          row !== document &&
-          !(
-            (row.folder_uuid ?? null) === targetFolderUuid &&
-            (row.folder_name ?? null) === targetFolderName
-          )
+      const sourceFolderId = savedDocument.folder_id ?? null;
+      const plan = planContainerItemMove(
+        requests,
+        documents,
+        { kind: 'document', id: documentId },
+        sourceFolderId,
+        folderId,
+        index
       );
-      loaded.documents = [...remaining, ...targetContainer];
-      this.persistCollection(collectionId);
+
+      if (plan.sourceOrder) {
+        await this.reorderContainerItems(collectionId, sourceFolderId, plan.sourceOrder);
+      }
+      await this.reorderContainerItems(collectionId, folderId, plan.destinationOrder);
       return;
     }
     throw new Error('Document not found');

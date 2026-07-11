@@ -3,11 +3,12 @@ import { normalizeSnippetScope } from '#/shared/snippetScope';
 import { normalizeScriptStage } from '#/shared/scriptStage';
 import { defaultAuth, normalizeAuth } from '#/shared/auth';
 import { readScriptRefsFromJson } from '#/shared/scriptRefs';
-import type {
-  ProviderRunResult,
-  ProviderRunResultSummary,
-  RunResultsExport,
-  RunResultsExportKind
+import {
+  firstRunResultMethod,
+  type ProviderRunResult,
+  type ProviderRunResultSummary,
+  type RunResultsExport,
+  type RunResultsExportKind
 } from '#/shared/collectionRunner';
 import type {
   BodyType,
@@ -254,6 +255,24 @@ export function rowToProviderSnippet(row: Record<string, unknown>): Snippet {
 export function rowToProviderRunResultSummary(
   row: Record<string, unknown>
 ): ProviderRunResultSummary {
+  const payloadRaw = readString(row.payload);
+  let firstRequestMethod: ProviderRunResultSummary['firstRequestMethod'] = null;
+  if (payloadRaw) {
+    try {
+      const payload = parseJson<RunResultsExport>(payloadRaw, {
+        harborclientVersion: 1,
+        harborclientExport: 'collection-run-results',
+        delay: 0,
+        stopOnFailure: false,
+        environment: { mode: 'active', id: null, name: null },
+        results: []
+      });
+      firstRequestMethod = firstRunResultMethod(payload);
+    } catch {
+      firstRequestMethod = null;
+    }
+  }
+
   return {
     id: readNumber(row.id),
     uuid: readString(row.uuid),
@@ -266,6 +285,7 @@ export function rowToProviderRunResultSummary(
       failed: readNumber(row.summary_failed),
       skipped: readNumber(row.summary_skipped)
     },
+    firstRequestMethod,
     createdAt: readTimestamp(row.created_at)
   };
 }

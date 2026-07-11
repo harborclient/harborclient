@@ -115,6 +115,7 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   muted: 'Muted',
   accent: 'Accent',
   selection: 'Selection',
+  'tab-unsaved': 'Unsaved tab text',
   danger: 'Danger',
   'danger-light': 'Danger light',
   warning: 'Warning',
@@ -153,6 +154,10 @@ export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
   {
     label: 'Interactive',
     tokens: ['accent', 'selection']
+  },
+  {
+    label: 'Tabs',
+    tokens: ['tab-unsaved']
   },
   {
     label: 'Status',

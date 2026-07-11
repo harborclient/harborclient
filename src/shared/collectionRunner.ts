@@ -352,6 +352,11 @@ export interface SavedRunResultSummary {
   summary: CollectionRunnerSummary;
 
   /**
+   * HTTP method of the first request in the saved run, when derivable from the payload.
+   */
+  firstRequestMethod?: HttpMethod | null;
+
+  /**
    * ISO timestamp when the run result was saved.
    */
   createdAt: string;
@@ -405,6 +410,11 @@ export interface ProviderRunResultSummary {
    * Pass/fail/skip counts derived from the saved result rows.
    */
   summary: CollectionRunnerSummary;
+
+  /**
+   * HTTP method of the first request in the saved run, when derivable from the payload.
+   */
+  firstRequestMethod?: HttpMethod | null;
 
   /**
    * ISO timestamp when the run result was saved.
@@ -536,6 +546,16 @@ export function buildSavedRunLabel(payload: RunResultsExport): string {
     payload.request?.name ?? payload.collection?.folderName ?? payload.collection?.name ?? 'Run';
   const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
   return `${target} — ${timestamp}`;
+}
+
+/**
+ * Returns the HTTP method of the first request in a saved run result payload.
+ *
+ * @param payload - Portable run-results export body.
+ * @returns Method of the first result row, or the single-request export method when present.
+ */
+export function firstRunResultMethod(payload: RunResultsExport): HttpMethod | null {
+  return payload.results[0]?.requestMethod ?? payload.request?.method ?? null;
 }
 
 /**

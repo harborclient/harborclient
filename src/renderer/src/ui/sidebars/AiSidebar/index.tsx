@@ -115,7 +115,7 @@ export function AiSidebar(): JSX.Element {
         className="border-r-0 border-l border-separator"
       />
       <aside
-        className="flex min-h-0 shrink-0 flex-col bg-surface"
+        className="flex min-h-0 shrink-0 flex-col bg-sidebar"
         style={{ width }}
         aria-label="AI"
       >
