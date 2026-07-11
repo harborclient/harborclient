@@ -11,6 +11,7 @@ import type {
   BackupExportResult,
   BackupImportResult,
   Collection,
+  CollectionDocument,
   CollectionExportResult,
   StorageConnection,
   EditorTab,
@@ -52,6 +53,7 @@ import type {
   TeamHubPluginSourcesView,
   SerializableMenuContribution,
   RequestExport,
+  SaveDocumentInput,
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
@@ -710,6 +712,61 @@ function reorderRequests(
  */
 function moveRequest(requestId: number, folderId: number | null, index: number): Promise<void> {
   return ipcRenderer.invoke('requests:move', requestId, folderId, index);
+}
+
+/**
+ * Lists all markdown documents in a collection.
+ *
+ * @param collectionId - Collection to query.
+ * @returns Documents ordered by sort_order then name.
+ */
+function listDocuments(collectionId: number): Promise<CollectionDocument[]> {
+  return ipcRenderer.invoke('documents:list', collectionId);
+}
+
+/**
+ * Inserts a new document or updates an existing one.
+ *
+ * @param input - Document fields to persist.
+ * @returns The saved document with ID and timestamps.
+ */
+function saveDocument(input: SaveDocumentInput): Promise<CollectionDocument> {
+  return ipcRenderer.invoke('documents:save', input);
+}
+
+/**
+ * Deletes a markdown document by ID.
+ *
+ * @param id - Document ID to delete.
+ */
+function deleteDocument(id: number): Promise<void> {
+  return ipcRenderer.invoke('documents:delete', id);
+}
+
+/**
+ * Reorders documents within a folder or at collection root.
+ *
+ * @param collectionId - Collection containing the documents.
+ * @param folderId - Folder ID, or null for root-level documents.
+ * @param orderedDocumentIds - Document IDs in desired order.
+ */
+function reorderDocuments(
+  collectionId: number,
+  folderId: number | null,
+  orderedDocumentIds: number[]
+): Promise<void> {
+  return ipcRenderer.invoke('documents:reorder', collectionId, folderId, orderedDocumentIds);
+}
+
+/**
+ * Moves a document to another folder or collection root at a given index.
+ *
+ * @param documentId - Document ID to move.
+ * @param folderId - Destination folder ID, or null for collection root.
+ * @param index - Zero-based position within the destination container.
+ */
+function moveDocument(documentId: number, folderId: number | null, index: number): Promise<void> {
+  return ipcRenderer.invoke('documents:move', documentId, folderId, index);
 }
 
 /**
@@ -2902,6 +2959,11 @@ const api: Api = {
   reorderFolders,
   reorderRequests,
   moveRequest,
+  listDocuments,
+  saveDocument,
+  deleteDocument,
+  reorderDocuments,
+  moveDocument,
   sendRequest,
   cancelRequest,
   getCookies,

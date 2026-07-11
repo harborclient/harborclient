@@ -19,7 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { FaIcon, resolveTabListKeyAction } from '@harborclient/sdk/components';
 import { Fragment, useEffect, useMemo, useState, type JSX, type KeyboardEvent } from 'react';
-import { isPageTab, isRequestTab, type Tab } from '#/renderer/src/store/drafts';
+import { isMarkdownTab, isPageTab, isRequestTab, type Tab } from '#/renderer/src/store/drafts';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectWrapTabs } from '#/renderer/src/store/slices/settingsSlice';
 import {
@@ -399,7 +399,7 @@ export function TabBar({
       const focusedTabId = resolveRequestTabIdFromFocusTarget(document.activeElement);
       if (focusedTabId != null) {
         const focusedTab = tabs.find((tab) => tab.tabId === focusedTabId);
-        if (focusedTab != null && isRequestTab(focusedTab)) {
+        if (focusedTab != null && (isRequestTab(focusedTab) || isMarkdownTab(focusedTab))) {
           event.preventDefault();
 
           /**

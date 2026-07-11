@@ -25,6 +25,7 @@ import {
 } from 'firebase/firestore';
 import { maskVariablesForExport, validateCollectionExport } from '#/main/storage/collectionData';
 import {
+  buildDocumentUuidIndex,
   buildFolderImportMaps,
   buildRequestUuidIndex,
   planImportedFolderUpsert,
@@ -32,14 +33,17 @@ import {
   resolveImportFolderId,
   resolveImportedCollectionUuid,
   resolveImportedFolderUuid,
+  savedDocumentToExportedDocument,
   savedRequestToExportedRequest,
   serializeImportedCollectionScriptFields,
   exportedFolderFromFolder,
+  serializeImportedDocumentFields,
   serializeImportedFolderFields,
   serializeImportedRequestFields
 } from '#/main/storage/collectionImport';
 import {
   docToCollection,
+  docToDocument,
   docToEnvironment,
   docToFolder,
   docToProviderSnippet,
@@ -52,11 +56,13 @@ import type { IStorage } from '#/main/storage/IStorage';
 import type {
   AuthConfig,
   Collection,
+  CollectionDocument,
   CollectionExport,
   Environment,
   FirestoreSettings,
   Folder,
   KeyValue,
+  SaveDocumentInput,
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
@@ -201,7 +207,13 @@ export class FirestoreStorage implements IStorage {
    * @returns The persisted uuid string.
    */
   private async ensureDocumentUuid(
-    collectionName: 'collections' | 'requests' | 'environments' | 'folders' | 'snippets',
+    collectionName:
+      | 'collections'
+      | 'requests'
+      | 'environments'
+      | 'folders'
+      | 'snippets'
+      | 'documents',
     docId: string,
     data: Record<string, unknown>
   ): Promise<string> {
@@ -391,10 +403,14 @@ export class FirestoreStorage implements IStorage {
     const foldersSnap = await getDocs(
       query(collection(firestore, 'folders'), where('collection_id', '==', id))
     );
+    const documentsSnap = await getDocs(
+      query(collection(firestore, 'documents'), where('collection_id', '==', id))
+    );
 
     const refs = [
       ...requestsSnap.docs.map((requestDoc) => requestDoc.ref),
       ...foldersSnap.docs.map((folderDoc) => folderDoc.ref),
+      ...documentsSnap.docs.map((documentDoc) => documentDoc.ref),
       doc(firestore, 'collections', String(id))
     ];
     await this.commitBatchedDeletes(firestore, refs);
@@ -851,12 +867,207 @@ export class FirestoreStorage implements IStorage {
     const requestsSnap = await getDocs(
       query(collection(firestore, 'requests'), where('folder_id', '==', id))
     );
+    const documentsSnap = await getDocs(
+      query(collection(firestore, 'documents'), where('folder_id', '==', id))
+    );
 
     const refs = [
       ...requestsSnap.docs.map((requestDoc) => requestDoc.ref),
+      ...documentsSnap.docs.map((documentDoc) => documentDoc.ref),
       doc(firestore, 'folders', String(id))
     ];
     await this.commitBatchedDeletes(firestore, refs);
+  }
+
+  /**
+   * Lists all markdown documents in a collection.
+   *
+   * @param collectionId - Collection to query.
+   * @returns Documents ordered by sort_order then name.
+   */
+  async listDocuments(collectionId: number): Promise<CollectionDocument[]> {
+    const firestore = this.getFirestore();
+    const snap = await getDocs(
+      query(collection(firestore, 'documents'), where('collection_id', '==', collectionId))
+    );
+
+    const results: CollectionDocument[] = [];
+    for (const document of snap.docs) {
+      const data = document.data() as Record<string, unknown>;
+      const uuid = await this.ensureDocumentUuid('documents', document.id, data);
+      results.push(docToDocument(Number(document.id), { ...data, uuid }));
+    }
+
+    return results.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+  }
+
+  /**
+   * Inserts a new document or updates an existing one.
+   *
+   * @param input - Document fields to persist.
+   * @returns The saved document with ID and timestamps.
+   */
+  async saveDocument(input: SaveDocumentInput): Promise<CollectionDocument> {
+    const trimmedName = trimRequiredName(input.name, 'Document name');
+    const content = input.content ?? '';
+    const folderId = input.folder_id ?? null;
+    const now = new Date().toISOString();
+    const firestore = this.getFirestore();
+
+    if (folderId != null) {
+      const folderSnap = await getDoc(doc(firestore, 'folders', String(folderId)));
+      if (!folderSnap.exists()) throw new Error('Folder not found');
+      const folderData = folderSnap.data() as Record<string, unknown>;
+      if (folderData.collection_id !== input.collection_id) throw new Error('Folder not found');
+    }
+
+    if (input.id) {
+      const ref = doc(firestore, 'documents', String(input.id));
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const existing = snap.data() as Record<string, unknown>;
+        const data = {
+          ...existing,
+          collection_id: input.collection_id,
+          folder_id: folderId,
+          name: trimmedName,
+          content,
+          updated_at: now
+        };
+
+        await updateDoc(ref, data);
+        return docToDocument(input.id, data);
+      }
+    }
+
+    const existingDocuments = await this.listDocuments(input.collection_id);
+    const maxOrder = existingDocuments
+      .filter(
+        (document) =>
+          (folderId == null && document.folder_id == null) || document.folder_id === folderId
+      )
+      .reduce((max, document) => Math.max(max, document.sort_order), -1);
+    const id = await this.nextId('documents');
+    const createdAt = now;
+    const data = {
+      id,
+      uuid: input.uuid?.trim() || generateDocumentUuid(),
+      collection_id: input.collection_id,
+      folder_id: folderId,
+      name: trimmedName,
+      content,
+      sort_order: maxOrder + 1,
+      created_at: createdAt,
+      updated_at: now
+    };
+
+    await setDoc(doc(firestore, 'documents', String(id)), data);
+    return docToDocument(id, data);
+  }
+
+  /**
+   * Deletes a markdown document by ID.
+   *
+   * @param id - Document ID to delete.
+   */
+  async deleteDocument(id: number): Promise<void> {
+    await deleteDoc(doc(this.getFirestore(), 'documents', String(id)));
+  }
+
+  /**
+   * Reorders documents within a folder or at collection root.
+   *
+   * @param collectionId - Collection containing the documents.
+   * @param folderId - Folder ID, or null for root-level documents.
+   * @param orderedDocumentIds - Document IDs in desired order.
+   */
+  async reorderDocuments(
+    collectionId: number,
+    folderId: number | null,
+    orderedDocumentIds: number[]
+  ): Promise<void> {
+    const firestore = this.getFirestore();
+    await Promise.all(
+      orderedDocumentIds.map(async (documentId) => {
+        const snap = await getDoc(doc(firestore, 'documents', String(documentId)));
+        if (!snap.exists()) throw new Error('Document not found');
+        const document = docToDocument(documentId, snap.data() as Record<string, unknown>);
+        if (document.collection_id !== collectionId) throw new Error('Document not found');
+        const inContainer =
+          (folderId == null && document.folder_id == null) || document.folder_id === folderId;
+        if (!inContainer) throw new Error('Document not found');
+      })
+    );
+
+    const batch = writeBatch(firestore);
+    orderedDocumentIds.forEach((documentId, index) => {
+      batch.update(doc(firestore, 'documents', String(documentId)), {
+        sort_order: index,
+        folder_id: folderId
+      });
+    });
+    await batch.commit();
+  }
+
+  /**
+   * Moves a document to another folder or collection root at a given index.
+   *
+   * @param documentId - Document ID to move.
+   * @param folderId - Destination folder ID, or null for collection root.
+   * @param index - Zero-based position within the destination container.
+   */
+  async moveDocument(documentId: number, folderId: number | null, index: number): Promise<void> {
+    const firestore = this.getFirestore();
+    const ref = doc(firestore, 'documents', String(documentId));
+    const snap = await getDoc(ref);
+    if (!snap.exists()) throw new Error('Document not found');
+
+    const document = docToDocument(documentId, snap.data() as Record<string, unknown>);
+    const collectionId = document.collection_id;
+    const oldFolderId = document.folder_id;
+
+    if (folderId != null) {
+      const folderSnap = await getDoc(doc(firestore, 'folders', String(folderId)));
+      if (!folderSnap.exists()) throw new Error('Folder not found');
+      const folderData = folderSnap.data() as Record<string, unknown>;
+      if (folderData.collection_id !== collectionId) throw new Error('Folder not found');
+    }
+
+    const allDocuments = await this.listDocuments(collectionId);
+
+    const listInContainer = (targetFolderId: number | null): number[] =>
+      allDocuments
+        .filter(
+          (item) =>
+            (targetFolderId == null && item.folder_id == null) || item.folder_id === targetFolderId
+        )
+        .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+        .map((item) => item.id);
+
+    const batch = writeBatch(firestore);
+    const stageReindex = (targetFolderId: number | null, orderedIds: number[]): void => {
+      orderedIds.forEach((id, sortIndex) => {
+        batch.update(doc(firestore, 'documents', String(id)), {
+          sort_order: sortIndex,
+          folder_id: targetFolderId
+        });
+      });
+    };
+
+    if (oldFolderId === folderId) {
+      const siblings = listInContainer(folderId).filter((id) => id !== documentId);
+      siblings.splice(index, 0, documentId);
+      stageReindex(folderId, siblings);
+    } else {
+      const oldIds = listInContainer(oldFolderId).filter((id) => id !== documentId);
+      stageReindex(oldFolderId, oldIds);
+
+      const newIds = listInContainer(folderId).filter((id) => id !== documentId);
+      newIds.splice(index, 0, documentId);
+      stageReindex(folderId, newIds);
+    }
+
+    await batch.commit();
   }
 
   /**
@@ -1005,6 +1216,14 @@ export class FirestoreStorage implements IStorage {
       )
     );
 
+    const documents = (await this.listDocuments(id)).map((document) =>
+      savedDocumentToExportedDocument(
+        document,
+        document.folder_id != null ? (folderNameById.get(document.folder_id) ?? null) : null,
+        document.folder_id != null ? (folderUuidById.get(document.folder_id) ?? null) : null
+      )
+    );
+
     return {
       harborclientVersion: 1,
       harborclientExport: 'collection',
@@ -1018,7 +1237,8 @@ export class FirestoreStorage implements IStorage {
       pre_request_scripts: collectionRecord.pre_request_scripts,
       post_request_scripts: collectionRecord.post_request_scripts,
       folders,
-      requests
+      requests,
+      documents
     };
   }
 
@@ -1052,6 +1272,7 @@ export class FirestoreStorage implements IStorage {
 
     const folderIds = await this.allocateIds('folders', folders.length);
     const requestIds = await this.allocateIds('requests', exportData.requests.length);
+    const documentIds = await this.allocateIds('documents', exportData.documents?.length ?? 0);
 
     const folderMaps: ReturnType<typeof buildFolderImportMaps> = {
       folderIdByUuid: new Map(),
@@ -1118,6 +1339,32 @@ export class FirestoreStorage implements IStorage {
           post_request_scripts: fields.post_request_scripts_json,
           comment: fields.comment,
           tags: fields.tags,
+          sort_order: fields.sort_order,
+          created_at: now,
+          updated_at: now
+        }
+      });
+    });
+
+    (exportData.documents ?? []).forEach((document, index) => {
+      const documentId = documentIds[index];
+      const folderId = resolveImportFolderId(
+        document.folder_uuid,
+        document.folder_name,
+        folderMaps.folderIdByUuid,
+        folderMaps.folderIdByName
+      );
+      const fields = serializeImportedDocumentFields(document);
+
+      writes.push({
+        ref: doc(firestore, 'documents', String(documentId)),
+        data: {
+          id: documentId,
+          uuid: fields.uuid,
+          collection_id: id,
+          folder_id: folderId,
+          name: fields.name,
+          content: fields.content,
           sort_order: fields.sort_order,
           created_at: now,
           updated_at: now
@@ -1261,6 +1508,8 @@ export class FirestoreStorage implements IStorage {
 
     const existingRequests = await this.listRequests(id);
     const requestUuidIndex = buildRequestUuidIndex(existingRequests);
+    const existingDocuments = await this.listDocuments(id);
+    const documentUuidIndex = buildDocumentUuidIndex(existingDocuments);
 
     for (const request of exportData.requests) {
       const folderId = resolveImportFolderId(
@@ -1315,6 +1564,41 @@ export class FirestoreStorage implements IStorage {
         post_request_scripts: fields.post_request_scripts_json,
         comment: fields.comment,
         tags: fields.tags,
+        sort_order: fields.sort_order,
+        created_at: now,
+        updated_at: now
+      });
+    }
+
+    for (const document of exportData.documents ?? []) {
+      const folderId = resolveImportFolderId(
+        document.folder_uuid,
+        document.folder_name,
+        folderMaps.folderIdByUuid,
+        folderMaps.folderIdByName
+      );
+      const fields = serializeImportedDocumentFields(document);
+      const existingDocumentId = fields.uuid ? documentUuidIndex.get(fields.uuid) : undefined;
+
+      if (existingDocumentId != null) {
+        await updateDoc(doc(firestore, 'documents', String(existingDocumentId)), {
+          folder_id: folderId,
+          name: fields.name,
+          content: fields.content,
+          sort_order: fields.sort_order,
+          updated_at: now
+        });
+        continue;
+      }
+
+      const documentId = await this.nextId('documents');
+      await setDoc(doc(firestore, 'documents', String(documentId)), {
+        id: documentId,
+        uuid: fields.uuid,
+        collection_id: id,
+        folder_id: folderId,
+        name: fields.name,
+        content: fields.content,
         sort_order: fields.sort_order,
         created_at: now,
         updated_at: now

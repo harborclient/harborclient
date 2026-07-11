@@ -28,7 +28,19 @@ describeSqlite('TeamHubStorage', () => {
       folderSettings.close();
       rmSync(dir, { recursive: true, force: true });
     });
-    return new TeamHubStorage(client as TeamHubClient, idMap, folderSettings);
+    const documentDefaults: Partial<TeamHubClient> = {
+      listDocuments: vi.fn().mockResolvedValue([]),
+      createDocument: vi.fn(),
+      updateDocument: vi.fn(),
+      deleteDocument: vi.fn(),
+      reorderDocuments: vi.fn(),
+      moveDocument: vi.fn()
+    };
+    return new TeamHubStorage(
+      { ...documentDefaults, ...client } as TeamHubClient,
+      idMap,
+      folderSettings
+    );
   }
 
   afterEach(() => {

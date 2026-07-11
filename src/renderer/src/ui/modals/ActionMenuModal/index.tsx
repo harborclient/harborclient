@@ -35,6 +35,7 @@ import {
   faPalette,
   faPaperPlane,
   faPuzzlePiece,
+  faCode,
   faTerminal,
   faWandMagicSparkles
 } from '#/renderer/src/fontawesome';
@@ -81,10 +82,10 @@ const DOMAIN_ICONS: Record<SearchDomain, IconDefinition> = {
   request: faPaperPlane,
   environment: faGlobe,
   setting: faGear,
-  page: faTerminal,
+  page: faCode,
   plugin: faPuzzlePiece,
   theme: faPalette,
-  snippet: faTerminal
+  snippet: faCode
 };
 
 /**

@@ -21,3 +21,8 @@ export const MAX_IPC_URL_CHARS = 8192;
  * Maximum request comment/description length accepted over IPC (characters).
  */
 export const MAX_IPC_COMMENT_CHARS = 64 * 1024;
+
+/**
+ * Maximum markdown document content length accepted over IPC (characters).
+ */
+export const MAX_IPC_DOCUMENT_CHARS = 64 * 1024;

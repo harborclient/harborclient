@@ -42,7 +42,7 @@
   "dependencies": {
     "@harborclient/http": "^0.1.2",
     "@harborclient/sdk": "^1.0.65",
-    "@harborclient/team-hub-api": "^0.3.6",
+    "@harborclient/team-hub-api": "^0.3.8",
     "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/lang-javascript": "^6.2.4",
     "@codemirror/lang-json": "^6.0.2",

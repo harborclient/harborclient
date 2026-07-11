@@ -12,7 +12,7 @@ import {
   faPalette,
   faPlay,
   faPuzzlePiece,
-  faTerminal,
+  faCode,
   faUsers
 } from '#/renderer/src/fontawesome';
 import { settingsSectionMeta } from '#/renderer/src/ui/Settings/constants';
@@ -69,7 +69,7 @@ export function pageTabMeta(page: PageRef, options: PageTabMetaOptions = {}): Pa
     case 'cookies':
       return { title: 'Cookies', icon: faCookieBite };
     case 'snippets':
-      return { title: 'Snippets', icon: faTerminal };
+      return { title: 'Snippets', icon: faCode };
     case 'team-hubs':
       return { title: 'Team Hub', icon: faUsers };
     case 'team-hub-admin':
@@ -97,6 +97,6 @@ export function pageTabMeta(page: PageRef, options: PageTabMetaOptions = {}): Pa
     case 'snippet-detail':
     case 'snippet-edit':
     case 'script-editor':
-      return { title: page.label, icon: faTerminal };
+      return { title: page.label, icon: faCode };
   }
 }

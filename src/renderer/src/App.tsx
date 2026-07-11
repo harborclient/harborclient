@@ -48,6 +48,7 @@ import {
   initializeStore,
   loadTrustedKeys,
   refreshCollectionContents,
+  requestLoadDocument,
   requestLoadRequest
 } from '#/renderer/src/store/thunks';
 import { AboutModal } from '#/renderer/src/ui/modals/AboutModal';
@@ -316,6 +317,7 @@ export default function App(): JSX.Element {
                     void dispatch(loadTrustedKeys());
                   }}
                   onLoadRequest={(req) => void dispatch(requestLoadRequest({ req }))}
+                  onLoadDocument={(doc) => void dispatch(requestLoadDocument({ doc }))}
                 />
               </AnimatedHorizontalPanel>
 

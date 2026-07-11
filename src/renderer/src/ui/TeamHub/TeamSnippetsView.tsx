@@ -18,7 +18,7 @@ import { snippetScopeLabel } from '#/shared/snippetScope';
 import { DEFAULT_SCRIPT_STAGE } from '#/shared/scriptStage';
 import type { TeamHub, TeamHubAdminSnippet } from '#/shared/types';
 
-import { faPlus, faTerminal } from '#/renderer/src/fontawesome';
+import { faPlus, faCode } from '#/renderer/src/fontawesome';
 
 import { useTeamHubAdminSnippets } from '#/renderer/src/hooks/useTeamHubAdminSnippets';
 import { CodePreviewTooltip } from '#/renderer/src/ui/shared/CodePreviewTooltip';
@@ -181,7 +181,7 @@ export function TeamSnippetsView({ hub }: Props): JSX.Element {
     <Page
       embedded
       title="Snippets"
-      icon={faTerminal}
+      icon={faCode}
       description={`${hub.name || 'Untitled'} · ${hub.baseUrl}`}
       actions={
         <Button

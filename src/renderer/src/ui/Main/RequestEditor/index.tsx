@@ -3,7 +3,13 @@ import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'rea
 import type { RequestTabContext, ResponseTabContext } from '#/shared/plugin/types';
 import type { Variable } from '#/shared/types';
 import { DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT } from '#/shared/types';
-import { isPageTab, isRequestTab, isTabDirty, type Tab } from '#/renderer/src/store/drafts';
+import {
+  isMarkdownTab,
+  isPageTab,
+  isRequestTab,
+  isTabDirty,
+  type Tab
+} from '#/renderer/src/store/drafts';
 import {
   toPluginHttpResponse,
   toPluginRequestDraft,
@@ -15,6 +21,7 @@ import { buildRuntimeVars } from '#/renderer/src/scripting/scriptOrchestration';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveEnvironmentId,
+  selectActiveMarkdownTab,
   selectActivePage,
   selectActiveTabId,
   selectCollections,
@@ -54,6 +61,7 @@ import {
 import {
   sendRequest,
   cancelRequest,
+  closeMarkdownTab,
   closeRequestTab,
   focusSidebarItem
 } from '#/renderer/src/store/thunks';
@@ -70,6 +78,7 @@ import { PageTabContent } from './PageTabContent';
 import { ResponseEditor } from '../ResponseEditor';
 import { RESPONSE_EDITOR_SECTION_ID } from '../ResponseEditor/focusResponseEditor';
 import { TabBar } from './TabBar';
+import { MarkdownEditorTab } from './MarkdownEditorTab';
 
 interface Props {
   /**
@@ -113,6 +122,10 @@ function isDirtyForClose(
   folderSettingsDirty: boolean,
   warnWhenClosingUnsavedRequests: boolean
 ): boolean {
+  if (isMarkdownTab(tab)) {
+    return warnWhenClosingUnsavedRequests && isTabDirty(tab);
+  }
+
   if (isRequestTab(tab)) {
     return warnWhenClosingUnsavedRequests && isTabDirty(tab);
   }
@@ -150,8 +163,10 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const tabs = useAppSelector(selectTabs);
   const activeTabId = useAppSelector(selectActiveTabId);
   const activePage = useAppSelector(selectActivePage);
+  const activeMarkdownTab = useAppSelector(selectActiveMarkdownTab);
   const activeTab = tabs.find((tab) => tab.tabId === activeTabId);
   const isActivePageTab = activeTab != null && isPageTab(activeTab);
+  const isActiveMarkdownTab = activeTab != null && isMarkdownTab(activeTab);
   const draft = useAppSelector(selectDraft);
   const response = useAppSelector(selectResponse);
   const sending = useAppSelector(selectSending);
@@ -219,7 +234,8 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
     setSize(persistedSplitHeight);
   }, [persistedSplitHeight, setSize]);
 
-  const activeCollectionId = draft.collection_id ?? selectedCollectionId;
+  const activeCollectionId =
+    draft.collection_id ?? activeMarkdownTab?.collectionId ?? selectedCollectionId;
   const activeCollection =
     activeCollectionId != null ? collections.find((c) => c.id === activeCollectionId) : undefined;
   const activeEnvironment =
@@ -235,6 +251,9 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
    * Resolves the folder id for the active draft from saved state or draft fields.
    */
   const activeFolderId = useMemo(() => {
+    if (activeMarkdownTab) {
+      return activeMarkdownTab.folderId;
+    }
     if (activeCollectionId == null) return null;
     if (draft.id != null) {
       const saved = (requestsByCollection[activeCollectionId] ?? []).find(
@@ -243,7 +262,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
       if (saved) return saved.folder_id;
     }
     return draft.folder_id ?? null;
-  }, [draft.folder_id, draft.id, activeCollectionId, requestsByCollection]);
+  }, [activeMarkdownTab, draft.folder_id, draft.id, activeCollectionId, requestsByCollection]);
 
   /**
    * Looks up the active folder record for variable merging and breadcrumb display.
@@ -308,6 +327,11 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
           dispatch(cancelCollectionRunner());
           dispatch(closeCollectionRunner());
         }
+        dispatch(closeTab(tabId));
+        continue;
+      }
+
+      if (isMarkdownTab(tab)) {
         dispatch(closeTab(tabId));
         continue;
       }
@@ -380,6 +404,11 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
       return;
     }
 
+    if (isMarkdownTab(tab) && warnWhenClosingUnsavedRequests && isTabDirty(tab)) {
+      setCloseTabPrompt({ tabId, name: tab.name });
+      return;
+    }
+
     if (isRequestTab(tab) && warnWhenClosingUnsavedRequests && isTabDirty(tab)) {
       setCloseTabPrompt({ tabId, name: tab.draft.name });
       return;
@@ -411,6 +440,11 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
       return;
     }
 
+    if (isMarkdownTab(tab)) {
+      void dispatch(closeMarkdownTab(tabId));
+      return;
+    }
+
     void dispatch(closeRequestTab(tabId));
   };
 
@@ -439,6 +473,17 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
               className="flex min-h-0 flex-1 flex-col overflow-hidden"
             >
               <PageTabContent page={activePage} tabId={activeTabId} />
+            </div>
+          ) : isActiveMarkdownTab && activeMarkdownTab ? (
+            <div
+              key={`markdown-${activeTabId}`}
+              className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            >
+              <MarkdownEditorTab
+                tab={activeMarkdownTab}
+                variables={activeVariables}
+                onEditVariables={onEditVariables}
+              />
             </div>
           ) : (
             <>
@@ -543,6 +588,8 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
                 const tab = tabs.find((entry) => entry.tabId === closeTabPrompt.tabId);
                 if (tab && isPageTab(tab)) {
                   dispatch(closeTab(closeTabPrompt.tabId));
+                } else if (tab && isMarkdownTab(tab)) {
+                  void dispatch(closeMarkdownTab(closeTabPrompt.tabId));
                 } else {
                   void dispatch(closeRequestTab(closeTabPrompt.tabId));
                 }

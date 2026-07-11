@@ -1,7 +1,9 @@
 import { defaultAuth } from '#/shared/auth';
 import type {
   AuthConfig,
+  CollectionDocument,
   CollectionExport,
+  ExportedDocument,
   ExportedFolder,
   ExportedRequest,
   Folder,
@@ -92,6 +94,23 @@ export function buildRequestUuidIndex(requests: SavedRequest[]): Map<string, num
     const uuid = request.uuid.trim();
     if (uuid) {
       index.set(uuid, request.id);
+    }
+  }
+  return index;
+}
+
+/**
+ * Builds a map of existing document uuid to local document id for upsert during import.
+ *
+ * @param documents - Documents already stored in the target collection.
+ * @returns Map keyed by non-empty document uuid.
+ */
+export function buildDocumentUuidIndex(documents: CollectionDocument[]): Map<string, number> {
+  const index = new Map<string, number>();
+  for (const document of documents) {
+    const uuid = document.uuid.trim();
+    if (uuid) {
+      index.set(uuid, document.id);
     }
   }
   return index;
@@ -244,6 +263,59 @@ export function resolveImportedRequestUuid(request: ExportedRequest): string {
  */
 export function resolveImportedCollectionUuid(payload: CollectionExport): string {
   return resolveImportUuid(payload.uuid);
+}
+
+/**
+ * Returns the uuid to persist for an imported document row.
+ *
+ * @param document - Exported document row from a collection file.
+ * @returns Resolved uuid string for insert or update.
+ */
+export function resolveImportedDocumentUuid(document: ExportedDocument): string {
+  return resolveImportUuid(document.uuid);
+}
+
+/**
+ * Converts a saved document into a portable export row with folder placement metadata.
+ *
+ * @param document - Saved document from storage.
+ * @param folderName - Folder display name, or null at collection root.
+ * @param folderUuid - Portable folder uuid, or null at collection root.
+ * @returns Export row without database ids.
+ */
+export function savedDocumentToExportedDocument(
+  document: CollectionDocument,
+  folderName: string | null,
+  folderUuid: string | null
+): ExportedDocument {
+  return {
+    uuid: document.uuid,
+    name: document.name,
+    content: document.content,
+    sort_order: document.sort_order,
+    folder_name: folderName,
+    folder_uuid: folderUuid
+  };
+}
+
+/**
+ * Serializes document fields shared by insert and update during collection import.
+ *
+ * @param document - Exported document row.
+ * @returns Normalized fields for SQL persistence.
+ */
+export function serializeImportedDocumentFields(document: ExportedDocument): {
+  name: string;
+  content: string;
+  sort_order: number;
+  uuid: string;
+} {
+  return {
+    name: document.name,
+    content: document.content,
+    sort_order: document.sort_order,
+    uuid: resolveImportedDocumentUuid(document)
+  };
 }
 
 /**

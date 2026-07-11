@@ -1,4 +1,5 @@
 import {
+  buildDocumentUuidIndex,
   buildFolderImportMaps,
   buildRequestUuidIndex,
   planImportedFolderUpsert,
@@ -6,9 +7,11 @@ import {
   resolveImportFolderId,
   resolveImportedFolderUuid,
   importedRequestScriptFields,
+  savedDocumentToExportedDocument,
   savedRequestToExportedRequest,
   exportedFolderFromFolder,
   resolveImportedFolderSettings,
+  serializeImportedDocumentFields,
   serializeImportedRequestFields
 } from '#/main/storage/collectionImport';
 import {
@@ -37,6 +40,7 @@ import {
   toTeamHubAuth,
   TeamHubClientError,
   type CollectionRecord,
+  type DocumentRecord,
   type EnvironmentRecord,
   type FolderRecord,
   type SavedRequestRecord,
@@ -55,11 +59,13 @@ import { normalizeRequestTags } from '#/shared/requestTags';
 import type {
   AuthConfig,
   Collection,
+  CollectionDocument,
   CollectionExport,
   Environment,
   ExportedFolder,
   Folder,
   KeyValue,
+  SaveDocumentInput,
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
@@ -219,6 +225,33 @@ function serverToFolder(record: FolderRecord, localId: number, localCollectionId
     pre_request_scripts: [],
     post_request_scripts: [],
     created_at: record.createdAt
+  };
+}
+
+/**
+ * Maps a server document record to the local {@link CollectionDocument} shape.
+ *
+ * @param record - Document payload from HarborClient Server.
+ * @param localId - Numeric id assigned by {@link TeamHubIdMap}.
+ * @param localCollectionId - Mapped parent collection id.
+ * @param localFolderId - Mapped parent folder id, or null at collection root.
+ */
+function serverToDocument(
+  record: DocumentRecord,
+  localId: number,
+  localCollectionId: number,
+  localFolderId: number | null
+): CollectionDocument {
+  return {
+    id: localId,
+    uuid: record.id,
+    collection_id: localCollectionId,
+    folder_id: localFolderId,
+    name: record.name,
+    content: record.content,
+    sort_order: record.sortOrder,
+    created_at: record.createdAt,
+    updated_at: record.updatedAt
   };
 }
 
@@ -699,6 +732,87 @@ export class TeamHubStorage implements IStorage {
   }
 
   /**
+   * Lists markdown documents in a collection with ids translated to numeric form.
+   *
+   * @param collectionId - Provider-local collection id.
+   */
+  async listDocuments(collectionId: number): Promise<CollectionDocument[]> {
+    const collectionServerId = this.requireServerId('collection', collectionId);
+    const records = await this.client.listDocuments(collectionServerId);
+    return records.map((record) => this.mapDocumentRecord(record, collectionId));
+  }
+
+  /**
+   * Creates or updates a markdown document on the server.
+   *
+   * @param input - Document fields with provider-local numeric ids.
+   */
+  async saveDocument(input: SaveDocumentInput): Promise<CollectionDocument> {
+    const collectionServerId = this.requireServerId('collection', input.collection_id);
+    const folderServerId =
+      input.folder_id != null ? this.requireServerId('folder', input.folder_id) : null;
+    const content = input.content ?? '';
+    const name = trimRequiredName(input.name, 'Document name');
+
+    if (input.id != null) {
+      const documentServerId = this.requireServerId('document', input.id);
+      const record = await this.client.updateDocument(documentServerId, {
+        collectionId: collectionServerId,
+        name,
+        content,
+        folderId: folderServerId
+      });
+      return this.mapDocumentRecord(record, input.collection_id);
+    }
+
+    const record = await this.client.createDocument(collectionServerId, {
+      name,
+      content,
+      folderId: folderServerId
+    });
+    return this.mapDocumentRecord(record, input.collection_id);
+  }
+
+  /**
+   * Deletes a markdown document on the server.
+   *
+   * @param id - Provider-local document id.
+   */
+  async deleteDocument(id: number): Promise<void> {
+    const serverId = this.requireServerId('document', id);
+    await this.client.deleteDocument(serverId);
+    this.idMap.forget('document', serverId);
+  }
+
+  /**
+   * Reorders documents within a folder or at collection root on the server.
+   */
+  async reorderDocuments(
+    collectionId: number,
+    folderId: number | null,
+    orderedDocumentIds: number[]
+  ): Promise<void> {
+    const collectionServerId = this.requireServerId('collection', collectionId);
+    const folderServerId = folderId != null ? this.requireServerId('folder', folderId) : null;
+    const orderedServerIds = orderedDocumentIds.map((documentId) =>
+      this.requireServerId('document', documentId)
+    );
+    await this.client.reorderDocuments(collectionServerId, {
+      folderId: folderServerId,
+      orderedDocumentIds: orderedServerIds
+    });
+  }
+
+  /**
+   * Moves a document to another folder or collection root at a given index on the server.
+   */
+  async moveDocument(documentId: number, folderId: number | null, index: number): Promise<void> {
+    const serverId = this.requireServerId('document', documentId);
+    const folderServerId = folderId != null ? this.requireServerId('folder', folderId) : null;
+    await this.client.moveDocument(serverId, { folderId: folderServerId, index });
+  }
+
+  /**
    * Merges locally stored folder settings into a server-backed folder row.
    *
    * @param folder - Folder mapped from the server API.
@@ -908,6 +1022,14 @@ export class TeamHubStorage implements IStorage {
       )
     );
 
+    const documents = (await this.listDocuments(id)).map((document) =>
+      savedDocumentToExportedDocument(
+        document,
+        document.folder_id != null ? (folderNameById.get(document.folder_id) ?? null) : null,
+        document.folder_id != null ? (folderUuidById.get(document.folder_id) ?? null) : null
+      )
+    );
+
     return {
       harborclientVersion: 1,
       harborclientExport: 'collection',
@@ -921,7 +1043,8 @@ export class TeamHubStorage implements IStorage {
       pre_request_scripts: collection.pre_request_scripts,
       post_request_scripts: collection.post_request_scripts,
       folders,
-      requests
+      requests,
+      documents
     };
   }
 
@@ -990,6 +1113,23 @@ export class TeamHubStorage implements IStorage {
         post_request_scripts: scripts.post_request_scripts,
         comment: request.comment,
         tags: normalizeRequestTags(request.tags)
+      });
+    }
+
+    for (const document of exportData.documents ?? []) {
+      const folderId = resolveImportFolderId(
+        document.folder_uuid,
+        document.folder_name,
+        folderMaps.folderIdByUuid,
+        folderMaps.folderIdByName
+      );
+      const fields = serializeImportedDocumentFields(document);
+      await this.saveDocument({
+        collection_id: updated.id,
+        folder_id: folderId,
+        uuid: fields.uuid,
+        name: fields.name,
+        content: fields.content
       });
     }
 
@@ -1114,6 +1254,29 @@ export class TeamHubStorage implements IStorage {
       });
     }
 
+    const existingDocuments = await this.listDocuments(id);
+    const documentUuidIndex = buildDocumentUuidIndex(existingDocuments);
+
+    for (const document of exportData.documents ?? []) {
+      const folderId = resolveImportFolderId(
+        document.folder_uuid,
+        document.folder_name,
+        folderMaps.folderIdByUuid,
+        folderMaps.folderIdByName
+      );
+      const fields = serializeImportedDocumentFields(document);
+      const existingDocumentId = fields.uuid ? documentUuidIndex.get(fields.uuid) : undefined;
+
+      await this.saveDocument({
+        ...(existingDocumentId != null ? { id: existingDocumentId } : {}),
+        collection_id: id,
+        folder_id: folderId,
+        uuid: fields.uuid,
+        name: fields.name,
+        content: fields.content
+      });
+    }
+
     return updated;
   }
 
@@ -1163,13 +1326,30 @@ export class TeamHubStorage implements IStorage {
   }
 
   /**
+   * Maps a server document record using the id map for numeric ids.
+   *
+   * @param record - Document payload from HarborClient Server.
+   * @param localCollectionId - Provider-local parent collection id.
+   */
+  private mapDocumentRecord(record: DocumentRecord, localCollectionId: number): CollectionDocument {
+    const localFolderId =
+      record.folderId != null ? this.idMap.toLocalId('folder', record.folderId) : null;
+    return serverToDocument(
+      record,
+      this.idMap.toLocalId('document', record.id),
+      localCollectionId,
+      localFolderId
+    );
+  }
+
+  /**
    * Resolves a provider-local id to a server UUID or throws when unknown.
    *
    * @param entityType - Entity kind to resolve.
    * @param localId - Provider-local numeric id.
    */
   private requireServerId(
-    entityType: 'collection' | 'folder' | 'request' | 'run_result' | 'snippet',
+    entityType: 'collection' | 'document' | 'folder' | 'request' | 'run_result' | 'snippet',
     localId: number
   ): string {
     const serverId = this.idMap.toServerId(entityType, localId);

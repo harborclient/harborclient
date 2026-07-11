@@ -2,10 +2,12 @@ import {
   cloneDraft,
   createTab,
   defaultDraft,
+  isMarkdownTab,
   isPageTab,
   isRequestTab,
   normalizeDraft,
   syncDraftUrlWithParams,
+  type MarkdownTab,
   type PageRef,
   type RequestDraft,
   type RequestTab,
@@ -39,9 +41,23 @@ export interface PersistedPageTab {
 }
 
 /**
+ * Persisted markdown document tab shape.
+ */
+export interface PersistedMarkdownTab {
+  tabId: string;
+  kind: 'markdown';
+  docId: number;
+  collectionId: number;
+  folderId: number | null;
+  name: string;
+  content: string;
+  savedContent?: string;
+}
+
+/**
  * Persisted tab entry — request tabs omit kind for backward compatibility.
  */
-export type PersistedTab = PersistedRequestTab | PersistedPageTab;
+export type PersistedTab = PersistedRequestTab | PersistedPageTab | PersistedMarkdownTab;
 
 export interface PersistedOpenTabs {
   tabs: PersistedTab[];
@@ -351,12 +367,45 @@ function salvagePersistedRequestTab(value: unknown): PersistedRequestTab | null 
 }
 
 /**
- * Salvages a persisted tab entry as either a request or page tab.
+ * Salvages a persisted markdown tab entry.
+ *
+ * @param value - Candidate tab entry from persisted storage.
+ * @returns Salvaged markdown tab or null when required fields are invalid.
+ */
+function salvagePersistedMarkdownTab(value: unknown): PersistedMarkdownTab | null {
+  if (!isRecord(value)) return null;
+  if (value.kind !== 'markdown') return null;
+  if (typeof value.tabId !== 'string' || value.tabId.length === 0) return null;
+  if (typeof value.docId !== 'number' || !Number.isFinite(value.docId)) return null;
+  if (typeof value.collectionId !== 'number' || !Number.isFinite(value.collectionId)) return null;
+  if (!isOptionalFolderId(value.folderId)) return null;
+  if (typeof value.name !== 'string' || typeof value.content !== 'string') return null;
+
+  const savedContent = typeof value.savedContent === 'string' ? value.savedContent : value.content;
+
+  return {
+    tabId: value.tabId,
+    kind: 'markdown',
+    docId: value.docId,
+    collectionId: value.collectionId,
+    folderId: value.folderId as number | null,
+    name: value.name,
+    content: value.content,
+    savedContent
+  };
+}
+
+/**
+ * Salvages a persisted tab entry as either a request, page, or markdown tab.
  *
  * @param value - Candidate tab entry from persisted storage.
  * @returns Salvaged tab or null when the entry cannot be recovered.
  */
 function salvagePersistedTab(value: unknown): PersistedTab | null {
+  const markdownTab = salvagePersistedMarkdownTab(value);
+  if (markdownTab) {
+    return markdownTab;
+  }
   const pageTab = salvagePersistedPageTab(value);
   if (pageTab) {
     return pageTab;
@@ -387,6 +436,26 @@ function persistedRequestTabToRequestTab(tab: PersistedRequestTab): RequestTab {
 }
 
 /**
+ * Converts a validated persisted markdown tab into runtime MarkdownTab state.
+ *
+ * @param tab - Validated persisted markdown tab entry.
+ * @returns MarkdownTab ready for Redux state.
+ */
+function persistedMarkdownTabToMarkdownTab(tab: PersistedMarkdownTab): MarkdownTab {
+  const savedContent = tab.savedContent ?? tab.content;
+  return {
+    tabId: tab.tabId,
+    kind: 'markdown',
+    docId: tab.docId,
+    collectionId: tab.collectionId,
+    folderId: tab.folderId,
+    name: tab.name,
+    content: tab.content,
+    savedContent
+  };
+}
+
+/**
  * Converts a validated persisted tab into runtime tab state.
  *
  * @param tab - Validated persisted tab entry.
@@ -395,6 +464,9 @@ function persistedRequestTabToRequestTab(tab: PersistedRequestTab): RequestTab {
 function persistedTabToTab(tab: PersistedTab): Tab {
   if ('kind' in tab && tab.kind === 'page') {
     return { tabId: tab.tabId, kind: 'page', page: tab.page };
+  }
+  if ('kind' in tab && tab.kind === 'markdown') {
+    return persistedMarkdownTabToMarkdownTab(tab);
   }
   return persistedRequestTabToRequestTab(tab as PersistedRequestTab);
 }
@@ -578,6 +650,18 @@ export function persistTabs(tabs: Tab[], activeTabId: string): void {
       tabs: tabs.map((tab) => {
         if (isPageTab(tab)) {
           return { tabId: tab.tabId, kind: 'page' as const, page: tab.page };
+        }
+        if (isMarkdownTab(tab)) {
+          return {
+            tabId: tab.tabId,
+            kind: 'markdown' as const,
+            docId: tab.docId,
+            collectionId: tab.collectionId,
+            folderId: tab.folderId,
+            name: tab.name,
+            content: tab.content,
+            savedContent: tab.savedContent
+          };
         }
         if (isRequestTab(tab)) {
           return { tabId: tab.tabId, draft: tab.draft, savedDraft: tab.savedDraft };

@@ -6,7 +6,7 @@ import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { closeTab } from '#/renderer/src/store/slices/tabsSlice';
 import { selectSnippets } from '#/renderer/src/store/selectors';
 import { createSnippet, updateSnippet } from '#/renderer/src/store/thunks/snippets';
-import { faTerminal } from '#/renderer/src/fontawesome';
+import { faCode } from '#/renderer/src/fontawesome';
 import { SnippetEditFields } from '#/renderer/src/ui/shared/SnippetEditFields';
 import {
   createBlankSnippet,
@@ -166,7 +166,7 @@ export function SnippetEditPage({ page, tabId }: Props): JSX.Element {
       embedded
       title={page.label}
       description={description}
-      icon={faTerminal}
+      icon={faCode}
       className="flex min-h-0 flex-1 flex-col overflow-hidden p-6 pt-0!"
       actions={
         readOnly ? (

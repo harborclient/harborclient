@@ -42,24 +42,29 @@ import type {
 } from '#/shared/collectionRunner';
 import { generateDocumentUuid, resolveImportUuid } from '#/main/storage/uuid';
 import {
+  buildDocumentUuidIndex,
   buildFolderImportMaps,
   buildRequestUuidIndex,
   importedFolderToStoredRow,
   resolveImportFolderId,
   serializeImportedCollectionScriptFields,
+  serializeImportedDocumentFields,
   serializeImportedRequestFields
 } from '#/main/storage/collectionImport';
 import { defaultAuth, normalizeAuth } from '#/shared/auth';
 import type {
   AuthConfig,
   Collection,
+  CollectionDocument,
   CollectionExport,
   Environment,
   EnvironmentExport,
+  ExportedDocument,
   ExportedRequest,
   Folder,
   GitSettings,
   KeyValue,
+  SaveDocumentInput,
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
@@ -90,6 +95,11 @@ type GitStoredRequest = Omit<
   pre_request_scripts?: string;
   post_request_scripts?: string;
 };
+
+/**
+ * Markdown document row persisted on disk under documents/.
+ */
+type GitStoredDocument = ExportedDocument;
 
 /**
  * Converts a Git on-disk request row into a portable export shape.
@@ -145,6 +155,11 @@ interface LoadedCollection {
    * Request export rows for this collection.
    */
   requests: GitStoredRequest[];
+
+  /**
+   * Markdown document rows for this collection.
+   */
+  documents: GitStoredDocument[];
 }
 
 /**
@@ -160,6 +175,7 @@ export class GitStorage implements IStorage {
   #environments = new Map<number, EnvironmentExport>();
   #snippets = new Map<number, SnippetExport>();
   #requestTimestamps = new Map<string, { created_at: string; updated_at: string }>();
+  #documentTimestamps = new Map<string, { created_at: string; updated_at: string }>();
   #providerSettings: Record<string, string> = {};
   #initialized = false;
 
@@ -199,14 +215,14 @@ export class GitStorage implements IStorage {
       if (!dir) {
         continue;
       }
-      const { manifest, requests } = this.loadCollectionFromDir(dir);
+      const { manifest, requests, documents } = this.loadCollectionFromDir(dir);
       const collectionId = assignGitId(
         this.#idIndex,
         'collectionIds',
         'nextCollectionId',
         manifest.uuid
       );
-      this.#collections.set(collectionId, { dir, manifest, requests });
+      this.#collections.set(collectionId, { dir, manifest, requests, documents });
 
       const folderUuids = new Set<string>();
       for (const folder of manifest.folders) {
@@ -226,6 +242,18 @@ export class GitStorage implements IStorage {
         }
       }
       pruneGitIdMap(this.#idIndex, 'requestIds', requestUuids);
+
+      const documentUuids = new Set<string>();
+      for (const document of documents) {
+        const documentUuid = resolveImportUuid(document.uuid);
+        documentUuids.add(documentUuid);
+        assignGitId(this.#idIndex, 'documentIds', 'nextDocumentId', documentUuid);
+        if (!this.#documentTimestamps.has(documentUuid)) {
+          const now = new Date().toISOString();
+          this.#documentTimestamps.set(documentUuid, { created_at: now, updated_at: now });
+        }
+      }
+      pruneGitIdMap(this.#idIndex, 'documentIds', documentUuids);
     }
     pruneGitIdMap(this.#idIndex, 'collectionIds', collectionUuids);
 
@@ -294,9 +322,9 @@ export class GitStorage implements IStorage {
       created_at: new Date().toISOString()
     };
     const dir = collectionDir(this.#root, uuid, trimmedName);
-    writeCollectionToDir(dir, manifest, []);
+    writeCollectionToDir(dir, manifest, [], []);
     const id = assignGitId(this.#idIndex, 'collectionIds', 'nextCollectionId', uuid);
-    this.#collections.set(id, { dir, manifest, requests: [] });
+    this.#collections.set(id, { dir, manifest, requests: [], documents: [] });
     saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
     return this.manifestToCollection(id, manifest);
   }
@@ -348,6 +376,10 @@ export class GitStorage implements IStorage {
     for (const request of loaded.requests) {
       delete this.#idIndex.requestIds[resolveImportUuid(request.uuid)];
       this.#requestTimestamps.delete(resolveImportUuid(request.uuid));
+    }
+    for (const document of loaded.documents) {
+      delete this.#idIndex.documentIds[resolveImportUuid(document.uuid)];
+      this.#documentTimestamps.delete(resolveImportUuid(document.uuid));
     }
     for (const folder of loaded.manifest.folders) {
       delete this.#idIndex.folderIds[folder.uuid];
@@ -713,6 +745,11 @@ export class GitStorage implements IStorage {
             request.folder_name = trimmedName;
           }
         }
+        for (const document of loaded.documents) {
+          if (document.folder_name === oldName) {
+            document.folder_name = trimmedName;
+          }
+        }
         this.persistCollection(collectionId);
         return this.storedFolderToFolder(collectionId, folder, id);
       }
@@ -757,6 +794,11 @@ export class GitStorage implements IStorage {
               request.folder_name = trimmedName;
             }
           }
+          for (const document of loaded.documents) {
+            if (document.folder_name === oldName) {
+              document.folder_name = trimmedName;
+            }
+          }
         }
         this.persistCollection(collectionId);
         return this.storedFolderToFolder(collectionId, folder, id);
@@ -778,6 +820,20 @@ export class GitStorage implements IStorage {
         loaded.manifest.folders = loaded.manifest.folders.filter((row) => row.uuid !== folder.uuid);
         delete this.#idIndex.folderIds[folder.uuid];
         loaded.requests = loaded.requests.filter((request) => request.folder_name !== folderName);
+        for (const document of loaded.documents) {
+          if (
+            document.folder_uuid === folder.uuid ||
+            (document.folder_name ?? null) === folderName
+          ) {
+            const documentUuid = resolveImportUuid(document.uuid);
+            delete this.#idIndex.documentIds[documentUuid];
+            this.#documentTimestamps.delete(documentUuid);
+          }
+        }
+        loaded.documents = loaded.documents.filter(
+          (document) =>
+            document.folder_uuid !== folder.uuid && (document.folder_name ?? null) !== folderName
+        );
         this.persistCollection(collectionId);
         saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
         return;
@@ -888,6 +944,215 @@ export class GitStorage implements IStorage {
   /**
    * @inheritdoc
    */
+  async listDocuments(collectionId: number): Promise<CollectionDocument[]> {
+    const loaded = this.#collections.get(collectionId);
+    if (!loaded) {
+      return [];
+    }
+    const folderMaps = buildFolderImportMaps(this.buildFolders(collectionId, loaded));
+    return loaded.documents
+      .map((document) => this.exportedDocumentToSaved(collectionId, document, folderMaps))
+      .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async saveDocument(input: SaveDocumentInput): Promise<CollectionDocument> {
+    const trimmedName = trimRequiredName(input.name, 'Document name');
+    const loaded = this.requireCollection(input.collection_id);
+    const folderMaps = buildFolderImportMaps(this.buildFolders(input.collection_id, loaded));
+    const folderNameById = new Map(
+      this.buildFolders(input.collection_id, loaded).map((folder) => [folder.id, folder.name])
+    );
+
+    let documentUuid = input.uuid?.trim();
+    let documentId = input.id;
+    if (documentId != null) {
+      const existing = loaded.documents.find(
+        (row) =>
+          this.#idIndex.documentIds[resolveImportUuid(row.uuid)] === documentId ||
+          resolveImportUuid(row.uuid) === documentUuid
+      );
+      if (existing) {
+        documentUuid = resolveImportUuid(existing.uuid);
+      }
+    }
+    if (!documentUuid) {
+      documentUuid = generateDocumentUuid();
+    }
+    documentId =
+      documentId ?? assignGitId(this.#idIndex, 'documentIds', 'nextDocumentId', documentUuid);
+
+    if (input.folder_id != null && !folderMaps.folderUuidById.has(input.folder_id)) {
+      throw new Error('Folder not found');
+    }
+
+    const folderName =
+      input.folder_id != null ? (folderNameById.get(input.folder_id) ?? null) : null;
+    const folderUuid =
+      input.folder_id != null
+        ? (loaded.manifest.folders.find(
+            (row) => this.#idIndex.folderIds[row.uuid] === input.folder_id
+          )?.uuid ?? null)
+        : null;
+
+    const exported: GitStoredDocument = {
+      uuid: documentUuid,
+      name: trimmedName,
+      content: input.content ?? '',
+      sort_order:
+        loaded.documents.find((row) => resolveImportUuid(row.uuid) === documentUuid)?.sort_order ??
+        loaded.documents.filter(
+          (row) =>
+            (row.folder_uuid ?? null) === (folderUuid ?? null) &&
+            (row.folder_name ?? null) === (folderName ?? null)
+        ).length,
+      folder_name: folderName,
+      folder_uuid: folderUuid
+    };
+
+    const index = loaded.documents.findIndex((row) => resolveImportUuid(row.uuid) === documentUuid);
+    if (index >= 0) {
+      loaded.documents[index] = exported;
+    } else {
+      loaded.documents.push(exported);
+    }
+
+    this.persistCollection(input.collection_id);
+    saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
+
+    const now = new Date().toISOString();
+    const previousTimestamps = this.#documentTimestamps.get(documentUuid);
+    this.#documentTimestamps.set(documentUuid, {
+      created_at: previousTimestamps?.created_at ?? now,
+      updated_at: now
+    });
+
+    return this.exportedDocumentToSaved(input.collection_id, exported, folderMaps);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async deleteDocument(id: number): Promise<void> {
+    for (const [collectionId, loaded] of this.#collections.entries()) {
+      const index = loaded.documents.findIndex(
+        (row) => this.#idIndex.documentIds[resolveImportUuid(row.uuid)] === id
+      );
+      if (index >= 0) {
+        const uuid = resolveImportUuid(loaded.documents[index].uuid);
+        loaded.documents.splice(index, 1);
+        delete this.#idIndex.documentIds[uuid];
+        this.#documentTimestamps.delete(uuid);
+        this.persistCollection(collectionId);
+        saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
+        return;
+      }
+    }
+    throw new Error('Document not found');
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async reorderDocuments(
+    collectionId: number,
+    folderId: number | null,
+    orderedDocumentIds: number[]
+  ): Promise<void> {
+    const loaded = this.requireCollection(collectionId);
+    const folderName =
+      folderId != null
+        ? (loaded.manifest.folders.find((f) => this.#idIndex.folderIds[f.uuid] === folderId)
+            ?.name ?? null)
+        : null;
+    const folderUuid =
+      folderId != null
+        ? (loaded.manifest.folders.find((f) => this.#idIndex.folderIds[f.uuid] === folderId)
+            ?.uuid ?? null)
+        : null;
+
+    const inContainer = loaded.documents.filter((document) => {
+      if (folderId == null) {
+        return (document.folder_name ?? null) == null && (document.folder_uuid ?? null) == null;
+      }
+      return document.folder_uuid === folderUuid || document.folder_name === folderName;
+    });
+
+    const idToDocument = new Map(
+      inContainer.map((document) => [
+        this.#idIndex.documentIds[resolveImportUuid(document.uuid)],
+        document
+      ])
+    );
+
+    let order = 0;
+    for (const documentId of orderedDocumentIds) {
+      const document = idToDocument.get(documentId);
+      if (document) {
+        document.sort_order = order++;
+        document.folder_name = folderName;
+        document.folder_uuid = folderUuid;
+      }
+    }
+    this.persistCollection(collectionId);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async moveDocument(documentId: number, folderId: number | null, index: number): Promise<void> {
+    for (const [collectionId, loaded] of this.#collections.entries()) {
+      const document = loaded.documents.find(
+        (row) => this.#idIndex.documentIds[resolveImportUuid(row.uuid)] === documentId
+      );
+      if (!document) {
+        continue;
+      }
+
+      const targetFolder =
+        folderId != null
+          ? loaded.manifest.folders.find((f) => this.#idIndex.folderIds[f.uuid] === folderId)
+          : undefined;
+      if (folderId != null && !targetFolder) {
+        throw new Error('Folder not found');
+      }
+
+      const targetFolderName = targetFolder?.name ?? null;
+      const targetFolderUuid = targetFolder?.uuid ?? null;
+      document.folder_name = targetFolderName;
+      document.folder_uuid = targetFolderUuid;
+
+      const targetContainer = loaded.documents.filter(
+        (row) =>
+          row !== document &&
+          (row.folder_uuid ?? null) === targetFolderUuid &&
+          (row.folder_name ?? null) === targetFolderName
+      );
+      targetContainer.splice(index, 0, document);
+      for (let i = 0; i < targetContainer.length; i++) {
+        targetContainer[i].sort_order = i;
+      }
+
+      const remaining = loaded.documents.filter(
+        (row) =>
+          row !== document &&
+          !(
+            (row.folder_uuid ?? null) === targetFolderUuid &&
+            (row.folder_name ?? null) === targetFolderName
+          )
+      );
+      loaded.documents = [...remaining, ...targetContainer];
+      this.persistCollection(collectionId);
+      return;
+    }
+    throw new Error('Document not found');
+  }
+
+  /**
+   * @inheritdoc
+   */
   async exportCollectionData(id: number): Promise<CollectionExport> {
     const loaded = this.requireCollection(id);
     return manifestToCollectionExport(
@@ -895,7 +1160,8 @@ export class GitStorage implements IStorage {
         ...loaded.manifest,
         variables: maskVariablesForExport(loaded.manifest.variables)
       },
-      loaded.requests.map(gitStoredRequestToExported)
+      loaded.requests.map(gitStoredRequestToExported),
+      loaded.documents
     );
   }
 
@@ -930,12 +1196,14 @@ export class GitStorage implements IStorage {
     };
     const dir = collectionDir(this.#root, uuid, manifest.name);
     const gitRequests = exportData.requests.map(exportedRequestToGitStored);
-    this.writeGitCollectionToDir(dir, manifest, gitRequests);
+    const gitDocuments = exportData.documents ?? [];
+    this.writeGitCollectionToDir(dir, manifest, gitRequests, gitDocuments);
     const id = assignGitId(this.#idIndex, 'collectionIds', 'nextCollectionId', uuid);
     this.#collections.set(id, {
       dir,
       manifest,
-      requests: gitRequests
+      requests: gitRequests,
+      documents: gitDocuments
     });
     saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
     return this.manifestToCollection(id, manifest);
@@ -1005,6 +1273,7 @@ export class GitStorage implements IStorage {
     }
 
     const requestUuidIndex = buildRequestUuidIndex(await this.listRequests(id));
+    const documentUuidIndex = buildDocumentUuidIndex(await this.listDocuments(id));
 
     for (const request of exportData.requests) {
       const fields = serializeImportedRequestFields(request);
@@ -1050,6 +1319,45 @@ export class GitStorage implements IStorage {
         loaded.requests.push(exported);
       }
       assignGitId(this.#idIndex, 'requestIds', 'nextRequestId', fields.uuid);
+    }
+
+    for (const document of exportData.documents ?? []) {
+      const fields = serializeImportedDocumentFields(document);
+      const folderId = resolveImportFolderId(
+        document.folder_uuid,
+        document.folder_name,
+        folderMaps.folderIdByUuid,
+        folderMaps.folderIdByName
+      );
+      const folderName =
+        folderId != null
+          ? loaded.manifest.folders.find((f) => this.#idIndex.folderIds[f.uuid] === folderId)?.name
+          : document.folder_name;
+      const folderUuid =
+        folderId != null
+          ? loaded.manifest.folders.find((f) => this.#idIndex.folderIds[f.uuid] === folderId)?.uuid
+          : document.folder_uuid;
+
+      const exported: GitStoredDocument = {
+        uuid: fields.uuid,
+        name: fields.name,
+        content: fields.content,
+        sort_order: fields.sort_order,
+        folder_name: folderName ?? document.folder_name ?? null,
+        folder_uuid: folderUuid ?? document.folder_uuid ?? null
+      };
+
+      const existingIndex = loaded.documents.findIndex(
+        (row) => resolveImportUuid(row.uuid) === fields.uuid
+      );
+      if (existingIndex >= 0) {
+        loaded.documents[existingIndex] = exported;
+      } else if (fields.uuid && documentUuidIndex.has(fields.uuid)) {
+        loaded.documents.push(exported);
+      } else {
+        loaded.documents.push(exported);
+      }
+      assignGitId(this.#idIndex, 'documentIds', 'nextDocumentId', fields.uuid);
     }
 
     this.persistCollection(id);
@@ -1108,13 +1416,13 @@ export class GitStorage implements IStorage {
     const loaded = this.requireCollection(collectionId);
     const newDir = collectionDir(this.#root, loaded.manifest.uuid, loaded.manifest.name);
     if (newDir !== loaded.dir) {
-      this.writeGitCollectionToDir(newDir, loaded.manifest, loaded.requests);
+      this.writeGitCollectionToDir(newDir, loaded.manifest, loaded.requests, loaded.documents);
       if (loaded.dir !== newDir) {
         rmSync(loaded.dir, { recursive: true, force: true });
       }
       loaded.dir = newDir;
     } else {
-      this.writeGitCollectionToDir(loaded.dir, loaded.manifest, loaded.requests);
+      this.writeGitCollectionToDir(loaded.dir, loaded.manifest, loaded.requests, loaded.documents);
     }
   }
 
@@ -1127,8 +1435,9 @@ export class GitStorage implements IStorage {
   private loadCollectionFromDir(dir: string): {
     manifest: GitStoredManifest;
     requests: GitStoredRequest[];
+    documents: GitStoredDocument[];
   } {
-    const { manifest, requests } = readCollectionFromDir(dir);
+    const { manifest, requests, documents } = readCollectionFromDir(dir);
     const rawManifest = JSON.parse(readFileSync(join(dir, 'collection.json'), 'utf-8')) as Record<
       string,
       unknown
@@ -1176,7 +1485,8 @@ export class GitStorage implements IStorage {
           pre_request_scripts: scripts?.pre ?? '[]',
           post_request_scripts: scripts?.post ?? '[]'
         };
-      })
+      }),
+      documents
     };
   }
 
@@ -1190,9 +1500,10 @@ export class GitStorage implements IStorage {
   private writeGitCollectionToDir(
     dir: string,
     manifest: GitStoredManifest,
-    requests: GitStoredRequest[]
+    requests: GitStoredRequest[],
+    documents: GitStoredDocument[] = []
   ): void {
-    writeCollectionToDir(dir, manifest, requests.map(gitStoredRequestToExported));
+    writeCollectionToDir(dir, manifest, requests.map(gitStoredRequestToExported), documents);
     const requestsDir = join(dir, 'requests');
     if (!existsSync(requestsDir)) {
       return;
@@ -1382,6 +1693,44 @@ export class GitStorage implements IStorage {
       comment: request.comment,
       tags: request.tags,
       sort_order: request.sort_order ?? 0,
+      created_at,
+      updated_at
+    };
+  }
+
+  /**
+   * Converts an exported document row to a CollectionDocument entity.
+   *
+   * @param collectionId - Provider-local collection id.
+   * @param document - Exported document row.
+   * @param folderMaps - Folder uuid and name indexes for placement resolution.
+   */
+  private exportedDocumentToSaved(
+    collectionId: number,
+    document: GitStoredDocument,
+    folderMaps: ReturnType<typeof buildFolderImportMaps>
+  ): CollectionDocument {
+    const documentUuid = resolveImportUuid(document.uuid);
+    const documentId = assignGitId(this.#idIndex, 'documentIds', 'nextDocumentId', documentUuid);
+    const folderId = resolveImportFolderId(
+      document.folder_uuid,
+      document.folder_name,
+      folderMaps.folderIdByUuid,
+      folderMaps.folderIdByName
+    );
+    const timestamps = this.#documentTimestamps.get(documentUuid);
+    const now = new Date().toISOString();
+    const created_at = timestamps?.created_at ?? now;
+    const updated_at = timestamps?.updated_at ?? now;
+
+    return {
+      id: documentId,
+      uuid: documentUuid,
+      collection_id: collectionId,
+      folder_id: folderId,
+      name: document.name,
+      content: document.content,
+      sort_order: document.sort_order ?? 0,
       created_at,
       updated_at
     };

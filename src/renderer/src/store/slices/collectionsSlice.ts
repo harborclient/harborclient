@@ -1,10 +1,11 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { Collection, Folder, SavedRequest } from '#/shared/types';
+import type { Collection, CollectionDocument, Folder, SavedRequest } from '#/shared/types';
 
 export interface CollectionsState {
   collections: Collection[];
   foldersByCollection: Record<number, Folder[]>;
   requestsByCollection: Record<number, SavedRequest[]>;
+  documentsByCollection: Record<number, CollectionDocument[]>;
   selectedCollectionId: number | null;
   selectedFolderId: number | null;
   /** True after the first successful collections list from the main process. */
@@ -15,6 +16,7 @@ const initialState: CollectionsState = {
   collections: [],
   foldersByCollection: {},
   requestsByCollection: {},
+  documentsByCollection: {},
   selectedCollectionId: null,
   selectedFolderId: null,
   collectionsListed: false
@@ -58,6 +60,33 @@ const collectionsSlice = createSlice({
       state.requestsByCollection[action.payload.collectionId] = action.payload.requests;
     },
     /**
+     * Caches markdown documents for one collection id.
+     */
+    setDocumentsForCollection(
+      state,
+      action: PayloadAction<{ collectionId: number; documents: CollectionDocument[] }>
+    ) {
+      state.documentsByCollection[action.payload.collectionId] = action.payload.documents;
+    },
+    /**
+     * Replaces one document row in a collection cache after a successful save.
+     */
+    upsertDocumentInCollection(
+      state,
+      action: PayloadAction<{ collectionId: number; document: CollectionDocument }>
+    ) {
+      const { collectionId, document } = action.payload;
+      const documents = state.documentsByCollection[collectionId] ?? [];
+      const index = documents.findIndex((entry) => entry.id === document.id);
+      if (index === -1) {
+        state.documentsByCollection[collectionId] = [...documents, document];
+        return;
+      }
+      const next = [...documents];
+      next[index] = document;
+      state.documentsByCollection[collectionId] = next;
+    },
+    /**
      * Caches folder metadata for one collection id.
      */
     setFoldersForCollection(
@@ -92,7 +121,9 @@ export const {
   focusSidebarItem,
   setCollections,
   setRequestsForCollection,
+  setDocumentsForCollection,
   setFoldersForCollection,
-  upsertFolderInCollection
+  upsertFolderInCollection,
+  upsertDocumentInCollection
 } = collectionsSlice.actions;
 export default collectionsSlice.reducer;

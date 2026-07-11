@@ -12,7 +12,7 @@ import {
   faClockRotateLeft,
   faDatabase,
   faFingerprint,
-  faTerminal,
+  faCode,
   faUsers
 } from '#/renderer/src/fontawesome';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
@@ -72,7 +72,7 @@ export function TeamHubAdmin({ hubId, onClose }: Props): JSX.Element {
       { value: 'users', label: 'Users', icon: faUsers },
       { value: 'tokens', label: 'Tokens', icon: faFingerprint },
       { value: 'collections', label: 'Collections', icon: faDatabase },
-      { value: 'snippets', label: 'Snippets', icon: faTerminal },
+      { value: 'snippets', label: 'Snippets', icon: faCode },
       { value: 'run-results', label: 'Run results', icon: faClockRotateLeft },
       {
         value: 'reload',

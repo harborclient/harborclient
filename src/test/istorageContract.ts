@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { IStorage } from '#/main/storage/IStorage';
 import { defaultAuth } from '#/shared/auth';
-import type { CollectionExport, SaveRequestInput } from '#/shared/types';
+import type { CollectionExport, SaveDocumentInput, SaveRequestInput } from '#/shared/types';
 
 export interface TestDbHandle {
   db: IStorage;
@@ -33,6 +33,21 @@ export function baseRequestInput(
     comment: '',
     tags: '',
     auth: defaultAuth(),
+    ...overrides
+  };
+}
+
+/**
+ * Builds a minimal save-document payload for contract tests.
+ */
+export function baseDocumentInput(
+  collectionId: number,
+  overrides: Partial<SaveDocumentInput> = {}
+): SaveDocumentInput {
+  return {
+    collection_id: collectionId,
+    name: 'README.md',
+    content: '# Notes\n\nCollection documentation.',
     ...overrides
   };
 }
@@ -678,6 +693,105 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
       expect(folders[0]?.id).toBe(folder.id);
       expect(folders[0]?.uuid).toBe(folder.uuid);
       expect(folders[0]?.name).toBe('Renamed');
+    });
+  });
+
+  describe(`${label} documents`, () => {
+    it('saveDocument inserts with auto-incremented sort_order', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Documents');
+
+      const first = await db.saveDocument(baseDocumentInput(collection.id, { name: 'A.md' }));
+      const second = await db.saveDocument(baseDocumentInput(collection.id, { name: 'B.md' }));
+
+      expect(first.sort_order).toBe(0);
+      expect(second.sort_order).toBe(1);
+      expect(first.id).not.toBe(second.id);
+    });
+
+    it('saveDocument rejects empty name after trim', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Documents');
+      await expect(
+        db.saveDocument(baseDocumentInput(collection.id, { name: '   ' }))
+      ).rejects.toThrow('Document name is required');
+    });
+
+    it('saveDocument updates existing document fields', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Documents');
+      const created = await db.saveDocument(baseDocumentInput(collection.id));
+
+      const updated = await db.saveDocument({
+        ...baseDocumentInput(collection.id),
+        id: created.id,
+        name: 'GUIDE.md',
+        content: '# Updated'
+      });
+
+      expect(updated.id).toBe(created.id);
+      expect(updated.name).toBe('GUIDE.md');
+      expect(updated.content).toBe('# Updated');
+      expect((await db.listDocuments(collection.id))[0]).toEqual(updated);
+    });
+
+    it('saveDocument stores folder_id and scopes sort_order per folder', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Documents');
+      const folder = await db.createFolder(collection.id, 'Docs');
+
+      const root = await db.saveDocument(baseDocumentInput(collection.id, { name: 'root.md' }));
+      const inFolder = await db.saveDocument(
+        baseDocumentInput(collection.id, { name: 'folder.md', folder_id: folder.id })
+      );
+
+      expect(root.folder_id).toBeNull();
+      expect(root.sort_order).toBe(0);
+      expect(inFolder.folder_id).toBe(folder.id);
+      expect(inFolder.sort_order).toBe(0);
+    });
+
+    it('deleteFolder removes folder and contained documents', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Documents');
+      const folder = await db.createFolder(collection.id, 'Temp');
+      await db.saveDocument(baseDocumentInput(collection.id, { folder_id: folder.id }));
+
+      await db.deleteFolder(folder.id);
+
+      expect(await db.listFolders(collection.id)).toEqual([]);
+      expect(await db.listDocuments(collection.id)).toEqual([]);
+    });
+
+    it('export and import preserve documents', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Export Documents');
+      const folder = await db.createFolder(collection.id, 'Docs');
+      await db.saveDocument(
+        baseDocumentInput(collection.id, {
+          name: 'README.md',
+          content: '# Hello',
+          folder_id: folder.id
+        })
+      );
+
+      const exported = await db.exportCollectionData(collection.id);
+      expect(exported.documents).toEqual([
+        expect.objectContaining({
+          name: 'README.md',
+          content: '# Hello',
+          sort_order: 0,
+          folder_name: 'Docs'
+        })
+      ]);
+
+      const imported = await db.importCollectionData(exported);
+      const importedFolders = await db.listFolders(imported.id);
+      const importedDocuments = await db.listDocuments(imported.id);
+
+      expect(importedDocuments).toHaveLength(1);
+      expect(importedDocuments[0]?.folder_id).toBe(importedFolders[0]?.id);
+      expect(importedDocuments[0]?.content).toBe('# Hello');
     });
   });
 }

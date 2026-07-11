@@ -5,10 +5,11 @@ import { validateEnvironmentExport } from '#/main/storage/collectionData';
 import { validateSnippetExport } from '#/main/storage/snippetData';
 import { validateRequestExport } from '#/main/storage/collectionData';
 import { generateDocumentUuid, resolveImportUuid } from '#/main/storage/uuid';
-import { uuidSlugPrefix } from '#/main/git/slug';
+import { toFileSlug, uuidSlugPrefix } from '#/main/git/slug';
 import type {
   CollectionExport,
   EnvironmentExport,
+  ExportedDocument,
   ExportedFolder,
   ExportedRequest,
   RequestExport,
@@ -20,6 +21,227 @@ import type { AuthConfig } from '#/shared/auth';
 import { defaultAuth } from '#/shared/auth';
 import type { KeyValue, Variable } from '#/shared/types/common';
 import type { ScriptRef } from '#/shared/types/script';
+
+/**
+ * YAML frontmatter fields stored in git-backed markdown document files.
+ */
+export interface StoredDocumentFrontmatter {
+  /**
+   * Stable document identifier.
+   */
+  uuid: string;
+
+  /**
+   * Portable folder uuid; omitted or null for collection root.
+   */
+  folder_uuid?: string | null;
+
+  /**
+   * Position among sibling documents.
+   */
+  sort_order: number;
+}
+
+/**
+ * Returns the documents directory path inside a collection directory.
+ *
+ * @param collectionDirectory - Absolute path to a collection directory.
+ */
+export function documentsDir(collectionDirectory: string): string {
+  return join(collectionDirectory, 'documents');
+}
+
+/**
+ * Builds the on-disk markdown file name for a document display name.
+ *
+ * @param name - Document display name (for example README.md).
+ */
+export function documentFileName(name: string): string {
+  return `${toFileSlug(name)}.md`;
+}
+
+/**
+ * Parses a minimal YAML frontmatter block from markdown content.
+ *
+ * @param raw - Full markdown file contents.
+ * @returns Parsed frontmatter fields and markdown body.
+ */
+export function parseMarkdownFrontmatter(raw: string): {
+  frontmatter: StoredDocumentFrontmatter;
+  body: string;
+} {
+  const trimmed = raw.replace(/^\uFEFF/, '');
+  if (!trimmed.startsWith('---')) {
+    return {
+      frontmatter: {
+        uuid: generateDocumentUuid(),
+        folder_uuid: null,
+        sort_order: 0
+      },
+      body: trimmed
+    };
+  }
+
+  const end = trimmed.indexOf('\n---', 3);
+  if (end < 0) {
+    return {
+      frontmatter: {
+        uuid: generateDocumentUuid(),
+        folder_uuid: null,
+        sort_order: 0
+      },
+      body: trimmed
+    };
+  }
+
+  const yamlBlock = trimmed.slice(3, end).trim();
+  const body = trimmed.slice(end + 4).replace(/^\r?\n/, '');
+  const frontmatter: StoredDocumentFrontmatter = {
+    uuid: generateDocumentUuid(),
+    folder_uuid: null,
+    sort_order: 0
+  };
+
+  for (const line of yamlBlock.split(/\r?\n/)) {
+    const match = /^([A-Za-z0-9_]+):\s*(.*)$/.exec(line.trim());
+    if (!match) {
+      continue;
+    }
+    const [, key, rawValue] = match;
+    const value = rawValue.trim();
+    if (key === 'uuid' && value) {
+      frontmatter.uuid = value;
+      continue;
+    }
+    if (key === 'folder_uuid') {
+      if (!value || value === 'null' || value === '~') {
+        frontmatter.folder_uuid = null;
+      } else {
+        frontmatter.folder_uuid = value;
+      }
+      continue;
+    }
+    if (key === 'sort_order') {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        frontmatter.sort_order = parsed;
+      }
+    }
+  }
+
+  return { frontmatter, body };
+}
+
+/**
+ * Serializes markdown document content with YAML frontmatter.
+ *
+ * @param frontmatter - Placement metadata for the document.
+ * @param body - Markdown body content.
+ */
+export function serializeMarkdownFrontmatter(
+  frontmatter: StoredDocumentFrontmatter,
+  body: string
+): string {
+  const folderUuid =
+    frontmatter.folder_uuid == null || frontmatter.folder_uuid === ''
+      ? 'null'
+      : frontmatter.folder_uuid;
+  const yaml = [
+    '---',
+    `uuid: ${frontmatter.uuid}`,
+    `folder_uuid: ${folderUuid}`,
+    `sort_order: ${frontmatter.sort_order}`,
+    '---',
+    ''
+  ].join('\n');
+  return body.length > 0 ? `${yaml}${body}` : yaml;
+}
+
+/**
+ * Reads markdown document export rows from a collection documents directory.
+ *
+ * @param collectionDirectory - Absolute path to the collection directory.
+ */
+export function readDocumentsFromDir(collectionDirectory: string): ExportedDocument[] {
+  const dir = documentsDir(collectionDirectory);
+  if (!existsSync(dir)) {
+    return [];
+  }
+
+  const documents: ExportedDocument[] = [];
+  for (const fileName of readdirSync(dir)) {
+    if (!fileName.endsWith('.md')) {
+      continue;
+    }
+    const filePath = join(dir, fileName);
+    const raw = readFileSync(filePath, 'utf-8');
+    const { frontmatter, body } = parseMarkdownFrontmatter(raw);
+    documents.push({
+      uuid: resolveImportUuid(frontmatter.uuid),
+      name: fileName,
+      content: body,
+      sort_order: frontmatter.sort_order,
+      folder_uuid: frontmatter.folder_uuid ?? undefined,
+      folder_name: null
+    });
+  }
+
+  return documents.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+}
+
+/**
+ * Writes markdown document files for a collection, pruning removed uuids.
+ *
+ * @param collectionDirectory - Absolute path to the collection directory.
+ * @param documents - Document export rows to persist.
+ */
+export function writeDocumentsToDir(
+  collectionDirectory: string,
+  documents: ExportedDocument[]
+): void {
+  const dir = documentsDir(collectionDirectory);
+  mkdirSync(dir, { recursive: true });
+
+  const writtenUuids = new Set<string>();
+  const existingUuidToPath = new Map<string, string>();
+  if (existsSync(dir)) {
+    for (const fileName of readdirSync(dir)) {
+      if (!fileName.endsWith('.md')) {
+        continue;
+      }
+      const filePath = join(dir, fileName);
+      const { frontmatter } = parseMarkdownFrontmatter(readFileSync(filePath, 'utf-8'));
+      existingUuidToPath.set(resolveImportUuid(frontmatter.uuid), filePath);
+    }
+  }
+
+  for (const document of documents) {
+    const uuid = resolveImportUuid(document.uuid);
+    writtenUuids.add(uuid);
+    const fileName = documentFileName(document.name);
+    const targetPath = join(dir, fileName);
+    const payload = serializeMarkdownFrontmatter(
+      {
+        uuid,
+        folder_uuid: document.folder_uuid ?? null,
+        sort_order: document.sort_order
+      },
+      document.content
+    );
+    writeFileSync(targetPath, payload, 'utf-8');
+
+    const previousPath = existingUuidToPath.get(uuid);
+    if (previousPath && previousPath !== targetPath) {
+      rmSync(previousPath, { force: true });
+    }
+  }
+
+  for (const [uuid, filePath] of existingUuidToPath.entries()) {
+    if (!writtenUuids.has(uuid)) {
+      rmSync(filePath, { force: true });
+    }
+  }
+}
 
 /**
  * Reads and parses a JSON file, throwing a descriptive error when parsing fails.
@@ -270,6 +492,7 @@ export function collectionDir(root: string, uuid: string, name: string): string 
 export function readCollectionFromDir(dir: string): {
   manifest: CollectionManifest;
   requests: ExportedRequest[];
+  documents: ExportedDocument[];
 } {
   const manifestPath = join(dir, 'collection.json');
   const raw = readJsonFile(manifestPath) as Record<string, unknown>;
@@ -327,7 +550,9 @@ export function readCollectionFromDir(dir: string): {
     }
   }
 
-  return { manifest, requests };
+  const documents = readDocumentsFromDir(dir);
+
+  return { manifest, requests, documents };
 }
 
 /**
@@ -340,7 +565,8 @@ export function readCollectionFromDir(dir: string): {
 export function writeCollectionToDir(
   dir: string,
   manifest: CollectionManifest,
-  requests: ExportedRequest[]
+  requests: ExportedRequest[],
+  documents: ExportedDocument[] = []
 ): void {
   mkdirSync(dir, { recursive: true });
   const requestsPath = join(dir, 'requests');
@@ -385,6 +611,8 @@ export function writeCollectionToDir(
       }
     }
   }
+
+  writeDocumentsToDir(dir, documents);
 }
 
 /**
@@ -392,13 +620,15 @@ export function writeCollectionToDir(
  *
  * @param manifest - Stored collection manifest.
  * @param requests - Request export rows.
+ * @param documents - Markdown document export rows.
  */
 export function manifestToCollectionExport(
   manifest: CollectionManifest & {
     pre_request_scripts?: string;
     post_request_scripts?: string;
   },
-  requests: ExportedRequest[]
+  requests: ExportedRequest[],
+  documents: ExportedDocument[] = []
 ): CollectionExport {
   const folders: ExportedFolder[] = manifest.folders.map((folder) => ({
     uuid: folder.uuid,
@@ -432,7 +662,8 @@ export function manifestToCollectionExport(
       manifest.post_request_script
     ),
     folders,
-    requests
+    requests,
+    documents
   });
 }
 

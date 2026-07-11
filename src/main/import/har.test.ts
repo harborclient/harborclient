@@ -169,7 +169,10 @@ describe('convertHarToCollection', () => {
     expect(exported.harborclientExport).toBe('collection');
     expect(exported.name).toBe('Example App');
     expect(exported.folders).toEqual([]);
-    expect(validateCollectionExport(exported)).toEqual(exported);
+    const validated = validateCollectionExport(exported);
+    expect(validated.documents).toEqual([]);
+    expect(validated.name).toBe(exported.name);
+    expect(validated.requests).toHaveLength(exported.requests.length);
 
     expect(exported.requests).toHaveLength(5);
   });

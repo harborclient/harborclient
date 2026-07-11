@@ -26,9 +26,9 @@ import {
   faDownload,
   faFileImport,
   faFileExport,
+  faFileLines,
   faFloppyDisk,
   faFingerprint,
-  faFolder,
   faGear,
   faGlobe,
   faGripVertical,
@@ -56,7 +56,13 @@ import {
   faWindowMaximize,
   faXmark
 } from '@fortawesome/free-solid-svg-icons';
-import { faComment } from '@fortawesome/free-regular-svg-icons';
+import {
+  faComment,
+  faFolder,
+  faSun,
+  faCloud,
+  faSquareMinus
+} from '@fortawesome/free-regular-svg-icons';
 import { faGithub, faReddit, faXTwitter } from '@fortawesome/free-brands-svg-icons';
 
 library.add(
@@ -90,6 +96,7 @@ library.add(
   faDownload,
   faFileImport,
   faFileExport,
+  faFileLines,
   faFloppyDisk,
   faFingerprint,
   faFolder,
@@ -116,7 +123,11 @@ library.add(
   faWindowMaximize,
   faGithub,
   faReddit,
-  faXTwitter
+  faXTwitter,
+  faFolder,
+  faSun,
+  faCloud,
+  faSquareMinus
 );
 config.autoAddCss = false;
 
@@ -148,6 +159,7 @@ export {
   faDownload,
   faFileImport,
   faFileExport,
+  faFileLines,
   faFloppyDisk,
   faFingerprint,
   faFolder,
@@ -179,5 +191,8 @@ export {
   faWandMagicSparkles,
   faWindowMaximize,
   faXTwitter,
-  faXmark
+  faXmark,
+  faSun,
+  faCloud,
+  faSquareMinus
 };

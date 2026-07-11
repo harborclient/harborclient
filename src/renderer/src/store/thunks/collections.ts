@@ -39,6 +39,7 @@ import {
   isLatestRefreshGeneration
 } from '#/renderer/src/store/refreshGeneration';
 import { refreshEnvironments } from '#/renderer/src/store/thunks/environments';
+import { refreshDocuments } from '#/renderer/src/store/thunks/documents';
 import { refreshSnippets } from '#/renderer/src/store/thunks/snippets';
 import { syncThemeMenuNow } from '#/renderer/src/plugins/themeMenuSync';
 import {
@@ -104,6 +105,7 @@ export const refreshCollectionContents = createAsyncThunk<void, number, ThunkApi
   async (collectionId, { dispatch }) => {
     await dispatch(refreshFolders(collectionId));
     await dispatch(refreshRequests(collectionId));
+    await dispatch(refreshDocuments(collectionId));
   }
 );
 

@@ -119,8 +119,7 @@ import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
 import { getAvailableModels } from '#/shared/ai/models';
 import { buildSnippetBundle } from '#/shared/snippetBundle';
 import {
-  faAnglesDown,
-  faAnglesUp,
+  faSquareMinus,
   faCaretDown,
   faChevronDown,
   faChevronUp,
@@ -128,7 +127,7 @@ import {
   faFileExport,
   faGear,
   faPlus,
-  faTerminal,
+  faCode,
   faArrowUpRightFromSquare,
   faCopy,
   faWandMagicSparkles
@@ -761,7 +760,7 @@ function ScriptRowHeader({
       title={SNIPPET_LIBRARY_LABEL}
       className="inline-flex shrink-0"
     >
-      <FaIcon icon={faTerminal} className={SCRIPT_ROW_SNIPPET_LINK_ICON_CLASS} aria-hidden />
+      <FaIcon icon={faCode} className={SCRIPT_ROW_SNIPPET_LINK_ICON_CLASS} aria-hidden />
     </span>
   ) : null;
 
@@ -2595,7 +2594,7 @@ export function ScriptListEditor({
           aria-controls={snippetMenuOpen ? snippetMenuId : undefined}
           onClick={() => setSnippetMenuOpen((open) => !open)}
         >
-          <FaIcon icon={faTerminal} className="h-3.5 w-3.5" aria-hidden />
+          <FaIcon icon={faCode} className="h-3.5 w-3.5" aria-hidden />
           Snippets
         </Button>
         {snippetMenuOpen ? (
@@ -2650,11 +2649,7 @@ export function ScriptListEditor({
           title={allScriptsExpanded ? 'Collapse all scripts' : 'Expand all scripts'}
           onClick={handleToggleExpandAll}
         >
-          <FaIcon
-            icon={allScriptsExpanded ? faAnglesUp : faAnglesDown}
-            className="h-4 w-4"
-            aria-hidden
-          />
+          <FaIcon icon={faSquareMinus} className="h-4 w-4" aria-hidden />
         </Button>
       </div>
     </div>

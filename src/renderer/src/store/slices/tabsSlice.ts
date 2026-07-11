@@ -1,10 +1,12 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { SavedRequest } from '#/shared/types';
+import type { CollectionDocument, SavedRequest } from '#/shared/types';
 import {
   cloneDraft,
+  createMarkdownTab,
   createPageTab,
   createTab,
   draftFromSaved,
+  isMarkdownTab,
   isPageTab,
   isRequestTab,
   pageRefKey,
@@ -58,6 +60,9 @@ function findPageTab(tabs: Tab[], page: PageRef): Tab | undefined {
  * @returns True when the tab belongs to the collection.
  */
 function tabBelongsToCollection(tab: Tab, collectionId: number): boolean {
+  if (isMarkdownTab(tab)) {
+    return tab.collectionId === collectionId;
+  }
   if (isRequestTab(tab)) {
     return tab.draft.collection_id === collectionId;
   }
@@ -219,6 +224,75 @@ const tabsSlice = createSlice({
       state.tabs = next;
     },
     /**
+     * Opens or focuses a markdown document tab, deduped by document id.
+     */
+    openMarkdownTab(state, action: PayloadAction<{ doc: CollectionDocument; activate?: boolean }>) {
+      const { doc, activate = true } = action.payload;
+      const existing = state.tabs.find((tab) => isMarkdownTab(tab) && tab.docId === doc.id);
+      if (existing && isMarkdownTab(existing)) {
+        if (activate) {
+          state.activeTabId = existing.tabId;
+        }
+        return;
+      }
+
+      const tab = createMarkdownTab(doc);
+      state.tabs.push(tab);
+      if (activate) {
+        state.activeTabId = tab.tabId;
+      }
+    },
+    /**
+     * Reloads a saved markdown document into an existing tab or opens a new one.
+     */
+    loadDocument(state, action: PayloadAction<{ doc: CollectionDocument; activate?: boolean }>) {
+      const { doc, activate = true } = action.payload;
+      const existing = state.tabs.find((tab) => isMarkdownTab(tab) && tab.docId === doc.id);
+      if (existing && isMarkdownTab(existing)) {
+        if (activate) {
+          state.activeTabId = existing.tabId;
+        }
+        existing.name = doc.name;
+        existing.folderId = doc.folder_id;
+        existing.content = doc.content;
+        existing.savedContent = doc.content;
+        return;
+      }
+
+      const tab = createMarkdownTab(doc);
+      state.tabs.push(tab);
+      if (activate) {
+        state.activeTabId = tab.tabId;
+      }
+    },
+    /**
+     * Updates editable markdown content on a markdown tab.
+     */
+    updateMarkdownContent(state, action: PayloadAction<{ tabId: string; content: string }>) {
+      const { tabId, content } = action.payload;
+      const tab = state.tabs.find((entry) => entry.tabId === tabId);
+      if (tab && isMarkdownTab(tab)) {
+        tab.content = content;
+      }
+    },
+    /**
+     * Syncs the saved baseline after a markdown document is persisted.
+     */
+    markMarkdownSaved(
+      state,
+      action: PayloadAction<{ tabId: string; content: string; name?: string }>
+    ) {
+      const { tabId, content, name } = action.payload;
+      const tab = state.tabs.find((entry) => entry.tabId === tabId);
+      if (tab && isMarkdownTab(tab)) {
+        tab.content = content;
+        tab.savedContent = content;
+        if (name != null) {
+          tab.name = name;
+        }
+      }
+    },
+    /**
      * Opens a saved request in a tab or focuses an existing tab.
      */
     loadRequest(state, action: PayloadAction<{ req: SavedRequest; activate?: boolean }>) {
@@ -262,6 +336,14 @@ const tabsSlice = createSlice({
       const tab = createTab(action.payload);
       state.tabs.push(tab);
       state.activeTabId = tab.tabId;
+    },
+    /**
+     * Closes every tab editing the given markdown document id.
+     */
+    closeTabsForDocument(state, action: PayloadAction<number>) {
+      const documentId = action.payload;
+      const matching = state.tabs.filter((tab) => isMarkdownTab(tab) && tab.docId === documentId);
+      closeMatchingTabs(state, matching);
     },
     /**
      * Closes every tab editing the given saved request id.
@@ -361,9 +443,14 @@ export const {
   openPageTab,
   closeTab,
   loadRequest,
+  openMarkdownTab,
+  loadDocument,
+  updateMarkdownContent,
+  markMarkdownSaved,
   updateTab,
   openTabWithDraft,
   closeTabsForRequest,
+  closeTabsForDocument,
   closeTabsForCollection,
   closeTabsForEnvironment,
   updateActiveTabDraftAfterSave,

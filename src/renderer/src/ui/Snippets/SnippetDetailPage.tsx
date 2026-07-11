@@ -4,7 +4,7 @@ import type { PageRef } from '#/renderer/src/store/drafts';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { closeTab } from '#/renderer/src/store/slices/tabsSlice';
 import { refreshSnippets } from '#/renderer/src/store/thunks/snippets';
-import { faTerminal } from '#/renderer/src/fontawesome';
+import { faCode } from '#/renderer/src/fontawesome';
 import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
 import { SnippetDetailContent } from './SnippetDetailContent';
@@ -172,7 +172,7 @@ export function SnippetDetailPage({ page, tabId }: Props): JSX.Element {
     <Page
       embedded
       title={page.label}
-      icon={faTerminal}
+      icon={faCode}
       className="flex min-h-0 flex-1 flex-col overflow-hidden p-6 pt-0!"
       actions={headerActions}
     >

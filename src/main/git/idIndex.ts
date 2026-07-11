@@ -31,6 +31,11 @@ export interface GitIdIndexData {
   nextSnippetId: number;
 
   /**
+   * Next numeric id to assign for markdown documents.
+   */
+  nextDocumentId: number;
+
+  /**
    * Collection uuid to local numeric id.
    */
   collectionIds: Record<string, number>;
@@ -54,6 +59,11 @@ export interface GitIdIndexData {
    * Snippet uuid to local numeric id.
    */
   snippetIds: Record<string, number>;
+
+  /**
+   * Markdown document uuid to local numeric id.
+   */
+  documentIds: Record<string, number>;
 }
 
 /**
@@ -66,11 +76,13 @@ export function createEmptyGitIdIndex(): GitIdIndexData {
     nextRequestId: 1,
     nextEnvironmentId: 1,
     nextSnippetId: 1,
+    nextDocumentId: 1,
     collectionIds: {},
     folderIds: {},
     requestIds: {},
     environmentIds: {},
-    snippetIds: {}
+    snippetIds: {},
+    documentIds: {}
   };
 }
 
@@ -96,11 +108,13 @@ export function loadGitIdIndex(userDataPath: string, connectionId: string): GitI
       nextRequestId: parsed.nextRequestId ?? 1,
       nextEnvironmentId: parsed.nextEnvironmentId ?? 1,
       nextSnippetId: parsed.nextSnippetId ?? 1,
+      nextDocumentId: parsed.nextDocumentId ?? 1,
       collectionIds: parsed.collectionIds ?? {},
       folderIds: parsed.folderIds ?? {},
       requestIds: parsed.requestIds ?? {},
       environmentIds: parsed.environmentIds ?? {},
-      snippetIds: parsed.snippetIds ?? {}
+      snippetIds: parsed.snippetIds ?? {},
+      documentIds: parsed.documentIds ?? {}
     };
   } catch {
     return createEmptyGitIdIndex();
@@ -136,13 +150,20 @@ export function saveGitIdIndex(
  */
 export function assignGitId(
   index: GitIdIndexData,
-  mapKey: 'collectionIds' | 'folderIds' | 'requestIds' | 'environmentIds' | 'snippetIds',
+  mapKey:
+    | 'collectionIds'
+    | 'folderIds'
+    | 'requestIds'
+    | 'environmentIds'
+    | 'snippetIds'
+    | 'documentIds',
   nextKey:
     | 'nextCollectionId'
     | 'nextFolderId'
     | 'nextRequestId'
     | 'nextEnvironmentId'
-    | 'nextSnippetId',
+    | 'nextSnippetId'
+    | 'nextDocumentId',
   uuid: string
 ): number {
   const map = index[mapKey];
@@ -166,7 +187,13 @@ export function assignGitId(
  */
 export function pruneGitIdMap(
   index: GitIdIndexData,
-  mapKey: 'collectionIds' | 'folderIds' | 'requestIds' | 'environmentIds' | 'snippetIds',
+  mapKey:
+    | 'collectionIds'
+    | 'folderIds'
+    | 'requestIds'
+    | 'environmentIds'
+    | 'snippetIds'
+    | 'documentIds',
   activeUuids: Set<string>
 ): void {
   const map = index[mapKey];

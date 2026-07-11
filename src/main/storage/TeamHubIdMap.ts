@@ -7,6 +7,7 @@ import { dirname } from 'path';
  */
 export type TeamHubEntityType =
   | 'collection'
+  | 'document'
   | 'environment'
   | 'folder'
   | 'request'

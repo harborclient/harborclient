@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import {
+  buildDocumentUuidIndex,
   buildFolderImportMaps,
   buildRequestUuidIndex,
   planImportedFolderUpsert,
@@ -7,8 +8,10 @@ import {
   resolveImportFolderId,
   resolveImportedCollectionUuid,
   resolveImportedFolderUuid,
+  savedDocumentToExportedDocument,
   savedRequestToExportedRequest,
   serializeImportedCollectionScriptFields,
+  serializeImportedDocumentFields,
   exportedFolderFromFolder,
   serializeImportedFolderFields,
   serializeImportedRequestFields
@@ -20,6 +23,7 @@ import {
 } from '#/main/storage/collectionData';
 import {
   rowToCollection,
+  rowToDocument,
   rowToEnvironment,
   rowToFolder,
   rowToProviderSnippet,
@@ -39,11 +43,13 @@ import type { IStorage } from '#/main/storage/IStorage';
 import type {
   AuthConfig,
   Collection,
+  CollectionDocument,
   CollectionExport,
   Environment,
   Folder,
   KeyValue,
   PostgresSettings,
+  SaveDocumentInput,
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
@@ -188,6 +194,22 @@ export class PostgresStorage implements IStorage {
       )
     `);
 
+    await this.#pool.query(`
+      CREATE TABLE IF NOT EXISTS documents (
+        id SERIAL PRIMARY KEY,
+        collection_id INT NOT NULL,
+        folder_id INT NULL,
+        uuid TEXT NOT NULL DEFAULT '',
+        name VARCHAR(255) NOT NULL,
+        content TEXT NOT NULL DEFAULT '',
+        sort_order INT NOT NULL DEFAULT 0,
+        created_at VARCHAR(64) NOT NULL,
+        updated_at VARCHAR(64) NOT NULL,
+        FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE,
+        FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE
+      )
+    `);
+
     await this.#pool.query(CREATE_PROVIDER_SNIPPETS_TABLE_POSTGRES);
 
     await this.#pool.query(`
@@ -210,6 +232,7 @@ export class PostgresStorage implements IStorage {
     await this.backfillDocumentUuids('requests');
     await this.backfillDocumentUuids('environments');
     await this.backfillDocumentUuids('folders');
+    await this.backfillDocumentUuids('documents');
     await migratePostgresScriptArrayColumns(this.getPool(), 'collections');
     await migratePostgresScriptArrayColumns(this.getPool(), 'requests');
     await migratePostgresScriptArrayColumns(this.getPool(), 'folders');
@@ -238,10 +261,10 @@ export class PostgresStorage implements IStorage {
   /**
    * Assigns uuids to rows that were created before uuid support existed.
    *
-   * @param table - Table name (`collections`, `requests`, `environments`, or `folders`).
+   * @param table - Table name (`collections`, `requests`, `environments`, `folders`, or `documents`).
    */
   private async backfillDocumentUuids(
-    table: 'collections' | 'requests' | 'environments' | 'folders'
+    table: 'collections' | 'requests' | 'environments' | 'folders' | 'documents'
   ): Promise<void> {
     const result = await this.getPool().query(
       `SELECT id FROM ${table} WHERE uuid IS NULL OR uuid = ''`
@@ -685,7 +708,7 @@ export class PostgresStorage implements IStorage {
   }
 
   /**
-   * Deletes a folder and all requests inside it.
+   * Deletes a folder and all requests and documents inside it.
    *
    * @param id - Folder ID to delete.
    */
@@ -694,6 +717,7 @@ export class PostgresStorage implements IStorage {
     try {
       await client.query('BEGIN');
       await client.query('DELETE FROM requests WHERE folder_id = $1', [id]);
+      await client.query('DELETE FROM documents WHERE folder_id = $1', [id]);
       await client.query('DELETE FROM folders WHERE id = $1', [id]);
       await client.query('COMMIT');
     } catch (err) {
@@ -849,6 +873,207 @@ export class PostgresStorage implements IStorage {
   }
 
   /**
+   * Lists all markdown documents in a collection.
+   *
+   * @param collectionId - Collection to query.
+   * @returns Documents ordered by sort_order then name.
+   */
+  async listDocuments(collectionId: number): Promise<CollectionDocument[]> {
+    const result = await this.getPool().query(
+      'SELECT * FROM documents WHERE collection_id = $1 ORDER BY sort_order ASC, name ASC',
+      [collectionId]
+    );
+    return result.rows.map((row) => rowToDocument(row as Record<string, unknown>));
+  }
+
+  /**
+   * Inserts a new document or updates an existing one.
+   *
+   * @param input - Document fields to persist.
+   * @returns The saved document with ID and timestamps.
+   */
+  async saveDocument(input: SaveDocumentInput): Promise<CollectionDocument> {
+    const trimmedName = trimRequiredName(input.name, 'Document name');
+    const content = input.content ?? '';
+    const folderId = input.folder_id ?? null;
+    const now = new Date().toISOString();
+
+    if (folderId != null) {
+      const folderResult = await this.getPool().query(
+        'SELECT collection_id FROM folders WHERE id = $1',
+        [folderId]
+      );
+      const folderRow = folderResult.rows[0];
+      if (!folderRow || folderRow.collection_id !== input.collection_id) {
+        throw new Error('Folder not found');
+      }
+    }
+
+    if (input.id) {
+      const updateResult = await this.getPool().query(
+        `UPDATE documents SET
+          collection_id = $1, folder_id = $2, name = $3, content = $4, updated_at = $5
+        WHERE id = $6`,
+        [input.collection_id, folderId, trimmedName, content, now, input.id]
+      );
+
+      if (updateResult.rowCount && updateResult.rowCount > 0) {
+        const selectResult = await this.getPool().query('SELECT * FROM documents WHERE id = $1', [
+          input.id
+        ]);
+        const row = selectResult.rows[0];
+        if (row) return rowToDocument(row as Record<string, unknown>);
+      }
+    }
+
+    const documentUuid = input.uuid?.trim() || generateDocumentUuid();
+    const maxResult = await this.getPool().query(
+      `SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM documents
+       WHERE collection_id = $1 AND (($2::int IS NULL AND folder_id IS NULL) OR folder_id = $2)`,
+      [input.collection_id, folderId]
+    );
+    const sortOrder = Number(maxResult.rows[0]?.max_order ?? -1) + 1;
+
+    const insertResult = await this.getPool().query(
+      `INSERT INTO documents (
+        collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *`,
+      [input.collection_id, folderId, trimmedName, content, sortOrder, documentUuid, now, now]
+    );
+
+    const row = insertResult.rows[0];
+    if (!row) throw new Error('Document not found after insert');
+    return rowToDocument(row as Record<string, unknown>);
+  }
+
+  /**
+   * Deletes a markdown document by ID.
+   *
+   * @param id - Document ID to delete.
+   */
+  async deleteDocument(id: number): Promise<void> {
+    await this.getPool().query('DELETE FROM documents WHERE id = $1', [id]);
+  }
+
+  /**
+   * Reorders documents within a folder or at collection root.
+   *
+   * @param collectionId - Collection containing the documents.
+   * @param folderId - Folder ID, or null for root-level documents.
+   * @param orderedDocumentIds - Document IDs in desired order.
+   */
+  async reorderDocuments(
+    collectionId: number,
+    folderId: number | null,
+    orderedDocumentIds: number[]
+  ): Promise<void> {
+    const client = await this.getPool().connect();
+    try {
+      await client.query('BEGIN');
+      for (let index = 0; index < orderedDocumentIds.length; index++) {
+        await client.query(
+          'UPDATE documents SET sort_order = $1, folder_id = $2 WHERE id = $3 AND collection_id = $4',
+          [index, folderId, orderedDocumentIds[index], collectionId]
+        );
+      }
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Moves a document to another folder or collection root at a given index.
+   *
+   * @param documentId - Document ID to move.
+   * @param folderId - Destination folder ID, or null for collection root.
+   * @param index - Zero-based position within the destination container.
+   */
+  async moveDocument(documentId: number, folderId: number | null, index: number): Promise<void> {
+    const client = await this.getPool().connect();
+
+    const listInContainer = async (
+      collectionId: number,
+      targetFolderId: number | null
+    ): Promise<number[]> => {
+      const result = await client.query(
+        `SELECT id FROM documents WHERE collection_id = $1
+         AND (($2::int IS NULL AND folder_id IS NULL) OR folder_id = $2)
+         ORDER BY sort_order ASC, name ASC`,
+        [collectionId, targetFolderId]
+      );
+      return result.rows.map((row) => row.id as number);
+    };
+
+    const reindexContainer = async (
+      targetFolderId: number | null,
+      orderedIds: number[]
+    ): Promise<void> => {
+      for (let sortIndex = 0; sortIndex < orderedIds.length; sortIndex++) {
+        await client.query('UPDATE documents SET sort_order = $1, folder_id = $2 WHERE id = $3', [
+          sortIndex,
+          targetFolderId,
+          orderedIds[sortIndex]
+        ]);
+      }
+    };
+
+    try {
+      await client.query('BEGIN');
+
+      const documentResult = await client.query('SELECT * FROM documents WHERE id = $1', [
+        documentId
+      ]);
+      const documentRow = documentResult.rows[0];
+      if (!documentRow) throw new Error('Document not found');
+
+      const document = rowToDocument(documentRow as Record<string, unknown>);
+      const collectionId = document.collection_id;
+      const oldFolderId = document.folder_id;
+
+      if (folderId != null) {
+        const folderResult = await client.query('SELECT collection_id FROM folders WHERE id = $1', [
+          folderId
+        ]);
+        const folderRow = folderResult.rows[0];
+        if (!folderRow || folderRow.collection_id !== collectionId) {
+          throw new Error('Folder not found');
+        }
+      }
+
+      if (oldFolderId === folderId) {
+        const siblings = (await listInContainer(collectionId, folderId)).filter(
+          (id) => id !== documentId
+        );
+        siblings.splice(index, 0, documentId);
+        await reindexContainer(folderId, siblings);
+      } else {
+        const oldIds = (await listInContainer(collectionId, oldFolderId)).filter(
+          (id) => id !== documentId
+        );
+        await reindexContainer(oldFolderId, oldIds);
+
+        const newIds = (await listInContainer(collectionId, folderId)).filter(
+          (id) => id !== documentId
+        );
+        newIds.splice(index, 0, documentId);
+        await reindexContainer(folderId, newIds);
+      }
+
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
    * Builds a portable export payload for a collection and its requests.
    *
    * @param id - Collection ID to export.
@@ -877,6 +1102,14 @@ export class PostgresStorage implements IStorage {
       )
     );
 
+    const documents = (await this.listDocuments(id)).map((document) =>
+      savedDocumentToExportedDocument(
+        document,
+        document.folder_id != null ? (folderNameById.get(document.folder_id) ?? null) : null,
+        document.folder_id != null ? (folderUuidById.get(document.folder_id) ?? null) : null
+      )
+    );
+
     const variables = parseJson<Partial<Variable>[]>(row.variables as string, []).map(
       normalizeVariable
     );
@@ -896,7 +1129,8 @@ export class PostgresStorage implements IStorage {
       pre_request_scripts: collection.pre_request_scripts,
       post_request_scripts: collection.post_request_scripts,
       folders,
-      requests
+      requests,
+      documents
     };
   }
 
@@ -1005,6 +1239,32 @@ export class PostgresStorage implements IStorage {
             fields.post_request_scripts_json,
             fields.comment,
             fields.tags,
+            fields.sort_order,
+            fields.uuid,
+            now,
+            now
+          ]
+        );
+      }
+
+      for (const document of exportData.documents ?? []) {
+        const folderId = resolveImportFolderId(
+          document.folder_uuid,
+          document.folder_name,
+          folderMaps.folderIdByUuid,
+          folderMaps.folderIdByName
+        );
+        const fields = serializeImportedDocumentFields(document);
+
+        await client.query(
+          `INSERT INTO documents (
+            collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            collectionId,
+            folderId,
+            fields.name,
+            fields.content,
             fields.sort_order,
             fields.uuid,
             now,
@@ -1169,6 +1429,14 @@ export class PostgresStorage implements IStorage {
       );
       const requestUuidIndex = buildRequestUuidIndex(existingRequestResult.rows.map(rowToRequest));
 
+      const existingDocumentResult = await client.query(
+        'SELECT * FROM documents WHERE collection_id = $1',
+        [id]
+      );
+      const documentUuidIndex = buildDocumentUuidIndex(
+        existingDocumentResult.rows.map((row) => rowToDocument(row as Record<string, unknown>))
+      );
+
       for (const request of exportData.requests) {
         const folderId = resolveImportFolderId(
           request.folder_uuid,
@@ -1238,6 +1506,34 @@ export class PostgresStorage implements IStorage {
             now,
             now
           ]
+        );
+      }
+
+      for (const document of exportData.documents ?? []) {
+        const folderId = resolveImportFolderId(
+          document.folder_uuid,
+          document.folder_name,
+          folderMaps.folderIdByUuid,
+          folderMaps.folderIdByName
+        );
+        const fields = serializeImportedDocumentFields(document);
+        const existingDocumentId = fields.uuid ? documentUuidIndex.get(fields.uuid) : undefined;
+
+        if (existingDocumentId != null) {
+          await client.query(
+            `UPDATE documents SET
+              folder_id = $1, name = $2, content = $3, sort_order = $4, updated_at = $5
+            WHERE id = $6 AND collection_id = $7`,
+            [folderId, fields.name, fields.content, fields.sort_order, now, existingDocumentId, id]
+          );
+          continue;
+        }
+
+        await client.query(
+          `INSERT INTO documents (
+            collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [id, folderId, fields.name, fields.content, fields.sort_order, fields.uuid, now, now]
         );
       }
 

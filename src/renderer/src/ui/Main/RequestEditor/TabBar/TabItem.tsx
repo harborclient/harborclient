@@ -3,7 +3,14 @@ import { METHOD_CLASSES, requestTabItem } from '#/renderer/src/ui/shared/classes
 import { useSortableTabItem } from '#/renderer/src/ui/shared/useSortableTabItem';
 import type { JSX, KeyboardEvent, MouseEvent } from 'react';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { isPageTab, isRequestTab, isTabDirty, type Tab } from '#/renderer/src/store/drafts';
+import {
+  isMarkdownTab,
+  isPageTab,
+  isRequestTab,
+  isTabDirty,
+  type Tab
+} from '#/renderer/src/store/drafts';
+import { faFileLines } from '#/renderer/src/fontawesome';
 import { tabCloseAccessibleName } from './tabCloseAccessibleName';
 
 interface Props {
@@ -86,6 +93,21 @@ function requestTabAccessibleName(tab: Tab): string {
 }
 
 /**
+ * Builds the accessible name for a markdown document tab.
+ *
+ * @param tab - Markdown tab whose label is composed for screen readers.
+ * @returns File name and optional unsaved suffix.
+ */
+function markdownTabAccessibleName(tab: Tab): string {
+  if (!isMarkdownTab(tab)) {
+    return '';
+  }
+  const parts = [tab.name];
+  if (isTabDirty(tab)) parts.push('unsaved');
+  return parts.join(', ');
+}
+
+/**
  * Builds the accessible name for a page tab.
  *
  * @param title - Resolved page tab title.
@@ -105,6 +127,9 @@ function pageTabAccessibleName(title: string): string {
 function documentTabTitle(tab: Tab, pageTitle?: string): string {
   if (isPageTab(tab)) {
     return pageTitle ?? 'Page';
+  }
+  if (isMarkdownTab(tab)) {
+    return tab.name;
   }
   if (isRequestTab(tab)) {
     return tab.draft.name;
@@ -141,9 +166,12 @@ export function TabItem({
   };
 
   const isPage = isPageTab(tab);
+  const isMarkdown = isMarkdownTab(tab);
   const ariaLabel = isPage
     ? pageTabAccessibleName(pageTitle ?? 'Page')
-    : requestTabAccessibleName(tab);
+    : isMarkdown
+      ? markdownTabAccessibleName(tab)
+      : requestTabAccessibleName(tab);
   const closeLabel = tabCloseAccessibleName(tab, pageTitle);
   const title = documentTabTitle(tab, pageTitle);
   const { setNodeRef, listeners, style } = useSortableTabItem(
@@ -179,6 +207,14 @@ export function TabItem({
       <span className="flex min-w-0 flex-1 items-center gap-1.5 py-2 text-inherit app-no-drag">
         {isPage ? (
           pageIcon && <FaIcon icon={pageIcon} className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        ) : isMarkdown ? (
+          <>
+            <span
+              className={`h-1.5 w-1.5 shrink-0 rounded-full ${isTabDirty(tab) ? 'bg-accent' : 'bg-transparent'}`}
+              aria-hidden="true"
+            />
+            <FaIcon icon={faFileLines} className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          </>
         ) : (
           <>
             <span
@@ -194,7 +230,7 @@ export function TabItem({
           </>
         )}
         <span className={`truncate text-[14px] ${isPage && pageIcon ? 'ms-1.5' : ''}`}>
-          {isPage ? (pageTitle ?? 'Page') : tab.draft.name}
+          {isPage ? (pageTitle ?? 'Page') : isMarkdown ? tab.name : tab.draft.name}
         </span>
       </span>
       {!exiting && (

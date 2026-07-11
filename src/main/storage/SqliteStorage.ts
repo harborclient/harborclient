@@ -3,6 +3,7 @@ import { app } from 'electron';
 import { copyFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import {
+  buildDocumentUuidIndex,
   buildFolderImportMaps,
   buildRequestUuidIndex,
   planImportedFolderUpsert,
@@ -10,8 +11,10 @@ import {
   resolveImportFolderId,
   resolveImportedCollectionUuid,
   resolveImportedFolderUuid,
+  savedDocumentToExportedDocument,
   savedRequestToExportedRequest,
   serializeImportedCollectionScriptFields,
+  serializeImportedDocumentFields,
   exportedFolderFromFolder,
   serializeImportedFolderFields,
   serializeImportedRequestFields
@@ -25,6 +28,7 @@ import {
 import { saveRunResultInputSchema } from '#/main/storage/collectionSchemas';
 import {
   rowToCollection,
+  rowToDocument,
   rowToEnvironment,
   rowToFolder,
   rowToProviderRunResult,
@@ -58,10 +62,12 @@ import type { IStorage } from '#/main/storage/IStorage';
 import type {
   AuthConfig,
   Collection,
+  CollectionDocument,
   CollectionExport,
   Environment,
   Folder,
   KeyValue,
+  SaveDocumentInput,
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
@@ -200,6 +206,20 @@ export class SqliteStorage implements IStorage {
       FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS documents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      collection_id INTEGER NOT NULL,
+      folder_id INTEGER,
+      uuid TEXT NOT NULL DEFAULT '',
+      name TEXT NOT NULL,
+      content TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE,
+      FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE
+    );
+
     ${CREATE_PROVIDER_SNIPPETS_TABLE_SQL}
 
     ${CREATE_PROVIDER_RUN_RESULTS_TABLE_SQL}
@@ -269,11 +289,13 @@ export class SqliteStorage implements IStorage {
     this.migrateDocumentUuidColumn('requests');
     this.migrateDocumentUuidColumn('environments');
     this.migrateDocumentUuidColumn('folders');
+    this.migrateDocumentUuidColumn('documents');
     this.migrateDocumentUuidColumn('run_results');
     this.backfillDocumentUuids('collections');
     this.backfillDocumentUuids('requests');
     this.backfillDocumentUuids('environments');
     this.backfillDocumentUuids('folders');
+    this.backfillDocumentUuids('documents');
     this.backfillDocumentUuids('run_results');
     migrateSqliteScriptArrayColumns(this.getDb(), 'collections');
     migrateSqliteScriptArrayColumns(this.getDb(), 'requests');
@@ -308,7 +330,7 @@ export class SqliteStorage implements IStorage {
    * @param table - Table name (`collections`, `requests`, `environments`, `folders`, or `run_results`).
    */
   private migrateDocumentUuidColumn(
-    table: 'collections' | 'requests' | 'environments' | 'folders' | 'run_results'
+    table: 'collections' | 'requests' | 'environments' | 'folders' | 'documents' | 'run_results'
   ): void {
     const columns = this.getDb().prepare(`PRAGMA table_info(${table})`).all() as Array<{
       name: string;
@@ -325,7 +347,7 @@ export class SqliteStorage implements IStorage {
    * @param table - Table name (`collections`, `requests`, `environments`, `folders`, or `run_results`).
    */
   private backfillDocumentUuids(
-    table: 'collections' | 'requests' | 'environments' | 'folders' | 'run_results'
+    table: 'collections' | 'requests' | 'environments' | 'folders' | 'documents' | 'run_results'
   ): void {
     const database = this.getDb();
     const rows = database
@@ -772,11 +794,12 @@ export class SqliteStorage implements IStorage {
    */
   async deleteFolder(id: number): Promise<void> {
     const database = this.getDb();
-    const deleteRequests = database.transaction((folderId: number) => {
+    const deleteFolderContents = database.transaction((folderId: number) => {
       database.prepare('DELETE FROM requests WHERE folder_id = ?').run(folderId);
+      database.prepare('DELETE FROM documents WHERE folder_id = ?').run(folderId);
       database.prepare('DELETE FROM folders WHERE id = ?').run(folderId);
     });
-    deleteRequests(id);
+    deleteFolderContents(id);
   }
 
   /**
@@ -909,6 +932,205 @@ export class SqliteStorage implements IStorage {
   }
 
   /**
+   * Lists all markdown documents in a collection.
+   *
+   * @param collectionId - Collection to query.
+   * @returns Documents ordered by sort_order then name.
+   */
+  async listDocuments(collectionId: number): Promise<CollectionDocument[]> {
+    const rows = this.getDb()
+      .prepare('SELECT * FROM documents WHERE collection_id = ? ORDER BY sort_order ASC, name ASC')
+      .all(collectionId) as Record<string, unknown>[];
+
+    return rows.map(rowToDocument);
+  }
+
+  /**
+   * Inserts a new document or updates an existing one.
+   *
+   * @param input - Document fields to persist.
+   * @returns The saved document with ID and timestamps.
+   */
+  async saveDocument(input: SaveDocumentInput): Promise<CollectionDocument> {
+    const trimmedName = trimRequiredName(input.name, 'Document name');
+    const content = input.content ?? '';
+    const folderId = input.folder_id ?? null;
+    const now = new Date().toISOString();
+
+    if (folderId != null) {
+      const folderRow = this.getDb()
+        .prepare('SELECT collection_id FROM folders WHERE id = ?')
+        .get(folderId) as { collection_id: number } | undefined;
+      if (!folderRow || folderRow.collection_id !== input.collection_id) {
+        throw new Error('Folder not found');
+      }
+    }
+
+    if (input.id) {
+      const result = this.getDb()
+        .prepare(
+          `UPDATE documents SET
+          collection_id = ?, folder_id = ?, name = ?, content = ?, updated_at = ?
+        WHERE id = ?`
+        )
+        .run(input.collection_id, folderId, trimmedName, content, now, input.id);
+
+      if (result.changes > 0) {
+        const row = this.getDb().prepare('SELECT * FROM documents WHERE id = ?').get(input.id);
+        if (row) return rowToDocument(row as Record<string, unknown>);
+      }
+    }
+
+    const documentUuid = input.uuid?.trim() || generateDocumentUuid();
+    const maxOrder = this.getDb()
+      .prepare(
+        `SELECT COALESCE(MAX(sort_order), -1) as max_order FROM documents
+         WHERE collection_id = ? AND ((? IS NULL AND folder_id IS NULL) OR folder_id = ?)`
+      )
+      .get(input.collection_id, folderId, folderId) as { max_order: number };
+
+    const result = this.getDb()
+      .prepare(
+        `INSERT INTO documents (
+        collection_id, folder_id, name, content, sort_order, uuid, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        input.collection_id,
+        folderId,
+        trimmedName,
+        content,
+        maxOrder.max_order + 1,
+        documentUuid,
+        now
+      );
+
+    const row = this.getDb()
+      .prepare('SELECT * FROM documents WHERE id = ?')
+      .get(result.lastInsertRowid);
+
+    if (!row) throw new Error('Document not found after insert');
+    return rowToDocument(row as Record<string, unknown>);
+  }
+
+  /**
+   * Deletes a markdown document by ID.
+   *
+   * @param id - Document ID to delete.
+   */
+  async deleteDocument(id: number): Promise<void> {
+    this.getDb().prepare('DELETE FROM documents WHERE id = ?').run(id);
+  }
+
+  /**
+   * Reorders documents within a folder or at collection root.
+   *
+   * @param collectionId - Collection containing the documents.
+   * @param folderId - Folder ID, or null for root-level documents.
+   * @param orderedDocumentIds - Document IDs in desired order.
+   */
+  async reorderDocuments(
+    collectionId: number,
+    folderId: number | null,
+    orderedDocumentIds: number[]
+  ): Promise<void> {
+    const reorder = this.getDb().transaction((ids: number[]) => {
+      const stmt = this.getDb().prepare(
+        'UPDATE documents SET sort_order = ?, folder_id = ? WHERE id = ? AND collection_id = ?'
+      );
+      ids.forEach((documentId, index) => {
+        stmt.run(index, folderId, documentId, collectionId);
+      });
+    });
+    reorder(orderedDocumentIds);
+  }
+
+  /**
+   * Moves a document to another folder or collection root at a given index.
+   *
+   * @param documentId - Document ID to move.
+   * @param folderId - Destination folder ID, or null for collection root.
+   * @param index - Zero-based position within the destination container.
+   */
+  async moveDocument(documentId: number, folderId: number | null, index: number): Promise<void> {
+    const database = this.getDb();
+
+    const listInContainer = (
+      collectionId: number,
+      targetFolderId: number | null
+    ): CollectionDocument[] => {
+      const rows = database
+        .prepare(
+          `SELECT * FROM documents WHERE collection_id = ?
+           AND ((? IS NULL AND folder_id IS NULL) OR folder_id = ?)
+           ORDER BY sort_order ASC, name ASC`
+        )
+        .all(collectionId, targetFolderId, targetFolderId) as Record<string, unknown>[];
+      return rows.map(rowToDocument);
+    };
+
+    const reindexContainer = (targetFolderId: number | null, orderedIds: number[]): void => {
+      const updateSort = database.prepare('UPDATE documents SET sort_order = ? WHERE id = ?');
+      const updateFolder =
+        targetFolderId == null
+          ? database.prepare('UPDATE documents SET folder_id = NULL WHERE id = ?')
+          : database.prepare('UPDATE documents SET folder_id = ? WHERE id = ?');
+
+      orderedIds.forEach((id, sortIndex) => {
+        if (targetFolderId == null) {
+          updateFolder.run(id);
+        } else {
+          updateFolder.run(targetFolderId, id);
+        }
+        updateSort.run(sortIndex, id);
+      });
+    };
+
+    const runMove = database.transaction((): void => {
+      const row = database.prepare('SELECT * FROM documents WHERE id = ?').get(documentId) as
+        | Record<string, unknown>
+        | undefined;
+
+      if (!row) throw new Error('Document not found');
+
+      const document = rowToDocument(row);
+      const collectionId = document.collection_id;
+      const oldFolderId = document.folder_id;
+
+      if (folderId != null) {
+        const folderRow = database
+          .prepare('SELECT collection_id FROM folders WHERE id = ?')
+          .get(folderId) as { collection_id: number } | undefined;
+        if (!folderRow || folderRow.collection_id !== collectionId) {
+          throw new Error('Folder not found');
+        }
+      }
+
+      if (oldFolderId === folderId) {
+        const siblings = listInContainer(collectionId, folderId)
+          .map((item) => item.id)
+          .filter((id) => id !== documentId);
+        siblings.splice(index, 0, documentId);
+        reindexContainer(folderId, siblings);
+        return;
+      }
+
+      const oldIds = listInContainer(collectionId, oldFolderId)
+        .map((item) => item.id)
+        .filter((id) => id !== documentId);
+      reindexContainer(oldFolderId, oldIds);
+
+      const newIds = listInContainer(collectionId, folderId)
+        .map((item) => item.id)
+        .filter((id) => id !== documentId);
+      newIds.splice(index, 0, documentId);
+      reindexContainer(folderId, newIds);
+    });
+
+    runMove();
+  }
+
+  /**
    * Builds a portable export payload for a collection and its requests.
    *
    * @param id - Collection ID to export.
@@ -935,6 +1157,14 @@ export class SqliteStorage implements IStorage {
       )
     );
 
+    const documents = (await this.listDocuments(id)).map((document) =>
+      savedDocumentToExportedDocument(
+        document,
+        document.folder_id != null ? (folderNameById.get(document.folder_id) ?? null) : null,
+        document.folder_id != null ? (folderUuidById.get(document.folder_id) ?? null) : null
+      )
+    );
+
     const variables = parseJson<Partial<Variable>[]>(row.variables as string, []).map(
       normalizeVariable
     );
@@ -954,7 +1184,8 @@ export class SqliteStorage implements IStorage {
       pre_request_scripts: collection.pre_request_scripts,
       post_request_scripts: collection.post_request_scripts,
       folders,
-      requests
+      requests,
+      documents
     };
   }
 
@@ -1029,6 +1260,12 @@ export class SqliteStorage implements IStorage {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       );
 
+      const insertDocument = database.prepare(
+        `INSERT INTO documents (
+        collection_id, folder_id, name, content, sort_order, uuid, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+      );
+
       for (const request of payload.requests) {
         const folderId = resolveImportFolderId(
           request.folder_uuid,
@@ -1055,6 +1292,26 @@ export class SqliteStorage implements IStorage {
           fields.post_request_scripts_json,
           fields.comment,
           fields.tags,
+          fields.sort_order,
+          fields.uuid,
+          now
+        );
+      }
+
+      for (const document of payload.documents ?? []) {
+        const folderId = resolveImportFolderId(
+          document.folder_uuid,
+          document.folder_name,
+          folderMaps.folderIdByUuid,
+          folderMaps.folderIdByName
+        );
+        const fields = serializeImportedDocumentFields(document);
+
+        insertDocument.run(
+          collectionId,
+          folderId,
+          fields.name,
+          fields.content,
           fields.sort_order,
           fields.uuid,
           now
@@ -1206,6 +1463,11 @@ export class SqliteStorage implements IStorage {
         .all(id) as Record<string, unknown>[];
       const requestUuidIndex = buildRequestUuidIndex(existingRequestRows.map(rowToRequest));
 
+      const existingDocumentRows = database
+        .prepare('SELECT * FROM documents WHERE collection_id = ?')
+        .all(id) as Record<string, unknown>[];
+      const documentUuidIndex = buildDocumentUuidIndex(existingDocumentRows.map(rowToDocument));
+
       const insertRequest = database.prepare(
         `INSERT INTO requests (
         collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
@@ -1217,6 +1479,16 @@ export class SqliteStorage implements IStorage {
           folder_id = ?, name = ?, method = ?, url = ?, headers = ?, params = ?, auth = ?,
           body = ?, body_type = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
           sort_order = ?, updated_at = ?
+        WHERE id = ? AND collection_id = ?`
+      );
+      const insertDocument = database.prepare(
+        `INSERT INTO documents (
+        collection_id, folder_id, name, content, sort_order, uuid, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+      );
+      const updateDocument = database.prepare(
+        `UPDATE documents SET
+          folder_id = ?, name = ?, content = ?, sort_order = ?, updated_at = ?
         WHERE id = ? AND collection_id = ?`
       );
 
@@ -1272,6 +1544,40 @@ export class SqliteStorage implements IStorage {
           fields.post_request_scripts_json,
           fields.comment,
           fields.tags,
+          fields.sort_order,
+          fields.uuid,
+          now
+        );
+      }
+
+      for (const document of payload.documents ?? []) {
+        const folderId = resolveImportFolderId(
+          document.folder_uuid,
+          document.folder_name,
+          folderMaps.folderIdByUuid,
+          folderMaps.folderIdByName
+        );
+        const fields = serializeImportedDocumentFields(document);
+        const existingDocumentId = fields.uuid ? documentUuidIndex.get(fields.uuid) : undefined;
+
+        if (existingDocumentId != null) {
+          updateDocument.run(
+            folderId,
+            fields.name,
+            fields.content,
+            fields.sort_order,
+            now,
+            existingDocumentId,
+            id
+          );
+          continue;
+        }
+
+        insertDocument.run(
+          id,
+          folderId,
+          fields.name,
+          fields.content,
           fields.sort_order,
           fields.uuid,
           now

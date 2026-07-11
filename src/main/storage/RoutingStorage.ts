@@ -42,12 +42,14 @@ import { unlinkSync } from 'fs';
 import type {
   AuthConfig,
   Collection,
+  CollectionDocument,
   CollectionExport,
   DiscoveredCollection,
   StorageConnection,
   Environment,
   Folder,
   KeyValue,
+  SaveDocumentInput,
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
@@ -713,6 +715,80 @@ export class RoutingStorage implements IStorage {
     }
     const localFolderId = folderId != null ? decodeGlobalId(folderId).localId : null;
     await backend.db.moveRequest(localId, localFolderId, index);
+  }
+
+  /**
+   * Lists documents for a collection, rewriting ids to the global namespace.
+   */
+  async listDocuments(collectionId: number): Promise<CollectionDocument[]> {
+    const entry = this.requireEntry(collectionId);
+    const backend = this.requireBackendByConnectionId(entry.connectionId);
+    const documents = await backend.db.listDocuments(entry.providerCollectionId);
+    return documents.map((document) => this.toGlobalDocument(document, backend, collectionId));
+  }
+
+  /**
+   * Saves a document in the backend that owns the target collection.
+   */
+  async saveDocument(input: SaveDocumentInput): Promise<CollectionDocument> {
+    const entry = this.requireEntry(input.collection_id);
+    const backend = this.requireBackendByConnectionId(entry.connectionId);
+    const localDocumentId =
+      input.id != null ? this.decodeLocalIdForBackend(input.id, backend) : undefined;
+    const localFolderId =
+      input.folder_id != null
+        ? this.decodeLocalIdForBackend(input.folder_id, backend)
+        : input.folder_id;
+
+    const saved = await backend.db.saveDocument({
+      ...input,
+      id: localDocumentId,
+      collection_id: entry.providerCollectionId,
+      folder_id: localFolderId ?? null
+    });
+    return this.toGlobalDocument(saved, backend, input.collection_id);
+  }
+
+  /**
+   * Deletes a document from the backend identified by its namespaced id.
+   */
+  async deleteDocument(id: number): Promise<void> {
+    const { slot, localId } = decodeGlobalId(id);
+    const backend = this.bySlot.get(slot);
+    if (!backend) {
+      throw new Error(`Database backend for slot ${slot} is unavailable.`);
+    }
+    await backend.db.deleteDocument(localId);
+  }
+
+  /**
+   * Reorders documents within a folder or at collection root.
+   */
+  async reorderDocuments(
+    collectionId: number,
+    folderId: number | null,
+    orderedDocumentIds: number[]
+  ): Promise<void> {
+    const entry = this.requireEntry(collectionId);
+    const backend = this.requireBackendByConnectionId(entry.connectionId);
+    const localFolderId = folderId != null ? this.decodeLocalIdForBackend(folderId, backend) : null;
+    const localDocumentIds = orderedDocumentIds.map((documentId) =>
+      this.decodeLocalIdForBackend(documentId, backend)
+    );
+    await backend.db.reorderDocuments(entry.providerCollectionId, localFolderId, localDocumentIds);
+  }
+
+  /**
+   * Moves a document to another folder or collection root at a given index.
+   */
+  async moveDocument(documentId: number, folderId: number | null, index: number): Promise<void> {
+    const { slot, localId } = decodeGlobalId(documentId);
+    const backend = this.bySlot.get(slot);
+    if (!backend) {
+      throw new Error(`Database backend for slot ${slot} is unavailable.`);
+    }
+    const localFolderId = folderId != null ? decodeGlobalId(folderId).localId : null;
+    await backend.db.moveDocument(localId, localFolderId, index);
   }
 
   /**
@@ -2070,6 +2146,28 @@ export class RoutingStorage implements IStorage {
       ...folder,
       id: encodeGlobalId(backend.slot, folder.id),
       collection_id: globalCollectionId
+    };
+  }
+
+  /**
+   * Encodes backend-scoped document ids into global ids for the UI.
+   *
+   * @param document - Backend-scoped collection document.
+   * @param backend - Mounted backend that owns the document.
+   * @param globalCollectionId - Encoded global collection id.
+   * @returns Document with global ids.
+   */
+  private toGlobalDocument(
+    document: CollectionDocument,
+    backend: MountedBackend,
+    globalCollectionId: number
+  ): CollectionDocument {
+    return {
+      ...document,
+      id: encodeGlobalId(backend.slot, document.id),
+      collection_id: globalCollectionId,
+      folder_id:
+        document.folder_id != null ? encodeGlobalId(backend.slot, document.folder_id) : null
     };
   }
 

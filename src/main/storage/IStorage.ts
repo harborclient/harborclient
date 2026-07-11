@@ -8,10 +8,12 @@ import type { ScriptStage } from '@harborclient/sdk';
 import type {
   AuthConfig,
   Collection,
+  CollectionDocument,
   CollectionExport,
   Environment,
   Folder,
   KeyValue,
+  SaveDocumentInput,
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
@@ -221,6 +223,51 @@ export interface IStorage {
    * @param index - Zero-based position within the destination container.
    */
   moveRequest(requestId: number, folderId: number | null, index: number): Promise<void>;
+
+  /**
+   * Lists all markdown documents in a collection.
+   *
+   * @param collectionId - Collection to query.
+   * @returns Documents ordered by sort_order then name.
+   */
+  listDocuments(collectionId: number): Promise<CollectionDocument[]>;
+
+  /**
+   * Inserts a new document or updates an existing one.
+   *
+   * @param input - Document fields to persist.
+   * @returns The saved document with ID and timestamps.
+   */
+  saveDocument(input: SaveDocumentInput): Promise<CollectionDocument>;
+
+  /**
+   * Deletes a markdown document by ID.
+   *
+   * @param id - Document ID to delete.
+   */
+  deleteDocument(id: number): Promise<void>;
+
+  /**
+   * Reorders documents within a folder or at collection root.
+   *
+   * @param collectionId - Collection containing the documents.
+   * @param folderId - Folder ID, or null for root-level documents.
+   * @param orderedDocumentIds - Document IDs in desired order.
+   */
+  reorderDocuments(
+    collectionId: number,
+    folderId: number | null,
+    orderedDocumentIds: number[]
+  ): Promise<void>;
+
+  /**
+   * Moves a document to another folder or collection root at a given index.
+   *
+   * @param documentId - Document ID to move.
+   * @param folderId - Destination folder ID, or null for collection root.
+   * @param index - Zero-based position within the destination container.
+   */
+  moveDocument(documentId: number, folderId: number | null, index: number): Promise<void>;
 
   /**
    * Builds a portable export payload for a collection and its requests.

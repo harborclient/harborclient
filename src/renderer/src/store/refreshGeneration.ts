@@ -36,7 +36,7 @@ export function isLatestRefreshGeneration(key: string, generation: number): bool
  * @returns Key suitable for {@link beginRefreshGeneration}.
  */
 export function collectionRefreshKey(
-  resource: 'folders' | 'requests',
+  resource: 'folders' | 'requests' | 'documents',
   collectionId: number
 ): string {
   return `${resource}:${collectionId}`;

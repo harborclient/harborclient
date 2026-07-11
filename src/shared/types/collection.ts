@@ -165,6 +165,131 @@ export interface Folder {
 }
 
 /**
+ * A markdown document attached to a collection or folder (for example README.md).
+ */
+export interface CollectionDocument {
+  /**
+   * Unique database ID.
+   */
+  id: number;
+
+  /**
+   * ID of the collection this document belongs to.
+   */
+  collection_id: number;
+
+  /**
+   * Stable portable identifier for export/import deduplication.
+   */
+  uuid: string;
+
+  /**
+   * ID of the folder containing this document; null for collection root.
+   */
+  folder_id: number | null;
+
+  /**
+   * Display file name shown in the sidebar (for example README.md).
+   */
+  name: string;
+
+  /**
+   * Markdown body content.
+   */
+  content: string;
+
+  /**
+   * Position among sibling documents for sidebar ordering.
+   */
+  sort_order: number;
+
+  /**
+   * ISO 8601 timestamp when the document was created.
+   */
+  created_at: string;
+
+  /**
+   * ISO 8601 timestamp when the document was last updated.
+   */
+  updated_at: string;
+}
+
+/**
+ * Input for creating or updating a collection document.
+ */
+export interface SaveDocumentInput {
+  /**
+   * Existing document id when updating; omitted on create.
+   */
+  id?: number;
+
+  /**
+   * ID of the collection this document belongs to.
+   */
+  collection_id: number;
+
+  /**
+   * Stable portable identifier; generated when omitted on create.
+   */
+  uuid?: string;
+
+  /**
+   * ID of the folder containing this document; null for collection root.
+   */
+  folder_id?: number | null;
+
+  /**
+   * Display file name (for example README.md).
+   */
+  name: string;
+
+  /**
+   * Markdown body content.
+   */
+  content?: string;
+
+  /**
+   * Position among sibling documents for sidebar ordering.
+   */
+  sort_order?: number;
+}
+
+/**
+ * Portable document shape for collection export/import (no database IDs).
+ */
+export interface ExportedDocument {
+  /**
+   * Stable portable identifier; omitted in legacy export files.
+   */
+  uuid?: string;
+
+  /**
+   * Display file name (for example README.md).
+   */
+  name: string;
+
+  /**
+   * Markdown body content.
+   */
+  content: string;
+
+  /**
+   * Position among sibling documents for sidebar ordering.
+   */
+  sort_order: number;
+
+  /**
+   * Name of the folder containing this document; null or omitted for collection root.
+   */
+  folder_name?: string | null;
+
+  /**
+   * Portable folder identifier; preferred over folder_name when present.
+   */
+  folder_uuid?: string | null;
+}
+
+/**
  * Portable request shape for collection export/import (no database IDs).
  */
 export interface ExportedRequest {
@@ -382,6 +507,11 @@ export interface CollectionExport {
    * Saved requests belonging to the collection.
    */
   requests: ExportedRequest[];
+
+  /**
+   * Markdown documents attached to the collection or its folders.
+   */
+  documents?: ExportedDocument[];
 }
 
 /**

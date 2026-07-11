@@ -1,4 +1,10 @@
-import { isPageTab, isRequestTab, isTabDirty, type Tab } from '#/renderer/src/store/drafts';
+import {
+  isMarkdownTab,
+  isPageTab,
+  isRequestTab,
+  isTabDirty,
+  type Tab
+} from '#/renderer/src/store/drafts';
 
 /**
  * Builds the accessible name for a tab close button.
@@ -10,6 +16,10 @@ import { isPageTab, isRequestTab, isTabDirty, type Tab } from '#/renderer/src/st
 export function tabCloseAccessibleName(tab: Tab, pageTitle?: string): string {
   if (isPageTab(tab)) {
     return `Close ${pageTitle ?? 'Page'}`;
+  }
+  if (isMarkdownTab(tab)) {
+    const suffix = isTabDirty(tab) ? ', unsaved' : '';
+    return `Close ${tab.name}${suffix}`;
   }
   if (!isRequestTab(tab)) {
     return 'Close tab';

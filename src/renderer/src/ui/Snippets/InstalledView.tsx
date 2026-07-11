@@ -18,7 +18,7 @@ import {
   faChevronRight,
   faFileImport,
   faPlus,
-  faTerminal
+  faCode
 } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectSnippets } from '#/renderer/src/store/selectors';
@@ -274,7 +274,7 @@ export function InstalledView({
       embedded
       title="Installed"
       description="Manage reusable JavaScript snippets for the pre-request and post-request stages."
-      icon={faTerminal}
+      icon={faCode}
       actions={
         <div className="flex shrink-0 items-center gap-2">
           <Button

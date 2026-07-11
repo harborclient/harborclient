@@ -1,5 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
+  CollectionDocument,
   SavedRequest,
   ScriptExecutionEvent,
   ScriptTestResult,
@@ -184,10 +185,19 @@ export interface PendingLoadRequest {
   reason: 'settings' | 'dirty-tab';
 }
 
+/**
+ * Saved markdown document queued for load after the user confirms discarding unsaved edits.
+ */
+export interface PendingLoadDocument {
+  doc: CollectionDocument;
+  reason: 'settings' | 'dirty-tab';
+}
+
 export interface ModalsState {
   collectionModal: CollectionModalState | null;
   share: ShareModalState | null;
   pendingLoadRequest: PendingLoadRequest | null;
+  pendingLoadDocument: PendingLoadDocument | null;
   quitPrompt: string[] | null;
   about: AboutModalState;
   update: UpdateModalState;
@@ -207,6 +217,7 @@ const initialState: ModalsState = {
   collectionModal: null,
   share: null,
   pendingLoadRequest: null,
+  pendingLoadDocument: null,
   quitPrompt: null,
   about: { open: false, version: '' },
   update: { open: false, loading: false, result: null, error: null },
@@ -368,6 +379,12 @@ const modalsSlice = createSlice({
      */
     setPendingLoadRequest(state, action: PayloadAction<PendingLoadRequest | null>) {
       state.pendingLoadRequest = action.payload;
+    },
+    /**
+     * Queues a saved markdown document to load after an unsaved prompt.
+     */
+    setPendingLoadDocument(state, action: PayloadAction<PendingLoadDocument | null>) {
+      state.pendingLoadDocument = action.payload;
     },
     /**
      * Shows the quit prompt with dirty tab names.
@@ -819,6 +836,7 @@ export const {
   setShareToken,
   setShareTokenError,
   setPendingLoadRequest,
+  setPendingLoadDocument,
   setQuitPrompt,
   openAboutModal,
   closeAboutModal,
@@ -874,6 +892,12 @@ export const selectShareModal = (state: RootState): ShareModalState | null => st
  */
 export const selectPendingLoadRequest = (state: RootState): PendingLoadRequest | null =>
   state.modals.pendingLoadRequest;
+
+/**
+ * Returns the markdown document queued for load after an unsaved prompt, if any.
+ */
+export const selectPendingLoadDocument = (state: RootState): PendingLoadDocument | null =>
+  state.modals.pendingLoadDocument;
 /**
  * Returns dirty tab names for the quit prompt.
  */
@@ -949,6 +973,7 @@ export const selectHasBlockingModal = (state: RootState): boolean => {
     modals.collectionModal != null ||
     modals.share != null ||
     modals.pendingLoadRequest != null ||
+    modals.pendingLoadDocument != null ||
     modals.quitPrompt != null ||
     modals.alertModal != null ||
     modals.confirmModal != null ||

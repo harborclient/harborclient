@@ -5,6 +5,7 @@ import { exportScriptRefArray } from '#/main/schemas/scriptRef';
 import type {
   CollectionExport,
   EnvironmentExport,
+  ExportedDocument,
   ExportedFolder,
   ExportedRequest,
   RequestExport,
@@ -229,6 +230,58 @@ export const exportedRequests = z.array(exportedRequestRow).transform((requests)
   )
 );
 
+const exportedDocumentRow = z
+  .object({
+    uuid: optionalDocumentUuid,
+    name: z.string(),
+    content: z.string().default(''),
+    sort_order: z.number().optional(),
+    folder_name: z.union([z.string(), z.null()]).optional(),
+    folder_uuid: z.union([z.string().uuid(), z.null()]).optional()
+  })
+  .superRefine((doc, ctx) => {
+    if (!doc.name.trim()) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'missing a name',
+        path: ['name']
+      });
+    }
+  })
+  .transform((doc) => ({
+    uuid: doc.uuid,
+    name: doc.name.trim(),
+    content: doc.content,
+    sort_order: doc.sort_order,
+    folder_name:
+      typeof doc.folder_name === 'string'
+        ? doc.folder_name.trim() || null
+        : doc.folder_name === null
+          ? null
+          : undefined,
+    folder_uuid:
+      typeof doc.folder_uuid === 'string'
+        ? doc.folder_uuid.trim() || null
+        : doc.folder_uuid === null
+          ? null
+          : undefined
+  }));
+
+/**
+ * Validates exported document rows and applies index-based sort_order defaults.
+ */
+export const exportedDocuments = z
+  .array(exportedDocumentRow)
+  .default([])
+  .transform((documents) =>
+    documents.map(
+      (doc, index): ExportedDocument => ({
+        ...doc,
+        sort_order: typeof doc.sort_order === 'number' ? doc.sort_order : index
+      })
+    )
+  );
+
 const collectionExportFields = {
   harborclientExport: z.literal('collection'),
   uuid: optionalDocumentUuid,
@@ -249,7 +302,8 @@ const collectionExportFields = {
 export const collectionExportSchema = z.object({
   harborclientVersion: z.literal(1),
   ...collectionExportFields,
-  folders: exportedFolders
+  folders: exportedFolders,
+  documents: exportedDocuments
 }) satisfies z.ZodType<CollectionExport>;
 
 /**
@@ -330,6 +384,16 @@ export function formatCollectionImportError(error: z.ZodError): string {
     }
 
     return `folder ${folderNumber} is malformed`;
+  }
+
+  if (path[0] === 'documents' && typeof path[1] === 'number') {
+    const documentNumber = path[1] + 1;
+
+    if (path[2] === 'name') {
+      return `document ${documentNumber} is missing a name`;
+    }
+
+    return `document ${documentNumber} is malformed`;
   }
 
   const pathLabel = path.length > 0 ? path.join('.') : 'collection file';

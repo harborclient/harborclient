@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(documents): implement markdown document management features. (`2f5a61c`)
 - feat(settings): add wrapTabs option for improved tab management. (`1157309`)
 
 ## 2.0.19 - 2026-07-11

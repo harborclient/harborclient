@@ -1,5 +1,6 @@
 import type {
   BodyType,
+  CollectionDocument,
   HttpMethod,
   KeyValue,
   SavedRequest,
@@ -146,9 +147,23 @@ export interface PageTab {
 }
 
 /**
+ * Open markdown document tab with editable content and a saved baseline.
+ */
+export interface MarkdownTab {
+  tabId: string;
+  kind: 'markdown';
+  docId: number;
+  collectionId: number;
+  folderId: number | null;
+  name: string;
+  content: string;
+  savedContent: string;
+}
+
+/**
  * Discriminated union of open request editor tabs.
  */
-export type Tab = RequestTab | PageTab;
+export type Tab = RequestTab | PageTab | MarkdownTab;
 
 /**
  * Returns whether a tab hosts a configuration page rather than a request.
@@ -161,13 +176,23 @@ export function isPageTab(tab: Tab): tab is PageTab {
 }
 
 /**
+ * Returns whether a tab hosts a collection markdown document editor.
+ *
+ * @param tab - Open tab from the tab bar.
+ * @returns True when the tab is a markdown document tab.
+ */
+export function isMarkdownTab(tab: Tab): tab is MarkdownTab {
+  return 'kind' in tab && tab.kind === 'markdown';
+}
+
+/**
  * Returns whether a tab hosts an HTTP request editor.
  *
  * @param tab - Open tab from the tab bar.
  * @returns True when the tab is a request tab (including legacy persisted tabs without kind).
  */
 export function isRequestTab(tab: Tab): tab is RequestTab {
-  return !isPageTab(tab);
+  return !isPageTab(tab) && !isMarkdownTab(tab);
 }
 
 /**
@@ -371,12 +396,34 @@ export function isDraftDirty(draft: RequestDraft, savedDraft: RequestDraft): boo
 }
 
 /**
+ * Creates a new markdown document tab from a saved collection document.
+ *
+ * @param doc - Saved document to open in the editor.
+ * @returns New MarkdownTab with a unique tabId.
+ */
+export function createMarkdownTab(doc: CollectionDocument): MarkdownTab {
+  return {
+    tabId: crypto.randomUUID(),
+    kind: 'markdown',
+    docId: doc.id,
+    collectionId: doc.collection_id,
+    folderId: doc.folder_id,
+    name: doc.name,
+    content: doc.content,
+    savedContent: doc.content
+  };
+}
+
+/**
  * Returns whether a tab has unsaved changes.
  *
  * @param tab - Open tab from the tab bar.
- * @returns True when a request tab draft differs from its saved baseline.
+ * @returns True when a request or markdown tab differs from its saved baseline.
  */
 export function isTabDirty(tab: Tab): boolean {
+  if (isMarkdownTab(tab)) {
+    return tab.content !== tab.savedContent;
+  }
   if (!isRequestTab(tab)) {
     return false;
   }
@@ -391,6 +438,29 @@ export function isTabDirty(tab: Tab): boolean {
  */
 export function getDirtyTabs(tabs: Tab[]): RequestTab[] {
   return tabs.filter(isRequestTab).filter(isTabDirty);
+}
+
+/**
+ * Returns display names for open request and markdown tabs with unsaved changes.
+ *
+ * @param tabs - Open tabs from the tab bar.
+ * @returns Tab labels suitable for quit and bulk-close prompts.
+ */
+export function getDirtyEditorTabNames(tabs: Tab[]): string[] {
+  const names: string[] = [];
+  for (const tab of tabs) {
+    if (!isTabDirty(tab)) {
+      continue;
+    }
+    if (isMarkdownTab(tab)) {
+      names.push(tab.name);
+      continue;
+    }
+    if (isRequestTab(tab)) {
+      names.push(tab.draft.name);
+    }
+  }
+  return names;
 }
 
 /**

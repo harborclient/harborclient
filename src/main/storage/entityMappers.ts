@@ -16,6 +16,7 @@ import type {
   ChatRole,
   ChatSummary,
   Collection,
+  CollectionDocument,
   Environment,
   Folder,
   HttpMethod,
@@ -425,6 +426,25 @@ export function rowToRequest(row: Record<string, unknown>): SavedRequest {
 }
 
 /**
+ * Maps a raw database row or document record to a CollectionDocument object.
+ *
+ * @param row - Row or document fields including numeric `id`.
+ */
+export function rowToDocument(row: Record<string, unknown>): CollectionDocument {
+  return {
+    id: readNumber(row.id),
+    uuid: readString(row.uuid),
+    collection_id: readNumber(row.collection_id),
+    folder_id: row.folder_id != null ? readNullableNumber(row.folder_id) : null,
+    name: readString(row.name),
+    content: readString(row.content),
+    sort_order: readNumber(row.sort_order),
+    created_at: readTimestamp(row.created_at),
+    updated_at: readTimestamp(row.updated_at)
+  };
+}
+
+/**
  * Maps a Firestore collection document to a Collection object.
  */
 export const docToCollection = (id: number, data: Record<string, unknown>): Collection =>
@@ -453,3 +473,9 @@ export const docToFolder = (id: number, data: Record<string, unknown>): Folder =
  */
 export const docToRequest = (id: number, data: Record<string, unknown>): SavedRequest =>
   rowToRequest({ ...data, id });
+
+/**
+ * Maps a Firestore markdown document to a CollectionDocument object.
+ */
+export const docToDocument = (id: number, data: Record<string, unknown>): CollectionDocument =>
+  rowToDocument({ ...data, id });

@@ -28,6 +28,8 @@ describe('refreshGeneration', () => {
   it('builds distinct keys for collection-scoped resources', () => {
     expect(collectionRefreshKey('folders', 1)).toBe('folders:1');
     expect(collectionRefreshKey('requests', 1)).toBe('requests:1');
+    expect(collectionRefreshKey('documents', 1)).toBe('documents:1');
     expect(collectionRefreshKey('folders', 1)).not.toBe(collectionRefreshKey('requests', 1));
+    expect(collectionRefreshKey('requests', 1)).not.toBe(collectionRefreshKey('documents', 1));
   });
 });

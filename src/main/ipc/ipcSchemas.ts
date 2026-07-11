@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { scriptStage } from '#/main/schemas/scriptRef';
 import {
   MAX_IPC_COMMENT_CHARS,
+  MAX_IPC_DOCUMENT_CHARS,
   MAX_IPC_REQUEST_BODY_CHARS,
   MAX_IPC_SCRIPT_CHARS,
   MAX_IPC_URL_CHARS
@@ -34,6 +35,7 @@ import type {
   StorageConnection,
   GeneralSettings,
   PanelLayoutState,
+  SaveDocumentInput,
   SaveRequestInput,
   ScriptRequestContext,
   ScriptRunInput,
@@ -160,6 +162,19 @@ export const saveRequestInput = z.object({
   auth: authConfig,
   folder_id: nullableFolderId.optional()
 }) satisfies z.ZodType<SaveRequestInput>;
+
+/** Markdown document content bounded for IPC. */
+const ipcDocumentContent = z.string().max(MAX_IPC_DOCUMENT_CHARS);
+
+export const saveDocumentInput = z.object({
+  id: dbId.optional(),
+  collection_id: dbId,
+  uuid: z.string().uuid().optional(),
+  folder_id: nullableFolderId.optional(),
+  name: z.string().trim().min(1, 'document name is required'),
+  content: ipcDocumentContent.optional(),
+  sort_order: z.number().int().nonnegative().optional()
+}) satisfies z.ZodType<SaveDocumentInput>;
 
 export const sendRequestInput = z.object({
   method: httpMethod,
@@ -736,6 +751,11 @@ export const ipcArgSchemas = {
   folderReorder: z.tuple([dbId, z.array(dbId)]),
   requestReorder: z.tuple([dbId, nullableFolderId, z.array(dbId)]),
   requestMove: z.tuple([dbId, nullableFolderId, dbId]),
+  documentList: z.tuple([dbId]),
+  documentSave: z.tuple([saveDocumentInput]),
+  documentDelete: z.tuple([dbId]),
+  documentReorder: z.tuple([dbId, nullableFolderId, z.array(dbId)]),
+  documentMove: z.tuple([dbId, nullableFolderId, dbId]),
   requestExport: z.tuple([requestExportSchema]),
   runResultsExport: z.tuple([runResultsExportSchema]),
   runResultsSave: z.tuple([z.string().min(1), saveRunResultInputSchema]),

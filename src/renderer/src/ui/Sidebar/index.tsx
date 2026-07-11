@@ -7,13 +7,13 @@ import {
   usePluginSidebarSections
 } from '#/renderer/src/plugins/pluginHooks';
 import toast from 'react-hot-toast';
-import type { SavedRequest } from '#/shared/types';
+import type { CollectionDocument, SavedRequest } from '#/shared/types';
 import {
-  faAnglesUp,
+  faSquareMinus,
   faClockRotateLeft,
-  faDatabase,
+  faCloud,
   faFolder,
-  faGlobe
+  faSun
 } from '#/renderer/src/fontawesome';
 import {
   ResizeHandle,
@@ -30,8 +30,10 @@ import { useGitStatuses } from '#/renderer/src/hooks/useGitStatuses';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveEnvironmentId,
+  selectActiveDocumentId,
   selectCollections,
   selectDraft,
+  selectDocumentsByCollection,
   selectEnvironments,
   selectFoldersByCollection,
   selectRequestsByCollection,
@@ -48,6 +50,7 @@ import {
   createEnvironment,
   createFolder,
   deleteCollection,
+  deleteDocument,
   deleteEnvironment,
   deleteFolder,
   deleteRequest,
@@ -63,6 +66,10 @@ import {
   moveRequestToFolder,
   newRequestInCollection,
   newRequestInFolder,
+  newDocumentInCollection,
+  newDocumentInFolder,
+  renameDocument,
+  reorderDocuments,
   refreshCollectionContents,
   refreshCollections,
   renameFolder,
@@ -92,6 +99,25 @@ import { SidebarSearch } from './SidebarSearch';
 import { useSidebarExpansion } from './useSidebarExpansion';
 import { useSidebarListNavigation } from './useSidebarListNavigation';
 import { useSidebarSearch } from './useSidebarSearch';
+
+const DEFAULT_DOCUMENT_NAME = 'README.md';
+
+/**
+ * Ensures a sidebar document filename ends with the `.md` suffix.
+ *
+ * @param name - Raw filename from the create/rename modal.
+ * @returns Trimmed filename with a `.md` extension.
+ */
+function ensureMarkdownFilename(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return '';
+  }
+  if (trimmed.toLowerCase().endsWith('.md')) {
+    return trimmed;
+  }
+  return `${trimmed}.md`;
+}
 
 interface Props {
   /**
@@ -123,6 +149,11 @@ interface Props {
    * Loads a saved request into the editor.
    */
   onLoadRequest: (req: SavedRequest) => void;
+
+  /**
+   * Loads a markdown document into the editor.
+   */
+  onLoadDocument: (doc: CollectionDocument) => void;
 }
 
 /**
@@ -134,12 +165,15 @@ export function Sidebar({
   onConfigureFolder,
   onConfigureEnvironment,
   onShareCollection,
-  onLoadRequest
+  onLoadRequest,
+  onLoadDocument
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const collections = useAppSelector(selectCollections);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
+  const documentsByCollection = useAppSelector(selectDocumentsByCollection);
+  const activeDocumentId = useAppSelector(selectActiveDocumentId);
   const selectedCollectionId = useAppSelector(selectSelectedCollectionId);
   const selectedFolderId = useAppSelector(selectSelectedFolderId);
   const draft = useAppSelector(selectDraft);
@@ -327,6 +361,14 @@ export function Sidebar({
     name: string;
     error: string | null;
   } | null>(null);
+  const [documentModal, setDocumentModal] = useState<{
+    mode: 'create' | 'rename';
+    collectionId: number;
+    folderId?: number | null;
+    documentId?: number;
+    name: string;
+    error: string | null;
+  } | null>(null);
   const {
     providers,
     primaryProviderId: primaryConnectionId,
@@ -418,6 +460,13 @@ export function Sidebar({
   };
 
   /**
+   * Closes the document create/rename modal.
+   */
+  const closeDocumentModal = (): void => {
+    setDocumentModal(null);
+  };
+
+  /**
    * Creates or renames a folder from the modal form.
    */
   const handleFolderModalSubmit = async (): Promise<void> => {
@@ -440,6 +489,44 @@ export function Sidebar({
       setFolderModal({
         ...folderModal,
         error: formatErrorMessage(err, 'Failed to save folder')
+      });
+    }
+  };
+
+  /**
+   * Creates or renames a markdown document from the modal form.
+   */
+  const handleDocumentModalSubmit = async (): Promise<void> => {
+    if (!documentModal) return;
+    const name = ensureMarkdownFilename(documentModal.name);
+    if (!name) return;
+
+    const { mode, collectionId, folderId, documentId } = documentModal;
+    setDocumentModal({ ...documentModal, name, error: null });
+    try {
+      if (mode === 'create') {
+        const saved =
+          folderId != null
+            ? await dispatch(
+                newDocumentInFolder({ collectionId, folderId, name, content: '' })
+              ).unwrap()
+            : await dispatch(newDocumentInCollection({ collectionId, name, content: '' })).unwrap();
+        toast.success('Document created');
+        closeDocumentModal();
+        onLoadDocument(saved);
+      } else if (documentId != null) {
+        const saved = await dispatch(
+          renameDocument({ id: documentId, collectionId, name })
+        ).unwrap();
+        toast.success('Document renamed');
+        closeDocumentModal();
+        onLoadDocument(saved);
+      }
+    } catch (err) {
+      setDocumentModal({
+        ...documentModal,
+        name,
+        error: formatErrorMessage(err, 'Failed to save document')
       });
     }
   };
@@ -475,7 +562,7 @@ export function Sidebar({
       },
       {
         id: 'toggle-environments-section',
-        icon: faGlobe,
+        icon: faSun,
         label: 'Environments',
         title: environmentsSectionVisible
           ? 'Hide environments section'
@@ -493,7 +580,7 @@ export function Sidebar({
       },
       {
         id: 'toggle-storage-badges',
-        icon: faDatabase,
+        icon: faCloud,
         label: 'Storage location badges',
         title: showStorageLocationBadges
           ? 'Hide storage location badges'
@@ -520,7 +607,7 @@ export function Sidebar({
     return [
       {
         id: 'collapse-all',
-        icon: faAnglesUp,
+        icon: faSquareMinus,
         label: 'Collapse all',
         title: 'Collapse all collections and folders',
         onClick: collapseAllSidebarTrees
@@ -624,6 +711,7 @@ export function Sidebar({
                         collections={collections}
                         foldersByCollection={foldersByCollection}
                         requestsByCollection={requestsByCollection}
+                        documentsByCollection={documentsByCollection}
                         searchFilter={searchFilter}
                         selectedCollectionId={selectedCollectionId}
                         selectedFolderId={selectedFolderId}
@@ -636,6 +724,7 @@ export function Sidebar({
                           setGitPanel({ connectionId, connectionName })
                         }
                         activeRequestId={draft.id}
+                        activeDocumentId={activeDocumentId}
                         expandedCollectionIds={expandedCollectionIds}
                         expandedFolderIds={expandedFolderIds}
                         setExpandedCollectionIds={setExpandedCollectionIds}
@@ -816,6 +905,23 @@ export function Sidebar({
                             );
                           }
                         }}
+                        onNewDocumentInCollection={(collectionId) => {
+                          setDocumentModal({
+                            mode: 'create',
+                            collectionId,
+                            name: DEFAULT_DOCUMENT_NAME,
+                            error: null
+                          });
+                        }}
+                        onNewDocumentInFolder={(collectionId, folderId) => {
+                          setDocumentModal({
+                            mode: 'create',
+                            collectionId,
+                            folderId,
+                            name: DEFAULT_DOCUMENT_NAME,
+                            error: null
+                          });
+                        }}
                         onRenameFolder={(id, collectionId) => {
                           const folders = foldersByCollection[collectionId] ?? [];
                           const folder = folders.find((item) => item.id === id);
@@ -863,6 +969,32 @@ export function Sidebar({
                           );
                         }}
                         onLoadRequest={onLoadRequest}
+                        onLoadDocument={onLoadDocument}
+                        onRenameDocument={(doc) => {
+                          setDocumentModal({
+                            mode: 'rename',
+                            collectionId: doc.collection_id,
+                            folderId: doc.folder_id,
+                            documentId: doc.id,
+                            name: doc.name,
+                            error: null
+                          });
+                        }}
+                        onDeleteDocument={async (id, collectionId) => {
+                          try {
+                            await dispatch(deleteDocument({ id, collectionId })).unwrap();
+                          } catch (err) {
+                            showAlert(
+                              dispatch,
+                              formatErrorMessage(err, 'Failed to delete document')
+                            );
+                          }
+                        }}
+                        onReorderDocuments={async (collectionId, folderId, orderedDocumentIds) => {
+                          await dispatch(
+                            reorderDocuments({ collectionId, folderId, orderedDocumentIds })
+                          );
+                        }}
                         onDeleteRequest={async (id) => {
                           await dispatch(deleteRequest(id));
                         }}
@@ -1041,6 +1173,43 @@ export function Sidebar({
               disabled={!folderModal.name.trim()}
             >
               {folderModal.mode === 'create' ? 'Create' : 'Save'}
+            </Button>
+          </ModalFooter>
+        </Modal>
+      )}
+
+      {documentModal && (
+        <Modal
+          onClose={closeDocumentModal}
+          labelledBy="sidebar-document-modal-title"
+          title={documentModal.mode === 'create' ? 'New markdown document' : 'Rename document'}
+        >
+          <label htmlFor="sidebar-document-name" className="sr-only">
+            Document filename
+          </label>
+          <Input
+            id="sidebar-document-name"
+            className="mt-3 w-full"
+            type="text"
+            autoFocus
+            placeholder="README.md"
+            value={documentModal.name}
+            onChange={(e) =>
+              setDocumentModal((current) =>
+                current ? { ...current, name: e.target.value, error: null } : current
+              )
+            }
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void handleDocumentModalSubmit();
+            }}
+          />
+          {documentModal.error && <FieldError spacing="section">{documentModal.error}</FieldError>}
+          <ModalFooter spaced>
+            <Button
+              onClick={() => void handleDocumentModalSubmit()}
+              disabled={!ensureMarkdownFilename(documentModal.name)}
+            >
+              {documentModal.mode === 'create' ? 'Create' : 'Save'}
             </Button>
           </ModalFooter>
         </Modal>

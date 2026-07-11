@@ -1,4 +1,6 @@
+export * from '#/renderer/src/store/thunks/documents';
 export * from '#/renderer/src/store/thunks/collections';
+export * from '#/renderer/src/store/thunks/documents';
 export * from '#/renderer/src/store/thunks/environments';
 export * from '#/renderer/src/store/thunks/snippets';
 export * from '#/renderer/src/store/thunks/requests';

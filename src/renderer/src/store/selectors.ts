@@ -1,8 +1,10 @@
 import type { RootState } from '#/renderer/src/store/redux';
 import {
   defaultDraft,
+  isMarkdownTab,
   isPageTab,
   isRequestTab,
+  type MarkdownTab,
   type PageRef,
   type RequestDraft
 } from '#/renderer/src/store/drafts';
@@ -36,6 +38,20 @@ export const selectCollectionsListed = (state: RootState): boolean =>
 export const selectRequestsByCollection = (
   state: RootState
 ): RootState['collections']['requestsByCollection'] => state.collections.requestsByCollection;
+/**
+ * Returns cached markdown documents keyed by collection id.
+ */
+export const selectDocumentsByCollection = (
+  state: RootState
+): RootState['collections']['documentsByCollection'] => state.collections.documentsByCollection;
+export const selectActiveDocumentId = (state: RootState): number | undefined => {
+  const tab = selectActiveTab(state);
+  if (tab && isMarkdownTab(tab)) {
+    return tab.docId;
+  }
+  return undefined;
+};
+
 /**
  * Returns cached folders keyed by collection id.
  */
@@ -100,6 +116,17 @@ export const selectActivePage = (state: RootState): PageRef | null => {
   const tab = selectActiveTab(state);
   if (tab && isPageTab(tab)) {
     return tab.page;
+  }
+  return null;
+};
+
+/**
+ * Returns the active markdown document tab, when the selected tab is a markdown editor.
+ */
+export const selectActiveMarkdownTab = (state: RootState): MarkdownTab | null => {
+  const tab = selectActiveTab(state);
+  if (tab && isMarkdownTab(tab)) {
+    return tab;
   }
   return null;
 };

@@ -1,3 +1,4 @@
+import type { ApiDocuments } from '#/shared/types/api/documents';
 import type { ApiCollections } from '#/shared/types/api/collections';
 import type { ApiEnvironments } from '#/shared/types/api/environments';
 import type { ApiSnippets } from '#/shared/types/api/snippets';
@@ -25,6 +26,7 @@ export interface Api
     ApiEnvironments,
     ApiSnippets,
     ApiRequests,
+    ApiDocuments,
     ApiHttp,
     ApiWindow,
     ApiSettings,

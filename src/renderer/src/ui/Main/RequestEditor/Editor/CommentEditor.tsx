@@ -54,12 +54,29 @@ interface Props {
    * Opens collection settings to edit variables.
    */
   onEditVariables?: (key: string) => void;
+
+  /**
+   * Accessible label for the editor group; defaults to "Comment".
+   */
+  label?: string;
+
+  /**
+   * Helper text shown below the label.
+   */
+  description?: string;
 }
 
 /**
  * Markdown comment editor for request notes using MDXEditor.
  */
-export function CommentEditor({ value, onChange, variables, onEditVariables }: Props): JSX.Element {
+export function CommentEditor({
+  value,
+  onChange,
+  variables,
+  onEditVariables,
+  label = 'Comment',
+  description = 'Leave a comment to describe the request. Markdown is supported.'
+}: Props): JSX.Element {
   const editorRef = useRef<MDXEditorMethods>(null);
   const lastEmittedRef = useRef(value);
 
@@ -117,12 +134,10 @@ export function CommentEditor({ value, onChange, variables, onEditVariables }: P
     <div
       className="flex h-full min-h-0 flex-1 flex-col border border-separator p-4"
       role="group"
-      aria-label="Comment"
+      aria-label={label}
     >
-      <FormGroup label="Comment" className="border-none! p-0! mb-2">
-        <p className="text-sm text-muted text-[16px]">
-          Leave a comment to describe the request. Markdown is supported.
-        </p>
+      <FormGroup label={label} className="border-none! p-0! mb-2">
+        <p className="text-sm text-muted text-[16px]">{description}</p>
       </FormGroup>
       <MDXEditor
         ref={editorRef}

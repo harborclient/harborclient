@@ -1,4 +1,4 @@
-import { faDownload, faStore, faTerminal } from '#/renderer/src/fontawesome';
+import { faCode, faDownload, faStore } from '#/renderer/src/fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { SnippetsSidebarSection } from './sidebarTypes';
 
@@ -10,7 +10,7 @@ export const SNIPPET_SECTIONS: Array<{
   label: string;
   icon: IconDefinition;
 }> = [
-  { value: 'installed', label: 'Installed', icon: faTerminal },
+  { value: 'installed', label: 'Installed', icon: faCode },
   { value: 'marketplace', label: 'Marketplace', icon: faStore },
   { value: 'install', label: 'Install', icon: faDownload }
 ];
