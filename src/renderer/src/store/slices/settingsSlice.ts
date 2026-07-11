@@ -15,6 +15,7 @@ export const defaultGeneralSettings: GeneralSettings = {
   verifySsl: true,
   followRedirects: true,
   scrollbarAutoHide: false,
+  wrapTabs: true,
   warnWhenSwitchingThemes: true,
   warnWhenExitingWithUnsavedChanges: true,
   warnWhenClosingUnsavedRequests: true,
@@ -83,5 +84,10 @@ export const selectCodeEditorFontSize = (state: RootState): string =>
  */
 export const selectScrollbarAutoHide = (state: RootState): boolean =>
   state.settings.general.scrollbarAutoHide;
+
+/**
+ * Returns whether open request tabs and AI chat tabs should wrap instead of scrolling horizontally.
+ */
+export const selectWrapTabs = (state: RootState): boolean => state.settings.general.wrapTabs;
 
 export default settingsSlice.reducer;

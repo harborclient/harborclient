@@ -201,6 +201,19 @@ describe('generalSettings', () => {
     expect(getGeneralSettings().scrollbarAutoHide).toBe(true);
   });
 
+  it('defaults wrapTabs to true when unset', () => {
+    expect(getGeneralSettings().wrapTabs).toBe(true);
+  });
+
+  it('persists wrapTabs false', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      wrapTabs: false
+    });
+
+    expect(getGeneralSettings().wrapTabs).toBe(false);
+  });
+
   it('defaults warnWhenSwitchingThemes to true when unset', () => {
     expect(getGeneralSettings().warnWhenSwitchingThemes).toBe(true);
   });

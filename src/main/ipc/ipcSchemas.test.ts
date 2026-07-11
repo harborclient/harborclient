@@ -234,6 +234,7 @@ describe('generalSettings', () => {
     verifySsl: true,
     followRedirects: true,
     scrollbarAutoHide: false,
+    wrapTabs: true,
     warnWhenSwitchingThemes: true,
     warnWhenExitingWithUnsavedChanges: true,
     warnWhenClosingUnsavedRequests: true,

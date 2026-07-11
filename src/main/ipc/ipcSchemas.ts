@@ -248,6 +248,7 @@ export const generalSettings = z.object({
   verifySsl: z.boolean(),
   followRedirects: z.boolean(),
   scrollbarAutoHide: z.boolean(),
+  wrapTabs: z.boolean(),
   warnWhenSwitchingThemes: z.boolean(),
   warnWhenExitingWithUnsavedChanges: z.boolean(),
   warnWhenClosingUnsavedRequests: z.boolean(),

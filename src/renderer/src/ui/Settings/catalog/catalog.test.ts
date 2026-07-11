@@ -23,6 +23,7 @@ const EXPECTED_FIELD_IDS: FieldSettingId[] = [
   'general.verifySsl',
   'general.followRedirects',
   'general.scrollbarAutoHide',
+  'general.wrapTabs',
   'general.warnWhenSwitchingThemes',
   'general.warnWhenExitingWithUnsavedChanges',
   'general.warnWhenClosingUnsavedRequests',

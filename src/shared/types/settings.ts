@@ -187,6 +187,11 @@ export interface GeneralSettings {
   scrollbarAutoHide: boolean;
 
   /**
+   * When true, request tabs and AI chat tabs wrap onto multiple rows instead of scrolling horizontally.
+   */
+  wrapTabs: boolean;
+
+  /**
    * When true, switching appearance themes from the View menu shows a confirmation dialog.
    */
   warnWhenSwitchingThemes: boolean;

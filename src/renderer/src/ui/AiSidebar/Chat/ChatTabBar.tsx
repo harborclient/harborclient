@@ -14,6 +14,7 @@ import {
   SortableContext,
   arrayMove,
   horizontalListSortingStrategy,
+  rectSortingStrategy,
   sortableKeyboardCoordinates
 } from '@dnd-kit/sortable';
 import { FaIcon, resolveTabListKeyAction } from '@harborclient/sdk/components';
@@ -22,6 +23,7 @@ import type { AiSettings } from '#/shared/types';
 
 import { faComment, faPlus } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { selectWrapTabs } from '#/renderer/src/store/slices/settingsSlice';
 import {
   reorderChatTabs,
   selectActiveChatId,
@@ -134,6 +136,7 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
   const chatHistory = useAppSelector(selectChatHistory);
   const openTabIds = useAppSelector(selectOpenChatTabIds);
   const activeChatId = useAppSelector(selectActiveChatId);
+  const wrapTabs = useAppSelector(selectWrapTabs);
   const messagesByChat = useAppSelector((state) => state.aiChat.messagesByChat);
   const [activeDragChatId, setActiveDragChatId] = useState<number | null>(null);
   const [contextMenu, setContextMenu] = useState<ChatContextMenuState | null>(null);
@@ -292,104 +295,129 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
     void dispatch(createNewChat(aiSettings));
   };
 
-  return (
-    <Scrollbars
-      axis="horizontal"
-      className="hc-tab-bar-scroll relative z-10 shrink-0 border-b border-separator bg-sidebar px-2 app-no-drag"
-    >
-      <div className="flex w-max flex-nowrap items-end py-1">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          onDragCancel={() => setActiveDragChatId(null)}
-        >
-          <div
-            role="tablist"
-            aria-label="Open AI chats"
-            className="flex items-end"
-            onKeyDown={handleTabListKeyDown}
-          >
-            <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
-              {openTabs.map((chat) => (
-                <Fragment key={chat.id}>
-                  {getExitingBefore(chat.id).map((exitingTab) => (
-                    <ClosingTabShell
-                      key={exitingTab.exitKey}
-                      onComplete={() => completeExit(exitingTab.exitKey)}
-                    >
-                      <ChatTabItem
-                        chat={exitingTab.item}
-                        active={false}
-                        exiting
-                        tabIndex={-1}
-                        sortableId={aiChatTabSortableId(exitingTab.item.id)}
-                        sortableDisabled
-                        onSelect={(chatId) => dispatch(setActiveChat(chatId))}
-                        onClose={(chatId) => void dispatch(closeChat(chatId))}
-                      />
-                    </ClosingTabShell>
-                  ))}
-                  <ChatTabItem
-                    chat={chat}
-                    active={chat.id === activeChatId}
-                    tabIndex={0}
-                    sortableId={aiChatTabSortableId(chat.id)}
-                    sortableDisabled={!sortableEnabled}
-                    onSelect={(chatId) => dispatch(setActiveChat(chatId))}
-                    onClose={(chatId) => void dispatch(closeChat(chatId))}
-                    onContextMenu={(chatId, event) => {
-                      setContextMenu({
-                        chatId,
-                        x: event.clientX,
-                        y: event.clientY
-                      });
-                    }}
-                  />
-                </Fragment>
-              ))}
-              {getExitingBefore(null).map((exitingTab) => (
-                <ClosingTabShell
-                  key={exitingTab.exitKey}
-                  onComplete={() => completeExit(exitingTab.exitKey)}
-                >
-                  <ChatTabItem
-                    chat={exitingTab.item}
-                    active={false}
-                    exiting
-                    tabIndex={-1}
-                    sortableId={aiChatTabSortableId(exitingTab.item.id)}
-                    sortableDisabled
-                    onSelect={(chatId) => dispatch(setActiveChat(chatId))}
-                    onClose={(chatId) => void dispatch(closeChat(chatId))}
-                  />
-                </ClosingTabShell>
-              ))}
-            </SortableContext>
-          </div>
+  const tabRowClassName = wrapTabs
+    ? 'w-full min-w-0 py-1'
+    : 'flex w-max flex-nowrap items-end py-1';
+  const tabListClassName = wrapTabs ? 'flex min-w-0 w-full flex-wrap items-end' : 'flex items-end';
+  const sortStrategy = wrapTabs ? rectSortingStrategy : horizontalListSortingStrategy;
+  const containerClassName =
+    'relative z-10 shrink-0 border-b border-separator bg-sidebar px-2 app-no-drag';
 
-          <DragOverlay>
-            {activeDragChat ? (
-              <div className="flex items-center gap-1.5 rounded-t-lg border border-separator bg-surface px-3 py-2 text-[14px] font-medium shadow-md">
-                <FaIcon icon={faComment} className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                {activeDragChat.title}
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-        <div className="flex shrink-0 items-end ms-2 px-1 -mb-1">
-          <button
-            type="button"
-            className="hc-tab-new-button mb-2.5 inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text app-no-drag"
-            title="New chat"
-            aria-label="New chat"
-            onClick={handleNewChat}
-          >
-            <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
-          </button>
+  const newChatButton = (
+    <div className="flex shrink-0 items-end ms-2 px-1 -mb-1">
+      <button
+        type="button"
+        className="hc-tab-new-button mb-2.5 inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text app-no-drag"
+        title="New chat"
+        aria-label="New chat"
+        onClick={handleNewChat}
+      >
+        <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+
+  const tabRow = (
+    <div className={tabRowClassName}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => setActiveDragChatId(null)}
+      >
+        <div
+          role="tablist"
+          aria-label="Open AI chats"
+          className={tabListClassName}
+          onKeyDown={handleTabListKeyDown}
+        >
+          <SortableContext items={sortableIds} strategy={sortStrategy}>
+            {openTabs.map((chat) => (
+              <Fragment key={chat.id}>
+                {getExitingBefore(chat.id).map((exitingTab) => (
+                  <ClosingTabShell
+                    key={exitingTab.exitKey}
+                    onComplete={() => completeExit(exitingTab.exitKey)}
+                  >
+                    <ChatTabItem
+                      chat={exitingTab.item}
+                      active={false}
+                      exiting
+                      tabIndex={-1}
+                      sortableId={aiChatTabSortableId(exitingTab.item.id)}
+                      sortableDisabled
+                      onSelect={(chatId) => dispatch(setActiveChat(chatId))}
+                      onClose={(chatId) => void dispatch(closeChat(chatId))}
+                    />
+                  </ClosingTabShell>
+                ))}
+                <ChatTabItem
+                  chat={chat}
+                  active={chat.id === activeChatId}
+                  tabIndex={0}
+                  sortableId={aiChatTabSortableId(chat.id)}
+                  sortableDisabled={!sortableEnabled}
+                  onSelect={(chatId) => dispatch(setActiveChat(chatId))}
+                  onClose={(chatId) => void dispatch(closeChat(chatId))}
+                  onContextMenu={(chatId, event) => {
+                    setContextMenu({
+                      chatId,
+                      x: event.clientX,
+                      y: event.clientY
+                    });
+                  }}
+                />
+              </Fragment>
+            ))}
+            {getExitingBefore(null).map((exitingTab) => (
+              <ClosingTabShell
+                key={exitingTab.exitKey}
+                onComplete={() => completeExit(exitingTab.exitKey)}
+              >
+                <ChatTabItem
+                  chat={exitingTab.item}
+                  active={false}
+                  exiting
+                  tabIndex={-1}
+                  sortableId={aiChatTabSortableId(exitingTab.item.id)}
+                  sortableDisabled
+                  onSelect={(chatId) => dispatch(setActiveChat(chatId))}
+                  onClose={(chatId) => void dispatch(closeChat(chatId))}
+                />
+              </ClosingTabShell>
+            ))}
+          </SortableContext>
+          {wrapTabs ? newChatButton : null}
         </div>
-      </div>
+
+        <DragOverlay>
+          {activeDragChat ? (
+            <div className="flex items-center gap-1.5 rounded-t-lg border border-separator bg-surface px-3 py-2 text-[14px] font-medium shadow-md">
+              <FaIcon icon={faComment} className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              {activeDragChat.title}
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+      {wrapTabs ? null : newChatButton}
+    </div>
+  );
+
+  return wrapTabs ? (
+    <div className={containerClassName}>
+      {tabRow}
+      {contextMenu && (
+        <TabContextMenu
+          groups={contextMenuGroups}
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+    </div>
+  ) : (
+    <Scrollbars axis="horizontal" className={`hc-tab-bar-scroll ${containerClassName}`}>
+      {tabRow}
       {contextMenu && (
         <TabContextMenu
           groups={contextMenuGroups}

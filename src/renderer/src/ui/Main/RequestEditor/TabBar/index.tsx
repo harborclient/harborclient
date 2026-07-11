@@ -14,12 +14,14 @@ import {
   SortableContext,
   arrayMove,
   horizontalListSortingStrategy,
+  rectSortingStrategy,
   sortableKeyboardCoordinates
 } from '@dnd-kit/sortable';
 import { FaIcon, resolveTabListKeyAction } from '@harborclient/sdk/components';
 import { Fragment, useEffect, useMemo, useState, type JSX, type KeyboardEvent } from 'react';
 import { isPageTab, isRequestTab, type Tab } from '#/renderer/src/store/drafts';
 import { useAppSelector } from '#/renderer/src/store/hooks';
+import { selectWrapTabs } from '#/renderer/src/store/slices/settingsSlice';
 import {
   selectCollections,
   selectEnvironments,
@@ -201,6 +203,7 @@ export function TabBar({
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
   const { teamHubs } = useTeamHubs();
+  const wrapTabs = useAppSelector(selectWrapTabs);
   const [activeDragTabId, setActiveDragTabId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<TabContextMenuState | null>(null);
   const sortableEnabled = tabs.length >= 2;
@@ -433,120 +436,136 @@ export function TabBar({
     });
   };
 
+  const tabRowClassName = wrapTabs
+    ? 'w-full min-w-0 py-1'
+    : 'flex w-max flex-nowrap items-end py-1';
+  const tabListClassName = wrapTabs ? 'flex min-w-0 w-full flex-wrap items-end' : 'flex items-end';
+  const sortStrategy = wrapTabs ? rectSortingStrategy : horizontalListSortingStrategy;
+
+  const newTabButton = (
+    <div className="flex shrink-0 items-end ms-2 px-1 -mb-1">
+      <button
+        type="button"
+        className="hc-tab-new-button mb-2.5 inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text app-no-drag"
+        title="New tab"
+        aria-label="New tab"
+        onClick={onNew}
+      >
+        <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+
+  const tabRow = (
+    <div className={tabRowClassName}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => setActiveDragTabId(null)}
+      >
+        <div
+          role="tablist"
+          aria-label="Open tabs"
+          className={tabListClassName}
+          onKeyDown={handleTabListKeyDown}
+        >
+          <SortableContext items={sortableIds} strategy={sortStrategy}>
+            {tabs.map((tab) => {
+              const pageDisplay = pageTabDisplays.get(tab.tabId);
+              return (
+                <Fragment key={tab.tabId}>
+                  {getExitingBefore(tab.tabId).map((exitingTab) => {
+                    const exitingPageDisplay = pageTabDisplays.get(exitingTab.item.tabId);
+                    return (
+                      <ClosingTabShell
+                        key={exitingTab.exitKey}
+                        onComplete={() => completeExit(exitingTab.exitKey)}
+                      >
+                        <TabItem
+                          tab={exitingTab.item}
+                          active={false}
+                          exiting
+                          tabIndex={-1}
+                          sortableId={requestTabSortableId(exitingTab.item.tabId)}
+                          sortableDisabled
+                          pageTitle={exitingPageDisplay?.title}
+                          pageIcon={exitingPageDisplay?.icon}
+                          onSelect={onSelect}
+                          onClose={onClose}
+                        />
+                      </ClosingTabShell>
+                    );
+                  })}
+                  <TabItem
+                    tab={tab}
+                    active={tab.tabId === activeTabId}
+                    tabIndex={0}
+                    sortableId={requestTabSortableId(tab.tabId)}
+                    sortableDisabled={!sortableEnabled}
+                    pageTitle={pageDisplay?.title}
+                    pageIcon={pageDisplay?.icon}
+                    onSelect={onSelect}
+                    onClose={onClose}
+                    onContextMenu={(tabId, event) => {
+                      setContextMenu({
+                        tabId,
+                        x: event.clientX,
+                        y: event.clientY
+                      });
+                    }}
+                  />
+                </Fragment>
+              );
+            })}
+            {getExitingBefore(null).map((exitingTab) => {
+              const exitingPageDisplay = pageTabDisplays.get(exitingTab.item.tabId);
+              return (
+                <ClosingTabShell
+                  key={exitingTab.exitKey}
+                  onComplete={() => completeExit(exitingTab.exitKey)}
+                >
+                  <TabItem
+                    tab={exitingTab.item}
+                    active={false}
+                    exiting
+                    tabIndex={-1}
+                    sortableId={requestTabSortableId(exitingTab.item.tabId)}
+                    sortableDisabled
+                    pageTitle={exitingPageDisplay?.title}
+                    pageIcon={exitingPageDisplay?.icon}
+                    onSelect={onSelect}
+                    onClose={onClose}
+                  />
+                </ClosingTabShell>
+              );
+            })}
+          </SortableContext>
+          {wrapTabs ? newTabButton : null}
+        </div>
+
+        <DragOverlay>
+          {activeDragTab ? (
+            <div className="rounded-t-lg border border-separator bg-surface px-3 py-2 text-[14px] font-medium shadow-md">
+              {requestTabDragLabel(activeDragTab, pageTabDisplays.get(activeDragTab.tabId)?.title)}
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+      {wrapTabs ? null : newTabButton}
+    </div>
+  );
+
   return (
     <div className="flex shrink-0 min-h-16 items-end border-b border-separator bg-sidebar px-2 app-no-drag">
-      <Scrollbars axis="horizontal" className="hc-tab-bar-scroll min-w-0 flex-1">
-        <div className="flex w-max flex-nowrap items-end py-1">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDragCancel={() => setActiveDragTabId(null)}
-          >
-            <div
-              role="tablist"
-              aria-label="Open tabs"
-              className="flex items-end"
-              onKeyDown={handleTabListKeyDown}
-            >
-              <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
-                {tabs.map((tab) => {
-                  const pageDisplay = pageTabDisplays.get(tab.tabId);
-                  return (
-                    <Fragment key={tab.tabId}>
-                      {getExitingBefore(tab.tabId).map((exitingTab) => {
-                        const exitingPageDisplay = pageTabDisplays.get(exitingTab.item.tabId);
-                        return (
-                          <ClosingTabShell
-                            key={exitingTab.exitKey}
-                            onComplete={() => completeExit(exitingTab.exitKey)}
-                          >
-                            <TabItem
-                              tab={exitingTab.item}
-                              active={false}
-                              exiting
-                              tabIndex={-1}
-                              sortableId={requestTabSortableId(exitingTab.item.tabId)}
-                              sortableDisabled
-                              pageTitle={exitingPageDisplay?.title}
-                              pageIcon={exitingPageDisplay?.icon}
-                              onSelect={onSelect}
-                              onClose={onClose}
-                            />
-                          </ClosingTabShell>
-                        );
-                      })}
-                      <TabItem
-                        tab={tab}
-                        active={tab.tabId === activeTabId}
-                        tabIndex={0}
-                        sortableId={requestTabSortableId(tab.tabId)}
-                        sortableDisabled={!sortableEnabled}
-                        pageTitle={pageDisplay?.title}
-                        pageIcon={pageDisplay?.icon}
-                        onSelect={onSelect}
-                        onClose={onClose}
-                        onContextMenu={(tabId, event) => {
-                          setContextMenu({
-                            tabId,
-                            x: event.clientX,
-                            y: event.clientY
-                          });
-                        }}
-                      />
-                    </Fragment>
-                  );
-                })}
-                {getExitingBefore(null).map((exitingTab) => {
-                  const exitingPageDisplay = pageTabDisplays.get(exitingTab.item.tabId);
-                  return (
-                    <ClosingTabShell
-                      key={exitingTab.exitKey}
-                      onComplete={() => completeExit(exitingTab.exitKey)}
-                    >
-                      <TabItem
-                        tab={exitingTab.item}
-                        active={false}
-                        exiting
-                        tabIndex={-1}
-                        sortableId={requestTabSortableId(exitingTab.item.tabId)}
-                        sortableDisabled
-                        pageTitle={exitingPageDisplay?.title}
-                        pageIcon={exitingPageDisplay?.icon}
-                        onSelect={onSelect}
-                        onClose={onClose}
-                      />
-                    </ClosingTabShell>
-                  );
-                })}
-              </SortableContext>
-            </div>
-
-            <DragOverlay>
-              {activeDragTab ? (
-                <div className="rounded-t-lg border border-separator bg-surface px-3 py-2 text-[14px] font-medium shadow-md">
-                  {requestTabDragLabel(
-                    activeDragTab,
-                    pageTabDisplays.get(activeDragTab.tabId)?.title
-                  )}
-                </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
-          <div className="flex shrink-0 items-end ms-2 px-1 -mb-1">
-            <button
-              type="button"
-              className="hc-tab-new-button mb-2.5 inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text app-no-drag"
-              title="New tab"
-              aria-label="New tab"
-              onClick={onNew}
-            >
-              <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-      </Scrollbars>
+      {wrapTabs ? (
+        <div className="min-w-0 flex-1">{tabRow}</div>
+      ) : (
+        <Scrollbars axis="horizontal" className="hc-tab-bar-scroll min-w-0 flex-1">
+          {tabRow}
+        </Scrollbars>
+      )}
       {contextMenu && (
         <TabContextMenu
           groups={contextMenuGroups}

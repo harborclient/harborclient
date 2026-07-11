@@ -8,6 +8,7 @@ export type SettingId =
   | 'general.verifySsl'
   | 'general.followRedirects'
   | 'general.scrollbarAutoHide'
+  | 'general.wrapTabs'
   | 'general.warnWhenSwitchingThemes'
   | 'general.warnWhenExitingWithUnsavedChanges'
   | 'general.warnWhenClosingUnsavedRequests'
@@ -164,6 +165,15 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     description:
       'When enabled, custom scrollbars fade out when you are not scrolling. When disabled, they stay visible while content overflows.',
     keywords: ['scrollbar', 'scroll', 'overlay', 'auto-hide', 'visibility']
+  },
+  {
+    id: 'general.wrapTabs',
+    section: 'general',
+    kind: 'field',
+    label: 'Wrap tabs',
+    description:
+      'When enabled, request tabs and AI chat tabs wrap onto multiple rows instead of scrolling horizontally.',
+    keywords: ['wrap', 'tabs', 'overflow', 'scroll']
   },
   {
     id: 'general.warnWhenSwitchingThemes',

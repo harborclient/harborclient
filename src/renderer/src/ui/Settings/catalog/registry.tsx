@@ -17,6 +17,7 @@ import { AiOpenAiApiKeyField } from '../fields/AiOpenAiApiKeyField';
 import { GeneralFollowRedirectsField } from '../fields/GeneralFollowRedirectsField';
 import { GeneralLogFilePathField } from '../fields/GeneralLogFilePathField';
 import { GeneralScrollbarAutoHideField } from '../fields/GeneralScrollbarAutoHideField';
+import { GeneralWrapTabsField } from '../fields/GeneralWrapTabsField';
 import { GeneralWarnWhenSwitchingThemesField } from '../fields/GeneralWarnWhenSwitchingThemesField';
 import { GeneralWarnWhenExitingWithUnsavedChangesField } from '../fields/GeneralWarnWhenExitingWithUnsavedChangesField';
 import { GeneralWarnWhenClosingUnsavedRequestsField } from '../fields/GeneralWarnWhenClosingUnsavedRequestsField';
@@ -58,6 +59,7 @@ export const SETTINGS_FIELD_REGISTRY: Partial<Record<FieldSettingId, ComponentTy
   'general.verifySsl': GeneralVerifySslField,
   'general.followRedirects': GeneralFollowRedirectsField,
   'general.scrollbarAutoHide': GeneralScrollbarAutoHideField,
+  'general.wrapTabs': GeneralWrapTabsField,
   'general.warnWhenSwitchingThemes': GeneralWarnWhenSwitchingThemesField,
   'general.warnWhenExitingWithUnsavedChanges': GeneralWarnWhenExitingWithUnsavedChangesField,
   'general.warnWhenClosingUnsavedRequests': GeneralWarnWhenClosingUnsavedRequestsField,

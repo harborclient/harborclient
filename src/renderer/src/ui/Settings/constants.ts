@@ -52,6 +52,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   verifySsl: true,
   followRedirects: true,
   scrollbarAutoHide: false,
+  wrapTabs: true,
   warnWhenSwitchingThemes: true,
   warnWhenExitingWithUnsavedChanges: true,
   warnWhenClosingUnsavedRequests: true,
