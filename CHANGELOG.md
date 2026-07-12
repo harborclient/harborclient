@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.2.0 - 2026-07-12
+
 - feat(settings): enhance terminal and panel layout settings. (`d9cb138`)
 - feat(terminal): integrate terminal functionality into the application. (`7de2b9e`)
 
