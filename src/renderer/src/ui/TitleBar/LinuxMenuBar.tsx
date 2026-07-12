@@ -5,7 +5,7 @@ import { LinuxAppSubmenu } from '#/renderer/src/ui/TitleBar/LinuxAppSubmenu';
 const ROOT_MENU_LABELS: RootMenuLabel[] = ['File', 'Edit', 'View', 'Team', 'Help'];
 
 const menuButtonClass =
-  'cursor-pointer rounded-sm border-none bg-transparent px-2.5 py-1 text-[16px] text-text hover:bg-selection app-no-drag';
+  'cursor-pointer rounded-sm border-none bg-transparent px-2.5 py-1 text-text hover:bg-selection app-no-drag';
 
 interface OpenMenuState {
   /** Root menu label currently open. */

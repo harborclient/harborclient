@@ -110,7 +110,7 @@ export function BackupRestoreSection({
           </p>
         </div>
         <div
-          className="rounded-md border border-separator bg-sidebar px-4 py-3 mb-2 text-[16px] text-text"
+          className="rounded-md border border-separator bg-sidebar px-4 py-3 mb-2 text-text"
           role="note"
         >
           <p className="m-0 mb-2 font-medium text-danger">Sensitive data warning</p>

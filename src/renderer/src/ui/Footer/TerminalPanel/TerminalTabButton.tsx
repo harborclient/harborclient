@@ -72,8 +72,8 @@ interface Props {
  */
 function tabRowClassName(selected: boolean): string {
   return selected
-    ? 'rounded-md bg-selection px-3 py-2 pr-1 text-left text-[16px] text-text'
-    : 'rounded-md px-3 py-2 pr-1 text-left text-[16px] text-muted hover:bg-selection/60 hover:text-text';
+    ? 'rounded-md bg-selection px-3 py-2 pr-1 text-left text-text'
+    : 'rounded-md px-3 py-2 pr-1 text-left text-muted hover:bg-selection/60 hover:text-text';
 }
 
 /**
@@ -137,7 +137,7 @@ export function TerminalTabButton({
         <Input
           ref={inputRef}
           variant="plain"
-          className="w-full min-w-0 border-none bg-transparent p-0 text-[16px] text-text outline-none app-no-drag"
+          className="w-full min-w-0 border-none bg-transparent p-0 text-text outline-none app-no-drag"
           type="text"
           value={draftTitle}
           aria-label="Rename terminal tab"

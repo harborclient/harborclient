@@ -121,9 +121,7 @@ export function IdentitySection(): JSX.Element {
       ) : identity ? (
         <div className="flex flex-col gap-4">
           <FormGroup label="Fingerprint" htmlFor="identity-fingerprint">
-            <p className="mb-0 text-[16px] mb-2 text-muted">
-              The SHA-256 fingerprint of your public key.
-            </p>
+            <p className="mb-0 mb-2 text-muted">The SHA-256 fingerprint of your public key.</p>
             <Input
               id="identity-fingerprint"
               className="w-full font-mono text-[14px]"
@@ -134,12 +132,12 @@ export function IdentitySection(): JSX.Element {
           </FormGroup>
 
           <FormGroup label="Public key">
-            <p className="mb-0 text-[16px] mb-2 text-muted">
+            <p className="mb-0 mb-2 text-muted">
               Keep your private key secret. Anyone with it can sign share tokens as you.
             </p>
 
             <Textarea
-              className="min-h-66 w-full resize-y font-mono text-[16px] mb-2"
+              className="min-h-66 w-full resize-y font-mono mb-2"
               readOnly
               value={identity.publicKeyPem}
               onFocus={(event) => event.target.select()}

@@ -372,7 +372,7 @@ export function CollectionRunner({ page }: Props): JSX.Element {
       {runner ? (
         <div className="space-y-4">
           {runner.imported ? (
-            <div className="space-y-2 text-[16px]">
+            <div className="space-y-2">
               <p className="m-0 text-muted">Imported run results (read-only)</p>
               <p className="m-0">
                 Delay between requests: <span className="text-text">{runner.delayMs} ms</span>
@@ -392,7 +392,7 @@ export function CollectionRunner({ page }: Props): JSX.Element {
             </div>
           ) : (
             <>
-              <p className="m-0 text-[16px] mb-2">
+              <p className="m-0 mb-2">
                 {orderedRequests.length === 0
                   ? 'This target has no saved requests to run.'
                   : `${orderedRequests.length} request${orderedRequests.length === 1 ? '' : 's'} will run in sidebar order.`}
@@ -427,7 +427,7 @@ export function CollectionRunner({ page }: Props): JSX.Element {
               </FormGroup>
 
               <fieldset className="m-0 space-y-2 border-none p-0 mb-4" disabled={formDisabled}>
-                <legend className="mb-2 text-[16px] font-medium text-text">Environment</legend>
+                <legend className="mb-2 font-medium text-text">Environment</legend>
                 <FormGroup label="Use active environment" layout="checkbox">
                   <Radio
                     name="collection-runner-environment-mode"
@@ -461,7 +461,7 @@ export function CollectionRunner({ page }: Props): JSX.Element {
                 {runner.environmentMode === 'override' && (
                   <Select
                     id="collection-runner-environment"
-                    className="w-full cursor-pointer py-1 text-[16px]"
+                    className="w-full cursor-pointer py-1"
                     value={runner.environmentId ?? ''}
                     disabled={formDisabled}
                     onChange={(event) => {
@@ -519,7 +519,7 @@ export function CollectionRunner({ page }: Props): JSX.Element {
                 role="status"
                 aria-live="polite"
               >
-                <p className="m-0 text-[16px]">
+                <p className="m-0">
                   {runner.phase === 'running'
                     ? `Running ${runner.completed} of ${runner.total} requests…`
                     : `Finished: ${runner.summary.passed} passed, ${runner.summary.failed} failed${
@@ -541,13 +541,11 @@ export function CollectionRunner({ page }: Props): JSX.Element {
                       <div className="min-w-0">
                         <div className="flex min-w-0 items-center gap-1.5">
                           <span
-                            className={`shrink-0 px-1 py-px text-[16px] ${METHOD_CLASSES[result.requestMethod.toLowerCase()] ?? 'text-info'}`}
+                            className={`shrink-0 px-1 py-px ${METHOD_CLASSES[result.requestMethod.toLowerCase()] ?? 'text-info'}`}
                           >
                             {result.requestMethod}
                           </span>
-                          <p className="m-0 truncate text-[16px] font-medium text-text">
-                            {result.requestName}
-                          </p>
+                          <p className="m-0 truncate font-medium text-text">{result.requestName}</p>
                         </div>
                         {result.status !== 'pending' && result.status !== 'running' && (
                           <>

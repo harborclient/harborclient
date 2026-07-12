@@ -13,7 +13,7 @@ export function SyntaxPreviewExtra(): JSX.Element {
 
   return (
     <div className="flex flex-col gap-2 border border-separator p-4 mb-2">
-      <span className="text-[16px] font-medium text-text">Preview</span>
+      <span className="font-medium text-text">Preview</span>
       <CodeEditor
         value={PREVIEW_SAMPLE}
         readOnly

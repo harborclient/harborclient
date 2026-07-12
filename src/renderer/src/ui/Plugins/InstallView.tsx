@@ -156,19 +156,19 @@ export function InstallView({
 
         <div className="flex flex-col gap-4 border border-separator p-4 rounded-md">
           <div>
-            <Button type="button" className="w-full text-[16px]" onClick={onInstallFromFile}>
+            <Button type="button" className="w-full" onClick={onInstallFromFile}>
               Install from file
             </Button>
-            <p className="mt-1 text-[16px] text-muted">
+            <p className="mt-1 text-muted">
               Install a theme from a <code className="text-text">.hcp</code> package.
             </p>
           </div>
 
           <div>
-            <Button type="button" className="w-full text-[16px]" onClick={onLoadUnpacked}>
+            <Button type="button" className="w-full" onClick={onLoadUnpacked}>
               Install from directory
             </Button>
-            <p className="mt-1 text-[16px] text-muted">Install a {noun} from a directory.</p>
+            <p className="mt-1 text-muted">Install a {noun} from a directory.</p>
           </div>
         </div>
       </div>

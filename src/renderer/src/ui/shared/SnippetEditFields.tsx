@@ -151,7 +151,7 @@ export function SnippetEditFields({
   return (
     <div className={fillHeight ? 'flex min-h-0 flex-1 flex-col gap-4' : 'flex flex-col gap-4'}>
       <div className="flex shrink-0 flex-col gap-1">
-        <label className="text-[16px] font-medium text-text" htmlFor="snippet-name">
+        <label className="font-medium text-text" htmlFor="snippet-name">
           Name
         </label>
         <Input
@@ -163,7 +163,7 @@ export function SnippetEditFields({
           placeholder="Snippet name"
         />
         {importableName ? (
-          <p className="mt-1 text-[16px] text-muted">
+          <p className="mt-1 text-muted">
             Other scripts can import this snippet with{' '}
             <code className="text-text">{`import ... from './${draft.name.trim()}'`}</code>.
             Renaming may break those imports.
@@ -171,7 +171,7 @@ export function SnippetEditFields({
         ) : null}
       </div>
       <div className="flex shrink-0 flex-col gap-1">
-        <label className="text-[16px] font-medium text-text" htmlFor="snippet-scope">
+        <label className="font-medium text-text" htmlFor="snippet-scope">
           Request stage
         </label>
         <Select
@@ -189,7 +189,7 @@ export function SnippetEditFields({
         </Select>
       </div>
       <div className="flex shrink-0 flex-col gap-1">
-        <label className="text-[16px] font-medium text-text" htmlFor="snippet-stage">
+        <label className="font-medium text-text" htmlFor="snippet-stage">
           Stage
         </label>
         <Select
@@ -227,14 +227,14 @@ export function SnippetEditFields({
           </Select>
           {providersError ? <FieldError spacing="field">{providersError}</FieldError> : null}
           {!isNew ? (
-            <p className="mt-1 text-[16px] text-muted">
+            <p className="mt-1 text-muted">
               Changing the storage location moves this snippet to the selected database.
             </p>
           ) : null}
         </FormGroup>
       ) : null}
       <div className="flex min-h-0 flex-1 flex-col gap-1">
-        <label className="text-[16px] font-medium text-text" htmlFor="snippet-code">
+        <label className="font-medium text-text" htmlFor="snippet-code">
           JavaScript
         </label>
         <CodeEditor

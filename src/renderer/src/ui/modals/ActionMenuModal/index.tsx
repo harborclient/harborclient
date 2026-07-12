@@ -210,12 +210,12 @@ function SearchResultGroup({
                     />
                     {hit.method != null ? (
                       <span
-                        className={`shrink-0 px-1 py-px text-[16px] ${METHOD_CLASSES[hit.method.toLowerCase()] ?? 'text-info'}`}
+                        className={`shrink-0 px-1 py-px ${METHOD_CLASSES[hit.method.toLowerCase()] ?? 'text-info'}`}
                       >
                         {hit.method}
                       </span>
                     ) : null}
-                    <span className="min-w-0 flex-1 truncate text-[16px]">{hit.title}</span>
+                    <span className="min-w-0 flex-1 truncate">{hit.title}</span>
                   </span>
                 ) : hit.domain === 'plugin' || hit.domain === 'theme' ? (
                   <span className="flex min-w-0 w-full items-center gap-1">
@@ -225,10 +225,10 @@ function SearchResultGroup({
                       }
                       compact
                     />
-                    <span className="min-w-0 flex-1 truncate text-[16px]">{hit.title}</span>
+                    <span className="min-w-0 flex-1 truncate">{hit.title}</span>
                   </span>
                 ) : (
-                  <span className="min-w-0 w-full truncate text-[16px]">{hit.title}</span>
+                  <span className="min-w-0 w-full truncate">{hit.title}</span>
                 )}
               </button>
             </li>
@@ -294,7 +294,7 @@ function SlashCommandSuggestions({
                     aria-hidden
                   />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="truncate text-[16px]">{suggestion.label}</span>
+                    <span className="truncate">{suggestion.label}</span>
                     <span className="truncate text-[14px] text-muted">
                       {suggestion.description}
                     </span>
@@ -365,7 +365,7 @@ function ActionSuggestions({
                     aria-hidden
                   />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="truncate text-[16px]">{displayLabel}</span>
+                    <span className="truncate">{displayLabel}</span>
                     {suggestion.description != null && suggestion.description.length > 0 ? (
                       <span className="truncate text-[14px] text-muted">
                         {suggestion.description}
@@ -417,7 +417,7 @@ function ArmedSlashCommand({ resolved }: ArmedSlashCommandProps): JSX.Element {
                 aria-hidden
               />
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate text-[16px]">{resolved.command.label}</span>
+                <span className="truncate">{resolved.command.label}</span>
                 <span
                   className={`truncate text-[14px] ${resolved.argument.length > 0 ? 'text-text' : 'text-muted'}`}
                 >

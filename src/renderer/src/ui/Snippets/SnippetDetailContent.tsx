@@ -89,18 +89,18 @@ export function SnippetDetailContent({
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="flex flex-col gap-4">
-        <p className="m-0 text-[16px] text-muted">
+        <p className="m-0 text-muted">
           {entry.author} · v{entry.version}
         </p>
         {screenshotSrcs.length > 0 ? (
           <ScreenshotCarousel variant="tab" images={screenshotSrcs} />
         ) : null}
 
-        <p className="m-0 text-[16px] text-text">{entry.summary}</p>
+        <p className="m-0 text-text">{entry.summary}</p>
 
         <div>
-          <h3 className="m-0 mb-2 text-[16px] font-medium text-text">Included snippets</h3>
-          <ul className="m-0 list-disc pl-5 text-[16px] text-text">
+          <h3 className="m-0 mb-2 font-medium text-text">Included snippets</h3>
+          <ul className="m-0 list-disc pl-5 text-text">
             {(preview?.snippets ?? entry.snippets).map((snippet) => (
               <li key={`${snippet.name}-${snippet.file}`}>
                 {snippet.name} ({snippetScopeLabel(snippet.phase)} ·{' '}
@@ -111,13 +111,13 @@ export function SnippetDetailContent({
         </div>
 
         {previewLoadState === 'loading' ? (
-          <div className="flex items-center gap-2 text-[16px] text-muted" role="status">
+          <div className="flex items-center gap-2 text-muted" role="status">
             <Spinner className="h-4 w-4" />
             Loading README…
           </div>
         ) : null}
 
-        {previewError ? <p className="m-0 text-[16px] text-danger">{previewError}</p> : null}
+        {previewError ? <p className="m-0 text-danger">{previewError}</p> : null}
 
         <PluginReadmeMarkdown content={displayDescriptionMarkdown} />
       </div>

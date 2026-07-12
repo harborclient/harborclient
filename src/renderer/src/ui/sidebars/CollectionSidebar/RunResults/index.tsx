@@ -185,7 +185,7 @@ export function RunResults(): JSX.Element {
           >
             <Button
               variant="toolbar"
-              className="flex min-w-0 flex-1 items-center gap-2 py-0.5 text-left text-[16px] text-text hover:bg-transparent"
+              className="flex min-w-0 flex-1 items-center gap-2 py-0.5 text-left text-text hover:bg-transparent"
               data-sidebar-run-result-id={runResult.id}
               title={`${runResult.label} — ${rowDate}`}
               aria-label={runResultAriaLabel(runResult.label, rowDate, method, summaryText)}
@@ -204,7 +204,7 @@ export function RunResults(): JSX.Element {
                 </span>
               ) : null}
               <span className="flex min-w-0 flex-1 items-center gap-1.5">
-                <span className="min-w-0 truncate text-[16px] text-text">{runResult.label}</span>
+                <span className="min-w-0 truncate text-text">{runResult.label}</span>
                 {showStorageLocationBadges && connectionName != null ? (
                   <span
                     className="shrink-0 rounded bg-info/15 px-1.5 py-0.5 text-[11px] font-medium text-info"

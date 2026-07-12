@@ -10,7 +10,7 @@ export function GeneralInfoExtra(): JSX.Element {
       <span className="text-[18px] font-medium text-text">
         <SettingLabel settingId="general.settings">General</SettingLabel>
       </span>
-      <p className="m-0 mb-4 text-[16px] text-muted">
+      <p className="m-0 mb-4 text-muted">
         These defaults apply to outbound HTTP requests sent from HarborClient. Control how long
         requests and pre/post scripts may run, how large responses may be, whether TLS certificates
         are verified, and whether redirects are followed automatically. You can also choose whether

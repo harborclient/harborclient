@@ -70,7 +70,7 @@ export function VariablesPanel({
           folder, or environment.
         </EmptyState>
       ) : (
-        <table className="w-full border-collapse text-[16px]">
+        <table className="w-full border-collapse">
           <caption className="sr-only">Variables in scope for this request</caption>
           <colgroup>
             <col />

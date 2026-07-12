@@ -327,7 +327,7 @@ export function Footer({
               triggerLabel={activeEnvironmentName ?? 'Environment'}
               triggerTitle={activeEnvironmentName ?? 'Environment'}
               triggerAriaLabel="Select environment"
-              triggerClassName="hc-footer-button w-[10rem] min-w-[10rem] justify-start gap-1 overflow-hidden rounded-md border-none bg-transparent px-2 py-0.5 text-left text-[16px] text-muted hover:bg-transparent hover:text-text"
+              triggerClassName="hc-footer-button w-[10rem] min-w-[10rem] justify-start gap-1 overflow-hidden rounded-md border-none bg-transparent px-2 py-0.5 text-left text-muted hover:bg-transparent hover:text-text"
               groups={environmentMenuGroups}
             />
             <FooterButton

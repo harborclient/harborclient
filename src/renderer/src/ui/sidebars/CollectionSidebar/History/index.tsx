@@ -226,7 +226,7 @@ export function History(): JSX.Element {
           >
             <Button
               variant="toolbar"
-              className="flex min-w-0 flex-1 items-center gap-2 py-0.5 text-left text-[16px] text-text hover:bg-transparent"
+              className="flex min-w-0 flex-1 items-center gap-2 py-0.5 text-left text-text hover:bg-transparent"
               title={`${rowTitle} — ${rowDate}`}
               aria-label={historyEntryAriaLabel(entry)}
               aria-selected={selected ? 'true' : undefined}
@@ -242,7 +242,7 @@ export function History(): JSX.Element {
                 {entry.method}
               </span>
               <span className="flex min-w-0 flex-1 items-center gap-1.5">
-                <span className="min-w-0 truncate text-[16px] text-text">{normalized.name}</span>
+                <span className="min-w-0 truncate text-text">{normalized.name}</span>
                 {isRun ? (
                   <FaIcon
                     icon={faPersonRunning}

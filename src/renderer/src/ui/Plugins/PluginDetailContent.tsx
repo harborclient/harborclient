@@ -239,16 +239,16 @@ export function PluginDetailContent(props: Props): JSX.Element {
       ) : null}
 
       {props.mode === 'catalog' && props.previewError ? (
-        <p className="m-0 mb-4 text-[16px] text-danger" role="alert">
+        <p className="m-0 mb-4 text-danger" role="alert">
           {props.previewError}
         </p>
       ) : null}
 
-      {summary ? <p className="m-0 mb-2 text-[16px] text-text">{summary}</p> : null}
+      {summary ? <p className="m-0 mb-2 text-text">{summary}</p> : null}
       {details?.homepage && details?.bugsUrl ? (
         <>
           <div className="mt-4 border-t border-separator pt-4"></div>
-          <div className="mb-2 flex flex-wrap gap-3 text-[16px]">
+          <div className="mb-2 flex flex-wrap gap-3">
             {details?.homepage ? (
               <a
                 href={details.homepage}
@@ -277,7 +277,7 @@ export function PluginDetailContent(props: Props): JSX.Element {
 
       <div className="mt-4 border-t border-separator pt-4"></div>
 
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[16px]">
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
         <dt className="text-muted">Version</dt>
         <dd className="m-0 text-text">{version}</dd>
         <dt className="text-muted">Publisher</dt>
@@ -320,10 +320,10 @@ export function PluginDetailContent(props: Props): JSX.Element {
 
       {details && details.permissions.length > 0 ? (
         <div className="mt-4 border-t border-separator pt-4">
-          <h3 className="m-0 mb-2 text-[16px] font-medium text-text">Permissions</h3>
+          <h3 className="m-0 mb-2 font-medium text-text">Permissions</h3>
           <ul className="m-0 flex list-none flex-col gap-2 p-0">
             {details.permissions.map((permission) => (
-              <li key={permission} className="flex items-start gap-2 text-[16px] text-text">
+              <li key={permission} className="flex items-start gap-2 text-text">
                 <Badge variant="warning" className="shrink-0">
                   {PERMISSION_NAMES[permission] ?? permission}
                 </Badge>
@@ -336,8 +336,8 @@ export function PluginDetailContent(props: Props): JSX.Element {
         props.previewLoadState === 'loaded' &&
         !details?.permissions.length ? (
         <div className="mt-4 border-t border-separator pt-4">
-          <h3 className="m-0 mb-2 text-[16px] font-medium text-text">Permissions</h3>
-          <p className="m-0 text-[16px] text-muted">No permissions declared.</p>
+          <h3 className="m-0 mb-2 font-medium text-text">Permissions</h3>
+          <p className="m-0 text-muted">No permissions declared.</p>
         </div>
       ) : null}
 
@@ -345,7 +345,7 @@ export function PluginDetailContent(props: Props): JSX.Element {
         <div className="mt-4 border-t border-separator border-t-2 pt-4">
           {descriptionLoadState === 'loading' ? (
             <div
-              className="flex items-center gap-2 text-[16px] text-muted"
+              className="flex items-center gap-2 text-muted"
               role="status"
               aria-label="Loading description"
             >
@@ -355,7 +355,7 @@ export function PluginDetailContent(props: Props): JSX.Element {
               <span>Loading description…</span>
             </div>
           ) : descriptionLoadState === 'error' ? (
-            <p className="m-0 text-[16px] text-danger" role="alert">
+            <p className="m-0 text-danger" role="alert">
               Could not load the plugin description.
             </p>
           ) : displayDescriptionMarkdown ? (

@@ -126,7 +126,7 @@ export function RequestTagsInput({ value, onChange }: Props): JSX.Element {
 
   return (
     <FormGroup label="Tags" htmlFor={REQUEST_TAGS_INPUT_ID} className="mb-2 shrink-0">
-      <p id={REQUEST_TAGS_DESCRIPTION_ID} className="text-sm text-[16px] text-muted">
+      <p id={REQUEST_TAGS_DESCRIPTION_ID} className="text-sm text-muted">
         Tags are used to categorize requests and make them easier to find.
       </p>
       <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-separator bg-field px-2 py-1.5 focus-within:outline focus-within:outline-2 focus-within:outline-offset-[-2px] focus-within:outline-accent">

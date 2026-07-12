@@ -319,7 +319,7 @@ export function StorageLocationsSection(): JSX.Element {
             <FieldError spacing="section">{error}</FieldError>
           )}
 
-          <p className="mb-0 mt-4 text-[16px] text-muted">
+          <p className="mb-0 mt-4 text-muted">
             Connection changes take effect after restarting HarborClient. All configured storage
             locations are opened at launch so shared collections are available immediately.
           </p>

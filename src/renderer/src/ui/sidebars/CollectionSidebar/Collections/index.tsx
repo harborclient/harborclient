@@ -736,12 +736,10 @@ export function Collections(): JSX.Element {
         }}
       >
         {collections.length === 0 && (
-          <div className="px-2 py-1.5 text-[16px] text-muted">No collections yet</div>
+          <div className="px-2 py-1.5 text-muted">No collections yet</div>
         )}
         {searchActive && collections.length > 0 && collectionTrees.length === 0 && (
-          <div className="px-2 py-1.5 text-[16px] text-muted">
-            No matching collections or requests
-          </div>
+          <div className="px-2 py-1.5 text-muted">No matching collections or requests</div>
         )}
 
         <SortableContext items={collectionIds} strategy={verticalListSortingStrategy}>
@@ -808,7 +806,7 @@ export function Collections(): JSX.Element {
                     </button>
                     <button
                       type="button"
-                      className="ml-0.5 min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left text-[16px] leading-none text-inherit app-no-drag"
+                      className="ml-0.5 min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left leading-none text-inherit app-no-drag"
                       data-sidebar-collection-id={collection.id}
                       aria-current={selected ? 'true' : undefined}
                       onClick={() => handleCollectionNameClick(collection.id, expanded)}
@@ -837,7 +835,7 @@ export function Collections(): JSX.Element {
                       gitStatus.changedCount > 0 && (
                         <button
                           type="button"
-                          className="shrink-0 cursor-pointer rounded bg-warning/20 px-1.5 py-0.5 text-[16px] font-medium text-warning hover:bg-warning/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent app-no-drag"
+                          className="shrink-0 cursor-pointer rounded bg-warning/20 px-1.5 py-0.5 font-medium text-warning hover:bg-warning/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent app-no-drag"
                           aria-label={`Open source control (${gitStatus.changedCount} uncommitted change(s))`}
                           onPointerDown={stopSortableDragPointerDown}
                           onClick={() =>
@@ -993,7 +991,7 @@ export function Collections(): JSX.Element {
                           rootItems.length === 0 &&
                           rootDocuments.length === 0 && (
                             <div className="px-1.5 py-0">
-                              <span className="text-[16px] text-muted">No saved requests</span>
+                              <span className="text-muted">No saved requests</span>
                             </div>
                           )}
 
@@ -1014,16 +1012,12 @@ export function Collections(): JSX.Element {
                           }
                         >
                           {isSidebarItemDragInCollection && dropTargetFolderId === null && (
-                            <div className="px-2 pb-0.5 text-[16px] text-info">
-                              Drop at collection root
-                            </div>
+                            <div className="px-2 pb-0.5 text-info">Drop at collection root</div>
                           )}
                           {isDraggingSidebarItemHere &&
                             rootItems.length === 0 &&
                             rootDocuments.length === 0 && (
-                              <div className="px-2 py-1.5 text-[16px] text-muted">
-                                Collection root
-                              </div>
+                              <div className="px-2 py-1.5 text-muted">Collection root</div>
                             )}
                           <SortableContext
                             items={rootItemIds}
@@ -1165,7 +1159,7 @@ export function Collections(): JSX.Element {
                                     </button>
                                     <button
                                       type="button"
-                                      className="ml-0.5 min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left text-[16px] font-medium leading-none text-inherit app-no-drag"
+                                      className="ml-0.5 min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left font-medium leading-none text-inherit app-no-drag"
                                       aria-current={folderSelected ? 'true' : undefined}
                                       onClick={() =>
                                         handleFolderNameClick(
@@ -1186,7 +1180,7 @@ export function Collections(): JSX.Element {
                                     >
                                       {folder.name}
                                       {folderHighlighted && (
-                                        <span className="ml-1.5 text-[16px] font-normal text-info">
+                                        <span className="ml-1.5 font-normal text-info">
                                           Drop here
                                         </span>
                                       )}
@@ -1396,7 +1390,7 @@ export function Collections(): JSX.Element {
                                     </SortableContext>
                                     {folderItems.length === 0 && folderDocuments.length === 0 && (
                                       <div className="px-1.5 py-0">
-                                        <span className="text-[16px] text-muted">Empty folder</span>
+                                        <span className="text-muted">Empty folder</span>
                                       </div>
                                     )}
                                   </div>
@@ -1413,16 +1407,16 @@ export function Collections(): JSX.Element {
                         activeDragRequest ? (
                           <div className="flex items-center gap-1.5 rounded border border-separator bg-surface px-2 py-1 shadow-md">
                             <span
-                              className={`shrink-0 px-1 py-px text-[16px] ${METHOD_CLASSES[activeDragRequest.method.toLowerCase()] ?? 'text-info'}`}
+                              className={`shrink-0 px-1 py-px ${METHOD_CLASSES[activeDragRequest.method.toLowerCase()] ?? 'text-info'}`}
                             >
                               {activeDragRequest.method}
                             </span>
-                            <span className="truncate text-[16px]">{activeDragRequest.name}</span>
+                            <span className="truncate">{activeDragRequest.name}</span>
                           </div>
                         ) : dragCollectionId === collection.id &&
                           activeDragKind === 'folder' &&
                           activeDragFolder ? (
-                          <div className="rounded border border-separator bg-surface px-2 py-1 text-[16px] font-medium shadow-md">
+                          <div className="rounded border border-separator bg-surface px-2 py-1 font-medium shadow-md">
                             {activeDragFolder.name}
                           </div>
                         ) : null}
@@ -1438,7 +1432,7 @@ export function Collections(): JSX.Element {
 
       <DragOverlay dropAnimation={null}>
         {activeDragCollection ? (
-          <div className="rounded border border-separator bg-surface px-2 py-1 text-[16px] font-medium shadow-md">
+          <div className="rounded border border-separator bg-surface px-2 py-1 font-medium shadow-md">
             {activeDragCollection.name}
           </div>
         ) : null}

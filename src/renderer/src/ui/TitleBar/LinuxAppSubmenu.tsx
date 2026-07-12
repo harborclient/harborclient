@@ -133,8 +133,8 @@ export function LinuxAppSubmenu({ label, items, position, onClose }: Props): JSX
         }
 
         const itemClass = item.enabled
-          ? 'flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left text-[16px] text-text hover:bg-selection app-no-drag'
-          : 'flex w-full cursor-default items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left text-[16px] text-text-secondary opacity-60 app-no-drag';
+          ? 'flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left text-text hover:bg-selection app-no-drag'
+          : 'flex w-full cursor-default items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left text-text-secondary opacity-60 app-no-drag';
 
         return (
           <button
@@ -156,9 +156,7 @@ export function LinuxAppSubmenu({ label, items, position, onClose }: Props): JSX
             </span>
             <span className="min-w-0 flex-1 truncate">{item.label}</span>
             {item.accelerator ? (
-              <span className="shrink-0 pl-4 text-[16px] text-text-secondary">
-                {item.accelerator}
-              </span>
+              <span className="shrink-0 pl-4 text-text-secondary">{item.accelerator}</span>
             ) : null}
           </button>
         );

@@ -258,11 +258,11 @@ export function RequestRow({
         onClick={(event) => onRowClick(req, event)}
       >
         <span
-          className={`shrink-0 px-1 py-px text-[16px] ${METHOD_CLASSES[req.method.toLowerCase()] ?? 'text-info'}`}
+          className={`shrink-0 px-1 py-px ${METHOD_CLASSES[req.method.toLowerCase()] ?? 'text-info'}`}
         >
           {req.method}
         </span>
-        <span className="truncate text-[16px]">{req.name}</span>
+        <span className="truncate">{req.name}</span>
       </button>
       <div className="shrink-0" onPointerDown={stopSortableDragPointerDown}>
         <RowActionsMenu

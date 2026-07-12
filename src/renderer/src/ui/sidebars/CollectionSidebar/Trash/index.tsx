@@ -179,10 +179,8 @@ export function Trash(): JSX.Element {
                 });
               }}
             >
-              <span className="min-w-0 flex-1 truncate text-[16px] text-text">{item.label}</span>
-              <span className="shrink-0 text-[16px] text-muted">
-                {trashEntityTypeLabel(item.entityType)}
-              </span>
+              <span className="min-w-0 flex-1 truncate text-text">{item.label}</span>
+              <span className="shrink-0 text-muted">{trashEntityTypeLabel(item.entityType)}</span>
             </Button>
             <RowActionsMenu
               menuId={menuId}

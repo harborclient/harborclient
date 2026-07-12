@@ -74,7 +74,7 @@ export function AiChat({ aiSettings }: Props): JSX.Element {
             className="flex flex-col items-center gap-3 text-muted"
           >
             <FaIcon icon={faComment} className="h-12 w-12" aria-hidden />
-            <p className="m-0 text-[16px]">Open or create a chat to begin.</p>
+            <p className="m-0">Open or create a chat to begin.</p>
           </div>
         </div>
       )}

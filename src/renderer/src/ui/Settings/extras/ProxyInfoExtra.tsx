@@ -10,7 +10,7 @@ export function ProxyInfoExtra(): JSX.Element {
       <span className="text-[18px] font-medium text-text">
         <SettingLabel settingId="proxy.settings">HTTP Proxy</SettingLabel>
       </span>
-      <p className="m-0 mb-4 text-[16px] text-muted">
+      <p className="m-0 mb-4 text-muted">
         When enabled, HarborClient routes all outbound HTTP requests through the configured proxy
         server. Connect using HTTP or HTTPS, and turn on basic authentication when your network
         requires a username and password. Proxy settings are stored locally on this machine.

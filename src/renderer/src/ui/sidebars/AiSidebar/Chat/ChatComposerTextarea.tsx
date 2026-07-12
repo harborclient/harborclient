@@ -313,7 +313,7 @@ export function ChatComposerTextarea({
         }}
         minHeight={`${minHeightPx}px`}
         maxHeight={`${COMPOSER_MAX_HEIGHT_PX}px`}
-        className={`relative w-full text-[16px] text-text ${className}`.trim()}
+        className={`relative w-full text-text ${className}`.trim()}
         extensions={extensions}
         onCreateEditor={(view) => {
           view.dispatch({

@@ -237,7 +237,7 @@ function SidebarContent(): JSX.Element {
             />
             <Scrollbars axis="vertical" className="flex-1 min-h-0 pr-2 pb-3">
               {searchLoading ? (
-                <p className="mt-1.5 text-[16px] text-muted" role="status">
+                <p className="mt-1.5 text-muted" role="status">
                   Loading…
                 </p>
               ) : null}

@@ -84,7 +84,7 @@ export function DocumentRow({
         onDoubleClick={() => onRenameDocument(doc)}
       >
         <FaIcon icon={faMarkdown} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
-        <span className="truncate text-[16px]">{doc.name}</span>
+        <span className="truncate">{doc.name}</span>
       </button>
       <div className="shrink-0">
         <RowActionsMenu

@@ -279,11 +279,9 @@ export function Environments(): JSX.Element {
           }
         }}
       >
-        {noMatches && (
-          <div className="px-2 py-1.5 text-[16px] text-muted">No matching environments</div>
-        )}
+        {noMatches && <div className="px-2 py-1.5 text-muted">No matching environments</div>}
         {!noMatches && environments.length === 0 && (
-          <div className="px-2 py-1.5 text-[16px] text-muted">No environments yet</div>
+          <div className="px-2 py-1.5 text-muted">No environments yet</div>
         )}
 
         <SortableContext items={environmentIds} strategy={verticalListSortingStrategy}>
@@ -336,8 +334,8 @@ export function Environments(): JSX.Element {
                     focusEnvironmentSettings();
                   }}
                 >
-                  <span className="min-w-0 flex-1 truncate text-[16px]">{environment.name}</span>
-                  <span className="shrink-0 text-[16px] text-muted">{variableSummary}</span>
+                  <span className="min-w-0 flex-1 truncate">{environment.name}</span>
+                  <span className="shrink-0 text-muted">{variableSummary}</span>
                 </button>
                 <div className="shrink-0" onPointerDown={stopSortableDragPointerDown}>
                   <RowActionsMenu
@@ -432,7 +430,7 @@ export function Environments(): JSX.Element {
 
       <DragOverlay dropAnimation={null}>
         {activeDragEnvironment ? (
-          <div className="rounded border border-separator bg-surface px-2 py-1 text-[16px] font-medium shadow-md">
+          <div className="rounded border border-separator bg-surface px-2 py-1 font-medium shadow-md">
             {activeDragEnvironment.name}
           </div>
         ) : null}

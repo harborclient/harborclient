@@ -176,14 +176,14 @@ export function McpPanel({ open, onClose, onStatusChange }: Props): JSX.Element 
       title="MCP Server"
     >
       {loading || !serverSettings ? (
-        <p className="m-0 p-4 text-[16px] text-muted" role="status">
+        <p className="m-0 p-4 text-muted" role="status">
           Loading MCP settings…
         </p>
       ) : (
         <form className="flex min-h-0 flex-1 flex-col" onSubmit={handleSubmit}>
           <div className="min-h-0 flex-1 overflow-auto p-4">
             {error ? (
-              <p className="m-0 mb-4 text-[16px] text-danger" role="alert">
+              <p className="m-0 mb-4 text-danger" role="alert">
                 {error}
               </p>
             ) : null}

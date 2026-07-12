@@ -103,9 +103,7 @@ function createMarkdownComponents(
     ),
     hr: () => <hr className={styles.hr} />,
     h1: ({ children }) => (
-      <h1 className="mb-2 text-[16px] font-semibold last:mb-0">
-        {withScriptRefs(children, context, variant)}
-      </h1>
+      <h1 className="mb-2 font-semibold last:mb-0">{withScriptRefs(children, context, variant)}</h1>
     ),
     h2: ({ children }) => (
       <h2 className="mb-2 text-[15px] font-semibold last:mb-0">

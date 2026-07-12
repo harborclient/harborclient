@@ -147,7 +147,7 @@ function ChatHistoryRow({
     <div className="group relative mx-1 flex items-center rounded-md hover:bg-selection focus-within:bg-selection">
       <button
         type="button"
-        className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 truncate border-none bg-transparent px-2 py-2 text-left text-[16px] text-text app-no-drag"
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 truncate border-none bg-transparent px-2 py-2 text-left text-text app-no-drag"
         onClick={() => onOpenChat(chat.id)}
       >
         <FaIcon icon={faComment} className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -192,7 +192,7 @@ function ChatHistoryShowMoreButton({
     <button
       type="button"
       aria-label={label}
-      className="mx-1 mt-1 w-[calc(100%-0.5rem)] cursor-pointer rounded-md border-none bg-transparent px-2 py-1.5 text-left text-[16px] text-accent hover:bg-selection app-no-drag"
+      className="mx-1 mt-1 w-[calc(100%-0.5rem)] cursor-pointer rounded-md border-none bg-transparent px-2 py-1.5 text-left text-accent hover:bg-selection app-no-drag"
       onClick={onClick}
     >
       Show more
@@ -211,7 +211,7 @@ function ChatHistoryGroupSection({
 }: ChatHistoryGroupSectionProps): JSX.Element {
   return (
     <section aria-label={group.label}>
-      <h3 className="sticky top-0 z-10 bg-sidebar-section px-3 py-2 text-[16px] font-medium text-muted">
+      <h3 className="sticky top-0 z-10 bg-sidebar-section px-3 py-2 font-medium text-muted">
         {group.label}
       </h3>
       {group.chats.map((chat) => (

@@ -1656,10 +1656,7 @@ function SortableScriptRow({
         {isFullScreen ? (
           <>
             <div className="flex shrink-0 items-center justify-between gap-3 pb-3">
-              <h2
-                id={fullScreenTitleId}
-                className="m-0 min-w-0 truncate text-[16px] font-medium text-text"
-              >
+              <h2 id={fullScreenTitleId} className="m-0 min-w-0 truncate font-medium text-text">
                 {label}
               </h2>
               <Button type="button" onClick={exitFullScreen} aria-label="Exit full screen">

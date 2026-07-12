@@ -65,7 +65,7 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
         content: (
           <>
             <FaIcon icon={faComment} className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            <span className="truncate text-[16px]">{chat.title}</span>
+            <span className="truncate">{chat.title}</span>
           </>
         )
       })),

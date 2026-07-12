@@ -77,7 +77,7 @@ export function SaveModal({ open, onClose, onSave }: Props): JSX.Element | null 
       <FormGroup label="Storage location" htmlFor={providerSelectId}>
         <Select
           id={providerSelectId}
-          className="w-full cursor-pointer py-1 text-[16px]"
+          className="w-full cursor-pointer py-1"
           value={resolvedConnectionId}
           disabled={providersLoading || providers.length === 0}
           onChange={(event) => setConnectionId(event.target.value)}

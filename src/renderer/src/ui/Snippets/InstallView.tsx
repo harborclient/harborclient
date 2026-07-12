@@ -88,13 +88,13 @@ export function InstallView({
           <div>
             <Button
               type="button"
-              className="w-full text-[16px]"
+              className="w-full"
               disabled={fileInstallBusy}
               onClick={onInstallFromFile}
             >
               {fileInstallBusy ? 'Installing…' : 'Install from file'}
             </Button>
-            <p className="mt-1 text-[16px] text-muted">
+            <p className="mt-1 text-muted">
               Install a snippet bundle from a <code className="text-text">.hcs</code> package.
             </p>
           </div>
@@ -102,13 +102,13 @@ export function InstallView({
           <div>
             <Button
               type="button"
-              className="w-full text-[16px]"
+              className="w-full"
               disabled={directoryInstallBusy}
               onClick={onLoadUnpacked}
             >
               {directoryInstallBusy ? 'Installing…' : 'Install from directory'}
             </Button>
-            <p className="mt-1 text-[16px] text-muted">
+            <p className="mt-1 text-muted">
               Install a snippet bundle from a directory containing snippets.json.
             </p>
           </div>

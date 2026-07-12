@@ -177,7 +177,7 @@ export function SnippetDetailPage({ page, tabId }: Props): JSX.Element {
       actions={headerActions}
     >
       {isLoading ? (
-        <div className="flex items-center gap-2 text-[16px] text-muted" role="status">
+        <div className="flex items-center gap-2 text-muted" role="status">
           <Spinner size="sm" />
           <span>Loading…</span>
         </div>

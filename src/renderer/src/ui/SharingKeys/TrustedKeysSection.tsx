@@ -135,7 +135,7 @@ export function TrustedKeysSection(): JSX.Element {
     >
       <div className="mb-4 p-3 flex flex-col gap-4">
         <FormGroup label="Label">
-          <p className="mb-0 text-[16px] mb-2 text-muted">
+          <p className="mb-0 mb-2 text-muted">
             Add a label for the public key to help you identify it.
           </p>
           <Input
@@ -149,9 +149,7 @@ export function TrustedKeysSection(): JSX.Element {
         </FormGroup>
 
         <FormGroup label="Public key (PEM)">
-          <p className="mb-0 text-[16px] mb-2 text-muted">
-            The public key to add as a trusted key.
-          </p>
+          <p className="mb-0 mb-2 text-muted">The public key to add as a trusted key.</p>
           <Textarea
             className="mb-3 min-h-24 w-full resize-y font-mono text-[14px]"
             placeholder="-----BEGIN PUBLIC KEY-----"

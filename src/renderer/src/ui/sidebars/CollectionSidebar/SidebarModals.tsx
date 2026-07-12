@@ -425,7 +425,7 @@ export function SidebarModalsProvider({ children }: ProviderProps): JSX.Element 
             </SegmentedTabPanel>
 
             <SegmentedTabPanel value="import">
-              <p className="mb-4 text-[16px] text-muted">
+              <p className="mb-4 text-muted">
                 Choose a HarborClient environment export (.json) to import variables and settings.
               </p>
               <ModalFooter>

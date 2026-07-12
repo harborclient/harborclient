@@ -356,12 +356,12 @@ export function PluginDetailPage({ page, tabId }: Props): JSX.Element {
         }
       >
         {isLoading ? (
-          <div className="flex items-center gap-2 text-[16px] text-muted" role="status">
+          <div className="flex items-center gap-2 text-muted" role="status">
             <Spinner size="sm" />
             <span>Loading…</span>
           </div>
         ) : catalogError && page.source === 'catalog' ? (
-          <p className="m-0 text-[16px] text-danger" role="alert">
+          <p className="m-0 text-danger" role="alert">
             {catalogError}
           </p>
         ) : (

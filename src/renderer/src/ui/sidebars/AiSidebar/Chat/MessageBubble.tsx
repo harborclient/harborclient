@@ -17,13 +17,7 @@ export function MessageBubble({ message }: Props): JSX.Element {
   const isUser = message.role === 'user';
 
   return (
-    <div
-      className={
-        isUser
-          ? `${fieldFrame} w-full p-3 text-[16px] text-text`
-          : 'w-full p-3 text-[16px] text-text'
-      }
-    >
+    <div className={isUser ? `${fieldFrame} w-full p-3 text-text` : 'w-full p-3 text-text'}>
       <MarkdownContent content={message.content} variant={isUser ? 'user' : 'assistant'} />
     </div>
   );

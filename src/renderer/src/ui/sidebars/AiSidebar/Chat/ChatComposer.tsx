@@ -162,7 +162,7 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
           <Select
             id="ai-chat-model"
             variant="plain"
-            className="min-w-0 cursor-pointer truncate border-none bg-transparent py-0 text-[16px] text-muted"
+            className="min-w-0 cursor-pointer truncate border-none bg-transparent py-0 text-muted"
             value={modelId}
             disabled={chatId == null || availableModels.length === 0}
             aria-label="AI model"

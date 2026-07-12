@@ -43,7 +43,7 @@ function TimingPhaseRowView({
 
   return (
     <div className="grid grid-cols-[minmax(140px,220px)_1fr_72px] items-center gap-3 py-1.5">
-      <span className="text-[16px] text-text">{row.label}</span>
+      <span className="text-text">{row.label}</span>
       <div
         className="relative h-5 rounded-sm bg-control"
         role="img"
@@ -57,9 +57,7 @@ function TimingPhaseRowView({
           }}
         />
       </div>
-      <span className="text-right font-mono text-[16px] text-text-secondary">
-        {row.durationMs} ms
-      </span>
+      <span className="text-right font-mono text-text-secondary">{row.durationMs} ms</span>
     </div>
   );
 }
@@ -108,7 +106,7 @@ export function Timing({ response }: Props): JSX.Element {
 
   return (
     <div className="flex flex-col gap-4 p-1">
-      <div className="flex flex-wrap items-center gap-4 text-[16px] text-text">
+      <div className="flex flex-wrap items-center gap-4 text-text">
         <span>
           Total time: <span className="font-mono text-text-secondary">{response.timeMs} ms</span>
         </span>
@@ -119,13 +117,13 @@ export function Timing({ response }: Props): JSX.Element {
       </div>
 
       {rows.length === 0 ? (
-        <p className="m-0 text-[16px] text-muted">Phase timing is unavailable for this response.</p>
+        <p className="m-0 text-muted">Phase timing is unavailable for this response.</p>
       ) : (
         <>
           <div className="grid grid-cols-[minmax(140px,220px)_1fr_72px] items-center gap-3 border-b border-separator pb-1">
             <span className="sr-only">Phase</span>
             <span className="sr-only">Waterfall</span>
-            <span className="text-left text-[16px] font-medium uppercase tracking-wide text-muted">
+            <span className="text-left font-medium uppercase tracking-wide text-muted">
               Duration
             </span>
           </div>

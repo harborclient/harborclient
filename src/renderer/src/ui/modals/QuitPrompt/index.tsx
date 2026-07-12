@@ -53,7 +53,7 @@ function QuitPromptContent({ dirtyTabNames, dispatch }: QuitPromptContentProps):
 
   return (
     <Modal onClose={handleCancel} labelledBy="quit-prompt-title" title="Unsaved changes">
-      <p className="mb-4 text-[16px] text-muted">
+      <p className="mb-4 text-muted">
         {dirtyTabNames.length === 1 ? (
           <>&ldquo;{dirtyTabNames[0]}&rdquo; has unsaved changes. Quit without saving?</>
         ) : (
@@ -66,7 +66,7 @@ function QuitPromptContent({ dirtyTabNames, dispatch }: QuitPromptContentProps):
           checked={dontAskAgain}
           onChange={(event) => setDontAskAgain(event.target.checked)}
         />
-        <label htmlFor={QUIT_PROMPT_CHECKBOX_ID} className="text-[16px] text-muted">
+        <label htmlFor={QUIT_PROMPT_CHECKBOX_ID} className="text-muted">
           Don&apos;t show this again
         </label>
       </div>

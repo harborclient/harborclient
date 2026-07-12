@@ -198,9 +198,7 @@ function createGettingStartedMarkdownComponents(options: MarkdownComponentOption
         {children}
       </h2>
     ),
-    h3: ({ children }) => (
-      <h3 className="mt-5 mb-3 text-[16px] font-semibold first:mt-0">{children}</h3>
-    ),
+    h3: ({ children }) => <h3 className="mt-5 mb-3 font-semibold first:mt-0">{children}</h3>,
     h4: ({ children }) => (
       <h4 className="mt-4 mb-2 text-[14px] font-semibold first:mt-0">{children}</h4>
     ),
@@ -337,7 +335,7 @@ export function GettingStartedPage({
               Document not found: {currentDocPath}
             </p>
           ) : (
-            <div className="break-words text-[16px] leading-relaxed text-text [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+            <div className="break-words leading-relaxed text-text [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
                 {content}
               </ReactMarkdown>

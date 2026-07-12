@@ -62,7 +62,8 @@ style, and path aliases.
 Never use native browser dialogs (`alert`, `confirm`, `prompt`) in the renderer.
 They block the Electron renderer thread and break visual consistency.
 
-- Never use 14px text sizes. Always choose 16px.
+- Default body text inherits 16px from `body`; use `text-[14px]` or `text-[15px]` only
+  for intentionally compact secondary UI (metadata, badges, tabs).
 - Use custom modals built on [`Modal`](src/renderer/src/components/Modal/index.tsx) for
   blocking messages and confirmations (`AlertModal`, `ConfirmModal`, or
   feature-specific dialogs like `QuitPrompt`).
@@ -137,9 +138,11 @@ detailed audit of known gaps and proposed fixes.
 - Respect `prefers-reduced-motion` for animations and spinners.
 - **Minimum font size:** Never use font sizes below **14px** in renderer UI.
   Avoid `text-[11px]`, `text-[12px]`, `text-[13px]`, `text-xs`, and `prose-sm`
-  (Typography’s `sm` preset can render nested elements smaller than 14px). Use
-  `text-[16px]` as the minimum for labels, body text, badges, and metadata.
-  Headings may be larger.
+  (Typography’s `sm` preset can render nested elements smaller than 14px).
+  Default body text inherits **16px** from `body` (set in `@harborclient/sdk/styles.css`);
+  do not add `text-[16px]` for ordinary labels, body text, or metadata. Use
+  `text-[14px]` or `text-[15px]` only when a smaller tier is intentional.
+  Headings may be larger (`text-[18px]`, `text-[20px]`, etc.).
 
 When fixing existing UI, prefer improving shared primitives (`Modal`,
 `SegmentedTabs`, `VariableInput`, shared button classes) so one change lifts

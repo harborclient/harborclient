@@ -231,7 +231,7 @@ export function ScriptAskModal({
             placeholder="Ask a short question…"
             aria-label="Script question"
             disabled={sending}
-            className={`min-h-[72px] w-full resize-none px-2.5 py-1.5 text-[16px] ${fieldFrame}`}
+            className={`min-h-[72px] w-full resize-none px-2.5 py-1.5 ${fieldFrame}`}
             onChange={(event) => {
               setDraft(event.target.value);
               setError(null);

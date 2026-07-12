@@ -157,7 +157,7 @@ export function HeaderNameLink({ headerName }: Props): JSX.Element {
         id={tooltipId}
         role="tooltip"
         style={tooltipStyle}
-        className={`pointer-events-none fixed z-50 max-w-sm rounded-md border border-separator bg-surface p-2.5 text-[16px] shadow-md transition-opacity motion-reduce:transition-none ${
+        className={`pointer-events-none fixed z-50 max-w-sm rounded-md border border-separator bg-surface p-2.5 shadow-md transition-opacity motion-reduce:transition-none ${
           isFallback ? 'text-muted' : 'text-text'
         } ${tooltipOpen ? 'visible opacity-100' : 'invisible opacity-0'}`}
       >

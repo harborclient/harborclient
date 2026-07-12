@@ -66,7 +66,7 @@ export function ConfirmationsTable(): JSX.Element {
                 onChange={handleToggleAll}
               />
             </th>
-            <th scope="col" className="px-3 py-2 font-medium text-text text-[16px]">
+            <th scope="col" className="px-3 py-2 font-medium text-text">
               Confirmation
             </th>
           </tr>
@@ -89,7 +89,7 @@ export function ConfirmationsTable(): JSX.Element {
                   <label
                     id={`${checkboxId}-label`}
                     htmlFor={checkboxId}
-                    className="block cursor-pointer text-[16px] font-medium text-text"
+                    className="block cursor-pointer font-medium text-text"
                   >
                     {row.label}
                   </label>

@@ -361,10 +361,6 @@
     color: var(--mac-text);
   }
 
-  .hc-sidebar-layout nav button {
-    font-size: 16px !important;
-  }
-
   #root {
     min-height: 100vh;
   }
@@ -407,6 +403,15 @@
 
   .hc-button.border-none:disabled:hover {
     background-color: transparent;
+  }
+
+  /**
+   * Linux frameless title bar (File/Edit/View/Team/Help) and portaled submenus.
+   * Ensures menu labels match body text size when the 14px :root rem base applies.
+   */
+  nav[role='menubar'] button,
+  [role='menu'][aria-label] button[role='menuitem'] {
+    font-size: 16px;
   }
 
   /**

@@ -202,7 +202,7 @@ export function SnippetEditPage({ page, tabId }: Props): JSX.Element {
           />
         </div>
       ) : (
-        <p className="m-0 text-[16px] text-muted" role="status">
+        <p className="m-0 text-muted" role="status">
           Loading snippet…
         </p>
       )}

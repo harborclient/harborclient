@@ -45,7 +45,7 @@ export function VariableRow({ variable }: Props): JSX.Element {
       <td className="whitespace-nowrap px-3 py-2">
         <button
           type="button"
-          className="cursor-pointer border-none bg-transparent p-0 text-left font-mono text-[16px] hc-chat-composer-script-ref"
+          className="cursor-pointer border-none bg-transparent p-0 text-left font-mono hc-chat-composer-script-ref"
           aria-label={`Copy ${variableRef} to clipboard`}
           onClick={handleCopyVariable}
         >
@@ -53,7 +53,7 @@ export function VariableRow({ variable }: Props): JSX.Element {
         </button>
       </td>
       <td
-        className={`max-w-0 px-3 py-2 font-mono text-[16px] ${
+        className={`max-w-0 px-3 py-2 font-mono ${
           overridden ? 'text-muted line-through' : 'text-text'
         }`}
       >

@@ -501,7 +501,7 @@ export function CommentEditor({
     >
       <div className="mb-2 flex items-start justify-between gap-4">
         <FormGroup label={label} className="border-none! min-w-0 flex-1 p-0!">
-          <p className="text-sm text-muted text-[16px]">{description}</p>
+          <p className="text-sm text-muted">{description}</p>
         </FormGroup>
         {actions ? <div className="shrink-0 pt-1">{actions}</div> : null}
       </div>

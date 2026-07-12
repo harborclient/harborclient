@@ -113,13 +113,10 @@ function ShortcutsReferenceModalBody({ onClose }: ModalBodyProps): JSX.Element {
                 <caption className="sr-only">Keyboard shortcuts</caption>
                 <thead className="sticky top-0 z-10 bg-surface">
                   <tr className="border-b border-separator bg-sidebar/40 text-left">
-                    <th scope="col" className="px-3 py-2 font-medium text-text text-[16px]">
+                    <th scope="col" className="px-3 py-2 font-medium text-text">
                       Shortcut
                     </th>
-                    <th
-                      scope="col"
-                      className="px-3 py-2 font-medium text-text text-right text-[16px]"
-                    >
+                    <th scope="col" className="px-3 py-2 font-medium text-text text-right">
                       Key combination
                     </th>
                   </tr>
@@ -127,8 +124,8 @@ function ShortcutsReferenceModalBody({ onClose }: ModalBodyProps): JSX.Element {
                 <tbody>
                   {filteredBindings.map((binding) => (
                     <tr key={binding.id} className="border-b border-separator last:border-b-0">
-                      <td className="px-3 py-2 text-text text-[16px]">{binding.label}</td>
-                      <td className="px-3 py-2 text-right text-[16px]">
+                      <td className="px-3 py-2 text-text">{binding.label}</td>
+                      <td className="px-3 py-2 text-right">
                         <kbd className="font-normal text-text">
                           {formatAcceleratorDisplay(binding.accelerator)}
                         </kbd>

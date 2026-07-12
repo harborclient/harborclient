@@ -233,13 +233,10 @@ export function ShortcutsSection(): JSX.Element {
                 <caption className="sr-only">Keyboard shortcuts</caption>
                 <thead>
                   <tr className="border-b border-separator bg-sidebar/40 text-left">
-                    <th scope="col" className="px-3 py-2 font-medium text-text text-[16px]">
+                    <th scope="col" className="px-3 py-2 font-medium text-text">
                       Shortcut
                     </th>
-                    <th
-                      scope="col"
-                      className="px-3 py-2 font-medium text-text text-right text-[16px]"
-                    >
+                    <th scope="col" className="px-3 py-2 font-medium text-text text-right">
                       Key combination
                     </th>
                   </tr>
@@ -252,11 +249,11 @@ export function ShortcutsSection(): JSX.Element {
 
                     return (
                       <tr key={binding.id} className="border-b border-separator last:border-b-0">
-                        <td className="px-3 py-2 text-text text-[16px]">{binding.label}</td>
-                        <td className="px-3 py-2 text-right text-[16px]">
+                        <td className="px-3 py-2 text-text">{binding.label}</td>
+                        <td className="px-3 py-2 text-right">
                           <button
                             type="button"
-                            className={`${field} min-w-[160px] cursor-pointer text-left  text-[16px] ${recording ? 'ring-2 ring-accent' : ''}`}
+                            className={`${field} min-w-[160px] cursor-pointer text-left  ${recording ? 'ring-2 ring-accent' : ''}`}
                             aria-label={`Change shortcut for ${binding.label}`}
                             aria-invalid={error != null ? true : undefined}
                             aria-describedby={error != null ? errorId : undefined}
@@ -292,7 +289,7 @@ export function ShortcutsSection(): JSX.Element {
             </StatusMessage>
 
             <div className="mt-4 rounded-md border border-danger/30 bg-danger/5 p-3">
-              <p className="m-0 mb-2 text-[16px] text-text">
+              <p className="m-0 mb-2 text-text">
                 Restore all shortcuts to their original defaults. This cannot be undone.
               </p>
               <Button

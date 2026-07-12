@@ -254,7 +254,7 @@ export function TabGroups(): JSX.Element {
               >
                 <Button
                   variant="toolbar"
-                  className="min-w-0 flex-1 justify-start gap-2 rounded-md px-2 py-1 text-left text-[16px] text-text hover:bg-transparent"
+                  className="min-w-0 flex-1 justify-start gap-2 rounded-md px-2 py-1 text-left text-text hover:bg-transparent"
                   aria-selected={selected ? 'true' : undefined}
                   onClick={(event: MouseEvent<HTMLButtonElement>) => {
                     handleRowClick(
@@ -270,9 +270,7 @@ export function TabGroups(): JSX.Element {
                     aria-hidden
                   />
                   <span className="min-w-0 flex-1 truncate">{group.name}</span>
-                  <span className="shrink-0 text-[16px] text-muted">
-                    {tabGroupSummaryText(group)}
-                  </span>
+                  <span className="shrink-0 text-muted">{tabGroupSummaryText(group)}</span>
                 </Button>
                 <div className="shrink-0" onPointerDown={stopSortableDragPointerDown}>
                   <RowActionsMenu
@@ -355,7 +353,7 @@ export function TabGroups(): JSX.Element {
 
       <DragOverlay dropAnimation={null}>
         {activeDragGroup ? (
-          <div className="rounded border border-separator bg-surface px-2 py-1 text-[16px] font-medium shadow-md">
+          <div className="rounded border border-separator bg-surface px-2 py-1 font-medium shadow-md">
             {activeDragGroup.name}
           </div>
         ) : null}

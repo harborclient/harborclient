@@ -399,7 +399,7 @@ export function McpSettingsExtra(): JSX.Element {
         <span className="text-[18px] font-medium text-text">
           <SettingLabel settingId="mcp.server">MCP Server</SettingLabel>
         </span>
-        <p className="m-0 mb-4 text-[16px] text-muted">
+        <p className="m-0 mb-4 text-muted">
           Expose selected Harbor tools to external MCP clients such as Claude Desktop or Cursor.
           Nothing is exposed until you enable the server and select tools below.
         </p>
@@ -440,7 +440,7 @@ export function McpSettingsExtra(): JSX.Element {
           </div>
 
           <div>
-            <p className="mb-2 text-[16px] font-medium text-text">Read-only tools</p>
+            <p className="mb-2 font-medium text-text">Read-only tools</p>
             <div className="flex flex-col gap-2">
               <FormGroup
                 className="border-none!"
@@ -470,8 +470,8 @@ export function McpSettingsExtra(): JSX.Element {
           </div>
 
           <div>
-            <p className="mb-2 text-[16px] font-medium text-text">Mutating tools</p>
-            <p className="m-0 mb-2 text-[16px] text-muted">
+            <p className="mb-2 font-medium text-text">Mutating tools</p>
+            <p className="m-0 mb-2 text-muted">
               These can send HTTP requests or change editor drafts. Leave unchecked unless you trust
               every MCP client that can reach this server.
             </p>
@@ -515,7 +515,7 @@ export function McpSettingsExtra(): JSX.Element {
         <span className="text-[18px] font-medium text-text">
           <SettingLabel settingId="mcp.client">MCP Client</SettingLabel>
         </span>
-        <p className="m-0 mb-4 text-[16px] text-muted">
+        <p className="m-0 mb-4 text-muted">
           Connect Harbor&apos;s chat agent to remote MCP servers over HTTP or SSE. Discovered tools
           are prefixed with <code className="font-mono">mcp__</code> in the agent tool list.
         </p>

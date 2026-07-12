@@ -144,7 +144,7 @@ function ThemePickerModalBody({ initialTheme, initialZoom, onClose }: ModalBodyP
         ))}
       </div>
       <div className="mb-4">
-        <span id="theme-picker-zoom-label" className="mb-2 block text-[16px] font-medium text-text">
+        <span id="theme-picker-zoom-label" className="mb-2 block font-medium text-text">
           Display size
         </span>
         <SegmentedTabs

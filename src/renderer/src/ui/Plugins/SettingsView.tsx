@@ -124,10 +124,10 @@ export function SettingsView({
   return (
     <section className="space-y-3" aria-labelledby={`${sectionId}-title`}>
       <div>
-        <h3 id={`${sectionId}-title`} className="m-0 text-[16px] font-medium text-text">
+        <h3 id={`${sectionId}-title`} className="m-0 font-medium text-text">
           {title}
         </h3>
-        <p className="m-0 mt-1 text-[16px] text-muted">{description}</p>
+        <p className="m-0 mt-1 text-muted">{description}</p>
       </div>
 
       {sources.length === 0 && hubSources.length === 0 ? (

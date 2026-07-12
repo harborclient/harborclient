@@ -53,11 +53,11 @@ export function SaveRenamedThemeModal({
       closeDisabled={busy}
       disableEscape={busy}
     >
-      <p className="mb-4 text-[16px] text-text">
+      <p className="mb-4 text-text">
         {`This theme was saved as "${originalTitle}". Do you want to rename that theme to "${newTitle}" or save a new theme with the new name?`}
       </p>
       {busy ? (
-        <p className="mb-4 text-[16px] text-muted" role="status">
+        <p className="mb-4 text-muted" role="status">
           Saving theme…
         </p>
       ) : null}

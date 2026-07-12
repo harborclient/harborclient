@@ -203,7 +203,7 @@ export function VariableHighlightComposer(): JSX.Element | null {
     <div
       id={tooltipId}
       role="tooltip"
-      className="pointer-events-auto fixed z-50 flex max-w-sm -translate-x-1/2 -translate-y-full flex-col gap-2 rounded-md border border-separator bg-surface px-4 py-3 text-[16px] text-text shadow-md after:pointer-events-auto after:absolute after:-bottom-2 after:left-0 after:right-0 after:h-2 after:content-[''] app-no-drag"
+      className="pointer-events-auto fixed z-50 flex max-w-sm -translate-x-1/2 -translate-y-full flex-col gap-2 rounded-md border border-separator bg-surface px-4 py-3 text-text shadow-md after:pointer-events-auto after:absolute after:-bottom-2 after:left-0 after:right-0 after:h-2 after:content-[''] app-no-drag"
       style={{ top: tooltip.top - 4, left: tooltip.left }}
       onMouseEnter={cancelHide}
       onMouseLeave={scheduleHide}

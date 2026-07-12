@@ -646,7 +646,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
               checked={closeTabDontAskAgain}
               onChange={(event) => setCloseTabDontAskAgain(event.target.checked)}
             />
-            <label htmlFor="request-close-tab-dont-ask-again" className="text-[16px] text-muted">
+            <label htmlFor="request-close-tab-dont-ask-again" className="text-muted">
               Don&apos;t show this again
             </label>
           </div>
@@ -699,10 +699,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
               checked={closeManyDontAskAgain}
               onChange={(event) => setCloseManyDontAskAgain(event.target.checked)}
             />
-            <label
-              htmlFor="request-close-many-tabs-dont-ask-again"
-              className="text-[16px] text-muted"
-            >
+            <label htmlFor="request-close-many-tabs-dont-ask-again" className="text-muted">
               Don&apos;t show this again
             </label>
           </div>
