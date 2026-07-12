@@ -73,6 +73,7 @@
   --color-script-stage-main: var(--mac-script-stage-main);
   --color-script-stage-after-each: var(--mac-script-stage-after-each);
   --color-script-stage-after-all: var(--mac-script-stage-after-all);
+  --color-terminal: var(--mac-terminal);
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --radius-xs: 0.125rem;
   --radius-sm: 0.25rem;
@@ -122,6 +123,7 @@
     --mac-script-stage-main: #32d2e2;
     --mac-script-stage-after-each: #ff9f0a;
     --mac-script-stage-after-all: #ae7213;
+    --mac-terminal: #000000;
 
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
     font-size: 14px;
@@ -164,6 +166,7 @@
       --mac-script-stage-main: #32d2e2;
       --mac-script-stage-after-each: #ff9f0a;
       --mac-script-stage-after-all: #ae7213;
+      --mac-terminal: #000000;
     }
   }
 
@@ -198,6 +201,7 @@
     --mac-script-stage-main: #32d2e2;
     --mac-script-stage-after-each: #ff9f0a;
     --mac-script-stage-after-all: #ae7213;
+    --mac-terminal: #000000;
   }
 
   :root[data-theme='light'] {
@@ -241,6 +245,7 @@
     --mac-script-stage-main: #32d2e2;
     --mac-script-stage-after-each: #ff9f0a;
     --mac-script-stage-after-all: #ae7213;
+    --mac-terminal: #000000;
   }
 
   /**
@@ -257,6 +262,7 @@
       --mac-sidebar-section: Canvas;
       --mac-control: Canvas;
       --mac-field: Field;
+      --mac-terminal: Canvas;
       --mac-separator: GrayText;
       --mac-text: CanvasText;
       --mac-text-secondary: CanvasText;
@@ -505,6 +511,16 @@
    */
   .hc-resizable.bg-surface {
     background-color: var(--color-sidebar);
+  }
+
+  /**
+   * The terminal panel manages its own scrolling inside xterm.js. The SDK's
+   * shared footer-panel body defaults to overflow-auto, which at certain AI
+   * sidebar widths creates a resize feedback loop (scrollbar appears -> xterm
+   * refits -> scrollbar disappears -> refits again), causing a visible blink.
+   */
+  #footer-terminal-panel .hc-footer-panel-body {
+    overflow: hidden;
   }
 
   :root[data-theme='high-contrast'] .hc-footer-button,
@@ -862,6 +878,14 @@
 
 .hc-chat-composer-script-ref {
   color: #32d2e2;
+}
+
+/**
+ * Top fade overlay for the AI chat message list. Messages scroll underneath
+ * so they appear to dissolve into the sidebar background at the top edge.
+ */
+.hc-chat-fade-top {
+  background: linear-gradient(to bottom, var(--mac-sidebar), transparent);
 }
 
 .hc-chat-composer-codemirror .cm-editor {

@@ -14,6 +14,7 @@ import {
 import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
 import { setTerminalSelection } from '#/renderer/src/store/slices/terminalsSlice';
 import { createNewChat } from '#/renderer/src/store/thunks/aiChat';
+import { subscribeThemeColorsApplied } from '#/renderer/src/plugins/themeRuntime';
 import { registerTerminalInstance, unregisterTerminalInstance } from './terminalRegistry';
 import {
   buildTerminalReferenceToken,
@@ -68,13 +69,16 @@ function readThemeColor(name: string, fallback: string): string {
 }
 
 /**
- * Builds an xterm theme aligned with HarborClient CSS variables.
+ * Builds an xterm theme for the footer terminal.
+ *
+ * Background, foreground, cursor, and selection colors follow HarborClient CSS
+ * variables for the active document theme.
  *
  * @returns Terminal theme colors for the active document theme.
  */
 function buildXtermTheme(): Terminal['options']['theme'] {
   return {
-    background: readThemeColor('--mac-sidebar', '#252526'),
+    background: readThemeColor('--mac-terminal', '#000000'),
     foreground: readThemeColor('--mac-text', '#ffffff'),
     cursor: readThemeColor('--mac-accent', '#007aff'),
     selectionBackground: readThemeColor('--mac-selection', 'rgba(128, 128, 128, 0.35)'),
@@ -417,12 +421,17 @@ export function XtermView({ id, index, title, cwd, active, panelOpen }: Props): 
     });
     resizeObserver.observe(container);
 
+    const unsubscribeTheme = subscribeThemeColorsApplied(() => {
+      terminal.options.theme = buildXtermTheme();
+    });
+
     return () => {
       unmountingRef.current = true;
       sessionReadyRef.current = false;
       hideSelectionToolbar();
       unsubscribeData();
       unsubscribeExit();
+      unsubscribeTheme();
       dataDisposable.dispose();
       selectionDisposable.dispose();
       resizeObserver.disconnect();
@@ -514,7 +523,7 @@ export function XtermView({ id, index, title, cwd, active, panelOpen }: Props): 
 
   return (
     <div
-      className={active ? 'absolute inset-0 flex min-h-0 min-w-0' : 'hidden'}
+      className={active ? 'absolute inset-0 flex min-h-0 min-w-0 bg-terminal' : 'hidden'}
       role="tabpanel"
       id={`footer-terminal-panel-${id}`}
       aria-labelledby={`footer-terminal-tab-${id}`}

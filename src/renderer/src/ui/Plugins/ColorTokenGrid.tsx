@@ -16,11 +16,12 @@ interface Props {
 }
 
 /**
- * Grouped 3-column grid of theme color pickers for the Creator form.
+ * Grouped fluid grid of theme color pickers for the Creator form.
+ * Columns wrap based on available panel width rather than viewport breakpoints.
  */
 export function ColorTokenGrid({ colors, onChange }: Props): JSX.Element {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-w-0 flex-col gap-6">
       {CUSTOM_THEME_TOKEN_GROUPS.map((group) => (
         <section key={group.label} aria-labelledby={`creator-group-${group.label}`}>
           <h3
@@ -29,7 +30,7 @@ export function ColorTokenGrid({ colors, onChange }: Props): JSX.Element {
           >
             {group.label}
           </h3>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid min-w-0 grid-cols-[repeat(auto-fill,minmax(min(100%,16rem),1fr))] gap-4">
             {group.tokens.map((token) => (
               <ColorTokenField
                 key={token}

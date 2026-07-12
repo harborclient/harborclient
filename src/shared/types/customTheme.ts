@@ -136,7 +136,8 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   'script-stage-before-each': 'Before each',
   'script-stage-main': 'Main',
   'script-stage-after-each': 'After each',
-  'script-stage-after-all': 'After all'
+  'script-stage-after-all': 'After all',
+  terminal: 'Terminal'
 };
 
 /**
@@ -145,7 +146,7 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
 export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
   {
     label: 'Layout',
-    tokens: ['surface', 'sidebar', 'sidebar-section', 'control', 'field', 'separator']
+    tokens: ['surface', 'sidebar', 'sidebar-section', 'control', 'field', 'separator', 'terminal']
   },
   {
     label: 'Text',

@@ -68,7 +68,8 @@ export const LIGHT_CUSTOM_THEME_PALETTE: CustomThemePalette = {
   'script-stage-before-each': '#0a84ff',
   'script-stage-main': '#32d2e2',
   'script-stage-after-each': '#ff9f0a',
-  'script-stage-after-all': '#ae7213'
+  'script-stage-after-all': '#ae7213',
+  terminal: '#000000'
 };
 
 /**
@@ -107,7 +108,8 @@ export const DARK_CUSTOM_THEME_PALETTE: CustomThemePalette = {
   'script-stage-before-each': '#0a84ff',
   'script-stage-main': '#32d2e2',
   'script-stage-after-each': '#ff9f0a',
-  'script-stage-after-all': '#ae7213'
+  'script-stage-after-all': '#ae7213',
+  terminal: '#000000'
 };
 
 /**
@@ -146,7 +148,8 @@ export const HIGH_CONTRAST_CUSTOM_THEME_PALETTE: CustomThemePalette = {
   'script-stage-before-each': '#0a84ff',
   'script-stage-main': '#32d2e2',
   'script-stage-after-each': '#ff9f0a',
-  'script-stage-after-all': '#ae7213'
+  'script-stage-after-all': '#ae7213',
+  terminal: '#000000'
 };
 
 /**

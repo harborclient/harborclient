@@ -10,6 +10,37 @@ import { applyThemeAttribute, resolveSystemBuiltinTheme } from '#/renderer/src/t
 const STYLE_ELEMENT_ID = 'harborclient-plugin-theme-style';
 
 /**
+ * Window event name dispatched whenever `--mac-*` color overrides are applied
+ * or removed, so JS-rendered surfaces (like xterm.js canvases) that cache
+ * colors at creation time know to re-read tokens and update live.
+ */
+const THEME_COLORS_APPLIED_EVENT = 'harborclient:theme-colors-applied';
+
+/**
+ * Notifies listeners that `--mac-*` theme tokens on `:root` may have changed.
+ *
+ * Called after every renderer-side theme application (custom, built-in, and
+ * plugin themes) so components that cache resolved colors in JavaScript
+ * (rather than relying on CSS cascade) can refresh themselves.
+ */
+function notifyThemeColorsApplied(): void {
+  window.dispatchEvent(new Event(THEME_COLORS_APPLIED_EVENT));
+}
+
+/**
+ * Subscribes to theme color application events.
+ *
+ * @param listener - Called after theme colors are (re)applied to `:root`.
+ * @returns Cleanup function that removes the listener.
+ */
+export function subscribeThemeColorsApplied(listener: () => void): () => void {
+  window.addEventListener(THEME_COLORS_APPLIED_EVENT, listener);
+  return () => {
+    window.removeEventListener(THEME_COLORS_APPLIED_EVENT, listener);
+  };
+}
+
+/**
  * Maps theme token keys to --mac-* CSS custom property names.
  *
  * @param token - Theme color token without the `--mac-` prefix.
@@ -73,6 +104,7 @@ export function applyCustomThemeColors(
 
   const css = buildCustomThemeCss(colors, type);
   if (!css.trim()) {
+    notifyThemeColorsApplied();
     return;
   }
 
@@ -80,6 +112,7 @@ export function applyCustomThemeColors(
   style.id = STYLE_ELEMENT_ID;
   style.textContent = css;
   document.head.appendChild(style);
+  notifyThemeColorsApplied();
 }
 
 /**
@@ -100,6 +133,7 @@ export function applyBuiltinThemeColors(
 
   const css = buildBuiltinThemeCss(colors, dataTheme, type);
   if (!css.trim()) {
+    notifyThemeColorsApplied();
     return;
   }
 
@@ -107,6 +141,7 @@ export function applyBuiltinThemeColors(
   style.id = STYLE_ELEMENT_ID;
   style.textContent = css;
   document.head.appendChild(style);
+  notifyThemeColorsApplied();
 }
 
 /**
@@ -147,6 +182,7 @@ export async function applyPluginTheme(pluginId: string, themeId: string): Promi
   if (!theme) {
     document.documentElement.removeAttribute('data-theme');
     clearInjectedThemeStyle();
+    notifyThemeColorsApplied();
     return;
   }
 
@@ -165,6 +201,7 @@ export async function applyPluginTheme(pluginId: string, themeId: string): Promi
 
   const css = buildThemeCss(pluginId, themeId, theme.colors, stylesheetText);
   if (!css.trim()) {
+    notifyThemeColorsApplied();
     return;
   }
 
@@ -172,6 +209,7 @@ export async function applyPluginTheme(pluginId: string, themeId: string): Promi
   style.id = STYLE_ELEMENT_ID;
   style.textContent = css;
   document.head.appendChild(style);
+  notifyThemeColorsApplied();
 }
 
 /**

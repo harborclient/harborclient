@@ -42,7 +42,8 @@ const themeColorTokenSchema = z.enum([
   'script-stage-before-each',
   'script-stage-main',
   'script-stage-after-each',
-  'script-stage-after-all'
+  'script-stage-after-all',
+  'terminal'
 ]);
 
 const customThemeIdSchema = z

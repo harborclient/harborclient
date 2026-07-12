@@ -62,9 +62,9 @@ export function ColorTokenField({ token, value, onChange }: Props): JSX.Element 
   }, [open]);
 
   return (
-    <FormGroup label={CUSTOM_THEME_TOKEN_LABELS[token]} htmlFor={fieldId}>
-      <div ref={containerRef} className="relative">
-        <div className="flex items-center gap-2">
+    <FormGroup label={CUSTOM_THEME_TOKEN_LABELS[token]} htmlFor={fieldId} className="min-w-0">
+      <div ref={containerRef} className="relative min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
           <button
             type="button"
             id={fieldId}
@@ -77,6 +77,7 @@ export function ColorTokenField({ token, value, onChange }: Props): JSX.Element 
           />
           <Input
             value={value}
+            className="min-w-0 flex-1"
             aria-describedby={popoverId}
             onChange={(event) => onChange(token, event.target.value)}
           />
