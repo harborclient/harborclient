@@ -148,6 +148,21 @@ describe('hc.response.to response assertion plugin', () => {
     expect(result.tests.every((test) => test.passed)).toBe(true);
   });
 
+  it('passes status class properties with callable syntax', async () => {
+    const result = await evaluateScript({
+      ...basePostInput,
+      script: `
+        hc.test('success callable', function() { hc.response.to.be.success(); });
+        hc.test('ok callable', function() { hc.response.to.be.ok(); });
+        hc.test('json callable', function() { hc.response.to.be.json(); });
+        hc.test('withBody callable', function() { hc.response.to.be.withBody(); });
+      `
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.tests.every((test) => test.passed)).toBe(true);
+  });
+
   it('passes clientError and notFound for 404 responses', async () => {
     const result = await evaluateScript({
       ...basePostInput,

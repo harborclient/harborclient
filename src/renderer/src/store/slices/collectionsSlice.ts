@@ -205,41 +205,54 @@ const collectionsSlice = createSlice({
       const requests = state.requestsByCollection[collectionId] ?? [];
       const documents = state.documentsByCollection[collectionId] ?? [];
 
+      let sourceFolderId: number | null = null;
       if (kind === 'request') {
         const request = requests.find((entry) => entry.id === id);
         if (request == null) {
           return;
         }
+        sourceFolderId = request.folder_id ?? null;
         request.folder_id = targetFolderId;
       } else {
         const document = documents.find((entry) => entry.id === id);
         if (document == null) {
           return;
         }
+        sourceFolderId = document.folder_id ?? null;
         document.folder_id = targetFolderId;
       }
 
+      const assignContainerSortOrder = (containerRefs: ContainerItemRef[]): void => {
+        containerRefs.forEach((item, sortOrder) => {
+          if (item.kind === 'request') {
+            const request = requests.find((entry) => entry.id === item.id);
+            if (request != null) {
+              request.sort_order = sortOrder;
+            }
+            return;
+          }
+
+          const document = documents.find((entry) => entry.id === item.id);
+          if (document != null) {
+            document.sort_order = sortOrder;
+          }
+        });
+      };
+
       const movedRef: ContainerItemRef = { kind, id };
-      const containerRefs = toContainerItemRefs(
+      const targetRefs = toContainerItemRefs(
         mergeContainerItems(requests, documents, targetFolderId)
       ).filter((item) => !(item.kind === kind && item.id === id));
-      const clampedIndex = Math.min(Math.max(0, index), containerRefs.length);
-      containerRefs.splice(clampedIndex, 0, movedRef);
+      const clampedIndex = Math.min(Math.max(0, index), targetRefs.length);
+      targetRefs.splice(clampedIndex, 0, movedRef);
+      assignContainerSortOrder(targetRefs);
 
-      containerRefs.forEach((item, sortOrder) => {
-        if (item.kind === 'request') {
-          const request = requests.find((entry) => entry.id === item.id);
-          if (request != null) {
-            request.sort_order = sortOrder;
-          }
-          return;
-        }
-
-        const document = documents.find((entry) => entry.id === item.id);
-        if (document != null) {
-          document.sort_order = sortOrder;
-        }
-      });
+      if (sourceFolderId !== targetFolderId) {
+        const sourceRefs = toContainerItemRefs(
+          mergeContainerItems(requests, documents, sourceFolderId)
+        );
+        assignContainerSortOrder(sourceRefs);
+      }
     }
   }
 });

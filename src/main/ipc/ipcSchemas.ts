@@ -269,6 +269,7 @@ export const generalSettings = z.object({
   followRedirects: z.boolean(),
   scrollbarAutoHide: z.boolean(),
   wrapTabs: z.boolean(),
+  spellCheckEnabled: z.boolean(),
   warnWhenSwitchingThemes: z.boolean(),
   warnWhenExitingWithUnsavedChanges: z.boolean(),
   warnWhenClosingUnsavedRequests: z.boolean(),
@@ -572,14 +573,16 @@ export const sidebarExpansion = z.object({
     environments: z.boolean(),
     runResults: z.boolean(),
     history: z.boolean(),
-    tabGroups: z.boolean()
+    tabGroups: z.boolean(),
+    trash: z.boolean()
   }),
   sectionVisibility: z.object({
     collections: z.boolean(),
     environments: z.boolean(),
     runResults: z.boolean(),
     history: z.boolean(),
-    tabGroups: z.boolean()
+    tabGroups: z.boolean(),
+    trash: z.boolean()
   }),
   collectionIds: z.array(dbId),
   folderIds: z.array(dbId),

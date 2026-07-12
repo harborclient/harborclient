@@ -142,6 +142,41 @@ describe('hc.expect via Chai in script sandbox', () => {
     expect(result.tests).toEqual([{ name: 'response code is ok', passed: true }]);
   });
 
+  it('supports callable property assertions with trailing parentheses', async () => {
+    const result = await evaluateScript({
+      ...basePostInput,
+      script: `
+        hc.test('response time is recorded', function() {
+          hc.expect(hc.response.responseTime >= 0).to.be.ok();
+        });
+        hc.test('response headers exist', function() {
+          hc.expect(hc.response.headers).to.be.ok();
+        });
+        hc.test('response body is readable', function() {
+          hc.expect(typeof hc.response.text()).to.equal('string');
+        });
+        hc.test('json body parses when applicable', function() {
+          hc.expect(hc.response.json()).to.be.ok();
+        });
+        hc.test('exist callable', function() {
+          hc.expect(hc.response.headers).to.exist();
+        });
+        hc.test('true callable', function() {
+          hc.expect(true).to.be.true();
+        });
+        hc.test('empty callable on non-empty array', function() {
+          hc.expect([1]).to.not.be.empty();
+        });
+        hc.test('negated ok callable', function() {
+          hc.expect(false).to.not.be.ok();
+        });
+      `
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.tests?.every((test) => test.passed)).toBe(true);
+  });
+
   it('supports .to.have.property', async () => {
     const result = await evaluateScript({
       ...basePostInput,

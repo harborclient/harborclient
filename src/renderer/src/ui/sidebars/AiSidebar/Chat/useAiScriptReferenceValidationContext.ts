@@ -5,10 +5,9 @@ import type {
 import type { Collection, Folder, SavedRequest, Snippet } from '#/shared/types';
 import { useMemo } from 'react';
 import { useAppSelector } from '#/renderer/src/store/hooks';
-import { isRequestTab } from '#/renderer/src/store/drafts';
 import type { RootState } from '#/renderer/src/store/redux';
 import {
-  selectActiveTab,
+  selectEffectiveActiveRequestTab,
   selectCollections,
   selectFoldersByCollection,
   selectRequestsByCollection,
@@ -84,14 +83,14 @@ export function buildSidebarItemNameMapsFromState(state: RootState): SidebarItem
 }
 
 /**
- * Builds validation context from the active request tab for `@` script references.
+ * Builds validation context from the effective active request tab for `@` script references.
  *
- * @param tab - Active editor tab, if any.
+ * @param tab - Effective request tab (directly active or linked from a script-editor page tab).
  */
 function buildValidationContext(
-  tab: ReturnType<typeof selectActiveTab>
+  tab: ReturnType<typeof selectEffectiveActiveRequestTab>
 ): Omit<AiScriptReferenceValidationContext, 'snippets'> {
-  if (!tab || !isRequestTab(tab)) {
+  if (!tab) {
     return {
       hasActiveRequestTab: false,
       preScriptCount: 0,
@@ -118,7 +117,7 @@ function buildValidationContext(
  * @param sidebarNames - Collection, folder, and request name maps for sidebar `@` references.
  */
 export function buildAiScriptReferenceValidationContext(
-  tab: ReturnType<typeof selectActiveTab>,
+  tab: ReturnType<typeof selectEffectiveActiveRequestTab>,
   snippets: Snippet[],
   terminalSelections: Record<string, TerminalSelectionSnapshot> = {},
   sidebarNames: Partial<SidebarItemNameMaps> = {}
@@ -137,7 +136,7 @@ export function buildAiScriptReferenceValidationContext(
  * Returns the active request tab state used to validate `@` script references in chat UI.
  */
 export function useAiScriptReferenceValidationContext(): AiScriptReferenceValidationContext {
-  const activeTab = useAppSelector(selectActiveTab);
+  const activeTab = useAppSelector(selectEffectiveActiveRequestTab);
   const snippets = useAppSelector(selectSnippets);
   const terminalSelections = useAppSelector(selectTerminalSelections);
   const collections = useAppSelector(selectCollections);

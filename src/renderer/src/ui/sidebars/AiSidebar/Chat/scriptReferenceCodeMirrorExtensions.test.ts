@@ -43,9 +43,10 @@ function validationContext(): AiScriptReferenceValidationContext {
  * @param doc - Initial composer document text.
  */
 function createCompletionState(doc = ''): EditorState {
+  const context = validationContext();
   return EditorState.create({
     doc,
-    extensions: [createScriptReferenceCompletionFilter(validationContext())]
+    extensions: [createScriptReferenceCompletionFilter(() => context)]
   });
 }
 

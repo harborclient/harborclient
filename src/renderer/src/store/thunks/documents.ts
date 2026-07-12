@@ -13,11 +13,13 @@ import {
 } from '#/renderer/src/store/slices/modalsSlice';
 import {
   moveContainerItemLocal,
+  reorderContainerItemsLocal,
   setDocumentsForCollection,
   setSelectedCollectionId,
   upsertDocumentInCollection
 } from '#/renderer/src/store/slices/collectionsSlice';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
+import { syncTrash } from '#/renderer/src/store/thunks/trash';
 import {
   beginRefreshGeneration,
   collectionRefreshKey,
@@ -122,6 +124,7 @@ export const deleteDocument = createAsyncThunk<
 >('documents/delete', async ({ id, collectionId }, { dispatch }) => {
   await window.api.deleteDocument(id);
   await dispatch(refreshDocuments(collectionId));
+  await syncTrash(dispatch);
 });
 
 /**
@@ -132,6 +135,13 @@ export const reorderDocuments = createAsyncThunk<
   { collectionId: number; folderId: number | null; orderedDocumentIds: number[] },
   ThunkApiConfig
 >('documents/reorder', async ({ collectionId, folderId, orderedDocumentIds }, { dispatch }) => {
+  dispatch(
+    reorderContainerItemsLocal({
+      collectionId,
+      folderId,
+      items: orderedDocumentIds.map((id) => ({ kind: 'document', id }))
+    })
+  );
   await window.api.reorderDocuments(collectionId, folderId, orderedDocumentIds);
   await dispatch(refreshDocuments(collectionId));
 });
@@ -170,7 +180,7 @@ export interface RequestLoadDocumentArgs {
 }
 
 /**
- * Persists document fields for create, rename, or autosave updates.
+ * Persists document fields for create, rename, or content updates.
  */
 export const saveDocument = createAsyncThunk<CollectionDocument, SaveDocumentInput, ThunkApiConfig>(
   'documents/save',

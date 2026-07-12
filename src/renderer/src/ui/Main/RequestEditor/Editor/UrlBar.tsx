@@ -8,7 +8,7 @@ import {
 import type { JSX } from 'react';
 import type { HttpMethod, Variable } from '#/shared/types';
 
-import { faStop } from '#/renderer/src/fontawesome';
+import { faStop, faFloppyDisk } from '#/renderer/src/fontawesome';
 import { usePluginRequestToolbarActions } from '#/renderer/src/plugins/pluginHooks';
 import { urlSource } from '#/renderer/src/autocomplete/sources';
 import { REQUEST_URL_INPUT_ID } from '#/renderer/src/ui/Main/RequestEditor/Editor/focusRequestUrl';
@@ -50,6 +50,21 @@ interface Props {
   onSend: () => void;
 
   /**
+   * Called when the user clicks Save.
+   */
+  onSave: () => void;
+
+  /**
+   * Whether a save is in flight; disables Save and shows progress text.
+   */
+  savingRequest: boolean;
+
+  /**
+   * When true, Save is disabled because there is nothing to persist.
+   */
+  saveDisabled: boolean;
+
+  /**
    * Called when the user clicks the stop icon during an in-flight request.
    */
   onCancel: () => void;
@@ -61,7 +76,7 @@ interface Props {
 }
 
 /**
- * Method selector, URL input, plugin toolbar actions, and Send button.
+ * Method selector, URL input, plugin toolbar actions, Save, and Send buttons.
  */
 export function UrlBar({
   method,
@@ -71,6 +86,9 @@ export function UrlBar({
   onMethodChange,
   onUrlChange,
   onSend,
+  onSave,
+  savingRequest,
+  saveDisabled,
   onCancel,
   onEditVariables
 }: Props): JSX.Element {
@@ -110,6 +128,7 @@ export function UrlBar({
           {action.title}
         </Button>
       ))}
+
       <Button
         type="button"
         onClick={() => (sending ? onCancel() : onSend())}
@@ -117,6 +136,15 @@ export function UrlBar({
         className="hc-send-button inline-flex w-24 shrink-0 items-center justify-center"
       >
         {sending ? <FaIcon icon={faStop} className="h-3.5 w-3.5" aria-hidden /> : 'Send'}
+      </Button>
+      <Button
+        type="button"
+        variant="secondary"
+        disabled={saveDisabled || savingRequest}
+        onClick={onSave}
+        className="inline-flex w-16 shrink-0 items-center justify-center"
+      >
+        <FaIcon icon={faFloppyDisk} className="h-3.5 w-3.5" aria-hidden />
       </Button>
     </div>
   );

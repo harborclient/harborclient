@@ -1,4 +1,4 @@
-import type { ScriptRef } from '#/shared/types/script';
+import type { CopiedScriptRef, ScriptRef } from '#/shared/types/script';
 import type { Snippet } from '#/shared/types/snippet';
 import {
   DEFAULT_SCRIPT_STAGE,
@@ -59,6 +59,70 @@ export function createSnippetScriptRef(
     snippetUuid: snippetUuid.trim(),
     stage: normalizeScriptStage(stage),
     ...(name?.trim() ? { name: name.trim() } : {})
+  };
+}
+
+/**
+ * Extracts a clipboard-safe payload from one script row.
+ *
+ * Snippet rows copy only the library uuid; inline rows copy code, name,
+ * enabled, and stage.
+ *
+ * @param script - Script row to copy.
+ * @returns Clipboard payload without list identity fields.
+ */
+export function copyScriptRefForClipboard(script: ScriptRef): CopiedScriptRef {
+  if (script.kind === 'snippet') {
+    return {
+      kind: 'snippet',
+      snippetUuid: script.snippetUuid?.trim() ?? ''
+    };
+  }
+
+  return {
+    kind: 'inline',
+    code: script.code ?? '',
+    enabled: script.enabled,
+    stage: normalizeScriptStage(readScriptRefStage(script)),
+    ...(script.name?.trim() ? { name: script.name.trim() } : {})
+  };
+}
+
+/**
+ * Builds a new script row from a clipboard payload.
+ *
+ * Snippet payloads resolve the live library entry by uuid. Inline payloads
+ * create a detached row with a fresh list id.
+ *
+ * @param copied - Clipboard payload from {@link copyScriptRefForClipboard}.
+ * @param snippets - Snippet library used to resolve snippet references.
+ * @returns A new script row, or null when a snippet uuid no longer exists.
+ */
+export function createScriptRefFromClipboard(
+  copied: CopiedScriptRef,
+  snippets: Snippet[]
+): ScriptRef | null {
+  if (copied.kind === 'snippet') {
+    const trimmedUuid = copied.snippetUuid.trim();
+    if (!trimmedUuid) {
+      return null;
+    }
+
+    const snippet = snippets.find((entry) => entry.uuid === trimmedUuid);
+    if (!snippet) {
+      return null;
+    }
+
+    return {
+      ...createSnippetScriptRef(trimmedUuid, snippet.name, snippet.stage),
+      expanded: true
+    };
+  }
+
+  return {
+    ...createInlineScriptRef(copied.code, copied.name, copied.stage),
+    enabled: copied.enabled,
+    expanded: true
   };
 }
 

@@ -70,7 +70,7 @@ export function useActionCommands(): UseActionCommandsResult {
       },
       'builtin:save': () => {
         void dispatch(saveFromMenu()).catch((err: unknown) => {
-          showAlert(dispatch, formatErrorMessage(err, 'Failed to save request'));
+          showAlert(dispatch, formatErrorMessage(err, 'Failed to save'));
         });
       },
       'builtin:settings': () => {

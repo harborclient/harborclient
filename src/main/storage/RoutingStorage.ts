@@ -409,6 +409,16 @@ export class RoutingStorage implements IStorage {
    * on the server, are removed locally only so the server copy stays available.
    */
   async deleteCollection(id: number): Promise<void> {
+    await this.deleteCollectionWithMode(id);
+  }
+
+  /**
+   * Deletes a collection and reports whether it was fully removed or only detached.
+   *
+   * @param id - Global collection registry id.
+   * @returns `'deleted'` when the provider copy was removed, otherwise `'detached'`.
+   */
+  async deleteCollectionWithMode(id: number): Promise<'deleted' | 'detached'> {
     const entry = this.requireEntry(id);
     const backend = this.requireBackendByConnectionId(entry.connectionId);
 
@@ -423,7 +433,7 @@ export class RoutingStorage implements IStorage {
           entry.providerCollectionId,
           id
         );
-        return;
+        return 'detached';
       }
 
       try {
@@ -436,17 +446,18 @@ export class RoutingStorage implements IStorage {
             entry.providerCollectionId,
             id
           );
-          return;
+          return 'detached';
         }
         throw err;
       }
 
       this.database.deleteRegistryEntry(id);
-      return;
+      return 'deleted';
     }
 
     await backend.db.deleteCollection(entry.providerCollectionId);
     this.database.deleteRegistryEntry(id);
+    return 'deleted';
   }
 
   /**
@@ -827,10 +838,27 @@ export class RoutingStorage implements IStorage {
    */
   async importCollectionData(data: unknown): Promise<Collection> {
     const backend = this.requireDefaultDataBackend();
+    return this.importCollectionDataToConnection(backend.connectionId, data);
+  }
+
+  /**
+   * Imports a collection into a specific provider connection and registers it.
+   *
+   * @param connectionId - Target storage connection id.
+   * @param data - Parsed collection export payload.
+   * @param displayName - Optional registry display name override.
+   * @returns The newly registered global collection.
+   */
+  async importCollectionDataToConnection(
+    connectionId: string,
+    data: unknown,
+    displayName?: string
+  ): Promise<Collection> {
+    const backend = this.requireBackendByConnectionId(connectionId);
     const imported = await backend.db.importCollectionData(data);
     try {
       const entry = this.database.addRegistryEntry({
-        name: imported.name,
+        name: displayName?.trim() || imported.name,
         connectionId: backend.connectionId,
         providerCollectionId: imported.id,
         collectionUuid: imported.uuid

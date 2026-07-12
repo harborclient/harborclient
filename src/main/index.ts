@@ -5,9 +5,7 @@ import { initLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import {
   seedDefaultContentIfNeeded,
   isSeedFlagEnabled,
-  seedEchoCollectionIfMissing,
-  seedDefaultEchoSnippets,
-  ensureEchoPostSnippetScripts
+  seedBuiltinCollectionsIfMissing
 } from '#/main/storage/seedDefaultContent';
 import { createStorageInstance } from '#/main/storage/createStorageInstance';
 import { seedMissingBuiltinThemes } from '#/main/storage/customThemes';
@@ -42,9 +40,11 @@ import {
   createRendererNavigationPolicy
 } from '#/main/window/navigationSecurity';
 import { attachWebContextMenu } from '#/main/window/webContextMenu';
+import { applySpellCheckEnabled } from '#/main/window/spellCheck';
 import { restoreZoomFactor } from '#/main/window/zoom';
 import { isDevModeFlagEnabled } from '#/main/devMode';
 import { isQuitWithoutWarningFlagEnabled } from '#/main/quitWithoutWarning';
+import { applyRandUserDirIfRequested, cleanupRandUserDir } from '#/main/randUserDir';
 import { getStartupThemeOverride } from '#/main/startupTheme';
 import { disposeScriptRunner } from '#/main/scripting/scriptRunnerHost';
 import {
@@ -174,8 +174,11 @@ function handleDeepLink(url: string): void {
   sendDeepLinkToRenderer(payload);
 }
 
+applyRandUserDirIfRequested();
+
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
+  cleanupRandUserDir();
   app.quit();
 } else {
   app.on('second-instance', (_event, argv) => {
@@ -359,13 +362,11 @@ async function createStorage(): Promise<RoutingStorage> {
 
   if (isSeedFlagEnabled()) {
     try {
-      await seedDefaultEchoSnippets(router);
-      const created = await seedEchoCollectionIfMissing(router);
-      await ensureEchoPostSnippetScripts(router);
+      const importedCount = await seedBuiltinCollectionsIfMissing(router);
       logVerbose(
-        created
-          ? 'createStorage: --seed imported HarborClient Echo collection'
-          : 'createStorage: --seed skipped; HarborClient Echo already exists'
+        importedCount > 0
+          ? `createStorage: --seed imported ${importedCount} built-in collection(s)`
+          : 'createStorage: --seed skipped; all built-in collections already exist'
       );
     } catch (err) {
       console.warn('--seed failed; continuing startup without seed:', err);
@@ -644,6 +645,7 @@ function closeSplash(): void {
 function createWindow(): BrowserWindow {
   rendererReady = false;
   const savedState = loadWindowState();
+  const spellCheckEnabled = getGeneralSettings().spellCheckEnabled;
 
   const window = new BrowserWindow({
     x: savedState.x,
@@ -670,9 +672,12 @@ function createWindow(): BrowserWindow {
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false,
+      spellcheck: spellCheckEnabled,
       webviewTag: true
     }
   });
+
+  applySpellCheckEnabled(spellCheckEnabled, window.webContents.session);
 
   restoreZoomFactor(window.webContents);
 
@@ -1026,4 +1031,5 @@ app.on('will-quit', () => {
   void disposeMcpHost();
   pluginManager?.dispose();
   void db.close();
+  cleanupRandUserDir();
 });

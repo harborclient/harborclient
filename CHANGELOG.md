@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(collections, themes): enhance built-in collections and theme management. (`9936f04`)
 - chore(dependencies): update @harborclient/sdk to version 1.0.74. (`67971e2`)
 
 ## 2.2.2 - 2026-07-12

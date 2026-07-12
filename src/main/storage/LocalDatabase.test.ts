@@ -459,3 +459,47 @@ describeSqlite('LocalDatabase tab groups', () => {
     expect(reordered.map((group) => group.name)).toEqual(['Gamma', 'Alpha', 'Beta']);
   });
 });
+
+describeSqlite('LocalDatabase trash items', () => {
+  it('inserts, lists, and deletes trash snapshot rows', async () => {
+    const { database } = await createRegistry();
+    const inserted = database.insertTrashItem({
+      entityType: 'environment',
+      label: 'Staging',
+      originalIds: { environmentId: 3 },
+      payload: { environment: { id: 3, name: 'Staging', uuid: 'env-1', variables: [] } }
+    });
+
+    expect(database.listTrashItems()).toEqual([
+      expect.objectContaining({
+        id: inserted.id,
+        entityType: 'environment',
+        label: 'Staging'
+      })
+    ]);
+
+    database.deleteTrashItem(inserted.id);
+    expect(database.listTrashItems()).toEqual([]);
+  });
+
+  it('clears all trash snapshot rows', async () => {
+    const { database } = await createRegistry();
+    database.insertTrashItem({
+      entityType: 'history',
+      label: 'GET /health',
+      originalIds: { historyId: 1 },
+      payload: {
+        entry: { id: 1, method: 'GET', url: '/health', status: 200, statusText: 'OK', ts: 1 }
+      }
+    });
+    database.insertTrashItem({
+      entityType: 'tabGroup',
+      label: 'Tabs',
+      originalIds: { tabGroupId: 2 },
+      payload: { tabGroup: { id: 2, name: 'Tabs', requests: [], createdAt: 1, updatedAt: 1 } }
+    });
+
+    database.clearTrash();
+    expect(database.listTrashItems()).toEqual([]);
+  });
+});

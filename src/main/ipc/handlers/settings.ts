@@ -1,5 +1,6 @@
 import { app, nativeTheme } from 'electron';
 import { logImportVerboseFromRenderer } from '#/main/import/importVerboseLog';
+import { logVerbose } from '#/main/logger';
 import { isDeveloperToolsEnabled } from '#/main/devMode';
 import { isPickThemeFlagEnabled } from '#/main/pickTheme';
 import { getStartupThemeOverride } from '#/main/startupTheme';
@@ -46,6 +47,11 @@ import { getCustomTheme } from '#/main/storage/customThemes';
 import { parseCustomThemeSource } from '#/shared/plugin/customThemeExport';
 import { getAiSettings, setAiSettings } from '#/main/settings/aiSettings';
 import { getGeneralSettings, setGeneralSettings } from '#/main/settings/generalSettings';
+import {
+  BUILTIN_COLLECTIONS_OPEN_REQUEST_KEY,
+  GETTING_STARTED_SEEN_KEY,
+  parseBuiltinCollectionOpenRequestTarget
+} from '#/main/storage/seedDefaultContent';
 import {
   deleteRequestEditorTab,
   getRequestEditorTab,
@@ -154,7 +160,6 @@ function mapTeamHubAdminRunResult(record: TeamHubRunResultRecord): TeamHubAdminR
 
 const THEME_SETTING_KEY = 'theme';
 const THEME_PICKER_SEEN_KEY = 'themePickerSeen';
-const GETTING_STARTED_SEEN_KEY = 'gettingStartedSeen';
 
 /**
  * Validates and returns a theme source value.
@@ -277,12 +282,26 @@ export function registerSettingsHandlers(db: IStorage): void {
 
   // Returns whether the Getting Started tab should open automatically on launch.
   handle('getting-started:shouldOpen', ipcArgSchemas.none, async () => {
-    return (await db.getSetting(GETTING_STARTED_SEEN_KEY)) !== '1';
+    const seen = await db.getSetting(GETTING_STARTED_SEEN_KEY);
+    const shouldOpen = seen !== '1';
+    logVerbose('builtin-collections: shouldOpenGettingStarted', { seen, shouldOpen });
+    return shouldOpen;
   });
 
   // Marks Getting Started as seen so it is not auto-opened on future launches.
   handle('getting-started:markSeen', ipcArgSchemas.none, async () => {
     await db.setSetting(GETTING_STARTED_SEEN_KEY, '1');
+  });
+
+  // Returns and clears the one-shot built-in request open target after first-run import.
+  handle('builtin-collections:consumeOpenRequestTarget', ipcArgSchemas.none, async () => {
+    const raw = await db.getSetting(BUILTIN_COLLECTIONS_OPEN_REQUEST_KEY);
+    const target = parseBuiltinCollectionOpenRequestTarget(raw);
+    logVerbose('builtin-collections: consumeOpenRequestTarget', { raw, target });
+    if (target != null) {
+      await db.setSetting(BUILTIN_COLLECTIONS_OPEN_REQUEST_KEY, '');
+    }
+    return target;
   });
 
   // Returns general HTTP execution settings (timeout, size limit, SSL verify).

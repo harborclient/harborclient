@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { app } from 'electron';
 import { copyFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { isRandUserDirFlagEnabled } from '#/main/randUserDir';
 import {
   buildDocumentUuidIndex,
   buildFolderImportMaps,
@@ -98,10 +99,12 @@ function resolveDbPath(userDataPath: string, settings: SqliteSettings): string {
   const dbPath = join(userDataPath, settings.dbFilename);
   if (existsSync(dbPath)) return dbPath;
 
-  const legacyCandidates = [
-    join(app.getPath('appData'), settings.legacyUserDataDir, settings.legacyDbFilename),
-    join(userDataPath, settings.legacyDbFilename)
-  ];
+  const legacyCandidates = [join(userDataPath, settings.legacyDbFilename)];
+  if (!isRandUserDirFlagEnabled()) {
+    legacyCandidates.unshift(
+      join(app.getPath('appData'), settings.legacyUserDataDir, settings.legacyDbFilename)
+    );
+  }
 
   for (const legacyPath of legacyCandidates) {
     if (existsSync(legacyPath)) {
@@ -324,6 +327,118 @@ export class SqliteStorage implements IStorage {
         `ALTER TABLE folders ADD COLUMN auth TEXT NOT NULL DEFAULT '${DEFAULT_AUTH_JSON.replace(/'/g, "''")}'`
       );
     }
+
+    this.normalizeContainerOrders();
+  }
+
+  /**
+   * Returns the next unified sort_order for a collection root or folder container.
+   * Requests and markdown documents share one ordering sequence per container.
+   *
+   * @param collectionId - Collection that owns the container.
+   * @param folderId - Folder id, or null for collection root.
+   */
+  private nextContainerSortOrder(collectionId: number, folderId: number | null): number {
+    const row = this.getDb()
+      .prepare(
+        `SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM (
+          SELECT sort_order FROM requests
+           WHERE collection_id = ? AND ((? IS NULL AND folder_id IS NULL) OR folder_id = ?)
+          UNION ALL
+          SELECT sort_order FROM documents
+           WHERE collection_id = ? AND ((? IS NULL AND folder_id IS NULL) OR folder_id = ?)
+        )`
+      )
+      .get(collectionId, folderId, folderId, collectionId, folderId, folderId) as {
+      max_order: number;
+    };
+    return row.max_order + 1;
+  }
+
+  /**
+   * Renumbers requests and documents in each container to a single sequential order.
+   * Repairs legacy databases where each table maintained its own sort_order counter.
+   */
+  private normalizeContainerOrders(): void {
+    const database = this.getDb();
+    const collections = database.prepare('SELECT id FROM collections').all() as Array<{
+      id: number;
+    }>;
+    const updateRequest = database.prepare(
+      'UPDATE requests SET sort_order = ? WHERE id = ? AND collection_id = ?'
+    );
+    const updateDocument = database.prepare(
+      'UPDATE documents SET sort_order = ? WHERE id = ? AND collection_id = ?'
+    );
+
+    const normalize = database.transaction(() => {
+      for (const { id: collectionId } of collections) {
+        const folders = database
+          .prepare('SELECT id FROM folders WHERE collection_id = ?')
+          .all(collectionId) as Array<{ id: number }>;
+        const containerFolderIds: Array<number | null> = [
+          null,
+          ...folders.map((folder) => folder.id)
+        ];
+
+        for (const folderId of containerFolderIds) {
+          const requests = database
+            .prepare(
+              `SELECT id, sort_order, created_at, name FROM requests
+               WHERE collection_id = ? AND ((? IS NULL AND folder_id IS NULL) OR folder_id = ?)`
+            )
+            .all(collectionId, folderId, folderId) as Array<{
+            id: number;
+            sort_order: number;
+            created_at: string;
+            name: string;
+          }>;
+          const documents = database
+            .prepare(
+              `SELECT id, sort_order, created_at, name FROM documents
+               WHERE collection_id = ? AND ((? IS NULL AND folder_id IS NULL) OR folder_id = ?)`
+            )
+            .all(collectionId, folderId, folderId) as Array<{
+            id: number;
+            sort_order: number;
+            created_at: string;
+            name: string;
+          }>;
+
+          const entries = [
+            ...requests.map((request) => ({ kind: 'request' as const, ...request })),
+            ...documents.map((document) => ({ kind: 'document' as const, ...document }))
+          ];
+          if (entries.length === 0) {
+            continue;
+          }
+
+          entries.sort((left, right) => {
+            const byCreated = left.created_at.localeCompare(right.created_at);
+            if (byCreated !== 0) {
+              return byCreated;
+            }
+            if (left.kind !== right.kind) {
+              return left.kind === 'request' ? -1 : 1;
+            }
+            return left.name.localeCompare(right.name);
+          });
+
+          entries.forEach((entry, index) => {
+            if (entry.sort_order === index) {
+              return;
+            }
+            if (entry.kind === 'request') {
+              updateRequest.run(index, entry.id, collectionId);
+              return;
+            }
+            updateDocument.run(index, entry.id, collectionId);
+          });
+        }
+      }
+    });
+
+    normalize();
   }
 
   /**
@@ -623,12 +738,7 @@ export class SqliteStorage implements IStorage {
     }
 
     const requestUuid = input.uuid?.trim() || generateDocumentUuid();
-    const maxOrder = this.getDb()
-      .prepare(
-        `SELECT COALESCE(MAX(sort_order), -1) as max_order FROM requests
-         WHERE collection_id = ? AND ((? IS NULL AND folder_id IS NULL) OR folder_id = ?)`
-      )
-      .get(input.collection_id, folderId, folderId) as { max_order: number };
+    const nextSortOrder = this.nextContainerSortOrder(input.collection_id, folderId);
 
     const result = this.getDb()
       .prepare(
@@ -654,7 +764,7 @@ export class SqliteStorage implements IStorage {
         postScripts.json,
         comment,
         tags,
-        maxOrder.max_order + 1,
+        nextSortOrder,
         requestUuid,
         now
       );
@@ -999,12 +1109,7 @@ export class SqliteStorage implements IStorage {
     }
 
     const documentUuid = input.uuid?.trim() || generateDocumentUuid();
-    const maxOrder = this.getDb()
-      .prepare(
-        `SELECT COALESCE(MAX(sort_order), -1) as max_order FROM documents
-         WHERE collection_id = ? AND ((? IS NULL AND folder_id IS NULL) OR folder_id = ?)`
-      )
-      .get(input.collection_id, folderId, folderId) as { max_order: number };
+    const nextSortOrder = this.nextContainerSortOrder(input.collection_id, folderId);
 
     const result = this.getDb()
       .prepare(
@@ -1012,15 +1117,7 @@ export class SqliteStorage implements IStorage {
         collection_id, folder_id, name, content, sort_order, uuid, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?)`
       )
-      .run(
-        input.collection_id,
-        folderId,
-        trimmedName,
-        content,
-        maxOrder.max_order + 1,
-        documentUuid,
-        now
-      );
+      .run(input.collection_id, folderId, trimmedName, content, nextSortOrder, documentUuid, now);
 
     const row = this.getDb()
       .prepare('SELECT * FROM documents WHERE id = ?')

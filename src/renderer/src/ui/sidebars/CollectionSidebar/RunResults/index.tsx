@@ -11,7 +11,6 @@ import {
 import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
 import { useSidebarProviders } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarProvidersContext';
 import { useSidebarRowSelection } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarRowSelection';
-import { formatRelativeTime } from '#/renderer/src/ui/sidebars/CollectionSidebar/History/utils';
 import { faEraser } from '#/renderer/src/fontawesome';
 import { METHOD_CLASSES, sourceRow } from '#/renderer/src/ui/shared/classes';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
@@ -59,23 +58,22 @@ export function RunsHeaderActions(): JSX.Element {
 /**
  * Returns the accessible label for a saved run row.
  *
- * @param rowDate - Formatted save date shown in the row.
+ * @param label - Saved run label shown in the row.
+ * @param rowDate - Formatted save date for tooltips and screen readers.
  * @param method - HTTP method of the first request, when known.
  * @param summaryText - Pass/fail summary for screen readers.
- * @param createdAt - ISO timestamp when the run was saved.
  * @returns Screen-reader label describing the row action and metadata.
  */
 function runResultAriaLabel(
+  label: string,
   rowDate: string,
   method: string | null | undefined,
-  summaryText: string,
-  createdAt: string
+  summaryText: string
 ): string {
-  const time = formatRelativeTime(Date.parse(createdAt));
   if (method) {
-    return `Open run ${rowDate}, ${method}, ${summaryText}, ${time}`;
+    return `Open run ${label}, ${method}, ${summaryText}, ${rowDate}`;
   }
-  return `Open run ${rowDate}, ${summaryText}, ${time}`;
+  return `Open run ${label}, ${summaryText}, ${rowDate}`;
 }
 
 /**
@@ -189,8 +187,8 @@ export function RunResults(): JSX.Element {
               variant="toolbar"
               className="flex min-w-0 flex-1 items-center gap-2 py-0.5 text-left text-[16px] text-text hover:bg-transparent"
               data-sidebar-run-result-id={runResult.id}
-              title={runResult.label}
-              aria-label={runResultAriaLabel(rowDate, method, summaryText, runResult.createdAt)}
+              title={`${runResult.label} — ${rowDate}`}
+              aria-label={runResultAriaLabel(runResult.label, rowDate, method, summaryText)}
               aria-selected={selected ? 'true' : undefined}
               onClick={(event: MouseEvent<HTMLButtonElement>) => {
                 handleRowClick(
@@ -206,7 +204,7 @@ export function RunResults(): JSX.Element {
                 </span>
               ) : null}
               <span className="flex min-w-0 flex-1 items-center gap-1.5">
-                <span className="min-w-0 truncate text-[16px] text-text">{rowDate}</span>
+                <span className="min-w-0 truncate text-[16px] text-text">{runResult.label}</span>
                 {showStorageLocationBadges && connectionName != null ? (
                   <span
                     className="shrink-0 rounded bg-info/15 px-1.5 py-0.5 text-[11px] font-medium text-info"
@@ -222,9 +220,6 @@ export function RunResults(): JSX.Element {
                   aria-hidden="true"
                 />
                 <span className="sr-only">{summaryText}</span>
-              </span>
-              <span className="shrink-0 text-muted">
-                {formatRelativeTime(Date.parse(runResult.createdAt))}
               </span>
             </Button>
             <RowActionsMenu

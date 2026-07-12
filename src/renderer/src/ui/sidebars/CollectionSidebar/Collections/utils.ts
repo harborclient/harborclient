@@ -1,4 +1,11 @@
-import { closestCenter, pointerWithin, type CollisionDetection } from '@dnd-kit/core';
+import {
+  closestCenter,
+  getFirstCollision,
+  pointerWithin,
+  rectIntersection,
+  type ClientRect,
+  type CollisionDetection
+} from '@dnd-kit/core';
 import {
   mergeContainerItems,
   type ContainerItem,
@@ -8,6 +15,18 @@ import type { CollectionDocument, SavedRequest } from '#/shared/types';
 
 export type { ContainerItem, ContainerItemRef };
 export { mergeContainerItems };
+
+/**
+ * Sorts markdown documents alphabetically by display name (case-insensitive).
+ *
+ * @param documents Documents in a single container (collection root or folder).
+ * @returns A new array sorted by name; equal names keep relative order.
+ */
+export function sortContainerDocuments(documents: CollectionDocument[]): CollectionDocument[] {
+  return [...documents].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+  );
+}
 
 /**
  * Kind of draggable sidebar item within a collection.
@@ -226,19 +245,39 @@ export function findUnifiedIndex(items: ContainerItemRef[], overId: string): num
 export const dropTargetHighlightClass = 'rounded-md ring-2 ring-info/60 bg-info/10';
 
 /**
- * Whether a droppable id should win collision detection for the active drag kind.
- * Folder reorder uses sortable sibling collisions only so rows shift during drag.
+ * Whether a collision id refers to a sortable request or document row.
  *
- * @param dropTargetId Droppable id under the pointer (e.g. `drop:folder:1`).
- * @param activeDragKind Kind of item currently being dragged, if any.
+ * @param id dnd-kit collision id.
  */
-export function shouldPreferDropTargetCollision(
-  dropTargetId: string,
-  activeDragKind: DragKind | null
-): boolean {
-  if (!dropTargetId.startsWith('drop:')) return false;
-  if (activeDragKind === 'folder') return false;
-  return true;
+export function isSortableRowCollisionId(id: string): boolean {
+  return id.startsWith('request:') || id.startsWith('document:');
+}
+
+/**
+ * Whether a collision id refers to a container drop zone or folder header.
+ *
+ * @param id dnd-kit collision id.
+ */
+export function isContainerDropCollisionId(id: string): boolean {
+  return id.startsWith('drop:') || id.startsWith('folder:');
+}
+
+/**
+ * Returns whether the center of a droppable rect lies inside a container rect.
+ * Used to find sortable rows that belong to a hovered drop zone.
+ *
+ * @param rect Droppable bounding rect.
+ * @param container Container bounding rect.
+ */
+export function rectCenterWithin(rect: ClientRect, container: ClientRect): boolean {
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  return (
+    centerX >= container.left &&
+    centerX <= container.right &&
+    centerY >= container.top &&
+    centerY <= container.bottom
+  );
 }
 
 /**
@@ -264,8 +303,10 @@ export function setCollectionSidebarDragKind(kind: DragKind | null): void {
 
 /**
  * Builds collision detection for the per-collection sidebar DndContext.
- * Request and document drags prefer explicit drop zones; folder drags use
- * closest-center sortable collisions so sibling folders animate out of the way.
+ * Request and document drags resolve to the nearest row inside the hovered
+ * container so drops land at the correct index even when a gap opens under the
+ * pointer; folder drags use closest-center sortable collisions so sibling
+ * folders animate out of the way.
  *
  * @param activeDragKindRef Ref updated synchronously on drag start/end.
  */
@@ -274,13 +315,45 @@ export function createCollectionCollisionDetection(
 ): CollisionDetection {
   return (args) => {
     const activeDragKind = activeDragKindRef.current;
-    const pointerCollisions = pointerWithin(args);
-    if (pointerCollisions.length > 0) {
-      const dropTarget = pointerCollisions.find((collision) =>
-        shouldPreferDropTargetCollision(String(collision.id), activeDragKind)
-      );
-      if (dropTarget) return [dropTarget];
+    if (activeDragKind === 'folder') {
+      return closestCenter(args);
     }
+
+    const pointerCollisions = pointerWithin(args);
+    const intersections = pointerCollisions.length > 0 ? pointerCollisions : rectIntersection(args);
+    const overId = getFirstCollision(intersections, 'id');
+    if (overId == null) {
+      return closestCenter(args);
+    }
+
+    const overIdStr = String(overId);
+    if (isSortableRowCollisionId(overIdStr)) {
+      return [{ id: overId }];
+    }
+
+    if (isContainerDropCollisionId(overIdStr)) {
+      const containerRect = args.droppableRects.get(overId);
+      if (containerRect) {
+        const rowContainers = args.droppableContainers.filter((container) => {
+          if (!isSortableRowCollisionId(String(container.id))) {
+            return false;
+          }
+          const rect = args.droppableRects.get(container.id);
+          return rect != null && rectCenterWithin(rect, containerRect);
+        });
+        if (rowContainers.length > 0) {
+          const rowCollisions = closestCenter({
+            ...args,
+            droppableContainers: rowContainers
+          });
+          if (rowCollisions.length > 0) {
+            return rowCollisions;
+          }
+        }
+      }
+      return [{ id: overId }];
+    }
+
     return closestCenter(args);
   };
 }

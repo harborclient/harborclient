@@ -149,7 +149,7 @@ export function useMenuActions(): void {
           break;
         case 'save':
           void dispatch(saveFromMenu()).catch((err: unknown) => {
-            showAlert(dispatch, formatErrorMessage(err, 'Failed to save request'));
+            showAlert(dispatch, formatErrorMessage(err, 'Failed to save'));
           });
           break;
         case 'settings':

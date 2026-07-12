@@ -11,6 +11,23 @@ const aiKeyValueShape = {
 } as const;
 
 /**
+ * Zod schema for saved request rows in create_collection tool arguments.
+ */
+const createCollectionRequestRow = z.object({
+  name: z.string(),
+  method: z.string(),
+  url: z.string(),
+  folder: z.string().optional(),
+  headers: z
+    .union([z.record(z.string(), z.string()), z.array(z.object(aiKeyValueShape))])
+    .optional(),
+  params: z.array(z.object(aiKeyValueShape)).optional(),
+  body: z.string().optional(),
+  bodyType: z.enum(['none', 'json', 'text', 'multipart', 'urlencoded']).optional(),
+  comment: z.string().optional()
+});
+
+/**
  * Zod raw shapes for Harbor AI tools, used when registering tools on the MCP server.
  */
 const AI_TOOL_INPUT_SHAPES: Record<AiToolName, Record<string, z.ZodType>> = {
@@ -87,6 +104,29 @@ const AI_TOOL_INPUT_SHAPES: Record<AiToolName, Record<string, z.ZodType>> = {
     scriptIndex: z.number(),
     code: z.string(),
     mode: z.enum(['replace', 'append']).optional()
+  },
+  create_collection: {
+    name: z.string(),
+    requests: z.array(createCollectionRequestRow).optional()
+  },
+  create_folder: {
+    collectionId: z.number(),
+    name: z.string()
+  },
+  create_request: {
+    collectionId: z.number(),
+    name: z.string(),
+    method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']),
+    url: z.string(),
+    folderId: z.union([z.number(), z.null()]).optional(),
+    folderName: z.string().optional(),
+    headers: z
+      .union([z.record(z.string(), z.string()), z.array(z.object(aiKeyValueShape))])
+      .optional(),
+    params: z.array(z.object(aiKeyValueShape)).optional(),
+    body: z.string().optional(),
+    bodyType: z.enum(['none', 'json', 'text', 'multipart', 'urlencoded']).optional(),
+    comment: z.string().optional()
   },
   search_docs: {
     query: z.string(),

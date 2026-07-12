@@ -1,4 +1,14 @@
 /**
+ * Formats a timestamp as an absolute UTC date/time for tooltips and accessible labels.
+ *
+ * @param ts - Unix epoch milliseconds.
+ * @returns Date/time string such as `2026-07-11 10:23:03`.
+ */
+export function formatSidebarAbsoluteDate(ts: number): string {
+  return new Date(ts).toISOString().replace('T', ' ').slice(0, 19);
+}
+
+/**
  * Formats a timestamp as a short relative time string.
  *
  * @param ts - Unix epoch milliseconds.

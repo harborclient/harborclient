@@ -7,6 +7,7 @@ import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { handle } from '#/main/ipc/handle';
 import { confirmDuplicateImport, openImportFile } from '#/main/ipc/handlers/importDialogs';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
+import { getTrashService } from '#/main/storage/trashServiceInstance';
 import type { Environment, EnvironmentExport, ImportAction } from '#/shared/types';
 
 /**
@@ -97,7 +98,9 @@ export function registerEnvironmentHandlers(db: IStorage): void {
   );
 
   // Deletes an environment by id.
-  handle('environments:delete', ipcArgSchemas.dbId, (_event, id) => db.deleteEnvironment(id));
+  handle('environments:delete', ipcArgSchemas.dbId, (_event, id) =>
+    getTrashService().moveEnvironmentToTrash(id)
+  );
 
   // Deep-copies an environment into a new record with a fresh uuid.
   handle('environments:duplicate', ipcArgSchemas.dbId, (_event, id) => {

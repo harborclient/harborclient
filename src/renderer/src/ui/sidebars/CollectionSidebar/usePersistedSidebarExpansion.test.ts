@@ -14,14 +14,16 @@ describe('serializeSidebarExpansion', () => {
           environments: true,
           runResults: false,
           history: true,
-          tabGroups: true
+          tabGroups: true,
+          trash: true
         },
         {
           collections: true,
           environments: false,
           runResults: true,
           history: false,
-          tabGroups: true
+          tabGroups: true,
+          trash: false
         },
         new Set([1, 2]),
         new Set([9]),
@@ -33,14 +35,16 @@ describe('serializeSidebarExpansion', () => {
         environments: true,
         runResults: false,
         history: true,
-        tabGroups: true
+        tabGroups: true,
+        trash: true
       },
       sectionVisibility: {
         collections: true,
         environments: false,
         runResults: true,
         history: false,
-        tabGroups: true
+        tabGroups: true,
+        trash: false
       },
       collectionIds: [1, 2],
       folderIds: [9],

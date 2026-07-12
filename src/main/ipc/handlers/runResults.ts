@@ -1,5 +1,6 @@
 import type { IStorage } from '#/main/storage/IStorage';
 import { RoutingStorage } from '#/main/storage/RoutingStorage';
+import { getTrashService } from '#/main/storage/trashServiceInstance';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import type { SaveRunResultInput } from '#/shared/collectionRunner';
@@ -35,7 +36,7 @@ export function registerRunResultHandlers(db: IStorage): void {
     if (!(db instanceof RoutingStorage)) {
       throw new Error('Run results require routed storage.');
     }
-    await db.deleteRunResult(id);
+    await getTrashService().moveRunResultToTrash(id);
   });
 
   handle('runResults:getByUuid', ipcArgSchemas.runResultUuid, async (_event, uuid) => {

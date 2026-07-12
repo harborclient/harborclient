@@ -1,4 +1,5 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
+import { getTrashService } from '#/main/storage/trashServiceInstance';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 
@@ -24,9 +25,10 @@ export function registerTabGroupHandlers(): void {
     getLocalDatabase().cloneTabGroup(id, name)
   );
 
-  handle('tabGroups:delete', ipcArgSchemas.tabGroupsDelete, (_event, id) =>
-    getLocalDatabase().deleteTabGroup(id)
-  );
+  handle('tabGroups:delete', ipcArgSchemas.tabGroupsDelete, (_event, id) => {
+    getTrashService().moveTabGroupToTrash(id);
+    return getLocalDatabase().listTabGroups();
+  });
 
   handle('tabGroups:reorder', ipcArgSchemas.tabGroupsReorder, (_event, orderedIds) =>
     getLocalDatabase().reorderTabGroups(orderedIds)

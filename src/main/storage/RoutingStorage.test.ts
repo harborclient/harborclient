@@ -16,7 +16,7 @@ import type { SessionResponse, TeamHubClient } from '@harborclient/team-hub-api'
 import { TeamHubClientError } from '@harborclient/team-hub-api';
 import { detachedSettingKey, detachedSnippetSettingKey } from '#/main/storage/teamHubDetached';
 import { teamHubIdMapPath } from '#/main/storage/createTeamHubStorage';
-import { baseRequestInput } from '#/test/istorageContract';
+import { baseDocumentInput, baseRequestInput } from '#/test/istorageContract';
 import { describeSqlite } from '#/test/nativeModules';
 
 const BASE_SQLITE_SETTINGS: SqliteSettings = {
@@ -459,6 +459,21 @@ describeSqlite('RoutingStorage moveCollection', () => {
       baseRequestInput(collection.id, { name: 'Login', folder_id: folder.id, method: 'POST' })
     );
     await router.saveRequest(baseRequestInput(collection.id, { name: 'Health' }));
+    const rootDoc = await router.saveDocument(
+      baseDocumentInput(collection.id, {
+        name: 'README.md',
+        content: '# Collection notes',
+        uuid: 'doc-root-uuid'
+      })
+    );
+    const folderDoc = await router.saveDocument(
+      baseDocumentInput(collection.id, {
+        name: 'notes.md',
+        content: '# Folder notes',
+        folder_id: folder.id,
+        uuid: 'doc-folder-uuid'
+      })
+    );
 
     const globalId = collection.id;
     const moved = await router.moveCollection(globalId, CONN_B.id);
@@ -479,6 +494,22 @@ describeSqlite('RoutingStorage moveCollection', () => {
 
     const movedFolders = await router.listFolders(globalId);
     expect(movedFolders.map((f) => f.name)).toEqual(['Auth']);
+
+    const movedDocuments = await router.listDocuments(globalId);
+    expect(movedDocuments.map((document) => document.name).sort()).toEqual([
+      'README.md',
+      'notes.md'
+    ]);
+    expect(movedDocuments.every((document) => document.collection_id === globalId)).toBe(true);
+
+    const movedRootDoc = movedDocuments.find((document) => document.name === 'README.md');
+    const movedFolderDoc = movedDocuments.find((document) => document.name === 'notes.md');
+    expect(movedRootDoc?.uuid).toBe(rootDoc.uuid);
+    expect(movedRootDoc?.content).toBe('# Collection notes');
+    expect(movedRootDoc?.folder_id).toBeNull();
+    expect(movedFolderDoc?.uuid).toBe(folderDoc.uuid);
+    expect(movedFolderDoc?.content).toBe('# Folder notes');
+    expect(movedFolderDoc?.folder_id).toBe(movedFolders[0]?.id);
   });
 
   it('returns existing collection when target connection is unchanged', async () => {

@@ -7,6 +7,7 @@ import type {
   Environment,
   Folder,
   KeyValue,
+  SaveRequestInput,
   SavedRequest,
   SendResult
 } from '#/shared/types';
@@ -21,10 +22,10 @@ import {
   setActiveEnvironmentId,
   setEnvironments
 } from '#/renderer/src/store/slices/environmentsSlice';
-import { openTabWithDraft, updateTab } from '#/renderer/src/store/slices/tabsSlice';
+import { openTabWithDraft, updateTab, openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { addTerminal, hydrateTerminals } from '#/renderer/src/store/slices/terminalsSlice';
 import { setShowTerminal } from '#/renderer/src/store/slices/navigationSlice';
-import { selectDraft } from '#/renderer/src/store/selectors';
+import { selectDraft, selectEffectiveActiveRequestTab } from '#/renderer/src/store/selectors';
 import {
   clearTerminalRegistry,
   getTerminalInstance,
@@ -37,6 +38,12 @@ vi.mock('react-hot-toast', () => ({
 
 const listRequestsMock = vi.fn<(collectionId: number) => Promise<SavedRequest[]>>();
 const listFoldersMock = vi.fn<(collectionId: number) => Promise<Folder[]>>();
+const listCollectionsMock =
+  vi.fn<() => Promise<{ collections: Collection[]; warnings: string[] }>>();
+const listDocumentsMock = vi.fn<(collectionId: number) => Promise<unknown[]>>();
+const createCollectionMock = vi.fn<(name: string, providerId?: string) => Promise<Collection>>();
+const createFolderMock = vi.fn<(collectionId: number, name: string) => Promise<Folder>>();
+const saveRequestMock = vi.fn<(input: SaveRequestInput) => Promise<SavedRequest>>();
 const sendRequestMock = vi.fn<(req: unknown, requestId?: string) => Promise<SendResult>>();
 const getCookiesMock = vi.fn<(domain: string) => Promise<KeyValue[]>>();
 const setCookiesMock = vi.fn<(domain: string, cookies: KeyValue[]) => Promise<void>>();
@@ -64,6 +71,85 @@ function createLocalStorageMock(): Storage {
   };
 }
 
+/**
+ * Builds a saved request matching a save input for collection write tool tests.
+ *
+ * @param input - Save request payload passed to window.api.saveRequest.
+ * @param id - Optional database id override.
+ */
+function savedRequestFromInput(input: SaveRequestInput, id = 101): SavedRequest {
+  return {
+    id,
+    uuid: `req-${id}`,
+    collection_id: input.collection_id,
+    folder_id: input.folder_id ?? null,
+    name: input.name,
+    method: input.method,
+    url: input.url,
+    headers: input.headers,
+    params: input.params,
+    auth: input.auth,
+    body: input.body,
+    body_type: input.body_type,
+    pre_request_script: input.pre_request_script ?? '',
+    post_request_script: input.post_request_script ?? '',
+    pre_request_scripts: input.pre_request_scripts ?? [],
+    post_request_scripts: input.post_request_scripts ?? [],
+    comment: input.comment ?? '',
+    tags: input.tags ?? '',
+    sort_order: 0,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z'
+  };
+}
+
+/**
+ * Builds a minimal collection record for collection write tool tests.
+ *
+ * @param id - Collection database id.
+ * @param name - Collection display name.
+ */
+function collectionFixture(id: number, name: string): Collection {
+  return {
+    id,
+    uuid: `col-${id}`,
+    name,
+    variables: [],
+    headers: [],
+    auth: defaultAuth(),
+    pre_request_script: '',
+    post_request_script: '',
+    pre_request_scripts: [],
+    post_request_scripts: [],
+    created_at: '2026-01-01T00:00:00.000Z'
+  };
+}
+
+/**
+ * Builds a minimal folder record for collection write tool tests.
+ *
+ * @param id - Folder database id.
+ * @param collectionId - Owning collection id.
+ * @param name - Folder display name.
+ */
+function folderFixture(id: number, collectionId: number, name: string): Folder {
+  return {
+    id,
+    uuid: `folder-${id}`,
+    collection_id: collectionId,
+    name,
+    variables: [],
+    headers: [],
+    auth: defaultAuth(),
+    pre_request_script: '',
+    post_request_script: '',
+    pre_request_scripts: [],
+    post_request_scripts: [],
+    sort_order: 0,
+    created_at: '2026-01-01T00:00:00.000Z'
+  };
+}
+
 beforeEach(() => {
   vi.stubGlobal('localStorage', createLocalStorageMock());
   vi.stubGlobal('window', {
@@ -77,6 +163,11 @@ beforeEach(() => {
     api: {
       listRequests: listRequestsMock,
       listFolders: listFoldersMock,
+      listCollections: listCollectionsMock,
+      listDocuments: listDocumentsMock,
+      createCollection: createCollectionMock,
+      createFolder: createFolderMock,
+      saveRequest: saveRequestMock,
       sendRequest: sendRequestMock,
       pushPluginHttpAfterSend: vi.fn().mockResolvedValue(undefined),
       getCookies: getCookiesMock,
@@ -92,6 +183,14 @@ beforeEach(() => {
   listRequestsMock.mockResolvedValue([]);
   listFoldersMock.mockReset();
   listFoldersMock.mockResolvedValue([]);
+  listCollectionsMock.mockReset();
+  listCollectionsMock.mockResolvedValue({ collections: [], warnings: [] });
+  listDocumentsMock.mockReset();
+  listDocumentsMock.mockResolvedValue([]);
+  createCollectionMock.mockReset();
+  createFolderMock.mockReset();
+  saveRequestMock.mockReset();
+  saveRequestMock.mockImplementation((input) => Promise.resolve(savedRequestFromInput(input)));
   sendRequestMock.mockReset();
   getCookiesMock.mockReset();
   getCookiesMock.mockResolvedValue([]);
@@ -1163,6 +1262,77 @@ describe('executeAiTool', () => {
     expect(selectDraft(store.getState()).pre_request_scripts[0].code).toBe('console.log("after");');
   });
 
+  it('resolves active request tools through a focused script-editor page tab', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const first = createInlineScriptRef('console.log("first");', 'First');
+    const second = createInlineScriptRef('console.log("second");', 'Second');
+
+    store.dispatch(
+      openTabWithDraft({
+        id: 5000000693,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Echo',
+        method: 'POST',
+        url: 'https://example.com/echo',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [first, second],
+        post_request_scripts: [],
+        comment: '',
+        tags: '',
+        auth: defaultAuth()
+      })
+    );
+
+    const requestTabId = store.getState().tabs.activeTabId;
+    store.dispatch(
+      openPageTab({
+        type: 'script-editor',
+        requestTabId,
+        phase: 'pre',
+        scriptId: second.id,
+        label: 'Second'
+      })
+    );
+
+    const summary = JSON.parse(
+      await executeAiTool(
+        'get_active_request',
+        {},
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(summary.name).toBe('Echo');
+    expect(summary.savedRequestId).toBe(5000000693);
+    expect(summary.tabId).toBe(requestTabId);
+
+    const updateResult = JSON.parse(
+      await executeAiTool(
+        'update_request_script',
+        {
+          requestId: 5000000693,
+          phase: 'pre',
+          scriptIndex: 2,
+          code: 'console.log("updated from script editor tab");'
+        },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    const effectiveTab = selectEffectiveActiveRequestTab(store.getState());
+    expect(updateResult).toEqual({ ok: true, phase: 'pre', scriptIndex: 2, isDirty: true });
+    expect(effectiveTab?.draft.pre_request_scripts[1].code).toBe(
+      'console.log("updated from script editor tab");'
+    );
+    expect(effectiveTab?.draft.pre_request_scripts[0].code).toBe('console.log("first");');
+  });
+
   it('returns a collection by uuid from Redux', async () => {
     const { store } = await import('#/renderer/src/store/redux');
     const collectionUuid = '11111111-1111-1111-1111-111111111111';
@@ -1641,5 +1811,253 @@ describe('executeAiTool', () => {
 
     expect(result).toEqual({ error: 'input is required.' });
     expect(writeTerminalMock).not.toHaveBeenCalled();
+  });
+
+  it('creates a collection with saved requests', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const createdCollection = collectionFixture(10, 'Headzoo');
+    const createdRequest = savedRequestFromInput({
+      collection_id: 10,
+      name: 'Get Headzoo',
+      method: 'GET',
+      url: 'https://headzoo.io',
+      headers: [],
+      params: [],
+      body: '',
+      body_type: 'none',
+      pre_request_script: '',
+      post_request_script: '',
+      pre_request_scripts: [],
+      post_request_scripts: [],
+      comment: '',
+      tags: '',
+      auth: defaultAuth()
+    });
+
+    createCollectionMock.mockResolvedValue(createdCollection);
+    listCollectionsMock.mockResolvedValue({ collections: [createdCollection], warnings: [] });
+    saveRequestMock.mockResolvedValue(createdRequest);
+    listRequestsMock.mockResolvedValue([createdRequest]);
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'create_collection',
+        {
+          name: 'Headzoo',
+          requests: [{ name: 'Get Headzoo', method: 'GET', url: 'https://headzoo.io' }]
+        },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      collection: { id: 10, uuid: 'col-10', name: 'Headzoo' },
+      requests: [
+        {
+          id: 101,
+          name: 'Get Headzoo',
+          method: 'GET',
+          url: 'https://headzoo.io',
+          folderId: null
+        }
+      ]
+    });
+    expect(createCollectionMock).toHaveBeenCalledWith('Headzoo', undefined);
+    expect(saveRequestMock).toHaveBeenCalledTimes(1);
+    expect(store.getState().collections.selectedCollectionId).toBe(10);
+  });
+
+  it('returns an error when create_collection payload is invalid', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'create_collection',
+        { name: '   ', requests: [] },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({ error: 'Collection name is required.' });
+    expect(createCollectionMock).not.toHaveBeenCalled();
+  });
+
+  it('creates a folder inside an existing collection', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const collection = collectionFixture(5, 'API');
+    const folder = folderFixture(22, 5, 'Users');
+    store.dispatch(setCollections([collection]));
+    createFolderMock.mockResolvedValue(folder);
+    listFoldersMock.mockResolvedValue([folder]);
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'create_folder',
+        { collectionId: 5, name: 'Users' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      folder: { id: 22, uuid: 'folder-22', name: 'Users', collectionId: 5 }
+    });
+    expect(createFolderMock).toHaveBeenCalledWith(5, 'Users');
+  });
+
+  it('returns an error when create_folder targets a missing collection', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'create_folder',
+        { collectionId: 99, name: 'Users' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({ error: 'Collection id 99 not found.' });
+    expect(createFolderMock).not.toHaveBeenCalled();
+  });
+
+  it('creates a saved request at the collection root', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const collection = collectionFixture(5, 'API');
+    const saved = savedRequestFromInput(
+      {
+        collection_id: 5,
+        name: 'Ping',
+        method: 'GET',
+        url: 'https://example.com/ping',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [],
+        post_request_scripts: [],
+        comment: '',
+        tags: '',
+        auth: defaultAuth()
+      },
+      77
+    );
+    store.dispatch(setCollections([collection]));
+    saveRequestMock.mockResolvedValue(saved);
+    listRequestsMock.mockResolvedValue([saved]);
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'create_request',
+        {
+          collectionId: 5,
+          name: 'Ping',
+          method: 'GET',
+          url: 'https://example.com/ping'
+        },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      request: {
+        id: 77,
+        uuid: 'req-77',
+        name: 'Ping',
+        method: 'GET',
+        url: 'https://example.com/ping',
+        folderId: null
+      }
+    });
+    expect(saveRequestMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection_id: 5,
+        folder_id: null,
+        name: 'Ping',
+        method: 'GET',
+        url: 'https://example.com/ping'
+      })
+    );
+  });
+
+  it('creates a saved request inside a folder resolved by name', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const collection = collectionFixture(5, 'API');
+    const folder = folderFixture(22, 5, 'Users');
+    const saved = savedRequestFromInput(
+      {
+        collection_id: 5,
+        folder_id: 22,
+        name: 'List users',
+        method: 'GET',
+        url: 'https://example.com/users',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [],
+        post_request_scripts: [],
+        comment: '',
+        tags: '',
+        auth: defaultAuth()
+      },
+      88
+    );
+    store.dispatch(setCollections([collection]));
+    store.dispatch(setFoldersForCollection({ collectionId: 5, folders: [folder] }));
+    saveRequestMock.mockResolvedValue(saved);
+    listRequestsMock.mockResolvedValue([saved]);
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'create_request',
+        {
+          collectionId: 5,
+          name: 'List users',
+          method: 'GET',
+          url: 'https://example.com/users',
+          folderName: 'users'
+        },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result.ok).toBe(true);
+    expect(saveRequestMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection_id: 5,
+        folder_id: 22
+      })
+    );
+  });
+
+  it('returns an error when create_request folder name is missing', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const collection = collectionFixture(5, 'API');
+    store.dispatch(setCollections([collection]));
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'create_request',
+        {
+          collectionId: 5,
+          name: 'Ping',
+          method: 'GET',
+          url: 'https://example.com/ping',
+          folderName: 'Missing'
+        },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({
+      error: 'Folder "Missing" was not found in collection 5. Call create_folder first.'
+    });
+    expect(saveRequestMock).not.toHaveBeenCalled();
   });
 });

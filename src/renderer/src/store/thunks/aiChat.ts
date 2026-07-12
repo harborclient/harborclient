@@ -11,7 +11,7 @@ import {
   buildAiScriptReferenceValidationContext,
   buildSidebarItemNameMapsFromState
 } from '#/renderer/src/ui/sidebars/AiSidebar/Chat/useAiScriptReferenceValidationContext';
-import { selectActiveTab, selectSnippets } from '#/renderer/src/store/selectors';
+import { selectEffectiveActiveRequestTab, selectSnippets } from '#/renderer/src/store/selectors';
 import { selectTerminalSelections } from '#/renderer/src/store/slices/terminalsSlice';
 import {
   appendMessage,
@@ -376,7 +376,7 @@ export const sendChatMessage = createAsyncThunk<
     const selectionContext = buildAiScriptSelectionContextMessage(
       trimmed,
       buildAiScriptReferenceValidationContext(
-        selectActiveTab(getState()),
+        selectEffectiveActiveRequestTab(getState()),
         selectSnippets(getState()),
         selectTerminalSelections(getState()),
         buildSidebarItemNameMapsFromState(getState())

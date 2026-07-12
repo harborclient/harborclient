@@ -11,6 +11,9 @@ import {
 import {
   AI_TOOL_NAMES,
   type AiToolName,
+  type CreateCollectionToolArgs,
+  type CreateFolderToolArgs,
+  type CreateRequestToolArgs,
   type GetActiveResponseToolArgs,
   type GetActiveTerminalLinesToolArgs,
   type GetSidebarItemByUuidToolArgs,
@@ -33,29 +36,33 @@ import {
 } from '#/shared/ai/chatContext';
 import { isMcpPrefixedToolName } from '#/shared/mcpToolNames';
 import { hostFromUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/cookieHost';
-import { isRequestTab, isTabDirty } from '#/renderer/src/store/drafts';
+import { isRequestTab, isTabDirty, type RequestTab } from '#/renderer/src/store/drafts';
 import { mirrorLegacyScriptString, resolveScriptSourceCode } from '#/shared/scriptRefs';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import { selectShowTerminal } from '#/renderer/src/store/slices/navigationSlice';
-import { setActiveDraft } from '#/renderer/src/store/slices/tabsSlice';
+import { updateTab } from '#/renderer/src/store/slices/tabsSlice';
 import {
   selectActiveEnvironmentId,
-  selectActiveTab,
+  selectEffectiveActiveRequestTab,
   selectCollections,
-  selectDraft,
   selectEnvironments,
   selectFoldersByCollection,
   selectRequestsByCollection,
-  selectResponse,
   selectSelectedCollectionId,
-  selectSnippets,
-  selectTestResults
+  selectSnippets
 } from '#/renderer/src/store/selectors';
 import type { RootState } from '#/renderer/src/store/redux';
 import { sendRequest } from '#/renderer/src/store/thunks/requests';
 import { selectActiveTerminal, selectTerminals } from '#/renderer/src/store/slices/terminalsSlice';
 import { getTerminalInstance } from '#/renderer/src/ui/Footer/TerminalPanel/terminalRegistry';
 import { readTerminalBufferLines } from '#/renderer/src/ui/Footer/TerminalPanel/terminalSelection';
+import {
+  createCollectionFromPlugin,
+  pluginRequestToSaveInput,
+  validateCreateCollectionPayload
+} from '#/renderer/src/plugins/hostRequestCommands';
+import type { CreateCollectionRequest } from '@harborclient/sdk';
+import { createFolder, refreshRequests } from '#/renderer/src/store/thunks/collections';
 import type { OperatingSystemInfo } from '#/shared/types';
 import type {
   AuthConfig,
@@ -205,6 +212,12 @@ export async function executeAiTool(
         return JSON.stringify(await updateActiveRequest(args, ctx));
       case 'update_request_script':
         return JSON.stringify(updateRequestScript(args, ctx));
+      case 'create_collection':
+        return JSON.stringify(await createCollectionTool(args, ctx));
+      case 'create_folder':
+        return JSON.stringify(await createFolderTool(args, ctx));
+      case 'create_request':
+        return JSON.stringify(await createRequestTool(args, ctx));
       case 'search_docs':
         return await window.api.searchDocs(args as SearchDocsToolArgs);
       case 'get_active_terminal':
@@ -483,7 +496,18 @@ function listEnvironments(state: RootState): Array<{
 }
 
 /**
- * Returns the saved request highlighted in the sidebar from the active tab draft.
+ * Returns a request tab by tab id from the open tab list.
+ *
+ * @param state - Current Redux root state.
+ * @param tabId - Request tab id to resolve.
+ */
+function findRequestTabById(state: RootState, tabId: string): RequestTab | undefined {
+  const tab = state.tabs.tabs.find((entry) => entry.tabId === tabId);
+  return tab && isRequestTab(tab) ? tab : undefined;
+}
+
+/**
+ * Returns the saved request highlighted in the sidebar from the effective active request tab.
  *
  * @param state - Current Redux root state.
  */
@@ -493,10 +517,13 @@ function getSidebarRequest(state: RootState): {
   collectionId: number | undefined;
   folderId: number | null | undefined;
 } | null {
-  const draft = selectDraft(state);
-  if (draft.id == null) return null;
+  const tab = selectEffectiveActiveRequestTab(state);
+  if (!tab) return null;
+  const draftId = tab.draft.id;
+  if (draftId == null) return null;
+  const draft = tab.draft;
   return {
-    id: draft.id,
+    id: draftId,
     name: draft.name,
     collectionId: draft.collection_id,
     folderId: draft.folder_id
@@ -504,7 +531,7 @@ function getSidebarRequest(state: RootState): {
 }
 
 /**
- * Returns summary info for the active editor tab request.
+ * Returns summary info for the effective active request tab.
  *
  * @param state - Current Redux root state.
  */
@@ -518,8 +545,8 @@ function getActiveRequest(state: RootState):
       isDirty: boolean;
     }
   | { error: string } {
-  const tab = selectActiveTab(state);
-  if (!tab || !isRequestTab(tab)) {
+  const tab = selectEffectiveActiveRequestTab(state);
+  if (!tab) {
     return { error: 'No active request tab.' };
   }
   const draft = tab.draft;
@@ -597,8 +624,8 @@ async function getActiveRequestDetails(state: RootState): Promise<
     }
   | { error: string }
 > {
-  const tab = selectActiveTab(state);
-  if (!tab || !isRequestTab(tab)) {
+  const tab = selectEffectiveActiveRequestTab(state);
+  if (!tab) {
     return { error: 'No active request tab.' };
   }
   const draft = tab.draft;
@@ -650,32 +677,32 @@ function resolveSendResponseFormatOptions(args: unknown): FormatHttpResponseOpti
 }
 
 /**
- * Returns a compact summary of the last HTTP response for the active tab.
+ * Returns a compact summary of the last HTTP response for the effective active request tab.
  *
  * @param state - Current Redux root state.
  */
 function getActiveResponseSummary(state: RootState): AgentHttpResponse | null {
-  const response = selectResponse(state);
-  if (!response) return null;
-  return formatHttpResponseForAgent(response, selectTestResults(state), { mode: 'summary' });
+  const tab = selectEffectiveActiveRequestTab(state);
+  if (!tab || !tab.response) return null;
+  return formatHttpResponseForAgent(tab.response, tab.testResults, { mode: 'summary' });
 }
 
 /**
- * Returns the last HTTP response for the active tab with a capped body.
+ * Returns the last HTTP response for the effective active request tab with a capped body.
  *
  * @param state - Current Redux root state.
  * @param args - Optional maxBodyChars limit.
  */
 function getActiveResponse(state: RootState, args: unknown): AgentHttpResponse | null {
-  const response = selectResponse(state);
-  if (!response) return null;
-  return formatHttpResponseForAgent(response, selectTestResults(state), {
+  const tab = selectEffectiveActiveRequestTab(state);
+  if (!tab || !tab.response) return null;
+  return formatHttpResponseForAgent(tab.response, tab.testResults, {
     maxBodyChars: resolveMaxBodyChars(args)
   });
 }
 
 /**
- * Evaluates a JMESPath expression against the active tab JSON response body.
+ * Evaluates a JMESPath expression against the effective active request tab JSON response body.
  *
  * @param state - Current Redux root state.
  * @param args - Tool arguments with expression and optional maxResultChars.
@@ -689,7 +716,8 @@ function queryResponseBody(
     return { error: 'expression is required.' };
   }
 
-  const response = selectResponse(state);
+  const tab = selectEffectiveActiveRequestTab(state);
+  const response = tab?.response;
   if (!response) {
     return { error: 'No HTTP response available. Send the request first.' };
   }
@@ -866,25 +894,24 @@ async function sendActiveRequest(
   args: unknown
 ): Promise<AgentHttpResponse | { error: string }> {
   const state = ctx.getState();
-  const tab = selectActiveTab(state);
-  if (!tab || !isRequestTab(tab)) {
+  const tab = selectEffectiveActiveRequestTab(state);
+  if (!tab) {
     return { error: 'No active request tab.' };
   }
   if (tab.sending) {
     return { error: 'A request is already in progress.' };
   }
 
-  await ctx.dispatch(sendRequest()).unwrap();
+  await ctx.dispatch(sendRequest(tab.tabId)).unwrap();
 
-  const nextState = ctx.getState();
-  const response = selectResponse(nextState);
-  if (!response) {
+  const nextTab = findRequestTabById(ctx.getState(), tab.tabId);
+  if (!nextTab || !nextTab.response) {
     return { error: 'Request finished without a response.' };
   }
 
   return formatHttpResponseForAgent(
-    response,
-    selectTestResults(nextState),
+    nextTab.response,
+    nextTab.testResults,
     resolveSendResponseFormatOptions(args)
   );
 }
@@ -1003,8 +1030,8 @@ async function updateActiveRequest(
     }
   | { error: string }
 > {
-  const tab = selectActiveTab(ctx.getState());
-  if (!tab || !isRequestTab(tab)) {
+  const tab = selectEffectiveActiveRequestTab(ctx.getState());
+  if (!tab) {
     return { error: 'No active request tab.' };
   }
 
@@ -1015,7 +1042,7 @@ async function updateActiveRequest(
     hasCookieUpdate
   } = applyRequestDraftUpdate(tab.draft, parsed);
 
-  ctx.dispatch(setActiveDraft(nextDraft));
+  ctx.dispatch(updateTab({ tabId: tab.tabId, updates: { draft: nextDraft } }));
 
   if (hasCookieUpdate && parsed.cookies !== undefined) {
     const host = hostFromUrl(nextDraft.url);
@@ -1032,8 +1059,8 @@ async function updateActiveRequest(
     await window.api.setCookies(host, cookiesForStorage(mergedCookies));
   }
 
-  const updatedTab = selectActiveTab(ctx.getState());
-  if (!updatedTab || !isRequestTab(updatedTab)) {
+  const updatedTab = findRequestTabById(ctx.getState(), tab.tabId);
+  if (!updatedTab) {
     return { error: 'No active request tab.' };
   }
 
@@ -1137,8 +1164,8 @@ function updateRequestScript(
   args: unknown,
   ctx: AiToolContext
 ): { ok: true; phase: 'pre' | 'post'; scriptIndex: number; isDirty: boolean } | { error: string } {
-  const tab = selectActiveTab(ctx.getState());
-  if (!tab || !isRequestTab(tab)) {
+  const tab = selectEffectiveActiveRequestTab(ctx.getState());
+  if (!tab) {
     return { error: 'No active request tab.' };
   }
 
@@ -1194,10 +1221,10 @@ function updateRequestScript(
           post_request_script: mirrorLegacyScriptString(nextScripts)
         };
 
-  ctx.dispatch(setActiveDraft(nextDraft));
+  ctx.dispatch(updateTab({ tabId: tab.tabId, updates: { draft: nextDraft } }));
 
-  const updatedTab = selectActiveTab(ctx.getState());
-  if (!updatedTab || !isRequestTab(updatedTab)) {
+  const updatedTab = findRequestTabById(ctx.getState(), tab.tabId);
+  if (!updatedTab) {
     return { error: 'No active request tab.' };
   }
 
@@ -1206,5 +1233,236 @@ function updateRequestScript(
     phase: parsed.phase,
     scriptIndex: parsed.scriptIndex,
     isDirty: isTabDirty(updatedTab)
+  };
+}
+
+/**
+ * Returns a collection from Redux state or throws when it is missing.
+ *
+ * @param state - Current Redux root state.
+ * @param collectionId - Collection database id to resolve.
+ */
+function requireCollection(state: RootState, collectionId: number): Collection {
+  const collection = selectCollections(state).find((entry) => entry.id === collectionId);
+  if (collection == null) {
+    throw new Error(`Collection id ${collectionId} not found.`);
+  }
+
+  return collection;
+}
+
+/**
+ * Resolves a folder id for create_request from explicit id or folder name.
+ *
+ * @param state - Current Redux root state.
+ * @param collectionId - Collection that owns the folder.
+ * @param folderId - Explicit folder id when provided.
+ * @param folderName - Folder display name to resolve when folderId is omitted.
+ */
+function resolveFolderIdForCreateRequest(
+  state: RootState,
+  collectionId: number,
+  folderId?: number | null,
+  folderName?: string
+): number | null {
+  if (folderId != null) {
+    const folders = selectFoldersByCollection(state)[collectionId] ?? [];
+    const match = folders.find((folder) => folder.id === folderId);
+    if (match == null) {
+      throw new Error(`Folder id ${folderId} was not found in collection ${collectionId}.`);
+    }
+    return match.id;
+  }
+
+  const trimmedName = typeof folderName === 'string' ? folderName.trim() : '';
+  if (!trimmedName) {
+    return null;
+  }
+
+  const folders = selectFoldersByCollection(state)[collectionId] ?? [];
+  const target = trimmedName.toLowerCase();
+  const match = folders.find((folder) => folder.name.trim().toLowerCase() === target);
+  if (match == null) {
+    throw new Error(
+      `Folder "${folderName}" was not found in collection ${collectionId}. Call create_folder first.`
+    );
+  }
+
+  return match.id;
+}
+
+/**
+ * Maps create_request tool arguments onto the plugin bulk-import request row shape.
+ *
+ * @param args - Parsed create_request tool arguments.
+ */
+function toCreateCollectionRequestRow(args: CreateRequestToolArgs): CreateCollectionRequest {
+  let headers: Record<string, string> | undefined;
+  if (Array.isArray(args.headers)) {
+    headers = Object.fromEntries(
+      args.headers.filter((row) => row.key.trim().length > 0).map((row) => [row.key, row.value])
+    );
+  } else {
+    headers = args.headers;
+  }
+
+  return {
+    name: args.name,
+    method: args.method,
+    url: args.url,
+    headers,
+    params: args.params,
+    body: args.body,
+    bodyType: args.bodyType,
+    comment: args.comment
+  };
+}
+
+/**
+ * Creates a collection with optional saved requests and returns a summary for the model.
+ *
+ * @param args - Parsed create_collection tool arguments.
+ * @param ctx - Redux getState and dispatch.
+ */
+async function createCollectionTool(
+  args: unknown,
+  ctx: AiToolContext
+): Promise<
+  | {
+      ok: true;
+      collection: { id: number; uuid: string; name: string };
+      requests: Array<{
+        id: number;
+        name: string;
+        method: string;
+        url: string;
+        folderId: number | null;
+      }>;
+    }
+  | { error: string }
+> {
+  const validated = validateCreateCollectionPayload(args as CreateCollectionToolArgs);
+  const result = await createCollectionFromPlugin(validated);
+  const collection = requireCollection(ctx.getState(), result.collectionId);
+  const requests = await window.api.listRequests(result.collectionId);
+
+  return {
+    ok: true,
+    collection: {
+      id: collection.id,
+      uuid: collection.uuid,
+      name: collection.name
+    },
+    requests: requests.map((request) => ({
+      id: request.id,
+      name: request.name,
+      method: request.method,
+      url: request.url,
+      folderId: request.folder_id
+    }))
+  };
+}
+
+/**
+ * Creates a folder inside an existing collection.
+ *
+ * @param args - Parsed create_folder tool arguments.
+ * @param ctx - Redux getState and dispatch.
+ */
+async function createFolderTool(
+  args: unknown,
+  ctx: AiToolContext
+): Promise<
+  | {
+      ok: true;
+      folder: { id: number; uuid: string; name: string; collectionId: number };
+    }
+  | { error: string }
+> {
+  const parsed = args as CreateFolderToolArgs;
+  if (typeof parsed?.collectionId !== 'number' || !Number.isFinite(parsed.collectionId)) {
+    throw new Error('collectionId is required.');
+  }
+
+  const trimmedName = typeof parsed.name === 'string' ? parsed.name.trim() : '';
+  if (!trimmedName) {
+    throw new Error('Folder name is required.');
+  }
+
+  requireCollection(ctx.getState(), parsed.collectionId);
+  const folder = await ctx
+    .dispatch(createFolder({ collectionId: parsed.collectionId, name: trimmedName }))
+    .unwrap();
+
+  return {
+    ok: true,
+    folder: {
+      id: folder.id,
+      uuid: folder.uuid,
+      name: folder.name,
+      collectionId: parsed.collectionId
+    }
+  };
+}
+
+/**
+ * Creates a saved request in an existing collection or folder.
+ *
+ * @param args - Parsed create_request tool arguments.
+ * @param ctx - Redux getState and dispatch.
+ */
+async function createRequestTool(
+  args: unknown,
+  ctx: AiToolContext
+): Promise<
+  | {
+      ok: true;
+      request: {
+        id: number;
+        uuid: string;
+        name: string;
+        method: string;
+        url: string;
+        folderId: number | null;
+      };
+    }
+  | { error: string }
+> {
+  const parsed = args as CreateRequestToolArgs;
+  if (typeof parsed?.collectionId !== 'number' || !Number.isFinite(parsed.collectionId)) {
+    throw new Error('collectionId is required.');
+  }
+
+  if (typeof parsed.method !== 'string' || !HTTP_METHODS.includes(parsed.method as HttpMethod)) {
+    throw new Error(`Invalid method: ${String(parsed.method)}`);
+  }
+
+  requireCollection(ctx.getState(), parsed.collectionId);
+  const folderId = resolveFolderIdForCreateRequest(
+    ctx.getState(),
+    parsed.collectionId,
+    parsed.folderId,
+    parsed.folderName
+  );
+
+  const saveInput = pluginRequestToSaveInput(
+    toCreateCollectionRequestRow(parsed),
+    parsed.collectionId,
+    folderId
+  );
+
+  const saved = await window.api.saveRequest(saveInput);
+  await ctx.dispatch(refreshRequests(parsed.collectionId));
+
+  return {
+    ok: true,
+    request: {
+      id: saved.id,
+      uuid: saved.uuid,
+      name: saved.name,
+      method: saved.method,
+      url: saved.url,
+      folderId: saved.folder_id
+    }
   };
 }

@@ -36,6 +36,11 @@ export interface SidebarExpansionState {
      * Whether the Tab Groups section body is visible.
      */
     tabGroups: boolean;
+
+    /**
+     * Whether the Trash section body is visible.
+     */
+    trash: boolean;
   };
 
   /**
@@ -76,6 +81,11 @@ export interface SidebarExpansionState {
      * Whether the Tab Groups section is shown in the sidebar.
      */
     tabGroups: boolean;
+
+    /**
+     * Whether the Trash section is shown in the sidebar.
+     */
+    trash: boolean;
   };
 
   /**
@@ -235,6 +245,11 @@ export interface GeneralSettings {
    * When true, request tabs and AI chat tabs wrap onto multiple rows instead of scrolling horizontally.
    */
   wrapTabs: boolean;
+
+  /**
+   * When true, editable text fields show spellcheck underlines and spelling context-menu actions.
+   */
+  spellCheckEnabled: boolean;
 
   /**
    * When true, switching appearance themes from the View menu shows a confirmation dialog.

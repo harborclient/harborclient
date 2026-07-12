@@ -188,15 +188,31 @@ const CHAI_COMMON: HcCompletionOption[] = [
   { label: 'throw', type: 'method', detail: '(type?) => void — function throws' },
   { label: 'closeTo', type: 'method', detail: '(expected, delta) => void — approximate number' },
   { label: 'satisfy', type: 'method', detail: '(fn) => void — custom predicate' },
-  { label: 'ok', type: 'property', detail: 'Truthy (or 2xx on hc.response.to)' },
-  { label: 'true', type: 'property', detail: 'Strict true' },
-  { label: 'false', type: 'property', detail: 'Strict false' },
-  { label: 'null', type: 'property', detail: 'Strict null' },
-  { label: 'undefined', type: 'property', detail: 'Undefined' },
-  { label: 'NaN', type: 'property', detail: 'Not a Number' },
-  { label: 'exist', type: 'property', detail: 'Value is not null or undefined' },
-  { label: 'empty', type: 'property', detail: 'Length zero or empty object' },
-  { label: 'finite', type: 'property', detail: 'Number is finite' }
+  {
+    label: 'ok',
+    type: 'property',
+    detail: 'Truthy — .to.be.ok or .to.be.ok() (2xx on hc.response.to)'
+  },
+  { label: 'true', type: 'property', detail: 'Strict true — .to.be.true or .to.be.true()' },
+  { label: 'false', type: 'property', detail: 'Strict false — .to.be.false or .to.be.false()' },
+  { label: 'null', type: 'property', detail: 'Strict null — .to.be.null or .to.be.null()' },
+  {
+    label: 'undefined',
+    type: 'property',
+    detail: 'Undefined — .to.be.undefined or .to.be.undefined()'
+  },
+  { label: 'NaN', type: 'property', detail: 'Not a Number — .to.be.NaN or .to.be.NaN()' },
+  { label: 'exist', type: 'property', detail: 'Not null/undefined — .to.exist or .to.exist()' },
+  {
+    label: 'empty',
+    type: 'property',
+    detail: 'Length zero or empty object — .to.be.empty or .to.be.empty()'
+  },
+  {
+    label: 'finite',
+    type: 'property',
+    detail: 'Number is finite — .to.be.finite or .to.be.finite()'
+  }
 ];
 
 /**
@@ -207,19 +223,67 @@ const RESPONSE_MATCHERS: HcCompletionOption[] = [
   { label: 'header', type: 'method', detail: '(name, value?) => void' },
   { label: 'body', type: 'method', detail: '(expected?) => void' },
   { label: 'jsonBody', type: 'method', detail: '(expected?) => void' },
-  { label: 'json', type: 'property', detail: 'JSON content-type and valid body' },
-  { label: 'withBody', type: 'property', detail: 'Non-empty response body' },
-  { label: 'success', type: 'property', detail: '2xx status' },
-  { label: 'redirection', type: 'property', detail: '3xx status' },
-  { label: 'clientError', type: 'property', detail: '4xx status' },
-  { label: 'serverError', type: 'property', detail: '5xx status' },
-  { label: 'error', type: 'property', detail: '4xx or 5xx status' },
-  { label: 'accepted', type: 'property', detail: '202 status' },
-  { label: 'badRequest', type: 'property', detail: '400 status' },
-  { label: 'unauthorized', type: 'property', detail: '401 status' },
-  { label: 'forbidden', type: 'property', detail: '403 status' },
-  { label: 'notFound', type: 'property', detail: '404 status' },
-  { label: 'rateLimited', type: 'property', detail: '429 status' }
+  {
+    label: 'json',
+    type: 'property',
+    detail: 'JSON content-type and valid body — .to.be.json or .to.be.json()'
+  },
+  {
+    label: 'withBody',
+    type: 'property',
+    detail: 'Non-empty response body — .to.be.withBody or .to.be.withBody()'
+  },
+  { label: 'success', type: 'property', detail: '2xx status — .to.be.success or .to.be.success()' },
+  {
+    label: 'redirection',
+    type: 'property',
+    detail: '3xx status — .to.be.redirection or .to.be.redirection()'
+  },
+  {
+    label: 'clientError',
+    type: 'property',
+    detail: '4xx status — .to.be.clientError or .to.be.clientError()'
+  },
+  {
+    label: 'serverError',
+    type: 'property',
+    detail: '5xx status — .to.be.serverError or .to.be.serverError()'
+  },
+  {
+    label: 'error',
+    type: 'property',
+    detail: '4xx or 5xx status — .to.be.error or .to.be.error()'
+  },
+  {
+    label: 'accepted',
+    type: 'property',
+    detail: '202 status — .to.be.accepted or .to.be.accepted()'
+  },
+  {
+    label: 'badRequest',
+    type: 'property',
+    detail: '400 status — .to.be.badRequest or .to.be.badRequest()'
+  },
+  {
+    label: 'unauthorized',
+    type: 'property',
+    detail: '401 status — .to.be.unauthorized or .to.be.unauthorized()'
+  },
+  {
+    label: 'forbidden',
+    type: 'property',
+    detail: '403 status — .to.be.forbidden or .to.be.forbidden()'
+  },
+  {
+    label: 'notFound',
+    type: 'property',
+    detail: '404 status — .to.be.notFound or .to.be.notFound()'
+  },
+  {
+    label: 'rateLimited',
+    type: 'property',
+    detail: '429 status — .to.be.rateLimited or .to.be.rateLimited()'
+  }
 ];
 
 /**

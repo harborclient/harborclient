@@ -96,6 +96,7 @@
     "react-hot-toast": "^2.6.0",
     "react-markdown": "^10.1.0",
     "react-redux": "^9.3.0",
+    "remark": "^15.0.1",
     "remark-gfm": "^4.0.1",
     "ses": "^2.2.0",
     "undici": "^6.27.0",

@@ -2,8 +2,9 @@ import Database from 'better-sqlite3';
 import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
+import { mergeContainerItems } from '#/shared/collectionContainerOrder';
 import { createInlineScriptRef } from '#/shared/scriptRefs';
 import type { SqliteSettings } from '#/shared/types';
 import { SqliteStorage } from '#/main/storage/SqliteStorage';
@@ -21,6 +22,14 @@ const DEFAULT_TEST_SETTINGS: SqliteSettings = {
 };
 
 const TEST_APP_DATA = join(tmpdir(), 'harborclient-test-appdata');
+
+const { isRandUserDirFlagEnabledMock } = vi.hoisted(() => ({
+  isRandUserDirFlagEnabledMock: vi.fn(() => false)
+}));
+
+vi.mock('#/main/randUserDir', () => ({
+  isRandUserDirFlagEnabled: isRandUserDirFlagEnabledMock
+}));
 
 vi.mock('electron', () => ({
   app: {
@@ -304,6 +313,10 @@ describeSqlite('SqliteStorage contract', () => {
 });
 
 describeSqlite('SqliteStorage legacy migration', () => {
+  beforeEach(() => {
+    isRandUserDirFlagEnabledMock.mockReturnValue(false);
+  });
+
   it('copies legacy harbor-client.db from appData when harborclient.db is missing', async () => {
     const legacyDir = join(TEST_APP_DATA, 'harbor-client');
     mkdirSync(legacyDir, { recursive: true });
@@ -356,6 +369,45 @@ describeSqlite('SqliteStorage legacy migration', () => {
 
     expect(existsSync(join(userDataDir, 'harborclient.db'))).toBe(true);
     expect((await db.listCollections()).map((c) => c.name)).toEqual(['Legacy Collection']);
+  });
+
+  it('does not copy legacy harbor-client.db from appData when --rand-user-dir is active', async () => {
+    isRandUserDirFlagEnabledMock.mockReturnValue(true);
+
+    const legacyDir = join(TEST_APP_DATA, 'harbor-client');
+    mkdirSync(legacyDir, { recursive: true });
+    const legacyPath = join(legacyDir, 'harbor-client.db');
+
+    const legacyDb = new Database(legacyPath);
+    legacyDb.exec(`
+      CREATE TABLE collections (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        variables TEXT NOT NULL DEFAULT '[]',
+        headers TEXT NOT NULL DEFAULT '[]',
+        pre_request_script TEXT NOT NULL DEFAULT '',
+        post_request_script TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE TABLE settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+    `);
+    legacyDb.prepare('INSERT INTO collections (name) VALUES (?)').run('Legacy Collection');
+    legacyDb.close();
+
+    const userDataDir = mkdtempSync(join(tmpdir(), 'harborclient-db-'));
+    const db = new SqliteStorage(userDataDir, DEFAULT_TEST_SETTINGS);
+    cleanups.push(async () => {
+      await db.close();
+      rmSync(userDataDir, { recursive: true, force: true });
+    });
+
+    await db.init();
+
+    expect(existsSync(join(userDataDir, 'harborclient.db'))).toBe(true);
+    expect(await db.listCollections()).toEqual([]);
   });
 
   it('copies legacy harbor-client.db from userDataPath when present', async () => {
@@ -507,5 +559,131 @@ describeSqlite('SqliteStorage legacy migration', () => {
     const collection = await db.createCollection('Tagged');
     const saved = await db.saveRequest(baseRequestInput(collection.id, { tags: 'api, staging' }));
     expect(saved.tags).toBe('api, staging');
+  });
+});
+
+describeSqlite('SqliteStorage container sort order', () => {
+  it('assigns new documents after existing requests in the same container', async () => {
+    const { db } = await createTestDb();
+    const collection = await db.createCollection('Mixed');
+    await db.saveRequest(baseRequestInput(collection.id, { name: 'First' }));
+    await db.saveRequest(baseRequestInput(collection.id, { name: 'Second' }));
+    const document = await db.saveDocument({
+      collection_id: collection.id,
+      name: 'README.md',
+      content: '# Readme'
+    });
+
+    const requests = await db.listRequests(collection.id);
+    expect(document.sort_order).toBe(2);
+    expect(requests.map((request) => request.sort_order)).toEqual([0, 1]);
+  });
+
+  it('assigns new requests after existing documents in the same container', async () => {
+    const { db } = await createTestDb();
+    const collection = await db.createCollection('Mixed');
+    const document = await db.saveDocument({
+      collection_id: collection.id,
+      name: 'README.md',
+      content: '# Readme'
+    });
+    const request = await db.saveRequest(baseRequestInput(collection.id, { name: 'After doc' }));
+
+    expect(document.sort_order).toBe(0);
+    expect(request.sort_order).toBe(1);
+  });
+
+  it('normalizes legacy per-kind sort_order values on init', async () => {
+    const userDataDir = mkdtempSync(join(tmpdir(), 'harborclient-db-'));
+    const dbPath = join(userDataDir, 'harborclient.db');
+    const createdAt = '2026-01-01 00:00:00';
+
+    const legacyDb = new Database(dbPath);
+    legacyDb.exec(`
+      CREATE TABLE collections (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        variables TEXT NOT NULL DEFAULT '[]',
+        headers TEXT NOT NULL DEFAULT '[]',
+        pre_request_script TEXT NOT NULL DEFAULT '',
+        post_request_script TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE TABLE requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        collection_id INTEGER NOT NULL,
+        folder_id INTEGER,
+        name TEXT NOT NULL,
+        method TEXT NOT NULL DEFAULT 'GET',
+        url TEXT NOT NULL DEFAULT '',
+        headers TEXT NOT NULL DEFAULT '[]',
+        params TEXT NOT NULL DEFAULT '[]',
+        body TEXT NOT NULL DEFAULT '',
+        body_type TEXT NOT NULL DEFAULT 'none',
+        pre_request_script TEXT NOT NULL DEFAULT '',
+        post_request_script TEXT NOT NULL DEFAULT '',
+        comment TEXT NOT NULL DEFAULT '',
+        tags TEXT NOT NULL DEFAULT '',
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE
+      );
+      CREATE TABLE documents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        collection_id INTEGER NOT NULL,
+        folder_id INTEGER,
+        uuid TEXT NOT NULL DEFAULT '',
+        name TEXT NOT NULL,
+        content TEXT NOT NULL DEFAULT '',
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE
+      );
+      CREATE TABLE settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+    `);
+    legacyDb.prepare('INSERT INTO collections (name) VALUES (?)').run('Echo');
+    const requestNames = ['Echo POST', 'Echo DELETE', 'Echo PUT', 'Echo POST 2'];
+    for (const [index, name] of requestNames.entries()) {
+      legacyDb
+        .prepare(
+          `INSERT INTO requests (collection_id, name, sort_order, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?)`
+        )
+        .run(1, name, index + 1, createdAt, createdAt);
+    }
+    legacyDb
+      .prepare(
+        `INSERT INTO documents (collection_id, name, content, sort_order, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run(1, 'README.md', '# Echo', 0, createdAt, createdAt);
+    legacyDb.close();
+
+    const db = new SqliteStorage(userDataDir, DEFAULT_TEST_SETTINGS);
+    cleanups.push(async () => {
+      await db.close();
+      rmSync(userDataDir, { recursive: true, force: true });
+    });
+
+    await db.init();
+
+    const order = mergeContainerItems(
+      await db.listRequests(1),
+      await db.listDocuments(1),
+      null
+    ).map((item) => `${item.kind}:${item.name}`);
+
+    expect(order).toEqual([
+      'request:Echo DELETE',
+      'request:Echo POST',
+      'request:Echo POST 2',
+      'request:Echo PUT',
+      'document:README.md'
+    ]);
   });
 });

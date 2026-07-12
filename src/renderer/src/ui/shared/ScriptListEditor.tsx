@@ -52,7 +52,9 @@ import type { AiSettings, HubLlmModelGroup, ScriptRef, Snippet, Variable } from 
 import type { ScriptStage } from '@harborclient/sdk';
 import {
   createInlineScriptRef,
+  createScriptRefFromClipboard,
   createSnippetScriptRef,
+  copyScriptRefForClipboard,
   ensureDefaultScriptRef,
   linkScriptRefToSnippet,
   normalizeScriptRefs,
@@ -119,6 +121,10 @@ import {
   type ScriptEditorGroup
 } from '#/shared/scriptStage';
 import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
+import {
+  selectCopiedScriptRef,
+  setCopiedScript
+} from '#/renderer/src/store/slices/scriptClipboardSlice';
 import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
 import { getAvailableModels } from '#/shared/ai/models';
 import { buildSnippetBundle } from '#/shared/snippetBundle';
@@ -134,6 +140,7 @@ import {
   faCode,
   faArrowUpRightFromSquare,
   faCopy,
+  faPaste,
   faWandMagicSparkles
 } from '#/renderer/src/fontawesome';
 
@@ -336,6 +343,11 @@ interface SortableScriptRowProps {
    * Clones this script row as a new inline entry inserted after the source row.
    */
   onClone: () => void;
+
+  /**
+   * Copies this script row into the in-memory clipboard for paste.
+   */
+  onCopy: () => void;
 
   /**
    * Whether AI chat is available for this user.
@@ -1064,6 +1076,7 @@ function SortableScriptRow({
   onRequestEditSnippet,
   onReadonlySnippetClick,
   onClone,
+  onCopy,
   aiAvailable,
   onAskAi,
   onCopySelectionToChat,
@@ -1329,7 +1342,10 @@ function SortableScriptRow({
       ...(primaryActions.length > 0 ? [primaryActions] : []),
       ...(settingsActions.length > 0 ? [settingsActions] : []),
       viewActions,
-      [{ label: 'Clone', onSelect: onClone }],
+      [
+        { label: 'Copy', onSelect: onCopy },
+        { label: 'Clone', onSelect: onClone }
+      ],
       [{ label: 'Delete', variant: 'danger', onSelect: onRemove }]
     ];
   }, [
@@ -1337,6 +1353,7 @@ function SortableScriptRow({
     enterFullScreen,
     isEditingSnippet,
     onClone,
+    onCopy,
     onOpenInTab,
     onStageSelect,
     onRemove,
@@ -1710,6 +1727,7 @@ export function ScriptListEditor({
   const hubModelGroups = useAppSelector(selectHubModelGroups);
   const activeChatId = useAppSelector(selectActiveChatId);
   const scriptEditorActions = usePluginScriptEditorActions(phase);
+  const copiedScript = useAppSelector(selectCopiedScriptRef);
   const normalized = useMemo(() => normalizeScriptRefs(scripts), [scripts]);
   const scriptGroups = useMemo(() => splitScriptRefsByGroup(normalized), [normalized]);
   const compatibleSnippets = useMemo(
@@ -2258,6 +2276,22 @@ export function ScriptListEditor({
   };
 
   /**
+   * Copies one script row into the in-memory clipboard.
+   *
+   * @param id - Script list entry id.
+   * @param label - Display label shown in the success toast.
+   */
+  const handleCopyScript = (id: string, label: string): void => {
+    const script = normalized.find((entry) => entry.id === id);
+    if (!script) {
+      return;
+    }
+
+    dispatch(setCopiedScript(copyScriptRefForClipboard(script)));
+    toast.success(`Copied "${label}"`);
+  };
+
+  /**
    * Clones one script row as a detached inline copy inserted after the source row.
    *
    * @param id - Script list entry id.
@@ -2308,6 +2342,31 @@ export function ScriptListEditor({
   };
 
   /**
+   * Inserts a new script row from the in-memory clipboard at the end of its stage group.
+   */
+  const handlePasteScript = (): void => {
+    if (!copiedScript) {
+      return;
+    }
+
+    const created = createScriptRefFromClipboard(copiedScript, snippets);
+    if (!created) {
+      toast.error('That snippet no longer exists in the library.');
+      return;
+    }
+
+    const groups = splitScriptRefsByGroup(normalized);
+    const group = scriptStageGroup(normalizeScriptStage(readScriptRefStage(created)));
+    updateScripts(
+      mergeScriptRefGroups({
+        ...groups,
+        [group]: [...groups[group], created]
+      })
+    );
+    toast.success(`Pasted "${scriptRowLabel(created, snippets)}"`);
+  };
+
+  /**
    * Prompts before removing a script row, then updates the list when confirmed.
    *
    * @param id - Script list entry id.
@@ -2355,9 +2414,10 @@ export function ScriptListEditor({
    * @param scriptIndex - 1-based index of the script row in the phase array.
    */
   const handleAskAi = async (scriptIndex: number): Promise<void> => {
+    const token = `@${requestId ?? 'active'}.${phase}.${scriptIndex}\n\n`;
     dispatch(setShowAiSidebar(true));
     await dispatch(createNewChat(aiSettings));
-    dispatch(setPendingComposerText(`@${requestId ?? 'active'}.${phase}.${scriptIndex}\n\n`));
+    dispatch(setPendingComposerText(token));
   };
 
   /**
@@ -2428,8 +2488,9 @@ export function ScriptListEditor({
     onRequestEditSnippet: () => handleRequestEditSnippet(label),
     onReadonlySnippetClick: () => void handleReadonlySnippetClick(label),
     onClone: () => void handleCloneScript(script.id, label),
+    onCopy: () => handleCopyScript(script.id, label),
     aiAvailable,
-    onAskAi: () => void handleAskAi(scriptIndex + 1),
+    onAskAi: () => void handleAskAi(scriptIndex),
     onCopySelectionToChat: (selection) => void handleCopySelectionToChat(scriptIndex, selection),
     aiSettings,
     hubModelGroups,
@@ -2529,6 +2590,17 @@ export function ScriptListEditor({
       >
         <FaIcon icon={faFileExport} className="h-3.5 w-3.5" />
         Export
+      </Button>
+      <Button
+        type="button"
+        variant="secondary"
+        className="shrink-0"
+        aria-label="Paste script"
+        title={copiedScript ? 'Paste script' : 'Nothing copied yet'}
+        disabled={!copiedScript}
+        onClick={handlePasteScript}
+      >
+        <FaIcon icon={faPaste} className="h-3.5 w-3.5" aria-hidden />
       </Button>
       <div className="flex shrink-0 items-center gap-2 mr-4">
         <Button

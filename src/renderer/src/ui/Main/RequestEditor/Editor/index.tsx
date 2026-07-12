@@ -37,6 +37,11 @@ interface Props {
   onSend: () => void;
 
   /**
+   * Called when the user clicks Save.
+   */
+  onSave: () => void;
+
+  /**
    * Called when the user cancels an in-flight request from the URL bar.
    */
   onCancel: () => void;
@@ -45,6 +50,16 @@ interface Props {
    * Whether a request is in flight; swaps Send for a stop icon when true.
    */
   sending: boolean;
+
+  /**
+   * Whether a save is in flight; disables Save and shows progress text.
+   */
+  savingRequest: boolean;
+
+  /**
+   * When true, Save is disabled because there is nothing to persist.
+   */
+  saveDisabled: boolean;
 
   /**
    * Collection-scoped variables for URL highlighting and tooltips.
@@ -86,8 +101,11 @@ export function Editor({
   requestTabContext,
   onChange,
   onSend,
+  onSave,
   onCancel,
   sending,
+  savingRequest,
+  saveDisabled,
   variables,
   collectionName,
   folderName,
@@ -145,6 +163,9 @@ export function Editor({
           onMethodChange={(method) => update({ method })}
           onUrlChange={handleUrlChange}
           onSend={onSend}
+          onSave={onSave}
+          savingRequest={savingRequest}
+          saveDisabled={saveDisabled}
           onCancel={onCancel}
           onEditVariables={onEditVariables}
         />

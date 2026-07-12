@@ -886,65 +886,169 @@ function formatScriptSelectionContextBlock(
 }
 
 /**
- * Builds an ephemeral system message that expands `@` script references with selection suffixes.
+ * Formats one valid whole-script `@` reference (no `#selection` suffix) for agent context.
+ *
+ * @param reference - Parsed `@` script reference without a selection range.
+ * @param context - Active tab script rows and snippet library.
+ * @returns Context block with full script source, or null when not resolvable.
+ */
+function formatWholeScriptReferenceContextBlock(
+  reference: ParsedAiScriptReference,
+  context: AiScriptReferenceValidationContext
+): string | null {
+  if (
+    reference.selection != null ||
+    reference.kind === 'terminal' ||
+    reference.kind === 'collection' ||
+    reference.kind === 'folder' ||
+    reference.kind === 'request'
+  ) {
+    return null;
+  }
+
+  if (!isValidAiScriptReference(reference, context)) {
+    return null;
+  }
+
+  const source = resolveReferenceSourceCode(reference, context);
+  if (source == null) {
+    return null;
+  }
+
+  const name = resolveAiScriptReferenceName(reference, context) ?? 'Unnamed script';
+
+  if (reference.kind === 'snippet') {
+    return [
+      `Reference ${reference.text} — standalone library snippet "${name}" (not linked to any specific request).`,
+      'Full snippet source:',
+      '```js',
+      source,
+      '```'
+    ].join('\n');
+  }
+
+  if (reference.kind !== 'request-script') {
+    return null;
+  }
+
+  const phaseLabel = reference.phase === 'pre' ? 'pre-request' : 'post-request';
+  const requestLabel =
+    reference.requestId === 'active'
+      ? 'of the active request'
+      : `of request id ${reference.requestId}`;
+
+  return [
+    `Reference ${reference.text} — script "${name}" (${phaseLabel} script ${reference.scriptIndex} ${requestLabel}).`,
+    'Full script source:',
+    '```js',
+    source,
+    '```'
+  ].join('\n');
+}
+
+/**
+ * Formats agent context for one `@` script reference, with or without a selection suffix.
+ *
+ * @param reference - Parsed `@` script reference.
+ * @param context - Active tab script rows and snippet library.
+ */
+function formatScriptReferenceContextBlock(
+  reference: ParsedAiScriptReference,
+  context: AiScriptReferenceValidationContext
+): string | null {
+  if (reference.selection != null) {
+    return formatScriptSelectionContextBlock(reference, context);
+  }
+
+  return formatWholeScriptReferenceContextBlock(reference, context);
+}
+
+/**
+ * Builds an ephemeral system message that expands valid `@` script references in the user message.
+ *
+ * References with a `#start.end` suffix include the selected substring; whole-script references
+ * include the full source so the model can answer questions without relying on tool calls alone.
  *
  * The returned text is injected into the LLM step messages only; it is not persisted in chat
  * history so the composer can keep rendering compact badges.
  *
  * @param text - User message that may contain `@` script references.
  * @param context - Active tab script rows and snippet library.
- * @returns Formatted context block, or null when no valid selection references are present.
+ * @returns Formatted context block, or null when no valid references are present.
  */
 export function buildAiScriptSelectionContextMessage(
   text: string,
   context: AiScriptReferenceValidationContext
 ): string | null {
   const candidates = findAiScriptReferenceCandidates(text);
-  const blocks = candidates
-    .map((reference) => formatScriptSelectionContextBlock(reference, context))
-    .filter((block): block is string => block != null);
+  const resolved = candidates
+    .map((reference) => ({
+      reference,
+      block: formatScriptReferenceContextBlock(reference, context)
+    }))
+    .filter((entry): entry is { reference: ParsedAiScriptReference; block: string } =>
+      entry.block != null ? true : false
+    );
 
-  if (blocks.length === 0) {
+  if (resolved.length === 0) {
     return null;
   }
 
-  const hasTerminalReference = candidates.some(
-    (reference) => reference.kind === 'terminal' && reference.selection != null
+  const blocks = resolved.map((entry) => entry.block);
+
+  const hasTerminalSelection = resolved.some(
+    (entry) => entry.reference.kind === 'terminal' && entry.reference.selection != null
   );
-  const hasRequestScriptReference = candidates.some(
-    (reference) => reference.kind === 'request-script' && reference.selection != null
+  const hasScriptSelection = resolved.some(
+    (entry) =>
+      (entry.reference.kind === 'request-script' || entry.reference.kind === 'snippet') &&
+      entry.reference.selection != null
   );
-  const hasSnippetReference = candidates.some(
-    (reference) => reference.kind === 'snippet' && reference.selection != null
+  const hasWholeScriptReference = resolved.some(
+    (entry) =>
+      (entry.reference.kind === 'request-script' || entry.reference.kind === 'snippet') &&
+      entry.reference.selection == null
   );
 
   const headerParts: string[] = [];
-  if (hasTerminalReference) {
+  if (hasTerminalSelection) {
     headerParts.push(
       'The user selected terminal output and is asking specifically about the SELECTED TEXT below.'
     );
   }
-  if (hasRequestScriptReference || hasSnippetReference) {
+  if (hasScriptSelection) {
     headerParts.push(
       'The user selected part of a script and is asking specifically about the SELECTED TEXT below.'
     );
   }
+  if (hasWholeScriptReference) {
+    headerParts.push(
+      'The user referenced one or more scripts via @ mentions. Use the script sources below to answer their question.'
+    );
+  }
 
-  const footerParts: string[] = ['Focus your answer on the selected region.'];
+  const footerParts: string[] = [];
+  if (hasScriptSelection) {
+    footerParts.push('Focus your answer on the selected region.');
+  } else if (hasWholeScriptReference) {
+    footerParts.push('Answer using the referenced script source below.');
+  }
 
-  if (hasTerminalReference) {
+  if (hasTerminalSelection) {
     footerParts.push(
       'Terminal output references cannot be edited via tools. Explain, diagnose, or suggest shell commands the user can run.'
     );
   }
 
-  if (hasRequestScriptReference) {
+  if (resolved.some((entry) => entry.reference.kind === 'request-script')) {
     footerParts.push(
-      'When editing request scripts, use update_request_script with the same phase and scriptIndex from the reference, and respect the #start.end character offsets from the @ tag.'
+      hasScriptSelection
+        ? 'When editing request scripts, use update_request_script with the same phase and scriptIndex from the reference, and respect the #start.end character offsets from the @ tag.'
+        : 'When editing request scripts, use update_request_script with the same phase and scriptIndex from the @ reference.'
     );
   }
 
-  if (hasSnippetReference) {
+  if (resolved.some((entry) => entry.reference.kind === 'snippet')) {
     footerParts.push(
       'Standalone library snippets referenced with @snippet.<uuid> cannot be edited via tools. Propose replacement code in your reply for the user to paste back into the snippet editor.'
     );

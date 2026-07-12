@@ -14,13 +14,15 @@ import {
 } from '@mdxeditor/editor';
 import '@mdxeditor/editor/style.css';
 import type { Variable } from '#/shared/types';
-import { useCallback, useEffect, useMemo, useRef, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type JSX, type ReactNode } from 'react';
 import { FormGroup } from '@harborclient/sdk/components';
 
-import {
-  createVariableCodeMirrorExtensions,
-  variableHighlightPlugin
-} from './variableHighlightPlugin';
+import { useAppDispatch } from '#/renderer/src/store/hooks';
+import { clipboardHasRichHtml, shouldParsePasteAsMarkdown } from './pasteMarkdownUtils';
+import { formatMarkdown } from './formatMarkdown';
+import { useMarkdownCodeMirrorTheme } from './useMarkdownCodeMirrorTheme';
+import { variableHighlightPlugin } from './variableHighlightPlugin';
+import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
 
 /** Languages offered in fenced code blocks inside request comments. */
 const CODE_BLOCK_LANGUAGES: Record<string, string> = {
@@ -64,6 +66,17 @@ interface Props {
    * Helper text shown below the label.
    */
   description?: string;
+
+  /**
+   * Optional controls rendered on the right side of the header row (e.g. Save).
+   */
+  actions?: ReactNode;
+
+  /**
+   * When true, marks this editor as a collection markdown document so the
+   * context menu offers Format Document and listens for that menu action.
+   */
+  enableFormatDocument?: boolean;
 }
 
 /** Selector for the MDXEditor scroll container inside the comment editor shell. */
@@ -98,11 +111,15 @@ export function CommentEditor({
   variables,
   onEditVariables,
   label = 'Comment',
-  description = 'Leave a comment to describe the request. Markdown is supported.'
+  description = 'Leave a comment to describe the request. Markdown is supported.',
+  actions,
+  enableFormatDocument = false
 }: Props): JSX.Element {
+  const dispatch = useAppDispatch();
   const editorRef = useRef<MDXEditorMethods>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const lastEmittedRef = useRef(value);
+  const codeMirrorExtensions = useMarkdownCodeMirrorTheme(variables, onEditVariables);
 
   /**
    * MDXEditor plugins including variable highlighting for rich text and code blocks.
@@ -118,13 +135,13 @@ export function CommentEditor({
       codeBlockPlugin({ defaultCodeBlockLanguage: 'json' }),
       codeMirrorPlugin({
         codeBlockLanguages: CODE_BLOCK_LANGUAGES,
-        codeMirrorExtensions: createVariableCodeMirrorExtensions(variables, onEditVariables)
+        codeMirrorExtensions
       }),
       tablePlugin(),
       markdownShortcutPlugin(),
       variableHighlightPlugin({ variables, onEditVariable: onEditVariables })
     ],
-    [variables, onEditVariables]
+    [codeMirrorExtensions, variables, onEditVariables]
   );
 
   /**
@@ -198,16 +215,104 @@ export function CommentEditor({
     };
   }, []);
 
+  /**
+   * Routes plain-text markdown document pastes through MDXEditor's markdown importer
+   * so fenced code blocks and headings render as rich blocks instead of literal text.
+   */
+  useEffect(() => {
+    const shell = shellRef.current;
+    if (!shell) {
+      return;
+    }
+
+    const scrollRoot = shell.querySelector(COMMENT_EDITOR_SCROLL_ROOT);
+    if (!(scrollRoot instanceof HTMLElement)) {
+      return;
+    }
+
+    /**
+     * Imports markdown-shaped clipboard text at the current selection.
+     *
+     * @param event - Paste event from the MDXEditor scroll container (capture phase).
+     */
+    const handlePaste = (event: ClipboardEvent): void => {
+      const clipboard = event.clipboardData;
+      if (!clipboard || clipboardHasRichHtml(clipboard)) {
+        return;
+      }
+
+      const text = clipboard.getData('text/plain');
+      if (!shouldParsePasteAsMarkdown(text)) {
+        return;
+      }
+
+      const target = event.target;
+      if (target instanceof HTMLElement && target.closest('.cm-editor')) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      editorRef.current?.insertMarkdown(text);
+    };
+
+    scrollRoot.addEventListener('paste', handlePaste, true);
+    return () => {
+      scrollRoot.removeEventListener('paste', handlePaste, true);
+    };
+  }, []);
+
+  /**
+   * Formats the active markdown document when the user chooses Format Document
+   * from the native context menu.
+   */
+  useEffect(() => {
+    if (!enableFormatDocument) {
+      return;
+    }
+
+    const unsubscribe = window.api.onMenuAction((action) => {
+      if (action !== 'format-markdown-document') {
+        return;
+      }
+
+      void (async () => {
+        try {
+          const current = editorRef.current?.getMarkdown() ?? lastEmittedRef.current;
+          const formatted = await formatMarkdown(current);
+          if (formatted === current) {
+            return;
+          }
+
+          editorRef.current?.setMarkdown(formatted);
+          lastEmittedRef.current = formatted;
+          onChange(formatted);
+        } catch (error) {
+          showAlert(dispatch, formatErrorMessage(error, 'Could not format the markdown document.'));
+        }
+      })();
+    });
+
+    return unsubscribe;
+  }, [dispatch, enableFormatDocument, onChange]);
+
   return (
     <div
       className="flex h-full min-h-0 flex-1 flex-col border border-separator p-4"
       role="group"
       aria-label={label}
     >
-      <FormGroup label={label} className="border-none! p-0! mb-2">
-        <p className="text-sm text-muted text-[16px]">{description}</p>
-      </FormGroup>
-      <div ref={shellRef} className="flex min-h-0 flex-1 flex-col">
+      <div className="mb-2 flex items-start justify-between gap-4">
+        <FormGroup label={label} className="border-none! min-w-0 flex-1 p-0!">
+          <p className="text-sm text-muted text-[16px]">{description}</p>
+        </FormGroup>
+        {actions ? <div className="shrink-0 pt-1">{actions}</div> : null}
+      </div>
+      <div
+        ref={shellRef}
+        className="flex min-h-0 flex-1 flex-col"
+        {...(enableFormatDocument ? { 'data-markdown-document-editor': '' } : {})}
+      >
         <MDXEditor
           ref={editorRef}
           markdown={value}

@@ -17,6 +17,7 @@ import { openTabGroupModal } from '#/renderer/src/store/slices/modalsSlice';
 import { refreshRequests } from '#/renderer/src/store/thunks/collections';
 import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
 import type { AppDispatch, ThunkApiConfig } from '#/renderer/src/store/redux';
+import { syncTrash } from '#/renderer/src/store/thunks/trash';
 import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
 
 /**
@@ -268,6 +269,7 @@ export const deleteTabGroup = createAsyncThunk<void, number, ThunkApiConfig>(
   async (id, { dispatch }) => {
     const items = await window.api.deleteTabGroup(id);
     dispatch(setTabGroups(items));
+    await syncTrash(dispatch);
   }
 );
 

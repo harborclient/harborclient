@@ -1,8 +1,8 @@
 import { Scrollbars } from '#/renderer/src/components/Scrollbars';
-import { EmptyState } from '@harborclient/sdk/components';
+import { EmptyState, FaIcon } from '@harborclient/sdk/components';
 import { useEffect, useRef, type JSX } from 'react';
 import type { ChatMessage } from '#/shared/types';
-
+import { faComment } from '#/renderer/src/fontawesome';
 import { MessageBubble } from './MessageBubble';
 
 interface Props {
@@ -32,7 +32,8 @@ export function MessageList({ messages, sending }: Props): JSX.Element {
 
   if (messages.length === 0 && !sending) {
     return (
-      <EmptyState variant="centered" className="flex-1 min-h-0">
+      <EmptyState variant="centered" className="flex flex-col items-center gap-3 text-muted">
+        <FaIcon icon={faComment} className="h-12 w-12" aria-hidden />
         Start the conversation.
       </EmptyState>
     );

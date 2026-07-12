@@ -50,6 +50,25 @@ export interface ScriptRef {
 }
 
 /**
+ * Ephemeral script payload stored in the in-memory clipboard for copy/paste.
+ *
+ * Inline rows copy code, name, enabled, and stage. Snippet rows copy only the
+ * library uuid so pasted rows stay linked to the live snippet entry.
+ */
+export type CopiedScriptRef =
+  | {
+      kind: 'inline';
+      code: string;
+      name?: string;
+      enabled: boolean;
+      stage: ScriptStage;
+    }
+  | {
+      kind: 'snippet';
+      snippetUuid: string;
+    };
+
+/**
  * Request context passed into a pre/post script sandbox.
  */
 export interface ScriptRequestContext {

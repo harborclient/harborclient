@@ -10,12 +10,14 @@ import {
   type JSX,
   type Ref
 } from 'react';
+import type { AiScriptReferenceValidationContext } from '#/shared/ai/scriptReferences';
 import {
   COMPOSER_EMBEDDED_TEXT_MIN_HEIGHT_PX,
   COMPOSER_MAX_HEIGHT_PX,
   COMPOSER_MIN_HEIGHT_PX
 } from '#/renderer/src/hooks/useAutoGrowTextarea';
 import {
+  chatComposerBadgeCompartment,
   chatComposerSubmitCompartment,
   createScriptReferenceBadgeExtensions,
   createSubmitKeymap
@@ -29,22 +31,24 @@ export interface ChatComposerTextareaHandle {
   focus: () => void;
 
   /**
-   * Replaces the entire draft with `text`, places the caret at the end, and focuses the editor.
-   *
-   * Unlike setting the `value` prop, this dispatches directly on the live CodeMirror view so the
-   * caret lands after the inserted text instead of defaulting to position 0.
+   * Replaces the draft with `text` and places the caret at the end, dispatching directly on the
+   * live view so the selection update lands in the same transaction as the text change (see
+   * `focus: () => void` above, which only moves DOM focus and leaves the caret wherever the
+   * document's mapped selection already was).
    *
    * @param text - Full draft text to insert.
+   * @returns True when the live CodeMirror view accepted the update.
    */
-  setTextAndFocusEnd: (text: string) => void;
+  setTextAndFocusEnd: (text: string) => boolean;
 
   /**
    * Appends a reference token to the current draft, inserting a separator when needed, and focuses
    * the editor with the caret at the end.
    *
    * @param text - Reference token or snippet to append.
+   * @returns True when the live CodeMirror view accepted the update.
    */
-  appendReferenceAtEnd: (text: string) => void;
+  appendReferenceAtEnd: (text: string) => boolean;
 }
 
 interface Props {
@@ -121,8 +125,16 @@ export function ChatComposerTextarea({
   embedded = false
 }: Props): JSX.Element {
   const validationContext = useAiScriptReferenceValidationContext();
+  const validationContextRef = useRef<AiScriptReferenceValidationContext>(validationContext);
   const editorRef = useRef<ReactCodeMirrorRef | null>(null);
   const onSubmitRef = useRef(onSubmit);
+
+  /**
+   * Keeps badge validation and completion filters wired to the latest request-tab snapshot.
+   */
+  useEffect(() => {
+    validationContextRef.current = validationContext;
+  }, [validationContext]);
 
   /**
    * Keeps the submit shortcut wired to the latest parent callback.
@@ -144,10 +156,10 @@ export function ChatComposerTextarea({
    * `focus: () => void` above, which only moves DOM focus and leaves the caret wherever the
    * document's mapped selection already was).
    */
-  const setTextAndFocusEnd = useCallback((text: string): void => {
+  const setTextAndFocusEnd = useCallback((text: string): boolean => {
     const view = editorRef.current?.view;
     if (view == null) {
-      return;
+      return false;
     }
 
     view.dispatch({
@@ -155,15 +167,16 @@ export function ChatComposerTextarea({
       selection: { anchor: text.length, head: text.length }
     });
     view.focus();
+    return true;
   }, []);
 
   /**
    * Appends a reference token to the current draft and places the caret after the insertion.
    */
-  const appendReferenceAtEnd = useCallback((text: string): void => {
+  const appendReferenceAtEnd = useCallback((text: string): boolean => {
     const view = editorRef.current?.view;
     if (view == null) {
-      return;
+      return false;
     }
 
     const current = view.state.doc.toString();
@@ -176,12 +189,21 @@ export function ChatComposerTextarea({
       selection: { anchor: insertAt + insert.length, head: insertAt + insert.length }
     });
     view.focus();
+    return true;
   }, []);
 
   useImperativeHandle(
     ref,
     () => ({ focus: focusEditor, setTextAndFocusEnd, appendReferenceAtEnd }),
     [appendReferenceAtEnd, focusEditor, setTextAndFocusEnd]
+  );
+
+  /**
+   * Returns the latest validation context for script-reference badge rendering.
+   */
+  const getValidationContext = useCallback(
+    (): AiScriptReferenceValidationContext => validationContextRef.current,
+    []
   );
 
   /**
@@ -217,11 +239,27 @@ export function ChatComposerTextarea({
           outline: 'none'
         }
       }),
-      ...createScriptReferenceBadgeExtensions(validationContext),
+      chatComposerBadgeCompartment.of([]),
       chatComposerSubmitCompartment.of([])
     ],
-    [ariaLabel, disabled, validationContext]
+    [ariaLabel, disabled]
   );
+
+  /**
+   * Reconfigures script-reference badges when the active request tab snapshot changes.
+   */
+  useEffect(() => {
+    const view = editorRef.current?.view;
+    if (view == null) {
+      return;
+    }
+
+    view.dispatch({
+      effects: chatComposerBadgeCompartment.reconfigure(
+        createScriptReferenceBadgeExtensions(getValidationContext)
+      )
+    });
+  }, [getValidationContext, validationContext]);
 
   /**
    * Reconfigures submit shortcuts when send eligibility or Enter behavior changes.
@@ -279,15 +317,20 @@ export function ChatComposerTextarea({
         extensions={extensions}
         onCreateEditor={(view) => {
           view.dispatch({
-            effects: chatComposerSubmitCompartment.reconfigure(
-              createSubmitKeymap({
-                enterToSend,
-                canSubmit,
-                onSubmit: () => {
-                  onSubmitRef.current();
-                }
-              })
-            )
+            effects: [
+              chatComposerBadgeCompartment.reconfigure(
+                createScriptReferenceBadgeExtensions(getValidationContext)
+              ),
+              chatComposerSubmitCompartment.reconfigure(
+                createSubmitKeymap({
+                  enterToSend,
+                  canSubmit,
+                  onSubmit: () => {
+                    onSubmitRef.current();
+                  }
+                })
+              )
+            ]
           });
         }}
         onChange={onChange}

@@ -594,8 +594,37 @@ describe('buildAiScriptSelectionContextMessage', () => {
     expect(buildAiScriptSelectionContextMessage('Explain login flow', context())).toBeNull();
   });
 
-  it('returns null when references have no selection suffix', () => {
-    expect(buildAiScriptSelectionContextMessage('Fix @active.pre.1 please', context())).toBeNull();
+  it('includes whole-script source when references have no selection suffix', () => {
+    const scriptWithTests = `hc.test('first', () => {});\nhc.test('second', () => {});`;
+    const message = buildAiScriptSelectionContextMessage(
+      'How many tests are in that script? @active.post.1',
+      context({
+        postScripts: [inlineScript({ name: 'Success Response', code: scriptWithTests })]
+      })
+    );
+
+    expect(message).not.toBeNull();
+    expect(message).toContain(
+      'The user referenced one or more scripts via @ mentions. Use the script sources below to answer their question.'
+    );
+    expect(message).toContain('Reference @active.post.1');
+    expect(message).toContain('script "Success Response"');
+    expect(message).toContain('Full script source:');
+    expect(message).toContain(scriptWithTests);
+    expect(message).toContain('Answer using the referenced script source below.');
+    expect(message).not.toContain('Selected text');
+    expect(message).toContain('update_request_script');
+  });
+
+  it('returns null when whole-script references fail validation', () => {
+    expect(
+      buildAiScriptSelectionContextMessage(
+        'Fix @active.pre.9 please',
+        context({
+          preScripts: [inlineScript({ name: 'Set auth token', code: fullScript })]
+        })
+      )
+    ).toBeNull();
   });
 
   it('returns null when the selection reference fails active-tab validation', () => {

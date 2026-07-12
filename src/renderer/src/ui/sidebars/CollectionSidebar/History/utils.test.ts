@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { formatRelativeTime } from '#/renderer/src/ui/sidebars/CollectionSidebar/History/utils';
+import {
+  formatRelativeTime,
+  formatSidebarAbsoluteDate
+} from '#/renderer/src/ui/sidebars/CollectionSidebar/History/utils';
+
+describe('formatSidebarAbsoluteDate', () => {
+  it('formats a timestamp as YYYY-MM-DD HH:MM:SS in UTC', () => {
+    expect(formatSidebarAbsoluteDate(Date.parse('2026-07-11T10:23:03.456Z'))).toBe(
+      '2026-07-11 10:23:03'
+    );
+  });
+});
 
 describe('formatRelativeTime', () => {
   it('returns just now for very recent timestamps', () => {

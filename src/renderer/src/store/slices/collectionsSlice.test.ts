@@ -210,6 +210,64 @@ describe('collectionsSlice', () => {
     expect(state.requestsByCollection[1]?.find((request) => request.id === 201)?.sort_order).toBe(
       0
     );
+    expect(state.requestsByCollection[1]?.find((request) => request.id === 102)?.sort_order).toBe(
+      0
+    );
+  });
+
+  it('moveContainerItemLocal moves a document into another folder and reindexes the source container', () => {
+    const state = collectionsReducer(
+      reorderState(),
+      moveContainerItemLocal({
+        collectionId: 1,
+        kind: 'document',
+        id: 301,
+        targetFolderId: 10,
+        index: 0
+      })
+    );
+
+    const movedDocument = state.documentsByCollection[1]?.find((document) => document.id === 301);
+    expect(movedDocument?.folder_id).toBe(10);
+    expect(movedDocument?.sort_order).toBe(0);
+    expect(state.requestsByCollection[1]?.find((request) => request.id === 201)?.sort_order).toBe(
+      1
+    );
+    expect(state.requestsByCollection[1]?.find((request) => request.id === 101)?.sort_order).toBe(
+      0
+    );
+    expect(state.requestsByCollection[1]?.find((request) => request.id === 102)?.sort_order).toBe(
+      1
+    );
+  });
+
+  it('reorderContainerItemsLocal reorders document-only container items', () => {
+    const state = collectionsReducer(
+      {
+        ...reorderState(),
+        documentsByCollection: {
+          1: [
+            baseDocument({ id: 301, name: 'Alpha.md', sort_order: 0 }),
+            baseDocument({ id: 302, name: 'Beta.md', sort_order: 1 })
+          ]
+        }
+      },
+      reorderContainerItemsLocal({
+        collectionId: 1,
+        folderId: null,
+        items: [
+          { kind: 'document', id: 302 },
+          { kind: 'document', id: 301 }
+        ]
+      })
+    );
+
+    expect(
+      state.documentsByCollection[1]?.find((document) => document.id === 302)?.sort_order
+    ).toBe(0);
+    expect(
+      state.documentsByCollection[1]?.find((document) => document.id === 301)?.sort_order
+    ).toBe(1);
   });
 
   it('moveContainerItemLocal ignores unknown container items', () => {

@@ -1,4 +1,5 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
+import { getTrashService } from '#/main/storage/trashServiceInstance';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 
@@ -16,7 +17,8 @@ export function registerRequestHistoryHandlers(): void {
     getLocalDatabase().clearRequestHistory();
   });
 
-  handle('requestHistory:delete', ipcArgSchemas.requestHistoryDelete, (_event, id) =>
-    getLocalDatabase().deleteRequestHistory(id)
-  );
+  handle('requestHistory:delete', ipcArgSchemas.requestHistoryDelete, (_event, id) => {
+    getTrashService().moveHistoryToTrash(id);
+    return getLocalDatabase().listRequestHistory();
+  });
 }

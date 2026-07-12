@@ -5,7 +5,8 @@ const DEFAULT_SECTIONS = {
   environments: true,
   runResults: true,
   history: true,
-  tabGroups: true
+  tabGroups: true,
+  trash: true
 } as const;
 
 const DEFAULT_SECTION_VISIBILITY = {
@@ -13,7 +14,8 @@ const DEFAULT_SECTION_VISIBILITY = {
   environments: true,
   runResults: true,
   history: true,
-  tabGroups: true
+  tabGroups: true,
+  trash: false
 } as const;
 
 const DEFAULT_SHOW_STORAGE_LOCATION_BADGES = true;
@@ -93,7 +95,11 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
       tabGroups:
         sectionsRaw && typeof sectionsRaw.tabGroups === 'boolean'
           ? sectionsRaw.tabGroups
-          : DEFAULT_SECTIONS.tabGroups
+          : DEFAULT_SECTIONS.tabGroups,
+      trash:
+        sectionsRaw && typeof sectionsRaw.trash === 'boolean'
+          ? sectionsRaw.trash
+          : DEFAULT_SECTIONS.trash
     },
     sectionVisibility: {
       collections:
@@ -115,7 +121,11 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
       tabGroups:
         visibilityRaw && typeof visibilityRaw.tabGroups === 'boolean'
           ? visibilityRaw.tabGroups
-          : DEFAULT_SECTION_VISIBILITY.tabGroups
+          : DEFAULT_SECTION_VISIBILITY.tabGroups,
+      trash:
+        visibilityRaw && typeof visibilityRaw.trash === 'boolean'
+          ? visibilityRaw.trash
+          : DEFAULT_SECTION_VISIBILITY.trash
     },
     collectionIds: normalizeIdList(raw.collectionIds),
     folderIds: normalizeIdList(raw.folderIds),

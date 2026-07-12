@@ -4,7 +4,8 @@ import type {
   MenuActionId,
   AppSubmenuItemSnapshot,
   RootMenuLabel,
-  UpdateCheckResult
+  UpdateCheckResult,
+  BuiltinCollectionOpenRequestTarget
 } from '#/shared/types/app';
 import type { ThemeSource } from '#/shared/types/settings';
 
@@ -180,6 +181,10 @@ export interface ApiWindow {
    * Marks Getting Started as seen so it is not auto-opened on future launches.
    */
   markGettingStartedSeen: () => Promise<void>;
+  /**
+   * Returns and clears the one-shot built-in request open target after first-run import.
+   */
+  consumeBuiltinCollectionOpenRequestTarget: () => Promise<BuiltinCollectionOpenRequestTarget | null>;
   /**
    * Subscribes to theme preference changes pushed from the main process.
    *

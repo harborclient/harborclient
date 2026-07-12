@@ -238,19 +238,29 @@ export function Environments(): JSX.Element {
    */
   const handleDragEnd = async (event: DragEndEvent): Promise<void> => {
     const { active, over } = event;
-    setActiveDragEnvironment(null);
-    if (!over) return;
+    if (!over) {
+      setActiveDragEnvironment(null);
+      return;
+    }
 
     const activeId = parseEnvironmentDragId(String(active.id));
     const overId = parseEnvironmentDragId(String(over.id));
-    if (activeId == null || overId == null || activeId === overId) return;
+    if (activeId == null || overId == null || activeId === overId) {
+      setActiveDragEnvironment(null);
+      return;
+    }
 
     const ids = environments.map((environment) => environment.id);
     const oldIndex = ids.findIndex((id) => id === activeId);
     const newIndex = ids.findIndex((id) => id === overId);
-    if (oldIndex < 0 || newIndex < 0) return;
+    if (oldIndex < 0 || newIndex < 0) {
+      setActiveDragEnvironment(null);
+      return;
+    }
 
-    await onReorderEnvironments(arrayMove(ids, oldIndex, newIndex));
+    const persist = onReorderEnvironments(arrayMove(ids, oldIndex, newIndex));
+    setActiveDragEnvironment(null);
+    await persist;
   };
 
   return (

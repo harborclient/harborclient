@@ -187,19 +187,29 @@ export function TabGroups(): JSX.Element {
    */
   const handleDragEnd = async (event: DragEndEvent): Promise<void> => {
     const { active, over } = event;
-    setActiveDragGroup(null);
-    if (!over) return;
+    if (!over) {
+      setActiveDragGroup(null);
+      return;
+    }
 
     const activeId = parseTabGroupDragId(String(active.id));
     const overId = parseTabGroupDragId(String(over.id));
-    if (activeId == null || overId == null || activeId === overId) return;
+    if (activeId == null || overId == null || activeId === overId) {
+      setActiveDragGroup(null);
+      return;
+    }
 
     const ids = groups.map((group) => group.id);
     const oldIndex = ids.findIndex((id) => id === activeId);
     const newIndex = ids.findIndex((id) => id === overId);
-    if (oldIndex < 0 || newIndex < 0) return;
+    if (oldIndex < 0 || newIndex < 0) {
+      setActiveDragGroup(null);
+      return;
+    }
 
-    await onReorderTabGroups(arrayMove(ids, oldIndex, newIndex));
+    const persist = onReorderTabGroups(arrayMove(ids, oldIndex, newIndex));
+    setActiveDragGroup(null);
+    await persist;
   };
 
   return (

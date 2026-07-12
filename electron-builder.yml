@@ -19,6 +19,8 @@ extraResources:
     to: docsSearchIndex.json
   - from: resources/builtin_themes
     to: builtin_themes
+  - from: resources/builtin_collections
+    to: builtin_collections
 directories:
   buildResources: build
   output: release

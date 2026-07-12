@@ -17,6 +17,7 @@ import { AiOpenAiApiKeyField } from '../fields/AiOpenAiApiKeyField';
 import { GeneralFollowRedirectsField } from '../fields/GeneralFollowRedirectsField';
 import { GeneralLogFilePathField } from '../fields/GeneralLogFilePathField';
 import { GeneralScrollbarAutoHideField } from '../fields/GeneralScrollbarAutoHideField';
+import { GeneralSpellCheckEnabledField } from '../fields/GeneralSpellCheckEnabledField';
 import { GeneralWrapTabsField } from '../fields/GeneralWrapTabsField';
 import { GeneralMaxResponseSizeField } from '../fields/GeneralMaxResponseSizeField';
 import { GeneralRequestTimeoutField } from '../fields/GeneralRequestTimeoutField';
@@ -67,6 +68,7 @@ export const SETTINGS_FIELD_REGISTRY: Partial<Record<FieldSettingId, ComponentTy
   'general.followRedirects': GeneralFollowRedirectsField,
   'general.scrollbarAutoHide': GeneralScrollbarAutoHideField,
   'general.wrapTabs': GeneralWrapTabsField,
+  'general.spellCheckEnabled': GeneralSpellCheckEnabledField,
   'general.logFilePath': GeneralLogFilePathField,
   'proxy.enabled': ProxyEnabledField,
   'proxy.protocol': ProxyProtocolField,

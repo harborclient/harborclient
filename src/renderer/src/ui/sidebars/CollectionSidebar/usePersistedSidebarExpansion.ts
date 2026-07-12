@@ -58,6 +58,11 @@ interface Result {
   tabGroupsSectionExpanded: boolean;
 
   /**
+   * Whether the Trash section body is visible.
+   */
+  trashSectionExpanded: boolean;
+
+  /**
    * Toggles the Collections section expanded state.
    */
   toggleCollectionsSection: () => void;
@@ -81,6 +86,11 @@ interface Result {
    * Toggles the Tab Groups section expanded state.
    */
   toggleTabGroupsSection: () => void;
+
+  /**
+   * Toggles the Trash section expanded state.
+   */
+  toggleTrashSection: () => void;
 
   /**
    * Sets the Collections section expanded state explicitly.
@@ -108,6 +118,11 @@ interface Result {
   setTabGroupsSectionExpanded: Dispatch<SetStateAction<boolean>>;
 
   /**
+   * Sets the Trash section expanded state explicitly.
+   */
+  setTrashSectionExpanded: Dispatch<SetStateAction<boolean>>;
+
+  /**
    * Whether the Collections section is rendered in the sidebar.
    */
   collectionsSectionVisible: boolean;
@@ -131,6 +146,11 @@ interface Result {
    * Whether the Tab Groups section is rendered in the sidebar.
    */
   tabGroupsSectionVisible: boolean;
+
+  /**
+   * Whether the Trash section is rendered in the sidebar.
+   */
+  trashSectionVisible: boolean;
 
   /**
    * Toggles the Collections section visibility.
@@ -158,6 +178,11 @@ interface Result {
   toggleTabGroupsSectionVisible: () => void;
 
   /**
+   * Toggles the Trash section visibility.
+   */
+  toggleTrashSectionVisible: () => void;
+
+  /**
    * Sets the Collections section visibility explicitly.
    */
   setCollectionsSectionVisible: Dispatch<SetStateAction<boolean>>;
@@ -181,6 +206,11 @@ interface Result {
    * Sets the Tab Groups section visibility explicitly.
    */
   setTabGroupsSectionVisible: Dispatch<SetStateAction<boolean>>;
+
+  /**
+   * Sets the Trash section visibility explicitly.
+   */
+  setTrashSectionVisible: Dispatch<SetStateAction<boolean>>;
 
   /**
    * Whether storage location name badges appear next to collection names.
@@ -306,6 +336,7 @@ export function usePersistedSidebarExpansion({
   const [tabGroupsSectionExpanded, setTabGroupsSectionExpanded] = useState(
     defaults.sections.tabGroups
   );
+  const [trashSectionExpanded, setTrashSectionExpanded] = useState(defaults.sections.trash);
   const [collectionsSectionVisible, setCollectionsSectionVisible] = useState(
     defaults.sectionVisibility.collections
   );
@@ -321,6 +352,7 @@ export function usePersistedSidebarExpansion({
   const [tabGroupsSectionVisible, setTabGroupsSectionVisible] = useState(
     defaults.sectionVisibility.tabGroups
   );
+  const [trashSectionVisible, setTrashSectionVisible] = useState(defaults.sectionVisibility.trash);
   const [showStorageLocationBadges, setShowStorageLocationBadges] = useState(
     defaults.showStorageLocationBadges
   );
@@ -348,11 +380,13 @@ export function usePersistedSidebarExpansion({
       setRunResultsSectionExpanded(stored.sections.runResults);
       setHistorySectionExpanded(stored.sections.history);
       setTabGroupsSectionExpanded(stored.sections.tabGroups);
+      setTrashSectionExpanded(stored.sections.trash);
       setCollectionsSectionVisible(stored.sectionVisibility.collections);
       setEnvironmentsSectionVisible(stored.sectionVisibility.environments);
       setRunResultsSectionVisible(stored.sectionVisibility.runResults);
       setHistorySectionVisible(stored.sectionVisibility.history);
       setTabGroupsSectionVisible(stored.sectionVisibility.tabGroups);
+      setTrashSectionVisible(stored.sectionVisibility.trash);
       setShowStorageLocationBadges(stored.showStorageLocationBadges);
       setExpandedCollectionIds(new Set(validExpanded));
       setExpandedFolderIds(new Set(stored.folderIds));
@@ -382,14 +416,16 @@ export function usePersistedSidebarExpansion({
         environments: environmentsSectionExpanded,
         runResults: runResultsSectionExpanded,
         history: historySectionExpanded,
-        tabGroups: tabGroupsSectionExpanded
+        tabGroups: tabGroupsSectionExpanded,
+        trash: trashSectionExpanded
       },
       {
         collections: collectionsSectionVisible,
         environments: environmentsSectionVisible,
         runResults: runResultsSectionVisible,
         history: historySectionVisible,
-        tabGroups: tabGroupsSectionVisible
+        tabGroups: tabGroupsSectionVisible,
+        trash: trashSectionVisible
       },
       expandedCollectionIds,
       expandedFolderIds,
@@ -404,11 +440,13 @@ export function usePersistedSidebarExpansion({
     runResultsSectionExpanded,
     historySectionExpanded,
     tabGroupsSectionExpanded,
+    trashSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
     historySectionVisible,
     tabGroupsSectionVisible,
+    trashSectionVisible,
     expandedCollectionIds,
     expandedFolderIds,
     showStorageLocationBadges
@@ -496,6 +534,13 @@ export function usePersistedSidebarExpansion({
   }, []);
 
   /**
+   * Toggles the Trash section expanded state.
+   */
+  const toggleTrashSection = useCallback(() => {
+    setTrashSectionExpanded((open) => !open);
+  }, []);
+
+  /**
    * Toggles the Collections section visibility.
    */
   const toggleCollectionsSectionVisible = useCallback(() => {
@@ -531,6 +576,13 @@ export function usePersistedSidebarExpansion({
   }, []);
 
   /**
+   * Toggles the Trash section visibility.
+   */
+  const toggleTrashSectionVisible = useCallback(() => {
+    setTrashSectionVisible((visible) => !visible);
+  }, []);
+
+  /**
    * Toggles storage location badge visibility in the collections list.
    */
   const toggleStorageLocationBadges = useCallback(() => {
@@ -544,31 +596,37 @@ export function usePersistedSidebarExpansion({
     runResultsSectionExpanded,
     historySectionExpanded,
     tabGroupsSectionExpanded,
+    trashSectionExpanded,
     toggleCollectionsSection,
     toggleEnvironmentsSection,
     toggleRunResultsSection,
     toggleHistorySection,
     toggleTabGroupsSection,
+    toggleTrashSection,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
     setRunResultsSectionExpanded,
     setHistorySectionExpanded,
     setTabGroupsSectionExpanded,
+    setTrashSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
     historySectionVisible,
     tabGroupsSectionVisible,
+    trashSectionVisible,
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
     toggleRunResultsSectionVisible,
     toggleHistorySectionVisible,
     toggleTabGroupsSectionVisible,
+    toggleTrashSectionVisible,
     setCollectionsSectionVisible,
     setEnvironmentsSectionVisible,
     setRunResultsSectionVisible,
     setHistorySectionVisible,
     setTabGroupsSectionVisible,
+    setTrashSectionVisible,
     showStorageLocationBadges,
     toggleStorageLocationBadges,
     setShowStorageLocationBadges,

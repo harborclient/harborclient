@@ -11,6 +11,7 @@ import type {
   AuthConfig,
   BackupExportResult,
   BackupImportResult,
+  BuiltinCollectionOpenRequestTarget,
   Collection,
   CollectionDocument,
   CollectionExportResult,
@@ -97,6 +98,8 @@ import type {
   RequestHistoryEntry,
   CreateTabGroupInput,
   TabGroup,
+  TrashEntityType,
+  TrashItem,
   TabGroupRequest
 } from '#/shared/types';
 import type { SnippetImportResult } from '#/shared/types/api/snippets';
@@ -381,6 +384,38 @@ function deleteTabGroup(id: number): Promise<TabGroup[]> {
  */
 function reorderTabGroups(orderedTabGroupIds: number[]): Promise<TabGroup[]> {
   return ipcRenderer.invoke('tabGroups:reorder', orderedTabGroupIds);
+}
+
+/**
+ * Lists trash snapshot rows via IPC.
+ */
+function listTrashItems(): Promise<TrashItem[]> {
+  return ipcRenderer.invoke('trash:list');
+}
+
+/**
+ * Restores an entity from trash via IPC.
+ *
+ * @param id - Trash row id.
+ */
+function restoreTrashItem(id: number): Promise<TrashEntityType> {
+  return ipcRenderer.invoke('trash:restore', id);
+}
+
+/**
+ * Permanently deletes one trash snapshot row via IPC.
+ *
+ * @param id - Trash row id.
+ */
+function permanentlyDeleteTrashItem(id: number): Promise<void> {
+  return ipcRenderer.invoke('trash:deleteItem', id);
+}
+
+/**
+ * Permanently deletes every trash snapshot row via IPC.
+ */
+function emptyTrash(): Promise<void> {
+  return ipcRenderer.invoke('trash:empty');
 }
 
 /**
@@ -1217,6 +1252,13 @@ function shouldOpenGettingStarted(): Promise<boolean> {
  */
 function markGettingStartedSeen(): Promise<void> {
   return ipcRenderer.invoke('getting-started:markSeen');
+}
+
+/**
+ * Returns and clears the one-shot built-in request open target after first-run import.
+ */
+function consumeBuiltinCollectionOpenRequestTarget(): Promise<BuiltinCollectionOpenRequestTarget | null> {
+  return ipcRenderer.invoke('builtin-collections:consumeOpenRequestTarget');
 }
 
 /**
@@ -3152,6 +3194,10 @@ const api: Api = {
   cloneTabGroup,
   deleteTabGroup,
   reorderTabGroups,
+  listTrashItems,
+  restoreTrashItem,
+  permanentlyDeleteTrashItem,
+  emptyTrash,
   resolveRunResultByUuid,
   moveCollection,
   reorderCollections,
@@ -3232,6 +3278,7 @@ const api: Api = {
   setZoomFactor,
   shouldOpenGettingStarted,
   markGettingStartedSeen,
+  consumeBuiltinCollectionOpenRequestTarget,
   onThemeChanged,
   isDeveloperToolsEnabled,
   inspectElement,

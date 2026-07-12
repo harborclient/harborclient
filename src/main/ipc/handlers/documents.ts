@@ -1,6 +1,7 @@
 import type { IStorage } from '#/main/storage/IStorage';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
+import { getTrashService } from '#/main/storage/trashServiceInstance';
 
 /**
  * Registers IPC handlers for collection markdown document operations.
@@ -14,7 +15,9 @@ export function registerDocumentHandlers(db: IStorage): void {
 
   handle('documents:save', ipcArgSchemas.documentSave, (_event, input) => db.saveDocument(input));
 
-  handle('documents:delete', ipcArgSchemas.documentDelete, (_event, id) => db.deleteDocument(id));
+  handle('documents:delete', ipcArgSchemas.documentDelete, (_event, id) =>
+    getTrashService().moveDocumentToTrash(id)
+  );
 
   handle(
     'documents:reorder',

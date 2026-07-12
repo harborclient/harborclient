@@ -46,6 +46,7 @@ import {
 import { refreshEnvironments } from '#/renderer/src/store/thunks/environments';
 import { refreshDocuments } from '#/renderer/src/store/thunks/documents';
 import { refreshSnippets } from '#/renderer/src/store/thunks/snippets';
+import { syncTrash } from '#/renderer/src/store/thunks/trash';
 import { syncThemeMenuNow } from '#/renderer/src/plugins/themeMenuSync';
 import {
   getRegisteredImportExtensions,
@@ -53,8 +54,33 @@ import {
   runPluginImportHandlers
 } from '#/renderer/src/plugins/pluginImportHandlers';
 import { logImportVerbose } from '#/renderer/src/import/importVerboseLog';
+import { defaultDraft, isRequestTab, isTabDirty, type Tab } from '#/renderer/src/store/drafts';
+import { closeTab } from '#/renderer/src/store/slices/tabsSlice';
+import { requestLoadRequest } from '#/renderer/src/store/thunks/requests';
 
 const COLLECTIONS_REFRESH_KEY = 'collections';
+
+/**
+ * Returns true when a tab is the initial pristine unsaved default request tab.
+ *
+ * @param tab - Open tab from startup hydration.
+ * @returns True when the tab matches a fresh default draft with no saved id or URL.
+ */
+export function isPristineDefaultRequestTab(tab: Tab): boolean {
+  if (!isRequestTab(tab) || isTabDirty(tab)) {
+    return false;
+  }
+
+  const { draft } = tab;
+  if (draft.id != null) {
+    return false;
+  }
+  if (draft.name !== defaultDraft().name) {
+    return false;
+  }
+
+  return draft.url.trim().length === 0;
+}
 
 /**
  * Reloads all collections from the active database and auto-selects the first when none is selected.
@@ -111,6 +137,55 @@ export const refreshCollectionContents = createAsyncThunk<void, number, ThunkApi
     await dispatch(refreshFolders(collectionId));
     await dispatch(refreshRequests(collectionId));
     await dispatch(refreshDocuments(collectionId));
+  }
+);
+
+/**
+ * Opens the first built-in seeded request after a true first-run import.
+ *
+ * Consumes the one-shot target from main-process storage, loads collection contents,
+ * replaces the pristine default blank tab, and focuses the saved request tab.
+ */
+export const openSeededBuiltinRequestIfNeeded = createAsyncThunk<void, void, ThunkApiConfig>(
+  'collections/openSeededBuiltinRequestIfNeeded',
+  async (_, { dispatch, getState }) => {
+    const target = await window.api.consumeBuiltinCollectionOpenRequestTarget();
+    if (target == null) {
+      return;
+    }
+
+    let state = getState();
+    const collection = state.collections.collections.find(
+      (entry) => entry.uuid === target.collectionUuid
+    );
+    if (collection == null) {
+      return;
+    }
+
+    dispatch(setSelectedCollectionId(collection.id));
+    await dispatch(refreshCollectionContents(collection.id));
+
+    state = getState();
+    const request = (state.collections.requestsByCollection[collection.id] ?? []).find(
+      (entry) => entry.uuid === target.requestUuid
+    );
+    if (request == null) {
+      return;
+    }
+
+    for (const tab of state.tabs.tabs) {
+      if (isPristineDefaultRequestTab(tab)) {
+        dispatch(closeTab(tab.tabId));
+      }
+    }
+
+    await dispatch(
+      requestLoadRequest({
+        req: request,
+        skipSettingsCheck: true,
+        activate: true
+      })
+    );
   }
 );
 
@@ -219,7 +294,7 @@ export const updateCollection = createAsyncThunk<
 
       await dispatch(refreshCollections());
       dispatch(setSelectedCollectionId(updated.id));
-      await dispatch(refreshRequests(updated.id));
+      await dispatch(refreshCollectionContents(updated.id));
       return updated;
     }
 
@@ -256,6 +331,7 @@ export const deleteCollection = createAsyncThunk<void, number, ThunkApiConfig>(
       dispatch(setSelectedCollectionId(null));
     }
     await dispatch(refreshCollections());
+    await syncTrash(dispatch);
   }
 );
 
@@ -516,6 +592,7 @@ export const deleteFolder = createAsyncThunk<
   }
   await window.api.deleteFolder(id);
   await dispatch(refreshCollectionContents(collectionId));
+  await syncTrash(dispatch);
 });
 
 /**

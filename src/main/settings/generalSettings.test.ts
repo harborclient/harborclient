@@ -214,6 +214,19 @@ describe('generalSettings', () => {
     expect(getGeneralSettings().wrapTabs).toBe(false);
   });
 
+  it('defaults spellCheckEnabled to true when unset', () => {
+    expect(getGeneralSettings().spellCheckEnabled).toBe(true);
+  });
+
+  it('persists spellCheckEnabled false', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      spellCheckEnabled: false
+    });
+
+    expect(getGeneralSettings().spellCheckEnabled).toBe(false);
+  });
+
   it('defaults warnWhenSwitchingThemes to true when unset', () => {
     expect(getGeneralSettings().warnWhenSwitchingThemes).toBe(true);
   });

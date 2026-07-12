@@ -18,6 +18,7 @@ import type { ApiDocs } from '#/shared/types/api/docs';
 import type { ApiMcp } from '#/shared/types/api/mcp';
 import type { ApiRequestHistory } from '#/shared/types/api/requestHistory';
 import type { ApiTabGroups } from '#/shared/types/api/tabGroup';
+import type { ApiTrash } from '#/shared/types/api/trash';
 import type { ApiTerminal } from '#/shared/types/api/terminal';
 
 /**
@@ -44,5 +45,6 @@ export interface Api
     ApiMcp,
     ApiRequestHistory,
     ApiTabGroups,
+    ApiTrash,
     ApiTerminal,
     ApiCustomThemes {}

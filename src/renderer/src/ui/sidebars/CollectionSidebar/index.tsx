@@ -13,7 +13,8 @@ import {
   faCloud,
   faFolder,
   faLayerGroup,
-  faSun
+  faSun,
+  faTrash
 } from '#/renderer/src/fontawesome';
 import {
   ResizeHandle,
@@ -34,6 +35,7 @@ import { Environments } from './Environments';
 import { History, HistoryHeaderActions } from './History';
 import { RunResults, RunsHeaderActions } from './RunResults';
 import { TabGroups } from './TabGroups';
+import { Trash, TrashHeaderActions } from './Trash';
 import { Section } from './Section';
 import { SidebarSearch } from './SidebarSearch';
 import { SidebarPanelSwitcher } from './SidebarPanelSwitcher';
@@ -67,18 +69,21 @@ function SidebarContent(): JSX.Element {
     runResultsSectionExpanded,
     historySectionExpanded,
     tabGroupsSectionExpanded,
+    trashSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
     historySectionVisible,
     tabGroupsSectionVisible,
+    trashSectionVisible,
     showStorageLocationBadges,
     toggleStorageLocationBadges,
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
     toggleRunResultsSectionVisible,
     toggleHistorySectionVisible,
-    toggleTabGroupsSectionVisible
+    toggleTabGroupsSectionVisible,
+    toggleTrashSectionVisible
   } = useSidebarExpansion();
 
   const { searchQuery, setSearchQuery, searchActive, searchLoading, collapseAllSidebarTrees } =
@@ -159,6 +164,14 @@ function SidebarContent(): JSX.Element {
         onClick: toggleTabGroupsSectionVisible
       },
       {
+        id: 'toggle-trash-section',
+        icon: faTrash,
+        label: 'Trash',
+        title: trashSectionVisible ? 'Hide trash section' : 'Show trash section',
+        ariaPressed: trashSectionVisible,
+        onClick: toggleTrashSectionVisible
+      },
+      {
         id: 'toggle-storage-badges',
         icon: faCloud,
         label: 'Storage location badges',
@@ -174,11 +187,13 @@ function SidebarContent(): JSX.Element {
     environmentsSectionVisible,
     historySectionVisible,
     tabGroupsSectionVisible,
+    trashSectionVisible,
     runResultsSectionVisible,
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
     toggleHistorySectionVisible,
     toggleTabGroupsSectionVisible,
+    toggleTrashSectionVisible,
     toggleRunResultsSectionVisible,
     showStorageLocationBadges,
     toggleStorageLocationBadges
@@ -292,6 +307,19 @@ function SidebarContent(): JSX.Element {
                       addLabel="Add Tab Group"
                     >
                       <TabGroups />
+                    </Section>
+                  </nav>
+                ) : null}
+
+                {trashSectionVisible ? (
+                  <nav aria-label="Trash" data-sidebar-section="trash">
+                    <Section
+                      itemKey="trash"
+                      title="Trash"
+                      initialEntered={trashSectionExpanded}
+                      headerActions={<TrashHeaderActions />}
+                    >
+                      <Trash />
                     </Section>
                   </nav>
                 ) : null}

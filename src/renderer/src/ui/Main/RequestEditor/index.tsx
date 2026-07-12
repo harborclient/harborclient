@@ -64,9 +64,11 @@ import {
   cancelRequest,
   closeMarkdownTab,
   closeRequestTab,
-  focusSidebarItem
+  focusSidebarItem,
+  saveFromMenu
 } from '#/renderer/src/store/thunks';
 import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
+import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
 import { mergeRequestVariables } from '#/renderer/src/hooks/useMergedRequestVariables';
 import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
 import { useTeamHubs } from '#/renderer/src/hooks/useTeamHubs';
@@ -211,6 +213,8 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const [closeTabDontAskAgain, setCloseTabDontAskAgain] = useState(false);
   const [closeManyDontAskAgain, setCloseManyDontAskAgain] = useState(false);
   const splitRef = useRef<HTMLElement>(null);
+  const [savingRequest, setSavingRequest] = useState(false);
+  const savingRequestRef = useRef(false);
 
   /**
    * Reads the split container height so max-size clamping tracks the live layout.
@@ -264,6 +268,35 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const warnWhenClosingUnsavedRequests = useAppSelector(
     (state) => state.settings.general.warnWhenClosingUnsavedRequests
   );
+
+  /**
+   * Whether the active request tab has unsaved edits or has never been persisted.
+   */
+  const requestSaveDisabled =
+    activeTab == null ||
+    !isRequestTab(activeTab) ||
+    (activeTab.draft.id != null && !isTabDirty(activeTab));
+
+  /**
+   * Persists the active request tab via the same path as File → Save.
+   */
+  const handleSaveRequest = useCallback((): void => {
+    if (savingRequestRef.current || requestSaveDisabled) {
+      return;
+    }
+
+    savingRequestRef.current = true;
+    setSavingRequest(true);
+    void dispatch(saveFromMenu())
+      .unwrap()
+      .catch((err: unknown) => {
+        showAlert(dispatch, formatErrorMessage(err, 'Failed to save'));
+      })
+      .finally(() => {
+        savingRequestRef.current = false;
+        setSavingRequest(false);
+      });
+  }, [dispatch, requestSaveDisabled, setSavingRequest]);
 
   /**
    * Resolves the folder id for the active draft from saved state or draft fields.
@@ -528,8 +561,11 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
                       requestTabContext={requestTabContext}
                       onChange={(next) => dispatch(setActiveDraft(next))}
                       onSend={() => void dispatch(sendRequest())}
+                      onSave={handleSaveRequest}
                       onCancel={() => void dispatch(cancelRequest(activeTabId))}
                       sending={sending}
+                      savingRequest={savingRequest}
+                      saveDisabled={requestSaveDisabled}
                       variables={activeVariables}
                       collectionName={activeCollectionName}
                       folderName={activeFolderName}

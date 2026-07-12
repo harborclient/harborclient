@@ -26,6 +26,8 @@ import { registerCustomThemeHandlers } from '#/main/ipc/handlers/customThemes';
 import { registerDocsHandlers } from '#/main/ipc/handlers/docs';
 import { registerMcpHandlers } from '#/main/ipc/handlers/mcp';
 import { registerTerminalHandlers } from '#/main/ipc/handlers/terminal';
+import { registerTrashHandlers } from '#/main/ipc/handlers/trash';
+import { initTrashService } from '#/main/storage/trashServiceInstance';
 import type { PluginManager } from '#/main/plugins/PluginManager';
 
 /**
@@ -36,6 +38,7 @@ import type { PluginManager } from '#/main/plugins/PluginManager';
  */
 export function registerIpcHandlers(db: IStorage, pluginManager: PluginManager): void {
   const cookieJar = new CookieJar(getLocalDatabase());
+  initTrashService(db);
 
   registerCollectionHandlers(db);
   registerChatHandlers();
@@ -62,4 +65,5 @@ export function registerIpcHandlers(db: IStorage, pluginManager: PluginManager):
   registerMcpHandlers();
   registerTerminalHandlers();
   registerCustomThemeHandlers();
+  registerTrashHandlers();
 }

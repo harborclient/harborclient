@@ -878,6 +878,46 @@
   color: #32d2e2;
 }
 
+/**
+ * MDXEditor fenced code block wrapper and toolbar — match HarborClient sidebar
+ * tokens in dark appearance so the chrome aligns with static markdown `<pre>` blocks.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .request-comment-editor [class*='codeMirrorWrapper'] {
+    border-color: var(--mac-separator);
+    background-color: var(--mac-sidebar);
+  }
+
+  :root:not([data-theme='light']) .request-comment-editor [class*='codeMirrorToolbar'] {
+    background-color: var(--mac-sidebar);
+    color: var(--mac-text);
+  }
+}
+
+:root[data-theme='dark'] .request-comment-editor [class*='codeMirrorWrapper'],
+:root[data-theme='high-contrast'] .request-comment-editor [class*='codeMirrorWrapper'] {
+  border-color: var(--mac-separator);
+  background-color: var(--mac-sidebar);
+}
+
+:root[data-theme='dark'] .request-comment-editor [class*='codeMirrorToolbar'],
+:root[data-theme='high-contrast'] .request-comment-editor [class*='codeMirrorToolbar'] {
+  background-color: var(--mac-sidebar);
+  color: var(--mac-text);
+}
+
+:root[data-theme='custom'] .request-comment-editor [class*='codeMirrorWrapper'],
+:root[data-theme^='plugin-'] .request-comment-editor [class*='codeMirrorWrapper'] {
+  border-color: var(--mac-separator);
+  background-color: var(--mac-sidebar);
+}
+
+:root[data-theme='custom'] .request-comment-editor [class*='codeMirrorToolbar'],
+:root[data-theme^='plugin-'] .request-comment-editor [class*='codeMirrorToolbar'] {
+  background-color: var(--mac-sidebar);
+  color: var(--mac-text);
+}
+
 .hc-chat-composer-script-ref {
   color: #32d2e2;
 }

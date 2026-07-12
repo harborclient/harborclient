@@ -15,7 +15,7 @@ import { useSidebarRowSelection } from '#/renderer/src/ui/sidebars/CollectionSid
 import { faEraser, faPersonRunning } from '#/renderer/src/fontawesome';
 import { METHOD_CLASSES, sourceRow, statusDotClass } from '#/renderer/src/ui/shared/classes';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
-import { formatRelativeTime } from './utils';
+import { formatSidebarAbsoluteDate } from './utils';
 
 /**
  * Header actions for the History sidebar section.
@@ -92,13 +92,13 @@ async function openHistoryRequestEntry(entry: RequestHistoryEntry): Promise<void
  */
 function historyEntryAriaLabel(entry: RequestHistoryEntry): string {
   const normalized = normalizeRequestHistoryEntry(entry);
-  const time = formatRelativeTime(entry.ts);
+  const date = formatSidebarAbsoluteDate(entry.ts);
 
   if (entry.kind === 'run') {
-    return `Open run ${normalized.name}, ${entry.method}, ${time}`;
+    return `Open run ${normalized.name}, ${entry.method}, ${date}`;
   }
 
-  return `Open ${normalized.name}, ${entry.method} ${entry.url}, status ${entry.status}, ${time}`;
+  return `Open ${normalized.name}, ${entry.method} ${entry.url}, status ${entry.status}, ${date}`;
 }
 
 /**
@@ -207,6 +207,8 @@ export function History(): JSX.Element {
         const isRun = entry.kind === 'run';
         const methodClass = METHOD_CLASSES[entry.method.toLowerCase()] ?? 'text-info';
         const normalized = normalizeRequestHistoryEntry(entry);
+        const rowDate = formatSidebarAbsoluteDate(entry.ts);
+        const rowTitle = isRun ? normalized.name : entry.url;
         const menuId = `history-entry-${entry.id}`;
         const selected = isSelected(entry.id);
         const showBulkMenu = selected && selectionCount > 1;
@@ -225,7 +227,7 @@ export function History(): JSX.Element {
             <Button
               variant="toolbar"
               className="flex min-w-0 flex-1 items-center gap-2 py-0.5 text-left text-[16px] text-text hover:bg-transparent"
-              title={isRun ? normalized.name : entry.url}
+              title={`${rowTitle} — ${rowDate}`}
               aria-label={historyEntryAriaLabel(entry)}
               aria-selected={selected ? 'true' : undefined}
               onClick={(event: MouseEvent<HTMLButtonElement>) => {
@@ -258,7 +260,6 @@ export function History(): JSX.Element {
                   {entry.status} {entry.statusText}
                 </span>
               ) : null}
-              <span className="shrink-0 text-muted">{formatRelativeTime(entry.ts)}</span>
             </Button>
             <RowActionsMenu
               menuId={menuId}

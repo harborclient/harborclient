@@ -9,6 +9,7 @@ export type SettingId =
   | 'general.followRedirects'
   | 'general.scrollbarAutoHide'
   | 'general.wrapTabs'
+  | 'general.spellCheckEnabled'
   | 'general.logFilePath'
   | 'proxy.enabled'
   | 'proxy.protocol'
@@ -194,6 +195,15 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     description:
       'When enabled, request tabs and AI chat tabs wrap onto multiple rows instead of scrolling horizontally.',
     keywords: ['wrap', 'tabs', 'overflow', 'scroll']
+  },
+  {
+    id: 'general.spellCheckEnabled',
+    section: 'general',
+    kind: 'field',
+    label: 'Spell check',
+    description:
+      'When enabled, editable text fields show spelling underlines and offer suggestions in the right-click menu.',
+    keywords: ['spell', 'spelling', 'dictionary', 'typo', 'autocorrect', 'context menu']
   },
   {
     id: 'general.logFilePath',

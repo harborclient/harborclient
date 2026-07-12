@@ -29,6 +29,7 @@ import { importEnvironmentData } from '#/main/ipc/handlers/environments';
 import { importCustomThemeData } from '#/main/ipc/handlers/customThemeImport';
 import { importSnippetData } from '#/main/ipc/handlers/snippetImport';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
+import { getTrashService } from '#/main/storage/trashServiceInstance';
 import { logImportVerbose } from '#/main/import/importVerboseLog';
 import { readHarborclientExport } from '#/shared/harborclientExport';
 import type {
@@ -328,7 +329,9 @@ export function registerCollectionHandlers(db: IStorage): void {
   );
 
   // Deletes a collection and all of its folders and requests.
-  handle('collections:delete', ipcArgSchemas.dbId, (_event, id) => db.deleteCollection(id));
+  handle('collections:delete', ipcArgSchemas.dbId, (_event, id) =>
+    getTrashService().moveCollectionToTrash(id)
+  );
 
   // Deep-copies a collection into a new collection on the same backend.
   handle('collections:duplicate', ipcArgSchemas.dbId, (_event, id) => {

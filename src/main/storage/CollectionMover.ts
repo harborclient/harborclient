@@ -1,5 +1,5 @@
 import type { MountedBackend, RoutingInternals } from '#/main/storage/routingInternals';
-import type { Collection, Folder, SavedRequest } from '#/shared/types';
+import type { Collection, CollectionDocument, Folder, SavedRequest } from '#/shared/types';
 
 const COLLECTION_MOVE_PENDING_KEY = 'collection_move_pending';
 
@@ -61,6 +61,7 @@ export class MoveCoordinator {
 
     const requests = await sourceBackend.db.listRequests(sourceProviderCollectionId);
     const folders = await sourceBackend.db.listFolders(sourceProviderCollectionId);
+    const documents = await sourceBackend.db.listDocuments(sourceProviderCollectionId);
 
     let targetProviderCollectionId: number | undefined;
 
@@ -77,7 +78,7 @@ export class MoveCoordinator {
       );
       targetProviderCollectionId = updated.id;
 
-      await copyCollectionContents(targetBackend, updated.id, folders, requests);
+      await copyCollectionContents(targetBackend, updated.id, folders, requests, documents);
 
       const updatedEntry = this.internals.database.updateRegistryEntry(globalCollectionId, {
         name: record.name,
@@ -150,6 +151,7 @@ export class MoveCoordinator {
 
     const folders = await backend.db.listFolders(entry.providerCollectionId);
     const requests = await backend.db.listRequests(entry.providerCollectionId);
+    const documents = await backend.db.listDocuments(entry.providerCollectionId);
 
     const created = await backend.db.createCollection(`${record.name} (copy)`);
     const updated = await backend.db.updateCollection(
@@ -162,7 +164,7 @@ export class MoveCoordinator {
       record.auth
     );
 
-    await copyCollectionContents(backend, updated.id, folders, requests);
+    await copyCollectionContents(backend, updated.id, folders, requests, documents);
 
     const newEntry = this.internals.database.addRegistryEntry({
       name: updated.name,
@@ -298,18 +300,20 @@ export class MoveCoordinator {
 }
 
 /**
- * Recreates folders and saved requests inside a target provider collection.
+ * Recreates folders, saved requests, and markdown documents inside a target provider collection.
  *
  * @param targetBackend - Backend that owns the destination collection.
  * @param targetCollectionId - Provider-local id of the destination collection.
  * @param folders - Source folders to copy (provider-local ids).
  * @param requests - Source requests to copy (provider-local ids).
+ * @param documents - Source markdown documents to copy (provider-local ids).
  */
 async function copyCollectionContents(
   targetBackend: MountedBackend,
   targetCollectionId: number,
   folders: Folder[],
-  requests: SavedRequest[]
+  requests: SavedRequest[],
+  documents: CollectionDocument[]
 ): Promise<void> {
   const folderIdMap = new Map<number, number>();
   const sortedFolders = [...folders].sort(
@@ -362,6 +366,24 @@ async function copyCollectionContents(
       post_request_scripts: request.post_request_scripts,
       comment: request.comment,
       tags: request.tags
+    });
+  }
+
+  const sortedDocuments = [...documents].sort(
+    (a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)
+  );
+
+  for (const document of sortedDocuments) {
+    const targetFolderId =
+      document.folder_id != null ? (folderIdMap.get(document.folder_id) ?? null) : null;
+
+    await targetBackend.db.saveDocument({
+      collection_id: targetCollectionId,
+      folder_id: targetFolderId,
+      name: document.name,
+      content: document.content,
+      uuid: document.uuid,
+      sort_order: document.sort_order
     });
   }
 }

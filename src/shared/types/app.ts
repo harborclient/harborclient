@@ -50,7 +50,8 @@ export type MenuActionId =
   | 'action-menu'
   | 'undo'
   | 'redo'
-  | 'create-tab-group';
+  | 'create-tab-group'
+  | 'format-markdown-document';
 
 /**
  * Top-level application menu labels shown in the Linux in-app menu bar.
@@ -82,6 +83,16 @@ export type AppSubmenuItemSnapshot =
       /** Keyboard shortcut hint shown beside the label. */
       accelerator?: string;
     };
+
+/**
+ * Saved request to open automatically after built-in collections are imported on first launch.
+ */
+export interface BuiltinCollectionOpenRequestTarget {
+  /** Stable uuid of the seeded collection export. */
+  collectionUuid: string;
+  /** Stable uuid of the request within that collection. */
+  requestUuid: string;
+}
 
 /**
  * Host operating system metadata for the machine running HarborClient.

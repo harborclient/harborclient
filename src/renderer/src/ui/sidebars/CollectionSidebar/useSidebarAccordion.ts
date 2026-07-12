@@ -34,16 +34,19 @@ export function useSidebarAccordion(): Result {
     runResultsSectionExpanded,
     historySectionExpanded,
     tabGroupsSectionExpanded,
+    trashSectionExpanded,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
     setRunResultsSectionExpanded,
     setHistorySectionExpanded,
     setTabGroupsSectionExpanded,
+    setTrashSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
     historySectionVisible,
-    tabGroupsSectionVisible
+    tabGroupsSectionVisible,
+    trashSectionVisible
   } = useSidebarExpansion();
 
   /**
@@ -79,6 +82,11 @@ export function useSidebarAccordion(): Result {
         return;
       }
 
+      if (key === 'trash') {
+        setTrashSectionExpanded((current) => (current === isEnter ? current : isEnter));
+        return;
+      }
+
       setPluginSectionExpanded((current) => {
         const previous = current[key] ?? true;
         if (previous === isEnter) {
@@ -92,7 +100,8 @@ export function useSidebarAccordion(): Result {
       setEnvironmentsSectionExpanded,
       setRunResultsSectionExpanded,
       setHistorySectionExpanded,
-      setTabGroupsSectionExpanded
+      setTabGroupsSectionExpanded,
+      setTrashSectionExpanded
     ]
   );
 
@@ -135,6 +144,10 @@ export function useSidebarAccordion(): Result {
       desiredExpansion.tabGroups = tabGroupsSectionExpanded;
     }
 
+    if (trashSectionVisible) {
+      desiredExpansion.trash = trashSectionExpanded;
+    }
+
     for (const section of pluginSidebarSections) {
       desiredExpansion[section.id] = pluginSectionExpanded[section.id] ?? true;
     }
@@ -153,11 +166,13 @@ export function useSidebarAccordion(): Result {
     runResultsSectionExpanded,
     historySectionExpanded,
     tabGroupsSectionExpanded,
+    trashSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
     historySectionVisible,
     tabGroupsSectionVisible,
+    trashSectionVisible,
     pluginSectionExpanded,
     pluginSidebarSections
   ]);

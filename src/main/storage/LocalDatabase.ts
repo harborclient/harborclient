@@ -24,6 +24,7 @@ import type {
   TabGroupRequest,
   Variable
 } from '#/shared/types';
+import type { InsertTrashItemInput, TrashItem } from '#/shared/types/trash';
 import { REQUEST_HISTORY_CAP } from '#/shared/types/requestHistory';
 import type { SnippetScope } from '#/shared/snippetScope';
 import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '#/shared/scriptStage';
@@ -51,6 +52,52 @@ interface RequestHistoryRow {
   run_collection_id: number | null;
   run_folder_id: number | null;
   run_request_id: number | null;
+}
+
+/**
+ * Row shape returned from trash_items queries.
+ */
+interface TrashItemRow {
+  id: number;
+  entity_type: string;
+  label: string;
+  connection_id: string | null;
+  original_ids: string;
+  payload: string;
+  deleted_at: string;
+}
+
+/**
+ * Maps a database row to a {@link TrashItem}.
+ *
+ * @param row - SQLite row from trash_items.
+ * @returns Parsed trash item for the sidebar and restore flows.
+ */
+function rowToTrashItem(row: TrashItemRow): TrashItem {
+  let originalIds: Record<string, unknown> = {};
+  let payload: unknown = null;
+
+  try {
+    originalIds = JSON.parse(row.original_ids) as Record<string, unknown>;
+  } catch {
+    originalIds = {};
+  }
+
+  try {
+    payload = JSON.parse(row.payload) as unknown;
+  } catch {
+    payload = null;
+  }
+
+  return {
+    id: row.id,
+    entityType: row.entity_type as TrashItem['entityType'],
+    label: row.label,
+    connectionId: row.connection_id,
+    originalIds,
+    payload,
+    deletedAt: row.deleted_at
+  };
 }
 
 /**
@@ -402,6 +449,16 @@ export class LocalDatabase {
         sort_order    INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (group_id, request_uuid)
       );
+
+      CREATE TABLE IF NOT EXISTS trash_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entity_type TEXT NOT NULL,
+        label TEXT NOT NULL,
+        connection_id TEXT,
+        original_ids TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        deleted_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
     `);
     }
 
@@ -418,6 +475,24 @@ export class LocalDatabase {
     this.migrateSnippetRegistryTable();
     this.migrateRequestHistoryTable();
     this.migrateTabGroupsTable();
+    this.migrateTrashTable();
+  }
+
+  /**
+   * Ensures the trash_items table exists on legacy databases.
+   */
+  private migrateTrashTable(): void {
+    this.getDb().exec(`
+      CREATE TABLE IF NOT EXISTS trash_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entity_type TEXT NOT NULL,
+        label TEXT NOT NULL,
+        connection_id TEXT,
+        original_ids TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        deleted_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
   }
 
   /**
@@ -1689,6 +1764,25 @@ export class LocalDatabase {
   }
 
   /**
+   * Loads one persisted request history entry by id.
+   *
+   * @param id - History entry id to load.
+   * @returns The history entry when found, otherwise null.
+   */
+  getRequestHistoryEntry(id: number): RequestHistoryEntry | null {
+    const row = this.getDb()
+      .prepare(
+        `SELECT id, method, url, status, status_text, ts, saved_request_id, name, headers, params, body, body_type,
+                kind, run_collection_id, run_folder_id, run_request_id
+         FROM request_history
+         WHERE id = ?`
+      )
+      .get(id) as RequestHistoryRow | undefined;
+
+    return row ? rowToRequestHistoryEntry(row) : null;
+  }
+
+  /**
    * Updates the last-selected model id stored on a chat row.
    *
    * @param chatId - Chat id to update.
@@ -2093,5 +2187,84 @@ export class LocalDatabase {
     });
     reorder(orderedIds);
     return this.listTabGroups();
+  }
+
+  /**
+   * Lists trash snapshot rows ordered newest-first.
+   *
+   * @returns Trash items for the sidebar Trash section.
+   */
+  listTrashItems(): TrashItem[] {
+    const rows = this.getDb()
+      .prepare(
+        `SELECT id, entity_type, label, connection_id, original_ids, payload, deleted_at
+         FROM trash_items
+         ORDER BY deleted_at DESC, id DESC`
+      )
+      .all() as TrashItemRow[];
+
+    return rows.map(rowToTrashItem);
+  }
+
+  /**
+   * Loads one trash snapshot row by id.
+   *
+   * @param id - Trash row id.
+   * @returns The trash item when found, otherwise null.
+   */
+  getTrashItem(id: number): TrashItem | null {
+    const row = this.getDb()
+      .prepare(
+        `SELECT id, entity_type, label, connection_id, original_ids, payload, deleted_at
+         FROM trash_items
+         WHERE id = ?`
+      )
+      .get(id) as TrashItemRow | undefined;
+
+    return row ? rowToTrashItem(row) : null;
+  }
+
+  /**
+   * Inserts a trash snapshot row.
+   *
+   * @param input - Trash snapshot metadata and payload.
+   * @returns The newly inserted trash item.
+   */
+  insertTrashItem(input: InsertTrashItemInput): TrashItem {
+    const result = this.getDb()
+      .prepare(
+        `INSERT INTO trash_items (entity_type, label, connection_id, original_ids, payload)
+         VALUES (?, ?, ?, ?, ?)`
+      )
+      .run(
+        input.entityType,
+        input.label,
+        input.connectionId ?? null,
+        JSON.stringify(input.originalIds),
+        JSON.stringify(input.payload)
+      );
+
+    const inserted = this.getTrashItem(Number(result.lastInsertRowid));
+    if (!inserted) {
+      throw new Error('Failed to insert trash item');
+    }
+
+    return inserted;
+  }
+
+  /**
+   * Permanently deletes one trash snapshot row.
+   *
+   * @param id - Trash row id.
+   */
+  deleteTrashItem(id: number): void {
+    this.getDb().prepare('DELETE FROM trash_items WHERE id = ?').run(id);
+  }
+
+  /**
+   * Permanently deletes every trash snapshot row.
+   */
+  clearTrash(): void {
+    this.getDb().prepare('DELETE FROM trash_items').run();
   }
 }

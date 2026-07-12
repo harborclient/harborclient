@@ -11,17 +11,22 @@ export * from '#/renderer/src/store/thunks/collectionRunner';
 export * from '#/renderer/src/store/thunks/runResults';
 export * from '#/renderer/src/store/thunks/requestHistory';
 export * from '#/renderer/src/store/thunks/tabGroups';
+export * from '#/renderer/src/store/thunks/trash';
 export * from '#/renderer/src/store/thunks/settings';
 export * from '#/renderer/src/store/thunks/tabs';
 export * from '#/renderer/src/store/thunks/terminals';
 
 import type { AppDispatch } from '#/renderer/src/store/redux';
 import { setGeneralSettingsState } from '#/renderer/src/store/slices/settingsSlice';
-import { refreshCollections } from '#/renderer/src/store/thunks/collections';
+import {
+  refreshCollections,
+  openSeededBuiltinRequestIfNeeded
+} from '#/renderer/src/store/thunks/collections';
 import { refreshEnvironments } from '#/renderer/src/store/thunks/environments';
 import { refreshRunResults } from '#/renderer/src/store/thunks/runResults';
 import { refreshRequestHistory } from '#/renderer/src/store/thunks/requestHistory';
 import { refreshTabGroups } from '#/renderer/src/store/thunks/tabGroups';
+import { refreshTrash } from '#/renderer/src/store/thunks/trash';
 import { refreshSnippets } from '#/renderer/src/store/thunks/snippets';
 import { hydrateOpenTabs } from '#/renderer/src/store/thunks/tabs';
 import { hydrateTerminalLayout } from '#/renderer/src/store/thunks/terminals';
@@ -32,12 +37,15 @@ import { hydrateTerminalLayout } from '#/renderer/src/store/thunks/terminals';
 export function initializeStore(dispatch: AppDispatch): void {
   void dispatch(hydrateOpenTabs());
   void dispatch(hydrateTerminalLayout());
-  void dispatch(refreshCollections());
+  void dispatch(refreshCollections()).then(() => {
+    void dispatch(openSeededBuiltinRequestIfNeeded());
+  });
   void dispatch(refreshEnvironments());
   void dispatch(refreshSnippets());
   void dispatch(refreshRunResults());
   void dispatch(refreshRequestHistory());
   void dispatch(refreshTabGroups());
+  void dispatch(refreshTrash());
   void window.api.getGeneralSettings().then((settings) => {
     dispatch(setGeneralSettingsState(settings));
   });

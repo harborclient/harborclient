@@ -1,0 +1,284 @@
+{
+  "harborclientVersion": 1,
+  "harborclientExport": "collection",
+  "uuid": "982e6b87-0ec2-44b6-9871-033a558178d6",
+  "name": "HarborClient Echo",
+  "variables": [
+    {
+      "key": "APP",
+      "value": "",
+      "defaultValue": "",
+      "share": false
+    }
+  ],
+  "headers": [
+    {
+      "key": "Accept",
+      "value": "application/json",
+      "enabled": true
+    }
+  ],
+  "auth": {
+    "type": "none",
+    "basic": {
+      "username": "",
+      "password": ""
+    },
+    "bearer": {
+      "token": ""
+    },
+    "oauth2": {
+      "tokenUrl": "",
+      "clientId": "",
+      "clientSecret": "",
+      "scope": "",
+      "audience": "",
+      "clientAuth": "body"
+    }
+  },
+  "pre_request_script": "",
+  "post_request_script": "",
+  "pre_request_scripts": [],
+  "post_request_scripts": [],
+  "folders": [],
+  "requests": [
+    {
+      "uuid": "6eee54b5-d375-422e-8044-e0e61ef65c71",
+      "name": "Echo POST",
+      "method": "GET",
+      "url": "https://echo.harborclient.com/get",
+      "headers": [],
+      "params": [],
+      "auth": {
+        "type": "none",
+        "basic": {
+          "username": "",
+          "password": ""
+        },
+        "bearer": {
+          "token": ""
+        },
+        "oauth2": {
+          "tokenUrl": "",
+          "clientId": "",
+          "clientSecret": "",
+          "scope": "",
+          "audience": "",
+          "clientAuth": "body"
+        }
+      },
+      "body": "",
+      "body_type": "none",
+      "pre_request_script": "hc.test(\"Request method is GET\", () => {\n  hc.expect(hc.request.method).to.equal(\"GET\");\n});",
+      "post_request_script": "hc.test(\"Status code is 2xx\", () => {\n  hc.expect(hc.response.code >= 200 && hc.response.code < 300).to.be.ok();\n});\n\nhc.test(\"Status code is 200\", () => {\n  hc.expect(hc.response.code).to.equal(200);\n});\n\nhc.test(\"Status text is present\", () => {\n  hc.expect(hc.response.status).to.be.ok();\n});\n\nhc.test(\"Response time is recorded\", () => {\n  hc.expect(hc.response.responseTime >= 0).to.be.ok();\n});\n\nhc.test(\"Response headers exist\", () => {\n  hc.expect(hc.response.headers).to.be.ok();\n});\n\nhc.test(\"Response body is readable\", () => {\n  hc.expect(typeof hc.response.text()).to.equal(\"string\");\n});\n\nhc.test(\"JSON body parses when applicable\", () => {\n  const contentTypeKey = Object.keys(hc.response.headers).find(\n    (key) => key.toLowerCase() === \"content-type\"\n  );\n  if (!contentTypeKey) {\n    return;\n  }\n\n  const contentType = hc.response.headers[contentTypeKey];\n  if (!contentType.includes(\"application/json\")) {\n    return;\n  }\n\n  hc.expect(hc.response.json()).to.be.ok();\n});",
+      "pre_request_scripts": [
+        {
+          "id": "4fc28f9c-0c66-4264-94bb-f586ff455853",
+          "enabled": true,
+          "kind": "inline",
+          "name": "SendSuccess",
+          "code": "hc.test(\"Request method is GET\", () => {\n  hc.expect(hc.request.method).to.equal(\"GET\");\n});\n",
+          "expanded": true,
+          "stage": "main"
+        }
+      ],
+      "post_request_scripts": [
+        {
+          "id": "882ac18c-a2d6-40f0-a244-8b0be5017e69",
+          "enabled": true,
+          "kind": "inline",
+          "name": "Success Response",
+          "code": "hc.test(\"Status code is 2xx\", () => {\n  hc.expect(hc.response.code >= 200 && hc.response.code < 300).to.be.ok();\n});\n\nhc.test(\"Status code is 200\", () => {\n  hc.expect(hc.response.code).to.equal(200);\n});\n\nhc.test(\"Status text is present\", () => {\n  hc.expect(hc.response.status).to.be.ok();\n});\n\nhc.test(\"Response time is recorded\", () => {\n  hc.expect(hc.response.responseTime >= 0).to.be.ok();\n});\n\nhc.test(\"Response headers exist\", () => {\n  hc.expect(hc.response.headers).to.be.ok();\n});\n\nhc.test(\"Response body is readable\", () => {\n  hc.expect(typeof hc.response.text()).to.equal(\"string\");\n});\n\nhc.test(\"JSON body parses when applicable\", () => {\n  const contentTypeKey = Object.keys(hc.response.headers).find(\n    (key) => key.toLowerCase() === \"content-type\"\n  );\n  if (!contentTypeKey) {\n    return;\n  }\n\n  const contentType = hc.response.headers[contentTypeKey];\n  if (!contentType.includes(\"application/json\")) {\n    return;\n  }\n\n  hc.expect(hc.response.json()).to.be.ok();\n});\n",
+          "expanded": true,
+          "stage": "main"
+        }
+      ],
+      "comment": "",
+      "tags": "",
+      "sort_order": 0,
+      "folder_name": null,
+      "folder_uuid": null
+    },
+    {
+      "uuid": "c240f914-08fb-4e93-8697-105d5d0d4e84",
+      "name": "Echo PUT",
+      "method": "PUT",
+      "url": "https://echo.harborclient.com/put",
+      "headers": [],
+      "params": [],
+      "auth": {
+        "type": "none",
+        "basic": {
+          "username": "",
+          "password": ""
+        },
+        "bearer": {
+          "token": ""
+        },
+        "oauth2": {
+          "tokenUrl": "",
+          "clientId": "",
+          "clientSecret": "",
+          "scope": "",
+          "audience": "",
+          "clientAuth": "body"
+        }
+      },
+      "body": "{\n  \"firstName\": \"{{$randomFirstName}}\",\n  \"lastName\": \"{{$randomLastName}}\",\n  \"phone\": \"{{$randomPhoneNumber}}\"\n}",
+      "body_type": "json",
+      "pre_request_script": "hc.test(\"Request method is PUT\", () => {\n  hc.expect(hc.request.method).to.equal(\"PUT\");\n});\n\nhc.test(\"Request body is not empty\", () => {\n    if (!hc.request.body || hc.request.body.trim() === '') {\n        throw new Error('Request body is empty. Please provide data before sending.');\n    }\n});",
+      "post_request_script": "hc.test(\"Status code is 2xx\", () => {\n  hc.expect(hc.response.code >= 200 && hc.response.code < 300).to.be.ok();\n});\n\nhc.test(\"Status code is 200\", () => {\n  hc.expect(hc.response.code).to.equal(200);\n});\n\nhc.test(\"Status text is present\", () => {\n  hc.expect(hc.response.status).to.be.ok();\n});\n\nhc.test(\"Response time is recorded\", () => {\n  hc.expect(hc.response.responseTime >= 0).to.be.ok();\n});\n\nhc.test(\"Response headers exist\", () => {\n  hc.expect(hc.response.headers).to.be.ok();\n});\n\nhc.test(\"Response body is readable\", () => {\n  hc.expect(typeof hc.response.text()).to.equal(\"string\");\n});\n\nhc.test(\"JSON body parses when applicable\", () => {\n  const contentTypeKey = Object.keys(hc.response.headers).find(\n    (key) => key.toLowerCase() === \"content-type\"\n  );\n  if (!contentTypeKey) {\n    return;\n  }\n\n  const contentType = hc.response.headers[contentTypeKey];\n  if (!contentType.includes(\"application/json\")) {\n    return;\n  }\n\n  hc.expect(hc.response.json()).to.be.ok();\n});",
+      "pre_request_scripts": [
+        {
+          "id": "ee0100c8-5d9d-4d8a-82ee-e82d6ba39f98",
+          "enabled": true,
+          "kind": "inline",
+          "name": "SendSuccess",
+          "code": "hc.test(\"Request method is PUT\", () => {\n  hc.expect(hc.request.method).to.equal(\"PUT\");\n});\n\nhc.test(\"Request body is not empty\", () => {\n    if (!hc.request.body || hc.request.body.trim() === '') {\n        throw new Error('Request body is empty. Please provide data before sending.');\n    }\n});",
+          "expanded": true,
+          "stage": "main"
+        }
+      ],
+      "post_request_scripts": [
+        {
+          "id": "10401953-dc56-4a3a-9547-a25865063180",
+          "enabled": true,
+          "kind": "inline",
+          "name": "Success Response",
+          "code": "hc.test(\"Status code is 2xx\", () => {\n  hc.expect(hc.response.code >= 200 && hc.response.code < 300).to.be.ok();\n});\n\nhc.test(\"Status code is 200\", () => {\n  hc.expect(hc.response.code).to.equal(200);\n});\n\nhc.test(\"Status text is present\", () => {\n  hc.expect(hc.response.status).to.be.ok();\n});\n\nhc.test(\"Response time is recorded\", () => {\n  hc.expect(hc.response.responseTime >= 0).to.be.ok();\n});\n\nhc.test(\"Response headers exist\", () => {\n  hc.expect(hc.response.headers).to.be.ok();\n});\n\nhc.test(\"Response body is readable\", () => {\n  hc.expect(typeof hc.response.text()).to.equal(\"string\");\n});\n\nhc.test(\"JSON body parses when applicable\", () => {\n  const contentTypeKey = Object.keys(hc.response.headers).find(\n    (key) => key.toLowerCase() === \"content-type\"\n  );\n  if (!contentTypeKey) {\n    return;\n  }\n\n  const contentType = hc.response.headers[contentTypeKey];\n  if (!contentType.includes(\"application/json\")) {\n    return;\n  }\n\n  hc.expect(hc.response.json()).to.be.ok();\n});\n",
+          "expanded": true,
+          "stage": "main"
+        }
+      ],
+      "comment": "",
+      "tags": "",
+      "sort_order": 1,
+      "folder_name": null,
+      "folder_uuid": null
+    },
+    {
+      "uuid": "47bcbd93-748a-405a-99ef-ecf97663238b",
+      "name": "Echo POST",
+      "method": "POST",
+      "url": "https://echo.harborclient.com/post",
+      "headers": [],
+      "params": [],
+      "auth": {
+        "type": "none",
+        "basic": {
+          "username": "",
+          "password": ""
+        },
+        "bearer": {
+          "token": ""
+        },
+        "oauth2": {
+          "tokenUrl": "",
+          "clientId": "",
+          "clientSecret": "",
+          "scope": "",
+          "audience": "",
+          "clientAuth": "body"
+        }
+      },
+      "body": "{\n  \"firstName\": \"{{$randomFirstName}}\",\n  \"lastName\": \"{{$randomLastName}}\",\n  \"phone\": \"{{$randomPhoneNumber}}\"\n}",
+      "body_type": "json",
+      "pre_request_script": "hc.test(\"Request method is POST\", () => {\n  hc.expect(hc.request.method).to.equal(\"POST\");\n});\n\nhc.test(\"Request body is not empty\", () => {\n    if (!hc.request.body || hc.request.body.trim() === '') {\n        throw new Error('Request body is empty. Please provide data before sending.');\n    }\n});",
+      "post_request_script": "hc.test(\"Status code is 2xx\", () => {\n  hc.expect(hc.response.code >= 200 && hc.response.code < 300).to.be.ok();\n});\n\nhc.test(\"Status code is 200\", () => {\n  hc.expect(hc.response.code).to.equal(200);\n});\n\nhc.test(\"Status text is present\", () => {\n  hc.expect(hc.response.status).to.be.ok();\n});\n\nhc.test(\"Response time is recorded\", () => {\n  hc.expect(hc.response.responseTime >= 0).to.be.ok();\n});\n\nhc.test(\"Response headers exist\", () => {\n  hc.expect(hc.response.headers).to.be.ok();\n});\n\nhc.test(\"Response body is readable\", () => {\n  hc.expect(typeof hc.response.text()).to.equal(\"string\");\n});\n\nhc.test(\"JSON body parses when applicable\", () => {\n  const contentTypeKey = Object.keys(hc.response.headers).find(\n    (key) => key.toLowerCase() === \"content-type\"\n  );\n  if (!contentTypeKey) {\n    return;\n  }\n\n  const contentType = hc.response.headers[contentTypeKey];\n  if (!contentType.includes(\"application/json\")) {\n    return;\n  }\n\n  hc.expect(hc.response.json()).to.be.ok();\n});",
+      "pre_request_scripts": [
+        {
+          "id": "4816b829-d108-4ee6-b405-9670457e198e",
+          "enabled": true,
+          "kind": "inline",
+          "name": "SendSuccess",
+          "code": "hc.test(\"Request method is POST\", () => {\n  hc.expect(hc.request.method).to.equal(\"POST\");\n});\n\nhc.test(\"Request body is not empty\", () => {\n    if (!hc.request.body || hc.request.body.trim() === '') {\n        throw new Error('Request body is empty. Please provide data before sending.');\n    }\n});",
+          "expanded": true,
+          "stage": "main"
+        }
+      ],
+      "post_request_scripts": [
+        {
+          "id": "935b15d1-36da-41aa-a4ec-aaadb8efcb9c",
+          "enabled": true,
+          "kind": "inline",
+          "name": "Success Response",
+          "code": "hc.test(\"Status code is 2xx\", () => {\n  hc.expect(hc.response.code >= 200 && hc.response.code < 300).to.be.ok();\n});\n\nhc.test(\"Status code is 200\", () => {\n  hc.expect(hc.response.code).to.equal(200);\n});\n\nhc.test(\"Status text is present\", () => {\n  hc.expect(hc.response.status).to.be.ok();\n});\n\nhc.test(\"Response time is recorded\", () => {\n  hc.expect(hc.response.responseTime >= 0).to.be.ok();\n});\n\nhc.test(\"Response headers exist\", () => {\n  hc.expect(hc.response.headers).to.be.ok();\n});\n\nhc.test(\"Response body is readable\", () => {\n  hc.expect(typeof hc.response.text()).to.equal(\"string\");\n});\n\nhc.test(\"JSON body parses when applicable\", () => {\n  const contentTypeKey = Object.keys(hc.response.headers).find(\n    (key) => key.toLowerCase() === \"content-type\"\n  );\n  if (!contentTypeKey) {\n    return;\n  }\n\n  const contentType = hc.response.headers[contentTypeKey];\n  if (!contentType.includes(\"application/json\")) {\n    return;\n  }\n\n  hc.expect(hc.response.json()).to.be.ok();\n});\n",
+          "expanded": true,
+          "stage": "main"
+        }
+      ],
+      "comment": "",
+      "tags": "",
+      "sort_order": 2,
+      "folder_name": null,
+      "folder_uuid": null
+    },
+    {
+      "uuid": "1c56a8c0-5b83-47f6-a621-e35b3f872e29",
+      "name": "Echo DELETE",
+      "method": "DELETE",
+      "url": "https://echo.harborclient.com/delete",
+      "headers": [],
+      "params": [],
+      "auth": {
+        "type": "none",
+        "basic": {
+          "username": "",
+          "password": ""
+        },
+        "bearer": {
+          "token": ""
+        },
+        "oauth2": {
+          "tokenUrl": "",
+          "clientId": "",
+          "clientSecret": "",
+          "scope": "",
+          "audience": "",
+          "clientAuth": "body"
+        }
+      },
+      "body": "",
+      "body_type": "none",
+      "pre_request_script": "hc.test(\"Request method is DELETE\", () => {\n  hc.expect(hc.request.method).to.equal(\"DELETE\");\n});",
+      "post_request_script": "hc.test(\"Status code is 2xx\", () => {\n  hc.expect(hc.response.code >= 200 && hc.response.code < 300).to.be.ok();\n});\n\nhc.test(\"Status code is 200\", () => {\n  hc.expect(hc.response.code).to.equal(200);\n});\n\nhc.test(\"Status text is present\", () => {\n  hc.expect(hc.response.status).to.be.ok();\n});\n\nhc.test(\"Response time is recorded\", () => {\n  hc.expect(hc.response.responseTime >= 0).to.be.ok();\n});\n\nhc.test(\"Response headers exist\", () => {\n  hc.expect(hc.response.headers).to.be.ok();\n});\n\nhc.test(\"Response body is readable\", () => {\n  hc.expect(typeof hc.response.text()).to.equal(\"string\");\n});\n\nhc.test(\"JSON body parses when applicable\", () => {\n  const contentTypeKey = Object.keys(hc.response.headers).find(\n    (key) => key.toLowerCase() === \"content-type\"\n  );\n  if (!contentTypeKey) {\n    return;\n  }\n\n  const contentType = hc.response.headers[contentTypeKey];\n  if (!contentType.includes(\"application/json\")) {\n    return;\n  }\n\n  hc.expect(hc.response.json()).to.be.ok();\n});",
+      "pre_request_scripts": [
+        {
+          "id": "0eae9711-06a5-47e3-83a7-d288c737334e",
+          "enabled": true,
+          "kind": "inline",
+          "name": "SendSuccess",
+          "code": "hc.test(\"Request method is DELETE\", () => {\n  hc.expect(hc.request.method).to.equal(\"DELETE\");\n});\n",
+          "expanded": true,
+          "stage": "main"
+        }
+      ],
+      "post_request_scripts": [
+        {
+          "id": "a8d90e1a-0cb6-4c98-976e-6b4f8212b8db",
+          "enabled": true,
+          "kind": "inline",
+          "name": "Success Response",
+          "code": "hc.test(\"Status code is 2xx\", () => {\n  hc.expect(hc.response.code >= 200 && hc.response.code < 300).to.be.ok();\n});\n\nhc.test(\"Status code is 200\", () => {\n  hc.expect(hc.response.code).to.equal(200);\n});\n\nhc.test(\"Status text is present\", () => {\n  hc.expect(hc.response.status).to.be.ok();\n});\n\nhc.test(\"Response time is recorded\", () => {\n  hc.expect(hc.response.responseTime >= 0).to.be.ok();\n});\n\nhc.test(\"Response headers exist\", () => {\n  hc.expect(hc.response.headers).to.be.ok();\n});\n\nhc.test(\"Response body is readable\", () => {\n  hc.expect(typeof hc.response.text()).to.equal(\"string\");\n});\n\nhc.test(\"JSON body parses when applicable\", () => {\n  const contentTypeKey = Object.keys(hc.response.headers).find(\n    (key) => key.toLowerCase() === \"content-type\"\n  );\n  if (!contentTypeKey) {\n    return;\n  }\n\n  const contentType = hc.response.headers[contentTypeKey];\n  if (!contentType.includes(\"application/json\")) {\n    return;\n  }\n\n  hc.expect(hc.response.json()).to.be.ok();\n});\n",
+          "expanded": true,
+          "stage": "main"
+        }
+      ],
+      "comment": "",
+      "tags": "",
+      "sort_order": 3,
+      "folder_name": null,
+      "folder_uuid": null
+    }
+  ],
+  "documents": [
+    {
+      "uuid": "9a422d3c-b4d3-42a2-ac96-50f87d96ae2a",
+      "name": "README.md",
+      "content": "HarborClient Echo Server\n\n### Using The Echo Service\n\nThis echo service helps you test HTTP and API clients. Send it a request, and it sends back a JSON response showing exactly what the service received.\nYou can use any path and most HTTP methods, such as `GET`, `POST`, `PUT`, `PATCH`, or `DELETE`.\nExample:\n\n```bash\ncurl -X POST \"https://echo.example.com/post?test=foo\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"foo\":\"bar\"}'\n```\n\nThe response will look like this:\n\n```json\n{\n  \"args\": { \"test\": \"foo\" },\n  \"cookies\": {},\n  \"data\": \"{\\\"foo\\\":\\\"bar\\\"}\",\n  \"files\": {},\n  \"form\": {},\n  \"headers\": {\n    \"content-type\": \"application/json\"\n  },\n  \"json\": { \"foo\": \"bar\" },\n  \"origin\": \"203.0.113.10\",\n  \"url\": \"https://echo.example.com/post?test=foo\"\n}\n```\n\nWhat the fields mean:\n\n* `args`: query string values from the URL\n* `cookies`: cookies sent with the request\n* `data`: the raw request body as text\n* `files`: uploaded file field names and filenames\n* `form`: submitted form fields\n* `headers`: request headers\n* `json`: parsed JSON body, when the request body is JSON\n* `origin`: the client IP address seen by the service\n* `url`: the full URL requested\n  There is also a health check endpoint:\n\n```bash\ncurl https://echo.example.com/health\n```\n\nIt returns:\n\n```json\n{ \"status\": \"ok\" }\n```\n\nYou can also test redirect handling by sending an `x-redirect-to` header:\n\n```bash\ncurl -i -H \"x-redirect-to: https://example.com\" https://echo.example.com/anything\n```\n\nBy default this returns a `302` redirect. You can request a `301` or `302` explicitly:\n\n```bash\ncurl -i -H \"x-redirect-to: 301 https://example.com\" https://echo.example.com/anything\n```\n",
+      "sort_order": 0,
+      "folder_name": null,
+      "folder_uuid": null
+    }
+  ]
+}

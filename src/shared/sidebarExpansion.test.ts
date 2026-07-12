@@ -9,14 +9,16 @@ describe('defaultSidebarExpansion', () => {
         environments: true,
         runResults: true,
         history: true,
-        tabGroups: true
+        tabGroups: true,
+        trash: true
       },
       sectionVisibility: {
         collections: true,
         environments: true,
         runResults: true,
         history: true,
-        tabGroups: true
+        tabGroups: true,
+        trash: false
       },
       collectionIds: [],
       folderIds: [],
@@ -44,14 +46,16 @@ describe('normalizeSidebarExpansion', () => {
         environments: true,
         runResults: true,
         history: true,
-        tabGroups: true
+        tabGroups: true,
+        trash: true
       },
       sectionVisibility: {
         collections: true,
         environments: true,
         runResults: true,
         history: true,
-        tabGroups: true
+        tabGroups: true,
+        trash: false
       },
       collectionIds: [1, 2],
       folderIds: [10],
@@ -72,14 +76,16 @@ describe('normalizeSidebarExpansion', () => {
         environments: false,
         runResults: true,
         history: true,
-        tabGroups: true
+        tabGroups: true,
+        trash: true
       },
       sectionVisibility: {
         collections: true,
         environments: true,
         runResults: true,
         history: true,
-        tabGroups: true
+        tabGroups: true,
+        trash: false
       },
       collectionIds: [5, 7],
       folderIds: [12],
@@ -101,14 +107,16 @@ describe('normalizeSidebarExpansion', () => {
         environments: true,
         runResults: true,
         history: true,
-        tabGroups: true
+        tabGroups: true,
+        trash: true
       },
       sectionVisibility: {
         collections: false,
         environments: true,
         runResults: true,
         history: true,
-        tabGroups: true
+        tabGroups: true,
+        trash: false
       },
       collectionIds: [],
       folderIds: [],
@@ -131,14 +139,16 @@ describe('normalizeSidebarExpansion', () => {
         environments: true,
         runResults: true,
         history: true,
-        tabGroups: true
+        tabGroups: true,
+        trash: true
       },
       sectionVisibility: {
         collections: true,
         environments: true,
         runResults: true,
         history: true,
-        tabGroups: true
+        tabGroups: true,
+        trash: false
       },
       collectionIds: [],
       folderIds: [],

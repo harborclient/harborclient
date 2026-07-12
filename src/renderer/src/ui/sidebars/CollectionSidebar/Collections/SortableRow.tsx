@@ -67,7 +67,7 @@ export function SortableRow({
 
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: isDragging ? transition : undefined,
     opacity: isDragging ? 0.45 : undefined
   };
 

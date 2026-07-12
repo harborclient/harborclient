@@ -1,4 +1,5 @@
 import { config, expect, use as chaiUse } from 'chai';
+import { installCallablePropertyCompat } from '#/main/scripting/scriptAssertionCompat';
 import { installResponseAssertions } from '#/main/scripting/scriptResponseAssertions';
 
 /**
@@ -9,5 +10,6 @@ import { installResponseAssertions } from '#/main/scripting/scriptResponseAssert
  */
 config.truncateThreshold = 0;
 chaiUse(installResponseAssertions);
+chaiUse(installCallablePropertyCompat);
 
 export { expect as scriptExpect };

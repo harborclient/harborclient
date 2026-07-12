@@ -1,6 +1,7 @@
 import type { IStorage } from '#/main/storage/IStorage';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
+import { getTrashService } from '#/main/storage/trashServiceInstance';
 
 /**
  * Registers IPC handlers for saved requests and collection folder operations.
@@ -17,7 +18,9 @@ export function registerRequestHandlers(db: IStorage): void {
   handle('requests:save', ipcArgSchemas.saveRequest, (_event, req) => db.saveRequest(req));
 
   // Deletes a saved request by id.
-  handle('requests:delete', ipcArgSchemas.dbId, (_event, id) => db.deleteRequest(id));
+  handle('requests:delete', ipcArgSchemas.dbId, (_event, id) =>
+    getTrashService().moveRequestToTrash(id)
+  );
 
   // Lists folders in a collection.
   handle('folders:list', ipcArgSchemas.collectionId, (_event, collectionId) =>
@@ -64,7 +67,9 @@ export function registerRequestHandlers(db: IStorage): void {
   );
 
   // Deletes a folder and its requests.
-  handle('folders:delete', ipcArgSchemas.dbId, (_event, id) => db.deleteFolder(id));
+  handle('folders:delete', ipcArgSchemas.dbId, (_event, id) =>
+    getTrashService().moveFolderToTrash(id)
+  );
 
   // Reorders folders within a collection.
   handle('folders:reorder', ipcArgSchemas.folderReorder, (_event, collectionId, orderedFolderIds) =>

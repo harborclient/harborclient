@@ -24,6 +24,7 @@ const EXPECTED_FIELD_IDS: FieldSettingId[] = [
   'general.followRedirects',
   'general.scrollbarAutoHide',
   'general.wrapTabs',
+  'general.spellCheckEnabled',
   'general.logFilePath',
   'proxy.enabled',
   'proxy.protocol',

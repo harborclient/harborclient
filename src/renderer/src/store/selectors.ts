@@ -6,7 +6,8 @@ import {
   isRequestTab,
   type MarkdownTab,
   type PageRef,
-  type RequestDraft
+  type RequestDraft,
+  type RequestTab
 } from '#/renderer/src/store/drafts';
 import type {
   Environment,
@@ -107,6 +108,33 @@ export const selectActiveTab = (
   const tabs = state.tabs.tabs;
   const activeTabId = state.tabs.activeTabId;
   return tabs.find((t) => t.tabId === activeTabId) ?? tabs[0];
+};
+
+/**
+ * Returns the request tab that AI tools and `@` script references should treat as active.
+ *
+ * When the focused tab is a popped-out script editor page, follows `page.requestTabId` back to
+ * the linked request tab so badges and agent tools still resolve the correct draft.
+ *
+ * @param state - Current Redux root state.
+ */
+export const selectEffectiveActiveRequestTab = (state: RootState): RequestTab | undefined => {
+  const activeTab = selectActiveTab(state);
+  if (activeTab && isRequestTab(activeTab)) {
+    return activeTab;
+  }
+
+  if (activeTab && isPageTab(activeTab)) {
+    const page = activeTab.page;
+    if (page.type === 'script-editor') {
+      const linkedTab = state.tabs.tabs.find((tab) => tab.tabId === page.requestTabId);
+      if (linkedTab && isRequestTab(linkedTab)) {
+        return linkedTab;
+      }
+    }
+  }
+
+  return undefined;
 };
 
 /**

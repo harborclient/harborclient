@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   autoNameUnnamedScripts,
+  copyScriptRefForClipboard,
   createInlineScriptRef,
+  createScriptRefFromClipboard,
   createSnippetScriptRef,
   ensureDefaultScriptRef,
   linkScriptRefToSnippet,
@@ -14,6 +16,7 @@ import {
   scriptAutoNameFromCode,
   UNNAMED_SCRIPT_NAME
 } from '#/shared/scriptRefs';
+import type { Snippet } from '#/shared/types/snippet';
 
 describe('resolveScriptRefs', () => {
   it('falls back to a legacy inline script when arrays are empty', () => {
@@ -177,5 +180,105 @@ describe('ensureDefaultScriptRef', () => {
       code: '',
       expanded: true
     });
+  });
+});
+
+describe('copyScriptRefForClipboard', () => {
+  it('copies inline code, name, enabled, and stage', () => {
+    const inline = {
+      ...createInlineScriptRef('console.log("test");', 'Auth helper', 'before-all'),
+      enabled: false
+    };
+
+    expect(copyScriptRefForClipboard(inline)).toEqual({
+      kind: 'inline',
+      code: 'console.log("test");',
+      name: 'Auth helper',
+      enabled: false,
+      stage: 'before-all'
+    });
+  });
+
+  it('copies only the snippet uuid for linked rows', () => {
+    const snippetRef = {
+      ...createSnippetScriptRef('snippet-uuid', 'Auth helper', 'after-each'),
+      enabled: false
+    };
+
+    expect(copyScriptRefForClipboard(snippetRef)).toEqual({
+      kind: 'snippet',
+      snippetUuid: 'snippet-uuid'
+    });
+  });
+});
+
+describe('createScriptRefFromClipboard', () => {
+  const snippets: Snippet[] = [
+    {
+      id: 1,
+      uuid: 'snippet-uuid',
+      name: 'Auth helper',
+      code: 'console.log("snippet");',
+      scope: 'any',
+      stage: 'after-each',
+      source: 'local',
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z'
+    }
+  ];
+
+  it('creates a new inline row from an inline clipboard payload', () => {
+    const created = createScriptRefFromClipboard(
+      {
+        kind: 'inline',
+        code: 'console.log("test");',
+        name: 'Auth helper',
+        enabled: false,
+        stage: 'before-all'
+      },
+      snippets
+    );
+
+    expect(created).toMatchObject({
+      kind: 'inline',
+      code: 'console.log("test");',
+      name: 'Auth helper',
+      enabled: false,
+      stage: 'before-all',
+      expanded: true
+    });
+    expect(created?.id).toEqual(expect.any(String));
+  });
+
+  it('creates a linked snippet row from a snippet clipboard payload', () => {
+    const created = createScriptRefFromClipboard(
+      {
+        kind: 'snippet',
+        snippetUuid: 'snippet-uuid'
+      },
+      snippets
+    );
+
+    expect(created).toMatchObject({
+      kind: 'snippet',
+      snippetUuid: 'snippet-uuid',
+      name: 'Auth helper',
+      enabled: true,
+      stage: 'after-each',
+      expanded: true
+    });
+    expect(created?.id).toEqual(expect.any(String));
+  });
+
+  it('returns null when the snippet uuid no longer exists', () => {
+    expect(
+      createScriptRefFromClipboard(
+        {
+          kind: 'snippet',
+          snippetUuid: 'missing-uuid'
+        },
+        snippets
+      )
+    ).toBeNull();
   });
 });

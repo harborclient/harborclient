@@ -114,9 +114,11 @@ function isScriptReferenceBoundaryAt(doc: EditorView['state']['doc'], index: num
 /**
  * Builds CodeMirror extensions that render valid `@` script references as atomic badges.
  *
- * @param context - Active tab state for semantic validation and name resolution.
+ * @param getContext - Returns the latest active-tab state for semantic validation and labels.
  */
-function createScriptReferenceHighlighter(context: AiScriptReferenceValidationContext): Extension {
+function createScriptReferenceHighlighter(
+  getContext: () => AiScriptReferenceValidationContext
+): Extension[] {
   const scriptReferenceMatcher = new MatchDecorator({
     regexp: new RegExp(AI_SCRIPT_REFERENCE_PATTERN.source, 'g'),
     decoration: (match, view, pos) => {
@@ -129,6 +131,7 @@ function createScriptReferenceHighlighter(context: AiScriptReferenceValidationCo
         return null;
       }
 
+      const context = getContext();
       const label = resolveAiScriptReferenceLabel(parsed, context);
       if (label == null) {
         return null;
@@ -171,7 +174,7 @@ function createScriptReferenceHighlighter(context: AiScriptReferenceValidationCo
     return view.plugin(scriptReferencePlugin)?.decorations ?? Decoration.none;
   });
 
-  return [scriptReferencePlugin, atomicRanges, createScriptReferenceCompletionFilter(context)];
+  return [scriptReferencePlugin, atomicRanges, createScriptReferenceCompletionFilter(getContext)];
 }
 
 interface SubmitKeymapOptions {
@@ -228,13 +231,18 @@ export function createSubmitKeymap(options: SubmitKeymapOptions): Extension {
 /**
  * Returns CodeMirror extensions that render valid `@` script references as atomic badges.
  *
- * @param context - Active tab state for script reference resolution.
+ * @param getContext - Returns the latest active-tab state for script reference resolution.
  */
 export function createScriptReferenceBadgeExtensions(
-  context: AiScriptReferenceValidationContext
+  getContext: () => AiScriptReferenceValidationContext
 ): Extension[] {
-  return [createScriptReferenceHighlighter(context)];
+  return createScriptReferenceHighlighter(getContext);
 }
+
+/**
+ * Compartment used to refresh script-reference badge decorations when validation context changes.
+ */
+export const chatComposerBadgeCompartment = new Compartment();
 
 /**
  * Compartment used to reconfigure composer submit shortcuts without rebuilding badge decorations.

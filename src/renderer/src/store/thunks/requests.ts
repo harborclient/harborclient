@@ -22,6 +22,7 @@ import { normalizeRequestTags } from '#/shared/requestTags';
 import { toPluginHttpRequest, toPluginHttpResponse } from '#/shared/plugin/httpRequest';
 import { emitPluginAfterSend } from '#/renderer/src/plugins/pluginAfterSendBus';
 import { recordRequestHistoryFromSend } from '#/renderer/src/store/thunks/requestHistory';
+import { syncTrash } from '#/renderer/src/store/thunks/trash';
 import {
   applyScriptRequestMutations,
   applyCollectionVariableSets,
@@ -52,6 +53,7 @@ import {
   draftFromSaved,
   getDirtyTabsInCollection,
   getDirtyTabsInFolder,
+  isMarkdownTab,
   isPageTab,
   isRequestTab,
   isTabDirty,
@@ -89,6 +91,7 @@ import {
   updateFolder
 } from '#/renderer/src/store/thunks/collections';
 import { updateEnvironment } from '#/renderer/src/store/thunks/environments';
+import { saveMarkdownTab } from '#/renderer/src/store/thunks/documents';
 
 /**
  * Builds a portable request export payload from a saved request.
@@ -322,6 +325,7 @@ export const deleteRequest = createAsyncThunk<void, number, ThunkApiConfig>(
     if (selectedCollectionId) {
       await dispatch(refreshRequests(selectedCollectionId));
     }
+    await syncTrash(dispatch);
   }
 );
 
@@ -1232,11 +1236,23 @@ export const requestLoadRequest = createAsyncThunk<void, RequestLoadRequestArgs,
 );
 
 /**
- * Saves the current draft from the menu, prompting for a collection when none is selected.
+ * Saves the active tab from the menu, prompting for a collection when none is selected.
  */
 export const saveFromMenu = createAsyncThunk<void, void, ThunkApiConfig>(
   'requests/saveFromMenu',
   async (_, { dispatch, getState }) => {
+    const activeTab = selectActiveTab(getState());
+
+    if (activeTab && isMarkdownTab(activeTab)) {
+      if (!isTabDirty(activeTab)) {
+        return;
+      }
+
+      await dispatch(saveMarkdownTab(activeTab.tabId)).unwrap();
+      toast.success('Document saved');
+      return;
+    }
+
     const selectedCollectionId = getState().collections.selectedCollectionId;
     if (selectedCollectionId == null) {
       dispatch(openCollectionModal({ mode: 'create-and-save' }));

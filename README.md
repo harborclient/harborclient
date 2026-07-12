@@ -21,13 +21,15 @@ pnpm dev
 
 Use `pnpm dev -- -v` for verbose startup and diagnostic logging, or `pnpm dev -- -vv` to also log each outbound HTTP request (method, URL, request headers, and body). Response headers and response bodies are not logged.
 
-Use `pnpm dev -- --seed` to ensure the HarborClient Echo sample collection exists (creates it only when missing).
+Use `pnpm dev -- --seed` to import any missing built-in collections from `resources/builtin_collections`.
 
 Use `pnpm dev -- --pick-theme` to open the appearance theme picker on launch (also shown automatically on first install).
 
 Use `pnpm dev -- --quit-without-warning` to quit without prompting when request tabs have unsaved changes.
 
 Use `pnpm dev -- --theme dark` to start with a built-in theme for this session (`light`, `dark`, `system`, or `high-contrast`).
+
+Use `pnpm dev -- --rand-user-dir` to start with an isolated temporary profile in the OS temp directory, as if HarborClient were installed on a fresh machine. The directory is removed on normal quit; abnormal termination may leave it behind.
 
 ## About HarborClient
 

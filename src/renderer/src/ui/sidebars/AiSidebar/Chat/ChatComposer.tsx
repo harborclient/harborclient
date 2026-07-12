@@ -68,17 +68,33 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
     const text = pendingComposerText;
     dispatch(setPendingComposerText(null));
 
-    queueMicrotask(() => {
+    const applyPendingText = (attempt = 0): void => {
+      let applied = false;
       if (draft.trim().length > 0) {
         const separator = /\s$/.test(draft) ? '' : ' ';
         const nextDraft = `${draft}${separator}${text}`;
         setDraft(nextDraft);
-        composerRef.current?.appendReferenceAtEnd(text);
-        return;
+        applied = composerRef.current?.appendReferenceAtEnd(text) ?? false;
+        if (applied) {
+          return;
+        }
+      } else {
+        setDraft(text);
+        applied = composerRef.current?.setTextAndFocusEnd(text) ?? false;
+        if (applied) {
+          return;
+        }
       }
 
-      setDraft(text);
-      composerRef.current?.setTextAndFocusEnd(text);
+      if (attempt < 8) {
+        requestAnimationFrame(() => {
+          applyPendingText(attempt + 1);
+        });
+      }
+    };
+
+    queueMicrotask(() => {
+      applyPendingText();
     });
   }, [dispatch, draft, pendingComposerText]);
 
@@ -123,6 +139,7 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
     <div className="flex shrink-0 flex-col gap-2 p-3 app-no-drag">
       <div className={`flex flex-col ${fieldFrame} rounded-2xl!`}>
         <ChatComposerTextarea
+          key={chatId ?? 'no-chat'}
           ref={composerRef}
           embedded
           value={draft}

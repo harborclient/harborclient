@@ -64,6 +64,11 @@ vi.mock('electron', () => ({
       return tmpdir();
     })
   },
+  session: {
+    defaultSession: {
+      setSpellCheckerEnabled: vi.fn()
+    }
+  },
   safeStorage: {
     isEncryptionAvailable: vi.fn(() => false),
     encryptString: vi.fn((value: string) => Buffer.from(value, 'utf8')),

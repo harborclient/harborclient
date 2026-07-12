@@ -68,15 +68,17 @@ function withCaretAfterReference(
  * Avoids a second `view.dispatch()` from an update listener, which races with
  * `@uiw/react-codemirror`'s controlled-value sync and can revert badge text.
  *
- * @param context - Active tab state for semantic validation.
+ * @param getContext - Returns the latest active-tab state for semantic validation.
  */
 export function createScriptReferenceCompletionFilter(
-  context: AiScriptReferenceValidationContext
+  getContext: () => AiScriptReferenceValidationContext
 ): Extension {
   return EditorState.transactionFilter.of((tr) => {
     if (!tr.docChanged) {
       return tr;
     }
+
+    const context = getContext();
 
     const head = tr.newSelection.main.head;
     const afterDocUncorrected = tr.newDoc.toString();

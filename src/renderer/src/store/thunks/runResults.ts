@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { resolveImportedRunnerTargetIds } from '#/shared/collectionRunner';
 import type { SaveRunResultInput } from '#/shared/collectionRunner';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
+import { syncTrash } from '#/renderer/src/store/thunks/trash';
 import {
   importCollectionRunnerResults,
   markCollectionRunnerSaved
@@ -49,6 +50,7 @@ export const deleteRunResult = createAsyncThunk<number, number, ThunkApiConfig>(
   async (id, { dispatch }) => {
     await window.api.deleteSavedRunResult(id);
     dispatch(removeRunResult(id));
+    await syncTrash(dispatch);
     return id;
   }
 );

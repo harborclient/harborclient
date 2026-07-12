@@ -1,14 +1,13 @@
-import { useCallback, useEffect, useRef, type JSX } from 'react';
+import { Button } from '@harborclient/sdk/components';
+import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
 import type { Variable } from '#/shared/types';
 import { acceleratorMatchesChord, getShortcutDef, type KeyChord } from '#/shared/shortcuts';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { updateMarkdownContent } from '#/renderer/src/store/slices/tabsSlice';
 import { saveMarkdownTab } from '#/renderer/src/store/thunks/documents';
-import type { MarkdownTab } from '#/renderer/src/store/drafts';
+import { isTabDirty, type MarkdownTab } from '#/renderer/src/store/drafts';
+import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
 import { CommentEditor } from '#/renderer/src/ui/Main/RequestEditor/Editor/CommentEditor';
-
-/** Debounce window for autosaving markdown document edits. */
-const AUTOSAVE_DEBOUNCE_MS = 800;
 
 interface Props {
   /**
@@ -48,8 +47,34 @@ function chordFromKeyboardEvent(event: KeyboardEvent): KeyChord {
  */
 export function MarkdownEditorTab({ tab, variables, onEditVariables }: Props): JSX.Element {
   const dispatch = useAppDispatch();
-  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
+  const dirty = isTabDirty(tab);
+  const [saveAccelerator, setSaveAccelerator] = useState(
+    () => getShortcutDef('save')?.defaultAccelerator ?? 'CmdOrCtrl+S'
+  );
+
+  /**
+   * Loads the effective save shortcut from user settings.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    void window.api.getShortcuts().then((bindings) => {
+      if (cancelled) {
+        return;
+      }
+
+      const saveBinding = bindings.find((binding) => binding.id === 'save');
+      if (saveBinding != null) {
+        setSaveAccelerator(saveBinding.accelerator);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   /**
    * Persists the current markdown tab content to storage.
@@ -60,46 +85,23 @@ export function MarkdownEditorTab({ tab, variables, onEditVariables }: Props): J
     }
 
     savingRef.current = true;
+    setSaving(true);
     try {
       await dispatch(saveMarkdownTab(tab.tabId)).unwrap();
+    } catch (err: unknown) {
+      showAlert(dispatch, formatErrorMessage(err, 'Failed to save document'));
     } finally {
       savingRef.current = false;
+      setSaving(false);
     }
   }, [dispatch, tab.tabId]);
 
   /**
-   * Schedules a debounced autosave after the user stops typing.
-   */
-  const scheduleAutosave = useCallback((): void => {
-    if (autosaveTimerRef.current != null) {
-      clearTimeout(autosaveTimerRef.current);
-    }
-
-    autosaveTimerRef.current = setTimeout(() => {
-      autosaveTimerRef.current = null;
-      void persistTab();
-    }, AUTOSAVE_DEBOUNCE_MS);
-  }, [persistTab]);
-
-  /**
-   * Flushes any pending autosave timer when the tab unmounts.
+   * Wires the configured save shortcut while this tab is active and has unsaved changes.
    */
   useEffect(() => {
-    return () => {
-      if (autosaveTimerRef.current != null) {
-        clearTimeout(autosaveTimerRef.current);
-      }
-    };
-  }, []);
-
-  /**
-   * Wires Ctrl+S / Cmd+S to an immediate save while this tab is active.
-   */
-  useEffect(() => {
-    const saveAccelerator = getShortcutDef('save')?.defaultAccelerator ?? 'CmdOrCtrl+S';
-
     /**
-     * Saves immediately when the configured save shortcut is pressed.
+     * Saves when the configured save shortcut is pressed and the tab is dirty.
      *
      * @param event - Keydown event from the document.
      */
@@ -108,31 +110,31 @@ export function MarkdownEditorTab({ tab, variables, onEditVariables }: Props): J
         return;
       }
 
-      event.preventDefault();
-      if (autosaveTimerRef.current != null) {
-        clearTimeout(autosaveTimerRef.current);
-        autosaveTimerRef.current = null;
+      if (!dirty || savingRef.current) {
+        return;
       }
+
+      event.preventDefault();
+      event.stopPropagation();
       void persistTab();
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, true);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown, true);
     };
-  }, [persistTab]);
+  }, [dirty, persistTab, saveAccelerator]);
 
   /**
-   * Updates tab state and schedules autosave when markdown changes.
+   * Updates tab state when markdown changes.
    *
    * @param content - Updated markdown body.
    */
   const handleChange = useCallback(
     (content: string): void => {
       dispatch(updateMarkdownContent({ tabId: tab.tabId, content }));
-      scheduleAutosave();
     },
-    [dispatch, scheduleAutosave, tab.tabId]
+    [dispatch, tab.tabId]
   );
 
   return (
@@ -142,8 +144,14 @@ export function MarkdownEditorTab({ tab, variables, onEditVariables }: Props): J
         onChange={handleChange}
         variables={variables}
         onEditVariables={onEditVariables}
+        enableFormatDocument
         label={tab.name}
-        description="Edit the markdown document. Changes autosave while you type."
+        description="Edit the markdown document."
+        actions={
+          <Button type="button" disabled={!dirty || saving} onClick={() => void persistTab()}>
+            {saving ? 'Saving…' : 'Save'}
+          </Button>
+        }
       />
     </div>
   );

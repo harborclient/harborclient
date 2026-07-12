@@ -41,7 +41,10 @@ const MCP_MUTATING_TOOLS: readonly AiToolName[] = [
   'send_active_request',
   'set_active_environment',
   'update_active_request',
-  'update_request_script'
+  'update_request_script',
+  'create_collection',
+  'create_folder',
+  'create_request'
 ];
 
 const MCP_READ_TOOLS = AI_TOOL_NAMES.filter(

@@ -23,7 +23,7 @@
     "info": "rgba(255, 255, 255, 0.55)",
     "method-get": "#2d8a4e",
     "method-post": "#2f8eed",
-    "method-put": "#b8860b",
+    "method-put": "#e63ac3",
     "method-patch": "#7b5ea7",
     "method-delete": "#de5445",
     "method-head": "#6e6e73",

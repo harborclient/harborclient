@@ -3,15 +3,12 @@ import { sourceRow } from '#/renderer/src/ui/shared/classes';
 import type { CollectionDocument } from '#/shared/types';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { faMarkdown } from '#/renderer/src/fontawesome';
-import { documentDragId } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/utils';
 import {
   buildDevInspectMenuGroups,
   useDeveloperToolsEnabled,
   type InspectPoint
 } from '#/renderer/src/ui/shared/devInspectContextMenu';
 import { type JSX, useState } from 'react';
-import { stopSortableDragPointerDown } from './sortableRowUtils';
-import { SortableRow } from './SortableRow';
 
 interface Props {
   /**
@@ -35,26 +32,6 @@ interface Props {
   onOpenChange: (menuId: string | null) => void;
 
   /**
-   * Whether the document can move one position up within its list.
-   */
-  canMoveUp: boolean;
-
-  /**
-   * Whether the document can move one position down within its list.
-   */
-  canMoveDown: boolean;
-
-  /**
-   * Moves the document one position up within its current folder or root list.
-   */
-  onMoveUp: () => void;
-
-  /**
-   * Moves the document one position down within its current folder or root list.
-   */
-  onMoveDown: () => void;
-
-  /**
    * Opens the document in the editor.
    */
   onLoadDocument: (doc: CollectionDocument) => void;
@@ -68,48 +45,31 @@ interface Props {
    * Deletes the markdown document.
    */
   onDeleteDocument: (id: number, collectionId: number) => Promise<void>;
-
-  /**
-   * When true, renders the row without drag-and-drop reordering.
-   */
-  dragDisabled?: boolean;
 }
 
 /**
- * Renders a collection markdown document row with file icon and row actions menu.
+ * Renders a static collection markdown document row with file icon and row actions menu.
+ * Documents are pinned to the top of each container and sorted alphabetically by name.
  */
 export function DocumentRow({
   doc,
   activeDocumentId,
   openMenuId,
   onOpenChange,
-  canMoveUp,
-  canMoveDown,
-  onMoveUp,
-  onMoveDown,
   onLoadDocument,
   onRenameDocument,
-  onDeleteDocument,
-  dragDisabled = false
+  onDeleteDocument
 }: Props): JSX.Element {
   const confirm = useConfirm();
   const developerToolsEnabled = useDeveloperToolsEnabled();
   const [inspectPoint, setInspectPoint] = useState<InspectPoint | undefined>(undefined);
 
-  const reorderItems = [
-    ...(canMoveUp ? [{ label: 'Move up', onSelect: onMoveUp }] : []),
-    ...(canMoveDown ? [{ label: 'Move down', onSelect: onMoveDown }] : [])
-  ];
-
   const menuId = `document-${doc.id}`;
 
   return (
-    <SortableRow
-      id={documentDragId(doc.id)}
-      className={sourceRow(activeDocumentId === doc.id, true)}
-      dragHandleLabel={`Reorder document "${doc.name}"`}
-      disabled={dragDisabled}
-      onRowContextMenu={(event) => {
+    <div
+      className={`group ${sourceRow(activeDocumentId === doc.id, true)}`}
+      onContextMenu={(event) => {
         event.preventDefault();
         event.stopPropagation();
         setInspectPoint({ x: event.clientX, y: event.clientY });
@@ -126,13 +86,12 @@ export function DocumentRow({
         <FaIcon icon={faMarkdown} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
         <span className="truncate text-[16px]">{doc.name}</span>
       </button>
-      <div className="shrink-0" onPointerDown={stopSortableDragPointerDown}>
+      <div className="shrink-0">
         <RowActionsMenu
           menuId={menuId}
           openMenuId={openMenuId}
           onOpenChange={onOpenChange}
           groups={[
-            ...(reorderItems.length > 0 ? [reorderItems] : []),
             [
               {
                 label: 'Rename',
@@ -162,6 +121,6 @@ export function DocumentRow({
           ]}
         />
       </div>
-    </SortableRow>
+    </div>
   );
 }

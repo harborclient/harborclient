@@ -7,6 +7,7 @@ import {
   setEnvironments
 } from '#/renderer/src/store/slices/environmentsSlice';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
+import { syncTrash } from '#/renderer/src/store/thunks/trash';
 import {
   beginRefreshGeneration,
   isLatestRefreshGeneration
@@ -71,6 +72,7 @@ export const deleteEnvironment = createAsyncThunk<void, number, ThunkApiConfig>(
       dispatch(setActiveEnvironmentId(null));
     }
     await dispatch(refreshEnvironments());
+    await syncTrash(dispatch);
   }
 );
 

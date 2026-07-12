@@ -16,6 +16,7 @@ export const defaultGeneralSettings: GeneralSettings = {
   followRedirects: true,
   scrollbarAutoHide: false,
   wrapTabs: true,
+  spellCheckEnabled: true,
   warnWhenSwitchingThemes: true,
   warnWhenExitingWithUnsavedChanges: true,
   warnWhenClosingUnsavedRequests: true,

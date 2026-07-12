@@ -1,5 +1,6 @@
 /// <reference types="chai" />
 
+import { wrapCallablePropertyGetter } from '#/main/scripting/scriptAssertionCompat';
 import type { SendResult } from '#/shared/types';
 
 /**
@@ -341,7 +342,7 @@ export function installResponseAssertions(chai: Chai.ChaiStatic): void {
     utils.addProperty(
       Assertion.prototype,
       name,
-      function statusClassProperty(this: Chai.AssertionStatic) {
+      wrapCallablePropertyGetter(function statusClassProperty(this: Chai.AssertionStatic) {
         const res = requireResponseSubject(this, utils);
         assertMatch(
           this,
@@ -351,7 +352,7 @@ export function installResponseAssertions(chai: Chai.ChaiStatic): void {
           undefined,
           res.code
         );
-      },
+      }),
       'be'
     );
   }
@@ -401,7 +402,7 @@ export function installResponseAssertions(chai: Chai.ChaiStatic): void {
   utils.addProperty(
     Assertion.prototype,
     'json',
-    function jsonProperty(this: Chai.AssertionStatic) {
+    wrapCallablePropertyGetter(function jsonProperty(this: Chai.AssertionStatic) {
       const res = requireResponseSubject(this, utils);
       let parses = false;
       try {
@@ -417,14 +418,14 @@ export function installResponseAssertions(chai: Chai.ChaiStatic): void {
         'expected response to be JSON (content-type and valid JSON body)',
         'expected response to not be JSON'
       );
-    },
+    }),
     'be'
   );
 
   utils.addProperty(
     Assertion.prototype,
     'withBody',
-    function withBodyProperty(this: Chai.AssertionStatic) {
+    wrapCallablePropertyGetter(function withBodyProperty(this: Chai.AssertionStatic) {
       const res = requireResponseSubject(this, utils);
       assertMatch(
         this,
@@ -432,7 +433,7 @@ export function installResponseAssertions(chai: Chai.ChaiStatic): void {
         'expected response to have a body',
         'expected response to not have a body'
       );
-    },
+    }),
     'be'
   );
 }
