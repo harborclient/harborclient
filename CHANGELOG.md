@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.2.1 - 2026-07-12
+
 - chore(dependencies): update @harborclient/sdk to version 1.0.72. (`d79aa21`)
 - refactor(terminal-panel): remove description from TerminalPanel component. (`00a0d99`)
 
