@@ -10,6 +10,7 @@ import {
   type InspectPoint
 } from '#/renderer/src/ui/shared/devInspectContextMenu';
 import { type JSX, useState } from 'react';
+import { stopSortableDragPointerDown } from './sortableRowUtils';
 import { SortableRow } from './SortableRow';
 
 interface Props {
@@ -108,7 +109,6 @@ export function DocumentRow({
       className={sourceRow(activeDocumentId === doc.id, true)}
       dragHandleLabel={`Reorder document "${doc.name}"`}
       disabled={dragDisabled}
-      compact
       onRowContextMenu={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -126,40 +126,42 @@ export function DocumentRow({
         <FaIcon icon={faMarkdown} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
         <span className="truncate text-[16px]">{doc.name}</span>
       </button>
-      <RowActionsMenu
-        menuId={menuId}
-        openMenuId={openMenuId}
-        onOpenChange={onOpenChange}
-        groups={[
-          ...(reorderItems.length > 0 ? [reorderItems] : []),
-          [
-            {
-              label: 'Rename',
-              onSelect: () => onRenameDocument(doc)
-            }
-          ],
-          [
-            {
-              label: 'Delete',
-              variant: 'danger' as const,
-              onSelect: () => {
-                void (async () => {
-                  const confirmed = await confirm({
-                    title: 'Delete document',
-                    message: `Delete document "${doc.name}"?`,
-                    confirmLabel: 'Delete',
-                    variant: 'danger'
-                  });
-                  if (confirmed) {
-                    void onDeleteDocument(doc.id, doc.collection_id);
-                  }
-                })();
+      <div className="shrink-0" onPointerDown={stopSortableDragPointerDown}>
+        <RowActionsMenu
+          menuId={menuId}
+          openMenuId={openMenuId}
+          onOpenChange={onOpenChange}
+          groups={[
+            ...(reorderItems.length > 0 ? [reorderItems] : []),
+            [
+              {
+                label: 'Rename',
+                onSelect: () => onRenameDocument(doc)
               }
-            }
-          ],
-          ...buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled)
-        ]}
-      />
+            ],
+            [
+              {
+                label: 'Delete',
+                variant: 'danger' as const,
+                onSelect: () => {
+                  void (async () => {
+                    const confirmed = await confirm({
+                      title: 'Delete document',
+                      message: `Delete document "${doc.name}"?`,
+                      confirmLabel: 'Delete',
+                      variant: 'danger'
+                    });
+                    if (confirmed) {
+                      void onDeleteDocument(doc.id, doc.collection_id);
+                    }
+                  })();
+                }
+              }
+            ],
+            ...buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled)
+          ]}
+        />
+      </div>
     </SortableRow>
   );
 }

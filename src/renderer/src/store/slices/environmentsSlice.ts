@@ -27,9 +27,29 @@ const environmentsSlice = createSlice({
      */
     setActiveEnvironmentId(state, action: PayloadAction<number | null>) {
       state.activeEnvironmentId = action.payload;
+    },
+    /**
+     * Optimistically reorders environments to match drag-and-drop before IPC persistence.
+     */
+    reorderEnvironmentsLocal(state, action: PayloadAction<{ orderedEnvironmentIds: number[] }>) {
+      const { orderedEnvironmentIds } = action.payload;
+      if (orderedEnvironmentIds.length !== state.environments.length) {
+        return;
+      }
+
+      const environmentsById = new Map(
+        state.environments.map((environment) => [environment.id, environment])
+      );
+      const reordered = orderedEnvironmentIds.map((id) => environmentsById.get(id));
+      if (reordered.some((environment) => environment == null)) {
+        return;
+      }
+
+      state.environments = reordered as Environment[];
     }
   }
 });
 
-export const { setEnvironments, setActiveEnvironmentId } = environmentsSlice.actions;
+export const { setEnvironments, setActiveEnvironmentId, reorderEnvironmentsLocal } =
+  environmentsSlice.actions;
 export default environmentsSlice.reducer;

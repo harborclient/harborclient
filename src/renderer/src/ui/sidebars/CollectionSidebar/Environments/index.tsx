@@ -33,6 +33,7 @@ import {
   reorderEnvironments
 } from '#/renderer/src/store/thunks';
 import { SortableRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/SortableRow';
+import { stopSortableDragPointerDown } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/sortableRowUtils';
 import { useSidebarRowSelection } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarRowSelection';
 import { useSidebarSearchContext } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarSearchContext';
 import { focusEnvironmentSettings } from '#/renderer/src/ui/EnvironmentSettings/focusEnvironmentSettings';
@@ -292,7 +293,6 @@ export function Environments(): JSX.Element {
                 className={sourceRow(rowHighlighted, true)}
                 dragHandleLabel={`Reorder environment "${environment.name}"`}
                 disabled={searchActive}
-                compact
                 onRowContextMenu={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
@@ -329,96 +329,98 @@ export function Environments(): JSX.Element {
                   <span className="min-w-0 flex-1 truncate text-[16px]">{environment.name}</span>
                   <span className="shrink-0 text-[16px] text-muted">{variableSummary}</span>
                 </button>
-                <RowActionsMenu
-                  menuId={menuId}
-                  openMenuId={openMenuId}
-                  onOpenChange={setOpenMenuId}
-                  groups={
-                    showBulkMenu
-                      ? [
-                          [
-                            {
-                              label: 'Delete',
-                              variant: 'danger' as const,
-                              onSelect: () => {
-                                void handleDeleteSelected();
+                <div className="shrink-0" onPointerDown={stopSortableDragPointerDown}>
+                  <RowActionsMenu
+                    menuId={menuId}
+                    openMenuId={openMenuId}
+                    onOpenChange={setOpenMenuId}
+                    groups={
+                      showBulkMenu
+                        ? [
+                            [
+                              {
+                                label: 'Delete',
+                                variant: 'danger' as const,
+                                onSelect: () => {
+                                  void handleDeleteSelected();
+                                }
                               }
-                            }
+                            ]
                           ]
-                        ]
-                      : [
-                          ...buildReorderMenuGroup(
-                            environmentIndex,
-                            environments.length,
-                            (direction) => void moveEnvironment(environment.id, direction)
-                          ),
-                          [
-                            {
-                              label: 'Settings',
-                              onSelect: () => onConfigureEnvironment(environment.id)
-                            },
-                            {
-                              label: 'Export',
-                              onSelect: () => onExportEnvironment(environment.id)
-                            },
-                            {
-                              label: 'Duplicate',
-                              onSelect: () => void onDuplicateEnvironment(environment.id)
-                            },
-                            ...(environmentBelow
-                              ? [
-                                  {
-                                    label: 'Merge down',
-                                    onSelect: () => {
-                                      void (async () => {
-                                        const confirmed = await confirm({
-                                          title: 'Merge environment down',
-                                          message: `Merge "${environment.name}" into "${environmentBelow.name}"? The merged environment will be named "${environment.name}".`,
-                                          confirmLabel: 'Merge down'
-                                        });
-                                        if (confirmed) {
-                                          void onMergeEnvironmentDown(environment.id);
-                                        }
-                                      })();
+                        : [
+                            ...buildReorderMenuGroup(
+                              environmentIndex,
+                              environments.length,
+                              (direction) => void moveEnvironment(environment.id, direction)
+                            ),
+                            [
+                              {
+                                label: 'Settings',
+                                onSelect: () => onConfigureEnvironment(environment.id)
+                              },
+                              {
+                                label: 'Export',
+                                onSelect: () => onExportEnvironment(environment.id)
+                              },
+                              {
+                                label: 'Duplicate',
+                                onSelect: () => void onDuplicateEnvironment(environment.id)
+                              },
+                              ...(environmentBelow
+                                ? [
+                                    {
+                                      label: 'Merge down',
+                                      onSelect: () => {
+                                        void (async () => {
+                                          const confirmed = await confirm({
+                                            title: 'Merge environment down',
+                                            message: `Merge "${environment.name}" into "${environmentBelow.name}"? The merged environment will be named "${environment.name}".`,
+                                            confirmLabel: 'Merge down'
+                                          });
+                                          if (confirmed) {
+                                            void onMergeEnvironmentDown(environment.id);
+                                          }
+                                        })();
+                                      }
                                     }
-                                  }
-                                ]
-                              : [])
-                          ],
-                          [
-                            {
-                              label: 'Delete',
-                              variant: 'danger',
-                              onSelect: () => {
-                                void (async () => {
-                                  const confirmed = await confirm({
-                                    title: 'Delete environment',
-                                    message: `Delete environment "${environment.name}"?`,
-                                    confirmLabel: 'Delete',
-                                    variant: 'danger'
-                                  });
-                                  if (confirmed) {
-                                    void onDeleteEnvironment(environment.id);
-                                  }
-                                })();
+                                  ]
+                                : [])
+                            ],
+                            [
+                              {
+                                label: 'Delete',
+                                variant: 'danger',
+                                onSelect: () => {
+                                  void (async () => {
+                                    const confirmed = await confirm({
+                                      title: 'Delete environment',
+                                      message: `Delete environment "${environment.name}"?`,
+                                      confirmLabel: 'Delete',
+                                      variant: 'danger'
+                                    });
+                                    if (confirmed) {
+                                      void onDeleteEnvironment(environment.id);
+                                    }
+                                  })();
+                                }
                               }
-                            }
-                          ],
-                          ...buildDevInspectMenuGroups(
-                            inspectPointsByMenuId[menuId],
-                            menuId,
-                            developerToolsEnabled
-                          )
-                        ]
-                  }
-                />
+                            ],
+                            ...buildDevInspectMenuGroups(
+                              inspectPointsByMenuId[menuId],
+                              menuId,
+                              developerToolsEnabled
+                            )
+                          ]
+                    }
+                  />
+                </div>
               </SortableRow>
             );
           })}
         </SortableContext>
       </div>
 
-      <DragOverlay>
+      <DragOverlay dropAnimation={null}>
         {activeDragEnvironment ? (
           <div className="rounded border border-separator bg-surface px-2 py-1 text-[16px] font-medium shadow-md">
             {activeDragEnvironment.name}

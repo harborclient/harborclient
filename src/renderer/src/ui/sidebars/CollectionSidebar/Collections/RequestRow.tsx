@@ -23,6 +23,7 @@ import {
   useDeveloperToolsEnabled,
   type InspectPoint
 } from '#/renderer/src/ui/shared/devInspectContextMenu';
+import { stopSortableDragPointerDown } from './sortableRowUtils';
 import { SortableRow } from './SortableRow';
 
 interface Props {
@@ -241,7 +242,6 @@ export function RequestRow({
       className={sourceRow(rowHighlighted, true)}
       dragHandleLabel={`Reorder request "${req.name}"`}
       disabled={dragDisabled}
-      compact
       onRowContextMenu={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -264,71 +264,73 @@ export function RequestRow({
         </span>
         <span className="truncate text-[16px]">{req.name}</span>
       </button>
-      <RowActionsMenu
-        menuId={menuId}
-        openMenuId={openMenuId}
-        onOpenChange={onOpenChange}
-        groups={
-          showBulkMenu
-            ? [
-                [{ label: 'Run', onSelect: onRunSelected }],
-                [{ label: 'Open', onSelect: onOpenSelected }],
-                [{ label: 'New Tab Group', onSelect: onNewTabGroupFromSelected }],
-                [
-                  {
-                    label: 'Delete',
-                    variant: 'danger' as const,
-                    onSelect: () => {
-                      void onDeleteSelected();
+      <div className="shrink-0" onPointerDown={stopSortableDragPointerDown}>
+        <RowActionsMenu
+          menuId={menuId}
+          openMenuId={openMenuId}
+          onOpenChange={onOpenChange}
+          groups={
+            showBulkMenu
+              ? [
+                  [{ label: 'Run', onSelect: onRunSelected }],
+                  [{ label: 'Open', onSelect: onOpenSelected }],
+                  [{ label: 'New Tab Group', onSelect: onNewTabGroupFromSelected }],
+                  [
+                    {
+                      label: 'Delete',
+                      variant: 'danger' as const,
+                      onSelect: () => {
+                        void onDeleteSelected();
+                      }
                     }
-                  }
+                  ]
                 ]
-              ]
-            : [
-                [...copyItem, ...copyToChatItem, { label: 'Run', onSelect: onRunRequest }],
-                ...(reorderItems.length > 0 ? [reorderItems] : []),
-                [
-                  {
-                    label: 'Duplicate',
-                    onSelect: () => void onDuplicateRequest(req)
-                  },
-                  {
-                    label: 'Export',
-                    onSelect: () => void onExportRequest(req)
-                  }
-                ],
-                ...buildPluginContextMenuGroups(
-                  'request',
-                  {
-                    requestId: req.id,
-                    collectionId: req.collection_id,
-                    folderId: req.folder_id
-                  },
-                  pluginContextMenuItems
-                ),
-                [
-                  {
-                    label: 'Delete',
-                    variant: 'danger' as const,
-                    onSelect: () => {
-                      void (async () => {
-                        const confirmed = await confirm({
-                          title: 'Delete request',
-                          message: `Delete request "${req.name}"?`,
-                          confirmLabel: 'Delete',
-                          variant: 'danger'
-                        });
-                        if (confirmed) {
-                          void onDeleteRequest(req.id);
-                        }
-                      })();
+              : [
+                  [...copyItem, ...copyToChatItem, { label: 'Run', onSelect: onRunRequest }],
+                  ...(reorderItems.length > 0 ? [reorderItems] : []),
+                  [
+                    {
+                      label: 'Duplicate',
+                      onSelect: () => void onDuplicateRequest(req)
+                    },
+                    {
+                      label: 'Export',
+                      onSelect: () => void onExportRequest(req)
                     }
-                  }
-                ],
-                ...buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled)
-              ]
-        }
-      />
+                  ],
+                  ...buildPluginContextMenuGroups(
+                    'request',
+                    {
+                      requestId: req.id,
+                      collectionId: req.collection_id,
+                      folderId: req.folder_id
+                    },
+                    pluginContextMenuItems
+                  ),
+                  [
+                    {
+                      label: 'Delete',
+                      variant: 'danger' as const,
+                      onSelect: () => {
+                        void (async () => {
+                          const confirmed = await confirm({
+                            title: 'Delete request',
+                            message: `Delete request "${req.name}"?`,
+                            confirmLabel: 'Delete',
+                            variant: 'danger'
+                          });
+                          if (confirmed) {
+                            void onDeleteRequest(req.id);
+                          }
+                        })();
+                      }
+                    }
+                  ],
+                  ...buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled)
+                ]
+          }
+        />
+      </div>
     </SortableRow>
   );
 }

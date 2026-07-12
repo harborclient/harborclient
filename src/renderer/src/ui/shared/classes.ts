@@ -15,8 +15,8 @@ export { requestTabItem };
 export function sourceRow(selected: boolean, compact = false): string {
   const py = compact ? 'py-0' : 'py-0.5';
   return selected
-    ? `group flex items-center gap-1 rounded-md bg-selection pr-1.5 pl-0 ${py} app-no-drag`
-    : `group flex items-center gap-1 rounded-md pr-1.5 pl-0 ${py} hover:bg-selection/60 app-no-drag`;
+    ? `group flex items-center gap-1 rounded-md bg-selection px-1.5 ${py} app-no-drag`
+    : `group flex items-center gap-1 rounded-md px-1.5 ${py} hover:bg-selection/60 app-no-drag`;
 }
 
 export const separator = 'h-px bg-separator';

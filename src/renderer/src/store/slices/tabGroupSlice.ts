@@ -68,11 +68,29 @@ const tabGroupSlice = createSlice({
     stopEditingTabGroup(state) {
       state.editingTabGroupId = null;
       state.editSessionHiddenTabIds = [];
+    },
+    /**
+     * Optimistically reorders tab groups to match drag-and-drop before IPC persistence.
+     */
+    reorderTabGroupsLocal(state, action: PayloadAction<number[]>) {
+      const orderedTabGroupIds = action.payload;
+      if (orderedTabGroupIds.length !== state.items.length) {
+        return;
+      }
+
+      const groupsById = new Map(state.items.map((group) => [group.id, group]));
+      const reordered = orderedTabGroupIds.map((id) => groupsById.get(id));
+      if (reordered.some((group) => group == null)) {
+        return;
+      }
+
+      state.items = reordered as TabGroup[];
     }
   }
 });
 
-export const { setTabGroups, startEditingTabGroup, stopEditingTabGroup } = tabGroupSlice.actions;
+export const { setTabGroups, startEditingTabGroup, stopEditingTabGroup, reorderTabGroupsLocal } =
+  tabGroupSlice.actions;
 
 /**
  * Selects all tab groups currently loaded in the store.

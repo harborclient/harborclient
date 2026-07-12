@@ -91,19 +91,17 @@ export function TerminalPanel({ open, onClose }: Props): JSX.Element {
   };
 
   /**
-   * Removes the active terminal tab.
+   * Removes one terminal tab by id.
+   *
+   * @param terminalId - Terminal tab id to close.
    */
-  const handleRemoveActiveTerminal = (): void => {
-    if (activeTerminalId == null) {
-      return;
-    }
-
-    if (editingTabId === activeTerminalId) {
+  const handleRemoveTerminal = (terminalId: string): void => {
+    if (editingTabId === terminalId) {
       setEditingTabId(null);
       setDraftTitle('');
     }
 
-    dispatch(removeTerminal(activeTerminalId));
+    dispatch(removeTerminal(terminalId));
   };
 
   /**
@@ -145,7 +143,7 @@ export function TerminalPanel({ open, onClose }: Props): JSX.Element {
    * @param event - Native keydown event from within the footer bar.
    * @param index - Index of the focused terminal tab.
    */
-  const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number): void => {
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLElement>, index: number): void => {
     if (terminals.length === 0) {
       return;
     }
@@ -197,7 +195,11 @@ export function TerminalPanel({ open, onClose }: Props): JSX.Element {
       ariaLabel="Delete terminal"
       title="Delete terminal"
       disabled={activeTerminalId == null}
-      onClick={handleRemoveActiveTerminal}
+      onClick={() => {
+        if (activeTerminalId != null) {
+          handleRemoveTerminal(activeTerminalId);
+        }
+      }}
     />
   );
 
@@ -233,6 +235,7 @@ export function TerminalPanel({ open, onClose }: Props): JSX.Element {
               onDraftChange={setDraftTitle}
               onCommit={handleCommitEdit}
               onCancel={handleCancelEdit}
+              onClose={() => handleRemoveTerminal(terminal.id)}
               onKeyDown={handleTabKeyDown}
             />
           ))}

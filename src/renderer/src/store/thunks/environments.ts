@@ -2,6 +2,7 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import type { CollectionExportResult, Environment, Variable } from '#/shared/types';
 import { mergeEnvironmentVariables } from '#/shared/environmentVariables';
 import {
+  reorderEnvironmentsLocal,
   setActiveEnvironmentId,
   setEnvironments
 } from '#/renderer/src/store/slices/environmentsSlice';
@@ -106,6 +107,7 @@ export const reorderEnvironments = createAsyncThunk<
   { orderedEnvironmentIds: number[] },
   ThunkApiConfig
 >('environments/reorderEnvironments', async ({ orderedEnvironmentIds }, { dispatch }) => {
+  dispatch(reorderEnvironmentsLocal({ orderedEnvironmentIds }));
   await window.api.reorderEnvironments(orderedEnvironmentIds);
   await dispatch(refreshEnvironments());
 });

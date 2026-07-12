@@ -1,5 +1,6 @@
-import { Input } from '@harborclient/sdk/components';
+import { Input, RoundButton } from '@harborclient/sdk/components';
 import { useEffect, useRef, type JSX, type KeyboardEvent } from 'react';
+import { faXmark } from '#/renderer/src/fontawesome';
 import type { TerminalTab } from '#/renderer/src/store/slices/terminalsSlice';
 
 interface Props {
@@ -54,9 +55,14 @@ interface Props {
   onCancel: () => void;
 
   /**
+   * Closes this terminal tab.
+   */
+  onClose: () => void;
+
+  /**
    * Handles arrow-key navigation between tabs when not editing.
    */
-  onKeyDown: (event: KeyboardEvent<HTMLButtonElement>, index: number) => void;
+  onKeyDown: (event: KeyboardEvent<HTMLElement>, index: number) => void;
 }
 
 /**
@@ -66,8 +72,8 @@ interface Props {
  */
 function tabRowClassName(selected: boolean): string {
   return selected
-    ? 'rounded-md bg-selection px-3 py-2 text-left text-[16px] text-text'
-    : 'rounded-md px-3 py-2 text-left text-[16px] text-muted hover:bg-selection/60 hover:text-text';
+    ? 'rounded-md bg-selection px-3 py-2 pr-1 text-left text-[16px] text-text'
+    : 'rounded-md px-3 py-2 pr-1 text-left text-[16px] text-muted hover:bg-selection/60 hover:text-text';
 }
 
 /**
@@ -84,10 +90,12 @@ export function TerminalTabButton({
   onDraftChange,
   onCommit,
   onCancel,
+  onClose,
   onKeyDown
 }: Props): JSX.Element {
   const inputRef = useRef<HTMLInputElement>(null);
   const skipBlurCommitRef = useRef(false);
+  const closeLabel = `Close ${terminal.title}`;
 
   /**
    * Focuses and selects the rename input when inline edit mode opens.
@@ -100,6 +108,21 @@ export function TerminalTabButton({
     inputRef.current?.focus();
     inputRef.current?.select();
   }, [editing]);
+
+  /**
+   * Activates this tab when the user presses Enter or Space on the tab row.
+   *
+   * @param event - Keyboard event from the tab element.
+   */
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onSelect();
+      return;
+    }
+
+    onKeyDown(event, index);
+  };
 
   if (editing) {
     return (
@@ -146,19 +169,31 @@ export function TerminalTabButton({
   }
 
   return (
-    <button
+    <div
       id={`footer-terminal-tab-${terminal.id}`}
-      type="button"
       role="tab"
       aria-selected={selected}
       aria-controls={`footer-terminal-panel-${terminal.id}`}
+      aria-label={terminal.title}
       tabIndex={selected ? 0 : -1}
-      className={tabRowClassName(selected)}
+      className={`flex cursor-pointer items-center gap-1 ${tabRowClassName(selected)}`}
       onClick={onSelect}
       onDoubleClick={onStartEdit}
-      onKeyDown={(event) => onKeyDown(event, index)}
+      onKeyDown={handleTabKeyDown}
     >
-      <span className="block truncate">{terminal.title}</span>
-    </button>
+      <span className="min-w-0 flex-1 truncate">{terminal.title}</span>
+      <span className="shrink-0" onPointerDown={(event) => event.stopPropagation()}>
+        <RoundButton
+          icon={faXmark}
+          ariaLabel={closeLabel}
+          title={closeLabel}
+          tabIndex={0}
+          onClick={(event) => {
+            event.stopPropagation();
+            onClose();
+          }}
+        />
+      </span>
+    </div>
   );
 }

@@ -1,9 +1,6 @@
-import { FaIcon } from '@harborclient/sdk/components';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { type CSSProperties, type JSX, type MouseEvent, type ReactNode } from 'react';
-
-import { faGripVertical } from '#/renderer/src/fontawesome';
 
 interface Props {
   /**
@@ -32,19 +29,15 @@ interface Props {
   disabled?: boolean;
 
   /**
-   * When true, uses a smaller drag handle to match compact sidebar rows.
-   */
-  compact?: boolean;
-
-  /**
    * Called when the user right-clicks the row container.
    */
   onRowContextMenu?: (event: MouseEvent<HTMLDivElement>) => void;
 }
 
 /**
- * Wraps a sidebar row with dnd-kit sortable drag behavior, a dedicated drag
- * handle for pointer and keyboard reordering, and opacity feedback while dragging.
+ * Wraps a sidebar row with dnd-kit sortable drag behavior. The row itself is
+ * the drag activator; nested controls should call
+ * {@link stopSortableDragPointerDown} so expand and menu actions do not start a drag.
  */
 export function SortableRow({
   id,
@@ -52,11 +45,8 @@ export function SortableRow({
   dragHandleLabel,
   children,
   disabled = false,
-  compact = false,
   onRowContextMenu
 }: Props): JSX.Element {
-  const controlSize = compact ? 'h-4 w-4' : 'h-5 w-5';
-
   const {
     attributes,
     listeners,
@@ -70,7 +60,6 @@ export function SortableRow({
   if (disabled) {
     return (
       <div className={`group ${className}`} onContextMenu={onRowContextMenu}>
-        <span className={`inline-flex shrink-0 ${controlSize}`} aria-hidden="true" />
         {children}
       </div>
     );
@@ -82,19 +71,24 @@ export function SortableRow({
     opacity: isDragging ? 0.45 : undefined
   };
 
+  const { role, tabIndex, ...sortableAttributes } = attributes;
+  void role;
+  void tabIndex;
+
   return (
-    <div ref={setNodeRef} style={style} className={className} onContextMenu={onRowContextMenu}>
-      <button
-        type="button"
-        ref={setActivatorNodeRef}
-        className={`inline-flex shrink-0 cursor-grab items-center justify-center rounded border-none bg-transparent p-0 text-muted opacity-0 transition-opacity hover:text-text focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing group-hover:opacity-100 app-no-drag ${controlSize}`}
-        aria-label={dragHandleLabel}
-        {...attributes}
-        {...listeners}
-        tabIndex={-1}
-      >
-        <FaIcon icon={faGripVertical} className="h-3 w-3" />
-      </button>
+    <div
+      ref={(node) => {
+        setNodeRef(node);
+        setActivatorNodeRef(node);
+      }}
+      style={style}
+      className={`${className} cursor-grab active:cursor-grabbing`}
+      aria-label={dragHandleLabel}
+      tabIndex={-1}
+      onContextMenu={onRowContextMenu}
+      {...sortableAttributes}
+      {...listeners}
+    >
       {children}
     </div>
   );

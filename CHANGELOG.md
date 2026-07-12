@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(environments, tabGroups): implement local reordering for environments and tab groups. (`69d9e2b`)
 - feat(collections): implement local reordering and moving of collections and container items. (`f769b9b`)
 
 ## 2.2.1 - 2026-07-12

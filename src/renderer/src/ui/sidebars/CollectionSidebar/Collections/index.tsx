@@ -56,6 +56,7 @@ import { focusFolderSettings } from '#/renderer/src/ui/FolderSettings/focusFolde
 import { DocumentRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/DocumentRow';
 import { RequestRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/RequestRow';
 import { SortableRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/SortableRow';
+import { stopSortableDragPointerDown } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/sortableRowUtils';
 import {
   applySidebarSelectionClick,
   orderSelectedIds
@@ -760,7 +761,6 @@ export function Collections(): JSX.Element {
                   className={sourceRow(selected, true)}
                   dragHandleLabel={`Reorder collection "${collection.name}"`}
                   disabled={searchActive}
-                  compact
                   onRowContextMenu={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
@@ -776,6 +776,7 @@ export function Collections(): JSX.Element {
                     type="button"
                     className="inline-flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent p-0 text-muted hover:text-text app-no-drag"
                     onClick={() => toggleCollection(collection.id)}
+                    onPointerDown={stopSortableDragPointerDown}
                     aria-expanded={expanded}
                     aria-label={expanded ? 'Collapse' : 'Expand'}
                   >
@@ -812,6 +813,7 @@ export function Collections(): JSX.Element {
                       type="button"
                       className="shrink-0 cursor-pointer rounded bg-warning/20 px-1.5 py-0.5 text-[16px] font-medium text-warning hover:bg-warning/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent app-no-drag"
                       aria-label={`Open source control (${gitStatus.changedCount} uncommitted change(s))`}
+                      onPointerDown={stopSortableDragPointerDown}
                       onClick={() =>
                         onOpenSourceControl(
                           collectionConnectionId,
@@ -822,124 +824,126 @@ export function Collections(): JSX.Element {
                       {gitStatus.changedCount}
                     </button>
                   )}
-                  <RowActionsMenu
-                    menuId={`collection-${collection.id}`}
-                    openMenuId={openMenuId}
-                    onOpenChange={setOpenMenuId}
-                    groups={[
-                      [
-                        {
-                          label: 'Run',
-                          onSelect: () => onRunCollection(collection.id, collection.name)
-                        }
-                      ],
-                      ...(aiAvailable
-                        ? [
-                            [
-                              {
-                                label: 'Copy to chat',
-                                onSelect: () => void copyToChat(`@collection.${collection.uuid}`)
-                              }
-                            ]
-                          ]
-                        : []),
-                      ...buildReorderMenuGroup(collectionIndex, collections.length, (direction) =>
-                        moveCollection(collection.id, direction)
-                      ),
-                      [
-                        {
-                          label: 'Settings',
-                          onSelect: () => onConfigureCollection(collection.id)
-                        },
-                        {
-                          label: 'Duplicate',
-                          onSelect: () => void onDuplicateCollection(collection.id)
-                        }
-                      ],
-                      [
-                        {
-                          label: 'New',
-                          submenu: [
-                            [
-                              {
-                                label: 'New Folder',
-                                onSelect: () => void onNewFolder(collection.id)
-                              },
-                              {
-                                label: 'New Request',
-                                onSelect: () => void onNewRequestInCollection(collection.id)
-                              },
-                              {
-                                label: 'New Markdown',
-                                onSelect: () => void onNewDocumentInCollection(collection.id)
-                              }
-                            ]
-                          ]
-                        },
-                        {
-                          label: 'Import',
-                          onSelect: () => void onImportRequest(collection.id)
-                        },
-                        {
-                          label: 'Export',
-                          onSelect: () => void onExportCollection(collection.id)
-                        },
-                        {
-                          label: 'Save all',
-                          onSelect: () => void onSaveAllInCollection(collection.id)
-                        }
-                      ],
-                      [
-                        ...(connectionType === 'git' && connectionName != null
+                  <div className="shrink-0" onPointerDown={stopSortableDragPointerDown}>
+                    <RowActionsMenu
+                      menuId={`collection-${collection.id}`}
+                      openMenuId={openMenuId}
+                      onOpenChange={setOpenMenuId}
+                      groups={[
+                        [
+                          {
+                            label: 'Run',
+                            onSelect: () => onRunCollection(collection.id, collection.name)
+                          }
+                        ],
+                        ...(aiAvailable
                           ? [
-                              {
-                                label: 'Source control',
-                                onSelect: () =>
-                                  onOpenSourceControl(collectionConnectionId, connectionName)
-                              }
+                              [
+                                {
+                                  label: 'Copy to chat',
+                                  onSelect: () => void copyToChat(`@collection.${collection.uuid}`)
+                                }
+                              ]
                             ]
                           : []),
-
-                        ...(canShare
-                          ? [
-                              {
-                                label: 'Share access',
-                                onSelect: () => onShareCollection(collection.id, collection.name)
-                              }
-                            ]
-                          : [])
-                      ],
-                      ...buildPluginContextMenuGroups(
-                        'collection',
-                        { collectionId: collection.id },
-                        pluginContextMenuItems
-                      ),
-                      [
-                        {
-                          label: 'Delete',
-                          variant: 'danger',
-                          onSelect: () => {
-                            void (async () => {
-                              const confirmed = await confirm({
-                                title: 'Delete collection',
-                                message: `Delete collection "${collection.name}"?`,
-                                confirmLabel: 'Delete',
-                                variant: 'danger'
-                              });
-                              if (confirmed) {
-                                void onDeleteCollection(collection.id);
-                              }
-                            })();
+                        ...buildReorderMenuGroup(collectionIndex, collections.length, (direction) =>
+                          moveCollection(collection.id, direction)
+                        ),
+                        [
+                          {
+                            label: 'Settings',
+                            onSelect: () => onConfigureCollection(collection.id)
+                          },
+                          {
+                            label: 'Duplicate',
+                            onSelect: () => void onDuplicateCollection(collection.id)
                           }
-                        }
-                      ],
-                      ...buildDevInspectMenuGroups(
-                        inspectPointsByMenuId[`collection-${collection.id}`],
-                        `collection-${collection.id}`,
-                        developerToolsEnabled
-                      )
-                    ]}
-                  />
+                        ],
+                        [
+                          {
+                            label: 'New',
+                            submenu: [
+                              [
+                                {
+                                  label: 'New Folder',
+                                  onSelect: () => void onNewFolder(collection.id)
+                                },
+                                {
+                                  label: 'New Request',
+                                  onSelect: () => void onNewRequestInCollection(collection.id)
+                                },
+                                {
+                                  label: 'New Markdown',
+                                  onSelect: () => void onNewDocumentInCollection(collection.id)
+                                }
+                              ]
+                            ]
+                          },
+                          {
+                            label: 'Import',
+                            onSelect: () => void onImportRequest(collection.id)
+                          },
+                          {
+                            label: 'Export',
+                            onSelect: () => void onExportCollection(collection.id)
+                          },
+                          {
+                            label: 'Save all',
+                            onSelect: () => void onSaveAllInCollection(collection.id)
+                          }
+                        ],
+                        [
+                          ...(connectionType === 'git' && connectionName != null
+                            ? [
+                                {
+                                  label: 'Source control',
+                                  onSelect: () =>
+                                    onOpenSourceControl(collectionConnectionId, connectionName)
+                                }
+                              ]
+                            : []),
+
+                          ...(canShare
+                            ? [
+                                {
+                                  label: 'Share access',
+                                  onSelect: () => onShareCollection(collection.id, collection.name)
+                                }
+                              ]
+                            : [])
+                        ],
+                        ...buildPluginContextMenuGroups(
+                          'collection',
+                          { collectionId: collection.id },
+                          pluginContextMenuItems
+                        ),
+                        [
+                          {
+                            label: 'Delete',
+                            variant: 'danger',
+                            onSelect: () => {
+                              void (async () => {
+                                const confirmed = await confirm({
+                                  title: 'Delete collection',
+                                  message: `Delete collection "${collection.name}"?`,
+                                  confirmLabel: 'Delete',
+                                  variant: 'danger'
+                                });
+                                if (confirmed) {
+                                  void onDeleteCollection(collection.id);
+                                }
+                              })();
+                            }
+                          }
+                        ],
+                        ...buildDevInspectMenuGroups(
+                          inspectPointsByMenuId[`collection-${collection.id}`],
+                          `collection-${collection.id}`,
+                          developerToolsEnabled
+                        )
+                      ]}
+                    />
+                  </div>
                 </SortableRow>
 
                 <AnimatedCollapse open={expanded}>
@@ -953,8 +957,7 @@ export function Collections(): JSX.Element {
                   >
                     <div className="ml-4 flex flex-col gap-0 py-0">
                       {loaded && folders.length === 0 && rootItems.length === 0 && (
-                        <div className="flex items-center gap-1 px-1.5 py-0">
-                          <span className="inline-flex h-4 w-4 shrink-0" aria-hidden="true" />
+                        <div className="px-1.5 py-0">
                           <span className="text-[16px] text-muted">No saved requests</span>
                         </div>
                       )}
@@ -1105,7 +1108,6 @@ export function Collections(): JSX.Element {
                                   className={sourceRow(folderSelected, true)}
                                   dragHandleLabel={`Reorder folder "${folder.name}"`}
                                   disabled={searchActive}
-                                  compact
                                   onRowContextMenu={(event) => {
                                     event.preventDefault();
                                     event.stopPropagation();
@@ -1121,6 +1123,7 @@ export function Collections(): JSX.Element {
                                     type="button"
                                     className="inline-flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent p-0 text-muted hover:text-text app-no-drag"
                                     onClick={() => toggleFolder(folder.id)}
+                                    onPointerDown={stopSortableDragPointerDown}
                                     aria-expanded={folderExpanded}
                                     aria-label={
                                       folderExpanded ? 'Collapse folder' : 'Expand folder'
@@ -1159,111 +1162,116 @@ export function Collections(): JSX.Element {
                                       </span>
                                     )}
                                   </button>
-                                  <RowActionsMenu
-                                    menuId={`folder-${folder.id}`}
-                                    openMenuId={openMenuId}
-                                    onOpenChange={setOpenMenuId}
-                                    groups={[
-                                      [
-                                        {
-                                          label: 'Run',
-                                          onSelect: () =>
-                                            onRunFolder(
-                                              collection.id,
-                                              folder.id,
-                                              collection.name,
-                                              folder.name
-                                            )
-                                        }
-                                      ],
-                                      ...(aiAvailable
-                                        ? [
-                                            [
-                                              {
-                                                label: 'Copy to chat',
-                                                onSelect: () =>
-                                                  void copyToChat(`@folder.${folder.uuid}`)
-                                              }
+                                  <div
+                                    className="shrink-0"
+                                    onPointerDown={stopSortableDragPointerDown}
+                                  >
+                                    <RowActionsMenu
+                                      menuId={`folder-${folder.id}`}
+                                      openMenuId={openMenuId}
+                                      onOpenChange={setOpenMenuId}
+                                      groups={[
+                                        [
+                                          {
+                                            label: 'Run',
+                                            onSelect: () =>
+                                              onRunFolder(
+                                                collection.id,
+                                                folder.id,
+                                                collection.name,
+                                                folder.name
+                                              )
+                                          }
+                                        ],
+                                        ...(aiAvailable
+                                          ? [
+                                              [
+                                                {
+                                                  label: 'Copy to chat',
+                                                  onSelect: () =>
+                                                    void copyToChat(`@folder.${folder.uuid}`)
+                                                }
+                                              ]
                                             ]
-                                          ]
-                                        : []),
-                                      ...buildReorderMenuGroup(
-                                        folderIndex,
-                                        folders.length,
-                                        (direction) =>
-                                          moveFolder(collection.id, folder.id, direction)
-                                      ),
-                                      [
-                                        {
-                                          label: 'New',
-                                          submenu: [
-                                            [
-                                              {
-                                                label: 'New Request',
-                                                onSelect: () =>
-                                                  void onNewRequestInFolder(
-                                                    collection.id,
-                                                    folder.id
-                                                  )
-                                              },
-                                              {
-                                                label: 'New Markdown',
-                                                onSelect: () =>
-                                                  void onNewDocumentInFolder(
-                                                    collection.id,
-                                                    folder.id
-                                                  )
-                                              }
+                                          : []),
+                                        ...buildReorderMenuGroup(
+                                          folderIndex,
+                                          folders.length,
+                                          (direction) =>
+                                            moveFolder(collection.id, folder.id, direction)
+                                        ),
+                                        [
+                                          {
+                                            label: 'New',
+                                            submenu: [
+                                              [
+                                                {
+                                                  label: 'New Request',
+                                                  onSelect: () =>
+                                                    void onNewRequestInFolder(
+                                                      collection.id,
+                                                      folder.id
+                                                    )
+                                                },
+                                                {
+                                                  label: 'New Markdown',
+                                                  onSelect: () =>
+                                                    void onNewDocumentInFolder(
+                                                      collection.id,
+                                                      folder.id
+                                                    )
+                                                }
+                                              ]
                                             ]
-                                          ]
-                                        },
-                                        {
-                                          label: 'Import Request',
-                                          onSelect: () =>
-                                            void onImportRequest(collection.id, folder.id)
-                                        },
-                                        {
-                                          label: 'Save all',
-                                          onSelect: () =>
-                                            void onSaveAllInFolder(collection.id, folder.id)
-                                        },
-                                        {
-                                          label: 'Rename',
-                                          onSelect: () =>
-                                            void onRenameFolder(folder.id, collection.id)
-                                        },
-                                        {
-                                          label: 'Settings',
-                                          onSelect: () =>
-                                            onConfigureFolder(collection.id, folder.id)
-                                        }
-                                      ],
-                                      ...buildPluginContextMenuGroups(
-                                        'folder',
-                                        { collectionId: collection.id, folderId: folder.id },
-                                        pluginContextMenuItems
-                                      ),
-                                      [
-                                        {
-                                          label: 'Delete',
-                                          variant: 'danger',
-                                          onSelect: () =>
-                                            void onDeleteFolder(
-                                              folder.id,
-                                              collection.id,
-                                              folderItems
-                                                .filter((item) => item.kind === 'request')
-                                                .map((item) => item.id)
-                                            )
-                                        }
-                                      ],
-                                      ...buildDevInspectMenuGroups(
-                                        inspectPointsByMenuId[`folder-${folder.id}`],
-                                        `folder-${folder.id}`,
-                                        developerToolsEnabled
-                                      )
-                                    ]}
-                                  />
+                                          },
+                                          {
+                                            label: 'Import Request',
+                                            onSelect: () =>
+                                              void onImportRequest(collection.id, folder.id)
+                                          },
+                                          {
+                                            label: 'Save all',
+                                            onSelect: () =>
+                                              void onSaveAllInFolder(collection.id, folder.id)
+                                          },
+                                          {
+                                            label: 'Rename',
+                                            onSelect: () =>
+                                              void onRenameFolder(folder.id, collection.id)
+                                          },
+                                          {
+                                            label: 'Settings',
+                                            onSelect: () =>
+                                              onConfigureFolder(collection.id, folder.id)
+                                          }
+                                        ],
+                                        ...buildPluginContextMenuGroups(
+                                          'folder',
+                                          { collectionId: collection.id, folderId: folder.id },
+                                          pluginContextMenuItems
+                                        ),
+                                        [
+                                          {
+                                            label: 'Delete',
+                                            variant: 'danger',
+                                            onSelect: () =>
+                                              void onDeleteFolder(
+                                                folder.id,
+                                                collection.id,
+                                                folderItems
+                                                  .filter((item) => item.kind === 'request')
+                                                  .map((item) => item.id)
+                                              )
+                                          }
+                                        ],
+                                        ...buildDevInspectMenuGroups(
+                                          inspectPointsByMenuId[`folder-${folder.id}`],
+                                          `folder-${folder.id}`,
+                                          developerToolsEnabled
+                                        )
+                                      ]}
+                                    />
+                                  </div>
                                 </SortableRow>
                               </DropZone>
 
@@ -1382,11 +1390,7 @@ export function Collections(): JSX.Element {
                                     })}
                                   </SortableContext>
                                   {folderItems.length === 0 && (
-                                    <div className="flex items-center gap-1 px-1.5 py-0">
-                                      <span
-                                        className="inline-flex h-4 w-4 shrink-0"
-                                        aria-hidden="true"
-                                      />
+                                    <div className="px-1.5 py-0">
                                       <span className="text-[16px] text-muted">Empty folder</span>
                                     </div>
                                   )}

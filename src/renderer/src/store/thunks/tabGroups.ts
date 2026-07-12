@@ -5,6 +5,7 @@ import type { TabGroup, TabGroupExport, TabGroupRequest } from '#/shared/types/t
 import { isRequestTab, type Tab } from '#/renderer/src/store/drafts';
 import { loadRequest, setActiveTab } from '#/renderer/src/store/slices/tabsSlice';
 import {
+  reorderTabGroupsLocal,
   setTabGroups,
   selectTabGroups,
   startEditingTabGroup,
@@ -276,6 +277,7 @@ export const deleteTabGroup = createAsyncThunk<void, number, ThunkApiConfig>(
 export const reorderTabGroups = createAsyncThunk<void, number[], ThunkApiConfig>(
   'tabGroups/reorder',
   async (orderedTabGroupIds, { dispatch }) => {
+    dispatch(reorderTabGroupsLocal(orderedTabGroupIds));
     const items = await window.api.reorderTabGroups(orderedTabGroupIds);
     dispatch(setTabGroups(items));
   }
