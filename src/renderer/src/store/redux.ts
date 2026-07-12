@@ -17,6 +17,7 @@ import snippetsReducer from '#/renderer/src/store/slices/snippetsSlice';
 import scriptClipboardReducer from '#/renderer/src/store/slices/scriptClipboardSlice';
 import aiChatReducer from '#/renderer/src/store/slices/aiChatSlice';
 import terminalsReducer from '#/renderer/src/store/slices/terminalsSlice';
+import markdownSelectionsReducer from '#/renderer/src/store/slices/markdownSelectionsSlice';
 import {
   persistActiveEnvironmentId,
   persistTabs,
@@ -41,7 +42,8 @@ export const store = configureStore({
     tabGroups: tabGroupsReducer,
     trash: trashReducer,
     aiChat: aiChatReducer,
-    terminals: terminalsReducer
+    terminals: terminalsReducer,
+    markdownSelections: markdownSelectionsReducer
   },
   /**
    * Registers default RTK middleware plus busy tracking.

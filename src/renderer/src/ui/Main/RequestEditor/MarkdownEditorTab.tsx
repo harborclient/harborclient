@@ -1,8 +1,9 @@
 import { Button } from '@harborclient/sdk/components';
-import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import type { Variable } from '#/shared/types';
 import { acceleratorMatchesChord, getShortcutDef, type KeyChord } from '#/shared/shortcuts';
-import { useAppDispatch } from '#/renderer/src/store/hooks';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { selectDocumentsByCollection } from '#/renderer/src/store/selectors';
 import { updateMarkdownContent } from '#/renderer/src/store/slices/tabsSlice';
 import { saveMarkdownTab } from '#/renderer/src/store/thunks/documents';
 import { isTabDirty, type MarkdownTab } from '#/renderer/src/store/drafts';
@@ -47,6 +48,7 @@ function chordFromKeyboardEvent(event: KeyboardEvent): KeyChord {
  */
 export function MarkdownEditorTab({ tab, variables, onEditVariables }: Props): JSX.Element {
   const dispatch = useAppDispatch();
+  const documentsByCollection = useAppSelector(selectDocumentsByCollection);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const dirty = isTabDirty(tab);
@@ -137,6 +139,23 @@ export function MarkdownEditorTab({ tab, variables, onEditVariables }: Props): J
     [dispatch, tab.tabId]
   );
 
+  /**
+   * Resolves the persisted document uuid used by copy-to-chat `@markdown` references.
+   */
+  const markdownReference = useMemo(() => {
+    const document = (documentsByCollection[tab.collectionId] ?? []).find(
+      (entry) => entry.id === tab.docId
+    );
+    if (document == null) {
+      return undefined;
+    }
+
+    return {
+      uuid: document.uuid,
+      label: `Document: ${tab.name}`
+    };
+  }, [documentsByCollection, tab.collectionId, tab.docId, tab.name]);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
       <CommentEditor
@@ -152,6 +171,7 @@ export function MarkdownEditorTab({ tab, variables, onEditVariables }: Props): J
             {saving ? 'Saving…' : 'Save'}
           </Button>
         }
+        markdownReference={markdownReference}
       />
     </div>
   );

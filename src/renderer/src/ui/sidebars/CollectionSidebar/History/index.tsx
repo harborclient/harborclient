@@ -199,8 +199,8 @@ export function History(): JSX.Element {
       }}
     >
       {entries.length === 0 ? (
-        <EmptyState variant="inline" className="pr-2 py-1.5">
-          No requests yet
+        <EmptyState variant="inline" className="pr-2 py-1.5 text-center">
+          No requests yet.
         </EmptyState>
       ) : null}
       {entries.map((entry) => {

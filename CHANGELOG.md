@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(markdown): implement get_markdown_document tool and enhance markdown handling. (`01e463c`)
+
 ## 2.2.3 - 2026-07-12
 
 - feat(collections, themes): enhance built-in collections and theme management. (`9936f04`)

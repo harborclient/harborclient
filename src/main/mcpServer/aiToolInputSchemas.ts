@@ -140,6 +140,9 @@ const AI_TOOL_INPUT_SHAPES: Record<AiToolName, Record<string, z.ZodType>> = {
   },
   terminal_exec: {
     input: z.string()
+  },
+  get_markdown_document: {
+    uuid: z.string()
   }
 };
 

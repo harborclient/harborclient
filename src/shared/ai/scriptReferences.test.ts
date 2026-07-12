@@ -210,6 +210,31 @@ describe('findAiScriptReferenceCandidates', () => {
     ]);
   });
 
+  it('finds markdown references with character-offset suffixes', () => {
+    const markdownUuid = '44444444-4444-4444-4444-444444444444';
+    expect(findAiScriptReferenceCandidates(`@markdown.${markdownUuid}#10.42`)).toEqual([
+      expect.objectContaining({
+        kind: 'markdown',
+        markdownUuid,
+        text: `@markdown.${markdownUuid}#10.42`,
+        selection: { start: 10, end: 42 }
+      })
+    ]);
+  });
+
+  it('rejects malformed markdown references', () => {
+    expect(findAiScriptReferenceCandidates('@markdown.not-a-uuid#1.2')).toEqual([]);
+    expect(findAiScriptReferenceCandidates('@markdown.550e8400#1.2')).toEqual([]);
+    expect(
+      findAiScriptReferenceCandidates('@markdown.550e8400-e29b-41d4-a716-446655440000')
+    ).toEqual([
+      expect.objectContaining({
+        kind: 'markdown',
+        selection: undefined
+      })
+    ]);
+  });
+
   it('finds collection, folder, and request references by uuid', () => {
     const collectionUuid = '11111111-1111-1111-1111-111111111111';
     const folderUuid = '22222222-2222-2222-2222-222222222222';
@@ -323,6 +348,37 @@ describe('isValidAiScriptReference', () => {
 
   it('rejects terminal references without a stored snapshot', () => {
     const [candidate] = findAiScriptReferenceCandidates('@term.2#1.33');
+    expect(candidate).toBeDefined();
+    expect(isValidAiScriptReference(candidate!, context())).toBe(false);
+  });
+
+  it('accepts markdown references when a matching snapshot exists', () => {
+    const markdownUuid = '44444444-4444-4444-4444-444444444444';
+    const token = `@markdown.${markdownUuid}#10.42`;
+    const [candidate] = findAiScriptReferenceCandidates(token);
+    expect(candidate).toBeDefined();
+    expect(
+      isValidAiScriptReference(
+        candidate!,
+        context({
+          markdownSelections: {
+            [token]: {
+              label: 'Document: README.md',
+              selectedText: 'selected markdown',
+              startOffset: 10,
+              endOffset: 42,
+              startLine: 2,
+              endLine: 3
+            }
+          }
+        })
+      )
+    ).toBe(true);
+  });
+
+  it('rejects markdown references without a stored snapshot', () => {
+    const markdownUuid = '44444444-4444-4444-4444-444444444444';
+    const [candidate] = findAiScriptReferenceCandidates(`@markdown.${markdownUuid}#10.42`);
     expect(candidate).toBeDefined();
     expect(isValidAiScriptReference(candidate!, context())).toBe(false);
   });
@@ -529,6 +585,31 @@ describe('resolveAiScriptReferenceLabel', () => {
     ).toBe('Build shell (lines 1-33)');
   });
 
+  it('returns the markdown label with a line span for markdown references', () => {
+    const markdownUuid = '44444444-4444-4444-4444-444444444444';
+    const token = `@markdown.${markdownUuid}#10.42`;
+    const [candidate] = findAiScriptReferenceCandidates(token);
+    expect(candidate).toBeDefined();
+
+    expect(
+      resolveAiScriptReferenceLabel(
+        candidate!,
+        context({
+          markdownSelections: {
+            [token]: {
+              label: 'Document: README.md',
+              selectedText: 'selected markdown',
+              startOffset: 10,
+              endOffset: 42,
+              startLine: 2,
+              endLine: 4
+            }
+          }
+        })
+      )
+    ).toBe('Document: README.md (lines 2-4)');
+  });
+
   it('returns prefixed labels for collection, folder, and request references', () => {
     const collectionUuid = '11111111-1111-1111-1111-111111111111';
     const folderUuid = '22222222-2222-2222-2222-222222222222';
@@ -725,6 +806,36 @@ describe('buildAiScriptSelectionContextMessage', () => {
     expect(message).toContain('before\nerror output\nafter');
     expect(message).toContain('Terminal output references cannot be edited via tools');
     expect(message).not.toContain('update_request_script');
+  });
+
+  it('includes markdown selection text and get_markdown_document guidance', () => {
+    const markdownUuid = '44444444-4444-4444-4444-444444444444';
+    const token = `@markdown.${markdownUuid}#10.42`;
+    const message = buildAiScriptSelectionContextMessage(
+      `Explain this @markdown.${markdownUuid}#10.42`,
+      context({
+        markdownSelections: {
+          [token]: {
+            label: 'Comment: Echo',
+            selectedText: 'selected markdown',
+            startOffset: 10,
+            endOffset: 42,
+            startLine: 2,
+            endLine: 2
+          }
+        }
+      })
+    );
+
+    expect(message).toContain(
+      'The user selected markdown text and is asking specifically about the SELECTED TEXT below.'
+    );
+    expect(message).toContain(`Reference ${token}`);
+    expect(message).toContain('markdown "Comment: Echo"');
+    expect(message).toContain('Selected markdown text');
+    expect(message).toContain('selected markdown');
+    expect(message).toContain('get_markdown_document');
+    expect(message).toContain('cannot be edited via tools');
   });
 
   it('returns null for collection, folder, and request references', () => {

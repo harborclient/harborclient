@@ -14,6 +14,7 @@ import type {
 import { executeAiTool } from '#/renderer/src/store/ai/aiToolExecutor';
 import {
   setCollections,
+  setDocumentsForCollection,
   setFoldersForCollection,
   setRequestsForCollection,
   setSelectedCollectionId
@@ -22,7 +23,13 @@ import {
   setActiveEnvironmentId,
   setEnvironments
 } from '#/renderer/src/store/slices/environmentsSlice';
-import { openTabWithDraft, updateTab, openPageTab } from '#/renderer/src/store/slices/tabsSlice';
+import {
+  openTabWithDraft,
+  updateTab,
+  openPageTab,
+  openMarkdownTab,
+  updateMarkdownContent
+} from '#/renderer/src/store/slices/tabsSlice';
 import { addTerminal, hydrateTerminals } from '#/renderer/src/store/slices/terminalsSlice';
 import { setShowTerminal } from '#/renderer/src/store/slices/navigationSlice';
 import { selectDraft, selectEffectiveActiveRequestTab } from '#/renderer/src/store/selectors';
@@ -1586,6 +1593,171 @@ describe('executeAiTool', () => {
 
     expect(listRequestsMock).toHaveBeenCalledWith(1);
     expect(result).toMatchObject({ uuid: requestUuid, name: 'Login' });
+  });
+
+  it('returns collection markdown documents by uuid from cached Redux state', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const documentUuid = '44444444-4444-4444-4444-444444444444';
+    store.dispatch(
+      setCollections([
+        {
+          id: 1,
+          uuid: '11111111-1111-1111-1111-111111111111',
+          name: 'API',
+          variables: [],
+          headers: [],
+          auth: defaultAuth(),
+          pre_request_script: '',
+          post_request_script: '',
+          pre_request_scripts: [],
+          post_request_scripts: [],
+          created_at: '2026-01-01T00:00:00.000Z'
+        }
+      ])
+    );
+    store.dispatch(
+      setDocumentsForCollection({
+        collectionId: 1,
+        documents: [
+          {
+            id: 301,
+            uuid: documentUuid,
+            collection_id: 1,
+            folder_id: null,
+            name: 'README.md',
+            content: '# Docs',
+            sort_order: 0,
+            created_at: '2026-01-01T00:00:00.000Z',
+            updated_at: '2026-01-01T00:00:00.000Z'
+          }
+        ]
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_markdown_document',
+        { uuid: documentUuid },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({
+      name: 'README.md',
+      content: '# Docs'
+    });
+  });
+
+  it('prefers the open markdown tab content over cached storage', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const documentUuid = '55555555-5555-5555-5555-555555555555';
+    const document = {
+      id: 302,
+      uuid: documentUuid,
+      collection_id: 1,
+      folder_id: null,
+      name: 'README.md',
+      content: '# Saved',
+      sort_order: 0,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z'
+    };
+    store.dispatch(
+      setCollections([
+        {
+          id: 1,
+          uuid: '11111111-1111-1111-1111-111111111111',
+          name: 'API',
+          variables: [],
+          headers: [],
+          auth: defaultAuth(),
+          pre_request_script: '',
+          post_request_script: '',
+          pre_request_scripts: [],
+          post_request_scripts: [],
+          created_at: '2026-01-01T00:00:00.000Z'
+        }
+      ])
+    );
+    store.dispatch(setDocumentsForCollection({ collectionId: 1, documents: [document] }));
+    store.dispatch(openMarkdownTab({ doc: document, activate: true }));
+    const activeTabId = store.getState().tabs.activeTabId;
+    if (activeTabId == null) {
+      throw new Error('Expected an active markdown tab');
+    }
+    store.dispatch(updateMarkdownContent({ tabId: activeTabId, content: '# Draft' }));
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_markdown_document',
+        { uuid: documentUuid },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({
+      name: 'README.md',
+      content: '# Draft'
+    });
+  });
+
+  it('returns saved request comments by request uuid', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const requestUuid = '66666666-6666-6666-6666-666666666666';
+    const request: SavedRequest = {
+      id: 4,
+      uuid: requestUuid,
+      collection_id: 1,
+      folder_id: null,
+      name: 'Echo',
+      method: 'POST',
+      url: 'https://example.com/echo',
+      headers: [],
+      params: [],
+      auth: defaultAuth(),
+      body: '',
+      body_type: 'none',
+      pre_request_script: '',
+      post_request_script: '',
+      pre_request_scripts: [],
+      post_request_scripts: [],
+      comment: 'Request notes',
+      tags: '',
+      sort_order: 0,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z'
+    };
+    store.dispatch(
+      setCollections([
+        {
+          id: 1,
+          uuid: '11111111-1111-1111-1111-111111111111',
+          name: 'API',
+          variables: [],
+          headers: [],
+          auth: defaultAuth(),
+          pre_request_script: '',
+          post_request_script: '',
+          pre_request_scripts: [],
+          post_request_scripts: [],
+          created_at: '2026-01-01T00:00:00.000Z'
+        }
+      ])
+    );
+    store.dispatch(setRequestsForCollection({ collectionId: 1, requests: [request] }));
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_markdown_document',
+        { uuid: requestUuid },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({
+      name: 'Comment: Echo',
+      content: 'Request notes'
+    });
   });
 
   it('delegates search_docs to window.api.searchDocs', async () => {

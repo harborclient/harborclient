@@ -13,6 +13,7 @@ import {
 } from '#/renderer/src/ui/sidebars/AiSidebar/Chat/useAiScriptReferenceValidationContext';
 import { selectEffectiveActiveRequestTab, selectSnippets } from '#/renderer/src/store/selectors';
 import { selectTerminalSelections } from '#/renderer/src/store/slices/terminalsSlice';
+import { selectMarkdownSelections } from '#/renderer/src/store/slices/markdownSelectionsSlice';
 import {
   appendMessage,
   clearChatCancelState,
@@ -379,6 +380,7 @@ export const sendChatMessage = createAsyncThunk<
         selectEffectiveActiveRequestTab(getState()),
         selectSnippets(getState()),
         selectTerminalSelections(getState()),
+        selectMarkdownSelections(getState()),
         buildSidebarItemNameMapsFromState(getState())
       )
     );

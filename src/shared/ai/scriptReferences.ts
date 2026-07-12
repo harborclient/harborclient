@@ -11,12 +11,13 @@ const AI_SCRIPT_REFERENCE_UUID =
  * - Collections: `@collection.<uuid>`
  * - Folders: `@folder.<uuid>`
  * - Saved requests: `@request.<uuid>`
+ * - Markdown documents and request comments: `@markdown.<uuid>`
  *
- * Request scripts and snippets accept an optional `#<selection-start>.<selection-end>` suffix
- * (character offsets). Terminal references use the same suffix for 1-based line numbers.
+ * Request scripts, snippets, and markdown accept an optional `#<selection-start>.<selection-end>`
+ * suffix (character offsets). Terminal references use the same suffix for 1-based line numbers.
  */
 export const AI_SCRIPT_REFERENCE_PATTERN = new RegExp(
-  `@(?:(active|\\d+)\\.(pre|post)\\.(\\d+)|snippet\\.(${AI_SCRIPT_REFERENCE_UUID})|term\\.(\\d+)|collection\\.(${AI_SCRIPT_REFERENCE_UUID})|folder\\.(${AI_SCRIPT_REFERENCE_UUID})|request\\.(${AI_SCRIPT_REFERENCE_UUID}))(?:#(\\d+)\\.(\\d+))?(?!\\d)`,
+  `@(?:(active|\\d+)\\.(pre|post)\\.(\\d+)|snippet\\.(${AI_SCRIPT_REFERENCE_UUID})|term\\.(\\d+)|collection\\.(${AI_SCRIPT_REFERENCE_UUID})|folder\\.(${AI_SCRIPT_REFERENCE_UUID})|request\\.(${AI_SCRIPT_REFERENCE_UUID})|markdown\\.(${AI_SCRIPT_REFERENCE_UUID}))(?:#(\\d+)\\.(\\d+))?(?!\\d)`,
   'g'
 );
 
@@ -156,6 +157,21 @@ export interface ParsedRequestReference extends ParsedAiScriptReferenceBase {
 }
 
 /**
+ * A parsed `@` reference to a collection markdown document or request comment.
+ */
+export interface ParsedMarkdownReference extends ParsedAiScriptReferenceBase {
+  /**
+   * Discriminator for markdown document and comment references.
+   */
+  kind: 'markdown';
+
+  /**
+   * UUID of the collection document or saved request.
+   */
+  markdownUuid: string;
+}
+
+/**
  * Snapshot of terminal output captured when the user copies a selection to chat.
  */
 export interface TerminalSelectionSnapshot {
@@ -186,6 +202,41 @@ export interface TerminalSelectionSnapshot {
 }
 
 /**
+ * Snapshot of markdown text captured when the user copies a selection to chat.
+ */
+export interface MarkdownSelectionSnapshot {
+  /**
+   * Display label at capture time (for example "Document: README.md").
+   */
+  label: string;
+
+  /**
+   * Plain-text content of the user's selection.
+   */
+  selectedText: string;
+
+  /**
+   * Best-effort start offset in the markdown source.
+   */
+  startOffset: number;
+
+  /**
+   * Best-effort end offset in the markdown source.
+   */
+  endOffset: number;
+
+  /**
+   * 1-based start line of the selection in the markdown source.
+   */
+  startLine: number;
+
+  /**
+   * 1-based end line of the selection in the markdown source.
+   */
+  endLine: number;
+}
+
+/**
  * A parsed `@` script reference with character offsets in the source text.
  */
 export type ParsedAiScriptReference =
@@ -194,7 +245,8 @@ export type ParsedAiScriptReference =
   | ParsedTerminalReference
   | ParsedCollectionReference
   | ParsedFolderReference
-  | ParsedRequestReference;
+  | ParsedRequestReference
+  | ParsedMarkdownReference;
 
 /**
  * Active request tab state used to decide whether an `@` reference is highlightable.
@@ -239,6 +291,11 @@ export interface AiScriptReferenceValidationContext {
    * Terminal selection snapshots keyed by the full `@term` reference token.
    */
   terminalSelections?: Record<string, TerminalSelectionSnapshot>;
+
+  /**
+   * Markdown selection snapshots keyed by the full `@markdown` reference token.
+   */
+  markdownSelections?: Record<string, MarkdownSelectionSnapshot>;
 
   /**
    * Collection display names keyed by uuid for `@collection` badge resolution.
@@ -347,8 +404,9 @@ export function parseAiScriptReferenceMatch(
   const collectionUuid = match[6];
   const folderUuid = match[7];
   const requestUuid = match[8];
-  const selectionStartRaw = match[9];
-  const selectionEndRaw = match[10];
+  const markdownUuid = match[9];
+  const selectionStartRaw = match[10];
+  const selectionEndRaw = match[11];
 
   if (collectionUuid != null) {
     return {
@@ -377,6 +435,17 @@ export function parseAiScriptReferenceMatch(
       start,
       end: start + text.length,
       text
+    };
+  }
+
+  if (markdownUuid != null) {
+    return {
+      kind: 'markdown',
+      markdownUuid,
+      start,
+      end: start + text.length,
+      text,
+      selection: parseSelectionSuffix(selectionStartRaw, selectionEndRaw)
     };
   }
 
@@ -501,6 +570,14 @@ export function isValidAiScriptReference(
   reference: ParsedAiScriptReference,
   context: AiScriptReferenceValidationContext
 ): boolean {
+  if (reference.kind === 'markdown') {
+    if (reference.selection == null) {
+      return false;
+    }
+
+    return context.markdownSelections?.[reference.text] != null;
+  }
+
   if (reference.kind === 'terminal') {
     if (reference.selection == null) {
       return false;
@@ -576,6 +653,10 @@ export function resolveAiScriptReferenceName(
     return context.terminalSelections?.[reference.text]?.terminalLabel ?? null;
   }
 
+  if (reference.kind === 'markdown') {
+    return context.markdownSelections?.[reference.text]?.label ?? null;
+  }
+
   if (reference.kind === 'snippet') {
     const snippet = (context.snippets ?? []).find((entry) => entry.uuid === reference.snippetUuid);
     return snippet?.name ?? null;
@@ -642,6 +723,7 @@ function resolveReferenceSourceCode(
 ): string | null {
   if (
     reference.kind === 'terminal' ||
+    reference.kind === 'markdown' ||
     reference.kind === 'collection' ||
     reference.kind === 'folder' ||
     reference.kind === 'request'
@@ -744,6 +826,15 @@ export function resolveAiScriptReferenceLabel(
     return `${name} ${formatTerminalSelectionLineRange(snapshot.startLine, snapshot.endLine)}`;
   }
 
+  if (reference.kind === 'markdown') {
+    const snapshot = context.markdownSelections?.[reference.text];
+    if (snapshot == null) {
+      return name;
+    }
+
+    return `${name} ${formatTerminalSelectionLineRange(snapshot.startLine, snapshot.endLine)}`;
+  }
+
   if (reference.selection == null) {
     return name;
   }
@@ -827,12 +918,51 @@ function formatTerminalSelectionContextBlock(
   ].join('\n');
 }
 
+/**
+ * Formats one resolved markdown selection reference for the agent context block.
+ *
+ * @param reference - Parsed `@markdown` reference with a character-range suffix.
+ * @param context - Markdown selection snapshots keyed by reference token.
+ * @returns Context block for one markdown reference, or null when not resolvable.
+ */
+function formatMarkdownSelectionContextBlock(
+  reference: ParsedMarkdownReference,
+  context: AiScriptReferenceValidationContext
+): string | null {
+  if (reference.selection == null || !isValidAiScriptReference(reference, context)) {
+    return null;
+  }
+
+  const snapshot = context.markdownSelections?.[reference.text];
+  if (snapshot == null) {
+    return null;
+  }
+
+  const lineSpan =
+    snapshot.startLine === snapshot.endLine
+      ? `line ${snapshot.startLine}`
+      : `lines ${snapshot.startLine}-${snapshot.endLine}`;
+
+  return [
+    `Reference ${reference.text} — markdown "${snapshot.label}".`,
+    `Selected markdown text (characters ${snapshot.startOffset}–${snapshot.endOffset}, ${lineSpan}):`,
+    '```markdown',
+    snapshot.selectedText,
+    '```',
+    'Call get_markdown_document with the same uuid when you need the full document or comment source.'
+  ].join('\n');
+}
+
 function formatScriptSelectionContextBlock(
   reference: ParsedAiScriptReference,
   context: AiScriptReferenceValidationContext
 ): string | null {
   if (reference.kind === 'terminal') {
     return formatTerminalSelectionContextBlock(reference, context);
+  }
+
+  if (reference.kind === 'markdown') {
+    return formatMarkdownSelectionContextBlock(reference, context);
   }
 
   if (reference.selection == null || !isValidAiScriptReference(reference, context)) {
@@ -899,6 +1029,7 @@ function formatWholeScriptReferenceContextBlock(
   if (
     reference.selection != null ||
     reference.kind === 'terminal' ||
+    reference.kind === 'markdown' ||
     reference.kind === 'collection' ||
     reference.kind === 'folder' ||
     reference.kind === 'request'
@@ -999,6 +1130,9 @@ export function buildAiScriptSelectionContextMessage(
   const hasTerminalSelection = resolved.some(
     (entry) => entry.reference.kind === 'terminal' && entry.reference.selection != null
   );
+  const hasMarkdownSelection = resolved.some(
+    (entry) => entry.reference.kind === 'markdown' && entry.reference.selection != null
+  );
   const hasScriptSelection = resolved.some(
     (entry) =>
       (entry.reference.kind === 'request-script' || entry.reference.kind === 'snippet') &&
@@ -1016,6 +1150,11 @@ export function buildAiScriptSelectionContextMessage(
       'The user selected terminal output and is asking specifically about the SELECTED TEXT below.'
     );
   }
+  if (hasMarkdownSelection) {
+    headerParts.push(
+      'The user selected markdown text and is asking specifically about the SELECTED TEXT below.'
+    );
+  }
   if (hasScriptSelection) {
     headerParts.push(
       'The user selected part of a script and is asking specifically about the SELECTED TEXT below.'
@@ -1030,6 +1169,10 @@ export function buildAiScriptSelectionContextMessage(
   const footerParts: string[] = [];
   if (hasScriptSelection) {
     footerParts.push('Focus your answer on the selected region.');
+  } else if (hasMarkdownSelection) {
+    footerParts.push(
+      'Focus your answer on the selected markdown region. Call get_markdown_document when you need the full document or comment source.'
+    );
   } else if (hasWholeScriptReference) {
     footerParts.push('Answer using the referenced script source below.');
   }
@@ -1037,6 +1180,12 @@ export function buildAiScriptSelectionContextMessage(
   if (hasTerminalSelection) {
     footerParts.push(
       'Terminal output references cannot be edited via tools. Explain, diagnose, or suggest shell commands the user can run.'
+    );
+  }
+
+  if (hasMarkdownSelection) {
+    footerParts.push(
+      'Markdown documents and request comments referenced with @markdown.<uuid> cannot be edited via tools. Propose replacement markdown in your reply for the user to paste back into the editor.'
     );
   }
 

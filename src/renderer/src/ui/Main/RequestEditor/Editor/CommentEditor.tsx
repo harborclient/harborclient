@@ -14,15 +14,34 @@ import {
 } from '@mdxeditor/editor';
 import '@mdxeditor/editor/style.css';
 import type { Variable } from '#/shared/types';
-import { useCallback, useEffect, useMemo, useRef, type JSX, type ReactNode } from 'react';
-import { FormGroup } from '@harborclient/sdk/components';
-
-import { useAppDispatch } from '#/renderer/src/store/hooks';
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { FaIcon, FormGroup } from '@harborclient/sdk/components';
+import { faCopy } from '#/renderer/src/fontawesome';
+import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
+import { COPY_TO_CHAT_SHORTCUT_HINT } from '#/renderer/src/hooks/useCopyToChat';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import {
+  selectActiveChatId,
+  setPendingComposerText
+} from '#/renderer/src/store/slices/aiChatSlice';
+import { setMarkdownSelection } from '#/renderer/src/store/slices/markdownSelectionsSlice';
+import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
+import { createNewChat } from '#/renderer/src/store/thunks/aiChat';
 import { clipboardHasRichHtml, shouldParsePasteAsMarkdown } from './pasteMarkdownUtils';
 import { formatMarkdown } from './formatMarkdown';
 import { useMarkdownCodeMirrorTheme } from './useMarkdownCodeMirrorTheme';
 import { variableHighlightPlugin } from './variableHighlightPlugin';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
+import {
+  buildMarkdownReferenceToken,
+  captureMarkdownSelection,
+  findMarkdownSelectionOffsets,
+  getMarkdownSelectionToolbarCoords,
+  isCopyToChatShortcutEvent,
+  lineNumberAtOffset,
+  MARKDOWN_SELECTION_TOOLBAR_DELAY_MS
+} from './markdownSelection';
 
 /** Languages offered in fenced code blocks inside request comments. */
 const CODE_BLOCK_LANGUAGES: Record<string, string> = {
@@ -77,6 +96,21 @@ interface Props {
    * context menu offers Format Document and listens for that menu action.
    */
   enableFormatDocument?: boolean;
+
+  /**
+   * Stable uuid and label for copy-to-chat `@markdown` references.
+   */
+  markdownReference?: {
+    /**
+     * UUID of the collection document or saved request.
+     */
+    uuid: string;
+
+    /**
+     * Display label used in chat badges and selection snapshots.
+     */
+    label: string;
+  };
 }
 
 /** Selector for the MDXEditor scroll container inside the comment editor shell. */
@@ -113,12 +147,22 @@ export function CommentEditor({
   label = 'Comment',
   description = 'Leave a comment to describe the request. Markdown is supported.',
   actions,
-  enableFormatDocument = false
+  enableFormatDocument = false,
+  markdownReference
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
+  const { aiAvailable, aiSettings } = useAiAvailability();
+  const activeChatId = useAppSelector(selectActiveChatId);
   const editorRef = useRef<MDXEditorMethods>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const lastEmittedRef = useRef(value);
+  const selectionToolbarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleCopySelectionToChatRef = useRef<() => Promise<void>>(async () => {});
+  const [selectionToolbarVisible, setSelectionToolbarVisible] = useState(false);
+  const [selectionToolbarCoords, setSelectionToolbarCoords] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const codeMirrorExtensions = useMarkdownCodeMirrorTheme(variables, onEditVariables);
 
   /**
@@ -158,6 +202,153 @@ export function CommentEditor({
     },
     [onChange]
   );
+
+  /**
+   * Hides the floating copy-to-chat toolbar.
+   */
+  const hideSelectionToolbar = useCallback((): void => {
+    setSelectionToolbarVisible(false);
+    setSelectionToolbarCoords(null);
+  }, []);
+
+  /**
+   * Copies the current markdown selection into the AI chat composer.
+   */
+  const handleCopySelectionToChat = useCallback(async (): Promise<void> => {
+    const shell = shellRef.current;
+    if (!shell || markdownReference == null) {
+      return;
+    }
+
+    const capture = captureMarkdownSelection(shell);
+    if (capture == null) {
+      return;
+    }
+
+    const markdown = editorRef.current?.getMarkdown() ?? lastEmittedRef.current;
+    const offsets = findMarkdownSelectionOffsets(markdown, capture.selectedText);
+    const token = buildMarkdownReferenceToken(markdownReference.uuid, offsets.start, offsets.end);
+
+    dispatch(
+      setMarkdownSelection({
+        token,
+        snapshot: {
+          label: markdownReference.label,
+          selectedText: capture.selectedText,
+          startOffset: offsets.start,
+          endOffset: offsets.end,
+          startLine: lineNumberAtOffset(markdown, offsets.start),
+          endLine: lineNumberAtOffset(markdown, Math.max(offsets.start, offsets.end - 1))
+        }
+      })
+    );
+    dispatch(setShowAiSidebar(true));
+    if (activeChatId == null) {
+      await dispatch(createNewChat(aiSettings));
+    }
+
+    dispatch(setPendingComposerText(token));
+    window.getSelection()?.removeAllRanges();
+    hideSelectionToolbar();
+  }, [activeChatId, aiSettings, dispatch, hideSelectionToolbar, markdownReference]);
+
+  /**
+   * Keeps the copy-to-chat handler ref aligned so keyboard listeners can call
+   * the latest callback without re-registering on every render.
+   */
+  useEffect(() => {
+    handleCopySelectionToChatRef.current = handleCopySelectionToChat;
+  }, [handleCopySelectionToChat]);
+
+  /**
+   * Shows or hides the copy-to-chat toolbar when the user selects markdown text.
+   */
+  useEffect(() => {
+    if (!aiAvailable || markdownReference == null) {
+      return;
+    }
+
+    const shell = shellRef.current;
+    if (!shell) {
+      return;
+    }
+
+    /**
+     * Debounces toolbar positioning until the selection settles.
+     */
+    const scheduleToolbarUpdate = (): void => {
+      if (selectionToolbarTimerRef.current != null) {
+        clearTimeout(selectionToolbarTimerRef.current);
+      }
+
+      const capture = captureMarkdownSelection(shell);
+      if (capture == null) {
+        hideSelectionToolbar();
+        return;
+      }
+
+      selectionToolbarTimerRef.current = setTimeout(() => {
+        selectionToolbarTimerRef.current = null;
+        const coords = getMarkdownSelectionToolbarCoords(shell);
+        if (coords == null) {
+          hideSelectionToolbar();
+          return;
+        }
+
+        setSelectionToolbarCoords(coords);
+        setSelectionToolbarVisible(true);
+      }, MARKDOWN_SELECTION_TOOLBAR_DELAY_MS);
+    };
+
+    document.addEventListener('selectionchange', scheduleToolbarUpdate);
+    shell.addEventListener('mouseup', scheduleToolbarUpdate);
+    shell.addEventListener('keyup', scheduleToolbarUpdate);
+
+    return () => {
+      if (selectionToolbarTimerRef.current != null) {
+        clearTimeout(selectionToolbarTimerRef.current);
+      }
+
+      document.removeEventListener('selectionchange', scheduleToolbarUpdate);
+      shell.removeEventListener('mouseup', scheduleToolbarUpdate);
+      shell.removeEventListener('keyup', scheduleToolbarUpdate);
+      hideSelectionToolbar();
+    };
+  }, [aiAvailable, hideSelectionToolbar, markdownReference]);
+
+  /**
+   * Wires Ctrl+Shift+O to copy the current markdown selection to chat.
+   */
+  useEffect(() => {
+    if (!aiAvailable || markdownReference == null) {
+      return;
+    }
+
+    /**
+     * Copies the current selection when the copy-to-chat shortcut is pressed.
+     *
+     * @param event - Keydown event from the document.
+     */
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (!isCopyToChatShortcutEvent(event)) {
+        return;
+      }
+
+      const shell = shellRef.current;
+      if (!shell || captureMarkdownSelection(shell) == null) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      void handleCopySelectionToChatRef.current();
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+    };
+  }, [aiAvailable, markdownReference]);
 
   /**
    * Syncs AI or tab-switch draft updates into the editor via ref when value changes externally.
@@ -296,6 +487,12 @@ export function CommentEditor({
     return unsubscribe;
   }, [dispatch, enableFormatDocument, onChange]);
 
+  const showSelectionToolbar =
+    selectionToolbarVisible &&
+    selectionToolbarCoords != null &&
+    aiAvailable &&
+    markdownReference != null;
+
   return (
     <div
       className="flex h-full min-h-0 flex-1 flex-col border border-separator p-4"
@@ -322,6 +519,30 @@ export function CommentEditor({
           contentEditableClassName="request-comment-editor-content bg-field outline-none"
         />
       </div>
+      {showSelectionToolbar
+        ? createPortal(
+            <button
+              type="button"
+              className="hc-code-editor-selection-action app-no-drag pointer-events-auto fixed z-[70] inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-separator bg-control px-2 py-1 text-[14px] text-text shadow-sm hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+              style={{
+                top: selectionToolbarCoords.top,
+                left: selectionToolbarCoords.left
+              }}
+              aria-label={`Copy selection from ${markdownReference.label} to chat`}
+              onMouseDown={(event) => {
+                event.preventDefault();
+              }}
+              onClick={() => {
+                void handleCopySelectionToChat();
+              }}
+            >
+              <FaIcon icon={faCopy} className="h-3.5 w-3.5" />
+              <span>Copy to chat</span>
+              <span className="text-[14px] text-muted">{COPY_TO_CHAT_SHORTCUT_HINT}</span>
+            </button>,
+            document.body
+          )
+        : null}
     </div>
   );
 }

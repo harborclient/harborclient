@@ -1,5 +1,6 @@
 import { KeyValueEditor, SegmentedTabPanel } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
+import { useMemo } from 'react';
 import type { KeyValue, Variable } from '#/shared/types';
 import { mirrorLegacyScriptString } from '#/shared/scriptRefs';
 import type { RegisteredRequestTab, RequestTabContext } from '#/shared/plugin/types';
@@ -10,7 +11,7 @@ import {
   PRE_REQUEST_SCRIPT_PLACEHOLDER
 } from '#/renderer/src/ui/shared/scriptPlaceholders';
 import { useAppSelector } from '#/renderer/src/store/hooks';
-import { selectSnippets } from '#/renderer/src/store/selectors';
+import { selectRequestsByCollection, selectSnippets } from '#/renderer/src/store/selectors';
 
 import type { RequestDraft } from '#/renderer/src/store/drafts';
 
@@ -90,6 +91,28 @@ export function TabContent({
   requestTabContext
 }: Props): JSX.Element {
   const snippets = useAppSelector(selectSnippets);
+  const requestsByCollection = useAppSelector(selectRequestsByCollection);
+
+  /**
+   * Resolves the saved request uuid used by copy-to-chat `@markdown` references.
+   */
+  const markdownReference = useMemo(() => {
+    if (draft.id == null || draft.collection_id == null) {
+      return undefined;
+    }
+
+    const request = (requestsByCollection[draft.collection_id] ?? []).find(
+      (entry) => entry.id === draft.id
+    );
+    if (request == null) {
+      return undefined;
+    }
+
+    return {
+      uuid: request.uuid,
+      label: `Comment: ${draft.name}`
+    };
+  }, [draft.collection_id, draft.id, draft.name, requestsByCollection]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col pt-4">
@@ -183,6 +206,7 @@ export function TabContent({
           onChange={(comment) => update({ comment })}
           variables={variables}
           onEditVariables={onEditVariables}
+          markdownReference={markdownReference}
         />
       </SegmentedTabPanel>
       {pluginTabs.map((entry) => (

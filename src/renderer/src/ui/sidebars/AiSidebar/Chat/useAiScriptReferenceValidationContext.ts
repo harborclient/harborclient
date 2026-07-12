@@ -1,5 +1,6 @@
 import type {
   AiScriptReferenceValidationContext,
+  MarkdownSelectionSnapshot,
   TerminalSelectionSnapshot
 } from '#/shared/ai/scriptReferences';
 import type { Collection, Folder, SavedRequest, Snippet } from '#/shared/types';
@@ -14,6 +15,7 @@ import {
   selectSnippets
 } from '#/renderer/src/store/selectors';
 import { selectTerminalSelections } from '#/renderer/src/store/slices/terminalsSlice';
+import { selectMarkdownSelections } from '#/renderer/src/store/slices/markdownSelectionsSlice';
 
 /**
  * Sidebar item display names keyed by uuid for `@collection`, `@folder`, and `@request` badges.
@@ -114,18 +116,21 @@ function buildValidationContext(
  * @param tab - Active editor tab, if any.
  * @param snippets - Snippet library for resolving snippet-linked script names and source.
  * @param terminalSelections - Terminal selection snapshots keyed by `@term` reference token.
+ * @param markdownSelections - Markdown selection snapshots keyed by `@markdown` reference token.
  * @param sidebarNames - Collection, folder, and request name maps for sidebar `@` references.
  */
 export function buildAiScriptReferenceValidationContext(
   tab: ReturnType<typeof selectEffectiveActiveRequestTab>,
   snippets: Snippet[],
   terminalSelections: Record<string, TerminalSelectionSnapshot> = {},
+  markdownSelections: Record<string, MarkdownSelectionSnapshot> = {},
   sidebarNames: Partial<SidebarItemNameMaps> = {}
 ): AiScriptReferenceValidationContext {
   return {
     ...buildValidationContext(tab),
     snippets,
     terminalSelections,
+    markdownSelections,
     collectionNamesByUuid: sidebarNames.collectionNamesByUuid,
     folderNamesByUuid: sidebarNames.folderNamesByUuid,
     requestNamesByUuid: sidebarNames.requestNamesByUuid
@@ -139,6 +144,7 @@ export function useAiScriptReferenceValidationContext(): AiScriptReferenceValida
   const activeTab = useAppSelector(selectEffectiveActiveRequestTab);
   const snippets = useAppSelector(selectSnippets);
   const terminalSelections = useAppSelector(selectTerminalSelections);
+  const markdownSelections = useAppSelector(selectMarkdownSelections);
   const collections = useAppSelector(selectCollections);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
@@ -157,8 +163,9 @@ export function useAiScriptReferenceValidationContext(): AiScriptReferenceValida
         activeTab,
         snippets,
         terminalSelections,
+        markdownSelections,
         sidebarNames
       ),
-    [activeTab, snippets, terminalSelections, sidebarNames]
+    [activeTab, snippets, terminalSelections, markdownSelections, sidebarNames]
   );
 }

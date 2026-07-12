@@ -44,7 +44,7 @@
   "requests": [
     {
       "uuid": "6eee54b5-d375-422e-8044-e0e61ef65c71",
-      "name": "Echo POST",
+      "name": "Echo GET",
       "method": "GET",
       "url": "https://echo.harborclient.com/get",
       "headers": [],

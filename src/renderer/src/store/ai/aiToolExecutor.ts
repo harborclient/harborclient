@@ -36,7 +36,12 @@ import {
 } from '#/shared/ai/chatContext';
 import { isMcpPrefixedToolName } from '#/shared/mcpToolNames';
 import { hostFromUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/cookieHost';
-import { isRequestTab, isTabDirty, type RequestTab } from '#/renderer/src/store/drafts';
+import {
+  isMarkdownTab,
+  isRequestTab,
+  isTabDirty,
+  type RequestTab
+} from '#/renderer/src/store/drafts';
 import { mirrorLegacyScriptString, resolveScriptSourceCode } from '#/shared/scriptRefs';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import { selectShowTerminal } from '#/renderer/src/store/slices/navigationSlice';
@@ -45,11 +50,13 @@ import {
   selectActiveEnvironmentId,
   selectEffectiveActiveRequestTab,
   selectCollections,
+  selectDocumentsByCollection,
   selectEnvironments,
   selectFoldersByCollection,
   selectRequestsByCollection,
   selectSelectedCollectionId,
-  selectSnippets
+  selectSnippets,
+  selectTabs
 } from '#/renderer/src/store/selectors';
 import type { RootState } from '#/renderer/src/store/redux';
 import { sendRequest } from '#/renderer/src/store/thunks/requests';
@@ -68,6 +75,7 @@ import type {
   AuthConfig,
   BodyType,
   Collection,
+  CollectionDocument,
   Folder,
   HttpMethod,
   KeyValue,
@@ -226,6 +234,8 @@ export async function executeAiTool(
         return JSON.stringify(getActiveTerminalLines(ctx.getState(), args));
       case 'terminal_exec':
         return JSON.stringify(terminalExec(ctx.getState(), args));
+      case 'get_markdown_document':
+        return JSON.stringify(await getMarkdownDocument(args, ctx.getState()));
       default: {
         const exhaustive: never = name;
         return JSON.stringify({ error: `Unhandled tool: ${String(exhaustive)}` });
@@ -445,6 +455,82 @@ async function getRequest(
   }
 
   return { error: `Request with uuid "${uuid}" not found.` };
+}
+
+/**
+ * Finds one collection markdown document by uuid in cached Redux state.
+ *
+ * @param state - Current Redux root state.
+ * @param uuid - Collection document uuid to locate.
+ */
+function findDocumentInState(state: RootState, uuid: string): CollectionDocument | undefined {
+  for (const documents of Object.values(selectDocumentsByCollection(state))) {
+    const match = documents.find((document) => document.uuid === uuid);
+    if (match != null) {
+      return match;
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Returns one markdown document or saved request comment by uuid.
+ *
+ * Prefers the open markdown editor tab, then cached collection documents, then
+ * saved request comments resolved by the same uuid.
+ *
+ * @param args - Tool arguments containing uuid.
+ * @param state - Current Redux root state.
+ */
+async function getMarkdownDocument(
+  args: unknown,
+  state: RootState
+): Promise<{ name: string; content: string } | { error: string }> {
+  const uuid = parseSidebarItemUuidArgs(args);
+
+  for (const tab of selectTabs(state)) {
+    if (!isMarkdownTab(tab)) {
+      continue;
+    }
+
+    const document = findDocumentInState(state, uuid);
+    if (document != null && document.id === tab.docId) {
+      return {
+        name: tab.name,
+        content: tab.content
+      };
+    }
+  }
+
+  const activeRequestTab = selectEffectiveActiveRequestTab(state);
+  if (activeRequestTab?.draft.id != null) {
+    const activeRequest = findRequestInState(state, uuid);
+    if (activeRequest != null && activeRequest.id === activeRequestTab.draft.id) {
+      return {
+        name: `Comment: ${activeRequestTab.draft.name}`,
+        content: activeRequestTab.draft.comment
+      };
+    }
+  }
+
+  const cachedDocument = findDocumentInState(state, uuid);
+  if (cachedDocument != null) {
+    return {
+      name: cachedDocument.name,
+      content: cachedDocument.content
+    };
+  }
+
+  const requestResult = await getRequest(args, state);
+  if ('error' in requestResult) {
+    return { error: `Markdown document with uuid "${uuid}" not found.` };
+  }
+
+  return {
+    name: `Comment: ${requestResult.name}`,
+    content: requestResult.comment
+  };
 }
 
 /**
