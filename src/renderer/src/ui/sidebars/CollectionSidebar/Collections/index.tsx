@@ -1398,7 +1398,7 @@ export function Collections(): JSX.Element {
                       </SortableContext>
                     </div>
 
-                    <DragOverlay>
+                    <DragOverlay dropAnimation={null}>
                       {dragCollectionId === collection.id &&
                       activeDragKind === 'request' &&
                       activeDragRequest ? (
@@ -1437,7 +1437,7 @@ export function Collections(): JSX.Element {
         </SortableContext>
       </div>
 
-      <DragOverlay>
+      <DragOverlay dropAnimation={null}>
         {activeDragCollection ? (
           <div className="rounded border border-separator bg-surface px-2 py-1 text-[16px] font-medium shadow-md">
             {activeDragCollection.name}

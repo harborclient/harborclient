@@ -1,8 +1,8 @@
 import {
   EmptyState,
-  FaIcon,
   FooterPanel,
   ResizeHandle,
+  RoundButton,
   useResizable
 } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useId, useState, type JSX, type KeyboardEvent } from 'react';
@@ -17,7 +17,6 @@ import {
   selectTerminalsHydrated,
   setActiveTerminal
 } from '#/renderer/src/store/slices/terminalsSlice';
-import { roundIconButtonClass } from '#/renderer/src/ui/shared/classes';
 import { TerminalTabButton } from './TerminalTabButton';
 import { XtermView } from './XtermView';
 
@@ -182,30 +181,24 @@ export function TerminalPanel({ open, onClose }: Props): JSX.Element {
   };
 
   const addButton = (
-    <button
+    <RoundButton
       key="add-terminal"
-      type="button"
-      className={`inline-flex cursor-pointer h-8 w-8 items-center justify-center rounded-md text-text hover:bg-selection ${roundIconButtonClass}`}
-      aria-label="Add terminal"
+      icon={faPlus}
+      ariaLabel="Add terminal"
       title="Add terminal"
       onClick={handleAddTerminal}
-    >
-      <FaIcon icon={faPlus} className="h-4 w-4" />
-    </button>
+    />
   );
 
   const trashButton = (
-    <button
+    <RoundButton
       key="remove-terminal"
-      type="button"
-      className={`inline-flex cursor-pointer h-8 w-8 items-center justify-center rounded-md text-text hover:bg-selection ${roundIconButtonClass}`}
-      aria-label="Delete terminal"
+      icon={faTrash}
+      ariaLabel="Delete terminal"
       title="Delete terminal"
       disabled={activeTerminalId == null}
       onClick={handleRemoveActiveTerminal}
-    >
-      <FaIcon icon={faTrash} className="h-4 w-4" />
-    </button>
+    />
   );
 
   return (

@@ -12,6 +12,7 @@ import {
   type PendingLoadDocument
 } from '#/renderer/src/store/slices/modalsSlice';
 import {
+  moveContainerItemLocal,
   setDocumentsForCollection,
   setSelectedCollectionId,
   upsertDocumentInCollection
@@ -143,6 +144,15 @@ export const moveDocumentToFolder = createAsyncThunk<
   { collectionId: number; documentId: number; folderId: number | null; index: number },
   ThunkApiConfig
 >('documents/move', async ({ collectionId, documentId, folderId, index }, { dispatch }) => {
+  dispatch(
+    moveContainerItemLocal({
+      collectionId,
+      kind: 'document',
+      id: documentId,
+      targetFolderId: folderId,
+      index
+    })
+  );
   await window.api.moveDocument(documentId, folderId, index);
   await dispatch(refreshDocuments(collectionId));
   const { refreshRequests } = await import('#/renderer/src/store/thunks/collections');

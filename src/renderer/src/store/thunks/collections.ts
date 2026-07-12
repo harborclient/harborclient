@@ -15,6 +15,10 @@ import { mirrorLegacyScriptString } from '#/shared/scriptRefs';
 import { resolveImportedRunnerTargetIds } from '#/shared/collectionRunner';
 import {
   focusSidebarItem as focusSidebarItemAction,
+  moveContainerItemLocal,
+  reorderCollectionsLocal,
+  reorderContainerItemsLocal,
+  reorderFoldersLocal,
   setCollections,
   setFoldersForCollection,
   setRequestsForCollection,
@@ -409,6 +413,7 @@ export const reorderCollections = createAsyncThunk<
   { orderedCollectionIds: number[] },
   ThunkApiConfig
 >('collections/reorderCollections', async ({ orderedCollectionIds }, { dispatch }) => {
+  dispatch(reorderCollectionsLocal({ orderedCollectionIds }));
   await window.api.reorderCollections(orderedCollectionIds);
   await dispatch(refreshCollections());
 });
@@ -521,6 +526,7 @@ export const reorderFolders = createAsyncThunk<
   { collectionId: number; orderedFolderIds: number[] },
   ThunkApiConfig
 >('collections/reorderFolders', async ({ collectionId, orderedFolderIds }, { dispatch }) => {
+  dispatch(reorderFoldersLocal({ collectionId, orderedFolderIds }));
   await window.api.reorderFolders(collectionId, orderedFolderIds);
   await dispatch(refreshFolders(collectionId));
 });
@@ -535,6 +541,13 @@ export const reorderRequests = createAsyncThunk<
 >(
   'collections/reorderRequests',
   async ({ collectionId, folderId, orderedRequestIds }, { dispatch }) => {
+    dispatch(
+      reorderContainerItemsLocal({
+        collectionId,
+        folderId,
+        items: orderedRequestIds.map((id) => ({ kind: 'request', id }))
+      })
+    );
     await window.api.reorderRequests(collectionId, folderId, orderedRequestIds);
     await dispatch(refreshRequests(collectionId));
   }
@@ -548,6 +561,7 @@ export const reorderContainerItems = createAsyncThunk<
   { collectionId: number; folderId: number | null; items: ContainerItemRef[] },
   ThunkApiConfig
 >('collections/reorderContainerItems', async ({ collectionId, folderId, items }, { dispatch }) => {
+  dispatch(reorderContainerItemsLocal({ collectionId, folderId, items }));
   await window.api.reorderContainerItems(collectionId, folderId, items);
   await dispatch(refreshRequests(collectionId));
   await dispatch(refreshDocuments(collectionId));
@@ -561,6 +575,15 @@ export const moveRequestToFolder = createAsyncThunk<
   { collectionId: number; requestId: number; folderId: number | null; index: number },
   ThunkApiConfig
 >('collections/moveRequest', async ({ collectionId, requestId, folderId, index }, { dispatch }) => {
+  dispatch(
+    moveContainerItemLocal({
+      collectionId,
+      kind: 'request',
+      id: requestId,
+      targetFolderId: folderId,
+      index
+    })
+  );
   await window.api.moveRequest(requestId, folderId, index);
   await dispatch(refreshRequests(collectionId));
   await dispatch(refreshDocuments(collectionId));

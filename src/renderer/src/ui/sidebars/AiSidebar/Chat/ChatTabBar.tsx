@@ -92,7 +92,6 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
       sortablePrefix="ai-chat-tab-sort:"
       className="relative z-10"
       maxTabWidthClass="max-w-[180px]"
-      sortableCursor="grab"
       newTab={{
         ariaLabel: 'New chat',
         title: 'New chat',

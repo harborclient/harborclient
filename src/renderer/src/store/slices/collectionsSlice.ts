@@ -1,4 +1,9 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import {
+  mergeContainerItems,
+  toContainerItemRefs,
+  type ContainerItemRef
+} from '#/shared/collectionContainerOrder';
 import type { Collection, CollectionDocument, Folder, SavedRequest } from '#/shared/types';
 
 export interface CollectionsState {
@@ -112,6 +117,129 @@ const collectionsSlice = createSlice({
       const next = [...folders];
       next[index] = folder;
       state.foldersByCollection[collectionId] = next;
+    },
+    /**
+     * Optimistically reorders top-level collections to match drag-and-drop before IPC persistence.
+     */
+    reorderCollectionsLocal(state, action: PayloadAction<{ orderedCollectionIds: number[] }>) {
+      const { orderedCollectionIds } = action.payload;
+      if (orderedCollectionIds.length !== state.collections.length) {
+        return;
+      }
+
+      const collectionsById = new Map(
+        state.collections.map((collection) => [collection.id, collection])
+      );
+      const reordered = orderedCollectionIds.map((id) => collectionsById.get(id));
+      if (reordered.some((collection) => collection == null)) {
+        return;
+      }
+
+      state.collections = reordered as Collection[];
+    },
+    /**
+     * Optimistically reorders folders within one collection before IPC persistence.
+     */
+    reorderFoldersLocal(
+      state,
+      action: PayloadAction<{ collectionId: number; orderedFolderIds: number[] }>
+    ) {
+      const { collectionId, orderedFolderIds } = action.payload;
+      const folders = state.foldersByCollection[collectionId] ?? [];
+      if (orderedFolderIds.length !== folders.length) {
+        return;
+      }
+
+      const foldersById = new Map(folders.map((folder) => [folder.id, folder]));
+      const reordered = orderedFolderIds.map((id) => foldersById.get(id));
+      if (reordered.some((folder) => folder == null)) {
+        return;
+      }
+
+      state.foldersByCollection[collectionId] = reordered as Folder[];
+    },
+    /**
+     * Optimistically rewrites unified container sort_order values before IPC persistence.
+     */
+    reorderContainerItemsLocal(
+      state,
+      action: PayloadAction<{
+        collectionId: number;
+        folderId: number | null;
+        items: ContainerItemRef[];
+      }>
+    ) {
+      const { collectionId, items } = action.payload;
+      const requests = state.requestsByCollection[collectionId] ?? [];
+      const documents = state.documentsByCollection[collectionId] ?? [];
+
+      items.forEach((item, index) => {
+        if (item.kind === 'request') {
+          const request = requests.find((entry) => entry.id === item.id);
+          if (request != null) {
+            request.sort_order = index;
+          }
+          return;
+        }
+
+        const document = documents.find((entry) => entry.id === item.id);
+        if (document != null) {
+          document.sort_order = index;
+        }
+      });
+    },
+    /**
+     * Optimistically moves a request or document into another folder container before IPC persistence.
+     */
+    moveContainerItemLocal(
+      state,
+      action: PayloadAction<{
+        collectionId: number;
+        kind: 'request' | 'document';
+        id: number;
+        targetFolderId: number | null;
+        index: number;
+      }>
+    ) {
+      const { collectionId, kind, id, targetFolderId, index } = action.payload;
+      const requests = state.requestsByCollection[collectionId] ?? [];
+      const documents = state.documentsByCollection[collectionId] ?? [];
+
+      if (kind === 'request') {
+        const request = requests.find((entry) => entry.id === id);
+        if (request == null) {
+          return;
+        }
+        request.folder_id = targetFolderId;
+      } else {
+        const document = documents.find((entry) => entry.id === id);
+        if (document == null) {
+          return;
+        }
+        document.folder_id = targetFolderId;
+      }
+
+      const movedRef: ContainerItemRef = { kind, id };
+      const containerRefs = toContainerItemRefs(
+        mergeContainerItems(requests, documents, targetFolderId)
+      ).filter((item) => !(item.kind === kind && item.id === id));
+      const clampedIndex = Math.min(Math.max(0, index), containerRefs.length);
+      containerRefs.splice(clampedIndex, 0, movedRef);
+
+      containerRefs.forEach((item, sortOrder) => {
+        if (item.kind === 'request') {
+          const request = requests.find((entry) => entry.id === item.id);
+          if (request != null) {
+            request.sort_order = sortOrder;
+          }
+          return;
+        }
+
+        const document = documents.find((entry) => entry.id === item.id);
+        if (document != null) {
+          document.sort_order = sortOrder;
+        }
+      });
     }
   }
 });
@@ -124,6 +252,10 @@ export const {
   setDocumentsForCollection,
   setFoldersForCollection,
   upsertFolderInCollection,
-  upsertDocumentInCollection
+  upsertDocumentInCollection,
+  reorderCollectionsLocal,
+  reorderFoldersLocal,
+  reorderContainerItemsLocal,
+  moveContainerItemLocal
 } = collectionsSlice.actions;
 export default collectionsSlice.reducer;

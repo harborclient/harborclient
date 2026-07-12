@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(collections): implement local reordering and moving of collections and container items. (`f769b9b`)
+
 ## 2.2.1 - 2026-07-12
 
 - chore(dependencies): update @harborclient/sdk to version 1.0.72. (`d79aa21`)

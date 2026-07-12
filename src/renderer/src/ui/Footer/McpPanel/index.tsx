@@ -174,7 +174,6 @@ export function McpPanel({ open, onClose, onStatusChange }: Props): JSX.Element 
       closeLabel="MCP server"
       storageKey="hc.mcpPanelHeight"
       title="MCP Server"
-      description="Controls the state of the MCP server."
     >
       {loading || !serverSettings ? (
         <p className="m-0 p-4 text-[16px] text-muted" role="status">

@@ -1,4 +1,4 @@
-import { EmptyState, FaIcon, FooterButton, FooterPanel } from '@harborclient/sdk/components';
+import { EmptyState, RoundButton, FooterPanel } from '@harborclient/sdk/components';
 import { useCallback, useState, type JSX } from 'react';
 import type { ConsoleEntry } from '#/renderer/src/store';
 import { EntryRow } from './EntryRow';
@@ -57,11 +57,14 @@ export function ConsolePanel({ entries, open, onClose, onClear }: Props): JSX.El
       closeLabel="console"
       storageKey="hc.consoleHeight"
       title="Console"
-      description="Console entries for the recent requests."
       buttons={[
-        <FooterButton key="close" onClick={onClear} title="Clear">
-          <FaIcon icon={faEraser} />
-        </FooterButton>
+        <RoundButton
+          key="close"
+          icon={faEraser}
+          onClick={onClear}
+          title="Clear"
+          ariaLabel="Clear terminal"
+        />
       ]}
     >
       {entries.length === 0 ? (
