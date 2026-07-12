@@ -216,7 +216,6 @@ export function TerminalPanel({ open, onClose }: Props): JSX.Element {
       closeLabel="terminal"
       storageKey="hc.terminalPanelHeight"
       title="Terminal"
-      description="Interactive shell sessions in the footer."
       buttons={[addButton, trashButton]}
     >
       <div className="flex h-full min-h-0 w-full">

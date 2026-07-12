@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- refactor(terminal-panel): remove description from TerminalPanel component. (`00a0d99`)
+
 ## 2.2.0 - 2026-07-12
 
 - feat(settings): enhance terminal and panel layout settings. (`d9cb138`)

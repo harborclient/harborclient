@@ -159,8 +159,8 @@ export function RunResults(): JSX.Element {
       }}
     >
       {runResults.length === 0 ? (
-        <EmptyState variant="inline" className="pr-2 py-1.5">
-          No saved runs yet
+        <EmptyState variant="inline" className="pr-2 py-1.5 text-center">
+          No saved runs yet.
         </EmptyState>
       ) : null}
 
