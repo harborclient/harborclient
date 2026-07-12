@@ -1,3 +1,5 @@
+import type { OperatingSystemInfo } from '#/shared/types';
+
 /**
  * True when running on macOS.
  */
@@ -22,4 +24,13 @@ export function platformClassName(): string {
   if (isMac) return 'platform-darwin';
   if (isLinux) return 'platform-linux';
   return '';
+}
+
+/**
+ * Returns host operating system metadata exposed from the preload bridge.
+ *
+ * @returns Platform, type, release, and CPU architecture for the local machine.
+ */
+export function getOperatingSystemInfo(): OperatingSystemInfo {
+  return window.operatingSystemInfo;
 }

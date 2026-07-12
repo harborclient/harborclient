@@ -41,6 +41,7 @@ import { buildReorderMenuGroup } from '@harborclient/sdk/components';
 import { usePluginContextMenuItems } from '#/renderer/src/plugins/pluginHooks';
 import { buildPluginContextMenuGroups } from '#/renderer/src/plugins/pluginContextMenuHelpers';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
+import { useCopyToChat } from '#/renderer/src/hooks/useCopyToChat';
 import { faChevronDown, faChevronRight, faMarkdown } from '#/renderer/src/fontawesome';
 import { METHOD_CLASSES, sourceRow } from '#/renderer/src/ui/shared/classes';
 import { AnimatedCollapse } from '#/renderer/src/ui/shared/AnimatedCollapse';
@@ -146,6 +147,7 @@ export function Collections(): JSX.Element {
     onRunSelectedRequests
   } = useCollectionActions();
   const confirm = useConfirm();
+  const { aiAvailable, copyToChat } = useCopyToChat();
   const pluginContextMenuItems = usePluginContextMenuItems();
   const developerToolsEnabled = useDeveloperToolsEnabled();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -831,6 +833,16 @@ export function Collections(): JSX.Element {
                           onSelect: () => onRunCollection(collection.id, collection.name)
                         }
                       ],
+                      ...(aiAvailable
+                        ? [
+                            [
+                              {
+                                label: 'Copy to chat',
+                                onSelect: () => void copyToChat(`@collection.${collection.uuid}`)
+                              }
+                            ]
+                          ]
+                        : []),
                       ...buildReorderMenuGroup(collectionIndex, collections.length, (direction) =>
                         moveCollection(collection.id, direction)
                       ),
@@ -1005,6 +1017,10 @@ export function Collections(): JSX.Element {
                                     onDeleteRequest={onDeleteRequest}
                                     onDuplicateRequest={onDuplicateRequest}
                                     onExportRequest={onExportRequest}
+                                    aiChatAvailable={aiAvailable}
+                                    onCopyToChat={(request) =>
+                                      void copyToChat(`@request.${request.uuid}`)
+                                    }
                                     onRunSelected={() =>
                                       onRunSelectedRequests(selectedRequestsOrdered)
                                     }
@@ -1160,6 +1176,17 @@ export function Collections(): JSX.Element {
                                             )
                                         }
                                       ],
+                                      ...(aiAvailable
+                                        ? [
+                                            [
+                                              {
+                                                label: 'Copy to chat',
+                                                onSelect: () =>
+                                                  void copyToChat(`@folder.${folder.uuid}`)
+                                              }
+                                            ]
+                                          ]
+                                        : []),
                                       ...buildReorderMenuGroup(
                                         folderIndex,
                                         folders.length,
@@ -1285,6 +1312,10 @@ export function Collections(): JSX.Element {
                                             onDeleteRequest={onDeleteRequest}
                                             onDuplicateRequest={onDuplicateRequest}
                                             onExportRequest={onExportRequest}
+                                            aiChatAvailable={aiAvailable}
+                                            onCopyToChat={(request) =>
+                                              void copyToChat(`@request.${request.uuid}`)
+                                            }
                                             onRunSelected={() =>
                                               onRunSelectedRequests(selectedRequestsOrdered)
                                             }

@@ -4,9 +4,15 @@ import { getAvailableModels, resolveAiModelOption } from '#/shared/ai/models';
 import { buildAiScriptSelectionContextMessage } from '#/shared/ai/scriptReferences';
 import type { AiSettings, ChatMessage, ChatStepMessage, ChatSummary } from '#/shared/types';
 import { executeAiToolCall } from '#/renderer/src/store/ai/aiToolExecutor';
-import type { RootState, ThunkApiConfig } from '#/renderer/src/store/redux';
-import { buildAiScriptReferenceValidationContext } from '#/renderer/src/ui/sidebars/AiSidebar/Chat/useAiScriptReferenceValidationContext';
+import type { AppDispatch, RootState, ThunkApiConfig } from '#/renderer/src/store/redux';
+import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
+import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
+import {
+  buildAiScriptReferenceValidationContext,
+  buildSidebarItemNameMapsFromState
+} from '#/renderer/src/ui/sidebars/AiSidebar/Chat/useAiScriptReferenceValidationContext';
 import { selectActiveTab, selectSnippets } from '#/renderer/src/store/selectors';
+import { selectTerminalSelections } from '#/renderer/src/store/slices/terminalsSlice';
 import {
   appendMessage,
   clearChatCancelState,
@@ -27,6 +33,45 @@ import {
 } from '#/renderer/src/store/slices/aiChatSlice';
 
 const MAX_TOOL_ITERATIONS = 6;
+
+/**
+ * Prompts the user before the AI agent sends input to the active footer terminal.
+ *
+ * @param rawArgs - Raw JSON tool arguments from the model.
+ * @param getState - Reads the current Redux root state.
+ * @param dispatch - Redux dispatch for modal and settings updates.
+ * @returns True when the user allowed the command or confirmations are suppressed.
+ */
+export async function confirmAgentTerminalCommand(
+  rawArgs: string,
+  getState: () => RootState,
+  dispatch: AppDispatch
+): Promise<boolean> {
+  if (!getState().settings.general.warnWhenAgentUsesTerminal) {
+    return true;
+  }
+
+  let input = '';
+  try {
+    input = String((JSON.parse(rawArgs) as { input?: unknown })?.input ?? '');
+  } catch {
+    input = '';
+  }
+
+  const result = await showConfirm(dispatch, {
+    title: 'Allow terminal command?',
+    message: `Agent is attempting to send commands to the terminal.${input ? `\n\n${input}` : ''}`,
+    confirmLabel: 'Allow',
+    variant: 'danger',
+    checkboxLabel: 'Do not show again'
+  });
+
+  if (result.confirmed && result.checkboxChecked) {
+    await dispatch(patchGeneralSettings({ warnWhenAgentUsesTerminal: false }));
+  }
+
+  return result.confirmed;
+}
 
 /**
  * Returns whether a chat send was cancelled by the user.
@@ -332,7 +377,9 @@ export const sendChatMessage = createAsyncThunk<
       trimmed,
       buildAiScriptReferenceValidationContext(
         selectActiveTab(getState()),
-        selectSnippets(getState())
+        selectSnippets(getState()),
+        selectTerminalSelections(getState()),
+        buildSidebarItemNameMapsFromState(getState())
       )
     );
     if (selectionContext != null) {
@@ -376,6 +423,22 @@ export const sendChatMessage = createAsyncThunk<
         for (const call of step.toolCalls) {
           if (getState().aiChat.cancelRequestedByChat[chatId]) {
             break;
+          }
+
+          if (call.name === 'terminal_exec') {
+            const allowed = await confirmAgentTerminalCommand(
+              call.arguments,
+              getState,
+              dispatch as AppDispatch
+            );
+            if (!allowed) {
+              messages.push({
+                role: 'tool',
+                tool_call_id: call.id,
+                content: JSON.stringify({ error: 'User declined to allow the terminal command.' })
+              });
+              continue;
+            }
           }
 
           const result = await executeAiToolCall(call.name, call.arguments, {

@@ -88,7 +88,7 @@ export interface SidebarExpansionState {
 export const DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT = 340;
 
 /**
- * Persisted visibility for the left and AI sidebars and request/response editors.
+ * Persisted visibility for sidebars, request/response editors, and footer panels.
  */
 export interface PanelLayoutState {
   /**
@@ -115,6 +115,31 @@ export interface PanelLayoutState {
    * Request editor panel height in pixels when both request and response editors are visible.
    */
   requestEditorSplitHeight: number;
+
+  /**
+   * Whether the footer console panel is open.
+   */
+  showConsole: boolean;
+
+  /**
+   * Whether the footer variables panel is open.
+   */
+  showVariables: boolean;
+
+  /**
+   * Whether the footer MCP server panel is open.
+   */
+  showMcp: boolean;
+
+  /**
+   * Whether the footer terminal panel is open.
+   */
+  showTerminal: boolean;
+
+  /**
+   * Active plugin footer panel id, when a plugin panel is open.
+   */
+  activePluginFooterPanelId: string | null;
 }
 
 /**
@@ -250,6 +275,11 @@ export interface GeneralSettings {
    * When true, clicking a tab group in the sidebar shows a confirmation dialog before opening tabs.
    */
   warnWhenOpeningTabGroup: boolean;
+
+  /**
+   * When true, the AI agent must confirm before sending commands to the footer terminal.
+   */
+  warnWhenAgentUsesTerminal: boolean;
 
   /**
    * CodeMirror syntax theme applied to all editor instances.

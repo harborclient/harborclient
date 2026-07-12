@@ -1,12 +1,43 @@
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { useCallback, useEffect, useRef, type JSX } from 'react';
+import { FaIcon } from '@harborclient/sdk/components';
+import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
+import { createPortal } from 'react-dom';
+import { faCopy } from '#/renderer/src/fontawesome';
+import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
+import { COPY_TO_CHAT_SHORTCUT_HINT } from '#/renderer/src/hooks/useCopyToChat';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import {
+  selectActiveChatId,
+  setPendingComposerText
+} from '#/renderer/src/store/slices/aiChatSlice';
+import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
+import { setTerminalSelection } from '#/renderer/src/store/slices/terminalsSlice';
+import { createNewChat } from '#/renderer/src/store/thunks/aiChat';
+import { registerTerminalInstance, unregisterTerminalInstance } from './terminalRegistry';
+import {
+  buildTerminalReferenceToken,
+  captureTerminalSelection,
+  getTerminalSelectionToolbarCoords,
+  isCopyToChatShortcutEvent,
+  TERMINAL_SELECTION_TOOLBAR_DELAY_MS
+} from './terminalSelection';
 
 interface Props {
   /**
    * Stable terminal tab id shared with Redux and IPC.
    */
   id: string;
+
+  /**
+   * 1-based index of this terminal tab in the footer switcher.
+   */
+  index: number;
+
+  /**
+   * Display label shown in the vertical terminal switcher.
+   */
+  title: string;
 
   /**
    * Working directory for the shell; blank values use the user home directory.
@@ -160,7 +191,10 @@ function writelnTerminalOutput(terminal: Terminal, data: string): void {
 /**
  * Renders one xterm.js instance backed by a main-process pseudo-terminal session.
  */
-export function XtermView({ id, cwd, active, panelOpen }: Props): JSX.Element {
+export function XtermView({ id, index, title, cwd, active, panelOpen }: Props): JSX.Element {
+  const dispatch = useAppDispatch();
+  const { aiAvailable, aiSettings } = useAiAvailability();
+  const activeChatId = useAppSelector(selectActiveChatId);
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -168,8 +202,85 @@ export function XtermView({ id, cwd, active, panelOpen }: Props): JSX.Element {
   const unmountingRef = useRef(false);
   const sessionDisposingRef = useRef(false);
   const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const selectionToolbarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeRef = useRef(active);
+  const aiAvailableRef = useRef(aiAvailable);
+  const handleCopySelectionToChatRef = useRef<() => Promise<void>>(async () => {});
+  const [selectionToolbarVisible, setSelectionToolbarVisible] = useState(false);
+  const [selectionToolbarCoords, setSelectionToolbarCoords] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
 
   const shouldAttach = active && panelOpen;
+
+  /**
+   * Keeps latest active/AI-availability values on refs so the selection-change
+   * handler (registered once by the terminal-creation effect) can read fresh
+   * state without forcing the xterm instance to be torn down and recreated.
+   */
+  useEffect(() => {
+    activeRef.current = active;
+    aiAvailableRef.current = aiAvailable;
+  }, [active, aiAvailable]);
+
+  /**
+   * Hides the floating copy-to-chat toolbar and clears any pending show timer.
+   */
+  const hideSelectionToolbar = useCallback((): void => {
+    if (selectionToolbarTimerRef.current != null) {
+      clearTimeout(selectionToolbarTimerRef.current);
+      selectionToolbarTimerRef.current = null;
+    }
+
+    setSelectionToolbarVisible(false);
+    setSelectionToolbarCoords(null);
+  }, []);
+
+  /**
+   * Copies the current terminal selection into the AI chat composer.
+   */
+  const handleCopySelectionToChat = useCallback(async (): Promise<void> => {
+    const terminal = terminalRef.current;
+    if (!terminal) {
+      return;
+    }
+
+    const capture = captureTerminalSelection(terminal);
+    if (capture == null) {
+      return;
+    }
+
+    const token = buildTerminalReferenceToken(index, capture.startLine, capture.endLine);
+    dispatch(
+      setTerminalSelection({
+        token,
+        snapshot: {
+          terminalLabel: title,
+          startLine: capture.startLine,
+          endLine: capture.endLine,
+          selectedText: capture.selectedText,
+          contextText: capture.contextText
+        }
+      })
+    );
+    dispatch(setShowAiSidebar(true));
+    if (activeChatId == null) {
+      await dispatch(createNewChat(aiSettings));
+    }
+
+    dispatch(setPendingComposerText(token));
+    terminal.clearSelection();
+    hideSelectionToolbar();
+  }, [activeChatId, aiSettings, dispatch, hideSelectionToolbar, index, title]);
+
+  /**
+   * Keeps the copy-to-chat handler ref aligned so the xterm key handler can call
+   * the latest callback without re-registering on every render.
+   */
+  useEffect(() => {
+    handleCopySelectionToChatRef.current = handleCopySelectionToChat;
+  }, [handleCopySelectionToChat]);
 
   /**
    * Fits the terminal to its container and notifies the main process of the new size.
@@ -229,6 +340,25 @@ export function XtermView({ id, cwd, active, panelOpen }: Props): JSX.Element {
     terminal.open(container);
     terminalRef.current = terminal;
     fitAddonRef.current = fitAddon;
+    registerTerminalInstance(id, terminal);
+
+    terminal.attachCustomKeyEventHandler((event) => {
+      if (!isCopyToChatShortcutEvent(event)) {
+        return true;
+      }
+
+      if (!aiAvailableRef.current || !activeRef.current) {
+        return true;
+      }
+
+      if (!terminal.hasSelection() || terminal.getSelection().trim().length === 0) {
+        return true;
+      }
+
+      event.preventDefault();
+      void handleCopySelectionToChatRef.current();
+      return false;
+    });
 
     const unsubscribeData = window.api.onTerminalData((event) => {
       if (event.id !== id) {
@@ -254,6 +384,34 @@ export function XtermView({ id, cwd, active, panelOpen }: Props): JSX.Element {
       }
     });
 
+    const selectionDisposable = terminal.onSelectionChange(() => {
+      if (!aiAvailableRef.current || !activeRef.current) {
+        hideSelectionToolbar();
+        return;
+      }
+
+      if (selectionToolbarTimerRef.current != null) {
+        clearTimeout(selectionToolbarTimerRef.current);
+      }
+
+      if (!terminal.hasSelection() || terminal.getSelection().trim().length === 0) {
+        hideSelectionToolbar();
+        return;
+      }
+
+      selectionToolbarTimerRef.current = setTimeout(() => {
+        selectionToolbarTimerRef.current = null;
+        const coords = getTerminalSelectionToolbarCoords(terminal, container);
+        if (coords == null) {
+          hideSelectionToolbar();
+          return;
+        }
+
+        setSelectionToolbarCoords(coords);
+        setSelectionToolbarVisible(true);
+      }, TERMINAL_SELECTION_TOOLBAR_DELAY_MS);
+    });
+
     const resizeObserver = new ResizeObserver(() => {
       scheduleFit();
     });
@@ -262,18 +420,21 @@ export function XtermView({ id, cwd, active, panelOpen }: Props): JSX.Element {
     return () => {
       unmountingRef.current = true;
       sessionReadyRef.current = false;
+      hideSelectionToolbar();
       unsubscribeData();
       unsubscribeExit();
       dataDisposable.dispose();
+      selectionDisposable.dispose();
       resizeObserver.disconnect();
       if (resizeTimerRef.current != null) {
         clearTimeout(resizeTimerRef.current);
       }
+      unregisterTerminalInstance(id);
       terminal.dispose();
       terminalRef.current = null;
       fitAddonRef.current = null;
     };
-  }, [id, scheduleFit]);
+  }, [hideSelectionToolbar, id, scheduleFit]);
 
   /**
    * Spawns or tears down the shell session when this tab becomes visible in the open panel.
@@ -281,6 +442,10 @@ export function XtermView({ id, cwd, active, panelOpen }: Props): JSX.Element {
   useEffect(() => {
     if (!shouldAttach) {
       sessionReadyRef.current = false;
+      if (selectionToolbarTimerRef.current != null) {
+        clearTimeout(selectionToolbarTimerRef.current);
+        selectionToolbarTimerRef.current = null;
+      }
       return;
     }
 
@@ -323,7 +488,7 @@ export function XtermView({ id, cwd, active, panelOpen }: Props): JSX.Element {
       sessionDisposingRef.current = true;
       void window.api.killTerminal(id);
     };
-  }, [id, cwd, shouldAttach, fitTerminal]);
+  }, [cwd, fitTerminal, id, shouldAttach]);
 
   /**
    * Refits and focuses the active terminal when its tab or panel visibility changes.
@@ -344,6 +509,9 @@ export function XtermView({ id, cwd, active, panelOpen }: Props): JSX.Element {
     };
   }, [shouldAttach, scheduleFit]);
 
+  const showSelectionToolbar =
+    selectionToolbarVisible && selectionToolbarCoords != null && aiAvailable && active && panelOpen;
+
   return (
     <div
       className={active ? 'absolute inset-0 flex min-h-0 min-w-0' : 'hidden'}
@@ -353,6 +521,29 @@ export function XtermView({ id, cwd, active, panelOpen }: Props): JSX.Element {
       aria-hidden={!active}
     >
       <div ref={containerRef} className="h-full min-h-0 w-full min-w-0 p-2" />
+      {showSelectionToolbar &&
+        createPortal(
+          <button
+            type="button"
+            className="hc-code-editor-selection-action app-no-drag pointer-events-auto fixed z-[70] inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-separator bg-control px-2 py-1 text-[14px] text-text shadow-sm hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+            style={{
+              top: selectionToolbarCoords.top,
+              left: selectionToolbarCoords.left
+            }}
+            aria-label={`Copy selection from ${title} to chat`}
+            onMouseDown={(event) => {
+              event.preventDefault();
+            }}
+            onClick={() => {
+              void handleCopySelectionToChat();
+            }}
+          >
+            <FaIcon icon={faCopy} className="h-3.5 w-3.5" />
+            <span>Copy to chat</span>
+            <span className="text-[14px] text-muted">{COPY_TO_CHAT_SHORTCUT_HINT}</span>
+          </button>,
+          document.body
+        )}
     </div>
   );
 }

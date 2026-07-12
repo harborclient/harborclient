@@ -1,4 +1,10 @@
-import { EmptyState, FaIcon, FooterPanel } from '@harborclient/sdk/components';
+import {
+  EmptyState,
+  FaIcon,
+  FooterPanel,
+  ResizeHandle,
+  useResizable
+} from '@harborclient/sdk/components';
 import { useCallback, useEffect, useId, useState, type JSX, type KeyboardEvent } from 'react';
 import { faPlus, faTrash } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
@@ -8,6 +14,7 @@ import {
   renameTerminal,
   selectActiveTerminalId,
   selectTerminals,
+  selectTerminalsHydrated,
   setActiveTerminal
 } from '#/renderer/src/store/slices/terminalsSlice';
 import { roundIconButtonClass } from '#/renderer/src/ui/shared/classes';
@@ -33,20 +40,40 @@ export function TerminalPanel({ open, onClose }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const terminals = useAppSelector(selectTerminals);
   const activeTerminalId = useAppSelector(selectActiveTerminalId);
+  const terminalsHydrated = useAppSelector(selectTerminalsHydrated);
   const tablistId = useId();
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState('');
 
   /**
-   * Ensures at least one terminal exists when the panel is opened for the first time.
+   * Drives the draggable width of the terminal tab switcher, persisting the
+   * chosen width across sessions.
+   */
+  const {
+    size: tabListWidth,
+    minSize: tabListMinSize,
+    maxSize: tabListMaxSize,
+    onResizeStart: onTabListResizeStart,
+    onKeyboardResize: onTabListKeyboardResize
+  } = useResizable({
+    axis: 'x',
+    direction: 1,
+    defaultSize: 176,
+    minSize: 120,
+    getMaxSize: () => 400,
+    storageKey: 'hc.terminalTabListWidth'
+  });
+
+  /**
+   * Ensures at least one terminal exists once persisted layout has loaded and the panel is open.
    */
   useEffect(() => {
-    if (!open || terminals.length > 0) {
+    if (!open || !terminalsHydrated || terminals.length > 0) {
       return;
     }
 
     dispatch(addTerminal());
-  }, [dispatch, open, terminals.length]);
+  }, [dispatch, open, terminals.length, terminalsHydrated]);
 
   /**
    * Selects a terminal tab from the vertical switcher.
@@ -198,7 +225,8 @@ export function TerminalPanel({ open, onClose }: Props): JSX.Element {
           role="tablist"
           aria-orientation="vertical"
           aria-label="Terminal tabs"
-          className="flex h-full w-44 shrink-0 flex-col gap-1 overflow-auto border-r border-separator bg-sidebar-toolbar p-2"
+          className="flex h-full shrink-0 flex-col gap-1 overflow-auto bg-sidebar-toolbar p-2"
+          style={{ width: tabListWidth }}
         >
           {terminals.map((terminal, index) => (
             <TerminalTabButton
@@ -218,16 +246,28 @@ export function TerminalPanel({ open, onClose }: Props): JSX.Element {
           ))}
         </div>
 
+        <ResizeHandle
+          orientation="vertical"
+          value={tabListWidth}
+          min={tabListMinSize}
+          max={tabListMaxSize}
+          onResizeStart={onTabListResizeStart}
+          onKeyboardResize={onTabListKeyboardResize}
+          ariaLabel="Resize terminal tabs list"
+        />
+
         <div className="relative h-full min-h-0 min-w-0 flex-1">
           {terminals.length === 0 ? (
             <EmptyState variant="centered" className="h-full">
               No terminals yet. Use the add button to open a shell session.
             </EmptyState>
           ) : (
-            terminals.map((terminal) => (
+            terminals.map((terminal, index) => (
               <XtermView
                 key={terminal.id}
                 id={terminal.id}
+                index={index + 1}
+                title={terminal.title}
                 cwd={terminal.cwd}
                 active={terminal.id === activeTerminalId}
                 panelOpen={open}

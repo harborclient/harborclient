@@ -277,6 +277,7 @@ export const generalSettings = z.object({
   warnWhenClickingReadonlySnippet: z.boolean(),
   warnWhenCreatingTabGroup: z.boolean(),
   warnWhenOpeningTabGroup: z.boolean(),
+  warnWhenAgentUsesTerminal: z.boolean(),
   codeEditorTheme: z.enum(CODE_EDITOR_THEME_IDS),
   codeEditorSetup: z.object({
     lineNumbers: z.boolean(),
@@ -620,7 +621,12 @@ export const panelLayout = z.object({
   showAiSidebar: z.boolean(),
   showRequestEditor: z.boolean(),
   showResponseEditor: z.boolean(),
-  requestEditorSplitHeight: z.number().int().min(160)
+  requestEditorSplitHeight: z.number().int().min(160),
+  showConsole: z.boolean(),
+  showVariables: z.boolean(),
+  showMcp: z.boolean(),
+  showTerminal: z.boolean(),
+  activePluginFooterPanelId: z.string().nullable()
 }) satisfies z.ZodType<PanelLayoutState>;
 
 export const aiChatSession = z.object({

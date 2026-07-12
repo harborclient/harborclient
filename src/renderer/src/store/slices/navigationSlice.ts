@@ -190,6 +190,12 @@ const navigationSlice = createSlice({
       }
     },
     /**
+     * Sets footer console panel visibility explicitly.
+     */
+    setShowConsole(state, action: PayloadAction<boolean>) {
+      state.showConsole = action.payload;
+    },
+    /**
      * Toggles the footer variables panel.
      */
     toggleVariables(state) {
@@ -200,6 +206,12 @@ const navigationSlice = createSlice({
         state.showTerminal = false;
         state.activePluginFooterPanelId = null;
       }
+    },
+    /**
+     * Sets footer variables panel visibility explicitly.
+     */
+    setShowVariables(state, action: PayloadAction<boolean>) {
+      state.showVariables = action.payload;
     },
     /**
      * Toggles the footer MCP server panel.
@@ -214,6 +226,12 @@ const navigationSlice = createSlice({
       }
     },
     /**
+     * Sets footer MCP server panel visibility explicitly.
+     */
+    setShowMcp(state, action: PayloadAction<boolean>) {
+      state.showMcp = action.payload;
+    },
+    /**
      * Toggles the footer terminal panel.
      */
     toggleTerminal(state) {
@@ -224,6 +242,12 @@ const navigationSlice = createSlice({
         state.showMcp = false;
         state.activePluginFooterPanelId = null;
       }
+    },
+    /**
+     * Sets footer terminal panel visibility explicitly.
+     */
+    setShowTerminal(state, action: PayloadAction<boolean>) {
+      state.showTerminal = action.payload;
     },
     /**
      * Toggles one plugin footer panel and closes built-in footer panels.
@@ -237,6 +261,12 @@ const navigationSlice = createSlice({
         state.showMcp = false;
         state.showTerminal = false;
       }
+    },
+    /**
+     * Sets the active plugin footer panel id explicitly.
+     */
+    setActivePluginFooterPanelId(state, action: PayloadAction<string | null>) {
+      state.activePluginFooterPanelId = action.payload;
     },
     /**
      * Queues a marketplace plugin install requested via harborclient:// deep link.
@@ -334,10 +364,15 @@ export const {
   setShowResponseEditor,
   setRequestEditorSplitHeight,
   toggleConsole,
+  setShowConsole,
   toggleVariables,
+  setShowVariables,
   toggleMcp,
+  setShowMcp,
   toggleTerminal,
+  setShowTerminal,
   togglePluginFooterPanel,
+  setActivePluginFooterPanelId,
   setPendingPluginInstall,
   consumePendingPluginInstall,
   setPendingMarketplaceSearch,

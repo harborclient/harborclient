@@ -180,6 +180,69 @@ describe('findAiScriptReferenceCandidates', () => {
     expect(findAiScriptReferenceCandidates('@snippet.not-a-uuid')).toEqual([]);
     expect(findAiScriptReferenceCandidates('@snippet.550e8400')).toEqual([]);
   });
+
+  it('finds terminal references with line-range suffixes', () => {
+    expect(findAiScriptReferenceCandidates('@term.2#1.33')).toEqual([
+      expect.objectContaining({
+        kind: 'terminal',
+        terminalIndex: 2,
+        text: '@term.2#1.33',
+        selection: { start: 1, end: 33 }
+      })
+    ]);
+  });
+
+  it('rejects malformed terminal references', () => {
+    expect(findAiScriptReferenceCandidates('@term.0#1.2')).toEqual([]);
+    expect(findAiScriptReferenceCandidates('@term.2')).toEqual([
+      expect.objectContaining({
+        kind: 'terminal',
+        terminalIndex: 2,
+        selection: undefined
+      })
+    ]);
+    expect(findAiScriptReferenceCandidates('@term.2#1.0')).toEqual([
+      expect.objectContaining({
+        kind: 'terminal',
+        terminalIndex: 2,
+        selection: undefined
+      })
+    ]);
+  });
+
+  it('finds collection, folder, and request references by uuid', () => {
+    const collectionUuid = '11111111-1111-1111-1111-111111111111';
+    const folderUuid = '22222222-2222-2222-2222-222222222222';
+    const requestUuid = '33333333-3333-3333-3333-333333333333';
+
+    expect(findAiScriptReferenceCandidates(`@collection.${collectionUuid}`)).toEqual([
+      expect.objectContaining({
+        kind: 'collection',
+        collectionUuid,
+        text: `@collection.${collectionUuid}`
+      })
+    ]);
+    expect(findAiScriptReferenceCandidates(`@folder.${folderUuid}`)).toEqual([
+      expect.objectContaining({
+        kind: 'folder',
+        folderUuid,
+        text: `@folder.${folderUuid}`
+      })
+    ]);
+    expect(findAiScriptReferenceCandidates(`@request.${requestUuid}`)).toEqual([
+      expect.objectContaining({
+        kind: 'request',
+        requestUuid,
+        text: `@request.${requestUuid}`
+      })
+    ]);
+  });
+
+  it('rejects malformed collection, folder, and request references', () => {
+    expect(findAiScriptReferenceCandidates('@collection.not-a-uuid')).toEqual([]);
+    expect(findAiScriptReferenceCandidates('@folder.not-a-uuid')).toEqual([]);
+    expect(findAiScriptReferenceCandidates('@request.not-a-uuid')).toEqual([]);
+  });
 });
 
 describe('isValidAiScriptReference', () => {
@@ -235,6 +298,53 @@ describe('isValidAiScriptReference', () => {
     const [candidate] = findAiScriptReferenceCandidates(`@snippet.${uuid}`);
     expect(candidate).toBeDefined();
     expect(isValidAiScriptReference(candidate!, context({ snippets: [] }))).toBe(false);
+  });
+
+  it('accepts terminal references when a matching snapshot exists', () => {
+    const [candidate] = findAiScriptReferenceCandidates('@term.2#1.33');
+    expect(candidate).toBeDefined();
+    expect(
+      isValidAiScriptReference(
+        candidate!,
+        context({
+          terminalSelections: {
+            '@term.2#1.33': {
+              terminalLabel: 'Terminal 2',
+              startLine: 1,
+              endLine: 33,
+              selectedText: 'error output',
+              contextText: 'before\nerror output\nafter'
+            }
+          }
+        })
+      )
+    ).toBe(true);
+  });
+
+  it('rejects terminal references without a stored snapshot', () => {
+    const [candidate] = findAiScriptReferenceCandidates('@term.2#1.33');
+    expect(candidate).toBeDefined();
+    expect(isValidAiScriptReference(candidate!, context())).toBe(false);
+  });
+
+  it('accepts collection, folder, and request references when names are known', () => {
+    const collectionUuid = '11111111-1111-1111-1111-111111111111';
+    const folderUuid = '22222222-2222-2222-2222-222222222222';
+    const requestUuid = '33333333-3333-3333-3333-333333333333';
+    const nameContext = context({
+      hasActiveRequestTab: false,
+      collectionNamesByUuid: { [collectionUuid]: 'API' },
+      folderNamesByUuid: { [folderUuid]: 'Auth' },
+      requestNamesByUuid: { [requestUuid]: 'Login' }
+    });
+
+    const [collectionRef] = findAiScriptReferenceCandidates(`@collection.${collectionUuid}`);
+    const [folderRef] = findAiScriptReferenceCandidates(`@folder.${folderUuid}`);
+    const [requestRef] = findAiScriptReferenceCandidates(`@request.${requestUuid}`);
+
+    expect(isValidAiScriptReference(collectionRef!, nameContext)).toBe(true);
+    expect(isValidAiScriptReference(folderRef!, nameContext)).toBe(true);
+    expect(isValidAiScriptReference(requestRef!, nameContext)).toBe(true);
   });
 });
 
@@ -396,6 +506,48 @@ describe('resolveAiScriptReferenceLabel', () => {
       )
     ).toBe('Auth helper (line 2)');
   });
+
+  it('returns the terminal label with a line span for terminal references', () => {
+    const [candidate] = findAiScriptReferenceCandidates('@term.2#1.33');
+    expect(candidate).toBeDefined();
+
+    expect(
+      resolveAiScriptReferenceLabel(
+        candidate!,
+        context({
+          terminalSelections: {
+            '@term.2#1.33': {
+              terminalLabel: 'Build shell',
+              startLine: 1,
+              endLine: 33,
+              selectedText: 'error output',
+              contextText: 'before\nerror output\nafter'
+            }
+          }
+        })
+      )
+    ).toBe('Build shell (lines 1-33)');
+  });
+
+  it('returns prefixed labels for collection, folder, and request references', () => {
+    const collectionUuid = '11111111-1111-1111-1111-111111111111';
+    const folderUuid = '22222222-2222-2222-2222-222222222222';
+    const requestUuid = '33333333-3333-3333-3333-333333333333';
+    const nameContext = context({
+      hasActiveRequestTab: false,
+      collectionNamesByUuid: { [collectionUuid]: 'API' },
+      folderNamesByUuid: { [folderUuid]: 'Auth' },
+      requestNamesByUuid: { [requestUuid]: 'Login' }
+    });
+
+    const [collectionRef] = findAiScriptReferenceCandidates(`@collection.${collectionUuid}`);
+    const [folderRef] = findAiScriptReferenceCandidates(`@folder.${folderUuid}`);
+    const [requestRef] = findAiScriptReferenceCandidates(`@request.${requestUuid}`);
+
+    expect(resolveAiScriptReferenceLabel(collectionRef!, nameContext)).toBe('Collection: API');
+    expect(resolveAiScriptReferenceLabel(folderRef!, nameContext)).toBe('Folder: Auth');
+    expect(resolveAiScriptReferenceLabel(requestRef!, nameContext)).toBe('Request: Login');
+  });
 });
 
 describe('tokenizeChatComposerText', () => {
@@ -514,6 +666,54 @@ describe('buildAiScriptSelectionContextMessage', () => {
     expect(message).toContain('cannot be edited via tools');
     expect(message).toContain('paste back into the snippet editor');
     expect(message).not.toContain('update_request_script');
+  });
+
+  it('includes terminal selection, surrounding context, and terminal guidance', () => {
+    const message = buildAiScriptSelectionContextMessage(
+      'What failed here? @term.2#1.33',
+      context({
+        terminalSelections: {
+          '@term.2#1.33': {
+            terminalLabel: 'Build shell',
+            startLine: 1,
+            endLine: 33,
+            selectedText: 'error output',
+            contextText: 'before\nerror output\nafter'
+          }
+        }
+      })
+    );
+
+    expect(message).not.toBeNull();
+    expect(message).toContain(
+      'The user selected terminal output and is asking specifically about the SELECTED TEXT below.'
+    );
+    expect(message).toContain('Reference @term.2#1.33');
+    expect(message).toContain('footer terminal "Build shell"');
+    expect(message).toContain('Selected terminal output (lines 1-33):');
+    expect(message).toContain('error output');
+    expect(message).toContain('Surrounding terminal context');
+    expect(message).toContain('before\nerror output\nafter');
+    expect(message).toContain('Terminal output references cannot be edited via tools');
+    expect(message).not.toContain('update_request_script');
+  });
+
+  it('returns null for collection, folder, and request references', () => {
+    const collectionUuid = '11111111-1111-1111-1111-111111111111';
+    const folderUuid = '22222222-2222-2222-2222-222222222222';
+    const requestUuid = '33333333-3333-3333-3333-333333333333';
+
+    expect(
+      buildAiScriptSelectionContextMessage(
+        `Review @collection.${collectionUuid} @folder.${folderUuid} @request.${requestUuid}`,
+        context({
+          hasActiveRequestTab: false,
+          collectionNamesByUuid: { [collectionUuid]: 'API' },
+          folderNamesByUuid: { [folderUuid]: 'Auth' },
+          requestNamesByUuid: { [requestUuid]: 'Login' }
+        })
+      )
+    ).toBeNull();
   });
 });
 

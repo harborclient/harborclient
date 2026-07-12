@@ -12,11 +12,14 @@ import {
   AI_TOOL_NAMES,
   type AiToolName,
   type GetActiveResponseToolArgs,
+  type GetActiveTerminalLinesToolArgs,
+  type GetSidebarItemByUuidToolArgs,
   type ListRequestsToolArgs,
   type QueryResponseBodyToolArgs,
   type SearchDocsToolArgs,
   type SendActiveRequestToolArgs,
   type SetActiveEnvironmentToolArgs,
+  type TerminalExecToolArgs,
   type UpdateRequestScriptToolArgs
 } from '#/shared/ai/tools';
 import {
@@ -33,6 +36,7 @@ import { hostFromUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/cookieH
 import { isRequestTab, isTabDirty } from '#/renderer/src/store/drafts';
 import { mirrorLegacyScriptString, resolveScriptSourceCode } from '#/shared/scriptRefs';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
+import { selectShowTerminal } from '#/renderer/src/store/slices/navigationSlice';
 import { setActiveDraft } from '#/renderer/src/store/slices/tabsSlice';
 import {
   selectActiveEnvironmentId,
@@ -40,6 +44,8 @@ import {
   selectCollections,
   selectDraft,
   selectEnvironments,
+  selectFoldersByCollection,
+  selectRequestsByCollection,
   selectResponse,
   selectSelectedCollectionId,
   selectSnippets,
@@ -47,11 +53,18 @@ import {
 } from '#/renderer/src/store/selectors';
 import type { RootState } from '#/renderer/src/store/redux';
 import { sendRequest } from '#/renderer/src/store/thunks/requests';
+import { selectActiveTerminal, selectTerminals } from '#/renderer/src/store/slices/terminalsSlice';
+import { getTerminalInstance } from '#/renderer/src/ui/Footer/TerminalPanel/terminalRegistry';
+import { readTerminalBufferLines } from '#/renderer/src/ui/Footer/TerminalPanel/terminalSelection';
+import type { OperatingSystemInfo } from '#/shared/types';
 import type {
   AuthConfig,
   BodyType,
+  Collection,
+  Folder,
   HttpMethod,
   KeyValue,
+  SavedRequest,
   ScriptRef,
   Snippet,
   Variable
@@ -84,6 +97,16 @@ const KEY_VALUE_MODES: readonly KeyValueListMode[] = ['merge', 'replace'];
  * Supported script update modes for update_active_request validation.
  */
 const SCRIPT_MODES: readonly ScriptUpdateMode[] = ['replace', 'append'];
+
+/**
+ * Maximum number of terminal output lines returned by get_active_terminal_lines per call.
+ */
+const MAX_TERMINAL_LINES = 2000;
+
+/**
+ * Maximum characters terminal_exec may write to the active shell per call.
+ */
+const MAX_TERMINAL_EXEC_INPUT_CHARS = 8192;
 
 /**
  * Context passed to tool handlers for reading state and dispatching actions.
@@ -152,8 +175,14 @@ export async function executeAiTool(
         return JSON.stringify(getSelectedCollection(ctx.getState()));
       case 'list_collections':
         return JSON.stringify(listCollections(ctx.getState()));
+      case 'get_collection':
+        return JSON.stringify(getCollection(args, ctx.getState()));
       case 'list_requests':
         return JSON.stringify(await listRequests(args));
+      case 'get_folder':
+        return JSON.stringify(await getFolder(args, ctx.getState()));
+      case 'get_request':
+        return JSON.stringify(await getRequest(args, ctx.getState()));
       case 'list_environments':
         return JSON.stringify(listEnvironments(ctx.getState()));
       case 'get_sidebar_request':
@@ -178,6 +207,12 @@ export async function executeAiTool(
         return JSON.stringify(updateRequestScript(args, ctx));
       case 'search_docs':
         return await window.api.searchDocs(args as SearchDocsToolArgs);
+      case 'get_active_terminal':
+        return JSON.stringify(getActiveTerminalInfo(ctx.getState()));
+      case 'get_active_terminal_lines':
+        return JSON.stringify(getActiveTerminalLines(ctx.getState(), args));
+      case 'terminal_exec':
+        return JSON.stringify(terminalExec(ctx.getState(), args));
       default: {
         const exhaustive: never = name;
         return JSON.stringify({ error: `Unhandled tool: ${String(exhaustive)}` });
@@ -248,6 +283,155 @@ function listCollections(state: RootState): Array<{
     post_request_script: collection.post_request_script,
     isSelected: collection.id === selectedId
   }));
+}
+
+/**
+ * Formats one collection for agent tool responses.
+ *
+ * @param collection - Collection record from storage or Redux.
+ */
+function formatCollectionForAgent(collection: Collection): {
+  id: number;
+  uuid: string;
+  name: string;
+  variables: Variable[];
+  headers: KeyValue[];
+  auth: AuthConfig;
+  pre_request_script: string;
+  post_request_script: string;
+  pre_request_scripts: ScriptRef[];
+  post_request_scripts: ScriptRef[];
+} {
+  return {
+    id: collection.id,
+    uuid: collection.uuid,
+    name: collection.name,
+    variables: collection.variables,
+    headers: collection.headers,
+    auth: collection.auth,
+    pre_request_script: collection.pre_request_script,
+    post_request_script: collection.post_request_script,
+    pre_request_scripts: collection.pre_request_scripts,
+    post_request_scripts: collection.post_request_scripts
+  };
+}
+
+/**
+ * Parses uuid arguments for sidebar item lookup tools.
+ *
+ * @param args - Parsed tool arguments from the model.
+ */
+function parseSidebarItemUuidArgs(args: unknown): string {
+  const parsed = args as GetSidebarItemByUuidToolArgs;
+  if (typeof parsed?.uuid !== 'string' || !parsed.uuid.trim()) {
+    throw new Error('uuid is required.');
+  }
+
+  return parsed.uuid.trim();
+}
+
+/**
+ * Returns one collection by uuid from Redux.
+ *
+ * @param args - Tool arguments containing uuid.
+ * @param state - Current Redux root state.
+ */
+function getCollection(
+  args: unknown,
+  state: RootState
+): ReturnType<typeof formatCollectionForAgent> | { error: string } {
+  const uuid = parseSidebarItemUuidArgs(args);
+  const collection = selectCollections(state).find((entry) => entry.uuid === uuid);
+  if (collection == null) {
+    return { error: `Collection with uuid "${uuid}" not found.` };
+  }
+
+  return formatCollectionForAgent(collection);
+}
+
+/**
+ * Finds one folder by uuid in cached Redux state.
+ *
+ * @param state - Current Redux root state.
+ * @param uuid - Folder uuid to locate.
+ */
+function findFolderInState(state: RootState, uuid: string): Folder | undefined {
+  for (const folders of Object.values(selectFoldersByCollection(state))) {
+    const match = folders.find((folder) => folder.uuid === uuid);
+    if (match != null) {
+      return match;
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Returns one folder by uuid, falling back to IPC when not cached in Redux.
+ *
+ * @param args - Tool arguments containing uuid.
+ * @param state - Current Redux root state.
+ */
+async function getFolder(args: unknown, state: RootState): Promise<Folder | { error: string }> {
+  const uuid = parseSidebarItemUuidArgs(args);
+  const cached = findFolderInState(state, uuid);
+  if (cached != null) {
+    return cached;
+  }
+
+  for (const collection of selectCollections(state)) {
+    const folders = await window.api.listFolders(collection.id);
+    const match = folders.find((folder) => folder.uuid === uuid);
+    if (match != null) {
+      return match;
+    }
+  }
+
+  return { error: `Folder with uuid "${uuid}" not found.` };
+}
+
+/**
+ * Finds one saved request by uuid in cached Redux state.
+ *
+ * @param state - Current Redux root state.
+ * @param uuid - Saved request uuid to locate.
+ */
+function findRequestInState(state: RootState, uuid: string): SavedRequest | undefined {
+  for (const requests of Object.values(selectRequestsByCollection(state))) {
+    const match = requests.find((request) => request.uuid === uuid);
+    if (match != null) {
+      return match;
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Returns one saved request by uuid, falling back to IPC when not cached in Redux.
+ *
+ * @param args - Tool arguments containing uuid.
+ * @param state - Current Redux root state.
+ */
+async function getRequest(
+  args: unknown,
+  state: RootState
+): Promise<SavedRequest | { error: string }> {
+  const uuid = parseSidebarItemUuidArgs(args);
+  const cached = findRequestInState(state, uuid);
+  if (cached != null) {
+    return cached;
+  }
+
+  for (const collection of selectCollections(state)) {
+    const requests = await window.api.listRequests(collection.id);
+    const match = requests.find((request) => request.uuid === uuid);
+    if (match != null) {
+      return match;
+    }
+  }
+
+  return { error: `Request with uuid "${uuid}" not found.` };
 }
 
 /**
@@ -521,6 +705,154 @@ function queryResponseBody(
     maxResultChars,
     response.headers['content-type'] ?? response.headers['Content-Type']
   );
+}
+
+/**
+ * Returns summary info for the active footer terminal tab.
+ *
+ * @param state - Current Redux root state.
+ */
+function getActiveTerminalInfo(state: RootState):
+  | {
+      terminalId: string;
+      title: string;
+      terminalIndex: number;
+      totalLines: number;
+      operatingSystem: OperatingSystemInfo;
+    }
+  | { error: string } {
+  const activeTerminal = selectActiveTerminal(state);
+  if (activeTerminal == null) {
+    return { error: 'No active terminal.' };
+  }
+
+  const terminal = getTerminalInstance(activeTerminal.id);
+  if (terminal == null) {
+    return { error: 'Active terminal is not ready yet.' };
+  }
+
+  const terminals = selectTerminals(state);
+  const terminalIndex = terminals.findIndex((entry) => entry.id === activeTerminal.id) + 1;
+
+  return {
+    terminalId: activeTerminal.id,
+    title: activeTerminal.title,
+    terminalIndex,
+    totalLines: terminal.buffer.active.length,
+    operatingSystem: window.operatingSystemInfo
+  };
+}
+
+/**
+ * Returns a 1-based inclusive line range from the active footer terminal output.
+ *
+ * @param state - Current Redux root state.
+ * @param args - Tool arguments with startLine and endLine.
+ */
+function getActiveTerminalLines(
+  state: RootState,
+  args: unknown
+):
+  | {
+      startLine: number;
+      endLine: number;
+      totalLines: number;
+      lines: string;
+      linesTruncated?: boolean;
+    }
+  | { error: string } {
+  const parsed = args as GetActiveTerminalLinesToolArgs;
+  if (typeof parsed?.startLine !== 'number' || typeof parsed?.endLine !== 'number') {
+    return { error: 'startLine and endLine are required numbers.' };
+  }
+
+  if (!Number.isFinite(parsed.startLine) || !Number.isFinite(parsed.endLine)) {
+    return { error: 'startLine and endLine must be finite numbers.' };
+  }
+
+  if (parsed.startLine < 1 || parsed.endLine < 1) {
+    return { error: 'startLine and endLine must be at least 1.' };
+  }
+
+  if (parsed.startLine > parsed.endLine) {
+    return { error: 'startLine must be less than or equal to endLine.' };
+  }
+
+  const activeTerminal = selectActiveTerminal(state);
+  if (activeTerminal == null) {
+    return { error: 'No active terminal.' };
+  }
+
+  const terminal = getTerminalInstance(activeTerminal.id);
+  if (terminal == null) {
+    return { error: 'Active terminal is not ready yet.' };
+  }
+
+  const totalLines = terminal.buffer.active.length;
+  if (totalLines === 0) {
+    return {
+      startLine: parsed.startLine,
+      endLine: parsed.endLine,
+      totalLines,
+      lines: ''
+    };
+  }
+
+  const clampedStart = Math.max(1, Math.min(parsed.startLine, totalLines));
+  const clampedEnd = Math.min(parsed.endLine, totalLines);
+  const requestedLineCount = clampedEnd - clampedStart + 1;
+  const linesTruncated = requestedLineCount > MAX_TERMINAL_LINES;
+  const effectiveEnd = linesTruncated ? clampedStart + MAX_TERMINAL_LINES - 1 : clampedEnd;
+
+  const result: {
+    startLine: number;
+    endLine: number;
+    totalLines: number;
+    lines: string;
+    linesTruncated?: boolean;
+  } = {
+    startLine: clampedStart,
+    endLine: effectiveEnd,
+    totalLines,
+    lines: readTerminalBufferLines(terminal, clampedStart, effectiveEnd)
+  };
+
+  if (linesTruncated) {
+    result.linesTruncated = true;
+  }
+
+  return result;
+}
+
+/**
+ * Sends raw input to the active footer terminal shell stdin.
+ *
+ * @param state - Current Redux root state.
+ * @param args - Tool arguments with input text.
+ */
+function terminalExec(state: RootState, args: unknown): { ok: true } | { error: string } {
+  const parsed = args as TerminalExecToolArgs;
+  if (typeof parsed?.input !== 'string' || parsed.input.length === 0) {
+    return { error: 'input is required.' };
+  }
+
+  if (parsed.input.length > MAX_TERMINAL_EXEC_INPUT_CHARS) {
+    return {
+      error: `input exceeds maximum length of ${MAX_TERMINAL_EXEC_INPUT_CHARS} characters.`
+    };
+  }
+
+  const activeTerminal = selectActiveTerminal(state);
+  if (activeTerminal == null) {
+    return { error: 'No active terminal.' };
+  }
+
+  if (!selectShowTerminal(state)) {
+    return { error: 'Terminal panel is closed. Open the terminal panel before sending input.' };
+  }
+
+  window.api.writeTerminal(activeTerminal.id, parsed.input);
+  return { ok: true };
 }
 
 /**

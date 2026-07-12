@@ -19,7 +19,8 @@ import {
   toggleAiSidebar,
   toggleRequestEditor,
   toggleResponseEditor,
-  toggleSidebar
+  toggleSidebar,
+  toggleTerminal
 } from '#/renderer/src/store/slices/navigationSlice';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import {
@@ -119,6 +120,9 @@ export function useActionCommands(): UseActionCommandsResult {
       },
       'builtin:toggle-response-editor': () => {
         dispatch(toggleResponseEditor());
+      },
+      'builtin:toggle-terminal': () => {
+        dispatch(toggleTerminal());
       },
       'builtin:toggle-collections-section': () => {
         toggleCollectionsSectionVisible();

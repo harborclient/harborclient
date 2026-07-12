@@ -59,6 +59,17 @@ describe('matchActionSuggestions', () => {
       { id: 'plugin:curl:action:cURL:View', group: 'cURL', label: 'View' }
     ]);
   });
+
+  it('filters built-in terminal action by label', () => {
+    expect(matchActionSuggestions('#terminal', BUILTIN_ACTIONS)).toEqual([
+      {
+        id: 'builtin:toggle-terminal',
+        group: 'View',
+        label: 'Terminal',
+        description: 'Open the terminal panel'
+      }
+    ]);
+  });
 });
 
 describe('pluginActionId', () => {

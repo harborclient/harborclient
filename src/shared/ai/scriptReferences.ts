@@ -1,14 +1,24 @@
 import type { ScriptRef, Snippet } from '#/shared/types';
 
+const AI_SCRIPT_REFERENCE_UUID =
+  '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
+
 /**
  * Regex matching `@` script references in chat text:
  * - Request scripts: `@<request-id>.<pre|post>.<script-index>`
  * - Standalone snippets: `@snippet.<uuid>`
+ * - Footer terminals: `@term.<terminal-index>`
+ * - Collections: `@collection.<uuid>`
+ * - Folders: `@folder.<uuid>`
+ * - Saved requests: `@request.<uuid>`
  *
- * Both forms accept an optional `#<selection-start>.<selection-end>` suffix.
+ * Request scripts and snippets accept an optional `#<selection-start>.<selection-end>` suffix
+ * (character offsets). Terminal references use the same suffix for 1-based line numbers.
  */
-export const AI_SCRIPT_REFERENCE_PATTERN =
-  /@(?:(active|\d+)\.(pre|post)\.(\d+)|snippet\.([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}))(?:#(\d+)\.(\d+))?(?!\d)/g;
+export const AI_SCRIPT_REFERENCE_PATTERN = new RegExp(
+  `@(?:(active|\\d+)\\.(pre|post)\\.(\\d+)|snippet\\.(${AI_SCRIPT_REFERENCE_UUID})|term\\.(\\d+)|collection\\.(${AI_SCRIPT_REFERENCE_UUID})|folder\\.(${AI_SCRIPT_REFERENCE_UUID})|request\\.(${AI_SCRIPT_REFERENCE_UUID}))(?:#(\\d+)\\.(\\d+))?(?!\\d)`,
+  'g'
+);
 
 /**
  * Shared fields for every parsed `@` script reference.
@@ -86,9 +96,105 @@ export interface ParsedSnippetReference extends ParsedAiScriptReferenceBase {
 }
 
 /**
+ * A parsed `@` reference to a footer terminal selection.
+ */
+export interface ParsedTerminalReference extends ParsedAiScriptReferenceBase {
+  /**
+   * Discriminator for footer terminal references.
+   */
+  kind: 'terminal';
+
+  /**
+   * 1-based index of the terminal tab in the footer switcher.
+   */
+  terminalIndex: number;
+}
+
+/**
+ * A parsed `@` reference to a collection in the sidebar.
+ */
+export interface ParsedCollectionReference extends ParsedAiScriptReferenceBase {
+  /**
+   * Discriminator for collection references.
+   */
+  kind: 'collection';
+
+  /**
+   * UUID of the collection.
+   */
+  collectionUuid: string;
+}
+
+/**
+ * A parsed `@` reference to a folder in the sidebar.
+ */
+export interface ParsedFolderReference extends ParsedAiScriptReferenceBase {
+  /**
+   * Discriminator for folder references.
+   */
+  kind: 'folder';
+
+  /**
+   * UUID of the folder.
+   */
+  folderUuid: string;
+}
+
+/**
+ * A parsed `@` reference to a saved request in the sidebar.
+ */
+export interface ParsedRequestReference extends ParsedAiScriptReferenceBase {
+  /**
+   * Discriminator for saved-request references.
+   */
+  kind: 'request';
+
+  /**
+   * UUID of the saved request.
+   */
+  requestUuid: string;
+}
+
+/**
+ * Snapshot of terminal output captured when the user copies a selection to chat.
+ */
+export interface TerminalSelectionSnapshot {
+  /**
+   * Display label of the terminal tab at capture time.
+   */
+  terminalLabel: string;
+
+  /**
+   * 1-based start line of the selection in the xterm buffer.
+   */
+  startLine: number;
+
+  /**
+   * 1-based end line of the selection in the xterm buffer.
+   */
+  endLine: number;
+
+  /**
+   * Plain-text content of the user's selection.
+   */
+  selectedText: string;
+
+  /**
+   * Surrounding terminal lines included for agent context.
+   */
+  contextText: string;
+}
+
+/**
  * A parsed `@` script reference with character offsets in the source text.
  */
-export type ParsedAiScriptReference = ParsedRequestScriptReference | ParsedSnippetReference;
+export type ParsedAiScriptReference =
+  | ParsedRequestScriptReference
+  | ParsedSnippetReference
+  | ParsedTerminalReference
+  | ParsedCollectionReference
+  | ParsedFolderReference
+  | ParsedRequestReference;
 
 /**
  * Active request tab state used to decide whether an `@` reference is highlightable.
@@ -128,6 +234,26 @@ export interface AiScriptReferenceValidationContext {
    * Snippet library used to resolve snippet-linked script names.
    */
   snippets?: Snippet[];
+
+  /**
+   * Terminal selection snapshots keyed by the full `@term` reference token.
+   */
+  terminalSelections?: Record<string, TerminalSelectionSnapshot>;
+
+  /**
+   * Collection display names keyed by uuid for `@collection` badge resolution.
+   */
+  collectionNamesByUuid?: Record<string, string>;
+
+  /**
+   * Folder display names keyed by uuid for `@folder` badge resolution.
+   */
+  folderNamesByUuid?: Record<string, string>;
+
+  /**
+   * Saved request display names keyed by uuid for `@request` badge resolution.
+   */
+  requestNamesByUuid?: Record<string, string>;
 }
 
 /**
@@ -170,10 +296,12 @@ function isScriptReferenceBoundary(text: string, index: number): boolean {
  *
  * @param selectionStartRaw - Captured selection start group.
  * @param selectionEndRaw - Captured selection end group.
+ * @param lineRange - When true, requires 1-based line numbers with end >= start.
  */
 function parseSelectionSuffix(
   selectionStartRaw: string | undefined,
-  selectionEndRaw: string | undefined
+  selectionEndRaw: string | undefined,
+  lineRange = false
 ): ParsedAiScriptReference['selection'] {
   if (selectionStartRaw == null || selectionEndRaw == null) {
     return undefined;
@@ -181,12 +309,19 @@ function parseSelectionSuffix(
 
   const selectionStart = Number(selectionStartRaw);
   const selectionEnd = Number(selectionEndRaw);
-  if (
-    Number.isInteger(selectionStart) &&
-    Number.isInteger(selectionEnd) &&
-    selectionStart >= 0 &&
-    selectionEnd > selectionStart
-  ) {
+  if (!Number.isInteger(selectionStart) || !Number.isInteger(selectionEnd)) {
+    return undefined;
+  }
+
+  if (lineRange) {
+    if (selectionStart >= 1 && selectionEnd >= selectionStart) {
+      return { start: selectionStart, end: selectionEnd };
+    }
+
+    return undefined;
+  }
+
+  if (selectionStart >= 0 && selectionEnd > selectionStart) {
     return { start: selectionStart, end: selectionEnd };
   }
 
@@ -208,8 +343,59 @@ export function parseAiScriptReferenceMatch(
   const phase = match[2];
   const scriptIndexRaw = match[3];
   const snippetUuid = match[4];
-  const selectionStartRaw = match[5];
-  const selectionEndRaw = match[6];
+  const terminalIndexRaw = match[5];
+  const collectionUuid = match[6];
+  const folderUuid = match[7];
+  const requestUuid = match[8];
+  const selectionStartRaw = match[9];
+  const selectionEndRaw = match[10];
+
+  if (collectionUuid != null) {
+    return {
+      kind: 'collection',
+      collectionUuid,
+      start,
+      end: start + text.length,
+      text
+    };
+  }
+
+  if (folderUuid != null) {
+    return {
+      kind: 'folder',
+      folderUuid,
+      start,
+      end: start + text.length,
+      text
+    };
+  }
+
+  if (requestUuid != null) {
+    return {
+      kind: 'request',
+      requestUuid,
+      start,
+      end: start + text.length,
+      text
+    };
+  }
+
+  if (terminalIndexRaw != null) {
+    const terminalIndex = Number(terminalIndexRaw);
+    if (!Number.isInteger(terminalIndex) || terminalIndex < 1) {
+      return null;
+    }
+
+    return {
+      kind: 'terminal',
+      terminalIndex,
+      start,
+      end: start + text.length,
+      text,
+      selection: parseSelectionSuffix(selectionStartRaw, selectionEndRaw, true)
+    };
+  }
+
   const selection = parseSelectionSuffix(selectionStartRaw, selectionEndRaw);
 
   if (snippetUuid != null) {
@@ -315,8 +501,28 @@ export function isValidAiScriptReference(
   reference: ParsedAiScriptReference,
   context: AiScriptReferenceValidationContext
 ): boolean {
+  if (reference.kind === 'terminal') {
+    if (reference.selection == null) {
+      return false;
+    }
+
+    return context.terminalSelections?.[reference.text] != null;
+  }
+
   if (reference.kind === 'snippet') {
     return (context.snippets ?? []).some((entry) => entry.uuid === reference.snippetUuid);
+  }
+
+  if (reference.kind === 'collection') {
+    return context.collectionNamesByUuid?.[reference.collectionUuid] != null;
+  }
+
+  if (reference.kind === 'folder') {
+    return context.folderNamesByUuid?.[reference.folderUuid] != null;
+  }
+
+  if (reference.kind === 'request') {
+    return context.requestNamesByUuid?.[reference.requestUuid] != null;
   }
 
   if (!context.hasActiveRequestTab) {
@@ -366,9 +572,28 @@ export function resolveAiScriptReferenceName(
     return null;
   }
 
+  if (reference.kind === 'terminal') {
+    return context.terminalSelections?.[reference.text]?.terminalLabel ?? null;
+  }
+
   if (reference.kind === 'snippet') {
     const snippet = (context.snippets ?? []).find((entry) => entry.uuid === reference.snippetUuid);
     return snippet?.name ?? null;
+  }
+
+  if (reference.kind === 'collection') {
+    const name = context.collectionNamesByUuid?.[reference.collectionUuid];
+    return name != null ? `Collection: ${name}` : null;
+  }
+
+  if (reference.kind === 'folder') {
+    const name = context.folderNamesByUuid?.[reference.folderUuid];
+    return name != null ? `Folder: ${name}` : null;
+  }
+
+  if (reference.kind === 'request') {
+    const name = context.requestNamesByUuid?.[reference.requestUuid];
+    return name != null ? `Request: ${name}` : null;
   }
 
   const scripts = reference.phase === 'pre' ? context.preScripts : context.postScripts;
@@ -415,6 +640,15 @@ function resolveReferenceSourceCode(
   reference: ParsedAiScriptReference,
   context: AiScriptReferenceValidationContext
 ): string | null {
+  if (
+    reference.kind === 'terminal' ||
+    reference.kind === 'collection' ||
+    reference.kind === 'folder' ||
+    reference.kind === 'request'
+  ) {
+    return null;
+  }
+
   if (reference.kind === 'snippet') {
     const snippet = (context.snippets ?? []).find((entry) => entry.uuid === reference.snippetUuid);
     return snippet?.code ?? null;
@@ -478,6 +712,20 @@ function formatScriptSelectionLineRange(
  * @param context - Active tab script rows and snippet library.
  * @returns Script name with optional line range, or null when not resolvable.
  */
+/**
+ * Formats a terminal line span for badge labels.
+ *
+ * @param startLine - 1-based start line of the selection.
+ * @param endLine - 1-based end line of the selection.
+ */
+function formatTerminalSelectionLineRange(startLine: number, endLine: number): string {
+  if (startLine === endLine) {
+    return `(line ${startLine})`;
+  }
+
+  return `(lines ${startLine}-${endLine})`;
+}
+
 export function resolveAiScriptReferenceLabel(
   reference: ParsedAiScriptReference,
   context: AiScriptReferenceValidationContext
@@ -485,6 +733,15 @@ export function resolveAiScriptReferenceLabel(
   const name = resolveAiScriptReferenceName(reference, context);
   if (name == null) {
     return null;
+  }
+
+  if (reference.kind === 'terminal') {
+    const snapshot = context.terminalSelections?.[reference.text];
+    if (snapshot == null) {
+      return name;
+    }
+
+    return `${name} ${formatTerminalSelectionLineRange(snapshot.startLine, snapshot.endLine)}`;
   }
 
   if (reference.selection == null) {
@@ -533,16 +790,51 @@ function formatScriptSelectionLineSpan(
 }
 
 /**
- * Formats one resolved selection reference for the agent context block.
+ * Formats one resolved terminal selection reference for the agent context block.
  *
- * @param reference - Parsed `@` script reference with a selection suffix.
- * @param context - Active tab script rows and snippet library.
- * @returns Context block for one reference, or null when not resolvable.
+ * @param reference - Parsed `@term` reference with a line-range suffix.
+ * @param context - Terminal selection snapshots keyed by reference token.
+ * @returns Context block for one terminal reference, or null when not resolvable.
  */
+function formatTerminalSelectionContextBlock(
+  reference: ParsedTerminalReference,
+  context: AiScriptReferenceValidationContext
+): string | null {
+  if (reference.selection == null || !isValidAiScriptReference(reference, context)) {
+    return null;
+  }
+
+  const snapshot = context.terminalSelections?.[reference.text];
+  if (snapshot == null) {
+    return null;
+  }
+
+  const lineSpan =
+    snapshot.startLine === snapshot.endLine
+      ? `line ${snapshot.startLine}`
+      : `lines ${snapshot.startLine}-${snapshot.endLine}`;
+
+  return [
+    `Reference ${reference.text} — footer terminal "${snapshot.terminalLabel}" (terminal ${reference.terminalIndex} in the tab list).`,
+    `Selected terminal output (${lineSpan}):`,
+    '```text',
+    snapshot.selectedText,
+    '```',
+    'Surrounding terminal context (includes lines before and after the selection):',
+    '```text',
+    snapshot.contextText,
+    '```'
+  ].join('\n');
+}
+
 function formatScriptSelectionContextBlock(
   reference: ParsedAiScriptReference,
   context: AiScriptReferenceValidationContext
 ): string | null {
+  if (reference.kind === 'terminal') {
+    return formatTerminalSelectionContextBlock(reference, context);
+  }
+
   if (reference.selection == null || !isValidAiScriptReference(reference, context)) {
     return null;
   }
@@ -568,6 +860,10 @@ function formatScriptSelectionContextBlock(
       clampedSelection.text,
       '```'
     ].join('\n');
+  }
+
+  if (reference.kind !== 'request-script') {
+    return null;
   }
 
   const phaseLabel = reference.phase === 'pre' ? 'pre-request' : 'post-request';
@@ -612,9 +908,9 @@ export function buildAiScriptSelectionContextMessage(
     return null;
   }
 
-  const header =
-    'The user selected part of a script and is asking specifically about the SELECTED TEXT below.';
-
+  const hasTerminalReference = candidates.some(
+    (reference) => reference.kind === 'terminal' && reference.selection != null
+  );
   const hasRequestScriptReference = candidates.some(
     (reference) => reference.kind === 'request-script' && reference.selection != null
   );
@@ -622,7 +918,25 @@ export function buildAiScriptSelectionContextMessage(
     (reference) => reference.kind === 'snippet' && reference.selection != null
   );
 
+  const headerParts: string[] = [];
+  if (hasTerminalReference) {
+    headerParts.push(
+      'The user selected terminal output and is asking specifically about the SELECTED TEXT below.'
+    );
+  }
+  if (hasRequestScriptReference || hasSnippetReference) {
+    headerParts.push(
+      'The user selected part of a script and is asking specifically about the SELECTED TEXT below.'
+    );
+  }
+
   const footerParts: string[] = ['Focus your answer on the selected region.'];
+
+  if (hasTerminalReference) {
+    footerParts.push(
+      'Terminal output references cannot be edited via tools. Explain, diagnose, or suggest shell commands the user can run.'
+    );
+  }
 
   if (hasRequestScriptReference) {
     footerParts.push(
@@ -636,7 +950,7 @@ export function buildAiScriptSelectionContextMessage(
     );
   }
 
-  return [header, '', ...blocks, '', footerParts.join(' ')].join('\n');
+  return [headerParts.join(' '), '', ...blocks, '', footerParts.join(' ')].join('\n');
 }
 
 /**

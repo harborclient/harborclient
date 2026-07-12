@@ -1,5 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { nanoid } from 'nanoid';
+import type { TerminalSelectionSnapshot } from '#/shared/ai/scriptReferences';
 import type { RootState } from '#/renderer/src/store/redux';
 
 /**
@@ -35,11 +36,31 @@ export interface TerminalsState {
    * Active terminal tab id, if any.
    */
   activeTerminalId: string | null;
+
+  /**
+   * Terminal selection snapshots keyed by `@term` reference token.
+   */
+  selectionSnapshots: Record<string, TerminalSelectionSnapshot>;
+
+  /**
+   * Whether persisted terminal layout has been loaded from storage.
+   */
+  terminalsHydrated: boolean;
 }
+
+/**
+ * Payload for restoring terminal layout after reading persisted storage.
+ */
+export type HydrateTerminalsPayload = Pick<
+  TerminalsState,
+  'terminals' | 'activeTerminalId' | 'selectionSnapshots'
+>;
 
 const initialState: TerminalsState = {
   terminals: [],
-  activeTerminalId: null
+  activeTerminalId: null,
+  selectionSnapshots: {},
+  terminalsHydrated: false
 };
 
 /**
@@ -59,9 +80,11 @@ const terminalsSlice = createSlice({
     /**
      * Replaces terminal layout state after hydration from localStorage.
      */
-    hydrateTerminals(state, action: PayloadAction<TerminalsState>) {
+    hydrateTerminals(state, action: PayloadAction<HydrateTerminalsPayload>) {
       state.terminals = action.payload.terminals;
       state.activeTerminalId = action.payload.activeTerminalId;
+      state.selectionSnapshots = action.payload.selectionSnapshots ?? {};
+      state.terminalsHydrated = true;
     },
 
     /**
@@ -86,7 +109,15 @@ const terminalsSlice = createSlice({
         return;
       }
 
+      const removedIndex = index + 1;
       state.terminals.splice(index, 1);
+
+      for (const token of Object.keys(state.selectionSnapshots)) {
+        const match = token.match(/^@term\.(\d+)#/);
+        if (match != null && Number(match[1]) === removedIndex) {
+          delete state.selectionSnapshots[token];
+        }
+      }
 
       if (state.activeTerminalId !== action.payload) {
         return;
@@ -116,12 +147,28 @@ const terminalsSlice = createSlice({
 
       const title = action.payload.title.trim();
       terminal.title = title.length > 0 ? title : terminal.title;
+    },
+
+    /**
+     * Stores a terminal selection snapshot for an `@term` reference token.
+     */
+    setTerminalSelection(
+      state,
+      action: PayloadAction<{ token: string; snapshot: TerminalSelectionSnapshot }>
+    ) {
+      state.selectionSnapshots[action.payload.token] = action.payload.snapshot;
     }
   }
 });
 
-export const { hydrateTerminals, addTerminal, removeTerminal, setActiveTerminal, renameTerminal } =
-  terminalsSlice.actions;
+export const {
+  hydrateTerminals,
+  addTerminal,
+  removeTerminal,
+  setActiveTerminal,
+  renameTerminal,
+  setTerminalSelection
+} = terminalsSlice.actions;
 
 /**
  * Returns all footer terminal tabs.
@@ -145,5 +192,18 @@ export const selectActiveTerminal = (state: RootState): TerminalTab | null => {
 
   return state.terminals.terminals.find((terminal) => terminal.id === activeId) ?? null;
 };
+
+/**
+ * Returns terminal selection snapshots keyed by `@term` reference token.
+ */
+export const selectTerminalSelections = (
+  state: RootState
+): Record<string, TerminalSelectionSnapshot> => state.terminals.selectionSnapshots;
+
+/**
+ * Returns whether persisted terminal layout has been loaded.
+ */
+export const selectTerminalsHydrated = (state: RootState): boolean =>
+  state.terminals.terminalsHydrated;
 
 export default terminalsSlice.reducer;

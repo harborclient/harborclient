@@ -27,7 +27,8 @@ describe('confirmations helpers', () => {
       'warnWhenCloningSnippet',
       'warnWhenClickingReadonlySnippet',
       'warnWhenCreatingTabGroup',
-      'warnWhenOpeningTabGroup'
+      'warnWhenOpeningTabGroup',
+      'warnWhenAgentUsesTerminal'
     ]);
   });
 
@@ -60,7 +61,8 @@ describe('confirmations helpers', () => {
       warnWhenCloningSnippet: false,
       warnWhenClickingReadonlySnippet: false,
       warnWhenCreatingTabGroup: false,
-      warnWhenOpeningTabGroup: false
+      warnWhenOpeningTabGroup: false,
+      warnWhenAgentUsesTerminal: false
     });
   });
 });

@@ -70,6 +70,12 @@ export const CONFIRMATION_ROWS: ConfirmationRow[] = [
     label: 'Opening all requests in a tab group',
     description:
       'When enabled, opening a tab group in the sidebar shows a confirmation dialog before opening tabs.'
+  },
+  {
+    key: 'warnWhenAgentUsesTerminal',
+    label: 'AI agent terminal commands',
+    description:
+      'When enabled, the AI agent must confirm before sending commands to the footer terminal.'
   }
 ];
 

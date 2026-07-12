@@ -2,16 +2,26 @@ import { useEffect, useRef } from 'react';
 import { DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT } from '#/shared/types';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
+  selectActivePluginFooterPanelId,
   selectRequestEditorSplitHeight,
   selectShowAiSidebar,
+  selectShowConsole,
+  selectShowMcp,
   selectShowRequestEditor,
   selectShowResponseEditor,
   selectShowSidebar,
+  selectShowTerminal,
+  selectShowVariables,
+  setActivePluginFooterPanelId,
   setRequestEditorSplitHeight,
   setShowAiSidebar,
+  setShowConsole,
+  setShowMcp,
   setShowRequestEditor,
   setShowResponseEditor,
-  setShowSidebar
+  setShowSidebar,
+  setShowTerminal,
+  setShowVariables
 } from '#/renderer/src/store/slices/navigationSlice';
 
 /** Legacy localStorage key for request editor split height before electron-store migration. */
@@ -39,7 +49,7 @@ function loadLegacyRequestEditorHeight(): number | null {
 }
 
 /**
- * Restores and persists sidebar, AI sidebar, and request/response editor layout preferences.
+ * Restores and persists sidebar, AI sidebar, request/response editor, and footer panel layout preferences.
  */
 export function usePersistedPanelLayout(): void {
   const dispatch = useAppDispatch();
@@ -48,6 +58,11 @@ export function usePersistedPanelLayout(): void {
   const showRequestEditor = useAppSelector(selectShowRequestEditor);
   const showResponseEditor = useAppSelector(selectShowResponseEditor);
   const requestEditorSplitHeight = useAppSelector(selectRequestEditorSplitHeight);
+  const showConsole = useAppSelector(selectShowConsole);
+  const showVariables = useAppSelector(selectShowVariables);
+  const showMcp = useAppSelector(selectShowMcp);
+  const showTerminal = useAppSelector(selectShowTerminal);
+  const activePluginFooterPanelId = useAppSelector(selectActivePluginFooterPanelId);
   const hydratedRef = useRef(false);
 
   /**
@@ -70,6 +85,11 @@ export function usePersistedPanelLayout(): void {
       dispatch(setShowRequestEditor(layout.showRequestEditor));
       dispatch(setShowResponseEditor(layout.showResponseEditor));
       dispatch(setRequestEditorSplitHeight(splitHeight));
+      dispatch(setShowConsole(layout.showConsole));
+      dispatch(setShowVariables(layout.showVariables));
+      dispatch(setShowMcp(layout.showMcp));
+      dispatch(setShowTerminal(layout.showTerminal));
+      dispatch(setActivePluginFooterPanelId(layout.activePluginFooterPanelId));
       hydratedRef.current = true;
 
       if (legacyHeight != null && splitHeight === legacyHeight) {
@@ -78,7 +98,12 @@ export function usePersistedPanelLayout(): void {
           showAiSidebar: layout.showAiSidebar,
           showRequestEditor: layout.showRequestEditor,
           showResponseEditor: layout.showResponseEditor,
-          requestEditorSplitHeight: splitHeight
+          requestEditorSplitHeight: splitHeight,
+          showConsole: layout.showConsole,
+          showVariables: layout.showVariables,
+          showMcp: layout.showMcp,
+          showTerminal: layout.showTerminal,
+          activePluginFooterPanelId: layout.activePluginFooterPanelId
         });
         try {
           localStorage.removeItem(LEGACY_REQUEST_EDITOR_HEIGHT_KEY);
@@ -94,7 +119,7 @@ export function usePersistedPanelLayout(): void {
   }, [dispatch]);
 
   /**
-   * Writes panel layout preferences to disk when sidebar, editor visibility, or split height changes.
+   * Writes panel layout preferences to disk when sidebar, editor visibility, split height, or footer panels change.
    */
   useEffect(() => {
     if (!hydratedRef.current) return;
@@ -103,7 +128,23 @@ export function usePersistedPanelLayout(): void {
       showAiSidebar,
       showRequestEditor,
       showResponseEditor,
-      requestEditorSplitHeight
+      requestEditorSplitHeight,
+      showConsole,
+      showVariables,
+      showMcp,
+      showTerminal,
+      activePluginFooterPanelId
     });
-  }, [showSidebar, showAiSidebar, showRequestEditor, showResponseEditor, requestEditorSplitHeight]);
+  }, [
+    showSidebar,
+    showAiSidebar,
+    showRequestEditor,
+    showResponseEditor,
+    requestEditorSplitHeight,
+    showConsole,
+    showVariables,
+    showMcp,
+    showTerminal,
+    activePluginFooterPanelId
+  ]);
 }

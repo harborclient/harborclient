@@ -292,6 +292,19 @@ describe('generalSettings', () => {
     expect(getGeneralSettings().warnWhenClickingReadonlySnippet).toBe(false);
   });
 
+  it('defaults warnWhenAgentUsesTerminal to true when unset', () => {
+    expect(getGeneralSettings().warnWhenAgentUsesTerminal).toBe(true);
+  });
+
+  it('persists warnWhenAgentUsesTerminal false', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      warnWhenAgentUsesTerminal: false
+    });
+
+    expect(getGeneralSettings().warnWhenAgentUsesTerminal).toBe(false);
+  });
+
   it('defaults codeEditorFontSize to 16px when unset', () => {
     expect(getGeneralSettings().codeEditorFontSize).toBe('16px');
   });

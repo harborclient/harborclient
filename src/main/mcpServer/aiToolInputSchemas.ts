@@ -16,8 +16,17 @@ const aiKeyValueShape = {
 const AI_TOOL_INPUT_SHAPES: Record<AiToolName, Record<string, z.ZodType>> = {
   get_selected_collection: {},
   list_collections: {},
+  get_collection: {
+    uuid: z.string()
+  },
   list_requests: {
     collectionId: z.number()
+  },
+  get_folder: {
+    uuid: z.string()
+  },
+  get_request: {
+    uuid: z.string()
   },
   list_environments: {},
   get_sidebar_request: {},
@@ -83,6 +92,14 @@ const AI_TOOL_INPUT_SHAPES: Record<AiToolName, Record<string, z.ZodType>> = {
     query: z.string(),
     limit: z.number().optional(),
     source: z.enum(['site', 'sdk']).optional()
+  },
+  get_active_terminal: {},
+  get_active_terminal_lines: {
+    startLine: z.number(),
+    endLine: z.number()
+  },
+  terminal_exec: {
+    input: z.string()
   }
 };
 

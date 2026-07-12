@@ -28,7 +28,12 @@ describe('panelLayoutSettings', () => {
       showAiSidebar: false,
       showRequestEditor: true,
       showResponseEditor: true,
-      requestEditorSplitHeight: 340
+      requestEditorSplitHeight: 340,
+      showConsole: false,
+      showVariables: false,
+      showMcp: false,
+      showTerminal: false,
+      activePluginFooterPanelId: null
     });
   });
 
@@ -53,7 +58,12 @@ describe('panelLayoutSettings', () => {
       showAiSidebar: true,
       showRequestEditor: false,
       showResponseEditor: true,
-      requestEditorSplitHeight: 420
+      requestEditorSplitHeight: 420,
+      showConsole: false,
+      showVariables: false,
+      showMcp: false,
+      showTerminal: true,
+      activePluginFooterPanelId: null
     });
 
     expect(mockSet).toHaveBeenCalledWith('panelLayout', {
@@ -61,7 +71,41 @@ describe('panelLayoutSettings', () => {
       showAiSidebar: true,
       showRequestEditor: false,
       showResponseEditor: true,
-      requestEditorSplitHeight: 420
+      requestEditorSplitHeight: 420,
+      showConsole: false,
+      showVariables: false,
+      showMcp: false,
+      showTerminal: true,
+      activePluginFooterPanelId: null
+    });
+  });
+
+  it('enforces mutual exclusivity among footer panels', async () => {
+    mockGet.mockReturnValue({
+      showSidebar: true,
+      showAiSidebar: false,
+      showRequestEditor: true,
+      showResponseEditor: true,
+      requestEditorSplitHeight: 340,
+      showConsole: true,
+      showVariables: true,
+      showMcp: true,
+      showTerminal: true,
+      activePluginFooterPanelId: 'plugin-panel-1'
+    });
+    const { getPanelLayout } = await import('#/main/settings/panelLayoutSettings');
+
+    expect(getPanelLayout()).toEqual({
+      showSidebar: true,
+      showAiSidebar: false,
+      showRequestEditor: true,
+      showResponseEditor: true,
+      requestEditorSplitHeight: 340,
+      showConsole: false,
+      showVariables: false,
+      showMcp: false,
+      showTerminal: false,
+      activePluginFooterPanelId: 'plugin-panel-1'
     });
   });
 });

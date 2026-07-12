@@ -65,5 +65,7 @@ store.subscribe(() => {
   const state = store.getState();
   persistTabs(state.tabs.tabs, state.tabs.activeTabId);
   persistActiveEnvironmentId(state.environments.activeEnvironmentId);
-  persistTerminalLayout(state.terminals.terminals, state.terminals.activeTerminalId);
+  if (state.terminals.terminalsHydrated) {
+    persistTerminalLayout(state.terminals.terminals, state.terminals.activeTerminalId);
+  }
 });

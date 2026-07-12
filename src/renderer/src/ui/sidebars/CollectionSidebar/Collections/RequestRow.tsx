@@ -107,6 +107,16 @@ interface Props {
   onExportRequest: (req: SavedRequest) => Promise<void> | void;
 
   /**
+   * Whether AI chat is available for "Copy to chat".
+   */
+  aiChatAvailable: boolean;
+
+  /**
+   * Copies the saved request reference into the AI chat composer.
+   */
+  onCopyToChat: (req: SavedRequest) => void;
+
+  /**
    * Runs every request in the current multi-selection.
    */
   onRunSelected: () => void;
@@ -152,6 +162,8 @@ export function RequestRow({
   onDeleteRequest,
   onDuplicateRequest,
   onExportRequest,
+  aiChatAvailable,
+  onCopyToChat,
   onRunSelected,
   onOpenSelected,
   onNewTabGroupFromSelected,
@@ -210,6 +222,15 @@ export function RequestRow({
         ]
       : [];
 
+  const copyToChatItem = aiChatAvailable
+    ? [
+        {
+          label: 'Copy to chat',
+          onSelect: () => onCopyToChat(req)
+        }
+      ]
+    : [];
+
   const menuId = `request-${req.id}`;
   const showBulkMenu = selected && selectionCount > 1;
   const rowHighlighted = activeRequestId === req.id || selected;
@@ -264,7 +285,7 @@ export function RequestRow({
                 ]
               ]
             : [
-                [...copyItem, { label: 'Run', onSelect: onRunRequest }],
+                [...copyItem, ...copyToChatItem, { label: 'Run', onSelect: onRunRequest }],
                 ...(reorderItems.length > 0 ? [reorderItems] : []),
                 [
                   {

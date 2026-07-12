@@ -83,6 +83,10 @@ import { ScriptAskModal } from '#/renderer/src/ui/shared/ScriptAskModal';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { usePersistedScriptEditorUiState } from '#/renderer/src/hooks/usePersistedScriptEditorUiState';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
+import {
+  COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
+  COPY_TO_CHAT_SHORTCUT_HINT
+} from '#/renderer/src/hooks/useCopyToChat';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveChatId,
@@ -1151,8 +1155,8 @@ function SortableScriptRow({
               label: 'Copy to chat',
               ariaLabel: `Copy selection from ${label} to chat`,
               icon: faCopy,
-              shortcutHint: 'Ctrl+L',
-              key: 'Ctrl-l',
+              shortcutHint: COPY_TO_CHAT_SHORTCUT_HINT,
+              key: COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
               onSelect: (selection: CodeEditorTextSelection): void => {
                 onCopySelectionToChat({ from: selection.from, to: selection.to });
               }

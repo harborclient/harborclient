@@ -84,6 +84,31 @@ export type AppSubmenuItemSnapshot =
     };
 
 /**
+ * Host operating system metadata for the machine running HarborClient.
+ */
+export interface OperatingSystemInfo {
+  /**
+   * Node.js platform identifier (darwin, linux, win32).
+   */
+  platform: NodeJS.Platform;
+
+  /**
+   * Operating system name from Node (for example Linux, Darwin, Windows_NT).
+   */
+  type: string;
+
+  /**
+   * Operating system release version string.
+   */
+  release: string;
+
+  /**
+   * CPU architecture (for example x64, arm64).
+   */
+  arch: string;
+}
+
+/**
  * Result of comparing the running app version against the latest GitHub release.
  */
 export interface UpdateCheckResult {

@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { hydrateTerminals, type TerminalsState } from '#/renderer/src/store/slices/terminalsSlice';
+import { hydrateTerminals } from '#/renderer/src/store/slices/terminalsSlice';
 import { loadTerminalLayout } from '#/renderer/src/store/persistence';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
 
@@ -9,7 +9,12 @@ import type { ThunkApiConfig } from '#/renderer/src/store/redux';
 export const hydrateTerminalLayout = createAsyncThunk<void, void, ThunkApiConfig>(
   'terminals/hydrateTerminalLayout',
   async (_arg, { dispatch }) => {
-    const layout: TerminalsState = loadTerminalLayout();
-    dispatch(hydrateTerminals(layout));
+    const layout = loadTerminalLayout();
+    dispatch(
+      hydrateTerminals({
+        ...layout,
+        selectionSnapshots: {}
+      })
+    );
   }
 );

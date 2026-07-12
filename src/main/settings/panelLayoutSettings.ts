@@ -14,7 +14,12 @@ export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
   showAiSidebar: false,
   showRequestEditor: true,
   showResponseEditor: true,
-  requestEditorSplitHeight: DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT
+  requestEditorSplitHeight: DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT,
+  showConsole: false,
+  showVariables: false,
+  showMcp: false,
+  showTerminal: false,
+  activePluginFooterPanelId: null
 };
 
 let store: Store<{ panelLayout: PanelLayoutState }> | null = null;
@@ -57,18 +62,99 @@ function normalizeRequestEditorSplitHeight(value: unknown): number {
   );
 }
 
+/**
+ * Normalizes footer panel visibility so at most one built-in or plugin panel is open.
+ *
+ * @param input - Raw footer panel flags from storage or user input.
+ * @returns Footer panel visibility with mutual exclusivity enforced.
+ */
+function normalizeFooterPanels(
+  input: Partial<PanelLayoutState>
+): Pick<
+  PanelLayoutState,
+  'showConsole' | 'showVariables' | 'showMcp' | 'showTerminal' | 'activePluginFooterPanelId'
+> {
+  const activePluginFooterPanelId =
+    typeof input.activePluginFooterPanelId === 'string' &&
+    input.activePluginFooterPanelId.length > 0
+      ? input.activePluginFooterPanelId
+      : null;
+  const showConsole = input.showConsole === true;
+  const showVariables = input.showVariables === true;
+  const showMcp = input.showMcp === true;
+  const showTerminal = input.showTerminal === true;
+
+  if (activePluginFooterPanelId) {
+    return {
+      showConsole: false,
+      showVariables: false,
+      showMcp: false,
+      showTerminal: false,
+      activePluginFooterPanelId
+    };
+  }
+
+  if (showConsole) {
+    return {
+      showConsole: true,
+      showVariables: false,
+      showMcp: false,
+      showTerminal: false,
+      activePluginFooterPanelId: null
+    };
+  }
+  if (showVariables) {
+    return {
+      showConsole: false,
+      showVariables: true,
+      showMcp: false,
+      showTerminal: false,
+      activePluginFooterPanelId: null
+    };
+  }
+  if (showMcp) {
+    return {
+      showConsole: false,
+      showVariables: false,
+      showMcp: true,
+      showTerminal: false,
+      activePluginFooterPanelId: null
+    };
+  }
+  if (showTerminal) {
+    return {
+      showConsole: false,
+      showVariables: false,
+      showMcp: false,
+      showTerminal: true,
+      activePluginFooterPanelId: null
+    };
+  }
+
+  return {
+    showConsole: false,
+    showVariables: false,
+    showMcp: false,
+    showTerminal: false,
+    activePluginFooterPanelId: null
+  };
+}
+
 function normalizePanelLayout(input: Partial<PanelLayoutState>): PanelLayoutState {
+  const footerPanels = normalizeFooterPanels(input);
+
   return {
     showSidebar: input.showSidebar !== false,
     showAiSidebar: input.showAiSidebar === true,
     showRequestEditor: input.showRequestEditor !== false,
     showResponseEditor: input.showResponseEditor !== false,
-    requestEditorSplitHeight: normalizeRequestEditorSplitHeight(input.requestEditorSplitHeight)
+    requestEditorSplitHeight: normalizeRequestEditorSplitHeight(input.requestEditorSplitHeight),
+    ...footerPanels
   };
 }
 
 /**
- * Returns persisted sidebar visibility preferences.
+ * Returns persisted sidebar, editor, and footer panel layout preferences.
  */
 export function getPanelLayout(): PanelLayoutState {
   const stored = getStore().get(STORE_KEY, DEFAULT_PANEL_LAYOUT);
@@ -76,7 +162,7 @@ export function getPanelLayout(): PanelLayoutState {
 }
 
 /**
- * Persists sidebar visibility preferences.
+ * Persists sidebar, editor, and footer panel layout preferences.
  *
  * @param state - Panel layout snapshot to store.
  */

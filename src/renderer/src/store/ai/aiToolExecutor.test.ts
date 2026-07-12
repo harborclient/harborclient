@@ -2,10 +2,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_RESPONSE_BODY_CHARS, RESPONSE_BODY_PREVIEW_CHARS } from '#/shared/ai/chatContext';
 import { defaultAuth } from '#/shared/auth';
 import { createInlineScriptRef, createSnippetScriptRef } from '#/shared/scriptRefs';
-import type { Collection, Environment, KeyValue, SavedRequest, SendResult } from '#/shared/types';
+import type {
+  Collection,
+  Environment,
+  Folder,
+  KeyValue,
+  SavedRequest,
+  SendResult
+} from '#/shared/types';
 import { executeAiTool } from '#/renderer/src/store/ai/aiToolExecutor';
 import {
   setCollections,
+  setFoldersForCollection,
+  setRequestsForCollection,
   setSelectedCollectionId
 } from '#/renderer/src/store/slices/collectionsSlice';
 import {
@@ -13,17 +22,26 @@ import {
   setEnvironments
 } from '#/renderer/src/store/slices/environmentsSlice';
 import { openTabWithDraft, updateTab } from '#/renderer/src/store/slices/tabsSlice';
+import { addTerminal, hydrateTerminals } from '#/renderer/src/store/slices/terminalsSlice';
+import { setShowTerminal } from '#/renderer/src/store/slices/navigationSlice';
 import { selectDraft } from '#/renderer/src/store/selectors';
+import {
+  clearTerminalRegistry,
+  getTerminalInstance,
+  registerTerminalInstance
+} from '#/renderer/src/ui/Footer/TerminalPanel/terminalRegistry';
 
 vi.mock('react-hot-toast', () => ({
   default: { success: vi.fn(), error: vi.fn(), loading: vi.fn(), dismiss: vi.fn() }
 }));
 
 const listRequestsMock = vi.fn<(collectionId: number) => Promise<SavedRequest[]>>();
+const listFoldersMock = vi.fn<(collectionId: number) => Promise<Folder[]>>();
 const sendRequestMock = vi.fn<(req: unknown, requestId?: string) => Promise<SendResult>>();
 const getCookiesMock = vi.fn<(domain: string) => Promise<KeyValue[]>>();
 const setCookiesMock = vi.fn<(domain: string, cookies: KeyValue[]) => Promise<void>>();
 const searchDocsMock = vi.fn<(args: { query: string }) => Promise<string>>();
+const writeTerminalMock = vi.fn<(id: string, data: string) => void>();
 
 /**
  * Minimal in-memory localStorage mock for store persistence subscribers.
@@ -49,19 +67,31 @@ function createLocalStorageMock(): Storage {
 beforeEach(() => {
   vi.stubGlobal('localStorage', createLocalStorageMock());
   vi.stubGlobal('window', {
+    platform: 'linux',
+    operatingSystemInfo: {
+      platform: 'linux',
+      type: 'Linux',
+      release: '6.8.0-134-generic',
+      arch: 'x64'
+    },
     api: {
       listRequests: listRequestsMock,
+      listFolders: listFoldersMock,
       sendRequest: sendRequestMock,
       pushPluginHttpAfterSend: vi.fn().mockResolvedValue(undefined),
       getCookies: getCookiesMock,
       setCookies: setCookiesMock,
       searchDocs: searchDocsMock,
+      writeTerminal: writeTerminalMock,
       runScript: vi.fn().mockResolvedValue({ logs: [], tests: [], error: undefined }),
       cancelRequest: vi.fn()
     }
   });
+  clearTerminalRegistry();
   listRequestsMock.mockReset();
   listRequestsMock.mockResolvedValue([]);
+  listFoldersMock.mockReset();
+  listFoldersMock.mockResolvedValue([]);
   sendRequestMock.mockReset();
   getCookiesMock.mockReset();
   getCookiesMock.mockResolvedValue([]);
@@ -69,11 +99,60 @@ beforeEach(() => {
   setCookiesMock.mockResolvedValue(undefined);
   searchDocsMock.mockReset();
   searchDocsMock.mockResolvedValue('[]');
+  writeTerminalMock.mockReset();
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  clearTerminalRegistry();
 });
+
+/**
+ * Resets footer terminal layout state in the shared test store.
+ *
+ * @param store - Redux store used by executeAiTool tests.
+ */
+async function resetTerminalLayout(
+  store: Awaited<typeof import('#/renderer/src/store/redux')>['store']
+): Promise<void> {
+  store.dispatch(
+    hydrateTerminals({
+      terminals: [],
+      activeTerminalId: null,
+      selectionSnapshots: {}
+    })
+  );
+}
+
+/**
+ * Builds a minimal xterm-like terminal stub with a readable buffer.
+ *
+ * @param lineTexts - Plain-text lines stored in the active buffer.
+ */
+function createTerminalBufferStub(lineTexts: string[]): {
+  buffer: {
+    active: {
+      length: number;
+      getLine: (
+        index: number
+      ) => { translateToString: (trimRight?: boolean) => string } | undefined;
+    };
+  };
+} {
+  return {
+    buffer: {
+      active: {
+        length: lineTexts.length,
+        getLine: (index: number) => ({
+          translateToString: (trimRight?: boolean) => {
+            void trimRight;
+            return lineTexts[index] ?? '';
+          }
+        })
+      }
+    }
+  };
+}
 
 describe('executeAiTool', () => {
   it('returns the selected collection', async () => {
@@ -1084,6 +1163,261 @@ describe('executeAiTool', () => {
     expect(selectDraft(store.getState()).pre_request_scripts[0].code).toBe('console.log("after");');
   });
 
+  it('returns a collection by uuid from Redux', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const collectionUuid = '11111111-1111-1111-1111-111111111111';
+    const collection: Collection = {
+      id: 1,
+      uuid: collectionUuid,
+      name: 'API',
+      variables: [{ key: 'baseUrl', value: 'https://example.com', defaultValue: '', share: true }],
+      headers: [],
+      auth: defaultAuth(),
+      pre_request_script: '',
+      post_request_script: '',
+      pre_request_scripts: [],
+      post_request_scripts: [],
+      created_at: '2026-01-01T00:00:00.000Z'
+    };
+    store.dispatch(setCollections([collection]));
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_collection',
+        { uuid: collectionUuid },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toMatchObject({
+      id: 1,
+      uuid: collectionUuid,
+      name: 'API'
+    });
+    expect(result.variables).toEqual(collection.variables);
+  });
+
+  it('returns a folder by uuid from Redux', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const folderUuid = '22222222-2222-2222-2222-222222222222';
+    const folder: Folder = {
+      id: 10,
+      collection_id: 1,
+      uuid: folderUuid,
+      name: 'Auth',
+      sort_order: 0,
+      variables: [],
+      headers: [],
+      auth: defaultAuth(),
+      pre_request_script: '',
+      post_request_script: '',
+      pre_request_scripts: [],
+      post_request_scripts: [],
+      created_at: '2026-01-01T00:00:00.000Z'
+    };
+    store.dispatch(
+      setCollections([
+        {
+          id: 1,
+          uuid: '11111111-1111-1111-1111-111111111111',
+          name: 'API',
+          variables: [],
+          headers: [],
+          auth: defaultAuth(),
+          pre_request_script: '',
+          post_request_script: '',
+          pre_request_scripts: [],
+          post_request_scripts: [],
+          created_at: '2026-01-01T00:00:00.000Z'
+        }
+      ])
+    );
+    store.dispatch(setFoldersForCollection({ collectionId: 1, folders: [folder] }));
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_folder',
+        { uuid: folderUuid },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toMatchObject({
+      id: 10,
+      uuid: folderUuid,
+      name: 'Auth'
+    });
+  });
+
+  it('falls back to listFolders when a folder is not cached in Redux', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const folderUuid = '22222222-2222-2222-2222-222222222222';
+    const folder: Folder = {
+      id: 10,
+      collection_id: 1,
+      uuid: folderUuid,
+      name: 'Auth',
+      sort_order: 0,
+      variables: [],
+      headers: [],
+      auth: defaultAuth(),
+      pre_request_script: '',
+      post_request_script: '',
+      pre_request_scripts: [],
+      post_request_scripts: [],
+      created_at: '2026-01-01T00:00:00.000Z'
+    };
+    store.dispatch(
+      setCollections([
+        {
+          id: 1,
+          uuid: '11111111-1111-1111-1111-111111111111',
+          name: 'API',
+          variables: [],
+          headers: [],
+          auth: defaultAuth(),
+          pre_request_script: '',
+          post_request_script: '',
+          pre_request_scripts: [],
+          post_request_scripts: [],
+          created_at: '2026-01-01T00:00:00.000Z'
+        }
+      ])
+    );
+    store.dispatch(setFoldersForCollection({ collectionId: 1, folders: [] }));
+    listFoldersMock.mockResolvedValue([folder]);
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_folder',
+        { uuid: folderUuid },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(listFoldersMock).toHaveBeenCalledWith(1);
+    expect(result).toMatchObject({ uuid: folderUuid, name: 'Auth' });
+  });
+
+  it('returns a saved request by uuid from Redux', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const requestUuid = '33333333-3333-3333-3333-333333333333';
+    const request: SavedRequest = {
+      id: 4,
+      uuid: requestUuid,
+      collection_id: 1,
+      folder_id: null,
+      name: 'Login',
+      method: 'POST',
+      url: 'https://example.com/login',
+      headers: [],
+      params: [],
+      auth: defaultAuth(),
+      body: '{}',
+      body_type: 'json',
+      pre_request_script: '',
+      post_request_script: '',
+      pre_request_scripts: [],
+      post_request_scripts: [],
+      comment: '',
+      tags: '',
+      sort_order: 0,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z'
+    };
+    store.dispatch(
+      setCollections([
+        {
+          id: 1,
+          uuid: '11111111-1111-1111-1111-111111111111',
+          name: 'API',
+          variables: [],
+          headers: [],
+          auth: defaultAuth(),
+          pre_request_script: '',
+          post_request_script: '',
+          pre_request_scripts: [],
+          post_request_scripts: [],
+          created_at: '2026-01-01T00:00:00.000Z'
+        }
+      ])
+    );
+    store.dispatch(setRequestsForCollection({ collectionId: 1, requests: [request] }));
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_request',
+        { uuid: requestUuid },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toMatchObject({
+      id: 4,
+      uuid: requestUuid,
+      name: 'Login',
+      method: 'POST'
+    });
+  });
+
+  it('falls back to listRequests when a saved request is not cached in Redux', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const requestUuid = '33333333-3333-3333-3333-333333333333';
+    const request: SavedRequest = {
+      id: 4,
+      uuid: requestUuid,
+      collection_id: 1,
+      folder_id: null,
+      name: 'Login',
+      method: 'POST',
+      url: 'https://example.com/login',
+      headers: [],
+      params: [],
+      auth: defaultAuth(),
+      body: '{}',
+      body_type: 'json',
+      pre_request_script: '',
+      post_request_script: '',
+      pre_request_scripts: [],
+      post_request_scripts: [],
+      comment: '',
+      tags: '',
+      sort_order: 0,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z'
+    };
+    store.dispatch(
+      setCollections([
+        {
+          id: 1,
+          uuid: '11111111-1111-1111-1111-111111111111',
+          name: 'API',
+          variables: [],
+          headers: [],
+          auth: defaultAuth(),
+          pre_request_script: '',
+          post_request_script: '',
+          pre_request_scripts: [],
+          post_request_scripts: [],
+          created_at: '2026-01-01T00:00:00.000Z'
+        }
+      ])
+    );
+    store.dispatch(setRequestsForCollection({ collectionId: 1, requests: [] }));
+    listRequestsMock.mockResolvedValue([request]);
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_request',
+        { uuid: requestUuid },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(listRequestsMock).toHaveBeenCalledWith(1);
+    expect(result).toMatchObject({ uuid: requestUuid, name: 'Login' });
+  });
+
   it('delegates search_docs to window.api.searchDocs', async () => {
     const { store } = await import('#/renderer/src/store/redux');
     const payload = JSON.stringify([
@@ -1107,5 +1441,205 @@ describe('executeAiTool', () => {
 
     expect(searchDocsMock).toHaveBeenCalledWith({ query: 'pre-request scripts', limit: 3 });
     expect(result).toBe(payload);
+  });
+
+  it('returns active terminal summary info', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    await resetTerminalLayout(store);
+    store.dispatch(addTerminal());
+    const activeTerminalId = store.getState().terminals.activeTerminalId;
+    const activeTerminal = store
+      .getState()
+      .terminals.terminals.find((terminal) => terminal.id === activeTerminalId);
+    registerTerminalInstance(
+      activeTerminal!.id,
+      createTerminalBufferStub(['line1', 'line2', 'line3']) as never
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_active_terminal',
+        {},
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({
+      terminalId: activeTerminal!.id,
+      title: 'Terminal 1',
+      terminalIndex: 1,
+      totalLines: 3,
+      operatingSystem: {
+        platform: 'linux',
+        type: 'Linux',
+        release: '6.8.0-134-generic',
+        arch: 'x64'
+      }
+    });
+  });
+
+  it('returns an error when no active terminal exists', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    await resetTerminalLayout(store);
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_active_terminal',
+        {},
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({ error: 'No active terminal.' });
+  });
+
+  it('returns an error when the active terminal buffer is not ready', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    await resetTerminalLayout(store);
+    store.dispatch(addTerminal());
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_active_terminal',
+        {},
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({ error: 'Active terminal is not ready yet.' });
+  });
+
+  it('returns a requested line range from the active terminal', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    await resetTerminalLayout(store);
+    store.dispatch(addTerminal());
+    const activeTerminalId = store.getState().terminals.activeTerminalId;
+    const activeTerminal = store
+      .getState()
+      .terminals.terminals.find((terminal) => terminal.id === activeTerminalId);
+    registerTerminalInstance(
+      activeTerminal!.id,
+      createTerminalBufferStub(['alpha', 'beta', 'gamma', 'delta']) as never
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_active_terminal_lines',
+        { startLine: 2, endLine: 3 },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({
+      startLine: 2,
+      endLine: 3,
+      totalLines: 4,
+      lines: 'beta\ngamma'
+    });
+  });
+
+  it('clamps terminal line ranges to the available buffer', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    await resetTerminalLayout(store);
+    store.dispatch(addTerminal());
+    const activeTerminalId = store.getState().terminals.activeTerminalId;
+    const activeTerminal = store
+      .getState()
+      .terminals.terminals.find((terminal) => terminal.id === activeTerminalId);
+    registerTerminalInstance(activeTerminal!.id, createTerminalBufferStub(['only line']) as never);
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_active_terminal_lines',
+        { startLine: 1, endLine: 99 },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({
+      startLine: 1,
+      endLine: 1,
+      totalLines: 1,
+      lines: 'only line'
+    });
+  });
+
+  it('returns an error for invalid terminal line arguments', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    await resetTerminalLayout(store);
+    store.dispatch(addTerminal());
+    const activeTerminalId = store.getState().terminals.activeTerminalId;
+    const activeTerminal = store
+      .getState()
+      .terminals.terminals.find((terminal) => terminal.id === activeTerminalId);
+    registerTerminalInstance(activeTerminal!.id, createTerminalBufferStub(['line']) as never);
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_active_terminal_lines',
+        { startLine: 5, endLine: 2 },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({ error: 'startLine must be less than or equal to endLine.' });
+    expect(getTerminalInstance(activeTerminal!.id)).toBeDefined();
+  });
+
+  it('writes input to the active terminal shell', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    await resetTerminalLayout(store);
+    store.dispatch(addTerminal());
+    store.dispatch(setShowTerminal(true));
+    const activeTerminalId = store.getState().terminals.activeTerminalId;
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'terminal_exec',
+        { input: 'cd foo\n' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(writeTerminalMock).toHaveBeenCalledWith(activeTerminalId, 'cd foo\n');
+  });
+
+  it('returns an error when terminal_exec is called with the panel closed', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    await resetTerminalLayout(store);
+    store.dispatch(addTerminal());
+    store.dispatch(setShowTerminal(false));
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'terminal_exec',
+        { input: 'pwd\n' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({
+      error: 'Terminal panel is closed. Open the terminal panel before sending input.'
+    });
+    expect(writeTerminalMock).not.toHaveBeenCalled();
+  });
+
+  it('returns an error when terminal_exec input is missing', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    await resetTerminalLayout(store);
+    store.dispatch(addTerminal());
+    store.dispatch(setShowTerminal(true));
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'terminal_exec',
+        { input: '' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({ error: 'input is required.' });
+    expect(writeTerminalMock).not.toHaveBeenCalled();
   });
 });

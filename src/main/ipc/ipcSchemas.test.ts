@@ -243,6 +243,7 @@ describe('generalSettings', () => {
     warnWhenClickingReadonlySnippet: true,
     warnWhenCreatingTabGroup: true,
     warnWhenOpeningTabGroup: true,
+    warnWhenAgentUsesTerminal: true,
     codeEditorTheme: 'default' as const,
     codeEditorSetup: {
       lineNumbers: true,

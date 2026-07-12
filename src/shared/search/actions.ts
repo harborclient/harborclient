@@ -31,6 +31,12 @@ export const BUILTIN_ACTIONS: ActionCommandDefinition[] = [
   { id: 'builtin:toggle-request-editor', group: 'View', label: 'Toggle Request' },
   { id: 'builtin:toggle-response-editor', group: 'View', label: 'Toggle Response' },
   {
+    id: 'builtin:toggle-terminal',
+    group: 'View',
+    label: 'Terminal',
+    description: 'Open the terminal panel'
+  },
+  {
     id: 'builtin:toggle-collections-section',
     group: 'View',
     label: 'Toggle Collections'

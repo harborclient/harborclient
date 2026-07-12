@@ -9,6 +9,10 @@ import type { ScriptStage } from '@harborclient/sdk';
 import type { SnippetEditDraft } from '#/renderer/src/ui/shared/snippetEditDraft';
 import { providerOptionLabel, useProviders } from '#/renderer/src/hooks/useProviders';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
+import {
+  COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
+  COPY_TO_CHAT_SHORTCUT_HINT
+} from '#/renderer/src/hooks/useCopyToChat';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveChatId,
@@ -133,8 +137,8 @@ export function SnippetEditFields({
               label: 'Copy to chat',
               ariaLabel: `Copy selection from ${draft.name} to chat`,
               icon: faCopy,
-              shortcutHint: 'Ctrl+L',
-              key: 'Ctrl-l',
+              shortcutHint: COPY_TO_CHAT_SHORTCUT_HINT,
+              key: COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
               onSelect: (selection: CodeEditorTextSelection): void => {
                 void handleCopySelectionToChat({ from: selection.from, to: selection.to });
               }

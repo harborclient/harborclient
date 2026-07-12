@@ -4,6 +4,7 @@ import type { HarborDeepLink } from '#/shared/deepLink';
 import type { MenuSelectThemePayload, ThemeMenuOption } from '#/shared/themes';
 import type { PluginHttpRequest, PluginHttpResponse } from '@harborclient/sdk';
 import { contextBridge, ipcRenderer } from 'electron';
+import os from 'node:os';
 import { normalize, resolve } from 'path';
 import type {
   Api,
@@ -3421,3 +3422,9 @@ const api: Api = {
 
 contextBridge.exposeInMainWorld('api', api);
 contextBridge.exposeInMainWorld('platform', process.platform);
+contextBridge.exposeInMainWorld('operatingSystemInfo', {
+  platform: process.platform,
+  type: os.type(),
+  release: os.release(),
+  arch: process.arch
+});
