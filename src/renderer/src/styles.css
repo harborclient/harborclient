@@ -192,6 +192,8 @@
     --mac-warning: #ff9f0a;
     --mac-success: #30d158;
     --mac-info: rgba(255, 255, 255, 0.55);
+    --mac-method-post: #2f8eed;
+    --mac-method-delete: #de5445;
     --mac-scrollbar-track: rgba(255, 255, 255, 0.06);
     --mac-scrollbar-thumb: rgba(255, 255, 255, 0.44);
     --mac-scrollbar-thumb-hover: rgba(255, 255, 255, 0.55);

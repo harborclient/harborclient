@@ -63,7 +63,7 @@ import {
 } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarSelectionUtils';
 import {
   mergeContainerItems,
-  collectionCollisionDetection,
+  collectionCollisionDetectionWithDragKind,
   collectionDragId,
   containerItemDragId,
   dropFolderId,
@@ -73,7 +73,9 @@ import {
   folderDragId,
   parseCollectionDragId,
   parseDragId,
+  parseDropTarget,
   resolveRequestDropTarget,
+  setCollectionSidebarDragKind,
   type ContainerItem,
   type ContainerItemRef,
   type DragKind
@@ -179,6 +181,7 @@ export function Collections(): JSX.Element {
    */
   const clearDragState = (): void => {
     activeDragKindRef.current = null;
+    setCollectionSidebarDragKind(null);
     dragCollectionIdRef.current = null;
     setActiveDragKind(null);
     setActiveDragRequest(null);
@@ -552,10 +555,15 @@ export function Collections(): JSX.Element {
 
     if (activeParsed.kind === 'folder') {
       const folders = foldersByCollection[collectionId] ?? [];
-      const overParsed = parseDragId(String(over.id));
-      if (!overParsed || overParsed.kind !== 'folder') return;
+      const overId = String(over.id);
+      const overParsed = parseDragId(overId);
+      const overDrop = overParsed == null ? parseDropTarget(overId) : null;
+      const overFolderId =
+        overParsed?.kind === 'folder' ? overParsed.id : (overDrop?.folderId ?? null);
+      if (overFolderId == null) return;
+
       const oldIndex = folders.findIndex((folder) => folder.id === activeParsed.id);
-      const newIndex = folders.findIndex((folder) => folder.id === overParsed.id);
+      const newIndex = folders.findIndex((folder) => folder.id === overFolderId);
       if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) return;
       const nextOrder = arrayMove(
         folders.map((folder) => folder.id),
@@ -669,6 +677,7 @@ export function Collections(): JSX.Element {
         (item) => item.id === parsed.id
       );
       activeDragKindRef.current = 'folder';
+      setCollectionSidebarDragKind('folder');
       setActiveDragKind('folder');
       setActiveDragFolder(folder ?? null);
       setActiveDragRequest(null);
@@ -681,6 +690,7 @@ export function Collections(): JSX.Element {
         (item) => item.id === parsed.id
       );
       activeDragKindRef.current = 'document';
+      setCollectionSidebarDragKind('document');
       setActiveDragKind('document');
       setActiveDragDocument(document ?? null);
       setActiveDragRequest(null);
@@ -692,6 +702,7 @@ export function Collections(): JSX.Element {
       (item) => item.id === parsed.id
     );
     activeDragKindRef.current = 'request';
+    setCollectionSidebarDragKind('request');
     setActiveDragKind('request');
     setActiveDragRequest(request ?? null);
     setActiveDragDocument(null);
@@ -949,7 +960,7 @@ export function Collections(): JSX.Element {
                 <AnimatedCollapse open={expanded}>
                   <DndContext
                     sensors={sensors}
-                    collisionDetection={collectionCollisionDetection}
+                    collisionDetection={collectionCollisionDetectionWithDragKind}
                     onDragStart={(event) => handleDragStart(event, collection.id)}
                     onDragOver={(event) => handleDragOver(event, collection.id)}
                     onDragEnd={(event) => void handleDragEnd(event, collection.id)}

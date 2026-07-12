@@ -1,4 +1,14 @@
-import { useCallback, useMemo, useState, type ChangeEvent, type JSX, type MouseEvent } from 'react';
+import {
+  Children,
+  isValidElement,
+  useCallback,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type JSX,
+  type MouseEvent,
+  type ReactNode
+} from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -32,6 +42,28 @@ interface MarkdownComponentOptions {
   checkedKeys: ReadonlySet<string>;
   /** Called when the user toggles a task-list checkbox. */
   onToggleCheckbox: (itemKey: string, checked: boolean) => void;
+}
+
+/**
+ * Splits GFM task-list children into the checkbox input and remaining content.
+ * react-markdown emits the checkbox and inline nodes as sibling children; wrapping
+ * non-checkbox content avoids flex treating each inline node as its own column.
+ *
+ * @param children - React nodes rendered inside a task-list `<li>`.
+ * @returns Checkbox element (if any) and all other content nodes.
+ */
+function splitTaskListItemChildren(children: ReactNode): {
+  checkbox: ReactNode | null;
+  content: ReactNode[];
+} {
+  const items = Children.toArray(children);
+  const checkbox =
+    items.find(
+      (child) => isValidElement(child) && (child.props as { type?: string }).type === 'checkbox'
+    ) ?? null;
+  const content = items.filter((child) => child !== checkbox);
+
+  return { checkbox, content };
 }
 
 /**
@@ -89,8 +121,10 @@ function createGettingStartedMarkdownComponents(options: MarkdownComponentOption
 
       return (
         <ul
-          className={`my-4 space-y-2 last:mb-0 [&>li]:break-words ${
-            isTaskList ? 'list-none pl-0' : 'list-disc pl-6'
+          className={`my-4 last:mb-0 [&>li]:break-words ${
+            isTaskList
+              ? 'grid list-none grid-cols-1 gap-4 pl-0 xl:grid-cols-2'
+              : 'list-disc space-y-2 pl-6'
           } ${className ?? ''}`.trim()}
         >
           {children}
@@ -103,13 +137,20 @@ function createGettingStartedMarkdownComponents(options: MarkdownComponentOption
     li: ({ children, className }) => {
       const isTaskItem = className?.includes('task-list-item');
 
+      if (!isTaskItem) {
+        return (
+          <li className={`break-words [&>p]:mb-2 [&>p:last-child]:mb-0 ${className ?? ''}`.trim()}>
+            {children}
+          </li>
+        );
+      }
+
+      const { checkbox, content } = splitTaskListItemChildren(children);
+
       return (
-        <li
-          className={`break-words ${
-            isTaskItem ? 'flex list-none items-start gap-2' : '[&>p]:mb-2 [&>p:last-child]:mb-0'
-          } ${className ?? ''}`.trim()}
-        >
-          {children}
+        <li className={`flex list-none items-start gap-2 break-words ${className ?? ''}`.trim()}>
+          {checkbox}
+          <div className="min-w-0 flex-1 [&>p]:mb-0 [&>p:last-child]:mb-0">{content}</div>
         </li>
       );
     },
@@ -218,7 +259,7 @@ function createGettingStartedMarkdownComponents(options: MarkdownComponentOption
         <img
           src={resolvedSrc}
           alt={alt ?? ''}
-          className="my-4 max-w-full rounded-md border border-separator"
+          className="mx-auto my-4 block max-w-full rounded-md border border-separator"
         />
       );
     },
@@ -287,7 +328,7 @@ export function GettingStartedPage({
       className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background"
     >
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
-        <div className="mx-auto max-w-3xl">
+        <div className="w-full">
           <h2 id="getting-started-heading" className="sr-only">
             Getting Started
           </h2>

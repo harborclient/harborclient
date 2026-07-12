@@ -226,15 +226,72 @@ export function findUnifiedIndex(items: ContainerItemRef[], overId: string): num
 export const dropTargetHighlightClass = 'rounded-md ring-2 ring-info/60 bg-info/10';
 
 /**
- * Prefers explicit drop zones under the pointer, otherwise falls back to closest center.
+ * Whether a droppable id should win collision detection for the active drag kind.
+ * Folder reorder uses sortable sibling collisions only so rows shift during drag.
+ *
+ * @param dropTargetId Droppable id under the pointer (e.g. `drop:folder:1`).
+ * @param activeDragKind Kind of item currently being dragged, if any.
  */
-export const collectionCollisionDetection: CollisionDetection = (args) => {
-  const pointerCollisions = pointerWithin(args);
-  if (pointerCollisions.length > 0) {
-    const dropTarget = pointerCollisions.find((collision) =>
-      String(collision.id).startsWith('drop:')
-    );
-    if (dropTarget) return [dropTarget];
-  }
-  return closestCenter(args);
-};
+export function shouldPreferDropTargetCollision(
+  dropTargetId: string,
+  activeDragKind: DragKind | null
+): boolean {
+  if (!dropTargetId.startsWith('drop:')) return false;
+  if (activeDragKind === 'folder') return false;
+  return true;
+}
+
+/**
+ * Ref-like holder for the active sidebar drag kind.
+ */
+export interface ActiveDragKindRef {
+  current: DragKind | null;
+}
+
+/**
+ * Mutable drag kind updated synchronously on drag start/end for collision detection.
+ */
+const activeDragKindHolder: ActiveDragKindRef = { current: null };
+
+/**
+ * Sets the active sidebar drag kind for inner collection collision detection.
+ *
+ * @param kind Dragged item kind, or null when drag ends.
+ */
+export function setCollectionSidebarDragKind(kind: DragKind | null): void {
+  activeDragKindHolder.current = kind;
+}
+
+/**
+ * Builds collision detection for the per-collection sidebar DndContext.
+ * Request and document drags prefer explicit drop zones; folder drags use
+ * closest-center sortable collisions so sibling folders animate out of the way.
+ *
+ * @param activeDragKindRef Ref updated synchronously on drag start/end.
+ */
+export function createCollectionCollisionDetection(
+  activeDragKindRef: ActiveDragKindRef
+): CollisionDetection {
+  return (args) => {
+    const activeDragKind = activeDragKindRef.current;
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) {
+      const dropTarget = pointerCollisions.find((collision) =>
+        shouldPreferDropTargetCollision(String(collision.id), activeDragKind)
+      );
+      if (dropTarget) return [dropTarget];
+    }
+    return closestCenter(args);
+  };
+}
+
+/**
+ * Collision detection wired to {@link setCollectionSidebarDragKind}.
+ */
+export const collectionCollisionDetectionWithDragKind =
+  createCollectionCollisionDetection(activeDragKindHolder);
+
+/**
+ * Default collision detection when no drag kind context is available.
+ */
+export const collectionCollisionDetection = createCollectionCollisionDetection({ current: null });

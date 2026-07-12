@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- chore(dependencies): update @harborclient/sdk to version 1.0.74. (`67971e2`)
+
 ## 2.2.2 - 2026-07-12
 
 - feat(environments, tabGroups): implement local reordering for environments and tab groups. (`69d9e2b`)
