@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.2.4 - 2026-07-12
+
 - chore(dependencies): update @harborclient/sdk to version 1.0.75. (`cb147d3`)
 - feat(markdown): implement get_markdown_document tool and enhance markdown handling. (`01e463c`)
 
