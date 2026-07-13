@@ -42,6 +42,19 @@ export function pullMergeConflictMessage(conflictCount: number): string {
 }
 
 /**
+ * Removes a trailing `.md` extension from a document display name before slugging.
+ *
+ * @param name - Document display name (for example README.md).
+ */
+export function stripMdExtension(name: string): string {
+  const trimmed = name.trim();
+  if (trimmed.toLowerCase().endsWith('.md')) {
+    return trimmed.slice(0, -3).trim();
+  }
+  return trimmed;
+}
+
+/**
  * Converts a display name into a filesystem-safe slug for git-backed paths.
  *
  * @param name - Human-readable name (collection or request).

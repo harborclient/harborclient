@@ -1,5 +1,5 @@
-import { Button, FaIcon, Modal, ModalFooter, Page } from '@harborclient/sdk/components';
-import { useCallback, useEffect, useState, type JSX } from 'react';
+import { Button, Checkbox, FaIcon, Modal, ModalFooter, Page } from '@harborclient/sdk/components';
+import { useCallback, useEffect, useState, type ChangeEvent, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { GitIdentity } from '#/shared/types';
 import { normalizeGitHostKey } from '#/shared/gitUrl';
@@ -8,12 +8,16 @@ import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { faGithub, faPlus } from '#/renderer/src/fontawesome';
 import { GitAuthForm } from '#/renderer/src/ui/git/GitAuthForm';
 import { SettingLabel } from '#/renderer/src/ui/Settings/components/SettingLabel';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
 
 /**
  * Settings page for managing shared git host identities.
  */
 export function GitIdentitiesSection(): JSX.Element {
   const confirm = useConfirm();
+  const dispatch = useAppDispatch();
+  const gitAutoAdd = useAppSelector((state) => state.settings.general.gitAutoAdd);
   const [identities, setIdentities] = useState<GitIdentity[]>([]);
   const [loading, setLoading] = useState(true);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -108,6 +112,13 @@ export function GitIdentitiesSection(): JSX.Element {
 
   const editorHostKey = normalizeGitHostKey(editorUrl || editorHost);
 
+  /**
+   * Persists the global git auto-add preference.
+   */
+  const handleAutoAddChange = (event: ChangeEvent<HTMLInputElement>): void => {
+    void dispatch(patchGeneralSettings({ gitAutoAdd: event.target.checked }));
+  };
+
   return (
     <Page
       embedded
@@ -127,6 +138,27 @@ export function GitIdentitiesSection(): JSX.Element {
         </Button>
       ]}
     >
+      <div className="mb-6 rounded-md border border-separator px-3 py-3">
+        <label
+          htmlFor="git-auto-add"
+          className="flex cursor-pointer items-start gap-3 text-[14px] text-text"
+        >
+          <Checkbox
+            id="git-auto-add"
+            checked={gitAutoAdd}
+            onChange={handleAutoAddChange}
+            aria-describedby="git-auto-add-description"
+          />
+          <span className="flex min-w-0 flex-col gap-1">
+            <SettingLabel settingId="git.autoAdd">Auto add</SettingLabel>
+            <span id="git-auto-add-description" className="text-muted">
+              When enabled, git commit stages all HarborClient changes automatically. When disabled,
+              use Add on individual requests to stage changes before committing.
+            </span>
+          </span>
+        </label>
+      </div>
+
       <span className="text-[18px] font-medium text-text mb-2">
         <SettingLabel settingId="git.identities">Git Identities</SettingLabel>
       </span>

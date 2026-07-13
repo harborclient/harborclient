@@ -35,6 +35,7 @@ export type ShortcutId =
   | 'toggle-variables'
   | 'toggle-console'
   | 'toggle-ai-sidebar'
+  | 'toggle-git-sidebar'
   | 'toggle-request-editor'
   | 'toggle-response-editor'
   | 'toggle-collections-section'
@@ -350,6 +351,13 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     actionId: 'toggle-ai-sidebar'
   },
   {
+    id: 'toggle-git-sidebar',
+    label: 'Toggle Git',
+    defaultAccelerator: 'CmdOrCtrl+Shift+G',
+    kind: 'action',
+    actionId: 'toggle-git-sidebar'
+  },
+  {
     id: 'toggle-request-editor',
     label: 'Toggle request editor',
     defaultAccelerator: 'CmdOrCtrl+Alt+R',
@@ -380,7 +388,7 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
   {
     id: 'toggle-run-results-section',
     label: 'Toggle run results section',
-    defaultAccelerator: 'CmdOrCtrl+Shift+G',
+    defaultAccelerator: 'CmdOrCtrl+Shift+M',
     kind: 'action',
     actionId: 'toggle-run-results-section'
   },

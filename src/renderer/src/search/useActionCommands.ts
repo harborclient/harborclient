@@ -17,6 +17,7 @@ import {
 } from '#/renderer/src/store/slices/modalsSlice';
 import {
   toggleAiSidebar,
+  toggleGitSidebar,
   toggleRequestEditor,
   toggleResponseEditor,
   toggleSidebar,
@@ -114,6 +115,9 @@ export function useActionCommands(): UseActionCommandsResult {
       },
       'builtin:toggle-ai-sidebar': () => {
         dispatch(toggleAiSidebar());
+      },
+      'builtin:toggle-git-sidebar': () => {
+        dispatch(toggleGitSidebar());
       },
       'builtin:toggle-request-editor': () => {
         dispatch(toggleRequestEditor());

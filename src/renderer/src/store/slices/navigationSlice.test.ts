@@ -5,6 +5,8 @@ import navigationReducer, {
   setEnvironmentSettingsDirty,
   setPendingPluginInstall,
   toggleAiSidebar,
+  toggleGitSidebar,
+  openGitSidebar,
   toggleConsole,
   toggleMcp,
   toggleTerminal,
@@ -20,6 +22,7 @@ describe('navigationSlice', () => {
     const state = navigationReducer(undefined, { type: 'unknown' });
     expect(state.showSidebar).toBe(true);
     expect(state.showAiSidebar).toBe(false);
+    expect(state.showGitSidebar).toBe(false);
     expect(state.showRequestEditor).toBe(true);
     expect(state.showResponseEditor).toBe(true);
     expect(state.requestEditorSplitHeight).toBe(340);
@@ -87,6 +90,33 @@ describe('navigationSlice', () => {
     let state = navigationReducer(undefined, toggleAiSidebar());
     expect(state.showAiSidebar).toBe(true);
     state = navigationReducer(state, toggleAiSidebar());
+    expect(state.showAiSidebar).toBe(false);
+  });
+
+  it('closes Git sidebar when opening AI sidebar', () => {
+    let state = navigationReducer(undefined, toggleGitSidebar());
+    expect(state.showGitSidebar).toBe(true);
+
+    state = navigationReducer(state, toggleAiSidebar());
+    expect(state.showAiSidebar).toBe(true);
+    expect(state.showGitSidebar).toBe(false);
+  });
+
+  it('closes AI sidebar when opening Git sidebar', () => {
+    let state = navigationReducer(undefined, toggleAiSidebar());
+    expect(state.showAiSidebar).toBe(true);
+
+    state = navigationReducer(state, toggleGitSidebar());
+    expect(state.showGitSidebar).toBe(true);
+    expect(state.showAiSidebar).toBe(false);
+  });
+
+  it('openGitSidebar enables Git and closes AI sidebar', () => {
+    let state = navigationReducer(undefined, toggleAiSidebar());
+    expect(state.showAiSidebar).toBe(true);
+
+    state = navigationReducer(state, openGitSidebar());
+    expect(state.showGitSidebar).toBe(true);
     expect(state.showAiSidebar).toBe(false);
   });
 

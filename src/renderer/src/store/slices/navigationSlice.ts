@@ -47,6 +47,7 @@ export interface NavigationState {
   folderSettingsDirty: boolean;
   showSidebar: boolean;
   showAiSidebar: boolean;
+  showGitSidebar: boolean;
   showRequestEditor: boolean;
   showResponseEditor: boolean;
   requestEditorSplitHeight: number;
@@ -71,6 +72,7 @@ const initialState: NavigationState = {
   folderSettingsDirty: false,
   showSidebar: true,
   showAiSidebar: false,
+  showGitSidebar: false,
   showRequestEditor: true,
   showResponseEditor: true,
   requestEditorSplitHeight: 340,
@@ -130,16 +132,49 @@ const navigationSlice = createSlice({
       state.showSidebar = action.payload;
     },
     /**
-     * Toggles AI sidebar visibility.
+     * Toggles AI sidebar visibility and closes the Git sidebar when opening.
      */
     toggleAiSidebar(state) {
-      state.showAiSidebar = !state.showAiSidebar;
+      const next = !state.showAiSidebar;
+      state.showAiSidebar = next;
+      if (next) {
+        state.showGitSidebar = false;
+      }
     },
     /**
-     * Sets AI sidebar visibility explicitly.
+     * Sets AI sidebar visibility explicitly and closes the Git sidebar when opening.
      */
     setShowAiSidebar(state, action: PayloadAction<boolean>) {
       state.showAiSidebar = action.payload;
+      if (action.payload) {
+        state.showGitSidebar = false;
+      }
+    },
+    /**
+     * Toggles Git sidebar visibility and closes the AI sidebar when opening.
+     */
+    toggleGitSidebar(state) {
+      const next = !state.showGitSidebar;
+      state.showGitSidebar = next;
+      if (next) {
+        state.showAiSidebar = false;
+      }
+    },
+    /**
+     * Sets Git sidebar visibility explicitly and closes the AI sidebar when opening.
+     */
+    setShowGitSidebar(state, action: PayloadAction<boolean>) {
+      state.showGitSidebar = action.payload;
+      if (action.payload) {
+        state.showAiSidebar = false;
+      }
+    },
+    /**
+     * Opens the Git sidebar and closes the AI sidebar.
+     */
+    openGitSidebar(state) {
+      state.showGitSidebar = true;
+      state.showAiSidebar = false;
     },
     /**
      * Toggles request editor visibility while keeping at least one editor visible.
@@ -358,6 +393,9 @@ export const {
   setShowSidebar,
   toggleAiSidebar,
   setShowAiSidebar,
+  toggleGitSidebar,
+  setShowGitSidebar,
+  openGitSidebar,
   toggleRequestEditor,
   setShowRequestEditor,
   toggleResponseEditor,
@@ -419,6 +457,15 @@ export const selectShowAiSidebar = (state: RootState): boolean => state.navigati
  * Returns effective AI sidebar visibility for layout rendering.
  */
 export const selectAiSidebarVisible = (state: RootState): boolean => state.navigation.showAiSidebar;
+/**
+ * Returns the user Git sidebar visibility preference.
+ */
+export const selectShowGitSidebar = (state: RootState): boolean => state.navigation.showGitSidebar;
+/**
+ * Returns effective Git sidebar visibility for layout rendering.
+ */
+export const selectGitSidebarVisible = (state: RootState): boolean =>
+  state.navigation.showGitSidebar;
 /**
  * Returns the user request editor visibility preference.
  */

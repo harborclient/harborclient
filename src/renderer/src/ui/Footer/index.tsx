@@ -12,6 +12,7 @@ import type { Variable } from '#/shared/types';
 import {
   faInbox,
   faPaperPlane,
+  faCodeBranch,
   faRobot,
   faSun,
   faTableColumns,
@@ -110,6 +111,16 @@ interface Props {
   onToggleAiSidebar: () => void;
 
   /**
+   * Whether the Git sidebar is currently visible.
+   */
+  gitSidebarOpen: boolean;
+
+  /**
+   * Toggles the Git sidebar visible/hidden.
+   */
+  onToggleGitSidebar: () => void;
+
+  /**
    * Whether the request editor is currently visible.
    */
   requestEditorOpen: boolean;
@@ -172,6 +183,8 @@ export function Footer({
   onToggleSidebar,
   aiSidebarOpen,
   onToggleAiSidebar,
+  gitSidebarOpen,
+  onToggleGitSidebar,
   requestEditorOpen,
   onToggleRequestEditor,
   responseEditorOpen,
@@ -461,6 +474,13 @@ export function Footer({
               active={aiSidebarOpen}
               activeStyle="selection"
               label="agent chat"
+            />
+            <FooterIcon
+              onClick={onToggleGitSidebar}
+              icon={faCodeBranch}
+              active={gitSidebarOpen}
+              activeStyle="selection"
+              label="git source control"
             />
           </div>
         </div>

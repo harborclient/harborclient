@@ -11,13 +11,36 @@ export interface SidebarGitContextValue {
   gitStatusesByConnectionId: Record<string, SourceControlStatus>;
 
   /**
-   * Opens the in-app source-control panel for a git connection.
+   * Opens the Git sidebar for a git connection.
    *
    * @param connectionId - Git connection id.
    * @param connectionName - Display name for the connection.
-   * @param collectionUuid - Collection uuid used to resolve git_diff for AI commit messages.
+   * @param collectionUuid - Collection uuid used for git operations.
    */
   openSourceControl: (connectionId: string, connectionName: string, collectionUuid: string) => void;
+
+  /**
+   * Refreshes git status and collection data after git operations.
+   */
+  refreshGitSidebar: () => void;
+
+  /**
+   * Opens the create-branch modal for a git connection.
+   *
+   * @param connectionId - Git connection id.
+   * @param connectionName - Display name for the connection.
+   * @param collectionUuid - Collection uuid used for sidebar context.
+   */
+  openCreateBranch: (connectionId: string, connectionName: string, collectionUuid: string) => void;
+
+  /**
+   * Opens the switch-branch modal for a git connection.
+   *
+   * @param connectionId - Git connection id.
+   * @param connectionName - Display name for the connection.
+   * @param collectionUuid - Collection uuid used for sidebar context.
+   */
+  openSwitchBranch: (connectionId: string, connectionName: string, collectionUuid: string) => void;
 }
 
 /**

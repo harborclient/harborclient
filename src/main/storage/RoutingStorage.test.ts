@@ -1310,6 +1310,8 @@ describeSqlite('RoutingStorage collection discovery', () => {
     vi.spyOn(gitDbA, 'getSourceControlStatus').mockRejectedValue(new Error('status read failed'));
     vi.spyOn(gitDbB, 'getSourceControlStatus').mockResolvedValue({
       changedCount: 2,
+      stagedCount: 1,
+      unstagedCount: 1,
       branch: 'develop',
       ahead: 0,
       behind: 0,
@@ -1326,6 +1328,8 @@ describeSqlite('RoutingStorage collection discovery', () => {
     expect(statuses['git-a']).toBeUndefined();
     expect(statuses['git-b']).toEqual({
       changedCount: 2,
+      stagedCount: 1,
+      unstagedCount: 1,
       branch: 'develop',
       ahead: 0,
       behind: 0,

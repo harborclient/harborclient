@@ -18,10 +18,17 @@ import {
   manifestToCollectionExport,
   readAllEnvironments,
   readAllSnippets,
+  assertDocumentFilenameAvailable,
+  exportedDocumentToStoredRow,
+  migrateLegacyDocumentsFromCollectionDir,
+  migrateFrontmatterHarborDocuments,
+  migrateUuidPrefixedHarborDocuments,
+  readDocumentsFromHarborRoot,
   readCollectionFromDir,
   readGitProviderSettings,
   resolveHarborclientRoot,
   writeCollectionToDir,
+  writeDocumentsToHarborRoot,
   writeEnvironmentFile,
   writeGitProviderSettings,
   writeSnippetFile,
@@ -100,7 +107,7 @@ type GitStoredRequest = Omit<
 };
 
 /**
- * Markdown document row persisted on disk under documents/.
+ * Markdown document row persisted as `.md` files at the Harbor data root.
  */
 type GitStoredDocument = ExportedDocument;
 
@@ -210,6 +217,8 @@ export class GitStorage implements IStorage {
     this.#environments.clear();
     this.#snippets.clear();
     ensureHarborclientLayout(this.#root);
+    migrateFrontmatterHarborDocuments(this.#root);
+    migrateUuidPrefixedHarborDocuments(this.#root);
 
     const collectionUuids = new Set<string>();
     for (const uuid of listCollectionUuidsOnDisk(this.#root)) {
@@ -218,6 +227,7 @@ export class GitStorage implements IStorage {
       if (!dir) {
         continue;
       }
+      migrateLegacyDocumentsFromCollectionDir(dir, uuid, this.#root);
       const { manifest, requests, documents } = this.loadCollectionFromDir(dir);
       const collectionId = assignGitId(
         this.#idIndex,
@@ -325,7 +335,7 @@ export class GitStorage implements IStorage {
       created_at: new Date().toISOString()
     };
     const dir = collectionDir(this.#root, uuid, trimmedName);
-    writeCollectionToDir(dir, manifest, [], []);
+    writeCollectionToDir(dir, manifest, []);
     const id = assignGitId(this.#idIndex, 'collectionIds', 'nextCollectionId', uuid);
     this.#collections.set(id, { dir, manifest, requests: [], documents: [] });
     saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
@@ -666,6 +676,34 @@ export class GitStorage implements IStorage {
     const existingRequest = loaded.requests.find(
       (row) => resolveImportUuid(row.uuid) === requestUuid
     );
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7634/ingest/c3368b90-dc8c-409b-b6ba-5e08697b30c9', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '384f61' },
+        body: JSON.stringify({
+          sessionId: '384f61',
+          runId: 'pre-fix',
+          hypothesisId: 'D',
+          location: 'GitStorage.ts:saveRequest',
+          message: 'saveRequest resolved identity',
+          data: {
+            inputId: input.id,
+            inputUuid: input.uuid ?? null,
+            resolvedRequestId: requestId,
+            resolvedRequestUuid: requestUuid,
+            existingFound: existingRequest != null,
+            existingName: existingRequest?.name ?? null,
+            trimmedName,
+            url: input.url
+          },
+          timestamp: Date.now()
+        })
+      }).catch(() => {});
+    } catch {
+      /* noop */
+    }
+    // #endregion
     const preScripts = bundleScriptFieldsWithLegacy(
       input.pre_request_scripts,
       input.pre_request_script ?? ''
@@ -708,6 +746,11 @@ export class GitStorage implements IStorage {
     const index = loaded.requests.findIndex((row) => resolveImportUuid(row.uuid) === requestUuid);
     if (index >= 0) {
       loaded.requests[index] = exported;
+      // Collapse any legacy duplicate rows that share this UUID (from orphan
+      // slug files) so the saved request is represented by exactly one row.
+      loaded.requests = loaded.requests.filter(
+        (row, rowIndex) => rowIndex === index || resolveImportUuid(row.uuid) !== requestUuid
+      );
     } else {
       loaded.requests.push(exported);
     }
@@ -1144,6 +1187,9 @@ export class GitStorage implements IStorage {
     const existingDocument = loaded.documents.find(
       (row) => resolveImportUuid(row.uuid) === documentUuid
     );
+
+    assertDocumentFilenameAvailable(this.#root, trimmedName, documentUuid);
+
     const exported: GitStoredDocument = {
       uuid: documentUuid,
       name: trimmedName,
@@ -1365,6 +1411,7 @@ export class GitStorage implements IStorage {
     const gitRequests = exportData.requests.map(exportedRequestToGitStored);
     const gitDocuments = exportData.documents ?? [];
     this.writeGitCollectionToDir(dir, manifest, gitRequests, gitDocuments);
+    writeDocumentsToHarborRoot(this.#root, uuid, gitDocuments);
     const id = assignGitId(this.#idIndex, 'collectionIds', 'nextCollectionId', uuid);
     this.#collections.set(id, {
       dir,
@@ -1585,8 +1632,11 @@ export class GitStorage implements IStorage {
   private persistCollection(collectionId: number): void {
     const loaded = this.requireCollection(collectionId);
     const newDir = collectionDir(this.#root, loaded.manifest.uuid, loaded.manifest.name);
+    migrateLegacyDocumentsFromCollectionDir(loaded.dir, loaded.manifest.uuid, this.#root);
+
     if (newDir !== loaded.dir) {
       this.writeGitCollectionToDir(newDir, loaded.manifest, loaded.requests, loaded.documents);
+      migrateLegacyDocumentsFromCollectionDir(loaded.dir, loaded.manifest.uuid, this.#root);
       if (loaded.dir !== newDir) {
         rmSync(loaded.dir, { recursive: true, force: true });
       }
@@ -1594,6 +1644,8 @@ export class GitStorage implements IStorage {
     } else {
       this.writeGitCollectionToDir(loaded.dir, loaded.manifest, loaded.requests, loaded.documents);
     }
+
+    writeDocumentsToHarborRoot(this.#root, loaded.manifest.uuid, loaded.documents);
   }
 
   /**
@@ -1607,7 +1659,7 @@ export class GitStorage implements IStorage {
     requests: GitStoredRequest[];
     documents: GitStoredDocument[];
   } {
-    const { manifest, requests, documents } = readCollectionFromDir(dir);
+    const { manifest, requests } = readCollectionFromDir(dir);
     const rawManifest = JSON.parse(readFileSync(join(dir, 'collection.json'), 'utf-8')) as Record<
       string,
       unknown
@@ -1656,7 +1708,7 @@ export class GitStorage implements IStorage {
           post_request_scripts: scripts?.post ?? '[]'
         };
       }),
-      documents
+      documents: readDocumentsFromHarborRoot(this.#root, manifest.uuid)
     };
   }
 
@@ -1673,7 +1725,11 @@ export class GitStorage implements IStorage {
     requests: GitStoredRequest[],
     documents: GitStoredDocument[] = []
   ): void {
-    writeCollectionToDir(dir, manifest, requests.map(gitStoredRequestToExported), documents);
+    const manifestWithDocuments: GitStoredManifest = {
+      ...manifest,
+      documents: documents.map(exportedDocumentToStoredRow)
+    };
+    writeCollectionToDir(dir, manifestWithDocuments, requests.map(gitStoredRequestToExported));
     const requestsDir = join(dir, 'requests');
     if (!existsSync(requestsDir)) {
       return;

@@ -12,7 +12,7 @@ import { Button } from '@harborclient/sdk/components';
 import { Modal, ModalFooter } from '@harborclient/sdk/components';
 
 /**
- * Confirms opening a request or markdown document when settings or editor tabs have unsaved edits.
+ * Confirms opening a request or markdown document when settings tabs have unsaved edits.
  */
 export function UnsavedLoadPrompt(): JSX.Element | null {
   const dispatch = useAppDispatch();
@@ -28,54 +28,45 @@ export function UnsavedLoadPrompt(): JSX.Element | null {
   }, [dispatch]);
 
   /**
-   * Discards unsaved edits and loads the pending request.
+   * Discards unsaved settings edits and loads the pending request.
    */
   const handleConfirmRequest = useCallback((): void => {
     if (!pendingLoadRequest) return;
-    const { req, reason } = pendingLoadRequest;
+    const { req } = pendingLoadRequest;
     dispatch(setPendingLoadRequest(null));
     void dispatch(
       requestLoadRequest({
         req,
-        skipSettingsCheck: true,
-        forceReload: reason === 'dirty-tab'
+        skipSettingsCheck: true
       })
     );
   }, [dispatch, pendingLoadRequest]);
 
   /**
-   * Discards unsaved edits and loads the pending markdown document.
+   * Discards unsaved settings edits and loads the pending markdown document.
    */
   const handleConfirmDocument = useCallback((): void => {
     if (!pendingLoadDocument) return;
-    const { doc, reason } = pendingLoadDocument;
+    const { doc } = pendingLoadDocument;
     dispatch(setPendingLoadDocument(null));
     void dispatch(
       requestLoadDocument({
         doc,
-        skipSettingsCheck: true,
-        forceReload: reason === 'dirty-tab'
+        skipSettingsCheck: true
       })
     );
   }, [dispatch, pendingLoadDocument]);
 
   if (pendingLoadRequest) {
-    const { req, reason } = pendingLoadRequest;
-    const isDirtyTab = reason === 'dirty-tab';
+    const { req } = pendingLoadRequest;
 
     return (
       <Modal onClose={handleCancel} labelledBy="unsaved-load-prompt-title" title="Unsaved changes">
         <p className="mb-4 text-[14px] text-muted">
-          {isDirtyTab ? (
-            <>&ldquo;{req.name}&rdquo; has unsaved changes. Reload without saving?</>
-          ) : (
-            <>Settings have unsaved changes. Open request without saving?</>
-          )}
+          Settings have unsaved changes. Open request &ldquo;{req.name}&rdquo; without saving?
         </p>
         <ModalFooter>
-          <Button onClick={handleConfirmRequest}>
-            {isDirtyTab ? 'Reload without saving' : 'Open without saving'}
-          </Button>
+          <Button onClick={handleConfirmRequest}>Open without saving</Button>
         </ModalFooter>
       </Modal>
     );
@@ -83,22 +74,15 @@ export function UnsavedLoadPrompt(): JSX.Element | null {
 
   if (!pendingLoadDocument) return null;
 
-  const { doc, reason } = pendingLoadDocument;
-  const isDirtyTab = reason === 'dirty-tab';
+  const { doc } = pendingLoadDocument;
 
   return (
     <Modal onClose={handleCancel} labelledBy="unsaved-load-prompt-title" title="Unsaved changes">
       <p className="mb-4 text-[14px] text-muted">
-        {isDirtyTab ? (
-          <>&ldquo;{doc.name}&rdquo; has unsaved changes. Reload without saving?</>
-        ) : (
-          <>Settings have unsaved changes. Open document without saving?</>
-        )}
+        Settings have unsaved changes. Open document &ldquo;{doc.name}&rdquo; without saving?
       </p>
       <ModalFooter>
-        <Button onClick={handleConfirmDocument}>
-          {isDirtyTab ? 'Reload without saving' : 'Open without saving'}
-        </Button>
+        <Button onClick={handleConfirmDocument}>Open without saving</Button>
       </ModalFooter>
     </Modal>
   );

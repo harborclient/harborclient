@@ -125,6 +125,7 @@ export function buildMenu(
   window: BrowserWindow,
   sidebarVisible = true,
   aiSidebarVisible = false,
+  gitSidebarVisible = false,
   requestEditorVisible = true,
   responseEditorVisible = true,
   collectionsVisible = true,
@@ -247,6 +248,13 @@ export function buildMenu(
           checked: aiSidebarVisible,
           accelerator: acceleratorFor(accelerators, 'toggle-ai-sidebar'),
           click: () => sendMenuAction(window, 'toggle-ai-sidebar')
+        },
+        {
+          label: 'Git',
+          type: 'checkbox',
+          checked: gitSidebarVisible,
+          accelerator: acceleratorFor(accelerators, 'toggle-git-sidebar'),
+          click: () => sendMenuAction(window, 'toggle-git-sidebar')
         },
         {
           label: 'Request',

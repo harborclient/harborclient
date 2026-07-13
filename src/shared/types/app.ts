@@ -26,6 +26,7 @@ export type MenuActionId =
   | 'toggle-variables'
   | 'toggle-console'
   | 'toggle-ai-sidebar'
+  | 'toggle-git-sidebar'
   | 'toggle-request-editor'
   | 'toggle-response-editor'
   | 'toggle-collections-section'

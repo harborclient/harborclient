@@ -28,6 +28,7 @@ export const BUILTIN_ACTIONS: ActionCommandDefinition[] = [
   { id: 'builtin:cookies', group: 'File', label: 'Cookies' },
   { id: 'builtin:toggle-sidebar', group: 'View', label: 'Toggle Sidebar' },
   { id: 'builtin:toggle-ai-sidebar', group: 'View', label: 'Toggle Agent Chat' },
+  { id: 'builtin:toggle-git-sidebar', group: 'View', label: 'Toggle Git' },
   { id: 'builtin:toggle-request-editor', group: 'View', label: 'Toggle Request' },
   { id: 'builtin:toggle-response-editor', group: 'View', label: 'Toggle Response' },
   {

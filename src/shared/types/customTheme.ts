@@ -107,7 +107,6 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   surface: 'Surface',
   sidebar: 'Sidebar',
   'sidebar-section': 'Sidebar section',
-  'git-uncommitted': 'Git uncommitted',
   control: 'Control',
   field: 'Field',
   separator: 'Separator',
@@ -147,16 +146,7 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
 export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
   {
     label: 'Layout',
-    tokens: [
-      'surface',
-      'sidebar',
-      'sidebar-section',
-      'git-uncommitted',
-      'control',
-      'field',
-      'separator',
-      'terminal'
-    ]
+    tokens: ['surface', 'sidebar', 'sidebar-section', 'control', 'field', 'separator', 'terminal']
   },
   {
     label: 'Text',

@@ -1206,19 +1206,15 @@ export function dispatchNewRequest(dispatch: AppDispatch): void {
 export interface RequestLoadRequestArgs {
   req: SavedRequest;
   skipSettingsCheck?: boolean;
-  forceReload?: boolean;
   activate?: boolean;
 }
 
 /**
- * Loads a saved request, prompting when settings or tab drafts have unsaved edits.
+ * Loads a saved request, prompting when collection, folder, or environment settings have unsaved edits.
  */
 export const requestLoadRequest = createAsyncThunk<void, RequestLoadRequestArgs, ThunkApiConfig>(
   'modals/requestLoadRequest',
-  async (
-    { req, skipSettingsCheck = false, forceReload = false, activate = true },
-    { dispatch, getState }
-  ) => {
+  async ({ req, skipSettingsCheck = false, activate = true }, { dispatch, getState }) => {
     const state = getState();
     const activeTab = state.tabs.tabs.find((tab) => tab.tabId === state.tabs.activeTabId);
     const collectionDirty =
@@ -1239,12 +1235,6 @@ export const requestLoadRequest = createAsyncThunk<void, RequestLoadRequestArgs,
 
     if (!skipSettingsCheck && (collectionDirty || environmentDirty || folderDirty)) {
       dispatch(setPendingLoadRequest({ req, reason: 'settings' }));
-      return;
-    }
-
-    const existing = state.tabs.tabs.find((t) => isRequestTab(t) && t.draft.id === req.id);
-    if (!forceReload && existing && isTabDirty(existing)) {
-      dispatch(setPendingLoadRequest({ req, reason: 'dirty-tab' }));
       return;
     }
 

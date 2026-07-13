@@ -14,10 +14,12 @@ import {
 } from '#/renderer/src/store/slices/modalsSlice';
 import {
   selectAiSidebarVisible,
+  selectGitSidebarVisible,
   selectShowRequestEditor,
   selectShowResponseEditor,
   selectSidebarVisible,
   toggleAiSidebar,
+  toggleGitSidebar,
   toggleRequestEditor,
   toggleResponseEditor,
   toggleSidebar,
@@ -92,6 +94,7 @@ export function useMenuActions(): void {
   const store = useStore<RootState>();
   const sidebarVisible = useAppSelector(selectSidebarVisible);
   const aiSidebarVisible = useAppSelector(selectAiSidebarVisible);
+  const gitSidebarVisible = useAppSelector(selectGitSidebarVisible);
   const requestEditorVisible = useAppSelector(selectShowRequestEditor);
   const responseEditorVisible = useAppSelector(selectShowResponseEditor);
   const lastFocusedRef = useLastFocusedElement();
@@ -109,6 +112,13 @@ export function useMenuActions(): void {
   useEffect(() => {
     void window.api.setMenuAiSidebarVisible(aiSidebarVisible);
   }, [aiSidebarVisible]);
+
+  /**
+   * Keeps the View menu Git checkbox aligned with effective Git sidebar visibility.
+   */
+  useEffect(() => {
+    void window.api.setMenuGitSidebarVisible(gitSidebarVisible);
+  }, [gitSidebarVisible]);
 
   /**
    * Keeps the View menu Request checkbox aligned with request editor visibility.
@@ -211,6 +221,9 @@ export function useMenuActions(): void {
           break;
         case 'toggle-ai-sidebar':
           dispatch(toggleAiSidebar());
+          break;
+        case 'toggle-git-sidebar':
+          dispatch(toggleGitSidebar());
           break;
         case 'toggle-request-editor':
           dispatch(toggleRequestEditor());

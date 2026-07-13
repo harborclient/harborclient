@@ -42,7 +42,9 @@
   --color-sidebar: var(--mac-sidebar);
   --color-sidebar-toolbar: var(--mac-sidebar-toolbar);
   --color-sidebar-section: var(--mac-sidebar-section);
+  --color-git-staged: var(--mac-git-staged);
   --color-git-uncommitted: var(--mac-git-uncommitted);
+  --color-git-unstaged: var(--mac-git-unstaged);
   --color-control: var(--mac-control);
   --color-field: var(--mac-field);
   --color-separator: var(--mac-separator);
@@ -94,7 +96,9 @@
     --mac-sidebar: #ececee;
     --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 94%, black);
     --mac-sidebar-section: var(--mac-selection);
-    --mac-git-uncommitted: var(--mac-selection);
+    --mac-git-staged: var(--mac-success);
+    --mac-git-uncommitted: var(--mac-warning);
+    --mac-git-unstaged: var(--mac-muted);
     --mac-control: #ffffff;
     --mac-field: var(--mac-control);
     --mac-separator: rgba(0, 0, 0, 0.08);
@@ -144,7 +148,9 @@
       --mac-sidebar: #252526;
       --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 94%, black);
       --mac-sidebar-section: color-mix(in srgb, var(--mac-sidebar) 86%, black);
-      --mac-git-uncommitted: color-mix(in srgb, var(--mac-sidebar) 86%, black);
+      --mac-git-staged: var(--mac-success);
+      --mac-git-uncommitted: var(--mac-warning);
+      --mac-git-unstaged: var(--mac-muted);
       --mac-control: #3a3a3c;
       --mac-field: color-mix(in srgb, black 16%, var(--mac-surface));
       --mac-separator: rgba(255, 255, 255, 0.08);
@@ -180,7 +186,9 @@
     --mac-sidebar: #252526;
     --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 94%, black);
     --mac-sidebar-section: color-mix(in srgb, var(--mac-sidebar) 86%, black);
-    --mac-git-uncommitted: color-mix(in srgb, var(--mac-sidebar) 86%, black);
+    --mac-git-staged: var(--mac-success);
+    --mac-git-uncommitted: var(--mac-warning);
+    --mac-git-unstaged: var(--mac-muted);
     --mac-control: #3a3a3c;
     --mac-field: color-mix(in srgb, black 16%, var(--mac-surface));
     --mac-separator: rgba(255, 255, 255, 0.08);
@@ -225,7 +233,9 @@
     --mac-sidebar: #000000;
     --mac-sidebar-toolbar: #141414;
     --mac-sidebar-section: #000000;
-    --mac-git-uncommitted: #000000;
+    --mac-git-staged: #5ce06a;
+    --mac-git-uncommitted: #ffb340;
+    --mac-git-unstaged: #d0d0d0;
     --mac-control: #000000;
     --mac-field: #141414;
     --mac-separator: #9e9e9e;
@@ -267,7 +277,9 @@
       --mac-sidebar: Canvas;
       --mac-sidebar-toolbar: Canvas;
       --mac-sidebar-section: Canvas;
-      --mac-git-uncommitted: Canvas;
+      --mac-git-staged: CanvasText;
+      --mac-git-uncommitted: CanvasText;
+      --mac-git-unstaged: GrayText;
       --mac-control: Canvas;
       --mac-field: Field;
       --mac-terminal: Canvas;
@@ -709,6 +721,78 @@
     min-height: 1.75rem;
     padding-block: 2px;
     padding-inline: 6px;
+  }
+
+  /**
+   * Unpushed commit indicator on the Git sidebar push toolbar action.
+   */
+  .hc-git-sidebar-push-ahead .hc-toolbar-toggles .hc-toolbar-action-wrap:last-child button {
+    position: relative;
+  }
+
+  .hc-git-sidebar-push-ahead .hc-toolbar-toggles .hc-toolbar-action-wrap:last-child button::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--mac-accent);
+  }
+
+  /**
+   * Compact git history graph/table styling for the narrow Git sidebar.
+   */
+  .hc-git-history {
+    min-width: 0;
+  }
+
+  .hc-git-history-log {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .hc-git-history-log > div {
+    min-width: 0;
+  }
+
+  .hc-git-history-table {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .hc-git-history-table [class*='tableContainer'] {
+    display: block !important;
+    grid-template-columns: none !important;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .hc-git-history-row {
+    min-height: 2.75rem;
+    border-radius: 0.375rem;
+  }
+
+  .hc-git-history-log [class*='message_'],
+  .hc-git-history-log [class*='author_'],
+  .hc-git-history-log [class*='timestamp_'] {
+    display: none;
+  }
+
+  .hc-git-history-log [class*='title_'] {
+    display: none;
+  }
+
+  .hc-git-history-log [class*='container_'][class*='13hji'] {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .hc-git-history-log [class*='graph_'] {
+    min-width: 72px;
+    max-width: 72px;
   }
 
   /**
@@ -1266,5 +1350,17 @@
 
   :root[data-theme='light'] .about-social-link {
     color: #000000;
+  }
+
+  /**
+   * Git diff modal — side-by-side CodeMirror merge view scrolling and layout.
+   */
+  .git-diff-merge-view .cm-mergeView {
+    height: min(50vh, 32rem);
+    overflow: auto;
+  }
+
+  .git-diff-merge-view .cm-mergeViewEditors {
+    min-height: 12rem;
   }
 }

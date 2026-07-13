@@ -55,10 +55,16 @@ export const footerButtonGroup =
 
 /**
  * Compact inset capsule for sidebar count badges (e.g. git uncommitted changes).
- * Fill uses the `git-uncommitted` theme token (`bg-git-uncommitted`).
+ * Fill uses the recessed selection tone so git text tokens remain available for request names.
  */
 export const sidebarRecessedBadge =
-  'inline-flex h-[18px] min-w-[22px] shrink-0 cursor-pointer items-center justify-center rounded-full bg-git-uncommitted px-2 text-[14px] leading-none text-muted shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)] hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent app-no-drag';
+  'inline-flex h-[18px] min-w-[22px] shrink-0 cursor-pointer items-center justify-center rounded-full bg-selection px-2 text-[14px] leading-none text-muted shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)] hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent app-no-drag';
+
+/**
+ * Inset status panel for git branch and working-tree summary in the Changes section.
+ * Uses sidebar-toolbar tone so it reads as content, not a second section header.
+ */
+export const gitWorkingTreeStatusPanel = 'bg-sidebar-toolbar px-2 py-2';
 
 export const METHOD_CLASSES: Record<string, string> = {
   get: 'text-method-get',

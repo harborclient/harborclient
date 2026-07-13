@@ -218,7 +218,7 @@ export interface CollectionRunnerState {
  */
 export interface PendingLoadRequest {
   req: SavedRequest;
-  reason: 'settings' | 'dirty-tab';
+  reason: 'settings';
 }
 
 /**
@@ -226,7 +226,7 @@ export interface PendingLoadRequest {
  */
 export interface PendingLoadDocument {
   doc: CollectionDocument;
-  reason: 'settings' | 'dirty-tab';
+  reason: 'settings';
 }
 
 export type TabGroupModalMode = 'create' | 'rename' | 'clone' | 'createFromSelection';

@@ -26,6 +26,7 @@ export const defaultGeneralSettings: GeneralSettings = {
   warnWhenCreatingTabGroup: true,
   warnWhenOpeningTabGroup: true,
   warnWhenAgentUsesTerminal: true,
+  gitAutoAdd: true,
   codeEditorTheme: 'default',
   codeEditorSetup: { ...DEFAULT_CODE_EDITOR_SETUP },
   codeEditorFontSize: DEFAULT_CODE_EDITOR_FONT_SIZE,

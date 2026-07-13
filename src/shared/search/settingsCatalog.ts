@@ -34,12 +34,13 @@ export type SettingId =
   | 'git'
   | 'shortcuts'
   | 'backup-restore'
-  | 'backup-restore.confirmations';
+  | 'backup-restore.confirmations'
+  | 'git.autoAdd';
 
 /**
  * Catalog ids for management settings groups within a section panel.
  */
-export type GroupSettingId = 'backup-restore.confirmations';
+export type GroupSettingId = 'backup-restore.confirmations' | 'git.autoAdd';
 
 /**
  * Catalog ids for individual settings fields (excludes management section and group ids).
@@ -382,7 +383,25 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     label: 'Git',
     description:
       'Manage shared credentials for git hosts. One identity per host is reused by all git-backed collections.',
-    keywords: ['github', 'oauth', 'token', 'authentication', 'credentials', 'host']
+    keywords: [
+      'github',
+      'oauth',
+      'token',
+      'authentication',
+      'credentials',
+      'host',
+      'auto add',
+      'staging'
+    ]
+  },
+  {
+    id: 'git.autoAdd',
+    section: 'git',
+    kind: 'group',
+    label: 'Auto add',
+    description:
+      'When enabled, git commit stages all HarborClient changes automatically. When disabled, use Add on individual requests to stage changes before committing.',
+    keywords: ['git', 'stage', 'staging', 'auto add', 'commit', 'unstaged', 'manual']
   },
   {
     id: 'shortcuts',

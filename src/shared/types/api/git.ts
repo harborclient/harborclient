@@ -1,7 +1,11 @@
 import type {
+  GitCommitDetail,
+  GitGraphLogResult,
   GitIdentity,
   GitLogEntry,
   GitOAuthFinishedEvent,
+  GitRequestDiffResult,
+  GitRequestFileStatus,
   SourceControlStatus
 } from '#/shared/types/storage';
 
@@ -36,6 +40,55 @@ export interface ApiGit {
    */
   gitCommit: (connectionId: string, message: string, createHarborRoot?: boolean) => Promise<void>;
   /**
+   * Returns per-request git status for requests in one git-backed collection.
+   *
+   * @param args - Git connection id and collection uuid.
+   */
+  gitRequestStatuses: (args: {
+    connectionId: string;
+    collectionUuid: string;
+  }) => Promise<Record<string, GitRequestFileStatus>>;
+  /**
+   * Stages working-tree changes for one request in a git-backed collection.
+   *
+   * @param args - Git connection id, collection uuid, and request uuid.
+   */
+  gitAddRequest: (args: {
+    connectionId: string;
+    collectionUuid: string;
+    requestUuid: string;
+  }) => Promise<void>;
+  /**
+   * Unstages staged changes for one request in a git-backed collection.
+   *
+   * @param args - Git connection id, collection uuid, and request uuid.
+   */
+  gitRemoveRequest: (args: {
+    connectionId: string;
+    collectionUuid: string;
+    requestUuid: string;
+  }) => Promise<void>;
+  /**
+   * Returns local branch names for a git-backed connection.
+   *
+   * @param connectionId - Git connection id.
+   */
+  gitListBranches: (connectionId: string) => Promise<string[]>;
+  /**
+   * Creates a new branch from the current commit and checks it out.
+   *
+   * @param connectionId - Git connection id.
+   * @param name - Branch name to create.
+   */
+  gitCreateBranch: (connectionId: string, name: string) => Promise<void>;
+  /**
+   * Checks out an existing local branch when the working tree is clean.
+   *
+   * @param connectionId - Git connection id.
+   * @param name - Branch name to check out.
+   */
+  gitCheckoutBranch: (connectionId: string, name: string) => Promise<void>;
+  /**
    * Pulls (fetch + merge) for a git-backed connection.
    *
    * @param connectionId - Git connection id.
@@ -54,6 +107,101 @@ export interface ApiGit {
    * @param depth - Maximum number of commits to return.
    */
   gitLog: (connectionId: string, depth?: number) => Promise<GitLogEntry[]>;
+  /**
+   * Returns graph-ready commit history for a git-backed connection.
+   *
+   * @param connectionId - Git connection id.
+   * @param depth - Maximum number of commits to include.
+   */
+  gitGraphLog: (connectionId: string, depth?: number) => Promise<GitGraphLogResult>;
+  /**
+   * Returns detailed metadata and changed files for one commit.
+   *
+   * @param connectionId - Git connection id.
+   * @param oid - Commit object id.
+   */
+  gitCommitDetail: (connectionId: string, oid: string) => Promise<GitCommitDetail>;
+  /**
+   * Returns a parent-to-commit diff for one request or document in a commit.
+   *
+   * @param args - Git connection id, commit oid, collection uuid, resource uuid, and kind.
+   */
+  gitCommitResourceDiff: (args: {
+    connectionId: string;
+    oid: string;
+    collectionUuid: string;
+    resourceUuid: string;
+    kind: 'request' | 'document';
+  }) => Promise<GitRequestDiffResult>;
+  /**
+   * Returns a working-tree diff for one request in a git-backed collection.
+   *
+   * @param args - Git connection id, collection uuid, and request uuid.
+   */
+  gitRequestDiff: (args: {
+    connectionId: string;
+    collectionUuid: string;
+    requestUuid: string;
+  }) => Promise<GitRequestDiffResult>;
+  /**
+   * Discards working-tree and staged changes for one request.
+   *
+   * @param args - Git connection id, collection uuid, and request uuid.
+   */
+  gitRevertRequest: (args: {
+    connectionId: string;
+    collectionUuid: string;
+    requestUuid: string;
+  }) => Promise<void>;
+  /**
+   * Returns per-document git status for documents in one git-backed collection.
+   *
+   * @param args - Git connection id and collection uuid.
+   */
+  gitDocumentStatuses: (args: {
+    connectionId: string;
+    collectionUuid: string;
+  }) => Promise<Record<string, GitRequestFileStatus>>;
+  /**
+   * Stages working-tree changes for one markdown document in a git-backed collection.
+   *
+   * @param args - Git connection id, collection uuid, and document uuid.
+   */
+  gitAddDocument: (args: {
+    connectionId: string;
+    collectionUuid: string;
+    documentUuid: string;
+  }) => Promise<void>;
+  /**
+   * Unstages staged changes for one markdown document in a git-backed collection.
+   *
+   * @param args - Git connection id, collection uuid, and document uuid.
+   */
+  gitRemoveDocument: (args: {
+    connectionId: string;
+    collectionUuid: string;
+    documentUuid: string;
+  }) => Promise<void>;
+  /**
+   * Returns a working-tree diff for one markdown document in a git-backed collection.
+   *
+   * @param args - Git connection id, collection uuid, and document uuid.
+   */
+  gitDocumentDiff: (args: {
+    connectionId: string;
+    collectionUuid: string;
+    documentUuid: string;
+  }) => Promise<GitRequestDiffResult>;
+  /**
+   * Discards working-tree and staged changes for one markdown document.
+   *
+   * @param args - Git connection id, collection uuid, and document uuid.
+   */
+  gitRevertDocument: (args: {
+    connectionId: string;
+    collectionUuid: string;
+    documentUuid: string;
+  }) => Promise<void>;
   /**
    * Returns uncommitted HarborClient-tree diffs for a git-backed collection.
    *

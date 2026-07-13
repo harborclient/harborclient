@@ -1,11 +1,20 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync
+} from 'fs';
+import { basename, join, resolve } from 'path';
 import { maskVariablesForExport, validateCollectionExport } from '#/main/storage/collectionData';
 import { validateEnvironmentExport } from '#/main/storage/collectionData';
 import { validateSnippetExport } from '#/main/storage/snippetData';
 import { validateRequestExport } from '#/main/storage/collectionData';
 import { generateDocumentUuid, resolveImportUuid } from '#/main/storage/uuid';
-import { toFileSlug, uuidSlugPrefix } from '#/main/git/slug';
+import { uuidSlugPrefix } from '#/main/git/slug';
 import type {
   CollectionExport,
   EnvironmentExport,
@@ -30,6 +39,16 @@ export interface StoredDocumentFrontmatter {
    * Stable document identifier.
    */
   uuid: string;
+
+  /**
+   * Stable collection uuid owning this document file.
+   */
+  collection_uuid: string;
+
+  /**
+   * User-facing document title (for example README.md).
+   */
+  name: string;
 
   /**
    * Portable folder uuid; omitted or null for collection root.
@@ -65,21 +84,389 @@ function parseYamlScalar(value: string): string {
 }
 
 /**
- * Returns the documents directory path inside a collection directory.
+ * Returns the legacy documents directory path inside a collection directory.
  *
  * @param collectionDirectory - Absolute path to a collection directory.
  */
-export function documentsDir(collectionDirectory: string): string {
+export function legacyDocumentsDir(collectionDirectory: string): string {
   return join(collectionDirectory, 'documents');
 }
 
 /**
- * Builds the on-disk markdown file name for a document display name.
- *
- * @param name - Document display name (for example README.md).
+ * Reserved top-level entries under a HarborClient data root.
  */
-export function documentFileName(name: string): string {
-  return `${toFileSlug(name)}.md`;
+const HARBOR_ROOT_RESERVED_NAMES = new Set([
+  'collections',
+  'environments',
+  'snippets',
+  '.gitignore'
+]);
+
+/**
+ * Returns true when a file name uses the legacy `{uuid}-{slug}.md` layout.
+ *
+ * @param fileName - Base file name at the Harbor data root.
+ */
+export function isLegacyUuidPrefixedDocumentFileName(fileName: string): boolean {
+  if (!fileName.endsWith('.md')) {
+    return false;
+  }
+  const base = fileName.slice(0, -3);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i.test(base);
+}
+
+/**
+ * Normalizes a document display name into a harbor-root markdown file name.
+ *
+ * Preserves entered casing, appends `.md` when omitted, and rejects unsafe names.
+ *
+ * @param displayName - User-facing document title.
+ * @returns Case-preserving markdown file name.
+ * @throws When the name is empty or unsafe for the Harbor data root.
+ */
+export function normalizeDocumentDisplayName(displayName: string): string {
+  const trimmed = displayName.trim();
+  if (!trimmed) {
+    throw new Error('Document name is required');
+  }
+  if (trimmed.includes('/') || trimmed.includes('\\')) {
+    throw new Error('Document name cannot contain path separators');
+  }
+  const baseName = basename(trimmed);
+  if (!baseName || baseName === '.' || baseName === '..') {
+    throw new Error('Document name is invalid');
+  }
+  if (baseName.toLowerCase().endsWith('.md')) {
+    return baseName;
+  }
+  return `${baseName}.md`;
+}
+
+/**
+ * Builds the on-disk markdown file name for a document at the Harbor data root.
+ *
+ * @param displayName - User-facing document title (for example README.md).
+ */
+export function documentFileName(displayName: string): string {
+  return normalizeDocumentDisplayName(displayName);
+}
+
+/**
+ * Returns the absolute path for one harbor-root markdown document file.
+ *
+ * @param harborRoot - HarborClient data root.
+ * @param displayName - User-facing document title.
+ */
+export function documentFilePath(harborRoot: string, displayName: string): string {
+  const fileName = documentFileName(displayName);
+  const resolvedRoot = resolve(harborRoot);
+  const resolvedPath = resolve(join(resolvedRoot, fileName));
+  if (resolvedPath !== resolvedRoot && !resolvedPath.startsWith(`${resolvedRoot}/`)) {
+    throw new Error('Document name escapes the HarborClient root');
+  }
+  return resolvedPath;
+}
+
+/**
+ * Returns true when a repository-relative path is a harbor-root markdown file.
+ *
+ * @param filepath - Repository-relative path.
+ * @param harborSubdir - HarborClient subdirectory prefix.
+ */
+export function isHarborDocumentPath(filepath: string, harborSubdir: string): boolean {
+  const normalized = filepath.replace(/\\/g, '/');
+  const prefix = harborSubdir === '.' ? '' : `${harborSubdir}/`;
+  if (harborSubdir !== '.' && !normalized.startsWith(prefix)) {
+    return false;
+  }
+
+  const relative = harborSubdir === '.' ? normalized : normalized.slice(prefix.length);
+  if (!relative.endsWith('.md') || relative.includes('/')) {
+    return false;
+  }
+
+  const baseName = relative.slice(relative.lastIndexOf('/') + 1);
+  return !HARBOR_ROOT_RESERVED_NAMES.has(baseName);
+}
+
+/**
+ * Document metadata row stored in collection.json (content lives at the Harbor root).
+ */
+export interface StoredDocumentRow {
+  /**
+   * Stable document identifier.
+   */
+  uuid: string;
+
+  /**
+   * Display file name (for example README.md).
+   */
+  name: string;
+
+  /**
+   * Portable folder uuid; omitted or null for collection root.
+   */
+  folder_uuid?: string | null;
+
+  /**
+   * Position among sibling documents.
+   */
+  sort_order: number;
+
+  /**
+   * Optional sidebar color for visual grouping.
+   */
+  color?: string | null;
+}
+
+/**
+ * Metadata for one managed markdown document file at the Harbor data root.
+ */
+export interface HarborRootDocumentEntry {
+  /**
+   * Stable document uuid from collection.json.
+   */
+  uuid: string;
+
+  /**
+   * Stable collection uuid owning this document.
+   */
+  collection_uuid: string;
+
+  /**
+   * User-facing document title from collection.json.
+   */
+  name: string;
+
+  /**
+   * Absolute path to the markdown file on disk.
+   */
+  filePath: string;
+
+  /**
+   * Base file name at the Harbor data root.
+   */
+  fileName: string;
+}
+
+/**
+ * Parses stored document metadata rows from collection.json JSON.
+ *
+ * @param raw - Raw `documents` field from collection.json.
+ */
+export function parseStoredDocumentRows(raw: unknown): StoredDocumentRow[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  const documents: StoredDocumentRow[] = [];
+  for (const [index, row] of raw.entries()) {
+    if (row == null || typeof row !== 'object') {
+      continue;
+    }
+    const record = row as Record<string, unknown>;
+    const uuid = typeof record.uuid === 'string' ? resolveImportUuid(record.uuid) : '';
+    const name = typeof record.name === 'string' ? record.name.trim() : '';
+    if (!uuid || !name) {
+      continue;
+    }
+    documents.push({
+      uuid,
+      name,
+      folder_uuid:
+        record.folder_uuid == null || record.folder_uuid === ''
+          ? null
+          : typeof record.folder_uuid === 'string'
+            ? record.folder_uuid
+            : null,
+      sort_order:
+        typeof record.sort_order === 'number' && Number.isFinite(record.sort_order)
+          ? record.sort_order
+          : index,
+      color:
+        record.color == null
+          ? null
+          : typeof record.color === 'string'
+            ? record.color.trim() || null
+            : null
+    });
+  }
+
+  return documents;
+}
+
+/**
+ * Reads document metadata rows from one collection directory.
+ *
+ * @param collectionDirectory - Absolute path to the collection directory.
+ */
+export function readDocumentMetadataFromCollectionDir(
+  collectionDirectory: string
+): StoredDocumentRow[] {
+  const manifestPath = join(collectionDirectory, 'collection.json');
+  if (!existsSync(manifestPath)) {
+    return [];
+  }
+
+  const raw = readJsonFile(manifestPath) as Record<string, unknown>;
+  return parseStoredDocumentRows(raw.documents);
+}
+
+/**
+ * Converts an exported document row into collection.json metadata.
+ *
+ * @param document - Document export row with content.
+ */
+export function exportedDocumentToStoredRow(document: ExportedDocument): StoredDocumentRow {
+  return {
+    uuid: resolveImportUuid(document.uuid),
+    name: document.name,
+    folder_uuid: document.folder_uuid ?? null,
+    sort_order: document.sort_order,
+    color: document.color ?? null
+  };
+}
+
+/**
+ * Returns markdown body content, stripping legacy YAML frontmatter when present.
+ *
+ * @param raw - Full markdown file contents.
+ */
+export function readMarkdownDocumentBody(raw: string): string {
+  return parseMarkdownFrontmatter(raw).body;
+}
+
+/**
+ * Returns true when markdown content begins with a YAML frontmatter block.
+ *
+ * @param raw - Full markdown file contents.
+ */
+export function hasMarkdownFrontmatter(raw: string): boolean {
+  const trimmed = raw.replace(/^\uFEFF/, '');
+  if (!trimmed.startsWith('---')) {
+    return false;
+  }
+  return trimmed.indexOf('\n---', 3) >= 0;
+}
+
+/**
+ * Parses a document uuid prefix from a legacy `{uuid}-{slug}.md` file name.
+ *
+ * @param fileName - Base file name at the Harbor data root.
+ */
+function parseLegacyDocumentUuidFromFileName(fileName: string): string | null {
+  if (!isLegacyUuidPrefixedDocumentFileName(fileName)) {
+    return null;
+  }
+  const base = fileName.slice(0, -3);
+  const match = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i.exec(base);
+  return match?.[1] ?? null;
+}
+
+/**
+ * Resolves the on-disk markdown path for one managed document row.
+ *
+ * @param harborRoot - HarborClient data root.
+ * @param row - Document metadata from collection.json.
+ */
+function resolveDocumentContentPath(harborRoot: string, row: StoredDocumentRow): string | null {
+  const expectedPath = documentFilePath(harborRoot, row.name);
+  if (existsSync(expectedPath)) {
+    return expectedPath;
+  }
+
+  if (!existsSync(harborRoot)) {
+    return null;
+  }
+
+  for (const fileName of readdirSync(harborRoot)) {
+    const legacyUuid = parseLegacyDocumentUuidFromFileName(fileName);
+    if (legacyUuid === row.uuid) {
+      return join(harborRoot, fileName);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Lists all managed markdown documents at the Harbor data root across collections.
+ *
+ * @param harborRoot - HarborClient data root.
+ */
+export function listManagedHarborRootDocuments(harborRoot: string): HarborRootDocumentEntry[] {
+  const documents: HarborRootDocumentEntry[] = [];
+  const collectionsPath = collectionsDir(harborRoot);
+  if (!existsSync(collectionsPath)) {
+    return documents;
+  }
+
+  for (const entry of readdirSync(collectionsPath, { withFileTypes: true })) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+    const collectionUuid = parseCollectionDirName(entry.name);
+    if (!collectionUuid || !existsSync(join(collectionsPath, entry.name, 'collection.json'))) {
+      continue;
+    }
+
+    const collectionDirPath = join(collectionsPath, entry.name);
+    for (const row of readDocumentMetadataFromCollectionDir(collectionDirPath)) {
+      const fileName = documentFileName(row.name);
+      const filePath = resolveDocumentContentPath(harborRoot, row) ?? join(harborRoot, fileName);
+      documents.push({
+        uuid: row.uuid,
+        collection_uuid: collectionUuid,
+        name: row.name,
+        filePath,
+        fileName: basename(filePath)
+      });
+    }
+  }
+
+  return documents;
+}
+
+/**
+ * Builds a case-insensitive filename map for managed harbor-root documents.
+ *
+ * @param harborRoot - HarborClient data root.
+ */
+export function buildFilenameToDocumentMap(
+  harborRoot: string
+): Map<string, HarborRootDocumentEntry> {
+  const map = new Map<string, HarborRootDocumentEntry>();
+  for (const entry of listManagedHarborRootDocuments(harborRoot)) {
+    map.set(entry.fileName.toLowerCase(), entry);
+  }
+  return map;
+}
+
+/**
+ * Ensures a document filename is available at the Harbor data root.
+ *
+ * @param harborRoot - HarborClient data root.
+ * @param displayName - Candidate document display name.
+ * @param ownerUuid - Document uuid that is allowed to keep the filename.
+ * @throws When another managed document already owns the filename.
+ */
+export function assertDocumentFilenameAvailable(
+  harborRoot: string,
+  displayName: string,
+  ownerUuid: string
+): void {
+  const fileName = documentFileName(displayName);
+  const normalizedOwnerUuid = resolveImportUuid(ownerUuid);
+  const normalizedFileName = fileName.toLowerCase();
+
+  for (const entry of listManagedHarborRootDocuments(harborRoot)) {
+    if (entry.fileName.toLowerCase() !== normalizedFileName) {
+      continue;
+    }
+    if (entry.uuid !== normalizedOwnerUuid) {
+      throw new Error(`A markdown document named "${fileName}" already exists in this repository.`);
+    }
+  }
 }
 
 /**
@@ -97,6 +484,8 @@ export function parseMarkdownFrontmatter(raw: string): {
     return {
       frontmatter: {
         uuid: generateDocumentUuid(),
+        collection_uuid: '',
+        name: '',
         folder_uuid: null,
         sort_order: 0
       },
@@ -109,6 +498,8 @@ export function parseMarkdownFrontmatter(raw: string): {
     return {
       frontmatter: {
         uuid: generateDocumentUuid(),
+        collection_uuid: '',
+        name: '',
         folder_uuid: null,
         sort_order: 0
       },
@@ -120,6 +511,8 @@ export function parseMarkdownFrontmatter(raw: string): {
   const body = trimmed.slice(end + 4).replace(/^\r?\n/, '');
   const frontmatter: StoredDocumentFrontmatter = {
     uuid: generateDocumentUuid(),
+    collection_uuid: '',
+    name: '',
     folder_uuid: null,
     sort_order: 0
   };
@@ -133,6 +526,14 @@ export function parseMarkdownFrontmatter(raw: string): {
     const value = parseYamlScalar(rawValue);
     if (key === 'uuid' && value) {
       frontmatter.uuid = value;
+      continue;
+    }
+    if (key === 'collection_uuid' && value) {
+      frontmatter.collection_uuid = value;
+      continue;
+    }
+    if (key === 'name' && value) {
+      frontmatter.name = value;
       continue;
     }
     if (key === 'folder_uuid') {
@@ -163,42 +564,59 @@ export function parseMarkdownFrontmatter(raw: string): {
 }
 
 /**
- * Serializes markdown document content with YAML frontmatter.
+ * Maps stored document metadata and markdown body into an exported document row.
  *
- * @param frontmatter - Placement metadata for the document.
+ * @param row - Document metadata from collection.json.
  * @param body - Markdown body content.
  */
-export function serializeMarkdownFrontmatter(
-  frontmatter: StoredDocumentFrontmatter,
-  body: string
-): string {
-  const folderUuid =
-    frontmatter.folder_uuid == null || frontmatter.folder_uuid === ''
-      ? 'null'
-      : frontmatter.folder_uuid;
-  const colorLines =
-    frontmatter.color !== undefined
-      ? [`color: ${frontmatter.color === null ? 'null' : frontmatter.color}`]
-      : [];
-  const yaml = [
-    '---',
-    `uuid: ${frontmatter.uuid}`,
-    `folder_uuid: ${folderUuid}`,
-    `sort_order: ${frontmatter.sort_order}`,
-    ...colorLines,
-    '---',
-    ''
-  ].join('\n');
-  return body.length > 0 ? `${yaml}${body}` : yaml;
+function exportedDocumentFromStoredRow(row: StoredDocumentRow, body: string): ExportedDocument {
+  return {
+    uuid: row.uuid,
+    name: row.name,
+    content: body,
+    sort_order: row.sort_order,
+    folder_uuid: row.folder_uuid ?? undefined,
+    folder_name: null,
+    color: row.color ?? null
+  };
 }
 
 /**
- * Reads markdown document export rows from a collection documents directory.
+ * Reads markdown document export rows from collection.json metadata and harbor-root files.
+ *
+ * @param harborRoot - HarborClient data root.
+ * @param collectionUuid - Stable collection uuid.
+ */
+export function readDocumentsFromHarborRoot(
+  harborRoot: string,
+  collectionUuid: string
+): ExportedDocument[] {
+  const normalizedCollectionUuid = resolveImportUuid(collectionUuid);
+  const collectionDirPath = findCollectionDirByUuid(harborRoot, normalizedCollectionUuid);
+  if (!collectionDirPath) {
+    return [];
+  }
+
+  const documents: ExportedDocument[] = [];
+  for (const row of readDocumentMetadataFromCollectionDir(collectionDirPath)) {
+    const filePath = resolveDocumentContentPath(harborRoot, row);
+    let body = '';
+    if (filePath && existsSync(filePath)) {
+      body = readMarkdownDocumentBody(readFileSync(filePath, 'utf-8'));
+    }
+    documents.push(exportedDocumentFromStoredRow(row, body));
+  }
+
+  return documents.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+}
+
+/**
+ * Reads legacy markdown documents from a collection `documents/` directory.
  *
  * @param collectionDirectory - Absolute path to the collection directory.
  */
-export function readDocumentsFromDir(collectionDirectory: string): ExportedDocument[] {
-  const dir = documentsDir(collectionDirectory);
+function readLegacyDocumentsFromDir(collectionDirectory: string): ExportedDocument[] {
+  const dir = legacyDocumentsDir(collectionDirectory);
   if (!existsSync(dir)) {
     return [];
   }
@@ -211,61 +629,181 @@ export function readDocumentsFromDir(collectionDirectory: string): ExportedDocum
     const filePath = join(dir, fileName);
     const raw = readFileSync(filePath, 'utf-8');
     const { frontmatter, body } = parseMarkdownFrontmatter(raw);
-    documents.push({
-      uuid: resolveImportUuid(frontmatter.uuid),
-      name: fileName,
-      content: body,
-      sort_order: frontmatter.sort_order,
-      folder_uuid: frontmatter.folder_uuid ?? undefined,
-      folder_name: null,
-      color: frontmatter.color ?? null
-    });
+    documents.push(
+      exportedDocumentFromStoredRow(
+        {
+          uuid: resolveImportUuid(frontmatter.uuid),
+          name: frontmatter.name.trim() || fileName,
+          folder_uuid: frontmatter.folder_uuid ?? null,
+          sort_order: frontmatter.sort_order,
+          color: frontmatter.color ?? null
+        },
+        body
+      )
+    );
   }
 
   return documents.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
 }
 
 /**
- * Writes markdown document files for a collection, pruning removed uuids.
+ * Updates document metadata rows in one collection.json file.
  *
  * @param collectionDirectory - Absolute path to the collection directory.
+ * @param documents - Document metadata rows to persist.
+ */
+function writeDocumentMetadataToCollectionDir(
+  collectionDirectory: string,
+  documents: StoredDocumentRow[]
+): void {
+  const manifestPath = join(collectionDirectory, 'collection.json');
+  const raw = readJsonFile(manifestPath) as Record<string, unknown>;
+  writeFileSync(
+    manifestPath,
+    JSON.stringify(
+      {
+        ...raw,
+        documents
+      },
+      null,
+      2
+    ),
+    'utf-8'
+  );
+}
+
+/**
+ * Migrates legacy YAML frontmatter in harbor-root markdown files into collection.json.
+ *
+ * @param harborRoot - HarborClient data root.
+ * @throws When migration would create a duplicate filename.
+ */
+export function migrateFrontmatterHarborDocuments(harborRoot: string): void {
+  if (!existsSync(harborRoot)) {
+    return;
+  }
+
+  for (const fileName of readdirSync(harborRoot)) {
+    if (!fileName.endsWith('.md') || HARBOR_ROOT_RESERVED_NAMES.has(fileName)) {
+      continue;
+    }
+
+    const filePath = join(harborRoot, fileName);
+    const raw = readFileSync(filePath, 'utf-8');
+    if (!hasMarkdownFrontmatter(raw)) {
+      continue;
+    }
+
+    const { frontmatter, body } = parseMarkdownFrontmatter(raw);
+    const uuid = resolveImportUuid(frontmatter.uuid);
+    const collectionUuid = resolveImportUuid(frontmatter.collection_uuid);
+    if (!uuid || !collectionUuid) {
+      continue;
+    }
+
+    const collectionDirPath = findCollectionDirByUuid(harborRoot, collectionUuid);
+    if (!collectionDirPath) {
+      continue;
+    }
+
+    const displayName = frontmatter.name.trim() || fileName;
+    const targetFileName = documentFileName(displayName);
+    assertDocumentFilenameAvailable(harborRoot, displayName, uuid);
+
+    const existingRows = readDocumentMetadataFromCollectionDir(collectionDirPath);
+    const row: StoredDocumentRow = {
+      uuid,
+      name: displayName,
+      folder_uuid: frontmatter.folder_uuid ?? null,
+      sort_order: frontmatter.sort_order,
+      color: frontmatter.color ?? null
+    };
+    const nextRows = existingRows.some((entry) => entry.uuid === uuid)
+      ? existingRows.map((entry) => (entry.uuid === uuid ? row : entry))
+      : [...existingRows, row];
+    writeDocumentMetadataToCollectionDir(collectionDirPath, nextRows);
+
+    const targetPath = join(harborRoot, targetFileName);
+    writeFileSync(targetPath, body.trimStart(), 'utf-8');
+    if (targetPath !== filePath) {
+      rmSync(filePath, { force: true });
+    }
+  }
+}
+
+/**
+ * Renames legacy UUID-prefixed harbor-root markdown files to case-preserving names.
+ *
+ * @param harborRoot - HarborClient data root.
+ * @throws When migration would create a duplicate filename.
+ */
+export function migrateUuidPrefixedHarborDocuments(harborRoot: string): void {
+  if (!existsSync(harborRoot)) {
+    return;
+  }
+
+  for (const entry of listManagedHarborRootDocuments(harborRoot)) {
+    const targetFileName = documentFileName(entry.name);
+    if (entry.fileName === targetFileName) {
+      continue;
+    }
+
+    assertDocumentFilenameAvailable(harborRoot, entry.name, entry.uuid);
+    const targetPath = join(harborRoot, targetFileName);
+    renameSync(entry.filePath, targetPath);
+
+    const collectionDirPath = findCollectionDirByUuid(harborRoot, entry.collection_uuid);
+    if (collectionDirPath) {
+      const rows = readDocumentMetadataFromCollectionDir(collectionDirPath).map((row) =>
+        row.uuid === entry.uuid ? { ...row, name: entry.name } : row
+      );
+      writeDocumentMetadataToCollectionDir(collectionDirPath, rows);
+    }
+  }
+}
+
+/**
+ * Writes markdown document files at the Harbor data root for one collection.
+ *
+ * @param harborRoot - HarborClient data root.
+ * @param collectionUuid - Stable collection uuid.
  * @param documents - Document export rows to persist.
  */
-export function writeDocumentsToDir(
-  collectionDirectory: string,
+export function writeDocumentsToHarborRoot(
+  harborRoot: string,
+  collectionUuid: string,
   documents: ExportedDocument[]
 ): void {
-  const dir = documentsDir(collectionDirectory);
-  mkdirSync(dir, { recursive: true });
+  mkdirSync(harborRoot, { recursive: true });
+  migrateFrontmatterHarborDocuments(harborRoot);
+  migrateUuidPrefixedHarborDocuments(harborRoot);
 
+  const normalizedCollectionUuid = resolveImportUuid(collectionUuid);
   const writtenUuids = new Set<string>();
   const existingUuidToPath = new Map<string, string>();
-  if (existsSync(dir)) {
-    for (const fileName of readdirSync(dir)) {
-      if (!fileName.endsWith('.md')) {
-        continue;
-      }
-      const filePath = join(dir, fileName);
-      const { frontmatter } = parseMarkdownFrontmatter(readFileSync(filePath, 'utf-8'));
-      existingUuidToPath.set(resolveImportUuid(frontmatter.uuid), filePath);
+  const reservedNames = new Map<string, string>();
+
+  for (const entry of listManagedHarborRootDocuments(harborRoot)) {
+    existingUuidToPath.set(entry.uuid, entry.filePath);
+    reservedNames.set(entry.fileName.toLowerCase(), entry.uuid);
+  }
+
+  for (const document of documents) {
+    const uuid = resolveImportUuid(document.uuid);
+    const fileName = documentFileName(document.name);
+    const normalizedFileName = fileName.toLowerCase();
+    const existingOwner = reservedNames.get(normalizedFileName);
+    if (existingOwner != null && existingOwner !== uuid) {
+      throw new Error(`A markdown document named "${fileName}" already exists in this repository.`);
     }
+    reservedNames.set(normalizedFileName, uuid);
   }
 
   for (const document of documents) {
     const uuid = resolveImportUuid(document.uuid);
     writtenUuids.add(uuid);
-    const fileName = documentFileName(document.name);
-    const targetPath = join(dir, fileName);
-    const payload = serializeMarkdownFrontmatter(
-      {
-        uuid,
-        folder_uuid: document.folder_uuid ?? null,
-        sort_order: document.sort_order,
-        color: document.color
-      },
-      document.content
-    );
-    writeFileSync(targetPath, payload, 'utf-8');
+    const targetPath = documentFilePath(harborRoot, document.name);
+    writeFileSync(targetPath, document.content, 'utf-8');
 
     const previousPath = existingUuidToPath.get(uuid);
     if (previousPath && previousPath !== targetPath) {
@@ -275,7 +813,54 @@ export function writeDocumentsToDir(
 
   for (const [uuid, filePath] of existingUuidToPath.entries()) {
     if (!writtenUuids.has(uuid)) {
-      rmSync(filePath, { force: true });
+      const entry = listManagedHarborRootDocuments(harborRoot).find((row) => row.uuid === uuid);
+      if (entry?.collection_uuid === normalizedCollectionUuid) {
+        rmSync(filePath, { force: true });
+      }
+    }
+  }
+}
+
+/**
+ * Migrates legacy collection `documents/*.md` files to the Harbor data root.
+ *
+ * @param collectionDirectory - Absolute path to the collection directory.
+ * @param collectionUuid - Stable collection uuid.
+ * @param harborRoot - HarborClient data root.
+ */
+export function migrateLegacyDocumentsFromCollectionDir(
+  collectionDirectory: string,
+  collectionUuid: string,
+  harborRoot: string
+): void {
+  const legacyDocuments = readLegacyDocumentsFromDir(collectionDirectory);
+  if (legacyDocuments.length === 0) {
+    return;
+  }
+
+  const normalizedCollectionUuid = resolveImportUuid(collectionUuid);
+  const existing = readDocumentsFromHarborRoot(harborRoot, normalizedCollectionUuid);
+  const existingUuids = new Set(existing.map((document) => resolveImportUuid(document.uuid)));
+  const merged = [
+    ...existing,
+    ...legacyDocuments.filter((document) => !existingUuids.has(resolveImportUuid(document.uuid)))
+  ];
+
+  const collectionDirPath = collectionDirectory;
+  writeDocumentMetadataToCollectionDir(collectionDirPath, merged.map(exportedDocumentToStoredRow));
+  writeDocumentsToHarborRoot(harborRoot, normalizedCollectionUuid, merged);
+
+  const legacyDir = legacyDocumentsDir(collectionDirectory);
+  if (existsSync(legacyDir)) {
+    for (const fileName of readdirSync(legacyDir)) {
+      if (fileName.endsWith('.md')) {
+        rmSync(join(legacyDir, fileName), { force: true });
+      }
+    }
+    try {
+      rmSync(legacyDir, { recursive: true, force: true });
+    } catch {
+      // Directory may not be empty if non-markdown files exist.
     }
   }
 }
@@ -415,6 +1000,11 @@ export interface CollectionManifest {
    * Folders with stable uuids.
    */
   folders: StoredFolderRow[];
+
+  /**
+   * Markdown document metadata; content files live at the Harbor data root.
+   */
+  documents?: StoredDocumentRow[];
 
   /**
    * ISO 8601 creation timestamp.
@@ -562,7 +1152,35 @@ function normalizeStoredRequestForValidation(
 }
 
 /**
+ * Determines whether a newly parsed duplicate request file should replace the
+ * one already chosen for the same UUID.
+ *
+ * Legacy repositories can accumulate several `{uuid}-{slug}.json` files for a
+ * single request UUID (for example after renames that left orphan slug files
+ * behind). When collapsing those duplicates we prefer the candidate that most
+ * likely holds the live data: one with a non-empty URL wins over an empty
+ * placeholder, and otherwise the most recently modified file wins.
+ *
+ * @param candidate - Newly parsed duplicate candidate.
+ * @param current - Candidate currently selected for the UUID.
+ * @returns True when the candidate should replace the current selection.
+ */
+function isBetterRequestCandidate(
+  candidate: { hasUrl: boolean; mtimeMs: number },
+  current: { hasUrl: boolean; mtimeMs: number }
+): boolean {
+  if (candidate.hasUrl !== current.hasUrl) {
+    return candidate.hasUrl;
+  }
+  return candidate.mtimeMs > current.mtimeMs;
+}
+
+/**
  * Reads collection manifest and request files from a collection directory.
+ *
+ * Duplicate slug files for the same request UUID are collapsed to a single row
+ * (see {@link isBetterRequestCandidate}) so callers never observe stale
+ * duplicate request rows from legacy orphan files.
  *
  * @param dir - Absolute path to the collection directory.
  * @returns Manifest and parsed request exports.
@@ -570,7 +1188,6 @@ function normalizeStoredRequestForValidation(
 export function readCollectionFromDir(dir: string): {
   manifest: CollectionManifest;
   requests: ExportedRequest[];
-  documents: ExportedDocument[];
 } {
   const manifestPath = join(dir, 'collection.json');
   const raw = readJsonFile(manifestPath) as Record<string, unknown>;
@@ -604,12 +1221,19 @@ export function readCollectionFromDir(dir: string): {
             ? folder.color.trim() || null
             : null
     })),
+    documents: parseStoredDocumentRows(raw.documents),
     created_at: String(raw.created_at ?? new Date().toISOString())
   };
 
   const requestsDir = join(dir, 'requests');
   const requests: ExportedRequest[] = [];
   if (existsSync(requestsDir)) {
+    const bestByUuid = new Map<
+      string,
+      { row: ExportedRequest; hasUrl: boolean; mtimeMs: number }
+    >();
+    const orderedKeys: string[] = [];
+
     for (const fileName of readdirSync(requestsDir)) {
       if (!fileName.endsWith('.json')) {
         continue;
@@ -617,13 +1241,13 @@ export function readCollectionFromDir(dir: string): {
       const requestPath = join(requestsDir, fileName);
       const parsed = readJsonFile(requestPath) as Record<string, unknown>;
       const validated = validateRequestExport(normalizeStoredRequestForValidation(parsed));
-      requests.push({
+      const row: ExportedRequest = {
         ...validated,
         uuid: validated.uuid,
         sort_order:
           typeof (parsed as { sort_order?: number }).sort_order === 'number'
             ? (parsed as { sort_order: number }).sort_order
-            : requests.length,
+            : bestByUuid.size,
         folder_name:
           typeof (parsed as { folder_name?: string | null }).folder_name === 'string'
             ? (parsed as { folder_name: string }).folder_name
@@ -632,13 +1256,31 @@ export function readCollectionFromDir(dir: string): {
           typeof (parsed as { folder_uuid?: string }).folder_uuid === 'string'
             ? (parsed as { folder_uuid: string }).folder_uuid
             : undefined
-      });
+      };
+
+      const key = parseRequestFileName(fileName) ?? `__nouuid__:${fileName}`;
+      let mtimeMs = 0;
+      try {
+        mtimeMs = statSync(requestPath).mtimeMs;
+      } catch {
+        mtimeMs = 0;
+      }
+      const candidate = { row, hasUrl: (row.url ?? '').trim().length > 0, mtimeMs };
+      const current = bestByUuid.get(key);
+      if (current == null) {
+        bestByUuid.set(key, candidate);
+        orderedKeys.push(key);
+      } else if (isBetterRequestCandidate(candidate, current)) {
+        bestByUuid.set(key, candidate);
+      }
+    }
+
+    for (const key of orderedKeys) {
+      requests.push(bestByUuid.get(key)!.row);
     }
   }
 
-  const documents = readDocumentsFromDir(dir);
-
-  return { manifest, requests, documents };
+  return { manifest, requests };
 }
 
 /**
@@ -651,8 +1293,7 @@ export function readCollectionFromDir(dir: string): {
 export function writeCollectionToDir(
   dir: string,
   manifest: CollectionManifest,
-  requests: ExportedRequest[],
-  documents: ExportedDocument[] = []
+  requests: ExportedRequest[]
 ): void {
   mkdirSync(dir, { recursive: true });
   const requestsPath = join(dir, 'requests');
@@ -665,13 +1306,57 @@ export function writeCollectionToDir(
   writeFileSync(join(dir, 'collection.json'), JSON.stringify(maskedManifest, null, 2), 'utf-8');
 
   const writtenUuids = new Set<string>();
+  const existingUuidToPaths = new Map<string, string[]>();
+
+  if (existsSync(requestsPath)) {
+    for (const fileName of readdirSync(requestsPath)) {
+      if (!fileName.endsWith('.json')) {
+        continue;
+      }
+      const uuid = parseRequestFileName(fileName);
+      if (uuid) {
+        const paths = existingUuidToPaths.get(uuid) ?? [];
+        paths.push(join(requestsPath, fileName));
+        existingUuidToPaths.set(uuid, paths);
+      }
+    }
+  }
+
+  // #region agent log
+  try {
+    fetch('http://127.0.0.1:7634/ingest/c3368b90-dc8c-409b-b6ba-5e08697b30c9', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '384f61' },
+      body: JSON.stringify({
+        sessionId: '384f61',
+        runId: 'pre-fix',
+        hypothesisId: 'A,B,E',
+        location: 'fileLayout.ts:writeCollectionToDir:entry',
+        message: 'writeCollectionToDir existing files + incoming requests',
+        data: {
+          dir,
+          existingFiles: existsSync(requestsPath) ? readdirSync(requestsPath) : [],
+          incoming: requests.map((r) => ({ uuid: resolveImportUuid(r.uuid), name: r.name }))
+        },
+        timestamp: Date.now()
+      })
+    }).catch(() => {});
+  } catch {
+    /* noop */
+  }
+  // #endregion
+
   for (const request of requests) {
     const uuid = resolveImportUuid(request.uuid);
+    if (writtenUuids.has(uuid)) {
+      continue;
+    }
     writtenUuids.add(uuid);
     const fileName = `${uuidSlugPrefix(uuid, request.name)}.json`;
+    const targetPath = join(requestsPath, fileName);
     const payload = exportedRequestToRequestExport(request);
     writeFileSync(
-      join(requestsPath, fileName),
+      targetPath,
       JSON.stringify(
         {
           ...payload,
@@ -684,6 +1369,12 @@ export function writeCollectionToDir(
       ),
       'utf-8'
     );
+
+    for (const previousPath of existingUuidToPaths.get(uuid) ?? []) {
+      if (previousPath !== targetPath) {
+        rmSync(previousPath, { force: true });
+      }
+    }
   }
 
   if (existsSync(requestsPath)) {
@@ -698,7 +1389,29 @@ export function writeCollectionToDir(
     }
   }
 
-  writeDocumentsToDir(dir, documents);
+  // #region agent log
+  try {
+    fetch('http://127.0.0.1:7634/ingest/c3368b90-dc8c-409b-b6ba-5e08697b30c9', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '384f61' },
+      body: JSON.stringify({
+        sessionId: '384f61',
+        runId: 'pre-fix',
+        hypothesisId: 'A,B,E',
+        location: 'fileLayout.ts:writeCollectionToDir:end',
+        message: 'writeCollectionToDir final files on disk',
+        data: {
+          dir,
+          finalFiles: existsSync(requestsPath) ? readdirSync(requestsPath) : [],
+          writtenUuids: [...writtenUuids]
+        },
+        timestamp: Date.now()
+      })
+    }).catch(() => {});
+  } catch {
+    /* noop */
+  }
+  // #endregion
 }
 
 /**

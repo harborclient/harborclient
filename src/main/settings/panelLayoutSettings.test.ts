@@ -26,6 +26,7 @@ describe('panelLayoutSettings', () => {
     expect(getPanelLayout()).toEqual({
       showSidebar: true,
       showAiSidebar: false,
+      showGitSidebar: false,
       showRequestEditor: true,
       showResponseEditor: true,
       requestEditorSplitHeight: 340,
@@ -41,6 +42,7 @@ describe('panelLayoutSettings', () => {
     mockGet.mockReturnValue({
       showSidebar: true,
       showAiSidebar: false,
+      showGitSidebar: false,
       showRequestEditor: true,
       showResponseEditor: true,
       requestEditorSplitHeight: 50
@@ -56,6 +58,7 @@ describe('panelLayoutSettings', () => {
     setPanelLayout({
       showSidebar: false,
       showAiSidebar: true,
+      showGitSidebar: false,
       showRequestEditor: false,
       showResponseEditor: true,
       requestEditorSplitHeight: 420,
@@ -69,6 +72,7 @@ describe('panelLayoutSettings', () => {
     expect(mockSet).toHaveBeenCalledWith('panelLayout', {
       showSidebar: false,
       showAiSidebar: true,
+      showGitSidebar: false,
       showRequestEditor: false,
       showResponseEditor: true,
       requestEditorSplitHeight: 420,
@@ -84,6 +88,7 @@ describe('panelLayoutSettings', () => {
     mockGet.mockReturnValue({
       showSidebar: true,
       showAiSidebar: false,
+      showGitSidebar: false,
       showRequestEditor: true,
       showResponseEditor: true,
       requestEditorSplitHeight: 340,
@@ -98,6 +103,7 @@ describe('panelLayoutSettings', () => {
     expect(getPanelLayout()).toEqual({
       showSidebar: true,
       showAiSidebar: false,
+      showGitSidebar: false,
       showRequestEditor: true,
       showResponseEditor: true,
       requestEditorSplitHeight: 340,

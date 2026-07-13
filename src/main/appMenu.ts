@@ -5,6 +5,7 @@ import type { ThemeSource } from '#/shared/types';
 
 let mainWindow: BrowserWindow | null = null;
 let sidebarVisible = true;
+let gitSidebarVisible = false;
 let aiSidebarVisible = false;
 let requestEditorVisible = true;
 let responseEditorVisible = true;
@@ -95,6 +96,13 @@ export function setMenuSidebarVisible(visible: boolean): void {
 }
 
 /**
+ * Returns the Git sidebar visibility state reflected in the View menu checkbox.
+ */
+export function getMenuGitSidebarVisible(): boolean {
+  return gitSidebarVisible;
+}
+
+/**
  * Updates the View menu AI checkbox and rebuilds the menu when the value changes.
  *
  * @param visible - Whether the AI sidebar is currently visible in the renderer.
@@ -104,6 +112,19 @@ export function setMenuAiSidebarVisible(visible: boolean): void {
     return;
   }
   aiSidebarVisible = visible;
+  rebuildAppMenu();
+}
+
+/**
+ * Updates the View menu Git checkbox and rebuilds the menu when the value changes.
+ *
+ * @param visible - Whether the Git sidebar is currently visible in the renderer.
+ */
+export function setMenuGitSidebarVisible(visible: boolean): void {
+  if (gitSidebarVisible === visible) {
+    return;
+  }
+  gitSidebarVisible = visible;
   rebuildAppMenu();
 }
 
@@ -283,6 +304,7 @@ export function rebuildAppMenu(): void {
       mainWindow,
       sidebarVisible,
       aiSidebarVisible,
+      gitSidebarVisible,
       requestEditorVisible,
       responseEditorVisible,
       collectionsVisible,

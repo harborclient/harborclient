@@ -49,6 +49,12 @@ interface AnimatedPanelState {
   transitionEnabled: boolean;
 
   /**
+   * Whether an open/close visibility animation is in progress. Kept separate from
+   * `transitionEnabled` so live resize updates apply instantly without animating.
+   */
+  visibilityAnimating: boolean;
+
+  /**
    * Ref attached to the inner content wrapper for width measurement.
    */
   innerRef: RefObject<HTMLDivElement | null>;
@@ -81,6 +87,7 @@ function useAnimatedHorizontalPanel(open: boolean): AnimatedPanelState {
   const [expanded, setExpanded] = useState(open);
   const [contentWidth, setContentWidth] = useState(0);
   const [transitionEnabled, setTransitionEnabled] = useState(false);
+  const [visibilityAnimating, setVisibilityAnimating] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(prefersReducedMotion);
 
   /**
@@ -150,6 +157,7 @@ function useAnimatedHorizontalPanel(open: boolean): AnimatedPanelState {
         setMounted(open);
         setExpanded(open);
         setTransitionEnabled(false);
+        setVisibilityAnimating(false);
         initialMountRef.current = false;
         return;
       }
@@ -167,6 +175,7 @@ function useAnimatedHorizontalPanel(open: boolean): AnimatedPanelState {
       }
 
       if (open) {
+        setVisibilityAnimating(true);
         setMounted(true);
         setExpanded(false);
         requestAnimationFrame(() => {
@@ -179,6 +188,7 @@ function useAnimatedHorizontalPanel(open: boolean): AnimatedPanelState {
         return;
       }
 
+      setVisibilityAnimating(true);
       setExpanded(false);
     };
 
@@ -198,6 +208,8 @@ function useAnimatedHorizontalPanel(open: boolean): AnimatedPanelState {
         return;
       }
 
+      setVisibilityAnimating(false);
+
       if (!expanded && !open) {
         setMounted(false);
       }
@@ -210,6 +222,7 @@ function useAnimatedHorizontalPanel(open: boolean): AnimatedPanelState {
     expanded,
     contentWidth,
     transitionEnabled,
+    visibilityAnimating,
     innerRef,
     handleTransitionEnd
   };
@@ -221,8 +234,15 @@ function useAnimatedHorizontalPanel(open: boolean): AnimatedPanelState {
  * Keeps children mounted during close so width can animate to zero before unmount.
  */
 export function AnimatedHorizontalPanel({ open, children, className }: Props): JSX.Element | null {
-  const { mounted, expanded, contentWidth, transitionEnabled, innerRef, handleTransitionEnd } =
-    useAnimatedHorizontalPanel(open);
+  const {
+    mounted,
+    expanded,
+    contentWidth,
+    transitionEnabled,
+    visibilityAnimating,
+    innerRef,
+    handleTransitionEnd
+  } = useAnimatedHorizontalPanel(open);
 
   if (!mounted) {
     return null;
@@ -230,7 +250,7 @@ export function AnimatedHorizontalPanel({ open, children, className }: Props): J
 
   const outerClassName = [
     'flex shrink-0 overflow-hidden',
-    transitionEnabled
+    transitionEnabled && visibilityAnimating
       ? 'transition-[width] duration-200 ease-out motion-reduce:transition-none'
       : 'transition-none',
     !open && 'pointer-events-none',

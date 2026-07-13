@@ -1097,6 +1097,15 @@ function setMenuAiSidebarVisible(visible: boolean): Promise<void> {
 }
 
 /**
+ * Syncs Git sidebar visibility to the View menu checkbox in the main process.
+ *
+ * @param visible - Whether the Git sidebar is currently visible in the renderer.
+ */
+function setMenuGitSidebarVisible(visible: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setGitSidebarVisible', visible);
+}
+
+/**
  * Syncs request editor visibility to the View menu checkbox in the main process.
  *
  * @param visible - Whether the request editor is currently visible in the renderer.
@@ -2171,6 +2180,73 @@ function gitCommit(
 }
 
 /**
+ * Returns per-request git status for one git-backed collection.
+ *
+ * @param args - Git connection id and collection uuid.
+ */
+function gitRequestStatuses(args: {
+  connectionId: string;
+  collectionUuid: string;
+}): Promise<Record<string, import('#/shared/types').GitRequestFileStatus>> {
+  return ipcRenderer.invoke('git:requestStatuses', args);
+}
+
+/**
+ * Stages working-tree changes for one request in a git-backed collection.
+ *
+ * @param args - Git connection id, collection uuid, and request uuid.
+ */
+function gitAddRequest(args: {
+  connectionId: string;
+  collectionUuid: string;
+  requestUuid: string;
+}): Promise<void> {
+  return ipcRenderer.invoke('git:addRequest', args);
+}
+
+/**
+ * Unstages staged changes for one request in a git-backed collection.
+ *
+ * @param args - Git connection id, collection uuid, and request uuid.
+ */
+function gitRemoveRequest(args: {
+  connectionId: string;
+  collectionUuid: string;
+  requestUuid: string;
+}): Promise<void> {
+  return ipcRenderer.invoke('git:removeRequest', args);
+}
+
+/**
+ * Returns local branch names for a git-backed connection.
+ *
+ * @param connectionId - Git connection id.
+ */
+function gitListBranches(connectionId: string): Promise<string[]> {
+  return ipcRenderer.invoke('git:listBranches', connectionId);
+}
+
+/**
+ * Creates a new branch from the current commit and checks it out.
+ *
+ * @param connectionId - Git connection id.
+ * @param name - Branch name to create.
+ */
+function gitCreateBranch(connectionId: string, name: string): Promise<void> {
+  return ipcRenderer.invoke('git:createBranch', connectionId, name);
+}
+
+/**
+ * Checks out an existing local branch when the working tree is clean.
+ *
+ * @param connectionId - Git connection id.
+ * @param name - Branch name to check out.
+ */
+function gitCheckoutBranch(connectionId: string, name: string): Promise<void> {
+  return ipcRenderer.invoke('git:checkoutBranch', connectionId, name);
+}
+
+/**
  * Pulls remote changes for a git-backed connection.
  *
  * @param connectionId - Git connection id.
@@ -2199,6 +2275,137 @@ function gitLog(
   depth?: number
 ): Promise<import('#/shared/types').GitLogEntry[]> {
   return ipcRenderer.invoke('git:log', connectionId, depth);
+}
+
+/**
+ * Returns graph-ready commit history for a git-backed connection.
+ *
+ * @param connectionId - Git connection id.
+ * @param depth - Maximum number of commits to include.
+ */
+function gitGraphLog(
+  connectionId: string,
+  depth?: number
+): Promise<import('#/shared/types').GitGraphLogResult> {
+  return ipcRenderer.invoke('git:graphLog', connectionId, depth);
+}
+
+/**
+ * Returns detailed metadata and changed files for one commit.
+ *
+ * @param connectionId - Git connection id.
+ * @param oid - Commit object id.
+ */
+function gitCommitDetail(
+  connectionId: string,
+  oid: string
+): Promise<import('#/shared/types').GitCommitDetail> {
+  return ipcRenderer.invoke('git:commitDetail', connectionId, oid);
+}
+
+/**
+ * Returns a parent-to-commit diff for one request or document in a commit.
+ *
+ * @param args - Git connection id, commit oid, collection uuid, resource uuid, and kind.
+ */
+function gitCommitResourceDiff(args: {
+  connectionId: string;
+  oid: string;
+  collectionUuid: string;
+  resourceUuid: string;
+  kind: 'request' | 'document';
+}): Promise<import('#/shared/types').GitRequestDiffResult> {
+  return ipcRenderer.invoke('git:commitResourceDiff', args);
+}
+
+/**
+ * Returns a working-tree diff for one request in a git-backed collection.
+ *
+ * @param args - Git connection id, collection uuid, and request uuid.
+ */
+function gitRequestDiff(args: {
+  connectionId: string;
+  collectionUuid: string;
+  requestUuid: string;
+}): Promise<import('#/shared/types').GitRequestDiffResult> {
+  return ipcRenderer.invoke('git:requestDiff', args);
+}
+
+/**
+ * Discards working-tree and staged changes for one request.
+ *
+ * @param args - Git connection id, collection uuid, and request uuid.
+ */
+function gitRevertRequest(args: {
+  connectionId: string;
+  collectionUuid: string;
+  requestUuid: string;
+}): Promise<void> {
+  return ipcRenderer.invoke('git:revertRequest', args);
+}
+
+/**
+ * Returns per-document git status for one git-backed collection.
+ *
+ * @param args - Git connection id and collection uuid.
+ */
+function gitDocumentStatuses(args: {
+  connectionId: string;
+  collectionUuid: string;
+}): Promise<Record<string, import('#/shared/types').GitRequestFileStatus>> {
+  return ipcRenderer.invoke('git:documentStatuses', args);
+}
+
+/**
+ * Stages working-tree changes for one markdown document in a git-backed collection.
+ *
+ * @param args - Git connection id, collection uuid, and document uuid.
+ */
+function gitAddDocument(args: {
+  connectionId: string;
+  collectionUuid: string;
+  documentUuid: string;
+}): Promise<void> {
+  return ipcRenderer.invoke('git:addDocument', args);
+}
+
+/**
+ * Unstages staged changes for one markdown document in a git-backed collection.
+ *
+ * @param args - Git connection id, collection uuid, and document uuid.
+ */
+function gitRemoveDocument(args: {
+  connectionId: string;
+  collectionUuid: string;
+  documentUuid: string;
+}): Promise<void> {
+  return ipcRenderer.invoke('git:removeDocument', args);
+}
+
+/**
+ * Returns a working-tree diff for one markdown document in a git-backed collection.
+ *
+ * @param args - Git connection id, collection uuid, and document uuid.
+ */
+function gitDocumentDiff(args: {
+  connectionId: string;
+  collectionUuid: string;
+  documentUuid: string;
+}): Promise<import('#/shared/types').GitRequestDiffResult> {
+  return ipcRenderer.invoke('git:documentDiff', args);
+}
+
+/**
+ * Discards working-tree and staged changes for one markdown document.
+ *
+ * @param args - Git connection id, collection uuid, and document uuid.
+ */
+function gitRevertDocument(args: {
+  connectionId: string;
+  collectionUuid: string;
+  documentUuid: string;
+}): Promise<void> {
+  return ipcRenderer.invoke('git:revertDocument', args);
 }
 
 /**
@@ -3453,6 +3660,7 @@ const api: Api = {
   onDeepLink,
   setMenuSidebarVisible,
   setMenuAiSidebarVisible,
+  setMenuGitSidebarVisible,
   setMenuRequestEditorVisible,
   setMenuResponseEditorVisible,
   setMenuCollectionsVisible,
@@ -3561,9 +3769,25 @@ const api: Api = {
   onGitWorkingTreeChanged,
   onGitOAuthFinished,
   gitCommit,
+  gitRequestStatuses,
+  gitAddRequest,
+  gitRemoveRequest,
+  gitListBranches,
+  gitCreateBranch,
+  gitCheckoutBranch,
   gitPull,
   gitPush,
   gitLog,
+  gitGraphLog,
+  gitCommitDetail,
+  gitCommitResourceDiff,
+  gitRequestDiff,
+  gitRevertRequest,
+  gitDocumentStatuses,
+  gitAddDocument,
+  gitRemoveDocument,
+  gitDocumentDiff,
+  gitRevertDocument,
   gitDiff,
   gitSetPat,
   gitStartOAuth,

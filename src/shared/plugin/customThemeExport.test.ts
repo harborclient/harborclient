@@ -40,6 +40,20 @@ describe('customThemeExport', () => {
     expect(validateCustomThemeExport(exportWithScrollbars)).toEqual(exportWithScrollbars);
   });
 
+  it('validates git request color tokens in theme exports', () => {
+    const exportWithGitTokens = {
+      ...sampleExport,
+      theme: {
+        ...sampleExport.theme,
+        'git-staged': '#34c759',
+        'git-uncommitted': '#ff9500',
+        'git-unstaged': 'rgba(0, 0, 0, 0.58)'
+      }
+    };
+
+    expect(validateCustomThemeExport(exportWithGitTokens)).toEqual(exportWithGitTokens);
+  });
+
   it('validates script stage color tokens in theme exports', () => {
     const exportWithScriptStages = {
       ...sampleExport,

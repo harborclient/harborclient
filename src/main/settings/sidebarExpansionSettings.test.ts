@@ -42,7 +42,8 @@ describe('sidebarExpansionSettings', () => {
       },
       collectionIds: [],
       folderIds: [],
-      showStorageLocationBadges: true
+      showStorageLocationBadges: true,
+      showColorDots: true
     });
     expect(mockGet).toHaveBeenCalledWith('sidebarExpansion', {
       sections: {
@@ -63,7 +64,8 @@ describe('sidebarExpansionSettings', () => {
       },
       collectionIds: [],
       folderIds: [],
-      showStorageLocationBadges: true
+      showStorageLocationBadges: true,
+      showColorDots: true
     });
   });
 
@@ -94,7 +96,8 @@ describe('sidebarExpansionSettings', () => {
       },
       collectionIds: [1],
       folderIds: [9],
-      showStorageLocationBadges: true
+      showStorageLocationBadges: true,
+      showColorDots: true
     });
   });
 
@@ -120,7 +123,8 @@ describe('sidebarExpansionSettings', () => {
       },
       collectionIds: [2, 2, -3],
       folderIds: [8],
-      showStorageLocationBadges: false
+      showStorageLocationBadges: false,
+      showColorDots: true
     });
 
     expect(mockSet).toHaveBeenCalledWith('sidebarExpansion', {
@@ -142,7 +146,8 @@ describe('sidebarExpansionSettings', () => {
       },
       collectionIds: [2],
       folderIds: [8],
-      showStorageLocationBadges: false
+      showStorageLocationBadges: false,
+      showColorDots: true
     });
   });
 });

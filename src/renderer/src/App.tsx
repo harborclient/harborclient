@@ -24,6 +24,7 @@ import {
 import { clearConsole } from '#/renderer/src/store/slices/consoleSlice';
 import {
   selectAiSidebarVisible,
+  selectGitSidebarVisible,
   selectShowConsole,
   selectShowMcp,
   selectShowTerminal,
@@ -32,6 +33,7 @@ import {
   selectShowVariables,
   selectSidebarVisible,
   toggleAiSidebar,
+  toggleGitSidebar,
   toggleConsole,
   toggleMcp,
   toggleTerminal,
@@ -55,7 +57,9 @@ import { ShareModal } from '#/renderer/src/ui/modals/ShareModal';
 import { QuitPrompt } from '#/renderer/src/ui/modals/QuitPrompt';
 import { UnsavedLoadPrompt } from '#/renderer/src/ui/modals/UnsavedLoadPrompt';
 import { AiSidebar } from '#/renderer/src/ui/sidebars/AiSidebar';
+import { GitSidebar } from '#/renderer/src/ui/sidebars/GitSidebar';
 import { CollectionSidebar } from '#/renderer/src/ui/sidebars/CollectionSidebar';
+import { SidebarGitProvider } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarGitProvider';
 import { SidebarExpansionProvider } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarExpansionProvider';
 import { RequestEditor } from '#/renderer/src/ui/Main/RequestEditor';
 import { resolveVariableEditTarget } from '#/renderer/src/ui/Main/RequestEditor/resolveVariableEditTarget';
@@ -107,6 +111,7 @@ export default function App(): JSX.Element {
   const activeTabId = useAppSelector(selectActiveTabId);
   const sidebarVisible = useAppSelector(selectSidebarVisible);
   const aiSidebarVisible = useAppSelector(selectAiSidebarVisible);
+  const gitSidebarVisible = useAppSelector(selectGitSidebarVisible);
   const requestEditorVisible = useAppSelector(selectShowRequestEditor);
   const responseEditorVisible = useAppSelector(selectShowResponseEditor);
   const showConsole = useAppSelector(selectShowConsole);
@@ -283,180 +288,188 @@ export default function App(): JSX.Element {
       value={{ theme: codeEditorTheme, setup: codeEditorSetup, fontSize: codeEditorFontSize }}
     >
       <SidebarExpansionProvider onExpandCollection={handleExpandCollection}>
-        <SearchIndexProvider>
-          <PluginHost />
-          <McpHost />
-          <PluginThemePrompt />
-          <div className={`flex h-screen flex-col overflow-hidden ${platformClassName()}`}>
-            <BusyIndicator isBusy={isBusy} />
-            <TitleBar />
-            <a
-              href="#main-content"
-              className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-[14px] focus:text-text focus:shadow-md focus:outline focus:outline-2 focus:outline-accent"
-            >
-              Skip to main content
-            </a>
-            <div className="relative flex min-h-0 flex-1 overflow-hidden">
-              <AnimatedHorizontalPanel open={sidebarVisible}>
-                <CollectionSidebar />
-              </AnimatedHorizontalPanel>
-
-              <main
-                id="main-content"
-                tabIndex={-1}
-                className="relative flex min-w-0 flex-1 flex-col bg-surface"
+        <SidebarGitProvider>
+          <SearchIndexProvider>
+            <PluginHost />
+            <McpHost />
+            <PluginThemePrompt />
+            <div className={`flex h-screen flex-col overflow-hidden ${platformClassName()}`}>
+              <BusyIndicator isBusy={isBusy} />
+              <TitleBar />
+              <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-[14px] focus:text-text focus:shadow-md focus:outline focus:outline-2 focus:outline-accent"
               >
-                <RequestEditor
-                  onEditVariables={(key) => {
-                    const target = resolveVariableEditTarget({
-                      key,
-                      globalVariables,
-                      collectionVariables: activeCollection?.variables ?? [],
-                      folderVariables: activeFolder?.variables ?? [],
-                      environmentVariables: activeEnvironment?.variables ?? [],
-                      activeCollectionId,
-                      activeFolderId,
-                      activeEnvironmentId
-                    });
-                    if (target == null) return;
+                Skip to main content
+              </a>
+              <div className="relative flex min-h-0 flex-1 overflow-hidden">
+                <AnimatedHorizontalPanel open={sidebarVisible}>
+                  <CollectionSidebar />
+                </AnimatedHorizontalPanel>
 
-                    if (target.scope === 'environment' && target.environmentId != null) {
+                <main
+                  id="main-content"
+                  tabIndex={-1}
+                  className="relative flex min-w-0 flex-1 flex-col bg-surface"
+                >
+                  <RequestEditor
+                    onEditVariables={(key) => {
+                      const target = resolveVariableEditTarget({
+                        key,
+                        globalVariables,
+                        collectionVariables: activeCollection?.variables ?? [],
+                        folderVariables: activeFolder?.variables ?? [],
+                        environmentVariables: activeEnvironment?.variables ?? [],
+                        activeCollectionId,
+                        activeFolderId,
+                        activeEnvironmentId
+                      });
+                      if (target == null) return;
+
+                      if (target.scope === 'environment' && target.environmentId != null) {
+                        dispatch(
+                          openPageTab({
+                            type: 'environment',
+                            id: target.environmentId,
+                            focusVariableKey: key
+                          })
+                        );
+                        return;
+                      }
+
+                      if (target.scope === 'folder' && target.folderId != null) {
+                        dispatch(
+                          openPageTab({
+                            type: 'folder',
+                            collectionId: target.collectionId ?? activeCollectionId ?? 0,
+                            id: target.folderId,
+                            focusVariableKey: key
+                          })
+                        );
+                        return;
+                      }
+
+                      if (target.scope === 'collection' && target.collectionId != null) {
+                        dispatch(
+                          openPageTab({
+                            type: 'collection',
+                            id: target.collectionId,
+                            focusVariableKey: key
+                          })
+                        );
+                        return;
+                      }
+
                       dispatch(
                         openPageTab({
-                          type: 'environment',
-                          id: target.environmentId,
+                          type: 'settings',
+                          section: 'globals',
                           focusVariableKey: key
                         })
                       );
-                      return;
-                    }
+                    }}
+                  />
+                  <FooterPanels
+                    consoleOpen={showConsole}
+                    onToggleConsole={() => dispatch(toggleConsole())}
+                    entries={consoleEntries}
+                    onClear={() => dispatch(clearConsole())}
+                    variablesOpen={showVariables}
+                    onToggleVariables={() => dispatch(toggleVariables())}
+                    mcpOpen={showMcp}
+                    onToggleMcp={() => dispatch(toggleMcp())}
+                    terminalOpen={showTerminal}
+                    onToggleTerminal={() => dispatch(toggleTerminal())}
+                    onMcpStatusChange={() => void mcpServerStatus.refresh()}
+                    globalVariables={globalVariables}
+                    collectionVariables={activeCollection?.variables ?? []}
+                    folderVariables={activeFolder?.variables ?? []}
+                    environmentVariables={activeEnvironment?.variables ?? []}
+                    collectionName={activeCollection?.name}
+                    folderName={activeFolder?.name}
+                    environmentName={activeEnvironment?.name}
+                  />
+                </main>
 
-                    if (target.scope === 'folder' && target.folderId != null) {
-                      dispatch(
-                        openPageTab({
-                          type: 'folder',
-                          collectionId: target.collectionId ?? activeCollectionId ?? 0,
-                          id: target.folderId,
-                          focusVariableKey: key
-                        })
-                      );
-                      return;
-                    }
+                <AnimatedHorizontalPanel open={gitSidebarVisible}>
+                  <GitSidebar />
+                </AnimatedHorizontalPanel>
 
-                    if (target.scope === 'collection' && target.collectionId != null) {
-                      dispatch(
-                        openPageTab({
-                          type: 'collection',
-                          id: target.collectionId,
-                          focusVariableKey: key
-                        })
-                      );
-                      return;
-                    }
+                <AnimatedHorizontalPanel open={aiSidebarVisible}>
+                  <AiSidebar />
+                </AnimatedHorizontalPanel>
+              </div>
 
-                    dispatch(
-                      openPageTab({
-                        type: 'settings',
-                        section: 'globals',
-                        focusVariableKey: key
-                      })
-                    );
-                  }}
-                />
-                <FooterPanels
-                  consoleOpen={showConsole}
-                  onToggleConsole={() => dispatch(toggleConsole())}
-                  entries={consoleEntries}
-                  onClear={() => dispatch(clearConsole())}
-                  variablesOpen={showVariables}
-                  onToggleVariables={() => dispatch(toggleVariables())}
-                  mcpOpen={showMcp}
-                  onToggleMcp={() => dispatch(toggleMcp())}
-                  terminalOpen={showTerminal}
-                  onToggleTerminal={() => dispatch(toggleTerminal())}
-                  onMcpStatusChange={() => void mcpServerStatus.refresh()}
-                  globalVariables={globalVariables}
-                  collectionVariables={activeCollection?.variables ?? []}
-                  folderVariables={activeFolder?.variables ?? []}
-                  environmentVariables={activeEnvironment?.variables ?? []}
-                  collectionName={activeCollection?.name}
-                  folderName={activeFolder?.name}
-                  environmentName={activeEnvironment?.name}
-                />
-              </main>
+              <TabGroupEditBar />
 
-              <AnimatedHorizontalPanel open={aiSidebarVisible}>
-                <AiSidebar />
-              </AnimatedHorizontalPanel>
+              <Footer
+                consoleOpen={showConsole}
+                entryCount={consoleEntries.length}
+                onToggleConsole={() => dispatch(toggleConsole())}
+                variablesOpen={showVariables}
+                onToggleVariables={() => dispatch(toggleVariables())}
+                mcpOpen={showMcp}
+                onToggleMcp={() => dispatch(toggleMcp())}
+                terminalOpen={showTerminal}
+                onToggleTerminal={() => dispatch(toggleTerminal())}
+                mcpServerRunning={mcpServerStatus.running}
+                globalVariables={globalVariables}
+                collectionVariables={activeCollection?.variables ?? []}
+                folderVariables={activeFolder?.variables ?? []}
+                environmentVariables={activeEnvironment?.variables ?? []}
+                sidebarOpen={sidebarVisible}
+                onToggleSidebar={() => dispatch(toggleSidebar())}
+                aiSidebarOpen={aiSidebarVisible}
+                onToggleAiSidebar={() => dispatch(toggleAiSidebar())}
+                gitSidebarOpen={gitSidebarVisible}
+                onToggleGitSidebar={() => dispatch(toggleGitSidebar())}
+                requestEditorOpen={requestEditorVisible}
+                onToggleRequestEditor={() => dispatch(toggleRequestEditor())}
+                responseEditorOpen={responseEditorVisible}
+                onToggleResponseEditor={() => dispatch(toggleResponseEditor())}
+              />
+
+              <CollectionModal />
+              <TabGroupModal />
+              <ShareModal />
+              <UnsavedLoadPrompt />
+              <QuitPrompt />
+              <AboutModal />
+              <UpdateModal />
+              <SyncModal />
+              <AlertModal />
+              <ConfirmModal />
+              <ThemePickerModal />
+              <ShortcutsReferenceModal />
+              <ActionMenuModal />
+              <PluginModalOverlay />
+              <AcceptTeamHubInviteModal />
+              <TeamHubJoinDeepLinkHost />
+
+              <Toaster
+                position="bottom-center"
+                containerStyle={{ bottom: 16 }}
+                toastOptions={{
+                  duration: 2000,
+                  ariaProps: DEFAULT_TOAST_ARIA_PROPS,
+                  success: {
+                    ariaProps: SUCCESS_TOAST_ARIA_PROPS
+                  },
+                  error: {
+                    ariaProps: ERROR_TOAST_ARIA_PROPS
+                  },
+                  style: {
+                    background: 'var(--mac-control)',
+                    color: 'var(--mac-text)',
+                    border: '1px solid var(--mac-separator)',
+                    fontSize: '14px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                  }
+                }}
+              />
             </div>
-
-            <TabGroupEditBar />
-
-            <Footer
-              consoleOpen={showConsole}
-              entryCount={consoleEntries.length}
-              onToggleConsole={() => dispatch(toggleConsole())}
-              variablesOpen={showVariables}
-              onToggleVariables={() => dispatch(toggleVariables())}
-              mcpOpen={showMcp}
-              onToggleMcp={() => dispatch(toggleMcp())}
-              terminalOpen={showTerminal}
-              onToggleTerminal={() => dispatch(toggleTerminal())}
-              mcpServerRunning={mcpServerStatus.running}
-              globalVariables={globalVariables}
-              collectionVariables={activeCollection?.variables ?? []}
-              folderVariables={activeFolder?.variables ?? []}
-              environmentVariables={activeEnvironment?.variables ?? []}
-              sidebarOpen={sidebarVisible}
-              onToggleSidebar={() => dispatch(toggleSidebar())}
-              aiSidebarOpen={aiSidebarVisible}
-              onToggleAiSidebar={() => dispatch(toggleAiSidebar())}
-              requestEditorOpen={requestEditorVisible}
-              onToggleRequestEditor={() => dispatch(toggleRequestEditor())}
-              responseEditorOpen={responseEditorVisible}
-              onToggleResponseEditor={() => dispatch(toggleResponseEditor())}
-            />
-
-            <CollectionModal />
-            <TabGroupModal />
-            <ShareModal />
-            <UnsavedLoadPrompt />
-            <QuitPrompt />
-            <AboutModal />
-            <UpdateModal />
-            <SyncModal />
-            <AlertModal />
-            <ConfirmModal />
-            <ThemePickerModal />
-            <ShortcutsReferenceModal />
-            <ActionMenuModal />
-            <PluginModalOverlay />
-            <AcceptTeamHubInviteModal />
-            <TeamHubJoinDeepLinkHost />
-
-            <Toaster
-              position="bottom-center"
-              containerStyle={{ bottom: 16 }}
-              toastOptions={{
-                duration: 2000,
-                ariaProps: DEFAULT_TOAST_ARIA_PROPS,
-                success: {
-                  ariaProps: SUCCESS_TOAST_ARIA_PROPS
-                },
-                error: {
-                  ariaProps: ERROR_TOAST_ARIA_PROPS
-                },
-                style: {
-                  background: 'var(--mac-control)',
-                  color: 'var(--mac-text)',
-                  border: '1px solid var(--mac-separator)',
-                  fontSize: '14px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                }
-              }}
-            />
-          </div>
-        </SearchIndexProvider>
+          </SearchIndexProvider>
+        </SidebarGitProvider>
       </SidebarExpansionProvider>
     </CodeEditorConfigProvider>
   );

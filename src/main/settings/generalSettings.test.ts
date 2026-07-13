@@ -175,6 +175,19 @@ describe('generalSettings', () => {
     expect(getGeneralSettings().followRedirects).toBe(false);
   });
 
+  it('defaults gitAutoAdd to true when unset', () => {
+    expect(getGeneralSettings().gitAutoAdd).toBe(true);
+  });
+
+  it('persists gitAutoAdd false', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      gitAutoAdd: false
+    });
+
+    expect(getGeneralSettings().gitAutoAdd).toBe(false);
+  });
+
   it('defaults logFilePath to empty when unset', () => {
     expect(getGeneralSettings().logFilePath).toBe('');
   });

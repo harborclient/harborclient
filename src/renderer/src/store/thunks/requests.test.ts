@@ -524,7 +524,7 @@ describe('requestLoadRequest', () => {
     store.dispatch(setActiveDraft({ ...activeTab.draft, url: 'https://example.com/edited' }));
   }
 
-  it('prompts when reopening a dirty tab for the same saved request', async () => {
+  it('activates a dirty existing tab without prompting or discarding edits', async () => {
     const { store } = await import('#/renderer/src/store/redux');
     const { requestLoadRequest } = await import('#/renderer/src/store/thunks/requests');
     await resetPendingLoadRequest(store);
@@ -552,51 +552,12 @@ describe('requestLoadRequest', () => {
 
     await store.dispatch(requestLoadRequest({ req }));
 
-    expect(store.getState().modals.pendingLoadRequest).toEqual({
-      req,
-      reason: 'dirty-tab'
-    });
+    expect(store.getState().modals.pendingLoadRequest).toBeNull();
     expect(
       asRequestTab(
         store.getState().tabs.tabs.find((tab) => isRequestTab(tab) && tab.draft.id === 101)
       ).draft.url
     ).toBe('https://example.com/edited');
-  });
-
-  it('reloads a dirty tab when forceReload is true', async () => {
-    const { store } = await import('#/renderer/src/store/redux');
-    const { requestLoadRequest } = await import('#/renderer/src/store/thunks/requests');
-    await resetPendingLoadRequest(store);
-    const req = sampleSaved({ id: 102 });
-
-    await openDirtySavedTab(store, {
-      id: 102,
-      collection_id: 10,
-      folder_id: null,
-      name: 'Get users',
-      method: 'GET',
-      url: 'https://example.com/old',
-      headers: [],
-      params: [],
-      auth: defaultAuth(),
-      body: '',
-      body_type: 'none',
-      pre_request_script: '',
-      post_request_script: '',
-      pre_request_scripts: [],
-      post_request_scripts: [],
-      comment: '',
-      tags: ''
-    });
-
-    await store.dispatch(requestLoadRequest({ req, skipSettingsCheck: true, forceReload: true }));
-
-    expect(store.getState().modals.pendingLoadRequest).toBeNull();
-    expect(
-      asRequestTab(
-        store.getState().tabs.tabs.find((tab) => isRequestTab(tab) && tab.draft.id === 102)
-      ).draft.url
-    ).toBe('https://example.com/users');
   });
 
   it('reloads a clean existing tab without prompting', async () => {
@@ -630,9 +591,7 @@ describe('requestLoadRequest', () => {
     const runnerTabId = store.getState().tabs.activeTabId;
     const req = sampleSaved({ id: 104 });
 
-    await store.dispatch(
-      requestLoadRequest({ req, skipSettingsCheck: true, forceReload: true, activate: false })
-    );
+    await store.dispatch(requestLoadRequest({ req, skipSettingsCheck: true, activate: false }));
 
     expect(store.getState().tabs.activeTabId).toBe(runnerTabId);
     expect(

@@ -5,6 +5,7 @@ import {
   selectActivePluginFooterPanelId,
   selectRequestEditorSplitHeight,
   selectShowAiSidebar,
+  selectShowGitSidebar,
   selectShowConsole,
   selectShowMcp,
   selectShowRequestEditor,
@@ -15,6 +16,7 @@ import {
   setActivePluginFooterPanelId,
   setRequestEditorSplitHeight,
   setShowAiSidebar,
+  setShowGitSidebar,
   setShowConsole,
   setShowMcp,
   setShowRequestEditor,
@@ -55,6 +57,7 @@ export function usePersistedPanelLayout(): void {
   const dispatch = useAppDispatch();
   const showSidebar = useAppSelector(selectShowSidebar);
   const showAiSidebar = useAppSelector(selectShowAiSidebar);
+  const showGitSidebar = useAppSelector(selectShowGitSidebar);
   const showRequestEditor = useAppSelector(selectShowRequestEditor);
   const showResponseEditor = useAppSelector(selectShowResponseEditor);
   const requestEditorSplitHeight = useAppSelector(selectRequestEditorSplitHeight);
@@ -82,6 +85,7 @@ export function usePersistedPanelLayout(): void {
 
       dispatch(setShowSidebar(layout.showSidebar));
       dispatch(setShowAiSidebar(layout.showAiSidebar));
+      dispatch(setShowGitSidebar(layout.showGitSidebar));
       dispatch(setShowRequestEditor(layout.showRequestEditor));
       dispatch(setShowResponseEditor(layout.showResponseEditor));
       dispatch(setRequestEditorSplitHeight(splitHeight));
@@ -96,6 +100,7 @@ export function usePersistedPanelLayout(): void {
         void window.api.setPanelLayout({
           showSidebar: layout.showSidebar,
           showAiSidebar: layout.showAiSidebar,
+          showGitSidebar: layout.showGitSidebar,
           showRequestEditor: layout.showRequestEditor,
           showResponseEditor: layout.showResponseEditor,
           requestEditorSplitHeight: splitHeight,
@@ -126,6 +131,7 @@ export function usePersistedPanelLayout(): void {
     void window.api.setPanelLayout({
       showSidebar,
       showAiSidebar,
+      showGitSidebar,
       showRequestEditor,
       showResponseEditor,
       requestEditorSplitHeight,
@@ -138,6 +144,7 @@ export function usePersistedPanelLayout(): void {
   }, [
     showSidebar,
     showAiSidebar,
+    showGitSidebar,
     showRequestEditor,
     showResponseEditor,
     requestEditorSplitHeight,

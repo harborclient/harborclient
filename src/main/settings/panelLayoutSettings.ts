@@ -12,6 +12,7 @@ export const MAX_REQUEST_EDITOR_SPLIT_HEIGHT = 2000;
 export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
   showSidebar: true,
   showAiSidebar: false,
+  showGitSidebar: false,
   showRequestEditor: true,
   showResponseEditor: true,
   requestEditorSplitHeight: DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT,
@@ -146,6 +147,7 @@ function normalizePanelLayout(input: Partial<PanelLayoutState>): PanelLayoutStat
   return {
     showSidebar: input.showSidebar !== false,
     showAiSidebar: input.showAiSidebar === true,
+    showGitSidebar: input.showGitSidebar === true,
     showRequestEditor: input.showRequestEditor !== false,
     showResponseEditor: input.showResponseEditor !== false,
     requestEditorSplitHeight: normalizeRequestEditorSplitHeight(input.requestEditorSplitHeight),

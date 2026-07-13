@@ -13,6 +13,7 @@ import {
   faCloud,
   faFolder,
   faLayerGroup,
+  faPalette,
   faSun,
   faTrash
 } from '#/renderer/src/fontawesome';
@@ -40,7 +41,6 @@ import { Section } from './Section';
 import { SidebarSearch } from './SidebarSearch';
 import { SidebarPanelSwitcher } from './SidebarPanelSwitcher';
 import { SidebarProvidersProvider } from './SidebarProvidersProvider';
-import { SidebarGitProvider } from './SidebarGitProvider';
 import { SidebarSearchProvider } from './SidebarSearchProvider';
 import { useSidebarSearchContext } from './sidebarSearchContext';
 import { SidebarModalsProvider } from './SidebarModals';
@@ -79,6 +79,8 @@ function SidebarContent(): JSX.Element {
     trashSectionVisible,
     showStorageLocationBadges,
     toggleStorageLocationBadges,
+    showColorDots,
+    toggleColorDots,
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
     toggleRunResultsSectionVisible,
@@ -181,6 +183,14 @@ function SidebarContent(): JSX.Element {
           : 'Show storage location badges',
         ariaPressed: showStorageLocationBadges,
         onClick: toggleStorageLocationBadges
+      },
+      {
+        id: 'toggle-color-dots',
+        icon: faPalette,
+        label: 'Color dots',
+        title: showColorDots ? 'Hide color dots' : 'Show color dots',
+        ariaPressed: showColorDots,
+        onClick: toggleColorDots
       }
     ];
   }, [
@@ -197,7 +207,9 @@ function SidebarContent(): JSX.Element {
     toggleTrashSectionVisible,
     toggleRunResultsSectionVisible,
     showStorageLocationBadges,
-    toggleStorageLocationBadges
+    toggleStorageLocationBadges,
+    showColorDots,
+    toggleColorDots
   ]);
 
   /**
@@ -381,15 +393,13 @@ function SidebarContent(): JSX.Element {
 export function CollectionSidebar(): JSX.Element {
   return (
     <SidebarProvidersProvider>
-      <SidebarGitProvider>
-        <SidebarSearchProvider>
-          <SidebarModalsProvider>
-            <SidebarColorPickerProvider>
-              <SidebarContent />
-            </SidebarColorPickerProvider>
-          </SidebarModalsProvider>
-        </SidebarSearchProvider>
-      </SidebarGitProvider>
+      <SidebarSearchProvider>
+        <SidebarModalsProvider>
+          <SidebarColorPickerProvider>
+            <SidebarContent />
+          </SidebarColorPickerProvider>
+        </SidebarModalsProvider>
+      </SidebarSearchProvider>
     </SidebarProvidersProvider>
   );
 }

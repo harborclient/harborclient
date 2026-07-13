@@ -1,4 +1,5 @@
 import type { JSX } from 'react';
+import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
 
 interface Props {
   /**
@@ -14,9 +15,12 @@ interface Props {
 
 /**
  * Renders a small colored circle beside a sidebar row when a color is assigned.
+ * Respects the global color-dot visibility preference from sidebar expansion state.
  */
 export function SidebarColorDot({ color, label }: Props): JSX.Element | null {
-  if (color == null || color.trim() === '') {
+  const { showColorDots } = useSidebarExpansion();
+
+  if (!showColorDots || color == null || color.trim() === '') {
     return null;
   }
 

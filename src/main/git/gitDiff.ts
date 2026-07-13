@@ -104,6 +104,31 @@ export interface GitDiffResult {
 }
 
 /**
+ * Options for building one rename-aware resource diff entry.
+ */
+export interface SingleResourceDiffOptions {
+  /**
+   * Absolute repository root path.
+   */
+  repoPath: string;
+
+  /**
+   * Repository-relative path at HEAD, or null when the resource is newly added.
+   */
+  headPath: string | null;
+
+  /**
+   * Repository-relative path in the working tree, or null when deleted.
+   */
+  workPath: string | null;
+
+  /**
+   * Maximum characters for the diff excerpt.
+   */
+  maxCharsPerFile?: number;
+}
+
+/**
  * Options for building a HarborClient git diff.
  */
 export interface GitDiffOptions {
@@ -131,6 +156,16 @@ export interface GitDiffOptions {
    * Maximum total characters across all file excerpts.
    */
   maxTotalChars?: number;
+
+  /**
+   * When true, includes only staged changes (HEAD vs index) instead of working-tree changes.
+   */
+  stagedOnly?: boolean;
+
+  /**
+   * When set, includes only changed files whose repository-relative path passes this filter.
+   */
+  filepathFilter?: (filepath: string) => boolean;
 }
 
 /**
@@ -237,12 +272,71 @@ function resolveFileStatus(head: number, workdir: number): GitDiffFileStatus | n
 }
 
 /**
+ * Derives a staged file status from one isomorphic-git statusMatrix row.
+ *
+ * @param head - HEAD stage flag (0 absent, 1 present).
+ * @param stage - Index stage flag (0 absent, 1 present).
+ */
+function resolveStagedFileStatus(head: number, stage: number): GitDiffFileStatus | null {
+  if (head === 0 && stage !== 0) {
+    return 'added';
+  }
+  if (head !== 0 && stage === 0) {
+    return 'deleted';
+  }
+  if (head !== 0 && stage !== 0 && head !== stage) {
+    return 'modified';
+  }
+  return null;
+}
+
+/**
+ * Reads a staged file blob from the index for a repository-relative path.
+ *
+ * @param repoPath - Absolute repository root.
+ * @param filepath - Repository-relative path.
+ */
+async function readStageFile(repoPath: string, filepath: string): Promise<Uint8Array | null> {
+  let content: Uint8Array | null = null;
+
+  try {
+    await git.walk({
+      fs,
+      dir: repoPath,
+      trees: [git.STAGE()],
+      /**
+       * Captures staged blob content when the walked path matches the target file.
+       *
+       * @param path - Repository-relative path from the walker.
+       * @param trees - Tuple of tree entries; only STAGE is requested.
+       */
+      map: async (path, [stage]) => {
+        if (path !== filepath || stage == null) {
+          return;
+        }
+        const type = await stage.type();
+        if (type === 'blob') {
+          const blob = await stage.content();
+          if (blob instanceof Uint8Array) {
+            content = blob;
+          }
+        }
+      }
+    });
+  } catch {
+    return null;
+  }
+
+  return content;
+}
+
+/**
  * Builds a simple before/after diff excerpt for one text file.
  *
  * @param path - Repository-relative file path.
  * @param status - Added, modified, or deleted status.
  * @param headText - Text at HEAD, or null when absent.
- * @param workText - Text in the working tree, or null when absent.
+ * @param workText - Text in the working tree or index, or null when absent.
  */
 function buildFileDiffText(
   path: string,
@@ -274,6 +368,65 @@ function formatBeforeAfter(before: string, after: string): string {
 }
 
 /**
+ * Builds one capped diff entry comparing HEAD and working-tree content for a single
+ * resource, including renames where HEAD and working paths differ.
+ *
+ * @param options - Repository path and optional HEAD/working paths.
+ * @returns One diff entry, or null when both paths are absent.
+ */
+export async function buildSingleResourceDiff(
+  options: SingleResourceDiffOptions
+): Promise<GitDiffFileEntry | null> {
+  const { repoPath, headPath, workPath } = options;
+  const maxCharsPerFile = options.maxCharsPerFile ?? GIT_DIFF_DEFAULT_MAX_CHARS_PER_FILE;
+
+  if (headPath == null && workPath == null) {
+    return null;
+  }
+
+  let status: GitDiffFileStatus;
+  let displayPath: string;
+
+  if (headPath == null) {
+    status = 'added';
+    displayPath = workPath as string;
+  } else if (workPath == null) {
+    status = 'deleted';
+    displayPath = headPath;
+  } else {
+    status = 'modified';
+    displayPath = workPath;
+  }
+
+  const headBytes = headPath != null ? await readHeadFile(repoPath, headPath) : null;
+  const workBytes = workPath != null ? readWorkdirFile(repoPath, workPath) : null;
+  const headText = headPath == null ? '' : decodeTextContent(headBytes);
+  const workText = workPath == null ? '' : decodeTextContent(workBytes);
+  const binary = (headPath != null && headText == null) || (workPath != null && workText == null);
+
+  if (binary) {
+    return {
+      path: displayPath,
+      status,
+      binary: true,
+      truncated: false
+    };
+  }
+
+  const rawDiff = buildFileDiffText(displayPath, status, headText, workText);
+  const capped = truncateTextForLlm(rawDiff, maxCharsPerFile);
+
+  return {
+    path: displayPath,
+    status,
+    diff: capped.text,
+    binary: false,
+    truncated: capped.truncated,
+    ...(capped.truncated ? { originalLength: capped.originalLength } : {})
+  };
+}
+
+/**
  * Builds a capped git diff for all uncommitted changes under the HarborClient tree.
  *
  * @param options - Repository path, harbor subdirectory, and output caps.
@@ -291,8 +444,13 @@ export async function buildGitDiff(options: GitDiffOptions): Promise<GitDiffResu
     filepaths: [harborSubdir]
   });
 
-  const changedRows = matrix.filter(([filepath, head, workdir, stage]) => {
+  const stagedOnly = options.stagedOnly === true;
+  const changedRows = matrix.filter((row) => {
+    const [filepath, head, workdir, stage] = row;
     void filepath;
+    if (stagedOnly) {
+      return stage !== head;
+    }
     return head !== workdir || head !== stage || workdir !== stage;
   });
 
@@ -307,22 +465,34 @@ export async function buildGitDiff(options: GitDiffOptions): Promise<GitDiffResu
   let totalChars = 0;
   let truncated = false;
 
-  for (const [filepath, head, workdir] of changedRows) {
+  for (const row of changedRows) {
+    const [filepath, head, workdir, stage] = row;
+    if (options.filepathFilter != null && !options.filepathFilter(filepath)) {
+      continue;
+    }
     if (files.length >= maxFiles) {
       truncated = true;
       break;
     }
 
-    const status = resolveFileStatus(head, workdir);
+    const status = stagedOnly
+      ? resolveStagedFileStatus(head, stage)
+      : resolveFileStatus(head, workdir);
     if (status == null) {
       continue;
     }
 
     const headBytes = status === 'added' ? null : await readHeadFile(repoPath, filepath);
-    const workBytes = status === 'deleted' ? null : readWorkdirFile(repoPath, filepath);
+    const compareBytes = stagedOnly
+      ? status === 'deleted'
+        ? null
+        : await readStageFile(repoPath, filepath)
+      : status === 'deleted'
+        ? null
+        : readWorkdirFile(repoPath, filepath);
     const headText = decodeTextContent(headBytes);
-    const workText = decodeTextContent(workBytes);
-    const binary = headText == null || workText == null;
+    const compareText = decodeTextContent(compareBytes);
+    const binary = headText == null || compareText == null;
 
     if (binary) {
       files.push({
@@ -334,7 +504,7 @@ export async function buildGitDiff(options: GitDiffOptions): Promise<GitDiffResu
       continue;
     }
 
-    const rawDiff = buildFileDiffText(filepath, status, headText, workText);
+    const rawDiff = buildFileDiffText(filepath, status, headText, compareText);
     const remainingBudget = maxTotalChars - totalChars;
     const perFileBudget = Math.min(maxCharsPerFile, remainingBudget);
 

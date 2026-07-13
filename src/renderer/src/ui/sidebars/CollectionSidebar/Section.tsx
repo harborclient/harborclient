@@ -43,6 +43,11 @@ interface SectionContentProps {
    * Optional action controls rendered in the header row (for example plugin header actions).
    */
   headerActions?: ReactNode;
+
+  /**
+   * When true, removes the margin below the header so body content sits flush against it.
+   */
+  flushBody?: boolean;
 }
 
 interface Props extends SectionContentProps {
@@ -71,7 +76,8 @@ const SectionItem = memo(function SectionItem({
   children,
   onAdd,
   addLabel,
-  headerActions
+  headerActions,
+  flushBody = false
 }: SectionItemProps): JSX.Element {
   const { buttonProps, panelProps } = useAccordionItem({ state, toggle });
   const [transitionStyle, panelRef] = useHeightTransition(state);
@@ -80,7 +86,9 @@ const SectionItem = memo(function SectionItem({
 
   return (
     <div ref={itemElementRef} className="-mr-2 mb-1">
-      <div className="hc-sidebar-section-header mb-1 flex items-center justify-between gap-2 bg-sidebar-section pr-2 py-0.5">
+      <div
+        className={`hc-sidebar-section-header flex min-h-8 items-center justify-between gap-2 bg-sidebar-section pr-2 py-0.5 ${flushBody ? 'mb-0' : 'mb-1'}`}
+      >
         <button
           {...buttonProps}
           type="button"
@@ -146,7 +154,8 @@ export function Section({
   children,
   onAdd,
   addLabel,
-  headerActions
+  headerActions,
+  flushBody
 }: Props): JSX.Element {
   return (
     <AccordionSection
@@ -156,6 +165,7 @@ export function Section({
       onAdd={onAdd}
       addLabel={addLabel}
       headerActions={headerActions}
+      flushBody={flushBody}
     >
       {children}
     </AccordionSection>

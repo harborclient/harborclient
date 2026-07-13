@@ -2,6 +2,7 @@ import { BrowserWindow, Menu } from 'electron';
 import { activateAppSubmenuItem, getAppSubmenuSnapshot } from '#/main/appMenuSnapshot';
 import {
   setMenuAiSidebarVisible,
+  setMenuGitSidebarVisible,
   setMenuCollectionsVisible,
   setMenuEnvironmentsVisible,
   setMenuRequestEditorVisible,
@@ -29,6 +30,11 @@ export function registerMenuHandlers(): void {
   // Updates the View menu checkmark for AI sidebar visibility.
   handle('menu:setAiSidebarVisible', ipcArgSchemas.menuAiSidebarVisible, (_event, visible) => {
     setMenuAiSidebarVisible(visible);
+  });
+
+  // Updates the View menu checkmark for Git sidebar visibility.
+  handle('menu:setGitSidebarVisible', ipcArgSchemas.menuGitSidebarVisible, (_event, visible) => {
+    setMenuGitSidebarVisible(visible);
   });
 
   // Updates the View menu checkmark for request editor visibility.

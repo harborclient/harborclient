@@ -27,7 +27,8 @@ describe('serializeSidebarExpansion', () => {
         },
         new Set([1, 2]),
         new Set([9]),
-        false
+        false,
+        true
       )
     ).toEqual({
       sections: {
@@ -48,7 +49,8 @@ describe('serializeSidebarExpansion', () => {
       },
       collectionIds: [1, 2],
       folderIds: [9],
-      showStorageLocationBadges: false
+      showStorageLocationBadges: false,
+      showColorDots: true
     });
   });
 });

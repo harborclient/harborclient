@@ -92,6 +92,11 @@ export interface SidebarExpansionState {
    * Whether storage location name badges appear next to collection names.
    */
   showStorageLocationBadges: boolean;
+
+  /**
+   * Whether user-assigned color dots appear beside sidebar row names.
+   */
+  showColorDots: boolean;
 }
 
 /** Default request editor split height in pixels when both editors are visible. */
@@ -110,6 +115,11 @@ export interface PanelLayoutState {
    * Whether the AI sidebar is shown when not hidden by an overlay.
    */
   showAiSidebar: boolean;
+
+  /**
+   * Whether the Git source-control sidebar is shown when not hidden by an overlay.
+   */
+  showGitSidebar: boolean;
 
   /**
    * Whether the request editor panel is shown in the main content area.
@@ -295,6 +305,12 @@ export interface GeneralSettings {
    * When true, the AI agent must confirm before sending commands to the footer terminal.
    */
   warnWhenAgentUsesTerminal: boolean;
+
+  /**
+   * When true, git commit stages all HarborClient changes automatically before committing.
+   * When false, only files staged via request Add actions are included in commits.
+   */
+  gitAutoAdd: boolean;
 
   /**
    * CodeMirror syntax theme applied to all editor instances.

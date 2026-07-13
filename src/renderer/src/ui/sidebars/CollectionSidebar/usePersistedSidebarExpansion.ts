@@ -228,6 +228,21 @@ interface Result {
   setShowStorageLocationBadges: Dispatch<SetStateAction<boolean>>;
 
   /**
+   * Whether user-assigned color dots appear beside sidebar row names.
+   */
+  showColorDots: boolean;
+
+  /**
+   * Toggles color dot visibility in the sidebar.
+   */
+  toggleColorDots: () => void;
+
+  /**
+   * Sets color dot visibility explicitly.
+   */
+  setShowColorDots: Dispatch<SetStateAction<boolean>>;
+
+  /**
    * Collection ids whose request trees are expanded.
    */
   expandedCollectionIds: Set<number>;
@@ -266,20 +281,23 @@ interface Result {
  * @param expandedCollectionIds - Expanded collection ids in memory.
  * @param expandedFolderIds - Expanded folder ids in memory.
  * @param showStorageLocationBadges - Whether storage location badges are shown.
+ * @param showColorDots - Whether user-assigned color dots are shown.
  */
 export function serializeSidebarExpansion(
   sections: SidebarExpansionState['sections'],
   sectionVisibility: SidebarExpansionState['sectionVisibility'],
   expandedCollectionIds: Set<number>,
   expandedFolderIds: Set<number>,
-  showStorageLocationBadges: boolean
+  showStorageLocationBadges: boolean,
+  showColorDots: boolean
 ): SidebarExpansionState {
   return {
     sections,
     sectionVisibility,
     collectionIds: [...expandedCollectionIds],
     folderIds: [...expandedFolderIds],
-    showStorageLocationBadges
+    showStorageLocationBadges,
+    showColorDots
   };
 }
 
@@ -356,6 +374,7 @@ export function usePersistedSidebarExpansion({
   const [showStorageLocationBadges, setShowStorageLocationBadges] = useState(
     defaults.showStorageLocationBadges
   );
+  const [showColorDots, setShowColorDots] = useState(defaults.showColorDots);
   const [expandedCollectionIds, setExpandedCollectionIds] = useState<Set<number>>(new Set());
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<number>>(new Set());
   const restoredRef = useRef(false);
@@ -388,6 +407,7 @@ export function usePersistedSidebarExpansion({
       setTabGroupsSectionVisible(stored.sectionVisibility.tabGroups);
       setTrashSectionVisible(stored.sectionVisibility.trash);
       setShowStorageLocationBadges(stored.showStorageLocationBadges);
+      setShowColorDots(stored.showColorDots);
       setExpandedCollectionIds(new Set(validExpanded));
       setExpandedFolderIds(new Set(stored.folderIds));
       setLoaded(true);
@@ -429,7 +449,8 @@ export function usePersistedSidebarExpansion({
       },
       expandedCollectionIds,
       expandedFolderIds,
-      showStorageLocationBadges
+      showStorageLocationBadges,
+      showColorDots
     );
 
     void window.api.setSidebarExpansion(snapshot);
@@ -449,7 +470,8 @@ export function usePersistedSidebarExpansion({
     trashSectionVisible,
     expandedCollectionIds,
     expandedFolderIds,
-    showStorageLocationBadges
+    showStorageLocationBadges,
+    showColorDots
   ]);
 
   /**
@@ -589,6 +611,13 @@ export function usePersistedSidebarExpansion({
     setShowStorageLocationBadges((visible) => !visible);
   }, []);
 
+  /**
+   * Toggles color dot visibility in the sidebar.
+   */
+  const toggleColorDots = useCallback(() => {
+    setShowColorDots((visible) => !visible);
+  }, []);
+
   return {
     loaded,
     collectionsSectionExpanded,
@@ -630,6 +659,9 @@ export function usePersistedSidebarExpansion({
     showStorageLocationBadges,
     toggleStorageLocationBadges,
     setShowStorageLocationBadges,
+    showColorDots,
+    toggleColorDots,
+    setShowColorDots,
     expandedCollectionIds,
     expandedFolderIds,
     setExpandedCollectionIds,

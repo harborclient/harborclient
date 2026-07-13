@@ -9,6 +9,7 @@ import {
   isMarkdownTab,
   isPageTab,
   isRequestTab,
+  isTabDirty,
   pageRefKey,
   pageRefsEqual,
   type PageRef,
@@ -252,6 +253,9 @@ const tabsSlice = createSlice({
         if (activate) {
           state.activeTabId = existing.tabId;
         }
+        if (isTabDirty(existing)) {
+          return;
+        }
         existing.name = doc.name;
         existing.folderId = doc.folder_id;
         existing.content = doc.content;
@@ -301,6 +305,9 @@ const tabsSlice = createSlice({
       if (existing && isRequestTab(existing)) {
         if (activate) {
           state.activeTabId = existing.tabId;
+        }
+        if (isTabDirty(existing)) {
+          return;
         }
         const freshDraft = cloneDraft(draftFromSaved(req));
         existing.draft = freshDraft;

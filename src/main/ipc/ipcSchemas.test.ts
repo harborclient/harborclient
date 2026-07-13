@@ -245,6 +245,7 @@ describe('generalSettings', () => {
     warnWhenCreatingTabGroup: true,
     warnWhenOpeningTabGroup: true,
     warnWhenAgentUsesTerminal: true,
+    gitAutoAdd: true,
     codeEditorTheme: 'default' as const,
     codeEditorSetup: {
       lineNumbers: true,
@@ -360,6 +361,39 @@ describe('git IPC schemas', () => {
     );
   });
 
+  it('gitListBranches accepts a connection id', () => {
+    expect(ipcArgSchemas.gitListBranches.safeParse([validGitConnectionId]).success).toBe(true);
+    expect(ipcArgSchemas.gitListBranches.safeParse([123]).success).toBe(false);
+  });
+
+  it('gitCreateBranch accepts connection id and non-empty branch name', () => {
+    expect(ipcArgSchemas.gitCreateBranch.safeParse([validGitConnectionId, 'feature']).success).toBe(
+      true
+    );
+    expect(
+      ipcArgSchemas.gitCreateBranch.safeParse([validGitConnectionId, '  feature  ']).success
+    ).toBe(true);
+  });
+
+  it('gitCreateBranch rejects empty branch name', () => {
+    expect(ipcArgSchemas.gitCreateBranch.safeParse([validGitConnectionId, '']).success).toBe(false);
+    expect(ipcArgSchemas.gitCreateBranch.safeParse([validGitConnectionId, '   ']).success).toBe(
+      false
+    );
+  });
+
+  it('gitCheckoutBranch accepts connection id and non-empty branch name', () => {
+    expect(ipcArgSchemas.gitCheckoutBranch.safeParse([validGitConnectionId, 'main']).success).toBe(
+      true
+    );
+  });
+
+  it('gitCheckoutBranch rejects empty branch name', () => {
+    expect(ipcArgSchemas.gitCheckoutBranch.safeParse([validGitConnectionId, '']).success).toBe(
+      false
+    );
+  });
+
   it('gitLog accepts connection id with optional positive depth', () => {
     expect(ipcArgSchemas.gitLog.safeParse([validGitConnectionId]).success).toBe(true);
     expect(ipcArgSchemas.gitLog.safeParse([validGitConnectionId, 10]).success).toBe(true);
@@ -394,6 +428,58 @@ describe('git IPC schemas', () => {
   it('gitSetPat rejects non-string connection id and wrong arity', () => {
     expect(ipcArgSchemas.gitSetPat.safeParse([{}, 'user', 'token']).success).toBe(false);
     expect(ipcArgSchemas.gitSetPat.safeParse([validGitConnectionId, 'user']).success).toBe(false);
+  });
+
+  it('gitGraphLog accepts connection id with optional positive depth', () => {
+    expect(ipcArgSchemas.gitGraphLog.safeParse([validGitConnectionId]).success).toBe(true);
+    expect(ipcArgSchemas.gitGraphLog.safeParse([validGitConnectionId, 25]).success).toBe(true);
+    expect(ipcArgSchemas.gitGraphLog.safeParse([validGitConnectionId, 0]).success).toBe(false);
+  });
+
+  it('gitCommitDetail accepts connection id and commit oid', () => {
+    expect(ipcArgSchemas.gitCommitDetail.safeParse([validGitConnectionId, 'abc123']).success).toBe(
+      true
+    );
+    expect(ipcArgSchemas.gitCommitDetail.safeParse([validGitConnectionId, '']).success).toBe(false);
+  });
+
+  it('gitCommitResourceDiff accepts commit resource identifiers', () => {
+    const payload = {
+      connectionId: validGitConnectionId,
+      oid: 'abc123',
+      collectionUuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+      resourceUuid: '11111111-2222-4333-8444-555555555555',
+      kind: 'request' as const
+    };
+
+    expect(ipcArgSchemas.gitCommitResourceDiff.safeParse([payload]).success).toBe(true);
+    expect(
+      ipcArgSchemas.gitCommitResourceDiff.safeParse([{ ...payload, kind: 'document' }]).success
+    ).toBe(true);
+    expect(
+      ipcArgSchemas.gitCommitResourceDiff.safeParse([{ ...payload, resourceUuid: 'not-a-uuid' }])
+        .success
+    ).toBe(false);
+  });
+
+  it('gitRequestDiff and gitRevertRequest accept request identifiers', () => {
+    const payload = {
+      connectionId: validGitConnectionId,
+      collectionUuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+      requestUuid: '11111111-2222-4333-8444-555555555555'
+    };
+
+    expect(ipcArgSchemas.gitRequestDiff.safeParse([payload]).success).toBe(true);
+    expect(ipcArgSchemas.gitRevertRequest.safeParse([payload]).success).toBe(true);
+    expect(
+      ipcArgSchemas.gitRevertRequest.safeParse([{ ...payload, requestUuid: 'not-a-uuid' }]).success
+    ).toBe(false);
+  });
+
+  it('menuGitSidebarVisible accepts a boolean tuple', () => {
+    expect(ipcArgSchemas.menuGitSidebarVisible.safeParse([true]).success).toBe(true);
+    expect(ipcArgSchemas.menuGitSidebarVisible.safeParse([false]).success).toBe(true);
+    expect(ipcArgSchemas.menuGitSidebarVisible.safeParse([]).success).toBe(false);
   });
 });
 

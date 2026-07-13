@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
-import type { SavedRequest, ScriptTestResult, SendResult } from '#/shared/types';
+import type {
+  CollectionDocument,
+  SavedRequest,
+  ScriptTestResult,
+  SendResult
+} from '#/shared/types';
 import {
   asRequestTab,
   draftFromSaved,
   isPageTab,
   isRequestTab,
-  isTabDirty
+  isTabDirty,
+  isMarkdownTab
 } from '#/renderer/src/store/drafts';
 import tabsReducer, {
   activateNextTab,
@@ -15,12 +21,16 @@ import tabsReducer, {
   closeTabsForCollection,
   closeTabsForEnvironment,
   closeTabsForRequest,
+  loadDocument,
   loadRequest,
   newTab,
+  openMarkdownTab,
   openPageTab,
   openTabWithDraft,
   reorderTabs,
-  setActiveTab
+  setActiveDraft,
+  setActiveTab,
+  updateMarkdownContent
 } from '#/renderer/src/store/slices/tabsSlice';
 
 /**
@@ -497,6 +507,98 @@ describe('tabsSlice loadRequest', () => {
     const requestTab = state.tabs.find((tab) => isRequestTab(tab) && tab.draft.id === 56);
     expect(requestTab).toBeDefined();
     expect(asRequestTab(requestTab).draft.url).toBe('https://example.com/v2');
+  });
+
+  it('activates a dirty existing tab without overwriting its draft', () => {
+    let state = tabsReducer(
+      undefined,
+      openTabWithDraft({
+        id: 57,
+        collection_id: 10,
+        folder_id: null,
+        name: 'Get users',
+        method: 'GET',
+        url: 'https://example.com/old',
+        headers: [],
+        params: [],
+        auth: defaultAuth(),
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [],
+        post_request_scripts: [],
+        comment: '',
+        tags: ''
+      })
+    );
+    const tabId = state.activeTabId;
+    const dirtyDraft = {
+      ...asRequestTab(state.tabs.find((tab) => tab.tabId === tabId)).draft,
+      url: 'https://example.com/edited'
+    };
+    state = tabsReducer(state, setActiveDraft(dirtyDraft));
+    state = tabsReducer(state, openPageTab({ type: 'collection-runner', collectionId: 1 }));
+
+    state = tabsReducer(
+      state,
+      loadRequest({
+        req: sampleSaved({ id: 57, url: 'https://example.com/users' })
+      })
+    );
+
+    expect(state.activeTabId).toBe(tabId);
+    expect(asRequestTab(state.tabs.find((tab) => tab.tabId === tabId)).draft.url).toBe(
+      'https://example.com/edited'
+    );
+    expect(isTabDirty(asRequestTab(state.tabs.find((tab) => tab.tabId === tabId)))).toBe(true);
+  });
+});
+
+/**
+ * Builds a saved markdown document fixture for loadDocument tests.
+ *
+ * @param overrides - Partial fields to override defaults.
+ * @returns Saved document suitable for reducer actions.
+ */
+function sampleDocument(overrides: Partial<CollectionDocument> = {}): CollectionDocument {
+  return {
+    id: 1,
+    uuid: 'doc-uuid',
+    collection_id: 10,
+    folder_id: null,
+    name: 'README',
+    content: '# Hello',
+    sort_order: 0,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+    ...overrides
+  };
+}
+
+describe('tabsSlice loadDocument', () => {
+  it('activates a dirty existing tab without overwriting its content', () => {
+    const doc = sampleDocument();
+    let state = tabsReducer(undefined, openMarkdownTab({ doc }));
+    const tabId = state.activeTabId;
+    state = tabsReducer(state, updateMarkdownContent({ tabId, content: '# Edited locally' }));
+    state = tabsReducer(state, openPageTab({ type: 'collection-runner', collectionId: 1 }));
+
+    state = tabsReducer(
+      state,
+      loadDocument({
+        doc: sampleDocument({ content: '# From disk' })
+      })
+    );
+
+    const tab = state.tabs.find((entry) => entry.tabId === tabId);
+    expect(tab).toBeDefined();
+    if (!tab || !isMarkdownTab(tab)) {
+      throw new Error('expected markdown tab');
+    }
+    expect(state.activeTabId).toBe(tabId);
+    expect(tab.content).toBe('# Edited locally');
+    expect(isTabDirty(tab)).toBe(true);
   });
 });
 

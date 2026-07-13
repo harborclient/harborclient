@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type { CollectionDocument, SaveDocumentInput } from '#/shared/types';
-import { isMarkdownTab, isPageTab, isTabDirty } from '#/renderer/src/store/drafts';
+import { isMarkdownTab, isPageTab } from '#/renderer/src/store/drafts';
 import {
   selectCollectionSettingsDirty,
   selectEnvironmentSettingsDirty,
@@ -175,7 +175,6 @@ export const moveDocumentToFolder = createAsyncThunk<
 export interface RequestLoadDocumentArgs {
   doc: CollectionDocument;
   skipSettingsCheck?: boolean;
-  forceReload?: boolean;
   activate?: boolean;
 }
 
@@ -235,14 +234,11 @@ export const closeMarkdownTab = createAsyncThunk<void, string, ThunkApiConfig>(
 );
 
 /**
- * Loads a saved markdown document, prompting when settings or tab content has unsaved edits.
+ * Loads a saved markdown document, prompting when collection, folder, or environment settings have unsaved edits.
  */
 export const requestLoadDocument = createAsyncThunk<void, RequestLoadDocumentArgs, ThunkApiConfig>(
   'modals/requestLoadDocument',
-  async (
-    { doc, skipSettingsCheck = false, forceReload = false, activate = true },
-    { dispatch, getState }
-  ) => {
+  async ({ doc, skipSettingsCheck = false, activate = true }, { dispatch, getState }) => {
     const state = getState();
     const activeTab = state.tabs.tabs.find((tab) => tab.tabId === state.tabs.activeTabId);
     const collectionDirty =
@@ -263,13 +259,6 @@ export const requestLoadDocument = createAsyncThunk<void, RequestLoadDocumentArg
 
     if (!skipSettingsCheck && (collectionDirty || environmentDirty || folderDirty)) {
       const pending: PendingLoadDocument = { doc, reason: 'settings' };
-      dispatch(setPendingLoadDocument(pending));
-      return;
-    }
-
-    const existing = state.tabs.tabs.find((tab) => isMarkdownTab(tab) && tab.docId === doc.id);
-    if (!forceReload && existing && isTabDirty(existing)) {
-      const pending: PendingLoadDocument = { doc, reason: 'dirty-tab' };
       dispatch(setPendingLoadDocument(pending));
       return;
     }

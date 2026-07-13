@@ -22,7 +22,8 @@ describe('defaultSidebarExpansion', () => {
       },
       collectionIds: [],
       folderIds: [],
-      showStorageLocationBadges: true
+      showStorageLocationBadges: true,
+      showColorDots: true
     });
   });
 });
@@ -59,7 +60,8 @@ describe('normalizeSidebarExpansion', () => {
       },
       collectionIds: [1, 2],
       folderIds: [10],
-      showStorageLocationBadges: true
+      showStorageLocationBadges: true,
+      showColorDots: true
     });
   });
 
@@ -89,7 +91,8 @@ describe('normalizeSidebarExpansion', () => {
       },
       collectionIds: [5, 7],
       folderIds: [12],
-      showStorageLocationBadges: true
+      showStorageLocationBadges: true,
+      showColorDots: true
     });
   });
 
@@ -120,7 +123,8 @@ describe('normalizeSidebarExpansion', () => {
       },
       collectionIds: [],
       folderIds: [],
-      showStorageLocationBadges: true
+      showStorageLocationBadges: true,
+      showColorDots: true
     });
   });
 
@@ -152,7 +156,41 @@ describe('normalizeSidebarExpansion', () => {
       },
       collectionIds: [],
       folderIds: [],
-      showStorageLocationBadges: false
+      showStorageLocationBadges: false,
+      showColorDots: true
+    });
+  });
+
+  it('preserves persisted color dot visibility flag', () => {
+    expect(
+      normalizeSidebarExpansion({
+        sections: { collections: true, environments: true },
+        sectionVisibility: { collections: true, environments: true },
+        collectionIds: [],
+        folderIds: [],
+        showColorDots: false
+      })
+    ).toEqual({
+      sections: {
+        collections: true,
+        environments: true,
+        runResults: true,
+        history: true,
+        tabGroups: true,
+        trash: true
+      },
+      sectionVisibility: {
+        collections: true,
+        environments: true,
+        runResults: true,
+        history: true,
+        tabGroups: true,
+        trash: false
+      },
+      collectionIds: [],
+      folderIds: [],
+      showStorageLocationBadges: true,
+      showColorDots: false
     });
   });
 });

@@ -40,6 +40,12 @@ export interface ApiWindow {
    */
   setMenuAiSidebarVisible: (visible: boolean) => Promise<void>;
   /**
+   * Syncs Git sidebar visibility to the View menu checkbox in the main process.
+   *
+   * @param visible - Whether the Git sidebar is currently visible in the renderer.
+   */
+  setMenuGitSidebarVisible: (visible: boolean) => Promise<void>;
+  /**
    * Syncs request editor visibility to the View menu checkbox in the main process.
    *
    * @param visible - Whether the request editor is currently visible in the renderer.
