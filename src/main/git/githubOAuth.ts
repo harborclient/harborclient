@@ -9,7 +9,7 @@ const DEVICE_CODE_URL = 'https://github.com/login/device/code';
 const ACCESS_TOKEN_URL = 'https://github.com/login/oauth/access_token';
 
 /**
- * Pending device flow session for a git connection.
+ * Pending device flow session for a git host.
  */
 interface PendingDeviceFlow {
   /**
@@ -36,14 +36,14 @@ interface PendingDeviceFlow {
 const pendingFlows = new Map<string, PendingDeviceFlow>();
 
 /**
- * Starts GitHub OAuth device flow for a git connection.
+ * Starts GitHub OAuth device flow for a git host.
  *
- * @param connectionId - Git connection id.
+ * @param host - Normalized lowercase git host key.
  * @param clientId - GitHub OAuth App client id; defaults to HarborClient's built-in app.
  * @returns User code and verification URI for browser approval.
  */
 export async function startGitHubDeviceFlow(
-  connectionId: string,
+  host: string,
   clientId = GITHUB_OAUTH_CLIENT_ID
 ): Promise<{
   userCode: string;
@@ -84,7 +84,7 @@ export async function startGitHubDeviceFlow(
   }
 
   const expiresIn = data.expires_in ?? 900;
-  pendingFlows.set(connectionId, {
+  pendingFlows.set(host, {
     deviceCode: data.device_code,
     clientId,
     interval: data.interval ?? 5,
@@ -110,19 +110,19 @@ export interface CompleteGitHubDeviceFlowOptions {
 /**
  * Polls GitHub until the user approves device flow or the code expires.
  *
- * @param connectionId - Git connection id.
+ * @param host - Normalized lowercase git host key.
  * @param options - Optional abort signal for background cancellation.
  * @returns OAuth access token and optional refresh metadata.
  */
 export async function completeGitHubDeviceFlow(
-  connectionId: string,
+  host: string,
   options: CompleteGitHubDeviceFlowOptions = {}
 ): Promise<{
   accessToken: string;
   refreshToken?: string;
   expiresAt?: string;
 }> {
-  const pending = pendingFlows.get(connectionId);
+  const pending = pendingFlows.get(host);
   if (!pending) {
     throw new Error('No pending GitHub authorization. Start OAuth first.');
   }
@@ -176,7 +176,7 @@ export async function completeGitHubDeviceFlow(
       throw new Error('GitHub did not return an access token.');
     }
 
-    pendingFlows.delete(connectionId);
+    pendingFlows.delete(host);
 
     const expiresAt =
       data.expires_in != null
@@ -190,7 +190,7 @@ export async function completeGitHubDeviceFlow(
     };
   }
 
-  pendingFlows.delete(connectionId);
+  pendingFlows.delete(host);
   throw new Error('GitHub authorization timed out. Try again.');
 }
 
@@ -252,10 +252,10 @@ export async function refreshGitHubAccessToken(
 /**
  * Clears a pending device flow session for a connection.
  *
- * @param connectionId - Git connection id.
+ * @param host - Normalized lowercase git host key.
  */
-export function clearPendingGitHubDeviceFlow(connectionId: string): void {
-  pendingFlows.delete(connectionId);
+export function clearPendingGitHubDeviceFlow(host: string): void {
+  pendingFlows.delete(host);
 }
 
 /**

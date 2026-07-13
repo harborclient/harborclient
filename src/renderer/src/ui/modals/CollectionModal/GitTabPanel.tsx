@@ -1,8 +1,10 @@
 import { Button, FormGroup, Input, ModalFooter } from '@harborclient/sdk/components';
-import { useCallback, useEffect, useId, useRef, type JSX } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type JSX } from 'react';
 import type { StorageConnection } from '#/shared/types';
+import { normalizeGitHostKey } from '#/shared/gitUrl';
 
-import { GitFields } from '#/renderer/src/ui/Settings/StorageLocationsSection/GitFields';
+import { Modal } from '@harborclient/sdk/components';
+import { GitAuthForm } from '#/renderer/src/ui/git/GitAuthForm';
 
 interface Props {
   /**
@@ -11,14 +13,9 @@ interface Props {
   name: string;
 
   /**
-   * Git connection draft or saved connection used for auth and create.
+   * Git connection draft used when creating the collection.
    */
   gitDraft: StorageConnection & { type: 'git' };
-
-  /**
-   * Whether the Git tab is collecting repository details or authentication.
-   */
-  gitPhase: 'repo' | 'auth';
 
   /**
    * Whether an async save or create operation is in flight.
@@ -36,19 +33,14 @@ interface Props {
   onNameChange: (name: string) => void;
 
   /**
-   * Called when repository or authentication fields change.
+   * Called when repository fields change.
    */
   onGitDraftChange: (connection: StorageConnection) => void;
 
   /**
-   * Persists the git connection and advances to the auth phase.
+   * Creates the git-backed collection after optional auth and repo initialization.
    */
-  onContinue: () => void;
-
-  /**
-   * Creates the collection in the saved git connection.
-   */
-  onCreate: () => void;
+  onCreate: (options: { initGitRepo: boolean }) => void;
 }
 
 /**
@@ -57,18 +49,26 @@ interface Props {
 export function GitTabPanel({
   name,
   gitDraft,
-  gitPhase,
   busy,
   createAndSave,
   onNameChange,
   onGitDraftChange,
-  onContinue,
   onCreate
 }: Props): JSX.Element {
   const repoPathId = useId();
+  const subdirId = useId();
+  const initRepoId = useId();
   const settings = gitDraft.settings;
+  const repoPath = settings.repoPath.trim();
   const gitDraftRef = useRef(gitDraft);
   const pendingRepoPathRef = useRef<string | null>(null);
+  const [checkedRepoPath, setCheckedRepoPath] = useState<string | null>(null);
+  const [checkedIsRepo, setCheckedIsRepo] = useState<boolean | null>(null);
+  const isRepo = repoPath.length === 0 ? null : checkedRepoPath === repoPath ? checkedIsRepo : null;
+  const [initGitRepo, setInitGitRepo] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [pendingCreate, setPendingCreate] = useState(false);
+  const gitHost = normalizeGitHostKey(settings.url);
 
   /**
    * Keeps the latest git draft available for async repo-path autofill callbacks.
@@ -114,107 +114,239 @@ export function GitTabPanel({
     [onGitDraftChange]
   );
 
-  if (gitPhase === 'auth') {
-    return (
-      <>
-        <p className="mb-4 text-[14px] text-muted">
-          Authorize with GitHub or enter a personal access token when the remote requires it. You
-          can also skip authentication for local-only work and add credentials later in Collection
-          Settings.
-        </p>
-        <GitFields connection={gitDraft} disabled={busy} onChange={onGitDraftChange} />
+  /**
+   * Tracks whether the current repository path is already a git working tree.
+   */
+  useEffect(() => {
+    if (!repoPath) {
+      return;
+    }
+
+    let cancelled = false;
+    void window.api.gitIsRepo(repoPath).then((value) => {
+      if (!cancelled) {
+        setCheckedRepoPath(repoPath);
+        setCheckedIsRepo(value);
+        if (value) {
+          setInitGitRepo(false);
+        }
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [repoPath]);
+
+  /**
+   * Returns whether a saved identity exists for the repository host.
+   */
+  const hostHasIdentity = useCallback(async (): Promise<boolean> => {
+    if (!gitHost) {
+      return true;
+    }
+    const identities = await window.api.listGitIdentities();
+    return identities.some((identity) => identity.host === gitHost && identity.hasCredentials);
+  }, [gitHost]);
+
+  /**
+   * Starts collection creation, prompting for host credentials when needed.
+   */
+  const handleCreateClick = useCallback(async (): Promise<void> => {
+    if (!repoPhaseReady) {
+      return;
+    }
+
+    const hasIdentity = await hostHasIdentity();
+    if (!hasIdentity && gitHost) {
+      setPendingCreate(true);
+      setAuthModalOpen(true);
+      return;
+    }
+
+    onCreate({ initGitRepo });
+  }, [gitHost, hostHasIdentity, initGitRepo, onCreate, repoPhaseReady]);
+
+  /**
+   * Completes creation after the user skips authentication for local-only work.
+   */
+  const handleAuthSkip = (): void => {
+    setAuthModalOpen(false);
+    if (pendingCreate) {
+      setPendingCreate(false);
+      onCreate({ initGitRepo });
+    }
+  };
+
+  /**
+   * Completes creation after credentials are saved in the auth modal.
+   */
+  const handleAuthAuthorized = (): void => {
+    setAuthModalOpen(false);
+    if (pendingCreate) {
+      setPendingCreate(false);
+      onCreate({ initGitRepo });
+    }
+  };
+
+  return (
+    <>
+      <div className="flex flex-col gap-4">
+        <FormGroup label="Collection name" labelTone="muted">
+          <Input
+            className="w-full"
+            type="text"
+            autoFocus
+            value={name}
+            disabled={busy}
+            onChange={(event) => onNameChange(event.target.value)}
+          />
+        </FormGroup>
+
+        <FormGroup label="Repository path" htmlFor={repoPathId} labelTone="muted">
+          <div className="flex gap-2">
+            <Input
+              id={repoPathId}
+              type="text"
+              className="min-w-0 flex-1"
+              value={settings.repoPath}
+              disabled={busy}
+              placeholder="/path/to/your/repo"
+              onChange={(event) => {
+                void applyRepoPath(event.target.value);
+              }}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={busy}
+              onClick={() => {
+                void window.api.selectDirectory(settings.repoPath).then((selected) => {
+                  if (selected != null) {
+                    void applyRepoPath(selected);
+                  }
+                });
+              }}
+            >
+              Browse
+            </Button>
+          </div>
+        </FormGroup>
+
+        <FormGroup
+          label="Repository URL (HTTPS)"
+          labelTone="muted"
+          description="SSH remotes are not supported; use an HTTPS URL and a token or GitHub OAuth."
+        >
+          <Input
+            type="url"
+            className="w-full"
+            value={settings.url}
+            disabled={busy}
+            placeholder="https://github.com/org/repo.git"
+            onChange={(event) =>
+              onGitDraftChange({
+                ...gitDraft,
+                settings: { ...settings, url: event.target.value }
+              })
+            }
+          />
+        </FormGroup>
+
+        {isRepo === false && repoPath.length > 0 ? (
+          <FormGroup
+            label="Initialize Git repository"
+            htmlFor={initRepoId}
+            labelTone="muted"
+            description="Create a new git repository in the chosen directory and add the remote URL as origin."
+          >
+            <label className="flex items-center gap-2 text-[14px] text-text">
+              <input
+                id={initRepoId}
+                type="checkbox"
+                className="size-4"
+                checked={initGitRepo}
+                disabled={busy}
+                onChange={(event) => setInitGitRepo(event.target.checked)}
+              />
+              Initialize Git repository
+            </label>
+          </FormGroup>
+        ) : null}
+
+        <FormGroup
+          label="Subdirectory"
+          htmlFor={subdirId}
+          labelTone="muted"
+          description="Optional. Leave blank to store the collection at the repository root."
+        >
+          <Input
+            id={subdirId}
+            type="text"
+            className="w-full"
+            value={settings.subdir}
+            disabled={busy}
+            placeholder=".harborclient"
+            onChange={(event) =>
+              onGitDraftChange({
+                ...gitDraft,
+                settings: { ...settings, subdir: event.target.value }
+              })
+            }
+          />
+        </FormGroup>
+
+        <FormGroup label="Branch" labelTone="muted">
+          <Input
+            type="text"
+            className="w-full"
+            value={settings.branch}
+            disabled={busy}
+            onChange={(event) =>
+              onGitDraftChange({
+                ...gitDraft,
+                settings: { ...settings, branch: event.target.value }
+              })
+            }
+          />
+        </FormGroup>
+
         <ModalFooter spaced>
-          <Button type="button" disabled={busy || !gitDraft.id} onClick={() => void onCreate()}>
+          <Button
+            type="button"
+            disabled={busy || !repoPhaseReady}
+            onClick={() => void handleCreateClick()}
+          >
             {busy ? 'Creating…' : createLabel}
           </Button>
         </ModalFooter>
-      </>
-    );
-  }
+      </div>
 
-  return (
-    <div className="flex flex-col gap-4">
-      <FormGroup label="Collection name" labelTone="muted">
-        <Input
-          className="w-full"
-          type="text"
-          autoFocus
-          value={name}
-          disabled={busy}
-          onChange={(event) => onNameChange(event.target.value)}
-        />
-      </FormGroup>
-
-      <FormGroup label="Repository path" htmlFor={repoPathId} labelTone="muted">
-        <div className="flex gap-2">
-          <Input
-            id={repoPathId}
-            type="text"
-            className="min-w-0 flex-1"
-            value={settings.repoPath}
+      {authModalOpen && gitHost ? (
+        <Modal
+          onClose={() => {
+            setAuthModalOpen(false);
+            setPendingCreate(false);
+          }}
+          className="w-[50rem]"
+          labelledBy="git-auth-modal-title"
+          title="Git authentication"
+          description={`Authorize with ${gitHost} before creating this collection, or skip for local-only work.`}
+        >
+          <GitAuthForm
+            host={gitHost}
+            url={settings.url}
+            repoPath={settings.repoPath}
             disabled={busy}
-            placeholder="/path/to/your/repo"
-            onChange={(event) => {
-              void applyRepoPath(event.target.value);
-            }}
+            onAuthorized={handleAuthAuthorized}
           />
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={busy}
-            onClick={() => {
-              void window.api.selectDirectory(settings.repoPath).then((selected) => {
-                if (selected != null) {
-                  void applyRepoPath(selected);
-                }
-              });
-            }}
-          >
-            Browse
-          </Button>
-        </div>
-      </FormGroup>
-
-      <FormGroup
-        label="Repository URL (HTTPS)"
-        labelTone="muted"
-        description="SSH remotes are not supported; use an HTTPS URL and a token or GitHub OAuth."
-      >
-        <Input
-          type="url"
-          className="w-full"
-          value={settings.url}
-          disabled={busy}
-          placeholder="https://github.com/org/repo.git"
-          onChange={(event) =>
-            onGitDraftChange({
-              ...gitDraft,
-              settings: { ...settings, url: event.target.value }
-            })
-          }
-        />
-      </FormGroup>
-
-      <FormGroup label="Branch" labelTone="muted">
-        <Input
-          type="text"
-          className="w-full"
-          value={settings.branch}
-          disabled={busy}
-          onChange={(event) =>
-            onGitDraftChange({
-              ...gitDraft,
-              settings: { ...settings, branch: event.target.value }
-            })
-          }
-        />
-      </FormGroup>
-
-      <ModalFooter spaced>
-        <Button type="button" disabled={busy || !repoPhaseReady} onClick={() => void onContinue()}>
-          {busy ? 'Saving…' : 'Continue'}
-        </Button>
-      </ModalFooter>
-    </div>
+          <ModalFooter spaced>
+            <Button type="button" variant="secondary" disabled={busy} onClick={handleAuthSkip}>
+              Skip for now
+            </Button>
+          </ModalFooter>
+        </Modal>
+      ) : null}
+    </>
   );
 }

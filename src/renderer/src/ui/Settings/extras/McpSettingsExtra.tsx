@@ -18,6 +18,7 @@ import { AI_TOOL_NAMES, type AiToolName } from '#/shared/ai/tools';
 import type {
   McpClientHeader,
   McpClientServer,
+  McpClientServerListItem,
   McpClientServerStatus,
   McpServerSettings,
   McpServerStatus
@@ -73,7 +74,7 @@ export function McpSettingsExtra(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [serverSettings, setServerSettings] = useState<McpServerSettings | null>(null);
   const [serverStatus, setServerStatus] = useState<McpServerStatus>({ running: false });
-  const [clientServers, setClientServers] = useState<McpClientServer[]>([]);
+  const [clientServers, setClientServers] = useState<McpClientServerListItem[]>([]);
   const [clientStatuses, setClientStatuses] = useState<McpClientServerStatus[]>([]);
   const [tokenCopied, setTokenCopied] = useState(false);
   const [configCopied, setConfigCopied] = useState(false);
@@ -86,6 +87,18 @@ export function McpSettingsExtra(): JSX.Element {
   const [clientFieldErrors, setClientFieldErrors] = useState<Record<string, string>>({});
 
   /**
+   * Loads MCP client server rows and connection statuses.
+   */
+  const loadClientServers = async (): Promise<void> => {
+    const [servers, statuses] = await Promise.all([
+      window.api.listMcpClientServers(),
+      window.api.listMcpClientServerStatuses()
+    ]);
+    setClientServers(servers);
+    setClientStatuses(statuses);
+  };
+
+  /**
    * Loads MCP settings when the section mounts.
    */
   useEffect(() => {
@@ -95,19 +108,16 @@ export function McpSettingsExtra(): JSX.Element {
       setLoading(true);
       setError(null);
       try {
-        const [settings, status, servers, statuses] = await Promise.all([
+        const [settings, status] = await Promise.all([
           window.api.getMcpServerSettings(),
-          window.api.getMcpServerStatus(),
-          window.api.listMcpClientServers(),
-          window.api.listMcpClientServerStatuses()
+          window.api.getMcpServerStatus()
         ]);
         if (!active) {
           return;
         }
         setServerSettings(settings);
         setServerStatus(status);
-        setClientServers(servers);
-        setClientStatuses(statuses);
+        await loadClientServers();
       } catch (loadError) {
         if (!active) {
           return;
@@ -123,6 +133,18 @@ export function McpSettingsExtra(): JSX.Element {
     return () => {
       active = false;
     };
+  }, []);
+
+  /**
+   * Refreshes MCP client server rows when plugin registrations change.
+   */
+  useEffect(() => {
+    const unsubscribe = window.api.onMcpClientServersChanged(() => {
+      void loadClientServers().catch((loadError) => {
+        setError(formatIpcErrorMessage(loadError, 'Failed to refresh MCP client servers.'));
+      });
+    });
+    return unsubscribe;
   }, []);
 
   const statusById = useMemo(() => {
@@ -543,37 +565,58 @@ export function McpSettingsExtra(): JSX.Element {
                   ? `${status.toolCount} tools`
                   : (status.error ?? 'Not connected')
                 : '';
+              const pluginAttribution =
+                server.source === 'plugin' && server.pluginName
+                  ? `Provided by ${server.pluginName}`
+                  : null;
               return (
                 <ResourceListRow
                   key={server.id}
                   primary={
                     <ResourceListPrimary>
-                      {server.name}
+                      <span className="flex items-center gap-2">
+                        {server.icon ? (
+                          <img
+                            src={server.icon}
+                            alt=""
+                            aria-hidden
+                            className="h-5 w-5 shrink-0 rounded-sm object-cover"
+                          />
+                        ) : null}
+                        <span>{server.name}</span>
+                      </span>
                       <span className="block text-[14px] font-normal text-muted">
                         {server.url}
                         {statusLabel ? ` · ${statusLabel}` : ''}
+                        {pluginAttribution ? ` · ${pluginAttribution}` : ''}
                       </span>
                     </ResourceListPrimary>
                   }
                   actions={
-                    <>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        disabled={saving}
-                        onClick={() => openClientServerEditor(server)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        disabled={saving}
-                        onClick={() => setDeletingServerId(server.id)}
-                      >
-                        Delete
-                      </Button>
-                    </>
+                    server.readonly ? (
+                      <span className="text-[14px] text-muted" aria-label="Plugin-provided server">
+                        Plugin
+                      </span>
+                    ) : (
+                      <>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={saving}
+                          onClick={() => openClientServerEditor(server)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={saving}
+                          onClick={() => setDeletingServerId(server.id)}
+                        >
+                          Delete
+                        </Button>
+                      </>
+                    )
                   }
                 />
               );

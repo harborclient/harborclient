@@ -7,7 +7,6 @@ import {
   setCollectionModalGitCollectionCreated,
   setCollectionModalGitCreatedConnectionId,
   setCollectionModalGitDraft,
-  setCollectionModalGitPhase,
   setCollectionModalShareTokenInput,
   setCollectionModalName,
   setCollectionModalProviderId,
@@ -113,77 +112,60 @@ export function CollectionModal(): JSX.Element | null {
   }, [collectionModal, dispatch, primaryProviderId]);
 
   /**
-   * Saves the git connection draft and advances to inline authentication.
+   * Creates a git-backed collection, optionally initializing the repo first.
    */
-  const handleGitContinue = useCallback(async (): Promise<void> => {
-    if (!collectionModal) return;
-    const name = collectionModal.name.trim();
-    const { repoPath, url, branch } = collectionModal.gitDraft.settings;
-    if (!name || !repoPath.trim() || !url.trim()) return;
+  const handleGitCreate = useCallback(
+    async (options: { initGitRepo: boolean }): Promise<void> => {
+      if (!collectionModal) return;
+      const name = collectionModal.name.trim();
+      const { repoPath, url, branch, subdir } = collectionModal.gitDraft.settings;
+      if (!name || !repoPath.trim() || !url.trim()) return;
 
-    dispatch(setCollectionModalSubmitError(null));
-    setGitBusy(true);
-    try {
-      const saved = await dispatch(
-        createGitConnectionForCollection({
-          name,
-          repoPath,
-          url,
-          branch
-        })
-      ).unwrap();
-      dispatch(setCollectionModalGitDraft(saved));
-      dispatch(setCollectionModalGitCreatedConnectionId(saved.id));
-      dispatch(setCollectionModalGitPhase('auth'));
-    } catch (err) {
-      dispatch(
-        setCollectionModalSubmitError(formatErrorMessage(err, 'Failed to save git connection'))
-      );
-    } finally {
-      setGitBusy(false);
-    }
-  }, [collectionModal, dispatch]);
-
-  /**
-   * Creates a git-backed collection in the connection saved during the repo phase.
-   */
-  const handleGitCreate = useCallback(async (): Promise<void> => {
-    if (!collectionModal?.gitCreatedConnectionId) return;
-    const name = collectionModal.name.trim();
-    if (!name) return;
-
-    dispatch(setCollectionModalSubmitError(null));
-    setGitBusy(true);
-    try {
-      const collection = await dispatch(
-        createGitCollection({
-          name,
-          connectionId: collectionModal.gitCreatedConnectionId
-        })
-      ).unwrap();
-      dispatch(setCollectionModalGitCollectionCreated(true));
-      if (collectionModal.mode === 'create-and-save') {
-        await dispatch(saveRequest(collection.id)).unwrap();
-        toast.success('Request saved');
-      } else {
-        toast.success('Collection created');
-      }
-      dispatch(closeCollectionModal());
-    } catch (err) {
-      dispatch(
-        setCollectionModalSubmitError(
-          formatErrorMessage(
-            err,
-            collectionModal.mode === 'create-and-save'
-              ? 'Failed to save request'
-              : 'Failed to create collection'
+      dispatch(setCollectionModalSubmitError(null));
+      setGitBusy(true);
+      try {
+        const saved = await dispatch(
+          createGitConnectionForCollection({
+            name,
+            repoPath,
+            url,
+            branch,
+            subdir,
+            initGitRepo: options.initGitRepo
+          })
+        ).unwrap();
+        dispatch(setCollectionModalGitCreatedConnectionId(saved.id));
+        const collection = await dispatch(
+          createGitCollection({
+            name,
+            connectionId: saved.id
+          })
+        ).unwrap();
+        dispatch(setCollectionModalGitCollectionCreated(true));
+        if (collectionModal.mode === 'create-and-save') {
+          await dispatch(saveRequest(collection.id)).unwrap();
+          toast.success('Request saved');
+        } else {
+          toast.success('Collection created');
+        }
+        dispatch(closeCollectionModal());
+      } catch (err) {
+        dispatch(
+          setCollectionModalSubmitError(
+            formatErrorMessage(
+              err,
+              collectionModal.mode === 'create-and-save'
+                ? 'Failed to save request'
+                : 'Failed to create collection'
+            )
           )
-        )
-      );
-    } finally {
-      setGitBusy(false);
-    }
-  }, [collectionModal, dispatch]);
+        );
+      } finally {
+        setGitBusy(false);
+      }
+    },
+    [collectionModal, dispatch]
+  );
 
   /**
    * Imports a collection from a JSON file selected via a native dialog.
@@ -264,7 +246,7 @@ export function CollectionModal(): JSX.Element | null {
   return (
     <Modal
       onClose={handleClose}
-      className={showImportTab ? 'w-[min(60rem,calc(100vw-2rem))]' : 'w-[32rem]'}
+      className={showImportTab ? 'h-[80vh] w-[min(60rem,calc(100vw-2rem))]' : 'w-[32rem]'}
       labelledBy="collection-modal-title"
       title={modalTitle}
       description={
@@ -349,7 +331,6 @@ export function CollectionModal(): JSX.Element | null {
             <GitTabPanel
               name={collectionModal.name}
               gitDraft={collectionModal.gitDraft}
-              gitPhase={collectionModal.gitPhase}
               busy={gitBusy}
               createAndSave={collectionModal.mode === 'create-and-save'}
               onNameChange={(nextName) => dispatch(setCollectionModalName(nextName))}
@@ -358,8 +339,7 @@ export function CollectionModal(): JSX.Element | null {
                   dispatch(setCollectionModalGitDraft(connection));
                 }
               }}
-              onContinue={() => void handleGitContinue()}
-              onCreate={() => void handleGitCreate()}
+              onCreate={(options) => void handleGitCreate(options)}
             />
           </SegmentedTabPanel>
 

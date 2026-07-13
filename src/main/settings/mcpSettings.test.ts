@@ -11,11 +11,17 @@ import {
   generateMcpServerToken,
   getMcpServerSettings,
   isValidMcpServerToken,
+  listEffectiveMcpClientServers,
   listMcpClientServers,
   regenerateMcpServerToken,
   saveMcpClientServer,
   setMcpServerSettings
 } from '#/main/settings/mcpSettings';
+import {
+  buildPluginMcpServerId,
+  registerPluginMcpServer,
+  resetPluginMcpRegistryForTests
+} from '#/main/plugins/pluginMcpRegistry';
 
 describe('mcpSettings', () => {
   let settingsStore: Record<string, string>;
@@ -33,6 +39,7 @@ describe('mcpSettings', () => {
 
   afterEach(() => {
     clearLocalDatabaseForTesting();
+    resetPluginMcpRegistryForTests();
   });
 
   it('returns defaults when unset', () => {
@@ -118,5 +125,51 @@ describe('mcpSettings', () => {
     });
     const id = created[0]?.id ?? '';
     expect(deleteMcpClientServer(id)).toEqual([]);
+  });
+
+  it('merges user and plugin MCP client servers for settings display', () => {
+    saveMcpClientServer({
+      id: '',
+      name: 'Docs',
+      url: 'http://127.0.0.1:3000/mcp',
+      headers: [],
+      enabled: true
+    });
+    registerPluginMcpServer('com.example.wordpress', '1', {
+      name: 'WordPress',
+      serverURL: 'https://example.com/mcp'
+    });
+
+    const servers = listEffectiveMcpClientServers();
+    expect(servers).toHaveLength(2);
+    expect(servers[0]).toMatchObject({
+      name: 'Docs',
+      source: 'user',
+      readonly: false
+    });
+    expect(servers[1]).toMatchObject({
+      name: 'WordPress',
+      source: 'plugin',
+      readonly: true,
+      pluginId: 'com.example.wordpress'
+    });
+  });
+
+  it('rejects saving or deleting plugin-owned MCP client servers', () => {
+    const pluginId = buildPluginMcpServerId('com.example.wordpress', '1');
+
+    expect(() =>
+      saveMcpClientServer({
+        id: pluginId,
+        name: 'WordPress',
+        url: 'https://example.com/mcp',
+        headers: [],
+        enabled: true
+      })
+    ).toThrow('Plugin-provided MCP client servers cannot be modified from settings.');
+
+    expect(() => deleteMcpClientServer(pluginId)).toThrow(
+      'Plugin-provided MCP client servers cannot be deleted from settings.'
+    );
   });
 });

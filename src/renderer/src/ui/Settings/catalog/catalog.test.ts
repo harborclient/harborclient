@@ -11,7 +11,7 @@ import {
   type SettingId
 } from '#/renderer/src/ui/Settings/catalog/catalog';
 
-const MANAGEMENT_SECTIONS = ['globals', 'storage', 'shortcuts', 'backup-restore'] as const;
+const MANAGEMENT_SECTIONS = ['globals', 'storage', 'git', 'shortcuts', 'backup-restore'] as const;
 
 const FORM_SECTIONS = ['general', 'proxy', 'syntax', 'ai', 'plugins'] as const;
 

@@ -7,6 +7,7 @@ import { decodeMcpToolName, encodeMcpToolName } from '#/shared/mcpToolNames';
 import { logVerbose } from '#/main/logger';
 import { createVerboseMcpClientFetch } from '#/main/mcp/mcpClientVerboseFetch';
 import { listMcpClientServers } from '#/main/settings/mcpSettings';
+import { listPluginMcpClientServers } from '#/main/plugins/pluginMcpRegistry';
 import type { McpClientServer, McpClientServerStatus, McpClientToolInfo } from '#/shared/types';
 
 interface ConnectedMcpClient {
@@ -209,10 +210,10 @@ async function disconnectMcpClientServer(serverId: string): Promise<void> {
 }
 
 /**
- * Reconnects all enabled MCP client servers from persisted settings.
+ * Reconnects all enabled MCP client servers from persisted settings and plugin registrations.
  */
 export async function refreshMcpClientConnections(): Promise<void> {
-  const servers = listMcpClientServers();
+  const servers = [...listMcpClientServers(), ...listPluginMcpClientServers()];
   const enabledIds = new Set(servers.filter((server) => server.enabled).map((server) => server.id));
 
   for (const serverId of [...connectedClients.keys()]) {
@@ -283,7 +284,7 @@ export function listMcpClientToolInfos(): McpClientToolInfo[] {
  * Returns connection status for each configured MCP client server.
  */
 export function listMcpClientServerStatuses(): McpClientServerStatus[] {
-  const servers = listMcpClientServers();
+  const servers = [...listMcpClientServers(), ...listPluginMcpClientServers()];
   return servers.map((server) => {
     const entry = connectedClients.get(server.id);
     if (!server.enabled) {

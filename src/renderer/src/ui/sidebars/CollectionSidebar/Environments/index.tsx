@@ -283,7 +283,7 @@ export function Environments(): JSX.Element {
       >
         {noMatches && <div className="px-2 py-1.5 text-muted">No matching environments</div>}
         {!noMatches && environments.length === 0 && (
-          <div className="px-2 py-1.5 text-muted">No environments yet</div>
+          <div className="px-2 py-1.5 text-center text-muted">&lt;No environments&gt;</div>
         )}
 
         <SortableContext items={environmentIds} strategy={verticalListSortingStrategy}>

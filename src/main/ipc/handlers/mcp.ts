@@ -13,7 +13,7 @@ import {
   deleteMcpClientServer,
   ensureMcpServerToken,
   getMcpServerSettings,
-  listMcpClientServers,
+  listEffectiveMcpClientServers,
   regenerateMcpServerToken,
   saveMcpClientServer,
   setMcpServerSettings
@@ -39,18 +39,18 @@ export function registerMcpHandlers(): void {
     return settings;
   });
 
-  handle('mcp:listClientServers', ipcArgSchemas.none, () => listMcpClientServers());
+  handle('mcp:listClientServers', ipcArgSchemas.none, () => listEffectiveMcpClientServers());
 
   handle('mcp:saveClientServer', ipcArgSchemas.mcpClientServer, async (_event, server) => {
-    const servers = saveMcpClientServer(server);
+    saveMcpClientServer(server);
     await refreshMcpClientConnections();
-    return servers;
+    return listEffectiveMcpClientServers();
   });
 
   handle('mcp:deleteClientServer', ipcArgSchemas.connectionId, async (_event, id) => {
-    const servers = deleteMcpClientServer(id);
+    deleteMcpClientServer(id);
     await refreshMcpClientConnections();
-    return servers;
+    return listEffectiveMcpClientServers();
   });
 
   handle('mcp:listClientServerStatuses', ipcArgSchemas.none, () => listMcpClientServerStatuses());

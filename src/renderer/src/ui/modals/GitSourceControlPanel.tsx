@@ -133,7 +133,7 @@ export function GitSourceControlPanel({
     >
       <div className="flex flex-col gap-4">
         {status != null && (
-          <div className="text-[14px] text-text" role="status">
+          <div className="text-text" role="status">
             <p className="m-0">
               Branch: <strong>{status.branch ?? 'unknown'}</strong>
             </p>
@@ -158,7 +158,7 @@ export function GitSourceControlPanel({
           </div>
         )}
 
-        <FormGroup label="Commit message">
+        <FormGroup label="Commit message" className="p-0! border-none!">
           <Textarea
             className="min-h-[80px]"
             value={message}

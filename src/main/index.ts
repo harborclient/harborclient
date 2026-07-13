@@ -54,6 +54,7 @@ import {
 } from '#/main/plugins/PluginManager';
 import { disposePluginRunner } from '#/main/plugins/pluginRunnerHost';
 import { getPluginUiBroker, initPluginUiBroker } from '#/main/plugins/PluginUiBroker';
+import { setPluginMcpRegistryMainWindow } from '#/main/plugins/pluginMcpRegistry';
 import { bootstrapMcpHost } from '#/main/ipc/handlers/mcp';
 import { disposeMcpHost, getMcpToolBridge } from '#/main/mcp';
 import { killAllTerminals, killTerminalsForWebContents } from '#/main/terminal/terminalHost';
@@ -919,6 +920,7 @@ app.whenReady().then(async () => {
     logVerbose('startup: initializing plugin UI broker');
     const pluginUiBroker = initPluginUiBroker(pluginManager);
     pluginUiBroker.setMainWindow(() => mainWindow);
+    setPluginMcpRegistryMainWindow(() => mainWindow);
     getMcpToolBridge().setMainWindow(() => mainWindow);
     pluginUiBroker.setThemeGetter(async () => {
       const override = getStartupThemeOverride();

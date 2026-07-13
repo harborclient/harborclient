@@ -72,4 +72,40 @@ describe('GitStorage', () => {
     expect(exported.requests.length).toBe(1);
     expect(exported.requests[0]?.name).toBe('Get status');
   });
+
+  it('reloads collections after saveRequest writes string-encoded script columns', async () => {
+    const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-git-reload-'));
+    const userDataPath = mkdtempSync(join(tmpdir(), 'harborclient-git-reload-userdata-'));
+    mkdirSync(join(repoPath, '.harborclient'), { recursive: true });
+
+    const settings: GitSettings = {
+      repoPath,
+      url: 'https://github.com/example/repo.git',
+      branch: 'main',
+      subdir: '.harborclient',
+      auth: { kind: 'pat', username: 'token' }
+    };
+
+    const connectionId = 'reload-test-connection';
+    const first = new GitStorage(connectionId, settings, userDataPath);
+    await first.init();
+    const collection = await first.createCollection('API');
+    await first.saveRequest(
+      baseRequestInput(collection.id, { name: 'Get status', url: 'https://example.com/status' })
+    );
+    await first.close();
+
+    const second = new GitStorage(connectionId, settings, userDataPath);
+    await second.init();
+    const collections = await second.listCollections();
+    const reloaded = collections.find((item) => item.name === 'API');
+    expect(reloaded).toBeDefined();
+    const requests = await second.listRequests(reloaded!.id);
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.name).toBe('Get status');
+    await second.close();
+
+    rmSync(repoPath, { recursive: true, force: true });
+    rmSync(userDataPath, { recursive: true, force: true });
+  });
 });

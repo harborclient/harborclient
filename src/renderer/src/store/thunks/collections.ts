@@ -66,18 +66,6 @@ import { requestLoadRequest } from '#/renderer/src/store/thunks/requests';
 const COLLECTIONS_REFRESH_KEY = 'collections';
 
 /**
- * Prefix for per-collection git working trees inside a shared repository.
- */
-const PER_COLLECTION_GIT_SUBDIR_PREFIX = '.harborclient/';
-
-/**
- * Builds an isolated HarborClient subdirectory for a single git-backed collection.
- */
-export function buildPerCollectionGitSubdir(): string {
-  return `${PER_COLLECTION_GIT_SUBDIR_PREFIX}${crypto.randomUUID()}`;
-}
-
-/**
  * Returns true when a tab is the initial pristine unsaved default request tab.
  *
  * @param tab - Open tab from startup hydration.
@@ -239,35 +227,53 @@ export const createCollection = createAsyncThunk<
 });
 
 /**
- * Persists a git connection for a new collection with an isolated subdir and mounts it.
+ * Persists a git connection for a new collection and mounts it.
  */
 export const createGitConnectionForCollection = createAsyncThunk<
   StorageConnection & { type: 'git' },
-  { name: string; repoPath: string; url: string; branch: string },
+  {
+    name: string;
+    repoPath: string;
+    url: string;
+    branch: string;
+    subdir?: string;
+    initGitRepo?: boolean;
+  },
   ThunkApiConfig
->('collections/createGitConnection', async ({ name, repoPath, url, branch }) => {
-  const connectionId = crypto.randomUUID();
-  const connection: StorageConnection = {
-    id: connectionId,
-    name: name.trim() || 'Git collection',
-    type: 'git',
-    collectionDiscoverySkipped: true,
-    settings: {
-      repoPath: repoPath.trim(),
-      url: url.trim(),
-      branch: branch.trim() || 'main',
-      subdir: buildPerCollectionGitSubdir(),
-      auth: { kind: 'pat', username: 'token' }
+>(
+  'collections/createGitConnection',
+  async ({ name, repoPath, url, branch, subdir = '', initGitRepo = false }) => {
+    const trimmedRepoPath = repoPath.trim();
+    const trimmedUrl = url.trim();
+    const trimmedBranch = branch.trim() || 'main';
+
+    if (initGitRepo) {
+      await window.api.gitInitRepo(trimmedRepoPath, trimmedUrl, trimmedBranch);
     }
-  };
-  await window.api.saveStorageConnection(connection);
-  const connections = await window.api.listStorageConnections();
-  const saved = connections.find((item) => item.id === connectionId);
-  if (!saved || saved.type !== 'git') {
-    throw new Error('Failed to save git connection.');
+
+    const connectionId = crypto.randomUUID();
+    const connection: StorageConnection = {
+      id: connectionId,
+      name: name.trim() || 'Git collection',
+      type: 'git',
+      collectionDiscoverySkipped: true,
+      settings: {
+        repoPath: trimmedRepoPath,
+        url: trimmedUrl,
+        branch: trimmedBranch,
+        subdir: subdir.trim(),
+        auth: { kind: 'pat', username: 'token' }
+      }
+    };
+    await window.api.saveStorageConnection(connection);
+    const connections = await window.api.listStorageConnections();
+    const saved = connections.find((item) => item.id === connectionId);
+    if (!saved || saved.type !== 'git') {
+      throw new Error('Failed to save git connection.');
+    }
+    return saved;
   }
-  return saved;
-});
+);
 
 /**
  * Creates a collection in an existing git connection and selects it in the sidebar.

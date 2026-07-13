@@ -61,6 +61,41 @@ export interface McpClientServer {
 }
 
 /**
+ * Source of an MCP client server row shown in settings and used by the client manager.
+ */
+export type McpClientServerSource = 'user' | 'plugin';
+
+/**
+ * MCP client server row returned to the renderer, including ownership metadata.
+ */
+export interface McpClientServerListItem extends McpClientServer {
+  /**
+   * Whether the row comes from user settings or a plugin registration.
+   */
+  source: McpClientServerSource;
+
+  /**
+   * Plugin manifest id when {@link source} is `plugin`.
+   */
+  pluginId?: string;
+
+  /**
+   * Plugin display name when {@link source} is `plugin`.
+   */
+  pluginName?: string;
+
+  /**
+   * Optional settings icon provided by the plugin as a data URI.
+   */
+  icon?: string;
+
+  /**
+   * When true, the row cannot be edited or deleted from settings.
+   */
+  readonly: boolean;
+}
+
+/**
  * HTTP header row for MCP client server connections.
  */
 export interface McpClientHeader {

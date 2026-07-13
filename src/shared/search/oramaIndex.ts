@@ -30,6 +30,19 @@ export interface TextSearchQueryOptions {
 }
 
 /**
+ * Collapses duplicate document ids so Orama insert never throws on repeated rows.
+ *
+ * @param documents - Rows to index; later entries win when ids repeat.
+ */
+function dedupeDocumentsById<T extends { id: string }>(documents: T[]): T[] {
+  const byId = new Map<string, T>();
+  for (const document of documents) {
+    byId.set(document.id, document);
+  }
+  return [...byId.values()];
+}
+
+/**
  * Creates an in-memory Orama full-text index from a schema and document batch.
  *
  * @param schema - Orama schema describing searchable and stored fields.
@@ -40,8 +53,9 @@ export function createTextSearchIndex<TSchema extends AnySchema>(
   documents: Array<Record<string, unknown> & { id: string }>
 ): HarborSearchIndex {
   const db = create({ schema }) as HarborSearchIndex;
-  if (documents.length > 0) {
-    insertMultiple(db, documents as never);
+  const uniqueDocuments = dedupeDocumentsById(documents);
+  if (uniqueDocuments.length > 0) {
+    insertMultiple(db, uniqueDocuments as never);
   }
   return db;
 }

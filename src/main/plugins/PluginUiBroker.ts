@@ -18,6 +18,13 @@ import { toActiveTheme } from '#/shared/plugin/types';
 import type { ThemeSource } from '#/shared/types';
 import { isPluginNetworkAllowed } from '#/main/settings/generalSettings';
 import { logImportVerbose } from '#/main/import/importVerboseLog';
+import { refreshMcpClientConnections } from '#/main/mcp/mcpClientManager';
+import {
+  clearPluginMcpServers,
+  registerPluginMcpServer,
+  setPluginMcpRegistryManager,
+  unregisterPluginMcpServer
+} from '#/main/plugins/pluginMcpRegistry';
 
 /** Permission required for each broker operation. */
 const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
@@ -59,7 +66,9 @@ const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
   'ui.closeModal': 'ui',
   'imports.registerHandler': 'ui',
   'imports.unregisterHandler': 'ui',
-  'imports.invokeComplete': 'ui'
+  'imports.invokeComplete': 'ui',
+  'mcp.registerServer': 'mcp',
+  'mcp.unregisterServer': 'mcp'
 };
 
 /** Host bridge operations that must round-trip a result to the plugin webview. */
@@ -227,6 +236,11 @@ export class PluginUiBroker {
    * @param webContentsId - Destroyed webContents id.
    */
   clearSession(webContentsId: number): void {
+    const session = this.#sessions.get(webContentsId);
+    if (session?.role === 'agent') {
+      clearPluginMcpServers(session.pluginId);
+      void refreshMcpClientConnections();
+    }
     this.#sessions.delete(webContentsId);
   }
 
@@ -237,6 +251,8 @@ export class PluginUiBroker {
    */
   clearPlugin(pluginId: string): void {
     this.#agentReady.delete(pluginId);
+    clearPluginMcpServers(pluginId);
+    void refreshMcpClientConnections();
   }
 
   /**
@@ -629,6 +645,31 @@ export class PluginUiBroker {
         this.#completeAgentImportInvoke(complete);
         return undefined;
       }
+      case 'mcp.registerServer': {
+        const { registrationId, name, serverURL, enabled, headers, icon } = payload as {
+          registrationId: string;
+          name: string;
+          serverURL: string;
+          enabled?: boolean;
+          headers?: Array<{ key: string; value: string }>;
+          icon?: string;
+        };
+        registerPluginMcpServer(session.pluginId, registrationId, {
+          name,
+          serverURL,
+          enabled,
+          headers,
+          icon
+        });
+        await refreshMcpClientConnections();
+        return undefined;
+      }
+      case 'mcp.unregisterServer': {
+        const { registrationId } = payload as { registrationId: string };
+        unregisterPluginMcpServer(session.pluginId, registrationId);
+        await refreshMcpClientConnections();
+        return undefined;
+      }
       case 'ui.showToast':
       case 'ui.openModal':
       case 'ui.closeModal':
@@ -829,6 +870,7 @@ export function getPluginUiBroker(): PluginUiBroker {
 export function initPluginUiBroker(pluginManager: PluginManager): PluginUiBroker {
   const broker = new PluginUiBroker(pluginManager);
   brokerInstance = broker;
+  setPluginMcpRegistryManager(pluginManager);
   broker.registerIpcHandlers();
   pluginManager.setFilesystemWebviewNotifier((pluginId, normalizedPath) => {
     broker.notifyFilesystemChanged(pluginId, normalizedPath);

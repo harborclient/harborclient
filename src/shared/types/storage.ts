@@ -166,6 +166,32 @@ export interface GitSettings {
 }
 
 /**
+ * Shared git credentials and auth metadata for a remote host.
+ */
+export interface GitIdentity {
+  /**
+   * Normalized lowercase hostname (for example `github.com`).
+   */
+  host: string;
+
+  /**
+   * Authentication method metadata; secrets are stored separately by host.
+   */
+  auth: GitAuthMethod;
+
+  /**
+   * Optional GitHub OAuth App client id override for this host.
+   */
+  oauthClientId?: string;
+
+  /**
+   * Whether encrypted credentials are stored for this host.
+   * Populated when listing identities from the main process.
+   */
+  hasCredentials?: boolean;
+}
+
+/**
  * Source-control status for a git-backed provider working tree.
  */
 export interface SourceControlStatus {
@@ -216,9 +242,14 @@ export interface SourceControlStatus {
  */
 export interface GitOAuthFinishedEvent {
   /**
-   * Git connection id that finished OAuth.
+   * Normalized git host that finished OAuth.
    */
-  connectionId: string;
+  host: string;
+
+  /**
+   * Legacy git connection id when OAuth was started from a connection-scoped flow.
+   */
+  connectionId?: string;
 
   /**
    * Whether authorization completed and credentials were validated.

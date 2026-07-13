@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(git): enhance git identity management and host-based authentication. (`97ee2ac`)
 - feat(git): add support for reading remote URLs and enhance git connection management. (`92b43d4`)
 
 ## 2.3.0 - 2026-07-13

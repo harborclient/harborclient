@@ -339,6 +339,7 @@ export type SettingsSection =
   | 'globals'
   | 'ai'
   | 'backup-restore'
+  | 'git'
   | `plugin:${string}:${string}`;
 
 /**

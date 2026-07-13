@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   gitRemoteHostname,
   isGitHubRepositoryUrl,
+  normalizeGitHostKey,
   normalizeGitRemoteToHttps
 } from '#/shared/gitUrl';
 
@@ -38,6 +39,23 @@ describe('isGitHubRepositoryUrl', () => {
   it('returns false for blank or unparseable values', () => {
     expect(isGitHubRepositoryUrl('')).toBe(false);
     expect(isGitHubRepositoryUrl('not a url')).toBe(false);
+  });
+});
+
+describe('normalizeGitHostKey', () => {
+  it('returns a lowercase hostname from HTTPS repository URLs', () => {
+    expect(normalizeGitHostKey('https://github.com/org/repo.git')).toBe('github.com');
+    expect(normalizeGitHostKey('https://GitLab.com/org/repo.git')).toBe('gitlab.com');
+  });
+
+  it('returns a lowercase hostname from bare host/path values', () => {
+    expect(normalizeGitHostKey('github.com/org/repo')).toBe('github.com');
+  });
+
+  it('returns null for blank or unparseable values', () => {
+    expect(normalizeGitHostKey('')).toBeNull();
+    expect(normalizeGitHostKey('   ')).toBeNull();
+    expect(normalizeGitHostKey('not a url')).toBeNull();
   });
 });
 

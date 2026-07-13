@@ -3,6 +3,11 @@ import { ipcMain, webContents } from 'electron';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PluginManager } from '#/main/plugins/PluginManager';
 import { PluginUiBroker } from '#/main/plugins/PluginUiBroker';
+import {
+  resetPluginMcpRegistryForTests,
+  setPluginMcpRegistryMainWindow,
+  setPluginMcpRegistryManager
+} from '#/main/plugins/pluginMcpRegistry';
 
 const pickFileForPlugin = vi.fn();
 const readFileForPlugin = vi.fn();
@@ -18,6 +23,12 @@ vi.mock('#/main/plugins/pluginFsOperations', () => ({
 
 vi.mock('#/main/settings/generalSettings', () => ({
   isPluginNetworkAllowed: vi.fn(() => true)
+}));
+
+const refreshMcpClientConnections = vi.fn(async () => undefined);
+
+vi.mock('#/main/mcp/mcpClientManager', () => ({
+  refreshMcpClientConnections: () => refreshMcpClientConnections()
 }));
 
 vi.mock('electron', () => {
@@ -631,5 +642,53 @@ describe('PluginUiBroker import handlers', () => {
     });
 
     await expect(resultPromise).resolves.toBe(true);
+  });
+});
+
+describe('PluginUiBroker mcp', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetPluginMcpRegistryForTests();
+  });
+
+  it('registers and unregisters plugin MCP servers with the mcp permission', async () => {
+    const send = vi.fn();
+    const mockWindow = {
+      isDestroyed: () => false,
+      webContents: { send }
+    };
+    const manager = {
+      assertPermission: vi.fn()
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.setMainWindow(() => mockWindow as never);
+    setPluginMcpRegistryManager(manager);
+    setPluginMcpRegistryMainWindow(() => mockWindow as never);
+    broker.registerIpcHandlers();
+
+    const sender = { id: 99 } as WebContents;
+    registerSession(sender, {
+      pluginId: 'com.example.wordpress',
+      role: 'agent'
+    });
+
+    await broker.handleInvoke(sender, 'mcp.registerServer', {
+      registrationId: '1',
+      name: 'WordPress',
+      serverURL: 'https://example.com/mcp',
+      enabled: true,
+      headers: []
+    });
+
+    expect(manager.assertPermission).toHaveBeenCalledWith('com.example.wordpress', 'mcp');
+    expect(refreshMcpClientConnections).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledWith('mcp:clientServersChanged');
+
+    await broker.handleInvoke(sender, 'mcp.unregisterServer', {
+      registrationId: '1'
+    });
+
+    expect(refreshMcpClientConnections).toHaveBeenCalledTimes(2);
+    expect(send).toHaveBeenCalledTimes(2);
   });
 });

@@ -1,4 +1,5 @@
 import type {
+  GitIdentity,
   GitLogEntry,
   GitOAuthFinishedEvent,
   SourceControlStatus
@@ -92,4 +93,56 @@ export interface ApiGit {
    * @param repoPath - Absolute path to a local git working tree.
    */
   gitReadRemoteUrl: (repoPath: string) => Promise<string | null>;
+  /**
+   * Lists saved git host identities.
+   */
+  listGitIdentities: () => Promise<GitIdentity[]>;
+  /**
+   * Stores a PAT for a git host and optionally validates credentials.
+   *
+   * @param host - Normalized lowercase git host key.
+   * @param username - Basic Auth username.
+   * @param token - Personal access token.
+   * @param testUrl - Optional repository URL used to validate the token.
+   * @param repoPath - Optional local repository path used with testUrl.
+   */
+  gitSetHostPat: (
+    host: string,
+    username: string,
+    token: string,
+    testUrl?: string,
+    repoPath?: string
+  ) => Promise<void>;
+  /**
+   * Starts GitHub OAuth device flow for a git host.
+   *
+   * @param host - Normalized lowercase git host key.
+   * @param testUrl - Optional repository URL used to validate after completion.
+   * @param repoPath - Optional local repository path used with testUrl.
+   */
+  gitStartHostOAuth: (
+    host: string,
+    testUrl?: string,
+    repoPath?: string
+  ) => Promise<{ userCode: string; verificationUri: string }>;
+  /**
+   * Revokes stored credentials for a git host.
+   *
+   * @param host - Normalized lowercase git host key.
+   */
+  gitRevokeHost: (host: string) => Promise<void>;
+  /**
+   * Returns whether a directory path is the root of a git working tree.
+   *
+   * @param repoPath - Absolute directory path to inspect.
+   */
+  gitIsRepo: (repoPath: string) => Promise<boolean>;
+  /**
+   * Initializes a git repository and optionally adds an origin remote.
+   *
+   * @param repoPath - Absolute directory path to initialize.
+   * @param url - HTTPS remote URL for origin, or empty to skip.
+   * @param branch - Default branch name.
+   */
+  gitInitRepo: (repoPath: string, url: string, branch: string) => Promise<void>;
 }

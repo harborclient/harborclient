@@ -200,7 +200,7 @@ export function History(): JSX.Element {
     >
       {entries.length === 0 ? (
         <EmptyState variant="inline" className="pr-2 py-1.5 text-center">
-          No requests yet.
+          &lt;No requests&gt;
         </EmptyState>
       ) : null}
       {entries.map((entry) => {

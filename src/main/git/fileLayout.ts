@@ -439,7 +439,10 @@ export const DEFAULT_HARBORCLIENT_GITIGNORE = [
  * @returns Absolute path to the HarborClient data root.
  */
 export function resolveHarborclientRoot(repoPath: string, subdir: string): string {
-  const trimmed = subdir.trim() || '.harborclient';
+  const trimmed = subdir.trim();
+  if (!trimmed || trimmed === '.') {
+    return repoPath;
+  }
   return join(repoPath, trimmed);
 }
 
@@ -531,6 +534,34 @@ export function collectionDir(root: string, uuid: string, name: string): string 
 }
 
 /**
+ * Normalizes a git on-disk request JSON payload before export validation.
+ *
+ * Git storage persists script reference arrays as JSON strings in request files;
+ * import validation expects parsed arrays.
+ *
+ * @param parsed - Raw request JSON read from disk.
+ */
+function normalizeStoredRequestForValidation(
+  parsed: Record<string, unknown>
+): Record<string, unknown> {
+  const preLegacy = String(parsed.pre_request_script ?? '');
+  const postLegacy = String(parsed.post_request_script ?? '');
+  const normalized: Record<string, unknown> = { ...parsed };
+
+  if (typeof parsed.pre_request_scripts === 'string') {
+    normalized.pre_request_scripts = readScriptRefsFromJson(parsed.pre_request_scripts, preLegacy);
+  }
+  if (typeof parsed.post_request_scripts === 'string') {
+    normalized.post_request_scripts = readScriptRefsFromJson(
+      parsed.post_request_scripts,
+      postLegacy
+    );
+  }
+
+  return normalized;
+}
+
+/**
  * Reads collection manifest and request files from a collection directory.
  *
  * @param dir - Absolute path to the collection directory.
@@ -584,8 +615,8 @@ export function readCollectionFromDir(dir: string): {
         continue;
       }
       const requestPath = join(requestsDir, fileName);
-      const parsed = readJsonFile(requestPath);
-      const validated = validateRequestExport(parsed);
+      const parsed = readJsonFile(requestPath) as Record<string, unknown>;
+      const validated = validateRequestExport(normalizeStoredRequestForValidation(parsed));
       requests.push({
         ...validated,
         uuid: validated.uuid,

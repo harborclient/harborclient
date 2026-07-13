@@ -9,6 +9,7 @@ import {
   manifestToCollectionExport,
   readCollectionFromDir,
   readAllEnvironments,
+  resolveHarborclientRoot,
   writeCollectionToDir,
   type CollectionManifest
 } from '#/main/git/fileLayout';
@@ -201,6 +202,66 @@ describe('git file layout', () => {
     expect(() => readAllEnvironments(root)).toThrow(
       /Failed to parse JSON in .*cccccccc-cccc-4ccc-8ccc-cccccccccccc-local\.json/
     );
+
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('resolves blank or dot subdirectories to the repository root', () => {
+    expect(resolveHarborclientRoot('/tmp/repo', '')).toBe('/tmp/repo');
+    expect(resolveHarborclientRoot('/tmp/repo', '   ')).toBe('/tmp/repo');
+    expect(resolveHarborclientRoot('/tmp/repo', '.')).toBe('/tmp/repo');
+    expect(resolveHarborclientRoot('/tmp/repo', '.harborclient')).toBe('/tmp/repo/.harborclient');
+  });
+
+  it('reads request files with string-encoded script reference columns', () => {
+    const root = mkdtempSync(join(tmpdir(), 'hc-git-string-scripts-'));
+    ensureHarborclientLayout(root);
+    const uuid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const requestUuid = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const dir = collectionDir(root, uuid, 'API');
+    mkdirSync(join(dir, 'requests'), { recursive: true });
+    writeFileSync(
+      join(dir, 'collection.json'),
+      JSON.stringify({
+        harborclientVersion: 1,
+        harborclientExport: 'collection',
+        uuid,
+        name: 'API',
+        variables: [],
+        headers: [],
+        folders: [],
+        created_at: '2026-01-01T00:00:00.000Z'
+      }),
+      'utf-8'
+    );
+    writeFileSync(
+      join(dir, 'requests', `${requestUuid}-health.json`),
+      JSON.stringify({
+        harborclientVersion: 1,
+        harborclientExport: 'request',
+        uuid: requestUuid,
+        name: 'Health',
+        method: 'GET',
+        url: 'https://example.com/health',
+        headers: [],
+        params: [],
+        body_type: 'none',
+        body: '',
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: '[]',
+        post_request_scripts: '[]',
+        comment: '',
+        tags: '',
+        sort_order: 0,
+        folder_name: null
+      }),
+      'utf-8'
+    );
+
+    const { requests } = readCollectionFromDir(dir);
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.name).toBe('Health');
 
     rmSync(root, { recursive: true, force: true });
   });

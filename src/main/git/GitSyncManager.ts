@@ -2,7 +2,7 @@ import * as git from 'isomorphic-git';
 import http from 'isomorphic-git/http/node';
 import fs, { existsSync } from 'fs';
 import { join } from 'path';
-import { buildGitOnAuth } from '#/main/git/gitAuth';
+import { buildGitOnAuth, resolveGitAuthForHost } from '#/main/git/gitAuth';
 import { ensureHarborclientLayout, resolveHarborclientRoot } from '#/main/git/fileLayout';
 import { countConflictFiles, pullMergeConflictMessage } from '#/main/git/slug';
 import type { GitLogEntry, GitSettings, SourceControlStatus } from '#/shared/types';
@@ -187,6 +187,23 @@ export class GitSyncManager {
   }
 
   /**
+   * Validates credentials for a shared git host identity.
+   *
+   * @param host - Normalized lowercase git host key.
+   */
+  async testCredentialsForHost(host: string): Promise<void> {
+    await git.fetch({
+      fs,
+      http,
+      dir: this.#repoPath,
+      url: this.#settings.url,
+      ref: this.#settings.branch,
+      singleBranch: true,
+      onAuth: async () => resolveGitAuthForHost(host)
+    });
+  }
+
+  /**
    * Counts local commits ahead of and behind the cached origin tracking ref.
    *
    * Uses refs/remotes/origin/{branch} updated by fetch/pull; no network access.
@@ -281,7 +298,8 @@ export class GitSyncManager {
    * Returns the configured HarborClient subdirectory relative to the repository root.
    */
   private harborSubdir(): string {
-    return this.#settings.subdir.trim() || '.harborclient';
+    const trimmed = this.#settings.subdir.trim();
+    return trimmed && trimmed !== '.' ? trimmed : '.';
   }
 
   /**

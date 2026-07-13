@@ -39,6 +39,39 @@ export function isGitHubRepositoryUrl(url: string): boolean {
 }
 
 /**
+ * Normalizes a git remote URL or hostname to a stable lowercase host key.
+ *
+ * @param urlOrHost - HTTPS git URL or bare hostname.
+ * @returns Lowercase hostname used to key shared git identities, or null when unparseable.
+ */
+export function normalizeGitHostKey(urlOrHost: string): string | null {
+  const trimmed = urlOrHost.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const hostname = gitRemoteHostname(trimmed);
+  if (hostname) {
+    return hostname.toLowerCase();
+  }
+
+  const bare = trimmed
+    .replace(/^https?:\/\//i, '')
+    .split('/')[0]
+    ?.trim();
+  if (!bare || /\s/.test(bare)) {
+    return null;
+  }
+
+  try {
+    const parsedHost = new URL(`https://${bare}`).hostname;
+    return parsedHost ? parsedHost.toLowerCase() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Normalizes a git remote URL to HTTPS when possible.
  *
  * Converts scp-style (`git@host:org/repo.git`) and `ssh://` remotes to HTTPS so

@@ -1,5 +1,6 @@
 import type {
   McpClientServer,
+  McpClientServerListItem,
   McpClientServerStatus,
   McpClientToolInfo,
   McpServerSettings,
@@ -33,23 +34,28 @@ export interface ApiMcp {
   regenerateMcpServerToken: () => Promise<McpServerSettings>;
 
   /**
-   * Lists configured remote MCP client servers.
+   * Lists configured remote MCP client servers, including plugin registrations.
    */
-  listMcpClientServers: () => Promise<McpClientServer[]>;
+  listMcpClientServers: () => Promise<McpClientServerListItem[]>;
 
   /**
    * Creates or updates a remote MCP client server and reconnects when enabled.
    *
    * @param server - Client server record; blank id inserts a new row.
    */
-  saveMcpClientServer: (server: McpClientServer) => Promise<McpClientServer[]>;
+  saveMcpClientServer: (server: McpClientServer) => Promise<McpClientServerListItem[]>;
 
   /**
    * Deletes a remote MCP client server by id.
    *
    * @param id - Client server id to remove.
    */
-  deleteMcpClientServer: (id: string) => Promise<McpClientServer[]>;
+  deleteMcpClientServer: (id: string) => Promise<McpClientServerListItem[]>;
+
+  /**
+   * Subscribes to MCP client server list changes from plugin registration lifecycle.
+   */
+  onMcpClientServersChanged: (callback: () => void) => () => void;
 
   /**
    * Returns connection status for each configured MCP client server.

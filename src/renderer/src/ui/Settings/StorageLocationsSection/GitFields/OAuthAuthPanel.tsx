@@ -1,5 +1,6 @@
-import { Button } from '@harborclient/sdk/components';
-import type { JSX } from 'react';
+import { Button, FormGroup, Input } from '@harborclient/sdk/components';
+import { useId, useState, type JSX } from 'react';
+import toast from 'react-hot-toast';
 
 interface Props {
   /**
@@ -44,13 +45,38 @@ export function OAuthAuthPanel({
   onStart,
   onRevoke
 }: Props): JSX.Element {
+  const oauthUserCodeId = useId();
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const codeCopied = copiedCode === oauthUserCode;
+
+  /**
+   * Copies the GitHub device-flow user code to the clipboard.
+   */
+  const handleCopyCode = (): void => {
+    if (oauthUserCode == null) {
+      return;
+    }
+
+    void navigator.clipboard.writeText(oauthUserCode).then(
+      () => {
+        setCopiedCode(oauthUserCode);
+        window.setTimeout(() => {
+          setCopiedCode((current) => (current === oauthUserCode ? null : current));
+        }, 2000);
+      },
+      () => {
+        toast.error('Failed to copy');
+      }
+    );
+  };
+
   if (isAuthorized) {
     return (
       <div className="flex flex-col gap-2">
-        <p className="m-0 text-[13px] text-text" role="status">
+        <p className="m-0 text-text" role="status">
           Authorized with GitHub.
         </p>
-        <Button variant="primaryDanger" disabled={disabled} onClick={onRevoke}>
+        <Button variant="secondary" disabled={disabled} onClick={onRevoke}>
           Revoke GitHub authorization
         </Button>
       </div>
@@ -59,17 +85,35 @@ export function OAuthAuthPanel({
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="m-0 text-[13px] text-muted">Sign in via browser; no token to copy.</p>
+      <p className="m-0 text-[15px] text-muted">Sign in via browser; no token to copy.</p>
       <Button disabled={disabled} onClick={onStart}>
         Authorize with GitHub
       </Button>
       {oauthUserCode != null && (
-        <p className="m-0 text-[13px] text-text">
-          Enter code <strong>{oauthUserCode}</strong> in the browser.
-        </p>
+        <FormGroup label="Enter this code in the browser" htmlFor={oauthUserCodeId}>
+          <div className="flex gap-2">
+            <Input
+              id={oauthUserCodeId}
+              type="text"
+              readOnly
+              className="min-w-0 flex-1 font-mono text-[14px]"
+              value={oauthUserCode}
+              onFocus={(event) => event.target.select()}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={disabled}
+              aria-label="Copy GitHub authorization code"
+              onClick={handleCopyCode}
+            >
+              {codeCopied ? 'Copied' : 'Copy'}
+            </Button>
+          </div>
+        </FormGroup>
       )}
       {oauthWaiting && (
-        <p className="m-0 text-[13px] text-text" role="status" aria-live="polite">
+        <p className="m-0 text-[15px] text-text" role="status" aria-live="polite">
           Waiting for approval in your browser…
         </p>
       )}

@@ -31,6 +31,7 @@ export type SettingId =
   | 'plugins.addTrustedEndpointUrl'
   | 'globals'
   | 'storage'
+  | 'git'
   | 'shortcuts'
   | 'backup-restore'
   | 'backup-restore.confirmations';
@@ -45,7 +46,7 @@ export type GroupSettingId = 'backup-restore.confirmations';
  */
 export type FieldSettingId = Exclude<
   SettingId,
-  'globals' | 'storage' | 'shortcuts' | 'backup-restore' | GroupSettingId
+  'globals' | 'storage' | 'git' | 'shortcuts' | 'backup-restore' | GroupSettingId
 >;
 
 /**
@@ -373,6 +374,15 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     label: 'Storage Locations',
     description: 'Configure local, Git, and remote database connections for collections.',
     keywords: ['connections', 'database']
+  },
+  {
+    id: 'git',
+    section: 'git',
+    kind: 'section',
+    label: 'Git',
+    description:
+      'Manage shared credentials for git hosts. One identity per host is reused by all git-backed collections.',
+    keywords: ['github', 'oauth', 'token', 'authentication', 'credentials', 'host']
   },
   {
     id: 'shortcuts',

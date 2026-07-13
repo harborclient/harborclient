@@ -27,6 +27,34 @@ const initialState: CollectionsState = {
   collectionsListed: false
 };
 
+/**
+ * Removes cached collection contents whose ids are no longer in the sidebar list.
+ *
+ * @param cache - Per-collection cache keyed by numeric collection id.
+ * @param validCollectionIds - Collection ids from the latest refresh.
+ */
+function pruneCollectionCache<T>(cache: Record<number, T>, validCollectionIds: Set<number>): void {
+  for (const key of Object.keys(cache)) {
+    const collectionId = Number(key);
+    if (!validCollectionIds.has(collectionId)) {
+      delete cache[collectionId];
+    }
+  }
+}
+
+/**
+ * Keeps the last row when a refresh payload contains duplicate request ids.
+ *
+ * @param requests - Saved requests returned for one collection.
+ */
+function dedupeRequestsById(requests: SavedRequest[]): SavedRequest[] {
+  const byId = new Map<number, SavedRequest>();
+  for (const request of requests) {
+    byId.set(request.id, request);
+  }
+  return [...byId.values()];
+}
+
 const collectionsSlice = createSlice({
   name: 'collections',
   initialState,
@@ -54,6 +82,10 @@ const collectionsSlice = createSlice({
     setCollections(state, action: PayloadAction<Collection[]>) {
       state.collections = action.payload;
       state.collectionsListed = true;
+      const validCollectionIds = new Set(action.payload.map((collection) => collection.id));
+      pruneCollectionCache(state.requestsByCollection, validCollectionIds);
+      pruneCollectionCache(state.foldersByCollection, validCollectionIds);
+      pruneCollectionCache(state.documentsByCollection, validCollectionIds);
     },
     /**
      * Updates one collection row after a sidebar color change.
@@ -74,7 +106,9 @@ const collectionsSlice = createSlice({
       state,
       action: PayloadAction<{ collectionId: number; requests: SavedRequest[] }>
     ) {
-      state.requestsByCollection[action.payload.collectionId] = action.payload.requests;
+      state.requestsByCollection[action.payload.collectionId] = dedupeRequestsById(
+        action.payload.requests
+      );
     },
     /**
      * Caches markdown documents for one collection id.

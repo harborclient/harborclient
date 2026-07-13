@@ -277,9 +277,13 @@ export class RoutingStorage implements IStorage {
       if (backend.connectionType !== 'git') {
         continue;
       }
-      const status = await backend.db.getSourceControlStatus();
-      if (status) {
-        statuses[backend.connectionId] = status;
+      try {
+        const status = await backend.db.getSourceControlStatus();
+        if (status) {
+          statuses[backend.connectionId] = status;
+        }
+      } catch (err) {
+        console.error(`Failed to read git status for connection "${backend.connectionId}":`, err);
       }
     }
     return statuses;

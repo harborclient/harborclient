@@ -20,17 +20,26 @@ import {
 } from '#/shared/collectionRunner';
 import type { RootState } from '#/renderer/src/store/redux';
 import type { StorageConnection } from '#/shared/types';
-import { DEFAULT_GIT_SETTINGS } from '#/renderer/src/ui/Settings/constants';
 
 export type CollectionModalMode = 'create' | 'create-and-save';
 export type CollectionModalTab = 'create' | 'git' | 'import' | 'join';
-export type CollectionModalGitPhase = 'repo' | 'auth';
 
 /**
  * Blank git connection draft used when creating a git-backed collection.
  */
 function createCollectionModalGitDraft(): StorageConnection & { type: 'git' } {
-  return { id: '', name: '', type: 'git', settings: { ...DEFAULT_GIT_SETTINGS } };
+  return {
+    id: '',
+    name: '',
+    type: 'git',
+    settings: {
+      repoPath: '',
+      url: '',
+      branch: 'main',
+      subdir: '',
+      auth: { kind: 'pat', username: 'token' }
+    }
+  };
 }
 
 export interface CollectionModalState {
@@ -45,13 +54,9 @@ export interface CollectionModalState {
    */
   gitDraft: StorageConnection & { type: 'git' };
   /**
-   * Persisted git connection id after the repo phase saves; used for inline auth.
+   * Persisted git connection id after the repo phase saves; used for orphan cleanup on cancel.
    */
   gitCreatedConnectionId: string | null;
-  /**
-   * Whether the Git tab is collecting repo details or authentication.
-   */
-  gitPhase: CollectionModalGitPhase;
   /**
    * True after the collection row is created so cancel cleanup does not remove the connection.
    */
@@ -302,7 +307,6 @@ const modalsSlice = createSlice({
         submitError: null,
         gitDraft: createCollectionModalGitDraft(),
         gitCreatedConnectionId: null,
-        gitPhase: 'repo',
         gitCollectionCreated: false
       };
     },
@@ -409,16 +413,7 @@ const modalsSlice = createSlice({
       }
     },
     /**
-     * Advances or resets the Git tab workflow phase.
-     */
-    setCollectionModalGitPhase(state, action: PayloadAction<CollectionModalGitPhase>) {
-      if (state.collectionModal) {
-        state.collectionModal.gitPhase = action.payload;
-        state.collectionModal.submitError = null;
-      }
-    },
-    /**
-     * Stores the connection id created during the Git tab repo phase.
+     * Stores the connection id created during git collection creation for orphan cleanup.
      */
     setCollectionModalGitCreatedConnectionId(state, action: PayloadAction<string | null>) {
       if (state.collectionModal) {
@@ -962,7 +957,6 @@ export const {
   setCollectionModalShareTokenInput,
   setCollectionModalSubmitError,
   setCollectionModalGitDraft,
-  setCollectionModalGitPhase,
   setCollectionModalGitCreatedConnectionId,
   setCollectionModalGitCollectionCreated,
   openShareModal,

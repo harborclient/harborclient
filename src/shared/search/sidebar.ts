@@ -141,6 +141,48 @@ function sidebarFolderIdFromIndex(folderId: number): number | null {
 }
 
 /**
+ * Merges folder rows from collection caches for indexing.
+ *
+ * When the same folder id appears in multiple buckets (stale cache), prefer the
+ * copy whose `collection_id` matches the bucket key.
+ *
+ * @param input - Sidebar data currently available in the renderer store.
+ */
+function dedupeFoldersForSearch(input: SidebarSearchInput): Folder[] {
+  const foldersById = new Map<number, Folder>();
+  for (const collection of input.collections) {
+    for (const folder of input.foldersByCollection[collection.id] ?? []) {
+      const existing = foldersById.get(folder.id);
+      if (existing == null || folder.collection_id === collection.id) {
+        foldersById.set(folder.id, folder);
+      }
+    }
+  }
+  return [...foldersById.values()];
+}
+
+/**
+ * Merges request rows from collection caches for indexing.
+ *
+ * When the same request id appears in multiple buckets (stale cache), prefer the
+ * copy whose `collection_id` matches the bucket key.
+ *
+ * @param input - Sidebar data currently available in the renderer store.
+ */
+function dedupeRequestsForSearch(input: SidebarSearchInput): SavedRequest[] {
+  const requestsById = new Map<number, SavedRequest>();
+  for (const collection of input.collections) {
+    for (const request of input.requestsByCollection[collection.id] ?? []) {
+      const existing = requestsById.get(request.id);
+      if (existing == null || request.collection_id === collection.id) {
+        requestsById.set(request.id, request);
+      }
+    }
+  }
+  return [...requestsById.values()];
+}
+
+/**
  * Builds an Orama index over collections, folders, requests, and environments.
  *
  * @param input - Sidebar data currently available in the renderer store.
@@ -177,46 +219,34 @@ export function buildSidebarSearchIndex(input: SidebarSearchInput): HarborSearch
     });
   }
 
-  for (const collection of input.collections) {
-    const folders = input.foldersByCollection[collection.id];
-    if (folders == null) {
-      continue;
-    }
+  for (const folder of dedupeFoldersForSearch(input)) {
+    documents.push({
+      id: sidebarDocumentId('folder', folder.id),
+      kind: 'folder',
+      name: folder.name,
+      url: '',
+      method: '',
+      comment: '',
+      tags: '',
+      collectionId: folder.collection_id,
+      folderId: NO_FOLDER_ID
+    });
+  }
 
-    for (const folder of folders) {
-      documents.push({
-        id: sidebarDocumentId('folder', folder.id),
-        kind: 'folder',
-        name: folder.name,
-        url: '',
-        method: '',
-        comment: '',
-        tags: '',
-        collectionId: collection.id,
-        folderId: NO_FOLDER_ID
-      });
-    }
-
-    const requests = input.requestsByCollection[collection.id];
-    if (requests == null) {
-      continue;
-    }
-
-    for (const request of requests) {
-      const trimmedComment = request.comment.trim();
-      const normalizedTags = normalizeRequestTags(request.tags ?? '');
-      documents.push({
-        id: sidebarDocumentId('request', request.id),
-        kind: 'request',
-        name: request.name,
-        url: request.url,
-        method: request.method,
-        comment: trimmedComment,
-        tags: normalizedTags,
-        collectionId: request.collection_id,
-        folderId: sidebarFolderIdForIndex(request.folder_id)
-      });
-    }
+  for (const request of dedupeRequestsForSearch(input)) {
+    const trimmedComment = request.comment.trim();
+    const normalizedTags = normalizeRequestTags(request.tags ?? '');
+    documents.push({
+      id: sidebarDocumentId('request', request.id),
+      kind: 'request',
+      name: request.name,
+      url: request.url,
+      method: request.method,
+      comment: trimmedComment,
+      tags: normalizedTags,
+      collectionId: request.collection_id,
+      folderId: sidebarFolderIdForIndex(request.folder_id)
+    });
   }
 
   return createTextSearchIndex(SIDEBAR_SEARCH_SCHEMA, documents);

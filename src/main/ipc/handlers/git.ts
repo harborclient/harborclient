@@ -6,10 +6,23 @@ import type { IStorage } from '#/main/storage/IStorage';
 import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
-import { beginGitHubOAuth, revokeGitHubOAuth, saveGitPat } from '#/main/git/gitAuth';
+import {
+  beginGitHubOAuth,
+  beginHostGitHubOAuth,
+  beginHostGitHubOAuthForUrl,
+  listGitIdentities,
+  requireGitHost,
+  revokeGitHubOAuth,
+  revokeHost,
+  saveGitPat,
+  saveHostPat,
+  testHostCredentials
+} from '#/main/git/gitAuth';
 import {
   cancelGitHubOAuthCompletion,
+  cancelHostGitHubOAuthCompletion,
   scheduleGitHubOAuthCompletion,
+  scheduleHostGitHubOAuthCompletion,
   testGitCredentials
 } from '#/main/git/gitOAuthScheduler';
 import { normalizeGitRemoteToHttps } from '#/shared/gitUrl';
@@ -87,6 +100,9 @@ export function registerGitHandlers(db: IStorage): void {
     return router.listGitStatuses();
   });
 
+  // Lists saved git host identities.
+  handle('git:listIdentities', ipcArgSchemas.none, async () => listGitIdentities());
+
   // Commits local changes for a git connection.
   handle(
     'git:commit',
@@ -123,6 +139,19 @@ export function registerGitHandlers(db: IStorage): void {
     await testGitCredentials(db, connectionId);
   });
 
+  // Saves a personal access token for a git host and optionally validates it.
+  handle(
+    'git:setHostPat',
+    ipcArgSchemas.gitSetHostPat,
+    async (_event, host, username, token, testUrl, repoPath) => {
+      const normalizedHost = requireGitHost(host);
+      saveHostPat(normalizedHost, username, token);
+      if (testUrl?.trim() && repoPath?.trim()) {
+        await testHostCredentials(normalizedHost, testUrl.trim(), repoPath.trim());
+      }
+    }
+  );
+
   // Starts GitHub device OAuth, opens the browser, and polls in the background.
   handle('git:startOAuth', ipcArgSchemas.connectionId, async (event, connectionId) => {
     const result = await beginGitHubOAuth(connectionId);
@@ -130,6 +159,24 @@ export function registerGitHandlers(db: IStorage): void {
     scheduleGitHubOAuthCompletion(event.sender, db, connectionId);
     return result;
   });
+
+  // Starts GitHub device OAuth for a git host.
+  handle(
+    'git:startHostOAuth',
+    ipcArgSchemas.gitStartHostOAuth,
+    async (event, host, testUrl, repoPath) => {
+      const normalizedHost = requireGitHost(host);
+      const result = testUrl?.trim()
+        ? await beginHostGitHubOAuthForUrl(normalizedHost, testUrl.trim())
+        : await beginHostGitHubOAuth(normalizedHost);
+      await shell.openExternal(result.verificationUri);
+      scheduleHostGitHubOAuthCompletion(event.sender, db, normalizedHost, {
+        testUrl: testUrl?.trim() || undefined,
+        repoPath: repoPath?.trim() || undefined
+      });
+      return result;
+    }
+  );
 
   // Ensures background OAuth polling is running without blocking the invoke channel.
   handle('git:completeOAuth', ipcArgSchemas.connectionId, async (event, connectionId) => {
@@ -142,6 +189,13 @@ export function registerGitHandlers(db: IStorage): void {
     revokeGitHubOAuth(connectionId);
   });
 
+  // Revokes stored credentials for a git host.
+  handle('git:revokeHost', ipcArgSchemas.gitHost, async (_event, host) => {
+    const normalizedHost = requireGitHost(host);
+    cancelHostGitHubOAuthCompletion(normalizedHost);
+    revokeHost(normalizedHost);
+  });
+
   // Reads the origin remote URL from a local repository path, normalized to HTTPS.
   handle('git:readRemoteUrl', ipcArgSchemas.readGitRemoteUrl, async (_event, repoPath) => {
     try {
@@ -150,6 +204,32 @@ export function registerGitHandlers(db: IStorage): void {
       return origin ? normalizeGitRemoteToHttps(origin.url) : null;
     } catch {
       return null;
+    }
+  });
+
+  // Returns whether a directory is the root of a git working tree.
+  handle('git:isRepo', ipcArgSchemas.isGitRepo, async (_event, repoPath) => {
+    try {
+      const root = await git.findRoot({ fs, filepath: repoPath });
+      return root === repoPath;
+    } catch {
+      return false;
+    }
+  });
+
+  // Initializes a git repository and optionally adds an origin remote.
+  handle('git:initRepo', ipcArgSchemas.initGitRepo, async (_event, repoPath, url, branch) => {
+    const defaultBranch = branch.trim() || 'main';
+    await git.init({ fs, dir: repoPath, defaultBranch });
+    const trimmedUrl = url.trim();
+    if (trimmedUrl) {
+      await git.addRemote({
+        fs,
+        dir: repoPath,
+        remote: 'origin',
+        url: trimmedUrl,
+        force: true
+      });
     }
   });
 }

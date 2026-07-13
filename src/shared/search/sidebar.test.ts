@@ -232,6 +232,54 @@ describe('searchSidebar', () => {
   });
 });
 
+describe('buildSidebarSearchIndex', () => {
+  it('dedupes duplicate request ids across collection caches', () => {
+    const gitCollectionA: Collection = {
+      ...collectionA,
+      id: 8_000_000_002,
+      uuid: 'col-git-a',
+      name: 'Git Collection A'
+    };
+    const gitCollectionB: Collection = {
+      ...collectionB,
+      id: 8_000_000_003,
+      uuid: 'col-git-b',
+      name: 'Git Collection B'
+    };
+    const canonicalRequest: SavedRequest = {
+      ...requestListUsers,
+      id: 8_000_000_001,
+      uuid: 'req-git-canonical',
+      collection_id: 8_000_000_002,
+      name: 'Git Synced Request',
+      url: 'https://api.example.com/git-synced'
+    };
+    const staleRequest: SavedRequest = {
+      ...canonicalRequest,
+      name: 'Stale cache copy'
+    };
+    const input = {
+      collections: [gitCollectionA, gitCollectionB],
+      foldersByCollection: {},
+      requestsByCollection: {
+        [8_000_000_002]: [canonicalRequest],
+        [8_000_000_003]: [staleRequest]
+      },
+      environments: [] as Environment[]
+    };
+
+    const index = buildSidebarSearchIndex(input);
+    const hits = searchTextIndex<SidebarSearchDocument>(index, 'Git Synced Request', {
+      properties: ['name', 'url', 'method', 'comment', 'tags'],
+      threshold: 0
+    });
+
+    expect(hits).toHaveLength(1);
+    expect(hits[0]?.id).toBe('request:8000000001');
+    expect(hits[0]?.document.name).toBe('Git Synced Request');
+  });
+});
+
 describe('searchSidebarEntities', () => {
   const index = buildSidebarSearchIndex(sampleInput);
 

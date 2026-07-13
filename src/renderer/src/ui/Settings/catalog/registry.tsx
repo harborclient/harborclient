@@ -8,6 +8,7 @@ import { SyntaxInfoExtra } from '../extras/SyntaxInfoExtra';
 import { SyntaxPreviewExtra } from '../extras/SyntaxPreviewExtra';
 import { McpSettingsExtra } from '../extras/McpSettingsExtra';
 import { BackupRestoreSection } from '../BackupRestoreSection';
+import { GitIdentitiesSection } from '../GitIdentitiesSection';
 import { GlobalsSection } from '../GlobalsSection';
 import { ShortcutsSection } from '../ShortcutsSection';
 import { StorageLocationsSection } from '../StorageLocationsSection';
@@ -92,11 +93,12 @@ export const SETTINGS_FIELD_REGISTRY: Partial<Record<FieldSettingId, ComponentTy
  * Maps management section ids to their existing panel components.
  */
 export const SETTINGS_SECTION_REGISTRY: Record<
-  'globals' | 'storage' | 'shortcuts' | 'backup-restore',
+  'globals' | 'storage' | 'git' | 'shortcuts' | 'backup-restore',
   ComponentType<SettingsSectionComponentProps>
 > = {
   globals: GlobalsSection,
   storage: StorageLocationsSection,
+  git: GitIdentitiesSection,
   shortcuts: ShortcutsSection,
   'backup-restore': BackupRestoreSection
 };
@@ -152,10 +154,11 @@ export function renderSettingFields(ids: FieldSettingId[]): JSX.Element {
  */
 export function isManagementSettingsSection(
   section: SettingsSection
-): section is 'globals' | 'storage' | 'shortcuts' | 'backup-restore' {
+): section is 'globals' | 'storage' | 'git' | 'shortcuts' | 'backup-restore' {
   return (
     section === 'globals' ||
     section === 'storage' ||
+    section === 'git' ||
     section === 'shortcuts' ||
     section === 'backup-restore'
   );

@@ -7,7 +7,7 @@ import {
   SegmentedTabPanel,
   SegmentedTabsGroup
 } from '@harborclient/sdk/components';
-import { useEffect, useMemo, useState, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import type {
   AuthConfig,
   Collection,
@@ -124,6 +124,8 @@ export function Form({
     (StorageConnection & { type: 'git' }) | null
   >(null);
   const [gitDraftConnectionId, setGitDraftConnectionId] = useState<string | null>(null);
+  const [initGitRepo, setInitGitRepo] = useState(false);
+  const [hiddenTabValues, setHiddenTabValues] = useState<ReadonlySet<string>>(new Set());
 
   const {
     connections: storageConnections,
@@ -260,6 +262,33 @@ export function Form({
   );
 
   /**
+   * Tab values shown in the strip, derived from the current tab list minus any
+   * the user hid via the VisibilityMenu. Late-appearing tabs (e.g. Git after
+   * storage connections load) default to visible because they are never in
+   * {@link hiddenTabValues}.
+   */
+  const visibleTabValues = useMemo(
+    () => tabs.map((entry) => entry.value).filter((value) => !hiddenTabValues.has(value)),
+    [tabs, hiddenTabValues]
+  );
+
+  /**
+   * Persists VisibilityMenu toggles into {@link hiddenTabValues} so newly added
+   * tabs stay visible unless the user explicitly hides them.
+   *
+   * @param nextVisibleTabValues - Tab values that should remain in the strip.
+   */
+  const handleVisibleTabValuesChange = useCallback(
+    (nextVisibleTabValues: string[]): void => {
+      const nextVisible = new Set(nextVisibleTabValues);
+      setHiddenTabValues(
+        new Set(tabs.map((entry) => entry.value).filter((value) => !nextVisible.has(value)))
+      );
+    },
+    [tabs]
+  );
+
+  /**
    * Seeds a blank inline script when entering a script tab with no entries yet.
    *
    * @param nextTab - Collection settings tab the user selected.
@@ -286,8 +315,15 @@ export function Form({
     const cleanedHeaders = cleanHeaders(headers);
     setSaving(true);
     try {
-      if (isGitBacked && gitConnection && isGitDirty) {
-        await window.api.saveStorageConnection(gitConnection);
+      if (isGitBacked && gitConnection && (isGitDirty || initGitRepo)) {
+        if (initGitRepo) {
+          const { repoPath, url, branch } = gitConnection.settings;
+          await window.api.gitInitRepo(repoPath, url, branch);
+          setInitGitRepo(false);
+        }
+        if (isGitDirty) {
+          await window.api.saveStorageConnection(gitConnection);
+        }
         setGitConnectionDraft(null);
         setGitDraftConnectionId(null);
         reloadStorageConnections();
@@ -321,7 +357,11 @@ export function Form({
         ariaLabel="Collection settings sections"
       >
         <div className="-mx-6 -mt-3 mb-6 shrink-0">
-          <SegmentedTabs tabs={tabs} />
+          <SegmentedTabs
+            tabs={tabs}
+            visibleTabValues={visibleTabValues}
+            onVisibleTabValuesChange={handleVisibleTabValuesChange}
+          />
         </div>
 
         <div className="hc-scroll-stable -mx-6 flex min-h-0 flex-1 flex-col overflow-y-auto px-6">
@@ -345,6 +385,7 @@ export function Form({
               <GitSection
                 connection={gitConnection}
                 disabled={saving}
+                onInitGitRepoChange={setInitGitRepo}
                 onChange={(next) => {
                   setGitDraftConnectionId(collection.connectionId ?? null);
                   setGitConnectionDraft(next);

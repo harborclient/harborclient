@@ -232,7 +232,7 @@ export function TabGroups(): JSX.Element {
       >
         {groups.length === 0 ? (
           <EmptyState variant="inline" className="py-1.5 pr-2 text-center">
-            No tab groups yet.
+            &lt;No tab groups&gt;
           </EmptyState>
         ) : null}
         <SortableContext items={groupIds} strategy={verticalListSortingStrategy}>

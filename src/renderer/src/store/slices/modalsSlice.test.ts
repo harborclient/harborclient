@@ -77,12 +77,11 @@ describe('modalsSlice', () => {
           repoPath: '',
           url: '',
           branch: 'main',
-          subdir: '.harborclient',
+          subdir: '',
           auth: { kind: 'pat', username: 'token' }
         }
       },
       gitCreatedConnectionId: null,
-      gitPhase: 'repo',
       gitCollectionCreated: false
     });
 

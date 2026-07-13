@@ -44,7 +44,7 @@ import { buildPluginContextMenuGroups } from '#/renderer/src/plugins/pluginConte
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useCopyToChat } from '#/renderer/src/hooks/useCopyToChat';
 import { faChevronDown, faChevronRight } from '#/renderer/src/fontawesome';
-import { METHOD_CLASSES, sourceRow } from '#/renderer/src/ui/shared/classes';
+import { METHOD_CLASSES, sidebarRecessedBadge, sourceRow } from '#/renderer/src/ui/shared/classes';
 import { AnimatedCollapse } from '#/renderer/src/ui/shared/AnimatedCollapse';
 import {
   buildDevInspectMenuGroups,
@@ -825,14 +825,27 @@ export function Collections(): JSX.Element {
                           color={collection.color}
                           label={`Color for ${collection.name}`}
                         />
-                        {showStorageLocationBadges && connectionName != null && (
-                          <span
-                            className="shrink-0 rounded bg-info/15 px-1.5 py-0.5 text-[11px] font-medium text-info"
-                            title={`Stored in ${connectionName}`}
-                          >
-                            {connectionName}
-                          </span>
-                        )}
+                        {(() => {
+                          const badgeLabel =
+                            connectionType === 'git' && gitStatus?.branch != null
+                              ? gitStatus.branch
+                              : connectionName;
+                          return (
+                            showStorageLocationBadges &&
+                            badgeLabel != null && (
+                              <span
+                                className="shrink-0 rounded bg-info/15 px-1.5 py-0.5 text-[11px] font-medium text-info"
+                                title={
+                                  connectionType === 'git'
+                                    ? `On branch ${badgeLabel}`
+                                    : `Stored in ${badgeLabel}`
+                                }
+                              >
+                                {badgeLabel}
+                              </span>
+                            )
+                          );
+                        })()}
                       </span>
                     </button>
                     {connectionType === 'git' &&
@@ -840,7 +853,7 @@ export function Collections(): JSX.Element {
                       gitStatus.changedCount > 0 && (
                         <button
                           type="button"
-                          className="shrink-0 cursor-pointer rounded bg-warning/20 px-1.5 py-0.5 font-medium text-warning hover:bg-warning/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent app-no-drag"
+                          className={sidebarRecessedBadge}
                           aria-label={`Open source control (${gitStatus.changedCount} uncommitted change(s))`}
                           onPointerDown={stopSortableDragPointerDown}
                           onClick={() =>
@@ -1000,8 +1013,8 @@ export function Collections(): JSX.Element {
                           folders.length === 0 &&
                           rootItems.length === 0 &&
                           rootDocuments.length === 0 && (
-                            <div className="px-1.5 py-0">
-                              <span className="text-muted">No saved requests</span>
+                            <div className="px-1.5 py-0 text-center">
+                              <span className="text-muted">No saved requests.</span>
                             </div>
                           )}
 

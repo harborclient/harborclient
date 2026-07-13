@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { StorageConnection } from '#/shared/types';
+import type { GitAuthMethod, StorageConnection } from '#/shared/types';
 
 const mockConnections: StorageConnection[] = [];
+const identityByHost = new Map<
+  string,
+  { host: string; auth: GitAuthMethod; oauthClientId?: string }
+>();
 
 const { startGitHubDeviceFlow, completeGitHubDeviceFlow, refreshGitHubAccessToken } = vi.hoisted(
   () => ({
@@ -35,9 +39,50 @@ vi.mock('#/main/git/gitSecrets', () => ({
   getGitAccessToken: vi.fn(() => 'stored-pat'),
   getGitRefreshToken: vi.fn(() => null),
   getGitTokenExpiresAt: vi.fn(() => null),
+  hasGitAccessToken: vi.fn(() => true),
   storeGitOAuthTokens: vi.fn(),
   storeGitPat: vi.fn(),
   deleteGitSecrets: vi.fn()
+}));
+
+vi.mock('#/main/git/gitIdentities', () => ({
+  getGitIdentity: (host: string) => identityByHost.get(host),
+  persistGitIdentityAuth: (host: string, auth: GitAuthMethod) => {
+    const existing = identityByHost.get(host);
+    const next = { host, auth, oauthClientId: existing?.oauthClientId };
+    identityByHost.set(host, next);
+    return { ...next, hasCredentials: true };
+  },
+  upsertGitIdentity: (host: string, patch: { auth: GitAuthMethod; oauthClientId?: string }) => {
+    const existing = identityByHost.get(host);
+    const next = {
+      host,
+      auth: patch.auth,
+      oauthClientId: patch.oauthClientId ?? existing?.oauthClientId
+    };
+    identityByHost.set(host, next);
+    return { ...next, hasCredentials: true };
+  },
+  deleteGitIdentity: (host: string) => {
+    identityByHost.delete(host);
+  },
+  setGitIdentityOAuthClientId: (host: string, oauthClientId: string) => {
+    const existing = identityByHost.get(host);
+    const auth: GitAuthMethod = existing?.auth ?? { kind: 'pat', username: 'token' };
+    const trimmed = oauthClientId.trim();
+    const next = {
+      host,
+      auth,
+      oauthClientId: trimmed || undefined
+    };
+    identityByHost.set(host, next);
+    return { ...next, hasCredentials: true };
+  },
+  listGitIdentities: () =>
+    [...identityByHost.values()].map((identity) => ({
+      ...identity,
+      hasCredentials: true
+    }))
 }));
 
 vi.mock('#/main/git/githubOAuth', () => ({
@@ -59,21 +104,26 @@ import {
   finishGitHubOAuth,
   resolveGitAuth,
   revokeGitHubOAuth,
-  saveGitPat
+  saveGitPat,
+  saveHostPat
 } from '#/main/git/gitAuth';
 import { GITHUB_OAUTH_CLIENT_ID } from '#/main/git/githubOAuth';
+import { upsertGitIdentity } from '#/main/git/gitIdentities';
 
 describe('git auth resolver', () => {
   beforeEach(() => {
     mockConnections.length = 0;
+    identityByHost.clear();
     vi.mocked(getGitAccessToken).mockReturnValue('stored-pat');
     vi.mocked(getGitRefreshToken).mockReturnValue(undefined);
     startGitHubDeviceFlow.mockClear();
     refreshGitHubAccessToken.mockClear();
     vi.mocked(storeGitOAuthTokens).mockClear();
+    vi.mocked(storeGitPat).mockClear();
+    vi.mocked(deleteGitSecrets).mockClear();
   });
 
-  it('resolves PAT credentials from encrypted storage', async () => {
+  it('resolves PAT credentials from encrypted storage by host', async () => {
     mockConnections.push({
       id: 'git-1',
       name: 'Git',
@@ -86,12 +136,27 @@ describe('git auth resolver', () => {
         auth: { kind: 'pat', username: 'token' }
       }
     });
+    identityByHost.set('github.com', {
+      host: 'github.com',
+      auth: { kind: 'pat', username: 'my-user' }
+    });
 
     const auth = await resolveGitAuth('git-1');
-    expect(auth).toEqual({ username: 'token', password: 'stored-pat' });
+    expect(getGitAccessToken).toHaveBeenCalledWith('github.com');
+    expect(auth).toEqual({ username: 'my-user', password: 'stored-pat' });
   });
 
-  it('stores a PAT and persists auth metadata', () => {
+  it('stores a PAT for a host and persists identity metadata', () => {
+    saveHostPat('github.com', 'my-user', '  secret-token  ');
+
+    expect(storeGitPat).toHaveBeenCalledWith('github.com', 'secret-token');
+    expect(identityByHost.get('github.com')?.auth).toEqual({
+      kind: 'pat',
+      username: 'my-user'
+    });
+  });
+
+  it('stores a PAT for a connection by resolving its host', () => {
     mockConnections.push({
       id: 'git-pat',
       name: 'Git PAT',
@@ -105,17 +170,16 @@ describe('git auth resolver', () => {
       }
     });
 
-    saveGitPat('git-pat', 'my-user', '  secret-token  ');
+    saveGitPat('git-pat', 'my-user', 'secret-token');
 
-    expect(storeGitPat).toHaveBeenCalledWith('git-pat', 'secret-token');
-    const conn = mockConnections[0];
-    expect(conn.type === 'git' && conn.settings.auth).toEqual({
+    expect(storeGitPat).toHaveBeenCalledWith('github.com', 'secret-token');
+    expect(identityByHost.get('github.com')?.auth).toEqual({
       kind: 'pat',
       username: 'my-user'
     });
   });
 
-  it('starts and completes GitHub device flow', async () => {
+  it('starts and completes GitHub device flow for a connection host', async () => {
     mockConnections.push({
       id: 'git-oauth',
       name: 'Git OAuth',
@@ -131,11 +195,16 @@ describe('git auth resolver', () => {
 
     const started = await beginGitHubOAuth('git-oauth');
     expect(started.userCode).toBe('ABCD-1234');
-    expect(startGitHubDeviceFlow).toHaveBeenCalledWith('git-oauth', GITHUB_OAUTH_CLIENT_ID);
+    expect(startGitHubDeviceFlow).toHaveBeenCalledWith('github.com', GITHUB_OAUTH_CLIENT_ID);
 
     await finishGitHubOAuth('git-oauth');
-    const conn = mockConnections[0];
-    expect(conn.type === 'git' && conn.settings.auth).toEqual({
+    expect(storeGitOAuthTokens).toHaveBeenCalledWith(
+      'github.com',
+      'oauth-token',
+      'refresh-token',
+      '2099-01-01T00:00:00.000Z'
+    );
+    expect(identityByHost.get('github.com')?.auth).toEqual({
       kind: 'oauth',
       provider: 'github'
     });
@@ -161,7 +230,7 @@ describe('git auth resolver', () => {
     expect(startGitHubDeviceFlow).not.toHaveBeenCalled();
   });
 
-  it('passes a custom OAuth client id when configured on the connection', async () => {
+  it('passes a custom OAuth client id when configured on the host identity', async () => {
     mockConnections.push({
       id: 'git-oauth-custom',
       name: 'Git OAuth Custom',
@@ -171,16 +240,19 @@ describe('git auth resolver', () => {
         url: 'https://github.com/example/repo.git',
         branch: 'main',
         subdir: '.harborclient',
-        oauthClientId: '  org-client-id  ',
         auth: { kind: 'pat', username: 'token' }
       }
     });
+    upsertGitIdentity('github.com', {
+      auth: { kind: 'pat', username: 'token' },
+      oauthClientId: 'org-client-id'
+    });
 
     await beginGitHubOAuth('git-oauth-custom');
-    expect(startGitHubDeviceFlow).toHaveBeenCalledWith('git-oauth-custom', 'org-client-id');
+    expect(startGitHubDeviceFlow).toHaveBeenCalledWith('github.com', 'org-client-id');
   });
 
-  it('deduplicates concurrent OAuth refresh requests for the same connection', async () => {
+  it('deduplicates concurrent OAuth refresh requests for the same host', async () => {
     mockConnections.push({
       id: 'git-oauth-concurrent',
       name: 'Git OAuth Concurrent',
@@ -192,6 +264,10 @@ describe('git auth resolver', () => {
         subdir: '.harborclient',
         auth: { kind: 'oauth', provider: 'github' }
       }
+    });
+    identityByHost.set('github.com', {
+      host: 'github.com',
+      auth: { kind: 'oauth', provider: 'github' }
     });
 
     vi.mocked(getGitAccessToken).mockReturnValue(undefined);
@@ -229,7 +305,7 @@ describe('git auth resolver', () => {
     expect(refreshGitHubAccessToken).toHaveBeenCalledTimes(1);
   });
 
-  it('refreshes OAuth tokens with the connection client id', async () => {
+  it('refreshes OAuth tokens with the host identity client id', async () => {
     mockConnections.push({
       id: 'git-oauth-refresh',
       name: 'Git OAuth Refresh',
@@ -239,9 +315,12 @@ describe('git auth resolver', () => {
         url: 'https://github.com/example/repo.git',
         branch: 'main',
         subdir: '.harborclient',
-        oauthClientId: 'org-client-id',
         auth: { kind: 'oauth', provider: 'github' }
       }
+    });
+    upsertGitIdentity('github.com', {
+      auth: { kind: 'oauth', provider: 'github' },
+      oauthClientId: 'org-client-id'
     });
 
     vi.mocked(getGitAccessToken).mockReturnValue(undefined);
@@ -257,7 +336,7 @@ describe('git auth resolver', () => {
     expect(auth).toEqual({ username: 'oauth2', password: 'new-token' });
   });
 
-  it('revokes GitHub OAuth and resets auth metadata', async () => {
+  it('revokes GitHub OAuth for a host and resets identity metadata to PAT', async () => {
     mockConnections.push({
       id: 'git-oauth',
       name: 'Git OAuth',
@@ -267,19 +346,22 @@ describe('git auth resolver', () => {
         url: 'https://github.com/example/repo.git',
         branch: 'main',
         subdir: '.harborclient',
-        oauthClientId: 'org-client-id',
         auth: { kind: 'oauth', provider: 'github' }
       }
+    });
+    identityByHost.set('github.com', {
+      host: 'github.com',
+      auth: { kind: 'oauth', provider: 'github' },
+      oauthClientId: 'org-client-id'
     });
 
     revokeGitHubOAuth('git-oauth');
 
-    expect(deleteGitSecrets).toHaveBeenCalledWith('git-oauth');
-    const conn = mockConnections[0];
-    expect(conn.type === 'git' && conn.settings.auth).toEqual({
+    expect(deleteGitSecrets).toHaveBeenCalledWith('github.com');
+    expect(identityByHost.get('github.com')?.auth).toEqual({
       kind: 'pat',
       username: 'token'
     });
-    expect(conn.type === 'git' && conn.settings.oauthClientId).toBe('org-client-id');
+    expect(identityByHost.get('github.com')?.oauthClientId).toBe('org-client-id');
   });
 });

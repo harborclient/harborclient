@@ -3,7 +3,13 @@ import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { decryptSecret, encryptSecret, type EncryptedSecret } from '#/main/secrets/secretStorage';
 import { AI_TOOL_NAMES, type AiToolName } from '#/shared/ai/tools';
 import { parseJson } from '#/shared/parseJson';
-import type { McpClientHeader, McpClientServer, McpServerSettings } from '#/shared/types';
+import type {
+  McpClientHeader,
+  McpClientServer,
+  McpClientServerListItem,
+  McpServerSettings
+} from '#/shared/types';
+import { isPluginMcpServerId, listPluginMcpClientServers } from '#/main/plugins/pluginMcpRegistry';
 
 const MCP_SERVER_KEY = 'mcpServerSettings';
 const MCP_CLIENT_SERVERS_KEY = 'mcpClientServers';
@@ -220,6 +226,20 @@ export function listMcpClientServers(): McpClientServer[] {
 }
 
 /**
+ * Lists user-configured and plugin-registered MCP client servers for settings and runtime.
+ */
+export function listEffectiveMcpClientServers(): McpClientServerListItem[] {
+  const userServers = listMcpClientServers().map(
+    (server): McpClientServerListItem => ({
+      ...server,
+      source: 'user',
+      readonly: false
+    })
+  );
+  return [...userServers, ...listPluginMcpClientServers()];
+}
+
+/**
  * Creates or updates an MCP client server.
  *
  * @param input - Client server to persist; blank id inserts a new record.
@@ -229,6 +249,9 @@ export function saveMcpClientServer(input: McpClientServer): McpClientServer[] {
     ...input,
     id: input.id.trim() || randomUUID()
   });
+  if (isPluginMcpServerId(normalized.id)) {
+    throw new Error('Plugin-provided MCP client servers cannot be modified from settings.');
+  }
   const servers = listMcpClientServers();
   const index = servers.findIndex((server) => server.id === normalized.id);
 
@@ -248,6 +271,9 @@ export function saveMcpClientServer(input: McpClientServer): McpClientServer[] {
  * @param id - Client server id to remove.
  */
 export function deleteMcpClientServer(id: string): McpClientServer[] {
+  if (isPluginMcpServerId(id)) {
+    throw new Error('Plugin-provided MCP client servers cannot be deleted from settings.');
+  }
   const servers = listMcpClientServers();
   const nextServers = servers.filter((server) => server.id !== id);
 

@@ -19,7 +19,8 @@ const SETTINGS_BUILTIN_SECTIONS = new Set<string>([
   'proxy',
   'globals',
   'ai',
-  'backup-restore'
+  'backup-restore',
+  'git'
 ]);
 
 const PLUGINS_SECTIONS = new Set<string>(['installed', 'marketplace', 'install', 'settings']);

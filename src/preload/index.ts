@@ -32,6 +32,7 @@ import type {
   GenerateChatTitleInput,
   HubLlmModelGroup,
   McpClientServer,
+  McpClientServerListItem,
   McpClientServerStatus,
   McpClientToolInfo,
   McpServerSettings,
@@ -1442,9 +1443,9 @@ function regenerateMcpServerToken(): Promise<McpServerSettings> {
 }
 
 /**
- * Lists configured remote MCP client servers.
+ * Lists configured remote MCP client servers, including plugin registrations.
  */
-function listMcpClientServers(): Promise<McpClientServer[]> {
+function listMcpClientServers(): Promise<McpClientServerListItem[]> {
   return ipcRenderer.invoke('mcp:listClientServers');
 }
 
@@ -1453,7 +1454,7 @@ function listMcpClientServers(): Promise<McpClientServer[]> {
  *
  * @param server - Client server record to persist.
  */
-function saveMcpClientServer(server: McpClientServer): Promise<McpClientServer[]> {
+function saveMcpClientServer(server: McpClientServer): Promise<McpClientServerListItem[]> {
   return ipcRenderer.invoke('mcp:saveClientServer', server);
 }
 
@@ -1462,8 +1463,21 @@ function saveMcpClientServer(server: McpClientServer): Promise<McpClientServer[]
  *
  * @param id - Client server id to remove.
  */
-function deleteMcpClientServer(id: string): Promise<McpClientServer[]> {
+function deleteMcpClientServer(id: string): Promise<McpClientServerListItem[]> {
   return ipcRenderer.invoke('mcp:deleteClientServer', id);
+}
+
+/**
+ * Subscribes to MCP client server list changes from plugin registration lifecycle.
+ */
+function onMcpClientServersChanged(callback: () => void): () => void {
+  const listener = (): void => {
+    callback();
+  };
+  ipcRenderer.on('mcp:clientServersChanged', listener);
+  return () => {
+    ipcRenderer.removeListener('mcp:clientServersChanged', listener);
+  };
 }
 
 /**
@@ -2241,6 +2255,76 @@ function gitRevokeOAuth(connectionId: string): Promise<void> {
  */
 function gitReadRemoteUrl(repoPath: string): Promise<string | null> {
   return ipcRenderer.invoke('git:readRemoteUrl', repoPath);
+}
+
+/**
+ * Lists saved git host identities.
+ */
+function listGitIdentities(): Promise<import('#/shared/types').GitIdentity[]> {
+  return ipcRenderer.invoke('git:listIdentities');
+}
+
+/**
+ * Stores a PAT for a git host and optionally validates credentials.
+ *
+ * @param host - Normalized lowercase git host key.
+ * @param username - Basic Auth username.
+ * @param token - Personal access token.
+ * @param testUrl - Optional repository URL used to validate the token.
+ * @param repoPath - Optional local repository path used with testUrl.
+ */
+function gitSetHostPat(
+  host: string,
+  username: string,
+  token: string,
+  testUrl?: string,
+  repoPath?: string
+): Promise<void> {
+  return ipcRenderer.invoke('git:setHostPat', host, username, token, testUrl, repoPath);
+}
+
+/**
+ * Starts GitHub OAuth device flow for a git host.
+ *
+ * @param host - Normalized lowercase git host key.
+ * @param testUrl - Optional repository URL used to validate after completion.
+ * @param repoPath - Optional local repository path used with testUrl.
+ */
+function gitStartHostOAuth(
+  host: string,
+  testUrl?: string,
+  repoPath?: string
+): Promise<{ userCode: string; verificationUri: string }> {
+  return ipcRenderer.invoke('git:startHostOAuth', host, testUrl, repoPath);
+}
+
+/**
+ * Revokes stored credentials for a git host.
+ *
+ * @param host - Normalized lowercase git host key.
+ */
+function gitRevokeHost(host: string): Promise<void> {
+  return ipcRenderer.invoke('git:revokeHost', host);
+}
+
+/**
+ * Returns whether a directory path is the root of a git working tree.
+ *
+ * @param repoPath - Absolute directory path to inspect.
+ */
+function gitIsRepo(repoPath: string): Promise<boolean> {
+  return ipcRenderer.invoke('git:isRepo', repoPath);
+}
+
+/**
+ * Initializes a git repository and optionally adds an origin remote.
+ *
+ * @param repoPath - Absolute directory path to initialize.
+ * @param url - HTTPS remote URL for origin, or empty to skip.
+ * @param branch - Default branch name.
+ */
+function gitInitRepo(repoPath: string, url: string, branch: string): Promise<void> {
+  return ipcRenderer.invoke('git:initRepo', repoPath, url, branch);
 }
 
 /**
@@ -3398,6 +3482,7 @@ const api: Api = {
   listMcpClientServers,
   saveMcpClientServer,
   deleteMcpClientServer,
+  onMcpClientServersChanged,
   listMcpClientServerStatuses,
   listMcpClientTools,
   mcpCallTool,
@@ -3470,6 +3555,12 @@ const api: Api = {
   gitCompleteOAuth,
   gitRevokeOAuth,
   gitReadRemoteUrl,
+  listGitIdentities,
+  gitSetHostPat,
+  gitStartHostOAuth,
+  gitRevokeHost,
+  gitIsRepo,
+  gitInitRepo,
   oauthFetchToken,
   oauthClearToken,
   getAutocompleteValues,

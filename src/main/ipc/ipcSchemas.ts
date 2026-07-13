@@ -839,6 +839,17 @@ export const ipcArgSchemas = {
   gitLog: z.tuple([connectionId, z.number().int().positive().optional()]),
   gitSetPat: z.tuple([connectionId, z.string(), z.string().min(1)]),
   readGitRemoteUrl: z.tuple([z.string()]),
+  gitHost: z.tuple([z.string().min(1)]),
+  gitSetHostPat: z.tuple([
+    z.string().min(1),
+    z.string(),
+    z.string().min(1),
+    z.string().optional(),
+    z.string().optional()
+  ]),
+  gitStartHostOAuth: z.tuple([z.string().min(1), z.string().optional(), z.string().optional()]),
+  isGitRepo: z.tuple([z.string()]),
+  initGitRepo: z.tuple([z.string(), z.string(), z.string()]),
   pluginId: z.tuple([pluginId]),
   pluginSetEnabled: z.tuple([pluginId, z.boolean()]),
   pluginInstallFromPath: z.tuple([z.string().min(1)]),

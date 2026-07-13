@@ -1262,6 +1262,87 @@ describeSqlite('RoutingStorage collection discovery', () => {
     expect(remaining[0]?.name).toBe('Beta');
   });
 
+  it('listGitStatuses returns statuses for healthy git backends when one fails', async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'harborclient-routing-git-status-'));
+    const repoPathA = mkdtempSync(join(tmpdir(), 'harborclient-git-repo-a-'));
+    const repoPathB = mkdtempSync(join(tmpdir(), 'harborclient-git-repo-b-'));
+    mkdirSync(join(repoPathA, '.harborclient'), { recursive: true });
+    mkdirSync(join(repoPathB, '.harborclient'), { recursive: true });
+
+    const database = new LocalDatabase(rootDir);
+    await database.init();
+
+    const gitConnA: StorageConnection = {
+      id: 'git-a',
+      name: 'Git A',
+      type: 'git',
+      settings: {
+        repoPath: repoPathA,
+        url: 'https://github.com/example/a.git',
+        branch: 'main',
+        subdir: '.harborclient',
+        auth: { kind: 'pat', username: 'token' }
+      }
+    };
+
+    const gitConnB: StorageConnection = {
+      id: 'git-b',
+      name: 'Git B',
+      type: 'git',
+      settings: {
+        repoPath: repoPathB,
+        url: 'https://github.com/example/b.git',
+        branch: 'develop',
+        subdir: '.harborclient',
+        auth: { kind: 'pat', username: 'token' }
+      }
+    };
+
+    const gitDbA = new GitStorage(gitConnA.id, gitConnA.settings, rootDir);
+    const gitDbB = new GitStorage(gitConnB.id, gitConnB.settings, rootDir);
+    await gitDbA.init();
+    await gitDbB.init();
+
+    const router = new RoutingStorage(database, gitConnA.id, rootDir);
+    router.mount(0, gitConnA, gitDbA);
+    router.mount(1, gitConnB, gitDbB);
+
+    vi.spyOn(gitDbA, 'getSourceControlStatus').mockRejectedValue(new Error('status read failed'));
+    vi.spyOn(gitDbB, 'getSourceControlStatus').mockResolvedValue({
+      changedCount: 2,
+      branch: 'develop',
+      ahead: 0,
+      behind: 0,
+      syncKnown: false,
+      conflictCount: 0,
+      harborRootExists: true,
+      harborSubdir: '.harborclient'
+    });
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const statuses = await router.listGitStatuses();
+
+    expect(statuses['git-a']).toBeUndefined();
+    expect(statuses['git-b']).toEqual({
+      changedCount: 2,
+      branch: 'develop',
+      ahead: 0,
+      behind: 0,
+      syncKnown: false,
+      conflictCount: 0,
+      harborRootExists: true,
+      harborSubdir: '.harborclient'
+    });
+    expect(consoleSpy).toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
+    await router.close();
+    rmSync(rootDir, { recursive: true, force: true });
+    rmSync(repoPathA, { recursive: true, force: true });
+    rmSync(repoPathB, { recursive: true, force: true });
+  });
+
   it('skips git reconcile at startup when collectionDiscoverySkipped is set', async () => {
     const rootDir = mkdtempSync(join(tmpdir(), 'harborclient-routing-git-skip-'));
     const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-routing-git-repo-'));
