@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.3.0 - 2026-07-13
+
 - feat(dependencies, themes): update harborclient packages and enhance theme management. (`d5562a1`)
 
 ## 2.2.4 - 2026-07-12
