@@ -1,4 +1,5 @@
 import { buildChatTitleSystemPrompt, CHAT_TITLE_TOOL } from '#/shared/ai/chatTitle';
+import { buildGitCommitMessageSystemPrompt } from '#/shared/ai/gitCommitMessage';
 import { buildScriptAskSystemPrompt, SCRIPT_ASK_TOOL } from '#/shared/ai/scriptAsk';
 import { AI_SYSTEM_PROMPT, AI_TOOL_DEFINITIONS } from '#/shared/ai/tools';
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
@@ -50,6 +51,11 @@ export interface ChatStepModeConfig {
    * Optional forced tool choice for mini-agent style steps.
    */
   toolChoice?: { type: 'function'; function: { name: string } };
+
+  /**
+   * When true, external MCP client tools are not merged into this step.
+   */
+  excludeMcpTools?: boolean;
 }
 
 /**
@@ -69,7 +75,8 @@ export function resolveChatStepMode(
       systemPrompt: buildChatTitleSystemPrompt(),
       tools: [CHAT_TITLE_TOOL],
       messages: [{ role: 'user', content: chatTitlePrompt }],
-      toolChoice: { type: 'function', function: { name: 'set_chat_title' } }
+      toolChoice: { type: 'function', function: { name: 'set_chat_title' } },
+      excludeMcpTools: true
     };
   }
 
@@ -78,7 +85,20 @@ export function resolveChatStepMode(
       systemPrompt: buildScriptAskSystemPrompt(input.scriptAsk),
       tools: [SCRIPT_ASK_TOOL],
       messages: input.messages,
-      toolChoice: { type: 'function', function: { name: 'answer_script' } }
+      toolChoice: { type: 'function', function: { name: 'answer_script' } },
+      excludeMcpTools: true
+    };
+  }
+
+  if (input.agentVariant === 'commitMessage') {
+    const gitDiffTool = AI_TOOL_DEFINITIONS.find(
+      (tool) => tool.type === 'function' && tool.function.name === 'git_diff'
+    );
+    return {
+      systemPrompt: buildGitCommitMessageSystemPrompt(),
+      tools: gitDiffTool ? [gitDiffTool] : [],
+      messages: input.messages,
+      excludeMcpTools: true
     };
   }
 

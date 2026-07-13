@@ -26,6 +26,7 @@ import {
   testGitCredentials
 } from '#/main/git/gitOAuthScheduler';
 import { normalizeGitRemoteToHttps } from '#/shared/gitUrl';
+import { buildGitDiff, type GitDiffResult } from '#/main/git/gitDiff';
 
 /**
  * Returns a RoutingStorage instance or throws when git IPC is unavailable.
@@ -131,6 +132,39 @@ export function registerGitHandlers(db: IStorage): void {
   handle('git:log', ipcArgSchemas.gitLog, async (_event, connectionId, depth) => {
     const gitDb = requireGitStorage(db, connectionId);
     return gitDb.syncManager.log(depth ?? 20);
+  });
+
+  // Returns uncommitted HarborClient-tree diffs for a git-backed collection.
+  handle('git:diff', ipcArgSchemas.gitDiff, async (_event, args) => {
+    const router = requireRoutingStorage(db);
+    const collection = await router.findCollectionByUuid(args.collectionUuid.trim());
+    if (!collection) {
+      return JSON.stringify({
+        error: `Collection not found for uuid "${args.collectionUuid}".`
+      });
+    }
+
+    const connectionId = collection.connectionId?.trim();
+    if (!connectionId) {
+      return JSON.stringify({
+        error: `Collection "${collection.name}" is not stored in a git-backed connection.`
+      });
+    }
+
+    const gitDb = requireGitStorage(db, connectionId);
+    const status = await gitDb.syncManager.getStatus();
+    const diff = await buildGitDiff({
+      repoPath: gitDb.syncManager.repoDir,
+      harborSubdir: status.harborSubdir,
+      maxFiles: args.maxFiles,
+      maxCharsPerFile: args.maxCharsPerFile,
+      maxTotalChars: args.maxTotalChars
+    });
+
+    return JSON.stringify({
+      ...diff,
+      connectionId
+    } satisfies GitDiffResult);
   });
 
   // Saves a personal access token and validates credentials.

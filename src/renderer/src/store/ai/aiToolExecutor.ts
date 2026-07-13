@@ -17,6 +17,7 @@ import {
   type GetActiveResponseToolArgs,
   type GetActiveTerminalLinesToolArgs,
   type GetSidebarItemByUuidToolArgs,
+  type GitDiffToolArgs,
   type ListRequestsToolArgs,
   type QueryResponseBodyToolArgs,
   type SearchDocsToolArgs,
@@ -228,6 +229,8 @@ export async function executeAiTool(
         return JSON.stringify(await createRequestTool(args, ctx));
       case 'search_docs':
         return await window.api.searchDocs(args as SearchDocsToolArgs);
+      case 'git_diff':
+        return await window.api.gitDiff(args as GitDiffToolArgs);
       case 'get_active_terminal':
         return JSON.stringify(getActiveTerminalInfo(ctx.getState()));
       case 'get_active_terminal_lines':
@@ -317,6 +320,7 @@ function formatCollectionForAgent(collection: Collection): {
   id: number;
   uuid: string;
   name: string;
+  connectionId?: string;
   variables: Variable[];
   headers: KeyValue[];
   auth: AuthConfig;
@@ -329,6 +333,7 @@ function formatCollectionForAgent(collection: Collection): {
     id: collection.id,
     uuid: collection.uuid,
     name: collection.name,
+    ...(collection.connectionId ? { connectionId: collection.connectionId } : {}),
     variables: collection.variables,
     headers: collection.headers,
     auth: collection.auth,

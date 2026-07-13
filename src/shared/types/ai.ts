@@ -236,6 +236,11 @@ export interface ChatStepInput {
    * User's first message for AI chat title generation; switches to the title prompt and set_chat_title tool.
    */
   chatTitlePrompt?: string;
+
+  /**
+   * Dedicated agent mode for isolated tool sets (for example commit-message generation).
+   */
+  agentVariant?: 'commitMessage';
 }
 
 /**

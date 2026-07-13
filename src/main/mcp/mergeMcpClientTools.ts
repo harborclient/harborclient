@@ -8,7 +8,7 @@ import { getMcpClientTools } from '#/main/mcp/mcpClientManager';
  * @param stepMode - Resolved chat step configuration.
  */
 export function mergeMcpClientTools(stepMode: ChatStepModeConfig): ChatCompletionTool[] {
-  if (stepMode.toolChoice) {
+  if (stepMode.toolChoice || stepMode.excludeMcpTools) {
     return stepMode.tools;
   }
 

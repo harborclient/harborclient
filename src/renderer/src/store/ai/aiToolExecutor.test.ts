@@ -55,6 +55,7 @@ const sendRequestMock = vi.fn<(req: unknown, requestId?: string) => Promise<Send
 const getCookiesMock = vi.fn<(domain: string) => Promise<KeyValue[]>>();
 const setCookiesMock = vi.fn<(domain: string, cookies: KeyValue[]) => Promise<void>>();
 const searchDocsMock = vi.fn<(args: { query: string }) => Promise<string>>();
+const gitDiffMock = vi.fn<(args: { collectionUuid: string }) => Promise<string>>();
 const writeTerminalMock = vi.fn<(id: string, data: string) => void>();
 
 /**
@@ -180,6 +181,7 @@ beforeEach(() => {
       getCookies: getCookiesMock,
       setCookies: setCookiesMock,
       searchDocs: searchDocsMock,
+      gitDiff: gitDiffMock,
       writeTerminal: writeTerminalMock,
       runScript: vi.fn().mockResolvedValue({ logs: [], tests: [], error: undefined }),
       cancelRequest: vi.fn()
@@ -205,6 +207,8 @@ beforeEach(() => {
   setCookiesMock.mockResolvedValue(undefined);
   searchDocsMock.mockReset();
   searchDocsMock.mockResolvedValue('[]');
+  gitDiffMock.mockReset();
+  gitDiffMock.mockResolvedValue('{"changedFileCount":0,"files":[]}');
   writeTerminalMock.mockReset();
 });
 
@@ -1782,6 +1786,27 @@ describe('executeAiTool', () => {
     );
 
     expect(searchDocsMock).toHaveBeenCalledWith({ query: 'pre-request scripts', limit: 3 });
+    expect(result).toBe(payload);
+  });
+
+  it('delegates git_diff to window.api.gitDiff', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const payload = JSON.stringify({
+      connectionId: 'git-1',
+      changedFileCount: 1,
+      files: [{ path: '.harborclient/collections/foo.json', status: 'modified', binary: false }]
+    });
+    gitDiffMock.mockResolvedValue(payload);
+
+    const result = await executeAiTool(
+      'git_diff',
+      { collectionUuid: '550e8400-e29b-41d4-a716-446655440000' },
+      { getState: store.getState, dispatch: store.dispatch }
+    );
+
+    expect(gitDiffMock).toHaveBeenCalledWith({
+      collectionUuid: '550e8400-e29b-41d4-a716-446655440000'
+    });
     expect(result).toBe(payload);
   });
 

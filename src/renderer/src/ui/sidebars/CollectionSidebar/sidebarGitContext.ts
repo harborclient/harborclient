@@ -12,8 +12,12 @@ export interface SidebarGitContextValue {
 
   /**
    * Opens the in-app source-control panel for a git connection.
+   *
+   * @param connectionId - Git connection id.
+   * @param connectionName - Display name for the connection.
+   * @param collectionUuid - Collection uuid used to resolve git_diff for AI commit messages.
    */
-  openSourceControl: (connectionId: string, connectionName: string) => void;
+  openSourceControl: (connectionId: string, connectionName: string, collectionUuid: string) => void;
 }
 
 /**

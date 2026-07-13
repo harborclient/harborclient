@@ -55,6 +55,17 @@ export interface ApiGit {
    */
   gitLog: (connectionId: string, depth?: number) => Promise<GitLogEntry[]>;
   /**
+   * Returns uncommitted HarborClient-tree diffs for a git-backed collection.
+   *
+   * @param args - Collection uuid and optional diff output caps.
+   */
+  gitDiff: (args: {
+    collectionUuid: string;
+    maxFiles?: number;
+    maxCharsPerFile?: number;
+    maxTotalChars?: number;
+  }) => Promise<string>;
+  /**
    * Stores a PAT for a git-backed connection and validates credentials via fetch.
    *
    * @param connectionId - Git connection id.

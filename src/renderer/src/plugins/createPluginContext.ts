@@ -559,6 +559,12 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
         }
         return registerImportHandlerContribution(pluginId, normalizedExtensions, handler);
       }
+    },
+    mcp: {
+      registerServer: () => {
+        assertPermission('mcp');
+        return { dispose: () => undefined };
+      }
     }
   };
 }

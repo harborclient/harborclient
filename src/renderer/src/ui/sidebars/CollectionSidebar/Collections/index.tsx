@@ -859,7 +859,8 @@ export function Collections(): JSX.Element {
                           onClick={() =>
                             onOpenSourceControl(
                               collectionConnectionId,
-                              connectionName ?? 'Git repository'
+                              connectionName ?? 'Git repository',
+                              collection.uuid
                             )
                           }
                         >
@@ -896,7 +897,27 @@ export function Collections(): JSX.Element {
                                   }
                                 ]
                               ]
-                            }
+                            },
+                            ...(connectionType === 'git' && connectionName != null
+                              ? [
+                                  {
+                                    label: 'Git',
+                                    submenu: [
+                                      [
+                                        {
+                                          label: 'Commit',
+                                          onSelect: () =>
+                                            onOpenSourceControl(
+                                              collectionConnectionId,
+                                              connectionName,
+                                              collection.uuid
+                                            )
+                                        }
+                                      ]
+                                    ]
+                                  }
+                                ]
+                              : [])
                           ],
                           [
                             {
@@ -945,16 +966,6 @@ export function Collections(): JSX.Element {
                             }
                           ],
                           [
-                            ...(connectionType === 'git' && connectionName != null
-                              ? [
-                                  {
-                                    label: 'Source control',
-                                    onSelect: () =>
-                                      onOpenSourceControl(collectionConnectionId, connectionName)
-                                  }
-                                ]
-                              : []),
-
                             ...(canShare
                               ? [
                                   {

@@ -1,12 +1,13 @@
-import { Button, Modal, ModalFooter, Page } from '@harborclient/sdk/components';
+import { Button, FaIcon, Modal, ModalFooter, Page } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { GitIdentity } from '#/shared/types';
 import { normalizeGitHostKey } from '#/shared/gitUrl';
 
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
-import { faGithub } from '#/renderer/src/fontawesome';
+import { faGithub, faPlus } from '#/renderer/src/fontawesome';
 import { GitAuthForm } from '#/renderer/src/ui/git/GitAuthForm';
+import { SettingLabel } from '#/renderer/src/ui/Settings/components/SettingLabel';
 
 /**
  * Settings page for managing shared git host identities.
@@ -114,22 +115,27 @@ export function GitIdentitiesSection(): JSX.Element {
       icon={faGithub}
       description="Manage shared credentials for git hosts. One identity per host is reused by all git-backed collections."
       className="mb-6 flex flex-col"
-    >
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="m-0 text-[14px] text-muted">
-          Credentials are stored per host (for example github.com) and shared across collections.
-        </p>
-        <Button type="button" onClick={() => openEditor()}>
-          Add host
+      actions={[
+        <Button
+          key="add"
+          type="button"
+          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
+          onClick={() => openEditor()}
+        >
+          <FaIcon icon={faPlus} />
+          Add
         </Button>
-      </div>
-
+      ]}
+    >
+      <span className="text-[18px] font-medium text-text mb-2">
+        <SettingLabel settingId="git.identities">Git Identities</SettingLabel>
+      </span>
       {loading ? (
-        <p className="m-0 text-[14px] text-muted" role="status">
+        <p className="m-0 text-muted" role="status">
           Loading git identities…
         </p>
       ) : identities.length === 0 ? (
-        <p className="m-0 text-[14px] text-muted">No git credentials saved yet.</p>
+        <p className="m-0 text-muted">No git credentials saved yet.</p>
       ) : (
         <ul className="m-0 flex list-none flex-col gap-2 p-0">
           {identities.map((identity) => (
@@ -138,8 +144,8 @@ export function GitIdentitiesSection(): JSX.Element {
               className="flex items-center justify-between gap-3 rounded border border-separator px-3 py-2"
             >
               <div className="min-w-0">
-                <p className="m-0 text-[14px] font-medium text-text">{identity.host}</p>
-                <p className="m-0 text-[14px] text-muted">
+                <p className="m-0 font-medium text-text">{identity.host}</p>
+                <p className="m-0 text-muted">
                   {identity.auth.kind === 'oauth'
                     ? 'GitHub OAuth'
                     : `Personal access token (${identity.auth.username})`}
@@ -151,7 +157,7 @@ export function GitIdentitiesSection(): JSX.Element {
                 </Button>
                 <Button
                   type="button"
-                  variant="primaryDanger"
+                  variant="secondary"
                   onClick={() => void handleRemove(identity)}
                 >
                   Remove

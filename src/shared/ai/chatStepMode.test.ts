@@ -40,4 +40,17 @@ describe('resolveChatStepMode', () => {
     const toolNames = config.tools.map(getToolName);
     expect(toolNames).toContain('search_docs');
   });
+
+  it('exposes only git_diff for commit message generation', () => {
+    const config = resolveChatStepMode({
+      model: 'gpt-4o',
+      agentVariant: 'commitMessage',
+      messages: [{ role: 'user', content: 'Generate a commit message' }]
+    });
+
+    const toolNames = config.tools.map(getToolName);
+    expect(toolNames).toEqual(['git_diff']);
+    expect(config.excludeMcpTools).toBe(true);
+    expect(config.systemPrompt).toContain('git_diff');
+  });
 });

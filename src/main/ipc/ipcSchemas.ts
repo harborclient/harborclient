@@ -569,7 +569,8 @@ export const chatCompleteStepInput = z.object({
       phase: z.enum(['pre', 'post'])
     })
     .optional(),
-  chatTitlePrompt: z.string().optional()
+  chatTitlePrompt: z.string().optional(),
+  agentVariant: z.enum(['commitMessage']).optional()
 }) satisfies z.ZodType<ChatStepInput>;
 
 export const sidebarExpansion = z.object({
@@ -837,6 +838,14 @@ export const ipcArgSchemas = {
   backupExport: z.tuple([z.record(z.string(), z.string())]),
   gitCommit: z.tuple([connectionId, z.string().trim().min(1), z.boolean().optional()]),
   gitLog: z.tuple([connectionId, z.number().int().positive().optional()]),
+  gitDiff: z.tuple([
+    z.object({
+      collectionUuid: z.string().trim().min(1),
+      maxFiles: z.number().int().positive().optional(),
+      maxCharsPerFile: z.number().int().positive().optional(),
+      maxTotalChars: z.number().int().positive().optional()
+    })
+  ]),
   gitSetPat: z.tuple([connectionId, z.string(), z.string().min(1)]),
   readGitRemoteUrl: z.tuple([z.string()]),
   gitHost: z.tuple([z.string().min(1)]),

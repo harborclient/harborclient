@@ -25,6 +25,7 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
   const [gitPanel, setGitPanel] = useState<{
     connectionId: string;
     connectionName: string;
+    collectionUuid: string;
   } | null>(null);
 
   /**
@@ -56,9 +57,12 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
   /**
    * Opens the source-control panel for a git connection.
    */
-  const openSourceControl = useCallback((connectionId: string, connectionName: string): void => {
-    setGitPanel({ connectionId, connectionName });
-  }, []);
+  const openSourceControl = useCallback(
+    (connectionId: string, connectionName: string, collectionUuid: string): void => {
+      setGitPanel({ connectionId, connectionName, collectionUuid });
+    },
+    []
+  );
 
   const value = useMemo<SidebarGitContextValue>(
     () => ({ gitStatusesByConnectionId, openSourceControl }),
@@ -73,6 +77,7 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
           open={true}
           connectionId={gitPanel.connectionId}
           connectionName={gitPanel.connectionName}
+          collectionUuid={gitPanel.collectionUuid}
           status={gitStatusesByConnectionId[gitPanel.connectionId] ?? null}
           onClose={() => setGitPanel(null)}
           onRefresh={() => {

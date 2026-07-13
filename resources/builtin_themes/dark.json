@@ -5,6 +5,7 @@
     "surface": "#1e1e1e",
     "sidebar": "#252526",
     "sidebar-section": "#313131",
+    "git-uncommitted": "#313131",
     "control": "#3a3a3c",
     "field": "#191919",
     "separator": "rgba(255, 255, 255, 0.08)",

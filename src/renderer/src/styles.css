@@ -42,6 +42,7 @@
   --color-sidebar: var(--mac-sidebar);
   --color-sidebar-toolbar: var(--mac-sidebar-toolbar);
   --color-sidebar-section: var(--mac-sidebar-section);
+  --color-git-uncommitted: var(--mac-git-uncommitted);
   --color-control: var(--mac-control);
   --color-field: var(--mac-field);
   --color-separator: var(--mac-separator);
@@ -93,6 +94,7 @@
     --mac-sidebar: #ececee;
     --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 94%, black);
     --mac-sidebar-section: var(--mac-selection);
+    --mac-git-uncommitted: var(--mac-selection);
     --mac-control: #ffffff;
     --mac-field: var(--mac-control);
     --mac-separator: rgba(0, 0, 0, 0.08);
@@ -142,6 +144,7 @@
       --mac-sidebar: #252526;
       --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 94%, black);
       --mac-sidebar-section: color-mix(in srgb, var(--mac-sidebar) 86%, black);
+      --mac-git-uncommitted: color-mix(in srgb, var(--mac-sidebar) 86%, black);
       --mac-control: #3a3a3c;
       --mac-field: color-mix(in srgb, black 16%, var(--mac-surface));
       --mac-separator: rgba(255, 255, 255, 0.08);
@@ -177,6 +180,7 @@
     --mac-sidebar: #252526;
     --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 94%, black);
     --mac-sidebar-section: color-mix(in srgb, var(--mac-sidebar) 86%, black);
+    --mac-git-uncommitted: color-mix(in srgb, var(--mac-sidebar) 86%, black);
     --mac-control: #3a3a3c;
     --mac-field: color-mix(in srgb, black 16%, var(--mac-surface));
     --mac-separator: rgba(255, 255, 255, 0.08);
@@ -221,6 +225,7 @@
     --mac-sidebar: #000000;
     --mac-sidebar-toolbar: #141414;
     --mac-sidebar-section: #000000;
+    --mac-git-uncommitted: #000000;
     --mac-control: #000000;
     --mac-field: #141414;
     --mac-separator: #9e9e9e;
@@ -262,6 +267,7 @@
       --mac-sidebar: Canvas;
       --mac-sidebar-toolbar: Canvas;
       --mac-sidebar-section: Canvas;
+      --mac-git-uncommitted: Canvas;
       --mac-control: Canvas;
       --mac-field: Field;
       --mac-terminal: Canvas;

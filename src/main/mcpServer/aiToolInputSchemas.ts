@@ -143,6 +143,12 @@ const AI_TOOL_INPUT_SHAPES: Record<AiToolName, Record<string, z.ZodType>> = {
   },
   get_markdown_document: {
     uuid: z.string()
+  },
+  git_diff: {
+    collectionUuid: z.string(),
+    maxFiles: z.number().optional(),
+    maxCharsPerFile: z.number().optional(),
+    maxTotalChars: z.number().optional()
   }
 };
 
