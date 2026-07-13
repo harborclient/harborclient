@@ -1,4 +1,6 @@
 import { shell } from 'electron';
+import * as git from 'isomorphic-git';
+import fs from 'fs';
 import { GitStorage } from '#/main/storage/GitStorage';
 import type { IStorage } from '#/main/storage/IStorage';
 import { RoutingStorage } from '#/main/storage/RoutingStorage';
@@ -10,6 +12,7 @@ import {
   scheduleGitHubOAuthCompletion,
   testGitCredentials
 } from '#/main/git/gitOAuthScheduler';
+import { normalizeGitRemoteToHttps } from '#/shared/gitUrl';
 
 /**
  * Returns a RoutingStorage instance or throws when git IPC is unavailable.
@@ -137,5 +140,16 @@ export function registerGitHandlers(db: IStorage): void {
   handle('git:revokeOAuth', ipcArgSchemas.connectionId, async (_event, connectionId) => {
     cancelGitHubOAuthCompletion(connectionId);
     revokeGitHubOAuth(connectionId);
+  });
+
+  // Reads the origin remote URL from a local repository path, normalized to HTTPS.
+  handle('git:readRemoteUrl', ipcArgSchemas.readGitRemoteUrl, async (_event, repoPath) => {
+    try {
+      const remotes = await git.listRemotes({ fs, dir: repoPath });
+      const origin = remotes.find((remote) => remote.remote === 'origin') ?? remotes[0];
+      return origin ? normalizeGitRemoteToHttps(origin.url) : null;
+    } catch {
+      return null;
+    }
   });
 }

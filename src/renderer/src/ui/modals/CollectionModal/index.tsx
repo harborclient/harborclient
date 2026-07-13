@@ -1,9 +1,13 @@
-import { useCallback, useEffect, useId, type JSX } from 'react';
+import { useCallback, useEffect, useId, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   closeCollectionModal,
   selectCollectionModal,
+  setCollectionModalGitCollectionCreated,
+  setCollectionModalGitCreatedConnectionId,
+  setCollectionModalGitDraft,
+  setCollectionModalGitPhase,
   setCollectionModalShareTokenInput,
   setCollectionModalName,
   setCollectionModalProviderId,
@@ -13,6 +17,9 @@ import {
 import {
   joinSharedCollection,
   createCollection,
+  createGitCollection,
+  createGitConnectionForCollection,
+  deleteOrphanGitConnection,
   importCollection,
   saveRequest
 } from '#/renderer/src/store/thunks';
@@ -26,18 +33,21 @@ import { FieldError } from '@harborclient/sdk/components';
 import { StatusMessage } from '@harborclient/sdk/components';
 import { formatErrorMessage } from '#/renderer/src/ui/modals/dialogHelpers';
 
+import { GitTabPanel } from './GitTabPanel';
+
 /**
- * Modal for creating a collection, importing from file, or joining a shared collection.
+ * Modal for creating a collection, importing from file, joining a shared collection, or linking Git.
  */
 export function CollectionModal(): JSX.Element | null {
   const dispatch = useAppDispatch();
   const collectionModal = useAppSelector(selectCollectionModal);
+  const [gitBusy, setGitBusy] = useState(false);
   const {
     providers,
     primaryProviderId,
     loading: providersLoading,
     error: providersError
-  } = useProviders([], { excludeAdminTeamHubs: true });
+  } = useProviders([], { excludeAdminTeamHubs: true, excludeGit: true });
   const providerSelectId = useId();
 
   /**
@@ -49,11 +59,28 @@ export function CollectionModal(): JSX.Element | null {
   }, [collectionModal, dispatch, primaryProviderId]);
 
   /**
+   * Removes an orphaned git connection created during a canceled Git tab flow.
+   */
+  const cleanupOrphanGitConnection = useCallback(async (): Promise<void> => {
+    if (!collectionModal?.gitCreatedConnectionId || collectionModal.gitCollectionCreated) {
+      return;
+    }
+
+    try {
+      await dispatch(deleteOrphanGitConnection(collectionModal.gitCreatedConnectionId)).unwrap();
+    } catch {
+      // Best-effort cleanup when the user dismisses before collection creation.
+    }
+  }, [collectionModal, dispatch]);
+
+  /**
    * Closes the collection modal and resets modal state.
    */
   const handleClose = useCallback((): void => {
-    dispatch(closeCollectionModal());
-  }, [dispatch]);
+    void cleanupOrphanGitConnection().finally(() => {
+      dispatch(closeCollectionModal());
+    });
+  }, [cleanupOrphanGitConnection, dispatch]);
 
   /**
    * Creates a collection, optionally saving the current draft into it.
@@ -84,6 +111,79 @@ export function CollectionModal(): JSX.Element | null {
       );
     }
   }, [collectionModal, dispatch, primaryProviderId]);
+
+  /**
+   * Saves the git connection draft and advances to inline authentication.
+   */
+  const handleGitContinue = useCallback(async (): Promise<void> => {
+    if (!collectionModal) return;
+    const name = collectionModal.name.trim();
+    const { repoPath, url, branch } = collectionModal.gitDraft.settings;
+    if (!name || !repoPath.trim() || !url.trim()) return;
+
+    dispatch(setCollectionModalSubmitError(null));
+    setGitBusy(true);
+    try {
+      const saved = await dispatch(
+        createGitConnectionForCollection({
+          name,
+          repoPath,
+          url,
+          branch
+        })
+      ).unwrap();
+      dispatch(setCollectionModalGitDraft(saved));
+      dispatch(setCollectionModalGitCreatedConnectionId(saved.id));
+      dispatch(setCollectionModalGitPhase('auth'));
+    } catch (err) {
+      dispatch(
+        setCollectionModalSubmitError(formatErrorMessage(err, 'Failed to save git connection'))
+      );
+    } finally {
+      setGitBusy(false);
+    }
+  }, [collectionModal, dispatch]);
+
+  /**
+   * Creates a git-backed collection in the connection saved during the repo phase.
+   */
+  const handleGitCreate = useCallback(async (): Promise<void> => {
+    if (!collectionModal?.gitCreatedConnectionId) return;
+    const name = collectionModal.name.trim();
+    if (!name) return;
+
+    dispatch(setCollectionModalSubmitError(null));
+    setGitBusy(true);
+    try {
+      const collection = await dispatch(
+        createGitCollection({
+          name,
+          connectionId: collectionModal.gitCreatedConnectionId
+        })
+      ).unwrap();
+      dispatch(setCollectionModalGitCollectionCreated(true));
+      if (collectionModal.mode === 'create-and-save') {
+        await dispatch(saveRequest(collection.id)).unwrap();
+        toast.success('Request saved');
+      } else {
+        toast.success('Collection created');
+      }
+      dispatch(closeCollectionModal());
+    } catch (err) {
+      dispatch(
+        setCollectionModalSubmitError(
+          formatErrorMessage(
+            err,
+            collectionModal.mode === 'create-and-save'
+              ? 'Failed to save request'
+              : 'Failed to create collection'
+          )
+        )
+      );
+    } finally {
+      setGitBusy(false);
+    }
+  }, [collectionModal, dispatch]);
 
   /**
    * Imports a collection from a JSON file selected via a native dialog.
@@ -185,9 +285,10 @@ export function CollectionModal(): JSX.Element | null {
               editable={false}
               className="[&_button]:whitespace-nowrap"
               tabs={[
-                { value: 'create', label: 'Create new' },
-                { value: 'import', label: 'Import from file' },
-                { value: 'join', label: 'Join shared collection' }
+                { value: 'create', label: 'Storage' },
+                { value: 'git', label: 'Git' },
+                { value: 'import', label: 'Import' },
+                { value: 'join', label: 'Join collection' }
               ]}
             />
           </div>
@@ -199,12 +300,12 @@ export function CollectionModal(): JSX.Element | null {
           )}
 
           <SegmentedTabPanel value="join">
-            <p className="mb-3 text-[14px] text-muted">
+            <p className="mb-3 text-muted">
               Paste a share token from a trusted sender. Add their public key under File → Sharing
               Keys first. Restart HarborClient after joining to load collections from that database.
             </p>
             <Textarea
-              className="min-h-28 w-full resize-y font-mono text-[14px]"
+              className="min-h-28 w-full resize-y font-mono"
               autoFocus
               placeholder="Paste share token"
               value={collectionModal.shareTokenInput}
@@ -244,8 +345,26 @@ export function CollectionModal(): JSX.Element | null {
             </ModalFooter>
           </SegmentedTabPanel>
 
+          <SegmentedTabPanel value="git">
+            <GitTabPanel
+              name={collectionModal.name}
+              gitDraft={collectionModal.gitDraft}
+              gitPhase={collectionModal.gitPhase}
+              busy={gitBusy}
+              createAndSave={collectionModal.mode === 'create-and-save'}
+              onNameChange={(nextName) => dispatch(setCollectionModalName(nextName))}
+              onGitDraftChange={(connection) => {
+                if (connection.type === 'git') {
+                  dispatch(setCollectionModalGitDraft(connection));
+                }
+              }}
+              onContinue={() => void handleGitContinue()}
+              onCreate={() => void handleGitCreate()}
+            />
+          </SegmentedTabPanel>
+
           <SegmentedTabPanel value="import">
-            <p className="mb-4 text-[14px] text-muted">
+            <p className="mb-4 text-muted">
               Choose a HarborClient or Postman collection export (.json), a Bruno collection
               manifest (bruno.json), or a browser HAR capture (.har) to import all saved requests.
             </p>

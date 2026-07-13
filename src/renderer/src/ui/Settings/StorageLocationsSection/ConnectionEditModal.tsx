@@ -55,7 +55,7 @@ export function ConnectionEditModal({
 }: Props): JSX.Element {
   return (
     <Modal
-      className="w-[480px]"
+      className="w-[680px] max-w-[90vw]"
       labelledBy="storage-connection-edit-title"
       onClose={onCancel}
       title={isNew ? 'Add storage location' : 'Edit storage location'}

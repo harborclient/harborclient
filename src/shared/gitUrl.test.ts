@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { gitRemoteHostname, isGitHubRepositoryUrl } from '#/shared/gitUrl';
+import {
+  gitRemoteHostname,
+  isGitHubRepositoryUrl,
+  normalizeGitRemoteToHttps
+} from '#/shared/gitUrl';
 
 describe('gitRemoteHostname', () => {
   it('extracts hostname from absolute HTTPS URLs', () => {
@@ -34,5 +38,33 @@ describe('isGitHubRepositoryUrl', () => {
   it('returns false for blank or unparseable values', () => {
     expect(isGitHubRepositoryUrl('')).toBe(false);
     expect(isGitHubRepositoryUrl('not a url')).toBe(false);
+  });
+});
+
+describe('normalizeGitRemoteToHttps', () => {
+  it('returns HTTPS URLs unchanged', () => {
+    expect(normalizeGitRemoteToHttps('https://github.com/org/repo.git')).toBe(
+      'https://github.com/org/repo.git'
+    );
+    expect(normalizeGitRemoteToHttps('http://gitlab.com/org/repo.git')).toBe(
+      'http://gitlab.com/org/repo.git'
+    );
+  });
+
+  it('converts scp-style SSH remotes to HTTPS', () => {
+    expect(normalizeGitRemoteToHttps('git@github.com:org/repo.git')).toBe(
+      'https://github.com/org/repo.git'
+    );
+  });
+
+  it('converts ssh:// remotes to HTTPS', () => {
+    expect(normalizeGitRemoteToHttps('ssh://git@github.com/org/repo.git')).toBe(
+      'https://github.com/org/repo.git'
+    );
+  });
+
+  it('returns trimmed input for unrecognized formats', () => {
+    expect(normalizeGitRemoteToHttps('  file:///tmp/repo  ')).toBe('file:///tmp/repo');
+    expect(normalizeGitRemoteToHttps('')).toBe('');
   });
 });

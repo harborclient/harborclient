@@ -14,6 +14,7 @@ import type {
   TabGroup
 } from '#/shared/types';
 import type { InsertTrashItemInput, TrashEntityType, TrashItem } from '#/shared/types/trash';
+import { deleteStorageConnection, listStorageConnections } from '#/main/settings/storageSettings';
 
 /**
  * Folder trash payload containing the folder and all direct child items.
@@ -133,14 +134,32 @@ export class TrashService {
    * @param id - Trash row id.
    */
   permanentlyDeleteTrashItem(id: number): void {
+    const item = this.database.getTrashItem(id);
+    if (!item) {
+      throw new Error('Trash item not found');
+    }
+
+    const connectionId = item.entityType === 'collection' ? item.connectionId : null;
     this.database.deleteTrashItem(id);
+    if (connectionId) {
+      this.tryCleanupGitConnection(connectionId);
+    }
   }
 
   /**
    * Permanently deletes every trash snapshot row.
    */
   emptyTrash(): void {
+    const gitConnectionIds = new Set(
+      this.database
+        .listTrashItems()
+        .filter((item) => item.entityType === 'collection' && item.connectionId)
+        .map((item) => item.connectionId as string)
+    );
     this.database.clearTrash();
+    for (const connectionId of gitConnectionIds) {
+      this.tryCleanupGitConnection(connectionId);
+    }
   }
 
   /**
@@ -573,6 +592,38 @@ export class TrashService {
       requests: payload.tabGroup.requests.map((request) => ({ ...request }))
     };
     this.database.createTabGroup(input);
+  }
+
+  /**
+   * Deletes a git connection when no collections remain in the registry or trash.
+   *
+   * @param connectionId - Storage connection id from a purged collection trash row.
+   */
+  private tryCleanupGitConnection(connectionId: string): void {
+    const connection = listStorageConnections().find((item) => item.id === connectionId);
+    if (!connection || connection.type !== 'git') {
+      return;
+    }
+
+    const stillRegistered = this.database
+      .listRegistry()
+      .some((entry) => entry.connectionId === connectionId);
+    if (stillRegistered) {
+      return;
+    }
+
+    const stillInTrash = this.database
+      .listTrashItems()
+      .some((item) => item.entityType === 'collection' && item.connectionId === connectionId);
+    if (stillInTrash) {
+      return;
+    }
+
+    try {
+      deleteStorageConnection(connectionId);
+    } catch (err) {
+      console.warn(`Failed to remove orphaned git connection "${connectionId}":`, err);
+    }
   }
 
   /**

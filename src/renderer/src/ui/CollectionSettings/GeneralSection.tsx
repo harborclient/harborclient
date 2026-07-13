@@ -55,6 +55,11 @@ interface Props {
    * Closes the settings view without saving (triggered by Escape in the name field).
    */
   onClose: () => void;
+
+  /**
+   * When false, hides the provider move selector for git-backed collections.
+   */
+  showProviderSelect?: boolean;
 }
 
 /**
@@ -70,7 +75,8 @@ export function GeneralSection({
   providersError,
   onProvidersRetry,
   onSave,
-  onClose
+  onClose,
+  showProviderSelect = true
 }: Props): JSX.Element {
   const providerId = useId();
   const providerSelectDisabled = providersLoading || providersError != null;
@@ -98,30 +104,32 @@ export function GeneralSection({
         </FormGroup>
       </div>
 
-      <div>
-        <FormGroup
-          label="Provider"
-          htmlFor={providerId}
-          labelTone="muted"
-          description="Changing the provider moves this collection and all of its requests."
-        >
-          <Select
-            id={providerId}
-            className="w-full"
-            value={connectionId}
-            disabled={providerSelectDisabled}
-            onChange={(e) => onConnectionIdChange(e.target.value)}
+      {showProviderSelect ? (
+        <div>
+          <FormGroup
+            label="Provider"
+            htmlFor={providerId}
+            labelTone="muted"
+            description="Changing the provider moves this collection and all of its requests."
           >
-            {providers.map((provider) => (
-              <option key={provider.id} value={provider.id}>
-                {provider.name || 'Untitled'} ({providerOptionLabel(provider)})
-              </option>
-            ))}
-          </Select>
-          {providersLoading && <LoadingMessage className="mb-0 mt-1">Loading…</LoadingMessage>}
-          {providersError && <ErrorRetry error={providersError} onRetry={onProvidersRetry} />}
-        </FormGroup>
-      </div>
+            <Select
+              id={providerId}
+              className="w-full"
+              value={connectionId}
+              disabled={providerSelectDisabled}
+              onChange={(e) => onConnectionIdChange(e.target.value)}
+            >
+              {providers.map((provider) => (
+                <option key={provider.id} value={provider.id}>
+                  {provider.name || 'Untitled'} ({providerOptionLabel(provider)})
+                </option>
+              ))}
+            </Select>
+            {providersLoading && <LoadingMessage className="mb-0 mt-1">Loading…</LoadingMessage>}
+            {providersError && <ErrorRetry error={providersError} onRetry={onProvidersRetry} />}
+          </FormGroup>
+        </div>
+      ) : null}
     </div>
   );
 }

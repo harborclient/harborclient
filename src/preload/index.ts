@@ -2232,6 +2232,18 @@ function gitRevokeOAuth(connectionId: string): Promise<void> {
 }
 
 /**
+ * Reads the origin remote URL from a local git repository path.
+ *
+ * SSH remotes are normalized to HTTPS. Returns null when the path is not a git
+ * repository or has no configured remotes.
+ *
+ * @param repoPath - Absolute path to a local git working tree.
+ */
+function gitReadRemoteUrl(repoPath: string): Promise<string | null> {
+  return ipcRenderer.invoke('git:readRemoteUrl', repoPath);
+}
+
+/**
  * Fetches or returns a cached OAuth 2.0 access token using Client Credentials.
  *
  * @param cacheKey - Stable cache key; empty string skips persistence.
@@ -3457,6 +3469,7 @@ const api: Api = {
   gitStartOAuth,
   gitCompleteOAuth,
   gitRevokeOAuth,
+  gitReadRemoteUrl,
   oauthFetchToken,
   oauthClearToken,
   getAutocompleteValues,

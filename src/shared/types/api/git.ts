@@ -83,4 +83,13 @@ export interface ApiGit {
    * @param connectionId - Git connection id.
    */
   gitRevokeOAuth: (connectionId: string) => Promise<void>;
+  /**
+   * Reads the origin remote URL from a local git repository path.
+   *
+   * SSH remotes are normalized to HTTPS. Returns null when the path is not a git
+   * repository or has no configured remotes.
+   *
+   * @param repoPath - Absolute path to a local git working tree.
+   */
+  gitReadRemoteUrl: (repoPath: string) => Promise<string | null>;
 }

@@ -122,7 +122,7 @@ export function StorageLocationsSection(): JSX.Element {
       setEditingConnection(null);
       setIsNew(false);
 
-      if (savingNew) {
+      if (savingNew && payload.type !== 'git') {
         try {
           const discovered = await window.api.listUnregisteredCollections(payload.id);
           if (discovered.length > 0) {
@@ -230,6 +230,7 @@ export function StorageLocationsSection(): JSX.Element {
   };
 
   const sqliteCount = connections.filter((connection) => connection.type === 'sqlite').length;
+  const visibleConnections = connections.filter((connection) => connection.type !== 'git');
   const { label, icon } = settingsSectionMeta('storage');
   const storageCatalog = sectionEntryBySection('storage');
 
@@ -265,7 +266,7 @@ export function StorageLocationsSection(): JSX.Element {
           </div>
           <AsyncListState loading={loading} error={bootstrapError} onRetry={reloadConnections}>
             <ResourceList className="flex flex-col gap-4">
-              {connections.map((connection) => {
+              {visibleConnections.map((connection) => {
                 const isActive = connection.id === activeId;
                 const isLastSqlite = connection.type === 'sqlite' && sqliteCount <= 1;
                 const cannotDelete = connections.length <= 1 || isLastSqlite;

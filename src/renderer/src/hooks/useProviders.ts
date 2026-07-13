@@ -44,6 +44,11 @@ export interface UseProvidersOptions {
    * Provider id to keep in the list even when it is an admin hub (current collection provider).
    */
   retainConnectionId?: string;
+
+  /**
+   * When true, omits git-backed storage connections from collection provider pickers.
+   */
+  excludeGit?: boolean;
 }
 
 /**
@@ -200,6 +205,22 @@ function resolvePrimaryProviderId(providers: ProviderOption[], activeDatabaseId:
 }
 
 /**
+ * Removes git-backed database connections from a provider list for collection pickers.
+ *
+ * @param providers - Full merged provider list from IPC.
+ * @param retainConnectionId - Optional provider id to keep even when it is git-backed.
+ * @returns Filtered provider options without git storage locations.
+ */
+export function filterGitProviders(
+  providers: ProviderOption[],
+  retainConnectionId?: string
+): ProviderOption[] {
+  return providers.filter(
+    (provider) => provider.type !== 'git' || provider.id === retainConnectionId
+  );
+}
+
+/**
  * Loads database connections and team hubs via IPC and merges them into one provider list.
  *
  * @param deps - Optional effect dependencies; when they change the hook refetches.
@@ -213,6 +234,7 @@ export function useProviders(
   const {
     excludeAdminTeamHubs = false,
     excludeSnippetUnsupportedTeamHubs = false,
+    excludeGit = false,
     retainConnectionId
   } = options;
   const [providers, setProviders] = useState<ProviderOption[]>([]);
@@ -285,6 +307,9 @@ export function useProviders(
             retainConnectionId
           );
         }
+        if (excludeGit) {
+          visibleProviders = filterGitProviders(visibleProviders, retainConnectionId);
+        }
         setProviders(visibleProviders);
         setPrimaryProviderId(resolvePrimaryProviderId(visibleProviders, activeDatabaseId));
         setLoading(false);
@@ -301,6 +326,7 @@ export function useProviders(
   }, [
     excludeAdminTeamHubs,
     excludeSnippetUnsupportedTeamHubs,
+    excludeGit,
     retainConnectionId,
     reloadToken,
     extraEffectDepsKey

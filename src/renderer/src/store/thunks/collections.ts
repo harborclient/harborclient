@@ -10,6 +10,7 @@ import type {
   ImportEntityResult,
   KeyValue,
   ScriptRef,
+  StorageConnection,
   Variable
 } from '#/shared/types';
 import { mirrorLegacyScriptString } from '#/shared/scriptRefs';
@@ -63,6 +64,18 @@ import { closeTab } from '#/renderer/src/store/slices/tabsSlice';
 import { requestLoadRequest } from '#/renderer/src/store/thunks/requests';
 
 const COLLECTIONS_REFRESH_KEY = 'collections';
+
+/**
+ * Prefix for per-collection git working trees inside a shared repository.
+ */
+const PER_COLLECTION_GIT_SUBDIR_PREFIX = '.harborclient/';
+
+/**
+ * Builds an isolated HarborClient subdirectory for a single git-backed collection.
+ */
+export function buildPerCollectionGitSubdir(): string {
+  return `${PER_COLLECTION_GIT_SUBDIR_PREFIX}${crypto.randomUUID()}`;
+}
 
 /**
  * Returns true when a tab is the initial pristine unsaved default request tab.
@@ -224,6 +237,61 @@ export const createCollection = createAsyncThunk<
   dispatch(setSelectedCollectionId(collection.id));
   return collection;
 });
+
+/**
+ * Persists a git connection for a new collection with an isolated subdir and mounts it.
+ */
+export const createGitConnectionForCollection = createAsyncThunk<
+  StorageConnection & { type: 'git' },
+  { name: string; repoPath: string; url: string; branch: string },
+  ThunkApiConfig
+>('collections/createGitConnection', async ({ name, repoPath, url, branch }) => {
+  const connectionId = crypto.randomUUID();
+  const connection: StorageConnection = {
+    id: connectionId,
+    name: name.trim() || 'Git collection',
+    type: 'git',
+    collectionDiscoverySkipped: true,
+    settings: {
+      repoPath: repoPath.trim(),
+      url: url.trim(),
+      branch: branch.trim() || 'main',
+      subdir: buildPerCollectionGitSubdir(),
+      auth: { kind: 'pat', username: 'token' }
+    }
+  };
+  await window.api.saveStorageConnection(connection);
+  const connections = await window.api.listStorageConnections();
+  const saved = connections.find((item) => item.id === connectionId);
+  if (!saved || saved.type !== 'git') {
+    throw new Error('Failed to save git connection.');
+  }
+  return saved;
+});
+
+/**
+ * Creates a collection in an existing git connection and selects it in the sidebar.
+ */
+export const createGitCollection = createAsyncThunk<
+  Collection,
+  { name: string; connectionId: string },
+  ThunkApiConfig
+>('collections/createGitCollection', async ({ name, connectionId }, { dispatch }) => {
+  const collection = await window.api.createCollection(name, connectionId);
+  await dispatch(refreshCollections());
+  dispatch(setSelectedCollectionId(collection.id));
+  return collection;
+});
+
+/**
+ * Removes a git connection that was created for collection setup but never linked to a collection.
+ */
+export const deleteOrphanGitConnection = createAsyncThunk<void, string, ThunkApiConfig>(
+  'collections/deleteOrphanGitConnection',
+  async (connectionId) => {
+    await window.api.deleteStorageConnection(connectionId);
+  }
+);
 
 /**
  * Updates collection metadata and optionally moves it to another database connection.

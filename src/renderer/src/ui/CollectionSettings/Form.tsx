@@ -8,16 +8,25 @@ import {
   SegmentedTabsGroup
 } from '@harborclient/sdk/components';
 import { useEffect, useMemo, useState, type JSX } from 'react';
-import type { AuthConfig, Collection, KeyValue, ScriptRef, Variable } from '#/shared/types';
+import type {
+  AuthConfig,
+  Collection,
+  KeyValue,
+  ScriptRef,
+  StorageConnection,
+  Variable
+} from '#/shared/types';
 import { normalizeAuth } from '#/shared/auth';
 import { ensureDefaultScriptRef, hasScriptContent, resolveScriptRefs } from '#/shared/scriptRefs';
 import { useProviders } from '#/renderer/src/hooks/useProviders';
+import { useStorageConnections } from '#/renderer/src/hooks/useStorageConnections';
 import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import { usePluginCollectionSettingsTabs } from '#/renderer/src/plugins/pluginHooks';
 import type { CollectionSettingsTabContext } from '#/shared/plugin/types';
 import { emptyKeyValue } from '#/renderer/src/store/drafts';
 import { AuthSection } from './AuthSection';
 import { GeneralSection } from './GeneralSection';
+import { GitSection } from './GitSection';
 import { HeadersSection } from './HeadersSection';
 import { ScriptSection } from './ScriptSection';
 import {
@@ -111,6 +120,26 @@ export function Form({
   );
   const [connectionId, setConnectionId] = useState(collection.connectionId ?? '');
   const [saving, setSaving] = useState(false);
+  const [gitConnectionDraft, setGitConnectionDraft] = useState<
+    (StorageConnection & { type: 'git' }) | null
+  >(null);
+  const [gitDraftConnectionId, setGitDraftConnectionId] = useState<string | null>(null);
+
+  const {
+    connections: storageConnections,
+    loading: storageConnectionsLoading,
+    reload: reloadStorageConnections
+  } = useStorageConnections([collection.connectionId]);
+  const persistedGitConnection = useMemo((): (StorageConnection & { type: 'git' }) | null => {
+    const match = storageConnections.find(
+      (connection) => connection.id === collection.connectionId
+    );
+    return match?.type === 'git' ? match : null;
+  }, [collection.connectionId, storageConnections]);
+  const gitConnection =
+    gitConnectionDraft && gitDraftConnectionId === collection.connectionId
+      ? gitConnectionDraft
+      : persistedGitConnection;
 
   const {
     providers,
@@ -120,10 +149,24 @@ export function Form({
     reload: reloadProviders
   } = useProviders([collection.connectionId], {
     excludeAdminTeamHubs: true,
+    excludeGit: true,
     retainConnectionId: collection.connectionId
   });
 
   const resolvedConnectionId = connectionId || collection.connectionId || primaryProviderId;
+  const isGitBacked = gitConnection != null;
+
+  /**
+   * Whether git repository settings differ from the persisted connection snapshot.
+   */
+  const isGitDirty = useMemo(() => {
+    if (!gitConnection || !persistedGitConnection) {
+      return false;
+    }
+    return (
+      JSON.stringify(gitConnection.settings) !== JSON.stringify(persistedGitConnection.settings)
+    );
+  }, [gitConnection, persistedGitConnection]);
 
   /**
    * Whether any editable field differs from the persisted collection snapshot.
@@ -141,15 +184,15 @@ export function Form({
         auth,
         resolvedConnectionId
       ) !==
-      serializeCollectionForm(
-        collection.name,
-        collection.variables,
-        collection.headers,
-        resolveScriptRefs(collection.pre_request_scripts, collection.pre_request_script ?? ''),
-        resolveScriptRefs(collection.post_request_scripts, collection.post_request_script ?? ''),
-        normalizeAuth(collection.auth),
-        collection.connectionId || primaryProviderId
-      ),
+        serializeCollectionForm(
+          collection.name,
+          collection.variables,
+          collection.headers,
+          resolveScriptRefs(collection.pre_request_scripts, collection.pre_request_script ?? ''),
+          resolveScriptRefs(collection.post_request_scripts, collection.post_request_script ?? ''),
+          normalizeAuth(collection.auth),
+          collection.connectionId || primaryProviderId
+        ) || isGitDirty,
     [
       name,
       variables,
@@ -159,7 +202,8 @@ export function Form({
       auth,
       resolvedConnectionId,
       collection,
-      primaryProviderId
+      primaryProviderId,
+      isGitDirty
     ]
   );
 
@@ -169,8 +213,8 @@ export function Form({
    * cause a spurious dirty flicker during load.
    */
   useEffect(() => {
-    onDirtyChange?.(!providersLoading ? isDirty : false);
-  }, [isDirty, providersLoading, onDirtyChange]);
+    onDirtyChange?.(!providersLoading && !storageConnectionsLoading ? isDirty : false);
+  }, [isDirty, providersLoading, storageConnectionsLoading, onDirtyChange]);
 
   /**
    * Dot indicators for tabs whose sections have content configured.
@@ -204,6 +248,7 @@ export function Form({
   const tabs = useMemo(
     () => [
       { value: 'general', label: 'General' },
+      ...(isGitBacked ? [{ value: 'git', label: 'Git' }] : []),
       { value: 'variables', label: 'Variables', indicator: tabIndicators.variables },
       { value: 'headers', label: 'Headers', indicator: tabIndicators.headers },
       { value: 'auth', label: 'Authorization', indicator: tabIndicators.auth },
@@ -211,7 +256,7 @@ export function Form({
       { value: 'post', label: 'PostRequest', indicator: tabIndicators.post },
       ...pluginTabs.map((entry) => ({ value: entry.id, label: entry.title }))
     ],
-    [pluginTabs, tabIndicators]
+    [isGitBacked, pluginTabs, tabIndicators]
   );
 
   /**
@@ -241,6 +286,12 @@ export function Form({
     const cleanedHeaders = cleanHeaders(headers);
     setSaving(true);
     try {
+      if (isGitBacked && gitConnection && isGitDirty) {
+        await window.api.saveStorageConnection(gitConnection);
+        setGitConnectionDraft(null);
+        setGitDraftConnectionId(null);
+        reloadStorageConnections();
+      }
       await onSave(
         collection.id,
         trimmedName,
@@ -286,8 +337,21 @@ export function Form({
               onProvidersRetry={reloadProviders}
               onSave={() => void handleSave()}
               onClose={onClose}
+              showProviderSelect={!isGitBacked}
             />
           </SegmentedTabPanel>
+          {isGitBacked && gitConnection ? (
+            <SegmentedTabPanel value="git">
+              <GitSection
+                connection={gitConnection}
+                disabled={saving}
+                onChange={(next) => {
+                  setGitDraftConnectionId(collection.connectionId ?? null);
+                  setGitConnectionDraft(next);
+                }}
+              />
+            </SegmentedTabPanel>
+          ) : null}
           <SegmentedTabPanel value="variables">
             <VariablesSection
               variables={variables}

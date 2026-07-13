@@ -6,7 +6,7 @@ import {
   SegmentedTabsGroup,
   Input
 } from '@harborclient/sdk/components';
-import { useCallback, useEffect, useId, useState, type JSX } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { StorageConnection, GitSettings } from '#/shared/types';
 import { isGitHubRepositoryUrl } from '#/shared/gitUrl';
@@ -54,6 +54,15 @@ export function GitFields({ connection, disabled = false, onChange }: Props): JS
   const patTokenId = useId();
   const oauthClientIdId = useId();
   const repoPathId = useId();
+  const connectionRef = useRef(connection);
+  const pendingRepoPathRef = useRef<string | null>(null);
+
+  /**
+   * Keeps the latest connection draft available for async repo-path autofill callbacks.
+   */
+  useEffect(() => {
+    connectionRef.current = connection;
+  }, [connection]);
 
   const authDisabled = disabled || authBusy;
   const isGitHubUrl = isGitHubRepositoryUrl(settings.url);
@@ -71,6 +80,39 @@ export function GitFields({ connection, disabled = false, onChange }: Props): JS
       });
     },
     [connection, onChange]
+  );
+
+  /**
+   * Updates the repository path and auto-fills the HTTPS URL when the chosen path
+   * is a git repo with a remote and the URL field is still empty.
+   *
+   * @param path - Repository path from browse or manual entry.
+   */
+  const applyRepoPath = useCallback(
+    async (path: string): Promise<void> => {
+      pendingRepoPathRef.current = path;
+      const current = connectionRef.current;
+      onChange({
+        ...current,
+        settings: { ...current.settings, repoPath: path }
+      });
+
+      const remoteUrl = await window.api.gitReadRemoteUrl(path);
+      if (pendingRepoPathRef.current !== path) {
+        return;
+      }
+
+      const latest = connectionRef.current;
+      if (!remoteUrl?.trim() || latest.settings.url.trim().length > 0) {
+        return;
+      }
+
+      onChange({
+        ...latest,
+        settings: { ...latest.settings, repoPath: path, url: remoteUrl }
+      });
+    },
+    [onChange]
   );
 
   /**
@@ -175,7 +217,7 @@ export function GitFields({ connection, disabled = false, onChange }: Props): JS
   const handleBrowseRepoPath = async (): Promise<void> => {
     const selected = await window.api.selectDirectory(settings.repoPath);
     if (selected != null) {
-      updateSettings({ repoPath: selected });
+      await applyRepoPath(selected);
     }
   };
 
@@ -238,7 +280,9 @@ export function GitFields({ connection, disabled = false, onChange }: Props): JS
             value={settings.repoPath}
             disabled={disabled}
             placeholder="/path/to/your/repo"
-            onChange={(event) => updateSettings({ repoPath: event.target.value })}
+            onChange={(event) => {
+              void applyRepoPath(event.target.value);
+            }}
           />
           <Button
             type="button"

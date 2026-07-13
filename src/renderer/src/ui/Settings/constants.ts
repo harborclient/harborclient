@@ -84,7 +84,6 @@ export const PROXY_PROTOCOL_OPTIONS: Array<{ value: ProxySettings['protocol']; l
  */
 export const PROVIDER_OPTIONS: Array<{ value: StorageProvider; label: string }> = [
   { value: 'sqlite', label: 'SQLite' },
-  { value: 'git', label: 'Git' },
   { value: 'firestore', label: 'Firestore' },
   { value: 'mysql', label: 'MySQL' },
   { value: 'postgres', label: 'PostgreSQL' }

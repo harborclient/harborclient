@@ -68,7 +68,22 @@ describe('modalsSlice', () => {
       name: '',
       providerId: '',
       shareTokenInput: '',
-      submitError: null
+      submitError: null,
+      gitDraft: {
+        id: '',
+        name: '',
+        type: 'git',
+        settings: {
+          repoPath: '',
+          url: '',
+          branch: 'main',
+          subdir: '.harborclient',
+          auth: { kind: 'pat', username: 'token' }
+        }
+      },
+      gitCreatedConnectionId: null,
+      gitPhase: 'repo',
+      gitCollectionCreated: false
     });
 
     state = modalsReducer(state, setCollectionModalName('My API'));
