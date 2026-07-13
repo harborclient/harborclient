@@ -175,6 +175,16 @@ function updateCollection(
 }
 
 /**
+ * Updates a collection sidebar color via IPC.
+ *
+ * @param id - Collection ID to update.
+ * @param color - CSS color string, or null to clear.
+ */
+function setCollectionColor(id: number, color: string | null): Promise<Collection> {
+  return ipcRenderer.invoke('collections:setColor', id, color);
+}
+
+/**
  * Deletes a collection via IPC.
  *
  * @param id - Collection ID to delete.
@@ -387,6 +397,23 @@ function reorderTabGroups(orderedTabGroupIds: number[]): Promise<TabGroup[]> {
 }
 
 /**
+ * Updates a tab group sidebar color and returns the refreshed list.
+ *
+ * @param id - Tab group id.
+ * @param color - CSS color string, or null to clear.
+ */
+function setTabGroupColor(id: number, color: string | null): Promise<TabGroup[]> {
+  return ipcRenderer.invoke('tabGroups:setColor', id, color);
+}
+
+/**
+ * Imports a tab group from a JSON file via IPC.
+ */
+function importTabGroup(): Promise<TabGroup[] | null> {
+  return ipcRenderer.invoke('tabGroups:import');
+}
+
+/**
  * Lists trash snapshot rows via IPC.
  */
 function listTrashItems(): Promise<TrashItem[]> {
@@ -484,6 +511,16 @@ function createEnvironment(name: string): Promise<Environment> {
  */
 function updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment> {
   return ipcRenderer.invoke('environments:update', id, name, variables);
+}
+
+/**
+ * Updates an environment sidebar color via IPC.
+ *
+ * @param id - Environment ID to update.
+ * @param color - CSS color string, or null to clear.
+ */
+function setEnvironmentColor(id: number, color: string | null): Promise<Environment> {
+  return ipcRenderer.invoke('environments:setColor', id, color);
 }
 
 /**
@@ -734,6 +771,16 @@ function saveRequest(req: SaveRequestInput): Promise<SavedRequest> {
 }
 
 /**
+ * Updates a saved request sidebar color via IPC.
+ *
+ * @param id - Request ID to update.
+ * @param color - CSS color string, or null to clear.
+ */
+function setRequestColor(id: number, color: string | null): Promise<SavedRequest> {
+  return ipcRenderer.invoke('requests:setColor', id, color);
+}
+
+/**
  * Deletes a saved request via IPC.
  *
  * @param id - Request ID to delete.
@@ -809,6 +856,16 @@ function updateFolder(
     preRequestScripts,
     postRequestScripts
   );
+}
+
+/**
+ * Updates a folder sidebar color via IPC.
+ *
+ * @param id - Folder ID to update.
+ * @param color - CSS color string, or null to clear.
+ */
+function setFolderColor(id: number, color: string | null): Promise<Folder> {
+  return ipcRenderer.invoke('folders:setColor', id, color);
 }
 
 /**
@@ -889,6 +946,16 @@ function listDocuments(collectionId: number): Promise<CollectionDocument[]> {
  */
 function saveDocument(input: SaveDocumentInput): Promise<CollectionDocument> {
   return ipcRenderer.invoke('documents:save', input);
+}
+
+/**
+ * Updates a markdown document sidebar color via IPC.
+ *
+ * @param id - Document ID to update.
+ * @param color - CSS color string, or null to clear.
+ */
+function setDocumentColor(id: number, color: string | null): Promise<CollectionDocument> {
+  return ipcRenderer.invoke('documents:setColor', id, color);
 }
 
 /**
@@ -1084,18 +1151,18 @@ function setMenuThemeMenuState(theme: ThemeSource, options: ThemeMenuOption[]): 
 }
 
 /**
- * Syncs Creator undo/redo ownership and enabled state to the Edit menu in the main process.
+ * Syncs Designer undo/redo ownership and enabled state to the Edit menu in the main process.
  *
- * @param active - Whether the Creator tab is open and should own undo/redo.
- * @param canUndo - Whether an undo step is available in the Creator history.
- * @param canRedo - Whether a redo step is available in the Creator history.
+ * @param active - Whether the Designer tab is open and should own undo/redo.
+ * @param canUndo - Whether an undo step is available in the Designer history.
+ * @param canRedo - Whether a redo step is available in the Designer history.
  */
-function setMenuCreatorUndoRedo(
+function setMenuDesignerUndoRedo(
   active: boolean,
   canUndo: boolean,
   canRedo: boolean
 ): Promise<void> {
-  return ipcRenderer.invoke('menu:setCreatorUndoRedo', active, canUndo, canRedo);
+  return ipcRenderer.invoke('menu:setDesignerUndoRedo', active, canUndo, canRedo);
 }
 
 /**
@@ -2426,6 +2493,15 @@ function selectSaveFile(defaultPath: string): Promise<string | null> {
 }
 
 /**
+ * Opens a file or directory in the OS default application via IPC.
+ *
+ * @param path - Absolute path to open in the system file browser or default handler.
+ */
+function openPath(path: string): Promise<void> {
+  return ipcRenderer.invoke('files:openPath', path);
+}
+
+/**
  * Creates a signed, encrypted share token for a specific recipient via IPC.
  *
  * @param collectionId - Global collection id to share.
@@ -2596,6 +2672,13 @@ function importBackup(): Promise<BackupImportResult> {
  */
 function restartApp(): Promise<void> {
   return ipcRenderer.invoke('app:restart');
+}
+
+/**
+ * Returns the Electron userData directory where HarborClient stores local files.
+ */
+function getUserDataPath(): Promise<string> {
+  return ipcRenderer.invoke('backup:getUserDataPath');
 }
 
 /**
@@ -3171,6 +3254,7 @@ const api: Api = {
   listCollections,
   createCollection,
   updateCollection,
+  setCollectionColor,
   deleteCollection,
   duplicateCollection,
   exportCollection,
@@ -3194,6 +3278,8 @@ const api: Api = {
   cloneTabGroup,
   deleteTabGroup,
   reorderTabGroups,
+  setTabGroupColor,
+  importTabGroup,
   listTrashItems,
   restoreTrashItem,
   permanentlyDeleteTrashItem,
@@ -3205,6 +3291,7 @@ const api: Api = {
   reorderEnvironments,
   createEnvironment,
   updateEnvironment,
+  setEnvironmentColor,
   deleteEnvironment,
   duplicateEnvironment,
   exportEnvironment,
@@ -3228,11 +3315,13 @@ const api: Api = {
   importEntity,
   listRequests,
   saveRequest,
+  setRequestColor,
   deleteRequest,
   listFolders,
   createFolder,
   renameFolder,
   updateFolder,
+  setFolderColor,
   deleteFolder,
   reorderFolders,
   reorderRequests,
@@ -3240,6 +3329,7 @@ const api: Api = {
   reorderContainerItems,
   listDocuments,
   saveDocument,
+  setDocumentColor,
   deleteDocument,
   reorderDocuments,
   moveDocument,
@@ -3259,7 +3349,7 @@ const api: Api = {
   setMenuEnvironmentsVisible,
   setMenuRunResultsVisible,
   setMenuThemeMenuState,
-  setMenuCreatorUndoRedo,
+  setMenuDesignerUndoRedo,
   setTabGroupAvailable,
   onMenuSelectTheme,
   popupMenuSubmenu,
@@ -3396,6 +3486,7 @@ const api: Api = {
   selectFiles,
   selectDirectory,
   selectSaveFile,
+  openPath,
   createShareToken,
   joinSharedCollection,
   getSharingIdentity,
@@ -3416,6 +3507,7 @@ const api: Api = {
   exportBackup,
   importBackup,
   restartApp,
+  getUserDataPath,
   listPlugins,
   getPluginCatalog,
   getPluginSources,

@@ -286,6 +286,19 @@ export const reorderTabGroups = createAsyncThunk<void, number[], ThunkApiConfig>
 );
 
 /**
+ * Persists a tab group sidebar color and refreshes the cached list.
+ */
+export const setTabGroupSidebarColor = createAsyncThunk<
+  TabGroup[],
+  { id: number; color: string | null },
+  ThunkApiConfig
+>('tabGroups/setSidebarColor', async ({ id, color }, { dispatch }) => {
+  const items = await window.api.setTabGroupColor(id, color);
+  dispatch(setTabGroups(items));
+  return items;
+});
+
+/**
  * Builds a portable tab group export envelope from a group id.
  *
  * @param groupId - Tab group to export.
@@ -302,7 +315,8 @@ export function buildTabGroupExport(groupId: number, groups: TabGroup[]): TabGro
     harborclientVersion: 1,
     harborclientExport: 'tab_group',
     name: group.name,
-    requestUuids: group.requests.map((request) => request.requestUuid)
+    requestUuids: group.requests.map((request) => request.requestUuid),
+    color: group.color ?? null
   };
 }
 

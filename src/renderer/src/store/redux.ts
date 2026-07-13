@@ -18,12 +18,12 @@ import scriptClipboardReducer from '#/renderer/src/store/slices/scriptClipboardS
 import aiChatReducer from '#/renderer/src/store/slices/aiChatSlice';
 import terminalsReducer from '#/renderer/src/store/slices/terminalsSlice';
 import markdownSelectionsReducer from '#/renderer/src/store/slices/markdownSelectionsSlice';
+import themeDesignerReducer from '#/renderer/src/store/slices/themeDesignerSlice';
 import {
   persistActiveEnvironmentId,
   persistTabs,
   persistTerminalLayout
 } from '#/renderer/src/store/persistence';
-
 export const store = configureStore({
   reducer: {
     collections: collectionsReducer,
@@ -43,7 +43,8 @@ export const store = configureStore({
     trash: trashReducer,
     aiChat: aiChatReducer,
     terminals: terminalsReducer,
-    markdownSelections: markdownSelectionsReducer
+    markdownSelections: markdownSelectionsReducer,
+    themeDesigner: themeDesignerReducer
   },
   /**
    * Registers default RTK middleware plus busy tracking.

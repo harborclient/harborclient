@@ -132,7 +132,8 @@ describe('buildTabGroupExport', () => {
       harborclientVersion: 1,
       harborclientExport: 'tab_group',
       name: 'Auth flows',
-      requestUuids: ['uuid-1', 'uuid-2']
+      requestUuids: ['uuid-1', 'uuid-2'],
+      color: null
     });
     expect(validateTabGroupExport(envelope)).toEqual(envelope);
   });

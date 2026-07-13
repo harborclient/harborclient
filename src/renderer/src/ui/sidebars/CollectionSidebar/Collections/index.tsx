@@ -36,7 +36,8 @@ import { useSidebarGit } from '#/renderer/src/ui/sidebars/CollectionSidebar/side
 import { useSidebarSearchContext } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarSearchContext';
 import { useCollectionActions } from '#/renderer/src/ui/sidebars/CollectionSidebar/useCollectionActions';
 import { FaIcon } from '@harborclient/sdk/components';
-import { RowActionsMenu } from '@harborclient/sdk/components';
+import { SidebarColorDot } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarColorDot';
+import { SidebarRowActionsMenu } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarRowActionsMenu';
 import { buildReorderMenuGroup } from '@harborclient/sdk/components';
 import { usePluginContextMenuItems } from '#/renderer/src/plugins/pluginHooks';
 import { buildPluginContextMenuGroups } from '#/renderer/src/plugins/pluginContextMenuHelpers';
@@ -820,6 +821,10 @@ export function Collections(): JSX.Element {
                     >
                       <span className="inline-flex min-w-0 items-center gap-1.5">
                         <span className="truncate">{collection.name}</span>
+                        <SidebarColorDot
+                          color={collection.color}
+                          label={`Color for ${collection.name}`}
+                        />
                         {showStorageLocationBadges && connectionName != null && (
                           <span
                             className="shrink-0 rounded bg-info/15 px-1.5 py-0.5 text-[11px] font-medium text-info"
@@ -848,11 +853,16 @@ export function Collections(): JSX.Element {
                           {gitStatus.changedCount}
                         </button>
                       )}
-                    <div className="shrink-0" onPointerDown={stopSortableDragPointerDown}>
-                      <RowActionsMenu
+                    <div onPointerDown={stopSortableDragPointerDown}>
+                      <SidebarRowActionsMenu
                         menuId={`collection-${collection.id}`}
                         openMenuId={openMenuId}
                         onOpenChange={setOpenMenuId}
+                        colorTarget={{
+                          kind: 'collection',
+                          id: collection.id,
+                          color: collection.color ?? null
+                        }}
                         groups={[
                           [
                             {
@@ -1178,21 +1188,30 @@ export function Collections(): JSX.Element {
                                         focusFolderSettings();
                                       }}
                                     >
-                                      {folder.name}
+                                      <span className="inline-flex min-w-0 items-center gap-1.5">
+                                        {folder.name}
+                                        <SidebarColorDot
+                                          color={folder.color}
+                                          label={`Color for ${folder.name}`}
+                                        />
+                                      </span>
                                       {folderHighlighted && (
                                         <span className="ml-1.5 font-normal text-info">
                                           Drop here
                                         </span>
                                       )}
                                     </button>
-                                    <div
-                                      className="shrink-0"
-                                      onPointerDown={stopSortableDragPointerDown}
-                                    >
-                                      <RowActionsMenu
+                                    <div onPointerDown={stopSortableDragPointerDown}>
+                                      <SidebarRowActionsMenu
                                         menuId={`folder-${folder.id}`}
                                         openMenuId={openMenuId}
                                         onOpenChange={setOpenMenuId}
+                                        colorTarget={{
+                                          kind: 'folder',
+                                          collectionId: collection.id,
+                                          id: folder.id,
+                                          color: folder.color ?? null
+                                        }}
                                         groups={[
                                           [
                                             {

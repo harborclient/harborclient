@@ -403,6 +403,20 @@ export class RoutingStorage implements IStorage {
   }
 
   /**
+   * Updates a collection's sidebar color in its owning provider.
+   *
+   * @param id - Global collection id.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated global collection.
+   */
+  async setCollectionColor(id: number, color: string | null): Promise<Collection> {
+    const entry = this.requireEntry(id);
+    const backend = this.requireBackendByConnectionId(entry.connectionId);
+    const record = await backend.db.setCollectionColor(entry.providerCollectionId, color);
+    return this.buildCollection(entry, record);
+  }
+
+  /**
    * Deletes a collection from its provider and the registry.
    *
    * Team hub collections marked deletion-locked, or those the token cannot delete
@@ -504,6 +518,17 @@ export class RoutingStorage implements IStorage {
   }
 
   /**
+   * Updates an environment's sidebar color in the hidden registry.
+   *
+   * @param id - Environment ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated environment.
+   */
+  async setEnvironmentColor(id: number, color: string | null): Promise<Environment> {
+    return this.database.setEnvironmentColor(id, color);
+  }
+
+  /**
    * Deletes an environment from the hidden registry.
    */
   async deleteEnvironment(id: number): Promise<void> {
@@ -558,6 +583,25 @@ export class RoutingStorage implements IStorage {
     const globalSaved = this.toGlobalRequest(saved, backend, input.collection_id);
 
     return globalSaved;
+  }
+
+  /**
+   * Updates a saved request's sidebar color in its owning provider.
+   *
+   * @param id - Global request id.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated request.
+   */
+  async setRequestColor(id: number, color: string | null): Promise<SavedRequest> {
+    const { slot, localId } = decodeGlobalId(id);
+    const backend = this.bySlot.get(slot);
+    if (!backend) {
+      throw new Error(`Database backend for slot ${slot} is unavailable.`);
+    }
+    const updated = await backend.db.setRequestColor(localId, color);
+    const entry = this.findEntryForBackendCollection(backend.connectionId, updated.collection_id);
+    const globalCollectionId = entry?.id ?? updated.collection_id;
+    return this.toGlobalRequest(updated, backend, globalCollectionId);
   }
 
   /**
@@ -657,6 +701,25 @@ export class RoutingStorage implements IStorage {
       preRequestScripts,
       postRequestScripts
     );
+    const entry = this.findEntryForBackendCollection(backend.connectionId, updated.collection_id);
+    const globalCollectionId = entry?.id ?? updated.collection_id;
+    return this.toGlobalFolder(updated, backend, globalCollectionId);
+  }
+
+  /**
+   * Updates a folder's sidebar color in its owning provider.
+   *
+   * @param id - Global folder id.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated folder.
+   */
+  async setFolderColor(id: number, color: string | null): Promise<Folder> {
+    const { slot, localId } = decodeGlobalId(id);
+    const backend = this.bySlot.get(slot);
+    if (!backend) {
+      throw new Error(`Database backend for slot ${slot} is unavailable.`);
+    }
+    const updated = await backend.db.setFolderColor(localId, color);
     const entry = this.findEntryForBackendCollection(backend.connectionId, updated.collection_id);
     const globalCollectionId = entry?.id ?? updated.collection_id;
     return this.toGlobalFolder(updated, backend, globalCollectionId);
@@ -780,6 +843,25 @@ export class RoutingStorage implements IStorage {
       folder_id: localFolderId ?? null
     });
     return this.toGlobalDocument(saved, backend, input.collection_id);
+  }
+
+  /**
+   * Updates a markdown document's sidebar color in its owning provider.
+   *
+   * @param id - Global document id.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated document.
+   */
+  async setDocumentColor(id: number, color: string | null): Promise<CollectionDocument> {
+    const { slot, localId } = decodeGlobalId(id);
+    const backend = this.bySlot.get(slot);
+    if (!backend) {
+      throw new Error(`Database backend for slot ${slot} is unavailable.`);
+    }
+    const updated = await backend.db.setDocumentColor(localId, color);
+    const entry = this.findEntryForBackendCollection(backend.connectionId, updated.collection_id);
+    const globalCollectionId = entry?.id ?? updated.collection_id;
+    return this.toGlobalDocument(updated, backend, globalCollectionId);
   }
 
   /**
@@ -2084,6 +2166,7 @@ export class RoutingStorage implements IStorage {
       post_request_scripts: record?.post_request_scripts ?? [],
       created_at: record?.created_at ?? entry.created_at,
       deletion_locked: record?.deletion_locked,
+      color: record?.color ?? null,
       connectionId: entry.connectionId
     };
   }

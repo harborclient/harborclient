@@ -17,6 +17,10 @@ export function registerRequestHandlers(db: IStorage): void {
   // Inserts or updates a saved request.
   handle('requests:save', ipcArgSchemas.saveRequest, (_event, req) => db.saveRequest(req));
 
+  handle('requests:setColor', ipcArgSchemas.requestsSetColor, (_event, id, color) =>
+    db.setRequestColor(id, color)
+  );
+
   // Deletes a saved request by id.
   handle('requests:delete', ipcArgSchemas.dbId, (_event, id) =>
     getTrashService().moveRequestToTrash(id)
@@ -64,6 +68,10 @@ export function registerRequestHandlers(db: IStorage): void {
         preRequestScripts,
         postRequestScripts
       )
+  );
+
+  handle('folders:setColor', ipcArgSchemas.foldersSetColor, (_event, id, color) =>
+    db.setFolderColor(id, color)
   );
 
   // Deletes a folder and its requests.

@@ -455,17 +455,17 @@
     ]
   },
   {
-    "filename": "themes-creator.png",
+    "filename": "themes-designer.png",
     "menuAction": "themes",
     "steps": [
       {
         "click": {
           "selector": "nav[aria-label='Theme sections']",
           "role": "button",
-          "name": "Creator"
+          "name": "Designer"
         }
       },
-      { "waitFor": { "selector": "#creator-theme-title" } },
+      { "waitFor": { "selector": "#designer-theme-title" } },
       { "waitFor": { "ms": 500 } }
     ]
   },

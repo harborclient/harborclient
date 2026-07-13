@@ -61,7 +61,10 @@ import {
   type RequestDraft,
   type RequestTab
 } from '#/renderer/src/store/drafts';
-import { setSelectedCollectionId } from '#/renderer/src/store/slices/collectionsSlice';
+import {
+  setSelectedCollectionId,
+  upsertRequestInCollection
+} from '#/renderer/src/store/slices/collectionsSlice';
 import { addConsoleEntry } from '#/renderer/src/store/slices/consoleSlice';
 import {
   selectCollectionSettingsDirty,
@@ -117,7 +120,8 @@ export function buildRequestExport(req: SavedRequest): RequestExport {
     pre_request_scripts: req.pre_request_scripts,
     post_request_scripts: req.post_request_scripts,
     comment: req.comment ?? '',
-    tags: req.tags ?? ''
+    tags: req.tags ?? '',
+    color: req.color ?? null
   };
 }
 
@@ -130,6 +134,19 @@ export const exportRequest = createAsyncThunk<CollectionExportResult, SavedReque
     return window.api.exportRequest(buildRequestExport(req));
   }
 );
+
+/**
+ * Persists a request sidebar color and updates the cached collection requests.
+ */
+export const setRequestSidebarColor = createAsyncThunk<
+  SavedRequest,
+  { collectionId: number; id: number; color: string | null },
+  ThunkApiConfig
+>('requests/setSidebarColor', async ({ collectionId, id, color }, { dispatch }) => {
+  const request = await window.api.setRequestColor(id, color);
+  dispatch(upsertRequestInCollection({ collectionId, request }));
+  return request;
+});
 
 /**
  * Payload for {@link importRequest}.
@@ -1242,6 +1259,10 @@ export const saveFromMenu = createAsyncThunk<void, void, ThunkApiConfig>(
   'requests/saveFromMenu',
   async (_, { dispatch, getState }) => {
     const activeTab = selectActiveTab(getState());
+
+    if (activeTab && isPageTab(activeTab) && activeTab.page.type === 'themes') {
+      return;
+    }
 
     if (activeTab && isMarkdownTab(activeTab)) {
       if (!isTabDirty(activeTab)) {

@@ -91,6 +91,11 @@ export const publicKeyPem = z.string();
  */
 export const name = z.string().trim().min(1, 'name is required');
 
+/**
+ * Optional sidebar item color for IPC setColor handlers.
+ */
+export const sidebarColor = z.union([z.string().trim().min(1), z.null()]);
+
 export const themeSource = z.union([
   z.enum(['light', 'dark', 'system', 'high-contrast']),
   z.string().regex(/^plugin:[^:]+:[^:]+$/),
@@ -616,7 +621,8 @@ export const tabGroupRequest = z.object({
 
 export const createTabGroupInput = z.object({
   name: z.string().trim().min(1),
-  requests: z.array(tabGroupRequest)
+  requests: z.array(tabGroupRequest),
+  color: sidebarColor.optional()
 }) satisfies z.ZodType<CreateTabGroupInput>;
 
 export const panelLayout = z.object({
@@ -680,7 +686,7 @@ export const ipcArgSchemas = {
   menuEnvironmentsVisible: z.tuple([z.boolean()]),
   menuRunResultsVisible: z.tuple([z.boolean()]),
   menuThemeMenuState: z.tuple([themeSource, z.array(themeMenuOption)]),
-  menuCreatorUndoRedo: z.tuple([z.boolean(), z.boolean(), z.boolean()]),
+  menuDesignerUndoRedo: z.tuple([z.boolean(), z.boolean(), z.boolean()]),
   menuTabGroupAvailable: z.tuple([z.boolean()]),
   menuPopupSubmenu: z.tuple([rootMenuLabel, z.number(), z.number()]),
   menuGetSubmenuSnapshot: z.tuple([rootMenuLabel]),
@@ -825,6 +831,7 @@ export const ipcArgSchemas = {
   importAuto: z.tuple([dbId.nullable(), z.array(z.string()).optional()]),
   shareCreate: z.tuple([dbId, recipientKid.optional()]),
   openDirectory: z.tuple([z.string()]),
+  openPath: z.tuple([z.string().min(1)]),
   saveFile: z.tuple([z.string()]),
   saveTextFile: z.tuple([z.string().max(MAX_IPC_REQUEST_BODY_CHARS), z.string()]),
   backupExport: z.tuple([z.record(z.string(), z.string())]),
@@ -959,6 +966,12 @@ export const ipcArgSchemas = {
   tabGroupsClone: z.tuple([z.number().int().positive(), z.string().trim().min(1)]),
   tabGroupsDelete: z.tuple([z.number().int().positive()]),
   tabGroupsReorder: z.tuple([z.array(dbId)]),
+  tabGroupsSetColor: z.tuple([dbId, sidebarColor]),
+  collectionsSetColor: z.tuple([dbId, sidebarColor]),
+  foldersSetColor: z.tuple([dbId, sidebarColor]),
+  requestsSetColor: z.tuple([dbId, sidebarColor]),
+  documentsSetColor: z.tuple([dbId, sidebarColor]),
+  environmentsSetColor: z.tuple([dbId, sidebarColor]),
   terminalCreate: z.tuple([
     z.object({
       id: z.string().min(1),

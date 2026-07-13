@@ -4,6 +4,6 @@
 export type PluginsSidebarSection =
   | 'installed'
   | 'marketplace'
-  | 'creator'
+  | 'designer'
   | 'install'
   | 'settings';

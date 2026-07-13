@@ -40,6 +40,28 @@ export interface StoredDocumentFrontmatter {
    * Position among sibling documents.
    */
   sort_order: number;
+
+  /**
+   * Optional sidebar color for visual grouping.
+   */
+  color?: string | null;
+}
+
+/**
+ * Parses a simple YAML scalar used by markdown frontmatter fields.
+ *
+ * @param value - Raw scalar value from a `key: value` line.
+ * @returns Trimmed scalar with optional quote wrappers removed.
+ */
+function parseYamlScalar(value: string): string {
+  const trimmed = value.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
 }
 
 /**
@@ -108,7 +130,7 @@ export function parseMarkdownFrontmatter(raw: string): {
       continue;
     }
     const [, key, rawValue] = match;
-    const value = rawValue.trim();
+    const value = parseYamlScalar(rawValue);
     if (key === 'uuid' && value) {
       frontmatter.uuid = value;
       continue;
@@ -125,6 +147,14 @@ export function parseMarkdownFrontmatter(raw: string): {
       const parsed = Number(value);
       if (Number.isFinite(parsed)) {
         frontmatter.sort_order = parsed;
+      }
+      continue;
+    }
+    if (key === 'color') {
+      if (!value || value === 'null' || value === '~') {
+        frontmatter.color = null;
+      } else {
+        frontmatter.color = value;
       }
     }
   }
@@ -146,11 +176,16 @@ export function serializeMarkdownFrontmatter(
     frontmatter.folder_uuid == null || frontmatter.folder_uuid === ''
       ? 'null'
       : frontmatter.folder_uuid;
+  const colorLines =
+    frontmatter.color !== undefined
+      ? [`color: ${frontmatter.color === null ? 'null' : frontmatter.color}`]
+      : [];
   const yaml = [
     '---',
     `uuid: ${frontmatter.uuid}`,
     `folder_uuid: ${folderUuid}`,
     `sort_order: ${frontmatter.sort_order}`,
+    ...colorLines,
     '---',
     ''
   ].join('\n');
@@ -182,7 +217,8 @@ export function readDocumentsFromDir(collectionDirectory: string): ExportedDocum
       content: body,
       sort_order: frontmatter.sort_order,
       folder_uuid: frontmatter.folder_uuid ?? undefined,
-      folder_name: null
+      folder_name: null,
+      color: frontmatter.color ?? null
     });
   }
 
@@ -224,7 +260,8 @@ export function writeDocumentsToDir(
       {
         uuid,
         folder_uuid: document.folder_uuid ?? null,
-        sort_order: document.sort_order
+        sort_order: document.sort_order,
+        color: document.color
       },
       document.content
     );
@@ -313,6 +350,11 @@ export interface StoredFolderRow {
    * Ordered folder post-request scripts.
    */
   post_request_scripts?: ScriptRef[];
+
+  /**
+   * Optional sidebar color for visual grouping.
+   */
+  color?: string | null;
 }
 
 /**
@@ -338,6 +380,11 @@ export interface CollectionManifest {
    * Display name.
    */
   name: string;
+
+  /**
+   * Optional sidebar color for visual grouping.
+   */
+  color?: string | null;
 
   /**
    * Collection variables.
@@ -501,6 +548,8 @@ export function readCollectionFromDir(dir: string): {
     harborclientExport: 'collection',
     uuid: String(raw.uuid ?? ''),
     name: String(raw.name ?? ''),
+    color:
+      raw.color == null ? null : typeof raw.color === 'string' ? raw.color.trim() || null : null,
     variables: (raw.variables as CollectionManifest['variables']) ?? [],
     headers: (raw.headers as CollectionManifest['headers']) ?? [],
     auth: raw.auth as CollectionManifest['auth'],
@@ -516,7 +565,13 @@ export function readCollectionFromDir(dir: string): {
       pre_request_script: folder.pre_request_script ?? '',
       post_request_script: folder.post_request_script ?? '',
       pre_request_scripts: folder.pre_request_scripts ?? [],
-      post_request_scripts: folder.post_request_scripts ?? []
+      post_request_scripts: folder.post_request_scripts ?? [],
+      color:
+        folder.color == null
+          ? null
+          : typeof folder.color === 'string'
+            ? folder.color.trim() || null
+            : null
     })),
     created_at: String(raw.created_at ?? new Date().toISOString())
   };
@@ -640,7 +695,8 @@ export function manifestToCollectionExport(
     pre_request_script: folder.pre_request_script ?? '',
     post_request_script: folder.post_request_script ?? '',
     pre_request_scripts: folder.pre_request_scripts ?? [],
-    post_request_scripts: folder.post_request_scripts ?? []
+    post_request_scripts: folder.post_request_scripts ?? [],
+    color: folder.color ?? null
   }));
 
   return validateCollectionExport({
@@ -648,6 +704,7 @@ export function manifestToCollectionExport(
     harborclientExport: 'collection',
     uuid: manifest.uuid,
     name: manifest.name,
+    color: manifest.color ?? null,
     variables: manifest.variables,
     headers: manifest.headers,
     auth: manifest.auth,
@@ -861,7 +918,8 @@ export function exportedRequestToRequestExport(request: ExportedRequest): Reques
     pre_request_scripts: request.pre_request_scripts,
     post_request_scripts: request.post_request_scripts,
     comment: request.comment,
-    tags: request.tags
+    tags: request.tags,
+    color: request.color ?? null
   });
 }
 

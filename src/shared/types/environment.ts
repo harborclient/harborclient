@@ -33,6 +33,11 @@ export interface Environment {
    * When true on a team hub environment, non-admin users cannot delete it on the server.
    */
   deletion_locked?: boolean;
+
+  /**
+   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   */
+  color?: string | null;
 }
 /**
  * Portable environment export file format.
@@ -62,4 +67,9 @@ export interface EnvironmentExport {
    * Environment-scoped variables for {{key}} substitution in requests.
    */
   variables: Variable[];
+
+  /**
+   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   */
+  color?: string | null;
 }

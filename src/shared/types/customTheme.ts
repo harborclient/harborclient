@@ -86,7 +86,7 @@ export interface CustomThemeImportDraft {
 }
 
 /**
- * One labeled group of theme color tokens for the Creator grid.
+ * One labeled group of theme color tokens for the Designer grid.
  */
 export interface CustomThemeTokenGroup {
   /**
@@ -101,7 +101,7 @@ export interface CustomThemeTokenGroup {
 }
 
 /**
- * Human-readable labels for each theme color token in the Creator grid.
+ * Human-readable labels for each theme color token in the Designer grid.
  */
 export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   surface: 'Surface',
@@ -141,7 +141,7 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
 };
 
 /**
- * Ordered token groups for the Creator color grid.
+ * Ordered token groups for the Designer color grid.
  */
 export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
   {
@@ -198,7 +198,7 @@ export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
 ];
 
 /**
- * All theme color tokens in display order for the Creator grid.
+ * All theme color tokens in display order for the Designer grid.
  */
 export const CUSTOM_THEME_TOKENS: ThemeColorToken[] = CUSTOM_THEME_TOKEN_GROUPS.flatMap(
   (group) => group.tokens

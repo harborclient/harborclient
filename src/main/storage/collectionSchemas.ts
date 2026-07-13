@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { normalizeVariable } from '#/main/storage/collectionVariables';
 import { authConfig, bodyType, httpMethod, keyValue } from '#/main/schemas/common';
 import { exportScriptRefArray } from '#/main/schemas/scriptRef';
+import { optionalSidebarColor } from '#/shared/sidebarColor';
 import type {
   CollectionExport,
   EnvironmentExport,
@@ -47,7 +48,8 @@ const exportedFolderRow = z
     pre_request_script: z.string().optional(),
     post_request_script: z.string().optional(),
     pre_request_scripts: exportScriptRefArray,
-    post_request_scripts: exportScriptRefArray
+    post_request_scripts: exportScriptRefArray,
+    color: optionalSidebarColor
   })
   .superRefine((folder, ctx) => {
     if (!folder.name.trim()) {
@@ -68,7 +70,8 @@ const exportedFolderRow = z
     pre_request_script: folder.pre_request_script,
     post_request_script: folder.post_request_script,
     pre_request_scripts: folder.pre_request_scripts,
-    post_request_scripts: folder.post_request_scripts
+    post_request_scripts: folder.post_request_scripts,
+    color: folder.color ?? null
   }));
 
 /**
@@ -133,7 +136,8 @@ export const exportedFolders = z
         pre_request_script: folder.pre_request_script,
         post_request_script: folder.post_request_script,
         pre_request_scripts: folder.pre_request_scripts,
-        post_request_scripts: folder.post_request_scripts
+        post_request_scripts: folder.post_request_scripts,
+        color: folder.color ?? null
       })
     )
   )
@@ -176,7 +180,8 @@ const exportedRequestRow = z
     tags: z.string().default(''),
     sort_order: z.number().optional(),
     folder_name: z.union([z.string(), z.null()]).optional(),
-    folder_uuid: z.union([z.string().uuid(), z.null()]).optional()
+    folder_uuid: z.union([z.string().uuid(), z.null()]).optional(),
+    color: optionalSidebarColor
   })
   .superRefine((req, ctx) => {
     if (!req.name.trim()) {
@@ -215,7 +220,8 @@ const exportedRequestRow = z
         ? req.folder_uuid.trim() || null
         : req.folder_uuid === null
           ? null
-          : undefined
+          : undefined,
+    color: req.color ?? null
   }));
 
 /**
@@ -237,7 +243,8 @@ const exportedDocumentRow = z
     content: z.string().default(''),
     sort_order: z.number().optional(),
     folder_name: z.union([z.string(), z.null()]).optional(),
-    folder_uuid: z.union([z.string().uuid(), z.null()]).optional()
+    folder_uuid: z.union([z.string().uuid(), z.null()]).optional(),
+    color: optionalSidebarColor
   })
   .superRefine((doc, ctx) => {
     if (!doc.name.trim()) {
@@ -293,7 +300,8 @@ const collectionExportFields = {
   post_request_script: z.string().default(''),
   pre_request_scripts: exportScriptRefArray,
   post_request_scripts: exportScriptRefArray,
-  requests: exportedRequests
+  requests: exportedRequests,
+  color: optionalSidebarColor
 };
 
 /**
@@ -418,7 +426,8 @@ const requestExportRow = z
     pre_request_scripts: exportScriptRefArray,
     post_request_scripts: exportScriptRefArray,
     comment: z.string().default(''),
-    tags: z.string().default('')
+    tags: z.string().default(''),
+    color: optionalSidebarColor
   })
   .superRefine((req, ctx) => {
     if (!req.name.trim()) {
@@ -446,7 +455,8 @@ const requestExportRow = z
     pre_request_scripts: req.pre_request_scripts,
     post_request_scripts: req.post_request_scripts,
     comment: req.comment,
-    tags: req.tags
+    tags: req.tags,
+    color: req.color ?? null
   }));
 
 /**
@@ -508,7 +518,8 @@ export const environmentExportSchema = z.object({
   harborclientExport: z.literal('environment'),
   uuid: optionalDocumentUuid,
   name: z.string().trim().min(1, 'environment name is required'),
-  variables: importVariables
+  variables: importVariables,
+  color: optionalSidebarColor
 }) satisfies z.ZodType<EnvironmentExport>;
 
 /**

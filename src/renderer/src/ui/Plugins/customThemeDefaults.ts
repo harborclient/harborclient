@@ -164,7 +164,7 @@ export const CUSTOM_THEME_DEFAULT_PALETTES: Record<CustomThemeType, CustomThemeP
 /**
  * Returns the default palette for a custom theme base appearance.
  *
- * @param type - Base appearance mode selected in the Creator form.
+ * @param type - Base appearance mode selected in the Designer form.
  * @returns Full token palette used to seed new or reseeded themes.
  */
 export function getDefaultCustomThemePalette(type: CustomThemeType): CustomThemePalette {

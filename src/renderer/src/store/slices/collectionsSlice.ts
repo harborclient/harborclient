@@ -56,6 +56,18 @@ const collectionsSlice = createSlice({
       state.collectionsListed = true;
     },
     /**
+     * Updates one collection row after a sidebar color change.
+     */
+    updateCollectionColor(state, action: PayloadAction<Collection>) {
+      const index = state.collections.findIndex(
+        (collection) => collection.id === action.payload.id
+      );
+      if (index === -1) {
+        return;
+      }
+      state.collections[index] = action.payload;
+    },
+    /**
      * Caches saved requests for one collection id.
      */
     setRequestsForCollection(
@@ -117,6 +129,24 @@ const collectionsSlice = createSlice({
       const next = [...folders];
       next[index] = folder;
       state.foldersByCollection[collectionId] = next;
+    },
+    /**
+     * Replaces one request row in a collection cache after a sidebar color change.
+     */
+    upsertRequestInCollection(
+      state,
+      action: PayloadAction<{ collectionId: number; request: SavedRequest }>
+    ) {
+      const { collectionId, request } = action.payload;
+      const requests = state.requestsByCollection[collectionId] ?? [];
+      const index = requests.findIndex((entry) => entry.id === request.id);
+      if (index === -1) {
+        state.requestsByCollection[collectionId] = [...requests, request];
+        return;
+      }
+      const next = [...requests];
+      next[index] = request;
+      state.requestsByCollection[collectionId] = next;
     },
     /**
      * Optimistically reorders top-level collections to match drag-and-drop before IPC persistence.
@@ -261,11 +291,13 @@ export const {
   setSelectedCollectionId,
   focusSidebarItem,
   setCollections,
+  updateCollectionColor,
   setRequestsForCollection,
   setDocumentsForCollection,
   setFoldersForCollection,
   upsertFolderInCollection,
   upsertDocumentInCollection,
+  upsertRequestInCollection,
   reorderCollectionsLocal,
   reorderFoldersLocal,
   reorderContainerItemsLocal,

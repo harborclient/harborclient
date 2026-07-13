@@ -13,9 +13,9 @@ let environmentsVisible = true;
 let runResultsVisible = true;
 let activeTheme: ThemeSource = 'system';
 let pluginThemeOptions: ThemeMenuOption[] = [];
-let creatorUndoRedoActive = false;
-let creatorCanUndo = false;
-let creatorCanRedo = false;
+let designerUndoRedoActive = false;
+let designerCanUndo = false;
+let designerCanRedo = false;
 let tabGroupAvailable = false;
 
 /**
@@ -229,23 +229,23 @@ export function setMenuThemeMenuState(theme: ThemeSource, options: ThemeMenuOpti
 }
 
 /**
- * Updates Edit menu Undo/Redo items for the Creator and rebuilds when values change.
+ * Updates Edit menu Undo/Redo items for the Designer and rebuilds when values change.
  *
- * @param active - Whether the Creator tab is open and should own undo/redo.
- * @param canUndo - Whether an undo step is available in the Creator history.
- * @param canRedo - Whether a redo step is available in the Creator history.
+ * @param active - Whether the Designer tab is open and should own undo/redo.
+ * @param canUndo - Whether an undo step is available in the Designer history.
+ * @param canRedo - Whether a redo step is available in the Designer history.
  */
-export function setMenuCreatorUndoRedo(active: boolean, canUndo: boolean, canRedo: boolean): void {
+export function setMenuDesignerUndoRedo(active: boolean, canUndo: boolean, canRedo: boolean): void {
   if (
-    creatorUndoRedoActive === active &&
-    creatorCanUndo === canUndo &&
-    creatorCanRedo === canRedo
+    designerUndoRedoActive === active &&
+    designerCanUndo === canUndo &&
+    designerCanRedo === canRedo
   ) {
     return;
   }
-  creatorUndoRedoActive = active;
-  creatorCanUndo = canUndo;
-  creatorCanRedo = canRedo;
+  designerUndoRedoActive = active;
+  designerCanUndo = canUndo;
+  designerCanRedo = canRedo;
   rebuildAppMenu();
 }
 
@@ -291,9 +291,9 @@ export function rebuildAppMenu(): void {
       activeTheme,
       pluginThemeOptions,
       rebuildAppMenu,
-      creatorUndoRedoActive,
-      creatorCanUndo,
-      creatorCanRedo,
+      designerUndoRedoActive,
+      designerCanUndo,
+      designerCanRedo,
       tabGroupAvailable
     )
   );

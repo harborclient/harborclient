@@ -44,6 +44,7 @@ import { SidebarGitProvider } from './SidebarGitProvider';
 import { SidebarSearchProvider } from './SidebarSearchProvider';
 import { useSidebarSearchContext } from './sidebarSearchContext';
 import { SidebarModalsProvider } from './SidebarModals';
+import { SidebarColorPickerProvider } from './SidebarColorPickerProvider';
 import { useSidebarModals } from './sidebarModalsContext';
 import { useSidebarExpansion } from './useSidebarExpansion';
 import { useSidebarListNavigation } from './useSidebarListNavigation';
@@ -383,7 +384,9 @@ export function CollectionSidebar(): JSX.Element {
       <SidebarGitProvider>
         <SidebarSearchProvider>
           <SidebarModalsProvider>
-            <SidebarContent />
+            <SidebarColorPickerProvider>
+              <SidebarContent />
+            </SidebarColorPickerProvider>
           </SidebarModalsProvider>
         </SidebarSearchProvider>
       </SidebarGitProvider>

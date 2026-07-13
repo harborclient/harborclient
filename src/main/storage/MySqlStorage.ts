@@ -36,6 +36,7 @@ import {
   PROVIDER_SNIPPET_COLUMNS
 } from '#/main/storage/providerSnippetSql';
 import { bundleScriptFieldsWithLegacy } from '#/main/storage/scriptFields';
+import { serializeSidebarColor } from '#/main/storage/sidebarColorMigration';
 import { trimRequiredName } from '#/main/storage/trimRequiredName';
 import { DEFAULT_AUTH_JSON, defaultAuth, normalizeAuth } from '#/shared/auth';
 import type { IStorage } from '#/main/storage/IStorage';
@@ -67,8 +68,8 @@ import { parseJson } from '#/shared/parseJson';
 import { generateDocumentUuid } from '#/main/storage/uuid';
 
 const COLLECTION_COLUMNS =
-  'id, uuid, name, variables, headers, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at';
-const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at';
+  'id, uuid, name, variables, headers, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, color';
+const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, color';
 
 export class MySqlStorage implements IStorage {
   #pool: Pool | null = null;
@@ -211,6 +212,11 @@ export class MySqlStorage implements IStorage {
     await this.addColumnIfMissing('requests', 'uuid', "VARCHAR(36) NOT NULL DEFAULT ''");
     await this.addColumnIfMissing('environments', 'uuid', "VARCHAR(36) NOT NULL DEFAULT ''");
     await this.addColumnIfMissing('folders', 'uuid', "VARCHAR(36) NOT NULL DEFAULT ''");
+    await this.addColumnIfMissing('collections', 'color', 'TEXT NULL');
+    await this.addColumnIfMissing('folders', 'color', 'TEXT NULL');
+    await this.addColumnIfMissing('requests', 'color', 'TEXT NULL');
+    await this.addColumnIfMissing('documents', 'color', 'TEXT NULL');
+    await this.addColumnIfMissing('environments', 'color', 'TEXT NULL');
     await this.addColumnIfMissing(
       'collections',
       'pre_request_scripts',
@@ -421,6 +427,30 @@ export class MySqlStorage implements IStorage {
   }
 
   /**
+   * Updates a collection's sidebar color.
+   *
+   * @param id - Collection ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated collection.
+   */
+  async setCollectionColor(id: number, color: string | null): Promise<Collection> {
+    const [result] = await this.getPool().execute<ResultSetHeader>(
+      'UPDATE collections SET color = ? WHERE id = ?',
+      [serializeSidebarColor(color), id]
+    );
+    if (result.affectedRows === 0) throw new Error('Collection not found');
+
+    const [rows] = await this.getPool().execute<RowDataPacket[]>(
+      'SELECT ' + COLLECTION_COLUMNS + ' FROM collections WHERE id = ?',
+      [id]
+    );
+
+    const row = rows[0];
+    if (!row) throw new Error('Collection not found');
+    return rowToCollection(row);
+  }
+
+  /**
    * Deletes a collection and all of its requests.
    *
    * @param id - Collection ID to delete.
@@ -447,10 +477,10 @@ export class MySqlStorage implements IStorage {
    * @param name - Display name for the environment.
    * @returns The newly created environment.
    */
-  async createEnvironment(name: string): Promise<Environment> {
+  async createEnvironment(name: string, uuid?: string): Promise<Environment> {
     const trimmedName = trimRequiredName(name, 'Environment name');
     const createdAt = new Date().toISOString();
-    const environmentUuid = generateDocumentUuid();
+    const environmentUuid = uuid?.trim() || generateDocumentUuid();
     const [result] = await this.getPool().execute<ResultSetHeader>(
       `INSERT INTO environments (name, uuid, variables, created_at) VALUES (?, ?, '[]', ?)`,
       [trimmedName, environmentUuid, createdAt]
@@ -481,6 +511,30 @@ export class MySqlStorage implements IStorage {
       [trimmedName, JSON.stringify(variables), id]
     );
 
+    if (result.affectedRows === 0) throw new Error('Environment not found');
+
+    const [rows] = await this.getPool().execute<RowDataPacket[]>(
+      'SELECT ' + ENVIRONMENT_COLUMNS + ' FROM environments WHERE id = ?',
+      [id]
+    );
+
+    const row = rows[0];
+    if (!row) throw new Error('Environment not found');
+    return rowToEnvironment(row);
+  }
+
+  /**
+   * Updates an environment's sidebar color.
+   *
+   * @param id - Environment ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated environment.
+   */
+  async setEnvironmentColor(id: number, color: string | null): Promise<Environment> {
+    const [result] = await this.getPool().execute<ResultSetHeader>(
+      'UPDATE environments SET color = ? WHERE id = ?',
+      [serializeSidebarColor(color), id]
+    );
     if (result.affectedRows === 0) throw new Error('Environment not found');
 
     const [rows] = await this.getPool().execute<RowDataPacket[]>(
@@ -540,6 +594,8 @@ export class MySqlStorage implements IStorage {
     const comment = input.comment ?? '';
     const tags = input.tags ?? '';
     const folderId = input.folder_id ?? null;
+    const serializedColor =
+      input.color !== undefined ? serializeSidebarColor(input.color) : undefined;
     const now = new Date().toISOString();
 
     if (folderId != null) {
@@ -554,34 +610,65 @@ export class MySqlStorage implements IStorage {
     }
 
     if (input.id) {
-      const [result] = await this.getPool().execute<ResultSetHeader>(
-        `UPDATE requests SET
+      const [result] =
+        serializedColor === undefined
+          ? await this.getPool().execute<ResultSetHeader>(
+              `UPDATE requests SET
           collection_id = ?, folder_id = ?, name = ?, method = ?, url = ?,
           headers = ?, params = ?, auth = ?, body = ?, body_type = ?,
           pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
           updated_at = ?
         WHERE id = ?`,
-        [
-          input.collection_id,
-          folderId,
-          trimmedName,
-          input.method,
-          input.url,
-          headers,
-          params,
-          auth,
-          input.body,
-          input.body_type,
-          preRequestScript,
-          postRequestScript,
-          preScripts.json,
-          postScripts.json,
-          comment,
-          tags,
-          now,
-          input.id
-        ]
-      );
+              [
+                input.collection_id,
+                folderId,
+                trimmedName,
+                input.method,
+                input.url,
+                headers,
+                params,
+                auth,
+                input.body,
+                input.body_type,
+                preRequestScript,
+                postRequestScript,
+                preScripts.json,
+                postScripts.json,
+                comment,
+                tags,
+                now,
+                input.id
+              ]
+            )
+          : await this.getPool().execute<ResultSetHeader>(
+              `UPDATE requests SET
+          collection_id = ?, folder_id = ?, name = ?, method = ?, url = ?,
+          headers = ?, params = ?, auth = ?, body = ?, body_type = ?,
+          pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
+          updated_at = ?, color = ?
+        WHERE id = ?`,
+              [
+                input.collection_id,
+                folderId,
+                trimmedName,
+                input.method,
+                input.url,
+                headers,
+                params,
+                auth,
+                input.body,
+                input.body_type,
+                preRequestScript,
+                postRequestScript,
+                preScripts.json,
+                postScripts.json,
+                comment,
+                tags,
+                now,
+                serializedColor,
+                input.id
+              ]
+            );
 
       if (result.affectedRows > 0) {
         const [rows] = await this.getPool().execute<RowDataPacket[]>(
@@ -604,8 +691,8 @@ export class MySqlStorage implements IStorage {
     const [result] = await this.getPool().execute<ResultSetHeader>(
       `INSERT INTO requests (
         collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
-        pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, color
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         input.collection_id,
         folderId,
@@ -626,7 +713,8 @@ export class MySqlStorage implements IStorage {
         maxOrder + 1,
         requestUuid,
         now,
-        now
+        now,
+        serializedColor ?? null
       ]
     );
 
@@ -647,6 +735,29 @@ export class MySqlStorage implements IStorage {
    */
   async deleteRequest(id: number): Promise<void> {
     await this.getPool().execute('DELETE FROM requests WHERE id = ?', [id]);
+  }
+
+  /**
+   * Updates a saved request's sidebar color.
+   *
+   * @param id - Request ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated request.
+   */
+  async setRequestColor(id: number, color: string | null): Promise<SavedRequest> {
+    const [result] = await this.getPool().execute<ResultSetHeader>(
+      'UPDATE requests SET color = ? WHERE id = ?',
+      [serializeSidebarColor(color), id]
+    );
+    if (result.affectedRows === 0) throw new Error('Request not found');
+
+    const [rows] = await this.getPool().execute<RowDataPacket[]>(
+      'SELECT * FROM requests WHERE id = ?',
+      [id]
+    );
+    const row = rows[0];
+    if (!row) throw new Error('Request not found');
+    return rowToRequest(row);
   }
 
   /**
@@ -758,6 +869,29 @@ export class MySqlStorage implements IStorage {
         postScripts.json,
         id
       ]
+    );
+    if (result.affectedRows === 0) throw new Error('Folder not found');
+
+    const [rows] = await this.getPool().execute<RowDataPacket[]>(
+      'SELECT * FROM folders WHERE id = ?',
+      [id]
+    );
+    const row = rows[0];
+    if (!row) throw new Error('Folder not found');
+    return rowToFolder(row);
+  }
+
+  /**
+   * Updates a folder's sidebar color.
+   *
+   * @param id - Folder ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated folder.
+   */
+  async setFolderColor(id: number, color: string | null): Promise<Folder> {
+    const [result] = await this.getPool().execute<ResultSetHeader>(
+      'UPDATE folders SET color = ? WHERE id = ?',
+      [serializeSidebarColor(color), id]
     );
     if (result.affectedRows === 0) throw new Error('Folder not found');
 
@@ -971,6 +1105,8 @@ export class MySqlStorage implements IStorage {
     const trimmedName = trimRequiredName(input.name, 'Document name');
     const content = input.content ?? '';
     const folderId = input.folder_id ?? null;
+    const serializedColor =
+      input.color !== undefined ? serializeSidebarColor(input.color) : undefined;
     const now = new Date().toISOString();
 
     if (folderId != null) {
@@ -985,12 +1121,20 @@ export class MySqlStorage implements IStorage {
     }
 
     if (input.id) {
-      const [result] = await this.getPool().execute<ResultSetHeader>(
-        `UPDATE documents SET
+      const [result] =
+        serializedColor === undefined
+          ? await this.getPool().execute<ResultSetHeader>(
+              `UPDATE documents SET
           collection_id = ?, folder_id = ?, name = ?, content = ?, updated_at = ?
         WHERE id = ?`,
-        [input.collection_id, folderId, trimmedName, content, now, input.id]
-      );
+              [input.collection_id, folderId, trimmedName, content, now, input.id]
+            )
+          : await this.getPool().execute<ResultSetHeader>(
+              `UPDATE documents SET
+          collection_id = ?, folder_id = ?, name = ?, content = ?, updated_at = ?, color = ?
+        WHERE id = ?`,
+              [input.collection_id, folderId, trimmedName, content, now, serializedColor, input.id]
+            );
 
       if (result.affectedRows > 0) {
         const [rows] = await this.getPool().execute<RowDataPacket[]>(
@@ -1012,9 +1156,19 @@ export class MySqlStorage implements IStorage {
 
     const [insertResult] = await this.getPool().execute<ResultSetHeader>(
       `INSERT INTO documents (
-        collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [input.collection_id, folderId, trimmedName, content, sortOrder, documentUuid, now, now]
+        collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at, color
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        input.collection_id,
+        folderId,
+        trimmedName,
+        content,
+        sortOrder,
+        documentUuid,
+        now,
+        now,
+        serializedColor ?? null
+      ]
     );
 
     const [rows] = await this.getPool().execute<RowDataPacket[]>(
@@ -1033,6 +1187,29 @@ export class MySqlStorage implements IStorage {
    */
   async deleteDocument(id: number): Promise<void> {
     await this.getPool().execute('DELETE FROM documents WHERE id = ?', [id]);
+  }
+
+  /**
+   * Updates a markdown document's sidebar color.
+   *
+   * @param id - Document ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated document.
+   */
+  async setDocumentColor(id: number, color: string | null): Promise<CollectionDocument> {
+    const [result] = await this.getPool().execute<ResultSetHeader>(
+      'UPDATE documents SET color = ? WHERE id = ?',
+      [serializeSidebarColor(color), id]
+    );
+    if (result.affectedRows === 0) throw new Error('Document not found');
+
+    const [rows] = await this.getPool().execute<RowDataPacket[]>(
+      'SELECT * FROM documents WHERE id = ?',
+      [id]
+    );
+    const row = rows[0];
+    if (!row) throw new Error('Document not found');
+    return rowToDocument(row);
   }
 
   /**
@@ -1167,6 +1344,7 @@ export class MySqlStorage implements IStorage {
       post_request_script: collection.post_request_script,
       pre_request_scripts: collection.pre_request_scripts,
       post_request_scripts: collection.post_request_scripts,
+      color: collection.color ?? null,
       folders,
       requests,
       documents
@@ -1190,8 +1368,8 @@ export class MySqlStorage implements IStorage {
       const collectionUuid = resolveImportedCollectionUuid(exportData);
       const collectionScripts = serializeImportedCollectionScriptFields(exportData);
       const [collectionResult] = await connection.execute<ResultSetHeader>(
-        `INSERT INTO collections (name, uuid, variables, headers, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO collections (name, uuid, variables, headers, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, color)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           exportData.name,
           collectionUuid,
@@ -1202,7 +1380,8 @@ export class MySqlStorage implements IStorage {
           collectionScripts.post_request_script,
           collectionScripts.pre_request_scripts_json,
           collectionScripts.post_request_scripts_json,
-          now
+          now,
+          serializeSidebarColor(exportData.color)
         ]
       );
 
@@ -1219,8 +1398,8 @@ export class MySqlStorage implements IStorage {
         const [folderResult] = await connection.execute<ResultSetHeader>(
           `INSERT INTO folders (
             collection_id, name, sort_order, uuid, variables, headers, auth,
-            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, color
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             collectionId,
             folder.name,
@@ -1233,7 +1412,8 @@ export class MySqlStorage implements IStorage {
             folderFields.post_request_script,
             folderFields.pre_request_scripts_json,
             folderFields.post_request_scripts_json,
-            now
+            now,
+            folderFields.color
           ]
         );
         registerImportedFolderInMaps(folderMaps, folderResult.insertId, folder.name, folderUuid);
@@ -1251,8 +1431,8 @@ export class MySqlStorage implements IStorage {
         await connection.execute(
           `INSERT INTO requests (
             collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
-            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, color
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             collectionId,
             folderId,
@@ -1273,7 +1453,8 @@ export class MySqlStorage implements IStorage {
             fields.sort_order,
             fields.uuid,
             now,
-            now
+            now,
+            fields.color
           ]
         );
       }
@@ -1289,8 +1470,8 @@ export class MySqlStorage implements IStorage {
 
         await connection.execute(
           `INSERT INTO documents (
-            collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at, color
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             collectionId,
             folderId,
@@ -1299,7 +1480,8 @@ export class MySqlStorage implements IStorage {
             fields.sort_order,
             fields.uuid,
             now,
-            now
+            now,
+            fields.color
           ]
         );
       }
@@ -1382,7 +1564,7 @@ export class MySqlStorage implements IStorage {
 
       const collectionScripts = serializeImportedCollectionScriptFields(exportData);
       await connection.execute(
-        'UPDATE collections SET name = ?, variables = ?, headers = ?, auth = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ? WHERE id = ?',
+        'UPDATE collections SET name = ?, variables = ?, headers = ?, auth = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, color = ? WHERE id = ?',
         [
           exportData.name,
           JSON.stringify(exportData.variables),
@@ -1392,6 +1574,7 @@ export class MySqlStorage implements IStorage {
           collectionScripts.post_request_script,
           collectionScripts.pre_request_scripts_json,
           collectionScripts.post_request_scripts_json,
+          serializeSidebarColor(exportData.color),
           id
         ]
       );
@@ -1408,7 +1591,7 @@ export class MySqlStorage implements IStorage {
           const folderFields = serializeImportedFolderFields(folder);
           await connection.execute(
             `UPDATE folders SET name = ?, sort_order = ?, variables = ?, headers = ?, auth = ?,
-              pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?
+              pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, color = ?
              WHERE id = ? AND collection_id = ?`,
             [
               plan.name,
@@ -1420,6 +1603,7 @@ export class MySqlStorage implements IStorage {
               folderFields.post_request_script,
               folderFields.pre_request_scripts_json,
               folderFields.post_request_scripts_json,
+              folderFields.color,
               plan.existingId,
               id
             ]
@@ -1432,8 +1616,8 @@ export class MySqlStorage implements IStorage {
         const [folderResult] = await connection.execute<ResultSetHeader>(
           `INSERT INTO folders (
             collection_id, name, sort_order, uuid, variables, headers, auth,
-            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, color
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             id,
             plan.name,
@@ -1446,7 +1630,8 @@ export class MySqlStorage implements IStorage {
             folderFields.post_request_script,
             folderFields.pre_request_scripts_json,
             folderFields.post_request_scripts_json,
-            now
+            now,
+            folderFields.color
           ]
         );
         registerImportedFolderInMaps(folderMaps, folderResult.insertId, plan.name, plan.uuid);
@@ -1479,7 +1664,7 @@ export class MySqlStorage implements IStorage {
             `UPDATE requests SET
               folder_id = ?, name = ?, method = ?, url = ?, headers = ?, params = ?, auth = ?,
               body = ?, body_type = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
-              sort_order = ?, updated_at = ?
+              sort_order = ?, updated_at = ?, color = ?
             WHERE id = ? AND collection_id = ?`,
             [
               folderId,
@@ -1499,6 +1684,7 @@ export class MySqlStorage implements IStorage {
               fields.tags,
               fields.sort_order,
               now,
+              fields.color,
               existingRequestId,
               id
             ]
@@ -1509,8 +1695,8 @@ export class MySqlStorage implements IStorage {
         await connection.execute(
           `INSERT INTO requests (
             collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
-            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, color
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             id,
             folderId,
@@ -1531,7 +1717,8 @@ export class MySqlStorage implements IStorage {
             fields.sort_order,
             fields.uuid,
             now,
-            now
+            now,
+            fields.color
           ]
         );
       }
@@ -1549,18 +1736,37 @@ export class MySqlStorage implements IStorage {
         if (existingDocumentId != null) {
           await connection.execute(
             `UPDATE documents SET
-              folder_id = ?, name = ?, content = ?, sort_order = ?, updated_at = ?
+              folder_id = ?, name = ?, content = ?, sort_order = ?, updated_at = ?, color = ?
             WHERE id = ? AND collection_id = ?`,
-            [folderId, fields.name, fields.content, fields.sort_order, now, existingDocumentId, id]
+            [
+              folderId,
+              fields.name,
+              fields.content,
+              fields.sort_order,
+              now,
+              fields.color,
+              existingDocumentId,
+              id
+            ]
           );
           continue;
         }
 
         await connection.execute(
           `INSERT INTO documents (
-            collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [id, folderId, fields.name, fields.content, fields.sort_order, fields.uuid, now, now]
+            collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at, color
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            id,
+            folderId,
+            fields.name,
+            fields.content,
+            fields.sort_order,
+            fields.uuid,
+            now,
+            now,
+            fields.color
+          ]
         );
       }
 

@@ -118,6 +118,11 @@ export interface SavedRequest {
    * ISO 8601 timestamp when the request was last saved.
    */
   updated_at: string;
+
+  /**
+   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   */
+  color?: string | null;
 }
 /**
  * Portable single-request export file format.
@@ -207,6 +212,11 @@ export interface RequestExport {
    * Comma-separated labels for organizing and searching requests.
    */
   tags: string;
+
+  /**
+   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   */
+  color?: string | null;
 }
 
 /**
@@ -302,4 +312,9 @@ export interface SaveRequestInput {
    * ID of the folder containing this request, or null when at collection root.
    */
   folder_id?: number | null;
+
+  /**
+   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   */
+  color?: string | null;
 }

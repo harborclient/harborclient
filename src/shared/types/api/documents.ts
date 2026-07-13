@@ -21,6 +21,15 @@ export interface ApiDocuments {
   saveDocument: (input: SaveDocumentInput) => Promise<CollectionDocument>;
 
   /**
+   * Updates a markdown document sidebar color.
+   *
+   * @param id - Document ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated document.
+   */
+  setDocumentColor: (id: number, color: string | null) => Promise<CollectionDocument>;
+
+  /**
    * Deletes a markdown document by ID.
    *
    * @param id - Document ID to delete.

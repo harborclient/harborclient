@@ -66,7 +66,7 @@ const themeColorsRecordSchema = z
   });
 
 /**
- * Zod schema for saving a custom theme from the Creator form.
+ * Zod schema for saving a custom theme from the Designer form.
  */
 export const customThemeSaveInputSchema = z.object({
   id: customThemeIdSchema.optional(),
@@ -142,7 +142,7 @@ export function envelopeToCustomTheme(id: string, envelope: CustomThemeExport): 
  * Converts an import draft from a validated export envelope.
  *
  * @param envelope - Validated export envelope.
- * @returns Draft values for the Creator form without saving.
+ * @returns Draft values for the Designer form without saving.
  */
 export function envelopeToImportDraft(envelope: CustomThemeExport): CustomThemeImportDraft {
   return {

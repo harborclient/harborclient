@@ -4,6 +4,7 @@ import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
 import type {
   AuthConfig,
   Collection,
+  CollectionDocument,
   CollectionExportResult,
   Folder,
   ImportEntityResult,
@@ -23,6 +24,8 @@ import {
   setFoldersForCollection,
   setRequestsForCollection,
   setSelectedCollectionId,
+  updateCollectionColor,
+  upsertDocumentInCollection,
   upsertFolderInCollection
 } from '#/renderer/src/store/slices/collectionsSlice';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
@@ -46,6 +49,7 @@ import {
 import { refreshEnvironments } from '#/renderer/src/store/thunks/environments';
 import { refreshDocuments } from '#/renderer/src/store/thunks/documents';
 import { refreshSnippets } from '#/renderer/src/store/thunks/snippets';
+import { setTabGroups } from '#/renderer/src/store/slices/tabGroupSlice';
 import { syncTrash } from '#/renderer/src/store/thunks/trash';
 import { syncThemeMenuNow } from '#/renderer/src/plugins/themeMenuSync';
 import {
@@ -475,6 +479,11 @@ export const importFromMenu = createAsyncThunk<ImportEntityResult | null, void, 
         toast.success(result.action === 'updated' ? 'Theme updated' : 'Theme imported');
         break;
       }
+      case 'tab_group': {
+        dispatch(setTabGroups(result.tabGroups));
+        toast.success('Tab group imported');
+        break;
+      }
     }
 
     return result;
@@ -683,3 +692,42 @@ export function focusSidebarItem(payload: {
     void dispatch(refreshCollectionContents(payload.collectionId));
   };
 }
+
+/**
+ * Persists a collection sidebar color and updates the cached list row.
+ */
+export const setSidebarItemColor = createAsyncThunk<
+  Collection,
+  { kind: 'collection'; id: number; color: string | null },
+  ThunkApiConfig
+>('collections/setSidebarColor', async ({ id, color }, { dispatch }) => {
+  const collection = await window.api.setCollectionColor(id, color);
+  dispatch(updateCollectionColor(collection));
+  return collection;
+});
+
+/**
+ * Persists a folder sidebar color and updates the cached collection folders.
+ */
+export const setFolderSidebarColor = createAsyncThunk<
+  Folder,
+  { collectionId: number; id: number; color: string | null },
+  ThunkApiConfig
+>('collections/setFolderSidebarColor', async ({ collectionId, id, color }, { dispatch }) => {
+  const folder = await window.api.setFolderColor(id, color);
+  dispatch(upsertFolderInCollection({ collectionId, folder }));
+  return folder;
+});
+
+/**
+ * Persists a document sidebar color and updates the cached collection documents.
+ */
+export const setDocumentSidebarColor = createAsyncThunk<
+  CollectionDocument,
+  { collectionId: number; id: number; color: string | null },
+  ThunkApiConfig
+>('collections/setDocumentSidebarColor', async ({ collectionId, id, color }, { dispatch }) => {
+  const document = await window.api.setDocumentColor(id, color);
+  dispatch(upsertDocumentInCollection({ collectionId, document }));
+  return document;
+});

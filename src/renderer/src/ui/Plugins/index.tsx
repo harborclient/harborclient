@@ -2,6 +2,12 @@ import { PageSidebar, SidebarLayout } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState, type JSX } from 'react';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
+  beginEditSession,
+  beginNewSession,
+  selectThemeDesignerInitialized
+} from '#/renderer/src/store/slices/themeDesignerSlice';
+import { discardThemeDesignerSession } from '#/renderer/src/store/thunks/theme';
+import {
   consumePendingInstalledSearch,
   consumePendingMarketplaceSearch,
   selectCustomThemesReloadNonce,
@@ -57,12 +63,12 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
   const [customThemes, setCustomThemes] = useState<CustomTheme[]>([]);
   const [customThemesLoading, setCustomThemesLoading] = useState(kind === 'themes');
   const [activeTheme, setActiveTheme] = useState<ThemeSource>('system');
-  const [editingCustomThemeId, setEditingCustomThemeId] = useState<string | null>(null);
+  const themeDesignerInitialized = useAppSelector(selectThemeDesignerInitialized);
   const [useThemeVariantPicker, setUseThemeVariantPicker] =
     useState<UseThemeVariantPickerState | null>(null);
 
   /**
-   * Loads saved custom themes for the Installed and Creator sections.
+   * Loads saved custom themes for the Installed and Designer sections.
    */
   const loadCustomThemes = useCallback(async (): Promise<void> => {
     if (kind !== 'themes') {
@@ -143,8 +149,11 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
     if (pendingInstalledSearch != null) {
       return 'installed';
     }
+    if (kind === 'themes' && themeDesignerInitialized) {
+      return 'designer';
+    }
     return undefined;
-  }, [pendingInstalledSearch, pendingMarketplaceSearch]);
+  }, [kind, pendingInstalledSearch, pendingMarketplaceSearch, themeDesignerInitialized]);
 
   const { section, setSection } = usePersistedPageSidebarSection<PluginsSidebarSection>({
     pageKey,
@@ -336,11 +345,11 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
     if (section === 'marketplace' && next !== 'marketplace') {
       resetCatalogFilters();
     }
-    if (section === 'creator' && next !== 'creator') {
-      setEditingCustomThemeId(null);
+    if (section === 'designer' && next !== 'designer') {
+      void dispatch(discardThemeDesignerSession());
     }
-    if (next === 'creator' && editingCustomThemeId == null && section !== 'creator') {
-      setEditingCustomThemeId(null);
+    if (next === 'designer' && !themeDesignerInitialized && section !== 'designer') {
+      dispatch(beginNewSession());
     }
     setSection(next);
     if (next === 'marketplace' && catalog == null && !catalogLoading) {
@@ -438,13 +447,13 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
   );
 
   /**
-   * Opens one saved custom theme in the Creator section.
+   * Opens one saved custom theme in the Designer section.
    *
    * @param id - Custom theme filename stem.
    */
   const handleEditCustomTheme = (id: string): void => {
-    setEditingCustomThemeId(id);
-    setSection('creator');
+    dispatch(beginEditSession({ editingId: id }));
+    setSection('designer');
   };
 
   /**
@@ -544,13 +553,10 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
             onCustomThemesChanged={kind === 'themes' ? () => void loadCustomThemes() : undefined}
           />
         ) : null}
-        {kind === 'themes' && section === 'creator' ? (
+        {kind === 'themes' && section === 'designer' ? (
           <CustomThemeView
-            key={editingCustomThemeId ?? 'new'}
-            editingId={editingCustomThemeId}
-            onSaved={(theme) => {
+            onSaved={() => {
               void loadCustomThemes();
-              setEditingCustomThemeId(theme.id);
             }}
           />
         ) : null}

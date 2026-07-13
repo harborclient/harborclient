@@ -8,7 +8,7 @@ import {
   setMenuResponseEditorVisible,
   setMenuRunResultsVisible,
   setMenuSidebarVisible,
-  setMenuCreatorUndoRedo,
+  setMenuDesignerUndoRedo,
   setMenuTabGroupAvailable,
   setMenuThemeMenuState
 } from '#/main/appMenu';
@@ -73,12 +73,12 @@ export function registerMenuHandlers(): void {
     setMenuThemeMenuState(theme as ThemeSource, options as ThemeMenuOption[]);
   });
 
-  // Updates Edit menu undo/redo ownership and enabled state for the Creator tab.
+  // Updates Edit menu undo/redo ownership and enabled state for the Designer tab.
   handle(
-    'menu:setCreatorUndoRedo',
-    ipcArgSchemas.menuCreatorUndoRedo,
+    'menu:setDesignerUndoRedo',
+    ipcArgSchemas.menuDesignerUndoRedo,
     (_event, active, canUndo, canRedo) => {
-      setMenuCreatorUndoRedo(active, canUndo, canRedo);
+      setMenuDesignerUndoRedo(active, canUndo, canRedo);
     }
   );
 

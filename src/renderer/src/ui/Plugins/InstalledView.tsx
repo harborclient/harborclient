@@ -96,7 +96,7 @@ interface Props {
   activeTheme?: ThemeSource;
 
   /**
-   * Opens one custom theme in the Creator for editing.
+   * Opens one custom theme in the Designer for editing.
    */
   onEditCustomTheme?: (id: string) => void;
 

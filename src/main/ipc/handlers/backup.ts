@@ -95,4 +95,7 @@ export function registerBackupHandlers(db: IStorage): void {
     app.relaunch();
     app.exit(0);
   });
+
+  // Returns the Electron userData directory for display in backup settings.
+  handle('backup:getUserDataPath', ipcArgSchemas.none, () => app.getPath('userData'));
 }

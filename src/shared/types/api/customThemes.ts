@@ -1,7 +1,7 @@
 import type { CustomTheme, CustomThemeImportDraft } from '#/shared/types/customTheme';
 
 /**
- * Input for saving a custom theme from the Creator form.
+ * Input for saving a custom theme from the Designer form.
  */
 export interface SaveCustomThemeInput {
   /**

@@ -20,6 +20,8 @@ import toast from 'react-hot-toast';
 import type { Environment } from '#/shared/types';
 import { RowActionsMenu } from '@harborclient/sdk/components';
 import { buildReorderMenuGroup } from '@harborclient/sdk/components';
+import { SidebarColorDot } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarColorDot';
+import { SidebarRowActionsMenu } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarRowActionsMenu';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectActiveEnvironmentId, selectEnvironments } from '#/renderer/src/store/selectors';
@@ -334,93 +336,109 @@ export function Environments(): JSX.Element {
                     focusEnvironmentSettings();
                   }}
                 >
-                  <span className="min-w-0 flex-1 truncate">{environment.name}</span>
+                  <span className="inline-flex min-w-0 flex-1 items-center gap-1.5">
+                    <span className="min-w-0 truncate">{environment.name}</span>
+                    <SidebarColorDot
+                      color={environment.color}
+                      label={`Color for ${environment.name}`}
+                    />
+                  </span>
                   <span className="shrink-0 text-muted">{variableSummary}</span>
                 </button>
                 <div className="shrink-0" onPointerDown={stopSortableDragPointerDown}>
-                  <RowActionsMenu
-                    menuId={menuId}
-                    openMenuId={openMenuId}
-                    onOpenChange={setOpenMenuId}
-                    groups={
-                      showBulkMenu
-                        ? [
-                            [
-                              {
-                                label: 'Delete',
-                                variant: 'danger' as const,
-                                onSelect: () => {
-                                  void handleDeleteSelected();
-                                }
-                              }
-                            ]
-                          ]
-                        : [
-                            ...buildReorderMenuGroup(
-                              environmentIndex,
-                              environments.length,
-                              (direction) => void moveEnvironment(environment.id, direction)
-                            ),
-                            [
-                              {
-                                label: 'Settings',
-                                onSelect: () => onConfigureEnvironment(environment.id)
-                              },
-                              {
-                                label: 'Export',
-                                onSelect: () => onExportEnvironment(environment.id)
-                              },
-                              {
-                                label: 'Duplicate',
-                                onSelect: () => void onDuplicateEnvironment(environment.id)
-                              },
-                              ...(environmentBelow
-                                ? [
-                                    {
-                                      label: 'Merge down',
-                                      onSelect: () => {
-                                        void (async () => {
-                                          const confirmed = await confirm({
-                                            title: 'Merge environment down',
-                                            message: `Merge "${environment.name}" into "${environmentBelow.name}"? The merged environment will be named "${environment.name}".`,
-                                            confirmLabel: 'Merge down'
-                                          });
-                                          if (confirmed) {
-                                            void onMergeEnvironmentDown(environment.id);
-                                          }
-                                        })();
+                  {showBulkMenu ? (
+                    <RowActionsMenu
+                      menuId={menuId}
+                      openMenuId={openMenuId}
+                      onOpenChange={setOpenMenuId}
+                      groups={[
+                        [
+                          {
+                            label: 'Delete',
+                            variant: 'danger' as const,
+                            onSelect: () => {
+                              void handleDeleteSelected();
+                            }
+                          }
+                        ]
+                      ]}
+                    />
+                  ) : (
+                    <SidebarRowActionsMenu
+                      menuId={menuId}
+                      openMenuId={openMenuId}
+                      onOpenChange={setOpenMenuId}
+                      colorTarget={{
+                        kind: 'environment',
+                        id: environment.id,
+                        color: environment.color ?? null
+                      }}
+                      groups={[
+                        ...buildReorderMenuGroup(
+                          environmentIndex,
+                          environments.length,
+                          (direction) => void moveEnvironment(environment.id, direction)
+                        ),
+                        [
+                          {
+                            label: 'Settings',
+                            onSelect: () => onConfigureEnvironment(environment.id)
+                          },
+                          {
+                            label: 'Export',
+                            onSelect: () => onExportEnvironment(environment.id)
+                          },
+                          {
+                            label: 'Duplicate',
+                            onSelect: () => void onDuplicateEnvironment(environment.id)
+                          },
+                          ...(environmentBelow
+                            ? [
+                                {
+                                  label: 'Merge down',
+                                  onSelect: () => {
+                                    void (async () => {
+                                      const confirmed = await confirm({
+                                        title: 'Merge environment down',
+                                        message: `Merge "${environment.name}" into "${environmentBelow.name}"? The merged environment will be named "${environment.name}".`,
+                                        confirmLabel: 'Merge down'
+                                      });
+                                      if (confirmed) {
+                                        void onMergeEnvironmentDown(environment.id);
                                       }
-                                    }
-                                  ]
-                                : [])
-                            ],
-                            [
-                              {
-                                label: 'Delete',
-                                variant: 'danger',
-                                onSelect: () => {
-                                  void (async () => {
-                                    const confirmed = await confirm({
-                                      title: 'Delete environment',
-                                      message: `Delete environment "${environment.name}"?`,
-                                      confirmLabel: 'Delete',
-                                      variant: 'danger'
-                                    });
-                                    if (confirmed) {
-                                      void onDeleteEnvironment(environment.id);
-                                    }
-                                  })();
+                                    })();
+                                  }
                                 }
-                              }
-                            ],
-                            ...buildDevInspectMenuGroups(
-                              inspectPointsByMenuId[menuId],
-                              menuId,
-                              developerToolsEnabled
-                            )
-                          ]
-                    }
-                  />
+                              ]
+                            : [])
+                        ],
+                        [
+                          {
+                            label: 'Delete',
+                            variant: 'danger',
+                            onSelect: () => {
+                              void (async () => {
+                                const confirmed = await confirm({
+                                  title: 'Delete environment',
+                                  message: `Delete environment "${environment.name}"?`,
+                                  confirmLabel: 'Delete',
+                                  variant: 'danger'
+                                });
+                                if (confirmed) {
+                                  void onDeleteEnvironment(environment.id);
+                                }
+                              })();
+                            }
+                          }
+                        ],
+                        ...buildDevInspectMenuGroups(
+                          inspectPointsByMenuId[menuId],
+                          menuId,
+                          developerToolsEnabled
+                        )
+                      ]}
+                    />
+                  )}
                 </div>
               </SortableRow>
             );

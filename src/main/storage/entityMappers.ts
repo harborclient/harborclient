@@ -3,6 +3,7 @@ import { normalizeSnippetScope } from '#/shared/snippetScope';
 import { normalizeScriptStage } from '#/shared/scriptStage';
 import { defaultAuth, normalizeAuth } from '#/shared/auth';
 import { readScriptRefsFromJson } from '#/shared/scriptRefs';
+import { readSidebarColor } from '#/shared/sidebarColor';
 import {
   firstRunResultMethod,
   type ProviderRunResult,
@@ -207,7 +208,8 @@ export function rowToCollection(row: Record<string, unknown>): Collection {
     post_request_script: postRequestScript,
     pre_request_scripts: readScriptRefsFromJson(row.pre_request_scripts, preRequestScript),
     post_request_scripts: readScriptRefsFromJson(row.post_request_scripts, postRequestScript),
-    created_at: readTimestamp(row.created_at)
+    created_at: readTimestamp(row.created_at),
+    color: readSidebarColor(row.color)
   };
 }
 
@@ -222,7 +224,8 @@ export function rowToEnvironment(row: Record<string, unknown>): Environment {
     uuid: readString(row.uuid),
     name: readString(row.name),
     variables: readVariables(row.variables),
-    created_at: readTimestamp(row.created_at)
+    created_at: readTimestamp(row.created_at),
+    color: readSidebarColor(row.color)
   };
 }
 
@@ -408,7 +411,8 @@ export function rowToFolder(row: Record<string, unknown>): Folder {
     post_request_script: postRequestScript,
     pre_request_scripts: readScriptRefsFromJson(row.pre_request_scripts, preRequestScript),
     post_request_scripts: readScriptRefsFromJson(row.post_request_scripts, postRequestScript),
-    created_at: readTimestamp(row.created_at)
+    created_at: readTimestamp(row.created_at),
+    color: readSidebarColor(row.color)
   };
 }
 
@@ -441,7 +445,8 @@ export function rowToRequest(row: Record<string, unknown>): SavedRequest {
     folder_id: row.folder_id != null ? readNullableNumber(row.folder_id) : null,
     sort_order: readNumber(row.sort_order),
     created_at: readTimestamp(row.created_at),
-    updated_at: readTimestamp(row.updated_at)
+    updated_at: readTimestamp(row.updated_at),
+    color: readSidebarColor(row.color)
   };
 }
 
@@ -460,7 +465,8 @@ export function rowToDocument(row: Record<string, unknown>): CollectionDocument 
     content: readString(row.content),
     sort_order: readNumber(row.sort_order),
     created_at: readTimestamp(row.created_at),
-    updated_at: readTimestamp(row.updated_at)
+    updated_at: readTimestamp(row.updated_at),
+    color: readSidebarColor(row.color)
   };
 }
 

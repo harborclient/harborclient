@@ -19,7 +19,9 @@ import {
 import { clearActiveResponse } from '#/renderer/src/plugins/hostRequestCommands';
 import { buildRuntimeVars } from '#/renderer/src/scripting/scriptOrchestration';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { discardThemeDesignerSession } from '#/renderer/src/store/thunks/theme';
 import { selectEditSessionHiddenTabIds } from '#/renderer/src/store/slices/tabGroupSlice';
+import { selectThemeDesignerIsDirty } from '#/renderer/src/store/slices/themeDesignerSlice';
 import {
   selectActiveEnvironmentId,
   selectActiveMarkdownTab,
@@ -116,6 +118,7 @@ interface CloseManyPrompt {
  * @param environmentSettingsDirty - Whether environment settings have unsaved edits.
  * @param folderSettingsDirty - Whether folder settings have unsaved edits.
  * @param warnWhenClosingUnsavedRequests - Whether request-tab close prompts are enabled.
+ * @param themeDesignerDirty - Whether the Theme Designer has unsaved edits.
  */
 function isDirtyForClose(
   tab: Tab,
@@ -123,7 +126,8 @@ function isDirtyForClose(
   collectionSettingsDirty: boolean,
   environmentSettingsDirty: boolean,
   folderSettingsDirty: boolean,
-  warnWhenClosingUnsavedRequests: boolean
+  warnWhenClosingUnsavedRequests: boolean,
+  themeDesignerDirty: boolean
 ): boolean {
   if (isMarkdownTab(tab)) {
     return warnWhenClosingUnsavedRequests && isTabDirty(tab);
@@ -131,6 +135,10 @@ function isDirtyForClose(
 
   if (isRequestTab(tab)) {
     return warnWhenClosingUnsavedRequests && isTabDirty(tab);
+  }
+
+  if (isPageTab(tab) && tab.page.type === 'themes') {
+    return themeDesignerDirty;
   }
 
   if (isPageTab(tab) && tab.tabId === activeTabId) {
@@ -176,6 +184,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const activeMarkdownTab = useAppSelector(selectActiveMarkdownTab);
   const activeTab = tabs.find((tab) => tab.tabId === activeTabId);
   const isActivePageTab = activeTab != null && isPageTab(activeTab);
+
   const isActiveMarkdownTab = activeTab != null && isMarkdownTab(activeTab);
   const draft = useAppSelector(selectDraft);
   const response = useAppSelector(selectResponse);
@@ -194,6 +203,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const collectionSettingsDirty = useAppSelector(selectCollectionSettingsDirty);
   const environmentSettingsDirty = useAppSelector(selectEnvironmentSettingsDirty);
   const folderSettingsDirty = useAppSelector(selectFolderSettingsDirty);
+  const themeDesignerDirty = useAppSelector(selectThemeDesignerIsDirty);
   const showRequestEditor = useAppSelector(selectShowRequestEditor);
   const showResponseEditor = useAppSelector(selectShowResponseEditor);
   const persistedSplitHeight = useAppSelector(selectRequestEditorSplitHeight);
@@ -206,6 +216,26 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
     const hasOpenSavedRequests = tabs.some((tab) => isRequestTab(tab) && tab.draft.id != null);
     void window.api.setTabGroupAvailable(hasOpenSavedRequests);
   }, [tabs]);
+
+  /**
+   * Whether a Themes page tab is currently open in the tab bar.
+   */
+  const themesTabOpen = useMemo(
+    () => tabs.some((tab) => isPageTab(tab) && tab.page.type === 'themes'),
+    [tabs]
+  );
+
+  const themesTabOpenRef = useRef(themesTabOpen);
+
+  /**
+   * Discards the Theme Designer session when the Themes tab is closed.
+   */
+  useEffect(() => {
+    if (themesTabOpenRef.current && !themesTabOpen) {
+      void dispatch(discardThemeDesignerSession());
+    }
+    themesTabOpenRef.current = themesTabOpen;
+  }, [dispatch, themesTabOpen]);
 
   const hasOpenTabs = tabs.length > 0;
   const [closeTabPrompt, setCloseTabPrompt] = useState<CloseTabPrompt | null>(null);
@@ -413,7 +443,8 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
         collectionSettingsDirty,
         environmentSettingsDirty,
         folderSettingsDirty,
-        warnWhenClosingUnsavedRequests
+        warnWhenClosingUnsavedRequests,
+        themeDesignerDirty
       )
     ).length;
 
@@ -438,7 +469,8 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
             collectionSettingsDirty,
             environmentSettingsDirty,
             folderSettingsDirty,
-            warnWhenClosingUnsavedRequests
+            warnWhenClosingUnsavedRequests,
+            themeDesignerDirty
           )
       )
       .map((tab) => tab.tabId);
@@ -462,6 +494,11 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
 
     if (isRequestTab(tab) && warnWhenClosingUnsavedRequests && isTabDirty(tab)) {
       setCloseTabPrompt({ tabId, name: tab.draft.name });
+      return;
+    }
+
+    if (isPageTab(tab) && tab.page.type === 'themes' && themeDesignerDirty) {
+      setCloseTabPrompt({ tabId, name: 'Themes' });
       return;
     }
 

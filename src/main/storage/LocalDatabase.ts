@@ -10,6 +10,11 @@ import {
 } from '#/main/storage/entityMappers';
 import { trimRequiredName } from '#/main/storage/trimRequiredName';
 import { generateDocumentUuid } from '#/main/storage/uuid';
+import {
+  migrateSidebarColorColumn,
+  serializeSidebarColor
+} from '#/main/storage/sidebarColorMigration';
+import { readSidebarColor } from '#/shared/sidebarColor';
 import { DEFAULT_CHAT_TITLE, normalizeChatTitle } from '#/shared/ai/chatTitle';
 import type {
   Chat,
@@ -31,6 +36,8 @@ import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '#/shared/scriptStage
 import type { ScriptStage } from '@harborclient/sdk';
 
 const REGISTRY_DB_FILENAME = 'harborclient-registry.db';
+const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, color';
+const TAB_GROUP_COLUMNS = 'id, name, created_at, updated_at, color';
 
 /**
  * Row shape returned from request_history queries.
@@ -476,6 +483,8 @@ export class LocalDatabase {
     this.migrateRequestHistoryTable();
     this.migrateTabGroupsTable();
     this.migrateTrashTable();
+    migrateSidebarColorColumn(this.getDb(), 'environments');
+    migrateSidebarColorColumn(this.getDb(), 'tab_groups');
   }
 
   /**
@@ -1153,9 +1162,7 @@ export class LocalDatabase {
    */
   listEnvironments(): Environment[] {
     const rows = this.getDb()
-      .prepare(
-        'SELECT id, uuid, name, variables, created_at FROM environments ORDER BY sort_order ASC, name ASC'
-      )
+      .prepare(`SELECT ${ENVIRONMENT_COLUMNS} FROM environments ORDER BY sort_order ASC, name ASC`)
       .all() as Record<string, unknown>[];
 
     return rows.map(rowToEnvironment);
@@ -1183,7 +1190,7 @@ export class LocalDatabase {
     }
 
     const row = this.getDb()
-      .prepare('SELECT id, uuid, name, variables, created_at FROM environments WHERE uuid = ?')
+      .prepare(`SELECT ${ENVIRONMENT_COLUMNS} FROM environments WHERE uuid = ?`)
       .get(trimmed) as Record<string, unknown> | undefined;
 
     return row ? rowToEnvironment(row) : undefined;
@@ -1205,7 +1212,7 @@ export class LocalDatabase {
       .run(trimmedName, environmentUuid, sortOrder);
 
     const row = this.getDb()
-      .prepare('SELECT id, uuid, name, variables, created_at FROM environments WHERE id = ?')
+      .prepare(`SELECT ${ENVIRONMENT_COLUMNS} FROM environments WHERE id = ?`)
       .get(result.lastInsertRowid) as Record<string, unknown>;
 
     return rowToEnvironment(row);
@@ -1219,7 +1226,7 @@ export class LocalDatabase {
     const sortOrder = this.nextEnvironmentSortOrder();
     this.getDb()
       .prepare(
-        'INSERT INTO environments (id, uuid, name, variables, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+        'INSERT INTO environments (id, uuid, name, variables, sort_order, created_at, color) VALUES (?, ?, ?, ?, ?, ?, ?)'
       )
       .run(
         environment.id,
@@ -1227,11 +1234,12 @@ export class LocalDatabase {
         environment.name.trim(),
         JSON.stringify(environment.variables),
         sortOrder,
-        environment.created_at
+        environment.created_at,
+        serializeSidebarColor(environment.color)
       );
 
     const row = this.getDb()
-      .prepare('SELECT id, uuid, name, variables, created_at FROM environments WHERE id = ?')
+      .prepare(`SELECT ${ENVIRONMENT_COLUMNS} FROM environments WHERE id = ?`)
       .get(environment.id) as Record<string, unknown>;
 
     return rowToEnvironment(row);
@@ -1252,7 +1260,27 @@ export class LocalDatabase {
       .run(trimmedName, JSON.stringify(variables), id);
 
     const row = this.getDb()
-      .prepare('SELECT id, uuid, name, variables, created_at FROM environments WHERE id = ?')
+      .prepare(`SELECT ${ENVIRONMENT_COLUMNS} FROM environments WHERE id = ?`)
+      .get(id) as Record<string, unknown> | undefined;
+
+    if (!row) throw new Error('Environment not found');
+    return rowToEnvironment(row);
+  }
+
+  /**
+   * Updates an environment's sidebar color.
+   *
+   * @param id - Environment ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated environment.
+   */
+  setEnvironmentColor(id: number, color: string | null): Environment {
+    this.getDb()
+      .prepare('UPDATE environments SET color = ? WHERE id = ?')
+      .run(serializeSidebarColor(color), id);
+
+    const row = this.getDb()
+      .prepare(`SELECT ${ENVIRONMENT_COLUMNS} FROM environments WHERE id = ?`)
       .get(id) as Record<string, unknown> | undefined;
 
     if (!row) throw new Error('Environment not found');
@@ -2001,14 +2029,13 @@ export class LocalDatabase {
    */
   listTabGroups(): TabGroup[] {
     const groupRows = this.getDb()
-      .prepare(
-        'SELECT id, name, created_at, updated_at FROM tab_groups ORDER BY sort_order ASC, name ASC'
-      )
+      .prepare(`SELECT ${TAB_GROUP_COLUMNS} FROM tab_groups ORDER BY sort_order ASC, name ASC`)
       .all() as Array<{
       id: number;
       name: string;
       created_at: number;
       updated_at: number;
+      color: string | null;
     }>;
 
     const requestRows = this.getDb()
@@ -2040,7 +2067,8 @@ export class LocalDatabase {
       name: row.name,
       requests: requestsByGroup.get(row.id) ?? [],
       createdAt: row.created_at,
-      updatedAt: row.updated_at
+      updatedAt: row.updated_at,
+      color: readSidebarColor(row.color)
     }));
   }
 
@@ -2092,9 +2120,9 @@ export class LocalDatabase {
     const transaction = db.transaction(() => {
       const result = db
         .prepare(
-          'INSERT INTO tab_groups (name, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?)'
+          'INSERT INTO tab_groups (name, sort_order, created_at, updated_at, color) VALUES (?, ?, ?, ?, ?)'
         )
-        .run(trimmedName, sortOrder, now, now);
+        .run(trimmedName, sortOrder, now, now, serializeSidebarColor(input.color));
       const groupId = Number(result.lastInsertRowid);
       this.insertTabGroupRequests(groupId, input.requests);
     });
@@ -2124,6 +2152,20 @@ export class LocalDatabase {
     });
 
     transaction();
+    return this.listTabGroups();
+  }
+
+  /**
+   * Updates a tab group's sidebar color and returns the refreshed list.
+   *
+   * @param id - Tab group id.
+   * @param color - CSS color string, or null to clear.
+   * @returns Updated tab group list.
+   */
+  setTabGroupColor(id: number, color: string | null): TabGroup[] {
+    this.getDb()
+      .prepare('UPDATE tab_groups SET color = ?, updated_at = ? WHERE id = ?')
+      .run(serializeSidebarColor(color), Date.now(), id);
     return this.listTabGroups();
   }
 

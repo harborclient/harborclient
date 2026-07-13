@@ -26,6 +26,7 @@ import {
   openImportFile
 } from '#/main/ipc/handlers/importDialogs';
 import { importEnvironmentData } from '#/main/ipc/handlers/environments';
+import { importTabGroupData } from '#/main/ipc/handlers/tabGroups';
 import { importCustomThemeData } from '#/main/ipc/handlers/customThemeImport';
 import { importSnippetData } from '#/main/ipc/handlers/snippetImport';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
@@ -328,6 +329,10 @@ export function registerCollectionHandlers(db: IStorage): void {
       )
   );
 
+  handle('collections:setColor', ipcArgSchemas.collectionsSetColor, (_event, id, color) =>
+    db.setCollectionColor(id, color)
+  );
+
   // Deletes a collection and all of its folders and requests.
   handle('collections:delete', ipcArgSchemas.dbId, (_event, id) =>
     getTrashService().moveCollectionToTrash(id)
@@ -588,6 +593,19 @@ export function registerCollectionHandlers(db: IStorage): void {
             kind: 'theme',
             theme: themeResult.theme,
             action: themeResult.action
+          } satisfies ImportEntityResult;
+        }
+
+        if (exportKind === 'tab_group') {
+          logImportVerbose('imports:auto classified', { kind: 'tab-group' });
+          const tabGroups = await importTabGroupData(win, parsed);
+          if (!tabGroups) {
+            return null;
+          }
+          return {
+            kind: 'tab_group',
+            tabGroups,
+            action: 'created'
           } satisfies ImportEntityResult;
         }
       }

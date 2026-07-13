@@ -21,7 +21,7 @@ interface Props {
   value: string;
 
   /**
-   * Updates the token value in the Creator draft.
+   * Updates the token value in the Designer draft.
    */
   onChange: (token: ThemeColorToken, value: string) => void;
 }

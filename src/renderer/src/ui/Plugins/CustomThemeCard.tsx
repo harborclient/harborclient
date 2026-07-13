@@ -20,7 +20,7 @@ interface Props {
   activeTheme: ThemeSource;
 
   /**
-   * Opens this theme in the Creator for editing.
+   * Opens this theme in the Designer for editing.
    */
   onEdit: (id: string) => void;
 

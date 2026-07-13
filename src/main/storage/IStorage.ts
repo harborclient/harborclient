@@ -74,6 +74,15 @@ export interface IStorage {
   ): Promise<Collection>;
 
   /**
+   * Updates a collection's sidebar color.
+   *
+   * @param id - Collection ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated collection.
+   */
+  setCollectionColor(id: number, color: string | null): Promise<Collection>;
+
+  /**
    * Deletes a collection and all of its requests.
    *
    * @param id - Collection ID to delete.
@@ -107,6 +116,15 @@ export interface IStorage {
   updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment>;
 
   /**
+   * Updates an environment's sidebar color.
+   *
+   * @param id - Environment ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated environment.
+   */
+  setEnvironmentColor(id: number, color: string | null): Promise<Environment>;
+
+  /**
    * Deletes an environment.
    *
    * @param id - Environment ID to delete.
@@ -128,6 +146,15 @@ export interface IStorage {
    * @returns The saved request with ID and timestamps.
    */
   saveRequest(input: SaveRequestInput): Promise<SavedRequest>;
+
+  /**
+   * Updates a saved request's sidebar color.
+   *
+   * @param id - Request ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated request.
+   */
+  setRequestColor(id: number, color: string | null): Promise<SavedRequest>;
 
   /**
    * Deletes a saved request by ID.
@@ -187,6 +214,15 @@ export interface IStorage {
     preRequestScripts?: ScriptRef[],
     postRequestScripts?: ScriptRef[]
   ): Promise<Folder>;
+
+  /**
+   * Updates a folder's sidebar color.
+   *
+   * @param id - Folder ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated folder.
+   */
+  setFolderColor(id: number, color: string | null): Promise<Folder>;
 
   /**
    * Deletes a folder and all requests inside it.
@@ -253,6 +289,15 @@ export interface IStorage {
    * @returns The saved document with ID and timestamps.
    */
   saveDocument(input: SaveDocumentInput): Promise<CollectionDocument>;
+
+  /**
+   * Updates a markdown document's sidebar color.
+   *
+   * @param id - Document ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated document.
+   */
+  setDocumentColor(id: number, color: string | null): Promise<CollectionDocument>;
 
   /**
    * Deletes a markdown document by ID.

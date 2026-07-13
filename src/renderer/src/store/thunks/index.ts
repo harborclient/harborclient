@@ -13,6 +13,7 @@ export * from '#/renderer/src/store/thunks/requestHistory';
 export * from '#/renderer/src/store/thunks/tabGroups';
 export * from '#/renderer/src/store/thunks/trash';
 export * from '#/renderer/src/store/thunks/settings';
+export * from '#/renderer/src/store/thunks/theme';
 export * from '#/renderer/src/store/thunks/tabs';
 export * from '#/renderer/src/store/thunks/terminals';
 

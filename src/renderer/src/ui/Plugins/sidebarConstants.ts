@@ -41,7 +41,7 @@ export function pluginSidebarSections(kind: PluginManagementKind): Array<{
     return [
       { value: 'installed', label: 'Installed', icon: faPuzzlePiece },
       { value: 'marketplace', label: 'Marketplace', icon: faStore },
-      { value: 'creator', label: 'Creator', icon: faWandMagicSparkles },
+      { value: 'designer', label: 'Designer', icon: faWandMagicSparkles },
       { value: 'install', label: 'Install', icon: faDownload }
     ];
   }

@@ -23,6 +23,18 @@ const environmentsSlice = createSlice({
       state.environments = action.payload;
     },
     /**
+     * Updates one environment row after a sidebar color change.
+     */
+    updateEnvironmentColor(state, action: PayloadAction<Environment>) {
+      const index = state.environments.findIndex(
+        (environment) => environment.id === action.payload.id
+      );
+      if (index === -1) {
+        return;
+      }
+      state.environments[index] = action.payload;
+    },
+    /**
      * Sets the active environment selection.
      */
     setActiveEnvironmentId(state, action: PayloadAction<number | null>) {
@@ -50,6 +62,10 @@ const environmentsSlice = createSlice({
   }
 });
 
-export const { setEnvironments, setActiveEnvironmentId, reorderEnvironmentsLocal } =
-  environmentsSlice.actions;
+export const {
+  setEnvironments,
+  updateEnvironmentColor,
+  setActiveEnvironmentId,
+  reorderEnvironmentsLocal
+} = environmentsSlice.actions;
 export default environmentsSlice.reducer;

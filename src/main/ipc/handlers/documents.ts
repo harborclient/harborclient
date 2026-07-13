@@ -15,6 +15,10 @@ export function registerDocumentHandlers(db: IStorage): void {
 
   handle('documents:save', ipcArgSchemas.documentSave, (_event, input) => db.saveDocument(input));
 
+  handle('documents:setColor', ipcArgSchemas.documentsSetColor, (_event, id, color) =>
+    db.setDocumentColor(id, color)
+  );
+
   handle('documents:delete', ipcArgSchemas.documentDelete, (_event, id) =>
     getTrashService().moveDocumentToTrash(id)
   );

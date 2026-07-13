@@ -1,12 +1,10 @@
 {
   "harborclientVersion": 1,
   "harborclientExport": "theme",
-  "title": "Dark",
-  "type": "dark",
   "theme": {
     "surface": "#1e1e1e",
     "sidebar": "#252526",
-    "sidebar-section": "#343437",
+    "sidebar-section": "#313131",
     "control": "#3a3a3c",
     "field": "#191919",
     "separator": "rgba(255, 255, 255, 0.08)",
@@ -21,11 +19,11 @@
     "warning": "#ff9f0a",
     "success": "#30d158",
     "info": "rgba(255, 255, 255, 0.55)",
-    "method-get": "#2d8a4e",
-    "method-post": "#2f8eed",
-    "method-put": "#e63ac3",
+    "method-get": "#139742",
+    "method-post": "#4e89c3",
+    "method-put": "#a44892",
     "method-patch": "#7b5ea7",
-    "method-delete": "#de5445",
+    "method-delete": "#bc584d",
     "method-head": "#6e6e73",
     "method-options": "#6e6e73",
     "scrollbar-track": "rgba(255, 255, 255, 0.06)",
@@ -38,5 +36,7 @@
     "script-stage-after-each": "#ff9f0a",
     "script-stage-after-all": "#ae7213",
     "terminal": "#000000"
-  }
+  },
+  "title": "Dark",
+  "type": "dark"
 }

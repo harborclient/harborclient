@@ -63,8 +63,9 @@ export async function importEnvironmentData(
         return null;
       }
       if (choice === 'update') {
-        const environment = await db.updateEnvironment(existing.id, data.name, data.variables);
-        return { environment, action: 'updated' };
+        await db.updateEnvironment(existing.id, data.name, data.variables);
+        const colored = await db.setEnvironmentColor(existing.id, data.color ?? null);
+        return { environment: colored, action: 'updated' };
       }
       payload = mintFreshEnvironmentExportUuid(data);
     }
@@ -72,7 +73,8 @@ export async function importEnvironmentData(
 
   const targetUuid = resolveImportUuid(payload.uuid);
   const created = await db.createEnvironment(payload.name, targetUuid);
-  const environment = await db.updateEnvironment(created.id, payload.name, payload.variables);
+  let environment = await db.updateEnvironment(created.id, payload.name, payload.variables);
+  environment = await db.setEnvironmentColor(created.id, payload.color ?? null);
   return { environment, action: 'created' };
 }
 
@@ -95,6 +97,10 @@ export function registerEnvironmentHandlers(db: IStorage): void {
     'environments:update',
     ipcArgSchemas.environmentUpdate,
     (_event, id, environmentName, variables) => db.updateEnvironment(id, environmentName, variables)
+  );
+
+  handle('environments:setColor', ipcArgSchemas.environmentsSetColor, (_event, id, color) =>
+    db.setEnvironmentColor(id, color)
   );
 
   // Deletes an environment by id.
@@ -135,7 +141,8 @@ export function registerEnvironmentHandlers(db: IStorage): void {
       harborclientExport: 'environment',
       uuid: environment.uuid,
       name: environment.name,
-      variables: maskVariablesForExport(environment.variables)
+      variables: maskVariablesForExport(environment.variables),
+      color: environment.color ?? null
     };
 
     const win = BrowserWindow.getFocusedWindow();

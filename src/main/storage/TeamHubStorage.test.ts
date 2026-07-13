@@ -657,4 +657,65 @@ describeSqlite('TeamHubStorage', () => {
     expect(folders[0]?.id).toBe(folderId);
     expect(folders[0]?.variables).toEqual(updatedVariables);
   });
+
+  it('persists folder sidebar color via renameFolder on the Team Hub server', async () => {
+    const collectionServerId = '550e8400-e29b-41d4-a716-446655440030';
+    const folderServerId = '880e8400-e29b-41d4-a716-446655440031';
+    const folderRecord = {
+      id: folderServerId,
+      collectionId: collectionServerId,
+      name: 'Billing',
+      sortOrder: 0,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      color: '#ff5500'
+    };
+    const folderWithoutColor = {
+      id: folderServerId,
+      collectionId: collectionServerId,
+      name: 'Billing',
+      sortOrder: 0,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      color: null
+    };
+    const renameFolder = vi.fn().mockResolvedValue(folderRecord);
+
+    const db = createStorage({
+      listCollections: vi.fn().mockResolvedValue([
+        {
+          id: collectionServerId,
+          name: 'Team API',
+          variables: [],
+          headers: [],
+          auth: defaultAuth(),
+          preRequestScript: '',
+          postRequestScript: '',
+          createdAt: '2026-01-01T00:00:00.000Z'
+        }
+      ]),
+      renameFolder,
+      listFolders: vi
+        .fn()
+        .mockResolvedValueOnce([folderWithoutColor])
+        .mockResolvedValue([folderRecord]),
+      listRequests: vi.fn().mockResolvedValue([]),
+      listDocuments: vi.fn().mockResolvedValue([])
+    });
+
+    const idMap = (db as unknown as { idMap: TeamHubIdMap }).idMap;
+    const collectionId = idMap.toLocalId('collection', collectionServerId);
+    const folderId = idMap.toLocalId('folder', folderServerId);
+
+    const updated = await db.setFolderColor(folderId, '#ff5500');
+    expect(updated.color).toBe('#ff5500');
+    expect(renameFolder).toHaveBeenCalledWith(folderServerId, {
+      name: 'Billing',
+      color: '#ff5500'
+    });
+
+    const folders = await db.listFolders(collectionId);
+    expect(folders[0]?.color).toBe('#ff5500');
+
+    const exported = await db.exportCollectionData(collectionId);
+    expect(exported.folders?.[0]?.color).toBe('#ff5500');
+  });
 });

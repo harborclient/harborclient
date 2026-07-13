@@ -25,6 +25,8 @@ import {
 } from '#/renderer/src/ui/shared/devInspectContextMenu';
 import { stopSortableDragPointerDown } from './sortableRowUtils';
 import { SortableRow } from './SortableRow';
+import { SidebarColorDot } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarColorDot';
+import { SidebarRowActionsMenu } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarRowActionsMenu';
 
 interface Props {
   /**
@@ -204,37 +206,121 @@ export function RequestRow({
     req.url
   ]);
 
-  const reorderItems = [
-    ...(canMoveUp ? [{ label: 'Move up', onSelect: onMoveUp }] : []),
-    ...(canMoveDown ? [{ label: 'Move down', onSelect: onMoveDown }] : [])
-  ];
+  const menuId = `request-${req.id}`;
+  const showBulkMenu = selected && selectionCount > 1;
+  const rowHighlighted = activeRequestId === req.id || selected;
 
-  const copyItem =
-    req.url.trim() !== ''
+  const baseMenuGroups = useMemo(() => {
+    const reorderItems = [
+      ...(canMoveUp ? [{ label: 'Move up', onSelect: onMoveUp }] : []),
+      ...(canMoveDown ? [{ label: 'Move down', onSelect: onMoveDown }] : [])
+    ];
+
+    const copyItem =
+      req.url.trim() !== ''
+        ? [
+            {
+              label: 'Copy',
+              onSelect: () => {
+                void navigator.clipboard.writeText(resolvedUrl).then(() => {
+                  toast.success('Copied to clipboard');
+                });
+              }
+            }
+          ]
+        : [];
+
+    const copyToChatItem = aiChatAvailable
       ? [
           {
-            label: 'Copy',
-            onSelect: () => {
-              void navigator.clipboard.writeText(resolvedUrl).then(() => {
-                toast.success('Copied to clipboard');
-              });
-            }
+            label: 'Copy to chat',
+            onSelect: () => onCopyToChat(req)
           }
         ]
       : [];
 
-  const copyToChatItem = aiChatAvailable
-    ? [
-        {
-          label: 'Copy to chat',
-          onSelect: () => onCopyToChat(req)
-        }
-      ]
-    : [];
-
-  const menuId = `request-${req.id}`;
-  const showBulkMenu = selected && selectionCount > 1;
-  const rowHighlighted = activeRequestId === req.id || selected;
+    return showBulkMenu
+      ? [
+          [{ label: 'Run', onSelect: onRunSelected }],
+          [{ label: 'Open', onSelect: onOpenSelected }],
+          [{ label: 'New Tab Group', onSelect: onNewTabGroupFromSelected }],
+          [
+            {
+              label: 'Delete',
+              variant: 'danger' as const,
+              onSelect: () => {
+                void onDeleteSelected();
+              }
+            }
+          ]
+        ]
+      : [
+          [...copyItem, ...copyToChatItem, { label: 'Run', onSelect: onRunRequest }],
+          ...(reorderItems.length > 0 ? [reorderItems] : []),
+          [
+            {
+              label: 'Duplicate',
+              onSelect: () => void onDuplicateRequest(req)
+            },
+            {
+              label: 'Export',
+              onSelect: () => void onExportRequest(req)
+            }
+          ],
+          ...buildPluginContextMenuGroups(
+            'request',
+            {
+              requestId: req.id,
+              collectionId: req.collection_id,
+              folderId: req.folder_id
+            },
+            pluginContextMenuItems
+          ),
+          [
+            {
+              label: 'Delete',
+              variant: 'danger' as const,
+              onSelect: () => {
+                void (async () => {
+                  const confirmed = await confirm({
+                    title: 'Delete request',
+                    message: `Delete request "${req.name}"?`,
+                    confirmLabel: 'Delete',
+                    variant: 'danger'
+                  });
+                  if (confirmed) {
+                    void onDeleteRequest(req.id);
+                  }
+                })();
+              }
+            }
+          ],
+          ...buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled)
+        ];
+  }, [
+    aiChatAvailable,
+    canMoveDown,
+    canMoveUp,
+    confirm,
+    developerToolsEnabled,
+    inspectPoint,
+    menuId,
+    onCopyToChat,
+    onDeleteRequest,
+    onDeleteSelected,
+    onDuplicateRequest,
+    onExportRequest,
+    onMoveDown,
+    onMoveUp,
+    onNewTabGroupFromSelected,
+    onOpenSelected,
+    onRunRequest,
+    onRunSelected,
+    pluginContextMenuItems,
+    req,
+    resolvedUrl,
+    showBulkMenu
+  ]);
 
   return (
     <SortableRow
@@ -262,74 +348,33 @@ export function RequestRow({
         >
           {req.method}
         </span>
-        <span className="truncate">{req.name}</span>
+        <span className="inline-flex min-w-0 items-center gap-1.5">
+          <span className="truncate">{req.name}</span>
+          <SidebarColorDot color={req.color} label={`Color for ${req.name}`} />
+        </span>
       </button>
       <div className="shrink-0" onPointerDown={stopSortableDragPointerDown}>
-        <RowActionsMenu
-          menuId={menuId}
-          openMenuId={openMenuId}
-          onOpenChange={onOpenChange}
-          groups={
-            showBulkMenu
-              ? [
-                  [{ label: 'Run', onSelect: onRunSelected }],
-                  [{ label: 'Open', onSelect: onOpenSelected }],
-                  [{ label: 'New Tab Group', onSelect: onNewTabGroupFromSelected }],
-                  [
-                    {
-                      label: 'Delete',
-                      variant: 'danger' as const,
-                      onSelect: () => {
-                        void onDeleteSelected();
-                      }
-                    }
-                  ]
-                ]
-              : [
-                  [...copyItem, ...copyToChatItem, { label: 'Run', onSelect: onRunRequest }],
-                  ...(reorderItems.length > 0 ? [reorderItems] : []),
-                  [
-                    {
-                      label: 'Duplicate',
-                      onSelect: () => void onDuplicateRequest(req)
-                    },
-                    {
-                      label: 'Export',
-                      onSelect: () => void onExportRequest(req)
-                    }
-                  ],
-                  ...buildPluginContextMenuGroups(
-                    'request',
-                    {
-                      requestId: req.id,
-                      collectionId: req.collection_id,
-                      folderId: req.folder_id
-                    },
-                    pluginContextMenuItems
-                  ),
-                  [
-                    {
-                      label: 'Delete',
-                      variant: 'danger' as const,
-                      onSelect: () => {
-                        void (async () => {
-                          const confirmed = await confirm({
-                            title: 'Delete request',
-                            message: `Delete request "${req.name}"?`,
-                            confirmLabel: 'Delete',
-                            variant: 'danger'
-                          });
-                          if (confirmed) {
-                            void onDeleteRequest(req.id);
-                          }
-                        })();
-                      }
-                    }
-                  ],
-                  ...buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled)
-                ]
-          }
-        />
+        {showBulkMenu ? (
+          <RowActionsMenu
+            menuId={menuId}
+            openMenuId={openMenuId}
+            onOpenChange={onOpenChange}
+            groups={baseMenuGroups}
+          />
+        ) : (
+          <SidebarRowActionsMenu
+            menuId={menuId}
+            openMenuId={openMenuId}
+            onOpenChange={onOpenChange}
+            groups={baseMenuGroups}
+            colorTarget={{
+              kind: 'request',
+              collectionId: req.collection_id,
+              id: req.id,
+              color: req.color ?? null
+            }}
+          />
+        )}
       </div>
     </SortableRow>
   );

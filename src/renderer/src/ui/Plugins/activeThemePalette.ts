@@ -21,7 +21,7 @@ function toCssVariable(token: ThemeColorToken): string {
  * Reads the currently applied theme palette from resolved `--mac-*` values on `:root`.
  *
  * @param fallbackType - Base appearance used for per-token defaults when a value is missing.
- * @returns Token overrides suitable for seeding a new Creator draft.
+ * @returns Token overrides suitable for seeding a new Designer draft.
  */
 export function readActiveThemePalette(
   fallbackType: CustomThemeType
@@ -39,10 +39,10 @@ export function readActiveThemePalette(
 }
 
 /**
- * Infers the Creator appearance mode from a persisted theme preference.
+ * Infers the Designer appearance mode from a persisted theme preference.
  *
  * @param theme - Active theme source from settings.
- * @returns Base appearance mode for the Creator form.
+ * @returns Base appearance mode for the Designer form.
  */
 export async function inferActiveThemeType(theme: ThemeSource): Promise<CustomThemeType> {
   if (theme === 'light' || theme === 'dark' || theme === 'high-contrast') {

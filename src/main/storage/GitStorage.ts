@@ -53,6 +53,7 @@ import {
   serializeImportedDocumentFields,
   serializeImportedRequestFields
 } from '#/main/storage/collectionImport';
+import { serializeSidebarColor } from '#/main/storage/sidebarColorMigration';
 import { defaultAuth, normalizeAuth } from '#/shared/auth';
 import type {
   AuthConfig,
@@ -373,6 +374,19 @@ export class GitStorage implements IStorage {
   /**
    * @inheritdoc
    */
+  async setCollectionColor(id: number, color: string | null): Promise<Collection> {
+    const loaded = this.requireCollection(id);
+    loaded.manifest = {
+      ...loaded.manifest,
+      color: serializeSidebarColor(color)
+    };
+    this.persistCollection(id);
+    return this.manifestToCollection(id, loaded.manifest);
+  }
+
+  /**
+   * @inheritdoc
+   */
   async deleteCollection(id: number): Promise<void> {
     const loaded = this.requireCollection(id);
     for (const request of loaded.requests) {
@@ -434,6 +448,24 @@ export class GitStorage implements IStorage {
       ...existing,
       name: trimmedName,
       variables
+    };
+    deleteEnvironmentFile(this.#root, updated.uuid!);
+    writeEnvironmentFile(this.#root, updated);
+    this.#environments.set(id, updated);
+    return this.exportToEnvironment(id, updated);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async setEnvironmentColor(id: number, color: string | null): Promise<Environment> {
+    const existing = this.#environments.get(id);
+    if (!existing) {
+      throw new Error('Environment not found');
+    }
+    const updated: EnvironmentExport = {
+      ...existing,
+      color: serializeSidebarColor(color)
     };
     deleteEnvironmentFile(this.#root, updated.uuid!);
     writeEnvironmentFile(this.#root, updated);
@@ -631,6 +663,9 @@ export class GitStorage implements IStorage {
           )?.uuid ?? null)
         : null;
 
+    const existingRequest = loaded.requests.find(
+      (row) => resolveImportUuid(row.uuid) === requestUuid
+    );
     const preScripts = bundleScriptFieldsWithLegacy(
       input.pre_request_scripts,
       input.pre_request_script ?? ''
@@ -660,10 +695,14 @@ export class GitStorage implements IStorage {
       comment: input.comment,
       tags,
       sort_order:
-        loaded.requests.find((r) => resolveImportUuid(r.uuid) === requestUuid)?.sort_order ??
+        existingRequest?.sort_order ??
         loaded.requests.filter((row) => (row.folder_name ?? null) === (folderName ?? null)).length,
       folder_name: folderName,
-      folder_uuid: folderUuid
+      folder_uuid: folderUuid,
+      color:
+        input.color !== undefined
+          ? serializeSidebarColor(input.color)
+          : (existingRequest?.color ?? null)
     };
 
     const index = loaded.requests.findIndex((row) => resolveImportUuid(row.uuid) === requestUuid);
@@ -684,6 +723,26 @@ export class GitStorage implements IStorage {
     });
 
     return this.exportedRequestToSaved(input.collection_id, exported, folderMaps);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async setRequestColor(id: number, color: string | null): Promise<SavedRequest> {
+    for (const [collectionId, loaded] of this.#collections.entries()) {
+      const request = loaded.requests.find(
+        (row) => this.#idIndex.requestIds[resolveImportUuid(row.uuid)] === id
+      );
+      if (!request) {
+        continue;
+      }
+
+      request.color = serializeSidebarColor(color);
+      this.persistCollection(collectionId);
+      const folderMaps = buildFolderImportMaps(this.buildFolders(collectionId, loaded));
+      return this.exportedRequestToSaved(collectionId, request, folderMaps);
+    }
+    throw new Error('Request not found');
   }
 
   /**
@@ -805,6 +864,25 @@ export class GitStorage implements IStorage {
         this.persistCollection(collectionId);
         return this.storedFolderToFolder(collectionId, folder, id);
       }
+    }
+    throw new Error('Folder not found');
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async setFolderColor(id: number, color: string | null): Promise<Folder> {
+    for (const [collectionId, loaded] of this.#collections.entries()) {
+      const folder = loaded.manifest.folders.find(
+        (row) => this.#idIndex.folderIds[row.uuid] === id
+      );
+      if (!folder) {
+        continue;
+      }
+
+      folder.color = serializeSidebarColor(color);
+      this.persistCollection(collectionId);
+      return this.storedFolderToFolder(collectionId, folder, id);
     }
     throw new Error('Folder not found');
   }
@@ -1063,19 +1141,26 @@ export class GitStorage implements IStorage {
           )?.uuid ?? null)
         : null;
 
+    const existingDocument = loaded.documents.find(
+      (row) => resolveImportUuid(row.uuid) === documentUuid
+    );
     const exported: GitStoredDocument = {
       uuid: documentUuid,
       name: trimmedName,
       content: input.content ?? '',
       sort_order:
-        loaded.documents.find((row) => resolveImportUuid(row.uuid) === documentUuid)?.sort_order ??
+        existingDocument?.sort_order ??
         loaded.documents.filter(
           (row) =>
             (row.folder_uuid ?? null) === (folderUuid ?? null) &&
             (row.folder_name ?? null) === (folderName ?? null)
         ).length,
       folder_name: folderName,
-      folder_uuid: folderUuid
+      folder_uuid: folderUuid,
+      color:
+        input.color !== undefined
+          ? serializeSidebarColor(input.color)
+          : (existingDocument?.color ?? null)
     };
 
     const index = loaded.documents.findIndex((row) => resolveImportUuid(row.uuid) === documentUuid);
@@ -1096,6 +1181,26 @@ export class GitStorage implements IStorage {
     });
 
     return this.exportedDocumentToSaved(input.collection_id, exported, folderMaps);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async setDocumentColor(id: number, color: string | null): Promise<CollectionDocument> {
+    for (const [collectionId, loaded] of this.#collections.entries()) {
+      const document = loaded.documents.find(
+        (row) => this.#idIndex.documentIds[resolveImportUuid(row.uuid)] === id
+      );
+      if (!document) {
+        continue;
+      }
+
+      document.color = serializeSidebarColor(color);
+      this.persistCollection(collectionId);
+      const folderMaps = buildFolderImportMaps(this.buildFolders(collectionId, loaded));
+      return this.exportedDocumentToSaved(collectionId, document, folderMaps);
+    }
+    throw new Error('Document not found');
   }
 
   /**
@@ -1243,6 +1348,7 @@ export class GitStorage implements IStorage {
       harborclientExport: 'collection',
       uuid,
       name: exportData.name,
+      color: serializeSidebarColor(exportData.color),
       variables: exportData.variables,
       headers: exportData.headers,
       auth: exportData.auth ?? defaultAuth(),
@@ -1307,6 +1413,7 @@ export class GitStorage implements IStorage {
     loaded.manifest = {
       ...loaded.manifest,
       name: exportData.name,
+      color: serializeSidebarColor(exportData.color),
       variables: exportData.variables,
       headers: exportData.headers,
       auth: exportData.auth ?? defaultAuth(),
@@ -1365,7 +1472,8 @@ export class GitStorage implements IStorage {
         comment: fields.comment,
         tags: fields.tags,
         sort_order: fields.sort_order,
-        folder_name: folderName ?? request.folder_name ?? null
+        folder_name: folderName ?? request.folder_name ?? null,
+        color: fields.color
       });
 
       const existingRequestId = requestUuidIndex.get(fields.uuid);
@@ -1405,7 +1513,8 @@ export class GitStorage implements IStorage {
         content: fields.content,
         sort_order: fields.sort_order,
         folder_name: folderName ?? document.folder_name ?? null,
-        folder_uuid: folderUuid ?? document.folder_uuid ?? null
+        folder_uuid: folderUuid ?? document.folder_uuid ?? null,
+        color: fields.color
       };
 
       const existingIndex = loaded.documents.findIndex(
@@ -1617,7 +1726,8 @@ export class GitStorage implements IStorage {
         manifest.post_request_scripts,
         postRequestScript
       ),
-      created_at: manifest.created_at
+      created_at: manifest.created_at,
+      color: manifest.color ?? null
     };
   }
 
@@ -1663,7 +1773,8 @@ export class GitStorage implements IStorage {
       post_request_script: postRequestScript,
       pre_request_scripts: folder.pre_request_scripts ?? [],
       post_request_scripts: folder.post_request_scripts ?? [],
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      color: folder.color ?? null
     };
   }
 
@@ -1679,7 +1790,8 @@ export class GitStorage implements IStorage {
       uuid: resolveImportUuid(env.uuid),
       name: env.name,
       variables: env.variables,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      color: env.color ?? null
     };
   }
 
@@ -1755,7 +1867,8 @@ export class GitStorage implements IStorage {
       tags: request.tags,
       sort_order: request.sort_order ?? 0,
       created_at,
-      updated_at
+      updated_at,
+      color: request.color ?? null
     };
   }
 
@@ -1793,7 +1906,8 @@ export class GitStorage implements IStorage {
       content: document.content,
       sort_order: document.sort_order ?? 0,
       created_at,
-      updated_at
+      updated_at,
+      color: document.color ?? null
     };
   }
 }

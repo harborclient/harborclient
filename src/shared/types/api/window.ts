@@ -77,13 +77,13 @@ export interface ApiWindow {
    */
   setMenuThemeMenuState: (theme: ThemeSource, options: ThemeMenuOption[]) => Promise<void>;
   /**
-   * Syncs Creator undo/redo ownership and enabled state to the Edit menu in the main process.
+   * Syncs Designer undo/redo ownership and enabled state to the Edit menu in the main process.
    *
-   * @param active - Whether the Creator tab is open and should own undo/redo.
-   * @param canUndo - Whether an undo step is available in the Creator history.
-   * @param canRedo - Whether a redo step is available in the Creator history.
+   * @param active - Whether the Designer tab is open and should own undo/redo.
+   * @param canUndo - Whether an undo step is available in the Designer history.
+   * @param canRedo - Whether a redo step is available in the Designer history.
    */
-  setMenuCreatorUndoRedo: (active: boolean, canUndo: boolean, canRedo: boolean) => Promise<void>;
+  setMenuDesignerUndoRedo: (active: boolean, canUndo: boolean, canRedo: boolean) => Promise<void>;
   /**
    * Syncs tab-group availability to the Edit menu in the main process.
    *
@@ -248,4 +248,10 @@ export interface ApiWindow {
    * @returns Selected absolute file path, or null when canceled.
    */
   selectSaveFile: (defaultPath: string) => Promise<string | null>;
+  /**
+   * Opens a file or directory in the OS default application.
+   *
+   * @param path - Absolute path to open in the system file browser or default handler.
+   */
+  openPath: (path: string) => Promise<void>;
 }

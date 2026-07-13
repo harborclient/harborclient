@@ -2,13 +2,13 @@ import type { ThemeColorToken } from '@harborclient/sdk';
 import type { CustomThemeDraft } from '#/renderer/src/ui/Plugins/hooks/useCustomTheme';
 
 /**
- * Immutable undo/redo stack state for Creator draft snapshots.
+ * Immutable undo/redo stack state for Designer draft snapshots.
  */
 export interface ThemeHistoryState {
   /** Snapshots that can be restored by undo. */
   past: CustomThemeDraft[];
 
-  /** Current draft shown in the Creator. */
+  /** Current draft shown in the Designer. */
   present: CustomThemeDraft;
 
   /** Snapshots that can be restored by redo. */
@@ -21,7 +21,7 @@ export interface ThemeHistoryState {
 export const THEME_HISTORY_DEBOUNCE_MS = 350;
 
 /**
- * Deep-clones a Creator draft so history entries do not alias mutable color maps.
+ * Deep-clones a Designer draft so history entries do not alias mutable color maps.
  *
  * @param draft - Draft snapshot to clone.
  * @returns Independent copy safe to store in the history stack.
@@ -34,7 +34,7 @@ export function cloneCustomThemeDraft(draft: CustomThemeDraft): CustomThemeDraft
 }
 
 /**
- * Compares two Creator drafts for semantic equality.
+ * Compares two Designer drafts for semantic equality.
  *
  * @param left - First draft snapshot.
  * @param right - Second draft snapshot.
@@ -57,7 +57,7 @@ export function customThemeDraftsEqual(left: CustomThemeDraft, right: CustomThem
 /**
  * Creates an empty history stack seeded with the provided draft.
  *
- * @param snapshot - Initial Creator draft.
+ * @param snapshot - Initial Designer draft.
  * @returns Fresh history state with no undo or redo steps.
  */
 export function createThemeHistoryState(snapshot: CustomThemeDraft): ThemeHistoryState {

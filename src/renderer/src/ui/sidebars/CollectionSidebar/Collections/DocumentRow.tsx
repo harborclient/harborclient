@@ -1,4 +1,4 @@
-import { FaIcon, RowActionsMenu } from '@harborclient/sdk/components';
+import { FaIcon } from '@harborclient/sdk/components';
 import { sourceRow } from '#/renderer/src/ui/shared/classes';
 import type { CollectionDocument } from '#/shared/types';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
@@ -8,6 +8,8 @@ import {
   useDeveloperToolsEnabled,
   type InspectPoint
 } from '#/renderer/src/ui/shared/devInspectContextMenu';
+import { SidebarColorDot } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarColorDot';
+import { SidebarRowActionsMenu } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarRowActionsMenu';
 import { type JSX, useState } from 'react';
 
 interface Props {
@@ -84,43 +86,50 @@ export function DocumentRow({
         onDoubleClick={() => onRenameDocument(doc)}
       >
         <FaIcon icon={faMarkdown} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
-        <span className="truncate">{doc.name}</span>
+        <span className="inline-flex min-w-0 items-center gap-1.5">
+          <span className="truncate">{doc.name}</span>
+          <SidebarColorDot color={doc.color} label={`Color for ${doc.name}`} />
+        </span>
       </button>
-      <div className="shrink-0">
-        <RowActionsMenu
-          menuId={menuId}
-          openMenuId={openMenuId}
-          onOpenChange={onOpenChange}
-          groups={[
-            [
-              {
-                label: 'Rename',
-                onSelect: () => onRenameDocument(doc)
+      <SidebarRowActionsMenu
+        menuId={menuId}
+        openMenuId={openMenuId}
+        onOpenChange={onOpenChange}
+        colorTarget={{
+          kind: 'document',
+          collectionId: doc.collection_id,
+          id: doc.id,
+          color: doc.color ?? null
+        }}
+        groups={[
+          [
+            {
+              label: 'Rename',
+              onSelect: () => onRenameDocument(doc)
+            }
+          ],
+          [
+            {
+              label: 'Delete',
+              variant: 'danger' as const,
+              onSelect: () => {
+                void (async () => {
+                  const confirmed = await confirm({
+                    title: 'Delete document',
+                    message: `Delete document "${doc.name}"?`,
+                    confirmLabel: 'Delete',
+                    variant: 'danger'
+                  });
+                  if (confirmed) {
+                    void onDeleteDocument(doc.id, doc.collection_id);
+                  }
+                })();
               }
-            ],
-            [
-              {
-                label: 'Delete',
-                variant: 'danger' as const,
-                onSelect: () => {
-                  void (async () => {
-                    const confirmed = await confirm({
-                      title: 'Delete document',
-                      message: `Delete document "${doc.name}"?`,
-                      confirmLabel: 'Delete',
-                      variant: 'danger'
-                    });
-                    if (confirmed) {
-                      void onDeleteDocument(doc.id, doc.collection_id);
-                    }
-                  })();
-                }
-              }
-            ],
-            ...buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled)
-          ]}
-        />
-      </div>
+            }
+          ],
+          ...buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled)
+        ]}
+      />
     </div>
   );
 }

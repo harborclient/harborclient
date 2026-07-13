@@ -2,6 +2,24 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ThemeColorToken } from '@harborclient/sdk';
 import { customThemeToEnvelope, formatCustomThemeValue } from '#/shared/plugin/customThemeExport';
 import type { CustomTheme, CustomThemeType } from '#/shared/types/customTheme';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import {
+  commitBaseline,
+  initializeSession,
+  recordImmediate,
+  redo,
+  resetToPersisted,
+  selectThemeDesignerActiveThemeAtOpen,
+  selectThemeDesignerCanRedo,
+  selectThemeDesignerCanUndo,
+  selectThemeDesignerDraft,
+  selectThemeDesignerEditingId,
+  selectThemeDesignerInitialized,
+  selectThemeDesignerPersistedDraft,
+  sessionSaved,
+  setPresent,
+  undo
+} from '#/renderer/src/store/slices/themeDesignerSlice';
 import { applyCustomThemeColors, applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
 import {
   inferActiveThemeType,
@@ -12,7 +30,10 @@ import {
   getDefaultCustomThemePalette
 } from '#/renderer/src/ui/Plugins/customThemeDefaults';
 import { shouldPromptRenamedThemeSave } from '#/renderer/src/ui/Plugins/shouldPromptRenamedThemeSave';
-import { useThemeHistory } from '#/renderer/src/ui/Plugins/hooks/useThemeHistory';
+import {
+  customThemeDraftsEqual,
+  THEME_HISTORY_DEBOUNCE_MS
+} from '#/renderer/src/ui/Plugins/hooks/themeHistoryStack';
 
 /**
  * State shown when saving a renamed existing custom theme.
@@ -21,12 +42,12 @@ export interface RenamedThemeSavePrompt {
   /** Previously saved theme title. */
   originalTitle: string;
 
-  /** Title entered in the Creator form. */
+  /** Title entered in the Designer form. */
   newTitle: string;
 }
 
 /**
- * Draft state for the Creator form.
+ * Draft state for the Designer form.
  */
 export interface CustomThemeDraft {
   /**
@@ -52,11 +73,6 @@ export interface CustomThemeDraft {
 
 interface Options {
   /**
-   * Existing custom theme id to edit, if any.
-   */
-  editingId?: string | null;
-
-  /**
    * Called after a theme is saved so Installed cards can refresh.
    */
   onSaved?: (theme: CustomTheme) => void;
@@ -71,6 +87,7 @@ export interface UseCustomThemeResult {
   busy: boolean;
   error: string | null;
   canSave: boolean;
+  isDirty: boolean;
   canUndo: boolean;
   canRedo: boolean;
   renamePrompt: RenamedThemeSavePrompt | null;
@@ -90,41 +107,66 @@ export interface UseCustomThemeResult {
 }
 
 /**
- * Manages Creator draft state, live preview, save/discard, and import/export actions.
+ * Manages Designer draft state, live preview, save/discard, and import/export actions.
  *
- * @param options - Hook configuration for edit mode and save callbacks.
- * @returns Creator form state and handlers.
+ * @param options - Hook configuration for save callbacks.
+ * @returns Designer form state and handlers.
  */
-export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeResult {
-  const [loading, setLoading] = useState(true);
+export function useCustomTheme({ onSaved }: Options): UseCustomThemeResult {
+  const dispatch = useAppDispatch();
+  const editingId = useAppSelector(selectThemeDesignerEditingId);
+  const initialized = useAppSelector(selectThemeDesignerInitialized);
+  const draft = useAppSelector(selectThemeDesignerDraft);
+  const persistedDraft = useAppSelector(selectThemeDesignerPersistedDraft);
+  const activeThemeAtOpen = useAppSelector(selectThemeDesignerActiveThemeAtOpen);
+  const canUndo = useAppSelector(selectThemeDesignerCanUndo);
+  const canRedo = useAppSelector(selectThemeDesignerCanRedo);
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [renamePrompt, setRenamePrompt] = useState<RenamedThemeSavePrompt | null>(null);
-  const initialDraft = useMemo<CustomThemeDraft>(
-    () => ({
-      title: DEFAULT_CUSTOM_THEME_TITLE,
-      type: 'light',
-      colors: getDefaultCustomThemePalette('light')
-    }),
-    []
-  );
-  const {
-    present: draft,
-    canUndo,
-    canRedo,
-    setPresent,
-    record,
-    undo,
-    redo,
-    reset: resetHistory
-  } = useThemeHistory(initialDraft);
-  const persistedDraftRef = useRef<CustomThemeDraft>(initialDraft);
-  const activeThemeRef = useRef<string>('system');
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debounceBaselineRef = useRef<CustomThemeDraft | null>(null);
+
+  const loading = !initialized;
+
+  /**
+   * Clears any pending debounced history commit and pushes the captured baseline.
+   */
+  const flushDebounce = useCallback((): void => {
+    if (debounceTimerRef.current !== null) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+
+    const baseline = debounceBaselineRef.current;
+    debounceBaselineRef.current = null;
+    if (baseline == null) {
+      return;
+    }
+
+    dispatch(commitBaseline(baseline));
+  }, [dispatch]);
+
+  /**
+   * Clears debounce timers when the hook unmounts.
+   */
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current !== null) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
 
   /**
    * Loads the theme under edit or seeds a new draft from the active theme palette.
    */
   useEffect(() => {
+    if (initialized) {
+      return;
+    }
+
     let active = true;
 
     if (!editingId) {
@@ -133,7 +175,6 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
         if (!active) {
           return;
         }
-        activeThemeRef.current = theme;
         const type = await inferActiveThemeType(theme);
         if (!active) {
           return;
@@ -143,56 +184,55 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
           type,
           colors: readActiveThemePalette(type)
         };
-        resetHistory(seeded);
-        persistedDraftRef.current = seeded;
-        setLoading(false);
+        dispatch(initializeSession({ draft: seeded, activeTheme: theme }));
       })();
       return () => {
         active = false;
       };
     }
 
-    void window.api.getTheme().then((theme) => {
-      if (active) {
-        activeThemeRef.current = theme;
-      }
-    });
-
-    void window.api.getCustomTheme(editingId).then((theme) => {
+    void (async () => {
+      const theme = await window.api.getTheme();
       if (!active) {
         return;
       }
 
-      if (!theme) {
+      const customTheme = await window.api.getCustomTheme(editingId);
+      if (!active) {
+        return;
+      }
+
+      if (!customTheme) {
         const seeded: CustomThemeDraft = {
           title: DEFAULT_CUSTOM_THEME_TITLE,
           type: 'light',
           colors: getDefaultCustomThemePalette('light')
         };
-        resetHistory(seeded);
-        persistedDraftRef.current = seeded;
-        setLoading(false);
+        dispatch(initializeSession({ draft: seeded, activeTheme: theme }));
         return;
       }
 
       const loaded: CustomThemeDraft = {
-        id: theme.id,
-        title: theme.title,
-        type: theme.type,
-        colors: { ...theme.colors }
+        id: customTheme.id,
+        title: customTheme.title,
+        type: customTheme.type,
+        colors: { ...customTheme.colors }
       };
-      resetHistory(loaded);
-      persistedDraftRef.current = loaded;
-      setLoading(false);
-    });
+      dispatch(initializeSession({ draft: loaded, activeTheme: theme }));
+    })();
 
     return () => {
       active = false;
     };
-  }, [editingId, resetHistory]);
+  }, [dispatch, editingId, initialized]);
 
   /**
-   * Live-previews the draft palette across the whole app while the Creator is open.
+   * Live-previews the draft palette across the whole app while the Designer is open.
+   *
+   * The applied palette intentionally persists when this component unmounts (for
+   * example when the user switches to another tab) so edits can be previewed
+   * app-wide. Reverting to the real active theme happens on session teardown via
+   * {@link discardThemeDesignerSession}, not on unmount.
    */
   useEffect(() => {
     if (loading) {
@@ -202,31 +242,38 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
   }, [draft, loading]);
 
   /**
-   * Restores the persisted active theme when leaving the Creator without saving.
-   */
-  useEffect(() => {
-    return () => {
-      void applyThemePreference(activeThemeRef.current);
-    };
-  }, []);
-
-  /**
    * Updates one token color in the draft, coalescing rapid picker drags into one undo step.
    */
   const handleColorChange = useCallback(
     (token: ThemeColorToken, value: string): void => {
-      record(
-        {
-          ...draft,
-          colors: {
-            ...draft.colors,
-            [token]: value
-          }
-        },
-        { debounce: true }
-      );
+      const next: CustomThemeDraft = {
+        ...draft,
+        colors: {
+          ...draft.colors,
+          [token]: value
+        }
+      };
+
+      if (debounceBaselineRef.current == null) {
+        debounceBaselineRef.current = draft;
+      }
+      dispatch(setPresent(next));
+
+      if (debounceTimerRef.current !== null) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      debounceTimerRef.current = setTimeout(() => {
+        debounceTimerRef.current = null;
+        const baseline = debounceBaselineRef.current;
+        debounceBaselineRef.current = null;
+        if (baseline == null) {
+          return;
+        }
+        dispatch(commitBaseline(baseline));
+      }, THEME_HISTORY_DEBOUNCE_MS);
     },
-    [draft, record]
+    [dispatch, draft]
   );
 
   /**
@@ -234,39 +281,44 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
    */
   const handleTitleChange = useCallback(
     (title: string): void => {
-      setPresent({ ...draft, title });
+      dispatch(setPresent({ ...draft, title }));
     },
-    [draft, setPresent]
+    [dispatch, draft]
   );
 
   /**
    * Commits the current title edit as one undo step when the title field loses focus.
    */
   const handleTitleBlur = useCallback((): void => {
-    record(draft);
-  }, [draft, record]);
+    flushDebounce();
+    dispatch(recordImmediate(draft));
+  }, [dispatch, draft, flushDebounce]);
 
   /**
    * Reseeds the draft palette when the base appearance mode changes.
    */
   const handleTypeChange = useCallback(
     (type: CustomThemeType): void => {
-      record({
-        ...draft,
-        type,
-        colors: getDefaultCustomThemePalette(type)
-      });
+      flushDebounce();
+      dispatch(
+        recordImmediate({
+          ...draft,
+          type,
+          colors: getDefaultCustomThemePalette(type)
+        })
+      );
     },
-    [draft, record]
+    [dispatch, draft, flushDebounce]
   );
 
   /**
    * Resets the draft to the last loaded or saved snapshot and restores the active theme.
    */
   const handleDiscard = useCallback((): void => {
-    resetHistory(persistedDraftRef.current);
-    void applyThemePreference(activeThemeRef.current);
-  }, [resetHistory]);
+    flushDebounce();
+    dispatch(resetToPersisted());
+    void applyThemePreference(activeThemeAtOpen);
+  }, [activeThemeAtOpen, dispatch, flushDebounce]);
 
   /**
    * Persists the current draft, optionally creating a new theme file.
@@ -290,11 +342,9 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
           type: saved.type,
           colors: { ...saved.colors }
         };
-        resetHistory(nextDraft);
-        persistedDraftRef.current = nextDraft;
         const themeValue = formatCustomThemeValue(saved.id);
         await window.api.setTheme(themeValue);
-        activeThemeRef.current = themeValue;
+        dispatch(sessionSaved({ savedDraft: nextDraft, activeTheme: themeValue }));
         setRenamePrompt(null);
         onSaved?.(saved);
       } catch (err) {
@@ -304,23 +354,23 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
         setBusy(false);
       }
     },
-    [draft, onSaved, resetHistory]
+    [dispatch, draft, onSaved]
   );
 
   /**
    * Saves the draft to disk and makes it the active theme.
    */
   const handleSave = useCallback(async (): Promise<void> => {
-    if (shouldPromptRenamedThemeSave(persistedDraftRef.current, draft)) {
+    if (shouldPromptRenamedThemeSave(persistedDraft, draft)) {
       setRenamePrompt({
-        originalTitle: persistedDraftRef.current.title,
+        originalTitle: persistedDraft.title,
         newTitle: draft.title
       });
       return;
     }
 
     await performSave(false);
-  }, [draft, performSave]);
+  }, [draft, performSave, persistedDraft]);
 
   /**
    * Renames the existing saved theme in place and persists the current draft.
@@ -375,18 +425,41 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
       if (!imported) {
         return;
       }
-      record({
-        ...draft,
-        title: imported.title,
-        type: imported.type,
-        colors: { ...imported.colors }
-      });
+      flushDebounce();
+      dispatch(
+        recordImmediate({
+          ...draft,
+          title: imported.title,
+          type: imported.type,
+          colors: { ...imported.colors }
+        })
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
-  }, [draft, record]);
+  }, [dispatch, draft, flushDebounce]);
+
+  /**
+   * Moves one step backward in history when available.
+   */
+  const handleUndo = useCallback((): void => {
+    flushDebounce();
+    dispatch(undo());
+  }, [dispatch, flushDebounce]);
+
+  /**
+   * Moves one step forward in history when available.
+   */
+  const handleRedo = useCallback((): void => {
+    flushDebounce();
+    dispatch(redo());
+  }, [dispatch, flushDebounce]);
 
   const canSave = useMemo(() => draft.title.trim().length > 0, [draft.title]);
+  const isDirty = useMemo(
+    () => !customThemeDraftsEqual(draft, persistedDraft),
+    [draft, persistedDraft]
+  );
 
   return {
     draft,
@@ -394,6 +467,7 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
     busy,
     error,
     canSave,
+    isDirty,
     canUndo,
     canRedo,
     renamePrompt,
@@ -408,7 +482,7 @@ export function useCustomTheme({ editingId, onSaved }: Options): UseCustomThemeR
     handleRenameCancel,
     handleExport,
     handleImport,
-    undo,
-    redo
+    undo: handleUndo,
+    redo: handleRedo
   };
 }

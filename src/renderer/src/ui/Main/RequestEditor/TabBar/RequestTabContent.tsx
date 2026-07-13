@@ -1,7 +1,7 @@
 import { FaIcon, Spinner } from '@harborclient/sdk/components';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { JSX } from 'react';
-import { isMarkdownTab, isPageTab, isTabDirty, type Tab } from '#/renderer/src/store/drafts';
+import { isMarkdownTab, isPageTab, type Tab } from '#/renderer/src/store/drafts';
 import { faFileLines } from '#/renderer/src/fontawesome';
 import { METHOD_CLASSES } from '#/renderer/src/ui/shared/classes';
 
@@ -20,12 +20,17 @@ interface Props {
    * Icon for page tabs.
    */
   pageIcon?: IconDefinition;
+
+  /**
+   * Whether this tab has unsaved changes (request, markdown, or Themes page).
+   */
+  dirty?: boolean;
 }
 
 /**
  * Label and icon content for a single request editor tab row.
  */
-export function RequestTabContent({ tab, pageTitle, pageIcon }: Props): JSX.Element {
+export function RequestTabContent({ tab, pageTitle, pageIcon, dirty = false }: Props): JSX.Element {
   const isPage = isPageTab(tab);
   const isMarkdown = isMarkdownTab(tab);
 
@@ -46,9 +51,9 @@ export function RequestTabContent({ tab, pageTitle, pageIcon }: Props): JSX.Elem
         </>
       )}
       <span
-        className={`truncate text-[14px] ${
-          !isPage && isTabDirty(tab) ? 'text-tab-unsaved' : ''
-        } ${isPage && pageIcon ? 'ms-1.5' : ''}`}
+        className={`truncate text-[14px] ${dirty ? 'text-tab-unsaved' : ''} ${
+          isPage && pageIcon ? 'ms-1.5' : ''
+        }`}
       >
         {isPage ? (pageTitle ?? 'Page') : isMarkdown ? tab.name : tab.draft.name}
       </span>

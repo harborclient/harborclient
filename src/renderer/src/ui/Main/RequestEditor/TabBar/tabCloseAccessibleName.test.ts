@@ -59,4 +59,14 @@ describe('tabCloseAccessibleName', () => {
 
     expect(tabCloseAccessibleName(tab, 'General')).toBe('Close General');
   });
+
+  it('names page tab close controls with unsaved state when dirty', () => {
+    const tab: PageTab = {
+      tabId: 'p1',
+      kind: 'page',
+      page: { type: 'themes' }
+    };
+
+    expect(tabCloseAccessibleName(tab, 'Themes', true)).toBe('Close Themes, unsaved');
+  });
 });

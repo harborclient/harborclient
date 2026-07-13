@@ -8,26 +8,22 @@ import { useCustomTheme } from '#/renderer/src/ui/Plugins/hooks/useCustomTheme';
 
 interface Props {
   /**
-   * Existing custom theme id to edit, if any.
-   */
-  editingId?: string | null;
-
-  /**
    * Called after a theme is saved so Installed cards can refresh.
    */
   onSaved?: (theme: CustomTheme) => void;
 }
 
 /**
- * Creator form for building and previewing custom themes.
+ * Designer form for building and previewing custom themes.
  */
-export function CustomThemeView({ editingId, onSaved }: Props): JSX.Element {
+export function CustomThemeView({ onSaved }: Props): JSX.Element {
   const {
     draft,
     loading,
     busy,
     error,
     canSave,
+    isDirty,
     canUndo,
     canRedo,
     renamePrompt,
@@ -44,10 +40,10 @@ export function CustomThemeView({ editingId, onSaved }: Props): JSX.Element {
     handleImport,
     undo,
     redo
-  } = useCustomTheme({ editingId, onSaved });
+  } = useCustomTheme({ onSaved });
 
   /**
-   * Routes Edit menu undo/redo actions to the Creator history while this view is mounted.
+   * Routes Edit menu undo/redo/save actions to the Designer while this view is mounted.
    */
   useEffect(() => {
     const unsubscribe = window.api.onMenuAction((action) => {
@@ -57,18 +53,24 @@ export function CustomThemeView({ editingId, onSaved }: Props): JSX.Element {
       }
       if (action === 'redo') {
         redo();
+        return;
+      }
+      if (action === 'save') {
+        if (!busy && canSave && isDirty) {
+          void handleSave();
+        }
       }
     });
     return unsubscribe;
-  }, [undo, redo]);
+  }, [busy, canSave, handleSave, isDirty, redo, undo]);
 
   /**
-   * Keeps the main-process Edit menu undo/redo items aligned with Creator history availability.
+   * Keeps the main-process Edit menu undo/redo items aligned with Designer history availability.
    */
   useEffect(() => {
-    void window.api.setMenuCreatorUndoRedo(true, canUndo, canRedo);
+    void window.api.setMenuDesignerUndoRedo(true, canUndo, canRedo);
     return () => {
-      void window.api.setMenuCreatorUndoRedo(false, false, false);
+      void window.api.setMenuDesignerUndoRedo(false, false, false);
     };
   }, [canUndo, canRedo]);
 
@@ -86,7 +88,7 @@ export function CustomThemeView({ editingId, onSaved }: Props): JSX.Element {
       ) : null}
       <Page
         embedded
-        title="Creator"
+        title="Designer"
         icon={faWandMagicSparkles}
         description="Design a custom appearance theme with live preview across HarborClient."
         actions={
@@ -141,18 +143,18 @@ export function CustomThemeView({ editingId, onSaved }: Props): JSX.Element {
         ) : (
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <FormGroup label="Theme title" htmlFor="creator-theme-title">
+              <FormGroup label="Theme title" htmlFor="designer-theme-title">
                 <Input
-                  id="creator-theme-title"
+                  id="designer-theme-title"
                   value={draft.title}
                   disabled={busy}
                   onChange={(event) => handleTitleChange(event.target.value)}
                   onBlur={() => handleTitleBlur()}
                 />
               </FormGroup>
-              <FormGroup label="Appearance" htmlFor="creator-theme-type">
+              <FormGroup label="Appearance" htmlFor="designer-theme-type">
                 <Select
-                  id="creator-theme-type"
+                  id="designer-theme-type"
                   value={draft.type}
                   disabled={busy}
                   onChange={(event) => handleTypeChange(event.target.value as typeof draft.type)}
@@ -170,7 +172,7 @@ export function CustomThemeView({ editingId, onSaved }: Props): JSX.Element {
               <Button
                 type="button"
                 variant="toolbar"
-                disabled={busy}
+                disabled={busy || !isDirty}
                 onClick={() => handleDiscard()}
               >
                 Discard
@@ -178,7 +180,7 @@ export function CustomThemeView({ editingId, onSaved }: Props): JSX.Element {
               <Button
                 type="button"
                 variant="primary"
-                disabled={busy || !canSave}
+                disabled={busy || !canSave || !isDirty}
                 onClick={() => void handleSave()}
               >
                 {busy ? 'Saving…' : 'Save'}

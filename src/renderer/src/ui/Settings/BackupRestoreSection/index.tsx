@@ -1,4 +1,4 @@
-import { Button, Page } from '@harborclient/sdk/components';
+import { Button, FormGroup, Input, Page } from '@harborclient/sdk/components';
 import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 
@@ -13,6 +13,7 @@ import { ConfirmationsTable } from './ConfirmationsTable';
 import { applyLocalStorageSnapshot, collectLocalStorageSnapshot } from './helpers';
 
 const CONFIRMATIONS_GROUP_ID = 'backup-restore.confirmations';
+const DATA_DIRECTORY_INPUT_ID = 'backup-restore-data-directory';
 
 /**
  * Backup and restore settings for exporting and importing all local app data.
@@ -24,6 +25,24 @@ export function BackupRestoreSection({
   const dispatch = useAppDispatch();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dataDirectoryPath, setDataDirectoryPath] = useState('');
+
+  /**
+   * Loads the Electron userData path shown at the bottom of this settings page.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    void window.api.getUserDataPath().then((path) => {
+      if (!cancelled) {
+        setDataDirectoryPath(path);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   /**
    * Scrolls the confirmations group into view when opened from settings or global search.
@@ -86,6 +105,19 @@ export function BackupRestoreSection({
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setBusy(false);
+    }
+  };
+
+  /**
+   * Opens the data directory in the OS default file browser.
+   */
+  const handleOpenDataDirectory = async (): Promise<void> => {
+    if (!dataDirectoryPath) return;
+
+    try {
+      await window.api.openPath(dataDirectoryPath);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -178,6 +210,34 @@ export function BackupRestoreSection({
         </div>
         <ConfirmationsTable />
       </div>
+
+      <FormGroup
+        label="Data directory"
+        description="HarborClient stores local databases, settings, and other on-disk data in this folder."
+        htmlFor={DATA_DIRECTORY_INPUT_ID}
+      >
+        <div className="flex gap-2">
+          <Input
+            id={DATA_DIRECTORY_INPUT_ID}
+            type="text"
+            className="min-w-0 flex-1"
+            value={dataDirectoryPath}
+            readOnly
+            aria-label="Data directory"
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={!dataDirectoryPath}
+            aria-label="Open data directory in file browser"
+            onClick={() => {
+              void handleOpenDataDirectory();
+            }}
+          >
+            Open
+          </Button>
+        </div>
+      </FormGroup>
     </Page>
   );
 }

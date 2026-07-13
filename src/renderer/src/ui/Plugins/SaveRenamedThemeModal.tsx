@@ -8,7 +8,7 @@ interface Props {
   originalTitle: string;
 
   /**
-   * Title entered in the Creator form.
+   * Title entered in the Designer form.
    */
   newTitle: string;
 

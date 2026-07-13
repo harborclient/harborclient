@@ -20,4 +20,8 @@ export interface ApiBackup {
    * Relaunches HarborClient so restored on-disk state is loaded cleanly.
    */
   restartApp: () => Promise<void>;
+  /**
+   * Returns the Electron userData directory where HarborClient stores local files.
+   */
+  getUserDataPath: () => Promise<string>;
 }

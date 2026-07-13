@@ -4,6 +4,7 @@ import type { CustomTheme } from '#/shared/types/customTheme';
 import type { Environment } from '#/shared/types/environment';
 import type { SavedRequest } from '#/shared/types/request';
 import type { Snippet } from '#/shared/types/snippet';
+import type { TabGroup } from '#/shared/types/tabGroup';
 import type { ScriptRef } from '#/shared/types/script';
 import type { BodyType, HttpMethod, KeyValue, Variable } from '#/shared/types/common';
 
@@ -75,6 +76,11 @@ export interface Collection {
    * Id of the database connection that stores this collection.
    */
   connectionId?: string;
+
+  /**
+   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   */
+  color?: string | null;
 }
 
 /**
@@ -162,6 +168,11 @@ export interface Folder {
    * ISO 8601 timestamp when the folder was created.
    */
   created_at: string;
+
+  /**
+   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   */
+  color?: string | null;
 }
 
 /**
@@ -212,6 +223,11 @@ export interface CollectionDocument {
    * ISO 8601 timestamp when the document was last updated.
    */
   updated_at: string;
+
+  /**
+   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   */
+  color?: string | null;
 }
 
 /**
@@ -252,6 +268,11 @@ export interface SaveDocumentInput {
    * Position among sibling documents for sidebar ordering.
    */
   sort_order?: number;
+
+  /**
+   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   */
+  color?: string | null;
 }
 
 /**
@@ -287,6 +308,11 @@ export interface ExportedDocument {
    * Portable folder identifier; preferred over folder_name when present.
    */
   folder_uuid?: string | null;
+
+  /**
+   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   */
+  color?: string | null;
 }
 
 /**
@@ -382,6 +408,11 @@ export interface ExportedRequest {
    * Portable folder identifier; preferred over folder_name when present.
    */
   folder_uuid?: string | null;
+
+  /**
+   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   */
+  color?: string | null;
 }
 
 /**
@@ -437,6 +468,11 @@ export interface ExportedFolder {
    * Ordered folder post-request scripts when exported from a newer HarborClient build.
    */
   post_request_scripts?: ScriptRef[];
+
+  /**
+   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   */
+  color?: string | null;
 }
 
 /**
@@ -512,6 +548,11 @@ export interface CollectionExport {
    * Markdown documents attached to the collection or its folders.
    */
   documents?: ExportedDocument[];
+
+  /**
+   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   */
+  color?: string | null;
 }
 
 /**
@@ -566,6 +607,7 @@ export type ImportEntityResult =
   | { kind: 'collection'; collection: Collection; action: ImportAction }
   | { kind: 'request'; request: SavedRequest; action: ImportAction }
   | { kind: 'environment'; environment: Environment; action: ImportAction }
+  | { kind: 'tab_group'; tabGroups: TabGroup[]; action: ImportAction }
   | { kind: 'snippet'; snippet: Snippet; action: ImportAction }
   | { kind: 'theme'; theme: CustomTheme; action: ImportAction }
   | { kind: 'run-results'; data: RunResultsExport }

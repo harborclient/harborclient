@@ -15,7 +15,7 @@ Work through the checklist below. Each step explains what to do in the app and l
 - [ ] **Create a test** — Open a saved request, go to the **PostRequest** tab, and add a script such as `hc.test("status is 200", () => hc.response.to.have.status(200));`. Send the request and review pass/fail results in the response **Tests** tab. See [Testing](https://harborclient.com/testing).
 - [ ] **Create a collection** — Click **+** in the **Collections** sidebar or choose **File → New Collection** (**Cmd/Ctrl+Shift+N**), enter a name, and create it. Add requests with **New Request** on the collection row or by saving an open tab. See [Collections](https://harborclient.com/collections).
 - [ ] **Add a plugin** — Open **File → Plugins** (**Alt+Shift+P**), browse **Marketplace** or use **Install from file** / **Install from Git…**, then enable the plugin. See [Using plugins](https://harborclient.com/using-plugins).
-- [ ] **Add a theme** — Open **File → Themes** (**Cmd/Ctrl+Shift+T**), install from **Marketplace** or **Creator**, or switch from **View → Theme**. See [Using themes](https://harborclient.com/using-themes).
+- [ ] **Add a theme** — Open **File → Themes** (**Cmd/Ctrl+Shift+T**), install from **Marketplace** or **Designer**, or switch from **View → Theme**. See [Using themes](https://harborclient.com/using-themes).
 - [ ] **Create an environment** — Click **+** in the **Environments** sidebar, name it, add variables (for example `baseUrl`), save, then select it from the environment dropdown on the TabBar. See [Environments](https://harborclient.com/environments).
 
 ## Frequently Asked Questions
@@ -50,7 +50,7 @@ Plugins extend HarborClient with extra auth helpers, exporters, themes, and othe
 
 ### How do I change the app theme?
 
-Open **File → Themes** (**Cmd/Ctrl+Shift+T**) to install themes from the **Marketplace** or **Creator**, or switch quickly from **View → Theme**. Built-in options include light, dark, system, and high-contrast. See [Using themes](https://harborclient.com/using-themes).
+Open **File → Themes** (**Cmd/Ctrl+Shift+T**) to install themes from the **Marketplace** or **Designer**, or switch quickly from **View → Theme**. Built-in options include light, dark, system, and high-contrast. See [Using themes](https://harborclient.com/using-themes).
 
 ### My request failed — what should I check?
 

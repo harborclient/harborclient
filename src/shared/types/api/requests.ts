@@ -19,6 +19,14 @@ export interface ApiRequests {
    */
   saveRequest: (req: SaveRequestInput) => Promise<SavedRequest>;
   /**
+   * Updates a saved request sidebar color.
+   *
+   * @param id - Request ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated request.
+   */
+  setRequestColor: (id: number, color: string | null) => Promise<SavedRequest>;
+  /**
    * Deletes a saved request by ID.
    *
    * @param id - Request ID to delete.

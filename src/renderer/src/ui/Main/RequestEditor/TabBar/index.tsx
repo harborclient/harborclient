@@ -22,6 +22,7 @@ import {
   runnerTargetLabel
 } from '#/renderer/src/ui/CollectionRunner/resolveRunnerTargetName';
 import { selectEditingTabGroupId } from '#/renderer/src/store/slices/tabGroupSlice';
+import { selectThemeDesignerIsDirty } from '#/renderer/src/store/slices/themeDesignerSlice';
 import { isOpenSavedRequestTab } from '#/renderer/src/store/thunks/tabGroups';
 
 import { pageTabMeta } from './pageTabMeta';
@@ -104,6 +105,7 @@ export function TabBar({
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
   const editingTabGroupId = useAppSelector(selectEditingTabGroupId);
+  const themeDesignerDirty = useAppSelector(selectThemeDesignerIsDirty);
   const { teamHubs } = useTeamHubs();
   const wrapTabs = useAppSelector(selectWrapTabs);
 
@@ -212,9 +214,10 @@ export function TabBar({
         tabs: visibleTabs,
         activeTabId,
         pageTabDisplays,
-        highlightedTabIds
+        highlightedTabIds,
+        themeDesignerDirty
       }),
-    [activeTabId, highlightedTabIds, pageTabDisplays, visibleTabs]
+    [activeTabId, highlightedTabIds, pageTabDisplays, themeDesignerDirty, visibleTabs]
   );
 
   /**

@@ -44,10 +44,15 @@ function markdownTabAccessibleName(tab: Tab): string {
  * Builds the accessible name for a page tab.
  *
  * @param title - Resolved page tab title.
+ * @param dirty - Whether the page tab has unsaved changes.
  * @returns Accessible label for screen readers.
  */
-function pageTabAccessibleName(title: string): string {
-  return title;
+function pageTabAccessibleName(title: string, dirty: boolean): string {
+  const parts = [title];
+  if (dirty) {
+    parts.push('unsaved');
+  }
+  return parts.join(', ');
 }
 
 /**
@@ -106,6 +111,11 @@ interface BuildItemsOptions {
    * Whether matching saved request tabs should use active styling during tab group edit.
    */
   highlightedTabIds?: ReadonlySet<string>;
+
+  /**
+   * Whether the Theme Designer has unsaved edits (Themes page tab indicator).
+   */
+  themeDesignerDirty: boolean;
 }
 
 /**
@@ -118,15 +128,17 @@ export function buildRequestTabBarItems({
   tabs,
   activeTabId,
   pageTabDisplays,
-  highlightedTabIds
+  highlightedTabIds,
+  themeDesignerDirty
 }: BuildItemsOptions): TabBarItem<string>[] {
   return tabs.map((tab) => {
     const pageDisplay = pageTabDisplays.get(tab.tabId);
     const pageTitle = pageDisplay?.title;
     const isPage = isPageTab(tab);
     const isMarkdown = isMarkdownTab(tab);
+    const dirty = isPage ? tab.page.type === 'themes' && themeDesignerDirty : isTabDirty(tab);
     const ariaLabel = isPage
-      ? pageTabAccessibleName(pageTitle ?? 'Page')
+      ? pageTabAccessibleName(pageTitle ?? 'Page', dirty)
       : isMarkdown
         ? markdownTabAccessibleName(tab)
         : requestTabAccessibleName(tab);
@@ -136,10 +148,17 @@ export function buildRequestTabBarItems({
       active: tab.tabId === activeTabId,
       highlighted: highlightedTabIds?.has(tab.tabId),
       accessibleName: ariaLabel,
-      closeAccessibleName: tabCloseAccessibleName(tab, pageTitle),
+      closeAccessibleName: tabCloseAccessibleName(tab, pageTitle, dirty),
       title: documentTabTitle(tab, pageTitle),
       dragLabel: requestTabDragLabel(tab, pageTitle),
-      content: <RequestTabContent tab={tab} pageTitle={pageTitle} pageIcon={pageDisplay?.icon} />
+      content: (
+        <RequestTabContent
+          tab={tab}
+          pageTitle={pageTitle}
+          pageIcon={pageDisplay?.icon}
+          dirty={dirty}
+        />
+      )
     };
   });
 }

@@ -13,7 +13,7 @@ import {
 } from '#/renderer/src/ui/Plugins/hooks/themeHistoryStack';
 
 /**
- * Builds a minimal Creator draft for history tests.
+ * Builds a minimal Designer draft for history tests.
  *
  * @param overrides - Partial draft fields to apply.
  * @returns Draft snapshot used in assertions.

@@ -61,6 +61,14 @@ export interface ApiCollections {
     postRequestScripts?: ScriptRef[]
   ) => Promise<Collection>;
   /**
+   * Updates a collection sidebar color.
+   *
+   * @param id - Collection ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated collection.
+   */
+  setCollectionColor: (id: number, color: string | null) => Promise<Collection>;
+  /**
    * Deletes a collection and all of its saved requests.
    *
    * @param id - Collection ID to delete.
@@ -227,6 +235,14 @@ export interface ApiCollections {
     preRequestScripts?: ScriptRef[],
     postRequestScripts?: ScriptRef[]
   ) => Promise<Folder>;
+  /**
+   * Updates a folder sidebar color.
+   *
+   * @param id - Folder ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated folder.
+   */
+  setFolderColor: (id: number, color: string | null) => Promise<Folder>;
   /**
    * Deletes a folder and all requests inside it.
    *

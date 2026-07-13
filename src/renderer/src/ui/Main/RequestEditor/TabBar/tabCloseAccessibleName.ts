@@ -11,11 +11,13 @@ import {
  *
  * @param tab - Tab being closed.
  * @param pageTitle - Resolved page tab title when applicable.
+ * @param dirty - Whether the tab has unsaved changes (page tabs such as Themes).
  * @returns Label describing which tab the close control dismisses.
  */
-export function tabCloseAccessibleName(tab: Tab, pageTitle?: string): string {
+export function tabCloseAccessibleName(tab: Tab, pageTitle?: string, dirty = false): string {
   if (isPageTab(tab)) {
-    return `Close ${pageTitle ?? 'Page'}`;
+    const suffix = dirty ? ', unsaved' : '';
+    return `Close ${pageTitle ?? 'Page'}${suffix}`;
   }
   if (isMarkdownTab(tab)) {
     const suffix = isTabDirty(tab) ? ', unsaved' : '';

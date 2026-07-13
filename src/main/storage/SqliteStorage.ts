@@ -83,10 +83,14 @@ import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '#/shared/scriptStage
 import type { ScriptStage } from '@harborclient/sdk';
 import { parseJson } from '#/shared/parseJson';
 import { generateDocumentUuid } from '#/main/storage/uuid';
+import {
+  migrateSidebarColorColumn,
+  serializeSidebarColor
+} from '#/main/storage/sidebarColorMigration';
 
 const COLLECTION_COLUMNS =
-  'id, uuid, name, variables, headers, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at';
-const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at';
+  'id, uuid, name, variables, headers, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, color';
+const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, color';
 
 /**
  * Resolves the SQLite database path, copying from legacy locations when needed.
@@ -306,6 +310,17 @@ export class SqliteStorage implements IStorage {
     migrateSqliteScriptArrayColumns(this.getDb(), 'requests');
     migrateSqliteScriptArrayColumns(this.getDb(), 'folders');
     migrateSqliteSnippetStageColumn(this.getDb());
+
+    const sidebarColorTables = [
+      'collections',
+      'folders',
+      'requests',
+      'documents',
+      'environments'
+    ] as const;
+    for (const table of sidebarColorTables) {
+      migrateSidebarColorColumn(this.getDb(), table);
+    }
 
     const folderColumns = this.getDb().prepare('PRAGMA table_info(folders)').all() as Array<{
       name: string;
@@ -579,6 +594,26 @@ export class SqliteStorage implements IStorage {
   }
 
   /**
+   * Updates a collection's sidebar color.
+   *
+   * @param id - Collection ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated collection.
+   */
+  async setCollectionColor(id: number, color: string | null): Promise<Collection> {
+    this.getDb()
+      .prepare('UPDATE collections SET color = ? WHERE id = ?')
+      .run(serializeSidebarColor(color), id);
+
+    const row = this.getDb()
+      .prepare(`SELECT ${COLLECTION_COLUMNS} FROM collections WHERE id = ?`)
+      .get(id) as Record<string, unknown> | undefined;
+
+    if (!row) throw new Error('Collection not found');
+    return rowToCollection(row);
+  }
+
+  /**
    * Deletes a collection and all of its requests.
    *
    * @param id - Collection ID to delete.
@@ -643,6 +678,26 @@ export class SqliteStorage implements IStorage {
   }
 
   /**
+   * Updates an environment's sidebar color.
+   *
+   * @param id - Environment ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated environment.
+   */
+  async setEnvironmentColor(id: number, color: string | null): Promise<Environment> {
+    this.getDb()
+      .prepare('UPDATE environments SET color = ? WHERE id = ?')
+      .run(serializeSidebarColor(color), id);
+
+    const row = this.getDb()
+      .prepare(`SELECT ${ENVIRONMENT_COLUMNS} FROM environments WHERE id = ?`)
+      .get(id) as Record<string, unknown> | undefined;
+
+    if (!row) throw new Error('Environment not found');
+    return rowToEnvironment(row);
+  }
+
+  /**
    * Deletes an environment.
    *
    * @param id - Environment ID to delete.
@@ -689,6 +744,8 @@ export class SqliteStorage implements IStorage {
     const comment = input.comment ?? '';
     const tags = input.tags ?? '';
     const folderId = input.folder_id ?? null;
+    const serializedColor =
+      input.color !== undefined ? serializeSidebarColor(input.color) : undefined;
     const now = new Date().toISOString();
 
     if (folderId != null) {
@@ -701,53 +758,8 @@ export class SqliteStorage implements IStorage {
     }
 
     if (input.id) {
-      const result = this.getDb()
-        .prepare(
-          `UPDATE requests SET
-          collection_id = ?, folder_id = ?, name = ?, method = ?, url = ?,
-          headers = ?, params = ?, auth = ?, body = ?, body_type = ?,
-          pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
-          updated_at = ?
-        WHERE id = ?`
-        )
-        .run(
-          input.collection_id,
-          folderId,
-          trimmedName,
-          input.method,
-          input.url,
-          headers,
-          params,
-          auth,
-          input.body,
-          input.body_type,
-          preRequestScript,
-          postRequestScript,
-          preScripts.json,
-          postScripts.json,
-          comment,
-          tags,
-          now,
-          input.id
-        );
-
-      if (result.changes > 0) {
-        const row = this.getDb().prepare('SELECT * FROM requests WHERE id = ?').get(input.id);
-        if (row) return rowToRequest(row as Record<string, unknown>);
-      }
-    }
-
-    const requestUuid = input.uuid?.trim() || generateDocumentUuid();
-    const nextSortOrder = this.nextContainerSortOrder(input.collection_id, folderId);
-
-    const result = this.getDb()
-      .prepare(
-        `INSERT INTO requests (
-        collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
-        pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      )
-      .run(
+      const colorClause = serializedColor !== undefined ? ', color = ?' : '';
+      const updateParams = [
         input.collection_id,
         folderId,
         trimmedName,
@@ -764,10 +776,67 @@ export class SqliteStorage implements IStorage {
         postScripts.json,
         comment,
         tags,
-        nextSortOrder,
-        requestUuid,
         now
-      );
+      ];
+      if (serializedColor !== undefined) {
+        updateParams.push(serializedColor);
+      }
+      updateParams.push(input.id);
+
+      const result = this.getDb()
+        .prepare(
+          `UPDATE requests SET
+          collection_id = ?, folder_id = ?, name = ?, method = ?, url = ?,
+          headers = ?, params = ?, auth = ?, body = ?, body_type = ?,
+          pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
+          updated_at = ?${colorClause}
+        WHERE id = ?`
+        )
+        .run(...updateParams);
+
+      if (result.changes > 0) {
+        const row = this.getDb().prepare('SELECT * FROM requests WHERE id = ?').get(input.id);
+        if (row) return rowToRequest(row as Record<string, unknown>);
+      }
+    }
+
+    const requestUuid = input.uuid?.trim() || generateDocumentUuid();
+    const nextSortOrder = this.nextContainerSortOrder(input.collection_id, folderId);
+    const insertColorClause = serializedColor !== undefined ? ', color' : '';
+    const insertColorValues = serializedColor !== undefined ? ', ?' : '';
+    const insertParams = [
+      input.collection_id,
+      folderId,
+      trimmedName,
+      input.method,
+      input.url,
+      headers,
+      params,
+      auth,
+      input.body,
+      input.body_type,
+      preRequestScript,
+      postRequestScript,
+      preScripts.json,
+      postScripts.json,
+      comment,
+      tags,
+      nextSortOrder,
+      requestUuid,
+      now
+    ];
+    if (serializedColor !== undefined) {
+      insertParams.push(serializedColor);
+    }
+
+    const result = this.getDb()
+      .prepare(
+        `INSERT INTO requests (
+        collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
+        pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, updated_at${insertColorClause}
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${insertColorValues})`
+      )
+      .run(...insertParams);
 
     const row = this.getDb()
       .prepare('SELECT * FROM requests WHERE id = ?')
@@ -784,6 +853,26 @@ export class SqliteStorage implements IStorage {
    */
   async deleteRequest(id: number): Promise<void> {
     this.getDb().prepare('DELETE FROM requests WHERE id = ?').run(id);
+  }
+
+  /**
+   * Updates a saved request's sidebar color.
+   *
+   * @param id - Request ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated request.
+   */
+  async setRequestColor(id: number, color: string | null): Promise<SavedRequest> {
+    this.getDb()
+      .prepare('UPDATE requests SET color = ? WHERE id = ?')
+      .run(serializeSidebarColor(color), id);
+
+    const row = this.getDb().prepare('SELECT * FROM requests WHERE id = ?').get(id) as
+      | Record<string, unknown>
+      | undefined;
+
+    if (!row) throw new Error('Request not found');
+    return rowToRequest(row);
   }
 
   /**
@@ -890,6 +979,26 @@ export class SqliteStorage implements IStorage {
         postScripts.json,
         id
       );
+
+    const row = this.getDb().prepare('SELECT * FROM folders WHERE id = ?').get(id) as
+      | Record<string, unknown>
+      | undefined;
+
+    if (!row) throw new Error('Folder not found');
+    return rowToFolder(row);
+  }
+
+  /**
+   * Updates a folder's sidebar color.
+   *
+   * @param id - Folder ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated folder.
+   */
+  async setFolderColor(id: number, color: string | null): Promise<Folder> {
+    this.getDb()
+      .prepare('UPDATE folders SET color = ? WHERE id = ?')
+      .run(serializeSidebarColor(color), id);
 
     const row = this.getDb().prepare('SELECT * FROM folders WHERE id = ?').get(id) as
       | Record<string, unknown>
@@ -1082,6 +1191,8 @@ export class SqliteStorage implements IStorage {
     const trimmedName = trimRequiredName(input.name, 'Document name');
     const content = input.content ?? '';
     const folderId = input.folder_id ?? null;
+    const serializedColor =
+      input.color !== undefined ? serializeSidebarColor(input.color) : undefined;
     const now = new Date().toISOString();
 
     if (folderId != null) {
@@ -1094,13 +1205,20 @@ export class SqliteStorage implements IStorage {
     }
 
     if (input.id) {
+      const colorClause = serializedColor !== undefined ? ', color = ?' : '';
+      const updateParams = [input.collection_id, folderId, trimmedName, content, now];
+      if (serializedColor !== undefined) {
+        updateParams.push(serializedColor);
+      }
+      updateParams.push(input.id);
+
       const result = this.getDb()
         .prepare(
           `UPDATE documents SET
-          collection_id = ?, folder_id = ?, name = ?, content = ?, updated_at = ?
+          collection_id = ?, folder_id = ?, name = ?, content = ?, updated_at = ?${colorClause}
         WHERE id = ?`
         )
-        .run(input.collection_id, folderId, trimmedName, content, now, input.id);
+        .run(...updateParams);
 
       if (result.changes > 0) {
         const row = this.getDb().prepare('SELECT * FROM documents WHERE id = ?').get(input.id);
@@ -1110,14 +1228,28 @@ export class SqliteStorage implements IStorage {
 
     const documentUuid = input.uuid?.trim() || generateDocumentUuid();
     const nextSortOrder = this.nextContainerSortOrder(input.collection_id, folderId);
+    const insertColorClause = serializedColor !== undefined ? ', color' : '';
+    const insertColorValues = serializedColor !== undefined ? ', ?' : '';
+    const insertParams = [
+      input.collection_id,
+      folderId,
+      trimmedName,
+      content,
+      nextSortOrder,
+      documentUuid,
+      now
+    ];
+    if (serializedColor !== undefined) {
+      insertParams.push(serializedColor);
+    }
 
     const result = this.getDb()
       .prepare(
         `INSERT INTO documents (
-        collection_id, folder_id, name, content, sort_order, uuid, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+        collection_id, folder_id, name, content, sort_order, uuid, updated_at${insertColorClause}
+      ) VALUES (?, ?, ?, ?, ?, ?, ?${insertColorValues})`
       )
-      .run(input.collection_id, folderId, trimmedName, content, nextSortOrder, documentUuid, now);
+      .run(...insertParams);
 
     const row = this.getDb()
       .prepare('SELECT * FROM documents WHERE id = ?')
@@ -1134,6 +1266,26 @@ export class SqliteStorage implements IStorage {
    */
   async deleteDocument(id: number): Promise<void> {
     this.getDb().prepare('DELETE FROM documents WHERE id = ?').run(id);
+  }
+
+  /**
+   * Updates a markdown document's sidebar color.
+   *
+   * @param id - Document ID to update.
+   * @param color - CSS color string, or null to clear.
+   * @returns The updated document.
+   */
+  async setDocumentColor(id: number, color: string | null): Promise<CollectionDocument> {
+    this.getDb()
+      .prepare('UPDATE documents SET color = ? WHERE id = ?')
+      .run(serializeSidebarColor(color), id);
+
+    const row = this.getDb().prepare('SELECT * FROM documents WHERE id = ?').get(id) as
+      | Record<string, unknown>
+      | undefined;
+
+    if (!row) throw new Error('Document not found');
+    return rowToDocument(row);
   }
 
   /**
@@ -1255,6 +1407,7 @@ export class SqliteStorage implements IStorage {
       post_request_script: collection.post_request_script,
       pre_request_scripts: collection.pre_request_scripts,
       post_request_scripts: collection.post_request_scripts,
+      color: collection.color ?? null,
       folders,
       requests,
       documents
@@ -1277,7 +1430,7 @@ export class SqliteStorage implements IStorage {
       const collectionScripts = serializeImportedCollectionScriptFields(payload);
       const collectionResult = database
         .prepare(
-          'INSERT INTO collections (name, uuid, variables, headers, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+          'INSERT INTO collections (name, uuid, variables, headers, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, color) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         )
         .run(
           payload.name,
@@ -1288,7 +1441,8 @@ export class SqliteStorage implements IStorage {
           collectionScripts.pre_request_script,
           collectionScripts.post_request_script,
           collectionScripts.pre_request_scripts_json,
-          collectionScripts.post_request_scripts_json
+          collectionScripts.post_request_scripts_json,
+          serializeSidebarColor(payload.color)
         );
 
       const collectionId = Number(collectionResult.lastInsertRowid);
@@ -1305,8 +1459,8 @@ export class SqliteStorage implements IStorage {
           .prepare(
             `INSERT INTO folders (
               collection_id, name, sort_order, uuid, variables, headers, auth,
-              pre_request_script, post_request_script, pre_request_scripts, post_request_scripts
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+              pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, color
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
           .run(
             collectionId,
@@ -1319,7 +1473,8 @@ export class SqliteStorage implements IStorage {
             folderFields.pre_request_script,
             folderFields.post_request_script,
             folderFields.pre_request_scripts_json,
-            folderFields.post_request_scripts_json
+            folderFields.post_request_scripts_json,
+            folderFields.color
           );
         const folderId = Number(folderResult.lastInsertRowid);
         registerImportedFolderInMaps(folderMaps, folderId, folder.name, folderUuid);
@@ -1328,14 +1483,14 @@ export class SqliteStorage implements IStorage {
       const insertRequest = database.prepare(
         `INSERT INTO requests (
         collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
-        pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, updated_at, color
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       );
 
       const insertDocument = database.prepare(
         `INSERT INTO documents (
-        collection_id, folder_id, name, content, sort_order, uuid, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+        collection_id, folder_id, name, content, sort_order, uuid, updated_at, color
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       );
 
       for (const request of payload.requests) {
@@ -1366,7 +1521,8 @@ export class SqliteStorage implements IStorage {
           fields.tags,
           fields.sort_order,
           fields.uuid,
-          now
+          now,
+          fields.color
         );
       }
 
@@ -1386,7 +1542,8 @@ export class SqliteStorage implements IStorage {
           fields.content,
           fields.sort_order,
           fields.uuid,
-          now
+          now,
+          fields.color
         );
       }
 
@@ -1455,7 +1612,7 @@ export class SqliteStorage implements IStorage {
       const collectionScripts = serializeImportedCollectionScriptFields(payload);
       database
         .prepare(
-          'UPDATE collections SET name = ?, variables = ?, headers = ?, auth = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ? WHERE id = ?'
+          'UPDATE collections SET name = ?, variables = ?, headers = ?, auth = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, color = ? WHERE id = ?'
         )
         .run(
           payload.name,
@@ -1466,6 +1623,7 @@ export class SqliteStorage implements IStorage {
           collectionScripts.post_request_script,
           collectionScripts.pre_request_scripts_json,
           collectionScripts.post_request_scripts_json,
+          serializeSidebarColor(payload.color),
           id
         );
 
@@ -1481,7 +1639,7 @@ export class SqliteStorage implements IStorage {
           database
             .prepare(
               `UPDATE folders SET name = ?, sort_order = ?, variables = ?, headers = ?, auth = ?,
-                pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?
+                pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, color = ?
                WHERE id = ? AND collection_id = ?`
             )
             .run(
@@ -1494,6 +1652,7 @@ export class SqliteStorage implements IStorage {
               folderFields.post_request_script,
               folderFields.pre_request_scripts_json,
               folderFields.post_request_scripts_json,
+              folderFields.color,
               plan.existingId,
               id
             );
@@ -1506,8 +1665,8 @@ export class SqliteStorage implements IStorage {
           .prepare(
             `INSERT INTO folders (
               collection_id, name, sort_order, uuid, variables, headers, auth,
-              pre_request_script, post_request_script, pre_request_scripts, post_request_scripts
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+              pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, color
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
           .run(
             id,
@@ -1520,7 +1679,8 @@ export class SqliteStorage implements IStorage {
             folderFields.pre_request_script,
             folderFields.post_request_script,
             folderFields.pre_request_scripts_json,
-            folderFields.post_request_scripts_json
+            folderFields.post_request_scripts_json,
+            folderFields.color
           );
         registerImportedFolderInMaps(
           folderMaps,
@@ -1543,24 +1703,24 @@ export class SqliteStorage implements IStorage {
       const insertRequest = database.prepare(
         `INSERT INTO requests (
         collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
-        pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, updated_at, color
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       );
       const updateRequest = database.prepare(
         `UPDATE requests SET
           folder_id = ?, name = ?, method = ?, url = ?, headers = ?, params = ?, auth = ?,
           body = ?, body_type = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
-          sort_order = ?, updated_at = ?
+          sort_order = ?, updated_at = ?, color = ?
         WHERE id = ? AND collection_id = ?`
       );
       const insertDocument = database.prepare(
         `INSERT INTO documents (
-        collection_id, folder_id, name, content, sort_order, uuid, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+        collection_id, folder_id, name, content, sort_order, uuid, updated_at, color
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       );
       const updateDocument = database.prepare(
         `UPDATE documents SET
-          folder_id = ?, name = ?, content = ?, sort_order = ?, updated_at = ?
+          folder_id = ?, name = ?, content = ?, sort_order = ?, updated_at = ?, color = ?
         WHERE id = ? AND collection_id = ?`
       );
 
@@ -1593,6 +1753,7 @@ export class SqliteStorage implements IStorage {
             fields.tags,
             fields.sort_order,
             now,
+            fields.color,
             existingRequestId,
             id
           );
@@ -1618,7 +1779,8 @@ export class SqliteStorage implements IStorage {
           fields.tags,
           fields.sort_order,
           fields.uuid,
-          now
+          now,
+          fields.color
         );
       }
 
@@ -1639,6 +1801,7 @@ export class SqliteStorage implements IStorage {
             fields.content,
             fields.sort_order,
             now,
+            fields.color,
             existingDocumentId,
             id
           );
@@ -1652,7 +1815,8 @@ export class SqliteStorage implements IStorage {
           fields.content,
           fields.sort_order,
           fields.uuid,
-          now
+          now,
+          fields.color
         );
       }
 

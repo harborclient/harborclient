@@ -115,9 +115,9 @@ function acceleratorFor(accelerators: Map<ShortcutId, string>, id: ShortcutId): 
  * @param activeTheme - Appearance theme used to mark the active View menu checkmark.
  * @param pluginThemeOptions - Plugin-provided theme menu options.
  * @param onThemeMenuClick - Rebuilds the menu after a theme item click.
- * @param creatorUndoRedoActive - Whether the Creator tab owns Edit menu undo/redo.
- * @param creatorCanUndo - Whether Creator undo is currently available.
- * @param creatorCanRedo - Whether Creator redo is currently available.
+ * @param designerUndoRedoActive - Whether the Designer tab owns Edit menu undo/redo.
+ * @param designerCanUndo - Whether Designer undo is currently available.
+ * @param designerCanRedo - Whether Designer redo is currently available.
  * @param tabGroupAvailable - Whether at least one saved request tab is open for tab groups.
  * @returns The constructed application menu.
  */
@@ -133,9 +133,9 @@ export function buildMenu(
   activeTheme: ThemeSource = 'system',
   pluginThemeOptions: ThemeMenuOption[] = [],
   onThemeMenuClick?: () => void,
-  creatorUndoRedoActive = false,
-  creatorCanUndo = false,
-  creatorCanRedo = false,
+  designerUndoRedoActive = false,
+  designerCanUndo = false,
+  designerCanRedo = false,
   tabGroupAvailable = false
 ): Menu {
   const accelerators = resolveAcceleratorMap(getShortcutOverrides());
@@ -201,19 +201,19 @@ export function buildMenu(
     {
       label: 'Edit',
       submenu: [
-        creatorUndoRedoActive
+        designerUndoRedoActive
           ? {
               label: 'Undo',
               accelerator: acceleratorFor(accelerators, 'undo'),
-              enabled: creatorCanUndo,
+              enabled: designerCanUndo,
               click: () => sendMenuAction(window, 'undo')
             }
           : { role: 'undo', accelerator: acceleratorFor(accelerators, 'undo') },
-        creatorUndoRedoActive
+        designerUndoRedoActive
           ? {
               label: 'Redo',
               accelerator: acceleratorFor(accelerators, 'redo'),
-              enabled: creatorCanRedo,
+              enabled: designerCanRedo,
               click: () => sendMenuAction(window, 'redo')
             }
           : { role: 'redo', accelerator: acceleratorFor(accelerators, 'redo') },

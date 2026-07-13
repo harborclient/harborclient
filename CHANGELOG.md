@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(dependencies, themes): update harborclient packages and enhance theme management. (`d5562a1`)
+
 ## 2.2.4 - 2026-07-12
 
 - chore(dependencies): update @harborclient/sdk to version 1.0.75. (`cb147d3`)

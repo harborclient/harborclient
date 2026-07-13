@@ -1,4 +1,4 @@
-import { BrowserWindow, dialog } from 'electron';
+import { BrowserWindow, dialog, shell } from 'electron';
 import { writeFile } from 'fs/promises';
 import { getDefaultLogFilePath } from '#/main/fileLogger';
 import { handle } from '#/main/ipc/handle';
@@ -24,6 +24,14 @@ export function registerFileHandlers(): void {
     }
 
     return filePaths[0];
+  });
+
+  // Opens a file or directory in the OS default application (e.g. the file browser).
+  handle('files:openPath', ipcArgSchemas.openPath, async (_event, path) => {
+    const error = await shell.openPath(path);
+    if (error) {
+      throw new Error(error);
+    }
   });
 
   // Opens a native save dialog and returns the chosen absolute file path.
