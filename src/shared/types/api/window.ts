@@ -97,6 +97,12 @@ export interface ApiWindow {
    */
   setTabGroupAvailable: (available: boolean) => Promise<void>;
   /**
+   * Syncs git-backed collection availability to the Git menu in the main process.
+   *
+   * @param active - Whether the active collection is git-backed.
+   */
+  setMenuGitCollectionActive: (active: boolean) => Promise<void>;
+  /**
    * Subscribes to View menu appearance theme selection events from the main process.
    *
    * @param callback - Handler invoked with the selected theme and label.

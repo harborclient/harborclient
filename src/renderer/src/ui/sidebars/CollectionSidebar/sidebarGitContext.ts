@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { CollectionGitContext } from '#/renderer/src/git/resolveCollectionGitContext';
 import type { SourceControlStatus } from '#/shared/types';
 
 /**
@@ -9,6 +10,16 @@ export interface SidebarGitContextValue {
    * Git source-control status keyed by connection id.
    */
   gitStatusesByConnectionId: Record<string, SourceControlStatus>;
+
+  /**
+   * Resolved git context for the active collection, when git-backed.
+   */
+  activeGitContext: CollectionGitContext | null;
+
+  /**
+   * Whether the active collection is git-backed.
+   */
+  isActiveCollectionGit: boolean;
 
   /**
    * Opens the Git sidebar for a git connection.
@@ -41,6 +52,59 @@ export interface SidebarGitContextValue {
    * @param collectionUuid - Collection uuid used for sidebar context.
    */
   openSwitchBranch: (connectionId: string, connectionName: string, collectionUuid: string) => void;
+
+  /**
+   * Opens the merge-branch modal for a git connection.
+   *
+   * @param connectionId - Git connection id.
+   * @param connectionName - Display name for the connection.
+   * @param collectionUuid - Collection uuid used for sidebar context.
+   */
+  openMergeBranch: (connectionId: string, connectionName: string, collectionUuid: string) => void;
+
+  /**
+   * Opens the delete-branch modal for a git connection.
+   *
+   * @param connectionId - Git connection id.
+   * @param connectionName - Display name for the connection.
+   * @param collectionUuid - Collection uuid used for sidebar context.
+   */
+  openDeleteBranch: (connectionId: string, connectionName: string, collectionUuid: string) => void;
+
+  /**
+   * Opens the Git sidebar for the active git-backed collection.
+   */
+  commitActiveCollection: () => void;
+
+  /**
+   * Opens the merge-branch modal for the active git-backed collection.
+   */
+  mergeActiveCollection: () => void;
+
+  /**
+   * Opens the create-branch modal for the active git-backed collection.
+   */
+  createBranchActiveCollection: () => void;
+
+  /**
+   * Opens the delete-branch modal for the active git-backed collection.
+   */
+  deleteBranchActiveCollection: () => void;
+
+  /**
+   * Fetches from the remote for the active git-backed collection.
+   */
+  fetchActiveCollection: () => Promise<void>;
+
+  /**
+   * Pulls remote changes for the active git-backed collection.
+   */
+  pullActiveCollection: () => Promise<void>;
+
+  /**
+   * Pushes local commits for the active git-backed collection.
+   */
+  pushActiveCollection: () => Promise<void>;
 }
 
 /**

@@ -1,6 +1,15 @@
 import { promises as fsp } from 'fs';
 
 /**
+ * Returns whether text contains git merge conflict markers.
+ *
+ * @param text - File contents to inspect.
+ */
+export function hasConflictMarkers(text: string | null | undefined): boolean {
+  return text != null && text.includes('<<<<<<<');
+}
+
+/**
  * Counts JSON files in the provided list whose contents contain git conflict markers.
  *
  * Intended for modified paths from `git.statusMatrix` so status polling avoids
@@ -70,12 +79,17 @@ export function toFileSlug(name: string): string {
 }
 
 /**
- * Builds a directory or file prefix combining a stable uuid and human slug.
- *
- * @param uuid - Stable document uuid.
- * @param name - Display name used for the slug portion.
- * @returns Prefix string `uuid-slug`.
+ * HarborClient export kinds used as filename prefixes at the git harbor root.
  */
-export function uuidSlugPrefix(uuid: string, name: string): string {
-  return `${uuid}-${toFileSlug(name)}`;
+export type HarborExportFileKind = 'collection' | 'environment' | 'snippet';
+
+/**
+ * Builds the base name for a HarborClient export JSON file at the harbor root.
+ *
+ * @param kind - Export discriminator (`collection`, `environment`, or `snippet`).
+ * @param name - Display name slugged for filesystem safety.
+ * @returns Base name `kind-slug` without the `.json` extension.
+ */
+export function exportFileBaseName(kind: HarborExportFileKind, name: string): string {
+  return `${kind}-${toFileSlug(name)}`;
 }

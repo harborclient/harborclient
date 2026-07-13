@@ -313,6 +313,12 @@ export interface GeneralSettings {
   gitAutoAdd: boolean;
 
   /**
+   * Absolute path to an external executable used to resolve merge conflicts.
+   * When empty, HarborClient opens its built-in merge editor tab.
+   */
+  externalMergeEditorPath: string;
+
+  /**
    * CodeMirror syntax theme applied to all editor instances.
    */
   codeEditorTheme: CodeEditorTheme;

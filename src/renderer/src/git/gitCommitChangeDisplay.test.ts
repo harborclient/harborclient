@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildGitCommitResourceAccessibleName,
+  buildGitCommitFileAccessibleName,
   gitCommitChangeAccessibleLabel,
   gitCommitChangeNameClass
 } from '#/renderer/src/git/gitCommitChangeDisplay';
@@ -14,8 +14,8 @@ describe('gitCommitChangeDisplay', () => {
 
   it('builds accessible labels and names', () => {
     expect(gitCommitChangeAccessibleLabel('added')).toBe('added in commit');
-    expect(buildGitCommitResourceAccessibleName('Echo', 'modified')).toBe(
-      'Echo, modified in commit'
+    expect(buildGitCommitFileAccessibleName('.harborclient/collection.json', 'modified')).toBe(
+      '.harborclient/collection.json, modified in commit'
     );
   });
 });

@@ -31,6 +31,7 @@ import {
   saveFromMenu
 } from '#/renderer/src/store/thunks';
 import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
+import { useSidebarGit } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarGitContext';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
 
 interface UseActionCommandsResult {
@@ -41,12 +42,35 @@ interface UseActionCommandsResult {
 }
 
 /**
+ * Action ids that require an active git-backed collection.
+ */
+const GIT_COLLECTION_ACTION_IDS = new Set([
+  'builtin:git-create-branch',
+  'builtin:git-delete-branch',
+  'builtin:git-commit',
+  'builtin:git-merge',
+  'builtin:git-fetch',
+  'builtin:git-pull',
+  'builtin:git-push'
+]);
+
+/**
  * Merges built-in menu actions with plugin-registered Action menu contributions and
  * dispatches the matching handler when the user selects a row.
  */
 export function useActionCommands(): UseActionCommandsResult {
   const dispatch = useAppDispatch();
   const pluginActions = usePluginActions();
+  const {
+    isActiveCollectionGit,
+    commitActiveCollection,
+    mergeActiveCollection,
+    createBranchActiveCollection,
+    deleteBranchActiveCollection,
+    fetchActiveCollection,
+    pullActiveCollection,
+    pushActiveCollection
+  } = useSidebarGit();
   const {
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
@@ -64,6 +88,9 @@ export function useActionCommands(): UseActionCommandsResult {
       'builtin:new-collection': () => {
         dispatch(openCollectionModal({ mode: 'create' }));
       },
+      'builtin:new-collection-git': () => {
+        dispatch(openCollectionModal({ mode: 'create', tab: 'git' }));
+      },
       'builtin:import': () => {
         void dispatch(importFromMenu()).catch((err: unknown) => {
           showAlert(dispatch, formatErrorMessage(err, 'Failed to import'));
@@ -76,6 +103,9 @@ export function useActionCommands(): UseActionCommandsResult {
       },
       'builtin:settings': () => {
         dispatch(openPageTab({ type: 'settings', section: 'general' }));
+      },
+      'builtin:git-settings': () => {
+        dispatch(openPageTab({ type: 'settings', section: 'git' }));
       },
       'builtin:plugins': () => {
         dispatch(openPageTab({ type: 'plugins' }));
@@ -103,6 +133,27 @@ export function useActionCommands(): UseActionCommandsResult {
       },
       'builtin:join-shared-collection': () => {
         dispatch(openCollectionModal({ mode: 'create', tab: 'join' }));
+      },
+      'builtin:git-create-branch': () => {
+        createBranchActiveCollection();
+      },
+      'builtin:git-delete-branch': () => {
+        deleteBranchActiveCollection();
+      },
+      'builtin:git-commit': () => {
+        commitActiveCollection();
+      },
+      'builtin:git-merge': () => {
+        mergeActiveCollection();
+      },
+      'builtin:git-fetch': () => {
+        void fetchActiveCollection();
+      },
+      'builtin:git-pull': () => {
+        void pullActiveCollection();
+      },
+      'builtin:git-push': () => {
+        void pushActiveCollection();
       },
       'builtin:sync': () => {
         dispatch(openSyncModal());
@@ -148,7 +199,14 @@ export function useActionCommands(): UseActionCommandsResult {
       }
     }),
     [
+      commitActiveCollection,
+      createBranchActiveCollection,
+      deleteBranchActiveCollection,
       dispatch,
+      fetchActiveCollection,
+      mergeActiveCollection,
+      pullActiveCollection,
+      pushActiveCollection,
       toggleCollectionsSectionVisible,
       toggleEnvironmentsSectionVisible,
       toggleRunResultsSectionVisible
@@ -185,8 +243,16 @@ export function useActionCommands(): UseActionCommandsResult {
       group: action.namespace,
       label: action.label
     }));
-    return [...BUILTIN_ACTIONS, ...pluginDefinitions];
-  }, [pluginActions]);
+
+    const visibleBuiltinActions = BUILTIN_ACTIONS.filter((action) => {
+      if (!GIT_COLLECTION_ACTION_IDS.has(action.id)) {
+        return true;
+      }
+      return isActiveCollectionGit;
+    });
+
+    return [...visibleBuiltinActions, ...pluginDefinitions];
+  }, [isActiveCollectionGit, pluginActions]);
 
   /**
    * Closes the Action menu and runs the handler for the selected action id.

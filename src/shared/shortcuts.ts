@@ -60,7 +60,16 @@ export type ShortcutId =
   | 'check-for-updates'
   | 'about'
   | 'shortcuts-reference'
-  | 'action-menu';
+  | 'action-menu'
+  | 'new-collection-git'
+  | 'git-create-branch'
+  | 'git-delete-branch'
+  | 'git-commit'
+  | 'git-merge'
+  | 'git-fetch'
+  | 'git-pull'
+  | 'git-push'
+  | 'git-settings';
 
 /**
  * Electron menu role names used by built-in shortcuts.
@@ -526,6 +535,69 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     actionId: 'action-menu'
   },
   {
+    id: 'new-collection-git',
+    label: 'New collection (Git)',
+    defaultAccelerator: '',
+    kind: 'action',
+    actionId: 'new-collection-git'
+  },
+  {
+    id: 'git-create-branch',
+    label: 'Create branch',
+    defaultAccelerator: '',
+    kind: 'action',
+    actionId: 'git-create-branch'
+  },
+  {
+    id: 'git-delete-branch',
+    label: 'Delete branch',
+    defaultAccelerator: '',
+    kind: 'action',
+    actionId: 'git-delete-branch'
+  },
+  {
+    id: 'git-commit',
+    label: 'Commit',
+    defaultAccelerator: '',
+    kind: 'action',
+    actionId: 'git-commit'
+  },
+  {
+    id: 'git-merge',
+    label: 'Merge',
+    defaultAccelerator: '',
+    kind: 'action',
+    actionId: 'git-merge'
+  },
+  {
+    id: 'git-fetch',
+    label: 'Fetch',
+    defaultAccelerator: '',
+    kind: 'action',
+    actionId: 'git-fetch'
+  },
+  {
+    id: 'git-pull',
+    label: 'Pull',
+    defaultAccelerator: '',
+    kind: 'action',
+    actionId: 'git-pull'
+  },
+  {
+    id: 'git-push',
+    label: 'Push',
+    defaultAccelerator: '',
+    kind: 'action',
+    actionId: 'git-push'
+  },
+  {
+    id: 'git-settings',
+    label: 'Git settings',
+    defaultAccelerator: '',
+    kind: 'action',
+    actionId: 'git-settings'
+  },
+  {
     id: 'about',
     label: 'About',
     defaultAccelerator: 'CmdOrCtrl+Shift+A',
@@ -741,6 +813,10 @@ export function validateShortcutOverrides(overrides: ShortcutOverrides): Shortcu
   const byAccelerator = new Map<string, ShortcutId[]>();
 
   for (const binding of bindings) {
+    if (binding.accelerator.trim().length === 0) {
+      continue;
+    }
+
     if (!isValidAccelerator(binding.accelerator)) {
       errors[binding.id] = 'Invalid key combination.';
       continue;

@@ -52,12 +52,21 @@ export type MenuActionId =
   | 'undo'
   | 'redo'
   | 'create-tab-group'
-  | 'format-markdown-document';
+  | 'format-markdown-document'
+  | 'new-collection-git'
+  | 'git-create-branch'
+  | 'git-delete-branch'
+  | 'git-commit'
+  | 'git-merge'
+  | 'git-fetch'
+  | 'git-pull'
+  | 'git-push'
+  | 'git-settings';
 
 /**
  * Top-level application menu labels shown in the Linux in-app menu bar.
  */
-export type RootMenuLabel = 'File' | 'Edit' | 'View' | 'Team' | 'Help';
+export type RootMenuLabel = 'File' | 'Edit' | 'View' | 'Team' | 'Git' | 'Help';
 
 /**
  * Serializable application submenu entry for Linux in-app dropdown menus.

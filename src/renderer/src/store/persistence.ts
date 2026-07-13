@@ -340,6 +340,7 @@ function normalizePageRef(value: unknown): PageRef | null {
     case 'snippet-detail':
     case 'snippet-edit':
     case 'script-editor':
+    case 'merge-editor':
       return null;
     default:
       return null;

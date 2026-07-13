@@ -139,3 +139,21 @@ it('normalizes git oauthClientId by trimming and dropping blank values', () => {
   const withoutClientId = listStorageConnections().find((conn) => conn.id === 'git-2');
   expect(withoutClientId?.type === 'git' && withoutClientId.settings.oauthClientId).toBeUndefined();
 });
+
+it('preserves a blank git subdir so data is stored at the repository root', () => {
+  saveStorageConnection({
+    id: 'git-root',
+    name: 'Git Root',
+    type: 'git',
+    settings: {
+      repoPath: '/tmp/repo',
+      url: 'https://github.com/example/repo.git',
+      branch: 'main',
+      subdir: '',
+      auth: { kind: 'pat', username: 'token' }
+    }
+  });
+
+  const rootConn = listStorageConnections().find((conn) => conn.id === 'git-root');
+  expect(rootConn?.type === 'git' && rootConn.settings.subdir).toBe('');
+});

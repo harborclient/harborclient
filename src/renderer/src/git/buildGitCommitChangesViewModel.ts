@@ -1,51 +1,30 @@
-import type {
-  GitCommitDocumentChange,
-  GitCommitFileChange,
-  GitCommitRequestChange
-} from '#/shared/types';
+import type { GitCommitFileChange, GitCommitPlainFileChange } from '#/shared/types';
 
 /**
- * Grouped commit file rows for rendering in the commit details modal.
+ * Flat commit file rows for rendering in the commit details modal.
  */
 export interface GitCommitChangesViewModel {
   /**
-   * Request resources changed in the commit, sorted by name.
+   * HarborClient file paths changed in the commit, sorted by path.
    */
-  requests: GitCommitRequestChange[];
-
-  /**
-   * Markdown document resources changed in the commit, sorted by name.
-   */
-  documents: GitCommitDocumentChange[];
+  files: GitCommitPlainFileChange[];
 }
 
 /**
- * Splits enriched commit file changes into request and document groups for display.
+ * Filters enriched commit file changes down to plain file rows for display.
  *
- * Internal HarborClient files such as `collection.json` and `.gitignore` are omitted
- * because the modal should only surface user-facing requests and markdown documents.
+ * Request and document resource groupings are omitted because collection storage
+ * is flattened to single JSON files per collection.
  *
  * @param files - Commit file changes returned by `gitCommitDetail`.
- * @returns View-model groups for sidebar-style rendering.
+ * @returns View-model rows for file-path rendering.
  */
 export function buildGitCommitChangesViewModel(
   files: GitCommitFileChange[]
 ): GitCommitChangesViewModel {
-  const requests: GitCommitRequestChange[] = [];
-  const documents: GitCommitDocumentChange[] = [];
-
-  for (const file of files) {
-    if (file.kind === 'request') {
-      requests.push(file);
-      continue;
-    }
-    if (file.kind === 'document') {
-      documents.push(file);
-    }
-  }
-
   return {
-    requests: requests.sort((a, b) => a.name.localeCompare(b.name)),
-    documents: documents.sort((a, b) => a.name.localeCompare(b.name))
+    files: files
+      .filter((file): file is GitCommitPlainFileChange => file.kind === 'file')
+      .sort((a, b) => a.path.localeCompare(b.path))
   };
 }

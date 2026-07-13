@@ -576,6 +576,11 @@ export interface GitRequestDiffFileEntry {
    * Whether this file's diff was truncated.
    */
   truncated: boolean;
+
+  /**
+   * Whether the working-tree file contains unresolved merge conflict markers.
+   */
+  hasConflict: boolean;
 }
 
 /**

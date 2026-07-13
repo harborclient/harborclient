@@ -1,4 +1,21 @@
-import type { Collection, SourceControlStatus, StorageProvider } from '#/shared/types';
+import type { Collection, CollectionProviderKind, SourceControlStatus } from '#/shared/types';
+
+/**
+ * Resolves which collection the Git sidebar and git menu actions should target.
+ *
+ * Sidebar selection wins over the active request draft so source control stays
+ * aligned with the collection highlighted in the collections tree.
+ *
+ * @param selectedCollectionId - Collection id selected in the sidebar.
+ * @param draftCollectionId - Collection id from the active request tab draft.
+ * @returns Collection id for git context resolution, or null when none apply.
+ */
+export function resolveGitSidebarCollectionId(
+  selectedCollectionId: number | null,
+  draftCollectionId: number | undefined
+): number | null {
+  return selectedCollectionId ?? draftCollectionId ?? null;
+}
 
 /**
  * Resolved git context for the active collection, when it is git-backed.
@@ -59,7 +76,7 @@ interface ResolveArgs {
   /**
    * Provider types keyed by connection id.
    */
-  connectionTypesById: Record<string, StorageProvider | undefined>;
+  connectionTypesById: Record<string, CollectionProviderKind | undefined>;
 
   /**
    * Git statuses keyed by connection id.
@@ -85,7 +102,8 @@ export function resolveCollectionGitContext(args: ResolveArgs): CollectionGitCon
 
   const connectionId = collection.connectionId ?? args.primaryConnectionId;
   const connectionType = args.connectionTypesById[connectionId];
-  if (connectionType !== 'git') {
+  const hasGitStatus = args.gitStatusesByConnectionId[connectionId] != null;
+  if (connectionType !== 'git' && !hasGitStatus) {
     return null;
   }
 

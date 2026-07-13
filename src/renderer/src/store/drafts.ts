@@ -141,6 +141,12 @@ export type PageRef =
       phase: 'pre' | 'post';
       scriptId: string;
       label: string;
+    }
+  | {
+      type: 'merge-editor';
+      connectionId: string;
+      filePath: string;
+      label: string;
     };
 
 /**
@@ -259,6 +265,8 @@ export function pageRefKey(page: PageRef): string {
       return `snippet-edit:${page.snippetId ?? page.mode}`;
     case 'script-editor':
       return `script-editor:${page.requestTabId}:${page.phase}:${page.scriptId}`;
+    case 'merge-editor':
+      return `merge-editor:${page.connectionId}:${page.filePath}`;
   }
 }
 

@@ -1185,6 +1185,15 @@ function setTabGroupAvailable(available: boolean): Promise<void> {
 }
 
 /**
+ * Syncs git-backed collection availability to the Git menu in the main process.
+ *
+ * @param active - Whether the active collection is git-backed.
+ */
+function setMenuGitCollectionActive(active: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setGitCollectionActive', active);
+}
+
+/**
  * Subscribes to View menu appearance theme selection events from the main process.
  *
  * @param callback - Handler invoked with the selected theme and label.
@@ -2180,44 +2189,6 @@ function gitCommit(
 }
 
 /**
- * Returns per-request git status for one git-backed collection.
- *
- * @param args - Git connection id and collection uuid.
- */
-function gitRequestStatuses(args: {
-  connectionId: string;
-  collectionUuid: string;
-}): Promise<Record<string, import('#/shared/types').GitRequestFileStatus>> {
-  return ipcRenderer.invoke('git:requestStatuses', args);
-}
-
-/**
- * Stages working-tree changes for one request in a git-backed collection.
- *
- * @param args - Git connection id, collection uuid, and request uuid.
- */
-function gitAddRequest(args: {
-  connectionId: string;
-  collectionUuid: string;
-  requestUuid: string;
-}): Promise<void> {
-  return ipcRenderer.invoke('git:addRequest', args);
-}
-
-/**
- * Unstages staged changes for one request in a git-backed collection.
- *
- * @param args - Git connection id, collection uuid, and request uuid.
- */
-function gitRemoveRequest(args: {
-  connectionId: string;
-  collectionUuid: string;
-  requestUuid: string;
-}): Promise<void> {
-  return ipcRenderer.invoke('git:removeRequest', args);
-}
-
-/**
  * Returns local branch names for a git-backed connection.
  *
  * @param connectionId - Git connection id.
@@ -2237,6 +2208,16 @@ function gitCreateBranch(connectionId: string, name: string): Promise<void> {
 }
 
 /**
+ * Deletes a local branch that is not currently checked out.
+ *
+ * @param connectionId - Git connection id.
+ * @param name - Branch name to delete.
+ */
+function gitDeleteBranch(connectionId: string, name: string): Promise<void> {
+  return ipcRenderer.invoke('git:deleteBranch', connectionId, name);
+}
+
+/**
  * Checks out an existing local branch when the working tree is clean.
  *
  * @param connectionId - Git connection id.
@@ -2244,6 +2225,62 @@ function gitCreateBranch(connectionId: string, name: string): Promise<void> {
  */
 function gitCheckoutBranch(connectionId: string, name: string): Promise<void> {
   return ipcRenderer.invoke('git:checkoutBranch', connectionId, name);
+}
+
+/**
+ * Merges another local branch into the current branch.
+ *
+ * @param connectionId - Git connection id.
+ * @param name - Local branch name to merge.
+ */
+function gitMergeBranch(connectionId: string, name: string): Promise<{ conflictCount: number }> {
+  return ipcRenderer.invoke('git:merge', connectionId, name);
+}
+
+/**
+ * Reads raw text from one repository-relative conflict file.
+ *
+ * @param args - Git connection id and repository-relative file path.
+ */
+function gitReadConflictFile(args: {
+  connectionId: string;
+  filePath: string;
+}): Promise<{ path: string; content: string }> {
+  return ipcRenderer.invoke('git:readConflictFile', args);
+}
+
+/**
+ * Writes one repository-relative conflict file and stages it.
+ *
+ * @param args - Git connection id, file path, and resolved file contents.
+ */
+function gitWriteConflictFile(args: {
+  connectionId: string;
+  filePath: string;
+  content: string;
+}): Promise<void> {
+  return ipcRenderer.invoke('git:writeConflictFile', args);
+}
+
+/**
+ * Launches the configured external merge editor for one conflicted file.
+ *
+ * @param args - Git connection id and repository-relative file path.
+ */
+function gitOpenExternalMergeEditor(args: {
+  connectionId: string;
+  filePath: string;
+}): Promise<void> {
+  return ipcRenderer.invoke('git:openExternalMergeEditor', args);
+}
+
+/**
+ * Fetches from the configured remote without merging.
+ *
+ * @param connectionId - Git connection id.
+ */
+function gitFetch(connectionId: string): Promise<void> {
+  return ipcRenderer.invoke('git:fetch', connectionId);
 }
 
 /**
@@ -2301,111 +2338,6 @@ function gitCommitDetail(
   oid: string
 ): Promise<import('#/shared/types').GitCommitDetail> {
   return ipcRenderer.invoke('git:commitDetail', connectionId, oid);
-}
-
-/**
- * Returns a parent-to-commit diff for one request or document in a commit.
- *
- * @param args - Git connection id, commit oid, collection uuid, resource uuid, and kind.
- */
-function gitCommitResourceDiff(args: {
-  connectionId: string;
-  oid: string;
-  collectionUuid: string;
-  resourceUuid: string;
-  kind: 'request' | 'document';
-}): Promise<import('#/shared/types').GitRequestDiffResult> {
-  return ipcRenderer.invoke('git:commitResourceDiff', args);
-}
-
-/**
- * Returns a working-tree diff for one request in a git-backed collection.
- *
- * @param args - Git connection id, collection uuid, and request uuid.
- */
-function gitRequestDiff(args: {
-  connectionId: string;
-  collectionUuid: string;
-  requestUuid: string;
-}): Promise<import('#/shared/types').GitRequestDiffResult> {
-  return ipcRenderer.invoke('git:requestDiff', args);
-}
-
-/**
- * Discards working-tree and staged changes for one request.
- *
- * @param args - Git connection id, collection uuid, and request uuid.
- */
-function gitRevertRequest(args: {
-  connectionId: string;
-  collectionUuid: string;
-  requestUuid: string;
-}): Promise<void> {
-  return ipcRenderer.invoke('git:revertRequest', args);
-}
-
-/**
- * Returns per-document git status for one git-backed collection.
- *
- * @param args - Git connection id and collection uuid.
- */
-function gitDocumentStatuses(args: {
-  connectionId: string;
-  collectionUuid: string;
-}): Promise<Record<string, import('#/shared/types').GitRequestFileStatus>> {
-  return ipcRenderer.invoke('git:documentStatuses', args);
-}
-
-/**
- * Stages working-tree changes for one markdown document in a git-backed collection.
- *
- * @param args - Git connection id, collection uuid, and document uuid.
- */
-function gitAddDocument(args: {
-  connectionId: string;
-  collectionUuid: string;
-  documentUuid: string;
-}): Promise<void> {
-  return ipcRenderer.invoke('git:addDocument', args);
-}
-
-/**
- * Unstages staged changes for one markdown document in a git-backed collection.
- *
- * @param args - Git connection id, collection uuid, and document uuid.
- */
-function gitRemoveDocument(args: {
-  connectionId: string;
-  collectionUuid: string;
-  documentUuid: string;
-}): Promise<void> {
-  return ipcRenderer.invoke('git:removeDocument', args);
-}
-
-/**
- * Returns a working-tree diff for one markdown document in a git-backed collection.
- *
- * @param args - Git connection id, collection uuid, and document uuid.
- */
-function gitDocumentDiff(args: {
-  connectionId: string;
-  collectionUuid: string;
-  documentUuid: string;
-}): Promise<import('#/shared/types').GitRequestDiffResult> {
-  return ipcRenderer.invoke('git:documentDiff', args);
-}
-
-/**
- * Discards working-tree and staged changes for one markdown document.
- *
- * @param args - Git connection id, collection uuid, and document uuid.
- */
-function gitRevertDocument(args: {
-  connectionId: string;
-  collectionUuid: string;
-  documentUuid: string;
-}): Promise<void> {
-  return ipcRenderer.invoke('git:revertDocument', args);
 }
 
 /**
@@ -3669,6 +3601,7 @@ const api: Api = {
   setMenuThemeMenuState,
   setMenuDesignerUndoRedo,
   setTabGroupAvailable,
+  setMenuGitCollectionActive,
   onMenuSelectTheme,
   popupMenuSubmenu,
   getAppSubmenuSnapshot,
@@ -3769,25 +3702,20 @@ const api: Api = {
   onGitWorkingTreeChanged,
   onGitOAuthFinished,
   gitCommit,
-  gitRequestStatuses,
-  gitAddRequest,
-  gitRemoveRequest,
   gitListBranches,
   gitCreateBranch,
+  gitDeleteBranch,
   gitCheckoutBranch,
+  gitMergeBranch,
+  gitReadConflictFile,
+  gitWriteConflictFile,
+  gitOpenExternalMergeEditor,
+  gitFetch,
   gitPull,
   gitPush,
   gitLog,
   gitGraphLog,
   gitCommitDetail,
-  gitCommitResourceDiff,
-  gitRequestDiff,
-  gitRevertRequest,
-  gitDocumentStatuses,
-  gitAddDocument,
-  gitRemoveDocument,
-  gitDocumentDiff,
-  gitRevertDocument,
   gitDiff,
   gitSetPat,
   gitStartOAuth,

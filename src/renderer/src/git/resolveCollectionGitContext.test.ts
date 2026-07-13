@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
-import { resolveCollectionGitContext } from '#/renderer/src/git/resolveCollectionGitContext';
+import {
+  resolveCollectionGitContext,
+  resolveGitSidebarCollectionId
+} from '#/renderer/src/git/resolveCollectionGitContext';
 import type { Collection, SourceControlStatus } from '#/shared/types';
 
 /**
@@ -88,5 +91,41 @@ describe('resolveCollectionGitContext', () => {
       collectionName: 'Demo',
       status: gitStatus
     });
+  });
+
+  it('returns git context when git status is known but provider types are still loading', () => {
+    const collection = sampleCollection({ connectionId: 'git-1' });
+
+    expect(
+      resolveCollectionGitContext({
+        collectionId: 1,
+        collections: [collection],
+        primaryConnectionId: 'fallback',
+        connectionNamesById: { 'git-1': 'Origin' },
+        connectionTypesById: {},
+        gitStatusesByConnectionId: { 'git-1': gitStatus }
+      })
+    ).toEqual({
+      connectionId: 'git-1',
+      connectionName: 'Origin',
+      collectionUuid: collection.uuid,
+      collectionId: 1,
+      collectionName: 'Demo',
+      status: gitStatus
+    });
+  });
+});
+
+describe('resolveGitSidebarCollectionId', () => {
+  it('prefers the sidebar-selected collection over the active draft', () => {
+    expect(resolveGitSidebarCollectionId(5, 9)).toBe(5);
+  });
+
+  it('falls back to the draft collection when nothing is selected', () => {
+    expect(resolveGitSidebarCollectionId(null, 9)).toBe(9);
+  });
+
+  it('returns null when neither selection nor draft provide a collection', () => {
+    expect(resolveGitSidebarCollectionId(null, undefined)).toBeNull();
   });
 });

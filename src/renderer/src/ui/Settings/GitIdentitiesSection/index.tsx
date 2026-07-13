@@ -18,6 +18,9 @@ export function GitIdentitiesSection(): JSX.Element {
   const confirm = useConfirm();
   const dispatch = useAppDispatch();
   const gitAutoAdd = useAppSelector((state) => state.settings.general.gitAutoAdd);
+  const externalMergeEditorPath = useAppSelector(
+    (state) => state.settings.general.externalMergeEditorPath
+  );
   const [identities, setIdentities] = useState<GitIdentity[]>([]);
   const [loading, setLoading] = useState(true);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -119,6 +122,28 @@ export function GitIdentitiesSection(): JSX.Element {
     void dispatch(patchGeneralSettings({ gitAutoAdd: event.target.checked }));
   };
 
+  /**
+   * Persists the external merge editor executable path.
+   */
+  const handleExternalMergeEditorPathChange = (event: ChangeEvent<HTMLInputElement>): void => {
+    void dispatch(patchGeneralSettings({ externalMergeEditorPath: event.target.value }));
+  };
+
+  /**
+   * Opens a file picker for the external merge editor executable.
+   */
+  const handleBrowseExternalMergeEditor = async (): Promise<void> => {
+    try {
+      const selected = await window.api.selectFiles();
+      const nextPath = selected[0];
+      if (nextPath != null) {
+        await dispatch(patchGeneralSettings({ externalMergeEditorPath: nextPath }));
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  };
+
   return (
     <Page
       embedded
@@ -157,6 +182,37 @@ export function GitIdentitiesSection(): JSX.Element {
             </span>
           </span>
         </label>
+      </div>
+
+      <div className="mb-6 rounded-md border border-separator px-3 py-3">
+        <label
+          htmlFor="git-external-merge-editor-path"
+          className="mb-2 block text-[14px] text-text"
+        >
+          <SettingLabel settingId="git.externalMergeEditorPath">External merge editor</SettingLabel>
+        </label>
+        <p id="git-external-merge-editor-description" className="m-0 mb-3 text-muted">
+          Optional executable used to resolve merge conflicts. Leave empty to use
+          HarborClient&apos;s built-in merge editor.
+        </p>
+        <div className="flex items-center gap-2">
+          <input
+            id="git-external-merge-editor-path"
+            className="min-w-0 flex-1 rounded border border-separator bg-surface px-3 py-2 text-[14px] text-text"
+            type="text"
+            value={externalMergeEditorPath}
+            placeholder="/path/to/merge-editor"
+            aria-describedby="git-external-merge-editor-description"
+            onChange={handleExternalMergeEditorPathChange}
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => void handleBrowseExternalMergeEditor()}
+          >
+            Browse
+          </Button>
+        </div>
       </div>
 
       <span className="text-[18px] font-medium text-text mb-2">

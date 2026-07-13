@@ -1,13 +1,8 @@
 import { RowActionsMenu } from '@harborclient/sdk/components';
 import { METHOD_CLASSES, sourceRow } from '#/renderer/src/ui/shared/classes';
-import type { GitRequestFileStatus, SavedRequest } from '#/shared/types';
+import type { SavedRequest } from '#/shared/types';
 
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
-import { buildGitRequestMenuGroups } from '#/renderer/src/git/buildGitRequestMenuGroups';
-import {
-  buildGitRequestAccessibleName,
-  gitRequestNameClass
-} from '#/renderer/src/git/gitRequestDisplay';
 import { usePluginContextMenuItems } from '#/renderer/src/plugins/pluginHooks';
 import { buildPluginContextMenuGroups } from '#/renderer/src/plugins/pluginContextMenuHelpers';
 import {
@@ -148,21 +143,6 @@ interface Props {
    * When true, renders the row without drag-and-drop reordering.
    */
   dragDisabled?: boolean;
-
-  /**
-   * Per-request git status for git-backed collections.
-   */
-  gitRequestStatus?: GitRequestFileStatus;
-
-  /**
-   * Stages working-tree changes for this request.
-   */
-  onGitAddRequest?: () => void;
-
-  /**
-   * Unstages staged changes for this request.
-   */
-  onGitRemoveRequest?: () => void;
 }
 
 /**
@@ -191,10 +171,7 @@ export function RequestRow({
   onOpenSelected,
   onNewTabGroupFromSelected,
   onDeleteSelected,
-  dragDisabled = false,
-  gitRequestStatus,
-  onGitAddRequest,
-  onGitRemoveRequest
+  dragDisabled = false
 }: Props): JSX.Element {
   const confirm = useConfirm();
   const developerToolsEnabled = useDeveloperToolsEnabled();
@@ -290,15 +267,6 @@ export function RequestRow({
               onSelect: () => void onExportRequest(req)
             }
           ],
-          ...buildGitRequestMenuGroups(
-            gitRequestStatus,
-            () => {
-              onGitAddRequest?.();
-            },
-            () => {
-              onGitRemoveRequest?.();
-            }
-          ),
           ...buildPluginContextMenuGroups(
             'request',
             {
@@ -342,9 +310,6 @@ export function RequestRow({
     onDeleteSelected,
     onDuplicateRequest,
     onExportRequest,
-    onGitAddRequest,
-    onGitRemoveRequest,
-    gitRequestStatus,
     onMoveDown,
     onMoveUp,
     onNewTabGroupFromSelected,
@@ -376,7 +341,7 @@ export function RequestRow({
         className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-inherit app-no-drag"
         aria-current={activeRequestId === req.id ? 'true' : undefined}
         aria-selected={selected ? 'true' : undefined}
-        aria-label={buildGitRequestAccessibleName(req.name, gitRequestStatus?.displayStatus)}
+        aria-label={req.name}
         onClick={(event) => onRowClick(req, event)}
       >
         <span
@@ -385,9 +350,7 @@ export function RequestRow({
           {req.method}
         </span>
         <span className="inline-flex min-w-0 items-center gap-1.5">
-          <span className={`truncate ${gitRequestNameClass(gitRequestStatus?.displayStatus)}`}>
-            {req.name}
-          </span>
+          <span className="truncate">{req.name}</span>
           <SidebarColorDot color={req.color} label={`Color for ${req.name}`} />
         </span>
       </button>

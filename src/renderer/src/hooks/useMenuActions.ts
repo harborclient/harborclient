@@ -152,6 +152,9 @@ export function useMenuActions(): void {
         case 'new-collection':
           dispatch(openCollectionModal({ mode: 'create' }));
           break;
+        case 'new-collection-git':
+          dispatch(openCollectionModal({ mode: 'create', tab: 'git' }));
+          break;
         case 'import':
           void dispatch(importFromMenu()).catch((err: unknown) => {
             showAlert(dispatch, formatErrorMessage(err, 'Failed to import'));
@@ -164,6 +167,9 @@ export function useMenuActions(): void {
           break;
         case 'settings':
           dispatch(openPageTab({ type: 'settings', section: 'general' }));
+          break;
+        case 'git-settings':
+          dispatch(openPageTab({ type: 'settings', section: 'git' }));
           break;
         case 'plugins':
           dispatch(openPageTab({ type: 'plugins' }));

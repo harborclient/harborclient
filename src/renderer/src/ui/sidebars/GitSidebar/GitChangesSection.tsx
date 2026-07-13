@@ -1,34 +1,20 @@
-import { useMemo, useState, type JSX } from 'react';
+import { Modal } from '@harborclient/sdk/components';
+import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { CollectionDocument, SavedRequest, SourceControlStatus } from '#/shared/types';
-import { useConfirm } from '#/renderer/src/hooks/useConfirm';
-import { useGitDocumentStatuses } from '#/renderer/src/hooks/useGitDocumentStatuses';
-import { useGitRequestStatuses } from '#/renderer/src/hooks/useGitRequestStatuses';
-import { buildGitChangesMenuGroups } from '#/renderer/src/git/buildGitChangesMenuGroups';
+import type { GitRequestDiffFileEntry, SourceControlStatus } from '#/shared/types';
 import { buildGitWorkingTreeSummary } from '#/renderer/src/git/gitWorkingTreeSummary';
 import {
-  buildGitRequestAccessibleName,
-  gitRequestNameClass
-} from '#/renderer/src/git/gitRequestDisplay';
-import {
-  METHOD_CLASSES,
-  gitWorkingTreeStatusPanel,
-  sourceRow
-} from '#/renderer/src/ui/shared/classes';
-import { RowActionsMenu } from '@harborclient/sdk/components';
-import { SidebarColorDot } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarColorDot';
-import { GitDocumentDiffModal } from '#/renderer/src/ui/sidebars/GitSidebar/modals/GitDocumentDiffModal';
-import { GitRequestDiffModal } from '#/renderer/src/ui/sidebars/GitSidebar/modals/GitRequestDiffModal';
-import { useAppSelector } from '#/renderer/src/store/hooks';
+  buildGitCommitFileAccessibleName,
+  gitCommitChangeNameClass
+} from '#/renderer/src/git/gitCommitChangeDisplay';
+import { gitWorkingTreeStatusPanel, sourceRow } from '#/renderer/src/ui/shared/classes';
+import { GitDiffFileView } from '#/renderer/src/ui/sidebars/GitSidebar/modals/GitDiffFileView';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 
 interface Props {
   /**
-   * Git connection id for staging and diff operations.
-   */
-  connectionId: string;
-
-  /**
-   * Stable collection uuid for request status lookups.
+   * Stable collection uuid for diff lookup.
    */
   collectionUuid: string;
 
@@ -38,194 +24,156 @@ interface Props {
   status: SourceControlStatus | null;
 
   /**
-   * Saved requests in the active collection.
+   * Bumps when parent git state should be reloaded.
    */
-  requests: SavedRequest[];
-
-  /**
-   * Markdown documents in the active collection.
-   */
-  documents: CollectionDocument[];
-
-  /**
-   * Called after git file operations to refresh status.
-   */
-  onRefresh: () => void;
+  refreshNonce: number;
 }
 
 /**
- * Lists changed requests and markdown documents in the Git sidebar with git status coloring.
+ * Parsed git diff payload returned by `window.api.gitDiff`.
  */
-export function GitChangesSection({
-  connectionId,
-  collectionUuid,
-  status,
-  requests,
-  documents,
-  onRefresh
-}: Props): JSX.Element {
-  const confirm = useConfirm();
+interface GitCollectionDiff {
+  /**
+   * Git connection id for the resolved collection.
+   */
+  connectionId?: string;
+
+  /**
+   * Changed files included in the payload.
+   */
+  files: GitRequestDiffFileEntry[];
+
+  /**
+   * Error message when diff generation failed.
+   */
+  error?: string;
+
+  /**
+   * Whether file count or total character budget caused omissions.
+   */
+  truncated?: boolean;
+
+  /**
+   * Number of changed files omitted from the files array.
+   */
+  omittedFileCount?: number;
+}
+
+/**
+ * Lists changed HarborClient files in the Git sidebar.
+ */
+export function GitChangesSection({ collectionUuid, status, refreshNonce }: Props): JSX.Element {
+  const dispatch = useAppDispatch();
   const gitAutoAdd = useAppSelector((state) => state.settings.general.gitAutoAdd);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [diffRequest, setDiffRequest] = useState<SavedRequest | null>(null);
-  const [diffDocument, setDiffDocument] = useState<CollectionDocument | null>(null);
-  const { statuses: requestStatuses, refresh: refreshRequests } = useGitRequestStatuses(
-    connectionId,
-    collectionUuid,
-    true
+  const externalMergeEditorPath = useAppSelector(
+    (state) => state.settings.general.externalMergeEditorPath
   );
-  const { statuses: documentStatuses, refresh: refreshDocuments } = useGitDocumentStatuses(
-    connectionId,
-    collectionUuid,
-    true
+  const [diff, setDiff] = useState<GitCollectionDiff | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loadedKey, setLoadedKey] = useState('');
+  const [selectedFile, setSelectedFile] = useState<GitRequestDiffFileEntry | null>(null);
+
+  /**
+   * Stable key for the currently requested collection diff payload.
+   */
+  const diffKey = useMemo(
+    () => `${collectionUuid}:${refreshNonce}`,
+    [collectionUuid, refreshNonce]
   );
 
   /**
-   * Requests with a non-clean git display status, sorted by name.
+   * Loads the collection git diff when the target collection or refresh nonce changes.
    */
-  const changedRequests = useMemo(() => {
-    return requests
-      .filter((request) => {
-        const status = requestStatuses[request.uuid];
-        return status != null && status.displayStatus !== 'clean';
+  useEffect(() => {
+    let cancelled = false;
+
+    void window.api
+      .gitDiff({ collectionUuid })
+      .then((raw) => {
+        if (cancelled) {
+          return;
+        }
+        const parsed = JSON.parse(raw) as GitCollectionDiff;
+        setDiff(parsed);
+        setError(parsed.error ?? null);
+        setLoadedKey(diffKey);
       })
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [requests, requestStatuses]);
-
-  /**
-   * Documents with a non-clean git display status, sorted by name.
-   */
-  const changedDocuments = useMemo(() => {
-    return documents
-      .filter((document) => {
-        const status = documentStatuses[document.uuid];
-        return status != null && status.displayStatus !== 'clean';
-      })
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [documents, documentStatuses]);
-
-  /**
-   * Refreshes both request and document git status maps.
-   */
-  const refreshAll = (): void => {
-    void refreshRequests();
-    void refreshDocuments();
-    onRefresh();
-  };
-
-  /**
-   * Stages working-tree changes for one request.
-   *
-   * @param requestUuid - Stable request uuid.
-   */
-  const handleAddRequest = async (requestUuid: string): Promise<void> => {
-    try {
-      await window.api.gitAddRequest({ connectionId, collectionUuid, requestUuid });
-      refreshAll();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error));
-    }
-  };
-
-  /**
-   * Unstages staged changes for one request.
-   *
-   * @param requestUuid - Stable request uuid.
-   */
-  const handleRemoveRequest = async (requestUuid: string): Promise<void> => {
-    try {
-      await window.api.gitRemoveRequest({ connectionId, collectionUuid, requestUuid });
-      refreshAll();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error));
-    }
-  };
-
-  /**
-   * Discards working-tree changes for one request after confirmation.
-   *
-   * @param request - Saved request to revert.
-   */
-  const handleRevertRequest = async (request: SavedRequest): Promise<void> => {
-    const confirmed = await confirm({
-      title: 'Revert changes',
-      message: `Discard uncommitted git changes for "${request.name}"? This cannot be undone.`,
-      confirmLabel: 'Revert',
-      variant: 'danger'
-    });
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      await window.api.gitRevertRequest({
-        connectionId,
-        collectionUuid,
-        requestUuid: request.uuid
+      .catch((err: unknown) => {
+        if (cancelled) {
+          return;
+        }
+        setDiff(null);
+        setError(err instanceof Error ? err.message : String(err));
+        setLoadedKey(diffKey);
       });
-      refreshAll();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error));
-    }
-  };
+
+    return () => {
+      cancelled = true;
+    };
+  }, [collectionUuid, diffKey]);
+
+  const loading = loadedKey !== diffKey;
+  const changedFiles = diff?.files ?? [];
+  const conflictFiles = changedFiles.filter((file) => file.hasConflict);
+  const nonConflictFiles = changedFiles.filter((file) => !file.hasConflict);
+  const orderedFiles = [...conflictFiles, ...nonConflictFiles];
+  const hasChanges = status != null && status.changedCount > 0;
+  const connectionId = diff?.connectionId;
 
   /**
-   * Stages working-tree changes for one markdown document.
+   * Opens the built-in or external merge editor for one conflicted file.
    *
-   * @param documentUuid - Stable document uuid.
+   * @param file - Changed file entry with conflict markers.
    */
-  const handleAddDocument = async (documentUuid: string): Promise<void> => {
-    try {
-      await window.api.gitAddDocument({ connectionId, collectionUuid, documentUuid });
-      refreshAll();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error));
-    }
-  };
+  const handleOpenConflictEditor = useCallback(
+    async (file: GitRequestDiffFileEntry): Promise<void> => {
+      if (connectionId == null) {
+        toast.error('Git connection is unavailable for this collection.');
+        return;
+      }
+
+      const executable = externalMergeEditorPath.trim();
+      if (executable) {
+        try {
+          await window.api.gitOpenExternalMergeEditor({
+            connectionId,
+            filePath: file.path
+          });
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : String(err));
+        }
+        return;
+      }
+
+      dispatch(
+        openPageTab({
+          type: 'merge-editor',
+          connectionId,
+          filePath: file.path,
+          label: `Merge: ${file.path}`
+        })
+      );
+    },
+    [connectionId, dispatch, externalMergeEditorPath]
+  );
 
   /**
-   * Unstages staged changes for one markdown document.
+   * Opens the diff modal or conflict editor depending on file state.
    *
-   * @param documentUuid - Stable document uuid.
+   * @param file - Changed file entry from the git diff payload.
    */
-  const handleRemoveDocument = async (documentUuid: string): Promise<void> => {
-    try {
-      await window.api.gitRemoveDocument({ connectionId, collectionUuid, documentUuid });
-      refreshAll();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error));
-    }
-  };
+  const handleFileClick = useCallback(
+    (file: GitRequestDiffFileEntry): void => {
+      if (file.hasConflict) {
+        void handleOpenConflictEditor(file);
+        return;
+      }
+      setSelectedFile(file);
+    },
+    [handleOpenConflictEditor]
+  );
 
-  /**
-   * Discards working-tree changes for one markdown document after confirmation.
-   *
-   * @param document - Collection document to revert.
-   */
-  const handleRevertDocument = async (document: CollectionDocument): Promise<void> => {
-    const confirmed = await confirm({
-      title: 'Revert changes',
-      message: `Discard uncommitted git changes for "${document.name}"? This cannot be undone.`,
-      confirmLabel: 'Revert',
-      variant: 'danger'
-    });
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      await window.api.gitRevertDocument({
-        connectionId,
-        collectionUuid,
-        documentUuid: document.uuid
-      });
-      refreshAll();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error));
-    }
-  };
-
-  if (changedRequests.length === 0 && changedDocuments.length === 0) {
+  if (!loading && !hasChanges && changedFiles.length === 0 && error == null) {
     return (
       <div className="flex flex-col gap-2 pb-2">
         {status != null ? (
@@ -238,7 +186,7 @@ export function GitChangesSection({
             </p>
           </div>
         ) : null}
-        <div className="px-2 text-[14px] text-muted">No changed files</div>
+        <div className="px-2 text-muted mt-2">&lt;No changed requests&gt;</div>
       </div>
     );
   }
@@ -247,116 +195,84 @@ export function GitChangesSection({
     <>
       {status != null ? (
         <div className={`${gitWorkingTreeStatusPanel} text-text`} role="status">
-          <p className="m-0">
-            Branch: <strong>{status.branch ?? 'unknown'}</strong>
-          </p>
-          <p className="m-0 text-[14px] text-muted">
-            {buildGitWorkingTreeSummary(status, gitAutoAdd)}
-          </p>
+          <p className="m-0 text-muted">{buildGitWorkingTreeSummary(status, gitAutoAdd)}</p>
           {status.conflictCount > 0 ? (
             <p className="mt-2 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-[14px] text-text">
-              Merge conflict markers were found in collection or environment JSON files. Resolve
-              conflict markers, then reload or pull again.
+              {status.conflictCount} file(s) have merge conflicts. Click a conflicted file below to
+              open the merge editor, resolve markers, then commit from the Git sidebar.
             </p>
           ) : null}
         </div>
       ) : null}
-      <ul className="m-0 flex list-none flex-col gap-0 p-0">
-        {changedRequests.map((request) => {
-          const gitStatus = requestStatuses[request.uuid];
-          const menuId = `git-change-request-${request.id}`;
-          return (
-            <li key={`request-${request.id}`} className={sourceRow(false, true)}>
-              <button
-                type="button"
-                className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-inherit app-no-drag"
-                aria-label={buildGitRequestAccessibleName(request.name, gitStatus?.displayStatus)}
-                onClick={() => setDiffRequest(request)}
-              >
-                <span
-                  className={`shrink-0 px-1 py-px ${METHOD_CLASSES[request.method.toLowerCase()] ?? 'text-info'}`}
+
+      {loading ? (
+        <div className="px-2 pb-2 text-[14px] text-muted" role="status">
+          Loading changed files…
+        </div>
+      ) : error != null ? (
+        <p className="px-2 pb-2 text-danger" role="alert">
+          {error}
+        </p>
+      ) : changedFiles.length === 0 ? (
+        <div className="px-2 pb-2 text-muted text-center mt-3">&lt;No changed requests&gt;</div>
+      ) : (
+        <>
+          {diff?.truncated === true ? (
+            <p className="px-2 pb-1 text-muted" role="status">
+              Showing {changedFiles.length} changed file(s)
+              {diff.omittedFileCount != null && diff.omittedFileCount > 0
+                ? `; ${diff.omittedFileCount} more omitted`
+                : ''}
+              .
+            </p>
+          ) : null}
+          {conflictFiles.length > 0 ? (
+            <p className="px-2 pb-1 text-[14px] text-text" role="status">
+              Conflicts ({conflictFiles.length})
+            </p>
+          ) : null}
+          <ul className="m-0 flex list-none flex-col gap-0 p-0 pb-2">
+            {orderedFiles.map((file) => (
+              <li key={file.path} className={sourceRow(false, true)}>
+                <button
+                  type="button"
+                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-inherit app-no-drag"
+                  aria-label={
+                    file.hasConflict
+                      ? `Resolve merge conflict in ${file.path}`
+                      : buildGitCommitFileAccessibleName(file.path, file.status)
+                  }
+                  onClick={() => handleFileClick(file)}
                 >
-                  {request.method}
-                </span>
-                <span className="inline-flex min-w-0 items-center gap-1.5">
-                  <span className={`truncate ${gitRequestNameClass(gitStatus?.displayStatus)}`}>
-                    {request.name}
+                  <span className="shrink-0 px-1 py-px text-muted">
+                    {file.hasConflict ? 'conflict' : file.status}
                   </span>
-                  <SidebarColorDot color={request.color} label={`Color for ${request.name}`} />
-                </span>
-              </button>
-              <div className="shrink-0">
-                <RowActionsMenu
-                  menuId={menuId}
-                  openMenuId={openMenuId}
-                  onOpenChange={setOpenMenuId}
-                  groups={buildGitChangesMenuGroups(
-                    gitStatus,
-                    () => void handleAddRequest(request.uuid),
-                    () => void handleRemoveRequest(request.uuid),
-                    () => void handleRevertRequest(request)
-                  )}
-                />
-              </div>
-            </li>
-          );
-        })}
-        {changedDocuments.map((document) => {
-          const gitStatus = documentStatuses[document.uuid];
-          const menuId = `git-change-document-${document.id}`;
-          return (
-            <li key={`document-${document.id}`} className={sourceRow(false, true)}>
-              <button
-                type="button"
-                className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-inherit app-no-drag"
-                aria-label={buildGitRequestAccessibleName(document.name, gitStatus?.displayStatus)}
-                onClick={() => setDiffDocument(document)}
-              >
-                <span className="shrink-0 px-1 py-px text-muted">MD</span>
-                <span className="inline-flex min-w-0 items-center gap-1.5">
-                  <span className={`truncate ${gitRequestNameClass(gitStatus?.displayStatus)}`}>
-                    {document.name}
+                  <span
+                    className={`min-w-0 truncate ${
+                      file.hasConflict
+                        ? 'font-medium text-amber-700 dark:text-amber-300'
+                        : gitCommitChangeNameClass(file.status)
+                    }`}
+                  >
+                    {file.path}
                   </span>
-                  <SidebarColorDot color={document.color} label={`Color for ${document.name}`} />
-                </span>
-              </button>
-              <div className="shrink-0">
-                <RowActionsMenu
-                  menuId={menuId}
-                  openMenuId={openMenuId}
-                  onOpenChange={setOpenMenuId}
-                  groups={buildGitChangesMenuGroups(
-                    gitStatus,
-                    () => void handleAddDocument(document.uuid),
-                    () => void handleRemoveDocument(document.uuid),
-                    () => void handleRevertDocument(document)
-                  )}
-                />
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-
-      {diffRequest != null && (
-        <GitRequestDiffModal
-          open={true}
-          connectionId={connectionId}
-          collectionUuid={collectionUuid}
-          request={diffRequest}
-          onClose={() => setDiffRequest(null)}
-        />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
-      {diffDocument != null && (
-        <GitDocumentDiffModal
-          open={true}
-          connectionId={connectionId}
-          collectionUuid={collectionUuid}
-          document={diffDocument}
-          onClose={() => setDiffDocument(null)}
-        />
-      )}
+      {selectedFile != null ? (
+        <Modal
+          onClose={() => setSelectedFile(null)}
+          className="flex w-[80vw] max-w-[calc(100vw-2rem)] max-h-[85vh] flex-col"
+          labelledBy="git-file-diff-title"
+          title={`Changes — ${selectedFile.path}`}
+        >
+          <GitDiffFileView file={selectedFile} />
+        </Modal>
+      ) : null}
     </>
   );
 }

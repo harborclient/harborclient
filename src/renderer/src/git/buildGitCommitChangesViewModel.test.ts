@@ -1,45 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import type {
-  GitCommitDocumentChange,
-  GitCommitFileChange,
-  GitCommitRequestChange
-} from '#/shared/types';
+import type { GitCommitFileChange } from '#/shared/types';
 import { buildGitCommitChangesViewModel } from '#/renderer/src/git/buildGitCommitChangesViewModel';
 
 describe('buildGitCommitChangesViewModel', () => {
-  const requestA: GitCommitRequestChange = {
-    kind: 'request',
-    path: '.harborclient/collections/uuid-a-demo/requests/uuid-req-a-get-users.json',
-    paths: ['.harborclient/collections/uuid-a-demo/requests/uuid-req-a-get-users.json'],
-    status: 'added',
-    collectionUuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
-    requestUuid: '11111111-2222-3333-4444-555555555555',
-    name: 'Beta Request',
-    method: 'GET',
-    color: null
+  const collectionFile: GitCommitFileChange = {
+    kind: 'file',
+    path: '.harborclient/collection-api.json',
+    status: 'modified'
   };
 
-  const requestB: GitCommitRequestChange = {
-    kind: 'request',
-    path: '.harborclient/collections/uuid-a-demo/requests/uuid-req-b-post-users.json',
-    paths: ['.harborclient/collections/uuid-a-demo/requests/uuid-req-b-post-users.json'],
-    status: 'modified',
-    collectionUuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
-    requestUuid: '22222222-3333-4444-5555-666666666666',
-    name: 'Alpha Request',
-    method: 'POST',
-    color: '#32D2E2'
-  };
-
-  const document: GitCommitDocumentChange = {
-    kind: 'document',
+  const markdownFile: GitCommitFileChange = {
+    kind: 'file',
     path: '.harborclient/README.md',
-    paths: ['.harborclient/README.md'],
-    status: 'modified',
-    collectionUuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
-    documentUuid: '33333333-4444-5555-6666-777777777777',
-    name: 'README.md',
-    color: null
+    status: 'modified'
   };
 
   const plainFile: GitCommitFileChange = {
@@ -48,18 +21,16 @@ describe('buildGitCommitChangesViewModel', () => {
     status: 'added'
   };
 
-  it('groups requests and documents while omitting internal HarborClient files', () => {
-    const files: GitCommitFileChange[] = [plainFile, document, requestA, requestB];
+  it('returns sorted file rows for flat harbor layout changes', () => {
+    const files: GitCommitFileChange[] = [collectionFile, plainFile, markdownFile];
     const viewModel = buildGitCommitChangesViewModel(files);
 
-    expect(viewModel.requests).toEqual([requestB, requestA]);
-    expect(viewModel.documents).toEqual([document]);
+    expect(viewModel.files).toEqual([plainFile, collectionFile, markdownFile]);
   });
 
-  it('returns empty groups for an empty file list', () => {
+  it('returns an empty file list for an empty commit detail payload', () => {
     expect(buildGitCommitChangesViewModel([])).toEqual({
-      requests: [],
-      documents: []
+      files: []
     });
   });
 });

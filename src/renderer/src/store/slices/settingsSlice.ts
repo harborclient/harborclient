@@ -27,6 +27,7 @@ export const defaultGeneralSettings: GeneralSettings = {
   warnWhenOpeningTabGroup: true,
   warnWhenAgentUsesTerminal: true,
   gitAutoAdd: true,
+  externalMergeEditorPath: '',
   codeEditorTheme: 'default',
   codeEditorSetup: { ...DEFAULT_CODE_EDITOR_SETUP },
   codeEditorFontSize: DEFAULT_CODE_EDITOR_FONT_SIZE,

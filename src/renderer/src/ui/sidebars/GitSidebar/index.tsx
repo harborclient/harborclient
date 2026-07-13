@@ -18,16 +18,8 @@ import {
   faArrowUp
 } from '#/renderer/src/fontawesome';
 import { Scrollbars } from '#/renderer/src/components/Scrollbars';
-import { resolveCollectionGitContext } from '#/renderer/src/git/resolveCollectionGitContext';
-import { useProviders } from '#/renderer/src/hooks/useProviders';
 import { useAppSelector } from '#/renderer/src/store/hooks';
-import {
-  selectCollections,
-  selectDocumentsByCollection,
-  selectDraft,
-  selectRequestsByCollection,
-  selectSelectedCollectionId
-} from '#/renderer/src/store/selectors';
+import { selectCollections, selectSelectedCollectionId } from '#/renderer/src/store/selectors';
 import { Section } from '#/renderer/src/ui/sidebars/CollectionSidebar/Section';
 import { useSidebarGit } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarGitContext';
 import { GitSidebarEmptyState } from '#/renderer/src/ui/sidebars/GitSidebar/GitSidebarEmptyState';
@@ -43,44 +35,25 @@ import { useGitSidebarSections } from '#/renderer/src/ui/sidebars/GitSidebar/use
  */
 export function GitSidebar(): JSX.Element {
   const selectedCollectionId = useAppSelector(selectSelectedCollectionId);
-  const draft = useAppSelector(selectDraft);
   const collections = useAppSelector(selectCollections);
-  const requestsByCollection = useAppSelector(selectRequestsByCollection);
-  const documentsByCollection = useAppSelector(selectDocumentsByCollection);
-  const { providers, primaryProviderId } = useProviders();
-  const { gitStatusesByConnectionId, refreshGitSidebar } = useSidebarGit();
+  const { activeGitContext: gitContext, refreshGitSidebar } = useSidebarGit();
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [busy, setBusy] = useState(false);
 
-  const connectionNamesById = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const provider of providers) {
-      map[provider.id] = provider.name;
-    }
-    return map;
-  }, [providers]);
-
-  const connectionTypesById = useMemo(() => {
-    const map: Record<string, (typeof providers)[number]['type']> = {};
-    for (const provider of providers) {
-      if (provider.type != null) {
-        map[provider.id] = provider.type;
-      }
-    }
-    return map;
-  }, [providers]);
-
-  const activeCollectionId = draft.collection_id ?? selectedCollectionId;
-  const gitContext = resolveCollectionGitContext({
-    collectionId: activeCollectionId,
-    collections,
-    primaryConnectionId: primaryProviderId,
-    connectionNamesById,
-    connectionTypesById,
-    gitStatusesByConnectionId
-  });
+  const selectedCollection =
+    selectedCollectionId != null
+      ? collections.find((collection) => collection.id === selectedCollectionId)
+      : undefined;
 
   const { accordion, sectionVisibility, setSectionVisible } = useGitSidebarSections();
+
+  /**
+   * Whether every Git sidebar section is hidden via the toolbar toggles.
+   */
+  const allSectionsHidden = useMemo(
+    () => Object.values(sectionVisibility).every((visible) => !visible),
+    [sectionVisibility]
+  );
 
   const {
     size: width,
@@ -98,7 +71,7 @@ export function GitSidebar(): JSX.Element {
   });
 
   /**
-   * Refreshes git status, request statuses, and commit history after operations.
+   * Refreshes git status and commit history after operations.
    */
   const handleRefresh = useCallback((): void => {
     refreshGitSidebar();
@@ -217,7 +190,7 @@ export function GitSidebar(): JSX.Element {
         className="border-r-0 border-l border-separator"
       />
       <aside
-        className="flex min-h-0 shrink-0 flex-col bg-sidebar"
+        className="flex h-full min-h-0 shrink-0 flex-col bg-sidebar"
         style={{ width }}
         aria-label="Git source control"
       >
@@ -237,9 +210,15 @@ export function GitSidebar(): JSX.Element {
         </div>
 
         {gitContext == null ? (
-          <GitSidebarEmptyState />
+          <GitSidebarEmptyState selectedCollectionName={selectedCollection?.name} />
         ) : (
           <Scrollbars className="min-h-0 flex-1">
+            {allSectionsHidden ? (
+              <div className="px-2 py-3 text-muted" role="status">
+                All Git sidebar sections are hidden. Use the toolbar above to show commit, changes,
+                commits, or history.
+              </div>
+            ) : null}
             <ControlledAccordion providerValue={accordion}>
               {sectionVisibility.commitMessage && (
                 <nav aria-label="Commit message">
@@ -258,12 +237,9 @@ export function GitSidebar(): JSX.Element {
                 <nav aria-label="Changes">
                   <Section itemKey="changes" title="Changes" initialEntered={true} flushBody>
                     <GitChangesSection
-                      connectionId={gitContext.connectionId}
                       collectionUuid={gitContext.collectionUuid}
                       status={gitContext.status}
-                      requests={requestsByCollection[gitContext.collectionId] ?? []}
-                      documents={documentsByCollection[gitContext.collectionId] ?? []}
-                      onRefresh={handleRefresh}
+                      refreshNonce={refreshNonce}
                     />
                   </Section>
                 </nav>

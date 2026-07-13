@@ -18,6 +18,7 @@ let designerUndoRedoActive = false;
 let designerCanUndo = false;
 let designerCanRedo = false;
 let tabGroupAvailable = false;
+let gitCollectionActive = false;
 
 /**
  * Returns the sidebar visibility state reflected in the View menu checkbox.
@@ -284,6 +285,19 @@ export function setMenuTabGroupAvailable(available: boolean): void {
 }
 
 /**
+ * Updates Git menu item enabled state and rebuilds when the value changes.
+ *
+ * @param active - Whether the active collection is git-backed.
+ */
+export function setMenuGitCollectionActive(active: boolean): void {
+  if (gitCollectionActive === active) {
+    return;
+  }
+  gitCollectionActive = active;
+  rebuildAppMenu();
+}
+
+/**
  * Registers the browser window used when rebuilding the application menu.
  *
  * @param window - Active main window, or null when closed.
@@ -316,7 +330,8 @@ export function rebuildAppMenu(): void {
       designerUndoRedoActive,
       designerCanUndo,
       designerCanRedo,
-      tabGroupAvailable
+      tabGroupAvailable,
+      gitCollectionActive
     )
   );
 }

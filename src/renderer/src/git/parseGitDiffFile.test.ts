@@ -15,6 +15,7 @@ function createFileEntry(
     status: 'modified',
     binary: false,
     truncated: false,
+    hasConflict: false,
     ...overrides
   };
 }

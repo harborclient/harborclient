@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(git): enhance Git menu integration and functionality. (`5d44f7c`)
 - feat(git): enhance Git sidebar functionality and theme updates. (`848352d`)
 - feat(git): implement git diff functionality for uncommitted changes. (`5657233`)
 - feat(git): enhance git identity management and host-based authentication. (`97ee2ac`)

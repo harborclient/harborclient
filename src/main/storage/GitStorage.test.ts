@@ -58,12 +58,10 @@ describe('GitStorage', () => {
   it('writes collection files to the repository working tree', async () => {
     const { db } = await createTestDb();
     const collection = await db.createCollection('API');
-    const collectionPath = join(
-      (db as GitStorage).syncManager.repoDir,
-      '.harborclient',
-      'collections'
-    );
-    expect(existsSync(collectionPath)).toBe(true);
+    const harborRoot = join((db as GitStorage).syncManager.repoDir, '.harborclient');
+    const collectionFiles = readdirSync(harborRoot).filter((entry) => entry.endsWith('.json'));
+    expect(collectionFiles.length).toBeGreaterThan(0);
+    expect(existsSync(join(harborRoot, 'collections'))).toBe(false);
 
     await db.saveRequest(
       baseRequestInput(collection.id, { name: 'Get status', url: 'https://example.com/status' })
@@ -179,19 +177,17 @@ describe('GitStorage', () => {
     expect(markdownFiles).toBe('# Harbor notes');
     expect(markdownFiles).not.toContain('collection_uuid:');
 
-    const collectionDirPath = readdirSync(join(harborRoot, 'collections')).find((entry) =>
-      entry.includes(collection.uuid)
-    );
-    expect(collectionDirPath).toBeTruthy();
-    const manifest = JSON.parse(
-      readFileSync(join(harborRoot, 'collections', collectionDirPath!, 'collection.json'), 'utf-8')
-    ) as { documents?: Array<{ uuid: string; name: string }> };
+    const collectionFile = readdirSync(harborRoot).find((entry) => entry === 'collection-api.json');
+    expect(collectionFile).toBeTruthy();
+    const manifest = JSON.parse(readFileSync(join(harborRoot, collectionFile!), 'utf-8')) as {
+      documents?: Array<{ uuid: string; name: string; content?: string }>;
+    };
     expect(manifest.documents).toEqual([
       expect.objectContaining({
-        name: 'README.md'
+        name: 'README.md',
+        content: '# Harbor notes'
       })
     ]);
-    expect(existsSync(join(harborRoot, 'collections'))).toBe(true);
 
     await db.close();
 

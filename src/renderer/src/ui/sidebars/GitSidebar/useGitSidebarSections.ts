@@ -49,7 +49,8 @@ export function useGitSidebarSections(): {
         toggle(key, wantExpanded);
       }
     });
-  }, [sections, stateMap, toggle]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stateMap intentionally excluded; see useSidebarAccordion
+  }, [sections, toggle]);
 
   return {
     accordion,

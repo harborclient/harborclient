@@ -13,6 +13,7 @@ import {
   faPlay,
   faPuzzlePiece,
   faCode,
+  faCodeBranch,
   faUsers
 } from '#/renderer/src/fontawesome';
 import { settingsSectionMeta } from '#/renderer/src/ui/Settings/constants';
@@ -98,5 +99,7 @@ export function pageTabMeta(page: PageRef, options: PageTabMetaOptions = {}): Pa
     case 'snippet-edit':
     case 'script-editor':
       return { title: page.label, icon: faCode };
+    case 'merge-editor':
+      return { title: page.label, icon: faCodeBranch };
   }
 }

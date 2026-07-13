@@ -19,7 +19,7 @@ export function gitCommitChangeNameClass(status: GitCommitChangeStatus): string 
 }
 
 /**
- * Human-readable commit change suffix for accessible resource row names.
+ * Human-readable commit change suffix for accessible file row names.
  *
  * @param status - Added, modified, or deleted relative to the parent commit.
  */
@@ -37,14 +37,14 @@ export function gitCommitChangeAccessibleLabel(status: GitCommitChangeStatus): s
 }
 
 /**
- * Builds an accessible name for a commit resource row button.
+ * Builds an accessible name for a commit file row button.
  *
- * @param resourceName - Display name of the request or document.
- * @param status - Commit change status for the resource.
+ * @param filePath - Repository-relative path under the HarborClient tree.
+ * @param status - Commit change status for the file.
  */
-export function buildGitCommitResourceAccessibleName(
-  resourceName: string,
+export function buildGitCommitFileAccessibleName(
+  filePath: string,
   status: GitCommitChangeStatus
 ): string {
-  return `${resourceName}, ${gitCommitChangeAccessibleLabel(status)}`;
+  return `${filePath}, ${gitCommitChangeAccessibleLabel(status)}`;
 }

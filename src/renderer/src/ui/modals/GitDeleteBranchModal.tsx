@@ -3,26 +3,12 @@ import { useCallback, useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { SourceControlStatus } from '#/shared/types';
 import { faCircleCheck } from '#/renderer/src/fontawesome';
-import {
-  isBranchSwitchDisabled,
-  shouldBlockBranchSwitch
-} from '#/renderer/src/git/gitBranchModalHelpers';
-
-/**
- * Whether the modal switches to a branch or merges another branch into the current one.
- */
-export type GitBranchModalMode = 'switch' | 'merge';
 
 interface Props {
   /**
    * Whether the modal is open.
    */
   open: boolean;
-
-  /**
-   * Modal action mode.
-   */
-  mode?: GitBranchModalMode;
 
   /**
    * Git connection id for branch operations.
@@ -45,17 +31,16 @@ interface Props {
   onClose: () => void;
 
   /**
-   * Called after a successful branch switch or merge to refresh sidebar status.
+   * Called after a successful branch deletion to refresh sidebar status.
    */
   onRefresh: () => void;
 }
 
 /**
- * Lists local branches and switches to or merges the selected branch.
+ * Lists local branches and deletes the selected branch when it is not checked out.
  */
-export function GitSwitchBranchesModal({
+export function GitDeleteBranchModal({
   open,
-  mode = 'switch',
   connectionId,
   connectionName,
   status,
@@ -68,10 +53,6 @@ export function GitSwitchBranchesModal({
   const [error, setError] = useState<string | null>(null);
 
   const currentBranch = status?.branch ?? null;
-  const hasUncommittedChanges =
-    mode === 'switch' && shouldBlockBranchSwitch(status?.changedCount ?? 0);
-  const modalTitle =
-    mode === 'merge' ? `Merge branch — ${connectionName}` : `Switch branch — ${connectionName}`;
 
   /**
    * Loads local branch names when the modal opens.
@@ -95,35 +76,22 @@ export function GitSwitchBranchesModal({
   }, [connectionId, open]);
 
   /**
-   * Switches to or merges the selected branch and refreshes git status on success.
+   * Deletes the selected local branch and refreshes git status on success.
    *
-   * @param branch - Branch name to switch to or merge.
+   * @param branch - Branch name to delete.
    */
-  const handleSelectBranch = useCallback(
+  const handleDeleteBranch = useCallback(
     async (branch: string): Promise<void> => {
-      if (busy || branch === currentBranch || hasUncommittedChanges) {
+      if (busy || branch === currentBranch) {
         return;
       }
 
       setBusy(true);
       setError(null);
       try {
-        if (mode === 'merge') {
-          const result = await window.api.gitMergeBranch(connectionId, branch);
-          onRefresh();
-          if (result.conflictCount > 0) {
-            toast(`${result.conflictCount} merge conflict(s) — resolve them in the Git sidebar.`, {
-              icon: '⚠️',
-              duration: 8000
-            });
-          } else {
-            toast.success(`Merged branch "${branch}"`);
-          }
-        } else {
-          await window.api.gitCheckoutBranch(connectionId, branch);
-          onRefresh();
-          toast.success(`Switched to branch "${branch}"`);
-        }
+        await window.api.gitDeleteBranch(connectionId, branch);
+        onRefresh();
+        toast.success(`Deleted branch "${branch}"`);
         onClose();
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
@@ -133,7 +101,7 @@ export function GitSwitchBranchesModal({
         setBusy(false);
       }
     },
-    [busy, connectionId, currentBranch, hasUncommittedChanges, mode, onClose, onRefresh]
+    [busy, connectionId, currentBranch, onClose, onRefresh]
   );
 
   if (!open) {
@@ -144,20 +112,13 @@ export function GitSwitchBranchesModal({
     <Modal
       onClose={onClose}
       className="w-[32rem]"
-      labelledBy="git-switch-branches-title"
-      title={modalTitle}
+      labelledBy="git-delete-branch-title"
+      title={`Delete branch — ${connectionName}`}
     >
       <div className="flex flex-col gap-3">
-        {hasUncommittedChanges && (
-          <p className="m-0 text-muted" role="status">
-            Commit or discard your changes before switching branches.
-          </p>
-        )}
-        {mode === 'merge' && currentBranch != null ? (
-          <p className="m-0 text-muted" role="status">
-            Merge another branch into <strong>{currentBranch}</strong>.
-          </p>
-        ) : null}
+        <p className="m-0 text-[14px] text-muted" role="status">
+          Delete a local branch. The currently checked-out branch cannot be deleted.
+        </p>
         {!loaded ? (
           <p className="m-0 text-muted" role="status">
             Loading branches…
@@ -170,15 +131,7 @@ export function GitSwitchBranchesModal({
           <ul className="m-0 flex list-none flex-col gap-1 p-0">
             {branches.map((branch) => {
               const isCurrent = branch === currentBranch;
-              const disabled =
-                mode === 'merge'
-                  ? busy || isCurrent
-                  : isBranchSwitchDisabled({
-                      currentBranch,
-                      targetBranch: branch,
-                      busy,
-                      changedCount: status?.changedCount ?? 0
-                    });
+              const disabled = busy || isCurrent;
 
               return (
                 <li key={branch}>
@@ -189,15 +142,9 @@ export function GitSwitchBranchesModal({
                     disabled={disabled}
                     aria-current={isCurrent ? 'true' : undefined}
                     aria-label={
-                      isCurrent
-                        ? `${branch} (current branch)`
-                        : mode === 'merge'
-                          ? `Merge branch ${branch}`
-                          : hasUncommittedChanges
-                            ? `${branch} (unavailable while there are uncommitted changes)`
-                            : `Switch to branch ${branch}`
+                      isCurrent ? `${branch} (current branch)` : `Delete branch ${branch}`
                     }
-                    onClick={() => void handleSelectBranch(branch)}
+                    onClick={() => void handleDeleteBranch(branch)}
                   >
                     <span>{branch}</span>
                     {isCurrent ? (

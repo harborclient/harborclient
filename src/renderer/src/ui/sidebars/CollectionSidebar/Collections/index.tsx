@@ -16,7 +16,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
-import { useEffect, useMemo, useRef, useState, type JSX, type MouseEvent } from 'react';
+import { useEffect, useMemo, useState, type JSX, type MouseEvent } from 'react';
 import { toContainerItemRefs } from '#/shared/collectionContainerOrder';
 import type { Collection, CollectionDocument, Folder, SavedRequest } from '#/shared/types';
 import { useAppSelector } from '#/renderer/src/store/hooks';
@@ -56,11 +56,6 @@ import { focusCollectionSettings } from '#/renderer/src/ui/CollectionSettings/fo
 import { focusFolderSettings } from '#/renderer/src/ui/FolderSettings/focusFolderSettings';
 import { DocumentRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/DocumentRow';
 import { RequestRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/RequestRow';
-import {
-  CollectionGitRequestProvider,
-  type CollectionGitRequestContext
-} from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/CollectionGitRequestProvider';
-import { requestGitRowProps } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/requestGitRowProps';
 import { SortableRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/SortableRow';
 import { stopSortableDragPointerDown } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/sortableRowUtils';
 import {
@@ -118,7 +113,8 @@ export function Collections(): JSX.Element {
     gitStatusesByConnectionId,
     openSourceControl: onOpenSourceControl,
     openCreateBranch: onOpenCreateBranch,
-    openSwitchBranch: onOpenSwitchBranch
+    openSwitchBranch: onOpenSwitchBranch,
+    openMergeBranch: onOpenMergeBranch
   } = useSidebarGit();
   const { searchFilter, searchActive } = useSidebarSearchContext();
   const {
@@ -178,8 +174,6 @@ export function Collections(): JSX.Element {
   const [dropTargetFolderId, setDropTargetFolderId] = useState<number | null | undefined>(
     undefined
   );
-  const activeDragKindRef = useRef<DragKind | null>(null);
-  const dragCollectionIdRef = useRef<number | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -190,9 +184,7 @@ export function Collections(): JSX.Element {
    * Clears drag state for collection item dragging.
    */
   const clearDragState = (): void => {
-    activeDragKindRef.current = null;
     setCollectionSidebarDragKind(null);
-    dragCollectionIdRef.current = null;
     setActiveDragKind(null);
     setActiveDragRequest(null);
     setActiveDragFolder(null);
@@ -670,8 +662,7 @@ export function Collections(): JSX.Element {
    * @param collectionId The collection id to handle the drag over for.
    */
   const handleDragOver = (event: DragOverEvent, collectionId: number): void => {
-    const activeKind = activeDragKindRef.current;
-    if (activeKind !== 'request' || dragCollectionIdRef.current !== collectionId) {
+    if (activeDragKind !== 'request' || dragCollectionId !== collectionId) {
       return;
     }
 
@@ -705,14 +696,12 @@ export function Collections(): JSX.Element {
     if (!parsed) return;
 
     setDragCollectionId(collectionId);
-    dragCollectionIdRef.current = collectionId;
     setDropTargetFolderId(undefined);
 
     if (parsed.kind === 'folder') {
       const folder = (foldersByCollection[collectionId] ?? []).find(
         (item) => item.id === parsed.id
       );
-      activeDragKindRef.current = 'folder';
       setCollectionSidebarDragKind('folder');
       setActiveDragKind('folder');
       setActiveDragFolder(folder ?? null);
@@ -723,7 +712,6 @@ export function Collections(): JSX.Element {
     const request = (requestsByCollection[collectionId] ?? []).find(
       (item) => item.id === parsed.id
     );
-    activeDragKindRef.current = 'request';
     setCollectionSidebarDragKind('request');
     setActiveDragKind('request');
     setActiveDragRequest(request ?? null);
@@ -949,6 +937,15 @@ export function Collections(): JSX.Element {
                                               connectionName,
                                               collection.uuid
                                             )
+                                        },
+                                        {
+                                          label: 'Merge',
+                                          onSelect: () =>
+                                            onOpenMergeBranch(
+                                              collectionConnectionId,
+                                              connectionName,
+                                              collection.uuid
+                                            )
                                         }
                                       ]
                                     ]
@@ -1048,12 +1045,10 @@ export function Collections(): JSX.Element {
                   </SortableRow>
 
                   {/**
-                   * Renders the expanded collection request tree, optionally wiring git request status.
+                   * Renders the expanded collection request tree.
                    */}
                   {(() => {
-                    const renderExpandedRequests = (
-                      gitContext?: CollectionGitRequestContext
-                    ): JSX.Element => (
+                    const renderExpandedRequests = (): JSX.Element => (
                       <AnimatedCollapse open={expanded}>
                         <DndContext
                           sensors={sensors}
@@ -1069,7 +1064,7 @@ export function Collections(): JSX.Element {
                               rootItems.length === 0 &&
                               rootDocuments.length === 0 && (
                                 <div className="px-1.5 py-0 text-center">
-                                  <span className="text-muted">No saved requests.</span>
+                                  <span className="text-muted">&lt;No saved requests&gt;</span>
                                 </div>
                               )}
 
@@ -1180,7 +1175,6 @@ export function Collections(): JSX.Element {
                                           });
                                         }}
                                         dragDisabled={searchActive}
-                                        {...requestGitRowProps(req, gitContext)}
                                       />
                                     );
                                   })}
@@ -1492,7 +1486,6 @@ export function Collections(): JSX.Element {
                                                   });
                                                 }}
                                                 dragDisabled={searchActive}
-                                                {...requestGitRowProps(req, gitContext)}
                                               />
                                             );
                                           })}
@@ -1534,17 +1527,6 @@ export function Collections(): JSX.Element {
                         </DndContext>
                       </AnimatedCollapse>
                     );
-
-                    if (connectionType === 'git' && collectionConnectionId) {
-                      return (
-                        <CollectionGitRequestProvider
-                          connectionId={collectionConnectionId}
-                          collectionUuid={collection.uuid}
-                        >
-                          {renderExpandedRequests}
-                        </CollectionGitRequestProvider>
-                      );
-                    }
 
                     return renderExpandedRequests();
                   })()}

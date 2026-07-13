@@ -80,5 +80,7 @@ export function pageTabCloseName(
     case 'snippet-edit':
     case 'script-editor':
       return page.label;
+    default:
+      return 'Tab';
   }
 }

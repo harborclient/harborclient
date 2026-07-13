@@ -88,7 +88,9 @@ export function GitHistorySection({ connectionId, refreshNonce }: Props): JSX.El
   }
 
   if (graph == null || graph.entries.length === 0 || graph.currentBranch == null) {
-    return <div className="px-2 pb-2 text-[14px] text-muted">No history available</div>;
+    return (
+      <div className="px-2 pb-2 text-muted text-center mt-3">&lt;No history available&gt;</div>
+    );
   }
 
   return (

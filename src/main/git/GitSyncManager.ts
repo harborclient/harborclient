@@ -1,34 +1,21 @@
 import * as git from 'isomorphic-git';
 import http from 'isomorphic-git/http/node';
-import fs, { existsSync, unlinkSync } from 'fs';
+import fs, { existsSync } from 'fs';
 import { join } from 'path';
 import { buildGitOnAuth, resolveGitAuthForHost } from '#/main/git/gitAuth';
 import { ensureHarborclientLayout, resolveHarborclientRoot } from '#/main/git/fileLayout';
 import {
-  buildDocumentStatusesForCollection,
-  buildRequestStatusesForCollection,
   countStagedAndUnstaged,
-  documentRowsForUuid,
   hasStagedChanges,
   loadHarborStatusMatrix,
-  requestRowsForUuid,
-  resolveDocumentDiffPaths,
-  resolveRequestDiffPaths,
   type GitMatrixRow
 } from '#/main/git/gitRequestStatus';
 import { countConflictFiles, pullMergeConflictMessage } from '#/main/git/slug';
-import { buildSingleResourceDiff } from '#/main/git/gitDiff';
-import {
-  buildGitGraphLog,
-  buildCommitResourceDiff,
-  readGitCommitDetail
-} from '#/main/git/gitGraph';
+import { buildGitGraphLog, readGitCommitDetail } from '#/main/git/gitGraph';
 import type {
   GitCommitDetail,
   GitGraphLogResult,
   GitLogEntry,
-  GitRequestDiffResult,
-  GitRequestFileStatus,
   GitSettings,
   SourceControlStatus
 } from '#/shared/types';
@@ -98,152 +85,6 @@ export class GitSyncManager {
   }
 
   /**
-   * Returns per-request git status for one collection.
-   *
-   * @param collectionUuid - Stable collection uuid.
-   */
-  async listRequestStatuses(collectionUuid: string): Promise<Record<string, GitRequestFileStatus>> {
-    const harborSubdir = this.harborSubdir();
-    const matrix = await loadHarborStatusMatrix(this.#repoPath, harborSubdir);
-    return buildRequestStatusesForCollection(matrix, harborSubdir, collectionUuid);
-  }
-
-  /**
-   * Returns per-document git status for one collection.
-   *
-   * @param collectionUuid - Stable collection uuid.
-   */
-  async listDocumentStatuses(
-    collectionUuid: string
-  ): Promise<Record<string, GitRequestFileStatus>> {
-    const harborSubdir = this.harborSubdir();
-    const matrix = await loadHarborStatusMatrix(this.#repoPath, harborSubdir);
-    return buildDocumentStatusesForCollection(matrix, this.#repoPath, harborSubdir, collectionUuid);
-  }
-
-  /**
-   * Stages all working-tree changes for one request in a collection.
-   *
-   * @param collectionUuid - Stable collection uuid.
-   * @param requestUuid - Stable request uuid.
-   */
-  async stageRequest(collectionUuid: string, requestUuid: string): Promise<void> {
-    const harborSubdir = this.harborSubdir();
-    const matrix = await loadHarborStatusMatrix(this.#repoPath, harborSubdir);
-    const rows = requestRowsForUuid(matrix, harborSubdir, collectionUuid, requestUuid);
-
-    if (rows.length === 0) {
-      throw new Error('Request has no git-tracked files to stage.');
-    }
-
-    for (const row of rows) {
-      await this.stageMatrixRow(row);
-    }
-  }
-
-  /**
-   * Stages all working-tree changes for one markdown document in a collection.
-   *
-   * @param collectionUuid - Stable collection uuid.
-   * @param documentUuid - Stable document uuid.
-   */
-  async stageDocument(collectionUuid: string, documentUuid: string): Promise<void> {
-    const harborSubdir = this.harborSubdir();
-    const matrix = await loadHarborStatusMatrix(this.#repoPath, harborSubdir);
-    const rows = await documentRowsForUuid(
-      matrix,
-      this.#repoPath,
-      harborSubdir,
-      collectionUuid,
-      documentUuid
-    );
-
-    if (rows.length === 0) {
-      throw new Error('Document has no git-tracked files to stage.');
-    }
-
-    for (const row of rows) {
-      await this.stageMatrixRow(row);
-    }
-  }
-
-  /**
-   * Unstages all staged changes for one markdown document in a collection.
-   *
-   * @param collectionUuid - Stable collection uuid.
-   * @param documentUuid - Stable document uuid.
-   */
-  async unstageDocument(collectionUuid: string, documentUuid: string): Promise<void> {
-    const harborSubdir = this.harborSubdir();
-    const matrix = await loadHarborStatusMatrix(this.#repoPath, harborSubdir);
-    const rows = await documentRowsForUuid(
-      matrix,
-      this.#repoPath,
-      harborSubdir,
-      collectionUuid,
-      documentUuid
-    );
-
-    if (rows.length === 0) {
-      throw new Error('Document has no staged changes to remove.');
-    }
-
-    let unstagedAny = false;
-    for (const row of rows) {
-      const [filepath, head, , stage] = row;
-      if (stage === head) {
-        continue;
-      }
-
-      if (head === 0) {
-        await git.remove({ fs, dir: this.#repoPath, filepath });
-      } else {
-        await git.resetIndex({ fs, dir: this.#repoPath, filepath });
-      }
-      unstagedAny = true;
-    }
-
-    if (!unstagedAny) {
-      throw new Error('Document has no staged changes to remove.');
-    }
-  }
-
-  /**
-   * Unstages all staged changes for one request in a collection.
-   *
-   * @param collectionUuid - Stable collection uuid.
-   * @param requestUuid - Stable request uuid.
-   */
-  async unstageRequest(collectionUuid: string, requestUuid: string): Promise<void> {
-    const harborSubdir = this.harborSubdir();
-    const matrix = await loadHarborStatusMatrix(this.#repoPath, harborSubdir);
-    const rows = requestRowsForUuid(matrix, harborSubdir, collectionUuid, requestUuid);
-
-    if (rows.length === 0) {
-      throw new Error('Request has no staged changes to remove.');
-    }
-
-    let unstagedAny = false;
-    for (const row of rows) {
-      const [filepath, head, , stage] = row;
-      if (stage === head) {
-        continue;
-      }
-
-      if (head === 0) {
-        await git.remove({ fs, dir: this.#repoPath, filepath });
-      } else {
-        await git.resetIndex({ fs, dir: this.#repoPath, filepath });
-      }
-      unstagedAny = true;
-    }
-
-    if (!unstagedAny) {
-      throw new Error('Request has no staged changes to remove.');
-    }
-  }
-
-  /**
    * Stages all changes under the HarborClient subdirectory and commits, or commits
    * only staged changes when auto-add is disabled.
    *
@@ -271,7 +112,7 @@ export class GitSyncManager {
       const matrix = await loadHarborStatusMatrix(this.#repoPath, subdir);
       if (!hasStagedChanges(matrix)) {
         throw new Error(
-          'No staged changes to commit. Use Add on requests or enable Auto add in Git settings.'
+          'No staged changes to commit. Stage files or enable Auto add in Git settings.'
         );
       }
     }
@@ -384,6 +225,124 @@ export class GitSyncManager {
   }
 
   /**
+   * Deletes a local branch that is not currently checked out.
+   *
+   * @param name - Branch name to delete.
+   */
+  async deleteBranch(name: string): Promise<void> {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      throw new Error('Branch name is required.');
+    }
+
+    const branch = await git.currentBranch({ fs, dir: this.#repoPath });
+    if (branch === trimmed) {
+      throw new Error('Cannot delete the currently checked-out branch.');
+    }
+
+    const existing = await this.listBranches();
+    if (!existing.includes(trimmed)) {
+      throw new Error(`Branch "${trimmed}" does not exist.`);
+    }
+
+    await git.deleteBranch({ fs, dir: this.#repoPath, ref: trimmed });
+  }
+
+  /**
+   * Merges another local branch into the current branch.
+   *
+   * Conflict markers are written to disk when merges cannot complete cleanly.
+   * Returns the number of JSON files containing conflict markers afterward.
+   *
+   * @param name - Local branch name to merge into the current branch.
+   */
+  async mergeBranch(name: string): Promise<{ conflictCount: number }> {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      throw new Error('Branch name is required.');
+    }
+
+    const branch = await git.currentBranch({ fs, dir: this.#repoPath });
+    if (!branch) {
+      throw new Error('Cannot merge: repository is not on a branch.');
+    }
+
+    if (trimmed === branch) {
+      throw new Error('Cannot merge the current branch into itself.');
+    }
+
+    const existing = await this.listBranches();
+    if (!existing.includes(trimmed)) {
+      throw new Error(`Branch "${trimmed}" does not exist.`);
+    }
+
+    try {
+      await git.merge({
+        fs,
+        dir: this.#repoPath,
+        ours: branch,
+        theirs: trimmed,
+        abortOnConflict: false
+      });
+    } catch (err) {
+      const mergeConflictCount = countJsonMergeConflicts(err);
+      if (mergeConflictCount === 0) {
+        throw err;
+      }
+    }
+
+    const status = await this.getStatus();
+    return { conflictCount: status.conflictCount };
+  }
+
+  /**
+   * Stages one repository-relative file after conflict resolution.
+   *
+   * @param filepath - Path relative to the repository root.
+   */
+  async stageFile(filepath: string): Promise<void> {
+    const trimmed = filepath.trim();
+    if (!trimmed) {
+      throw new Error('File path is required.');
+    }
+
+    await git.add({ fs, dir: this.#repoPath, filepath: trimmed });
+  }
+
+  /**
+   * Reads raw text from a repository-relative file.
+   *
+   * @param filepath - Path relative to the repository root.
+   */
+  async readRepoFile(filepath: string): Promise<string> {
+    const trimmed = filepath.trim();
+    if (!trimmed) {
+      throw new Error('File path is required.');
+    }
+
+    const fullPath = join(this.#repoPath, trimmed);
+    const { readFile } = await import('fs/promises');
+    return readFile(fullPath, 'utf-8');
+  }
+
+  /**
+   * Writes raw text to a repository-relative file.
+   *
+   * @param filepath - Path relative to the repository root.
+   * @param content - Full file contents to write.
+   */
+  async writeRepoFile(filepath: string, content: string): Promise<void> {
+    const trimmed = filepath.trim();
+    if (!trimmed) {
+      throw new Error('File path is required.');
+    }
+
+    const fullPath = join(this.#repoPath, trimmed);
+    const { writeFile } = await import('fs/promises');
+    await writeFile(fullPath, content, 'utf-8');
+  }
+
+  /**
    * Checks out an existing local branch when the working tree is clean.
    *
    * @param name - Branch name to check out.
@@ -442,197 +401,6 @@ export class GitSyncManager {
    */
   async readCommitDetail(oid: string): Promise<GitCommitDetail> {
     return readGitCommitDetail(this.#repoPath, this.harborSubdir(), oid);
-  }
-
-  /**
-   * Builds a parent-to-commit diff for one request or document in a commit.
-   *
-   * @param oid - Commit object id.
-   * @param collectionUuid - Stable collection uuid.
-   * @param resourceUuid - Stable request or document uuid.
-   * @param kind - Whether the resource is a request or markdown document.
-   * @param resourceName - Display name shown in the diff modal.
-   */
-  async buildCommitResourceDiff(
-    oid: string,
-    collectionUuid: string,
-    resourceUuid: string,
-    kind: 'request' | 'document',
-    resourceName: string
-  ): Promise<GitRequestDiffResult> {
-    return buildCommitResourceDiff(
-      this.#repoPath,
-      this.harborSubdir(),
-      oid,
-      collectionUuid,
-      resourceUuid,
-      kind,
-      resourceName
-    );
-  }
-
-  /**
-   * Builds a working-tree diff for one request's git-tracked files.
-   *
-   * @param collectionUuid - Stable collection uuid.
-   * @param requestUuid - Stable request uuid.
-   * @param requestName - Display name shown in the diff modal.
-   */
-  async buildRequestDiff(
-    collectionUuid: string,
-    requestUuid: string,
-    requestName: string
-  ): Promise<GitRequestDiffResult> {
-    const harborSubdir = this.harborSubdir();
-    const matrix = await loadHarborStatusMatrix(this.#repoPath, harborSubdir);
-    const rows = requestRowsForUuid(matrix, harborSubdir, collectionUuid, requestUuid);
-    const { headPath, workPath } = resolveRequestDiffPaths(rows, requestUuid, requestName);
-    const entry = await buildSingleResourceDiff({
-      repoPath: this.#repoPath,
-      headPath,
-      workPath,
-      maxCharsPerFile: 12_000
-    });
-
-    return {
-      requestName,
-      files: entry != null ? [entry] : []
-    };
-  }
-
-  /**
-   * Builds a working-tree diff for one markdown document's git-tracked files.
-   *
-   * @param collectionUuid - Stable collection uuid.
-   * @param documentUuid - Stable document uuid.
-   * @param documentName - Display name shown in the diff modal.
-   */
-  async buildDocumentDiff(
-    collectionUuid: string,
-    documentUuid: string,
-    documentName: string
-  ): Promise<GitRequestDiffResult> {
-    const harborSubdir = this.harborSubdir();
-    const matrix = await loadHarborStatusMatrix(this.#repoPath, harborSubdir);
-    const rows = await documentRowsForUuid(
-      matrix,
-      this.#repoPath,
-      harborSubdir,
-      collectionUuid,
-      documentUuid
-    );
-    const { headPath, workPath } = resolveDocumentDiffPaths(rows, harborSubdir, documentName);
-    const entry = await buildSingleResourceDiff({
-      repoPath: this.#repoPath,
-      headPath,
-      workPath,
-      maxCharsPerFile: 12_000
-    });
-
-    return {
-      requestName: documentName,
-      files: entry != null ? [entry] : []
-    };
-  }
-
-  /**
-   * Discards working-tree and index changes for one request's git-tracked files.
-   *
-   * @param collectionUuid - Stable collection uuid.
-   * @param requestUuid - Stable request uuid.
-   */
-  async revertRequest(collectionUuid: string, requestUuid: string): Promise<void> {
-    const harborSubdir = this.harborSubdir();
-    const matrix = await loadHarborStatusMatrix(this.#repoPath, harborSubdir);
-    const rows = requestRowsForUuid(matrix, harborSubdir, collectionUuid, requestUuid);
-
-    if (rows.length === 0) {
-      throw new Error('Request has no changes to revert.');
-    }
-
-    let revertedAny = false;
-    for (const row of rows) {
-      const [filepath, head] = row;
-      if (head === 0) {
-        const fullPath = join(this.#repoPath, filepath);
-        if (existsSync(fullPath)) {
-          unlinkSync(fullPath);
-        }
-        try {
-          await git.remove({ fs, dir: this.#repoPath, filepath });
-        } catch {
-          // File may already be absent from the index.
-        }
-        revertedAny = true;
-        continue;
-      }
-
-      await git.checkout({
-        fs,
-        dir: this.#repoPath,
-        ref: 'HEAD',
-        filepaths: [filepath],
-        force: true
-      });
-      revertedAny = true;
-    }
-
-    if (!revertedAny) {
-      throw new Error('Request has no changes to revert.');
-    }
-  }
-
-  /**
-   * Discards working-tree and index changes for one markdown document's git-tracked files.
-   *
-   * @param collectionUuid - Stable collection uuid.
-   * @param documentUuid - Stable document uuid.
-   */
-  async revertDocument(collectionUuid: string, documentUuid: string): Promise<void> {
-    const harborSubdir = this.harborSubdir();
-    const matrix = await loadHarborStatusMatrix(this.#repoPath, harborSubdir);
-    const rows = await documentRowsForUuid(
-      matrix,
-      this.#repoPath,
-      harborSubdir,
-      collectionUuid,
-      documentUuid
-    );
-
-    if (rows.length === 0) {
-      throw new Error('Document has no changes to revert.');
-    }
-
-    let revertedAny = false;
-    for (const row of rows) {
-      const [filepath, head] = row;
-      if (head === 0) {
-        const fullPath = join(this.#repoPath, filepath);
-        if (existsSync(fullPath)) {
-          unlinkSync(fullPath);
-        }
-        try {
-          await git.remove({ fs, dir: this.#repoPath, filepath });
-        } catch {
-          // File may already be absent from the index.
-        }
-        revertedAny = true;
-        continue;
-      }
-
-      await git.checkout({
-        fs,
-        dir: this.#repoPath,
-        ref: 'HEAD',
-        filepaths: [filepath],
-        force: true
-      });
-      revertedAny = true;
-    }
-
-    if (!revertedAny) {
-      throw new Error('Document has no changes to revert.');
-    }
   }
 
   /**

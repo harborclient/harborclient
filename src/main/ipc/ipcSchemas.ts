@@ -109,7 +109,7 @@ const themeMenuOption = z.object({
 
 export const zoomFactor = z.number().min(MIN_ZOOM_FACTOR).max(MAX_ZOOM_FACTOR);
 
-export const rootMenuLabel = z.enum(['File', 'Edit', 'View', 'Team', 'Help']);
+export const rootMenuLabel = z.enum(['File', 'Edit', 'View', 'Team', 'Git', 'Help']);
 
 export const editorTab = z.enum([
   'params',
@@ -285,6 +285,7 @@ export const generalSettings = z.object({
   warnWhenOpeningTabGroup: z.boolean(),
   warnWhenAgentUsesTerminal: z.boolean(),
   gitAutoAdd: z.boolean(),
+  externalMergeEditorPath: z.string(),
   codeEditorTheme: z.enum(CODE_EDITOR_THEME_IDS),
   codeEditorSetup: z.object({
     lineNumbers: z.boolean(),
@@ -693,6 +694,7 @@ export const ipcArgSchemas = {
   menuThemeMenuState: z.tuple([themeSource, z.array(themeMenuOption)]),
   menuDesignerUndoRedo: z.tuple([z.boolean(), z.boolean(), z.boolean()]),
   menuTabGroupAvailable: z.tuple([z.boolean()]),
+  menuGitCollectionActive: z.tuple([z.boolean()]),
   menuPopupSubmenu: z.tuple([rootMenuLabel, z.number(), z.number()]),
   menuGetSubmenuSnapshot: z.tuple([rootMenuLabel]),
   menuActivateSubmenuItem: z.tuple([rootMenuLabel, z.number().int().nonnegative()]),
@@ -841,89 +843,33 @@ export const ipcArgSchemas = {
   saveTextFile: z.tuple([z.string().max(MAX_IPC_REQUEST_BODY_CHARS), z.string()]),
   backupExport: z.tuple([z.record(z.string(), z.string())]),
   gitCommit: z.tuple([connectionId, z.string().trim().min(1), z.boolean().optional()]),
-  gitRequestStatuses: z.tuple([
-    z.object({
-      connectionId,
-      collectionUuid: z.string().trim().min(1)
-    })
-  ]),
-  gitAddRequest: z.tuple([
-    z.object({
-      connectionId,
-      collectionUuid: z.string().trim().min(1),
-      requestUuid: z.string().uuid()
-    })
-  ]),
-  gitRemoveRequest: z.tuple([
-    z.object({
-      connectionId,
-      collectionUuid: z.string().trim().min(1),
-      requestUuid: z.string().uuid()
-    })
-  ]),
   gitListBranches: z.tuple([connectionId]),
   gitCreateBranch: z.tuple([connectionId, z.string().trim().min(1)]),
+  gitDeleteBranch: z.tuple([connectionId, z.string().trim().min(1)]),
   gitCheckoutBranch: z.tuple([connectionId, z.string().trim().min(1)]),
+  gitMergeBranch: z.tuple([connectionId, z.string().trim().min(1)]),
+  gitReadConflictFile: z.tuple([
+    z.object({
+      connectionId,
+      filePath: z.string().trim().min(1)
+    })
+  ]),
+  gitWriteConflictFile: z.tuple([
+    z.object({
+      connectionId,
+      filePath: z.string().trim().min(1),
+      content: z.string()
+    })
+  ]),
+  gitOpenExternalMergeEditor: z.tuple([
+    z.object({
+      connectionId,
+      filePath: z.string().trim().min(1)
+    })
+  ]),
   gitLog: z.tuple([connectionId, z.number().int().positive().optional()]),
   gitGraphLog: z.tuple([connectionId, z.number().int().positive().optional()]),
   gitCommitDetail: z.tuple([connectionId, z.string().trim().min(1)]),
-  gitCommitResourceDiff: z.tuple([
-    z.object({
-      connectionId,
-      oid: z.string().trim().min(1),
-      collectionUuid: z.string().trim().min(1),
-      resourceUuid: z.string().uuid(),
-      kind: z.enum(['request', 'document'])
-    })
-  ]),
-  gitRequestDiff: z.tuple([
-    z.object({
-      connectionId,
-      collectionUuid: z.string().trim().min(1),
-      requestUuid: z.string().uuid()
-    })
-  ]),
-  gitRevertRequest: z.tuple([
-    z.object({
-      connectionId,
-      collectionUuid: z.string().trim().min(1),
-      requestUuid: z.string().uuid()
-    })
-  ]),
-  gitDocumentStatuses: z.tuple([
-    z.object({
-      connectionId,
-      collectionUuid: z.string().trim().min(1)
-    })
-  ]),
-  gitAddDocument: z.tuple([
-    z.object({
-      connectionId,
-      collectionUuid: z.string().trim().min(1),
-      documentUuid: z.string().uuid()
-    })
-  ]),
-  gitRemoveDocument: z.tuple([
-    z.object({
-      connectionId,
-      collectionUuid: z.string().trim().min(1),
-      documentUuid: z.string().uuid()
-    })
-  ]),
-  gitDocumentDiff: z.tuple([
-    z.object({
-      connectionId,
-      collectionUuid: z.string().trim().min(1),
-      documentUuid: z.string().uuid()
-    })
-  ]),
-  gitRevertDocument: z.tuple([
-    z.object({
-      connectionId,
-      collectionUuid: z.string().trim().min(1),
-      documentUuid: z.string().uuid()
-    })
-  ]),
   gitDiff: z.tuple([
     z.object({
       collectionUuid: z.string().trim().min(1),

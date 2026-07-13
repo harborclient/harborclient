@@ -1,6 +1,6 @@
 import * as git from 'isomorphic-git';
 import fs from 'fs';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -259,15 +259,8 @@ describe('GitSyncManager', () => {
     const { repoPath, manager } = await createTestRepo();
     const documentUuid = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
     const collectionUuid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-    const collectionDirectory = join(
-      repoPath,
-      '.harborclient',
-      'collections',
-      `${collectionUuid}-api`
-    );
-    mkdirSync(collectionDirectory, { recursive: true });
     writeFileSync(
-      join(collectionDirectory, 'collection.json'),
+      join(repoPath, '.harborclient', `${collectionUuid}-api.json`),
       JSON.stringify(
         {
           harborclientVersion: 1,
@@ -285,7 +278,8 @@ describe('GitSyncManager', () => {
               name: 'README.md',
               folder_uuid: null,
               sort_order: 0,
-              color: null
+              color: null,
+              content: '# Harbor notes'
             }
           ],
           created_at: new Date().toISOString()
@@ -314,10 +308,9 @@ describe('GitSyncManager', () => {
 
   it('stages deleted files under the HarborClient subdirectory when committing', async () => {
     const { repoPath, manager } = await createTestRepo();
-    const jsonPath = join(repoPath, '.harborclient', 'collections', 'old.json');
-    mkdirSync(join(repoPath, '.harborclient', 'collections'), { recursive: true });
+    const jsonPath = join(repoPath, '.harborclient', 'old.json');
     writeFileSync(jsonPath, '{}', 'utf-8');
-    await git.add({ fs, dir: repoPath, filepath: '.harborclient/collections/old.json' });
+    await git.add({ fs, dir: repoPath, filepath: '.harborclient/old.json' });
     await git.commit({
       fs,
       dir: repoPath,
@@ -330,7 +323,7 @@ describe('GitSyncManager', () => {
     await manager.commit('Remove old.json');
 
     const files = await git.listFiles({ fs, dir: repoPath, ref: 'HEAD' });
-    expect(files).not.toContain('.harborclient/collections/old.json');
+    expect(files).not.toContain('.harborclient/old.json');
     expect(files).toContain('.harborclient/readme.txt');
   });
 
@@ -356,9 +349,9 @@ describe('GitSyncManager', () => {
 
     await manager.commit('Initial HarborClient layout', { createHarborRoot: true });
 
-    expect(existsSync(join(harborRoot, 'collections'))).toBe(true);
-    expect(existsSync(join(harborRoot, 'environments'))).toBe(true);
+    expect(existsSync(harborRoot)).toBe(true);
     expect(existsSync(join(harborRoot, '.gitignore'))).toBe(true);
+    expect(existsSync(join(harborRoot, 'collections'))).toBe(false);
 
     const files = await git.listFiles({ fs, dir: repoPath, ref: 'HEAD' });
     expect(files).toContain('.harborclient/.gitignore');
@@ -395,36 +388,6 @@ describe('GitSyncManager', () => {
     const status = await manager.getStatus();
     expect(status.stagedCount).toBe(0);
     expect(status.unstagedCount).toBeGreaterThan(0);
-  });
-
-  it('stages and unstages one request by uuid', async () => {
-    const { repoPath, manager } = await createTestRepo();
-    const collectionUuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
-    const requestUuid = '11111111-2222-4333-8444-555555555555';
-    const requestRelPath = `.harborclient/collections/${collectionUuid}-demo/requests/${requestUuid}-get-users.json`;
-    const requestAbsPath = join(repoPath, requestRelPath);
-
-    mkdirSync(
-      join(repoPath, '.harborclient', 'collections', `${collectionUuid}-demo`, 'requests'),
-      {
-        recursive: true
-      }
-    );
-    writeFileSync(requestAbsPath, '{"name":"Get users"}', 'utf-8');
-
-    await manager.stageRequest(collectionUuid, requestUuid);
-
-    let matrix = await git.statusMatrix({ fs, dir: repoPath, filepaths: ['.harborclient'] });
-    const stagedRow = matrix.find((row) => row[0] === requestRelPath);
-    expect(stagedRow?.[2]).toBe(stagedRow?.[3]);
-
-    const statuses = await manager.listRequestStatuses(collectionUuid);
-    expect(statuses[requestUuid]?.displayStatus).toBe('staged');
-
-    await manager.unstageRequest(collectionUuid, requestUuid);
-    matrix = await git.statusMatrix({ fs, dir: repoPath, filepaths: ['.harborclient'] });
-    const unstagedRow = matrix.find((row) => row[0] === requestRelPath);
-    expect(unstagedRow?.[1]).toBe(unstagedRow?.[3]);
   });
 
   it('lists local branch names', async () => {
@@ -482,6 +445,31 @@ describe('GitSyncManager', () => {
     );
   });
 
+  it('deletes a local branch that is not checked out', async () => {
+    const { repoPath, manager } = await createTestRepo();
+    await git.branch({ fs, dir: repoPath, ref: 'feature', checkout: false });
+
+    await manager.deleteBranch('feature');
+
+    const branches = await manager.listBranches();
+    expect(branches).not.toContain('feature');
+    expect(branches).toContain('main');
+  });
+
+  it('rejects deleting the currently checked-out branch', async () => {
+    const { manager } = await createTestRepo();
+
+    await expect(manager.deleteBranch('main')).rejects.toThrow(
+      'Cannot delete the currently checked-out branch.'
+    );
+  });
+
+  it('rejects deleting a branch that does not exist', async () => {
+    const { manager } = await createTestRepo();
+
+    await expect(manager.deleteBranch('missing')).rejects.toThrow('does not exist');
+  });
+
   it('pushes the currently checked-out branch', async () => {
     const { repoPath, manager } = await createTestRepo();
     await git.branch({ fs, dir: repoPath, ref: 'feature', checkout: true });
@@ -537,94 +525,40 @@ describe('GitSyncManager', () => {
     ]);
   });
 
-  it('builds a working-tree diff for one request', async () => {
+  it('merges another local branch into the current branch', async () => {
     const { repoPath, manager } = await createTestRepo();
-    const collectionUuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
-    const requestUuid = '11111111-2222-4333-8444-555555555555';
-    const requestRelPath = `.harborclient/collections/${collectionUuid}-demo/requests/${requestUuid}-get-users.json`;
-    const requestAbsPath = join(repoPath, requestRelPath);
-
-    mkdirSync(
-      join(repoPath, '.harborclient', 'collections', `${collectionUuid}-demo`, 'requests'),
-      { recursive: true }
-    );
-    writeFileSync(requestAbsPath, '{"name":"Get users","url":"https://example.com"}', 'utf-8');
-
-    const diff = await manager.buildRequestDiff(collectionUuid, requestUuid, 'Get users');
-
-    expect(diff.requestName).toBe('Get users');
-    expect(diff.files).toHaveLength(1);
-    expect(diff.files[0]?.path).toBe(requestRelPath);
-  });
-
-  it('returns one canonical diff when multiple stale request files share a uuid', async () => {
-    const { repoPath, manager } = await createTestRepo();
-    const collectionUuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
-    const requestUuid = '11111111-2222-4333-8444-555555555555';
-    const requestsDir = join(
-      repoPath,
-      '.harborclient',
-      'collections',
-      `${collectionUuid}-demo`,
-      'requests'
-    );
-    const canonicalRelPath = `.harborclient/collections/${collectionUuid}-demo/requests/${requestUuid}-untitled-request.json`;
-    const staleRelPath = `.harborclient/collections/${collectionUuid}-demo/requests/${requestUuid}-echo-get.json`;
-    const headRelPath = `.harborclient/collections/${collectionUuid}-demo/requests/${requestUuid}-echo.json`;
-
-    mkdirSync(requestsDir, { recursive: true });
-    writeFileSync(join(repoPath, headRelPath), '{"name":"Echo"}', 'utf-8');
-    await git.add({ fs, dir: repoPath, filepath: headRelPath });
+    writeFileSync(join(repoPath, '.harborclient', 'main.txt'), 'main');
+    await git.add({ fs, dir: repoPath, filepath: '.harborclient/main.txt' });
     await git.commit({
       fs,
       dir: repoPath,
-      message: 'Add echo request',
+      message: 'Main change',
       author: { name: 'Test', email: 'test@example.com' }
     });
 
-    writeFileSync(join(repoPath, staleRelPath), '{"name":"Echo GET"}', 'utf-8');
-    writeFileSync(join(repoPath, canonicalRelPath), '{"name":"Untitled Request"}', 'utf-8');
-
-    const diff = await manager.buildRequestDiff(collectionUuid, requestUuid, 'Untitled Request');
-
-    expect(diff.files).toHaveLength(1);
-    expect(diff.files[0]?.path).toBe(canonicalRelPath);
-    expect(diff.files[0]?.status).toBe('modified');
-    expect(diff.files[0]?.diff).toContain('Echo');
-    expect(diff.files[0]?.diff).toContain('Untitled Request');
-  });
-
-  it('reverts tracked modifications and removes untracked request files', async () => {
-    const { repoPath, manager } = await createTestRepo();
-    const collectionUuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
-    const requestUuid = '11111111-2222-4333-8444-555555555555';
-    const requestRelPath = `.harborclient/collections/${collectionUuid}-demo/requests/${requestUuid}-get-users.json`;
-    const requestAbsPath = join(repoPath, requestRelPath);
-
-    mkdirSync(
-      join(repoPath, '.harborclient', 'collections', `${collectionUuid}-demo`, 'requests'),
-      { recursive: true }
-    );
-    writeFileSync(requestAbsPath, '{"name":"Get users"}', 'utf-8');
-    await git.add({ fs, dir: repoPath, filepath: requestRelPath });
+    await git.branch({ fs, dir: repoPath, ref: 'feature', checkout: true });
+    writeFileSync(join(repoPath, '.harborclient', 'feature.txt'), 'feature');
+    await git.add({ fs, dir: repoPath, filepath: '.harborclient/feature.txt' });
     await git.commit({
       fs,
       dir: repoPath,
-      message: 'Add request',
+      message: 'Feature change',
       author: { name: 'Test', email: 'test@example.com' }
     });
 
-    writeFileSync(requestAbsPath, '{"name":"Get users edited"}', 'utf-8');
-    await manager.revertRequest(collectionUuid, requestUuid);
+    await manager.checkoutBranch('main');
+    const result = await manager.mergeBranch('feature');
 
-    expect(readFileSync(requestAbsPath, 'utf-8')).toBe('{"name":"Get users"}');
+    expect(result.conflictCount).toBe(0);
+    const files = await git.listFiles({ fs, dir: repoPath, ref: 'HEAD' });
+    expect(files).toContain('.harborclient/feature.txt');
+  });
 
-    const untrackedUuid = '22222222-3333-4444-8555-666666666666';
-    const untrackedRelPath = `.harborclient/collections/${collectionUuid}-demo/requests/${untrackedUuid}-new-request.json`;
-    const untrackedAbsPath = join(repoPath, untrackedRelPath);
-    writeFileSync(untrackedAbsPath, '{"name":"Untracked request"}', 'utf-8');
+  it('rejects merging the current branch into itself', async () => {
+    const { manager } = await createTestRepo();
 
-    await manager.revertRequest(collectionUuid, untrackedUuid);
-    expect(existsSync(untrackedAbsPath)).toBe(false);
+    await expect(manager.mergeBranch('main')).rejects.toThrow(
+      'Cannot merge the current branch into itself.'
+    );
   });
 });

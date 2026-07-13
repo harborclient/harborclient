@@ -64,7 +64,8 @@ export const sidebarRecessedBadge =
  * Inset status panel for git branch and working-tree summary in the Changes section.
  * Uses sidebar-toolbar tone so it reads as content, not a second section header.
  */
-export const gitWorkingTreeStatusPanel = 'bg-sidebar-toolbar px-2 py-2';
+export const gitWorkingTreeStatusPanel =
+  'bg-sidebar-toolbar px-2 py-2 border-b border-separator mb-2';
 
 export const METHOD_CLASSES: Record<string, string> = {
   get: 'text-method-get',

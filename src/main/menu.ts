@@ -103,7 +103,7 @@ function acceleratorFor(accelerators: Map<ShortcutId, string>, id: ShortcutId): 
 }
 
 /**
- * Builds the application menu with File, Edit, View, Team, and Help menus.
+ * Builds the application menu with File, Edit, View, Team, Git, and Help menus.
  *
  * @param window - Browser window that receives custom menu actions.
  * @param sidebarVisible - Whether the sidebar checkbox should appear checked.
@@ -119,6 +119,7 @@ function acceleratorFor(accelerators: Map<ShortcutId, string>, id: ShortcutId): 
  * @param designerCanUndo - Whether Designer undo is currently available.
  * @param designerCanRedo - Whether Designer redo is currently available.
  * @param tabGroupAvailable - Whether at least one saved request tab is open for tab groups.
+ * @param gitCollectionActive - Whether the active collection is git-backed.
  * @returns The constructed application menu.
  */
 export function buildMenu(
@@ -137,7 +138,8 @@ export function buildMenu(
   designerUndoRedoActive = false,
   designerCanUndo = false,
   designerCanRedo = false,
-  tabGroupAvailable = false
+  tabGroupAvailable = false,
+  gitCollectionActive = false
 ): Menu {
   const accelerators = resolveAcceleratorMap(getShortcutOverrides());
 
@@ -343,6 +345,65 @@ export function buildMenu(
           label: 'Join Shared Collection',
           accelerator: acceleratorFor(accelerators, 'join-shared-collection'),
           click: () => sendMenuAction(window, 'join-shared-collection')
+        }
+      ]
+    },
+    {
+      label: 'Git',
+      submenu: [
+        {
+          label: 'New Collection',
+          accelerator: acceleratorFor(accelerators, 'new-collection-git'),
+          click: () => sendMenuAction(window, 'new-collection-git')
+        },
+        {
+          label: 'Create Branch',
+          enabled: gitCollectionActive,
+          accelerator: acceleratorFor(accelerators, 'git-create-branch'),
+          click: () => sendMenuAction(window, 'git-create-branch')
+        },
+        {
+          label: 'Delete Branch',
+          enabled: gitCollectionActive,
+          accelerator: acceleratorFor(accelerators, 'git-delete-branch'),
+          click: () => sendMenuAction(window, 'git-delete-branch')
+        },
+        { type: 'separator' },
+        {
+          label: 'Commit',
+          enabled: gitCollectionActive,
+          accelerator: acceleratorFor(accelerators, 'git-commit'),
+          click: () => sendMenuAction(window, 'git-commit')
+        },
+        {
+          label: 'Merge',
+          enabled: gitCollectionActive,
+          accelerator: acceleratorFor(accelerators, 'git-merge'),
+          click: () => sendMenuAction(window, 'git-merge')
+        },
+        {
+          label: 'Fetch',
+          enabled: gitCollectionActive,
+          accelerator: acceleratorFor(accelerators, 'git-fetch'),
+          click: () => sendMenuAction(window, 'git-fetch')
+        },
+        {
+          label: 'Pull',
+          enabled: gitCollectionActive,
+          accelerator: acceleratorFor(accelerators, 'git-pull'),
+          click: () => sendMenuAction(window, 'git-pull')
+        },
+        {
+          label: 'Push',
+          enabled: gitCollectionActive,
+          accelerator: acceleratorFor(accelerators, 'git-push'),
+          click: () => sendMenuAction(window, 'git-push')
+        },
+        { type: 'separator' },
+        {
+          label: 'Settings',
+          accelerator: acceleratorFor(accelerators, 'git-settings'),
+          click: () => sendMenuAction(window, 'git-settings')
         }
       ]
     },

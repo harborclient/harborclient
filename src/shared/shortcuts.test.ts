@@ -226,6 +226,10 @@ describe('validateShortcutOverrides', () => {
   it('allows standalone function keys', () => {
     expect(validateShortcutOverrides({ 'toggle-fullscreen': 'F11' }).valid).toBe(true);
   });
+
+  it('ignores unbound shortcuts with empty accelerators', () => {
+    expect(validateShortcutOverrides({ 'git-commit': '' }).valid).toBe(true);
+  });
 });
 
 describe('formatAcceleratorDisplay', () => {

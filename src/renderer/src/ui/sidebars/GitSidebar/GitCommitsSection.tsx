@@ -32,7 +32,7 @@ export function GitCommitsSection({ connectionId, refreshNonce }: Props): JSX.El
   }, [connectionId, refreshNonce]);
 
   if (entries.length === 0) {
-    return <div className="px-2 pb-2 text-[14px] text-muted">No commits yet</div>;
+    return <div className="px-2 pb-2 text-muted text-center mt-3">&lt;No commits&gt;</div>;
   }
 
   return (

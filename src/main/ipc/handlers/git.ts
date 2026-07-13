@@ -1,6 +1,7 @@
 import { shell } from 'electron';
 import * as git from 'isomorphic-git';
-import fs from 'fs';
+import fs, { existsSync } from 'fs';
+import { spawn } from 'child_process';
 import { GitStorage } from '#/main/storage/GitStorage';
 import type { IStorage } from '#/main/storage/IStorage';
 import { RoutingStorage } from '#/main/storage/RoutingStorage';
@@ -28,7 +29,6 @@ import {
 import { normalizeGitRemoteToHttps } from '#/shared/gitUrl';
 import { buildGitDiff, type GitDiffResult } from '#/main/git/gitDiff';
 import { getGeneralSettings } from '#/main/settings/generalSettings';
-import type { GitRequestDiffResult } from '#/shared/types';
 
 /**
  * Returns a RoutingStorage instance or throws when git IPC is unavailable.
@@ -117,42 +117,6 @@ export function registerGitHandlers(db: IStorage): void {
     }
   );
 
-  // Returns per-request git status for one collection.
-  handle('git:requestStatuses', ipcArgSchemas.gitRequestStatuses, async (_event, args) => {
-    const gitDb = requireGitStorage(db, args.connectionId);
-    return gitDb.syncManager.listRequestStatuses(args.collectionUuid);
-  });
-
-  // Returns per-document git status for one collection.
-  handle('git:documentStatuses', ipcArgSchemas.gitDocumentStatuses, async (_event, args) => {
-    const gitDb = requireGitStorage(db, args.connectionId);
-    return gitDb.syncManager.listDocumentStatuses(args.collectionUuid);
-  });
-
-  // Stages working-tree changes for one request.
-  handle('git:addRequest', ipcArgSchemas.gitAddRequest, async (_event, args) => {
-    const gitDb = requireGitStorage(db, args.connectionId);
-    await gitDb.syncManager.stageRequest(args.collectionUuid, args.requestUuid);
-  });
-
-  // Unstages staged changes for one request.
-  handle('git:removeRequest', ipcArgSchemas.gitRemoveRequest, async (_event, args) => {
-    const gitDb = requireGitStorage(db, args.connectionId);
-    await gitDb.syncManager.unstageRequest(args.collectionUuid, args.requestUuid);
-  });
-
-  // Stages working-tree changes for one markdown document.
-  handle('git:addDocument', ipcArgSchemas.gitAddDocument, async (_event, args) => {
-    const gitDb = requireGitStorage(db, args.connectionId);
-    await gitDb.syncManager.stageDocument(args.collectionUuid, args.documentUuid);
-  });
-
-  // Unstages staged changes for one markdown document.
-  handle('git:removeDocument', ipcArgSchemas.gitRemoveDocument, async (_event, args) => {
-    const gitDb = requireGitStorage(db, args.connectionId);
-    await gitDb.syncManager.unstageDocument(args.collectionUuid, args.documentUuid);
-  });
-
   // Returns local branch names for a git connection.
   handle('git:listBranches', ipcArgSchemas.gitListBranches, async (_event, connectionId) => {
     const gitDb = requireGitStorage(db, connectionId);
@@ -168,6 +132,18 @@ export function registerGitHandlers(db: IStorage): void {
     );
   });
 
+  // Deletes a local branch that is not currently checked out.
+  handle('git:deleteBranch', ipcArgSchemas.gitDeleteBranch, async (_event, connectionId, name) => {
+    const gitDb = requireGitStorage(db, connectionId);
+    await gitDb.syncManager.deleteBranch(name);
+  });
+
+  // Fetches from the configured remote without merging.
+  handle('git:fetch', ipcArgSchemas.connectionId, async (_event, connectionId) => {
+    const gitDb = requireGitStorage(db, connectionId);
+    await gitDb.syncManager.fetch();
+  });
+
   // Checks out an existing branch when the working tree is clean, then reloads.
   handle(
     'git:checkoutBranch',
@@ -178,6 +154,68 @@ export function registerGitHandlers(db: IStorage): void {
       await syncAndReloadGitRegistry(gitDb, router, connectionId, () =>
         gitDb.syncManager.checkoutBranch(name)
       );
+    }
+  );
+
+  // Merges another local branch into the current branch and reloads the registry.
+  handle('git:merge', ipcArgSchemas.gitMergeBranch, async (_event, connectionId, name) => {
+    const router = requireRoutingStorage(db);
+    const gitDb = requireGitStorage(db, connectionId);
+    const result = await gitDb.syncManager.mergeBranch(name);
+
+    try {
+      await gitDb.reloadFromDisk();
+      await router.reconcileGitRegistry(connectionId);
+    } catch (reloadError) {
+      if (result.conflictCount === 0) {
+        throw reloadError;
+      }
+      console.warn('Failed to reload git registry after merge conflicts:', reloadError);
+    }
+
+    return result;
+  });
+
+  // Reads raw text from one repository-relative conflict file.
+  handle('git:readConflictFile', ipcArgSchemas.gitReadConflictFile, async (_event, args) => {
+    const gitDb = requireGitStorage(db, args.connectionId);
+    const content = await gitDb.syncManager.readRepoFile(args.filePath);
+    return { path: args.filePath, content };
+  });
+
+  // Writes one repository-relative conflict file and stages it.
+  handle('git:writeConflictFile', ipcArgSchemas.gitWriteConflictFile, async (_event, args) => {
+    const gitDb = requireGitStorage(db, args.connectionId);
+    await gitDb.syncManager.writeRepoFile(args.filePath, args.content);
+    await gitDb.syncManager.stageFile(args.filePath);
+  });
+
+  // Launches the configured external merge editor for one conflicted file.
+  handle(
+    'git:openExternalMergeEditor',
+    ipcArgSchemas.gitOpenExternalMergeEditor,
+    async (_event, args) => {
+      const { externalMergeEditorPath } = getGeneralSettings();
+      const executable = externalMergeEditorPath.trim();
+      if (!executable) {
+        throw new Error('No external merge editor configured in Settings → Git.');
+      }
+
+      const gitDb = requireGitStorage(db, args.connectionId);
+      const absolutePath = `${gitDb.syncManager.repoDir}/${args.filePath.replace(/\\/g, '/')}`;
+      if (!existsSync(absolutePath)) {
+        throw new Error(`Conflict file not found: ${args.filePath}`);
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        const child = spawn(executable, [absolutePath], {
+          detached: true,
+          stdio: 'ignore'
+        });
+        child.once('error', reject);
+        child.unref();
+        resolve();
+      });
     }
   );
 
@@ -211,102 +249,6 @@ export function registerGitHandlers(db: IStorage): void {
   handle('git:commitDetail', ipcArgSchemas.gitCommitDetail, async (_event, connectionId, oid) => {
     const gitDb = requireGitStorage(db, connectionId);
     return gitDb.syncManager.readCommitDetail(oid);
-  });
-
-  // Returns a parent-to-commit diff for one request or document in a commit.
-  handle('git:commitResourceDiff', ipcArgSchemas.gitCommitResourceDiff, async (_event, args) => {
-    const gitDb = requireGitStorage(db, args.connectionId);
-    const detail = await gitDb.syncManager.readCommitDetail(args.oid);
-    const resourceChange = detail.files.find((entry) => {
-      if (args.kind === 'request' && entry.kind === 'request') {
-        return (
-          entry.collectionUuid.toLowerCase() === args.collectionUuid.trim().toLowerCase() &&
-          entry.requestUuid.toLowerCase() === args.resourceUuid.toLowerCase()
-        );
-      }
-      if (args.kind === 'document' && entry.kind === 'document') {
-        return (
-          entry.collectionUuid.toLowerCase() === args.collectionUuid.trim().toLowerCase() &&
-          entry.documentUuid.toLowerCase() === args.resourceUuid.toLowerCase()
-        );
-      }
-      return false;
-    });
-
-    if (resourceChange == null || resourceChange.kind === 'file') {
-      return {
-        requestName: 'Resource',
-        files: [],
-        error: 'This resource was not changed in the selected commit.'
-      } satisfies GitRequestDiffResult;
-    }
-
-    const resourceName =
-      resourceChange.kind === 'request' ? resourceChange.name : resourceChange.name;
-
-    return gitDb.syncManager.buildCommitResourceDiff(
-      args.oid,
-      args.collectionUuid,
-      args.resourceUuid,
-      args.kind,
-      resourceName
-    );
-  });
-
-  // Returns a working-tree diff for one request in a collection.
-  handle('git:requestDiff', ipcArgSchemas.gitRequestDiff, async (_event, args) => {
-    const router = requireRoutingStorage(db);
-    const gitDb = requireGitStorage(db, args.connectionId);
-    const collection = await router.findCollectionByUuid(args.collectionUuid.trim());
-    if (!collection) {
-      return {
-        requestName: 'Request',
-        files: [],
-        error: `Collection not found for uuid "${args.collectionUuid}".`
-      } satisfies GitRequestDiffResult;
-    }
-
-    const requests = await router.listRequests(collection.id);
-    const request = requests.find((entry) => entry.uuid === args.requestUuid);
-    const requestName = request?.name ?? 'Request';
-
-    return gitDb.syncManager.buildRequestDiff(args.collectionUuid, args.requestUuid, requestName);
-  });
-
-  // Discards working-tree and staged changes for one request.
-  handle('git:revertRequest', ipcArgSchemas.gitRevertRequest, async (_event, args) => {
-    const gitDb = requireGitStorage(db, args.connectionId);
-    await gitDb.syncManager.revertRequest(args.collectionUuid, args.requestUuid);
-  });
-
-  // Returns a working-tree diff for one markdown document.
-  handle('git:documentDiff', ipcArgSchemas.gitDocumentDiff, async (_event, args) => {
-    const router = requireRoutingStorage(db);
-    const gitDb = requireGitStorage(db, args.connectionId);
-    const collection = await router.findCollectionByUuid(args.collectionUuid.trim());
-    if (!collection) {
-      return {
-        requestName: 'Document',
-        files: [],
-        error: `Collection not found for uuid "${args.collectionUuid}".`
-      } satisfies GitRequestDiffResult;
-    }
-
-    const documents = await router.listDocuments(collection.id);
-    const document = documents.find((entry) => entry.uuid === args.documentUuid);
-    const documentName = document?.name ?? 'Document';
-
-    return gitDb.syncManager.buildDocumentDiff(
-      args.collectionUuid,
-      args.documentUuid,
-      documentName
-    );
-  });
-
-  // Discards working-tree and staged changes for one markdown document.
-  handle('git:revertDocument', ipcArgSchemas.gitRevertDocument, async (_event, args) => {
-    const gitDb = requireGitStorage(db, args.connectionId);
-    await gitDb.syncManager.revertDocument(args.collectionUuid, args.documentUuid);
   });
 
   // Returns uncommitted HarborClient-tree diffs for a git-backed collection.

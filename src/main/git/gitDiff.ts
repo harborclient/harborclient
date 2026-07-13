@@ -2,6 +2,7 @@ import * as git from 'isomorphic-git';
 import fs, { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { truncateTextForLlm } from '#/shared/ai/chatContext';
+import { hasConflictMarkers } from '#/main/git/slug';
 
 /**
  * Default maximum number of changed files included in a git diff payload.
@@ -51,6 +52,11 @@ export interface GitDiffFileEntry {
    * Whether this file's diff was truncated by per-file or total caps.
    */
   truncated: boolean;
+
+  /**
+   * Whether the working-tree file contains unresolved merge conflict markers.
+   */
+  hasConflict: boolean;
 
   /**
    * Original diff character length before truncation, when truncated.
@@ -409,7 +415,8 @@ export async function buildSingleResourceDiff(
       path: displayPath,
       status,
       binary: true,
-      truncated: false
+      truncated: false,
+      hasConflict: hasConflictMarkers(workText)
     };
   }
 
@@ -422,6 +429,7 @@ export async function buildSingleResourceDiff(
     diff: capped.text,
     binary: false,
     truncated: capped.truncated,
+    hasConflict: hasConflictMarkers(workText),
     ...(capped.truncated ? { originalLength: capped.originalLength } : {})
   };
 }
@@ -499,10 +507,13 @@ export async function buildGitDiff(options: GitDiffOptions): Promise<GitDiffResu
         path: filepath,
         status,
         binary: true,
-        truncated: false
+        truncated: false,
+        hasConflict: false
       });
       continue;
     }
+
+    const hasConflict = hasConflictMarkers(compareText);
 
     const rawDiff = buildFileDiffText(filepath, status, headText, compareText);
     const remainingBudget = maxTotalChars - totalChars;
@@ -522,6 +533,7 @@ export async function buildGitDiff(options: GitDiffOptions): Promise<GitDiffResu
       diff: capped.text,
       binary: false,
       truncated: capped.truncated,
+      hasConflict,
       ...(capped.truncated ? { originalLength: capped.originalLength } : {})
     });
 

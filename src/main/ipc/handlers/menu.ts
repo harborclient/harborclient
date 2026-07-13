@@ -11,6 +11,7 @@ import {
   setMenuSidebarVisible,
   setMenuDesignerUndoRedo,
   setMenuTabGroupAvailable,
+  setMenuGitCollectionActive,
   setMenuThemeMenuState
 } from '#/main/appMenu';
 import { handle } from '#/main/ipc/handle';
@@ -90,6 +91,10 @@ export function registerMenuHandlers(): void {
 
   handle('menu:setTabGroupAvailable', ipcArgSchemas.menuTabGroupAvailable, (_event, available) => {
     setMenuTabGroupAvailable(available);
+  });
+
+  handle('menu:setGitCollectionActive', ipcArgSchemas.menuGitCollectionActive, (_event, active) => {
+    setMenuGitCollectionActive(active);
   });
 
   // Returns a serializable snapshot of a root application submenu for Linux in-app menus.

@@ -193,7 +193,9 @@ function normalizeGitSettings(input: Partial<GitSettings>): GitSettings {
     repoPath: input.repoPath?.trim() ?? '',
     url: input.url?.trim() ?? '',
     branch: input.branch?.trim() || DEFAULT_GIT_SETTINGS.branch,
-    subdir: input.subdir?.trim() || DEFAULT_GIT_SETTINGS.subdir,
+    // A provided-but-blank subdir means "store at the repository root", so only
+    // fall back to the default when the field is entirely absent (`??`, not `||`).
+    subdir: input.subdir?.trim() ?? DEFAULT_GIT_SETTINGS.subdir,
     oauthClientId: input.oauthClientId?.trim() || undefined,
     auth: normalizedAuth
   };

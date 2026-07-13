@@ -4,9 +4,9 @@ import { join } from 'path';
 import { describe, expect, it } from 'vitest';
 import {
   countConflictFiles,
+  exportFileBaseName,
   pullMergeConflictMessage,
-  toFileSlug,
-  uuidSlugPrefix
+  toFileSlug
 } from '#/main/git/slug';
 
 describe('git slug helpers', () => {
@@ -15,9 +15,10 @@ describe('git slug helpers', () => {
     expect(toFileSlug('---')).toBe('untitled');
   });
 
-  it('builds uuid-slug prefixes for directories and files', () => {
-    const uuid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-    expect(uuidSlugPrefix(uuid, 'Users API')).toBe(`${uuid}-users-api`);
+  it('builds kind-prefixed export base names', () => {
+    expect(exportFileBaseName('collection', 'Users API')).toBe('collection-users-api');
+    expect(exportFileBaseName('environment', 'Prod')).toBe('environment-prod');
+    expect(exportFileBaseName('snippet', 'Auth helper')).toBe('snippet-auth-helper');
   });
 
   it('counts json files containing merge conflict markers', async () => {
