@@ -28,11 +28,6 @@ interface Props {
   activeDocumentId?: number;
 
   /**
-   * Markdown document ids currently open in editor tabs.
-   */
-  openDocumentIds: ReadonlySet<number>;
-
-  /**
    * Id of the open row actions menu, if any.
    */
   openMenuId: string | null;
@@ -80,7 +75,6 @@ interface Props {
 export function DocumentRow({
   doc,
   activeDocumentId,
-  openDocumentIds,
   openMenuId,
   onOpenChange,
   onLoadDocument,
@@ -160,7 +154,7 @@ export function DocumentRow({
           visible: showColorDots,
           label: `Color for ${doc.name}`
         }}
-        selected={activeDocumentId === doc.id || openDocumentIds.has(doc.id)}
+        selected={activeDocumentId === doc.id}
         onContextMenu={(event) => {
           event.preventDefault();
           event.stopPropagation();

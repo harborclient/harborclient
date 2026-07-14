@@ -1186,7 +1186,6 @@ export function Collections(): JSX.Element {
                                       key={`document-${doc.id}`}
                                       doc={doc}
                                       activeDocumentId={activeDocumentId}
-                                      openDocumentIds={openDocumentIds}
                                       openMenuId={openMenuId}
                                       onOpenChange={setOpenMenuId}
                                       onLoadDocument={(doc) => {
@@ -1234,7 +1233,6 @@ export function Collections(): JSX.Element {
                                         activeRequestId={activeRequestId}
                                         selected={selectedRequestIds.has(req.id)}
                                         selectionCount={selectedRequestIds.size}
-                                        openRequestIds={openRequestIds}
                                         openMenuId={openMenuId}
                                         onOpenChange={setOpenMenuId}
                                         onRowClick={handleRequestRowClick}
@@ -1518,7 +1516,6 @@ export function Collections(): JSX.Element {
                                             key={`document-${doc.id}`}
                                             doc={doc}
                                             activeDocumentId={activeDocumentId}
-                                            openDocumentIds={openDocumentIds}
                                             openMenuId={openMenuId}
                                             onOpenChange={setOpenMenuId}
                                             onLoadDocument={(doc) => {
@@ -1570,7 +1567,6 @@ export function Collections(): JSX.Element {
                                                 activeRequestId={activeRequestId}
                                                 selected={selectedRequestIds.has(req.id)}
                                                 selectionCount={selectedRequestIds.size}
-                                                openRequestIds={openRequestIds}
                                                 openMenuId={openMenuId}
                                                 onOpenChange={setOpenMenuId}
                                                 onRowClick={handleRequestRowClick}

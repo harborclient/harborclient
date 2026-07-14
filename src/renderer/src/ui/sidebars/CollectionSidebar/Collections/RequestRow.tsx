@@ -53,11 +53,6 @@ interface Props {
   selectionCount: number;
 
   /**
-   * Saved request ids currently open in request tabs.
-   */
-  openRequestIds: ReadonlySet<number>;
-
-  /**
    * Id of the open row actions menu, if any.
    */
   openMenuId: string | null;
@@ -176,7 +171,6 @@ export function RequestRow({
   activeRequestId,
   selected,
   selectionCount,
-  openRequestIds,
   openMenuId,
   onOpenChange,
   onRowClick,
@@ -236,7 +230,7 @@ export function RequestRow({
 
   const menuId = `request-${req.id}`;
   const showBulkMenu = selected && selectionCount > 1;
-  const rowHighlighted = activeRequestId === req.id || selected || openRequestIds.has(req.id);
+  const rowHighlighted = activeRequestId === req.id || selected;
 
   const baseMenuGroups = useMemo(() => {
     const reorderItems = [
