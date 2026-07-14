@@ -1,5 +1,6 @@
 import * as git from 'isomorphic-git';
 import fs from 'fs';
+import { readBlobBytesFromTree } from '#/main/git/gitBlob';
 import {
   classifyHarborChangePath,
   COLLECTION_MANIFEST_FILE,
@@ -215,30 +216,7 @@ async function readBlobTextAtCommit(
     return null;
   }
 
-  let content: Uint8Array | null = null;
-  await git.walk({
-    fs,
-    dir: repoPath,
-    trees: [git.TREE({ ref: commitOid })],
-    /**
-     * Captures blob bytes when the walked path matches the target file.
-     *
-     * @param path - Repository-relative path from the walker.
-     * @param trees - Tuple of tree entries for the current commit.
-     */
-    map: async (path, [tree]) => {
-      if (path !== filepath || tree == null) {
-        return;
-      }
-      const type = await tree.type();
-      if (type === 'blob') {
-        const blob = await tree.content();
-        if (blob instanceof Uint8Array) {
-          content = blob;
-        }
-      }
-    }
-  });
+  const content = await readBlobBytesFromTree(repoPath, git.TREE({ ref: commitOid }), filepath);
 
   if (content == null) {
     return null;

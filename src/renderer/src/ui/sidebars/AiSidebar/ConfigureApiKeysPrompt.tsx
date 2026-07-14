@@ -17,37 +17,14 @@ export function ConfigureApiKeysPrompt(): JSX.Element {
     dispatch(openPageTab({ type: 'settings', section: 'ai' }));
   };
 
-  /**
-   * Opens the Team Hub page so the user can connect to a hub with LLM access.
-   */
-  const handleOpenTeamHubs = (): void => {
-    dispatch(openPageTab({ type: 'team-hubs' }));
-  };
-
   return (
     <EmptyState variant="centered">
-      <p className="m-0">
-        Configure personal API keys or connect to a Team Hub with LLM access to use AI features.{' '}
-        <button
-          type="button"
-          className="cursor-pointer border-none bg-transparent p-0 text-[14px] text-accent hover:underline app-no-drag"
-          onClick={handleOpenAiSettings}
-        >
-          Open AI settings
-        </button>{' '}
-        or{' '}
-        <button
-          type="button"
-          className="cursor-pointer border-none bg-transparent p-0 text-[14px] text-accent hover:underline app-no-drag"
-          onClick={handleOpenTeamHubs}
-        >
-          connect a Team Hub
-        </button>
-        .
+      <p className="m-0 flex flex-col">
+        No chat messages.
+        <Button type="button" className="mt-4" onClick={handleOpenAiSettings}>
+          Settings
+        </Button>
       </p>
-      <Button type="button" className="mt-4" onClick={handleOpenAiSettings}>
-        Settings
-      </Button>
     </EmptyState>
   );
 }

@@ -875,13 +875,7 @@ export function Collections(): JSX.Element {
                         className={sidebarRecessedBadge}
                         aria-label={`Open source control (${collectionChangedCount} uncommitted change(s))`}
                         onPointerDown={stopSortableDragPointerDown}
-                        onClick={() =>
-                          onOpenSourceControl(
-                            collectionConnectionId,
-                            connectionName ?? 'Git repository',
-                            collection.uuid
-                          )
-                        }
+                        onClick={() => onOpenSourceControl()}
                       >
                         {collectionChangedCount}
                       </button>
@@ -925,12 +919,7 @@ export function Collections(): JSX.Element {
                                       [
                                         {
                                           label: 'Commit',
-                                          onSelect: () =>
-                                            onOpenSourceControl(
-                                              collectionConnectionId,
-                                              connectionName,
-                                              collection.uuid
-                                            )
+                                          onSelect: () => onOpenSourceControl()
                                         },
                                         {
                                           label: 'Branch',

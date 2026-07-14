@@ -294,6 +294,38 @@ export class RoutingStorage implements IStorage {
   }
 
   /**
+   * Looks up a collection in a git-backed connection without throwing on miss.
+   *
+   * @param connectionId - Git connection id.
+   * @param collectionUuid - Stable collection uuid.
+   */
+  private async lookupGitCollection(
+    connectionId: string,
+    collectionUuid: string
+  ): Promise<{ gitDb: GitStorage; collection: Collection } | null> {
+    const gitDb = this.requireGitStorage(connectionId);
+    const collection = await gitDb.findCollectionByUuid(collectionUuid.trim());
+    return collection ? { gitDb, collection } : null;
+  }
+
+  /**
+   * Resolves git storage and collection or throws when the uuid is unknown.
+   *
+   * @param connectionId - Git connection id.
+   * @param collectionUuid - Stable collection uuid.
+   */
+  private async resolveGitCollection(
+    connectionId: string,
+    collectionUuid: string
+  ): Promise<{ gitDb: GitStorage; collection: Collection }> {
+    const resolved = await this.lookupGitCollection(connectionId, collectionUuid);
+    if (!resolved) {
+      throw new Error(`Collection not found for uuid "${collectionUuid}".`);
+    }
+    return resolved;
+  }
+
+  /**
    * Returns per-item git status for requests and markdown documents in one collection.
    *
    * @param connectionId - Git connection id.
@@ -303,11 +335,7 @@ export class RoutingStorage implements IStorage {
     connectionId: string,
     collectionUuid: string
   ): Promise<Record<string, GitRequestFileStatus>> {
-    const gitDb = this.requireGitStorage(connectionId);
-    const collection = await gitDb.findCollectionByUuid(collectionUuid.trim());
-    if (!collection) {
-      throw new Error(`Collection not found for uuid "${collectionUuid}".`);
-    }
+    const { gitDb, collection } = await this.resolveGitCollection(connectionId, collectionUuid);
     return gitDb.getItemGitStatuses(collection.id);
   }
 
@@ -318,12 +346,11 @@ export class RoutingStorage implements IStorage {
    * @param collectionUuid - Stable collection uuid.
    */
   async getGitChangedItemCount(connectionId: string, collectionUuid: string): Promise<number> {
-    const gitDb = this.requireGitStorage(connectionId);
-    const collection = await gitDb.findCollectionByUuid(collectionUuid.trim());
-    if (!collection) {
+    const resolved = await this.lookupGitCollection(connectionId, collectionUuid);
+    if (!resolved) {
       return 0;
     }
-    return gitDb.getChangedItemCount(collection.id);
+    return resolved.gitDb.getChangedItemCount(resolved.collection.id);
   }
 
   /**
@@ -338,11 +365,7 @@ export class RoutingStorage implements IStorage {
     collectionUuid: string,
     itemUuid: string
   ): Promise<void> {
-    const gitDb = this.requireGitStorage(connectionId);
-    const collection = await gitDb.findCollectionByUuid(collectionUuid.trim());
-    if (!collection) {
-      throw new Error(`Collection not found for uuid "${collectionUuid}".`);
-    }
+    const { gitDb, collection } = await this.resolveGitCollection(connectionId, collectionUuid);
     await gitDb.stageItem(collection.id, itemUuid.trim());
   }
 
@@ -358,11 +381,7 @@ export class RoutingStorage implements IStorage {
     collectionUuid: string,
     itemUuid: string
   ): Promise<void> {
-    const gitDb = this.requireGitStorage(connectionId);
-    const collection = await gitDb.findCollectionByUuid(collectionUuid.trim());
-    if (!collection) {
-      throw new Error(`Collection not found for uuid "${collectionUuid}".`);
-    }
+    const { gitDb, collection } = await this.resolveGitCollection(connectionId, collectionUuid);
     await gitDb.unstageItem(collection.id, itemUuid.trim());
   }
 
@@ -378,11 +397,7 @@ export class RoutingStorage implements IStorage {
     collectionUuid: string,
     filePath: string
   ): Promise<void> {
-    const gitDb = this.requireGitStorage(connectionId);
-    const collection = await gitDb.findCollectionByUuid(collectionUuid.trim());
-    if (!collection) {
-      throw new Error(`Collection not found for uuid "${collectionUuid}".`);
-    }
+    const { gitDb, collection } = await this.resolveGitCollection(connectionId, collectionUuid);
 
     const trimmedPath = filePath.trim();
     const status = await gitDb.syncManager.getStatus();

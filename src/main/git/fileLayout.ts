@@ -398,6 +398,36 @@ export function assertCollectionDirAvailable(
 }
 
 /**
+ * Classifies one file path inside a collection folder.
+ *
+ * @param innerPath - Path relative to the collection directory.
+ */
+function classifyCollectionInnerPath(
+  innerPath: string
+): Pick<ClassifiedHarborChangePath, 'kind' | 'fileName'> | null {
+  if (innerPath === COLLECTION_MANIFEST_FILE) {
+    return { kind: 'collectionMeta', fileName: innerPath };
+  }
+  if (innerPath.startsWith('req-') && innerPath.endsWith('.json')) {
+    return { kind: 'request', fileName: innerPath };
+  }
+  if (innerPath.endsWith('.md') && !innerPath.includes('/')) {
+    return { kind: 'document', fileName: innerPath };
+  }
+  return null;
+}
+
+/**
+ * Returns whether a collection-inner path is a request or markdown document file.
+ *
+ * @param innerPath - Path relative to the collection directory.
+ */
+export function isCollectionRequestOrDocumentFile(innerPath: string): boolean {
+  const classified = classifyCollectionInnerPath(innerPath);
+  return classified != null && (classified.kind === 'request' || classified.kind === 'document');
+}
+
+/**
  * Classifies a repository-relative HarborClient path for git UI filtering.
  *
  * @param filepath - Repository-relative path.
@@ -438,18 +468,9 @@ export function classifyHarborChangePath(
     return { kind: 'other', fileName: relative };
   }
 
-  const fileName = innerPath.includes('/')
-    ? innerPath.slice(innerPath.lastIndexOf('/') + 1)
-    : innerPath;
-
-  if (innerPath === COLLECTION_MANIFEST_FILE) {
-    return { kind: 'collectionMeta', collectionDir, fileName };
-  }
-  if (innerPath.startsWith('req-') && innerPath.endsWith('.json')) {
-    return { kind: 'request', collectionDir, fileName: innerPath };
-  }
-  if (innerPath.endsWith('.md') && !innerPath.includes('/')) {
-    return { kind: 'document', collectionDir, fileName: innerPath };
+  const innerClassified = classifyCollectionInnerPath(innerPath);
+  if (innerClassified) {
+    return { ...innerClassified, collectionDir };
   }
 
   return { kind: 'other', fileName: innerPath };

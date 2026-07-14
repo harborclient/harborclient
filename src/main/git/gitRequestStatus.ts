@@ -8,6 +8,11 @@ import type { GitRequestFileStatus } from '#/shared/types';
 export type GitMatrixRow = [string, number, number, number];
 
 /**
+ * Added, modified, or deleted relative to HEAD for one matrix comparison axis.
+ */
+export type GitMatrixChangeStatus = 'added' | 'modified' | 'deleted';
+
+/**
  * Per-file git change flags derived from a statusMatrix row.
  */
 export interface GitRequestRowFlags {
@@ -25,6 +30,54 @@ export interface GitRequestRowFlags {
    * Whether the file is new and not yet tracked in HEAD.
    */
   isUntracked: boolean;
+
+  /**
+   * Change type comparing HEAD to the working tree, or null when they match.
+   */
+  workdirChangeStatus: GitMatrixChangeStatus | null;
+
+  /**
+   * Change type comparing HEAD to the index, or null when they match.
+   */
+  stagedChangeStatus: GitMatrixChangeStatus | null;
+}
+
+/**
+ * Derives a working-tree change label from HEAD and workdir stage flags.
+ *
+ * @param head - HEAD stage flag (0 absent, 1 present).
+ * @param workdir - Workdir stage flag (0 absent, 1 same, 2 different).
+ */
+function deriveWorkdirChangeStatus(head: number, workdir: number): GitMatrixChangeStatus | null {
+  if (head === 0 && workdir !== 0) {
+    return 'added';
+  }
+  if (head !== 0 && workdir === 0) {
+    return 'deleted';
+  }
+  if (head !== 0 && workdir === 2) {
+    return 'modified';
+  }
+  return null;
+}
+
+/**
+ * Derives a staged change label from HEAD and index stage flags.
+ *
+ * @param head - HEAD stage flag (0 absent, 1 present).
+ * @param stage - Index stage flag (0 absent, 1 present).
+ */
+function deriveStagedChangeStatus(head: number, stage: number): GitMatrixChangeStatus | null {
+  if (head === 0 && stage !== 0) {
+    return 'added';
+  }
+  if (head !== 0 && stage === 0) {
+    return 'deleted';
+  }
+  if (head !== 0 && stage !== 0 && head !== stage) {
+    return 'modified';
+  }
+  return null;
 }
 
 /**
@@ -47,7 +100,9 @@ export function analyzeMatrixRow(row: GitMatrixRow): GitRequestRowFlags | null {
   return {
     hasStagedChanges,
     hasUnstagedChanges,
-    isUntracked
+    isUntracked,
+    workdirChangeStatus: deriveWorkdirChangeStatus(head, workdir),
+    stagedChangeStatus: deriveStagedChangeStatus(head, stage)
   };
 }
 

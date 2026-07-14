@@ -33,13 +33,9 @@ export interface SidebarGitContextValue {
   isActiveCollectionGit: boolean;
 
   /**
-   * Opens the Git sidebar for a git connection.
-   *
-   * @param connectionId - Git connection id.
-   * @param connectionName - Display name for the connection.
-   * @param collectionUuid - Collection uuid used for git operations.
+   * Opens the Git sidebar.
    */
-  openSourceControl: (connectionId: string, connectionName: string, collectionUuid: string) => void;
+  openSourceControl: () => void;
 
   /**
    * Refreshes git status and collection data after git operations.

@@ -6,9 +6,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   buildGitDiff,
   buildSingleResourceDiff,
-  isCollectionScopedHarborChange
+  makeCollectionScopedFilter
 } from '#/main/git/gitDiff';
-import { classifyHarborChangePath } from '#/main/git/fileLayout';
 
 const cleanups: Array<() => void> = [];
 
@@ -188,10 +187,7 @@ describe('buildGitDiff', () => {
       repoPath,
       harborSubdir: '.harborclient',
       enrichDisplayNames: true,
-      filepathFilter: (filepath) => {
-        const classified = classifyHarborChangePath(filepath, '.harborclient');
-        return classified != null && isCollectionScopedHarborChange(classified, 'collection-api');
-      }
+      filepathFilter: makeCollectionScopedFilter('.harborclient', 'collection-api')
     });
 
     expect(diff.files.map((file) => file.path)).toEqual([

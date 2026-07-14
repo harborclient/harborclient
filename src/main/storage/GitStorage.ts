@@ -18,6 +18,7 @@ import {
   readAllEnvironments,
   readAllSnippets,
   assertDocumentFilenameAvailable,
+  isCollectionRequestOrDocumentFile,
   readCollectionFromFolder,
   readGitProviderSettings,
   readStoredDocumentRefs,
@@ -1578,10 +1579,7 @@ export class GitStorage implements IStorage {
 
     for (const [repoPath, flags] of Object.entries(pathFlags)) {
       const rel = repoPath.slice(collectionPrefix.length + 1);
-      const isReqOrDoc =
-        !rel.includes('/') &&
-        ((rel.startsWith('req-') && rel.endsWith('.json')) || rel.endsWith('.md'));
-      if (isReqOrDoc && !flags.isUntracked) {
+      if (isCollectionRequestOrDocumentFile(rel) && !flags.isUntracked) {
         count += 1;
       }
     }
@@ -1596,7 +1594,7 @@ export class GitStorage implements IStorage {
    * @param itemUuid - Stable request or document uuid.
    */
   async stageItem(collectionId: number, itemUuid: string): Promise<void> {
-    const repoPath = this.resolveItemRepoPath(collectionId, itemUuid);
+    const repoPath = this.getItemRepoPath(collectionId, itemUuid);
     await this.#sync.stageFile(repoPath);
   }
 
@@ -1607,7 +1605,7 @@ export class GitStorage implements IStorage {
    * @param itemUuid - Stable request or document uuid.
    */
   async unstageItem(collectionId: number, itemUuid: string): Promise<void> {
-    const repoPath = this.resolveItemRepoPath(collectionId, itemUuid);
+    const repoPath = this.getItemRepoPath(collectionId, itemUuid);
     await this.#sync.unstageFile(repoPath);
   }
 
@@ -1687,17 +1685,6 @@ export class GitStorage implements IStorage {
    * @throws When the item is not found in the collection folder.
    */
   getItemRepoPath(collectionId: number, itemUuid: string): string {
-    return this.resolveItemRepoPath(collectionId, itemUuid);
-  }
-
-  /**
-   * Resolves one item uuid to its repository-relative file path.
-   *
-   * @param collectionId - Provider-local collection id.
-   * @param itemUuid - Stable request or document uuid.
-   * @throws When the item is not found in the collection folder.
-   */
-  private resolveItemRepoPath(collectionId: number, itemUuid: string): string {
     const normalizedUuid = resolveImportUuid(itemUuid);
     const loaded = this.requireCollection(collectionId);
     const repoPath = this.buildItemUuidToRepoPath(loaded).get(normalizedUuid);

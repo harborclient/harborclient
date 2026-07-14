@@ -27,12 +27,8 @@ import {
   testGitCredentials
 } from '#/main/git/gitOAuthScheduler';
 import { normalizeGitRemoteToHttps } from '#/shared/gitUrl';
-import {
-  buildGitDiff,
-  isCollectionScopedHarborChange,
-  type GitDiffResult
-} from '#/main/git/gitDiff';
-import { classifyHarborChangePath, resolveHarborclientRoot } from '#/main/git/fileLayout';
+import { buildGitDiff, makeCollectionScopedFilter, type GitDiffResult } from '#/main/git/gitDiff';
+import { resolveHarborclientRoot } from '#/main/git/fileLayout';
 import { collectionDirName } from '#/main/git/slug';
 import { buildFileCommitDiff, readFileCommitHistory } from '#/main/git/gitFileHistory';
 import type {
@@ -332,22 +328,12 @@ export function registerGitHandlers(db: IStorage): void {
 
   // Returns uncommitted HarborClient-tree diffs for a git-backed collection.
   handle('git:diff', ipcArgSchemas.gitDiff, async (_event, args) => {
-    const router = requireRoutingStorage(db);
-    const collection = await router.findCollectionByUuid(args.collectionUuid.trim());
-    if (!collection) {
-      return JSON.stringify({
-        error: `Collection not found for uuid "${args.collectionUuid}".`
-      });
+    const resolved = await resolveGitCollection(db, args.collectionUuid);
+    if ('error' in resolved) {
+      return JSON.stringify({ error: resolved.error });
     }
 
-    const connectionId = collection.connectionId?.trim();
-    if (!connectionId) {
-      return JSON.stringify({
-        error: `Collection "${collection.name}" is not stored in a git-backed connection.`
-      });
-    }
-
-    const gitDb = requireGitStorage(db, connectionId);
+    const { collection, gitDb, connectionId } = resolved;
     const status = await gitDb.syncManager.getStatus();
     const collectionDir = collectionDirName(collection.name);
     const diff = await buildGitDiff({
@@ -359,13 +345,7 @@ export function registerGitHandlers(db: IStorage): void {
       stagedOnly: args.stagedOnly ?? false,
       excludeUntracked: args.excludeUntracked ?? false,
       enrichDisplayNames: true,
-      filepathFilter: (filepath) => {
-        const classified = classifyHarborChangePath(filepath, status.harborSubdir);
-        if (classified == null) {
-          return false;
-        }
-        return isCollectionScopedHarborChange(classified, collectionDir);
-      }
+      filepathFilter: makeCollectionScopedFilter(status.harborSubdir, collectionDir)
     });
 
     return JSON.stringify({
@@ -404,13 +384,7 @@ export function registerGitHandlers(db: IStorage): void {
         harborSubdir: status.harborSubdir,
         maxFiles: 100,
         enrichDisplayNames: true,
-        filepathFilter: (filepath) => {
-          const classified = classifyHarborChangePath(filepath, status.harborSubdir);
-          if (classified == null) {
-            return false;
-          }
-          return isCollectionScopedHarborChange(classified, collectionDir);
-        }
+        filepathFilter: makeCollectionScopedFilter(status.harborSubdir, collectionDir)
       })
     ]);
 
@@ -674,13 +648,7 @@ export function registerGitHandlers(db: IStorage): void {
 
   // Reads the origin remote URL from a local repository path, normalized to HTTPS.
   handle('git:readRemoteUrl', ipcArgSchemas.readGitRemoteUrl, async (_event, repoPath) => {
-    try {
-      const remotes = await git.listRemotes({ fs, dir: repoPath });
-      const origin = remotes.find((remote) => remote.remote === 'origin') ?? remotes[0];
-      return origin ? normalizeGitRemoteToHttps(origin.url) : null;
-    } catch {
-      return null;
-    }
+    return readRepoRemoteUrl(repoPath);
   });
 
   // Returns whether a directory is the root of a git working tree.

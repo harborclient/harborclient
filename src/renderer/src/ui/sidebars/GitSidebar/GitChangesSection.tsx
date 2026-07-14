@@ -17,7 +17,6 @@ import {
   sourceRow
 } from '#/renderer/src/ui/shared/classes';
 import { faMarkdown } from '#/renderer/src/fontawesome';
-import { buildGitChangeRowMenuGroups } from '#/renderer/src/ui/sidebars/GitSidebar/buildGitChangeRowMenuGroups';
 import { GitDiffFileView } from '#/renderer/src/ui/sidebars/GitSidebar/modals/GitDiffFileView';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
@@ -284,7 +283,15 @@ export function GitChangesSection({
               const menuId = `git-change-${file.path}`;
               const showRowMenu =
                 file.resourceKind === 'request' || file.resourceKind === 'document';
-              const menuGroups = buildGitChangeRowMenuGroups(() => handleRevertFile(file));
+              const menuGroups = [
+                [
+                  {
+                    label: 'Revert changes',
+                    variant: 'danger' as const,
+                    onSelect: () => handleRevertFile(file)
+                  }
+                ]
+              ];
 
               return (
                 <li

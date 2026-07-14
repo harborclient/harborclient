@@ -182,17 +182,11 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
   );
 
   /**
-   * Opens the Git sidebar for a git-backed collection.
+   * Opens the Git sidebar.
    */
-  const openSourceControl = useCallback(
-    (connectionId: string, connectionName: string, collectionUuid: string): void => {
-      void connectionId;
-      void connectionName;
-      void collectionUuid;
-      dispatch(openGitSidebar());
-    },
-    [dispatch]
-  );
+  const openSourceControl = useCallback((): void => {
+    dispatch(openGitSidebar());
+  }, [dispatch]);
 
   /**
    * Opens the create-branch modal for a git connection.
@@ -298,19 +292,14 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
   );
 
   /**
-   * Opens the Git sidebar for the active git-backed collection.
+   * Opens the Git sidebar for commit workflows on the active collection.
+   *
+   * Menu items and action commands gate visibility via `isActiveCollectionGit`;
+   * no resolved git context is required because this only toggles navigation.
    */
   const commitActiveCollection = useCallback((): void => {
-    if (activeGitContext == null) {
-      return;
-    }
-
-    openSourceControl(
-      activeGitContext.connectionId,
-      activeGitContext.connectionName,
-      activeGitContext.collectionUuid
-    );
-  }, [activeGitContext, openSourceControl]);
+    dispatch(openGitSidebar());
+  }, [dispatch]);
 
   /**
    * Opens the merge-branch modal for the active git-backed collection.

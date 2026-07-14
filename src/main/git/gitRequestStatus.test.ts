@@ -3,7 +3,9 @@ import {
   analyzeMatrixRow,
   countStagedAndUnstaged,
   deriveRequestFileStatus,
-  hasStagedChanges
+  hasStagedChanges,
+  type GitMatrixRow,
+  type GitRequestRowFlags
 } from '#/main/git/gitRequestStatus';
 
 describe('git request status helpers', () => {
@@ -12,7 +14,54 @@ describe('git request status helpers', () => {
     expect(flags).toEqual({
       hasStagedChanges: true,
       hasUnstagedChanges: false,
-      isUntracked: false
+      isUntracked: false,
+      workdirChangeStatus: 'modified',
+      stagedChangeStatus: 'modified'
+    });
+  });
+
+  it('returns null for clean matrix rows', () => {
+    expect(analyzeMatrixRow(['file.json', 1, 1, 1])).toBeNull();
+  });
+
+  it.each<[GitMatrixRow, Pick<GitRequestRowFlags, 'workdirChangeStatus' | 'stagedChangeStatus'>]>([
+    [['added-untracked.json', 0, 2, 0], { workdirChangeStatus: 'added', stagedChangeStatus: null }],
+    [['added-staged.json', 0, 2, 1], { workdirChangeStatus: 'added', stagedChangeStatus: 'added' }],
+    [
+      ['deleted-workdir.json', 1, 0, 1],
+      { workdirChangeStatus: 'deleted', stagedChangeStatus: null }
+    ],
+    [
+      ['deleted-staged.json', 1, 1, 0],
+      { workdirChangeStatus: null, stagedChangeStatus: 'deleted' }
+    ],
+    [
+      ['modified-workdir.json', 1, 2, 1],
+      { workdirChangeStatus: 'modified', stagedChangeStatus: null }
+    ],
+    [
+      ['modified-staged-only.json', 1, 1, 2],
+      { workdirChangeStatus: null, stagedChangeStatus: 'modified' }
+    ],
+    [
+      ['modified-both.json', 1, 2, 2],
+      { workdirChangeStatus: 'modified', stagedChangeStatus: 'modified' }
+    ]
+  ])('derives workdir and staged change labels for %s', (row, expectedStatuses) => {
+    const flags = analyzeMatrixRow(row);
+    expect(flags).not.toBeNull();
+    expect(flags?.workdirChangeStatus).toBe(expectedStatuses.workdirChangeStatus);
+    expect(flags?.stagedChangeStatus).toBe(expectedStatuses.stagedChangeStatus);
+  });
+
+  it('marks untracked files with added workdir status and no staged status', () => {
+    const flags = analyzeMatrixRow(['new.json', 0, 2, 0]);
+    expect(flags).toMatchObject({
+      isUntracked: true,
+      hasStagedChanges: false,
+      hasUnstagedChanges: true,
+      workdirChangeStatus: 'added',
+      stagedChangeStatus: null
     });
   });
 
@@ -62,10 +111,12 @@ describe('git request status helpers', () => {
   });
 
   it('derives uncommitted status when staged and unstaged changes coexist', () => {
-    const flags = {
+    const flags: GitRequestRowFlags = {
       hasStagedChanges: true,
       hasUnstagedChanges: true,
-      isUntracked: false
+      isUntracked: false,
+      workdirChangeStatus: 'modified',
+      stagedChangeStatus: 'modified'
     };
     expect(deriveRequestFileStatus(flags)).toEqual({
       displayStatus: 'uncommitted',

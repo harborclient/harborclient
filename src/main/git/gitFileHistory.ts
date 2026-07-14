@@ -1,5 +1,7 @@
 import * as git from 'isomorphic-git';
 import fs from 'fs';
+import { readBlobBytesFromTree } from '#/main/git/gitBlob';
+import { decodeBlobText } from '#/main/git/gitBlobText';
 import { GIT_DIFF_DEFAULT_MAX_CHARS_PER_FILE } from '#/main/git/gitDiff';
 import { buildFileDiffText } from '#/main/git/gitDiff';
 import { truncateTextForLlm } from '#/shared/ai/chatContext';
@@ -106,43 +108,6 @@ export async function readFileCommitHistory(
 }
 
 /**
- * Returns true when bytes look like non-text content.
- *
- * @param bytes - Raw file bytes.
- */
-function isBinaryContent(bytes: Uint8Array): boolean {
-  const sample = bytes.subarray(0, Math.min(bytes.length, 8000));
-  for (const byte of sample) {
-    if (byte === 0) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Decodes blob bytes as UTF-8 text when the content is textual.
- *
- * @param bytes - Raw blob bytes, or null when the blob is absent at the commit.
- */
-function decodeBlobText(bytes: Uint8Array | null): string | null | undefined {
-  if (bytes == null) {
-    return undefined;
-  }
-  if (bytes.length === 0) {
-    return '';
-  }
-  if (isBinaryContent(bytes)) {
-    return null;
-  }
-  try {
-    return Buffer.from(bytes).toString('utf8');
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Reads raw blob bytes for one path at a specific commit.
  *
  * @param repoPath - Absolute repository root.
@@ -154,31 +119,7 @@ async function readBlobBytesAtCommit(
   commitOid: string,
   filepath: string
 ): Promise<Uint8Array | null> {
-  let content: Uint8Array | null = null;
-  await git.walk({
-    fs,
-    dir: repoPath,
-    trees: [git.TREE({ ref: commitOid })],
-    /**
-     * Captures blob bytes when the walked path matches the target file.
-     *
-     * @param path - Repository-relative path from the walker.
-     * @param trees - Tuple of tree entries for the current commit.
-     */
-    map: async (path, [tree]) => {
-      if (path !== filepath || tree == null) {
-        return;
-      }
-      const type = await tree.type();
-      if (type === 'blob') {
-        const blob = await tree.content();
-        if (blob instanceof Uint8Array) {
-          content = blob;
-        }
-      }
-    }
-  });
-  return content;
+  return readBlobBytesFromTree(repoPath, git.TREE({ ref: commitOid }), filepath);
 }
 
 /**

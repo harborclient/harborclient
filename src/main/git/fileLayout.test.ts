@@ -23,6 +23,7 @@ import {
   ensureHarborclientLayout,
   environmentFilePath,
   exportFileName,
+  isCollectionRequestOrDocumentFile,
   isGitignoredHarborExportFileName,
   listCollectionFoldersOnDisk,
   readAllEnvironments,
@@ -293,6 +294,15 @@ describe('git file layout', () => {
       kind: 'other',
       fileName: '.gitignore'
     });
+  });
+
+  it('detects collection-inner request and document file names', () => {
+    expect(isCollectionRequestOrDocumentFile('req-health.json')).toBe(true);
+    expect(isCollectionRequestOrDocumentFile('README.md')).toBe(true);
+    expect(isCollectionRequestOrDocumentFile('collection.json')).toBe(false);
+    expect(isCollectionRequestOrDocumentFile('nested/req-health.json')).toBe(false);
+    expect(isCollectionRequestOrDocumentFile('environment-x.json')).toBe(false);
+    expect(isCollectionRequestOrDocumentFile('')).toBe(false);
   });
 
   it('resolves display names from request JSON and collection manifest metadata', () => {

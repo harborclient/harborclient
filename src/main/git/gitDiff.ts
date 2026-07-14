@@ -3,11 +3,18 @@ import fs, { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { truncateTextForLlm } from '#/shared/ai/chatContext';
 import { hasConflictMarkers } from '#/main/git/slug';
+import { readBlobBytesFromTree } from '#/main/git/gitBlob';
 import {
   classifyHarborChangePath,
   displayNameFromHarborChange,
   type ClassifiedHarborChangePath
 } from '#/main/git/fileLayout';
+import { decodeTextContent } from '#/main/git/gitBlobText';
+import {
+  analyzeMatrixRow,
+  type GitMatrixChangeStatus,
+  type GitMatrixRow
+} from '#/main/git/gitRequestStatus';
 
 /**
  * Default maximum number of changed files included in a git diff payload.
@@ -27,7 +34,7 @@ export const GIT_DIFF_DEFAULT_MAX_TOTAL_CHARS = 32_000;
 /**
  * File change status returned by git_diff.
  */
-export type GitDiffFileStatus = 'added' | 'modified' | 'deleted';
+export type GitDiffFileStatus = GitMatrixChangeStatus;
 
 /**
  * One changed file entry in a git diff result.
@@ -221,6 +228,25 @@ export function isCollectionScopedHarborChange(
 }
 
 /**
+ * Returns a filepath filter that keeps only request/document changes under one collection folder.
+ *
+ * @param harborSubdir - HarborClient subdirectory setting from sync status.
+ * @param collectionDir - On-disk collection folder name (from `collectionDirName`).
+ */
+export function makeCollectionScopedFilter(
+  harborSubdir: string,
+  collectionDir: string
+): (filepath: string) => boolean {
+  return (filepath) => {
+    const classified = classifyHarborChangePath(filepath, harborSubdir);
+    if (classified == null) {
+      return false;
+    }
+    return isCollectionScopedHarborChange(classified, collectionDir);
+  };
+}
+
+/**
  * Builds a repository-relative prefix for one collection folder.
  *
  * @param harborSubdir - HarborClient subdirectory setting.
@@ -292,73 +318,13 @@ async function resolveDiffDisplayMeta(
 }
 
 /**
- * Returns whether a byte buffer should be treated as binary for diff output.
- *
- * @param bytes - File contents from HEAD or the working tree.
- */
-function isBinaryContent(bytes: Uint8Array): boolean {
-  const sample = bytes.slice(0, 8192);
-  return sample.includes(0);
-}
-
-/**
- * Decodes file bytes as UTF-8 text when not binary.
- *
- * @param bytes - Raw file bytes.
- * @returns Decoded text, or null when binary or invalid UTF-8.
- */
-function decodeTextContent(bytes: Uint8Array | null): string | null {
-  if (bytes == null || bytes.length === 0) {
-    return '';
-  }
-  if (isBinaryContent(bytes)) {
-    return null;
-  }
-  try {
-    return Buffer.from(bytes).toString('utf8');
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Reads a file blob from HEAD for a repository-relative path.
  *
  * @param repoPath - Absolute repository root.
  * @param filepath - Repository-relative path.
  */
 async function readHeadFile(repoPath: string, filepath: string): Promise<Uint8Array | null> {
-  let content: Uint8Array | null = null;
-
-  try {
-    await git.walk({
-      fs,
-      dir: repoPath,
-      trees: [git.TREE({ ref: 'HEAD' })],
-      /**
-       * Captures blob content when the walked path matches the target file.
-       *
-       * @param path - Repository-relative path from the walker.
-       * @param trees - Tuple of tree entries; only HEAD is requested.
-       */
-      map: async (path, [head]) => {
-        if (path !== filepath || head == null) {
-          return;
-        }
-        const type = await head.type();
-        if (type === 'blob') {
-          const blob = await head.content();
-          if (blob instanceof Uint8Array) {
-            content = blob;
-          }
-        }
-      }
-    });
-  } catch {
-    return null;
-  }
-
-  return content;
+  return readBlobBytesFromTree(repoPath, git.TREE({ ref: 'HEAD' }), filepath);
 }
 
 /**
@@ -376,81 +342,13 @@ function readWorkdirFile(repoPath: string, filepath: string): Uint8Array | null 
 }
 
 /**
- * Derives a file status from one isomorphic-git statusMatrix row.
- *
- * @param head - HEAD stage flag (0 absent, 1 present).
- * @param workdir - Workdir stage flag (0 absent, 1 same, 2 different).
- */
-function resolveFileStatus(head: number, workdir: number): GitDiffFileStatus | null {
-  if (head === 0 && workdir !== 0) {
-    return 'added';
-  }
-  if (head !== 0 && workdir === 0) {
-    return 'deleted';
-  }
-  if (head !== 0 && workdir === 2) {
-    return 'modified';
-  }
-  return null;
-}
-
-/**
- * Derives a staged file status from one isomorphic-git statusMatrix row.
- *
- * @param head - HEAD stage flag (0 absent, 1 present).
- * @param stage - Index stage flag (0 absent, 1 present).
- */
-function resolveStagedFileStatus(head: number, stage: number): GitDiffFileStatus | null {
-  if (head === 0 && stage !== 0) {
-    return 'added';
-  }
-  if (head !== 0 && stage === 0) {
-    return 'deleted';
-  }
-  if (head !== 0 && stage !== 0 && head !== stage) {
-    return 'modified';
-  }
-  return null;
-}
-
-/**
  * Reads a staged file blob from the index for a repository-relative path.
  *
  * @param repoPath - Absolute repository root.
  * @param filepath - Repository-relative path.
  */
 async function readStageFile(repoPath: string, filepath: string): Promise<Uint8Array | null> {
-  let content: Uint8Array | null = null;
-
-  try {
-    await git.walk({
-      fs,
-      dir: repoPath,
-      trees: [git.STAGE()],
-      /**
-       * Captures staged blob content when the walked path matches the target file.
-       *
-       * @param path - Repository-relative path from the walker.
-       * @param trees - Tuple of tree entries; only STAGE is requested.
-       */
-      map: async (path, [stage]) => {
-        if (path !== filepath || stage == null) {
-          return;
-        }
-        const type = await stage.type();
-        if (type === 'blob') {
-          const blob = await stage.content();
-          if (blob instanceof Uint8Array) {
-            content = blob;
-          }
-        }
-      }
-    });
-  } catch {
-    return null;
-  }
-
-  return content;
+  return readBlobBytesFromTree(repoPath, git.STAGE(), filepath);
 }
 
 /**
@@ -572,15 +470,17 @@ export async function buildGitDiff(options: GitDiffOptions): Promise<GitDiffResu
   const stagedOnly = options.stagedOnly === true;
   const excludeUntracked = options.excludeUntracked === true;
   const changedRows = matrix.filter((row) => {
-    const [filepath, head, workdir, stage] = row;
-    void filepath;
-    if (stagedOnly) {
-      return stage !== head;
-    }
-    if (excludeUntracked && head === 0 && stage === 0 && workdir !== 0) {
+    const flags = analyzeMatrixRow(row as GitMatrixRow);
+    if (flags == null) {
       return false;
     }
-    return head !== workdir || head !== stage || workdir !== stage;
+    if (stagedOnly) {
+      return flags.hasStagedChanges;
+    }
+    if (excludeUntracked && flags.isUntracked) {
+      return false;
+    }
+    return true;
   });
 
   let branch: string | null = null;
@@ -595,7 +495,7 @@ export async function buildGitDiff(options: GitDiffOptions): Promise<GitDiffResu
   let truncated = false;
 
   for (const row of changedRows) {
-    const [filepath, head, workdir, stage] = row;
+    const [filepath] = row;
     if (options.filepathFilter != null && !options.filepathFilter(filepath)) {
       continue;
     }
@@ -604,9 +504,8 @@ export async function buildGitDiff(options: GitDiffOptions): Promise<GitDiffResu
       break;
     }
 
-    const status = stagedOnly
-      ? resolveStagedFileStatus(head, stage)
-      : resolveFileStatus(head, workdir);
+    const flags = analyzeMatrixRow(row as GitMatrixRow);
+    const status = stagedOnly ? flags?.stagedChangeStatus : flags?.workdirChangeStatus;
     if (status == null) {
       continue;
     }
