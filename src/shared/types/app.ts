@@ -23,6 +23,7 @@ export type MenuActionId =
   | 'focus-first-environment'
   | 'focus-first-request-tab'
   | 'focus-response-editor'
+  | 'focus-main-nav'
   | 'toggle-variables'
   | 'toggle-console'
   | 'toggle-ai-sidebar'

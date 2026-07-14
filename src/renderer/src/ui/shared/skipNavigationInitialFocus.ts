@@ -1,3 +1,5 @@
+import { SKIP_NAVIGATION_ID } from '#/renderer/src/ui/shared/skipNavigationTargets';
+
 /**
  * Returns true when a blocking modal should keep launch focus out of skip navigation.
  *
@@ -34,4 +36,48 @@ export function focusSkipNavigationOnLaunch(
 
   launchAnchor.focus({ preventScroll: true });
   return 'applied';
+}
+
+/**
+ * Focuses a skip-navigation target landmark without scrolling the layout.
+ *
+ * @param targetId - DOM id of the landmark section to activate.
+ * @returns True when focus landed on the target element.
+ */
+export function focusSkipTarget(targetId: string): boolean {
+  const target = document.getElementById(targetId);
+  if (target == null || typeof target.focus !== 'function') {
+    return false;
+  }
+
+  target.focus({ preventScroll: true });
+  return document.activeElement === target;
+}
+
+/**
+ * Reveals skip navigation by focusing its first link or button.
+ *
+ * Used by the editable "Focus main nav" keyboard shortcut so users can jump back
+ * to the skip menu from anywhere in the shell.
+ *
+ * @returns True when focus landed inside the skip navigation menu.
+ */
+export function focusSkipNavigation(): boolean {
+  const nav = document.getElementById(SKIP_NAVIGATION_ID);
+  if (nav == null) {
+    return false;
+  }
+
+  const firstFocusable = nav.querySelector<HTMLElement>('a[href], button:not([disabled])');
+  if (firstFocusable != null && typeof firstFocusable.focus === 'function') {
+    firstFocusable.focus({ preventScroll: true });
+    return document.activeElement === firstFocusable;
+  }
+
+  if (typeof nav.focus !== 'function') {
+    return false;
+  }
+
+  nav.focus({ preventScroll: true });
+  return document.activeElement === nav;
 }

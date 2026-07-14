@@ -1,4 +1,10 @@
-import { Button, EmptyState, FaIcon, RowActionsMenu } from '@harborclient/sdk/components';
+import {
+  Button,
+  EmptyState,
+  FaIcon,
+  RowActionsMenu,
+  SIDEBAR_ITEM_BUTTON_CLASS
+} from '@harborclient/sdk/components';
 import { useCallback, useMemo, useState, type JSX } from 'react';
 import type { TrashItem } from '#/shared/types/trash';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
@@ -168,9 +174,9 @@ export function Trash(): JSX.Element {
               setOpenMenuId(menuId);
             }}
           >
-            <Button
-              variant="toolbar"
-              className="min-w-0 flex-1 justify-start gap-2 px-2 py-1.5 text-left"
+            <button
+              type="button"
+              className={`${SIDEBAR_ITEM_BUTTON_CLASS} items-start gap-2 px-2 py-1.5`}
               aria-label={trashItemAriaLabel(item)}
               onClick={(event) => {
                 handleRowClick(item.id, {
@@ -179,9 +185,16 @@ export function Trash(): JSX.Element {
                 });
               }}
             >
-              <span className="min-w-0 flex-1 truncate text-text">{item.label}</span>
-              <span className="shrink-0 text-muted">{trashEntityTypeLabel(item.entityType)}</span>
-            </Button>
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="truncate text-text">{item.label}</span>
+                <span className="truncate text-[14px] text-muted">
+                  {formatTrashDeletedAt(item.deletedAt)}
+                </span>
+              </div>
+              <span className="shrink-0 self-start text-muted">
+                {trashEntityTypeLabel(item.entityType)}
+              </span>
+            </button>
             <RowActionsMenu
               menuId={menuId}
               openMenuId={openMenuId}

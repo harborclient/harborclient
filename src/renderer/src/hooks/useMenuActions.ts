@@ -48,6 +48,7 @@ import {
   restoreLastFocusWithoutRing,
   useLastFocusedElement
 } from '#/renderer/src/hooks/useLastFocusedElement';
+import { focusSkipNavigation } from '#/renderer/src/ui/shared/skipNavigationInitialFocus';
 import { focusSidebarSearch } from '#/renderer/src/ui/sidebars/CollectionSidebar/focusSidebarSearch';
 import { focusRequestUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/focusRequestUrl';
 import { focusFirstRequestTab } from '#/renderer/src/ui/Main/RequestEditor/TabBar/focusFirstRequestTab';
@@ -218,6 +219,9 @@ export function useMenuActions(): void {
           break;
         case 'focus-response-editor':
           focusResponseEditor(dispatch);
+          break;
+        case 'focus-main-nav':
+          focusSkipNavigation();
           break;
         case 'toggle-variables':
           dispatch(toggleVariables());

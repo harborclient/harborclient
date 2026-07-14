@@ -1,10 +1,23 @@
-import { useEffect, useMemo, useRef, type JSX } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type JSX,
+  type MouseEvent
+} from 'react';
+import { formatAcceleratorDisplay } from '#/shared/shortcuts';
 import {
   resolveSkipNavigationLinks,
   SKIP_NAVIGATION_ID,
   type SkipNavigationVisibility
 } from '#/renderer/src/ui/shared/skipNavigationTargets';
-import { focusSkipNavigationOnLaunch } from '#/renderer/src/ui/shared/skipNavigationInitialFocus';
+import {
+  focusSkipNavigation,
+  focusSkipNavigationOnLaunch,
+  focusSkipTarget
+} from '#/renderer/src/ui/shared/skipNavigationInitialFocus';
 
 interface Props {
   /**
@@ -21,24 +34,56 @@ interface Props {
 /** Maximum animation frames to retry launch focus before giving up. */
 const INITIAL_FOCUS_MAX_ATTEMPTS = 12;
 
+/** Default accelerator shown beside Main nav when shortcut settings cannot load. */
+const DEFAULT_MAIN_NAV_ACCELERATOR = 'F4';
+
 /** Shared focus styling for each skip link in the navigation menu. */
 const skipLinkClass =
   'rounded-md px-3 py-2 text-[14px] text-text hover:bg-selection focus:outline focus:outline-2 focus:outline-accent';
 
 /**
- * Shell classes for the skip menu. The menu stays clipped out of view until a
- * keyboard focus-visible event lands on the nav container or one of its links.
+ * Shell classes for the skip menu. The menu stays clipped out of view until focus
+ * lands on the nav container or one of its links (keyboard Tab or the main-nav shortcut).
  */
 const skipNavShellClass = [
   'absolute left-2 top-2 z-[100] flex flex-col gap-1 rounded-md bg-surface p-2',
-  'outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:shadow-md',
-  'has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent has-[:focus-visible]:shadow-md',
-  '[&:not(:focus-visible):not(:has(:focus-visible))]:h-px [&:not(:focus-visible):not(:has(:focus-visible))]:w-px',
-  '[&:not(:focus-visible):not(:has(:focus-visible))]:overflow-hidden',
-  '[&:not(:focus-visible):not(:has(:focus-visible))]:p-0',
-  '[&:not(:focus-visible):not(:has(:focus-visible))]:[clip-path:inset(50%)]',
-  '[&:not(:focus-visible):not(:has(:focus-visible))]:whitespace-nowrap'
+  'outline-none focus:outline focus:outline-2 focus:outline-accent focus:shadow-md',
+  'has-[:focus]:outline has-[:focus]:outline-2 has-[:focus]:outline-accent has-[:focus]:shadow-md',
+  '[&:not(:focus):not(:has(:focus))]:h-px [&:not(:focus):not(:has(:focus))]:w-px',
+  '[&:not(:focus):not(:has(:focus))]:overflow-hidden',
+  '[&:not(:focus):not(:has(:focus))]:p-0',
+  '[&:not(:focus):not(:has(:focus))]:[clip-path:inset(50%)]',
+  '[&:not(:focus):not(:has(:focus))]:whitespace-nowrap'
 ].join(' ');
+
+/**
+ * Capitalizes each segment of a settings-style accelerator string for inline display.
+ *
+ * @param display - Lowercase hyphen-separated accelerator from {@link formatAcceleratorDisplay}.
+ * @returns Display string such as `F4` or `Ctrl-Shift-N`.
+ */
+function capitalizeShortcutDisplay(display: string): string {
+  return display
+    .split('-')
+    .map((part) => {
+      if (/^f\d+$/i.test(part)) {
+        return part.toUpperCase();
+      }
+
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join('-');
+}
+
+/**
+ * Formats an Electron accelerator for the Main nav shortcut hint beside the link.
+ *
+ * @param accelerator - Electron accelerator string for the focus-main-nav binding.
+ * @returns Human-readable key label such as `F4`.
+ */
+function formatMainNavShortcutLabel(accelerator: string): string {
+  return capitalizeShortcutDisplay(formatAcceleratorDisplay(accelerator));
+}
 
 /**
  * Visually hidden skip navigation menu that appears when a link receives keyboard focus.
@@ -47,11 +92,43 @@ const skipNavShellClass = [
 export function SkipNavigation({ visibility, onOpenShortcuts }: Props): JSX.Element {
   const launchAnchorRef = useRef<HTMLDivElement>(null);
   const initialFocusAppliedRef = useRef(false);
+  const [mainNavShortcutLabel, setMainNavShortcutLabel] = useState(
+    formatMainNavShortcutLabel(DEFAULT_MAIN_NAV_ACCELERATOR)
+  );
 
   /**
    * Derives the skip links that match currently visible layout regions.
    */
   const links = useMemo(() => resolveSkipNavigationLinks(visibility), [visibility]);
+
+  /**
+   * Loads the configured focus-main-nav accelerator for the Main nav shortcut hint.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    window.api
+      .getShortcuts()
+      .then((bindings) => {
+        if (cancelled) {
+          return;
+        }
+
+        const mainNavBinding = bindings.find((binding) => binding.id === 'focus-main-nav');
+        if (mainNavBinding == null) {
+          return;
+        }
+
+        setMainNavShortcutLabel(formatMainNavShortcutLabel(mainNavBinding.accelerator));
+      })
+      .catch(() => {
+        // Keep the default label when shortcut settings cannot be loaded.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   /**
    * Focuses a neutral launch anchor once on startup so Tab order starts at skip
@@ -103,6 +180,22 @@ export function SkipNavigation({ visibility, onOpenShortcuts }: Props): JSX.Elem
     };
   }, []);
 
+  /**
+   * Moves focus to a skip target without native fragment scrolling that breaks layout.
+   */
+  const handleSkipLinkActivate = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>, targetId: string): void => {
+      event.preventDefault();
+      if (targetId === SKIP_NAVIGATION_ID) {
+        focusSkipNavigation();
+        return;
+      }
+
+      focusSkipTarget(targetId);
+    },
+    []
+  );
+
   return (
     <>
       <div ref={launchAnchorRef} tabIndex={-1} className="sr-only" aria-hidden="true" />
@@ -112,11 +205,25 @@ export function SkipNavigation({ visibility, onOpenShortcuts }: Props): JSX.Elem
         aria-label="Skip navigation"
         className={skipNavShellClass}
       >
-        <a href={`#${SKIP_NAVIGATION_ID}`} className={skipLinkClass}>
-          Main nav
+        <a
+          href={`#${SKIP_NAVIGATION_ID}`}
+          className={skipLinkClass}
+          onClick={(event) => handleSkipLinkActivate(event, SKIP_NAVIGATION_ID)}
+        >
+          <span className="inline-flex items-center gap-2">
+            <span>Main nav</span>
+            <kbd className="rounded bg-control px-1.5 py-0.5 font-mono text-[14px] text-muted">
+              {mainNavShortcutLabel}
+            </kbd>
+          </span>
         </a>
         {links.map((link) => (
-          <a key={link.id} href={`#${link.targetId}`} className={skipLinkClass}>
+          <a
+            key={link.id}
+            href={`#${link.targetId}`}
+            className={skipLinkClass}
+            onClick={(event) => handleSkipLinkActivate(event, link.targetId)}
+          >
             {link.label}
           </a>
         ))}

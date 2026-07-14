@@ -394,6 +394,21 @@
     box-shadow: none;
   }
 
+  /**
+   * Skip-navigation landmarks use tabIndex={-1} for programmatic focus. Match the
+   * accent ring used on form controls instead of the browser default white outline.
+   */
+  #skip-navigation:focus,
+  #collections-sidebar:focus,
+  #request-editor:focus,
+  #response-editor:focus,
+  #ai-sidebar:focus,
+  #git-sidebar:focus,
+  #app-footer:focus {
+    outline: 2px solid var(--mac-accent);
+    outline-offset: -2px;
+  }
+
   input:focus-visible,
   select:focus-visible,
   textarea:focus-visible,
@@ -1260,6 +1275,22 @@
 
   :root[data-theme='high-contrast'] .hc-send-button:focus-visible,
   :root[data-theme='high-contrast'] .hc-send-button:focus:not(:focus-visible) {
+    outline: 2px solid var(--mac-accent);
+    outline-offset: 2px;
+    box-shadow: none;
+  }
+
+  /**
+   * Request editor Save uses `shadow-sm`, which overrides the base focus ring.
+   */
+  .hc-save-button:focus-visible,
+  .hc-save-button:focus:not(:focus-visible) {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--mac-accent) 35%, transparent);
+  }
+
+  :root[data-theme='high-contrast'] .hc-save-button:focus-visible,
+  :root[data-theme='high-contrast'] .hc-save-button:focus:not(:focus-visible) {
     outline: 2px solid var(--mac-accent);
     outline-offset: 2px;
     box-shadow: none;

@@ -30,6 +30,7 @@ export type ShortcutId =
   | 'focus-first-environment'
   | 'focus-first-request-tab'
   | 'focus-response-editor'
+  | 'focus-main-nav'
   | 'next-sidebar-list-item'
   | 'previous-sidebar-list-item'
   | 'toggle-variables'
@@ -323,6 +324,13 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'Alt+Shift+T',
     kind: 'action',
     actionId: 'focus-response-editor'
+  },
+  {
+    id: 'focus-main-nav',
+    label: 'Focus main nav',
+    defaultAccelerator: 'F4',
+    kind: 'action',
+    actionId: 'focus-main-nav'
   },
   {
     id: 'next-sidebar-list-item',

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(ui): enhance skip navigation and focus management. (`3aa9ad1`)
 - feat(dependencies): update @harborclient/sdk to a local link and add dotenv. (`68f42c6`)
 - feat(git): enhance commit functionality and request tracking. (`4d48935`)
 

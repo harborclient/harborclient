@@ -135,6 +135,7 @@ describe('resolveShortcuts', () => {
     expect(bindings.find((binding) => binding.id === 'focus-response-editor')?.accelerator).toBe(
       'Alt+Shift+T'
     );
+    expect(bindings.find((binding) => binding.id === 'focus-main-nav')?.accelerator).toBe('F4');
     expect(bindings.find((binding) => binding.id === 'toggle-variables')?.accelerator).toBe(
       'Alt+Shift+V'
     );
