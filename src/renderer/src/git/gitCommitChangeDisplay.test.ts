@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   buildGitCommitFileAccessibleName,
   gitCommitChangeAccessibleLabel,
-  gitCommitChangeNameClass
+  gitCommitChangeNameClass,
+  gitResourceKindLabel,
+  resolveGitChangeDisplayLabel
 } from '#/renderer/src/git/gitCommitChangeDisplay';
 
 describe('gitCommitChangeDisplay', () => {
@@ -14,8 +16,23 @@ describe('gitCommitChangeDisplay', () => {
 
   it('builds accessible labels and names', () => {
     expect(gitCommitChangeAccessibleLabel('added')).toBe('added in commit');
-    expect(buildGitCommitFileAccessibleName('.harborclient/collection.json', 'modified')).toBe(
-      '.harborclient/collection.json, modified in commit'
+    expect(
+      buildGitCommitFileAccessibleName('.harborclient/collection-api/req-health.json', 'modified')
+    ).toBe('.harborclient/collection-api/req-health.json, modified in commit');
+    expect(
+      buildGitCommitFileAccessibleName(
+        '.harborclient/collection-api/req-health.json',
+        'modified',
+        'Health Check',
+        'request'
+      )
+    ).toBe('Health Check, request, modified in commit');
+  });
+
+  it('resolves display labels and resource kind badges', () => {
+    expect(resolveGitChangeDisplayLabel('path/req-health.json', 'Health Check')).toBe(
+      'Health Check'
     );
+    expect(gitResourceKindLabel('document')).toBe('document');
   });
 });

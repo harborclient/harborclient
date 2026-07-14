@@ -6,7 +6,7 @@ import { GeneralInfoExtra } from '../extras/GeneralInfoExtra';
 import { ProxyInfoExtra } from '../extras/ProxyInfoExtra';
 import { SyntaxInfoExtra } from '../extras/SyntaxInfoExtra';
 import { SyntaxPreviewExtra } from '../extras/SyntaxPreviewExtra';
-import { McpSettingsExtra } from '../extras/McpSettingsExtra';
+import { AiSettingsExtras } from '../extras/AiSettingsExtras';
 import { BackupRestoreSection } from '../BackupRestoreSection';
 import { GitIdentitiesSection } from '../GitIdentitiesSection';
 import { GlobalsSection } from '../GlobalsSection';
@@ -118,7 +118,7 @@ export const FORM_SECTION_LEADING_EXTRAS: Partial<Record<FormSettingsSection, Co
  */
 export const FORM_SECTION_EXTRAS: Partial<Record<FormSettingsSection, ComponentType>> = {
   syntax: SyntaxPreviewExtra,
-  ai: McpSettingsExtra
+  ai: AiSettingsExtras
 };
 
 /**

@@ -42,6 +42,7 @@ const EXPECTED_FIELD_IDS: FieldSettingId[] = [
   'ai.openaiApiKey',
   'ai.claudeApiKey',
   'ai.geminiApiKey',
+  'ai.githubModels',
   'plugins.addCatalogEndpointUrl',
   'plugins.addTrustedEndpointUrl'
 ];

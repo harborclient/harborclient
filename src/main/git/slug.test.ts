@@ -3,9 +3,11 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { describe, expect, it } from 'vitest';
 import {
+  collectionDirName,
   countConflictFiles,
   exportFileBaseName,
   pullMergeConflictMessage,
+  requestFileBaseName,
   toFileSlug
 } from '#/main/git/slug';
 
@@ -19,6 +21,8 @@ describe('git slug helpers', () => {
     expect(exportFileBaseName('collection', 'Users API')).toBe('collection-users-api');
     expect(exportFileBaseName('environment', 'Prod')).toBe('environment-prod');
     expect(exportFileBaseName('snippet', 'Auth helper')).toBe('snippet-auth-helper');
+    expect(collectionDirName('Collection 2')).toBe('collection-collection-2');
+    expect(requestFileBaseName('Echo 1')).toBe('req-echo-1');
   });
 
   it('counts json files containing merge conflict markers', async () => {

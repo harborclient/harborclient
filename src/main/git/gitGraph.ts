@@ -1,5 +1,10 @@
 import * as git from 'isomorphic-git';
 import fs from 'fs';
+import {
+  classifyHarborChangePath,
+  COLLECTION_MANIFEST_FILE,
+  displayNameFromHarborChange
+} from '#/main/git/fileLayout';
 import type {
   GitCommitChangeStatus,
   GitCommitDetail,
@@ -37,6 +42,16 @@ export async function buildGitGraphLog(repoPath: string, depth = 100): Promise<G
     headCommitHash = await git.resolveRef({ fs, dir: repoPath, ref: 'HEAD' });
   } catch {
     headCommitHash = null;
+  }
+
+  // A repository with no commits (unborn HEAD) has nothing to walk. Return an
+  // empty graph instead of letting `git.log` throw NotFoundError for the branch.
+  if (headCommitHash == null) {
+    return {
+      entries: [],
+      currentBranch,
+      headCommitHash: null
+    };
   }
 
   const commits = await git.log({ fs, dir: repoPath, depth });
@@ -85,7 +100,7 @@ export async function readGitCommitDetail(
   const { commit } = await git.readCommit({ fs, dir: repoPath, oid });
   const parentOid = commit.parent[0] ?? null;
   const rawChanges = await listRawCommitFileChanges(repoPath, harborSubdir, oid, parentOid);
-  const files = classifyCommitFileChanges(repoPath, harborSubdir, oid, parentOid, rawChanges);
+  const files = await classifyCommitFileChanges(repoPath, harborSubdir, oid, parentOid, rawChanges);
 
   return {
     oid,
@@ -164,9 +179,6 @@ async function listRawCommitFileChanges(
     if (prefix && !path.startsWith(`${prefix}/`) && path !== prefix) {
       continue;
     }
-    if (!prefix && path.includes('/')) {
-      continue;
-    }
 
     const commitFileOid = commitFiles.get(path);
     const parentFileOid = parentFiles.get(path);
@@ -188,7 +200,62 @@ async function listRawCommitFileChanges(
 }
 
 /**
- * Classifies raw commit path changes into flat HarborClient file rows.
+ * Reads UTF-8 text for one blob path at a specific commit.
+ *
+ * @param repoPath - Absolute repository root.
+ * @param commitOid - Commit object id, or null when unavailable.
+ * @param filepath - Repository-relative blob path.
+ */
+async function readBlobTextAtCommit(
+  repoPath: string,
+  commitOid: string | null,
+  filepath: string
+): Promise<string | null> {
+  if (commitOid == null) {
+    return null;
+  }
+
+  let content: Uint8Array | null = null;
+  await git.walk({
+    fs,
+    dir: repoPath,
+    trees: [git.TREE({ ref: commitOid })],
+    /**
+     * Captures blob bytes when the walked path matches the target file.
+     *
+     * @param path - Repository-relative path from the walker.
+     * @param trees - Tuple of tree entries for the current commit.
+     */
+    map: async (path, [tree]) => {
+      if (path !== filepath || tree == null) {
+        return;
+      }
+      const type = await tree.type();
+      if (type === 'blob') {
+        const blob = await tree.content();
+        if (blob instanceof Uint8Array) {
+          content = blob;
+        }
+      }
+    }
+  });
+
+  if (content == null) {
+    return null;
+  }
+
+  try {
+    return Buffer.from(content).toString('utf8');
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Classifies raw commit path changes into HarborClient file rows for the UI.
+ *
+ * Drops plumbing paths such as `.gitignore` and `collection.json`, labels request
+ * and markdown files with friendly display names, and keeps environment/snippet rows.
  *
  * @param repoPath - Absolute repository root.
  * @param harborSubdir - HarborClient subdirectory prefix.
@@ -196,18 +263,57 @@ async function listRawCommitFileChanges(
  * @param parentOid - First parent commit object id, or null for root commits.
  * @param rawChanges - Path-level changes for the commit.
  */
-function classifyCommitFileChanges(
-  _repoPath: string,
-  _harborSubdir: string,
-  _oid: string,
-  _parentOid: string | null,
+async function classifyCommitFileChanges(
+  repoPath: string,
+  harborSubdir: string,
+  oid: string,
+  parentOid: string | null,
   rawChanges: RawCommitFileChange[]
-): GitCommitFileChange[] {
-  return rawChanges.map((change) => ({
-    kind: 'file' as const,
-    path: change.path,
-    status: change.status
-  }));
+): Promise<GitCommitFileChange[]> {
+  const results: GitCommitFileChange[] = [];
+
+  for (const change of rawChanges) {
+    const classified = classifyHarborChangePath(change.path, harborSubdir);
+    if (classified == null) {
+      continue;
+    }
+    if (classified.kind === 'other' && classified.fileName === '.gitignore') {
+      continue;
+    }
+    if (classified.kind === 'collectionMeta') {
+      continue;
+    }
+
+    if (classified.kind === 'request' || classified.kind === 'document') {
+      const contentOid = change.status === 'deleted' ? parentOid : oid;
+      const contentText = await readBlobTextAtCommit(repoPath, contentOid, change.path);
+      let manifestText: string | null = null;
+      if (classified.kind === 'document') {
+        const manifestPath = change.path.replace(/[^/]+$/, COLLECTION_MANIFEST_FILE);
+        const manifestOid = change.status === 'deleted' ? parentOid : oid;
+        manifestText = await readBlobTextAtCommit(repoPath, manifestOid, manifestPath);
+      }
+      const meta = displayNameFromHarborChange(classified, contentText, manifestText);
+      results.push({
+        kind: 'file',
+        path: change.path,
+        status: change.status,
+        displayName: meta.displayName,
+        resourceKind: meta.resourceKind
+      });
+      continue;
+    }
+
+    if (classified.kind === 'environment' || classified.kind === 'snippet') {
+      results.push({
+        kind: 'file',
+        path: change.path,
+        status: change.status
+      });
+    }
+  }
+
+  return results.sort((a, b) => a.path.localeCompare(b.path));
 }
 
 /**

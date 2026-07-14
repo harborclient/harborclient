@@ -3,6 +3,11 @@ import fs, { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { truncateTextForLlm } from '#/shared/ai/chatContext';
 import { hasConflictMarkers } from '#/main/git/slug';
+import {
+  classifyHarborChangePath,
+  displayNameFromHarborChange,
+  type ClassifiedHarborChangePath
+} from '#/main/git/fileLayout';
 
 /**
  * Default maximum number of changed files included in a git diff payload.
@@ -62,6 +67,16 @@ export interface GitDiffFileEntry {
    * Original diff character length before truncation, when truncated.
    */
   originalLength?: number;
+
+  /**
+   * User-facing request or document name when resolved from file contents.
+   */
+  displayName?: string;
+
+  /**
+   * HarborClient resource kind for filtered Changes list rows.
+   */
+  resourceKind?: 'request' | 'document';
 }
 
 /**
@@ -172,6 +187,98 @@ export interface GitDiffOptions {
    * When set, includes only changed files whose repository-relative path passes this filter.
    */
   filepathFilter?: (filepath: string) => boolean;
+
+  /**
+   * When true, resolves `displayName` and `resourceKind` for request and document paths.
+   */
+  enrichDisplayNames?: boolean;
+}
+
+/**
+ * Returns whether a classified Harbor path should appear in collection-scoped diffs.
+ *
+ * @param classified - Parsed HarborClient path metadata.
+ * @param collectionDir - On-disk collection folder name to scope.
+ */
+export function isCollectionScopedHarborChange(
+  classified: ClassifiedHarborChangePath,
+  collectionDir: string
+): boolean {
+  if (classified.kind !== 'request' && classified.kind !== 'document') {
+    return false;
+  }
+  return classified.collectionDir === collectionDir;
+}
+
+/**
+ * Builds a repository-relative prefix for one collection folder.
+ *
+ * @param harborSubdir - HarborClient subdirectory setting.
+ * @param collectionDir - On-disk collection folder name.
+ */
+export function buildCollectionFolderPrefix(harborSubdir: string, collectionDir: string): string {
+  const trimmed = harborSubdir.trim().replace(/\\/g, '/').replace(/\/+$/, '');
+  if (!trimmed || trimmed === '.') {
+    return `${collectionDir}/`;
+  }
+  return `${trimmed}/${collectionDir}/`;
+}
+
+/**
+ * Reads UTF-8 text from a working-tree file when present.
+ *
+ * @param repoPath - Absolute repository root.
+ * @param filepath - Repository-relative path.
+ */
+function readWorkdirText(repoPath: string, filepath: string): string | null {
+  const bytes = readWorkdirFile(repoPath, filepath);
+  return decodeTextContent(bytes);
+}
+
+/**
+ * Reads UTF-8 text from HEAD for one repository-relative path.
+ *
+ * @param repoPath - Absolute repository root.
+ * @param filepath - Repository-relative path.
+ */
+async function readHeadText(repoPath: string, filepath: string): Promise<string | null> {
+  const bytes = await readHeadFile(repoPath, filepath);
+  return decodeTextContent(bytes);
+}
+
+/**
+ * Resolves display metadata for one changed Harbor request or document path.
+ *
+ * @param repoPath - Absolute repository root.
+ * @param filepath - Repository-relative changed path.
+ * @param harborSubdir - HarborClient subdirectory prefix.
+ * @param status - Added, modified, or deleted relative to HEAD.
+ * @param headText - Decoded HEAD content for the changed file, when available.
+ * @param compareText - Decoded working-tree or index content for the changed file.
+ */
+async function resolveDiffDisplayMeta(
+  repoPath: string,
+  filepath: string,
+  harborSubdir: string,
+  status: GitDiffFileStatus,
+  headText: string | null,
+  compareText: string | null
+): Promise<{ displayName: string; resourceKind: 'request' | 'document' } | null> {
+  const classified = classifyHarborChangePath(filepath, harborSubdir);
+  if (classified == null || (classified.kind !== 'request' && classified.kind !== 'document')) {
+    return null;
+  }
+
+  const contentText = status === 'deleted' ? headText : compareText;
+  let manifestText: string | null = null;
+  if (classified.kind === 'document') {
+    const manifestPath = filepath.replace(/[^/]+$/, 'collection.json');
+    const manifestHead = status === 'added' ? null : await readHeadText(repoPath, manifestPath);
+    const manifestWork = status === 'deleted' ? null : readWorkdirText(repoPath, manifestPath);
+    manifestText = status === 'deleted' ? manifestHead : (manifestWork ?? manifestHead);
+  }
+
+  return displayNameFromHarborChange(classified, contentText, manifestText);
 }
 
 /**
@@ -527,6 +634,21 @@ export async function buildGitDiff(options: GitDiffOptions): Promise<GitDiffResu
     const capped = truncateTextForLlm(rawDiff, perFileBudget);
     totalChars += capped.text.length;
 
+    const classified = options.enrichDisplayNames
+      ? classifyHarborChangePath(filepath, harborSubdir)
+      : null;
+    const displayMeta =
+      classified != null && options.enrichDisplayNames
+        ? await resolveDiffDisplayMeta(
+            repoPath,
+            filepath,
+            harborSubdir,
+            status,
+            headText,
+            compareText
+          )
+        : null;
+
     files.push({
       path: filepath,
       status,
@@ -534,7 +656,10 @@ export async function buildGitDiff(options: GitDiffOptions): Promise<GitDiffResu
       binary: false,
       truncated: capped.truncated,
       hasConflict,
-      ...(capped.truncated ? { originalLength: capped.originalLength } : {})
+      ...(capped.truncated ? { originalLength: capped.originalLength } : {}),
+      ...(displayMeta
+        ? { displayName: displayMeta.displayName, resourceKind: displayMeta.resourceKind }
+        : {})
     });
 
     if (capped.truncated || totalChars >= maxTotalChars) {

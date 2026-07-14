@@ -46,4 +46,10 @@ describe('resolveLlmClientOptions', () => {
       /Google Gemini API key is not configured/
     );
   });
+
+  it('throws for github because tokens are resolved in LlmClientFactory', () => {
+    expect(() => resolveLlmClientOptions('github', TEST_SETTINGS)).toThrow(
+      /resolved asynchronously/
+    );
+  });
 });

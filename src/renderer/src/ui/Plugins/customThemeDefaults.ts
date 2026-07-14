@@ -69,7 +69,10 @@ export const LIGHT_CUSTOM_THEME_PALETTE: CustomThemePalette = {
   'script-stage-main': '#32d2e2',
   'script-stage-after-each': '#ff9f0a',
   'script-stage-after-all': '#ae7213',
-  terminal: '#000000'
+  terminal: '#000000',
+  'git-staged': '#34c759',
+  'git-uncommitted': '#ff9500',
+  'git-unstaged': 'rgba(0, 0, 0, 0.58)'
 };
 
 /**
@@ -109,7 +112,10 @@ export const DARK_CUSTOM_THEME_PALETTE: CustomThemePalette = {
   'script-stage-main': '#32d2e2',
   'script-stage-after-each': '#ff9f0a',
   'script-stage-after-all': '#ae7213',
-  terminal: '#000000'
+  terminal: '#000000',
+  'git-staged': '#30d158',
+  'git-uncommitted': '#ff9f0a',
+  'git-unstaged': 'rgba(255, 255, 255, 0.58)'
 };
 
 /**
@@ -149,7 +155,10 @@ export const HIGH_CONTRAST_CUSTOM_THEME_PALETTE: CustomThemePalette = {
   'script-stage-main': '#32d2e2',
   'script-stage-after-each': '#ff9f0a',
   'script-stage-after-all': '#ae7213',
-  terminal: '#000000'
+  terminal: '#000000',
+  'git-staged': '#5ce06a',
+  'git-uncommitted': '#ffb340',
+  'git-unstaged': '#d0d0d0'
 };
 
 /**

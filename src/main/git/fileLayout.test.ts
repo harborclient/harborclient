@@ -1,23 +1,34 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync
+} from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { describe, expect, it } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import {
+  assertCollectionDirAvailable,
+  assertDocumentFilenameAvailable,
   assertExportFilenameAvailable,
-  collectionFilePath,
+  classifyHarborChangePath,
+  collectionDirPath,
+  collectionManifestPath,
+  displayNameFromHarborChange,
   documentFileName,
   ensureHarborclientLayout,
   environmentFilePath,
   exportFileName,
   isGitignoredHarborExportFileName,
-  listCollectionFilesOnDisk,
+  listCollectionFoldersOnDisk,
   readAllEnvironments,
-  readCollectionFile,
+  readCollectionFromFolder,
   resolveHarborclientRoot,
-  writeCollectionFile,
-  writeDocumentsToHarborRoot,
-  writeEnvironmentFile
+  writeCollectionToFolder
 } from '#/main/git/fileLayout';
 import type { CollectionExport } from '#/shared/types';
 
@@ -45,7 +56,7 @@ function buildTestCollectionExport(overrides: Partial<CollectionExport> = {}): C
 }
 
 describe('git file layout', () => {
-  it('round-trips a collection export as a single root JSON file', () => {
+  it('round-trips a collection export as a folder with per-request JSON files', () => {
     const root = mkdtempSync(join(tmpdir(), 'hc-git-layout-'));
     ensureHarborclientLayout(root);
 
@@ -72,78 +83,133 @@ describe('git file layout', () => {
           sort_order: 0,
           folder_name: null
         }
+      ],
+      documents: [
+        {
+          uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+          name: 'README.md',
+          content: '# Notes',
+          sort_order: 0,
+          folder_name: null,
+          color: null
+        }
       ]
     });
 
-    writeCollectionFile(root, exportData);
-    const filePath = collectionFilePath(root, exportData.name);
-    expect(existsSync(filePath)).toBe(true);
-    expect(existsSync(join(root, 'collections'))).toBe(false);
+    const dirPath = writeCollectionToFolder(root, exportData);
+    expect(existsSync(dirPath)).toBe(true);
+    expect(existsSync(collectionManifestPath(dirPath))).toBe(true);
+    expect(existsSync(join(dirPath, 'req-health.json'))).toBe(true);
+    expect(existsSync(join(dirPath, documentFileName('README.md')))).toBe(true);
 
-    const loaded = readCollectionFile(filePath);
+    const loaded = readCollectionFromFolder(dirPath);
     expect(loaded.name).toBe('API');
     expect(loaded.requests).toHaveLength(1);
     expect(loaded.requests[0]?.name).toBe('Health');
+    expect(loaded.documents?.[0]?.content).toBe('# Notes');
     expect(loaded.variables.find((v) => v.key === 'private')?.value).toBe('');
     expect(existsSync(join(root, '.gitignore'))).toBe(true);
 
-    rmSync(root, { recursive: true, force: true });
-  });
-
-  it('removes the previous slug file when a collection is renamed', () => {
-    const root = mkdtempSync(join(tmpdir(), 'hc-git-layout-'));
-
-    writeCollectionFile(root, buildTestCollectionExport({ name: 'Old Name' }));
-    const oldPath = collectionFilePath(root, 'Old Name');
-    expect(existsSync(oldPath)).toBe(true);
-
-    writeCollectionFile(root, buildTestCollectionExport({ name: 'New Name' }));
-    const newPath = collectionFilePath(root, 'New Name');
-    expect(existsSync(newPath)).toBe(true);
-    expect(existsSync(oldPath)).toBe(false);
+    const manifest = JSON.parse(readFileSync(collectionManifestPath(dirPath), 'utf-8')) as {
+      requests: string[];
+    };
+    expect(manifest.requests).toEqual(['req-health.json']);
 
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('lists collection files on disk by export discriminator', () => {
+  it('removes the previous collection folder when a collection is renamed', () => {
     const root = mkdtempSync(join(tmpdir(), 'hc-git-layout-'));
-    writeCollectionFile(root, buildTestCollectionExport());
-    writeEnvironmentFile(root, {
-      harborclientVersion: 1,
-      harborclientExport: 'environment',
-      uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
-      name: 'Staging',
-      variables: []
+    const uuid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+    const oldDirPath = writeCollectionToFolder(
+      root,
+      buildTestCollectionExport({ uuid, name: 'Old Name' })
+    );
+    expect(existsSync(oldDirPath)).toBe(true);
+
+    const newDirPath = writeCollectionToFolder(
+      root,
+      buildTestCollectionExport({ uuid, name: 'New Name' }),
+      { previousDirPath: oldDirPath }
+    );
+    expect(existsSync(newDirPath)).toBe(true);
+    expect(existsSync(oldDirPath)).toBe(false);
+
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('preserves request filenames for unchanged request uuids', () => {
+    const root = mkdtempSync(join(tmpdir(), 'hc-git-layout-'));
+    const exportData = buildTestCollectionExport({
+      requests: [
+        {
+          uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          name: 'Health',
+          method: 'GET',
+          url: 'https://example.com/health',
+          headers: [],
+          params: [],
+          auth: defaultAuth(),
+          body: '',
+          body_type: 'none',
+          pre_request_script: '',
+          post_request_script: '',
+          comment: '',
+          tags: '',
+          sort_order: 0,
+          folder_name: null
+        }
+      ]
     });
 
-    expect(listCollectionFilesOnDisk(root)).toHaveLength(1);
+    const dirPath = writeCollectionToFolder(root, exportData);
+    writeCollectionToFolder(root, {
+      ...exportData,
+      requests: [
+        {
+          ...exportData.requests[0]!,
+          url: 'https://example.com/health-check'
+        }
+      ]
+    });
+
+    expect(existsSync(join(dirPath, 'req-health.json'))).toBe(true);
+    expect(readdirSync(dirPath).filter((name) => name.startsWith('req-'))).toEqual([
+      'req-health.json'
+    ]);
+
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('lists collection folders on disk by manifest discriminator', () => {
+    const root = mkdtempSync(join(tmpdir(), 'hc-git-layout-'));
+    writeCollectionToFolder(root, buildTestCollectionExport());
+    writeFileSync(environmentFilePath(root, 'Staging'), '{"harborclientExport":"environment"}');
+
+    expect(listCollectionFoldersOnDisk(root)).toHaveLength(1);
     expect(exportFileName('collection', 'API')).toBe('collection-api.json');
     expect(exportFileName('environment', 'Staging')).toBe('environment-staging.json');
 
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('rejects export names that would match harbor gitignore globs', () => {
+  it('rejects collection folder names that would match harbor gitignore globs', () => {
     const root = mkdtempSync(join(tmpdir(), 'hc-git-layout-'));
     expect(isGitignoredHarborExportFileName('collection-local.json')).toBe(true);
     expect(isGitignoredHarborExportFileName('local-api.json')).toBe(true);
     expect(isGitignoredHarborExportFileName('collection-api.json')).toBe(false);
 
     expect(() =>
-      assertExportFilenameAvailable(
-        root,
-        'collection',
-        'Local',
-        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
-      )
+      assertCollectionDirAvailable(root, 'Local', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
     ).toThrow(/ignored by the HarborClient .gitignore/i);
 
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('rejects case-insensitive duplicate collection export filenames', () => {
+  it('rejects case-insensitive duplicate collection folder names', () => {
     const root = mkdtempSync(join(tmpdir(), 'hc-git-layout-'));
-    writeCollectionFile(
+    writeCollectionToFolder(
       root,
       buildTestCollectionExport({
         uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
@@ -152,12 +218,7 @@ describe('git file layout', () => {
     );
 
     expect(() =>
-      assertExportFilenameAvailable(
-        root,
-        'collection',
-        'api',
-        'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
-      )
+      assertCollectionDirAvailable(root, 'api', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')
     ).toThrow(/already exists/i);
 
     rmSync(root, { recursive: true, force: true });
@@ -165,7 +226,7 @@ describe('git file layout', () => {
 
   it('allows the same slug across different export kinds', () => {
     const root = mkdtempSync(join(tmpdir(), 'hc-git-layout-'));
-    writeCollectionFile(
+    writeCollectionToFolder(
       root,
       buildTestCollectionExport({
         uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
@@ -185,12 +246,13 @@ describe('git file layout', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('throws a descriptive error when a collection file contains invalid JSON', () => {
+  it('throws a descriptive error when collection manifest JSON is invalid', () => {
     const root = mkdtempSync(join(tmpdir(), 'hc-git-layout-'));
-    const filePath = collectionFilePath(root, 'API');
-    writeFileSync(filePath, '<<<<<<< HEAD\n{ invalid\n', 'utf-8');
+    const dirPath = collectionDirPath(root, 'API');
+    mkdirSync(dirPath, { recursive: true });
+    writeFileSync(collectionManifestPath(dirPath), '<<<<<<< HEAD\n{ invalid\n', 'utf-8');
 
-    expect(() => readCollectionFile(filePath)).toThrow(/Failed to parse JSON/);
+    expect(() => readCollectionFromFolder(dirPath)).toThrow(/Failed to parse JSON/);
 
     rmSync(root, { recursive: true, force: true });
   });
@@ -211,78 +273,72 @@ describe('git file layout', () => {
     expect(resolveHarborclientRoot('/tmp/repo', '.harborclient')).toBe('/tmp/repo/.harborclient');
   });
 
-  it('mirrors markdown documents to the harbor root', () => {
-    const root = mkdtempSync(join(tmpdir(), 'hc-git-harbor-docs-'));
-    const collectionUuid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-    const documents = [
-      {
-        uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-        name: 'README.md',
-        content: '# Notes',
-        sort_order: 0,
-        folder_name: null,
-        color: null
-      }
-    ];
+  it('classifies collection-scoped request and document paths for git UI filtering', () => {
+    const requestPath = '.harborclient/collection-api/req-health.json';
+    const documentPath = '.harborclient/collection-api/README.md';
+    const manifestPath = '.harborclient/collection-api/collection.json';
 
-    writeCollectionFile(
-      root,
-      buildTestCollectionExport({
-        documents
-      })
-    );
-    writeDocumentsToHarborRoot(root, collectionUuid, documents);
-
-    const filePath = join(root, documentFileName('README.md'));
-    expect(existsSync(filePath)).toBe(true);
-    expect(readFileSync(filePath, 'utf-8')).toBe('# Notes');
-
-    rmSync(root, { recursive: true, force: true });
+    expect(classifyHarborChangePath(requestPath, '.harborclient')).toMatchObject({
+      kind: 'request',
+      collectionDir: 'collection-api'
+    });
+    expect(classifyHarborChangePath(documentPath, '.harborclient')).toMatchObject({
+      kind: 'document',
+      collectionDir: 'collection-api'
+    });
+    expect(classifyHarborChangePath(manifestPath, '.harborclient')).toMatchObject({
+      kind: 'collectionMeta'
+    });
+    expect(classifyHarborChangePath('.harborclient/.gitignore', '.harborclient')).toMatchObject({
+      kind: 'other',
+      fileName: '.gitignore'
+    });
   });
 
-  it('rejects case-insensitive duplicate document filenames across collections', () => {
-    const root = mkdtempSync(join(tmpdir(), 'hc-git-doc-collision-'));
-    const collectionA = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-    const collectionB = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
-    const documentA = {
-      uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-      name: 'README.md',
-      content: '# A',
-      sort_order: 0,
-      folder_name: null,
-      color: null
-    };
+  it('resolves display names from request JSON and collection manifest metadata', () => {
+    const requestMeta = displayNameFromHarborChange(
+      { kind: 'request', collectionDir: 'collection-api', fileName: 'req-health.json' },
+      JSON.stringify({ name: 'Health Check' })
+    );
+    expect(requestMeta).toEqual({
+      displayName: 'Health Check',
+      resourceKind: 'request'
+    });
 
-    writeCollectionFile(
-      root,
-      buildTestCollectionExport({
-        uuid: collectionA,
-        name: 'API',
-        documents: [documentA]
+    const documentMeta = displayNameFromHarborChange(
+      { kind: 'document', collectionDir: 'collection-api', fileName: 'README.md' },
+      null,
+      JSON.stringify({
+        documents: [{ file: 'README.md', uuid: 'x', name: 'Read Me', folder_uuid: null }]
       })
     );
-    writeDocumentsToHarborRoot(root, collectionA, [documentA]);
+    expect(documentMeta).toEqual({
+      displayName: 'Read Me',
+      resourceKind: 'document'
+    });
+  });
 
-    writeCollectionFile(
+  it('rejects duplicate document filenames inside one collection folder', () => {
+    const root = mkdtempSync(join(tmpdir(), 'hc-git-doc-collision-'));
+    const dirPath = writeCollectionToFolder(
       root,
       buildTestCollectionExport({
-        uuid: collectionB,
-        name: 'Docs'
+        documents: [
+          {
+            uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+            name: 'README.md',
+            content: '# A',
+            sort_order: 0,
+            folder_name: null,
+            color: null
+          }
+        ]
       })
     );
 
     expect(() =>
-      writeDocumentsToHarborRoot(root, collectionB, [
-        {
-          uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
-          name: 'readme.md',
-          content: '# B',
-          sort_order: 0,
-          folder_name: null,
-          color: null
-        }
-      ])
-    ).toThrow(/already exists/i);
+      assertDocumentFilenameAvailable(dirPath, 'readme.md', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd')
+    ).toThrow(/already exists in this collection/i);
 
     rmSync(root, { recursive: true, force: true });
   });

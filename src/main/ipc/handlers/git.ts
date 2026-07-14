@@ -27,7 +27,13 @@ import {
   testGitCredentials
 } from '#/main/git/gitOAuthScheduler';
 import { normalizeGitRemoteToHttps } from '#/shared/gitUrl';
-import { buildGitDiff, type GitDiffResult } from '#/main/git/gitDiff';
+import {
+  buildGitDiff,
+  isCollectionScopedHarborChange,
+  type GitDiffResult
+} from '#/main/git/gitDiff';
+import { classifyHarborChangePath } from '#/main/git/fileLayout';
+import { collectionDirName } from '#/main/git/slug';
 import { getGeneralSettings } from '#/main/settings/generalSettings';
 
 /**
@@ -270,14 +276,22 @@ export function registerGitHandlers(db: IStorage): void {
 
     const gitDb = requireGitStorage(db, connectionId);
     const status = await gitDb.syncManager.getStatus();
-    const { gitAutoAdd } = getGeneralSettings();
+    const collectionDir = collectionDirName(collection.name);
     const diff = await buildGitDiff({
       repoPath: gitDb.syncManager.repoDir,
       harborSubdir: status.harborSubdir,
       maxFiles: args.maxFiles,
       maxCharsPerFile: args.maxCharsPerFile,
       maxTotalChars: args.maxTotalChars,
-      stagedOnly: !gitAutoAdd
+      stagedOnly: args.stagedOnly ?? false,
+      enrichDisplayNames: true,
+      filepathFilter: (filepath) => {
+        const classified = classifyHarborChangePath(filepath, status.harborSubdir);
+        if (classified == null) {
+          return false;
+        }
+        return isCollectionScopedHarborChange(classified, collectionDir);
+      }
     });
 
     return JSON.stringify({

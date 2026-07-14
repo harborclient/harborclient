@@ -1,4 +1,4 @@
-import { Button, EmptyState, FaIcon, RowActionsMenu } from '@harborclient/sdk/components';
+import { Button, EmptySectionLabel, FaIcon, RowActionsMenu } from '@harborclient/sdk/components';
 import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
 import type { RequestHistoryEntry } from '#/shared/types/requestHistory';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
@@ -198,11 +198,7 @@ export function History(): JSX.Element {
         }
       }}
     >
-      {entries.length === 0 ? (
-        <EmptyState variant="inline" className="pr-2 py-1.5 text-center">
-          &lt;No requests&gt;
-        </EmptyState>
-      ) : null}
+      {entries.length === 0 ? <EmptySectionLabel label="No requests" /> : null}
       {entries.map((entry) => {
         const isRun = entry.kind === 'run';
         const methodClass = METHOD_CLASSES[entry.method.toLowerCase()] ?? 'text-info';

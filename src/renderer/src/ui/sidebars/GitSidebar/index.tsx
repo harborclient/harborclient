@@ -194,7 +194,7 @@ export function GitSidebar(): JSX.Element {
         style={{ width }}
         aria-label="Git source control"
       >
-        <div className="flex items-center gap-2 border-b border-separator px-2 py-1">
+        <div className="flex items-center gap-2 border-b border-separator px-2 py-1 h-[56px]">
           <div className="inline-flex min-w-0 items-center gap-1.5 text-text">
             <FaIcon icon={faCodeBranch} className="h-4 w-4 shrink-0" aria-hidden />
             <span className="truncate font-medium">{gitContext?.collectionName ?? 'Git'}</span>

@@ -7,7 +7,13 @@ import {
 } from '#/main/storage/collectionData';
 import { validateSnippetExport } from '#/main/storage/snippetData';
 import { generateDocumentUuid, resolveImportUuid } from '#/main/storage/uuid';
-import { exportFileBaseName } from '#/main/git/slug';
+import {
+  collectionDirName,
+  exportFileBaseName,
+  requestFileBaseName,
+  toFileSlug
+} from '#/main/git/slug';
+import { validateRequestExport } from '#/main/storage/collectionData';
 import type {
   CollectionExport,
   EnvironmentExport,
@@ -114,12 +120,20 @@ export function isHarborDocumentPath(filepath: string, harborSubdir: string): bo
   }
 
   const relative = harborSubdir === '.' ? normalized : normalized.slice(prefix.length);
-  if (!relative.endsWith('.md') || relative.includes('/')) {
+  if (!relative.endsWith('.md')) {
     return false;
   }
 
-  const baseName = relative.slice(relative.lastIndexOf('/') + 1);
-  return !HARBOR_ROOT_RESERVED_NAMES.has(baseName);
+  const parts = relative.split('/');
+  if (parts.length === 2 && parts[0].startsWith('collection-')) {
+    return true;
+  }
+  if (parts.length === 1) {
+    const baseName = parts[0];
+    return !HARBOR_ROOT_RESERVED_NAMES.has(baseName);
+  }
+
+  return false;
 }
 
 /**
@@ -212,13 +226,74 @@ export function exportFilePath(root: string, kind: HarborExportKind, name: strin
 }
 
 /**
- * Returns the collection export file path for a collection display name.
- *
- * @param root - HarborClient data root.
- * @param name - Collection display name.
+ * On-disk collection manifest file name inside a collection folder.
  */
-export function collectionFilePath(root: string, name: string): string {
-  return exportFilePath(root, 'collection', name);
+export const COLLECTION_MANIFEST_FILE = 'collection.json';
+
+/**
+ * Classified kind for one HarborClient path in git status or commit views.
+ */
+export type HarborChangeKind =
+  | 'request'
+  | 'document'
+  | 'collectionMeta'
+  | 'environment'
+  | 'snippet'
+  | 'other';
+
+/**
+ * Parsed HarborClient path metadata for filtering and display labels.
+ */
+export interface ClassifiedHarborChangePath {
+  /**
+   * High-level resource category for the path.
+   */
+  kind: HarborChangeKind;
+
+  /**
+   * Collection folder segment when the path is inside `collection-<slug>/`.
+   */
+  collectionDir?: string;
+
+  /**
+   * File name relative to the harbor root or collection folder.
+   */
+  fileName: string;
+}
+
+/**
+ * Document metadata stored in collection.json for one mirrored markdown file.
+ */
+export interface StoredDocumentRef {
+  /**
+   * Markdown file name inside the collection folder.
+   */
+  file: string;
+
+  /**
+   * Stable document uuid.
+   */
+  uuid: string;
+
+  /**
+   * User-facing document title.
+   */
+  name: string;
+
+  /**
+   * Owning folder uuid, or null at collection root.
+   */
+  folder_uuid: string | null;
+
+  /**
+   * Position among sibling container items.
+   */
+  sort_order: number;
+
+  /**
+   * Optional sidebar color.
+   */
+  color: string | null;
 }
 
 /**
@@ -239,6 +314,215 @@ export function environmentFilePath(root: string, name: string): string {
  */
 export function snippetFilePath(root: string, name: string): string {
   return exportFilePath(root, 'snippet', name);
+}
+
+/**
+ * Returns the on-disk collection folder name for a display name.
+ *
+ * @param name - Collection display name.
+ */
+export { collectionDirName };
+
+/**
+ * Returns the absolute path to one collection folder at the harbor root.
+ *
+ * @param root - HarborClient data root.
+ * @param name - Collection display name.
+ */
+export function collectionDirPath(root: string, name: string): string {
+  return join(root, collectionDirName(name));
+}
+
+/**
+ * Returns the absolute path to `collection.json` inside a collection folder.
+ *
+ * @param dirPath - Absolute collection folder path.
+ */
+export function collectionManifestPath(dirPath: string): string {
+  return join(dirPath, COLLECTION_MANIFEST_FILE);
+}
+
+/**
+ * Returns the absolute path for a markdown document inside a collection folder.
+ *
+ * @param dirPath - Absolute collection folder path.
+ * @param displayName - User-facing document title.
+ */
+export function collectionDocumentFilePath(dirPath: string, displayName: string): string {
+  const fileName = documentFileName(displayName);
+  const resolvedDir = resolve(dirPath);
+  const resolvedPath = resolve(join(resolvedDir, fileName));
+  if (resolvedPath !== resolvedDir && !resolvedPath.startsWith(`${resolvedDir}/`)) {
+    throw new Error('Document name escapes the collection folder');
+  }
+  return resolvedPath;
+}
+
+/**
+ * Returns true when a collection folder name would match gitignore local-override globs.
+ *
+ * @param dirName - Collection folder base name.
+ */
+export function isGitignoredCollectionDirName(dirName: string): boolean {
+  return isGitignoredHarborExportFileName(`${dirName}.json`);
+}
+
+/**
+ * Ensures a collection folder name is available at the harbor root.
+ *
+ * @param harborRoot - HarborClient data root.
+ * @param name - Candidate collection display name.
+ * @param ownerUuid - Collection uuid allowed to keep the folder name.
+ */
+export function assertCollectionDirAvailable(
+  harborRoot: string,
+  name: string,
+  ownerUuid: string
+): void {
+  const dirName = collectionDirName(name);
+  if (isGitignoredCollectionDirName(dirName)) {
+    throw new Error(
+      `The collection name "${name.trim()}" would create folder "${dirName}", which is ignored by the HarborClient .gitignore. Choose a different name.`
+    );
+  }
+
+  const normalizedOwnerUuid = resolveImportUuid(ownerUuid);
+  for (const entry of listCollectionFoldersOnDisk(harborRoot)) {
+    if (basename(entry.dirPath) !== dirName) {
+      continue;
+    }
+    if (entry.uuid !== normalizedOwnerUuid) {
+      throw new Error(`A collection folder named "${dirName}" already exists in this repository.`);
+    }
+  }
+}
+
+/**
+ * Classifies a repository-relative HarborClient path for git UI filtering.
+ *
+ * @param filepath - Repository-relative path.
+ * @param harborSubdir - HarborClient subdirectory prefix.
+ */
+export function classifyHarborChangePath(
+  filepath: string,
+  harborSubdir: string
+): ClassifiedHarborChangePath | null {
+  const normalized = filepath.replace(/\\/g, '/');
+  const prefix =
+    harborSubdir === '.' ? '' : `${harborSubdir.replace(/\\/g, '/').replace(/\/+$/, '')}/`;
+  if (harborSubdir !== '.' && !normalized.startsWith(prefix)) {
+    return null;
+  }
+
+  const relative = harborSubdir === '.' ? normalized : normalized.slice(prefix.length);
+  if (!relative || relative === '.gitignore') {
+    return relative === '.gitignore' ? { kind: 'other', fileName: '.gitignore' } : null;
+  }
+
+  if (!relative.includes('/')) {
+    if (relative.endsWith('.json')) {
+      if (relative.startsWith('environment-')) {
+        return { kind: 'environment', fileName: relative };
+      }
+      if (relative.startsWith('snippet-')) {
+        return { kind: 'snippet', fileName: relative };
+      }
+    }
+    return { kind: 'other', fileName: relative };
+  }
+
+  const slashIndex = relative.indexOf('/');
+  const collectionDir = relative.slice(0, slashIndex);
+  const innerPath = relative.slice(slashIndex + 1);
+  if (!collectionDir.startsWith('collection-')) {
+    return { kind: 'other', fileName: relative };
+  }
+
+  const fileName = innerPath.includes('/')
+    ? innerPath.slice(innerPath.lastIndexOf('/') + 1)
+    : innerPath;
+
+  if (innerPath === COLLECTION_MANIFEST_FILE) {
+    return { kind: 'collectionMeta', collectionDir, fileName };
+  }
+  if (innerPath.startsWith('req-') && innerPath.endsWith('.json')) {
+    return { kind: 'request', collectionDir, fileName: innerPath };
+  }
+  if (innerPath.endsWith('.md') && !innerPath.includes('/')) {
+    return { kind: 'document', collectionDir, fileName: innerPath };
+  }
+
+  return { kind: 'other', fileName: innerPath };
+}
+
+/**
+ * Parses a request display name from one request export JSON string.
+ *
+ * @param text - Request export JSON text.
+ */
+function parseRequestDisplayNameFromText(text: string | null): string | null {
+  if (text == null || !text.trim()) {
+    return null;
+  }
+  const parsed = parseJson(text, null as { name?: unknown } | null);
+  if (parsed != null && typeof parsed.name === 'string' && parsed.name.trim()) {
+    return parsed.name.trim();
+  }
+  return null;
+}
+
+/**
+ * Parses a document display name from collection manifest JSON and file name.
+ *
+ * @param manifestText - `collection.json` text for the owning collection folder.
+ * @param fileName - Markdown file name inside the collection folder.
+ */
+function parseDocumentDisplayNameFromManifest(
+  manifestText: string | null,
+  fileName: string
+): string | null {
+  if (manifestText == null || !manifestText.trim()) {
+    return null;
+  }
+  const parsed = parseJson(manifestText, null as { documents?: StoredDocumentRef[] } | null);
+  if (parsed == null) {
+    return null;
+  }
+  for (const document of parsed.documents ?? []) {
+    if (document.file.toLowerCase() === fileName.toLowerCase() && document.name.trim()) {
+      return document.name.trim();
+    }
+  }
+  return null;
+}
+
+/**
+ * Builds user-facing display metadata for one classified Harbor change path.
+ *
+ * @param classified - Parsed HarborClient path metadata.
+ * @param contentText - Decoded file content at the relevant git ref.
+ * @param manifestText - Optional `collection.json` text for document rows.
+ */
+export function displayNameFromHarborChange(
+  classified: ClassifiedHarborChangePath,
+  contentText: string | null,
+  manifestText: string | null = null
+): { displayName: string; resourceKind: 'request' | 'document' } {
+  if (classified.kind === 'request') {
+    const parsedName = parseRequestDisplayNameFromText(contentText);
+    const fallback = classified.fileName.replace(/^req-/i, '').replace(/\.json$/i, '');
+    return {
+      displayName: parsedName ?? fallback,
+      resourceKind: 'request'
+    };
+  }
+
+  const manifestName = parseDocumentDisplayNameFromManifest(manifestText, classified.fileName);
+  const fallback = classified.fileName.replace(/\.md$/i, '');
+  return {
+    displayName: manifestName ?? fallback,
+    resourceKind: 'document'
+  };
 }
 
 /**
@@ -412,33 +696,6 @@ function normalizeScriptRefFields(parsed: Record<string, unknown>): Record<strin
 }
 
 /**
- * Normalizes a collection export payload before schema validation.
- *
- * @param parsed - Raw collection JSON read from disk.
- */
-function normalizeStoredCollectionForValidation(
-  parsed: Record<string, unknown>
-): Record<string, unknown> {
-  const normalized = normalizeScriptRefFields(parsed);
-  const folders = Array.isArray(parsed.folders)
-    ? parsed.folders
-        .filter((row): row is Record<string, unknown> => row != null && typeof row === 'object')
-        .map((folder) => normalizeScriptRefFields(folder))
-    : [];
-  const requests = Array.isArray(parsed.requests)
-    ? parsed.requests
-        .filter((row): row is Record<string, unknown> => row != null && typeof row === 'object')
-        .map((request) => normalizeScriptRefFields(request))
-    : [];
-
-  return {
-    ...normalized,
-    folders,
-    requests
-  };
-}
-
-/**
  * Determines whether a newly parsed duplicate request row should replace the
  * one already chosen for the same UUID.
  *
@@ -485,139 +742,491 @@ function collapseDuplicateRequests(requests: ExportedRequest[]): ExportedRequest
 }
 
 /**
- * Reads and validates a collection export from one JSON file.
+ * Picks a unique JSON file name within one collection folder.
  *
- * @param filePath - Absolute path to the collection export file.
+ * @param baseName - Desired file name ending in `.json`.
+ * @param usedNames - Lowercase file names already reserved in the folder.
  */
-export function readCollectionFile(filePath: string): CollectionExport {
-  const parsed = readJsonFile(filePath) as Record<string, unknown>;
-  if (parseHarborExportKind(parsed) !== 'collection') {
-    throw new Error(`Expected a collection export in ${filePath}`);
+function uniqueFileNameInFolder(baseName: string, usedNames: Set<string>): string {
+  const stem = baseName.replace(/\.json$/i, '');
+  let candidate = baseName;
+  let counter = 2;
+  while (usedNames.has(candidate.toLowerCase())) {
+    candidate = `${stem}-${counter}.json`;
+    counter += 1;
   }
-
-  const validated = validateCollectionExport(normalizeStoredCollectionForValidation(parsed));
-  return {
-    ...validated,
-    requests: collapseDuplicateRequests(validated.requests ?? [])
-  };
+  return candidate;
 }
 
 /**
- * Writes a validated collection export to a single JSON file at the Harbor data root.
+ * Maps existing request uuids to on-disk file names inside a collection folder.
  *
- * Removes stale slug files for the same collection uuid when the display name changes.
+ * @param dirPath - Absolute collection folder path.
+ */
+function buildExistingRequestFileMap(dirPath: string): Map<string, string> {
+  const map = new Map<string, string>();
+  if (!existsSync(dirPath)) {
+    return map;
+  }
+
+  for (const fileName of readdirSync(dirPath)) {
+    if (!fileName.startsWith('req-') || !fileName.endsWith('.json')) {
+      continue;
+    }
+    try {
+      const parsed = readJsonFile(join(dirPath, fileName)) as {
+        harborclientExport?: string;
+        uuid?: string;
+      };
+      if (parsed.harborclientExport !== 'request') {
+        continue;
+      }
+      const uuid = resolveImportUuid(String(parsed.uuid ?? ''));
+      if (uuid) {
+        map.set(uuid, fileName);
+      }
+    } catch {
+      // Ignore invalid request files when rebuilding the uuid map.
+    }
+  }
+
+  return map;
+}
+
+/**
+ * Resolves the on-disk request JSON file name for one export row.
+ *
+ * Preserves the existing file name when the request uuid is unchanged and the
+ * display-name slug is unchanged; assigns a new unique name after renames.
+ *
+ * @param request - Request export row to persist.
+ * @param existingUuidToFile - Current uuid-to-filename map from disk.
+ * @param usedNames - Lowercase file names already reserved in the folder.
+ */
+function resolveRequestFileName(
+  request: ExportedRequest,
+  existingUuidToFile: Map<string, string>,
+  usedNames: Set<string>
+): string {
+  const uuid = resolveImportUuid(request.uuid);
+  const desired = `${requestFileBaseName(request.name)}.json`;
+  const existing = existingUuidToFile.get(uuid);
+
+  if (existing) {
+    const existingSlug = existing.replace(/^req-/i, '').replace(/\.json$/i, '');
+    const nameSlug = toFileSlug(request.name);
+    if (existingSlug === nameSlug || existing.toLowerCase() === desired.toLowerCase()) {
+      usedNames.add(existing.toLowerCase());
+      return existing;
+    }
+  }
+
+  let fileName = desired;
+  if (usedNames.has(fileName.toLowerCase())) {
+    fileName = uniqueFileNameInFolder(desired, usedNames);
+  }
+  usedNames.add(fileName.toLowerCase());
+  return fileName;
+}
+
+/**
+ * Reads and validates a collection folder into one inline collection export.
+ *
+ * @param dirPath - Absolute path to the collection folder.
+ */
+export function readCollectionFromFolder(dirPath: string): CollectionExport {
+  const manifestPath = collectionManifestPath(dirPath);
+  const parsed = readJsonFile(manifestPath) as Record<string, unknown>;
+  if (parseHarborExportKind(parsed) !== 'collection') {
+    throw new Error(`Expected a collection export in ${manifestPath}`);
+  }
+
+  const requestFiles = Array.isArray(parsed.requests)
+    ? parsed.requests.filter((row): row is string => typeof row === 'string')
+    : [];
+  const requests: ExportedRequest[] = [];
+
+  for (const [index, fileName] of requestFiles.entries()) {
+    const requestPath = join(dirPath, fileName);
+    if (!existsSync(requestPath)) {
+      continue;
+    }
+    const requestParsed = normalizeScriptRefFields(
+      readJsonFile(requestPath) as Record<string, unknown>
+    );
+    const validated = validateRequestExport(requestParsed);
+    const folderUuid =
+      typeof requestParsed.folder_uuid === 'string'
+        ? requestParsed.folder_uuid
+        : requestParsed.folder_uuid === null
+          ? null
+          : undefined;
+    requests.push({
+      ...validated,
+      uuid: validated.uuid,
+      sort_order: index,
+      folder_uuid: folderUuid ?? null,
+      folder_name: null
+    });
+  }
+
+  const documentsRaw = Array.isArray(parsed.documents) ? parsed.documents : [];
+  const documents: ExportedDocument[] = documentsRaw
+    .filter((row): row is Record<string, unknown> => row != null && typeof row === 'object')
+    .map((row, index) => {
+      const file =
+        typeof row.file === 'string' ? row.file : documentFileName(String(row.name ?? ''));
+      const mdPath = join(dirPath, file);
+      let content = String(row.content ?? '');
+      if (!content.trim() && existsSync(mdPath)) {
+        content = readFileSync(mdPath, 'utf-8');
+      }
+      return {
+        uuid: typeof row.uuid === 'string' ? resolveImportUuid(row.uuid) : undefined,
+        name: String(row.name ?? '').trim(),
+        content,
+        sort_order:
+          typeof row.sort_order === 'number' && Number.isFinite(row.sort_order)
+            ? row.sort_order
+            : index,
+        folder_uuid:
+          row.folder_uuid == null || row.folder_uuid === ''
+            ? null
+            : typeof row.folder_uuid === 'string'
+              ? row.folder_uuid
+              : null,
+        color:
+          row.color == null ? null : typeof row.color === 'string' ? row.color.trim() || null : null
+      };
+    })
+    .filter((row) => row.name.length > 0);
+
+  const foldersRaw = Array.isArray(parsed.folders) ? parsed.folders : [];
+  const folders = foldersRaw
+    .filter((row): row is Record<string, unknown> => row != null && typeof row === 'object')
+    .map((folder, index) => ({
+      uuid: typeof folder.uuid === 'string' ? resolveImportUuid(folder.uuid) : undefined,
+      name: String(folder.name ?? '').trim(),
+      sort_order:
+        typeof folder.sort_order === 'number' && Number.isFinite(folder.sort_order)
+          ? folder.sort_order
+          : index,
+      variables: (folder.variables as Variable[] | undefined) ?? [],
+      headers: (folder.headers as KeyValue[] | undefined) ?? [],
+      auth: (folder.auth as AuthConfig | undefined) ?? defaultAuth(),
+      pre_request_script: String(folder.pre_request_script ?? ''),
+      post_request_script: String(folder.post_request_script ?? ''),
+      pre_request_scripts: Array.isArray(folder.pre_request_scripts)
+        ? (folder.pre_request_scripts as ScriptRef[])
+        : readScriptRefsFromJson(
+            typeof folder.pre_request_scripts === 'string' ? folder.pre_request_scripts : undefined,
+            String(folder.pre_request_script ?? '')
+          ),
+      post_request_scripts: Array.isArray(folder.post_request_scripts)
+        ? (folder.post_request_scripts as ScriptRef[])
+        : readScriptRefsFromJson(
+            typeof folder.post_request_scripts === 'string'
+              ? folder.post_request_scripts
+              : undefined,
+            String(folder.post_request_script ?? '')
+          ),
+      color:
+        folder.color == null
+          ? null
+          : typeof folder.color === 'string'
+            ? folder.color.trim() || null
+            : null
+    }))
+    .filter((row) => row.name.length > 0);
+
+  return validateCollectionExport({
+    harborclientVersion: 1,
+    harborclientExport: 'collection',
+    uuid: typeof parsed.uuid === 'string' ? resolveImportUuid(parsed.uuid) : undefined,
+    name: String(parsed.name ?? ''),
+    color:
+      parsed.color == null
+        ? null
+        : typeof parsed.color === 'string'
+          ? parsed.color.trim() || null
+          : null,
+    variables: (parsed.variables as CollectionExport['variables']) ?? [],
+    headers: (parsed.headers as CollectionExport['headers']) ?? [],
+    auth: parsed.auth as CollectionExport['auth'],
+    pre_request_script: String(parsed.pre_request_script ?? ''),
+    post_request_script: String(parsed.post_request_script ?? ''),
+    pre_request_scripts: Array.isArray(parsed.pre_request_scripts)
+      ? (parsed.pre_request_scripts as ScriptRef[])
+      : readScriptRefsFromJson(
+          typeof parsed.pre_request_scripts === 'string' ? parsed.pre_request_scripts : undefined,
+          String(parsed.pre_request_script ?? '')
+        ),
+    post_request_scripts: Array.isArray(parsed.post_request_scripts)
+      ? (parsed.post_request_scripts as ScriptRef[])
+      : readScriptRefsFromJson(
+          typeof parsed.post_request_scripts === 'string' ? parsed.post_request_scripts : undefined,
+          String(parsed.post_request_script ?? '')
+        ),
+    folders,
+    requests: collapseDuplicateRequests(requests),
+    documents
+  });
+}
+
+/**
+ * Writes a validated collection export to a collection folder with per-request JSON files.
  *
  * @param root - HarborClient data root.
  * @param exportData - Collection export payload to persist.
+ * @param options - Optional previous folder path to remove after a rename.
+ * @returns Absolute path to the collection folder written on disk.
  */
-export function writeCollectionFile(root: string, exportData: CollectionExport): void {
+export function writeCollectionToFolder(
+  root: string,
+  exportData: CollectionExport,
+  options?: { previousDirPath?: string | null }
+): string {
   mkdirSync(root, { recursive: true });
   const validated = validateCollectionExport(exportData);
   const uuid = resolveImportUuid(validated.uuid);
-  assertExportFilenameAvailable(root, 'collection', validated.name, uuid);
-  const targetPath = collectionFilePath(root, validated.name);
-  const masked = {
-    ...validated,
+  assertCollectionDirAvailable(root, validated.name, uuid);
+
+  const dirPath = collectionDirPath(root, validated.name);
+  const previousDirPath = options?.previousDirPath ?? null;
+  const sourceDir = previousDirPath && existsSync(previousDirPath) ? previousDirPath : dirPath;
+  const existingUuidToFile = buildExistingRequestFileMap(sourceDir);
+  const usedNames = new Set<string>();
+  const requestFileNames: string[] = [];
+  const writtenRequestFiles = new Set<string>();
+  const writtenDocumentFiles = new Set<string>();
+
+  mkdirSync(dirPath, { recursive: true });
+
+  for (const request of validated.requests ?? []) {
+    const fileName = resolveRequestFileName(request, existingUuidToFile, usedNames);
+    requestFileNames.push(fileName);
+    writtenRequestFiles.add(fileName);
+
+    const requestPayload = validateRequestExport({
+      harborclientVersion: 1,
+      harborclientExport: 'request',
+      uuid: resolveImportUuid(request.uuid),
+      name: request.name,
+      method: request.method,
+      url: request.url,
+      headers: request.headers,
+      params: request.params,
+      auth: request.auth,
+      body: request.body,
+      body_type: request.body_type,
+      pre_request_script: request.pre_request_script,
+      post_request_script: request.post_request_script,
+      pre_request_scripts: request.pre_request_scripts,
+      post_request_scripts: request.post_request_scripts,
+      comment: request.comment,
+      tags: request.tags,
+      color: request.color ?? null
+    });
+
+    writeFileSync(
+      join(dirPath, fileName),
+      JSON.stringify(
+        {
+          ...requestPayload,
+          folder_uuid: request.folder_uuid ?? null
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    );
+  }
+
+  const documentRefs: StoredDocumentRef[] = (validated.documents ?? []).map((document, index) => {
+    const file = documentFileName(document.name);
+    writtenDocumentFiles.add(file);
+    const mdPath = collectionDocumentFilePath(dirPath, document.name);
+    writeFileSync(mdPath, document.content ?? '', 'utf-8');
+    return {
+      file,
+      uuid: resolveImportUuid(document.uuid),
+      name: document.name,
+      folder_uuid: document.folder_uuid ?? null,
+      sort_order:
+        typeof document.sort_order === 'number' && Number.isFinite(document.sort_order)
+          ? document.sort_order
+          : index,
+      color: document.color ?? null
+    };
+  });
+
+  const manifest = {
+    harborclientVersion: 1,
+    harborclientExport: 'collection',
     uuid,
+    name: validated.name,
+    color: validated.color ?? null,
     variables: maskVariablesForExport(validated.variables),
+    headers: validated.headers,
+    auth: validated.auth,
+    pre_request_script: validated.pre_request_script,
+    post_request_script: validated.post_request_script,
+    pre_request_scripts: validated.pre_request_scripts,
+    post_request_scripts: validated.post_request_scripts,
     folders: (validated.folders ?? []).map((folder) => ({
       ...folder,
       variables: maskVariablesForExport(folder.variables ?? [])
-    }))
+    })),
+    requests: requestFileNames,
+    documents: documentRefs
   };
 
-  writeFileSync(targetPath, JSON.stringify(masked, null, 2), 'utf-8');
-  removeStaleExportFilesForUuid(root, 'collection', uuid, targetPath);
+  writeFileSync(collectionManifestPath(dirPath), JSON.stringify(manifest, null, 2), 'utf-8');
+
+  if (existsSync(dirPath)) {
+    for (const entry of readdirSync(dirPath)) {
+      const entryPath = join(dirPath, entry);
+      if (entry === COLLECTION_MANIFEST_FILE) {
+        continue;
+      }
+      if (entry.startsWith('req-') && entry.endsWith('.json') && !writtenRequestFiles.has(entry)) {
+        rmSync(entryPath, { force: true });
+        continue;
+      }
+      if (entry.endsWith('.md') && !writtenDocumentFiles.has(entry)) {
+        rmSync(entryPath, { force: true });
+      }
+    }
+  }
+
+  if (previousDirPath && previousDirPath !== dirPath && existsSync(previousDirPath)) {
+    rmSync(previousDirPath, { recursive: true, force: true });
+  }
+
+  removeStaleCollectionFoldersForUuid(root, uuid, dirPath);
+
+  return dirPath;
 }
 
 /**
- * Lists collection uuids discovered as root collection export files.
+ * Removes stale collection folders that share a uuid after a rename.
+ *
+ * @param root - HarborClient data root.
+ * @param uuid - Collection uuid.
+ * @param keepDirPath - Folder path that should remain on disk.
+ */
+function removeStaleCollectionFoldersForUuid(
+  root: string,
+  uuid: string,
+  keepDirPath: string
+): void {
+  if (!existsSync(root)) {
+    return;
+  }
+
+  for (const entry of listCollectionFoldersOnDisk(root)) {
+    if (entry.uuid === uuid && entry.dirPath !== keepDirPath) {
+      rmSync(entry.dirPath, { recursive: true, force: true });
+    }
+  }
+}
+
+/**
+ * Lists collection uuids discovered as collection folders on disk.
  *
  * @param root - HarborClient data root.
  */
 export function listCollectionUuidsOnDisk(root: string): string[] {
-  return listCollectionFilesOnDisk(root).map((entry) => entry.uuid);
+  return listCollectionFoldersOnDisk(root).map((entry) => entry.uuid);
 }
 
 /**
- * One collection export file discovered at the Harbor data root.
+ * One collection folder discovered at the Harbor data root.
  */
-export interface CollectionFileEntry {
+export interface CollectionFolderEntry {
   /**
-   * Stable collection uuid parsed from the file name.
+   * Stable collection uuid from `collection.json`.
    */
   uuid: string;
 
   /**
-   * Absolute path to the collection export JSON file.
+   * Absolute path to the collection folder.
    */
-  filePath: string;
+  dirPath: string;
 }
 
 /**
- * Lists collection export files at the Harbor data root.
+ * Lists collection folders at the Harbor data root.
  *
  * @param root - HarborClient data root.
  */
-export function listCollectionFilesOnDisk(root: string): CollectionFileEntry[] {
+export function listCollectionFoldersOnDisk(root: string): CollectionFolderEntry[] {
   if (!existsSync(root)) {
     return [];
   }
 
-  const entries: CollectionFileEntry[] = [];
-  for (const fileName of readdirSync(root)) {
-    if (!fileName.endsWith('.json')) {
+  const entries: CollectionFolderEntry[] = [];
+  for (const dirName of readdirSync(root)) {
+    if (!dirName.startsWith('collection-')) {
       continue;
     }
-    const filePath = join(root, fileName);
-    const parsed = readJsonFile(filePath);
-    if (parseHarborExportKind(parsed) !== 'collection') {
+    const dirPath = join(root, dirName);
+    const manifestPath = collectionManifestPath(dirPath);
+    if (!existsSync(manifestPath)) {
       continue;
     }
-    const uuid = resolveImportUuid(String((parsed as { uuid?: string }).uuid ?? ''));
-    if (!uuid) {
-      continue;
+    try {
+      const parsed = readJsonFile(manifestPath) as { harborclientExport?: string; uuid?: string };
+      if (parsed.harborclientExport !== 'collection') {
+        continue;
+      }
+      const uuid = resolveImportUuid(String(parsed.uuid ?? ''));
+      if (!uuid) {
+        continue;
+      }
+      entries.push({ uuid, dirPath });
+    } catch {
+      // Ignore invalid collection folders during discovery scans.
     }
-    entries.push({ uuid, filePath });
   }
 
   return entries;
 }
 
 /**
- * Finds a collection export file path by uuid under a HarborClient root.
+ * Finds a collection folder path by uuid under a HarborClient root.
  *
  * @param root - HarborClient data root.
  * @param uuid - Collection uuid to locate.
  */
-export function findCollectionFileByUuid(root: string, uuid: string): string | null {
+export function findCollectionDirByUuid(root: string, uuid: string): string | null {
   const normalizedUuid = resolveImportUuid(uuid).toLowerCase();
-  for (const entry of listCollectionFilesOnDisk(root)) {
+  for (const entry of listCollectionFoldersOnDisk(root)) {
     if (entry.uuid.toLowerCase() === normalizedUuid) {
-      return entry.filePath;
+      return entry.dirPath;
     }
   }
   return null;
 }
 
 /**
- * Lists all managed markdown documents at the Harbor data root across collections.
+ * Lists all managed markdown documents across collection folders.
  *
  * @param harborRoot - HarborClient data root.
  */
 export function listManagedHarborRootDocuments(harborRoot: string): HarborRootDocumentEntry[] {
   const documents: HarborRootDocumentEntry[] = [];
 
-  for (const entry of listCollectionFilesOnDisk(harborRoot)) {
-    const exportData = readCollectionFile(entry.filePath);
+  for (const entry of listCollectionFoldersOnDisk(harborRoot)) {
+    const exportData = readCollectionFromFolder(entry.dirPath);
     for (const document of exportData.documents ?? []) {
-      const uuid = resolveImportUuid(document.uuid);
-      if (!uuid || !document.name.trim()) {
+      const docUuid = resolveImportUuid(document.uuid);
+      if (!docUuid || !document.name.trim()) {
         continue;
       }
-      const filePath = documentFilePath(harborRoot, document.name);
+      const filePath = collectionDocumentFilePath(entry.dirPath, document.name);
       documents.push({
-        uuid,
+        uuid: docUuid,
         collection_uuid: entry.uuid,
         name: document.name,
         filePath,
@@ -645,93 +1254,38 @@ export function buildFilenameToDocumentMap(
 }
 
 /**
- * Ensures a document filename is available at the Harbor data root.
+ * Ensures a document filename is available inside one collection folder.
  *
- * @param harborRoot - HarborClient data root.
+ * @param collectionDir - Absolute path to the collection folder.
  * @param displayName - Candidate document display name.
  * @param ownerUuid - Document uuid that is allowed to keep the filename.
- * @throws When another managed document already owns the filename.
+ * @throws When another document in the same collection already owns the filename.
  */
 export function assertDocumentFilenameAvailable(
-  harborRoot: string,
+  collectionDir: string,
   displayName: string,
   ownerUuid: string
 ): void {
   const fileName = documentFileName(displayName);
   const normalizedOwnerUuid = resolveImportUuid(ownerUuid);
-  const normalizedFileName = fileName.toLowerCase();
+  const manifestPath = collectionManifestPath(collectionDir);
+  if (!existsSync(manifestPath)) {
+    return;
+  }
 
-  for (const entry of listManagedHarborRootDocuments(harborRoot)) {
-    if (entry.fileName.toLowerCase() !== normalizedFileName) {
+  const manifest = readJsonFile(manifestPath) as { documents?: StoredDocumentRef[] };
+  for (const document of manifest.documents ?? []) {
+    if (document.file.toLowerCase() !== fileName.toLowerCase()) {
       continue;
     }
-    if (entry.uuid !== normalizedOwnerUuid) {
-      throw new Error(`A markdown document named "${fileName}" already exists in this repository.`);
+    if (resolveImportUuid(document.uuid) !== normalizedOwnerUuid) {
+      throw new Error(`A markdown document named "${fileName}" already exists in this collection.`);
     }
   }
 }
 
 /**
- * Writes markdown document files at the Harbor data root for one collection.
- *
- * @param harborRoot - HarborClient data root.
- * @param collectionUuid - Stable collection uuid.
- * @param documents - Document export rows to persist.
- */
-export function writeDocumentsToHarborRoot(
-  harborRoot: string,
-  collectionUuid: string,
-  documents: ExportedDocument[]
-): void {
-  mkdirSync(harborRoot, { recursive: true });
-
-  const normalizedCollectionUuid = resolveImportUuid(collectionUuid);
-  const writtenUuids = new Set<string>();
-  const existingUuidToPath = new Map<string, string>();
-  const reservedNames = new Map<string, string>();
-
-  for (const entry of listManagedHarborRootDocuments(harborRoot)) {
-    existingUuidToPath.set(entry.uuid, entry.filePath);
-    reservedNames.set(entry.fileName.toLowerCase(), entry.uuid);
-  }
-
-  for (const document of documents) {
-    const uuid = resolveImportUuid(document.uuid);
-    const fileName = documentFileName(document.name);
-    const normalizedFileName = fileName.toLowerCase();
-    const existingOwner = reservedNames.get(normalizedFileName);
-    if (existingOwner != null && existingOwner !== uuid) {
-      throw new Error(`A markdown document named "${fileName}" already exists in this repository.`);
-    }
-    reservedNames.set(normalizedFileName, uuid);
-  }
-
-  for (const document of documents) {
-    const uuid = resolveImportUuid(document.uuid);
-    writtenUuids.add(uuid);
-    const targetPath = documentFilePath(harborRoot, document.name);
-    writeFileSync(targetPath, document.content, 'utf-8');
-
-    const previousPath = existingUuidToPath.get(uuid);
-    if (previousPath && previousPath !== targetPath) {
-      rmSync(previousPath, { force: true });
-    }
-  }
-
-  for (const [uuid, filePath] of existingUuidToPath.entries()) {
-    if (!writtenUuids.has(uuid)) {
-      const entry = listManagedHarborRootDocuments(harborRoot).find((row) => row.uuid === uuid);
-      if (entry?.collection_uuid === normalizedCollectionUuid) {
-        rmSync(filePath, { force: true });
-      }
-    }
-  }
-}
-
-/**
- * Reads markdown document export rows from collection exports and harbor-root files.
- *
- * Prefers inline content from the collection JSON; falls back to the mirrored `.md` file.
+ * Reads markdown document export rows from one collection folder.
  *
  * @param harborRoot - HarborClient data root.
  * @param collectionUuid - Stable collection uuid.
@@ -740,29 +1294,15 @@ export function readDocumentsFromHarborRoot(
   harborRoot: string,
   collectionUuid: string
 ): ExportedDocument[] {
-  const filePath = findCollectionFileByUuid(harborRoot, collectionUuid);
-  if (!filePath) {
+  const dirPath = findCollectionDirByUuid(harborRoot, collectionUuid);
+  if (!dirPath) {
     return [];
   }
 
-  const exportData = readCollectionFile(filePath);
-  const documents: ExportedDocument[] = [];
-
-  for (const document of exportData.documents ?? []) {
-    let content = document.content ?? '';
-    if (!content.trim()) {
-      const mdPath = documentFilePath(harborRoot, document.name);
-      if (existsSync(mdPath)) {
-        content = readFileSync(mdPath, 'utf-8');
-      }
-    }
-    documents.push({
-      ...document,
-      content
-    });
-  }
-
-  return documents.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+  const exportData = readCollectionFromFolder(dirPath);
+  return (exportData.documents ?? []).sort(
+    (a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)
+  );
 }
 
 /**

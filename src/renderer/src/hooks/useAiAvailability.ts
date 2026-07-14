@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react';
 import { hasAvailableAiModels } from '#/shared/ai/models';
 import type { AiSettings } from '#/shared/types';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
-import { selectHubModelGroups } from '#/renderer/src/store/slices/aiChatSlice';
+import {
+  selectGithubModelsConnected,
+  selectHubModelGroups
+} from '#/renderer/src/store/slices/aiChatSlice';
 import { refreshHubLlmModels } from '#/renderer/src/store/thunks/aiChat';
 import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Settings/constants';
 
@@ -21,6 +24,7 @@ export function useAiAvailability(): {
 } {
   const dispatch = useAppDispatch();
   const hubModelGroups = useAppSelector(selectHubModelGroups);
+  const githubConnected = useAppSelector(selectGithubModelsConnected);
   const [aiSettings, setAiSettings] = useState<AiSettings>(DEFAULT_AI_SETTINGS);
   const [loading, setLoading] = useState(true);
 
@@ -52,7 +56,7 @@ export function useAiAvailability(): {
   }, [dispatch]);
 
   return {
-    aiAvailable: !loading && hasAvailableAiModels(aiSettings, hubModelGroups),
+    aiAvailable: !loading && hasAvailableAiModels(aiSettings, hubModelGroups, githubConnected),
     aiSettings,
     loading
   };

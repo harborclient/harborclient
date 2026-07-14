@@ -22,7 +22,7 @@ export interface RunChatCompletionStepDeps {
   /**
    * Builds an OpenAI SDK client for the requested provider.
    */
-  createClient: (provider: LlmProvider) => OpenAI;
+  createClient: (provider: LlmProvider) => Promise<OpenAI>;
 }
 
 /**
@@ -200,7 +200,7 @@ export async function runChatCompletionStep(
   ];
 
   try {
-    const client = createClient(modelOption.provider);
+    const client = await createClient(modelOption.provider);
     const request = (messages: ChatCompletionMessageParam[]): Promise<ChatCompletion> =>
       client.chat.completions.create({
         model: modelOption.id,

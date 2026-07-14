@@ -11,6 +11,7 @@ import { faClockRotateLeft, faCircleCheck } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectAiSidebarVisible } from '#/renderer/src/store/slices/navigationSlice';
 import {
+  selectGithubModelsConnected,
   selectEnterToSend,
   selectHistoryOpen,
   selectHubModelGroups,
@@ -33,6 +34,7 @@ export function AiSidebar(): JSX.Element {
   const historyOpen = useAppSelector(selectHistoryOpen);
   const enterToSend = useAppSelector(selectEnterToSend);
   const hubModelGroups = useAppSelector(selectHubModelGroups);
+  const githubConnected = useAppSelector(selectGithubModelsConnected);
   const historyButtonRef = useRef<HTMLButtonElement>(null);
   const { aiSettings, loading } = useAiAvailability();
 
@@ -99,7 +101,8 @@ export function AiSidebar(): JSX.Element {
     ];
   }, [dispatch, enterToSend, historyOpen]);
 
-  const showConfigurePrompt = !loading && !hasAvailableAiModels(aiSettings, hubModelGroups);
+  const showConfigurePrompt =
+    !loading && !hasAvailableAiModels(aiSettings, hubModelGroups, githubConnected);
   const showChat = !loading && !showConfigurePrompt;
 
   return (

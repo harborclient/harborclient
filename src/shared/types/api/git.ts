@@ -146,6 +146,10 @@ export interface ApiGit {
     maxFiles?: number;
     maxCharsPerFile?: number;
     maxTotalChars?: number;
+    /**
+     * When true, includes only staged changes (HEAD vs index). Defaults to working-tree changes.
+     */
+    stagedOnly?: boolean;
   }) => Promise<string>;
   /**
    * Stores a PAT for a git-backed connection and validates credentials via fetch.

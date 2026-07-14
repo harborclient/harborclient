@@ -3,7 +3,12 @@ import fs, { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { buildGitDiff, buildSingleResourceDiff } from '#/main/git/gitDiff';
+import {
+  buildGitDiff,
+  buildSingleResourceDiff,
+  isCollectionScopedHarborChange
+} from '#/main/git/gitDiff';
+import { classifyHarborChangePath } from '#/main/git/fileLayout';
 
 const cleanups: Array<() => void> = [];
 
@@ -105,6 +110,58 @@ describe('buildGitDiff', () => {
     expect(diff.truncated).toBe(true);
     expect(diff.files[0]?.truncated).toBe(true);
     expect(diff.files[0]?.diff?.length).toBeLessThanOrEqual(40);
+  });
+
+  it('excludes unstaged working-tree changes when stagedOnly is true', async () => {
+    const { repoPath } = await createTestRepo();
+    writeFileSync(join(repoPath, '.harborclient', 'new.json'), '{"name":"new"}');
+
+    const workingTreeDiff = await buildGitDiff({
+      repoPath,
+      harborSubdir: '.harborclient',
+      stagedOnly: false
+    });
+    const stagedOnlyDiff = await buildGitDiff({
+      repoPath,
+      harborSubdir: '.harborclient',
+      stagedOnly: true
+    });
+
+    expect(workingTreeDiff.changedFileCount).toBe(1);
+    expect(stagedOnlyDiff.changedFileCount).toBe(0);
+    expect(stagedOnlyDiff.files).toHaveLength(0);
+  });
+
+  it('scopes diffs to one collection folder and request/document paths only', async () => {
+    const { repoPath } = await createTestRepo();
+    const collectionDir = join(repoPath, '.harborclient', 'collection-api');
+    mkdirSync(collectionDir, { recursive: true });
+    writeFileSync(join(collectionDir, 'collection.json'), '{"harborclientExport":"collection"}');
+    writeFileSync(
+      join(collectionDir, 'req-health.json'),
+      JSON.stringify({ harborclientExport: 'request', name: 'Health Check' })
+    );
+    writeFileSync(join(collectionDir, 'Notes.md'), '# Notes');
+    writeFileSync(join(repoPath, '.harborclient', '.gitignore'), 'local*.json\n');
+
+    const diff = await buildGitDiff({
+      repoPath,
+      harborSubdir: '.harborclient',
+      enrichDisplayNames: true,
+      filepathFilter: (filepath) => {
+        const classified = classifyHarborChangePath(filepath, '.harborclient');
+        return classified != null && isCollectionScopedHarborChange(classified, 'collection-api');
+      }
+    });
+
+    expect(diff.files.map((file) => file.path)).toEqual([
+      '.harborclient/collection-api/Notes.md',
+      '.harborclient/collection-api/req-health.json'
+    ]);
+    expect(diff.files[1]).toMatchObject({
+      displayName: 'Health Check',
+      resourceKind: 'request'
+    });
   });
 });
 

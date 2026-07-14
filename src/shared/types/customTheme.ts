@@ -137,7 +137,10 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   'script-stage-main': 'Main',
   'script-stage-after-each': 'After each',
   'script-stage-after-all': 'After all',
-  terminal: 'Terminal'
+  terminal: 'Terminal',
+  'git-staged': 'Git staged',
+  'git-uncommitted': 'Git uncommitted',
+  'git-unstaged': 'Git unstaged'
 };
 
 /**

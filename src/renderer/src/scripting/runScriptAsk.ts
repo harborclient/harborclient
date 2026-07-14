@@ -46,6 +46,11 @@ interface RunScriptAskParams {
   hubModelGroups: HubLlmModelGroup[];
 
   /**
+   * Whether GitHub Models sign-in is active.
+   */
+  githubConnected?: boolean;
+
+  /**
    * Applies updated script source after thinking, success, or error recovery.
    */
   onCodeChange: (code: string) => void;
@@ -74,6 +79,7 @@ export async function runScriptAsk({
   modelId,
   aiSettings,
   hubModelGroups,
+  githubConnected = false,
   onCodeChange,
   stepRequestId,
   showThinkingInEditor = true
@@ -83,7 +89,12 @@ export async function runScriptAsk({
     onCodeChange(workingCode);
   }
 
-  const selectedModelOption = resolveAiModelOption(modelId, aiSettings, hubModelGroups);
+  const selectedModelOption = resolveAiModelOption(
+    modelId,
+    aiSettings,
+    hubModelGroups,
+    githubConnected
+  );
   const requestId = stepRequestId ?? crypto.randomUUID();
 
   try {

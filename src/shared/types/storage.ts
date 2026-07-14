@@ -403,6 +403,16 @@ export interface GitCommitPlainFileChange {
    * Change type relative to the parent commit.
    */
   status: GitCommitChangeStatus;
+
+  /**
+   * User-facing request or document name when resolved from commit contents.
+   */
+  displayName?: string;
+
+  /**
+   * HarborClient resource kind for request and document rows.
+   */
+  resourceKind?: 'request' | 'document';
 }
 
 /**
@@ -581,6 +591,16 @@ export interface GitRequestDiffFileEntry {
    * Whether the working-tree file contains unresolved merge conflict markers.
    */
   hasConflict: boolean;
+
+  /**
+   * User-facing request or document name when resolved from file contents.
+   */
+  displayName?: string;
+
+  /**
+   * HarborClient resource kind for filtered Changes list rows.
+   */
+  resourceKind?: 'request' | 'document';
 }
 
 /**

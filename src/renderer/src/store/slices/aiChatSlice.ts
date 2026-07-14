@@ -1,5 +1,10 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { ChatMessage, ChatSummary, HubLlmModelGroup } from '#/shared/types';
+import type {
+  ChatMessage,
+  ChatSummary,
+  GithubModelsStatus,
+  HubLlmModelGroup
+} from '#/shared/types';
 import type { RootState } from '#/renderer/src/store/redux';
 
 export interface AiChatState {
@@ -9,6 +14,10 @@ export interface AiChatState {
   messagesByChat: Record<number, ChatMessage[]>;
   selectedModelByChat: Record<number, string>;
   hubModelGroups: HubLlmModelGroup[];
+  /**
+   * GitHub Models sign-in status for chat model availability.
+   */
+  githubModelsStatus: GithubModelsStatus;
   historyOpen: boolean;
   sendingByChat: Record<number, boolean>;
   sendErrorByChat: Record<number, string>;
@@ -38,6 +47,7 @@ const initialState: AiChatState = {
   messagesByChat: {},
   selectedModelByChat: {},
   hubModelGroups: [],
+  githubModelsStatus: { connected: false },
   historyOpen: false,
   sendingByChat: {},
   sendErrorByChat: {},
@@ -163,6 +173,12 @@ const aiChatSlice = createSlice({
       state.hubModelGroups = action.payload;
     },
     /**
+     * Replaces GitHub Models connection status for chat model availability.
+     */
+    setGithubModelsStatus(state, action: PayloadAction<GithubModelsStatus>) {
+      state.githubModelsStatus = action.payload;
+    },
+    /**
      * Stores a send failure message for a chat tab.
      */
     setSendError(state, action: PayloadAction<{ chatId: number; message: string }>) {
@@ -228,6 +244,7 @@ export const {
   toggleHistory,
   setHistoryOpen,
   setHubModelGroups,
+  setGithubModelsStatus,
   setSending,
   setActiveStepRequestId,
   requestChatCancel,
@@ -270,6 +287,18 @@ export const selectSelectedModelByChat = (state: RootState): Record<number, stri
  */
 export const selectHubModelGroups = (state: RootState): HubLlmModelGroup[] =>
   state.aiChat.hubModelGroups;
+
+/**
+ * Returns GitHub Models connection status for chat model availability.
+ */
+export const selectGithubModelsStatus = (state: RootState): GithubModelsStatus =>
+  state.aiChat.githubModelsStatus;
+
+/**
+ * Returns whether GitHub Models sign-in is active.
+ */
+export const selectGithubModelsConnected = (state: RootState): boolean =>
+  state.aiChat.githubModelsStatus.connected;
 
 /**
  * Returns whether the chat history popover is open.

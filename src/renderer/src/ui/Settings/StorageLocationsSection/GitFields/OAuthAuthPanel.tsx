@@ -32,6 +32,21 @@ interface Props {
    * Called when the user revokes stored GitHub OAuth credentials.
    */
   onRevoke: () => void;
+
+  /**
+   * Label for the start sign-in button.
+   */
+  startLabel?: string;
+
+  /**
+   * Status text shown when authorized.
+   */
+  authorizedLabel?: string;
+
+  /**
+   * Label for the revoke button.
+   */
+  revokeLabel?: string;
 }
 
 /**
@@ -43,7 +58,10 @@ export function OAuthAuthPanel({
   oauthUserCode,
   oauthWaiting,
   onStart,
-  onRevoke
+  onRevoke,
+  startLabel = 'Authorize with GitHub',
+  authorizedLabel = 'Authorized with GitHub.',
+  revokeLabel = 'Revoke GitHub authorization'
 }: Props): JSX.Element {
   const oauthUserCodeId = useId();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -74,10 +92,10 @@ export function OAuthAuthPanel({
     return (
       <div className="flex flex-col gap-2">
         <p className="m-0 text-text" role="status">
-          Authorized with GitHub.
+          {authorizedLabel}
         </p>
         <Button variant="secondary" disabled={disabled} onClick={onRevoke}>
-          Revoke GitHub authorization
+          {revokeLabel}
         </Button>
       </div>
     );
@@ -87,7 +105,7 @@ export function OAuthAuthPanel({
     <div className="flex flex-col gap-2">
       <p className="m-0 text-[15px] text-muted">Sign in via browser; no token to copy.</p>
       <Button disabled={disabled} onClick={onStart}>
-        Authorize with GitHub
+        {startLabel}
       </Button>
       {oauthUserCode != null && (
         <FormGroup label="Enter this code in the browser" htmlFor={oauthUserCodeId}>

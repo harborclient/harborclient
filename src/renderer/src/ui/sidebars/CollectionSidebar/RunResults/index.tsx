@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
-import { Button, EmptyState, FaIcon, RowActionsMenu } from '@harborclient/sdk/components';
+import { Button, EmptySectionLabel, FaIcon, RowActionsMenu } from '@harborclient/sdk/components';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectRunResults } from '#/renderer/src/store/slices/runResultsSlice';
@@ -156,11 +156,7 @@ export function RunResults(): JSX.Element {
         }
       }}
     >
-      {runResults.length === 0 ? (
-        <EmptyState variant="inline" className="pr-2 py-1.5 text-[16px] text-center">
-          &lt;No saved runs&gt;
-        </EmptyState>
-      ) : null}
+      {runResults.length === 0 ? <EmptySectionLabel label="No saved runs" /> : null}
 
       {runResults.map((runResult) => {
         const menuId = `run-result-${runResult.id}`;

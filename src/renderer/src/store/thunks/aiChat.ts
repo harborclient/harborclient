@@ -28,6 +28,7 @@ import {
   setSelectedModel,
   restoreChatSession,
   setHubModelGroups,
+  setGithubModelsStatus,
   setSendError,
   setSending,
   setEnterToSend
@@ -170,8 +171,12 @@ export const loadChat = createAsyncThunk<number, number, ThunkApiConfig>(
 export const refreshHubLlmModels = createAsyncThunk<void, void, ThunkApiConfig>(
   'aiChat/refreshHubLlmModels',
   async (_, { dispatch }) => {
-    const hubModelGroups = await window.api.listHubLlmModels();
+    const [hubModelGroups, githubModelsStatus] = await Promise.all([
+      window.api.listHubLlmModels(),
+      window.api.getGithubModelsStatus()
+    ]);
     dispatch(setHubModelGroups(hubModelGroups));
+    dispatch(setGithubModelsStatus(githubModelsStatus));
   }
 );
 
@@ -186,14 +191,18 @@ export const initializeAiChat = createAsyncThunk<void, AiSettings, ThunkApiConfi
     dispatch(setEnterToSend(session.enterToSend));
 
     await dispatch(refreshHubLlmModels()).unwrap();
-    const hubModelGroups = getState().aiChat.hubModelGroups;
+    const { hubModelGroups, githubModelsStatus } = getState().aiChat;
 
     if (openTabIds.length > 0 && activeChatId != null) {
       return;
     }
 
     const summaries = await dispatch(refreshChatHistory()).unwrap();
-    const availableModels = getAvailableModels(aiSettings, hubModelGroups);
+    const availableModels = getAvailableModels(
+      aiSettings,
+      hubModelGroups,
+      githubModelsStatus.connected
+    );
     const defaultModel = availableModels[0]?.id;
     const existingChatIds = new Set(summaries.map((chat) => chat.id));
     const validOpenTabIds = session.openTabIds.filter((id) => existingChatIds.has(id));
@@ -248,8 +257,12 @@ export const initializeAiChat = createAsyncThunk<void, AiSettings, ThunkApiConfi
 export const createNewChat = createAsyncThunk<void, AiSettings, ThunkApiConfig>(
   'aiChat/createNewChat',
   async (aiSettings, { dispatch, getState }) => {
-    const hubModelGroups = getState().aiChat.hubModelGroups;
-    const availableModels = getAvailableModels(aiSettings, hubModelGroups);
+    const { hubModelGroups, githubModelsStatus } = getState().aiChat;
+    const availableModels = getAvailableModels(
+      aiSettings,
+      hubModelGroups,
+      githubModelsStatus.connected
+    );
     const defaultModel = availableModels[0]?.id;
     const activeChatId = getState().aiChat.activeChatId;
     const selectedModel =
@@ -291,7 +304,13 @@ export const startNewChatWithPrompt = createAsyncThunk<
     return;
   }
 
-  const modelOption = resolveAiModelOption(modelId, aiSettings, getState().aiChat.hubModelGroups);
+  const { hubModelGroups, githubModelsStatus } = getState().aiChat;
+  const modelOption = resolveAiModelOption(
+    modelId,
+    aiSettings,
+    hubModelGroups,
+    githubModelsStatus.connected
+  );
 
   await dispatch(
     sendChatMessage({

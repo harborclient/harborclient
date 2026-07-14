@@ -92,6 +92,7 @@ import {
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveChatId,
+  selectGithubModelsConnected,
   selectHubModelGroups,
   selectSelectedModelByChat,
   setPendingComposerText
@@ -375,6 +376,11 @@ interface SortableScriptRowProps {
    * Team Hub model groups for inline `/ask` requests.
    */
   hubModelGroups: HubLlmModelGroup[];
+
+  /**
+   * Whether GitHub Models sign-in is active.
+   */
+  githubConnected: boolean;
 
   /**
    * Plugin row action buttons registered for this script phase.
@@ -1082,6 +1088,7 @@ function SortableScriptRow({
   onCopySelectionToChat,
   aiSettings,
   hubModelGroups,
+  githubConnected,
   scriptEditorActions,
   stageEditable,
   onStageSelect,
@@ -1108,7 +1115,7 @@ function SortableScriptRow({
   const activeChatId = useAppSelector(selectActiveChatId);
   const selectedModelByChat = useAppSelector(selectSelectedModelByChat);
   const chatModelId = activeChatId != null ? selectedModelByChat[activeChatId] : undefined;
-  const availableModels = getAvailableModels(aiSettings, hubModelGroups);
+  const availableModels = getAvailableModels(aiSettings, hubModelGroups, githubConnected);
 
   const phaseRef = useRef(phase);
   const variablesRef = useRef(variables);
@@ -1200,6 +1207,7 @@ function SortableScriptRow({
           modelId,
           aiSettings,
           hubModelGroups,
+          githubConnected,
           onCodeChange: handlePatchCode
         }).finally(() => {
           setInlineAskPending(false);
@@ -1209,7 +1217,16 @@ function SortableScriptRow({
 
       setAskTrigger(trigger);
     },
-    [aiSettings, availableModels, chatModelId, handlePatchCode, hubModelGroups, phase, script.code]
+    [
+      aiSettings,
+      availableModels,
+      chatModelId,
+      githubConnected,
+      handlePatchCode,
+      hubModelGroups,
+      phase,
+      script.code
+    ]
   );
 
   /**
@@ -1626,6 +1643,7 @@ function SortableScriptRow({
                   phase={phase}
                   aiSettings={aiSettings}
                   hubModelGroups={hubModelGroups}
+                  githubConnected={githubConnected}
                   preferredChatModelId={chatModelId}
                   onApply={handlePatchCode}
                   onClose={() => setAskTrigger(null)}
@@ -1681,6 +1699,7 @@ function SortableScriptRow({
                 phase={phase}
                 aiSettings={aiSettings}
                 hubModelGroups={hubModelGroups}
+                githubConnected={githubConnected}
                 preferredChatModelId={chatModelId}
                 onApply={handlePatchCode}
                 onClose={() => setAskTrigger(null)}
@@ -1722,6 +1741,7 @@ export function ScriptListEditor({
   );
   const { aiAvailable, aiSettings } = useAiAvailability();
   const hubModelGroups = useAppSelector(selectHubModelGroups);
+  const githubConnected = useAppSelector(selectGithubModelsConnected);
   const activeChatId = useAppSelector(selectActiveChatId);
   const scriptEditorActions = usePluginScriptEditorActions(phase);
   const copiedScript = useAppSelector(selectCopiedScriptRef);
@@ -2491,6 +2511,7 @@ export function ScriptListEditor({
     onCopySelectionToChat: (selection) => void handleCopySelectionToChat(scriptIndex, selection),
     aiSettings,
     hubModelGroups,
+    githubConnected,
     scriptEditorActions,
     onOpenInTab:
       rowOptions?.includeOpenInTab && sourceTabId

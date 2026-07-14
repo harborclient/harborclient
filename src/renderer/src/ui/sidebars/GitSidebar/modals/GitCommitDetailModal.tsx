@@ -4,7 +4,9 @@ import type { GitCommitDetail } from '#/shared/types';
 import { buildGitCommitChangesViewModel } from '#/renderer/src/git/buildGitCommitChangesViewModel';
 import {
   buildGitCommitFileAccessibleName,
-  gitCommitChangeNameClass
+  gitCommitChangeNameClass,
+  gitResourceKindLabel,
+  resolveGitChangeDisplayLabel
 } from '#/renderer/src/git/gitCommitChangeDisplay';
 import { sourceRow } from '#/renderer/src/ui/shared/classes';
 
@@ -138,16 +140,30 @@ export function GitCommitDetailModal({
               <p className="m-0 text-[16px] text-muted">No changed files</p>
             ) : (
               <ul className="m-0 flex list-none flex-col gap-0 p-0">
-                {changesViewModel.files.map((file) => (
-                  <li key={file.path} className={sourceRow(false, true)}>
-                    <span
-                      className={`block min-w-0 truncate px-1.5 py-0.5 ${gitCommitChangeNameClass(file.status)}`}
-                      aria-label={buildGitCommitFileAccessibleName(file.path, file.status)}
-                    >
-                      {file.path}
-                    </span>
-                  </li>
-                ))}
+                {changesViewModel.files.map((file) => {
+                  const displayLabel = resolveGitChangeDisplayLabel(file.path, file.displayName);
+                  const kindLabel = gitResourceKindLabel(file.resourceKind);
+                  return (
+                    <li key={file.path} className={sourceRow(false, true)}>
+                      <span
+                        className={`flex min-w-0 items-center gap-1.5 truncate px-1.5 py-0.5 ${gitCommitChangeNameClass(file.status)}`}
+                        aria-label={buildGitCommitFileAccessibleName(
+                          file.path,
+                          file.status,
+                          file.displayName,
+                          file.resourceKind
+                        )}
+                      >
+                        {kindLabel != null ? (
+                          <span className="shrink-0 rounded border border-separator px-1 py-px text-[14px] text-muted">
+                            {kindLabel}
+                          </span>
+                        ) : null}
+                        <span className="min-w-0 truncate">{displayLabel}</span>
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>

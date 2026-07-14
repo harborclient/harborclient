@@ -7,6 +7,7 @@ import { faArrowUp, faStop } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   clearSendError,
+  selectGithubModelsConnected,
   selectHubModelGroups,
   selectPendingComposerText,
   selectSendErrorByChat,
@@ -46,14 +47,20 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
   const dispatch = useAppDispatch();
   const sendErrorByChat = useAppSelector(selectSendErrorByChat);
   const hubModelGroups = useAppSelector(selectHubModelGroups);
+  const githubConnected = useAppSelector(selectGithubModelsConnected);
   const pendingComposerText = useAppSelector(selectPendingComposerText);
   const enterToSend = useAppSelector(selectEnterToSend);
   const [draft, setDraft] = useState('');
   const composerRef = useRef<ChatComposerTextareaHandle>(null);
   const wasSendingRef = useRef(false);
-  const availableModels = getAvailableModels(aiSettings, hubModelGroups);
+  const availableModels = getAvailableModels(aiSettings, hubModelGroups, githubConnected);
   const modelId = selectedModel ?? availableModels[0]?.id ?? '';
-  const selectedModelOption = resolveAiModelOption(modelId, aiSettings, hubModelGroups);
+  const selectedModelOption = resolveAiModelOption(
+    modelId,
+    aiSettings,
+    hubModelGroups,
+    githubConnected
+  );
   const canSend = chatId != null && draft.trim().length > 0 && !sending && modelId.length > 0;
   const sendError = chatId != null ? sendErrorByChat[chatId] : undefined;
 

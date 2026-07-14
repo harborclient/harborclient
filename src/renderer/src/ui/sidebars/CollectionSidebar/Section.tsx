@@ -94,7 +94,7 @@ const SectionItem = memo(function SectionItem({
           type="button"
           className="inline-flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-left app-no-drag"
         >
-          <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
+          <span className="ms-2 inline-flex h-4 w-4 shrink-0 items-center justify-center">
             <FaIcon
               icon={isEnter ? faChevronDown : faChevronRight}
               className="h-2 w-2 text-muted"

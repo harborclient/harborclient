@@ -55,22 +55,22 @@ describe('LlmClientFactory', () => {
     clearSecretEncryptorForTesting();
   });
 
-  it('returns an OpenAI client for the requested provider', () => {
+  it('returns an OpenAI client for the requested provider', async () => {
     const factory = new LlmClientFactory();
 
-    expect(factory.factory('openai')).toBeInstanceOf(OpenAI);
-    expect(factory.factory('claude')).toBeInstanceOf(OpenAI);
-    expect(factory.factory('gemini')).toBeInstanceOf(OpenAI);
+    await expect(factory.factory('openai')).resolves.toBeInstanceOf(OpenAI);
+    await expect(factory.factory('claude')).resolves.toBeInstanceOf(OpenAI);
+    await expect(factory.factory('gemini')).resolves.toBeInstanceOf(OpenAI);
   });
 
-  it('throws when the selected provider key is not configured', () => {
+  it('throws when the selected provider key is not configured', async () => {
     setAiSettings({
       openaiApiKey: '',
       claudeApiKey: 'sk-claude-test',
       geminiApiKey: 'sk-gemini-test'
     });
 
-    expect(() => new LlmClientFactory().factory('openai')).toThrow(
+    await expect(new LlmClientFactory().factory('openai')).rejects.toThrow(
       /OpenAI API key is not configured/
     );
   });

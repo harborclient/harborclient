@@ -376,6 +376,15 @@ export class GitSyncManager {
    * @param depth - Maximum number of commits.
    */
   async log(depth = 20): Promise<GitLogEntry[]> {
+    // A repository with no commits (unborn HEAD) has no history to walk. Resolve
+    // HEAD first so we can return an empty log instead of letting `git.log` throw
+    // NotFoundError for the not-yet-created branch ref.
+    try {
+      await git.resolveRef({ fs, dir: this.#repoPath, ref: 'HEAD' });
+    } catch {
+      return [];
+    }
+
     const commits = await git.log({ fs, dir: this.#repoPath, depth });
     return commits.map((entry) => ({
       oid: entry.oid,

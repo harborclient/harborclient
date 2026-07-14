@@ -1,11 +1,13 @@
-import { Modal } from '@harborclient/sdk/components';
+import { EmptySectionLabel, Modal } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { GitRequestDiffFileEntry, SourceControlStatus } from '#/shared/types';
 import { buildGitWorkingTreeSummary } from '#/renderer/src/git/gitWorkingTreeSummary';
 import {
   buildGitCommitFileAccessibleName,
-  gitCommitChangeNameClass
+  gitCommitChangeNameClass,
+  gitResourceKindLabel,
+  resolveGitChangeDisplayLabel
 } from '#/renderer/src/git/gitCommitChangeDisplay';
 import { gitWorkingTreeStatusPanel, sourceRow } from '#/renderer/src/ui/shared/classes';
 import { GitDiffFileView } from '#/renderer/src/ui/sidebars/GitSidebar/modals/GitDiffFileView';
@@ -88,7 +90,7 @@ export function GitChangesSection({ collectionUuid, status, refreshNonce }: Prop
     let cancelled = false;
 
     void window.api
-      .gitDiff({ collectionUuid })
+      .gitDiff({ collectionUuid, stagedOnly: false })
       .then((raw) => {
         if (cancelled) {
           return;
@@ -186,25 +188,15 @@ export function GitChangesSection({ collectionUuid, status, refreshNonce }: Prop
             </p>
           </div>
         ) : null}
-        <div className="px-2 text-muted mt-2">&lt;No changed requests&gt;</div>
+        <div className="flex flex-col gap-0.5">
+          <EmptySectionLabel label="No changes" className="mt-2" />
+        </div>
       </div>
     );
   }
 
   return (
     <>
-      {status != null ? (
-        <div className={`${gitWorkingTreeStatusPanel} text-text`} role="status">
-          <p className="m-0 text-muted">{buildGitWorkingTreeSummary(status, gitAutoAdd)}</p>
-          {status.conflictCount > 0 ? (
-            <p className="mt-2 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-[14px] text-text">
-              {status.conflictCount} file(s) have merge conflicts. Click a conflicted file below to
-              open the merge editor, resolve markers, then commit from the Git sidebar.
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-
       {loading ? (
         <div className="px-2 pb-2 text-[14px] text-muted" role="status">
           Loading changed files…
@@ -214,7 +206,9 @@ export function GitChangesSection({ collectionUuid, status, refreshNonce }: Prop
           {error}
         </p>
       ) : changedFiles.length === 0 ? (
-        <div className="px-2 pb-2 text-muted text-center mt-3">&lt;No changed requests&gt;</div>
+        <div className="flex flex-col pt-1">
+          <EmptySectionLabel label="No changes" />
+        </div>
       ) : (
         <>
           {diff?.truncated === true ? (
@@ -231,34 +225,48 @@ export function GitChangesSection({ collectionUuid, status, refreshNonce }: Prop
               Conflicts ({conflictFiles.length})
             </p>
           ) : null}
-          <ul className="m-0 flex list-none flex-col gap-0 p-0 pb-2">
-            {orderedFiles.map((file) => (
-              <li key={file.path} className={sourceRow(false, true)}>
-                <button
-                  type="button"
-                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-inherit app-no-drag"
-                  aria-label={
-                    file.hasConflict
-                      ? `Resolve merge conflict in ${file.path}`
-                      : buildGitCommitFileAccessibleName(file.path, file.status)
-                  }
-                  onClick={() => handleFileClick(file)}
-                >
-                  <span className="shrink-0 px-1 py-px text-muted">
-                    {file.hasConflict ? 'conflict' : file.status}
-                  </span>
-                  <span
-                    className={`min-w-0 truncate ${
+          <ul className="m-0 flex list-none flex-col gap-0 p-0 pb-2 pt-2">
+            {orderedFiles.map((file) => {
+              const displayLabel = resolveGitChangeDisplayLabel(file.path, file.displayName);
+              const kindLabel = gitResourceKindLabel(file.resourceKind);
+              return (
+                <li key={file.path} className={sourceRow(false, true)}>
+                  <button
+                    type="button"
+                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-inherit app-no-drag"
+                    aria-label={
                       file.hasConflict
-                        ? 'font-medium text-amber-700 dark:text-amber-300'
-                        : gitCommitChangeNameClass(file.status)
-                    }`}
+                        ? `Resolve merge conflict in ${displayLabel}`
+                        : buildGitCommitFileAccessibleName(
+                            file.path,
+                            file.status,
+                            file.displayName,
+                            file.resourceKind
+                          )
+                    }
+                    onClick={() => handleFileClick(file)}
                   >
-                    {file.path}
-                  </span>
-                </button>
-              </li>
-            ))}
+                    <span className="shrink-0 px-1 py-px text-muted">
+                      {file.hasConflict ? 'conflict' : file.status}
+                    </span>
+                    {kindLabel != null ? (
+                      <span className="shrink-0 rounded border border-separator px-1 py-px text-[14px] text-muted">
+                        {kindLabel}
+                      </span>
+                    ) : null}
+                    <span
+                      className={`min-w-0 truncate ${
+                        file.hasConflict
+                          ? 'font-medium text-amber-700 dark:text-amber-300'
+                          : gitCommitChangeNameClass(file.status)
+                      }`}
+                    >
+                      {displayLabel}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </>
       )}
@@ -268,7 +276,7 @@ export function GitChangesSection({ collectionUuid, status, refreshNonce }: Prop
           onClose={() => setSelectedFile(null)}
           className="flex w-[80vw] max-w-[calc(100vw-2rem)] max-h-[85vh] flex-col"
           labelledBy="git-file-diff-title"
-          title={`Changes — ${selectedFile.path}`}
+          title={`Changes — ${resolveGitChangeDisplayLabel(selectedFile.path, selectedFile.displayName)}`}
         >
           <GitDiffFileView file={selectedFile} />
         </Modal>

@@ -1,3 +1,4 @@
+import { EmptySectionLabel } from '@harborclient/sdk/components';
 import { useEffect, useState, type JSX } from 'react';
 import type { GitLogEntry } from '#/shared/types';
 import { GitCommitDetailModal } from '#/renderer/src/ui/sidebars/GitSidebar/modals/GitCommitDetailModal';
@@ -32,7 +33,11 @@ export function GitCommitsSection({ connectionId, refreshNonce }: Props): JSX.El
   }, [connectionId, refreshNonce]);
 
   if (entries.length === 0) {
-    return <div className="px-2 pb-2 text-muted text-center mt-3">&lt;No commits&gt;</div>;
+    return (
+      <div className="flex flex-col gap-0.5">
+        <EmptySectionLabel label="No commits" />
+      </div>
+    );
   }
 
   return (

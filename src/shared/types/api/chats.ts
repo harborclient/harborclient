@@ -7,6 +7,8 @@ import type {
   ChatSummary,
   CreateChatInput,
   GenerateChatTitleInput,
+  GithubModelsSignInFinishedEvent,
+  GithubModelsStatus,
   HubLlmModelGroup
 } from '#/shared/types/ai';
 
@@ -59,6 +61,27 @@ export interface ApiChats {
    * Lists LLM models offered by configured Team Hubs for the current user.
    */
   listHubLlmModels: () => Promise<HubLlmModelGroup[]>;
+  /**
+   * Returns GitHub Models connection status.
+   */
+  getGithubModelsStatus: () => Promise<GithubModelsStatus>;
+  /**
+   * Starts GitHub Models device flow and returns the user code for browser approval.
+   */
+  startGithubModelsSignIn: () => Promise<{ userCode: string; verificationUri: string }>;
+  /**
+   * Removes stored GitHub Models credentials.
+   */
+  signOutGithubModels: () => Promise<void>;
+  /**
+   * Subscribes to background GitHub Models sign-in completion events.
+   *
+   * @param callback - Handler invoked when sign-in polling finishes or fails.
+   * @returns Unsubscribe function.
+   */
+  onGithubModelsSignInFinished: (
+    callback: (event: GithubModelsSignInFinishedEvent) => void
+  ) => () => void;
   /**
    * Deletes a chat and its messages.
    *

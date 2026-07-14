@@ -17,7 +17,7 @@ import {
 } from '@dnd-kit/sortable';
 import {
   Button,
-  EmptyState,
+  EmptySectionLabel,
   FaIcon,
   RowActionsMenu,
   buildReorderMenuGroup
@@ -230,11 +230,7 @@ export function TabGroups(): JSX.Element {
           }
         }}
       >
-        {groups.length === 0 ? (
-          <EmptyState variant="inline" className="py-1.5 pr-2 text-center">
-            &lt;No tab groups&gt;
-          </EmptyState>
-        ) : null}
+        {groups.length === 0 ? <EmptySectionLabel label="No tab groups" /> : null}
         <SortableContext items={groupIds} strategy={verticalListSortingStrategy}>
           {groups.map((group, groupIndex) => {
             const menuId = `tab-group-${group.id}`;

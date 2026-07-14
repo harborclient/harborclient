@@ -27,6 +27,7 @@ export type SettingId =
   | 'ai.openaiApiKey'
   | 'ai.claudeApiKey'
   | 'ai.geminiApiKey'
+  | 'ai.githubModels'
   | 'plugins.addCatalogEndpointUrl'
   | 'plugins.addTrustedEndpointUrl'
   | 'globals'
@@ -343,6 +344,14 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     label: 'Google Gemini API key',
     description: 'API key used for Google Gemini models in the AI sidebar.',
     keywords: ['google', 'gemini', 'api']
+  },
+  {
+    id: 'ai.githubModels',
+    section: 'ai',
+    kind: 'field',
+    label: 'GitHub Models',
+    description: 'Sign in with GitHub to use rate-limited GitHub Models on your account quota.',
+    keywords: ['github', 'models', 'oauth', 'sign in', 'free']
   },
   {
     id: 'plugins.addCatalogEndpointUrl',

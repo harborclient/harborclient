@@ -1,11 +1,11 @@
-import { EmptyState } from '@harborclient/sdk/components';
+import { Button, EmptyState } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 
 /**
- * Prompt shown when the AI sidebar is open but no personal API keys or Team Hub LLM
- * models are available.
+ * Prompt shown when the AI sidebar is open but no personal API keys, Team Hub LLM
+ * models, or GitHub Models connection are available.
  */
 export function ConfigureApiKeysPrompt(): JSX.Element {
   const dispatch = useAppDispatch();
@@ -45,6 +45,9 @@ export function ConfigureApiKeysPrompt(): JSX.Element {
         </button>
         .
       </p>
+      <Button type="button" className="mt-4" onClick={handleOpenAiSettings}>
+        Settings
+      </Button>
     </EmptyState>
   );
 }

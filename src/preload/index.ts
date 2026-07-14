@@ -30,6 +30,8 @@ import type {
   CreateChatInput,
   GeneralSettings,
   GenerateChatTitleInput,
+  GithubModelsSignInFinishedEvent,
+  GithubModelsStatus,
   HubLlmModelGroup,
   McpClientServer,
   McpClientServerListItem,
@@ -1693,6 +1695,46 @@ function listHubLlmModels(): Promise<HubLlmModelGroup[]> {
 }
 
 /**
+ * Returns GitHub Models connection status.
+ */
+function getGithubModelsStatus(): Promise<GithubModelsStatus> {
+  return ipcRenderer.invoke('githubModels:getStatus');
+}
+
+/**
+ * Starts GitHub Models device flow and returns the user code for browser approval.
+ */
+function startGithubModelsSignIn(): Promise<{ userCode: string; verificationUri: string }> {
+  return ipcRenderer.invoke('githubModels:startSignIn');
+}
+
+/**
+ * Removes stored GitHub Models credentials.
+ */
+function signOutGithubModels(): Promise<void> {
+  return ipcRenderer.invoke('githubModels:signOut');
+}
+
+/**
+ * Subscribes to background GitHub Models sign-in completion events.
+ *
+ * @param callback - Handler invoked when sign-in polling finishes or fails.
+ * @returns Unsubscribe function.
+ */
+function onGithubModelsSignInFinished(
+  callback: (event: GithubModelsSignInFinishedEvent) => void
+): () => void {
+  const listener = (
+    _event: Electron.IpcRendererEvent,
+    payload: GithubModelsSignInFinishedEvent
+  ): void => {
+    callback(payload);
+  };
+  ipcRenderer.on('githubModels:signInFinished', listener);
+  return () => ipcRenderer.removeListener('githubModels:signInFinished', listener);
+}
+
+/**
  * Deletes a chat and its messages.
  *
  * @param id - Chat id to delete.
@@ -2350,6 +2392,10 @@ function gitDiff(args: {
   maxFiles?: number;
   maxCharsPerFile?: number;
   maxTotalChars?: number;
+  /**
+   * When true, includes only staged changes (HEAD vs index). Defaults to working-tree changes.
+   */
+  stagedOnly?: boolean;
 }): Promise<string> {
   return ipcRenderer.invoke('git:diff', args);
 }
@@ -3658,6 +3704,10 @@ const api: Api = {
   completeChatStep,
   cancelChatStep,
   listHubLlmModels,
+  getGithubModelsStatus,
+  startGithubModelsSignIn,
+  signOutGithubModels,
+  onGithubModelsSignInFinished,
   deleteChat,
   listStorageConnections,
   saveStorageConnection,

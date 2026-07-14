@@ -93,3 +93,21 @@ export type HarborExportFileKind = 'collection' | 'environment' | 'snippet';
 export function exportFileBaseName(kind: HarborExportFileKind, name: string): string {
   return `${kind}-${toFileSlug(name)}`;
 }
+
+/**
+ * Builds the on-disk directory name for one git-backed collection folder.
+ *
+ * @param name - Collection display name.
+ */
+export function collectionDirName(name: string): string {
+  return `collection-${toFileSlug(name)}`;
+}
+
+/**
+ * Builds the base name for a request export JSON file inside a collection folder.
+ *
+ * @param name - Request display name.
+ */
+export function requestFileBaseName(name: string): string {
+  return `req-${toFileSlug(name)}`;
+}

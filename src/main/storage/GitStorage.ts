@@ -7,20 +7,19 @@ import {
   type GitIdIndexData
 } from '#/main/git/idIndex';
 import {
-  collectionFilePath,
+  collectionDirPath,
   createStoredFolder,
   deleteEnvironmentFile,
   deleteSnippetFile,
   ensureHarborclientLayout,
-  listCollectionFilesOnDisk,
+  listCollectionFoldersOnDisk,
   readAllEnvironments,
   readAllSnippets,
   assertDocumentFilenameAvailable,
-  readCollectionFile,
+  readCollectionFromFolder,
   readGitProviderSettings,
   resolveHarborclientRoot,
-  writeCollectionFile,
-  writeDocumentsToHarborRoot,
+  writeCollectionToFolder,
   writeEnvironmentFile,
   writeGitProviderSettings,
   writeSnippetFile,
@@ -97,9 +96,9 @@ type GitStoredManifest = {
 
 interface LoadedCollection {
   /**
-   * Absolute path to the collection export JSON file on disk.
+   * Absolute path to the collection folder on disk.
    */
-  filePath: string;
+  dirPath: string;
 
   /**
    * Parsed collection manifest.
@@ -201,9 +200,9 @@ export class GitStorage implements IStorage {
     ensureHarborclientLayout(this.#root);
 
     const collectionUuids = new Set<string>();
-    for (const entry of listCollectionFilesOnDisk(this.#root)) {
+    for (const entry of listCollectionFoldersOnDisk(this.#root)) {
       collectionUuids.add(entry.uuid);
-      const { manifest, requests, documents } = this.loadCollectionFromFile(entry.filePath);
+      const { manifest, requests, documents } = this.loadCollectionFromFolder(entry.dirPath);
       const collectionId = assignGitId(
         this.#idIndex,
         'collectionIds',
@@ -211,7 +210,7 @@ export class GitStorage implements IStorage {
         manifest.uuid
       );
       this.#collections.set(collectionId, {
-        filePath: entry.filePath,
+        dirPath: entry.dirPath,
         manifest,
         requests,
         documents
@@ -314,18 +313,17 @@ export class GitStorage implements IStorage {
       folders: [],
       created_at: new Date().toISOString()
     };
-    const filePath = collectionFilePath(this.#root, trimmedName);
-    writeCollectionFile(
+    const dirPath = writeCollectionToFolder(
       this.#root,
       buildCollectionExportFromLoaded({
-        filePath,
+        dirPath: collectionDirPath(this.#root, trimmedName),
         manifest,
         requests: [],
         documents: []
       })
     );
     const id = assignGitId(this.#idIndex, 'collectionIds', 'nextCollectionId', uuid);
-    this.#collections.set(id, { filePath, manifest, requests: [], documents: [] });
+    this.#collections.set(id, { dirPath, manifest, requests: [], documents: [] });
     saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
     return this.manifestToCollection(id, manifest);
   }
@@ -346,7 +344,6 @@ export class GitStorage implements IStorage {
   ): Promise<Collection> {
     const loaded = this.requireCollection(id);
     const trimmedName = trimRequiredName(name, 'Collection name');
-    const oldFilePath = loaded.filePath;
     loaded.manifest = {
       ...loaded.manifest,
       name: trimmedName,
@@ -359,10 +356,6 @@ export class GitStorage implements IStorage {
       post_request_scripts: postRequestScripts
     };
 
-    const newFilePath = collectionFilePath(this.#root, trimmedName);
-    if (newFilePath !== oldFilePath) {
-      loaded.filePath = newFilePath;
-    }
     this.persistCollection(id);
     return this.manifestToCollection(id, loaded.manifest);
   }
@@ -397,8 +390,7 @@ export class GitStorage implements IStorage {
       delete this.#idIndex.folderIds[folder.uuid];
     }
     delete this.#idIndex.collectionIds[loaded.manifest.uuid];
-    writeDocumentsToHarborRoot(this.#root, loaded.manifest.uuid, []);
-    rmSync(loaded.filePath, { force: true });
+    rmSync(loaded.dirPath, { recursive: true, force: true });
     this.#collections.delete(id);
     saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
   }
@@ -1134,7 +1126,7 @@ export class GitStorage implements IStorage {
       (row) => resolveImportUuid(row.uuid) === documentUuid
     );
 
-    assertDocumentFilenameAvailable(this.#root, trimmedName, documentUuid);
+    assertDocumentFilenameAvailable(loaded.dirPath, trimmedName, documentUuid);
 
     const exported: ExportedDocument = {
       uuid: documentUuid,
@@ -1352,17 +1344,20 @@ export class GitStorage implements IStorage {
       ),
       created_at: new Date().toISOString()
     };
-    const filePath = collectionFilePath(this.#root, manifest.name);
     const requests = exportData.requests;
     const documents = exportData.documents ?? [];
-    writeCollectionFile(
+    const dirPath = writeCollectionToFolder(
       this.#root,
-      buildCollectionExportFromLoaded({ filePath, manifest, requests, documents })
+      buildCollectionExportFromLoaded({
+        dirPath: collectionDirPath(this.#root, manifest.name),
+        manifest,
+        requests,
+        documents
+      })
     );
-    writeDocumentsToHarborRoot(this.#root, uuid, documents);
     const id = assignGitId(this.#idIndex, 'collectionIds', 'nextCollectionId', uuid);
     this.#collections.set(id, {
-      filePath,
+      dirPath,
       manifest,
       requests,
       documents
@@ -1581,31 +1576,24 @@ export class GitStorage implements IStorage {
    */
   private persistCollection(collectionId: number): void {
     const loaded = this.requireCollection(collectionId);
-    const newFilePath = collectionFilePath(this.#root, loaded.manifest.name);
-    const oldFilePath = loaded.filePath;
-
-    writeCollectionFile(this.#root, buildCollectionExportFromLoaded(loaded));
-    writeDocumentsToHarborRoot(this.#root, loaded.manifest.uuid, loaded.documents);
-
-    if (newFilePath !== oldFilePath) {
-      if (oldFilePath !== newFilePath) {
-        rmSync(oldFilePath, { force: true });
-      }
-      loaded.filePath = newFilePath;
-    }
+    const oldDirPath = loaded.dirPath;
+    const targetDirPath = collectionDirPath(this.#root, loaded.manifest.name);
+    loaded.dirPath = writeCollectionToFolder(this.#root, buildCollectionExportFromLoaded(loaded), {
+      previousDirPath: oldDirPath !== targetDirPath ? oldDirPath : null
+    });
   }
 
   /**
-   * Reads a collection export file into in-memory git collection state.
+   * Reads a collection folder into in-memory git collection state.
    *
-   * @param filePath - Absolute path to the collection export JSON file.
+   * @param dirPath - Absolute path to the collection folder.
    */
-  private loadCollectionFromFile(filePath: string): {
+  private loadCollectionFromFolder(dirPath: string): {
     manifest: GitStoredManifest;
     requests: ExportedRequest[];
     documents: ExportedDocument[];
   } {
-    const exportData = readCollectionFile(filePath);
+    const exportData = readCollectionFromFolder(dirPath);
     const manifest: GitStoredManifest = {
       harborclientVersion: 1,
       harborclientExport: 'collection',

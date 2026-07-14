@@ -1,7 +1,42 @@
 /**
  * Supported LLM providers for the OpenAI SDK compatibility layer.
  */
-export type LlmProvider = 'openai' | 'claude' | 'gemini';
+export type LlmProvider = 'openai' | 'claude' | 'gemini' | 'github';
+
+/**
+ * Result of background GitHub Models device-flow completion.
+ */
+export interface GithubModelsSignInFinishedEvent {
+  /**
+   * Whether sign-in completed and tokens were stored.
+   */
+  ok: boolean;
+
+  /**
+   * Error message when {@link GithubModelsSignInFinishedEvent.ok} is false.
+   */
+  error?: string;
+}
+
+/**
+ * GitHub Models connection status exposed to the renderer.
+ */
+export interface GithubModelsStatus {
+  /**
+   * Whether a GitHub Models access token is stored.
+   */
+  connected: boolean;
+
+  /**
+   * GitHub login for the authorized user, when known.
+   */
+  login?: string;
+
+  /**
+   * OAuth access token expiry as ISO 8601 timestamp.
+   */
+  expiresAt?: string;
+}
 
 /**
  * Role of a message in an AI chat thread.

@@ -18,8 +18,11 @@ import {
 import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
 import toast from 'react-hot-toast';
 import type { Environment } from '#/shared/types';
-import { RowActionsMenu } from '@harborclient/sdk/components';
-import { buildReorderMenuGroup } from '@harborclient/sdk/components';
+import {
+  EmptySectionLabel,
+  RowActionsMenu,
+  buildReorderMenuGroup
+} from '@harborclient/sdk/components';
 import { SidebarColorDot } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarColorDot';
 import { SidebarRowActionsMenu } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarRowActionsMenu';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
@@ -282,9 +285,7 @@ export function Environments(): JSX.Element {
         }}
       >
         {noMatches && <div className="px-2 py-1.5 text-muted">No matching environments</div>}
-        {!noMatches && environments.length === 0 && (
-          <div className="px-2 py-1.5 text-center text-muted">&lt;No environments&gt;</div>
-        )}
+        {!noMatches && environments.length === 0 && <EmptySectionLabel label="No environments" />}
 
         <SortableContext items={environmentIds} strategy={verticalListSortingStrategy}>
           {environments.map((environment, environmentIndex) => {

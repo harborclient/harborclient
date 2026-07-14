@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   AI_MODELS,
+  GITHUB_MODELS,
   getAiModelById,
   getAvailableModels,
   hasAvailableAiModels
@@ -89,17 +90,32 @@ describe('getAvailableModels', () => {
     );
     expect(models).toHaveLength(AI_MODELS.length);
   });
+
+  it('returns GitHub Models when sign-in is connected', () => {
+    const models = getAvailableModels(EMPTY_SETTINGS, [], true);
+    expect(models).toHaveLength(GITHUB_MODELS.length);
+    expect(models.every((model) => model.provider === 'github')).toBe(true);
+    expect(models[0]?.label).toContain('(GitHub Models)');
+  });
 });
 
 describe('hasAvailableAiModels', () => {
   it('returns true when hub models are available without personal keys', () => {
     expect(hasAvailableAiModels(EMPTY_SETTINGS, HUB_GROUPS)).toBe(true);
   });
+
+  it('returns true when only GitHub Models is connected', () => {
+    expect(hasAvailableAiModels(EMPTY_SETTINGS, [], true)).toBe(true);
+  });
 });
 
 describe('getAiModelById', () => {
   it('returns the catalog entry for a known model id', () => {
     expect(getAiModelById('gpt-4o')).toEqual(AI_MODELS[0]);
+  });
+
+  it('returns GitHub Models catalog entries', () => {
+    expect(getAiModelById('openai/gpt-4o')).toEqual(GITHUB_MODELS[0]);
   });
 
   it('returns undefined for an unknown model id', () => {

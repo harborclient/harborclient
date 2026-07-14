@@ -10,7 +10,8 @@ const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai
 const PROVIDER_LABELS: Record<LlmProvider, string> = {
   openai: 'OpenAI',
   claude: 'Claude',
-  gemini: 'Google Gemini'
+  gemini: 'Google Gemini',
+  github: 'GitHub Models'
 };
 
 /**
@@ -52,6 +53,11 @@ export function resolveLlmClientOptions(
         );
       }
       return { apiKey, baseURL: GEMINI_BASE_URL };
+    }
+    case 'github': {
+      throw new Error(
+        'GitHub Models credentials must be resolved asynchronously via LlmClientFactory.'
+      );
     }
     default: {
       const exhaustive: never = provider;

@@ -42,6 +42,11 @@ interface Props {
   hubModelGroups: HubLlmModelGroup[];
 
   /**
+   * Whether GitHub Models sign-in is active.
+   */
+  githubConnected?: boolean;
+
+  /**
    * Active chat model id used when no script ask model is stored.
    */
   preferredChatModelId?: string;
@@ -66,6 +71,7 @@ export function ScriptAskModal({
   phase,
   aiSettings,
   hubModelGroups,
+  githubConnected = false,
   preferredChatModelId,
   onApply,
   onClose
@@ -78,7 +84,7 @@ export function ScriptAskModal({
   const codeRef = useRef(code);
   const triggerRef = useRef(trigger);
   const onApplyRef = useRef(onApply);
-  const availableModels = getAvailableModels(aiSettings, hubModelGroups);
+  const availableModels = getAvailableModels(aiSettings, hubModelGroups, githubConnected);
   const [draft, setDraft] = useState(trigger.args);
   const [modelIdOverride, setModelIdOverride] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -168,6 +174,7 @@ export function ScriptAskModal({
         modelId,
         aiSettings,
         hubModelGroups,
+        githubConnected,
         showThinkingInEditor: false,
         stepRequestId,
         onCodeChange: (nextCode) => {

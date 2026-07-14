@@ -12,6 +12,7 @@ import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { store } from '#/renderer/src/store/redux';
 import {
+  selectGithubModelsConnected,
   selectHubModelGroups,
   selectSelectedModelByChat
 } from '#/renderer/src/store/slices/aiChatSlice';
@@ -58,6 +59,7 @@ export function GitCommitMessageSection({
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const hubModelGroups = useAppSelector(selectHubModelGroups);
+  const githubConnected = useAppSelector(selectGithubModelsConnected);
   const selectedModelByChat = useAppSelector(selectSelectedModelByChat);
   const gitAutoAdd = useAppSelector((state) => state.settings.general.gitAutoAdd);
   const { aiAvailable, aiSettings } = useAiAvailability();
@@ -70,19 +72,21 @@ export function GitCommitMessageSection({
   const cancelledRef = useRef(false);
   const messageRef = useRef('');
 
-  const hasCommitChanges = gitAutoAdd
-    ? (status?.changedCount ?? 0) > 0
-    : (status?.stagedCount ?? 0) > 0;
-  const defaultMessage = hasCommitChanges ? DEFAULT_GIT_COMMIT_MESSAGE : '';
-  const message = messageDraft?.edited === true ? messageDraft.value : defaultMessage;
-  const availableModels = getAvailableModels(aiSettings, hubModelGroups);
+  const hasUncommittedChanges = (status?.changedCount ?? 0) > 0;
+  const hasCommitChanges = gitAutoAdd ? hasUncommittedChanges : (status?.stagedCount ?? 0) > 0;
+  const defaultMessage = hasUncommittedChanges ? DEFAULT_GIT_COMMIT_MESSAGE : '';
+  const message =
+    messageDraft?.edited === true && !canReplaceGitCommitMessage(messageDraft.value)
+      ? messageDraft.value
+      : defaultMessage;
+  const availableModels = getAvailableModels(aiSettings, hubModelGroups, githubConnected);
   const preferredChatModelId = Object.values(selectedModelByChat)[0];
   const commitMessageModelId = resolveGitCommitMessageModelId(
     availableModels,
     preferredChatModelId
   );
   const canGenerateMessage =
-    aiAvailable && commitMessageModelId.length > 0 && hasCommitChanges && !busy;
+    aiAvailable && commitMessageModelId.length > 0 && hasUncommittedChanges && !busy;
 
   /**
    * Keeps the latest textarea value available to async generation completion handlers.
@@ -160,6 +164,7 @@ export function GitCommitMessageSection({
         modelId: commitMessageModelId,
         aiSettings,
         hubModelGroups,
+        githubConnected,
         dispatch,
         getState: store.getState,
         stepRequestId,
@@ -204,18 +209,13 @@ export function GitCommitMessageSection({
     connectionName,
     dispatch,
     generatingMessage,
+    githubConnected,
     hubModelGroups
   ]);
 
   return (
     <div className="flex flex-col gap-3 px-2 pb-2">
-      {status != null && !gitAutoAdd && status.stagedCount === 0 && status.changedCount > 0 ? (
-        <p className="m-0 text-[14px] text-muted" role="status">
-          Auto add is off. Stage changes from the Changes section before committing.
-        </p>
-      ) : null}
-
-      <FormGroup label="Commit message" className="p-0! border-none!">
+      <FormGroup label="" className="p-0! border-none! mt-1">
         <div className="relative w-full">
           <Textarea
             className="block min-h-[80px] w-full pr-10"

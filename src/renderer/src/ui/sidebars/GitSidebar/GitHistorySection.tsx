@@ -1,3 +1,4 @@
+import { EmptySectionLabel } from '@harborclient/sdk/components';
 import { GitLog } from '@tomplum/react-git-log';
 import { useEffect, useMemo, useState, type JSX } from 'react';
 import type { GitGraphLogResult } from '#/shared/types';
@@ -89,7 +90,9 @@ export function GitHistorySection({ connectionId, refreshNonce }: Props): JSX.El
 
   if (graph == null || graph.entries.length === 0 || graph.currentBranch == null) {
     return (
-      <div className="px-2 pb-2 text-muted text-center mt-3">&lt;No history available&gt;</div>
+      <div className="flex flex-col gap-0.5">
+        <EmptySectionLabel label="No history" />
+      </div>
     );
   }
 

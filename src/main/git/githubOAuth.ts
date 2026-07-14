@@ -1,9 +1,19 @@
 /**
- * Public GitHub OAuth App client id for HarborClient device flow.
+ * Public GitHub OAuth App client id for HarborClient git device flow.
  *
  * Replace with your registered OAuth App client id when forking.
  */
 export const GITHUB_OAUTH_CLIENT_ID = 'Ov23liApUgMEA0BGSWnt';
+
+/**
+ * Public GitHub OAuth App client id for HarborClient GitHub Models device flow.
+ *
+ * Register an OAuth App with device flow enabled and expiring user authorization
+ * tokens. OAuth Apps cannot request the `models:read` scope (that permission applies
+ * to GitHub Apps and fine-grained PATs); GitHub Models accepts tokens from
+ * authorized OAuth Apps without an explicit scope. Replace when forking.
+ */
+export const GITHUB_MODELS_APP_CLIENT_ID = 'Ov23liLxKZYqTPAi5yOj';
 
 const DEVICE_CODE_URL = 'https://github.com/login/device/code';
 const ACCESS_TOKEN_URL = 'https://github.com/login/oauth/access_token';
@@ -36,36 +46,36 @@ interface PendingDeviceFlow {
 const pendingFlows = new Map<string, PendingDeviceFlow>();
 
 /**
- * Starts GitHub OAuth device flow for a git host.
+ * Starts GitHub OAuth device flow for a flow key.
  *
- * @param host - Normalized lowercase git host key.
- * @param clientId - GitHub OAuth App client id; defaults to HarborClient's built-in app.
+ * @param flowKey - Stable key for this device-flow session (git host or `github-models`).
+ * @param clientId - GitHub OAuth App or GitHub App client id.
+ * @param scope - OAuth scope string for classic OAuth Apps; omit for GitHub Apps (permissions come from the App).
  * @returns User code and verification URI for browser approval.
  */
 export async function startGitHubDeviceFlow(
-  host: string,
-  clientId = GITHUB_OAUTH_CLIENT_ID
+  flowKey: string,
+  clientId = GITHUB_OAUTH_CLIENT_ID,
+  scope: string | undefined = 'repo'
 ): Promise<{
   userCode: string;
   verificationUri: string;
 }> {
+  const body: Record<string, string> = { client_id: clientId };
+  if (scope != null) {
+    body.scope = scope;
+  }
+
   const response = await fetch(DEVICE_CODE_URL, {
     method: 'POST',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      client_id: clientId,
-      scope: 'repo'
-    })
+    body: JSON.stringify(body)
   });
 
-  if (!response.ok) {
-    throw new Error(`GitHub device flow failed: ${response.status} ${response.statusText}`);
-  }
-
-  const data = (await response.json()) as {
+  const data = (await parseGitHubResponse(response)) as {
     device_code?: string;
     user_code?: string;
     verification_uri?: string;
@@ -79,12 +89,16 @@ export async function startGitHubDeviceFlow(
     throw new Error(data.error_description ?? data.error);
   }
 
+  if (!response.ok) {
+    throw new Error(`GitHub device flow failed: ${response.status} ${response.statusText}`);
+  }
+
   if (!data.device_code || !data.user_code || !data.verification_uri) {
     throw new Error('GitHub device flow returned an incomplete response.');
   }
 
   const expiresIn = data.expires_in ?? 900;
-  pendingFlows.set(host, {
+  pendingFlows.set(flowKey, {
     deviceCode: data.device_code,
     clientId,
     interval: data.interval ?? 5,
@@ -110,19 +124,19 @@ export interface CompleteGitHubDeviceFlowOptions {
 /**
  * Polls GitHub until the user approves device flow or the code expires.
  *
- * @param host - Normalized lowercase git host key.
+ * @param flowKey - Stable key for this device-flow session (git host or `github-models`).
  * @param options - Optional abort signal for background cancellation.
  * @returns OAuth access token and optional refresh metadata.
  */
 export async function completeGitHubDeviceFlow(
-  host: string,
+  flowKey: string,
   options: CompleteGitHubDeviceFlowOptions = {}
 ): Promise<{
   accessToken: string;
   refreshToken?: string;
   expiresAt?: string;
 }> {
-  const pending = pendingFlows.get(host);
+  const pending = pendingFlows.get(flowKey);
   if (!pending) {
     throw new Error('No pending GitHub authorization. Start OAuth first.');
   }
@@ -147,17 +161,17 @@ export async function completeGitHubDeviceFlow(
       })
     });
 
-    if (!response.ok) {
-      throw new Error(`GitHub token poll failed: ${response.status} ${response.statusText}`);
-    }
-
-    const data = (await response.json()) as {
+    const data = (await parseGitHubResponse(response)) as {
       access_token?: string;
       refresh_token?: string;
       expires_in?: number;
       error?: string;
       error_description?: string;
     };
+
+    if (!data.error && !response.ok) {
+      throw new Error(`GitHub token poll failed: ${response.status} ${response.statusText}`);
+    }
 
     if (data.error === 'authorization_pending') {
       continue;
@@ -176,7 +190,7 @@ export async function completeGitHubDeviceFlow(
       throw new Error('GitHub did not return an access token.');
     }
 
-    pendingFlows.delete(host);
+    pendingFlows.delete(flowKey);
 
     const expiresAt =
       data.expires_in != null
@@ -190,7 +204,7 @@ export async function completeGitHubDeviceFlow(
     };
   }
 
-  pendingFlows.delete(host);
+  pendingFlows.delete(flowKey);
   throw new Error('GitHub authorization timed out. Try again.');
 }
 
@@ -221,11 +235,7 @@ export async function refreshGitHubAccessToken(
     })
   });
 
-  if (!response.ok) {
-    throw new Error(`GitHub token refresh failed: ${response.status} ${response.statusText}`);
-  }
-
-  const data = (await response.json()) as {
+  const data = (await parseGitHubResponse(response)) as {
     access_token?: string;
     refresh_token?: string;
     expires_in?: number;
@@ -234,7 +244,13 @@ export async function refreshGitHubAccessToken(
   };
 
   if (data.error || !data.access_token) {
-    throw new Error(data.error_description ?? data.error ?? 'Token refresh failed.');
+    throw new Error(
+      data.error_description ??
+        data.error ??
+        (!response.ok
+          ? `GitHub token refresh failed: ${response.status} ${response.statusText}`
+          : 'Token refresh failed.')
+    );
   }
 
   const expiresAt =
@@ -252,10 +268,28 @@ export async function refreshGitHubAccessToken(
 /**
  * Clears a pending device flow session for a connection.
  *
- * @param host - Normalized lowercase git host key.
+ * @param flowKey - Stable key for this device-flow session (git host or `github-models`).
  */
-export function clearPendingGitHubDeviceFlow(host: string): void {
-  pendingFlows.delete(host);
+export function clearPendingGitHubDeviceFlow(flowKey: string): void {
+  pendingFlows.delete(flowKey);
+}
+
+/**
+ * Parses a GitHub OAuth JSON response, tolerating error responses.
+ *
+ * GitHub returns actionable OAuth errors (for example `device_flow_disabled`) as a
+ * JSON body even on non-2xx responses. Reading the body regardless of status lets
+ * callers surface `error_description` instead of a bare HTTP status line.
+ *
+ * @param response - Fetch response from a GitHub OAuth endpoint.
+ * @returns Parsed JSON body, or an empty object when the body is not JSON.
+ */
+async function parseGitHubResponse(response: Response): Promise<Record<string, unknown>> {
+  try {
+    return (await response.json()) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
 }
 
 /**

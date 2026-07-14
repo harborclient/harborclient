@@ -35,7 +35,7 @@ import { useSidebarProviders } from '#/renderer/src/ui/sidebars/CollectionSideba
 import { useSidebarGit } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarGitContext';
 import { useSidebarSearchContext } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarSearchContext';
 import { useCollectionActions } from '#/renderer/src/ui/sidebars/CollectionSidebar/useCollectionActions';
-import { FaIcon } from '@harborclient/sdk/components';
+import { EmptySectionLabel, FaIcon } from '@harborclient/sdk/components';
 import { SidebarColorDot } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarColorDot';
 import { SidebarRowActionsMenu } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarRowActionsMenu';
 import { buildReorderMenuGroup } from '@harborclient/sdk/components';
@@ -1063,9 +1063,10 @@ export function Collections(): JSX.Element {
                               folders.length === 0 &&
                               rootItems.length === 0 &&
                               rootDocuments.length === 0 && (
-                                <div className="px-1.5 py-0 text-center">
-                                  <span className="text-muted">&lt;No saved requests&gt;</span>
-                                </div>
+                                <EmptySectionLabel
+                                  label="No saved requests"
+                                  className="px-1.5 py-0 pb-0"
+                                />
                               )}
 
                             <DropZone

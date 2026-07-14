@@ -506,10 +506,38 @@ describe('GitSyncManager', () => {
     expect(graph.entries[0]?.parents.length).toBeGreaterThan(0);
   });
 
+  it('returns an empty log and graph for a repository with no commits', async () => {
+    const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-sync-empty-'));
+    cleanups.push(() => rmSync(repoPath, { recursive: true, force: true }));
+    await git.init({ fs, dir: repoPath, defaultBranch: 'main' });
+
+    const settings: GitSettings = {
+      repoPath,
+      url: 'https://github.com/example/repo.git',
+      branch: 'main',
+      subdir: '.harborclient',
+      auth: { kind: 'pat', username: 'token' }
+    };
+    const manager = new GitSyncManager('test-connection', settings);
+
+    await expect(manager.log()).resolves.toEqual([]);
+    const graph = await manager.graphLog();
+    expect(graph.entries).toEqual([]);
+    expect(graph.headCommitHash).toBeNull();
+  });
+
   it('returns commit detail with HarborClient file changes', async () => {
     const { repoPath, manager } = await createTestRepo();
-    writeFileSync(join(repoPath, '.harborclient', 'readme.txt'), 'v2');
-    await git.add({ fs, dir: repoPath, filepath: '.harborclient/readme.txt' });
+    writeFileSync(
+      join(repoPath, '.harborclient', 'environment-staging.json'),
+      JSON.stringify({
+        harborclientExport: 'environment',
+        uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        name: 'Staging',
+        variables: []
+      })
+    );
+    await git.add({ fs, dir: repoPath, filepath: '.harborclient/environment-staging.json' });
     const oid = await git.commit({
       fs,
       dir: repoPath,
@@ -521,7 +549,11 @@ describe('GitSyncManager', () => {
 
     expect(detail.message).toBe('Second');
     expect(detail.files).toEqual([
-      { kind: 'file', path: '.harborclient/readme.txt', status: 'modified' }
+      {
+        kind: 'file',
+        path: '.harborclient/environment-staging.json',
+        status: 'added'
+      }
     ]);
   });
 

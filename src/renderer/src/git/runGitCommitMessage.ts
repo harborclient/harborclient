@@ -40,6 +40,11 @@ interface RunGitCommitMessageParams {
   hubModelGroups: HubLlmModelGroup[];
 
   /**
+   * Whether GitHub Models sign-in is active.
+   */
+  githubConnected?: boolean;
+
+  /**
    * Redux dispatch used by the shared AI tool executor.
    */
   dispatch: AppDispatch;
@@ -72,12 +77,18 @@ export async function runGitCommitMessage({
   modelId,
   aiSettings,
   hubModelGroups,
+  githubConnected = false,
   dispatch,
   getState,
   stepRequestId,
   isCancelled
 }: RunGitCommitMessageParams): Promise<string | null> {
-  const selectedModelOption = resolveAiModelOption(modelId, aiSettings, hubModelGroups);
+  const selectedModelOption = resolveAiModelOption(
+    modelId,
+    aiSettings,
+    hubModelGroups,
+    githubConnected
+  );
   const messages: ChatStepMessage[] = buildGitCommitMessageMessages(connectionName, collectionUuid);
   let assistantText: string | null = null;
 

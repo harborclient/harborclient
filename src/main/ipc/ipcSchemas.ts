@@ -875,7 +875,8 @@ export const ipcArgSchemas = {
       collectionUuid: z.string().trim().min(1),
       maxFiles: z.number().int().positive().optional(),
       maxCharsPerFile: z.number().int().positive().optional(),
-      maxTotalChars: z.number().int().positive().optional()
+      maxTotalChars: z.number().int().positive().optional(),
+      stagedOnly: z.boolean().optional()
     })
   ]),
   gitSetPat: z.tuple([connectionId, z.string(), z.string().min(1)]),

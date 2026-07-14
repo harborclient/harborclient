@@ -66,7 +66,7 @@ describe('runChatCompletionStep', () => {
         model: 'gpt-4o',
         messages: [{ role: 'user', content: 'What collections do I have?' }]
       },
-      { createClient: () => mockClient }
+      { createClient: async () => mockClient }
     );
 
     expect(create).toHaveBeenCalledWith({
@@ -95,7 +95,7 @@ describe('runChatCompletionStep', () => {
 
     await runChatCompletionStep(
       { model: 'gpt-4o', messages: [{ role: 'user', content: 'Hi' }] },
-      { createClient: () => mockClient },
+      { createClient: async () => mockClient },
       { signal: controller.signal }
     );
 
@@ -119,7 +119,7 @@ describe('runChatCompletionStep', () => {
     await expect(
       runChatCompletionStep(
         { model: 'gpt-4o', messages: [{ role: 'user', content: 'Hi' }] },
-        { createClient: () => mockClient }
+        { createClient: async () => mockClient }
       )
     ).rejects.toMatchObject({ name: 'AbortError' });
   });
@@ -138,7 +138,7 @@ describe('runChatCompletionStep', () => {
 
     const result = await runChatCompletionStep(
       { model: 'gpt-4o', messages: [{ role: 'user', content: 'Hi' }] },
-      { createClient: () => mockClient }
+      { createClient: async () => mockClient }
     );
 
     expect(result).toEqual({ content: 'Done.' });
@@ -165,7 +165,7 @@ describe('runChatCompletionStep', () => {
 
     const result = await runChatCompletionStep(
       { model: 'gpt-4o', messages: longMessages },
-      { createClient: () => mockClient }
+      { createClient: async () => mockClient }
     );
 
     expect(create).toHaveBeenCalledTimes(2);
@@ -187,7 +187,7 @@ describe('runChatCompletionStep', () => {
     await expect(
       runChatCompletionStep(
         { model: 'gpt-4o', messages: [{ role: 'user', content: 'Hi' }] },
-        { createClient: () => mockClient }
+        { createClient: async () => mockClient }
       )
     ).rejects.toThrow(
       'The conversation is too long for this model. Start a new chat or ask about a smaller response.'

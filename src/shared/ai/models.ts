@@ -54,6 +54,17 @@ export const AI_MODELS: Omit<AiModelOption, 'source'>[] = [
 ];
 
 /**
+ * Catalog of GitHub Models offered when the user is signed in with GitHub.
+ */
+export const GITHUB_MODELS: Omit<AiModelOption, 'source'>[] = [
+  { id: 'openai/gpt-4o', label: 'GPT-4o', provider: 'github' },
+  { id: 'openai/gpt-4o-mini', label: 'GPT-4o Mini', provider: 'github' },
+  { id: 'openai/gpt-4.1-mini', label: 'GPT-4.1 Mini', provider: 'github' },
+  { id: 'meta/Llama-3.3-70B-Instruct', label: 'Llama 3.3 70B', provider: 'github' },
+  { id: 'deepseek/DeepSeek-R1', label: 'DeepSeek R1', provider: 'github' }
+];
+
+/**
  * Returns whether a provider has a configured API key.
  *
  * @param settings - Stored AI provider API keys.
@@ -67,6 +78,8 @@ function hasProviderKey(settings: AiSettings, provider: LlmProvider): boolean {
       return settings.claudeApiKey.trim().length > 0;
     case 'gemini':
       return settings.geminiApiKey.trim().length > 0;
+    case 'github':
+      return false;
     default: {
       const exhaustive: never = provider;
       return exhaustive;
@@ -102,10 +115,12 @@ function indexHubModels(
  *
  * @param settings - Stored AI provider API keys.
  * @param hubGroups - Models exposed by configured Team Hubs.
+ * @param githubConnected - Whether GitHub Models sign-in is active.
  */
 export function getAvailableModels(
   settings: AiSettings,
-  hubGroups: HubLlmModelGroup[] = []
+  hubGroups: HubLlmModelGroup[] = [],
+  githubConnected = false
 ): AiModelOption[] {
   const hubModels = indexHubModels(hubGroups);
   const options: AiModelOption[] = [];
@@ -153,6 +168,20 @@ export function getAvailableModels(
     }
   }
 
+  if (githubConnected) {
+    for (const model of GITHUB_MODELS) {
+      if (includedIds.has(model.id)) {
+        continue;
+      }
+      options.push({
+        ...model,
+        label: `${model.label} (GitHub Models)`,
+        source: 'personal'
+      });
+      includedIds.add(model.id);
+    }
+  }
+
   return options;
 }
 
@@ -161,12 +190,14 @@ export function getAvailableModels(
  *
  * @param settings - Stored AI provider API keys.
  * @param hubGroups - Models exposed by configured Team Hubs.
+ * @param githubConnected - Whether GitHub Models sign-in is active.
  */
 export function hasAvailableAiModels(
   settings: AiSettings,
-  hubGroups: HubLlmModelGroup[] = []
+  hubGroups: HubLlmModelGroup[] = [],
+  githubConnected = false
 ): boolean {
-  return getAvailableModels(settings, hubGroups).length > 0;
+  return getAvailableModels(settings, hubGroups, githubConnected).length > 0;
 }
 
 /**
@@ -176,7 +207,10 @@ export function hasAvailableAiModels(
  * @returns The matching catalog entry, or undefined when unknown.
  */
 export function getAiModelById(modelId: string): Omit<AiModelOption, 'source'> | undefined {
-  return AI_MODELS.find((model) => model.id === modelId);
+  return (
+    AI_MODELS.find((model) => model.id === modelId) ??
+    GITHUB_MODELS.find((model) => model.id === modelId)
+  );
 }
 
 /**
@@ -185,11 +219,15 @@ export function getAiModelById(modelId: string): Omit<AiModelOption, 'source'> |
  * @param modelId - Model id selected in the composer.
  * @param settings - Stored AI provider API keys.
  * @param hubGroups - Models exposed by configured Team Hubs.
+ * @param githubConnected - Whether GitHub Models sign-in is active.
  */
 export function resolveAiModelOption(
   modelId: string,
   settings: AiSettings,
-  hubGroups: HubLlmModelGroup[] = []
+  hubGroups: HubLlmModelGroup[] = [],
+  githubConnected = false
 ): AiModelOption | undefined {
-  return getAvailableModels(settings, hubGroups).find((model) => model.id === modelId);
+  return getAvailableModels(settings, hubGroups, githubConnected).find(
+    (model) => model.id === modelId
+  );
 }

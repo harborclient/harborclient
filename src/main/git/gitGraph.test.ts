@@ -57,16 +57,62 @@ describe('git graph', () => {
     expect(result.entries[0]?.parents.length).toBeGreaterThanOrEqual(0);
   });
 
-  it('returns flat file changes for a commit', async () => {
-    const { repoPath, secondOid } = await createRepoWithHistory();
-    const detail = await readGitCommitDetail(repoPath, '.harborclient', secondOid);
+  it('returns an empty graph for a repository with no commits', async () => {
+    const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-graph-empty-'));
+    cleanups.push(() => rmSync(repoPath, { recursive: true, force: true }));
+    await git.init({ fs, dir: repoPath, defaultBranch: 'main' });
+
+    const result = await buildGitGraphLog(repoPath, 10);
+
+    expect(result.entries).toEqual([]);
+    expect(result.headCommitHash).toBeNull();
+  });
+
+  it('filters plumbing paths and labels request files in commit details', async () => {
+    const { repoPath } = await createRepoWithHistory();
+    const collectionDir = join(repoPath, '.harborclient', 'collection-api');
+    mkdirSync(collectionDir, { recursive: true });
+    writeFileSync(
+      join(collectionDir, 'collection.json'),
+      JSON.stringify({
+        harborclientExport: 'collection',
+        uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        name: 'API',
+        requests: ['req-health.json'],
+        documents: []
+      })
+    );
+    writeFileSync(
+      join(collectionDir, 'req-health.json'),
+      JSON.stringify({
+        harborclientExport: 'request',
+        uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        name: 'Health Check',
+        method: 'GET',
+        url: 'https://example.com'
+      })
+    );
+    writeFileSync(join(repoPath, '.harborclient', '.gitignore'), 'local*.json\n');
+    await git.add({ fs, dir: repoPath, filepath: '.harborclient' });
+    const thirdOid = await git.commit({
+      fs,
+      dir: repoPath,
+      message: 'Collection changes',
+      author: { name: 'Test', email: 'test@example.com' }
+    });
+
+    const detail = await readGitCommitDetail(repoPath, '.harborclient', thirdOid);
 
     expect(detail.files).toEqual([
       expect.objectContaining({
         kind: 'file',
-        path: '.harborclient/readme.txt',
-        status: 'modified'
+        path: '.harborclient/collection-api/req-health.json',
+        status: 'added',
+        displayName: 'Health Check',
+        resourceKind: 'request'
       })
     ]);
+    expect(detail.files.some((file) => file.path.endsWith('collection.json'))).toBe(false);
+    expect(detail.files.some((file) => file.path.endsWith('.gitignore'))).toBe(false);
   });
 });

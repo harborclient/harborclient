@@ -61,6 +61,24 @@ describe('githubOAuth device flow', () => {
     });
   });
 
+  it('surfaces the GitHub error description when the device request fails', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      statusText: 'Bad Request',
+      json: async () => ({
+        error: 'device_flow_disabled',
+        error_description: 'Device Flow must be explicitly enabled for this App'
+      })
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(startGitHubDeviceFlow('conn-1')).rejects.toThrow(
+      'Device Flow must be explicitly enabled for this App'
+    );
+  });
+
   it('aborts polling without clearing the pending flow session', async () => {
     const fetchMock = vi
       .fn()
