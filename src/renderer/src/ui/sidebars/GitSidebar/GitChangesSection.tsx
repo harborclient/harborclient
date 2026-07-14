@@ -1,5 +1,14 @@
-import { EmptySectionLabel, FaIcon, Modal, RowActionsMenu } from '@harborclient/sdk/components';
-import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
+import {
+  EmptySectionLabel,
+  Modal,
+  RowActionsMenu,
+  SidebarDocumentItem,
+  SidebarItem,
+  SidebarRequestItem,
+  SidebarStatusMarker,
+  SIDEBAR_ITEM_BUTTON_CLASS
+} from '@harborclient/sdk/components';
+import { useCallback, useEffect, useMemo, useState, type JSX, type MouseEvent } from 'react';
 import toast from 'react-hot-toast';
 import type { GitRequestDiffFileEntry, SourceControlStatus } from '#/shared/types';
 import {
@@ -10,12 +19,17 @@ import {
   resolveGitChangeDisplayLabel
 } from '#/renderer/src/git/gitCommitChangeDisplay';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
-import { METHOD_CLASSES, sourceRow } from '#/renderer/src/ui/shared/classes';
 import { faMarkdown } from '#/renderer/src/fontawesome';
 import { GitDiffFileView } from '#/renderer/src/ui/sidebars/GitSidebar/modals/GitDiffFileView';
 import { useSidebarGit } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarGitContext';
+import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
+import {
+  scrollSidebarDocumentRowIntoView,
+  scrollSidebarRequestRowIntoView
+} from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarListNavigation';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
+import { focusGitChangeInCollectionSidebar } from '#/renderer/src/store/thunks';
 
 interface Props {
   /**
@@ -80,6 +94,7 @@ export function GitChangesSection({
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
+  const { revealCollection, revealFolder } = useSidebarExpansion();
   const { changedItemCountByCollectionUuid } = useSidebarGit();
   const externalMergeEditorPath = useAppSelector(
     (state) => state.settings.general.externalMergeEditorPath
@@ -178,6 +193,44 @@ export function GitChangesSection({
   );
 
   /**
+   * Reveals the matching collections-sidebar row for one git change when it still exists.
+   *
+   * @param file - Changed file entry from the git diff payload.
+   */
+  const revealGitChangeInCollectionSidebar = useCallback(
+    (file: GitRequestDiffFileEntry): void => {
+      if (file.resourceKind !== 'request' && file.resourceKind !== 'document') {
+        return;
+      }
+
+      void dispatch(focusGitChangeInCollectionSidebar({ file, collectionUuid }))
+        .unwrap()
+        .then((target) => {
+          if (target == null) {
+            return;
+          }
+
+          if (target.folderId != null) {
+            revealFolder(target.collectionId, target.folderId);
+          } else {
+            revealCollection(target.collectionId);
+          }
+
+          if (target.kind === 'request') {
+            scrollSidebarRequestRowIntoView(target.id);
+            return;
+          }
+
+          scrollSidebarDocumentRowIntoView(target.id);
+        })
+        .catch(() => {
+          // Ignore focus failures; the diff modal remains the primary action.
+        });
+    },
+    [collectionUuid, dispatch, revealCollection, revealFolder]
+  );
+
+  /**
    * Opens the diff modal or conflict editor depending on file state.
    *
    * @param file - Changed file entry from the git diff payload.
@@ -186,11 +239,13 @@ export function GitChangesSection({
     (file: GitRequestDiffFileEntry): void => {
       if (file.hasConflict) {
         void handleOpenConflictEditor(file);
+        revealGitChangeInCollectionSidebar(file);
         return;
       }
       setSelectedFile(file);
+      revealGitChangeInCollectionSidebar(file);
     },
-    [handleOpenConflictEditor]
+    [handleOpenConflictEditor, revealGitChangeInCollectionSidebar]
   );
 
   /**
@@ -220,7 +275,12 @@ export function GitChangesSection({
         }
 
         try {
-          await window.api.gitRevertFile(connectionId, collectionUuid, file.path);
+          await window.api.gitRevertFile(
+            connectionId,
+            collectionUuid,
+            file.path,
+            file.previousPaths
+          );
           onRefresh();
           toast.success(`Reverted changes to ${displayLabel}`);
         } catch (err) {
@@ -279,71 +339,90 @@ export function GitChangesSection({
                   }
                 ]
               ];
+              const statusMarkerProps = {
+                marker: statusMarker,
+                className: file.hasConflict
+                  ? 'text-amber-700 dark:text-amber-300'
+                  : gitCommitChangeNameClass(file.status),
+                label: statusMarkerLabel
+              };
+              const rowActions = showRowMenu ? (
+                <RowActionsMenu
+                  menuId={menuId}
+                  openMenuId={openMenuId}
+                  onOpenChange={setOpenMenuId}
+                  groups={menuGroups}
+                />
+              ) : undefined;
+              const rowContextMenu = showRowMenu
+                ? (event: MouseEvent<HTMLElement>) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setOpenMenuId(menuId);
+                  }
+                : undefined;
+              const rowAriaLabel = file.hasConflict
+                ? `Resolve merge conflict in ${displayLabel}`
+                : buildGitCommitFileAccessibleName(
+                    file.path,
+                    file.status,
+                    file.displayName,
+                    file.resourceKind
+                  );
+
+              if (file.resourceKind === 'request' && file.method != null) {
+                return (
+                  <SidebarRequestItem
+                    key={file.path}
+                    as="li"
+                    method={file.method}
+                    name={displayLabel}
+                    statusMarker={statusMarkerProps}
+                    ariaLabel={rowAriaLabel}
+                    onClick={() => handleFileClick(file)}
+                    onContextMenu={rowContextMenu}
+                    actions={rowActions}
+                  />
+                );
+              }
+
+              if (file.resourceKind === 'document') {
+                return (
+                  <SidebarDocumentItem
+                    key={file.path}
+                    as="li"
+                    icon={faMarkdown}
+                    name={displayLabel}
+                    statusMarker={statusMarkerProps}
+                    ariaLabel={rowAriaLabel}
+                    onClick={() => handleFileClick(file)}
+                    onContextMenu={rowContextMenu}
+                    actions={rowActions}
+                  />
+                );
+              }
 
               return (
-                <li
+                <SidebarItem
                   key={file.path}
-                  className={`group ${sourceRow(false, true)}`}
-                  onContextMenu={
-                    showRowMenu
-                      ? (event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          setOpenMenuId(menuId);
-                        }
-                      : undefined
-                  }
+                  as="li"
+                  onContextMenu={rowContextMenu}
+                  actions={rowActions}
                 >
                   <button
                     type="button"
-                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-inherit app-no-drag"
-                    aria-label={
-                      file.hasConflict
-                        ? `Resolve merge conflict in ${displayLabel}`
-                        : buildGitCommitFileAccessibleName(
-                            file.path,
-                            file.status,
-                            file.displayName,
-                            file.resourceKind
-                          )
-                    }
+                    className={SIDEBAR_ITEM_BUTTON_CLASS}
+                    aria-label={rowAriaLabel}
                     onClick={() => handleFileClick(file)}
                   >
-                    {file.resourceKind === 'request' && file.method != null ? (
-                      <span
-                        className={`shrink-0 px-1 py-px ${METHOD_CLASSES[file.method.toLowerCase()] ?? 'text-info'}`}
-                      >
-                        {file.method}
-                      </span>
-                    ) : file.resourceKind === 'document' ? (
-                      <FaIcon
-                        icon={faMarkdown}
-                        className="h-3.5 w-3.5 shrink-0 text-muted"
-                        aria-hidden
-                      />
-                    ) : null}
                     <span className="min-w-0 truncate">{displayLabel}</span>
-                    <span
-                      className={`shrink-0 ${
-                        file.hasConflict
-                          ? 'text-amber-700 dark:text-amber-300'
-                          : gitCommitChangeNameClass(file.status)
-                      }`}
-                      title={statusMarkerLabel}
-                      aria-label={statusMarkerLabel}
-                    >
-                      [{statusMarker}]
-                    </span>
-                  </button>
-                  {showRowMenu ? (
-                    <RowActionsMenu
-                      menuId={menuId}
-                      openMenuId={openMenuId}
-                      onOpenChange={setOpenMenuId}
-                      groups={menuGroups}
+                    <SidebarStatusMarker
+                      marker={statusMarkerProps.marker}
+                      className={statusMarkerProps.className}
+                      label={statusMarkerProps.label}
                     />
-                  ) : null}
-                </li>
+                  </button>
+                </SidebarItem>
               );
             })}
           </ul>
@@ -355,7 +434,11 @@ export function GitChangesSection({
           onClose={() => setSelectedFile(null)}
           className="flex w-[80vw] max-w-[calc(100vw-2rem)] max-h-[85vh] flex-col"
           labelledBy="git-file-diff-title"
-          title={`Changes — ${resolveGitChangeDisplayLabel(selectedFile.path, selectedFile.displayName)}`}
+          title={
+            selectedFile.renamedFrom != null
+              ? `Changes — ${resolveGitChangeDisplayLabel(selectedFile.path, selectedFile.displayName)} (renamed from ${selectedFile.renamedFrom})`
+              : `Changes — ${resolveGitChangeDisplayLabel(selectedFile.path, selectedFile.displayName)}`
+          }
         >
           <GitDiffFileView file={selectedFile} />
         </Modal>

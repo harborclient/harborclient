@@ -320,6 +320,23 @@ export interface GeneralSettings {
   externalMergeEditorPath: string;
 
   /**
+   * Display name stamped on commits created through HarborClient.
+   * When empty, HarborClient falls back to repo-local git config or a default identity.
+   */
+  gitCommitAuthorName: string;
+
+  /**
+   * Email address stamped on commits created through HarborClient.
+   * When empty, HarborClient falls back to repo-local git config or a default identity.
+   */
+  gitCommitAuthorEmail: string;
+
+  /**
+   * Whether the first-commit author prompt has been shown and dismissed or saved.
+   */
+  gitCommitAuthorPrompted: boolean;
+
+  /**
    * CodeMirror syntax theme applied to all editor instances.
    */
   codeEditorTheme: CodeEditorTheme;

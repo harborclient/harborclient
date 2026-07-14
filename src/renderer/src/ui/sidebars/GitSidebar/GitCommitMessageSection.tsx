@@ -19,6 +19,7 @@ import {
 import { runGitCommitMessage } from '#/renderer/src/git/runGitCommitMessage';
 import { resolveGitCommitMessageModelId } from '#/renderer/src/git/gitCommitMessageModel';
 import { useSidebarGit } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarGitContext';
+import { GitCommitAuthorModal } from '#/renderer/src/ui/git/GitCommitAuthorModal';
 import { faStop, faWandMagicSparkles } from '#/renderer/src/fontawesome';
 
 interface Props {
@@ -63,9 +64,17 @@ export function GitCommitMessageSection({
   const githubConnected = useAppSelector(selectGithubModelsConnected);
   const selectedModelByChat = useAppSelector(selectSelectedModelByChat);
   const { changedItemCountByCollectionUuid } = useSidebarGit();
+  const gitCommitAuthorName = useAppSelector((state) => state.settings.general.gitCommitAuthorName);
+  const gitCommitAuthorEmail = useAppSelector(
+    (state) => state.settings.general.gitCommitAuthorEmail
+  );
+  const gitCommitAuthorPrompted = useAppSelector(
+    (state) => state.settings.general.gitCommitAuthorPrompted
+  );
   const { aiAvailable, aiSettings } = useAiAvailability();
   const [messageDraft, setMessageDraft] = useState<{ edited: true; value: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [authorModalOpen, setAuthorModalOpen] = useState(false);
   const [generatingMessage, setGeneratingMessage] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const confirm = useConfirm();
@@ -97,9 +106,15 @@ export function GitCommitMessageSection({
   }, [message]);
 
   /**
-   * Commits local changes, prompting to create the HarborClient subdirectory when missing.
+   * Whether the app-level commit author has been configured.
    */
-  const handleCommit = async (): Promise<void> => {
+  const hasCommitAuthor =
+    gitCommitAuthorName.trim().length > 0 && gitCommitAuthorEmail.trim().length > 0;
+
+  /**
+   * Commits local changes after optional HarborClient subdirectory bootstrap.
+   */
+  const performCommit = async (): Promise<void> => {
     const trimmedMessage = message.trim();
     let createHarborRoot = false;
 
@@ -131,6 +146,26 @@ export function GitCommitMessageSection({
     } finally {
       setBusy(false);
     }
+  };
+
+  /**
+   * Commits local changes, prompting for author details when unset and not yet prompted.
+   */
+  const handleCommit = async (): Promise<void> => {
+    if (!hasCommitAuthor && !gitCommitAuthorPrompted) {
+      setAuthorModalOpen(true);
+      return;
+    }
+
+    await performCommit();
+  };
+
+  /**
+   * Continues the pending commit after the author modal saves.
+   */
+  const handleAuthorSaved = (): void => {
+    setAuthorModalOpen(false);
+    void performCommit();
   };
 
   /**
@@ -265,6 +300,13 @@ export function GitCommitMessageSection({
       >
         {generatingMessage ? 'Generating commit message' : 'Commit'}
       </Button>
+
+      <GitCommitAuthorModal
+        open={authorModalOpen}
+        connectionId={connectionId}
+        onClose={() => setAuthorModalOpen(false)}
+        onSaved={handleAuthorSaved}
+      />
     </div>
   );
 }

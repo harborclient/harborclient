@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { SourceControlStatus } from '#/shared/types';
+import { subscribeStorageConnectionsChanged } from '#/renderer/src/hooks/subscribeStorageConnectionsChanged';
 
 /**
  * Polls git source-control status for mounted git connections.
@@ -29,8 +30,9 @@ export function useGitStatuses(
   }, []);
 
   /**
-   * Polls git status on an interval, when the window regains focus, and when the
-   * working tree changes on disk (pull or external git operations).
+   * Polls git status on an interval, when the window regains focus, when the
+   * working tree changes on disk (pull or external git operations), and when
+   * storage connections change.
    */
   useEffect(() => {
     refresh();
@@ -40,6 +42,9 @@ export function useGitStatuses(
       refresh();
     };
     window.addEventListener('focus', handleFocus);
+    const unsubscribeConnectionsChanged = subscribeStorageConnectionsChanged(() => {
+      refresh();
+    });
 
     const unsubscribe =
       onWorkingTreeChanged != null
@@ -52,6 +57,7 @@ export function useGitStatuses(
     return () => {
       window.clearInterval(intervalId);
       window.removeEventListener('focus', handleFocus);
+      unsubscribeConnectionsChanged();
       unsubscribe?.();
     };
   }, [pollIntervalMs, refresh, onWorkingTreeChanged]);

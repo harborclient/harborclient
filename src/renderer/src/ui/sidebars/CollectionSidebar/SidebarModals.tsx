@@ -273,7 +273,7 @@ export function SidebarModalsProvider({ children }: ProviderProps): JSX.Element 
   };
 
   /**
-   * Imports an environment from a JSON file selected via a native dialog.
+   * Imports an environment from a JSON export or dotenv file selected via a native dialog.
    */
   const handleEnvironmentImport = async (): Promise<void> => {
     setEnvironmentModalError(null);
@@ -375,6 +375,7 @@ export function SidebarModalsProvider({ children }: ProviderProps): JSX.Element 
       {showEnvironmentModal && (
         <Modal
           onClose={closeEnvironmentModal}
+          className="w-132"
           labelledBy="sidebar-environment-modal-title"
           title="Add environment"
         >
@@ -386,9 +387,10 @@ export function SidebarModalsProvider({ children }: ProviderProps): JSX.Element 
             <div className="-mx-4 -mt-4 mb-4">
               <SegmentedTabs
                 fullWidth
+                editable={false}
                 tabs={[
                   { value: 'create', label: 'Create new' },
-                  { value: 'import', label: 'Import from file' }
+                  { value: 'import', label: 'Import file' }
                 ]}
               />
             </div>
@@ -426,10 +428,10 @@ export function SidebarModalsProvider({ children }: ProviderProps): JSX.Element 
 
             <SegmentedTabPanel value="import">
               <p className="mb-4 text-muted">
-                Choose a HarborClient environment export (.json) to import variables and settings.
+                Choose a HarborClient environment export (.json) or a .env file to import variables.
               </p>
               <ModalFooter>
-                <Button onClick={() => void handleEnvironmentImport()}>Import .json</Button>
+                <Button onClick={() => void handleEnvironmentImport()}>Import file</Button>
               </ModalFooter>
             </SegmentedTabPanel>
           </SegmentedTabsGroup>

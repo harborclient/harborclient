@@ -8,6 +8,10 @@ import {
 } from '#/renderer/src/store/slices/modalsSlice';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { filterShortcutBindings } from '#/renderer/src/ui/Settings/ShortcutsSection/filterShortcutBindings';
+import {
+  focusShortcutTableCell,
+  shortcutsTableCellFocusClass
+} from '#/renderer/src/ui/modals/ShortcutsReferenceModal/tableCellFocus';
 import { Button, FormGroup, Input, Modal, ModalFooter } from '@harborclient/sdk/components';
 
 /** Element id referenced by the footer Shortcuts button via `aria-controls`. */
@@ -109,10 +113,15 @@ function ShortcutsReferenceModalBody({ onClose }: ModalBodyProps): JSX.Element {
         ) : (
           <>
             <div className="max-h-[min(24rem,50vh)] overflow-x-auto overflow-y-auto rounded-md border border-separator">
-              <table className="w-full border-collapse text-[14px]">
+              <table
+                role="grid"
+                aria-rowcount={filteredBindings.length + 1}
+                aria-colcount={2}
+                className="w-full border-collapse text-[14px]"
+              >
                 <caption className="sr-only">Keyboard shortcuts</caption>
                 <thead className="sticky top-0 z-10 bg-surface">
-                  <tr className="border-b border-separator bg-sidebar/40 text-left">
+                  <tr className="border-b border-separator bg-sidebar/40 text-left" role="row">
                     <th scope="col" className="px-3 py-2 font-medium text-text">
                       Shortcut
                     </th>
@@ -123,9 +132,25 @@ function ShortcutsReferenceModalBody({ onClose }: ModalBodyProps): JSX.Element {
                 </thead>
                 <tbody>
                   {filteredBindings.map((binding) => (
-                    <tr key={binding.id} className="border-b border-separator last:border-b-0">
-                      <td className="px-3 py-2 text-text">{binding.label}</td>
-                      <td className="px-3 py-2 text-right">
+                    <tr
+                      key={binding.id}
+                      role="row"
+                      className="border-b border-separator last:border-b-0"
+                    >
+                      <td
+                        role="gridcell"
+                        tabIndex={0}
+                        className={`px-3 py-2 text-text ${shortcutsTableCellFocusClass}`}
+                        onFocus={focusShortcutTableCell}
+                      >
+                        {binding.label}
+                      </td>
+                      <td
+                        role="gridcell"
+                        tabIndex={0}
+                        className={`px-3 py-2 text-right ${shortcutsTableCellFocusClass}`}
+                        onFocus={focusShortcutTableCell}
+                      >
                         <kbd className="font-normal text-text">
                           {formatAcceleratorDisplay(binding.accelerator)}
                         </kbd>

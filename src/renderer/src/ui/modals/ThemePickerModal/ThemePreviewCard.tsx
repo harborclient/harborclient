@@ -1,4 +1,4 @@
-import { useCallback, type CSSProperties, type JSX, type KeyboardEvent } from 'react';
+import { useCallback, useId, type CSSProperties, type JSX, type KeyboardEvent } from 'react';
 import {
   DARK_PREVIEW_PALETTE,
   LIGHT_PREVIEW_PALETTE,
@@ -18,6 +18,12 @@ interface Props {
   radioGroupName: string;
   /** Called when the user selects this theme card. */
   onSelect: (theme: BuiltinThemeSource) => void;
+  /** Roving tabindex for keyboard navigation within the parent radiogroup. */
+  tabIndex?: number;
+  /** When true, focuses this card when the modal opens. */
+  autoFocus?: boolean;
+  /** Registers the card button for programmatic focus from the parent radiogroup. */
+  registerButtonRef?: (element: HTMLButtonElement | null) => void;
 }
 
 /**
@@ -127,9 +133,13 @@ export function ThemePreviewCard({
   label,
   selected,
   radioGroupName,
-  onSelect
+  onSelect,
+  tabIndex = 0,
+  autoFocus = false,
+  registerButtonRef
 }: Props): JSX.Element {
   const palette = getThemePreviewPalette(theme);
+  const labelId = useId();
 
   /**
    * Selects this theme when the card receives a click or keyboard activation.
@@ -153,11 +163,14 @@ export function ThemePreviewCard({
 
   return (
     <button
+      ref={registerButtonRef}
       type="button"
       role="radio"
       aria-checked={selected}
-      aria-label={`${label} theme`}
+      aria-labelledby={labelId}
       name={radioGroupName}
+      tabIndex={tabIndex}
+      autoFocus={autoFocus}
       onClick={handleSelect}
       onKeyDown={handleKeyDown}
       className={[
@@ -167,7 +180,9 @@ export function ThemePreviewCard({
       ].join(' ')}
     >
       {theme === 'system' ? <SystemThemePreviewMock /> : <ThemePreviewMock palette={palette} />}
-      <span className="text-[14px] font-medium text-text">{label}</span>
+      <span id={labelId} className="text-[14px] font-medium text-text">
+        {label}
+      </span>
     </button>
   );
 }

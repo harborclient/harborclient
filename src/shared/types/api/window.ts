@@ -97,6 +97,12 @@ export interface ApiWindow {
    */
   setTabGroupAvailable: (available: boolean) => Promise<void>;
   /**
+   * Syncs collections sidebar deselect availability to the Edit menu in the main process.
+   *
+   * @param available - Whether the collections sidebar has selection to clear.
+   */
+  setSidebarDeselectAllAvailable: (available: boolean) => Promise<void>;
+  /**
    * Syncs git-backed collection availability to the Git menu in the main process.
    *
    * @param active - Whether the active collection is git-backed.

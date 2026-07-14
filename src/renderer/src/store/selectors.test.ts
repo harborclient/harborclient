@@ -3,8 +3,17 @@ import { defaultAuth, type AuthConfig } from '#/shared/auth';
 import type { HttpMethod } from '#/shared/types';
 import { createInlineScriptRef } from '#/shared/scriptRefs';
 import { isRequestTab } from '#/renderer/src/store/drafts';
-import { openPageTab, openTabWithDraft } from '#/renderer/src/store/slices/tabsSlice';
-import { selectEffectiveActiveRequestTab } from '#/renderer/src/store/selectors';
+import {
+  loadDocument,
+  loadRequest,
+  openPageTab,
+  openTabWithDraft
+} from '#/renderer/src/store/slices/tabsSlice';
+import {
+  selectEffectiveActiveRequestTab,
+  selectOpenDocumentIds,
+  selectOpenRequestIds
+} from '#/renderer/src/store/selectors';
 
 /**
  * Builds a minimal saved request draft for selector tests.
@@ -121,5 +130,57 @@ describe('selectEffectiveActiveRequestTab', () => {
     );
 
     expect(selectEffectiveActiveRequestTab(store.getState())).toBeUndefined();
+  });
+});
+
+describe('selectOpenRequestIds', () => {
+  it('includes saved requests from every open request tab', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const beforeCount = selectOpenRequestIds(store.getState()).size;
+    store.dispatch(openTabWithDraft(sampleDraft(11, 'First')));
+    store.dispatch(
+      loadRequest({
+        req: {
+          ...sampleDraft(22, 'Second'),
+          uuid: 'uuid-22',
+          sort_order: 0,
+          created_at: '2026-01-01T00:00:00.000Z',
+          updated_at: '2026-01-01T00:00:00.000Z'
+        },
+        activate: false
+      })
+    );
+
+    const openRequestIds = selectOpenRequestIds(store.getState());
+    expect(openRequestIds.has(11)).toBe(true);
+    expect(openRequestIds.has(22)).toBe(true);
+    expect(openRequestIds.size).toBe(beforeCount + 2);
+  });
+});
+
+describe('selectOpenDocumentIds', () => {
+  it('includes ids from every open markdown tab', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const beforeCount = selectOpenDocumentIds(store.getState()).size;
+    store.dispatch(
+      loadDocument({
+        doc: {
+          id: 55,
+          collection_id: 1,
+          folder_id: null,
+          uuid: 'doc-uuid',
+          name: 'README.md',
+          content: '# Docs',
+          sort_order: 0,
+          created_at: '2026-01-01T00:00:00.000Z',
+          updated_at: '2026-01-01T00:00:00.000Z'
+        },
+        activate: false
+      })
+    );
+
+    const openDocumentIds = selectOpenDocumentIds(store.getState());
+    expect(openDocumentIds.has(55)).toBe(true);
+    expect(openDocumentIds.size).toBe(beforeCount + 1);
   });
 });

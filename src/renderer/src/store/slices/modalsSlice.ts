@@ -77,6 +77,8 @@ export interface ConfirmModalState {
   variant: 'default' | 'danger';
   /** When set, renders an optional checkbox below the message (e.g. "Do not ask again"). */
   checkboxLabel?: string;
+  /** When true, the confirm button requires a second "Are you sure?" click. */
+  reconfirm?: boolean;
 }
 
 /**

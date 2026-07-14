@@ -247,6 +247,9 @@ describe('generalSettings', () => {
     warnWhenAgentUsesTerminal: true,
     gitAutoAdd: true,
     externalMergeEditorPath: '',
+    gitCommitAuthorName: '',
+    gitCommitAuthorEmail: '',
+    gitCommitAuthorPrompted: false,
     codeEditorTheme: 'default' as const,
     codeEditorSetup: {
       lineNumbers: true,
@@ -439,6 +442,25 @@ describe('git IPC schemas', () => {
     expect(ipcArgSchemas.gitLog.safeParse([null]).success).toBe(false);
   });
 
+  it('gitSuggestedAuthor accepts optional connection id', () => {
+    expect(ipcArgSchemas.gitSuggestedAuthor.safeParse([validGitConnectionId]).success).toBe(true);
+    expect(ipcArgSchemas.gitSuggestedAuthor.safeParse([undefined]).success).toBe(true);
+  });
+
+  it('gitSuggestedAuthor rejects invalid connection id', () => {
+    expect(ipcArgSchemas.gitSuggestedAuthor.safeParse([null]).success).toBe(false);
+  });
+
+  it('gitDeleteRepoDirectory accepts a connection id', () => {
+    expect(ipcArgSchemas.gitDeleteRepoDirectory.safeParse([validGitConnectionId]).success).toBe(
+      true
+    );
+  });
+
+  it('gitDeleteRepoDirectory rejects missing connection id', () => {
+    expect(ipcArgSchemas.gitDeleteRepoDirectory.safeParse([]).success).toBe(false);
+  });
+
   it('gitSetPat accepts connection id, username, and non-empty token', () => {
     expect(
       ipcArgSchemas.gitSetPat.safeParse([validGitConnectionId, 'octocat', 'ghp_xxx']).success
@@ -565,12 +587,20 @@ describe('git IPC schemas', () => {
     ).toBe(true);
   });
 
-  it('gitRevertFile accepts connection id, collection uuid, and file path', () => {
+  it('gitRevertFile accepts connection id, collection uuid, file path, and optional previous paths', () => {
     expect(
       ipcArgSchemas.gitRevertFile.safeParse([
         validGitConnectionId,
         'collection-uuid',
         '.harborclient/collection-api/req-health.json'
+      ]).success
+    ).toBe(true);
+    expect(
+      ipcArgSchemas.gitRevertFile.safeParse([
+        validGitConnectionId,
+        'collection-uuid',
+        '.harborclient/collection-api/req-health.json',
+        ['.harborclient/collection-api/req-old.json']
       ]).success
     ).toBe(true);
     expect(

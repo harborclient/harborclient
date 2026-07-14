@@ -54,6 +54,36 @@ export const selectActiveDocumentId = (state: RootState): number | undefined => 
 };
 
 /**
+ * Returns ids for every saved request currently open in a tab.
+ *
+ * @param state - Current Redux root state.
+ */
+export const selectOpenRequestIds = (state: RootState): ReadonlySet<number> => {
+  const ids = new Set<number>();
+  for (const tab of state.tabs.tabs) {
+    if (isRequestTab(tab) && tab.draft.id != null) {
+      ids.add(tab.draft.id);
+    }
+  }
+  return ids;
+};
+
+/**
+ * Returns ids for every markdown document currently open in a tab.
+ *
+ * @param state - Current Redux root state.
+ */
+export const selectOpenDocumentIds = (state: RootState): ReadonlySet<number> => {
+  const ids = new Set<number>();
+  for (const tab of state.tabs.tabs) {
+    if (isMarkdownTab(tab)) {
+      ids.add(tab.docId);
+    }
+  }
+  return ids;
+};
+
+/**
  * Returns cached folders keyed by collection id.
  */
 export const selectFoldersByCollection = (

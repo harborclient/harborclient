@@ -7,7 +7,6 @@ import {
   countConflictFiles,
   exportFileBaseName,
   pullMergeConflictMessage,
-  requestFileBaseName,
   toFileSlug
 } from '#/main/git/slug';
 
@@ -22,7 +21,6 @@ describe('git slug helpers', () => {
     expect(exportFileBaseName('environment', 'Prod')).toBe('environment-prod');
     expect(exportFileBaseName('snippet', 'Auth helper')).toBe('snippet-auth-helper');
     expect(collectionDirName('Collection 2')).toBe('collection-collection-2');
-    expect(requestFileBaseName('Echo 1')).toBe('req-echo-1');
   });
 
   it('counts json files containing merge conflict markers', async () => {

@@ -769,4 +769,73 @@ describe('GitSyncManager', () => {
     const status = await manager.getStatus();
     expect(status.changedCount).toBe(0);
   });
+
+  it('uses app author override when committing', async () => {
+    const { repoPath, manager } = await createTestRepo();
+    writeFileSync(join(repoPath, '.harborclient', 'override.txt'), 'override');
+    await git.add({ fs, dir: repoPath, filepath: '.harborclient/override.txt' });
+
+    await manager.commit('Use app author', {
+      collectionPrefix: harborCollectionPrefix,
+      author: { name: 'App User', email: 'app@example.com' }
+    });
+
+    const head = await git.resolveRef({ fs, dir: repoPath, ref: 'HEAD' });
+    const { commit } = await git.readCommit({ fs, dir: repoPath, oid: head });
+    expect(commit.author.name).toBe('App User');
+    expect(commit.author.email).toBe('app@example.com');
+  });
+
+  it('falls back to repo-local git config when app author override is empty', async () => {
+    const { repoPath, manager } = await createTestRepo();
+    writeFileSync(join(repoPath, '.harborclient', 'repo-config.txt'), 'repo-config');
+    await git.add({ fs, dir: repoPath, filepath: '.harborclient/repo-config.txt' });
+
+    await manager.commit('Use repo config author', {
+      collectionPrefix: harborCollectionPrefix,
+      author: { name: '', email: '' }
+    });
+
+    const head = await git.resolveRef({ fs, dir: repoPath, ref: 'HEAD' });
+    const { commit } = await git.readCommit({ fs, dir: repoPath, oid: head });
+    expect(commit.author.name).toBe('Test');
+    expect(commit.author.email).toBe('test@example.com');
+  });
+
+  it('falls back to HarborClient defaults when app override and repo config are missing', async () => {
+    const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-sync-author-'));
+    cleanups.push(() => rmSync(repoPath, { recursive: true, force: true }));
+    mkdirSync(join(repoPath, '.harborclient'), { recursive: true });
+
+    await git.init({ fs, dir: repoPath, defaultBranch: 'main' });
+    writeFileSync(join(repoPath, '.harborclient', 'readme.txt'), 'v1');
+    await git.add({ fs, dir: repoPath, filepath: '.harborclient/readme.txt' });
+    await git.commit({
+      fs,
+      dir: repoPath,
+      message: 'Initial',
+      author: { name: 'Test', email: 'test@example.com' }
+    });
+
+    const settings: GitSettings = {
+      repoPath,
+      url: 'https://github.com/example/repo.git',
+      branch: 'main',
+      subdir: '.harborclient',
+      auth: { kind: 'pat', username: 'token' }
+    };
+    const manager = new GitSyncManager('test-connection', settings);
+
+    writeFileSync(join(repoPath, '.harborclient', 'fallback.txt'), 'fallback');
+    await git.add({ fs, dir: repoPath, filepath: '.harborclient/fallback.txt' });
+
+    await manager.commit('Use HarborClient default author', {
+      collectionPrefix: harborCollectionPrefix
+    });
+
+    const head = await git.resolveRef({ fs, dir: repoPath, ref: 'HEAD' });
+    const { commit } = await git.readCommit({ fs, dir: repoPath, oid: head });
+    expect(commit.author.name).toBe('HarborClient');
+    expect(commit.author.email).toBe('contact@harborclient.com');
+  });
 });

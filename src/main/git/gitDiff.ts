@@ -7,6 +7,7 @@ import { readBlobBytesFromTree } from '#/main/git/gitBlob';
 import {
   classifyHarborChangePath,
   displayNameFromHarborChange,
+  parseRequestUuidFromText,
   type ClassifiedHarborChangePath
 } from '#/main/git/fileLayout';
 import { decodeTextContent } from '#/main/git/gitBlobText';
@@ -91,6 +92,17 @@ export interface GitDiffFileEntry {
    * HTTP method for request rows when resolved from file contents.
    */
   method?: string;
+
+  /**
+   * Repository-relative paths removed during a rename, when this row represents a
+   * collapsed delete+add pair for one request uuid.
+   */
+  previousPaths?: string[];
+
+  /**
+   * User-facing name from the deleted path during a rename, when resolved.
+   */
+  renamedFrom?: string;
 }
 
 /**
@@ -492,6 +504,208 @@ function shouldReadStageForGitDiff(
 }
 
 /**
+ * One request change row with resolved uuid and decoded file bodies for rename pairing.
+ */
+interface PendingRequestChange {
+  /**
+   * Diff entry built from one statusMatrix row.
+   */
+  entry: GitDiffFileEntry;
+
+  /**
+   * Stable request uuid parsed from file JSON, when present.
+   */
+  uuid: string | null;
+
+  /**
+   * Decoded HEAD content for the changed path.
+   */
+  headText: string | null;
+
+  /**
+   * Decoded working-tree or index content for the changed path.
+   */
+  compareText: string | null;
+}
+
+/**
+ * Returns whether one matrix row should be included when building a git diff.
+ *
+ * Untracked request rows are retained for collection-scoped rename pairing even
+ * when `excludeUntracked` is true.
+ *
+ * @param row - statusMatrix row from isomorphic-git.
+ * @param options - Diff build options and harbor subdirectory prefix.
+ */
+function shouldIncludeMatrixRowForGitDiff(
+  row: GitMatrixRow,
+  options: {
+    stagedOnly: boolean;
+    excludeUntracked: boolean;
+    filepathFilter?: (filepath: string) => boolean;
+    enrichDisplayNames?: boolean;
+    harborSubdir: string;
+  }
+): boolean {
+  const flags = analyzeMatrixRow(row);
+  if (flags == null) {
+    return false;
+  }
+  if (options.stagedOnly) {
+    return flags.hasStagedChanges;
+  }
+  if (options.excludeUntracked && !isCountedCollectionChange(flags)) {
+    if (
+      flags.isUntracked &&
+      options.filepathFilter != null &&
+      options.enrichDisplayNames &&
+      options.filepathFilter(row[0])
+    ) {
+      const classified = classifyHarborChangePath(row[0], options.harborSubdir);
+      return classified?.kind === 'request';
+    }
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Collapses delete+add request changes that share one uuid into a single modified row.
+ *
+ * @param entries - Raw per-path diff entries.
+ * @param repoPath - Absolute repository root.
+ * @param harborSubdir - HarborClient subdirectory prefix.
+ * @param maxCharsPerFile - Maximum characters per merged diff excerpt.
+ * @param excludeUntracked - When true, omits unpaired untracked request additions.
+ * @param untrackedPaths - Repository-relative paths that are not yet tracked in HEAD.
+ */
+export async function collapseRequestRenames(
+  entries: GitDiffFileEntry[],
+  repoPath: string,
+  harborSubdir: string,
+  maxCharsPerFile: number,
+  excludeUntracked: boolean,
+  untrackedPaths: ReadonlySet<string>
+): Promise<GitDiffFileEntry[]> {
+  const requestEntries: GitDiffFileEntry[] = [];
+  const otherEntries: GitDiffFileEntry[] = [];
+
+  for (const entry of entries) {
+    const classified = classifyHarborChangePath(entry.path, harborSubdir);
+    if (classified?.kind === 'request') {
+      requestEntries.push(entry);
+    } else {
+      otherEntries.push(entry);
+    }
+  }
+
+  if (requestEntries.length === 0) {
+    return entries;
+  }
+
+  const pending: PendingRequestChange[] = [];
+  for (const entry of requestEntries) {
+    const headText = entry.status === 'added' ? null : await readHeadText(repoPath, entry.path);
+    const compareText = entry.status === 'deleted' ? null : readWorkdirText(repoPath, entry.path);
+    const contentForUuid = entry.status === 'deleted' ? headText : compareText;
+    pending.push({
+      entry,
+      uuid: parseRequestUuidFromText(contentForUuid),
+      headText,
+      compareText
+    });
+  }
+
+  const groups = new Map<string, PendingRequestChange[]>();
+  const ungrouped: PendingRequestChange[] = [];
+
+  for (const item of pending) {
+    if (item.uuid == null) {
+      ungrouped.push(item);
+      continue;
+    }
+    const group = groups.get(item.uuid) ?? [];
+    group.push(item);
+    groups.set(item.uuid, group);
+  }
+
+  const collapsed: GitDiffFileEntry[] = [...otherEntries];
+
+  for (const group of groups.values()) {
+    const deletions = group.filter((item) => item.entry.status === 'deleted');
+    const survivors = group.filter((item) => item.entry.status !== 'deleted');
+
+    if (survivors.length > 0 && deletions.length > 0) {
+      const survivor =
+        survivors.find((item) => item.entry.status === 'added') ??
+        survivors.find((item) => item.entry.status === 'modified') ??
+        survivors[0]!;
+      const primaryDeletion = deletions[0]!;
+      const previousPaths = deletions.map((item) => item.entry.path);
+      const mergedDiff = buildFileDiffText(
+        survivor.entry.path,
+        'modified',
+        primaryDeletion.headText,
+        survivor.compareText
+      );
+      const capped = truncateTextForLlm(mergedDiff, maxCharsPerFile);
+      const deletedClassified = classifyHarborChangePath(primaryDeletion.entry.path, harborSubdir);
+      const renamedFromMeta =
+        deletedClassified != null
+          ? displayNameFromHarborChange(deletedClassified, primaryDeletion.headText, null)
+          : null;
+
+      collapsed.push({
+        path: survivor.entry.path,
+        status: 'modified',
+        diff: capped.text,
+        binary: false,
+        truncated: capped.truncated,
+        hasConflict: survivor.entry.hasConflict,
+        displayName: survivor.entry.displayName ?? renamedFromMeta?.displayName,
+        resourceKind: 'request',
+        ...(survivor.entry.method != null
+          ? { method: survivor.entry.method }
+          : renamedFromMeta?.method != null
+            ? { method: renamedFromMeta.method }
+            : {}),
+        previousPaths,
+        ...(renamedFromMeta?.displayName != null
+          ? { renamedFrom: renamedFromMeta.displayName }
+          : {}),
+        ...(capped.truncated ? { originalLength: capped.originalLength } : {})
+      });
+      continue;
+    }
+
+    if (deletions.length > 0) {
+      collapsed.push(deletions[0]!.entry);
+      continue;
+    }
+
+    for (const survivor of survivors) {
+      if (
+        excludeUntracked &&
+        survivor.entry.status === 'added' &&
+        untrackedPaths.has(survivor.entry.path)
+      ) {
+        continue;
+      }
+      collapsed.push(survivor.entry);
+    }
+  }
+
+  for (const item of ungrouped) {
+    if (excludeUntracked && item.entry.status === 'added' && untrackedPaths.has(item.entry.path)) {
+      continue;
+    }
+    collapsed.push(item.entry);
+  }
+
+  return collapsed;
+}
+
+/**
  * Builds a capped git diff for all uncommitted changes under the HarborClient tree.
  *
  * @param options - Repository path, harbor subdirectory, and output caps.
@@ -511,19 +725,20 @@ export async function buildGitDiff(options: GitDiffOptions): Promise<GitDiffResu
 
   const stagedOnly = options.stagedOnly === true;
   const excludeUntracked = options.excludeUntracked === true;
-  const changedRows = matrix.filter((row) => {
-    const flags = analyzeMatrixRow(row as GitMatrixRow);
-    if (flags == null) {
-      return false;
-    }
-    if (stagedOnly) {
-      return flags.hasStagedChanges;
-    }
-    if (excludeUntracked && !isCountedCollectionChange(flags)) {
-      return false;
-    }
-    return true;
-  });
+  const untrackedPaths = new Set(
+    matrix
+      .filter((row) => analyzeMatrixRow(row as GitMatrixRow)?.isUntracked === true)
+      .map(([filepath]) => filepath)
+  );
+  const changedRows = matrix.filter((row) =>
+    shouldIncludeMatrixRowForGitDiff(row as GitMatrixRow, {
+      stagedOnly,
+      excludeUntracked,
+      filepathFilter: options.filepathFilter,
+      enrichDisplayNames: options.enrichDisplayNames,
+      harborSubdir
+    })
+  );
 
   let branch: string | null = null;
   try {
@@ -646,6 +861,18 @@ export async function buildGitDiff(options: GitDiffOptions): Promise<GitDiffResu
     }
   }
 
+  const collapsedFiles =
+    options.enrichDisplayNames && options.filepathFilter != null
+      ? await collapseRequestRenames(
+          files,
+          repoPath,
+          harborSubdir,
+          maxCharsPerFile,
+          excludeUntracked,
+          untrackedPaths
+        )
+      : files;
+
   const omittedFileCount = Math.max(0, changedRows.length - files.length);
 
   return {
@@ -653,7 +880,7 @@ export async function buildGitDiff(options: GitDiffOptions): Promise<GitDiffResu
     branch,
     harborSubdir,
     changedFileCount: changedRows.length,
-    files,
+    files: collapsedFiles,
     truncated: truncated || omittedFileCount > 0,
     omittedFileCount
   };

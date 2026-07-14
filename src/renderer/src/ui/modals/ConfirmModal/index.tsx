@@ -23,6 +23,7 @@ interface ConfirmModalContentProps {
  */
 function ConfirmModalContent({ confirmModal, dispatch }: ConfirmModalContentProps): JSX.Element {
   const [checkboxChecked, setCheckboxChecked] = useState(false);
+  const [reconfirming, setReconfirming] = useState(false);
 
   /**
    * Dismisses the dialog without confirming the pending action.
@@ -37,6 +38,17 @@ function ConfirmModalContent({ confirmModal, dispatch }: ConfirmModalContentProp
   const handleConfirm = useCallback((): void => {
     resolveConfirm(dispatch, true, checkboxChecked);
   }, [checkboxChecked, dispatch]);
+
+  /**
+   * Reveals the "Are you sure?" link on the first click when reconfirm is enabled.
+   */
+  const handlePrimaryClick = useCallback((): void => {
+    if (confirmModal.reconfirm && !reconfirming) {
+      setReconfirming(true);
+      return;
+    }
+    handleConfirm();
+  }, [confirmModal.reconfirm, handleConfirm, reconfirming]);
 
   return (
     <Modal onClose={handleCancel} labelledBy="confirm-modal-title" title={confirmModal.title}>
@@ -54,9 +66,18 @@ function ConfirmModalContent({ confirmModal, dispatch }: ConfirmModalContentProp
         </div>
       ) : null}
       <ModalFooter>
+        {confirmModal.reconfirm && reconfirming ? (
+          <button
+            type="button"
+            onClick={handleConfirm}
+            className="mr-auto self-center bg-transparent p-0 text-[15px] text-white underline-offset-2 hover:underline focus-visible:underline"
+          >
+            Are you sure?
+          </button>
+        ) : null}
         <Button
           variant={confirmModal.variant === 'danger' ? 'primaryDanger' : 'primary'}
-          onClick={handleConfirm}
+          onClick={handlePrimaryClick}
         >
           {confirmModal.confirmLabel}
         </Button>
@@ -74,7 +95,7 @@ export function ConfirmModal(): JSX.Element | null {
 
   if (!confirmModal) return null;
 
-  const contentKey = `${confirmModal.title}\0${confirmModal.message}\0${confirmModal.confirmLabel}\0${confirmModal.checkboxLabel ?? ''}`;
+  const contentKey = `${confirmModal.title}\0${confirmModal.message}\0${confirmModal.confirmLabel}\0${confirmModal.checkboxLabel ?? ''}\0${confirmModal.reconfirm ? '1' : '0'}`;
 
   return <ConfirmModalContent key={contentKey} confirmModal={confirmModal} dispatch={dispatch} />;
 }

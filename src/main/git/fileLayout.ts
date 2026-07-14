@@ -7,12 +7,7 @@ import {
 } from '#/main/storage/collectionData';
 import { validateSnippetExport } from '#/main/storage/snippetData';
 import { generateDocumentUuid, resolveImportUuid } from '#/main/storage/uuid';
-import {
-  collectionDirName,
-  exportFileBaseName,
-  requestFileBaseName,
-  toFileSlug
-} from '#/main/git/slug';
+import { collectionDirName, exportFileBaseName } from '#/main/git/slug';
 import { validateRequestExport } from '#/main/storage/collectionData';
 import type {
   CollectionExport,
@@ -21,6 +16,7 @@ import type {
   ExportedRequest,
   SnippetExport
 } from '#/shared/types';
+import type { RequestExport } from '#/shared/types/request';
 import { parseJson } from '#/shared/parseJson';
 import { readScriptRefsFromJson } from '#/shared/scriptRefs';
 import type { AuthConfig } from '#/shared/auth';
@@ -481,6 +477,11 @@ export function classifyHarborChangePath(
  */
 interface ParsedRequestMeta {
   /**
+   * Stable request uuid when present in the export JSON.
+   */
+  uuid: string | null;
+
+  /**
    * User-facing request name when present in the export JSON.
    */
   name: string | null;
@@ -498,16 +499,30 @@ interface ParsedRequestMeta {
  */
 function parseRequestMetaFromText(text: string | null): ParsedRequestMeta {
   if (text == null || !text.trim()) {
-    return { name: null, method: null };
+    return { uuid: null, name: null, method: null };
   }
-  const parsed = parseJson(text, null as { name?: unknown; method?: unknown } | null);
+  const parsed = parseJson(
+    text,
+    null as { uuid?: unknown; name?: unknown; method?: unknown } | null
+  );
   if (parsed == null) {
-    return { name: null, method: null };
+    return { uuid: null, name: null, method: null };
   }
+  const uuid =
+    typeof parsed.uuid === 'string' && parsed.uuid.trim() ? resolveImportUuid(parsed.uuid) : null;
   const name = typeof parsed.name === 'string' && parsed.name.trim() ? parsed.name.trim() : null;
   const method =
     typeof parsed.method === 'string' && parsed.method.trim() ? parsed.method.trim() : null;
-  return { name, method };
+  return { uuid, name, method };
+}
+
+/**
+ * Parses the stable request uuid from one request export JSON string.
+ *
+ * @param text - Request export JSON text.
+ */
+export function parseRequestUuidFromText(text: string | null): string | null {
+  return parseRequestMetaFromText(text).uuid;
 }
 
 /**
@@ -563,6 +578,26 @@ export function displayNameFromHarborChange(
     displayName: manifestName ?? fallback,
     resourceKind: 'document'
   };
+}
+
+/**
+ * Reads the stable request uuid from one request export JSON file.
+ *
+ * @param filePath - Absolute path to the request JSON file.
+ */
+function readRequestUuidFromFile(filePath: string): string | null {
+  try {
+    const parsed = readJsonFile(filePath) as { harborclientExport?: string; uuid?: string };
+    if (parsed.harborclientExport !== 'request') {
+      return null;
+    }
+    if (typeof parsed.uuid !== 'string' || !parsed.uuid.trim()) {
+      return null;
+    }
+    return resolveImportUuid(parsed.uuid);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -851,37 +886,92 @@ export function readStoredDocumentRefs(dirPath: string): StoredDocumentRef[] {
 /**
  * Resolves the on-disk request JSON file name for one export row.
  *
- * Preserves the existing file name when the request uuid is unchanged and the
- * display-name slug is unchanged; assigns a new unique name after renames.
+ * Request files are keyed by stable uuid so display-name renames stay in place
+ * as content modifications of one tracked git file.
  *
  * @param request - Request export row to persist.
- * @param existingUuidToFile - Current uuid-to-filename map from disk.
  * @param usedNames - Lowercase file names already reserved in the folder.
  */
-function resolveRequestFileName(
-  request: ExportedRequest,
-  existingUuidToFile: Map<string, string>,
-  usedNames: Set<string>
-): string {
+function resolveRequestFileName(request: ExportedRequest, usedNames: Set<string>): string {
   const uuid = resolveImportUuid(request.uuid);
-  const desired = `${requestFileBaseName(request.name)}.json`;
-  const existing = existingUuidToFile.get(uuid);
-
-  if (existing) {
-    const existingSlug = existing.replace(/^req-/i, '').replace(/\.json$/i, '');
-    const nameSlug = toFileSlug(request.name);
-    if (existingSlug === nameSlug || existing.toLowerCase() === desired.toLowerCase()) {
-      usedNames.add(existing.toLowerCase());
-      return existing;
-    }
-  }
-
+  const desired = `req-${uuid}.json`;
   let fileName = desired;
   if (usedNames.has(fileName.toLowerCase())) {
     fileName = uniqueFileNameInFolder(desired, usedNames);
   }
   usedNames.add(fileName.toLowerCase());
   return fileName;
+}
+
+/**
+ * Recovers unreferenced request JSON files from a collection folder into the export.
+ *
+ * Orphan files whose uuid already appears in the manifest-backed request list are
+ * ignored as stale rename leftovers. Files with a new uuid are appended so buried
+ * requests resurface instead of being swept on the next save.
+ *
+ * @param dirPath - Absolute collection folder path.
+ * @param manifestRequestFiles - Request file names listed in `collection.json`.
+ * @param requests - Mutable request rows loaded from the manifest.
+ */
+function recoverOrphanRequestFiles(
+  dirPath: string,
+  manifestRequestFiles: string[],
+  requests: ExportedRequest[]
+): void {
+  if (!existsSync(dirPath)) {
+    return;
+  }
+
+  const manifestFileSet = new Set(manifestRequestFiles.map((fileName) => fileName.toLowerCase()));
+  const knownUuids = new Set(requests.map((row) => resolveImportUuid(row.uuid)));
+
+  for (const fileName of readdirSync(dirPath)) {
+    if (!fileName.startsWith('req-') || !fileName.endsWith('.json')) {
+      continue;
+    }
+    if (manifestFileSet.has(fileName.toLowerCase())) {
+      continue;
+    }
+
+    const requestPath = join(dirPath, fileName);
+    let requestParsed: Record<string, unknown>;
+    try {
+      requestParsed = normalizeScriptRefFields(
+        readJsonFile(requestPath) as Record<string, unknown>
+      );
+    } catch {
+      continue;
+    }
+
+    let validated: RequestExport;
+    try {
+      validated = validateRequestExport(requestParsed);
+    } catch {
+      continue;
+    }
+
+    const uuid = resolveImportUuid(validated.uuid);
+    if (!uuid || knownUuids.has(uuid)) {
+      continue;
+    }
+
+    const folderUuid =
+      typeof requestParsed.folder_uuid === 'string'
+        ? requestParsed.folder_uuid
+        : requestParsed.folder_uuid === null
+          ? null
+          : undefined;
+
+    knownUuids.add(uuid);
+    requests.push({
+      ...validated,
+      uuid,
+      sort_order: requests.length,
+      folder_uuid: folderUuid ?? null,
+      folder_name: null
+    });
+  }
 }
 
 /**
@@ -924,6 +1014,8 @@ export function readCollectionFromFolder(dirPath: string): CollectionExport {
       folder_name: null
     });
   }
+
+  recoverOrphanRequestFiles(dirPath, requestFiles, requests);
 
   const documentsRaw = Array.isArray(parsed.documents) ? parsed.documents : [];
   const documents: ExportedDocument[] = documentsRaw
@@ -1048,8 +1140,6 @@ export function writeCollectionToFolder(
 
   const dirPath = collectionDirPath(root, validated.name);
   const previousDirPath = options?.previousDirPath ?? null;
-  const sourceDir = previousDirPath && existsSync(previousDirPath) ? previousDirPath : dirPath;
-  const existingUuidToFile = buildExistingRequestFileMap(sourceDir);
   const usedNames = new Set<string>();
   const requestFileNames: string[] = [];
   const writtenRequestFiles = new Set<string>();
@@ -1058,7 +1148,7 @@ export function writeCollectionToFolder(
   mkdirSync(dirPath, { recursive: true });
 
   for (const request of validated.requests ?? []) {
-    const fileName = resolveRequestFileName(request, existingUuidToFile, usedNames);
+    const fileName = resolveRequestFileName(request, usedNames);
     requestFileNames.push(fileName);
     writtenRequestFiles.add(fileName);
 
@@ -1136,7 +1226,25 @@ export function writeCollectionToFolder(
     documents: documentRefs
   };
 
-  writeFileSync(collectionManifestPath(dirPath), JSON.stringify(manifest, null, 2), 'utf-8');
+  const writtenRequestUuids = new Set(
+    (validated.requests ?? []).map((request) => resolveImportUuid(request.uuid))
+  );
+  const previousManifestUuids = new Set<string>();
+  const manifestPath = collectionManifestPath(dirPath);
+  if (existsSync(manifestPath)) {
+    const previousManifest = readJsonFile(manifestPath) as { requests?: string[] };
+    for (const fileName of previousManifest.requests ?? []) {
+      const previousUuid = readRequestUuidFromFile(join(dirPath, fileName));
+      if (previousUuid != null) {
+        previousManifestUuids.add(previousUuid);
+      }
+    }
+  }
+  const removedManifestUuids = new Set(
+    [...previousManifestUuids].filter((requestUuid) => !writtenRequestUuids.has(requestUuid))
+  );
+
+  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
 
   if (existsSync(dirPath)) {
     for (const entry of readdirSync(dirPath)) {
@@ -1145,7 +1253,13 @@ export function writeCollectionToFolder(
         continue;
       }
       if (entry.startsWith('req-') && entry.endsWith('.json') && !writtenRequestFiles.has(entry)) {
-        rmSync(entryPath, { force: true });
+        const orphanUuid = readRequestUuidFromFile(entryPath);
+        if (
+          orphanUuid != null &&
+          (writtenRequestUuids.has(orphanUuid) || removedManifestUuids.has(orphanUuid))
+        ) {
+          rmSync(entryPath, { force: true });
+        }
         continue;
       }
       if (entry.endsWith('.md') && !writtenDocumentFiles.has(entry)) {

@@ -292,7 +292,7 @@ export interface GitOAuthFinishedEvent {
   connectionId?: string;
 
   /**
-   * Whether authorization completed and credentials were validated.
+   * Whether authorization completed and credentials were stored.
    */
   ok: boolean;
 
@@ -300,6 +300,12 @@ export interface GitOAuthFinishedEvent {
    * Error message when {@link GitOAuthFinishedEvent.ok} is false.
    */
   error?: string;
+
+  /**
+   * Error message when authorization succeeded but optional repository
+   * validation failed.
+   */
+  validationError?: string;
 }
 
 /**
@@ -616,6 +622,17 @@ export interface GitRequestDiffFileEntry {
    * HTTP method for request rows when resolved from file contents.
    */
   method?: string;
+
+  /**
+   * Repository-relative paths removed during a rename, when this row represents a
+   * collapsed delete+add pair for one request uuid.
+   */
+  previousPaths?: string[];
+
+  /**
+   * User-facing name from the deleted path during a rename, when resolved.
+   */
+  renamedFrom?: string;
 }
 
 /**

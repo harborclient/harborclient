@@ -1,5 +1,4 @@
-import { FaIcon } from '@harborclient/sdk/components';
-import { sourceRow } from '#/renderer/src/ui/shared/classes';
+import { SidebarDocumentItem } from '@harborclient/sdk/components';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { faMarkdown } from '#/renderer/src/fontawesome';
 import {
@@ -7,13 +6,13 @@ import {
   useDeveloperToolsEnabled,
   type InspectPoint
 } from '#/renderer/src/ui/shared/devInspectContextMenu';
-import { SidebarColorDot } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarColorDot';
 import { SidebarRowActionsMenu } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarRowActionsMenu';
 import { buildGitItemMenuGroups } from '#/renderer/src/ui/sidebars/CollectionSidebar/buildGitItemMenuGroups';
 import {
   buildGitItemAccessibleName,
   gitItemNameClass
 } from '#/renderer/src/git/gitCommitChangeDisplay';
+import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
 import type { CollectionDocument, GitRequestFileStatus } from '#/shared/types';
 import { type JSX, useMemo, useState } from 'react';
 
@@ -27,6 +26,11 @@ interface Props {
    * Currently active document id, used for row selection styling.
    */
   activeDocumentId?: number;
+
+  /**
+   * Markdown document ids currently open in editor tabs.
+   */
+  openDocumentIds: ReadonlySet<number>;
 
   /**
    * Id of the open row actions menu, if any.
@@ -76,6 +80,7 @@ interface Props {
 export function DocumentRow({
   doc,
   activeDocumentId,
+  openDocumentIds,
   openMenuId,
   onOpenChange,
   onLoadDocument,
@@ -87,6 +92,7 @@ export function DocumentRow({
 }: Props): JSX.Element {
   const confirm = useConfirm();
   const developerToolsEnabled = useDeveloperToolsEnabled();
+  const { showColorDots } = useSidebarExpansion();
   const [inspectPoint, setInspectPoint] = useState<InspectPoint | undefined>(undefined);
 
   const menuId = `document-${doc.id}`;
@@ -144,40 +150,41 @@ export function DocumentRow({
   );
 
   return (
-    <div
-      className={`group ${sourceRow(activeDocumentId === doc.id, true)}`}
-      onContextMenu={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        setInspectPoint({ x: event.clientX, y: event.clientY });
-        onOpenChange(menuId);
-      }}
-    >
-      <button
-        type="button"
-        className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-inherit app-no-drag"
-        aria-current={activeDocumentId === doc.id ? 'true' : undefined}
-        aria-label={buildGitItemAccessibleName(doc.name, gitItemStatus)}
+    <div data-sidebar-document-id={doc.id} className="contents">
+      <SidebarDocumentItem
+        icon={faMarkdown}
+        name={doc.name}
+        nameClassName={gitItemNameClass(gitItemStatus)}
+        colorDot={{
+          color: doc.color,
+          visible: showColorDots,
+          label: `Color for ${doc.name}`
+        }}
+        selected={activeDocumentId === doc.id || openDocumentIds.has(doc.id)}
+        onContextMenu={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setInspectPoint({ x: event.clientX, y: event.clientY });
+          onOpenChange(menuId);
+        }}
         onClick={() => onLoadDocument(doc)}
         onDoubleClick={() => onRenameDocument(doc)}
-      >
-        <FaIcon icon={faMarkdown} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
-        <span className="inline-flex min-w-0 items-center gap-1.5">
-          <span className={`truncate ${gitItemNameClass(gitItemStatus)}`}>{doc.name}</span>
-          <SidebarColorDot color={doc.color} label={`Color for ${doc.name}`} />
-        </span>
-      </button>
-      <SidebarRowActionsMenu
-        menuId={menuId}
-        openMenuId={openMenuId}
-        onOpenChange={onOpenChange}
-        colorTarget={{
-          kind: 'document',
-          collectionId: doc.collection_id,
-          id: doc.id,
-          color: doc.color ?? null
-        }}
-        groups={menuGroups}
+        ariaLabel={buildGitItemAccessibleName(doc.name, gitItemStatus)}
+        ariaCurrent={activeDocumentId === doc.id}
+        actions={
+          <SidebarRowActionsMenu
+            menuId={menuId}
+            openMenuId={openMenuId}
+            onOpenChange={onOpenChange}
+            colorTarget={{
+              kind: 'document',
+              collectionId: doc.collection_id,
+              id: doc.id,
+              color: doc.color ?? null
+            }}
+            groups={menuGroups}
+          />
+        }
       />
     </div>
   );

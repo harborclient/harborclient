@@ -1,5 +1,3 @@
-import { ControlledAccordion } from '@szhsin/react-accordion';
-import { Scrollbars } from '#/renderer/src/components/Scrollbars';
 import { useMemo, type JSX } from 'react';
 import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import {
@@ -18,9 +16,10 @@ import {
   faTrash
 } from '#/renderer/src/fontawesome';
 import {
-  ResizeHandle,
+  Sidebar,
+  SidebarSections,
   Toolbar,
-  useResizable,
+  type SidebarSectionConfig,
   type ToolbarAction
 } from '@harborclient/sdk/components';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
@@ -37,10 +36,11 @@ import { History, HistoryHeaderActions } from './History';
 import { RunResults, RunsHeaderActions } from './RunResults';
 import { TabGroups } from './TabGroups';
 import { Trash, TrashHeaderActions } from './Trash';
-import { Section } from './Section';
 import { SidebarSearch } from './SidebarSearch';
 import { SidebarPanelSwitcher } from './SidebarPanelSwitcher';
 import { SidebarProvidersProvider } from './SidebarProvidersProvider';
+import { SidebarSelectionMenuHost } from './SidebarSelectionMenuHost';
+import { SidebarSelectionProvider } from './SidebarSelectionProvider';
 import { SidebarSearchProvider } from './SidebarSearchProvider';
 import { useSidebarSearchContext } from './sidebarSearchContext';
 import { SidebarModalsProvider } from './SidebarModals';
@@ -92,24 +92,9 @@ function SidebarContent(): JSX.Element {
   const { searchQuery, setSearchQuery, searchActive, searchLoading, collapseAllSidebarTrees } =
     useSidebarSearchContext();
   const { openAddEnvironment } = useSidebarModals();
-  const { accordion, pluginSectionExpanded } = useSidebarAccordion();
+  const { expanded, onToggle, pluginSectionExpanded } = useSidebarAccordion();
 
   useSidebarListNavigation(selectedCollectionId, activeEnvironmentId);
-
-  const {
-    size: width,
-    minSize: sidebarMinSize,
-    maxSize: sidebarMaxSize,
-    onResizeStart,
-    onKeyboardResize
-  } = useResizable({
-    axis: 'x',
-    direction: 1,
-    defaultSize: 400,
-    minSize: 240,
-    getMaxSize: () => 640,
-    storageKey: 'hc.sidebarWidth'
-  });
 
   /**
    * Resolves the active switchable sidebar panel contribution, if any.
@@ -227,161 +212,172 @@ function SidebarContent(): JSX.Element {
     ];
   }, [collapseAllSidebarTrees]);
 
+  /**
+   * Collapsible section config for the collections sidebar body.
+   */
+  const sections = useMemo((): SidebarSectionConfig[] => {
+    const result: SidebarSectionConfig[] = [];
+
+    if (collectionsSectionVisible) {
+      result.push({
+        key: 'collections',
+        title: 'Collections',
+        ariaLabel: 'Collections',
+        initialEntered: collectionsSectionExpanded,
+        onAdd: () => dispatch(openCollectionModal({ mode: 'create' })),
+        addLabel: 'Add Collection',
+        children: <Collections key={searchActive ? 'search' : 'browse'} />
+      });
+    }
+
+    if (runResultsSectionVisible) {
+      result.push({
+        key: 'runResults',
+        title: 'Runs',
+        ariaLabel: 'Runs',
+        initialEntered: runResultsSectionExpanded,
+        headerActions: <RunsHeaderActions />,
+        children: <RunResults />
+      });
+    }
+
+    if (historySectionVisible) {
+      result.push({
+        key: 'history',
+        title: 'History',
+        ariaLabel: 'History',
+        initialEntered: historySectionExpanded,
+        headerActions: <HistoryHeaderActions />,
+        children: <History />
+      });
+    }
+
+    if (environmentsSectionVisible) {
+      result.push({
+        key: 'environments',
+        title: 'Environments',
+        ariaLabel: 'Environments',
+        initialEntered: environmentsSectionExpanded,
+        onAdd: openAddEnvironment,
+        addLabel: 'Add Environment',
+        children: <Environments />
+      });
+    }
+
+    if (tabGroupsSectionVisible) {
+      result.push({
+        key: 'tabGroups',
+        title: 'Tab Groups',
+        ariaLabel: 'Tab Groups',
+        initialEntered: tabGroupsSectionExpanded,
+        onAdd: () => void dispatch(requestCreateTabGroupFromOpenTabs()),
+        addLabel: 'Add Tab Group',
+        children: <TabGroups />
+      });
+    }
+
+    if (trashSectionVisible) {
+      result.push({
+        key: 'trash',
+        title: 'Trash',
+        ariaLabel: 'Trash',
+        initialEntered: trashSectionExpanded,
+        headerActions: <TrashHeaderActions />,
+        children: <Trash />
+      });
+    }
+
+    for (const section of pluginSidebarSections) {
+      const sectionExpanded = pluginSectionExpanded[section.id] ?? true;
+      result.push({
+        key: section.id,
+        title: section.title,
+        ariaLabel: section.title,
+        initialEntered: sectionExpanded,
+        headerActions: section.hasHeaderActions ? (
+          <PluginSurface
+            pluginId={section.pluginId}
+            contributionId={section.contributionId}
+            kind="sidebarSections"
+            slot="headerActions"
+          />
+        ) : undefined,
+        children: (
+          <PluginSurface
+            pluginId={section.pluginId}
+            contributionId={section.contributionId}
+            kind="sidebarSections"
+            minHeight={120}
+          />
+        )
+      });
+    }
+
+    return result;
+  }, [
+    collectionsSectionVisible,
+    collectionsSectionExpanded,
+    dispatch,
+    environmentsSectionVisible,
+    environmentsSectionExpanded,
+    historySectionVisible,
+    historySectionExpanded,
+    openAddEnvironment,
+    pluginSectionExpanded,
+    pluginSidebarSections,
+    runResultsSectionVisible,
+    runResultsSectionExpanded,
+    searchActive,
+    tabGroupsSectionVisible,
+    tabGroupsSectionExpanded,
+    trashSectionVisible,
+    trashSectionExpanded
+  ]);
+
   return (
-    <>
-      <aside className="flex shrink-0 flex-col overflow-x-hidden bg-sidebar" style={{ width }}>
-        <SidebarPanelSwitcher panels={pluginSidebarPanels} activePanelId={activeSidebarPanelId} />
-        {activeSidebarPanel ? (
-          <Scrollbars axis="vertical" className="flex-1 min-h-0 px-2 py-2">
-            <PluginSurface
-              pluginId={activeSidebarPanel.pluginId}
-              contributionId={activeSidebarPanel.contributionId}
-              kind="sidebarPanels"
-              minHeight={240}
-            />
-          </Scrollbars>
-        ) : (
-          <>
-            <SidebarSearch value={searchQuery} onChange={setSearchQuery} />
-            <Toolbar
-              ariaLabel="Collections sidebar"
-              actions={toolbarActions}
-              toggles={toolbarToggles}
-            />
-            <Scrollbars axis="vertical" className="flex-1 min-h-0 pr-2 pb-3">
-              {searchLoading ? (
-                <p className="mt-1.5 text-muted" role="status">
-                  Loading…
-                </p>
-              ) : null}
-
-              <ControlledAccordion providerValue={accordion}>
-                {collectionsSectionVisible ? (
-                  <nav aria-label="Collections" data-sidebar-section="collections">
-                    <Section
-                      itemKey="collections"
-                      title="Collections"
-                      initialEntered={collectionsSectionExpanded}
-                      onAdd={() => dispatch(openCollectionModal({ mode: 'create' }))}
-                      addLabel="Add Collection"
-                    >
-                      <Collections key={searchActive ? 'search' : 'browse'} />
-                    </Section>
-                  </nav>
-                ) : null}
-
-                {runResultsSectionVisible ? (
-                  <nav aria-label="Runs" data-sidebar-section="runResults">
-                    <Section
-                      itemKey="runResults"
-                      title="Runs"
-                      initialEntered={runResultsSectionExpanded}
-                      headerActions={<RunsHeaderActions />}
-                    >
-                      <RunResults />
-                    </Section>
-                  </nav>
-                ) : null}
-
-                {historySectionVisible ? (
-                  <nav aria-label="History" data-sidebar-section="history">
-                    <Section
-                      itemKey="history"
-                      title="History"
-                      initialEntered={historySectionExpanded}
-                      headerActions={<HistoryHeaderActions />}
-                    >
-                      <History />
-                    </Section>
-                  </nav>
-                ) : null}
-
-                {environmentsSectionVisible ? (
-                  <nav aria-label="Environments" data-sidebar-section="environments">
-                    <Section
-                      itemKey="environments"
-                      title="Environments"
-                      initialEntered={environmentsSectionExpanded}
-                      onAdd={openAddEnvironment}
-                      addLabel="Add Environment"
-                    >
-                      <Environments />
-                    </Section>
-                  </nav>
-                ) : null}
-
-                {tabGroupsSectionVisible ? (
-                  <nav aria-label="Tab Groups" data-sidebar-section="tabGroups">
-                    <Section
-                      itemKey="tabGroups"
-                      title="Tab Groups"
-                      initialEntered={tabGroupsSectionExpanded}
-                      onAdd={() => void dispatch(requestCreateTabGroupFromOpenTabs())}
-                      addLabel="Add Tab Group"
-                    >
-                      <TabGroups />
-                    </Section>
-                  </nav>
-                ) : null}
-
-                {trashSectionVisible ? (
-                  <nav aria-label="Trash" data-sidebar-section="trash">
-                    <Section
-                      itemKey="trash"
-                      title="Trash"
-                      initialEntered={trashSectionExpanded}
-                      headerActions={<TrashHeaderActions />}
-                    >
-                      <Trash />
-                    </Section>
-                  </nav>
-                ) : null}
-
-                {pluginSidebarSections.map((section) => {
-                  const expanded = pluginSectionExpanded[section.id] ?? true;
-                  return (
-                    <nav key={section.id} aria-label={section.title}>
-                      <Section
-                        itemKey={section.id}
-                        title={section.title}
-                        initialEntered={expanded}
-                        headerActions={
-                          section.hasHeaderActions ? (
-                            <PluginSurface
-                              pluginId={section.pluginId}
-                              contributionId={section.contributionId}
-                              kind="sidebarSections"
-                              slot="headerActions"
-                            />
-                          ) : undefined
-                        }
-                      >
-                        <PluginSurface
-                          pluginId={section.pluginId}
-                          contributionId={section.contributionId}
-                          kind="sidebarSections"
-                          minHeight={120}
-                        />
-                      </Section>
-                    </nav>
-                  );
-                })}
-              </ControlledAccordion>
-            </Scrollbars>
-          </>
-        )}
-      </aside>
-
-      <ResizeHandle
-        orientation="vertical"
-        value={width}
-        min={sidebarMinSize}
-        max={sidebarMaxSize}
-        onResizeStart={onResizeStart}
-        onKeyboardResize={onKeyboardResize}
-        ariaLabel="Resize sidebar"
-      />
-    </>
+    <Sidebar
+      side="left"
+      ariaLabel="Collections sidebar"
+      storageKey="hc.sidebarWidth"
+      defaultSize={400}
+      minSize={240}
+      getMaxSize={() => 640}
+      resizeAriaLabel="Resize sidebar"
+      header={
+        <>
+          <SidebarPanelSwitcher panels={pluginSidebarPanels} activePanelId={activeSidebarPanelId} />
+          {!activeSidebarPanel ? (
+            <>
+              <SidebarSearch value={searchQuery} onChange={setSearchQuery} />
+              <Toolbar
+                ariaLabel="Collections sidebar"
+                actions={toolbarActions}
+                toggles={toolbarToggles}
+              />
+            </>
+          ) : null}
+        </>
+      }
+      bodyClassName={activeSidebarPanel ? 'px-2 py-2' : 'pr-2 pb-3'}
+    >
+      {activeSidebarPanel ? (
+        <PluginSurface
+          pluginId={activeSidebarPanel.pluginId}
+          contributionId={activeSidebarPanel.contributionId}
+          kind="sidebarPanels"
+          minHeight={240}
+        />
+      ) : (
+        <>
+          {searchLoading ? (
+            <p className="mt-1.5 text-muted" role="status">
+              Loading…
+            </p>
+          ) : null}
+          <SidebarSections sections={sections} expanded={expanded} onToggle={onToggle} />
+        </>
+      )}
+    </Sidebar>
   );
 }
 
@@ -396,7 +392,10 @@ export function CollectionSidebar(): JSX.Element {
       <SidebarSearchProvider>
         <SidebarModalsProvider>
           <SidebarColorPickerProvider>
-            <SidebarContent />
+            <SidebarSelectionProvider>
+              <SidebarSelectionMenuHost />
+              <SidebarContent />
+            </SidebarSelectionProvider>
           </SidebarColorPickerProvider>
         </SidebarModalsProvider>
       </SidebarSearchProvider>

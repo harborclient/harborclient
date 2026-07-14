@@ -1,4 +1,10 @@
-import { Button, EmptySectionLabel, FaIcon, RowActionsMenu } from '@harborclient/sdk/components';
+import {
+  Button,
+  EmptySectionLabel,
+  FaIcon,
+  RowActionsMenu,
+  SidebarHistoryItem
+} from '@harborclient/sdk/components';
 import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
 import type { RequestHistoryEntry } from '#/shared/types/requestHistory';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
@@ -13,7 +19,6 @@ import {
 import { loadSavedRequest, openRequestDraft } from '#/renderer/src/plugins/hostRequestCommands';
 import { useSidebarRowSelection } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarRowSelection';
 import { faEraser, faPersonRunning } from '#/renderer/src/fontawesome';
-import { METHOD_CLASSES, sourceRow, statusDotClass } from '#/renderer/src/ui/shared/classes';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
 import { formatSidebarAbsoluteDate } from './utils';
 
@@ -122,7 +127,7 @@ export function History(): JSX.Element {
     handleRowClick,
     handleBeforeContextMenu,
     isSelected
-  } = useSidebarRowSelection(visibleOrder);
+  } = useSidebarRowSelection(visibleOrder, { selectionKey: 'history' });
 
   /**
    * Opens a history entry in the request editor or collection runner.
@@ -201,7 +206,6 @@ export function History(): JSX.Element {
       {entries.length === 0 ? <EmptySectionLabel label="No requests" /> : null}
       {entries.map((entry) => {
         const isRun = entry.kind === 'run';
-        const methodClass = METHOD_CLASSES[entry.method.toLowerCase()] ?? 'text-info';
         const normalized = normalizeRequestHistoryEntry(entry);
         const rowDate = formatSidebarAbsoluteDate(entry.ts);
         const rowTitle = isRun ? normalized.name : entry.url;
@@ -210,84 +214,63 @@ export function History(): JSX.Element {
         const showBulkMenu = selected && selectionCount > 1;
 
         return (
-          <div
+          <SidebarHistoryItem
             key={entry.id}
-            className={sourceRow(selected, true)}
+            method={entry.method}
+            name={normalized.name ?? entry.url}
+            isRun={isRun}
+            status={isRun ? undefined : entry.status}
+            statusText={isRun ? undefined : entry.statusText}
+            runIcon={faPersonRunning}
+            selected={selected}
+            title={`${rowTitle} — ${rowDate}`}
+            ariaLabel={historyEntryAriaLabel(entry)}
             onContextMenu={(event) => {
               event.preventDefault();
               event.stopPropagation();
               handleBeforeContextMenu(entry.id);
               setOpenMenuId(menuId);
             }}
-          >
-            <Button
-              variant="toolbar"
-              className="flex min-w-0 flex-1 items-center gap-2 py-0.5 text-left text-text hover:bg-transparent"
-              title={`${rowTitle} — ${rowDate}`}
-              aria-label={historyEntryAriaLabel(entry)}
-              aria-selected={selected ? 'true' : undefined}
-              onClick={(event: MouseEvent<HTMLButtonElement>) => {
-                handleRowClick(
-                  entry.id,
-                  { shiftKey: event.shiftKey, ctrlOrMetaKey: event.ctrlKey || event.metaKey },
-                  () => handleOpenEntry(entry)
-                );
-              }}
-            >
-              <span className={`shrink-0 font-medium uppercase ${methodClass}`} aria-hidden>
-                {entry.method}
-              </span>
-              <span className="flex min-w-0 flex-1 items-center gap-1.5">
-                <span className="min-w-0 truncate text-text">{normalized.name}</span>
-                {isRun ? (
-                  <FaIcon
-                    icon={faPersonRunning}
-                    className="h-3.5 w-3.5 shrink-0 text-muted"
-                    aria-hidden
-                  />
-                ) : null}
-              </span>
-              {!isRun ? (
-                <span className="flex shrink-0 items-center gap-1.5 tabular-nums text-muted">
-                  <span
-                    className={`inline-block h-2 w-2 shrink-0 rounded-full ${statusDotClass(entry.status)}`}
-                    aria-hidden="true"
-                  />
-                  {entry.status} {entry.statusText}
-                </span>
-              ) : null}
-            </Button>
-            <RowActionsMenu
-              menuId={menuId}
-              openMenuId={openMenuId}
-              onOpenChange={setOpenMenuId}
-              groups={
-                showBulkMenu
-                  ? [
-                      [
-                        {
-                          label: 'Delete',
-                          variant: 'danger' as const,
-                          onSelect: () => {
-                            void handleDeleteSelected();
+            onClick={(event: MouseEvent<HTMLElement>) => {
+              handleRowClick(
+                entry.id,
+                { shiftKey: event.shiftKey, ctrlOrMetaKey: event.ctrlKey || event.metaKey },
+                () => handleOpenEntry(entry)
+              );
+            }}
+            actions={
+              <RowActionsMenu
+                menuId={menuId}
+                openMenuId={openMenuId}
+                onOpenChange={setOpenMenuId}
+                groups={
+                  showBulkMenu
+                    ? [
+                        [
+                          {
+                            label: 'Delete',
+                            variant: 'danger' as const,
+                            onSelect: () => {
+                              void handleDeleteSelected();
+                            }
                           }
-                        }
+                        ]
                       ]
-                    ]
-                  : [
-                      [
-                        {
-                          label: 'Delete',
-                          variant: 'danger',
-                          onSelect: () => {
-                            void handleDeleteEntry(entry);
+                    : [
+                        [
+                          {
+                            label: 'Delete',
+                            variant: 'danger',
+                            onSelect: () => {
+                              void handleDeleteEntry(entry);
+                            }
                           }
-                        }
+                        ]
                       ]
-                    ]
-              }
-            />
-          </div>
+                }
+              />
+            }
+          />
         );
       })}
     </div>

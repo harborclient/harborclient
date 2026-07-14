@@ -11,6 +11,7 @@ import {
   setMenuSidebarVisible,
   setMenuDesignerUndoRedo,
   setMenuTabGroupAvailable,
+  setMenuSidebarDeselectAllAvailable,
   setMenuGitCollectionActive,
   setMenuThemeMenuState
 } from '#/main/appMenu';
@@ -92,6 +93,14 @@ export function registerMenuHandlers(): void {
   handle('menu:setTabGroupAvailable', ipcArgSchemas.menuTabGroupAvailable, (_event, available) => {
     setMenuTabGroupAvailable(available);
   });
+
+  handle(
+    'menu:setSidebarDeselectAllAvailable',
+    ipcArgSchemas.menuSidebarDeselectAllAvailable,
+    (_event, available) => {
+      setMenuSidebarDeselectAllAvailable(available);
+    }
+  );
 
   handle('menu:setGitCollectionActive', ipcArgSchemas.menuGitCollectionActive, (_event, active) => {
     setMenuGitCollectionActive(active);

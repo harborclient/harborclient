@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
+import { useCallback, useEffect, useRef, useState, type JSX, type KeyboardEvent } from 'react';
 import { BUILTIN_THEME_OPTIONS } from '#/shared/themes';
 import type { ThemeSource } from '#/shared/types';
 import {
@@ -12,9 +12,17 @@ import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { closeThemePicker, selectThemePicker } from '#/renderer/src/store/slices/modalsSlice';
 import { ThemePreviewCard } from '#/renderer/src/ui/modals/ThemePickerModal/ThemePreviewCard';
 import type { BuiltinThemeSource } from '#/renderer/src/ui/modals/ThemePickerModal/previewPalettes';
-import { Button, Modal, ModalFooter, SegmentedTabs } from '@harborclient/sdk/components';
+import {
+  Button,
+  Modal,
+  ModalFooter,
+  SegmentedTabs,
+  resolveTabListKeyAction
+} from '@harborclient/sdk/components';
 
 const RADIO_GROUP_NAME = 'theme-picker-selection';
+
+const THEME_OPTIONS = BUILTIN_THEME_OPTIONS.map((option) => option.value as BuiltinThemeSource);
 
 interface ModalBodyProps {
   /** Theme active when the modal opened; restored on dismiss without save. */
@@ -34,6 +42,7 @@ function ThemePickerModalBody({ initialTheme, initialZoom, onClose }: ModalBodyP
     zoomFactorToPreset(initialZoom)
   );
   const [saving, setSaving] = useState(false);
+  const themeCardRefs = useRef(new Map<BuiltinThemeSource, HTMLButtonElement>());
 
   /**
    * Applies the selected theme to the app behind the modal for live preview.
@@ -69,6 +78,30 @@ function ThemePickerModalBody({ initialTheme, initialZoom, onClose }: ModalBodyP
       previewZoom(preset);
     },
     [previewZoom]
+  );
+
+  /**
+   * Moves theme selection with arrow, Home, and End keys within the theme radiogroup.
+   */
+  const handleThemeGroupKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>): void => {
+      const currentIndex = THEME_OPTIONS.indexOf(selectedTheme);
+      const nextIndex = resolveTabListKeyAction(event.key, currentIndex, THEME_OPTIONS.length);
+      if (nextIndex === null) {
+        return;
+      }
+
+      event.preventDefault();
+      const nextTheme = THEME_OPTIONS[nextIndex];
+      if (nextTheme !== selectedTheme) {
+        handleSelect(nextTheme);
+      }
+
+      requestAnimationFrame(() => {
+        themeCardRefs.current.get(nextTheme)?.focus();
+      });
+    },
+    [handleSelect, selectedTheme]
   );
 
   /**
@@ -126,22 +159,46 @@ function ThemePickerModalBody({ initialTheme, initialZoom, onClose }: ModalBodyP
       overlayClassName="bg-black/35"
       closeDisabled={saving}
       disableEscape={saving}
+      aria-busy={saving}
     >
-      <div
-        role="radiogroup"
-        aria-labelledby="theme-picker-title"
-        className="grid grid-cols-1 gap-3 sm:grid-cols-2 mb-4"
-      >
-        {BUILTIN_THEME_OPTIONS.map((option) => (
-          <ThemePreviewCard
-            key={option.value}
-            theme={option.value as BuiltinThemeSource}
-            label={option.label}
-            selected={selectedTheme === option.value}
-            radioGroupName={RADIO_GROUP_NAME}
-            onSelect={handleSelect}
-          />
-        ))}
+      <p role="status" aria-live="polite" className="sr-only">
+        {saving ? 'Saving theme and display size' : ''}
+      </p>
+      <div className="mb-4">
+        <span id="theme-picker-theme-label" className="mb-2 block font-medium text-text">
+          Theme
+        </span>
+        <div
+          role="radiogroup"
+          aria-labelledby="theme-picker-theme-label"
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+          onKeyDown={handleThemeGroupKeyDown}
+        >
+          {BUILTIN_THEME_OPTIONS.map((option) => {
+            const theme = option.value as BuiltinThemeSource;
+            const selected = selectedTheme === theme;
+
+            return (
+              <ThemePreviewCard
+                key={option.value}
+                theme={theme}
+                label={option.label}
+                selected={selected}
+                radioGroupName={RADIO_GROUP_NAME}
+                tabIndex={selected ? 0 : -1}
+                autoFocus={selected}
+                registerButtonRef={(element) => {
+                  if (element) {
+                    themeCardRefs.current.set(theme, element);
+                  } else {
+                    themeCardRefs.current.delete(theme);
+                  }
+                }}
+                onSelect={handleSelect}
+              />
+            );
+          })}
+        </div>
       </div>
       <div className="mb-4">
         <span id="theme-picker-zoom-label" className="mb-2 block font-medium text-text">
@@ -149,14 +206,15 @@ function ThemePickerModalBody({ initialTheme, initialZoom, onClose }: ModalBodyP
         </span>
         <SegmentedTabs
           pattern="radiogroup"
-          aria-labelledby="theme-picker-zoom-label"
+          ariaLabel="Display size"
+          editable={false}
           fullWidth
           value={selectedPreset}
           onChange={handlePresetChange}
           tabs={[...ZOOM_PRESET_OPTIONS]}
         />
       </div>
-      <ModalFooter>
+      <ModalFooter aria-busy={saving}>
         <Button type="button" variant="secondary" disabled={saving} onClick={handleDismiss}>
           Not now
         </Button>

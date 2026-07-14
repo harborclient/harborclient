@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { CollectionProviderKind, StorageProvider } from '#/shared/types';
+import { subscribeStorageConnectionsChanged } from '#/renderer/src/hooks/subscribeStorageConnectionsChanged';
 
 /**
  * Unified collection provider entry for database connections and team hubs.
@@ -331,6 +332,15 @@ export function useProviders(
     reloadToken,
     extraEffectDepsKey
   ]);
+
+  /**
+   * Reloads providers when storage connections are saved or deleted in settings.
+   */
+  useEffect(() => {
+    return subscribeStorageConnectionsChanged(() => {
+      reload();
+    });
+  }, [reload]);
 
   return { providers, primaryProviderId, loading, error, reload };
 }

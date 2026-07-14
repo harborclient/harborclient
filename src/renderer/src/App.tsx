@@ -12,6 +12,7 @@ import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveEnvironmentId,
   selectActivePage,
+  selectActiveTab,
   selectActiveTabId,
   selectCollections,
   selectConsoleEntries,
@@ -21,6 +22,7 @@ import {
   selectRequestsByCollection,
   selectSelectedCollectionId
 } from '#/renderer/src/store/selectors';
+import { isRequestTab } from '#/renderer/src/store/drafts';
 import { clearConsole } from '#/renderer/src/store/slices/consoleSlice';
 import {
   selectAiSidebarVisible,
@@ -42,7 +44,10 @@ import {
   toggleSidebar,
   toggleVariables
 } from '#/renderer/src/store/slices/navigationSlice';
-import { openThemePicker } from '#/renderer/src/store/slices/modalsSlice';
+import {
+  openShortcutsReferenceModal,
+  openThemePicker
+} from '#/renderer/src/store/slices/modalsSlice';
 import { closeTab, openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { initializeStore, refreshCollectionContents } from '#/renderer/src/store/thunks';
 import { AboutModal } from '#/renderer/src/ui/modals/AboutModal';
@@ -74,6 +79,13 @@ import { Footer } from '#/renderer/src/ui/Footer';
 import { TabGroupEditBar } from '#/renderer/src/ui/TabGroupEditBar';
 import { FooterPanels } from '#/renderer/src/ui/Footer/FooterPanels';
 import { AnimatedHorizontalPanel } from '#/renderer/src/ui/shared/AnimatedHorizontalPanel';
+import { SkipNavigation } from '#/renderer/src/ui/shared/SkipNavigation';
+import {
+  AI_SIDEBAR_SECTION_ID,
+  COLLECTIONS_SIDEBAR_SECTION_ID,
+  GIT_SIDEBAR_SECTION_ID,
+  type SkipNavigationVisibility
+} from '#/renderer/src/ui/shared/skipNavigationTargets';
 import {
   DEFAULT_TOAST_ARIA_PROPS,
   ERROR_TOAST_ARIA_PROPS,
@@ -108,6 +120,7 @@ export default function App(): JSX.Element {
   const draft = useAppSelector(selectDraft);
   const consoleEntries = useAppSelector(selectConsoleEntries);
   const activePage = useAppSelector(selectActivePage);
+  const activeTab = useAppSelector(selectActiveTab);
   const activeTabId = useAppSelector(selectActiveTabId);
   const sidebarVisible = useAppSelector(selectSidebarVisible);
   const aiSidebarVisible = useAppSelector(selectAiSidebarVisible);
@@ -283,6 +296,27 @@ export default function App(): JSX.Element {
     }
   }, activePage != null);
 
+  /**
+   * Resolves skip-link visibility from the current panel layout and active tab type.
+   */
+  const skipNavigationVisibility = useMemo((): SkipNavigationVisibility => {
+    return {
+      sidebarVisible,
+      requestEditorVisible,
+      responseEditorVisible,
+      aiSidebarVisible,
+      gitSidebarVisible,
+      isRequestWorkspace: activeTab != null && isRequestTab(activeTab)
+    };
+  }, [
+    activeTab,
+    aiSidebarVisible,
+    gitSidebarVisible,
+    requestEditorVisible,
+    responseEditorVisible,
+    sidebarVisible
+  ]);
+
   return (
     <CodeEditorConfigProvider
       value={{ theme: codeEditorTheme, setup: codeEditorSetup, fontSize: codeEditorFontSize }}
@@ -295,15 +329,17 @@ export default function App(): JSX.Element {
             <PluginThemePrompt />
             <div className={`flex h-screen flex-col overflow-hidden ${platformClassName()}`}>
               <BusyIndicator isBusy={isBusy} />
+              <SkipNavigation
+                visibility={skipNavigationVisibility}
+                onOpenShortcuts={() => dispatch(openShortcutsReferenceModal())}
+              />
               <TitleBar />
-              <a
-                href="#main-content"
-                className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-[14px] focus:text-text focus:shadow-md focus:outline focus:outline-2 focus:outline-accent"
-              >
-                Skip to main content
-              </a>
               <div className="relative flex min-h-0 flex-1 overflow-hidden">
-                <AnimatedHorizontalPanel open={sidebarVisible}>
+                <AnimatedHorizontalPanel
+                  id={COLLECTIONS_SIDEBAR_SECTION_ID}
+                  tabIndex={-1}
+                  open={sidebarVisible}
+                >
                   <CollectionSidebar />
                 </AnimatedHorizontalPanel>
 
@@ -391,11 +427,19 @@ export default function App(): JSX.Element {
                   />
                 </main>
 
-                <AnimatedHorizontalPanel open={gitSidebarVisible}>
+                <AnimatedHorizontalPanel
+                  id={GIT_SIDEBAR_SECTION_ID}
+                  tabIndex={-1}
+                  open={gitSidebarVisible}
+                >
                   <GitSidebar />
                 </AnimatedHorizontalPanel>
 
-                <AnimatedHorizontalPanel open={aiSidebarVisible}>
+                <AnimatedHorizontalPanel
+                  id={AI_SIDEBAR_SECTION_ID}
+                  tabIndex={-1}
+                  open={aiSidebarVisible}
+                >
                   <AiSidebar />
                 </AnimatedHorizontalPanel>
               </div>

@@ -7,12 +7,17 @@ import type {
   CollectionDocument,
   CollectionExportResult,
   Folder,
+  GitRequestDiffFileEntry,
   ImportEntityResult,
   KeyValue,
   ScriptRef,
   StorageConnection,
   Variable
 } from '#/shared/types';
+import {
+  resolveGitChangeSidebarTarget,
+  type GitChangeSidebarTarget
+} from '#/renderer/src/git/resolveGitChangeSidebarTarget';
 import { mirrorLegacyScriptString } from '#/shared/scriptRefs';
 import { resolveImportedRunnerTargetIds } from '#/shared/collectionRunner';
 import {
@@ -61,6 +66,7 @@ import {
 import { logImportVerbose } from '#/renderer/src/import/importVerboseLog';
 import { defaultDraft, isRequestTab, isTabDirty, type Tab } from '#/renderer/src/store/drafts';
 import { closeTab } from '#/renderer/src/store/slices/tabsSlice';
+import { requestLoadDocument } from '#/renderer/src/store/thunks/documents';
 import { requestLoadRequest } from '#/renderer/src/store/thunks/requests';
 
 const COLLECTIONS_REFRESH_KEY = 'collections';
@@ -805,3 +811,81 @@ export const setDocumentSidebarColor = createAsyncThunk<
   dispatch(upsertDocumentInCollection({ collectionId, document }));
   return document;
 });
+
+/**
+ * Payload for {@link focusGitChangeInCollectionSidebar}.
+ */
+export interface FocusGitChangeInCollectionSidebarArgs {
+  /**
+   * Changed file entry selected in the Git sidebar.
+   */
+  file: GitRequestDiffFileEntry;
+
+  /**
+   * Stable uuid for the active git-backed collection.
+   */
+  collectionUuid: string;
+}
+
+/**
+ * Reveals a git change in the collections sidebar and opens its item in a background tab.
+ */
+export const focusGitChangeInCollectionSidebar = createAsyncThunk<
+  GitChangeSidebarTarget | null,
+  FocusGitChangeInCollectionSidebarArgs,
+  ThunkApiConfig
+>(
+  'collections/focusGitChangeInCollectionSidebar',
+  async ({ file, collectionUuid }, { dispatch, getState }) => {
+    const state = getState();
+    const collection = state.collections.collections.find((entry) => entry.uuid === collectionUuid);
+    if (collection == null) {
+      return null;
+    }
+
+    await dispatch(refreshCollectionContents(collection.id));
+
+    const refreshedState = getState();
+    const target = resolveGitChangeSidebarTarget(file, collectionUuid, {
+      collections: refreshedState.collections.collections,
+      requestsByCollection: refreshedState.collections.requestsByCollection,
+      documentsByCollection: refreshedState.collections.documentsByCollection
+    });
+    if (target == null) {
+      return null;
+    }
+
+    dispatch(setShowSidebar(true));
+    dispatch(
+      focusSidebarItemAction({
+        collectionId: target.collectionId,
+        folderId: target.folderId
+      })
+    );
+
+    if (target.kind === 'request') {
+      const request = (
+        refreshedState.collections.requestsByCollection[target.collectionId] ?? []
+      ).find((entry) => entry.id === target.id);
+      if (request == null) {
+        return null;
+      }
+      await dispatch(
+        requestLoadRequest({ req: request, activate: false, skipSettingsCheck: true })
+      );
+      return target;
+    }
+
+    const document = (
+      refreshedState.collections.documentsByCollection[target.collectionId] ?? []
+    ).find((entry) => entry.id === target.id);
+    if (document == null) {
+      return null;
+    }
+
+    await dispatch(
+      requestLoadDocument({ doc: document, activate: false, skipSettingsCheck: true })
+    );
+    return target;
+  }
+);

@@ -188,6 +188,35 @@ describe('generalSettings', () => {
     expect(getGeneralSettings().gitAutoAdd).toBe(false);
   });
 
+  it('defaults gitCommitAuthorName and gitCommitAuthorEmail to empty when unset', () => {
+    expect(getGeneralSettings().gitCommitAuthorName).toBe('');
+    expect(getGeneralSettings().gitCommitAuthorEmail).toBe('');
+  });
+
+  it('trims stored git commit author fields', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      gitCommitAuthorName: '  Jane Doe  ',
+      gitCommitAuthorEmail: '  jane@example.com  '
+    });
+
+    expect(getGeneralSettings().gitCommitAuthorName).toBe('Jane Doe');
+    expect(getGeneralSettings().gitCommitAuthorEmail).toBe('jane@example.com');
+  });
+
+  it('defaults gitCommitAuthorPrompted to false when unset', () => {
+    expect(getGeneralSettings().gitCommitAuthorPrompted).toBe(false);
+  });
+
+  it('persists gitCommitAuthorPrompted true', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      gitCommitAuthorPrompted: true
+    });
+
+    expect(getGeneralSettings().gitCommitAuthorPrompted).toBe(true);
+  });
+
   it('defaults logFilePath to empty when unset', () => {
     expect(getGeneralSettings().logFilePath).toBe('');
   });

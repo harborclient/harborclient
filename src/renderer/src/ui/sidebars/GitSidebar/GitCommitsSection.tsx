@@ -1,4 +1,4 @@
-import { EmptySectionLabel, FaIcon } from '@harborclient/sdk/components';
+import { EmptySectionLabel, SidebarCommitItem } from '@harborclient/sdk/components';
 import { useEffect, useState, type JSX } from 'react';
 import type { GitLogEntry } from '#/shared/types';
 import { faCodeBranch } from '#/renderer/src/fontawesome';
@@ -47,25 +47,13 @@ export function GitCommitsSection({ connectionId, refreshNonce }: Props): JSX.El
         <ul className="m-0 flex list-none flex-col gap-0 p-0" aria-label="Recent commits">
           {entries.map((entry) => (
             <li key={entry.oid}>
-              <button
-                type="button"
-                className="group flex w-full cursor-pointer rounded-md p-2 text-left hover:bg-selection/60 app-no-drag"
+              <SidebarCommitItem
+                message={entry.message}
+                author={entry.author}
+                timestampLabel={new Date(entry.timestamp).toLocaleString()}
+                icon={faCodeBranch}
                 onClick={() => setSelectedOid(entry.oid)}
-              >
-                <FaIcon
-                  icon={faCodeBranch}
-                  className="h-4 w-4 shrink-0 text-muted mr-2"
-                  aria-hidden
-                />
-                <div className="flex flex-col gap-0.5 -mt-1.5">
-                  <span className="block min-w-0 truncate text-text font-medium">
-                    {entry.message}
-                  </span>
-                  <span className="block min-w-0 truncate text-muted text-[14px]">
-                    {entry.author} · {new Date(entry.timestamp).toLocaleString()}
-                  </span>
-                </div>
-              </button>
+              />
             </li>
           ))}
         </ul>

@@ -54,4 +54,11 @@ export interface ApiStorage {
    * @param connectionId - Storage connection id to mark.
    */
   markCollectionDiscoverySkipped: (connectionId: string) => Promise<StorageConnection[]>;
+  /**
+   * Subscribes to storage connection list changes (save or delete).
+   *
+   * @param callback - Handler invoked when connections change.
+   * @returns Unsubscribe function.
+   */
+  onStorageConnectionsChanged: (callback: () => void) => () => void;
 }

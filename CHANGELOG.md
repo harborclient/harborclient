@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(dependencies): update @harborclient/sdk to a local link and add dotenv. (`68f42c6`)
 - feat(git): enhance commit functionality and request tracking. (`4d48935`)
 
 ## 2.3.1 - 2026-07-14

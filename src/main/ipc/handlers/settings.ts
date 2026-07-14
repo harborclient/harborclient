@@ -7,7 +7,9 @@ import { getStartupThemeOverride } from '#/main/startupTheme';
 import type { IStorage } from '#/main/storage/IStorage';
 import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { rebuildAppMenu, setMenuActiveTheme } from '#/main/appMenu';
+import { watchGitConnection } from '#/main/git/gitWatcher';
 import { handle } from '#/main/ipc/handle';
+import { notifyStorageConnectionsChanged } from '#/main/ipc/notifyRenderer';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import {
   deleteStorageConnection,
@@ -324,7 +326,7 @@ export function registerSettingsHandlers(db: IStorage): void {
   handle('storageConnections:list', ipcArgSchemas.none, () => listStorageConnections());
 
   // Creates or updates a database connection.
-  handle('storageConnections:save', ipcArgSchemas.storageConnection, async (_event, conn) => {
+  handle('storageConnections:save', ipcArgSchemas.storageConnection, async (event, conn) => {
     const isNew = !listStorageConnections().some((item) => item.id === conn.id);
     const connections = saveStorageConnection(conn);
     const saved = connections.find((item) => item.id === conn.id);
@@ -334,15 +336,24 @@ export function registerSettingsHandlers(db: IStorage): void {
       if (slot != null) {
         await db.mountStorageConnection(saved, { reconcileGit: !isNew });
       }
+
+      if (saved.type === 'git') {
+        watchGitConnection(db, saved, (connectionId) => {
+          event.sender.send('git:workingTreeChanged', connectionId);
+        });
+      }
     }
 
+    notifyStorageConnectionsChanged(event.sender);
     return connections;
   });
 
   // Deletes a database connection by id.
-  handle('storageConnections:delete', ipcArgSchemas.connectionId, (_event, id) =>
-    deleteStorageConnection(id)
-  );
+  handle('storageConnections:delete', ipcArgSchemas.connectionId, (event, id) => {
+    const connections = deleteStorageConnection(id);
+    notifyStorageConnectionsChanged(event.sender);
+    return connections;
+  });
 
   // Lists configured team hubs.
   handle('teamHubs:list', ipcArgSchemas.none, () => listTeamHubs());

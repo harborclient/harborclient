@@ -60,6 +60,8 @@ describe('git file layout', () => {
   it('round-trips a collection export as a folder with per-request JSON files', () => {
     const root = mkdtempSync(join(tmpdir(), 'hc-git-layout-'));
     ensureHarborclientLayout(root);
+    const requestUuid = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const requestFileName = `req-${requestUuid}.json`;
 
     const exportData = buildTestCollectionExport({
       variables: [
@@ -68,7 +70,7 @@ describe('git file layout', () => {
       ],
       requests: [
         {
-          uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          uuid: requestUuid,
           name: 'Health',
           method: 'GET',
           url: 'https://example.com/health',
@@ -100,7 +102,7 @@ describe('git file layout', () => {
     const dirPath = writeCollectionToFolder(root, exportData);
     expect(existsSync(dirPath)).toBe(true);
     expect(existsSync(collectionManifestPath(dirPath))).toBe(true);
-    expect(existsSync(join(dirPath, 'req-health.json'))).toBe(true);
+    expect(existsSync(join(dirPath, requestFileName))).toBe(true);
     expect(existsSync(join(dirPath, documentFileName('README.md')))).toBe(true);
 
     const loaded = readCollectionFromFolder(dirPath);
@@ -114,7 +116,7 @@ describe('git file layout', () => {
     const manifest = JSON.parse(readFileSync(collectionManifestPath(dirPath), 'utf-8')) as {
       requests: string[];
     };
-    expect(manifest.requests).toEqual(['req-health.json']);
+    expect(manifest.requests).toEqual([requestFileName]);
 
     rmSync(root, { recursive: true, force: true });
   });
@@ -142,10 +144,12 @@ describe('git file layout', () => {
 
   it('preserves request filenames for unchanged request uuids', () => {
     const root = mkdtempSync(join(tmpdir(), 'hc-git-layout-'));
+    const requestUuid = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const requestFileName = `req-${requestUuid}.json`;
     const exportData = buildTestCollectionExport({
       requests: [
         {
-          uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          uuid: requestUuid,
           name: 'Health',
           method: 'GET',
           url: 'https://example.com/health',
@@ -175,9 +179,9 @@ describe('git file layout', () => {
       ]
     });
 
-    expect(existsSync(join(dirPath, 'req-health.json'))).toBe(true);
+    expect(existsSync(join(dirPath, requestFileName))).toBe(true);
     expect(readdirSync(dirPath).filter((name) => name.startsWith('req-'))).toEqual([
-      'req-health.json'
+      requestFileName
     ]);
 
     rmSync(root, { recursive: true, force: true });

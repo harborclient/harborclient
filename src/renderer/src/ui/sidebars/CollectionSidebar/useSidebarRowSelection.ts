@@ -1,8 +1,19 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSidebarSelectionCoordinator } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarSelectionContext';
 import {
   applySidebarSelectionClick,
   orderSelectedIds
 } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarSelectionUtils';
+
+/**
+ * Optional registration settings for collections sidebar Deselect all coordination.
+ */
+export interface SidebarRowSelectionOptions {
+  /**
+   * Stable section id used to register clear handlers and selection counts.
+   */
+  selectionKey?: string;
+}
 
 /**
  * Modifier keys captured from a sidebar row click.
@@ -47,9 +58,15 @@ export interface SidebarRowSelectionState {
  * Manages multi-select state for a flat sidebar list section.
  *
  * @param visibleOrder - Row ids in on-screen list order (used for shift-click ranges and bulk ordering).
+ * @param options - Optional coordinator registration settings.
  * @returns Selection state and handlers shared across sidebar sections.
  */
-export function useSidebarRowSelection(visibleOrder: number[]): SidebarRowSelectionState {
+export function useSidebarRowSelection(
+  visibleOrder: number[],
+  options?: SidebarRowSelectionOptions
+): SidebarRowSelectionState {
+  const coordinator = useSidebarSelectionCoordinator();
+  const selectionKey = options?.selectionKey;
   const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set());
   const [selectionAnchorId, setSelectionAnchorId] = useState<number | null>(null);
 
@@ -60,6 +77,26 @@ export function useSidebarRowSelection(visibleOrder: number[]): SidebarRowSelect
     setSelectedIds(new Set());
     setSelectionAnchorId(null);
   }, []);
+
+  /**
+   * Registers this section with the sidebar selection coordinator when configured.
+   */
+  useEffect(() => {
+    if (coordinator == null || selectionKey == null) {
+      return;
+    }
+    return coordinator.registerClearHandler(selectionKey, clearSelection);
+  }, [clearSelection, coordinator, selectionKey]);
+
+  /**
+   * Reports this section's multi-selection count to the sidebar coordinator.
+   */
+  useEffect(() => {
+    if (coordinator == null || selectionKey == null) {
+      return;
+    }
+    coordinator.reportSelectionCount(selectionKey, selectedIds.size);
+  }, [coordinator, selectedIds.size, selectionKey]);
 
   /**
    * Applies modifier-click semantics and optionally runs the row primary action.

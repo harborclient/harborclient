@@ -102,12 +102,3 @@ export function exportFileBaseName(kind: HarborExportFileKind, name: string): st
 export function collectionDirName(name: string): string {
   return `collection-${toFileSlug(name)}`;
 }
-
-/**
- * Builds the base name for a request export JSON file inside a collection folder.
- *
- * @param name - Request display name.
- */
-export function requestFileBaseName(name: string): string {
-  return `req-${toFileSlug(name)}`;
-}

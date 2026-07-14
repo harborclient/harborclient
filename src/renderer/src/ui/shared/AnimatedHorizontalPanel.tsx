@@ -12,6 +12,16 @@ import {
 
 interface Props {
   /**
+   * Stable DOM id applied to the animated shell when it is a navigation target.
+   */
+  id?: string;
+
+  /**
+   * Programmatic focus behavior for navigation targets.
+   */
+  tabIndex?: number;
+
+  /**
    * Whether the panel should be visible (expanded).
    */
   open: boolean;
@@ -233,7 +243,13 @@ function useAnimatedHorizontalPanel(open: boolean): AnimatedPanelState {
  *
  * Keeps children mounted during close so width can animate to zero before unmount.
  */
-export function AnimatedHorizontalPanel({ open, children, className }: Props): JSX.Element | null {
+export function AnimatedHorizontalPanel({
+  id,
+  tabIndex,
+  open,
+  children,
+  className
+}: Props): JSX.Element | null {
   const {
     mounted,
     expanded,
@@ -261,6 +277,8 @@ export function AnimatedHorizontalPanel({ open, children, className }: Props): J
 
   return (
     <div
+      id={id}
+      tabIndex={tabIndex}
       className={outerClassName}
       style={{ width: expanded ? contentWidth : 0 }}
       onTransitionEnd={handleTransitionEnd}

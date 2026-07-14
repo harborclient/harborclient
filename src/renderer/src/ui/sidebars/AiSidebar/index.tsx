@@ -1,9 +1,4 @@
-import {
-  Toolbar,
-  type ToolbarAction,
-  ResizeHandle,
-  useResizable
-} from '@harborclient/sdk/components';
+import { Sidebar, Toolbar, type ToolbarAction } from '@harborclient/sdk/components';
 import { useEffect, useMemo, useRef, type JSX } from 'react';
 import { hasAvailableAiModels } from '#/shared/ai/models';
 
@@ -37,33 +32,6 @@ export function AiSidebar(): JSX.Element {
   const githubConnected = useAppSelector(selectGithubModelsConnected);
   const historyButtonRef = useRef<HTMLButtonElement>(null);
   const { aiSettings, loading } = useAiAvailability();
-
-  const {
-    size: width,
-    minSize: sidebarMinSize,
-    maxSize: sidebarMaxSize,
-    onResizeStart,
-    onKeyboardResize
-  } = useResizable({
-    axis: 'x',
-    direction: -1,
-    defaultSize: 320,
-    minSize: 240,
-    getMaxSize: () => 640,
-    storageKey: 'hc.aiSidebarWidth'
-  });
-
-  /**
-   * Refreshes hub LLM models whenever the sidebar opens so newly added Team Hubs
-   * are reflected without restarting the app.
-   */
-  useEffect(() => {
-    if (!aiSidebarVisible) {
-      return;
-    }
-
-    void dispatch(refreshHubLlmModels());
-  }, [aiSidebarVisible, dispatch]);
 
   /**
    * Toolbar actions for chat history and enter-to-send.
@@ -101,31 +69,36 @@ export function AiSidebar(): JSX.Element {
     ];
   }, [dispatch, enterToSend, historyOpen]);
 
+  /**
+   * Refreshes hub LLM models whenever the sidebar opens so newly added Team Hubs
+   * are reflected without restarting the app.
+   */
+  useEffect(() => {
+    if (!aiSidebarVisible) {
+      return;
+    }
+
+    void dispatch(refreshHubLlmModels());
+  }, [aiSidebarVisible, dispatch]);
+
   const showConfigurePrompt =
     !loading && !hasAvailableAiModels(aiSettings, hubModelGroups, githubConnected);
   const showChat = !loading && !showConfigurePrompt;
 
   return (
-    <>
-      <ResizeHandle
-        orientation="vertical"
-        value={width}
-        min={sidebarMinSize}
-        max={sidebarMaxSize}
-        onResizeStart={onResizeStart}
-        onKeyboardResize={onKeyboardResize}
-        ariaLabel="Resize AI sidebar"
-        className="border-r-0 border-l border-separator"
-      />
-      <aside
-        className="flex min-h-0 shrink-0 flex-col bg-sidebar"
-        style={{ width }}
-        aria-label="AI"
-      >
-        <Toolbar ariaLabel="AI sidebar" actions={toolbarActions} />
-        {showConfigurePrompt && <ConfigureApiKeysPrompt />}
-        {showChat && <AiChat aiSettings={aiSettings} />}
-      </aside>
-    </>
+    <Sidebar
+      side="right"
+      ariaLabel="AI"
+      scroll={false}
+      storageKey="hc.aiSidebarWidth"
+      defaultSize={320}
+      minSize={240}
+      getMaxSize={() => 640}
+      resizeAriaLabel="Resize AI sidebar"
+      header={<Toolbar ariaLabel="AI sidebar" actions={toolbarActions} />}
+    >
+      {showConfigurePrompt && <ConfigureApiKeysPrompt />}
+      {showChat && <AiChat aiSettings={aiSettings} />}
+    </Sidebar>
   );
 }

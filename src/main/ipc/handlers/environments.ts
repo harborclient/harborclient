@@ -1,5 +1,7 @@
 import { BrowserWindow, dialog } from 'electron';
 import { writeFile } from 'fs/promises';
+import { basename } from 'path';
+import { isDotenvFile, parseDotenvEnvironment } from '#/main/import/envFile';
 import { maskVariablesForExport, validateEnvironmentExport } from '#/main/storage/collectionData';
 import { mintFreshEnvironmentExportUuid, resolveImportUuid } from '#/main/storage/uuid';
 import type { IStorage } from '#/main/storage/IStorage';
@@ -162,15 +164,18 @@ export function registerEnvironmentHandlers(db: IStorage): void {
     return { canceled: false, path: filePath };
   });
 
-  // Imports an environment from a JSON file selected via a native open dialog.
+  // Imports an environment from a JSON or dotenv file selected via a native open dialog.
   handle('environments:import', ipcArgSchemas.none, async () => {
     const win = BrowserWindow.getFocusedWindow();
-    const file = await openImportFile(win);
+    const file = await openImportFile(win, ['env']);
     if (!file) {
       return null;
     }
 
-    const exportData = validateEnvironmentExport(file.parsed);
+    const fileName = basename(file.filePath);
+    const exportData = isDotenvFile(fileName)
+      ? validateEnvironmentExport(parseDotenvEnvironment(file.raw, fileName))
+      : validateEnvironmentExport(file.parsed);
     const result = await importEnvironmentData(db, win, exportData);
     return result?.environment ?? null;
   });

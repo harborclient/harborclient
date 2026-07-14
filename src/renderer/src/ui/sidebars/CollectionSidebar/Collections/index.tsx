@@ -16,16 +16,18 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
-import { useEffect, useMemo, useState, type JSX, type MouseEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type JSX, type MouseEvent } from 'react';
 import { toContainerItemRefs } from '#/shared/collectionContainerOrder';
 import type { Collection, CollectionDocument, Folder, SavedRequest } from '#/shared/types';
-import { useAppSelector } from '#/renderer/src/store/hooks';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveDocumentId,
   selectCollections,
   selectDocumentsByCollection,
   selectDraft,
   selectFoldersByCollection,
+  selectOpenDocumentIds,
+  selectOpenRequestIds,
   selectRequestsByCollection,
   selectSelectedCollectionId,
   selectSelectedFolderId
@@ -35,7 +37,8 @@ import { useSidebarProviders } from '#/renderer/src/ui/sidebars/CollectionSideba
 import { useSidebarGit } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarGitContext';
 import { useSidebarSearchContext } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarSearchContext';
 import { useCollectionActions } from '#/renderer/src/ui/sidebars/CollectionSidebar/useCollectionActions';
-import { EmptySectionLabel, FaIcon } from '@harborclient/sdk/components';
+import { closeSidebarContentTabs } from '#/renderer/src/store/thunks/sidebarDeselect';
+import { EmptySectionLabel, FaIcon, SidebarFolderItem } from '@harborclient/sdk/components';
 import { SidebarColorDot } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarColorDot';
 import { SidebarRowActionsMenu } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarRowActionsMenu';
 import { buildReorderMenuGroup } from '@harborclient/sdk/components';
@@ -58,6 +61,11 @@ import { DocumentRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collec
 import { RequestRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/RequestRow';
 import { SortableRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/SortableRow';
 import { stopSortableDragPointerDown } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/sortableRowUtils';
+import {
+  collectionHasDeselectableSelection,
+  removeCollectionRequestSelection
+} from '#/renderer/src/ui/sidebars/CollectionSidebar/collectionSidebarSelection';
+import { useSidebarSelectionCoordinator } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarSelectionContext';
 import {
   applySidebarSelectionClick,
   orderSelectedIds
@@ -92,6 +100,7 @@ import {
  * of props through this component.
  */
 export function Collections(): JSX.Element {
+  const dispatch = useAppDispatch();
   const collections = useAppSelector(selectCollections);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
@@ -101,12 +110,15 @@ export function Collections(): JSX.Element {
   const draft = useAppSelector(selectDraft);
   const activeRequestId = draft.id;
   const activeDocumentId = useAppSelector(selectActiveDocumentId);
+  const openRequestIds = useAppSelector(selectOpenRequestIds);
+  const openDocumentIds = useAppSelector(selectOpenDocumentIds);
   const {
     expandedCollectionIds,
     expandedFolderIds,
     setExpandedCollectionIds,
     setExpandedFolderIds,
-    showStorageLocationBadges
+    showStorageLocationBadges,
+    showColorDots
   } = useSidebarExpansion();
   const { primaryConnectionId, connectionNamesById, connectionTypesById } = useSidebarProviders();
   const {
@@ -124,6 +136,7 @@ export function Collections(): JSX.Element {
   const {
     onExpandCollection,
     onSelectCollection,
+    onClearCollectionSelection,
     onSelectFolder,
     onConfigureCollection,
     onConfigureFolder,
@@ -164,6 +177,7 @@ export function Collections(): JSX.Element {
   const { aiAvailable, copyToChat } = useCopyToChat();
   const pluginContextMenuItems = usePluginContextMenuItems();
   const developerToolsEnabled = useDeveloperToolsEnabled();
+  const sidebarSelectionCoordinator = useSidebarSelectionCoordinator();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [selectedRequestIds, setSelectedRequestIds] = useState<Set<number>>(() => new Set());
   const [selectionAnchorId, setSelectionAnchorId] = useState<number | null>(null);
@@ -370,9 +384,58 @@ export function Collections(): JSX.Element {
   /**
    * Clears the current request multi-selection.
    */
-  const clearRequestSelection = (): void => {
+  const clearRequestSelection = useCallback((): void => {
     setSelectedRequestIds(new Set());
     setSelectionAnchorId(null);
+  }, []);
+
+  /**
+   * Registers request multi-selection with the sidebar selection coordinator.
+   */
+  useEffect(() => {
+    if (sidebarSelectionCoordinator == null) {
+      return;
+    }
+    return sidebarSelectionCoordinator.registerClearHandler(
+      'collections-requests',
+      clearRequestSelection
+    );
+  }, [clearRequestSelection, sidebarSelectionCoordinator]);
+
+  /**
+   * Reports request multi-selection count to the sidebar selection coordinator.
+   */
+  useEffect(() => {
+    if (sidebarSelectionCoordinator == null) {
+      return;
+    }
+    sidebarSelectionCoordinator.reportSelectionCount(
+      'collections-requests',
+      selectedRequestIds.size
+    );
+  }, [selectedRequestIds.size, sidebarSelectionCoordinator]);
+
+  /**
+   * Clears folder/request selection scoped to one collection and deselects the
+   * collection row when it is currently highlighted.
+   *
+   * @param collectionId - Collection whose child selections should be cleared.
+   */
+  const handleDeselectAllInCollection = (collectionId: number): void => {
+    const nextSelection = removeCollectionRequestSelection(
+      collectionId,
+      selectedRequestIds,
+      selectionAnchorId,
+      requestsByCollection
+    );
+    setSelectedRequestIds(nextSelection.selectedRequestIds);
+    setSelectionAnchorId(nextSelection.selectionAnchorId);
+
+    if (selectedCollectionId === collectionId) {
+      onClearCollectionSelection();
+    }
+
+    void dispatch(closeSidebarContentTabs({ collectionId }));
   };
 
   /**
@@ -478,7 +541,7 @@ export function Collections(): JSX.Element {
   /**
    * Handles primary and modifier clicks on a saved request row.
    */
-  const handleRequestRowClick = (req: SavedRequest, event: MouseEvent<HTMLButtonElement>): void => {
+  const handleRequestRowClick = (req: SavedRequest, event: MouseEvent<HTMLElement>): void => {
     const result = applySidebarSelectionClick(
       selectedRequestIds,
       selectionAnchorId,
@@ -1008,19 +1071,47 @@ export function Collections(): JSX.Element {
                             pluginContextMenuItems
                           ),
                           [
+                            ...(collectionHasDeselectableSelection(collection.id, {
+                              selectedCollectionId,
+                              selectedFolderId,
+                              selectedRequestIds,
+                              requestsByCollection,
+                              documentsByCollection,
+                              openRequestIds,
+                              openDocumentIds
+                            })
+                              ? [
+                                  {
+                                    label: 'Deselect all',
+                                    onSelect: () => handleDeselectAllInCollection(collection.id)
+                                  }
+                                ]
+                              : []),
                             {
                               label: 'Delete',
                               variant: 'danger',
                               onSelect: () => {
                                 void (async () => {
-                                  const confirmed = await confirm({
+                                  const confirmOptions = {
                                     title: 'Delete collection',
                                     message: `Delete collection "${collection.name}"?`,
                                     confirmLabel: 'Delete',
-                                    variant: 'danger'
-                                  });
+                                    variant: 'danger' as const,
+                                    reconfirm: true
+                                  };
+                                  const result =
+                                    connectionType === 'git'
+                                      ? await confirm({
+                                          ...confirmOptions,
+                                          checkboxLabel: 'Also delete repo directory'
+                                        })
+                                      : await confirm(confirmOptions);
+                                  const confirmed =
+                                    typeof result === 'boolean' ? result : result.confirmed;
+                                  const deleteRepoDirectory =
+                                    typeof result === 'boolean' ? false : result.checkboxChecked;
                                   if (confirmed) {
-                                    void onDeleteCollection(collection.id);
+                                    void onDeleteCollection(collection.id, { deleteRepoDirectory });
                                   }
                                 })();
                               }
@@ -1095,6 +1186,7 @@ export function Collections(): JSX.Element {
                                       key={`document-${doc.id}`}
                                       doc={doc}
                                       activeDocumentId={activeDocumentId}
+                                      openDocumentIds={openDocumentIds}
                                       openMenuId={openMenuId}
                                       onOpenChange={setOpenMenuId}
                                       onLoadDocument={(doc) => {
@@ -1142,6 +1234,7 @@ export function Collections(): JSX.Element {
                                         activeRequestId={activeRequestId}
                                         selected={selectedRequestIds.has(req.id)}
                                         selectionCount={selectedRequestIds.size}
+                                        openRequestIds={openRequestIds}
                                         openMenuId={openMenuId}
                                         onOpenChange={setOpenMenuId}
                                         onRowClick={handleRequestRowClick}
@@ -1255,12 +1348,39 @@ export function Collections(): JSX.Element {
                                     }
                                   >
                                     <DropZone id={dropFolderId(folder.id)} disabled={searchActive}>
-                                      <SortableRow
-                                        id={folderDragId(folder.id)}
-                                        className={sourceRow(folderSelected, true)}
-                                        dragHandleLabel={`Reorder folder "${folder.name}"`}
-                                        disabled={searchActive}
-                                        onRowContextMenu={(event) => {
+                                      <SidebarFolderItem
+                                        name={folder.name}
+                                        expanded={folderExpanded}
+                                        selected={folderSelected}
+                                        dropHighlighted={folderHighlighted}
+                                        expandIcon={faChevronRight}
+                                        collapseIcon={faChevronDown}
+                                        colorDot={{
+                                          color: folder.color,
+                                          visible: showColorDots,
+                                          label: `Color for ${folder.name}`
+                                        }}
+                                        sortable={{
+                                          id: folderDragId(folder.id),
+                                          dragHandleLabel: `Reorder folder "${folder.name}"`,
+                                          disabled: searchActive
+                                        }}
+                                        onToggleExpand={() => toggleFolder(folder.id)}
+                                        onNameClick={() =>
+                                          handleFolderNameClick(
+                                            collection.id,
+                                            folder.id,
+                                            folderExpanded
+                                          )
+                                        }
+                                        onNameDoubleClick={() =>
+                                          onConfigureFolder(collection.id, folder.id)
+                                        }
+                                        onNameEnter={() => {
+                                          onConfigureFolder(collection.id, folder.id);
+                                          focusFolderSettings();
+                                        }}
+                                        onContextMenu={(event) => {
                                           event.preventDefault();
                                           event.stopPropagation();
                                           const menuId = `folder-${folder.id}`;
@@ -1270,57 +1390,7 @@ export function Collections(): JSX.Element {
                                           }));
                                           setOpenMenuId(menuId);
                                         }}
-                                      >
-                                        <button
-                                          type="button"
-                                          className="inline-flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent p-0 text-muted hover:text-text app-no-drag"
-                                          onClick={() => toggleFolder(folder.id)}
-                                          onPointerDown={stopSortableDragPointerDown}
-                                          aria-expanded={folderExpanded}
-                                          aria-label={
-                                            folderExpanded ? 'Collapse folder' : 'Expand folder'
-                                          }
-                                        >
-                                          <FaIcon
-                                            icon={folderExpanded ? faChevronDown : faChevronRight}
-                                            className="h-2 w-2"
-                                          />
-                                        </button>
-                                        <button
-                                          type="button"
-                                          className="ml-0.5 min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left font-medium leading-none text-inherit app-no-drag"
-                                          aria-current={folderSelected ? 'true' : undefined}
-                                          onClick={() =>
-                                            handleFolderNameClick(
-                                              collection.id,
-                                              folder.id,
-                                              folderExpanded
-                                            )
-                                          }
-                                          onDoubleClick={() =>
-                                            onConfigureFolder(collection.id, folder.id)
-                                          }
-                                          onKeyDown={(event) => {
-                                            if (event.key !== 'Enter') return;
-                                            event.preventDefault();
-                                            onConfigureFolder(collection.id, folder.id);
-                                            focusFolderSettings();
-                                          }}
-                                        >
-                                          <span className="inline-flex min-w-0 items-center gap-1.5">
-                                            {folder.name}
-                                            <SidebarColorDot
-                                              color={folder.color}
-                                              label={`Color for ${folder.name}`}
-                                            />
-                                          </span>
-                                          {folderHighlighted && (
-                                            <span className="ml-1.5 font-normal text-info">
-                                              Drop here
-                                            </span>
-                                          )}
-                                        </button>
-                                        <div onPointerDown={stopSortableDragPointerDown}>
+                                        actions={
                                           <SidebarRowActionsMenu
                                             menuId={`folder-${folder.id}`}
                                             openMenuId={openMenuId}
@@ -1437,8 +1507,8 @@ export function Collections(): JSX.Element {
                                               )
                                             ]}
                                           />
-                                        </div>
-                                      </SortableRow>
+                                        }
+                                      />
                                     </DropZone>
 
                                     <AnimatedCollapse open={folderExpanded} className="ml-6">
@@ -1448,6 +1518,7 @@ export function Collections(): JSX.Element {
                                             key={`document-${doc.id}`}
                                             doc={doc}
                                             activeDocumentId={activeDocumentId}
+                                            openDocumentIds={openDocumentIds}
                                             openMenuId={openMenuId}
                                             onOpenChange={setOpenMenuId}
                                             onLoadDocument={(doc) => {
@@ -1499,6 +1570,7 @@ export function Collections(): JSX.Element {
                                                 activeRequestId={activeRequestId}
                                                 selected={selectedRequestIds.has(req.id)}
                                                 selectionCount={selectedRequestIds.size}
+                                                openRequestIds={openRequestIds}
                                                 openMenuId={openMenuId}
                                                 onOpenChange={setOpenMenuId}
                                                 onRowClick={handleRequestRowClick}

@@ -2,22 +2,14 @@
  * Shared macOS-style Tailwind class strings.
  */
 
-import { tabItem as requestTabItem } from '@harborclient/sdk/components';
+import {
+  METHOD_CLASSES,
+  sourceRow,
+  statusDotClass,
+  tabItem as requestTabItem
+} from '@harborclient/sdk/components';
 
-export { requestTabItem };
-
-/**
- * Tailwind classes for a sidebar source row (collection, folder, or request).
- *
- * @param selected - Whether this row is the active selection.
- * @param compact - When true, uses tighter vertical padding for top-level list rows.
- */
-export function sourceRow(selected: boolean, compact = false): string {
-  const py = compact ? 'py-0' : 'py-0.5';
-  return selected
-    ? `group flex items-center gap-1 rounded-md bg-selection px-1.5 ${py} app-no-drag`
-    : `group flex items-center gap-1 rounded-md px-1.5 ${py} hover:bg-selection/60 app-no-drag`;
-}
+export { requestTabItem, sourceRow, METHOD_CLASSES, statusDotClass };
 
 export const separator = 'h-px bg-separator';
 
@@ -67,16 +59,6 @@ export const sidebarRecessedBadge =
 export const gitWorkingTreeStatusPanel =
   'bg-sidebar-toolbar px-2 py-2 border-b border-separator mb-2';
 
-export const METHOD_CLASSES: Record<string, string> = {
-  get: 'text-method-get',
-  post: 'text-method-post',
-  put: 'text-method-put',
-  patch: 'text-method-patch',
-  delete: 'text-method-delete',
-  head: 'text-method-head',
-  options: 'text-method-options'
-};
-
 /**
  * Always-on accent highlight for the footer's Action menu toggle — flush against
  * the footer's left edge and stretched to its full height, distinct from the
@@ -88,17 +70,4 @@ export function actionMenuToggleClass(active: boolean): string {
   const base =
     'hc-action-menu-toggle flex shrink-0 cursor-pointer items-center justify-center self-stretch bg-accent px-2.5 text-white app-no-drag';
   return active ? `${base} shadow-inner` : `${base} hover:brightness-110`;
-}
-
-/**
- * Status dot color class for an HTTP response code.
- *
- * @param status - HTTP status code, or 0 for network errors.
- */
-export function statusDotClass(status: number): string {
-  if (status === 0) return 'bg-danger';
-  if (status >= 200 && status < 300) return 'bg-success';
-  if (status >= 300 && status < 400) return 'bg-warning';
-  if (status >= 400) return 'bg-danger';
-  return 'bg-info';
 }

@@ -1,5 +1,4 @@
-import { RowActionsMenu } from '@harborclient/sdk/components';
-import { METHOD_CLASSES, sourceRow } from '#/renderer/src/ui/shared/classes';
+import { RowActionsMenu, SidebarRequestItem } from '@harborclient/sdk/components';
 import type { SavedRequest } from '#/shared/types';
 
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
@@ -23,15 +22,13 @@ import {
   useDeveloperToolsEnabled,
   type InspectPoint
 } from '#/renderer/src/ui/shared/devInspectContextMenu';
-import { stopSortableDragPointerDown } from './sortableRowUtils';
-import { SortableRow } from './SortableRow';
-import { SidebarColorDot } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarColorDot';
 import { SidebarRowActionsMenu } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarRowActionsMenu';
 import { buildGitItemMenuGroups } from '#/renderer/src/ui/sidebars/CollectionSidebar/buildGitItemMenuGroups';
 import {
   buildGitItemAccessibleName,
   gitItemNameClass
 } from '#/renderer/src/git/gitCommitChangeDisplay';
+import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
 import type { GitRequestFileStatus } from '#/shared/types';
 
 interface Props {
@@ -56,6 +53,11 @@ interface Props {
   selectionCount: number;
 
   /**
+   * Saved request ids currently open in request tabs.
+   */
+  openRequestIds: ReadonlySet<number>;
+
+  /**
    * Id of the open row actions menu, if any.
    */
   openMenuId: string | null;
@@ -68,7 +70,7 @@ interface Props {
   /**
    * Handles primary and modifier clicks on the request row label.
    */
-  onRowClick: (req: SavedRequest, event: MouseEvent<HTMLButtonElement>) => void;
+  onRowClick: (req: SavedRequest, event: MouseEvent<HTMLElement>) => void;
 
   /**
    * Updates selection before opening the context menu when needed.
@@ -174,6 +176,7 @@ export function RequestRow({
   activeRequestId,
   selected,
   selectionCount,
+  openRequestIds,
   openMenuId,
   onOpenChange,
   onRowClick,
@@ -199,6 +202,7 @@ export function RequestRow({
 }: Props): JSX.Element {
   const confirm = useConfirm();
   const developerToolsEnabled = useDeveloperToolsEnabled();
+  const { showColorDots } = useSidebarExpansion();
   const [inspectPoint, setInspectPoint] = useState<InspectPoint | undefined>(undefined);
   const pluginContextMenuItems = usePluginContextMenuItems();
   const globalVariables = useAppSelector((state) => state.settings.general.globalVariables);
@@ -232,7 +236,7 @@ export function RequestRow({
 
   const menuId = `request-${req.id}`;
   const showBulkMenu = selected && selectionCount > 1;
-  const rowHighlighted = activeRequestId === req.id || selected;
+  const rowHighlighted = activeRequestId === req.id || selected || openRequestIds.has(req.id);
 
   const baseMenuGroups = useMemo(() => {
     const reorderItems = [
@@ -355,61 +359,58 @@ export function RequestRow({
     showBulkMenu
   ]);
 
-  return (
-    <SortableRow
-      id={requestDragId(req.id)}
-      className={sourceRow(rowHighlighted, true)}
-      dragHandleLabel={`Reorder request "${req.name}"`}
-      disabled={dragDisabled}
-      onRowContextMenu={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        onBeforeContextMenu(req);
-        setInspectPoint({ x: event.clientX, y: event.clientY });
-        onOpenChange(menuId);
+  const actionsMenu = showBulkMenu ? (
+    <RowActionsMenu
+      menuId={menuId}
+      openMenuId={openMenuId}
+      onOpenChange={onOpenChange}
+      groups={baseMenuGroups}
+    />
+  ) : (
+    <SidebarRowActionsMenu
+      menuId={menuId}
+      openMenuId={openMenuId}
+      onOpenChange={onOpenChange}
+      groups={baseMenuGroups}
+      colorTarget={{
+        kind: 'request',
+        collectionId: req.collection_id,
+        id: req.id,
+        color: req.color ?? null
       }}
-    >
-      <button
-        type="button"
-        className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-inherit app-no-drag"
-        aria-current={activeRequestId === req.id ? 'true' : undefined}
-        aria-selected={selected ? 'true' : undefined}
-        aria-label={buildGitItemAccessibleName(req.name, gitItemStatus)}
+    />
+  );
+
+  return (
+    <div data-sidebar-request-id={req.id} className="contents">
+      <SidebarRequestItem
+        method={req.method}
+        name={req.name}
+        nameClassName={gitItemNameClass(gitItemStatus)}
+        colorDot={{
+          color: req.color,
+          visible: showColorDots,
+          label: `Color for ${req.name}`
+        }}
+        selected={rowHighlighted}
+        sortable={{
+          id: requestDragId(req.id),
+          dragHandleLabel: `Reorder request "${req.name}"`,
+          disabled: dragDisabled
+        }}
+        onContextMenu={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          onBeforeContextMenu(req);
+          setInspectPoint({ x: event.clientX, y: event.clientY });
+          onOpenChange(menuId);
+        }}
         onClick={(event) => onRowClick(req, event)}
-      >
-        <span
-          className={`shrink-0 px-1 py-px ${METHOD_CLASSES[req.method.toLowerCase()] ?? 'text-info'}`}
-        >
-          {req.method}
-        </span>
-        <span className="inline-flex min-w-0 items-center gap-1.5">
-          <span className={`truncate ${gitItemNameClass(gitItemStatus)}`}>{req.name}</span>
-          <SidebarColorDot color={req.color} label={`Color for ${req.name}`} />
-        </span>
-      </button>
-      <div className="shrink-0" onPointerDown={stopSortableDragPointerDown}>
-        {showBulkMenu ? (
-          <RowActionsMenu
-            menuId={menuId}
-            openMenuId={openMenuId}
-            onOpenChange={onOpenChange}
-            groups={baseMenuGroups}
-          />
-        ) : (
-          <SidebarRowActionsMenu
-            menuId={menuId}
-            openMenuId={openMenuId}
-            onOpenChange={onOpenChange}
-            groups={baseMenuGroups}
-            colorTarget={{
-              kind: 'request',
-              collectionId: req.collection_id,
-              id: req.id,
-              color: req.color ?? null
-            }}
-          />
-        )}
-      </div>
-    </SortableRow>
+        ariaLabel={buildGitItemAccessibleName(req.name, gitItemStatus)}
+        ariaCurrent={activeRequestId === req.id}
+        ariaSelected={selected}
+        actions={actionsMenu}
+      />
+    </div>
   );
 }

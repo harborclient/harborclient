@@ -4,7 +4,7 @@ import type { StorageConnection } from '#/shared/types';
 import { normalizeGitHostKey } from '#/shared/gitUrl';
 
 import { Modal } from '@harborclient/sdk/components';
-import { GitAuthForm } from '#/renderer/src/ui/git/GitAuthForm';
+import { GitAuthForm, type GitAuthAuthorizedResult } from '#/renderer/src/ui/git/GitAuthForm';
 
 interface Props {
   /**
@@ -41,6 +41,11 @@ interface Props {
    * Creates the git-backed collection after optional auth and repo initialization.
    */
   onCreate: (options: { initGitRepo: boolean }) => void;
+
+  /**
+   * Surfaces repository validation errors on the parent Add collection modal.
+   */
+  onAuthValidationError: (message: string) => void;
 }
 
 /**
@@ -53,7 +58,8 @@ export function GitTabPanel({
   createAndSave,
   onNameChange,
   onGitDraftChange,
-  onCreate
+  onCreate,
+  onAuthValidationError
 }: Props): JSX.Element {
   const repoPathId = useId();
   const subdirId = useId();
@@ -179,12 +185,35 @@ export function GitTabPanel({
   };
 
   /**
-   * Completes creation after credentials are saved in the auth modal.
+   * Builds a polite message when auth succeeded but repository validation failed.
+   *
+   * @param result - Authorization result from {@link GitAuthForm}.
    */
-  const handleAuthAuthorized = (): void => {
+  const buildAuthValidationMessage = useCallback(
+    (result: GitAuthAuthorizedResult): string => {
+      const repoUrl = settings.url.trim();
+      if (result.repoNotFound) {
+        return `GitHub authorization succeeded, but the repository at ${repoUrl || 'the URL you entered'} was not found. Check the repository URL and your access, then try Create again.`;
+      }
+      return `GitHub authorization succeeded, but the repository could not be verified. Check the repository URL and your access, then try Create again.`;
+    },
+    [settings.url]
+  );
+
+  /**
+   * Completes creation after credentials are saved in the auth modal.
+   *
+   * @param result - Optional validation outcome when credentials were stored but the
+   *   remote repository could not be reached.
+   */
+  const handleAuthAuthorized = (result?: GitAuthAuthorizedResult): void => {
     setAuthModalOpen(false);
     if (pendingCreate) {
       setPendingCreate(false);
+      if (result?.validationError) {
+        onAuthValidationError(buildAuthValidationMessage(result));
+        return;
+      }
       onCreate({ initGitRepo });
     }
   };

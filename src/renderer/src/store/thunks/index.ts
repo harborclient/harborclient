@@ -11,6 +11,7 @@ export * from '#/renderer/src/store/thunks/collectionRunner';
 export * from '#/renderer/src/store/thunks/runResults';
 export * from '#/renderer/src/store/thunks/requestHistory';
 export * from '#/renderer/src/store/thunks/tabGroups';
+export * from '#/renderer/src/store/thunks/sidebarDeselect';
 export * from '#/renderer/src/store/thunks/trash';
 export * from '#/renderer/src/store/thunks/settings';
 export * from '#/renderer/src/store/thunks/theme';

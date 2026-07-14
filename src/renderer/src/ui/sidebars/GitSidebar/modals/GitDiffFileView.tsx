@@ -23,6 +23,9 @@ function GitDiffFileSummary({ file }: { file: GitRequestDiffFileEntry }): JSX.El
         {file.status}: {file.path}
         {file.binary ? ' (binary)' : ''}
       </p>
+      {file.renamedFrom != null ? (
+        <p className="m-0 text-[14px] text-muted">Renamed from {file.renamedFrom}</p>
+      ) : null}
       {file.truncated ? (
         <p className="m-0 text-[14px] text-muted" role="status">
           Diff truncated; showing an excerpt of this file.

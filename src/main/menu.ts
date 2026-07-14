@@ -119,6 +119,7 @@ function acceleratorFor(accelerators: Map<ShortcutId, string>, id: ShortcutId): 
  * @param designerCanUndo - Whether Designer undo is currently available.
  * @param designerCanRedo - Whether Designer redo is currently available.
  * @param tabGroupAvailable - Whether at least one saved request tab is open for tab groups.
+ * @param sidebarDeselectAllAvailable - Whether the collections sidebar has selection to clear.
  * @param gitCollectionActive - Whether the active collection is git-backed.
  * @returns The constructed application menu.
  */
@@ -139,6 +140,7 @@ export function buildMenu(
   designerCanUndo = false,
   designerCanRedo = false,
   tabGroupAvailable = false,
+  sidebarDeselectAllAvailable = false,
   gitCollectionActive = false
 ): Menu {
   const accelerators = resolveAcceleratorMap(getShortcutOverrides());
@@ -225,6 +227,12 @@ export function buildMenu(
           label: 'Create Tab Group',
           enabled: tabGroupAvailable,
           click: () => sendMenuAction(window, 'create-tab-group')
+        },
+        { type: 'separator' },
+        {
+          label: 'Deselect all',
+          enabled: sidebarDeselectAllAvailable,
+          click: () => sendMenuAction(window, 'deselect-all-sidebar')
         },
         { type: 'separator' },
         { role: 'cut', accelerator: acceleratorFor(accelerators, 'cut') },

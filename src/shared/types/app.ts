@@ -52,6 +52,7 @@ export type MenuActionId =
   | 'undo'
   | 'redo'
   | 'create-tab-group'
+  | 'deselect-all-sidebar'
   | 'format-markdown-document'
   | 'new-collection-git'
   | 'git-create-branch'

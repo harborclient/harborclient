@@ -98,7 +98,11 @@ export class GitSyncManager {
    */
   async commit(
     message: string,
-    options?: { createHarborRoot?: boolean; collectionPrefix?: string }
+    options?: {
+      createHarborRoot?: boolean;
+      collectionPrefix?: string;
+      author?: { name?: string; email?: string };
+    }
   ): Promise<void> {
     const subdir = this.harborSubdir();
     const harborRoot = resolveHarborclientRoot(this.#repoPath, subdir);
@@ -132,7 +136,7 @@ export class GitSyncManager {
       fs,
       dir: this.#repoPath,
       message: trimmed,
-      author: await this.resolveAuthor()
+      author: await this.resolveAuthor(options?.author)
     });
   }
 
@@ -261,8 +265,12 @@ export class GitSyncManager {
    * Returns the number of JSON files containing conflict markers afterward.
    *
    * @param name - Local branch name to merge into the current branch.
+   * @param options - Optional commit author override from app settings.
    */
-  async mergeBranch(name: string): Promise<{ conflictCount: number }> {
+  async mergeBranch(
+    name: string,
+    options?: { author?: { name?: string; email?: string } }
+  ): Promise<{ conflictCount: number }> {
     const trimmed = name.trim();
     if (!trimmed) {
       throw new Error('Branch name is required.');
@@ -282,7 +290,7 @@ export class GitSyncManager {
       throw new Error(`Branch "${trimmed}" does not exist.`);
     }
 
-    const author = await this.resolveAuthor();
+    const author = await this.resolveAuthor(options?.author);
 
     try {
       await git.merge({
@@ -609,9 +617,20 @@ export class GitSyncManager {
   }
 
   /**
-   * Resolves commit author from git config or falls back to HarborClient defaults.
+   * Resolves commit author from app override, git config, or HarborClient defaults.
+   *
+   * @param override - Optional app-level author name and email.
    */
-  private async resolveAuthor(): Promise<{ name: string; email: string }> {
+  private async resolveAuthor(override?: {
+    name?: string;
+    email?: string;
+  }): Promise<{ name: string; email: string }> {
+    const overrideName = override?.name?.trim() ?? '';
+    const overrideEmail = override?.email?.trim() ?? '';
+    if (overrideName && overrideEmail) {
+      return { name: overrideName, email: overrideEmail };
+    }
+
     try {
       const name = await git.getConfig({ fs, dir: this.#repoPath, path: 'user.name' });
       const email = await git.getConfig({ fs, dir: this.#repoPath, path: 'user.email' });
@@ -621,7 +640,7 @@ export class GitSyncManager {
     } catch {
       // Fall through to defaults.
     }
-    return { name: 'HarborClient', email: 'harborclient@local' };
+    return { name: 'HarborClient', email: 'contact@harborclient.com' };
   }
 
   /**

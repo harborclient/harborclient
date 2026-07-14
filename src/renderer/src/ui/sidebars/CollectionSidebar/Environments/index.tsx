@@ -21,9 +21,9 @@ import type { Environment } from '#/shared/types';
 import {
   EmptySectionLabel,
   RowActionsMenu,
+  SidebarEnvironmentItem,
   buildReorderMenuGroup
 } from '@harborclient/sdk/components';
-import { SidebarColorDot } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarColorDot';
 import { SidebarRowActionsMenu } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarRowActionsMenu';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
@@ -37,13 +37,11 @@ import {
   mergeEnvironmentDown,
   reorderEnvironments
 } from '#/renderer/src/store/thunks';
-import { SortableRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/SortableRow';
-import { stopSortableDragPointerDown } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/sortableRowUtils';
 import { useSidebarRowSelection } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarRowSelection';
+import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
 import { useSidebarSearchContext } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarSearchContext';
 import { focusEnvironmentSettings } from '#/renderer/src/ui/EnvironmentSettings/focusEnvironmentSettings';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
-import { sourceRow } from '#/renderer/src/ui/shared/classes';
 import {
   buildDevInspectMenuGroups,
   useDeveloperToolsEnabled,
@@ -62,6 +60,7 @@ export function Environments(): JSX.Element {
   const allEnvironments = useAppSelector(selectEnvironments);
   const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
   const { searchFilter, searchActive } = useSidebarSearchContext();
+  const { showColorDots } = useSidebarExpansion();
 
   /**
    * Environments visible for the current sidebar search filter.
@@ -93,7 +92,7 @@ export function Environments(): JSX.Element {
     handleRowClick,
     handleBeforeContextMenu,
     isSelected
-  } = useSidebarRowSelection(visibleOrder);
+  } = useSidebarRowSelection(visibleOrder, { selectionKey: 'environments' });
 
   /**
    * Sets the active environment.
@@ -298,13 +297,26 @@ export function Environments(): JSX.Element {
             const menuId = `environment-${environment.id}`;
 
             return (
-              <SortableRow
+              <SidebarEnvironmentItem
                 key={environment.id}
-                id={environmentDragId(environment.id)}
-                className={sourceRow(rowHighlighted, true)}
-                dragHandleLabel={`Reorder environment "${environment.name}"`}
-                disabled={searchActive}
-                onRowContextMenu={(event) => {
+                name={environment.name}
+                variableSummary={variableSummary}
+                selected={rowHighlighted}
+                ariaCurrent={isActive}
+                ariaSelected={multiSelected}
+                ariaLabel={`${environment.name}, ${variableSummary}`}
+                dataSidebarEnvironmentId={environment.id}
+                colorDot={{
+                  color: environment.color,
+                  visible: showColorDots,
+                  label: `Color for ${environment.name}`
+                }}
+                sortable={{
+                  id: environmentDragId(environment.id),
+                  dragHandleLabel: `Reorder environment "${environment.name}"`,
+                  disabled: searchActive
+                }}
+                onContextMenu={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
                   handleBeforeContextMenu(environment.id);
@@ -314,40 +326,20 @@ export function Environments(): JSX.Element {
                   }));
                   setOpenMenuId(menuId);
                 }}
-              >
-                <button
-                  type="button"
-                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-inherit app-no-drag"
-                  data-sidebar-environment-id={environment.id}
-                  aria-current={isActive ? 'true' : undefined}
-                  aria-selected={multiSelected ? 'true' : undefined}
-                  aria-label={`${environment.name}, ${variableSummary}`}
-                  onClick={(event: MouseEvent<HTMLButtonElement>) => {
-                    handleRowClick(
-                      environment.id,
-                      { shiftKey: event.shiftKey, ctrlOrMetaKey: event.ctrlKey || event.metaKey },
-                      () => onSelectEnvironment(environment.id)
-                    );
-                  }}
-                  onDoubleClick={() => onConfigureEnvironment(environment.id)}
-                  onKeyDown={(e) => {
-                    if (e.key !== 'Enter') return;
-                    e.preventDefault();
-                    onConfigureEnvironment(environment.id);
-                    focusEnvironmentSettings();
-                  }}
-                >
-                  <span className="inline-flex min-w-0 flex-1 items-center gap-1.5">
-                    <span className="min-w-0 truncate">{environment.name}</span>
-                    <SidebarColorDot
-                      color={environment.color}
-                      label={`Color for ${environment.name}`}
-                    />
-                  </span>
-                  <span className="shrink-0 text-muted">{variableSummary}</span>
-                </button>
-                <div className="shrink-0" onPointerDown={stopSortableDragPointerDown}>
-                  {showBulkMenu ? (
+                onClick={(event: MouseEvent<HTMLElement>) => {
+                  handleRowClick(
+                    environment.id,
+                    { shiftKey: event.shiftKey, ctrlOrMetaKey: event.ctrlKey || event.metaKey },
+                    () => onSelectEnvironment(environment.id)
+                  );
+                }}
+                onDoubleClick={() => onConfigureEnvironment(environment.id)}
+                onEnter={() => {
+                  onConfigureEnvironment(environment.id);
+                  focusEnvironmentSettings();
+                }}
+                actions={
+                  showBulkMenu ? (
                     <RowActionsMenu
                       menuId={menuId}
                       openMenuId={openMenuId}
@@ -439,9 +431,9 @@ export function Environments(): JSX.Element {
                         )
                       ]}
                     />
-                  )}
-                </div>
-              </SortableRow>
+                  )
+                }
+              />
             );
           })}
         </SortableContext>

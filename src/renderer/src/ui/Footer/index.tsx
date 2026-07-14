@@ -39,6 +39,7 @@ import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import { usePluginFooterPanels, usePluginStatusBarItems } from '#/renderer/src/plugins/pluginHooks';
 import { SHORTCUTS_REFERENCE_MODAL_ID } from '#/renderer/src/ui/modals/ShortcutsReferenceModal';
 import { handleFooterBarTabNavigation } from '#/renderer/src/ui/Footer/footerBarTabNavigation';
+import { APP_FOOTER_SECTION_ID } from '#/renderer/src/ui/shared/skipNavigationTargets';
 import { effectiveCount, resolveScopedVariables } from './VariablesPanel/resolve';
 
 /** Stable menu id for the footer environment picker. */
@@ -295,6 +296,8 @@ export function Footer({
 
   return (
     <footer
+      id={APP_FOOTER_SECTION_ID}
+      tabIndex={-1}
       ref={footerRef}
       className="relative z-50 flex shrink-0 items-stretch border-t border-separator bg-sidebar app-no-drag"
     >

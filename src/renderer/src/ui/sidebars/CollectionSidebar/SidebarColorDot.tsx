@@ -1,3 +1,4 @@
+import { SidebarColorDot as SdkSidebarColorDot } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
 
@@ -20,16 +21,5 @@ interface Props {
 export function SidebarColorDot({ color, label }: Props): JSX.Element | null {
   const { showColorDots } = useSidebarExpansion();
 
-  if (!showColorDots || color == null || color.trim() === '') {
-    return null;
-  }
-
-  return (
-    <span
-      className="inline-block h-4 w-4 shrink-0 rounded-full"
-      style={{ backgroundColor: color }}
-      aria-hidden={label == null ? true : undefined}
-      aria-label={label}
-    />
-  );
+  return <SdkSidebarColorDot color={color} visible={showColorDots} label={label} />;
 }

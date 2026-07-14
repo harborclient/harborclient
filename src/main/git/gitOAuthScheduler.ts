@@ -72,28 +72,40 @@ export function scheduleHostGitHubOAuthCompletion(
 
   void (async () => {
     try {
-      await finishHostGitHubOAuth(host, { signal: controller.signal });
-
-      if (options.connectionId) {
-        await testGitCredentials(db, options.connectionId);
-      } else if (options.testUrl && options.repoPath) {
-        await testHostCredentials(host, options.testUrl, options.repoPath);
-      }
-
-      notifyOAuthFinished(sender, {
-        host,
-        connectionId: options.connectionId,
-        ok: true
-      });
-    } catch (err) {
-      if (controller.signal.aborted) {
+      try {
+        await finishHostGitHubOAuth(host, { signal: controller.signal });
+      } catch (err) {
+        if (controller.signal.aborted) {
+          return;
+        }
+        notifyOAuthFinished(sender, {
+          host,
+          connectionId: options.connectionId,
+          ok: false,
+          error: err instanceof Error ? err.message : String(err)
+        });
         return;
       }
+
+      let validationError: string | undefined;
+      try {
+        if (options.connectionId) {
+          await testGitCredentials(db, options.connectionId);
+        } else if (options.testUrl && options.repoPath) {
+          await testHostCredentials(host, options.testUrl, options.repoPath);
+        }
+      } catch (err) {
+        if (controller.signal.aborted) {
+          return;
+        }
+        validationError = err instanceof Error ? err.message : String(err);
+      }
+
       notifyOAuthFinished(sender, {
         host,
         connectionId: options.connectionId,
-        ok: false,
-        error: err instanceof Error ? err.message : String(err)
+        ok: true,
+        validationError
       });
     } finally {
       if (activeCompletions.get(host) === controller) {

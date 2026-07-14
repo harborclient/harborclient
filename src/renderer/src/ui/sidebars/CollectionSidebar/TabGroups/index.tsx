@@ -16,13 +16,11 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import {
-  Button,
   EmptySectionLabel,
-  FaIcon,
   RowActionsMenu,
+  SidebarTabGroupItem,
   buildReorderMenuGroup
 } from '@harborclient/sdk/components';
-import { SidebarColorDot } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarColorDot';
 import { SidebarRowActionsMenu } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarRowActionsMenu';
 import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
 import type { TabGroup } from '#/shared/types/tabGroup';
@@ -38,11 +36,9 @@ import {
   reorderTabGroups
 } from '#/renderer/src/store/thunks/tabGroups';
 import { faLayerGroup } from '#/renderer/src/fontawesome';
-import { SortableRow } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/SortableRow';
-import { stopSortableDragPointerDown } from '#/renderer/src/ui/sidebars/CollectionSidebar/Collections/sortableRowUtils';
 import { useSidebarRowSelection } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarRowSelection';
+import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
-import { sourceRow } from '#/renderer/src/ui/shared/classes';
 import { parseTabGroupDragId, tabGroupDragId, tabGroupSummaryText } from './utils';
 
 /**
@@ -52,6 +48,7 @@ export function TabGroups(): JSX.Element {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
   const groups = useAppSelector(selectTabGroups);
+  const { showColorDots } = useSidebarExpansion();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [activeDragGroup, setActiveDragGroup] = useState<TabGroup | null>(null);
 
@@ -67,7 +64,7 @@ export function TabGroups(): JSX.Element {
     handleRowClick,
     handleBeforeContextMenu,
     isSelected
-  } = useSidebarRowSelection(visibleOrder);
+  } = useSidebarRowSelection(visibleOrder, { selectionKey: 'tab-groups' });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -238,43 +235,36 @@ export function TabGroups(): JSX.Element {
             const showBulkMenu = selected && selectionCount > 1;
 
             return (
-              <SortableRow
+              <SidebarTabGroupItem
                 key={group.id}
-                id={tabGroupDragId(group.id)}
-                className={sourceRow(selected, true)}
-                dragHandleLabel={`Reorder tab group "${group.name}"`}
-                onRowContextMenu={(event) => {
+                name={group.name}
+                summary={tabGroupSummaryText(group)}
+                icon={faLayerGroup}
+                selected={selected}
+                colorDot={{
+                  color: group.color,
+                  visible: showColorDots,
+                  label: `Color for ${group.name}`
+                }}
+                sortable={{
+                  id: tabGroupDragId(group.id),
+                  dragHandleLabel: `Reorder tab group "${group.name}"`
+                }}
+                onContextMenu={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
                   handleBeforeContextMenu(group.id);
                   setOpenMenuId(menuId);
                 }}
-              >
-                <Button
-                  variant="toolbar"
-                  className="min-w-0 flex-1 justify-start gap-2 rounded-md px-2 py-1 text-left text-text hover:bg-transparent"
-                  aria-selected={selected ? 'true' : undefined}
-                  onClick={(event: MouseEvent<HTMLButtonElement>) => {
-                    handleRowClick(
-                      group.id,
-                      { shiftKey: event.shiftKey, ctrlOrMetaKey: event.ctrlKey || event.metaKey },
-                      () => handleOpenGroup(group)
-                    );
-                  }}
-                >
-                  <FaIcon
-                    icon={faLayerGroup}
-                    className="h-3.5 w-3.5 shrink-0 text-muted"
-                    aria-hidden
-                  />
-                  <span className="inline-flex min-w-0 flex-1 items-center gap-1.5">
-                    <span className="min-w-0 truncate">{group.name}</span>
-                    <SidebarColorDot color={group.color} label={`Color for ${group.name}`} />
-                  </span>
-                  <span className="shrink-0 text-muted">{tabGroupSummaryText(group)}</span>
-                </Button>
-                <div className="shrink-0" onPointerDown={stopSortableDragPointerDown}>
-                  {showBulkMenu ? (
+                onClick={(event: MouseEvent<HTMLElement>) => {
+                  handleRowClick(
+                    group.id,
+                    { shiftKey: event.shiftKey, ctrlOrMetaKey: event.ctrlKey || event.metaKey },
+                    () => handleOpenGroup(group)
+                  );
+                }}
+                actions={
+                  showBulkMenu ? (
                     <RowActionsMenu
                       menuId={menuId}
                       openMenuId={openMenuId}
@@ -354,9 +344,9 @@ export function TabGroups(): JSX.Element {
                         ]
                       ]}
                     />
-                  )}
-                </div>
-              </SortableRow>
+                  )
+                }
+              />
             );
           })}
         </SortableContext>

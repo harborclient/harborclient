@@ -1,4 +1,12 @@
-import { FaIcon, Modal, Textarea } from '@harborclient/sdk/components';
+import {
+  Modal,
+  SidebarDocumentItem,
+  SidebarItem,
+  SidebarRequestItem,
+  SidebarStatusMarker,
+  SIDEBAR_ITEM_BUTTON_CLASS,
+  Textarea
+} from '@harborclient/sdk/components';
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import type {
   GitCommitDetail,
@@ -14,7 +22,6 @@ import {
   resolveGitChangeDisplayLabel
 } from '#/renderer/src/git/gitCommitChangeDisplay';
 import { faMarkdown } from '#/renderer/src/fontawesome';
-import { METHOD_CLASSES, sourceRow } from '#/renderer/src/ui/shared/classes';
 import { GitDiffFileView } from '#/renderer/src/ui/sidebars/GitSidebar/modals/GitDiffFileView';
 
 interface Props {
@@ -208,9 +215,6 @@ export function GitCommitDetailModal({
             <Textarea id="git-commit-detail-title" readOnly>
               {detail.message}
             </Textarea>
-            {detail.fullMessage.trim() !== detail.message.trim() ? (
-              <Textarea readOnly>{detail.fullMessage}</Textarea>
-            ) : null}
 
             <h3 className="m-0 text-[16px] font-medium text-text">Changes</h3>
             <div className="border border-separator border-md rounded-md p-2">
@@ -222,42 +226,62 @@ export function GitCommitDetailModal({
                     const displayLabel = resolveGitChangeDisplayLabel(file.path, file.displayName);
                     const statusMarker = gitChangeStatusMarker(file.status, false);
                     const statusMarkerLabel = gitChangeStatusMarkerLabel(file.status, false);
+                    const statusMarkerProps = {
+                      marker: statusMarker,
+                      className: gitCommitChangeNameClass(file.status),
+                      label: statusMarkerLabel
+                    };
+                    const rowAriaLabel = buildGitCommitFileAccessibleName(
+                      file.path,
+                      file.status,
+                      file.displayName,
+                      file.resourceKind
+                    );
+
+                    if (file.resourceKind === 'request' && file.method != null) {
+                      return (
+                        <SidebarRequestItem
+                          key={file.path}
+                          as="li"
+                          method={file.method}
+                          name={displayLabel}
+                          statusMarker={statusMarkerProps}
+                          ariaLabel={rowAriaLabel}
+                          onClick={() => handleFileClick(file)}
+                        />
+                      );
+                    }
+
+                    if (file.resourceKind === 'document') {
+                      return (
+                        <SidebarDocumentItem
+                          key={file.path}
+                          as="li"
+                          icon={faMarkdown}
+                          name={displayLabel}
+                          statusMarker={statusMarkerProps}
+                          ariaLabel={rowAriaLabel}
+                          onClick={() => handleFileClick(file)}
+                        />
+                      );
+                    }
+
                     return (
-                      <li key={file.path} className={sourceRow(false, true)}>
+                      <SidebarItem key={file.path} as="li">
                         <button
                           type="button"
-                          className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-inherit app-no-drag"
-                          aria-label={buildGitCommitFileAccessibleName(
-                            file.path,
-                            file.status,
-                            file.displayName,
-                            file.resourceKind
-                          )}
+                          className={SIDEBAR_ITEM_BUTTON_CLASS}
+                          aria-label={rowAriaLabel}
                           onClick={() => handleFileClick(file)}
                         >
-                          {file.resourceKind === 'request' && file.method != null ? (
-                            <span
-                              className={`shrink-0 px-1 py-px ${METHOD_CLASSES[file.method.toLowerCase()] ?? 'text-info'}`}
-                            >
-                              {file.method}
-                            </span>
-                          ) : file.resourceKind === 'document' ? (
-                            <FaIcon
-                              icon={faMarkdown}
-                              className="h-3.5 w-3.5 shrink-0 text-muted"
-                              aria-hidden
-                            />
-                          ) : null}
                           <span className="min-w-0 truncate">{displayLabel}</span>
-                          <span
-                            className={`shrink-0 ${gitCommitChangeNameClass(file.status)}`}
-                            title={statusMarkerLabel}
-                            aria-label={statusMarkerLabel}
-                          >
-                            [{statusMarker}]
-                          </span>
+                          <SidebarStatusMarker
+                            marker={statusMarkerProps.marker}
+                            className={statusMarkerProps.className}
+                            label={statusMarkerProps.label}
+                          />
                         </button>
-                      </li>
+                      </SidebarItem>
                     );
                   })}
                 </ul>

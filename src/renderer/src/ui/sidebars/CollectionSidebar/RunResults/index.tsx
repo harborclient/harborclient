@@ -1,5 +1,11 @@
 import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
-import { Button, EmptySectionLabel, FaIcon, RowActionsMenu } from '@harborclient/sdk/components';
+import {
+  Button,
+  EmptySectionLabel,
+  FaIcon,
+  RowActionsMenu,
+  SidebarRunItem
+} from '@harborclient/sdk/components';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectRunResults } from '#/renderer/src/store/slices/runResultsSlice';
@@ -12,7 +18,6 @@ import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSideba
 import { useSidebarProviders } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarProvidersContext';
 import { useSidebarRowSelection } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarRowSelection';
 import { faEraser } from '#/renderer/src/fontawesome';
-import { METHOD_CLASSES, sourceRow } from '#/renderer/src/ui/shared/classes';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
 import { formatRunResultRowDate, runResultSummaryText, runResultStatusDotClass } from './utils';
 
@@ -100,7 +105,7 @@ export function RunResults(): JSX.Element {
     handleRowClick,
     handleBeforeContextMenu,
     isSelected
-  } = useSidebarRowSelection(visibleOrder);
+  } = useSidebarRowSelection(visibleOrder, { selectionKey: 'run-results' });
 
   /**
    * Opens a saved run result in the read-only collection runner tab.
@@ -162,103 +167,81 @@ export function RunResults(): JSX.Element {
         const menuId = `run-result-${runResult.id}`;
         const connectionName = connectionNamesById[runResult.connectionId] ?? null;
         const method = runResult.firstRequestMethod;
-        const methodClass = METHOD_CLASSES[method?.toLowerCase() ?? ''] ?? 'text-info';
         const summaryText = runResultSummaryText(runResult.summary);
         const rowDate = formatRunResultRowDate(runResult.createdAt);
         const selected = isSelected(runResult.id);
         const showBulkMenu = selected && selectionCount > 1;
 
         return (
-          <div
+          <SidebarRunItem
             key={runResult.id}
-            className={sourceRow(selected, true)}
+            method={method ?? undefined}
+            label={runResult.label}
+            connectionBadge={
+              showStorageLocationBadges && connectionName != null ? connectionName : undefined
+            }
+            statusDotClassName={runResultStatusDotClass(runResult.summary)}
+            statusSummary={summaryText}
+            selected={selected}
+            title={`${runResult.label} — ${rowDate}`}
+            ariaLabel={runResultAriaLabel(runResult.label, rowDate, method, summaryText)}
+            dataSidebarRunResultId={runResult.id}
             onContextMenu={(event) => {
               event.preventDefault();
               event.stopPropagation();
               handleBeforeContextMenu(runResult.id);
               setOpenMenuId(menuId);
             }}
-          >
-            <Button
-              variant="toolbar"
-              className="flex min-w-0 flex-1 items-center gap-2 py-0.5 text-left text-text hover:bg-transparent"
-              data-sidebar-run-result-id={runResult.id}
-              title={`${runResult.label} — ${rowDate}`}
-              aria-label={runResultAriaLabel(runResult.label, rowDate, method, summaryText)}
-              aria-selected={selected ? 'true' : undefined}
-              onClick={(event: MouseEvent<HTMLButtonElement>) => {
-                handleRowClick(
-                  runResult.id,
-                  { shiftKey: event.shiftKey, ctrlOrMetaKey: event.ctrlKey || event.metaKey },
-                  () => onSelectRunResult(runResult.id)
-                );
-              }}
-            >
-              {method ? (
-                <span className={`shrink-0 font-medium uppercase ${methodClass}`} aria-hidden>
-                  {method}
-                </span>
-              ) : null}
-              <span className="flex min-w-0 flex-1 items-center gap-1.5">
-                <span className="min-w-0 truncate text-text">{runResult.label}</span>
-                {showStorageLocationBadges && connectionName != null ? (
-                  <span
-                    className="shrink-0 rounded bg-info/15 px-1.5 py-0.5 text-[11px] font-medium text-info"
-                    title={`Stored in ${connectionName}`}
-                  >
-                    {connectionName}
-                  </span>
-                ) : null}
-              </span>
-              <span className="flex shrink-0 items-center gap-1.5">
-                <span
-                  className={`inline-block h-2 w-2 shrink-0 rounded-full ${runResultStatusDotClass(runResult.summary)}`}
-                  aria-hidden="true"
-                />
-                <span className="sr-only">{summaryText}</span>
-              </span>
-            </Button>
-            <RowActionsMenu
-              menuId={menuId}
-              openMenuId={openMenuId}
-              onOpenChange={setOpenMenuId}
-              groups={
-                showBulkMenu
-                  ? [
-                      [
-                        {
-                          label: 'Delete',
-                          variant: 'danger' as const,
-                          onSelect: () => {
-                            void handleDeleteSelected();
+            onClick={(event: MouseEvent<HTMLElement>) => {
+              handleRowClick(
+                runResult.id,
+                { shiftKey: event.shiftKey, ctrlOrMetaKey: event.ctrlKey || event.metaKey },
+                () => onSelectRunResult(runResult.id)
+              );
+            }}
+            actions={
+              <RowActionsMenu
+                menuId={menuId}
+                openMenuId={openMenuId}
+                onOpenChange={setOpenMenuId}
+                groups={
+                  showBulkMenu
+                    ? [
+                        [
+                          {
+                            label: 'Delete',
+                            variant: 'danger' as const,
+                            onSelect: () => {
+                              void handleDeleteSelected();
+                            }
                           }
-                        }
+                        ]
                       ]
-                    ]
-                  : [
-                      [
-                        {
-                          label: 'Delete',
-                          variant: 'danger',
-                          onSelect: () => {
-                            void (async () => {
-                              const confirmed = await confirm({
-                                title: 'Delete run',
-                                message: `Delete saved run "${runResult.label}"?`,
-                                confirmLabel: 'Delete',
-                                variant: 'danger'
-                              });
-                              if (confirmed) {
-                                void onDeleteRunResult(runResult.id);
-                              }
-                            })();
+                    : [
+                        [
+                          {
+                            label: 'Delete',
+                            variant: 'danger',
+                            onSelect: () => {
+                              void (async () => {
+                                const confirmed = await confirm({
+                                  title: 'Delete run',
+                                  message: `Delete saved run "${runResult.label}"?`,
+                                  confirmLabel: 'Delete',
+                                  variant: 'danger'
+                                });
+                                if (confirmed) {
+                                  void onDeleteRunResult(runResult.id);
+                                }
+                              })();
+                            }
                           }
-                        }
+                        ]
                       ]
-                    ]
-              }
-            />
-          </div>
+                }
+              />
+            }
+          />
         );
       })}
     </div>

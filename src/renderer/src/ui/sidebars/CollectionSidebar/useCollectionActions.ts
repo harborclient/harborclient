@@ -87,6 +87,11 @@ export interface CollectionActions {
   onSelectCollection: (id: number) => void;
 
   /**
+   * Clears the sidebar collection and folder highlight.
+   */
+  onClearCollectionSelection: () => void;
+
+  /**
    * Selects a folder row and reveals it in the tree.
    */
   onSelectFolder: (collectionId: number, folderId: number) => void;
@@ -124,7 +129,7 @@ export interface CollectionActions {
   /**
    * Deletes a collection, confirming first for team-hub-backed collections.
    */
-  onDeleteCollection: (id: number) => Promise<void>;
+  onDeleteCollection: (id: number, options?: { deleteRepoDirectory?: boolean }) => Promise<void>;
 
   /**
    * Exports a collection to disk.
@@ -333,6 +338,9 @@ export function useCollectionActions(): CollectionActions {
       dispatch(setSelectedCollectionId(id));
       revealCollection(id);
     },
+    onClearCollectionSelection: () => {
+      dispatch(setSelectedCollectionId(null));
+    },
     onSelectFolder: (collectionId, folderId) => {
       dispatch(focusSidebarItem({ collectionId, folderId }));
       revealFolder(collectionId, folderId);
@@ -370,7 +378,7 @@ export function useCollectionActions(): CollectionActions {
         })
       );
     },
-    onDeleteCollection: async (id) => {
+    onDeleteCollection: async (id, options) => {
       const collection = collections.find((item) => item.id === id);
       if (collection && isTeamHubProvider(providers, collection.connectionId)) {
         const confirmed = await showConfirm(dispatch, {
@@ -387,6 +395,13 @@ export function useCollectionActions(): CollectionActions {
         await dispatch(deleteCollection(id)).unwrap();
         if (collection?.deletion_locked) {
           toast.success('Collection removed from sidebar.');
+        }
+        if (options?.deleteRepoDirectory && collection?.connectionId) {
+          try {
+            await window.api.gitDeleteRepoDirectory(collection.connectionId);
+          } catch (err) {
+            showAlert(dispatch, formatErrorMessage(err, 'Failed to delete repo directory'));
+          }
         }
       } catch (err) {
         showAlert(dispatch, formatErrorMessage(err, 'Failed to delete collection'));

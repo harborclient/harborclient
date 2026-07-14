@@ -1,15 +1,34 @@
-import { Button, Checkbox, FaIcon, Modal, ModalFooter, Page } from '@harborclient/sdk/components';
-import { useCallback, useEffect, useState, type ChangeEvent, type JSX } from 'react';
+import {
+  Button,
+  Checkbox,
+  FaIcon,
+  Input,
+  Modal,
+  ModalFooter,
+  Page
+} from '@harborclient/sdk/components';
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { GitIdentity } from '#/shared/types';
 import { normalizeGitHostKey } from '#/shared/gitUrl';
 
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { faGithub, faPlus } from '#/renderer/src/fontawesome';
-import { GitAuthForm } from '#/renderer/src/ui/git/GitAuthForm';
+import { GitAuthForm, type GitAuthAuthorizedResult } from '#/renderer/src/ui/git/GitAuthForm';
+import { GitAuthorForm } from '#/renderer/src/ui/git/GitAuthorForm';
+import { entryById } from '#/renderer/src/ui/Settings/catalog/catalog';
 import { SettingLabel } from '#/renderer/src/ui/Settings/components/SettingLabel';
+import { SettingsField } from '#/renderer/src/ui/Settings/components/SettingsField';
+import { SettingsSaveFooter } from '#/renderer/src/ui/Settings/components/SettingsSaveFooter';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
-import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
+import {
+  selectDraftGeneral,
+  selectSettingsDraftDisabled,
+  setDraftGeneralField
+} from '#/renderer/src/store/slices/settingsDraftSlice';
+
+const GIT_AUTO_TRACK_INPUT_ID = 'git-auto-track';
+const GIT_EXTERNAL_MERGE_EDITOR_INPUT_ID = 'git-external-merge-editor-path';
 
 /**
  * Settings page for managing shared git host identities.
@@ -17,15 +36,18 @@ import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
 export function GitIdentitiesSection(): JSX.Element {
   const confirm = useConfirm();
   const dispatch = useAppDispatch();
-  const gitAutoAdd = useAppSelector((state) => state.settings.general.gitAutoAdd);
-  const externalMergeEditorPath = useAppSelector(
-    (state) => state.settings.general.externalMergeEditorPath
-  );
+  const general = useAppSelector(selectDraftGeneral);
+  const baseline = useAppSelector((state) => state.settingsDraft.baseline);
+  const disabled = useAppSelector(selectSettingsDraftDisabled);
+  const authorPrefilledRef = useRef(false);
   const [identities, setIdentities] = useState<GitIdentity[]>([]);
   const [loading, setLoading] = useState(true);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorHost, setEditorHost] = useState('');
   const [editorUrl, setEditorUrl] = useState('');
+
+  const autoTrackCatalog = entryById('git.autoTrack');
+  const commitAuthorCatalog = entryById('git.commitAuthor');
 
   /**
    * Reloads saved git identities from the main process.
@@ -72,6 +94,41 @@ export function GitIdentitiesSection(): JSX.Element {
   }, [reloadIdentities]);
 
   /**
+   * Prefills commit author draft fields from git config when saved settings are unset.
+   */
+  useEffect(() => {
+    if (
+      baseline == null ||
+      baseline.general.gitCommitAuthorName.trim() !== '' ||
+      baseline.general.gitCommitAuthorEmail.trim() !== '' ||
+      authorPrefilledRef.current
+    ) {
+      return;
+    }
+
+    authorPrefilledRef.current = true;
+
+    void (async () => {
+      try {
+        const connections = await window.api.listStorageConnections();
+        const gitConnection = connections.find((conn) => conn.type === 'git');
+        const suggested = gitConnection
+          ? await window.api.gitSuggestedAuthor(gitConnection.id)
+          : await window.api.gitSuggestedAuthor();
+
+        if (suggested.name.trim()) {
+          dispatch(setDraftGeneralField({ key: 'gitCommitAuthorName', value: suggested.name }));
+        }
+        if (suggested.email.trim()) {
+          dispatch(setDraftGeneralField({ key: 'gitCommitAuthorEmail', value: suggested.email }));
+        }
+      } catch {
+        // Suggestion is best-effort; the user can enter values manually.
+      }
+    })();
+  }, [baseline, dispatch]);
+
+  /**
    * Opens the editor modal for a new or existing host identity.
    *
    * @param identity - Existing identity to edit, if any.
@@ -116,28 +173,42 @@ export function GitIdentitiesSection(): JSX.Element {
   const editorHostKey = normalizeGitHostKey(editorUrl || editorHost);
 
   /**
-   * Persists the global git auto-track preference.
+   * Updates the global git auto-track preference in the settings draft.
    */
   const handleAutoAddChange = (event: ChangeEvent<HTMLInputElement>): void => {
-    void dispatch(patchGeneralSettings({ gitAutoAdd: event.target.checked }));
+    dispatch(setDraftGeneralField({ key: 'gitAutoAdd', value: event.target.checked }));
   };
 
   /**
-   * Persists the external merge editor executable path.
+   * Updates the external merge editor executable path in the settings draft.
    */
   const handleExternalMergeEditorPathChange = (event: ChangeEvent<HTMLInputElement>): void => {
-    void dispatch(patchGeneralSettings({ externalMergeEditorPath: event.target.value }));
+    dispatch(setDraftGeneralField({ key: 'externalMergeEditorPath', value: event.target.value }));
   };
 
   /**
-   * Opens a file picker for the external merge editor executable.
+   * Updates the git commit author name in the settings draft.
+   */
+  const handleCommitAuthorNameChange = (value: string): void => {
+    dispatch(setDraftGeneralField({ key: 'gitCommitAuthorName', value }));
+  };
+
+  /**
+   * Updates the git commit author email in the settings draft.
+   */
+  const handleCommitAuthorEmailChange = (value: string): void => {
+    dispatch(setDraftGeneralField({ key: 'gitCommitAuthorEmail', value }));
+  };
+
+  /**
+   * Opens a file picker and stores the selected merge editor path in the settings draft.
    */
   const handleBrowseExternalMergeEditor = async (): Promise<void> => {
     try {
       const selected = await window.api.selectFiles();
       const nextPath = selected[0];
       if (nextPath != null) {
-        await dispatch(patchGeneralSettings({ externalMergeEditorPath: nextPath }));
+        dispatch(setDraftGeneralField({ key: 'externalMergeEditorPath', value: nextPath }));
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
@@ -163,57 +234,68 @@ export function GitIdentitiesSection(): JSX.Element {
         </Button>
       ]}
     >
-      <div className="mb-6 rounded-md border border-separator px-3 py-3">
-        <label
-          htmlFor="git-auto-track"
-          className="flex cursor-pointer items-start gap-3 text-[14px] text-text"
+      <div className="mb-6 flex flex-col gap-6">
+        <SettingsField
+          label={<SettingLabel settingId="git.autoTrack">{autoTrackCatalog.label}</SettingLabel>}
+          description={autoTrackCatalog.description}
+          htmlFor={GIT_AUTO_TRACK_INPUT_ID}
+          layout="checkbox"
         >
           <Checkbox
-            id="git-auto-track"
-            checked={gitAutoAdd}
+            id={GIT_AUTO_TRACK_INPUT_ID}
+            checked={general.gitAutoAdd}
+            disabled={disabled}
             onChange={handleAutoAddChange}
-            aria-describedby="git-auto-track-description"
           />
-          <span className="flex min-w-0 flex-col gap-1">
-            <SettingLabel settingId="git.autoTrack">Auto track</SettingLabel>
-            <span id="git-auto-track-description" className="text-muted">
-              When enabled, HarborClient automatically tracks all requests and files added to
-              git-backed collections. When disabled, use Add on individual requests to track changes
-              before committing.
-            </span>
-          </span>
-        </label>
+        </SettingsField>
+
+        <SettingsField
+          label={
+            <SettingLabel settingId="git.externalMergeEditorPath">
+              External merge editor
+            </SettingLabel>
+          }
+          description="Optional executable used to resolve merge conflicts. Leave empty to use HarborClient's built-in merge editor."
+          htmlFor={GIT_EXTERNAL_MERGE_EDITOR_INPUT_ID}
+        >
+          <div className="flex gap-2">
+            <Input
+              id={GIT_EXTERNAL_MERGE_EDITOR_INPUT_ID}
+              type="text"
+              className="min-w-0 flex-1"
+              value={general.externalMergeEditorPath}
+              placeholder="/path/to/merge-editor"
+              disabled={disabled}
+              onChange={handleExternalMergeEditorPathChange}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={disabled}
+              onClick={() => void handleBrowseExternalMergeEditor()}
+            >
+              Browse
+            </Button>
+          </div>
+        </SettingsField>
+
+        <SettingsField
+          label={
+            <SettingLabel settingId="git.commitAuthor">{commitAuthorCatalog.label}</SettingLabel>
+          }
+        >
+          <GitAuthorForm
+            name={general.gitCommitAuthorName}
+            email={general.gitCommitAuthorEmail}
+            disabled={disabled}
+            onNameChange={handleCommitAuthorNameChange}
+            onEmailChange={handleCommitAuthorEmailChange}
+          />
+        </SettingsField>
       </div>
 
-      <div className="mb-6 rounded-md border border-separator px-3 py-3">
-        <label
-          htmlFor="git-external-merge-editor-path"
-          className="mb-2 block text-[14px] text-text"
-        >
-          <SettingLabel settingId="git.externalMergeEditorPath">External merge editor</SettingLabel>
-        </label>
-        <p id="git-external-merge-editor-description" className="m-0 mb-3 text-muted">
-          Optional executable used to resolve merge conflicts. Leave empty to use
-          HarborClient&apos;s built-in merge editor.
-        </p>
-        <div className="flex items-center gap-2">
-          <input
-            id="git-external-merge-editor-path"
-            className="min-w-0 flex-1 rounded border border-separator bg-surface px-3 py-2 text-[14px] text-text"
-            type="text"
-            value={externalMergeEditorPath}
-            placeholder="/path/to/merge-editor"
-            aria-describedby="git-external-merge-editor-description"
-            onChange={handleExternalMergeEditorPathChange}
-          />
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => void handleBrowseExternalMergeEditor()}
-          >
-            Browse
-          </Button>
-        </div>
+      <div className="mb-6 mt-2">
+        <SettingsSaveFooter />
       </div>
 
       <span className="text-[18px] font-medium text-text mb-2">
@@ -282,7 +364,10 @@ export function GitIdentitiesSection(): JSX.Element {
             <GitAuthForm
               host={editorHostKey}
               url={editorUrl || `https://${editorHostKey}/`}
-              onAuthorized={() => {
+              onAuthorized={(result?: GitAuthAuthorizedResult) => {
+                if (result?.validationError) {
+                  return;
+                }
                 setEditorOpen(false);
                 void reloadIdentities();
               }}

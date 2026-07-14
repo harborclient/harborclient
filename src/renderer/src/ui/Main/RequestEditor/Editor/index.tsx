@@ -1,3 +1,4 @@
+import { Breadcrumb } from '@harborclient/sdk/components';
 import { useCallback, type JSX } from 'react';
 import type { KeyValue, Variable } from '#/shared/types';
 import { applyParamsToUrl, mergeParamsFromUrl } from '#/shared/queryParams';
@@ -5,7 +6,6 @@ import { applyParamsToUrl, mergeParamsFromUrl } from '#/shared/queryParams';
 import type { RequestTabContext } from '#/shared/plugin/types';
 import type { RequestDraft } from '#/renderer/src/store/drafts';
 import { EditorTabs } from './EditorTabs';
-import { Name } from './Name';
 import { UrlBar } from './UrlBar';
 
 interface Props {
@@ -143,16 +143,24 @@ export function Editor({
     update({ params, url: applyParamsToUrl(draft.url, params) });
   };
 
+  const breadcrumbSegments = [
+    ...(collectionName
+      ? [{ id: 'collection', label: collectionName, onClick: onCollectionClick }]
+      : []),
+    ...(folderName ? [{ id: 'folder', label: folderName, onClick: onFolderClick }] : [])
+  ];
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="shrink-0 border-b border-separator p-3">
-        <Name
-          name={draft.name}
-          collectionName={collectionName}
-          folderName={folderName}
-          onNameChange={(name) => update({ name })}
-          onCollectionClick={onCollectionClick}
-          onFolderClick={onFolderClick}
+        <Breadcrumb
+          flush
+          className="mb-4"
+          segments={breadcrumbSegments}
+          value={draft.name}
+          placeholder="Request name"
+          editableLabel="Request name"
+          onValueChange={(name) => update({ name })}
         />
 
         <UrlBar

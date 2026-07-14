@@ -1,5 +1,4 @@
-import { useAccordionProvider } from '@szhsin/react-accordion';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { usePluginSidebarSections } from '#/renderer/src/plugins/pluginHooks';
 import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
 
@@ -8,9 +7,14 @@ import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSideba
  */
 interface Result {
   /**
-   * Accordion provider value to pass to `ControlledAccordion`.
+   * Controlled expanded state keyed by section id for `SidebarSections`.
    */
-  accordion: ReturnType<typeof useAccordionProvider>;
+  expanded: Record<string, boolean>;
+
+  /**
+   * Persists accordion toggles into sidebar expansion settings.
+   */
+  onToggle: (key: string, expanded: boolean) => void;
 
   /**
    * Expansion state keyed by plugin sidebar section id.
@@ -19,11 +23,10 @@ interface Result {
 }
 
 /**
- * Wires the sidebar accordion to persisted section-expansion booleans.
+ * Builds controlled accordion state for the collections sidebar sections.
  *
- * Owns the accordion provider, mirrors user toggles into persisted state, and
- * pushes programmatic expansion changes (search, reveal, hydration) back into
- * the accordion.
+ * Mirrors persisted section-expansion booleans into the SDK `SidebarSections`
+ * `expanded` map and writes user toggles back into persisted settings.
  */
 export function useSidebarAccordion(): Result {
   const pluginSidebarSections = usePluginSidebarSections();
@@ -55,7 +58,7 @@ export function useSidebarAccordion(): Result {
    * @param key - Accordion item key (`collections`, `environments`, `runResults`, `history`, or a plugin section id).
    * @param isEnter - Whether the section body should be expanded.
    */
-  const applySectionExpanded = useCallback(
+  const onToggle = useCallback(
     (key: string, isEnter: boolean): void => {
       if (key === 'collections') {
         setCollectionsSectionExpanded((current) => (current === isEnter ? current : isEnter));
@@ -105,23 +108,10 @@ export function useSidebarAccordion(): Result {
     ]
   );
 
-  const accordion = useAccordionProvider({
-    allowMultiple: true,
-    transition: true,
-    transitionTimeout: 200,
-    mountOnEnter: true,
-    onStateChange: ({ key, current }) => {
-      applySectionExpanded(String(key), current.isEnter);
-    }
-  });
-  const { stateMap, toggle } = accordion;
-
   /**
-   * Pushes programmatic expansion changes (search, reveal, hydration) into the
-   * accordion. `stateMap` is read when persisted booleans change but omitted
-   * from deps so user toggles do not re-trigger sync and snap sections back open.
+   * Controlled expanded map fed into SDK `SidebarSections`.
    */
-  useEffect(() => {
+  const expanded = useMemo((): Record<string, boolean> => {
     const desiredExpansion: Record<string, boolean> = {};
 
     if (collectionsSectionVisible) {
@@ -152,15 +142,8 @@ export function useSidebarAccordion(): Result {
       desiredExpansion[section.id] = pluginSectionExpanded[section.id] ?? true;
     }
 
-    for (const [key, wantExpanded] of Object.entries(desiredExpansion)) {
-      const isExpanded = stateMap.get(key)?.isEnter;
-      if (isExpanded !== wantExpanded) {
-        toggle(key, wantExpanded);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- stateMap intentionally excluded; see docblock
+    return desiredExpansion;
   }, [
-    toggle,
     collectionsSectionExpanded,
     environmentsSectionExpanded,
     runResultsSectionExpanded,
@@ -177,5 +160,5 @@ export function useSidebarAccordion(): Result {
     pluginSidebarSections
   ]);
 
-  return { accordion, pluginSectionExpanded };
+  return { expanded, onToggle, pluginSectionExpanded };
 }

@@ -77,7 +77,7 @@ export function Trash(): JSX.Element {
   const visibleOrder = useMemo(() => items.map((item) => item.id), [items]);
 
   const { selectionCount, selectedOrdered, handleBeforeContextMenu, handleRowClick, isSelected } =
-    useSidebarRowSelection(visibleOrder);
+    useSidebarRowSelection(visibleOrder, { selectionKey: 'trash' });
 
   /**
    * Restores the selected trash rows when multiple rows are selected.

@@ -91,6 +91,23 @@ function tabBelongsToEnvironment(tab: Tab, environmentId: number): boolean {
 }
 
 /**
+ * Returns whether a tab is a request or markdown tab belonging to a collection.
+ *
+ * @param tab - Open tab to evaluate.
+ * @param collectionId - Collection id to match.
+ * @returns True when the tab is collection-scoped sidebar content.
+ */
+function isRequestOrMarkdownTabInCollection(tab: Tab, collectionId: number): boolean {
+  if (isMarkdownTab(tab)) {
+    return tab.collectionId === collectionId;
+  }
+  if (isRequestTab(tab)) {
+    return tab.draft.collection_id === collectionId;
+  }
+  return false;
+}
+
+/**
  * Closes matching tabs and selects a neighbor when the active tab was removed.
  *
  * @param state - Mutable tabs slice state.
@@ -377,6 +394,23 @@ const tabsSlice = createSlice({
       closeMatchingTabs(state, matching);
     },
     /**
+     * Closes every open saved request and markdown document tab.
+     */
+    closeAllRequestAndMarkdownTabs(state) {
+      const matching = state.tabs.filter((tab) => isRequestTab(tab) || isMarkdownTab(tab));
+      closeMatchingTabs(state, matching);
+    },
+    /**
+     * Closes saved request and markdown tabs belonging to one collection.
+     */
+    closeRequestAndMarkdownTabsForCollection(state, action: PayloadAction<number>) {
+      const collectionId = action.payload;
+      const matching = state.tabs.filter((tab) =>
+        isRequestOrMarkdownTabInCollection(tab, collectionId)
+      );
+      closeMatchingTabs(state, matching);
+    },
+    /**
      * Syncs saved draft state after persistence.
      */
     updateActiveTabDraftAfterSave(
@@ -460,6 +494,8 @@ export const {
   closeTabsForDocument,
   closeTabsForCollection,
   closeTabsForEnvironment,
+  closeAllRequestAndMarkdownTabs,
+  closeRequestAndMarkdownTabsForCollection,
   updateActiveTabDraftAfterSave,
   syncRequestFolderInTabs,
   restoreTabsState,

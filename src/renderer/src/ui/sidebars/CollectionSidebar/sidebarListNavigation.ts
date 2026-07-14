@@ -14,6 +14,14 @@ export const SIDEBAR_COLLECTION_ID_ATTR = 'data-sidebar-collection-id';
 /** Data attribute on environment name buttons in the sidebar list. */
 export const SIDEBAR_ENVIRONMENT_ID_ATTR = 'data-sidebar-environment-id';
 
+/** Data attribute on saved request rows in the collections sidebar. */
+export const SIDEBAR_REQUEST_ID_ATTR = 'data-sidebar-request-id';
+
+/** Data attribute on markdown document rows in the collections sidebar. */
+export const SIDEBAR_DOCUMENT_ID_ATTR = 'data-sidebar-document-id';
+
+const SIDEBAR_ROW_SCROLL_MAX_ATTEMPTS = 12;
+
 /**
  * Returns a CSS selector for a sidebar section container.
  *
@@ -252,6 +260,82 @@ export function focusSidebarEnvironmentRowById(environmentId: number, waitForMou
   }
 
   focusRow();
+}
+
+/**
+ * Returns a CSS selector for a saved request row in the collections sidebar.
+ *
+ * @param requestId - Saved request database id.
+ */
+export function sidebarRequestRowSelector(requestId: number): string {
+  return `[${SIDEBAR_REQUEST_ID_ATTR}="${requestId}"]`;
+}
+
+/**
+ * Returns a CSS selector for a markdown document row in the collections sidebar.
+ *
+ * @param documentId - Markdown document database id.
+ */
+export function sidebarDocumentRowSelector(documentId: number): string {
+  return `[${SIDEBAR_DOCUMENT_ID_ATTR}="${documentId}"]`;
+}
+
+/**
+ * Scrolls a saved request row into view, retrying until the row mounts.
+ *
+ * @param requestId - Saved request database id.
+ */
+export function scrollSidebarRequestRowIntoView(requestId: number): void {
+  let attempts = 0;
+
+  /**
+   * Queries the DOM and scrolls the matching request row into view.
+   */
+  const scrollRow = (): void => {
+    const row = document.querySelector(sidebarRequestRowSelector(requestId));
+    if (row != null && 'scrollIntoView' in row && typeof row.scrollIntoView === 'function') {
+      row.scrollIntoView({ block: 'nearest' });
+      return;
+    }
+
+    attempts += 1;
+    if (attempts < SIDEBAR_ROW_SCROLL_MAX_ATTEMPTS) {
+      requestAnimationFrame(scrollRow);
+    }
+  };
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(scrollRow);
+  });
+}
+
+/**
+ * Scrolls a markdown document row into view, retrying until the row mounts.
+ *
+ * @param documentId - Markdown document database id.
+ */
+export function scrollSidebarDocumentRowIntoView(documentId: number): void {
+  let attempts = 0;
+
+  /**
+   * Queries the DOM and scrolls the matching document row into view.
+   */
+  const scrollRow = (): void => {
+    const row = document.querySelector(sidebarDocumentRowSelector(documentId));
+    if (row != null && 'scrollIntoView' in row && typeof row.scrollIntoView === 'function') {
+      row.scrollIntoView({ block: 'nearest' });
+      return;
+    }
+
+    attempts += 1;
+    if (attempts < SIDEBAR_ROW_SCROLL_MAX_ATTEMPTS) {
+      requestAnimationFrame(scrollRow);
+    }
+  };
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(scrollRow);
+  });
 }
 
 interface AdvanceSidebarListItemOptions {

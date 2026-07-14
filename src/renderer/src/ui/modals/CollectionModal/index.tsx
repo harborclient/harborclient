@@ -31,6 +31,7 @@ import { Modal, ModalFooter } from '@harborclient/sdk/components';
 import { FieldError } from '@harborclient/sdk/components';
 import { StatusMessage } from '@harborclient/sdk/components';
 import { formatErrorMessage } from '#/renderer/src/ui/modals/dialogHelpers';
+import { useSidebarGit } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarGitContext';
 
 import { GitTabPanel } from './GitTabPanel';
 
@@ -40,6 +41,7 @@ import { GitTabPanel } from './GitTabPanel';
 export function CollectionModal(): JSX.Element | null {
   const dispatch = useAppDispatch();
   const collectionModal = useAppSelector(selectCollectionModal);
+  const { refreshGitSidebar } = useSidebarGit();
   const [gitBusy, setGitBusy] = useState(false);
   const {
     providers,
@@ -142,6 +144,7 @@ export function CollectionModal(): JSX.Element | null {
           })
         ).unwrap();
         dispatch(setCollectionModalGitCollectionCreated(true));
+        refreshGitSidebar();
         if (collectionModal.mode === 'create-and-save') {
           await dispatch(saveRequest(collection.id)).unwrap();
           toast.success('Request saved');
@@ -164,7 +167,7 @@ export function CollectionModal(): JSX.Element | null {
         setGitBusy(false);
       }
     },
-    [collectionModal, dispatch]
+    [collectionModal, dispatch, refreshGitSidebar]
   );
 
   /**
@@ -340,6 +343,7 @@ export function CollectionModal(): JSX.Element | null {
                 }
               }}
               onCreate={(options) => void handleGitCreate(options)}
+              onAuthValidationError={(message) => dispatch(setCollectionModalSubmitError(message))}
             />
           </SegmentedTabPanel>
 

@@ -286,6 +286,9 @@ export const generalSettings = z.object({
   warnWhenAgentUsesTerminal: z.boolean(),
   gitAutoAdd: z.boolean(),
   externalMergeEditorPath: z.string(),
+  gitCommitAuthorName: z.string(),
+  gitCommitAuthorEmail: z.string(),
+  gitCommitAuthorPrompted: z.boolean(),
   codeEditorTheme: z.enum(CODE_EDITOR_THEME_IDS),
   codeEditorSetup: z.object({
     lineNumbers: z.boolean(),
@@ -694,6 +697,7 @@ export const ipcArgSchemas = {
   menuThemeMenuState: z.tuple([themeSource, z.array(themeMenuOption)]),
   menuDesignerUndoRedo: z.tuple([z.boolean(), z.boolean(), z.boolean()]),
   menuTabGroupAvailable: z.tuple([z.boolean()]),
+  menuSidebarDeselectAllAvailable: z.tuple([z.boolean()]),
   menuGitCollectionActive: z.tuple([z.boolean()]),
   menuPopupSubmenu: z.tuple([rootMenuLabel, z.number(), z.number()]),
   menuGetSubmenuSnapshot: z.tuple([rootMenuLabel]),
@@ -873,6 +877,8 @@ export const ipcArgSchemas = {
     })
   ]),
   gitLog: z.tuple([connectionId, z.number().int().positive().optional()]),
+  gitSuggestedAuthor: z.tuple([connectionId.optional()]),
+  gitDeleteRepoDirectory: z.tuple([connectionId]),
   gitGraphLog: z.tuple([connectionId, z.number().int().positive().optional()]),
   gitCommitDetail: z.tuple([connectionId, z.string().trim().min(1)]),
   gitCommitFileDiff: z.tuple([
@@ -928,7 +934,12 @@ export const ipcArgSchemas = {
   gitChangedItemCount: z.tuple([connectionId, z.string().trim().min(1)]),
   gitStageItem: z.tuple([connectionId, z.string().trim().min(1), z.string().trim().min(1)]),
   gitUnstageItem: z.tuple([connectionId, z.string().trim().min(1), z.string().trim().min(1)]),
-  gitRevertFile: z.tuple([connectionId, z.string().trim().min(1), z.string().trim().min(1)]),
+  gitRevertFile: z.tuple([
+    connectionId,
+    z.string().trim().min(1),
+    z.string().trim().min(1),
+    z.array(z.string().trim().min(1)).optional()
+  ]),
   gitSetPat: z.tuple([connectionId, z.string(), z.string().min(1)]),
   readGitRemoteUrl: z.tuple([z.string()]),
   gitHost: z.tuple([z.string().min(1)]),

@@ -18,6 +18,7 @@ let designerUndoRedoActive = false;
 let designerCanUndo = false;
 let designerCanRedo = false;
 let tabGroupAvailable = false;
+let sidebarDeselectAllAvailable = false;
 let gitCollectionActive = false;
 
 /**
@@ -285,6 +286,19 @@ export function setMenuTabGroupAvailable(available: boolean): void {
 }
 
 /**
+ * Updates the Edit menu Deselect all item and rebuilds when the value changes.
+ *
+ * @param available - Whether the collections sidebar has selection to clear.
+ */
+export function setMenuSidebarDeselectAllAvailable(available: boolean): void {
+  if (sidebarDeselectAllAvailable === available) {
+    return;
+  }
+  sidebarDeselectAllAvailable = available;
+  rebuildAppMenu();
+}
+
+/**
  * Updates Git menu item enabled state and rebuilds when the value changes.
  *
  * @param active - Whether the active collection is git-backed.
@@ -331,6 +345,7 @@ export function rebuildAppMenu(): void {
       designerCanUndo,
       designerCanRedo,
       tabGroupAvailable,
+      sidebarDeselectAllAvailable,
       gitCollectionActive
     )
   );

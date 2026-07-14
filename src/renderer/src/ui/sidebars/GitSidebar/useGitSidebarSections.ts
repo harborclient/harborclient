@@ -1,5 +1,4 @@
-import { useAccordionProvider } from '@szhsin/react-accordion';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { GitSidebarSectionKey } from '#/shared/gitSidebarExpansion';
 import { useGitSidebarExpansion } from '#/renderer/src/ui/sidebars/GitSidebar/useGitSidebarExpansion';
 
@@ -7,8 +6,8 @@ import { useGitSidebarExpansion } from '#/renderer/src/ui/sidebars/GitSidebar/us
  * Accordion provider and persisted section visibility for the Git sidebar.
  */
 export function useGitSidebarSections(): {
-  accordion: ReturnType<typeof useAccordionProvider>;
-  sections: Record<GitSidebarSectionKey, boolean>;
+  expanded: Record<GitSidebarSectionKey, boolean>;
+  onToggle: (key: string, expanded: boolean) => void;
   sectionVisibility: Record<GitSidebarSectionKey, boolean>;
   setSectionVisible: (key: GitSidebarSectionKey, visible: boolean) => void;
 } {
@@ -18,7 +17,7 @@ export function useGitSidebarSections(): {
   /**
    * Writes accordion item state into persisted Git sidebar expansion booleans.
    */
-  const applySectionExpanded = useCallback(
+  const onToggle = useCallback(
     (key: string, isEnter: boolean): void => {
       if (key === 'commitMessage' || key === 'changes' || key === 'commits') {
         setSectionExpanded(key, isEnter);
@@ -27,34 +26,14 @@ export function useGitSidebarSections(): {
     [setSectionExpanded]
   );
 
-  const accordion = useAccordionProvider({
-    allowMultiple: true,
-    transition: true,
-    transitionTimeout: 200,
-    mountOnEnter: true,
-    onStateChange: ({ key, current }) => {
-      applySectionExpanded(String(key), current.isEnter);
-    }
-  });
-  const { stateMap, toggle } = accordion;
-
   /**
-   * Pushes persisted expansion booleans into the accordion provider on load and updates.
+   * Controlled expanded map fed into SDK `SidebarSections`.
    */
-  useEffect(() => {
-    (Object.keys(sections) as GitSidebarSectionKey[]).forEach((key) => {
-      const wantExpanded = sections[key];
-      const current = stateMap.get(key);
-      if (current != null && current.isEnter !== wantExpanded) {
-        toggle(key, wantExpanded);
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- stateMap intentionally excluded; see useSidebarAccordion
-  }, [sections, toggle]);
+  const expanded = useMemo((): Record<GitSidebarSectionKey, boolean> => sections, [sections]);
 
   return {
-    accordion,
-    sections,
+    expanded,
+    onToggle,
     sectionVisibility,
     setSectionVisible
   };

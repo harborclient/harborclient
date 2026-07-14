@@ -62,7 +62,8 @@ describe('dialogHelpers', () => {
         confirmLabel: 'Delete',
         cancelLabel: 'Cancel',
         variant: 'danger',
-        checkboxLabel: undefined
+        checkboxLabel: undefined,
+        reconfirm: undefined
       }
     });
 
@@ -92,7 +93,8 @@ describe('dialogHelpers', () => {
         confirmLabel: 'Switch theme',
         cancelLabel: 'Cancel',
         variant: 'default',
-        checkboxLabel: 'Do not ask again'
+        checkboxLabel: 'Do not ask again',
+        reconfirm: undefined
       }
     });
 
@@ -106,5 +108,32 @@ describe('dialogHelpers', () => {
     });
     resolveConfirm(dispatch, false, true);
     await expect(cancelled).resolves.toEqual({ confirmed: false, checkboxChecked: true });
+  });
+
+  it('showConfirm passes reconfirm flag into confirm modal state', async () => {
+    const dispatch = vi.fn();
+    const pending = showConfirm(dispatch, {
+      title: 'Delete collection',
+      message: 'Delete this collection?',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      reconfirm: true
+    });
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: setConfirmModal.type,
+      payload: {
+        title: 'Delete collection',
+        message: 'Delete this collection?',
+        confirmLabel: 'Delete',
+        cancelLabel: 'Cancel',
+        variant: 'danger',
+        checkboxLabel: undefined,
+        reconfirm: true
+      }
+    });
+
+    resolveConfirm(dispatch, true);
+    await expect(pending).resolves.toBe(true);
   });
 });

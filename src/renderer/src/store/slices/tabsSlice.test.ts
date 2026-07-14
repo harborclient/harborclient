@@ -20,6 +20,8 @@ import tabsReducer, {
   closeTab,
   closeTabsForCollection,
   closeTabsForEnvironment,
+  closeAllRequestAndMarkdownTabs,
+  closeRequestAndMarkdownTabsForCollection,
   closeTabsForRequest,
   loadDocument,
   loadRequest,
@@ -370,6 +372,55 @@ describe('tabsSlice closeTabsForEnvironment', () => {
 
     expect(state.tabs).toHaveLength(1);
     expect(isPageTab(state.tabs[0]!)).toBe(false);
+  });
+});
+
+describe('tabsSlice closeAllRequestAndMarkdownTabs', () => {
+  it('closes every request and markdown tab but leaves page tabs open', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, closeTab(state.activeTabId));
+    state = tabsReducer(state, loadRequest({ req: sampleSaved({ id: 11, collection_id: 1 }) }));
+    state = tabsReducer(
+      state,
+      loadDocument({ doc: sampleDocument({ id: 22, collection_id: 2 }), activate: false })
+    );
+    state = tabsReducer(state, openPageTab({ type: 'plugins' }));
+
+    state = tabsReducer(state, closeAllRequestAndMarkdownTabs());
+
+    expect(state.tabs).toHaveLength(1);
+    expect(isPageTab(state.tabs[0]!)).toBe(true);
+    if (isPageTab(state.tabs[0]!)) {
+      expect(state.tabs[0].page.type).toBe('plugins');
+    }
+  });
+});
+
+describe('tabsSlice closeRequestAndMarkdownTabsForCollection', () => {
+  it('closes only request and markdown tabs for the target collection', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, closeTab(state.activeTabId));
+    state = tabsReducer(
+      state,
+      loadRequest({ req: sampleSaved({ id: 11, collection_id: 1 }), activate: false })
+    );
+    state = tabsReducer(
+      state,
+      loadRequest({ req: sampleSaved({ id: 12, collection_id: 2 }), activate: false })
+    );
+    state = tabsReducer(
+      state,
+      loadDocument({ doc: sampleDocument({ id: 21, collection_id: 1 }), activate: false })
+    );
+    state = tabsReducer(state, openPageTab({ type: 'collection', id: 1 }));
+
+    state = tabsReducer(state, closeRequestAndMarkdownTabsForCollection(1));
+
+    expect(state.tabs).toHaveLength(2);
+    expect(state.tabs.some((tab) => isRequestTab(tab) && tab.draft.id === 12)).toBe(true);
+    expect(isPageTab(state.tabs.find((tab) => isPageTab(tab))!)).toBe(true);
+    expect(state.tabs.some((tab) => isMarkdownTab(tab))).toBe(false);
+    expect(state.tabs.some((tab) => isRequestTab(tab) && tab.draft.id === 11)).toBe(false);
   });
 });
 

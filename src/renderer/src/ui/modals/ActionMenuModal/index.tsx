@@ -51,11 +51,55 @@ import {
 } from '#/renderer/src/store/slices/modalsSlice';
 import { startNewChatWithPrompt } from '#/renderer/src/store/thunks/aiChat';
 import { ACTION_MENU_ICON_CLASS, iconActionMenu } from '#/renderer/src/icons/customIcons';
-import { BreadcrumbPrefix } from '#/renderer/src/ui/Main/RequestEditor/Editor/BreadcrumbPrefix';
 import { METHOD_CLASSES } from '#/renderer/src/ui/shared/classes';
 
 /** Element id for the Action menu search field. */
 const ACTION_MENU_INPUT_ID = 'action-menu-input';
+
+interface InlineBreadcrumbPrefixProps {
+  /**
+   * Collection segment shown before the result title.
+   */
+  collectionName?: string;
+
+  /**
+   * Optional folder segment shown after the collection.
+   */
+  folderName?: string;
+}
+
+/**
+ * Compact read-only breadcrumb prefix for Action menu search result rows.
+ */
+function InlineBreadcrumbPrefix({
+  collectionName,
+  folderName
+}: InlineBreadcrumbPrefixProps): JSX.Element | null {
+  if (!collectionName && !folderName) return null;
+
+  const separator = (
+    <span aria-hidden="true" className="shrink-0 text-muted">
+      /
+    </span>
+  );
+
+  return (
+    <span className="inline-flex min-w-0 shrink items-center gap-1 overflow-hidden text-muted">
+      {collectionName ? (
+        <>
+          <span className="truncate">{collectionName}</span>
+          {separator}
+        </>
+      ) : null}
+      {folderName ? (
+        <>
+          <span className="truncate">{folderName}</span>
+          {separator}
+        </>
+      ) : null}
+    </span>
+  );
+}
 
 /** Debounce delay before running unified search against warm indexes. */
 const SEARCH_DEBOUNCE_MS = 150;
@@ -203,10 +247,9 @@ function SearchResultGroup({
               >
                 {hit.domain === 'request' ? (
                   <span className="flex min-w-0 w-full items-center gap-1">
-                    <BreadcrumbPrefix
+                    <InlineBreadcrumbPrefix
                       collectionName={requestBreadcrumb?.collectionName}
                       folderName={requestBreadcrumb?.folderName}
-                      compact
                     />
                     {hit.method != null ? (
                       <span
@@ -219,11 +262,10 @@ function SearchResultGroup({
                   </span>
                 ) : hit.domain === 'plugin' || hit.domain === 'theme' ? (
                   <span className="flex min-w-0 w-full items-center gap-1">
-                    <BreadcrumbPrefix
+                    <InlineBreadcrumbPrefix
                       collectionName={
                         hit.pluginListingSource === 'installed' ? 'Installed' : 'Marketplace'
                       }
-                      compact
                     />
                     <span className="min-w-0 flex-1 truncate">{hit.title}</span>
                   </span>

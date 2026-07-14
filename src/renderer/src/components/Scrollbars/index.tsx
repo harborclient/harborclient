@@ -1,17 +1,11 @@
-import {
-  OverlayScrollbarsComponent,
-  type OverlayScrollbarsComponentProps
-} from 'overlayscrollbars-react';
-import type { PartialOptions, ScrollbarsAutoHideBehavior } from 'overlayscrollbars';
-import { useMemo, type JSX, type ReactNode } from 'react';
-
+import { Scrollbars as SdkScrollbars, type ScrollbarsAxis } from '@harborclient/sdk/components';
+import type { OverlayScrollbarsComponentProps } from 'overlayscrollbars-react';
+import type { PartialOptions } from 'overlayscrollbars';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectScrollbarAutoHide } from '#/renderer/src/store/slices/settingsSlice';
+import { useMemo, type JSX, type ReactNode } from 'react';
 
-/**
- * Scroll axis configuration for the HarborClient scrollbar wrapper.
- */
-export type ScrollbarsAxis = 'vertical' | 'horizontal' | 'both';
+export type { ScrollbarsAxis };
 
 interface Props extends Omit<OverlayScrollbarsComponentProps, 'options' | 'children'> {
   /**
@@ -31,49 +25,10 @@ interface Props extends Omit<OverlayScrollbarsComponentProps, 'options' | 'child
 }
 
 /**
- * Default OverlayScrollbars options shared by HarborClient scroll regions.
- */
-const HARBOR_SCROLLBARS_OPTIONS: PartialOptions = {
-  scrollbars: {
-    theme: 'os-theme-harbor',
-    visibility: 'auto',
-    autoHideDelay: 800
-  }
-};
-
-/**
- * Maps the General settings auto-hide preference to OverlayScrollbars behavior.
+ * Theme-aware scroll container backed by the SDK OverlayScrollbars wrapper.
  *
- * @param enabled - When true, handles fade after scrolling stops.
- * @returns OverlayScrollbars auto-hide mode.
- */
-function resolveScrollbarAutoHide(enabled: boolean): ScrollbarsAutoHideBehavior {
-  return enabled ? 'scroll' : 'never';
-}
-
-/**
- * Maps a scroll axis hint to OverlayScrollbars overflow behavior.
- *
- * @param axis - Requested scroll direction(s).
- * @returns Overflow options for the OverlayScrollbars instance.
- */
-function getOverflowOptions(axis: ScrollbarsAxis): PartialOptions['overflow'] {
-  switch (axis) {
-    case 'horizontal':
-      return { x: 'scroll', y: 'hidden' };
-    case 'vertical':
-      return { x: 'hidden', y: 'scroll' };
-    case 'both':
-    default:
-      return { x: 'scroll', y: 'scroll' };
-  }
-}
-
-/**
- * Theme-aware scroll container backed by OverlayScrollbars.
- *
- * Uses the `os-theme-harbor` CSS theme so scrollbar colors follow active
- * `--mac-scrollbar-*` tokens from built-in, custom, and plugin themes.
+ * Reads the General settings auto-hide preference from Redux and passes it to
+ * the SDK `Scrollbars` component.
  */
 export function Scrollbars({
   axis = 'vertical',
@@ -85,32 +40,19 @@ export function Scrollbars({
   const scrollbarAutoHide = useAppSelector(selectScrollbarAutoHide);
 
   /**
-   * Merges HarborClient defaults with per-instance overflow and caller overrides.
+   * Forwards HarborClient scrollbar settings to the SDK wrapper.
    */
-  const mergedOptions = useMemo<PartialOptions>(() => {
-    const baseScrollbars = HARBOR_SCROLLBARS_OPTIONS.scrollbars ?? {};
-    const overrideScrollbars =
-      options && typeof options === 'object' ? (options.scrollbars ?? {}) : {};
-    const axisOverflow = getOverflowOptions(axis);
-    const overrideOverflow = options && typeof options === 'object' ? options.overflow : undefined;
-
-    const autoHide = axis === 'horizontal' ? 'never' : resolveScrollbarAutoHide(scrollbarAutoHide);
-
-    return {
-      ...HARBOR_SCROLLBARS_OPTIONS,
-      ...options,
-      overflow: overrideOverflow ? { ...axisOverflow, ...overrideOverflow } : axisOverflow,
-      scrollbars: {
-        ...baseScrollbars,
-        autoHide,
-        ...overrideScrollbars
-      }
-    };
-  }, [axis, options, scrollbarAutoHide]);
+  const autoHide = useMemo(() => scrollbarAutoHide, [scrollbarAutoHide]);
 
   return (
-    <OverlayScrollbarsComponent className={className} options={mergedOptions} {...rest}>
+    <SdkScrollbars
+      axis={axis}
+      autoHide={autoHide}
+      className={className}
+      options={options}
+      {...rest}
+    >
       {children}
-    </OverlayScrollbarsComponent>
+    </SdkScrollbars>
   );
 }

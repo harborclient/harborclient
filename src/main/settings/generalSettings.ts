@@ -39,6 +39,9 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   warnWhenAgentUsesTerminal: true,
   gitAutoAdd: true,
   externalMergeEditorPath: '',
+  gitCommitAuthorName: '',
+  gitCommitAuthorEmail: '',
+  gitCommitAuthorPrompted: false,
   codeEditorTheme: 'default',
   codeEditorSetup: { ...DEFAULT_CODE_EDITOR_SETUP },
   codeEditorFontSize: DEFAULT_CODE_EDITOR_FONT_SIZE,
@@ -177,6 +180,11 @@ function normalizeSettings(input: Partial<GeneralSettings>): GeneralSettings {
     gitAutoAdd: input.gitAutoAdd !== false,
     externalMergeEditorPath:
       typeof input.externalMergeEditorPath === 'string' ? input.externalMergeEditorPath.trim() : '',
+    gitCommitAuthorName:
+      typeof input.gitCommitAuthorName === 'string' ? input.gitCommitAuthorName.trim() : '',
+    gitCommitAuthorEmail:
+      typeof input.gitCommitAuthorEmail === 'string' ? input.gitCommitAuthorEmail.trim() : '',
+    gitCommitAuthorPrompted: input.gitCommitAuthorPrompted === true,
     codeEditorTheme: normalizeCodeEditorTheme(input.codeEditorTheme),
     codeEditorSetup: normalizeCodeEditorSetup(input.codeEditorSetup),
     codeEditorFontSize: normalizeCodeEditorFontSize(input.codeEditorFontSize),

@@ -388,14 +388,19 @@ export class RoutingStorage implements IStorage {
   /**
    * Discards working-tree changes for one request or markdown file path.
    *
+   * When `previousPaths` is provided, restores each deleted rename source after
+   * reverting the current path so a rename is fully undone.
+   *
    * @param connectionId - Git connection id.
    * @param collectionUuid - Stable collection uuid.
    * @param filePath - Repository-relative changed file path.
+   * @param previousPaths - Optional deleted paths to restore when reverting a rename.
    */
   async revertGitFile(
     connectionId: string,
     collectionUuid: string,
-    filePath: string
+    filePath: string,
+    previousPaths?: string[]
   ): Promise<void> {
     const { gitDb, collection } = await this.resolveGitCollection(connectionId, collectionUuid);
 
@@ -412,6 +417,26 @@ export class RoutingStorage implements IStorage {
     }
 
     await gitDb.syncManager.revertFile(trimmedPath);
+
+    for (const previousPath of previousPaths ?? []) {
+      const trimmedPreviousPath = previousPath.trim();
+      if (!trimmedPreviousPath || trimmedPreviousPath === trimmedPath) {
+        continue;
+      }
+
+      const previousClassified = classifyHarborChangePath(trimmedPreviousPath, status.harborSubdir);
+      if (
+        previousClassified == null ||
+        (previousClassified.kind !== 'request' && previousClassified.kind !== 'document')
+      ) {
+        continue;
+      }
+      if (!isCollectionScopedHarborChange(previousClassified, collectionDir)) {
+        continue;
+      }
+
+      await gitDb.syncManager.revertFile(trimmedPreviousPath);
+    }
   }
 
   /**

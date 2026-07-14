@@ -82,6 +82,7 @@ import { isActivePageTabDirty, pageTabCloseName } from './pageTabCloseHelpers';
 import { PageTabContent } from './PageTabContent';
 import { ResponseEditor } from '../ResponseEditor';
 import { RESPONSE_EDITOR_SECTION_ID } from '../ResponseEditor/focusResponseEditor';
+import { REQUEST_EDITOR_SECTION_ID } from '#/renderer/src/ui/shared/skipNavigationTargets';
 import { TabBar } from './TabBar';
 import { MarkdownEditorTab } from './MarkdownEditorTab';
 
@@ -578,6 +579,8 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
             <>
               {showRequestEditor ? (
                 <section
+                  id={REQUEST_EDITOR_SECTION_ID}
+                  tabIndex={-1}
                   aria-label="Request editor"
                   ref={splitRef}
                   style={showSplitLayout ? { height: editorHeight } : undefined}
@@ -640,6 +643,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
               {showResponseEditor ? (
                 <section
                   id={RESPONSE_EDITOR_SECTION_ID}
+                  tabIndex={-1}
                   aria-label="Response"
                   className="flex min-h-0 flex-1 flex-col"
                 >

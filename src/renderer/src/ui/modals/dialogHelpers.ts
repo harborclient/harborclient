@@ -17,6 +17,8 @@ export interface ConfirmOptions {
   variant?: 'default' | 'danger';
   /** When set, renders a checkbox below the message with this label. */
   checkboxLabel?: string;
+  /** When true, the confirm button requires a second "Are you sure?" click. */
+  reconfirm?: boolean;
 }
 
 /**
@@ -134,7 +136,8 @@ export function showConfirm(
         confirmLabel: options.confirmLabel ?? 'Confirm',
         cancelLabel: options.cancelLabel ?? 'Cancel',
         variant: options.variant ?? 'default',
-        checkboxLabel: options.checkboxLabel
+        checkboxLabel: options.checkboxLabel,
+        reconfirm: options.reconfirm
       })
     );
   });

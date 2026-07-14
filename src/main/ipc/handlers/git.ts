@@ -1,6 +1,6 @@
 import { shell } from 'electron';
 import * as git from 'isomorphic-git';
-import fs, { existsSync } from 'fs';
+import fs, { existsSync, rmSync, statSync } from 'fs';
 import { spawn } from 'child_process';
 import { GitStorage } from '#/main/storage/GitStorage';
 import type { IStorage } from '#/main/storage/IStorage';
@@ -31,6 +31,7 @@ import { buildGitDiff, makeCollectionScopedFilter, type GitDiffResult } from '#/
 import { resolveHarborclientRoot } from '#/main/git/fileLayout';
 import { collectionDirName } from '#/main/git/slug';
 import { buildFileCommitDiff, readFileCommitHistory } from '#/main/git/gitFileHistory';
+import { readSuggestedGitAuthor } from '#/main/git/gitAuthorSuggestion';
 import type {
   GitCommitsResult,
   GitFileDiffResult,
@@ -182,6 +183,14 @@ export function registerGitHandlers(db: IStorage): void {
   // Lists saved git host identities.
   handle('git:listIdentities', ipcArgSchemas.none, async () => listGitIdentities());
 
+  // Suggests commit author name/email from repo-local and global git config.
+  handle('git:suggestedAuthor', ipcArgSchemas.gitSuggestedAuthor, async (_event, connectionId) => {
+    const repoPath = connectionId
+      ? requireGitStorage(db, connectionId).syncManager.repoDir
+      : undefined;
+    return readSuggestedGitAuthor(repoPath);
+  });
+
   // Commits local changes for one git-backed collection.
   handle(
     'git:commit',
@@ -193,9 +202,11 @@ export function registerGitHandlers(db: IStorage): void {
         throw new Error(`Collection not found for uuid "${collectionUuid}".`);
       }
       const collectionPrefix = gitDb.getCollectionRepoRelativePath(collection.id);
+      const { gitCommitAuthorName, gitCommitAuthorEmail } = getGeneralSettings();
       await gitDb.syncManager.commit(message, {
         createHarborRoot,
-        collectionPrefix
+        collectionPrefix,
+        author: { name: gitCommitAuthorName, email: gitCommitAuthorEmail }
       });
     }
   );
@@ -244,7 +255,10 @@ export function registerGitHandlers(db: IStorage): void {
   handle('git:merge', ipcArgSchemas.gitMergeBranch, async (_event, connectionId, name) => {
     const router = requireRoutingStorage(db);
     const gitDb = requireGitStorage(db, connectionId);
-    const result = await gitDb.syncManager.mergeBranch(name);
+    const { gitCommitAuthorName, gitCommitAuthorEmail } = getGeneralSettings();
+    const result = await gitDb.syncManager.mergeBranch(name, {
+      author: { name: gitCommitAuthorName, email: gitCommitAuthorEmail }
+    });
 
     try {
       await gitDb.reloadFromDisk();
@@ -611,10 +625,10 @@ export function registerGitHandlers(db: IStorage): void {
   handle(
     'git:revertFile',
     ipcArgSchemas.gitRevertFile,
-    async (_event, connectionId, collectionUuid, filePath) => {
+    async (_event, connectionId, collectionUuid, filePath, previousPaths) => {
       const router = requireRoutingStorage(db);
       const gitDb = requireGitStorage(db, connectionId);
-      await router.revertGitFile(connectionId, collectionUuid, filePath);
+      await router.revertGitFile(connectionId, collectionUuid, filePath, previousPaths);
       await gitDb.reloadFromDisk();
       await router.reconcileGitRegistry(connectionId);
     }
@@ -713,4 +727,16 @@ export function registerGitHandlers(db: IStorage): void {
       });
     }
   });
+
+  // Permanently removes the local git clone directory for a git-backed connection.
+  handle(
+    'git:deleteRepoDirectory',
+    ipcArgSchemas.gitDeleteRepoDirectory,
+    async (_event, connectionId) => {
+      const repoDir = requireGitStorage(db, connectionId).syncManager.repoDir;
+      if (repoDir && existsSync(repoDir) && statSync(repoDir).isDirectory()) {
+        rmSync(repoDir, { recursive: true, force: true });
+      }
+    }
+  );
 }

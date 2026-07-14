@@ -9,6 +9,21 @@ import { OAuthAuthPanel } from '#/renderer/src/ui/Settings/StorageLocationsSecti
 import { PatAuthPanel } from '#/renderer/src/ui/Settings/StorageLocationsSection/GitFields/PatAuthPanel';
 import type { AuthView } from '#/renderer/src/ui/Settings/StorageLocationsSection/GitFields/types';
 
+/**
+ * Result passed to {@link Props.onAuthorized} after credentials are stored.
+ */
+export interface GitAuthAuthorizedResult {
+  /**
+   * Error message when credentials were saved but repository validation failed.
+   */
+  validationError?: string;
+
+  /**
+   * Whether the validation error indicates the remote repository was not found.
+   */
+  repoNotFound?: boolean;
+}
+
 interface Props {
   /**
    * Normalized lowercase git host key.
@@ -33,7 +48,28 @@ interface Props {
   /**
    * Called after credentials are saved or revoked successfully.
    */
-  onAuthorized?: () => void;
+  onAuthorized?: (result?: GitAuthAuthorizedResult) => void;
+}
+
+/**
+ * Returns whether an error message indicates the remote repository was not found.
+ *
+ * @param message - Error message from git validation.
+ */
+function isRepoNotFoundError(message: string): boolean {
+  return /\b404\b/i.test(message) || /not found/i.test(message);
+}
+
+/**
+ * Builds a user-facing message when credentials were saved but validation failed.
+ *
+ * @param validationError - Raw validation error from the main process.
+ */
+function credentialsSavedValidationMessage(validationError: string): string {
+  if (isRepoNotFoundError(validationError)) {
+    return 'Credentials saved, but the repository URL was not found. Check the URL and try again.';
+  }
+  return 'Credentials saved, but the repository could not be verified. Check the URL and try again.';
 }
 
 /**
@@ -120,6 +156,20 @@ export function GitAuthForm({
         void reloadIdentity().then(() => {
           setOauthUserCode(null);
           setAuthView('oauth');
+          setOauthWaiting(false);
+
+          if (event.validationError) {
+            const repoNotFound = isRepoNotFoundError(event.validationError);
+            const message = credentialsSavedValidationMessage(event.validationError);
+            if (onAuthorized) {
+              setAuthError(message);
+              onAuthorized({ validationError: event.validationError, repoNotFound });
+            } else {
+              setAuthError(message);
+            }
+            return;
+          }
+
           setAuthError(null);
           toast.success('GitHub authorization complete.');
           onAuthorized?.();
@@ -156,7 +206,21 @@ export function GitAuthForm({
       toast.success('Token saved and validated.');
       onAuthorized?.();
     } catch (err) {
-      setAuthError(err instanceof Error ? err.message : String(err));
+      const message = err instanceof Error ? err.message : String(err);
+      await reloadIdentity();
+      const identities = await window.api.listGitIdentities();
+      const updated = identities.find((item) => item.host === host) ?? null;
+      if (updated?.hasCredentials && onAuthorized) {
+        setPatToken('');
+        setAuthView('pat');
+        setAuthError(credentialsSavedValidationMessage(message));
+        onAuthorized({
+          validationError: message,
+          repoNotFound: isRepoNotFoundError(message)
+        });
+      } else {
+        setAuthError(message);
+      }
     } finally {
       setAuthBusy(false);
     }

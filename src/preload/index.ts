@@ -1187,6 +1187,15 @@ function setTabGroupAvailable(available: boolean): Promise<void> {
 }
 
 /**
+ * Syncs collections sidebar deselect availability to the Edit menu in the main process.
+ *
+ * @param available - Whether the collections sidebar has selection to clear.
+ */
+function setSidebarDeselectAllAvailable(available: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setSidebarDeselectAllAvailable', available);
+}
+
+/**
  * Syncs git-backed collection availability to the Git menu in the main process.
  *
  * @param active - Whether the active collection is git-backed.
@@ -2197,6 +2206,20 @@ function onGitWorkingTreeChanged(callback: (connectionId: string) => void): () =
 }
 
 /**
+ * Subscribes to storage connection list changes (save or delete).
+ *
+ * @param callback - Handler invoked when connections change.
+ * @returns Unsubscribe function.
+ */
+function onStorageConnectionsChanged(callback: () => void): () => void {
+  const listener = (): void => {
+    callback();
+  };
+  ipcRenderer.on('storageConnections:changed', listener);
+  return () => ipcRenderer.removeListener('storageConnections:changed', listener);
+}
+
+/**
  * Subscribes to background GitHub OAuth completion events.
  *
  * @param callback - Handler invoked when OAuth polling finishes or fails.
@@ -2356,6 +2379,24 @@ function gitLog(
   depth?: number
 ): Promise<import('#/shared/types').GitLogEntry[]> {
   return ipcRenderer.invoke('git:log', connectionId, depth);
+}
+
+/**
+ * Suggests commit author name and email from repo-local and global git config.
+ *
+ * @param connectionId - Optional git connection id for repo-local lookup.
+ */
+function gitSuggestedAuthor(connectionId?: string): Promise<{ name: string; email: string }> {
+  return ipcRenderer.invoke('git:suggestedAuthor', connectionId);
+}
+
+/**
+ * Permanently removes the local git clone directory for a git-backed connection.
+ *
+ * @param connectionId - Git connection id whose repoPath should be deleted.
+ */
+function gitDeleteRepoDirectory(connectionId: string): Promise<void> {
+  return ipcRenderer.invoke('git:deleteRepoDirectory', connectionId);
 }
 
 /**
@@ -2529,13 +2570,21 @@ function gitUnstageItem(
  * @param connectionId - Git connection id.
  * @param collectionUuid - Stable collection uuid.
  * @param filePath - Repository-relative changed file path.
+ * @param previousPaths - Optional deleted paths to restore when reverting a rename.
  */
 function gitRevertFile(
   connectionId: string,
   collectionUuid: string,
-  filePath: string
+  filePath: string,
+  previousPaths?: string[]
 ): Promise<void> {
-  return ipcRenderer.invoke('git:revertFile', connectionId, collectionUuid, filePath);
+  return ipcRenderer.invoke(
+    'git:revertFile',
+    connectionId,
+    collectionUuid,
+    filePath,
+    previousPaths
+  );
 }
 
 /**
@@ -3785,6 +3834,7 @@ const api: Api = {
   setMenuThemeMenuState,
   setMenuDesignerUndoRedo,
   setTabGroupAvailable,
+  setSidebarDeselectAllAvailable,
   setMenuGitCollectionActive,
   onMenuSelectTheme,
   popupMenuSubmenu,
@@ -3850,6 +3900,7 @@ const api: Api = {
   listStorageConnections,
   saveStorageConnection,
   deleteStorageConnection,
+  onStorageConnectionsChanged,
   listTeamHubs,
   saveTeamHub,
   deleteTeamHub,
@@ -3902,6 +3953,8 @@ const api: Api = {
   gitPull,
   gitPush,
   gitLog,
+  gitSuggestedAuthor,
+  gitDeleteRepoDirectory,
   gitGraphLog,
   gitCommitDetail,
   gitCommitFileDiff,

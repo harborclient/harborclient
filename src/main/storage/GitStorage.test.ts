@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from 'fs';
 import * as git from 'isomorphic-git';
 import fs from 'fs';
 import { tmpdir } from 'os';
@@ -70,10 +78,10 @@ describe('GitStorage', () => {
     expect(existsSync(join(harborRoot, collectionDirs[0]!, 'collection.json'))).toBe(true);
     expect(existsSync(join(harborRoot, 'collections'))).toBe(false);
 
-    await db.saveRequest(
+    const saved = await db.saveRequest(
       baseRequestInput(collection.id, { name: 'Get status', url: 'https://example.com/status' })
     );
-    expect(existsSync(join(harborRoot, collectionDirs[0]!, 'req-get-status.json'))).toBe(true);
+    expect(existsSync(join(harborRoot, collectionDirs[0]!, `req-${saved.uuid}.json`))).toBe(true);
 
     const exported = await db.exportCollectionData(collection.id);
     expect(exported.requests.length).toBe(1);
@@ -431,6 +439,190 @@ describe('GitStorage', () => {
 
     expect(changedCount).toBe(1);
     expect(diff.files).toHaveLength(changedCount);
+
+    await db.close();
+    rmSync(repoPath, { recursive: true, force: true });
+    rmSync(userDataPath, { recursive: true, force: true });
+  });
+
+  it('reports one modified change when a tracked request is renamed', async () => {
+    const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-git-rename-diff-'));
+    const userDataPath = mkdtempSync(join(tmpdir(), 'harborclient-git-rename-diff-userdata-'));
+    mkdirSync(join(repoPath, '.harborclient'), { recursive: true });
+
+    await git.init({ fs, dir: repoPath, defaultBranch: 'main' });
+    await git.setConfig({ fs, dir: repoPath, path: 'user.name', value: 'Test' });
+    await git.setConfig({ fs, dir: repoPath, path: 'user.email', value: 'test@example.com' });
+
+    const settings: GitSettings = {
+      repoPath,
+      url: 'https://github.com/example/repo.git',
+      branch: 'main',
+      subdir: '.harborclient',
+      auth: { kind: 'pat', username: 'token' }
+    };
+
+    const db = new GitStorage('rename-diff-connection', settings, userDataPath);
+    await db.init();
+    const collection = await db.createCollection('API');
+    const saved = await db.saveRequest(
+      baseRequestInput(collection.id, { name: 'Echo POST', url: 'https://example.com/posts' })
+    );
+    await db.stageItem(collection.id, saved.uuid);
+    await git.add({ fs, dir: repoPath, filepath: '.harborclient' });
+    await git.commit({
+      fs,
+      dir: repoPath,
+      message: 'Add request',
+      author: { name: 'Test', email: 'test@example.com' }
+    });
+
+    await db.saveRequest(
+      baseRequestInput(collection.id, {
+        id: saved.id,
+        name: 'Echo POST 2',
+        url: 'https://example.com/posts'
+      })
+    );
+
+    const diff = await buildGitDiff({
+      repoPath: db.syncManager.repoDir,
+      harborSubdir: '.harborclient',
+      enrichDisplayNames: true,
+      excludeUntracked: true,
+      filepathFilter: makeCollectionScopedFilter(
+        '.harborclient',
+        collectionDirName(collection.name)
+      )
+    });
+
+    const requestPath = `.harborclient/${collectionDirName(collection.name)}/req-${saved.uuid}.json`;
+
+    expect(diff.files).toHaveLength(1);
+    expect(diff.files[0]).toMatchObject({
+      path: requestPath,
+      status: 'modified',
+      displayName: 'Echo POST 2',
+      resourceKind: 'request',
+      method: 'GET'
+    });
+    expect(diff.files[0]?.renamedFrom).toBeUndefined();
+    expect(diff.files[0]?.previousPaths).toBeUndefined();
+
+    await db.close();
+    rmSync(repoPath, { recursive: true, force: true });
+    rmSync(userDataPath, { recursive: true, force: true });
+  });
+
+  it('recovers buried orphan request files with a new uuid on reload', async () => {
+    const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-git-orphan-recover-'));
+    const userDataPath = mkdtempSync(join(tmpdir(), 'harborclient-git-orphan-recover-userdata-'));
+    mkdirSync(join(repoPath, '.harborclient'), { recursive: true });
+
+    const settings: GitSettings = {
+      repoPath,
+      url: 'https://github.com/example/repo.git',
+      branch: 'main',
+      subdir: '.harborclient',
+      auth: { kind: 'pat', username: 'token' }
+    };
+
+    const connectionId = 'orphan-recover-connection';
+    const db = new GitStorage(connectionId, settings, userDataPath);
+    await db.init();
+    const collection = await db.createCollection('API');
+    const saved = await db.saveRequest(
+      baseRequestInput(collection.id, { name: 'Visible', url: 'https://example.com/visible' })
+    );
+
+    const collectionDir = join(repoPath, '.harborclient', collectionDirName(collection.name));
+    writeFileSync(
+      join(collectionDir, 'req-buried.json'),
+      JSON.stringify({
+        harborclientVersion: 1,
+        harborclientExport: 'request',
+        uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        name: 'Buried request',
+        method: 'GET',
+        url: 'https://example.com/buried',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none'
+      })
+    );
+
+    await db.reloadFromDisk();
+    const requests = await db.listRequests(collection.id);
+    expect(requests.map((request) => request.name).sort()).toEqual(
+      ['Buried request', 'Visible'].sort()
+    );
+    expect(requests.some((request) => request.uuid === saved.uuid)).toBe(true);
+
+    await db.close();
+    rmSync(repoPath, { recursive: true, force: true });
+    rmSync(userDataPath, { recursive: true, force: true });
+  });
+
+  it('reverts a renamed request by restoring the in-place file contents', async () => {
+    const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-git-rename-revert-'));
+    const userDataPath = mkdtempSync(join(tmpdir(), 'harborclient-git-rename-revert-userdata-'));
+    mkdirSync(join(repoPath, '.harborclient'), { recursive: true });
+
+    await git.init({ fs, dir: repoPath, defaultBranch: 'main' });
+    await git.setConfig({ fs, dir: repoPath, path: 'user.name', value: 'Test' });
+    await git.setConfig({ fs, dir: repoPath, path: 'user.email', value: 'test@example.com' });
+
+    const settings: GitSettings = {
+      repoPath,
+      url: 'https://github.com/example/repo.git',
+      branch: 'main',
+      subdir: '.harborclient',
+      auth: { kind: 'pat', username: 'token' }
+    };
+
+    const db = new GitStorage('rename-revert-connection', settings, userDataPath);
+    await db.init();
+    const collection = await db.createCollection('API');
+    const saved = await db.saveRequest(
+      baseRequestInput(collection.id, { name: 'Echo POST', url: 'https://example.com/posts' })
+    );
+    await db.stageItem(collection.id, saved.uuid);
+    await git.add({ fs, dir: repoPath, filepath: '.harborclient' });
+    await git.commit({
+      fs,
+      dir: repoPath,
+      message: 'Add request',
+      author: { name: 'Test', email: 'test@example.com' }
+    });
+
+    await db.saveRequest(
+      baseRequestInput(collection.id, {
+        id: saved.id,
+        name: 'Echo POST 2',
+        url: 'https://example.com/posts'
+      })
+    );
+
+    const collectionDir = join(repoPath, '.harborclient', collectionDirName(collection.name));
+    const requestFileName = `req-${saved.uuid}.json`;
+    const requestPath = `.harborclient/${collectionDirName(collection.name)}/${requestFileName}`;
+    expect(existsSync(join(collectionDir, requestFileName))).toBe(true);
+    expect(
+      JSON.parse(readFileSync(join(collectionDir, requestFileName), 'utf-8')) as { name?: string }
+    ).toMatchObject({ name: 'Echo POST 2' });
+
+    await db.syncManager.revertFile(requestPath);
+    await db.reloadFromDisk();
+
+    expect(existsSync(join(collectionDir, requestFileName))).toBe(true);
+    expect(
+      JSON.parse(readFileSync(join(collectionDir, requestFileName), 'utf-8')) as { name?: string }
+    ).toMatchObject({ name: 'Echo POST' });
+
+    const requests = await db.listRequests(collection.id);
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.name).toBe('Echo POST');
 
     await db.close();
     rmSync(repoPath, { recursive: true, force: true });

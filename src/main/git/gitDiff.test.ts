@@ -35,6 +35,44 @@ async function createTestRepo(): Promise<{ repoPath: string }> {
   return { repoPath };
 }
 
+/**
+ * Writes one HarborClient request export JSON file in a collection folder.
+ */
+function writeRequestExport(
+  collectionDir: string,
+  fileName: string,
+  payload: { uuid: string; name: string; method: string }
+): void {
+  writeFileSync(
+    join(collectionDir, fileName),
+    JSON.stringify({
+      harborclientVersion: 1,
+      harborclientExport: 'request',
+      uuid: payload.uuid,
+      name: payload.name,
+      method: payload.method,
+      url: 'https://example.com',
+      headers: [],
+      params: [],
+      body: '',
+      body_type: 'none'
+    })
+  );
+}
+
+/**
+ * Commits all current HarborClient working-tree changes in a test repository.
+ */
+async function commitHarborTree(repoPath: string, message: string): Promise<void> {
+  await git.add({ fs, dir: repoPath, filepath: '.harborclient' });
+  await git.commit({
+    fs,
+    dir: repoPath,
+    message,
+    author: { name: 'Test', email: 'test@example.com' }
+  });
+}
+
 describe('buildGitDiff', () => {
   afterEach(() => {
     for (const cleanup of cleanups) {
@@ -217,6 +255,190 @@ describe('buildGitDiff', () => {
       displayName: 'Health Check',
       resourceKind: 'request',
       method: 'GET'
+    });
+  });
+
+  it('collapses request renames into one modified row when excludeUntracked is true', async () => {
+    const { repoPath } = await createTestRepo();
+    const collectionDir = join(repoPath, '.harborclient', 'collection-api');
+    const requestUuid = '11111111-1111-4111-8111-111111111111';
+    mkdirSync(collectionDir, { recursive: true });
+    writeFileSync(
+      join(collectionDir, 'collection.json'),
+      JSON.stringify({
+        harborclientVersion: 1,
+        harborclientExport: 'collection',
+        uuid: '22222222-2222-4222-8222-222222222222',
+        name: 'API',
+        requests: ['req-echo-post.json']
+      })
+    );
+    writeRequestExport(collectionDir, 'req-echo-post.json', {
+      uuid: requestUuid,
+      name: 'Echo POST',
+      method: 'PUT'
+    });
+    await commitHarborTree(repoPath, 'Add request');
+
+    writeRequestExport(collectionDir, 'req-echo-post-2.json', {
+      uuid: requestUuid,
+      name: 'Echo POST 2',
+      method: 'PUT'
+    });
+    rmSync(join(collectionDir, 'req-echo-post.json'));
+
+    const diff = await buildGitDiff({
+      repoPath,
+      harborSubdir: '.harborclient',
+      enrichDisplayNames: true,
+      excludeUntracked: true,
+      filepathFilter: makeCollectionScopedFilter('.harborclient', 'collection-api')
+    });
+
+    expect(diff.files).toHaveLength(1);
+    expect(diff.files[0]).toMatchObject({
+      status: 'modified',
+      displayName: 'Echo POST 2',
+      resourceKind: 'request',
+      method: 'PUT',
+      renamedFrom: 'Echo POST',
+      previousPaths: ['.harborclient/collection-api/req-echo-post.json']
+    });
+    expect(diff.files[0]?.diff).toContain('Echo POST 2');
+  });
+
+  it('collapses same-uuid orphan deletions into one modified rename row', async () => {
+    const { repoPath } = await createTestRepo();
+    const collectionDir = join(repoPath, '.harborclient', 'collection-api');
+    const requestUuid = '33333333-3333-4333-8333-333333333333';
+    mkdirSync(collectionDir, { recursive: true });
+    writeFileSync(
+      join(collectionDir, 'collection.json'),
+      JSON.stringify({
+        harborclientVersion: 1,
+        harborclientExport: 'collection',
+        uuid: '44444444-4444-4444-8444-444444444444',
+        name: 'API',
+        requests: ['req-echo-post.json', 'req-untitled-request.json']
+      })
+    );
+    writeRequestExport(collectionDir, 'req-echo-post.json', {
+      uuid: requestUuid,
+      name: 'Echo POST',
+      method: 'PUT'
+    });
+    writeRequestExport(collectionDir, 'req-untitled-request.json', {
+      uuid: requestUuid,
+      name: 'Untitled Request',
+      method: 'GET'
+    });
+    await commitHarborTree(repoPath, 'Add duplicate slug files');
+
+    writeRequestExport(collectionDir, 'req-echo-post-2.json', {
+      uuid: requestUuid,
+      name: 'Echo POST 2',
+      method: 'PUT'
+    });
+    rmSync(join(collectionDir, 'req-echo-post.json'));
+    rmSync(join(collectionDir, 'req-untitled-request.json'));
+
+    const diff = await buildGitDiff({
+      repoPath,
+      harborSubdir: '.harborclient',
+      enrichDisplayNames: true,
+      excludeUntracked: true,
+      filepathFilter: makeCollectionScopedFilter('.harborclient', 'collection-api')
+    });
+
+    expect(diff.files).toHaveLength(1);
+    expect(diff.files[0]).toMatchObject({
+      status: 'modified',
+      displayName: 'Echo POST 2',
+      renamedFrom: 'Echo POST'
+    });
+    expect(diff.files[0]?.previousPaths?.sort()).toEqual(
+      [
+        '.harborclient/collection-api/req-echo-post.json',
+        '.harborclient/collection-api/req-untitled-request.json'
+      ].sort()
+    );
+  });
+
+  it('still excludes genuinely new untracked requests when excludeUntracked is true', async () => {
+    const { repoPath } = await createTestRepo();
+    const collectionDir = join(repoPath, '.harborclient', 'collection-api');
+    mkdirSync(collectionDir, { recursive: true });
+    writeFileSync(
+      join(collectionDir, 'collection.json'),
+      JSON.stringify({
+        harborclientVersion: 1,
+        harborclientExport: 'collection',
+        uuid: '55555555-5555-4555-8555-555555555555',
+        name: 'API',
+        requests: []
+      })
+    );
+    await commitHarborTree(repoPath, 'Add collection');
+
+    writeRequestExport(collectionDir, 'req-brand-new.json', {
+      uuid: '66666666-6666-4666-8666-666666666666',
+      name: 'Brand new',
+      method: 'GET'
+    });
+
+    const diff = await buildGitDiff({
+      repoPath,
+      harborSubdir: '.harborclient',
+      enrichDisplayNames: true,
+      excludeUntracked: true,
+      filepathFilter: makeCollectionScopedFilter('.harborclient', 'collection-api')
+    });
+
+    expect(diff.files).toHaveLength(0);
+  });
+
+  it('keeps unrelated request deletions as deleted rows', async () => {
+    const { repoPath } = await createTestRepo();
+    const collectionDir = join(repoPath, '.harborclient', 'collection-api');
+    mkdirSync(collectionDir, { recursive: true });
+    writeFileSync(
+      join(collectionDir, 'collection.json'),
+      JSON.stringify({
+        harborclientVersion: 1,
+        harborclientExport: 'collection',
+        uuid: '77777777-7777-4777-8777-777777777777',
+        name: 'API',
+        requests: ['req-keep.json', 'req-remove.json']
+      })
+    );
+    writeRequestExport(collectionDir, 'req-keep.json', {
+      uuid: '88888888-8888-4888-8888-888888888888',
+      name: 'Keep me',
+      method: 'GET'
+    });
+    writeRequestExport(collectionDir, 'req-remove.json', {
+      uuid: '99999999-9999-4999-8999-999999999999',
+      name: 'Remove me',
+      method: 'DELETE'
+    });
+    await commitHarborTree(repoPath, 'Add requests');
+
+    rmSync(join(collectionDir, 'req-remove.json'));
+
+    const diff = await buildGitDiff({
+      repoPath,
+      harborSubdir: '.harborclient',
+      enrichDisplayNames: true,
+      excludeUntracked: true,
+      filepathFilter: makeCollectionScopedFilter('.harborclient', 'collection-api')
+    });
+
+    expect(diff.files).toHaveLength(1);
+    expect(diff.files[0]).toMatchObject({
+      status: 'deleted',
+      displayName: 'Remove me',
+      resourceKind: 'request',
+      method: 'DELETE'
     });
   });
 });

@@ -36,12 +36,13 @@ export type SettingId =
   | 'shortcuts'
   | 'backup-restore'
   | 'backup-restore.confirmations'
-  | 'git.autoTrack';
+  | 'git.autoTrack'
+  | 'git.commitAuthor';
 
 /**
  * Catalog ids for management settings groups within a section panel.
  */
-export type GroupSettingId = 'backup-restore.confirmations' | 'git.autoTrack';
+export type GroupSettingId = 'backup-restore.confirmations' | 'git.autoTrack' | 'git.commitAuthor';
 
 /**
  * Catalog ids for individual settings fields (excludes management section and group ids).
@@ -411,6 +412,15 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     description:
       'When enabled, HarborClient automatically tracks all requests and files added to git-backed collections. When disabled, use Add on individual requests to track changes before committing.',
     keywords: ['git', 'track', 'tracking', 'auto track', 'commit', 'unstaged', 'manual']
+  },
+  {
+    id: 'git.commitAuthor',
+    section: 'git',
+    kind: 'group',
+    label: 'Commit author',
+    description:
+      'Name and email stamped on commits created through HarborClient. When empty, HarborClient falls back to repo-local git config or a default identity.',
+    keywords: ['git', 'commit', 'author', 'name', 'email', 'identity', 'user.name', 'user.email']
   },
   {
     id: 'shortcuts',

@@ -123,6 +123,18 @@ export interface ApiGit {
    */
   gitPush: (connectionId: string) => Promise<void>;
   /**
+   * Suggests commit author name and email from repo-local and global git config.
+   *
+   * @param connectionId - Optional git connection id for repo-local lookup.
+   */
+  gitSuggestedAuthor: (connectionId?: string) => Promise<{ name: string; email: string }>;
+  /**
+   * Permanently removes the local git clone directory for a git-backed connection.
+   *
+   * @param connectionId - Git connection id whose repoPath should be deleted.
+   */
+  gitDeleteRepoDirectory: (connectionId: string) => Promise<void>;
+  /**
    * Returns recent commits for a git-backed connection.
    *
    * @param connectionId - Git connection id.
@@ -250,8 +262,14 @@ export interface ApiGit {
    * @param connectionId - Git connection id.
    * @param collectionUuid - Stable collection uuid.
    * @param filePath - Repository-relative changed file path.
+   * @param previousPaths - Optional deleted paths to restore when reverting a rename.
    */
-  gitRevertFile: (connectionId: string, collectionUuid: string, filePath: string) => Promise<void>;
+  gitRevertFile: (
+    connectionId: string,
+    collectionUuid: string,
+    filePath: string,
+    previousPaths?: string[]
+  ) => Promise<void>;
   /**
    * Stores a PAT for a git-backed connection and validates credentials via fetch.
    *

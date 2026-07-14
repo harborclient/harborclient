@@ -539,7 +539,7 @@ async function loadSplashPage(window: BrowserWindow): Promise<void> {
  */
 async function setSplashVersion(window: BrowserWindow, version: string): Promise<void> {
   await window.webContents.executeJavaScript(
-    `(function(v){var e=document.getElementById('app-version');if(e)e.textContent='Version '+v;})(${JSON.stringify(
+    `(function(v){var versionEl=document.getElementById('app-version');if(versionEl)versionEl.textContent='Version '+v;var statusEl=document.getElementById('splash-status');if(statusEl)statusEl.textContent='Loading HarborClient. Version '+v+'.';})(${JSON.stringify(
       version
     )})`
   );
