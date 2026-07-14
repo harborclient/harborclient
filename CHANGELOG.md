@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.4.0 - 2026-07-14
+
 - refactor(ui): remove unused openDocumentIds and openRequestIds props. (`838a8bd`)
 - feat(ui): enhance skip navigation and focus management. (`3aa9ad1`)
 - feat(dependencies): update @harborclient/sdk to a local link and add dotenv. (`68f42c6`)
