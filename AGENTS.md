@@ -62,8 +62,7 @@ style, and path aliases.
 Never use native browser dialogs (`alert`, `confirm`, `prompt`) in the renderer.
 They block the Electron renderer thread and break visual consistency.
 
-- Default body text inherits 16px from `body`; use `text-[14px]` or `text-[15px]` only
-  for intentionally compact secondary UI (metadata, badges, tabs).
+- Default body text inherits 16px from `body`; Do not use text-[14px]
 - Use custom modals built on [`Modal`](src/renderer/src/components/Modal/index.tsx) for
   blocking messages and confirmations (`AlertModal`, `ConfirmModal`, or
   feature-specific dialogs like `QuitPrompt`).

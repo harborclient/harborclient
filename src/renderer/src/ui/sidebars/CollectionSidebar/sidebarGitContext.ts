@@ -71,7 +71,7 @@ export interface SidebarGitContextValue {
   unstageItem: (connectionId: string, collectionUuid: string, itemUuid: string) => Promise<void>;
 
   /**
-   * Opens the create-branch modal for a git connection.
+   * Opens the unified branches modal for a git connection.
    *
    * @param connectionId - Git connection id.
    * @param connectionName - Display name for the connection.
@@ -80,7 +80,7 @@ export interface SidebarGitContextValue {
   openCreateBranch: (connectionId: string, connectionName: string, collectionUuid: string) => void;
 
   /**
-   * Opens the switch-branch modal for a git connection.
+   * Opens the unified branches modal for a git connection.
    *
    * @param connectionId - Git connection id.
    * @param connectionName - Display name for the connection.
@@ -89,7 +89,7 @@ export interface SidebarGitContextValue {
   openSwitchBranch: (connectionId: string, connectionName: string, collectionUuid: string) => void;
 
   /**
-   * Opens the merge-branch modal for a git connection.
+   * Opens the unified branches modal for a git connection.
    *
    * @param connectionId - Git connection id.
    * @param connectionName - Display name for the connection.
@@ -112,12 +112,12 @@ export interface SidebarGitContextValue {
   commitActiveCollection: () => void;
 
   /**
-   * Opens the merge-branch modal for the active git-backed collection.
+   * Opens the unified branches modal for the active git-backed collection.
    */
   mergeActiveCollection: () => void;
 
   /**
-   * Opens the create-branch modal for the active git-backed collection.
+   * Opens the unified branches modal for the active git-backed collection.
    */
   createBranchActiveCollection: () => void;
 

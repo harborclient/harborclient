@@ -277,7 +277,8 @@ async function classifyCommitFileChanges(
         path: change.path,
         status: change.status,
         displayName: meta.displayName,
-        resourceKind: meta.resourceKind
+        resourceKind: meta.resourceKind,
+        ...(meta.method != null ? { method: meta.method } : {})
       });
       continue;
     }

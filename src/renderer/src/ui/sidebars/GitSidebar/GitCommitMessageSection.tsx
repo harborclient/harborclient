@@ -18,6 +18,7 @@ import {
 } from '#/renderer/src/store/slices/aiChatSlice';
 import { runGitCommitMessage } from '#/renderer/src/git/runGitCommitMessage';
 import { resolveGitCommitMessageModelId } from '#/renderer/src/git/gitCommitMessageModel';
+import { useSidebarGit } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarGitContext';
 import { faStop, faWandMagicSparkles } from '#/renderer/src/fontawesome';
 
 interface Props {
@@ -61,7 +62,7 @@ export function GitCommitMessageSection({
   const hubModelGroups = useAppSelector(selectHubModelGroups);
   const githubConnected = useAppSelector(selectGithubModelsConnected);
   const selectedModelByChat = useAppSelector(selectSelectedModelByChat);
-  const gitAutoAdd = useAppSelector((state) => state.settings.general.gitAutoAdd);
+  const { changedItemCountByCollectionUuid } = useSidebarGit();
   const { aiAvailable, aiSettings } = useAiAvailability();
   const [messageDraft, setMessageDraft] = useState<{ edited: true; value: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -72,8 +73,8 @@ export function GitCommitMessageSection({
   const cancelledRef = useRef(false);
   const messageRef = useRef('');
 
-  const hasUncommittedChanges = (status?.changedCount ?? 0) > 0;
-  const hasCommitChanges = gitAutoAdd ? hasUncommittedChanges : (status?.stagedCount ?? 0) > 0;
+  const collectionChangedCount = changedItemCountByCollectionUuid[collectionUuid] ?? 0;
+  const hasCommitChanges = collectionChangedCount > 0;
   const defaultMessage = hasCommitChanges ? DEFAULT_GIT_COMMIT_MESSAGE : '';
   const message =
     messageDraft?.edited === true && !canReplaceGitCommitMessage(messageDraft.value)
@@ -86,7 +87,7 @@ export function GitCommitMessageSection({
     preferredChatModelId
   );
   const canGenerateMessage =
-    aiAvailable && commitMessageModelId.length > 0 && hasUncommittedChanges && !busy;
+    aiAvailable && commitMessageModelId.length > 0 && hasCommitChanges && !busy;
 
   /**
    * Keeps the latest textarea value available to async generation completion handlers.
@@ -116,7 +117,12 @@ export function GitCommitMessageSection({
 
     setBusy(true);
     try {
-      await window.api.gitCommit(connectionId, trimmedMessage, createHarborRoot || undefined);
+      await window.api.gitCommit(
+        connectionId,
+        collectionUuid,
+        trimmedMessage,
+        createHarborRoot || undefined
+      );
       onRefresh();
       setMessageDraft(null);
     } catch (err) {

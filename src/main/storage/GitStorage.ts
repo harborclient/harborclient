@@ -10,6 +10,7 @@ import {
 import {
   buildExistingRequestFileMap,
   collectionDirPath,
+  collectionManifestPath,
   createStoredFolder,
   deleteEnvironmentFile,
   deleteSnippetFile,
@@ -29,7 +30,7 @@ import {
   writeSnippetFile,
   type StoredFolderRow
 } from '#/main/git/fileLayout';
-import { deriveRequestFileStatus } from '#/main/git/gitRequestStatus';
+import { deriveRequestFileStatus, isCountedCollectionChange } from '#/main/git/gitRequestStatus';
 import { GitSyncManager } from '#/main/git/GitSyncManager';
 import { maskVariablesForExport, validateCollectionExport } from '#/main/storage/collectionData';
 import { trimRequiredName } from '#/main/storage/trimRequiredName';
@@ -167,6 +168,7 @@ export class GitStorage implements IStorage {
   readonly #userDataPath: string;
   readonly #root: string;
   readonly #sync: GitSyncManager;
+  readonly #isAutoTrackEnabled: () => boolean;
   #idIndex: GitIdIndexData;
   #collections = new Map<number, LoadedCollection>();
   #environments = new Map<number, EnvironmentExport>();
@@ -180,13 +182,50 @@ export class GitStorage implements IStorage {
    * @param connectionId - Git connection id for auth and id index persistence.
    * @param settings - Git connection settings.
    * @param userDataPath - Electron userData path for id index and provider settings.
+   * @param isAutoTrackEnabled - Returns whether newly created requests/documents
+   *   should be staged with git immediately (the "Auto track" setting). Defaults
+   *   to disabled so unit tests observe untracked files unless they opt in.
    */
-  constructor(connectionId: string, settings: GitSettings, userDataPath: string) {
+  constructor(
+    connectionId: string,
+    settings: GitSettings,
+    userDataPath: string,
+    isAutoTrackEnabled: () => boolean = () => false
+  ) {
     this.#connectionId = connectionId;
     this.#userDataPath = userDataPath;
     this.#root = resolveHarborclientRoot(settings.repoPath, settings.subdir);
     this.#sync = new GitSyncManager(connectionId, settings);
     this.#idIndex = loadGitIdIndex(userDataPath, connectionId);
+    this.#isAutoTrackEnabled = isAutoTrackEnabled;
+  }
+
+  /**
+   * Stages a newly created request/document (and its collection manifest) so it
+   * is tracked by git the moment it is added, when Auto track is enabled.
+   *
+   * Failures are logged and swallowed so a git problem never blocks persisting
+   * the item itself.
+   *
+   * @param collectionId - Provider-local collection id owning the new item.
+   * @param itemUuid - Stable uuid of the newly created request or document.
+   */
+  private async autoTrackNewItem(collectionId: number, itemUuid: string): Promise<void> {
+    if (!this.#isAutoTrackEnabled()) {
+      return;
+    }
+    const loaded = this.requireCollection(collectionId);
+    const paths = [
+      this.toRepoRelativePath(collectionManifestPath(loaded.dirPath)),
+      this.getItemRepoPath(collectionId, itemUuid)
+    ];
+    for (const path of paths) {
+      try {
+        await this.#sync.stageFile(path);
+      } catch (error) {
+        console.error(`Failed to auto-track "${path}" for git:`, error);
+      }
+    }
   }
 
   /**
@@ -690,6 +729,7 @@ export class GitStorage implements IStorage {
     };
 
     const index = loaded.requests.findIndex((row) => resolveImportUuid(row.uuid) === requestUuid);
+    const isNewRequest = index < 0;
     if (index >= 0) {
       loaded.requests[index] = exported;
       // Collapse any legacy duplicate rows that share this UUID (from orphan
@@ -703,6 +743,10 @@ export class GitStorage implements IStorage {
 
     this.persistCollection(input.collection_id);
     saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
+
+    if (isNewRequest) {
+      await this.autoTrackNewItem(input.collection_id, requestUuid);
+    }
 
     const now = new Date().toISOString();
     const previousTimestamps = this.#requestTimestamps.get(requestUuid);
@@ -1154,6 +1198,7 @@ export class GitStorage implements IStorage {
     };
 
     const index = loaded.documents.findIndex((row) => resolveImportUuid(row.uuid) === documentUuid);
+    const isNewDocument = index < 0;
     if (index >= 0) {
       loaded.documents[index] = exported;
     } else {
@@ -1162,6 +1207,10 @@ export class GitStorage implements IStorage {
 
     this.persistCollection(input.collection_id);
     saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
+
+    if (isNewDocument) {
+      await this.autoTrackNewItem(input.collection_id, documentUuid);
+    }
 
     const now = new Date().toISOString();
     const previousTimestamps = this.#documentTimestamps.get(documentUuid);
@@ -1579,12 +1628,22 @@ export class GitStorage implements IStorage {
 
     for (const [repoPath, flags] of Object.entries(pathFlags)) {
       const rel = repoPath.slice(collectionPrefix.length + 1);
-      if (isCollectionRequestOrDocumentFile(rel) && !flags.isUntracked) {
+      if (isCollectionRequestOrDocumentFile(rel) && isCountedCollectionChange(flags)) {
         count += 1;
       }
     }
 
     return count;
+  }
+
+  /**
+   * Returns the repository-relative path prefix for one collection directory.
+   *
+   * @param collectionId - Provider-local collection id.
+   */
+  getCollectionRepoRelativePath(collectionId: number): string {
+    const loaded = this.requireCollection(collectionId);
+    return this.toRepoRelativePath(loaded.dirPath);
   }
 
   /**

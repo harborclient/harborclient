@@ -842,7 +842,12 @@ export const ipcArgSchemas = {
   saveFile: z.tuple([z.string()]),
   saveTextFile: z.tuple([z.string().max(MAX_IPC_REQUEST_BODY_CHARS), z.string()]),
   backupExport: z.tuple([z.record(z.string(), z.string())]),
-  gitCommit: z.tuple([connectionId, z.string().trim().min(1), z.boolean().optional()]),
+  gitCommit: z.tuple([
+    connectionId,
+    z.string().trim().min(1),
+    z.string().trim().min(1),
+    z.boolean().optional()
+  ]),
   gitListBranches: z.tuple([connectionId]),
   gitCreateBranch: z.tuple([connectionId, z.string().trim().min(1)]),
   gitDeleteBranch: z.tuple([connectionId, z.string().trim().min(1)]),
@@ -870,6 +875,18 @@ export const ipcArgSchemas = {
   gitLog: z.tuple([connectionId, z.number().int().positive().optional()]),
   gitGraphLog: z.tuple([connectionId, z.number().int().positive().optional()]),
   gitCommitDetail: z.tuple([connectionId, z.string().trim().min(1)]),
+  gitCommitFileDiff: z.tuple([
+    z.object({
+      connectionId,
+      commitOid: z.string().trim().min(1),
+      filePath: z.string().trim().min(1),
+      status: z.enum(['added', 'modified', 'deleted']),
+      displayName: z.string().optional(),
+      resourceKind: z.enum(['request', 'document']).optional(),
+      method: z.string().optional(),
+      maxChars: z.number().int().positive().optional()
+    })
+  ]),
   gitDiff: z.tuple([
     z.object({
       collectionUuid: z.string().trim().min(1),

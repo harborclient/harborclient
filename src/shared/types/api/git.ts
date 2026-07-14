@@ -31,13 +31,19 @@ export interface ApiGit {
    */
   onGitOAuthFinished: (callback: (event: GitOAuthFinishedEvent) => void) => () => void;
   /**
-   * Stages all changes and commits in a git-backed connection working tree.
+   * Commits local changes for one git-backed collection.
    *
    * @param connectionId - Git connection id.
+   * @param collectionUuid - Stable collection uuid.
    * @param message - Commit message.
    * @param createHarborRoot - When true, creates the HarborClient subdirectory layout if missing.
    */
-  gitCommit: (connectionId: string, message: string, createHarborRoot?: boolean) => Promise<void>;
+  gitCommit: (
+    connectionId: string,
+    collectionUuid: string,
+    message: string,
+    createHarborRoot?: boolean
+  ) => Promise<void>;
   /**
    * Returns local branch names for a git-backed connection.
    *
@@ -137,6 +143,21 @@ export interface ApiGit {
    * @param oid - Commit object id.
    */
   gitCommitDetail: (connectionId: string, oid: string) => Promise<GitCommitDetail>;
+  /**
+   * Returns a diff for one HarborClient file in a specific commit.
+   *
+   * @param args - Git connection id, commit oid, file path, and optional display metadata.
+   */
+  gitCommitFileDiff: (args: {
+    connectionId: string;
+    commitOid: string;
+    filePath: string;
+    status: 'added' | 'modified' | 'deleted';
+    displayName?: string;
+    resourceKind?: 'request' | 'document';
+    method?: string;
+    maxChars?: number;
+  }) => Promise<import('#/shared/types').GitRequestDiffFileEntry>;
   /**
    * Returns uncommitted HarborClient-tree diffs for a git-backed collection.
    *

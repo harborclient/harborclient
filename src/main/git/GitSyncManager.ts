@@ -7,7 +7,6 @@ import { ensureHarborclientLayout, resolveHarborclientRoot } from '#/main/git/fi
 import {
   analyzeMatrixRow,
   countStagedAndUnstaged,
-  hasStagedChanges,
   loadHarborStatusMatrix,
   type GitMatrixRow,
   type GitRequestRowFlags
@@ -87,36 +86,41 @@ export class GitSyncManager {
   }
 
   /**
-   * Stages all changes under the HarborClient subdirectory and commits, or commits
-   * only staged changes when auto-add is disabled.
+   * Commits the collection's tracked changes.
+   *
+   * Stages modifications and deletions of already-tracked files under the
+   * collection prefix (git commit -a semantics) and commits them. Untracked
+   * files are never swept in here; they become tracked when created (Auto track)
+   * or via an explicit Add, independent of committing.
    *
    * @param message - Commit message.
-   * @param options - Commit behavior and HarborClient layout bootstrap.
+   * @param options - Collection scope and HarborClient layout bootstrap.
    */
   async commit(
     message: string,
-    options?: { createHarborRoot?: boolean; autoAdd?: boolean }
+    options?: { createHarborRoot?: boolean; collectionPrefix?: string }
   ): Promise<void> {
     const subdir = this.harborSubdir();
     const harborRoot = resolveHarborclientRoot(this.#repoPath, subdir);
-    const autoAdd = options?.autoAdd !== false;
+    const collectionPrefix = options?.collectionPrefix?.replace(/\\/g, '/').replace(/\/+$/, '');
 
+    if (!collectionPrefix) {
+      throw new Error('Collection prefix is required for git commit.');
+    }
+
+    let bootstrapped = false;
     if (!existsSync(harborRoot)) {
       if (!options?.createHarborRoot) {
         throw new Error(`HarborClient subdirectory "${subdir}" does not exist in this repository.`);
       }
       ensureHarborclientLayout(harborRoot);
+      await this.stageFile(`${subdir}/.gitignore`);
+      bootstrapped = true;
     }
 
-    if (autoAdd) {
-      await this.stagePath(subdir);
-    } else {
-      const matrix = await loadHarborStatusMatrix(this.#repoPath, subdir);
-      if (!hasStagedChanges(matrix)) {
-        throw new Error(
-          'No staged changes to commit. Stage files or enable Auto add in Git settings.'
-        );
-      }
+    const stagedTracked = await this.stageTrackedChanges(collectionPrefix);
+    if (!stagedTracked && !bootstrapped) {
+      throw new Error('No changes to commit.');
     }
 
     const trimmed = message.trim();
@@ -278,13 +282,17 @@ export class GitSyncManager {
       throw new Error(`Branch "${trimmed}" does not exist.`);
     }
 
+    const author = await this.resolveAuthor();
+
     try {
       await git.merge({
         fs,
         dir: this.#repoPath,
         ours: branch,
         theirs: trimmed,
-        abortOnConflict: false
+        abortOnConflict: false,
+        author,
+        committer: author
       });
     } catch (err) {
       const mergeConflictCount = countJsonMergeConflicts(err);
@@ -382,18 +390,17 @@ export class GitSyncManager {
    */
   async getPathFlagsUnderPrefix(prefix: string): Promise<Record<string, GitRequestRowFlags>> {
     const normalizedPrefix = prefix.replace(/\\/g, '/').replace(/\/+$/, '');
-    const matrix = (await git.statusMatrix({
-      fs,
-      dir: this.#repoPath,
-      filter: (filepath) =>
-        filepath === normalizedPrefix || filepath.startsWith(`${normalizedPrefix}/`)
-    })) as GitMatrixRow[];
+    const matrix = await loadHarborStatusMatrix(this.#repoPath, this.harborSubdir());
 
     const result: Record<string, GitRequestRowFlags> = {};
     for (const row of matrix) {
+      const [filepath] = row;
+      if (filepath !== normalizedPrefix && !filepath.startsWith(`${normalizedPrefix}/`)) {
+        continue;
+      }
       const flags = analyzeMatrixRow(row);
       if (flags != null) {
-        result[row[0]] = flags;
+        result[filepath] = flags;
       }
     }
     return result;
@@ -644,21 +651,31 @@ export class GitSyncManager {
   }
 
   /**
-   * Stages all changes under a repository-relative path (adds, modifications, deletions).
+   * Stages modifications and deletions of already-tracked files under a
+   * repository-relative prefix (git add -u semantics). Untracked files are
+   * skipped so they are only committed once they have been tracked explicitly.
    *
    * @param relPath - Path relative to repo root.
+   * @returns Whether any tracked change under the prefix is staged afterward.
    */
-  private async stagePath(relPath: string): Promise<void> {
-    const prefix = relPath.replace(/\\/g, '/');
-    const matrix = await git.statusMatrix({
-      fs,
-      dir: this.#repoPath,
-      filter: (filepath) => filepath === prefix || filepath.startsWith(`${prefix}/`)
-    });
+  private async stageTrackedChanges(relPath: string): Promise<boolean> {
+    const prefix = relPath.replace(/\\/g, '/').replace(/\/+$/, '');
+    const matrix = await loadHarborStatusMatrix(this.#repoPath, this.harborSubdir());
 
+    let staged = false;
     for (const row of matrix) {
+      const [filepath] = row;
+      if (filepath !== prefix && !filepath.startsWith(`${prefix}/`)) {
+        continue;
+      }
+      const flags = analyzeMatrixRow(row as GitMatrixRow);
+      if (flags == null || flags.isUntracked) {
+        continue;
+      }
       await this.stageMatrixRow(row as GitMatrixRow);
+      staged = true;
     }
+    return staged;
   }
 }
 

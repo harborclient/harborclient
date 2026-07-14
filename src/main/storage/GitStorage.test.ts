@@ -5,6 +5,8 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { GitStorage } from '#/main/storage/GitStorage';
+import { buildGitDiff, makeCollectionScopedFilter } from '#/main/git/gitDiff';
+import { collectionDirName } from '#/main/git/slug';
 import {
   baseDocumentInput,
   baseRequestInput,
@@ -308,6 +310,44 @@ describe('GitStorage', () => {
     rmSync(userDataPath, { recursive: true, force: true });
   });
 
+  it('auto-tracks newly created requests when Auto track is enabled', async () => {
+    const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-git-autotrack-'));
+    const userDataPath = mkdtempSync(join(tmpdir(), 'harborclient-git-autotrack-userdata-'));
+    mkdirSync(join(repoPath, '.harborclient'), { recursive: true });
+
+    await git.init({ fs, dir: repoPath, defaultBranch: 'main' });
+    await git.setConfig({ fs, dir: repoPath, path: 'user.name', value: 'Test' });
+    await git.setConfig({ fs, dir: repoPath, path: 'user.email', value: 'test@example.com' });
+
+    const settings: GitSettings = {
+      repoPath,
+      url: 'https://github.com/example/repo.git',
+      branch: 'main',
+      subdir: '.harborclient',
+      auth: { kind: 'pat', username: 'token' }
+    };
+
+    const db = new GitStorage('autotrack-connection', settings, userDataPath, () => true);
+    await db.init();
+    const collection = await db.createCollection('API');
+    const saved = await db.saveRequest(
+      baseRequestInput(collection.id, { name: 'Auto', url: 'https://example.com/auto' })
+    );
+
+    const statuses = await db.getItemGitStatuses(collection.id);
+    expect(statuses[saved.uuid]).toEqual({
+      displayStatus: 'staged',
+      canAdd: false,
+      canRemove: true,
+      isUntracked: false
+    });
+    expect(await db.getChangedItemCount(collection.id)).toBe(1);
+
+    await db.close();
+    rmSync(repoPath, { recursive: true, force: true });
+    rmSync(userDataPath, { recursive: true, force: true });
+  });
+
   it('counts deleted request files in getChangedItemCount but not getItemGitStatuses', async () => {
     const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-git-changed-count-'));
     const userDataPath = mkdtempSync(join(tmpdir(), 'harborclient-git-changed-count-userdata-'));
@@ -331,7 +371,10 @@ describe('GitStorage', () => {
     const original = await db.saveRequest(
       baseRequestInput(collection.id, { name: 'Original', url: 'https://example.com/original' })
     );
-    await db.syncManager.commit('Initial commit', { autoAdd: true });
+    await db.stageItem(collection.id, original.uuid);
+    await db.syncManager.commit('Initial commit', {
+      collectionPrefix: db.getCollectionRepoRelativePath(collection.id)
+    });
 
     await db.deleteRequest(original.id);
     const added = await db.saveRequest(
@@ -341,6 +384,53 @@ describe('GitStorage', () => {
     const itemStatuses = await db.getItemGitStatuses(collection.id);
     expect(Object.keys(itemStatuses)).toEqual([added.uuid]);
     expect(await db.getChangedItemCount(collection.id)).toBe(1);
+
+    await db.close();
+    rmSync(repoPath, { recursive: true, force: true });
+    rmSync(userDataPath, { recursive: true, force: true });
+  });
+
+  it('matches getChangedItemCount with buildGitDiff file count for the same collection', async () => {
+    const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-git-count-align-'));
+    const userDataPath = mkdtempSync(join(tmpdir(), 'harborclient-git-count-align-userdata-'));
+    mkdirSync(join(repoPath, '.harborclient'), { recursive: true });
+
+    await git.init({ fs, dir: repoPath, defaultBranch: 'main' });
+    await git.setConfig({ fs, dir: repoPath, path: 'user.name', value: 'Test' });
+    await git.setConfig({ fs, dir: repoPath, path: 'user.email', value: 'test@example.com' });
+
+    const settings: GitSettings = {
+      repoPath,
+      url: 'https://github.com/example/repo.git',
+      branch: 'main',
+      subdir: '.harborclient',
+      auth: { kind: 'pat', username: 'token' }
+    };
+
+    const db = new GitStorage('count-align-connection', settings, userDataPath);
+    await db.init();
+    const collection = await db.createCollection('API');
+    const tracked = await db.saveRequest(
+      baseRequestInput(collection.id, { name: 'Tracked', url: 'https://example.com/tracked' })
+    );
+    await db.stageItem(collection.id, tracked.uuid);
+    await db.saveRequest(
+      baseRequestInput(collection.id, { name: 'Untracked', url: 'https://example.com/untracked' })
+    );
+
+    const changedCount = await db.getChangedItemCount(collection.id);
+    const diff = await buildGitDiff({
+      repoPath: db.syncManager.repoDir,
+      harborSubdir: '.harborclient',
+      excludeUntracked: true,
+      filepathFilter: makeCollectionScopedFilter(
+        '.harborclient',
+        collectionDirName(collection.name)
+      )
+    });
+
+    expect(changedCount).toBe(1);
+    expect(diff.files).toHaveLength(changedCount);
 
     await db.close();
     rmSync(repoPath, { recursive: true, force: true });

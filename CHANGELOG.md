@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(git): enhance commit functionality and request tracking. (`4d48935`)
 - feat(git): enhance file classification and testing for collection requests. (`d69d103`)
 - feat(git): enhance Git diff functionality and request metadata handling. (`864eb61`)
 - refactor(ai): update client creation to return promises and enhance Git integration. (`e8d7c1e`)

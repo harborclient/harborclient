@@ -4,7 +4,7 @@ import type { SourceControlStatus } from '#/shared/types';
  * Builds the working-tree summary line shown above changed files in the Git sidebar.
  *
  * @param status - Current source-control status for the active connection.
- * @param gitAutoAdd - Whether HarborClient auto-stages changes before commit.
+ * @param gitAutoAdd - Whether HarborClient auto-tracks changes before commit.
  */
 export function buildGitWorkingTreeSummary(
   status: SourceControlStatus,

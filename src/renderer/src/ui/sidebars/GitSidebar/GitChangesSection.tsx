@@ -2,7 +2,6 @@ import { EmptySectionLabel, FaIcon, Modal, RowActionsMenu } from '@harborclient/
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { GitRequestDiffFileEntry, SourceControlStatus } from '#/shared/types';
-import { buildGitWorkingTreeSummary } from '#/renderer/src/git/gitWorkingTreeSummary';
 import {
   buildGitCommitFileAccessibleName,
   gitChangeStatusMarker,
@@ -11,13 +10,10 @@ import {
   resolveGitChangeDisplayLabel
 } from '#/renderer/src/git/gitCommitChangeDisplay';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
-import {
-  gitWorkingTreeStatusPanel,
-  METHOD_CLASSES,
-  sourceRow
-} from '#/renderer/src/ui/shared/classes';
+import { METHOD_CLASSES, sourceRow } from '#/renderer/src/ui/shared/classes';
 import { faMarkdown } from '#/renderer/src/fontawesome';
 import { GitDiffFileView } from '#/renderer/src/ui/sidebars/GitSidebar/modals/GitDiffFileView';
+import { useSidebarGit } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarGitContext';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 
@@ -84,7 +80,7 @@ export function GitChangesSection({
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
-  const gitAutoAdd = useAppSelector((state) => state.settings.general.gitAutoAdd);
+  const { changedItemCountByCollectionUuid } = useSidebarGit();
   const externalMergeEditorPath = useAppSelector(
     (state) => state.settings.general.externalMergeEditorPath
   );
@@ -140,7 +136,8 @@ export function GitChangesSection({
   const conflictFiles = changedFiles.filter((file) => file.hasConflict);
   const nonConflictFiles = changedFiles.filter((file) => !file.hasConflict);
   const orderedFiles = [...conflictFiles, ...nonConflictFiles];
-  const hasChanges = status != null && status.changedCount > 0;
+  const collectionChangedCount = changedItemCountByCollectionUuid[collectionUuid] ?? 0;
+  const hasChanges = collectionChangedCount > 0;
   const connectionId = diff?.connectionId;
 
   /**
@@ -237,18 +234,8 @@ export function GitChangesSection({
   if (!loading && !hasChanges && changedFiles.length === 0 && error == null) {
     return (
       <div className="flex flex-col gap-2 pb-2">
-        {status != null ? (
-          <div className={`${gitWorkingTreeStatusPanel} text-text`} role="status">
-            <p className="m-0">
-              Branch: <strong>{status.branch ?? 'unknown'}</strong>
-            </p>
-            <p className="m-0 text-[14px] text-muted">
-              {buildGitWorkingTreeSummary(status, gitAutoAdd)}
-            </p>
-          </div>
-        ) : null}
         <div className="flex flex-col gap-0.5">
-          <EmptySectionLabel label="No changes" className="mt-2" />
+          <EmptySectionLabel label="No changes" className="mt-5!" />
         </div>
       </div>
     );
@@ -265,7 +252,7 @@ export function GitChangesSection({
           {error}
         </p>
       ) : changedFiles.length === 0 ? (
-        <div className="flex flex-col pt-1">
+        <div className="flex flex-col">
           <EmptySectionLabel label="No changes" />
         </div>
       ) : (

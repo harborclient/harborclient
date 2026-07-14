@@ -418,6 +418,11 @@ export interface GitCommitPlainFileChange {
    * HarborClient resource kind for request and document rows.
    */
   resourceKind?: 'request' | 'document';
+
+  /**
+   * HTTP method for request rows when resolved from commit contents.
+   */
+  method?: string;
 }
 
 /**
@@ -845,9 +850,9 @@ export interface GitFileDiffResult {
   repoPath: string;
 
   /**
-   * Older commit object id.
+   * Older commit object id, or null when the diff starts from an empty tree.
    */
-  commitA: string;
+  commitA: string | null;
 
   /**
    * Newer commit object id.

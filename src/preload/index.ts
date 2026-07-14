@@ -2216,18 +2216,20 @@ function onGitOAuthFinished(
 }
 
 /**
- * Commits staged changes in a git-backed connection.
+ * Commits local changes for one git-backed collection.
  *
  * @param connectionId - Git connection id.
+ * @param collectionUuid - Stable collection uuid.
  * @param message - Commit message.
  * @param createHarborRoot - When true, creates the HarborClient subdirectory layout if missing.
  */
 function gitCommit(
   connectionId: string,
+  collectionUuid: string,
   message: string,
   createHarborRoot?: boolean
 ): Promise<void> {
-  return ipcRenderer.invoke('git:commit', connectionId, message, createHarborRoot);
+  return ipcRenderer.invoke('git:commit', connectionId, collectionUuid, message, createHarborRoot);
 }
 
 /**
@@ -2380,6 +2382,24 @@ function gitCommitDetail(
   oid: string
 ): Promise<import('#/shared/types').GitCommitDetail> {
   return ipcRenderer.invoke('git:commitDetail', connectionId, oid);
+}
+
+/**
+ * Returns a diff for one HarborClient file in a specific commit.
+ *
+ * @param args - Git connection id, commit oid, file path, and optional display metadata.
+ */
+function gitCommitFileDiff(args: {
+  connectionId: string;
+  commitOid: string;
+  filePath: string;
+  status: 'added' | 'modified' | 'deleted';
+  displayName?: string;
+  resourceKind?: 'request' | 'document';
+  method?: string;
+  maxChars?: number;
+}): Promise<import('#/shared/types').GitRequestDiffFileEntry> {
+  return ipcRenderer.invoke('git:commitFileDiff', args);
 }
 
 /**
@@ -3884,6 +3904,7 @@ const api: Api = {
   gitLog,
   gitGraphLog,
   gitCommitDetail,
+  gitCommitFileDiff,
   gitDiff,
   gitRepoInfo,
   gitCollectionCommits,

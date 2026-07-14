@@ -11,6 +11,11 @@ import type { GitSettings } from '#/shared/types';
 const cleanups: Array<() => void> = [];
 
 /**
+ * Repository-relative HarborClient prefix used by collection-scoped commit tests.
+ */
+const harborCollectionPrefix = '.harborclient';
+
+/**
  * Minimal fetch result for mocked network-free pull tests.
  */
 const mockFetchResult = {
@@ -239,8 +244,9 @@ describe('GitSyncManager', () => {
     const nestedDir = join(repoPath, '.harborclient', 'sub');
     mkdirSync(nestedDir, { recursive: true });
     writeFileSync(join(nestedDir, 'nested.txt'), 'nested content');
+    await git.add({ fs, dir: repoPath, filepath: '.harborclient/sub/nested.txt' });
 
-    await manager.commit('Add nested file');
+    await manager.commit('Add nested file', { collectionPrefix: harborCollectionPrefix });
 
     const head = await git.resolveRef({ fs, dir: repoPath, ref: 'HEAD' });
     const { blob } = await git.readBlob({
@@ -290,8 +296,16 @@ describe('GitSyncManager', () => {
       'utf-8'
     );
     writeFileSync(join(repoPath, '.harborclient', 'README.md'), '# Harbor notes', 'utf-8');
+    await git.add({
+      fs,
+      dir: repoPath,
+      filepath: `.harborclient/${collectionUuid}-api.json`
+    });
+    await git.add({ fs, dir: repoPath, filepath: '.harborclient/README.md' });
 
-    await manager.commit('Add harbor-root markdown document');
+    await manager.commit('Add harbor-root markdown document', {
+      collectionPrefix: harborCollectionPrefix
+    });
 
     const head = await git.resolveRef({ fs, dir: repoPath, ref: 'HEAD' });
     const { blob } = await git.readBlob({
@@ -320,7 +334,7 @@ describe('GitSyncManager', () => {
 
     rmSync(jsonPath);
 
-    await manager.commit('Remove old.json');
+    await manager.commit('Remove old.json', { collectionPrefix: harborCollectionPrefix });
 
     const files = await git.listFiles({ fs, dir: repoPath, ref: 'HEAD' });
     expect(files).not.toContain('.harborclient/old.json');
@@ -335,10 +349,20 @@ describe('GitSyncManager', () => {
     expect(status.harborSubdir).toBe('.harborclient');
   });
 
-  it('rejects commit when the HarborClient subdirectory is missing', async () => {
+  it('rejects commit without a collection prefix', async () => {
     const { manager } = await createBareTestRepo();
 
     await expect(manager.commit('Initial HarborClient layout')).rejects.toThrow(
+      'Collection prefix is required for git commit.'
+    );
+  });
+
+  it('rejects commit when the HarborClient subdirectory is missing', async () => {
+    const { manager } = await createBareTestRepo();
+
+    await expect(
+      manager.commit('Initial HarborClient layout', { collectionPrefix: harborCollectionPrefix })
+    ).rejects.toThrow(
       'HarborClient subdirectory ".harborclient" does not exist in this repository.'
     );
   });
@@ -347,7 +371,10 @@ describe('GitSyncManager', () => {
     const { repoPath, manager } = await createBareTestRepo();
     const harborRoot = join(repoPath, '.harborclient');
 
-    await manager.commit('Initial HarborClient layout', { createHarborRoot: true });
+    await manager.commit('Initial HarborClient layout', {
+      createHarborRoot: true,
+      collectionPrefix: harborCollectionPrefix
+    });
 
     expect(existsSync(harborRoot)).toBe(true);
     expect(existsSync(join(harborRoot, '.gitignore'))).toBe(true);
@@ -361,16 +388,34 @@ describe('GitSyncManager', () => {
     expect(status.changedCount).toBe(0);
   });
 
-  it('rejects manual commits when nothing is staged', async () => {
-    const { repoPath, manager } = await createTestRepo();
-    writeFileSync(join(repoPath, '.harborclient', 'readme.txt'), 'unstaged edit');
+  it('throws when there are no changes to commit', async () => {
+    const { manager } = await createTestRepo();
 
-    await expect(manager.commit('Manual commit', { autoAdd: false })).rejects.toThrow(
-      'No staged changes to commit'
-    );
+    await expect(
+      manager.commit('Empty commit', { collectionPrefix: harborCollectionPrefix })
+    ).rejects.toThrow('No changes to commit.');
   });
 
-  it('commits only staged changes when auto add is disabled', async () => {
+  it('commits tracked modifications even when they were not pre-staged', async () => {
+    const { repoPath, manager } = await createTestRepo();
+    writeFileSync(join(repoPath, '.harborclient', 'readme.txt'), 'v2 unstaged edit');
+
+    await manager.commit('Update readme', { collectionPrefix: harborCollectionPrefix });
+
+    const head = await git.resolveRef({ fs, dir: repoPath, ref: 'HEAD' });
+    const { blob } = await git.readBlob({
+      fs,
+      dir: repoPath,
+      oid: head,
+      filepath: '.harborclient/readme.txt'
+    });
+    expect(Buffer.from(blob).toString('utf-8')).toBe('v2 unstaged edit');
+
+    const status = await manager.getStatus();
+    expect(status.changedCount).toBe(0);
+  });
+
+  it('excludes untracked files from commits', async () => {
     const { repoPath, manager } = await createTestRepo();
     const stagedPath = '.harborclient/staged.txt';
     const unstagedPath = '.harborclient/unstaged.txt';
@@ -379,7 +424,9 @@ describe('GitSyncManager', () => {
     writeFileSync(join(repoPath, unstagedPath), 'unstaged');
     await git.add({ fs, dir: repoPath, filepath: stagedPath });
 
-    await manager.commit('Manual staged commit', { autoAdd: false });
+    await manager.commit('Manual staged commit', {
+      collectionPrefix: harborCollectionPrefix
+    });
 
     const files = await git.listFiles({ fs, dir: repoPath, ref: 'HEAD' });
     expect(files).toContain(stagedPath);
@@ -388,6 +435,44 @@ describe('GitSyncManager', () => {
     const status = await manager.getStatus();
     expect(status.stagedCount).toBe(0);
     expect(status.unstagedCount).toBe(0);
+  });
+
+  it('commits only changes under collectionPrefix', async () => {
+    const { repoPath, manager } = await createTestRepo();
+    const collectionA = '.harborclient/collection-a';
+    const collectionB = '.harborclient/collection-b';
+    mkdirSync(join(repoPath, '.harborclient', 'collection-a'), { recursive: true });
+    mkdirSync(join(repoPath, '.harborclient', 'collection-b'), { recursive: true });
+    writeFileSync(join(repoPath, '.harborclient', 'collection-a', 'req-a.json'), '{"a":1}');
+    writeFileSync(join(repoPath, '.harborclient', 'collection-b', 'req-b.json'), '{"b":1}');
+    await git.add({ fs, dir: repoPath, filepath: `${collectionA}/req-a.json` });
+    await git.add({ fs, dir: repoPath, filepath: `${collectionB}/req-b.json` });
+
+    await manager.commit('Add both collections', { collectionPrefix: harborCollectionPrefix });
+
+    writeFileSync(
+      join(repoPath, '.harborclient', 'collection-a', 'req-a.json'),
+      '{"a":2,"updated":true}'
+    );
+    writeFileSync(
+      join(repoPath, '.harborclient', 'collection-b', 'req-b.json'),
+      '{"b":2,"updated":true}'
+    );
+
+    await manager.commit('Collection A only', { collectionPrefix: collectionA });
+
+    const head = await git.resolveRef({ fs, dir: repoPath, ref: 'HEAD' });
+    const { blob: blobA } = await git.readBlob({
+      fs,
+      dir: repoPath,
+      oid: head,
+      filepath: `${collectionA}/req-a.json`
+    });
+    expect(Buffer.from(blobA).toString('utf-8')).toContain('"a":2');
+
+    const status = await manager.getStatus();
+    expect(status.changedCount).toBe(1);
+    expect(readFileSync(join(repoPath, collectionB, 'req-b.json'), 'utf-8')).toContain('"b":2');
   });
 
   it('lists local branch names', async () => {
@@ -592,6 +677,61 @@ describe('GitSyncManager', () => {
     await expect(manager.mergeBranch('main')).rejects.toThrow(
       'Cannot merge the current branch into itself.'
     );
+  });
+
+  it('creates a merge commit for diverged branches without a configured identity', async () => {
+    const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-sync-merge-'));
+    cleanups.push(() => rmSync(repoPath, { recursive: true, force: true }));
+    mkdirSync(join(repoPath, '.harborclient'), { recursive: true });
+
+    await git.init({ fs, dir: repoPath, defaultBranch: 'main' });
+    writeFileSync(join(repoPath, '.harborclient', 'base.txt'), 'base');
+    await git.add({ fs, dir: repoPath, filepath: '.harborclient/base.txt' });
+    const base = await git.commit({
+      fs,
+      dir: repoPath,
+      message: 'Base',
+      author: { name: 'Test', email: 'test@example.com' }
+    });
+
+    await git.branch({ fs, dir: repoPath, ref: 'feature', checkout: true });
+    writeFileSync(join(repoPath, '.harborclient', 'feature.txt'), 'feature');
+    await git.add({ fs, dir: repoPath, filepath: '.harborclient/feature.txt' });
+    await git.commit({
+      fs,
+      dir: repoPath,
+      message: 'Feature change',
+      author: { name: 'Test', email: 'test@example.com' }
+    });
+
+    await git.checkout({ fs, dir: repoPath, ref: 'main' });
+    writeFileSync(join(repoPath, '.harborclient', 'main.txt'), 'main');
+    await git.add({ fs, dir: repoPath, filepath: '.harborclient/main.txt' });
+    const mainCommit = await git.commit({
+      fs,
+      dir: repoPath,
+      message: 'Main change',
+      author: { name: 'Test', email: 'test@example.com' }
+    });
+
+    const settings: GitSettings = {
+      repoPath,
+      url: 'https://github.com/example/repo.git',
+      branch: 'main',
+      subdir: '.harborclient',
+      auth: { kind: 'pat', username: 'token' }
+    };
+    const manager = new GitSyncManager('test-connection', settings);
+
+    const result = await manager.mergeBranch('feature');
+
+    expect(result.conflictCount).toBe(0);
+    const head = await git.resolveRef({ fs, dir: repoPath, ref: 'HEAD' });
+    const { commit } = await git.readCommit({ fs, dir: repoPath, oid: head });
+    expect(commit.parent).toEqual(expect.arrayContaining([mainCommit]));
+    expect(commit.parent.length).toBe(2);
+    expect(commit.author.name).toBe('HarborClient');
+    expect(base).not.toBe(mainCommit);
   });
 
   it('reverts a modified tracked file to HEAD', async () => {

@@ -116,7 +116,7 @@ export function GitIdentitiesSection(): JSX.Element {
   const editorHostKey = normalizeGitHostKey(editorUrl || editorHost);
 
   /**
-   * Persists the global git auto-add preference.
+   * Persists the global git auto-track preference.
    */
   const handleAutoAddChange = (event: ChangeEvent<HTMLInputElement>): void => {
     void dispatch(patchGeneralSettings({ gitAutoAdd: event.target.checked }));
@@ -165,20 +165,21 @@ export function GitIdentitiesSection(): JSX.Element {
     >
       <div className="mb-6 rounded-md border border-separator px-3 py-3">
         <label
-          htmlFor="git-auto-add"
+          htmlFor="git-auto-track"
           className="flex cursor-pointer items-start gap-3 text-[14px] text-text"
         >
           <Checkbox
-            id="git-auto-add"
+            id="git-auto-track"
             checked={gitAutoAdd}
             onChange={handleAutoAddChange}
-            aria-describedby="git-auto-add-description"
+            aria-describedby="git-auto-track-description"
           />
           <span className="flex min-w-0 flex-col gap-1">
-            <SettingLabel settingId="git.autoAdd">Auto add</SettingLabel>
-            <span id="git-auto-add-description" className="text-muted">
-              When enabled, git commit stages all HarborClient changes automatically. When disabled,
-              use Add on individual requests to stage changes before committing.
+            <SettingLabel settingId="git.autoTrack">Auto track</SettingLabel>
+            <span id="git-auto-track-description" className="text-muted">
+              When enabled, HarborClient automatically tracks all requests and files added to
+              git-backed collections. When disabled, use Add on individual requests to track changes
+              before committing.
             </span>
           </span>
         </label>

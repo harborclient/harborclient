@@ -171,6 +171,25 @@ describe('buildGitDiff', () => {
     expect(excludingUntracked.files).toHaveLength(0);
   });
 
+  it('includes staged-only tracked files when stagedOnly is false', async () => {
+    const { repoPath } = await createTestRepo();
+    writeFileSync(join(repoPath, '.harborclient', 'readme.txt'), 'v2');
+    await git.add({ fs, dir: repoPath, filepath: '.harborclient/readme.txt' });
+
+    const diff = await buildGitDiff({
+      repoPath,
+      harborSubdir: '.harborclient',
+      stagedOnly: false,
+      excludeUntracked: true
+    });
+
+    expect(diff.files).toHaveLength(1);
+    expect(diff.files[0]).toMatchObject({
+      path: '.harborclient/readme.txt',
+      status: 'modified'
+    });
+  });
+
   it('scopes diffs to one collection folder and request/document paths only', async () => {
     const { repoPath } = await createTestRepo();
     const collectionDir = join(repoPath, '.harborclient', 'collection-api');

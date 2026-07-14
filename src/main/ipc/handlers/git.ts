@@ -35,7 +35,8 @@ import type {
   GitCommitsResult,
   GitFileDiffResult,
   GitFileInfoResult,
-  GitRepoInfoResult
+  GitRepoInfoResult,
+  GitRequestDiffFileEntry
 } from '#/shared/types';
 import type { Collection } from '#/shared/types';
 import { getGeneralSettings } from '#/main/settings/generalSettings';
@@ -181,14 +182,21 @@ export function registerGitHandlers(db: IStorage): void {
   // Lists saved git host identities.
   handle('git:listIdentities', ipcArgSchemas.none, async () => listGitIdentities());
 
-  // Commits local changes for a git connection.
+  // Commits local changes for one git-backed collection.
   handle(
     'git:commit',
     ipcArgSchemas.gitCommit,
-    async (_event, connectionId, message, createHarborRoot) => {
+    async (_event, connectionId, collectionUuid, message, createHarborRoot) => {
       const gitDb = requireGitStorage(db, connectionId);
-      const { gitAutoAdd } = getGeneralSettings();
-      await gitDb.syncManager.commit(message, { createHarborRoot, autoAdd: gitAutoAdd });
+      const collection = await gitDb.findCollectionByUuid(collectionUuid.trim());
+      if (!collection) {
+        throw new Error(`Collection not found for uuid "${collectionUuid}".`);
+      }
+      const collectionPrefix = gitDb.getCollectionRepoRelativePath(collection.id);
+      await gitDb.syncManager.commit(message, {
+        createHarborRoot,
+        collectionPrefix
+      });
     }
   );
 
@@ -324,6 +332,35 @@ export function registerGitHandlers(db: IStorage): void {
   handle('git:commitDetail', ipcArgSchemas.gitCommitDetail, async (_event, connectionId, oid) => {
     const gitDb = requireGitStorage(db, connectionId);
     return gitDb.syncManager.readCommitDetail(oid);
+  });
+
+  // Returns a diff for one HarborClient file in a specific commit.
+  handle('git:commitFileDiff', ipcArgSchemas.gitCommitFileDiff, async (_event, args) => {
+    const gitDb = requireGitStorage(db, args.connectionId);
+    const repoPath = gitDb.syncManager.repoDir;
+    const commitOid = args.commitOid.trim();
+    const filePath = args.filePath.trim();
+    const { commit } = await git.readCommit({ fs, dir: repoPath, oid: commitOid });
+    const parentOid = commit.parent[0] ?? null;
+    const diff = await buildFileCommitDiff({
+      repoPath,
+      filepath: filePath,
+      commitA: parentOid,
+      commitB: commitOid,
+      maxChars: args.maxChars
+    });
+
+    return {
+      path: diff.path,
+      status: args.status,
+      diff: diff.diff ?? undefined,
+      binary: diff.binary,
+      truncated: diff.truncated,
+      hasConflict: false,
+      ...(args.displayName != null ? { displayName: args.displayName } : {}),
+      ...(args.resourceKind != null ? { resourceKind: args.resourceKind } : {}),
+      ...(args.method != null ? { method: args.method } : {})
+    } satisfies GitRequestDiffFileEntry;
   });
 
   // Returns uncommitted HarborClient-tree diffs for a git-backed collection.

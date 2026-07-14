@@ -8,7 +8,8 @@ describe('buildGitCommitChangesViewModel', () => {
     path: '.harborclient/collection-api/req-health.json',
     status: 'modified',
     displayName: 'Health Check',
-    resourceKind: 'request'
+    resourceKind: 'request',
+    method: 'GET'
   };
 
   const markdownFile: GitCommitFileChange = {

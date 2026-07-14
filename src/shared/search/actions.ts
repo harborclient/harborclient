@@ -65,7 +65,7 @@ export const BUILTIN_ACTIONS: ActionCommandDefinition[] = [
     label: 'Join Shared Collection'
   },
   { id: 'builtin:new-collection-git', group: 'Git', label: 'New Collection' },
-  { id: 'builtin:git-create-branch', group: 'Git', label: 'Create Branch' },
+  { id: 'builtin:git-create-branch', group: 'Git', label: 'Branches' },
   { id: 'builtin:git-delete-branch', group: 'Git', label: 'Delete Branch' },
   { id: 'builtin:git-commit', group: 'Git', label: 'Commit' },
   { id: 'builtin:git-merge', group: 'Git', label: 'Merge' },

@@ -301,6 +301,7 @@ export function RequestRow({
             pluginContextMenuItems
           ),
           ...buildGitItemMenuGroups(
+            onGitStageItem != null,
             gitItemStatus,
             () => onGitStageItem?.(),
             () => onGitUnstageItem?.()

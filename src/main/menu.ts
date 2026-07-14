@@ -357,7 +357,7 @@ export function buildMenu(
           click: () => sendMenuAction(window, 'new-collection-git')
         },
         {
-          label: 'Create Branch',
+          label: 'Branches',
           enabled: gitCollectionActive,
           accelerator: acceleratorFor(accelerators, 'git-create-branch'),
           click: () => sendMenuAction(window, 'git-create-branch')

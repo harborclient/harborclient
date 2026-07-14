@@ -109,7 +109,8 @@ describe('git graph', () => {
         path: '.harborclient/collection-api/req-health.json',
         status: 'added',
         displayName: 'Health Check',
-        resourceKind: 'request'
+        resourceKind: 'request',
+        method: 'GET'
       })
     ]);
     expect(detail.files.some((file) => file.path.endsWith('collection.json'))).toBe(false);

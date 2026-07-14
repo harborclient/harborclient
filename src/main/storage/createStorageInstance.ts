@@ -1,4 +1,5 @@
 import { GitStorage } from '#/main/storage/GitStorage';
+import { getGeneralSettings } from '#/main/settings/generalSettings';
 import { FirestoreStorage } from '#/main/storage/FirestoreStorage';
 import { MySqlStorage } from '#/main/storage/MySqlStorage';
 import { PostgresStorage } from '#/main/storage/PostgresStorage';
@@ -39,7 +40,12 @@ export async function createStorageInstance(
       return db;
     }
     case 'git': {
-      const db = new GitStorage(connection.id, connection.settings, userDataPath);
+      const db = new GitStorage(
+        connection.id,
+        connection.settings,
+        userDataPath,
+        () => getGeneralSettings().gitAutoAdd
+      );
       await db.init();
       return db;
     }

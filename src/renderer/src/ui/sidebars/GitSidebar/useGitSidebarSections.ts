@@ -20,7 +20,7 @@ export function useGitSidebarSections(): {
    */
   const applySectionExpanded = useCallback(
     (key: string, isEnter: boolean): void => {
-      if (key === 'commitMessage' || key === 'changes' || key === 'commits' || key === 'history') {
+      if (key === 'commitMessage' || key === 'changes' || key === 'commits') {
         setSectionExpanded(key, isEnter);
       }
     },

@@ -12,8 +12,10 @@ import {
 import { decodeTextContent } from '#/main/git/gitBlobText';
 import {
   analyzeMatrixRow,
+  isCountedCollectionChange,
   type GitMatrixChangeStatus,
-  type GitMatrixRow
+  type GitMatrixRow,
+  type GitRequestRowFlags
 } from '#/main/git/gitRequestStatus';
 
 /**
@@ -450,6 +452,46 @@ export async function buildSingleResourceDiff(
 }
 
 /**
+ * Resolves the change label shown for one diff row.
+ *
+ * When comparing the working tree to HEAD, falls back to the staged label so
+ * staged-only tracked files appear in collection change lists.
+ *
+ * @param flags - Change flags from {@link analyzeMatrixRow}.
+ * @param stagedOnly - When true, compare the index to HEAD only.
+ */
+function resolveGitDiffRowStatus(
+  flags: GitRequestRowFlags,
+  stagedOnly: boolean
+): GitMatrixChangeStatus | null {
+  if (stagedOnly) {
+    return flags.stagedChangeStatus;
+  }
+  return flags.workdirChangeStatus ?? flags.stagedChangeStatus;
+}
+
+/**
+ * Chooses whether diff content should come from the index or working tree.
+ *
+ * @param flags - Change flags from {@link analyzeMatrixRow}.
+ * @param stagedOnly - When true, compare the index to HEAD only.
+ * @param status - Resolved row status label.
+ */
+function shouldReadStageForGitDiff(
+  flags: GitRequestRowFlags,
+  stagedOnly: boolean,
+  status: GitMatrixChangeStatus
+): boolean {
+  if (status === 'deleted') {
+    return false;
+  }
+  if (stagedOnly) {
+    return true;
+  }
+  return flags.workdirChangeStatus == null && flags.stagedChangeStatus != null;
+}
+
+/**
  * Builds a capped git diff for all uncommitted changes under the HarborClient tree.
  *
  * @param options - Repository path, harbor subdirectory, and output caps.
@@ -477,7 +519,7 @@ export async function buildGitDiff(options: GitDiffOptions): Promise<GitDiffResu
     if (stagedOnly) {
       return flags.hasStagedChanges;
     }
-    if (excludeUntracked && flags.isUntracked) {
+    if (excludeUntracked && !isCountedCollectionChange(flags)) {
       return false;
     }
     return true;
@@ -505,13 +547,17 @@ export async function buildGitDiff(options: GitDiffOptions): Promise<GitDiffResu
     }
 
     const flags = analyzeMatrixRow(row as GitMatrixRow);
-    const status = stagedOnly ? flags?.stagedChangeStatus : flags?.workdirChangeStatus;
+    if (flags == null) {
+      continue;
+    }
+    const status = resolveGitDiffRowStatus(flags, stagedOnly);
     if (status == null) {
       continue;
     }
 
     const headBytes = status === 'added' ? null : await readHeadFile(repoPath, filepath);
-    const compareBytes = stagedOnly
+    const readStage = shouldReadStageForGitDiff(flags, stagedOnly, status);
+    const compareBytes = readStage
       ? status === 'deleted'
         ? null
         : await readStageFile(repoPath, filepath)

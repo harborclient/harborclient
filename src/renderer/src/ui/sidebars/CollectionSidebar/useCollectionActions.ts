@@ -45,6 +45,32 @@ import { useSidebarModals } from '#/renderer/src/ui/sidebars/CollectionSidebar/s
 import { useSidebarProviders } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarProvidersContext';
 
 /**
+ * Builds the sidebar focus payload when opening a saved request so git-backed
+ * collections and folder highlights follow the opened item.
+ *
+ * @param req - Saved request whose parent collection and folder should be selected.
+ * @returns Payload for {@link focusSidebarItem}.
+ */
+export function sidebarFocusPayloadForRequest(
+  req: Pick<SavedRequest, 'collection_id' | 'folder_id'>
+): { collectionId: number; folderId: number | null } {
+  return { collectionId: req.collection_id, folderId: req.folder_id ?? null };
+}
+
+/**
+ * Builds the sidebar focus payload when opening a markdown document so git-backed
+ * collections and folder highlights follow the opened item.
+ *
+ * @param doc - Document whose parent collection and folder should be selected.
+ * @returns Payload for {@link focusSidebarItem}.
+ */
+export function sidebarFocusPayloadForDocument(
+  doc: Pick<CollectionDocument, 'collection_id' | 'folder_id'>
+): { collectionId: number; folderId: number | null } {
+  return { collectionId: doc.collection_id, folderId: doc.folder_id ?? null };
+}
+
+/**
  * Callback bundle for the collections tree. Every action dispatches the
  * relevant thunk (with confirmation/toast handling) so the `Collections`
  * component owns its behavior instead of receiving dozens of props.
@@ -476,9 +502,11 @@ export function useCollectionActions(): CollectionActions {
       await dispatch(moveRequestToFolder({ collectionId, requestId, folderId, index }));
     },
     onLoadRequest: (req) => {
+      dispatch(focusSidebarItem(sidebarFocusPayloadForRequest(req)));
       void dispatch(requestLoadRequest({ req }));
     },
     onLoadDocument: (doc) => {
+      dispatch(focusSidebarItem(sidebarFocusPayloadForDocument(doc)));
       void dispatch(requestLoadDocument({ doc }));
     },
     onRenameDocument: (doc) => {

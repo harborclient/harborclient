@@ -81,6 +81,18 @@ function deriveStagedChangeStatus(head: number, stage: number): GitMatrixChangeS
 }
 
 /**
+ * Returns whether a changed file should count toward collection change totals.
+ *
+ * Tracked files that differ from HEAD (staged and/or unstaged) count; untracked
+ * files do not until Auto track or manual staging adds them to the index.
+ *
+ * @param flags - Change flags from {@link analyzeMatrixRow}.
+ */
+export function isCountedCollectionChange(flags: GitRequestRowFlags): boolean {
+  return !flags.isUntracked;
+}
+
+/**
  * Returns change flags for one matrix row, or null when the row is clean.
  *
  * @param row - statusMatrix row from isomorphic-git.

@@ -1,7 +1,7 @@
 /**
  * Persisted Git sidebar accordion section keys.
  */
-export type GitSidebarSectionKey = 'commitMessage' | 'changes' | 'commits' | 'history';
+export type GitSidebarSectionKey = 'commitMessage' | 'changes' | 'commits';
 
 /**
  * Persisted expansion and visibility state for Git sidebar sections.
@@ -25,13 +25,11 @@ export const DEFAULT_GIT_SIDEBAR_EXPANSION: GitSidebarExpansionState = {
   sections: {
     commitMessage: true,
     changes: true,
-    commits: true,
-    history: true
+    commits: true
   },
   sectionVisibility: {
     commitMessage: true,
     changes: true,
-    commits: true,
-    history: true
+    commits: true
   }
 };

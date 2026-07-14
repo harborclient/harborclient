@@ -22,9 +22,9 @@ export interface FileCommitDiffOptions {
   filepath: string;
 
   /**
-   * Older commit object id (parent side of the diff).
+   * Older commit object id (parent side of the diff), or null for root commits.
    */
-  commitA: string;
+  commitA: string | null;
 
   /**
    * Newer commit object id (child side of the diff).
@@ -47,9 +47,9 @@ export interface FileCommitDiffResult {
   path: string;
 
   /**
-   * Older commit object id.
+   * Older commit object id, or null when the diff starts from an empty tree.
    */
-  commitA: string;
+  commitA: string | null;
 
   /**
    * Newer commit object id.
@@ -155,7 +155,10 @@ export async function buildFileCommitDiff(
   options: FileCommitDiffOptions
 ): Promise<FileCommitDiffResult> {
   const maxChars = options.maxChars ?? GIT_DIFF_DEFAULT_MAX_CHARS_PER_FILE;
-  const bytesA = await readBlobBytesAtCommit(options.repoPath, options.commitA, options.filepath);
+  const bytesA =
+    options.commitA == null
+      ? null
+      : await readBlobBytesAtCommit(options.repoPath, options.commitA, options.filepath);
   const bytesB = await readBlobBytesAtCommit(options.repoPath, options.commitB, options.filepath);
   const textA = decodeBlobText(bytesA);
   const textB = decodeBlobText(bytesB);

@@ -77,4 +77,36 @@ describe('gitFileHistory', () => {
     expect(diff.diff).toContain('v1');
     expect(diff.diff).toContain('v2');
   });
+
+  it('builds a diff for a file added in the root commit', async () => {
+    const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-file-history-root-'));
+    const filepath = '.harborclient/collection-api/req-get-users.json';
+    mkdirSync(join(repoPath, '.harborclient', 'collection-api'), { recursive: true });
+
+    await git.init({ fs, dir: repoPath, defaultBranch: 'main' });
+    await git.setConfig({ fs, dir: repoPath, path: 'user.name', value: 'Test' });
+    await git.setConfig({ fs, dir: repoPath, path: 'user.email', value: 'test@example.com' });
+
+    writeFileSync(join(repoPath, filepath), '{"url":"v1"}');
+    await git.add({ fs, dir: repoPath, filepath });
+    const rootOid = await git.commit({
+      fs,
+      dir: repoPath,
+      message: 'Add request v1',
+      author: { name: 'Test', email: 'test@example.com' }
+    });
+
+    cleanups.push(() => rmSync(repoPath, { recursive: true, force: true }));
+
+    const diff = await buildFileCommitDiff({
+      repoPath,
+      filepath,
+      commitA: null,
+      commitB: rootOid
+    });
+
+    expect(diff.binary).toBe(false);
+    expect(diff.commitA).toBeNull();
+    expect(diff.diff).toContain('v1');
+  });
 });

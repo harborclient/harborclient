@@ -1,6 +1,7 @@
-import { EmptySectionLabel } from '@harborclient/sdk/components';
+import { EmptySectionLabel, FaIcon } from '@harborclient/sdk/components';
 import { useEffect, useState, type JSX } from 'react';
 import type { GitLogEntry } from '#/shared/types';
+import { faCodeBranch } from '#/renderer/src/fontawesome';
 import { GitCommitDetailModal } from '#/renderer/src/ui/sidebars/GitSidebar/modals/GitCommitDetailModal';
 
 interface Props {
@@ -42,19 +43,28 @@ export function GitCommitsSection({ connectionId, refreshNonce }: Props): JSX.El
 
   return (
     <>
-      <div className="px-2 pb-2">
+      <div className="py-2">
         <ul className="m-0 flex list-none flex-col gap-0 p-0" aria-label="Recent commits">
           {entries.map((entry) => (
             <li key={entry.oid}>
               <button
                 type="button"
-                className="group flex w-full cursor-pointer flex-col gap-0.5 rounded-md py-1 text-left hover:bg-selection/60 app-no-drag"
+                className="group flex w-full cursor-pointer rounded-md p-2 text-left hover:bg-selection/60 app-no-drag"
                 onClick={() => setSelectedOid(entry.oid)}
               >
-                <span className="block min-w-0 truncate text-text">{entry.message}</span>
-                <span className="block min-w-0 truncate text-[14px] text-muted">
-                  {entry.author} · {new Date(entry.timestamp).toLocaleString()}
-                </span>
+                <FaIcon
+                  icon={faCodeBranch}
+                  className="h-4 w-4 shrink-0 text-muted mr-2"
+                  aria-hidden
+                />
+                <div className="flex flex-col gap-0.5 -mt-1.5">
+                  <span className="block min-w-0 truncate text-text font-medium">
+                    {entry.message}
+                  </span>
+                  <span className="block min-w-0 truncate text-muted text-[14px]">
+                    {entry.author} · {new Date(entry.timestamp).toLocaleString()}
+                  </span>
+                </div>
               </button>
             </li>
           ))}

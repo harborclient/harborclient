@@ -36,12 +36,12 @@ export type SettingId =
   | 'shortcuts'
   | 'backup-restore'
   | 'backup-restore.confirmations'
-  | 'git.autoAdd';
+  | 'git.autoTrack';
 
 /**
  * Catalog ids for management settings groups within a section panel.
  */
-export type GroupSettingId = 'backup-restore.confirmations' | 'git.autoAdd';
+export type GroupSettingId = 'backup-restore.confirmations' | 'git.autoTrack';
 
 /**
  * Catalog ids for individual settings fields (excludes management section and group ids).
@@ -399,18 +399,18 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
       'authentication',
       'credentials',
       'host',
-      'auto add',
-      'staging'
+      'auto track',
+      'tracking'
     ]
   },
   {
-    id: 'git.autoAdd',
+    id: 'git.autoTrack',
     section: 'git',
     kind: 'group',
-    label: 'Auto add',
+    label: 'Auto track',
     description:
-      'When enabled, git commit stages all HarborClient changes automatically. When disabled, use Add on individual requests to stage changes before committing.',
-    keywords: ['git', 'stage', 'staging', 'auto add', 'commit', 'unstaged', 'manual']
+      'When enabled, HarborClient automatically tracks all requests and files added to git-backed collections. When disabled, use Add on individual requests to track changes before committing.',
+    keywords: ['git', 'track', 'tracking', 'auto track', 'commit', 'unstaged', 'manual']
   },
   {
     id: 'shortcuts',

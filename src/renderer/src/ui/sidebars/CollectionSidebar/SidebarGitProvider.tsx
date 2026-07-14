@@ -14,9 +14,9 @@ import {
   selectSelectedCollectionId
 } from '#/renderer/src/store/selectors';
 import { refreshCollections } from '#/renderer/src/store/thunks';
+import { GitBranchesModal } from '#/renderer/src/ui/modals/GitBranchesModal';
 import { GitCreateBranchModal } from '#/renderer/src/ui/modals/GitCreateBranchModal';
 import { GitDeleteBranchModal } from '#/renderer/src/ui/modals/GitDeleteBranchModal';
-import { GitSwitchBranchesModal } from '#/renderer/src/ui/modals/GitSwitchBranchesModal';
 import { GitMenuActionHost } from '#/renderer/src/ui/sidebars/CollectionSidebar/GitMenuActionHost';
 import {
   SidebarGitContext,
@@ -40,6 +40,12 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
   const draft = useAppSelector(selectDraft);
   const collections = useAppSelector(selectCollections);
   const { providers, primaryProviderId } = useProviders();
+  const [branchesPanel, setBranchesPanel] = useState<{
+    connectionId: string;
+    connectionName: string;
+    collectionUuid: string;
+    mode: 'branches' | 'merge';
+  } | null>(null);
   const [createBranchPanel, setCreateBranchPanel] = useState<{
     connectionId: string;
     connectionName: string;
@@ -50,16 +56,7 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
     connectionName: string;
     collectionUuid: string;
   } | null>(null);
-  const [switchBranchPanel, setSwitchBranchPanel] = useState<{
-    connectionId: string;
-    connectionName: string;
-    collectionUuid: string;
-  } | null>(null);
-  const [mergeBranchPanel, setMergeBranchPanel] = useState<{
-    connectionId: string;
-    connectionName: string;
-    collectionUuid: string;
-  } | null>(null);
+  const [branchesReloadToken, setBranchesReloadToken] = useState(0);
   const [itemGitStatusByUuid, setItemGitStatusByUuid] = useState<
     Record<string, import('#/shared/types').GitRequestFileStatus>
   >({});
@@ -189,13 +186,30 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
   }, [dispatch]);
 
   /**
-   * Opens the create-branch modal for a git connection.
+   * Opens the unified branches modal for a git connection.
+   *
+   * @param mode - Whether the modal should switch/create branches or merge into the current branch.
+   */
+  const openBranches = useCallback(
+    (
+      connectionId: string,
+      connectionName: string,
+      collectionUuid: string,
+      mode: 'branches' | 'merge'
+    ): void => {
+      setBranchesPanel({ connectionId, connectionName, collectionUuid, mode });
+    },
+    []
+  );
+
+  /**
+   * Opens the unified branches modal for creating or switching branches.
    */
   const openCreateBranch = useCallback(
     (connectionId: string, connectionName: string, collectionUuid: string): void => {
-      setCreateBranchPanel({ connectionId, connectionName, collectionUuid });
+      openBranches(connectionId, connectionName, collectionUuid, 'branches');
     },
-    []
+    [openBranches]
   );
 
   /**
@@ -209,23 +223,23 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
   );
 
   /**
-   * Opens the switch-branch modal for a git connection.
+   * Opens the unified branches modal for switching branches.
    */
   const openSwitchBranch = useCallback(
     (connectionId: string, connectionName: string, collectionUuid: string): void => {
-      setSwitchBranchPanel({ connectionId, connectionName, collectionUuid });
+      openBranches(connectionId, connectionName, collectionUuid, 'branches');
     },
-    []
+    [openBranches]
   );
 
   /**
-   * Opens the merge-branch modal for a git connection.
+   * Opens the unified branches modal for merging into the current branch.
    */
   const openMergeBranch = useCallback(
     (connectionId: string, connectionName: string, collectionUuid: string): void => {
-      setMergeBranchPanel({ connectionId, connectionName, collectionUuid });
+      openBranches(connectionId, connectionName, collectionUuid, 'merge');
     },
-    []
+    [openBranches]
   );
 
   /**
@@ -302,7 +316,7 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
   }, [dispatch]);
 
   /**
-   * Opens the merge-branch modal for the active git-backed collection.
+   * Opens the unified branches modal for the active git-backed collection.
    */
   const mergeActiveCollection = useCallback((): void => {
     if (activeGitContext == null) {
@@ -317,7 +331,7 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
   }, [activeGitContext, openMergeBranch]);
 
   /**
-   * Opens the create-branch modal for the active git-backed collection.
+   * Opens the unified branches modal for the active git-backed collection.
    */
   const createBranchActiveCollection = useCallback((): void => {
     if (activeGitContext == null) {
@@ -419,13 +433,39 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
     <SidebarGitContext.Provider value={value}>
       {children}
       <GitMenuActionHost />
+      {branchesPanel != null && (
+        <GitBranchesModal
+          open={true}
+          connectionId={branchesPanel.connectionId}
+          connectionName={branchesPanel.connectionName}
+          status={gitStatusesByConnectionId[branchesPanel.connectionId] ?? null}
+          mode={branchesPanel.mode}
+          reloadToken={branchesReloadToken}
+          onClose={() => setBranchesPanel(null)}
+          onRefresh={refreshGitSidebar}
+          onCreateBranch={
+            branchesPanel.mode === 'branches'
+              ? () => {
+                  setCreateBranchPanel({
+                    connectionId: branchesPanel.connectionId,
+                    connectionName: branchesPanel.connectionName,
+                    collectionUuid: branchesPanel.collectionUuid
+                  });
+                }
+              : undefined
+          }
+        />
+      )}
       {createBranchPanel != null && (
         <GitCreateBranchModal
           open={true}
           connectionId={createBranchPanel.connectionId}
           connectionName={createBranchPanel.connectionName}
           onClose={() => setCreateBranchPanel(null)}
-          onRefresh={refreshGitSidebar}
+          onRefresh={() => {
+            refreshGitSidebar();
+            setBranchesReloadToken((token) => token + 1);
+          }}
         />
       )}
       {deleteBranchPanel != null && (
@@ -435,28 +475,6 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
           connectionName={deleteBranchPanel.connectionName}
           status={gitStatusesByConnectionId[deleteBranchPanel.connectionId] ?? null}
           onClose={() => setDeleteBranchPanel(null)}
-          onRefresh={refreshGitSidebar}
-        />
-      )}
-      {switchBranchPanel != null && (
-        <GitSwitchBranchesModal
-          open={true}
-          mode="switch"
-          connectionId={switchBranchPanel.connectionId}
-          connectionName={switchBranchPanel.connectionName}
-          status={gitStatusesByConnectionId[switchBranchPanel.connectionId] ?? null}
-          onClose={() => setSwitchBranchPanel(null)}
-          onRefresh={refreshGitSidebar}
-        />
-      )}
-      {mergeBranchPanel != null && (
-        <GitSwitchBranchesModal
-          open={true}
-          mode="merge"
-          connectionId={mergeBranchPanel.connectionId}
-          connectionName={mergeBranchPanel.connectionName}
-          status={gitStatusesByConnectionId[mergeBranchPanel.connectionId] ?? null}
-          onClose={() => setMergeBranchPanel(null)}
           onRefresh={refreshGitSidebar}
         />
       )}

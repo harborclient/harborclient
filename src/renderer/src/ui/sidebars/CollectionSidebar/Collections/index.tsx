@@ -922,7 +922,7 @@ export function Collections(): JSX.Element {
                                           onSelect: () => onOpenSourceControl()
                                         },
                                         {
-                                          label: 'Branch',
+                                          label: 'Branches',
                                           onSelect: () =>
                                             onOpenCreateBranch(
                                               collectionConnectionId,

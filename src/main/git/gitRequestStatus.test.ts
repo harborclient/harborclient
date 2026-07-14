@@ -4,6 +4,7 @@ import {
   countStagedAndUnstaged,
   deriveRequestFileStatus,
   hasStagedChanges,
+  isCountedCollectionChange,
   type GitMatrixRow,
   type GitRequestRowFlags
 } from '#/main/git/gitRequestStatus';
@@ -124,5 +125,14 @@ describe('git request status helpers', () => {
       canRemove: true,
       isUntracked: false
     });
+  });
+
+  it('counts only tracked collection changes and excludes untracked files', () => {
+    const tracked = analyzeMatrixRow(['req-modified.json', 1, 2, 2]);
+    const untracked = analyzeMatrixRow(['req-new.json', 0, 2, 0]);
+    expect(tracked).not.toBeNull();
+    expect(untracked).not.toBeNull();
+    expect(isCountedCollectionChange(tracked!)).toBe(true);
+    expect(isCountedCollectionChange(untracked!)).toBe(false);
   });
 });

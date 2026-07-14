@@ -337,29 +337,43 @@ describe('nullable folderId tuples', () => {
 });
 
 describe('git IPC schemas', () => {
-  it('gitCommit accepts connection id and non-empty commit message', () => {
+  it('gitCommit accepts connection id, collection uuid, and non-empty commit message', () => {
     expect(
-      ipcArgSchemas.gitCommit.safeParse([validGitConnectionId, 'Initial commit']).success
+      ipcArgSchemas.gitCommit.safeParse([validGitConnectionId, 'collection-uuid', 'Initial commit'])
+        .success
     ).toBe(true);
-    expect(ipcArgSchemas.gitCommit.safeParse([validGitConnectionId, '  fix typo  ']).success).toBe(
-      true
-    );
     expect(
-      ipcArgSchemas.gitCommit.safeParse([validGitConnectionId, 'Initial commit', true]).success
+      ipcArgSchemas.gitCommit.safeParse([validGitConnectionId, 'collection-uuid', '  fix typo  '])
+        .success
+    ).toBe(true);
+    expect(
+      ipcArgSchemas.gitCommit.safeParse([
+        validGitConnectionId,
+        'collection-uuid',
+        'Initial commit',
+        true
+      ]).success
     ).toBe(true);
   });
 
   it('gitCommit rejects empty or whitespace-only commit message', () => {
-    expect(ipcArgSchemas.gitCommit.safeParse([validGitConnectionId, '']).success).toBe(false);
-    expect(ipcArgSchemas.gitCommit.safeParse([validGitConnectionId, '   ']).success).toBe(false);
+    expect(
+      ipcArgSchemas.gitCommit.safeParse([validGitConnectionId, 'collection-uuid', '']).success
+    ).toBe(false);
+    expect(
+      ipcArgSchemas.gitCommit.safeParse([validGitConnectionId, 'collection-uuid', '   ']).success
+    ).toBe(false);
   });
 
   it('gitCommit rejects non-string connection id and wrong arity', () => {
-    expect(ipcArgSchemas.gitCommit.safeParse([123, 'msg']).success).toBe(false);
-    expect(ipcArgSchemas.gitCommit.safeParse([validGitConnectionId]).success).toBe(false);
-    expect(ipcArgSchemas.gitCommit.safeParse([validGitConnectionId, 'msg', 'yes']).success).toBe(
-      false
-    );
+    expect(ipcArgSchemas.gitCommit.safeParse([123, 'collection-uuid', 'msg']).success).toBe(false);
+    expect(
+      ipcArgSchemas.gitCommit.safeParse([validGitConnectionId, 'collection-uuid']).success
+    ).toBe(false);
+    expect(
+      ipcArgSchemas.gitCommit.safeParse([validGitConnectionId, 'collection-uuid', 'msg', 'yes'])
+        .success
+    ).toBe(false);
   });
 
   it('gitListBranches accepts a connection id', () => {
@@ -456,6 +470,42 @@ describe('git IPC schemas', () => {
       true
     );
     expect(ipcArgSchemas.gitCommitDetail.safeParse([validGitConnectionId, '']).success).toBe(false);
+  });
+
+  it('gitCommitFileDiff accepts commit file diff args', () => {
+    expect(
+      ipcArgSchemas.gitCommitFileDiff.safeParse([
+        {
+          connectionId: validGitConnectionId,
+          commitOid: 'abc123',
+          filePath: '.harborclient/collection-api/req-health.json',
+          status: 'modified'
+        }
+      ]).success
+    ).toBe(true);
+    expect(
+      ipcArgSchemas.gitCommitFileDiff.safeParse([
+        {
+          connectionId: validGitConnectionId,
+          commitOid: 'abc123',
+          filePath: '.harborclient/collection-api/req-health.json',
+          status: 'added',
+          displayName: 'Health Check',
+          resourceKind: 'request',
+          method: 'GET'
+        }
+      ]).success
+    ).toBe(true);
+    expect(
+      ipcArgSchemas.gitCommitFileDiff.safeParse([
+        {
+          connectionId: validGitConnectionId,
+          commitOid: '',
+          filePath: '.harborclient/collection-api/req-health.json',
+          status: 'modified'
+        }
+      ]).success
+    ).toBe(false);
   });
 
   it('gitDiff accepts collection uuid with optional caps and excludeUntracked', () => {

@@ -307,8 +307,9 @@ export interface GeneralSettings {
   warnWhenAgentUsesTerminal: boolean;
 
   /**
-   * When true, git commit stages all HarborClient changes automatically before committing.
-   * When false, only files staged via request Add actions are included in commits.
+   * When true, HarborClient automatically tracks all requests and files added to git-backed
+   * collections before committing. When false, only files tracked via request Add actions are
+   * included in commits.
    */
   gitAutoAdd: boolean;
 

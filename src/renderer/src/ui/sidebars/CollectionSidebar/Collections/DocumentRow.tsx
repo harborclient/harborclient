@@ -103,6 +103,7 @@ export function DocumentRow({
         }
       ],
       ...buildGitItemMenuGroups(
+        onGitStageItem != null,
         gitItemStatus,
         () => onGitStageItem?.(),
         () => onGitUnstageItem?.()

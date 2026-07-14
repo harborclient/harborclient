@@ -12,7 +12,6 @@ import {
   faCodeBranch,
   faList,
   faClockRotateLeft,
-  faDiagramProject,
   faPenToSquare,
   faDownload,
   faArrowUp
@@ -26,12 +25,11 @@ import { GitSidebarEmptyState } from '#/renderer/src/ui/sidebars/GitSidebar/GitS
 import { GitCommitMessageSection } from '#/renderer/src/ui/sidebars/GitSidebar/GitCommitMessageSection';
 import { GitChangesSection } from '#/renderer/src/ui/sidebars/GitSidebar/GitChangesSection';
 import { GitCommitsSection } from '#/renderer/src/ui/sidebars/GitSidebar/GitCommitsSection';
-import { GitHistorySection } from '#/renderer/src/ui/sidebars/GitSidebar/GitHistorySection';
 import { useGitSidebarSections } from '#/renderer/src/ui/sidebars/GitSidebar/useGitSidebarSections';
 
 /**
  * Right-side Git source-control panel with accordion sections for commit, changes,
- * commits, and history.
+ * and commits.
  */
 export function GitSidebar(): JSX.Element {
   const selectedCollectionId = useAppSelector(selectSelectedCollectionId);
@@ -153,14 +151,6 @@ export function GitSidebar(): JSX.Element {
         title: sectionVisibility.commits ? 'Hide Commits section' : 'Show Commits section',
         ariaPressed: sectionVisibility.commits,
         onClick: () => setSectionVisible('commits', !sectionVisibility.commits)
-      },
-      {
-        id: 'git-section-history',
-        icon: faDiagramProject,
-        label: 'History section',
-        title: sectionVisibility.history ? 'Hide History section' : 'Show History section',
-        ariaPressed: sectionVisibility.history,
-        onClick: () => setSectionVisible('history', !sectionVisibility.history)
       }
     ];
 
@@ -237,7 +227,7 @@ export function GitSidebar(): JSX.Element {
             {allSectionsHidden ? (
               <div className="px-2 py-3 text-muted" role="status">
                 All Git sidebar sections are hidden. Use the toolbar above to show commit, changes,
-                commits, or history.
+                or commits.
               </div>
             ) : null}
             <ControlledAccordion providerValue={accordion}>
@@ -270,16 +260,6 @@ export function GitSidebar(): JSX.Element {
                 <nav aria-label="Commits">
                   <Section itemKey="commits" title="Commits" initialEntered={true}>
                     <GitCommitsSection
-                      connectionId={gitContext.connectionId}
-                      refreshNonce={refreshNonce}
-                    />
-                  </Section>
-                </nav>
-              )}
-              {sectionVisibility.history && (
-                <nav aria-label="History">
-                  <Section itemKey="history" title="History" initialEntered={true}>
-                    <GitHistorySection
                       connectionId={gitContext.connectionId}
                       refreshNonce={refreshNonce}
                     />

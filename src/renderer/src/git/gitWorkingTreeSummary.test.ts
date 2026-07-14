@@ -16,13 +16,13 @@ const baseStatus: SourceControlStatus = {
 };
 
 describe('buildGitWorkingTreeSummary', () => {
-  it('includes staged count when auto add is disabled', () => {
+  it('includes staged count when auto track is disabled', () => {
     expect(buildGitWorkingTreeSummary(baseStatus, false)).toBe(
       '6 uncommitted change(s) · 1 staged'
     );
   });
 
-  it('omits staged count when auto add is enabled', () => {
+  it('omits staged count when auto track is enabled', () => {
     expect(buildGitWorkingTreeSummary(baseStatus, true)).toBe('6 uncommitted change(s)');
   });
 
