@@ -456,19 +456,37 @@ export function classifyHarborChangePath(
 }
 
 /**
- * Parses a request display name from one request export JSON string.
+ * Request display metadata parsed from one request export JSON string.
+ */
+interface ParsedRequestMeta {
+  /**
+   * User-facing request name when present in the export JSON.
+   */
+  name: string | null;
+
+  /**
+   * HTTP method when present in the export JSON.
+   */
+  method: string | null;
+}
+
+/**
+ * Parses request display metadata from one request export JSON string.
  *
  * @param text - Request export JSON text.
  */
-function parseRequestDisplayNameFromText(text: string | null): string | null {
+function parseRequestMetaFromText(text: string | null): ParsedRequestMeta {
   if (text == null || !text.trim()) {
-    return null;
+    return { name: null, method: null };
   }
-  const parsed = parseJson(text, null as { name?: unknown } | null);
-  if (parsed != null && typeof parsed.name === 'string' && parsed.name.trim()) {
-    return parsed.name.trim();
+  const parsed = parseJson(text, null as { name?: unknown; method?: unknown } | null);
+  if (parsed == null) {
+    return { name: null, method: null };
   }
-  return null;
+  const name = typeof parsed.name === 'string' && parsed.name.trim() ? parsed.name.trim() : null;
+  const method =
+    typeof parsed.method === 'string' && parsed.method.trim() ? parsed.method.trim() : null;
+  return { name, method };
 }
 
 /**
@@ -507,13 +525,14 @@ export function displayNameFromHarborChange(
   classified: ClassifiedHarborChangePath,
   contentText: string | null,
   manifestText: string | null = null
-): { displayName: string; resourceKind: 'request' | 'document' } {
+): { displayName: string; resourceKind: 'request' | 'document'; method?: string } {
   if (classified.kind === 'request') {
-    const parsedName = parseRequestDisplayNameFromText(contentText);
+    const parsedMeta = parseRequestMetaFromText(contentText);
     const fallback = classified.fileName.replace(/^req-/i, '').replace(/\.json$/i, '');
     return {
-      displayName: parsedName ?? fallback,
-      resourceKind: 'request'
+      displayName: parsedMeta.name ?? fallback,
+      resourceKind: 'request',
+      ...(parsedMeta.method != null ? { method: parsedMeta.method } : {})
     };
   }
 
@@ -763,7 +782,7 @@ function uniqueFileNameInFolder(baseName: string, usedNames: Set<string>): strin
  *
  * @param dirPath - Absolute collection folder path.
  */
-function buildExistingRequestFileMap(dirPath: string): Map<string, string> {
+export function buildExistingRequestFileMap(dirPath: string): Map<string, string> {
   const map = new Map<string, string>();
   if (!existsSync(dirPath)) {
     return map;
@@ -791,6 +810,21 @@ function buildExistingRequestFileMap(dirPath: string): Map<string, string> {
   }
 
   return map;
+}
+
+/**
+ * Reads markdown document file refs from a collection manifest on disk.
+ *
+ * @param dirPath - Absolute collection folder path.
+ */
+export function readStoredDocumentRefs(dirPath: string): StoredDocumentRef[] {
+  const manifestPath = collectionManifestPath(dirPath);
+  if (!existsSync(manifestPath)) {
+    return [];
+  }
+
+  const parsed = readJsonFile(manifestPath) as { documents?: StoredDocumentRef[] } | null;
+  return parsed?.documents ?? [];
 }
 
 /**

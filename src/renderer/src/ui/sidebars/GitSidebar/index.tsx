@@ -6,7 +6,7 @@ import {
   useResizable,
   FaIcon
 } from '@harborclient/sdk/components';
-import { useCallback, useMemo, useState, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import {
   faCodeBranch,
@@ -36,7 +36,7 @@ import { useGitSidebarSections } from '#/renderer/src/ui/sidebars/GitSidebar/use
 export function GitSidebar(): JSX.Element {
   const selectedCollectionId = useAppSelector(selectSelectedCollectionId);
   const collections = useAppSelector(selectCollections);
-  const { activeGitContext: gitContext, refreshGitSidebar } = useSidebarGit();
+  const { activeGitContext: gitContext, refreshGitSidebar, refreshGitStatuses } = useSidebarGit();
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [busy, setBusy] = useState(false);
 
@@ -46,6 +46,27 @@ export function GitSidebar(): JSX.Element {
       : undefined;
 
   const { accordion, sectionVisibility, setSectionVisible } = useGitSidebarSections();
+
+  const activeConnectionId = gitContext?.connectionId;
+  const activeCollectionUuid = gitContext?.collectionUuid;
+
+  /**
+   * Refreshes connection-level git status when the sidebar opens or the active
+   * git collection changes.
+   *
+   * The Changes section loads a fresh per-collection diff on mount, but the
+   * Commit button's change counts come from the periodically polled status. Without
+   * this, opening the sidebar right after adding a request shows the change while the
+   * Commit button stays disabled until the next poll. Refreshing here keeps the two in
+   * sync. `refreshGitStatuses` is stable, so this only runs on mount and when the
+   * targeted connection or collection changes.
+   */
+  useEffect(() => {
+    if (activeConnectionId == null) {
+      return;
+    }
+    refreshGitStatuses();
+  }, [activeConnectionId, activeCollectionUuid, refreshGitStatuses]);
 
   /**
    * Whether every Git sidebar section is hidden via the toolbar toggles.
@@ -240,6 +261,7 @@ export function GitSidebar(): JSX.Element {
                       collectionUuid={gitContext.collectionUuid}
                       status={gitContext.status}
                       refreshNonce={refreshNonce}
+                      onRefresh={handleRefresh}
                     />
                   </Section>
                 </nav>

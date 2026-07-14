@@ -1,4 +1,5 @@
 import { rmSync } from 'fs';
+import { join, relative } from 'path';
 import {
   assignGitId,
   loadGitIdIndex,
@@ -7,6 +8,7 @@ import {
   type GitIdIndexData
 } from '#/main/git/idIndex';
 import {
+  buildExistingRequestFileMap,
   collectionDirPath,
   createStoredFolder,
   deleteEnvironmentFile,
@@ -18,6 +20,7 @@ import {
   assertDocumentFilenameAvailable,
   readCollectionFromFolder,
   readGitProviderSettings,
+  readStoredDocumentRefs,
   resolveHarborclientRoot,
   writeCollectionToFolder,
   writeEnvironmentFile,
@@ -25,6 +28,7 @@ import {
   writeSnippetFile,
   type StoredFolderRow
 } from '#/main/git/fileLayout';
+import { deriveRequestFileStatus } from '#/main/git/gitRequestStatus';
 import { GitSyncManager } from '#/main/git/GitSyncManager';
 import { maskVariablesForExport, validateCollectionExport } from '#/main/storage/collectionData';
 import { trimRequiredName } from '#/main/storage/trimRequiredName';
@@ -60,6 +64,7 @@ import type {
   ExportedRequest,
   Folder,
   GitSettings,
+  GitRequestFileStatus,
   KeyValue,
   SaveDocumentInput,
   SaveRequestInput,
@@ -1535,6 +1540,78 @@ export class GitStorage implements IStorage {
   }
 
   /**
+   * Returns per-request and per-document git status for one git-backed collection.
+   *
+   * Only items with unstaged, staged, or untracked changes are included.
+   *
+   * @param collectionId - Provider-local collection id.
+   */
+  async getItemGitStatuses(collectionId: number): Promise<Record<string, GitRequestFileStatus>> {
+    const loaded = this.requireCollection(collectionId);
+    const collectionPrefix = this.toRepoRelativePath(loaded.dirPath);
+    const pathFlags = await this.#sync.getPathFlagsUnderPrefix(collectionPrefix);
+    const uuidToRepoPath = this.buildItemUuidToRepoPath(loaded);
+    const statuses: Record<string, GitRequestFileStatus> = {};
+
+    for (const [uuid, repoPath] of uuidToRepoPath) {
+      const flags = pathFlags[repoPath] ?? null;
+      const status = deriveRequestFileStatus(flags);
+      if (status.canAdd || status.canRemove) {
+        statuses[uuid] = status;
+      }
+    }
+
+    return statuses;
+  }
+
+  /**
+   * Returns the number of changed request and document files in one collection,
+   * including deletions that {@link getItemGitStatuses} cannot map to item uuids.
+   *
+   * @param collectionId - Provider-local collection id.
+   */
+  async getChangedItemCount(collectionId: number): Promise<number> {
+    const loaded = this.requireCollection(collectionId);
+    const collectionPrefix = this.toRepoRelativePath(loaded.dirPath);
+    const pathFlags = await this.#sync.getPathFlagsUnderPrefix(collectionPrefix);
+    let count = 0;
+
+    for (const [repoPath, flags] of Object.entries(pathFlags)) {
+      const rel = repoPath.slice(collectionPrefix.length + 1);
+      const isReqOrDoc =
+        !rel.includes('/') &&
+        ((rel.startsWith('req-') && rel.endsWith('.json')) || rel.endsWith('.md'));
+      if (isReqOrDoc && !flags.isUntracked) {
+        count += 1;
+      }
+    }
+
+    return count;
+  }
+
+  /**
+   * Stages one request or markdown document file for commit.
+   *
+   * @param collectionId - Provider-local collection id.
+   * @param itemUuid - Stable request or document uuid.
+   */
+  async stageItem(collectionId: number, itemUuid: string): Promise<void> {
+    const repoPath = this.resolveItemRepoPath(collectionId, itemUuid);
+    await this.#sync.stageFile(repoPath);
+  }
+
+  /**
+   * Unstages one request or markdown document file.
+   *
+   * @param collectionId - Provider-local collection id.
+   * @param itemUuid - Stable request or document uuid.
+   */
+  async unstageItem(collectionId: number, itemUuid: string): Promise<void> {
+    const repoPath = this.resolveItemRepoPath(collectionId, itemUuid);
+    await this.#sync.unstageFile(repoPath);
+  }
+
+  /**
    * @inheritdoc
    */
   async getSetting(key: string): Promise<string | undefined> {
@@ -1567,6 +1644,67 @@ export class GitStorage implements IStorage {
       throw new Error('Collection not found');
     }
     return loaded;
+  }
+
+  /**
+   * Converts an absolute path under the repository to a repository-relative path.
+   *
+   * @param absolutePath - Absolute file or directory path.
+   */
+  private toRepoRelativePath(absolutePath: string): string {
+    return relative(this.#sync.repoDir, absolutePath).replace(/\\/g, '/');
+  }
+
+  /**
+   * Maps request and document uuids to repository-relative file paths.
+   *
+   * @param loaded - In-memory git collection state.
+   */
+  private buildItemUuidToRepoPath(loaded: LoadedCollection): Map<string, string> {
+    const map = new Map<string, string>();
+
+    for (const [uuid, fileName] of buildExistingRequestFileMap(loaded.dirPath)) {
+      map.set(uuid, this.toRepoRelativePath(join(loaded.dirPath, fileName)));
+    }
+
+    for (const document of readStoredDocumentRefs(loaded.dirPath)) {
+      const uuid = resolveImportUuid(document.uuid);
+      if (!uuid || !document.file.trim()) {
+        continue;
+      }
+      map.set(uuid, this.toRepoRelativePath(join(loaded.dirPath, document.file)));
+    }
+
+    return map;
+  }
+
+  /**
+   * Resolves one item uuid to its repository-relative file path.
+   *
+   * @param collectionId - Provider-local collection id.
+   * @param itemUuid - Stable request or document uuid.
+   * @returns Repository-relative path for the item file.
+   * @throws When the item is not found in the collection folder.
+   */
+  getItemRepoPath(collectionId: number, itemUuid: string): string {
+    return this.resolveItemRepoPath(collectionId, itemUuid);
+  }
+
+  /**
+   * Resolves one item uuid to its repository-relative file path.
+   *
+   * @param collectionId - Provider-local collection id.
+   * @param itemUuid - Stable request or document uuid.
+   * @throws When the item is not found in the collection folder.
+   */
+  private resolveItemRepoPath(collectionId: number, itemUuid: string): string {
+    const normalizedUuid = resolveImportUuid(itemUuid);
+    const loaded = this.requireCollection(collectionId);
+    const repoPath = this.buildItemUuidToRepoPath(loaded).get(normalizedUuid);
+    if (!repoPath) {
+      throw new Error('Item not found in collection.');
+    }
+    return repoPath;
   }
 
   /**

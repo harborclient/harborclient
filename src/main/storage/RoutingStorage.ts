@@ -14,6 +14,9 @@ import {
 import { MigrationManager } from '#/main/storage/DatabaseMigrator';
 import { createStorageInstance } from '#/main/storage/createStorageInstance';
 import { GitStorage } from '#/main/storage/GitStorage';
+import { classifyHarborChangePath } from '#/main/git/fileLayout';
+import { isCollectionScopedHarborChange } from '#/main/git/gitDiff';
+import { collectionDirName } from '#/main/git/slug';
 import { decodeGlobalId, encodeGlobalId } from '#/main/storage/idNamespace';
 import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
 import type { IStorage } from '#/main/storage/IStorage';
@@ -49,6 +52,7 @@ import type {
   StorageConnection,
   Environment,
   Folder,
+  GitRequestFileStatus,
   KeyValue,
   SaveDocumentInput,
   SaveRequestInput,
@@ -287,6 +291,112 @@ export class RoutingStorage implements IStorage {
       }
     }
     return statuses;
+  }
+
+  /**
+   * Returns per-item git status for requests and markdown documents in one collection.
+   *
+   * @param connectionId - Git connection id.
+   * @param collectionUuid - Stable collection uuid.
+   */
+  async getGitItemStatuses(
+    connectionId: string,
+    collectionUuid: string
+  ): Promise<Record<string, GitRequestFileStatus>> {
+    const gitDb = this.requireGitStorage(connectionId);
+    const collection = await gitDb.findCollectionByUuid(collectionUuid.trim());
+    if (!collection) {
+      throw new Error(`Collection not found for uuid "${collectionUuid}".`);
+    }
+    return gitDb.getItemGitStatuses(collection.id);
+  }
+
+  /**
+   * Returns the number of changed request/document files in one git-backed collection.
+   *
+   * @param connectionId - Git connection id.
+   * @param collectionUuid - Stable collection uuid.
+   */
+  async getGitChangedItemCount(connectionId: string, collectionUuid: string): Promise<number> {
+    const gitDb = this.requireGitStorage(connectionId);
+    const collection = await gitDb.findCollectionByUuid(collectionUuid.trim());
+    if (!collection) {
+      return 0;
+    }
+    return gitDb.getChangedItemCount(collection.id);
+  }
+
+  /**
+   * Stages one request or markdown document in a git-backed collection.
+   *
+   * @param connectionId - Git connection id.
+   * @param collectionUuid - Stable collection uuid.
+   * @param itemUuid - Stable request or document uuid.
+   */
+  async stageGitItem(
+    connectionId: string,
+    collectionUuid: string,
+    itemUuid: string
+  ): Promise<void> {
+    const gitDb = this.requireGitStorage(connectionId);
+    const collection = await gitDb.findCollectionByUuid(collectionUuid.trim());
+    if (!collection) {
+      throw new Error(`Collection not found for uuid "${collectionUuid}".`);
+    }
+    await gitDb.stageItem(collection.id, itemUuid.trim());
+  }
+
+  /**
+   * Unstages one request or markdown document in a git-backed collection.
+   *
+   * @param connectionId - Git connection id.
+   * @param collectionUuid - Stable collection uuid.
+   * @param itemUuid - Stable request or document uuid.
+   */
+  async unstageGitItem(
+    connectionId: string,
+    collectionUuid: string,
+    itemUuid: string
+  ): Promise<void> {
+    const gitDb = this.requireGitStorage(connectionId);
+    const collection = await gitDb.findCollectionByUuid(collectionUuid.trim());
+    if (!collection) {
+      throw new Error(`Collection not found for uuid "${collectionUuid}".`);
+    }
+    await gitDb.unstageItem(collection.id, itemUuid.trim());
+  }
+
+  /**
+   * Discards working-tree changes for one request or markdown file path.
+   *
+   * @param connectionId - Git connection id.
+   * @param collectionUuid - Stable collection uuid.
+   * @param filePath - Repository-relative changed file path.
+   */
+  async revertGitFile(
+    connectionId: string,
+    collectionUuid: string,
+    filePath: string
+  ): Promise<void> {
+    const gitDb = this.requireGitStorage(connectionId);
+    const collection = await gitDb.findCollectionByUuid(collectionUuid.trim());
+    if (!collection) {
+      throw new Error(`Collection not found for uuid "${collectionUuid}".`);
+    }
+
+    const trimmedPath = filePath.trim();
+    const status = await gitDb.syncManager.getStatus();
+    const classified = classifyHarborChangePath(trimmedPath, status.harborSubdir);
+    if (classified == null || (classified.kind !== 'request' && classified.kind !== 'document')) {
+      throw new Error('Only request and document files can be reverted.');
+    }
+
+    const collectionDir = collectionDirName(collection.name);
+    if (!isCollectionScopedHarborChange(classified, collectionDir)) {
+      throw new Error('File does not belong to this collection.');
+    }
+
+    await gitDb.syncManager.revertFile(trimmedPath);
   }
 
   /**

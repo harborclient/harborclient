@@ -458,6 +458,76 @@ describe('git IPC schemas', () => {
     expect(ipcArgSchemas.gitCommitDetail.safeParse([validGitConnectionId, '']).success).toBe(false);
   });
 
+  it('gitDiff accepts collection uuid with optional caps and excludeUntracked', () => {
+    expect(ipcArgSchemas.gitDiff.safeParse([{ collectionUuid: 'collection-uuid' }]).success).toBe(
+      true
+    );
+    expect(
+      ipcArgSchemas.gitDiff.safeParse([
+        {
+          collectionUuid: 'collection-uuid',
+          stagedOnly: true,
+          excludeUntracked: true
+        }
+      ]).success
+    ).toBe(true);
+    expect(ipcArgSchemas.gitDiff.safeParse([{ collectionUuid: '' }]).success).toBe(false);
+  });
+
+  it('gitListItemStatuses accepts connection id and collection uuid', () => {
+    expect(
+      ipcArgSchemas.gitListItemStatuses.safeParse([validGitConnectionId, 'collection-uuid']).success
+    ).toBe(true);
+    expect(ipcArgSchemas.gitListItemStatuses.safeParse([validGitConnectionId, '']).success).toBe(
+      false
+    );
+  });
+
+  it('gitChangedItemCount accepts connection id and collection uuid', () => {
+    expect(
+      ipcArgSchemas.gitChangedItemCount.safeParse([validGitConnectionId, 'collection-uuid']).success
+    ).toBe(true);
+    expect(ipcArgSchemas.gitChangedItemCount.safeParse([validGitConnectionId, '']).success).toBe(
+      false
+    );
+  });
+
+  it('gitStageItem accepts connection id, collection uuid, and item uuid', () => {
+    expect(
+      ipcArgSchemas.gitStageItem.safeParse([
+        validGitConnectionId,
+        'collection-uuid',
+        'request-uuid'
+      ]).success
+    ).toBe(true);
+    expect(
+      ipcArgSchemas.gitStageItem.safeParse([validGitConnectionId, 'collection-uuid', '']).success
+    ).toBe(false);
+  });
+
+  it('gitUnstageItem accepts connection id, collection uuid, and item uuid', () => {
+    expect(
+      ipcArgSchemas.gitUnstageItem.safeParse([
+        validGitConnectionId,
+        'collection-uuid',
+        'document-uuid'
+      ]).success
+    ).toBe(true);
+  });
+
+  it('gitRevertFile accepts connection id, collection uuid, and file path', () => {
+    expect(
+      ipcArgSchemas.gitRevertFile.safeParse([
+        validGitConnectionId,
+        'collection-uuid',
+        '.harborclient/collection-api/req-health.json'
+      ]).success
+    ).toBe(true);
+    expect(
+      ipcArgSchemas.gitRevertFile.safeParse([validGitConnectionId, 'collection-uuid', '']).success
+    ).toBe(false);
+  });
+
   it('menuGitSidebarVisible accepts a boolean tuple', () => {
     expect(ipcArgSchemas.menuGitSidebarVisible.safeParse([true]).success).toBe(true);
     expect(ipcArgSchemas.menuGitSidebarVisible.safeParse([false]).success).toBe(true);

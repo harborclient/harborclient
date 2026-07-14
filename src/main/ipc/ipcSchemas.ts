@@ -876,9 +876,42 @@ export const ipcArgSchemas = {
       maxFiles: z.number().int().positive().optional(),
       maxCharsPerFile: z.number().int().positive().optional(),
       maxTotalChars: z.number().int().positive().optional(),
-      stagedOnly: z.boolean().optional()
+      stagedOnly: z.boolean().optional(),
+      excludeUntracked: z.boolean().optional()
     })
   ]),
+  gitRepoInfo: z.tuple([
+    z.object({
+      collectionUuid: z.string().trim().min(1)
+    })
+  ]),
+  gitCollectionCommits: z.tuple([
+    z.object({
+      collectionUuid: z.string().trim().min(1),
+      depth: z.number().int().positive().optional()
+    })
+  ]),
+  gitFileInfo: z.tuple([
+    z.object({
+      collectionUuid: z.string().trim().min(1),
+      requestUuid: z.string().trim().min(1),
+      depth: z.number().int().positive().optional()
+    })
+  ]),
+  gitFileDiff: z.tuple([
+    z.object({
+      collectionUuid: z.string().trim().min(1),
+      requestUuid: z.string().trim().min(1),
+      commitA: z.string().trim().min(1),
+      commitB: z.string().trim().min(1),
+      maxChars: z.number().int().positive().optional()
+    })
+  ]),
+  gitListItemStatuses: z.tuple([connectionId, z.string().trim().min(1)]),
+  gitChangedItemCount: z.tuple([connectionId, z.string().trim().min(1)]),
+  gitStageItem: z.tuple([connectionId, z.string().trim().min(1), z.string().trim().min(1)]),
+  gitUnstageItem: z.tuple([connectionId, z.string().trim().min(1), z.string().trim().min(1)]),
+  gitRevertFile: z.tuple([connectionId, z.string().trim().min(1), z.string().trim().min(1)]),
   gitSetPat: z.tuple([connectionId, z.string(), z.string().min(1)]),
   readGitRemoteUrl: z.tuple([z.string()]),
   gitHost: z.tuple([z.string().min(1)]),

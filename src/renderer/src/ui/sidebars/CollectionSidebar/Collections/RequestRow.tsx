@@ -27,6 +27,12 @@ import { stopSortableDragPointerDown } from './sortableRowUtils';
 import { SortableRow } from './SortableRow';
 import { SidebarColorDot } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarColorDot';
 import { SidebarRowActionsMenu } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarRowActionsMenu';
+import { buildGitItemMenuGroups } from '#/renderer/src/ui/sidebars/CollectionSidebar/buildGitItemMenuGroups';
+import {
+  buildGitItemAccessibleName,
+  gitItemNameClass
+} from '#/renderer/src/git/gitCommitChangeDisplay';
+import type { GitRequestFileStatus } from '#/shared/types';
 
 interface Props {
   /**
@@ -143,6 +149,21 @@ interface Props {
    * When true, renders the row without drag-and-drop reordering.
    */
   dragDisabled?: boolean;
+
+  /**
+   * Per-item git status when the parent collection is git-backed.
+   */
+  gitItemStatus?: GitRequestFileStatus;
+
+  /**
+   * Stages this request for commit in a git-backed collection.
+   */
+  onGitStageItem?: () => void;
+
+  /**
+   * Unstages this request in a git-backed collection.
+   */
+  onGitUnstageItem?: () => void;
 }
 
 /**
@@ -171,7 +192,10 @@ export function RequestRow({
   onOpenSelected,
   onNewTabGroupFromSelected,
   onDeleteSelected,
-  dragDisabled = false
+  dragDisabled = false,
+  gitItemStatus,
+  onGitStageItem,
+  onGitUnstageItem
 }: Props): JSX.Element {
   const confirm = useConfirm();
   const developerToolsEnabled = useDeveloperToolsEnabled();
@@ -276,6 +300,11 @@ export function RequestRow({
             },
             pluginContextMenuItems
           ),
+          ...buildGitItemMenuGroups(
+            gitItemStatus,
+            () => onGitStageItem?.(),
+            () => onGitUnstageItem?.()
+          ),
           [
             {
               label: 'Delete',
@@ -310,6 +339,9 @@ export function RequestRow({
     onDeleteSelected,
     onDuplicateRequest,
     onExportRequest,
+    onGitStageItem,
+    onGitUnstageItem,
+    gitItemStatus,
     onMoveDown,
     onMoveUp,
     onNewTabGroupFromSelected,
@@ -341,7 +373,7 @@ export function RequestRow({
         className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-inherit app-no-drag"
         aria-current={activeRequestId === req.id ? 'true' : undefined}
         aria-selected={selected ? 'true' : undefined}
-        aria-label={req.name}
+        aria-label={buildGitItemAccessibleName(req.name, gitItemStatus)}
         onClick={(event) => onRowClick(req, event)}
       >
         <span
@@ -350,7 +382,7 @@ export function RequestRow({
           {req.method}
         </span>
         <span className="inline-flex min-w-0 items-center gap-1.5">
-          <span className="truncate">{req.name}</span>
+          <span className={`truncate ${gitItemNameClass(gitItemStatus)}`}>{req.name}</span>
           <SidebarColorDot color={req.color} label={`Color for ${req.name}`} />
         </span>
       </button>

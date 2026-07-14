@@ -214,6 +214,11 @@ export interface GitRequestFileStatus {
    * Whether the request has staged changes that can be unstaged.
    */
   canRemove: boolean;
+
+  /**
+   * Whether the backing file is new and not yet tracked in git.
+   */
+  isUntracked: boolean;
 }
 
 /**
@@ -601,6 +606,11 @@ export interface GitRequestDiffFileEntry {
    * HarborClient resource kind for filtered Changes list rows.
    */
   resourceKind?: 'request' | 'document';
+
+  /**
+   * HTTP method for request rows when resolved from file contents.
+   */
+  method?: string;
 }
 
 /**
@@ -619,6 +629,253 @@ export interface GitRequestDiffResult {
 
   /**
    * Error message when diff generation failed.
+   */
+  error?: string;
+}
+
+/**
+ * One saved request or markdown document row in a git repo info payload.
+ */
+export interface GitRepoInfoItem {
+  /**
+   * Stable item uuid.
+   */
+  uuid: string;
+
+  /**
+   * Display name shown in the sidebar.
+   */
+  name: string;
+
+  /**
+   * HarborClient resource kind for the on-disk file.
+   */
+  kind: 'request' | 'document';
+
+  /**
+   * Repository-relative file path.
+   */
+  repoPath: string;
+
+  /**
+   * HTTP method for request rows.
+   */
+  method?: string;
+}
+
+/**
+ * Summary of one uncommitted file in a git repo info payload.
+ */
+export interface GitRepoInfoUncommittedFile {
+  /**
+   * Repository-relative file path.
+   */
+  path: string;
+
+  /**
+   * Added, modified, or deleted status.
+   */
+  status: string;
+}
+
+/**
+ * Git repository metadata for one git-backed collection.
+ */
+export interface GitRepoInfoResult {
+  /**
+   * Git connection id for the collection.
+   */
+  connectionId: string;
+
+  /**
+   * Stable collection uuid.
+   */
+  collectionUuid: string;
+
+  /**
+   * Collection display name.
+   */
+  collectionName: string;
+
+  /**
+   * Normalized HTTPS remote url, when configured.
+   */
+  repoUrl: string | null;
+
+  /**
+   * Absolute repository root path on disk.
+   */
+  repoPath: string;
+
+  /**
+   * Absolute HarborClient data root inside the repository.
+   */
+  harborDataPath: string;
+
+  /**
+   * HarborClient subdirectory prefix within the repository.
+   */
+  harborSubdir: string;
+
+  /**
+   * Source-control status for the repository working tree.
+   */
+  status: SourceControlStatus;
+
+  /**
+   * Saved requests and markdown documents with repository-relative paths.
+   */
+  items: GitRepoInfoItem[];
+
+  /**
+   * Per-item git status for items with staged or unstaged changes.
+   */
+  uncommittedItems: Record<string, GitRequestFileStatus>;
+
+  /**
+   * Uncommitted file paths scoped to the collection folder.
+   */
+  uncommittedFiles: GitRepoInfoUncommittedFile[];
+
+  /**
+   * Error message when repo info could not be resolved.
+   */
+  error?: string;
+}
+
+/**
+ * Commit history payload for one git-backed collection.
+ */
+export interface GitCommitsResult {
+  /**
+   * Git connection id for the collection.
+   */
+  connectionId: string;
+
+  /**
+   * Stable collection uuid.
+   */
+  collectionUuid: string;
+
+  /**
+   * Recent commits in the repository.
+   */
+  commits: GitLogEntry[];
+
+  /**
+   * Error message when commit history could not be resolved.
+   */
+  error?: string;
+}
+
+/**
+ * Per-file git metadata for one saved request.
+ */
+export interface GitFileInfoResult {
+  /**
+   * Git connection id for the collection.
+   */
+  connectionId: string;
+
+  /**
+   * Stable collection uuid.
+   */
+  collectionUuid: string;
+
+  /**
+   * Stable request uuid.
+   */
+  requestUuid: string;
+
+  /**
+   * Repository-relative file path for the request.
+   */
+  repoPath: string;
+
+  /**
+   * Saved request metadata from storage.
+   */
+  request: {
+    id: number;
+    uuid: string;
+    name: string;
+    method: string;
+    url: string;
+    folder_id: number | null;
+  };
+
+  /**
+   * Commits that touched the request file.
+   */
+  commitHistory: GitLogEntry[];
+
+  /**
+   * Error message when file info could not be resolved.
+   */
+  error?: string;
+}
+
+/**
+ * Diff payload for one request file between two commits.
+ */
+export interface GitFileDiffResult {
+  /**
+   * Git connection id for the collection.
+   */
+  connectionId: string;
+
+  /**
+   * Stable collection uuid.
+   */
+  collectionUuid: string;
+
+  /**
+   * Stable request uuid.
+   */
+  requestUuid: string;
+
+  /**
+   * Request display name.
+   */
+  requestName: string;
+
+  /**
+   * Repository-relative file path.
+   */
+  repoPath: string;
+
+  /**
+   * Older commit object id.
+   */
+  commitA: string;
+
+  /**
+   * Newer commit object id.
+   */
+  commitB: string;
+
+  /**
+   * Unified diff text, or null when binary or absent at both commits.
+   */
+  diff: string | null;
+
+  /**
+   * Whether the diff text was truncated.
+   */
+  truncated: boolean;
+
+  /**
+   * Whether either commit version is non-text content.
+   */
+  binary: boolean;
+
+  /**
+   * Original diff length before truncation, when truncated is true.
+   */
+  originalLength?: number;
+
+  /**
+   * Error message when the diff could not be generated.
    */
   error?: string;
 }

@@ -111,6 +111,10 @@ export function Collections(): JSX.Element {
   const { primaryConnectionId, connectionNamesById, connectionTypesById } = useSidebarProviders();
   const {
     gitStatusesByConnectionId,
+    itemGitStatusByUuid,
+    changedItemCountByCollectionUuid,
+    stageItem: onGitStageItem,
+    unstageItem: onGitUnstageItem,
     openSourceControl: onOpenSourceControl,
     openCreateBranch: onOpenCreateBranch,
     openSwitchBranch: onOpenSwitchBranch,
@@ -757,6 +761,7 @@ export function Collections(): JSX.Element {
               const connectionName = connectionNamesById[collectionConnectionId];
               const connectionType = connectionTypesById[collectionConnectionId];
               const gitStatus = gitStatusesByConnectionId[collectionConnectionId];
+              const collectionChangedCount = changedItemCountByCollectionUuid[collection.uuid] ?? 0;
               const canShare =
                 connectionType != null && connectionType !== 'sqlite' && connectionType !== 'git';
               const folderIds = folders.map((folder) => folderDragId(folder.id));
@@ -864,25 +869,23 @@ export function Collections(): JSX.Element {
                         })()}
                       </span>
                     </button>
-                    {connectionType === 'git' &&
-                      gitStatus != null &&
-                      gitStatus.changedCount > 0 && (
-                        <button
-                          type="button"
-                          className={sidebarRecessedBadge}
-                          aria-label={`Open source control (${gitStatus.changedCount} uncommitted change(s))`}
-                          onPointerDown={stopSortableDragPointerDown}
-                          onClick={() =>
-                            onOpenSourceControl(
-                              collectionConnectionId,
-                              connectionName ?? 'Git repository',
-                              collection.uuid
-                            )
-                          }
-                        >
-                          {gitStatus.changedCount}
-                        </button>
-                      )}
+                    {connectionType === 'git' && collectionChangedCount > 0 && (
+                      <button
+                        type="button"
+                        className={sidebarRecessedBadge}
+                        aria-label={`Open source control (${collectionChangedCount} uncommitted change(s))`}
+                        onPointerDown={stopSortableDragPointerDown}
+                        onClick={() =>
+                          onOpenSourceControl(
+                            collectionConnectionId,
+                            connectionName ?? 'Git repository',
+                            collection.uuid
+                          )
+                        }
+                      >
+                        {collectionChangedCount}
+                      </button>
+                    )}
                     <div onPointerDown={stopSortableDragPointerDown}>
                       <SidebarRowActionsMenu
                         menuId={`collection-${collection.id}`}
@@ -1111,6 +1114,31 @@ export function Collections(): JSX.Element {
                                       }}
                                       onRenameDocument={onRenameDocument}
                                       onDeleteDocument={onDeleteDocument}
+                                      gitItemStatus={
+                                        connectionType === 'git'
+                                          ? itemGitStatusByUuid[doc.uuid]
+                                          : undefined
+                                      }
+                                      onGitStageItem={
+                                        connectionType === 'git'
+                                          ? () =>
+                                              void onGitStageItem(
+                                                collectionConnectionId,
+                                                collection.uuid,
+                                                doc.uuid
+                                              )
+                                          : undefined
+                                      }
+                                      onGitUnstageItem={
+                                        connectionType === 'git'
+                                          ? () =>
+                                              void onGitUnstageItem(
+                                                collectionConnectionId,
+                                                collection.uuid,
+                                                doc.uuid
+                                              )
+                                          : undefined
+                                      }
                                     />
                                   ))}
                                   {rootItems.map((item, itemIndex) => {
@@ -1176,6 +1204,31 @@ export function Collections(): JSX.Element {
                                           });
                                         }}
                                         dragDisabled={searchActive}
+                                        gitItemStatus={
+                                          connectionType === 'git'
+                                            ? itemGitStatusByUuid[req.uuid]
+                                            : undefined
+                                        }
+                                        onGitStageItem={
+                                          connectionType === 'git'
+                                            ? () =>
+                                                void onGitStageItem(
+                                                  collectionConnectionId,
+                                                  collection.uuid,
+                                                  req.uuid
+                                                )
+                                            : undefined
+                                        }
+                                        onGitUnstageItem={
+                                          connectionType === 'git'
+                                            ? () =>
+                                                void onGitUnstageItem(
+                                                  collectionConnectionId,
+                                                  collection.uuid,
+                                                  req.uuid
+                                                )
+                                            : undefined
+                                        }
                                       />
                                     );
                                   })}
@@ -1414,6 +1467,31 @@ export function Collections(): JSX.Element {
                                             }}
                                             onRenameDocument={onRenameDocument}
                                             onDeleteDocument={onDeleteDocument}
+                                            gitItemStatus={
+                                              connectionType === 'git'
+                                                ? itemGitStatusByUuid[doc.uuid]
+                                                : undefined
+                                            }
+                                            onGitStageItem={
+                                              connectionType === 'git'
+                                                ? () =>
+                                                    void onGitStageItem(
+                                                      collectionConnectionId,
+                                                      collection.uuid,
+                                                      doc.uuid
+                                                    )
+                                                : undefined
+                                            }
+                                            onGitUnstageItem={
+                                              connectionType === 'git'
+                                                ? () =>
+                                                    void onGitUnstageItem(
+                                                      collectionConnectionId,
+                                                      collection.uuid,
+                                                      doc.uuid
+                                                    )
+                                                : undefined
+                                            }
                                           />
                                         ))}
                                         <SortableContext
@@ -1487,6 +1565,31 @@ export function Collections(): JSX.Element {
                                                   });
                                                 }}
                                                 dragDisabled={searchActive}
+                                                gitItemStatus={
+                                                  connectionType === 'git'
+                                                    ? itemGitStatusByUuid[req.uuid]
+                                                    : undefined
+                                                }
+                                                onGitStageItem={
+                                                  connectionType === 'git'
+                                                    ? () =>
+                                                        void onGitStageItem(
+                                                          collectionConnectionId,
+                                                          collection.uuid,
+                                                          req.uuid
+                                                        )
+                                                    : undefined
+                                                }
+                                                onGitUnstageItem={
+                                                  connectionType === 'git'
+                                                    ? () =>
+                                                        void onGitUnstageItem(
+                                                          collectionConnectionId,
+                                                          collection.uuid,
+                                                          req.uuid
+                                                        )
+                                                    : undefined
+                                                }
                                               />
                                             );
                                           })}

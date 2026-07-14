@@ -17,7 +17,11 @@ import {
   type GetActiveResponseToolArgs,
   type GetActiveTerminalLinesToolArgs,
   type GetSidebarItemByUuidToolArgs,
+  type GitCommitsToolArgs,
   type GitDiffToolArgs,
+  type GitFileDiffToolArgs,
+  type GitFileInfoToolArgs,
+  type GitRepoInfoToolArgs,
   type ListRequestsToolArgs,
   type QueryResponseBodyToolArgs,
   type SearchDocsToolArgs,
@@ -190,7 +194,7 @@ export async function executeAiTool(
       case 'get_selected_collection':
         return JSON.stringify(getSelectedCollection(ctx.getState()));
       case 'list_collections':
-        return JSON.stringify(listCollections(ctx.getState()));
+        return JSON.stringify(await listCollections(ctx.getState()));
       case 'get_collection':
         return JSON.stringify(getCollection(args, ctx.getState()));
       case 'list_requests':
@@ -231,6 +235,14 @@ export async function executeAiTool(
         return await window.api.searchDocs(args as SearchDocsToolArgs);
       case 'git_diff':
         return await window.api.gitDiff(args as GitDiffToolArgs);
+      case 'git_repo_info':
+        return await window.api.gitRepoInfo(args as GitRepoInfoToolArgs);
+      case 'git_commits':
+        return await window.api.gitCollectionCommits(args as GitCommitsToolArgs);
+      case 'git_file_info':
+        return await window.api.gitFileInfo(args as GitFileInfoToolArgs);
+      case 'git_file_diff':
+        return await window.api.gitFileDiff(args as GitFileDiffToolArgs);
       case 'get_active_terminal':
         return JSON.stringify(getActiveTerminalInfo(ctx.getState()));
       case 'get_active_terminal_lines':
@@ -284,31 +296,50 @@ function getSelectedCollection(state: RootState): { id: number; name: string } |
 }
 
 /**
- * Returns all collections with full configuration and selection flag.
+ * Returns all collections with full configuration, storage metadata, and selection flag.
  *
  * @param state - Current Redux root state.
  */
-function listCollections(state: RootState): Array<{
-  id: number;
-  name: string;
-  variables: Variable[];
-  headers: KeyValue[];
-  auth: AuthConfig;
-  pre_request_script: string;
-  post_request_script: string;
-  isSelected: boolean;
-}> {
+async function listCollections(state: RootState): Promise<
+  Array<{
+    id: number;
+    uuid: string;
+    name: string;
+    variables: Variable[];
+    headers: KeyValue[];
+    auth: AuthConfig;
+    pre_request_script: string;
+    post_request_script: string;
+    isSelected: boolean;
+    connectionId?: string;
+    storageType: string | null;
+    isGitBacked: boolean;
+  }>
+> {
   const selectedId = selectSelectedCollectionId(state);
-  return selectCollections(state).map((collection) => ({
-    id: collection.id,
-    name: collection.name,
-    variables: collection.variables,
-    headers: collection.headers,
-    auth: collection.auth,
-    pre_request_script: collection.pre_request_script,
-    post_request_script: collection.post_request_script,
-    isSelected: collection.id === selectedId
-  }));
+  const connections = await window.api.listStorageConnections();
+  const connectionTypeById = new Map(
+    connections.map((connection) => [connection.id, connection.type])
+  );
+
+  return selectCollections(state).map((collection) => {
+    const connectionId = collection.connectionId?.trim();
+    const storageType = connectionId ? (connectionTypeById.get(connectionId) ?? null) : null;
+    return {
+      id: collection.id,
+      uuid: collection.uuid,
+      name: collection.name,
+      variables: collection.variables,
+      headers: collection.headers,
+      auth: collection.auth,
+      pre_request_script: collection.pre_request_script,
+      post_request_script: collection.post_request_script,
+      isSelected: collection.id === selectedId,
+      ...(connectionId ? { connectionId } : {}),
+      storageType,
+      isGitBacked: storageType === 'git'
+    };
+  });
 }
 
 /**

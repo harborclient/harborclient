@@ -112,6 +112,26 @@ describe('buildGitDiff', () => {
     expect(diff.files[0]?.diff?.length).toBeLessThanOrEqual(40);
   });
 
+  it('retains changed file metadata after the diff text budget is exhausted', async () => {
+    const { repoPath } = await createTestRepo();
+    writeFileSync(join(repoPath, '.harborclient', 'first.txt'), 'x'.repeat(500));
+    writeFileSync(join(repoPath, '.harborclient', 'second.txt'), 'y'.repeat(500));
+
+    const diff = await buildGitDiff({
+      repoPath,
+      harborSubdir: '.harborclient',
+      maxTotalChars: 40,
+      maxCharsPerFile: 40
+    });
+
+    expect(diff.truncated).toBe(true);
+    expect(diff.files.map((file) => file.path).sort()).toEqual([
+      '.harborclient/first.txt',
+      '.harborclient/second.txt'
+    ]);
+    expect(diff.files.every((file) => file.truncated)).toBe(true);
+  });
+
   it('excludes unstaged working-tree changes when stagedOnly is true', async () => {
     const { repoPath } = await createTestRepo();
     writeFileSync(join(repoPath, '.harborclient', 'new.json'), '{"name":"new"}');
@@ -132,6 +152,26 @@ describe('buildGitDiff', () => {
     expect(stagedOnlyDiff.files).toHaveLength(0);
   });
 
+  it('includes untracked files by default but omits them when excludeUntracked is true', async () => {
+    const { repoPath } = await createTestRepo();
+    writeFileSync(join(repoPath, '.harborclient', 'new.json'), '{"name":"new"}');
+
+    const defaultDiff = await buildGitDiff({
+      repoPath,
+      harborSubdir: '.harborclient'
+    });
+    const excludingUntracked = await buildGitDiff({
+      repoPath,
+      harborSubdir: '.harborclient',
+      excludeUntracked: true
+    });
+
+    expect(defaultDiff.changedFileCount).toBe(1);
+    expect(defaultDiff.files).toHaveLength(1);
+    expect(excludingUntracked.changedFileCount).toBe(0);
+    expect(excludingUntracked.files).toHaveLength(0);
+  });
+
   it('scopes diffs to one collection folder and request/document paths only', async () => {
     const { repoPath } = await createTestRepo();
     const collectionDir = join(repoPath, '.harborclient', 'collection-api');
@@ -139,7 +179,7 @@ describe('buildGitDiff', () => {
     writeFileSync(join(collectionDir, 'collection.json'), '{"harborclientExport":"collection"}');
     writeFileSync(
       join(collectionDir, 'req-health.json'),
-      JSON.stringify({ harborclientExport: 'request', name: 'Health Check' })
+      JSON.stringify({ harborclientExport: 'request', name: 'Health Check', method: 'GET' })
     );
     writeFileSync(join(collectionDir, 'Notes.md'), '# Notes');
     writeFileSync(join(repoPath, '.harborclient', '.gitignore'), 'local*.json\n');
@@ -160,7 +200,8 @@ describe('buildGitDiff', () => {
     ]);
     expect(diff.files[1]).toMatchObject({
       displayName: 'Health Check',
-      resourceKind: 'request'
+      resourceKind: 'request',
+      method: 'GET'
     });
   });
 });

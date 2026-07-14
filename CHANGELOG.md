@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(git): enhance Git diff functionality and request metadata handling. (`864eb61`)
 - refactor(ai): update client creation to return promises and enhance Git integration. (`e8d7c1e`)
 - feat(git): enhance Git menu integration and functionality. (`5d44f7c`)
 - feat(git): enhance Git sidebar functionality and theme updates. (`848352d`)

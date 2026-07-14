@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { CollectionGitContext } from '#/renderer/src/git/resolveCollectionGitContext';
-import type { SourceControlStatus } from '#/shared/types';
+import type { GitRequestFileStatus, SourceControlStatus } from '#/shared/types';
 
 /**
  * Git source-control state and actions shared with sidebar sections.
@@ -10,6 +10,17 @@ export interface SidebarGitContextValue {
    * Git source-control status keyed by connection id.
    */
   gitStatusesByConnectionId: Record<string, SourceControlStatus>;
+
+  /**
+   * Per-request and per-document git status keyed by item uuid.
+   */
+  itemGitStatusByUuid: Record<string, GitRequestFileStatus>;
+
+  /**
+   * Count of changed request/document items per collection uuid, matching the
+   * Git sidebar Changes list scope for each collection.
+   */
+  changedItemCountByCollectionUuid: Record<string, number>;
 
   /**
    * Resolved git context for the active collection, when git-backed.
@@ -34,6 +45,34 @@ export interface SidebarGitContextValue {
    * Refreshes git status and collection data after git operations.
    */
   refreshGitSidebar: () => void;
+
+  /**
+   * Refreshes only the connection-level git statuses (branch, ahead/behind, and
+   * change counts) without reloading collections or per-item statuses.
+   *
+   * Cheaper than {@link refreshGitSidebar} and safe to call on view mount, so the
+   * Commit button's change counts stay in sync with the freshly loaded Changes
+   * diff instead of lagging behind the periodic status poll.
+   */
+  refreshGitStatuses: () => void;
+
+  /**
+   * Stages one request or markdown document in a git-backed collection.
+   *
+   * @param connectionId - Git connection id.
+   * @param collectionUuid - Stable collection uuid.
+   * @param itemUuid - Stable request or document uuid.
+   */
+  stageItem: (connectionId: string, collectionUuid: string, itemUuid: string) => Promise<void>;
+
+  /**
+   * Unstages one request or markdown document in a git-backed collection.
+   *
+   * @param connectionId - Git connection id.
+   * @param collectionUuid - Stable collection uuid.
+   * @param itemUuid - Stable request or document uuid.
+   */
+  unstageItem: (connectionId: string, collectionUuid: string, itemUuid: string) => Promise<void>;
 
   /**
    * Opens the create-branch modal for a git connection.

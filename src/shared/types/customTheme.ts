@@ -140,7 +140,8 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   terminal: 'Terminal',
   'git-staged': 'Git staged',
   'git-uncommitted': 'Git uncommitted',
-  'git-unstaged': 'Git unstaged'
+  'git-unstaged': 'Git unstaged',
+  'git-untracked': 'Git untracked'
 };
 
 /**
@@ -197,6 +198,10 @@ export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
       'script-stage-after-each',
       'script-stage-after-all'
     ]
+  },
+  {
+    label: 'Git',
+    tokens: ['git-staged', 'git-uncommitted', 'git-unstaged', 'git-untracked']
   }
 ];
 

@@ -8,6 +8,7 @@
     "git-staged": "#30d158",
     "git-uncommitted": "#ff9f0a",
     "git-unstaged": "rgba(255, 255, 255, 0.58)",
+    "git-untracked": "#30d158",
     "control": "#3a3a3c",
     "field": "#191919",
     "separator": "rgba(255, 255, 255, 0.08)",

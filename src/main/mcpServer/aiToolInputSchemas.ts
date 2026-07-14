@@ -149,6 +149,25 @@ const AI_TOOL_INPUT_SHAPES: Record<AiToolName, Record<string, z.ZodType>> = {
     maxFiles: z.number().optional(),
     maxCharsPerFile: z.number().optional(),
     maxTotalChars: z.number().optional()
+  },
+  git_repo_info: {
+    collectionUuid: z.string()
+  },
+  git_commits: {
+    collectionUuid: z.string(),
+    depth: z.number().optional()
+  },
+  git_file_info: {
+    collectionUuid: z.string(),
+    requestUuid: z.string(),
+    depth: z.number().optional()
+  },
+  git_file_diff: {
+    collectionUuid: z.string(),
+    requestUuid: z.string(),
+    commitA: z.string(),
+    commitB: z.string(),
+    maxChars: z.number().optional()
   }
 };
 

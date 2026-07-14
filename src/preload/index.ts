@@ -2396,8 +2396,126 @@ function gitDiff(args: {
    * When true, includes only staged changes (HEAD vs index). Defaults to working-tree changes.
    */
   stagedOnly?: boolean;
+  /**
+   * When true, omits untracked files (not yet added to git) from the diff payload.
+   */
+  excludeUntracked?: boolean;
 }): Promise<string> {
   return ipcRenderer.invoke('git:diff', args);
+}
+
+/**
+ * Returns git repository metadata for one git-backed collection.
+ *
+ * @param args - Collection uuid used to resolve the git-backed repository connection.
+ */
+function gitRepoInfo(args: { collectionUuid: string }): Promise<string> {
+  return ipcRenderer.invoke('git:repoInfo', args);
+}
+
+/**
+ * Returns recent commit history for the repository that contains a collection.
+ *
+ * @param args - Collection uuid and optional commit depth.
+ */
+function gitCollectionCommits(args: { collectionUuid: string; depth?: number }): Promise<string> {
+  return ipcRenderer.invoke('git:collectionCommits', args);
+}
+
+/**
+ * Returns per-file git metadata and commit history for one saved request.
+ *
+ * @param args - Collection uuid, request uuid, and optional history depth.
+ */
+function gitFileInfo(args: {
+  collectionUuid: string;
+  requestUuid: string;
+  depth?: number;
+}): Promise<string> {
+  return ipcRenderer.invoke('git:fileInfo', args);
+}
+
+/**
+ * Returns a diff of one saved request file between two commits.
+ *
+ * @param args - Collection uuid, request uuid, commit range, and optional diff cap.
+ */
+function gitFileDiff(args: {
+  collectionUuid: string;
+  requestUuid: string;
+  commitA: string;
+  commitB: string;
+  maxChars?: number;
+}): Promise<string> {
+  return ipcRenderer.invoke('git:fileDiff', args);
+}
+
+/**
+ * Returns per-request and per-document git status for one git-backed collection.
+ *
+ * @param connectionId - Git connection id.
+ * @param collectionUuid - Stable collection uuid.
+ */
+function gitListItemStatuses(
+  connectionId: string,
+  collectionUuid: string
+): Promise<Record<string, import('#/shared/types').GitRequestFileStatus>> {
+  return ipcRenderer.invoke('git:itemStatuses', connectionId, collectionUuid);
+}
+
+/**
+ * Returns the number of changed request/document files in one git-backed collection.
+ *
+ * @param connectionId - Git connection id.
+ * @param collectionUuid - Stable collection uuid.
+ */
+function gitChangedItemCount(connectionId: string, collectionUuid: string): Promise<number> {
+  return ipcRenderer.invoke('git:changedItemCount', connectionId, collectionUuid);
+}
+
+/**
+ * Stages one request or markdown document in a git-backed collection.
+ *
+ * @param connectionId - Git connection id.
+ * @param collectionUuid - Stable collection uuid.
+ * @param itemUuid - Stable request or document uuid.
+ */
+function gitStageItem(
+  connectionId: string,
+  collectionUuid: string,
+  itemUuid: string
+): Promise<void> {
+  return ipcRenderer.invoke('git:stageItem', connectionId, collectionUuid, itemUuid);
+}
+
+/**
+ * Unstages one request or markdown document in a git-backed collection.
+ *
+ * @param connectionId - Git connection id.
+ * @param collectionUuid - Stable collection uuid.
+ * @param itemUuid - Stable request or document uuid.
+ */
+function gitUnstageItem(
+  connectionId: string,
+  collectionUuid: string,
+  itemUuid: string
+): Promise<void> {
+  return ipcRenderer.invoke('git:unstageItem', connectionId, collectionUuid, itemUuid);
+}
+
+/**
+ * Discards working-tree changes for one request or markdown file in a git-backed collection.
+ *
+ * @param connectionId - Git connection id.
+ * @param collectionUuid - Stable collection uuid.
+ * @param filePath - Repository-relative changed file path.
+ */
+function gitRevertFile(
+  connectionId: string,
+  collectionUuid: string,
+  filePath: string
+): Promise<void> {
+  return ipcRenderer.invoke('git:revertFile', connectionId, collectionUuid, filePath);
 }
 
 /**
@@ -3767,6 +3885,15 @@ const api: Api = {
   gitGraphLog,
   gitCommitDetail,
   gitDiff,
+  gitRepoInfo,
+  gitCollectionCommits,
+  gitFileInfo,
+  gitFileDiff,
+  gitListItemStatuses,
+  gitChangedItemCount,
+  gitStageItem,
+  gitUnstageItem,
+  gitRevertFile,
   gitSetPat,
   gitStartOAuth,
   gitCompleteOAuth,

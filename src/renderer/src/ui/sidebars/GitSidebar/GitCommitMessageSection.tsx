@@ -74,7 +74,7 @@ export function GitCommitMessageSection({
 
   const hasUncommittedChanges = (status?.changedCount ?? 0) > 0;
   const hasCommitChanges = gitAutoAdd ? hasUncommittedChanges : (status?.stagedCount ?? 0) > 0;
-  const defaultMessage = hasUncommittedChanges ? DEFAULT_GIT_COMMIT_MESSAGE : '';
+  const defaultMessage = hasCommitChanges ? DEFAULT_GIT_COMMIT_MESSAGE : '';
   const message =
     messageDraft?.edited === true && !canReplaceGitCommitMessage(messageDraft.value)
       ? messageDraft.value
@@ -218,7 +218,7 @@ export function GitCommitMessageSection({
       <FormGroup label="" className="p-0! border-none! mt-1">
         <div className="relative w-full">
           <Textarea
-            className="block min-h-[80px] w-full pr-10"
+            className="block min-h-[80px] w-full pr-12"
             value={message}
             disabled={busy || generatingMessage}
             onChange={(event) => setMessageDraft({ edited: true, value: event.target.value })}
@@ -227,7 +227,7 @@ export function GitCommitMessageSection({
             <Button
               type="button"
               variant="icon"
-              className="absolute right-2 top-2 z-10 h-8 w-8 min-h-8 min-w-8 p-0"
+              className="absolute right-4 top-2 z-10 h-8 w-8 min-h-8 min-w-8 p-0"
               disabled={generatingMessage ? false : !canGenerateMessage || busy}
               aria-label={
                 generatingMessage ? 'Stop generating commit message' : 'Generate commit message'
@@ -244,11 +244,7 @@ export function GitCommitMessageSection({
             </Button>
           ) : null}
         </div>
-        {generatingMessage ? (
-          <p className="mt-2 text-[14px] text-muted" role="status">
-            Generating commit message…
-          </p>
-        ) : null}
+
         {generateError ? (
           <p className="mt-2 text-[14px] text-danger" role="alert">
             {generateError}
@@ -261,7 +257,7 @@ export function GitCommitMessageSection({
         disabled={busy || generatingMessage || !message.trim() || !hasCommitChanges}
         onClick={() => void handleCommit()}
       >
-        Commit
+        {generatingMessage ? 'Generating commit message' : 'Commit'}
       </Button>
     </div>
   );

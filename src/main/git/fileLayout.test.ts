@@ -298,11 +298,12 @@ describe('git file layout', () => {
   it('resolves display names from request JSON and collection manifest metadata', () => {
     const requestMeta = displayNameFromHarborChange(
       { kind: 'request', collectionDir: 'collection-api', fileName: 'req-health.json' },
-      JSON.stringify({ name: 'Health Check' })
+      JSON.stringify({ name: 'Health Check', method: 'GET' })
     );
     expect(requestMeta).toEqual({
       displayName: 'Health Check',
-      resourceKind: 'request'
+      resourceKind: 'request',
+      method: 'GET'
     });
 
     const documentMeta = displayNameFromHarborChange(

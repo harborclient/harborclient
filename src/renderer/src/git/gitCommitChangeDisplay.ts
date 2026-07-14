@@ -1,4 +1,4 @@
-import type { GitCommitChangeStatus } from '#/shared/types';
+import type { GitCommitChangeStatus, GitRequestFileStatus } from '#/shared/types';
 
 /**
  * Tailwind text color class for one commit change status.
@@ -15,6 +15,56 @@ export function gitCommitChangeNameClass(status: GitCommitChangeStatus): string 
       return 'text-muted line-through';
     default:
       return '';
+  }
+}
+
+/**
+ * Single-letter git change status marker for compact sidebar rows.
+ *
+ * @param status - Added, modified, or deleted relative to HEAD.
+ * @param hasConflict - Whether the file has unresolved merge conflict markers.
+ */
+export function gitChangeStatusMarker(
+  status: GitCommitChangeStatus,
+  hasConflict: boolean
+): 'A' | 'M' | 'D' | 'C' {
+  if (hasConflict) {
+    return 'C';
+  }
+  switch (status) {
+    case 'added':
+      return 'A';
+    case 'modified':
+      return 'M';
+    case 'deleted':
+      return 'D';
+    default:
+      return 'M';
+  }
+}
+
+/**
+ * Human-readable label for one compact git change status marker.
+ *
+ * @param status - Added, modified, or deleted relative to HEAD.
+ * @param hasConflict - Whether the file has unresolved merge conflict markers.
+ */
+export function gitChangeStatusMarkerLabel(
+  status: GitCommitChangeStatus,
+  hasConflict: boolean
+): 'Added' | 'Modified' | 'Deleted' | 'Conflict' {
+  if (hasConflict) {
+    return 'Conflict';
+  }
+  switch (status) {
+    case 'added':
+      return 'Added';
+    case 'modified':
+      return 'Modified';
+    case 'deleted':
+      return 'Deleted';
+    default:
+      return 'Modified';
   }
 }
 
@@ -79,4 +129,51 @@ export function buildGitCommitFileAccessibleName(
   const kindLabel = gitResourceKindLabel(resourceKind);
   const kindSuffix = kindLabel != null ? `, ${kindLabel}` : '';
   return `${label}${kindSuffix}, ${gitCommitChangeAccessibleLabel(status)}`;
+}
+
+/**
+ * Tailwind text color class for one git-backed collection item name.
+ *
+ * @param status - Per-item git status when the parent collection is git-backed.
+ */
+export function gitItemNameClass(status?: GitRequestFileStatus): string {
+  if (status == null || status.displayStatus === 'clean') {
+    return '';
+  }
+  if (status.isUntracked === true) {
+    return 'text-git-untracked';
+  }
+  switch (status.displayStatus) {
+    case 'staged':
+      return 'text-git-staged';
+    case 'uncommitted':
+      return 'text-git-uncommitted';
+    case 'unstaged':
+      return 'text-git-unstaged';
+    default:
+      return '';
+  }
+}
+
+/**
+ * Accessible suffix for one git-backed collection item row when status is not conveyed by color alone.
+ *
+ * @param status - Per-item git status when the parent collection is git-backed.
+ */
+export function gitItemAccessibleSuffix(status?: GitRequestFileStatus): string | null {
+  if (status?.isUntracked === true) {
+    return 'not added to git';
+  }
+  return null;
+}
+
+/**
+ * Builds an accessible name for a git-backed collection item row button.
+ *
+ * @param name - User-facing request or document name.
+ * @param status - Per-item git status when the parent collection is git-backed.
+ */
+export function buildGitItemAccessibleName(name: string, status?: GitRequestFileStatus): string {
+  const suffix = gitItemAccessibleSuffix(status);
+  return suffix != null ? `${name}, ${suffix}` : name;
 }

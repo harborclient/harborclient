@@ -1,5 +1,6 @@
 import * as git from 'isomorphic-git';
 import fs from 'fs';
+import type { GitRequestFileStatus } from '#/shared/types';
 
 /**
  * One isomorphic-git statusMatrix row: filepath, HEAD, workdir, stage.
@@ -51,6 +52,42 @@ export function analyzeMatrixRow(row: GitMatrixRow): GitRequestRowFlags | null {
 }
 
 /**
+ * Maps per-file git flags to sidebar display state and context-menu affordances.
+ *
+ * @param flags - Change flags from {@link analyzeMatrixRow}, or null when clean.
+ * @returns Per-item git status for collection sidebar menus and labels.
+ */
+export function deriveRequestFileStatus(flags: GitRequestRowFlags | null): GitRequestFileStatus {
+  if (flags == null) {
+    return {
+      displayStatus: 'clean',
+      canAdd: false,
+      canRemove: false,
+      isUntracked: false
+    };
+  }
+
+  const canAdd = flags.hasUnstagedChanges || flags.isUntracked;
+  const canRemove = flags.hasStagedChanges;
+
+  let displayStatus: GitRequestFileStatus['displayStatus'];
+  if (canRemove && canAdd) {
+    displayStatus = 'uncommitted';
+  } else if (canRemove) {
+    displayStatus = 'staged';
+  } else {
+    displayStatus = 'unstaged';
+  }
+
+  return {
+    displayStatus,
+    canAdd,
+    canRemove,
+    isUntracked: flags.isUntracked
+  };
+}
+
+/**
  * Counts staged and unstaged changes from a HarborClient status matrix.
  *
  * @param matrix - statusMatrix rows scoped to the HarborClient tree.
@@ -70,11 +107,15 @@ export function countStagedAndUnstaged(matrix: GitMatrixRow[]): {
       continue;
     }
 
+    if (flags.isUntracked) {
+      continue;
+    }
+
     changedCount += 1;
     if (flags.hasStagedChanges) {
       stagedCount += 1;
     }
-    if (flags.hasUnstagedChanges || flags.isUntracked) {
+    if (flags.hasUnstagedChanges) {
       unstagedCount += 1;
     }
   }

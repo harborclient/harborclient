@@ -56,6 +56,25 @@ const getCookiesMock = vi.fn<(domain: string) => Promise<KeyValue[]>>();
 const setCookiesMock = vi.fn<(domain: string, cookies: KeyValue[]) => Promise<void>>();
 const searchDocsMock = vi.fn<(args: { query: string }) => Promise<string>>();
 const gitDiffMock = vi.fn<(args: { collectionUuid: string }) => Promise<string>>();
+const gitRepoInfoMock = vi.fn<(args: { collectionUuid: string }) => Promise<string>>();
+const gitCollectionCommitsMock =
+  vi.fn<(args: { collectionUuid: string; depth?: number }) => Promise<string>>();
+const gitFileInfoMock =
+  vi.fn<
+    (args: { collectionUuid: string; requestUuid: string; depth?: number }) => Promise<string>
+  >();
+const gitFileDiffMock =
+  vi.fn<
+    (args: {
+      collectionUuid: string;
+      requestUuid: string;
+      commitA: string;
+      commitB: string;
+      maxChars?: number;
+    }) => Promise<string>
+  >();
+const listStorageConnectionsMock =
+  vi.fn<() => Promise<Array<{ id: string; name: string; type: string }>>>();
 const writeTerminalMock = vi.fn<(id: string, data: string) => void>();
 
 /**
@@ -182,6 +201,11 @@ beforeEach(() => {
       setCookies: setCookiesMock,
       searchDocs: searchDocsMock,
       gitDiff: gitDiffMock,
+      gitRepoInfo: gitRepoInfoMock,
+      gitCollectionCommits: gitCollectionCommitsMock,
+      gitFileInfo: gitFileInfoMock,
+      gitFileDiff: gitFileDiffMock,
+      listStorageConnections: listStorageConnectionsMock,
       writeTerminal: writeTerminalMock,
       runScript: vi.fn().mockResolvedValue({ logs: [], tests: [], error: undefined }),
       cancelRequest: vi.fn()
@@ -209,6 +233,16 @@ beforeEach(() => {
   searchDocsMock.mockResolvedValue('[]');
   gitDiffMock.mockReset();
   gitDiffMock.mockResolvedValue('{"changedFileCount":0,"files":[]}');
+  gitRepoInfoMock.mockReset();
+  gitRepoInfoMock.mockResolvedValue('{"items":[]}');
+  gitCollectionCommitsMock.mockReset();
+  gitCollectionCommitsMock.mockResolvedValue('{"commits":[]}');
+  gitFileInfoMock.mockReset();
+  gitFileInfoMock.mockResolvedValue('{"commitHistory":[]}');
+  gitFileDiffMock.mockReset();
+  gitFileDiffMock.mockResolvedValue('{"diff":"---"}');
+  listStorageConnectionsMock.mockReset();
+  listStorageConnectionsMock.mockResolvedValue([]);
   writeTerminalMock.mockReset();
 });
 
@@ -1808,6 +1842,152 @@ describe('executeAiTool', () => {
       collectionUuid: '550e8400-e29b-41d4-a716-446655440000'
     });
     expect(result).toBe(payload);
+  });
+
+  it('delegates git_repo_info to window.api.gitRepoInfo', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const payload = JSON.stringify({ connectionId: 'git-1', items: [] });
+    gitRepoInfoMock.mockResolvedValue(payload);
+
+    const result = await executeAiTool(
+      'git_repo_info',
+      { collectionUuid: '550e8400-e29b-41d4-a716-446655440000' },
+      { getState: store.getState, dispatch: store.dispatch }
+    );
+
+    expect(gitRepoInfoMock).toHaveBeenCalledWith({
+      collectionUuid: '550e8400-e29b-41d4-a716-446655440000'
+    });
+    expect(result).toBe(payload);
+  });
+
+  it('delegates git_commits to window.api.gitCollectionCommits', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const payload = JSON.stringify({ commits: [{ oid: 'abc123' }] });
+    gitCollectionCommitsMock.mockResolvedValue(payload);
+
+    const result = await executeAiTool(
+      'git_commits',
+      { collectionUuid: '550e8400-e29b-41d4-a716-446655440000', depth: 10 },
+      { getState: store.getState, dispatch: store.dispatch }
+    );
+
+    expect(gitCollectionCommitsMock).toHaveBeenCalledWith({
+      collectionUuid: '550e8400-e29b-41d4-a716-446655440000',
+      depth: 10
+    });
+    expect(result).toBe(payload);
+  });
+
+  it('delegates git_file_info to window.api.gitFileInfo', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const payload = JSON.stringify({ commitHistory: [] });
+    gitFileInfoMock.mockResolvedValue(payload);
+
+    const result = await executeAiTool(
+      'git_file_info',
+      {
+        collectionUuid: '550e8400-e29b-41d4-a716-446655440000',
+        requestUuid: '660e8400-e29b-41d4-a716-446655440001'
+      },
+      { getState: store.getState, dispatch: store.dispatch }
+    );
+
+    expect(gitFileInfoMock).toHaveBeenCalledWith({
+      collectionUuid: '550e8400-e29b-41d4-a716-446655440000',
+      requestUuid: '660e8400-e29b-41d4-a716-446655440001'
+    });
+    expect(result).toBe(payload);
+  });
+
+  it('delegates git_file_diff to window.api.gitFileDiff', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const payload = JSON.stringify({ diff: '--- file\n+++ file' });
+    gitFileDiffMock.mockResolvedValue(payload);
+
+    const result = await executeAiTool(
+      'git_file_diff',
+      {
+        collectionUuid: '550e8400-e29b-41d4-a716-446655440000',
+        requestUuid: '660e8400-e29b-41d4-a716-446655440001',
+        commitA: 'aaa111',
+        commitB: 'bbb222'
+      },
+      { getState: store.getState, dispatch: store.dispatch }
+    );
+
+    expect(gitFileDiffMock).toHaveBeenCalledWith({
+      collectionUuid: '550e8400-e29b-41d4-a716-446655440000',
+      requestUuid: '660e8400-e29b-41d4-a716-446655440001',
+      commitA: 'aaa111',
+      commitB: 'bbb222'
+    });
+    expect(result).toBe(payload);
+  });
+
+  it('includes storage metadata in list_collections', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    listStorageConnectionsMock.mockResolvedValue([
+      { id: 'git-conn', name: 'Git Repo', type: 'git' },
+      { id: 'sqlite-conn', name: 'Local', type: 'sqlite' }
+    ]);
+    store.dispatch(
+      setCollections([
+        {
+          id: 1,
+          uuid: 'col-git',
+          name: 'Git Collection',
+          variables: [],
+          headers: [],
+          auth: defaultAuth(),
+          pre_request_script: '',
+          post_request_script: '',
+          pre_request_scripts: [],
+          post_request_scripts: [],
+          created_at: '2026-01-01T00:00:00.000Z',
+          connectionId: 'git-conn'
+        },
+        {
+          id: 2,
+          uuid: 'col-local',
+          name: 'Local Collection',
+          variables: [],
+          headers: [],
+          auth: defaultAuth(),
+          pre_request_script: '',
+          post_request_script: '',
+          pre_request_scripts: [],
+          post_request_scripts: [],
+          created_at: '2026-01-01T00:00:00.000Z',
+          connectionId: 'sqlite-conn'
+        }
+      ])
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'list_collections',
+        {},
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        id: 1,
+        uuid: 'col-git',
+        connectionId: 'git-conn',
+        storageType: 'git',
+        isGitBacked: true
+      }),
+      expect.objectContaining({
+        id: 2,
+        uuid: 'col-local',
+        connectionId: 'sqlite-conn',
+        storageType: 'sqlite',
+        isGitBacked: false
+      })
+    ]);
   });
 
   it('returns active terminal summary info', async () => {

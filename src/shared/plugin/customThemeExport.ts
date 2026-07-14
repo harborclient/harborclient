@@ -16,6 +16,7 @@ const themeColorTokenSchema = z.enum([
   'git-staged',
   'git-uncommitted',
   'git-unstaged',
+  'git-untracked',
   'control',
   'field',
   'separator',

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type JSX, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type JSX, type ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import { useGitStatuses } from '#/renderer/src/hooks/useGitStatuses';
 import { useProviders, providerTypesById } from '#/renderer/src/hooks/useProviders';
@@ -60,6 +60,12 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
     connectionName: string;
     collectionUuid: string;
   } | null>(null);
+  const [itemGitStatusByUuid, setItemGitStatusByUuid] = useState<
+    Record<string, import('#/shared/types').GitRequestFileStatus>
+  >({});
+  const [changedItemCountByCollectionUuid, setChangedItemCountByCollectionUuid] = useState<
+    Record<string, number>
+  >({});
 
   /**
    * Reloads collections when the git working tree changes on disk (pull or
@@ -96,6 +102,60 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
   }, [providers]);
 
   const connectionTypesById = useMemo(() => providerTypesById(providers), [providers]);
+
+  /**
+   * Reloads per-item git status for all git-backed collections in the sidebar.
+   */
+  const refreshItemGitStatuses = useCallback(async (): Promise<void> => {
+    const gitCollections = collections.filter((collection) => {
+      const connectionId = collection.connectionId ?? primaryProviderId;
+      return connectionTypesById[connectionId] === 'git';
+    });
+
+    if (gitCollections.length === 0) {
+      await Promise.resolve();
+      setItemGitStatusByUuid({});
+      setChangedItemCountByCollectionUuid({});
+      return;
+    }
+
+    const merged: Record<string, import('#/shared/types').GitRequestFileStatus> = {};
+    const countsByCollectionUuid: Record<string, number> = {};
+    await Promise.all(
+      gitCollections.map(async (collection) => {
+        const connectionId = collection.connectionId ?? primaryProviderId;
+        try {
+          const [statuses, changedCount] = await Promise.all([
+            window.api.gitListItemStatuses(connectionId, collection.uuid),
+            window.api.gitChangedItemCount(connectionId, collection.uuid)
+          ]);
+          Object.assign(merged, statuses);
+          countsByCollectionUuid[collection.uuid] = changedCount;
+        } catch (err) {
+          console.error(`Failed to load git item statuses for "${collection.name}":`, err);
+        }
+      })
+    );
+    setItemGitStatusByUuid(merged);
+    setChangedItemCountByCollectionUuid(countsByCollectionUuid);
+  }, [collections, connectionTypesById, primaryProviderId]);
+
+  /**
+   * Reloads per-item git status when collections or connection-level git status changes.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (!cancelled) {
+        void refreshItemGitStatuses();
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshItemGitStatuses, gitStatusesByConnectionId]);
 
   const activeCollectionId = resolveGitSidebarCollectionId(
     selectedCollectionId,
@@ -180,7 +240,38 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
   const refreshGitSidebar = useCallback((): void => {
     refreshGitStatuses();
     void dispatch(refreshCollections());
-  }, [dispatch, refreshGitStatuses]);
+    void refreshItemGitStatuses();
+  }, [dispatch, refreshGitStatuses, refreshItemGitStatuses]);
+
+  /**
+   * Stages one request or markdown document in a git-backed collection.
+   */
+  const stageItem = useCallback(
+    async (connectionId: string, collectionUuid: string, itemUuid: string): Promise<void> => {
+      try {
+        await window.api.gitStageItem(connectionId, collectionUuid, itemUuid);
+        refreshGitSidebar();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [refreshGitSidebar]
+  );
+
+  /**
+   * Unstages one request or markdown document in a git-backed collection.
+   */
+  const unstageItem = useCallback(
+    async (connectionId: string, collectionUuid: string, itemUuid: string): Promise<void> => {
+      try {
+        await window.api.gitUnstageItem(connectionId, collectionUuid, itemUuid);
+        refreshGitSidebar();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [refreshGitSidebar]
+  );
 
   /**
    * Runs a remote sync action for the active git-backed collection.
@@ -290,6 +381,8 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
   const value = useMemo<SidebarGitContextValue>(
     () => ({
       gitStatusesByConnectionId,
+      itemGitStatusByUuid,
+      changedItemCountByCollectionUuid,
       activeGitContext,
       isActiveCollectionGit: activeGitContext != null,
       openSourceControl,
@@ -298,6 +391,9 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
       openSwitchBranch,
       openMergeBranch,
       refreshGitSidebar,
+      refreshGitStatuses,
+      stageItem,
+      unstageItem,
       commitActiveCollection,
       mergeActiveCollection,
       createBranchActiveCollection,
@@ -313,6 +409,8 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
       deleteBranchActiveCollection,
       fetchActiveCollection,
       gitStatusesByConnectionId,
+      itemGitStatusByUuid,
+      changedItemCountByCollectionUuid,
       mergeActiveCollection,
       openCreateBranch,
       openDeleteBranch,
@@ -321,7 +419,10 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
       openSwitchBranch,
       pullActiveCollection,
       pushActiveCollection,
-      refreshGitSidebar
+      refreshGitSidebar,
+      refreshGitStatuses,
+      stageItem,
+      unstageItem
     ]
   );
 

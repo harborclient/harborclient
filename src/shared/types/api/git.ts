@@ -4,6 +4,7 @@ import type {
   GitIdentity,
   GitLogEntry,
   GitOAuthFinishedEvent,
+  GitRequestFileStatus,
   SourceControlStatus
 } from '#/shared/types/storage';
 
@@ -150,7 +151,86 @@ export interface ApiGit {
      * When true, includes only staged changes (HEAD vs index). Defaults to working-tree changes.
      */
     stagedOnly?: boolean;
+    /**
+     * When true, omits untracked files (not yet added to git) from the diff payload.
+     */
+    excludeUntracked?: boolean;
   }) => Promise<string>;
+  /**
+   * Returns git repository metadata for one git-backed collection.
+   *
+   * @param args - Collection uuid used to resolve the git-backed repository connection.
+   */
+  gitRepoInfo: (args: { collectionUuid: string }) => Promise<string>;
+  /**
+   * Returns recent commit history for the repository that contains a collection.
+   *
+   * @param args - Collection uuid and optional commit depth.
+   */
+  gitCollectionCommits: (args: { collectionUuid: string; depth?: number }) => Promise<string>;
+  /**
+   * Returns per-file git metadata and commit history for one saved request.
+   *
+   * @param args - Collection uuid, request uuid, and optional history depth.
+   */
+  gitFileInfo: (args: {
+    collectionUuid: string;
+    requestUuid: string;
+    depth?: number;
+  }) => Promise<string>;
+  /**
+   * Returns a diff of one saved request file between two commits.
+   *
+   * @param args - Collection uuid, request uuid, commit range, and optional diff cap.
+   */
+  gitFileDiff: (args: {
+    collectionUuid: string;
+    requestUuid: string;
+    commitA: string;
+    commitB: string;
+    maxChars?: number;
+  }) => Promise<string>;
+  /**
+   * Returns per-request and per-document git status for one git-backed collection.
+   *
+   * @param connectionId - Git connection id.
+   * @param collectionUuid - Stable collection uuid.
+   */
+  gitListItemStatuses: (
+    connectionId: string,
+    collectionUuid: string
+  ) => Promise<Record<string, GitRequestFileStatus>>;
+  /**
+   * Returns the number of changed request/document files in one git-backed collection.
+   *
+   * @param connectionId - Git connection id.
+   * @param collectionUuid - Stable collection uuid.
+   */
+  gitChangedItemCount: (connectionId: string, collectionUuid: string) => Promise<number>;
+  /**
+   * Stages one request or markdown document in a git-backed collection.
+   *
+   * @param connectionId - Git connection id.
+   * @param collectionUuid - Stable collection uuid.
+   * @param itemUuid - Stable request or document uuid.
+   */
+  gitStageItem: (connectionId: string, collectionUuid: string, itemUuid: string) => Promise<void>;
+  /**
+   * Unstages one request or markdown document in a git-backed collection.
+   *
+   * @param connectionId - Git connection id.
+   * @param collectionUuid - Stable collection uuid.
+   * @param itemUuid - Stable request or document uuid.
+   */
+  gitUnstageItem: (connectionId: string, collectionUuid: string, itemUuid: string) => Promise<void>;
+  /**
+   * Discards working-tree changes for one request or markdown file in a git-backed collection.
+   *
+   * @param connectionId - Git connection id.
+   * @param collectionUuid - Stable collection uuid.
+   * @param filePath - Repository-relative changed file path.
+   */
+  gitRevertFile: (connectionId: string, collectionUuid: string, filePath: string) => Promise<void>;
   /**
    * Stores a PAT for a git-backed connection and validates credentials via fetch.
    *

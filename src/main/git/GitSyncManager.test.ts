@@ -1,6 +1,6 @@
 import * as git from 'isomorphic-git';
 import fs from 'fs';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -387,7 +387,7 @@ describe('GitSyncManager', () => {
 
     const status = await manager.getStatus();
     expect(status.stagedCount).toBe(0);
-    expect(status.unstagedCount).toBeGreaterThan(0);
+    expect(status.unstagedCount).toBe(0);
   });
 
   it('lists local branch names', async () => {
@@ -592,5 +592,41 @@ describe('GitSyncManager', () => {
     await expect(manager.mergeBranch('main')).rejects.toThrow(
       'Cannot merge the current branch into itself.'
     );
+  });
+
+  it('reverts a modified tracked file to HEAD', async () => {
+    const { repoPath, manager } = await createTestRepo();
+    const filePath = '.harborclient/readme.txt';
+
+    writeFileSync(join(repoPath, filePath), 'uncommitted edit');
+    await manager.revertFile(filePath);
+
+    expect(readFileSync(join(repoPath, filePath), 'utf-8')).toBe('v1');
+    const status = await manager.getStatus();
+    expect(status.changedCount).toBe(0);
+  });
+
+  it('reverts an added file by removing it from the working tree', async () => {
+    const { repoPath, manager } = await createTestRepo();
+    const filePath = '.harborclient/new.txt';
+
+    writeFileSync(join(repoPath, filePath), 'new');
+    await manager.revertFile(filePath);
+
+    expect(existsSync(join(repoPath, filePath))).toBe(false);
+    const status = await manager.getStatus();
+    expect(status.changedCount).toBe(0);
+  });
+
+  it('reverts a deleted tracked file by restoring it from HEAD', async () => {
+    const { repoPath, manager } = await createTestRepo();
+    const filePath = '.harborclient/readme.txt';
+
+    rmSync(join(repoPath, filePath));
+    await manager.revertFile(filePath);
+
+    expect(readFileSync(join(repoPath, filePath), 'utf-8')).toBe('v1');
+    const status = await manager.getStatus();
+    expect(status.changedCount).toBe(0);
   });
 });

@@ -45,6 +45,7 @@
   --color-git-staged: var(--mac-git-staged);
   --color-git-uncommitted: var(--mac-git-uncommitted);
   --color-git-unstaged: var(--mac-git-unstaged);
+  --color-git-untracked: var(--mac-git-untracked);
   --color-control: var(--mac-control);
   --color-field: var(--mac-field);
   --color-separator: var(--mac-separator);
@@ -99,6 +100,7 @@
     --mac-git-staged: var(--mac-success);
     --mac-git-uncommitted: var(--mac-warning);
     --mac-git-unstaged: var(--mac-muted);
+    --mac-git-untracked: var(--mac-success);
     --mac-control: #ffffff;
     --mac-field: var(--mac-control);
     --mac-separator: rgba(0, 0, 0, 0.08);
@@ -151,6 +153,7 @@
       --mac-git-staged: var(--mac-success);
       --mac-git-uncommitted: var(--mac-warning);
       --mac-git-unstaged: var(--mac-muted);
+      --mac-git-untracked: var(--mac-success);
       --mac-control: #3a3a3c;
       --mac-field: color-mix(in srgb, black 16%, var(--mac-surface));
       --mac-separator: rgba(255, 255, 255, 0.08);
@@ -189,6 +192,7 @@
     --mac-git-staged: var(--mac-success);
     --mac-git-uncommitted: var(--mac-warning);
     --mac-git-unstaged: var(--mac-muted);
+    --mac-git-untracked: var(--mac-success);
     --mac-control: #3a3a3c;
     --mac-field: color-mix(in srgb, black 16%, var(--mac-surface));
     --mac-separator: rgba(255, 255, 255, 0.08);
@@ -236,6 +240,7 @@
     --mac-git-staged: #5ce06a;
     --mac-git-uncommitted: #ffb340;
     --mac-git-unstaged: #d0d0d0;
+    --mac-git-untracked: #5ce06a;
     --mac-control: #000000;
     --mac-field: #141414;
     --mac-separator: #9e9e9e;
@@ -280,6 +285,7 @@
       --mac-git-staged: CanvasText;
       --mac-git-uncommitted: CanvasText;
       --mac-git-unstaged: GrayText;
+      --mac-git-untracked: CanvasText;
       --mac-control: Canvas;
       --mac-field: Field;
       --mac-terminal: Canvas;

@@ -1,4 +1,6 @@
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'fs';
+import * as git from 'isomorphic-git';
+import fs from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -245,6 +247,100 @@ describe('GitStorage', () => {
     expect(documentsB).toHaveLength(1);
     expect(existsSync(join(repoPath, '.harborclient', 'collection-api', 'README.md'))).toBe(true);
     expect(existsSync(join(repoPath, '.harborclient', 'collection-docs', 'readme.md'))).toBe(true);
+
+    await db.close();
+    rmSync(repoPath, { recursive: true, force: true });
+    rmSync(userDataPath, { recursive: true, force: true });
+  });
+
+  it('reports per-item git status and stages or unstages request files', async () => {
+    const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-git-item-status-'));
+    const userDataPath = mkdtempSync(join(tmpdir(), 'harborclient-git-item-status-userdata-'));
+    mkdirSync(join(repoPath, '.harborclient'), { recursive: true });
+
+    await git.init({ fs, dir: repoPath, defaultBranch: 'main' });
+    await git.setConfig({ fs, dir: repoPath, path: 'user.name', value: 'Test' });
+    await git.setConfig({ fs, dir: repoPath, path: 'user.email', value: 'test@example.com' });
+
+    const settings: GitSettings = {
+      repoPath,
+      url: 'https://github.com/example/repo.git',
+      branch: 'main',
+      subdir: '.harborclient',
+      auth: { kind: 'pat', username: 'token' }
+    };
+
+    const db = new GitStorage('item-status-connection', settings, userDataPath);
+    await db.init();
+    const collection = await db.createCollection('API');
+    const saved = await db.saveRequest(
+      baseRequestInput(collection.id, { name: 'Get status', url: 'https://example.com/status' })
+    );
+
+    const unstaged = await db.getItemGitStatuses(collection.id);
+    expect(unstaged[saved.uuid]).toEqual({
+      displayStatus: 'unstaged',
+      canAdd: true,
+      canRemove: false,
+      isUntracked: true
+    });
+
+    await db.stageItem(collection.id, saved.uuid);
+    const staged = await db.getItemGitStatuses(collection.id);
+    expect(staged[saved.uuid]).toEqual({
+      displayStatus: 'staged',
+      canAdd: false,
+      canRemove: true,
+      isUntracked: false
+    });
+
+    await db.unstageItem(collection.id, saved.uuid);
+    const unstagedAgain = await db.getItemGitStatuses(collection.id);
+    expect(unstagedAgain[saved.uuid]).toEqual({
+      displayStatus: 'unstaged',
+      canAdd: true,
+      canRemove: false,
+      isUntracked: true
+    });
+
+    await db.close();
+    rmSync(repoPath, { recursive: true, force: true });
+    rmSync(userDataPath, { recursive: true, force: true });
+  });
+
+  it('counts deleted request files in getChangedItemCount but not getItemGitStatuses', async () => {
+    const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-git-changed-count-'));
+    const userDataPath = mkdtempSync(join(tmpdir(), 'harborclient-git-changed-count-userdata-'));
+    mkdirSync(join(repoPath, '.harborclient'), { recursive: true });
+
+    await git.init({ fs, dir: repoPath, defaultBranch: 'main' });
+    await git.setConfig({ fs, dir: repoPath, path: 'user.name', value: 'Test' });
+    await git.setConfig({ fs, dir: repoPath, path: 'user.email', value: 'test@example.com' });
+
+    const settings: GitSettings = {
+      repoPath,
+      url: 'https://github.com/example/repo.git',
+      branch: 'main',
+      subdir: '.harborclient',
+      auth: { kind: 'pat', username: 'token' }
+    };
+
+    const db = new GitStorage('changed-count-connection', settings, userDataPath);
+    await db.init();
+    const collection = await db.createCollection('API');
+    const original = await db.saveRequest(
+      baseRequestInput(collection.id, { name: 'Original', url: 'https://example.com/original' })
+    );
+    await db.syncManager.commit('Initial commit', { autoAdd: true });
+
+    await db.deleteRequest(original.id);
+    const added = await db.saveRequest(
+      baseRequestInput(collection.id, { name: 'Added', url: 'https://example.com/added' })
+    );
+
+    const itemStatuses = await db.getItemGitStatuses(collection.id);
+    expect(Object.keys(itemStatuses)).toEqual([added.uuid]);
+    expect(await db.getChangedItemCount(collection.id)).toBe(1);
 
     await db.close();
     rmSync(repoPath, { recursive: true, force: true });

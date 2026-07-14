@@ -1,14 +1,16 @@
 import * as git from 'isomorphic-git';
 import http from 'isomorphic-git/http/node';
-import fs, { existsSync } from 'fs';
+import fs, { existsSync, rmSync } from 'fs';
 import { join } from 'path';
 import { buildGitOnAuth, resolveGitAuthForHost } from '#/main/git/gitAuth';
 import { ensureHarborclientLayout, resolveHarborclientRoot } from '#/main/git/fileLayout';
 import {
+  analyzeMatrixRow,
   countStagedAndUnstaged,
   hasStagedChanges,
   loadHarborStatusMatrix,
-  type GitMatrixRow
+  type GitMatrixRow,
+  type GitRequestRowFlags
 } from '#/main/git/gitRequestStatus';
 import { countConflictFiles, pullMergeConflictMessage } from '#/main/git/slug';
 import { buildGitGraphLog, readGitCommitDetail } from '#/main/git/gitGraph';
@@ -307,6 +309,94 @@ export class GitSyncManager {
     }
 
     await git.add({ fs, dir: this.#repoPath, filepath: trimmed });
+  }
+
+  /**
+   * Unstages one repository-relative file, resetting the index entry to HEAD.
+   *
+   * @param filepath - Path relative to the repository root.
+   */
+  async unstageFile(filepath: string): Promise<void> {
+    const trimmed = filepath.trim();
+    if (!trimmed) {
+      throw new Error('File path is required.');
+    }
+
+    await git.resetIndex({ fs, dir: this.#repoPath, filepath: trimmed });
+  }
+
+  /**
+   * Discards working-tree and index changes for one repository-relative file.
+   *
+   * New files are removed from disk; tracked files are restored from HEAD.
+   *
+   * @param filepath - Path relative to the repository root.
+   */
+  async revertFile(filepath: string): Promise<void> {
+    const trimmed = filepath.trim();
+    if (!trimmed) {
+      throw new Error('File path is required.');
+    }
+
+    const matrix = (await git.statusMatrix({
+      fs,
+      dir: this.#repoPath,
+      filepaths: [trimmed]
+    })) as GitMatrixRow[];
+    const row = matrix.find(([path]) => path === trimmed);
+    if (row == null) {
+      throw new Error('File is not changed.');
+    }
+
+    const [, head, workdir, stage] = row;
+    if (head === workdir && workdir === stage) {
+      throw new Error('File has no changes to revert.');
+    }
+
+    if (head === 0) {
+      if (workdir !== 0) {
+        const fullPath = join(this.#repoPath, trimmed);
+        if (existsSync(fullPath)) {
+          rmSync(fullPath);
+        }
+      }
+      if (stage !== 0) {
+        await git.resetIndex({ fs, dir: this.#repoPath, filepath: trimmed });
+      }
+      return;
+    }
+
+    await git.checkout({
+      fs,
+      dir: this.#repoPath,
+      filepaths: [trimmed],
+      force: true
+    });
+    await git.resetIndex({ fs, dir: this.#repoPath, filepath: trimmed });
+  }
+
+  /**
+   * Returns per-file git change flags for paths under a repository-relative prefix.
+   *
+   * @param prefix - Repository-relative folder prefix (for example `.harborclient/collection-api`).
+   */
+  async getPathFlagsUnderPrefix(prefix: string): Promise<Record<string, GitRequestRowFlags>> {
+    const normalizedPrefix = prefix.replace(/\\/g, '/').replace(/\/+$/, '');
+    const matrix = (await git.statusMatrix({
+      fs,
+      dir: this.#repoPath,
+      filter: (filepath) =>
+        filepath === normalizedPrefix || filepath.startsWith(`${normalizedPrefix}/`)
+    })) as GitMatrixRow[];
+
+    const result: Record<string, GitRequestRowFlags> = {};
+    for (const row of matrix) {
+      const flags = analyzeMatrixRow(row);
+      if (flags != null) {
+        result[row[0]] = flags;
+      }
+    }
+    return result;
   }
 
   /**

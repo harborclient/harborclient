@@ -77,6 +77,11 @@ export interface GitDiffFileEntry {
    * HarborClient resource kind for filtered Changes list rows.
    */
   resourceKind?: 'request' | 'document';
+
+  /**
+   * HTTP method for request rows when resolved from file contents.
+   */
+  method?: string;
 }
 
 /**
@@ -192,6 +197,11 @@ export interface GitDiffOptions {
    * When true, resolves `displayName` and `resourceKind` for request and document paths.
    */
   enrichDisplayNames?: boolean;
+
+  /**
+   * When true, omits untracked files (not yet added to git) from the diff payload.
+   */
+  excludeUntracked?: boolean;
 }
 
 /**
@@ -263,7 +273,7 @@ async function resolveDiffDisplayMeta(
   status: GitDiffFileStatus,
   headText: string | null,
   compareText: string | null
-): Promise<{ displayName: string; resourceKind: 'request' | 'document' } | null> {
+): Promise<{ displayName: string; resourceKind: 'request' | 'document'; method?: string } | null> {
   const classified = classifyHarborChangePath(filepath, harborSubdir);
   if (classified == null || (classified.kind !== 'request' && classified.kind !== 'document')) {
     return null;
@@ -451,7 +461,7 @@ async function readStageFile(repoPath: string, filepath: string): Promise<Uint8A
  * @param headText - Text at HEAD, or null when absent.
  * @param workText - Text in the working tree or index, or null when absent.
  */
-function buildFileDiffText(
+export function buildFileDiffText(
   path: string,
   status: GitDiffFileStatus,
   headText: string | null,
@@ -560,11 +570,15 @@ export async function buildGitDiff(options: GitDiffOptions): Promise<GitDiffResu
   });
 
   const stagedOnly = options.stagedOnly === true;
+  const excludeUntracked = options.excludeUntracked === true;
   const changedRows = matrix.filter((row) => {
     const [filepath, head, workdir, stage] = row;
     void filepath;
     if (stagedOnly) {
       return stage !== head;
+    }
+    if (excludeUntracked && head === 0 && stage === 0 && workdir !== 0) {
+      return false;
     }
     return head !== workdir || head !== stage || workdir !== stage;
   });
@@ -626,14 +640,6 @@ export async function buildGitDiff(options: GitDiffOptions): Promise<GitDiffResu
     const remainingBudget = maxTotalChars - totalChars;
     const perFileBudget = Math.min(maxCharsPerFile, remainingBudget);
 
-    if (perFileBudget <= 0) {
-      truncated = true;
-      break;
-    }
-
-    const capped = truncateTextForLlm(rawDiff, perFileBudget);
-    totalChars += capped.text.length;
-
     const classified = options.enrichDisplayNames
       ? classifyHarborChangePath(filepath, harborSubdir)
       : null;
@@ -649,6 +655,30 @@ export async function buildGitDiff(options: GitDiffOptions): Promise<GitDiffResu
           )
         : null;
 
+    if (perFileBudget <= 0) {
+      files.push({
+        path: filepath,
+        status,
+        diff: '',
+        binary: false,
+        truncated: true,
+        hasConflict,
+        originalLength: rawDiff.length,
+        ...(displayMeta
+          ? {
+              displayName: displayMeta.displayName,
+              resourceKind: displayMeta.resourceKind,
+              ...(displayMeta.method != null ? { method: displayMeta.method } : {})
+            }
+          : {})
+      });
+      truncated = true;
+      continue;
+    }
+
+    const capped = truncateTextForLlm(rawDiff, perFileBudget);
+    totalChars += capped.text.length;
+
     files.push({
       path: filepath,
       status,
@@ -658,13 +688,16 @@ export async function buildGitDiff(options: GitDiffOptions): Promise<GitDiffResu
       hasConflict,
       ...(capped.truncated ? { originalLength: capped.originalLength } : {}),
       ...(displayMeta
-        ? { displayName: displayMeta.displayName, resourceKind: displayMeta.resourceKind }
+        ? {
+            displayName: displayMeta.displayName,
+            resourceKind: displayMeta.resourceKind,
+            ...(displayMeta.method != null ? { method: displayMeta.method } : {})
+          }
         : {})
     });
 
     if (capped.truncated || totalChars >= maxTotalChars) {
       truncated = true;
-      break;
     }
   }
 

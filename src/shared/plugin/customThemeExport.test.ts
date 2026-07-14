@@ -47,7 +47,8 @@ describe('customThemeExport', () => {
         ...sampleExport.theme,
         'git-staged': '#34c759',
         'git-uncommitted': '#ff9500',
-        'git-unstaged': 'rgba(0, 0, 0, 0.58)'
+        'git-unstaged': 'rgba(0, 0, 0, 0.58)',
+        'git-untracked': '#34c759'
       }
     };
 

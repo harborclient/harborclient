@@ -72,7 +72,8 @@ export const LIGHT_CUSTOM_THEME_PALETTE: CustomThemePalette = {
   terminal: '#000000',
   'git-staged': '#34c759',
   'git-uncommitted': '#ff9500',
-  'git-unstaged': 'rgba(0, 0, 0, 0.58)'
+  'git-unstaged': 'rgba(0, 0, 0, 0.58)',
+  'git-untracked': '#34c759'
 };
 
 /**
@@ -115,7 +116,8 @@ export const DARK_CUSTOM_THEME_PALETTE: CustomThemePalette = {
   terminal: '#000000',
   'git-staged': '#30d158',
   'git-uncommitted': '#ff9f0a',
-  'git-unstaged': 'rgba(255, 255, 255, 0.58)'
+  'git-unstaged': 'rgba(255, 255, 255, 0.58)',
+  'git-untracked': '#30d158'
 };
 
 /**
@@ -158,7 +160,8 @@ export const HIGH_CONTRAST_CUSTOM_THEME_PALETTE: CustomThemePalette = {
   terminal: '#000000',
   'git-staged': '#5ce06a',
   'git-uncommitted': '#ffb340',
-  'git-unstaged': '#d0d0d0'
+  'git-unstaged': '#d0d0d0',
+  'git-untracked': '#5ce06a'
 };
 
 /**
