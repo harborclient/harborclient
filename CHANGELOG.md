@@ -3,6 +3,9 @@
 ## Unreleased
 
 - refactor(routing): streamline page reference handling and tab management. (`54f1813`)
+
+## 2.4.3 - 2026-07-15
+
 - feat(markdown): enhance markdown tab reconciliation and theme support. (`0fb9d9c`)
 - fix(git): update harbor-root document handling and disambiguation. (`d2c6a08`)
 - feat(git): enhance GitHub authentication and repository access validation. (`c8de408`)
