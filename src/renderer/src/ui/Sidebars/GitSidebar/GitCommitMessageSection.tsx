@@ -18,7 +18,7 @@ import {
 } from '#/renderer/src/store/slices/aiChatSlice';
 import { runGitCommitMessage } from '#/renderer/src/git/runGitCommitMessage';
 import { resolveGitCommitMessageModelId } from '#/renderer/src/git/gitCommitMessageModel';
-import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarGitContext';
+import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/sidebarGitContext';
 import { GitCommitAuthorModal } from '#/renderer/src/ui/Shared/Git/GitCommitAuthorModal';
 import { faStop, faWandMagicSparkles } from '#/renderer/src/fontawesome';
 

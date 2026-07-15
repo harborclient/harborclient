@@ -11,7 +11,7 @@ import {
   beginGitHubOAuth,
   beginHostGitHubOAuth,
   beginHostGitHubOAuthForUrl,
-  listGitIdentities,
+  listGitIdentitiesWithLogins,
   requireGitHost,
   revokeGitHubOAuth,
   revokeHost,
@@ -27,6 +27,7 @@ import {
   testGitCredentials
 } from '#/main/git/gitOAuthScheduler';
 import { normalizeGitRemoteToHttps } from '#/shared/gitUrl';
+import { isAllowedExternalUrl } from '#/main/window/navigationSecurity';
 import { buildGitDiff, makeCollectionScopedFilter, type GitDiffResult } from '#/main/git/gitDiff';
 import { resolveHarborclientRoot } from '#/main/git/fileLayout';
 import { collectionDirName } from '#/main/git/slug';
@@ -62,6 +63,20 @@ function requireRoutingStorage(db: IStorage): RoutingStorage {
  */
 function requireGitStorage(db: IStorage, connectionId: string): GitStorage {
   return requireRoutingStorage(db).requireGitStorage(connectionId);
+}
+
+/**
+ * Opens a GitHub device-flow verification URI in the system browser.
+ *
+ * @param verificationUri - URL returned by GitHub's device-flow start response.
+ * @throws When the URI is missing or not an allowed external URL.
+ */
+async function openGitHubVerificationUri(verificationUri: string): Promise<void> {
+  const trimmed = verificationUri.trim();
+  if (!trimmed || !isAllowedExternalUrl(trimmed)) {
+    throw new Error('Invalid GitHub verification URL.');
+  }
+  await shell.openExternal(trimmed);
 }
 
 /**
@@ -180,8 +195,8 @@ export function registerGitHandlers(db: IStorage): void {
     return router.listGitStatuses();
   });
 
-  // Lists saved git host identities.
-  handle('git:listIdentities', ipcArgSchemas.none, async () => listGitIdentities());
+  // Lists saved git host identities (with cached or refreshed GitHub logins).
+  handle('git:listIdentities', ipcArgSchemas.none, async () => listGitIdentitiesWithLogins());
 
   // Suggests commit author name/email from repo-local and global git config.
   handle('git:suggestedAuthor', ipcArgSchemas.gitSuggestedAuthor, async (_event, connectionId) => {
@@ -236,6 +251,11 @@ export function registerGitHandlers(db: IStorage): void {
   handle('git:fetch', ipcArgSchemas.connectionId, async (_event, connectionId) => {
     const gitDb = requireGitStorage(db, connectionId);
     await gitDb.syncManager.fetch();
+  });
+
+  // Validates stored credentials by listing remote refs.
+  handle('git:testConnection', ipcArgSchemas.connectionId, async (_event, connectionId) => {
+    return testGitCredentials(db, connectionId);
   });
 
   // Checks out an existing branch when the working tree is clean, then reloads.
@@ -636,7 +656,7 @@ export function registerGitHandlers(db: IStorage): void {
 
   // Saves a personal access token and validates credentials.
   handle('git:setPat', ipcArgSchemas.gitSetPat, async (_event, connectionId, username, token) => {
-    saveGitPat(connectionId, username, token);
+    await saveGitPat(connectionId, username, token);
     await testGitCredentials(db, connectionId);
   });
 
@@ -644,45 +664,52 @@ export function registerGitHandlers(db: IStorage): void {
   handle(
     'git:setHostPat',
     ipcArgSchemas.gitSetHostPat,
-    async (_event, host, username, token, testUrl, repoPath) => {
+    async (_event, host, username, token, testUrl, branch) => {
       const normalizedHost = requireGitHost(host);
-      saveHostPat(normalizedHost, username, token);
-      if (testUrl?.trim() && repoPath?.trim()) {
-        await testHostCredentials(normalizedHost, testUrl.trim(), repoPath.trim());
+      await saveHostPat(normalizedHost, username, token);
+      if (testUrl?.trim()) {
+        return testHostCredentials(normalizedHost, testUrl.trim(), branch?.trim() || 'main');
       }
+      return {};
     }
   );
 
-  // Starts GitHub device OAuth, opens the browser, and polls in the background.
-  handle('git:startOAuth', ipcArgSchemas.connectionId, async (event, connectionId) => {
-    const result = await beginGitHubOAuth(connectionId);
-    await shell.openExternal(result.verificationUri);
-    scheduleGitHubOAuthCompletion(event.sender, db, connectionId);
-    return result;
+  // Starts GitHub device OAuth and returns the user code; browser opens on complete.
+  handle('git:startOAuth', ipcArgSchemas.connectionId, async (_event, connectionId) => {
+    return beginGitHubOAuth(connectionId);
   });
 
-  // Starts GitHub device OAuth for a git host.
+  // Starts GitHub device OAuth for a git host; browser opens on complete.
+  handle('git:startHostOAuth', ipcArgSchemas.gitStartHostOAuth, async (_event, host, testUrl) => {
+    const normalizedHost = requireGitHost(host);
+    return testUrl?.trim()
+      ? beginHostGitHubOAuthForUrl(normalizedHost, testUrl.trim())
+      : beginHostGitHubOAuth(normalizedHost);
+  });
+
+  // Opens the browser verification URI and starts background OAuth polling for a connection.
   handle(
-    'git:startHostOAuth',
-    ipcArgSchemas.gitStartHostOAuth,
-    async (event, host, testUrl, repoPath) => {
+    'git:completeOAuth',
+    ipcArgSchemas.gitCompleteOAuth,
+    async (event, connectionId, verificationUri) => {
+      await openGitHubVerificationUri(verificationUri);
+      scheduleGitHubOAuthCompletion(event.sender, db, connectionId);
+    }
+  );
+
+  // Opens the browser verification URI and starts background OAuth polling for a host.
+  handle(
+    'git:completeHostOAuth',
+    ipcArgSchemas.gitCompleteHostOAuth,
+    async (event, host, verificationUri, testUrl, branch) => {
       const normalizedHost = requireGitHost(host);
-      const result = testUrl?.trim()
-        ? await beginHostGitHubOAuthForUrl(normalizedHost, testUrl.trim())
-        : await beginHostGitHubOAuth(normalizedHost);
-      await shell.openExternal(result.verificationUri);
+      await openGitHubVerificationUri(verificationUri);
       scheduleHostGitHubOAuthCompletion(event.sender, db, normalizedHost, {
         testUrl: testUrl?.trim() || undefined,
-        repoPath: repoPath?.trim() || undefined
+        branch: branch?.trim() || undefined
       });
-      return result;
     }
   );
-
-  // Ensures background OAuth polling is running without blocking the invoke channel.
-  handle('git:completeOAuth', ipcArgSchemas.connectionId, async (event, connectionId) => {
-    scheduleGitHubOAuthCompletion(event.sender, db, connectionId);
-  });
 
   // Revokes GitHub OAuth and clears stored credentials.
   handle('git:revokeOAuth', ipcArgSchemas.connectionId, async (_event, connectionId) => {

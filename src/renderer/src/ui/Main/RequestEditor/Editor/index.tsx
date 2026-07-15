@@ -4,7 +4,7 @@ import type { KeyValue, Variable } from '#/shared/types';
 import { applyParamsToUrl, mergeParamsFromUrl } from '#/shared/queryParams';
 
 import type { RequestTabContext } from '#/shared/plugin/types';
-import type { RequestDraft } from '#/renderer/src/store/drafts';
+import type { RequestDraft } from '#/renderer/src/store/tabs';
 import { EditorTabs } from './EditorTabs';
 import { UrlBar } from './UrlBar';
 

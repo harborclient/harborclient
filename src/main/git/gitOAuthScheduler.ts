@@ -2,6 +2,7 @@ import type { WebContents } from 'electron';
 import type { IStorage } from '#/main/storage/IStorage';
 import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { finishHostGitHubOAuth, resolveConnectionHost, testHostCredentials } from './gitAuth';
+import type { GitRemoteValidationResult } from './gitRemoteValidation';
 import { clearPendingGitHubDeviceFlow } from './githubOAuth';
 import { listStorageConnections } from '#/main/settings/storageSettings';
 import type { GitOAuthFinishedEvent } from '#/shared/types';
@@ -10,15 +11,18 @@ const activeCompletions = new Map<string, AbortController>();
 
 /**
  * Validates git remote credentials, using a mounted backend when available or a
- * temporary sync manager when the connection was saved but not yet mounted.
+ * direct remote probe when the connection was saved but not yet mounted.
  *
  * @param db - Top-level database handle.
  * @param connectionId - Git connection id.
+ * @returns Validation outcome including whether the remote has no branch refs yet.
  */
-export async function testGitCredentials(db: IStorage, connectionId: string): Promise<void> {
+export async function testGitCredentials(
+  db: IStorage,
+  connectionId: string
+): Promise<GitRemoteValidationResult> {
   if (db instanceof RoutingStorage && db.isConnectionMounted(connectionId)) {
-    await db.requireGitStorage(connectionId).syncManager.testCredentials();
-    return;
+    return db.requireGitStorage(connectionId).syncManager.testCredentials();
   }
 
   const conn = listStorageConnections().find((item) => item.id === connectionId);
@@ -27,7 +31,7 @@ export async function testGitCredentials(db: IStorage, connectionId: string): Pr
   }
 
   const host = resolveConnectionHost(connectionId);
-  await testHostCredentials(host, conn.settings.url, conn.settings.repoPath);
+  return testHostCredentials(host, conn.settings.url, conn.settings.branch);
 }
 
 /**
@@ -58,7 +62,7 @@ export function scheduleHostGitHubOAuthCompletion(
   options: {
     connectionId?: string;
     testUrl?: string;
-    repoPath?: string;
+    branch?: string;
   } = {}
 ): void {
   activeCompletions.get(host)?.abort();
@@ -84,11 +88,21 @@ export function scheduleHostGitHubOAuthCompletion(
       }
 
       let validationError: string | undefined;
+      let emptyRemote: boolean | undefined;
+      let canPush: boolean | undefined;
       try {
         if (options.connectionId) {
-          await testGitCredentials(db, options.connectionId);
-        } else if (options.testUrl && options.repoPath) {
-          await testHostCredentials(host, options.testUrl, options.repoPath);
+          const result = await testGitCredentials(db, options.connectionId);
+          emptyRemote = result.emptyRemote;
+          canPush = result.canPush;
+        } else if (options.testUrl?.trim()) {
+          const result = await testHostCredentials(
+            host,
+            options.testUrl.trim(),
+            options.branch?.trim() || 'main'
+          );
+          emptyRemote = result.emptyRemote;
+          canPush = result.canPush;
         }
       } catch (err) {
         if (controller.signal.aborted) {
@@ -101,7 +115,9 @@ export function scheduleHostGitHubOAuthCompletion(
         host,
         connectionId: options.connectionId,
         ok: true,
-        validationError
+        ...(validationError ? { validationError } : {}),
+        ...(emptyRemote != null ? { emptyRemote } : {}),
+        ...(canPush != null ? { canPush } : {})
       });
     } finally {
       if (activeCompletions.get(host) === controller) {

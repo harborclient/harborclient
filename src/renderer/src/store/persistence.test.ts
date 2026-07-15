@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
-import type { RequestDraft } from './drafts';
-import { asRequestTab, createTab, isPageTab, isRequestTab, isTabDirty } from './drafts';
+import type { RequestDraft } from './tabs';
+import { asRequestTab, createTab, isPageTab, isRequestTab, isTabDirty } from './tabs';
 import {
   defaultTabState,
   LEGACY_OPEN_TABS_KEY,

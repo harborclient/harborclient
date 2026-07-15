@@ -31,7 +31,7 @@ import { Modal, ModalFooter } from '@harborclient/sdk/components';
 import { FieldError } from '@harborclient/sdk/components';
 import { StatusMessage } from '@harborclient/sdk/components';
 import { formatErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
-import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarGitContext';
+import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/sidebarGitContext';
 
 import { GitTabPanel } from './GitTabPanel';
 
@@ -343,7 +343,6 @@ export function CollectionModal(): JSX.Element | null {
                 }
               }}
               onCreate={(options) => void handleGitCreate(options)}
-              onAuthValidationError={(message) => dispatch(setCollectionModalSubmitError(message))}
             />
           </SegmentedTabPanel>
 

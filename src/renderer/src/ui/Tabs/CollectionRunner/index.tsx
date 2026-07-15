@@ -8,7 +8,7 @@ import {
   type CollectionRunnerRequestResult
 } from '#/shared/collectionRunner';
 import { buildRunResultsDeepLink } from '#/shared/deepLink';
-import type { PageRef } from '#/renderer/src/store/drafts';
+import type { PageRef } from '#/renderer/src/store/tabs';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   cancelCollectionRunner,

@@ -318,27 +318,30 @@ export function GitIdentitiesSection(): JSX.Element {
           {identities.map((identity) => (
             <li
               key={identity.host}
-              className="flex items-center justify-between gap-3 rounded border border-separator px-3 py-2"
+              className="flex flex-col gap-2 rounded border border-separator px-3 py-2"
             >
-              <div className="min-w-0">
-                <p className="m-0 font-medium text-text">{identity.host}</p>
-                <p className="m-0 text-muted">
-                  {identity.auth.kind === 'oauth'
-                    ? 'GitHub OAuth'
-                    : `Personal access token (${identity.auth.username})`}
-                </p>
-              </div>
-              <div className="flex shrink-0 gap-2">
-                <Button type="button" variant="secondary" onClick={() => openEditor(identity)}>
-                  Edit
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => void handleRemove(identity)}
-                >
-                  Remove
-                </Button>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="m-0 font-medium text-text">{identity.host}</p>
+                  <p className="m-0 text-muted">
+                    {identity.auth.kind === 'oauth'
+                      ? 'GitHub OAuth'
+                      : `Personal access token (${identity.auth.username})`}
+                    {identity.githubLogin ? ` — signed in as ${identity.githubLogin}` : null}
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <Button type="button" variant="secondary" onClick={() => openEditor(identity)}>
+                    Edit
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => void handleRemove(identity)}
+                  >
+                    Remove
+                  </Button>
+                </div>
               </div>
             </li>
           ))}
@@ -371,11 +374,11 @@ export function GitIdentitiesSection(): JSX.Element {
               host={editorHostKey}
               url={editorUrl || `https://${editorHostKey}/`}
               onAuthorized={(result?: GitAuthAuthorizedResult) => {
+                void reloadIdentities();
                 if (result?.validationError) {
                   return;
                 }
                 setEditorOpen(false);
-                void reloadIdentities();
               }}
             />
           ) : (

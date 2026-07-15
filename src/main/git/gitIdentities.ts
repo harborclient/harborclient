@@ -23,6 +23,11 @@ interface StoredGitIdentityRecord {
    * Optional GitHub OAuth App client id override.
    */
   oauthClientId?: string;
+
+  /**
+   * Cached GitHub username when the host is github.com.
+   */
+  githubLogin?: string;
 }
 
 /**
@@ -92,17 +97,22 @@ export function hasGitIdentity(host: string): boolean {
  */
 export function upsertGitIdentity(
   host: string,
-  patch: Partial<Omit<GitIdentity, 'host'>> & Pick<GitIdentity, 'auth'>
+  patch: Partial<Omit<GitIdentity, 'host' | 'hasCredentials'>> & Pick<GitIdentity, 'auth'>
 ): GitIdentity {
   const stored = readStoredIdentities();
   const existing = stored.identities[host];
   const storedRecord: StoredGitIdentityRecord = {
     host,
     auth: patch.auth,
-    oauthClientId: patch.oauthClientId ?? existing?.oauthClientId
+    oauthClientId:
+      patch.oauthClientId !== undefined ? patch.oauthClientId : existing?.oauthClientId,
+    githubLogin: patch.githubLogin !== undefined ? patch.githubLogin : existing?.githubLogin
   };
   if (storedRecord.oauthClientId === undefined) {
     delete storedRecord.oauthClientId;
+  }
+  if (storedRecord.githubLogin === undefined || storedRecord.githubLogin === '') {
+    delete storedRecord.githubLogin;
   }
   stored.identities[host] = storedRecord;
   writeStoredIdentities(stored);
@@ -119,7 +129,28 @@ export function persistGitIdentityAuth(host: string, auth: GitAuthMethod): GitId
   const existing = getGitIdentity(host);
   return upsertGitIdentity(host, {
     auth,
-    oauthClientId: existing?.oauthClientId
+    oauthClientId: existing?.oauthClientId,
+    githubLogin: existing?.githubLogin
+  });
+}
+
+/**
+ * Stores or clears the cached GitHub login for a host identity.
+ *
+ * @param host - Normalized lowercase hostname.
+ * @param githubLogin - GitHub username, or empty/undefined to clear.
+ */
+export function persistGitIdentityLogin(
+  host: string,
+  githubLogin: string | undefined
+): GitIdentity {
+  const existing = getGitIdentity(host);
+  const auth: GitAuthMethod = existing?.auth ?? { kind: 'pat', username: 'token' };
+  // Empty string clears the cached login (upsert treats '' as delete).
+  return upsertGitIdentity(host, {
+    auth,
+    oauthClientId: existing?.oauthClientId,
+    githubLogin: githubLogin?.trim() || ''
   });
 }
 
@@ -135,7 +166,8 @@ export function setGitIdentityOAuthClientId(host: string, oauthClientId: string)
   const trimmed = oauthClientId.trim();
   return upsertGitIdentity(host, {
     auth,
-    oauthClientId: trimmed || undefined
+    oauthClientId: trimmed || undefined,
+    githubLogin: existing?.githubLogin
   });
 }
 

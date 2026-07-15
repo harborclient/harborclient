@@ -67,8 +67,16 @@ export interface ApiChats {
   getGithubModelsStatus: () => Promise<GithubModelsStatus>;
   /**
    * Starts GitHub Models device flow and returns the user code for browser approval.
+   *
+   * The browser is not opened until {@link completeGithubModelsSignIn} is called.
    */
   startGithubModelsSignIn: () => Promise<{ userCode: string; verificationUri: string }>;
+  /**
+   * Opens the GitHub Models verification URI and starts background sign-in polling.
+   *
+   * @param verificationUri - Device-flow verification URL from {@link startGithubModelsSignIn}.
+   */
+  completeGithubModelsSignIn: (verificationUri: string) => Promise<void>;
   /**
    * Removes stored GitHub Models credentials.
    */

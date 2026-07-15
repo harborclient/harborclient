@@ -1,7 +1,7 @@
 import { Button, Page } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { PageRef } from '#/renderer/src/store/drafts';
+import type { PageRef } from '#/renderer/src/store/tabs';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { closeTab } from '#/renderer/src/store/slices/tabsSlice';
 import { faCodeBranch } from '#/renderer/src/fontawesome';

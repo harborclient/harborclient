@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { requestEditorTabKey, resolveEditorTab } from '#/shared/requestEditorTab';
 import type { EditorTab } from '#/shared/types';
-import type { RequestDraft } from '#/renderer/src/store/drafts';
+import type { RequestDraft } from '#/renderer/src/store/tabs';
 import { isPluginTabId } from '#/renderer/src/plugins/pluginContextAdapters';
 
 interface Options {

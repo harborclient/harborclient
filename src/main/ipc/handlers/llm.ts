@@ -8,6 +8,7 @@ import {
 } from '#/main/ai/githubModelsOAuthScheduler';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
+import { isAllowedExternalUrl } from '#/main/window/navigationSecurity';
 
 /**
  * Registers IPC handlers for Team Hub LLM model discovery and GitHub Models sign-in.
@@ -19,13 +20,24 @@ export function registerLlmHandlers(): void {
   // Returns GitHub Models connection status for the renderer.
   handle('githubModels:getStatus', ipcArgSchemas.none, () => getGithubModelsStatus());
 
-  // Starts GitHub Models device flow, opens the browser, and polls in the background.
-  handle('githubModels:startSignIn', ipcArgSchemas.none, async (event) => {
-    const result = await startGithubModelsSignInFlow();
-    await shell.openExternal(result.verificationUri);
-    scheduleGithubModelsSignInCompletion(event.sender);
-    return result;
+  // Starts GitHub Models device flow and returns the user code; browser opens on complete.
+  handle('githubModels:startSignIn', ipcArgSchemas.none, async () => {
+    return startGithubModelsSignInFlow();
   });
+
+  // Opens the browser verification URI and starts background GitHub Models polling.
+  handle(
+    'githubModels:completeSignIn',
+    ipcArgSchemas.githubModelsCompleteSignIn,
+    async (event, verificationUri) => {
+      const trimmed = verificationUri.trim();
+      if (!trimmed || !isAllowedExternalUrl(trimmed)) {
+        throw new Error('Invalid GitHub verification URL.');
+      }
+      await shell.openExternal(trimmed);
+      scheduleGithubModelsSignInCompletion(event.sender);
+    }
+  );
 
   // Removes stored GitHub Models credentials and cancels pending sign-in.
   handle('githubModels:signOut', ipcArgSchemas.none, () => {

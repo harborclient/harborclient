@@ -4,7 +4,7 @@ import {
   isRequestTab,
   isTabDirty,
   type Tab
-} from '#/renderer/src/store/drafts';
+} from '#/renderer/src/store/tabs';
 
 /**
  * Builds the accessible name for a tab close button.

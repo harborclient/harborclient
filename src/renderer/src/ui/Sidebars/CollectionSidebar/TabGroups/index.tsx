@@ -21,7 +21,7 @@ import {
   SidebarTabGroupItem,
   buildReorderMenuGroup
 } from '@harborclient/sdk/components';
-import { SidebarRowActionsMenu } from '#/renderer/src/ui/Sidebars/CollectionSidebar/SidebarRowActionsMenu';
+import { SidebarRowActionsMenu } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/SidebarRowActionsMenu';
 import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
 import type { TabGroup } from '#/shared/types/tabGroup';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
@@ -36,8 +36,8 @@ import {
   reorderTabGroups
 } from '#/renderer/src/store/thunks/tabGroups';
 import { faLayerGroup } from '#/renderer/src/fontawesome';
-import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarRowSelection';
-import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarExpansion';
+import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/useSidebarRowSelection';
+import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { parseTabGroupDragId, tabGroupDragId, tabGroupSummaryText } from './utils';
 

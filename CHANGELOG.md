@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(git): enhance GitHub authentication and repository access validation. (`c8de408`)
+
 ## 2.4.2 - 2026-07-15
 
 - feat(ui): implement scoped settings core functionality and tests. (`bcb4ad8`)

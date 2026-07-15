@@ -20,6 +20,7 @@ import {
   getGitIdentity,
   listGitIdentities,
   persistGitIdentityAuth,
+  persistGitIdentityLogin,
   upsertGitIdentity
 } from './gitIdentities';
 
@@ -60,6 +61,19 @@ describe('gitIdentities', () => {
       auth: { kind: 'oauth', provider: 'github' },
       oauthClientId: 'org-client-id'
     });
+  });
+
+  it('persists and clears cached GitHub login', () => {
+    upsertGitIdentity('github.com', {
+      auth: { kind: 'oauth', provider: 'github' },
+      githubLogin: 'octocat'
+    });
+
+    expect(getGitIdentity('github.com')?.githubLogin).toBe('octocat');
+    expect(listGitIdentities()[0]?.githubLogin).toBe('octocat');
+
+    persistGitIdentityLogin('github.com', undefined);
+    expect(getGitIdentity('github.com')?.githubLogin).toBeUndefined();
   });
 
   it('removes identity metadata for a host', () => {

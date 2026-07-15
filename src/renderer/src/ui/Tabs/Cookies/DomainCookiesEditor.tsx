@@ -2,7 +2,7 @@ import { KeyValueEditor } from '@harborclient/sdk/components';
 import { useEffect, useState, type JSX } from 'react';
 import type { KeyValue, Variable } from '#/shared/types';
 import { cookieKeySource, cookieValueSource } from '#/renderer/src/autocomplete/sources';
-import { emptyKeyValue } from '#/renderer/src/store/drafts';
+import { emptyKeyValue } from '#/renderer/src/store/tabs';
 
 interface Props {
   /**

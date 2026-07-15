@@ -30,19 +30,19 @@ import {
 import { selectActiveSidebarPanelId } from '#/renderer/src/store/slices/navigationSlice';
 import { openCollectionModal } from '#/renderer/src/store/slices/modalsSlice';
 import { requestCreateTabGroupFromOpenTabs } from '#/renderer/src/store/thunks/tabGroups';
-import { Collections } from './Collections';
-import { Environments } from './Environments';
-import { History, HistoryHeaderActions } from './History';
-import { RunResults, RunsHeaderActions } from './RunResults';
-import { TabGroups } from './TabGroups';
-import { Trash, TrashHeaderActions } from './Trash';
-import { SidebarSearch } from './SidebarSearch';
+import { Collections } from '../Collections';
+import { Environments } from '../Environments';
+import { History, HistoryHeaderActions } from '../History';
+import { RunResults, RunsHeaderActions } from '../RunResults';
+import { TabGroups } from '../TabGroups';
+import { Trash, TrashHeaderActions } from '../Trash';
+import { SidebarSearch } from '../search/SidebarSearch';
 import { SidebarPanelSwitcher } from './SidebarPanelSwitcher';
-import { useSidebarSearchContext } from './sidebarSearchContext';
-import { useSidebarModals } from './sidebarModalsContext';
-import { useSidebarExpansion } from './useSidebarExpansion';
-import { useSidebarListNavigation } from './useSidebarListNavigation';
-import { useSidebarAccordion } from './useSidebarAccordion';
+import { useSidebarSearchContext } from '../search/sidebarSearchContext';
+import { useSidebarModals } from '../modals/sidebarModalsContext';
+import { useSidebarExpansion } from '../expansion/useSidebarExpansion';
+import { useSidebarListNavigation } from '../navigation/useSidebarListNavigation';
+import { useSidebarAccordion } from '../expansion/useSidebarAccordion';
 
 /**
  * Inner sidebar body rendered inside the sidebar context providers. Composes

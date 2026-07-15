@@ -46,7 +46,7 @@ import {
   isRequestTab,
   isTabDirty,
   type RequestTab
-} from '#/renderer/src/store/drafts';
+} from '#/renderer/src/store/tabs';
 import { mirrorLegacyScriptString, resolveScriptSourceCode } from '#/shared/scriptRefs';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import { selectShowTerminal } from '#/renderer/src/store/slices/navigationSlice';

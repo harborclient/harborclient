@@ -3,10 +3,12 @@ import { setAlertModal, setConfirmModal } from '#/renderer/src/store/slices/moda
 import {
   formatErrorMessage,
   formatIpcErrorMessage,
+  openCollectionGitSettings,
   resolveConfirm,
   showAlert,
   showConfirm
 } from './dialogHelpers';
+import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 
 describe('dialogHelpers', () => {
   it('formatErrorMessage returns Error.message or fallback', () => {
@@ -32,7 +34,7 @@ describe('dialogHelpers', () => {
     showAlert(dispatch, 'Failed to save', 'Error');
     expect(dispatch).toHaveBeenCalledWith({
       type: setAlertModal.type,
-      payload: { title: 'Error', message: 'Failed to save', icon: undefined }
+      payload: { title: 'Error', message: 'Failed to save', icon: undefined, action: undefined }
     });
   });
 
@@ -41,7 +43,45 @@ describe('dialogHelpers', () => {
     showAlert(dispatch, 'Install failed.', 'Install failed', { icon: 'warning' });
     expect(dispatch).toHaveBeenCalledWith({
       type: setAlertModal.type,
-      payload: { title: 'Install failed', message: 'Install failed.', icon: 'warning' }
+      payload: {
+        title: 'Install failed',
+        message: 'Install failed.',
+        icon: 'warning',
+        action: undefined
+      }
+    });
+  });
+
+  it('showAlert dispatches optional action when provided', () => {
+    const dispatch = vi.fn();
+    showAlert(dispatch, 'Push failed', 'Push failed', {
+      action: {
+        kind: 'openCollectionGitSettings',
+        label: 'Open Git settings',
+        collectionId: 42
+      }
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: setAlertModal.type,
+      payload: {
+        title: 'Push failed',
+        message: 'Push failed',
+        icon: undefined,
+        action: {
+          kind: 'openCollectionGitSettings',
+          label: 'Open Git settings',
+          collectionId: 42
+        }
+      }
+    });
+  });
+
+  it('openCollectionGitSettings opens the collection page on the Git tab', () => {
+    const dispatch = vi.fn();
+    openCollectionGitSettings(dispatch, 7);
+    expect(dispatch).toHaveBeenCalledWith({
+      type: openPageTab.type,
+      payload: { type: 'collection', id: 7, focusSection: 'git' }
     });
   });
 

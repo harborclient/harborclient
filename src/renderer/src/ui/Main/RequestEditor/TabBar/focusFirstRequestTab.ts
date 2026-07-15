@@ -1,4 +1,4 @@
-import { isRequestTab } from '#/renderer/src/store/drafts';
+import { isRequestTab } from '#/renderer/src/store/tabs';
 import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
 import { setShowRequestEditor } from '#/renderer/src/store/slices/navigationSlice';
 import { setActiveTab } from '#/renderer/src/store/slices/tabsSlice';

@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import type { Collection, ListCollectionsResult } from '#/shared/types';
-import type { RequestDraft } from '#/renderer/src/store/drafts';
-import { isRequestTab } from '#/renderer/src/store/drafts';
+import type { RequestDraft } from '#/renderer/src/store/tabs';
+import { isRequestTab } from '#/renderer/src/store/tabs';
 
 // react-hot-toast pulls in the DOM at import time; stub it for the Node test env.
 vi.mock('react-hot-toast', () => ({

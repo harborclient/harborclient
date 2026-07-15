@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
-import { createTab, type RequestTab } from '#/renderer/src/store/drafts';
-import { draftFromSaved } from '#/renderer/src/store/drafts';
+import { createTab, type RequestTab } from '#/renderer/src/store/tabs';
+import { draftFromSaved } from '#/renderer/src/store/tabs';
 import type { SavedRequest } from '#/shared/types';
 import {
   buildTabGroupExport,

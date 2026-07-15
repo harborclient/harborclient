@@ -22,7 +22,7 @@ import {
   selectRequestsByCollection,
   selectSelectedCollectionId
 } from '#/renderer/src/store/selectors';
-import { isRequestTab } from '#/renderer/src/store/drafts';
+import { isRequestTab } from '#/renderer/src/store/tabs';
 import { clearConsole } from '#/renderer/src/store/slices/consoleSlice';
 import {
   selectAiSidebarVisible,
@@ -64,8 +64,8 @@ import { UnsavedLoadPrompt } from '#/renderer/src/ui/Modals/UnsavedLoadPrompt';
 import { AiSidebar } from '#/renderer/src/ui/Sidebars/AiSidebar';
 import { GitSidebar } from '#/renderer/src/ui/Sidebars/GitSidebar';
 import { CollectionSidebar } from '#/renderer/src/ui/Sidebars/CollectionSidebar';
-import { SidebarGitProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/SidebarGitProvider';
-import { SidebarExpansionProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/SidebarExpansionProvider';
+import { SidebarGitProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/SidebarGitProvider';
+import { SidebarExpansionProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/SidebarExpansionProvider';
 import { RequestEditor } from '#/renderer/src/ui/Main/RequestEditor';
 import { resolveVariableEditTarget } from '#/renderer/src/ui/Main/RequestEditor/resolveVariableEditTarget';
 import { TitleBar } from '#/renderer/src/ui/TitleBar';
@@ -76,7 +76,7 @@ import {
   selectCodeEditorTheme
 } from '#/renderer/src/store/slices/settingsSlice';
 import { Footer } from '#/renderer/src/ui/Footer';
-import { TabGroupEditBar } from '#/renderer/src/ui/TabGroupEditBar';
+import { TabGroupEditBar } from '#/renderer/src/ui/Sidebars/CollectionSidebar/TabGroups/TabGroupEditBar';
 import { FooterPanels } from '#/renderer/src/ui/Footer/FooterPanels';
 import { AnimatedHorizontalPanel } from '#/renderer/src/ui/Shared/Animated/AnimatedHorizontalPanel';
 import { SkipNavigation } from '#/renderer/src/ui/Shared/SkipNavigation/SkipNavigation';

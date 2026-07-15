@@ -1,7 +1,7 @@
 import { Button, FieldError, Page } from '@harborclient/sdk/components';
 import { useEffect, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { PageRef } from '#/renderer/src/store/drafts';
+import type { PageRef } from '#/renderer/src/store/tabs';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { closeTab } from '#/renderer/src/store/slices/tabsSlice';
 import { selectSnippets } from '#/renderer/src/store/selectors';

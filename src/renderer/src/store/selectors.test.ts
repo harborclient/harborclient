@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { defaultAuth, type AuthConfig } from '#/shared/auth';
 import type { HttpMethod } from '#/shared/types';
 import { createInlineScriptRef } from '#/shared/scriptRefs';
-import { isRequestTab } from './drafts';
+import { isRequestTab } from './tabs';
 import {
   loadDocument,
   loadRequest,

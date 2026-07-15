@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import { createInlineScriptRef } from '#/shared/scriptRefs';
-import { asRequestTab, isRequestTab } from '#/renderer/src/store/drafts';
+import { asRequestTab, isRequestTab } from '#/renderer/src/store/tabs';
 import { scriptEditorUiStorageKey } from '#/renderer/src/hooks/usePersistedScriptEditorUiState';
 import type { SaveRequestInput, SavedRequest } from '#/shared/types';
 

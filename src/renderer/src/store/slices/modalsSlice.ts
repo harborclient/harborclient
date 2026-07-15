@@ -63,10 +63,34 @@ export interface CollectionModalState {
   gitCollectionCreated: boolean;
 }
 
+/**
+ * Optional secondary action shown beside OK in the alert modal.
+ */
+export type AlertModalAction = {
+  /**
+   * Opens collection settings on the Git tab after the alert closes.
+   */
+  kind: 'openCollectionGitSettings';
+
+  /**
+   * Button label shown in the alert footer.
+   */
+  label: string;
+
+  /**
+   * Collection id whose Git settings tab should open.
+   */
+  collectionId: number;
+};
+
 export interface AlertModalState {
   title: string;
   message: string;
   icon?: 'warning';
+  /**
+   * Optional remediation action (for example open Git settings after a sync failure).
+   */
+  action?: AlertModalAction;
 }
 
 export interface ConfirmModalState {

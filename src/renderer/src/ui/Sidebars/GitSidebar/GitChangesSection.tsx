@@ -6,12 +6,12 @@ import { resolveGitChangeDisplayLabel } from '#/renderer/src/git/gitCommitChange
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { GitChangedFileRow } from '#/renderer/src/ui/Shared/Git/GitChangedFileRow';
 import { GitFileDiffModal } from '#/renderer/src/ui/Shared/Git/GitFileDiffModal';
-import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarGitContext';
-import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarExpansion';
+import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/sidebarGitContext';
+import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import {
   scrollSidebarDocumentRowIntoView,
   scrollSidebarRequestRowIntoView
-} from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarListNavigation';
+} from '#/renderer/src/ui/Sidebars/CollectionSidebar/navigation/sidebarListNavigation';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { focusGitChangeInCollectionSidebar } from '#/renderer/src/store/thunks';

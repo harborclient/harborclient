@@ -10,8 +10,8 @@ import type { BodyType, Variable } from '#/shared/types';
 import { parseFormParts, serializeFormParts } from '#/shared/formData';
 import { parseUrlEncodedParts, serializeUrlEncodedParts } from '#/shared/urlencoded';
 
-import type { RequestDraft } from '#/renderer/src/store/drafts';
-import { emptyKeyValue } from '#/renderer/src/store/drafts';
+import type { RequestDraft } from '#/renderer/src/store/tabs';
+import { emptyKeyValue } from '#/renderer/src/store/tabs';
 import { urlencodedKeySource, urlencodedValueSource } from '#/renderer/src/autocomplete/sources';
 
 const BODY_TYPE_OPTIONS: { value: BodyType; label: string }[] = [

@@ -2,8 +2,16 @@ import { Button, FormGroup, Input } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useId, useRef, useState, type JSX } from 'react';
 import type { StorageConnection, GitSettings } from '#/shared/types';
 import { normalizeGitHostKey } from '#/shared/gitUrl';
+import {
+  formatGitHttpError,
+  emptyRemoteConnectionTestMessage,
+  readOnlyRepoAccessMessage,
+  successfulConnectionTestMessage
+} from '#/shared/gitHttpErrors';
 
 import { GitAuthForm } from '#/renderer/src/ui/Shared/Git/GitAuthForm';
+import { useAppDispatch } from '#/renderer/src/store/hooks';
+import { showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 
 interface Props {
   /**
@@ -36,6 +44,7 @@ export function GitFields({
   onChange,
   onInitGitRepoChange
 }: Props): JSX.Element {
+  const dispatch = useAppDispatch();
   const settings = connection.settings;
   const repoPathId = useId();
   const initRepoId = useId();
@@ -46,6 +55,9 @@ export function GitFields({
   const [checkedIsRepo, setCheckedIsRepo] = useState<boolean | null>(null);
   const isRepo = repoPath.length === 0 ? null : checkedRepoPath === repoPath ? checkedIsRepo : null;
   const [initGitRepo, setInitGitRepo] = useState(false);
+  const [hasHostCredentials, setHasHostCredentials] = useState(false);
+  const [testBusy, setTestBusy] = useState(false);
+  const [testSuccessMessage, setTestSuccessMessage] = useState<string | null>(null);
   const gitHost = normalizeGitHostKey(settings.url);
 
   /**
@@ -54,6 +66,42 @@ export function GitFields({
   useEffect(() => {
     connectionRef.current = connection;
   }, [connection]);
+
+  /**
+   * Reloads whether the current host has stored credentials.
+   */
+  const reloadHostCredentials = useCallback(async (): Promise<void> => {
+    if (!gitHost) {
+      setHasHostCredentials(false);
+      return;
+    }
+    const identities = await window.api.listGitIdentities();
+    const identity = identities.find((item) => item.host === gitHost);
+    setHasHostCredentials(identity?.hasCredentials === true);
+  }, [gitHost]);
+
+  /**
+   * Loads credential presence when the host key changes.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      if (!gitHost) {
+        if (!cancelled) {
+          setHasHostCredentials(false);
+        }
+        return;
+      }
+      const identities = await window.api.listGitIdentities();
+      if (!cancelled) {
+        const identity = identities.find((item) => item.host === gitHost);
+        setHasHostCredentials(identity?.hasCredentials === true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [gitHost]);
 
   /**
    * Updates a git settings field on the parent connection.
@@ -66,6 +114,7 @@ export function GitFields({
         ...connection,
         settings: { ...connection.settings, ...partial }
       });
+      setTestSuccessMessage(null);
     },
     [connection, onChange]
   );
@@ -84,6 +133,7 @@ export function GitFields({
         ...current,
         settings: { ...current.settings, repoPath: path }
       });
+      setTestSuccessMessage(null);
 
       const remoteUrl = await window.api.gitReadRemoteUrl(path);
       if (pendingRepoPathRef.current !== path) {
@@ -137,6 +187,43 @@ export function GitFields({
       await applyRepoPath(selected);
     }
   };
+
+  /**
+   * Probes the remote to verify credentials, URL, and push access for this connection.
+   */
+  const handleTestConnection = async (): Promise<void> => {
+    setTestBusy(true);
+    setTestSuccessMessage(null);
+    try {
+      const result = await window.api.gitTestConnection(connection.id);
+      if (result.canPush === false) {
+        showAlert(dispatch, readOnlyRepoAccessMessage(), 'Read-only repository access', {
+          icon: 'warning'
+        });
+        return;
+      }
+      setTestSuccessMessage(
+        result.emptyRemote ? emptyRemoteConnectionTestMessage() : successfulConnectionTestMessage()
+      );
+    } catch (err) {
+      showAlert(
+        dispatch,
+        formatGitHttpError(err instanceof Error ? err : String(err), 'validate'),
+        'Connection test failed',
+        { icon: 'warning' }
+      );
+    } finally {
+      setTestBusy(false);
+    }
+  };
+
+  const canTestConnection =
+    Boolean(gitHost) &&
+    settings.url.trim().length > 0 &&
+    settings.repoPath.trim().length > 0 &&
+    hasHostCredentials &&
+    !disabled &&
+    !testBusy;
 
   return (
     <div className="flex flex-col gap-4">
@@ -226,9 +313,30 @@ export function GitFields({
           <GitAuthForm
             host={gitHost}
             url={settings.url}
-            repoPath={settings.repoPath}
+            branch={settings.branch}
             disabled={disabled}
+            onAuthorized={() => {
+              void reloadHostCredentials();
+              setTestSuccessMessage(null);
+            }}
           />
+          {hasHostCredentials ? (
+            <div className="flex flex-col gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!canTestConnection}
+                onClick={() => void handleTestConnection()}
+              >
+                {testBusy ? 'Testing…' : 'Test connection'}
+              </Button>
+              {testSuccessMessage ? (
+                <p className="m-0 text-[14px] text-text" role="status">
+                  {testSuccessMessage}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : (
         <p className="m-0 text-[14px] text-muted">

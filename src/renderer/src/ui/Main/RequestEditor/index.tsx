@@ -9,7 +9,7 @@ import {
   isRequestTab,
   isTabDirty,
   type Tab
-} from '#/renderer/src/store/drafts';
+} from '#/renderer/src/store/tabs';
 import {
   toPluginHttpResponse,
   toPluginRequestDraft,
@@ -72,7 +72,7 @@ import {
 import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { mergeRequestVariables } from '#/renderer/src/hooks/useMergedRequestVariables';
-import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarExpansion';
+import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import { useTeamHubs } from '#/renderer/src/hooks/useTeamHubs';
 import { Button, Checkbox, Modal, ModalFooter } from '@harborclient/sdk/components';
 import { ResizeHandle, useResizable } from '@harborclient/sdk/components';

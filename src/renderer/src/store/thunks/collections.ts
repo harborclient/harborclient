@@ -64,7 +64,7 @@ import {
   runPluginImportHandlers
 } from '#/renderer/src/plugins/pluginImportHandlers';
 import { logImportVerbose } from '#/renderer/src/import/importVerboseLog';
-import { defaultDraft, isRequestTab, isTabDirty, type Tab } from '#/renderer/src/store/drafts';
+import { defaultDraft, isRequestTab, isTabDirty, type Tab } from '#/renderer/src/store/tabs';
 import { closeTab } from '#/renderer/src/store/slices/tabsSlice';
 import { requestLoadDocument } from './documents';
 import { requestLoadRequest } from './requests';

@@ -1,6 +1,6 @@
 import { Button, Page, Spinner } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useMemo, type JSX } from 'react';
-import type { PageRef } from '#/renderer/src/store/drafts';
+import type { PageRef } from '#/renderer/src/store/tabs';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { closeTab } from '#/renderer/src/store/slices/tabsSlice';
 import { refreshSnippets } from '#/renderer/src/store/thunks/snippets';

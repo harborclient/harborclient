@@ -1,5 +1,5 @@
 import type { AppDispatch } from '#/renderer/src/store/redux';
-import type { SnippetEditTabMode } from '#/renderer/src/store/drafts';
+import type { SnippetEditTabMode } from '#/renderer/src/store/tabs';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 
 /**

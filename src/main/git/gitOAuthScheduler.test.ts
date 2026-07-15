@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StorageConnection } from '#/shared/types';
 
 const finishHostGitHubOAuth = vi.hoisted(() => vi.fn(async () => undefined));
-const testHostCredentials = vi.hoisted(() => vi.fn(async () => undefined));
+const testHostCredentials = vi.hoisted(() =>
+  vi.fn(async () => ({ emptyRemote: false as boolean, canPush: true as boolean }))
+);
 const mockConnections = vi.hoisted(() => [] as StorageConnection[]);
 
 vi.mock('#/main/git/gitAuth', () => ({
@@ -26,8 +28,9 @@ import { scheduleHostGitHubOAuthCompletion } from './gitOAuthScheduler';
  * Flushes pending microtasks so background OAuth completion handlers can run.
  */
 async function flushScheduler(): Promise<void> {
-  await Promise.resolve();
-  await Promise.resolve();
+  for (let i = 0; i < 6; i += 1) {
+    await Promise.resolve();
+  }
 }
 
 /**
@@ -50,7 +53,7 @@ describe('scheduleHostGitHubOAuthCompletion', () => {
     finishHostGitHubOAuth.mockReset();
     finishHostGitHubOAuth.mockResolvedValue(undefined);
     testHostCredentials.mockReset();
-    testHostCredentials.mockResolvedValue(undefined);
+    testHostCredentials.mockResolvedValue({ emptyRemote: false, canPush: true });
   });
 
   it('notifies auth failure with ok false', async () => {
@@ -59,7 +62,7 @@ describe('scheduleHostGitHubOAuthCompletion', () => {
     const sender = mockSender();
     scheduleHostGitHubOAuthCompletion(sender, {} as never, 'github.com', {
       testUrl: 'https://github.com/org/repo.git',
-      repoPath: '/tmp/repo'
+      branch: 'main'
     });
 
     await flushScheduler();
@@ -81,7 +84,7 @@ describe('scheduleHostGitHubOAuthCompletion', () => {
     const sender = mockSender();
     scheduleHostGitHubOAuthCompletion(sender, {} as never, 'github.com', {
       testUrl: 'https://github.com/org/repo.git',
-      repoPath: '/tmp/repo'
+      branch: 'main'
     });
 
     await flushScheduler();
@@ -89,14 +92,40 @@ describe('scheduleHostGitHubOAuthCompletion', () => {
     expect(testHostCredentials).toHaveBeenCalledWith(
       'github.com',
       'https://github.com/org/repo.git',
-      '/tmp/repo'
+      'main'
     );
     expect(sender.sent).toEqual([
       {
         channel: 'git:oauthFinished',
         payload: {
           host: 'github.com',
-          ok: true
+          ok: true,
+          emptyRemote: false,
+          canPush: true
+        }
+      }
+    ]);
+  });
+
+  it('notifies auth success with emptyRemote when the remote has no refs', async () => {
+    testHostCredentials.mockResolvedValue({ emptyRemote: true, canPush: true });
+
+    const sender = mockSender();
+    scheduleHostGitHubOAuthCompletion(sender, {} as never, 'github.com', {
+      testUrl: 'https://github.com/org/empty.git',
+      branch: 'main'
+    });
+
+    await flushScheduler();
+
+    expect(sender.sent).toEqual([
+      {
+        channel: 'git:oauthFinished',
+        payload: {
+          host: 'github.com',
+          ok: true,
+          emptyRemote: true,
+          canPush: true
         }
       }
     ]);
@@ -108,7 +137,7 @@ describe('scheduleHostGitHubOAuthCompletion', () => {
     const sender = mockSender();
     scheduleHostGitHubOAuthCompletion(sender, {} as never, 'github.com', {
       testUrl: 'https://github.com/org/missing.git',
-      repoPath: '/tmp/repo'
+      branch: 'main'
     });
 
     await flushScheduler();
@@ -149,7 +178,7 @@ describe('scheduleHostGitHubOAuthCompletion', () => {
     expect(testHostCredentials).toHaveBeenCalledWith(
       'github.com',
       'https://github.com/org/repo.git',
-      '/tmp/repo'
+      'main'
     );
     expect(sender.sent).toEqual([
       {
@@ -157,7 +186,9 @@ describe('scheduleHostGitHubOAuthCompletion', () => {
         payload: {
           host: 'github.com',
           connectionId: 'git-conn-1',
-          ok: true
+          ok: true,
+          emptyRemote: false,
+          canPush: true
         }
       }
     ]);

@@ -1,7 +1,7 @@
 import { FaIcon, Spinner } from '@harborclient/sdk/components';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { JSX } from 'react';
-import { isMarkdownTab, isPageTab, type Tab } from '#/renderer/src/store/drafts';
+import { isMarkdownTab, isPageTab, type Tab } from '#/renderer/src/store/tabs';
 import { faFileLines } from '#/renderer/src/fontawesome';
 import { METHOD_CLASSES } from '#/renderer/src/ui/Shared/classes';
 

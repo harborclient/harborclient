@@ -4,7 +4,7 @@ import type { GitAuthMethod, StorageConnection } from '#/shared/types';
 const mockConnections: StorageConnection[] = [];
 const identityByHost = new Map<
   string,
-  { host: string; auth: GitAuthMethod; oauthClientId?: string }
+  { host: string; auth: GitAuthMethod; oauthClientId?: string; githubLogin?: string }
 >();
 
 const { startGitHubDeviceFlow, completeGitHubDeviceFlow, refreshGitHubAccessToken } = vi.hoisted(
@@ -49,7 +49,24 @@ vi.mock('#/main/git/gitIdentities', () => ({
   getGitIdentity: (host: string) => identityByHost.get(host),
   persistGitIdentityAuth: (host: string, auth: GitAuthMethod) => {
     const existing = identityByHost.get(host);
-    const next = { host, auth, oauthClientId: existing?.oauthClientId };
+    const next = {
+      host,
+      auth,
+      oauthClientId: existing?.oauthClientId,
+      githubLogin: existing?.githubLogin
+    };
+    identityByHost.set(host, next);
+    return { ...next, hasCredentials: true };
+  },
+  persistGitIdentityLogin: (host: string, githubLogin: string | undefined) => {
+    const existing = identityByHost.get(host);
+    const auth: GitAuthMethod = existing?.auth ?? { kind: 'pat', username: 'token' };
+    const next = {
+      host,
+      auth,
+      oauthClientId: existing?.oauthClientId,
+      githubLogin: githubLogin?.trim() || undefined
+    };
     identityByHost.set(host, next);
     return { ...next, hasCredentials: true };
   },
@@ -58,7 +75,8 @@ vi.mock('#/main/git/gitIdentities', () => ({
     const next = {
       host,
       auth: patch.auth,
-      oauthClientId: patch.oauthClientId ?? existing?.oauthClientId
+      oauthClientId: patch.oauthClientId ?? existing?.oauthClientId,
+      githubLogin: existing?.githubLogin
     };
     identityByHost.set(host, next);
     return { ...next, hasCredentials: true };
@@ -73,7 +91,8 @@ vi.mock('#/main/git/gitIdentities', () => ({
     const next = {
       host,
       auth,
-      oauthClientId: trimmed || undefined
+      oauthClientId: trimmed || undefined,
+      githubLogin: existing?.githubLogin
     };
     identityByHost.set(host, next);
     return { ...next, hasCredentials: true };
@@ -121,6 +140,9 @@ describe('git auth resolver', () => {
     vi.mocked(storeGitOAuthTokens).mockClear();
     vi.mocked(storeGitPat).mockClear();
     vi.mocked(deleteGitSecrets).mockClear();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ login: 'octocat' }), { status: 200 })
+    );
   });
 
   it('resolves PAT credentials from encrypted storage by host', async () => {
@@ -146,17 +168,18 @@ describe('git auth resolver', () => {
     expect(auth).toEqual({ username: 'my-user', password: 'stored-pat' });
   });
 
-  it('stores a PAT for a host and persists identity metadata', () => {
-    saveHostPat('github.com', 'my-user', '  secret-token  ');
+  it('stores a PAT for a host and persists identity metadata', async () => {
+    await saveHostPat('github.com', 'my-user', '  secret-token  ');
 
     expect(storeGitPat).toHaveBeenCalledWith('github.com', 'secret-token');
     expect(identityByHost.get('github.com')?.auth).toEqual({
       kind: 'pat',
       username: 'my-user'
     });
+    expect(identityByHost.get('github.com')?.githubLogin).toBe('octocat');
   });
 
-  it('stores a PAT for a connection by resolving its host', () => {
+  it('stores a PAT for a connection by resolving its host', async () => {
     mockConnections.push({
       id: 'git-pat',
       name: 'Git PAT',
@@ -170,7 +193,7 @@ describe('git auth resolver', () => {
       }
     });
 
-    saveGitPat('git-pat', 'my-user', 'secret-token');
+    await saveGitPat('git-pat', 'my-user', 'secret-token');
 
     expect(storeGitPat).toHaveBeenCalledWith('github.com', 'secret-token');
     expect(identityByHost.get('github.com')?.auth).toEqual({
@@ -208,6 +231,7 @@ describe('git auth resolver', () => {
       kind: 'oauth',
       provider: 'github'
     });
+    expect(identityByHost.get('github.com')?.githubLogin).toBe('octocat');
   });
 
   it('rejects OAuth for non-github.com repository URLs', async () => {

@@ -1,4 +1,4 @@
-import type { RequestDraft as StoreRequestDraft } from '#/renderer/src/store/drafts';
+import type { RequestDraft as StoreRequestDraft } from '#/renderer/src/store/tabs';
 import type { Collection, SendResult } from '#/shared/types';
 import { defaultAuth, normalizeAuth } from '#/shared/auth';
 import type {

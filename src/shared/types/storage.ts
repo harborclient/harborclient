@@ -185,6 +185,12 @@ export interface GitIdentity {
   oauthClientId?: string;
 
   /**
+   * Cached GitHub username (`login`) when credentials belong to github.com.
+   * Populated after OAuth/PAT save or when listing identities.
+   */
+  githubLogin?: string;
+
+  /**
    * Whether encrypted credentials are stored for this host.
    * Populated when listing identities from the main process.
    */
@@ -306,6 +312,16 @@ export interface GitOAuthFinishedEvent {
    * validation failed.
    */
   validationError?: string;
+
+  /**
+   * True when credentials were validated and the remote has no branch refs yet.
+   */
+  emptyRemote?: boolean;
+
+  /**
+   * True when GitHub granted push access; false when credentials are read-only.
+   */
+  canPush?: boolean;
 }
 
 /**

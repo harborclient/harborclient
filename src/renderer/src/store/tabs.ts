@@ -23,22 +23,89 @@ import { normalizeRequestTags } from '#/shared/requestTags';
  * Editable request state in the UI before or during save.
  */
 export interface RequestDraft {
+  /**
+   * Persisted request id when editing an existing request; omitted for new drafts.
+   */
   id?: number;
+
+  /**
+   * Collection that owns this request; may be unset until the draft is saved.
+   */
   collection_id?: number;
+
+  /**
+   * Folder containing this request; null at collection root; may be unset until save.
+   */
   folder_id?: number | null;
+
+  /**
+   * Display name shown in the tab bar and sidebar.
+   */
   name: string;
+
+  /**
+   * HTTP method used for the request.
+   */
   method: HttpMethod;
+
+  /**
+   * Request URL without query parameters.
+   */
   url: string;
+
+  /**
+   * Request headers as editable key-value pairs.
+   */
   headers: KeyValue[];
+
+  /**
+   * Query parameters as editable key-value pairs.
+   */
   params: KeyValue[];
+
+  /**
+   * Authorization settings; none inherits collection auth at send time.
+   */
   auth: AuthConfig;
+
+  /**
+   * Raw request body content.
+   */
   body: string;
+
+  /**
+   * Content type of the request body.
+   */
   body_type: BodyType;
+
+  /**
+   * Legacy single-script JavaScript run before the request is sent.
+   */
   pre_request_script: string;
+
+  /**
+   * Legacy single-script JavaScript run after the response is received.
+   */
   post_request_script: string;
+
+  /**
+   * Ordered pre-request scripts; canonical source when non-empty.
+   */
   pre_request_scripts: ScriptRef[];
+
+  /**
+   * Ordered post-request scripts; canonical source when non-empty.
+   */
   post_request_scripts: ScriptRef[];
+
+  /**
+   * Free-form notes for this request.
+   */
   comment: string;
+
+  /**
+   * Comma-separated labels for organizing and searching requests.
+   */
   tags: string;
 }
 
@@ -46,29 +113,61 @@ export interface RequestDraft {
  * Open request tab with draft, response, and in-flight state.
  */
 export interface RequestTab {
+  /**
+   * Stable client-side id for this open tab instance.
+   */
   tabId: string;
+
+  /**
+   * Current editable request state in this tab.
+   */
   draft: RequestDraft;
+
+  /**
+   * Last-saved request state used to detect unsaved changes.
+   */
   savedDraft: RequestDraft;
+
+  /**
+   * Latest send result for this tab, or null when none has completed or it was cleared.
+   */
   response: SendResult | null;
+
+  /**
+   * True while a send is in flight for this tab.
+   */
   sending: boolean;
+
+  /**
+   * Correlator for the in-flight send, or null when idle.
+   */
   sendingRequestId: string | null;
+
+  /**
+   * Assertion results from scripts for the latest completed send in this tab.
+   */
   testResults: ScriptTestResult[];
+
   /**
    * Console output captured from scripts for the latest completed send in this tab.
    */
   scriptLogs: string[];
+
   /**
    * Ordered variable and flow-control activity from scripts for the latest completed send.
    */
   executionEvents: ScriptExecutionEvent[];
+
   /**
    * Aggregated script runtime errors for the latest completed send in this tab.
    */
   scriptError?: string;
+
   /**
    * Next request name from hc.execution.setNextRequest for collection runner flow control.
    */
   scriptNextRequest?: string | null;
+
   /**
    * When true, hc.execution.skipRequest() skipped the latest send in this tab.
    */
@@ -109,7 +208,7 @@ export type PageRef =
   | { type: 'team-hub-admin'; hubId: string; label?: string }
   | { type: 'sharing-keys' }
   | { type: 'hosted-main-view'; pluginId: string; viewId: string }
-  | { type: 'collection'; id: number; focusVariableKey?: string }
+  | { type: 'collection'; id: number; focusVariableKey?: string; focusSection?: string }
   | { type: 'folder'; collectionId: number; id: number; focusVariableKey?: string }
   | { type: 'environment'; id: number; focusVariableKey?: string }
   | {
@@ -153,8 +252,19 @@ export type PageRef =
  * Tab that hosts a settings, plugins, or other configuration page.
  */
 export interface PageTab {
+  /**
+   * Stable client-side id for this open tab instance.
+   */
   tabId: string;
+
+  /**
+   * Discriminator that marks this tab as a configuration page.
+   */
   kind: 'page';
+
+  /**
+   * Which configuration page this tab displays.
+   */
   page: PageRef;
 }
 
@@ -162,13 +272,44 @@ export interface PageTab {
  * Open markdown document tab with editable content and a saved baseline.
  */
 export interface MarkdownTab {
+  /**
+   * Stable client-side id for this open tab instance.
+   */
   tabId: string;
+
+  /**
+   * Discriminator that marks this tab as a markdown document editor.
+   */
   kind: 'markdown';
+
+  /**
+   * Database id of the collection document being edited.
+   */
   docId: number;
+
+  /**
+   * Collection that owns the document.
+   */
   collectionId: number;
+
+  /**
+   * Folder containing the document; null when it lives at the collection root.
+   */
   folderId: number | null;
+
+  /**
+   * Display file name shown in the tab bar and sidebar.
+   */
   name: string;
+
+  /**
+   * Current editable markdown body in the editor.
+   */
   content: string;
+
+  /**
+   * Last-saved markdown body used to detect unsaved changes.
+   */
   savedContent: string;
 }
 
@@ -335,6 +476,7 @@ export function normalizeDraft(draft: RequestDraft): RequestDraft {
     draft.post_request_scripts,
     draft.post_request_script ?? ''
   );
+
   return {
     ...draft,
     headers: normalizeKeyValueRows(draft.headers),

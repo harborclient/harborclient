@@ -1,8 +1,4 @@
-import {
-  EmptySectionLabel,
-  RowActionsMenu,
-  SidebarHistoryItem
-} from '@harborclient/sdk/components';
+import { EmptySectionLabel, SidebarHistoryItem } from '@harborclient/sdk/components';
 import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
 import type { RequestHistoryEntry } from '#/shared/types/requestHistory';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
@@ -14,9 +10,11 @@ import {
   openRequestHistoryRun
 } from '#/renderer/src/store/thunks/requestHistory';
 import { loadSavedRequest, openRequestDraft } from '#/renderer/src/plugins/hostRequestCommands';
-import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarRowSelection';
+import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/useSidebarRowSelection';
 import { faPersonRunning } from '#/renderer/src/fontawesome';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
+import { type InspectPoint } from '#/renderer/src/ui/Shared/devInspectContextMenu';
+import { ActionsMenu } from './ActionsMenu';
 import { formatSidebarAbsoluteDate } from './utils';
 
 export { HistoryHeaderActions } from './HistoryHeaderActions';
@@ -74,6 +72,9 @@ export function History(): JSX.Element {
   const confirm = useConfirm();
   const entries = useAppSelector(selectRequestHistory);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [inspectPointsByMenuId, setInspectPointsByMenuId] = useState<Record<string, InspectPoint>>(
+    {}
+  );
 
   /**
    * History entry ids in on-screen list order for shift-click range selection.
@@ -189,6 +190,10 @@ export function History(): JSX.Element {
               event.preventDefault();
               event.stopPropagation();
               handleBeforeContextMenu(entry.id);
+              setInspectPointsByMenuId((prev) => ({
+                ...prev,
+                [menuId]: { x: event.clientX, y: event.clientY }
+              }));
               setOpenMenuId(menuId);
             }}
             onClick={(event: MouseEvent<HTMLElement>) => {
@@ -199,35 +204,14 @@ export function History(): JSX.Element {
               );
             }}
             actions={
-              <RowActionsMenu
-                menuId={menuId}
+              <ActionsMenu
+                entry={entry}
+                showBulkMenu={showBulkMenu}
                 openMenuId={openMenuId}
                 onOpenChange={setOpenMenuId}
-                groups={
-                  showBulkMenu
-                    ? [
-                        [
-                          {
-                            label: 'Delete',
-                            variant: 'danger' as const,
-                            onSelect: () => {
-                              void handleDeleteSelected();
-                            }
-                          }
-                        ]
-                      ]
-                    : [
-                        [
-                          {
-                            label: 'Delete',
-                            variant: 'danger',
-                            onSelect: () => {
-                              void handleDeleteEntry(entry);
-                            }
-                          }
-                        ]
-                      ]
-                }
+                inspectPoint={inspectPointsByMenuId[menuId]}
+                onDeleteEntry={handleDeleteEntry}
+                onDeleteSelected={handleDeleteSelected}
               />
             }
           />

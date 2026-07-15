@@ -60,7 +60,7 @@ import {
   resolvePersistFolderId,
   type RequestDraft,
   type RequestTab
-} from '#/renderer/src/store/drafts';
+} from '#/renderer/src/store/tabs';
 import {
   setSelectedCollectionId,
   upsertRequestInCollection

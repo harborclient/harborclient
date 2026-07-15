@@ -1,7 +1,7 @@
 import { RowActionsMenu, type MenuItem } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import { SidebarColorMenuSlot } from './SidebarColorMenuSlot';
-import type { SidebarColorTarget } from './sidebarColorTypes';
+import { SidebarColorMenuSlot } from '../colors/SidebarColorMenuSlot';
+import type { SidebarColorTarget } from '../colors/sidebarColorTypes';
 
 interface Props {
   /**

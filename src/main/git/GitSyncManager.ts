@@ -2,7 +2,7 @@ import * as git from 'isomorphic-git';
 import http from 'isomorphic-git/http/node';
 import fs, { existsSync, rmSync } from 'fs';
 import { join } from 'path';
-import { buildGitOnAuth, resolveGitAuthForHost } from './gitAuth';
+import { buildGitOnAuth, resolveGitAuth, resolveGitAuthForHost } from './gitAuth';
 import { ensureHarborclientLayout, resolveHarborclientRoot } from './fileLayout';
 import {
   analyzeMatrixRow,
@@ -13,6 +13,11 @@ import {
 } from './gitRequestStatus';
 import { countConflictFiles, pullMergeConflictMessage } from './slug';
 import { buildGitGraphLog, readGitCommitDetail } from './gitGraph';
+import { validateRemoteCredentials, type GitRemoteValidationResult } from './gitRemoteValidation';
+import { formatGitHttpError, type GitHttpOperation } from '#/shared/gitHttpErrors';
+import { normalizeGitHostKey } from '#/shared/gitUrl';
+import { parseGitHubRepo } from '#/shared/plugin/githubRaw';
+import { getGitIdentity } from './gitIdentities';
 import type {
   GitCommitDetail,
   GitGraphLogResult,
@@ -144,15 +149,19 @@ export class GitSyncManager {
    * Fetches from the configured remote over HTTPS.
    */
   async fetch(): Promise<void> {
-    await git.fetch({
-      fs,
-      http,
-      dir: this.#repoPath,
-      url: this.#settings.url,
-      ref: this.#settings.branch,
-      singleBranch: true,
-      onAuth: buildGitOnAuth(this.#connectionId)
-    });
+    try {
+      await git.fetch({
+        fs,
+        http,
+        dir: this.#repoPath,
+        url: this.#settings.url,
+        ref: this.#settings.branch,
+        singleBranch: true,
+        onAuth: buildGitOnAuth(this.#connectionId)
+      });
+    } catch (err) {
+      throw this.wrapRemoteError(err, 'fetch');
+    }
   }
 
   /**
@@ -164,7 +173,13 @@ export class GitSyncManager {
       throw new Error(pullMergeConflictMessage(existingStatus.conflictCount));
     }
 
-    await this.fetch();
+    try {
+      await this.fetch();
+    } catch (err) {
+      // fetch() already formats HTTP errors; rethrow as pull when still generic.
+      throw this.wrapRemoteError(err, 'pull');
+    }
+
     const branch = await git.currentBranch({ fs, dir: this.#repoPath });
     if (!branch) {
       throw new Error('Cannot pull: repository is not on a branch.');
@@ -183,7 +198,7 @@ export class GitSyncManager {
       if (mergeConflictCount > 0) {
         throw new Error(pullMergeConflictMessage(mergeConflictCount));
       }
-      throw err;
+      throw this.wrapRemoteError(err, 'pull');
     }
   }
 
@@ -192,14 +207,50 @@ export class GitSyncManager {
    */
   async push(): Promise<void> {
     const branch = (await this.currentBranch()) ?? this.#settings.branch;
-    await git.push({
-      fs,
-      http,
-      dir: this.#repoPath,
-      url: this.#settings.url,
-      ref: branch,
-      onAuth: buildGitOnAuth(this.#connectionId)
+    try {
+      await git.push({
+        fs,
+        http,
+        dir: this.#repoPath,
+        url: this.#settings.url,
+        ref: branch,
+        onAuth: buildGitOnAuth(this.#connectionId)
+      });
+    } catch (err) {
+      throw this.wrapRemoteError(err, 'push');
+    }
+  }
+
+  /**
+   * Rewraps a remote git HTTP error with an actionable user-facing message.
+   *
+   * Already-formatted HarborClient messages are returned unchanged so nested
+   * pull→fetch failures are not double-prefixed. GitHub 404s include the
+   * signed-in account and org SSO hint when available.
+   *
+   * @param err - Error thrown by isomorphic-git or a nested sync helper.
+   * @param operation - Remote operation label for the formatted message.
+   * @returns Error with a user-facing message.
+   */
+  private wrapRemoteError(err: unknown, operation: GitHttpOperation): Error {
+    const host = this.resolveSettingsHost();
+    const message = formatGitHttpError(err, operation, {
+      githubLogin: host ? getGitIdentity(host)?.githubLogin : null,
+      owner: parseGitHubRepo(this.#settings.url)?.owner ?? null
     });
+    if (err instanceof Error && err.message === message) {
+      return err;
+    }
+    return new Error(message);
+  }
+
+  /**
+   * Resolves the normalized host key for this connection's remote URL.
+   *
+   * @returns Lowercase hostname, or null when the URL is unparseable.
+   */
+  private resolveSettingsHost(): string | null {
+    return normalizeGitHostKey(this.#settings.url);
   }
 
   /**
@@ -518,27 +569,36 @@ export class GitSyncManager {
   }
 
   /**
-   * Validates credentials by attempting a fetch.
+   * Validates credentials against the configured remote (REST for GitHub, refs otherwise).
+   *
+   * Empty remotes succeed with {@link GitRemoteValidationResult.emptyRemote} set.
+   * GitHub probes also report {@link GitRemoteValidationResult.canPush}.
+   *
+   * @returns Validation outcome including empty-remote and optional push capability.
    */
-  async testCredentials(): Promise<void> {
-    await this.fetch();
+  async testCredentials(): Promise<GitRemoteValidationResult> {
+    const host = this.resolveSettingsHost();
+    return validateRemoteCredentials(
+      this.#settings.url,
+      this.#settings.branch,
+      () => resolveGitAuth(this.#connectionId),
+      { githubLogin: host ? getGitIdentity(host)?.githubLogin : null }
+    );
   }
 
   /**
    * Validates credentials for a shared git host identity.
    *
    * @param host - Normalized lowercase git host key.
+   * @returns Validation outcome including empty-remote and optional push capability.
    */
-  async testCredentialsForHost(host: string): Promise<void> {
-    await git.fetch({
-      fs,
-      http,
-      dir: this.#repoPath,
-      url: this.#settings.url,
-      ref: this.#settings.branch,
-      singleBranch: true,
-      onAuth: async () => resolveGitAuthForHost(host)
-    });
+  async testCredentialsForHost(host: string): Promise<GitRemoteValidationResult> {
+    return validateRemoteCredentials(
+      this.#settings.url,
+      this.#settings.branch,
+      () => resolveGitAuthForHost(host),
+      { githubLogin: getGitIdentity(host)?.githubLogin }
+    );
   }
 
   /**

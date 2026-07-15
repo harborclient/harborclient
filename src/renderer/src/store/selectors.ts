@@ -8,7 +8,7 @@ import {
   type PageRef,
   type RequestDraft,
   type RequestTab
-} from './drafts';
+} from './tabs';
 import type {
   Environment,
   ScriptExecutionEvent,

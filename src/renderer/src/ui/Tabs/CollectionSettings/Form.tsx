@@ -36,6 +36,11 @@ export interface Props {
   focusVariableKey?: string;
 
   /**
+   * When set, switches to this settings section tab (for example `git`).
+   */
+  focusSection?: string;
+
+  /**
    * Persists collection name, variables, headers, scripts, and database.
    *
    * @param id - Collection ID to update.
@@ -76,6 +81,7 @@ export interface Props {
 export function Form({
   collection,
   focusVariableKey,
+  focusSection,
   onSave,
   onClose,
   onDirtyChange
@@ -278,6 +284,7 @@ export function Form({
       pageClassName="collection-settings-page"
       initial={initial}
       focusVariableKey={focusVariableKey}
+      focusSection={focusSection}
       preScriptDescription="Runs in the collection pre-request stage before every request, ahead of each request's pre-request stage. Supports {{variable}} syntax."
       postScriptDescription="Runs in the collection post-request stage after every request, following each request's post-request stage. Supports {{variable}} syntax."
       extraTabs={extraTabs}

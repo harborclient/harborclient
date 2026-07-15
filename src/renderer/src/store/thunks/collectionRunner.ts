@@ -21,7 +21,7 @@ import {
   skipRemainingCollectionRunnerRequests,
   startCollectionRunner
 } from '#/renderer/src/store/slices/modalsSlice';
-import { draftFromSaved } from '#/renderer/src/store/drafts';
+import { draftFromSaved } from '#/renderer/src/store/tabs';
 import {
   selectCollections,
   selectFoldersByCollection,

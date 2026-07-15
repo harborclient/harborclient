@@ -9,7 +9,7 @@ import { useConfirm } from '#/renderer/src/hooks/useConfirm';
  */
 export function GithubModelsExtra(): JSX.Element {
   const confirm = useConfirm();
-  const { status, userCode, waiting, busy, error, start, signOut } = useGithubModelsAuth();
+  const { status, userCode, waiting, busy, error, start, finish, signOut } = useGithubModelsAuth();
   const disabled = busy;
 
   /**
@@ -53,6 +53,7 @@ export function GithubModelsExtra(): JSX.Element {
         oauthUserCode={userCode}
         oauthWaiting={waiting}
         onStart={() => void start()}
+        onFinish={() => void finish()}
         onRevoke={() => void handleSignOut()}
         startLabel="GitHub sign-in"
         authorizedLabel="Signed in with GitHub Models."

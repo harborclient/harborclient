@@ -24,9 +24,14 @@ interface Props {
   oauthWaiting: boolean;
 
   /**
-   * Called when the user starts GitHub OAuth.
+   * Called when the user starts GitHub OAuth (obtains the user code).
    */
   onStart: () => void;
+
+  /**
+   * Called when the user is ready to open the browser and finish authentication.
+   */
+  onFinish: () => void;
 
   /**
    * Called when the user revokes stored GitHub OAuth credentials.
@@ -50,7 +55,7 @@ interface Props {
 }
 
 /**
- * GitHub OAuth device-flow controls.
+ * GitHub OAuth device-flow controls with a code-first, then finish flow.
  */
 export function OAuthAuthPanel({
   isAuthorized,
@@ -58,6 +63,7 @@ export function OAuthAuthPanel({
   oauthUserCode,
   oauthWaiting,
   onStart,
+  onFinish,
   onRevoke,
   startLabel = 'Authorize with GitHub',
   authorizedLabel = 'Authorized with GitHub.',
@@ -66,6 +72,7 @@ export function OAuthAuthPanel({
   const oauthUserCodeId = useId();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const codeCopied = copiedCode === oauthUserCode;
+  const showCodeStep = oauthUserCode != null;
 
   /**
    * Copies the GitHub device-flow user code to the clipboard.
@@ -103,38 +110,54 @@ export function OAuthAuthPanel({
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="m-0 text-[15px] text-muted">Sign in via browser; no token to copy.</p>
-      <Button disabled={disabled} onClick={onStart}>
-        {startLabel}
-      </Button>
-      {oauthUserCode != null && (
-        <FormGroup label="Enter this code in the browser" htmlFor={oauthUserCodeId}>
-          <div className="flex gap-2">
-            <Input
-              id={oauthUserCodeId}
-              type="text"
-              readOnly
-              className="min-w-0 flex-1 font-mono text-[14px]"
-              value={oauthUserCode}
-              onFocus={(event) => event.target.select()}
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={disabled}
-              aria-label="Copy GitHub authorization code"
-              onClick={handleCopyCode}
-            >
-              {codeCopied ? 'Copied' : 'Copy'}
+      {!showCodeStep ? (
+        <>
+          <p className="m-0 text-[15px] text-muted">
+            HarborClient will show a one-time code to copy before opening GitHub.
+          </p>
+          <Button type="button" disabled={disabled} onClick={onStart}>
+            {startLabel}
+          </Button>
+        </>
+      ) : (
+        <>
+          <p className="m-0 text-[15px] text-muted">
+            Copy this code, then click Finish authentication to open GitHub and paste it. Grant
+            access to any organizations that own repositories you need.
+          </p>
+          <FormGroup label="Enter this code in the browser" htmlFor={oauthUserCodeId}>
+            <div className="flex gap-2">
+              <Input
+                id={oauthUserCodeId}
+                type="text"
+                readOnly
+                className="min-w-0 flex-1 font-mono text-[14px]"
+                value={oauthUserCode}
+                onFocus={(event) => event.target.select()}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={disabled}
+                aria-label="Copy GitHub authorization code"
+                onClick={handleCopyCode}
+              >
+                {codeCopied ? 'Copied' : 'Copy'}
+              </Button>
+            </div>
+          </FormGroup>
+          {!oauthWaiting ? (
+            <Button type="button" disabled={disabled} onClick={onFinish}>
+              Finish authentication
             </Button>
-          </div>
-        </FormGroup>
+          ) : null}
+        </>
       )}
-      {oauthWaiting && (
+      {oauthWaiting ? (
         <p className="m-0 text-[15px] text-text" role="status" aria-live="polite">
           Waiting for approval in your browser…
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

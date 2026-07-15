@@ -1,5 +1,11 @@
 import type { AppDispatch } from '#/renderer/src/store/redux';
-import { setAlertModal, setConfirmModal } from '#/renderer/src/store/slices/modalsSlice';
+import { stripIpcInvokeErrorPrefix } from '#/shared/gitHttpErrors';
+import {
+  setAlertModal,
+  setConfirmModal,
+  type AlertModalAction
+} from '#/renderer/src/store/slices/modalsSlice';
+import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 
 /**
  * Options for a custom confirmation dialog.
@@ -37,12 +43,12 @@ export interface ConfirmResult {
 export interface AlertOptions {
   /** When set, shows a decorative warning icon beside the dialog content. */
   icon?: 'warning';
+  /** Optional remediation button shown beside OK. */
+  action?: AlertModalAction;
 }
 
 let confirmResolver: ((confirmed: boolean, checkboxChecked: boolean) => void) | null = null;
 let confirmHasCheckbox = false;
-
-const IPC_ERROR_PREFIX = /^Error invoking remote method '[^']+':\s*(?:Error:\s*)?/i;
 
 /**
  * Formats an unknown thrown value as a user-facing error string.
@@ -67,7 +73,7 @@ export function formatIpcErrorMessage(err: unknown, fallback: string): string {
     return fallback;
   }
 
-  const message = err.message.replace(IPC_ERROR_PREFIX, '').trim();
+  const message = stripIpcInvokeErrorPrefix(err.message);
   return message.length > 0 ? message : fallback;
 }
 
@@ -77,7 +83,7 @@ export function formatIpcErrorMessage(err: unknown, fallback: string): string {
  * @param dispatch - Redux dispatch for modal state.
  * @param message - Body text shown in the dialog.
  * @param title - Dialog heading (defaults to "Error").
- * @param options - Optional presentation overrides such as a warning icon.
+ * @param options - Optional presentation overrides such as a warning icon or action.
  */
 export function showAlert(
   dispatch: AppDispatch,
@@ -85,7 +91,17 @@ export function showAlert(
   title = 'Error',
   options?: AlertOptions
 ): void {
-  dispatch(setAlertModal({ title, message, icon: options?.icon }));
+  dispatch(setAlertModal({ title, message, icon: options?.icon, action: options?.action }));
+}
+
+/**
+ * Opens collection settings focused on the Git tab.
+ *
+ * @param dispatch - Redux dispatch for tab navigation.
+ * @param collectionId - Collection whose Git settings should open.
+ */
+export function openCollectionGitSettings(dispatch: AppDispatch, collectionId: number): void {
+  dispatch(openPageTab({ type: 'collection', id: collectionId, focusSection: 'git' }));
 }
 
 /**

@@ -1,7 +1,7 @@
 import { useMemo, type JSX, type ReactNode } from 'react';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectCollections, selectFoldersByCollection } from '#/renderer/src/store/selectors';
-import { useSidebarExpansion } from './useSidebarExpansion';
+import { useSidebarExpansion } from '../expansion/useSidebarExpansion';
 import { useSidebarSearch } from './useSidebarSearch';
 import { SidebarSearchContext, type SidebarSearchContextValue } from './sidebarSearchContext';
 

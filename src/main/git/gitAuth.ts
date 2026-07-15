@@ -9,6 +9,7 @@ import {
   getGitIdentity,
   listGitIdentities,
   persistGitIdentityAuth,
+  persistGitIdentityLogin,
   setGitIdentityOAuthClientId,
   upsertGitIdentity
 } from './gitIdentities';
@@ -24,7 +25,7 @@ import {
 import type { StorageConnection, GitAuthMethod, GitIdentity } from '#/shared/types';
 import { isGitHubRepositoryUrl, normalizeGitHostKey } from '#/shared/gitUrl';
 import { listStorageConnections } from '#/main/settings/storageSettings';
-import { GitSyncManager } from './GitSyncManager';
+import { validateRemoteCredentials, type GitRemoteValidationResult } from './gitRemoteValidation';
 
 /**
  * Resolved HTTPS credentials for isomorphic-git onAuth.
@@ -195,12 +196,13 @@ export async function resolveGitAuth(connectionId: string): Promise<ResolvedGitA
  * @param username - Basic Auth username.
  * @param token - Personal access token.
  */
-export function saveHostPat(host: string, username: string, token: string): void {
+export async function saveHostPat(host: string, username: string, token: string): Promise<void> {
   storeGitPat(host, token.trim());
   persistGitIdentityAuth(host, {
     kind: 'pat',
     username: username.trim() || 'token'
   });
+  await refreshStoredGitHubLogin(host);
 }
 
 /**
@@ -210,9 +212,13 @@ export function saveHostPat(host: string, username: string, token: string): void
  * @param username - Basic Auth username.
  * @param token - Personal access token.
  */
-export function saveGitPat(connectionId: string, username: string, token: string): void {
+export async function saveGitPat(
+  connectionId: string,
+  username: string,
+  token: string
+): Promise<void> {
   const host = resolveConnectionHost(connectionId);
-  saveHostPat(host, username, token);
+  await saveHostPat(host, username, token);
 }
 
 /**
@@ -286,6 +292,7 @@ export async function finishHostGitHubOAuth(
   const tokens = await completeGitHubDeviceFlow(host, options);
   storeGitOAuthTokens(host, tokens.accessToken, tokens.refreshToken, tokens.expiresAt);
   persistGitIdentityAuth(host, { kind: 'oauth', provider: 'github' });
+  await refreshStoredGitHubLogin(host, tokens.accessToken);
 }
 
 /**
@@ -352,25 +359,107 @@ export function isHostAuthorized(host: string): boolean {
 export { listGitIdentities };
 
 /**
- * Validates git credentials for a host using an optional repository URL and path.
+ * Lists git host identities, refreshing missing GitHub logins when credentials exist.
+ */
+export async function listGitIdentitiesWithLogins(): Promise<GitIdentity[]> {
+  const identities = listGitIdentities();
+  for (const identity of identities) {
+    if (identity.host === 'github.com' && identity.hasCredentials && !identity.githubLogin) {
+      await refreshStoredGitHubLogin(identity.host);
+    }
+  }
+  return listGitIdentities();
+}
+
+/**
+ * Fetches the GitHub login for a user access token.
+ *
+ * @param accessToken - PAT or OAuth access token.
+ * @returns GitHub username when the API call succeeds.
+ */
+async function fetchGithubLogin(accessToken: string): Promise<string | undefined> {
+  const response = await fetch('https://api.github.com/user', {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${accessToken}`,
+      'X-GitHub-Api-Version': '2026-03-10'
+    }
+  });
+
+  if (!response.ok) {
+    return undefined;
+  }
+
+  const data = (await response.json()) as { login?: string };
+  return typeof data.login === 'string' ? data.login : undefined;
+}
+
+/**
+ * Resolves the GitHub username for a host's stored credentials.
  *
  * @param host - Normalized lowercase hostname.
- * @param testUrl - HTTPS remote URL to fetch against.
- * @param repoPath - Local repository path used for the fetch test.
+ * @returns GitHub login when the host is github.com and the token is valid.
+ */
+export async function resolveGitHubLogin(host: string): Promise<string | null> {
+  if (host !== 'github.com') {
+    return null;
+  }
+
+  const cached = getGitIdentity(host)?.githubLogin?.trim();
+  if (cached) {
+    return cached;
+  }
+
+  const token = getGitAccessToken(host);
+  if (!token) {
+    return null;
+  }
+
+  const login = await fetchGithubLogin(token);
+  return login ?? null;
+}
+
+/**
+ * Fetches and caches the GitHub login for a host after credentials change.
+ *
+ * @param host - Normalized lowercase hostname.
+ * @param accessToken - Optional token to use instead of reading from storage.
+ */
+async function refreshStoredGitHubLogin(host: string, accessToken?: string): Promise<void> {
+  if (host !== 'github.com') {
+    return;
+  }
+
+  const token = accessToken ?? getGitAccessToken(host);
+  if (!token) {
+    persistGitIdentityLogin(host, undefined);
+    return;
+  }
+
+  const login = await fetchGithubLogin(token);
+  persistGitIdentityLogin(host, login);
+}
+
+/**
+ * Validates git credentials for a host by probing the remote (no local repo required).
+ *
+ * For GitHub URLs, uses the REST repos API so empty remotes and push permission
+ * are detected correctly. Other hosts list server refs.
+ *
+ * @param host - Normalized lowercase hostname.
+ * @param testUrl - HTTPS remote URL to probe.
+ * @param branch - Expected branch name when the remote has refs (defaults to `main`).
+ * @returns Validation outcome including empty-remote and optional push capability.
  */
 export async function testHostCredentials(
   host: string,
   testUrl: string,
-  repoPath: string
-): Promise<void> {
-  const sync = new GitSyncManager(host, {
-    repoPath,
-    url: testUrl,
-    branch: 'main',
-    subdir: '',
-    auth: getGitIdentity(host)?.auth ?? { kind: 'pat', username: 'token' }
+  branch = 'main'
+): Promise<GitRemoteValidationResult> {
+  const githubLogin = getGitIdentity(host)?.githubLogin ?? null;
+  return validateRemoteCredentials(testUrl, branch, () => resolveGitAuthForHost(host), {
+    githubLogin
   });
-  await sync.testCredentialsForHost(host);
 }
 
 /**

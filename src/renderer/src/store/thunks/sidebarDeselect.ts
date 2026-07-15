@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { isMarkdownTab, isRequestTab, type Tab } from '#/renderer/src/store/drafts';
+import { isMarkdownTab, isRequestTab, type Tab } from '#/renderer/src/store/tabs';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
 import { closeTab } from '#/renderer/src/store/slices/tabsSlice';
 import { closeRequestTab } from './requests';

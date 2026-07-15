@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import type { Collection, SavedRequest } from '#/shared/types';
-import { isRequestTab, isPageTab } from '#/renderer/src/store/drafts';
+import { isRequestTab, isPageTab } from '#/renderer/src/store/tabs';
 
 vi.mock('react-hot-toast', () => ({
   default: { success: vi.fn(), error: vi.fn(), loading: vi.fn(), dismiss: vi.fn() }

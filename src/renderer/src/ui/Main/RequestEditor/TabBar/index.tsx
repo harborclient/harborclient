@@ -5,7 +5,7 @@ import {
   type TabBarItem
 } from '@harborclient/sdk/components';
 import { useMemo, type JSX, type ReactNode } from 'react';
-import { isMarkdownTab, isPageTab, isRequestTab, type Tab } from '#/renderer/src/store/drafts';
+import { isMarkdownTab, isPageTab, isRequestTab, type Tab } from '#/renderer/src/store/tabs';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectWrapTabs } from '#/renderer/src/store/slices/settingsSlice';
 import {

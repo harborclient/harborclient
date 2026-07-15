@@ -7,7 +7,6 @@ import {
   type ToolbarAction
 } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
-import toast from 'react-hot-toast';
 import {
   faCodeBranch,
   faList,
@@ -16,9 +15,10 @@ import {
   faDownload,
   faArrowUp
 } from '#/renderer/src/fontawesome';
-import { useAppSelector } from '#/renderer/src/store/hooks';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectCollections, selectSelectedCollectionId } from '#/renderer/src/store/selectors';
-import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarGitContext';
+import { formatIpcErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
+import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/sidebarGitContext';
 import { GitSidebarEmptyState } from './GitSidebarEmptyState';
 import { GitCommitMessageSection } from './GitCommitMessageSection';
 import { GitChangesSection } from './GitChangesSection';
@@ -30,6 +30,7 @@ import { useGitSidebarSections } from './useGitSidebarSections';
  * and commits.
  */
 export function GitSidebar(): JSX.Element {
+  const dispatch = useAppDispatch();
   const selectedCollectionId = useAppSelector(selectSelectedCollectionId);
   const collections = useAppSelector(selectCollections);
   const { activeGitContext: gitContext, refreshGitSidebar, refreshGitStatuses } = useSidebarGit();
@@ -76,22 +77,33 @@ export function GitSidebar(): JSX.Element {
   /**
    * Runs pull or push and refreshes sidebar state on completion.
    *
+   * @param label - User-facing operation label for the error dialog title.
    * @param action - Git sync operation to execute.
    */
   const runSyncAction = useCallback(
-    async (action: () => Promise<void>): Promise<void> => {
+    async (label: string, action: () => Promise<void>): Promise<void> => {
+      if (gitContext == null) {
+        return;
+      }
+
       setBusy(true);
       try {
         await action();
         handleRefresh();
       } catch (err) {
         handleRefresh();
-        toast.error(err instanceof Error ? err.message : String(err));
+        showAlert(dispatch, formatIpcErrorMessage(err, `${label} failed`), `${label} failed`, {
+          action: {
+            kind: 'openCollectionGitSettings',
+            label: 'Open Git settings',
+            collectionId: gitContext.collectionId
+          }
+        });
       } finally {
         setBusy(false);
       }
     },
-    [handleRefresh]
+    [dispatch, gitContext, handleRefresh]
   );
 
   const status = gitContext?.status ?? null;
@@ -151,7 +163,7 @@ export function GitSidebar(): JSX.Element {
         label: 'Pull changes',
         title: 'Pull changes',
         disabled: busy,
-        onClick: () => void runSyncAction(() => window.api.gitPull(gitContext.connectionId))
+        onClick: () => void runSyncAction('Pull', () => window.api.gitPull(gitContext.connectionId))
       },
       {
         id: 'git-push',
@@ -159,7 +171,7 @@ export function GitSidebar(): JSX.Element {
         label: pushLabel,
         title: pushLabel,
         disabled: busy,
-        onClick: () => void runSyncAction(() => window.api.gitPush(gitContext.connectionId))
+        onClick: () => void runSyncAction('Push', () => window.api.gitPush(gitContext.connectionId))
       }
     ];
   }, [busy, gitContext, hasUnpushed, runSyncAction, status]);

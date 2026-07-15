@@ -1,5 +1,5 @@
 import type { Collection, Environment, TeamHub } from '#/shared/types';
-import type { PageRef } from '#/renderer/src/store/drafts';
+import type { PageRef } from '#/renderer/src/store/tabs';
 import { resolveTeamHubAdminTabLabel } from '#/renderer/src/ui/Tabs/TeamHub/teamHubDisplayName';
 
 /**

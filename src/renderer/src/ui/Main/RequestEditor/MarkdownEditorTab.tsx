@@ -6,7 +6,7 @@ import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectDocumentsByCollection } from '#/renderer/src/store/selectors';
 import { updateMarkdownContent } from '#/renderer/src/store/slices/tabsSlice';
 import { saveMarkdownTab } from '#/renderer/src/store/thunks/documents';
-import { isTabDirty, type MarkdownTab } from '#/renderer/src/store/drafts';
+import { isTabDirty, type MarkdownTab } from '#/renderer/src/store/tabs';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { CommentEditor } from '#/renderer/src/ui/Main/RequestEditor/Editor/CommentEditor';
 

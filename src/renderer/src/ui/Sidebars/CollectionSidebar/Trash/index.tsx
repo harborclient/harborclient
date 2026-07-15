@@ -1,16 +1,14 @@
-import {
-  EmptyState,
-  RowActionsMenu,
-  SIDEBAR_ITEM_BUTTON_CLASS
-} from '@harborclient/sdk/components';
+import { EmptyState, SIDEBAR_ITEM_BUTTON_CLASS } from '@harborclient/sdk/components';
 import { useCallback, useMemo, useState, type JSX } from 'react';
 import type { TrashItem } from '#/shared/types/trash';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectTrashItems } from '#/renderer/src/store/slices/trashSlice';
 import { permanentlyDeleteTrashItem, restoreTrashItem } from '#/renderer/src/store/thunks/trash';
-import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarRowSelection';
+import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/useSidebarRowSelection';
 import { sourceRow } from '#/renderer/src/ui/Shared/classes';
+import { type InspectPoint } from '#/renderer/src/ui/Shared/devInspectContextMenu';
+import { ActionsMenu } from './ActionsMenu';
 import { formatTrashDeletedAt, trashEntityTypeLabel } from './utils';
 
 export { TrashHeaderActions } from './TrashHeaderActions';
@@ -32,6 +30,9 @@ export function Trash(): JSX.Element {
   const confirm = useConfirm();
   const items = useAppSelector(selectTrashItems);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [inspectPointsByMenuId, setInspectPointsByMenuId] = useState<Record<string, InspectPoint>>(
+    {}
+  );
 
   /**
    * Trash row ids in on-screen list order for shift-click range selection.
@@ -127,6 +128,10 @@ export function Trash(): JSX.Element {
               event.preventDefault();
               event.stopPropagation();
               handleBeforeContextMenu(item.id);
+              setInspectPointsByMenuId((prev) => ({
+                ...prev,
+                [menuId]: { x: event.clientX, y: event.clientY }
+              }));
               setOpenMenuId(menuId);
             }}
           >
@@ -151,35 +156,16 @@ export function Trash(): JSX.Element {
                 {trashEntityTypeLabel(item.entityType)}
               </span>
             </button>
-            <RowActionsMenu
-              menuId={menuId}
+            <ActionsMenu
+              item={item}
+              showBulkMenu={showBulkMenu}
               openMenuId={openMenuId}
               onOpenChange={setOpenMenuId}
-              groups={
-                showBulkMenu
-                  ? [
-                      [{ label: 'Restore', onSelect: () => void handleRestoreSelected() }],
-                      [
-                        {
-                          label: 'Permanently delete',
-                          variant: 'danger',
-                          onSelect: () => void handleDeleteSelected()
-                        }
-                      ]
-                    ]
-                  : [
-                      [{ label: 'Restore', onSelect: () => handleRestoreItem(item) }],
-                      [
-                        {
-                          label: 'Permanently delete',
-                          variant: 'danger' as const,
-                          onSelect: () => {
-                            void handleDeleteItem(item);
-                          }
-                        }
-                      ]
-                    ]
-              }
+              inspectPoint={inspectPointsByMenuId[menuId]}
+              onRestore={handleRestoreItem}
+              onDelete={handleDeleteItem}
+              onRestoreSelected={handleRestoreSelected}
+              onDeleteSelected={handleDeleteSelected}
             />
           </div>
         );

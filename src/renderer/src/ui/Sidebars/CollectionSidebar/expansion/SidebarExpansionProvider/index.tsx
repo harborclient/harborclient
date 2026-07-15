@@ -1,8 +1,8 @@
 import { useMemo, type JSX, type ReactNode } from 'react';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectCollections, selectCollectionsListed } from '#/renderer/src/store/selectors';
-import { SidebarExpansionContext } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarExpansionContext';
-import { usePersistedSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/usePersistedSidebarExpansion';
+import { SidebarExpansionContext } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/sidebarExpansionContext';
+import { usePersistedSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/usePersistedSidebarExpansion';
 import { SidebarSectionMenuSync } from './SidebarSectionMenuSync';
 
 interface Props {

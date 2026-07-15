@@ -16,7 +16,7 @@ import {
   type RequestDraft,
   type RequestTab,
   type Tab
-} from '#/renderer/src/store/drafts';
+} from '#/renderer/src/store/tabs';
 import { defaultTabState } from '#/renderer/src/store/persistence';
 
 export interface TabsState {

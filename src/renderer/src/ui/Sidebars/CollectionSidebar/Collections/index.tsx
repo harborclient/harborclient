@@ -32,11 +32,11 @@ import {
   selectSelectedCollectionId,
   selectSelectedFolderId
 } from '#/renderer/src/store/selectors';
-import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarExpansion';
-import { useSidebarProviders } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarProvidersContext';
-import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarGitContext';
-import { useSidebarSearchContext } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarSearchContext';
-import { useCollectionActions } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useCollectionActions';
+import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
+import { useSidebarProviders } from '#/renderer/src/ui/Sidebars/CollectionSidebar/providers/sidebarProvidersContext';
+import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/sidebarGitContext';
+import { useSidebarSearchContext } from '#/renderer/src/ui/Sidebars/CollectionSidebar/search/sidebarSearchContext';
+import { useCollectionActions } from '#/renderer/src/ui/Sidebars/CollectionSidebar/actions/useCollectionActions';
 import { closeSidebarContentTabs } from '#/renderer/src/store/thunks/sidebarDeselect';
 import {
   EmptySectionLabel,
@@ -44,12 +44,11 @@ import {
   SidebarBadge,
   SidebarFolderItem
 } from '@harborclient/sdk/components';
-import { SidebarColorDot } from '#/renderer/src/ui/Sidebars/CollectionSidebar/SidebarColorDot';
-import { SidebarRowActionsMenu } from '#/renderer/src/ui/Sidebars/CollectionSidebar/SidebarRowActionsMenu';
+import { SidebarColorDot } from '#/renderer/src/ui/Sidebars/CollectionSidebar/colors/SidebarColorDot';
+import { SidebarRowActionsMenu } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/SidebarRowActionsMenu';
 import { buildReorderMenuGroup } from '@harborclient/sdk/components';
 import { usePluginContextMenuItems } from '#/renderer/src/plugins/pluginHooks';
 import { buildPluginContextMenuGroups } from '#/renderer/src/plugins/pluginContextMenuHelpers';
-import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useCopyToChat } from '#/renderer/src/hooks/useCopyToChat';
 import { faChevronDown, faChevronRight } from '#/renderer/src/fontawesome';
 import { METHOD_CLASSES, sourceRow } from '#/renderer/src/ui/Shared/classes';
@@ -59,22 +58,23 @@ import {
   useDeveloperToolsEnabled,
   type InspectPoint
 } from '#/renderer/src/ui/Shared/devInspectContextMenu';
+import { ActionsMenu } from './ActionsMenu';
 import { DropZone } from './DropZone';
 import { focusCollectionSettings } from '#/renderer/src/ui/Tabs/CollectionSettings/focusCollectionSettings';
 import { focusFolderSettings } from '#/renderer/src/ui/Tabs/FolderSettings/focusFolderSettings';
 import { DocumentRow } from './DocumentRow';
 import { RequestRow } from './RequestRow';
 import { SortableRow } from './SortableRow';
-import { stopSortableDragPointerDown } from './sortableRowUtils';
+import { stopSortableDragPointerDown } from './SortableRow/sortableRowUtils';
 import {
   collectionHasDeselectableSelection,
   removeCollectionRequestSelection
-} from '#/renderer/src/ui/Sidebars/CollectionSidebar/collectionSidebarSelection';
-import { useSidebarSelectionCoordinator } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarSelectionContext';
+} from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/collectionSidebarSelection';
+import { useSidebarSelectionCoordinator } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/sidebarSelectionContext';
 import {
   applySidebarSelectionClick,
   orderSelectedIds
-} from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarSelectionUtils';
+} from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/sidebarSelectionUtils';
 import {
   mergeContainerItems,
   collectionCollisionDetectionWithDragKind,
@@ -133,9 +133,7 @@ export function Collections(): JSX.Element {
     stageItem: onGitStageItem,
     unstageItem: onGitUnstageItem,
     openSourceControl: onOpenSourceControl,
-    openCreateBranch: onOpenCreateBranch,
-    openSwitchBranch: onOpenSwitchBranch,
-    openMergeBranch: onOpenMergeBranch
+    openSwitchBranch: onOpenSwitchBranch
   } = useSidebarGit();
   const { searchFilter, searchActive } = useSidebarSearchContext();
   const {
@@ -145,20 +143,11 @@ export function Collections(): JSX.Element {
     onSelectFolder,
     onConfigureCollection,
     onConfigureFolder,
-    onRunCollection,
     onRunFolder,
     onRunRequest,
-    onDeleteCollection,
-    onExportCollection,
-    onDuplicateCollection,
-    onShareCollection,
-    onSaveAllInCollection,
     onSaveAllInFolder,
-    onNewFolder,
-    onNewRequestInCollection,
     onImportRequest,
     onNewRequestInFolder,
-    onNewDocumentInCollection,
     onNewDocumentInFolder,
     onRenameFolder,
     onDeleteFolder,
@@ -178,7 +167,6 @@ export function Collections(): JSX.Element {
     onDeleteSelectedRequests,
     onRunSelectedRequests
   } = useCollectionActions();
-  const confirm = useConfirm();
   const { aiAvailable, copyToChat } = useCopyToChat();
   const pluginContextMenuItems = usePluginContextMenuItems();
   const developerToolsEnabled = useDeveloperToolsEnabled();
@@ -946,185 +934,31 @@ export function Collections(): JSX.Element {
                       </SidebarBadge>
                     )}
                     <div onPointerDown={stopSortableDragPointerDown}>
-                      <SidebarRowActionsMenu
-                        menuId={`collection-${collection.id}`}
+                      <ActionsMenu
+                        collection={collection}
+                        collectionIndex={collectionIndex}
+                        collectionsCount={collections.length}
                         openMenuId={openMenuId}
                         onOpenChange={setOpenMenuId}
-                        colorTarget={{
-                          kind: 'collection',
-                          id: collection.id,
-                          color: collection.color ?? null
-                        }}
-                        groups={[
-                          [
-                            {
-                              label: 'New',
-                              submenu: [
-                                [
-                                  {
-                                    label: 'New Request',
-                                    onSelect: () => void onNewRequestInCollection(collection.id)
-                                  },
-                                  {
-                                    label: 'New Folder',
-                                    onSelect: () => void onNewFolder(collection.id)
-                                  },
-                                  {
-                                    label: 'New Markdown',
-                                    onSelect: () => void onNewDocumentInCollection(collection.id)
-                                  }
-                                ]
-                              ]
-                            },
-                            ...(connectionType === 'git' && connectionName != null
-                              ? [
-                                  {
-                                    label: 'Git',
-                                    submenu: [
-                                      [
-                                        {
-                                          label: 'Commit',
-                                          onSelect: () => onOpenSourceControl()
-                                        },
-                                        {
-                                          label: 'Branches',
-                                          onSelect: () =>
-                                            onOpenCreateBranch(
-                                              collectionConnectionId,
-                                              connectionName,
-                                              collection.uuid
-                                            )
-                                        },
-                                        {
-                                          label: 'Merge',
-                                          onSelect: () =>
-                                            onOpenMergeBranch(
-                                              collectionConnectionId,
-                                              connectionName,
-                                              collection.uuid
-                                            )
-                                        }
-                                      ]
-                                    ]
-                                  }
-                                ]
-                              : [])
-                          ],
-                          [
-                            {
-                              label: 'Run',
-                              onSelect: () => onRunCollection(collection.id, collection.name)
-                            }
-                          ],
-                          ...(aiAvailable
-                            ? [
-                                [
-                                  {
-                                    label: 'Copy to chat',
-                                    onSelect: () =>
-                                      void copyToChat(`@collection.${collection.uuid}`)
-                                  }
-                                ]
-                              ]
-                            : []),
-                          ...buildReorderMenuGroup(
-                            collectionIndex,
-                            collections.length,
-                            (direction) => moveCollection(collection.id, direction)
-                          ),
-                          [
-                            {
-                              label: 'Settings',
-                              onSelect: () => onConfigureCollection(collection.id)
-                            },
-                            {
-                              label: 'Duplicate',
-                              onSelect: () => void onDuplicateCollection(collection.id)
-                            }
-                          ],
-                          [
-                            {
-                              label: 'Import',
-                              onSelect: () => void onImportRequest(collection.id)
-                            },
-                            {
-                              label: 'Export',
-                              onSelect: () => void onExportCollection(collection.id)
-                            },
-                            {
-                              label: 'Save all',
-                              onSelect: () => void onSaveAllInCollection(collection.id)
-                            }
-                          ],
-                          [
-                            ...(canShare
-                              ? [
-                                  {
-                                    label: 'Share access',
-                                    onSelect: () =>
-                                      onShareCollection(collection.id, collection.name)
-                                  }
-                                ]
-                              : [])
-                          ],
-                          ...buildPluginContextMenuGroups(
-                            'collection',
-                            { collectionId: collection.id },
-                            pluginContextMenuItems
-                          ),
-                          [
-                            ...(collectionHasDeselectableSelection(collection.id, {
-                              selectedCollectionId,
-                              selectedFolderId,
-                              selectedRequestIds,
-                              requestsByCollection,
-                              documentsByCollection,
-                              openRequestIds,
-                              openDocumentIds
-                            })
-                              ? [
-                                  {
-                                    label: 'Deselect all',
-                                    onSelect: () => handleDeselectAllInCollection(collection.id)
-                                  }
-                                ]
-                              : []),
-                            {
-                              label: 'Delete',
-                              variant: 'danger',
-                              onSelect: () => {
-                                void (async () => {
-                                  const confirmOptions = {
-                                    title: 'Delete collection',
-                                    message: `Delete collection "${collection.name}"?`,
-                                    confirmLabel: 'Delete',
-                                    variant: 'danger' as const,
-                                    reconfirm: true
-                                  };
-                                  const result =
-                                    connectionType === 'git'
-                                      ? await confirm({
-                                          ...confirmOptions,
-                                          checkboxLabel: 'Also delete repo directory'
-                                        })
-                                      : await confirm(confirmOptions);
-                                  const confirmed =
-                                    typeof result === 'boolean' ? result : result.confirmed;
-                                  const deleteRepoDirectory =
-                                    typeof result === 'boolean' ? false : result.checkboxChecked;
-                                  if (confirmed) {
-                                    void onDeleteCollection(collection.id, { deleteRepoDirectory });
-                                  }
-                                })();
-                              }
-                            }
-                          ],
-                          ...buildDevInspectMenuGroups(
-                            inspectPointsByMenuId[`collection-${collection.id}`],
-                            `collection-${collection.id}`,
-                            developerToolsEnabled
-                          )
-                        ]}
+                        inspectPoint={inspectPointsByMenuId[`collection-${collection.id}`]}
+                        connectionType={connectionType}
+                        connectionName={connectionName}
+                        collectionConnectionId={collectionConnectionId}
+                        canShare={canShare}
+                        onMove={(direction) => void moveCollection(collection.id, direction)}
+                        hasDeselectableSelection={collectionHasDeselectableSelection(
+                          collection.id,
+                          {
+                            selectedCollectionId,
+                            selectedFolderId,
+                            selectedRequestIds,
+                            requestsByCollection,
+                            documentsByCollection,
+                            openRequestIds,
+                            openDocumentIds
+                          }
+                        )}
+                        onDeselectAll={() => handleDeselectAllInCollection(collection.id)}
                       />
                     </div>
                   </SortableRow>

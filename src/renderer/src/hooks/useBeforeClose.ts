@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { unloadAllPlugins } from '#/renderer/src/plugins/pluginLoader';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
-import { getDirtyEditorTabNames } from '#/renderer/src/store/drafts';
+import { getDirtyEditorTabNames } from '#/renderer/src/store/tabs';
 import { setQuitPrompt } from '#/renderer/src/store/slices/modalsSlice';
 import { selectTabs } from '#/renderer/src/store/selectors';
 

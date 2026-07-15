@@ -14,6 +14,7 @@ import {
   selectSelectedCollectionId
 } from '#/renderer/src/store/selectors';
 import { refreshCollections } from '#/renderer/src/store/thunks';
+import { formatIpcErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { GitBranchesModal } from '#/renderer/src/ui/Modals/GitBranchesModal';
 import { GitCreateBranchModal } from '#/renderer/src/ui/Modals/GitCreateBranchModal';
 import { GitDeleteBranchModal } from '#/renderer/src/ui/Modals/GitDeleteBranchModal';
@@ -296,10 +297,16 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
         toast.success(`${label} completed`);
       } catch (err) {
         refreshGitSidebar();
-        toast.error(err instanceof Error ? err.message : String(err));
+        showAlert(dispatch, formatIpcErrorMessage(err, `${label} failed`), `${label} failed`, {
+          action: {
+            kind: 'openCollectionGitSettings',
+            label: 'Open Git settings',
+            collectionId: activeGitContext.collectionId
+          }
+        });
       }
     },
-    [activeGitContext, refreshGitSidebar]
+    [activeGitContext, dispatch, refreshGitSidebar]
   );
 
   /**

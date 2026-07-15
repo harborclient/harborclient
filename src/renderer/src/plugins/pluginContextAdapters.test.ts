@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import type { Collection } from '#/shared/types';
-import type { RequestDraft } from '#/renderer/src/store/drafts';
+import type { RequestDraft } from '#/renderer/src/store/tabs';
 import {
   pluginRequestKey,
   toPluginRequestDraft,

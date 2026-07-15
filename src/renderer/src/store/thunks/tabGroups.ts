@@ -2,7 +2,7 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
 import type { SavedRequest } from '#/shared/types';
 import type { TabGroup, TabGroupExport, TabGroupRequest } from '#/shared/types/tabGroup';
-import { isRequestTab, type Tab } from '#/renderer/src/store/drafts';
+import { isRequestTab, type Tab } from '#/renderer/src/store/tabs';
 import { loadRequest, setActiveTab } from '#/renderer/src/store/slices/tabsSlice';
 import {
   reorderTabGroupsLocal,

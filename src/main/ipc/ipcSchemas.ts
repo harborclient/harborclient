@@ -672,6 +672,7 @@ const pluginEntryKind = z.enum(['renderer', 'main']);
  */
 export const ipcArgSchemas = {
   none: z.tuple([]),
+  githubModelsCompleteSignIn: z.tuple([z.string().url()]),
   appLogVerbose: z.tuple([z.string(), z.record(z.string(), z.unknown()).optional()]),
   name: z.tuple([name]),
   collectionCreate: z.tuple([name, connectionId.optional()]),
@@ -951,6 +952,13 @@ export const ipcArgSchemas = {
     z.string().optional()
   ]),
   gitStartHostOAuth: z.tuple([z.string().min(1), z.string().optional(), z.string().optional()]),
+  gitCompleteOAuth: z.tuple([connectionId, z.string().url()]),
+  gitCompleteHostOAuth: z.tuple([
+    z.string().min(1),
+    z.string().url(),
+    z.string().optional(),
+    z.string().optional()
+  ]),
   isGitRepo: z.tuple([z.string()]),
   initGitRepo: z.tuple([z.string(), z.string(), z.string()]),
   pluginId: z.tuple([pluginId]),

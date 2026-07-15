@@ -17,12 +17,14 @@ export function useGithubModelsAuth(options?: { onSignedIn?: () => void }): {
   busy: boolean;
   error: string | null;
   start: () => Promise<void>;
+  finish: () => Promise<void>;
   signOut: () => Promise<void>;
   reloadStatus: () => Promise<void>;
 } {
   const dispatch = useAppDispatch();
   const [status, setStatus] = useState<GithubModelsStatus>({ connected: false });
   const [userCode, setUserCode] = useState<string | null>(null);
+  const [verificationUri, setVerificationUri] = useState<string | null>(null);
   const [waiting, setWaiting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +70,7 @@ export function useGithubModelsAuth(options?: { onSignedIn?: () => void }): {
           await reloadStatus();
           await dispatch(refreshHubLlmModels()).unwrap();
           setUserCode(null);
+          setVerificationUri(null);
           setError(null);
           toast.success('GitHub Models connected.');
           onSignedIn?.();
@@ -75,26 +78,50 @@ export function useGithubModelsAuth(options?: { onSignedIn?: () => void }): {
         return;
       }
 
+      setUserCode(null);
+      setVerificationUri(null);
       setError(event.error ?? 'GitHub sign-in failed.');
     });
   }, [dispatch, options?.onSignedIn, reloadStatus]);
 
   /**
-   * Starts GitHub Models device flow in the browser.
+   * Starts GitHub Models device flow and shows the user code without opening the browser yet.
    */
   const start = useCallback(async (): Promise<void> => {
     setBusy(true);
     setError(null);
+    setWaiting(false);
     try {
       const result = await window.api.startGithubModelsSignIn();
       setUserCode(result.userCode);
-      setWaiting(true);
+      setVerificationUri(result.verificationUri);
     } catch (startError) {
       setError(startError instanceof Error ? startError.message : String(startError));
     } finally {
       setBusy(false);
     }
   }, []);
+
+  /**
+   * Opens the GitHub verification URI and starts background polling for approval.
+   */
+  const finish = useCallback(async (): Promise<void> => {
+    if (!verificationUri) {
+      setError('Start GitHub sign-in first to get a verification code.');
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    try {
+      await window.api.completeGithubModelsSignIn(verificationUri);
+      setWaiting(true);
+    } catch (finishError) {
+      setError(finishError instanceof Error ? finishError.message : String(finishError));
+    } finally {
+      setBusy(false);
+    }
+  }, [verificationUri]);
 
   /**
    * Removes stored GitHub Models credentials.
@@ -107,6 +134,7 @@ export function useGithubModelsAuth(options?: { onSignedIn?: () => void }): {
       await reloadStatus();
       await dispatch(refreshHubLlmModels()).unwrap();
       setUserCode(null);
+      setVerificationUri(null);
       setWaiting(false);
       toast.success('Signed out of GitHub Models.');
     } catch (signOutError) {
@@ -123,6 +151,7 @@ export function useGithubModelsAuth(options?: { onSignedIn?: () => void }): {
     busy,
     error,
     start,
+    finish,
     signOut,
     reloadStatus
   };

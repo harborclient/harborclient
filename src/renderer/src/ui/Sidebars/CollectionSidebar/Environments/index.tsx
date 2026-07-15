@@ -18,13 +18,7 @@ import {
 import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
 import toast from 'react-hot-toast';
 import type { Environment } from '#/shared/types';
-import {
-  EmptySectionLabel,
-  RowActionsMenu,
-  SidebarEnvironmentItem,
-  buildReorderMenuGroup
-} from '@harborclient/sdk/components';
-import { SidebarRowActionsMenu } from '#/renderer/src/ui/Sidebars/CollectionSidebar/SidebarRowActionsMenu';
+import { EmptySectionLabel, SidebarEnvironmentItem } from '@harborclient/sdk/components';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectActiveEnvironmentId, selectEnvironments } from '#/renderer/src/store/selectors';
@@ -37,16 +31,13 @@ import {
   mergeEnvironmentDown,
   reorderEnvironments
 } from '#/renderer/src/store/thunks';
-import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarRowSelection';
-import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarExpansion';
-import { useSidebarSearchContext } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarSearchContext';
+import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/useSidebarRowSelection';
+import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
+import { useSidebarSearchContext } from '#/renderer/src/ui/Sidebars/CollectionSidebar/search/sidebarSearchContext';
 import { focusEnvironmentSettings } from '#/renderer/src/ui/Tabs/EnvironmentSettings/focusEnvironmentSettings';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
-import {
-  buildDevInspectMenuGroups,
-  useDeveloperToolsEnabled,
-  type InspectPoint
-} from '#/renderer/src/ui/Shared/devInspectContextMenu';
+import { type InspectPoint } from '#/renderer/src/ui/Shared/devInspectContextMenu';
+import { ActionsMenu } from './ActionsMenu';
 import { environmentDragId, environmentSummaryText, parseEnvironmentDragId } from './utils';
 
 /**
@@ -185,7 +176,6 @@ export function Environments(): JSX.Element {
     }
   }, [clearSelection, confirm, dispatch, selectedOrdered]);
 
-  const developerToolsEnabled = useDeveloperToolsEnabled();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [inspectPointsByMenuId, setInspectPointsByMenuId] = useState<Record<string, InspectPoint>>(
     {}
@@ -339,99 +329,23 @@ export function Environments(): JSX.Element {
                   focusEnvironmentSettings();
                 }}
                 actions={
-                  showBulkMenu ? (
-                    <RowActionsMenu
-                      menuId={menuId}
-                      openMenuId={openMenuId}
-                      onOpenChange={setOpenMenuId}
-                      groups={[
-                        [
-                          {
-                            label: 'Delete',
-                            variant: 'danger' as const,
-                            onSelect: () => {
-                              void handleDeleteSelected();
-                            }
-                          }
-                        ]
-                      ]}
-                    />
-                  ) : (
-                    <SidebarRowActionsMenu
-                      menuId={menuId}
-                      openMenuId={openMenuId}
-                      onOpenChange={setOpenMenuId}
-                      colorTarget={{
-                        kind: 'environment',
-                        id: environment.id,
-                        color: environment.color ?? null
-                      }}
-                      groups={[
-                        ...buildReorderMenuGroup(
-                          environmentIndex,
-                          environments.length,
-                          (direction) => void moveEnvironment(environment.id, direction)
-                        ),
-                        [
-                          {
-                            label: 'Settings',
-                            onSelect: () => onConfigureEnvironment(environment.id)
-                          },
-                          {
-                            label: 'Export',
-                            onSelect: () => onExportEnvironment(environment.id)
-                          },
-                          {
-                            label: 'Duplicate',
-                            onSelect: () => void onDuplicateEnvironment(environment.id)
-                          },
-                          ...(environmentBelow
-                            ? [
-                                {
-                                  label: 'Merge down',
-                                  onSelect: () => {
-                                    void (async () => {
-                                      const confirmed = await confirm({
-                                        title: 'Merge environment down',
-                                        message: `Merge "${environment.name}" into "${environmentBelow.name}"? The merged environment will be named "${environment.name}".`,
-                                        confirmLabel: 'Merge down'
-                                      });
-                                      if (confirmed) {
-                                        void onMergeEnvironmentDown(environment.id);
-                                      }
-                                    })();
-                                  }
-                                }
-                              ]
-                            : [])
-                        ],
-                        [
-                          {
-                            label: 'Delete',
-                            variant: 'danger',
-                            onSelect: () => {
-                              void (async () => {
-                                const confirmed = await confirm({
-                                  title: 'Delete environment',
-                                  message: `Delete environment "${environment.name}"?`,
-                                  confirmLabel: 'Delete',
-                                  variant: 'danger'
-                                });
-                                if (confirmed) {
-                                  void onDeleteEnvironment(environment.id);
-                                }
-                              })();
-                            }
-                          }
-                        ],
-                        ...buildDevInspectMenuGroups(
-                          inspectPointsByMenuId[menuId],
-                          menuId,
-                          developerToolsEnabled
-                        )
-                      ]}
-                    />
-                  )
+                  <ActionsMenu
+                    environment={environment}
+                    environmentIndex={environmentIndex}
+                    environmentsCount={environments.length}
+                    environmentBelowName={environmentBelow?.name}
+                    showBulkMenu={showBulkMenu}
+                    openMenuId={openMenuId}
+                    onOpenChange={setOpenMenuId}
+                    inspectPoint={inspectPointsByMenuId[menuId]}
+                    onMove={(direction) => void moveEnvironment(environment.id, direction)}
+                    onConfigure={() => onConfigureEnvironment(environment.id)}
+                    onExport={() => void onExportEnvironment(environment.id)}
+                    onDuplicate={() => void onDuplicateEnvironment(environment.id)}
+                    onMergeDown={() => void onMergeEnvironmentDown(environment.id)}
+                    onDelete={() => void onDeleteEnvironment(environment.id)}
+                    onDeleteSelected={() => void handleDeleteSelected()}
+                  />
                 }
               />
             );

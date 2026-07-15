@@ -139,6 +139,12 @@ interface Props {
   focusVariableKey?: string;
 
   /**
+   * When set, switches to this segmented-tab value (for example `git`).
+   * Takes precedence over {@link focusVariableKey} for the initial tab selection.
+   */
+  focusSection?: string;
+
+  /**
    * Renders the General tab panel.
    */
   renderGeneral: (state: ScopedSettingsRenderState) => ReactNode;
@@ -223,6 +229,7 @@ export function ScopedSettingsForm({
   pageClassName,
   initial,
   focusVariableKey,
+  focusSection,
   renderGeneral,
   renderHeaders,
   renderAuth,
@@ -238,12 +245,22 @@ export function ScopedSettingsForm({
   onClose,
   onDirtyChange
 }: Props): JSX.Element {
-  const [tab, setTab] = useState<string>(focusVariableKey ? 'variables' : 'general');
+  const [tab, setTab] = useState<string>(
+    focusSection ?? (focusVariableKey ? 'variables' : 'general')
+  );
   const [lastFocusVariableKey, setLastFocusVariableKey] = useState(focusVariableKey);
+  const [lastFocusSection, setLastFocusSection] = useState(focusSection);
+
+  if (focusSection && focusSection !== lastFocusSection) {
+    setLastFocusSection(focusSection);
+    if (tab !== focusSection) {
+      setTab(focusSection);
+    }
+  }
 
   if (focusVariableKey && focusVariableKey !== lastFocusVariableKey) {
     setLastFocusVariableKey(focusVariableKey);
-    if (tab !== 'variables') {
+    if (!focusSection && tab !== 'variables') {
       setTab('variables');
     }
   }

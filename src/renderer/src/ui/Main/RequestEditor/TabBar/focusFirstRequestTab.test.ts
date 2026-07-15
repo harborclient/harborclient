@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createPageTab, createTab } from '#/renderer/src/store/drafts';
+import { createPageTab, createTab } from '#/renderer/src/store/tabs';
 import { setShowRequestEditor } from '#/renderer/src/store/slices/navigationSlice';
 import { setActiveTab } from '#/renderer/src/store/slices/tabsSlice';
 import {

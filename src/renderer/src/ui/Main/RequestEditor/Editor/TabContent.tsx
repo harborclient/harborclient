@@ -13,7 +13,7 @@ import {
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectRequestsByCollection, selectSnippets } from '#/renderer/src/store/selectors';
 
-import type { RequestDraft } from '#/renderer/src/store/drafts';
+import type { RequestDraft } from '#/renderer/src/store/tabs';
 
 import { AuthEditor } from './AuthEditor';
 import { BodyEditor } from './BodyEditor';

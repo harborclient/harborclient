@@ -25,7 +25,7 @@ import {
   isRequestTab,
   normalizeDraft,
   type RequestDraft
-} from '#/renderer/src/store/drafts';
+} from '#/renderer/src/store/tabs';
 import { setSelectedCollectionId } from '#/renderer/src/store/slices/collectionsSlice';
 import { openTabWithDraft, setActiveTab, updateTab } from '#/renderer/src/store/slices/tabsSlice';
 import { requestLoadRequest, sendRequest } from '#/renderer/src/store/thunks/requests';

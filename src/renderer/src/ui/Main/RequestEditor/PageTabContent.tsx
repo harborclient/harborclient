@@ -4,7 +4,7 @@ import type { AuthConfig, KeyValue, ScriptRef, Variable } from '#/shared/types';
 import { mirrorLegacyScriptString } from '#/shared/scriptRefs';
 import { pluginContributionId } from '#/shared/plugin/types';
 import { usePluginMainViews } from '#/renderer/src/plugins/pluginHooks';
-import type { PageRef } from '#/renderer/src/store/drafts';
+import type { PageRef } from '#/renderer/src/store/tabs';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   setCollectionSettingsDirty,
@@ -196,6 +196,7 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
       <CollectionSettings
         collection={collection}
         focusVariableKey={page.focusVariableKey}
+        focusSection={page.focusSection}
         onDirtyChange={(dirty) => dispatch(setCollectionSettingsDirty(dirty))}
         onSave={async (
           id: number,

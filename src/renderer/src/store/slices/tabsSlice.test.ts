@@ -13,7 +13,7 @@ import {
   isRequestTab,
   isTabDirty,
   isMarkdownTab
-} from '#/renderer/src/store/drafts';
+} from '#/renderer/src/store/tabs';
 import tabsReducer, {
   activateNextTab,
   activatePreviousTab,
@@ -240,6 +240,27 @@ describe('tabsSlice openPageTab', () => {
         type: 'collection',
         id: 99,
         focusVariableKey: 'second'
+      });
+    }
+  });
+
+  it('updates focusSection on an existing collection settings tab', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, closeTab(state.activeTabId));
+    state = tabsReducer(state, openPageTab({ type: 'collection', id: 42 }));
+    const existingTabId = state.activeTabId;
+    state = tabsReducer(state, newTab());
+    state = tabsReducer(state, openPageTab({ type: 'collection', id: 42, focusSection: 'git' }));
+
+    expect(state.activeTabId).toBe(existingTabId);
+    const collectionTab = state.tabs.find((tab) => tab.tabId === existingTabId);
+    expect(collectionTab).toBeDefined();
+    expect(isPageTab(collectionTab!)).toBe(true);
+    if (isPageTab(collectionTab!)) {
+      expect(collectionTab.page).toEqual({
+        type: 'collection',
+        id: 42,
+        focusSection: 'git'
       });
     }
   });

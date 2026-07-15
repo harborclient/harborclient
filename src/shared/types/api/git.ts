@@ -111,6 +111,13 @@ export interface ApiGit {
    */
   gitFetch: (connectionId: string) => Promise<void>;
   /**
+   * Validates credentials against the connection's remote URL.
+   *
+   * @param connectionId - Git connection id.
+   * @returns Whether the remote is empty and whether push access was confirmed.
+   */
+  gitTestConnection: (connectionId: string) => Promise<{ emptyRemote: boolean; canPush?: boolean }>;
+  /**
    * Pulls (fetch + merge) for a git-backed connection.
    *
    * @param connectionId - Git connection id.
@@ -281,19 +288,22 @@ export interface ApiGit {
   /**
    * Starts GitHub OAuth device flow for a git-backed connection.
    *
+   * Returns the device-flow user code so the user can copy it before the browser
+   * opens. Call {@link gitCompleteOAuth} to open the verification URI and start polling.
+   *
    * @param connectionId - Git connection id.
    * @returns Device flow code and verification URL for the user to approve in a browser.
    */
   gitStartOAuth: (connectionId: string) => Promise<{ userCode: string; verificationUri: string }>;
   /**
-   * Completes GitHub OAuth device flow after the user approves in a browser.
+   * Opens the GitHub verification URI and starts background OAuth polling for a connection.
    *
-   * Ensures background polling is running when a pending device flow exists.
    * Resolves immediately without waiting for GitHub approval.
    *
    * @param connectionId - Git connection id.
+   * @param verificationUri - Device-flow verification URL from {@link gitStartOAuth}.
    */
-  gitCompleteOAuth: (connectionId: string) => Promise<void>;
+  gitCompleteOAuth: (connectionId: string, verificationUri: string) => Promise<void>;
   /**
    * Removes stored GitHub OAuth tokens and resets auth metadata for a git connection.
    *
@@ -320,27 +330,45 @@ export interface ApiGit {
    * @param username - Basic Auth username.
    * @param token - Personal access token.
    * @param testUrl - Optional repository URL used to validate the token.
-   * @param repoPath - Optional local repository path used with testUrl.
+   * @param branch - Optional branch name used when validating against testUrl.
+   * @returns Empty-remote and push capability when validation ran; otherwise empty.
    */
   gitSetHostPat: (
     host: string,
     username: string,
     token: string,
     testUrl?: string,
-    repoPath?: string
-  ) => Promise<void>;
+    branch?: string
+  ) => Promise<{ emptyRemote?: boolean; canPush?: boolean }>;
   /**
    * Starts GitHub OAuth device flow for a git host.
    *
+   * Returns the device-flow user code so the user can copy it before the browser
+   * opens. Call {@link gitCompleteHostOAuth} to open the verification URI and start polling.
+   *
    * @param host - Normalized lowercase git host key.
    * @param testUrl - Optional repository URL used to validate after completion.
-   * @param repoPath - Optional local repository path used with testUrl.
+   * @param branch - Optional branch name used when validating against testUrl.
    */
   gitStartHostOAuth: (
     host: string,
     testUrl?: string,
-    repoPath?: string
+    branch?: string
   ) => Promise<{ userCode: string; verificationUri: string }>;
+  /**
+   * Opens the GitHub verification URI and starts background OAuth polling for a host.
+   *
+   * @param host - Normalized lowercase git host key.
+   * @param verificationUri - Device-flow verification URL from {@link gitStartHostOAuth}.
+   * @param testUrl - Optional repository URL used to validate after completion.
+   * @param branch - Optional branch name used when validating against testUrl.
+   */
+  gitCompleteHostOAuth: (
+    host: string,
+    verificationUri: string,
+    testUrl?: string,
+    branch?: string
+  ) => Promise<void>;
   /**
    * Revokes stored credentials for a git host.
    *

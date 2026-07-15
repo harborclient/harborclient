@@ -1,20 +1,14 @@
 import { SidebarDocumentItem } from '@harborclient/sdk/components';
-import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { faMarkdown } from '#/renderer/src/fontawesome';
-import {
-  buildDevInspectMenuGroups,
-  useDeveloperToolsEnabled,
-  type InspectPoint
-} from '#/renderer/src/ui/Shared/devInspectContextMenu';
-import { SidebarRowActionsMenu } from '#/renderer/src/ui/Sidebars/CollectionSidebar/SidebarRowActionsMenu';
-import { buildGitItemMenuGroups } from '#/renderer/src/ui/Sidebars/CollectionSidebar/buildGitItemMenuGroups';
+import { type InspectPoint } from '#/renderer/src/ui/Shared/devInspectContextMenu';
 import {
   buildGitItemAccessibleName,
   gitItemNameClass
 } from '#/renderer/src/git/gitCommitChangeDisplay';
-import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarExpansion';
+import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import type { CollectionDocument, GitRequestFileStatus } from '#/shared/types';
-import { type JSX, useMemo, useState } from 'react';
+import { type JSX, useState } from 'react';
+import { ActionsMenu } from './ActionsMenu';
 
 interface Props {
   /**
@@ -84,64 +78,10 @@ export function DocumentRow({
   onGitStageItem,
   onGitUnstageItem
 }: Props): JSX.Element {
-  const confirm = useConfirm();
-  const developerToolsEnabled = useDeveloperToolsEnabled();
   const { showColorDots } = useSidebarExpansion();
   const [inspectPoint, setInspectPoint] = useState<InspectPoint | undefined>(undefined);
 
   const menuId = `document-${doc.id}`;
-
-  /**
-   * Builds document row actions including optional git stage/unstage entries.
-   */
-  const menuGroups = useMemo(
-    () => [
-      [
-        {
-          label: 'Rename',
-          onSelect: () => onRenameDocument(doc)
-        }
-      ],
-      ...buildGitItemMenuGroups(
-        onGitStageItem != null,
-        gitItemStatus,
-        () => onGitStageItem?.(),
-        () => onGitUnstageItem?.()
-      ),
-      [
-        {
-          label: 'Delete',
-          variant: 'danger' as const,
-          onSelect: () => {
-            void (async () => {
-              const confirmed = await confirm({
-                title: 'Delete document',
-                message: `Delete document "${doc.name}"?`,
-                confirmLabel: 'Delete',
-                variant: 'danger'
-              });
-              if (confirmed) {
-                void onDeleteDocument(doc.id, doc.collection_id);
-              }
-            })();
-          }
-        }
-      ],
-      ...buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled)
-    ],
-    [
-      confirm,
-      developerToolsEnabled,
-      doc,
-      gitItemStatus,
-      inspectPoint,
-      menuId,
-      onDeleteDocument,
-      onGitStageItem,
-      onGitUnstageItem,
-      onRenameDocument
-    ]
-  );
 
   return (
     <div data-sidebar-document-id={doc.id} className="contents">
@@ -166,17 +106,16 @@ export function DocumentRow({
         ariaLabel={buildGitItemAccessibleName(doc.name, gitItemStatus)}
         ariaCurrent={activeDocumentId === doc.id}
         actions={
-          <SidebarRowActionsMenu
-            menuId={menuId}
+          <ActionsMenu
+            doc={doc}
             openMenuId={openMenuId}
             onOpenChange={onOpenChange}
-            colorTarget={{
-              kind: 'document',
-              collectionId: doc.collection_id,
-              id: doc.id,
-              color: doc.color ?? null
-            }}
-            groups={menuGroups}
+            inspectPoint={inspectPoint}
+            onRenameDocument={onRenameDocument}
+            onDeleteDocument={onDeleteDocument}
+            gitItemStatus={gitItemStatus}
+            onGitStageItem={onGitStageItem}
+            onGitUnstageItem={onGitUnstageItem}
           />
         }
       />

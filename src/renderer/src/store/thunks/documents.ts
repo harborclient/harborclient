@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type { CollectionDocument, SaveDocumentInput } from '#/shared/types';
-import { isMarkdownTab, isPageTab } from '#/renderer/src/store/drafts';
+import { isMarkdownTab, isPageTab } from '#/renderer/src/store/tabs';
 import {
   selectCollectionSettingsDirty,
   selectEnvironmentSettingsDirty,

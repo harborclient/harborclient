@@ -6,7 +6,7 @@ import {
   isRequestTab,
   isTabDirty,
   type Tab
-} from '#/renderer/src/store/drafts';
+} from '#/renderer/src/store/tabs';
 import { tabCloseAccessibleName } from './tabCloseAccessibleName';
 import { RequestTabContent } from './RequestTabContent';
 

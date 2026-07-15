@@ -18,7 +18,7 @@ import {
   normalizeKeyValueRows,
   type RequestDraft,
   type RequestTab
-} from './drafts';
+} from './tabs';
 
 const sampleDraft = (): RequestDraft => ({
   name: 'Sample',

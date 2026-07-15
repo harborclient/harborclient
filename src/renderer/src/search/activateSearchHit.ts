@@ -18,7 +18,7 @@ import {
 } from '#/renderer/src/store/slices/navigationSlice';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { focusSidebarItem, requestLoadRequest } from '#/renderer/src/store/thunks';
-import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarExpansion';
+import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 
 /**
  * Finds a saved request in the warm sidebar search input by numeric id.

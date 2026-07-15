@@ -1,7 +1,7 @@
 import { cleanVariables } from '@harborclient/sdk/components';
 import type { AuthConfig, KeyValue, ScriptRef, Variable } from '#/shared/types';
 import { mirrorLegacyScriptString, normalizeScriptRefsForCompare } from '#/shared/scriptRefs';
-import { emptyKeyValue } from '#/renderer/src/store/drafts';
+import { emptyKeyValue } from '#/renderer/src/store/tabs';
 
 /**
  * Core editable fields shared by collection and folder settings forms.

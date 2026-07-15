@@ -1,13 +1,15 @@
 import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
-import { EmptySectionLabel, RowActionsMenu, SidebarRunItem } from '@harborclient/sdk/components';
+import { EmptySectionLabel, SidebarRunItem } from '@harborclient/sdk/components';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectRunResults } from '#/renderer/src/store/slices/runResultsSlice';
 import { deleteRunResult, openSavedRunResult } from '#/renderer/src/store/thunks/runResults';
-import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarExpansion';
-import { useSidebarProviders } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarProvidersContext';
-import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarRowSelection';
+import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
+import { useSidebarProviders } from '#/renderer/src/ui/Sidebars/CollectionSidebar/providers/sidebarProvidersContext';
+import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/useSidebarRowSelection';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
+import { type InspectPoint } from '#/renderer/src/ui/Shared/devInspectContextMenu';
+import { ActionsMenu } from './ActionsMenu';
 import { formatRunResultRowDate, runResultSummaryText, runResultStatusDotClass } from './utils';
 
 export { RunsHeaderActions } from './RunsHeaderActions';
@@ -44,6 +46,9 @@ export function RunResults(): JSX.Element {
   const { connectionNamesById } = useSidebarProviders();
   const { showStorageLocationBadges } = useSidebarExpansion();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [inspectPointsByMenuId, setInspectPointsByMenuId] = useState<Record<string, InspectPoint>>(
+    {}
+  );
 
   /**
    * Run result ids in on-screen list order for shift-click range selection.
@@ -142,6 +147,10 @@ export function RunResults(): JSX.Element {
               event.preventDefault();
               event.stopPropagation();
               handleBeforeContextMenu(runResult.id);
+              setInspectPointsByMenuId((prev) => ({
+                ...prev,
+                [menuId]: { x: event.clientX, y: event.clientY }
+              }));
               setOpenMenuId(menuId);
             }}
             onClick={(event: MouseEvent<HTMLElement>) => {
@@ -152,45 +161,16 @@ export function RunResults(): JSX.Element {
               );
             }}
             actions={
-              <RowActionsMenu
-                menuId={menuId}
+              <ActionsMenu
+                runResult={runResult}
+                showBulkMenu={showBulkMenu}
                 openMenuId={openMenuId}
                 onOpenChange={setOpenMenuId}
-                groups={
-                  showBulkMenu
-                    ? [
-                        [
-                          {
-                            label: 'Delete',
-                            variant: 'danger' as const,
-                            onSelect: () => {
-                              void handleDeleteSelected();
-                            }
-                          }
-                        ]
-                      ]
-                    : [
-                        [
-                          {
-                            label: 'Delete',
-                            variant: 'danger',
-                            onSelect: () => {
-                              void (async () => {
-                                const confirmed = await confirm({
-                                  title: 'Delete run',
-                                  message: `Delete saved run "${runResult.label}"?`,
-                                  confirmLabel: 'Delete',
-                                  variant: 'danger'
-                                });
-                                if (confirmed) {
-                                  void onDeleteRunResult(runResult.id);
-                                }
-                              })();
-                            }
-                          }
-                        ]
-                      ]
-                }
+                inspectPoint={inspectPointsByMenuId[menuId]}
+                onDelete={onDeleteRunResult}
+                onDeleteSelected={() => {
+                  void handleDeleteSelected();
+                }}
               />
             }
           />

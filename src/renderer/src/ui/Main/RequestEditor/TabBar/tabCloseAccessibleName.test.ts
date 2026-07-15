@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
-import type { PageTab, RequestTab } from '#/renderer/src/store/drafts';
+import type { PageTab, RequestTab } from '#/renderer/src/store/tabs';
 import { tabCloseAccessibleName } from './tabCloseAccessibleName';
 
 describe('tabCloseAccessibleName', () => {

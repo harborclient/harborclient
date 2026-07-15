@@ -1712,9 +1712,20 @@ function getGithubModelsStatus(): Promise<GithubModelsStatus> {
 
 /**
  * Starts GitHub Models device flow and returns the user code for browser approval.
+ *
+ * The browser is not opened until {@link completeGithubModelsSignIn} is called.
  */
 function startGithubModelsSignIn(): Promise<{ userCode: string; verificationUri: string }> {
   return ipcRenderer.invoke('githubModels:startSignIn');
+}
+
+/**
+ * Opens the GitHub Models verification URI and starts background sign-in polling.
+ *
+ * @param verificationUri - Device-flow verification URL from {@link startGithubModelsSignIn}.
+ */
+function completeGithubModelsSignIn(verificationUri: string): Promise<void> {
+  return ipcRenderer.invoke('githubModels:completeSignIn', verificationUri);
 }
 
 /**
@@ -2351,6 +2362,18 @@ function gitFetch(connectionId: string): Promise<void> {
 }
 
 /**
+ * Validates credentials against the connection's remote URL.
+ *
+ * @param connectionId - Git connection id.
+ * @returns Whether the remote is empty and whether push access was confirmed.
+ */
+function gitTestConnection(
+  connectionId: string
+): Promise<{ emptyRemote: boolean; canPush?: boolean }> {
+  return ipcRenderer.invoke('git:testConnection', connectionId);
+}
+
+/**
  * Pulls remote changes for a git-backed connection.
  *
  * @param connectionId - Git connection id.
@@ -2601,6 +2624,9 @@ function gitSetPat(connectionId: string, username: string, token: string): Promi
 /**
  * Starts GitHub OAuth device flow for a git-backed connection.
  *
+ * Returns the device-flow user code so the user can copy it before the browser
+ * opens. Call {@link gitCompleteOAuth} to open the verification URI and start polling.
+ *
  * @param connectionId - Git connection id.
  */
 function gitStartOAuth(connectionId: string): Promise<{
@@ -2611,15 +2637,15 @@ function gitStartOAuth(connectionId: string): Promise<{
 }
 
 /**
- * Completes GitHub OAuth device flow after browser approval.
+ * Opens the GitHub verification URI and starts background OAuth polling for a connection.
  *
- * Ensures background polling is running when a pending device flow exists.
  * Resolves immediately without waiting for GitHub approval.
  *
  * @param connectionId - Git connection id.
+ * @param verificationUri - Device-flow verification URL from {@link gitStartOAuth}.
  */
-function gitCompleteOAuth(connectionId: string): Promise<void> {
-  return ipcRenderer.invoke('git:completeOAuth', connectionId);
+function gitCompleteOAuth(connectionId: string, verificationUri: string): Promise<void> {
+  return ipcRenderer.invoke('git:completeOAuth', connectionId, verificationUri);
 }
 
 /**
@@ -2657,31 +2683,52 @@ function listGitIdentities(): Promise<import('#/shared/types').GitIdentity[]> {
  * @param username - Basic Auth username.
  * @param token - Personal access token.
  * @param testUrl - Optional repository URL used to validate the token.
- * @param repoPath - Optional local repository path used with testUrl.
+ * @param branch - Optional branch name used when validating against testUrl.
+ * @returns Empty-remote and push capability when validation ran; otherwise an empty object.
  */
 function gitSetHostPat(
   host: string,
   username: string,
   token: string,
   testUrl?: string,
-  repoPath?: string
-): Promise<void> {
-  return ipcRenderer.invoke('git:setHostPat', host, username, token, testUrl, repoPath);
+  branch?: string
+): Promise<{ emptyRemote?: boolean; canPush?: boolean }> {
+  return ipcRenderer.invoke('git:setHostPat', host, username, token, testUrl, branch);
 }
 
 /**
  * Starts GitHub OAuth device flow for a git host.
  *
+ * Returns the device-flow user code so the user can copy it before the browser
+ * opens. Call {@link gitCompleteHostOAuth} to open the verification URI and start polling.
+ *
  * @param host - Normalized lowercase git host key.
  * @param testUrl - Optional repository URL used to validate after completion.
- * @param repoPath - Optional local repository path used with testUrl.
+ * @param branch - Optional branch name used when validating against testUrl.
  */
 function gitStartHostOAuth(
   host: string,
   testUrl?: string,
-  repoPath?: string
+  branch?: string
 ): Promise<{ userCode: string; verificationUri: string }> {
-  return ipcRenderer.invoke('git:startHostOAuth', host, testUrl, repoPath);
+  return ipcRenderer.invoke('git:startHostOAuth', host, testUrl, branch);
+}
+
+/**
+ * Opens the GitHub verification URI and starts background OAuth polling for a host.
+ *
+ * @param host - Normalized lowercase git host key.
+ * @param verificationUri - Device-flow verification URL from {@link gitStartHostOAuth}.
+ * @param testUrl - Optional repository URL used to validate after completion.
+ * @param branch - Optional branch name used when validating against testUrl.
+ */
+function gitCompleteHostOAuth(
+  host: string,
+  verificationUri: string,
+  testUrl?: string,
+  branch?: string
+): Promise<void> {
+  return ipcRenderer.invoke('git:completeHostOAuth', host, verificationUri, testUrl, branch);
 }
 
 /**
@@ -3894,6 +3941,7 @@ const api: Api = {
   listHubLlmModels,
   getGithubModelsStatus,
   startGithubModelsSignIn,
+  completeGithubModelsSignIn,
   signOutGithubModels,
   onGithubModelsSignInFinished,
   deleteChat,
@@ -3950,6 +3998,7 @@ const api: Api = {
   gitWriteConflictFile,
   gitOpenExternalMergeEditor,
   gitFetch,
+  gitTestConnection,
   gitPull,
   gitPush,
   gitLog,
@@ -3976,6 +4025,7 @@ const api: Api = {
   listGitIdentities,
   gitSetHostPat,
   gitStartHostOAuth,
+  gitCompleteHostOAuth,
   gitRevokeHost,
   gitIsRepo,
   gitInitRepo,

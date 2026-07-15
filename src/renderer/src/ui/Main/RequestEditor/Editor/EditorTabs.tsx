@@ -4,7 +4,7 @@ import type { KeyValue, Variable } from '#/shared/types';
 import { ensureDefaultScriptRef, hasScriptContent } from '#/shared/scriptRefs';
 
 import type { RequestTabContext } from '#/shared/plugin/types';
-import type { RequestDraft } from '#/renderer/src/store/drafts';
+import type { RequestDraft } from '#/renderer/src/store/tabs';
 import { usePluginRequestTabs } from '#/renderer/src/plugins/pluginHooks';
 
 import { TabContent } from './TabContent';

@@ -44,11 +44,6 @@ interface Props {
    * Creates the git-backed collection after optional auth and repo initialization.
    */
   onCreate: (options: { initGitRepo: boolean }) => void;
-
-  /**
-   * Surfaces repository validation errors on the parent Add collection modal.
-   */
-  onAuthValidationError: (message: string) => void;
 }
 
 /**
@@ -61,8 +56,7 @@ export function GitTabPanel({
   createAndSave,
   onNameChange,
   onGitDraftChange,
-  onCreate,
-  onAuthValidationError
+  onCreate
 }: Props): JSX.Element {
   const repoPathId = useId();
   const subdirId = useId();
@@ -188,23 +182,11 @@ export function GitTabPanel({
   };
 
   /**
-   * Builds a polite message when auth succeeded but repository validation failed.
-   *
-   * @param result - Authorization result from {@link GitAuthForm}.
-   */
-  const buildAuthValidationMessage = useCallback(
-    (result: GitAuthAuthorizedResult): string => {
-      const repoUrl = settings.url.trim();
-      if (result.repoNotFound) {
-        return `GitHub authorization succeeded, but the repository at ${repoUrl || 'the URL you entered'} was not found. Check the repository URL and your access, then try Create again.`;
-      }
-      return `GitHub authorization succeeded, but the repository could not be verified. Check the repository URL and your access, then try Create again.`;
-    },
-    [settings.url]
-  );
-
-  /**
    * Completes creation after credentials are saved in the auth modal.
+   *
+   * Empty remotes are allowed — the user can initialize locally and push later.
+   * Only true validation errors (wrong URL, no access, missing branch on a
+   * non-empty remote) block creation.
    *
    * @param result - Optional validation outcome when credentials were stored but the
    *   remote repository could not be reached.
@@ -214,7 +196,6 @@ export function GitTabPanel({
     if (pendingCreate) {
       setPendingCreate(false);
       if (result?.validationError) {
-        onAuthValidationError(buildAuthValidationMessage(result));
         return;
       }
       onCreate({ initGitRepo });
@@ -368,7 +349,7 @@ export function GitTabPanel({
           <GitAuthForm
             host={gitHost}
             url={settings.url}
-            repoPath={settings.repoPath}
+            branch={settings.branch}
             disabled={busy}
             onAuthorized={handleAuthAuthorized}
           />
