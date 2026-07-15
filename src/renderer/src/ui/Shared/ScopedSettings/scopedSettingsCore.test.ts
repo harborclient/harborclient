@@ -15,7 +15,7 @@ import {
   seedScopedSettingsVariables,
   serializeScopedSettingsForm,
   type ScopedSettingsCoreFields
-} from './scopedSettingsForm';
+} from './scopedSettingsCore';
 
 const sampleFields = (): ScopedSettingsCoreFields => ({
   name: '  My Scope  ',
