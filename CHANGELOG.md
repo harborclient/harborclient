@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.4.2 - 2026-07-15
+
 - feat(ui): implement scoped settings core functionality and tests. (`bcb4ad8`)
 - refactor(ui): remove Scrollbars component and update import paths. (`02a4f35`)
 
