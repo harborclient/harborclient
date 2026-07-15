@@ -1,9 +1,11 @@
-import { cleanVariables } from '@harborclient/sdk/components';
 import type { AuthConfig, KeyValue, ScriptRef, Variable } from '#/shared/types';
-import { mirrorLegacyScriptString, normalizeScriptRefsForCompare } from '#/shared/scriptRefs';
-import { cleanHeaders } from '#/renderer/src/ui/CollectionSettings/serialize';
+import {
+  cleanHeaders,
+  serializeScopedSettingsForm,
+  type ScopedSettingsCoreFields
+} from '#/renderer/src/ui/shared/scopedSettingsForm';
 
-export { cleanHeaders };
+export { cleanHeaders, serializeScopedSettingsForm };
 
 /**
  * Serializes folder form fields for dirty-state comparison and persistence.
@@ -16,13 +18,38 @@ export const serializeFolderForm = (
   postRequestScripts: ScriptRef[],
   auth: AuthConfig
 ): string =>
-  JSON.stringify({
-    name: name.trim(),
-    variables: cleanVariables(variables),
-    headers: cleanHeaders(headers),
-    pre_request_script: mirrorLegacyScriptString(preRequestScripts),
-    post_request_script: mirrorLegacyScriptString(postRequestScripts),
-    pre_request_scripts: normalizeScriptRefsForCompare(preRequestScripts),
-    post_request_scripts: normalizeScriptRefsForCompare(postRequestScripts),
+  serializeScopedSettingsForm({
+    name,
+    variables,
+    headers,
+    preRequestScripts,
+    postRequestScripts,
     auth
   });
+
+/**
+ * Builds core fields from discrete folder form arguments for serialization.
+ *
+ * @param name - Folder display name.
+ * @param variables - Folder variables.
+ * @param headers - Folder headers.
+ * @param preRequestScripts - Pre-request script refs.
+ * @param postRequestScripts - Post-request script refs.
+ * @param auth - Authorization settings.
+ * @returns Core fields object for scoped serialization.
+ */
+export const folderFormCoreFields = (
+  name: string,
+  variables: Variable[],
+  headers: KeyValue[],
+  preRequestScripts: ScriptRef[],
+  postRequestScripts: ScriptRef[],
+  auth: AuthConfig
+): ScopedSettingsCoreFields => ({
+  name,
+  variables,
+  headers,
+  preRequestScripts,
+  postRequestScripts,
+  auth
+});

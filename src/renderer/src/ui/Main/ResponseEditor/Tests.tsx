@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import type { ScriptTestResult } from '#/shared/types';
+import { StatusDot } from '@harborclient/sdk/components';
 
 interface Props {
   /**
@@ -19,11 +20,10 @@ export function Tests({ testResults }: Props): JSX.Element {
           key={`${test.name}-${index}`}
           className={`flex items-center gap-2 px-2.5 py-1.5 ${index > 0 ? 'border-t border-separator' : ''}`}
         >
-          <span
-            className={`inline-block h-2 w-2 shrink-0 rounded-full ${test.passed ? 'bg-success' : 'bg-danger'}`}
-            aria-hidden="true"
+          <StatusDot
+            variant={test.passed ? 'success' : 'danger'}
+            label={test.passed ? 'Passed' : 'Failed'}
           />
-          <span className="sr-only">{test.passed ? 'Passed' : 'Failed'}</span>
           {test.scriptName && (
             <>
               <span className="text-[14px] text-muted">{test.scriptName}</span>

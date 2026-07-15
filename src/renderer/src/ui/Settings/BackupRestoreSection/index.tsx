@@ -1,11 +1,16 @@
-import { Button, FormGroup, Input, Page } from '@harborclient/sdk/components';
+import {
+  Button,
+  FormGroup,
+  Input,
+  Page,
+  SettingSectionHeading
+} from '@harborclient/sdk/components';
 import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
 import { entryById, sectionEntryBySection } from '../catalog/catalog';
-import { SettingLabel } from '../components/SettingLabel';
 import { settingsSectionMeta } from '../constants';
 import { settingAnchorId } from '../settingAnchorId';
 import type { SettingsSectionComponentProps } from '../catalog/registry';
@@ -133,14 +138,13 @@ export function BackupRestoreSection({
       description="Export everything HarborClient stores locally — collections, environments, settings, chats, credentials, and UI state — into a single backup file."
     >
       <div className="mb-6 flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <span className="text-[18px] font-medium text-text">
-            <SettingLabel settingId="backup-restore.actions">Backup & restore</SettingLabel>
-          </span>
-          <p className="hc-form-group-description m-0 text-[14px] text-muted mb-2">
-            {backupCatalog.description}
-          </p>
-        </div>
+        <SettingSectionHeading
+          settingId="backup-restore.actions"
+          title="Backup & restore"
+          description={backupCatalog.description}
+          className="flex flex-col gap-1"
+          descriptionClassName="hc-form-group-description m-0 text-[14px] text-muted mb-2"
+        />
         <div
           className="rounded-md border border-separator bg-sidebar px-4 py-3 mb-2 text-text"
           role="note"
@@ -198,16 +202,13 @@ export function BackupRestoreSection({
         id={settingAnchorId(CONFIRMATIONS_GROUP_ID)}
         className="mb-6 flex flex-col gap-3 scroll-mt-4"
       >
-        <div className="flex flex-col gap-1">
-          <span className="text-[18px] font-medium text-text">
-            <SettingLabel settingId={CONFIRMATIONS_GROUP_ID}>
-              {confirmationsCatalog.label}
-            </SettingLabel>
-          </span>
-          <p className="hc-form-group-description m-0 text-[14px] text-muted mb-2">
-            {confirmationsCatalog.description}
-          </p>
-        </div>
+        <SettingSectionHeading
+          settingId={CONFIRMATIONS_GROUP_ID}
+          title={confirmationsCatalog.label}
+          description={confirmationsCatalog.description}
+          className="flex flex-col gap-1"
+          descriptionClassName="hc-form-group-description m-0 text-[14px] text-muted mb-2"
+        />
         <ConfirmationsTable />
       </div>
 

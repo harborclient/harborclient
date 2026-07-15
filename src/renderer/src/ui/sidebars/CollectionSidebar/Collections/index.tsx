@@ -38,7 +38,12 @@ import { useSidebarGit } from '#/renderer/src/ui/sidebars/CollectionSidebar/side
 import { useSidebarSearchContext } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarSearchContext';
 import { useCollectionActions } from '#/renderer/src/ui/sidebars/CollectionSidebar/useCollectionActions';
 import { closeSidebarContentTabs } from '#/renderer/src/store/thunks/sidebarDeselect';
-import { EmptySectionLabel, FaIcon, SidebarFolderItem } from '@harborclient/sdk/components';
+import {
+  EmptySectionLabel,
+  FaIcon,
+  SidebarBadge,
+  SidebarFolderItem
+} from '@harborclient/sdk/components';
 import { SidebarColorDot } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarColorDot';
 import { SidebarRowActionsMenu } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarRowActionsMenu';
 import { buildReorderMenuGroup } from '@harborclient/sdk/components';
@@ -47,7 +52,7 @@ import { buildPluginContextMenuGroups } from '#/renderer/src/plugins/pluginConte
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useCopyToChat } from '#/renderer/src/hooks/useCopyToChat';
 import { faChevronDown, faChevronRight } from '#/renderer/src/fontawesome';
-import { METHOD_CLASSES, sidebarRecessedBadge, sourceRow } from '#/renderer/src/ui/shared/classes';
+import { METHOD_CLASSES, sourceRow } from '#/renderer/src/ui/shared/classes';
 import { AnimatedCollapse } from '#/renderer/src/ui/shared/AnimatedCollapse';
 import {
   buildDevInspectMenuGroups,
@@ -902,9 +907,9 @@ export function Collections(): JSX.Element {
 
                           if (connectionType === 'git') {
                             return (
-                              <button
-                                type="button"
-                                className="shrink-0 cursor-pointer rounded bg-info/15 px-1.5 py-0.5 text-[14px] font-medium text-info hover:bg-info/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent app-no-drag"
+                              <SidebarBadge
+                                as="button"
+                                variant="info"
                                 title={`On branch ${badgeLabel}`}
                                 aria-label={`Switch branch (currently ${badgeLabel})`}
                                 onPointerDown={stopSortableDragPointerDown}
@@ -917,31 +922,28 @@ export function Collections(): JSX.Element {
                                 }
                               >
                                 {badgeLabel}
-                              </button>
+                              </SidebarBadge>
                             );
                           }
 
                           return (
-                            <span
-                              className="shrink-0 rounded bg-info/15 px-1.5 py-0.5 text-[14px] font-medium text-info"
-                              title={`Stored in ${badgeLabel}`}
-                            >
+                            <SidebarBadge variant="info" title={`Stored in ${badgeLabel}`}>
                               {badgeLabel}
-                            </span>
+                            </SidebarBadge>
                           );
                         })()}
                       </span>
                     </button>
                     {connectionType === 'git' && collectionChangedCount > 0 && (
-                      <button
-                        type="button"
-                        className={sidebarRecessedBadge}
+                      <SidebarBadge
+                        as="button"
+                        variant="recessed"
                         aria-label={`Open source control (${collectionChangedCount} uncommitted change(s))`}
                         onPointerDown={stopSortableDragPointerDown}
                         onClick={() => onOpenSourceControl()}
                       >
                         {collectionChangedCount}
-                      </button>
+                      </SidebarBadge>
                     )}
                     <div onPointerDown={stopSortableDragPointerDown}>
                       <SidebarRowActionsMenu

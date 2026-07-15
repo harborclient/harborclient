@@ -1,4 +1,4 @@
-import { Button, Input, Page, Spinner } from '@harborclient/sdk/components';
+import { FormGroup, Select } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import { faStore } from '#/renderer/src/fontawesome';
 import type { SnippetCatalogEntry } from '#/shared/snippet/catalog';
@@ -6,17 +6,53 @@ import {
   PLUGIN_CATALOG_CATEGORIES,
   PLUGIN_CATALOG_CATEGORY_LABELS
 } from '#/shared/plugin/catalogCategories';
+import { MarketplaceBrowseView } from '#/renderer/src/ui/shared/MarketplaceBrowseView';
 import { CatalogCard } from './CatalogCard';
 
 interface Props {
+  /**
+   * Whether the catalog is loading.
+   */
   catalogLoading: boolean;
+
+  /**
+   * Catalog load error message, if any.
+   */
   catalogError: string | null;
+
+  /**
+   * Current search query for filtering catalog entries.
+   */
   catalogSearchQuery: string;
+
+  /**
+   * Current category filter, or empty for all categories.
+   */
   catalogCategoryFilter: string;
+
+  /**
+   * Catalog entries after category and search filtering.
+   */
   filteredCatalogSnippets: SnippetCatalogEntry[];
+
+  /**
+   * Updates the catalog search query.
+   */
   onSearchChange: (query: string) => void;
+
+  /**
+   * Updates the catalog category filter.
+   */
   onCategoryChange: (category: string) => void;
+
+  /**
+   * Opens the detail view for one catalog listing.
+   */
   onOpenCatalogDetail: (entry: SnippetCatalogEntry) => void;
+
+  /**
+   * Retries loading the marketplace catalog after an error.
+   */
   onRetryLoad: () => void;
 }
 
@@ -34,64 +70,58 @@ export function MarketplaceView({
   onOpenCatalogDetail,
   onRetryLoad
 }: Props): JSX.Element {
+  /**
+   * Shared height for marketplace filter controls so Input and Select align in a row.
+   */
+  const filterControlClass = 'h-9';
+
   return (
-    <Page
-      embedded
+    <MarketplaceBrowseView
       title="Marketplace"
       description="Browse signed snippet bundles published to the HarborClient marketplace."
       icon={faStore}
-    >
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Input
-          type="search"
-          aria-label="Search snippet marketplace"
-          placeholder="Search snippets"
-          value={catalogSearchQuery}
-          onChange={(event) => onSearchChange(event.target.value)}
-          className="w-full sm:max-w-sm"
-        />
-        <select
-          aria-label="Filter by category"
-          className="w-full rounded-md border border-separator bg-panel px-3 py-2 text-[14px] text-text sm:max-w-xs"
-          value={catalogCategoryFilter}
-          onChange={(event) => onCategoryChange(event.target.value)}
+      searchLabel="Search snippet marketplace"
+      searchId="snippet-catalog-search"
+      searchPlaceholder="Search snippets"
+      searchValue={catalogSearchQuery}
+      searchDisabled={catalogLoading}
+      onSearchChange={onSearchChange}
+      filters={
+        <FormGroup
+          bordered={false}
+          label="Filter by category"
+          htmlFor="snippet-catalog-category"
+          srOnly
         >
-          <option value="">All categories</option>
-          {PLUGIN_CATALOG_CATEGORIES.map((category) => (
-            <option key={category} value={category}>
-              {PLUGIN_CATALOG_CATEGORY_LABELS[category]}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {catalogLoading ? (
-        <div className="flex items-center gap-2 text-[14px] text-muted" role="status">
-          <Spinner className="h-4 w-4" />
-          Loading marketplace…
-        </div>
-      ) : null}
-
-      {catalogError ? (
-        <div className="flex flex-col gap-2">
-          <p className="m-0 text-[14px] text-danger">{catalogError}</p>
-          <Button type="button" variant="secondary" onClick={onRetryLoad}>
-            Retry
-          </Button>
-        </div>
-      ) : null}
-
-      {!catalogLoading && !catalogError && filteredCatalogSnippets.length === 0 ? (
-        <p className="m-0 text-[14px] text-muted">No snippet bundles match your search.</p>
-      ) : null}
-
-      {!catalogLoading && filteredCatalogSnippets.length > 0 ? (
-        <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 lg:grid-cols-4">
-          {filteredCatalogSnippets.map((entry) => (
-            <CatalogCard key={entry.id} entry={entry} onOpen={() => onOpenCatalogDetail(entry)} />
-          ))}
-        </ul>
-      ) : null}
-    </Page>
+          <Select
+            id="snippet-catalog-category"
+            value={catalogCategoryFilter}
+            disabled={catalogLoading}
+            className={`w-full max-w-xs ${filterControlClass}`}
+            onChange={(event) => onCategoryChange(event.target.value)}
+          >
+            <option value="">All categories</option>
+            {PLUGIN_CATALOG_CATEGORIES.map((category) => (
+              <option key={category} value={category}>
+                {PLUGIN_CATALOG_CATEGORY_LABELS[category]}
+              </option>
+            ))}
+          </Select>
+        </FormGroup>
+      }
+      loading={catalogLoading}
+      loadingMessage="Loading marketplace…"
+      error={catalogError}
+      onRetry={onRetryLoad}
+      isCatalogEmpty={false}
+      emptyState={null}
+      hasNoMatches={!catalogLoading && !catalogError && filteredCatalogSnippets.length === 0}
+      noMatchMessage="No snippet bundles match your search."
+      entries={!catalogLoading && !catalogError ? filteredCatalogSnippets : []}
+      getKey={(entry) => entry.id}
+      renderCard={(entry) => (
+        <CatalogCard entry={entry} onOpen={() => onOpenCatalogDetail(entry)} />
+      )}
+    />
   );
 }

@@ -379,7 +379,7 @@ export function ChatHistory({ anchorRef, onClose, onOpenChat }: Props): JSX.Elem
     >
       <div className="shrink-0 border-b border-separator px-2 py-2">
         <FormGroup
-          className="border-none! p-0!"
+          bordered={false}
           label="Search chat history"
           htmlFor="ai-chat-history-search"
           srOnly

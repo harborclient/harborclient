@@ -1,8 +1,7 @@
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { FaIcon } from '@harborclient/sdk/components';
+import { SelectionActionToolbar } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
-import { createPortal } from 'react-dom';
 import { faCopy } from '#/renderer/src/fontawesome';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
 import { COPY_TO_CHAT_SHORTCUT_HINT } from '#/renderer/src/hooks/useCopyToChat';
@@ -530,29 +529,18 @@ export function XtermView({ id, index, title, cwd, active, panelOpen }: Props): 
       aria-hidden={!active}
     >
       <div ref={containerRef} className="h-full min-h-0 w-full min-w-0 p-2" />
-      {showSelectionToolbar &&
-        createPortal(
-          <button
-            type="button"
-            className="hc-code-editor-selection-action app-no-drag pointer-events-auto fixed z-[70] inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-separator bg-control px-2 py-1 text-[14px] text-text shadow-sm hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
-            style={{
-              top: selectionToolbarCoords.top,
-              left: selectionToolbarCoords.left
-            }}
-            aria-label={`Copy selection from ${title} to chat`}
-            onMouseDown={(event) => {
-              event.preventDefault();
-            }}
-            onClick={() => {
-              void handleCopySelectionToChat();
-            }}
-          >
-            <FaIcon icon={faCopy} className="h-3.5 w-3.5" />
-            <span>Copy to chat</span>
-            <span className="text-[14px] text-muted">{COPY_TO_CHAT_SHORTCUT_HINT}</span>
-          </button>,
-          document.body
-        )}
+      {showSelectionToolbar ? (
+        <SelectionActionToolbar
+          coords={selectionToolbarCoords}
+          label={`Copy selection from ${title} to chat`}
+          text="Copy to chat"
+          icon={faCopy}
+          shortcutHint={COPY_TO_CHAT_SHORTCUT_HINT}
+          onSelect={() => {
+            void handleCopySelectionToChat();
+          }}
+        />
+      ) : null}
     </div>
   );
 }

@@ -25,7 +25,7 @@ export function SidebarSearch({ value, onChange, loading = false }: Props): JSX.
   return (
     <div className="py-3 px-2 border-b border-separator">
       <FormGroup
-        className="border-none! p-0!"
+        bordered={false}
         label="Search collections and environments"
         htmlFor="sidebar-search"
         srOnly

@@ -1,23 +1,19 @@
 import {
   AsyncListState,
   Button,
-  FieldError,
-  FormGroup,
-  Input,
-  Modal,
-  ModalFormLayout,
   Page,
   ResourceList,
   ResourceListPrimary,
   ResourceListRow
 } from '@harborclient/sdk/components';
-import { useState, type JSX } from 'react';
-import toast from 'react-hot-toast';
+import { type JSX } from 'react';
 import type { TeamHub, TeamHubAdminRunResult } from '#/shared/types';
 
 import { faClockRotateLeft } from '#/renderer/src/fontawesome';
 
 import { useTeamHubAdminRunResults } from '#/renderer/src/hooks/useTeamHubAdminRunResults';
+import { useTypedDeleteConfirm } from '#/renderer/src/hooks/useTypedDeleteConfirm';
+import { DeleteConfirmModal } from '#/renderer/src/ui/shared/DeleteConfirmModal';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
 
 interface Props {
@@ -45,58 +41,11 @@ function runResultSummaryText(summary: TeamHubAdminRunResult['summary']): string
  */
 export function TeamRunResultsView({ hub }: Props): JSX.Element {
   const { runResults, loading, error, reload } = useTeamHubAdminRunResults(hub.id);
-  const [deletingRunResult, setDeletingRunResult] = useState<TeamHubAdminRunResult | null>(null);
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
-  const [deleting, setDeleting] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
-
-  /**
-   * Opens the delete confirmation modal for a run result row.
-   *
-   * @param runResult - Run result record to delete.
-   */
-  const handleDeleteClick = (runResult: TeamHubAdminRunResult): void => {
-    setActionError(null);
-    setDeleteConfirmText('');
-    setDeletingRunResult(runResult);
-  };
-
-  /**
-   * Closes the delete confirmation modal.
-   */
-  const closeDeleteModal = (): void => {
-    if (deleting) {
-      return;
-    }
-
-    setDeletingRunResult(null);
-    setDeleteConfirmText('');
-    setActionError(null);
-  };
-
-  /**
-   * Permanently deletes the selected run result on the hub after confirmation.
-   */
-  const handleConfirmDelete = async (): Promise<void> => {
-    if (!deletingRunResult || deleteConfirmText !== 'DELETE') {
-      return;
-    }
-
-    setDeleting(true);
-    setActionError(null);
-
-    try {
-      await window.api.deleteTeamHubRunResult(hub.id, deletingRunResult.id);
-      setDeletingRunResult(null);
-      setDeleteConfirmText('');
-      reload();
-      toast.success('Run result deleted.');
-    } catch (err: unknown) {
-      setActionError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setDeleting(false);
-    }
-  };
+  const deleteRunResult = useTypedDeleteConfirm<TeamHubAdminRunResult>({
+    onDelete: (runResult) => window.api.deleteTeamHubRunResult(hub.id, runResult.id),
+    onSuccess: reload,
+    successMessage: 'Run result deleted.'
+  });
 
   return (
     <Page
@@ -132,7 +81,7 @@ export function TeamRunResultsView({ hub }: Props): JSX.Element {
                   variant="toolbar"
                   className={toolbarDangerButtonClass}
                   aria-label={`Delete ${runResult.label}`}
-                  onClick={() => handleDeleteClick(runResult)}
+                  onClick={() => deleteRunResult.open(runResult)}
                 >
                   Delete
                 </Button>
@@ -142,52 +91,20 @@ export function TeamRunResultsView({ hub }: Props): JSX.Element {
         </ResourceList>
       </AsyncListState>
 
-      {actionError && !deletingRunResult ? (
-        <FieldError spacing="section">{actionError}</FieldError>
-      ) : null}
-
-      {deletingRunResult ? (
-        <Modal
-          labelledBy="delete-run-result-title"
-          onClose={closeDeleteModal}
+      {deleteRunResult.target ? (
+        <DeleteConfirmModal
           title="Delete run result?"
           description={
             <>
-              Permanently delete &ldquo;{deletingRunResult.label}&rdquo; from the team hub? Team
-              members will lose access to this snapshot on the server.
+              Permanently delete &ldquo;{deleteRunResult.target.label}&rdquo; from the team hub?
+              Team members will lose access to this snapshot on the server.
             </>
           }
-          closeDisabled={deleting}
-          disableEscape={deleting}
-        >
-          <ModalFormLayout
-            error={actionError ? <FieldError spacing="section">{actionError}</FieldError> : null}
-            actions={
-              <Button
-                type="button"
-                variant="primaryDanger"
-                disabled={deleting || deleteConfirmText !== 'DELETE'}
-                onClick={() => void handleConfirmDelete()}
-              >
-                {deleting ? 'Deleting…' : 'Delete'}
-              </Button>
-            }
-          >
-            <FormGroup
-              label="Type DELETE to confirm"
-              htmlFor="delete-run-result-confirm"
-              className="mb-4"
-            >
-              <Input
-                id="delete-run-result-confirm"
-                value={deleteConfirmText}
-                disabled={deleting}
-                onChange={(event) => setDeleteConfirmText(event.target.value)}
-                autoComplete="off"
-              />
-            </FormGroup>
-          </ModalFormLayout>
-        </Modal>
+          busy={deleteRunResult.busy}
+          error={deleteRunResult.error}
+          onConfirm={() => void deleteRunResult.confirm()}
+          onClose={deleteRunResult.close}
+        />
       ) : null}
     </Page>
   );

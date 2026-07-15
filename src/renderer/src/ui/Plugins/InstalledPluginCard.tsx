@@ -10,8 +10,7 @@ import { ErrorMessages } from './ErrorMessages';
 import { InstalledPluginFooterActions } from './InstalledPluginFooterActions';
 import { resolveInstalledPluginSummary, stopRowActivation } from './helpers';
 import { loadInstalledPluginScreenshotSrcs } from './resolvePluginScreenshot';
-import { ScreenshotCarousel } from './ScreenshotCarousel';
-import { Card } from '@harborclient/sdk/components';
+import { Badge, Card, ScreenshotCarousel } from '@harborclient/sdk/components';
 
 interface Props {
   /**
@@ -141,7 +140,12 @@ export function InstalledPluginCard({
     <li>
       <Card>
         {screenshotSrcs.length > 0 ? (
-          <ScreenshotCarousel variant="card" images={screenshotSrcs} stopPropagation />
+          <ScreenshotCarousel
+            variant="card"
+            images={screenshotSrcs}
+            stopPropagation
+            ariaLabel="Plugin screenshots"
+          />
         ) : (
           <div
             className="flex aspect-video w-full items-center justify-center border-b border-separator bg-panel text-[14px] text-muted"
@@ -174,31 +178,28 @@ export function InstalledPluginCard({
           {showCategories ? (
             <div className="mt-auto flex flex-wrap gap-1.5 pt-1.5">
               {categories.map((category) => (
-                <span
-                  key={category}
-                  className="rounded bg-accent/15 px-2 py-0.5 text-[14px] text-text"
-                >
+                <Badge key={category} variant="category" className="px-2">
                   {PLUGIN_CATALOG_CATEGORY_LABELS[category]}
-                </span>
+                </Badge>
               ))}
             </div>
           ) : null}
           {showStatusBadges ? (
             <div className={`flex flex-wrap gap-1.5 pt-1.5${showCategories ? '' : ' mt-auto'}`}>
               {plugin.signature?.status === 'invalid' ? (
-                <span className="rounded bg-danger/20 px-2 py-0.5 text-[14px] text-danger">
+                <Badge variant="danger" className="px-2">
                   Invalid signature
-                </span>
+                </Badge>
               ) : null}
               {plugin.signature?.status === 'untrusted' ? (
-                <span className="rounded bg-danger/20 px-2 py-0.5 text-[14px] text-danger">
+                <Badge variant="danger" className="px-2">
                   Untrusted publisher
-                </span>
+                </Badge>
               ) : null}
               {plugin.runtimeError && plugin.enabled ? (
-                <span className="rounded bg-danger/20 px-2 py-0.5 text-[14px] text-danger">
+                <Badge variant="danger" className="px-2">
                   Error
-                </span>
+                </Badge>
               ) : null}
             </div>
           ) : null}

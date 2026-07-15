@@ -10,6 +10,7 @@ import {
   ResourceList,
   ResourceListPrimary,
   ResourceListRow,
+  SettingSectionHeading,
   Textarea
 } from '@harborclient/sdk/components';
 import { useEffect, useMemo, useState, type JSX } from 'react';
@@ -23,7 +24,6 @@ import type {
   McpServerSettings,
   McpServerStatus
 } from '#/shared/types';
-import { SettingLabel } from '#/renderer/src/ui/Settings/components/SettingLabel';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
 import { McpServerFormFields } from '#/renderer/src/ui/shared/McpServerFormFields';
 import { buildMcpConfigSnippet } from '#/renderer/src/ui/shared/buildMcpConfigSnippet';
@@ -418,13 +418,11 @@ export function McpSettingsExtra(): JSX.Element {
       ) : null}
 
       <section>
-        <span className="text-[18px] font-medium text-text">
-          <SettingLabel settingId="mcp.server">MCP Server</SettingLabel>
-        </span>
-        <p className="m-0 mb-4 text-muted">
-          Expose selected Harbor tools to external MCP clients such as Claude Desktop or Cursor.
-          Nothing is exposed until you enable the server and select tools below.
-        </p>
+        <SettingSectionHeading
+          settingId="mcp.server"
+          title="MCP Server"
+          description="Expose selected Harbor tools to external MCP clients such as Claude Desktop or Cursor. Nothing is exposed until you enable the server and select tools below."
+        />
 
         <div className="flex flex-col gap-4">
           <McpServerFormFields
@@ -534,13 +532,17 @@ export function McpSettingsExtra(): JSX.Element {
       </section>
 
       <section>
-        <span className="text-[18px] font-medium text-text">
-          <SettingLabel settingId="mcp.client">MCP Client</SettingLabel>
-        </span>
-        <p className="m-0 mb-4 text-muted">
-          Connect Harbor&apos;s chat agent to remote MCP servers over HTTP or SSE. Discovered tools
-          are prefixed with <code className="font-mono">mcp__</code> in the agent tool list.
-        </p>
+        <SettingSectionHeading
+          settingId="mcp.client"
+          title="MCP Client"
+          description={
+            <>
+              Connect Harbor&apos;s chat agent to remote MCP servers over HTTP or SSE. Discovered
+              tools are prefixed with <code className="font-mono">mcp__</code> in the agent tool
+              list.
+            </>
+          }
+        />
 
         <div className="mb-4 flex items-center gap-3">
           <Button

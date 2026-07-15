@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(ui): implement typed delete confirmation hook and UI enhancements. (`4313a7f`)
+
 ## 2.4.0 - 2026-07-14
 
 - refactor(ui): remove unused openDocumentIds and openRequestIds props. (`838a8bd`)

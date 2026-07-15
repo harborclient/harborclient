@@ -1,19 +1,60 @@
-import { Button, FieldError, Input, Page } from '@harborclient/sdk/components';
-import type { JSX, KeyboardEvent } from 'react';
-import { faDownload } from '#/renderer/src/fontawesome';
-import { SettingsField } from '#/renderer/src/ui/Settings/components/SettingsField';
+import type { JSX } from 'react';
+import { CatalogInstallView } from '#/renderer/src/ui/shared/CatalogInstallView';
 
 interface Props {
+  /**
+   * Repository URL entered by the user for git install.
+   */
   gitInstallUrl: string;
+
+  /**
+   * Optional git branch or tag for git install.
+   */
   gitInstallRef: string;
+
+  /**
+   * Validation or IPC error message for git install.
+   */
   gitInstallError: string | null;
+
+  /**
+   * Whether a git install operation is in progress.
+   */
   gitInstallBusy: boolean;
+
+  /**
+   * Whether a file install operation is in progress.
+   */
   fileInstallBusy: boolean;
+
+  /**
+   * Whether a directory install operation is in progress.
+   */
   directoryInstallBusy: boolean;
+
+  /**
+   * Updates the repository URL field.
+   */
   onGitInstallUrlChange: (url: string) => void;
+
+  /**
+   * Updates the branch or tag field.
+   */
   onGitInstallRefChange: (ref: string) => void;
+
+  /**
+   * Starts the install-from-git flow.
+   */
   onInstallFromGit: () => void;
+
+  /**
+   * Starts the install-from-file flow (native file picker).
+   */
   onInstallFromFile: () => void;
+
+  /**
+   * Starts the load-unpacked flow (native folder picker).
+   */
   onLoadUnpacked: () => void;
 }
 
@@ -33,87 +74,39 @@ export function InstallView({
   onInstallFromFile,
   onLoadUnpacked
 }: Props): JSX.Element {
-  /**
-   * Starts git install when Enter is pressed in the ref field.
-   *
-   * @param event - Keyboard event on the ref input.
-   */
-  const handleRefKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      onInstallFromGit();
-    }
-  };
-
   return (
-    <Page
-      embedded
-      title="Install"
+    <CatalogInstallView
       description="Install a snippet bundle from a package file, git repository, or unpacked source directory."
-      icon={faDownload}
-    >
-      <div className="flex max-w-xl flex-col gap-6">
-        <div className="flex flex-col gap-4 border border-separator p-4 rounded-md">
-          <SettingsField label="Repository URL" htmlFor="snippet-git-install-url">
-            <Input
-              id="snippet-git-install-url"
-              type="url"
-              placeholder="https://github.com/owner/snippet-bundle"
-              value={gitInstallUrl}
-              disabled={gitInstallBusy}
-              onChange={(event) => onGitInstallUrlChange(event.target.value)}
-            />
-          </SettingsField>
-
-          <SettingsField label="Branch or tag (optional)" htmlFor="snippet-git-install-ref">
-            <Input
-              id="snippet-git-install-ref"
-              type="text"
-              placeholder="main"
-              value={gitInstallRef}
-              disabled={gitInstallBusy}
-              onChange={(event) => onGitInstallRefChange(event.target.value)}
-              onKeyDown={handleRefKeyDown}
-            />
-          </SettingsField>
-
-          {gitInstallError ? <FieldError>{gitInstallError}</FieldError> : null}
-
-          <Button type="button" disabled={gitInstallBusy} onClick={onInstallFromGit}>
-            {gitInstallBusy ? 'Installing…' : 'Install from Git'}
-          </Button>
-        </div>
-
-        <div className="flex flex-col gap-4 border border-separator p-4 rounded-md">
-          <div>
-            <Button
-              type="button"
-              className="w-full"
-              disabled={fileInstallBusy}
-              onClick={onInstallFromFile}
-            >
-              {fileInstallBusy ? 'Installing…' : 'Install from file'}
-            </Button>
-            <p className="mt-1 text-muted">
-              Install a snippet bundle from a <code className="text-text">.hcs</code> package.
-            </p>
-          </div>
-
-          <div>
-            <Button
-              type="button"
-              className="w-full"
-              disabled={directoryInstallBusy}
-              onClick={onLoadUnpacked}
-            >
-              {directoryInstallBusy ? 'Installing…' : 'Install from directory'}
-            </Button>
-            <p className="mt-1 text-muted">
-              Install a snippet bundle from a directory containing snippets.json.
-            </p>
-          </div>
-        </div>
-      </div>
-    </Page>
+      urlFieldId="snippet-git-install-url"
+      refFieldId="snippet-git-install-ref"
+      urlLabel="Repository URL"
+      urlPlaceholder="https://github.com/owner/snippet-bundle"
+      refLabel="Branch or tag (optional)"
+      refPlaceholder="main"
+      gitUrl={gitInstallUrl}
+      gitRef={gitInstallRef}
+      gitError={gitInstallError}
+      gitBusy={gitInstallBusy}
+      installLabel="Install from Git"
+      installBusyLabel="Installing…"
+      errorPlacement="bottom"
+      onGitUrlChange={onGitInstallUrlChange}
+      onGitRefChange={onGitInstallRefChange}
+      onInstallFromGit={onInstallFromGit}
+      fileLabel="Install from file"
+      fileBusyLabel="Installing…"
+      fileBusy={fileInstallBusy}
+      fileHint={
+        <>
+          Install a snippet bundle from a <code className="text-text">.hcs</code> package.
+        </>
+      }
+      onInstallFromFile={onInstallFromFile}
+      directoryLabel="Install from directory"
+      directoryBusyLabel="Installing…"
+      directoryBusy={directoryInstallBusy}
+      directoryHint={<>Install a snippet bundle from a directory containing snippets.json.</>}
+      onLoadUnpacked={onLoadUnpacked}
+    />
   );
 }

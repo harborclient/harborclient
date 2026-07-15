@@ -1,4 +1,11 @@
-import { VariableTable, cleanVariables, Button, Page } from '@harborclient/sdk/components';
+import {
+  VariableTable,
+  cleanVariables,
+  Button,
+  Page,
+  FormSection,
+  SettingIdLabel
+} from '@harborclient/sdk/components';
 import { useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { Variable } from '#/shared/types';
@@ -6,7 +13,6 @@ import type { Variable } from '#/shared/types';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { saveGlobalVariables } from '#/renderer/src/store/thunks/settings';
 import { settingsSectionMeta } from '../constants';
-import { SettingLabel } from '../components/SettingLabel';
 import type { SettingsSectionComponentProps } from '../catalog/registry';
 
 /**
@@ -89,14 +95,11 @@ function GlobalsSectionForm({ savedVariables, focusVariableKey }: FormProps): JS
       description="Use variables in request URLs with {{variable}} syntax."
       icon={icon}
     >
-      <div className="mb-6 flex flex-col gap-1">
-        <span className="text-[18px] font-medium text-text">
-          <SettingLabel settingId="globals.variables">Variables</SettingLabel>
-        </span>
-        <p className="hc-form-group-description m-0 text-[14px] text-muted mb-2">
-          When value is empty, the default is used. Global variables have the lowest precedence;
-          collection and environment variables override globals with the same key.
-        </p>
+      <FormSection
+        title={<SettingIdLabel settingId="globals.variables">Variables</SettingIdLabel>}
+        titleClassName="text-[18px] font-medium text-text"
+        description="When value is empty, the default is used. Global variables have the lowest precedence; collection and environment variables override globals with the same key."
+      >
         <VariableTable variables={variables} onChange={setVariables} focusKey={focusVariableKey} />
 
         <div className="flex gap-2 mt-4">
@@ -104,7 +107,7 @@ function GlobalsSectionForm({ savedVariables, focusVariableKey }: FormProps): JS
             {saving ? 'Saving…' : 'Save'}
           </Button>
         </div>
-      </div>
+      </FormSection>
     </Page>
   );
 }

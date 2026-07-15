@@ -20,7 +20,9 @@ import { faUsers } from '#/renderer/src/fontawesome';
 
 import { useTeamHubTokens } from '#/renderer/src/hooks/useTeamHubTokens';
 import { useTeamHubUsers } from '#/renderer/src/hooks/useTeamHubUsers';
+import { useTypedDeleteConfirm } from '#/renderer/src/hooks/useTypedDeleteConfirm';
 import { TeamSecretDialog } from '#/renderer/src/ui/TeamHub/TeamSecretDialog';
+import { DeleteConfirmModal } from '#/renderer/src/ui/shared/DeleteConfirmModal';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
 
 interface Props {
@@ -63,10 +65,12 @@ export function TeamTokensView({ hub }: Props): JSX.Element {
   const [createTokenName, setCreateTokenName] = useState('');
   const [creating, setCreating] = useState(false);
   const [createdSecret, setCreatedSecret] = useState<string | null>(null);
-  const [deletingToken, setDeletingToken] = useState<HubApiTokenRecord | null>(null);
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
-  const [deleting, setDeleting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const deleteToken = useTypedDeleteConfirm<HubApiTokenRecord>({
+    onDelete: (token) => window.api.deleteTeamHubToken(hub.id, token.id),
+    onSuccess: reload,
+    successMessage: 'Token deleted.'
+  });
 
   /**
    * Opens the create token modal with defaults from the user list.
@@ -120,54 +124,6 @@ export function TeamTokensView({ hub }: Props): JSX.Element {
     }
   };
 
-  /**
-   * Opens the delete confirmation modal for a token row.
-   *
-   * @param token - Token record to delete.
-   */
-  const handleDeleteClick = (token: HubApiTokenRecord): void => {
-    setActionError(null);
-    setDeleteConfirmText('');
-    setDeletingToken(token);
-  };
-
-  /**
-   * Closes the delete confirmation modal.
-   */
-  const closeDeleteModal = (): void => {
-    if (deleting) {
-      return;
-    }
-
-    setDeletingToken(null);
-    setDeleteConfirmText('');
-    setActionError(null);
-  };
-
-  /**
-   * Permanently deletes the selected token after confirmation.
-   */
-  const handleConfirmDelete = async (): Promise<void> => {
-    if (!deletingToken || deleteConfirmText !== 'DELETE') {
-      return;
-    }
-
-    setDeleting(true);
-    setActionError(null);
-
-    try {
-      await window.api.deleteTeamHubToken(hub.id, deletingToken.id);
-      setDeletingToken(null);
-      setDeleteConfirmText('');
-      reload();
-      toast.success('Token deleted.');
-    } catch (err: unknown) {
-      setActionError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setDeleting(false);
-    }
-  };
-
   return (
     <Page
       embedded
@@ -218,7 +174,7 @@ export function TeamTokensView({ hub }: Props): JSX.Element {
                   type="button"
                   variant="toolbar"
                   className={toolbarDangerButtonClass}
-                  onClick={() => handleDeleteClick(token)}
+                  onClick={() => deleteToken.open(token)}
                 >
                   Delete
                 </Button>
@@ -293,48 +249,21 @@ export function TeamTokensView({ hub }: Props): JSX.Element {
         />
       )}
 
-      {deletingToken && (
-        <Modal
-          className="w-[480px]"
-          labelledBy="team-token-delete-title"
-          onClose={closeDeleteModal}
+      {deleteToken.target ? (
+        <DeleteConfirmModal
           title="Delete token?"
           description={
             <>
-              This permanently deletes &ldquo;{deletingToken.name || 'Untitled'}&rdquo; (
-              {deletingToken.tokenPrefix}). Type <strong>DELETE</strong> to confirm.
+              This permanently deletes &ldquo;{deleteToken.target.name || 'Untitled'}&rdquo; (
+              {deleteToken.target.tokenPrefix}).
             </>
           }
-          closeDisabled={deleting}
-          disableEscape={deleting}
-        >
-          <ModalFormLayout
-            error={actionError ? <FieldError spacing="modal">{actionError}</FieldError> : null}
-            actions={
-              <Button
-                type="button"
-                variant="primaryDanger"
-                disabled={deleting || deleteConfirmText !== 'DELETE'}
-                onClick={() => void handleConfirmDelete()}
-              >
-                {deleting ? 'Deleting…' : 'Delete'}
-              </Button>
-            }
-          >
-            <FormGroup label="Confirmation" htmlFor="team-token-delete-confirm">
-              <Input
-                id="team-token-delete-confirm"
-                type="text"
-                variant="surface"
-                value={deleteConfirmText}
-                disabled={deleting}
-                autoComplete="off"
-                onChange={(event) => setDeleteConfirmText(event.target.value)}
-              />
-            </FormGroup>
-          </ModalFormLayout>
-        </Modal>
-      )}
+          busy={deleteToken.busy}
+          error={deleteToken.error}
+          onConfirm={() => void deleteToken.confirm()}
+          onClose={deleteToken.close}
+        />
+      ) : null}
     </Page>
   );
 }

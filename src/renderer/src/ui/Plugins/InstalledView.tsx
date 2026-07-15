@@ -182,7 +182,7 @@ export function InstalledView({
       }
     >
       <div className="mb-4">
-        <FormGroup className="border-none! p-0!" label={searchLabel} htmlFor={searchId} srOnly>
+        <FormGroup bordered={false} label={searchLabel} htmlFor={searchId} srOnly>
           <Input
             id={searchId}
             type="search"

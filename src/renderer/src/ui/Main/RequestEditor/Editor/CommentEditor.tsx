@@ -15,8 +15,7 @@ import {
 import '@mdxeditor/editor/style.css';
 import type { Variable } from '#/shared/types';
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
-import { FaIcon, FormGroup } from '@harborclient/sdk/components';
+import { FormGroup, SelectionActionToolbar } from '@harborclient/sdk/components';
 import { faCopy } from '#/renderer/src/fontawesome';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
 import { COPY_TO_CHAT_SHORTCUT_HINT } from '#/renderer/src/hooks/useCopyToChat';
@@ -519,30 +518,18 @@ export function CommentEditor({
           contentEditableClassName="request-comment-editor-content bg-field outline-none"
         />
       </div>
-      {showSelectionToolbar
-        ? createPortal(
-            <button
-              type="button"
-              className="hc-code-editor-selection-action app-no-drag pointer-events-auto fixed z-[70] inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-separator bg-control px-2 py-1 text-[14px] text-text shadow-sm hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
-              style={{
-                top: selectionToolbarCoords.top,
-                left: selectionToolbarCoords.left
-              }}
-              aria-label={`Copy selection from ${markdownReference.label} to chat`}
-              onMouseDown={(event) => {
-                event.preventDefault();
-              }}
-              onClick={() => {
-                void handleCopySelectionToChat();
-              }}
-            >
-              <FaIcon icon={faCopy} className="h-3.5 w-3.5" />
-              <span>Copy to chat</span>
-              <span className="text-[14px] text-muted">{COPY_TO_CHAT_SHORTCUT_HINT}</span>
-            </button>,
-            document.body
-          )
-        : null}
+      {showSelectionToolbar ? (
+        <SelectionActionToolbar
+          coords={selectionToolbarCoords}
+          label={`Copy selection from ${markdownReference.label} to chat`}
+          text="Copy to chat"
+          icon={faCopy}
+          shortcutHint={COPY_TO_CHAT_SHORTCUT_HINT}
+          onSelect={() => {
+            void handleCopySelectionToChat();
+          }}
+        />
+      ) : null}
     </div>
   );
 }

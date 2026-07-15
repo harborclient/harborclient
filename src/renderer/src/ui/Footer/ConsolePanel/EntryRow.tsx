@@ -1,4 +1,5 @@
-import { METHOD_CLASSES, statusDotClass } from '#/renderer/src/ui/shared/classes';
+import { StatusDot } from '@harborclient/sdk/components';
+import { METHOD_CLASSES, statusDotVariant } from '#/renderer/src/ui/shared/classes';
 import type { JSX } from 'react';
 import type { ConsoleEntry } from '#/renderer/src/store';
 import { formatBytes } from '#/renderer/src/ui/shared/responseFormatUtils';
@@ -29,10 +30,7 @@ export function EntryRow({ entry, expanded, onToggle }: Props): JSX.Element {
         aria-controls={`console-entry-${entry.id}-details`}
         onClick={onToggle}
       >
-        <span
-          className={`inline-block h-2 w-2 shrink-0 rounded-full ${statusDotClass(result.status)}`}
-          aria-hidden="true"
-        />
+        <StatusDot variant={statusDotVariant(result.status)} />
         <span className={`shrink-0 px-1.5 py-0.5 text-[14px] uppercase ${methodClass}`}>
           {method}
         </span>

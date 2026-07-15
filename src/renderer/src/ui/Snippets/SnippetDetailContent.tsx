@@ -1,12 +1,10 @@
-import { Spinner } from '@harborclient/sdk/components';
+import { CatalogReadmeMarkdown, ScreenshotCarousel, Spinner } from '@harborclient/sdk/components';
 import { useMemo, type JSX } from 'react';
 import type { SnippetCatalogEntry } from '#/shared/snippet/catalog';
 import type { SnippetGitPreview } from '#/shared/snippet/types';
 import { stripPluginScreenshotImagesFromMarkdown } from '#/shared/plugin/stripPluginScreenshotImagesFromMarkdown';
 import { snippetScopeLabel } from '#/shared/snippetScope';
 import { scriptStageLabel } from '#/shared/scriptStage';
-import { ScreenshotCarousel } from '#/renderer/src/ui/Plugins/ScreenshotCarousel';
-import { PluginReadmeMarkdown } from '#/renderer/src/ui/Plugins/PluginReadmeMarkdown';
 
 const SCREENSHOT_FALLBACK_PATH = 'screenshot.png';
 
@@ -93,7 +91,12 @@ export function SnippetDetailContent({
           {entry.author} · v{entry.version}
         </p>
         {screenshotSrcs.length > 0 ? (
-          <ScreenshotCarousel variant="tab" images={screenshotSrcs} />
+          <ScreenshotCarousel
+            variant="tab"
+            images={screenshotSrcs}
+            ariaLabel="Snippet screenshots"
+            lightboxLabel="Snippet screenshot preview"
+          />
         ) : null}
 
         <p className="m-0 text-text">{entry.summary}</p>
@@ -119,7 +122,7 @@ export function SnippetDetailContent({
 
         {previewError ? <p className="m-0 text-danger">{previewError}</p> : null}
 
-        <PluginReadmeMarkdown content={displayDescriptionMarkdown} />
+        <CatalogReadmeMarkdown content={displayDescriptionMarkdown} />
       </div>
     </div>
   );

@@ -5,7 +5,8 @@ import {
   Page,
   Button,
   FormGroup,
-  Input
+  Input,
+  FormSection
 } from '@harborclient/sdk/components';
 import { useEffect, useMemo, useState, type JSX } from 'react';
 import type { Environment, Variable } from '#/shared/types';
@@ -124,18 +125,22 @@ export function Form({
           </FormGroup>
         </div>
 
-        <div className="mb-6 flex flex-col gap-1">
-          <span className="text-[18px] text-muted">Variables</span>
-          <p className="hc-form-group-description m-0 text-[14px] text-muted mb-2">
-            Use variables in request URLs with {'{{variable}}'} syntax. When value is empty, the
-            default is used. Environment variables override collection variables with the same key.
-          </p>
+        <FormSection
+          title="Variables"
+          description={
+            <>
+              Use variables in request URLs with {'{{variable}}'} syntax. When value is empty, the
+              default is used. Environment variables override collection variables with the same
+              key.
+            </>
+          }
+        >
           <VariableTable
             variables={variables}
             onChange={setVariables}
             focusKey={focusVariableKey}
           />
-        </div>
+        </FormSection>
 
         <ModalFooter spaced>
           <Button onClick={() => void handleSave()} disabled={!name.trim() || saving}>

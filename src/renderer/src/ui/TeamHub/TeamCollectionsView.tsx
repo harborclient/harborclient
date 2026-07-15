@@ -1,25 +1,21 @@
 import {
   AsyncListState,
   Button,
-  FieldError,
-  FormGroup,
-  Input,
-  Modal,
-  ModalFormLayout,
   Page,
   ResourceList,
   ResourceListPrimary,
   ResourceListRow
 } from '@harborclient/sdk/components';
 import { useState, type JSX } from 'react';
-import toast from 'react-hot-toast';
 import type { AdminResourceOption, TeamHub } from '#/shared/types';
 
 import { faUsers } from '#/renderer/src/fontawesome';
 
 import { useEscapeBackCapture } from '#/renderer/src/hooks/useEscapeBack';
 import { useTeamHubAdminCollections } from '#/renderer/src/hooks/useTeamHubAdminCollections';
+import { useTypedDeleteConfirm } from '#/renderer/src/hooks/useTypedDeleteConfirm';
 import { TeamCollectionContentsView } from '#/renderer/src/ui/TeamHub/TeamCollectionContentsView';
+import { DeleteConfirmModal } from '#/renderer/src/ui/shared/DeleteConfirmModal';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
 
 interface Props {
@@ -35,58 +31,11 @@ interface Props {
 export function TeamCollectionsView({ hub }: Props): JSX.Element {
   const { collections, loading, error, reload } = useTeamHubAdminCollections(hub.id);
   const [selectedCollection, setSelectedCollection] = useState<AdminResourceOption | null>(null);
-  const [deletingCollection, setDeletingCollection] = useState<AdminResourceOption | null>(null);
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
-  const [deleting, setDeleting] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
-
-  /**
-   * Opens the delete confirmation modal for a collection row.
-   *
-   * @param collection - Collection record to delete.
-   */
-  const handleDeleteClick = (collection: AdminResourceOption): void => {
-    setActionError(null);
-    setDeleteConfirmText('');
-    setDeletingCollection(collection);
-  };
-
-  /**
-   * Closes the delete confirmation modal.
-   */
-  const closeDeleteModal = (): void => {
-    if (deleting) {
-      return;
-    }
-
-    setDeletingCollection(null);
-    setDeleteConfirmText('');
-    setActionError(null);
-  };
-
-  /**
-   * Permanently deletes the selected collection on the hub after confirmation.
-   */
-  const handleConfirmDelete = async (): Promise<void> => {
-    if (!deletingCollection || deleteConfirmText !== 'DELETE') {
-      return;
-    }
-
-    setDeleting(true);
-    setActionError(null);
-
-    try {
-      await window.api.deleteTeamHubCollection(hub.id, deletingCollection.id);
-      setDeletingCollection(null);
-      setDeleteConfirmText('');
-      reload();
-      toast.success('Collection deleted.');
-    } catch (err: unknown) {
-      setActionError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setDeleting(false);
-    }
-  };
+  const deleteCollection = useTypedDeleteConfirm<AdminResourceOption>({
+    onDelete: (collection) => window.api.deleteTeamHubCollection(hub.id, collection.id),
+    onSuccess: reload,
+    successMessage: 'Collection deleted.'
+  });
 
   /**
    * Returns from collection contents to the collections list on Escape.
@@ -144,7 +93,7 @@ export function TeamCollectionsView({ hub }: Props): JSX.Element {
                     type="button"
                     variant="toolbar"
                     className={toolbarDangerButtonClass}
-                    onClick={() => handleDeleteClick(collection)}
+                    onClick={() => deleteCollection.open(collection)}
                   >
                     Delete
                   </Button>
@@ -155,53 +104,21 @@ export function TeamCollectionsView({ hub }: Props): JSX.Element {
         </ResourceList>
       </AsyncListState>
 
-      {actionError && !deletingCollection && (
-        <FieldError spacing="section">{actionError}</FieldError>
-      )}
-
-      {deletingCollection && (
-        <Modal
-          labelledBy="delete-collection-title"
-          onClose={closeDeleteModal}
+      {deleteCollection.target ? (
+        <DeleteConfirmModal
           title="Delete collection?"
           description={
             <>
-              Permanently delete &ldquo;{deletingCollection.name}&rdquo; from the team hub? Team
-              members will lose access to this collection on the server.
+              Permanently delete &ldquo;{deleteCollection.target.name}&rdquo; from the team hub?
+              Team members will lose access to this collection on the server.
             </>
           }
-          closeDisabled={deleting}
-          disableEscape={deleting}
-        >
-          <ModalFormLayout
-            error={actionError ? <FieldError spacing="section">{actionError}</FieldError> : null}
-            actions={
-              <Button
-                type="button"
-                variant="primaryDanger"
-                disabled={deleting || deleteConfirmText !== 'DELETE'}
-                onClick={() => void handleConfirmDelete()}
-              >
-                {deleting ? 'Deleting…' : 'Delete'}
-              </Button>
-            }
-          >
-            <FormGroup
-              label="Type DELETE to confirm"
-              htmlFor="delete-collection-confirm"
-              className="mb-4"
-            >
-              <Input
-                id="delete-collection-confirm"
-                value={deleteConfirmText}
-                disabled={deleting}
-                onChange={(event) => setDeleteConfirmText(event.target.value)}
-                autoComplete="off"
-              />
-            </FormGroup>
-          </ModalFormLayout>
-        </Modal>
-      )}
+          busy={deleteCollection.busy}
+          error={deleteCollection.error}
+          onConfirm={() => void deleteCollection.confirm()}
+          onClose={deleteCollection.close}
+        />
+      ) : null}
     </Page>
   );
 }

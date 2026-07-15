@@ -216,7 +216,7 @@ export function Cookies(): JSX.Element {
         <aside className="flex h-full w-[300px] shrink-0 flex-col border-r border-separator bg-sidebar">
           <div className="flex flex-col gap-3 border-b border-separator p-3">
             <FormGroup
-              className="border-none! p-0!"
+              bordered={false}
               label="Search cookie domains"
               htmlFor="cookies-domain-search"
               srOnly

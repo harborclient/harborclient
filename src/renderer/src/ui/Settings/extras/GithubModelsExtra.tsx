@@ -1,6 +1,6 @@
+import { SettingSectionHeading } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import { OAuthAuthPanel } from '#/renderer/src/ui/Settings/StorageLocationsSection/GitFields/OAuthAuthPanel';
-import { SettingLabel } from '#/renderer/src/ui/Settings/components/SettingLabel';
 import { useGithubModelsAuth } from '#/renderer/src/hooks/useGithubModelsAuth';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 
@@ -33,13 +33,13 @@ export function GithubModelsExtra(): JSX.Element {
 
   return (
     <section className="border border-separator p-3 rounded-md">
-      <span className="text-[18px] font-medium text-text">
-        <SettingLabel settingId="ai.githubModels">GitHub Models</SettingLabel>
-      </span>
-      <p className="m-0 mb-4 text-muted">
-        Use your GitHub account for AI models. Free GitHub accounts receive rate-limited GitHub
-        Models usage on your account&apos;s quota, separate from git storage sign-in.
-      </p>
+      <SettingSectionHeading
+        settingId="ai.githubModels"
+        title="GitHub Models"
+        description={
+          "Use your GitHub account for AI models. Free GitHub accounts receive rate-limited GitHub Models usage on your account's quota, separate from git storage sign-in."
+        }
+      />
 
       {status.connected && status.login ? (
         <p className="m-0 mb-3 text-text" role="status">

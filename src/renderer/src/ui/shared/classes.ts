@@ -6,10 +6,11 @@ import {
   METHOD_CLASSES,
   sourceRow,
   statusDotClass,
+  statusDotVariant,
   tabItem as requestTabItem
 } from '@harborclient/sdk/components';
 
-export { requestTabItem, sourceRow, METHOD_CLASSES, statusDotClass };
+export { requestTabItem, sourceRow, METHOD_CLASSES, statusDotClass, statusDotVariant };
 
 export const separator = 'h-px bg-separator';
 
@@ -44,13 +45,6 @@ export const scriptRowIconButtonClass =
  */
 export const footerButtonGroup =
   'inline-flex min-w-0 items-center rounded-md p-0.5 shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)] app-no-drag';
-
-/**
- * Compact inset capsule for sidebar count badges (e.g. git uncommitted changes).
- * Fill uses the recessed selection tone so git text tokens remain available for request names.
- */
-export const sidebarRecessedBadge =
-  'inline-flex h-[18px] min-w-[22px] shrink-0 cursor-pointer items-center justify-center rounded-full bg-selection px-2 text-[14px] leading-none text-muted shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)] hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent app-no-drag';
 
 /**
  * Inset status panel for git branch and working-tree summary in the Changes section.

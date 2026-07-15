@@ -25,7 +25,7 @@ import {
 } from '#/renderer/src/store/selectors';
 import { runCollectionRequests } from '#/renderer/src/store/thunks/collectionRunner';
 import { saveRunResult } from '#/renderer/src/store/thunks/runResults';
-import { Button, FaIcon } from '@harborclient/sdk/components';
+import { Button, FaIcon, ProgressBar, StatusDot } from '@harborclient/sdk/components';
 import { FormGroup } from '@harborclient/sdk/components';
 import { Checkbox, Input, Radio, Select } from '@harborclient/sdk/components';
 import {
@@ -183,16 +183,6 @@ export function CollectionRunner({ page }: Props): JSX.Element {
       foldersByCollection[runner.collectionId] ?? []
     );
   }, [runner, requestsByCollection, foldersByCollection]);
-
-  /**
-   * Progress percentage for the determinate progress bar during a run.
-   */
-  const progressPercent = useMemo((): number => {
-    if (!runner || runner.total === 0) {
-      return 0;
-    }
-    return Math.round((runner.completed / runner.total) * 100);
-  }, [runner]);
 
   /**
    * Starts the sequential collection run when not already running.
@@ -500,19 +490,11 @@ export function CollectionRunner({ page }: Props): JSX.Element {
 
           {showResults && (
             <div className="space-y-4 border-t border-separator pt-4">
-              <div
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={progressPercent}
-                aria-label="Collection run progress"
-                className="h-2 overflow-hidden rounded-full bg-separator"
-              >
-                <div
-                  className="h-full rounded-full bg-accent transition-[width] duration-200"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
+              <ProgressBar
+                value={runner.completed}
+                max={runner.total}
+                label="Collection run progress"
+              />
 
               <div
                 className="mb-3 flex items-center justify-between gap-3 border border-md border-separator p-4"
@@ -573,15 +555,15 @@ export function CollectionRunner({ page }: Props): JSX.Element {
                               : 'text-muted'
                         }
                       >
-                        <span
-                          className={`mr-1.5 inline-block h-2 w-2 rounded-full ${
+                        <StatusDot
+                          variant={
                             result.status === 'passed'
-                              ? 'bg-success'
+                              ? 'success'
                               : result.status === 'failed'
-                                ? 'bg-danger'
-                                : 'bg-muted'
-                          }`}
-                          aria-hidden="true"
+                                ? 'danger'
+                                : 'muted'
+                          }
+                          className="mr-1.5"
                         />
                         {resultStatusLabel(result)}
                       </span>

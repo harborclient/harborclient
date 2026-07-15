@@ -1,4 +1,5 @@
-import { statusDotClass } from '#/renderer/src/ui/shared/classes';
+import { StatusDot } from '@harborclient/sdk/components';
+import { statusDotVariant } from '#/renderer/src/ui/shared/classes';
 import type { RedirectHop } from '#/shared/types';
 import type { JSX } from 'react';
 import { getFinalRedirectUrl } from './redirectsDisplay';
@@ -33,10 +34,7 @@ export function Redirects({ redirects }: Props): JSX.Element {
             className={`px-2.5 py-2 ${index > 0 ? 'border-t border-separator' : ''}`}
           >
             <div className="mb-1 flex items-center gap-2 text-[14px] font-medium text-text">
-              <span
-                className={`inline-block h-2 w-2 shrink-0 rounded-full ${statusDotClass(hop.status)}`}
-                aria-hidden="true"
-              />
+              <StatusDot variant={statusDotVariant(hop.status)} />
               <span>
                 {hop.method}{' '}
                 <span className="font-normal text-muted">

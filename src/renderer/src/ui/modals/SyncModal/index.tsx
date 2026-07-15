@@ -5,7 +5,7 @@ import {
   selectSyncModal,
   type SyncProviderProgress
 } from '#/renderer/src/store/slices/modalsSlice';
-import { Modal } from '@harborclient/sdk/components';
+import { Modal, ProgressBar } from '@harborclient/sdk/components';
 
 /**
  * Returns a human-readable label for a provider kind.
@@ -57,14 +57,6 @@ export function SyncModal(): JSX.Element | null {
     [syncModal.providers]
   );
 
-  /**
-   * Computes progress percentage for the determinate progress bar.
-   */
-  const progressPercent = useMemo((): number => {
-    if (syncModal.total === 0) return 0;
-    return Math.round((syncModal.completed / syncModal.total) * 100);
-  }, [syncModal.completed, syncModal.total]);
-
   if (!syncModal.open) return null;
 
   return (
@@ -78,19 +70,7 @@ export function SyncModal(): JSX.Element | null {
     >
       {syncModal.running && (
         <div className="space-y-3">
-          <div
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={progressPercent}
-            aria-label="Sync progress"
-            className="h-2 overflow-hidden rounded-full bg-separator"
-          >
-            <div
-              className="h-full rounded-full bg-accent transition-[width] duration-200"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
+          <ProgressBar value={syncModal.completed} max={syncModal.total} label="Sync progress" />
           <p className="m-0 text-[14px] text-muted" role="status" aria-live="polite">
             {syncModal.total === 0
               ? 'No providers configured.'

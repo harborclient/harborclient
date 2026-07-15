@@ -1,4 +1,4 @@
-import { Button, Checkbox, FormGroup, Input } from '@harborclient/sdk/components';
+import { Badge, Button, Checkbox, FormGroup, Input } from '@harborclient/sdk/components';
 import { useState, type JSX } from 'react';
 import type { PluginSource } from '#/shared/plugin/catalog';
 import { isHarborClientEndpoint } from '#/shared/plugin/catalog';
@@ -164,9 +164,9 @@ export function SettingsView({
                       className="p-0! m-0!"
                     />
                     {untrusted ? (
-                      <span className="mt-1 inline-block rounded bg-danger/20 px-1.5 py-0.5 text-[14px] text-danger">
+                      <Badge variant="danger" className="mt-1">
                         Untrusted source
-                      </span>
+                      </Badge>
                     ) : null}
                   </div>
                 </div>
@@ -206,9 +206,9 @@ export function SettingsView({
                       layout="associated"
                       labelClassName="block break-all text-[14px] text-text"
                     />
-                    <span className="mt-1 inline-block rounded bg-accent/15 px-1.5 py-0.5 text-[14px] text-text">
+                    <Badge variant="category" className="mt-1">
                       From {source.hubName}
-                    </span>
+                    </Badge>
                   </div>
                 </div>
               </li>

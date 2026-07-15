@@ -1,13 +1,6 @@
 import { useCallback, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import {
-  Button,
-  FieldError,
-  FormGroup,
-  Input,
-  Modal,
-  ModalFooter
-} from '@harborclient/sdk/components';
+import { PromptModal } from '@harborclient/sdk/components';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   closeTabGroupModal,
@@ -116,29 +109,16 @@ export function TabGroupModal(): JSX.Element | null {
         : 'Clone';
 
   return (
-    <Modal onClose={handleClose} labelledBy="tab-group-modal-title" title={title}>
-      <FormGroup className="border-none! p-0!" label="Tab group name" labelTone="muted">
-        <Input
-          className="w-full"
-          type="text"
-          autoFocus
-          value={tabGroupModal.name}
-          onChange={(event) => dispatch(setTabGroupModalName(event.target.value))}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              void handleSubmit();
-            }
-          }}
-        />
-      </FormGroup>
-      {tabGroupModal.submitError ? (
-        <FieldError spacing="section">{tabGroupModal.submitError}</FieldError>
-      ) : null}
-      <ModalFooter spaced>
-        <Button onClick={() => void handleSubmit()} disabled={!tabGroupModal.name.trim()}>
-          {submitLabel}
-        </Button>
-      </ModalFooter>
-    </Modal>
+    <PromptModal
+      title={title}
+      labelledBy="tab-group-modal-title"
+      label="Tab group name"
+      value={tabGroupModal.name}
+      onChange={(value) => dispatch(setTabGroupModalName(value))}
+      onSubmit={() => void handleSubmit()}
+      onClose={handleClose}
+      submitLabel={submitLabel}
+      error={tabGroupModal.submitError}
+    />
   );
 }

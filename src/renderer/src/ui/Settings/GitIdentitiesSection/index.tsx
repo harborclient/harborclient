@@ -2,10 +2,13 @@ import {
   Button,
   Checkbox,
   FaIcon,
+  FormGroup,
   Input,
   Modal,
   ModalFooter,
-  Page
+  Page,
+  SettingIdLabel,
+  SettingSectionHeading
 } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type JSX } from 'react';
 import toast from 'react-hot-toast';
@@ -17,8 +20,6 @@ import { faGithub, faPlus } from '#/renderer/src/fontawesome';
 import { GitAuthForm, type GitAuthAuthorizedResult } from '#/renderer/src/ui/git/GitAuthForm';
 import { GitAuthorForm } from '#/renderer/src/ui/git/GitAuthorForm';
 import { entryById } from '#/renderer/src/ui/Settings/catalog/catalog';
-import { SettingLabel } from '#/renderer/src/ui/Settings/components/SettingLabel';
-import { SettingsField } from '#/renderer/src/ui/Settings/components/SettingsField';
 import { SettingsSaveFooter } from '#/renderer/src/ui/Settings/components/SettingsSaveFooter';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
@@ -235,8 +236,10 @@ export function GitIdentitiesSection(): JSX.Element {
       ]}
     >
       <div className="mb-6 flex flex-col gap-6">
-        <SettingsField
-          label={<SettingLabel settingId="git.autoTrack">{autoTrackCatalog.label}</SettingLabel>}
+        <FormGroup
+          label={
+            <SettingIdLabel settingId="git.autoTrack">{autoTrackCatalog.label}</SettingIdLabel>
+          }
           description={autoTrackCatalog.description}
           htmlFor={GIT_AUTO_TRACK_INPUT_ID}
           layout="checkbox"
@@ -247,13 +250,13 @@ export function GitIdentitiesSection(): JSX.Element {
             disabled={disabled}
             onChange={handleAutoAddChange}
           />
-        </SettingsField>
+        </FormGroup>
 
-        <SettingsField
+        <FormGroup
           label={
-            <SettingLabel settingId="git.externalMergeEditorPath">
+            <SettingIdLabel settingId="git.externalMergeEditorPath">
               External merge editor
-            </SettingLabel>
+            </SettingIdLabel>
           }
           description="Optional executable used to resolve merge conflicts. Leave empty to use HarborClient's built-in merge editor."
           htmlFor={GIT_EXTERNAL_MERGE_EDITOR_INPUT_ID}
@@ -277,11 +280,13 @@ export function GitIdentitiesSection(): JSX.Element {
               Browse
             </Button>
           </div>
-        </SettingsField>
+        </FormGroup>
 
-        <SettingsField
+        <FormGroup
           label={
-            <SettingLabel settingId="git.commitAuthor">{commitAuthorCatalog.label}</SettingLabel>
+            <SettingIdLabel settingId="git.commitAuthor">
+              {commitAuthorCatalog.label}
+            </SettingIdLabel>
           }
         >
           <GitAuthorForm
@@ -291,16 +296,14 @@ export function GitIdentitiesSection(): JSX.Element {
             onNameChange={handleCommitAuthorNameChange}
             onEmailChange={handleCommitAuthorEmailChange}
           />
-        </SettingsField>
+        </FormGroup>
       </div>
 
       <div className="mb-6 mt-2">
         <SettingsSaveFooter />
       </div>
 
-      <span className="text-[18px] font-medium text-text mb-2">
-        <SettingLabel settingId="git.identities">Git Identities</SettingLabel>
-      </span>
+      <SettingSectionHeading settingId="git.identities" title="Git Identities" className="mb-2" />
       {loading ? (
         <p className="m-0 text-muted" role="status">
           Loading git identities…

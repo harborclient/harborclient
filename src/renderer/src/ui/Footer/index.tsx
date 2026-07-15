@@ -4,7 +4,8 @@ import {
   FooterIcon,
   FOOTER_STATUS_BAR_SLOT_HEIGHT,
   footerBarPaddingClass,
-  RowActionsMenu
+  RowActionsMenu,
+  StatusDot
 } from '@harborclient/sdk/components';
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import type { Variable } from '#/shared/types';
@@ -388,10 +389,7 @@ export function Footer({
               <span className="inline-flex items-center">
                 MCP
                 <span className="ml-1 inline-flex h-4 w-3 shrink-0 items-center justify-center">
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${mcpServerRunning ? 'bg-success' : 'bg-muted'}`}
-                    aria-hidden
-                  />
+                  <StatusDot variant={mcpServerRunning ? 'success' : 'muted'} size="sm" />
                 </span>
               </span>
             </FooterButton>

@@ -1,26 +1,11 @@
-import {
-  EmptySectionLabel,
-  Modal,
-  RowActionsMenu,
-  SidebarDocumentItem,
-  SidebarItem,
-  SidebarRequestItem,
-  SidebarStatusMarker,
-  SIDEBAR_ITEM_BUTTON_CLASS
-} from '@harborclient/sdk/components';
+import { EmptySectionLabel, RowActionsMenu } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useMemo, useState, type JSX, type MouseEvent } from 'react';
 import toast from 'react-hot-toast';
 import type { GitRequestDiffFileEntry, SourceControlStatus } from '#/shared/types';
-import {
-  buildGitCommitFileAccessibleName,
-  gitChangeStatusMarker,
-  gitChangeStatusMarkerLabel,
-  gitCommitChangeNameClass,
-  resolveGitChangeDisplayLabel
-} from '#/renderer/src/git/gitCommitChangeDisplay';
+import { resolveGitChangeDisplayLabel } from '#/renderer/src/git/gitCommitChangeDisplay';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
-import { faMarkdown } from '#/renderer/src/fontawesome';
-import { GitDiffFileView } from '#/renderer/src/ui/sidebars/GitSidebar/modals/GitDiffFileView';
+import { GitChangedFileRow } from '#/renderer/src/ui/shared/GitChangedFileRow';
+import { GitFileDiffModal } from '#/renderer/src/ui/shared/GitFileDiffModal';
 import { useSidebarGit } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarGitContext';
 import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
 import {
@@ -324,9 +309,6 @@ export function GitChangesSection({
           ) : null}
           <ul className="m-0 flex list-none flex-col gap-0 p-0 pb-2 pt-2">
             {orderedFiles.map((file) => {
-              const displayLabel = resolveGitChangeDisplayLabel(file.path, file.displayName);
-              const statusMarker = gitChangeStatusMarker(file.status, file.hasConflict);
-              const statusMarkerLabel = gitChangeStatusMarkerLabel(file.status, file.hasConflict);
               const menuId = `git-change-${file.path}`;
               const showRowMenu =
                 file.resourceKind === 'request' || file.resourceKind === 'document';
@@ -339,13 +321,6 @@ export function GitChangesSection({
                   }
                 ]
               ];
-              const statusMarkerProps = {
-                marker: statusMarker,
-                className: file.hasConflict
-                  ? 'text-amber-700 dark:text-amber-300'
-                  : gitCommitChangeNameClass(file.status),
-                label: statusMarkerLabel
-              };
               const rowActions = showRowMenu ? (
                 <RowActionsMenu
                   menuId={menuId}
@@ -361,68 +336,16 @@ export function GitChangesSection({
                     setOpenMenuId(menuId);
                   }
                 : undefined;
-              const rowAriaLabel = file.hasConflict
-                ? `Resolve merge conflict in ${displayLabel}`
-                : buildGitCommitFileAccessibleName(
-                    file.path,
-                    file.status,
-                    file.displayName,
-                    file.resourceKind
-                  );
-
-              if (file.resourceKind === 'request' && file.method != null) {
-                return (
-                  <SidebarRequestItem
-                    key={file.path}
-                    as="li"
-                    method={file.method}
-                    name={displayLabel}
-                    statusMarker={statusMarkerProps}
-                    ariaLabel={rowAriaLabel}
-                    onClick={() => handleFileClick(file)}
-                    onContextMenu={rowContextMenu}
-                    actions={rowActions}
-                  />
-                );
-              }
-
-              if (file.resourceKind === 'document') {
-                return (
-                  <SidebarDocumentItem
-                    key={file.path}
-                    as="li"
-                    icon={faMarkdown}
-                    name={displayLabel}
-                    statusMarker={statusMarkerProps}
-                    ariaLabel={rowAriaLabel}
-                    onClick={() => handleFileClick(file)}
-                    onContextMenu={rowContextMenu}
-                    actions={rowActions}
-                  />
-                );
-              }
 
               return (
-                <SidebarItem
+                <GitChangedFileRow
                   key={file.path}
-                  as="li"
-                  onContextMenu={rowContextMenu}
+                  file={file}
+                  hasConflict={file.hasConflict}
+                  onClick={() => handleFileClick(file)}
                   actions={rowActions}
-                >
-                  <button
-                    type="button"
-                    className={SIDEBAR_ITEM_BUTTON_CLASS}
-                    aria-label={rowAriaLabel}
-                    onClick={() => handleFileClick(file)}
-                  >
-                    <span className="min-w-0 truncate">{displayLabel}</span>
-                    <SidebarStatusMarker
-                      marker={statusMarkerProps.marker}
-                      className={statusMarkerProps.className}
-                      label={statusMarkerProps.label}
-                    />
-                  </button>
-                </SidebarItem>
+                  onContextMenu={rowContextMenu}
+                />
               );
             })}
           </ul>
@@ -430,18 +353,15 @@ export function GitChangesSection({
       )}
 
       {selectedFile != null ? (
-        <Modal
+        <GitFileDiffModal
           onClose={() => setSelectedFile(null)}
-          className="flex w-[80vw] max-w-[calc(100vw-2rem)] max-h-[85vh] flex-col"
-          labelledBy="git-file-diff-title"
           title={
             selectedFile.renamedFrom != null
               ? `Changes — ${resolveGitChangeDisplayLabel(selectedFile.path, selectedFile.displayName)} (renamed from ${selectedFile.renamedFrom})`
               : `Changes — ${resolveGitChangeDisplayLabel(selectedFile.path, selectedFile.displayName)}`
           }
-        >
-          <GitDiffFileView file={selectedFile} />
-        </Modal>
+          file={selectedFile}
+        />
       ) : null}
     </>
   );

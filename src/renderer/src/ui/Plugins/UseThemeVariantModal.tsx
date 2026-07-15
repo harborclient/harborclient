@@ -1,5 +1,5 @@
-import { Button, FormGroup, Modal, ModalFooter, Select } from '@harborclient/sdk/components';
-import { useCallback, useId, useState, type JSX } from 'react';
+import { ThemeVariantPickerModal } from '@harborclient/sdk/components';
+import type { JSX } from 'react';
 import type { PluginInfo } from '#/shared/plugin/types';
 import type { PluginThemeVariant } from '#/renderer/src/ui/Plugins/listPluginThemeVariants';
 
@@ -47,68 +47,21 @@ export function UseThemeVariantModal({
   onConfirm,
   onCancel
 }: Props): JSX.Element {
-  const selectId = useId();
-  const [selectedThemeId, setSelectedThemeId] = useState(variants[0]?.id ?? '');
-  const [busy, setBusy] = useState(false);
-
-  /**
-   * Applies the selected variant and closes the dialog.
-   */
-  const handleConfirm = useCallback((): void => {
-    if (!selectedThemeId) {
-      return;
-    }
-    setBusy(true);
-    void (async () => {
-      try {
-        await onConfirm(selectedThemeId);
-      } finally {
-        setBusy(false);
-      }
-    })();
-  }, [onConfirm, selectedThemeId]);
-
   return (
-    <Modal
-      onClose={onCancel}
-      labelledBy="use-theme-variant-title"
+    <ThemeVariantPickerModal
+      variants={variants.map((variant) => ({
+        id: variant.id,
+        label: formatVariantLabel(variant)
+      }))}
+      selectionMode="select"
       title={`Use ${plugin.name}`}
-      closeDisabled={busy}
-      disableEscape={busy}
-    >
-      <p className="mb-3 text-[14px] text-text">Choose which variant of {plugin.name} to apply.</p>
-      <FormGroup label="Theme variant" htmlFor={selectId}>
-        <Select
-          id={selectId}
-          value={selectedThemeId}
-          disabled={busy || variants.length === 0}
-          onChange={(event) => setSelectedThemeId(event.target.value)}
-        >
-          {variants.map((variant) => (
-            <option key={variant.id} value={variant.id}>
-              {formatVariantLabel(variant)}
-            </option>
-          ))}
-        </Select>
-      </FormGroup>
-      {busy ? (
-        <p className="mt-3 text-[14px] text-muted" role="status">
-          Applying theme…
-        </p>
-      ) : null}
-      <ModalFooter>
-        <Button type="button" variant="secondary" disabled={busy} onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button
-          type="button"
-          variant="primary"
-          disabled={busy || !selectedThemeId}
-          onClick={handleConfirm}
-        >
-          Use theme
-        </Button>
-      </ModalFooter>
-    </Modal>
+      description={`Choose which variant of ${plugin.name} to apply.`}
+      selectorLabel="Theme variant"
+      busyStatus="Applying theme…"
+      confirmLabel="Use theme"
+      cancelLabel="Cancel"
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
   );
 }

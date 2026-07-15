@@ -1,11 +1,4 @@
-import {
-  Button,
-  FieldError,
-  FormGroup,
-  Input,
-  Modal,
-  ModalFooter
-} from '@harborclient/sdk/components';
+import { PromptModal } from '@harborclient/sdk/components';
 import { useCallback, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import { canCreateGitBranch } from '#/renderer/src/git/gitBranchModalHelpers';
@@ -89,37 +82,19 @@ export function GitCreateBranchModal({
   }
 
   return (
-    <Modal
-      onClose={handleClose}
-      className="w-[32rem]"
-      labelledBy="git-create-branch-title"
+    <PromptModal
       title={`Create branch — ${connectionName}`}
-    >
-      <FormGroup label="Branch name" labelTone="muted">
-        <Input
-          className="w-full"
-          type="text"
-          autoFocus
-          value={name}
-          disabled={busy}
-          onChange={(event) => setName(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              void handleCreate();
-            }
-          }}
-        />
-      </FormGroup>
-      {error != null && (
-        <FieldError spacing="section" className="mb-0 mt-3">
-          {error}
-        </FieldError>
-      )}
-      <ModalFooter spaced>
-        <Button disabled={!canCreateGitBranch(name, busy)} onClick={() => void handleCreate()}>
-          Branch
-        </Button>
-      </ModalFooter>
-    </Modal>
+      labelledBy="git-create-branch-title"
+      label="Branch name"
+      value={name}
+      onChange={setName}
+      onSubmit={() => void handleCreate()}
+      onClose={handleClose}
+      submitLabel="Branch"
+      busy={busy}
+      error={error}
+      canSubmit={(value) => canCreateGitBranch(value, busy)}
+      className="w-[32rem]"
+    />
   );
 }

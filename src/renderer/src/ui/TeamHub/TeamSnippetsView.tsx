@@ -2,11 +2,6 @@ import {
   AsyncListState,
   Button,
   FaIcon,
-  FieldError,
-  FormGroup,
-  Input,
-  Modal,
-  ModalFormLayout,
   Page,
   ResourceList,
   ResourceListPrimary,
@@ -21,7 +16,9 @@ import type { TeamHub, TeamHubAdminSnippet } from '#/shared/types';
 import { faPlus, faCode } from '#/renderer/src/fontawesome';
 
 import { useTeamHubAdminSnippets } from '#/renderer/src/hooks/useTeamHubAdminSnippets';
+import { useTypedDeleteConfirm } from '#/renderer/src/hooks/useTypedDeleteConfirm';
 import { CodePreviewTooltip } from '#/renderer/src/ui/shared/CodePreviewTooltip';
+import { DeleteConfirmModal } from '#/renderer/src/ui/shared/DeleteConfirmModal';
 import { SnippetEditModal } from '#/renderer/src/ui/shared/SnippetEditModal';
 import {
   createBlankSnippet,
@@ -46,10 +43,11 @@ export function TeamSnippetsView({ hub }: Props): JSX.Element {
   const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [deletingSnippet, setDeletingSnippet] = useState<TeamHubAdminSnippet | null>(null);
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
-  const [deleting, setDeleting] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const deleteSnippet = useTypedDeleteConfirm<TeamHubAdminSnippet>({
+    onDelete: (snippet) => window.api.deleteTeamHubAdminSnippet(hub.id, snippet.id),
+    onSuccess: reload,
+    successMessage: 'Snippet deleted.'
+  });
 
   /**
    * Opens the create modal with a blank snippet draft.
@@ -129,54 +127,6 @@ export function TeamSnippetsView({ hub }: Props): JSX.Element {
     }
   };
 
-  /**
-   * Opens the delete confirmation modal for a snippet row.
-   *
-   * @param snippet - Snippet record to delete.
-   */
-  const handleDeleteClick = (snippet: TeamHubAdminSnippet): void => {
-    setActionError(null);
-    setDeleteConfirmText('');
-    setDeletingSnippet(snippet);
-  };
-
-  /**
-   * Closes the delete confirmation modal.
-   */
-  const closeDeleteModal = (): void => {
-    if (deleting) {
-      return;
-    }
-
-    setDeletingSnippet(null);
-    setDeleteConfirmText('');
-    setActionError(null);
-  };
-
-  /**
-   * Permanently deletes the selected snippet on the hub after confirmation.
-   */
-  const handleConfirmDelete = async (): Promise<void> => {
-    if (!deletingSnippet || deleteConfirmText !== 'DELETE') {
-      return;
-    }
-
-    setDeleting(true);
-    setActionError(null);
-
-    try {
-      await window.api.deleteTeamHubAdminSnippet(hub.id, deletingSnippet.id);
-      setDeletingSnippet(null);
-      setDeleteConfirmText('');
-      reload();
-      toast.success('Snippet deleted.');
-    } catch (err: unknown) {
-      setActionError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setDeleting(false);
-    }
-  };
-
   return (
     <Page
       embedded
@@ -234,7 +184,7 @@ export function TeamSnippetsView({ hub }: Props): JSX.Element {
                     variant="toolbar"
                     className={toolbarDangerButtonClass}
                     aria-label={`Delete ${snippet.name}`}
-                    onClick={() => handleDeleteClick(snippet)}
+                    onClick={() => deleteSnippet.open(snippet)}
                   >
                     Delete
                   </Button>
@@ -244,10 +194,6 @@ export function TeamSnippetsView({ hub }: Props): JSX.Element {
           ))}
         </ResourceList>
       </AsyncListState>
-
-      {actionError && !deletingSnippet ? (
-        <FieldError spacing="section">{actionError}</FieldError>
-      ) : null}
 
       {editingDraft ? (
         <SnippetEditModal
@@ -262,48 +208,20 @@ export function TeamSnippetsView({ hub }: Props): JSX.Element {
         />
       ) : null}
 
-      {deletingSnippet ? (
-        <Modal
-          labelledBy="delete-snippet-title"
-          onClose={closeDeleteModal}
+      {deleteSnippet.target ? (
+        <DeleteConfirmModal
           title="Delete snippet?"
           description={
             <>
-              Permanently delete &ldquo;{deletingSnippet.name}&rdquo; from the team hub? Team
+              Permanently delete &ldquo;{deleteSnippet.target.name}&rdquo; from the team hub? Team
               members will lose access to this snippet on the server.
             </>
           }
-          closeDisabled={deleting}
-          disableEscape={deleting}
-        >
-          <ModalFormLayout
-            error={actionError ? <FieldError spacing="section">{actionError}</FieldError> : null}
-            actions={
-              <Button
-                type="button"
-                variant="primaryDanger"
-                disabled={deleting || deleteConfirmText !== 'DELETE'}
-                onClick={() => void handleConfirmDelete()}
-              >
-                {deleting ? 'Deleting…' : 'Delete'}
-              </Button>
-            }
-          >
-            <FormGroup
-              label="Type DELETE to confirm"
-              htmlFor="delete-snippet-confirm"
-              className="mb-4"
-            >
-              <Input
-                id="delete-snippet-confirm"
-                value={deleteConfirmText}
-                disabled={deleting}
-                onChange={(event) => setDeleteConfirmText(event.target.value)}
-                autoComplete="off"
-              />
-            </FormGroup>
-          </ModalFormLayout>
-        </Modal>
+          busy={deleteSnippet.busy}
+          error={deleteSnippet.error}
+          onConfirm={() => void deleteSnippet.confirm()}
+          onClose={deleteSnippet.close}
+        />
       ) : null}
     </Page>
   );

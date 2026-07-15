@@ -1,3 +1,4 @@
+import { ThemeVariantPickerModal } from '@harborclient/sdk/components';
 import { useCallback, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { ThemeSource } from '#/shared/types';
@@ -9,7 +10,6 @@ import {
   selectPluginThemePrompt,
   type PluginThemePromptState
 } from '#/renderer/src/store/slices/modalsSlice';
-import { Button, FormGroup, Modal, ModalFooter, Radio } from '@harborclient/sdk/components';
 
 interface PromptBodyProps {
   /** Active plugin theme prompt payload. */
@@ -31,69 +31,30 @@ function PluginThemePromptBody({
   onClose,
   onSwitch
 }: PromptBodyProps): JSX.Element {
-  const [selectedThemeId, setSelectedThemeId] = useState(prompt.themes[0]?.id ?? '');
-
   const singleTheme = prompt.themes.length === 1 ? prompt.themes[0] : null;
   const title = singleTheme ? 'Switch theme?' : 'Choose a theme';
-  const radioGroupName = `plugin-theme-prompt-${prompt.pluginId}`;
-
-  /**
-   * Applies the currently selected theme and closes the prompt on success.
-   */
-  const handleSwitch = useCallback(async (): Promise<void> => {
-    if (!selectedThemeId) {
-      return;
-    }
-    await onSwitch(selectedThemeId);
-  }, [onSwitch, selectedThemeId]);
+  const description = singleTheme
+    ? `${prompt.pluginName} added the ${singleTheme.title} theme. Switch to it now?`
+    : `${prompt.pluginName} added ${prompt.themes.length} themes. Which one would you like to use?`;
 
   return (
-    <Modal
-      onClose={onClose}
-      labelledBy="plugin-theme-prompt-title"
+    <ThemeVariantPickerModal
+      variants={prompt.themes.map((theme) => ({
+        id: theme.id,
+        label: theme.title
+      }))}
+      selectionMode="radio"
       title={title}
-      closeDisabled={switching}
-      disableEscape={switching}
-    >
-      {singleTheme ? (
-        <p className="mb-4 text-[14px] text-muted">
-          {prompt.pluginName} added the {singleTheme.title} theme. Switch to it now?
-        </p>
-      ) : (
-        <>
-          <p className="mb-4 text-[14px] text-muted">
-            {prompt.pluginName} added {prompt.themes.length} themes. Which one would you like to
-            use?
-          </p>
-          <fieldset className="m-0 space-y-2 border-none p-0">
-            <legend className="sr-only">Plugin themes</legend>
-            {prompt.themes.map((theme) => (
-              <FormGroup key={theme.id} label={theme.title} layout="checkbox">
-                <Radio
-                  name={radioGroupName}
-                  checked={selectedThemeId === theme.id}
-                  onChange={() => setSelectedThemeId(theme.id)}
-                  disabled={switching}
-                />
-              </FormGroup>
-            ))}
-          </fieldset>
-        </>
-      )}
-      <ModalFooter>
-        <Button type="button" variant="secondary" disabled={switching} onClick={onClose}>
-          Not now
-        </Button>
-        <Button
-          type="button"
-          variant="primary"
-          disabled={switching || !selectedThemeId}
-          onClick={() => void handleSwitch()}
-        >
-          {switching ? 'Switching…' : 'Switch'}
-        </Button>
-      </ModalFooter>
-    </Modal>
+      description={description}
+      showSelector={prompt.themes.length > 1}
+      selectorLabel="Plugin themes"
+      busy={switching}
+      confirmLabel="Switch"
+      busyConfirmLabel="Switching…"
+      cancelLabel="Not now"
+      onConfirm={onSwitch}
+      onCancel={onClose}
+    />
   );
 }
 

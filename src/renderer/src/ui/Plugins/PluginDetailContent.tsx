@@ -1,4 +1,10 @@
-import { Badge, FaIcon, Spinner } from '@harborclient/sdk/components';
+import {
+  Badge,
+  CatalogReadmeMarkdown,
+  FaIcon,
+  ScreenshotCarousel,
+  Spinner
+} from '@harborclient/sdk/components';
 import { faBug, faGlobe } from '#/renderer/src/fontawesome';
 import { useMemo, type JSX } from 'react';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
@@ -14,8 +20,6 @@ import { PERMISSION_DESCRIPTIONS, PERMISSION_NAMES } from './constants';
 import { installedPluginInstallationLabel } from './helpers';
 import { VerifiedPublisherBadge } from '#/renderer/src/ui/shared/VerifiedPublisherBadge';
 import { ErrorMessages } from './ErrorMessages';
-import { PluginReadmeMarkdown } from './PluginReadmeMarkdown';
-import { ScreenshotCarousel } from './ScreenshotCarousel';
 
 interface InstalledProps {
   /**
@@ -157,7 +161,7 @@ function manifestDetails(
  *
  * @param entry - Marketplace listing when the view is in catalog mode.
  * @param preview - Remote preview payload when manifest fetch succeeded.
- * @returns Description body suitable for {@link PluginReadmeMarkdown}.
+ * @returns Description body suitable for {@link CatalogReadmeMarkdown}.
  */
 function resolveCatalogDescriptionMarkdown(
   entry: PluginCatalogEntry | undefined,
@@ -235,7 +239,12 @@ export function PluginDetailContent(props: Props): JSX.Element {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
       {screenshotSrcs && screenshotSrcs.length > 0 ? (
-        <ScreenshotCarousel variant="tab" images={screenshotSrcs} />
+        <ScreenshotCarousel
+          variant="tab"
+          images={screenshotSrcs}
+          ariaLabel="Plugin screenshots"
+          lightboxLabel="Plugin screenshot preview"
+        />
       ) : null}
 
       {props.mode === 'catalog' && props.previewError ? (
@@ -359,7 +368,7 @@ export function PluginDetailContent(props: Props): JSX.Element {
               Could not load the plugin description.
             </p>
           ) : displayDescriptionMarkdown ? (
-            <PluginReadmeMarkdown content={displayDescriptionMarkdown} />
+            <CatalogReadmeMarkdown content={displayDescriptionMarkdown} />
           ) : null}
         </div>
       ) : null}

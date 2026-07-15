@@ -7,7 +7,8 @@ import {
   Page,
   ResourceList,
   ResourceListPrimary,
-  ResourceListRow
+  ResourceListRow,
+  SettingSectionHeading
 } from '@harborclient/sdk/components';
 import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
@@ -19,7 +20,6 @@ import { refreshCollections } from '#/renderer/src/store/thunks/collections';
 
 import { createBlankConnection, providerLabel, settingsSectionMeta } from '../constants';
 import { sectionEntryBySection } from '../catalog/catalog';
-import { SettingLabel } from '../components/SettingLabel';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
 import { DiscoverCollectionsModal } from './DiscoverCollectionsModal';
 import { ConnectionDeleteModal } from './ConnectionDeleteModal';
@@ -256,14 +256,13 @@ export function StorageLocationsSection(): JSX.Element {
         }
       >
         <div className="mb-4 flex flex-col gap-2">
-          <div className="flex flex-col gap-1">
-            <span className="text-[18px] font-medium text-text">
-              <SettingLabel settingId="storage.connections">Storage locations</SettingLabel>
-            </span>
-            <p className="hc-form-group-description m-0 text-muted mb-2">
-              {storageCatalog.description}
-            </p>
-          </div>
+          <SettingSectionHeading
+            settingId="storage.connections"
+            title="Storage locations"
+            description={storageCatalog.description}
+            className="flex flex-col gap-1"
+            descriptionClassName="hc-form-group-description m-0 text-muted mb-2"
+          />
           <AsyncListState loading={loading} error={bootstrapError} onRetry={reloadConnections}>
             <ResourceList className="flex flex-col gap-4">
               {visibleConnections.map((connection) => {

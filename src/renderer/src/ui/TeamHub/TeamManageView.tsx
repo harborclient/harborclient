@@ -15,8 +15,6 @@ import {
   Badge,
   Button,
   FieldError,
-  FormGroup,
-  Input,
   Modal,
   ModalFormLayout,
   Page,
@@ -27,11 +25,13 @@ import {
 import { faUsers } from '#/renderer/src/fontawesome';
 import { useTeamHubInvitations } from '#/renderer/src/hooks/useTeamHubInvitations';
 import { useTeamHubUsers } from '#/renderer/src/hooks/useTeamHubUsers';
+import { useTypedDeleteConfirm } from '#/renderer/src/hooks/useTypedDeleteConfirm';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { refreshCollections } from '#/renderer/src/store/thunks/collections';
 import { TeamInvitationLinkDialog } from '#/renderer/src/ui/TeamHub/TeamInvitationLinkDialog';
 import { TeamSecretDialog } from '#/renderer/src/ui/TeamHub/TeamSecretDialog';
 import { TeamUserForm } from '#/renderer/src/ui/TeamHub/TeamUserForm';
+import { DeleteConfirmModal } from '#/renderer/src/ui/shared/DeleteConfirmModal';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
 
 const editFormId = 'team-user-edit-form';
@@ -98,10 +98,12 @@ export function TeamManageView({ hub }: Props): JSX.Element {
   const [creatingUser, setCreatingUser] = useState(false);
   const [createdSecret, setCreatedSecret] = useState<string | null>(null);
   const [invitationLink, setInvitationLink] = useState<string | null>(null);
-  const [deletingUser, setDeletingUser] = useState<HubUserRecord | null>(null);
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const deleteUser = useTypedDeleteConfirm<HubUserRecord>({
+    onDelete: (user) => window.api.deleteTeamHubUser(hub.id, user.id),
+    onSuccess: reload,
+    successMessage: 'User deleted.'
+  });
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [revokingInvitationId, setRevokingInvitationId] = useState<string | null>(null);
   const [reissuingUserId, setReissuingUserId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -211,30 +213,6 @@ export function TeamManageView({ hub }: Props): JSX.Element {
   };
 
   /**
-   * Opens the delete confirmation modal for a user row.
-   *
-   * @param user - User account to delete.
-   */
-  const handleDeleteClick = (user: HubUserRecord): void => {
-    setActionError(null);
-    setDeleteConfirmText('');
-    setDeletingUser(user);
-  };
-
-  /**
-   * Closes the delete confirmation modal.
-   */
-  const closeDeleteModal = (): void => {
-    if (deleting) {
-      return;
-    }
-
-    setDeletingUser(null);
-    setDeleteConfirmText('');
-    setActionError(null);
-  };
-
-  /**
    * Persists user edits through the management API.
    *
    * @param input - Partial user fields to apply.
@@ -304,30 +282,6 @@ export function TeamManageView({ hub }: Props): JSX.Element {
       setActionError(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
-    }
-  };
-
-  /**
-   * Deletes the selected user after the operator confirms by typing DELETE.
-   */
-  const handleConfirmDelete = async (): Promise<void> => {
-    if (!deletingUser || deleteConfirmText !== 'DELETE') {
-      return;
-    }
-
-    setDeleting(true);
-    setActionError(null);
-
-    try {
-      await window.api.deleteTeamHubUser(hub.id, deletingUser.id);
-      setDeletingUser(null);
-      setDeleteConfirmText('');
-      reload();
-      toast.success('User deleted.');
-    } catch (err: unknown) {
-      setActionError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setDeleting(false);
     }
   };
 
@@ -421,7 +375,7 @@ export function TeamManageView({ hub }: Props): JSX.Element {
                     type="button"
                     variant="toolbar"
                     className={toolbarDangerButtonClass}
-                    onClick={() => handleDeleteClick(user)}
+                    onClick={() => deleteUser.open(user)}
                   >
                     Delete
                   </Button>
@@ -599,48 +553,21 @@ export function TeamManageView({ hub }: Props): JSX.Element {
         />
       )}
 
-      {deletingUser && (
-        <Modal
-          className="w-[480px]"
-          labelledBy="team-user-delete-title"
-          onClose={closeDeleteModal}
+      {deleteUser.target ? (
+        <DeleteConfirmModal
           title="Delete user?"
           description={
             <>
-              This permanently deletes &ldquo;{deletingUser.name || 'Untitled'}&rdquo; and revokes
-              all of their API tokens. Type <strong>DELETE</strong> to confirm.
+              This permanently deletes &ldquo;{deleteUser.target.name || 'Untitled'}&rdquo; and
+              revokes all of their API tokens.
             </>
           }
-          closeDisabled={deleting}
-          disableEscape={deleting}
-        >
-          <ModalFormLayout
-            error={actionError ? <FieldError spacing="modal">{actionError}</FieldError> : null}
-            actions={
-              <Button
-                type="button"
-                variant="primaryDanger"
-                disabled={deleting || deleteConfirmText !== 'DELETE'}
-                onClick={() => void handleConfirmDelete()}
-              >
-                {deleting ? 'Deleting…' : 'Delete'}
-              </Button>
-            }
-          >
-            <FormGroup label="Confirmation" htmlFor="team-user-delete-confirm">
-              <Input
-                id="team-user-delete-confirm"
-                type="text"
-                variant="surface"
-                value={deleteConfirmText}
-                disabled={deleting}
-                autoComplete="off"
-                onChange={(event) => setDeleteConfirmText(event.target.value)}
-              />
-            </FormGroup>
-          </ModalFormLayout>
-        </Modal>
-      )}
+          busy={deleteUser.busy}
+          error={deleteUser.error}
+          onConfirm={() => void deleteUser.confirm()}
+          onClose={deleteUser.close}
+        />
+      ) : null}
     </Page>
   );
 }

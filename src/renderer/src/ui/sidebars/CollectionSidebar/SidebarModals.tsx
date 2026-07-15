@@ -1,7 +1,14 @@
 import { useCallback, useMemo, useState, type JSX, type ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import type { CollectionDocument } from '#/shared/types';
-import { Button, FieldError, Input, Modal, ModalFooter } from '@harborclient/sdk/components';
+import {
+  Button,
+  FieldError,
+  Input,
+  Modal,
+  ModalFooter,
+  PromptModal
+} from '@harborclient/sdk/components';
 import { SegmentedTabs, SegmentedTabPanel, SegmentedTabsGroup } from '@harborclient/sdk/components';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectFoldersByCollection } from '#/renderer/src/store/selectors';
@@ -303,73 +310,41 @@ export function SidebarModalsProvider({ children }: ProviderProps): JSX.Element 
       {children}
 
       {folderModal && (
-        <Modal
-          onClose={closeFolderModal}
-          labelledBy="sidebar-folder-modal-title"
+        <PromptModal
           title={folderModal.mode === 'create' ? 'New folder' : 'Rename folder'}
-        >
-          <Input
-            className="mt-3 w-full"
-            type="text"
-            autoFocus
-            placeholder="Folder name"
-            value={folderModal.name}
-            onChange={(e) =>
-              setFolderModal((current) =>
-                current ? { ...current, name: e.target.value, error: null } : current
-              )
-            }
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') void handleFolderModalSubmit();
-            }}
-          />
-          {folderModal.error && <FieldError spacing="section">{folderModal.error}</FieldError>}
-          <ModalFooter spaced>
-            <Button
-              onClick={() => void handleFolderModalSubmit()}
-              disabled={!folderModal.name.trim()}
-            >
-              {folderModal.mode === 'create' ? 'Create' : 'Save'}
-            </Button>
-          </ModalFooter>
-        </Modal>
+          labelledBy="sidebar-folder-modal-title"
+          label="Folder name"
+          srOnlyLabel
+          placeholder="Folder name"
+          value={folderModal.name}
+          onChange={(name: string) =>
+            setFolderModal((current) => (current ? { ...current, name, error: null } : current))
+          }
+          onSubmit={() => void handleFolderModalSubmit()}
+          onClose={closeFolderModal}
+          submitLabel={folderModal.mode === 'create' ? 'Create' : 'Save'}
+          error={folderModal.error}
+        />
       )}
 
       {documentModal && (
-        <Modal
-          onClose={closeDocumentModal}
-          labelledBy="sidebar-document-modal-title"
+        <PromptModal
           title={documentModal.mode === 'create' ? 'New markdown document' : 'Rename document'}
-        >
-          <label htmlFor="sidebar-document-name" className="sr-only">
-            Document filename
-          </label>
-          <Input
-            id="sidebar-document-name"
-            className="mt-3 w-full"
-            type="text"
-            autoFocus
-            placeholder="README.md"
-            value={documentModal.name}
-            onChange={(e) =>
-              setDocumentModal((current) =>
-                current ? { ...current, name: e.target.value, error: null } : current
-              )
-            }
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') void handleDocumentModalSubmit();
-            }}
-          />
-          {documentModal.error && <FieldError spacing="section">{documentModal.error}</FieldError>}
-          <ModalFooter spaced>
-            <Button
-              onClick={() => void handleDocumentModalSubmit()}
-              disabled={!ensureMarkdownFilename(documentModal.name)}
-            >
-              {documentModal.mode === 'create' ? 'Create' : 'Save'}
-            </Button>
-          </ModalFooter>
-        </Modal>
+          labelledBy="sidebar-document-modal-title"
+          label="Document filename"
+          srOnlyLabel
+          inputId="sidebar-document-name"
+          placeholder="README.md"
+          value={documentModal.name}
+          onChange={(name: string) =>
+            setDocumentModal((current) => (current ? { ...current, name, error: null } : current))
+          }
+          onSubmit={() => void handleDocumentModalSubmit()}
+          onClose={closeDocumentModal}
+          submitLabel={documentModal.mode === 'create' ? 'Create' : 'Save'}
+          error={documentModal.error}
+          canSubmit={(name: string) => Boolean(ensureMarkdownFilename(name))}
+        />
       )}
 
       {showEnvironmentModal && (

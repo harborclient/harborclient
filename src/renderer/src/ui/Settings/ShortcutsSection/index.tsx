@@ -10,11 +10,11 @@ import { Button } from '@harborclient/sdk/components';
 import { FormGroup } from '@harborclient/sdk/components';
 import { Input } from '@harborclient/sdk/components';
 import { Page } from '@harborclient/sdk/components';
+import { SettingSectionHeading } from '@harborclient/sdk/components';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { field } from '@harborclient/sdk/components';
 import { formatErrorMessage } from '#/renderer/src/ui/modals/dialogHelpers';
 import { sectionEntryBySection } from '../catalog/catalog';
-import { SettingLabel } from '../components/SettingLabel';
 import { settingsSectionMeta } from '../constants';
 import { acceleratorFromKeyboardEvent } from './acceleratorFromKeyboardEvent';
 import { FieldError } from '@harborclient/sdk/components';
@@ -204,14 +204,13 @@ export function ShortcutsSection(): JSX.Element {
           </p>
         ) : (
           <div>
-            <div className="flex flex-col gap-1 mb-2">
-              <span className="text-[18px] font-medium text-text">
-                <SettingLabel settingId="shortcuts.bindings">Keyboard shortcuts</SettingLabel>
-              </span>
-              <p className="hc-form-group-description m-0 text-[14px] text-muted mb-2">
-                {shortcutsCatalog.description}
-              </p>
-            </div>
+            <SettingSectionHeading
+              settingId="shortcuts.bindings"
+              title="Keyboard shortcuts"
+              description={shortcutsCatalog.description}
+              className="flex flex-col gap-1 mb-2"
+              descriptionClassName="hc-form-group-description m-0 text-[14px] text-muted mb-2"
+            />
             <FormGroup
               label="Search shortcuts"
               htmlFor="shortcut-search"

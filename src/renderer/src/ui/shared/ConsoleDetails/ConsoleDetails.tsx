@@ -1,6 +1,7 @@
 import { ControlledAccordion } from '@szhsin/react-accordion';
 import type { JSX } from 'react';
 import type { ScriptExecutionEvent, ScriptTestResult, SendResult } from '#/shared/types';
+import { StatusDot } from '@harborclient/sdk/components';
 
 import { formatBytes } from '#/renderer/src/ui/shared/responseFormatUtils';
 import { CollapsibleSection } from './CollapsibleSection';
@@ -152,11 +153,10 @@ function OutputDetails({ logs, tests, scriptError }: OutputDetailsProps): JSX.El
               key={`${test.name}-${index}`}
               className={`flex items-center gap-2 px-2.5 py-1.5 ${index > 0 ? 'border-t border-separator' : ''}`}
             >
-              <span
-                className={`inline-block h-2 w-2 shrink-0 rounded-full ${test.passed ? 'bg-success' : 'bg-danger'}`}
-                aria-hidden="true"
+              <StatusDot
+                variant={test.passed ? 'success' : 'danger'}
+                label={test.passed ? 'Passed' : 'Failed'}
               />
-              <span className="sr-only">{test.passed ? 'Passed' : 'Failed'}</span>
               {test.scriptName && (
                 <>
                   <span className="text-[14px] text-muted">{test.scriptName}</span>
@@ -202,13 +202,10 @@ function TraceDetails({ executionEvents }: TraceDetailsProps): JSX.Element {
             key={`${event.type}-${event.scriptName ?? 'script'}-${index}`}
             className={`flex items-center gap-2 px-2.5 py-1.5 ${index > 0 ? 'border-t border-separator' : ''}`}
           >
-            <span
-              className={`inline-block h-2 w-2 shrink-0 rounded-full ${event.type === 'variable' ? 'bg-accent' : 'bg-warning'}`}
-              aria-hidden="true"
+            <StatusDot
+              variant={event.type === 'variable' ? 'accent' : 'warning'}
+              label={event.type === 'variable' ? 'Variable change' : 'Flow change'}
             />
-            <span className="sr-only">
-              {event.type === 'variable' ? 'Variable change' : 'Flow change'}
-            </span>
             {event.scriptName && (
               <>
                 <span className="text-[14px] text-muted">{event.scriptName}</span>

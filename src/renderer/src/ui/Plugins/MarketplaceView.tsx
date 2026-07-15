@@ -1,4 +1,4 @@
-import { FormGroup, Input, Page, Select } from '@harborclient/sdk/components';
+import { FormGroup, Select } from '@harborclient/sdk/components';
 import { useMemo, type JSX } from 'react';
 import type { PluginCatalog } from '#/shared/plugin/catalog';
 import {
@@ -10,6 +10,7 @@ import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import { THEME_APPEARANCE_CATEGORIES, THEME_CATEGORY } from '#/shared/plugin/themeCategory';
 import { faPalette, faStore } from '#/renderer/src/fontawesome';
 import type { PluginManagementKind } from '#/renderer/src/ui/Plugins/constants';
+import { MarketplaceBrowseView } from '#/renderer/src/ui/shared/MarketplaceBrowseView';
 import { CatalogCard } from './CatalogCard';
 
 interface Props {
@@ -108,9 +109,48 @@ export function MarketplaceView({
     [excludedPluginCategorySlugs]
   );
 
+  const categoryFilter = !isThemes ? (
+    <FormGroup bordered={false} label={categoryLabel} htmlFor={categoryId} srOnly>
+      <Select
+        id={categoryId}
+        value={catalogCategoryFilter}
+        disabled={catalogLoading}
+        className={`w-full max-w-xs ${filterControlClass}`}
+        onChange={(event) =>
+          onCategoryFilterChange(event.target.value as PluginCatalogCategory | '')
+        }
+      >
+        <option value="">All categories</option>
+        {pluginCategoryOptions.map((category) => (
+          <option key={category} value={category}>
+            {PLUGIN_CATALOG_CATEGORY_LABELS[category]}
+          </option>
+        ))}
+      </Select>
+    </FormGroup>
+  ) : (
+    <FormGroup bordered={false} label={categoryLabel} htmlFor={categoryId} srOnly>
+      <Select
+        id={categoryId}
+        value={catalogCategoryFilter}
+        disabled={catalogLoading}
+        className={`w-full max-w-xs ${filterControlClass}`}
+        onChange={(event) =>
+          onCategoryFilterChange(event.target.value as PluginCatalogCategory | '')
+        }
+      >
+        <option value="">All appearances</option>
+        {THEME_APPEARANCE_CATEGORIES.map((category) => (
+          <option key={category} value={category}>
+            {PLUGIN_CATALOG_CATEGORY_LABELS[category]}
+          </option>
+        ))}
+      </Select>
+    </FormGroup>
+  );
+
   return (
-    <Page
-      embedded
+    <MarketplaceBrowseView
       title={isThemes ? 'Themes' : 'Marketplace'}
       icon={isThemes ? faPalette : faStore}
       description={
@@ -118,83 +158,19 @@ export function MarketplaceView({
           ? 'Browse and install themes from configured marketplace catalogs.'
           : 'Browse and install plugins from configured marketplace catalogs.'
       }
-    >
-      <div className="mb-4 flex items-center gap-3 w-full">
-        <FormGroup className="border-none! p-0!" label={searchLabel} htmlFor={searchId} srOnly>
-          <Input
-            id={searchId}
-            type="search"
-            placeholder={searchPlaceholder}
-            value={catalogSearchQuery}
-            disabled={catalogLoading}
-            className={`w-full max-w-lg ${filterControlClass}`}
-            onChange={(event) => onSearchQueryChange(event.target.value)}
-          />
-        </FormGroup>
-        {!isThemes ? (
-          <FormGroup
-            className="border-none! p-0!"
-            label={categoryLabel}
-            htmlFor={categoryId}
-            srOnly
-          >
-            <Select
-              id={categoryId}
-              value={catalogCategoryFilter}
-              disabled={catalogLoading}
-              className={`w-full max-w-xs ${filterControlClass}`}
-              onChange={(event) =>
-                onCategoryFilterChange(event.target.value as PluginCatalogCategory | '')
-              }
-            >
-              <option value="">All categories</option>
-              {pluginCategoryOptions.map((category) => (
-                <option key={category} value={category}>
-                  {PLUGIN_CATALOG_CATEGORY_LABELS[category]}
-                </option>
-              ))}
-            </Select>
-          </FormGroup>
-        ) : (
-          <FormGroup
-            className="border-none! p-0!"
-            label={categoryLabel}
-            htmlFor={categoryId}
-            srOnly
-          >
-            <Select
-              id={categoryId}
-              value={catalogCategoryFilter}
-              disabled={catalogLoading}
-              className={`w-full max-w-xs ${filterControlClass}`}
-              onChange={(event) =>
-                onCategoryFilterChange(event.target.value as PluginCatalogCategory | '')
-              }
-            >
-              <option value="">All appearances</option>
-              {THEME_APPEARANCE_CATEGORIES.map((category) => (
-                <option key={category} value={category}>
-                  {PLUGIN_CATALOG_CATEGORY_LABELS[category]}
-                </option>
-              ))}
-            </Select>
-          </FormGroup>
-        )}
-      </div>
-
-      {catalogError ? (
-        <p className="text-danger" role="alert">
-          {catalogError}
-        </p>
-      ) : null}
-      {catalogLoading ? (
-        <p className="text-muted" role="status">
-          {isThemes ? 'Loading theme catalog…' : 'Loading plugin catalog…'}
-        </p>
-      ) : null}
-
-      {!catalogLoading && catalog?.plugins.length === 0 ? (
-        <p className="text-muted">
+      searchLabel={searchLabel}
+      searchId={searchId}
+      searchPlaceholder={searchPlaceholder}
+      searchValue={catalogSearchQuery}
+      searchDisabled={catalogLoading}
+      onSearchChange={onSearchQueryChange}
+      filters={categoryFilter}
+      loading={catalogLoading}
+      loadingMessage={isThemes ? 'Loading theme catalog…' : 'Loading plugin catalog…'}
+      error={catalogError}
+      isCatalogEmpty={!catalogLoading && catalog != null && catalog.plugins.length === 0}
+      emptyState={
+        <>
           {isThemes ? 'No themes are listed yet.' : 'No plugins are listed yet.'} See the{' '}
           <a
             href="https://harborclient.com/plugins"
@@ -205,25 +181,20 @@ export function MarketplaceView({
             {isThemes ? 'theme marketplace' : 'plugin marketplace'}
           </a>{' '}
           for submission instructions.
-        </p>
-      ) : null}
-
-      {!catalogLoading &&
-      catalog &&
-      catalog.plugins.length > 0 &&
-      filteredCatalogPlugins.length === 0 ? (
-        <p className="text-muted" role="status">
-          {isThemes ? 'No themes match your filters.' : 'No plugins match your filters.'}
-        </p>
-      ) : null}
-
-      {!catalogLoading && catalog && filteredCatalogPlugins.length > 0 ? (
-        <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 lg:grid-cols-4">
-          {filteredCatalogPlugins.map((entry) => (
-            <CatalogCard key={entry.id} entry={entry} onOpen={() => onOpenCatalogDetail(entry)} />
-          ))}
-        </ul>
-      ) : null}
-    </Page>
+        </>
+      }
+      hasNoMatches={
+        !catalogLoading &&
+        catalog != null &&
+        catalog.plugins.length > 0 &&
+        filteredCatalogPlugins.length === 0
+      }
+      noMatchMessage={isThemes ? 'No themes match your filters.' : 'No plugins match your filters.'}
+      entries={!catalogLoading && catalog ? filteredCatalogPlugins : []}
+      getKey={(entry) => entry.id}
+      renderCard={(entry) => (
+        <CatalogCard entry={entry} onOpen={() => onOpenCatalogDetail(entry)} />
+      )}
+    />
   );
 }

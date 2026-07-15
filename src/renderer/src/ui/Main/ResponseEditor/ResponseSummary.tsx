@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import type { SendResult } from '#/shared/types';
-import { Button } from '@harborclient/sdk/components';
-import { focusableReadonlyClass, statusDotClass } from '#/renderer/src/ui/shared/classes';
+import { Button, StatusDot } from '@harborclient/sdk/components';
+import { focusableReadonlyClass, statusDotVariant } from '#/renderer/src/ui/shared/classes';
 import { formatBytes } from '#/renderer/src/ui/shared/responseFormatUtils';
 
 interface Props {
@@ -98,10 +98,7 @@ export function ResponseSummary({
           aria-label={responseStatusLabel(response)}
           className={`inline-flex items-center gap-1.5 font-medium text-text ${focusableReadonlyClass}`}
         >
-          <span
-            className={`inline-block h-2 w-2 shrink-0 rounded-full ${statusDotClass(response.status)}`}
-            aria-hidden="true"
-          />
+          <StatusDot variant={statusDotVariant(response.status)} />
           {response.error ? 'Error' : `${response.status} ${response.statusText}`}
         </span>
         <span

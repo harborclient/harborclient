@@ -90,12 +90,7 @@ export function SettingsSidebar<T extends string>({
   return (
     <aside className="hc-settings-sidebar flex w-[300px] shrink-0 flex-col border-r border-separator bg-sidebar">
       <div className="px-2 pt-3">
-        <FormGroup
-          label="Search settings"
-          htmlFor="settings-search"
-          className="border-none! p-0!"
-          srOnly
-        >
+        <FormGroup label="Search settings" htmlFor="settings-search" bordered={false} srOnly>
           <Input
             id="settings-search"
             type="search"

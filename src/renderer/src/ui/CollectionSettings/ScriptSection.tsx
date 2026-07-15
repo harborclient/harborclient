@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import type { ScriptRef, Variable } from '#/shared/types';
+import { FormSection } from '@harborclient/sdk/components';
 import { ScriptListEditor } from '#/renderer/src/ui/shared/ScriptListEditor';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectSnippets } from '#/renderer/src/store/selectors';
@@ -52,11 +53,7 @@ export function ScriptSection({
   const label = phase === 'pre' ? 'Pre-request stage' : 'Post-request stage';
 
   return (
-    <div className="mb-6 flex min-h-0 flex-1 flex-col gap-1">
-      <span className="shrink-0 text-[18px] text-muted">{label}</span>
-      <p className="hc-form-group-description m-0 shrink-0 text-[14px] text-muted mb-2">
-        {description}
-      </p>
+    <FormSection title={label} description={description} fill>
       <ScriptListEditor
         phase={phase}
         scripts={scripts}
@@ -65,6 +62,6 @@ export function ScriptSection({
         snippets={snippets}
         placeholder={placeholder}
       />
-    </div>
+    </FormSection>
   );
 }
