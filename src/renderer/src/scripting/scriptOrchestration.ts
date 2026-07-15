@@ -1,7 +1,7 @@
 import type { ScriptRequestContext, ScriptRunResult, Variable, KeyValue } from '#/shared/types';
 import { substituteVariablesFromMap } from '@harborclient/sdk/variables';
 import type { ScriptRef, Snippet } from '#/shared/types';
-import { buildScopedScriptSlots, type ScriptSlot } from '#/renderer/src/scripting/scriptResolution';
+import { buildScopedScriptSlots, type ScriptSlot } from './scriptResolution';
 
 export type { ScriptSlot };
 

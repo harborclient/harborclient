@@ -1,9 +1,9 @@
 import type { MenuItem } from '@harborclient/sdk/components';
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
-import { dispatchSidebarColor } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarColorDispatch';
-import type { SidebarColorTarget } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarColorTypes';
-import { useSidebarColorPicker } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarColorPicker';
+import { dispatchSidebarColor } from './sidebarColorDispatch';
+import type { SidebarColorTarget } from './sidebarColorTypes';
+import { useSidebarColorPicker } from './useSidebarColorPicker';
 
 interface UseSidebarColorMenuItemsOptions {
   /**

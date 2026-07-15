@@ -1,5 +1,5 @@
-import { hasEchoScriptReturnValue } from '#/main/plugins/echoServer/resolveEchoResponseBody';
-import type { EchoServerIncomingRequest } from '#/main/plugins/echoServer/types';
+import { hasEchoScriptReturnValue } from './resolveEchoResponseBody';
+import type { EchoServerIncomingRequest } from './types';
 
 /**
  * Runs registered plugin echo request handlers in registration order.

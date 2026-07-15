@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RoutingStorage } from '#/main/storage/RoutingStorage';
 import type { TeamHub } from '#/shared/types';
-import { resyncUserTeamHubsSharingServer } from '#/main/settings/teamHubCollectionResync';
+import { resyncUserTeamHubsSharingServer } from './teamHubCollectionResync';
 
 vi.mock('#/main/settings/teamHubSessionScan', () => ({
   scanTeamHubSessions: vi.fn()
 }));
 
-import { scanTeamHubSessions } from '#/main/settings/teamHubSessionScan';
+import { scanTeamHubSessions } from './teamHubSessionScan';
 
 beforeEach(() => {
   vi.mocked(scanTeamHubSessions).mockReset();

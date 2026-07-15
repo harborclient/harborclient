@@ -1,7 +1,7 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { parseJson } from '#/shared/parseJson';
 import type { GitAuthMethod, GitIdentity } from '#/shared/types';
-import { hasGitAccessToken } from '#/main/git/gitSecrets';
+import { hasGitAccessToken } from './gitSecrets';
 
 const GIT_IDENTITIES_KEY = 'gitHostIdentities';
 

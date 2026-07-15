@@ -6,7 +6,7 @@ import {
   MAX_IPC_REQUEST_BODY_CHARS,
   MAX_IPC_SCRIPT_CHARS,
   MAX_IPC_URL_CHARS
-} from '#/main/ipc/ipcLimits';
+} from './ipcLimits';
 import { HARD_MAX_RESPONSE_SIZE_MB } from '#/main/settings/generalSettings';
 import {
   authConfig,

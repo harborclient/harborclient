@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createInlineScriptRef } from '#/shared/scriptRefs';
-import { teamHubScriptColumn, teamHubScriptRefsFromColumn } from '#/main/storage/scriptFields';
+import { teamHubScriptColumn, teamHubScriptRefsFromColumn } from './scriptFields';
 
 describe('teamHubScriptColumn', () => {
   it('JSON-encodes a single anonymous empty inline script (default seeded script)', () => {

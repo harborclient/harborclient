@@ -3,7 +3,7 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { create, insertMultiple, save } from '@orama/orama';
-import { DOCS_EMBEDDING_DIMENSIONS } from '#/main/docs/docsSearch';
+import { DOCS_EMBEDDING_DIMENSIONS } from './docsSearch';
 
 let appRoot = '';
 let tempIndexPath = '';

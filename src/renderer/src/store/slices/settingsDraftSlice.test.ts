@@ -8,7 +8,7 @@ import settingsDraftReducer, {
   initSettingsDraft,
   selectSettingsDraftDirty,
   setDraftGeneralField
-} from '#/renderer/src/store/slices/settingsDraftSlice';
+} from './settingsDraftSlice';
 import type { RootState } from '#/renderer/src/store/redux';
 
 /**

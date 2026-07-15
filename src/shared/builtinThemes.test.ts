@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BUILTIN_THEME_IDS, isBuiltinThemeId, isBuiltinThemeSource } from '#/shared/builtinThemes';
+import { BUILTIN_THEME_IDS, isBuiltinThemeId, isBuiltinThemeSource } from './builtinThemes';
 
 describe('builtinThemes', () => {
   it('lists the reserved built-in theme ids', () => {

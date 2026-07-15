@@ -11,7 +11,7 @@ import aiChatReducer, {
   setActiveStepRequestId,
   setChats,
   setEnterToSend
-} from '#/renderer/src/store/slices/aiChatSlice';
+} from './aiChatSlice';
 
 describe('aiChatSlice', () => {
   it('stores chat history summaries', () => {

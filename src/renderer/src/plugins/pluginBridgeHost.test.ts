@@ -1,14 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  applyContributionMessage,
-  handlePluginHostBridgeInvoke
-} from '#/renderer/src/plugins/pluginBridgeHost';
-import * as hostCommands from '#/renderer/src/plugins/hostCommands';
-import * as hostRequestCommands from '#/renderer/src/plugins/hostRequestCommands';
-import {
-  clearPluginContributions,
-  getRegisteredPluginThemes
-} from '#/renderer/src/plugins/registry';
+import { applyContributionMessage, handlePluginHostBridgeInvoke } from './pluginBridgeHost';
+import * as hostCommands from './hostCommands';
+import * as hostRequestCommands from './hostRequestCommands';
+import { clearPluginContributions, getRegisteredPluginThemes } from './registry';
 
 describe('handlePluginHostBridgeInvoke', () => {
   it('returns sendHttpRequestForPlugin result for host.sendHttpRequest', async () => {

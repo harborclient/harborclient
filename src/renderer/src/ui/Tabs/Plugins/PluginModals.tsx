@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import type { PluginInfo } from '#/shared/plugin/types';
-import type { PluginThemeVariant } from '#/renderer/src/ui/Tabs/Plugins/listPluginThemeVariants';
+import type { PluginThemeVariant } from './listPluginThemeVariants';
 import { EnableModal } from './EnableModal';
 import { UseThemeVariantModal } from './UseThemeVariantModal';
 

@@ -6,7 +6,7 @@ import { SNIPPET_SCOPE_OPTIONS, type SnippetScope } from '#/shared/snippetScope'
 import { isImportableSnippetName } from '#/shared/snippetImport';
 import { SCRIPT_STAGE_OPTIONS } from '#/shared/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
-import type { SnippetEditDraft } from '#/renderer/src/ui/Shared/Snippet/snippetEditDraft';
+import type { SnippetEditDraft } from './snippetEditDraft';
 import { providerOptionLabel, useProviders } from '#/renderer/src/hooks/useProviders';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
 import {

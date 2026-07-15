@@ -1,7 +1,7 @@
 import { APIError, type OpenAI } from 'openai';
 import type { ChatCompletion, ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-import { LlmClientFactory } from '#/main/ai/LlmClientFactory';
-import { runHubChatCompletionStep } from '#/main/ai/hubChatStep';
+import { LlmClientFactory } from './LlmClientFactory';
+import { runHubChatCompletionStep } from './hubChatStep';
 import { logVerbose } from '#/main/logger';
 import { mergeMcpClientTools } from '#/main/mcp/mergeMcpClientTools';
 import { truncateChatStepMessages } from '#/shared/ai/chatContext';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildGitWorkingTreeSummary } from '#/renderer/src/git/gitWorkingTreeSummary';
+import { buildGitWorkingTreeSummary } from './gitWorkingTreeSummary';
 import type { SourceControlStatus } from '#/shared/types';
 
 const baseStatus: SourceControlStatus = {

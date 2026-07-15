@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildMcpConfigSnippet } from '#/renderer/src/ui/Shared/Mcp/buildMcpConfigSnippet';
+import { buildMcpConfigSnippet } from './buildMcpConfigSnippet';
 
 describe('buildMcpConfigSnippet', () => {
   it('returns an indented HarborClient entry for pasting under mcpServers', () => {

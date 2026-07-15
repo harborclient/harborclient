@@ -8,7 +8,7 @@ import {
   beginRefreshGeneration,
   isLatestRefreshGeneration
 } from '#/renderer/src/store/refreshGeneration';
-import { withOfflineTeamHubSnippetError } from '#/renderer/src/store/thunks/snippetThunkErrors';
+import { withOfflineTeamHubSnippetError } from './snippetThunkErrors';
 
 const SNIPPETS_REFRESH_KEY = 'snippets';
 

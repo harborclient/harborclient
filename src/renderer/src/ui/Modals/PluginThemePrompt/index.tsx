@@ -8,7 +8,7 @@ import {
   closePluginThemePrompt,
   selectPluginThemePrompt
 } from '#/renderer/src/store/slices/modalsSlice';
-import { PluginThemePromptBody } from '#/renderer/src/ui/Modals/PluginThemePrompt/PluginThemePromptBody';
+import { PluginThemePromptBody } from './PluginThemePromptBody';
 
 /**
  * Prompts the user to switch to a theme contributed by a plugin they just enabled.

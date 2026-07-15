@@ -1,6 +1,6 @@
 import { BrowserWindow, dialog } from 'electron';
 import type { PluginFsPickFileOptions, PluginFsSaveFileOptions } from '@harborclient/sdk';
-import type { PluginManager } from '#/main/plugins/PluginManager';
+import type { PluginManager } from './PluginManager';
 
 /**
  * Opens a native file picker and grants the selected paths to one plugin.

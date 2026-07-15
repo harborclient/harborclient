@@ -7,8 +7,8 @@ import {
   scriptStageGroup,
   shouldShowScriptSectionHeadings,
   splitScriptRefsByGroup
-} from '#/shared/scriptStage';
-import { createInlineScriptRef } from '#/shared/scriptRefs';
+} from './scriptStage';
+import { createInlineScriptRef } from './scriptRefs';
 
 describe('scriptRowStageSuffix', () => {
   it('returns title-case suffixes for before and after stages only', () => {

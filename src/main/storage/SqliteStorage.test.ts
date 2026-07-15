@@ -7,7 +7,7 @@ import { defaultAuth } from '#/shared/auth';
 import { mergeContainerItems } from '#/shared/collectionContainerOrder';
 import { createInlineScriptRef } from '#/shared/scriptRefs';
 import type { SqliteSettings } from '#/shared/types';
-import { SqliteStorage } from '#/main/storage/SqliteStorage';
+import { SqliteStorage } from './SqliteStorage';
 import {
   baseRequestInput,
   runIstorageContractSuite,

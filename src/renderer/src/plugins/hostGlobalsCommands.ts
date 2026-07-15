@@ -2,8 +2,8 @@ import type { PluginVariableInput } from '@harborclient/sdk';
 import type { Variable } from '#/shared/types';
 import { store } from '#/renderer/src/store/redux';
 import { saveGlobalVariables } from '#/renderer/src/store/thunks/settings';
-import { registerCommand } from '#/renderer/src/plugins/createPluginContext';
-import { pluginVariablesToVariables } from '#/renderer/src/plugins/hostEnvironmentCommands';
+import { registerCommand } from './createPluginContext';
+import { pluginVariablesToVariables } from './hostEnvironmentCommands';
 
 const HOST_PLUGIN_ID = 'harborclient';
 

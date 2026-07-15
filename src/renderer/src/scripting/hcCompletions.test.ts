@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Completion, CompletionContext, CompletionSource } from '@codemirror/autocomplete';
 import type { Variable } from '#/shared/types';
-import {
-  createHcCompletionSource,
-  createLiveHcCompletionSource
-} from '#/renderer/src/scripting/hcCompletions';
+import { createHcCompletionSource, createLiveHcCompletionSource } from './hcCompletions';
 
 /**
  * Builds a minimal CompletionContext for testing matchBefore-based sources.

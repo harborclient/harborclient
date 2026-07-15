@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isImportableSnippetName, SNIPPET_IMPORT_NAME_PATTERN } from '#/shared/snippetImport';
+import { isImportableSnippetName, SNIPPET_IMPORT_NAME_PATTERN } from './snippetImport';
 
 describe('SNIPPET_IMPORT_NAME_PATTERN', () => {
   it('matches simple and nested .js filenames', () => {

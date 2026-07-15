@@ -20,7 +20,7 @@ vi.mock('#/main/settings/storageSettings', () => ({
   listStorageConnections: () => mockConnections
 }));
 
-import { scheduleHostGitHubOAuthCompletion } from '#/main/git/gitOAuthScheduler';
+import { scheduleHostGitHubOAuthCompletion } from './gitOAuthScheduler';
 
 /**
  * Flushes pending microtasks so background OAuth completion handlers can run.

@@ -1,8 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { AI_TOOL_DEFINITIONS } from '#/shared/ai/tools';
 import type { AiToolName } from '#/shared/ai/tools';
-import { getAiToolInputShape } from '#/main/mcpServer/aiToolInputSchemas';
-import { getMcpToolBridge } from '#/main/mcpServer/hostBridge';
+import { getAiToolInputShape } from './aiToolInputSchemas';
+import { getMcpToolBridge } from './hostBridge';
 import type { McpServerSettings } from '#/shared/types';
 
 /**

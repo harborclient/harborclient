@@ -1,6 +1,6 @@
 import { create, insertMultiple, search, type AnyOrama, type AnySchema } from '@orama/orama';
 
-import { DEFAULT_SEARCH_OPTIONS } from '#/shared/search/types';
+import { DEFAULT_SEARCH_OPTIONS } from './types';
 
 /**
  * In-memory Orama database used by HarborClient search builders.

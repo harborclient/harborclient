@@ -8,8 +8,8 @@ import {
   type ZoomPreset
 } from '#/shared/zoomPresets';
 import { previewThemePreference, applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
-import { ThemePreviewCard } from '#/renderer/src/ui/Modals/ThemePickerModal/ThemePreviewCard';
-import type { BuiltinThemeSource } from '#/renderer/src/ui/Modals/ThemePickerModal/previewPalettes';
+import { ThemePreviewCard } from './ThemePreviewCard';
+import type { BuiltinThemeSource } from './previewPalettes';
 import {
   Button,
   Modal,

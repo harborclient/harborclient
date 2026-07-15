@@ -2,10 +2,10 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { validateCollectionExport } from '#/main/storage/collectionData';
-import { LocalDatabase } from '#/main/storage/LocalDatabase';
-import { RoutingStorage } from '#/main/storage/RoutingStorage';
-import { SqliteStorage } from '#/main/storage/SqliteStorage';
+import { validateCollectionExport } from './collectionData';
+import { LocalDatabase } from './LocalDatabase';
+import { RoutingStorage } from './RoutingStorage';
+import { SqliteStorage } from './SqliteStorage';
 import {
   BUILTIN_COLLECTIONS_OPEN_REQUEST_KEY,
   BUILTIN_COLLECTIONS_SEEDED_KEY,
@@ -17,7 +17,7 @@ import {
   resolveFirstBuiltinOpenRequestTarget,
   seedBuiltinCollectionsIfMissing,
   seedDefaultContentIfNeeded
-} from '#/main/storage/seedDefaultContent';
+} from './seedDefaultContent';
 import type { SqliteSettings, StorageConnection } from '#/shared/types';
 import { describeSqlite } from '#/test/nativeModules';
 

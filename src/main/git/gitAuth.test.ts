@@ -98,7 +98,7 @@ import {
   getGitRefreshToken,
   storeGitOAuthTokens,
   storeGitPat
-} from '#/main/git/gitSecrets';
+} from './gitSecrets';
 import {
   beginGitHubOAuth,
   finishGitHubOAuth,
@@ -106,9 +106,9 @@ import {
   revokeGitHubOAuth,
   saveGitPat,
   saveHostPat
-} from '#/main/git/gitAuth';
-import { GITHUB_OAUTH_CLIENT_ID } from '#/main/git/githubOAuth';
-import { upsertGitIdentity } from '#/main/git/gitIdentities';
+} from './gitAuth';
+import { GITHUB_OAUTH_CLIENT_ID } from './githubOAuth';
+import { upsertGitIdentity } from './gitIdentities';
 
 describe('git auth resolver', () => {
   beforeEach(() => {

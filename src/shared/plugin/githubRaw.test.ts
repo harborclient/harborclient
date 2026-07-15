@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildGitHubRawContentUrl, parseGitHubRepo } from '#/shared/plugin/githubRaw';
+import { buildGitHubRawContentUrl, parseGitHubRepo } from './githubRaw';
 
 describe('parseGitHubRepo', () => {
   it('parses a standard GitHub repository URL', () => {

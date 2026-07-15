@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { normalizeVariable } from '#/main/storage/collectionVariables';
+import { normalizeVariable } from './collectionVariables';
 import { authConfig, bodyType, httpMethod, keyValue } from '#/main/schemas/common';
 import { exportScriptRefArray } from '#/main/schemas/scriptRef';
 import { optionalSidebarColor } from '#/shared/sidebarColor';

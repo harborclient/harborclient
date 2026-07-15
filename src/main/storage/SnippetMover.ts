@@ -1,7 +1,7 @@
-import type { MountedBackend, RoutingInternals } from '#/main/storage/routingInternals';
-import type { SnippetRegistryEntry, LocalDatabase } from '#/main/storage/LocalDatabase';
+import type { MountedBackend, RoutingInternals } from './routingInternals';
+import type { SnippetRegistryEntry, LocalDatabase } from './LocalDatabase';
 import type { Snippet } from '#/shared/types';
-import { rethrowTeamHubSnippetCreateError } from '#/main/storage/teamHubSnippetErrors';
+import { rethrowTeamHubSnippetCreateError } from './teamHubSnippetErrors';
 
 const SNIPPET_MOVE_PENDING_KEY = 'snippet_move_pending';
 

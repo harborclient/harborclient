@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { notifyStorageConnectionsChanged } from '#/main/ipc/notifyRenderer';
+import { notifyStorageConnectionsChanged } from './notifyRenderer';
 
 describe('notifyStorageConnectionsChanged', () => {
   it('sends storageConnections:changed when the sender is live', () => {

@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Environment } from '#/shared/types';
-import environmentsReducer, {
-  reorderEnvironmentsLocal
-} from '#/renderer/src/store/slices/environmentsSlice';
-import type { EnvironmentsState } from '#/renderer/src/store/slices/environmentsSlice';
+import environmentsReducer, { reorderEnvironmentsLocal } from './environmentsSlice';
+import type { EnvironmentsState } from './environmentsSlice';
 
 const baseEnvironment = (
   overrides: Partial<Environment> & Pick<Environment, 'id' | 'name'>

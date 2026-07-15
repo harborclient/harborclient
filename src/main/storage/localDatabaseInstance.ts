@@ -1,4 +1,4 @@
-import { LocalDatabase } from '#/main/storage/LocalDatabase';
+import { LocalDatabase } from './LocalDatabase';
 
 let instance: LocalDatabase | null = null;
 

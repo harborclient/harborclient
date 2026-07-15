@@ -5,7 +5,7 @@ import {
   startEchoServer,
   stopEchoServer,
   stopAllEchoServers
-} from '#/main/plugins/echoServer/pluginEchoServer';
+} from './pluginEchoServer';
 
 describe('pluginEchoServer', () => {
   afterEach(async () => {

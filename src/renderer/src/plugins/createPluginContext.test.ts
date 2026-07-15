@@ -1,11 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '#/shared/plugin/databaseTypes';
 import type { PluginManifest } from '#/shared/plugin/types';
-import { createPluginContext } from '#/renderer/src/plugins/createPluginContext';
-import {
-  clearPluginAfterSendSubscribers,
-  emitPluginAfterSend
-} from '#/renderer/src/plugins/pluginAfterSendBus';
+import { createPluginContext } from './createPluginContext';
+import { clearPluginAfterSendSubscribers, emitPluginAfterSend } from './pluginAfterSendBus';
 
 const invokePluginMainMock =
   vi.fn<(pluginId: string, channel: string, args: unknown[]) => Promise<unknown>>();

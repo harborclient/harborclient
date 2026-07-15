@@ -10,7 +10,7 @@ import {
   rowToEnvironment,
   rowToFolder,
   rowToRequest
-} from '#/main/storage/entityMappers';
+} from './entityMappers';
 
 describe('entityMappers', () => {
   afterEach(() => {

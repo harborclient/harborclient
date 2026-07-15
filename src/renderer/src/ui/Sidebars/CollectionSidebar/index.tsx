@@ -1,11 +1,11 @@
 import type { JSX } from 'react';
-import { SidebarProvidersProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/SidebarProvidersProvider';
-import { SidebarSearchProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/SidebarSearchProvider';
-import { SidebarModalsProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/SidebarModals';
-import { SidebarColorPickerProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/SidebarColorPickerProvider';
-import { SidebarSelectionProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/SidebarSelectionProvider';
-import { SidebarSelectionMenuHost } from '#/renderer/src/ui/Sidebars/CollectionSidebar/SidebarSelectionMenuHost';
-import { SidebarContent } from '#/renderer/src/ui/Sidebars/CollectionSidebar/SidebarContent';
+import { SidebarProvidersProvider } from './SidebarProvidersProvider';
+import { SidebarSearchProvider } from './SidebarSearchProvider';
+import { SidebarModalsProvider } from './SidebarModals';
+import { SidebarColorPickerProvider } from './SidebarColorPickerProvider';
+import { SidebarSelectionProvider } from './SidebarSelectionProvider';
+import { SidebarSelectionMenuHost } from './SidebarSelectionMenuHost';
+import { SidebarContent } from './SidebarContent';
 
 /**
  * Left sidebar with collapsible collections, environments, history, and run-results

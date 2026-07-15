@@ -6,9 +6,9 @@ import {
 } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useId, useRef, useState, type JSX, type ReactNode } from 'react';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
-import { dispatchSidebarColor } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarColorDispatch';
-import { SidebarColorPickerContext } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarColorPickerContext';
-import type { SidebarColorTarget } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarColorTypes';
+import { dispatchSidebarColor } from './sidebarColorDispatch';
+import { SidebarColorPickerContext } from './sidebarColorPickerContext';
+import type { SidebarColorTarget } from './sidebarColorTypes';
 
 /** Estimated picker dimensions before first layout measurement. */
 const PICKER_ESTIMATED_WIDTH_PX = 220;
@@ -156,4 +156,4 @@ export function SidebarColorPickerProvider({ children }: ProviderProps): JSX.Ele
   );
 }
 
-export type { SidebarColorTarget } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarColorTypes';
+export type { SidebarColorTarget } from './sidebarColorTypes';

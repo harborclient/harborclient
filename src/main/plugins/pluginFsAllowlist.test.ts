@@ -2,11 +2,7 @@ import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join, resolve } from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-  PluginFsAllowlist,
-  normalizePath,
-  resolveRealPath
-} from '#/main/plugins/pluginFsAllowlist';
+import { PluginFsAllowlist, normalizePath, resolveRealPath } from './pluginFsAllowlist';
 
 describe('PluginFsAllowlist', () => {
   let tempDir: string;

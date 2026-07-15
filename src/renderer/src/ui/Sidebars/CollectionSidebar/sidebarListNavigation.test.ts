@@ -6,7 +6,7 @@ import {
   resolveCurrentCollectionRowIndex,
   resolveCurrentEnvironmentRowIndex,
   wrapSidebarRowIndex
-} from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarListNavigation';
+} from './sidebarListNavigation';
 
 describe('wrapSidebarRowIndex', () => {
   it('wraps forward from the last row to the first', () => {

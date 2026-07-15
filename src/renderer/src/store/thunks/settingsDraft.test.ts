@@ -7,7 +7,7 @@ import settingsDraftReducer, {
   setDraftGeneralField
 } from '#/renderer/src/store/slices/settingsDraftSlice';
 import settingsReducer from '#/renderer/src/store/slices/settingsSlice';
-import { loadSettingsDraft, saveSettingsDraft } from '#/renderer/src/store/thunks/settingsDraft';
+import { loadSettingsDraft, saveSettingsDraft } from './settingsDraft';
 import {
   DEFAULT_AI_SETTINGS,
   DEFAULT_GENERAL_SETTINGS

@@ -1,4 +1,4 @@
-import type { RootState } from '#/renderer/src/store/redux';
+import type { RootState } from './redux';
 import {
   defaultDraft,
   isMarkdownTab,
@@ -8,7 +8,7 @@ import {
   type PageRef,
   type RequestDraft,
   type RequestTab
-} from '#/renderer/src/store/drafts';
+} from './drafts';
 import type {
   Environment,
   ScriptExecutionEvent,

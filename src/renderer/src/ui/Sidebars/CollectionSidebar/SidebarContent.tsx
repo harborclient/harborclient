@@ -30,25 +30,19 @@ import {
 import { selectActiveSidebarPanelId } from '#/renderer/src/store/slices/navigationSlice';
 import { openCollectionModal } from '#/renderer/src/store/slices/modalsSlice';
 import { requestCreateTabGroupFromOpenTabs } from '#/renderer/src/store/thunks/tabGroups';
-import { Collections } from '#/renderer/src/ui/Sidebars/CollectionSidebar/Collections';
-import { Environments } from '#/renderer/src/ui/Sidebars/CollectionSidebar/Environments';
-import {
-  History,
-  HistoryHeaderActions
-} from '#/renderer/src/ui/Sidebars/CollectionSidebar/History';
-import {
-  RunResults,
-  RunsHeaderActions
-} from '#/renderer/src/ui/Sidebars/CollectionSidebar/RunResults';
-import { TabGroups } from '#/renderer/src/ui/Sidebars/CollectionSidebar/TabGroups';
-import { Trash, TrashHeaderActions } from '#/renderer/src/ui/Sidebars/CollectionSidebar/Trash';
-import { SidebarSearch } from '#/renderer/src/ui/Sidebars/CollectionSidebar/SidebarSearch';
-import { SidebarPanelSwitcher } from '#/renderer/src/ui/Sidebars/CollectionSidebar/SidebarPanelSwitcher';
-import { useSidebarSearchContext } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarSearchContext';
-import { useSidebarModals } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarModalsContext';
-import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarExpansion';
-import { useSidebarListNavigation } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarListNavigation';
-import { useSidebarAccordion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarAccordion';
+import { Collections } from './Collections';
+import { Environments } from './Environments';
+import { History, HistoryHeaderActions } from './History';
+import { RunResults, RunsHeaderActions } from './RunResults';
+import { TabGroups } from './TabGroups';
+import { Trash, TrashHeaderActions } from './Trash';
+import { SidebarSearch } from './SidebarSearch';
+import { SidebarPanelSwitcher } from './SidebarPanelSwitcher';
+import { useSidebarSearchContext } from './sidebarSearchContext';
+import { useSidebarModals } from './sidebarModalsContext';
+import { useSidebarExpansion } from './useSidebarExpansion';
+import { useSidebarListNavigation } from './useSidebarListNavigation';
+import { useSidebarAccordion } from './useSidebarAccordion';
 
 /**
  * Inner sidebar body rendered inside the sidebar context providers. Composes

@@ -3,7 +3,7 @@ import {
   beginRefreshGeneration,
   collectionRefreshKey,
   isLatestRefreshGeneration
-} from '#/renderer/src/store/refreshGeneration';
+} from './refreshGeneration';
 
 describe('refreshGeneration', () => {
   it('treats only the latest generation as current', () => {

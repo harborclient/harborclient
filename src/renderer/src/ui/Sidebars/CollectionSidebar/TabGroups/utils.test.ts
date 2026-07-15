@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { TabGroup } from '#/shared/types/tabGroup';
-import {
-  parseTabGroupDragId,
-  tabGroupDragId,
-  tabGroupSummaryText
-} from '#/renderer/src/ui/Sidebars/CollectionSidebar/TabGroups/utils';
+import { parseTabGroupDragId, tabGroupDragId, tabGroupSummaryText } from './utils';
 
 describe('tabGroupSummaryText', () => {
   it('formats singular and plural request counts', () => {

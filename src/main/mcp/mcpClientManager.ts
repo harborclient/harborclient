@@ -5,7 +5,7 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { decodeMcpToolName, encodeMcpToolName } from '#/shared/mcpToolNames';
 import { logVerbose } from '#/main/logger';
-import { createVerboseMcpClientFetch } from '#/main/mcp/mcpClientVerboseFetch';
+import { createVerboseMcpClientFetch } from './mcpClientVerboseFetch';
 import { listMcpClientServers } from '#/main/settings/mcpSettings';
 import { listPluginMcpClientServers } from '#/main/plugins/pluginMcpRegistry';
 import type { McpClientServer, McpClientServerStatus, McpClientToolInfo } from '#/shared/types';

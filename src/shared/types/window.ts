@@ -1,4 +1,4 @@
-import type { Api } from '#/shared/types/api';
+import type { Api } from './api';
 
 declare global {
   /**

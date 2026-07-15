@@ -23,7 +23,7 @@ import {
   writeBatch,
   type Firestore
 } from 'firebase/firestore';
-import { maskVariablesForExport, validateCollectionExport } from '#/main/storage/collectionData';
+import { maskVariablesForExport, validateCollectionExport } from './collectionData';
 import {
   buildDocumentUuidIndex,
   buildFolderImportMaps,
@@ -40,7 +40,7 @@ import {
   serializeImportedDocumentFields,
   serializeImportedFolderFields,
   serializeImportedRequestFields
-} from '#/main/storage/collectionImport';
+} from './collectionImport';
 import {
   docToCollection,
   docToDocument,
@@ -48,13 +48,13 @@ import {
   docToFolder,
   docToProviderSnippet,
   docToRequest
-} from '#/main/storage/entityMappers';
-import { assertContainerItemOrder, planContainerItemMove } from '#/main/storage/containerReorder';
+} from './entityMappers';
+import { assertContainerItemOrder, planContainerItemMove } from './containerReorder';
 import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
-import { bundleScriptFieldsWithLegacy } from '#/main/storage/scriptFields';
-import { trimRequiredName } from '#/main/storage/trimRequiredName';
+import { bundleScriptFieldsWithLegacy } from './scriptFields';
+import { trimRequiredName } from './trimRequiredName';
 import { defaultAuth } from '#/shared/auth';
-import type { IStorage } from '#/main/storage/IStorage';
+import type { IStorage } from './IStorage';
 import type {
   AuthConfig,
   Collection,
@@ -79,8 +79,8 @@ import type {
 import type { SnippetScope } from '#/shared/snippetScope';
 import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '#/shared/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
-import { generateDocumentUuid } from '#/main/storage/uuid';
-import { serializeSidebarColor } from '#/main/storage/sidebarColorMigration';
+import { generateDocumentUuid } from './uuid';
+import { serializeSidebarColor } from './sidebarColorMigration';
 
 /**
  * Maximum writes per Firestore batch commit.

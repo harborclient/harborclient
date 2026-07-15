@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Variable } from '#/shared/types';
-import { mergeEnvironmentVariables } from '#/shared/environmentVariables';
+import type { Variable } from './types';
+import { mergeEnvironmentVariables } from './environmentVariables';
 
 /**
  * Builds a variable row for merge tests.

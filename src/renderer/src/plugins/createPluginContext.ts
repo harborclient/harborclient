@@ -31,11 +31,11 @@ import {
   registerSidebarSectionContribution,
   registerStatusBarItemContribution,
   registerThemeContribution
-} from '#/renderer/src/plugins/registry';
+} from './registry';
 import {
   createEnvironmentWithVariables,
   updateEnvironmentVariables
-} from '#/renderer/src/plugins/hostEnvironmentCommands';
+} from './hostEnvironmentCommands';
 import { store } from '#/renderer/src/store/redux';
 import { setHostedModal } from '#/renderer/src/store/slices/modalsSlice';
 import {
@@ -49,14 +49,14 @@ import {
   sendHttpRequestForPlugin,
   triggerSendRequest,
   type PluginConsoleLogPayload
-} from '#/renderer/src/plugins/hostRequestCommands';
-import { subscribePluginAfterSend } from '#/renderer/src/plugins/pluginAfterSendBus';
+} from './hostRequestCommands';
+import { subscribePluginAfterSend } from './pluginAfterSendBus';
 import { createPluginDatabaseApi } from '#/shared/plugin/pluginDatabaseApi';
 import type { ImportHandler } from '#/shared/plugin/importHandlers';
 import {
   normalizeImportExtensions,
   registerImportHandlerContribution
-} from '#/renderer/src/plugins/pluginImportHandlers';
+} from './pluginImportHandlers';
 
 const commandHandlers = new Map<string, Set<(...args: unknown[]) => void | Promise<void>>>();
 

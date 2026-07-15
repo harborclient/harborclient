@@ -1,6 +1,6 @@
 import type { FocusEvent } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { focusShortcutTableCell } from '#/renderer/src/ui/Modals/ShortcutsReferenceModal/tableCellFocus';
+import { focusShortcutTableCell } from './tableCellFocus';
 
 describe('focusShortcutTableCell', () => {
   it('scrolls the focused cell into view inside the shortcuts table', () => {

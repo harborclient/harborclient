@@ -5,11 +5,11 @@ import {
   unloadAllPlugins,
   notifyAgentReady,
   rejectAgentReady
-} from '#/renderer/src/plugins/pluginLoader';
-import { registerHostPluginCommands } from '#/renderer/src/plugins/hostCommands';
-import { startPluginMenuSync } from '#/renderer/src/plugins/pluginMenuSync';
-import { startThemeMenuSync } from '#/renderer/src/plugins/themeMenuSync';
-import { startPluginBridgeHost } from '#/renderer/src/plugins/pluginBridgeHost';
+} from './pluginLoader';
+import { registerHostPluginCommands } from './hostCommands';
+import { startPluginMenuSync } from './pluginMenuSync';
+import { startThemeMenuSync } from './themeMenuSync';
+import { startPluginBridgeHost } from './pluginBridgeHost';
 
 /**
  * Mounts the plugin host lifecycle and hot-reload listeners.

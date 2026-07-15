@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { McpToolBridge } from '#/main/mcpServer/hostBridge';
+import { McpToolBridge } from './hostBridge';
 
 describe('McpToolBridge', () => {
   let bridge: McpToolBridge;

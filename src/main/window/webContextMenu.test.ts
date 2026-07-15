@@ -6,10 +6,7 @@ import type {
   WebContents
 } from 'electron';
 
-import {
-  SPELLING_SUGGESTION_LIMIT,
-  buildWebContextMenuTemplate
-} from '#/main/window/webContextMenu';
+import { SPELLING_SUGGESTION_LIMIT, buildWebContextMenuTemplate } from './webContextMenu';
 
 /**
  * Invokes a menu item click handler with placeholder Electron arguments.

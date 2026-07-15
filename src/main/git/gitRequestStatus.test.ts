@@ -7,7 +7,7 @@ import {
   isCountedCollectionChange,
   type GitMatrixRow,
   type GitRequestRowFlags
-} from '#/main/git/gitRequestStatus';
+} from './gitRequestStatus';
 
 describe('git request status helpers', () => {
   it('detects staged and unstaged changes from matrix rows', () => {

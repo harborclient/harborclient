@@ -4,7 +4,7 @@ import {
   prefersMoreContrast,
   resolveSystemBuiltinTheme,
   shouldUseHighContrastTheme
-} from '#/renderer/src/theme';
+} from './theme';
 
 /**
  * Installs a stub for `window.matchMedia` used by contrast-preference detection.

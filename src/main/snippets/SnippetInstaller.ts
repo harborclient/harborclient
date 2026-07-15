@@ -16,10 +16,10 @@ import {
   setGitSnippetOrigin,
   setInstalledSnippetPackage,
   getInstalledSnippetPackages
-} from '#/main/snippets/snippetRegistry';
-import { evaluateSnippetPackageSignature } from '#/main/snippets/snippetSignature';
-import { parseSnippetManifest, validateSnippetManifest } from '#/main/snippets/manifestSchema';
-import { resolveMarketplaceSnippetUuid } from '#/main/snippets/snippetUuid';
+} from './snippetRegistry';
+import { evaluateSnippetPackageSignature } from './snippetSignature';
+import { parseSnippetManifest, validateSnippetManifest } from './manifestSchema';
+import { resolveMarketplaceSnippetUuid } from './snippetUuid';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import type { InstalledSnippetPackage } from '#/shared/snippet/types';
 import type { PluginSignatureInfo } from '#/shared/plugin/types';

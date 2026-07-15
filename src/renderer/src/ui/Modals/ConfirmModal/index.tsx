@@ -1,6 +1,6 @@
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectConfirmModal } from '#/renderer/src/store/slices/modalsSlice';
-import { ConfirmModalContent } from '#/renderer/src/ui/Modals/ConfirmModal/ConfirmModalContent';
+import { ConfirmModalContent } from './ConfirmModalContent';
 import type { JSX } from 'react';
 
 /**

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { parseStartupThemeFlag } from '#/main/startupTheme';
+import { parseStartupThemeFlag } from './startupTheme';
 
 describe('parseStartupThemeFlag', () => {
   afterEach(() => {

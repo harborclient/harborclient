@@ -15,12 +15,12 @@ import {
   unloadAllPlugins,
   unloadPlugin,
   resetPluginLoaderForTests
-} from '#/renderer/src/plugins/pluginLoader';
+} from './pluginLoader';
 import {
   clearPluginContributions,
   getRegisteredSettingsSections,
   registerSettingsSectionContribution
-} from '#/renderer/src/plugins/registry';
+} from './registry';
 
 const FAILED_PLUGIN_ID = 'com.example.failed';
 const GATED_PLUGIN_ID = 'com.example.gated';

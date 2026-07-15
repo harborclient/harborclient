@@ -44,10 +44,7 @@ import {
 import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
 import { selectActiveTab } from '#/renderer/src/store/selectors';
 import { isRequestTab } from '#/renderer/src/store/drafts';
-import {
-  restoreLastFocusWithoutRing,
-  useLastFocusedElement
-} from '#/renderer/src/hooks/useLastFocusedElement';
+import { restoreLastFocusWithoutRing, useLastFocusedElement } from './useLastFocusedElement';
 import { focusSkipNavigation } from '#/renderer/src/ui/Shared/SkipNavigation/skipNavigationInitialFocus';
 import { focusSidebarSearch } from '#/renderer/src/ui/Sidebars/CollectionSidebar/focusSidebarSearch';
 import { focusRequestUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/focusRequestUrl';

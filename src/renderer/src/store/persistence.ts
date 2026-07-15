@@ -12,7 +12,7 @@ import {
   type RequestDraft,
   type RequestTab,
   type Tab
-} from '#/renderer/src/store/drafts';
+} from './drafts';
 import type { BodyType, HttpMethod, KeyValue, SettingsSection } from '#/shared/types';
 import type { TerminalTab } from '#/renderer/src/store/slices/terminalsSlice';
 

@@ -2,17 +2,17 @@ import * as git from 'isomorphic-git';
 import http from 'isomorphic-git/http/node';
 import fs, { existsSync, rmSync } from 'fs';
 import { join } from 'path';
-import { buildGitOnAuth, resolveGitAuthForHost } from '#/main/git/gitAuth';
-import { ensureHarborclientLayout, resolveHarborclientRoot } from '#/main/git/fileLayout';
+import { buildGitOnAuth, resolveGitAuthForHost } from './gitAuth';
+import { ensureHarborclientLayout, resolveHarborclientRoot } from './fileLayout';
 import {
   analyzeMatrixRow,
   countStagedAndUnstaged,
   loadHarborStatusMatrix,
   type GitMatrixRow,
   type GitRequestRowFlags
-} from '#/main/git/gitRequestStatus';
-import { countConflictFiles, pullMergeConflictMessage } from '#/main/git/slug';
-import { buildGitGraphLog, readGitCommitDetail } from '#/main/git/gitGraph';
+} from './gitRequestStatus';
+import { countConflictFiles, pullMergeConflictMessage } from './slug';
+import { buildGitGraphLog, readGitCommitDetail } from './gitGraph';
 import type {
   GitCommitDetail,
   GitGraphLogResult,

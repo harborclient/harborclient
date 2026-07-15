@@ -7,7 +7,7 @@ import {
   buildTabGroupExport,
   resolveTabGroupMembersFromOpenTabs,
   resolveTabGroupMembersFromRequests
-} from '#/renderer/src/store/thunks/tabGroups';
+} from './tabGroups';
 import type { TabGroup } from '#/shared/types/tabGroup';
 import { validateTabGroupExport } from '#/shared/types/tabGroup';
 

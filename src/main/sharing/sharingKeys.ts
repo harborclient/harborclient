@@ -1,7 +1,7 @@
 import { createPrivateKey, createPublicKey, generateKeyPairSync, sign, verify } from 'crypto';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
-import { publicKeyFingerprint } from '#/main/sharing/shareToken';
+import { publicKeyFingerprint } from './shareToken';
 import type { SharingIdentity } from '#/shared/types';
 
 const PRIVATE_KEY_FILENAME = 'sharing-key.pem';

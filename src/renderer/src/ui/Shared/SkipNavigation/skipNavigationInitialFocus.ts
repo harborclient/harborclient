@@ -1,4 +1,4 @@
-import { SKIP_NAVIGATION_ID } from '#/renderer/src/ui/Shared/SkipNavigation/skipNavigationTargets';
+import { SKIP_NAVIGATION_ID } from './skipNavigationTargets';
 
 /**
  * Returns true when a blocking modal should keep launch focus out of skip navigation.

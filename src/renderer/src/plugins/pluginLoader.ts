@@ -1,8 +1,8 @@
 import type { PluginInfo } from '#/shared/plugin/types';
 import { buildPluginAgentUrl } from '#/shared/plugin/pluginSurface';
-import { clearPluginContributions } from '#/renderer/src/plugins/registry';
-import { clearPluginImportHandlers } from '#/renderer/src/plugins/pluginImportHandlers';
-import { applyPersistedPluginTheme } from '#/renderer/src/plugins/themeRuntime';
+import { clearPluginContributions } from './registry';
+import { clearPluginImportHandlers } from './pluginImportHandlers';
+import { applyPersistedPluginTheme } from './themeRuntime';
 
 /** Tracks hidden agent webviews mounted for enabled plugins. */
 const agentWebviews = new Map<string, Electron.WebviewTag>();

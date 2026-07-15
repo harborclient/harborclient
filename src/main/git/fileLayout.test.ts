@@ -30,7 +30,7 @@ import {
   readCollectionFromFolder,
   resolveHarborclientRoot,
   writeCollectionToFolder
-} from '#/main/git/fileLayout';
+} from './fileLayout';
 import type { CollectionExport } from '#/shared/types';
 
 /**

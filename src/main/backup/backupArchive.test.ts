@@ -12,7 +12,7 @@ import {
   collectBackupFiles,
   isSafeRelativePath,
   validateAndExtractBackup
-} from '#/main/backup/backupArchive';
+} from './backupArchive';
 
 const cleanups: Array<() => void> = [];
 

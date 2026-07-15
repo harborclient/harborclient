@@ -5,7 +5,7 @@ import {
   formValuesToCreateInput,
   getCurrentAccessToken,
   parseAccessListText
-} from '#/renderer/src/ui/Tabs/TeamHub/teamUserFormHelpers';
+} from './teamUserFormHelpers';
 
 describe('getCurrentAccessToken', () => {
   it('returns the trimmed text after the last comma', () => {

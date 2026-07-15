@@ -35,7 +35,7 @@ import modalsReducer, {
   setSyncProviders,
   skipRemainingCollectionRunnerRequests,
   startCollectionRunner
-} from '#/renderer/src/store/slices/modalsSlice';
+} from './modalsSlice';
 
 describe('modalsSlice', () => {
   it('starts with all modals closed', () => {

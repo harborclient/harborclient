@@ -1,13 +1,13 @@
 import type { WebContents } from 'electron';
 import { ipcMain, webContents } from 'electron';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PluginManager } from '#/main/plugins/PluginManager';
-import { PluginUiBroker } from '#/main/plugins/PluginUiBroker';
+import type { PluginManager } from './PluginManager';
+import { PluginUiBroker } from './PluginUiBroker';
 import {
   resetPluginMcpRegistryForTests,
   setPluginMcpRegistryMainWindow,
   setPluginMcpRegistryManager
-} from '#/main/plugins/pluginMcpRegistry';
+} from './pluginMcpRegistry';
 
 const pickFileForPlugin = vi.fn();
 const readFileForPlugin = vi.fn();

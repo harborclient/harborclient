@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
-import { assignSlotForNewConnection } from '#/main/settings/storageSlots';
+import { assignSlotForNewConnection } from './storageSlots';
 import type {
   StorageConnection,
   FirestoreSettings,
@@ -9,7 +9,7 @@ import type {
   PostgresSettings,
   SqliteSettings
 } from '#/shared/types';
-import { normalizeSqliteFilename } from '#/main/settings/sqliteFilename';
+import { normalizeSqliteFilename } from './sqliteFilename';
 import { parseJson } from '#/shared/parseJson';
 
 const CONNECTIONS_KEY = 'storageConnections';

@@ -24,11 +24,11 @@ import {
   confirmPostmanImport,
   confirmRequestScripts,
   openImportFile
-} from '#/main/ipc/handlers/importDialogs';
-import { importEnvironmentData } from '#/main/ipc/handlers/environments';
-import { importTabGroupData } from '#/main/ipc/handlers/tabGroups';
-import { importCustomThemeData } from '#/main/ipc/handlers/customThemeImport';
-import { importSnippetData } from '#/main/ipc/handlers/snippetImport';
+} from './importDialogs';
+import { importEnvironmentData } from './environments';
+import { importTabGroupData } from './tabGroups';
+import { importCustomThemeData } from './customThemeImport';
+import { importSnippetData } from './snippetImport';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import { getTrashService } from '#/main/storage/trashServiceInstance';
 import { logImportVerbose } from '#/main/import/importVerboseLog';

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { mergeMcpClientTools } from '#/main/mcp/mergeMcpClientTools';
+import { mergeMcpClientTools } from './mergeMcpClientTools';
 import { AI_TOOL_DEFINITIONS } from '#/shared/ai/tools';
 
 vi.mock('#/main/mcp/mcpClientManager', () => ({

@@ -14,7 +14,7 @@ import {
   getEnabledTrustedUrls,
   getPluginSources,
   setPluginSources
-} from '#/main/settings/pluginSourcesSettings';
+} from './pluginSourcesSettings';
 
 describe('pluginSourcesSettings', () => {
   let settingsStore: Record<string, string>;

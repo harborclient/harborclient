@@ -2,7 +2,7 @@ import { useContext } from 'react';
 import {
   SidebarColorPickerContext,
   type SidebarColorPickerContextValue
-} from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarColorPickerContext';
+} from './sidebarColorPickerContext';
 
 /**
  * Returns the shared sidebar color picker context.

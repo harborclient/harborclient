@@ -8,7 +8,7 @@ import {
   registerSettingsSectionContribution,
   registerThemeContribution,
   unregisterContribution
-} from '#/renderer/src/plugins/registry';
+} from './registry';
 
 describe('plugin registry', () => {
   it('returns stable snapshot references until contributions change', () => {

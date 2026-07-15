@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PluginInfo, RegisteredPluginTheme } from '#/shared/plugin/types';
-import { listPluginThemeVariants } from '#/renderer/src/ui/Tabs/Plugins/listPluginThemeVariants';
+import { listPluginThemeVariants } from './listPluginThemeVariants';
 
 const PLUGIN_ID = 'com.example.solarized';
 

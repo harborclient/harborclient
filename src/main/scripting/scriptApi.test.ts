@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createScriptApi } from '#/main/scripting/scriptApi';
+import { createScriptApi } from './scriptApi';
 import { defaultAuth } from '#/shared/auth';
 import type { SendResult } from '#/shared/types';
 

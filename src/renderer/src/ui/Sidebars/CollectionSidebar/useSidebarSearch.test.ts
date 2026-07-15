@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clearExpansionSnapshot } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarSearch';
+import { clearExpansionSnapshot } from './useSidebarSearch';
 
 describe('clearExpansionSnapshot', () => {
   it('clears expanded collection and folder ids while preserving section flags', () => {

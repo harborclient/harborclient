@@ -1,7 +1,7 @@
 import type { BrowserWindow } from 'electron';
 import { isBuiltinThemeId } from '#/shared/builtinThemes';
 import { listCustomThemes, saveCustomTheme } from '#/main/storage/customThemes';
-import { confirmDuplicateImport } from '#/main/ipc/handlers/importDialogs';
+import { confirmDuplicateImport } from './importDialogs';
 import { validateCustomThemeExport } from '#/shared/plugin/customThemeExport';
 import type { CustomTheme } from '#/shared/types/customTheme';
 import type { ImportAction } from '#/shared/types';

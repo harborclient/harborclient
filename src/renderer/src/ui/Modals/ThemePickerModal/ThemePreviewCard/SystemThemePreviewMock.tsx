@@ -3,7 +3,7 @@ import {
   DARK_PREVIEW_PALETTE,
   LIGHT_PREVIEW_PALETTE
 } from '#/renderer/src/ui/Modals/ThemePickerModal/previewPalettes';
-import { PreviewContentRows } from '#/renderer/src/ui/Modals/ThemePickerModal/ThemePreviewCard/PreviewContentRows';
+import { PreviewContentRows } from './PreviewContentRows';
 
 /**
  * Renders a split light/dark mock for the system theme card.

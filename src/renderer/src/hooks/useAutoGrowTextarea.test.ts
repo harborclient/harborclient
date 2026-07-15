@@ -3,7 +3,7 @@ import {
   COMPOSER_MAX_HEIGHT_PX,
   COMPOSER_MIN_HEIGHT_PX,
   computeAutoGrowHeight
-} from '#/renderer/src/hooks/useAutoGrowTextarea';
+} from './useAutoGrowTextarea';
 
 describe('computeAutoGrowHeight', () => {
   it('uses the minimum height when content is shorter than the starting size', () => {

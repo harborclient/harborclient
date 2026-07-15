@@ -52,11 +52,11 @@ import {
   collectionRefreshKey,
   isLatestRefreshGeneration
 } from '#/renderer/src/store/refreshGeneration';
-import { refreshEnvironments } from '#/renderer/src/store/thunks/environments';
-import { refreshDocuments } from '#/renderer/src/store/thunks/documents';
-import { refreshSnippets } from '#/renderer/src/store/thunks/snippets';
+import { refreshEnvironments } from './environments';
+import { refreshDocuments } from './documents';
+import { refreshSnippets } from './snippets';
 import { setTabGroups } from '#/renderer/src/store/slices/tabGroupSlice';
-import { syncTrash } from '#/renderer/src/store/thunks/trash';
+import { syncTrash } from './trash';
 import { syncThemeMenuNow } from '#/renderer/src/plugins/themeMenuSync';
 import {
   getRegisteredImportExtensions,
@@ -66,8 +66,8 @@ import {
 import { logImportVerbose } from '#/renderer/src/import/importVerboseLog';
 import { defaultDraft, isRequestTab, isTabDirty, type Tab } from '#/renderer/src/store/drafts';
 import { closeTab } from '#/renderer/src/store/slices/tabsSlice';
-import { requestLoadDocument } from '#/renderer/src/store/thunks/documents';
-import { requestLoadRequest } from '#/renderer/src/store/thunks/requests';
+import { requestLoadDocument } from './documents';
+import { requestLoadRequest } from './requests';
 
 const COLLECTIONS_REFRESH_KEY = 'collections';
 

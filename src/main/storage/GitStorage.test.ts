@@ -12,7 +12,7 @@ import fs from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { GitStorage } from '#/main/storage/GitStorage';
+import { GitStorage } from './GitStorage';
 import { buildGitDiff, makeCollectionScopedFilter } from '#/main/git/gitDiff';
 import { collectionDirName } from '#/main/git/slug';
 import {

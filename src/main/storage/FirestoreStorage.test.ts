@@ -1,5 +1,5 @@
 import { afterAll, afterEach, expect, it, vi } from 'vitest';
-import { FirestoreStorage } from '#/main/storage/FirestoreStorage';
+import { FirestoreStorage } from './FirestoreStorage';
 import { defaultAuth } from '#/shared/auth';
 import {
   closeSharedSqlBackends,

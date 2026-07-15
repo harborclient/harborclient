@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultSidebarExpansion, normalizeSidebarExpansion } from '#/shared/sidebarExpansion';
+import { defaultSidebarExpansion, normalizeSidebarExpansion } from './sidebarExpansion';
 
 describe('defaultSidebarExpansion', () => {
   it('starts with all sections expanded and empty tree ids', () => {

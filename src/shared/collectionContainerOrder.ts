@@ -1,4 +1,4 @@
-import type { CollectionDocument, SavedRequest } from '#/shared/types';
+import type { CollectionDocument, SavedRequest } from './types';
 
 /**
  * Kind of sidebar row that can share a collection root or folder container.

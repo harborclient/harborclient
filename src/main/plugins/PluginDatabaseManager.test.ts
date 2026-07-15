@@ -6,7 +6,7 @@ import {
   assertSafeExecSql,
   PluginDatabaseManager,
   PLUGIN_DATABASES_DIR
-} from '#/main/plugins/PluginDatabaseManager';
+} from './PluginDatabaseManager';
 
 const cleanups: Array<() => void> = [];
 

@@ -1,14 +1,14 @@
 import { useEffect, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import { usePluginThemes } from '#/renderer/src/plugins/pluginHooks';
-import { applyPluginThemePreference } from '#/renderer/src/plugins/applyPluginTheme';
-import { clearPendingThemePrompt, isPendingThemePrompt } from '#/renderer/src/plugins/pluginLoader';
+import { usePluginThemes } from './pluginHooks';
+import { applyPluginThemePreference } from './applyPluginTheme';
+import { clearPendingThemePrompt, isPendingThemePrompt } from './pluginLoader';
 import {
   isActivePluginTheme,
   markThemePrompted,
   selectThemePromptCandidates,
   themePromptKey
-} from '#/renderer/src/plugins/pluginThemePromptLogic';
+} from './pluginThemePromptLogic';
 import { THEME_PROMPT_TOAST_LIVE_PROPS } from '#/renderer/src/ui/Shared/toastA11y';
 
 /** Theme keys currently being offered so overlapping effect runs do not duplicate toasts. */

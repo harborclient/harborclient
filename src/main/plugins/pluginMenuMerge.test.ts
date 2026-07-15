@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { MenuItemConstructorOptions } from 'electron';
-import { mergePluginMenuItemsIntoTemplate } from '#/main/plugins/pluginMenuMerge';
+import { mergePluginMenuItemsIntoTemplate } from './pluginMenuMerge';
 import type { SerializableMenuContribution } from '#/shared/plugin/types';
 
 describe('mergePluginMenuItemsIntoTemplate', () => {

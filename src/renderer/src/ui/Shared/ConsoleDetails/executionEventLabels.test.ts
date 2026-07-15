@@ -4,7 +4,7 @@ import {
   formatFlowExecutionLabel,
   formatVariableExecutionDetail,
   formatVariableExecutionLabel
-} from '#/renderer/src/ui/Shared/ConsoleDetails/executionEventLabels';
+} from './executionEventLabels';
 
 describe('executionEventLabels', () => {
   it('formats variable set, update, and clear labels', () => {

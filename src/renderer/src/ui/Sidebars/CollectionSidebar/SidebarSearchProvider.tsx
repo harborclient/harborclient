@@ -1,12 +1,9 @@
 import { useMemo, type JSX, type ReactNode } from 'react';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectCollections, selectFoldersByCollection } from '#/renderer/src/store/selectors';
-import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarExpansion';
-import { useSidebarSearch } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarSearch';
-import {
-  SidebarSearchContext,
-  type SidebarSearchContextValue
-} from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarSearchContext';
+import { useSidebarExpansion } from './useSidebarExpansion';
+import { useSidebarSearch } from './useSidebarSearch';
+import { SidebarSearchContext, type SidebarSearchContextValue } from './sidebarSearchContext';
 
 interface ProviderProps {
   /**

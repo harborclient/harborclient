@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { scanTeamHubSessions } from '#/main/settings/teamHubSessionScan';
+import { scanTeamHubSessions } from './teamHubSessionScan';
 import type { TeamHub } from '#/shared/types';
 
 describe('scanTeamHubSessions', () => {

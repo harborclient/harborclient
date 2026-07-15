@@ -1,12 +1,12 @@
 import type { AuthConfig } from '#/shared/auth';
 import type { RunResultsExport } from '#/shared/collectionRunner';
-import type { CustomTheme } from '#/shared/types/customTheme';
-import type { Environment } from '#/shared/types/environment';
-import type { SavedRequest } from '#/shared/types/request';
-import type { Snippet } from '#/shared/types/snippet';
-import type { TabGroup } from '#/shared/types/tabGroup';
-import type { ScriptRef } from '#/shared/types/script';
-import type { BodyType, HttpMethod, KeyValue, Variable } from '#/shared/types/common';
+import type { CustomTheme } from './customTheme';
+import type { Environment } from './environment';
+import type { SavedRequest } from './request';
+import type { Snippet } from './snippet';
+import type { TabGroup } from './tabGroup';
+import type { ScriptRef } from './script';
+import type { BodyType, HttpMethod, KeyValue, Variable } from './common';
 
 /**
  * A named group of saved HTTP requests.

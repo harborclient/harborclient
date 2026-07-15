@@ -9,8 +9,8 @@ import {
   getCachedTeamHubCatalogs,
   mergeEnabledPluginUrls,
   refreshTeamHubPluginSources
-} from '#/main/settings/teamHubPluginSources';
-import { getEnabledCatalogUrls, setPluginSources } from '#/main/settings/pluginSourcesSettings';
+} from './teamHubPluginSources';
+import { getEnabledCatalogUrls, setPluginSources } from './pluginSourcesSettings';
 
 const hubOne = {
   id: 'hub-1',

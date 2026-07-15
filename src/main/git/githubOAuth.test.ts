@@ -3,7 +3,7 @@ import {
   clearPendingGitHubDeviceFlow,
   completeGitHubDeviceFlow,
   startGitHubDeviceFlow
-} from '#/main/git/githubOAuth';
+} from './githubOAuth';
 
 describe('githubOAuth device flow', () => {
   beforeEach(() => {

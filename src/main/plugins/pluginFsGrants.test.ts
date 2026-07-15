@@ -2,7 +2,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { PluginManager } from '#/main/plugins/PluginManager';
+import { PluginManager } from './PluginManager';
 import {
   clearLocalDatabaseForTesting,
   getLocalDatabase,

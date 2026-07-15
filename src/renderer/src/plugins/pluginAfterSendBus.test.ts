@@ -1,8 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  clearPluginAfterSendSubscribers,
-  emitPluginAfterSend
-} from '#/renderer/src/plugins/pluginAfterSendBus';
+import { clearPluginAfterSendSubscribers, emitPluginAfterSend } from './pluginAfterSendBus';
 
 const pushPluginHttpAfterSendMock = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
 

@@ -4,7 +4,7 @@ import {
   persistTerminalLayout,
   TERMINAL_LAYOUT_KEY,
   type PersistedTerminalLayout
-} from '#/renderer/src/store/persistence';
+} from './persistence';
 import terminalsReducer, {
   addTerminal,
   hydrateTerminals

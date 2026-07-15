@@ -9,7 +9,7 @@ import {
   buildScriptSlots,
   mergeVariableSets,
   substituteWithMap
-} from '#/renderer/src/scripting/scriptOrchestration';
+} from './scriptOrchestration';
 import { createInlineScriptRef, createSnippetScriptRef } from '#/shared/scriptRefs';
 import { defaultAuth } from '#/shared/auth';
 import type { ScriptRunResult, Snippet } from '#/shared/types';

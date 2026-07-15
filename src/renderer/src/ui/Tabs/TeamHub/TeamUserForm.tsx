@@ -9,14 +9,14 @@ import type {
 import { Checkbox, Input, Select } from '@harborclient/sdk/components';
 import { FormGroup } from '@harborclient/sdk/components';
 import { StatusMessage } from '@harborclient/sdk/components';
-import { AccessListInput } from '#/renderer/src/ui/Tabs/TeamHub/AccessListInput';
+import { AccessListInput } from './AccessListInput';
 import {
   defaultCreateFormValues,
   formValuesToCreateInput,
   formValuesToUpdateInput,
   hubUserToFormValues,
   type TeamUserFormValues
-} from '#/renderer/src/ui/Tabs/TeamHub/teamUserFormHelpers';
+} from './teamUserFormHelpers';
 
 interface BaseProps {
   /**

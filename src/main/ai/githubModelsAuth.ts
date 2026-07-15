@@ -14,7 +14,7 @@ import {
   getGithubModelsTokenExpiresAt,
   hasGithubModelsAccessToken,
   storeGithubModelsTokens
-} from '#/main/ai/githubModelsSecrets';
+} from './githubModelsSecrets';
 
 /**
  * Stable device-flow key for GitHub Models sign-in.

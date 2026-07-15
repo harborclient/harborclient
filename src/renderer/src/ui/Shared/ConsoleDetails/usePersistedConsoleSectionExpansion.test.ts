@@ -6,7 +6,7 @@ import {
   loadPersistedConsoleSectionExpansion,
   parsePersistedConsoleSectionExpansion,
   persistConsoleSectionExpansion
-} from '#/renderer/src/ui/Shared/ConsoleDetails/usePersistedConsoleSectionExpansion';
+} from './usePersistedConsoleSectionExpansion';
 
 /**
  * Minimal localStorage mock backed by an in-memory map for console section tests.

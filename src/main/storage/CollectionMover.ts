@@ -1,4 +1,4 @@
-import type { MountedBackend, RoutingInternals } from '#/main/storage/routingInternals';
+import type { MountedBackend, RoutingInternals } from './routingInternals';
 import type { Collection, CollectionDocument, Folder, SavedRequest } from '#/shared/types';
 
 const COLLECTION_MOVE_PENDING_KEY = 'collection_move_pending';

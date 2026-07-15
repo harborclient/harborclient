@@ -9,7 +9,7 @@ import {
   removeScriptAskLine,
   renderScriptAskNote,
   stripScriptAskThinking
-} from '#/shared/ai/scriptAsk';
+} from './scriptAsk';
 
 describe('buildScriptAskSystemPrompt', () => {
   it('includes numbered script source and the /ask line', () => {

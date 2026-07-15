@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodeGlobalId, encodeGlobalId, ID_OFFSET } from '#/main/storage/idNamespace';
+import { decodeGlobalId, encodeGlobalId, ID_OFFSET } from './idNamespace';
 
 describe('idNamespace', () => {
   it('decodeGlobalId inverts encodeGlobalId for each backend slot', () => {

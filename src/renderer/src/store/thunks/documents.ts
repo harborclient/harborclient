@@ -19,7 +19,7 @@ import {
   upsertDocumentInCollection
 } from '#/renderer/src/store/slices/collectionsSlice';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
-import { syncTrash } from '#/renderer/src/store/thunks/trash';
+import { syncTrash } from './trash';
 import {
   beginRefreshGeneration,
   collectionRefreshKey,

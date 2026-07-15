@@ -1,13 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
-import type { RequestDraft } from '#/renderer/src/store/drafts';
-import {
-  asRequestTab,
-  createTab,
-  isPageTab,
-  isRequestTab,
-  isTabDirty
-} from '#/renderer/src/store/drafts';
+import type { RequestDraft } from './drafts';
+import { asRequestTab, createTab, isPageTab, isRequestTab, isTabDirty } from './drafts';
 import {
   defaultTabState,
   LEGACY_OPEN_TABS_KEY,
@@ -23,7 +17,7 @@ import {
   resetTabsHydratedForTests,
   TERMINAL_LAYOUT_KEY,
   type PersistedOpenTabs
-} from '#/renderer/src/store/persistence';
+} from './persistence';
 
 const sampleDraft = (overrides: Partial<RequestDraft> = {}): RequestDraft => ({
   name: 'Sample',

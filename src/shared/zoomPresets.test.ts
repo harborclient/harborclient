@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_ZOOM_FACTOR, zoomFactorToPreset, zoomPresetToFactor } from '#/shared/zoomPresets';
+import { DEFAULT_ZOOM_FACTOR, zoomFactorToPreset, zoomPresetToFactor } from './zoomPresets';
 
 describe('zoomPresetToFactor', () => {
   it('maps Small to one step below the default zoom', () => {

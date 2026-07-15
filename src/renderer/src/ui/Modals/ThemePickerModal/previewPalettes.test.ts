@@ -5,7 +5,7 @@ import {
   HIGH_CONTRAST_PREVIEW_PALETTE,
   LIGHT_PREVIEW_PALETTE,
   getThemePreviewPalette
-} from '#/renderer/src/ui/Modals/ThemePickerModal/previewPalettes';
+} from './previewPalettes';
 import { HC_ACCENT, HC_SURFACE } from '#/shared/highContrastPalette';
 
 describe('getThemePreviewPalette', () => {

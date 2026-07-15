@@ -10,7 +10,7 @@ import {
   gitChangePathBasename,
   parseRequestUuidFromGitFileName,
   resolveGitChangeSidebarTarget
-} from '#/renderer/src/git/resolveGitChangeSidebarTarget';
+} from './resolveGitChangeSidebarTarget';
 
 const COLLECTION_UUID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const REQUEST_UUID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';

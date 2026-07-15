@@ -4,7 +4,7 @@ import {
   formatRedirectChain,
   formatRedirectHopLine,
   getFinalRedirectUrl
-} from '#/renderer/src/ui/Main/ResponseEditor/redirectsDisplay';
+} from './redirectsDisplay';
 
 describe('redirectsDisplay', () => {
   const hopA: RedirectHop = {

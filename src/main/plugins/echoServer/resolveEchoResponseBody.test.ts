@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  hasEchoScriptReturnValue,
-  resolveEchoResponseBody
-} from '#/main/plugins/echoServer/resolveEchoResponseBody';
+import { hasEchoScriptReturnValue, resolveEchoResponseBody } from './resolveEchoResponseBody';
 
 const defaultEcho = {
   args: { foo: 'bar' },

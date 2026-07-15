@@ -4,7 +4,7 @@ import type { BuiltinThemeId } from '#/shared/builtinThemes';
 import { isBuiltinThemeSource } from '#/shared/builtinThemes';
 import type { CustomThemeType } from '#/shared/types/customTheme';
 import type { ThemeSource } from '#/shared/types';
-import { getRegisteredPluginThemes } from '#/renderer/src/plugins/registry';
+import { getRegisteredPluginThemes } from './registry';
 import { applyThemeAttribute, resolveSystemBuiltinTheme } from '#/renderer/src/theme';
 
 const STYLE_ELEMENT_ID = 'harborclient-plugin-theme-style';

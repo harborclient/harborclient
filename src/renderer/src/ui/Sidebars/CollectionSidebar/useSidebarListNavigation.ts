@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { acceleratorMatchesChord, getShortcutDef, type KeyChord } from '#/shared/shortcuts';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
-import { advanceSidebarListItem } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarListNavigation';
+import { advanceSidebarListItem } from './sidebarListNavigation';
 
 interface SidebarListAccelerators {
   /** Effective accelerator for next sidebar list item. */

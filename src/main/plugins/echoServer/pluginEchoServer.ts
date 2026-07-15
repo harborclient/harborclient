@@ -1,6 +1,6 @@
 import type { Server } from 'node:http';
-import { createEchoApp } from '#/main/plugins/echoServer/app';
-import type { EchoServerIncomingRequest, EchoServerStatus } from '#/main/plugins/echoServer/types';
+import { createEchoApp } from './app';
+import type { EchoServerIncomingRequest, EchoServerStatus } from './types';
 
 interface EchoServerEntry {
   server: Server;

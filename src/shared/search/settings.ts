@@ -1,9 +1,5 @@
-import { SETTINGS_CATALOG, type SettingId } from '#/shared/search/settingsCatalog';
-import {
-  createTextSearchIndex,
-  searchTextIndex,
-  type HarborSearchIndex
-} from '#/shared/search/oramaIndex';
+import { SETTINGS_CATALOG, type SettingId } from './settingsCatalog';
+import { createTextSearchIndex, searchTextIndex, type HarborSearchIndex } from './oramaIndex';
 
 /**
  * Indexed fields for settings catalog search.

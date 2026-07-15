@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isDotenvFile, parseDotenvEnvironment } from '#/main/import/envFile';
+import { isDotenvFile, parseDotenvEnvironment } from './envFile';
 
 describe('isDotenvFile', () => {
   it('matches common dotenv file names', () => {

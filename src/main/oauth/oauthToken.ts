@@ -1,6 +1,6 @@
 import { encodeBasicAuth } from '#/shared/auth';
 import type { OAuth2Config, OAuthFetchTokenResult } from '#/shared/auth';
-import { deleteOAuthToken, getOAuthToken, storeOAuthToken } from '#/main/oauth/oauthSecrets';
+import { deleteOAuthToken, getOAuthToken, storeOAuthToken } from './oauthSecrets';
 
 const TOKEN_EXPIRY_BUFFER_MS = 60_000;
 

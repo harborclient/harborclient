@@ -5,7 +5,7 @@ import {
   MAX_IPC_REQUEST_BODY_CHARS,
   MAX_IPC_SCRIPT_CHARS,
   MAX_IPC_URL_CHARS
-} from '#/main/ipc/ipcLimits';
+} from './ipcLimits';
 import {
   bodyType,
   storageConnection,
@@ -18,7 +18,7 @@ import {
   scriptRunInput,
   themeSource,
   variable
-} from '#/main/ipc/ipcSchemas';
+} from './ipcSchemas';
 
 const validKeyValue = { key: 'Authorization', value: 'Bearer x', enabled: true };
 

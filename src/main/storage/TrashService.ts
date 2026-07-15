@@ -1,7 +1,7 @@
 import type { SaveRunResultInput } from '#/shared/collectionRunner';
-import type { LocalDatabase } from '#/main/storage/LocalDatabase';
-import type { IStorage } from '#/main/storage/IStorage';
-import { RoutingStorage } from '#/main/storage/RoutingStorage';
+import type { LocalDatabase } from './LocalDatabase';
+import type { IStorage } from './IStorage';
+import { RoutingStorage } from './RoutingStorage';
 import type {
   CollectionDocument,
   CreateTabGroupInput,

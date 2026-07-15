@@ -1,7 +1,7 @@
 import type { KeyValue, Variable } from '#/shared/types';
 import { buildSendUrl } from '#/shared/queryParams';
 
-import { buildRuntimeVars, substituteWithMap } from '#/renderer/src/scripting/scriptOrchestration';
+import { buildRuntimeVars, substituteWithMap } from './scriptOrchestration';
 
 /**
  * Builds the runtime variable map used when resolving a saved request URL at send time.

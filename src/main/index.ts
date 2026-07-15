@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, screen, type App } from 'electron';
 import { join, resolve } from 'path';
-import { RoutingStorage } from '#/main/storage';
+import { RoutingStorage } from './storage';
 import { initLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import {
   seedDefaultContentIfNeeded,
@@ -9,7 +9,7 @@ import {
 } from '#/main/storage/seedDefaultContent';
 import { createStorageInstance } from '#/main/storage/createStorageInstance';
 import { seedMissingBuiltinThemes } from '#/main/storage/customThemes';
-import { registerIpcHandlers } from '#/main/ipc';
+import { registerIpcHandlers } from './ipc';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import {
   getActiveStorageId,
@@ -24,10 +24,10 @@ import { migrateStorageSettingsKeys } from '#/main/settings/storageSettingsMigra
 import { listTeamHubs } from '#/main/settings/teamHubSettings';
 import { ensureSharingKeys } from '#/main/sharing/sharingKeys';
 import { startGitWatchers } from '#/main/git/gitWatcher';
-import { rebuildAppMenu, setMenuActiveTheme, setMenuWindow } from '#/main/appMenu';
-import { attachShortcutDispatch } from '#/main/shortcutDispatch';
-import { isVerbose, logVerbose } from '#/main/logger';
-import { configureFileLogger } from '#/main/fileLogger';
+import { rebuildAppMenu, setMenuActiveTheme, setMenuWindow } from './appMenu';
+import { attachShortcutDispatch } from './shortcutDispatch';
+import { isVerbose, logVerbose } from './logger';
+import { configureFileLogger } from './fileLogger';
 import { getGeneralSettings } from '#/main/settings/generalSettings';
 import {
   loadWindowState,
@@ -42,10 +42,10 @@ import {
 import { attachWebContextMenu } from '#/main/window/webContextMenu';
 import { applySpellCheckEnabled } from '#/main/window/spellCheck';
 import { restoreZoomFactor } from '#/main/window/zoom';
-import { isDevModeFlagEnabled } from '#/main/devMode';
-import { isQuitWithoutWarningFlagEnabled } from '#/main/quitWithoutWarning';
-import { applyRandUserDirIfRequested, cleanupRandUserDir } from '#/main/randUserDir';
-import { getStartupThemeOverride } from '#/main/startupTheme';
+import { isDevModeFlagEnabled } from './devMode';
+import { isQuitWithoutWarningFlagEnabled } from './quitWithoutWarning';
+import { applyRandUserDirIfRequested, cleanupRandUserDir } from './randUserDir';
+import { getStartupThemeOverride } from './startupTheme';
 import { disposeScriptRunner } from '#/main/scripting/scriptRunnerHost';
 import {
   PluginManager,
@@ -56,7 +56,7 @@ import { disposePluginRunner } from '#/main/plugins/pluginRunnerHost';
 import { getPluginUiBroker, initPluginUiBroker } from '#/main/plugins/PluginUiBroker';
 import { setPluginMcpRegistryMainWindow } from '#/main/plugins/pluginMcpRegistry';
 import { bootstrapMcpHost } from '#/main/ipc/handlers/mcp';
-import { disposeMcpHost, getMcpToolBridge } from '#/main/mcp';
+import { disposeMcpHost, getMcpToolBridge } from './mcp';
 import { killAllTerminals, killTerminalsForWebContents } from '#/main/terminal/terminalHost';
 import {
   ensureHarborPluginProtocolForSession,

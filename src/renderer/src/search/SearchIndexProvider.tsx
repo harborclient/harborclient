@@ -24,7 +24,7 @@ import {
   SearchIndexContext,
   type SearchIndexContextValue,
   type SearchIndexReady
-} from '#/renderer/src/search/searchIndexContext';
+} from './searchIndexContext';
 
 interface Props {
   /** Application subtree that consumes warm search indexes. */

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { usePluginSidebarSections } from '#/renderer/src/plugins/pluginHooks';
-import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarExpansion';
+import { useSidebarExpansion } from './useSidebarExpansion';
 
 /**
  * Accordion state for the sidebar sections plus plugin-section expansion.

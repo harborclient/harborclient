@@ -4,7 +4,7 @@ import {
   getTerminalSelectionToolbarCoords,
   isCopyToChatShortcutEvent,
   readTerminalBufferLines
-} from '#/renderer/src/ui/Footer/TerminalPanel/terminalSelection';
+} from './terminalSelection';
 
 /**
  * Builds a minimal element stub with a fixed bounding rect.

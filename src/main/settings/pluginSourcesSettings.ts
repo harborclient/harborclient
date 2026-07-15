@@ -4,7 +4,7 @@ import {
   getCachedTeamHubCatalogs,
   getCachedTeamHubTrusted,
   mergeEnabledPluginUrls
-} from '#/main/settings/teamHubPluginSources';
+} from './teamHubPluginSources';
 import {
   getDefaultPluginSources,
   normalizePluginSources,

@@ -1,7 +1,7 @@
-import { buildChatTitleSystemPrompt, CHAT_TITLE_TOOL } from '#/shared/ai/chatTitle';
-import { buildGitCommitMessageSystemPrompt } from '#/shared/ai/gitCommitMessage';
-import { buildScriptAskSystemPrompt, SCRIPT_ASK_TOOL } from '#/shared/ai/scriptAsk';
-import { AI_SYSTEM_PROMPT, AI_TOOL_DEFINITIONS } from '#/shared/ai/tools';
+import { buildChatTitleSystemPrompt, CHAT_TITLE_TOOL } from './chatTitle';
+import { buildGitCommitMessageSystemPrompt } from './gitCommitMessage';
+import { buildScriptAskSystemPrompt, SCRIPT_ASK_TOOL } from './scriptAsk';
+import { AI_SYSTEM_PROMPT, AI_TOOL_DEFINITIONS } from './tools';
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 import type { ChatStepInput, ChatStepMessage } from '#/shared/types';
 

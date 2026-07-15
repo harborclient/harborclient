@@ -7,7 +7,7 @@ import {
   clearLocalDatabaseForTesting,
   setLocalDatabaseForTesting
 } from '#/main/storage/localDatabaseInstance';
-import { migrateTeamHubSettings } from '#/main/settings/teamHubMigration';
+import { migrateTeamHubSettings } from './teamHubMigration';
 
 describe('teamHubMigration', () => {
   let settingsStore: Record<string, string>;

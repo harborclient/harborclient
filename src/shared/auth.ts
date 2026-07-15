@@ -1,4 +1,4 @@
-import { hasUnsafeHeaderFieldChars } from '#/shared/httpHeaders';
+import { hasUnsafeHeaderFieldChars } from './httpHeaders';
 
 /**
  * Authorization type for the Auth tab; none inherits collection auth at send time.

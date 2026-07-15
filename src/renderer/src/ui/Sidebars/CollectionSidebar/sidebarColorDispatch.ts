@@ -7,7 +7,7 @@ import {
 import { setRequestSidebarColor } from '#/renderer/src/store/thunks/requests';
 import { setEnvironmentSidebarColor } from '#/renderer/src/store/thunks/environments';
 import { setTabGroupSidebarColor } from '#/renderer/src/store/thunks/tabGroups';
-import type { SidebarColorTarget } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarColorTypes';
+import type { SidebarColorTarget } from './sidebarColorTypes';
 
 /**
  * Dispatches the appropriate thunk to persist a sidebar item color.

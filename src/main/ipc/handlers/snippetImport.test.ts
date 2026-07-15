@@ -3,7 +3,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LocalDatabase } from '#/main/storage/LocalDatabase';
-import { importSnippetData } from '#/main/ipc/handlers/snippetImport';
+import { importSnippetData } from './snippetImport';
 
 const confirmDuplicateImport = vi.fn();
 

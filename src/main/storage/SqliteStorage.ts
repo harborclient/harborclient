@@ -19,14 +19,14 @@ import {
   exportedFolderFromFolder,
   serializeImportedFolderFields,
   serializeImportedRequestFields
-} from '#/main/storage/collectionImport';
+} from './collectionImport';
 import {
   maskVariablesForExport,
   normalizeVariable,
   validateCollectionExport,
   validateRunResultsExport
-} from '#/main/storage/collectionData';
-import { saveRunResultInputSchema } from '#/main/storage/collectionSchemas';
+} from './collectionData';
+import { saveRunResultInputSchema } from './collectionSchemas';
 import {
   rowToCollection,
   rowToDocument,
@@ -36,23 +36,20 @@ import {
   rowToProviderRunResultSummary,
   rowToProviderSnippet,
   rowToRequest
-} from '#/main/storage/entityMappers';
-import { assertContainerItemOrder, planContainerItemMove } from '#/main/storage/containerReorder';
+} from './entityMappers';
+import { assertContainerItemOrder, planContainerItemMove } from './containerReorder';
 import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
 import {
   CREATE_PROVIDER_RUN_RESULTS_TABLE_SQL,
   PROVIDER_RUN_RESULT_COLUMNS
-} from '#/main/storage/providerRunResultSql';
+} from './providerRunResultSql';
 import {
   CREATE_PROVIDER_SNIPPETS_TABLE_SQL,
   migrateSqliteSnippetStageColumn,
   PROVIDER_SNIPPET_COLUMNS
-} from '#/main/storage/providerSnippetSql';
-import {
-  bundleScriptFieldsWithLegacy,
-  migrateSqliteScriptArrayColumns
-} from '#/main/storage/scriptFields';
-import { trimRequiredName } from '#/main/storage/trimRequiredName';
+} from './providerSnippetSql';
+import { bundleScriptFieldsWithLegacy, migrateSqliteScriptArrayColumns } from './scriptFields';
+import { trimRequiredName } from './trimRequiredName';
 import {
   buildSavedRunLabel,
   extractSavedRunMetadata,
@@ -61,7 +58,7 @@ import {
   type SaveRunResultInput
 } from '#/shared/collectionRunner';
 import { DEFAULT_AUTH_JSON, defaultAuth, normalizeAuth } from '#/shared/auth';
-import type { IStorage } from '#/main/storage/IStorage';
+import type { IStorage } from './IStorage';
 import type {
   AuthConfig,
   Collection,
@@ -82,11 +79,8 @@ import type { SnippetScope } from '#/shared/snippetScope';
 import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '#/shared/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
 import { parseJson } from '#/shared/parseJson';
-import { generateDocumentUuid } from '#/main/storage/uuid';
-import {
-  migrateSidebarColorColumn,
-  serializeSidebarColor
-} from '#/main/storage/sidebarColorMigration';
+import { generateDocumentUuid } from './uuid';
+import { migrateSidebarColorColumn, serializeSidebarColor } from './sidebarColorMigration';
 
 const COLLECTION_COLUMNS =
   'id, uuid, name, variables, headers, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, color';

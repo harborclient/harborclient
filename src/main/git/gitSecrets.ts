@@ -3,11 +3,7 @@ import { decryptSecret, encryptSecret, type EncryptedSecret } from '#/main/secre
 import { parseJson } from '#/shared/parseJson';
 import { normalizeGitHostKey } from '#/shared/gitUrl';
 import { listStorageConnections } from '#/main/settings/storageSettings';
-import {
-  getGitIdentity,
-  persistGitIdentityAuth,
-  upsertGitIdentity
-} from '#/main/git/gitIdentities';
+import { getGitIdentity, persistGitIdentityAuth, upsertGitIdentity } from './gitIdentities';
 
 const GIT_SECRETS_KEY = 'gitConnectionSecrets';
 const GIT_SECRETS_MIGRATED_KEY = 'gitHostSecretsMigrated';

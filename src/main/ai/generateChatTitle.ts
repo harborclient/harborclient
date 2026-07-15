@@ -1,4 +1,4 @@
-import { runChatCompletionStep } from '#/main/ai/completeChatTurn';
+import { runChatCompletionStep } from './completeChatTurn';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { DEFAULT_CHAT_TITLE, parseChatTitleResult } from '#/shared/ai/chatTitle';
 import { stripAiScriptReferences } from '#/shared/ai/scriptReferences';

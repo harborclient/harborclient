@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import trashReducer, {
-  removeTrashItem,
-  selectTrashItems,
-  setTrashItems
-} from '#/renderer/src/store/slices/trashSlice';
+import trashReducer, { removeTrashItem, selectTrashItems, setTrashItems } from './trashSlice';
 
 describe('trashSlice', () => {
   it('replaces trash items on refresh', () => {

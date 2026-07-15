@@ -5,7 +5,7 @@ import type { RequestHistoryEntry } from '#/shared/types/requestHistory';
 import type { BodyType } from '#/shared/types/common';
 import { toPluginHttpRequest } from '#/shared/plugin/httpRequest';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
-import { syncTrash } from '#/renderer/src/store/thunks/trash';
+import { syncTrash } from './trash';
 import {
   clearRequestHistoryState,
   setRequestHistory

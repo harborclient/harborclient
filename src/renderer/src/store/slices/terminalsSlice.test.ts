@@ -6,7 +6,7 @@ import terminalsReducer, {
   renameTerminal,
   setActiveTerminal,
   setTerminalSelection
-} from '#/renderer/src/store/slices/terminalsSlice';
+} from './terminalsSlice';
 
 describe('terminalsSlice', () => {
   it('starts with no terminal tabs', () => {

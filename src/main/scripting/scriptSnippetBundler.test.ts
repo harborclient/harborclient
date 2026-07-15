@@ -3,7 +3,7 @@ import {
   bundleUserScript,
   resolveSnippetImportPath,
   scriptUsesModuleSyntax
-} from '#/main/scripting/scriptSnippetBundler';
+} from './scriptSnippetBundler';
 
 describe('scriptUsesModuleSyntax', () => {
   it('detects import and export statements', () => {

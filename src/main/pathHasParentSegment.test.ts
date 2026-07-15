@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pathHasParentSegment } from '#/main/pathHasParentSegment';
+import { pathHasParentSegment } from './pathHasParentSegment';
 
 describe('pathHasParentSegment', () => {
   it('returns false when .. appears only inside a segment name', () => {

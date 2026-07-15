@@ -9,7 +9,7 @@ import {
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import { THEME_APPEARANCE_CATEGORIES, THEME_CATEGORY } from '#/shared/plugin/themeCategory';
 import { faPalette, faStore } from '#/renderer/src/fontawesome';
-import type { PluginManagementKind } from '#/renderer/src/ui/Tabs/Plugins/constants';
+import type { PluginManagementKind } from './constants';
 import { MarketplaceBrowseView } from '#/renderer/src/ui/Shared/Marketplace/MarketplaceBrowseView';
 import { CatalogCard } from './CatalogCard';
 

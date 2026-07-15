@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import { isLinux, isMac } from '#/renderer/src/platform';
-import { LinuxTitleBar } from '#/renderer/src/ui/TitleBar/LinuxTitleBar';
+import { LinuxTitleBar } from './LinuxTitleBar';
 
 /**
  * macOS hidden-inset drag region, or Linux frameless title bar with menu bar and window controls.

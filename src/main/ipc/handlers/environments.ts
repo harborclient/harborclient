@@ -7,7 +7,7 @@ import { mintFreshEnvironmentExportUuid, resolveImportUuid } from '#/main/storag
 import type { IStorage } from '#/main/storage/IStorage';
 import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { handle } from '#/main/ipc/handle';
-import { confirmDuplicateImport, openImportFile } from '#/main/ipc/handlers/importDialogs';
+import { confirmDuplicateImport, openImportFile } from './importDialogs';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import { getTrashService } from '#/main/storage/trashServiceInstance';
 import type { Environment, EnvironmentExport, ImportAction } from '#/shared/types';

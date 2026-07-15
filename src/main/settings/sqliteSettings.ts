@@ -1,5 +1,5 @@
 import Store from 'electron-store';
-import { normalizeSqliteFilename } from '#/main/settings/sqliteFilename';
+import { normalizeSqliteFilename } from './sqliteFilename';
 import type { SqliteSettings } from '#/shared/types';
 
 const DEFAULT_SQLITE_SETTINGS: SqliteSettings = {

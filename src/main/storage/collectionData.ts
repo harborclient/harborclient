@@ -7,11 +7,11 @@ import {
   formatRunResultsImportError,
   requestExportSchema,
   runResultsExportSchema
-} from '#/main/storage/collectionSchemas';
+} from './collectionSchemas';
 import type { CollectionExport, EnvironmentExport, RequestExport, Variable } from '#/shared/types';
 import type { RunResultsExport } from '#/shared/collectionRunner';
 
-export { normalizeVariable } from '#/main/storage/collectionVariables';
+export { normalizeVariable } from './collectionVariables';
 
 /**
  * Masks private variable values for portable export.

@@ -1,7 +1,7 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import type { StorageConnection } from '#/shared/types';
-import { getActiveStorageId, listStorageConnections } from '#/main/settings/storageSettings';
-import { listTeamHubs } from '#/main/settings/teamHubSettings';
+import { getActiveStorageId, listStorageConnections } from './storageSettings';
+import { listTeamHubs } from './teamHubSettings';
 import { parseJson } from '#/shared/parseJson';
 
 const SLOTS_KEY = 'storageSlots';

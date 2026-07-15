@@ -5,7 +5,7 @@ import {
   buildTimingRows,
   type TimingPhaseGroup
 } from '#/renderer/src/ui/Main/ResponseEditor/timingDisplay';
-import { TimingGroup } from '#/renderer/src/ui/Main/ResponseEditor/Timing/TimingGroup';
+import { TimingGroup } from './TimingGroup';
 
 interface Props {
   /**

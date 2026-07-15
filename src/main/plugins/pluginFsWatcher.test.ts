@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { PluginFsWatcher } from '#/main/plugins/pluginFsWatcher';
-import { PluginFsAllowlist } from '#/main/plugins/pluginFsAllowlist';
+import { PluginFsWatcher } from './pluginFsWatcher';
+import { PluginFsAllowlist } from './pluginFsAllowlist';
 
 const watchMock = vi.fn();
 const closeMock = vi.fn();

@@ -3,7 +3,7 @@ import type { JSX } from 'react';
 import { useId } from 'react';
 import type { ProviderOption } from '#/renderer/src/hooks/useProviders';
 import { providerOptionLabel } from '#/renderer/src/hooks/useProviders';
-import { COLLECTION_SETTINGS_NAME_INPUT_ID } from '#/renderer/src/ui/Tabs/CollectionSettings/focusCollectionSettings';
+import { COLLECTION_SETTINGS_NAME_INPUT_ID } from './focusCollectionSettings';
 
 interface Props {
   /**

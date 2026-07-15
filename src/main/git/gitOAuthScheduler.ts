@@ -1,12 +1,8 @@
 import type { WebContents } from 'electron';
 import type { IStorage } from '#/main/storage/IStorage';
 import { RoutingStorage } from '#/main/storage/RoutingStorage';
-import {
-  finishHostGitHubOAuth,
-  resolveConnectionHost,
-  testHostCredentials
-} from '#/main/git/gitAuth';
-import { clearPendingGitHubDeviceFlow } from '#/main/git/githubOAuth';
+import { finishHostGitHubOAuth, resolveConnectionHost, testHostCredentials } from './gitAuth';
+import { clearPendingGitHubDeviceFlow } from './githubOAuth';
 import { listStorageConnections } from '#/main/settings/storageSettings';
 import type { GitOAuthFinishedEvent } from '#/shared/types';
 

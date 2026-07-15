@@ -1,5 +1,5 @@
 import { BrowserWindow, Menu, shell, type MenuItemConstructorOptions } from 'electron';
-import { isDeveloperToolsEnabled } from '#/main/devMode';
+import { isDeveloperToolsEnabled } from './devMode';
 import { getShortcutOverrides } from '#/main/settings/shortcutSettings';
 import { getPluginMenuContributions } from '#/main/plugins/pluginMenuContributions';
 import { mergePluginMenuItemsIntoTemplate } from '#/main/plugins/pluginMenuMerge';

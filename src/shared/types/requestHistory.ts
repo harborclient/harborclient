@@ -1,4 +1,4 @@
-import type { BodyType } from '#/shared/types/common';
+import type { BodyType } from './common';
 
 /**
  * Maximum entries persisted and shown in the History sidebar.

@@ -3,7 +3,7 @@ import { defaultAuth } from '#/shared/auth';
 import {
   resolveCollectionGitContext,
   resolveGitSidebarCollectionId
-} from '#/renderer/src/git/resolveCollectionGitContext';
+} from './resolveCollectionGitContext';
 import type { Collection, SourceControlStatus } from '#/shared/types';
 
 /**

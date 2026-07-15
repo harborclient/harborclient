@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  buildBuiltinThemeCss,
-  buildCustomThemeCss,
-  resolveBuiltinThemeId
-} from '#/renderer/src/plugins/themeRuntime';
+import { buildBuiltinThemeCss, buildCustomThemeCss, resolveBuiltinThemeId } from './themeRuntime';
 
 describe('buildCustomThemeCss', () => {
   it('maps custom theme tokens to --mac-* variables under data-theme=custom', () => {

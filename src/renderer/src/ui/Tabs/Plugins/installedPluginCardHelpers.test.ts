@@ -3,7 +3,7 @@ import type { PluginInfo } from '#/shared/plugin/types';
 import {
   installedCardToggleLabel,
   resolveInstalledCardMiddleAction
-} from '#/renderer/src/ui/Tabs/Plugins/installedPluginCardHelpers';
+} from './installedPluginCardHelpers';
 
 /**
  * Builds a minimal installed plugin row for card helper tests.

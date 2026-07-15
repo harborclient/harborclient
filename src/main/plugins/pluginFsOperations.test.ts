@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PluginManager } from '#/main/plugins/PluginManager';
-import { pickFileForPlugin, readFileForPlugin } from '#/main/plugins/pluginFsOperations';
+import type { PluginManager } from './PluginManager';
+import { pickFileForPlugin, readFileForPlugin } from './pluginFsOperations';
 
 const showOpenDialog = vi.fn();
 

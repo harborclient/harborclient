@@ -1,11 +1,11 @@
 import * as git from 'isomorphic-git';
 import fs from 'fs';
-import { readBlobBytesFromTree } from '#/main/git/gitBlob';
+import { readBlobBytesFromTree } from './gitBlob';
 import {
   classifyHarborChangePath,
   COLLECTION_MANIFEST_FILE,
   displayNameFromHarborChange
-} from '#/main/git/fileLayout';
+} from './fileLayout';
 import type {
   GitCommitChangeStatus,
   GitCommitDetail,

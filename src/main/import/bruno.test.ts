@@ -7,7 +7,7 @@ import {
   convertBrunoCollection,
   isBrunoCollectionDirectory,
   isBrunoCollectionManifest
-} from '#/main/import/bruno';
+} from './bruno';
 
 const fixtureDir = join(fileURLToPath(new URL('.', import.meta.url)), 'fixtures', 'bruno-sample');
 const manifest = JSON.parse(readFileSync(join(fixtureDir, 'bruno.json'), 'utf-8'));

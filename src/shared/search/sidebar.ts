@@ -1,9 +1,5 @@
 import type { Collection, Environment, Folder, SavedRequest } from '#/shared/types';
-import {
-  createTextSearchIndex,
-  searchTextIndex,
-  type HarborSearchIndex
-} from '#/shared/search/oramaIndex';
+import { createTextSearchIndex, searchTextIndex, type HarborSearchIndex } from './oramaIndex';
 import { normalizeRequestTags } from '#/shared/requestTags';
 
 /**

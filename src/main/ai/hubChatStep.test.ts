@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { runHubChatCompletionStep } from '#/main/ai/hubChatStep';
+import { runHubChatCompletionStep } from './hubChatStep';
 import { AI_SYSTEM_PROMPT, AI_TOOL_DEFINITIONS } from '#/shared/ai/tools';
 
 const completeChatStep = vi.fn().mockResolvedValue({

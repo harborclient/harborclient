@@ -1,6 +1,6 @@
 import { SidebarColorDot as SdkSidebarColorDot } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarExpansion';
+import { useSidebarExpansion } from './useSidebarExpansion';
 
 interface Props {
   /**

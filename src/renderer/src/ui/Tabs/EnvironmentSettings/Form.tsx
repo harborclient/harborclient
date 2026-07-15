@@ -10,7 +10,7 @@ import {
 } from '@harborclient/sdk/components';
 import { useEffect, useMemo, useState, type JSX } from 'react';
 import type { Environment, Variable } from '#/shared/types';
-import { ENVIRONMENT_SETTINGS_NAME_INPUT_ID } from '#/renderer/src/ui/Tabs/EnvironmentSettings/focusEnvironmentSettings';
+import { ENVIRONMENT_SETTINGS_NAME_INPUT_ID } from './focusEnvironmentSettings';
 import { serializeEnvironmentForm } from './serialize';
 
 export interface Props {

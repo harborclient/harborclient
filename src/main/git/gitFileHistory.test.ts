@@ -3,7 +3,7 @@ import fs, { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { buildFileCommitDiff, readFileCommitHistory } from '#/main/git/gitFileHistory';
+import { buildFileCommitDiff, readFileCommitHistory } from './gitFileHistory';
 
 const cleanups: Array<() => void> = [];
 

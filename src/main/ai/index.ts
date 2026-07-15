@@ -1,5 +1,5 @@
-export { LlmClientFactory } from '#/main/ai/LlmClientFactory';
-export { extractAssistantContent, runChatCompletionStep } from '#/main/ai/completeChatTurn';
-export type { RunChatCompletionStepDeps } from '#/main/ai/completeChatTurn';
-export { resolveLlmClientOptions } from '#/main/ai/llmClientOptions';
+export { LlmClientFactory } from './LlmClientFactory';
+export { extractAssistantContent, runChatCompletionStep } from './completeChatTurn';
+export type { RunChatCompletionStepDeps } from './completeChatTurn';
+export { resolveLlmClientOptions } from './llmClientOptions';
 export type { LlmProvider } from '#/shared/types';

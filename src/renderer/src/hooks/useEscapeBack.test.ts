@@ -1,10 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  handleEscapeBackKeydown,
-  isDomModalOpen,
-  shouldHandleEscapeBack
-} from '#/renderer/src/hooks/useEscapeBack';
+import { handleEscapeBackKeydown, isDomModalOpen, shouldHandleEscapeBack } from './useEscapeBack';
 
 describe('shouldHandleEscapeBack', () => {
   afterEach(() => {

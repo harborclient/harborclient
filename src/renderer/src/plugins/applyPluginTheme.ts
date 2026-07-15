@@ -1,6 +1,6 @@
 import { formatPluginThemeValue } from '#/shared/plugin/types';
 import type { ThemeSource } from '#/shared/types';
-import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
+import { applyThemePreference } from './themeRuntime';
 
 /**
  * Applies a plugin theme preference and persists it through the main-process settings API.

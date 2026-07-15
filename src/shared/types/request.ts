@@ -1,6 +1,6 @@
 import type { AuthConfig } from '#/shared/auth';
-import type { BodyType, HttpMethod, KeyValue } from '#/shared/types/common';
-import type { ScriptRef } from '#/shared/types/script';
+import type { BodyType, HttpMethod, KeyValue } from './common';
+import type { ScriptRef } from './script';
 
 export type {
   RedirectHop,

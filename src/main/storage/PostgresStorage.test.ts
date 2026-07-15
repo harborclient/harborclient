@@ -1,5 +1,5 @@
 import { afterAll, expect, it } from 'vitest';
-import { PostgresStorage } from '#/main/storage/PostgresStorage';
+import { PostgresStorage } from './PostgresStorage';
 import {
   closeSharedSqlBackends,
   createPostgresTestDbFactory,

@@ -10,7 +10,7 @@ import {
   gitItemNameClass,
   gitResourceKindLabel,
   resolveGitChangeDisplayLabel
-} from '#/renderer/src/git/gitCommitChangeDisplay';
+} from './gitCommitChangeDisplay';
 
 describe('gitCommitChangeDisplay', () => {
   it('maps commit statuses to name classes', () => {

@@ -1,5 +1,5 @@
 import { createContext } from 'react';
-import type { usePersistedSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/usePersistedSidebarExpansion';
+import type { usePersistedSidebarExpansion } from './usePersistedSidebarExpansion';
 
 export type SidebarExpansionContextValue = ReturnType<typeof usePersistedSidebarExpansion>;
 

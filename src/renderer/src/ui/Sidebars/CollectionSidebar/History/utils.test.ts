@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  formatRelativeTime,
-  formatSidebarAbsoluteDate
-} from '#/renderer/src/ui/Sidebars/CollectionSidebar/History/utils';
+import { formatRelativeTime, formatSidebarAbsoluteDate } from './utils';
 
 describe('formatSidebarAbsoluteDate', () => {
   it('formats a timestamp as YYYY-MM-DD HH:MM:SS in UTC', () => {

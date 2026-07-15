@@ -8,7 +8,7 @@ import {
   isStorageConnectionConfigured,
   listStorageConnections,
   saveStorageConnection
-} from '#/main/settings/storageSettings';
+} from './storageSettings';
 import type { StorageConnection, SqliteSettings } from '#/shared/types';
 
 const DEFAULT_SQLITE_SETTINGS: SqliteSettings = {

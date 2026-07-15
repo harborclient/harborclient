@@ -1,38 +1,34 @@
-import { MoveCoordinator } from '#/main/storage/CollectionMover';
+import { MoveCoordinator } from './CollectionMover';
 import {
   SnippetMoveCoordinator,
   createSnippetRoutingInternals,
   type SnippetRoutingInternals
-} from '#/main/storage/SnippetMover';
-import { createTeamHubStorage, teamHubIdMapPath } from '#/main/storage/createTeamHubStorage';
-import { TeamHubIdMap } from '#/main/storage/TeamHubIdMap';
+} from './SnippetMover';
+import { createTeamHubStorage, teamHubIdMapPath } from './createTeamHubStorage';
+import { TeamHubIdMap } from './TeamHubIdMap';
 import {
   LocalDatabase,
   type CollectionRegistryEntry,
   type SnippetRegistryEntry
-} from '#/main/storage/LocalDatabase';
-import { MigrationManager } from '#/main/storage/DatabaseMigrator';
-import { createStorageInstance } from '#/main/storage/createStorageInstance';
-import { GitStorage } from '#/main/storage/GitStorage';
+} from './LocalDatabase';
+import { MigrationManager } from './DatabaseMigrator';
+import { createStorageInstance } from './createStorageInstance';
+import { GitStorage } from './GitStorage';
 import { classifyHarborChangePath } from '#/main/git/fileLayout';
 import { isCollectionScopedHarborChange } from '#/main/git/gitDiff';
 import { collectionDirName } from '#/main/git/slug';
-import { decodeGlobalId, encodeGlobalId } from '#/main/storage/idNamespace';
+import { decodeGlobalId, encodeGlobalId } from './idNamespace';
 import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
-import type { IStorage } from '#/main/storage/IStorage';
-import { TeamHubStorage } from '#/main/storage/TeamHubStorage';
+import type { IStorage } from './IStorage';
+import { TeamHubStorage } from './TeamHubStorage';
 import {
   addDetachedServerId,
   addDetachedSnippetServerId,
   readDetachedServerIds,
   readDetachedSnippetServerIds,
   removeDetachedSetting
-} from '#/main/storage/teamHubDetached';
-import type {
-  MountedBackend,
-  ProviderDescriptor,
-  RoutingInternals
-} from '#/main/storage/routingInternals';
+} from './teamHubDetached';
+import type { MountedBackend, ProviderDescriptor, RoutingInternals } from './routingInternals';
 import {
   isTeamHubCollectionDeleteForbiddenError,
   isTeamHubSnippetsUnsupportedError

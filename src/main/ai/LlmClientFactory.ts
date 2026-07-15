@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
-import { getValidGithubModelsAccessToken } from '#/main/ai/githubModelsAuth';
-import { resolveLlmClientOptions } from '#/main/ai/llmClientOptions';
+import { getValidGithubModelsAccessToken } from './githubModelsAuth';
+import { resolveLlmClientOptions } from './llmClientOptions';
 import { getAiSettings } from '#/main/settings/aiSettings';
 import type { LlmProvider } from '#/shared/types';
 

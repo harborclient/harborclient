@@ -1,6 +1,6 @@
 import { FormGroup, Input } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import { FOLDER_SETTINGS_NAME_INPUT_ID } from '#/renderer/src/ui/Tabs/FolderSettings/focusFolderSettings';
+import { FOLDER_SETTINGS_NAME_INPUT_ID } from './focusFolderSettings';
 
 interface Props {
   /**

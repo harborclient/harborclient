@@ -18,7 +18,7 @@ import {
   normalizeKeyValueRows,
   type RequestDraft,
   type RequestTab
-} from '#/renderer/src/store/drafts';
+} from './drafts';
 
 const sampleDraft = (): RequestDraft => ({
   name: 'Sample',

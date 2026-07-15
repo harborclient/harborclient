@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  createImportedSnippetDraft,
-  snippetNameFromScript
-} from '#/renderer/src/ui/Shared/Snippet/snippetEditDraft';
+import { createImportedSnippetDraft, snippetNameFromScript } from './snippetEditDraft';
 
 describe('snippetNameFromScript', () => {
   it('uses the trimmed first line as the name', () => {

@@ -17,11 +17,8 @@ import { refreshCollections } from '#/renderer/src/store/thunks';
 import { GitBranchesModal } from '#/renderer/src/ui/Modals/GitBranchesModal';
 import { GitCreateBranchModal } from '#/renderer/src/ui/Modals/GitCreateBranchModal';
 import { GitDeleteBranchModal } from '#/renderer/src/ui/Modals/GitDeleteBranchModal';
-import { GitMenuActionHost } from '#/renderer/src/ui/Sidebars/CollectionSidebar/GitMenuActionHost';
-import {
-  SidebarGitContext,
-  type SidebarGitContextValue
-} from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarGitContext';
+import { GitMenuActionHost } from './GitMenuActionHost';
+import { SidebarGitContext, type SidebarGitContextValue } from './sidebarGitContext';
 
 interface ProviderProps {
   /**

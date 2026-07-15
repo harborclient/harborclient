@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { SnippetCatalog, SnippetCatalogEntry } from '#/shared/snippet/catalog';
 import type { InstalledSnippetPackage } from '#/shared/snippet/types';
-import { resolvePendingSnippetInstallDeepLink } from '#/renderer/src/ui/Tabs/Snippets/helpers';
+import { resolvePendingSnippetInstallDeepLink } from './helpers';
 
 const sampleEntry: SnippetCatalogEntry = {
   id: 'com.harborclient.snippets.testing',

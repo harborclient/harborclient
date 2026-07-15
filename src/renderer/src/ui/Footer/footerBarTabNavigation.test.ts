@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   isFooterFocusOnLastLeftButton,
   resolveFooterBarTabHandoff
-} from '#/renderer/src/ui/Footer/footerBarTabNavigation';
+} from './footerBarTabNavigation';
 
 describe('resolveFooterBarTabHandoff', () => {
   it('moves Tab forward from the last left control to the first right icon', () => {

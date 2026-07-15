@@ -5,7 +5,7 @@ import {
   clearLocalDatabaseForTesting,
   setLocalDatabaseForTesting
 } from '#/main/storage/localDatabaseInstance';
-import { LlmClientFactory } from '#/main/ai/LlmClientFactory';
+import { LlmClientFactory } from './LlmClientFactory';
 import {
   clearSecretEncryptorForTesting,
   type EncryptedSecret,

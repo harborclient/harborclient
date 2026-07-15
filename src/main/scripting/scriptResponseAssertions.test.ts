@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateScript } from '#/main/scripting/scriptEvaluator';
+import { evaluateScript } from './scriptEvaluator';
 
 const basePostInput = {
   phase: 'post' as const,

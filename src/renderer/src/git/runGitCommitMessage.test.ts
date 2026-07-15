@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AiSettings, ChatStepResult } from '#/shared/types';
-import { runGitCommitMessage } from '#/renderer/src/git/runGitCommitMessage';
+import { runGitCommitMessage } from './runGitCommitMessage';
 
 const completeChatStepMock =
   vi.fn<(input: unknown, stepRequestId?: string) => Promise<ChatStepResult>>();

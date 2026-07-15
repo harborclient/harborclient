@@ -1,7 +1,7 @@
 import type { ScriptPhase, ScriptStage } from '@harborclient/sdk';
 import type { AuthConfig } from '#/shared/auth';
-import type { BodyType, HttpMethod, KeyValue } from '#/shared/types/common';
-import type { SendResult } from '#/shared/types/request';
+import type { BodyType, HttpMethod, KeyValue } from './common';
+import type { SendResult } from './request';
 
 /**
  * A single script entry in an ordered pre-request or post-request stage script list.

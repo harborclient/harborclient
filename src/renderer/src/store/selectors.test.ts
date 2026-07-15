@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { defaultAuth, type AuthConfig } from '#/shared/auth';
 import type { HttpMethod } from '#/shared/types';
 import { createInlineScriptRef } from '#/shared/scriptRefs';
-import { isRequestTab } from '#/renderer/src/store/drafts';
+import { isRequestTab } from './drafts';
 import {
   loadDocument,
   loadRequest,
@@ -13,7 +13,7 @@ import {
   selectEffectiveActiveRequestTab,
   selectOpenDocumentIds,
   selectOpenRequestIds
-} from '#/renderer/src/store/selectors';
+} from './selectors';
 
 /**
  * Builds a minimal saved request draft for selector tests.

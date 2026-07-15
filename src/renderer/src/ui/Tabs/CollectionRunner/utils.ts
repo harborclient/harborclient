@@ -1,6 +1,6 @@
 import { type CollectionRunnerRequestResult } from '#/shared/collectionRunner';
 import { selectCollectionRunner } from '#/renderer/src/store/slices/modalsSlice';
-import { type RunnerTargetRef } from '#/renderer/src/ui/Tabs/CollectionRunner/resolveRunnerTargetName';
+import { type RunnerTargetRef } from './resolveRunnerTargetName';
 
 /**
  * Returns a human-readable label for a collection runner result row.

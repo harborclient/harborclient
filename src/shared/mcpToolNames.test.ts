@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodeMcpToolName, encodeMcpToolName, isMcpPrefixedToolName } from '#/shared/mcpToolNames';
+import { decodeMcpToolName, encodeMcpToolName, isMcpPrefixedToolName } from './mcpToolNames';
 
 describe('mcpToolNames', () => {
   it('encodes and decodes prefixed MCP tool names', () => {

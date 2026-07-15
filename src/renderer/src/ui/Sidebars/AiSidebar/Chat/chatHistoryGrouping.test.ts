@@ -11,7 +11,7 @@ import {
   splitRecentAndOlder,
   truncateFlatChats,
   truncateGroupChats
-} from '#/renderer/src/ui/Sidebars/AiSidebar/Chat/chatHistoryGrouping';
+} from './chatHistoryGrouping';
 
 const NOW = new Date('2026-07-03T15:00:00');
 

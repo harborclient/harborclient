@@ -4,7 +4,7 @@ import {
   isGitHubRepositoryUrl,
   normalizeGitHostKey,
   normalizeGitRemoteToHttps
-} from '#/shared/gitUrl';
+} from './gitUrl';
 
 describe('gitRemoteHostname', () => {
   it('extracts hostname from absolute HTTPS URLs', () => {

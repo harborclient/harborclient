@@ -5,7 +5,7 @@ import type {
   ScriptTestResult,
   ScriptExecutionEvent,
   SendResult
-} from '#/shared/types';
+} from './types';
 
 /**
  * How the collection runner resolves variables during a run.

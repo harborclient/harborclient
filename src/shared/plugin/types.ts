@@ -1,4 +1,4 @@
-import type { PluginCatalogCategory } from '#/shared/plugin/catalogCategories';
+import type { PluginCatalogCategory } from './catalogCategories';
 import type { ThemeSource } from '#/shared/types/settings';
 import type {
   ActiveTheme,

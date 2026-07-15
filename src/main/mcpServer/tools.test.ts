@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shouldRunMcpServer } from '#/main/mcpServer/tools';
+import { shouldRunMcpServer } from './tools';
 import { DEFAULT_MCP_SERVER_SETTINGS } from '#/main/settings/mcpSettings';
 
 describe('shouldRunMcpServer', () => {

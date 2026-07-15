@@ -3,7 +3,7 @@ import type {
   TimingPhaseGroup,
   TimingPhaseRow
 } from '#/renderer/src/ui/Main/ResponseEditor/timingDisplay';
-import { TimingPhaseRowView } from '#/renderer/src/ui/Main/ResponseEditor/Timing/TimingPhaseRowView';
+import { TimingPhaseRowView } from './TimingPhaseRowView';
 
 interface Props {
   /**

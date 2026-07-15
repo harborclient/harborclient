@@ -3,7 +3,7 @@ import {
   HARBORCLIENT_EXPORT_KINDS,
   isHarborclientExportKind,
   readHarborclientExport
-} from '#/shared/harborclientExport';
+} from './harborclientExport';
 
 describe('isHarborclientExportKind', () => {
   it('recognizes all supported export kinds', () => {

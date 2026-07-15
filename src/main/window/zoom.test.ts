@@ -26,7 +26,7 @@ import {
   setZoomFactor,
   stepZoomIn,
   stepZoomOut
-} from '#/main/window/zoom';
+} from './zoom';
 
 /**
  * Returns a mock web contents object with a mutable zoom factor.

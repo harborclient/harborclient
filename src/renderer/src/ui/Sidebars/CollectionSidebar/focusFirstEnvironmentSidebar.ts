@@ -6,7 +6,7 @@ import {
   focusSidebarEnvironmentRowById,
   SIDEBAR_ENVIRONMENT_ID_ATTR,
   sidebarEnvironmentRowSelector
-} from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarListNavigation';
+} from './sidebarListNavigation';
 
 export { SIDEBAR_ENVIRONMENT_ID_ATTR, sidebarEnvironmentRowSelector };
 

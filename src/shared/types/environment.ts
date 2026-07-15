@@ -1,4 +1,4 @@
-import type { Variable } from '#/shared/types/common';
+import type { Variable } from './common';
 
 /**
  * A named group of variables available when the environment is active.

@@ -9,7 +9,7 @@ import {
   getTeamHubToken,
   listTeamHubSecretIds,
   storeTeamHubToken
-} from '#/main/settings/teamHubSecrets';
+} from './teamHubSecrets';
 
 describe('teamHubSecrets', () => {
   let settingsStore: Record<string, string>;

@@ -10,7 +10,7 @@ import {
   type SecretEncryptor,
   setSecretEncryptorForTesting
 } from '#/main/secrets/secretStorage';
-import { DEFAULT_AI_SETTINGS, getAiSettings, setAiSettings } from '#/main/settings/aiSettings';
+import { DEFAULT_AI_SETTINGS, getAiSettings, setAiSettings } from './aiSettings';
 
 describe('aiSettings', () => {
   let settingsStore: Record<string, string>;

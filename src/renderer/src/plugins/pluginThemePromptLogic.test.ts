@@ -7,7 +7,7 @@ import {
   readPromptedThemeKeys,
   selectThemePromptCandidates,
   themePromptKey
-} from '#/renderer/src/plugins/pluginThemePromptLogic';
+} from './pluginThemePromptLogic';
 
 const THEME_PLUGIN_ID = 'com.example.theme';
 const OTHER_PLUGIN_ID = 'com.example.other';

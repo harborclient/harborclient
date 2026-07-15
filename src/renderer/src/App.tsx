@@ -100,12 +100,9 @@ import { ShortcutsReferenceModal } from '#/renderer/src/ui/Modals/ShortcutsRefer
 import { ActionMenuModal } from '#/renderer/src/ui/Modals/ActionMenuModal';
 import { TeamHubJoinDeepLinkHost } from '#/renderer/src/ui/Tabs/TeamHub/TeamHubJoinDeepLinkHost';
 import { AcceptTeamHubInviteModal } from '#/renderer/src/ui/Modals/AcceptTeamHubInviteModal';
-import {
-  subscribeColorSchemePreferenceChanges,
-  subscribeContrastPreferenceChanges
-} from '#/renderer/src/theme';
+import { subscribeColorSchemePreferenceChanges, subscribeContrastPreferenceChanges } from './theme';
 import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
-import { platformClassName } from '#/renderer/src/platform';
+import { platformClassName } from './platform';
 
 /**
  * Root application layout: sidebar, request editor, and response viewer.

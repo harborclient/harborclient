@@ -11,8 +11,8 @@ vi.mock('#/main/storage/localDatabaseInstance', () => ({
   })
 }));
 
-import { getGithubModelsStatus, signOutGithubModels } from '#/main/ai/githubModelsAuth';
-import { storeGithubModelsTokens } from '#/main/ai/githubModelsSecrets';
+import { getGithubModelsStatus, signOutGithubModels } from './githubModelsAuth';
+import { storeGithubModelsTokens } from './githubModelsSecrets';
 
 describe('githubModelsAuth', () => {
   beforeEach(() => {

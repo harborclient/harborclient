@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseHttpMethod } from '#/shared/httpMethod';
+import { parseHttpMethod } from './httpMethod';
 
 describe('parseHttpMethod', () => {
   it('accepts supported methods with normalization', () => {

@@ -15,7 +15,7 @@ import navigationReducer, {
   setRequestEditorSplitHeight,
   toggleSidebar,
   toggleVariables
-} from '#/renderer/src/store/slices/navigationSlice';
+} from './navigationSlice';
 
 describe('navigationSlice', () => {
   it('starts with sidebar visible and panels closed', () => {

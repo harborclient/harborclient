@@ -1,11 +1,8 @@
 import express, { type Express } from 'express';
-import { bodyParsers } from '#/main/plugins/echoServer/bodyParsers';
-import { buildEchoResponse } from '#/main/plugins/echoServer/echo';
-import { resolveEchoResponseBody } from '#/main/plugins/echoServer/resolveEchoResponseBody';
-import type {
-  EchoServerIncomingRequest,
-  RequestWithRawBody
-} from '#/main/plugins/echoServer/types';
+import { bodyParsers } from './bodyParsers';
+import { buildEchoResponse } from './echo';
+import { resolveEchoResponseBody } from './resolveEchoResponseBody';
+import type { EchoServerIncomingRequest, RequestWithRawBody } from './types';
 
 /**
  * Infers HarborClient body type from Content-Type for script context seeding.

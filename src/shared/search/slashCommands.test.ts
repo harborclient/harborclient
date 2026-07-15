@@ -3,7 +3,7 @@ import {
   isSlashCommandQuery,
   matchSlashCommandSuggestions,
   resolveSlashCommand
-} from '#/shared/search/slashCommands';
+} from './slashCommands';
 
 describe('isSlashCommandQuery', () => {
   it('returns false for non-slash queries', () => {

@@ -1,5 +1,5 @@
 import type { PluginSignatureInfo } from '#/shared/plugin/types';
-import type { SnippetCatalogSnippetEntry } from '#/shared/snippet/catalog';
+import type { SnippetCatalogSnippetEntry } from './catalog';
 
 /**
  * Git origin metadata for one installed snippet marketplace bundle.

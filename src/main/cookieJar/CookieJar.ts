@@ -1,5 +1,5 @@
 import type { LocalDatabase } from '#/main/storage/LocalDatabase';
-import type { ICookieJar } from '#/main/cookieJar/ICookieJar';
+import type { ICookieJar } from './ICookieJar';
 import { parseJson } from '#/shared/parseJson';
 import type { KeyValue } from '#/shared/types';
 

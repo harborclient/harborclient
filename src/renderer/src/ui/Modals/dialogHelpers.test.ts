@@ -6,7 +6,7 @@ import {
   resolveConfirm,
   showAlert,
   showConfirm
-} from '#/renderer/src/ui/Modals/dialogHelpers';
+} from './dialogHelpers';
 
 describe('dialogHelpers', () => {
   it('formatErrorMessage returns Error.message or fallback', () => {

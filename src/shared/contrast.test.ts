@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { contrastRatio } from '#/shared/contrast';
+import { contrastRatio } from './contrast';
 import {
   HC_ACCENT,
   HC_PRIMARY_BUTTON_TEXT,
@@ -9,7 +9,7 @@ import {
   HC_SURFACE,
   HC_TEXT,
   HC_TEXT_ON_SURFACE
-} from '#/shared/highContrastPalette';
+} from './highContrastPalette';
 
 describe('contrastRatio', () => {
   it('returns 21:1 for pure white on pure black', () => {

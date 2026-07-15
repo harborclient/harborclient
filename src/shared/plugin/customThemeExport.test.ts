@@ -7,7 +7,7 @@ import {
   isValidCustomThemeId,
   parseCustomThemeSource,
   validateCustomThemeExport
-} from '#/shared/plugin/customThemeExport';
+} from './customThemeExport';
 
 describe('customThemeExport', () => {
   const sampleExport = {

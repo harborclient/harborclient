@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectQuitPrompt } from '#/renderer/src/store/slices/modalsSlice';
-import { QuitPromptContent } from '#/renderer/src/ui/Modals/QuitPrompt/QuitPromptContent';
+import { QuitPromptContent } from './QuitPromptContent';
 
 /**
  * Confirms quitting when one or more request tabs have unsaved changes.

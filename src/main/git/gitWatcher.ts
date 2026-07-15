@@ -1,7 +1,7 @@
 import { watch } from 'fs';
 import type { BrowserWindow } from 'electron';
 import type { RoutingStorage } from '#/main/storage/RoutingStorage';
-import { resolveHarborclientRoot } from '#/main/git/fileLayout';
+import { resolveHarborclientRoot } from './fileLayout';
 import { listStorageConnections } from '#/main/settings/storageSettings';
 import type { StorageConnection } from '#/shared/types/storage';
 

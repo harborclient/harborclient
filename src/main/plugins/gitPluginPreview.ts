@@ -1,6 +1,6 @@
 import { buildGitHubRawContentUrl, parseGitHubRepo } from '#/shared/plugin/githubRaw';
-import { assertSafeGitPluginUrl } from '#/main/plugins/gitPluginUrl';
-import { parsePluginManifest } from '#/main/plugins/manifestSchema';
+import { assertSafeGitPluginUrl } from './gitPluginUrl';
+import { parsePluginManifest } from './manifestSchema';
 import type { PluginGitPreview, PluginScreenshot } from '#/shared/plugin/types';
 
 const MANIFEST_FILENAME = 'manifest.json';

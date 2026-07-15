@@ -7,7 +7,7 @@ import {
   parsePluginHookErrorId,
   recordPluginHookFailure,
   setPluginManager
-} from '#/main/ipc/handlers/plugins';
+} from './plugins';
 import type { PluginInfo } from '#/shared/plugin/types';
 import type { PluginManager } from '#/main/plugins/PluginManager';
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pageTabMeta } from '#/renderer/src/ui/Main/RequestEditor/TabBar/pageTabMeta';
+import { pageTabMeta } from './pageTabMeta';
 
 describe('pageTabMeta', () => {
   it('labels getting started tabs', () => {

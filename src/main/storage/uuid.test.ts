@@ -5,7 +5,7 @@ import {
   mintFreshEnvironmentExportUuid,
   mintFreshRequestExportUuid,
   resolveImportUuid
-} from '#/main/storage/uuid';
+} from './uuid';
 import type { CollectionExport, EnvironmentExport, RequestExport } from '#/shared/types';
 
 const sampleCollectionExport: CollectionExport = {

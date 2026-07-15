@@ -34,9 +34,9 @@ import {
   createFolder,
   refreshCollectionContents
 } from '#/renderer/src/store/thunks/collections';
-import { registerCommand } from '#/renderer/src/plugins/createPluginContext';
+import { registerCommand } from './createPluginContext';
 import { addConsoleEntry } from '#/renderer/src/store/slices/consoleSlice';
-import { emitPluginAfterSend } from '#/renderer/src/plugins/pluginAfterSendBus';
+import { emitPluginAfterSend } from './pluginAfterSendBus';
 import { toPluginHttpRequest, toPluginHttpResponse } from '#/shared/plugin/httpRequest';
 import { recordRequestHistoryFromSend } from '#/renderer/src/store/thunks/requestHistory';
 

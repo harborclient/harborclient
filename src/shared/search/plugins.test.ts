@@ -6,7 +6,7 @@ import {
   filterPluginCatalogByCategory,
   searchPluginCatalog,
   searchPluginHits
-} from '#/shared/search/plugins';
+} from './plugins';
 
 const samplePlugins: PluginCatalogEntry[] = [
   {

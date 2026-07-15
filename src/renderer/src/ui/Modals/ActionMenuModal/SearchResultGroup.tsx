@@ -18,8 +18,8 @@ import {
   faCode
 } from '#/renderer/src/fontawesome';
 import { METHOD_CLASSES } from '#/renderer/src/ui/Shared/classes';
-import { InlineBreadcrumbPrefix } from '#/renderer/src/ui/Modals/ActionMenuModal/InlineBreadcrumbPrefix';
-import { searchResultRowClass } from '#/renderer/src/ui/Modals/ActionMenuModal/searchResultRowClass';
+import { InlineBreadcrumbPrefix } from './InlineBreadcrumbPrefix';
+import { searchResultRowClass } from './searchResultRowClass';
 
 /**
  * Domain icons shown beside grouped result section headings.

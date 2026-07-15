@@ -1,6 +1,6 @@
 import { buildGitHubRawContentUrl, parseGitHubRepo } from '#/shared/plugin/githubRaw';
 import { assertSafeGitPluginUrl } from '#/main/plugins/gitPluginUrl';
-import { parseSnippetManifest } from '#/main/snippets/manifestSchema';
+import { parseSnippetManifest } from './manifestSchema';
 import type { SnippetGitPreview } from '#/shared/snippet/types';
 
 const MANIFEST_FILENAME = 'snippets.json';

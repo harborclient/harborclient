@@ -1,5 +1,5 @@
 import type { ThemeColorToken } from '@harborclient/sdk';
-import type { CustomThemeDraft } from '#/renderer/src/ui/Tabs/Plugins/hooks/useCustomTheme';
+import type { CustomThemeDraft } from './useCustomTheme';
 
 /**
  * Immutable undo/redo stack state for Designer draft snapshots.

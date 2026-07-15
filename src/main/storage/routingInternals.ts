@@ -1,5 +1,5 @@
-import type { CollectionRegistryEntry, LocalDatabase } from '#/main/storage/LocalDatabase';
-import type { IStorage } from '#/main/storage/IStorage';
+import type { CollectionRegistryEntry, LocalDatabase } from './LocalDatabase';
+import type { IStorage } from './IStorage';
 import type { Collection, CollectionProviderKind } from '#/shared/types';
 
 /**

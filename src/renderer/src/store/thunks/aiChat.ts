@@ -5,7 +5,7 @@ import { buildAiScriptSelectionContextMessage } from '#/shared/ai/scriptReferenc
 import type { AiSettings, ChatMessage, ChatStepMessage, ChatSummary } from '#/shared/types';
 import { executeAiToolCall } from '#/renderer/src/store/ai/aiToolExecutor';
 import type { AppDispatch, RootState, ThunkApiConfig } from '#/renderer/src/store/redux';
-import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
+import { patchGeneralSettings } from './settings';
 import { showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
 import {
   buildAiScriptReferenceValidationContext,

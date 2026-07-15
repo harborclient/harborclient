@@ -2,22 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import { FOLDER_SETTINGS_DEFAULTS } from '#/shared/testFixtures/folder';
 import type { Collection, Environment, Folder, SavedRequest } from '#/shared/types';
-import { buildSettingsSearchIndex } from '#/shared/search/settings';
-import { buildSidebarSearchIndex } from '#/shared/search/sidebar';
-import {
-  mergeSearchHitsRoundRobin,
-  searchAll,
-  type SearchAllContext
-} from '#/shared/search/unified';
-import {
-  SEARCH_ANYTHING_MAX_RESULTS,
-  type SearchDomain,
-  type UnifiedSearchHit
-} from '#/shared/search/types';
+import { buildSettingsSearchIndex } from './settings';
+import { buildSidebarSearchIndex } from './sidebar';
+import { mergeSearchHitsRoundRobin, searchAll, type SearchAllContext } from './unified';
+import { SEARCH_ANYTHING_MAX_RESULTS, type SearchDomain, type UnifiedSearchHit } from './types';
 import type { SnippetCatalogEntry } from '#/shared/snippet/catalog';
-import { buildSnippetCatalogSearchIndexForSearch } from '#/shared/search/snippets';
-import { buildPluginCatalogSearchIndex } from '#/shared/search/plugins';
-import { buildInstalledPluginSearchIndex } from '#/shared/search/installedPlugins';
+import { buildSnippetCatalogSearchIndexForSearch } from './snippets';
+import { buildPluginCatalogSearchIndex } from './plugins';
+import { buildInstalledPluginSearchIndex } from './installedPlugins';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import type { PluginInfo } from '#/shared/plugin/types';
 

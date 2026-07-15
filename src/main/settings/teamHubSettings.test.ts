@@ -4,7 +4,7 @@ import {
   clearLocalDatabaseForTesting,
   setLocalDatabaseForTesting
 } from '#/main/storage/localDatabaseInstance';
-import { deleteTeamHub, listTeamHubs, saveTeamHub } from '#/main/settings/teamHubSettings';
+import { deleteTeamHub, listTeamHubs, saveTeamHub } from './teamHubSettings';
 
 describe('teamHubSettings', () => {
   let settingsStore: Record<string, string>;

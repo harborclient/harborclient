@@ -1,5 +1,5 @@
 import type { CodeEditorSetup, CodeEditorTheme } from '@harborclient/sdk';
-import type { Variable } from '#/shared/types/common';
+import type { Variable } from './common';
 import type { ProxySettings } from '@harborclient/http';
 
 export type { ProxyProtocol, ProxySettings } from '@harborclient/http';

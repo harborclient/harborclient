@@ -1,8 +1,8 @@
 import Database from 'better-sqlite3';
 import { mkdirSync } from 'fs';
 import { dirname } from 'path';
-import { normalizeVariable } from '#/main/storage/collectionData';
-import { bundleScriptFieldsWithLegacy } from '#/main/storage/scriptFields';
+import { normalizeVariable } from './collectionData';
+import { bundleScriptFieldsWithLegacy } from './scriptFields';
 import { DEFAULT_AUTH_JSON, defaultAuth, normalizeAuth } from '#/shared/auth';
 import { readScriptRefsFromJson } from '#/shared/scriptRefs';
 import type { AuthConfig, KeyValue, ScriptRef, Variable } from '#/shared/types';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isPickThemeFlagEnabled } from '#/main/pickTheme';
+import { isPickThemeFlagEnabled } from './pickTheme';
 
 describe('isPickThemeFlagEnabled', () => {
   it('returns true when --pick-theme is present', () => {

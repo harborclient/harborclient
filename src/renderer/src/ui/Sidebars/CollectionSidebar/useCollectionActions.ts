@@ -40,9 +40,9 @@ import {
   saveAllDirtyRequests
 } from '#/renderer/src/store/thunks';
 import { formatErrorMessage, showAlert, showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
-import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarExpansion';
-import { useSidebarModals } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarModalsContext';
-import { useSidebarProviders } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarProvidersContext';
+import { useSidebarExpansion } from './useSidebarExpansion';
+import { useSidebarModals } from './sidebarModalsContext';
+import { useSidebarProviders } from './sidebarProvidersContext';
 
 /**
  * Builds the sidebar focus payload when opening a saved request so git-backed

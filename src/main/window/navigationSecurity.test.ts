@@ -3,7 +3,7 @@ import {
   createRendererNavigationPolicy,
   isAllowedExternalUrl,
   isAllowedRendererNavigation
-} from '#/main/window/navigationSecurity';
+} from './navigationSecurity';
 
 describe('isAllowedExternalUrl', () => {
   it('allows https URLs', () => {

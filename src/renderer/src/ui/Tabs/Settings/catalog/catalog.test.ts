@@ -9,7 +9,7 @@ import {
   sectionEntryBySection,
   type FieldSettingId,
   type SettingId
-} from '#/renderer/src/ui/Tabs/Settings/catalog/catalog';
+} from './catalog';
 
 const MANAGEMENT_SECTIONS = ['globals', 'storage', 'git', 'shortcuts', 'backup-restore'] as const;
 

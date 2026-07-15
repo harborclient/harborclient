@@ -1,6 +1,6 @@
 /// <reference types="chai" />
 
-import { wrapCallablePropertyGetter } from '#/main/scripting/scriptAssertionCompat';
+import { wrapCallablePropertyGetter } from './scriptAssertionCompat';
 import type { SendResult } from '#/shared/types';
 
 /**

@@ -39,7 +39,7 @@ import {
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import { usePluginFooterPanels, usePluginStatusBarItems } from '#/renderer/src/plugins/pluginHooks';
 import { SHORTCUTS_REFERENCE_MODAL_ID } from '#/renderer/src/ui/Modals/ShortcutsReferenceModal';
-import { handleFooterBarTabNavigation } from '#/renderer/src/ui/Footer/footerBarTabNavigation';
+import { handleFooterBarTabNavigation } from './footerBarTabNavigation';
 import { APP_FOOTER_SECTION_ID } from '#/renderer/src/ui/Shared/SkipNavigation/skipNavigationTargets';
 import { effectiveCount, resolveScopedVariables } from './VariablesPanel/resolve';
 

@@ -1,9 +1,9 @@
 import * as git from 'isomorphic-git';
 import fs from 'fs';
-import { readBlobBytesFromTree } from '#/main/git/gitBlob';
-import { decodeBlobText } from '#/main/git/gitBlobText';
-import { GIT_DIFF_DEFAULT_MAX_CHARS_PER_FILE } from '#/main/git/gitDiff';
-import { buildFileDiffText } from '#/main/git/gitDiff';
+import { readBlobBytesFromTree } from './gitBlob';
+import { decodeBlobText } from './gitBlobText';
+import { GIT_DIFF_DEFAULT_MAX_CHARS_PER_FILE } from './gitDiff';
+import { buildFileDiffText } from './gitDiff';
 import { truncateTextForLlm } from '#/shared/ai/chatContext';
 import type { GitLogEntry } from '#/shared/types';
 

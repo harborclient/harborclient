@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { runEchoRequestHandlers } from '#/main/plugins/echoServer/runEchoRequestHandlers';
-import type { EchoServerIncomingRequest } from '#/main/plugins/echoServer/types';
+import { runEchoRequestHandlers } from './runEchoRequestHandlers';
+import type { EchoServerIncomingRequest } from './types';
 
 const defaultEcho = {
   args: { foo: 'bar' },

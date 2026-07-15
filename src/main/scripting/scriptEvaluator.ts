@@ -2,8 +2,8 @@ import 'ses';
 import { transform } from 'esbuild';
 import type { ScriptRunInput, ScriptRunResult } from '#/shared/types';
 import { normalizeAuth } from '#/shared/auth';
-import { createScriptApi, type ScriptApiOptions } from '#/main/scripting/scriptApi';
-import { bundleUserScript, scriptUsesModuleSyntax } from '#/main/scripting/scriptSnippetBundler';
+import { createScriptApi, type ScriptApiOptions } from './scriptApi';
+import { bundleUserScript, scriptUsesModuleSyntax } from './scriptSnippetBundler';
 
 /** esbuild target for lowering modern user script syntax before compartment execution. */
 const SCRIPT_TRANSPILE_TARGET = 'es2020';

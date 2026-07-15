@@ -4,7 +4,7 @@ import { validateSnippetExport } from '#/main/storage/snippetData';
 import type { IStorage } from '#/main/storage/IStorage';
 import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { mintFreshSnippetExportUuid, resolveImportUuid } from '#/main/storage/uuid';
-import { confirmDuplicateImport } from '#/main/ipc/handlers/importDialogs';
+import { confirmDuplicateImport } from './importDialogs';
 import type { ImportAction, Snippet } from '#/shared/types';
 
 /**

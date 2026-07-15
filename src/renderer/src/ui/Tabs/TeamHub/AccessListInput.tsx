@@ -6,7 +6,7 @@ import {
   applyAccessSuggestion,
   filterAccessListSuggestions,
   getCurrentAccessToken
-} from '#/renderer/src/ui/Tabs/TeamHub/teamUserFormHelpers';
+} from './teamUserFormHelpers';
 
 /**
  * One autocomplete suggestion for an access list field.

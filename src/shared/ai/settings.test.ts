@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasConfiguredAiApiKeys } from '#/shared/ai/settings';
+import { hasConfiguredAiApiKeys } from './settings';
 import type { AiSettings } from '#/shared/types';
 
 const EMPTY_SETTINGS: AiSettings = {

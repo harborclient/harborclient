@@ -1,5 +1,5 @@
 import { afterAll, expect, it } from 'vitest';
-import { MySqlStorage } from '#/main/storage/MySqlStorage';
+import { MySqlStorage } from './MySqlStorage';
 import {
   closeSharedSqlBackends,
   createMySqlTestDbFactory,

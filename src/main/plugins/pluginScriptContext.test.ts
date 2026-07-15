@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createScriptContext } from '#/main/plugins/pluginScriptContext';
+import { createScriptContext } from './pluginScriptContext';
 
 describe('createScriptContext', () => {
   it('returns the last-expression value from run()', () => {

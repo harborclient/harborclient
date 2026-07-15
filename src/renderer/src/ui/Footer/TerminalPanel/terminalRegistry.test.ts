@@ -4,7 +4,7 @@ import {
   getTerminalInstance,
   registerTerminalInstance,
   unregisterTerminalInstance
-} from '#/renderer/src/ui/Footer/TerminalPanel/terminalRegistry';
+} from './terminalRegistry';
 
 /**
  * Builds a minimal xterm-like terminal stub for registry tests.

@@ -4,7 +4,7 @@ import {
   ERROR_TOAST_ARIA_PROPS,
   SUCCESS_TOAST_ARIA_PROPS,
   THEME_PROMPT_TOAST_LIVE_PROPS
-} from '#/renderer/src/ui/Shared/toastA11y';
+} from './toastA11y';
 
 describe('toastA11y', () => {
   it('uses polite status announcements for default and success toasts', () => {

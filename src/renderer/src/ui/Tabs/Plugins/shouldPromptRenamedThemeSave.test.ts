@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shouldPromptRenamedThemeSave } from '#/renderer/src/ui/Tabs/Plugins/shouldPromptRenamedThemeSave';
+import { shouldPromptRenamedThemeSave } from './shouldPromptRenamedThemeSave';
 
 describe('shouldPromptRenamedThemeSave', () => {
   it('returns false when no theme has been saved yet', () => {

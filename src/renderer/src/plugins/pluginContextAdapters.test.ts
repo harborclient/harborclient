@@ -6,7 +6,7 @@ import {
   pluginRequestKey,
   toPluginRequestDraft,
   toPluginRequestTabContext
-} from '#/renderer/src/plugins/pluginContextAdapters';
+} from './pluginContextAdapters';
 
 /**
  * Returns a minimal store draft for adapter tests.

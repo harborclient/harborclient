@@ -2,7 +2,7 @@ import { app } from 'electron';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { logVerbose } from '#/main/logger';
+import { logVerbose } from './logger';
 
 const RAND_USER_DIR_PREFIX = 'harborclient-';
 

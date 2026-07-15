@@ -32,17 +32,17 @@ import {
 } from '#/main/git/fileLayout';
 import { deriveRequestFileStatus, isCountedCollectionChange } from '#/main/git/gitRequestStatus';
 import { GitSyncManager } from '#/main/git/GitSyncManager';
-import { maskVariablesForExport, validateCollectionExport } from '#/main/storage/collectionData';
-import { trimRequiredName } from '#/main/storage/trimRequiredName';
-import { assertContainerItemOrder, planContainerItemMove } from '#/main/storage/containerReorder';
+import { maskVariablesForExport, validateCollectionExport } from './collectionData';
+import { trimRequiredName } from './trimRequiredName';
+import { assertContainerItemOrder, planContainerItemMove } from './containerReorder';
 import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
-import type { IStorage } from '#/main/storage/IStorage';
+import type { IStorage } from './IStorage';
 import type {
   ProviderRunResult,
   ProviderRunResultSummary,
   SaveRunResultInput
 } from '#/shared/collectionRunner';
-import { generateDocumentUuid, resolveImportUuid } from '#/main/storage/uuid';
+import { generateDocumentUuid, resolveImportUuid } from './uuid';
 import {
   buildDocumentUuidIndex,
   buildFolderImportMaps,
@@ -52,8 +52,8 @@ import {
   serializeImportedCollectionScriptFields,
   serializeImportedDocumentFields,
   serializeImportedRequestFields
-} from '#/main/storage/collectionImport';
-import { serializeSidebarColor } from '#/main/storage/sidebarColorMigration';
+} from './collectionImport';
+import { serializeSidebarColor } from './sidebarColorMigration';
 import { defaultAuth, normalizeAuth } from '#/shared/auth';
 import type {
   AuthConfig,

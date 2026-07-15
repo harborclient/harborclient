@@ -11,7 +11,7 @@ import type {
   SavedRequest,
   SendResult
 } from '#/shared/types';
-import { executeAiTool } from '#/renderer/src/store/ai/aiToolExecutor';
+import { executeAiTool } from './aiToolExecutor';
 import {
   setCollections,
   setDocumentsForCollection,

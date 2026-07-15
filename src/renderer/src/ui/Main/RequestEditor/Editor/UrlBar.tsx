@@ -11,7 +11,7 @@ import type { HttpMethod, Variable } from '#/shared/types';
 import { faStop, faFloppyDisk } from '#/renderer/src/fontawesome';
 import { usePluginRequestToolbarActions } from '#/renderer/src/plugins/pluginHooks';
 import { urlSource } from '#/renderer/src/autocomplete/sources';
-import { REQUEST_URL_INPUT_ID } from '#/renderer/src/ui/Main/RequestEditor/Editor/focusRequestUrl';
+import { REQUEST_URL_INPUT_ID } from './focusRequestUrl';
 
 interface Props {
   /**

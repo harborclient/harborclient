@@ -1,4 +1,4 @@
-import type { Variable } from '#/shared/types';
+import type { Variable } from './types';
 
 /**
  * Merges two environment variable lists; override rows win on duplicate keys.

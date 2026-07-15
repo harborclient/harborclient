@@ -4,7 +4,7 @@ import {
   clearLocalDatabaseForTesting,
   setLocalDatabaseForTesting
 } from '#/main/storage/localDatabaseInstance';
-import { getMcpServerStatus, startMcpServer, stopMcpServer } from '#/main/mcpServer/mcpServer';
+import { getMcpServerStatus, startMcpServer, stopMcpServer } from './mcpServer';
 import { DEFAULT_MCP_SERVER_SETTINGS, setMcpServerSettings } from '#/main/settings/mcpSettings';
 
 const TEST_TOKEN = 'test-mcp-token';

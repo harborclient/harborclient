@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activeThemeKey, toActiveTheme } from '#/shared/plugin/types';
+import { activeThemeKey, toActiveTheme } from './types';
 
 describe('toActiveTheme', () => {
   it('maps built-in theme preferences', () => {

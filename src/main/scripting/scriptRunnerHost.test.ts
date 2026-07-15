@@ -5,7 +5,7 @@ import {
   setLocalDatabaseForTesting
 } from '#/main/storage/localDatabaseInstance';
 import { DEFAULT_GENERAL_SETTINGS, setGeneralSettings } from '#/main/settings/generalSettings';
-import { resolveScriptTimeoutMs } from '#/main/scripting/scriptRunnerHost';
+import { resolveScriptTimeoutMs } from './scriptRunnerHost';
 
 describe('resolveScriptTimeoutMs', () => {
   let settingsStore: Record<string, string>;

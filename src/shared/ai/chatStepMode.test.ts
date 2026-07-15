@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveChatStepMode } from '#/shared/ai/chatStepMode';
+import { resolveChatStepMode } from './chatStepMode';
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 
 /**

@@ -1,7 +1,7 @@
 import { watch, type FSWatcher } from 'fs';
 import type { BrowserWindow } from 'electron';
-import { normalizePath } from '#/main/plugins/pluginFsAllowlist';
-import type { PluginFsAllowlist } from '#/main/plugins/pluginFsAllowlist';
+import { normalizePath } from './pluginFsAllowlist';
+import type { PluginFsAllowlist } from './pluginFsAllowlist';
 
 const DEBOUNCE_MS = 300;
 

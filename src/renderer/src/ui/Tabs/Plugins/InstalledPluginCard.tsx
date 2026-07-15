@@ -5,7 +5,7 @@ import type { PluginInfo } from '#/shared/plugin/types';
 import { parsePluginThemeValue } from '#/shared/plugin/types';
 import { pluginIsTheme } from '#/shared/plugin/themeCategory';
 import type { ThemeSource } from '#/shared/types';
-import type { PluginManagementKind } from '#/renderer/src/ui/Tabs/Plugins/constants';
+import type { PluginManagementKind } from './constants';
 import { ErrorMessages } from './ErrorMessages';
 import { InstalledPluginFooterActions } from './InstalledPluginFooterActions';
 import { resolveInstalledPluginSummary, stopRowActivation } from './helpers';

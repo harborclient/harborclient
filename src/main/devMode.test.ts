@@ -10,7 +10,7 @@ vi.mock('electron', () => ({
   }
 }));
 
-import { isDevModeFlagEnabled, isDeveloperToolsEnabled } from '#/main/devMode';
+import { isDevModeFlagEnabled, isDeveloperToolsEnabled } from './devMode';
 
 describe('isDevModeFlagEnabled', () => {
   it('returns true when --dev-mode is present', () => {

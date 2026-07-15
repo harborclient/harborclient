@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { TabGroup } from '#/shared/types/tabGroup';
-import tabGroupReducer, { reorderTabGroupsLocal } from '#/renderer/src/store/slices/tabGroupSlice';
-import type { TabGroupState } from '#/renderer/src/store/slices/tabGroupSlice';
+import tabGroupReducer, { reorderTabGroupsLocal } from './tabGroupSlice';
+import type { TabGroupState } from './tabGroupSlice';
 
 const baseTabGroup = (overrides: Partial<TabGroup> & Pick<TabGroup, 'id' | 'name'>): TabGroup => ({
   requests: [],

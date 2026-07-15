@@ -3,7 +3,7 @@ import {
   createEnvironmentWithVariables,
   pluginVariablesToVariables,
   updateEnvironmentVariables
-} from '#/renderer/src/plugins/hostEnvironmentCommands';
+} from './hostEnvironmentCommands';
 
 const dispatchMock = vi.fn();
 const unwrapMock = vi.fn();

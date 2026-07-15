@@ -1,7 +1,7 @@
 export * from './types/index';
 
-export type { AuthConfig, AuthType, OAuthFetchTokenResult } from '#/shared/auth';
-export type { ShortcutBinding, ShortcutId, ShortcutOverrides } from '#/shared/shortcuts';
+export type { AuthConfig, AuthType, OAuthFetchTokenResult } from './auth';
+export type { ShortcutBinding, ShortcutId, ShortcutOverrides } from './shortcuts';
 export type {
   PluginAssetResult,
   PluginEntryKind,
@@ -17,4 +17,4 @@ export type {
   PluginCatalogEntry,
   PluginSourcesSettings
 } from '#/shared/plugin/catalog';
-export type { CollectionRunnerConfig } from '#/shared/collectionRunner';
+export type { CollectionRunnerConfig } from './collectionRunner';

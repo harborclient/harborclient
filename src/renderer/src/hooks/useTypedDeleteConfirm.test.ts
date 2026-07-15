@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  canCloseTypedDeleteConfirm,
-  runTypedDeleteConfirm
-} from '#/renderer/src/hooks/useTypedDeleteConfirm.logic';
+import { canCloseTypedDeleteConfirm, runTypedDeleteConfirm } from './useTypedDeleteConfirm.logic';
 import { isDeleteConfirmationReady } from '#/renderer/src/ui/Shared/DeleteConfirm/deleteConfirmModal.logic';
 
 vi.mock('react-hot-toast', () => ({

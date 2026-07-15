@@ -34,8 +34,8 @@ import {
   registerStatusBarItemContribution,
   registerThemeContribution,
   unregisterContribution
-} from '#/renderer/src/plugins/registry';
-import { executeHostPluginCommand } from '#/renderer/src/plugins/hostCommands';
+} from './registry';
+import { executeHostPluginCommand } from './hostCommands';
 import {
   createCollectionFromPlugin,
   getCollectionMetadataForPlugin,
@@ -47,18 +47,18 @@ import {
   sendHttpRequestForPlugin,
   triggerSendRequest,
   type PluginConsoleLogPayload
-} from '#/renderer/src/plugins/hostRequestCommands';
+} from './hostRequestCommands';
 import {
   createEnvironmentWithVariables,
   updateEnvironmentVariables
-} from '#/renderer/src/plugins/hostEnvironmentCommands';
+} from './hostEnvironmentCommands';
 import toast from 'react-hot-toast';
 import { store } from '#/renderer/src/store/redux';
 import { setHostedModal } from '#/renderer/src/store/slices/modalsSlice';
 import {
   registerBridgedImportHandler,
   unregisterBridgedImportHandler
-} from '#/renderer/src/plugins/pluginImportHandlers';
+} from './pluginImportHandlers';
 import { logImportVerbose } from '#/renderer/src/import/importVerboseLog';
 
 type ContributionKind =

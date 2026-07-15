@@ -1,7 +1,7 @@
 import { Button, FieldError, Modal, ModalFormLayout } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import type { SnippetEditDraft } from '#/renderer/src/ui/Shared/Snippet/snippetEditDraft';
-import { SnippetEditFields } from '#/renderer/src/ui/Shared/Snippet/SnippetEditFields';
+import type { SnippetEditDraft } from './snippetEditDraft';
+import { SnippetEditFields } from './SnippetEditFields';
 
 interface Props {
   /**

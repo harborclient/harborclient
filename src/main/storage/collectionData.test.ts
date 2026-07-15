@@ -7,7 +7,7 @@ import {
   validateEnvironmentExport,
   validateRequestExport,
   validateRunResultsExport
-} from '#/main/storage/collectionData';
+} from './collectionData';
 
 const validKeyValue = { key: 'Accept', value: 'application/json', enabled: true };
 

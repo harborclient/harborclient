@@ -20,10 +20,7 @@ import {
   concatBuffers
 } from '#/main/crypto/bufferAdapters';
 import { storageConnection, dbId } from '#/main/ipc/ipcSchemas';
-import {
-  getDefaultSpentShareTokenStore,
-  type SpentShareTokenStore
-} from '#/main/sharing/spentShareTokens';
+import { getDefaultSpentShareTokenStore, type SpentShareTokenStore } from './spentShareTokens';
 import type { StorageConnection, TrustedSharingKey } from '#/shared/types';
 
 export const SHARE_TOKEN_VERSION = 2;

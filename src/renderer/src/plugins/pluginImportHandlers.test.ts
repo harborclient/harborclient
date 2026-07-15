@@ -9,7 +9,7 @@ import {
   registerImportHandlerContribution,
   runPluginImportHandlers,
   unregisterBridgedImportHandler
-} from '#/renderer/src/plugins/pluginImportHandlers';
+} from './pluginImportHandlers';
 import type { ImportFile } from '#/shared/plugin/importHandlers';
 
 const sampleFile: ImportFile = {

@@ -21,7 +21,7 @@ import {
   listGitIdentities,
   persistGitIdentityAuth,
   upsertGitIdentity
-} from '#/main/git/gitIdentities';
+} from './gitIdentities';
 
 describe('gitIdentities', () => {
   beforeEach(() => {

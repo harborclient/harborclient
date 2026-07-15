@@ -10,7 +10,7 @@ import {
   getGeneralSettings,
   isPluginNetworkAllowed,
   setGeneralSettings
-} from '#/main/settings/generalSettings';
+} from './generalSettings';
 
 describe('generalSettings', () => {
   let settingsStore: Record<string, string>;

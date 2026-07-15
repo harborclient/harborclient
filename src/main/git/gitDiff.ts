@@ -2,22 +2,22 @@ import * as git from 'isomorphic-git';
 import fs, { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { truncateTextForLlm } from '#/shared/ai/chatContext';
-import { hasConflictMarkers } from '#/main/git/slug';
-import { readBlobBytesFromTree } from '#/main/git/gitBlob';
+import { hasConflictMarkers } from './slug';
+import { readBlobBytesFromTree } from './gitBlob';
 import {
   classifyHarborChangePath,
   displayNameFromHarborChange,
   parseRequestUuidFromText,
   type ClassifiedHarborChangePath
-} from '#/main/git/fileLayout';
-import { decodeTextContent } from '#/main/git/gitBlobText';
+} from './fileLayout';
+import { decodeTextContent } from './gitBlobText';
 import {
   analyzeMatrixRow,
   isCountedCollectionChange,
   type GitMatrixChangeStatus,
   type GitMatrixRow,
   type GitRequestRowFlags
-} from '#/main/git/gitRequestStatus';
+} from './gitRequestStatus';
 
 /**
  * Default maximum number of changed files included in a git diff payload.

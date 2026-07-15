@@ -2,7 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
 import settingsReducer from '#/renderer/src/store/slices/settingsSlice';
-import { confirmAgentTerminalCommand } from '#/renderer/src/store/thunks/aiChat';
+import { confirmAgentTerminalCommand } from './aiChat';
 import { defaultGeneralSettings } from '#/renderer/src/store/slices/settingsSlice';
 
 const showConfirmMock = vi.hoisted(() =>

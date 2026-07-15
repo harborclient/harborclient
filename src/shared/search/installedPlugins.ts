@@ -1,9 +1,5 @@
 import type { PluginInfo } from '#/shared/plugin/types';
-import {
-  createTextSearchIndex,
-  searchTextIndex,
-  type HarborSearchIndex
-} from '#/shared/search/oramaIndex';
+import { createTextSearchIndex, searchTextIndex, type HarborSearchIndex } from './oramaIndex';
 
 /**
  * Indexed fields for installed plugin search.

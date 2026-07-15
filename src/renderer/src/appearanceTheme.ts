@@ -1,4 +1,4 @@
-import { prefersDarkColorScheme } from '#/renderer/src/theme';
+import { prefersDarkColorScheme } from './theme';
 
 /**
  * Returns whether the active appearance theme resolves to a dark color scheme.

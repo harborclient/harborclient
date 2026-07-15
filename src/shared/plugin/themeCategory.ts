@@ -1,5 +1,5 @@
-import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
-import type { PluginInfo } from '#/shared/plugin/types';
+import type { PluginCatalogEntry } from './catalog';
+import type { PluginInfo } from './types';
 
 /**
  * Marketplace/manifest category slug that marks a plugin as a theme.

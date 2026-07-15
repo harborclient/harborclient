@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { startMcpServerBridge } from '#/renderer/src/store/ai/mcpServerBridge';
+import { startMcpServerBridge } from './mcpServerBridge';
 
 /**
  * Mounts the MCP server tool bridge so external MCP clients can execute Harbor tools.

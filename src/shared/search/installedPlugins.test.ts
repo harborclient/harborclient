@@ -4,7 +4,7 @@ import {
   buildInstalledPluginSearchIndex,
   searchInstalledPluginHits,
   searchInstalledPlugins
-} from '#/shared/search/installedPlugins';
+} from './installedPlugins';
 
 /**
  * Builds a minimal installed plugin row for search tests.

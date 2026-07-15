@@ -6,7 +6,7 @@ import { EditorState, type Extension } from '@codemirror/state';
 import { EditorView, lineNumbers } from '@codemirror/view';
 import { tags } from '@lezer/highlight';
 import type { CodeEditorLanguage } from '@harborclient/sdk/components';
-import { inferGitDiffLanguage } from '#/renderer/src/git/parseGitDiffFile';
+import { inferGitDiffLanguage } from './parseGitDiffFile';
 
 /**
  * Syntax colors aligned with HarborClient CodeEditor defaults.

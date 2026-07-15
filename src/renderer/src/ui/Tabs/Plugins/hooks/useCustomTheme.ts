@@ -30,10 +30,7 @@ import {
   getDefaultCustomThemePalette
 } from '#/renderer/src/ui/Tabs/Plugins/customThemeDefaults';
 import { shouldPromptRenamedThemeSave } from '#/renderer/src/ui/Tabs/Plugins/shouldPromptRenamedThemeSave';
-import {
-  customThemeDraftsEqual,
-  THEME_HISTORY_DEBOUNCE_MS
-} from '#/renderer/src/ui/Tabs/Plugins/hooks/themeHistoryStack';
+import { customThemeDraftsEqual, THEME_HISTORY_DEBOUNCE_MS } from './themeHistoryStack';
 
 /**
  * State shown when saving a renamed existing custom theme.

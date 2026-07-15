@@ -1,6 +1,6 @@
-import type { IStorage } from '#/main/storage/IStorage';
-import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
-import { TrashService } from '#/main/storage/TrashService';
+import type { IStorage } from './IStorage';
+import { getLocalDatabase } from './localDatabaseInstance';
+import { TrashService } from './TrashService';
 
 let instance: TrashService | null = null;
 

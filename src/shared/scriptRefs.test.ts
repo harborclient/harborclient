@@ -15,7 +15,7 @@ import {
   resolveScriptRefs,
   scriptAutoNameFromCode,
   UNNAMED_SCRIPT_NAME
-} from '#/shared/scriptRefs';
+} from './scriptRefs';
 import type { Snippet } from '#/shared/types/snippet';
 
 describe('resolveScriptRefs', () => {

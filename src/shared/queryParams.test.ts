@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  applyParamsToUrl,
-  mergeParamsFromUrl,
-  parseQueryString,
-  splitUrl
-} from '#/shared/queryParams';
+import { applyParamsToUrl, mergeParamsFromUrl, parseQueryString, splitUrl } from './queryParams';
 
 describe('splitUrl', () => {
   it('splits base, query, and hash without re-encoding', () => {

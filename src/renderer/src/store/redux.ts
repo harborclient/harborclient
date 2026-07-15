@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { busyMiddleware } from '#/renderer/src/store/busyMiddleware';
+import { busyMiddleware } from './busyMiddleware';
 import collectionsReducer from '#/renderer/src/store/slices/collectionsSlice';
 import environmentsReducer from '#/renderer/src/store/slices/environmentsSlice';
 import tabsReducer from '#/renderer/src/store/slices/tabsSlice';
@@ -19,11 +19,7 @@ import aiChatReducer from '#/renderer/src/store/slices/aiChatSlice';
 import terminalsReducer from '#/renderer/src/store/slices/terminalsSlice';
 import markdownSelectionsReducer from '#/renderer/src/store/slices/markdownSelectionsSlice';
 import themeDesignerReducer from '#/renderer/src/store/slices/themeDesignerSlice';
-import {
-  persistActiveEnvironmentId,
-  persistTabs,
-  persistTerminalLayout
-} from '#/renderer/src/store/persistence';
+import { persistActiveEnvironmentId, persistTabs, persistTerminalLayout } from './persistence';
 export const store = configureStore({
   reducer: {
     collections: collectionsReducer,

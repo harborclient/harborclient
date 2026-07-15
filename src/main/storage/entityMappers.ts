@@ -1,4 +1,4 @@
-import { normalizeVariable } from '#/main/storage/collectionData';
+import { normalizeVariable } from './collectionData';
 import { normalizeSnippetScope } from '#/shared/snippetScope';
 import { normalizeScriptStage } from '#/shared/scriptStage';
 import { defaultAuth, normalizeAuth } from '#/shared/auth';

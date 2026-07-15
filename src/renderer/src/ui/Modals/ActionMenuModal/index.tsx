@@ -5,7 +5,7 @@ import {
   closeActionMenuModal,
   selectActionMenuModal
 } from '#/renderer/src/store/slices/modalsSlice';
-import { ActionMenuModalBody } from '#/renderer/src/ui/Modals/ActionMenuModal/ActionMenuModalBody';
+import { ActionMenuModalBody } from './ActionMenuModalBody';
 
 /**
  * Global command palette for searching collections, settings, and plugins.

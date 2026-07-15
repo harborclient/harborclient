@@ -25,12 +25,9 @@ import {
   resolveDynamicVariable,
   substituteVariablesWithResolver
 } from '@harborclient/sdk/variables';
-import {
-  parseResponseDocument,
-  type ScriptDocumentFacade
-} from '#/main/scripting/scriptResponseDocument';
-import { scriptExpect } from '#/main/scripting/scriptExpect';
-import { createResponseAssertionSubject } from '#/main/scripting/scriptResponseAssertions';
+import { parseResponseDocument, type ScriptDocumentFacade } from './scriptResponseDocument';
+import { scriptExpect } from './scriptExpect';
+import { createResponseAssertionSubject } from './scriptResponseAssertions';
 
 /**
  * Context fields passed into the hc sandbox without user script source.

@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { buildGitGraphLog, readGitCommitDetail } from '#/main/git/gitGraph';
+import { buildGitGraphLog, readGitCommitDetail } from './gitGraph';
 
 const cleanups: Array<() => void> = [];
 

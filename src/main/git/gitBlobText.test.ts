@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodeBlobText, decodeTextContent, isBinaryContent } from '#/main/git/gitBlobText';
+import { decodeBlobText, decodeTextContent, isBinaryContent } from './gitBlobText';
 
 describe('gitBlobText', () => {
   describe('isBinaryContent', () => {

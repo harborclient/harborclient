@@ -9,7 +9,7 @@ import {
   uniqueFolderNames,
   validateCreateCollectionPayload,
   validatePluginConsoleLogPayload
-} from '#/renderer/src/plugins/hostRequestCommands';
+} from './hostRequestCommands';
 import { store } from '#/renderer/src/store/redux';
 import { clearConsole } from '#/renderer/src/store/slices/consoleSlice';
 import { toPluginHttpRequest } from '#/shared/plugin/httpRequest';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseResponseDocument } from '#/main/scripting/scriptResponseDocument';
+import { parseResponseDocument } from './scriptResponseDocument';
 
 describe('parseResponseDocument', () => {
   const html = `

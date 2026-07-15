@@ -26,8 +26,8 @@ import { EnvironmentSettings } from '#/renderer/src/ui/Tabs/EnvironmentSettings'
 import { HostedMainView } from '#/renderer/src/ui/HostedMainView';
 import { Plugins } from '#/renderer/src/ui/Tabs/Plugins';
 import { PluginDetailPage } from '#/renderer/src/ui/Tabs/Plugins/PluginDetailPage';
-import { ScriptEditorTab } from '#/renderer/src/ui/Main/RequestEditor/ScriptEditorTab';
-import { MergeEditorTab } from '#/renderer/src/ui/Main/RequestEditor/MergeEditorTab';
+import { ScriptEditorTab } from './ScriptEditorTab';
+import { MergeEditorTab } from './MergeEditorTab';
 import { Settings } from '#/renderer/src/ui/Tabs/Settings';
 import { SharingKeys } from '#/renderer/src/ui/Tabs/SharingKeys';
 import { Snippets } from '#/renderer/src/ui/Tabs/Snippets';

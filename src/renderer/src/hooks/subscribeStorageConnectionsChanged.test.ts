@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { subscribeStorageConnectionsChanged } from '#/renderer/src/hooks/subscribeStorageConnectionsChanged';
+import { subscribeStorageConnectionsChanged } from './subscribeStorageConnectionsChanged';
 
 describe('subscribeStorageConnectionsChanged', () => {
   afterEach(() => {

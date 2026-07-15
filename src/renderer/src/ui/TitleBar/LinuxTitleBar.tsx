@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
-import { LinuxMenuBar } from '#/renderer/src/ui/TitleBar/LinuxMenuBar';
-import { LinuxWindowControls } from '#/renderer/src/ui/TitleBar/LinuxWindowControls';
+import { LinuxMenuBar } from './LinuxMenuBar';
+import { LinuxWindowControls } from './LinuxWindowControls';
 
 const APP_TITLE = 'HarborClient';
 

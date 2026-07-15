@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fitWindowStateToDisplays, type SavedWindowState } from '#/main/window/windowState';
+import { fitWindowStateToDisplays, type SavedWindowState } from './windowState';
 import type { Display } from 'electron';
 
 // `windowState` imports `electron` at module load, whose entry point throws

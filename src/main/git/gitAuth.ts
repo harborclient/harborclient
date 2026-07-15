@@ -3,7 +3,7 @@ import {
   GITHUB_OAUTH_CLIENT_ID,
   refreshGitHubAccessToken,
   startGitHubDeviceFlow
-} from '#/main/git/githubOAuth';
+} from './githubOAuth';
 import {
   deleteGitIdentity,
   getGitIdentity,
@@ -11,7 +11,7 @@ import {
   persistGitIdentityAuth,
   setGitIdentityOAuthClientId,
   upsertGitIdentity
-} from '#/main/git/gitIdentities';
+} from './gitIdentities';
 import {
   deleteGitSecrets,
   getGitAccessToken,
@@ -20,11 +20,11 @@ import {
   hasGitAccessToken,
   storeGitOAuthTokens,
   storeGitPat
-} from '#/main/git/gitSecrets';
+} from './gitSecrets';
 import type { StorageConnection, GitAuthMethod, GitIdentity } from '#/shared/types';
 import { isGitHubRepositoryUrl, normalizeGitHostKey } from '#/shared/gitUrl';
 import { listStorageConnections } from '#/main/settings/storageSettings';
-import { GitSyncManager } from '#/main/git/GitSyncManager';
+import { GitSyncManager } from './GitSyncManager';
 
 /**
  * Resolved HTTPS credentials for isomorphic-git onAuth.

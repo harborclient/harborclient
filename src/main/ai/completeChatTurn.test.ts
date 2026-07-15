@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { APIError, type OpenAI } from 'openai';
-import { extractAssistantContent, runChatCompletionStep } from '#/main/ai/completeChatTurn';
+import { extractAssistantContent, runChatCompletionStep } from './completeChatTurn';
 import { AGGRESSIVE_HISTORY_MESSAGE_COUNT } from '#/shared/ai/chatContext';
 import { AI_SYSTEM_PROMPT, AI_TOOL_DEFINITIONS } from '#/shared/ai/tools';
 

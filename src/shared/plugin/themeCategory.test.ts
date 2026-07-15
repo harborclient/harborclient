@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
-import type { PluginCatalogCategory } from '#/shared/plugin/catalogCategories';
-import type { PluginInfo } from '#/shared/plugin/types';
+import type { PluginCatalogEntry } from './catalog';
+import type { PluginCatalogCategory } from './catalogCategories';
+import type { PluginInfo } from './types';
 import {
   catalogEntryIsTheme,
   filterThemeCatalogByAppearance,
@@ -9,7 +9,7 @@ import {
   isThemeAppearanceCategory,
   pluginIsTheme,
   THEME_APPEARANCE_CATEGORIES
-} from '#/shared/plugin/themeCategory';
+} from './themeCategory';
 
 /**
  * Builds a minimal catalog entry for theme classification tests.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { validateCollectionExport } from '#/main/storage/collectionData';
-import { isPostmanCollection } from '#/main/import/postman';
-import { convertHarToCollection, isHarArchive } from '#/main/import/har';
+import { isPostmanCollection } from './postman';
+import { convertHarToCollection, isHarArchive } from './har';
 import { parseFormParts } from '#/shared/formData';
 import { parseUrlEncodedParts } from '#/shared/urlencoded';
 

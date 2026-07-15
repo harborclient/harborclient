@@ -1,10 +1,10 @@
-import { GitStorage } from '#/main/storage/GitStorage';
+import { GitStorage } from './GitStorage';
 import { getGeneralSettings } from '#/main/settings/generalSettings';
-import { FirestoreStorage } from '#/main/storage/FirestoreStorage';
-import { MySqlStorage } from '#/main/storage/MySqlStorage';
-import { PostgresStorage } from '#/main/storage/PostgresStorage';
-import { SqliteStorage } from '#/main/storage/SqliteStorage';
-import type { IStorage } from '#/main/storage/IStorage';
+import { FirestoreStorage } from './FirestoreStorage';
+import { MySqlStorage } from './MySqlStorage';
+import { PostgresStorage } from './PostgresStorage';
+import { SqliteStorage } from './SqliteStorage';
+import type { IStorage } from './IStorage';
 import type { StorageConnection } from '#/shared/types';
 
 /**

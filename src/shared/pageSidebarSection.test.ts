@@ -3,7 +3,7 @@ import {
   isAllowedPageSidebarSection,
   normalizePageSidebarKey,
   normalizePageSidebarSection
-} from '#/shared/pageSidebarSection';
+} from './pageSidebarSection';
 
 describe('normalizePageSidebarKey', () => {
   it('accepts supported page keys', () => {

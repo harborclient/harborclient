@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import markdownSelectionsReducer, {
   setMarkdownSelection,
   type MarkdownSelectionsState
-} from '#/renderer/src/store/slices/markdownSelectionsSlice';
+} from './markdownSelectionsSlice';
 
 describe('markdownSelectionsSlice', () => {
   it('stores a markdown selection snapshot keyed by reference token', () => {

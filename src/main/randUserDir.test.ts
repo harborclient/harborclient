@@ -30,7 +30,7 @@ import {
   cleanupRandUserDir,
   getRandUserDirForCleanup,
   isRandUserDirFlagEnabled
-} from '#/main/randUserDir';
+} from './randUserDir';
 
 describe('isRandUserDirFlagEnabled', () => {
   it('returns true when --rand-user-dir is present', () => {

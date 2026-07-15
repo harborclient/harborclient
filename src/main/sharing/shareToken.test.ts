@@ -24,8 +24,8 @@ import {
   publicKeyFingerprint,
   verifyShareToken,
   type ShareCollectionMeta
-} from '#/main/sharing/shareToken';
-import type { SpentShareTokenStore } from '#/main/sharing/spentShareTokens';
+} from './shareToken';
+import type { SpentShareTokenStore } from './spentShareTokens';
 import type { TrustedSharingKey } from '#/shared/types';
 
 interface TestKeyPair {

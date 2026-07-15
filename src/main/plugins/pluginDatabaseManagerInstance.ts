@@ -1,4 +1,4 @@
-import { PluginDatabaseManager } from '#/main/plugins/PluginDatabaseManager';
+import { PluginDatabaseManager } from './PluginDatabaseManager';
 
 let manager: PluginDatabaseManager | null = null;
 

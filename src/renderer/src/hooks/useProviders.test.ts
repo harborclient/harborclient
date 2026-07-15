@@ -3,7 +3,7 @@ import {
   filterCollectionProviders,
   filterSnippetProviders,
   type ProviderOption
-} from '#/renderer/src/hooks/useProviders';
+} from './useProviders';
 
 const databaseProvider: ProviderOption = {
   id: 'db-1',

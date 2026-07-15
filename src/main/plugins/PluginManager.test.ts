@@ -10,9 +10,9 @@ import {
   setGitPluginOrigin,
   setPluginEnabled,
   setUnpackedPluginPath
-} from '#/main/plugins/devRegistry';
-import { PluginManager, isDisablePluginsFlagEnabled } from '#/main/plugins/PluginManager';
-import * as pluginSignature from '#/main/plugins/pluginSignature';
+} from './devRegistry';
+import { PluginManager, isDisablePluginsFlagEnabled } from './PluginManager';
+import * as pluginSignature from './pluginSignature';
 import {
   clearLocalDatabaseForTesting,
   getLocalDatabase,

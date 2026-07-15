@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useSidebarSelectionCoordinator } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarSelectionContext';
+import { useSidebarSelectionCoordinator } from './sidebarSelectionContext';
 
 /**
  * Keeps Edit → Deselect all menu state in sync and routes the menu action to the

@@ -1,5 +1,5 @@
 import { createContext } from 'react';
-import type { SidebarColorTarget } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarColorTypes';
+import type { SidebarColorTarget } from './sidebarColorTypes';
 
 /**
  * Shared color picker API exposed to sidebar row menus.

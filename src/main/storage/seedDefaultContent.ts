@@ -2,9 +2,9 @@ import { existsSync, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { app } from 'electron';
 import { logVerbose } from '#/main/logger';
-import type { LocalDatabase } from '#/main/storage/LocalDatabase';
-import type { RoutingStorage } from '#/main/storage/RoutingStorage';
-import { validateCollectionExport } from '#/main/storage/collectionData';
+import type { LocalDatabase } from './LocalDatabase';
+import type { RoutingStorage } from './RoutingStorage';
+import { validateCollectionExport } from './collectionData';
 import type { CollectionExport } from '#/shared/types';
 import type { BuiltinCollectionOpenRequestTarget } from '#/shared/types/app';
 

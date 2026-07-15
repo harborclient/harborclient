@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createInlineScriptRef, createSnippetScriptRef } from '#/shared/scriptRefs';
-import { buildSnippetBundle, parseSnippetBundle } from '#/shared/snippetBundle';
+import { createInlineScriptRef, createSnippetScriptRef } from './scriptRefs';
+import { buildSnippetBundle, parseSnippetBundle } from './snippetBundle';
 import type { Snippet } from '#/shared/types/snippet';
 
 const librarySnippet: Snippet = {

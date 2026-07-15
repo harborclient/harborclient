@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
+import { defaultAuth } from './auth';
 import { FOLDER_SETTINGS_DEFAULTS } from '#/shared/testFixtures/folder';
 import {
   buildPendingCollectionRunnerResults,
@@ -13,8 +13,8 @@ import {
   normalizeCollectionRunnerConfig,
   resolveCollectionRunnerNextIndex,
   summarizeRunnerResults
-} from '#/shared/collectionRunner';
-import type { Folder, SavedRequest } from '#/shared/types';
+} from './collectionRunner';
+import type { Folder, SavedRequest } from './types';
 
 /**
  * Builds a minimal saved request fixture for collection runner tests.

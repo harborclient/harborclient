@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { compareContainerItems, mergeContainerItems } from '#/shared/collectionContainerOrder';
-import type { CollectionDocument, SavedRequest } from '#/shared/types';
+import { compareContainerItems, mergeContainerItems } from './collectionContainerOrder';
+import type { CollectionDocument, SavedRequest } from './types';
 
 const baseDocument = (
   overrides: Partial<CollectionDocument> & Pick<CollectionDocument, 'id' | 'name' | 'sort_order'>

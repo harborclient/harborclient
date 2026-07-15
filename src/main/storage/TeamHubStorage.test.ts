@@ -2,11 +2,11 @@ import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, expect, it, vi } from 'vitest';
-import { TeamHubStorage } from '#/main/storage/TeamHubStorage';
+import { TeamHubStorage } from './TeamHubStorage';
 import { defaultAuth } from '#/shared/auth';
 import { createInlineScriptRef } from '#/shared/scriptRefs';
-import { TeamHubIdMap } from '#/main/storage/TeamHubIdMap';
-import { TeamHubFolderSettings } from '#/main/storage/TeamHubFolderSettings';
+import { TeamHubIdMap } from './TeamHubIdMap';
+import { TeamHubFolderSettings } from './TeamHubFolderSettings';
 import type { TeamHubClient } from '@harborclient/team-hub-api';
 import { describeSqlite } from '#/test/nativeModules';
 

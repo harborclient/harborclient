@@ -4,7 +4,7 @@ import { join, dirname, sep } from 'path';
 import { tmpdir } from 'os';
 import { createRequire } from 'module';
 import { buildSync } from 'esbuild';
-import type { PluginManager } from '#/main/plugins/PluginManager';
+import type { PluginManager } from './PluginManager';
 
 /** Node require bound to this module, used to introspect CJS host modules. */
 const nodeRequire = createRequire(__filename);

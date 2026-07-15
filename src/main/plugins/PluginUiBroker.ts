@@ -2,9 +2,9 @@ import { ipcMain, webContents, type WebContents } from 'electron';
 import type { BrowserWindow } from 'electron';
 import type { PluginHttpRequest, PluginHttpResponse } from '@harborclient/sdk';
 import type { PluginFsPickFileOptions, PluginFsSaveFileOptions } from '@harborclient/sdk';
-import type { PluginManager } from '#/main/plugins/PluginManager';
-import { getPluginDatabaseManager } from '#/main/plugins/pluginDatabaseManagerInstance';
-import { activatePluginMain, invokePluginIpc } from '#/main/plugins/pluginRunnerHost';
+import type { PluginManager } from './PluginManager';
+import { getPluginDatabaseManager } from './pluginDatabaseManagerInstance';
+import { activatePluginMain, invokePluginIpc } from './pluginRunnerHost';
 import {
   pickDirectoryForPlugin,
   pickFileForPlugin,
@@ -12,7 +12,7 @@ import {
   saveFileForPlugin,
   watchFileForPlugin,
   writeFileForPlugin
-} from '#/main/plugins/pluginFsOperations';
+} from './pluginFsOperations';
 import type { PluginPermission } from '#/shared/plugin/types';
 import { toActiveTheme } from '#/shared/plugin/types';
 import type { ThemeSource } from '#/shared/types';
@@ -24,7 +24,7 @@ import {
   registerPluginMcpServer,
   setPluginMcpRegistryManager,
   unregisterPluginMcpServer
-} from '#/main/plugins/pluginMcpRegistry';
+} from './pluginMcpRegistry';
 
 /** Permission required for each broker operation. */
 const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {

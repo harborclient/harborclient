@@ -28,7 +28,7 @@ import {
   SidebarModalsContext,
   ensureMarkdownFilename,
   type SidebarModalsContextValue
-} from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarModalsContext';
+} from './sidebarModalsContext';
 
 interface FolderModalState {
   /**

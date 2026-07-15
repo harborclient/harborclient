@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { PluginManager } from '#/main/plugins/PluginManager';
+import type { PluginManager } from './PluginManager';
 import {
   buildPluginMcpServerId,
   clearPluginMcpServers,
@@ -9,7 +9,7 @@ import {
   resetPluginMcpRegistryForTests,
   setPluginMcpRegistryManager,
   unregisterPluginMcpServer
-} from '#/main/plugins/pluginMcpRegistry';
+} from './pluginMcpRegistry';
 
 describe('pluginMcpRegistry', () => {
   beforeEach(() => {

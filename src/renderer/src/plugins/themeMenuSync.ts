@@ -1,10 +1,7 @@
 import { formatCustomThemeValue } from '#/shared/plugin/customThemeExport';
 import type { ThemeMenuOption } from '#/shared/themes';
 import type { ThemeSource } from '#/shared/types';
-import {
-  getRegisteredPluginThemes,
-  subscribePluginRegistry
-} from '#/renderer/src/plugins/registry';
+import { getRegisteredPluginThemes, subscribePluginRegistry } from './registry';
 import { formatPluginThemeValue } from '#/shared/plugin/types';
 
 /**

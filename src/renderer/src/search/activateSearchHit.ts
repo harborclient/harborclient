@@ -5,7 +5,7 @@ import { parseSidebarDocumentId } from '#/shared/search/sidebar';
 import type { SidebarSearchInput } from '#/shared/search/sidebar';
 import type { UnifiedSearchHit } from '#/shared/search/types';
 import type { SavedRequest } from '#/shared/types';
-import { useSearchIndexes } from '#/renderer/src/search/useSearchIndexes';
+import { useSearchIndexes } from './useSearchIndexes';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { setSelectedCollectionId } from '#/renderer/src/store/slices/collectionsSlice';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';

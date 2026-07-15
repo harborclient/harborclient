@@ -10,7 +10,7 @@ import {
   resolveShortcuts,
   validateShortcutOverrides,
   type KeyChord
-} from '#/shared/shortcuts';
+} from './shortcuts';
 
 describe('normalizeShortcutOverrides', () => {
   it('returns an empty object for invalid input', () => {

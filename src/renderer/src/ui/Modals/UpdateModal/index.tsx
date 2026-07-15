@@ -3,7 +3,7 @@ import { useCallback, useEffect, type JSX } from 'react';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { closeUpdateModal, selectUpdateModal } from '#/renderer/src/store/slices/modalsSlice';
 import { checkForUpdates } from '#/renderer/src/store/thunks';
-import { UpdateCheckSpinner } from '#/renderer/src/ui/Modals/UpdateModal/UpdateCheckSpinner';
+import { UpdateCheckSpinner } from './UpdateCheckSpinner';
 
 /**
  * Dialog that checks GitHub for a newer release and reports the result.

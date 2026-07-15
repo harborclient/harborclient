@@ -1,4 +1,4 @@
-import type { LocalDatabase } from '#/main/storage/LocalDatabase';
+import type { LocalDatabase } from './LocalDatabase';
 import { parseJson } from '#/shared/parseJson';
 
 /**

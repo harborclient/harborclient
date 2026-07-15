@@ -8,7 +8,7 @@ import {
   RESPONSE_EDITOR_SECTION_ID,
   resolveSkipNavigationLinks,
   type SkipNavigationVisibility
-} from '#/renderer/src/ui/Shared/SkipNavigation/skipNavigationTargets';
+} from './skipNavigationTargets';
 
 /**
  * Builds a visibility fixture with every panel open on a request workspace.

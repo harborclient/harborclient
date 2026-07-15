@@ -1,5 +1,5 @@
 import type { ScriptRunInput, ScriptRunResult } from '#/shared/types';
-import { runScriptInProcess } from '#/main/scripting/scriptRunnerHost';
+import { runScriptInProcess } from './scriptRunnerHost';
 
 /**
  * Runs a pre/post script in the SES-hardened utilityProcess runner.

@@ -1,4 +1,4 @@
-import type { EchoResponse } from '#/main/plugins/echoServer/types';
+import type { EchoResponse } from './types';
 
 /**
  * Returns whether a script produced a response body value.

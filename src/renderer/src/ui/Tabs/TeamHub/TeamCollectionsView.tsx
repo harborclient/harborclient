@@ -14,7 +14,7 @@ import { faUsers } from '#/renderer/src/fontawesome';
 import { useEscapeBackCapture } from '#/renderer/src/hooks/useEscapeBack';
 import { useTeamHubAdminCollections } from '#/renderer/src/hooks/useTeamHubAdminCollections';
 import { useTypedDeleteConfirm } from '#/renderer/src/hooks/useTypedDeleteConfirm';
-import { TeamCollectionContentsView } from '#/renderer/src/ui/Tabs/TeamHub/TeamCollectionContentsView';
+import { TeamCollectionContentsView } from './TeamCollectionContentsView';
 import { DeleteConfirmModal } from '#/renderer/src/ui/Shared/DeleteConfirm/DeleteConfirmModal';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/Shared/classes';
 

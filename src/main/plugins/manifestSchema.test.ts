@@ -3,7 +3,7 @@ import {
   parsePluginManifest,
   satisfiesHarborClientEngine,
   validatePluginManifest
-} from '#/main/plugins/manifestSchema';
+} from './manifestSchema';
 
 describe('manifestSchema', () => {
   const validManifest = {

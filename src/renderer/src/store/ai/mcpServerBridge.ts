@@ -1,5 +1,5 @@
 import type { ThunkDispatch, UnknownAction } from '@reduxjs/toolkit';
-import { executeAiToolCall } from '#/renderer/src/store/ai/aiToolExecutor';
+import { executeAiToolCall } from './aiToolExecutor';
 import type { RootState } from '#/renderer/src/store/redux';
 import { store } from '#/renderer/src/store/redux';
 

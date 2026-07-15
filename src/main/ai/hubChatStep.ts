@@ -1,5 +1,5 @@
 import { TeamHubClient } from '@harborclient/team-hub-api';
-import { getHubOpenAiCapability, setHubOpenAiCapability } from '#/main/ai/hubCapabilities';
+import { getHubOpenAiCapability, setHubOpenAiCapability } from './hubCapabilities';
 import { logVerbose } from '#/main/logger';
 import { mergeMcpClientTools } from '#/main/mcp/mergeMcpClientTools';
 import { listTeamHubs } from '#/main/settings/teamHubSettings';

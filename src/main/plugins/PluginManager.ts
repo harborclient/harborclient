@@ -16,11 +16,11 @@ import fs from 'fs';
 import JSZip from 'jszip';
 import type { BrowserWindow } from 'electron';
 import { pathHasParentSegment } from '#/main/pathHasParentSegment';
-import { collectPluginHotReloadWatchTargets } from '#/main/plugins/pluginHotReloadWatch';
-import { validatePluginManifest } from '#/main/plugins/manifestSchema';
-import { PluginFsAllowlist, normalizePath } from '#/main/plugins/pluginFsAllowlist';
-import { PluginFsWatcher } from '#/main/plugins/pluginFsWatcher';
-import { collectFilesystemPathsFromPluginStorage } from '#/main/plugins/pluginStorageGrantPaths';
+import { collectPluginHotReloadWatchTargets } from './pluginHotReloadWatch';
+import { validatePluginManifest } from './manifestSchema';
+import { PluginFsAllowlist, normalizePath } from './pluginFsAllowlist';
+import { PluginFsWatcher } from './pluginFsWatcher';
+import { collectFilesystemPathsFromPluginStorage } from './pluginStorageGrantPaths';
 import {
   clearPluginEnabled,
   getGitPluginOrigins,
@@ -31,10 +31,10 @@ import {
   setGitPluginOrigin,
   setPluginEnabled,
   setUnpackedPluginPath
-} from '#/main/plugins/devRegistry';
-import { assertSafeGitPluginUrl } from '#/main/plugins/gitPluginUrl';
-import { evaluatePluginSignature } from '#/main/plugins/pluginSignature';
-import type { PluginDatabaseManager } from '#/main/plugins/PluginDatabaseManager';
+} from './devRegistry';
+import { assertSafeGitPluginUrl } from './gitPluginUrl';
+import { evaluatePluginSignature } from './pluginSignature';
+import type { PluginDatabaseManager } from './PluginDatabaseManager';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import type {
   PluginAssetResult,

@@ -1,10 +1,6 @@
 import type { CopiedScriptRef, ScriptRef } from '#/shared/types/script';
 import type { Snippet } from '#/shared/types/snippet';
-import {
-  DEFAULT_SCRIPT_STAGE,
-  normalizeScriptStage,
-  readScriptRefStage
-} from '#/shared/scriptStage';
+import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage, readScriptRefStage } from './scriptStage';
 
 /**
  * Default display label for newly added inline scripts before the user names them.

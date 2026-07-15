@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GitCommitFileChange } from '#/shared/types';
-import { buildGitCommitChangesViewModel } from '#/renderer/src/git/buildGitCommitChangesViewModel';
+import { buildGitCommitChangesViewModel } from './buildGitCommitChangesViewModel';
 
 describe('buildGitCommitChangesViewModel', () => {
   const requestFile: GitCommitFileChange = {

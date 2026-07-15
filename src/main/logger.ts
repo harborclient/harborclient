@@ -13,7 +13,7 @@
  * {@link logRequest} always write to the rotating file regardless of verbose flags.
  */
 
-import { writeRequestLog, writeVerboseLog } from '#/main/fileLogger';
+import { writeRequestLog, writeVerboseLog } from './fileLogger';
 
 /**
  * Determines whether very-verbose logging should be enabled for this process.

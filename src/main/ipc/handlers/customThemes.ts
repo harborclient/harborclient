@@ -9,7 +9,7 @@ import {
 } from '#/main/storage/customThemes';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
-import { openImportFile } from '#/main/ipc/handlers/importDialogs';
+import { openImportFile } from './importDialogs';
 import {
   envelopeToImportDraft,
   validateCustomThemeExport

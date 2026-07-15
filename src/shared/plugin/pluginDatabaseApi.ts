@@ -1,8 +1,4 @@
-import type {
-  PluginDatabase,
-  PluginDatabaseTx,
-  PluginRunResult
-} from '#/shared/plugin/databaseTypes';
+import type { PluginDatabase, PluginDatabaseTx, PluginRunResult } from './databaseTypes';
 
 /**
  * Backend used to implement {@link PluginDatabase} in renderer or main plugin runtimes.

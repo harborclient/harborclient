@@ -8,7 +8,7 @@ import {
   isBranchMergeDisabled,
   isBranchSwitchDisabled,
   shouldBlockBranchSwitch
-} from '#/renderer/src/git/gitBranchModalHelpers';
+} from './gitBranchModalHelpers';
 
 describe('gitBranchModalHelpers', () => {
   it('blocks branch switching when there are uncommitted changes', () => {

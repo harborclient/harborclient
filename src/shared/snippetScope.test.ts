@@ -4,7 +4,7 @@ import {
   snippetMatchesPhase,
   snippetScopeForPhase,
   snippetScopeLabel
-} from '#/shared/snippetScope';
+} from './snippetScope';
 
 describe('snippetScopeForPhase', () => {
   it('maps pre to pre-request', () => {

@@ -14,7 +14,7 @@ import themeDesignerReducer, {
   setPresent,
   undo,
   type ThemeDesignerState
-} from '#/renderer/src/store/slices/themeDesignerSlice';
+} from './themeDesignerSlice';
 import type { RootState } from '#/renderer/src/store/redux';
 
 const baseDraft = (): CustomThemeDraft => ({

@@ -5,10 +5,7 @@ import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { closeShortcutsReferenceModal } from '#/renderer/src/store/slices/modalsSlice';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { filterShortcutBindings } from '#/renderer/src/ui/Tabs/Settings/ShortcutsSection/filterShortcutBindings';
-import {
-  focusShortcutTableCell,
-  shortcutsTableCellFocusClass
-} from '#/renderer/src/ui/Modals/ShortcutsReferenceModal/tableCellFocus';
+import { focusShortcutTableCell, shortcutsTableCellFocusClass } from './tableCellFocus';
 import { Button, FormGroup, Input, Modal, ModalFooter } from '@harborclient/sdk/components';
 
 /**

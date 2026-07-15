@@ -19,11 +19,11 @@ import {
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectCollections, selectSelectedCollectionId } from '#/renderer/src/store/selectors';
 import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarGitContext';
-import { GitSidebarEmptyState } from '#/renderer/src/ui/Sidebars/GitSidebar/GitSidebarEmptyState';
-import { GitCommitMessageSection } from '#/renderer/src/ui/Sidebars/GitSidebar/GitCommitMessageSection';
-import { GitChangesSection } from '#/renderer/src/ui/Sidebars/GitSidebar/GitChangesSection';
-import { GitCommitsSection } from '#/renderer/src/ui/Sidebars/GitSidebar/GitCommitsSection';
-import { useGitSidebarSections } from '#/renderer/src/ui/Sidebars/GitSidebar/useGitSidebarSections';
+import { GitSidebarEmptyState } from './GitSidebarEmptyState';
+import { GitCommitMessageSection } from './GitCommitMessageSection';
+import { GitChangesSection } from './GitChangesSection';
+import { GitCommitsSection } from './GitCommitsSection';
+import { useGitSidebarSections } from './useGitSidebarSections';
 
 /**
  * Right-side Git source-control panel with accordion sections for commit, changes,

@@ -7,7 +7,7 @@ import {
   isHtmlResponse,
   isImageResponse,
   resolveHtmlPreviewBaseUrl
-} from '#/renderer/src/ui/Shared/responseFormatUtils';
+} from './responseFormatUtils';
 
 const sampleResponse = (overrides: Partial<SendResult> = {}): SendResult => ({
   status: 200,

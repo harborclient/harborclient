@@ -12,11 +12,11 @@ import type {
   ScriptRef,
   Variable
 } from '#/shared/types';
-import { bundleScriptFieldsWithLegacy } from '#/main/storage/scriptFields';
-import { maskVariablesForExport } from '#/main/storage/collectionData';
-import { resolveImportUuid } from '#/main/storage/uuid';
+import { bundleScriptFieldsWithLegacy } from './scriptFields';
+import { maskVariablesForExport } from './collectionData';
+import { resolveImportUuid } from './uuid';
 import { normalizeRequestTags } from '#/shared/requestTags';
-import { serializeSidebarColor } from '#/main/storage/sidebarColorMigration';
+import { serializeSidebarColor } from './sidebarColorMigration';
 import { mirrorLegacyScriptString, resolveScriptRefs } from '#/shared/scriptRefs';
 
 /**

@@ -10,7 +10,7 @@ import {
   flattenAuthConfig,
   normalizeAuth,
   resolveAuthVariables
-} from '#/shared/auth';
+} from './auth';
 
 describe('encodeBasicAuth', () => {
   it('encodes ASCII credentials', () => {

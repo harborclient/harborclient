@@ -1,5 +1,5 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
-import { publicKeyFingerprint } from '#/main/sharing/shareToken';
+import { publicKeyFingerprint } from './shareToken';
 import type { TrustedSharingKey } from '#/shared/types';
 import { parseJson } from '#/shared/parseJson';
 

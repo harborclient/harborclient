@@ -10,11 +10,11 @@ import {
 import { setSelectedCollectionId } from '#/renderer/src/store/slices/collectionsSlice';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import { closeSidebarContentTabs } from '#/renderer/src/store/thunks/sidebarDeselect';
-import { sidebarHasDeselectableSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarDeselectAll';
+import { sidebarHasDeselectableSelection } from './sidebarDeselectAll';
 import {
   SidebarSelectionContext,
   type SidebarSelectionContextValue
-} from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarSelectionContext';
+} from './sidebarSelectionContext';
 
 interface Props {
   /**

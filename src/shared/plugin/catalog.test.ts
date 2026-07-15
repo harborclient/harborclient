@@ -7,7 +7,7 @@ import {
   parsePluginTrustedKeys,
   PLUGIN_CATALOG_URL,
   PLUGIN_TRUSTED_KEYS_URL
-} from '#/shared/plugin/catalog';
+} from './catalog';
 
 const validCatalog = {
   schemaVersion: 1 as const,

@@ -1,5 +1,5 @@
 import type { BrowserWindow } from 'electron';
-import type { PluginManager } from '#/main/plugins/PluginManager';
+import type { PluginManager } from './PluginManager';
 import type { McpClientHeader, McpClientServerListItem } from '#/shared/types';
 
 /** Prefix for plugin-owned MCP client server ids. */

@@ -1,10 +1,6 @@
 import { randomUUID } from 'crypto';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
-import {
-  deleteTeamHubToken,
-  getTeamHubToken,
-  storeTeamHubToken
-} from '#/main/settings/teamHubSecrets';
+import { deleteTeamHubToken, getTeamHubToken, storeTeamHubToken } from './teamHubSecrets';
 import { parseJson } from '#/shared/parseJson';
 import type { TeamHub } from '#/shared/types';
 

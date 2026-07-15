@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import type { ThemePreviewPalette } from '#/renderer/src/ui/Modals/ThemePickerModal/previewPalettes';
-import { PreviewContentRows } from '#/renderer/src/ui/Modals/ThemePickerModal/ThemePreviewCard/PreviewContentRows';
+import { PreviewContentRows } from './PreviewContentRows';
 
 interface Props {
   /**

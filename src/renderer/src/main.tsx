@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
-import App from '#/renderer/src/App';
+import App from './App';
 import { store } from '#/renderer/src/store/redux';
 import '#/renderer/src/fontawesome';
 import './styles.css';

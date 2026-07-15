@@ -1,4 +1,4 @@
-import { getRegisteredMenuItems, subscribePluginRegistry } from '#/renderer/src/plugins/registry';
+import { getRegisteredMenuItems, subscribePluginRegistry } from './registry';
 
 /**
  * Pushes serialized menu contributions to the main process for menu merge.

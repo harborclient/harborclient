@@ -33,7 +33,7 @@ import tabsReducer, {
   setActiveDraft,
   setActiveTab,
   updateMarkdownContent
-} from '#/renderer/src/store/slices/tabsSlice';
+} from './tabsSlice';
 
 /**
  * Builds a saved request fixture for loadRequest tests.

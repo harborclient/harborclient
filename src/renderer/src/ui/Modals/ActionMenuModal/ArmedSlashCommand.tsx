@@ -2,7 +2,7 @@ import type { JSX } from 'react';
 import { FaIcon } from '@harborclient/sdk/components';
 import type { ResolvedSlashCommand } from '#/shared/search';
 import { faTerminal, faWandMagicSparkles } from '#/renderer/src/fontawesome';
-import { searchResultRowClass } from '#/renderer/src/ui/Modals/ActionMenuModal/searchResultRowClass';
+import { searchResultRowClass } from './searchResultRowClass';
 
 interface Props {
   /**

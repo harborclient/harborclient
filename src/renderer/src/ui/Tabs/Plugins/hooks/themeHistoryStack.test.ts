@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CustomThemeDraft } from '#/renderer/src/ui/Tabs/Plugins/hooks/useCustomTheme';
+import type { CustomThemeDraft } from './useCustomTheme';
 import {
   cloneCustomThemeDraft,
   commitThemeHistoryBaseline,
@@ -10,7 +10,7 @@ import {
   resetThemeHistory,
   setThemeHistoryPresent,
   undoThemeHistory
-} from '#/renderer/src/ui/Tabs/Plugins/hooks/themeHistoryStack';
+} from './themeHistoryStack';
 
 /**
  * Builds a minimal Designer draft for history tests.

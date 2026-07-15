@@ -1,8 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  inferActiveThemeType,
-  readActiveThemePalette
-} from '#/renderer/src/ui/Tabs/Plugins/activeThemePalette';
+import { inferActiveThemeType, readActiveThemePalette } from './activeThemePalette';
 
 describe('readActiveThemePalette', () => {
   afterEach(() => {

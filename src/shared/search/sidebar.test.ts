@@ -7,9 +7,9 @@ import {
   searchSidebar,
   searchSidebarEntities,
   sidebarRequestBreadcrumb
-} from '#/shared/search/sidebar';
-import { searchTextIndex } from '#/shared/search/oramaIndex';
-import type { SidebarSearchDocument } from '#/shared/search/sidebar';
+} from './sidebar';
+import { searchTextIndex } from './oramaIndex';
+import type { SidebarSearchDocument } from './sidebar';
 
 const collectionA: Collection = {
   id: 1,

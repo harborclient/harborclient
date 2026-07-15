@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { collectFilesystemPathsFromPluginStorage } from '#/main/plugins/pluginStorageGrantPaths';
+import { collectFilesystemPathsFromPluginStorage } from './pluginStorageGrantPaths';
 
 describe('collectFilesystemPathsFromPluginStorage', () => {
   it('collects dotenvPath fields from link and collection storage rows', () => {

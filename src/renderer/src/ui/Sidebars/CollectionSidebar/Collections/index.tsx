@@ -59,13 +59,13 @@ import {
   useDeveloperToolsEnabled,
   type InspectPoint
 } from '#/renderer/src/ui/Shared/devInspectContextMenu';
-import { DropZone } from '#/renderer/src/ui/Sidebars/CollectionSidebar/Collections/DropZone';
+import { DropZone } from './DropZone';
 import { focusCollectionSettings } from '#/renderer/src/ui/Tabs/CollectionSettings/focusCollectionSettings';
 import { focusFolderSettings } from '#/renderer/src/ui/Tabs/FolderSettings/focusFolderSettings';
-import { DocumentRow } from '#/renderer/src/ui/Sidebars/CollectionSidebar/Collections/DocumentRow';
-import { RequestRow } from '#/renderer/src/ui/Sidebars/CollectionSidebar/Collections/RequestRow';
-import { SortableRow } from '#/renderer/src/ui/Sidebars/CollectionSidebar/Collections/SortableRow';
-import { stopSortableDragPointerDown } from '#/renderer/src/ui/Sidebars/CollectionSidebar/Collections/sortableRowUtils';
+import { DocumentRow } from './DocumentRow';
+import { RequestRow } from './RequestRow';
+import { SortableRow } from './SortableRow';
+import { stopSortableDragPointerDown } from './sortableRowUtils';
 import {
   collectionHasDeselectableSelection,
   removeCollectionRequestSelection
@@ -94,7 +94,7 @@ import {
   type ContainerItem,
   type ContainerItemRef,
   type DragKind
-} from '#/renderer/src/ui/Sidebars/CollectionSidebar/Collections/utils';
+} from './utils';
 
 /**
  * Collections list with expandable folders and drag-and-drop organization.

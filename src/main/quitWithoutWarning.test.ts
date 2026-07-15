@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isQuitWithoutWarningFlagEnabled } from '#/main/quitWithoutWarning';
+import { isQuitWithoutWarningFlagEnabled } from './quitWithoutWarning';
 
 describe('isQuitWithoutWarningFlagEnabled', () => {
   it('returns true when --quit-without-warning is present', () => {

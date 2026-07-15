@@ -15,7 +15,7 @@ import {
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { refreshCollections } from '#/renderer/src/store/thunks/collections';
 import { refreshHubLlmModels } from '#/renderer/src/store/thunks/aiChat';
-import { createBlankTeamHub } from '#/renderer/src/ui/Tabs/TeamHub/constants';
+import { createBlankTeamHub } from './constants';
 
 interface Props {
   /**

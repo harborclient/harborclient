@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, expect, it } from 'vitest';
-import { LocalDatabase } from '#/main/storage/LocalDatabase';
+import { LocalDatabase } from './LocalDatabase';
 import { describeSqlite } from '#/test/nativeModules';
 
 const cleanups: Array<() => void | Promise<void>> = [];

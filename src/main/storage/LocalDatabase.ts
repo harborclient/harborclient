@@ -7,13 +7,10 @@ import {
   rowToChatSummary,
   rowToEnvironment,
   rowToSnippet
-} from '#/main/storage/entityMappers';
-import { trimRequiredName } from '#/main/storage/trimRequiredName';
-import { generateDocumentUuid } from '#/main/storage/uuid';
-import {
-  migrateSidebarColorColumn,
-  serializeSidebarColor
-} from '#/main/storage/sidebarColorMigration';
+} from './entityMappers';
+import { trimRequiredName } from './trimRequiredName';
+import { generateDocumentUuid } from './uuid';
+import { migrateSidebarColorColumn, serializeSidebarColor } from './sidebarColorMigration';
 import { readSidebarColor } from '#/shared/sidebarColor';
 import { DEFAULT_CHAT_TITLE, normalizeChatTitle } from '#/shared/ai/chatTitle';
 import type {

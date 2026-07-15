@@ -15,12 +15,12 @@ import {
   exportedFolderFromFolder,
   serializeImportedFolderFields,
   serializeImportedRequestFields
-} from '#/main/storage/collectionImport';
+} from './collectionImport';
 import {
   maskVariablesForExport,
   normalizeVariable,
   validateCollectionExport
-} from '#/main/storage/collectionData';
+} from './collectionData';
 import {
   rowToCollection,
   rowToDocument,
@@ -28,21 +28,18 @@ import {
   rowToFolder,
   rowToProviderSnippet,
   rowToRequest
-} from '#/main/storage/entityMappers';
-import { assertContainerItemOrder, planContainerItemMove } from '#/main/storage/containerReorder';
+} from './entityMappers';
+import { assertContainerItemOrder, planContainerItemMove } from './containerReorder';
 import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
 import {
   CREATE_PROVIDER_SNIPPETS_TABLE_POSTGRES,
   PROVIDER_SNIPPET_COLUMNS
-} from '#/main/storage/providerSnippetSql';
-import {
-  bundleScriptFieldsWithLegacy,
-  migratePostgresScriptArrayColumns
-} from '#/main/storage/scriptFields';
-import { serializeSidebarColor } from '#/main/storage/sidebarColorMigration';
-import { trimRequiredName } from '#/main/storage/trimRequiredName';
+} from './providerSnippetSql';
+import { bundleScriptFieldsWithLegacy, migratePostgresScriptArrayColumns } from './scriptFields';
+import { serializeSidebarColor } from './sidebarColorMigration';
+import { trimRequiredName } from './trimRequiredName';
 import { DEFAULT_AUTH_JSON, defaultAuth, normalizeAuth } from '#/shared/auth';
-import type { IStorage } from '#/main/storage/IStorage';
+import type { IStorage } from './IStorage';
 import type {
   AuthConfig,
   Collection,
@@ -68,7 +65,7 @@ import type { SnippetScope } from '#/shared/snippetScope';
 import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '#/shared/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
 import { parseJson } from '#/shared/parseJson';
-import { generateDocumentUuid } from '#/main/storage/uuid';
+import { generateDocumentUuid } from './uuid';
 
 const COLLECTION_COLUMNS =
   'id, uuid, name, variables, headers, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, color';

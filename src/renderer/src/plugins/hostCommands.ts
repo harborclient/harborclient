@@ -1,10 +1,10 @@
 import { store } from '#/renderer/src/store/redux';
 import { setActiveSidebarPanel } from '#/renderer/src/store/slices/navigationSlice';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
-import { executePluginCommand, registerCommand } from '#/renderer/src/plugins/createPluginContext';
-import { registerHostRequestCommands } from '#/renderer/src/plugins/hostRequestCommands';
-import { registerHostEnvironmentCommands } from '#/renderer/src/plugins/hostEnvironmentCommands';
-import { registerHostGlobalsCommands } from '#/renderer/src/plugins/hostGlobalsCommands';
+import { executePluginCommand, registerCommand } from './createPluginContext';
+import { registerHostRequestCommands } from './hostRequestCommands';
+import { registerHostEnvironmentCommands } from './hostEnvironmentCommands';
+import { registerHostGlobalsCommands } from './hostGlobalsCommands';
 
 const HOST_PLUGIN_ID = 'harborclient';
 

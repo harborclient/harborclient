@@ -9,7 +9,7 @@ import {
 import { createInlineScriptRef } from '#/shared/scriptRefs';
 import { openPageTab, openTabWithDraft } from '#/renderer/src/store/slices/tabsSlice';
 import { selectEffectiveActiveRequestTab } from '#/renderer/src/store/selectors';
-import { buildAiScriptReferenceValidationContext } from '#/renderer/src/ui/Sidebars/AiSidebar/Chat/useAiScriptReferenceValidationContext';
+import { buildAiScriptReferenceValidationContext } from './useAiScriptReferenceValidationContext';
 
 /**
  * Builds a minimal saved request draft for validation-context tests.

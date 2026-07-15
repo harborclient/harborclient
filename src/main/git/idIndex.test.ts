@@ -8,7 +8,7 @@ import {
   loadGitIdIndex,
   pruneGitIdMap,
   saveGitIdIndex
-} from '#/main/git/idIndex';
+} from './idIndex';
 
 describe('git id index', () => {
   it('assigns stable numeric ids and reuses mappings', () => {

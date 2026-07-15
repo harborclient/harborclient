@@ -6,10 +6,7 @@ import {
   type JSX,
   type PointerEvent as ReactPointerEvent
 } from 'react';
-import {
-  buildCodePreview,
-  CODE_PREVIEW_TOOLTIP_SETTLE_MS
-} from '#/renderer/src/ui/Shared/CodePreview/codePreview';
+import { buildCodePreview, CODE_PREVIEW_TOOLTIP_SETTLE_MS } from './codePreview';
 
 interface Props {
   /**

@@ -4,7 +4,7 @@ import {
   getGitPluginOrigins,
   removeGitPluginOrigin,
   setGitPluginOrigin
-} from '#/main/plugins/devRegistry';
+} from './devRegistry';
 
 afterEach(() => {
   clearDevRegistryForTesting();

@@ -1,4 +1,4 @@
-import type { EchoResponse, RequestWithRawBody } from '#/main/plugins/echoServer/types';
+import type { EchoResponse, RequestWithRawBody } from './types';
 
 /**
  * Flattens Express query params to a string map (duplicate keys use last value).

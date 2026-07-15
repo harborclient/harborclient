@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { MountedBackend } from '#/main/storage/routingInternals';
-import { rethrowTeamHubSnippetCreateError } from '#/main/storage/teamHubSnippetErrors';
+import type { MountedBackend } from './routingInternals';
+import { rethrowTeamHubSnippetCreateError } from './teamHubSnippetErrors';
 import { TeamHubClientError } from '@harborclient/team-hub-api';
 
 /**

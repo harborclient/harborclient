@@ -3,7 +3,7 @@ import type { Variable } from '#/shared/types';
 import { store } from '#/renderer/src/store/redux';
 import { selectEnvironments } from '#/renderer/src/store/selectors';
 import { createEnvironment, updateEnvironment } from '#/renderer/src/store/thunks/environments';
-import { registerCommand } from '#/renderer/src/plugins/createPluginContext';
+import { registerCommand } from './createPluginContext';
 
 const HOST_PLUGIN_ID = 'harborclient';
 

@@ -13,32 +13,32 @@ import {
   resolveImportedFolderSettings,
   serializeImportedDocumentFields,
   serializeImportedRequestFields
-} from '#/main/storage/collectionImport';
+} from './collectionImport';
 import {
   maskVariablesForExport,
   normalizeVariable,
   validateCollectionExport,
   validateRunResultsExport
-} from '#/main/storage/collectionData';
-import { saveRunResultInputSchema } from '#/main/storage/collectionSchemas';
+} from './collectionData';
+import { saveRunResultInputSchema } from './collectionSchemas';
 import {
   bundleScriptFieldsWithLegacy,
   teamHubScriptColumn,
   teamHubScriptRefsFromColumn
-} from '#/main/storage/scriptFields';
-import type { TeamHubIdMap } from '#/main/storage/TeamHubIdMap';
-import type { TeamHubFolderSettings } from '#/main/storage/TeamHubFolderSettings';
+} from './scriptFields';
+import type { TeamHubIdMap } from './TeamHubIdMap';
+import type { TeamHubFolderSettings } from './TeamHubFolderSettings';
 import {
   asTeamHubRunResultClient,
   type TeamHubRunResultDetail,
   type TeamHubRunResultRecord
-} from '#/main/storage/teamHubRunResultApi';
-import { trimRequiredName } from '#/main/storage/trimRequiredName';
-import { resolveImportUuid } from '#/main/storage/uuid';
-import { serializeSidebarColor } from '#/main/storage/sidebarColorMigration';
-import { assertContainerItemOrder, planContainerItemMove } from '#/main/storage/containerReorder';
+} from './teamHubRunResultApi';
+import { trimRequiredName } from './trimRequiredName';
+import { resolveImportUuid } from './uuid';
+import { serializeSidebarColor } from './sidebarColorMigration';
+import { assertContainerItemOrder, planContainerItemMove } from './containerReorder';
 import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
-import type { IStorage } from '#/main/storage/IStorage';
+import type { IStorage } from './IStorage';
 import {
   toTeamHubAuth,
   TeamHubClientError,

@@ -7,7 +7,7 @@ import {
   persistScriptEditorUiState,
   scriptEditorHeightStorageKey,
   scriptEditorUiStorageKey
-} from '#/renderer/src/hooks/usePersistedScriptEditorUiState';
+} from './usePersistedScriptEditorUiState';
 
 const SCRIPT_ID = 'script-abc';
 const MIN_PX = 125;

@@ -5,7 +5,7 @@ import {
   DEFAULT_GIT_COMMIT_MESSAGE,
   GIT_COMMIT_MESSAGE_MAX_REQUEST_BULLETS,
   normalizeGitCommitMessage
-} from '#/shared/ai/gitCommitMessage';
+} from './gitCommitMessage';
 
 describe('canReplaceGitCommitMessage', () => {
   it('allows replacement for empty and default messages', () => {

@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  formatMcpClientHeadersDraft,
-  parseMcpClientHeadersDraft
-} from '#/renderer/src/ui/Shared/Mcp/mcpClientHeadersDraft';
+import { formatMcpClientHeadersDraft, parseMcpClientHeadersDraft } from './mcpClientHeadersDraft';
 
 describe('mcpClientHeadersDraft', () => {
   it('formatMcpClientHeadersDraft returns [] for empty headers', () => {

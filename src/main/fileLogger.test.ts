@@ -14,7 +14,7 @@ import {
   getDefaultLogFilePath,
   writeRequestLog,
   writeVerboseLog
-} from '#/main/fileLogger';
+} from './fileLogger';
 
 describe('fileLogger', () => {
   let tempDir: string;

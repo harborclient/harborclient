@@ -9,7 +9,7 @@ import {
   queryJsonForAgent,
   truncateChatStepMessages,
   truncateTextForLlm
-} from '#/shared/ai/chatContext';
+} from './chatContext';
 import type { ChatStepMessage, SendResult } from '#/shared/types';
 
 /**

@@ -6,7 +6,7 @@ import {
   matchActionSuggestions,
   pluginActionId,
   type ActionCommandDefinition
-} from '#/shared/search/actions';
+} from './actions';
 
 const SAMPLE_ACTIONS: ActionCommandDefinition[] = [
   { id: 'builtin:settings', group: 'File', label: 'Settings' },

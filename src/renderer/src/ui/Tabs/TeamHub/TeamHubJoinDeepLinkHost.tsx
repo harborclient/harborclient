@@ -3,7 +3,7 @@ import {
   consumePendingTeamHubJoin,
   selectPendingTeamHubJoin
 } from '#/renderer/src/store/slices/navigationSlice';
-import { TeamHubOnboardModal } from '#/renderer/src/ui/Tabs/TeamHub/TeamHubOnboardModal';
+import { TeamHubOnboardModal } from './TeamHubOnboardModal';
 import type { JSX } from 'react';
 
 /**

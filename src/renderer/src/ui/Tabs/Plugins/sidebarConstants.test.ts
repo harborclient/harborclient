@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pluginSidebarSections } from '#/renderer/src/ui/Tabs/Plugins/sidebarConstants';
+import { pluginSidebarSections } from './sidebarConstants';
 
 describe('pluginSidebarSections', () => {
   it('includes Settings on the Plugins tab', () => {

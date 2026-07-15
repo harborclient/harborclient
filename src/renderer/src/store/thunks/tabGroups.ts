@@ -14,10 +14,10 @@ import {
   selectEditSessionHiddenTabIds
 } from '#/renderer/src/store/slices/tabGroupSlice';
 import { openTabGroupModal } from '#/renderer/src/store/slices/modalsSlice';
-import { refreshRequests } from '#/renderer/src/store/thunks/collections';
-import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
+import { refreshRequests } from './collections';
+import { patchGeneralSettings } from './settings';
 import type { AppDispatch, ThunkApiConfig } from '#/renderer/src/store/redux';
-import { syncTrash } from '#/renderer/src/store/thunks/trash';
+import { syncTrash } from './trash';
 import { showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
 
 /**

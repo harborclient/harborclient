@@ -4,7 +4,7 @@ import {
   findMarkdownSelectionOffsets,
   isCopyToChatShortcutEvent,
   lineNumberAtOffset
-} from '#/renderer/src/ui/Main/RequestEditor/Editor/markdownSelection';
+} from './markdownSelection';
 
 describe('markdownSelection helpers', () => {
   it('builds a compact @markdown reference token', () => {

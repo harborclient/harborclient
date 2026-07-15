@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildScriptRunInfo, scriptEventNameFromPhase } from '#/shared/types/script';
+import { buildScriptRunInfo, scriptEventNameFromPhase } from './script';
 
 describe('buildScriptRunInfo', () => {
   it('maps pre phase to prerequest and post phase to test', () => {

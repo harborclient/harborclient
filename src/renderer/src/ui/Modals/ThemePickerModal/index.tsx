@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
 import type { ThemeSource } from '#/shared/types';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { closeThemePicker, selectThemePicker } from '#/renderer/src/store/slices/modalsSlice';
-import { ThemePickerModalBody } from '#/renderer/src/ui/Modals/ThemePickerModal/ThemePickerModalBody';
+import { ThemePickerModalBody } from './ThemePickerModalBody';
 
 /**
  * First-run modal that lets the user preview and pick a built-in appearance theme and display size.

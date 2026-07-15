@@ -21,8 +21,8 @@ import {
 import { normalizeRequestTags } from '#/shared/requestTags';
 import { toPluginHttpRequest, toPluginHttpResponse } from '#/shared/plugin/httpRequest';
 import { emitPluginAfterSend } from '#/renderer/src/plugins/pluginAfterSendBus';
-import { recordRequestHistoryFromSend } from '#/renderer/src/store/thunks/requestHistory';
-import { syncTrash } from '#/renderer/src/store/thunks/trash';
+import { recordRequestHistoryFromSend } from './requestHistory';
+import { syncTrash } from './trash';
 import {
   applyScriptRequestMutations,
   applyCollectionVariableSets,
@@ -47,7 +47,7 @@ import {
 } from '#/shared/scriptRefs';
 import { migrateScriptEditorUiState } from '#/renderer/src/hooks/usePersistedScriptEditorUiState';
 import { buildScriptRunInfo } from '#/shared/types/script';
-import { saveGlobalVariables } from '#/renderer/src/store/thunks/settings';
+import { saveGlobalVariables } from './settings';
 import {
   cloneDraft,
   draftFromSaved,
@@ -92,9 +92,9 @@ import {
   refreshRequests,
   updateCollection,
   updateFolder
-} from '#/renderer/src/store/thunks/collections';
-import { updateEnvironment } from '#/renderer/src/store/thunks/environments';
-import { saveMarkdownTab } from '#/renderer/src/store/thunks/documents';
+} from './collections';
+import { updateEnvironment } from './environments';
+import { saveMarkdownTab } from './documents';
 
 /**
  * Builds a portable request export payload from a saved request.

@@ -3,7 +3,7 @@ import {
   getGlobalVariables,
   setGlobalVariable,
   updateGlobalVariables
-} from '#/renderer/src/plugins/hostGlobalsCommands';
+} from './hostGlobalsCommands';
 
 const dispatchMock = vi.fn();
 const unwrapMock = vi.fn();

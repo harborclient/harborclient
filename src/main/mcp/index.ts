@@ -1,6 +1,6 @@
 import { stopMcpServer } from '#/main/mcpServer/mcpServer';
 import { disposeMcpToolBridge, getMcpToolBridge } from '#/main/mcpServer/hostBridge';
-import { disposeMcpClientConnections } from '#/main/mcp/mcpClientManager';
+import { disposeMcpClientConnections } from './mcpClientManager';
 
 export { getMcpToolBridge };
 

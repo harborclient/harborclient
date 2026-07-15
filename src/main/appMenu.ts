@@ -1,5 +1,5 @@
 import { BrowserWindow, Menu } from 'electron';
-import { buildMenu } from '#/main/menu';
+import { buildMenu } from './menu';
 import type { ThemeMenuOption } from '#/shared/themes';
 import type { ThemeSource } from '#/shared/types';
 

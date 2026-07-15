@@ -6,7 +6,7 @@ import {
 import type { AiSettings, ChatStepMessage, HubLlmModelGroup } from '#/shared/types';
 import { executeAiToolCall } from '#/renderer/src/store/ai/aiToolExecutor';
 import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
-import { persistGitCommitMessageModelId } from '#/renderer/src/git/gitCommitMessageModel';
+import { persistGitCommitMessageModelId } from './gitCommitMessageModel';
 
 /**
  * Maximum number of LLM/tool iterations for commit message generation.

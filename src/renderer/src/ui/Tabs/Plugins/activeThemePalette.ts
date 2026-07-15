@@ -6,7 +6,7 @@ import type { CustomThemeType } from '#/shared/types/customTheme';
 import type { ThemeSource } from '#/shared/types/settings';
 import { getRegisteredPluginThemes } from '#/renderer/src/plugins/registry';
 import { shouldUseHighContrastTheme } from '#/renderer/src/theme';
-import { getDefaultCustomThemePalette } from '#/renderer/src/ui/Tabs/Plugins/customThemeDefaults';
+import { getDefaultCustomThemePalette } from './customThemeDefaults';
 
 /**
  * Maps a theme color token to its `--mac-*` CSS custom property name.

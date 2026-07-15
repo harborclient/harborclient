@@ -5,26 +5,23 @@ import { catalogEntryIsTheme, pluginIsTheme } from '#/shared/plugin/themeCategor
 import {
   searchInstalledPluginHits,
   type buildInstalledPluginSearchIndex
-} from '#/shared/search/installedPlugins';
-import { searchPluginHits, type buildPluginCatalogSearchIndex } from '#/shared/search/plugins';
-import { searchPageHits } from '#/shared/search/pagesCatalog';
-import { searchSettingsHits, type buildSettingsSearchIndex } from '#/shared/search/settings';
-import {
-  searchSnippetHits,
-  type buildSnippetCatalogSearchIndexForSearch
-} from '#/shared/search/snippets';
+} from './installedPlugins';
+import { searchPluginHits, type buildPluginCatalogSearchIndex } from './plugins';
+import { searchPageHits } from './pagesCatalog';
+import { searchSettingsHits, type buildSettingsSearchIndex } from './settings';
+import { searchSnippetHits, type buildSnippetCatalogSearchIndexForSearch } from './snippets';
 import {
   searchSidebarEntities,
   sidebarEntitySubtitle,
   type SidebarSearchInput,
   type buildSidebarSearchIndex
-} from '#/shared/search/sidebar';
+} from './sidebar';
 import {
   SEARCH_ANYTHING_MAX_RESULTS,
   SEARCH_DOMAIN_ORDER,
   type SearchDomain,
   type UnifiedSearchHit
-} from '#/shared/search/types';
+} from './types';
 
 /**
  * Live search indexes and source data used by {@link searchAll}.

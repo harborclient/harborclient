@@ -8,7 +8,7 @@ import {
   stripAiScriptReferences,
   tokenizeChatComposerText,
   type AiScriptReferenceValidationContext
-} from '#/shared/ai/scriptReferences';
+} from './scriptReferences';
 import type { ScriptRef, Snippet } from '#/shared/types';
 
 /**

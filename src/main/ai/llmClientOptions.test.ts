@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveLlmClientOptions } from '#/main/ai/llmClientOptions';
+import { resolveLlmClientOptions } from './llmClientOptions';
 import type { AiSettings } from '#/shared/types';
 
 const TEST_SETTINGS: AiSettings = {

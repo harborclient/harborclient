@@ -3,7 +3,7 @@ import {
   cancelActiveChatStep,
   trackActiveChatStep,
   untrackActiveChatStep
-} from '#/main/ai/activeChatSteps';
+} from './activeChatSteps';
 
 describe('activeChatSteps', () => {
   it('tracks and cancels an in-flight step', () => {

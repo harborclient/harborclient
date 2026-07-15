@@ -7,11 +7,8 @@ import {
   setSyncProviders,
   type SyncProviderProgress
 } from '#/renderer/src/store/slices/modalsSlice';
-import {
-  refreshCollectionContents,
-  refreshCollections
-} from '#/renderer/src/store/thunks/collections';
-import { refreshEnvironments } from '#/renderer/src/store/thunks/environments';
+import { refreshCollectionContents, refreshCollections } from './collections';
+import { refreshEnvironments } from './environments';
 import { formatErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
 
 /**

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { defaultAuth } from '#/shared/auth';
 import type { PageTab, RequestTab } from '#/renderer/src/store/drafts';
-import { tabCloseAccessibleName } from '#/renderer/src/ui/Main/RequestEditor/TabBar/tabCloseAccessibleName';
+import { tabCloseAccessibleName } from './tabCloseAccessibleName';
 
 describe('tabCloseAccessibleName', () => {
   it('names request tab close controls with unsaved state', () => {

@@ -8,7 +8,7 @@ import {
   buildThemeInstallDeepLink,
   parseHarborDeepLink,
   parseTeamHubInviteLink
-} from '#/shared/deepLink';
+} from './deepLink';
 
 const sampleInviteParams = {
   baseUrl: 'https://teamhub.example.com',

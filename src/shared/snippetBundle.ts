@@ -1,10 +1,10 @@
-import { resolveScriptSourceCode, scriptAutoNameFromCode } from '#/shared/scriptRefs';
-import { snippetScopeForPhase } from '#/shared/snippetScope';
-import { normalizeScriptStage, readScriptRefStage } from '#/shared/scriptStage';
+import { resolveScriptSourceCode, scriptAutoNameFromCode } from './scriptRefs';
+import { snippetScopeForPhase } from './snippetScope';
+import { normalizeScriptStage, readScriptRefStage } from './scriptStage';
 import type { ScriptRef } from '#/shared/types/script';
 import type { Snippet, SnippetBundleEntry, SnippetBundleExport } from '#/shared/types/snippet';
-import type { ScriptPhase } from '#/shared/types';
-import { normalizeSnippetScope } from '#/shared/snippetScope';
+import type { ScriptPhase } from './types';
+import { normalizeSnippetScope } from './snippetScope';
 
 /**
  * Builds a portable snippets bundle from one phase's script list.

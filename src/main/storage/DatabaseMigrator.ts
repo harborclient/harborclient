@@ -1,4 +1,4 @@
-import type { RoutingInternals } from '#/main/storage/routingInternals';
+import type { RoutingInternals } from './routingInternals';
 
 const MIGRATION_FLAG_KEY = '__migrated__';
 const SNIPPET_MIGRATION_FLAG_KEY = '__snippets_migrated__';

@@ -1,6 +1,6 @@
 import 'ses';
 import type { ScriptRunInput, ScriptRunResult, SendRequestInput, SendResult } from '#/shared/types';
-import { evaluateScript } from '#/main/scripting/scriptEvaluator';
+import { evaluateScript } from './scriptEvaluator';
 
 lockdown();
 

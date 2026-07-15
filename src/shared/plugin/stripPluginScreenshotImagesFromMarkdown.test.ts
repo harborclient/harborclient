@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { stripPluginScreenshotImagesFromMarkdown } from '#/shared/plugin/stripPluginScreenshotImagesFromMarkdown';
+import { stripPluginScreenshotImagesFromMarkdown } from './stripPluginScreenshotImagesFromMarkdown';
 
 describe('stripPluginScreenshotImagesFromMarkdown', () => {
   it('strips inline screenshot images when the path is declared in manifest refs', () => {

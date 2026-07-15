@@ -1,37 +1,34 @@
-export * from '#/renderer/src/store/thunks/documents';
-export * from '#/renderer/src/store/thunks/collections';
-export * from '#/renderer/src/store/thunks/documents';
-export * from '#/renderer/src/store/thunks/environments';
-export * from '#/renderer/src/store/thunks/snippets';
-export * from '#/renderer/src/store/thunks/requests';
-export * from '#/renderer/src/store/thunks/modals';
-export * from '#/renderer/src/store/thunks/sync';
-export * from '#/renderer/src/store/thunks/aiChat';
-export * from '#/renderer/src/store/thunks/collectionRunner';
-export * from '#/renderer/src/store/thunks/runResults';
-export * from '#/renderer/src/store/thunks/requestHistory';
-export * from '#/renderer/src/store/thunks/tabGroups';
-export * from '#/renderer/src/store/thunks/sidebarDeselect';
-export * from '#/renderer/src/store/thunks/trash';
-export * from '#/renderer/src/store/thunks/settings';
-export * from '#/renderer/src/store/thunks/theme';
-export * from '#/renderer/src/store/thunks/tabs';
-export * from '#/renderer/src/store/thunks/terminals';
+export * from './documents';
+export * from './collections';
+export * from './documents';
+export * from './environments';
+export * from './snippets';
+export * from './requests';
+export * from './modals';
+export * from './sync';
+export * from './aiChat';
+export * from './collectionRunner';
+export * from './runResults';
+export * from './requestHistory';
+export * from './tabGroups';
+export * from './sidebarDeselect';
+export * from './trash';
+export * from './settings';
+export * from './theme';
+export * from './tabs';
+export * from './terminals';
 
 import type { AppDispatch } from '#/renderer/src/store/redux';
 import { setGeneralSettingsState } from '#/renderer/src/store/slices/settingsSlice';
-import {
-  refreshCollections,
-  openSeededBuiltinRequestIfNeeded
-} from '#/renderer/src/store/thunks/collections';
-import { refreshEnvironments } from '#/renderer/src/store/thunks/environments';
-import { refreshRunResults } from '#/renderer/src/store/thunks/runResults';
-import { refreshRequestHistory } from '#/renderer/src/store/thunks/requestHistory';
-import { refreshTabGroups } from '#/renderer/src/store/thunks/tabGroups';
-import { refreshTrash } from '#/renderer/src/store/thunks/trash';
-import { refreshSnippets } from '#/renderer/src/store/thunks/snippets';
-import { hydrateOpenTabs } from '#/renderer/src/store/thunks/tabs';
-import { hydrateTerminalLayout } from '#/renderer/src/store/thunks/terminals';
+import { refreshCollections, openSeededBuiltinRequestIfNeeded } from './collections';
+import { refreshEnvironments } from './environments';
+import { refreshRunResults } from './runResults';
+import { refreshRequestHistory } from './requestHistory';
+import { refreshTabGroups } from './tabGroups';
+import { refreshTrash } from './trash';
+import { refreshSnippets } from './snippets';
+import { hydrateOpenTabs } from './tabs';
+import { hydrateTerminalLayout } from './terminals';
 
 /**
  * Dispatches initial data loads on app mount.

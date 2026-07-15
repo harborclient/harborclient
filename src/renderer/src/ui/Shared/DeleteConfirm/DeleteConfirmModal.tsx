@@ -8,7 +8,7 @@ import {
 } from '@harborclient/sdk/components';
 import { useId, useState, type JSX, type ReactNode } from 'react';
 
-import { isDeleteConfirmationReady } from '#/renderer/src/ui/Shared/DeleteConfirm/deleteConfirmModal.logic';
+import { isDeleteConfirmationReady } from './deleteConfirmModal.logic';
 
 interface Props {
   /**

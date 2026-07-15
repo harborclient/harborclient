@@ -4,9 +4,9 @@ import {
   closeShortcutsReferenceModal,
   selectShortcutsReferenceModal
 } from '#/renderer/src/store/slices/modalsSlice';
-import { ShortcutsReferenceModalBody } from '#/renderer/src/ui/Modals/ShortcutsReferenceModal/ShortcutsReferenceModalBody';
+import { ShortcutsReferenceModalBody } from './ShortcutsReferenceModalBody';
 
-export { SHORTCUTS_REFERENCE_MODAL_ID } from '#/renderer/src/ui/Modals/ShortcutsReferenceModal/ShortcutsReferenceModalBody';
+export { SHORTCUTS_REFERENCE_MODAL_ID } from './ShortcutsReferenceModalBody';
 
 /**
  * Read-only keyboard shortcuts reference with search and a link to shortcut settings.

@@ -1,6 +1,6 @@
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 import type { ChatStepModeConfig } from '#/shared/ai/chatStepMode';
-import { getMcpClientTools } from '#/main/mcp/mcpClientManager';
+import { getMcpClientTools } from './mcpClientManager';
 
 /**
  * Appends cached MCP client tools to a chat step when the default agent mode is active.

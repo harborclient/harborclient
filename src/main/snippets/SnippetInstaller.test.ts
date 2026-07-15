@@ -3,12 +3,9 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import JSZip from 'jszip';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { SnippetInstaller } from '#/main/snippets/SnippetInstaller';
-import {
-  clearSnippetRegistryForTesting,
-  setInstalledSnippetPackage
-} from '#/main/snippets/snippetRegistry';
-import * as snippetSignature from '#/main/snippets/snippetSignature';
+import { SnippetInstaller } from './SnippetInstaller';
+import { clearSnippetRegistryForTesting, setInstalledSnippetPackage } from './snippetRegistry';
+import * as snippetSignature from './snippetSignature';
 import {
   clearLocalDatabaseForTesting,
   getLocalDatabase,

@@ -2,8 +2,8 @@ import { Button, FormGroup, Input, Page, Select } from '@harborclient/sdk/compon
 import { useEffect, type JSX } from 'react';
 import type { CustomTheme } from '#/shared/types/customTheme';
 import { faWandMagicSparkles } from '#/renderer/src/fontawesome';
-import { ColorTokenGrid } from '#/renderer/src/ui/Tabs/Plugins/ColorTokenGrid';
-import { SaveRenamedThemeModal } from '#/renderer/src/ui/Tabs/Plugins/SaveRenamedThemeModal';
+import { ColorTokenGrid } from './ColorTokenGrid';
+import { SaveRenamedThemeModal } from './SaveRenamedThemeModal';
 import { useCustomTheme } from '#/renderer/src/ui/Tabs/Plugins/hooks/useCustomTheme';
 
 interface Props {

@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  buildSendRuntimeVars,
-  resolveRequestUrl
-} from '#/renderer/src/scripting/resolveRequestUrl';
+import { buildSendRuntimeVars, resolveRequestUrl } from './resolveRequestUrl';
 
 describe('buildSendRuntimeVars', () => {
   it('merges globals, collection, and environment with environment winning duplicates', () => {

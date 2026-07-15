@@ -28,9 +28,9 @@ import { useTeamHubUsers } from '#/renderer/src/hooks/useTeamHubUsers';
 import { useTypedDeleteConfirm } from '#/renderer/src/hooks/useTypedDeleteConfirm';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { refreshCollections } from '#/renderer/src/store/thunks/collections';
-import { TeamInvitationLinkDialog } from '#/renderer/src/ui/Tabs/TeamHub/TeamInvitationLinkDialog';
-import { TeamSecretDialog } from '#/renderer/src/ui/Tabs/TeamHub/TeamSecretDialog';
-import { TeamUserForm } from '#/renderer/src/ui/Tabs/TeamHub/TeamUserForm';
+import { TeamInvitationLinkDialog } from './TeamInvitationLinkDialog';
+import { TeamSecretDialog } from './TeamSecretDialog';
+import { TeamUserForm } from './TeamUserForm';
 import { DeleteConfirmModal } from '#/renderer/src/ui/Shared/DeleteConfirm/DeleteConfirmModal';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/Shared/classes';
 

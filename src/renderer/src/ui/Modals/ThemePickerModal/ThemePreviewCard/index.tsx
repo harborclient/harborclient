@@ -3,8 +3,8 @@ import {
   getThemePreviewPalette,
   type BuiltinThemeSource
 } from '#/renderer/src/ui/Modals/ThemePickerModal/previewPalettes';
-import { SystemThemePreviewMock } from '#/renderer/src/ui/Modals/ThemePickerModal/ThemePreviewCard/SystemThemePreviewMock';
-import { ThemePreviewMock } from '#/renderer/src/ui/Modals/ThemePickerModal/ThemePreviewCard/ThemePreviewMock';
+import { SystemThemePreviewMock } from './SystemThemePreviewMock';
+import { ThemePreviewMock } from './ThemePreviewMock';
 
 interface Props {
   /**

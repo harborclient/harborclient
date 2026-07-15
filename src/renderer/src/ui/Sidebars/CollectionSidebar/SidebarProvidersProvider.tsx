@@ -4,7 +4,7 @@ import { providerTypesById, useProviders } from '#/renderer/src/hooks/useProvide
 import {
   SidebarProvidersContext,
   type SidebarProvidersContextValue
-} from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarProvidersContext';
+} from './sidebarProvidersContext';
 
 interface ProviderProps {
   /**

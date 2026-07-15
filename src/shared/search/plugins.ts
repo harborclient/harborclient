@@ -1,10 +1,6 @@
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import type { PluginCatalogCategory } from '#/shared/plugin/catalogCategories';
-import {
-  createTextSearchIndex,
-  searchTextIndex,
-  type HarborSearchIndex
-} from '#/shared/search/oramaIndex';
+import { createTextSearchIndex, searchTextIndex, type HarborSearchIndex } from './oramaIndex';
 
 /**
  * Indexed fields for marketplace catalog search.

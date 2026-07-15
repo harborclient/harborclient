@@ -8,7 +8,7 @@ import {
   type EncryptedSecret,
   type SecretEncryptor,
   setSecretEncryptorForTesting
-} from '#/main/secrets/secretStorage';
+} from './secretStorage';
 
 describe('secretStorage', () => {
   afterEach(() => {

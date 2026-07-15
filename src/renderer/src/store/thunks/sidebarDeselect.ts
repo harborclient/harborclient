@@ -2,7 +2,7 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import { isMarkdownTab, isRequestTab, type Tab } from '#/renderer/src/store/drafts';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
 import { closeTab } from '#/renderer/src/store/slices/tabsSlice';
-import { closeRequestTab } from '#/renderer/src/store/thunks/requests';
+import { closeRequestTab } from './requests';
 
 /**
  * Optional scope for closing sidebar content tabs during Deselect all.

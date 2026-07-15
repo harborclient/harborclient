@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import type { GitSidebarSectionKey } from '#/shared/gitSidebarExpansion';
-import { useGitSidebarExpansion } from '#/renderer/src/ui/Sidebars/GitSidebar/useGitSidebarExpansion';
+import { useGitSidebarExpansion } from './useGitSidebarExpansion';
 
 /**
  * Accordion provider and persisted section visibility for the Git sidebar.

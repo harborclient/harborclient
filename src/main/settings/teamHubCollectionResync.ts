@@ -1,5 +1,5 @@
 import type { RoutingStorage } from '#/main/storage/RoutingStorage';
-import { scanTeamHubSessions } from '#/main/settings/teamHubSessionScan';
+import { scanTeamHubSessions } from './teamHubSessionScan';
 import type { TeamHub } from '#/shared/types';
 
 /**

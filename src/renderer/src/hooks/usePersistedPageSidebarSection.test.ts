@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolvePageSidebarSection } from '#/renderer/src/hooks/usePersistedPageSidebarSection.resolve';
+import { resolvePageSidebarSection } from './usePersistedPageSidebarSection.resolve';
 
 const isSettingsSection = (section: string): section is 'general' | 'proxy' | 'ai' =>
   section === 'general' || section === 'proxy' || section === 'ai';

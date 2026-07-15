@@ -25,7 +25,7 @@ import {
   readSuggestedGitAuthor,
   resolveGlobalGitConfigPath,
   resolveGlobalGitConfigPaths
-} from '#/main/git/gitAuthorSuggestion';
+} from './gitAuthorSuggestion';
 
 const cleanups: Array<() => void> = [];
 

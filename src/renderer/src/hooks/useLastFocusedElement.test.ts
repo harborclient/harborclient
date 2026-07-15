@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { restoreLastFocusWithoutRing } from '#/renderer/src/hooks/useLastFocusedElement';
+import { restoreLastFocusWithoutRing } from './useLastFocusedElement';
 
 describe('restoreLastFocusWithoutRing', () => {
   it('focuses the stored element without showing a focus ring', () => {

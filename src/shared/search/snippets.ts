@@ -3,11 +3,7 @@ import {
   PLUGIN_CATALOG_CATEGORY_LABELS
 } from '#/shared/plugin/catalogCategories';
 import type { SnippetCatalogEntry } from '#/shared/snippet/catalog';
-import {
-  createTextSearchIndex,
-  searchTextIndex,
-  type HarborSearchIndex
-} from '#/shared/search/oramaIndex';
+import { createTextSearchIndex, searchTextIndex, type HarborSearchIndex } from './oramaIndex';
 
 /**
  * Indexed fields for snippet marketplace catalog search.

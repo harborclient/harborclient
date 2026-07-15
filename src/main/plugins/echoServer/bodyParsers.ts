@@ -1,6 +1,6 @@
 import express, { NextFunction, Request, Response } from 'express';
 import multer from 'multer';
-import type { RequestWithRawBody } from '#/main/plugins/echoServer/types';
+import type { RequestWithRawBody } from './types';
 
 const upload = multer();
 

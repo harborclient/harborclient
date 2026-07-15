@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildGitChangedFileRowPresentation } from '#/renderer/src/ui/Shared/Git/gitChangedFileRow.logic';
+import { buildGitChangedFileRowPresentation } from './gitChangedFileRow.logic';
 
 describe('buildGitChangedFileRowPresentation', () => {
   it('uses displayName and commit accessible labels for request rows', () => {

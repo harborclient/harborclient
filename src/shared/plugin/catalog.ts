@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { sanitizePluginCatalogCategories } from '#/shared/plugin/catalogCategories';
+import { sanitizePluginCatalogCategories } from './catalogCategories';
 
 /**
  * Public URL of the generated plugin catalog served from harborclient.com.

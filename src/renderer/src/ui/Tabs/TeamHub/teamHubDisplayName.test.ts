@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  resolveTeamHubAdminTabLabel,
-  teamHubDisplayName
-} from '#/renderer/src/ui/Tabs/TeamHub/teamHubDisplayName';
+import { resolveTeamHubAdminTabLabel, teamHubDisplayName } from './teamHubDisplayName';
 
 describe('teamHubDisplayName', () => {
   it('prefers the trimmed display name', () => {

@@ -33,7 +33,7 @@ import {
   getRegisteredSidebarSections,
   getRegisteredStatusBarItems,
   subscribePluginRegistry
-} from '#/renderer/src/plugins/registry';
+} from './registry';
 
 /**
  * Subscribes to plugin registry settings sections.

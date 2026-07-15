@@ -19,7 +19,7 @@ import {
   getGithubModelsTokenExpiresAt,
   hasGithubModelsAccessToken,
   storeGithubModelsTokens
-} from '#/main/ai/githubModelsSecrets';
+} from './githubModelsSecrets';
 
 describe('githubModelsSecrets', () => {
   beforeEach(() => {

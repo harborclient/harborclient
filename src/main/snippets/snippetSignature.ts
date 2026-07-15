@@ -16,7 +16,7 @@ import {
   fetchTrustedKeys,
   PluginSignatureUnavailableError
 } from '#/main/plugins/pluginSignature';
-import type { SnippetManifest } from '#/main/snippets/manifestSchema';
+import type { SnippetManifest } from './manifestSchema';
 
 /**
  * Reads bundle id and version from snippets.json for signature verification.

@@ -1,4 +1,4 @@
-import type { MountedBackend } from '#/main/storage/routingInternals';
+import type { MountedBackend } from './routingInternals';
 import {
   isTeamHubSnippetsForbiddenError,
   isTeamHubSnippetsUnsupportedError,

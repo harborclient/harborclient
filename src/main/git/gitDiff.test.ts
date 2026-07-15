@@ -3,11 +3,7 @@ import fs, { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-  buildGitDiff,
-  buildSingleResourceDiff,
-  makeCollectionScopedFilter
-} from '#/main/git/gitDiff';
+import { buildGitDiff, buildSingleResourceDiff, makeCollectionScopedFilter } from './gitDiff';
 
 const cleanups: Array<() => void> = [];
 

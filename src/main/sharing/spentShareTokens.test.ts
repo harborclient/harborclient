@@ -7,7 +7,7 @@ import {
   clearLocalDatabaseForTesting,
   setLocalDatabaseForTesting
 } from '#/main/storage/localDatabaseInstance';
-import { createPersistedSpentShareTokenStore } from '#/main/sharing/spentShareTokens';
+import { createPersistedSpentShareTokenStore } from './spentShareTokens';
 import { describeSqlite } from '#/test/nativeModules';
 
 let tempDir: string;

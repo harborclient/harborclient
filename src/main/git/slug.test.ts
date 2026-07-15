@@ -8,7 +8,7 @@ import {
   exportFileBaseName,
   pullMergeConflictMessage,
   toFileSlug
-} from '#/main/git/slug';
+} from './slug';
 
 describe('git slug helpers', () => {
   it('normalizes display names into filesystem slugs', () => {

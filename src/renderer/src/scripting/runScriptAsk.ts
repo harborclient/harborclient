@@ -7,7 +7,7 @@ import {
   stripScriptAskThinking
 } from '#/shared/ai/scriptAsk';
 import type { AiSettings, HubLlmModelGroup } from '#/shared/types';
-import { persistScriptAskModelId } from '#/renderer/src/scripting/scriptAskModel';
+import { persistScriptAskModelId } from './scriptAskModel';
 
 interface RunScriptAskParams {
   /**

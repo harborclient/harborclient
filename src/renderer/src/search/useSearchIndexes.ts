@@ -1,7 +1,7 @@
 import { useContext, useMemo } from 'react';
 import { searchAll } from '#/shared/search';
-import { SearchIndexContext } from '#/renderer/src/search/searchIndexContext';
-import type { SearchIndexContextValue } from '#/renderer/src/search/searchIndexContext';
+import { SearchIndexContext } from './searchIndexContext';
+import type { SearchIndexContextValue } from './searchIndexContext';
 
 /**
  * Returns warm search indexes and lookup data from {@link SearchIndexProvider}.

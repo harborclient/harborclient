@@ -37,7 +37,7 @@ import {
   killTerminal,
   resizeTerminal,
   writeTerminal
-} from '#/main/terminal/terminalHost';
+} from './terminalHost';
 
 describe('terminalHost', () => {
   beforeEach(() => {

@@ -26,10 +26,10 @@ import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
 import { startNewChatWithPrompt } from '#/renderer/src/store/thunks/aiChat';
 import { ACTION_MENU_ICON_CLASS, iconActionMenu } from '#/renderer/src/icons/customIcons';
-import { ActionSuggestions } from '#/renderer/src/ui/Modals/ActionMenuModal/ActionSuggestions';
-import { ArmedSlashCommand } from '#/renderer/src/ui/Modals/ActionMenuModal/ArmedSlashCommand';
-import { SearchResultGroup } from '#/renderer/src/ui/Modals/ActionMenuModal/SearchResultGroup';
-import { SlashCommandSuggestions } from '#/renderer/src/ui/Modals/ActionMenuModal/SlashCommandSuggestions';
+import { ActionSuggestions } from './ActionSuggestions';
+import { ArmedSlashCommand } from './ArmedSlashCommand';
+import { SearchResultGroup } from './SearchResultGroup';
+import { SlashCommandSuggestions } from './SlashCommandSuggestions';
 
 /**
  * Element id for the Action menu search field.

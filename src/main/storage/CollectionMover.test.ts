@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { MoveCoordinator } from '#/main/storage/CollectionMover';
-import type { CollectionRegistryEntry, LocalDatabase } from '#/main/storage/LocalDatabase';
-import type { MountedBackend, RoutingInternals } from '#/main/storage/routingInternals';
+import { MoveCoordinator } from './CollectionMover';
+import type { CollectionRegistryEntry, LocalDatabase } from './LocalDatabase';
+import type { MountedBackend, RoutingInternals } from './routingInternals';
 import type { Collection, CollectionDocument, Folder } from '#/shared/types';
 import { defaultAuth } from '#/shared/auth';
 

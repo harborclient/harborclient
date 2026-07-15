@@ -16,7 +16,7 @@ import {
   regenerateMcpServerToken,
   saveMcpClientServer,
   setMcpServerSettings
-} from '#/main/settings/mcpSettings';
+} from './mcpSettings';
 import {
   buildPluginMcpServerId,
   registerPluginMcpServer,

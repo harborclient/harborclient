@@ -7,7 +7,7 @@ import {
 } from '#/main/storage/collectionData';
 import { validateSnippetExport } from '#/main/storage/snippetData';
 import { generateDocumentUuid, resolveImportUuid } from '#/main/storage/uuid';
-import { collectionDirName, exportFileBaseName } from '#/main/git/slug';
+import { collectionDirName, exportFileBaseName } from './slug';
 import { validateRequestExport } from '#/main/storage/collectionData';
 import type {
   CollectionExport,

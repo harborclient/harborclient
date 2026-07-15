@@ -23,7 +23,7 @@ import {
   seedScopedSettingsVariables,
   serializeScopedSettingsForm,
   type ScopedSettingsCoreFields
-} from '#/renderer/src/ui/Shared/ScopedSettings/scopedSettingsForm';
+} from './scopedSettingsForm';
 
 /**
  * Live scoped settings form state and setters passed to render-prop sections.

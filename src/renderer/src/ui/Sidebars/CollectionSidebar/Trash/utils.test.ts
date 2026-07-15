@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  formatTrashDeletedAt,
-  trashEntityTypeLabel
-} from '#/renderer/src/ui/Sidebars/CollectionSidebar/Trash/utils';
+import { formatTrashDeletedAt, trashEntityTypeLabel } from './utils';
 
 describe('trash sidebar utils', () => {
   it('maps entity types to readable labels', () => {

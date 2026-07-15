@@ -10,7 +10,7 @@ vi.mock('fs', () => ({
   watch: watchMock
 }));
 
-import { resetGitWatcherRegistryForTests, watchGitConnection } from '#/main/git/gitWatcher';
+import { resetGitWatcherRegistryForTests, watchGitConnection } from './gitWatcher';
 
 const gitConnection: StorageConnection & { type: 'git' } = {
   id: 'git-1',

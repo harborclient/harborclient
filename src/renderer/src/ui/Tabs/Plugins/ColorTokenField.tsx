@@ -3,11 +3,7 @@ import { useEffect, useId, useRef, useState, type JSX } from 'react';
 import { RgbaColorPicker } from 'react-colorful';
 import type { ThemeColorToken } from '@harborclient/sdk';
 import { CUSTOM_THEME_TOKEN_LABELS } from '#/shared/types/customTheme';
-import {
-  FALLBACK_RGBA_COLOR,
-  formatCssColor,
-  parseCssColor
-} from '#/renderer/src/ui/Tabs/Plugins/colorUtils';
+import { FALLBACK_RGBA_COLOR, formatCssColor, parseCssColor } from './colorUtils';
 
 interface Props {
   /**

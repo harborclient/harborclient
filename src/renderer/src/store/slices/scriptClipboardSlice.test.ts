@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import scriptClipboardReducer, {
   setCopiedScript,
   type ScriptClipboardState
-} from '#/renderer/src/store/slices/scriptClipboardSlice';
+} from './scriptClipboardSlice';
 
 describe('scriptClipboardSlice', () => {
   it('stores an inline clipboard payload', () => {

@@ -8,8 +8,8 @@ import collectionsReducer, {
   reorderContainerItemsLocal,
   reorderFoldersLocal,
   setSelectedCollectionId
-} from '#/renderer/src/store/slices/collectionsSlice';
-import type { CollectionsState } from '#/renderer/src/store/slices/collectionsSlice';
+} from './collectionsSlice';
+import type { CollectionsState } from './collectionsSlice';
 
 const baseCollection = (
   overrides: Partial<Collection> & Pick<Collection, 'id' | 'name'>

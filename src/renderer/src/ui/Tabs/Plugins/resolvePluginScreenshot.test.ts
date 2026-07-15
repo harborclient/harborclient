@@ -5,7 +5,7 @@ import {
   loadInstalledPluginScreenshotSrcs,
   pluginAssetToDataUrl,
   resolveCatalogPluginScreenshotSrcs
-} from '#/renderer/src/ui/Tabs/Plugins/resolvePluginScreenshot';
+} from './resolvePluginScreenshot';
 
 const sampleEntry: PluginCatalogEntry = {
   id: 'com.example.demo',

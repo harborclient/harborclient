@@ -27,9 +27,9 @@ import {
   selectFoldersByCollection,
   selectRequestsByCollection
 } from '#/renderer/src/store/selectors';
-import { refreshCollectionContents } from '#/renderer/src/store/thunks/collections';
-import { executeRequestDraft } from '#/renderer/src/store/thunks/requests';
-import { recordRequestHistoryRun } from '#/renderer/src/store/thunks/requestHistory';
+import { refreshCollectionContents } from './collections';
+import { executeRequestDraft } from './requests';
+import { recordRequestHistoryRun } from './requestHistory';
 import {
   resolveRunnerTargetNames,
   runnerTargetLabel

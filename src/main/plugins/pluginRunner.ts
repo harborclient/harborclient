@@ -1,5 +1,5 @@
 import 'ses';
-import { createScriptContext } from '#/main/plugins/pluginScriptContext';
+import { createScriptContext } from './pluginScriptContext';
 import type { ScriptRunContextInput } from '#/main/scripting/scriptApi';
 import { runEchoRequestHandlers } from '#/main/plugins/echoServer/runEchoRequestHandlers';
 import type { EchoServerIncomingRequest } from '#/main/plugins/echoServer/types';

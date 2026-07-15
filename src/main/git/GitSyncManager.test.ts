@@ -4,8 +4,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { GitSyncManager } from '#/main/git/GitSyncManager';
-import { pullMergeConflictMessage } from '#/main/git/slug';
+import { GitSyncManager } from './GitSyncManager';
+import { pullMergeConflictMessage } from './slug';
 import type { GitSettings } from '#/shared/types';
 
 const cleanups: Array<() => void> = [];

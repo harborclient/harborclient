@@ -28,12 +28,9 @@ import { saveRunResult } from '#/renderer/src/store/thunks/runResults';
 import { Button, FaIcon, ProgressBar, StatusDot } from '@harborclient/sdk/components';
 import { FormGroup } from '@harborclient/sdk/components';
 import { Checkbox, Input, Radio, Select } from '@harborclient/sdk/components';
-import {
-  resolveRunnerTargetNames,
-  runnerPageTitle
-} from '#/renderer/src/ui/Tabs/CollectionRunner/resolveRunnerTargetName';
-import { ResultModal } from '#/renderer/src/ui/Tabs/CollectionRunner/ResultModal';
-import { SaveModal } from '#/renderer/src/ui/Tabs/CollectionRunner/SaveModal';
+import { resolveRunnerTargetNames, runnerPageTitle } from './resolveRunnerTargetName';
+import { ResultModal } from './ResultModal';
+import { SaveModal } from './SaveModal';
 import { ResponseSummary } from '#/renderer/src/ui/Main/ResponseEditor/ResponseSummary';
 import { METHOD_CLASSES } from '#/renderer/src/ui/Shared/classes';
 import { faLink } from '#/renderer/src/fontawesome';

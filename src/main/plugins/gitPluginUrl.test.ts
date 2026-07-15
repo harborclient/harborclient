@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assertSafeGitPluginUrl } from '#/main/plugins/gitPluginUrl';
+import { assertSafeGitPluginUrl } from './gitPluginUrl';
 
 describe('assertSafeGitPluginUrl', () => {
   it('accepts https repository URLs', () => {

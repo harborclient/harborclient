@@ -5,7 +5,7 @@ import type { PluginInfo } from '#/shared/plugin/types';
 import type { CustomTheme } from '#/shared/types/customTheme';
 import type { ThemeSource } from '#/shared/types';
 import { faPalette, faPuzzlePiece } from '#/renderer/src/fontawesome';
-import type { PluginManagementKind } from '#/renderer/src/ui/Tabs/Plugins/constants';
+import type { PluginManagementKind } from './constants';
 import { CustomThemeCard } from './CustomThemeCard';
 import { InstalledPluginCard } from './InstalledPluginCard';
 

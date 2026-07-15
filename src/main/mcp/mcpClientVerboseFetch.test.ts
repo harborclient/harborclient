@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createVerboseMcpClientFetch,
   describeMcpClientOutgoingRequest
-} from '#/main/mcp/mcpClientVerboseFetch';
+} from './mcpClientVerboseFetch';
 
 describe('describeMcpClientOutgoingRequest', () => {
   it('describes GET requests without JSON-RPC metadata', () => {

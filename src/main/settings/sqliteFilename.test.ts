@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeSqliteFilename } from '#/main/settings/sqliteFilename';
+import { normalizeSqliteFilename } from './sqliteFilename';
 
 const FALLBACK = 'harborclient.db';
 

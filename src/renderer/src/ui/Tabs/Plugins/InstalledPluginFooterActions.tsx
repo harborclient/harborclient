@@ -1,8 +1,8 @@
 import { Button } from '@harborclient/sdk/components';
 import type { JSX, MouseEvent } from 'react';
 import type { PluginInfo } from '#/shared/plugin/types';
-import type { PluginManagementKind } from '#/renderer/src/ui/Tabs/Plugins/constants';
-import { pluginManagementNoun } from '#/renderer/src/ui/Tabs/Plugins/constants';
+import type { PluginManagementKind } from './constants';
+import { pluginManagementNoun } from './constants';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/Shared/classes';
 import { isManagedInstall } from './helpers';
 import {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compareVersions, isNewerVersion, normalizeVersion } from '#/main/settings/versionCompare';
+import { compareVersions, isNewerVersion, normalizeVersion } from './versionCompare';
 
 describe('normalizeVersion', () => {
   it('strips a leading v prefix', () => {

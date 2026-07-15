@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatRequestTags, normalizeRequestTags, parseRequestTags } from '#/shared/requestTags';
+import { formatRequestTags, normalizeRequestTags, parseRequestTags } from './requestTags';
 
 describe('normalizeRequestTags', () => {
   it('trims segments and joins with comma space', () => {

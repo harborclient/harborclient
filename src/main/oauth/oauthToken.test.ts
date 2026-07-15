@@ -1,11 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultOAuth2Config } from '#/shared/auth';
-import {
-  clearOAuthToken,
-  fetchClientCredentialsToken,
-  getValidOAuthToken
-} from '#/main/oauth/oauthToken';
-import * as oauthSecrets from '#/main/oauth/oauthSecrets';
+import { clearOAuthToken, fetchClientCredentialsToken, getValidOAuthToken } from './oauthToken';
+import * as oauthSecrets from './oauthSecrets';
 
 describe('fetchClientCredentialsToken', () => {
   afterEach(() => {

@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSidebarSelectionCoordinator } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarSelectionContext';
-import {
-  applySidebarSelectionClick,
-  orderSelectedIds
-} from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarSelectionUtils';
+import { useSidebarSelectionCoordinator } from './sidebarSelectionContext';
+import { applySidebarSelectionClick, orderSelectedIds } from './sidebarSelectionUtils';
 
 /**
  * Optional registration settings for collections sidebar Deselect all coordination.

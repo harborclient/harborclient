@@ -10,7 +10,7 @@ import {
   shouldBlockBranchSwitch
 } from '#/renderer/src/git/gitBranchModalHelpers';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
-import { showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
+import { showConfirm } from './dialogHelpers';
 import {
   faCircleCheck,
   faCodeBranch,

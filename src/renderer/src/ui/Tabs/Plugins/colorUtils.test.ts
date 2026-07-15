@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCssColor, parseCssColor } from '#/renderer/src/ui/Tabs/Plugins/colorUtils';
+import { formatCssColor, parseCssColor } from './colorUtils';
 
 describe('colorUtils', () => {
   it('parses and formats hex colors', () => {

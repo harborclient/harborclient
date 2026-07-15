@@ -2,10 +2,7 @@ import { utilityProcess, type UtilityProcess } from 'electron';
 import { join } from 'path';
 import type { ScriptRunInput, ScriptRunResult, SendRequestInput, SendResult } from '#/shared/types';
 import type { ICookieJar } from '#/main/cookieJar/ICookieJar';
-import {
-  buildScriptPassthrough,
-  sanitizeScriptErrorMessage
-} from '#/main/scripting/scriptEvaluator';
+import { buildScriptPassthrough, sanitizeScriptErrorMessage } from './scriptEvaluator';
 import { executeHttpSend, isScriptNetworkAllowed } from '#/main/network/executeHttpSend';
 import { getGeneralSettings } from '#/main/settings/generalSettings';
 

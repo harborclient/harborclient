@@ -18,8 +18,8 @@ vi.mock('#/main/settings/storageSettings', () => ({
 }));
 
 import { encryptSecret } from '#/main/secrets/secretStorage';
-import { getGitAccessToken, storeGitPat } from '#/main/git/gitSecrets';
-import { getGitIdentity } from '#/main/git/gitIdentities';
+import { getGitAccessToken, storeGitPat } from './gitSecrets';
+import { getGitIdentity } from './gitIdentities';
 
 describe('gitSecrets host migration', () => {
   beforeEach(() => {

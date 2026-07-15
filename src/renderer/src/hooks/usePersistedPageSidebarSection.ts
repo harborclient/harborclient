@@ -3,7 +3,7 @@ import {
   resolvePageSidebarSection,
   type UsePersistedPageSidebarSectionOptions,
   type UsePersistedPageSidebarSectionResult
-} from '#/renderer/src/hooks/usePersistedPageSidebarSection.resolve';
+} from './usePersistedPageSidebarSection.resolve';
 
 /**
  * Loads and persists the selected sidebar section for a page tab screen.

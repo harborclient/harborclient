@@ -1,6 +1,6 @@
-import type { HubLlmModel } from '#/shared/types/ai';
+import type { HubLlmModel } from './ai';
 import type { CollectionRunnerSummary, RunResultsExportKind } from '#/shared/collectionRunner';
-import type { HttpMethod } from '#/shared/types/common';
+import type { HttpMethod } from './common';
 import type { SnippetScope } from '#/shared/snippetScope';
 
 /**

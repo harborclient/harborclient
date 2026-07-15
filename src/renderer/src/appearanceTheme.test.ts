@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { isAppearanceDark } from '#/renderer/src/appearanceTheme';
+import { isAppearanceDark } from './appearanceTheme';
 
 interface StubElement {
   attributes: Record<string, string>;

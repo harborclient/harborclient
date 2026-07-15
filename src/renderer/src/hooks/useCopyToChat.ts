@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
+import { useAiAvailability } from './useAiAvailability';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveChatId,

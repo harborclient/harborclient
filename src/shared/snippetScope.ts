@@ -1,4 +1,4 @@
-import type { ScriptPhase } from '#/shared/types';
+import type { ScriptPhase } from './types';
 
 /**
  * Where a reusable snippet may be referenced across request stages.

@@ -8,7 +8,7 @@ import {
   getPluginReactDomHost,
   getPluginReactHost,
   installPluginReactHost
-} from '#/renderer/src/plugins/pluginReactHost';
+} from './pluginReactHost';
 
 const shimsDir = join(dirname(fileURLToPath(import.meta.url)), 'shims');
 

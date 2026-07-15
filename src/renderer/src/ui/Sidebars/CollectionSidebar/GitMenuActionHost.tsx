@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { MenuActionId } from '#/shared/types/app';
-import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarGitContext';
+import { useSidebarGit } from './sidebarGitContext';
 
 /**
  * Menu action ids handled by the git sidebar provider for the active collection.

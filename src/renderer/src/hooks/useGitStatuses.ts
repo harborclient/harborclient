@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { SourceControlStatus } from '#/shared/types';
-import { subscribeStorageConnectionsChanged } from '#/renderer/src/hooks/subscribeStorageConnectionsChanged';
+import { subscribeStorageConnectionsChanged } from './subscribeStorageConnectionsChanged';
 
 /**
  * Polls git source-control status for mounted git connections.

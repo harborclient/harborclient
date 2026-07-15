@@ -13,7 +13,7 @@ import {
   setUpdateResult
 } from '#/renderer/src/store/slices/modalsSlice';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
-import { refreshCollections } from '#/renderer/src/store/thunks/collections';
+import { refreshCollections } from './collections';
 
 /**
  * Loads trusted keys for the share modal recipient picker.

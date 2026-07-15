@@ -1,9 +1,6 @@
 import { useCallback, useState } from 'react';
 
-import {
-  canCloseTypedDeleteConfirm,
-  runTypedDeleteConfirm
-} from '#/renderer/src/hooks/useTypedDeleteConfirm.logic';
+import { canCloseTypedDeleteConfirm, runTypedDeleteConfirm } from './useTypedDeleteConfirm.logic';
 
 interface Options<T> {
   /**

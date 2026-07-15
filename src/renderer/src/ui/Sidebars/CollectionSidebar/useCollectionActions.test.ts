@@ -5,7 +5,7 @@ import collectionsReducer, { focusSidebarItem } from '#/renderer/src/store/slice
 import {
   sidebarFocusPayloadForDocument,
   sidebarFocusPayloadForRequest
-} from '#/renderer/src/ui/Sidebars/CollectionSidebar/useCollectionActions';
+} from './useCollectionActions';
 import type { CollectionDocument, SavedRequest } from '#/shared/types';
 
 /**

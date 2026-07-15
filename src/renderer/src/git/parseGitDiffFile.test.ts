@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GitRequestDiffFileEntry } from '#/shared/types';
-import { inferGitDiffLanguage, parseGitDiffFileSides } from '#/renderer/src/git/parseGitDiffFile';
+import { inferGitDiffLanguage, parseGitDiffFileSides } from './parseGitDiffFile';
 
 /**
  * Builds a minimal git diff file entry for parser tests.

@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  deriveMarketplaceSnippetUuid,
-  resolveMarketplaceSnippetUuid
-} from '#/main/snippets/snippetUuid';
+import { deriveMarketplaceSnippetUuid, resolveMarketplaceSnippetUuid } from './snippetUuid';
 
 describe('deriveMarketplaceSnippetUuid', () => {
   it('returns the same UUID for the same catalog id and key', () => {

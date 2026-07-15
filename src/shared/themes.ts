@@ -1,4 +1,4 @@
-import type { ThemeSource } from '#/shared/types';
+import type { ThemeSource } from './types';
 
 /**
  * One appearance theme entry shown in the View menu.

@@ -3,7 +3,7 @@ import {
   OFFLINE_TEAM_HUB_SNIPPET_ERROR,
   normalizeOfflineTeamHubSnippetError,
   withOfflineTeamHubSnippetError
-} from '#/renderer/src/store/thunks/snippetThunkErrors';
+} from './snippetThunkErrors';
 
 describe('normalizeOfflineTeamHubSnippetError', () => {
   it('rewrites unavailable database connection errors', () => {

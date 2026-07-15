@@ -5,7 +5,7 @@ import {
   installedPluginInstallationLabel,
   resolvePendingPluginInstallDeepLink,
   resolveInstalledPluginSummary
-} from '#/renderer/src/ui/Tabs/Plugins/helpers';
+} from './helpers';
 
 const sampleEntry: PluginCatalogEntry = {
   id: 'com.harborclient.plugins.curl',
