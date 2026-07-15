@@ -1,6 +1,6 @@
 import type { PluginInfo } from '#/shared/plugin/types';
 import { buildPluginAgentUrl } from '#/shared/plugin/pluginSurface';
-import { clearPluginContributions } from './registry';
+import { clearPluginContributions, registerThemeContribution } from './registry';
 import { clearPluginImportHandlers } from './pluginImportHandlers';
 import { applyPersistedPluginTheme } from './themeRuntime';
 
@@ -387,6 +387,39 @@ export async function unloadPlugin(pluginId: string): Promise<void> {
 }
 
 /**
+ * Registers themes declared via `contributes.themes[].import` JSON files.
+ *
+ * Manifest `id`, `title`, and `type` remain authoritative; the JSON supplies
+ * colors and an optional (possibly inlined) stylesheet. Failures for a single
+ * import are logged and skipped so other themes still register.
+ *
+ * @param plugin - Plugin metadata including manifest contributions.
+ */
+async function registerImportThemeContributions(plugin: PluginInfo): Promise<void> {
+  const themes = plugin.manifest.contributes?.themes ?? [];
+  for (const entry of themes) {
+    if (!entry.import) {
+      continue;
+    }
+    try {
+      const resolved = await window.api.resolveThemeImport(plugin.id, entry.import);
+      registerThemeContribution(plugin.id, {
+        id: entry.id,
+        title: entry.title,
+        type: entry.type,
+        colors: resolved.colors,
+        stylesheet: resolved.stylesheet
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(
+        `[plugin ${plugin.id}] failed to resolve theme import "${entry.import}": ${message}`
+      );
+    }
+  }
+}
+
+/**
  * Activates one enabled plugin through its hidden agent webview.
  *
  * @param plugin - Plugin metadata from the main process.
@@ -399,10 +432,13 @@ async function loadPlugin(plugin: PluginInfo): Promise<void> {
   await unloadPlugin(plugin.id);
 
   try {
+    await registerImportThemeContributions(plugin);
+
     if (!plugin.manifest.renderer) {
       if (plugin.manifest.main) {
         await window.api.activatePluginMain(plugin.id);
       }
+      await applyPersistedPluginTheme();
       await clearActivationError(plugin.id);
       return;
     }

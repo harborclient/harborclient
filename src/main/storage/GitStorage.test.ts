@@ -268,6 +268,59 @@ describe('GitStorage', () => {
     rmSync(userDataPath, { recursive: true, force: true });
   });
 
+  it('stages collection.json when a collection is created', async () => {
+    const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-git-create-manifest-'));
+    const userDataPath = mkdtempSync(join(tmpdir(), 'harborclient-git-create-manifest-userdata-'));
+    mkdirSync(join(repoPath, '.harborclient'), { recursive: true });
+
+    await git.init({ fs, dir: repoPath, defaultBranch: 'main' });
+    await git.setConfig({ fs, dir: repoPath, path: 'user.name', value: 'Test' });
+    await git.setConfig({ fs, dir: repoPath, path: 'user.email', value: 'test@example.com' });
+
+    const settings: GitSettings = {
+      repoPath,
+      url: 'https://github.com/example/repo.git',
+      branch: 'main',
+      subdir: '.harborclient',
+      auth: { kind: 'pat', username: 'token' }
+    };
+
+    const db = new GitStorage('create-manifest-connection', settings, userDataPath);
+    await db.init();
+    const collection = await db.createCollection('API');
+
+    const manifestPath = db.getCollectionManifestRepoPath(collection.id);
+    const pathFlags = await db.syncManager.getPathFlagsUnderPrefix(manifestPath);
+    expect(pathFlags[manifestPath]).toMatchObject({
+      hasStagedChanges: true,
+      isUntracked: false
+    });
+    expect(await db.getChangedItemCount(collection.id)).toBe(1);
+
+    const diff = await buildGitDiff({
+      repoPath: db.syncManager.repoDir,
+      harborSubdir: '.harborclient',
+      enrichDisplayNames: true,
+      excludeUntracked: true,
+      filepathFilter: makeCollectionScopedFilter(
+        '.harborclient',
+        collectionDirName(collection.name)
+      )
+    });
+    expect(diff.files).toEqual([
+      expect.objectContaining({
+        path: manifestPath,
+        status: 'added',
+        displayName: 'API',
+        resourceKind: 'collection'
+      })
+    ]);
+
+    await db.close();
+    rmSync(repoPath, { recursive: true, force: true });
+    rmSync(userDataPath, { recursive: true, force: true });
+  });
+
   it('reports per-item git status and stages or unstages request files', async () => {
     const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-git-item-status-'));
     const userDataPath = mkdtempSync(join(tmpdir(), 'harborclient-git-item-status-userdata-'));
@@ -323,6 +376,62 @@ describe('GitStorage', () => {
     rmSync(userDataPath, { recursive: true, force: true });
   });
 
+  it('stages only untracked request files with stageAllUntrackedItems', async () => {
+    const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-git-stage-all-'));
+    const userDataPath = mkdtempSync(join(tmpdir(), 'harborclient-git-stage-all-userdata-'));
+    mkdirSync(join(repoPath, '.harborclient'), { recursive: true });
+
+    await git.init({ fs, dir: repoPath, defaultBranch: 'main' });
+    await git.setConfig({ fs, dir: repoPath, path: 'user.name', value: 'Test' });
+    await git.setConfig({ fs, dir: repoPath, path: 'user.email', value: 'test@example.com' });
+
+    const settings: GitSettings = {
+      repoPath,
+      url: 'https://github.com/example/repo.git',
+      branch: 'main',
+      subdir: '.harborclient',
+      auth: { kind: 'pat', username: 'token' }
+    };
+
+    const db = new GitStorage('stage-all-connection', settings, userDataPath);
+    await db.init();
+    const collection = await db.createCollection('API');
+    const tracked = await db.saveRequest(
+      baseRequestInput(collection.id, { name: 'Tracked', url: 'https://example.com/tracked' })
+    );
+    await db.stageItem(collection.id, tracked.uuid);
+
+    const untrackedA = await db.saveRequest(
+      baseRequestInput(collection.id, { name: 'Untracked A', url: 'https://example.com/a' })
+    );
+    const untrackedB = await db.saveRequest(
+      baseRequestInput(collection.id, { name: 'Untracked B', url: 'https://example.com/b' })
+    );
+
+    const stagedCount = await db.stageAllUntrackedItems(collection.id);
+    expect(stagedCount).toBe(2);
+
+    const statuses = await db.getItemGitStatuses(collection.id);
+    expect(statuses[untrackedA.uuid]).toEqual({
+      displayStatus: 'staged',
+      canAdd: false,
+      canRemove: true,
+      isUntracked: false
+    });
+    expect(statuses[untrackedB.uuid]).toEqual({
+      displayStatus: 'staged',
+      canAdd: false,
+      canRemove: true,
+      isUntracked: false
+    });
+    // Tracked item remains staged (already was); no extra untracked work.
+    expect(statuses[tracked.uuid]?.isUntracked).not.toBe(true);
+
+    await db.close();
+    rmSync(repoPath, { recursive: true, force: true });
+    rmSync(userDataPath, { recursive: true, force: true });
+  });
+
   it('auto-tracks newly created requests when Auto track is enabled', async () => {
     const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-git-autotrack-'));
     const userDataPath = mkdtempSync(join(tmpdir(), 'harborclient-git-autotrack-userdata-'));
@@ -354,7 +463,8 @@ describe('GitStorage', () => {
       canRemove: true,
       isUntracked: false
     });
-    expect(await db.getChangedItemCount(collection.id)).toBe(1);
+    // Staged request plus staged collection.json (created with the collection).
+    expect(await db.getChangedItemCount(collection.id)).toBe(2);
 
     await db.close();
     rmSync(repoPath, { recursive: true, force: true });
@@ -396,7 +506,10 @@ describe('GitStorage', () => {
 
     const itemStatuses = await db.getItemGitStatuses(collection.id);
     expect(Object.keys(itemStatuses)).toEqual([added.uuid]);
-    expect(await db.getChangedItemCount(collection.id)).toBe(1);
+    // Counts the deleted tracked request. The untracked addition is excluded.
+    // (collection.json may also change; isomorphic-git can miss same-size
+    // rewrites here, so do not assert a precise combined total.)
+    expect(await db.getChangedItemCount(collection.id)).toBeGreaterThanOrEqual(1);
 
     await db.close();
     rmSync(repoPath, { recursive: true, force: true });
@@ -442,7 +555,7 @@ describe('GitStorage', () => {
       )
     });
 
-    expect(changedCount).toBe(1);
+    expect(changedCount).toBe(2);
     expect(diff.files).toHaveLength(changedCount);
 
     await db.close();

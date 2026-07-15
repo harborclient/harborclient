@@ -1,9 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { setAlertModal, setConfirmModal } from '#/renderer/src/store/slices/modalsSlice';
+import { setShowTerminal } from '#/renderer/src/store/slices/navigationSlice';
+import { addTerminal, setTerminalCwd } from '#/renderer/src/store/slices/terminalsSlice';
 import {
   formatErrorMessage,
   formatIpcErrorMessage,
   openCollectionGitSettings,
+  openGitRepoTerminal,
   resolveConfirm,
   showAlert,
   showConfirm
@@ -34,7 +37,7 @@ describe('dialogHelpers', () => {
     showAlert(dispatch, 'Failed to save', 'Error');
     expect(dispatch).toHaveBeenCalledWith({
       type: setAlertModal.type,
-      payload: { title: 'Error', message: 'Failed to save', icon: undefined, action: undefined }
+      payload: { title: 'Error', message: 'Failed to save', icon: undefined, actions: undefined }
     });
   });
 
@@ -47,19 +50,26 @@ describe('dialogHelpers', () => {
         title: 'Install failed',
         message: 'Install failed.',
         icon: 'warning',
-        action: undefined
+        actions: undefined
       }
     });
   });
 
-  it('showAlert dispatches optional action when provided', () => {
+  it('showAlert dispatches optional actions when provided', () => {
     const dispatch = vi.fn();
     showAlert(dispatch, 'Push failed', 'Push failed', {
-      action: {
-        kind: 'openCollectionGitSettings',
-        label: 'Open Git settings',
-        collectionId: 42
-      }
+      actions: [
+        {
+          kind: 'openCollectionGitSettings',
+          label: 'Open Git settings',
+          collectionId: 42
+        },
+        {
+          kind: 'openGitRepoTerminal',
+          label: 'Open terminal',
+          connectionId: 'conn-1'
+        }
+      ]
     });
     expect(dispatch).toHaveBeenCalledWith({
       type: setAlertModal.type,
@@ -67,11 +77,18 @@ describe('dialogHelpers', () => {
         title: 'Push failed',
         message: 'Push failed',
         icon: undefined,
-        action: {
-          kind: 'openCollectionGitSettings',
-          label: 'Open Git settings',
-          collectionId: 42
-        }
+        actions: [
+          {
+            kind: 'openCollectionGitSettings',
+            label: 'Open Git settings',
+            collectionId: 42
+          },
+          {
+            kind: 'openGitRepoTerminal',
+            label: 'Open terminal',
+            connectionId: 'conn-1'
+          }
+        ]
       }
     });
   });
@@ -83,6 +100,62 @@ describe('dialogHelpers', () => {
       type: openPageTab.type,
       payload: { type: 'collection', id: 7, focusSection: 'git' }
     });
+  });
+
+  it('openGitRepoTerminal opens the terminal panel and sets cwd on the active tab', async () => {
+    const dispatch = vi.fn();
+    const listStorageConnections = vi.fn().mockResolvedValue([
+      {
+        id: 'conn-1',
+        name: 'Git',
+        type: 'git',
+        settings: {
+          repoPath: '/tmp/repo',
+          url: 'https://github.com/example/repo.git',
+          branch: 'main',
+          subdir: '',
+          auth: { kind: 'pat', username: 'token' }
+        }
+      }
+    ]);
+    vi.stubGlobal('window', { api: { listStorageConnections } });
+
+    await openGitRepoTerminal(dispatch, 'conn-1', 'term-1');
+
+    expect(dispatch).toHaveBeenCalledWith({ type: setShowTerminal.type, payload: true });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: setTerminalCwd.type,
+      payload: { id: 'term-1', cwd: '/tmp/repo' }
+    });
+    vi.unstubAllGlobals();
+  });
+
+  it('openGitRepoTerminal creates a terminal tab when none is active', async () => {
+    const dispatch = vi.fn();
+    const listStorageConnections = vi.fn().mockResolvedValue([
+      {
+        id: 'conn-1',
+        name: 'Git',
+        type: 'git',
+        settings: {
+          repoPath: '/tmp/repo',
+          url: 'https://github.com/example/repo.git',
+          branch: 'main',
+          subdir: '',
+          auth: { kind: 'pat', username: 'token' }
+        }
+      }
+    ]);
+    vi.stubGlobal('window', { api: { listStorageConnections } });
+
+    await openGitRepoTerminal(dispatch, 'conn-1', null);
+
+    expect(dispatch).toHaveBeenCalledWith({ type: setShowTerminal.type, payload: true });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: addTerminal.type,
+      payload: { cwd: '/tmp/repo' }
+    });
+    vi.unstubAllGlobals();
   });
 
   it('showConfirm resolves true when confirmed and false when cancelled', async () => {

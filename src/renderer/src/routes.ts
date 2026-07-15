@@ -17,7 +17,11 @@ import {
 } from '#/renderer/src/fontawesome';
 import { settingsSectionMeta } from '#/renderer/src/ui/Tabs/Settings/constants';
 import type { PageRoute } from '#/renderer/src/routing/types';
-import { defineRoute, lazyNamed, normalizeSettingsSection } from '#/renderer/src/store/routing';
+import {
+  defineRoute,
+  lazyNamed,
+  normalizeSettingsSection
+} from '#/renderer/src/store/routingHelpers';
 
 /**
  * Declarative registry of every configuration page tab.

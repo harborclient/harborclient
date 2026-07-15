@@ -66,31 +66,48 @@ export interface CollectionModalState {
 /**
  * Optional secondary action shown beside OK in the alert modal.
  */
-export type AlertModalAction = {
-  /**
-   * Opens collection settings on the Git tab after the alert closes.
-   */
-  kind: 'openCollectionGitSettings';
+export type AlertModalAction =
+  | {
+      /**
+       * Opens collection settings on the Git tab after the alert closes.
+       */
+      kind: 'openCollectionGitSettings';
 
-  /**
-   * Button label shown in the alert footer.
-   */
-  label: string;
+      /**
+       * Button label shown in the alert footer.
+       */
+      label: string;
 
-  /**
-   * Collection id whose Git settings tab should open.
-   */
-  collectionId: number;
-};
+      /**
+       * Collection id whose Git settings tab should open.
+       */
+      collectionId: number;
+    }
+  | {
+      /**
+       * Opens the footer terminal panel rooted at the git repository path.
+       */
+      kind: 'openGitRepoTerminal';
+
+      /**
+       * Button label shown in the alert footer.
+       */
+      label: string;
+
+      /**
+       * Git storage connection id used to resolve the repo path.
+       */
+      connectionId: string;
+    };
 
 export interface AlertModalState {
   title: string;
   message: string;
   icon?: 'warning';
   /**
-   * Optional remediation action (for example open Git settings after a sync failure).
+   * Optional remediation actions shown beside OK (for example open Git settings or terminal).
    */
-  action?: AlertModalAction;
+  actions?: AlertModalAction[];
 }
 
 export interface ConfirmModalState {

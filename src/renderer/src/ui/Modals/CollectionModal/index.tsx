@@ -249,7 +249,7 @@ export function CollectionModal(): JSX.Element | null {
   return (
     <Modal
       onClose={handleClose}
-      className={showImportTab ? 'h-[80vh] w-[min(60rem,calc(100vw-2rem))]' : 'w-[32rem]'}
+      className={showImportTab ? 'w-[min(60rem,calc(100vw-2rem))]' : 'w-[32rem]'}
       labelledBy="collection-modal-title"
       title={modalTitle}
       description={

@@ -89,15 +89,28 @@ const terminalsSlice = createSlice({
 
     /**
      * Adds a new terminal tab and selects it.
+     *
+     * Optional `cwd` sets the shell working directory; blank values use the home directory.
      */
-    addTerminal(state) {
-      const tab: TerminalTab = {
-        id: nanoid(),
-        title: defaultTerminalTitle(state.terminals.length),
-        cwd: ''
-      };
-      state.terminals.push(tab);
-      state.activeTerminalId = tab.id;
+    addTerminal: {
+      reducer(state, action: PayloadAction<{ cwd: string }>) {
+        const tab: TerminalTab = {
+          id: nanoid(),
+          title: defaultTerminalTitle(state.terminals.length),
+          cwd: action.payload.cwd
+        };
+        state.terminals.push(tab);
+        state.activeTerminalId = tab.id;
+      },
+      /**
+       * Normalizes an optional working directory for a new terminal tab.
+       *
+       * @param options - Optional cwd for the new shell session.
+       * @returns Action payload with a trimmed cwd string.
+       */
+      prepare(options?: { cwd?: string }) {
+        return { payload: { cwd: options?.cwd?.trim() ?? '' } };
+      }
     },
 
     /**
@@ -150,6 +163,28 @@ const terminalsSlice = createSlice({
     },
 
     /**
+     * Updates the working directory for a terminal tab, respawning the PTY on next attach.
+     *
+     * When `id` is omitted, updates the active terminal tab.
+     *
+     * @param state - Terminals slice state.
+     * @param action - Target tab id (optional) and new working directory.
+     */
+    setTerminalCwd(state, action: PayloadAction<{ id?: string; cwd: string }>) {
+      const targetId = action.payload.id ?? state.activeTerminalId;
+      if (targetId == null) {
+        return;
+      }
+
+      const terminal = state.terminals.find((entry) => entry.id === targetId);
+      if (!terminal) {
+        return;
+      }
+
+      terminal.cwd = action.payload.cwd.trim();
+    },
+
+    /**
      * Stores a terminal selection snapshot for an `@term` reference token.
      */
     setTerminalSelection(
@@ -167,6 +202,7 @@ export const {
   removeTerminal,
   setActiveTerminal,
   renameTerminal,
+  setTerminalCwd,
   setTerminalSelection
 } = terminalsSlice.actions;
 

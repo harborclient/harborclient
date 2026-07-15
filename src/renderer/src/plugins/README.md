@@ -89,11 +89,18 @@ A plugin package is a directory (or `.hcp`/`.zip` archive) containing at minimum
 | `renderer` | Path to the UI entry (bundled and served as `harbor-plugin://{id}/bundle.js`) |
 | `main`     | Path to the main-process entry (activated in the SES utility process)         |
 
+A plugin must declare at least one of `renderer`, `main`, or a theme contribution
+with an `import` path (see [Theme contributions](#theme-contributions) below).
+Theme-only packages can ship as `manifest.json` + theme JSON with no JavaScript.
+
 ### Declarative contributions (`contributes`)
 
 The manifest declares **allowed UI slots**. At activation, plugin code must call
 `hc.ui.register*` to populate the runtime registry. A contribution appears in the
 host UI only when it is **both declared in the manifest and registered at runtime**.
+
+**Exception:** theme entries with an `import` field are auto-registered by the
+host from the JSON file — no `activate()` call is required for those themes.
 
 Contribution buckets include:
 
@@ -104,6 +111,40 @@ Contribution buckets include:
 
 Types live in [`src/shared/plugin/types.ts`](../../../shared/plugin/types.ts).
 Validation uses Zod in [`src/main/plugins/manifestSchema.ts`](../../../main/plugins/manifestSchema.ts).
+
+### Theme contributions
+
+Themes can be registered two ways:
+
+1. **JavaScript** — declare the theme in `contributes.themes`, then call
+   `registerTheme(hc, { id, title, type, colors?, stylesheet? })` from
+   `activate()`. The `stylesheet` value is a plugin-relative CSS path loaded at
+   apply time.
+2. **JSON import** — point the contribution at a Theme Designer export file:
+
+```json
+{
+  "contributes": {
+    "themes": [
+      {
+        "id": "solarized",
+        "title": "Solarized Dark",
+        "type": "dark",
+        "import": "exported.json"
+      }
+    ]
+  }
+}
+```
+
+The import file must be a `harborclientExport: "theme"` envelope (same shape as
+File → Themes → Designer export). On first read, HarborClient resolves any
+`stylesheet` filename (for example `styles.css`) inside the plugin directory,
+inlines the CSS text into the JSON on disk, and registers the theme with that
+inlined CSS. Later reads are single-file and idempotent.
+
+Manifest `id` / `title` / `type` remain authoritative; the JSON supplies `colors`
+and the optional stylesheet.
 
 ### Permissions
 

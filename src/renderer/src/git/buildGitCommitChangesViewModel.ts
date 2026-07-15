@@ -13,8 +13,8 @@ export interface GitCommitChangesViewModel {
 /**
  * Filters enriched commit file changes down to plain file rows for display.
  *
- * Request and document rows keep optional `displayName` and `resourceKind` metadata
- * resolved in the main process.
+ * Request, document, and collection rows keep optional `displayName` and
+ * `resourceKind` metadata resolved in the main process.
  *
  * @param files - Commit file changes returned by `gitCommitDetail`.
  * @returns View-model rows for file-path rendering.

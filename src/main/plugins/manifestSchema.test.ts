@@ -21,7 +21,7 @@ describe('manifestSchema', () => {
     expect(manifest.permissions).toEqual(['ui', 'storage']);
   });
 
-  it('rejects manifests without renderer or main', () => {
+  it('rejects manifests without renderer, main, or an imported theme', () => {
     expect(() =>
       validatePluginManifest(
         {
@@ -33,7 +33,38 @@ describe('manifestSchema', () => {
         },
         '1.6.2'
       )
-    ).toThrow(/renderer.*main/);
+    ).toThrow(/renderer.*main.*imported theme/);
+  });
+
+  it('allows manifests with an imported theme and no renderer or main', () => {
+    const manifest = validatePluginManifest(
+      {
+        id: 'com.example.theme-only',
+        name: 'Theme Only',
+        version: '1.0.0',
+        engines: { harborclient: '>=1.0.0' },
+        permissions: ['ui'],
+        contributes: {
+          themes: [
+            {
+              id: 'solarized',
+              title: 'Solarized Dark',
+              type: 'dark',
+              import: 'exported.json'
+            }
+          ]
+        }
+      },
+      '1.6.2'
+    );
+    expect(manifest.contributes?.themes).toEqual([
+      {
+        id: 'solarized',
+        title: 'Solarized Dark',
+        type: 'dark',
+        import: 'exported.json'
+      }
+    ]);
   });
 
   it('checks harborclient engine compatibility', () => {
@@ -121,6 +152,30 @@ describe('manifestSchema', () => {
     });
     expect(manifest.contributes?.themes).toEqual([
       { id: 'hc', title: 'High Contrast', type: 'high-contrast' }
+    ]);
+  });
+
+  it('parses theme contributions with an import path', () => {
+    const manifest = parsePluginManifest({
+      ...validManifest,
+      contributes: {
+        themes: [
+          {
+            id: 'solarized',
+            title: 'Solarized Dark',
+            type: 'dark',
+            import: 'exported.json'
+          }
+        ]
+      }
+    });
+    expect(manifest.contributes?.themes).toEqual([
+      {
+        id: 'solarized',
+        title: 'Solarized Dark',
+        type: 'dark',
+        import: 'exported.json'
+      }
     ]);
   });
 });

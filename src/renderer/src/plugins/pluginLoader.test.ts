@@ -18,12 +18,14 @@ import {
 } from './pluginLoader';
 import {
   clearPluginContributions,
+  getRegisteredPluginThemes,
   getRegisteredSettingsSections,
   registerSettingsSectionContribution
 } from './registry';
 
 const FAILED_PLUGIN_ID = 'com.example.failed';
 const GATED_PLUGIN_ID = 'com.example.gated';
+const THEME_IMPORT_PLUGIN_ID = 'com.example.theme-import';
 
 const listPluginsMock = vi.fn<() => Promise<PluginInfo[]>>();
 const activatePluginMainMock = vi.fn<(pluginId: string) => Promise<void>>();
@@ -31,6 +33,7 @@ const deactivatePluginMainMock = vi.fn<(pluginId: string) => Promise<void>>();
 const reportPluginRuntimeErrorMock =
   vi.fn<(pluginId: string, message: string | null, logDetails?: string) => Promise<PluginInfo>>();
 const setPluginEnabledMock = vi.fn<(pluginId: string, enabled: boolean) => Promise<PluginInfo>>();
+const resolveThemeImportMock = vi.fn();
 
 const createdWebviews: Array<{ remove: ReturnType<typeof vi.fn>; src: string }> = [];
 
@@ -79,6 +82,40 @@ function createGatedPluginInfo(enabled: boolean): PluginInfo {
   };
 }
 
+/**
+ * Headless theme plugin that ships colors via `contributes.themes[].import`.
+ *
+ * @param enabled - Whether the plugin should activate.
+ */
+function createThemeImportPluginInfo(enabled: boolean): PluginInfo {
+  return {
+    id: THEME_IMPORT_PLUGIN_ID,
+    name: 'Theme Import Plugin',
+    version: '1.0.0',
+    source: 'installed',
+    path: '/tmp/theme-import-plugin',
+    enabled,
+    permissions: ['ui'],
+    manifest: {
+      id: THEME_IMPORT_PLUGIN_ID,
+      name: 'Theme Import Plugin',
+      version: '1.0.0',
+      engines: { harborclient: '>=1.0.0' },
+      permissions: ['ui'],
+      contributes: {
+        themes: [
+          {
+            id: 'solarized',
+            title: 'Solarized Dark',
+            type: 'dark',
+            import: 'exported.json'
+          }
+        ]
+      }
+    }
+  };
+}
+
 const agentContainer = {
   id: 'plugin-agent-webviews',
   appendChild: vi.fn(),
@@ -95,8 +132,15 @@ beforeEach(() => {
   deactivatePluginMainMock.mockReset();
   reportPluginRuntimeErrorMock.mockReset();
   setPluginEnabledMock.mockReset();
+  resolveThemeImportMock.mockReset();
   activatePluginMainMock.mockResolvedValue(undefined);
   deactivatePluginMainMock.mockResolvedValue(undefined);
+  resolveThemeImportMock.mockResolvedValue({
+    title: 'Solarized Dark',
+    type: 'dark',
+    colors: { surface: '#002b36', accent: '#268bd2' },
+    stylesheet: ':root { --mac-surface: #002b36; }'
+  });
   reportPluginRuntimeErrorMock.mockImplementation(async (pluginId, message) => ({
     ...createGatedPluginInfo(true),
     id: pluginId,
@@ -155,6 +199,7 @@ beforeEach(() => {
       deactivatePluginMain: deactivatePluginMainMock,
       reportPluginRuntimeError: reportPluginRuntimeErrorMock,
       setPluginEnabled: setPluginEnabledMock,
+      resolveThemeImport: resolveThemeImportMock,
       getTheme: vi.fn(async () => 'system'),
       getCustomTheme: vi.fn(async () => null),
       onPluginsAgentReady: vi.fn(() => () => {}),
@@ -169,6 +214,7 @@ afterEach(async () => {
   vi.unstubAllGlobals();
   clearPluginContributions(FAILED_PLUGIN_ID);
   clearPluginContributions(GATED_PLUGIN_ID);
+  clearPluginContributions(THEME_IMPORT_PLUGIN_ID);
 });
 
 describe('pluginLoader', () => {
@@ -178,6 +224,26 @@ describe('pluginLoader', () => {
     await reloadPlugin(GATED_PLUGIN_ID);
 
     expect(createdWebviews).toHaveLength(0);
+  });
+
+  it('reloadPlugin registers imported themes for headless plugins without a renderer', async () => {
+    listPluginsMock.mockResolvedValue([createThemeImportPluginInfo(true)]);
+
+    await reloadPlugin(THEME_IMPORT_PLUGIN_ID);
+
+    expect(createdWebviews).toHaveLength(0);
+    expect(resolveThemeImportMock).toHaveBeenCalledWith(THEME_IMPORT_PLUGIN_ID, 'exported.json');
+    expect(getRegisteredPluginThemes()).toEqual([
+      expect.objectContaining({
+        pluginId: THEME_IMPORT_PLUGIN_ID,
+        id: 'solarized',
+        title: 'Solarized Dark',
+        type: 'dark',
+        colors: { surface: '#002b36', accent: '#268bd2' },
+        stylesheet: ':root { --mac-surface: #002b36; }'
+      })
+    ]);
+    expect(reportPluginRuntimeErrorMock).toHaveBeenCalledWith(THEME_IMPORT_PLUGIN_ID, null);
   });
 
   it('reloadPlugin mounts an agent webview for enabled plugins', async () => {

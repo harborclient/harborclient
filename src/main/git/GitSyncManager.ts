@@ -111,6 +111,12 @@ export class GitSyncManager {
        * markdown documents owned by the collection but outside the folder prefix).
        */
       additionalFilepaths?: string[];
+      /**
+       * Collection-manifest paths to stage with `git add` semantics so untracked
+       * `collection.json` files are committed (tracked updates still use
+       * `stageTrackedChanges` under the collection prefix).
+       */
+      collectionManifestPaths?: string[];
       author?: { name?: string; email?: string };
     }
   ): Promise<void> {
@@ -142,7 +148,17 @@ export class GitSyncManager {
         stagedTracked = true;
       }
     }
-    if (!stagedTracked && !bootstrapped) {
+    let stagedManifest = false;
+    for (const filepath of options?.collectionManifestPaths ?? []) {
+      const trimmed = filepath.trim().replace(/\\/g, '/');
+      if (!trimmed) {
+        continue;
+      }
+      if (await this.stagePathIncludingUntracked(trimmed)) {
+        stagedManifest = true;
+      }
+    }
+    if (!stagedTracked && !stagedManifest && !bootstrapped) {
       throw new Error('No changes to commit.');
     }
 
@@ -842,6 +858,28 @@ export class GitSyncManager {
       staged = true;
     }
     return staged;
+  }
+
+  /**
+   * Stages one repository-relative path when it has any working-tree change,
+   * including untracked files (unlike {@link stageTrackedChanges}).
+   *
+   * @param filepath - Path relative to the repository root.
+   * @returns Whether the path had changes that were staged.
+   */
+  private async stagePathIncludingUntracked(filepath: string): Promise<boolean> {
+    const normalized = filepath.replace(/\\/g, '/');
+    const matrix = await loadHarborStatusMatrix(this.#repoPath, this.harborSubdir());
+    const row = matrix.find(([path]) => path === normalized);
+    if (row == null) {
+      return false;
+    }
+    const flags = analyzeMatrixRow(row as GitMatrixRow);
+    if (flags == null) {
+      return false;
+    }
+    await this.stageMatrixRow(row as GitMatrixRow);
+    return true;
   }
 }
 

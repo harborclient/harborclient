@@ -366,6 +366,18 @@ export class RoutingStorage implements IStorage {
   }
 
   /**
+   * Stages every untracked request and markdown document in a git-backed collection.
+   *
+   * @param connectionId - Git connection id.
+   * @param collectionUuid - Stable collection uuid.
+   * @returns Number of items staged.
+   */
+  async stageAllUntrackedGitItems(connectionId: string, collectionUuid: string): Promise<number> {
+    const { gitDb, collection } = await this.resolveGitCollection(connectionId, collectionUuid);
+    return gitDb.stageAllUntrackedItems(collection.id);
+  }
+
+  /**
    * Unstages one request or markdown document in a git-backed collection.
    *
    * @param connectionId - Git connection id.

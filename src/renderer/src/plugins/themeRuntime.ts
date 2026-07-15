@@ -170,6 +170,43 @@ function buildThemeCss(
 }
 
 /**
+ * Returns whether a stylesheet value looks like a plugin-relative CSS filename.
+ *
+ * Inlined CSS (from theme import JSON) contains newlines or `{` and must be
+ * applied as literal text rather than loaded via `readPluginAsset`.
+ *
+ * @param stylesheet - Candidate stylesheet path or inlined CSS text.
+ * @returns True when the value should be read as a plugin asset file.
+ */
+export function isPluginStylesheetFilename(stylesheet: string): boolean {
+  const trimmed = stylesheet.trim();
+  if (!trimmed || trimmed.includes('\n') || trimmed.includes('{')) {
+    return false;
+  }
+  return /\.css$/i.test(trimmed) && trimmed.length < 512;
+}
+
+/**
+ * Resolves stylesheet text from either a plugin-relative `.css` path or inlined CSS.
+ *
+ * @param pluginId - Plugin manifest id.
+ * @param stylesheet - Filename or already-inlined CSS.
+ * @returns CSS text to inject, or empty string when unavailable.
+ */
+async function resolvePluginStylesheetText(pluginId: string, stylesheet: string): Promise<string> {
+  if (!isPluginStylesheetFilename(stylesheet)) {
+    return stylesheet;
+  }
+
+  try {
+    const asset = await window.api.readPluginAsset(pluginId, stylesheet.trim());
+    return atob(asset.content);
+  } catch {
+    return '';
+  }
+}
+
+/**
  * Applies a plugin theme to the document root and injects CSS overrides.
  *
  * @param pluginId - Plugin manifest id.
@@ -189,15 +226,9 @@ export async function applyPluginTheme(pluginId: string, themeId: string): Promi
   document.documentElement.setAttribute('data-theme', `plugin-${pluginId}-${themeId}`);
   clearInjectedThemeStyle();
 
-  let stylesheetText = theme.stylesheet ?? '';
-  if (theme.stylesheet) {
-    try {
-      const asset = await window.api.readPluginAsset(pluginId, theme.stylesheet);
-      stylesheetText = atob(asset.content);
-    } catch {
-      stylesheetText = '';
-    }
-  }
+  const stylesheetText = theme.stylesheet
+    ? await resolvePluginStylesheetText(pluginId, theme.stylesheet)
+    : '';
 
   const css = buildThemeCss(pluginId, themeId, theme.colors, stylesheetText);
   if (!css.trim()) {

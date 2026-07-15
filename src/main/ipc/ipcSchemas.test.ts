@@ -577,6 +577,16 @@ describe('git IPC schemas', () => {
     ).toBe(false);
   });
 
+  it('gitStageAllUntrackedItems accepts connection id and collection uuid', () => {
+    expect(
+      ipcArgSchemas.gitStageAllUntrackedItems.safeParse([validGitConnectionId, 'collection-uuid'])
+        .success
+    ).toBe(true);
+    expect(
+      ipcArgSchemas.gitStageAllUntrackedItems.safeParse([validGitConnectionId, '']).success
+    ).toBe(false);
+  });
+
   it('gitUnstageItem accepts connection id, collection uuid, and item uuid', () => {
     expect(
       ipcArgSchemas.gitUnstageItem.safeParse([

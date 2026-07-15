@@ -30,6 +30,7 @@ import { normalizeGitRemoteToHttps } from '#/shared/gitUrl';
 import { isAllowedExternalUrl } from '#/main/window/navigationSecurity';
 import { buildGitDiff, makeCollectionScopedFilter, type GitDiffResult } from '#/main/git/gitDiff';
 import { resolveHarborclientRoot } from '#/main/git/fileLayout';
+import { ensureBranchUpstream } from '#/main/git/branchUpstream';
 import { collectionDirName } from '#/main/git/slug';
 import { buildFileCommitDiff, readFileCommitHistory } from '#/main/git/gitFileHistory';
 import { readSuggestedGitAuthor } from '#/main/git/gitAuthorSuggestion';
@@ -222,6 +223,7 @@ export function registerGitHandlers(db: IStorage): void {
         createHarborRoot,
         collectionPrefix,
         additionalFilepaths: gitDb.getCollectionCommitDocumentPaths(collection.id),
+        collectionManifestPaths: [gitDb.getCollectionManifestRepoPath(collection.id)],
         author: { name: gitCommitAuthorName, email: gitCommitAuthorEmail }
       });
       gitDb.clearPendingHarborDocumentPaths(collection.id);
@@ -650,6 +652,16 @@ export function registerGitHandlers(db: IStorage): void {
     }
   );
 
+  // Stages every untracked request and markdown document in a git-backed collection.
+  handle(
+    'git:stageAllUntrackedItems',
+    ipcArgSchemas.gitStageAllUntrackedItems,
+    async (_event, connectionId, collectionUuid) => {
+      const router = requireRoutingStorage(db);
+      return router.stageAllUntrackedGitItems(connectionId, collectionUuid);
+    }
+  );
+
   // Unstages one request or markdown document in a git-backed collection.
   handle(
     'git:unstageItem',
@@ -771,6 +783,7 @@ export function registerGitHandlers(db: IStorage): void {
         url: trimmedUrl,
         force: true
       });
+      await ensureBranchUpstream(repoPath, defaultBranch);
     }
   });
 

@@ -95,11 +95,18 @@ export function GitSidebar(): JSX.Element {
       } catch (err) {
         handleRefresh();
         showAlert(dispatch, formatIpcErrorMessage(err, `${label} failed`), `${label} failed`, {
-          action: {
-            kind: 'openCollectionGitSettings',
-            label: 'Open Git settings',
-            collectionId: gitContext.collectionId
-          }
+          actions: [
+            {
+              kind: 'openCollectionGitSettings',
+              label: 'Open Git settings',
+              collectionId: gitContext.collectionId
+            },
+            {
+              kind: 'openGitRepoTerminal',
+              label: 'Open terminal',
+              connectionId: gitContext.connectionId
+            }
+          ]
         });
       } finally {
         setBusy(false);

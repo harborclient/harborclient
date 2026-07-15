@@ -88,7 +88,8 @@ export const customThemeExportSchema = z.object({
   harborclientExport: z.literal('theme'),
   theme: themeColorsRecordSchema,
   title: z.string().trim().min(1),
-  type: customThemeTypeSchema
+  type: customThemeTypeSchema,
+  stylesheet: z.string().optional()
 }) satisfies z.ZodType<CustomThemeExport>;
 
 /**

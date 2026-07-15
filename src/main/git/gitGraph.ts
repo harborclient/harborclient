@@ -232,8 +232,9 @@ async function readBlobTextAtCommit(
 /**
  * Classifies raw commit path changes into HarborClient file rows for the UI.
  *
- * Drops plumbing paths such as `.gitignore` and `collection.json`, labels request
- * and markdown files with friendly display names, and keeps environment/snippet rows.
+ * Drops plumbing paths such as `.gitignore`, labels request, document, and
+ * collection-manifest files with friendly display names, and keeps
+ * environment/snippet rows.
  *
  * @param repoPath - Absolute repository root.
  * @param harborSubdir - HarborClient subdirectory prefix.
@@ -258,11 +259,12 @@ async function classifyCommitFileChanges(
     if (classified.kind === 'other' && classified.fileName === '.gitignore') {
       continue;
     }
-    if (classified.kind === 'collectionMeta') {
-      continue;
-    }
 
-    if (classified.kind === 'request' || classified.kind === 'document') {
+    if (
+      classified.kind === 'request' ||
+      classified.kind === 'document' ||
+      classified.kind === 'collectionMeta'
+    ) {
       const contentOid = change.status === 'deleted' ? parentOid : oid;
       const contentText = await readBlobTextAtCommit(repoPath, contentOid, change.path);
       let manifestText: string | null = null;

@@ -27,9 +27,9 @@ export interface GitChangedFileRowFile {
   displayName?: string;
 
   /**
-   * HarborClient resource kind for request and document rows.
+   * HarborClient resource kind for request, document, and collection rows.
    */
-  resourceKind?: 'request' | 'document';
+  resourceKind?: 'request' | 'document' | 'collection';
 
   /**
    * HTTP method for request rows when resolved from file contents.

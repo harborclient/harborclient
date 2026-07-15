@@ -224,7 +224,7 @@ describe('buildGitDiff', () => {
     });
   });
 
-  it('scopes diffs to one collection folder and request/document paths only', async () => {
+  it('scopes diffs to one collection folder including request, document, and collection.json paths', async () => {
     const { repoPath } = await createTestRepo();
     const collectionDir = join(repoPath, '.harborclient', 'collection-api');
     mkdirSync(collectionDir, { recursive: true });
@@ -232,6 +232,7 @@ describe('buildGitDiff', () => {
       join(collectionDir, 'collection.json'),
       JSON.stringify({
         harborclientExport: 'collection',
+        name: 'API',
         documents: [{ file: 'Notes.md', uuid: 'x', name: 'Notes.md', folder_uuid: null }]
       })
     );
@@ -255,16 +256,21 @@ describe('buildGitDiff', () => {
 
     expect(diff.files.map((file) => file.path)).toEqual([
       '.harborclient/Notes.md',
+      '.harborclient/collection-api/collection.json',
       '.harborclient/collection-api/req-health.json'
     ]);
-    expect(diff.files[1]).toMatchObject({
-      displayName: 'Health Check',
-      resourceKind: 'request',
-      method: 'GET'
-    });
     expect(diff.files[0]).toMatchObject({
       displayName: 'Notes.md',
       resourceKind: 'document'
+    });
+    expect(diff.files[1]).toMatchObject({
+      displayName: 'API',
+      resourceKind: 'collection'
+    });
+    expect(diff.files[2]).toMatchObject({
+      displayName: 'Health Check',
+      resourceKind: 'request',
+      method: 'GET'
     });
   });
 

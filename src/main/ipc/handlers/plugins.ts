@@ -335,6 +335,12 @@ export function registerPluginHandlers(pluginManager: PluginManager): void {
     pluginManager.readAsset(pluginId, assetPath)
   );
 
+  handle(
+    'plugins:resolveThemeImport',
+    ipcArgSchemas.pluginResolveThemeImport,
+    (_event, pluginId, importPath) => pluginManager.resolveThemeImport(pluginId, importPath)
+  );
+
   handle('plugins:storageGet', ipcArgSchemas.pluginStorageKey, (_event, pluginId, key) =>
     pluginManager.getStorageValue(pluginId, key)
   );

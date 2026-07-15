@@ -71,11 +71,7 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
     (connectionId: string): void => {
       void dispatch(refreshGitWorkingTreeContents(connectionId))
         .unwrap()
-        .then((result) => {
-          if (result.refreshedCachedCollectionCount > 0) {
-            toast('Collection files updated from disk', { icon: '📁', duration: 4000 });
-          }
-
+        .then(() => {
           void window.api.listGitStatuses().then((statuses) => {
             const status = statuses[connectionId];
             if (status?.conflictCount > 0) {
@@ -275,6 +271,21 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
   );
 
   /**
+   * Stages every untracked request and markdown document in a git-backed collection.
+   */
+  const stageAllUntrackedItems = useCallback(
+    async (connectionId: string, collectionUuid: string): Promise<void> => {
+      try {
+        await window.api.gitStageAllUntrackedItems(connectionId, collectionUuid);
+        refreshGitSidebar();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [refreshGitSidebar]
+  );
+
+  /**
    * Unstages one request or markdown document in a git-backed collection.
    */
   const unstageItem = useCallback(
@@ -308,11 +319,18 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
       } catch (err) {
         refreshGitSidebar();
         showAlert(dispatch, formatIpcErrorMessage(err, `${label} failed`), `${label} failed`, {
-          action: {
-            kind: 'openCollectionGitSettings',
-            label: 'Open Git settings',
-            collectionId: activeGitContext.collectionId
-          }
+          actions: [
+            {
+              kind: 'openCollectionGitSettings',
+              label: 'Open Git settings',
+              collectionId: activeGitContext.collectionId
+            },
+            {
+              kind: 'openGitRepoTerminal',
+              label: 'Open terminal',
+              connectionId: activeGitContext.connectionId
+            }
+          ]
         });
       }
     },
@@ -410,6 +428,7 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
       refreshGitSidebar,
       refreshGitStatuses,
       stageItem,
+      stageAllUntrackedItems,
       unstageItem,
       commitActiveCollection,
       mergeActiveCollection,
@@ -439,6 +458,7 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
       refreshGitSidebar,
       refreshGitStatuses,
       stageItem,
+      stageAllUntrackedItems,
       unstageItem
     ]
   );

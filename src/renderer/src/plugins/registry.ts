@@ -15,7 +15,6 @@ import type {
   RegisteredSidebarPanel,
   RegisteredSidebarSection,
   RegisteredStatusBarItem,
-  ThemeContribution,
   Disposable
 } from '#/shared/plugin/types';
 
@@ -306,7 +305,10 @@ export function registerSettingsSectionContribution(
  * @param pluginId - Plugin manifest id.
  * @param theme - Theme contribution metadata.
  */
-export function registerThemeContribution(pluginId: string, theme: ThemeContribution): Disposable {
+export function registerThemeContribution(
+  pluginId: string,
+  theme: Omit<RegisteredPluginTheme, 'pluginId'>
+): Disposable {
   const entry: RegisteredPluginTheme = {
     pluginId,
     id: theme.id,

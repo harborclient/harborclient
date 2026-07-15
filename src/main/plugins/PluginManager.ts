@@ -36,13 +36,15 @@ import { assertSafeGitPluginUrl } from './gitPluginUrl';
 import { evaluatePluginSignature } from './pluginSignature';
 import type { PluginDatabaseManager } from './PluginDatabaseManager';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
+import { validateCustomThemeExport } from '#/shared/plugin/customThemeExport';
 import type {
   PluginAssetResult,
   PluginEntryKind,
   PluginInfo,
   PluginPermission,
   PluginSignatureInfo,
-  PluginSource
+  PluginSource,
+  ResolvedThemeImport
 } from '#/shared/plugin/types';
 
 const MANIFEST_FILENAME = 'manifest.json';
@@ -853,6 +855,58 @@ export class PluginManager {
   }
 
   /**
+   * Loads a theme JSON export referenced by `contributes.themes[].import`.
+   *
+   * On first read, when `stylesheet` points at an existing CSS file inside the
+   * plugin directory, that file is inlined into the JSON on disk so the theme
+   * becomes a single self-contained file for later reads.
+   *
+   * @param pluginId - Plugin manifest id.
+   * @param importPath - Plugin-relative path to the theme export JSON.
+   * @returns Resolved theme title, type, colors, and optional inlined stylesheet.
+   * @throws When the plugin is unknown, the import path is missing, or the JSON
+   *   is not a valid `harborclientExport: "theme"` envelope.
+   */
+  resolveThemeImport(pluginId: string, importPath: string): ResolvedThemeImport {
+    const record = this.#records.get(pluginId);
+    if (!record) {
+      throw new Error(`Unknown plugin: ${pluginId}`);
+    }
+
+    const absoluteJsonPath = this.#resolvePluginPath(record.info.path, importPath);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(readFileSync(absoluteJsonPath, 'utf8')) as unknown;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Invalid theme import JSON at ${importPath}: ${message}`);
+    }
+
+    const envelope = validateCustomThemeExport(parsed);
+
+    let stylesheet = envelope.stylesheet;
+    if (stylesheet) {
+      const cssPath = this.#tryResolveExistingPluginFile(record.info.path, stylesheet);
+      if (cssPath) {
+        const cssText = readFileSync(cssPath, 'utf8');
+        const inlinedEnvelope: typeof envelope = {
+          ...envelope,
+          stylesheet: cssText
+        };
+        writeFileSync(absoluteJsonPath, `${JSON.stringify(inlinedEnvelope, null, 2)}\n`, 'utf8');
+        stylesheet = cssText;
+      }
+    }
+
+    return {
+      title: envelope.title,
+      type: envelope.type,
+      colors: envelope.theme,
+      ...(stylesheet !== undefined ? { stylesheet } : {})
+    };
+  }
+
+  /**
    * Returns a plugin-scoped persisted value.
    *
    * @param pluginId - Plugin manifest id.
@@ -1083,6 +1137,31 @@ export class PluginManager {
       throw new Error(`Plugin asset not found: ${relativePath}`);
     }
     return absolutePath;
+  }
+
+  /**
+   * Resolves a plugin-relative path when it exists on disk, otherwise returns null.
+   *
+   * Used to distinguish stylesheet filenames from already-inlined CSS text when
+   * loading a theme import JSON.
+   *
+   * @param pluginRoot - Absolute plugin directory.
+   * @param relativePath - Candidate path relative to the plugin root.
+   * @returns Absolute path when the file exists inside the plugin root, else null.
+   */
+  #tryResolveExistingPluginFile(pluginRoot: string, relativePath: string): string | null {
+    if (!relativePath || relativePath.includes('\n') || relativePath.includes('{')) {
+      return null;
+    }
+    try {
+      const absolutePath = this.#resolvePathWithinRoot(pluginRoot, relativePath);
+      if (!existsSync(absolutePath)) {
+        return null;
+      }
+      return absolutePath;
+    } catch {
+      return null;
+    }
   }
 
   /**

@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import JSZip from 'jszip';
@@ -597,6 +597,67 @@ describe('PluginManager', () => {
     normalManager.discover();
     expect(normalManager.get('com.example.flagged')?.enabled).toBe(true);
     normalManager.dispose();
+  });
+
+  it('resolveThemeImport inlines styles.css into the JSON on first read', async () => {
+    const { manager, rootDir } = await createManager();
+    const pluginId = 'com.example.theme-import';
+    const pluginDir = join(rootDir, 'plugins', pluginId);
+    mkdirSync(pluginDir, { recursive: true });
+    writeFileSync(
+      join(pluginDir, 'manifest.json'),
+      JSON.stringify(
+        {
+          id: pluginId,
+          name: 'Theme Import',
+          version: '1.0.0',
+          engines: { harborclient: '>=1.0.0' },
+          permissions: ['ui'],
+          contributes: {
+            themes: [
+              {
+                id: 'solarized',
+                title: 'Solarized Dark',
+                type: 'dark',
+                import: 'exported.json'
+              }
+            ]
+          }
+        },
+        null,
+        2
+      )
+    );
+    const cssText = ':root { --mac-surface: #002b36; }\n';
+    writeFileSync(join(pluginDir, 'styles.css'), cssText);
+    writeFileSync(
+      join(pluginDir, 'exported.json'),
+      JSON.stringify(
+        {
+          harborclientVersion: 1,
+          harborclientExport: 'theme',
+          title: 'Solarized Dark',
+          type: 'dark',
+          theme: { surface: '#002b36', accent: '#268bd2' },
+          stylesheet: 'styles.css'
+        },
+        null,
+        2
+      )
+    );
+    manager.discover();
+
+    const first = manager.resolveThemeImport(pluginId, 'exported.json');
+    expect(first.colors).toEqual({ surface: '#002b36', accent: '#268bd2' });
+    expect(first.stylesheet).toBe(cssText);
+
+    const onDisk = JSON.parse(readFileSync(join(pluginDir, 'exported.json'), 'utf8')) as {
+      stylesheet?: string;
+    };
+    expect(onDisk.stylesheet).toBe(cssText);
+
+    const second = manager.resolveThemeImport(pluginId, 'exported.json');
+    expect(second.stylesheet).toBe(cssText);
   });
 });
 

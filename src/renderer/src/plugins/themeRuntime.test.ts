@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { buildBuiltinThemeCss, buildCustomThemeCss, resolveBuiltinThemeId } from './themeRuntime';
+import {
+  buildBuiltinThemeCss,
+  buildCustomThemeCss,
+  isPluginStylesheetFilename,
+  resolveBuiltinThemeId
+} from './themeRuntime';
 
 describe('buildCustomThemeCss', () => {
   it('maps custom theme tokens to --mac-* variables under data-theme=custom', () => {
@@ -51,6 +56,18 @@ describe('buildBuiltinThemeCss', () => {
     expect(css).toContain('color-scheme: dark;');
     expect(css).toContain('--mac-surface: #1e1e1e;');
     expect(css).toContain('--mac-accent: #0a84ff;');
+  });
+});
+
+describe('isPluginStylesheetFilename', () => {
+  it('accepts short plugin-relative .css paths', () => {
+    expect(isPluginStylesheetFilename('styles.css')).toBe(true);
+    expect(isPluginStylesheetFilename('dist/theme.css')).toBe(true);
+  });
+
+  it('rejects inlined CSS text', () => {
+    expect(isPluginStylesheetFilename(':root { --mac-surface: #000; }')).toBe(false);
+    expect(isPluginStylesheetFilename('line1\nline2')).toBe(false);
   });
 });
 

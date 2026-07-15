@@ -10,6 +10,7 @@ export type {
   PluginGitPreview,
   PluginInfo,
   PluginPermission,
+  ResolvedThemeImport,
   SerializableMenuContribution
 } from '#/shared/plugin/types';
 export type {

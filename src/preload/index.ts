@@ -56,6 +56,7 @@ import type {
   PluginCatalog,
   PluginSourcesSettings,
   TeamHubPluginSourcesView,
+  ResolvedThemeImport,
   SerializableMenuContribution,
   RequestExport,
   SaveDocumentInput,
@@ -2459,7 +2460,7 @@ function gitCommitFileDiff(args: {
   filePath: string;
   status: 'added' | 'modified' | 'deleted';
   displayName?: string;
-  resourceKind?: 'request' | 'document';
+  resourceKind?: 'request' | 'document' | 'collection';
   method?: string;
   maxChars?: number;
 }): Promise<import('#/shared/types').GitRequestDiffFileEntry> {
@@ -2570,6 +2571,17 @@ function gitStageItem(
   itemUuid: string
 ): Promise<void> {
   return ipcRenderer.invoke('git:stageItem', connectionId, collectionUuid, itemUuid);
+}
+
+/**
+ * Stages every untracked request and markdown document in a git-backed collection.
+ *
+ * @param connectionId - Git connection id.
+ * @param collectionUuid - Stable collection uuid.
+ * @returns Number of items staged.
+ */
+function gitStageAllUntrackedItems(connectionId: string, collectionUuid: string): Promise<number> {
+  return ipcRenderer.invoke('git:stageAllUntrackedItems', connectionId, collectionUuid);
 }
 
 /**
@@ -3366,6 +3378,18 @@ function readPluginAsset(pluginId: string, assetPath: string): Promise<PluginAss
 }
 
 /**
+ * Loads a theme JSON export referenced by `contributes.themes[].import`.
+ *
+ * On first read, inlines a referenced stylesheet file into the JSON on disk.
+ *
+ * @param pluginId - Plugin manifest id.
+ * @param importPath - Plugin-relative path to the theme export JSON.
+ */
+function resolveThemeImport(pluginId: string, importPath: string): Promise<ResolvedThemeImport> {
+  return ipcRenderer.invoke('plugins:resolveThemeImport', pluginId, importPath);
+}
+
+/**
  * Returns a plugin-scoped persisted value.
  *
  * @param pluginId - Plugin manifest id.
@@ -4015,6 +4039,7 @@ const api: Api = {
   gitListItemStatuses,
   gitChangedItemCount,
   gitStageItem,
+  gitStageAllUntrackedItems,
   gitUnstageItem,
   gitRevertFile,
   gitSetPat,
@@ -4098,6 +4123,7 @@ const api: Api = {
   removeUnpackedPlugin,
   readPluginEntry,
   readPluginAsset,
+  resolveThemeImport,
   getPluginStorage,
   setPluginStorage,
   pluginDatabaseQuery,

@@ -62,6 +62,14 @@ export interface SidebarGitContextValue {
   stageItem: (connectionId: string, collectionUuid: string, itemUuid: string) => Promise<void>;
 
   /**
+   * Stages every untracked request and markdown document in a git-backed collection.
+   *
+   * @param connectionId - Git connection id.
+   * @param collectionUuid - Stable collection uuid.
+   */
+  stageAllUntrackedItems: (connectionId: string, collectionUuid: string) => Promise<void>;
+
+  /**
    * Unstages one request or markdown document in a git-backed collection.
    *
    * @param connectionId - Git connection id.

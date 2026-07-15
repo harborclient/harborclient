@@ -259,7 +259,7 @@ export function GitCommitMessageSection({
       <FormGroup label="" className="p-0! border-none! mt-1">
         <div className="relative w-full">
           <Textarea
-            className="block min-h-[80px] w-full pr-12"
+            className="block min-h-[120px] w-full pr-12"
             value={message}
             disabled={busy || generatingMessage}
             onChange={(event) => setMessageDraft({ edited: true, value: event.target.value })}

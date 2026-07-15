@@ -68,7 +68,7 @@ describe('git graph', () => {
     expect(result.headCommitHash).toBeNull();
   });
 
-  it('filters plumbing paths and labels request files in commit details', async () => {
+  it('filters plumbing paths and labels request and collection manifest files in commit details', async () => {
     const { repoPath } = await createRepoWithHistory();
     const collectionDir = join(repoPath, '.harborclient', 'collection-api');
     mkdirSync(collectionDir, { recursive: true });
@@ -106,6 +106,13 @@ describe('git graph', () => {
     expect(detail.files).toEqual([
       expect.objectContaining({
         kind: 'file',
+        path: '.harborclient/collection-api/collection.json',
+        status: 'added',
+        displayName: 'API',
+        resourceKind: 'collection'
+      }),
+      expect.objectContaining({
+        kind: 'file',
         path: '.harborclient/collection-api/req-health.json',
         status: 'added',
         displayName: 'Health Check',
@@ -113,7 +120,6 @@ describe('git graph', () => {
         method: 'GET'
       })
     ]);
-    expect(detail.files.some((file) => file.path.endsWith('collection.json'))).toBe(false);
     expect(detail.files.some((file) => file.path.endsWith('.gitignore'))).toBe(false);
   });
 });

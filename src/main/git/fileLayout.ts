@@ -626,7 +626,7 @@ export function displayNameFromHarborChange(
   classified: ClassifiedHarborChangePath,
   contentText: string | null,
   manifestText: string | null = null
-): { displayName: string; resourceKind: 'request' | 'document'; method?: string } {
+): { displayName: string; resourceKind: 'request' | 'document' | 'collection'; method?: string } {
   if (classified.kind === 'request') {
     const parsedMeta = parseRequestMetaFromText(contentText);
     const fallback = classified.fileName.replace(/^req-/i, '').replace(/\.json$/i, '');
@@ -637,12 +637,37 @@ export function displayNameFromHarborChange(
     };
   }
 
+  if (classified.kind === 'collectionMeta') {
+    const collectionName = parseCollectionDisplayNameFromManifest(contentText);
+    return {
+      displayName: collectionName ?? 'Collection',
+      resourceKind: 'collection'
+    };
+  }
+
   const manifestName = parseDocumentDisplayNameFromManifest(manifestText, classified.fileName);
   const fallback = classified.fileName.replace(/\.md$/i, '');
   return {
     displayName: manifestName ?? fallback,
     resourceKind: 'document'
   };
+}
+
+/**
+ * Reads the collection display name from `collection.json` content.
+ *
+ * @param manifestText - Decoded `collection.json` text at the relevant git ref.
+ * @returns Trimmed collection name, or null when missing/unparseable.
+ */
+function parseCollectionDisplayNameFromManifest(manifestText: string | null): string | null {
+  if (manifestText == null || !manifestText.trim()) {
+    return null;
+  }
+  const parsed = parseJson(manifestText, null as { name?: string } | null);
+  if (parsed == null || typeof parsed.name !== 'string' || !parsed.name.trim()) {
+    return null;
+  }
+  return parsed.name.trim();
 }
 
 /**

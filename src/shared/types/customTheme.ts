@@ -63,6 +63,12 @@ export interface CustomThemeExport {
    * Base appearance mode for the theme.
    */
   type: CustomThemeType;
+
+  /**
+   * Optional extra CSS: either a plugin-relative stylesheet filename (e.g.
+   * `styles.css`) or the inlined CSS text after HarborClient's first read.
+   */
+  stylesheet?: string;
 }
 
 /**

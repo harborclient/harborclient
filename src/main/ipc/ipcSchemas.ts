@@ -889,7 +889,7 @@ export const ipcArgSchemas = {
       filePath: z.string().trim().min(1),
       status: z.enum(['added', 'modified', 'deleted']),
       displayName: z.string().optional(),
-      resourceKind: z.enum(['request', 'document']).optional(),
+      resourceKind: z.enum(['request', 'document', 'collection']).optional(),
       method: z.string().optional(),
       maxChars: z.number().int().positive().optional()
     })
@@ -934,6 +934,7 @@ export const ipcArgSchemas = {
   gitListItemStatuses: z.tuple([connectionId, z.string().trim().min(1)]),
   gitChangedItemCount: z.tuple([connectionId, z.string().trim().min(1)]),
   gitStageItem: z.tuple([connectionId, z.string().trim().min(1), z.string().trim().min(1)]),
+  gitStageAllUntrackedItems: z.tuple([connectionId, z.string().trim().min(1)]),
   gitUnstageItem: z.tuple([connectionId, z.string().trim().min(1), z.string().trim().min(1)]),
   gitRevertFile: z.tuple([
     connectionId,
@@ -970,6 +971,7 @@ export const ipcArgSchemas = {
   pluginSources: z.tuple([pluginSourcesSchema]),
   pluginReadEntry: z.tuple([pluginId, pluginEntryKind]),
   pluginReadAsset: z.tuple([pluginId, z.string().min(1)]),
+  pluginResolveThemeImport: z.tuple([pluginId, z.string().min(1)]),
   pluginStorageKey: z.tuple([pluginId, z.string().min(1)]),
   pluginStorageSet: z.tuple([pluginId, z.string().min(1), z.unknown()]),
   pluginDbQuery: z.tuple([

@@ -173,7 +173,7 @@ export interface ApiGit {
     filePath: string;
     status: 'added' | 'modified' | 'deleted';
     displayName?: string;
-    resourceKind?: 'request' | 'document';
+    resourceKind?: 'request' | 'document' | 'collection';
     method?: string;
     maxChars?: number;
   }) => Promise<import('#/shared/types').GitRequestDiffFileEntry>;
@@ -255,6 +255,14 @@ export interface ApiGit {
    * @param itemUuid - Stable request or document uuid.
    */
   gitStageItem: (connectionId: string, collectionUuid: string, itemUuid: string) => Promise<void>;
+  /**
+   * Stages every untracked request and markdown document in a git-backed collection.
+   *
+   * @param connectionId - Git connection id.
+   * @param collectionUuid - Stable collection uuid.
+   * @returns Number of items staged.
+   */
+  gitStageAllUntrackedItems: (connectionId: string, collectionUuid: string) => Promise<number>;
   /**
    * Unstages one request or markdown document in a git-backed collection.
    *

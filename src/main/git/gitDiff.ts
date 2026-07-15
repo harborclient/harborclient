@@ -92,7 +92,7 @@ export interface GitDiffFileEntry {
   /**
    * HarborClient resource kind for filtered Changes list rows.
    */
-  resourceKind?: 'request' | 'document';
+  resourceKind?: 'request' | 'document' | 'collection';
 
   /**
    * HTTP method for request rows when resolved from file contents.
@@ -221,7 +221,8 @@ export interface GitDiffOptions {
   filepathFilter?: (filepath: string) => boolean;
 
   /**
-   * When true, resolves `displayName` and `resourceKind` for request and document paths.
+   * When true, resolves `displayName` and `resourceKind` for request, document,
+   * and collection-manifest paths.
    */
   enrichDisplayNames?: boolean;
 
@@ -245,7 +246,11 @@ export function isCollectionScopedHarborChange(
   filepath?: string,
   ownedHarborDocumentPaths?: ReadonlySet<string>
 ): boolean {
-  if (classified.kind !== 'request' && classified.kind !== 'document') {
+  if (
+    classified.kind !== 'request' &&
+    classified.kind !== 'document' &&
+    classified.kind !== 'collectionMeta'
+  ) {
     return false;
   }
   if (classified.collectionDir === collectionDir) {
@@ -263,10 +268,10 @@ export function isCollectionScopedHarborChange(
 }
 
 /**
- * Returns a filepath filter that keeps only request/document changes for one collection.
+ * Returns a filepath filter that keeps only collection-scoped Harbor changes.
  *
- * Includes request/document files under the collection folder and harbor-root
- * markdown documents owned by the collection.
+ * Includes request/document files and `collection.json` under the collection
+ * folder, plus harbor-root markdown documents owned by the collection.
  *
  * @param harborSubdir - HarborClient subdirectory setting from sync status.
  * @param collectionDir - On-disk collection folder name (from `collectionDirName`).
@@ -414,9 +419,18 @@ async function resolveDiffDisplayMeta(
   status: GitDiffFileStatus,
   headText: string | null,
   compareText: string | null
-): Promise<{ displayName: string; resourceKind: 'request' | 'document'; method?: string } | null> {
+): Promise<{
+  displayName: string;
+  resourceKind: 'request' | 'document' | 'collection';
+  method?: string;
+} | null> {
   const classified = classifyHarborChangePath(filepath, harborSubdir);
-  if (classified == null || (classified.kind !== 'request' && classified.kind !== 'document')) {
+  if (
+    classified == null ||
+    (classified.kind !== 'request' &&
+      classified.kind !== 'document' &&
+      classified.kind !== 'collectionMeta')
+  ) {
     return null;
   }
 

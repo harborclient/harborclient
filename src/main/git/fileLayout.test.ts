@@ -344,6 +344,15 @@ describe('git file layout', () => {
       displayName: 'Read Me',
       resourceKind: 'document'
     });
+
+    const collectionMeta = displayNameFromHarborChange(
+      { kind: 'collectionMeta', collectionDir: 'collection-api', fileName: 'collection.json' },
+      JSON.stringify({ name: 'API', harborclientExport: 'collection' })
+    );
+    expect(collectionMeta).toEqual({
+      displayName: 'API',
+      resourceKind: 'collection'
+    });
   });
 
   it('rejects duplicate document filenames inside one collection folder', () => {

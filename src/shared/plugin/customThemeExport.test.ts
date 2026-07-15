@@ -82,6 +82,22 @@ describe('customThemeExport', () => {
     expect(result.success).toBe(false);
   });
 
+  it('accepts an optional stylesheet field on theme exports', () => {
+    const exportWithStylesheet = {
+      ...sampleExport,
+      stylesheet: 'styles.css'
+    };
+    expect(validateCustomThemeExport(exportWithStylesheet)).toEqual(exportWithStylesheet);
+  });
+
+  it('accepts inlined CSS as the stylesheet field', () => {
+    const exportWithInlinedCss = {
+      ...sampleExport,
+      stylesheet: ':root { --mac-surface: #000; }'
+    };
+    expect(validateCustomThemeExport(exportWithInlinedCss)).toEqual(exportWithInlinedCss);
+  });
+
   it('rejects export files with the wrong discriminator', () => {
     const result = customThemeExportSchema.safeParse({
       ...sampleExport,

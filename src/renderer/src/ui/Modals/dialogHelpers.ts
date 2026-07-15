@@ -5,7 +5,9 @@ import {
   setConfirmModal,
   type AlertModalAction
 } from '#/renderer/src/store/slices/modalsSlice';
+import { setShowTerminal } from '#/renderer/src/store/slices/navigationSlice';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
+import { addTerminal, setTerminalCwd } from '#/renderer/src/store/slices/terminalsSlice';
 
 /**
  * Options for a custom confirmation dialog.
@@ -43,8 +45,8 @@ export interface ConfirmResult {
 export interface AlertOptions {
   /** When set, shows a decorative warning icon beside the dialog content. */
   icon?: 'warning';
-  /** Optional remediation button shown beside OK. */
-  action?: AlertModalAction;
+  /** Optional remediation buttons shown beside OK. */
+  actions?: AlertModalAction[];
 }
 
 let confirmResolver: ((confirmed: boolean, checkboxChecked: boolean) => void) | null = null;
@@ -83,7 +85,7 @@ export function formatIpcErrorMessage(err: unknown, fallback: string): string {
  * @param dispatch - Redux dispatch for modal state.
  * @param message - Body text shown in the dialog.
  * @param title - Dialog heading (defaults to "Error").
- * @param options - Optional presentation overrides such as a warning icon or action.
+ * @param options - Optional presentation overrides such as a warning icon or actions.
  */
 export function showAlert(
   dispatch: AppDispatch,
@@ -91,7 +93,7 @@ export function showAlert(
   title = 'Error',
   options?: AlertOptions
 ): void {
-  dispatch(setAlertModal({ title, message, icon: options?.icon, action: options?.action }));
+  dispatch(setAlertModal({ title, message, icon: options?.icon, actions: options?.actions }));
 }
 
 /**
@@ -102,6 +104,43 @@ export function showAlert(
  */
 export function openCollectionGitSettings(dispatch: AppDispatch, collectionId: number): void {
   dispatch(openPageTab({ type: 'collection', id: collectionId, focusSection: 'git' }));
+}
+
+/**
+ * Opens the footer terminal panel rooted at a git connection's repository path.
+ *
+ * Resolves `repoPath` from storage connections, shows the terminal panel, then
+ * either updates the active tab's cwd or creates a new tab with that cwd so the
+ * PTY spawns in the repo directory.
+ *
+ * @param dispatch - Redux dispatch for navigation and terminal state.
+ * @param connectionId - Git storage connection id whose repo path should be used.
+ * @param activeTerminalId - Active terminal tab id when one already exists; otherwise null.
+ */
+export async function openGitRepoTerminal(
+  dispatch: AppDispatch,
+  connectionId: string,
+  activeTerminalId: string | null
+): Promise<void> {
+  const connections = await window.api.listStorageConnections();
+  const connection = connections.find((item) => item.id === connectionId);
+  if (connection == null || connection.type !== 'git') {
+    return;
+  }
+
+  const repoPath = connection.settings.repoPath.trim();
+  if (repoPath.length === 0) {
+    return;
+  }
+
+  dispatch(setShowTerminal(true));
+
+  if (activeTerminalId != null) {
+    dispatch(setTerminalCwd({ id: activeTerminalId, cwd: repoPath }));
+    return;
+  }
+
+  dispatch(addTerminal({ cwd: repoPath }));
 }
 
 /**

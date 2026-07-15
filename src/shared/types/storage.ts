@@ -444,9 +444,9 @@ export interface GitCommitPlainFileChange {
   displayName?: string;
 
   /**
-   * HarborClient resource kind for request and document rows.
+   * HarborClient resource kind for request, document, and collection rows.
    */
-  resourceKind?: 'request' | 'document';
+  resourceKind?: 'request' | 'document' | 'collection';
 
   /**
    * HTTP method for request rows when resolved from commit contents.
@@ -639,7 +639,7 @@ export interface GitRequestDiffFileEntry {
   /**
    * HarborClient resource kind for filtered Changes list rows.
    */
-  resourceKind?: 'request' | 'document';
+  resourceKind?: 'request' | 'document' | 'collection';
 
   /**
    * HTTP method for request rows when resolved from file contents.

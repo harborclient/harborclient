@@ -80,6 +80,12 @@ interface Props {
    * Clears request/folder/collection selection scoped to this collection.
    */
   onDeselectAll: () => void;
+
+  /**
+   * Number of untracked request/document items in this collection, used to
+   * enable or disable the Git "Add all" menu action.
+   */
+  untrackedItemCount: number;
 }
 
 /**
@@ -134,7 +140,8 @@ export function ActionsMenu({
   canShare,
   onMove,
   hasDeselectableSelection,
-  onDeselectAll
+  onDeselectAll,
+  untrackedItemCount
 }: Props): JSX.Element {
   const confirm = useConfirm();
   const { aiAvailable, copyToChat } = useCopyToChat();
@@ -156,7 +163,8 @@ export function ActionsMenu({
   const {
     openSourceControl: onOpenSourceControl,
     openCreateBranch: onOpenCreateBranch,
-    openMergeBranch: onOpenMergeBranch
+    openMergeBranch: onOpenMergeBranch,
+    stageAllUntrackedItems: onStageAllUntrackedItems
   } = useSidebarGit();
 
   const menuId = `collection-${collection.id}`;
@@ -208,6 +216,13 @@ export function ActionsMenu({
               label: 'Merge',
               onSelect: () =>
                 onOpenMergeBranch(collectionConnectionId, connectionName, collection.uuid)
+            }
+          ],
+          [
+            {
+              label: 'Add all',
+              disabled: untrackedItemCount === 0,
+              onSelect: () => void onStageAllUntrackedItems(collectionConnectionId, collection.uuid)
             }
           ]
         ]
@@ -332,7 +347,9 @@ export function ActionsMenu({
     onRunCollection,
     onSaveAllInCollection,
     onShareCollection,
-    pluginContextMenuItems
+    onStageAllUntrackedItems,
+    pluginContextMenuItems,
+    untrackedItemCount
   ]);
 
   return (

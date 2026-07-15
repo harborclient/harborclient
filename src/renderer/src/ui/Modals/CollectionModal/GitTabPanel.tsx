@@ -65,9 +65,24 @@ export function GitTabPanel({
   const repoPath = settings.repoPath.trim();
   const gitDraftRef = useRef(gitDraft);
   const pendingRepoPathRef = useRef<string | null>(null);
+  /**
+   * Trimmed path committed for `gitIsRepo` checks — updated on blur or Browse only,
+   * so keystrokes do not re-query and flicker the Initialize section.
+   */
+  const [repoPathToCheck, setRepoPathToCheck] = useState('');
   const [checkedRepoPath, setCheckedRepoPath] = useState<string | null>(null);
   const [checkedIsRepo, setCheckedIsRepo] = useState<boolean | null>(null);
-  const isRepo = repoPath.length === 0 ? null : checkedRepoPath === repoPath ? checkedIsRepo : null;
+  /**
+   * Whether the repository path is a git working tree.
+   * While the user is still typing (live path differs from the last blur/Browse
+   * check), reuse the previous result so the Initialize section stays stable.
+   */
+  const isRepo =
+    repoPath.length === 0
+      ? null
+      : checkedRepoPath != null && checkedIsRepo != null
+        ? checkedIsRepo
+        : null;
   const [initGitRepo, setInitGitRepo] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [pendingCreate, setPendingCreate] = useState(false);
@@ -118,17 +133,18 @@ export function GitTabPanel({
   );
 
   /**
-   * Tracks whether the current repository path is already a git working tree.
+   * Tracks whether the committed repository path (from blur or Browse) is already
+   * a git working tree. Deferred so the Initialize section does not flicker while typing.
    */
   useEffect(() => {
-    if (!repoPath) {
+    if (!repoPathToCheck) {
       return;
     }
 
     let cancelled = false;
-    void window.api.gitIsRepo(repoPath).then((value) => {
+    void window.api.gitIsRepo(repoPathToCheck).then((value) => {
       if (!cancelled) {
-        setCheckedRepoPath(repoPath);
+        setCheckedRepoPath(repoPathToCheck);
         setCheckedIsRepo(value);
         if (value) {
           setInitGitRepo(false);
@@ -139,7 +155,22 @@ export function GitTabPanel({
     return () => {
       cancelled = true;
     };
-  }, [repoPath]);
+  }, [repoPathToCheck]);
+
+  /**
+   * Commits the repository path for git-working-tree detection after blur or Browse.
+   * Clears any prior check when the path is emptied so the Initialize section hides.
+   *
+   * @param path - Repository path to validate (trimmed before comparison).
+   */
+  const commitRepoPathCheck = useCallback((path: string): void => {
+    const trimmed = path.trim();
+    setRepoPathToCheck(trimmed);
+    if (!trimmed) {
+      setCheckedRepoPath(null);
+      setCheckedIsRepo(null);
+    }
+  }, []);
 
   /**
    * Returns whether a saved identity exists for the repository host.
@@ -205,66 +236,89 @@ export function GitTabPanel({
   return (
     <>
       <div className="flex flex-col gap-4">
-        <FormGroup label="Collection name" labelTone="muted">
-          <Input
-            className="w-full"
-            type="text"
-            autoFocus
-            value={name}
-            disabled={busy}
-            onChange={(event) => onNameChange(event.target.value)}
-          />
-        </FormGroup>
-
-        <FormGroup label="Repository path" htmlFor={repoPathId} labelTone="muted">
-          <div className="flex gap-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <FormGroup label="Collection name" labelTone="muted">
             <Input
-              id={repoPathId}
+              className="w-full"
               type="text"
-              className="min-w-0 flex-1"
-              value={settings.repoPath}
+              autoFocus
+              value={name}
               disabled={busy}
-              placeholder="/path/to/your/repo"
-              onChange={(event) => {
-                void applyRepoPath(event.target.value);
-              }}
+              onChange={(event) => onNameChange(event.target.value)}
             />
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={busy}
-              onClick={() => {
-                void window.api.selectDirectory(settings.repoPath).then((selected) => {
-                  if (selected != null) {
-                    void applyRepoPath(selected);
-                  }
-                });
-              }}
-            >
-              Browse
-            </Button>
-          </div>
-        </FormGroup>
+          </FormGroup>
 
-        <FormGroup
-          label="Repository URL (HTTPS)"
-          labelTone="muted"
-          description="SSH remotes are not supported; use an HTTPS URL and a token or GitHub OAuth."
-        >
-          <Input
-            type="url"
-            className="w-full"
-            value={settings.url}
-            disabled={busy}
-            placeholder="https://github.com/org/repo.git"
-            onChange={(event) =>
-              onGitDraftChange({
-                ...gitDraft,
-                settings: { ...settings, url: event.target.value }
-              })
-            }
-          />
-        </FormGroup>
+          <FormGroup label="Repository path" htmlFor={repoPathId} labelTone="muted">
+            <div className="flex gap-2">
+              <Input
+                id={repoPathId}
+                type="text"
+                className="min-w-0 flex-1"
+                value={settings.repoPath}
+                disabled={busy}
+                placeholder="/path/to/your/repo"
+                onChange={(event) => {
+                  void applyRepoPath(event.target.value);
+                }}
+                onBlur={(event) => {
+                  commitRepoPathCheck(event.target.value);
+                }}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => {
+                  void window.api.selectDirectory(settings.repoPath).then((selected) => {
+                    if (selected != null) {
+                      void applyRepoPath(selected);
+                      commitRepoPathCheck(selected);
+                    }
+                  });
+                }}
+              >
+                Browse
+              </Button>
+            </div>
+          </FormGroup>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <FormGroup
+            label="Repository URL (HTTPS)"
+            labelTone="muted"
+            description="SSH remotes are not supported; use an HTTPS URL and a token or GitHub OAuth."
+          >
+            <Input
+              type="url"
+              className="w-full"
+              value={settings.url}
+              disabled={busy}
+              placeholder="https://github.com/org/repo.git"
+              onChange={(event) =>
+                onGitDraftChange({
+                  ...gitDraft,
+                  settings: { ...settings, url: event.target.value }
+                })
+              }
+            />
+          </FormGroup>
+
+          <FormGroup label="Branch" labelTone="muted">
+            <Input
+              type="text"
+              className="w-full"
+              value={settings.branch}
+              disabled={busy}
+              onChange={(event) =>
+                onGitDraftChange({
+                  ...gitDraft,
+                  settings: { ...settings, branch: event.target.value }
+                })
+              }
+            />
+          </FormGroup>
+        </div>
 
         {isRepo === false && repoPath.length > 0 ? (
           <FormGroup
@@ -304,21 +358,6 @@ export function GitTabPanel({
               onGitDraftChange({
                 ...gitDraft,
                 settings: { ...settings, subdir: event.target.value }
-              })
-            }
-          />
-        </FormGroup>
-
-        <FormGroup label="Branch" labelTone="muted">
-          <Input
-            type="text"
-            className="w-full"
-            value={settings.branch}
-            disabled={busy}
-            onChange={(event) =>
-              onGitDraftChange({
-                ...gitDraft,
-                settings: { ...settings, branch: event.target.value }
               })
             }
           />

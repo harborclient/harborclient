@@ -50,6 +50,7 @@ describe('gitCommitChangeDisplay', () => {
       'Health Check'
     );
     expect(gitResourceKindLabel('document')).toBe('document');
+    expect(gitResourceKindLabel('collection')).toBe('collection');
   });
 
   it('maps collection item git status to muted name classes', () => {

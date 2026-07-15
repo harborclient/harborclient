@@ -42,6 +42,21 @@ describe('buildGitChangedFileRowPresentation', () => {
     expect(presentation.rowAriaLabel).toBe('README, document, added in commit');
   });
 
+  it('uses collection resource kind in accessible labels', () => {
+    const presentation = buildGitChangedFileRowPresentation(
+      {
+        path: '.harborclient/collection-api/collection.json',
+        status: 'modified',
+        displayName: 'API',
+        resourceKind: 'collection'
+      },
+      false
+    );
+
+    expect(presentation.displayLabel).toBe('API');
+    expect(presentation.rowAriaLabel).toBe('API, collection, modified in commit');
+  });
+
   it('falls back to path labels for plain file rows', () => {
     const presentation = buildGitChangedFileRowPresentation(
       {

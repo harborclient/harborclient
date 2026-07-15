@@ -35,6 +35,7 @@ import {
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import { useSidebarProviders } from '#/renderer/src/ui/Sidebars/CollectionSidebar/providers/sidebarProvidersContext';
 import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/sidebarGitContext';
+import { countUntrackedCollectionItems } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/countUntrackedCollectionItems';
 import { useSidebarSearchContext } from '#/renderer/src/ui/Sidebars/CollectionSidebar/search/sidebarSearchContext';
 import { useCollectionActions } from '#/renderer/src/ui/Sidebars/CollectionSidebar/actions/useCollectionActions';
 import { closeSidebarContentTabs } from '#/renderer/src/store/thunks/sidebarDeselect';
@@ -818,6 +819,14 @@ export function Collections(): JSX.Element {
               const connectionType = connectionTypesById[collectionConnectionId];
               const gitStatus = gitStatusesByConnectionId[collectionConnectionId];
               const collectionChangedCount = changedItemCountByCollectionUuid[collection.uuid] ?? 0;
+              const untrackedItemCount =
+                connectionType === 'git'
+                  ? countUntrackedCollectionItems(
+                      requestsByCollection[collection.id] ?? [],
+                      documentsByCollection[collection.id] ?? [],
+                      itemGitStatusByUuid
+                    )
+                  : 0;
               const canShare =
                 connectionType != null && connectionType !== 'sqlite' && connectionType !== 'git';
               const folderIds = folders.map((folder) => folderDragId(folder.id));
@@ -959,6 +968,7 @@ export function Collections(): JSX.Element {
                           }
                         )}
                         onDeselectAll={() => handleDeselectAllInCollection(collection.id)}
+                        untrackedItemCount={untrackedItemCount}
                       />
                     </div>
                   </SortableRow>

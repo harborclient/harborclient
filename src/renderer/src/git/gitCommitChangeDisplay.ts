@@ -89,14 +89,19 @@ export function gitCommitChangeAccessibleLabel(status: GitCommitChangeStatus): s
 /**
  * Returns a short resource-kind label for git sidebar rows.
  *
- * @param resourceKind - Request or document discriminator when known.
+ * @param resourceKind - Request, document, or collection discriminator when known.
  */
-export function gitResourceKindLabel(resourceKind?: 'request' | 'document'): string | null {
+export function gitResourceKindLabel(
+  resourceKind?: 'request' | 'document' | 'collection'
+): string | null {
   if (resourceKind === 'request') {
     return 'request';
   }
   if (resourceKind === 'document') {
     return 'document';
+  }
+  if (resourceKind === 'collection') {
+    return 'collection';
   }
   return null;
 }
@@ -123,7 +128,7 @@ export function buildGitCommitFileAccessibleName(
   filePath: string,
   status: GitCommitChangeStatus,
   displayName?: string,
-  resourceKind?: 'request' | 'document'
+  resourceKind?: 'request' | 'document' | 'collection'
 ): string {
   const label = resolveGitChangeDisplayLabel(filePath, displayName);
   const kindLabel = gitResourceKindLabel(resourceKind);

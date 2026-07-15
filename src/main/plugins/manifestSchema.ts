@@ -9,7 +9,9 @@ const contributionEntry = z.object({
 });
 
 const themeContributionEntry = contributionEntry.extend({
-  type: z.enum(['light', 'dark', 'high-contrast'])
+  type: z.enum(['light', 'dark', 'high-contrast']),
+  /** Optional path to a `harborclientExport: "theme"` JSON file relative to the plugin root. */
+  import: z.string().min(1).optional()
 });
 
 const pluginPermission = z.enum([
@@ -144,8 +146,13 @@ export function satisfiesHarborClientEngine(range: string, appVersion: string): 
  */
 export function validatePluginManifest(raw: unknown, appVersion: string): PluginManifest {
   const manifest = parsePluginManifest(raw);
-  if (!manifest.renderer && !manifest.main) {
-    throw new Error('Plugin manifest must declare at least one of "renderer" or "main".');
+  const hasImportTheme = (manifest.contributes?.themes ?? []).some((theme) =>
+    Boolean(theme.import)
+  );
+  if (!manifest.renderer && !manifest.main && !hasImportTheme) {
+    throw new Error(
+      'Plugin manifest must declare at least one of "renderer", "main", or an imported theme.'
+    );
   }
   if (!satisfiesHarborClientEngine(manifest.engines.harborclient, appVersion)) {
     throw new Error(

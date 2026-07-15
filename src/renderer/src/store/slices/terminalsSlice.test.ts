@@ -5,6 +5,7 @@ import terminalsReducer, {
   removeTerminal,
   renameTerminal,
   setActiveTerminal,
+  setTerminalCwd,
   setTerminalSelection
 } from './terminalsSlice';
 
@@ -21,7 +22,24 @@ describe('terminalsSlice', () => {
     const state = terminalsReducer(undefined, addTerminal());
     expect(state.terminals).toHaveLength(1);
     expect(state.terminals[0]?.title).toBe('Terminal 1');
+    expect(state.terminals[0]?.cwd).toBe('');
     expect(state.activeTerminalId).toBe(state.terminals[0]?.id);
+  });
+
+  it('adds a terminal tab with an optional working directory', () => {
+    const state = terminalsReducer(undefined, addTerminal({ cwd: '/tmp/repo' }));
+    expect(state.terminals).toHaveLength(1);
+    expect(state.terminals[0]?.cwd).toBe('/tmp/repo');
+  });
+
+  it('updates the working directory of the active terminal', () => {
+    let state = terminalsReducer(undefined, addTerminal());
+    const id = state.terminals[0]?.id;
+    state = terminalsReducer(state, setTerminalCwd({ cwd: '/media/sean/work/repo' }));
+    expect(state.terminals[0]?.cwd).toBe('/media/sean/work/repo');
+
+    state = terminalsReducer(state, setTerminalCwd({ id, cwd: '  /other  ' }));
+    expect(state.terminals[0]?.cwd).toBe('/other');
   });
 
   it('removes the active terminal and selects a neighbor', () => {

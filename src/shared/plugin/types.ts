@@ -79,7 +79,17 @@ export interface PluginManifest {
     scriptEditorActions?: ManifestContributionEntry[];
     contextMenus?: ManifestContributionEntry[];
     statusBarItems?: ManifestContributionEntry[];
-    themes?: Array<ManifestContributionEntry & { type: 'light' | 'dark' | 'high-contrast' }>;
+    themes?: Array<
+      ManifestContributionEntry & {
+        type: 'light' | 'dark' | 'high-contrast';
+        /**
+         * Optional path to a `harborclientExport: "theme"` JSON file relative
+         * to the plugin root. When set, HarborClient loads colors and
+         * stylesheet from that file and auto-registers the theme.
+         */
+        import?: string;
+      }
+    >;
     commands?: ManifestContributionEntry[];
     menus?: Array<{
       menu: 'file' | 'edit' | 'view' | 'help';
@@ -155,6 +165,22 @@ export type PluginEntryKind = 'renderer' | 'main';
 export interface PluginAssetResult {
   content: string;
   mimeType: string;
+}
+
+/**
+ * Resolved theme payload from a manifest `contributes.themes[].import` JSON file.
+ *
+ * After the first read, HarborClient inlines any referenced stylesheet file into
+ * the JSON on disk so subsequent reads return CSS text rather than a filename.
+ */
+export interface ResolvedThemeImport {
+  title: string;
+  type: 'light' | 'dark' | 'high-contrast';
+  colors: Partial<Record<ThemeColorToken, string>>;
+  /**
+   * Inlined CSS text, or undefined when the export has no stylesheet.
+   */
+  stylesheet?: string;
 }
 
 /**

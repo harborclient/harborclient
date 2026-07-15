@@ -7,6 +7,7 @@ import type {
   PluginFsSaveFileOptions,
   PluginGitPreview,
   PluginInfo,
+  ResolvedThemeImport,
   SerializableMenuContribution
 } from '#/shared/plugin/types';
 import type { TeamHubPluginSourcesView } from '#/shared/types/teamHub';
@@ -126,6 +127,15 @@ export interface ApiPlugins {
    * @param assetPath - Plugin-relative asset path.
    */
   readPluginAsset: (pluginId: string, assetPath: string) => Promise<PluginAssetResult>;
+  /**
+   * Loads a theme JSON export referenced by `contributes.themes[].import`.
+   *
+   * On first read, inlines a referenced stylesheet file into the JSON on disk.
+   *
+   * @param pluginId - Plugin manifest id.
+   * @param importPath - Plugin-relative path to the theme export JSON.
+   */
+  resolveThemeImport: (pluginId: string, importPath: string) => Promise<ResolvedThemeImport>;
   /**
    * Returns a plugin-scoped persisted value.
    *

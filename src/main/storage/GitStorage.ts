@@ -9,6 +9,7 @@ import {
 } from '#/main/git/idIndex';
 import {
   buildExistingRequestFileMap,
+  COLLECTION_MANIFEST_FILE,
   collectionDirPath,
   collectionManifestPath,
   createStoredFolder,
@@ -376,7 +377,26 @@ export class GitStorage implements IStorage {
     const id = assignGitId(this.#idIndex, 'collectionIds', 'nextCollectionId', uuid);
     this.#collections.set(id, { dirPath, manifest, requests: [], documents: [] });
     saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
+    await this.stageCollectionManifest(dirPath);
     return this.manifestToCollection(id, manifest);
+  }
+
+  /**
+   * Stages `collection.json` for a collection directory so the manifest is
+   * tracked as soon as the collection exists on disk.
+   *
+   * Failures are logged and swallowed so a git problem never blocks creating
+   * the collection itself.
+   *
+   * @param dirPath - Absolute path to the collection folder on disk.
+   */
+  private async stageCollectionManifest(dirPath: string): Promise<void> {
+    const manifestRepoPath = this.toRepoRelativePath(collectionManifestPath(dirPath));
+    try {
+      await this.#sync.stageFile(manifestRepoPath);
+    } catch (error) {
+      console.error(`Failed to stage collection manifest "${manifestRepoPath}" for git:`, error);
+    }
   }
 
   /**
@@ -1627,8 +1647,9 @@ export class GitStorage implements IStorage {
   }
 
   /**
-   * Returns the number of changed request and document files in one collection,
-   * including deletions that {@link getItemGitStatuses} cannot map to item uuids.
+   * Returns the number of changed request, document, and collection-manifest
+   * files in one collection, including deletions that
+   * {@link getItemGitStatuses} cannot map to item uuids.
    *
    * @param collectionId - Provider-local collection id.
    */
@@ -1641,7 +1662,10 @@ export class GitStorage implements IStorage {
 
     for (const [repoPath, flags] of Object.entries(pathFlags)) {
       const rel = repoPath.slice(collectionPrefix.length + 1);
-      if (isCollectionRequestOrDocumentFile(rel) && isCountedCollectionChange(flags)) {
+      if (
+        (isCollectionRequestOrDocumentFile(rel) || rel === COLLECTION_MANIFEST_FILE) &&
+        isCountedCollectionChange(flags)
+      ) {
         countedPaths.add(repoPath);
         count += 1;
       }
@@ -1670,6 +1694,16 @@ export class GitStorage implements IStorage {
   getCollectionRepoRelativePath(collectionId: number): string {
     const loaded = this.requireCollection(collectionId);
     return this.toRepoRelativePath(loaded.dirPath);
+  }
+
+  /**
+   * Returns the repository-relative path to a collection's `collection.json` manifest.
+   *
+   * @param collectionId - Provider-local collection id.
+   */
+  getCollectionManifestRepoPath(collectionId: number): string {
+    const loaded = this.requireCollection(collectionId);
+    return this.toRepoRelativePath(collectionManifestPath(loaded.dirPath));
   }
 
   /**
@@ -1727,6 +1761,28 @@ export class GitStorage implements IStorage {
   async stageItem(collectionId: number, itemUuid: string): Promise<void> {
     const repoPath = this.getItemRepoPath(collectionId, itemUuid);
     await this.#sync.stageFile(repoPath);
+  }
+
+  /**
+   * Stages every untracked request and markdown document in a collection.
+   *
+   * Only items with `isUntracked: true` are staged; tracked files with unstaged
+   * modifications are left alone so "Add all" matches per-item Add.
+   *
+   * @param collectionId - Provider-local collection id.
+   * @returns Number of items staged.
+   */
+  async stageAllUntrackedItems(collectionId: number): Promise<number> {
+    const statuses = await this.getItemGitStatuses(collectionId);
+    const untrackedUuids = Object.entries(statuses)
+      .filter(([, status]) => status.isUntracked)
+      .map(([uuid]) => uuid);
+
+    for (const uuid of untrackedUuids) {
+      await this.stageItem(collectionId, uuid);
+    }
+
+    return untrackedUuids.length;
   }
 
   /**

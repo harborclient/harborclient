@@ -3,15 +3,24 @@ import { useCallback, type JSX } from 'react';
 
 import { faCircleExclamation } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
-import { selectAlertModal, setAlertModal } from '#/renderer/src/store/slices/modalsSlice';
-import { openCollectionGitSettings } from '#/renderer/src/ui/Modals/dialogHelpers';
+import {
+  selectAlertModal,
+  setAlertModal,
+  type AlertModalAction
+} from '#/renderer/src/store/slices/modalsSlice';
+import { selectActiveTerminalId } from '#/renderer/src/store/slices/terminalsSlice';
+import {
+  openCollectionGitSettings,
+  openGitRepoTerminal
+} from '#/renderer/src/ui/Modals/dialogHelpers';
 
 /**
- * Blocking alert dialog with OK and an optional remediation action button.
+ * Blocking alert dialog with OK and optional remediation action buttons.
  */
 export function AlertModal(): JSX.Element | null {
   const dispatch = useAppDispatch();
   const alertModal = useAppSelector(selectAlertModal);
+  const activeTerminalId = useAppSelector(selectActiveTerminalId);
 
   /**
    * Dismisses the alert dialog.
@@ -21,20 +30,25 @@ export function AlertModal(): JSX.Element | null {
   }, [dispatch]);
 
   /**
-   * Runs the optional alert action after closing the dialog.
+   * Runs one remediation action after closing the dialog.
+   *
+   * @param action - Alert footer action to execute.
    */
-  const handleAction = useCallback((): void => {
-    if (alertModal?.action == null) {
-      return;
-    }
+  const handleAction = useCallback(
+    (action: AlertModalAction): void => {
+      dispatch(setAlertModal(null));
 
-    const { action } = alertModal;
-    dispatch(setAlertModal(null));
+      if (action.kind === 'openCollectionGitSettings') {
+        openCollectionGitSettings(dispatch, action.collectionId);
+        return;
+      }
 
-    if (action.kind === 'openCollectionGitSettings') {
-      openCollectionGitSettings(dispatch, action.collectionId);
-    }
-  }, [alertModal, dispatch]);
+      if (action.kind === 'openGitRepoTerminal') {
+        void openGitRepoTerminal(dispatch, action.connectionId, activeTerminalId);
+      }
+    },
+    [activeTerminalId, dispatch]
+  );
 
   if (!alertModal) return null;
 
@@ -48,6 +62,8 @@ export function AlertModal(): JSX.Element | null {
       <p className="text-muted">{alertModal.message}</p>
     );
 
+  const actions = alertModal.actions ?? [];
+
   return (
     <Modal
       className="w-150"
@@ -57,11 +73,15 @@ export function AlertModal(): JSX.Element | null {
     >
       {body}
       <ModalFooter spaced>
-        {alertModal.action ? (
-          <Button type="button" onClick={handleAction}>
-            {alertModal.action.label}
+        {actions.map((action) => (
+          <Button
+            key={`${action.kind}-${action.label}`}
+            type="button"
+            onClick={() => handleAction(action)}
+          >
+            {action.label}
           </Button>
-        ) : null}
+        ))}
         <Button type="button" variant="secondary" onClick={handleClose}>
           OK
         </Button>

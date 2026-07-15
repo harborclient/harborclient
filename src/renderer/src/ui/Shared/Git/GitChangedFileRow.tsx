@@ -5,6 +5,7 @@ import {
   SidebarStatusMarker,
   SIDEBAR_ITEM_BUTTON_CLASS
 } from '@harborclient/sdk/components';
+import { faFolder } from '@fortawesome/free-solid-svg-icons';
 import { useMemo, type JSX, type MouseEvent, type ReactNode } from 'react';
 import { faMarkdown } from '#/renderer/src/fontawesome';
 import {
@@ -77,6 +78,22 @@ export function GitChangedFileRow({
       <SidebarDocumentItem
         as="li"
         icon={faMarkdown}
+        name={displayLabel}
+        statusMarker={statusMarkerProps}
+        ariaLabel={rowAriaLabel}
+        onClick={onClick}
+        onContextMenu={onContextMenu}
+        actions={actions}
+      />
+    );
+  }
+
+  if (file.resourceKind === 'collection') {
+    return (
+      <SidebarDocumentItem
+        as="li"
+        icon={faFolder}
+        iconClassName="text-doc-markdown"
         name={displayLabel}
         statusMarker={statusMarkerProps}
         ariaLabel={rowAriaLabel}

@@ -170,21 +170,25 @@ describe('modalsSlice', () => {
       setAlertModal({
         title: 'Error',
         message: 'Something went wrong',
-        action: {
-          kind: 'openCollectionGitSettings',
-          label: 'Open Git settings',
-          collectionId: 3
-        }
+        actions: [
+          {
+            kind: 'openCollectionGitSettings',
+            label: 'Open Git settings',
+            collectionId: 3
+          }
+        ]
       })
     );
     expect(state.alertModal).toEqual({
       title: 'Error',
       message: 'Something went wrong',
-      action: {
-        kind: 'openCollectionGitSettings',
-        label: 'Open Git settings',
-        collectionId: 3
-      }
+      actions: [
+        {
+          kind: 'openCollectionGitSettings',
+          label: 'Open Git settings',
+          collectionId: 3
+        }
+      ]
     });
 
     state = modalsReducer(state, setAlertModal(null));

@@ -150,14 +150,14 @@ export function buildMenu(
       label: 'File',
       submenu: [
         {
-          label: 'New Request',
-          accelerator: acceleratorFor(accelerators, 'new-request'),
-          click: () => sendMenuAction(window, 'new-request')
-        },
-        {
           label: 'New Collection',
           accelerator: acceleratorFor(accelerators, 'new-collection'),
           click: () => sendMenuAction(window, 'new-collection')
+        },
+        {
+          label: 'New Request',
+          accelerator: acceleratorFor(accelerators, 'new-request'),
+          click: () => sendMenuAction(window, 'new-request')
         },
         {
           label: 'Sync Storage',
