@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- chore(catalog): update theme references to latest versions. (`89f7852`)
+
 ## 2.5.0 - 2026-07-15
 
 - feat(collections): enhance collection management and Git integration. (`af4f99c`)
