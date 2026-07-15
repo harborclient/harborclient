@@ -1,25 +1,23 @@
 import { Page } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 
-import { useAppSelector } from '#/renderer/src/store/hooks';
-import { selectSettingsDraftLoadError } from '#/renderer/src/store/slices/settingsDraftSlice';
 import type { SettingsSection } from '#/shared/types';
 
-import { settingsSectionMeta } from '../constants';
-import { SettingsSaveFooter } from '../components/SettingsSaveFooter';
+import { settingsSectionMeta } from '../../constants';
+import { SettingsSaveFooter } from '../../components/SettingsSaveFooter';
 import {
   fieldEntriesForSection,
   FORM_SECTION_DESCRIPTIONS,
-  isFormSettingsSection,
-  type FormSettingsSection
-} from './catalog';
+  isFormSettingsSection
+} from '../catalog';
 import {
-  FORM_SECTION_EXTRAS,
-  FORM_SECTION_LEADING_EXTRAS,
   isManagementSettingsSection,
   renderSettingFields,
   SETTINGS_SECTION_REGISTRY
-} from './registry';
+} from '../registry';
+import { SettingsDraftError } from '../SettingsDraftError';
+import { FormSectionExtras } from './FormSectionExtras';
+import { FormSectionLeadingExtras } from './FormSectionLeadingExtras';
 
 interface Props {
   /**
@@ -41,52 +39,6 @@ interface Props {
    * Called after a requested group anchor has been scrolled into view.
    */
   onFocusSettingHandled?: () => void;
-}
-
-/**
- * Renders optional leading content configured for a form section.
- *
- * @param section - Form settings section id.
- */
-function FormSectionLeadingExtras({
-  section
-}: {
-  section: FormSettingsSection;
-}): JSX.Element | null {
-  const ExtraComponent = FORM_SECTION_LEADING_EXTRAS[section];
-  if (!ExtraComponent) {
-    return null;
-  }
-  return <ExtraComponent />;
-}
-
-/**
- * Renders optional trailing content configured for a form section.
- *
- * @param section - Form settings section id.
- */
-function FormSectionExtras({ section }: { section: FormSettingsSection }): JSX.Element | null {
-  const ExtraComponent = FORM_SECTION_EXTRAS[section];
-  if (!ExtraComponent) {
-    return null;
-  }
-  return <ExtraComponent />;
-}
-
-/**
- * Inline load/save error message for catalog-driven form sections.
- */
-function SettingsDraftError(): JSX.Element | null {
-  const error = useAppSelector(selectSettingsDraftLoadError);
-  if (!error) {
-    return null;
-  }
-
-  return (
-    <p className="mb-4 text-[14px] text-danger" role="alert">
-      {error}
-    </p>
-  );
 }
 
 /**

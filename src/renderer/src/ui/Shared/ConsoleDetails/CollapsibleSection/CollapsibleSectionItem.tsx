@@ -2,23 +2,14 @@ import {
   useAccordionItem,
   useHeightTransition,
   useMergeRef,
-  withAccordionItem,
   type ItemStateProps
 } from '@szhsin/react-accordion';
 import { FaIcon } from '@harborclient/sdk/components';
-import {
-  memo,
-  type ForwardRefExoticComponent,
-  type JSX,
-  type MemoExoticComponent,
-  type ReactNode,
-  type Ref,
-  type RefAttributes
-} from 'react';
+import { memo, type JSX, type ReactNode, type Ref } from 'react';
 
 import { faChevronDown, faChevronRight } from '#/renderer/src/fontawesome';
 
-interface ContentProps {
+export interface ContentProps {
   /**
    * Section title shown in the inspector header.
    */
@@ -30,24 +21,12 @@ interface ContentProps {
   children: ReactNode;
 }
 
-interface Props extends ContentProps {
-  /**
-   * Stable accordion item key for this console detail section.
-   */
-  itemKey: string;
-
-  /**
-   * Whether the section body starts expanded on first mount.
-   */
-  initialEntered: boolean;
-}
-
 type SectionItemProps = ItemStateProps<HTMLDivElement> & ContentProps;
 
 /**
  * Renders a Chrome-style inspector section with an accessible collapsible header.
  */
-const CollapsibleSectionItem = memo(function CollapsibleSectionItem({
+export const CollapsibleSectionItem = memo(function CollapsibleSectionItem({
   forwardedRef,
   itemRef,
   state,
@@ -88,25 +67,3 @@ const CollapsibleSectionItem = memo(function CollapsibleSectionItem({
     </section>
   );
 });
-
-const AccordionSection = withAccordionItem(
-  CollapsibleSectionItem as unknown as MemoExoticComponent<
-    (props: ItemStateProps<HTMLDivElement>) => JSX.Element
-  >
-) as ForwardRefExoticComponent<Props & RefAttributes<HTMLDivElement>>;
-
-/**
- * Collapsible console section backed by the local console detail accordion provider.
- */
-export function CollapsibleSection({
-  itemKey,
-  title,
-  initialEntered,
-  children
-}: Props): JSX.Element {
-  return (
-    <AccordionSection itemKey={itemKey} initialEntered={initialEntered} title={title}>
-      {children}
-    </AccordionSection>
-  );
-}

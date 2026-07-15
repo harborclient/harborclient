@@ -1,7 +1,5 @@
 import {
-  Button,
   EmptyState,
-  FaIcon,
   RowActionsMenu,
   SIDEBAR_ITEM_BUTTON_CLASS
 } from '@harborclient/sdk/components';
@@ -10,54 +8,12 @@ import type { TrashItem } from '#/shared/types/trash';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectTrashItems } from '#/renderer/src/store/slices/trashSlice';
-import {
-  emptyTrash,
-  permanentlyDeleteTrashItem,
-  restoreTrashItem
-} from '#/renderer/src/store/thunks/trash';
+import { permanentlyDeleteTrashItem, restoreTrashItem } from '#/renderer/src/store/thunks/trash';
 import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarRowSelection';
-import { faCircleMinus } from '#/renderer/src/fontawesome';
 import { sourceRow } from '#/renderer/src/ui/Shared/classes';
 import { formatTrashDeletedAt, trashEntityTypeLabel } from './utils';
 
-/**
- * Header actions for the Trash sidebar section.
- */
-export function TrashHeaderActions(): JSX.Element {
-  const dispatch = useAppDispatch();
-  const confirm = useConfirm();
-  const items = useAppSelector(selectTrashItems);
-  const isEmpty = items.length === 0;
-
-  /**
-   * Permanently deletes every trash snapshot row after confirmation.
-   */
-  const handleEmptyTrash = useCallback(async (): Promise<void> => {
-    const confirmed = await confirm({
-      title: 'Empty trash',
-      message: 'Permanently delete everything in trash? This cannot be undone.',
-      confirmLabel: 'Empty trash',
-      variant: 'danger'
-    });
-    if (confirmed) {
-      void dispatch(emptyTrash());
-    }
-  }, [confirm, dispatch]);
-
-  return (
-    <Button
-      variant="toolbar"
-      className="text-muted hover:text-text disabled:cursor-not-allowed disabled:opacity-50"
-      aria-label="Empty trash"
-      disabled={isEmpty}
-      onClick={() => {
-        void handleEmptyTrash();
-      }}
-    >
-      <FaIcon icon={faCircleMinus} className="h-3.5 w-3.5" />
-    </Button>
-  );
-}
+export { TrashHeaderActions } from './TrashHeaderActions';
 
 /**
  * Returns the accessible label for a trash row.

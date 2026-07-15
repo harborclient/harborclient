@@ -3,9 +3,9 @@ import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectCollections, selectCollectionsListed } from '#/renderer/src/store/selectors';
 import { SidebarExpansionContext } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarExpansionContext';
 import { usePersistedSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/usePersistedSidebarExpansion';
-import { useSidebarSectionMenuSync } from '#/renderer/src/hooks/useSidebarSectionMenuSync';
+import { SidebarSectionMenuSync } from './SidebarSectionMenuSync';
 
-interface ProviderProps {
+interface Props {
   /**
    * Loads requests and folders when a collection is expanded.
    */
@@ -18,22 +18,15 @@ interface ProviderProps {
 }
 
 /**
- * Syncs View menu section visibility inside the expansion provider tree.
- */
-function SidebarSectionMenuSync(): null {
-  useSidebarSectionMenuSync();
-  return null;
-}
-
-/**
  * Keeps sidebar expansion state alive across sidebar mount/unmount cycles.
  */
-export function SidebarExpansionProvider({
-  onExpandCollection,
-  children
-}: ProviderProps): JSX.Element {
+export function SidebarExpansionProvider({ onExpandCollection, children }: Props): JSX.Element {
   const collections = useAppSelector(selectCollections);
   const collectionsListed = useAppSelector(selectCollectionsListed);
+
+  /**
+   * Collection ids currently present in the store, used to prune stale expansion keys.
+   */
   const validCollectionIds = useMemo(
     () => new Set(collections.map((collection) => collection.id)),
     [collections]

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(ui): enhance Action Menu Modal with new components and functionality. (`c9276c0`)
 - refactor(ui): reorganize component imports to Tabs directory. (`af5b0b1`)
 - refactor(ui): update modal and component import paths. (`6aa1f7a`)
 - refactor(ui): reorganize shared component imports and update paths. (`c05728b`)

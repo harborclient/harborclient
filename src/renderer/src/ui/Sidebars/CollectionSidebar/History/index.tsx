@@ -1,7 +1,5 @@
 import {
-  Button,
   EmptySectionLabel,
-  FaIcon,
   RowActionsMenu,
   SidebarHistoryItem
 } from '@harborclient/sdk/components';
@@ -11,55 +9,17 @@ import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectRequestHistory } from '#/renderer/src/store/slices/requestHistorySlice';
 import {
-  clearRequestHistory,
   deleteRequestHistory,
   normalizeRequestHistoryEntry,
   openRequestHistoryRun
 } from '#/renderer/src/store/thunks/requestHistory';
 import { loadSavedRequest, openRequestDraft } from '#/renderer/src/plugins/hostRequestCommands';
 import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarRowSelection';
-import { faEraser, faPersonRunning } from '#/renderer/src/fontawesome';
+import { faPersonRunning } from '#/renderer/src/fontawesome';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { formatSidebarAbsoluteDate } from './utils';
 
-/**
- * Header actions for the History sidebar section.
- */
-export function HistoryHeaderActions(): JSX.Element {
-  const dispatch = useAppDispatch();
-  const confirm = useConfirm();
-  const entries = useAppSelector(selectRequestHistory);
-  const isEmpty = entries.length === 0;
-
-  /**
-   * Clears all request history entries after confirmation.
-   */
-  const handleClearHistory = useCallback(async (): Promise<void> => {
-    const confirmed = await confirm({
-      title: 'Clear history',
-      message: 'Clear all request history?',
-      confirmLabel: 'Clear',
-      variant: 'danger'
-    });
-    if (confirmed) {
-      void dispatch(clearRequestHistory());
-    }
-  }, [confirm, dispatch]);
-
-  return (
-    <Button
-      variant="toolbar"
-      className="text-muted hover:text-text disabled:cursor-not-allowed disabled:opacity-50"
-      aria-label="Clear request history"
-      disabled={isEmpty}
-      onClick={() => {
-        void handleClearHistory();
-      }}
-    >
-      <FaIcon icon={faEraser} className="h-3.5 w-3.5" />
-    </Button>
-  );
-}
+export { HistoryHeaderActions } from './HistoryHeaderActions';
 
 /**
  * Opens a request history entry in the request editor.

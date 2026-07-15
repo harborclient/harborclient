@@ -1,17 +1,8 @@
-import {
-  EmptyState,
-  FaIcon,
-  FormGroup,
-  Input,
-  portalToBody,
-  RowActionsMenu
-} from '@harborclient/sdk/components';
+import { EmptyState, FormGroup, Input, portalToBody } from '@harborclient/sdk/components';
 import { useEffect, useMemo, useRef, useState, type JSX, type RefObject } from 'react';
 
-import { faComment } from '#/renderer/src/fontawesome';
-import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectChatHistory } from '#/renderer/src/store/slices/aiChatSlice';
-import { deleteChatThunk } from '#/renderer/src/store/thunks/aiChat';
 import {
   filterChats,
   filterChatsWithMessages,
@@ -22,16 +13,18 @@ import {
   truncateGroupChats,
   type ChatHistoryGroup
 } from '#/renderer/src/ui/Sidebars/AiSidebar/Chat/chatHistoryGrouping';
-import {
-  buildDevInspectMenuGroups,
-  useDeveloperToolsEnabled
-} from '#/renderer/src/ui/Shared/devInspectContextMenu';
-import type { ChatSummary } from '#/shared/types';
+import { ChatHistoryGroupSection } from './ChatHistoryGroupSection';
+import { ChatHistoryRow } from './ChatHistoryRow';
+import { ChatHistoryShowMoreButton } from './ChatHistoryShowMoreButton';
 
-/** Stable id for the portaled chat history menu element. */
+/**
+ * Stable id for the portaled chat history menu element.
+ */
 export const AI_CHAT_HISTORY_MENU_ID = 'ai-chat-history-menu';
 
-/** Fixed width of the chat history menu in pixels (`w-80`). */
+/**
+ * Fixed width of the chat history menu in pixels (`w-80`).
+ */
 const MENU_WIDTH_PX = 320;
 
 interface MenuPosition {
@@ -56,62 +49,6 @@ interface Props {
   onOpenChat: (chatId: number) => void;
 }
 
-interface ChatHistoryRowProps {
-  /**
-   * Chat summary rendered in this row.
-   */
-  chat: ChatSummary;
-
-  /**
-   * Id of the open row actions menu, if any.
-   */
-  openMenuId: string | null;
-
-  /**
-   * Called when a row actions menu opens or closes.
-   */
-  onOpenMenuChange: (menuId: string | null) => void;
-
-  /**
-   * Opens the selected chat from history.
-   */
-  onOpenChat: (chatId: number) => void;
-}
-
-interface ChatHistoryGroupSectionProps {
-  /**
-   * Day group to render.
-   */
-  group: ChatHistoryGroup;
-
-  /**
-   * Id of the open row actions menu, if any.
-   */
-  openMenuId: string | null;
-
-  /**
-   * Called when a row actions menu opens or closes.
-   */
-  onOpenMenuChange: (menuId: string | null) => void;
-
-  /**
-   * Opens the selected chat from history.
-   */
-  onOpenChat: (chatId: number) => void;
-}
-
-interface ChatHistoryShowMoreButtonProps {
-  /**
-   * Accessible name describing what additional items will be revealed.
-   */
-  label: string;
-
-  /**
-   * Reveals the remaining hidden items.
-   */
-  onClick: () => void;
-}
-
 /**
  * Computes fixed menu coordinates aligned to the right edge of the anchor button.
  *
@@ -128,103 +65,6 @@ function getMenuPosition(anchor: HTMLElement | null): MenuPosition | null {
     top: rect.bottom + 2,
     left: rect.right - MENU_WIDTH_PX
   };
-}
-
-/**
- * Single chat row with an open action and a hover-revealed actions menu.
- */
-function ChatHistoryRow({
-  chat,
-  openMenuId,
-  onOpenMenuChange,
-  onOpenChat
-}: ChatHistoryRowProps): JSX.Element {
-  const dispatch = useAppDispatch();
-  const developerToolsEnabled = useDeveloperToolsEnabled();
-  const menuId = `chat-history-${chat.id}`;
-
-  return (
-    <div className="group relative mx-1 flex items-center rounded-md hover:bg-selection focus-within:bg-selection">
-      <button
-        type="button"
-        className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 truncate border-none bg-transparent px-2 py-2 text-left text-text app-no-drag"
-        onClick={() => onOpenChat(chat.id)}
-      >
-        <FaIcon icon={faComment} className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        <span className="truncate">{chat.title}</span>
-      </button>
-      <div
-        className={`shrink-0 pr-0.5 ${
-          openMenuId === menuId
-            ? 'opacity-100'
-            : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100'
-        }`}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <RowActionsMenu
-          menuId={menuId}
-          openMenuId={openMenuId}
-          onOpenChange={onOpenMenuChange}
-          groups={[
-            [
-              {
-                label: 'Delete',
-                variant: 'danger',
-                onSelect: () => void dispatch(deleteChatThunk(chat.id))
-              }
-            ],
-            ...buildDevInspectMenuGroups(undefined, menuId, developerToolsEnabled)
-          ]}
-        />
-      </div>
-    </div>
-  );
-}
-
-/**
- * Shared Show more control for section and flat-list pagination.
- */
-function ChatHistoryShowMoreButton({
-  label,
-  onClick
-}: ChatHistoryShowMoreButtonProps): JSX.Element {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      className="mx-1 mt-1 w-[calc(100%-0.5rem)] cursor-pointer rounded-md border-none bg-transparent px-2 py-1.5 text-left text-accent hover:bg-selection app-no-drag"
-      onClick={onClick}
-    >
-      Show more
-    </button>
-  );
-}
-
-/**
- * Renders one day section with a muted heading and chat rows.
- */
-function ChatHistoryGroupSection({
-  group,
-  openMenuId,
-  onOpenMenuChange,
-  onOpenChat
-}: ChatHistoryGroupSectionProps): JSX.Element {
-  return (
-    <section aria-label={group.label}>
-      <h3 className="sticky top-0 z-10 bg-sidebar-section px-3 py-2 font-medium text-muted">
-        {group.label}
-      </h3>
-      {group.chats.map((chat) => (
-        <ChatHistoryRow
-          key={chat.id}
-          chat={chat}
-          openMenuId={openMenuId}
-          onOpenMenuChange={onOpenMenuChange}
-          onOpenChat={onOpenChat}
-        />
-      ))}
-    </section>
-  );
 }
 
 /**
@@ -249,12 +89,27 @@ export function ChatHistory({ anchorRef, onClose, onOpenChat }: Props): JSX.Elem
    */
   const chatsWithMessages = useMemo(() => filterChatsWithMessages(chats), [chats]);
 
+  /**
+   * Chats matching the current search query.
+   */
   const filteredChats = useMemo(
     () => filterChats(chatsWithMessages, query),
     [chatsWithMessages, query]
   );
+
+  /**
+   * Day-grouped chats derived from the filtered list.
+   */
   const groups = useMemo(() => groupChatsByDay(filteredChats, new Date()), [filteredChats]);
+
+  /**
+   * Recent (Today/Yesterday) vs older day groups for pagination.
+   */
   const { recent, older } = useMemo(() => splitRecentAndOlder(groups), [groups]);
+
+  /**
+   * Whether Today or Yesterday groups exist so the grouped layout can be used.
+   */
   const hasRecent = useMemo(() => hasRecentDayGroups(groups), [groups]);
   const isSearching = query.trim().length > 0;
 

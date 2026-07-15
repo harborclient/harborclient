@@ -26,7 +26,7 @@ import {
   isImageResponse,
   responseContentType
 } from '#/renderer/src/ui/Shared/responseFormatUtils';
-import { ConsoleDetails } from '#/renderer/src/ui/Shared/ConsoleDetails/ConsoleDetails';
+import { ConsoleDetails } from '#/renderer/src/ui/Shared/ConsoleDetails';
 import { ResponseSummary } from './ResponseSummary';
 import { Headers } from './Headers';
 import { HtmlPreview } from './HtmlPreview';

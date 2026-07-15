@@ -1,20 +1,9 @@
-import { Modal, Spinner, FieldError, StatusMessage } from '@harborclient/sdk/components';
+import { Modal, FieldError } from '@harborclient/sdk/components';
 import { useCallback, useEffect, type JSX } from 'react';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { closeUpdateModal, selectUpdateModal } from '#/renderer/src/store/slices/modalsSlice';
 import { checkForUpdates } from '#/renderer/src/store/thunks';
-
-/**
- * Spinner shown while the update check request is in flight.
- */
-function UpdateCheckSpinner(): JSX.Element {
-  return (
-    <div className="flex flex-col items-center gap-3 py-2">
-      <Spinner size="md" label="Checking for updates" className="[&_svg]:h-8 [&_svg]:w-8" />
-      <StatusMessage live={false}>Checking for updates...</StatusMessage>
-    </div>
-  );
-}
+import { UpdateCheckSpinner } from '#/renderer/src/ui/Modals/UpdateModal/UpdateCheckSpinner';
 
 /**
  * Dialog that checks GitHub for a newer release and reports the result.
@@ -23,6 +12,9 @@ export function UpdateModal(): JSX.Element | null {
   const dispatch = useAppDispatch();
   const update = useAppSelector(selectUpdateModal);
 
+  /**
+   * Closes the update check dialog.
+   */
   const handleClose = useCallback((): void => {
     dispatch(closeUpdateModal());
   }, [dispatch]);

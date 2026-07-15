@@ -1,64 +1,16 @@
 import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
-import {
-  Button,
-  EmptySectionLabel,
-  FaIcon,
-  RowActionsMenu,
-  SidebarRunItem
-} from '@harborclient/sdk/components';
+import { EmptySectionLabel, RowActionsMenu, SidebarRunItem } from '@harborclient/sdk/components';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectRunResults } from '#/renderer/src/store/slices/runResultsSlice';
-import {
-  clearRunResults,
-  deleteRunResult,
-  openSavedRunResult
-} from '#/renderer/src/store/thunks/runResults';
+import { deleteRunResult, openSavedRunResult } from '#/renderer/src/store/thunks/runResults';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarExpansion';
 import { useSidebarProviders } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarProvidersContext';
 import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarRowSelection';
-import { faEraser } from '#/renderer/src/fontawesome';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { formatRunResultRowDate, runResultSummaryText, runResultStatusDotClass } from './utils';
 
-/**
- * Header actions for the Runs sidebar section.
- */
-export function RunsHeaderActions(): JSX.Element {
-  const dispatch = useAppDispatch();
-  const confirm = useConfirm();
-  const runResults = useAppSelector(selectRunResults);
-  const isEmpty = runResults.length === 0;
-
-  /**
-   * Clears all saved run results after confirmation.
-   */
-  const handleClearRuns = useCallback(async (): Promise<void> => {
-    const confirmed = await confirm({
-      title: 'Clear runs',
-      message: 'Clear all saved runs?',
-      confirmLabel: 'Clear',
-      variant: 'danger'
-    });
-    if (confirmed) {
-      void dispatch(clearRunResults());
-    }
-  }, [confirm, dispatch]);
-
-  return (
-    <Button
-      variant="toolbar"
-      className="text-muted hover:text-text disabled:cursor-not-allowed disabled:opacity-50"
-      aria-label="Clear all runs"
-      disabled={isEmpty}
-      onClick={() => {
-        void handleClearRuns();
-      }}
-    >
-      <FaIcon icon={faEraser} className="h-3.5 w-3.5" />
-    </Button>
-  );
-}
+export { RunsHeaderActions } from './RunsHeaderActions';
 
 /**
  * Returns the accessible label for a saved run row.

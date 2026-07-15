@@ -38,6 +38,35 @@ User-facing docs and plugin marketplace metadata live in the separate
 [harborclient-site](https://github.com/harborclient/harborclient-site)
 repository. Edit docs there and deploy with Docker (Nginx on port 8080).
 
+## React components
+
+Every React component lives in its own file. Do not define more than one
+component in a single module.
+
+Primary components use a directory named after the component, with the
+component in `index.tsx`:
+
+```
+src/components/Navbar/index.tsx   # export function Navbar
+```
+
+When a primary component needs helpers, put each helper in a sibling file in
+the same directory — never in `index.tsx` alongside the primary:
+
+```
+src/components/Navbar/index.tsx      # Navbar
+src/components/Navbar/NavItem.tsx    # NavItem
+src/components/Navbar/NavSearch.tsx  # NavSearch
+```
+
+If a file already exports a primary component plus sub-components, split it the
+same way: create (or use) the directory named after the primary, move the
+primary to `index.tsx`, and give each sub-component its own file.
+
+Related component families that share a directory (for example `SidebarItem/`)
+still follow one component per file; each named file in that directory is a
+single component (`SidebarRequestItem.tsx`, `SidebarTreeGroup.tsx`, and so on).
+
 ## HarborClient style
 
 When creating blog featured images, marketing visuals, or other brand-adjacent

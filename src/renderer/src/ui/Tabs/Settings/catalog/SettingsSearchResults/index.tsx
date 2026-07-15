@@ -1,13 +1,12 @@
 import { Button, Page } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 
-import { useAppSelector } from '#/renderer/src/store/hooks';
-import { selectSettingsDraftLoadError } from '#/renderer/src/store/slices/settingsDraftSlice';
 import type { SettingsSection } from '#/shared/types';
 
-import { SettingsSaveFooter } from '../components/SettingsSaveFooter';
-import { entryById, type FieldSettingId, type SettingId } from './catalog';
-import { renderSettingFields } from './registry';
+import { SettingsSaveFooter } from '../../components/SettingsSaveFooter';
+import { entryById, type FieldSettingId, type SettingId } from '../catalog';
+import { renderSettingFields } from '../registry';
+import { SettingsDraftError } from '../SettingsDraftError';
 
 interface Props {
   /**
@@ -24,22 +23,6 @@ interface Props {
    * Opens a management section from search results and clears the active query.
    */
   onNavigate: (section: SettingsSection, focusSettingId?: string) => void;
-}
-
-/**
- * Inline load/save error message for search results that include form fields.
- */
-function SettingsDraftError(): JSX.Element | null {
-  const error = useAppSelector(selectSettingsDraftLoadError);
-  if (!error) {
-    return null;
-  }
-
-  return (
-    <p className="mb-4 text-[14px] text-danger" role="alert">
-      {error}
-    </p>
-  );
 }
 
 /**
