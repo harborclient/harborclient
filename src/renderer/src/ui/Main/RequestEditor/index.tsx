@@ -1,4 +1,4 @@
-import { Scrollbars } from '#/renderer/src/components/Scrollbars';
+import { Scrollbars } from '#/renderer/src/ui/Shared/Scrollbars';
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import type { RequestTabContext, ResponseTabContext } from '#/shared/plugin/types';
 import type { Variable } from '#/shared/types';

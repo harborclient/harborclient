@@ -1,4 +1,4 @@
-import { Scrollbars } from '#/renderer/src/components/Scrollbars';
+import { Scrollbars } from '#/renderer/src/ui/Shared/Scrollbars';
 import { EmptyState, FaIcon } from '@harborclient/sdk/components';
 import { useEffect, useRef, type JSX } from 'react';
 import type { ChatMessage } from '#/shared/types';

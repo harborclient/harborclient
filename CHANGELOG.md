@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- refactor(ui): remove Scrollbars component and update import paths. (`02a4f35`)
 - refactor(imports): update import paths to relative references. (`8b9ac8e`)
 - feat(ui): enhance Action Menu Modal with new components and functionality. (`c9276c0`)
 - refactor(ui): reorganize component imports to Tabs directory. (`af5b0b1`)

@@ -1,4 +1,4 @@
-import { Scrollbars } from '#/renderer/src/components/Scrollbars';
+import { Scrollbars } from '#/renderer/src/ui/Shared/Scrollbars';
 import {
   TabBar as SdkTabBar,
   buildTabCloseMenuGroups,

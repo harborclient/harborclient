@@ -1,4 +1,4 @@
-import { Scrollbars } from '#/renderer/src/components/Scrollbars';
+import { Scrollbars } from '#/renderer/src/ui/Shared/Scrollbars';
 import { FaIcon, TabBar as SdkTabBar, buildTabCloseMenuGroups } from '@harborclient/sdk/components';
 import { useMemo, type JSX, type ReactNode } from 'react';
 import type { AiSettings } from '#/shared/types';
