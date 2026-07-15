@@ -132,7 +132,7 @@ export const DARK_CUSTOM_THEME_PALETTE: CustomThemePalette = {
 export const HIGH_CONTRAST_CUSTOM_THEME_PALETTE: CustomThemePalette = {
   'surface': HC_SURFACE,
   'sidebar': HC_SURFACE,
-  'sidebar-section': HC_SURFACE,
+  'sidebar-section': HC_SEPARATOR,
   'breadcrumb-background': HC_SURFACE,
   'breadcrumb-segment': HC_SURFACE,
   'control': HC_SURFACE,

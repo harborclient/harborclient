@@ -238,7 +238,7 @@ export function TabBar({
       tabIdPrefix="request-tab-"
       panelIdPrefix="request-tabpanel-"
       sortablePrefix="request-tab-sort:"
-      className="min-h-16"
+      className="hc-tab-bar min-h-16"
       maxTabWidthClass="max-w-[220px]"
       newTab={{
         ariaLabel: 'New tab',

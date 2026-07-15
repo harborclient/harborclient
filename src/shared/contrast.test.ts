@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { contrastRatio } from './contrast';
 import {
   HC_ACCENT,
+  HC_METHOD_COLORS,
   HC_PRIMARY_BUTTON_TEXT,
   HC_RESIZE_HANDLE,
   HC_SELECTION,
@@ -25,6 +26,7 @@ describe('highContrastPalette', () => {
   });
 
   it('keeps UI separators at or above WCAG UI contrast (3:1) on the surface', () => {
+    expect(HC_SEPARATOR).toBe(HC_RESIZE_HANDLE);
     expect(contrastRatio(HC_SEPARATOR, HC_SURFACE)).toBeGreaterThanOrEqual(3);
   });
 
@@ -33,7 +35,17 @@ describe('highContrastPalette', () => {
     expect(contrastRatio(HC_PRIMARY_BUTTON_TEXT, HC_RESIZE_HANDLE)).toBeGreaterThanOrEqual(7);
   });
 
+  it('keeps black text readable on yellow section-header backgrounds', () => {
+    expect(contrastRatio(HC_PRIMARY_BUTTON_TEXT, HC_SEPARATOR)).toBeGreaterThanOrEqual(7);
+  });
+
   it('keeps focus/accent colors at or above AAA on the surface', () => {
     expect(contrastRatio(HC_ACCENT, HC_SURFACE)).toBeGreaterThanOrEqual(7);
+  });
+
+  it('keeps each HTTP method label color at or above AAA (7:1) on the surface', () => {
+    for (const token of HC_METHOD_COLORS) {
+      expect(contrastRatio(token, HC_SURFACE)).toBeGreaterThanOrEqual(7);
+    }
   });
 });

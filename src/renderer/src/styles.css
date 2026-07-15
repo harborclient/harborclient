@@ -248,7 +248,7 @@
     --mac-surface: #000000;
     --mac-sidebar: #000000;
     --mac-sidebar-toolbar: #141414;
-    --mac-sidebar-section: #000000;
+    --mac-sidebar-section: #ffd60a;
     --mac-breadcrumb-background: #000000;
     --mac-breadcrumb-segment: #000000;
     --mac-git-staged: #5ce06a;
@@ -257,12 +257,12 @@
     --mac-git-untracked: #5ce06a;
     --mac-control: #000000;
     --mac-field: #141414;
-    --mac-separator: #9e9e9e;
+    --mac-separator: #ffd60a;
     --mac-text: #ffffff;
     --mac-text-secondary: #ffffff;
     --mac-muted: #d0d0d0;
     --mac-accent: #4dabff;
-    --mac-tab-underline: #ffffff;
+    --mac-tab-underline: #ffd60a;
     --mac-selection: #14487a;
     --mac-doc-markdown: #4dabff;
     --mac-tab-unsaved: #ffd60a;
@@ -271,6 +271,13 @@
     --mac-warning: #ffb340;
     --mac-success: #5ce06a;
     --mac-info: #ffffff;
+    --mac-method-get: #5ce06a;
+    --mac-method-post: #4dabff;
+    --mac-method-put: #ffd60a;
+    --mac-method-patch: #bf9bff;
+    --mac-method-delete: #ff8a80;
+    --mac-method-head: #ffffff;
+    --mac-method-options: #ffffff;
     --mac-resize-handle: #ffd60a;
     --mac-variable-token: #5fe3f0;
     --mac-scrollbar-track: transparent;
@@ -564,10 +571,76 @@
     opacity: 1 !important;
   }
 
+  /**
+   * Collections and Git sidebar section headers: yellow chrome with black
+   * foreground so titles and header actions stay readable.
+   */
+  :root[data-theme='high-contrast'] .hc-sidebar-section-header {
+    background-color: var(--mac-sidebar-section) !important;
+    border-color: var(--mac-separator) !important;
+    color: #000000 !important;
+  }
+
+  :root[data-theme='high-contrast'] .hc-sidebar-section-header,
+  :root[data-theme='high-contrast'] .hc-sidebar-section-header .text-muted,
+  :root[data-theme='high-contrast'] .hc-sidebar-section-header .text-text,
+  :root[data-theme='high-contrast'] .hc-sidebar-section-header .text-secondary,
+  :root[data-theme='high-contrast'] .hc-sidebar-section-header button,
+  :root[data-theme='high-contrast'] .hc-sidebar-section-header svg {
+    color: #000000 !important;
+  }
+
   :root[data-theme='high-contrast'] .hc-button.bg-accent {
     background-color: var(--mac-resize-handle) !important;
     border-color: var(--mac-resize-handle) !important;
     color: #000000 !important;
+  }
+
+  /**
+   * Document tab bar: full-opacity yellow borders. SDK tabItem() uses
+   * border-separator/50 and /70 which mute yellow; override to solid yellow.
+   */
+  :root[data-theme='high-contrast'] .hc-tab-bar {
+    border-bottom-color: var(--mac-separator) !important;
+  }
+
+  :root[data-theme='high-contrast'] .hc-tab-bar [role='tab'] {
+    border-color: var(--mac-separator) !important;
+  }
+
+  :root[data-theme='high-contrast'] .hc-tab-bar [role='tab'][aria-selected='true'] {
+    border-bottom-color: var(--mac-tab-underline) !important;
+  }
+
+  :root[data-theme='high-contrast'] .hc-tab-bar [role='tab']:not([aria-selected='true']) {
+    border-bottom-color: transparent !important;
+  }
+
+  /**
+   * SegmentedTabs chrome: yellow bottom rule and no gray inset shadow.
+   */
+  :root[data-theme='high-contrast'] .hc-segmented-tabs {
+    border-bottom-color: var(--mac-separator) !important;
+    box-shadow: none !important;
+  }
+
+  /**
+   * Params/Headers KeyValueEditor tables and other SDK bordered tables.
+   */
+  :root[data-theme='high-contrast'] .hc-table {
+    border-color: var(--mac-separator) !important;
+  }
+
+  :root[data-theme='high-contrast'] .hc-table-cell,
+  :root[data-theme='high-contrast'] .hc-table-head {
+    border-color: var(--mac-separator) !important;
+  }
+
+  /**
+   * App footer top rule — keep yellow even if token opacity utilities intervene.
+   */
+  :root[data-theme='high-contrast'] #app-footer {
+    border-top-color: var(--mac-separator) !important;
   }
 
   /**

@@ -6,7 +6,7 @@
   "theme": {
     "surface": "#000000",
     "sidebar": "#000000",
-    "sidebar-section": "#000000",
+    "sidebar-section": "#1f2315",
     "breadcrumb-background": "#000000",
     "breadcrumb-segment": "#000000",
     "git-staged": "#5ce06a",
@@ -15,7 +15,7 @@
     "git-untracked": "#5ce06a",
     "control": "#000000",
     "field": "#141414",
-    "separator": "#9e9e9e",
+    "separator": "#ffd60a",
     "text": "#ffffff",
     "text-secondary": "#ffffff",
     "muted": "#d0d0d0",

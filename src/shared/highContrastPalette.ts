@@ -16,9 +16,6 @@ export const HC_TEXT_SECONDARY = '#ffffff';
 /** ~14:1 on {@link HC_SURFACE}. */
 export const HC_MUTED = '#d0d0d0';
 
-/** ~7:1 on {@link HC_SURFACE} (UI/border minimum 3:1). */
-export const HC_SEPARATOR = '#9e9e9e';
-
 /** Solid field fill (~8% white on black). */
 export const HC_FIELD = '#141414';
 
@@ -43,16 +40,50 @@ export const HC_SUCCESS = '#5ce06a';
 /** 21:1 on {@link HC_SURFACE}. */
 export const HC_INFO = '#ffffff';
 
-/** Footer/separator accent; ~14:1 on {@link HC_SURFACE}. */
+/**
+ * High-contrast yellow for borders, resize grips, and chrome accents.
+ * ~14:1 on {@link HC_SURFACE}.
+ */
 export const HC_RESIZE_HANDLE = '#ffd60a';
 
+/**
+ * Borders and separators; same yellow as {@link HC_RESIZE_HANDLE}
+ * (~14:1 on surface, well above the UI/border minimum of 3:1).
+ */
+export const HC_SEPARATOR = HC_RESIZE_HANDLE;
+
+/**
+ * Distinct AAA method colors for high contrast on black.
+ * GET ~11:1, POST ~8.6:1, PUT ~14:1.
+ */
 export const HC_METHOD_GET = HC_SUCCESS;
 export const HC_METHOD_POST = HC_ACCENT;
 export const HC_METHOD_PUT = HC_RESIZE_HANDLE;
+
+/** ~8.7:1 on {@link HC_SURFACE}. */
 export const HC_METHOD_PATCH = '#bf9bff';
+
+/** ~8.6:1 on {@link HC_SURFACE}. */
 export const HC_METHOD_DELETE = HC_DANGER;
+
+/** 21:1 on {@link HC_SURFACE}. */
 export const HC_METHOD_HEAD = HC_TEXT;
+
+/** 21:1 on {@link HC_SURFACE}. */
 export const HC_METHOD_OPTIONS = HC_TEXT;
+
+/**
+ * All high-contrast HTTP method label colors validated against the black surface.
+ */
+export const HC_METHOD_COLORS = [
+  HC_METHOD_GET,
+  HC_METHOD_POST,
+  HC_METHOD_PUT,
+  HC_METHOD_PATCH,
+  HC_METHOD_DELETE,
+  HC_METHOD_HEAD,
+  HC_METHOD_OPTIONS
+] as const;
 
 /** Variable token highlight; >=7:1 on {@link HC_SURFACE}. */
 export const HC_VARIABLE_TOKEN = '#5fe3f0';
