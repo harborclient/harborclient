@@ -42,6 +42,8 @@
   --color-sidebar: var(--mac-sidebar);
   --color-sidebar-toolbar: var(--mac-sidebar-toolbar);
   --color-sidebar-section: var(--mac-sidebar-section);
+  --color-breadcrumb-background: var(--mac-breadcrumb-background, var(--mac-sidebar));
+  --color-breadcrumb-segment: var(--mac-breadcrumb-segment, var(--mac-sidebar));
   --color-git-staged: var(--mac-git-staged);
   --color-git-uncommitted: var(--mac-git-uncommitted);
   --color-git-unstaged: var(--mac-git-unstaged);
@@ -98,6 +100,8 @@
     --mac-sidebar: #ececee;
     --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 94%, black);
     --mac-sidebar-section: var(--mac-selection);
+    --mac-breadcrumb-background: #ececee;
+    --mac-breadcrumb-segment: #ececee;
     --mac-git-staged: var(--mac-success);
     --mac-git-uncommitted: var(--mac-warning);
     --mac-git-unstaged: var(--mac-muted);
@@ -152,6 +156,8 @@
       --mac-sidebar: #252526;
       --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 94%, black);
       --mac-sidebar-section: color-mix(in srgb, var(--mac-sidebar) 86%, black);
+      --mac-breadcrumb-background: #252526;
+      --mac-breadcrumb-segment: #252526;
       --mac-git-staged: var(--mac-success);
       --mac-git-uncommitted: var(--mac-warning);
       --mac-git-unstaged: var(--mac-muted);
@@ -192,6 +198,8 @@
     --mac-sidebar: #252526;
     --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 94%, black);
     --mac-sidebar-section: color-mix(in srgb, var(--mac-sidebar) 86%, black);
+    --mac-breadcrumb-background: #252526;
+    --mac-breadcrumb-segment: #252526;
     --mac-git-staged: var(--mac-success);
     --mac-git-uncommitted: var(--mac-warning);
     --mac-git-unstaged: var(--mac-muted);
@@ -241,6 +249,8 @@
     --mac-sidebar: #000000;
     --mac-sidebar-toolbar: #141414;
     --mac-sidebar-section: #000000;
+    --mac-breadcrumb-background: #000000;
+    --mac-breadcrumb-segment: #000000;
     --mac-git-staged: #5ce06a;
     --mac-git-uncommitted: #ffb340;
     --mac-git-unstaged: #d0d0d0;
@@ -287,6 +297,8 @@
       --mac-sidebar: Canvas;
       --mac-sidebar-toolbar: Canvas;
       --mac-sidebar-section: Canvas;
+      --mac-breadcrumb-background: Canvas;
+      --mac-breadcrumb-segment: Canvas;
       --mac-git-staged: CanvasText;
       --mac-git-uncommitted: CanvasText;
       --mac-git-unstaged: GrayText;

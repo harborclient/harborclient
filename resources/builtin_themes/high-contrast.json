@@ -7,6 +7,8 @@
     "surface": "#000000",
     "sidebar": "#000000",
     "sidebar-section": "#000000",
+    "breadcrumb-background": "#000000",
+    "breadcrumb-segment": "#000000",
     "git-staged": "#5ce06a",
     "git-uncommitted": "#ffb340",
     "git-unstaged": "#d0d0d0",

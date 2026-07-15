@@ -13,6 +13,8 @@ const themeColorTokenSchema = z.enum([
   'surface',
   'sidebar',
   'sidebar-section',
+  'breadcrumb-background',
+  'breadcrumb-segment',
   'git-staged',
   'git-uncommitted',
   'git-unstaged',

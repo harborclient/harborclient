@@ -5,6 +5,8 @@
     "surface": "#1e1e1e",
     "sidebar": "#252526",
     "sidebar-section": "#313131",
+    "breadcrumb-background": "#252526",
+    "breadcrumb-segment": "#252526",
     "git-staged": "#6dbc5d",
     "git-uncommitted": "#6dbc5d",
     "git-unstaged": "#6dbc5d",

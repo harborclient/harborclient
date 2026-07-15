@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- chore(dependencies): update @harborclient/sdk to version 1.1.22 and enhance theme configurations. (`4685d66`)
 - chore(catalog): update theme references to latest versions. (`89f7852`)
 
 ## 2.5.0 - 2026-07-15

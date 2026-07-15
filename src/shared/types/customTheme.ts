@@ -113,6 +113,8 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   'surface': 'Surface',
   'sidebar': 'Sidebar',
   'sidebar-section': 'Sidebar section',
+  'breadcrumb-background': 'Breadcrumb background',
+  'breadcrumb-segment': 'Breadcrumb segment',
   'control': 'Control',
   'field': 'Field',
   'separator': 'Separator',
@@ -158,6 +160,10 @@ export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
   {
     label: 'Layout',
     tokens: ['surface', 'sidebar', 'sidebar-section', 'control', 'field', 'separator', 'terminal']
+  },
+  {
+    label: 'Breadcrumb',
+    tokens: ['breadcrumb-background', 'breadcrumb-segment']
   },
   {
     label: 'Text',
