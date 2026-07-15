@@ -66,6 +66,7 @@ import { GitSidebar } from '#/renderer/src/ui/Sidebars/GitSidebar';
 import { CollectionSidebar } from '#/renderer/src/ui/Sidebars/CollectionSidebar';
 import { SidebarGitProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/SidebarGitProvider';
 import { SidebarExpansionProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/SidebarExpansionProvider';
+import { SidebarModalsProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/modals/SidebarModals';
 import { RequestEditor } from '#/renderer/src/ui/Main/RequestEditor';
 import { resolveVariableEditTarget } from '#/renderer/src/ui/Main/RequestEditor/resolveVariableEditTarget';
 import { TitleBar } from '#/renderer/src/ui/TitleBar';
@@ -331,115 +332,117 @@ export default function App(): JSX.Element {
                 onOpenShortcuts={() => dispatch(openShortcutsReferenceModal())}
               />
               <TitleBar />
-              <div className="relative flex min-h-0 flex-1 overflow-hidden">
-                <AnimatedHorizontalPanel
-                  id={COLLECTIONS_SIDEBAR_SECTION_ID}
-                  tabIndex={-1}
-                  open={sidebarVisible}
-                >
-                  <CollectionSidebar />
-                </AnimatedHorizontalPanel>
+              <SidebarModalsProvider>
+                <div className="relative flex min-h-0 flex-1 overflow-hidden">
+                  <AnimatedHorizontalPanel
+                    id={COLLECTIONS_SIDEBAR_SECTION_ID}
+                    tabIndex={-1}
+                    open={sidebarVisible}
+                  >
+                    <CollectionSidebar />
+                  </AnimatedHorizontalPanel>
 
-                <main
-                  id="main-content"
-                  tabIndex={-1}
-                  className="relative flex min-w-0 flex-1 flex-col bg-surface"
-                >
-                  <RequestEditor
-                    onEditVariables={(key) => {
-                      const target = resolveVariableEditTarget({
-                        key,
-                        globalVariables,
-                        collectionVariables: activeCollection?.variables ?? [],
-                        folderVariables: activeFolder?.variables ?? [],
-                        environmentVariables: activeEnvironment?.variables ?? [],
-                        activeCollectionId,
-                        activeFolderId,
-                        activeEnvironmentId
-                      });
-                      if (target == null) return;
+                  <main
+                    id="main-content"
+                    tabIndex={-1}
+                    className="relative flex min-w-0 flex-1 flex-col bg-surface"
+                  >
+                    <RequestEditor
+                      onEditVariables={(key) => {
+                        const target = resolveVariableEditTarget({
+                          key,
+                          globalVariables,
+                          collectionVariables: activeCollection?.variables ?? [],
+                          folderVariables: activeFolder?.variables ?? [],
+                          environmentVariables: activeEnvironment?.variables ?? [],
+                          activeCollectionId,
+                          activeFolderId,
+                          activeEnvironmentId
+                        });
+                        if (target == null) return;
 
-                      if (target.scope === 'environment' && target.environmentId != null) {
+                        if (target.scope === 'environment' && target.environmentId != null) {
+                          dispatch(
+                            openPageTab({
+                              type: 'environment',
+                              id: target.environmentId,
+                              focusVariableKey: key
+                            })
+                          );
+                          return;
+                        }
+
+                        if (target.scope === 'folder' && target.folderId != null) {
+                          dispatch(
+                            openPageTab({
+                              type: 'folder',
+                              collectionId: target.collectionId ?? activeCollectionId ?? 0,
+                              id: target.folderId,
+                              focusVariableKey: key
+                            })
+                          );
+                          return;
+                        }
+
+                        if (target.scope === 'collection' && target.collectionId != null) {
+                          dispatch(
+                            openPageTab({
+                              type: 'collection',
+                              id: target.collectionId,
+                              focusVariableKey: key
+                            })
+                          );
+                          return;
+                        }
+
                         dispatch(
                           openPageTab({
-                            type: 'environment',
-                            id: target.environmentId,
+                            type: 'settings',
+                            section: 'globals',
                             focusVariableKey: key
                           })
                         );
-                        return;
-                      }
+                      }}
+                    />
+                    <FooterPanels
+                      consoleOpen={showConsole}
+                      onToggleConsole={() => dispatch(toggleConsole())}
+                      entries={consoleEntries}
+                      onClear={() => dispatch(clearConsole())}
+                      variablesOpen={showVariables}
+                      onToggleVariables={() => dispatch(toggleVariables())}
+                      mcpOpen={showMcp}
+                      onToggleMcp={() => dispatch(toggleMcp())}
+                      terminalOpen={showTerminal}
+                      onToggleTerminal={() => dispatch(toggleTerminal())}
+                      onMcpStatusChange={() => void mcpServerStatus.refresh()}
+                      globalVariables={globalVariables}
+                      collectionVariables={activeCollection?.variables ?? []}
+                      folderVariables={activeFolder?.variables ?? []}
+                      environmentVariables={activeEnvironment?.variables ?? []}
+                      collectionName={activeCollection?.name}
+                      folderName={activeFolder?.name}
+                      environmentName={activeEnvironment?.name}
+                    />
+                  </main>
 
-                      if (target.scope === 'folder' && target.folderId != null) {
-                        dispatch(
-                          openPageTab({
-                            type: 'folder',
-                            collectionId: target.collectionId ?? activeCollectionId ?? 0,
-                            id: target.folderId,
-                            focusVariableKey: key
-                          })
-                        );
-                        return;
-                      }
+                  <AnimatedHorizontalPanel
+                    id={GIT_SIDEBAR_SECTION_ID}
+                    tabIndex={-1}
+                    open={gitSidebarVisible}
+                  >
+                    <GitSidebar />
+                  </AnimatedHorizontalPanel>
 
-                      if (target.scope === 'collection' && target.collectionId != null) {
-                        dispatch(
-                          openPageTab({
-                            type: 'collection',
-                            id: target.collectionId,
-                            focusVariableKey: key
-                          })
-                        );
-                        return;
-                      }
-
-                      dispatch(
-                        openPageTab({
-                          type: 'settings',
-                          section: 'globals',
-                          focusVariableKey: key
-                        })
-                      );
-                    }}
-                  />
-                  <FooterPanels
-                    consoleOpen={showConsole}
-                    onToggleConsole={() => dispatch(toggleConsole())}
-                    entries={consoleEntries}
-                    onClear={() => dispatch(clearConsole())}
-                    variablesOpen={showVariables}
-                    onToggleVariables={() => dispatch(toggleVariables())}
-                    mcpOpen={showMcp}
-                    onToggleMcp={() => dispatch(toggleMcp())}
-                    terminalOpen={showTerminal}
-                    onToggleTerminal={() => dispatch(toggleTerminal())}
-                    onMcpStatusChange={() => void mcpServerStatus.refresh()}
-                    globalVariables={globalVariables}
-                    collectionVariables={activeCollection?.variables ?? []}
-                    folderVariables={activeFolder?.variables ?? []}
-                    environmentVariables={activeEnvironment?.variables ?? []}
-                    collectionName={activeCollection?.name}
-                    folderName={activeFolder?.name}
-                    environmentName={activeEnvironment?.name}
-                  />
-                </main>
-
-                <AnimatedHorizontalPanel
-                  id={GIT_SIDEBAR_SECTION_ID}
-                  tabIndex={-1}
-                  open={gitSidebarVisible}
-                >
-                  <GitSidebar />
-                </AnimatedHorizontalPanel>
-
-                <AnimatedHorizontalPanel
-                  id={AI_SIDEBAR_SECTION_ID}
-                  tabIndex={-1}
-                  open={aiSidebarVisible}
-                >
-                  <AiSidebar />
-                </AnimatedHorizontalPanel>
-              </div>
+                  <AnimatedHorizontalPanel
+                    id={AI_SIDEBAR_SECTION_ID}
+                    tabIndex={-1}
+                    open={aiSidebarVisible}
+                  >
+                    <AiSidebar />
+                  </AnimatedHorizontalPanel>
+                </div>
+              </SidebarModalsProvider>
 
               <TabGroupEditBar />
 

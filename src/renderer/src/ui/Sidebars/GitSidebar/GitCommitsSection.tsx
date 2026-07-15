@@ -1,4 +1,8 @@
-import { EmptySectionLabel, SidebarCommitItem } from '@harborclient/sdk/components';
+import {
+  EmptySectionLabel,
+  SidebarCommitItem,
+  type SidebarCommitPushStatus
+} from '@harborclient/sdk/components';
 import { useEffect, useState, type JSX } from 'react';
 import type { GitLogEntry } from '#/shared/types';
 import { faCodeBranch } from '#/renderer/src/fontawesome';
@@ -14,6 +18,22 @@ interface Props {
    * Called when commit history should reload after operations.
    */
   refreshNonce: number;
+}
+
+/**
+ * Maps a git log entry's origin annotation to the SDK push-status indicator.
+ *
+ * @param entry - Commit log entry from {@link window.api.gitLog}.
+ * @returns Push status for the row indicator (`unknown` when sync is unavailable).
+ */
+function resolvePushStatus(entry: GitLogEntry): SidebarCommitPushStatus {
+  if (entry.pushedToOrigin === true) {
+    return 'pushed';
+  }
+  if (entry.pushedToOrigin === false) {
+    return 'unpushed';
+  }
+  return 'unknown';
 }
 
 /**
@@ -52,6 +72,7 @@ export function GitCommitsSection({ connectionId, refreshNonce }: Props): JSX.El
                 author={entry.author}
                 timestampLabel={new Date(entry.timestamp).toLocaleString()}
                 icon={faCodeBranch}
+                pushStatus={resolvePushStatus(entry)}
                 onClick={() => setSelectedOid(entry.oid)}
               />
             </li>

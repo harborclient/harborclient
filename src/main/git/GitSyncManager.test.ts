@@ -152,6 +152,50 @@ describe('GitSyncManager', () => {
     expect(status.behind).toBe(0);
   });
 
+  it('annotates log entries as pushed when local matches origin', async () => {
+    const { repoPath, manager } = await createTestRepo();
+    const head = await git.resolveRef({ fs, dir: repoPath, ref: 'HEAD' });
+    writeOriginRef(repoPath, 'main', head);
+
+    const entries = await manager.log();
+    expect(entries.length).toBeGreaterThan(0);
+    for (const entry of entries) {
+      expect(entry.pushedToOrigin).toBe(true);
+    }
+  });
+
+  it('annotates ahead commits as unpushed in the log', async () => {
+    const { repoPath, manager } = await createTestRepo();
+    const initialHead = await git.resolveRef({ fs, dir: repoPath, ref: 'HEAD' });
+    writeOriginRef(repoPath, 'main', initialHead);
+
+    writeFileSync(join(repoPath, '.harborclient', 'readme.txt'), 'v2');
+    await git.add({ fs, dir: repoPath, filepath: '.harborclient/readme.txt' });
+    await git.commit({
+      fs,
+      dir: repoPath,
+      message: 'Second',
+      author: { name: 'Test', email: 'test@example.com' }
+    });
+
+    const entries = await manager.log();
+    expect(entries).toHaveLength(2);
+    expect(entries[0]?.message).toBe('Second');
+    expect(entries[0]?.pushedToOrigin).toBe(false);
+    expect(entries[1]?.message).toBe('Initial');
+    expect(entries[1]?.pushedToOrigin).toBe(true);
+  });
+
+  it('omits pushedToOrigin when origin tracking ref is missing', async () => {
+    const { manager } = await createTestRepo();
+
+    const entries = await manager.log();
+    expect(entries.length).toBeGreaterThan(0);
+    for (const entry of entries) {
+      expect(entry.pushedToOrigin).toBeUndefined();
+    }
+  });
+
   it('counts commits behind origin/main', async () => {
     const { repoPath, manager } = await createTestRepo();
     const initialHead = await git.resolveRef({ fs, dir: repoPath, ref: 'HEAD' });

@@ -24,8 +24,9 @@ export function ensureMarkdownFilename(name: string): string {
 }
 
 /**
- * Modal-opening actions shared with sidebar rows so nested rows can trigger
- * create/rename dialogs without threading callbacks through every level.
+ * Modal-opening actions shared with sidebar rows and the markdown editor tab so
+ * callers can trigger create/rename dialogs without threading callbacks through
+ * every level.
  */
 export interface SidebarModalsContextValue {
   /**

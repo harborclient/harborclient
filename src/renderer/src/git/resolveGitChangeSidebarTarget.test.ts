@@ -138,9 +138,34 @@ describe('resolveGitChangeSidebarTarget', () => {
   it('resolves a markdown change to the matching document row', () => {
     const target = resolveGitChangeSidebarTarget(
       sampleFileEntry({
-        path: '.harborclient/collection-api/README.md',
+        path: '.harborclient/README.md',
         resourceKind: 'document',
-        method: undefined
+        method: undefined,
+        displayName: 'README.md'
+      }),
+      COLLECTION_UUID,
+      {
+        collections: [sampleCollection()],
+        requestsByCollection: {},
+        documentsByCollection: { 1: [sampleDocument()] }
+      }
+    );
+
+    expect(target).toEqual({
+      collectionId: 1,
+      folderId: 3,
+      kind: 'document',
+      id: 7
+    });
+  });
+
+  it('resolves a disambiguated harbor-root markdown path via displayName', () => {
+    const target = resolveGitChangeSidebarTarget(
+      sampleFileEntry({
+        path: '.harborclient/README-api.md',
+        resourceKind: 'document',
+        method: undefined,
+        displayName: 'README.md'
       }),
       COLLECTION_UUID,
       {

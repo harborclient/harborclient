@@ -7,6 +7,7 @@ import {
   type ToolbarAction
 } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
+import toast from 'react-hot-toast';
 import {
   faCodeBranch,
   faList,
@@ -77,7 +78,7 @@ export function GitSidebar(): JSX.Element {
   /**
    * Runs pull or push and refreshes sidebar state on completion.
    *
-   * @param label - User-facing operation label for the error dialog title.
+   * @param label - User-facing operation label for success toasts and error dialog titles.
    * @param action - Git sync operation to execute.
    */
   const runSyncAction = useCallback(
@@ -90,6 +91,7 @@ export function GitSidebar(): JSX.Element {
       try {
         await action();
         handleRefresh();
+        toast.success(`${label} completed`);
       } catch (err) {
         handleRefresh();
         showAlert(dispatch, formatIpcErrorMessage(err, `${label} failed`), `${label} failed`, {

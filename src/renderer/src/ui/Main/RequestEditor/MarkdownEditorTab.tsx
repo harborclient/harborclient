@@ -9,6 +9,7 @@ import { saveMarkdownTab } from '#/renderer/src/store/thunks/documents';
 import { isTabDirty, type MarkdownTab } from '#/renderer/src/store/tabs';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { CommentEditor } from '#/renderer/src/ui/Main/RequestEditor/Editor/CommentEditor';
+import { useSidebarModals } from '#/renderer/src/ui/Sidebars/CollectionSidebar/modals/sidebarModalsContext';
 
 interface Props {
   /**
@@ -48,6 +49,7 @@ function chordFromKeyboardEvent(event: KeyboardEvent): KeyChord {
  */
 export function MarkdownEditorTab({ tab, variables, onEditVariables }: Props): JSX.Element {
   const dispatch = useAppDispatch();
+  const { openRenameDocument } = useSidebarModals();
   const documentsByCollection = useAppSelector(selectDocumentsByCollection);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
@@ -55,6 +57,13 @@ export function MarkdownEditorTab({ tab, variables, onEditVariables }: Props): J
   const [saveAccelerator, setSaveAccelerator] = useState(
     () => getShortcutDef('save')?.defaultAccelerator ?? 'CmdOrCtrl+S'
   );
+
+  /**
+   * Resolves the persisted document for rename and copy-to-chat references.
+   */
+  const document = useMemo(() => {
+    return (documentsByCollection[tab.collectionId] ?? []).find((entry) => entry.id === tab.docId);
+  }, [documentsByCollection, tab.collectionId, tab.docId]);
 
   /**
    * Loads the effective save shortcut from user settings.
@@ -97,6 +106,16 @@ export function MarkdownEditorTab({ tab, variables, onEditVariables }: Props): J
       setSaving(false);
     }
   }, [dispatch, tab.tabId]);
+
+  /**
+   * Opens the shared rename-document modal for the active tab's document.
+   */
+  const handleRename = useCallback((): void => {
+    if (document == null) {
+      return;
+    }
+    openRenameDocument(document);
+  }, [document, openRenameDocument]);
 
   /**
    * Wires the configured save shortcut while this tab is active and has unsaved changes.
@@ -143,9 +162,6 @@ export function MarkdownEditorTab({ tab, variables, onEditVariables }: Props): J
    * Resolves the persisted document uuid used by copy-to-chat `@markdown` references.
    */
   const markdownReference = useMemo(() => {
-    const document = (documentsByCollection[tab.collectionId] ?? []).find(
-      (entry) => entry.id === tab.docId
-    );
     if (document == null) {
       return undefined;
     }
@@ -154,7 +170,7 @@ export function MarkdownEditorTab({ tab, variables, onEditVariables }: Props): J
       uuid: document.uuid,
       label: `Document: ${tab.name}`
     };
-  }, [documentsByCollection, tab.collectionId, tab.docId, tab.name]);
+  }, [document, tab.name]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
@@ -167,9 +183,19 @@ export function MarkdownEditorTab({ tab, variables, onEditVariables }: Props): J
         label={tab.name}
         description="Edit the markdown document."
         actions={
-          <Button type="button" disabled={!dirty || saving} onClick={() => void persistTab()}>
-            {saving ? 'Saving…' : 'Save'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={document == null}
+              onClick={handleRename}
+            >
+              Rename
+            </Button>
+            <Button type="button" disabled={!dirty || saving} onClick={() => void persistTab()}>
+              {saving ? 'Saving…' : 'Save'}
+            </Button>
+          </div>
         }
         markdownReference={markdownReference}
       />

@@ -72,7 +72,27 @@ export function parseRequestUuidFromGitFileName(fileName: string): string | null
 }
 
 /**
+ * Resolves the sidebar document label for a git change row.
+ *
+ * Prefers enriched display names from the diff payload so harbor-root
+ * disambiguated filenames still match the collection sidebar entry.
+ *
+ * @param file - Changed file entry from the git diff payload.
+ * @returns Normalized markdown display name to match against document rows.
+ */
+function resolveDocumentMatchName(file: GitRequestDiffFileEntry): string {
+  const enriched = file.displayName?.trim();
+  if (enriched) {
+    return enriched.toLowerCase().endsWith('.md') ? enriched : `${enriched}.md`;
+  }
+  return gitChangePathBasename(file.path);
+}
+
+/**
  * Resolves one git change row to a collections-sidebar target when the item still exists.
+ *
+ * Document rows prefer the enriched `displayName` (sidebar title) so disambiguated
+ * on-disk names like `README-api.md` still resolve to a document named `README.md`.
  *
  * @param file - Changed file entry from the git diff payload.
  * @param collectionUuid - Stable uuid for the active git-backed collection.
@@ -114,10 +134,9 @@ export function resolveGitChangeSidebarTarget(
     };
   }
 
-  const documentFileName = gitChangePathBasename(file.path);
+  const documentName = resolveDocumentMatchName(file);
   const document = (input.documentsByCollection[collection.id] ?? []).find(
-    (entry) =>
-      entry.name.localeCompare(documentFileName, undefined, { sensitivity: 'accent' }) === 0
+    (entry) => entry.name.localeCompare(documentName, undefined, { sensitivity: 'accent' }) === 0
   );
   if (document == null) {
     return null;

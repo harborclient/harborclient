@@ -1,4 +1,7 @@
-import { SidebarDocumentItem } from '@harborclient/sdk/components';
+import {
+  SidebarDocumentItem,
+  SIDEBAR_DOCUMENT_ICON_REQUEST_ALIGN_CLASS
+} from '@harborclient/sdk/components';
 import { faMarkdown } from '#/renderer/src/fontawesome';
 import { type InspectPoint } from '#/renderer/src/ui/Shared/devInspectContextMenu';
 import {
@@ -65,6 +68,8 @@ interface Props {
 /**
  * Renders a static collection markdown document row with file icon and row actions menu.
  * Documents are pinned to the top of each container and sorted alphabetically by name.
+ * The markdown icon is indented so its left edge aligns with HTTP method text on
+ * neighboring sortable request rows.
  */
 export function DocumentRow({
   doc,
@@ -87,6 +92,7 @@ export function DocumentRow({
     <div data-sidebar-document-id={doc.id} className="contents">
       <SidebarDocumentItem
         icon={faMarkdown}
+        iconClassName={SIDEBAR_DOCUMENT_ICON_REQUEST_ALIGN_CLASS}
         name={doc.name}
         nameClassName={gitItemNameClass(gitItemStatus)}
         colorDot={{
@@ -102,7 +108,6 @@ export function DocumentRow({
           onOpenChange(menuId);
         }}
         onClick={() => onLoadDocument(doc)}
-        onDoubleClick={() => onRenameDocument(doc)}
         ariaLabel={buildGitItemAccessibleName(doc.name, gitItemStatus)}
         ariaCurrent={activeDocumentId === doc.id}
         actions={

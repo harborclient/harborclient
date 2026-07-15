@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
-import { basename, join, resolve } from 'path';
+import { basename, dirname, join, resolve } from 'path';
 import {
   maskVariablesForExport,
   validateCollectionExport,
@@ -7,7 +7,7 @@ import {
 } from '#/main/storage/collectionData';
 import { validateSnippetExport } from '#/main/storage/snippetData';
 import { generateDocumentUuid, resolveImportUuid } from '#/main/storage/uuid';
-import { collectionDirName, exportFileBaseName } from './slug';
+import { collectionDirName, exportFileBaseName, stripMdExtension, toFileSlug } from './slug';
 import { validateRequestExport } from '#/main/storage/collectionData';
 import type {
   CollectionExport,
@@ -90,16 +90,78 @@ export function documentFileName(displayName: string): string {
  * Returns the absolute path for one harbor-root markdown document file.
  *
  * @param harborRoot - HarborClient data root.
- * @param displayName - User-facing document title.
+ * @param fileName - On-disk markdown file name at the harbor root.
  */
-export function documentFilePath(harborRoot: string, displayName: string): string {
-  const fileName = documentFileName(displayName);
+export function documentFilePath(harborRoot: string, fileName: string): string {
+  const safeName = documentFileName(fileName);
   const resolvedRoot = resolve(harborRoot);
-  const resolvedPath = resolve(join(resolvedRoot, fileName));
+  const resolvedPath = resolve(join(resolvedRoot, safeName));
   if (resolvedPath !== resolvedRoot && !resolvedPath.startsWith(`${resolvedRoot}/`)) {
     throw new Error('Document name escapes the HarborClient root');
   }
   return resolvedPath;
+}
+
+/**
+ * Builds a disambiguated harbor-root markdown file name for a second collection
+ * that shares a display name with an existing document.
+ *
+ * @param displayName - User-facing document title (for example README.md).
+ * @param collectionName - Owning collection display name.
+ * @returns On-disk name like `README-api.md`.
+ */
+export function disambiguatedDocumentFileName(displayName: string, collectionName: string): string {
+  const base = stripMdExtension(documentFileName(displayName));
+  return `${base}-${toFileSlug(collectionName)}.md`;
+}
+
+/**
+ * Resolves the harbor-root on-disk file name for one collection document.
+ *
+ * Uses the canonical display filename when available. When another collection
+ * already owns that file, returns `{base}-{collection-slug}.md`. Existing
+ * on-disk names owned by the same document uuid are preserved across saves.
+ *
+ * @param harborRoot - HarborClient data root.
+ * @param collectionName - Owning collection display name.
+ * @param displayName - User-facing document title shown in the sidebar.
+ * @param ownerUuid - Document uuid allowed to keep an existing file slot.
+ * @returns Case-preserving markdown file name at the harbor root.
+ */
+export function resolveDocumentDiskFileName(
+  harborRoot: string,
+  collectionName: string,
+  displayName: string,
+  ownerUuid: string
+): string {
+  const canonical = documentFileName(displayName);
+  const normalizedOwnerUuid = resolveImportUuid(ownerUuid);
+  const filenameMap = buildFilenameToDocumentMap(harborRoot);
+
+  for (const entry of filenameMap.values()) {
+    if (entry.uuid !== normalizedOwnerUuid) {
+      continue;
+    }
+    if (documentFileName(entry.name).toLowerCase() === canonical.toLowerCase()) {
+      return entry.fileName;
+    }
+    break;
+  }
+
+  const existing = filenameMap.get(canonical.toLowerCase());
+  if (existing == null || existing.uuid === normalizedOwnerUuid) {
+    return canonical;
+  }
+
+  const disambiguated = disambiguatedDocumentFileName(displayName, collectionName);
+  const existingDisambiguated = filenameMap.get(disambiguated.toLowerCase());
+  if (existingDisambiguated == null || existingDisambiguated.uuid === normalizedOwnerUuid) {
+    return disambiguated;
+  }
+
+  throw new Error(
+    `A markdown document named "${disambiguated}" already exists in this repository.`
+  );
 }
 
 /**
@@ -262,7 +324,7 @@ export interface ClassifiedHarborChangePath {
  */
 export interface StoredDocumentRef {
   /**
-   * Markdown file name inside the collection folder.
+   * Markdown file name at the Harbor data root (may be disambiguated).
    */
   file: string;
 
@@ -272,7 +334,7 @@ export interface StoredDocumentRef {
   uuid: string;
 
   /**
-   * User-facing document title.
+   * User-facing document title shown in the sidebar (for example README.md).
    */
   name: string;
 
@@ -453,6 +515,9 @@ export function classifyHarborChangePath(
       if (relative.startsWith('snippet-')) {
         return { kind: 'snippet', fileName: relative };
       }
+    }
+    if (relative.endsWith('.md') && !HARBOR_ROOT_RESERVED_NAMES.has(relative)) {
+      return { kind: 'document', fileName: relative };
     }
     return { kind: 'other', fileName: relative };
   }
@@ -1018,12 +1083,17 @@ export function readCollectionFromFolder(dirPath: string): CollectionExport {
   recoverOrphanRequestFiles(dirPath, requestFiles, requests);
 
   const documentsRaw = Array.isArray(parsed.documents) ? parsed.documents : [];
+  const harborRoot = dirname(dirPath);
   const documents: ExportedDocument[] = documentsRaw
     .filter((row): row is Record<string, unknown> => row != null && typeof row === 'object')
     .map((row, index) => {
       const file =
         typeof row.file === 'string' ? row.file : documentFileName(String(row.name ?? ''));
-      const mdPath = join(dirPath, file);
+      let mdPath = join(harborRoot, file);
+      if (!existsSync(mdPath)) {
+        // Legacy layouts stored markdown inside the collection folder.
+        mdPath = join(dirPath, file);
+      }
       let content = String(row.content ?? '');
       if (!content.trim() && existsSync(mdPath)) {
         content = readFileSync(mdPath, 'utf-8');
@@ -1143,7 +1213,19 @@ export function writeCollectionToFolder(
   const usedNames = new Set<string>();
   const requestFileNames: string[] = [];
   const writtenRequestFiles = new Set<string>();
-  const writtenDocumentFiles = new Set<string>();
+  const writtenHarborDocumentFiles = new Set<string>();
+  const previousDocumentFiles = new Set<string>();
+  for (const refsDir of [dirPath, previousDirPath]) {
+    if (!refsDir) {
+      continue;
+    }
+    for (const document of readStoredDocumentRefs(refsDir)) {
+      const fileName = document.file.trim();
+      if (fileName) {
+        previousDocumentFiles.add(fileName);
+      }
+    }
+  }
 
   mkdirSync(dirPath, { recursive: true });
 
@@ -1188,13 +1270,13 @@ export function writeCollectionToFolder(
   }
 
   const documentRefs: StoredDocumentRef[] = (validated.documents ?? []).map((document, index) => {
-    const file = documentFileName(document.name);
-    writtenDocumentFiles.add(file);
-    const mdPath = collectionDocumentFilePath(dirPath, document.name);
-    writeFileSync(mdPath, document.content ?? '', 'utf-8');
+    const documentUuid = resolveImportUuid(document.uuid);
+    const file = resolveDocumentDiskFileName(root, validated.name, document.name, documentUuid);
+    writtenHarborDocumentFiles.add(file);
+    writeFileSync(documentFilePath(root, file), document.content ?? '', 'utf-8');
     return {
       file,
-      uuid: resolveImportUuid(document.uuid),
+      uuid: documentUuid,
       name: document.name,
       folder_uuid: document.folder_uuid ?? null,
       sort_order:
@@ -1246,6 +1328,13 @@ export function writeCollectionToFolder(
 
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
 
+  for (const previousFile of previousDocumentFiles) {
+    if (writtenHarborDocumentFiles.has(previousFile)) {
+      continue;
+    }
+    rmSync(join(root, previousFile), { force: true });
+  }
+
   if (existsSync(dirPath)) {
     for (const entry of readdirSync(dirPath)) {
       const entryPath = join(dirPath, entry);
@@ -1262,7 +1351,8 @@ export function writeCollectionToFolder(
         }
         continue;
       }
-      if (entry.endsWith('.md') && !writtenDocumentFiles.has(entry)) {
+      // Migrate legacy in-collection markdown files to the harbor root.
+      if (entry.endsWith('.md')) {
         rmSync(entryPath, { force: true });
       }
     }
@@ -1379,7 +1469,7 @@ export function findCollectionDirByUuid(root: string, uuid: string): string | nu
 }
 
 /**
- * Lists all managed markdown documents across collection folders.
+ * Lists all managed markdown documents across collections at the Harbor data root.
  *
  * @param harborRoot - HarborClient data root.
  */
@@ -1387,13 +1477,13 @@ export function listManagedHarborRootDocuments(harborRoot: string): HarborRootDo
   const documents: HarborRootDocumentEntry[] = [];
 
   for (const entry of listCollectionFoldersOnDisk(harborRoot)) {
-    const exportData = readCollectionFromFolder(entry.dirPath);
-    for (const document of exportData.documents ?? []) {
+    for (const document of readStoredDocumentRefs(entry.dirPath)) {
       const docUuid = resolveImportUuid(document.uuid);
-      if (!docUuid || !document.name.trim()) {
+      const fileName = document.file.trim();
+      if (!docUuid || !document.name.trim() || !fileName) {
         continue;
       }
-      const filePath = collectionDocumentFilePath(entry.dirPath, document.name);
+      const filePath = documentFilePath(harborRoot, fileName);
       documents.push({
         uuid: docUuid,
         collection_uuid: entry.uuid,
@@ -1423,19 +1513,19 @@ export function buildFilenameToDocumentMap(
 }
 
 /**
- * Ensures a document filename is available inside one collection folder.
+ * Ensures a document display name is available inside one collection.
  *
  * @param collectionDir - Absolute path to the collection folder.
  * @param displayName - Candidate document display name.
- * @param ownerUuid - Document uuid that is allowed to keep the filename.
- * @throws When another document in the same collection already owns the filename.
+ * @param ownerUuid - Document uuid that is allowed to keep the display name.
+ * @throws When another document in the same collection already owns the display name.
  */
 export function assertDocumentFilenameAvailable(
   collectionDir: string,
   displayName: string,
   ownerUuid: string
 ): void {
-  const fileName = documentFileName(displayName);
+  const normalizedDisplayName = documentFileName(displayName);
   const normalizedOwnerUuid = resolveImportUuid(ownerUuid);
   const manifestPath = collectionManifestPath(collectionDir);
   if (!existsSync(manifestPath)) {
@@ -1444,11 +1534,13 @@ export function assertDocumentFilenameAvailable(
 
   const manifest = readJsonFile(manifestPath) as { documents?: StoredDocumentRef[] };
   for (const document of manifest.documents ?? []) {
-    if (document.file.toLowerCase() !== fileName.toLowerCase()) {
+    if (documentFileName(document.name).toLowerCase() !== normalizedDisplayName.toLowerCase()) {
       continue;
     }
     if (resolveImportUuid(document.uuid) !== normalizedOwnerUuid) {
-      throw new Error(`A markdown document named "${fileName}" already exists in this collection.`);
+      throw new Error(
+        `A markdown document named "${normalizedDisplayName}" already exists in this collection.`
+      );
     }
   }
 }

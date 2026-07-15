@@ -103,7 +103,8 @@ describe('git file layout', () => {
     expect(existsSync(dirPath)).toBe(true);
     expect(existsSync(collectionManifestPath(dirPath))).toBe(true);
     expect(existsSync(join(dirPath, requestFileName))).toBe(true);
-    expect(existsSync(join(dirPath, documentFileName('README.md')))).toBe(true);
+    expect(existsSync(join(root, documentFileName('README.md')))).toBe(true);
+    expect(existsSync(join(dirPath, documentFileName('README.md')))).toBe(false);
 
     const loaded = readCollectionFromFolder(dirPath);
     expect(loaded.name).toBe('API');
@@ -115,8 +116,12 @@ describe('git file layout', () => {
 
     const manifest = JSON.parse(readFileSync(collectionManifestPath(dirPath), 'utf-8')) as {
       requests: string[];
+      documents: Array<{ file: string; name: string }>;
     };
     expect(manifest.requests).toEqual([requestFileName]);
+    expect(manifest.documents).toEqual([
+      expect.objectContaining({ file: 'README.md', name: 'README.md' })
+    ]);
 
     rmSync(root, { recursive: true, force: true });
   });
@@ -280,17 +285,25 @@ describe('git file layout', () => {
 
   it('classifies collection-scoped request and document paths for git UI filtering', () => {
     const requestPath = '.harborclient/collection-api/req-health.json';
-    const documentPath = '.harborclient/collection-api/README.md';
+    const legacyDocumentPath = '.harborclient/collection-api/README.md';
+    const harborRootDocumentPath = '.harborclient/README.md';
     const manifestPath = '.harborclient/collection-api/collection.json';
 
     expect(classifyHarborChangePath(requestPath, '.harborclient')).toMatchObject({
       kind: 'request',
       collectionDir: 'collection-api'
     });
-    expect(classifyHarborChangePath(documentPath, '.harborclient')).toMatchObject({
+    expect(classifyHarborChangePath(legacyDocumentPath, '.harborclient')).toMatchObject({
       kind: 'document',
       collectionDir: 'collection-api'
     });
+    expect(classifyHarborChangePath(harborRootDocumentPath, '.harborclient')).toMatchObject({
+      kind: 'document',
+      fileName: 'README.md'
+    });
+    expect(classifyHarborChangePath(harborRootDocumentPath, '.harborclient')?.collectionDir).toBe(
+      undefined
+    );
     expect(classifyHarborChangePath(manifestPath, '.harborclient')).toMatchObject({
       kind: 'collectionMeta'
     });
@@ -354,6 +367,109 @@ describe('git file layout', () => {
     expect(() =>
       assertDocumentFilenameAvailable(dirPath, 'readme.md', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd')
     ).toThrow(/already exists in this collection/i);
+
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('disambiguates harbor-root markdown filenames across collections', () => {
+    const root = mkdtempSync(join(tmpdir(), 'hc-git-doc-disambiguate-'));
+    writeCollectionToFolder(
+      root,
+      buildTestCollectionExport({
+        uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        name: 'API',
+        documents: [
+          {
+            uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+            name: 'README.md',
+            content: '# A',
+            sort_order: 0,
+            folder_name: null,
+            color: null
+          }
+        ]
+      })
+    );
+    const docsDir = writeCollectionToFolder(
+      root,
+      buildTestCollectionExport({
+        uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        name: 'Docs',
+        documents: [
+          {
+            uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+            name: 'README.md',
+            content: '# B',
+            sort_order: 0,
+            folder_name: null,
+            color: null
+          }
+        ]
+      })
+    );
+
+    expect(existsSync(join(root, 'README.md'))).toBe(true);
+    expect(readFileSync(join(root, 'README.md'), 'utf-8')).toBe('# A');
+    expect(existsSync(join(root, 'README-docs.md'))).toBe(true);
+    expect(readFileSync(join(root, 'README-docs.md'), 'utf-8')).toBe('# B');
+
+    const manifest = JSON.parse(readFileSync(collectionManifestPath(docsDir), 'utf-8')) as {
+      documents: Array<{ file: string; name: string }>;
+    };
+    expect(manifest.documents).toEqual([
+      expect.objectContaining({ file: 'README-docs.md', name: 'README.md' })
+    ]);
+
+    const loaded = readCollectionFromFolder(docsDir);
+    expect(loaded.documents?.[0]?.name).toBe('README.md');
+    expect(loaded.documents?.[0]?.content).toBe('# B');
+
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('reads legacy in-collection markdown files and migrates them to the harbor root', () => {
+    const root = mkdtempSync(join(tmpdir(), 'hc-git-doc-legacy-'));
+    const dirPath = join(root, 'collection-api');
+    mkdirSync(dirPath, { recursive: true });
+    writeFileSync(join(dirPath, 'README.md'), '# Legacy', 'utf-8');
+    writeFileSync(
+      collectionManifestPath(dirPath),
+      JSON.stringify({
+        harborclientVersion: 1,
+        harborclientExport: 'collection',
+        uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        name: 'API',
+        variables: [],
+        headers: [],
+        auth: defaultAuth(),
+        pre_request_script: '',
+        post_request_script: '',
+        folders: [],
+        requests: [],
+        documents: [
+          {
+            file: 'README.md',
+            uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+            name: 'README.md',
+            folder_uuid: null,
+            sort_order: 0,
+            color: null
+          }
+        ]
+      }),
+      'utf-8'
+    );
+
+    const loaded = readCollectionFromFolder(dirPath);
+    expect(loaded.documents?.[0]?.content).toBe('# Legacy');
+
+    writeCollectionToFolder(root, {
+      ...loaded,
+      documents: loaded.documents
+    });
+    expect(existsSync(join(root, 'README.md'))).toBe(true);
+    expect(readFileSync(join(root, 'README.md'), 'utf-8')).toBe('# Legacy');
+    expect(existsSync(join(dirPath, 'README.md'))).toBe(false);
 
     rmSync(root, { recursive: true, force: true });
   });

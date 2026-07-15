@@ -164,7 +164,7 @@ describe('GitStorage', () => {
     rmSync(userDataPath, { recursive: true, force: true });
   });
 
-  it('writes markdown documents inside the collection folder without YAML frontmatter', async () => {
+  it('writes markdown documents at the harbor root without YAML frontmatter', async () => {
     const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-git-doc-repo-'));
     const userDataPath = mkdtempSync(join(tmpdir(), 'harborclient-git-doc-userdata-'));
     mkdirSync(join(repoPath, '.harborclient'), { recursive: true });
@@ -190,9 +190,10 @@ describe('GitStorage', () => {
 
     const harborRoot = join(repoPath, '.harborclient');
     const collectionDir = join(harborRoot, 'collection-api');
-    const markdownFiles = readFileSync(join(collectionDir, 'README.md'), 'utf-8');
+    const markdownFiles = readFileSync(join(harborRoot, 'README.md'), 'utf-8');
     expect(markdownFiles).toBe('# Harbor notes');
     expect(markdownFiles).not.toContain('collection_uuid:');
+    expect(existsSync(join(collectionDir, 'README.md'))).toBe(false);
 
     const manifest = JSON.parse(readFileSync(join(collectionDir, 'collection.json'), 'utf-8')) as {
       documents?: Array<{ uuid: string; name: string; file: string }>;
@@ -218,7 +219,7 @@ describe('GitStorage', () => {
     rmSync(userDataPath, { recursive: true, force: true });
   });
 
-  it('allows the same markdown filename in different collection folders', async () => {
+  it('disambiguates the same markdown display name across collections at the harbor root', async () => {
     const repoPath = mkdtempSync(join(tmpdir(), 'harborclient-git-doc-collision-'));
     const userDataPath = mkdtempSync(join(tmpdir(), 'harborclient-git-doc-collision-user-'));
     mkdirSync(join(repoPath, '.harborclient'), { recursive: true });
@@ -255,8 +256,12 @@ describe('GitStorage', () => {
     const documentsB = await db.listDocuments(collectionB.id);
     expect(documentsA).toHaveLength(1);
     expect(documentsB).toHaveLength(1);
-    expect(existsSync(join(repoPath, '.harborclient', 'collection-api', 'README.md'))).toBe(true);
-    expect(existsSync(join(repoPath, '.harborclient', 'collection-docs', 'readme.md'))).toBe(true);
+    expect(documentsA[0]?.name).toBe('README.md');
+    expect(documentsB[0]?.name).toBe('readme.md');
+    expect(existsSync(join(repoPath, '.harborclient', 'README.md'))).toBe(true);
+    expect(existsSync(join(repoPath, '.harborclient', 'readme-docs.md'))).toBe(true);
+    expect(readFileSync(join(repoPath, '.harborclient', 'README.md'), 'utf-8')).toBe('# A');
+    expect(readFileSync(join(repoPath, '.harborclient', 'readme-docs.md'), 'utf-8')).toBe('# B');
 
     await db.close();
     rmSync(repoPath, { recursive: true, force: true });

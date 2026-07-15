@@ -91,15 +91,17 @@ interface DocumentModalState {
 
 interface ProviderProps {
   /**
-   * Sidebar subtree that can open create/rename modals.
+   * App subtree (sidebar and editor) that can open create/rename modals.
    */
   children: ReactNode;
 }
 
 /**
  * Owns the folder, document, and environment create/rename modals and exposes
- * openers to the sidebar tree. Each modal manages its own form state and
- * dispatches the relevant thunk on submit.
+ * openers to the sidebar tree and the markdown editor tab. Mounted at the app
+ * layout level so both the collection sidebar and MarkdownEditorTab can call
+ * useSidebarModals. Each modal manages its own form state and dispatches the
+ * relevant thunk on submit.
  */
 export function SidebarModalsProvider({ children }: ProviderProps): JSX.Element {
   const dispatch = useAppDispatch();

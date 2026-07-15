@@ -177,6 +177,12 @@ export class GitStorage implements IStorage {
   #documentTimestamps = new Map<string, { created_at: string; updated_at: string }>();
   #providerSettings: Record<string, string> = {};
   #initialized = false;
+  /**
+   * Harbor-root document paths removed from a collection since the last commit,
+   * keyed by provider-local collection id. Needed so deletions outside the
+   * collection folder prefix can still be staged on commit.
+   */
+  #pendingHarborDocumentPaths = new Map<number, Set<string>>();
 
   /**
    * @param connectionId - Git connection id for auth and id index persistence.
@@ -1600,6 +1606,12 @@ export class GitStorage implements IStorage {
     const loaded = this.requireCollection(collectionId);
     const collectionPrefix = this.toRepoRelativePath(loaded.dirPath);
     const pathFlags = await this.#sync.getPathFlagsUnderPrefix(collectionPrefix);
+    for (const documentPath of this.getCollectionHarborDocumentRepoPaths(collectionId)) {
+      if (pathFlags[documentPath] != null) {
+        continue;
+      }
+      Object.assign(pathFlags, await this.#sync.getPathFlagsUnderPrefix(documentPath));
+    }
     const uuidToRepoPath = this.buildItemUuidToRepoPath(loaded);
     const statuses: Record<string, GitRequestFileStatus> = {};
 
@@ -1625,10 +1637,24 @@ export class GitStorage implements IStorage {
     const collectionPrefix = this.toRepoRelativePath(loaded.dirPath);
     const pathFlags = await this.#sync.getPathFlagsUnderPrefix(collectionPrefix);
     let count = 0;
+    const countedPaths = new Set<string>();
 
     for (const [repoPath, flags] of Object.entries(pathFlags)) {
       const rel = repoPath.slice(collectionPrefix.length + 1);
       if (isCollectionRequestOrDocumentFile(rel) && isCountedCollectionChange(flags)) {
+        countedPaths.add(repoPath);
+        count += 1;
+      }
+    }
+
+    for (const documentPath of this.getCollectionCommitDocumentPaths(collectionId)) {
+      if (countedPaths.has(documentPath)) {
+        continue;
+      }
+      const documentFlags = await this.#sync.getPathFlagsUnderPrefix(documentPath);
+      const flags = documentFlags[documentPath];
+      if (flags != null && isCountedCollectionChange(flags)) {
+        countedPaths.add(documentPath);
         count += 1;
       }
     }
@@ -1644,6 +1670,52 @@ export class GitStorage implements IStorage {
   getCollectionRepoRelativePath(collectionId: number): string {
     const loaded = this.requireCollection(collectionId);
     return this.toRepoRelativePath(loaded.dirPath);
+  }
+
+  /**
+   * Returns repository-relative harbor-root markdown paths currently owned by a collection.
+   *
+   * @param collectionId - Provider-local collection id.
+   */
+  getCollectionHarborDocumentRepoPaths(collectionId: number): string[] {
+    const loaded = this.requireCollection(collectionId);
+    const paths: string[] = [];
+    for (const document of readStoredDocumentRefs(loaded.dirPath)) {
+      const fileName = document.file.trim();
+      if (!fileName) {
+        continue;
+      }
+      paths.push(this.toRepoRelativePath(join(this.#root, fileName)));
+    }
+    return paths;
+  }
+
+  /**
+   * Returns harbor-root document paths to include when committing a collection.
+   *
+   * Includes current on-disk document paths plus paths removed since the last
+   * commit so deletions outside the collection folder are still staged.
+   *
+   * @param collectionId - Provider-local collection id.
+   */
+  getCollectionCommitDocumentPaths(collectionId: number): string[] {
+    const pending = this.#pendingHarborDocumentPaths.get(collectionId);
+    const paths = new Set(this.getCollectionHarborDocumentRepoPaths(collectionId));
+    if (pending != null) {
+      for (const path of pending) {
+        paths.add(path);
+      }
+    }
+    return [...paths];
+  }
+
+  /**
+   * Clears remembered harbor-root document deletion paths after a successful commit.
+   *
+   * @param collectionId - Provider-local collection id.
+   */
+  clearPendingHarborDocumentPaths(collectionId: number): void {
+    this.#pendingHarborDocumentPaths.delete(collectionId);
   }
 
   /**
@@ -1729,7 +1801,7 @@ export class GitStorage implements IStorage {
       if (!uuid || !document.file.trim()) {
         continue;
       }
-      map.set(uuid, this.toRepoRelativePath(join(loaded.dirPath, document.file)));
+      map.set(uuid, this.toRepoRelativePath(join(this.#root, document.file)));
     }
 
     return map;
@@ -1761,10 +1833,32 @@ export class GitStorage implements IStorage {
   private persistCollection(collectionId: number): void {
     const loaded = this.requireCollection(collectionId);
     const oldDirPath = loaded.dirPath;
+    const previousDocumentPaths = new Set<string>();
+    for (const refsDir of [oldDirPath]) {
+      for (const document of readStoredDocumentRefs(refsDir)) {
+        const fileName = document.file.trim();
+        if (fileName) {
+          previousDocumentPaths.add(this.toRepoRelativePath(join(this.#root, fileName)));
+        }
+      }
+    }
     const targetDirPath = collectionDirPath(this.#root, loaded.manifest.name);
     loaded.dirPath = writeCollectionToFolder(this.#root, buildCollectionExportFromLoaded(loaded), {
       previousDirPath: oldDirPath !== targetDirPath ? oldDirPath : null
     });
+
+    const nextDocumentPaths = new Set(this.getCollectionHarborDocumentRepoPaths(collectionId));
+    let pending = this.#pendingHarborDocumentPaths.get(collectionId);
+    for (const previousPath of previousDocumentPaths) {
+      if (nextDocumentPaths.has(previousPath)) {
+        continue;
+      }
+      if (pending == null) {
+        pending = new Set();
+        this.#pendingHarborDocumentPaths.set(collectionId, pending);
+      }
+      pending.add(previousPath);
+    }
   }
 
   /**

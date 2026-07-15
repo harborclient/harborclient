@@ -221,8 +221,10 @@ export function registerGitHandlers(db: IStorage): void {
       await gitDb.syncManager.commit(message, {
         createHarborRoot,
         collectionPrefix,
+        additionalFilepaths: gitDb.getCollectionCommitDocumentPaths(collection.id),
         author: { name: gitCommitAuthorName, email: gitCommitAuthorEmail }
       });
+      gitDb.clearPendingHarborDocumentPaths(collection.id);
     }
   );
 
@@ -407,6 +409,12 @@ export function registerGitHandlers(db: IStorage): void {
     const { collection, gitDb, connectionId } = resolved;
     const status = await gitDb.syncManager.getStatus();
     const collectionDir = collectionDirName(collection.name);
+    const providerCollection = await gitDb.findCollectionByUuid(collection.uuid);
+    const ownedDocumentPaths = new Set(
+      providerCollection != null
+        ? gitDb.getCollectionCommitDocumentPaths(providerCollection.id)
+        : []
+    );
     const diff = await buildGitDiff({
       repoPath: gitDb.syncManager.repoDir,
       harborSubdir: status.harborSubdir,
@@ -416,7 +424,11 @@ export function registerGitHandlers(db: IStorage): void {
       stagedOnly: args.stagedOnly ?? false,
       excludeUntracked: args.excludeUntracked ?? false,
       enrichDisplayNames: true,
-      filepathFilter: makeCollectionScopedFilter(status.harborSubdir, collectionDir)
+      filepathFilter: makeCollectionScopedFilter(
+        status.harborSubdir,
+        collectionDir,
+        ownedDocumentPaths
+      )
     });
 
     return JSON.stringify({
@@ -445,6 +457,9 @@ export function registerGitHandlers(db: IStorage): void {
     const repoPath = gitDb.syncManager.repoDir;
     const harborDataPath = resolveHarborclientRoot(repoPath, status.harborSubdir);
     const collectionDir = collectionDirName(collection.name);
+    const ownedDocumentPaths = new Set(
+      gitDb.getCollectionCommitDocumentPaths(providerCollection.id)
+    );
     const [repoUrl, requests, documents, uncommittedItems, diff] = await Promise.all([
       readRepoRemoteUrl(repoPath),
       gitDb.listRequests(providerCollection.id),
@@ -455,7 +470,11 @@ export function registerGitHandlers(db: IStorage): void {
         harborSubdir: status.harborSubdir,
         maxFiles: 100,
         enrichDisplayNames: true,
-        filepathFilter: makeCollectionScopedFilter(status.harborSubdir, collectionDir)
+        filepathFilter: makeCollectionScopedFilter(
+          status.harborSubdir,
+          collectionDir,
+          ownedDocumentPaths
+        )
       })
     ]);
 

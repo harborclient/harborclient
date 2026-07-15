@@ -106,6 +106,11 @@ export class GitSyncManager {
     options?: {
       createHarborRoot?: boolean;
       collectionPrefix?: string;
+      /**
+       * Extra repository-relative filepaths to include (for example harbor-root
+       * markdown documents owned by the collection but outside the folder prefix).
+       */
+      additionalFilepaths?: string[];
       author?: { name?: string; email?: string };
     }
   ): Promise<void> {
@@ -127,7 +132,16 @@ export class GitSyncManager {
       bootstrapped = true;
     }
 
-    const stagedTracked = await this.stageTrackedChanges(collectionPrefix);
+    let stagedTracked = await this.stageTrackedChanges(collectionPrefix);
+    for (const filepath of options?.additionalFilepaths ?? []) {
+      const trimmed = filepath.trim().replace(/\\/g, '/');
+      if (!trimmed || trimmed === collectionPrefix || trimmed.startsWith(`${collectionPrefix}/`)) {
+        continue;
+      }
+      if (await this.stageTrackedChanges(trimmed)) {
+        stagedTracked = true;
+      }
+    }
     if (!stagedTracked && !bootstrapped) {
       throw new Error('No changes to commit.');
     }
@@ -527,7 +541,7 @@ export class GitSyncManager {
   }
 
   /**
-   * Returns recent commit log entries.
+   * Returns recent commit log entries annotated with push status when known.
    *
    * @param depth - Maximum number of commits.
    */
@@ -542,12 +556,27 @@ export class GitSyncManager {
     }
 
     const commits = await git.log({ fs, dir: this.#repoPath, depth });
-    return commits.map((entry) => ({
-      oid: entry.oid,
-      message: entry.commit.message.split('\n')[0] ?? '',
-      author: entry.commit.author.name,
-      timestamp: new Date(entry.commit.author.timestamp * 1000).toISOString()
-    }));
+    const branch = await this.currentBranch();
+    const { syncKnown, aheadOids } =
+      branch != null
+        ? await this.collectAheadOids(branch, depth)
+        : { syncKnown: false, aheadOids: new Set<string>() };
+
+    return commits.map((entry) => {
+      const base: GitLogEntry = {
+        oid: entry.oid,
+        message: entry.commit.message.split('\n')[0] ?? '',
+        author: entry.commit.author.name,
+        timestamp: new Date(entry.commit.author.timestamp * 1000).toISOString()
+      };
+      if (!syncKnown) {
+        return base;
+      }
+      return {
+        ...base,
+        pushedToOrigin: !aheadOids.has(entry.oid)
+      };
+    });
   }
 
   /**
@@ -640,6 +669,64 @@ export class GitSyncManager {
       const ahead = await this.countCommitsSince(localOid, baseOid);
       const behind = await this.countCommitsSince(remoteOid, baseOid);
       return { ahead, behind, syncKnown: true };
+    } catch {
+      return unknown;
+    }
+  }
+
+  /**
+   * Collects commit OIDs that are ahead of the origin tracking ref.
+   *
+   * Uses the same refs as {@link countAheadBehind}. When sync is known and local
+   * matches origin, returns an empty set. When the origin ref is missing or
+   * comparison fails, returns `syncKnown: false`.
+   *
+   * @param branch - Current branch name.
+   * @param maxDepth - Maximum number of ahead commits to collect.
+   * @returns Whether sync comparison succeeded, plus the set of unpushed OIDs.
+   */
+  private async collectAheadOids(
+    branch: string,
+    maxDepth: number
+  ): Promise<{ syncKnown: boolean; aheadOids: Set<string> }> {
+    const unknown = { syncKnown: false as const, aheadOids: new Set<string>() };
+
+    try {
+      const localOid = await git.resolveRef({ fs, dir: this.#repoPath, ref: 'HEAD' });
+      const remoteOid = await git.resolveRef({
+        fs,
+        dir: this.#repoPath,
+        ref: `refs/remotes/origin/${branch}`
+      });
+
+      if (localOid === remoteOid) {
+        return { syncKnown: true, aheadOids: new Set() };
+      }
+
+      const mergeBases = await git.findMergeBase({
+        fs,
+        dir: this.#repoPath,
+        oids: [localOid, remoteOid]
+      });
+      const baseOid = mergeBases[0];
+      if (baseOid == null) {
+        return unknown;
+      }
+
+      const aheadOids = new Set<string>();
+      const commits = await git.log({
+        fs,
+        dir: this.#repoPath,
+        ref: localOid,
+        depth: maxDepth
+      });
+      for (const commit of commits) {
+        if (commit.oid === baseOid) {
+          break;
+        }
+        aheadOids.add(commit.oid);
+      }
+      return { syncKnown: true, aheadOids };
     } catch {
       return unknown;
     }

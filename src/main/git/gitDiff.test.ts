@@ -228,29 +228,43 @@ describe('buildGitDiff', () => {
     const { repoPath } = await createTestRepo();
     const collectionDir = join(repoPath, '.harborclient', 'collection-api');
     mkdirSync(collectionDir, { recursive: true });
-    writeFileSync(join(collectionDir, 'collection.json'), '{"harborclientExport":"collection"}');
+    writeFileSync(
+      join(collectionDir, 'collection.json'),
+      JSON.stringify({
+        harborclientExport: 'collection',
+        documents: [{ file: 'Notes.md', uuid: 'x', name: 'Notes.md', folder_uuid: null }]
+      })
+    );
     writeFileSync(
       join(collectionDir, 'req-health.json'),
       JSON.stringify({ harborclientExport: 'request', name: 'Health Check', method: 'GET' })
     );
-    writeFileSync(join(collectionDir, 'Notes.md'), '# Notes');
+    writeFileSync(join(repoPath, '.harborclient', 'Notes.md'), '# Notes');
     writeFileSync(join(repoPath, '.harborclient', '.gitignore'), 'local*.json\n');
 
     const diff = await buildGitDiff({
       repoPath,
       harborSubdir: '.harborclient',
       enrichDisplayNames: true,
-      filepathFilter: makeCollectionScopedFilter('.harborclient', 'collection-api')
+      filepathFilter: makeCollectionScopedFilter(
+        '.harborclient',
+        'collection-api',
+        new Set(['.harborclient/Notes.md'])
+      )
     });
 
     expect(diff.files.map((file) => file.path)).toEqual([
-      '.harborclient/collection-api/Notes.md',
+      '.harborclient/Notes.md',
       '.harborclient/collection-api/req-health.json'
     ]);
     expect(diff.files[1]).toMatchObject({
       displayName: 'Health Check',
       resourceKind: 'request',
       method: 'GET'
+    });
+    expect(diff.files[0]).toMatchObject({
+      displayName: 'Notes.md',
+      resourceKind: 'document'
     });
   });
 

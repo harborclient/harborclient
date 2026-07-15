@@ -1,13 +1,19 @@
 import * as git from 'isomorphic-git';
 import fs, { existsSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { join, relative } from 'path';
 import { truncateTextForLlm } from '#/shared/ai/chatContext';
 import { hasConflictMarkers } from './slug';
 import { readBlobBytesFromTree } from './gitBlob';
 import {
+  buildFilenameToDocumentMap,
   classifyHarborChangePath,
+  collectionManifestPath,
   displayNameFromHarborChange,
+  findCollectionDirByUuid,
+  listCollectionFoldersOnDisk,
   parseRequestUuidFromText,
+  readStoredDocumentRefs,
+  resolveHarborclientRoot,
   type ClassifiedHarborChangePath
 } from './fileLayout';
 import { decodeTextContent } from './gitBlobText';
@@ -230,33 +236,58 @@ export interface GitDiffOptions {
  *
  * @param classified - Parsed HarborClient path metadata.
  * @param collectionDir - On-disk collection folder name to scope.
+ * @param filepath - Repository-relative path being classified.
+ * @param ownedHarborDocumentPaths - Harbor-root document paths owned by the collection.
  */
 export function isCollectionScopedHarborChange(
   classified: ClassifiedHarborChangePath,
-  collectionDir: string
+  collectionDir: string,
+  filepath?: string,
+  ownedHarborDocumentPaths?: ReadonlySet<string>
 ): boolean {
   if (classified.kind !== 'request' && classified.kind !== 'document') {
     return false;
   }
-  return classified.collectionDir === collectionDir;
+  if (classified.collectionDir === collectionDir) {
+    return true;
+  }
+  if (
+    classified.kind === 'document' &&
+    classified.collectionDir == null &&
+    filepath != null &&
+    ownedHarborDocumentPaths?.has(filepath.replace(/\\/g, '/'))
+  ) {
+    return true;
+  }
+  return false;
 }
 
 /**
- * Returns a filepath filter that keeps only request/document changes under one collection folder.
+ * Returns a filepath filter that keeps only request/document changes for one collection.
+ *
+ * Includes request/document files under the collection folder and harbor-root
+ * markdown documents owned by the collection.
  *
  * @param harborSubdir - HarborClient subdirectory setting from sync status.
  * @param collectionDir - On-disk collection folder name (from `collectionDirName`).
+ * @param ownedHarborDocumentPaths - Optional set of repository-relative harbor-root document paths.
  */
 export function makeCollectionScopedFilter(
   harborSubdir: string,
-  collectionDir: string
+  collectionDir: string,
+  ownedHarborDocumentPaths?: ReadonlySet<string>
 ): (filepath: string) => boolean {
   return (filepath) => {
     const classified = classifyHarborChangePath(filepath, harborSubdir);
     if (classified == null) {
       return false;
     }
-    return isCollectionScopedHarborChange(classified, collectionDir);
+    return isCollectionScopedHarborChange(
+      classified,
+      collectionDir,
+      filepath,
+      ownedHarborDocumentPaths
+    );
   };
 }
 
@@ -297,6 +328,76 @@ async function readHeadText(repoPath: string, filepath: string): Promise<string 
 }
 
 /**
+ * Resolves collection.json text used for document display-name enrichment.
+ *
+ * Harbor-root documents are not siblings of the manifest; ownership is looked
+ * up via the managed document map (working tree) or HEAD manifests (deletions).
+ *
+ * @param repoPath - Absolute repository root.
+ * @param filepath - Repository-relative document path.
+ * @param harborSubdir - HarborClient subdirectory prefix.
+ * @param classified - Parsed HarborClient path metadata.
+ * @param status - Added, modified, or deleted relative to HEAD.
+ */
+async function resolveDocumentManifestText(
+  repoPath: string,
+  filepath: string,
+  harborSubdir: string,
+  classified: ClassifiedHarborChangePath,
+  status: GitDiffFileStatus
+): Promise<string | null> {
+  if (classified.collectionDir != null) {
+    const manifestPath = filepath.replace(/[^/]+$/, 'collection.json');
+    const manifestHead = status === 'added' ? null : await readHeadText(repoPath, manifestPath);
+    const manifestWork = status === 'deleted' ? null : readWorkdirText(repoPath, manifestPath);
+    return status === 'deleted' ? manifestHead : (manifestWork ?? manifestHead);
+  }
+
+  const harborRoot = resolveHarborclientRoot(repoPath, harborSubdir);
+  const fileName = classified.fileName;
+  const owned = buildFilenameToDocumentMap(harborRoot).get(fileName.toLowerCase());
+  let owningDirPath: string | null =
+    owned != null ? findCollectionDirByUuid(harborRoot, owned.collection_uuid) : null;
+
+  if (owningDirPath == null) {
+    for (const entry of listCollectionFoldersOnDisk(harborRoot)) {
+      const refs = readStoredDocumentRefs(entry.dirPath);
+      if (refs.some((document) => document.file.toLowerCase() === fileName.toLowerCase())) {
+        owningDirPath = entry.dirPath;
+        break;
+      }
+    }
+  }
+
+  if (owningDirPath != null) {
+    const manifestPath = relative(repoPath, collectionManifestPath(owningDirPath)).replace(
+      /\\/g,
+      '/'
+    );
+    const manifestHead = status === 'added' ? null : await readHeadText(repoPath, manifestPath);
+    const manifestWork = status === 'deleted' ? null : readWorkdirText(repoPath, manifestPath);
+    return status === 'deleted' ? manifestHead : (manifestWork ?? manifestHead);
+  }
+
+  if (status === 'deleted') {
+    const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const filePattern = new RegExp(`"file"\\s*:\\s*"${escaped}"`, 'i');
+    for (const entry of listCollectionFoldersOnDisk(harborRoot)) {
+      const manifestPath = relative(repoPath, collectionManifestPath(entry.dirPath)).replace(
+        /\\/g,
+        '/'
+      );
+      const manifestHead = await readHeadText(repoPath, manifestPath);
+      if (manifestHead != null && filePattern.test(manifestHead)) {
+        return manifestHead;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
  * Resolves display metadata for one changed Harbor request or document path.
  *
  * @param repoPath - Absolute repository root.
@@ -322,10 +423,13 @@ async function resolveDiffDisplayMeta(
   const contentText = status === 'deleted' ? headText : compareText;
   let manifestText: string | null = null;
   if (classified.kind === 'document') {
-    const manifestPath = filepath.replace(/[^/]+$/, 'collection.json');
-    const manifestHead = status === 'added' ? null : await readHeadText(repoPath, manifestPath);
-    const manifestWork = status === 'deleted' ? null : readWorkdirText(repoPath, manifestPath);
-    manifestText = status === 'deleted' ? manifestHead : (manifestWork ?? manifestHead);
+    manifestText = await resolveDocumentManifestText(
+      repoPath,
+      filepath,
+      harborSubdir,
+      classified,
+      status
+    );
   }
 
   return displayNameFromHarborChange(classified, contentText, manifestText);

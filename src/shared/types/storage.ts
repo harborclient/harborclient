@@ -347,6 +347,13 @@ export interface GitLogEntry {
    * ISO 8601 commit timestamp.
    */
   timestamp: string;
+
+  /**
+   * Whether this commit is present on the tracked origin branch ref.
+   * `true` when at or behind origin; `false` when ahead (unpushed).
+   * Omitted when the origin tracking ref is unavailable (`syncKnown` is false).
+   */
+  pushedToOrigin?: boolean;
 }
 
 /**
