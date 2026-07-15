@@ -3,7 +3,7 @@ import {
   cleanHeaders,
   serializeScopedSettingsForm,
   type ScopedSettingsCoreFields
-} from '#/renderer/src/ui/shared/scopedSettingsForm';
+} from '#/renderer/src/ui/shared/ScopedSettings/scopedSettingsForm';
 
 export { cleanHeaders, serializeScopedSettingsForm };
 

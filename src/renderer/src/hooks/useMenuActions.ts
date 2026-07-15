@@ -48,7 +48,7 @@ import {
   restoreLastFocusWithoutRing,
   useLastFocusedElement
 } from '#/renderer/src/hooks/useLastFocusedElement';
-import { focusSkipNavigation } from '#/renderer/src/ui/shared/skipNavigationInitialFocus';
+import { focusSkipNavigation } from '#/renderer/src/ui/shared/SkipNavigation/skipNavigationInitialFocus';
 import { focusSidebarSearch } from '#/renderer/src/ui/sidebars/CollectionSidebar/focusSidebarSearch';
 import { focusRequestUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/focusRequestUrl';
 import { focusFirstRequestTab } from '#/renderer/src/ui/Main/RequestEditor/TabBar/focusFirstRequestTab';

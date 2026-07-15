@@ -9,7 +9,7 @@ import {
 import {
   buildCodePreview,
   CODE_PREVIEW_TOOLTIP_SETTLE_MS
-} from '#/renderer/src/ui/shared/codePreview';
+} from '#/renderer/src/ui/shared/CodePreview/codePreview';
 
 interface Props {
   /**

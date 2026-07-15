@@ -78,14 +78,14 @@ import {
 import { Footer } from '#/renderer/src/ui/Footer';
 import { TabGroupEditBar } from '#/renderer/src/ui/TabGroupEditBar';
 import { FooterPanels } from '#/renderer/src/ui/Footer/FooterPanels';
-import { AnimatedHorizontalPanel } from '#/renderer/src/ui/shared/AnimatedHorizontalPanel';
-import { SkipNavigation } from '#/renderer/src/ui/shared/SkipNavigation';
+import { AnimatedHorizontalPanel } from '#/renderer/src/ui/shared/Animated/AnimatedHorizontalPanel';
+import { SkipNavigation } from '#/renderer/src/ui/shared/SkipNavigation/SkipNavigation';
 import {
   AI_SIDEBAR_SECTION_ID,
   COLLECTIONS_SIDEBAR_SECTION_ID,
   GIT_SIDEBAR_SECTION_ID,
   type SkipNavigationVisibility
-} from '#/renderer/src/ui/shared/skipNavigationTargets';
+} from '#/renderer/src/ui/shared/SkipNavigation/skipNavigationTargets';
 import {
   DEFAULT_TOAST_ARIA_PROPS,
   ERROR_TOAST_ARIA_PROPS,

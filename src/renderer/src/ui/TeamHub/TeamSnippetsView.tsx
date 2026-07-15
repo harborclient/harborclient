@@ -17,13 +17,13 @@ import { faPlus, faCode } from '#/renderer/src/fontawesome';
 
 import { useTeamHubAdminSnippets } from '#/renderer/src/hooks/useTeamHubAdminSnippets';
 import { useTypedDeleteConfirm } from '#/renderer/src/hooks/useTypedDeleteConfirm';
-import { CodePreviewTooltip } from '#/renderer/src/ui/shared/CodePreviewTooltip';
-import { DeleteConfirmModal } from '#/renderer/src/ui/shared/DeleteConfirmModal';
-import { SnippetEditModal } from '#/renderer/src/ui/shared/SnippetEditModal';
+import { CodePreviewTooltip } from '#/renderer/src/ui/shared/CodePreview/CodePreviewTooltip';
+import { DeleteConfirmModal } from '#/renderer/src/ui/shared/DeleteConfirm/DeleteConfirmModal';
+import { SnippetEditModal } from '#/renderer/src/ui/shared/Snippet/SnippetEditModal';
 import {
   createBlankSnippet,
   type SnippetEditDraft
-} from '#/renderer/src/ui/shared/snippetEditDraft';
+} from '#/renderer/src/ui/shared/Snippet/snippetEditDraft';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
 
 interface Props {

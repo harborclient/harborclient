@@ -25,17 +25,17 @@ import type {
   McpServerStatus
 } from '#/shared/types';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
-import { McpServerFormFields } from '#/renderer/src/ui/shared/McpServerFormFields';
-import { buildMcpConfigSnippet } from '#/renderer/src/ui/shared/buildMcpConfigSnippet';
+import { McpServerFormFields } from '#/renderer/src/ui/shared/Mcp/McpServerFormFields';
+import { buildMcpConfigSnippet } from '#/renderer/src/ui/shared/Mcp/buildMcpConfigSnippet';
 import {
   formatMcpClientHeadersDraft,
   MCP_CLIENT_HEADERS_PLACEHOLDER,
   parseMcpClientHeadersDraft
-} from '#/renderer/src/ui/shared/mcpClientHeadersDraft';
+} from '#/renderer/src/ui/shared/Mcp/mcpClientHeadersDraft';
 import {
   MCP_CLIENT_SERVER_IMPORT_PLACEHOLDER,
   parseMcpClientServerImportSnippet
-} from '#/renderer/src/ui/shared/parseMcpClientServerImport';
+} from '#/renderer/src/ui/shared/Mcp/parseMcpClientServerImport';
 import { formatIpcErrorMessage } from '#/renderer/src/ui/modals/dialogHelpers';
 
 const MCP_MUTATING_TOOLS: readonly AiToolName[] = [

@@ -61,27 +61,27 @@ import {
   resolveScriptSourceCode,
   UNNAMED_SCRIPT_NAME
 } from '#/shared/scriptRefs';
-import { CodePreviewTooltip } from '#/renderer/src/ui/shared/CodePreviewTooltip';
-import { buildCodePreview } from '#/renderer/src/ui/shared/codePreview';
-import { SnippetEditModal } from '#/renderer/src/ui/shared/SnippetEditModal';
+import { CodePreviewTooltip } from '#/renderer/src/ui/shared/CodePreview/CodePreviewTooltip';
+import { buildCodePreview } from '#/renderer/src/ui/shared/CodePreview/codePreview';
+import { SnippetEditModal } from '#/renderer/src/ui/shared/Snippet/SnippetEditModal';
 import {
   createBlankSnippet,
   createImportedSnippetDraft,
   type SnippetEditDraft
-} from '#/renderer/src/ui/shared/snippetEditDraft';
+} from '#/renderer/src/ui/shared/Snippet/snippetEditDraft';
 import { scriptRowIconButtonClass } from '#/renderer/src/ui/shared/classes';
 import { usePluginScriptEditorActions } from '#/renderer/src/plugins/pluginHooks';
 import type { RegisteredScriptEditorAction } from '#/shared/plugin/types';
 import {
   normalizeEditorPlaceholder,
   REQUEST_SCRIPTS_HELP_URL
-} from '#/renderer/src/ui/shared/scriptPlaceholders';
+} from '#/renderer/src/ui/shared/Script/scriptPlaceholders';
 import { createLiveHcCompletionSource } from '#/renderer/src/scripting/hcCompletions';
 import { isImportableSnippetName } from '#/shared/snippetImport';
 import { SCRIPT_ASK_COMMANDS } from '#/renderer/src/scripting/scriptAskCommands';
 import { runScriptAsk } from '#/renderer/src/scripting/runScriptAsk';
 import { resolveScriptAskModelId } from '#/renderer/src/scripting/scriptAskModel';
-import { ScriptAskModal } from '#/renderer/src/ui/shared/ScriptAskModal';
+import { ScriptAskModal } from '#/renderer/src/ui/shared/Script/ScriptAskModal';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { usePersistedScriptEditorUiState } from '#/renderer/src/hooks/usePersistedScriptEditorUiState';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';

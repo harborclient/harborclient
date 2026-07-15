@@ -3,9 +3,9 @@ import type { AuthConfig, Folder, KeyValue, ScriptRef, Variable } from '#/shared
 import { normalizeAuth } from '#/shared/auth';
 import { resolveScriptRefs } from '#/shared/scriptRefs';
 import { GeneralSection } from '#/renderer/src/ui/FolderSettings/GeneralSection';
-import { ScopedAuthSection } from '#/renderer/src/ui/shared/ScopedAuthSection';
-import { ScopedHeadersSection } from '#/renderer/src/ui/shared/ScopedHeadersSection';
-import { ScopedSettingsForm } from '#/renderer/src/ui/shared/ScopedSettingsForm';
+import { ScopedAuthSection } from '#/renderer/src/ui/shared/ScopedSettings/ScopedAuthSection';
+import { ScopedHeadersSection } from '#/renderer/src/ui/shared/ScopedSettings/ScopedHeadersSection';
+import { ScopedSettingsForm } from '#/renderer/src/ui/shared/ScopedSettings/ScopedSettingsForm';
 import { folderFormCoreFields } from '#/renderer/src/ui/FolderSettings/serialize';
 
 export interface Props {

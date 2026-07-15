@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- refactor(ui): reorganize shared component imports and update paths. (`c05728b`)
 - feat(ui): add animated collapse and horizontal panel components. (`afec5d0`)
 - feat(ui): implement typed delete confirmation hook and UI enhancements. (`4313a7f`)
 

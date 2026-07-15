@@ -4,8 +4,8 @@ import {
   focusSkipNavigationOnLaunch,
   focusSkipTarget,
   hasBlockingModalForSkipNavigation
-} from '#/renderer/src/ui/shared/skipNavigationInitialFocus';
-import { SKIP_NAVIGATION_ID } from '#/renderer/src/ui/shared/skipNavigationTargets';
+} from '#/renderer/src/ui/shared/SkipNavigation/skipNavigationInitialFocus';
+import { SKIP_NAVIGATION_ID } from '#/renderer/src/ui/shared/SkipNavigation/skipNavigationTargets';
 
 describe('skipNavigationInitialFocus', () => {
   it('detects blocking modal dialogs', () => {

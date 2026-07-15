@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   formatMcpClientHeadersDraft,
   parseMcpClientHeadersDraft
-} from '#/renderer/src/ui/shared/mcpClientHeadersDraft';
+} from '#/renderer/src/ui/shared/Mcp/mcpClientHeadersDraft';
 
 describe('mcpClientHeadersDraft', () => {
   it('formatMcpClientHeadersDraft returns [] for empty headers', () => {

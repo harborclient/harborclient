@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseMcpClientServerImportSnippet } from '#/renderer/src/ui/shared/parseMcpClientServerImport';
+import { parseMcpClientServerImportSnippet } from '#/renderer/src/ui/shared/Mcp/parseMcpClientServerImport';
 
 const EXA_FRAGMENT = `"exa": {
   "url": "https://mcp.exa.ai/mcp",

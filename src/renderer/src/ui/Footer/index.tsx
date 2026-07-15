@@ -40,7 +40,7 @@ import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import { usePluginFooterPanels, usePluginStatusBarItems } from '#/renderer/src/plugins/pluginHooks';
 import { SHORTCUTS_REFERENCE_MODAL_ID } from '#/renderer/src/ui/modals/ShortcutsReferenceModal';
 import { handleFooterBarTabNavigation } from '#/renderer/src/ui/Footer/footerBarTabNavigation';
-import { APP_FOOTER_SECTION_ID } from '#/renderer/src/ui/shared/skipNavigationTargets';
+import { APP_FOOTER_SECTION_ID } from '#/renderer/src/ui/shared/SkipNavigation/skipNavigationTargets';
 import { effectiveCount, resolveScopedVariables } from './VariablesPanel/resolve';
 
 /** Stable menu id for the footer environment picker. */

@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import type { ScriptRef, Variable } from '#/shared/types';
 import { FormSection } from '@harborclient/sdk/components';
-import { ScriptListEditor } from '#/renderer/src/ui/shared/ScriptListEditor';
+import { ScriptListEditor } from '#/renderer/src/ui/shared/Script/ScriptListEditor';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectSnippets } from '#/renderer/src/store/selectors';
 

@@ -12,12 +12,12 @@ import {
   resolveSkipNavigationLinks,
   SKIP_NAVIGATION_ID,
   type SkipNavigationVisibility
-} from '#/renderer/src/ui/shared/skipNavigationTargets';
+} from '#/renderer/src/ui/shared/SkipNavigation/skipNavigationTargets';
 import {
   focusSkipNavigation,
   focusSkipNavigationOnLaunch,
   focusSkipTarget
-} from '#/renderer/src/ui/shared/skipNavigationInitialFocus';
+} from '#/renderer/src/ui/shared/SkipNavigation/skipNavigationInitialFocus';
 
 interface Props {
   /**

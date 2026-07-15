@@ -4,7 +4,7 @@ import {
   canCloseTypedDeleteConfirm,
   runTypedDeleteConfirm
 } from '#/renderer/src/hooks/useTypedDeleteConfirm.logic';
-import { isDeleteConfirmationReady } from '#/renderer/src/ui/shared/deleteConfirmModal.logic';
+import { isDeleteConfirmationReady } from '#/renderer/src/ui/shared/DeleteConfirm/deleteConfirmModal.logic';
 
 vi.mock('react-hot-toast', () => ({
   default: {

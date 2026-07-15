@@ -15,7 +15,7 @@ import { useEscapeBackCapture } from '#/renderer/src/hooks/useEscapeBack';
 import { useTeamHubAdminCollections } from '#/renderer/src/hooks/useTeamHubAdminCollections';
 import { useTypedDeleteConfirm } from '#/renderer/src/hooks/useTypedDeleteConfirm';
 import { TeamCollectionContentsView } from '#/renderer/src/ui/TeamHub/TeamCollectionContentsView';
-import { DeleteConfirmModal } from '#/renderer/src/ui/shared/DeleteConfirmModal';
+import { DeleteConfirmModal } from '#/renderer/src/ui/shared/DeleteConfirm/DeleteConfirmModal';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
 
 interface Props {

@@ -5,11 +5,11 @@ import type { KeyValue, Variable } from '#/shared/types';
 import { mirrorLegacyScriptString } from '#/shared/scriptRefs';
 import type { RegisteredRequestTab, RequestTabContext } from '#/shared/plugin/types';
 import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
-import { ScriptListEditor } from '#/renderer/src/ui/shared/ScriptListEditor';
+import { ScriptListEditor } from '#/renderer/src/ui/shared/Script/ScriptListEditor';
 import {
   POST_REQUEST_SCRIPT_PLACEHOLDER,
   PRE_REQUEST_SCRIPT_PLACEHOLDER
-} from '#/renderer/src/ui/shared/scriptPlaceholders';
+} from '#/renderer/src/ui/shared/Script/scriptPlaceholders';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectRequestsByCollection, selectSnippets } from '#/renderer/src/store/selectors';
 

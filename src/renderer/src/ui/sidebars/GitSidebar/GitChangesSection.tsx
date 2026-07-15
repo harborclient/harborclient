@@ -4,8 +4,8 @@ import toast from 'react-hot-toast';
 import type { GitRequestDiffFileEntry, SourceControlStatus } from '#/shared/types';
 import { resolveGitChangeDisplayLabel } from '#/renderer/src/git/gitCommitChangeDisplay';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
-import { GitChangedFileRow } from '#/renderer/src/ui/shared/GitChangedFileRow';
-import { GitFileDiffModal } from '#/renderer/src/ui/shared/GitFileDiffModal';
+import { GitChangedFileRow } from '#/renderer/src/ui/shared/Git/GitChangedFileRow';
+import { GitFileDiffModal } from '#/renderer/src/ui/shared/Git/GitFileDiffModal';
 import { useSidebarGit } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarGitContext';
 import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
 import {

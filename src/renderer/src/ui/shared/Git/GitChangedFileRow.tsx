@@ -10,7 +10,7 @@ import { faMarkdown } from '#/renderer/src/fontawesome';
 import {
   buildGitChangedFileRowPresentation,
   type GitChangedFileRowFile
-} from '#/renderer/src/ui/shared/gitChangedFileRow.logic';
+} from '#/renderer/src/ui/shared/Git/gitChangedFileRow.logic';
 
 interface Props {
   /**

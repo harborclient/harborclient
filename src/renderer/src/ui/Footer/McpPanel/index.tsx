@@ -2,8 +2,8 @@ import { Button, FooterPanel } from '@harborclient/sdk/components';
 import { useEffect, useState, type FormEvent, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { McpServerSettings, McpServerStatus } from '#/shared/types';
-import { McpServerFormFields } from '#/renderer/src/ui/shared/McpServerFormFields';
-import { buildMcpConfigSnippet } from '#/renderer/src/ui/shared/buildMcpConfigSnippet';
+import { McpServerFormFields } from '#/renderer/src/ui/shared/Mcp/McpServerFormFields';
+import { buildMcpConfigSnippet } from '#/renderer/src/ui/shared/Mcp/buildMcpConfigSnippet';
 import { formatIpcErrorMessage } from '#/renderer/src/ui/modals/dialogHelpers';
 
 interface Props {

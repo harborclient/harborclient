@@ -13,13 +13,13 @@ import { useProviders } from '#/renderer/src/hooks/useProviders';
 import { useStorageConnections } from '#/renderer/src/hooks/useStorageConnections';
 import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
 import { usePluginCollectionSettingsTabs } from '#/renderer/src/plugins/pluginHooks';
-import { ScopedAuthSection } from '#/renderer/src/ui/shared/ScopedAuthSection';
-import { ScopedHeadersSection } from '#/renderer/src/ui/shared/ScopedHeadersSection';
+import { ScopedAuthSection } from '#/renderer/src/ui/shared/ScopedSettings/ScopedAuthSection';
+import { ScopedHeadersSection } from '#/renderer/src/ui/shared/ScopedSettings/ScopedHeadersSection';
 import {
   ScopedSettingsForm,
   type ScopedSettingsExtraTab,
   type ScopedSettingsRenderState
-} from '#/renderer/src/ui/shared/ScopedSettingsForm';
+} from '#/renderer/src/ui/shared/ScopedSettings/ScopedSettingsForm';
 import { GeneralSection } from './GeneralSection';
 import { GitSection } from './GitSection';
 import { collectionFormCoreFields } from './serialize';

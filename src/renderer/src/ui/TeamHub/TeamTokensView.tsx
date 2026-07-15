@@ -22,7 +22,7 @@ import { useTeamHubTokens } from '#/renderer/src/hooks/useTeamHubTokens';
 import { useTeamHubUsers } from '#/renderer/src/hooks/useTeamHubUsers';
 import { useTypedDeleteConfirm } from '#/renderer/src/hooks/useTypedDeleteConfirm';
 import { TeamSecretDialog } from '#/renderer/src/ui/TeamHub/TeamSecretDialog';
-import { DeleteConfirmModal } from '#/renderer/src/ui/shared/DeleteConfirmModal';
+import { DeleteConfirmModal } from '#/renderer/src/ui/shared/DeleteConfirm/DeleteConfirmModal';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
 
 interface Props {

@@ -15,7 +15,7 @@ import { ScriptSection } from '#/renderer/src/ui/CollectionSettings/ScriptSectio
 import {
   COLLECTION_PRE_REQUEST_SCRIPT_PLACEHOLDER,
   POST_REQUEST_SCRIPT_PLACEHOLDER
-} from '#/renderer/src/ui/shared/scriptPlaceholders';
+} from '#/renderer/src/ui/shared/Script/scriptPlaceholders';
 import {
   cleanHeaders,
   cleanScopedSettingsCoreFields,
@@ -23,7 +23,7 @@ import {
   seedScopedSettingsVariables,
   serializeScopedSettingsForm,
   type ScopedSettingsCoreFields
-} from '#/renderer/src/ui/shared/scopedSettingsForm';
+} from '#/renderer/src/ui/shared/ScopedSettings/scopedSettingsForm';
 
 /**
  * Live scoped settings form state and setters passed to render-prop sections.

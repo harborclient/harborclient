@@ -7,8 +7,8 @@ import type {
 } from '#/shared/types';
 import { buildGitCommitChangesViewModel } from '#/renderer/src/git/buildGitCommitChangesViewModel';
 import { resolveGitChangeDisplayLabel } from '#/renderer/src/git/gitCommitChangeDisplay';
-import { GitChangedFileRow } from '#/renderer/src/ui/shared/GitChangedFileRow';
-import { GitFileDiffModal } from '#/renderer/src/ui/shared/GitFileDiffModal';
+import { GitChangedFileRow } from '#/renderer/src/ui/shared/Git/GitChangedFileRow';
+import { GitFileDiffModal } from '#/renderer/src/ui/shared/Git/GitFileDiffModal';
 
 interface Props {
   /**

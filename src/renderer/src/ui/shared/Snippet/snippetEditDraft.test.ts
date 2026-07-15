@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createImportedSnippetDraft,
   snippetNameFromScript
-} from '#/renderer/src/ui/shared/snippetEditDraft';
+} from '#/renderer/src/ui/shared/Snippet/snippetEditDraft';
 
 describe('snippetNameFromScript', () => {
   it('uses the trimmed first line as the name', () => {

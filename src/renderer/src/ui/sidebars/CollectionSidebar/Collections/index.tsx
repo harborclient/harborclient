@@ -53,7 +53,7 @@ import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useCopyToChat } from '#/renderer/src/hooks/useCopyToChat';
 import { faChevronDown, faChevronRight } from '#/renderer/src/fontawesome';
 import { METHOD_CLASSES, sourceRow } from '#/renderer/src/ui/shared/classes';
-import { AnimatedCollapse } from '#/renderer/src/ui/shared/AnimatedCollapse';
+import { AnimatedCollapse } from '#/renderer/src/ui/shared/Animated/AnimatedCollapse';
 import {
   buildDevInspectMenuGroups,
   useDeveloperToolsEnabled,

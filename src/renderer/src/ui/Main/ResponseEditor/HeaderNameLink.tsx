@@ -8,7 +8,7 @@ import {
   type CSSProperties,
   type JSX
 } from 'react';
-import { CODE_PREVIEW_TOOLTIP_SETTLE_MS } from '#/renderer/src/ui/shared/codePreview';
+import { CODE_PREVIEW_TOOLTIP_SETTLE_MS } from '#/renderer/src/ui/shared/CodePreview/codePreview';
 import {
   buildFixedTooltipPosition,
   findScrollParent,

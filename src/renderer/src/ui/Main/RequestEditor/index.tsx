@@ -82,7 +82,7 @@ import { isActivePageTabDirty, pageTabCloseName } from './pageTabCloseHelpers';
 import { PageTabContent } from './PageTabContent';
 import { ResponseEditor } from '../ResponseEditor';
 import { RESPONSE_EDITOR_SECTION_ID } from '../ResponseEditor/focusResponseEditor';
-import { REQUEST_EDITOR_SECTION_ID } from '#/renderer/src/ui/shared/skipNavigationTargets';
+import { REQUEST_EDITOR_SECTION_ID } from '#/renderer/src/ui/shared/SkipNavigation/skipNavigationTargets';
 import { TabBar } from './TabBar';
 import { MarkdownEditorTab } from './MarkdownEditorTab';
 

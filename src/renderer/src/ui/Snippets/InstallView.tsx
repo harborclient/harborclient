@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { CatalogInstallView } from '#/renderer/src/ui/shared/CatalogInstallView';
+import { CatalogInstallView } from '#/renderer/src/ui/shared/Marketplace/CatalogInstallView';
 
 interface Props {
   /**
