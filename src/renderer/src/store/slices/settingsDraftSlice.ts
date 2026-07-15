@@ -9,7 +9,7 @@ import type { RootState } from '#/renderer/src/store/redux';
 import {
   DEFAULT_AI_SETTINGS,
   DEFAULT_GENERAL_SETTINGS
-} from '#/renderer/src/ui/Settings/constants';
+} from '#/renderer/src/ui/Tabs/Settings/constants';
 
 /**
  * Snapshot of persisted settings values used for dirty detection.

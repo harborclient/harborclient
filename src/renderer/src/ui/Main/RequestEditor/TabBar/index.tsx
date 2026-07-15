@@ -16,11 +16,11 @@ import {
 } from '#/renderer/src/store/selectors';
 import { getRegisteredMainViews } from '#/renderer/src/plugins/registry';
 import { useTeamHubs } from '#/renderer/src/hooks/useTeamHubs';
-import { resolveTeamHubAdminTabLabel } from '#/renderer/src/ui/TeamHub/teamHubDisplayName';
+import { resolveTeamHubAdminTabLabel } from '#/renderer/src/ui/Tabs/TeamHub/teamHubDisplayName';
 import {
   resolveRunnerTargetNames,
   runnerTargetLabel
-} from '#/renderer/src/ui/CollectionRunner/resolveRunnerTargetName';
+} from '#/renderer/src/ui/Tabs/CollectionRunner/resolveRunnerTargetName';
 import { selectEditingTabGroupId } from '#/renderer/src/store/slices/tabGroupSlice';
 import { selectThemeDesignerIsDirty } from '#/renderer/src/store/slices/themeDesignerSlice';
 import { isOpenSavedRequestTab } from '#/renderer/src/store/thunks/tabGroups';

@@ -60,8 +60,8 @@ import {
   type InspectPoint
 } from '#/renderer/src/ui/Shared/devInspectContextMenu';
 import { DropZone } from '#/renderer/src/ui/Sidebars/CollectionSidebar/Collections/DropZone';
-import { focusCollectionSettings } from '#/renderer/src/ui/CollectionSettings/focusCollectionSettings';
-import { focusFolderSettings } from '#/renderer/src/ui/FolderSettings/focusFolderSettings';
+import { focusCollectionSettings } from '#/renderer/src/ui/Tabs/CollectionSettings/focusCollectionSettings';
+import { focusFolderSettings } from '#/renderer/src/ui/Tabs/FolderSettings/focusFolderSettings';
 import { DocumentRow } from '#/renderer/src/ui/Sidebars/CollectionSidebar/Collections/DocumentRow';
 import { RequestRow } from '#/renderer/src/ui/Sidebars/CollectionSidebar/Collections/RequestRow';
 import { SortableRow } from '#/renderer/src/ui/Sidebars/CollectionSidebar/Collections/SortableRow';

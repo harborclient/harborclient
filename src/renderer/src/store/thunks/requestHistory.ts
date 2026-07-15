@@ -17,7 +17,7 @@ import {
   selectFoldersByCollection,
   selectRequestsByCollection
 } from '#/renderer/src/store/selectors';
-import { resolveRunnerTargetNames } from '#/renderer/src/ui/CollectionRunner/resolveRunnerTargetName';
+import { resolveRunnerTargetNames } from '#/renderer/src/ui/Tabs/CollectionRunner/resolveRunnerTargetName';
 
 /** Sequence counter disambiguating ids captured within the same millisecond. */
 let entrySequence = 0;

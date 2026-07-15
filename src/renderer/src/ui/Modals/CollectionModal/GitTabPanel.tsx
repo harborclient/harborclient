@@ -4,7 +4,10 @@ import type { StorageConnection } from '#/shared/types';
 import { normalizeGitHostKey } from '#/shared/gitUrl';
 
 import { Modal } from '@harborclient/sdk/components';
-import { GitAuthForm, type GitAuthAuthorizedResult } from '#/renderer/src/ui/Git/GitAuthForm';
+import {
+  GitAuthForm,
+  type GitAuthAuthorizedResult
+} from '#/renderer/src/ui/Shared/Git/GitAuthForm';
 
 interface Props {
   /**

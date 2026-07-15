@@ -40,7 +40,7 @@ import {
 import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarRowSelection';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarExpansion';
 import { useSidebarSearchContext } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarSearchContext';
-import { focusEnvironmentSettings } from '#/renderer/src/ui/EnvironmentSettings/focusEnvironmentSettings';
+import { focusEnvironmentSettings } from '#/renderer/src/ui/Tabs/EnvironmentSettings/focusEnvironmentSettings';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import {
   buildDevInspectMenuGroups,

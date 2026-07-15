@@ -7,7 +7,7 @@ vi.mock('@harborclient/sdk/components', () => ({
     variables.filter((variable) => variable.key.trim() || variable.value.trim())
 }));
 
-import { serializeFolderForm } from '#/renderer/src/ui/FolderSettings/serialize';
+import { serializeFolderForm } from '#/renderer/src/ui/Tabs/FolderSettings/serialize';
 import {
   cleanHeaders,
   cleanScopedSettingsCoreFields,

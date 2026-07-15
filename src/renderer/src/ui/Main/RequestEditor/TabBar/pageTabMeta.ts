@@ -16,7 +16,7 @@ import {
   faCodeBranch,
   faUsers
 } from '#/renderer/src/fontawesome';
-import { settingsSectionMeta } from '#/renderer/src/ui/Settings/constants';
+import { settingsSectionMeta } from '#/renderer/src/ui/Tabs/Settings/constants';
 
 /**
  * Display metadata for a page tab in the tab bar.

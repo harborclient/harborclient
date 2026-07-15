@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { entryById, type SettingId } from '#/shared/search/settingsCatalog';
-import { settingAnchorId } from '#/renderer/src/ui/Settings/settingAnchorId';
+import { settingAnchorId } from '#/renderer/src/ui/Tabs/Settings/settingAnchorId';
 import { parseSidebarDocumentId } from '#/shared/search/sidebar';
 import type { SidebarSearchInput } from '#/shared/search/sidebar';
 import type { UnifiedSearchHit } from '#/shared/search/types';

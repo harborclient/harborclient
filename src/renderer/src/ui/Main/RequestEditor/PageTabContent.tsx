@@ -18,23 +18,23 @@ import {
   selectFoldersByCollection
 } from '#/renderer/src/store/selectors';
 import { updateCollection, updateEnvironment, updateFolder } from '#/renderer/src/store/thunks';
-import { CollectionSettings } from '#/renderer/src/ui/CollectionSettings';
-import { FolderSettings } from '#/renderer/src/ui/FolderSettings';
-import { CollectionRunner } from '#/renderer/src/ui/CollectionRunner';
-import { Cookies } from '#/renderer/src/ui/Cookies';
-import { EnvironmentSettings } from '#/renderer/src/ui/EnvironmentSettings';
+import { CollectionSettings } from '#/renderer/src/ui/Tabs/CollectionSettings';
+import { FolderSettings } from '#/renderer/src/ui/Tabs/FolderSettings';
+import { CollectionRunner } from '#/renderer/src/ui/Tabs/CollectionRunner';
+import { Cookies } from '#/renderer/src/ui/Tabs/Cookies';
+import { EnvironmentSettings } from '#/renderer/src/ui/Tabs/EnvironmentSettings';
 import { HostedMainView } from '#/renderer/src/ui/HostedMainView';
-import { Plugins } from '#/renderer/src/ui/Plugins';
-import { PluginDetailPage } from '#/renderer/src/ui/Plugins/PluginDetailPage';
+import { Plugins } from '#/renderer/src/ui/Tabs/Plugins';
+import { PluginDetailPage } from '#/renderer/src/ui/Tabs/Plugins/PluginDetailPage';
 import { ScriptEditorTab } from '#/renderer/src/ui/Main/RequestEditor/ScriptEditorTab';
 import { MergeEditorTab } from '#/renderer/src/ui/Main/RequestEditor/MergeEditorTab';
-import { Settings } from '#/renderer/src/ui/Settings';
-import { SharingKeys } from '#/renderer/src/ui/SharingKeys';
-import { Snippets } from '#/renderer/src/ui/Snippets';
-import { SnippetDetailPage } from '#/renderer/src/ui/Snippets/SnippetDetailPage';
-import { SnippetEditPage } from '#/renderer/src/ui/Snippets/SnippetEditPage';
-import { TeamHub } from '#/renderer/src/ui/TeamHub';
-import { TeamHubAdmin } from '#/renderer/src/ui/TeamHub/TeamHubAdmin';
+import { Settings } from '#/renderer/src/ui/Tabs/Settings';
+import { SharingKeys } from '#/renderer/src/ui/Tabs/SharingKeys';
+import { Snippets } from '#/renderer/src/ui/Tabs/Snippets';
+import { SnippetDetailPage } from '#/renderer/src/ui/Tabs/Snippets/SnippetDetailPage';
+import { SnippetEditPage } from '#/renderer/src/ui/Tabs/Snippets/SnippetEditPage';
+import { TeamHub } from '#/renderer/src/ui/Tabs/TeamHub';
+import { TeamHubAdmin } from '#/renderer/src/ui/Tabs/TeamHub/TeamHubAdmin';
 import { GettingStartedPage } from '#/renderer/src/ui/GettingStarted/GettingStartedPage';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 

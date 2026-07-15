@@ -98,7 +98,7 @@ import { PluginThemePrompt } from '#/renderer/src/plugins/PluginThemePrompt';
 import { ThemePickerModal } from '#/renderer/src/ui/Modals/ThemePickerModal';
 import { ShortcutsReferenceModal } from '#/renderer/src/ui/Modals/ShortcutsReferenceModal';
 import { ActionMenuModal } from '#/renderer/src/ui/Modals/ActionMenuModal';
-import { TeamHubJoinDeepLinkHost } from '#/renderer/src/ui/TeamHub/TeamHubJoinDeepLinkHost';
+import { TeamHubJoinDeepLinkHost } from '#/renderer/src/ui/Tabs/TeamHub/TeamHubJoinDeepLinkHost';
 import { AcceptTeamHubInviteModal } from '#/renderer/src/ui/Modals/AcceptTeamHubInviteModal';
 import {
   subscribeColorSchemePreferenceChanges,

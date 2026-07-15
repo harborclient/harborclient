@@ -7,7 +7,7 @@ import {
   selectShortcutsReferenceModal
 } from '#/renderer/src/store/slices/modalsSlice';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
-import { filterShortcutBindings } from '#/renderer/src/ui/Settings/ShortcutsSection/filterShortcutBindings';
+import { filterShortcutBindings } from '#/renderer/src/ui/Tabs/Settings/ShortcutsSection/filterShortcutBindings';
 import {
   focusShortcutTableCell,
   shortcutsTableCellFocusClass

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_AI_SETTINGS,
   DEFAULT_GENERAL_SETTINGS
-} from '#/renderer/src/ui/Settings/constants';
+} from '#/renderer/src/ui/Tabs/Settings/constants';
 import settingsDraftReducer, {
   initSettingsDraft,
   selectSettingsDraftDirty,

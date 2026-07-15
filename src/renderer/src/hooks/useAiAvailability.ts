@@ -7,7 +7,7 @@ import {
   selectHubModelGroups
 } from '#/renderer/src/store/slices/aiChatSlice';
 import { refreshHubLlmModels } from '#/renderer/src/store/thunks/aiChat';
-import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Settings/constants';
+import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Tabs/Settings/constants';
 
 /**
  * Loads AI provider settings and Team Hub models, then reports whether chat is available.

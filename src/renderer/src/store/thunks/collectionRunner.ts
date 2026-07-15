@@ -33,7 +33,7 @@ import { recordRequestHistoryRun } from '#/renderer/src/store/thunks/requestHist
 import {
   resolveRunnerTargetNames,
   runnerTargetLabel
-} from '#/renderer/src/ui/CollectionRunner/resolveRunnerTargetName';
+} from '#/renderer/src/ui/Tabs/CollectionRunner/resolveRunnerTargetName';
 
 /**
  * Waits for the configured delay between collection runner requests.

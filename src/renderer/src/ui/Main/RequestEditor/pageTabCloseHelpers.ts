@@ -1,6 +1,6 @@
 import type { Collection, Environment, TeamHub } from '#/shared/types';
 import type { PageRef } from '#/renderer/src/store/drafts';
-import { resolveTeamHubAdminTabLabel } from '#/renderer/src/ui/TeamHub/teamHubDisplayName';
+import { resolveTeamHubAdminTabLabel } from '#/renderer/src/ui/Tabs/TeamHub/teamHubDisplayName';
 
 /**
  * Returns whether the active page tab has unsaved collection or environment edits.

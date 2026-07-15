@@ -153,7 +153,7 @@ installed but show a warning before enabling.
 
 ### Settings UI
 
-[`PluginSection`](../ui/Settings/PluginSection/index.tsx) is the admin UI for browsing
+[`PluginSection`](../ui/Tabs/Settings/PluginSection/index.tsx) is the admin UI for browsing
 the catalog, installing, enabling, and troubleshooting plugins. It is **not** a plugin
 mount point — it talks to the main process via `window.api` plugin IPC methods.
 
@@ -286,13 +286,13 @@ as `plugin:{pluginId}:{contributionId}`.
 
 | Registry bucket          | Host component                                                                               | Hook                                  |
 | ------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `settingsSections`       | [`Settings/index.tsx`](../ui/Settings/index.tsx)                                             | `usePluginSettingsSections`           |
+| `settingsSections`       | [`Settings/index.tsx`](../ui/Tabs/Settings/index.tsx)                                        | `usePluginSettingsSections`           |
 | `sidebarPanels`          | [`CollectionSidebar/index.tsx`](../ui/Sidebars/CollectionSidebar/index.tsx)                  | `usePluginSidebarPanels`              |
 | `sidebarSections`        | [`CollectionSidebar/index.tsx`](../ui/Sidebars/CollectionSidebar/index.tsx)                  | `usePluginSidebarSections`            |
 | `mainViews`              | [`HostedMainView`](../ui/HostedMainView/index.tsx) via Redux                                 | `usePluginMainViews`                  |
 | `requestTabs`            | [`Main/RequestEditor/Editor/TabContent.tsx`](../ui/Main/RequestEditor/Editor/TabContent.tsx) | `usePluginRequestTabs`                |
 | `responseTabs`           | [`Main/ResponseEditor/index.tsx`](../ui/Main/ResponseEditor/index.tsx)                       | `usePluginResponseTabs`               |
-| `collectionSettingsTabs` | [`CollectionSettings/index.tsx`](../ui/CollectionSettings/index.tsx)                         | `usePluginCollectionSettingsTabs`     |
+| `collectionSettingsTabs` | [`CollectionSettings/index.tsx`](../ui/Tabs/CollectionSettings/index.tsx)                    | `usePluginCollectionSettingsTabs`     |
 | `footerPanels`           | [`HostedFooterPanel`](../ui/Footer/HostedFooterPanel/index.tsx)                              | `usePluginFooterPanels`               |
 | `statusBarItems`         | [`Footer/index.tsx`](../ui/Footer/index.tsx)                                                 | `usePluginStatusBarItems`             |
 | `requestToolbarActions`  | [`UrlBar.tsx`](../ui/Main/RequestEditor/Editor/UrlBar.tsx)                                   | `usePluginRequestToolbarActions`      |

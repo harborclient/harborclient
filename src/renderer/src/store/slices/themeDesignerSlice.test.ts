@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CustomThemeDraft } from '#/renderer/src/ui/Plugins/hooks/useCustomTheme';
+import type { CustomThemeDraft } from '#/renderer/src/ui/Tabs/Plugins/hooks/useCustomTheme';
 import themeDesignerReducer, {
   beginEditSession,
   beginNewSession,

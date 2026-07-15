@@ -10,8 +10,8 @@ import {
 import { useCallback, useEffect, useMemo, useState, type JSX, type ReactNode } from 'react';
 import type { AuthConfig, KeyValue, ScriptRef, Variable } from '#/shared/types';
 import { ensureDefaultScriptRef, hasScriptContent } from '#/shared/scriptRefs';
-import { VariablesSection } from '#/renderer/src/ui/CollectionSettings/VariablesSection';
-import { ScriptSection } from '#/renderer/src/ui/CollectionSettings/ScriptSection';
+import { VariablesSection } from '#/renderer/src/ui/Tabs/CollectionSettings/VariablesSection';
+import { ScriptSection } from '#/renderer/src/ui/Tabs/CollectionSettings/ScriptSection';
 import {
   COLLECTION_PRE_REQUEST_SCRIPT_PLACEHOLDER,
   POST_REQUEST_SCRIPT_PLACEHOLDER

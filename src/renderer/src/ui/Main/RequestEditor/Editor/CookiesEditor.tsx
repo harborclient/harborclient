@@ -1,7 +1,7 @@
 import { useMemo, type JSX } from 'react';
 import type { Variable } from '#/shared/types';
 import { buildRuntimeVars, substituteWithMap } from '#/renderer/src/scripting/scriptOrchestration';
-import { DomainCookiesEditor } from '#/renderer/src/ui/Cookies/DomainCookiesEditor';
+import { DomainCookiesEditor } from '#/renderer/src/ui/Tabs/Cookies/DomainCookiesEditor';
 import { hostFromUrl } from './cookieHost';
 
 interface Props {

@@ -3,8 +3,8 @@ import type { RootState } from '#/renderer/src/store/redux';
 import {
   DEFAULT_CUSTOM_THEME_TITLE,
   getDefaultCustomThemePalette
-} from '#/renderer/src/ui/Plugins/customThemeDefaults';
-import type { CustomThemeDraft } from '#/renderer/src/ui/Plugins/hooks/useCustomTheme';
+} from '#/renderer/src/ui/Tabs/Plugins/customThemeDefaults';
+import type { CustomThemeDraft } from '#/renderer/src/ui/Tabs/Plugins/hooks/useCustomTheme';
 import {
   commitThemeHistoryBaseline,
   createThemeHistoryState,
@@ -15,7 +15,7 @@ import {
   setThemeHistoryPresent,
   undoThemeHistory,
   type ThemeHistoryState
-} from '#/renderer/src/ui/Plugins/hooks/themeHistoryStack';
+} from '#/renderer/src/ui/Tabs/Plugins/hooks/themeHistoryStack';
 
 /**
  * Redux state for the Theme Designer session, preserved across Themes tab unmounts.

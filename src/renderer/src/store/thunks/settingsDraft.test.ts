@@ -11,7 +11,7 @@ import { loadSettingsDraft, saveSettingsDraft } from '#/renderer/src/store/thunk
 import {
   DEFAULT_AI_SETTINGS,
   DEFAULT_GENERAL_SETTINGS
-} from '#/renderer/src/ui/Settings/constants';
+} from '#/renderer/src/ui/Tabs/Settings/constants';
 
 const apiMock = vi.hoisted(() => ({
   getGeneralSettings: vi.fn(),
