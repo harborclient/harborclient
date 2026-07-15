@@ -25,6 +25,7 @@ const themeColorTokenSchema = z.enum([
   'muted',
   'accent',
   'selection',
+  'doc-markdown',
   'tab-unsaved',
   'danger',
   'danger-light',

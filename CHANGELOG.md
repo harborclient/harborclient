@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(markdown): enhance markdown tab reconciliation and theme support. (`0fb9d9c`)
 - fix(git): update harbor-root document handling and disambiguation. (`d2c6a08`)
 - feat(git): enhance GitHub authentication and repository access validation. (`c8de408`)
 

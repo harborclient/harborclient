@@ -6,7 +6,12 @@ import {
   selectEnvironmentSettingsDirty,
   selectFolderSettingsDirty
 } from '#/renderer/src/store/slices/navigationSlice';
-import { closeTab, loadDocument, markMarkdownSaved } from '#/renderer/src/store/slices/tabsSlice';
+import {
+  closeTab,
+  loadDocument,
+  markMarkdownSaved,
+  reconcileMarkdownTabsFromDocuments
+} from '#/renderer/src/store/slices/tabsSlice';
 import {
   setPendingLoadDocument,
   type PendingLoadDocument
@@ -28,6 +33,9 @@ import {
 
 /**
  * Reloads markdown documents for a single collection.
+ *
+ * After updating the collection document cache, reconciles any open markdown tabs
+ * for that collection so falsely dirty or stale editor state matches disk.
  */
 export const refreshDocuments = createAsyncThunk<
   Awaited<ReturnType<typeof window.api.listDocuments>>,
@@ -41,6 +49,7 @@ export const refreshDocuments = createAsyncThunk<
     return getState().collections.documentsByCollection[collectionId] ?? [];
   }
   dispatch(setDocumentsForCollection({ collectionId, documents: data }));
+  dispatch(reconcileMarkdownTabsFromDocuments({ collectionId, documents: data }));
   return data;
 });
 

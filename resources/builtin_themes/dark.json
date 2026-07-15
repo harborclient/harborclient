@@ -17,6 +17,7 @@
     "muted": "rgba(255, 255, 255, 0.58)",
     "accent": "#0a84ff",
     "selection": "rgba(10, 132, 255, 0.22)",
+    "doc-markdown": "#4c9cd9",
     "tab-unsaved": "#ffb340",
     "danger": "#ff453a",
     "danger-light": "#ff6961",

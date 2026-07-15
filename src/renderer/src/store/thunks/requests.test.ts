@@ -342,12 +342,14 @@ describe('saveRequest script lists', () => {
 
     saveRequestMock.mockImplementation(async (input) => {
       const regenerated = createInlineScriptRef('console.log("keep open");');
-      return savedFrom({
+      const saved = savedFrom({
         ...input,
         id: 42,
         pre_request_scripts: [regenerated],
         pre_request_script: 'console.log("keep open");'
       });
+      listRequestsMock.mockResolvedValue([saved]);
+      return saved;
     });
 
     await store.dispatch(saveRequest(1));

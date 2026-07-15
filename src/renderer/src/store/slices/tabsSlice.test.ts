@@ -29,6 +29,8 @@ import tabsReducer, {
   openMarkdownTab,
   openPageTab,
   openTabWithDraft,
+  reconcileMarkdownTabsFromDocuments,
+  reconcileRequestTabsFromRequests,
   reorderTabs,
   setActiveDraft,
   setActiveTab,
@@ -671,6 +673,164 @@ describe('tabsSlice loadDocument', () => {
     expect(state.activeTabId).toBe(tabId);
     expect(tab.content).toBe('# Edited locally');
     expect(isTabDirty(tab)).toBe(true);
+  });
+
+  it('clears false dirty when disk content matches the saved baseline', () => {
+    const doc = sampleDocument({ content: '# Hello' });
+    let state = tabsReducer(undefined, openMarkdownTab({ doc }));
+    const tabId = state.activeTabId;
+    state = tabsReducer(state, updateMarkdownContent({ tabId, content: '# Hello\n' }));
+
+    state = tabsReducer(
+      state,
+      loadDocument({
+        doc: sampleDocument({ content: '# Hello' })
+      })
+    );
+
+    const tab = state.tabs.find((entry) => entry.tabId === tabId);
+    expect(tab).toBeDefined();
+    if (!tab || !isMarkdownTab(tab)) {
+      throw new Error('expected markdown tab');
+    }
+    expect(tab.content).toBe('# Hello');
+    expect(tab.savedContent).toBe('# Hello');
+    expect(isTabDirty(tab)).toBe(false);
+  });
+});
+
+describe('tabsSlice reconcileMarkdownTabsFromDocuments', () => {
+  it('clears editor drift for open markdown tabs in the collection', () => {
+    const doc = sampleDocument({ content: '# Hello' });
+    let state = tabsReducer(undefined, openMarkdownTab({ doc }));
+    const tabId = state.activeTabId;
+    state = tabsReducer(state, updateMarkdownContent({ tabId, content: '# Hello\n' }));
+
+    state = tabsReducer(
+      state,
+      reconcileMarkdownTabsFromDocuments({
+        collectionId: 10,
+        documents: [sampleDocument({ content: '# Hello' })]
+      })
+    );
+
+    const tab = state.tabs.find((entry) => entry.tabId === tabId);
+    expect(tab).toBeDefined();
+    if (!tab || !isMarkdownTab(tab)) {
+      throw new Error('expected markdown tab');
+    }
+    expect(tab.content).toBe('# Hello');
+    expect(isTabDirty(tab)).toBe(false);
+  });
+
+  it('does not wipe local edits when disk differs from both content and saved baseline', () => {
+    const doc = sampleDocument({ content: '# Baseline' });
+    let state = tabsReducer(undefined, openMarkdownTab({ doc }));
+    const tabId = state.activeTabId;
+    state = tabsReducer(state, updateMarkdownContent({ tabId, content: '# My local edit' }));
+
+    state = tabsReducer(
+      state,
+      reconcileMarkdownTabsFromDocuments({
+        collectionId: 10,
+        documents: [sampleDocument({ content: '# External change' })]
+      })
+    );
+
+    const tab = state.tabs.find((entry) => entry.tabId === tabId);
+    expect(tab).toBeDefined();
+    if (!tab || !isMarkdownTab(tab)) {
+      throw new Error('expected markdown tab');
+    }
+    expect(tab.content).toBe('# My local edit');
+    expect(tab.savedContent).toBe('# Baseline');
+    expect(isTabDirty(tab)).toBe(true);
+  });
+
+  it('closes tabs for documents removed on disk', () => {
+    const doc = sampleDocument({ id: 55, content: '# Hello' });
+    let state = tabsReducer(undefined, openMarkdownTab({ doc }));
+    const tabId = state.activeTabId;
+
+    state = tabsReducer(
+      state,
+      reconcileMarkdownTabsFromDocuments({
+        collectionId: 10,
+        documents: []
+      })
+    );
+
+    expect(state.tabs.some((entry) => entry.tabId === tabId)).toBe(false);
+  });
+});
+
+describe('tabsSlice reconcileRequestTabsFromRequests', () => {
+  it('pulls external disk changes into a clean open request tab', () => {
+    let state = tabsReducer(undefined, loadRequest({ req: sampleSaved({ id: 42 }) }));
+    const tabId = state.activeTabId;
+
+    state = tabsReducer(
+      state,
+      reconcileRequestTabsFromRequests({
+        collectionId: 10,
+        requests: [sampleSaved({ id: 42, url: 'https://example.com/external' })]
+      })
+    );
+
+    const tab = state.tabs.find((entry) => entry.tabId === tabId);
+    expect(tab).toBeDefined();
+    if (!tab || !isRequestTab(tab)) {
+      throw new Error('expected request tab');
+    }
+    expect(tab.draft.url).toBe('https://example.com/external?page=1');
+    expect(isTabDirty(tab)).toBe(false);
+  });
+
+  it('preserves dirty request tabs when disk changes underneath', () => {
+    let state = tabsReducer(undefined, loadRequest({ req: sampleSaved({ id: 42 }) }));
+    const tabId = state.activeTabId;
+    const existingTab = state.tabs.find((entry) => entry.tabId === tabId);
+    if (!existingTab || !isRequestTab(existingTab)) {
+      throw new Error('expected request tab');
+    }
+    state = tabsReducer(
+      state,
+      setActiveDraft({
+        ...existingTab.draft,
+        url: 'https://example.com/local-edit'
+      })
+    );
+
+    state = tabsReducer(
+      state,
+      reconcileRequestTabsFromRequests({
+        collectionId: 10,
+        requests: [sampleSaved({ id: 42, url: 'https://example.com/external' })]
+      })
+    );
+
+    const tab = state.tabs.find((entry) => entry.tabId === tabId);
+    expect(tab).toBeDefined();
+    if (!tab || !isRequestTab(tab)) {
+      throw new Error('expected request tab');
+    }
+    expect(tab.draft.url).toBe('https://example.com/local-edit');
+    expect(isTabDirty(tab)).toBe(true);
+  });
+
+  it('closes tabs for requests removed on disk', () => {
+    let state = tabsReducer(undefined, loadRequest({ req: sampleSaved({ id: 42 }) }));
+    const tabId = state.activeTabId;
+
+    state = tabsReducer(
+      state,
+      reconcileRequestTabsFromRequests({
+        collectionId: 10,
+        requests: []
+      })
+    );
+
+    expect(state.tabs.some((entry) => entry.tabId === tabId)).toBe(false);
   });
 });
 

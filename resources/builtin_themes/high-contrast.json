@@ -19,6 +19,7 @@
     "muted": "#d0d0d0",
     "accent": "#4dabff",
     "selection": "#14487a",
+    "doc-markdown": "#4dabff",
     "tab-unsaved": "#ffd60a",
     "danger": "#ff8a80",
     "danger-light": "#ffb4af",

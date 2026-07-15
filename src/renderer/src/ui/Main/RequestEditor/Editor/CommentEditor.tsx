@@ -155,6 +155,11 @@ export function CommentEditor({
   const editorRef = useRef<MDXEditorMethods>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const lastEmittedRef = useRef(value);
+  /**
+   * When true, MDXEditor `onChange` callbacks from a programmatic `setMarkdown`
+   * are ignored so normalization after save cannot re-dirty the tab.
+   */
+  const programmaticSyncRef = useRef(false);
   const selectionToolbarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleCopySelectionToChatRef = useRef<() => Promise<void>>(async () => {});
   const [selectionToolbarVisible, setSelectionToolbarVisible] = useState(false);
@@ -189,10 +194,13 @@ export function CommentEditor({
 
   /**
    * Pushes user edits into the draft without rebinding the `markdown` prop (avoids lag).
+   *
+   * Ignores MDXEditor's initial normalize pass and any change emitted while a
+   * programmatic `setMarkdown` is in flight.
    */
   const handleChange = useCallback(
     (markdown: string, initialMarkdownNormalize: boolean): void => {
-      if (initialMarkdownNormalize) {
+      if (initialMarkdownNormalize || programmaticSyncRef.current) {
         return;
       }
 
@@ -351,14 +359,25 @@ export function CommentEditor({
 
   /**
    * Syncs AI or tab-switch draft updates into the editor via ref when value changes externally.
+   *
+   * Marks the update as programmatic so MDXEditor's follow-up `onChange` (often with
+   * normalized markdown) does not push a divergent string into Redux and re-dirty the tab.
    */
   useEffect(() => {
     if (value === lastEmittedRef.current) {
       return;
     }
 
+    programmaticSyncRef.current = true;
     editorRef.current?.setMarkdown(value);
     lastEmittedRef.current = value;
+    const frameId = requestAnimationFrame(() => {
+      programmaticSyncRef.current = false;
+    });
+    return () => {
+      cancelAnimationFrame(frameId);
+      programmaticSyncRef.current = false;
+    };
   }, [value]);
 
   /**
@@ -474,9 +493,13 @@ export function CommentEditor({
             return;
           }
 
+          programmaticSyncRef.current = true;
           editorRef.current?.setMarkdown(formatted);
           lastEmittedRef.current = formatted;
           onChange(formatted);
+          requestAnimationFrame(() => {
+            programmaticSyncRef.current = false;
+          });
         } catch (error) {
           showAlert(dispatch, formatErrorMessage(error, 'Could not format the markdown document.'));
         }

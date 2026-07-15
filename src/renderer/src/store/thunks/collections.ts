@@ -43,6 +43,7 @@ import {
   closeTabsForCollection,
   closeTabsForRequest,
   openPageTab,
+  reconcileRequestTabsFromRequests,
   syncRequestFolderInTabs
 } from '#/renderer/src/store/slices/tabsSlice';
 import { importCollectionRunnerResults } from '#/renderer/src/store/slices/modalsSlice';
@@ -215,7 +216,55 @@ export const refreshRequests = createAsyncThunk<
     return getState().collections.requestsByCollection[collectionId] ?? [];
   }
   dispatch(setRequestsForCollection({ collectionId, requests: data }));
+  dispatch(reconcileRequestTabsFromRequests({ collectionId, requests: data }));
   return data;
+});
+
+/**
+ * Result of {@link refreshGitWorkingTreeContents}.
+ */
+export interface RefreshGitWorkingTreeContentsResult {
+  /**
+   * Number of collections whose cached sidebar contents were reloaded from disk.
+   */
+  refreshedCachedCollectionCount: number;
+}
+
+/**
+ * Reloads renderer caches after external edits to a git-backed connection's working tree.
+ *
+ * Refreshes collection metadata, any already-loaded collection contents, and shared
+ * harbor-root environments and snippets for that connection.
+ *
+ * @param connectionId - Git connection whose working tree changed on disk.
+ */
+export const refreshGitWorkingTreeContents = createAsyncThunk<
+  RefreshGitWorkingTreeContentsResult,
+  string,
+  ThunkApiConfig
+>('collections/refreshGitWorkingTreeContents', async (connectionId, { dispatch, getState }) => {
+  await dispatch(refreshCollections());
+
+  const state = getState();
+  const primaryConnectionId = await window.api.getActiveStorageId();
+  const gitCollectionIds = new Set(
+    state.collections.collections
+      .filter((collection) => (collection.connectionId ?? primaryConnectionId) === connectionId)
+      .map((collection) => collection.id)
+  );
+
+  const cachedCollectionIds = Object.keys(state.collections.foldersByCollection)
+    .map(Number)
+    .filter((collectionId) => gitCollectionIds.has(collectionId));
+
+  for (const collectionId of cachedCollectionIds) {
+    await dispatch(refreshCollectionContents(collectionId));
+  }
+
+  await dispatch(refreshEnvironments());
+  await dispatch(refreshSnippets());
+
+  return { refreshedCachedCollectionCount: cachedCollectionIds.length };
 });
 
 /**

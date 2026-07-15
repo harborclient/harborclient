@@ -587,6 +587,95 @@ export function isTabDirty(tab: Tab): boolean {
 }
 
 /**
+ * Aligns an open markdown tab's editor state with on-disk document content.
+ *
+ * Heals three cases that leave the tab falsely amber (or stale) while Git is clean:
+ * - Editor drift: disk matches the last-saved baseline, but in-memory content drifted
+ *   (for example MDXEditor re-normalization after save).
+ * - Missed baseline: disk matches the current editor body, but `savedContent` was not updated.
+ * - External update: the tab is clean, but disk changed (pull, CLI, another process).
+ *
+ * Leaves real local edits alone when disk differs from both `content` and `savedContent`.
+ *
+ * @param tab - Open markdown tab to reconcile.
+ * @param doc - Latest document loaded from storage for the same `docId`.
+ * @returns Updated content fields when reconciliation changed anything; otherwise null.
+ */
+export function reconcileMarkdownTab(
+  tab: MarkdownTab,
+  doc: CollectionDocument
+): Pick<MarkdownTab, 'content' | 'savedContent' | 'name' | 'folderId'> | null {
+  const name = doc.name;
+  const folderId = doc.folder_id;
+
+  if (doc.content === tab.savedContent && tab.content !== tab.savedContent) {
+    return { content: tab.savedContent, savedContent: tab.savedContent, name, folderId };
+  }
+
+  if (doc.content === tab.content && tab.content !== tab.savedContent) {
+    return { content: tab.content, savedContent: tab.content, name, folderId };
+  }
+
+  if (!isTabDirty(tab) && doc.content !== tab.content) {
+    return { content: doc.content, savedContent: doc.content, name, folderId };
+  }
+
+  if (tab.name !== name || tab.folderId !== folderId) {
+    return {
+      content: tab.content,
+      savedContent: tab.savedContent,
+      name,
+      folderId
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Aligns an open request tab's editor state with on-disk request content.
+ *
+ * Updates clean tabs when disk changed (pull, CLI, or another process). Leaves
+ * real local edits alone when the tab is dirty.
+ *
+ * @param tab - Open request tab to reconcile.
+ * @param req - Latest request loaded from storage for the same `draft.id`.
+ * @returns Updated draft fields when reconciliation changed anything; otherwise null.
+ */
+export function reconcileRequestTab(
+  tab: RequestTab,
+  req: SavedRequest
+): Pick<
+  RequestTab,
+  | 'draft'
+  | 'savedDraft'
+  | 'response'
+  | 'testResults'
+  | 'scriptLogs'
+  | 'executionEvents'
+  | 'scriptError'
+> | null {
+  if (isTabDirty(tab)) {
+    return null;
+  }
+
+  const freshDraft = cloneDraft(draftFromSaved(req));
+  if (normalizeDraftForCompare(tab.draft) === normalizeDraftForCompare(freshDraft)) {
+    return null;
+  }
+
+  return {
+    draft: freshDraft,
+    savedDraft: cloneDraft(freshDraft),
+    response: null,
+    testResults: [],
+    scriptLogs: [],
+    executionEvents: [],
+    scriptError: undefined
+  };
+}
+
+/**
  * Returns all open request tabs that have unsaved changes.
  *
  * @param tabs - Open tabs from the tab bar.

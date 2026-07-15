@@ -55,6 +55,7 @@
   --color-accent: var(--mac-accent);
   --color-tab-underline: var(--mac-tab-underline, var(--mac-accent));
   --color-selection: var(--mac-selection);
+  --color-doc-markdown: var(--mac-doc-markdown);
   --color-tab-unsaved: var(--mac-tab-unsaved);
   --color-danger: var(--mac-danger);
   --color-danger-light: var(--mac-danger-light);
@@ -109,6 +110,7 @@
     --mac-muted: rgba(0, 0, 0, 0.58);
     --mac-accent: #007aff;
     --mac-selection: rgba(0, 122, 255, 0.18);
+    --mac-doc-markdown: #007aff;
     --mac-tab-unsaved: #b45309;
     --mac-danger: #ff3b30;
     --mac-danger-light: #d70015;
@@ -163,6 +165,7 @@
       --mac-accent: #0a84ff;
       --mac-tab-underline: #ffffff;
       --mac-selection: rgba(10, 132, 255, 0.22);
+      --mac-doc-markdown: #0a84ff;
       --mac-tab-unsaved: #ffb340;
       --mac-danger: #ff453a;
       --mac-danger-light: #ff6961;
@@ -202,6 +205,7 @@
     --mac-accent: #0a84ff;
     --mac-tab-underline: #ffffff;
     --mac-selection: rgba(10, 132, 255, 0.22);
+    --mac-doc-markdown: #0a84ff;
     --mac-tab-unsaved: #ffb340;
     --mac-danger: #ff453a;
     --mac-danger-light: #ff6961;
@@ -250,6 +254,7 @@
     --mac-accent: #4dabff;
     --mac-tab-underline: #ffffff;
     --mac-selection: #14487a;
+    --mac-doc-markdown: #4dabff;
     --mac-tab-unsaved: #ffd60a;
     --mac-danger: #ff8a80;
     --mac-danger-light: #ffb4af;
@@ -295,6 +300,7 @@
       --mac-muted: GrayText;
       --mac-accent: LinkText;
       --mac-selection: Highlight;
+      --mac-doc-markdown: LinkText;
       --mac-danger: LinkText;
       --mac-danger-light: LinkText;
       --mac-warning: CanvasText;

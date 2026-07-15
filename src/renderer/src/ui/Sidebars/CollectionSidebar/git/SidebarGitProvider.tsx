@@ -13,7 +13,7 @@ import {
   selectDraft,
   selectSelectedCollectionId
 } from '#/renderer/src/store/selectors';
-import { refreshCollections } from '#/renderer/src/store/thunks';
+import { refreshCollections, refreshGitWorkingTreeContents } from '#/renderer/src/store/thunks';
 import { formatIpcErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { GitBranchesModal } from '#/renderer/src/ui/Modals/GitBranchesModal';
 import { GitCreateBranchModal } from '#/renderer/src/ui/Modals/GitCreateBranchModal';
@@ -64,21 +64,31 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
 
   /**
    * Reloads collections when the git working tree changes on disk (pull or
-   * external edits) and warns when merge conflicts appear.
+   * external edits), refreshes cached sidebar contents, and warns when merge
+   * conflicts appear.
    */
   const handleGitWorkingTreeChanged = useCallback(
     (connectionId: string): void => {
-      void dispatch(refreshCollections()).then(() => {
-        void window.api.listGitStatuses().then((statuses) => {
-          const status = statuses[connectionId];
-          if (status?.conflictCount > 0) {
-            toast(
-              `${status.conflictCount} merge conflict(s) in repository files. Resolve markers before editing.`,
-              { icon: '⚠️', duration: 8000 }
-            );
+      void dispatch(refreshGitWorkingTreeContents(connectionId))
+        .unwrap()
+        .then((result) => {
+          if (result.refreshedCachedCollectionCount > 0) {
+            toast('Collection files updated from disk', { icon: '📁', duration: 4000 });
           }
+
+          void window.api.listGitStatuses().then((statuses) => {
+            const status = statuses[connectionId];
+            if (status?.conflictCount > 0) {
+              toast(
+                `${status.conflictCount} merge conflict(s) in repository files. Resolve markers before editing.`,
+                { icon: '⚠️', duration: 8000 }
+              );
+            }
+          });
+        })
+        .catch(() => {
+          // Keep last-known sidebar state; the next poll or focus will retry.
         });
-      });
     },
     [dispatch]
   );

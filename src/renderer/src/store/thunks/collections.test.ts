@@ -48,6 +48,10 @@ const updateCollectionMock =
   >();
 const moveCollectionMock = vi.fn<(id: number, targetConnectionId: string) => Promise<Collection>>();
 const listRequestsMock = vi.fn<(collectionId: number) => Promise<unknown[]>>();
+const listFoldersMock = vi.fn<(collectionId: number) => Promise<unknown[]>>();
+const listDocumentsMock = vi.fn<(collectionId: number) => Promise<unknown[]>>();
+const listEnvironmentsMock = vi.fn<() => Promise<unknown[]>>();
+const listSnippetsMock = vi.fn<() => Promise<unknown[]>>();
 const moveRequestMock =
   vi.fn<(requestId: number, folderId: number | null, index: number) => Promise<void>>();
 
@@ -112,6 +116,10 @@ beforeEach(() => {
       updateCollection: updateCollectionMock,
       moveCollection: moveCollectionMock,
       listRequests: listRequestsMock,
+      listFolders: listFoldersMock,
+      listDocuments: listDocumentsMock,
+      listEnvironments: listEnvironmentsMock,
+      listSnippets: listSnippetsMock,
       moveRequest: moveRequestMock
     }
   });
@@ -128,6 +136,14 @@ beforeEach(() => {
   moveCollectionMock.mockReset();
   listRequestsMock.mockReset();
   listRequestsMock.mockResolvedValue([]);
+  listFoldersMock.mockReset();
+  listFoldersMock.mockResolvedValue([]);
+  listDocumentsMock.mockReset();
+  listDocumentsMock.mockResolvedValue([]);
+  listEnvironmentsMock.mockReset();
+  listEnvironmentsMock.mockResolvedValue([]);
+  listSnippetsMock.mockReset();
+  listSnippetsMock.mockResolvedValue([]);
   moveRequestMock.mockReset();
   moveRequestMock.mockResolvedValue(undefined);
 });
@@ -203,6 +219,37 @@ describe('refreshCollections', () => {
     await store.dispatch(refreshCollections());
 
     expect(store.getState().collections.selectedCollectionId).toBe(3);
+  });
+});
+
+describe('refreshGitWorkingTreeContents', () => {
+  it('reloads cached contents only for collections on the changed git connection', async () => {
+    listCollectionsMock.mockResolvedValueOnce({
+      collections: [
+        sampleCollection(1, 'Git collection', 'git-conn'),
+        sampleCollection(2, 'Other provider', 'sqlite-conn')
+      ],
+      warnings: []
+    });
+
+    const { store } = await import('#/renderer/src/store/redux');
+    const { setFoldersForCollection } =
+      await import('#/renderer/src/store/slices/collectionsSlice');
+    const { refreshGitWorkingTreeContents } =
+      await import('#/renderer/src/store/thunks/collections');
+
+    store.dispatch(setFoldersForCollection({ collectionId: 1, folders: [] }));
+    store.dispatch(setFoldersForCollection({ collectionId: 2, folders: [] }));
+
+    const result = await store.dispatch(refreshGitWorkingTreeContents('git-conn')).unwrap();
+
+    expect(result.refreshedCachedCollectionCount).toBe(1);
+    expect(listFoldersMock).toHaveBeenCalledWith(1);
+    expect(listFoldersMock).not.toHaveBeenCalledWith(2);
+    expect(listRequestsMock).toHaveBeenCalledWith(1);
+    expect(listDocumentsMock).toHaveBeenCalledWith(1);
+    expect(listEnvironmentsMock).toHaveBeenCalled();
+    expect(listSnippetsMock).toHaveBeenCalled();
   });
 });
 

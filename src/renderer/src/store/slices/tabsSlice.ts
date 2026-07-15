@@ -12,6 +12,8 @@ import {
   isTabDirty,
   pageRefKey,
   pageRefsEqual,
+  reconcileMarkdownTab,
+  reconcileRequestTab,
   type PageRef,
   type RequestDraft,
   type RequestTab,
@@ -262,6 +264,10 @@ const tabsSlice = createSlice({
     },
     /**
      * Reloads a saved markdown document into an existing tab or opens a new one.
+     *
+     * False-dirty tabs (disk matches the last-saved baseline) are synced from disk so
+     * the amber unsaved color clears. Real local edits are preserved when disk content
+     * differs from the saved baseline.
      */
     loadDocument(state, action: PayloadAction<{ doc: CollectionDocument; activate?: boolean }>) {
       const { doc, activate = true } = action.payload;
@@ -270,7 +276,7 @@ const tabsSlice = createSlice({
         if (activate) {
           state.activeTabId = existing.tabId;
         }
-        if (isTabDirty(existing)) {
+        if (isTabDirty(existing) && doc.content !== existing.savedContent) {
           return;
         }
         existing.name = doc.name;
@@ -285,6 +291,79 @@ const tabsSlice = createSlice({
       if (activate) {
         state.activeTabId = tab.tabId;
       }
+    },
+    /**
+     * Aligns open markdown tabs for a collection with documents just loaded from disk.
+     *
+     * Used after {@link refreshDocuments} so falsely dirty or stale tabs recover without
+     * requiring the user to click the sidebar row.
+     */
+    reconcileMarkdownTabsFromDocuments(
+      state,
+      action: PayloadAction<{ collectionId: number; documents: CollectionDocument[] }>
+    ) {
+      const { collectionId, documents } = action.payload;
+      const documentsById = new Map(documents.map((doc) => [doc.id, doc]));
+      const tabsToClose: Tab[] = [];
+      for (const tab of state.tabs) {
+        if (!isMarkdownTab(tab) || tab.collectionId !== collectionId) {
+          continue;
+        }
+        const doc = documentsById.get(tab.docId);
+        if (doc == null) {
+          tabsToClose.push(tab);
+          continue;
+        }
+        const reconciled = reconcileMarkdownTab(tab, doc);
+        if (reconciled == null) {
+          continue;
+        }
+        tab.content = reconciled.content;
+        tab.savedContent = reconciled.savedContent;
+        tab.name = reconciled.name;
+        tab.folderId = reconciled.folderId;
+      }
+      closeMatchingTabs(state, tabsToClose);
+    },
+    /**
+     * Aligns open request tabs for a collection with requests just loaded from disk.
+     *
+     * Used after {@link refreshRequests} so clean tabs pick up external edits without
+     * requiring the user to click the sidebar row. Closes tabs for requests removed on disk.
+     */
+    reconcileRequestTabsFromRequests(
+      state,
+      action: PayloadAction<{ collectionId: number; requests: SavedRequest[] }>
+    ) {
+      const { collectionId, requests } = action.payload;
+      const requestsById = new Map(requests.map((req) => [req.id, req]));
+      const tabsToClose: Tab[] = [];
+      for (const tab of state.tabs) {
+        if (!isRequestTab(tab) || tab.draft.collection_id !== collectionId) {
+          continue;
+        }
+        const requestId = tab.draft.id;
+        if (requestId == null) {
+          continue;
+        }
+        const req = requestsById.get(requestId);
+        if (req == null) {
+          tabsToClose.push(tab);
+          continue;
+        }
+        const reconciled = reconcileRequestTab(tab, req);
+        if (reconciled == null) {
+          continue;
+        }
+        tab.draft = reconciled.draft;
+        tab.savedDraft = reconciled.savedDraft;
+        tab.response = reconciled.response;
+        tab.testResults = reconciled.testResults;
+        tab.scriptLogs = reconciled.scriptLogs;
+        tab.executionEvents = reconciled.executionEvents;
+        tab.scriptError = reconciled.scriptError;
+      }
+      closeMatchingTabs(state, tabsToClose);
     },
     /**
      * Updates editable markdown content on a markdown tab.
@@ -486,6 +565,8 @@ export const {
   loadRequest,
   openMarkdownTab,
   loadDocument,
+  reconcileMarkdownTabsFromDocuments,
+  reconcileRequestTabsFromRequests,
   updateMarkdownContent,
   markMarkdownSaved,
   updateTab,

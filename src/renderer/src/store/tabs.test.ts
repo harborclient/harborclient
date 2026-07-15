@@ -4,6 +4,7 @@ import type { SavedRequest } from '#/shared/types';
 import { createInlineScriptRef } from '#/shared/scriptRefs';
 import {
   cloneDraft,
+  createMarkdownTab,
   createTab,
   defaultDraft,
   draftFromSaved,
@@ -16,9 +17,12 @@ import {
   normalizeDraft,
   normalizeDraftForCompare,
   normalizeKeyValueRows,
+  reconcileMarkdownTab,
+  reconcileRequestTab,
   type RequestDraft,
   type RequestTab
 } from './tabs';
+import type { CollectionDocument } from '#/shared/types';
 
 const sampleDraft = (): RequestDraft => ({
   name: 'Sample',
@@ -188,6 +192,139 @@ describe('isTabDirty', () => {
 
     tab.draft.url = 'https://changed.example';
     expect(isTabDirty(tab)).toBe(true);
+  });
+});
+
+/**
+ * Builds a collection document fixture for reconcileMarkdownTab tests.
+ *
+ * @param overrides - Partial fields to override defaults.
+ * @returns Saved document suitable for reconcile helpers.
+ */
+function sampleDocument(overrides: Partial<CollectionDocument> = {}): CollectionDocument {
+  return {
+    id: 1,
+    uuid: 'doc-uuid',
+    collection_id: 10,
+    folder_id: null,
+    name: 'README.md',
+    content: '# Hello',
+    sort_order: 0,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+    ...overrides
+  };
+}
+
+describe('reconcileMarkdownTab', () => {
+  it('clears editor drift when disk matches the saved baseline', () => {
+    const doc = sampleDocument({ content: '# Hello' });
+    const tab = createMarkdownTab(doc);
+    tab.content = '# Hello\n';
+
+    const reconciled = reconcileMarkdownTab(tab, doc);
+    expect(reconciled).toEqual({
+      content: '# Hello',
+      savedContent: '# Hello',
+      name: 'README.md',
+      folderId: null
+    });
+  });
+
+  it('updates a missed saved baseline when disk matches editor content', () => {
+    const doc = sampleDocument({ content: '# Saved on disk' });
+    const tab = createMarkdownTab(sampleDocument({ content: '# Old baseline' }));
+    tab.content = '# Saved on disk';
+    tab.savedContent = '# Old baseline';
+
+    const reconciled = reconcileMarkdownTab(tab, doc);
+    expect(reconciled).toEqual({
+      content: '# Saved on disk',
+      savedContent: '# Saved on disk',
+      name: 'README.md',
+      folderId: null
+    });
+  });
+
+  it('pulls external disk changes into a clean tab', () => {
+    const tab = createMarkdownTab(sampleDocument({ content: '# Local' }));
+    const doc = sampleDocument({ content: '# From pull', name: 'NOTES.md', folder_id: 3 });
+
+    const reconciled = reconcileMarkdownTab(tab, doc);
+    expect(reconciled).toEqual({
+      content: '# From pull',
+      savedContent: '# From pull',
+      name: 'NOTES.md',
+      folderId: 3
+    });
+  });
+
+  it('preserves real local edits when disk differs from both content and saved baseline', () => {
+    const tab = createMarkdownTab(sampleDocument({ content: '# Baseline' }));
+    tab.content = '# My local edit';
+    const doc = sampleDocument({ content: '# Someone else changed disk' });
+
+    expect(reconcileMarkdownTab(tab, doc)).toBeNull();
+  });
+});
+
+describe('reconcileRequestTab', () => {
+  const sampleSaved = (overrides: Partial<SavedRequest> = {}): SavedRequest => ({
+    id: 42,
+    uuid: '',
+    collection_id: 10,
+    folder_id: null,
+    name: 'Get users',
+    method: 'GET',
+    url: 'https://example.com/users',
+    headers: [],
+    params: [],
+    auth: defaultAuth(),
+    body: '',
+    body_type: 'none',
+    pre_request_script: '',
+    post_request_script: '',
+    pre_request_scripts: [],
+    post_request_scripts: [],
+    comment: '',
+    tags: '',
+    sort_order: 0,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+    ...overrides
+  });
+
+  it('pulls external disk changes into a clean tab', () => {
+    const tab = createTab(draftFromSaved(sampleSaved({ url: 'https://example.com/old' })));
+    tab.draft.id = 42;
+    tab.draft.collection_id = 10;
+    tab.savedDraft = cloneDraft(tab.draft);
+
+    const reconciled = reconcileRequestTab(tab, sampleSaved({ url: 'https://example.com/new' }));
+    expect(reconciled?.draft.url).toBe('https://example.com/new');
+    expect(reconciled?.savedDraft.url).toBe('https://example.com/new');
+    expect(reconciled?.response).toBeNull();
+  });
+
+  it('preserves real local edits when the tab is dirty', () => {
+    const tab = createTab(draftFromSaved(sampleSaved()));
+    tab.draft.id = 42;
+    tab.draft.collection_id = 10;
+    tab.savedDraft = cloneDraft(tab.draft);
+    tab.draft.url = 'https://example.com/edited';
+
+    expect(
+      reconcileRequestTab(tab, sampleSaved({ url: 'https://example.com/external' }))
+    ).toBeNull();
+  });
+
+  it('returns null when disk already matches the open tab', () => {
+    const tab = createTab(draftFromSaved(sampleSaved()));
+    tab.draft.id = 42;
+    tab.draft.collection_id = 10;
+    tab.savedDraft = cloneDraft(tab.draft);
+
+    expect(reconcileRequestTab(tab, sampleSaved())).toBeNull();
   });
 });
 
