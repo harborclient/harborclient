@@ -18,7 +18,7 @@ import type {
 
 import { PERMISSION_DESCRIPTIONS, PERMISSION_NAMES } from './constants';
 import { installedPluginInstallationLabel } from './helpers';
-import { VerifiedPublisherBadge } from '#/renderer/src/ui/shared/Marketplace/VerifiedPublisherBadge';
+import { VerifiedPublisherBadge } from '#/renderer/src/ui/Shared/Marketplace/VerifiedPublisherBadge';
 import { ErrorMessages } from './ErrorMessages';
 
 interface InstalledProps {

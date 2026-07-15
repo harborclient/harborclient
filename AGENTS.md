@@ -71,7 +71,7 @@ They block the Electron renderer thread and break visual consistency.
 - Use `react-hot-toast` only for non-blocking success or info feedback, not for
   errors that require acknowledgment.
 
-Helpers live in [`dialogHelpers.ts`](src/renderer/src/ui/modals/dialogHelpers.ts)
+Helpers live in [`dialogHelpers.ts`](src/renderer/src/ui/Modals/dialogHelpers.ts)
 (`showAlert`, `showConfirm`) and [`useConfirm`](src/renderer/src/hooks/useConfirm.ts).
 
 ### Accessibility
@@ -91,7 +91,7 @@ detailed audit of known gaps and proposed fixes.
   `aria-hidden`).
 - Controls hidden until hover must still appear on keyboard focus — use
   `focus-visible:opacity-100` / `group-focus-within:opacity-100`, not hover
-  alone (see `iconButton` in [`classes.ts`](src/renderer/src/ui/shared/classes.ts)).
+  alone (see `iconButton` in [`classes.ts`](src/renderer/src/ui/Shared/classes.ts)).
 - Set `type="button"` on buttons that are not form submit actions.
 
 **Forms and labels**

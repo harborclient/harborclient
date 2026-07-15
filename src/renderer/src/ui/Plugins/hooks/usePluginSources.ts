@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import type { PluginCatalog, PluginSource, PluginSourcesSettings } from '#/shared/plugin/catalog';
 import { getDefaultPluginSources, pluginSourcesSchema } from '#/shared/plugin/catalog';
 import type { TeamHubPluginSource } from '#/shared/types';
-import { formatIpcErrorMessage } from '#/renderer/src/ui/modals/dialogHelpers';
+import { formatIpcErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
 import type { PluginsSidebarSection } from '../sidebarTypes';
 import type { SourceKind } from '../types';
 

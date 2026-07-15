@@ -13,8 +13,8 @@ import { faClockRotateLeft } from '#/renderer/src/fontawesome';
 
 import { useTeamHubAdminRunResults } from '#/renderer/src/hooks/useTeamHubAdminRunResults';
 import { useTypedDeleteConfirm } from '#/renderer/src/hooks/useTypedDeleteConfirm';
-import { DeleteConfirmModal } from '#/renderer/src/ui/shared/DeleteConfirm/DeleteConfirmModal';
-import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
+import { DeleteConfirmModal } from '#/renderer/src/ui/Shared/DeleteConfirm/DeleteConfirmModal';
+import { toolbarDangerButtonClass } from '#/renderer/src/ui/Shared/classes';
 
 interface Props {
   /**

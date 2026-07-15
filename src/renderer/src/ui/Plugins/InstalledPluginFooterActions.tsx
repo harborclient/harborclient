@@ -3,7 +3,7 @@ import type { JSX, MouseEvent } from 'react';
 import type { PluginInfo } from '#/shared/plugin/types';
 import type { PluginManagementKind } from '#/renderer/src/ui/Plugins/constants';
 import { pluginManagementNoun } from '#/renderer/src/ui/Plugins/constants';
-import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
+import { toolbarDangerButtonClass } from '#/renderer/src/ui/Shared/classes';
 import { isManagedInstall } from './helpers';
 import {
   installedCardToggleLabel,

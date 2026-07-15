@@ -6,7 +6,7 @@ import {
   PLUGIN_CATALOG_CATEGORIES,
   PLUGIN_CATALOG_CATEGORY_LABELS
 } from '#/shared/plugin/catalogCategories';
-import { MarketplaceBrowseView } from '#/renderer/src/ui/shared/Marketplace/MarketplaceBrowseView';
+import { MarketplaceBrowseView } from '#/renderer/src/ui/Shared/Marketplace/MarketplaceBrowseView';
 import { CatalogCard } from './CatalogCard';
 
 interface Props {

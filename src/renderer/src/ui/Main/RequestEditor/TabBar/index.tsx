@@ -163,7 +163,7 @@ export function TabBar({
           );
           runnerTargetName = runnerTargetLabel(names);
         }
-      } else if (page.type === 'plugin-view') {
+      } else if (page.type === 'hosted-main-view') {
         pluginTitle = getRegisteredMainViews().find(
           (view) => view.pluginId === page.pluginId && view.id === page.viewId
         )?.title;

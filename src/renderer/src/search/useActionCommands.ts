@@ -30,9 +30,9 @@ import {
   runSync,
   saveFromMenu
 } from '#/renderer/src/store/thunks';
-import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
-import { useSidebarGit } from '#/renderer/src/ui/sidebars/CollectionSidebar/sidebarGitContext';
-import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
+import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarExpansion';
+import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sidebarGitContext';
+import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 
 interface UseActionCommandsResult {
   /** Built-in and plugin actions available in Action menu quick-open mode. */

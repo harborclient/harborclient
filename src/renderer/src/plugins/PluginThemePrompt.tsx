@@ -9,7 +9,7 @@ import {
   selectThemePromptCandidates,
   themePromptKey
 } from '#/renderer/src/plugins/pluginThemePromptLogic';
-import { THEME_PROMPT_TOAST_LIVE_PROPS } from '#/renderer/src/ui/shared/toastA11y';
+import { THEME_PROMPT_TOAST_LIVE_PROPS } from '#/renderer/src/ui/Shared/toastA11y';
 
 /** Theme keys currently being offered so overlapping effect runs do not duplicate toasts. */
 const inFlightThemePromptKeys = new Set<string>();

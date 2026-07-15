@@ -10,7 +10,7 @@ import {
   showAlert,
   showConfirm,
   formatIpcErrorMessage
-} from '#/renderer/src/ui/modals/dialogHelpers';
+} from '#/renderer/src/ui/Modals/dialogHelpers';
 import { resolvePendingSnippetInstallDeepLink } from '../helpers';
 import type { SnippetsSidebarSection } from '../sidebarTypes';
 

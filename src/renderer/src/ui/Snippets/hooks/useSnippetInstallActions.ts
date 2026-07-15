@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import type { SnippetCatalogEntry } from '#/shared/snippet/catalog';
 import type { InstalledSnippetPackage } from '#/shared/snippet/types';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
-import { showAlert, formatIpcErrorMessage } from '#/renderer/src/ui/modals/dialogHelpers';
+import { showAlert, formatIpcErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
 
 interface UseSnippetInstallActionsArgs {
   /**

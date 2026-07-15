@@ -1,5 +1,5 @@
 import { StatusDot } from '@harborclient/sdk/components';
-import { statusDotVariant } from '#/renderer/src/ui/shared/classes';
+import { statusDotVariant } from '#/renderer/src/ui/Shared/classes';
 import type { RedirectHop } from '#/shared/types';
 import type { JSX } from 'react';
 import { getFinalRedirectUrl } from './redirectsDisplay';

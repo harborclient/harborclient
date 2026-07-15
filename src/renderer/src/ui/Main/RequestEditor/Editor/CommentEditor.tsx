@@ -31,7 +31,7 @@ import { clipboardHasRichHtml, shouldParsePasteAsMarkdown } from './pasteMarkdow
 import { formatMarkdown } from './formatMarkdown';
 import { useMarkdownCodeMirrorTheme } from './useMarkdownCodeMirrorTheme';
 import { variableHighlightPlugin } from './variableHighlightPlugin';
-import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
+import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import {
   buildMarkdownReferenceToken,
   captureMarkdownSelection,

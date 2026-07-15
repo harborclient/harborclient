@@ -7,7 +7,7 @@ import {
   CodeEditor,
   FaIcon
 } from '@harborclient/sdk/components';
-import { focusableReadonlyClass } from '#/renderer/src/ui/shared/classes';
+import { focusableReadonlyClass } from '#/renderer/src/ui/Shared/classes';
 import { useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { ResponseTabContext } from '#/shared/plugin/types';
@@ -15,7 +15,7 @@ import type { ScriptExecutionEvent, ScriptTestResult, SendResult } from '#/share
 
 import { useSendRequestShortcutHint } from '#/renderer/src/hooks/useSendRequestShortcutHint';
 import { faGlobe } from '#/renderer/src/fontawesome';
-import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
+import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import { usePluginResponseTabs } from '#/renderer/src/plugins/pluginHooks';
 import {
   bodyLanguage,
@@ -25,8 +25,8 @@ import {
   isHtmlResponse,
   isImageResponse,
   responseContentType
-} from '#/renderer/src/ui/shared/responseFormatUtils';
-import { ConsoleDetails } from '#/renderer/src/ui/shared/ConsoleDetails/ConsoleDetails';
+} from '#/renderer/src/ui/Shared/responseFormatUtils';
+import { ConsoleDetails } from '#/renderer/src/ui/Shared/ConsoleDetails/ConsoleDetails';
 import { ResponseSummary } from './ResponseSummary';
 import { Headers } from './Headers';
 import { HtmlPreview } from './HtmlPreview';
@@ -340,7 +340,7 @@ export function ResponseEditor({
       return (
         <div className="flex min-h-0 flex-1 flex-col p-3">
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <PluginSurface
+            <HostedSurface
               pluginId={singleTab.pluginId}
               contributionId={singleTab.contributionId}
               kind="responseTabs"
@@ -371,7 +371,7 @@ export function ResponseEditor({
                 value={entry.id}
                 className="flex min-h-0 flex-1 flex-col"
               >
-                <PluginSurface
+                <HostedSurface
                   pluginId={entry.pluginId}
                   contributionId={entry.contributionId}
                   kind="responseTabs"
@@ -445,7 +445,7 @@ export function ResponseEditor({
             value={entry.id}
             className="flex min-h-0 flex-1 flex-col"
           >
-            <PluginSurface
+            <HostedSurface
               pluginId={entry.pluginId}
               contributionId={entry.contributionId}
               kind="responseTabs"

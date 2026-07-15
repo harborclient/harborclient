@@ -7,12 +7,12 @@ import { closeTab } from '#/renderer/src/store/slices/tabsSlice';
 import { selectSnippets } from '#/renderer/src/store/selectors';
 import { createSnippet, updateSnippet } from '#/renderer/src/store/thunks/snippets';
 import { faCode } from '#/renderer/src/fontawesome';
-import { SnippetEditFields } from '#/renderer/src/ui/shared/Snippet/SnippetEditFields';
+import { SnippetEditFields } from '#/renderer/src/ui/Shared/Snippet/SnippetEditFields';
 import {
   createBlankSnippet,
   createImportedSnippetDraft,
   type SnippetEditDraft
-} from '#/renderer/src/ui/shared/Snippet/snippetEditDraft';
+} from '#/renderer/src/ui/Shared/Snippet/snippetEditDraft';
 
 interface Props {
   /**

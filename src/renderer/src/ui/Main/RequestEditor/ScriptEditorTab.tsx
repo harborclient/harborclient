@@ -13,11 +13,11 @@ import {
 import { closeTab, openPageTab, updateTab } from '#/renderer/src/store/slices/tabsSlice';
 import { useMergedRequestVariables } from '#/renderer/src/hooks/useMergedRequestVariables';
 import { resolveVariableEditTarget } from '#/renderer/src/ui/Main/RequestEditor/resolveVariableEditTarget';
-import { ScriptListEditor } from '#/renderer/src/ui/shared/Script/ScriptListEditor';
+import { ScriptListEditor } from '#/renderer/src/ui/Shared/Script/ScriptListEditor';
 import {
   POST_REQUEST_SCRIPT_PLACEHOLDER,
   PRE_REQUEST_SCRIPT_PLACEHOLDER
-} from '#/renderer/src/ui/shared/Script/scriptPlaceholders';
+} from '#/renderer/src/ui/Shared/Script/scriptPlaceholders';
 
 interface Props {
   /**

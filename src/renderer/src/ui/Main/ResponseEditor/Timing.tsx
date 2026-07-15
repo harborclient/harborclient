@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import type { SendResult } from '#/shared/types';
-import { formatBytes } from '#/renderer/src/ui/shared/responseFormatUtils';
+import { formatBytes } from '#/renderer/src/ui/Shared/responseFormatUtils';
 import {
   buildTimingRows,
   timingPercent,

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import { faPuzzlePiece } from '#/renderer/src/fontawesome';
 import { usePersistedPageSidebarSection } from '#/renderer/src/hooks/usePersistedPageSidebarSection';
 import { normalizePageSidebarSection } from '#/shared/pageSidebarSection';
-import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
+import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import { usePluginSettingsSections } from '#/renderer/src/plugins/pluginHooks';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { loadSettingsDraft } from '#/renderer/src/store/thunks/settingsDraft';
@@ -146,7 +146,7 @@ export function Settings({
           className="flex min-h-full flex-col"
         >
           <div className="flex min-h-0 flex-1 flex-col">
-            <PluginSurface
+            <HostedSurface
               pluginId={pluginSection.pluginId}
               contributionId={pluginSection.contributionId}
               kind="settingsSections"

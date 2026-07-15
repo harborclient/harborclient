@@ -9,7 +9,7 @@ import {
 import { usePluginFooterPanels } from '#/renderer/src/plugins/pluginHooks';
 import { ConsolePanel } from './ConsolePanel';
 import { McpPanel } from './McpPanel';
-import { PluginFooterPanel } from './PluginFooterPanel';
+import { HostedFooterPanel } from './HostedFooterPanel';
 import { VariablesPanel } from './VariablesPanel';
 import { TerminalPanel } from './TerminalPanel';
 import { resolveScopedVariables } from './VariablesPanel/resolve';
@@ -167,7 +167,7 @@ export function FooterPanels({
       <McpPanel open={mcpOpen} onClose={onToggleMcp} onStatusChange={onMcpStatusChange} />
       <TerminalPanel open={terminalOpen} onClose={onToggleTerminal} />
       {pluginFooterPanels.map((panel) => (
-        <PluginFooterPanel
+        <HostedFooterPanel
           key={panel.id}
           id={panel.id}
           pluginId={panel.pluginId}

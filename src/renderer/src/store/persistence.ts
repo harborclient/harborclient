@@ -292,11 +292,16 @@ function normalizePageRef(value: unknown): PageRef | null {
       };
     case 'sharing-keys':
       return { type: 'sharing-keys' };
+    case 'hosted-main-view':
+      if (typeof value.pluginId !== 'string' || typeof value.viewId !== 'string') {
+        return null;
+      }
+      return { type: 'hosted-main-view', pluginId: value.pluginId, viewId: value.viewId };
     case 'plugin-view':
       if (typeof value.pluginId !== 'string' || typeof value.viewId !== 'string') {
         return null;
       }
-      return { type: 'plugin-view', pluginId: value.pluginId, viewId: value.viewId };
+      return { type: 'hosted-main-view', pluginId: value.pluginId, viewId: value.viewId };
     case 'collection':
       if (typeof value.id !== 'number' || !Number.isFinite(value.id)) {
         return null;

@@ -4,7 +4,7 @@ import {
   showConfirm,
   type ConfirmOptions,
   type ConfirmResult
-} from '#/renderer/src/ui/modals/dialogHelpers';
+} from '#/renderer/src/ui/Modals/dialogHelpers';
 
 /**
  * Callback that opens a confirmation modal and resolves with the user's choice.

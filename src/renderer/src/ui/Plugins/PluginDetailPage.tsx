@@ -6,7 +6,7 @@ import { closeTab } from '#/renderer/src/store/slices/tabsSlice';
 import { applyPluginThemePreference } from '#/renderer/src/plugins/applyPluginTheme';
 import { getRegisteredPluginThemes } from '#/renderer/src/plugins/registry';
 import type { PluginInfo } from '#/shared/plugin/types';
-import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
+import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { faPalette, faPuzzlePiece } from '#/renderer/src/fontawesome';
 import { listPluginThemeVariants } from './listPluginThemeVariants';
 import { EnableModal } from './EnableModal';

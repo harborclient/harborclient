@@ -37,7 +37,7 @@ import {
   updateEnvironmentVariables
 } from '#/renderer/src/plugins/hostEnvironmentCommands';
 import { store } from '#/renderer/src/store/redux';
-import { setPluginModal } from '#/renderer/src/store/slices/modalsSlice';
+import { setHostedModal } from '#/renderer/src/store/slices/modalsSlice';
 import {
   createCollectionFromPlugin,
   getCollectionMetadataForPlugin,
@@ -465,7 +465,7 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
         assertUi();
         assertManifestContribution(manifest, 'modals', modalId);
         store.dispatch(
-          setPluginModal({
+          setHostedModal({
             pluginId,
             contributionId: modalId,
             context
@@ -474,14 +474,14 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
       },
       closeModal: (modalId) => {
         assertUi();
-        const current = store.getState().modals.pluginModal;
+        const current = store.getState().modals.hostedModal;
         if (!current || current.pluginId !== pluginId) {
           return;
         }
         if (modalId && current.contributionId !== modalId) {
           return;
         }
-        store.dispatch(setPluginModal(null));
+        store.dispatch(setHostedModal(null));
       }
     },
     http: {

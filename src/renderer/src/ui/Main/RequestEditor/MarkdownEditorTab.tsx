@@ -7,7 +7,7 @@ import { selectDocumentsByCollection } from '#/renderer/src/store/selectors';
 import { updateMarkdownContent } from '#/renderer/src/store/slices/tabsSlice';
 import { saveMarkdownTab } from '#/renderer/src/store/thunks/documents';
 import { isTabDirty, type MarkdownTab } from '#/renderer/src/store/drafts';
-import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
+import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { CommentEditor } from '#/renderer/src/ui/Main/RequestEditor/Editor/CommentEditor';
 
 interface Props {

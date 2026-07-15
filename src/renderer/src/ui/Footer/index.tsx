@@ -20,7 +20,7 @@ import {
   faTerminal
 } from '#/renderer/src/fontawesome';
 import { iconActionMenu, ACTION_MENU_ICON_CLASS } from '#/renderer/src/icons/customIcons';
-import { actionMenuToggleClass, footerButtonGroup } from '#/renderer/src/ui/shared/classes';
+import { actionMenuToggleClass, footerButtonGroup } from '#/renderer/src/ui/Shared/classes';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectActiveEnvironmentId, selectEnvironments } from '#/renderer/src/store/selectors';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
@@ -36,11 +36,11 @@ import {
   selectActionMenuModal,
   selectShortcutsReferenceModal
 } from '#/renderer/src/store/slices/modalsSlice';
-import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
+import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import { usePluginFooterPanels, usePluginStatusBarItems } from '#/renderer/src/plugins/pluginHooks';
-import { SHORTCUTS_REFERENCE_MODAL_ID } from '#/renderer/src/ui/modals/ShortcutsReferenceModal';
+import { SHORTCUTS_REFERENCE_MODAL_ID } from '#/renderer/src/ui/Modals/ShortcutsReferenceModal';
 import { handleFooterBarTabNavigation } from '#/renderer/src/ui/Footer/footerBarTabNavigation';
-import { APP_FOOTER_SECTION_ID } from '#/renderer/src/ui/shared/SkipNavigation/skipNavigationTargets';
+import { APP_FOOTER_SECTION_ID } from '#/renderer/src/ui/Shared/SkipNavigation/skipNavigationTargets';
 import { effectiveCount, resolveScopedVariables } from './VariablesPanel/resolve';
 
 /** Stable menu id for the footer environment picker. */
@@ -320,7 +320,7 @@ export function Footer({
               className="overflow-hidden px-1"
               style={{ width: 120, height: FOOTER_STATUS_BAR_SLOT_HEIGHT }}
             >
-              <PluginSurface
+              <HostedSurface
                 pluginId={item.pluginId}
                 contributionId={item.contributionId}
                 kind="statusBarItems"
@@ -414,7 +414,7 @@ export function Footer({
                 {panel.title}
                 {panel.hasIndicator ? (
                   <span className="ml-1 inline-flex h-4 w-3 shrink-0 items-center overflow-hidden">
-                    <PluginSurface
+                    <HostedSurface
                       pluginId={panel.pluginId}
                       contributionId={panel.contributionId}
                       kind="footerPanels"
@@ -434,7 +434,7 @@ export function Footer({
               className="overflow-hidden px-1"
               style={{ width: 120, height: FOOTER_STATUS_BAR_SLOT_HEIGHT }}
             >
-              <PluginSurface
+              <HostedSurface
                 pluginId={item.pluginId}
                 contributionId={item.contributionId}
                 kind="statusBarItems"

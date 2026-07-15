@@ -18,7 +18,7 @@ import { refreshRequests } from '#/renderer/src/store/thunks/collections';
 import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
 import type { AppDispatch, ThunkApiConfig } from '#/renderer/src/store/redux';
 import { syncTrash } from '#/renderer/src/store/thunks/trash';
-import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
+import { showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
 
 /**
  * Finds a saved request by uuid, preferring the stored collection id when present.

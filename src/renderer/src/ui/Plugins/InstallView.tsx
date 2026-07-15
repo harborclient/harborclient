@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import type { PluginManagementKind } from '#/renderer/src/ui/Plugins/constants';
 import { pluginManagementNoun } from '#/renderer/src/ui/Plugins/constants';
-import { CatalogInstallView } from '#/renderer/src/ui/shared/Marketplace/CatalogInstallView';
+import { CatalogInstallView } from '#/renderer/src/ui/Shared/Marketplace/CatalogInstallView';
 
 interface Props {
   /**

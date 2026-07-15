@@ -50,22 +50,22 @@ import {
 } from '#/renderer/src/store/slices/modalsSlice';
 import { closeTab, openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { initializeStore, refreshCollectionContents } from '#/renderer/src/store/thunks';
-import { AboutModal } from '#/renderer/src/ui/modals/AboutModal';
-import { SyncModal } from '#/renderer/src/ui/modals/SyncModal';
-import { UpdateModal } from '#/renderer/src/ui/modals/UpdateModal';
-import { AlertModal } from '#/renderer/src/ui/modals/AlertModal';
-import { CollectionModal } from '#/renderer/src/ui/modals/CollectionModal';
-import { TabGroupModal } from '#/renderer/src/ui/modals/TabGroupModal';
-import { ConfirmModal } from '#/renderer/src/ui/modals/ConfirmModal';
-import { PluginModalOverlay } from '#/renderer/src/ui/PluginModalOverlay';
-import { ShareModal } from '#/renderer/src/ui/modals/ShareModal';
-import { QuitPrompt } from '#/renderer/src/ui/modals/QuitPrompt';
-import { UnsavedLoadPrompt } from '#/renderer/src/ui/modals/UnsavedLoadPrompt';
-import { AiSidebar } from '#/renderer/src/ui/sidebars/AiSidebar';
-import { GitSidebar } from '#/renderer/src/ui/sidebars/GitSidebar';
-import { CollectionSidebar } from '#/renderer/src/ui/sidebars/CollectionSidebar';
-import { SidebarGitProvider } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarGitProvider';
-import { SidebarExpansionProvider } from '#/renderer/src/ui/sidebars/CollectionSidebar/SidebarExpansionProvider';
+import { AboutModal } from '#/renderer/src/ui/Modals/AboutModal';
+import { SyncModal } from '#/renderer/src/ui/Modals/SyncModal';
+import { UpdateModal } from '#/renderer/src/ui/Modals/UpdateModal';
+import { AlertModal } from '#/renderer/src/ui/Modals/AlertModal';
+import { CollectionModal } from '#/renderer/src/ui/Modals/CollectionModal';
+import { TabGroupModal } from '#/renderer/src/ui/Modals/TabGroupModal';
+import { ConfirmModal } from '#/renderer/src/ui/Modals/ConfirmModal';
+import { HostedModalOverlay } from '#/renderer/src/ui/HostedModalOverlay';
+import { ShareModal } from '#/renderer/src/ui/Modals/ShareModal';
+import { QuitPrompt } from '#/renderer/src/ui/Modals/QuitPrompt';
+import { UnsavedLoadPrompt } from '#/renderer/src/ui/Modals/UnsavedLoadPrompt';
+import { AiSidebar } from '#/renderer/src/ui/Sidebars/AiSidebar';
+import { GitSidebar } from '#/renderer/src/ui/Sidebars/GitSidebar';
+import { CollectionSidebar } from '#/renderer/src/ui/Sidebars/CollectionSidebar';
+import { SidebarGitProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/SidebarGitProvider';
+import { SidebarExpansionProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/SidebarExpansionProvider';
 import { RequestEditor } from '#/renderer/src/ui/Main/RequestEditor';
 import { resolveVariableEditTarget } from '#/renderer/src/ui/Main/RequestEditor/resolveVariableEditTarget';
 import { TitleBar } from '#/renderer/src/ui/TitleBar';
@@ -78,28 +78,28 @@ import {
 import { Footer } from '#/renderer/src/ui/Footer';
 import { TabGroupEditBar } from '#/renderer/src/ui/TabGroupEditBar';
 import { FooterPanels } from '#/renderer/src/ui/Footer/FooterPanels';
-import { AnimatedHorizontalPanel } from '#/renderer/src/ui/shared/Animated/AnimatedHorizontalPanel';
-import { SkipNavigation } from '#/renderer/src/ui/shared/SkipNavigation/SkipNavigation';
+import { AnimatedHorizontalPanel } from '#/renderer/src/ui/Shared/Animated/AnimatedHorizontalPanel';
+import { SkipNavigation } from '#/renderer/src/ui/Shared/SkipNavigation/SkipNavigation';
 import {
   AI_SIDEBAR_SECTION_ID,
   COLLECTIONS_SIDEBAR_SECTION_ID,
   GIT_SIDEBAR_SECTION_ID,
   type SkipNavigationVisibility
-} from '#/renderer/src/ui/shared/SkipNavigation/skipNavigationTargets';
+} from '#/renderer/src/ui/Shared/SkipNavigation/skipNavigationTargets';
 import {
   DEFAULT_TOAST_ARIA_PROPS,
   ERROR_TOAST_ARIA_PROPS,
   SUCCESS_TOAST_ARIA_PROPS
-} from '#/renderer/src/ui/shared/toastA11y';
+} from '#/renderer/src/ui/Shared/toastA11y';
 import { SearchIndexProvider } from '#/renderer/src/search/SearchIndexProvider';
 import { PluginHost } from '#/renderer/src/plugins/PluginHost';
 import { McpHost } from '#/renderer/src/store/ai/McpHost';
 import { PluginThemePrompt } from '#/renderer/src/plugins/PluginThemePrompt';
-import { ThemePickerModal } from '#/renderer/src/ui/modals/ThemePickerModal';
-import { ShortcutsReferenceModal } from '#/renderer/src/ui/modals/ShortcutsReferenceModal';
-import { ActionMenuModal } from '#/renderer/src/ui/modals/ActionMenuModal';
+import { ThemePickerModal } from '#/renderer/src/ui/Modals/ThemePickerModal';
+import { ShortcutsReferenceModal } from '#/renderer/src/ui/Modals/ShortcutsReferenceModal';
+import { ActionMenuModal } from '#/renderer/src/ui/Modals/ActionMenuModal';
 import { TeamHubJoinDeepLinkHost } from '#/renderer/src/ui/TeamHub/TeamHubJoinDeepLinkHost';
-import { AcceptTeamHubInviteModal } from '#/renderer/src/ui/modals/AcceptTeamHubInviteModal';
+import { AcceptTeamHubInviteModal } from '#/renderer/src/ui/Modals/AcceptTeamHubInviteModal';
 import {
   subscribeColorSchemePreferenceChanges,
   subscribeContrastPreferenceChanges
@@ -486,7 +486,7 @@ export default function App(): JSX.Element {
               <ThemePickerModal />
               <ShortcutsReferenceModal />
               <ActionMenuModal />
-              <PluginModalOverlay />
+              <HostedModalOverlay />
               <AcceptTeamHubInviteModal />
               <TeamHubJoinDeepLinkHost />
 

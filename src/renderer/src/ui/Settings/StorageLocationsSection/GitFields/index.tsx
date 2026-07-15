@@ -3,7 +3,7 @@ import { useCallback, useEffect, useId, useRef, useState, type JSX } from 'react
 import type { StorageConnection, GitSettings } from '#/shared/types';
 import { normalizeGitHostKey } from '#/shared/gitUrl';
 
-import { GitAuthForm } from '#/renderer/src/ui/git/GitAuthForm';
+import { GitAuthForm } from '#/renderer/src/ui/Git/GitAuthForm';
 
 interface Props {
   /**

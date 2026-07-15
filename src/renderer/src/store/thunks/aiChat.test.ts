@@ -21,7 +21,7 @@ const showConfirmMock = vi.hoisted(() =>
 
 const setGeneralSettingsMock = vi.hoisted(() => vi.fn<(settings: unknown) => Promise<void>>());
 
-vi.mock('#/renderer/src/ui/modals/dialogHelpers', () => ({
+vi.mock('#/renderer/src/ui/Modals/dialogHelpers', () => ({
   showConfirm: showConfirmMock
 }));
 

@@ -30,7 +30,7 @@ import modalsReducer, {
   setQuitPrompt,
   setAlertModal,
   setConfirmModal,
-  setPluginModal,
+  setHostedModal,
   setSyncProviderStatus,
   setSyncProviders,
   skipRemainingCollectionRunnerRequests,
@@ -436,20 +436,20 @@ describe('modalsSlice', () => {
   it('opens and closes the plugin modal overlay', () => {
     let state = modalsReducer(
       undefined,
-      setPluginModal({
+      setHostedModal({
         pluginId: 'com.test.plugin',
         contributionId: 'editor',
         context: { editingId: 'abc' }
       })
     );
-    expect(state.pluginModal).toEqual({
+    expect(state.hostedModal).toEqual({
       pluginId: 'com.test.plugin',
       contributionId: 'editor',
       context: { editingId: 'abc' }
     });
 
-    state = modalsReducer(state, setPluginModal(null));
-    expect(state.pluginModal).toBeNull();
+    state = modalsReducer(state, setHostedModal(null));
+    expect(state.hostedModal).toBeNull();
   });
 });
 

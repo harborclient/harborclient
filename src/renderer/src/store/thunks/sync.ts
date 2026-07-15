@@ -12,7 +12,7 @@ import {
   refreshCollections
 } from '#/renderer/src/store/thunks/collections';
 import { refreshEnvironments } from '#/renderer/src/store/thunks/environments';
-import { formatErrorMessage } from '#/renderer/src/ui/modals/dialogHelpers';
+import { formatErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
 
 /**
  * Syncs every configured provider sequentially, then refreshes collections,

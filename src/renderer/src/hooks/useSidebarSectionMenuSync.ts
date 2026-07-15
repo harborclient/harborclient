@@ -2,9 +2,9 @@ import { useEffect } from 'react';
 import { useStore } from 'react-redux';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import type { RootState } from '#/renderer/src/store/redux';
-import { focusFirstCollectionSidebar } from '#/renderer/src/ui/sidebars/CollectionSidebar/focusFirstCollectionSidebar';
-import { focusFirstEnvironmentSidebar } from '#/renderer/src/ui/sidebars/CollectionSidebar/focusFirstEnvironmentSidebar';
-import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
+import { focusFirstCollectionSidebar } from '#/renderer/src/ui/Sidebars/CollectionSidebar/focusFirstCollectionSidebar';
+import { focusFirstEnvironmentSidebar } from '#/renderer/src/ui/Sidebars/CollectionSidebar/focusFirstEnvironmentSidebar';
+import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarExpansion';
 
 /**
  * Keeps View menu Collections, Environments, and Run Results checkboxes aligned with sidebar section visibility.

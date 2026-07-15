@@ -33,7 +33,7 @@ flowchart TB
   subgraph HostRenderer["Host renderer"]
     PluginHost
     Registry
-    PluginSurface
+    HostedSurface
     BridgeHost["pluginBridgeHost"]
   end
 
@@ -54,7 +54,7 @@ flowchart TB
   end
 
   PluginHost --> AgentWebview
-  PluginSurface --> ViewWebview
+  HostedSurface --> ViewWebview
   AgentWebview --> PluginUiBroker
   ViewWebview --> PluginUiBroker
   PluginUiBroker --> PluginManager
@@ -229,12 +229,12 @@ sequenceDiagram
 
 ---
 
-## PluginHost vs PluginSurface
+## PluginHost vs HostedSurface
 
 The renderer uses a **two-webview model**: one hidden agent per plugin, and zero or
 more visible surface webviews for individual UI contributions.
 
-|         | **PluginHost**                  | **PluginSurface**                                      |
+|         | **PluginHost**                  | **HostedSurface**                                      |
 | ------- | ------------------------------- | ------------------------------------------------------ |
 | Role    | Lifecycle orchestrator          | UI embedder                                            |
 | Renders | `null`                          | Container `<div>` + imperative `<webview>`             |
@@ -245,9 +245,9 @@ more visible surface webviews for individual UI contributions.
 
 URL builders live in [`src/shared/plugin/pluginSurface.ts`](../../../shared/plugin/pluginSurface.ts).
 
-### PluginSurface implementation notes
+### HostedSurface implementation notes
 
-[`PluginSurface.tsx`](PluginSurface.tsx) creates webviews **imperatively** with
+[`HostedSurface.tsx`](HostedSurface.tsx) creates webviews **imperatively** with
 `document.createElement('webview')`. React-rendered webviews attach with an empty
 `src` and are rejected by the main process `will-attach-webview` handler.
 
@@ -269,7 +269,7 @@ webview fills the host tab area and the guest scrolls internally (`plugin-surfac
 in [`pluginShell.html`](../../../main/plugins/pluginShell.html) applies to the `content`
 slot only). Other surfaces use `resizeMode="content"` (default): the guest reports
 height via `view.reportSize`, the broker forwards `plugins:surfaceResize`, and
-`PluginSurface` sets an explicit pixel height. Footer panel **content** and status bar
+`HostedSurface` sets an explicit pixel height. Footer panel **content** and status bar
 items use fill mode on the host webview; footer panel **indicators** use compact slot
 sizing instead.
 
@@ -287,13 +287,13 @@ as `plugin:{pluginId}:{contributionId}`.
 | Registry bucket          | Host component                                                                               | Hook                                  |
 | ------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------- |
 | `settingsSections`       | [`Settings/index.tsx`](../ui/Settings/index.tsx)                                             | `usePluginSettingsSections`           |
-| `sidebarPanels`          | [`CollectionSidebar/index.tsx`](../ui/sidebars/CollectionSidebar/index.tsx)                  | `usePluginSidebarPanels`              |
-| `sidebarSections`        | [`CollectionSidebar/index.tsx`](../ui/sidebars/CollectionSidebar/index.tsx)                  | `usePluginSidebarSections`            |
-| `mainViews`              | [`PluginMainView`](../ui/PluginMainView/index.tsx) via Redux                                 | `usePluginMainViews`                  |
+| `sidebarPanels`          | [`CollectionSidebar/index.tsx`](../ui/Sidebars/CollectionSidebar/index.tsx)                  | `usePluginSidebarPanels`              |
+| `sidebarSections`        | [`CollectionSidebar/index.tsx`](../ui/Sidebars/CollectionSidebar/index.tsx)                  | `usePluginSidebarSections`            |
+| `mainViews`              | [`HostedMainView`](../ui/HostedMainView/index.tsx) via Redux                                 | `usePluginMainViews`                  |
 | `requestTabs`            | [`Main/RequestEditor/Editor/TabContent.tsx`](../ui/Main/RequestEditor/Editor/TabContent.tsx) | `usePluginRequestTabs`                |
 | `responseTabs`           | [`Main/ResponseEditor/index.tsx`](../ui/Main/ResponseEditor/index.tsx)                       | `usePluginResponseTabs`               |
 | `collectionSettingsTabs` | [`CollectionSettings/index.tsx`](../ui/CollectionSettings/index.tsx)                         | `usePluginCollectionSettingsTabs`     |
-| `footerPanels`           | [`PluginFooterPanel`](../ui/Footer/PluginFooterPanel/index.tsx)                              | `usePluginFooterPanels`               |
+| `footerPanels`           | [`HostedFooterPanel`](../ui/Footer/HostedFooterPanel/index.tsx)                              | `usePluginFooterPanels`               |
 | `statusBarItems`         | [`Footer/index.tsx`](../ui/Footer/index.tsx)                                                 | `usePluginStatusBarItems`             |
 | `requestToolbarActions`  | [`UrlBar.tsx`](../ui/Main/RequestEditor/Editor/UrlBar.tsx)                                   | `usePluginRequestToolbarActions`      |
 | `menuItems`              | Native app menu (main process merge)                                                         | `pluginMenuSync.ts`                   |
@@ -301,7 +301,7 @@ as `plugin:{pluginId}:{contributionId}`.
 | `themes`                 | General Settings appearance picker                                                           | `usePluginThemes` + `themeRuntime.ts` |
 
 Toolbar actions and context menu items invoke commands only — they do not mount
-webviews. Visible plugin UI always goes through `PluginSurface`.
+webviews. Visible plugin UI always goes through `HostedSurface`.
 
 ---
 
@@ -587,7 +587,7 @@ src/main/plugins/
 src/renderer/src/plugins/
   PluginHost.tsx            Lifecycle orchestrator (mounts at app root)
   pluginLoader.ts           Agent webview mount, load/unload/reload
-  PluginSurface.tsx         Visible contribution webview embedder
+  HostedSurface.tsx         Visible contribution webview embedder
   pluginBridgeHost.ts       Contribution + host bridge event handlers
   registry.ts               In-memory contribution store
   pluginHooks.ts            React hooks for registry subscriptions

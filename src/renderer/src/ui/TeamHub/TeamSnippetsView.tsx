@@ -17,14 +17,14 @@ import { faPlus, faCode } from '#/renderer/src/fontawesome';
 
 import { useTeamHubAdminSnippets } from '#/renderer/src/hooks/useTeamHubAdminSnippets';
 import { useTypedDeleteConfirm } from '#/renderer/src/hooks/useTypedDeleteConfirm';
-import { CodePreviewTooltip } from '#/renderer/src/ui/shared/CodePreview/CodePreviewTooltip';
-import { DeleteConfirmModal } from '#/renderer/src/ui/shared/DeleteConfirm/DeleteConfirmModal';
-import { SnippetEditModal } from '#/renderer/src/ui/shared/Snippet/SnippetEditModal';
+import { CodePreviewTooltip } from '#/renderer/src/ui/Shared/CodePreview/CodePreviewTooltip';
+import { DeleteConfirmModal } from '#/renderer/src/ui/Shared/DeleteConfirm/DeleteConfirmModal';
+import { SnippetEditModal } from '#/renderer/src/ui/Shared/Snippet/SnippetEditModal';
 import {
   createBlankSnippet,
   type SnippetEditDraft
-} from '#/renderer/src/ui/shared/Snippet/snippetEditDraft';
-import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
+} from '#/renderer/src/ui/Shared/Snippet/snippetEditDraft';
+import { toolbarDangerButtonClass } from '#/renderer/src/ui/Shared/classes';
 
 interface Props {
   /**

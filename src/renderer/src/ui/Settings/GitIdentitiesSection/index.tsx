@@ -17,8 +17,8 @@ import { normalizeGitHostKey } from '#/shared/gitUrl';
 
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { faGithub, faPlus } from '#/renderer/src/fontawesome';
-import { GitAuthForm, type GitAuthAuthorizedResult } from '#/renderer/src/ui/git/GitAuthForm';
-import { GitAuthorForm } from '#/renderer/src/ui/git/GitAuthorForm';
+import { GitAuthForm, type GitAuthAuthorizedResult } from '#/renderer/src/ui/Git/GitAuthForm';
+import { GitAuthorForm } from '#/renderer/src/ui/Git/GitAuthorForm';
 import { entryById } from '#/renderer/src/ui/Settings/catalog/catalog';
 import { SettingsSaveFooter } from '#/renderer/src/ui/Settings/components/SettingsSaveFooter';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';

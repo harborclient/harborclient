@@ -108,7 +108,7 @@ export type PageRef =
   | { type: 'team-hubs' }
   | { type: 'team-hub-admin'; hubId: string; label?: string }
   | { type: 'sharing-keys' }
-  | { type: 'plugin-view'; pluginId: string; viewId: string }
+  | { type: 'hosted-main-view'; pluginId: string; viewId: string }
   | { type: 'collection'; id: number; focusVariableKey?: string }
   | { type: 'folder'; collectionId: number; id: number; focusVariableKey?: string }
   | { type: 'environment'; id: number; focusVariableKey?: string }
@@ -247,8 +247,8 @@ export function pageRefKey(page: PageRef): string {
       return `team-hub-admin:${page.hubId}`;
     case 'sharing-keys':
       return 'sharing-keys';
-    case 'plugin-view':
-      return `plugin-view:${page.pluginId}:${page.viewId}`;
+    case 'hosted-main-view':
+      return `hosted-main-view:${page.pluginId}:${page.viewId}`;
     case 'collection':
       return `collection:${page.id}`;
     case 'folder':

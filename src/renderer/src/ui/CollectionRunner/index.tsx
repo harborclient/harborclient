@@ -35,7 +35,7 @@ import {
 import { ResultModal } from '#/renderer/src/ui/CollectionRunner/ResultModal';
 import { SaveModal } from '#/renderer/src/ui/CollectionRunner/SaveModal';
 import { ResponseSummary } from '#/renderer/src/ui/Main/ResponseEditor/ResponseSummary';
-import { METHOD_CLASSES } from '#/renderer/src/ui/shared/classes';
+import { METHOD_CLASSES } from '#/renderer/src/ui/Shared/classes';
 import { faLink } from '#/renderer/src/fontawesome';
 import { resultStatusLabel, runnerMatchesTarget } from './utils';
 

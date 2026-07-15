@@ -102,7 +102,7 @@ export interface PluginThemePromptState {
 /**
  * Open plugin modal overlay rendered at the application root.
  */
-export interface PluginModalState {
+export interface HostedModalState {
   pluginId: string;
   contributionId: string;
   context?: unknown;
@@ -261,7 +261,7 @@ export interface ModalsState {
   alertModal: AlertModalState | null;
   confirmModal: ConfirmModalState | null;
   pluginThemePrompt: PluginThemePromptState | null;
-  pluginModal: PluginModalState | null;
+  hostedModal: HostedModalState | null;
   themePicker: { open: boolean } | null;
   shortcutsReference: { open: boolean } | null;
   acceptTeamHubInvite: { open: boolean } | null;
@@ -282,7 +282,7 @@ const initialState: ModalsState = {
   alertModal: null,
   confirmModal: null,
   pluginThemePrompt: null,
-  pluginModal: null,
+  hostedModal: null,
   themePicker: null,
   shortcutsReference: null,
   acceptTeamHubInvite: null,
@@ -944,8 +944,8 @@ const modalsSlice = createSlice({
     /**
      * Opens or closes the host plugin modal overlay webview.
      */
-    setPluginModal(state, action: PayloadAction<PluginModalState | null>) {
-      state.pluginModal = action.payload;
+    setHostedModal(state, action: PayloadAction<HostedModalState | null>) {
+      state.hostedModal = action.payload;
     }
   }
 });
@@ -1009,7 +1009,7 @@ export const {
   closeAcceptTeamHubInviteModal,
   openActionMenuModal,
   closeActionMenuModal,
-  setPluginModal,
+  setHostedModal,
   openTabGroupModal,
   closeTabGroupModal,
   setTabGroupModalName,
@@ -1082,8 +1082,8 @@ export const selectPluginThemePrompt = (state: RootState): PluginThemePromptStat
 /**
  * Returns open plugin modal overlay state when active.
  */
-export const selectPluginModal = (state: RootState): PluginModalState | null =>
-  state.modals.pluginModal;
+export const selectHostedModal = (state: RootState): HostedModalState | null =>
+  state.modals.hostedModal;
 
 /**
  * Returns first-run theme picker modal state when open.
@@ -1128,7 +1128,7 @@ export const selectHasBlockingModal = (state: RootState): boolean => {
     modals.shortcutsReference != null ||
     modals.acceptTeamHubInvite != null ||
     modals.actionMenu != null ||
-    modals.pluginModal != null ||
+    modals.hostedModal != null ||
     modals.about.open ||
     modals.update.open ||
     modals.syncModal.open

@@ -13,7 +13,7 @@ import { Page } from '@harborclient/sdk/components';
 import { SettingSectionHeading } from '@harborclient/sdk/components';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { field } from '@harborclient/sdk/components';
-import { formatErrorMessage } from '#/renderer/src/ui/modals/dialogHelpers';
+import { formatErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { sectionEntryBySection } from '../catalog/catalog';
 import { settingsSectionMeta } from '../constants';
 import { acceleratorFromKeyboardEvent } from './acceleratorFromKeyboardEvent';

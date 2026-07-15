@@ -22,7 +22,7 @@ import { TeamRunResultsView } from '#/renderer/src/ui/TeamHub/TeamRunResultsView
 import { TeamSnippetsView } from '#/renderer/src/ui/TeamHub/TeamSnippetsView';
 import { TeamTokensView } from '#/renderer/src/ui/TeamHub/TeamTokensView';
 import { getReloadConfigAlertMessage } from '#/renderer/src/ui/TeamHub/teamHubReloadHelpers';
-import { formatIpcErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
+import { formatIpcErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 
 type TeamHubAdminSection = 'users' | 'tokens' | 'collections' | 'snippets' | 'run-results';
 type TeamHubAdminSidebarItem = TeamHubAdminSection | 'reload';

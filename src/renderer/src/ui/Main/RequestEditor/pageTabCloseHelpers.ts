@@ -65,7 +65,7 @@ export function pageTabCloseName(
       return resolveTeamHubAdminTabLabel(page, teamHubs);
     case 'sharing-keys':
       return 'Sharing Keys';
-    case 'plugin-view':
+    case 'hosted-main-view':
       return 'Plugin';
     case 'collection':
       return collections.find((collection) => collection.id === page.id)?.name ?? 'Collection';

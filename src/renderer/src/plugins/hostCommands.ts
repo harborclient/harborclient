@@ -20,7 +20,7 @@ export function registerHostPluginCommands(): () => void {
       if (typeof pluginId !== 'string' || typeof viewId !== 'string') {
         throw new Error('harborclient.openMainView requires pluginId and viewId strings.');
       }
-      store.dispatch(openPageTab({ type: 'plugin-view', pluginId, viewId }));
+      store.dispatch(openPageTab({ type: 'hosted-main-view', pluginId, viewId }));
     }),
     registerCommand(HOST_PLUGIN_ID, 'openSidebarPanel', (pluginId, panelId) => {
       if (typeof pluginId !== 'string' || typeof panelId !== 'string') {

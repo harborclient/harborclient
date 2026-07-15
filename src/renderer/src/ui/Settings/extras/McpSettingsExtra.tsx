@@ -24,19 +24,19 @@ import type {
   McpServerSettings,
   McpServerStatus
 } from '#/shared/types';
-import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
-import { McpServerFormFields } from '#/renderer/src/ui/shared/Mcp/McpServerFormFields';
-import { buildMcpConfigSnippet } from '#/renderer/src/ui/shared/Mcp/buildMcpConfigSnippet';
+import { toolbarDangerButtonClass } from '#/renderer/src/ui/Shared/classes';
+import { McpServerFormFields } from '#/renderer/src/ui/Shared/Mcp/McpServerFormFields';
+import { buildMcpConfigSnippet } from '#/renderer/src/ui/Shared/Mcp/buildMcpConfigSnippet';
 import {
   formatMcpClientHeadersDraft,
   MCP_CLIENT_HEADERS_PLACEHOLDER,
   parseMcpClientHeadersDraft
-} from '#/renderer/src/ui/shared/Mcp/mcpClientHeadersDraft';
+} from '#/renderer/src/ui/Shared/Mcp/mcpClientHeadersDraft';
 import {
   MCP_CLIENT_SERVER_IMPORT_PLACEHOLDER,
   parseMcpClientServerImportSnippet
-} from '#/renderer/src/ui/shared/Mcp/parseMcpClientServerImport';
-import { formatIpcErrorMessage } from '#/renderer/src/ui/modals/dialogHelpers';
+} from '#/renderer/src/ui/Shared/Mcp/parseMcpClientServerImport';
+import { formatIpcErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
 
 const MCP_MUTATING_TOOLS: readonly AiToolName[] = [
   'send_active_request',

@@ -54,7 +54,7 @@ import {
 } from '#/renderer/src/plugins/hostEnvironmentCommands';
 import toast from 'react-hot-toast';
 import { store } from '#/renderer/src/store/redux';
-import { setPluginModal } from '#/renderer/src/store/slices/modalsSlice';
+import { setHostedModal } from '#/renderer/src/store/slices/modalsSlice';
 import {
   registerBridgedImportHandler,
   unregisterBridgedImportHandler
@@ -271,7 +271,7 @@ export async function handlePluginHostBridge(message: HostBridgeMessage): Promis
     case 'ui.openModal': {
       const { modalId, context } = payload as { modalId: string; context?: unknown };
       store.dispatch(
-        setPluginModal({
+        setHostedModal({
           pluginId,
           contributionId: modalId,
           context
@@ -281,14 +281,14 @@ export async function handlePluginHostBridge(message: HostBridgeMessage): Promis
     }
     case 'ui.closeModal': {
       const { modalId } = payload as { modalId?: string };
-      const current = store.getState().modals.pluginModal;
+      const current = store.getState().modals.hostedModal;
       if (!current || current.pluginId !== pluginId) {
         return;
       }
       if (modalId && current.contributionId !== modalId) {
         return;
       }
-      store.dispatch(setPluginModal(null));
+      store.dispatch(setHostedModal(null));
       return;
     }
     case 'host.openRequestDraft':

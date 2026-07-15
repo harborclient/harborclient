@@ -8,13 +8,13 @@ import {
   type CSSProperties,
   type JSX
 } from 'react';
-import { CODE_PREVIEW_TOOLTIP_SETTLE_MS } from '#/renderer/src/ui/shared/CodePreview/codePreview';
+import { CODE_PREVIEW_TOOLTIP_SETTLE_MS } from '#/renderer/src/ui/Shared/CodePreview/codePreview';
 import {
   buildFixedTooltipPosition,
   findScrollParent,
   getTooltipContainerBounds,
   resolveTooltipPlacement
-} from '#/renderer/src/ui/shared/tooltipPlacement';
+} from '#/renderer/src/ui/Shared/tooltipPlacement';
 
 import { headerMdnDocsUrl } from './headerMdnDocs';
 import { getHttpHeaderDescription, UNKNOWN_HEADER_DESCRIPTION } from './httpHeaderDescriptions';

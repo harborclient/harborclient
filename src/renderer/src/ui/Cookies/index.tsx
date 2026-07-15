@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type JSX }
 import { faCookieBite } from '#/renderer/src/fontawesome';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { hostFromUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/cookieHost';
-import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
+import { toolbarDangerButtonClass } from '#/renderer/src/ui/Shared/classes';
 import { DomainCookiesEditor } from './DomainCookiesEditor';
 import { hasPersistedCookieRows } from './utils';
 

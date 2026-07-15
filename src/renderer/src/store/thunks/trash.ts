@@ -4,7 +4,7 @@ import type { TrashEntityType } from '#/shared/types/trash';
 import type { Dispatch } from '@reduxjs/toolkit';
 import type { AppDispatch, ThunkApiConfig } from '#/renderer/src/store/redux';
 import { removeTrashItem, setTrashItems } from '#/renderer/src/store/slices/trashSlice';
-import { formatErrorMessage } from '#/renderer/src/ui/modals/dialogHelpers';
+import { formatErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
 
 /**
  * Reloads trash rows from the main process into the store.

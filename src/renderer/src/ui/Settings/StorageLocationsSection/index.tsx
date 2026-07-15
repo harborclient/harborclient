@@ -20,7 +20,7 @@ import { refreshCollections } from '#/renderer/src/store/thunks/collections';
 
 import { createBlankConnection, providerLabel, settingsSectionMeta } from '../constants';
 import { sectionEntryBySection } from '../catalog/catalog';
-import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
+import { toolbarDangerButtonClass } from '#/renderer/src/ui/Shared/classes';
 import { DiscoverCollectionsModal } from './DiscoverCollectionsModal';
 import { ConnectionDeleteModal } from './ConnectionDeleteModal';
 import { ConnectionEditModal } from './ConnectionEditModal';

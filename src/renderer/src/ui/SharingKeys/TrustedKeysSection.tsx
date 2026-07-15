@@ -17,7 +17,7 @@ import toast from 'react-hot-toast';
 import type { TrustedSharingKey } from '#/shared/types';
 
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
-import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
+import { toolbarDangerButtonClass } from '#/renderer/src/ui/Shared/classes';
 
 /**
  * Trusted collaborator public keys for verifying share token signatures.

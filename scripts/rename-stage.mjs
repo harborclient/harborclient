@@ -10,7 +10,7 @@ const ROOT = '/media/sean/work/www/harborclient/harborclient';
 
 const SKIP_FILES = new Set([
   'src/main/ai/completeChatTurn.ts',
-  'src/renderer/src/ui/sidebars/AiSidebar/Chat/MessageBubble.tsx',
+  'src/renderer/src/ui/Sidebars/AiSidebar/Chat/MessageBubble.tsx',
   'src/renderer/src/store/thunks/aiChat.ts',
   'src/renderer/src/ui/TeamHub/TeamManageView.tsx',
   'src/renderer/src/ui/TeamHub/teamUserFormHelpers.ts',

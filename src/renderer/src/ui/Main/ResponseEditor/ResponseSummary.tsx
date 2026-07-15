@@ -1,8 +1,8 @@
 import type { JSX } from 'react';
 import type { SendResult } from '#/shared/types';
 import { Button, StatusDot } from '@harborclient/sdk/components';
-import { focusableReadonlyClass, statusDotVariant } from '#/renderer/src/ui/shared/classes';
-import { formatBytes } from '#/renderer/src/ui/shared/responseFormatUtils';
+import { focusableReadonlyClass, statusDotVariant } from '#/renderer/src/ui/Shared/classes';
+import { formatBytes } from '#/renderer/src/ui/Shared/responseFormatUtils';
 
 interface Props {
   /**

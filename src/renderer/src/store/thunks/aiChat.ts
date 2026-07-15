@@ -6,11 +6,11 @@ import type { AiSettings, ChatMessage, ChatStepMessage, ChatSummary } from '#/sh
 import { executeAiToolCall } from '#/renderer/src/store/ai/aiToolExecutor';
 import type { AppDispatch, RootState, ThunkApiConfig } from '#/renderer/src/store/redux';
 import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
-import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
+import { showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
 import {
   buildAiScriptReferenceValidationContext,
   buildSidebarItemNameMapsFromState
-} from '#/renderer/src/ui/sidebars/AiSidebar/Chat/useAiScriptReferenceValidationContext';
+} from '#/renderer/src/ui/Sidebars/AiSidebar/Chat/useAiScriptReferenceValidationContext';
 import { selectEffectiveActiveRequestTab, selectSnippets } from '#/renderer/src/store/selectors';
 import { selectTerminalSelections } from '#/renderer/src/store/slices/terminalsSlice';
 import { selectMarkdownSelections } from '#/renderer/src/store/slices/markdownSelectionsSlice';

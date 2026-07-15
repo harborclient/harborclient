@@ -23,7 +23,7 @@ import { FolderSettings } from '#/renderer/src/ui/FolderSettings';
 import { CollectionRunner } from '#/renderer/src/ui/CollectionRunner';
 import { Cookies } from '#/renderer/src/ui/Cookies';
 import { EnvironmentSettings } from '#/renderer/src/ui/EnvironmentSettings';
-import { PluginMainView } from '#/renderer/src/ui/PluginMainView';
+import { HostedMainView } from '#/renderer/src/ui/HostedMainView';
 import { Plugins } from '#/renderer/src/ui/Plugins';
 import { PluginDetailPage } from '#/renderer/src/ui/Plugins/PluginDetailPage';
 import { ScriptEditorTab } from '#/renderer/src/ui/Main/RequestEditor/ScriptEditorTab';
@@ -36,7 +36,7 @@ import { SnippetEditPage } from '#/renderer/src/ui/Snippets/SnippetEditPage';
 import { TeamHub } from '#/renderer/src/ui/TeamHub';
 import { TeamHubAdmin } from '#/renderer/src/ui/TeamHub/TeamHubAdmin';
 import { GettingStartedPage } from '#/renderer/src/ui/GettingStarted/GettingStartedPage';
-import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
+import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 
 interface Props {
   /**
@@ -108,7 +108,7 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
       return;
     }
 
-    if (page.type === 'plugin-view') {
+    if (page.type === 'hosted-main-view') {
       const namespacedId = pluginContributionId(page.pluginId, page.viewId);
       const exists = pluginViews.some(
         (view) => view.pluginId === page.pluginId && view.id === namespacedId
@@ -182,8 +182,8 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
     return <MergeEditorTab page={page} tabId={tabId} />;
   }
 
-  if (page.type === 'plugin-view') {
-    return <PluginMainView pluginId={page.pluginId} viewId={page.viewId} onClose={handleClose} />;
+  if (page.type === 'hosted-main-view') {
+    return <HostedMainView pluginId={page.pluginId} viewId={page.viewId} onClose={handleClose} />;
   }
 
   if (page.type === 'collection') {

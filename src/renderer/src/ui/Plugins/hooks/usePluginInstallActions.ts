@@ -9,7 +9,7 @@ import {
   showAlert,
   showConfirm,
   formatIpcErrorMessage
-} from '#/renderer/src/ui/modals/dialogHelpers';
+} from '#/renderer/src/ui/Modals/dialogHelpers';
 import { isManagedInstall, queueThemePromptIfNeeded } from '../helpers';
 
 interface UsePluginInstallActionsArgs {

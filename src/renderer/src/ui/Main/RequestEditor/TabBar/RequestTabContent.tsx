@@ -3,7 +3,7 @@ import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { JSX } from 'react';
 import { isMarkdownTab, isPageTab, type Tab } from '#/renderer/src/store/drafts';
 import { faFileLines } from '#/renderer/src/fontawesome';
-import { METHOD_CLASSES } from '#/renderer/src/ui/shared/classes';
+import { METHOD_CLASSES } from '#/renderer/src/ui/Shared/classes';
 
 interface Props {
   /**

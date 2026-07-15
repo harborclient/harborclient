@@ -77,7 +77,7 @@ export function pageTabMeta(page: PageRef, options: PageTabMetaOptions = {}): Pa
       return { title: options.teamHubName ?? 'Untitled', icon: faUsers };
     case 'sharing-keys':
       return { title: 'Sharing Keys', icon: faFingerprint };
-    case 'plugin-view':
+    case 'hosted-main-view':
       return { title: options.pluginTitle ?? 'Plugin', icon: faPuzzlePiece };
     case 'collection':
       return { title: options.collectionName ?? 'Collection', icon: faDatabase };

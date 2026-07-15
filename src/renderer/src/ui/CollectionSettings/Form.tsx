@@ -11,15 +11,15 @@ import { normalizeAuth } from '#/shared/auth';
 import { resolveScriptRefs } from '#/shared/scriptRefs';
 import { useProviders } from '#/renderer/src/hooks/useProviders';
 import { useStorageConnections } from '#/renderer/src/hooks/useStorageConnections';
-import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
+import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import { usePluginCollectionSettingsTabs } from '#/renderer/src/plugins/pluginHooks';
-import { ScopedAuthSection } from '#/renderer/src/ui/shared/ScopedSettings/ScopedAuthSection';
-import { ScopedHeadersSection } from '#/renderer/src/ui/shared/ScopedSettings/ScopedHeadersSection';
+import { ScopedAuthSection } from '#/renderer/src/ui/Shared/ScopedSettings/ScopedAuthSection';
+import { ScopedHeadersSection } from '#/renderer/src/ui/Shared/ScopedSettings/ScopedHeadersSection';
 import {
   ScopedSettingsForm,
   type ScopedSettingsExtraTab,
   type ScopedSettingsRenderState
-} from '#/renderer/src/ui/shared/ScopedSettings/ScopedSettingsForm';
+} from '#/renderer/src/ui/Shared/ScopedSettings/ScopedSettingsForm';
 import { GeneralSection } from './GeneralSection';
 import { GitSection } from './GitSection';
 import { collectionFormCoreFields } from './serialize';
@@ -184,7 +184,7 @@ export function Form({
         position: 'afterScripts',
         panelClassName: 'flex min-h-0 flex-1 flex-col',
         panel: (state: ScopedSettingsRenderState) => (
-          <PluginSurface
+          <HostedSurface
             pluginId={entry.pluginId}
             contributionId={entry.contributionId}
             kind="collectionSettingsTabs"

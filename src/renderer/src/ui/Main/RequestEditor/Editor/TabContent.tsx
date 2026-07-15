@@ -4,12 +4,12 @@ import { useMemo } from 'react';
 import type { KeyValue, Variable } from '#/shared/types';
 import { mirrorLegacyScriptString } from '#/shared/scriptRefs';
 import type { RegisteredRequestTab, RequestTabContext } from '#/shared/plugin/types';
-import { PluginSurface } from '#/renderer/src/plugins/PluginSurface';
-import { ScriptListEditor } from '#/renderer/src/ui/shared/Script/ScriptListEditor';
+import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
+import { ScriptListEditor } from '#/renderer/src/ui/Shared/Script/ScriptListEditor';
 import {
   POST_REQUEST_SCRIPT_PLACEHOLDER,
   PRE_REQUEST_SCRIPT_PLACEHOLDER
-} from '#/renderer/src/ui/shared/Script/scriptPlaceholders';
+} from '#/renderer/src/ui/Shared/Script/scriptPlaceholders';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectRequestsByCollection, selectSnippets } from '#/renderer/src/store/selectors';
 
@@ -211,7 +211,7 @@ export function TabContent({
       </SegmentedTabPanel>
       {pluginTabs.map((entry) => (
         <SegmentedTabPanel key={entry.id} value={entry.id} className="flex min-h-0 flex-1 flex-col">
-          <PluginSurface
+          <HostedSurface
             pluginId={entry.pluginId}
             contributionId={entry.contributionId}
             kind="requestTabs"

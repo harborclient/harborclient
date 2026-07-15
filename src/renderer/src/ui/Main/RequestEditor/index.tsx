@@ -70,9 +70,9 @@ import {
   saveFromMenu
 } from '#/renderer/src/store/thunks';
 import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
-import { formatErrorMessage, showAlert } from '#/renderer/src/ui/modals/dialogHelpers';
+import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { mergeRequestVariables } from '#/renderer/src/hooks/useMergedRequestVariables';
-import { useSidebarExpansion } from '#/renderer/src/ui/sidebars/CollectionSidebar/useSidebarExpansion';
+import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/useSidebarExpansion';
 import { useTeamHubs } from '#/renderer/src/hooks/useTeamHubs';
 import { Button, Checkbox, Modal, ModalFooter } from '@harborclient/sdk/components';
 import { ResizeHandle, useResizable } from '@harborclient/sdk/components';
@@ -82,7 +82,7 @@ import { isActivePageTabDirty, pageTabCloseName } from './pageTabCloseHelpers';
 import { PageTabContent } from './PageTabContent';
 import { ResponseEditor } from '../ResponseEditor';
 import { RESPONSE_EDITOR_SECTION_ID } from '../ResponseEditor/focusResponseEditor';
-import { REQUEST_EDITOR_SECTION_ID } from '#/renderer/src/ui/shared/SkipNavigation/skipNavigationTargets';
+import { REQUEST_EDITOR_SECTION_ID } from '#/renderer/src/ui/Shared/SkipNavigation/skipNavigationTargets';
 import { TabBar } from './TabBar';
 import { MarkdownEditorTab } from './MarkdownEditorTab';
 

@@ -1,9 +1,9 @@
 import { StatusDot } from '@harborclient/sdk/components';
-import { METHOD_CLASSES, statusDotVariant } from '#/renderer/src/ui/shared/classes';
+import { METHOD_CLASSES, statusDotVariant } from '#/renderer/src/ui/Shared/classes';
 import type { JSX } from 'react';
 import type { ConsoleEntry } from '#/renderer/src/store';
-import { formatBytes } from '#/renderer/src/ui/shared/responseFormatUtils';
-import { ConsoleDetails } from '#/renderer/src/ui/shared/ConsoleDetails/ConsoleDetails';
+import { formatBytes } from '#/renderer/src/ui/Shared/responseFormatUtils';
+import { ConsoleDetails } from '#/renderer/src/ui/Shared/ConsoleDetails/ConsoleDetails';
 
 interface Props {
   entry: ConsoleEntry;

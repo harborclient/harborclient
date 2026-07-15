@@ -31,8 +31,8 @@ import { refreshCollections } from '#/renderer/src/store/thunks/collections';
 import { TeamInvitationLinkDialog } from '#/renderer/src/ui/TeamHub/TeamInvitationLinkDialog';
 import { TeamSecretDialog } from '#/renderer/src/ui/TeamHub/TeamSecretDialog';
 import { TeamUserForm } from '#/renderer/src/ui/TeamHub/TeamUserForm';
-import { DeleteConfirmModal } from '#/renderer/src/ui/shared/DeleteConfirm/DeleteConfirmModal';
-import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
+import { DeleteConfirmModal } from '#/renderer/src/ui/Shared/DeleteConfirm/DeleteConfirmModal';
+import { toolbarDangerButtonClass } from '#/renderer/src/ui/Shared/classes';
 
 const editFormId = 'team-user-edit-form';
 const inviteFormId = 'team-user-invite-form';

@@ -9,7 +9,7 @@ import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 
 import { useAppDispatch } from '#/renderer/src/store/hooks';
-import { showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
+import { showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { entryById, sectionEntryBySection } from '../catalog/catalog';
 import { settingsSectionMeta } from '../constants';
 import { settingAnchorId } from '../settingAnchorId';

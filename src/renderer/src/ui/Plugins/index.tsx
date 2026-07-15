@@ -24,7 +24,7 @@ import { applyPluginThemePreference } from '#/renderer/src/plugins/applyPluginTh
 import { getRegisteredPluginThemes } from '#/renderer/src/plugins/registry';
 import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
 import { syncThemeMenuNow } from '#/renderer/src/plugins/themeMenuSync';
-import { formatErrorMessage, showAlert, showConfirm } from '#/renderer/src/ui/modals/dialogHelpers';
+import { formatErrorMessage, showAlert, showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { listPluginThemeVariants } from './listPluginThemeVariants';
 import type { UseThemeVariantPickerState } from './PluginModals';
 import { CustomThemeView } from './CustomThemeView';

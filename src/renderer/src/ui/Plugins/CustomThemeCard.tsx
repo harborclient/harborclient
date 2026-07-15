@@ -5,7 +5,7 @@ import { formatCustomThemeValue } from '#/shared/plugin/customThemeExport';
 import { CUSTOM_THEME_SWATCH_TOKENS, type CustomTheme } from '#/shared/types/customTheme';
 import type { ThemeSource } from '#/shared/types';
 import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
-import { toolbarDangerButtonClass } from '#/renderer/src/ui/shared/classes';
+import { toolbarDangerButtonClass } from '#/renderer/src/ui/Shared/classes';
 import { getDefaultCustomThemePalette } from '#/renderer/src/ui/Plugins/customThemeDefaults';
 
 interface Props {

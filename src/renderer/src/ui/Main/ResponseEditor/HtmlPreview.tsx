@@ -2,7 +2,7 @@ import { useMemo, type JSX } from 'react';
 import {
   buildHtmlPreviewSrcdoc,
   resolveHtmlPreviewBaseUrl
-} from '#/renderer/src/ui/shared/responseFormatUtils';
+} from '#/renderer/src/ui/Shared/responseFormatUtils';
 
 interface Props {
   /**

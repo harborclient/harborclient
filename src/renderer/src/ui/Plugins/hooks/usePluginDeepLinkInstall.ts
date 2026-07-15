@@ -10,7 +10,7 @@ import {
   showAlert,
   showConfirm,
   formatIpcErrorMessage
-} from '#/renderer/src/ui/modals/dialogHelpers';
+} from '#/renderer/src/ui/Modals/dialogHelpers';
 import type { PluginManagementKind } from '../constants';
 import { resolvePendingPluginInstallDeepLink } from '../helpers';
 import type { PluginsSidebarSection } from '../sidebarTypes';
