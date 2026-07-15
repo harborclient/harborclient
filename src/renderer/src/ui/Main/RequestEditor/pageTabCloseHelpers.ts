@@ -1,5 +1,6 @@
 import type { Collection, Environment, TeamHub } from '#/shared/types';
 import type { PageRef } from '#/renderer/src/store/tabs';
+import { getPageRoute, routePageCloseName } from '#/renderer/src/routing';
 import { resolveTeamHubAdminTabLabel } from '#/renderer/src/ui/Tabs/TeamHub/teamHubDisplayName';
 
 /**
@@ -8,6 +9,7 @@ import { resolveTeamHubAdminTabLabel } from '#/renderer/src/ui/Tabs/TeamHub/team
  * @param page - Active page reference.
  * @param collectionDirty - Collection settings dirty flag from navigation state.
  * @param environmentDirty - Environment settings dirty flag from navigation state.
+ * @param folderDirty - Folder settings dirty flag from navigation state.
  * @returns True when closing the tab should prompt for unsaved changes.
  */
 export function isActivePageTabDirty(
@@ -19,13 +21,14 @@ export function isActivePageTabDirty(
   if (!page) {
     return false;
   }
-  if (page.type === 'collection') {
+  const dirtyFlag = getPageRoute(page.type).dirtyFlag;
+  if (dirtyFlag === 'collection') {
     return collectionDirty;
   }
-  if (page.type === 'folder') {
+  if (dirtyFlag === 'folder') {
     return folderDirty;
   }
-  if (page.type === 'environment') {
+  if (dirtyFlag === 'environment') {
     return environmentDirty;
   }
   return false;
@@ -46,41 +49,20 @@ export function pageTabCloseName(
   environments: Environment[],
   teamHubs: TeamHub[] = []
 ): string {
-  switch (page.type) {
-    case 'getting-started':
-      return 'Getting Started';
-    case 'settings':
-      return 'Settings';
-    case 'plugins':
-      return 'Plugins';
-    case 'themes':
-      return 'Themes';
-    case 'cookies':
-      return 'Cookies';
-    case 'snippets':
-      return 'Snippets';
-    case 'team-hubs':
-      return 'Team Hub';
-    case 'team-hub-admin':
-      return resolveTeamHubAdminTabLabel(page, teamHubs);
-    case 'sharing-keys':
-      return 'Sharing Keys';
-    case 'hosted-main-view':
-      return 'Plugin';
-    case 'collection':
-      return collections.find((collection) => collection.id === page.id)?.name ?? 'Collection';
-    case 'folder':
-      return 'Folder';
-    case 'environment':
-      return environments.find((environment) => environment.id === page.id)?.name ?? 'Environment';
-    case 'collection-runner':
-      return 'Collection Runner';
-    case 'plugin-detail':
-    case 'snippet-detail':
-    case 'snippet-edit':
-    case 'script-editor':
-      return page.label;
-    default:
-      return 'Tab';
-  }
+  const collectionName =
+    page.type === 'collection'
+      ? (collections.find((collection) => collection.id === page.id)?.name ?? undefined)
+      : undefined;
+  const environmentName =
+    page.type === 'environment'
+      ? (environments.find((environment) => environment.id === page.id)?.name ?? undefined)
+      : undefined;
+  const teamHubName =
+    page.type === 'team-hub-admin' ? resolveTeamHubAdminTabLabel(page, teamHubs) : undefined;
+
+  return routePageCloseName(page, {
+    collectionName,
+    environmentName,
+    teamHubName
+  });
 }

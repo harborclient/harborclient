@@ -13,8 +13,9 @@ import {
   type RequestTab,
   type Tab
 } from './tabs';
-import type { BodyType, HttpMethod, KeyValue, SettingsSection } from '#/shared/types';
+import type { BodyType, HttpMethod, KeyValue } from '#/shared/types';
 import type { TerminalTab } from '#/renderer/src/store/slices/terminalsSlice';
+import { normalizePersistedPageRef } from '#/renderer/src/routing';
 
 /** When false, persistTabs is a no-op so the default startup tab does not clobber electron-store. */
 let tabsHydrated = false;
@@ -85,17 +86,6 @@ const HTTP_METHODS = new Set<HttpMethod>([
 ]);
 
 const BODY_TYPES = new Set<BodyType>(['none', 'json', 'text', 'multipart', 'urlencoded']);
-
-const SETTINGS_SECTIONS = new Set<string>([
-  'general',
-  'syntax',
-  'storage',
-  'shortcuts',
-  'proxy',
-  'globals',
-  'ai',
-  'backup-restore'
-]);
 
 /**
  * Returns whether a value is a plain object (not null or an array).
@@ -230,126 +220,13 @@ function normalizePersistedDraft(value: unknown): RequestDraft | null {
 }
 
 /**
- * Normalizes a persisted settings section identifier.
- *
- * @param value - Candidate section from persisted storage.
- * @returns Valid settings section or null when invalid.
- */
-function normalizeSettingsSection(value: unknown): SettingsSection | null {
-  if (typeof value !== 'string') {
-    return null;
-  }
-  if (SETTINGS_SECTIONS.has(value)) {
-    return value as SettingsSection;
-  }
-  if (value.startsWith('plugin:')) {
-    return value as SettingsSection;
-  }
-  return null;
-}
-
-/**
- * Normalizes a persisted page reference.
+ * Normalizes a persisted page reference via the declarative route registry.
  *
  * @param value - Candidate page object from persisted storage.
  * @returns Valid PageRef or null when salvage is impossible.
  */
 function normalizePageRef(value: unknown): PageRef | null {
-  if (!isRecord(value) || typeof value.type !== 'string') {
-    return null;
-  }
-
-  switch (value.type) {
-    case 'getting-started':
-      return { type: 'getting-started' };
-    case 'settings': {
-      if (value.section === 'snippets') {
-        return { type: 'snippets' };
-      }
-      const section = normalizeSettingsSection(value.section ?? 'general');
-      return section ? { type: 'settings', section } : null;
-    }
-    case 'snippets':
-      return { type: 'snippets' };
-    case 'plugins':
-      return { type: 'plugins' };
-    case 'themes':
-      return { type: 'themes' };
-    case 'cookies':
-      return { type: 'cookies' };
-    case 'team-hubs':
-      return { type: 'team-hubs' };
-    case 'team-hub-admin':
-      if (typeof value.hubId !== 'string' || value.hubId.length === 0) {
-        return null;
-      }
-      return {
-        type: 'team-hub-admin',
-        hubId: value.hubId,
-        ...(typeof value.label === 'string' && value.label.trim().length > 0
-          ? { label: value.label.trim() }
-          : {})
-      };
-    case 'sharing-keys':
-      return { type: 'sharing-keys' };
-    case 'hosted-main-view':
-      if (typeof value.pluginId !== 'string' || typeof value.viewId !== 'string') {
-        return null;
-      }
-      return { type: 'hosted-main-view', pluginId: value.pluginId, viewId: value.viewId };
-    case 'plugin-view':
-      if (typeof value.pluginId !== 'string' || typeof value.viewId !== 'string') {
-        return null;
-      }
-      return { type: 'hosted-main-view', pluginId: value.pluginId, viewId: value.viewId };
-    case 'collection':
-      if (typeof value.id !== 'number' || !Number.isFinite(value.id)) {
-        return null;
-      }
-      return { type: 'collection', id: value.id };
-    case 'environment':
-      if (typeof value.id !== 'number' || !Number.isFinite(value.id)) {
-        return null;
-      }
-      return { type: 'environment', id: value.id };
-    case 'collection-runner': {
-      if (typeof value.collectionId !== 'number' || !Number.isFinite(value.collectionId)) {
-        return null;
-      }
-      const folderId =
-        value.folderId == null
-          ? null
-          : typeof value.folderId === 'number' && Number.isFinite(value.folderId)
-            ? value.folderId
-            : null;
-      const requestId =
-        value.requestId == null
-          ? null
-          : typeof value.requestId === 'number' && Number.isFinite(value.requestId)
-            ? value.requestId
-            : null;
-      const requestIds = Array.isArray(value.requestIds)
-        ? value.requestIds.filter(
-            (entry): entry is number => typeof entry === 'number' && Number.isFinite(entry)
-          )
-        : undefined;
-      return {
-        type: 'collection-runner',
-        collectionId: value.collectionId,
-        folderId,
-        requestId,
-        ...(requestIds != null && requestIds.length > 0 ? { requestIds } : {})
-      };
-    }
-    case 'plugin-detail':
-    case 'snippet-detail':
-    case 'snippet-edit':
-    case 'script-editor':
-    case 'merge-editor':
-      return null;
-    default:
-      return null;
-  }
+  return normalizePersistedPageRef(value);
 }
 
 /**

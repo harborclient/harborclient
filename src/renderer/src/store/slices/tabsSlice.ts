@@ -19,6 +19,7 @@ import {
   type RequestTab,
   type Tab
 } from '#/renderer/src/store/tabs';
+import { getPageRoute } from '#/renderer/src/routing';
 import { defaultTabState } from '#/renderer/src/store/persistence';
 
 export interface TabsState {
@@ -205,13 +206,7 @@ const tabsSlice = createSlice({
       const page = action.payload;
       const existing = findPageTab(state.tabs, page);
       if (existing && isPageTab(existing)) {
-        if (
-          page.type === 'settings' ||
-          page.type === 'collection' ||
-          page.type === 'folder' ||
-          page.type === 'environment' ||
-          page.type === 'collection-runner'
-        ) {
+        if (getPageRoute(page.type).replaceOnReopen) {
           existing.page = page;
         }
         state.activeTabId = existing.tabId;

@@ -18,6 +18,7 @@ import {
   resolveScriptRefs
 } from '#/shared/scriptRefs';
 import { normalizeRequestTags } from '#/shared/requestTags';
+import { routePageRefKey } from '#/renderer/src/routing';
 
 /**
  * Editable request state in the UI before or during save.
@@ -369,46 +370,7 @@ export function asRequestTab(tab: Tab | undefined): RequestTab {
  * @returns Stable string used to find an existing page tab.
  */
 export function pageRefKey(page: PageRef): string {
-  switch (page.type) {
-    case 'getting-started':
-      return 'getting-started';
-    case 'settings':
-      return 'settings';
-    case 'plugins':
-      return 'plugins';
-    case 'themes':
-      return 'themes';
-    case 'snippets':
-      return 'snippets';
-    case 'cookies':
-      return 'cookies';
-    case 'team-hubs':
-      return 'team-hubs';
-    case 'team-hub-admin':
-      return `team-hub-admin:${page.hubId}`;
-    case 'sharing-keys':
-      return 'sharing-keys';
-    case 'hosted-main-view':
-      return `hosted-main-view:${page.pluginId}:${page.viewId}`;
-    case 'collection':
-      return `collection:${page.id}`;
-    case 'folder':
-      return `folder:${page.id}`;
-    case 'environment':
-      return `environment:${page.id}`;
-    case 'collection-runner':
-      return 'collection-runner';
-    case 'plugin-detail':
-      return `plugin-detail:${page.kind}:${page.source}:${page.id}`;
-    case 'snippet-detail':
-      return `snippet-detail:${page.catalogId}`;
-    case 'snippet-edit':
-      return `snippet-edit:${page.snippetId ?? page.mode}`;
-    case 'script-editor':
-      return `script-editor:${page.requestTabId}:${page.phase}:${page.scriptId}`;
-    case 'merge-editor':
-      return `merge-editor:${page.connectionId}:${page.filePath}`;
-  }
+  return routePageRefKey(page);
 }
 
 /**
