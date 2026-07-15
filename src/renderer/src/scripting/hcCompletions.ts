@@ -330,7 +330,7 @@ const CONSOLE: HcCompletionOption[] = [
 
 const GROUPS: Record<string, HcCompletionOption[]> = {
   '': TOP_LEVEL,
-  hc: HC_ROOT,
+  'hc': HC_ROOT,
   'hc.request': HC_REQUEST,
   'hc.request.headers': HC_PARAMETER_BAG,
   'hc.request.params': HC_PARAMETER_BAG,
@@ -351,7 +351,7 @@ const GROUPS: Record<string, HcCompletionOption[]> = {
   'hc.response.to': HC_RESPONSE_TO,
   'hc.response.to.have': HC_RESPONSE_TO_HAVE,
   'hc.response.to.be': HC_RESPONSE_TO_BE,
-  console: CONSOLE
+  'console': CONSOLE
 };
 
 /**

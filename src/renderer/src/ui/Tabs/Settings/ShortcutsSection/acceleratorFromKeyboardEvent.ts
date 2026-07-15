@@ -30,10 +30,10 @@ const KEY_ALIASES: Record<string, string> = {
   ';': 'Semicolon',
   "'": 'Quote',
   ' ': 'Space',
-  ArrowUp: 'Up',
-  ArrowDown: 'Down',
-  ArrowLeft: 'Left',
-  ArrowRight: 'Right'
+  'ArrowUp': 'Up',
+  'ArrowDown': 'Down',
+  'ArrowLeft': 'Left',
+  'ArrowRight': 'Right'
 };
 
 const NAMED_KEYS = new Set([

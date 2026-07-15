@@ -104,9 +104,9 @@ async function fetchHubChatStep(
     response = await fetch(`${hub.baseUrl}/llm/chat/step`, {
       method: 'POST',
       headers: {
-        Accept: 'application/json',
+        'Accept': 'application/json',
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${hub.token}`
+        'Authorization': `Bearer ${hub.token}`
       },
       body: JSON.stringify({
         model: input.model,

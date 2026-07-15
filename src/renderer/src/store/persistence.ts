@@ -15,7 +15,7 @@ import {
 } from './tabs';
 import type { BodyType, HttpMethod, KeyValue } from '#/shared/types';
 import type { TerminalTab } from '#/renderer/src/store/slices/terminalsSlice';
-import { normalizePersistedPageRef } from '#/renderer/src/routing';
+import { normalizePersistedPageRef } from '#/renderer/src/store/routing';
 
 /** When false, persistTabs is a no-op so the default startup tab does not clobber electron-store. */
 let tabsHydrated = false;

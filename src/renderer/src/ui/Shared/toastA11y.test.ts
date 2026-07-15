@@ -9,7 +9,7 @@ import {
 describe('toastA11y', () => {
   it('uses polite status announcements for default and success toasts', () => {
     expect(DEFAULT_TOAST_ARIA_PROPS).toEqual({
-      role: 'status',
+      'role': 'status',
       'aria-live': 'polite',
       'aria-atomic': true
     });
@@ -18,7 +18,7 @@ describe('toastA11y', () => {
 
   it('uses assertive alert announcements for error toasts', () => {
     expect(ERROR_TOAST_ARIA_PROPS).toEqual({
-      role: 'alert',
+      'role': 'alert',
       'aria-live': 'assertive',
       'aria-atomic': true
     });
@@ -26,7 +26,7 @@ describe('toastA11y', () => {
 
   it('defines live-region props for custom theme prompt toasts', () => {
     expect(THEME_PROMPT_TOAST_LIVE_PROPS).toEqual({
-      role: 'status',
+      'role': 'status',
       'aria-live': 'polite',
       'aria-atomic': true
     });

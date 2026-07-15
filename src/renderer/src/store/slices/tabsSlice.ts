@@ -19,7 +19,7 @@ import {
   type RequestTab,
   type Tab
 } from '#/renderer/src/store/tabs';
-import { getPageRoute } from '#/renderer/src/routing';
+import { getPageRoute } from '#/renderer/src/store/routing';
 import { defaultTabState } from '#/renderer/src/store/persistence';
 
 export interface TabsState {

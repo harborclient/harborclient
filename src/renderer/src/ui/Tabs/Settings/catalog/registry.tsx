@@ -96,10 +96,10 @@ export const SETTINGS_SECTION_REGISTRY: Record<
   'globals' | 'storage' | 'git' | 'shortcuts' | 'backup-restore',
   ComponentType<SettingsSectionComponentProps>
 > = {
-  globals: GlobalsSection,
-  storage: StorageLocationsSection,
-  git: GitIdentitiesSection,
-  shortcuts: ShortcutsSection,
+  'globals': GlobalsSection,
+  'storage': StorageLocationsSection,
+  'git': GitIdentitiesSection,
+  'shortcuts': ShortcutsSection,
   'backup-restore': BackupRestoreSection
 };
 

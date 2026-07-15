@@ -15,8 +15,8 @@ export type BuiltinThemeId = (typeof BUILTIN_THEME_IDS)[number];
  * Human-readable labels for built-in themes shown in Installed cards.
  */
 export const BUILTIN_THEME_TITLES: Record<BuiltinThemeId, string> = {
-  light: 'Light',
-  dark: 'Dark',
+  'light': 'Light',
+  'dark': 'Dark',
   'high-contrast': 'High contrast'
 };
 
@@ -24,8 +24,8 @@ export const BUILTIN_THEME_TITLES: Record<BuiltinThemeId, string> = {
  * Base appearance mode for each built-in theme id.
  */
 export const BUILTIN_THEME_TYPES: Record<BuiltinThemeId, CustomThemeType> = {
-  light: 'light',
-  dark: 'dark',
+  'light': 'light',
+  'dark': 'dark',
   'high-contrast': 'high-contrast'
 };
 

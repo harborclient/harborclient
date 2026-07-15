@@ -55,37 +55,37 @@ interface Props {
   /**
    * Current composer draft text.
    */
-  value: string;
+  'value': string;
 
   /**
    * Called when the draft changes.
    */
-  onChange: (value: string) => void;
+  'onChange': (value: string) => void;
 
   /**
    * Called when the configured submit shortcut is pressed.
    */
-  onSubmit: () => void;
+  'onSubmit': () => void;
 
   /**
    * Whether the submit shortcut should send the current draft.
    */
-  canSubmit: boolean;
+  'canSubmit': boolean;
 
   /**
    * When true, plain Enter submits instead of inserting a newline.
    */
-  enterToSend: boolean;
+  'enterToSend': boolean;
 
   /**
    * Placeholder shown when the draft is empty.
    */
-  placeholder?: string;
+  'placeholder'?: string;
 
   /**
    * Whether typing is disabled.
    */
-  disabled?: boolean;
+  'disabled'?: boolean;
 
   /**
    * Accessible name for the prompt field.
@@ -95,17 +95,17 @@ interface Props {
   /**
    * Additional classes applied to the editor root element.
    */
-  className?: string;
+  'className'?: string;
 
   /**
    * Ref forwarded to the composer focus handle.
    */
-  ref?: Ref<ChatComposerTextareaHandle>;
+  'ref'?: Ref<ChatComposerTextareaHandle>;
 
   /**
    * When true, omits the outer field border so a parent shell can wrap textarea and toolbar.
    */
-  embedded?: boolean;
+  'embedded'?: boolean;
 }
 
 /**
@@ -215,7 +215,7 @@ export function ChatComposerTextarea({
       EditorView.contentAttributes.of({
         'aria-label': ariaLabel ?? 'Chat message',
         'aria-disabled': String(disabled),
-        role: 'textbox',
+        'role': 'textbox',
         'aria-multiline': 'true'
       }),
       EditorView.theme({

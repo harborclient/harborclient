@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import type { PageComponentProps } from '#/renderer/src/routing';
+import type { PageComponentProps } from '#/renderer/src/routing/types';
 import { TeamHub } from '#/renderer/src/ui/Tabs/TeamHub';
 
 /**
@@ -9,5 +9,6 @@ import { TeamHub } from '#/renderer/src/ui/Tabs/TeamHub';
  * @returns Team Hub page content.
  */
 export function TeamHubsPageRoute(_props: PageComponentProps<'team-hubs'>): JSX.Element {
+  void _props;
   return <TeamHub />;
 }

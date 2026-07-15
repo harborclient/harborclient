@@ -44,7 +44,7 @@ describe('mergePluginHttpHeaders', () => {
 
   it('appends headers added by a plugin hook', () => {
     const original = [{ key: 'Accept', value: 'application/json', enabled: true }];
-    const mutated = { Accept: 'application/json', 'X-Plugin-Trace': '1' };
+    const mutated = { 'Accept': 'application/json', 'X-Plugin-Trace': '1' };
 
     const headers = mergePluginHttpHeaders(original, mutated);
 

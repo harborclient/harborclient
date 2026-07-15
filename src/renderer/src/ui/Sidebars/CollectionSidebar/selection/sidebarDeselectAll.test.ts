@@ -84,7 +84,7 @@ describe('sidebarHasDeselectableSelection', () => {
         selectedCollectionId: null,
         selectedFolderId: null,
         activeEnvironmentId: null,
-        sectionSelectionCounts: { environments: 0, 'collections-requests': 0 },
+        sectionSelectionCounts: { 'environments': 0, 'collections-requests': 0 },
         openRequestTabCount: 0,
         openMarkdownTabCount: 0
       })

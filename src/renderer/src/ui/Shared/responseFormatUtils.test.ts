@@ -26,7 +26,7 @@ describe('buildResponseExport', () => {
         request: {
           method: 'GET',
           url: 'https://echo.harborclient.com/get',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           body: '',
           bodyType: 'none'
         }
@@ -66,7 +66,7 @@ describe('buildResponseExport', () => {
   it('parses JSON bodies and preserves headers and export metadata', () => {
     const payload = buildResponseExport(
       sampleResponse({
-        headers: { 'content-type': 'application/json', connection: 'keep-alive' }
+        headers: { 'content-type': 'application/json', 'connection': 'keep-alive' }
       }),
       [],
       [],
@@ -78,7 +78,7 @@ describe('buildResponseExport', () => {
     expect(payload.body).toEqual({ foo: 'bar' });
     expect(payload.headers).toEqual({
       'content-type': 'application/json',
-      connection: 'keep-alive'
+      'connection': 'keep-alive'
     });
   });
 

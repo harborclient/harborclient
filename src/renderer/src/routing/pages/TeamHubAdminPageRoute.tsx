@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import type { PageComponentProps } from '#/renderer/src/routing';
+import type { PageComponentProps } from '#/renderer/src/routing/types';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { closeTab } from '#/renderer/src/store/slices/tabsSlice';
 import { TeamHubAdmin } from '#/renderer/src/ui/Tabs/TeamHub/TeamHubAdmin';

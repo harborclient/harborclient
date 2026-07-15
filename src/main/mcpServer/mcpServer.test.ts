@@ -10,9 +10,9 @@ import { DEFAULT_MCP_SERVER_SETTINGS, setMcpServerSettings } from '#/main/settin
 const TEST_TOKEN = 'test-mcp-token';
 
 const MCP_HEADERS = {
-  Authorization: `Bearer ${TEST_TOKEN}`,
+  'Authorization': `Bearer ${TEST_TOKEN}`,
   'Content-Type': 'application/json',
-  Accept: 'application/json, text/event-stream'
+  'Accept': 'application/json, text/event-stream'
 } as const;
 
 /**
@@ -204,8 +204,8 @@ describe('mcpServer HTTP routes', () => {
 
     const response = await fetch(getMcpUrl(), {
       headers: {
-        Authorization: `Bearer ${TEST_TOKEN}`,
-        Accept: 'text/event-stream',
+        'Authorization': `Bearer ${TEST_TOKEN}`,
+        'Accept': 'text/event-stream',
         'mcp-session-id': sessionId
       },
       signal: controller.signal

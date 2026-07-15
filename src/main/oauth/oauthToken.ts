@@ -92,7 +92,7 @@ export async function fetchClientCredentialsToken(
   }
 
   const headers: Record<string, string> = {
-    Accept: 'application/json',
+    'Accept': 'application/json',
     'Content-Type': 'application/x-www-form-urlencoded'
   };
 

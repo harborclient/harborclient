@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(prettier): add consistent quote properties and refactor header syntax. (`decdc01`)
 - refactor(routing): streamline page reference handling and tab management. (`54f1813`)
 
 ## 2.4.3 - 2026-07-15

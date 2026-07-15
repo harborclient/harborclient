@@ -1,6 +1,7 @@
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { PageRef } from '#/renderer/src/store/tabs';
-import { routePageMeta, type PageMetaContext } from '#/renderer/src/routing';
+import { routePageMeta } from '#/renderer/src/store/routing';
+import type { PageMetaContext } from '#/renderer/src/routing/types';
 
 /**
  * Display metadata for a page tab in the tab bar.

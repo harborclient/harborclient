@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import type { PageComponentProps } from '#/renderer/src/routing';
+import type { PageComponentProps } from '#/renderer/src/routing/types';
 import { Cookies } from '#/renderer/src/ui/Tabs/Cookies';
 
 /**
@@ -9,5 +9,6 @@ import { Cookies } from '#/renderer/src/ui/Tabs/Cookies';
  * @returns Cookies page content.
  */
 export function CookiesPageRoute(_props: PageComponentProps<'cookies'>): JSX.Element {
+  void _props;
   return <Cookies />;
 }

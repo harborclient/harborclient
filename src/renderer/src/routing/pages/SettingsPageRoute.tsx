@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import type { PageComponentProps } from '#/renderer/src/routing';
+import type { PageComponentProps } from '#/renderer/src/routing/types';
 import { Settings } from '#/renderer/src/ui/Tabs/Settings';
 
 /**

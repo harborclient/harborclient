@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import type { PageComponentProps } from '#/renderer/src/routing';
+import type { PageComponentProps } from '#/renderer/src/routing/types';
 import { Plugins } from '#/renderer/src/ui/Tabs/Plugins';
 
 /**
@@ -9,5 +9,6 @@ import { Plugins } from '#/renderer/src/ui/Tabs/Plugins';
  * @returns Themes page content.
  */
 export function ThemesPageRoute(_props: PageComponentProps<'themes'>): JSX.Element {
+  void _props;
   return <Plugins kind="themes" />;
 }

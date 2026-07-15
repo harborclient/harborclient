@@ -76,10 +76,10 @@ export const HIGH_CONTRAST_PREVIEW_PALETTE: ThemePreviewPalette = {
  * Maps each built-in theme to the palette used by its preview card.
  */
 export const BUILTIN_THEME_PREVIEW_PALETTES: Record<BuiltinThemeSource, ThemePreviewPalette> = {
-  light: LIGHT_PREVIEW_PALETTE,
-  dark: DARK_PREVIEW_PALETTE,
+  'light': LIGHT_PREVIEW_PALETTE,
+  'dark': DARK_PREVIEW_PALETTE,
   'high-contrast': HIGH_CONTRAST_PREVIEW_PALETTE,
-  system: LIGHT_PREVIEW_PALETTE
+  'system': LIGHT_PREVIEW_PALETTE
 };
 
 /**

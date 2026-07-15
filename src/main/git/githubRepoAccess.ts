@@ -50,8 +50,8 @@ export interface GitHubRepoAccessResult {
  */
 function githubApiHeaders(accessToken: string): HeadersInit {
   return {
-    Accept: 'application/vnd.github+json',
-    Authorization: `Bearer ${accessToken}`,
+    'Accept': 'application/vnd.github+json',
+    'Authorization': `Bearer ${accessToken}`,
     'X-GitHub-Api-Version': '2026-03-10'
   };
 }

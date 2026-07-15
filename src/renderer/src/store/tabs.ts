@@ -18,7 +18,7 @@ import {
   resolveScriptRefs
 } from '#/shared/scriptRefs';
 import { normalizeRequestTags } from '#/shared/requestTags';
-import { routePageRefKey } from '#/renderer/src/routing';
+import { routePageRefKey } from '#/renderer/src/store/routing';
 
 /**
  * Editable request state in the UI before or during save.

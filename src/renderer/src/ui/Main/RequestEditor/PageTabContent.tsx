@@ -2,7 +2,7 @@ import { Suspense, useEffect, type JSX } from 'react';
 import { Spinner } from '@harborclient/sdk/components';
 import { pluginContributionId } from '#/shared/plugin/types';
 import { usePluginMainViews } from '#/renderer/src/plugins/pluginHooks';
-import { getPageRoute } from '#/renderer/src/routing';
+import { getPageRoute } from '#/renderer/src/store/routing';
 import type { PageRef } from '#/renderer/src/store/tabs';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { closeTab } from '#/renderer/src/store/slices/tabsSlice';

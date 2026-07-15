@@ -376,7 +376,7 @@ describe('createScriptApi parameter bags', () => {
     expect(hc.request.headers.get('Authorization')).toBe('Bearer token');
     expect(hc.request.headers.get()).toEqual({
       'X-Test': '1',
-      authorization: 'Bearer token'
+      'authorization': 'Bearer token'
     });
 
     hc.request.headers.clear();
@@ -411,7 +411,7 @@ describe('createScriptApi parameter bags', () => {
     hc.collection.headers.set('Authorization', 'Bearer token');
     expect(hc.collection.headers.get()).toEqual({
       'X-Api-Key': 'secret',
-      Authorization: 'Bearer token'
+      'Authorization': 'Bearer token'
     });
 
     const result = api.readResult();

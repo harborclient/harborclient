@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import type { PageComponentProps } from '#/renderer/src/routing';
+import type { PageComponentProps } from '#/renderer/src/routing/types';
 import { Snippets } from '#/renderer/src/ui/Tabs/Snippets';
 
 /**
@@ -9,5 +9,6 @@ import { Snippets } from '#/renderer/src/ui/Tabs/Snippets';
  * @returns Snippets page content.
  */
 export function SnippetsPageRoute(_props: PageComponentProps<'snippets'>): JSX.Element {
+  void _props;
   return <Snippets />;
 }

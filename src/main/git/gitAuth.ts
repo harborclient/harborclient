@@ -380,8 +380,8 @@ export async function listGitIdentitiesWithLogins(): Promise<GitIdentity[]> {
 async function fetchGithubLogin(accessToken: string): Promise<string | undefined> {
   const response = await fetch('https://api.github.com/user', {
     headers: {
-      Accept: 'application/vnd.github+json',
-      Authorization: `Bearer ${accessToken}`,
+      'Accept': 'application/vnd.github+json',
+      'Authorization': `Bearer ${accessToken}`,
       'X-GitHub-Api-Version': '2026-03-10'
     }
   });

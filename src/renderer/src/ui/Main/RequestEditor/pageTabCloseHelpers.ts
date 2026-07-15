@@ -1,6 +1,6 @@
 import type { Collection, Environment, TeamHub } from '#/shared/types';
 import type { PageRef } from '#/renderer/src/store/tabs';
-import { getPageRoute, routePageCloseName } from '#/renderer/src/routing';
+import { getPageRoute, routePageCloseName } from '#/renderer/src/store/routing';
 import { resolveTeamHubAdminTabLabel } from '#/renderer/src/ui/Tabs/TeamHub/teamHubDisplayName';
 
 /**

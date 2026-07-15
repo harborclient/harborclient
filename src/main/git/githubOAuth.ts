@@ -69,7 +69,7 @@ export async function startGitHubDeviceFlow(
   const response = await fetch(DEVICE_CODE_URL, {
     method: 'POST',
     headers: {
-      Accept: 'application/json',
+      'Accept': 'application/json',
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(body)
@@ -151,7 +151,7 @@ export async function completeGitHubDeviceFlow(
     const response = await fetch(ACCESS_TOKEN_URL, {
       method: 'POST',
       headers: {
-        Accept: 'application/json',
+        'Accept': 'application/json',
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -225,7 +225,7 @@ export async function refreshGitHubAccessToken(
   const response = await fetch(ACCESS_TOKEN_URL, {
     method: 'POST',
     headers: {
-      Accept: 'application/json',
+      'Accept': 'application/json',
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
