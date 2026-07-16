@@ -1127,33 +1127,6 @@ function setMenuResponseEditorVisible(visible: boolean): Promise<void> {
 }
 
 /**
- * Syncs Collections section visibility to the View menu checkbox in the main process.
- *
- * @param visible - Whether the Collections section is currently visible in the sidebar.
- */
-function setMenuCollectionsVisible(visible: boolean): Promise<void> {
-  return ipcRenderer.invoke('menu:setCollectionsVisible', visible);
-}
-
-/**
- * Syncs Environments section visibility to the View menu checkbox in the main process.
- *
- * @param visible - Whether the Environments section is currently visible in the sidebar.
- */
-function setMenuEnvironmentsVisible(visible: boolean): Promise<void> {
-  return ipcRenderer.invoke('menu:setEnvironmentsVisible', visible);
-}
-
-/**
- * Syncs Run Results section visibility to the View menu checkbox in the main process.
- *
- * @param visible - Whether the Run Results section is currently visible in the sidebar.
- */
-function setMenuRunResultsVisible(visible: boolean): Promise<void> {
-  return ipcRenderer.invoke('menu:setRunResultsVisible', visible);
-}
-
-/**
  * Syncs active theme and plugin theme options to the View menu in the main process.
  *
  * @param theme - Persisted appearance theme preference.
@@ -3899,9 +3872,6 @@ const api: Api = {
   setMenuGitSidebarVisible,
   setMenuRequestEditorVisible,
   setMenuResponseEditorVisible,
-  setMenuCollectionsVisible,
-  setMenuEnvironmentsVisible,
-  setMenuRunResultsVisible,
   setMenuThemeMenuState,
   setMenuDesignerUndoRedo,
   setTabGroupAvailable,

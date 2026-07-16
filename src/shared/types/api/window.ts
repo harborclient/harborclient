@@ -58,24 +58,6 @@ export interface ApiWindow {
    */
   setMenuResponseEditorVisible: (visible: boolean) => Promise<void>;
   /**
-   * Syncs Collections section visibility to the View menu checkbox in the main process.
-   *
-   * @param visible - Whether the Collections section is currently visible in the sidebar.
-   */
-  setMenuCollectionsVisible: (visible: boolean) => Promise<void>;
-  /**
-   * Syncs Environments section visibility to the View menu checkbox in the main process.
-   *
-   * @param visible - Whether the Environments section is currently visible in the sidebar.
-   */
-  setMenuEnvironmentsVisible: (visible: boolean) => Promise<void>;
-  /**
-   * Syncs Run Results section visibility to the View menu checkbox in the main process.
-   *
-   * @param visible - Whether the Run Results section is currently visible in the sidebar.
-   */
-  setMenuRunResultsVisible: (visible: boolean) => Promise<void>;
-  /**
    * Syncs active theme and plugin theme options to the View menu in the main process.
    *
    * @param theme - Persisted appearance theme preference.

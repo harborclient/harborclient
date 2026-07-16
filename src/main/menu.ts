@@ -76,18 +76,6 @@ export function buildThemeMenuItems(
     });
   }
 
-  if (pluginThemeOptions.length > 0) {
-    items.push({ type: 'separator' });
-    for (const option of pluginThemeOptions) {
-      items.push({
-        label: option.label,
-        type: 'checkbox',
-        checked: option.value === activeTheme,
-        click: () => handleThemeClick(option.value, option.label)
-      });
-    }
-  }
-
   return items;
 }
 
@@ -110,8 +98,6 @@ function acceleratorFor(accelerators: Map<ShortcutId, string>, id: ShortcutId): 
  * @param aiSidebarVisible - Whether the AI sidebar checkbox should appear checked.
  * @param requestEditorVisible - Whether the request editor checkbox should appear checked.
  * @param responseEditorVisible - Whether the response editor checkbox should appear checked.
- * @param collectionsVisible - Whether the Collections section checkbox should appear checked.
- * @param environmentsVisible - Whether the Environments section checkbox should appear checked.
  * @param activeTheme - Appearance theme used to mark the active View menu checkmark.
  * @param pluginThemeOptions - Plugin-provided theme menu options.
  * @param onThemeMenuClick - Rebuilds the menu after a theme item click.
@@ -130,9 +116,6 @@ export function buildMenu(
   gitSidebarVisible = false,
   requestEditorVisible = true,
   responseEditorVisible = true,
-  collectionsVisible = true,
-  environmentsVisible = true,
-  runResultsVisible = true,
   activeTheme: ThemeSource = 'system',
   pluginThemeOptions: ThemeMenuOption[] = [],
   onThemeMenuClick?: () => void,
@@ -170,15 +153,16 @@ export function buildMenu(
         },
         { type: 'separator' },
         {
+          label: 'Save',
+          accelerator: acceleratorFor(accelerators, 'save'),
+          click: () => sendMenuAction(window, 'save')
+        },
+        {
           label: 'Sync Storage',
           accelerator: acceleratorFor(accelerators, 'sync'),
           click: () => sendMenuAction(window, 'sync')
         },
-        {
-          label: 'Save Request',
-          accelerator: acceleratorFor(accelerators, 'save'),
-          click: () => sendMenuAction(window, 'save')
-        },
+
         {
           label: 'Import',
           accelerator: acceleratorFor(accelerators, 'import'),
@@ -233,24 +217,23 @@ export function buildMenu(
             }
           : { role: 'redo', accelerator: acceleratorFor(accelerators, 'redo') },
         { type: 'separator' },
-        {
-          label: 'Deselect all',
-          enabled: sidebarDeselectAllAvailable,
-          click: () => sendMenuAction(window, 'deselect-all-sidebar')
-        },
-        { type: 'separator' },
         { role: 'cut', accelerator: acceleratorFor(accelerators, 'cut') },
         { role: 'copy', accelerator: acceleratorFor(accelerators, 'copy') },
         { role: 'paste', accelerator: acceleratorFor(accelerators, 'paste') },
         { type: 'separator' },
-        { role: 'selectAll', accelerator: acceleratorFor(accelerators, 'select-all') }
+        { role: 'selectAll', accelerator: acceleratorFor(accelerators, 'select-all') },
+        {
+          label: 'Deselect all',
+          enabled: sidebarDeselectAllAvailable,
+          click: () => sendMenuAction(window, 'deselect-all-sidebar')
+        }
       ]
     },
     {
       label: 'View',
       submenu: [
         {
-          label: 'Sidebar',
+          label: 'Collections Sidebar',
           type: 'checkbox',
           checked: sidebarVisible,
           accelerator: acceleratorFor(accelerators, 'toggle-sidebar'),
@@ -264,7 +247,7 @@ export function buildMenu(
           click: () => sendMenuAction(window, 'toggle-ai-sidebar')
         },
         {
-          label: 'Git',
+          label: 'Git Sidebar',
           type: 'checkbox',
           checked: gitSidebarVisible,
           accelerator: acceleratorFor(accelerators, 'toggle-git-sidebar'),
@@ -286,28 +269,6 @@ export function buildMenu(
         },
         { type: 'separator' },
         {
-          label: 'Collections',
-          type: 'checkbox',
-          checked: collectionsVisible,
-          accelerator: acceleratorFor(accelerators, 'toggle-collections-section'),
-          click: () => sendMenuAction(window, 'toggle-collections-section')
-        },
-        {
-          label: 'Environments',
-          type: 'checkbox',
-          checked: environmentsVisible,
-          accelerator: acceleratorFor(accelerators, 'toggle-environments-section'),
-          click: () => sendMenuAction(window, 'toggle-environments-section')
-        },
-        {
-          label: 'Run Results',
-          type: 'checkbox',
-          checked: runResultsVisible,
-          accelerator: acceleratorFor(accelerators, 'toggle-run-results-section'),
-          click: () => sendMenuAction(window, 'toggle-run-results-section')
-        },
-        { type: 'separator' },
-        {
           role: 'togglefullscreen',
           accelerator: acceleratorFor(accelerators, 'toggle-fullscreen')
         },
@@ -326,13 +287,13 @@ export function buildMenu(
           accelerator: acceleratorFor(accelerators, 'reset-zoom'),
           click: () => resetZoom(window.webContents)
         },
+        ...buildThemeMenuItems(window, activeTheme, pluginThemeOptions, onThemeMenuClick),
         ...(isDeveloperToolsEnabled()
           ? [
               { type: 'separator' as const },
               { label: 'Developer Tools', role: 'toggleDevTools' as const }
             ]
-          : []),
-        ...buildThemeMenuItems(window, activeTheme, pluginThemeOptions, onThemeMenuClick)
+          : [])
       ]
     },
     {

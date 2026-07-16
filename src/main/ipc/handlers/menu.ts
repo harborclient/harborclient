@@ -3,11 +3,8 @@ import { activateAppSubmenuItem, getAppSubmenuSnapshot } from '#/main/appMenuSna
 import {
   setMenuAiSidebarVisible,
   setMenuGitSidebarVisible,
-  setMenuCollectionsVisible,
-  setMenuEnvironmentsVisible,
   setMenuRequestEditorVisible,
   setMenuResponseEditorVisible,
-  setMenuRunResultsVisible,
   setMenuSidebarVisible,
   setMenuDesignerUndoRedo,
   setMenuTabGroupAvailable,
@@ -56,25 +53,6 @@ export function registerMenuHandlers(): void {
       setMenuResponseEditorVisible(visible);
     }
   );
-
-  // Updates the View menu checkmark for Collections section visibility.
-  handle('menu:setCollectionsVisible', ipcArgSchemas.menuCollectionsVisible, (_event, visible) => {
-    setMenuCollectionsVisible(visible);
-  });
-
-  // Updates the View menu checkmark for Environments section visibility.
-  handle(
-    'menu:setEnvironmentsVisible',
-    ipcArgSchemas.menuEnvironmentsVisible,
-    (_event, visible) => {
-      setMenuEnvironmentsVisible(visible);
-    }
-  );
-
-  // Updates the View menu checkmark for Run Results section visibility.
-  handle('menu:setRunResultsVisible', ipcArgSchemas.menuRunResultsVisible, (_event, visible) => {
-    setMenuRunResultsVisible(visible);
-  });
 
   // Updates View menu theme checkmarks and plugin theme entries from renderer state.
   handle('menu:setThemeMenuState', ipcArgSchemas.menuThemeMenuState, (_event, theme, options) => {

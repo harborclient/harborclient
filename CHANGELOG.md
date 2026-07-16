@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- refactor(menu): remove collections, environments, and run results visibility from menu. (`068258d`)
 - feat(menu): update tab group menu item and add new environment option. (`44952c7`)
 
 ## 2.5.2 - 2026-07-16

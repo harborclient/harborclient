@@ -9,9 +9,6 @@ let gitSidebarVisible = false;
 let aiSidebarVisible = false;
 let requestEditorVisible = true;
 let responseEditorVisible = true;
-let collectionsVisible = true;
-let environmentsVisible = true;
-let runResultsVisible = true;
 let activeTheme: ThemeSource = 'system';
 let pluginThemeOptions: ThemeMenuOption[] = [];
 let designerUndoRedoActive = false;
@@ -47,27 +44,6 @@ export function getMenuRequestEditorVisible(): boolean {
  */
 export function getMenuResponseEditorVisible(): boolean {
   return responseEditorVisible;
-}
-
-/**
- * Returns the Collections section visibility state reflected in the View menu checkbox.
- */
-export function getMenuCollectionsVisible(): boolean {
-  return collectionsVisible;
-}
-
-/**
- * Returns the Environments section visibility state reflected in the View menu checkbox.
- */
-export function getMenuEnvironmentsVisible(): boolean {
-  return environmentsVisible;
-}
-
-/**
- * Returns the Run Results section visibility state reflected in the View menu checkbox.
- */
-export function getMenuRunResultsVisible(): boolean {
-  return runResultsVisible;
 }
 
 /**
@@ -153,45 +129,6 @@ export function setMenuResponseEditorVisible(visible: boolean): void {
     return;
   }
   responseEditorVisible = visible;
-  rebuildAppMenu();
-}
-
-/**
- * Updates the View menu Collections checkbox and rebuilds the menu when the value changes.
- *
- * @param visible - Whether the Collections section is currently visible in the sidebar.
- */
-export function setMenuCollectionsVisible(visible: boolean): void {
-  if (collectionsVisible === visible) {
-    return;
-  }
-  collectionsVisible = visible;
-  rebuildAppMenu();
-}
-
-/**
- * Updates the View menu Environments checkbox and rebuilds the menu when the value changes.
- *
- * @param visible - Whether the Environments section is currently visible in the sidebar.
- */
-export function setMenuEnvironmentsVisible(visible: boolean): void {
-  if (environmentsVisible === visible) {
-    return;
-  }
-  environmentsVisible = visible;
-  rebuildAppMenu();
-}
-
-/**
- * Updates the View menu Run Results checkbox and rebuilds the menu when the value changes.
- *
- * @param visible - Whether the Run Results section is currently visible in the sidebar.
- */
-export function setMenuRunResultsVisible(visible: boolean): void {
-  if (runResultsVisible === visible) {
-    return;
-  }
-  runResultsVisible = visible;
   rebuildAppMenu();
 }
 
@@ -335,9 +272,6 @@ export function rebuildAppMenu(): void {
       gitSidebarVisible,
       requestEditorVisible,
       responseEditorVisible,
-      collectionsVisible,
-      environmentsVisible,
-      runResultsVisible,
       activeTheme,
       pluginThemeOptions,
       rebuildAppMenu,

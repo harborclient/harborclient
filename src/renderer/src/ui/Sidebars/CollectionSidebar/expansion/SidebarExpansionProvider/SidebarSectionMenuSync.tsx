@@ -1,7 +1,7 @@
 import { useSidebarSectionMenuSync } from '#/renderer/src/hooks/useSidebarSectionMenuSync';
 
 /**
- * Syncs View menu section visibility inside the expansion provider tree.
+ * Handles sidebar section toggle and focus shortcuts inside the expansion provider tree.
  */
 export function SidebarSectionMenuSync(): null {
   useSidebarSectionMenuSync();
