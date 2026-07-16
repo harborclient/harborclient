@@ -1,6 +1,9 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type { CollectionExportResult, Environment, Variable } from '#/shared/types';
-import { mergeEnvironmentVariables } from '#/shared/environmentVariables';
+import {
+  appendMissingEnvironmentVariables,
+  mergeEnvironmentVariables
+} from '#/shared/environmentVariables';
 import {
   reorderEnvironmentsLocal,
   setActiveEnvironmentId,
@@ -142,6 +145,53 @@ export const mergeEnvironmentDown = createAsyncThunk<void, number, ThunkApiConfi
     await dispatch(refreshEnvironments());
   }
 );
+
+/**
+ * Result of copying missing variables from one environment to the one below it.
+ */
+export interface CopyEnvironmentVariablesDownResult {
+  /**
+   * Number of variables appended to the environment below.
+   */
+  addedCount: number;
+}
+
+/**
+ * Copies variables from an environment into the one directly below it.
+ *
+ * Only keys missing from the bottom environment are appended; existing bottom
+ * values and both environment names are left unchanged. Skips the API call
+ * when there is nothing to add.
+ *
+ * @param topEnvironmentId - Environment whose variables are copied downward.
+ * @returns How many variables were appended.
+ */
+export const copyEnvironmentVariablesDown = createAsyncThunk<
+  CopyEnvironmentVariablesDownResult,
+  number,
+  ThunkApiConfig
+>('environments/copyDown', async (topEnvironmentId, { dispatch, getState }) => {
+  const { environments } = getState().environments;
+  const index = environments.findIndex((environment) => environment.id === topEnvironmentId);
+  if (index < 0 || index >= environments.length - 1) {
+    throw new Error('Cannot copy down: no environment below the selected one.');
+  }
+
+  const top = environments[index];
+  const bottom = environments[index + 1];
+  const { variables, addedCount } = appendMissingEnvironmentVariables(
+    bottom.variables,
+    top.variables
+  );
+
+  if (addedCount === 0) {
+    return { addedCount: 0 };
+  }
+
+  await window.api.updateEnvironment(bottom.id, bottom.name, variables);
+  await dispatch(refreshEnvironments());
+  return { addedCount };
+});
 
 /**
  * Exports an environment to a user-chosen file path.

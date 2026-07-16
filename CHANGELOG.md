@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(environments): implement copy missing variables functionality. (`99686bc`)
 - feat(settings): introduce close-to-tray functionality in general settings. (`b1f992b`)
 
 ## 2.5.1 - 2026-07-16

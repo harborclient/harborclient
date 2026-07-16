@@ -25,6 +25,7 @@ import { selectActiveEnvironmentId, selectEnvironments } from '#/renderer/src/st
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import {
+  copyEnvironmentVariablesDown,
   deleteEnvironment,
   duplicateEnvironment,
   exportEnvironment,
@@ -125,6 +126,22 @@ export function Environments(): JSX.Element {
       toast.success('Environment duplicated');
     } catch (err) {
       showAlert(dispatch, formatErrorMessage(err, 'Failed to duplicate environment'));
+    }
+  };
+
+  /**
+   * Copies missing variables from an environment into the one directly below it.
+   */
+  const onCopyEnvironmentVariablesDown = async (id: number): Promise<void> => {
+    try {
+      const { addedCount } = await dispatch(copyEnvironmentVariablesDown(id)).unwrap();
+      if (addedCount === 0) {
+        toast('No new variables to copy');
+        return;
+      }
+      toast.success(`${addedCount} variable${addedCount === 1 ? '' : 's'} copied`);
+    } catch (err) {
+      showAlert(dispatch, formatErrorMessage(err, 'Failed to copy variables down'));
     }
   };
 
@@ -334,6 +351,7 @@ export function Environments(): JSX.Element {
                     environmentIndex={environmentIndex}
                     environmentsCount={environments.length}
                     environmentBelowName={environmentBelow?.name}
+                    environmentBelowVariables={environmentBelow?.variables}
                     showBulkMenu={showBulkMenu}
                     openMenuId={openMenuId}
                     onOpenChange={setOpenMenuId}
@@ -342,6 +360,7 @@ export function Environments(): JSX.Element {
                     onConfigure={() => onConfigureEnvironment(environment.id)}
                     onExport={() => void onExportEnvironment(environment.id)}
                     onDuplicate={() => void onDuplicateEnvironment(environment.id)}
+                    onCopyDown={() => void onCopyEnvironmentVariablesDown(environment.id)}
                     onMergeDown={() => void onMergeEnvironmentDown(environment.id)}
                     onDelete={() => void onDeleteEnvironment(environment.id)}
                     onDeleteSelected={() => void handleDeleteSelected()}

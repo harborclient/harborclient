@@ -1,6 +1,8 @@
-import type { Environment } from '#/shared/types';
+import type { Environment, Variable } from '#/shared/types';
+import { appendMissingEnvironmentVariables } from '#/shared/environmentVariables';
 import { buildReorderMenuGroup, RowActionsMenu, type MenuItem } from '@harborclient/sdk/components';
 import { type JSX, useMemo } from 'react';
+import toast from 'react-hot-toast';
 
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import {
@@ -12,9 +14,9 @@ import { SidebarRowActionsMenu } from '#/renderer/src/ui/Sidebars/CollectionSide
 
 interface Props {
   /**
-   * Environment identity and display fields used by menu actions.
+   * Environment identity, display fields, and variables used by menu actions.
    */
-  environment: Pick<Environment, 'id' | 'name' | 'color'>;
+  environment: Pick<Environment, 'id' | 'name' | 'color' | 'variables'>;
 
   /**
    * Zero-based index of this environment among sidebar environments.
@@ -27,9 +29,14 @@ interface Props {
   environmentsCount: number;
 
   /**
-   * Name of the environment directly below this one, when Merge down is available.
+   * Name of the environment directly below this one, when Copy/Merge down is available.
    */
   environmentBelowName: string | undefined;
+
+  /**
+   * Variables of the environment directly below this one, when Copy down is available.
+   */
+  environmentBelowVariables: Variable[] | undefined;
 
   /**
    * Whether to show the multi-select bulk actions menu instead of single-item actions.
@@ -72,6 +79,11 @@ interface Props {
   onDuplicate: () => void;
 
   /**
+   * Copies missing variables from this environment into the one directly below it.
+   */
+  onCopyDown: () => void;
+
+  /**
    * Merges this environment into the one directly below it.
    */
   onMergeDown: () => void;
@@ -97,10 +109,39 @@ export function ActionsMenu(props: Props): JSX.Element {
   const menuId = `environment-${props.environment.id}`;
 
   /**
-   * Assembles reorder, settings, export, duplicate, merge, delete, and inspect
+   * Assembles reorder, settings, export, duplicate, copy/merge, delete, and inspect
    * groups for the single-environment row menu.
    */
   const singleMenuGroups = useMemo((): MenuItem[][] => {
+    /**
+     * Confirms and copies missing variables into the environment below.
+     * Skips the dialog when there is nothing new to copy.
+     */
+    const handleCopyDown = (): void => {
+      if (props.environmentBelowName == null || props.environmentBelowVariables == null) {
+        return;
+      }
+      const { addedCount } = appendMissingEnvironmentVariables(
+        props.environmentBelowVariables,
+        props.environment.variables
+      );
+      if (addedCount === 0) {
+        toast('No new variables to copy');
+        return;
+      }
+      void (async () => {
+        const variableLabel = addedCount === 1 ? 'variable' : 'variables';
+        const confirmed = await confirm({
+          title: 'Copy variables down',
+          message: `Add ${addedCount} ${variableLabel} from "${props.environment.name}" to "${props.environmentBelowName}"? Existing variables in "${props.environmentBelowName}" will not be changed.`,
+          confirmLabel: 'Copy down'
+        });
+        if (confirmed) {
+          props.onCopyDown();
+        }
+      })();
+    };
+
     /**
      * Confirms and merges this environment into the one below it.
      */
@@ -152,10 +193,16 @@ export function ActionsMenu(props: Props): JSX.Element {
       }
     ];
     if (props.environmentBelowName != null) {
-      actionsGroup.push({
-        label: 'Merge down',
-        onSelect: handleMergeDown
-      });
+      actionsGroup.push(
+        {
+          label: 'Copy down',
+          onSelect: handleCopyDown
+        },
+        {
+          label: 'Merge down',
+          onSelect: handleMergeDown
+        }
+      );
     }
 
     const dangerGroup: MenuItem[] = [
