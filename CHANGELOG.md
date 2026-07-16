@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.5.3 - 2026-07-16
+
 - refactor(menu): update theme menu item handling. (`bcf4d08`)
 - feat(menu): update menu labels and add tabId support across components. (`7194fda`)
 - refactor(menu): remove collections, environments, and run results visibility from menu. (`068258d`)
