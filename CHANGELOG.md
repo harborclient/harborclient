@@ -3,6 +3,9 @@
 ## Unreleased
 
 - feat(settings): introduce close-to-tray functionality in general settings. (`b1f992b`)
+
+## 2.5.1 - 2026-07-16
+
 - feat(theme): update footer and sidebar styles across themes. (`6992c4f`)
 - feat(theme): enhance high-contrast theme with updated colors and styles. (`a1c80a5`)
 - chore(dependencies): update @harborclient/sdk to version 1.1.22 and enhance theme configurations. (`4685d66`)
