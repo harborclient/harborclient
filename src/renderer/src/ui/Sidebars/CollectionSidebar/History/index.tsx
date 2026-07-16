@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react
 import type { RequestHistoryEntry } from '#/shared/types/requestHistory';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { selectRequestsByCollection } from '#/renderer/src/store/selectors';
 import { selectRequestHistory } from '#/renderer/src/store/slices/requestHistorySlice';
 import {
   deleteRequestHistory,
@@ -10,11 +11,13 @@ import {
   openRequestHistoryRun
 } from '#/renderer/src/store/thunks/requestHistory';
 import { loadSavedRequest, openRequestDraft } from '#/renderer/src/plugins/hostRequestCommands';
+import { useSidebarSectionFilter } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarSectionFilterContext';
 import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/useSidebarRowSelection';
 import { faPersonRunning } from '#/renderer/src/fontawesome';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { type InspectPoint } from '#/renderer/src/ui/Shared/devInspectContextMenu';
 import { ActionsMenu } from './ActionsMenu';
+import { historyEntryCollectionId } from './historyEntryCollection';
 import { formatSidebarAbsoluteDate } from './utils';
 
 export { HistoryHeaderActions } from './HistoryHeaderActions';
@@ -70,11 +73,25 @@ function historyEntryAriaLabel(entry: RequestHistoryEntry): string {
 export function History(): JSX.Element {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
-  const entries = useAppSelector(selectRequestHistory);
+  const allEntries = useAppSelector(selectRequestHistory);
+  const requestsByCollection = useAppSelector(selectRequestsByCollection);
+  const { historyCollectionFilter } = useSidebarSectionFilter();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [inspectPointsByMenuId, setInspectPointsByMenuId] = useState<Record<string, InspectPoint>>(
     {}
   );
+
+  /**
+   * History entries limited to the selected collection when a filter is active.
+   */
+  const entries = useMemo(() => {
+    if (historyCollectionFilter == null) {
+      return allEntries;
+    }
+    return allEntries.filter(
+      (entry) => historyEntryCollectionId(entry, requestsByCollection) === historyCollectionFilter
+    );
+  }, [allEntries, historyCollectionFilter, requestsByCollection]);
 
   /**
    * History entry ids in on-screen list order for shift-click range selection.

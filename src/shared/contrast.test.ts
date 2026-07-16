@@ -2,14 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { contrastRatio } from './contrast';
 import {
   HC_ACCENT,
+  HC_FOOTER_ICON_ACTIVE,
   HC_METHOD_COLORS,
   HC_PRIMARY_BUTTON_TEXT,
   HC_RESIZE_HANDLE,
   HC_SELECTION,
   HC_SEPARATOR,
+  HC_SIDEBAR_SECTION_TEXT,
   HC_SURFACE,
   HC_TEXT,
-  HC_TEXT_ON_SURFACE
+  HC_TEXT_ON_SURFACE,
+  HC_TOOLBAR_ACTION_ACTIVE
 } from './highContrastPalette';
 
 describe('contrastRatio', () => {
@@ -37,6 +40,12 @@ describe('highContrastPalette', () => {
 
   it('keeps black text readable on yellow section-header backgrounds', () => {
     expect(contrastRatio(HC_PRIMARY_BUTTON_TEXT, HC_SEPARATOR)).toBeGreaterThanOrEqual(7);
+    expect(contrastRatio(HC_SIDEBAR_SECTION_TEXT, HC_SEPARATOR)).toBeGreaterThanOrEqual(7);
+  });
+
+  it('keeps footer icon and toolbar action active colors at or above AAA on the surface', () => {
+    expect(contrastRatio(HC_FOOTER_ICON_ACTIVE, HC_SURFACE)).toBeGreaterThanOrEqual(7);
+    expect(contrastRatio(HC_TOOLBAR_ACTION_ACTIVE, HC_SURFACE)).toBeGreaterThanOrEqual(7);
   });
 
   it('keeps focus/accent colors at or above AAA on the surface', () => {

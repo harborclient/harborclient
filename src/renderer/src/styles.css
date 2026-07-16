@@ -42,6 +42,12 @@
   --color-sidebar: var(--mac-sidebar);
   --color-sidebar-toolbar: var(--mac-sidebar-toolbar);
   --color-sidebar-section: var(--mac-sidebar-section);
+  --color-sidebar-section-text: var(--mac-sidebar-section-text, var(--mac-muted));
+  --color-footer: var(--mac-footer, var(--mac-sidebar));
+  --color-footer-text: var(--mac-footer-text, var(--mac-text));
+  --color-footer-muted: var(--mac-footer-muted, var(--mac-muted));
+  --color-footer-icon-active: var(--mac-footer-icon-active, var(--mac-text));
+  --color-toolbar-action-active: var(--mac-toolbar-action-active, var(--mac-text));
   --color-breadcrumb-background: var(--mac-breadcrumb-background, var(--mac-sidebar));
   --color-breadcrumb-segment: var(--mac-breadcrumb-segment, var(--mac-sidebar));
   --color-git-staged: var(--mac-git-staged);
@@ -56,6 +62,8 @@
   --color-muted: var(--mac-muted);
   --color-accent: var(--mac-accent);
   --color-tab-underline: var(--mac-tab-underline, var(--mac-accent));
+  --color-resize-handle: var(--mac-resize-handle, var(--mac-accent));
+  --color-variable-token: var(--mac-variable-token, var(--mac-accent));
   --color-selection: var(--mac-selection);
   --color-doc-markdown: var(--mac-doc-markdown);
   --color-tab-unsaved: var(--mac-tab-unsaved);
@@ -100,6 +108,12 @@
     --mac-sidebar: #ececee;
     --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 94%, black);
     --mac-sidebar-section: var(--mac-selection);
+    --mac-sidebar-section-text: var(--mac-muted);
+    --mac-footer: var(--mac-sidebar);
+    --mac-footer-text: var(--mac-text);
+    --mac-footer-muted: var(--mac-muted);
+    --mac-footer-icon-active: var(--mac-text);
+    --mac-toolbar-action-active: var(--mac-text);
     --mac-breadcrumb-background: #ececee;
     --mac-breadcrumb-segment: #ececee;
     --mac-git-staged: var(--mac-success);
@@ -113,6 +127,9 @@
     --mac-text-secondary: rgba(0, 0, 0, 0.65);
     --mac-muted: rgba(0, 0, 0, 0.58);
     --mac-accent: #007aff;
+    --mac-tab-underline: var(--mac-accent);
+    --mac-resize-handle: var(--mac-accent);
+    --mac-variable-token: var(--mac-accent);
     --mac-selection: rgba(0, 122, 255, 0.18);
     --mac-doc-markdown: #007aff;
     --mac-tab-unsaved: #b45309;
@@ -156,6 +173,12 @@
       --mac-sidebar: #252526;
       --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 94%, black);
       --mac-sidebar-section: color-mix(in srgb, var(--mac-sidebar) 86%, black);
+      --mac-sidebar-section-text: var(--mac-muted);
+      --mac-footer: var(--mac-sidebar);
+      --mac-footer-text: var(--mac-text);
+      --mac-footer-muted: var(--mac-muted);
+      --mac-footer-icon-active: var(--mac-text);
+      --mac-toolbar-action-active: var(--mac-text);
       --mac-breadcrumb-background: #252526;
       --mac-breadcrumb-segment: #252526;
       --mac-git-staged: var(--mac-success);
@@ -170,6 +193,8 @@
       --mac-muted: rgba(255, 255, 255, 0.58);
       --mac-accent: #0a84ff;
       --mac-tab-underline: #ffffff;
+      --mac-resize-handle: var(--mac-accent);
+      --mac-variable-token: var(--mac-accent);
       --mac-selection: rgba(10, 132, 255, 0.22);
       --mac-doc-markdown: #0a84ff;
       --mac-tab-unsaved: #ffb340;
@@ -198,6 +223,12 @@
     --mac-sidebar: #252526;
     --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 94%, black);
     --mac-sidebar-section: color-mix(in srgb, var(--mac-sidebar) 86%, black);
+    --mac-sidebar-section-text: var(--mac-muted);
+    --mac-footer: var(--mac-sidebar);
+    --mac-footer-text: var(--mac-text);
+    --mac-footer-muted: var(--mac-muted);
+    --mac-footer-icon-active: var(--mac-text);
+    --mac-toolbar-action-active: var(--mac-text);
     --mac-breadcrumb-background: #252526;
     --mac-breadcrumb-segment: #252526;
     --mac-git-staged: var(--mac-success);
@@ -212,6 +243,8 @@
     --mac-muted: rgba(255, 255, 255, 0.58);
     --mac-accent: #0a84ff;
     --mac-tab-underline: #ffffff;
+    --mac-resize-handle: var(--mac-accent);
+    --mac-variable-token: var(--mac-accent);
     --mac-selection: rgba(10, 132, 255, 0.22);
     --mac-doc-markdown: #0a84ff;
     --mac-tab-unsaved: #ffb340;
@@ -249,6 +282,12 @@
     --mac-sidebar: #000000;
     --mac-sidebar-toolbar: #141414;
     --mac-sidebar-section: #ffd60a;
+    --mac-sidebar-section-text: #000000;
+    --mac-footer: #000000;
+    --mac-footer-text: #ffffff;
+    --mac-footer-muted: #d0d0d0;
+    --mac-footer-icon-active: #ffd60a;
+    --mac-toolbar-action-active: #ffd60a;
     --mac-breadcrumb-background: #000000;
     --mac-breadcrumb-segment: #000000;
     --mac-git-staged: #5ce06a;
@@ -304,6 +343,12 @@
       --mac-sidebar: Canvas;
       --mac-sidebar-toolbar: Canvas;
       --mac-sidebar-section: Canvas;
+      --mac-sidebar-section-text: GrayText;
+      --mac-footer: Canvas;
+      --mac-footer-text: CanvasText;
+      --mac-footer-muted: GrayText;
+      --mac-footer-icon-active: CanvasText;
+      --mac-toolbar-action-active: CanvasText;
       --mac-breadcrumb-background: Canvas;
       --mac-breadcrumb-segment: Canvas;
       --mac-git-staged: CanvasText;
@@ -318,6 +363,7 @@
       --mac-text-secondary: CanvasText;
       --mac-muted: GrayText;
       --mac-accent: LinkText;
+      --mac-tab-underline: LinkText;
       --mac-selection: Highlight;
       --mac-doc-markdown: LinkText;
       --mac-danger: LinkText;
@@ -578,16 +624,17 @@
   :root[data-theme='high-contrast'] .hc-sidebar-section-header {
     background-color: var(--mac-sidebar-section) !important;
     border-color: var(--mac-separator) !important;
-    color: #000000 !important;
+    color: var(--mac-sidebar-section-text) !important;
   }
 
   :root[data-theme='high-contrast'] .hc-sidebar-section-header,
   :root[data-theme='high-contrast'] .hc-sidebar-section-header .text-muted,
   :root[data-theme='high-contrast'] .hc-sidebar-section-header .text-text,
   :root[data-theme='high-contrast'] .hc-sidebar-section-header .text-secondary,
+  :root[data-theme='high-contrast'] .hc-sidebar-section-header .text-sidebar-section-text,
   :root[data-theme='high-contrast'] .hc-sidebar-section-header button,
   :root[data-theme='high-contrast'] .hc-sidebar-section-header svg {
-    color: #000000 !important;
+    color: var(--mac-sidebar-section-text) !important;
   }
 
   :root[data-theme='high-contrast'] .hc-button.bg-accent {
@@ -658,22 +705,6 @@
    */
   #footer-terminal-panel .hc-footer-panel-body {
     overflow: hidden;
-  }
-
-  :root[data-theme='high-contrast'] .hc-footer-button,
-  :root[data-theme='high-contrast'] .hc-footer-button:hover,
-  :root[data-theme='high-contrast'] .hc-footer-button .text-muted {
-    color: var(--mac-resize-handle) !important;
-  }
-
-  :root[data-theme='high-contrast'] .hc-footer-icon,
-  :root[data-theme='high-contrast'] .hc-footer-icon:hover {
-    color: var(--mac-resize-handle) !important;
-  }
-
-  :root[data-theme='high-contrast'] .hc-toolbar-action[aria-pressed='true'],
-  :root[data-theme='high-contrast'] .hc-toolbar-action[aria-pressed='true']:hover {
-    color: var(--mac-resize-handle) !important;
   }
 
   :root[data-theme='high-contrast'] .hc-action-menu-toggle {

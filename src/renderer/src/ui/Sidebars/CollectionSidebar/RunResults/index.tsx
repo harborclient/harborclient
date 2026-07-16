@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectRunResults } from '#/renderer/src/store/slices/runResultsSlice';
 import { deleteRunResult, openSavedRunResult } from '#/renderer/src/store/thunks/runResults';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
+import { useSidebarSectionFilter } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarSectionFilterContext';
 import { useSidebarProviders } from '#/renderer/src/ui/Sidebars/CollectionSidebar/providers/sidebarProvidersContext';
 import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/useSidebarRowSelection';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
@@ -42,13 +43,24 @@ function runResultAriaLabel(
 export function RunResults(): JSX.Element {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
-  const runResults = useAppSelector(selectRunResults);
+  const allRunResults = useAppSelector(selectRunResults);
+  const { runsCollectionFilter } = useSidebarSectionFilter();
   const { connectionNamesById } = useSidebarProviders();
   const { showStorageLocationBadges } = useSidebarExpansion();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [inspectPointsByMenuId, setInspectPointsByMenuId] = useState<Record<string, InspectPoint>>(
     {}
   );
+
+  /**
+   * Run results limited to the selected collection name when a filter is active.
+   */
+  const runResults = useMemo(() => {
+    if (runsCollectionFilter == null) {
+      return allRunResults;
+    }
+    return allRunResults.filter((runResult) => runResult.collectionName === runsCollectionFilter);
+  }, [allRunResults, runsCollectionFilter]);
 
   /**
    * Run result ids in on-screen list order for shift-click range selection.

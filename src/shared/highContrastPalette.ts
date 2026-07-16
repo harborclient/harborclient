@@ -52,6 +52,24 @@ export const HC_RESIZE_HANDLE = '#ffd60a';
  */
 export const HC_SEPARATOR = HC_RESIZE_HANDLE;
 
+/** Sidebar toolbar strip fill (~8% white on black). */
+export const HC_SIDEBAR_TOOLBAR = '#141414';
+
+/**
+ * Sidebar section header text on yellow {@link HC_SEPARATOR} backgrounds.
+ * Same as {@link HC_PRIMARY_BUTTON_TEXT} (black).
+ */
+export const HC_SIDEBAR_SECTION_TEXT = '#000000';
+
+/** Active request tab underline; same yellow as {@link HC_RESIZE_HANDLE}. */
+export const HC_TAB_UNDERLINE = HC_RESIZE_HANDLE;
+
+/** Active footer icon toggle color; same yellow as {@link HC_RESIZE_HANDLE}. */
+export const HC_FOOTER_ICON_ACTIVE = HC_RESIZE_HANDLE;
+
+/** Pressed toolbar action icon color; same yellow as {@link HC_RESIZE_HANDLE}. */
+export const HC_TOOLBAR_ACTION_ACTIVE = HC_RESIZE_HANDLE;
+
 /**
  * Distinct AAA method colors for high contrast on black.
  * GET ~11:1, POST ~8.6:1, PUT ~14:1.

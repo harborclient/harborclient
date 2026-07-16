@@ -112,7 +112,14 @@ export interface CustomThemeTokenGroup {
 export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   'surface': 'Surface',
   'sidebar': 'Sidebar',
+  'sidebar-toolbar': 'Sidebar toolbar',
   'sidebar-section': 'Sidebar section',
+  'sidebar-section-text': 'Sidebar section text',
+  'footer': 'Footer',
+  'footer-text': 'Footer text',
+  'footer-muted': 'Footer muted',
+  'footer-icon-active': 'Footer icon active',
+  'toolbar-action-active': 'Toolbar action active',
   'breadcrumb-background': 'Breadcrumb background',
   'breadcrumb-segment': 'Breadcrumb segment',
   'control': 'Control',
@@ -125,6 +132,9 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   'selection': 'Selection',
   'doc-markdown': 'Markdown document',
   'tab-unsaved': 'Unsaved tab text',
+  'tab-underline': 'Tab underline',
+  'resize-handle': 'Resize handle',
+  'variable-token': 'Variable token',
   'danger': 'Danger',
   'danger-light': 'Danger light',
   'warning': 'Warning',
@@ -159,7 +169,17 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
 export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
   {
     label: 'Layout',
-    tokens: ['surface', 'sidebar', 'sidebar-section', 'control', 'field', 'separator', 'terminal']
+    tokens: [
+      'surface',
+      'sidebar',
+      'sidebar-toolbar',
+      'sidebar-section',
+      'footer',
+      'control',
+      'field',
+      'separator',
+      'terminal'
+    ]
   },
   {
     label: 'Breadcrumb',
@@ -167,11 +187,28 @@ export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
   },
   {
     label: 'Text',
-    tokens: ['text', 'text-secondary', 'muted']
+    tokens: [
+      'text',
+      'text-secondary',
+      'muted',
+      'sidebar-section-text',
+      'footer-text',
+      'footer-muted'
+    ]
   },
   {
     label: 'Interactive',
     tokens: ['accent', 'selection', 'doc-markdown']
+  },
+  {
+    label: 'Chrome',
+    tokens: [
+      'footer-icon-active',
+      'toolbar-action-active',
+      'tab-underline',
+      'resize-handle',
+      'variable-token'
+    ]
   },
   {
     label: 'Tabs',
