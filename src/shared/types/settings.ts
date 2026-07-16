@@ -257,6 +257,12 @@ export interface GeneralSettings {
   wrapTabs: boolean;
 
   /**
+   * When true, closing the main window hides the app to the system tray instead of quitting.
+   * Use File → Quit or the tray Quit action to exit completely.
+   */
+  closeToTray: boolean;
+
+  /**
    * When true, editable text fields show spellcheck underlines and spelling context-menu actions.
    */
   spellCheckEnabled: boolean;

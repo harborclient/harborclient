@@ -256,6 +256,33 @@ describe('generalSettings', () => {
     expect(getGeneralSettings().wrapTabs).toBe(false);
   });
 
+  it('defaults closeToTray to false when unset', () => {
+    expect(getGeneralSettings().closeToTray).toBe(false);
+  });
+
+  it('persists closeToTray true', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      closeToTray: true
+    });
+
+    expect(getGeneralSettings().closeToTray).toBe(true);
+  });
+
+  it('normalizes closeToTray to false when absent or invalid', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      closeToTray: true
+    });
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      // Simulate a stored payload missing the field after a schema upgrade.
+      closeToTray: undefined as unknown as boolean
+    });
+
+    expect(getGeneralSettings().closeToTray).toBe(false);
+  });
+
   it('defaults spellCheckEnabled to true when unset', () => {
     expect(getGeneralSettings().spellCheckEnabled).toBe(true);
   });

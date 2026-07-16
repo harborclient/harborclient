@@ -274,6 +274,7 @@ export const generalSettings = z.object({
   followRedirects: z.boolean(),
   scrollbarAutoHide: z.boolean(),
   wrapTabs: z.boolean(),
+  closeToTray: z.boolean(),
   spellCheckEnabled: z.boolean(),
   warnWhenSwitchingThemes: z.boolean(),
   warnWhenExitingWithUnsavedChanges: z.boolean(),

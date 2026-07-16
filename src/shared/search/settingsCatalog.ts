@@ -9,6 +9,7 @@ export type SettingId =
   | 'general.followRedirects'
   | 'general.scrollbarAutoHide'
   | 'general.wrapTabs'
+  | 'general.closeToTray'
   | 'general.spellCheckEnabled'
   | 'general.logFilePath'
   | 'proxy.enabled'
@@ -199,6 +200,15 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     description:
       'When enabled, request tabs and AI chat tabs wrap onto multiple rows instead of scrolling horizontally.',
     keywords: ['wrap', 'tabs', 'overflow', 'scroll']
+  },
+  {
+    id: 'general.closeToTray',
+    section: 'general',
+    kind: 'field',
+    label: 'Close to tray',
+    description:
+      'When enabled, closing the main window hides HarborClient to the system tray instead of quitting. Use File → Quit or the tray Quit action to exit completely.',
+    keywords: ['tray', 'close', 'minimize', 'background', 'system tray', 'quit', 'hide']
   },
   {
     id: 'general.spellCheckEnabled',

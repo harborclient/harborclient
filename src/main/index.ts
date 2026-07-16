@@ -46,6 +46,7 @@ import { isDevModeFlagEnabled } from './devMode';
 import { isQuitWithoutWarningFlagEnabled } from './quitWithoutWarning';
 import { applyRandUserDirIfRequested, cleanupRandUserDir } from './randUserDir';
 import { getStartupThemeOverride } from './startupTheme';
+import { disposeTray, initTrayHost, syncTrayFromSettings } from '#/main/tray/trayHost';
 import { disposeScriptRunner } from '#/main/scripting/scriptRunnerHost';
 import {
   PluginManager,
@@ -441,12 +442,21 @@ function promptForClose(reason: CloseReason): void {
 /**
  * Registers close and quit handlers on a browser window.
  *
+ * When close-to-tray is enabled, the window close button hides the window
+ * instead of quitting. Explicit quit (menu, tray Quit, Ctrl/Cmd+Q) still uses
+ * the unsaved-changes prompt flow via `before-quit`.
+ *
  * @param window - Main application window.
  */
 function setupCloseHandlers(window: BrowserWindow): void {
   window.on('close', (event) => {
     if (isQuitting) {
       saveWindowState(window);
+      return;
+    }
+    if (getGeneralSettings().closeToTray) {
+      event.preventDefault();
+      window.hide();
       return;
     }
     if (isQuitWithoutWarningFlagEnabled()) {
@@ -960,6 +970,12 @@ app.whenReady().then(async () => {
     setMenuWindow(mainWindow);
     setMenuActiveTheme(activeTheme);
     rebuildAppMenu();
+    initTrayHost({
+      getMainWindow: () => mainWindow,
+      focusMainWindow,
+      resolveAppIcon
+    });
+    syncTrayFromSettings(getGeneralSettings().closeToTray);
     logVerbose('startup: main window created, waiting for ready-to-show');
 
     const startupDeepLink = findDeepLinkInArgv(process.argv);
@@ -978,11 +994,16 @@ app.whenReady().then(async () => {
   }
 
   app.on('activate', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      focusMainWindow();
+      return;
+    }
     if (BrowserWindow.getAllWindows().length === 0) {
       isQuitting = false;
       mainWindow = createWindow();
       pluginManager?.setNotifyWindow(() => mainWindow);
       setMenuWindow(mainWindow);
+      syncTrayFromSettings(getGeneralSettings().closeToTray);
       void db.getSetting(THEME_SETTING_KEY).then((stored) => {
         const theme: ThemeSource =
           stored === 'light' ||
@@ -1000,6 +1021,9 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
+  if (getGeneralSettings().closeToTray && mainWindow && !mainWindow.isDestroyed()) {
+    return;
+  }
   if (process.platform !== 'darwin') {
     app.quit();
   }
@@ -1027,6 +1051,7 @@ app.on('before-quit', (event) => {
  * renderer can unload plugins while the runner is still active.
  */
 app.on('will-quit', () => {
+  disposeTray();
   killAllTerminals();
   disposeScriptRunner();
   disposePluginRunner();

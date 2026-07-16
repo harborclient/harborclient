@@ -1,5 +1,6 @@
 import { DEFAULT_PROXY_SETTINGS, HARD_MAX_RESPONSE_SIZE_MB } from '@harborclient/http';
 import { configureFileLogger } from '#/main/fileLogger';
+import { syncTrayFromSettings } from '#/main/tray/trayHost';
 import { applySpellCheckEnabled } from '#/main/window/spellCheck';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { normalizeVariable } from '#/main/storage/collectionVariables';
@@ -27,6 +28,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   followRedirects: true,
   scrollbarAutoHide: false,
   wrapTabs: true,
+  closeToTray: false,
   spellCheckEnabled: true,
   warnWhenSwitchingThemes: true,
   warnWhenExitingWithUnsavedChanges: true,
@@ -167,6 +169,7 @@ function normalizeSettings(input: Partial<GeneralSettings>): GeneralSettings {
     followRedirects: input.followRedirects !== false,
     scrollbarAutoHide: input.scrollbarAutoHide === true,
     wrapTabs: input.wrapTabs !== false,
+    closeToTray: input.closeToTray === true,
     spellCheckEnabled: input.spellCheckEnabled !== false,
     warnWhenSwitchingThemes: input.warnWhenSwitchingThemes !== false,
     warnWhenExitingWithUnsavedChanges: input.warnWhenExitingWithUnsavedChanges !== false,
@@ -217,6 +220,7 @@ export function setGeneralSettings(input: GeneralSettings): void {
   getLocalDatabase().setSetting(STORE_KEY, JSON.stringify(normalized));
   configureFileLogger(normalized);
   applySpellCheckEnabled(normalized.spellCheckEnabled);
+  syncTrayFromSettings(normalized.closeToTray);
 }
 
 /**

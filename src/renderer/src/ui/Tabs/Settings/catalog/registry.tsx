@@ -20,6 +20,7 @@ import { GeneralLogFilePathField } from '../fields/GeneralLogFilePathField';
 import { GeneralScrollbarAutoHideField } from '../fields/GeneralScrollbarAutoHideField';
 import { GeneralSpellCheckEnabledField } from '../fields/GeneralSpellCheckEnabledField';
 import { GeneralWrapTabsField } from '../fields/GeneralWrapTabsField';
+import { GeneralCloseToTrayField } from '../fields/GeneralCloseToTrayField';
 import { GeneralMaxResponseSizeField } from '../fields/GeneralMaxResponseSizeField';
 import { GeneralRequestTimeoutField } from '../fields/GeneralRequestTimeoutField';
 import { GeneralScriptTimeoutField } from '../fields/GeneralScriptTimeoutField';
@@ -69,6 +70,7 @@ export const SETTINGS_FIELD_REGISTRY: Partial<Record<FieldSettingId, ComponentTy
   'general.followRedirects': GeneralFollowRedirectsField,
   'general.scrollbarAutoHide': GeneralScrollbarAutoHideField,
   'general.wrapTabs': GeneralWrapTabsField,
+  'general.closeToTray': GeneralCloseToTrayField,
   'general.spellCheckEnabled': GeneralSpellCheckEnabledField,
   'general.logFilePath': GeneralLogFilePathField,
   'proxy.enabled': ProxyEnabledField,
