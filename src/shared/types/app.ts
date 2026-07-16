@@ -4,6 +4,7 @@
 export type MenuActionId =
   | 'new-request'
   | 'new-collection'
+  | 'new-environment'
   | 'import'
   | 'save'
   | 'settings'

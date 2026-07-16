@@ -160,6 +160,16 @@ export function buildMenu(
           click: () => sendMenuAction(window, 'new-request')
         },
         {
+          label: 'New Environment',
+          click: () => sendMenuAction(window, 'new-environment')
+        },
+        {
+          label: 'New Tab Group',
+          enabled: tabGroupAvailable,
+          click: () => sendMenuAction(window, 'create-tab-group')
+        },
+        { type: 'separator' },
+        {
           label: 'Sync Storage',
           accelerator: acceleratorFor(accelerators, 'sync'),
           click: () => sendMenuAction(window, 'sync')
@@ -222,12 +232,6 @@ export function buildMenu(
               click: () => sendMenuAction(window, 'redo')
             }
           : { role: 'redo', accelerator: acceleratorFor(accelerators, 'redo') },
-        { type: 'separator' },
-        {
-          label: 'Create Tab Group',
-          enabled: tabGroupAvailable,
-          click: () => sendMenuAction(window, 'create-tab-group')
-        },
         { type: 'separator' },
         {
           label: 'Deselect all',

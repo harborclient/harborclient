@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(menu): update tab group menu item and add new environment option. (`44952c7`)
+
 ## 2.5.2 - 2026-07-16
 
 - chore(docs): update search index JSON structure. (`802c342`)

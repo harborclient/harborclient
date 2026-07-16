@@ -211,7 +211,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const showSplitLayout = showRequestEditor && showResponseEditor;
 
   /**
-   * Keeps the native Edit menu Create Tab Group item in sync with open saved request tabs.
+   * Keeps the native File menu New Tab Group item in sync with open saved request tabs.
    */
   useEffect(() => {
     const hasOpenSavedRequests = tabs.some((tab) => isRequestTab(tab) && tab.draft.id != null);

@@ -66,6 +66,7 @@ import { GitSidebar } from '#/renderer/src/ui/Sidebars/GitSidebar';
 import { CollectionSidebar } from '#/renderer/src/ui/Sidebars/CollectionSidebar';
 import { SidebarGitProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/SidebarGitProvider';
 import { SidebarExpansionProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/SidebarExpansionProvider';
+import { FileMenuEnvironmentHost } from '#/renderer/src/ui/Sidebars/CollectionSidebar/modals/FileMenuEnvironmentHost';
 import { SidebarModalsProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/modals/SidebarModals';
 import { RequestEditor } from '#/renderer/src/ui/Main/RequestEditor';
 import { resolveVariableEditTarget } from '#/renderer/src/ui/Main/RequestEditor/resolveVariableEditTarget';
@@ -333,6 +334,7 @@ export default function App(): JSX.Element {
               />
               <TitleBar />
               <SidebarModalsProvider>
+                <FileMenuEnvironmentHost />
                 <div className="relative flex min-h-0 flex-1 overflow-hidden">
                   <AnimatedHorizontalPanel
                     id={COLLECTIONS_SIDEBAR_SECTION_ID}
