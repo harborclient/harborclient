@@ -72,6 +72,11 @@ export interface Props {
    * Called when unsaved form edits appear or are cleared.
    */
   onDirtyChange?: (dirty: boolean) => void;
+
+  /**
+   * Hosting tab id so File → Save / Ctrl+S can persist this form.
+   */
+  tabId?: string;
 }
 
 /**
@@ -84,7 +89,8 @@ export function Form({
   focusSection,
   onSave,
   onClose,
-  onDirtyChange
+  onDirtyChange,
+  tabId
 }: Props): JSX.Element {
   const pluginTabs = usePluginCollectionSettingsTabs();
   const [connectionId, setConnectionId] = useState(collection.connectionId ?? '');
@@ -296,6 +302,7 @@ export function Form({
       onClose={onClose}
       onDirtyChange={onDirtyChange}
       onSave={handleScopedSave}
+      tabId={tabId}
       renderGeneral={(state) => (
         <GeneralSection
           name={state.name}

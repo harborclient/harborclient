@@ -41,6 +41,7 @@ export function CollectionPageRoute({
       collection={collection}
       focusVariableKey={page.focusVariableKey}
       focusSection={page.focusSection}
+      tabId={tabId}
       onDirtyChange={(dirty) => dispatch(setCollectionSettingsDirty(dirty))}
       onSave={async (
         id: number,

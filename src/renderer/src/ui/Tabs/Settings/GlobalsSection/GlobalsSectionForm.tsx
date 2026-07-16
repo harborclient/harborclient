@@ -6,10 +6,11 @@ import {
   FormSection,
   SettingIdLabel
 } from '@harborclient/sdk/components';
-import { useMemo, useState, type JSX } from 'react';
+import { useCallback, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { Variable } from '#/shared/types';
 
+import { useTabSaveRegistration } from '#/renderer/src/hooks/tabSaveRegistry';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { saveGlobalVariables } from '#/renderer/src/store/thunks/settings';
 import { settingsSectionMeta } from '../constants';
@@ -25,12 +26,21 @@ interface Props {
    * When set, focuses the matching variable row in the table.
    */
   focusVariableKey?: string;
+
+  /**
+   * Hosting tab id so File → Save / Ctrl+S can persist globals.
+   */
+  tabId?: string;
 }
 
 /**
  * Editable globals form keyed by saved variables so state resets when persistence changes.
  */
-export function GlobalsSectionForm({ savedVariables, focusVariableKey }: Props): JSX.Element {
+export function GlobalsSectionForm({
+  savedVariables,
+  focusVariableKey,
+  tabId
+}: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const [variables, setVariables] = useState<Variable[]>(
     savedVariables.length
@@ -50,7 +60,7 @@ export function GlobalsSectionForm({ savedVariables, focusVariableKey }: Props):
   /**
    * Persists global variables to app settings.
    */
-  const handleSave = async (): Promise<void> => {
+  const handleSave = useCallback(async (): Promise<void> => {
     const cleanedVariables = cleanVariables(variables);
     setSaving(true);
     try {
@@ -61,7 +71,14 @@ export function GlobalsSectionForm({ savedVariables, focusVariableKey }: Props):
     } finally {
       setSaving(false);
     }
-  };
+  }, [dispatch, variables]);
+
+  /**
+   * Whether File → Save / Ctrl+S should invoke this form (mirrors Save button).
+   */
+  const menuCanSave = isDirty && !saving;
+
+  useTabSaveRegistration(tabId, menuCanSave, handleSave);
 
   const { label, icon } = settingsSectionMeta('globals');
 

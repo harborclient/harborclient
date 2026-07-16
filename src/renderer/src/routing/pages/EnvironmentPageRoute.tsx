@@ -39,6 +39,7 @@ export function EnvironmentPageRoute({
     <EnvironmentSettings
       environment={environment}
       focusVariableKey={page.focusVariableKey}
+      tabId={tabId}
       onDirtyChange={(dirty) => dispatch(setEnvironmentSettingsDirty(dirty))}
       onSave={async (id: number, name: string, variables: Variable[]) => {
         try {

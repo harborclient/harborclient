@@ -23,12 +23,22 @@ interface Props {
    * Opens a management section from search results and clears the active query.
    */
   onNavigate: (section: SettingsSection, focusSettingId?: string) => void;
+
+  /**
+   * Hosting tab id so File → Save / Ctrl+S can persist draft fields in search results.
+   */
+  tabId?: string;
 }
 
 /**
  * Renders settings search results as inline field controls and section navigation cards.
  */
-export function SettingsSearchResults({ matchedIds, query, onNavigate }: Props): JSX.Element {
+export function SettingsSearchResults({
+  matchedIds,
+  query,
+  onNavigate,
+  tabId
+}: Props): JSX.Element {
   const fieldIds = matchedIds.filter((id): id is FieldSettingId => entryById(id).kind === 'field');
   const sectionIds = matchedIds.filter((id) => entryById(id).kind === 'section');
   const groupIds = matchedIds.filter((id) => entryById(id).kind === 'group');
@@ -45,7 +55,7 @@ export function SettingsSearchResults({ matchedIds, query, onNavigate }: Props):
             <div className="flex flex-col gap-6">
               <SettingsDraftError />
               {renderSettingFields(fieldIds)}
-              <SettingsSaveFooter />
+              <SettingsSaveFooter tabId={tabId} />
             </div>
           ) : null}
 

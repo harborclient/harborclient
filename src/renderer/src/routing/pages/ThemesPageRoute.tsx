@@ -5,10 +5,9 @@ import { Plugins } from '#/renderer/src/ui/Tabs/Plugins';
 /**
  * Route wrapper for the Themes marketplace page tab.
  *
- * @param _props - Page tab props (unused).
+ * @param props - Page tab props including hosting tab id.
  * @returns Themes page content.
  */
-export function ThemesPageRoute(_props: PageComponentProps<'themes'>): JSX.Element {
-  void _props;
-  return <Plugins kind="themes" />;
+export function ThemesPageRoute({ tabId }: PageComponentProps<'themes'>): JSX.Element {
+  return <Plugins kind="themes" tabId={tabId} />;
 }

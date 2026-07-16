@@ -8,13 +8,14 @@ import { Settings } from '#/renderer/src/ui/Tabs/Settings';
  * @param props - Page identity carrying the initial section and focus targets.
  * @returns Settings page content.
  */
-export function SettingsPageRoute({ page }: PageComponentProps<'settings'>): JSX.Element {
+export function SettingsPageRoute({ page, tabId }: PageComponentProps<'settings'>): JSX.Element {
   return (
     <Settings
       key="settings"
       initialSection={page.section}
       focusVariableKey={page.focusVariableKey}
       focusSettingId={page.focusSettingId}
+      tabId={tabId}
     />
   );
 }

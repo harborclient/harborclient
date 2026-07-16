@@ -8,8 +8,9 @@ import {
   Input,
   FormSection
 } from '@harborclient/sdk/components';
-import { useEffect, useMemo, useState, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import type { Environment, Variable } from '#/shared/types';
+import { useTabSaveRegistration } from '#/renderer/src/hooks/tabSaveRegistry';
 import { ENVIRONMENT_SETTINGS_NAME_INPUT_ID } from './focusEnvironmentSettings';
 import { serializeEnvironmentForm } from './serialize';
 
@@ -42,6 +43,11 @@ export interface Props {
    * Called when unsaved form edits appear or are cleared.
    */
   onDirtyChange?: (dirty: boolean) => void;
+
+  /**
+   * Hosting tab id so File → Save / Ctrl+S can persist this form.
+   */
+  tabId?: string;
 }
 
 /**
@@ -52,7 +58,8 @@ export function Form({
   focusVariableKey,
   onSave,
   onClose,
-  onDirtyChange
+  onDirtyChange,
+  tabId
 }: Props): JSX.Element {
   const [name, setName] = useState(environment.name);
   const [variables, setVariables] = useState<Variable[]>(
@@ -82,7 +89,7 @@ export function Form({
   /**
    * Persists name and variables.
    */
-  const handleSave = async (): Promise<void> => {
+  const handleSave = useCallback(async (): Promise<void> => {
     const trimmedName = name.trim();
     if (!trimmedName) return;
 
@@ -94,7 +101,14 @@ export function Form({
     } finally {
       setSaving(false);
     }
-  };
+  }, [name, variables, environment.id, onSave, onClose]);
+
+  /**
+   * Whether File → Save / Ctrl+S should invoke this form (mirrors Save button).
+   */
+  const menuCanSave = Boolean(name.trim()) && !saving;
+
+  useTabSaveRegistration(tabId, menuCanSave, handleSave);
 
   return (
     <Page

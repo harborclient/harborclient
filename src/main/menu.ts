@@ -315,7 +315,7 @@ export function buildMenu(
           click: () => sendMenuAction(window, 'sharing-keys')
         },
         {
-          label: 'Join Shared Collection',
+          label: 'Accept Shared Collection',
           accelerator: acceleratorFor(accelerators, 'join-shared-collection'),
           click: () => sendMenuAction(window, 'join-shared-collection')
         }
@@ -326,7 +326,6 @@ export function buildMenu(
       submenu: [
         {
           label: 'New Collection',
-          accelerator: acceleratorFor(accelerators, 'new-collection-git'),
           click: () => sendMenuAction(window, 'new-collection-git')
         },
         {

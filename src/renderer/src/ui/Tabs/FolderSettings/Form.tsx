@@ -42,6 +42,11 @@ export interface Props {
    * Called when unsaved form edits appear or are cleared.
    */
   onDirtyChange?: (dirty: boolean) => void;
+
+  /**
+   * Hosting tab id so File → Save / Ctrl+S can persist this form.
+   */
+  tabId?: string;
 }
 
 /**
@@ -52,7 +57,8 @@ export function Form({
   focusVariableKey,
   onSave,
   onClose,
-  onDirtyChange
+  onDirtyChange,
+  tabId
 }: Props): JSX.Element {
   /**
    * Normalized persisted snapshot used to seed and compare scoped form fields.
@@ -81,6 +87,7 @@ export function Form({
       postScriptDescription="Runs in the folder post-request stage after every request in this folder, after collection scripts and before each request's post-request stage. Supports {{variable}} syntax."
       onClose={onClose}
       onDirtyChange={onDirtyChange}
+      tabId={tabId}
       onSave={async (fields) => {
         await onSave(
           folder.id,

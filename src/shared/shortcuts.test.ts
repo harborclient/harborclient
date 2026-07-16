@@ -87,6 +87,35 @@ describe('resolveShortcuts', () => {
     );
   });
 
+  it('includes default bindings for Git menu shortcuts', () => {
+    const bindings = resolveShortcuts({});
+    expect(bindings.find((binding) => binding.id === 'new-collection-git')?.accelerator).toBe('');
+    expect(bindings.find((binding) => binding.id === 'git-create-branch')?.accelerator).toBe(
+      'CmdOrCtrl+Alt+B'
+    );
+    expect(bindings.find((binding) => binding.id === 'git-delete-branch')?.accelerator).toBe(
+      'CmdOrCtrl+Alt+D'
+    );
+    expect(bindings.find((binding) => binding.id === 'git-commit')?.accelerator).toBe(
+      'CmdOrCtrl+Alt+C'
+    );
+    expect(bindings.find((binding) => binding.id === 'git-merge')?.accelerator).toBe(
+      'CmdOrCtrl+Alt+M'
+    );
+    expect(bindings.find((binding) => binding.id === 'git-fetch')?.accelerator).toBe(
+      'CmdOrCtrl+Alt+F'
+    );
+    expect(bindings.find((binding) => binding.id === 'git-pull')?.accelerator).toBe(
+      'CmdOrCtrl+Alt+L'
+    );
+    expect(bindings.find((binding) => binding.id === 'git-push')?.accelerator).toBe(
+      'CmdOrCtrl+Alt+P'
+    );
+    expect(bindings.find((binding) => binding.id === 'git-settings')?.accelerator).toBe(
+      'CmdOrCtrl+Alt+G'
+    );
+  });
+
   it('includes default bindings for request shortcuts', () => {
     const bindings = resolveShortcuts({});
     expect(bindings.find((binding) => binding.id === 'send-request')?.accelerator).toBe('F5');

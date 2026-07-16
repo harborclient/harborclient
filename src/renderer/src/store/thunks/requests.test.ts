@@ -837,3 +837,127 @@ describe('closeRequestTab', () => {
     expect(store.getState().tabs.activeTabId).toBe(secondTabId);
   });
 });
+
+describe('saveFromMenu', () => {
+  /**
+   * Clears tab save registrations between cases.
+   */
+  afterEach(async () => {
+    const { clearTabSaveRegistry } = await import('#/renderer/src/hooks/tabSaveRegistry');
+    clearTabSaveRegistry();
+  });
+
+  it('invokes a registered tab save handler when canSave is true', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { openPageTab } = await import('#/renderer/src/store/slices/tabsSlice');
+    const { registerTabSave } = await import('#/renderer/src/hooks/tabSaveRegistry');
+    const { saveFromMenu } = await import('#/renderer/src/store/thunks/requests');
+
+    store.dispatch(openPageTab({ type: 'settings', section: 'general' }));
+    const tabId = store.getState().tabs.activeTabId!;
+    const save = vi.fn();
+    registerTabSave(tabId, { canSave: true, save });
+
+    await store.dispatch(saveFromMenu());
+
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(saveRequestMock).not.toHaveBeenCalled();
+  });
+
+  it('saves the active request tab when no registry handler is present', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { openTabWithDraft } = await import('#/renderer/src/store/slices/tabsSlice');
+    const { setSelectedCollectionId } =
+      await import('#/renderer/src/store/slices/collectionsSlice');
+    const { saveFromMenu } = await import('#/renderer/src/store/thunks/requests');
+
+    store.dispatch(setSelectedCollectionId(1));
+    store.dispatch(
+      openTabWithDraft({
+        id: 5,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Get',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [],
+        post_request_scripts: [],
+        comment: '',
+        tags: '',
+        auth: defaultAuth()
+      })
+    );
+
+    await store.dispatch(saveFromMenu());
+
+    expect(saveRequestMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('no-ops on page tabs without a registry handler', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { openPageTab } = await import('#/renderer/src/store/slices/tabsSlice');
+    const { saveFromMenu } = await import('#/renderer/src/store/thunks/requests');
+
+    store.dispatch(openPageTab({ type: 'settings', section: 'shortcuts' }));
+
+    await expect(store.dispatch(saveFromMenu()).unwrap()).resolves.toBeUndefined();
+    expect(saveRequestMock).not.toHaveBeenCalled();
+  });
+
+  it('saves a dirty markdown tab', async () => {
+    const saveDocumentMock = vi.fn().mockResolvedValue({
+      id: 1,
+      uuid: 'doc-1',
+      collection_id: 1,
+      folder_id: null,
+      name: 'README.md',
+      content: '# Edited',
+      sort_order: 0,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z'
+    });
+    vi.stubGlobal('window', {
+      api: {
+        saveRequest: saveRequestMock,
+        listRequests: listRequestsMock,
+        listFolders: listFoldersMock,
+        cancelRequest: cancelRequestMock,
+        saveDocument: saveDocumentMock
+      }
+    });
+
+    const { store } = await import('#/renderer/src/store/redux');
+    const { openMarkdownTab, updateMarkdownContent } =
+      await import('#/renderer/src/store/slices/tabsSlice');
+    const { saveFromMenu } = await import('#/renderer/src/store/thunks/requests');
+
+    store.dispatch(
+      openMarkdownTab({
+        doc: {
+          id: 1,
+          uuid: 'doc-1',
+          collection_id: 1,
+          folder_id: null,
+          name: 'README.md',
+          content: '# Hello',
+          sort_order: 0,
+          created_at: '2026-01-01T00:00:00.000Z',
+          updated_at: '2026-01-01T00:00:00.000Z'
+        }
+      })
+    );
+    const tabId = store.getState().tabs.activeTabId!;
+    store.dispatch(updateMarkdownContent({ tabId, content: '# Edited' }));
+
+    await store.dispatch(saveFromMenu());
+
+    expect(saveDocumentMock).toHaveBeenCalledTimes(1);
+    expect(saveDocumentMock.mock.calls[0]?.[0].content).toBe('# Edited');
+  });
+});

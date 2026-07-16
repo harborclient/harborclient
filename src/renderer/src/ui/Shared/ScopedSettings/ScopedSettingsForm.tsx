@@ -10,6 +10,7 @@ import {
 import { useCallback, useEffect, useMemo, useState, type JSX, type ReactNode } from 'react';
 import type { AuthConfig, KeyValue, ScriptRef, Variable } from '#/shared/types';
 import { ensureDefaultScriptRef, hasScriptContent } from '#/shared/scriptRefs';
+import { useTabSaveRegistration } from '#/renderer/src/hooks/tabSaveRegistry';
 import { VariablesSection } from '#/renderer/src/ui/Tabs/CollectionSettings/VariablesSection';
 import { ScriptSection } from '#/renderer/src/ui/Tabs/CollectionSettings/ScriptSection';
 import {
@@ -215,6 +216,11 @@ interface Props {
    * Called when unsaved form edits appear or are cleared.
    */
   onDirtyChange?: (dirty: boolean) => void;
+
+  /**
+   * Hosting tab id so File → Save / Ctrl+S can persist this form.
+   */
+  tabId?: string;
 }
 
 /**
@@ -243,7 +249,8 @@ export function ScopedSettingsForm({
   disableSave = false,
   onSave,
   onClose,
-  onDirtyChange
+  onDirtyChange,
+  tabId
 }: Props): JSX.Element {
   const [tab, setTab] = useState<string>(
     focusSection ?? (focusVariableKey ? 'variables' : 'general')
@@ -377,6 +384,13 @@ export function ScopedSettingsForm({
       setSaving(false);
     }
   }, [name, disableSave, onSave, currentFields, onClose]);
+
+  /**
+   * Whether File → Save / Ctrl+S should invoke this form (mirrors Save button).
+   */
+  const menuCanSave = Boolean(name.trim()) && !disableSave && !saving;
+
+  useTabSaveRegistration(tabId, menuCanSave, handleSave);
 
   const renderState = useMemo(
     (): ScopedSettingsRenderState => ({

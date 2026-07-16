@@ -39,6 +39,7 @@ export function FolderPageRoute({ page, tabId }: PageComponentProps<'folder'>): 
     <FolderSettings
       folder={folder}
       focusVariableKey={page.focusVariableKey}
+      tabId={tabId}
       onDirtyChange={(dirty) => dispatch(setFolderSettingsDirty(dirty))}
       onSave={async (
         id: number,

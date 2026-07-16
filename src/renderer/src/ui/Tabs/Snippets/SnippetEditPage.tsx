@@ -1,7 +1,8 @@
 import { Button, FieldError, Page } from '@harborclient/sdk/components';
-import { useEffect, useMemo, useState, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { PageRef } from '#/renderer/src/store/tabs';
+import { useTabSaveRegistration } from '#/renderer/src/hooks/tabSaveRegistry';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { closeTab } from '#/renderer/src/store/slices/tabsSlice';
 import { selectSnippets } from '#/renderer/src/store/selectors';
@@ -115,7 +116,7 @@ export function SnippetEditPage({ page, tabId }: Props): JSX.Element {
   /**
    * Persists the snippet draft through create or update IPC.
    */
-  const handleSave = async (): Promise<void> => {
+  const handleSave = useCallback(async (): Promise<void> => {
     if (!draft || readOnly) {
       return;
     }
@@ -159,7 +160,14 @@ export function SnippetEditPage({ page, tabId }: Props): JSX.Element {
     } finally {
       setSaving(false);
     }
-  };
+  }, [draft, readOnly, isNew, dispatch, tabId]);
+
+  /**
+   * Whether File → Save / Ctrl+S should invoke this form (mirrors Save button).
+   */
+  const menuCanSave = !readOnly && draft != null && !saving;
+
+  useTabSaveRegistration(tabId, menuCanSave, handleSave);
 
   return (
     <Page

@@ -49,12 +49,17 @@ interface Props {
    * Whether this screen manages plugins or themes.
    */
   kind?: PluginManagementKind;
+
+  /**
+   * Hosting tab id so File → Save / Ctrl+S can persist designer / plugin sources.
+   */
+  tabId?: string;
 }
 
 /**
  * Full-area plugin or theme management with sidebar navigation.
  */
-export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
+export function Plugins({ kind = 'plugins', tabId }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const pendingMarketplaceSearch = useAppSelector(selectPendingMarketplaceSearch);
   const pendingInstalledSearch = useAppSelector(selectPendingInstalledSearch);
@@ -555,6 +560,7 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
         ) : null}
         {kind === 'themes' && section === 'designer' ? (
           <CustomThemeView
+            tabId={tabId}
             onSaved={() => {
               void loadCustomThemes();
             }}
@@ -596,6 +602,7 @@ export function Plugins({ kind = 'plugins' }: Props): JSX.Element {
             hubSources={teamHubPluginSources}
             busy={pluginSourcesBusy}
             error={pluginSourcesLoadError}
+            tabId={tabId}
             onSave={() => void savePluginSources()}
             onResetDefaults={resetPluginSourcesDraft}
             onUpdateSource={updatePluginSourceDraft}

@@ -1,8 +1,9 @@
 import { Button, Page } from '@harborclient/sdk/components';
-import type { JSX } from 'react';
+import { useCallback, type JSX } from 'react';
 import type { PluginSource, PluginSourcesSettings } from '#/shared/plugin/catalog';
 import type { TeamHubPluginSourcesView } from '#/shared/types';
 import { faGear } from '#/renderer/src/fontawesome';
+import { useTabSaveRegistration } from '#/renderer/src/hooks/tabSaveRegistry';
 import { SettingsView } from './SettingsView';
 import type { SourceKind } from './types';
 
@@ -51,6 +52,11 @@ interface Props {
    * Adds a new draft source row.
    */
   onAddSource: (kind: SourceKind, url: string) => string | null;
+
+  /**
+   * Hosting tab id so File → Save / Ctrl+S can persist plugin sources.
+   */
+  tabId?: string;
 }
 
 /**
@@ -65,8 +71,18 @@ export function PluginSourcesView({
   onResetDefaults,
   onUpdateSource,
   onRemoveSource,
-  onAddSource
+  onAddSource,
+  tabId
 }: Props): JSX.Element {
+  /**
+   * Invokes the parent save handler for menu / shortcut save.
+   */
+  const handleMenuSave = useCallback((): void => {
+    onSave();
+  }, [onSave]);
+
+  useTabSaveRegistration(tabId, !busy, handleMenuSave);
+
   return (
     <Page
       embedded

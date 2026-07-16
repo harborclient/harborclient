@@ -39,6 +39,11 @@ interface Props {
    * Called after a requested group anchor has been scrolled into view.
    */
   onFocusSettingHandled?: () => void;
+
+  /**
+   * Hosting tab id so File → Save / Ctrl+S can persist form sections.
+   */
+  tabId?: string;
 }
 
 /**
@@ -48,7 +53,8 @@ export function SettingsRenderer({
   section,
   focusVariableKey,
   focusSettingId,
-  onFocusSettingHandled
+  onFocusSettingHandled,
+  tabId
 }: Props): JSX.Element | null {
   if (isManagementSettingsSection(section)) {
     const SectionComponent = SETTINGS_SECTION_REGISTRY[section];
@@ -57,6 +63,7 @@ export function SettingsRenderer({
         focusVariableKey={focusVariableKey}
         focusSettingId={focusSettingId}
         onFocusSettingHandled={onFocusSettingHandled}
+        tabId={tabId}
       />
     );
   }
@@ -78,7 +85,7 @@ export function SettingsRenderer({
         <div className="mb-6 flex flex-col gap-6">{renderSettingFields(fieldIds)}</div>
         <FormSectionExtras section={section} />
         <div className="mt-2">
-          <SettingsSaveFooter />
+          <SettingsSaveFooter tabId={tabId} />
         </div>
       </Page>
     );

@@ -1,7 +1,8 @@
 import { Button, FormGroup, Input, Page, Select } from '@harborclient/sdk/components';
-import { useEffect, type JSX } from 'react';
+import { useCallback, useEffect, type JSX } from 'react';
 import type { CustomTheme } from '#/shared/types/customTheme';
 import { faWandMagicSparkles } from '#/renderer/src/fontawesome';
+import { useTabSaveRegistration } from '#/renderer/src/hooks/tabSaveRegistry';
 import { ColorTokenGrid } from './ColorTokenGrid';
 import { SaveRenamedThemeModal } from './SaveRenamedThemeModal';
 import { useCustomTheme } from '#/renderer/src/ui/Tabs/Plugins/hooks/useCustomTheme';
@@ -11,12 +12,17 @@ interface Props {
    * Called after a theme is saved so Installed cards can refresh.
    */
   onSaved?: (theme: CustomTheme) => void;
+
+  /**
+   * Hosting tab id so File → Save / Ctrl+S can persist the designer draft.
+   */
+  tabId?: string;
 }
 
 /**
  * Designer form for building and previewing custom themes.
  */
-export function CustomThemeView({ onSaved }: Props): JSX.Element {
+export function CustomThemeView({ onSaved, tabId }: Props): JSX.Element {
   const {
     draft,
     loading,
@@ -43,7 +49,21 @@ export function CustomThemeView({ onSaved }: Props): JSX.Element {
   } = useCustomTheme({ onSaved });
 
   /**
-   * Routes Edit menu undo/redo/save actions to the Designer while this view is mounted.
+   * Whether File → Save / Ctrl+S should invoke the designer (mirrors Save button).
+   */
+  const menuCanSave = !busy && canSave && isDirty;
+
+  /**
+   * Persists the designer draft when the menu save action fires.
+   */
+  const handleMenuSave = useCallback((): void => {
+    void handleSave();
+  }, [handleSave]);
+
+  useTabSaveRegistration(tabId, menuCanSave, handleMenuSave);
+
+  /**
+   * Routes Edit menu undo/redo actions to the Designer while this view is mounted.
    */
   useEffect(() => {
     const unsubscribe = window.api.onMenuAction((action) => {
@@ -53,16 +73,10 @@ export function CustomThemeView({ onSaved }: Props): JSX.Element {
       }
       if (action === 'redo') {
         redo();
-        return;
-      }
-      if (action === 'save') {
-        if (!busy && canSave && isDirty) {
-          void handleSave();
-        }
       }
     });
     return unsubscribe;
-  }, [busy, canSave, handleSave, isDirty, redo, undo]);
+  }, [redo, undo]);
 
   /**
    * Keeps the main-process Edit menu undo/redo items aligned with Designer history availability.

@@ -30,6 +30,11 @@ interface Props {
    * When set, scrolls to the matching catalog group anchor in management sections.
    */
   focusSettingId?: string;
+
+  /**
+   * Hosting tab id so File → Save / Ctrl+S can persist form sections.
+   */
+  tabId?: string;
 }
 
 /**
@@ -38,7 +43,8 @@ interface Props {
 export function Settings({
   initialSection,
   focusVariableKey,
-  focusSettingId: focusSettingIdProp
+  focusSettingId: focusSettingIdProp,
+  tabId
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const pluginSections = usePluginSettingsSections();
@@ -137,6 +143,7 @@ export function Settings({
           matchedIds={matchedIds}
           query={query}
           onNavigate={handleNavigateFromSearch}
+          tabId={tabId}
         />
       ) : pluginSection ? (
         <Page
@@ -161,6 +168,7 @@ export function Settings({
           focusVariableKey={focusVariableKey}
           focusSettingId={focusSettingId}
           onFocusSettingHandled={() => setSearchFocusSettingId(undefined)}
+          tabId={tabId}
         />
       )}
     </SidebarLayout>

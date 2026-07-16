@@ -23,6 +23,7 @@ import {
 } from '#/renderer/src/ui/Shared/Git/GitAuthForm';
 import { GitAuthorForm } from '#/renderer/src/ui/Shared/Git/GitAuthorForm';
 import { entryById } from '#/renderer/src/ui/Tabs/Settings/catalog/catalog';
+import type { SettingsSectionComponentProps } from '#/renderer/src/ui/Tabs/Settings/catalog/registry';
 import { SettingsSaveFooter } from '#/renderer/src/ui/Tabs/Settings/components/SettingsSaveFooter';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
@@ -37,7 +38,7 @@ const GIT_EXTERNAL_MERGE_EDITOR_INPUT_ID = 'git-external-merge-editor-path';
 /**
  * Settings page for managing shared git host identities.
  */
-export function GitIdentitiesSection(): JSX.Element {
+export function GitIdentitiesSection({ tabId }: SettingsSectionComponentProps): JSX.Element {
   const confirm = useConfirm();
   const dispatch = useAppDispatch();
   const general = useAppSelector(selectDraftGeneral);
@@ -303,7 +304,7 @@ export function GitIdentitiesSection(): JSX.Element {
       </div>
 
       <div className="mb-6 mt-2">
-        <SettingsSaveFooter />
+        <SettingsSaveFooter tabId={tabId} />
       </div>
 
       <SettingSectionHeading settingId="git.identities" title="Git Identities" className="mb-2" />

@@ -166,7 +166,7 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
   },
   {
     id: 'save',
-    label: 'Save request',
+    label: 'Save',
     defaultAccelerator: 'CmdOrCtrl+S',
     kind: 'action',
     actionId: 'save'
@@ -552,56 +552,56 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
   {
     id: 'git-create-branch',
     label: 'Create branch',
-    defaultAccelerator: '',
+    defaultAccelerator: 'CmdOrCtrl+Alt+B',
     kind: 'action',
     actionId: 'git-create-branch'
   },
   {
     id: 'git-delete-branch',
     label: 'Delete branch',
-    defaultAccelerator: '',
+    defaultAccelerator: 'CmdOrCtrl+Alt+D',
     kind: 'action',
     actionId: 'git-delete-branch'
   },
   {
     id: 'git-commit',
     label: 'Commit',
-    defaultAccelerator: '',
+    defaultAccelerator: 'CmdOrCtrl+Alt+C',
     kind: 'action',
     actionId: 'git-commit'
   },
   {
     id: 'git-merge',
     label: 'Merge',
-    defaultAccelerator: '',
+    defaultAccelerator: 'CmdOrCtrl+Alt+M',
     kind: 'action',
     actionId: 'git-merge'
   },
   {
     id: 'git-fetch',
     label: 'Fetch',
-    defaultAccelerator: '',
+    defaultAccelerator: 'CmdOrCtrl+Alt+F',
     kind: 'action',
     actionId: 'git-fetch'
   },
   {
     id: 'git-pull',
     label: 'Pull',
-    defaultAccelerator: '',
+    defaultAccelerator: 'CmdOrCtrl+Alt+L',
     kind: 'action',
     actionId: 'git-pull'
   },
   {
     id: 'git-push',
     label: 'Push',
-    defaultAccelerator: '',
+    defaultAccelerator: 'CmdOrCtrl+Alt+P',
     kind: 'action',
     actionId: 'git-push'
   },
   {
     id: 'git-settings',
     label: 'Git settings',
-    defaultAccelerator: '',
+    defaultAccelerator: 'CmdOrCtrl+Alt+G',
     kind: 'action',
     actionId: 'git-settings'
   },

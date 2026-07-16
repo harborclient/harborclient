@@ -56,6 +56,11 @@ export type SettingsSectionComponentProps = {
    * Called after a requested group anchor has been scrolled into view.
    */
   onFocusSettingHandled?: () => void;
+
+  /**
+   * Hosting tab id so File → Save / Ctrl+S can persist form sections.
+   */
+  tabId?: string;
 };
 
 /**

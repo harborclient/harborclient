@@ -94,6 +94,7 @@ import {
   updateFolder
 } from './collections';
 import { updateEnvironment } from './environments';
+import { tryInvokeTabSave } from '#/renderer/src/hooks/tabSaveRegistry';
 import { saveMarkdownTab } from './documents';
 
 /**
@@ -1243,14 +1244,17 @@ export const requestLoadRequest = createAsyncThunk<void, RequestLoadRequestArgs,
 );
 
 /**
- * Saves the active tab from the menu, prompting for a collection when none is selected.
+ * Saves the active tab from the menu: registered form handlers first, then
+ * markdown or request persistence. No-ops when the active tab has nothing to save.
  */
 export const saveFromMenu = createAsyncThunk<void, void, ThunkApiConfig>(
   'requests/saveFromMenu',
   async (_, { dispatch, getState }) => {
-    const activeTab = selectActiveTab(getState());
+    const state = getState();
+    const activeTab = selectActiveTab(state);
+    const activeTabId = state.tabs.activeTabId;
 
-    if (activeTab && isPageTab(activeTab) && activeTab.page.type === 'themes') {
+    if (activeTabId != null && tryInvokeTabSave(activeTabId)) {
       return;
     }
 
@@ -1264,7 +1268,11 @@ export const saveFromMenu = createAsyncThunk<void, void, ThunkApiConfig>(
       return;
     }
 
-    const selectedCollectionId = getState().collections.selectedCollectionId;
+    if (!activeTab || !isRequestTab(activeTab)) {
+      return;
+    }
+
+    const selectedCollectionId = state.collections.selectedCollectionId;
     if (selectedCollectionId == null) {
       dispatch(openCollectionModal({ mode: 'create-and-save' }));
       return;
