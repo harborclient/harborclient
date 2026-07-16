@@ -23,27 +23,13 @@ describe('buildThemeMenuItems', () => {
     expect(lightItem.checked).toBe(false);
   });
 
-  it('adds a separator and plugin themes after built-in themes', () => {
+  it('does not add plugin themes to the View menu', () => {
     const items = buildThemeMenuItems(window, 'system', [
       { value: 'plugin:com.example:midnight', label: 'Midnight' }
     ]);
 
-    const pluginIndex = items.findIndex((item) => item.label === 'Midnight');
-    expect(items[pluginIndex - 1]).toEqual({ type: 'separator' });
-    expect((items[pluginIndex] as MenuItemConstructorOptions).checked).toBe(false);
-  });
-
-  it('marks an active plugin theme as checked', () => {
-    const pluginTheme = {
-      value: 'plugin:com.example:midnight' as const,
-      label: 'Midnight'
-    };
-    const items = buildThemeMenuItems(window, pluginTheme.value, [pluginTheme]);
-
-    const midnightItem = items.find(
-      (item) => item.label === 'Midnight'
-    ) as MenuItemConstructorOptions;
-    expect(midnightItem.checked).toBe(true);
+    expect(items).toHaveLength(BUILTIN_THEME_OPTIONS.length + 1);
+    expect(items.some((item) => item.label === 'Midnight')).toBe(false);
   });
 
   it('rebuilds the menu after a theme click so active checkmarks stay checked', () => {

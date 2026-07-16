@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- refactor(menu): update theme menu item handling. (`bcf4d08`)
 - feat(menu): update menu labels and add tabId support across components. (`7194fda`)
 - refactor(menu): remove collections, environments, and run results visibility from menu. (`068258d`)
 - feat(menu): update tab group menu item and add new environment option. (`44952c7`)
