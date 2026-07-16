@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.5.2 - 2026-07-16
+
 - chore(docs): update search index JSON structure. (`802c342`)
 - feat(environments): implement copy missing variables functionality. (`99686bc`)
 - feat(settings): introduce close-to-tray functionality in general settings. (`b1f992b`)
