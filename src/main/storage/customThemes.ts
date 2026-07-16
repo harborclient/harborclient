@@ -171,6 +171,11 @@ export interface SaveCustomThemeInput {
    * Token overrides without the `--mac-` prefix.
    */
   colors: CustomTheme['colors'];
+
+  /**
+   * Optional extra CSS appended after token overrides when the theme is applied.
+   */
+  stylesheet?: string;
 }
 
 /**
@@ -185,7 +190,10 @@ export function saveCustomTheme(input: SaveCustomThemeInput): CustomTheme {
     id,
     title: input.title.trim(),
     type: input.type,
-    colors: input.colors
+    colors: input.colors,
+    ...(input.stylesheet !== undefined && input.stylesheet.trim().length > 0
+      ? { stylesheet: input.stylesheet }
+      : {})
   };
 
   if (!theme.title) {

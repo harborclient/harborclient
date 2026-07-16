@@ -3,6 +3,8 @@ import { useCallback, useEffect, type JSX } from 'react';
 import type { CustomTheme } from '#/shared/types/customTheme';
 import { faWandMagicSparkles } from '#/renderer/src/fontawesome';
 import { useTabSaveRegistration } from '#/renderer/src/hooks/tabSaveRegistry';
+import { useAppDispatch } from '#/renderer/src/store/hooks';
+import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { ColorTokenGrid } from './ColorTokenGrid';
 import { SaveRenamedThemeModal } from './SaveRenamedThemeModal';
 import { useCustomTheme } from '#/renderer/src/ui/Tabs/Plugins/hooks/useCustomTheme';
@@ -23,6 +25,7 @@ interface Props {
  * Designer form for building and previewing custom themes.
  */
 export function CustomThemeView({ onSaved, tabId }: Props): JSX.Element {
+  const dispatch = useAppDispatch();
   const {
     draft,
     loading,
@@ -61,6 +64,13 @@ export function CustomThemeView({ onSaved, tabId }: Props): JSX.Element {
   }, [handleSave]);
 
   useTabSaveRegistration(tabId, menuCanSave, handleMenuSave);
+
+  /**
+   * Opens the theme stylesheet CodeEditor tab for the current Designer draft.
+   */
+  const handleOpenStylesheet = useCallback((): void => {
+    dispatch(openPageTab({ type: 'theme-stylesheet', label: 'Theme Stylesheet' }));
+  }, [dispatch]);
 
   /**
    * Routes Edit menu undo/redo actions to the Designer while this view is mounted.
@@ -190,6 +200,15 @@ export function CustomThemeView({ onSaved, tabId }: Props): JSX.Element {
                 onClick={() => handleDiscard()}
               >
                 Discard
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy || loading}
+                aria-label="Edit theme stylesheet"
+                onClick={handleOpenStylesheet}
+              >
+                Stylesheet
               </Button>
               <Button
                 type="button"

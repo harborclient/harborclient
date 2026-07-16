@@ -89,7 +89,8 @@ export const customThemeSaveInputSchema = z.object({
   id: customThemeIdSchema.optional(),
   title: z.string().trim().min(1),
   type: customThemeTypeSchema,
-  colors: themeColorsRecordSchema
+  colors: themeColorsRecordSchema,
+  stylesheet: z.string().optional()
 });
 
 /**
@@ -136,7 +137,10 @@ export function customThemeToEnvelope(theme: CustomTheme): CustomThemeExport {
     harborclientExport: 'theme',
     theme: theme.colors,
     title: theme.title,
-    type: theme.type
+    type: theme.type,
+    ...(theme.stylesheet !== undefined && theme.stylesheet.trim().length > 0
+      ? { stylesheet: theme.stylesheet }
+      : {})
   };
 }
 
@@ -152,7 +156,8 @@ export function envelopeToCustomTheme(id: string, envelope: CustomThemeExport): 
     id,
     title: envelope.title,
     type: envelope.type,
-    colors: envelope.theme
+    colors: envelope.theme,
+    ...(envelope.stylesheet !== undefined ? { stylesheet: envelope.stylesheet } : {})
   };
 }
 
@@ -166,7 +171,8 @@ export function envelopeToImportDraft(envelope: CustomThemeExport): CustomThemeI
   return {
     title: envelope.title,
     type: envelope.type,
-    colors: envelope.theme
+    colors: envelope.theme,
+    ...(envelope.stylesheet !== undefined ? { stylesheet: envelope.stylesheet } : {})
   };
 }
 

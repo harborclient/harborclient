@@ -66,6 +66,11 @@ export interface CustomThemeDraft {
    * Token overrides without the `--mac-` prefix.
    */
   colors: Partial<Record<ThemeColorToken, string>>;
+
+  /**
+   * Optional extra CSS appended after token overrides when the theme is applied.
+   */
+  stylesheet?: string;
 }
 
 interface Options {
@@ -213,7 +218,8 @@ export function useCustomTheme({ onSaved }: Options): UseCustomThemeResult {
         id: customTheme.id,
         title: customTheme.title,
         type: customTheme.type,
-        colors: { ...customTheme.colors }
+        colors: { ...customTheme.colors },
+        ...(customTheme.stylesheet !== undefined ? { stylesheet: customTheme.stylesheet } : {})
       };
       dispatch(initializeSession({ draft: loaded, activeTheme: theme }));
     })();
@@ -235,7 +241,7 @@ export function useCustomTheme({ onSaved }: Options): UseCustomThemeResult {
     if (loading) {
       return;
     }
-    applyCustomThemeColors(draft.colors, draft.type);
+    applyCustomThemeColors(draft.colors, draft.type, draft.stylesheet);
   }, [draft, loading]);
 
   /**
@@ -331,13 +337,15 @@ export function useCustomTheme({ onSaved }: Options): UseCustomThemeResult {
           id: saveAsNew ? undefined : draft.id,
           title: draft.title,
           type: draft.type,
-          colors: draft.colors
+          colors: draft.colors,
+          ...(draft.stylesheet !== undefined ? { stylesheet: draft.stylesheet } : {})
         });
         const nextDraft: CustomThemeDraft = {
           id: saved.id,
           title: saved.title,
           type: saved.type,
-          colors: { ...saved.colors }
+          colors: { ...saved.colors },
+          ...(saved.stylesheet !== undefined ? { stylesheet: saved.stylesheet } : {})
         };
         const themeValue = formatCustomThemeValue(saved.id);
         await window.api.setTheme(themeValue);
@@ -400,7 +408,8 @@ export function useCustomTheme({ onSaved }: Options): UseCustomThemeResult {
         id: draft.id ?? 'draft',
         title: draft.title,
         type: draft.type,
-        colors: draft.colors
+        colors: draft.colors,
+        ...(draft.stylesheet !== undefined ? { stylesheet: draft.stylesheet } : {})
       });
       const defaultPath = `${draft.title || DEFAULT_CUSTOM_THEME_TITLE}.json`;
       const result = await window.api.saveTextFile(JSON.stringify(envelope, null, 2), defaultPath);
@@ -428,7 +437,8 @@ export function useCustomTheme({ onSaved }: Options): UseCustomThemeResult {
           ...draft,
           title: imported.title,
           type: imported.type,
-          colors: { ...imported.colors }
+          colors: { ...imported.colors },
+          stylesheet: imported.stylesheet
         })
       );
     } catch (err) {

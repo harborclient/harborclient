@@ -23,6 +23,11 @@ export interface SaveCustomThemeInput {
    * Token overrides without the `--mac-` prefix.
    */
   colors: CustomTheme['colors'];
+
+  /**
+   * Optional extra CSS appended after token overrides when the theme is applied.
+   */
+  stylesheet?: string;
 }
 
 /**

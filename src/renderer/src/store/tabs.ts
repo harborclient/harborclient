@@ -247,6 +247,10 @@ export type PageRef =
       connectionId: string;
       filePath: string;
       label: string;
+    }
+  | {
+      type: 'theme-stylesheet';
+      label: string;
     };
 
 /**

@@ -54,13 +54,20 @@ function toCssVariable(token: string): string {
  *
  * @param colors - Token overrides without the `--mac-` prefix.
  * @param type - Base appearance mode for color-scheme.
+ * @param stylesheet - Optional raw CSS appended after token overrides.
  */
-export function buildCustomThemeCss(colors: Record<string, string>, type: CustomThemeType): string {
+export function buildCustomThemeCss(
+  colors: Record<string, string>,
+  type: CustomThemeType,
+  stylesheet?: string
+): string {
   const colorScheme = type === 'light' ? 'light' : 'dark';
   const declarations = Object.entries(colors)
     .map(([token, value]) => `  ${toCssVariable(token)}: ${value};`)
     .join('\n');
-  return `:root[data-theme='custom'] {\n  color-scheme: ${colorScheme};\n${declarations}\n}\n`;
+  const rootBlock = `:root[data-theme='custom'] {\n  color-scheme: ${colorScheme};\n${declarations}\n}\n`;
+  const stylesheetBlock = stylesheet && stylesheet.trim().length > 0 ? `\n${stylesheet}\n` : '';
+  return `${rootBlock}${stylesheetBlock}`;
 }
 
 /**
@@ -94,15 +101,17 @@ function clearInjectedThemeStyle(): void {
  *
  * @param colors - Token overrides without the `--mac-` prefix.
  * @param type - Base appearance mode for color-scheme.
+ * @param stylesheet - Optional raw CSS appended after token overrides.
  */
 export function applyCustomThemeColors(
   colors: Record<string, string>,
-  type: CustomThemeType
+  type: CustomThemeType,
+  stylesheet?: string
 ): void {
   document.documentElement.setAttribute('data-theme', 'custom');
   clearInjectedThemeStyle();
 
-  const css = buildCustomThemeCss(colors, type);
+  const css = buildCustomThemeCss(colors, type, stylesheet);
   if (!css.trim()) {
     notifyThemeColorsApplied();
     return;
@@ -316,7 +325,7 @@ export async function applyThemePreference(theme: string): Promise<void> {
       return;
     }
 
-    applyCustomThemeColors(customTheme.colors, customTheme.type);
+    applyCustomThemeColors(customTheme.colors, customTheme.type, customTheme.stylesheet);
     return;
   }
 

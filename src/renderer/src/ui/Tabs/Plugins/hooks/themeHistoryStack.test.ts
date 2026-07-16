@@ -42,6 +42,18 @@ describe('customThemeDraftsEqual', () => {
     const right = buildDraft({ colors: { accent: '#999999', surface: '#222222' } });
     expect(customThemeDraftsEqual(left, right)).toBe(false);
   });
+
+  it('returns false when only the stylesheet differs', () => {
+    const left = buildDraft({ stylesheet: '.a {}' });
+    const right = buildDraft({ stylesheet: '.b {}' });
+    expect(customThemeDraftsEqual(left, right)).toBe(false);
+  });
+
+  it('treats missing and empty stylesheet as equal', () => {
+    const left = buildDraft();
+    const right = buildDraft({ stylesheet: '' });
+    expect(customThemeDraftsEqual(left, right)).toBe(true);
+  });
 });
 
 describe('recordThemeHistoryImmediate', () => {

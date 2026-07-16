@@ -38,10 +38,15 @@ export function cloneCustomThemeDraft(draft: CustomThemeDraft): CustomThemeDraft
  *
  * @param left - First draft snapshot.
  * @param right - Second draft snapshot.
- * @returns True when title, type, id, and all color tokens match.
+ * @returns True when title, type, id, stylesheet, and all color tokens match.
  */
 export function customThemeDraftsEqual(left: CustomThemeDraft, right: CustomThemeDraft): boolean {
-  if (left.id !== right.id || left.title !== right.title || left.type !== right.type) {
+  if (
+    left.id !== right.id ||
+    left.title !== right.title ||
+    left.type !== right.type ||
+    (left.stylesheet ?? '') !== (right.stylesheet ?? '')
+  ) {
     return false;
   }
 

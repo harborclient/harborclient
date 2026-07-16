@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(theme): add optional stylesheet support for custom themes. (`cdedc7b`)
 - feat(catalog): add new plugin for color support. (`863e7ee`)
 
 ## 2.5.3 - 2026-07-16

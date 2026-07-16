@@ -157,4 +157,49 @@ describe('customThemes storage', () => {
     expect(getCustomTheme('light')?.title).toBe('Custom Light');
     expect(getCustomTheme('light')?.colors.accent).toBe('#123456');
   });
+
+  it('persists an optional stylesheet into the theme export file', async () => {
+    const { getCustomTheme, saveCustomTheme } = await import('#/main/storage/customThemes');
+
+    const saved = saveCustomTheme({
+      title: 'Styled',
+      type: 'dark',
+      colors: {
+        surface: '#111111',
+        accent: '#0a84ff'
+      },
+      stylesheet: ':root[data-theme="custom"] { --extra: red; }'
+    });
+
+    expect(saved.stylesheet).toBe(':root[data-theme="custom"] { --extra: red; }');
+    expect(getCustomTheme(saved.id)?.stylesheet).toBe(
+      ':root[data-theme="custom"] { --extra: red; }'
+    );
+
+    const fileContents = JSON.parse(
+      readFileSync(join(userDataPath, 'custom_themes', `${saved.id}.json`), 'utf-8')
+    ) as {
+      stylesheet?: string;
+    };
+    expect(fileContents.stylesheet).toBe(':root[data-theme="custom"] { --extra: red; }');
+  });
+
+  it('omits blank stylesheet from saved theme files', async () => {
+    const { saveCustomTheme } = await import('#/main/storage/customThemes');
+
+    const saved = saveCustomTheme({
+      title: 'Plain',
+      type: 'light',
+      colors: { surface: '#ffffff' },
+      stylesheet: '   '
+    });
+
+    expect(saved.stylesheet).toBeUndefined();
+    const fileContents = JSON.parse(
+      readFileSync(join(userDataPath, 'custom_themes', `${saved.id}.json`), 'utf-8')
+    ) as {
+      stylesheet?: string;
+    };
+    expect(fileContents.stylesheet).toBeUndefined();
+  });
 });

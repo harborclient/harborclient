@@ -39,6 +39,18 @@ describe('buildCustomThemeCss', () => {
     const css = buildCustomThemeCss({ surface: '#ffffff' }, 'light');
     expect(css).toContain('color-scheme: light;');
   });
+
+  it('appends an optional stylesheet after token overrides', () => {
+    const css = buildCustomThemeCss(
+      { surface: '#111111' },
+      'dark',
+      '.panel { border-radius: 8px; }'
+    );
+
+    expect(css).toContain(":root[data-theme='custom']");
+    expect(css).toContain('--mac-surface: #111111;');
+    expect(css).toContain('.panel { border-radius: 8px; }');
+  });
 });
 
 describe('buildBuiltinThemeCss', () => {

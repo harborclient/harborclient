@@ -303,5 +303,15 @@ export const pageRoutes = {
       'MergeEditorTab'
     ),
     normalize: () => null
+  }),
+  'theme-stylesheet': defineRoute({
+    key: () => 'theme-stylesheet',
+    meta: (page) => ({ title: page.label, icon: faCode }),
+    closeName: () => 'Stylesheet',
+    Component: lazyNamed(
+      () => import('#/renderer/src/ui/Tabs/Plugins/CustomThemeStylesheetTab'),
+      'CustomThemeStylesheetTab'
+    ),
+    normalize: () => null
   })
 } as const satisfies { [T in PageRef['type']]: PageRoute<T> };

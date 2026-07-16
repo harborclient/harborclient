@@ -30,6 +30,11 @@ export interface CustomTheme {
   colors: Partial<Record<ThemeColorToken, string>>;
 
   /**
+   * Optional extra CSS appended after token overrides when the theme is applied.
+   */
+  stylesheet?: string;
+
+  /**
    * True when this record is a reserved built-in theme that cannot be uninstalled.
    */
   builtin?: boolean;
@@ -89,6 +94,11 @@ export interface CustomThemeImportDraft {
    * Imported token overrides.
    */
   colors: Partial<Record<ThemeColorToken, string>>;
+
+  /**
+   * Optional extra CSS from the import envelope.
+   */
+  stylesheet?: string;
 }
 
 /**

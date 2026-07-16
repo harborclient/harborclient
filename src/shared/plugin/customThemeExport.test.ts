@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   customThemeExportSchema,
+  customThemeToEnvelope,
   envelopeToCustomTheme,
   envelopeToImportDraft,
   formatCustomThemeValue,
@@ -124,6 +125,52 @@ describe('customThemeExport', () => {
       type: 'dark',
       colors: sampleExport.theme
     });
+  });
+
+  it('preserves stylesheet through envelope conversions', () => {
+    const exportWithStylesheet = {
+      ...sampleExport,
+      stylesheet: ':root[data-theme="custom"] { --extra: 1; }'
+    };
+
+    expect(envelopeToCustomTheme('styled', exportWithStylesheet)).toEqual({
+      id: 'styled',
+      title: 'Nord',
+      type: 'dark',
+      colors: sampleExport.theme,
+      stylesheet: exportWithStylesheet.stylesheet
+    });
+    expect(envelopeToImportDraft(exportWithStylesheet)).toEqual({
+      title: 'Nord',
+      type: 'dark',
+      colors: sampleExport.theme,
+      stylesheet: exportWithStylesheet.stylesheet
+    });
+  });
+
+  it('round-trips stylesheet through customThemeToEnvelope', () => {
+    const envelope = customThemeToEnvelope({
+      id: 'styled',
+      title: 'Nord',
+      type: 'dark',
+      colors: sampleExport.theme,
+      stylesheet: '.panel { opacity: 0.9; }'
+    });
+
+    expect(envelope.stylesheet).toBe('.panel { opacity: 0.9; }');
+    expect(envelopeToCustomTheme('styled', envelope).stylesheet).toBe('.panel { opacity: 0.9; }');
+  });
+
+  it('omits empty stylesheet from export envelopes', () => {
+    const envelope = customThemeToEnvelope({
+      id: 'plain',
+      title: 'Nord',
+      type: 'dark',
+      colors: sampleExport.theme,
+      stylesheet: '   '
+    });
+
+    expect(envelope.stylesheet).toBeUndefined();
   });
 
   it('validates custom theme ids used as filename stems', () => {
