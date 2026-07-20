@@ -1,7 +1,7 @@
 import express, { type Express } from 'express';
 import { bodyParsers } from './bodyParsers';
 import { buildEchoResponse } from './echo';
-import { resolveEchoResponseBody } from './resolveEchoResponseBody';
+import { sendPluginServerHandlerResult } from './resolvePluginServerResponse';
 import type { EchoServerIncomingRequest, RequestWithRawBody } from './types';
 
 /**
@@ -57,13 +57,13 @@ export function buildIncomingRequestSnapshot(req: RequestWithRawBody): EchoServe
 }
 
 /**
- * Creates an Express app that echoes incoming HTTP requests through a callback.
+ * Creates an Express app that routes incoming HTTP requests through a callback.
  *
- * The callback returns a raw handler value (`unknown`). `null` and `undefined`
- * mean "use the default httpbin-style echo payload" built from the incoming
- * request; resolution happens here before the HTTP response is sent.
+ * The callback returns either a legacy JSON body (`unknown`), a structured
+ * `{ kind: 'http-response', ... }` response, or `null`/`undefined` to use the
+ * default httpbin-style echo payload.
  *
- * @param onIncoming - Returns the raw JSON response body for each request.
+ * @param onIncoming - Returns the handler result for each request.
  * @returns Configured Express application.
  */
 export function createEchoApp(
@@ -81,8 +81,8 @@ export function createEchoApp(
   app.all(/.*/, async (req, res) => {
     try {
       const snapshot = buildIncomingRequestSnapshot(req as RequestWithRawBody);
-      const body = await onIncoming(snapshot);
-      res.json(resolveEchoResponseBody(body, snapshot.echo));
+      const handlerResult = await onIncoming(snapshot);
+      await sendPluginServerHandlerResult(res, handlerResult, snapshot.echo);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       res.status(500).json({ error: message });

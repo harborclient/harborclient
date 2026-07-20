@@ -37,6 +37,20 @@ export interface EchoServerIncomingRequest {
 }
 
 /**
+ * Structured HTTP response from a plugin `onRequest` handler.
+ *
+ * Only objects with `kind: 'http-response'` are treated as structured so legacy
+ * JSON bodies such as `{ status: 404 }` remain body-only Echo responses.
+ */
+export interface PluginServerHttpResponse {
+  kind: 'http-response';
+  status?: number;
+  headers?: Record<string, string>;
+  body?: unknown;
+  delayMs?: number;
+}
+
+/**
  * Status returned from echo server lifecycle queries.
  */
 export interface EchoServerStatus {
