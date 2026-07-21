@@ -55,23 +55,23 @@
     },
     {
       "repoUrl": "https://github.com/harborclient/theme-catppuccin-latte",
-      "ref": "v1.1.1"
+      "ref": "v1.1.2"
     },
     {
       "repoUrl": "https://github.com/harborclient/theme-nord",
-      "ref": "v1.0.6"
+      "ref": "v1.0.7"
     },
     {
       "repoUrl": "https://github.com/harborclient/theme-gruvbox",
-      "ref": "v1.1.2"
+      "ref": "v1.1.3"
     },
     {
       "repoUrl": "https://github.com/harborclient/theme-dracula",
-      "ref": "v1.1.1"
+      "ref": "v1.1.2"
     },
     {
       "repoUrl": "https://github.com/harborclient/theme-solarized",
-      "ref": "v1.1.2"
+      "ref": "v1.1.3"
     },
     {
       "repoUrl": "https://github.com/harborclient/theme-ayu-mirage",

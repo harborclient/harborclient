@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(catalog): update theme plugin versions in catalog.json. (`e20d62e`)
 - feat(catalog): add new themes to catalog.json. (`8ccdfd7`)
 - chore(docs): update docsSearchIndex.json with new internal document IDs. (`ef04b3b`)
 - refactor(ai): remove aiToolInputSchemas and related types. (`d22c706`)
