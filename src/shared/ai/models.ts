@@ -51,6 +51,26 @@ export interface AiModelOption {
 }
 
 /**
+ * Section header and models for a grouped model dropdown.
+ */
+export interface AiModelOptionGroup {
+  /**
+   * Stable React key for the optgroup.
+   */
+  key: string;
+
+  /**
+   * Visible optgroup label in the dropdown.
+   */
+  label: string;
+
+  /**
+   * Selectable models within this section.
+   */
+  models: AiModelOption[];
+}
+
+/**
  * Catalog of supported AI models grouped by provider.
  */
 export const AI_MODELS: Omit<AiModelOption, 'source' | 'value'>[] = [
@@ -141,7 +161,7 @@ export function getAvailableModels(
       options.push({
         ...model,
         value: model.id,
-        label: `${model.label} (Team Hub)`,
+        label: model.label,
         source: 'hub',
         hubId: hub.hubId,
         hubName: hub.hubName
@@ -154,7 +174,7 @@ export function getAvailableModels(
         options.push({
           ...model,
           value: `personal:${model.id}`,
-          label: `${model.label} (Personal)`,
+          label: model.label,
           source: 'personal'
         });
       }
@@ -165,7 +185,7 @@ export function getAvailableModels(
       options.push({
         ...model,
         value: model.id,
-        label: `${model.label} (Personal)`,
+        label: model.label,
         source: 'personal'
       });
       includedIds.add(model.id);
@@ -181,7 +201,7 @@ export function getAvailableModels(
       options.push({
         id: model.id,
         value: model.id,
-        label: `${model.label} (Team Hub)`,
+        label: model.label,
         provider: model.provider,
         source: 'hub',
         hubId: group.hubId,
@@ -199,7 +219,7 @@ export function getAvailableModels(
       options.push({
         ...model,
         value: model.id,
-        label: `${model.label} (GitHub Models)`,
+        label: model.label,
         source: 'personal'
       });
       includedIds.add(model.id);
@@ -207,6 +227,50 @@ export function getAvailableModels(
   }
 
   return options;
+}
+
+/**
+ * Returns the dropdown section label for one selectable model option.
+ *
+ * @param model - Model option from {@link getAvailableModels}.
+ */
+export function getAiModelOptionGroupLabel(model: AiModelOption): string {
+  if (model.source === 'hub') {
+    return model.hubName ?? 'Team Hub';
+  }
+
+  if (model.provider === 'github') {
+    return 'GitHub Models';
+  }
+
+  return 'Personal';
+}
+
+/**
+ * Groups flat model options into optgroup sections while preserving list order.
+ *
+ * @param models - Models from {@link getAvailableModels}.
+ */
+export function groupAvailableModels(models: AiModelOption[]): AiModelOptionGroup[] {
+  const groups: AiModelOptionGroup[] = [];
+  const groupIndex = new Map<string, number>();
+
+  for (const model of models) {
+    const label = getAiModelOptionGroupLabel(model);
+    const key =
+      model.source === 'hub' && model.hubId != null ? `hub:${model.hubId}` : label.toLowerCase();
+    const existingIndex = groupIndex.get(key);
+
+    if (existingIndex !== undefined) {
+      groups[existingIndex]?.models.push(model);
+      continue;
+    }
+
+    groupIndex.set(key, groups.length);
+    groups.push({ key, label, models: [model] });
+  }
+
+  return groups;
 }
 
 /**

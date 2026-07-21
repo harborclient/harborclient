@@ -16,6 +16,7 @@ export type {
 export type {
   PluginCatalog,
   PluginCatalogEntry,
-  PluginSourcesSettings
+  PluginSourcesSettings,
+  ThemeCatalog
 } from '#/shared/plugin/catalog';
 export type { CollectionRunnerConfig } from './collectionRunner';

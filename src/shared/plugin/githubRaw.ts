@@ -68,10 +68,44 @@ function isAbsoluteHttpUrl(value: string): boolean {
 }
 
 /**
+ * Extracts a repository-relative path from a raw.githubusercontent.com URL.
+ *
+ * @param value - Absolute screenshot URL.
+ * @returns Relative path when the URL is a GitHub raw content URL, otherwise null.
+ */
+export function relativePathFromRawGitHubUrl(value: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(value.trim());
+  } catch {
+    return null;
+  }
+
+  if (parsed.hostname !== 'raw.githubusercontent.com') {
+    return null;
+  }
+
+  const segments = parsed.pathname.split('/').filter(Boolean);
+  // /{owner}/{repo}/{ref}/{path...}
+  if (segments.length < 4) {
+    return null;
+  }
+
+  const relativePath = segments.slice(3).join('/');
+  if (!relativePath || relativePath.includes('..')) {
+    return null;
+  }
+
+  return relativePath;
+}
+
+/**
  * Resolves a catalog or manifest screenshot value to a displayable URL.
  *
- * Absolute HTTP(S) URLs pass through unchanged. Repository-relative paths are
- * resolved against the listing's GitHub repo and ref via raw.githubusercontent.com.
+ * Repository-relative paths resolve against the listing's GitHub repo and ref.
+ * Absolute raw.githubusercontent.com URLs are reduced to their repository-relative
+ * path first so stale owner/repo/ref segments in manifests do not 404. Other
+ * absolute HTTP(S) URLs pass through unchanged.
  *
  * @param value - Absolute URL or repository-relative path (e.g. `screenshot.png`).
  * @param repoUrl - HTTPS GitHub repository URL for the listing.
@@ -82,6 +116,11 @@ export function resolveScreenshotUrl(value: string, repoUrl: string, ref?: strin
   const trimmed = value.trim();
   if (!trimmed) {
     return null;
+  }
+
+  const relativeFromRaw = relativePathFromRawGitHubUrl(trimmed);
+  if (relativeFromRaw && repoUrl) {
+    return buildGitHubRawContentUrl(repoUrl, ref?.trim() || 'main', relativeFromRaw);
   }
 
   if (isAbsoluteHttpUrl(trimmed)) {

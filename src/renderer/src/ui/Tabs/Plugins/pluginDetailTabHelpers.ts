@@ -1,5 +1,6 @@
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import type { PluginInfo } from '#/shared/plugin/types';
+import { formatThemeDisplayName } from '#/shared/plugin/themeCategory';
 import type { AppDispatch } from '#/renderer/src/store/redux';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import type { PluginManagementKind } from './constants';
@@ -23,7 +24,7 @@ export function openInstalledPluginDetailTab(
       kind,
       source: 'installed',
       id: plugin.id,
-      label: plugin.name
+      label: kind === 'themes' ? formatThemeDisplayName(plugin.name) : plugin.name
     })
   );
 }
@@ -55,7 +56,7 @@ export function openCatalogPluginDetailTab(
       kind,
       source: 'catalog',
       id: entry.id,
-      label: entry.name
+      label: kind === 'themes' ? formatThemeDisplayName(entry.name) : entry.name
     })
   );
 }

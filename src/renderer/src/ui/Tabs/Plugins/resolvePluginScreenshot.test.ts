@@ -135,6 +135,57 @@ describe('loadInstalledPluginScreenshotSrcs', () => {
     await expect(loadInstalledPluginScreenshotSrcs(plugin)).resolves.toEqual([absoluteUrl]);
   });
 
+  it('re-resolves stale raw GitHub manifest screenshot URLs against the installed repo', async () => {
+    vi.stubGlobal('window', {
+      api: {
+        readPluginAsset: vi.fn(async () => {
+          throw new Error('missing asset');
+        })
+      }
+    });
+
+    const plugin: PluginInfo = {
+      ...installedPlugin,
+      repoUrl: 'https://github.com/harborclient/theme-ayu-mirage',
+      repoRef: 'v1.0.2',
+      manifest: {
+        ...installedPlugin.manifest,
+        screenshots: [
+          'https://raw.githubusercontent.com/harborclient/plugin-ayu-mirage/main/screenshot.png'
+        ]
+      }
+    };
+
+    await expect(loadInstalledPluginScreenshotSrcs(plugin)).resolves.toEqual([
+      'https://raw.githubusercontent.com/harborclient/theme-ayu-mirage/v1.0.2/screenshot.png'
+    ]);
+  });
+
+  it('loads stale raw GitHub manifest screenshots from disk when the asset exists', async () => {
+    const readPluginAsset = vi.fn(async () => ({
+      content: 'abc',
+      mimeType: 'image/png'
+    }));
+    vi.stubGlobal('window', {
+      api: { readPluginAsset }
+    });
+
+    const plugin: PluginInfo = {
+      ...installedPlugin,
+      manifest: {
+        ...installedPlugin.manifest,
+        screenshots: [
+          'https://raw.githubusercontent.com/harborclient/plugin-ayu-mirage/main/screenshot.png'
+        ]
+      }
+    };
+
+    await expect(loadInstalledPluginScreenshotSrcs(plugin)).resolves.toEqual([
+      'data:image/png;base64,abc'
+    ]);
+    expect(readPluginAsset).toHaveBeenCalledWith(plugin.id, 'screenshot.png');
+  });
+
   it('falls back to catalog screenshots when manifest assets are unavailable', async () => {
     vi.stubGlobal('window', {
       api: {

@@ -7,6 +7,11 @@ import { sanitizePluginCatalogCategories } from './catalogCategories';
 export const PLUGIN_CATALOG_URL = 'https://harborclient.com/plugin_catalog.json';
 
 /**
+ * Public URL of the generated theme catalog served from harborclient.com.
+ */
+export const THEME_CATALOG_URL = 'https://harborclient.com/theme_catalog.json';
+
+/**
  * Public URL of the official HarborClient plugin signing key served from harborclient.com.
  */
 export const PLUGIN_SIGNING_PUBLIC_KEY_URL = 'https://harborclient.com/plugins/harborclient.key';
@@ -63,7 +68,10 @@ const catalogThemeContributionSchema = z.object({
  */
 export type CatalogThemeContribution = z.infer<typeof catalogThemeContributionSchema>;
 
-const pluginCatalogEntrySchema = z.object({
+/**
+ * Zod schema for one curated plugin or theme marketplace listing.
+ */
+export const pluginCatalogEntrySchema = z.object({
   id: pluginManifestId,
   name: z.string().min(1),
   version: z.string().min(1),
@@ -98,6 +106,14 @@ export const pluginCatalogSchema = z.object({
 });
 
 /**
+ * Zod schema for the theme marketplace catalog document.
+ */
+export const themeCatalogSchema = z.object({
+  schemaVersion: z.literal(1),
+  themes: z.array(pluginCatalogEntrySchema)
+});
+
+/**
  * One curated plugin listing in the marketplace catalog.
  */
 export type PluginCatalogEntry = z.infer<typeof pluginCatalogEntrySchema>;
@@ -108,6 +124,15 @@ export type PluginCatalogEntry = z.infer<typeof pluginCatalogEntrySchema>;
 export type PluginCatalog = {
   schemaVersion: 1;
   plugins: PluginCatalogEntry[];
+  updatedAt?: string;
+};
+
+/**
+ * Parsed theme marketplace catalog returned by the build script and app fetch.
+ */
+export type ThemeCatalog = {
+  schemaVersion: 1;
+  themes: PluginCatalogEntry[];
   updatedAt?: string;
 };
 
@@ -125,6 +150,27 @@ export function parsePluginCatalog(raw: unknown): PluginCatalog {
   for (const entry of parsed.plugins) {
     if (seen.has(entry.id)) {
       throw new Error(`Plugin catalog contains duplicate id: ${entry.id}`);
+    }
+    seen.add(entry.id);
+  }
+
+  return parsed;
+}
+
+/**
+ * Parses and validates a theme catalog payload.
+ *
+ * @param raw - Unknown JSON value from disk or an HTTP response.
+ * @returns Validated catalog with unique theme plugin ids.
+ * @throws When the payload is invalid or contains duplicate ids.
+ */
+export function parseThemeCatalog(raw: unknown): ThemeCatalog {
+  const parsed = themeCatalogSchema.parse(raw);
+  const seen = new Set<string>();
+
+  for (const entry of parsed.themes) {
+    if (seen.has(entry.id)) {
+      throw new Error(`Theme catalog contains duplicate id: ${entry.id}`);
     }
     seen.add(entry.id);
   }

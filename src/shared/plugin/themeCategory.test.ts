@@ -5,6 +5,7 @@ import type { PluginInfo } from './types';
 import {
   catalogEntryIsTheme,
   filterThemeCatalogByAppearance,
+  formatThemeDisplayName,
   getCatalogEntryThemeTypes,
   isThemeAppearanceCategory,
   pluginIsTheme,
@@ -52,6 +53,18 @@ function pluginInfo(categories?: PluginCatalogCategory[]): PluginInfo {
     }
   };
 }
+
+describe('formatThemeDisplayName', () => {
+  it('removes a trailing " Theme" suffix from marketplace theme names', () => {
+    expect(formatThemeDisplayName('Nord Theme')).toBe('Nord');
+    expect(formatThemeDisplayName('Tokyo Night Storm Theme')).toBe('Tokyo Night Storm');
+  });
+
+  it('returns the original name when no theme suffix is present', () => {
+    expect(formatThemeDisplayName('Nord')).toBe('Nord');
+    expect(formatThemeDisplayName('One Dark')).toBe('One Dark');
+  });
+});
 
 describe('catalogEntryIsTheme', () => {
   it('returns true when the themes category is present', () => {

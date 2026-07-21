@@ -9,6 +9,7 @@ import {
   writeFileForPlugin
 } from '#/main/plugins/pluginFsOperations';
 import { fetchPluginCatalog } from '#/main/plugins/pluginCatalog';
+import { fetchThemeCatalog } from '#/main/plugins/themeCatalog';
 import { fetchPluginPreviewFromGit } from '#/main/plugins/gitPluginPreview';
 import { clearTrustedKeysCache } from '#/main/plugins/pluginSignature';
 import { getPluginSources, setPluginSources } from '#/main/settings/pluginSourcesSettings';
@@ -253,6 +254,8 @@ export function registerPluginHandlers(pluginManager: PluginManager): void {
   });
 
   handle('plugins:catalog', ipcArgSchemas.none, () => fetchPluginCatalog());
+
+  handle('plugins:themeCatalog', ipcArgSchemas.none, () => fetchThemeCatalog());
 
   handle('plugins:getSources', ipcArgSchemas.none, () => getPluginSources());
 

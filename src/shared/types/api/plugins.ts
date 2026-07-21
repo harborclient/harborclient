@@ -1,4 +1,4 @@
-import type { PluginCatalog, PluginSourcesSettings } from '#/shared/plugin/catalog';
+import type { PluginCatalog, PluginSourcesSettings, ThemeCatalog } from '#/shared/plugin/catalog';
 import type { PluginHttpRequest, PluginHttpResponse } from '@harborclient/sdk';
 import type {
   PluginAssetResult,
@@ -34,6 +34,10 @@ export interface ApiPlugins {
    * Fetches the curated plugin marketplace catalog from configured sources.
    */
   getPluginCatalog: () => Promise<PluginCatalog>;
+  /**
+   * Fetches the curated theme marketplace catalog from harborclient.com.
+   */
+  getThemeCatalog: () => Promise<ThemeCatalog>;
   /**
    * Returns persisted plugin catalog and trusted-key source settings.
    */

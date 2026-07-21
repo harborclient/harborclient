@@ -1,6 +1,7 @@
 import { Button } from '@harborclient/sdk/components';
 import type { JSX, MouseEvent } from 'react';
 import type { PluginInfo } from '#/shared/plugin/types';
+import { formatThemeDisplayName } from '#/shared/plugin/themeCategory';
 import type { PluginManagementKind } from './constants';
 import { pluginManagementNoun } from './constants';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/Shared/classes';
@@ -79,6 +80,7 @@ export function InstalledPluginFooterActions({
   onUseTheme,
   layout = 'card'
 }: Props): JSX.Element {
+  const displayName = kind === 'themes' ? formatThemeDisplayName(plugin.name) : plugin.name;
   const noun = pluginManagementNoun(kind);
   const middleAction = resolveInstalledCardMiddleAction(plugin);
   const toggleLabel = installedCardToggleLabel(plugin.enabled);
@@ -108,7 +110,7 @@ export function InstalledPluginFooterActions({
           type="button"
           variant="toolbar"
           className={buttonClassName}
-          aria-label={`Use ${plugin.name}`}
+          aria-label={`Use ${displayName}`}
           onClick={handleClickStop(() => onUseTheme(plugin))}
         >
           Use
@@ -118,7 +120,7 @@ export function InstalledPluginFooterActions({
           type="button"
           variant="toolbar"
           className={buttonClassName}
-          aria-label={`${toggleLabel} ${plugin.name}`}
+          aria-label={`${toggleLabel} ${displayName}`}
           onClick={handleClickStop(() => onToggleEnabled(plugin))}
         >
           {toggleLabel}
@@ -130,7 +132,7 @@ export function InstalledPluginFooterActions({
           variant="toolbar"
           className={buttonClassName}
           disabled={gitUpdateBusy}
-          aria-label={`Update ${plugin.name}`}
+          aria-label={`Update ${displayName}`}
           onClick={handleClickStop(() => onUpdateFromGit(plugin.id))}
         >
           {gitUpdateBusy ? 'Updating…' : 'Update'}
@@ -141,7 +143,7 @@ export function InstalledPluginFooterActions({
           type="button"
           variant="toolbar"
           className={buttonClassName}
-          aria-label={`Reload ${plugin.name}`}
+          aria-label={`Reload ${displayName}`}
           onClick={handleClickStop(() => onReload(plugin))}
         >
           Reload
@@ -151,7 +153,7 @@ export function InstalledPluginFooterActions({
         type="button"
         variant="toolbar"
         className={`${buttonClassName} ${toolbarDangerButtonClass}`}
-        aria-label={`${removeLabel} ${noun} ${plugin.name}`}
+        aria-label={`${removeLabel} ${noun} ${displayName}`}
         onClick={handleClickStop(() => onRemove(plugin))}
       >
         {removeLabel}

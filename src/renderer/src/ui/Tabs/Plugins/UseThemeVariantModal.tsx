@@ -1,6 +1,7 @@
 import { ThemeVariantPickerModal } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import type { PluginInfo } from '#/shared/plugin/types';
+import { formatThemeDisplayName } from '#/shared/plugin/themeCategory';
 import type { PluginThemeVariant } from './listPluginThemeVariants';
 
 interface Props {
@@ -47,6 +48,8 @@ export function UseThemeVariantModal({
   onConfirm,
   onCancel
 }: Props): JSX.Element {
+  const displayName = formatThemeDisplayName(plugin.name);
+
   return (
     <ThemeVariantPickerModal
       variants={variants.map((variant) => ({
@@ -54,8 +57,8 @@ export function UseThemeVariantModal({
         label: formatVariantLabel(variant)
       }))}
       selectionMode="select"
-      title={`Use ${plugin.name}`}
-      description={`Choose which variant of ${plugin.name} to apply.`}
+      title={`Use ${displayName}`}
+      description={`Choose which variant of ${displayName} to apply.`}
       selectorLabel="Theme variant"
       busyStatus="Applying theme…"
       confirmLabel="Use theme"

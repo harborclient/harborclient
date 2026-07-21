@@ -1,7 +1,7 @@
 import { useCallback, useState, type JSX } from 'react';
 import { Button, FaIcon, Modal, ModalFooter, FieldError } from '@harborclient/sdk/components';
 import type { PluginInfo } from '#/shared/plugin/types';
-import { pluginIsTheme } from '#/shared/plugin/themeCategory';
+import { formatThemeDisplayName, pluginIsTheme } from '#/shared/plugin/themeCategory';
 import type { GeneralSettings } from '#/shared/types';
 
 import { faCircleCheck } from '#/renderer/src/fontawesome';
@@ -50,6 +50,7 @@ export function EnableModal({ plugin, onConfirm, onCancel }: Props): JSX.Element
   const general = useAppSelector((state) => state.settings.general);
   const [busy, setBusy] = useState(false);
   const noun = pluginIsTheme(plugin) ? 'theme' : 'plugin';
+  const displayName = pluginIsTheme(plugin) ? formatThemeDisplayName(plugin.name) : plugin.name;
   const needsNetworkChoice = pluginNeedsNetworkSetting(plugin, general);
 
   /**
@@ -84,7 +85,7 @@ export function EnableModal({ plugin, onConfirm, onCancel }: Props): JSX.Element
     <Modal
       onClose={onCancel}
       labelledBy="plugin-permissions-title"
-      title={`Enable ${plugin.name}?`}
+      title={`Enable ${displayName}?`}
       closeDisabled={busy}
       disableEscape={busy}
     >

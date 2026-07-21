@@ -6,6 +6,7 @@ import { closeTab } from '#/renderer/src/store/slices/tabsSlice';
 import { applyPluginThemePreference } from '#/renderer/src/plugins/applyPluginTheme';
 import { getRegisteredPluginThemes } from '#/renderer/src/plugins/registry';
 import type { PluginInfo } from '#/shared/plugin/types';
+import { formatThemeDisplayName } from '#/shared/plugin/themeCategory';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { faPalette, faPuzzlePiece } from '#/renderer/src/fontawesome';
 import { listPluginThemeVariants } from './listPluginThemeVariants';
@@ -208,7 +209,7 @@ export function PluginDetailPage({ page, tabId }: Props): JSX.Element {
 
       const variants = listPluginThemeVariants(currentPlugin, getRegisteredPluginThemes());
       if (variants.length === 0) {
-        showAlert(dispatch, `No themes are available for ${plugin.name}.`);
+        showAlert(dispatch, `No themes are available for ${formatThemeDisplayName(plugin.name)}.`);
         return;
       }
 

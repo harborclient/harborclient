@@ -6,6 +6,21 @@ import type { PluginInfo } from './types';
  */
 export const THEME_CATEGORY = 'themes' as const;
 
+const THEME_DISPLAY_NAME_SUFFIX = ' Theme';
+
+/**
+ * Returns a theme plugin name for UI display, omitting the redundant " Theme"
+ * suffix used in marketplace manifests.
+ *
+ * @param name - Raw plugin or catalog name from a theme manifest.
+ * @returns Display name without a trailing " Theme" suffix when present.
+ */
+export function formatThemeDisplayName(name: string): string {
+  return name.endsWith(THEME_DISPLAY_NAME_SUFFIX)
+    ? name.slice(0, -THEME_DISPLAY_NAME_SUFFIX.length)
+    : name;
+}
+
 /**
  * Marketplace category slugs that describe a theme's light, dark, or high-contrast appearance.
  */

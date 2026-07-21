@@ -1,4 +1,8 @@
-import { buildGitHubRawContentUrl, parseGitHubRepo } from '#/shared/plugin/githubRaw';
+import {
+  buildGitHubRawContentUrl,
+  parseGitHubRepo,
+  relativePathFromRawGitHubUrl
+} from '#/shared/plugin/githubRaw';
 import { assertSafeGitPluginUrl } from '#/main/plugins/gitPluginUrl';
 import { parseSnippetManifest } from './manifestSchema';
 import type { SnippetGitPreview } from '#/shared/snippet/types';
@@ -135,13 +139,23 @@ async function resolveManifestScreenshotSrcs(
   const resolved: string[] = [];
 
   for (const screenshot of screenshots) {
-    if (isAbsoluteScreenshotUrl(screenshot)) {
-      resolved.push(screenshotRelativePath(screenshot));
+    const value = screenshotRelativePath(screenshot);
+    const relativeFromRaw = relativePathFromRawGitHubUrl(value);
+
+    if (relativeFromRaw) {
+      const dataUrl = await fetchScreenshotFromPaths(repoUrl, ref, [relativeFromRaw]);
+      if (dataUrl) {
+        resolved.push(dataUrl);
+      }
       continue;
     }
 
-    const relativePath = screenshotRelativePath(screenshot);
-    const dataUrl = await fetchScreenshotFromPaths(repoUrl, ref, [relativePath]);
+    if (isAbsoluteScreenshotUrl(screenshot)) {
+      resolved.push(value);
+      continue;
+    }
+
+    const dataUrl = await fetchScreenshotFromPaths(repoUrl, ref, [value]);
     if (dataUrl) {
       resolved.push(dataUrl);
     }

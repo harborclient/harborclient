@@ -2,7 +2,7 @@ import type { JSX } from 'react';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import { PLUGIN_CATALOG_CATEGORY_LABELS } from '#/shared/plugin/catalogCategories';
 import { resolveCatalogScreenshotUrls } from '#/shared/plugin/githubRaw';
-import { catalogEntryIsTheme } from '#/shared/plugin/themeCategory';
+import { catalogEntryIsTheme, formatThemeDisplayName } from '#/shared/plugin/themeCategory';
 import { CatalogCard as SdkCatalogCard, ScreenshotCarousel } from '@harborclient/sdk/components';
 
 interface Props {
@@ -34,9 +34,11 @@ export function CatalogCard({ entry, onOpen }: Props): JSX.Element {
         label: PLUGIN_CATALOG_CATEGORY_LABELS[category]
       }));
 
+  const displayName = catalogEntryIsTheme(entry) ? formatThemeDisplayName(entry.name) : entry.name;
+
   return (
     <SdkCatalogCard
-      name={entry.name}
+      name={displayName}
       version={entry.version}
       summary={entry.summary}
       onOpen={onOpen}

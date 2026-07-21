@@ -13,6 +13,7 @@ import {
 } from '#/renderer/src/ui/Modals/dialogHelpers';
 import type { PluginManagementKind } from '../constants';
 import { resolvePendingPluginInstallDeepLink } from '../helpers';
+import { catalogEntryIsTheme, formatThemeDisplayName } from '#/shared/plugin/themeCategory';
 import type { PluginsSidebarSection } from '../sidebarTypes';
 
 interface UsePluginDeepLinkInstallArgs {
@@ -92,6 +93,17 @@ export function usePluginDeepLinkInstall({
 
       const result = await resolvePendingPluginInstallDeepLink(pluginId, {
         getPluginCatalog: async () => {
+          if (isThemes) {
+            const loaded = await window.api.getThemeCatalog();
+            const asPluginCatalog: PluginCatalog = {
+              schemaVersion: 1,
+              plugins: loaded.themes
+            };
+            if (!cancelled) {
+              setCatalog(asPluginCatalog);
+            }
+            return asPluginCatalog;
+          }
           const loaded = await window.api.getPluginCatalog();
           if (!cancelled) {
             setCatalog(loaded);
@@ -99,12 +111,16 @@ export function usePluginDeepLinkInstall({
           return loaded;
         },
         listPlugins: () => window.api.listPlugins(),
-        confirmInstall: (entry) =>
-          showConfirm(dispatch, {
-            title: `Install ${entry.name}?`,
-            message: `Install ${entry.name} v${entry.version} by ${entry.author} from ${entry.repoUrl}?`,
+        confirmInstall: (entry) => {
+          const displayName = catalogEntryIsTheme(entry)
+            ? formatThemeDisplayName(entry.name)
+            : entry.name;
+          return showConfirm(dispatch, {
+            title: `Install ${displayName}?`,
+            message: `Install ${displayName} v${entry.version} by ${entry.author} from ${entry.repoUrl}?`,
             confirmLabel: 'Install'
-          }),
+          });
+        },
         installFromGit: async (entry) => {
           setCatalogActionBusyId(entry.id);
           try {

@@ -5,8 +5,10 @@ import {
   normalizePluginSources,
   parsePluginCatalog,
   parsePluginTrustedKeys,
+  parseThemeCatalog,
   PLUGIN_CATALOG_URL,
-  PLUGIN_TRUSTED_KEYS_URL
+  PLUGIN_TRUSTED_KEYS_URL,
+  THEME_CATALOG_URL
 } from './catalog';
 
 const validCatalog = {
@@ -20,6 +22,24 @@ const validCatalog = {
       author: 'Example Inc.',
       categories: ['editor'],
       repoUrl: 'https://github.com/example/demo-plugin'
+    }
+  ]
+};
+
+const validThemeCatalog = {
+  schemaVersion: 1 as const,
+  themes: [
+    {
+      id: 'com.example.theme',
+      name: 'Demo Theme',
+      version: '1.0.0',
+      summary: 'A sample theme for tests.',
+      author: 'Example Inc.',
+      categories: ['themes'],
+      repoUrl: 'https://github.com/example/demo-theme',
+      contributes: {
+        themes: [{ id: 'demo', title: 'Demo', type: 'dark' as const }]
+      }
     }
   ]
 };
@@ -243,6 +263,35 @@ describe('parsePluginCatalog', () => {
   });
 });
 
+describe('parseThemeCatalog', () => {
+  it('accepts a valid theme catalog payload', () => {
+    expect(parseThemeCatalog(validThemeCatalog)).toEqual(validThemeCatalog);
+  });
+
+  it('rejects duplicate theme ids', () => {
+    expect(() =>
+      parseThemeCatalog({
+        schemaVersion: 1,
+        themes: [validThemeCatalog.themes[0], validThemeCatalog.themes[0]]
+      })
+    ).toThrow(/duplicate id/i);
+  });
+
+  it('rejects non-GitHub repository URLs', () => {
+    expect(() =>
+      parseThemeCatalog({
+        schemaVersion: 1,
+        themes: [
+          {
+            ...validThemeCatalog.themes[0],
+            repoUrl: 'https://gitlab.com/example/demo-theme'
+          }
+        ]
+      })
+    ).toThrow(/github\.com/);
+  });
+});
+
 const validTrustedKeys = [
   {
     author: 'HarborClient',
@@ -313,6 +362,7 @@ describe('plugin source settings helpers', () => {
 
   it('identifies harborclient.com endpoints and subdomains', () => {
     expect(isHarborClientEndpoint(PLUGIN_CATALOG_URL)).toBe(true);
+    expect(isHarborClientEndpoint(THEME_CATALOG_URL)).toBe(true);
     expect(isHarborClientEndpoint('https://cdn.harborclient.com/plugin_catalog.json')).toBe(true);
     expect(isHarborClientEndpoint('https://example.com/catalog.json')).toBe(false);
     expect(isHarborClientEndpoint('not-a-url')).toBe(false);

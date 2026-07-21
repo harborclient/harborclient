@@ -2,7 +2,7 @@ import { useCallback, useState, type Dispatch, type SetStateAction } from 'react
 import toast from 'react-hot-toast';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import type { PluginInfo } from '#/shared/plugin/types';
-import { pluginIsTheme } from '#/shared/plugin/themeCategory';
+import { pluginIsTheme, formatThemeDisplayName } from '#/shared/plugin/themeCategory';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import type { PluginManagementKind } from '#/renderer/src/ui/Tabs/Plugins/constants';
 import {
@@ -390,9 +390,11 @@ export function usePluginInstallActions({
     async (plugin: PluginInfo): Promise<void> => {
       await window.api.reloadPlugin(plugin.id);
       await refresh();
-      toast.success(`${plugin.name} reloaded.`);
+      toast.success(
+        `${kind === 'themes' ? formatThemeDisplayName(plugin.name) : plugin.name} reloaded.`
+      );
     },
-    [refresh]
+    [refresh, kind]
   );
 
   /**
@@ -402,11 +404,15 @@ export function usePluginInstallActions({
    */
   const handleRemove = useCallback(
     async (plugin: PluginInfo): Promise<void> => {
+      const displayName =
+        kind === 'themes' || pluginIsTheme(plugin)
+          ? formatThemeDisplayName(plugin.name)
+          : plugin.name;
       const confirmed = await showConfirm(dispatch, {
         title: isManagedInstall(plugin) ? 'Uninstall plugin?' : 'Remove dev plugin?',
         message: isManagedInstall(plugin)
-          ? `Remove ${plugin.name} and delete its files from HarborClient?`
-          : `Stop loading ${plugin.name} from ${plugin.path}? Your source folder will not be deleted.`,
+          ? `Remove ${displayName} and delete its files from HarborClient?`
+          : `Stop loading ${displayName} from ${plugin.path}? Your source folder will not be deleted.`,
         confirmLabel: isManagedInstall(plugin) ? 'Uninstall' : 'Remove',
         variant: 'danger'
       });
@@ -423,7 +429,7 @@ export function usePluginInstallActions({
       }
       await refresh();
     },
-    [dispatch, detailPlugin, closeDetail, refresh]
+    [dispatch, detailPlugin, closeDetail, refresh, kind]
   );
 
   /**

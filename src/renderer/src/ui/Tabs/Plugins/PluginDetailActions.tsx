@@ -2,6 +2,7 @@ import { Button } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import type { PluginInfo } from '#/shared/plugin/types';
+import { formatThemeDisplayName } from '#/shared/plugin/themeCategory';
 import type { PluginManagementKind } from './constants';
 import { InstalledPluginFooterActions } from './InstalledPluginFooterActions';
 
@@ -98,11 +99,14 @@ export function PluginDetailActions(props: Props): JSX.Element | null {
     );
   }
 
+  const installLabel =
+    props.kind === 'themes' ? formatThemeDisplayName(props.entry.name) : props.entry.name;
+
   return (
     <Button
       type="button"
       disabled={props.actionBusy}
-      aria-label={`Install ${props.entry.name}`}
+      aria-label={`Install ${installLabel}`}
       onClick={props.onInstall}
     >
       {props.actionBusy ? 'Installing…' : 'Install'}

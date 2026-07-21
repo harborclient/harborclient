@@ -4,6 +4,7 @@ import {
   GITHUB_MODELS,
   getAiModelById,
   getAvailableModels,
+  groupAvailableModels,
   hasAvailableAiModels
 } from './models';
 import type { AiSettings, HubLlmModelGroup } from '#/shared/types';
@@ -28,12 +29,12 @@ describe('getAvailableModels', () => {
     expect(getAvailableModels(EMPTY_SETTINGS)).toEqual([]);
   });
 
-  it('returns hub models with Team Hub labels when a hub offers them', () => {
+  it('returns hub models when a hub offers them', () => {
     expect(getAvailableModels(EMPTY_SETTINGS, HUB_GROUPS)).toEqual([
       {
         id: 'gpt-4o',
         value: 'gpt-4o',
-        label: 'GPT-4o (Team Hub)',
+        label: 'GPT-4o',
         provider: 'openai',
         source: 'hub',
         hubId: 'hub-1',
@@ -56,7 +57,7 @@ describe('getAvailableModels', () => {
       {
         id: 'gpt-4.1',
         value: 'gpt-4.1',
-        label: 'GPT-4.1 (Team Hub)',
+        label: 'GPT-4.1',
         provider: 'openai',
         source: 'hub',
         hubId: 'hub-1',
@@ -74,7 +75,7 @@ describe('getAvailableModels', () => {
     const personalGpt4o = models.find((model) => model.value === 'personal:gpt-4o');
     expect(personalGpt4o?.source).toBe('personal');
     expect(personalGpt4o?.id).toBe('gpt-4o');
-    expect(personalGpt4o?.label).toContain('(Personal)');
+    expect(personalGpt4o?.label).toBe('GPT-4o');
 
     expect(models.some((model) => model.id === 'gpt-4o-mini' && model.source === 'personal')).toBe(
       true
@@ -85,7 +86,7 @@ describe('getAvailableModels', () => {
     const models = getAvailableModels({ ...EMPTY_SETTINGS, openaiApiKey: 'sk-test' });
     expect(models.every((model) => model.provider === 'openai')).toBe(true);
     expect(models[0]?.source).toBe('personal');
-    expect(models[0]?.label).toContain('(Personal)');
+    expect(models[0]?.label).toBe('GPT-4o');
   });
 
   it('includes models from every provider with a configured key when hubs do not offer them', () => {
@@ -104,7 +105,49 @@ describe('getAvailableModels', () => {
     const models = getAvailableModels(EMPTY_SETTINGS, [], true);
     expect(models).toHaveLength(GITHUB_MODELS.length);
     expect(models.every((model) => model.provider === 'github')).toBe(true);
-    expect(models[0]?.label).toContain('(GitHub Models)');
+    expect(models[0]?.label).toBe(GITHUB_MODELS[0]?.label);
+  });
+});
+
+describe('groupAvailableModels', () => {
+  it('groups hub and personal models into separate sections', () => {
+    const models = getAvailableModels({ ...EMPTY_SETTINGS, openaiApiKey: 'sk-test' }, HUB_GROUPS);
+
+    expect(groupAvailableModels(models)).toEqual([
+      {
+        key: 'hub:hub-1',
+        label: 'Team Hub',
+        models: [models[0]]
+      },
+      {
+        key: 'personal',
+        label: 'Personal',
+        models: models.slice(1)
+      }
+    ]);
+  });
+
+  it('creates one section per connected Team Hub', () => {
+    const hubGroups: HubLlmModelGroup[] = [
+      {
+        hubId: 'hub-a',
+        hubName: 'Alpha Hub',
+        models: [{ id: 'gpt-4.1', label: 'GPT-4.1', provider: 'openai' }],
+        hasOpenAi: true
+      },
+      {
+        hubId: 'hub-b',
+        hubName: 'Beta Hub',
+        models: [{ id: 'gpt-4.1-mini', label: 'GPT-4.1 Mini', provider: 'openai' }],
+        hasOpenAi: true
+      }
+    ];
+    const models = getAvailableModels(EMPTY_SETTINGS, hubGroups);
+
+    expect(groupAvailableModels(models).map((group) => group.label)).toEqual([
+      'Alpha Hub',
+      'Beta Hub'
+    ]);
   });
 });
 

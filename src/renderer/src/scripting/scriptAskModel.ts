@@ -14,15 +14,15 @@ export function resolveScriptAskModelId(
   preferredFromChat?: string
 ): string {
   const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored && availableModels.some((model) => model.id === stored)) {
+  if (stored && availableModels.some((model) => model.value === stored)) {
     return stored;
   }
 
-  if (preferredFromChat && availableModels.some((model) => model.id === preferredFromChat)) {
+  if (preferredFromChat && availableModels.some((model) => model.value === preferredFromChat)) {
     return preferredFromChat;
   }
 
-  return availableModels[0]?.id ?? '';
+  return availableModels[0]?.value ?? '';
 }
 
 /**

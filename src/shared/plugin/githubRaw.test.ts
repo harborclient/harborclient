@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildGitHubRawContentUrl,
   parseGitHubRepo,
+  relativePathFromRawGitHubUrl,
   resolveCatalogScreenshotUrls,
   resolveScreenshotUrl
 } from './githubRaw';
@@ -93,6 +94,30 @@ describe('resolveScreenshotUrl', () => {
 
   it('returns null for empty values', () => {
     expect(resolveScreenshotUrl('  ', 'https://github.com/example/demo', 'main')).toBeNull();
+  });
+
+  it('re-resolves stale raw.githubusercontent.com URLs against the listing repo', () => {
+    expect(
+      resolveScreenshotUrl(
+        'https://raw.githubusercontent.com/harborclient/plugin-ayu-mirage/main/screenshot.png',
+        'https://github.com/harborclient/theme-ayu-mirage',
+        'v1.0.2'
+      )
+    ).toBe('https://raw.githubusercontent.com/harborclient/theme-ayu-mirage/v1.0.2/screenshot.png');
+  });
+});
+
+describe('relativePathFromRawGitHubUrl', () => {
+  it('extracts the repository-relative path from a raw GitHub content URL', () => {
+    expect(
+      relativePathFromRawGitHubUrl(
+        'https://raw.githubusercontent.com/harborclient/plugin-ayu-mirage/main/screenshot.png'
+      )
+    ).toBe('screenshot.png');
+  });
+
+  it('returns null for non-raw GitHub URLs', () => {
+    expect(relativePathFromRawGitHubUrl('https://example.com/screenshot.png')).toBeNull();
   });
 });
 

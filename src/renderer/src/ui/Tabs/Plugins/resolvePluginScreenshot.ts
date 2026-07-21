@@ -1,6 +1,10 @@
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import type { PluginGitPreview, PluginInfo } from '#/shared/plugin/types';
-import { buildGitHubRawContentUrl, resolveCatalogScreenshotUrls } from '#/shared/plugin/githubRaw';
+import {
+  relativePathFromRawGitHubUrl,
+  resolveCatalogScreenshotUrls,
+  resolveScreenshotUrl
+} from '#/shared/plugin/githubRaw';
 
 /**
  * Returns the repository-relative path from a manifest screenshot entry.
@@ -31,6 +35,25 @@ function isAbsoluteScreenshotUrl(
 }
 
 /**
+ * Returns a repository-relative asset path when the screenshot can be read from disk.
+ *
+ * @param value - Manifest screenshot string.
+ * @returns Relative path for `readPluginAsset`, or null for non-local absolute URLs.
+ */
+function manifestScreenshotDiskPath(value: string): string | null {
+  const relativeFromRaw = relativePathFromRawGitHubUrl(value);
+  if (relativeFromRaw) {
+    return relativeFromRaw;
+  }
+
+  if (isAbsoluteScreenshotUrl(value)) {
+    return null;
+  }
+
+  return value;
+}
+
+/**
  * Builds a data URL from a plugin asset read over IPC.
  *
  * @param asset - Base64 asset payload from the main process.
@@ -43,7 +66,8 @@ export function pluginAssetToDataUrl(asset: { content: string; mimeType: string 
 /**
  * Loads the best available screenshots for an installed plugin.
  *
- * Manifest assets on disk take priority, then catalog URLs, then GitHub raw fallbacks.
+ * Manifest assets on disk take priority, then resolved manifest/catalog URLs,
+ * then a GitHub raw fallback for `screenshot.png`.
  *
  * @param plugin - Installed plugin row.
  * @param catalogScreenshots - Optional marketplace screenshot URLs for this plugin id.
@@ -60,25 +84,30 @@ export async function loadInstalledPluginScreenshotSrcs(
     const resolved: string[] = [];
 
     for (const manifestScreenshot of manifestScreenshots) {
-      if (isAbsoluteScreenshotUrl(manifestScreenshot)) {
-        resolved.push(screenshotRelativePath(manifestScreenshot));
-        continue;
+      const value = screenshotRelativePath(manifestScreenshot);
+      const diskPath = manifestScreenshotDiskPath(value);
+
+      if (diskPath) {
+        try {
+          const asset = await window.api.readPluginAsset(plugin.id, diskPath);
+          resolved.push(pluginAssetToDataUrl(asset));
+          continue;
+        } catch {
+          // Fall through to URL resolution below.
+        }
       }
 
-      const relativePath = screenshotRelativePath(manifestScreenshot);
-      try {
-        const asset = await window.api.readPluginAsset(plugin.id, relativePath);
-        resolved.push(pluginAssetToDataUrl(asset));
-        continue;
-      } catch {
-        const repoUrl = plugin.repoUrl;
-        const ref = plugin.repoRef ?? 'main';
-        if (repoUrl) {
-          const rawUrl = buildGitHubRawContentUrl(repoUrl, ref, relativePath);
-          if (rawUrl) {
-            resolved.push(rawUrl);
-          }
+      const repoUrl = plugin.repoUrl;
+      if (repoUrl) {
+        const url = resolveScreenshotUrl(value, repoUrl, plugin.repoRef);
+        if (url) {
+          resolved.push(url);
+          continue;
         }
+      }
+
+      if (isAbsoluteScreenshotUrl(value)) {
+        resolved.push(value);
       }
     }
 
@@ -111,7 +140,7 @@ export async function loadInstalledPluginScreenshotSrcs(
   const repoUrl = plugin.repoUrl;
   const ref = plugin.repoRef ?? 'main';
   if (repoUrl) {
-    const fallback = buildGitHubRawContentUrl(repoUrl, ref, 'screenshot.png');
+    const fallback = resolveScreenshotUrl('screenshot.png', repoUrl, ref);
     return fallback ? [fallback] : [];
   }
 

@@ -55,6 +55,7 @@ import type {
   PluginInfo,
   PluginCatalog,
   PluginSourcesSettings,
+  ThemeCatalog,
   TeamHubPluginSourcesView,
   ResolvedThemeImport,
   SerializableMenuContribution,
@@ -3210,6 +3211,13 @@ function getPluginCatalog(): Promise<PluginCatalog> {
 }
 
 /**
+ * Fetches the curated theme marketplace catalog.
+ */
+function getThemeCatalog(): Promise<ThemeCatalog> {
+  return ipcRenderer.invoke('plugins:themeCatalog');
+}
+
+/**
  * Returns persisted plugin catalog and trusted-key source settings.
  */
 function getPluginSources(): Promise<PluginSourcesSettings> {
@@ -4077,6 +4085,7 @@ const api: Api = {
   getUserDataPath,
   listPlugins,
   getPluginCatalog,
+  getThemeCatalog,
   getPluginSources,
   setPluginSources,
   getTeamHubPluginSources,

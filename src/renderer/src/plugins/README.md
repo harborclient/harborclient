@@ -365,7 +365,7 @@ Used by the host renderer for plugin management, storage/database access with ex
 | Lifecycle      | `plugins:list`, `plugins:setEnabled`, `plugins:reload`, `plugins:reportRuntimeError`                                                           |
 | Install        | `plugins:install`, `plugins:installFromPath`, `plugins:installFromGit`, `plugins:previewFromGit`, `plugins:updateFromGit`, `plugins:uninstall` |
 | Dev            | `plugins:loadUnpacked`, `plugins:loadUnpackedFromPath`, `plugins:removeUnpacked`                                                               |
-| Catalog        | `plugins:catalog`, `plugins:getSources`, `plugins:setSources`, `plugins:getTeamHubSources`                                                     |
+| Catalog        | `plugins:catalog`, `plugins:themeCatalog`, `plugins:getSources`, `plugins:setSources`, `plugins:getTeamHubSources`                             |
 | Assets         | `plugins:readEntry`, `plugins:readAsset`                                                                                                       |
 | Main runtime   | `plugins:activateMain`, `plugins:deactivateMain`, `plugins:invokeMain`                                                                         |
 | Storage/DB     | `plugins:storageGet/Set`, `plugins:databaseQuery/Exec/TxBegin/TxEnd`                                                                           |

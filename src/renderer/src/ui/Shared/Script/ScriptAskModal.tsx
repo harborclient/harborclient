@@ -9,11 +9,16 @@ import {
   type JSX,
   type KeyboardEvent
 } from 'react';
-import { getAvailableModels } from '#/shared/ai/models';
+import {
+  getAvailableModels,
+  getAiModelOptionGroupLabel,
+  resolveAiModelOption
+} from '#/shared/ai/models';
 import { removeScriptAskLine } from '#/shared/ai/scriptAsk';
 import type { AiSettings, HubLlmModelGroup } from '#/shared/types';
 import { runScriptAsk } from '#/renderer/src/scripting/runScriptAsk';
 import { resolveScriptAskModelId } from '#/renderer/src/scripting/scriptAskModel';
+import { AiModelSelectOptions } from '#/renderer/src/ui/Shared/AiModelSelectOptions';
 
 interface Props {
   /**
@@ -90,6 +95,12 @@ export function ScriptAskModal({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const modelId = modelIdOverride ?? resolveScriptAskModelId(availableModels, preferredChatModelId);
+  const selectedModelOption = resolveAiModelOption(
+    modelId,
+    aiSettings,
+    hubModelGroups,
+    githubConnected
+  );
   const canSend = draft.trim().length > 0 && !sending && modelId.length > 0;
 
   /**
@@ -251,14 +262,14 @@ export function ScriptAskModal({
               className="min-w-0 flex-1 cursor-pointer py-1 text-[14px]"
               value={modelId}
               disabled={sending || availableModels.length === 0}
-              aria-label="AI model"
+              aria-label={
+                selectedModelOption != null
+                  ? `AI model, ${selectedModelOption.label}, ${getAiModelOptionGroupLabel(selectedModelOption)}`
+                  : 'AI model'
+              }
               onChange={(event) => setModelIdOverride(event.target.value)}
             >
-              {availableModels.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.label}
-                </option>
-              ))}
+              <AiModelSelectOptions models={availableModels} />
             </Select>
             <Button
               type="button"

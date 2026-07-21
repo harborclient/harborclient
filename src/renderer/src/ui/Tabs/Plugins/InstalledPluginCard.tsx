@@ -3,7 +3,7 @@ import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import { PLUGIN_CATALOG_CATEGORY_LABELS } from '#/shared/plugin/catalogCategories';
 import type { PluginInfo } from '#/shared/plugin/types';
 import { parsePluginThemeValue } from '#/shared/plugin/types';
-import { pluginIsTheme } from '#/shared/plugin/themeCategory';
+import { formatThemeDisplayName, pluginIsTheme } from '#/shared/plugin/themeCategory';
 import type { ThemeSource } from '#/shared/types';
 import type { PluginManagementKind } from './constants';
 import { ErrorMessages } from './ErrorMessages';
@@ -86,6 +86,8 @@ export function InstalledPluginCard({
   activeTheme = 'system'
 }: Props): JSX.Element {
   const [screenshotSrcs, setScreenshotSrcs] = useState<string[]>([]);
+  const displayName =
+    kind === 'themes' || pluginIsTheme(plugin) ? formatThemeDisplayName(plugin.name) : plugin.name;
   const summary = resolveInstalledPluginSummary(plugin, catalogEntry);
   const categories = catalogEntry?.categories ?? plugin.manifest.categories ?? [];
   const showCategories = kind !== 'themes' && !pluginIsTheme(plugin) && categories.length > 0;
@@ -159,13 +161,13 @@ export function InstalledPluginCard({
           tabIndex={0}
           role="button"
           className="flex flex-1 cursor-pointer flex-col gap-1.5 hover:bg-selection/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
-          aria-label={`View details for ${plugin.name}`}
+          aria-label={`View details for ${displayName}`}
           onClick={handleBodyClick}
           onKeyDown={handleBodyKeyDown}
         >
           <div className="flex items-baseline justify-between gap-2">
             <h3 className="m-0 min-w-0 truncate text-[14px] font-semibold text-text">
-              {plugin.name}
+              {displayName}
             </h3>
             <span className="shrink-0 text-[14px] text-muted">{plugin.version}</span>
           </div>

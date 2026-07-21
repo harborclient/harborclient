@@ -1,7 +1,11 @@
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import type { PluginInfo } from '#/shared/plugin/types';
 import type { SnippetCatalogEntry } from '#/shared/snippet/catalog';
-import { catalogEntryIsTheme, pluginIsTheme } from '#/shared/plugin/themeCategory';
+import {
+  catalogEntryIsTheme,
+  formatThemeDisplayName,
+  pluginIsTheme
+} from '#/shared/plugin/themeCategory';
 import {
   searchInstalledPluginHits,
   type buildInstalledPluginSearchIndex
@@ -171,7 +175,7 @@ export function searchAll(query: string, context: SearchAllContext): UnifiedSear
       grouped[domain].push({
         domain,
         id: hit.id,
-        title: hit.name,
+        title: domain === 'theme' ? formatThemeDisplayName(hit.name) : hit.name,
         subtitle: hit.summary,
         score: hit.score,
         pluginListingSource: 'marketplace'
@@ -187,7 +191,7 @@ export function searchAll(query: string, context: SearchAllContext): UnifiedSear
       grouped[domain].push({
         domain,
         id: hit.id,
-        title: hit.name,
+        title: domain === 'theme' ? formatThemeDisplayName(hit.name) : hit.name,
         subtitle: hit.summary,
         score: hit.score,
         pluginListingSource: 'installed'

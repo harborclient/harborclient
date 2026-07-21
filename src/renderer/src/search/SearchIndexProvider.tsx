@@ -191,19 +191,36 @@ export function SearchIndexProvider({ children }: Props): JSX.Element {
   }, [collections, collectionsListed, dispatch, foldersByCollection]);
 
   /**
-   * Loads the marketplace plugin catalog on startup for global search readiness.
+   * Loads the marketplace plugin catalog on startup for global search readiness,
+   * then merges theme marketplace entries so themes remain searchable after they
+   * leave plugin_catalog.json.
    */
   useEffect(() => {
     let active = true;
-    void window.api
-      .getPluginCatalog()
-      .then((catalog) => {
-        if (active) {
-          setPluginCatalog(catalog);
+    void Promise.all([
+      window.api.getPluginCatalog().catch(() => null),
+      window.api.getThemeCatalog().catch(() => null)
+    ])
+      .then(([pluginCatalogResult, themeCatalogResult]) => {
+        if (!active) {
+          return;
         }
-      })
-      .catch(() => {
-        // Global search degrades gracefully when the catalog is unavailable.
+        const plugins = [...(pluginCatalogResult?.plugins ?? [])];
+        const seen = new Set(plugins.map((entry) => entry.id));
+        for (const theme of themeCatalogResult?.themes ?? []) {
+          if (seen.has(theme.id)) {
+            continue;
+          }
+          seen.add(theme.id);
+          plugins.push(theme);
+        }
+        if (plugins.length > 0) {
+          setPluginCatalog({
+            schemaVersion: 1,
+            plugins,
+            ...(pluginCatalogResult?.updatedAt ? { updatedAt: pluginCatalogResult.updatedAt } : {})
+          });
+        }
       })
       .finally(() => {
         if (active) {

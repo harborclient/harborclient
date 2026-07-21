@@ -4,7 +4,7 @@ This folder holds marketplace metadata and official plugin signing keys.
 
 | File               | In git | Purpose                                                                                                                                                                   |
 | ------------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `catalog.json`     | Yes    | Source for the [plugin marketplace](https://harborclient.com/plugins)                                                                                                     |
+| `catalog.json`     | Yes    | Source for the plugin, theme, and snippet marketplaces (`plugins`, `themes`, and `snippets` arrays)                                                                       |
 | `trusted.json`     | Yes    | Registry of trusted plugin signing key URLs (published at [harborclient.com/plugins/trusted.json](https://harborclient.com/plugins/trusted.json))                         |
 | `harborclient.key` | Yes    | Ed25519 public key for verifying official plugin signatures (published at [harborclient.com/plugins/harborclient.key](https://harborclient.com/plugins/harborclient.key)) |
 | `signing.pem`      | **No** | Ed25519 private key for signing official plugins — generate locally, never commit                                                                                         |

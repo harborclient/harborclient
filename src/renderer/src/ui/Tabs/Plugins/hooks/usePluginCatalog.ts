@@ -102,34 +102,6 @@ export function usePluginCatalog(kind: PluginManagementKind = 'plugins'): UsePlu
   );
 
   /**
-   * Loads the marketplace catalog from configured sources.
-   */
-  const loadCatalog = useCallback(async (): Promise<void> => {
-    if (warmPlugins.length > 0 && catalog == null) {
-      setCatalog({ schemaVersion: 1, plugins: warmPlugins });
-      return;
-    }
-    setCatalogLoading(true);
-    setCatalogError(null);
-    try {
-      const next = await window.api.getPluginCatalog();
-      setCatalog(next);
-    } catch (err) {
-      setCatalogError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setCatalogLoading(false);
-    }
-  }, [catalog, warmPlugins]);
-
-  /**
-   * Clears marketplace search/filter state when leaving the Marketplace section.
-   */
-  const resetCatalogFilters = useCallback((): void => {
-    setCatalogSearchQuery('');
-    setCatalogCategoryFilter('');
-  }, []);
-
-  /**
    * Keeps catalog entries that match the active management kind (plugins vs themes).
    */
   const partitionCatalogByKind = useCallback(
@@ -141,6 +113,44 @@ export function usePluginCatalog(kind: PluginManagementKind = 'plugins'): UsePlu
     },
     [kind]
   );
+
+  /**
+   * Loads the marketplace catalog from configured sources.
+   *
+   * Themes use the dedicated theme catalog endpoint; plugins use the plugin catalog.
+   */
+  const loadCatalog = useCallback(async (): Promise<void> => {
+    if (warmPlugins.length > 0 && catalog == null) {
+      const partitioned = partitionCatalogByKind(warmPlugins);
+      if (partitioned.length > 0) {
+        setCatalog({ schemaVersion: 1, plugins: partitioned });
+        return;
+      }
+    }
+    setCatalogLoading(true);
+    setCatalogError(null);
+    try {
+      if (kind === 'themes') {
+        const next = await window.api.getThemeCatalog();
+        setCatalog({ schemaVersion: 1, plugins: next.themes });
+      } else {
+        const next = await window.api.getPluginCatalog();
+        setCatalog(next);
+      }
+    } catch (err) {
+      setCatalogError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCatalogLoading(false);
+    }
+  }, [catalog, warmPlugins, kind, partitionCatalogByKind]);
+
+  /**
+   * Clears marketplace search/filter state when leaving the Marketplace section.
+   */
+  const resetCatalogFilters = useCallback((): void => {
+    setCatalogSearchQuery('');
+    setCatalogCategoryFilter('');
+  }, []);
 
   /**
    * Maps loaded marketplace catalog entries by plugin id for screenshot lookup.

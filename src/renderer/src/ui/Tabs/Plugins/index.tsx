@@ -15,7 +15,7 @@ import {
   selectPendingMarketplaceSearch
 } from '#/renderer/src/store/slices/navigationSlice';
 import { usePersistedPageSidebarSection } from '#/renderer/src/hooks/usePersistedPageSidebarSection';
-import { pluginIsTheme } from '#/shared/plugin/themeCategory';
+import { formatThemeDisplayName, pluginIsTheme } from '#/shared/plugin/themeCategory';
 import { formatCustomThemeValue } from '#/shared/plugin/customThemeExport';
 import type { PluginInfo } from '#/shared/plugin/types';
 import type { CustomTheme } from '#/shared/types/customTheme';
@@ -421,7 +421,7 @@ export function Plugins({ kind = 'plugins', tabId }: Props): JSX.Element {
 
       const variants = listPluginThemeVariants(currentPlugin, getRegisteredPluginThemes());
       if (variants.length === 0) {
-        showAlert(dispatch, `No themes are available for ${plugin.name}.`);
+        showAlert(dispatch, `No themes are available for ${formatThemeDisplayName(plugin.name)}.`);
         return;
       }
 
