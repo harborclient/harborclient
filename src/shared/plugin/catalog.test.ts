@@ -75,6 +75,30 @@ describe('parsePluginCatalog', () => {
     });
   });
 
+  it('accepts repository-relative screenshot paths', () => {
+    expect(
+      parsePluginCatalog({
+        ...validCatalog,
+        plugins: [
+          {
+            ...validCatalog.plugins[0],
+            screenshot: 'screenshot.png',
+            screenshots: ['screenshot.png', 'assets/preview.png']
+          }
+        ]
+      })
+    ).toEqual({
+      ...validCatalog,
+      plugins: [
+        {
+          ...validCatalog.plugins[0],
+          screenshot: 'screenshot.png',
+          screenshots: ['screenshot.png', 'assets/preview.png']
+        }
+      ]
+    });
+  });
+
   it('accepts optional theme contributions copied from manifests', () => {
     expect(
       parsePluginCatalog({

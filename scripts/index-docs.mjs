@@ -39,6 +39,27 @@ const DOC_SOURCES = [
   }
 ];
 
+/**
+ * Marketplace plugin/theme catalog source.
+ *
+ * The marketplace pages (`plugins.md`, `themes.md`) render each listing from
+ * this JSON with a Vue component, so the per-plugin README content never exists
+ * as Markdown for the doc walker to pick up. We index the catalog directly so
+ * plugin usage docs (for example how to import OpenAPI specs) are searchable.
+ */
+const PLUGIN_CATALOG = {
+  source: 'site',
+  path: path.resolve(projectRoot, '../site/src/.vitepress/static/plugin_catalog.json'),
+  urlBase: 'https://harborclient.com'
+};
+
+/**
+ * Category slug that marks a catalog entry as a theme rather than a plugin.
+ *
+ * Themes render on `/themes#<id>` while plugins render on `/plugins#<id>`.
+ */
+const THEME_CATEGORY = 'themes';
+
 const EXCLUDED_DIR_NAMES = new Set([
   '.git',
   '.vitepress',
@@ -215,6 +236,26 @@ function sanitizeMarkdown(markdown) {
 }
 
 /**
+ * Removes redundant Markdown from a marketplace catalog description.
+ *
+ * Mirrors the site's `sanitizeCatalogDescription`: plugin READMEs repeat the
+ * plugin name as the first heading and embed screenshot images that the
+ * marketplace already renders separately. Stripping them keeps embeddings
+ * focused on the actual usage prose.
+ *
+ * @param markdown - Raw description Markdown from a plugin or theme repository.
+ * @returns Description Markdown with the leading heading and inline images removed.
+ */
+function sanitizeCatalogDescription(markdown) {
+  return markdown
+    .trimStart()
+    .replace(/^#{1,3}\s+[^\n]+\n*/, '')
+    .replace(/!\[[^\]]*\]\([^)\s]+\)/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/**
  * Extracts the page title from the first H1 heading or filename.
  *
  * @param markdown - Sanitized markdown body.
@@ -333,6 +374,75 @@ async function loadSourceChunks(sourceConfig) {
   }
 
   return { files: files.length, chunks };
+}
+
+/**
+ * Reads and chunks every entry in the marketplace plugin/theme catalog.
+ *
+ * Each listing becomes one or more heading-based chunks that carry the plugin
+ * name and summary as context, with a URL that deep-links to the entry on the
+ * `/plugins` or `/themes` marketplace page.
+ *
+ * @param catalogConfig - Catalog source configuration.
+ * @returns Discovered entry count and chunk documents (empty when the catalog is missing).
+ */
+async function loadPluginCatalogChunks(catalogConfig) {
+  const catalogStat = await stat(catalogConfig.path).catch(() => null);
+  if (catalogStat == null || !catalogStat.isFile()) {
+    console.warn(`Plugin catalog not found, skipping: ${catalogConfig.path}`);
+    return { entries: 0, chunks: [] };
+  }
+
+  const raw = await readFile(catalogConfig.path, 'utf8');
+  const parsed = JSON.parse(raw);
+  const entries = Array.isArray(parsed?.plugins) ? parsed.plugins : [];
+
+  const chunks = [];
+  for (const entry of entries) {
+    if (entry == null || typeof entry.id !== 'string') {
+      continue;
+    }
+
+    const title = typeof entry.name === 'string' && entry.name.trim().length > 0
+      ? entry.name.trim()
+      : entry.id;
+    const summary = typeof entry.summary === 'string' ? entry.summary.trim() : '';
+    const description =
+      typeof entry.description === 'string'
+        ? sanitizeCatalogDescription(entry.description)
+        : '';
+
+    const isTheme =
+      Array.isArray(entry.categories) && entry.categories.includes(THEME_CATEGORY);
+    const pageSlug = isTheme ? 'themes' : 'plugins';
+    const relativePath = `${pageSlug}#${entry.id}`;
+    const context = summary.length > 0 ? `${title} — ${summary}` : title;
+
+    const metadata = {
+      source: catalogConfig.source,
+      path: relativePath,
+      url: `${catalogConfig.urlBase}/${pageSlug}#${entry.id}`,
+      title
+    };
+
+    const sections =
+      description.length > 0
+        ? chunkMarkdown(description, metadata)
+        : [{ ...metadata, heading: title, content: context }];
+
+    sections.forEach((section, chunkIndex) => {
+      // Prepend the plugin name and summary so every section chunk keeps enough
+      // context to match name-driven queries after semantic retrieval.
+      const content = `${context}\n\n${section.content}`.trim();
+      chunks.push({
+        ...section,
+        content,
+        id: `${catalogConfig.source}:${relativePath}#${chunkIndex}`
+      });
+    });
+  }
+
+  return { entries: entries.length, chunks };
 }
 
 /**
@@ -523,6 +633,12 @@ async function main() {
     allChunks.push(...chunks);
     console.log(`Loaded ${files} files / ${chunks.length} chunks from ${sourceConfig.source}`);
   }
+
+  const catalogResult = await loadPluginCatalogChunks(PLUGIN_CATALOG);
+  allChunks.push(...catalogResult.chunks);
+  console.log(
+    `Loaded ${catalogResult.entries} entries / ${catalogResult.chunks.length} chunks from plugin catalog`
+  );
 
   const limitedChunks =
     options.limit != null && options.limit > 0

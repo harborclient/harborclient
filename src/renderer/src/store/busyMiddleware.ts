@@ -5,7 +5,8 @@ const EXCLUDED_THUNKS = new Set([
   'tabs/sendRequest',
   'tabs/cancelRequest',
   'aiChat/sendMessage',
-  'aiChat/cancelMessage'
+  'aiChat/cancelMessage',
+  'aiChat/generateTitle'
 ]);
 
 const pendingRequests = new Set<string>();
@@ -34,7 +35,8 @@ function isAsyncThunkAction(action: unknown): action is UnknownAction & {
 
 /**
  * Tracks in-flight RTK async thunks and updates global busy state.
- * HTTP send/cancel and AI chat send thunks are excluded because they have dedicated UI feedback.
+ * HTTP send/cancel, AI chat send, and background chat title generation are excluded because
+ * they have dedicated UI feedback or should not block the rest of the app.
  */
 export const busyMiddleware: Middleware = (store) => (next) => (action) => {
   const result = next(action);

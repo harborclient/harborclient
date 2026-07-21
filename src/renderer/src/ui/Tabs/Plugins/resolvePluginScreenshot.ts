@@ -1,6 +1,6 @@
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import type { PluginGitPreview, PluginInfo } from '#/shared/plugin/types';
-import { buildGitHubRawContentUrl } from '#/shared/plugin/githubRaw';
+import { buildGitHubRawContentUrl, resolveCatalogScreenshotUrls } from '#/shared/plugin/githubRaw';
 
 /**
  * Returns the repository-relative path from a manifest screenshot entry.
@@ -38,26 +38,6 @@ function isAbsoluteScreenshotUrl(
  */
 export function pluginAssetToDataUrl(asset: { content: string; mimeType: string }): string {
   return `data:${asset.mimeType};base64,${asset.content}`;
-}
-
-/**
- * Resolves catalog screenshot URLs from a marketplace listing.
- *
- * @param catalogScreenshots - Optional plural screenshots from the catalog entry.
- * @param catalogScreenshot - Optional singular screenshot from the catalog entry.
- * @returns Catalog screenshot URLs when available.
- */
-function resolveCatalogScreenshotUrls(
-  catalogScreenshots?: string[],
-  catalogScreenshot?: string
-): string[] {
-  if (catalogScreenshots?.length) {
-    return catalogScreenshots;
-  }
-  if (catalogScreenshot) {
-    return [catalogScreenshot];
-  }
-  return [];
 }
 
 /**
@@ -107,9 +87,25 @@ export async function loadInstalledPluginScreenshotSrcs(
     }
   }
 
-  const catalogUrls = resolveCatalogScreenshotUrls(catalogScreenshots, catalogScreenshot);
-  if (catalogUrls.length > 0) {
-    return catalogUrls;
+  if (plugin.repoUrl) {
+    const catalogUrls = resolveCatalogScreenshotUrls(
+      plugin.repoUrl,
+      plugin.repoRef,
+      catalogScreenshots,
+      catalogScreenshot
+    );
+    if (catalogUrls.length > 0) {
+      return catalogUrls;
+    }
+  } else {
+    const catalogUrls = catalogScreenshots?.length
+      ? catalogScreenshots
+      : catalogScreenshot
+        ? [catalogScreenshot]
+        : [];
+    if (catalogUrls.length > 0) {
+      return catalogUrls;
+    }
   }
 
   const repoUrl = plugin.repoUrl;
@@ -137,5 +133,10 @@ export function resolveCatalogPluginScreenshotSrcs(
     return preview.screenshotSrcs;
   }
 
-  return resolveCatalogScreenshotUrls(entry.screenshots, entry.screenshot);
+  return resolveCatalogScreenshotUrls(
+    entry.repoUrl,
+    entry.ref,
+    entry.screenshots,
+    entry.screenshot
+  );
 }

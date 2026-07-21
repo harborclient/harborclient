@@ -202,13 +202,15 @@ export async function runChatCompletionStep(
   try {
     const client = await createClient(modelOption.provider);
     const request = (messages: ChatCompletionMessageParam[]): Promise<ChatCompletion> =>
-      client.chat.completions.create({
-        model: modelOption.id,
-        messages,
-        tools,
-        ...(toolChoice ? { tool_choice: toolChoice } : {}),
-        ...(options?.signal ? { signal: options.signal } : {})
-      });
+      client.chat.completions.create(
+        {
+          model: modelOption.id,
+          messages,
+          tools,
+          ...(toolChoice ? { tool_choice: toolChoice } : {})
+        },
+        options?.signal ? { signal: options.signal } : undefined
+      );
 
     let response: ChatCompletion;
     try {

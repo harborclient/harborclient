@@ -2,6 +2,7 @@ import { CatalogReadmeMarkdown, ScreenshotCarousel, Spinner } from '@harborclien
 import { useMemo, type JSX } from 'react';
 import type { SnippetCatalogEntry } from '#/shared/snippet/catalog';
 import type { SnippetGitPreview } from '#/shared/snippet/types';
+import { resolveCatalogScreenshotUrls } from '#/shared/plugin/githubRaw';
 import { stripPluginScreenshotImagesFromMarkdown } from '#/shared/plugin/stripPluginScreenshotImagesFromMarkdown';
 import { snippetScopeLabel } from '#/shared/snippetScope';
 import { scriptStageLabel } from '#/shared/scriptStage';
@@ -68,10 +69,19 @@ export function SnippetDetailContent({
 }: Props): JSX.Element {
   /**
    * Resolves carousel screenshot URLs from git preview or catalog listing.
+   * Relative catalog paths are resolved against the listing's repoUrl and ref.
    */
   const screenshotSrcs = useMemo(
-    () => (preview?.screenshotSrcs.length ? preview.screenshotSrcs : (entry.screenshots ?? [])),
-    [preview, entry.screenshots]
+    () =>
+      preview?.screenshotSrcs.length
+        ? preview.screenshotSrcs
+        : resolveCatalogScreenshotUrls(
+            entry.repoUrl,
+            entry.ref,
+            entry.screenshots,
+            entry.screenshot
+          ),
+    [preview, entry.repoUrl, entry.ref, entry.screenshots, entry.screenshot]
   );
   const descriptionMarkdown =
     preview?.descriptionMarkdown ?? entry.description ?? 'No description available.';

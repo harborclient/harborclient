@@ -6,9 +6,12 @@ import { faArrowUp, faStop } from '#/renderer/src/fontawesome';
 
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
+  clearComposerFocus,
   clearSendError,
+  selectChatHistory,
   selectGithubModelsConnected,
   selectHubModelGroups,
+  selectPendingComposerFocusChatId,
   selectPendingComposerText,
   selectSendErrorByChat,
   selectEnterToSend,
@@ -17,6 +20,7 @@ import {
 } from '#/renderer/src/store/slices/aiChatSlice';
 import { sendChatMessage, cancelChatMessage } from '#/renderer/src/store/thunks/aiChat';
 import { ChatComposerTextarea, type ChatComposerTextareaHandle } from './ChatComposerTextarea';
+import { runWhenComposerReady } from './focusAiChatComposer';
 
 interface Props {
   /**
@@ -49,12 +53,15 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
   const hubModelGroups = useAppSelector(selectHubModelGroups);
   const githubConnected = useAppSelector(selectGithubModelsConnected);
   const pendingComposerText = useAppSelector(selectPendingComposerText);
+  const pendingComposerFocusChatId = useAppSelector(selectPendingComposerFocusChatId);
+  const chatHistory = useAppSelector(selectChatHistory);
   const enterToSend = useAppSelector(selectEnterToSend);
   const [draft, setDraft] = useState('');
+  const [composerAnnouncement, setComposerAnnouncement] = useState('');
   const composerRef = useRef<ChatComposerTextareaHandle>(null);
   const wasSendingRef = useRef(false);
   const availableModels = getAvailableModels(aiSettings, hubModelGroups, githubConnected);
-  const modelId = selectedModel ?? availableModels[0]?.id ?? '';
+  const modelId = selectedModel ?? availableModels[0]?.value ?? '';
   const selectedModelOption = resolveAiModelOption(
     modelId,
     aiSettings,
@@ -66,6 +73,9 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
 
   /**
    * Applies one-shot composer text queued by external UI (for example script Ask AI buttons).
+   *
+   * Takes priority over a plain composer-focus request so caret placement from
+   * `setTextAndFocusEnd` / `appendReferenceAtEnd` is preserved.
    */
   useEffect(() => {
     if (pendingComposerText == null) {
@@ -74,7 +84,13 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
 
     const text = pendingComposerText;
     dispatch(setPendingComposerText(null));
+    dispatch(clearComposerFocus());
 
+    /**
+     * Retries applying pending text until the CodeMirror view is mounted.
+     *
+     * @param attempt - Zero-based retry count.
+     */
     const applyPendingText = (attempt = 0): void => {
       let applied = false;
       if (draft.trim().length > 0) {
@@ -104,6 +120,73 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
       applyPendingText();
     });
   }, [dispatch, draft, pendingComposerText]);
+
+  /**
+   * Focuses the composer after a new chat is created when no pending text is queued.
+   *
+   * Only runs when the pending focus chat id matches the active chat, so closing the new
+   * tab before focus lands does not steal focus onto a neighbor. Announces for screen readers.
+   */
+  useEffect(() => {
+    if (
+      pendingComposerFocusChatId == null ||
+      chatId == null ||
+      pendingComposerFocusChatId !== chatId ||
+      pendingComposerText != null
+    ) {
+      if (
+        pendingComposerFocusChatId != null &&
+        chatId != null &&
+        pendingComposerFocusChatId !== chatId
+      ) {
+        dispatch(clearComposerFocus());
+      }
+      return;
+    }
+
+    const chatTitle = chatHistory.find((chat) => chat.id === chatId)?.title ?? null;
+    const announcement =
+      chatTitle != null && chatTitle.length > 0
+        ? `New chat opened: ${chatTitle}`
+        : 'New chat opened';
+
+    dispatch(clearComposerFocus());
+
+    /**
+     * Defers the live-region update so React does not treat it as a synchronous
+     * setState cascade inside this effect.
+     */
+    queueMicrotask(() => {
+      setComposerAnnouncement(announcement);
+    });
+
+    runWhenComposerReady(() => {
+      if (composerRef.current == null) {
+        return false;
+      }
+
+      composerRef.current.focus();
+      return true;
+    });
+  }, [chatHistory, chatId, dispatch, pendingComposerFocusChatId, pendingComposerText]);
+
+  /**
+   * Clears the screen-reader announcement after it has been exposed so repeated new chats
+   * re-announce.
+   */
+  useEffect(() => {
+    if (composerAnnouncement.length === 0) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setComposerAnnouncement('');
+    }, 1000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [composerAnnouncement]);
 
   /**
    * Returns focus to the prompt after a send completes and the editor is re-enabled.
@@ -136,7 +219,7 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
       sendChatMessage({
         chatId,
         content,
-        model: modelId || undefined,
+        model: selectedModelOption?.id ?? modelId ?? undefined,
         hubId: selectedModelOption?.source === 'hub' ? selectedModelOption.hubId : undefined
       })
     );
@@ -144,6 +227,9 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
 
   return (
     <div className="flex shrink-0 flex-col gap-2 p-3 app-no-drag">
+      <p role="status" aria-live="polite" className="sr-only">
+        {composerAnnouncement}
+      </p>
       <div className={`flex flex-col ${fieldFrame} rounded-2xl!`}>
         <ChatComposerTextarea
           key={chatId ?? 'no-chat'}
@@ -179,7 +265,7 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
             }}
           >
             {availableModels.map((model) => (
-              <option key={model.id} value={model.id}>
+              <option key={model.value} value={model.value}>
                 {model.label}
               </option>
             ))}

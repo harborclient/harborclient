@@ -69,14 +69,17 @@ describe('runChatCompletionStep', () => {
       { createClient: async () => mockClient }
     );
 
-    expect(create).toHaveBeenCalledWith({
-      model: 'gpt-4o',
-      tools: AI_TOOL_DEFINITIONS,
-      messages: [
-        { role: 'system', content: AI_SYSTEM_PROMPT },
-        { role: 'user', content: 'What collections do I have?' }
-      ]
-    });
+    expect(create).toHaveBeenCalledWith(
+      {
+        model: 'gpt-4o',
+        tools: AI_TOOL_DEFINITIONS,
+        messages: [
+          { role: 'system', content: AI_SYSTEM_PROMPT },
+          { role: 'user', content: 'What collections do I have?' }
+        ]
+      },
+      undefined
+    );
     expect(result.toolCalls).toEqual([{ id: 'call_1', name: 'list_collections', arguments: '{}' }]);
   });
 
@@ -100,9 +103,8 @@ describe('runChatCompletionStep', () => {
     );
 
     expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        signal: controller.signal
-      })
+      expect.not.objectContaining({ signal: controller.signal }),
+      expect.objectContaining({ signal: controller.signal })
     );
   });
 

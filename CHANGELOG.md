@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(catalog): enhance plugin/theme catalog indexing and screenshot resolution. (`ef24a05`)
 - fix(catalog): update theme plugin versions in catalog.json. (`e20d62e`)
 - feat(catalog): add new themes to catalog.json. (`8ccdfd7`)
 - chore(docs): update docsSearchIndex.json with new internal document IDs. (`ef04b3b`)

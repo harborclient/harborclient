@@ -16,6 +16,15 @@ export interface AiModelOption {
   id: string;
 
   /**
+   * Stable selection key for the dropdown, unique across sources.
+   *
+   * Defaults to {@link id}. When a Team Hub and a personal key both offer the
+   * same model id, the personal entry uses `personal:<id>` so the two remain
+   * independently selectable even though they send the same provider {@link id}.
+   */
+  value: string;
+
+  /**
    * Human-readable label for the model dropdown.
    */
   label: string;
@@ -44,7 +53,7 @@ export interface AiModelOption {
 /**
  * Catalog of supported AI models grouped by provider.
  */
-export const AI_MODELS: Omit<AiModelOption, 'source'>[] = [
+export const AI_MODELS: Omit<AiModelOption, 'source' | 'value'>[] = [
   { id: 'gpt-4o', label: 'GPT-4o', provider: 'openai' },
   { id: 'gpt-4o-mini', label: 'GPT-4o Mini', provider: 'openai' },
   { id: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet', provider: 'claude' },
@@ -56,7 +65,7 @@ export const AI_MODELS: Omit<AiModelOption, 'source'>[] = [
 /**
  * Catalog of GitHub Models offered when the user is signed in with GitHub.
  */
-export const GITHUB_MODELS: Omit<AiModelOption, 'source'>[] = [
+export const GITHUB_MODELS: Omit<AiModelOption, 'source' | 'value'>[] = [
   { id: 'openai/gpt-4o', label: 'GPT-4o', provider: 'github' },
   { id: 'openai/gpt-4o-mini', label: 'GPT-4o Mini', provider: 'github' },
   { id: 'openai/gpt-4.1-mini', label: 'GPT-4.1 Mini', provider: 'github' },
@@ -131,18 +140,31 @@ export function getAvailableModels(
     if (hub) {
       options.push({
         ...model,
+        value: model.id,
         label: `${model.label} (Team Hub)`,
         source: 'hub',
         hubId: hub.hubId,
         hubName: hub.hubName
       });
       includedIds.add(model.id);
+
+      // Surface the personal-key route too, so a Team Hub offering the same
+      // model id does not hide the direct provider option from the user.
+      if (hasProviderKey(settings, model.provider)) {
+        options.push({
+          ...model,
+          value: `personal:${model.id}`,
+          label: `${model.label} (Personal)`,
+          source: 'personal'
+        });
+      }
       continue;
     }
 
     if (hasProviderKey(settings, model.provider)) {
       options.push({
         ...model,
+        value: model.id,
         label: `${model.label} (Personal)`,
         source: 'personal'
       });
@@ -158,6 +180,7 @@ export function getAvailableModels(
 
       options.push({
         id: model.id,
+        value: model.id,
         label: `${model.label} (Team Hub)`,
         provider: model.provider,
         source: 'hub',
@@ -175,6 +198,7 @@ export function getAvailableModels(
       }
       options.push({
         ...model,
+        value: model.id,
         label: `${model.label} (GitHub Models)`,
         source: 'personal'
       });
@@ -206,7 +230,9 @@ export function hasAvailableAiModels(
  * @param modelId - Model id from the chat composer or persisted chat record.
  * @returns The matching catalog entry, or undefined when unknown.
  */
-export function getAiModelById(modelId: string): Omit<AiModelOption, 'source'> | undefined {
+export function getAiModelById(
+  modelId: string
+): Omit<AiModelOption, 'source' | 'value'> | undefined {
   return (
     AI_MODELS.find((model) => model.id === modelId) ??
     GITHUB_MODELS.find((model) => model.id === modelId)
@@ -227,7 +253,10 @@ export function resolveAiModelOption(
   hubGroups: HubLlmModelGroup[] = [],
   githubConnected = false
 ): AiModelOption | undefined {
-  return getAvailableModels(settings, hubGroups, githubConnected).find(
-    (model) => model.id === modelId
+  const models = getAvailableModels(settings, hubGroups, githubConnected);
+  // Prefer an exact selection-key match; fall back to raw id for chats persisted
+  // before disambiguation keys existed.
+  return (
+    models.find((model) => model.value === modelId) ?? models.find((model) => model.id === modelId)
   );
 }

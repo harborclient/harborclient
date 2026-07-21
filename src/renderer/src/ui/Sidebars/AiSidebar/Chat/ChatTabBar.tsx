@@ -15,6 +15,7 @@ import {
 } from '#/renderer/src/store/slices/aiChatSlice';
 import { closeChat, createNewChat } from '#/renderer/src/store/thunks/aiChat';
 import { chatIdsWithMessages } from '#/renderer/src/ui/Shared/tabContextMenuHelpers';
+import { focusAiChatComposerWhenMounted } from './focusAiChatComposer';
 
 interface Props {
   /**
@@ -121,6 +122,22 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
       }
       onFocusTab={(chatId) => {
         document.getElementById(`ai-chat-tab-${chatId}`)?.focus();
+      }}
+      onArrowDownIntoPanel={(chatId) => {
+        if (chatId !== activeChatId) {
+          dispatch(setActiveChat(chatId));
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              focusAiChatComposerWhenMounted(chatId);
+            });
+          });
+        } else {
+          requestAnimationFrame(() => {
+            focusAiChatComposerWhenMounted(chatId);
+          });
+        }
+
+        return true;
       }}
       renderScrollContainer={wrapTabs ? undefined : renderScrollContainer}
     />

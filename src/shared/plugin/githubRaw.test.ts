@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { buildGitHubRawContentUrl, parseGitHubRepo } from './githubRaw';
+import {
+  buildGitHubRawContentUrl,
+  parseGitHubRepo,
+  resolveCatalogScreenshotUrls,
+  resolveScreenshotUrl
+} from './githubRaw';
 
 describe('parseGitHubRepo', () => {
   it('parses a standard GitHub repository URL', () => {
@@ -56,5 +61,68 @@ describe('buildGitHubRawContentUrl', () => {
     expect(
       buildGitHubRawContentUrl('https://example.com/repo', 'main', 'manifest.json')
     ).toBeNull();
+  });
+});
+
+describe('resolveScreenshotUrl', () => {
+  it('passes absolute HTTP(S) URLs through unchanged', () => {
+    expect(
+      resolveScreenshotUrl(
+        'https://example.com/shot.png',
+        'https://github.com/harborclient/theme-nord',
+        'v1.0.6'
+      )
+    ).toBe('https://example.com/shot.png');
+  });
+
+  it('resolves relative paths against the listing repo and ref', () => {
+    expect(
+      resolveScreenshotUrl(
+        'screenshot.png',
+        'https://github.com/harborclient/theme-ayu-mirage',
+        'v1.0.2'
+      )
+    ).toBe('https://raw.githubusercontent.com/harborclient/theme-ayu-mirage/v1.0.2/screenshot.png');
+  });
+
+  it('defaults the ref to main when omitted', () => {
+    expect(resolveScreenshotUrl('assets/preview.png', 'https://github.com/example/demo')).toBe(
+      'https://raw.githubusercontent.com/example/demo/main/assets/preview.png'
+    );
+  });
+
+  it('returns null for empty values', () => {
+    expect(resolveScreenshotUrl('  ', 'https://github.com/example/demo', 'main')).toBeNull();
+  });
+});
+
+describe('resolveCatalogScreenshotUrls', () => {
+  it('prefers plural screenshots over the singular field', () => {
+    expect(
+      resolveCatalogScreenshotUrls(
+        'https://github.com/example/demo',
+        'v1.0.0',
+        ['screenshot.png', 'https://example.com/b.png'],
+        'ignored.png'
+      )
+    ).toEqual([
+      'https://raw.githubusercontent.com/example/demo/v1.0.0/screenshot.png',
+      'https://example.com/b.png'
+    ]);
+  });
+
+  it('falls back to the singular screenshot when plural is empty', () => {
+    expect(
+      resolveCatalogScreenshotUrls(
+        'https://github.com/example/demo',
+        'main',
+        undefined,
+        'screenshot.png'
+      )
+    ).toEqual(['https://raw.githubusercontent.com/example/demo/main/screenshot.png']);
+  });
+
+  it('returns an empty array when no screenshots are declared', () => {
+    expect(resolveCatalogScreenshotUrls('https://github.com/example/demo', 'main')).toEqual([]);
   });
 });

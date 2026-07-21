@@ -77,6 +77,20 @@ describe('resolveCatalogPluginScreenshotSrcs', () => {
       'https://example.com/screenshot.png'
     ]);
   });
+
+  it('resolves relative catalog screenshot paths against the listing repo', () => {
+    expect(
+      resolveCatalogPluginScreenshotSrcs(
+        {
+          ...sampleEntry,
+          ref: 'v1.0.2',
+          screenshot: undefined,
+          screenshots: ['screenshot.png']
+        },
+        null
+      )
+    ).toEqual(['https://raw.githubusercontent.com/example/demo-plugin/v1.0.2/screenshot.png']);
+  });
 });
 
 describe('loadInstalledPluginScreenshotSrcs', () => {
@@ -137,5 +151,21 @@ describe('loadInstalledPluginScreenshotSrcs', () => {
         'https://example.com/single.png'
       )
     ).resolves.toEqual(['https://example.com/a.png', 'https://example.com/b.png']);
+  });
+
+  it('resolves relative catalog screenshot paths for installed plugins', async () => {
+    vi.stubGlobal('window', {
+      api: {
+        readPluginAsset: vi.fn(async () => {
+          throw new Error('missing asset');
+        })
+      }
+    });
+
+    await expect(
+      loadInstalledPluginScreenshotSrcs(installedPlugin, ['screenshot.png'])
+    ).resolves.toEqual([
+      'https://raw.githubusercontent.com/example/demo-plugin/main/screenshot.png'
+    ]);
   });
 });

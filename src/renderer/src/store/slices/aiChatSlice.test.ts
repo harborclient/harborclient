@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import aiChatReducer, {
   appendMessage,
   clearChatCancelState,
+  clearComposerFocus,
   closeChatTab,
   openChatTab,
   reorderChatTabs,
   requestChatCancel,
+  requestComposerFocus,
   restoreChatSession,
   setActiveChat,
   setActiveStepRequestId,
@@ -110,5 +112,15 @@ describe('aiChatSlice', () => {
 
     const state = aiChatReducer(undefined, setEnterToSend(false));
     expect(state.enterToSend).toBe(false);
+  });
+
+  it('defaults pendingComposerFocusChatId to null and toggles via request/clear', () => {
+    expect(aiChatReducer(undefined, { type: 'unknown' }).pendingComposerFocusChatId).toBeNull();
+
+    let state = aiChatReducer(undefined, requestComposerFocus(42));
+    expect(state.pendingComposerFocusChatId).toBe(42);
+
+    state = aiChatReducer(state, clearComposerFocus());
+    expect(state.pendingComposerFocusChatId).toBeNull();
   });
 });

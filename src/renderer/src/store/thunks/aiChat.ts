@@ -31,7 +31,8 @@ import {
   setGithubModelsStatus,
   setSendError,
   setSending,
-  setEnterToSend
+  setEnterToSend,
+  requestComposerFocus
 } from '#/renderer/src/store/slices/aiChatSlice';
 
 const MAX_TOOL_ITERATIONS = 6;
@@ -203,7 +204,7 @@ export const initializeAiChat = createAsyncThunk<void, AiSettings, ThunkApiConfi
       hubModelGroups,
       githubModelsStatus.connected
     );
-    const defaultModel = availableModels[0]?.id;
+    const defaultModel = availableModels[0]?.value;
     const existingChatIds = new Set(summaries.map((chat) => chat.id));
     const validOpenTabIds = session.openTabIds.filter((id) => existingChatIds.has(id));
     const validActiveChatId =
@@ -247,6 +248,9 @@ export const initializeAiChat = createAsyncThunk<void, AiSettings, ThunkApiConfi
       if (defaultModel) {
         dispatch(setSelectedModel({ chatId, modelId: defaultModel }));
       }
+      // User opened the sidebar with no session tabs — focus the composer so they can type.
+      // Restoring persisted open tabs above intentionally skips this.
+      dispatch(requestComposerFocus(chatId));
     }
   }
 );
@@ -263,7 +267,7 @@ export const createNewChat = createAsyncThunk<void, AiSettings, ThunkApiConfig>(
       hubModelGroups,
       githubModelsStatus.connected
     );
-    const defaultModel = availableModels[0]?.id;
+    const defaultModel = availableModels[0]?.value;
     const activeChatId = getState().aiChat.activeChatId;
     const selectedModel =
       (activeChatId != null ? getState().aiChat.selectedModelByChat[activeChatId] : undefined) ??
@@ -275,6 +279,7 @@ export const createNewChat = createAsyncThunk<void, AiSettings, ThunkApiConfig>(
       dispatch(setSelectedModel({ chatId: created.id, modelId: selectedModel }));
     }
     dispatch(openChatTab(created.id));
+    dispatch(requestComposerFocus(created.id));
     await dispatch(refreshChatHistory());
   }
 );
@@ -316,7 +321,7 @@ export const startNewChatWithPrompt = createAsyncThunk<
     sendChatMessage({
       chatId,
       content: trimmed,
-      model: modelId,
+      model: modelOption?.id ?? modelId,
       hubId: modelOption?.source === 'hub' ? modelOption.hubId : undefined
     })
   );

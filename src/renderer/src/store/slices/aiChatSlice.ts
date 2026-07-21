@@ -35,6 +35,11 @@ export interface AiChatState {
   pendingComposerText: string | null;
 
   /**
+   * Chat id that should receive keyboard focus after creation, or null when none is pending.
+   */
+  pendingComposerFocusChatId: number | null;
+
+  /**
    * When true, plain Enter submits the chat composer; when false, Ctrl/Cmd+Enter submits.
    */
   enterToSend: boolean;
@@ -54,6 +59,7 @@ const initialState: AiChatState = {
   activeStepRequestIdByChat: {},
   cancelRequestedByChat: {},
   pendingComposerText: null,
+  pendingComposerFocusChatId: null,
   enterToSend: true
 };
 
@@ -122,6 +128,10 @@ const aiChatSlice = createSlice({
       if (state.activeChatId === chatId) {
         const neighbor = nextTabIds[Math.min(index, nextTabIds.length - 1)] ?? null;
         state.activeChatId = neighbor;
+      }
+
+      if (state.pendingComposerFocusChatId === chatId) {
+        state.pendingComposerFocusChatId = null;
       }
     },
     /**
@@ -223,6 +233,18 @@ const aiChatSlice = createSlice({
       state.pendingComposerText = action.payload;
     },
     /**
+     * Requests keyboard focus on the composer for a newly created chat (consumed once by ChatComposer).
+     */
+    requestComposerFocus(state, action: PayloadAction<number>) {
+      state.pendingComposerFocusChatId = action.payload;
+    },
+    /**
+     * Clears a pending composer focus request after it is handled or superseded.
+     */
+    clearComposerFocus(state) {
+      state.pendingComposerFocusChatId = null;
+    },
+    /**
      * Sets whether plain Enter submits the chat composer.
      */
     setEnterToSend(state, action: PayloadAction<boolean>) {
@@ -252,6 +274,8 @@ export const {
   setSendError,
   clearSendError,
   setPendingComposerText,
+  requestComposerFocus,
+  clearComposerFocus,
   setEnterToSend
 } = aiChatSlice.actions;
 
@@ -334,6 +358,12 @@ export const selectCancelRequestedByChat = (state: RootState): Record<number, bo
  */
 export const selectPendingComposerText = (state: RootState): string | null =>
   state.aiChat.pendingComposerText;
+
+/**
+ * Returns the chat id queued for composer focus, or null when none is pending.
+ */
+export const selectPendingComposerFocusChatId = (state: RootState): number | null =>
+  state.aiChat.pendingComposerFocusChatId;
 
 /**
  * Returns whether plain Enter submits the chat composer.

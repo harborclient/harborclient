@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import type { SnippetCatalogEntry } from '#/shared/snippet/catalog';
 import { PLUGIN_CATALOG_CATEGORY_LABELS } from '#/shared/plugin/catalogCategories';
+import { resolveCatalogScreenshotUrls } from '#/shared/plugin/githubRaw';
 import { CatalogCard as SdkCatalogCard, ScreenshotCarousel } from '@harborclient/sdk/components';
 
 interface Props {
@@ -19,7 +20,12 @@ interface Props {
  * Maps a snippet marketplace entry onto the shared SDK catalog card.
  */
 export function CatalogCard({ entry, onOpen }: Props): JSX.Element {
-  const images = entry.screenshots ?? (entry.screenshot ? [entry.screenshot] : []);
+  const images = resolveCatalogScreenshotUrls(
+    entry.repoUrl,
+    entry.ref,
+    entry.screenshots,
+    entry.screenshot
+  );
 
   return (
     <SdkCatalogCard

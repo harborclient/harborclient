@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
 import { PLUGIN_CATALOG_CATEGORY_LABELS } from '#/shared/plugin/catalogCategories';
+import { resolveCatalogScreenshotUrls } from '#/shared/plugin/githubRaw';
 import { catalogEntryIsTheme } from '#/shared/plugin/themeCategory';
 import { CatalogCard as SdkCatalogCard, ScreenshotCarousel } from '@harborclient/sdk/components';
 
@@ -20,7 +21,12 @@ interface Props {
  * Maps a plugin marketplace entry onto the shared SDK catalog card.
  */
 export function CatalogCard({ entry, onOpen }: Props): JSX.Element {
-  const images = entry.screenshots ?? (entry.screenshot ? [entry.screenshot] : []);
+  const images = resolveCatalogScreenshotUrls(
+    entry.repoUrl,
+    entry.ref,
+    entry.screenshots,
+    entry.screenshot
+  );
   const categories = catalogEntryIsTheme(entry)
     ? undefined
     : entry.categories.map((category) => ({

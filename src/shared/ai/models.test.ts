@@ -32,6 +32,7 @@ describe('getAvailableModels', () => {
     expect(getAvailableModels(EMPTY_SETTINGS, HUB_GROUPS)).toEqual([
       {
         id: 'gpt-4o',
+        value: 'gpt-4o',
         label: 'GPT-4o (Team Hub)',
         provider: 'openai',
         source: 'hub',
@@ -54,6 +55,7 @@ describe('getAvailableModels', () => {
     expect(getAvailableModels(EMPTY_SETTINGS, hubGroups)).toEqual([
       {
         id: 'gpt-4.1',
+        value: 'gpt-4.1',
         label: 'GPT-4.1 (Team Hub)',
         provider: 'openai',
         source: 'hub',
@@ -63,10 +65,17 @@ describe('getAvailableModels', () => {
     ]);
   });
 
-  it('prefers hub models over personal keys for the same model id', () => {
+  it('surfaces both the hub and personal entries for a shared model id', () => {
     const models = getAvailableModels({ ...EMPTY_SETTINGS, openaiApiKey: 'sk-test' }, HUB_GROUPS);
-    const gpt4o = models.find((model) => model.id === 'gpt-4o');
-    expect(gpt4o?.source).toBe('hub');
+
+    const hubGpt4o = models.find((model) => model.value === 'gpt-4o');
+    expect(hubGpt4o?.source).toBe('hub');
+
+    const personalGpt4o = models.find((model) => model.value === 'personal:gpt-4o');
+    expect(personalGpt4o?.source).toBe('personal');
+    expect(personalGpt4o?.id).toBe('gpt-4o');
+    expect(personalGpt4o?.label).toContain('(Personal)');
+
     expect(models.some((model) => model.id === 'gpt-4o-mini' && model.source === 'personal')).toBe(
       true
     );
