@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(catalog): add new themes to catalog.json. (`8ccdfd7`)
 - chore(docs): update docsSearchIndex.json with new internal document IDs. (`ef04b3b`)
 - refactor(ai): remove aiToolInputSchemas and related types. (`d22c706`)
 - feat(dependencies): update @harborclient/sdk to version 1.1.30 and plugin references in catalog.json. (`f86c940`)

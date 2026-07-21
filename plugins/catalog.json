@@ -72,6 +72,38 @@
     {
       "repoUrl": "https://github.com/harborclient/theme-solarized",
       "ref": "v1.1.2"
+    },
+    {
+      "repoUrl": "https://github.com/harborclient/theme-ayu-mirage",
+      "ref": "v1.0.2"
+    },
+    {
+      "repoUrl": "https://github.com/harborclient/theme-one-dark",
+      "ref": "v1.0.2"
+    },
+    {
+      "repoUrl": "https://github.com/harborclient/theme-primer-dark",
+      "ref": "v1.0.2"
+    },
+    {
+      "repoUrl": "https://github.com/harborclient/theme-primer-light",
+      "ref": "v1.0.3"
+    },
+    {
+      "repoUrl": "https://github.com/harborclient/theme-rose-pine",
+      "ref": "v1.0.2"
+    },
+    {
+      "repoUrl": "https://github.com/harborclient/theme-rose-pine-dawn",
+      "ref": "v1.0.2"
+    },
+    {
+      "repoUrl": "https://github.com/harborclient/theme-tokyo-night",
+      "ref": "v1.0.2"
+    },
+    {
+      "repoUrl": "https://github.com/harborclient/theme-tokyo-night-storm",
+      "ref": "v1.0.2"
     }
   ],
   "snippets": [
