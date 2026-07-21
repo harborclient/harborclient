@@ -22,6 +22,7 @@ import {
   lazyNamed,
   normalizeSettingsSection
 } from '#/renderer/src/store/routingHelpers';
+import { resolvePluginTabIcon } from '#/renderer/src/routing/resolvePluginTabIcon';
 
 /**
  * Declarative registry of every configuration page tab.
@@ -145,8 +146,11 @@ export const pageRoutes = {
   }),
   'hosted-main-view': defineRoute({
     key: (page) => `hosted-main-view:${page.pluginId}:${page.viewId}`,
-    meta: (_page, ctx) => ({ title: ctx.pluginTitle ?? 'Plugin', icon: faPuzzlePiece }),
-    closeName: () => 'Plugin',
+    meta: (_page, ctx) => ({
+      title: ctx.pluginTitle ?? 'Plugin',
+      icon: resolvePluginTabIcon(ctx.pluginIcon)
+    }),
+    closeName: (_page, ctx) => ctx.pluginTitle ?? 'Plugin',
     Component: lazyNamed(
       () => import('#/renderer/src/routing/pages/HostedMainViewPageRoute'),
       'HostedMainViewPageRoute'

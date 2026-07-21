@@ -47,6 +47,7 @@ const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
   'registerContribution': 'ui',
   'unregisterContribution': 'ui',
   'ui.showToast': 'ui',
+  'ui.setFooterPanelIndicator': 'ui',
   'commands.execute': 'ui',
   'commands.executeRemote': 'ui',
   'host.openRequestDraft': 'ui',
@@ -671,6 +672,7 @@ export class PluginUiBroker {
         return undefined;
       }
       case 'ui.showToast':
+      case 'ui.setFooterPanelIndicator':
       case 'ui.openModal':
       case 'ui.closeModal':
       case 'host.openRequestDraft':

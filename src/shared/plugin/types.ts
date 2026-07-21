@@ -32,6 +32,11 @@ export type PluginPermission =
 export interface ManifestContributionEntry {
   id: string;
   title: string;
+  /**
+   * Optional tab-bar icon name for main views (for example `server`).
+   * Ignored by contribution kinds that do not render page tabs.
+   */
+  icon?: string;
 }
 
 /**
@@ -249,6 +254,10 @@ export interface RegisteredMainView {
   id: string;
   title: string;
   contributionId: string;
+  /**
+   * Optional tab-bar icon name resolved by the host (for example `server`).
+   */
+  icon?: string;
 }
 
 /**
@@ -303,8 +312,6 @@ export interface RegisteredFooterPanel {
   id: string;
   title: string;
   contributionId: string;
-  /** Whether the panel declares an Indicator component in the manifest. */
-  hasIndicator?: boolean;
 }
 
 /**

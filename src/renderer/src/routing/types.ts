@@ -47,6 +47,11 @@ export interface PageMetaContext {
   pluginTitle?: string;
 
   /**
+   * Plugin-declared tab icon name when the page is a plugin main view.
+   */
+  pluginIcon?: string;
+
+  /**
    * Team hub name when the page is team hub admin.
    */
   teamHubName?: string;

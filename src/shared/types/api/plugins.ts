@@ -17,7 +17,7 @@ export interface PluginSurfaceResizeMessage {
   pluginId: string;
   contributionId: string;
   kind: string;
-  slot?: 'content' | 'headerActions' | 'indicator';
+  slot?: 'content' | 'headerActions';
   height?: number;
   width?: number;
 }

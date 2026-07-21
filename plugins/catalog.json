@@ -3,59 +3,55 @@
   "plugins": [
     {
       "repoUrl": "https://github.com/harborclient/plugin-aws-sigv4",
-      "ref": "v1.0.11"
-    },
-    {
-      "repoUrl": "https://github.com/harborclient/plugin-color",
-      "ref": "v1.0.2"
-    },
-    {
-      "repoUrl": "https://github.com/harborclient/plugin-curl",
       "ref": "v1.0.13"
     },
     {
+      "repoUrl": "https://github.com/harborclient/plugin-color",
+      "ref": "v1.0.4"
+    },
+    {
+      "repoUrl": "https://github.com/harborclient/plugin-curl",
+      "ref": "v1.0.14"
+    },
+    {
       "repoUrl": "https://github.com/harborclient/plugin-httpie",
-      "ref": "v1.0.8"
-    },
-    {
-      "repoUrl": "https://github.com/harborclient/plugin-json-validator",
-      "ref": "v1.0.7"
-    },
-    {
-      "repoUrl": "https://github.com/harborclient/plugin-load-tester",
       "ref": "v1.0.9"
     },
     {
-      "repoUrl": "https://github.com/harborclient/plugin-dotenv",
-      "ref": "v1.0.12"
+      "repoUrl": "https://github.com/harborclient/plugin-json-validator",
+      "ref": "v1.0.8"
     },
     {
-      "repoUrl": "https://github.com/harborclient/plugin-echo",
-      "ref": "v1.0.7"
-    },
-    {
-      "repoUrl": "https://github.com/harborclient/plugin-history",
-      "ref": "v1.0.12"
-    },
-    {
-      "repoUrl": "https://github.com/harborclient/plugin-interval",
+      "repoUrl": "https://github.com/harborclient/plugin-load-tester",
       "ref": "v1.0.10"
     },
     {
-      "repoUrl": "https://github.com/harborclient/plugin-jwt",
-      "ref": "v1.0.7"
+      "repoUrl": "https://github.com/harborclient/plugin-dotenv",
+      "ref": "v1.0.14"
     },
     {
-      "repoUrl": "https://github.com/harborclient/plugin-openapi",
+      "repoUrl": "https://github.com/harborclient/plugin-echo",
+      "ref": "v1.0.8"
+    },
+    {
+      "repoUrl": "https://github.com/harborclient/plugin-history",
+      "ref": "v1.0.13"
+    },
+    {
+      "repoUrl": "https://github.com/harborclient/plugin-interval",
       "ref": "v1.0.11"
     },
     {
-      "repoUrl": "https://github.com/harborclient/plugin-mock-server",
-      "ref": "v1.0.2"
+      "repoUrl": "https://github.com/harborclient/plugin-jwt",
+      "ref": "v1.0.8"
     },
     {
-      "repoUrl": "https://github.com/harborclient/plugin-pm-to-hc",
-      "ref": "v1.0.1"
+      "repoUrl": "https://github.com/harborclient/plugin-openapi",
+      "ref": "v1.0.12"
+    },
+    {
+      "repoUrl": "https://github.com/harborclient/plugin-mock-server",
+      "ref": "v1.0.4"
     },
     {
       "repoUrl": "https://github.com/harborclient/theme-catppuccin-latte",

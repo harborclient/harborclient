@@ -298,12 +298,11 @@ Context is pushed separately:
   `window.api.pushPluginViewContext({ pluginId, contributionId, kind, context })`.
 - The broker forwards this as a `plugin-ui:event` with channel `view.context`.
 
-**Slots:** `content` (default), `headerActions`, `indicator` — encoded as `?slot=`
-in the surface URL. Only the `content` slot receives `plugin-surface-fill` document
-styling. `headerActions` and `indicator` use compact inline sizing: the guest reports
+**Slots:** `content` (default) and `headerActions` — encoded as `?slot=` in the
+surface URL. Only the `content` slot receives `plugin-surface-fill` document
+styling. `headerActions` uses compact inline sizing: the guest reports
 width/height via `view.reportSize`, and the host webview stays inline with
-`overflow: hidden` (footer panel indicators mount inside a fixed-size wrapper in
-[`Footer/index.tsx`](../ui/Footer/index.tsx)).
+`overflow: hidden`.
 
 **Sizing:** Request and collection settings plugin tabs use `resizeMode="fill"`: the
 webview fills the host tab area and the guest scrolls internally (`plugin-surface-fill`
@@ -311,8 +310,8 @@ in [`pluginShell.html`](../../../main/plugins/pluginShell.html) applies to the `
 slot only). Other surfaces use `resizeMode="content"` (default): the guest reports
 height via `view.reportSize`, the broker forwards `plugins:surfaceResize`, and
 `HostedSurface` sets an explicit pixel height. Footer panel **content** and status bar
-items use fill mode on the host webview; footer panel **indicators** use compact slot
-sizing instead.
+items use fill mode on the host webview. Footer panel **status dots** are host-rendered
+via `hc.ui.setFooterPanelIndicator` (no indicator webview).
 
 ---
 

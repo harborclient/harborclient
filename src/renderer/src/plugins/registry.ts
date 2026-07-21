@@ -15,8 +15,10 @@ import type {
   RegisteredSidebarPanel,
   RegisteredSidebarSection,
   RegisteredStatusBarItem,
-  Disposable
+  Disposable,
+  FooterPanelIndicatorState
 } from '#/shared/plugin/types';
+import { pluginContributionId } from '#/shared/plugin/types';
 
 type Listener = () => void;
 
@@ -31,6 +33,11 @@ interface MutableRegistryState {
   responseTabs: RegisteredResponseTab[];
   collectionSettingsTabs: RegisteredCollectionSettingsTab[];
   footerPanels: RegisteredFooterPanel[];
+  /**
+   * Native footer panel status dots keyed by namespaced panel id
+   * (`plugin:<pluginId>:<panelId>`).
+   */
+  footerPanelIndicators: Record<string, FooterPanelIndicatorState>;
   statusBarItems: RegisteredStatusBarItem[];
   menuItems: RegisteredMenuItem[];
   requestToolbarActions: RegisteredRequestToolbarAction[];
@@ -50,6 +57,7 @@ interface CachedRegistrySnapshot {
   responseTabs: RegisteredResponseTab[];
   collectionSettingsTabs: RegisteredCollectionSettingsTab[];
   footerPanels: RegisteredFooterPanel[];
+  footerPanelIndicators: Record<string, FooterPanelIndicatorState>;
   statusBarItems: RegisteredStatusBarItem[];
   menuItems: RegisteredMenuItem[];
   requestToolbarActions: RegisteredRequestToolbarAction[];
@@ -69,6 +77,7 @@ const state: MutableRegistryState = {
   responseTabs: [],
   collectionSettingsTabs: [],
   footerPanels: [],
+  footerPanelIndicators: {},
   statusBarItems: [],
   menuItems: [],
   requestToolbarActions: [],
@@ -96,6 +105,7 @@ function emptySnapshot(): CachedRegistrySnapshot {
     responseTabs: [],
     collectionSettingsTabs: [],
     footerPanels: [],
+    footerPanelIndicators: {},
     statusBarItems: [],
     menuItems: [],
     requestToolbarActions: [],
@@ -203,6 +213,7 @@ function rebuildCachedSnapshots(): void {
     footerPanels: [...state.footerPanels].sort((left, right) =>
       left.title.localeCompare(right.title)
     ),
+    footerPanelIndicators: { ...state.footerPanelIndicators },
     statusBarItems: sortStatusBarItems(state.statusBarItems),
     menuItems: sortMenuItems(state.menuItems),
     requestToolbarActions: sortByOrderThenTitle(
@@ -477,13 +488,55 @@ export function registerFooterPanelContribution(
   panel: Omit<RegisteredFooterPanel, 'pluginId'>
 ): Disposable {
   const entry: RegisteredFooterPanel = { pluginId, ...panel };
-  return registerContribution(
+  const registration = registerContribution(
     state.footerPanels,
     pluginId,
     panel.id,
     entry,
     (item) => item.pluginId === pluginId && item.id === panel.id
   );
+  return {
+    dispose: () => {
+      registration.dispose();
+      clearFooterPanelIndicatorKey(pluginContributionId(pluginId, panel.contributionId));
+      emitChange();
+    }
+  };
+}
+
+/**
+ * Sets or clears the native status dot for a footer panel toggle.
+ *
+ * @param pluginId - Plugin manifest id.
+ * @param panelId - Manifest footerPanels id (not namespaced).
+ * @param indicatorState - Indicator status, or `null` to hide the dot.
+ */
+export function setFooterPanelIndicatorState(
+  pluginId: string,
+  panelId: string,
+  indicatorState: FooterPanelIndicatorState | null
+): void {
+  const key = pluginContributionId(pluginId, panelId);
+  if (indicatorState == null) {
+    if (!(key in state.footerPanelIndicators)) {
+      return;
+    }
+    delete state.footerPanelIndicators[key];
+  } else {
+    state.footerPanelIndicators[key] = indicatorState;
+  }
+  emitChange();
+}
+
+/**
+ * Removes footer panel indicator state for one namespaced panel key.
+ *
+ * @param key - Namespaced panel id (`plugin:<pluginId>:<panelId>`).
+ */
+function clearFooterPanelIndicatorKey(key: string): void {
+  if (key in state.footerPanelIndicators) {
+    delete state.footerPanelIndicators[key];
+  }
 }
 
 /**
@@ -706,6 +759,7 @@ export function unregisterContribution(
         state.footerPanels,
         (item) => item.pluginId === pluginId && item.contributionId === contributionId
       );
+      clearFooterPanelIndicatorKey(pluginContributionId(pluginId, contributionId));
       break;
     case 'statusBarItems':
       filter(
@@ -771,6 +825,11 @@ export function clearPluginContributions(pluginId: string): void {
     (item) => item.pluginId !== pluginId
   );
   state.footerPanels = state.footerPanels.filter((item) => item.pluginId !== pluginId);
+  for (const key of Object.keys(state.footerPanelIndicators)) {
+    if (key.startsWith(`plugin:${pluginId}:`)) {
+      delete state.footerPanelIndicators[key];
+    }
+  }
   state.statusBarItems = state.statusBarItems.filter((item) => item.pluginId !== pluginId);
   state.menuItems = state.menuItems.filter((item) => item.pluginId !== pluginId);
   state.requestToolbarActions = state.requestToolbarActions.filter(
@@ -798,6 +857,11 @@ export const getRegisteredResponseTabs = (): RegisteredResponseTab[] => cachedSn
 export const getRegisteredCollectionSettingsTabs = (): RegisteredCollectionSettingsTab[] =>
   cachedSnapshot.collectionSettingsTabs;
 export const getRegisteredFooterPanels = (): RegisteredFooterPanel[] => cachedSnapshot.footerPanels;
+/**
+ * Returns the current footer panel indicator map (namespaced panel id → state).
+ */
+export const getRegisteredFooterPanelIndicators = (): Record<string, FooterPanelIndicatorState> =>
+  cachedSnapshot.footerPanelIndicators;
 export const getRegisteredStatusBarItems = (): RegisteredStatusBarItem[] =>
   cachedSnapshot.statusBarItems;
 export const getRegisteredMenuItems = (): RegisteredMenuItem[] => cachedSnapshot.menuItems;

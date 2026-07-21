@@ -36,7 +36,7 @@ export function buildPluginSurfaceUrl(
   pluginId: string,
   contributionId: string,
   kind: PluginContributionKind,
-  slot: 'content' | 'headerActions' | 'indicator' = 'content'
+  slot: 'content' | 'headerActions' = 'content'
 ): string {
   const params = new URLSearchParams({
     role: 'view',

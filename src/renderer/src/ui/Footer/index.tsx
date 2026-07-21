@@ -37,7 +37,11 @@ import {
   selectShortcutsReferenceModal
 } from '#/renderer/src/store/slices/modalsSlice';
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
-import { usePluginFooterPanels, usePluginStatusBarItems } from '#/renderer/src/plugins/pluginHooks';
+import {
+  usePluginFooterPanelIndicators,
+  usePluginFooterPanels,
+  usePluginStatusBarItems
+} from '#/renderer/src/plugins/pluginHooks';
 import { SHORTCUTS_REFERENCE_MODAL_ID } from '#/renderer/src/ui/Modals/ShortcutsReferenceModal';
 import { handleFooterBarTabNavigation } from './footerBarTabNavigation';
 import { APP_FOOTER_SECTION_ID } from '#/renderer/src/ui/Shared/SkipNavigation/skipNavigationTargets';
@@ -45,6 +49,24 @@ import { effectiveCount, resolveScopedVariables } from './VariablesPanel/resolve
 
 /** Stable menu id for the footer environment picker. */
 const FOOTER_ENVIRONMENT_MENU_ID = 'footer-environment-menu';
+
+/**
+ * Stable style for status-bar HostedSurface slots.
+ * Must stay module-level so Footer re-renders do not remount the webview.
+ */
+const STATUS_BAR_SURFACE_STYLE = {
+  minHeight: FOOTER_STATUS_BAR_SLOT_HEIGHT,
+  height: FOOTER_STATUS_BAR_SLOT_HEIGHT,
+  width: 120
+} as const;
+
+/**
+ * Stable container style for status-bar HostedSurface wrappers.
+ */
+const STATUS_BAR_SLOT_STYLE = {
+  width: 120,
+  height: FOOTER_STATUS_BAR_SLOT_HEIGHT
+} as const;
 
 interface Props {
   /**
@@ -199,6 +221,7 @@ export function Footer({
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const pluginFooterPanels = usePluginFooterPanels();
+  const pluginFooterPanelIndicators = usePluginFooterPanelIndicators();
   const statusBarItems = usePluginStatusBarItems();
   const activePluginFooterPanelId = useAppSelector(selectActivePluginFooterPanelId);
   const shortcutsReferenceOpen = useAppSelector(selectShortcutsReferenceModal)?.open === true;
@@ -404,46 +427,37 @@ export function Footer({
               </span>
             </FooterButton>
 
-            {pluginFooterPanels.map((panel) => (
-              <FooterButton
-                key={panel.id}
-                active={activePluginFooterPanelId === panel.id}
-                onClick={() => dispatch(togglePluginFooterPanel(panel.id))}
-                controlsId={`footer-plugin-panel-${panel.id}`}
-              >
-                {panel.title}
-                {panel.hasIndicator ? (
-                  <span className="ml-1 inline-flex h-4 w-3 shrink-0 items-center overflow-hidden">
-                    <HostedSurface
-                      pluginId={panel.pluginId}
-                      contributionId={panel.contributionId}
-                      kind="footerPanels"
-                      slot="indicator"
-                      style={{ minHeight: 16, height: 16, width: 12 }}
-                    />
+            {pluginFooterPanels.map((panel) => {
+              const indicator = pluginFooterPanelIndicators[panel.id];
+              return (
+                <FooterButton
+                  key={panel.id}
+                  active={activePluginFooterPanelId === panel.id}
+                  onClick={() => dispatch(togglePluginFooterPanel(panel.id))}
+                  controlsId={`footer-plugin-panel-${panel.id}`}
+                >
+                  <span className="inline-flex items-center">
+                    {panel.title}
+                    {indicator != null ? (
+                      <span className="ml-1 inline-flex h-4 w-3 shrink-0 items-center justify-center">
+                        <StatusDot variant={indicator.status} size="sm" label={indicator.label} />
+                      </span>
+                    ) : null}
                   </span>
-                ) : null}
-              </FooterButton>
-            ))}
+                </FooterButton>
+              );
+            })}
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-0.5 pr-2">
           {rightStatusItems.map((item) => (
-            <div
-              key={item.id}
-              className="overflow-hidden px-1"
-              style={{ width: 120, height: FOOTER_STATUS_BAR_SLOT_HEIGHT }}
-            >
+            <div key={item.id} className="overflow-hidden px-1" style={STATUS_BAR_SLOT_STYLE}>
               <HostedSurface
                 pluginId={item.pluginId}
                 contributionId={item.contributionId}
                 kind="statusBarItems"
                 resizeMode="fill"
-                style={{
-                  minHeight: FOOTER_STATUS_BAR_SLOT_HEIGHT,
-                  height: FOOTER_STATUS_BAR_SLOT_HEIGHT,
-                  width: 120
-                }}
+                style={STATUS_BAR_SURFACE_STYLE}
               />
             </div>
           ))}

@@ -7,35 +7,245 @@ export type { UpdateActiveRequestToolArgs };
  * Names of tools exposed to the AI chat agent.
  */
 export const AI_TOOL_NAMES = [
+  /**
+   * Returns the collection currently selected in the sidebar, or null when none is selected.
+   */
   'get_selected_collection',
+
+  /**
+   * Lists all collections with configuration, storage metadata, and selection state.
+   */
   'list_collections',
+
+  /**
+   * Returns one collection by uuid with full configuration.
+   *
+   * @param {string} uuid - Collection uuid from the @collection reference.
+   */
   'get_collection',
+
+  /**
+   * Lists saved requests in a collection by id.
+   *
+   * @param {number} collectionId - Collection id to list requests for.
+   */
   'list_requests',
+
+  /**
+   * Returns one folder by uuid with variables, headers, auth, and scripts.
+   *
+   * @param {string} uuid - Folder uuid from the @folder reference.
+   */
   'get_folder',
+
+  /**
+   * Returns one saved request by uuid with method, url, headers, params, body, auth, and scripts.
+   *
+   * @param {string} uuid - Saved request uuid from the @request reference.
+   */
   'get_request',
+
+  /**
+   * Lists all environments with variables and which one is active.
+   */
   'list_environments',
+
+  /**
+   * Returns the saved request highlighted in the sidebar, or null when the tab is unsaved.
+   */
   'get_sidebar_request',
+
+  /**
+   * Returns summary info for the request open in the editor pane.
+   */
   'get_active_request',
+
+  /**
+   * Returns the full draft of the active editor request including scripts and cookies.
+   */
   'get_active_request_details',
+
+  /**
+   * Returns a compact summary of the last HTTP response for the active tab, or null.
+   */
   'get_active_response_summary',
+
+  /**
+   * Returns the last HTTP response for the active tab with a capped body, or null.
+   *
+   * @param {number} [maxBodyChars] - Maximum response body characters to return; defaults to 16384.
+   */
   'get_active_response',
+
+  /**
+   * Evaluates a JMESPath expression against the JSON response body of the last active-tab response.
+   *
+   * @param {string} expression - JMESPath expression to evaluate against the JSON response body.
+   * @param {number} [maxResultChars] - Maximum stringified result characters to return; defaults to 4000.
+   */
   'query_response_body',
+
+  /**
+   * Sends the HTTP request in the active editor tab and returns a compact response summary by default.
+   *
+   * @param {number} [maxBodyChars] - When greater than zero, includes a capped response body.
+   */
   'send_active_request',
+
+  /**
+   * Sets the global active environment by id or name.
+   *
+   * @param {number | null} [environmentId] - Environment id to activate, or null for no environment.
+   * @param {string} [name] - Environment name to resolve when environmentId is omitted.
+   */
   'set_active_environment',
+
+  /**
+   * Modifies the request open in the editor; changes appear immediately but are not saved until the user saves.
+   *
+   * @param {string} [name] - Display name for the request.
+   * @param {string} [method] - HTTP method for the request.
+   * @param {string} [url] - Request URL.
+   * @param {string} [body] - Request body content.
+   * @param {string} [body_type] - Content type of the request body.
+   * @param {string} [pre_request_script] - JavaScript run before the request is sent.
+   * @param {string} [pre_request_script_mode] - How to apply pre_request_script; defaults to replace.
+   * @param {string} [post_request_script] - JavaScript run after the response is received.
+   * @param {string} [post_request_script_mode] - How to apply post_request_script; defaults to replace.
+   * @param {string} [comment] - Free-form notes for the request.
+   * @param {object[]} [headers] - Request headers to merge or replace.
+   * @param {string} [headers_mode] - How to apply headers; defaults to merge.
+   * @param {object[]} [params] - Query params to merge or replace.
+   * @param {string} [params_mode] - How to apply params; defaults to merge.
+   * @param {object} [auth] - Partial auth settings patch.
+   * @param {object[]} [cookies] - Cookies for the request host.
+   * @param {string} [cookies_mode] - How to apply cookies; defaults to merge.
+   */
   'update_active_request',
+
+  /**
+   * Updates a specific pre- or post-request script in the active editor request by 1-based index.
+   *
+   * @param {number | 'active'} requestId - Saved request id from the @ reference, or "active" when unsaved.
+   * @param {'pre' | 'post'} phase - Script phase: pre-request or post-request.
+   * @param {number} scriptIndex - 1-based index of the script in the phase array.
+   * @param {string} code - JavaScript source to apply to the script.
+   * @param {string} [mode] - How to apply code; defaults to replace.
+   */
   'update_request_script',
+
+  /**
+   * Creates a new collection and optionally saves requests inside it.
+   *
+   * @param {string} name - Display name for the new collection.
+   * @param {object[]} [requests] - Saved requests to create inside the collection.
+   */
   'create_collection',
+
+  /**
+   * Creates a folder inside an existing collection.
+   *
+   * @param {number} collectionId - Collection id that will own the new folder.
+   * @param {string} name - Display name for the new folder.
+   */
   'create_folder',
+
+  /**
+   * Creates a saved request in an existing collection or folder.
+   *
+   * @param {number} collectionId - Collection id that will own the new saved request.
+   * @param {string} name - Display name for the saved request.
+   * @param {string} method - HTTP method for the request.
+   * @param {string} url - Request URL.
+   * @param {number | null} [folderId] - Folder id when the request belongs to a folder.
+   * @param {string} [folderName] - Folder name to resolve when folderId is omitted.
+   * @param {object | object[]} [headers] - Optional headers as a flat object or key-value rows.
+   * @param {object[]} [params] - Optional query params.
+   * @param {string} [body] - Optional request body content.
+   * @param {string} [bodyType] - Optional body content type.
+   * @param {string} [comment] - Optional free-form notes for the request.
+   */
   'create_request',
+
+  /**
+   * Search HarborClient user docs and plugin SDK docs; returns ranked passages with titles and URLs.
+   *
+   * @param {string} query - Natural-language question or keywords to search for.
+   * @param {number} [limit] - Maximum number of passages to return; defaults to 5.
+   * @param {'site' | 'sdk'} [source] - Optional filter: site user docs or sdk plugin development docs.
+   */
   'search_docs',
+
+  /**
+   * Returns summary info for the active footer terminal tab, or an error when none is selected.
+   */
   'get_active_terminal',
+
+  /**
+   * Returns a 1-based inclusive line range from the active footer terminal output as plain text.
+   *
+   * @param {number} startLine - 1-based first line to read (inclusive).
+   * @param {number} endLine - 1-based last line to read (inclusive).
+   */
   'get_active_terminal_lines',
+
+  /**
+   * Sends raw input to the active footer terminal shell stdin.
+   *
+   * @param {string} input - Raw bytes to write to the shell stdin; include a newline to run a command.
+   */
   'terminal_exec',
+
+  /**
+   * Returns one collection markdown document or saved request comment by uuid.
+   *
+   * @param {string} uuid - Markdown document or request uuid from the @markdown reference.
+   */
   'get_markdown_document',
+
+  /**
+   * Returns uncommitted git changes for the repository that contains a collection.
+   *
+   * @param {string} collectionUuid - Collection uuid used to resolve the git-backed repository connection.
+   * @param {number} [maxFiles] - Maximum number of changed files to include; defaults to 40.
+   * @param {number} [maxCharsPerFile] - Maximum characters per file diff excerpt; defaults to 4000.
+   * @param {number} [maxTotalChars] - Maximum total characters across all file excerpts; defaults to 32000.
+   */
   'git_diff',
+
+  /**
+   * Returns git repository metadata for a git-backed collection.
+   *
+   * @param {string} collectionUuid - Collection uuid used to resolve the git-backed repository connection.
+   */
   'git_repo_info',
+
+  /**
+   * Returns recent commit history for the git repository that contains a collection.
+   *
+   * @param {string} collectionUuid - Collection uuid used to resolve the git-backed repository connection.
+   * @param {number} [depth] - Maximum number of commits to return; defaults to 20.
+   */
   'git_commits',
+
+  /**
+   * Returns detailed information about one saved request in a git-backed collection.
+   *
+   * @param {string} collectionUuid - Collection uuid that owns the request.
+   * @param {string} requestUuid - Stable request uuid for the saved request file to inspect.
+   * @param {number} [depth] - Maximum number of commits to include in per-file history; defaults to 20.
+   */
   'git_file_info',
+
+  /**
+   * Returns a diff of one saved request file between two commits in a git-backed collection.
+   *
+   * @param {string} collectionUuid - Collection uuid that owns the request.
+   * @param {string} requestUuid - Stable request uuid for the saved request file to diff.
+   * @param {string} commitA - Older commit object id (parent side of the diff).
+   * @param {string} commitB - Newer commit object id (child side of the diff).
+   * @param {number} [maxChars] - Maximum diff characters to return; defaults to 4000.
+   */
   'git_file_diff'
 ] as const;
 

@@ -136,6 +136,7 @@ export function TabBar({
       let environmentName: string | undefined;
       let folderName: string | undefined;
       let pluginTitle: string | undefined;
+      let pluginIcon: string | undefined;
       let teamHubName: string | undefined;
       let runnerTargetName: string | undefined;
 
@@ -164,9 +165,11 @@ export function TabBar({
           runnerTargetName = runnerTargetLabel(names);
         }
       } else if (page.type === 'hosted-main-view') {
-        pluginTitle = getRegisteredMainViews().find(
-          (view) => view.pluginId === page.pluginId && view.id === page.viewId
-        )?.title;
+        const view = getRegisteredMainViews().find(
+          (entry) => entry.pluginId === page.pluginId && entry.contributionId === page.viewId
+        );
+        pluginTitle = view?.title;
+        pluginIcon = view?.icon;
       } else if (page.type === 'team-hub-admin') {
         teamHubName = resolveTeamHubAdminTabLabel(page, teamHubs);
       }
@@ -178,6 +181,7 @@ export function TabBar({
           environmentName,
           folderName,
           pluginTitle,
+          pluginIcon,
           teamHubName,
           runnerTargetName
         })

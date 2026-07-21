@@ -1,4 +1,5 @@
 import type {
+  FooterPanelIndicatorState,
   RegisteredAction,
   RegisteredCollectionSettingsTab,
   RegisteredContextMenuItem,
@@ -33,6 +34,7 @@ import {
   registerSidebarSectionContribution,
   registerStatusBarItemContribution,
   registerThemeContribution,
+  setFooterPanelIndicatorState,
   unregisterContribution
 } from './registry';
 import { executeHostPluginCommand } from './hostCommands';
@@ -266,6 +268,14 @@ export async function handlePluginHostBridge(message: HostBridgeMessage): Promis
         options?: { duration?: number };
       };
       toast(text, { duration: options?.duration ?? 2000 });
+      return;
+    }
+    case 'ui.setFooterPanelIndicator': {
+      const { panelId, state: indicatorState } = payload as {
+        panelId: string;
+        state: FooterPanelIndicatorState | null;
+      };
+      setFooterPanelIndicatorState(pluginId, panelId, indicatorState);
       return;
     }
     case 'ui.openModal': {

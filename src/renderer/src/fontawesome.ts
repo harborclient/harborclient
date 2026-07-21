@@ -1,3 +1,4 @@
+import '@fortawesome/fontawesome-svg-core/styles.css';
 import { config, library } from '@fortawesome/fontawesome-svg-core';
 import {
   faAngleLeft,
@@ -9,6 +10,7 @@ import {
   faArrowUpRightFromSquare,
   faBars,
   faBook,
+  faBolt,
   faBug,
   faCaretDown,
   faCaretRight,
@@ -34,6 +36,7 @@ import {
   faFileLines,
   faFloppyDisk,
   faFingerprint,
+  faFlask,
   faGear,
   faGlobe,
   faInbox,
@@ -87,6 +90,7 @@ library.add(
   faPlus,
   faBars,
   faBook,
+  faBolt,
   faBug,
   faCaretDown,
   faCaretRight,
@@ -115,6 +119,7 @@ library.add(
   faFileLines,
   faFloppyDisk,
   faFingerprint,
+  faFlask,
   faFolder,
   faGear,
   faGlobe,
@@ -162,6 +167,7 @@ export {
   faArrowUpRightFromSquare,
   faBars,
   faBook,
+  faBolt,
   faBug,
   faCaretDown,
   faCaretRight,
@@ -189,6 +195,7 @@ export {
   faFileLines,
   faFloppyDisk,
   faFingerprint,
+  faFlask,
   faFolder,
   faGear,
   faGithub,

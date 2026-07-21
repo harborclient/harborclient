@@ -4,6 +4,7 @@ import type {
   RegisteredContextMenuItem,
   RegisteredAction,
   RegisteredFooterPanel,
+  FooterPanelIndicatorState,
   RegisteredMainView,
   RegisteredMenuItem,
   RegisteredPluginTheme,
@@ -21,6 +22,7 @@ import {
   getRegisteredActions,
   getRegisteredContextMenuItems,
   getRegisteredFooterPanels,
+  getRegisteredFooterPanelIndicators,
   getRegisteredMainViews,
   getRegisteredMenuItems,
   getRegisteredPluginThemes,
@@ -100,6 +102,17 @@ export function usePluginCollectionSettingsTabs(): RegisteredCollectionSettingsT
  */
 export function usePluginFooterPanels(): RegisteredFooterPanel[] {
   return useSyncExternalStore(subscribePluginRegistry, getRegisteredFooterPanels, () => []);
+}
+
+/**
+ * Subscribes to native footer panel status-dot state keyed by namespaced panel id.
+ */
+export function usePluginFooterPanelIndicators(): Record<string, FooterPanelIndicatorState> {
+  return useSyncExternalStore(
+    subscribePluginRegistry,
+    getRegisteredFooterPanelIndicators,
+    () => ({})
+  );
 }
 
 /**

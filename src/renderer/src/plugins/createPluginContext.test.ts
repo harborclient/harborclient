@@ -47,7 +47,13 @@ describe('createPluginContext runtime surfaces', () => {
   it('exposes hc.http.onAfterSend when the http permission is granted', async () => {
     const hc = createPluginContext('com.example.test', createManifest(['http']));
     const handler = vi.fn();
-    hc.subscriptions.push(hc.http.onAfterSend(handler));
+    const disposable = hc.http.onAfterSend(handler);
+
+    expect(hc.subscriptions).toHaveLength(1);
+    expect(hc.subscriptions[0]).toBe(disposable);
+
+    // Legacy push pattern remains safe (idempotent dispose).
+    hc.subscriptions.push(disposable);
 
     emitPluginAfterSend(
       { method: 'GET', url: 'https://example.com', headers: {}, body: '' },
@@ -56,6 +62,21 @@ describe('createPluginContext runtime surfaces', () => {
 
     await Promise.resolve();
     expect(handler).toHaveBeenCalledTimes(1);
+
+    disposable.dispose();
+    disposable.dispose();
+    expect(hc.subscriptions).toHaveLength(1);
+  });
+
+  it('auto-tracks registration disposables without a manual push', () => {
+    const hc = createPluginContext('com.example.test', createManifest(['http']));
+    expect(hc.subscriptions).toHaveLength(0);
+
+    const disposable = hc.http.onAfterSend(() => {});
+    expect(hc.subscriptions).toContain(disposable);
+
+    disposable.dispose();
+    expect(hc.subscriptions).not.toContain(disposable);
   });
 
   it('rejects hc.http.onAfterSend without the http permission', () => {

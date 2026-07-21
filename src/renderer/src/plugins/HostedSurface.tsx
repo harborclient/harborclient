@@ -23,8 +23,8 @@ interface Props {
   /** Minimum block size for content-sized surfaces. */
   minHeight?: number | string;
 
-  /** Optional contribution sub-slot (content, headerActions, indicator). */
-  slot?: 'content' | 'headerActions' | 'indicator';
+  /** Optional contribution sub-slot (content, headerActions). */
+  slot?: 'content' | 'headerActions';
 
   /**
    * How the embedded webview sizes itself: grow to guest content height (`content`)
@@ -89,28 +89,19 @@ function applyFillWebviewStyles(webview: Electron.WebviewTag): void {
 const HEADER_ACTIONS_DEFAULT_WIDTH = 28;
 const HEADER_ACTIONS_DEFAULT_HEIGHT = 34;
 
-/** Default inline size for footer panel indicators before the guest reports its size. */
-const INDICATOR_DEFAULT_WIDTH = 12;
-const INDICATOR_DEFAULT_HEIGHT = 16;
-
 /**
  * Returns whether a contribution sub-slot uses compact inline guest sizing.
  *
  * @param slot - Contribution sub-slot from props.
  */
 function isCompactEmbedSlot(slot: Props['slot']): boolean {
-  return slot === 'headerActions' || slot === 'indicator';
+  return slot === 'headerActions';
 }
 
 /**
- * Resolves default compact embed dimensions for header actions and footer indicators.
- *
- * @param slot - Contribution sub-slot from props.
+ * Resolves default compact embed dimensions for header-actions surfaces.
  */
-function getCompactEmbedDefaults(slot: Props['slot']): { width: number; height: number } {
-  if (slot === 'indicator') {
-    return { width: INDICATOR_DEFAULT_WIDTH, height: INDICATOR_DEFAULT_HEIGHT };
-  }
+function getCompactEmbedDefaults(): { width: number; height: number } {
   return { width: HEADER_ACTIONS_DEFAULT_WIDTH, height: HEADER_ACTIONS_DEFAULT_HEIGHT };
 }
 
@@ -133,7 +124,7 @@ function HostedSurfaceInstance({
   const containerRef = useRef<HTMLDivElement>(null);
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const compactDefaults = getCompactEmbedDefaults(slot);
+  const compactDefaults = getCompactEmbedDefaults();
   const [contentHeight, setContentHeight] = useState<number | null>(
     isCompactEmbedSlot(slot) ? compactDefaults.height : null
   );
@@ -214,6 +205,8 @@ function HostedSurfaceInstance({
     } else if (isCompactEmbedSlot(slot)) {
       Object.assign(webview.style, {
         display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         width: `${compactDefaults.width}px`,
         height: `${compactDefaults.height}px`,
         border: 'none',
@@ -314,9 +307,13 @@ function HostedSurfaceInstance({
       webview.style.width = width;
       webview.style.height = height;
       webview.style.overflow = 'hidden';
+      webview.style.alignItems = 'center';
+      webview.style.justifyContent = 'center';
       container.style.width = width;
       container.style.height = height;
       container.style.display = 'inline-flex';
+      container.style.alignItems = 'center';
+      container.style.justifyContent = 'center';
       container.style.overflow = 'hidden';
       return;
     }
@@ -345,11 +342,13 @@ function HostedSurfaceInstance({
       : isCompactEmbedSlot(slot)
         ? {
             display: 'inline-flex',
-            width: `${contentWidth ?? compactDefaults.width}px`,
-            height: `${contentHeight ?? compactDefaults.height}px`,
+            alignItems: 'center',
+            justifyContent: 'center',
             maxWidth: '100%',
             overflow: 'hidden',
-            ...style
+            ...style,
+            width: `${contentWidth ?? compactDefaults.width}px`,
+            height: `${contentHeight ?? compactDefaults.height}px`
           }
         : {
             display: 'block',

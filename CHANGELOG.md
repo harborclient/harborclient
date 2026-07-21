@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(dependencies): update @harborclient/sdk to version 1.1.30 and plugin references in catalog.json. (`f86c940`)
 - fix(dependencies): update @harborclient/sdk to version 1.1.25 in package.json and pnpm-lock.yaml. (`630f783`)
 
 ## 2.5.4 - 2026-07-16

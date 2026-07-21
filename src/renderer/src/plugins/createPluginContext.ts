@@ -30,7 +30,8 @@ import {
   registerSidebarPanelContribution,
   registerSidebarSectionContribution,
   registerStatusBarItemContribution,
-  registerThemeContribution
+  registerThemeContribution,
+  setFooterPanelIndicatorState
 } from './registry';
 import {
   createEnvironmentWithVariables,
@@ -151,6 +152,35 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
   const subscriptions: Disposable[] = [];
   const permissions = new Set(manifest.permissions);
 
+  /**
+   * Wraps a disposable in an idempotent handle, auto-registers it on
+   * {@link PluginContext.subscriptions}, and returns it.
+   *
+   * Idempotency keeps the legacy `subscriptions.push(register())` pattern and
+   * manual `dispose()` safe — repeated dispose calls never double-fire cleanup.
+   *
+   * @param disposable - Disposable returned by a registration or subscribe API.
+   * @returns Tracked disposable handle.
+   */
+  const track = (disposable: Disposable): Disposable => {
+    let disposed = false;
+    const tracked: Disposable = {
+      dispose: () => {
+        if (disposed) {
+          return;
+        }
+        disposed = true;
+        const index = subscriptions.indexOf(tracked);
+        if (index >= 0) {
+          subscriptions.splice(index, 1);
+        }
+        disposable.dispose();
+      }
+    };
+    subscriptions.push(tracked);
+    return tracked;
+  };
+
   const assertPermission = (permission: PluginPermission): void => {
     if (!permissions.has(permission)) {
       throw new Error(`Plugin ${pluginId} lacks permission: ${permission}`);
@@ -260,18 +290,18 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
         const unsubscribe = window.api.pluginFsWatchFile(pluginId, path, () => {
           listener(path);
         });
-        return {
+        return track({
           dispose: () => {
             unsubscribe();
           }
-        };
+        });
       }
     },
     commands: {
       register: (id, handler) => {
         assertUi();
         assertManifestContribution(manifest, 'commands', id);
-        return registerCommand(pluginId, id, handler);
+        return track(registerCommand(pluginId, id, handler));
       },
       execute: async (id, ...args) => {
         const [ownerId, commandId] = id.includes(':') ? id.split(':', 2) : [pluginId, id];
@@ -293,20 +323,20 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
             })
           );
         }
-        return {
+        return track({
           dispose: () => {
             for (const disposable of disposables) {
               disposable.dispose();
             }
           }
-        };
+        });
       }
     },
     themes: {
       register: (theme) => {
         assertUi();
         assertManifestContribution(manifest, 'themes', theme.id);
-        return registerThemeContribution(pluginId, theme);
+        return track(registerThemeContribution(pluginId, theme));
       },
       getActive: async () => toActiveTheme(await window.api.getTheme()),
       onDidChange: (listener) => {
@@ -329,133 +359,160 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
 
         void window.api.getTheme().then(notify);
         const unsubscribe = window.api.onThemeChanged(notify);
-        return {
+        return track({
           dispose: () => {
             unsubscribe();
           }
-        };
+        });
       }
     },
     ui: {
       registerSettingsSection: (section) => {
         assertUi();
         assertManifestContribution(manifest, 'settingsSections', section.id);
-        return registerSettingsSectionContribution(pluginId, {
-          id: pluginSettingsSectionId(pluginId, section.id),
-          title: section.title,
-          contributionId: section.id
-        });
+        return track(
+          registerSettingsSectionContribution(pluginId, {
+            id: pluginSettingsSectionId(pluginId, section.id),
+            title: section.title,
+            contributionId: section.id
+          })
+        );
       },
       registerSidebarPanel: (panel) => {
         assertUi();
         assertManifestContribution(manifest, 'sidebarPanels', panel.id);
-        return registerSidebarPanelContribution(pluginId, {
-          id: pluginContributionId(pluginId, panel.id),
-          title: panel.title,
-          icon: panel.icon,
-          order: panel.order,
-          contributionId: panel.id
-        });
+        return track(
+          registerSidebarPanelContribution(pluginId, {
+            id: pluginContributionId(pluginId, panel.id),
+            title: panel.title,
+            icon: panel.icon,
+            order: panel.order,
+            contributionId: panel.id
+          })
+        );
       },
       registerSidebarSection: (section) => {
         assertUi();
         assertManifestContribution(manifest, 'sidebarSections', section.id);
-        return registerSidebarSectionContribution(pluginId, {
-          id: pluginContributionId(pluginId, section.id),
-          title: section.title,
-          order: section.order,
-          contributionId: section.id,
-          hasHeaderActions: Boolean(section.headerActions)
-        });
+        return track(
+          registerSidebarSectionContribution(pluginId, {
+            id: pluginContributionId(pluginId, section.id),
+            title: section.title,
+            order: section.order,
+            contributionId: section.id,
+            hasHeaderActions: Boolean(section.headerActions)
+          })
+        );
       },
       registerMainView: (view) => {
         assertUi();
         assertManifestContribution(manifest, 'mainViews', view.id);
-        return registerMainViewContribution(pluginId, {
-          id: pluginContributionId(pluginId, view.id),
-          title: view.title,
-          contributionId: view.id
-        });
+        const rawIcon = (view as unknown as { icon?: unknown }).icon;
+        const iconName = typeof rawIcon === 'string' ? rawIcon.trim() : '';
+        return track(
+          registerMainViewContribution(pluginId, {
+            id: pluginContributionId(pluginId, view.id),
+            title: view.title,
+            contributionId: view.id,
+            ...(iconName.length > 0 ? { icon: iconName } : {})
+          })
+        );
       },
       registerModal: (modal) => {
         assertUi();
         assertManifestContribution(manifest, 'modals', modal.id);
-        return registerModalContribution(pluginId, {
-          id: pluginContributionId(pluginId, modal.id),
-          title: modal.title,
-          contributionId: modal.id
-        });
+        return track(
+          registerModalContribution(pluginId, {
+            id: pluginContributionId(pluginId, modal.id),
+            title: modal.title,
+            contributionId: modal.id
+          })
+        );
       },
       registerRequestTab: (tab) => {
         assertUi();
         assertManifestContribution(manifest, 'requestTabs', tab.id);
-        return registerRequestTabContribution(pluginId, {
-          id: pluginContributionId(pluginId, tab.id),
-          title: tab.title,
-          order: tab.order,
-          contributionId: tab.id
-        });
+        return track(
+          registerRequestTabContribution(pluginId, {
+            id: pluginContributionId(pluginId, tab.id),
+            title: tab.title,
+            order: tab.order,
+            contributionId: tab.id
+          })
+        );
       },
       registerResponseTab: (tab) => {
         assertUi();
         assertManifestContribution(manifest, 'responseTabs', tab.id);
-        return registerResponseTabContribution(pluginId, {
-          id: pluginContributionId(pluginId, tab.id),
-          title: tab.title,
-          order: tab.order,
-          when: tab.when,
-          contributionId: tab.id
-        });
+        return track(
+          registerResponseTabContribution(pluginId, {
+            id: pluginContributionId(pluginId, tab.id),
+            title: tab.title,
+            order: tab.order,
+            when: tab.when,
+            contributionId: tab.id
+          })
+        );
       },
       registerCollectionSettingsTab: (tab) => {
         assertUi();
         assertManifestContribution(manifest, 'collectionSettingsTabs', tab.id);
-        return registerCollectionSettingsTabContribution(pluginId, {
-          id: pluginContributionId(pluginId, tab.id),
-          title: tab.title,
-          order: tab.order,
-          contributionId: tab.id
-        });
+        return track(
+          registerCollectionSettingsTabContribution(pluginId, {
+            id: pluginContributionId(pluginId, tab.id),
+            title: tab.title,
+            order: tab.order,
+            contributionId: tab.id
+          })
+        );
       },
       registerFooterPanel: (panel) => {
         assertUi();
         assertManifestContribution(manifest, 'footerPanels', panel.id);
-        return registerFooterPanelContribution(pluginId, {
-          id: pluginContributionId(pluginId, panel.id),
-          title: panel.title,
-          contributionId: panel.id,
-          hasIndicator: Boolean(panel.Indicator)
-        });
+        return track(
+          registerFooterPanelContribution(pluginId, {
+            id: pluginContributionId(pluginId, panel.id),
+            title: panel.title,
+            contributionId: panel.id
+          })
+        );
+      },
+      setFooterPanelIndicator: (panelId, state) => {
+        assertUi();
+        assertManifestContribution(manifest, 'footerPanels', panelId);
+        setFooterPanelIndicatorState(pluginId, panelId, state);
       },
       registerMenuItem: (item) => {
         assertUi();
         assertManifestMenuCommand(manifest, item.command);
-        return registerMenuItemContribution(pluginId, item);
+        return track(registerMenuItemContribution(pluginId, item));
       },
       registerRequestToolbarAction: (action) => {
         assertUi();
         assertManifestContribution(manifest, 'requestToolbarActions', action.id);
-        return registerRequestToolbarActionContribution(pluginId, action);
+        return track(registerRequestToolbarActionContribution(pluginId, action));
       },
       registerScriptEditorAction: (action) => {
         assertUi();
         assertManifestContribution(manifest, 'scriptEditorActions', action.id);
-        return registerScriptEditorActionContribution(pluginId, action);
+        return track(registerScriptEditorActionContribution(pluginId, action));
       },
       registerContextMenuItem: (item) => {
         assertUi();
         assertManifestContribution(manifest, 'contextMenus', item.id);
-        return registerContextMenuItemContribution(pluginId, item);
+        return track(registerContextMenuItemContribution(pluginId, item));
       },
       registerStatusBarItem: (item) => {
         assertUi();
         assertManifestContribution(manifest, 'statusBarItems', item.id);
-        return registerStatusBarItemContribution(pluginId, {
-          id: pluginContributionId(pluginId, item.id),
-          alignment: item.alignment,
-          order: item.order,
-          contributionId: item.id
-        });
+        return track(
+          registerStatusBarItemContribution(pluginId, {
+            id: pluginContributionId(pluginId, item.id),
+            alignment: item.alignment,
+            order: item.order,
+            contributionId: item.id
+          })
+        );
       },
       showToast: (message, options) => {
         assertUi();
@@ -487,7 +544,7 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
     http: {
       onAfterSend: (handler) => {
         assertPermission('http');
-        return subscribePluginAfterSend(handler);
+        return track(subscribePluginAfterSend(handler));
       }
     },
     ipc: {
@@ -557,13 +614,13 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
             'At least one file extension is required for import handler registration.'
           );
         }
-        return registerImportHandlerContribution(pluginId, normalizedExtensions, handler);
+        return track(registerImportHandlerContribution(pluginId, normalizedExtensions, handler));
       }
     },
     mcp: {
       registerServer: () => {
         assertPermission('mcp');
-        return { dispose: () => undefined };
+        return track({ dispose: () => undefined });
       }
     }
   };
