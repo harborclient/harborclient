@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- refactor(ai): remove AiModelSelectOptions component and update usages. (`da50b7b`)
 - feat(catalog): integrate theme catalog functionality and enhance plugin handling. (`60397c6`)
 - fix(catalog): add themes array to catalog.json. (`9609422`)
 - feat(catalog): enhance plugin/theme catalog indexing and screenshot resolution. (`ef24a05`)

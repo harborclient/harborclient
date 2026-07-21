@@ -1,4 +1,4 @@
-import { Button, FaIcon, Select, fieldFrame } from '@harborclient/sdk/components';
+import { Button, FaIcon, fieldFrame } from '@harborclient/sdk/components';
 import { useEffect, useRef, useState, type JSX } from 'react';
 import {
   getAvailableModels,
@@ -7,7 +7,7 @@ import {
 } from '#/shared/ai/models';
 import type { AiSettings } from '#/shared/types';
 import { faArrowUp, faStop } from '#/renderer/src/fontawesome';
-import { AiModelSelectOptions } from '#/renderer/src/ui/Shared/AiModelSelectOptions';
+import { AiModelSelect } from '#/renderer/src/ui/Shared/AiModelSelect';
 
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
@@ -257,24 +257,22 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
           }}
         />
         <div className="flex items-center justify-between gap-2 px-2 pb-2 pt-0">
-          <Select
+          <AiModelSelect
             id="ai-chat-model"
-            variant="plain"
-            className="min-w-0 cursor-pointer truncate border-none bg-transparent py-0 text-muted"
+            className="min-w-0"
             value={modelId}
+            models={availableModels}
             disabled={chatId == null || availableModels.length === 0}
             aria-label={
               selectedModelOption != null
                 ? `AI model, ${selectedModelOption.label}, ${getAiModelOptionGroupLabel(selectedModelOption)}`
                 : 'AI model'
             }
-            onChange={(event) => {
+            onChange={(nextValue) => {
               if (chatId == null) return;
-              dispatch(setSelectedModel({ chatId, modelId: event.target.value }));
+              dispatch(setSelectedModel({ chatId, modelId: nextValue }));
             }}
-          >
-            <AiModelSelectOptions models={availableModels} />
-          </Select>
+          />
           <Button
             type="button"
             variant={sending || canSend ? 'primary' : 'secondary'}

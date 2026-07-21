@@ -1,4 +1,4 @@
-import { Button, Select, Textarea, fieldFrame, portalToBody } from '@harborclient/sdk/components';
+import { Button, Textarea, fieldFrame, portalToBody } from '@harborclient/sdk/components';
 import type { CodeEditorSlashTrigger } from '@harborclient/sdk/components';
 import {
   useCallback,
@@ -18,7 +18,7 @@ import { removeScriptAskLine } from '#/shared/ai/scriptAsk';
 import type { AiSettings, HubLlmModelGroup } from '#/shared/types';
 import { runScriptAsk } from '#/renderer/src/scripting/runScriptAsk';
 import { resolveScriptAskModelId } from '#/renderer/src/scripting/scriptAskModel';
-import { AiModelSelectOptions } from '#/renderer/src/ui/Shared/AiModelSelectOptions';
+import { AiModelSelect } from '#/renderer/src/ui/Shared/AiModelSelect';
 
 interface Props {
   /**
@@ -257,20 +257,19 @@ export function ScriptAskModal({
             onKeyDown={handleKeyDown}
           />
           <div className="flex items-center justify-between gap-2">
-            <Select
+            <AiModelSelect
               id="script-ask-model"
-              className="min-w-0 flex-1 cursor-pointer py-1 text-[14px]"
+              className="min-w-0 flex-1 py-1"
               value={modelId}
+              models={availableModels}
               disabled={sending || availableModels.length === 0}
               aria-label={
                 selectedModelOption != null
                   ? `AI model, ${selectedModelOption.label}, ${getAiModelOptionGroupLabel(selectedModelOption)}`
                   : 'AI model'
               }
-              onChange={(event) => setModelIdOverride(event.target.value)}
-            >
-              <AiModelSelectOptions models={availableModels} />
-            </Select>
+              onChange={setModelIdOverride}
+            />
             <Button
               type="button"
               className="w-[80px]"
