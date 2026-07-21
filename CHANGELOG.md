@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- fix(catalog): correct theme plugin version references in catalog.json. (`9197435`)
+
 ## 2.5.5 - 2026-07-21
 
 - refactor(ai): remove AiModelSelectOptions component and update usages. (`da50b7b`)
