@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(catalog): add themes array to catalog.json. (`9609422`)
 - feat(catalog): enhance plugin/theme catalog indexing and screenshot resolution. (`ef24a05`)
 - fix(catalog): update theme plugin versions in catalog.json. (`e20d62e`)
 - feat(catalog): add new themes to catalog.json. (`8ccdfd7`)

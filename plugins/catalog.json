@@ -52,7 +52,9 @@
     {
       "repoUrl": "https://github.com/harborclient/plugin-mock-server",
       "ref": "v1.0.4"
-    },
+    }
+  ],
+  "themes": [
     {
       "repoUrl": "https://github.com/harborclient/theme-catppuccin-latte",
       "ref": "v1.1.2"
