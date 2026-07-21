@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.5.5 - 2026-07-21
+
 - refactor(ai): remove AiModelSelectOptions component and update usages. (`da50b7b`)
 - feat(catalog): integrate theme catalog functionality and enhance plugin handling. (`60397c6`)
 - fix(catalog): add themes array to catalog.json. (`9609422`)
