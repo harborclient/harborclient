@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.5.7 - 2026-07-23
+
 - feat(plugin): implement applyRequestDraft functionality and enhance plugin context. (`e84592f`)
 
 ## 2.5.6 - 2026-07-23
