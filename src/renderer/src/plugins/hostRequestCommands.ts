@@ -10,9 +10,10 @@ import type {
   CreateCollectionRequest,
   CreateCollectionResult,
   OpenRequestDraftParam,
-  OpenRequestDraftPayload
+  OpenRequestDraftPayload,
+  ApplyRequestDraftPayload
 } from '@harborclient/sdk';
-export type { OpenRequestDraftPayload } from '@harborclient/sdk';
+export type { OpenRequestDraftPayload, ApplyRequestDraftPayload } from '@harborclient/sdk';
 import { getRequestsInRunOrder } from '#/shared/collectionRunner';
 import type { Collection } from '#/shared/types';
 import { parseHttpMethod } from '#/shared/httpMethod';
@@ -39,6 +40,12 @@ import { addConsoleEntry } from '#/renderer/src/store/slices/consoleSlice';
 import { emitPluginAfterSend } from './pluginAfterSendBus';
 import { toPluginHttpRequest, toPluginHttpResponse } from '#/shared/plugin/httpRequest';
 import { recordRequestHistoryFromSend } from '#/renderer/src/store/thunks/requestHistory';
+import {
+  applyRequestDraftUpdate,
+  type UpdateActiveRequestToolArgs
+} from '#/shared/ai/requestUpdate';
+import { selectEffectiveActiveRequestTab } from '#/renderer/src/store/selectors';
+import type { BodyType } from '#/shared/types/common';
 
 const HOST_PLUGIN_ID = 'harborclient';
 
@@ -274,6 +281,140 @@ export function openRequestDraft(payload: OpenRequestDraftPayload): void {
 }
 
 /**
+ * Validates a plugin apply-request-draft payload before mutating the active tab.
+ *
+ * @param payload - Raw payload from a plugin host call.
+ * @returns Normalized apply payload.
+ */
+export function validateApplyRequestDraftPayload(payload: unknown): ApplyRequestDraftPayload {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('harborclient.applyRequestDraft requires a draft payload object.');
+  }
+
+  const raw = payload as ApplyRequestDraftPayload;
+  const result: ApplyRequestDraftPayload = {};
+
+  if (raw.method !== undefined) {
+    if (typeof raw.method !== 'string') {
+      throw new Error('harborclient.applyRequestDraft method must be a string.');
+    }
+    result.method = raw.method;
+  }
+
+  if (raw.url !== undefined) {
+    if (typeof raw.url !== 'string') {
+      throw new Error('harborclient.applyRequestDraft url must be a string.');
+    }
+    result.url = raw.url;
+  }
+
+  if (raw.headers !== undefined) {
+    if (!raw.headers || typeof raw.headers !== 'object' || Array.isArray(raw.headers)) {
+      throw new Error('harborclient.applyRequestDraft headers must be an object.');
+    }
+    result.headers = raw.headers;
+  }
+
+  if (raw.params !== undefined) {
+    if (!Array.isArray(raw.params)) {
+      throw new Error('harborclient.applyRequestDraft params must be an array.');
+    }
+    result.params = raw.params;
+  }
+
+  if (raw.body !== undefined) {
+    if (typeof raw.body !== 'string') {
+      throw new Error('harborclient.applyRequestDraft body must be a string.');
+    }
+    result.body = raw.body;
+  }
+
+  if (raw.bodyType !== undefined) {
+    const allowed: BodyType[] = ['none', 'json', 'text', 'multipart', 'urlencoded'];
+    if (!allowed.includes(raw.bodyType)) {
+      throw new Error('harborclient.applyRequestDraft bodyType is invalid.');
+    }
+    result.bodyType = raw.bodyType;
+  }
+
+  return result;
+}
+
+/**
+ * Maps a plugin apply payload into an AI-style draft update patch.
+ *
+ * Headers and params use replace mode so the payload is the source of truth.
+ *
+ * @param payload - Validated apply payload from a plugin.
+ * @returns Patch accepted by {@link applyRequestDraftUpdate}.
+ */
+export function applyPayloadToUpdateArgs(
+  payload: ApplyRequestDraftPayload
+): UpdateActiveRequestToolArgs {
+  const args: UpdateActiveRequestToolArgs = {};
+
+  if (payload.method !== undefined) {
+    const method = parseHttpMethod(payload.method);
+    if (!method) {
+      throw new Error(`Unsupported HTTP method: ${payload.method}`);
+    }
+    args.method = method;
+  }
+
+  if (payload.url !== undefined) {
+    args.url = payload.url;
+  }
+
+  if (payload.body !== undefined) {
+    args.body = payload.body;
+  }
+
+  if (payload.bodyType !== undefined) {
+    args.body_type = payload.bodyType;
+  } else if (payload.body !== undefined) {
+    args.body_type = payload.body.trim() ? 'text' : 'none';
+  }
+
+  if (payload.headers !== undefined) {
+    args.headers = Object.entries(payload.headers).map(([key, value]) => ({
+      key,
+      value,
+      enabled: true
+    }));
+    args.headers_mode = 'replace';
+  }
+
+  if (payload.params !== undefined) {
+    args.params = payload.params.map((param) => ({
+      key: param.key,
+      value: param.value,
+      enabled: true
+    }));
+    args.params_mode = 'replace';
+  }
+
+  return args;
+}
+
+/**
+ * Applies partial draft fields to the active request editor tab in place.
+ *
+ * @param payload - Partial draft fields from a plugin (for example a parsed curl command).
+ * @throws When there is no active request tab or the payload is invalid.
+ */
+export function applyRequestDraftToActiveTab(payload: ApplyRequestDraftPayload): void {
+  const validated = validateApplyRequestDraftPayload(payload);
+  const tab = selectEffectiveActiveRequestTab(store.getState());
+  if (!tab) {
+    throw new Error('No active request tab.');
+  }
+
+  const patch = applyPayloadToUpdateArgs(validated);
+  const { draft: nextDraft } = applyRequestDraftUpdate(tab.draft, patch);
+  store.dispatch(updateTab({ tabId: tab.tabId, updates: { draft: nextDraft } }));
+}
+
+/**
  * Sends the active request editor tab using the same pipeline as the Send button.
  */
 export function triggerSendRequest(): void {
@@ -444,6 +585,9 @@ export function registerHostRequestCommands(): () => void {
         throw new Error('harborclient.openRequestDraft requires a draft payload object.');
       }
       openRequestDraft(payload as OpenRequestDraftPayload);
+    }),
+    registerCommand(HOST_PLUGIN_ID, 'applyRequestDraft', (payload) => {
+      applyRequestDraftToActiveTab(payload as ApplyRequestDraftPayload);
     }),
     registerCommand(HOST_PLUGIN_ID, 'sendRequest', () => {
       triggerSendRequest();

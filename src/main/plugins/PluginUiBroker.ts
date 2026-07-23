@@ -51,6 +51,7 @@ const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
   'commands.execute': 'ui',
   'commands.executeRemote': 'ui',
   'host.openRequestDraft': 'ui',
+  'host.applyRequestDraft': 'ui',
   'host.loadRequest': 'ui',
   'host.sendRequest': 'ui',
   'host.createEnvironmentWithVariables': 'ui',
@@ -676,6 +677,7 @@ export class PluginUiBroker {
       case 'ui.openModal':
       case 'ui.closeModal':
       case 'host.openRequestDraft':
+      case 'host.applyRequestDraft':
       case 'host.loadRequest':
       case 'host.sendRequest':
       case 'host.updateEnvironmentVariables':

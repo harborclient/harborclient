@@ -86,6 +86,7 @@ export function EnableModal({ plugin, onConfirm, onCancel }: Props): JSX.Element
       onClose={onCancel}
       labelledBy="plugin-permissions-title"
       title={`Enable ${displayName}?`}
+      className="w-[64rem] max-w-[calc(100vw-2rem)]"
       closeDisabled={busy}
       disableEscape={busy}
     >

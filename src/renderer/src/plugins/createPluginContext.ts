@@ -47,6 +47,7 @@ import {
   clearActiveResponse,
   logRequestToConsole,
   openRequestDraft,
+  applyRequestDraftToActiveTab,
   sendHttpRequestForPlugin,
   triggerSendRequest,
   type PluginConsoleLogPayload
@@ -557,6 +558,10 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
       openRequestDraft: async (payload) => {
         assertUi();
         openRequestDraft(payload);
+      },
+      applyRequestDraft: async (payload) => {
+        assertUi();
+        applyRequestDraftToActiveTab(payload);
       },
       loadRequest: async (requestId) => {
         assertUi();

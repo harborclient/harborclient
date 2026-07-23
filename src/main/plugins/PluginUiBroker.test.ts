@@ -264,6 +264,49 @@ describe('PluginUiBroker host bridge invoke', () => {
     vi.clearAllMocks();
   });
 
+  it('forwards host.applyRequestDraft through plugins:hostBridge', async () => {
+    const send = vi.fn();
+    const mockWindow = {
+      isDestroyed: () => false,
+      webContents: { send }
+    };
+    const manager = {
+      assertPermission: vi.fn()
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.setMainWindow(() => mockWindow as never);
+    broker.registerIpcHandlers();
+
+    const sender = { id: 4 } as WebContents;
+    registerSession(sender, {
+      pluginId: 'com.test.curl',
+      role: 'view',
+      contributionId: 'curl',
+      kind: 'requestTabs'
+    });
+
+    const payload = {
+      payload: {
+        method: 'POST',
+        url: 'https://example.test',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{"ok":true}',
+        bodyType: 'json'
+      }
+    };
+
+    await expect(broker.handleInvoke(sender, 'host.applyRequestDraft', payload)).resolves.toBe(
+      undefined
+    );
+
+    expect(manager.assertPermission).toHaveBeenCalledWith('com.test.curl', 'ui');
+    expect(send).toHaveBeenCalledWith('plugins:hostBridge', {
+      pluginId: 'com.test.curl',
+      op: 'host.applyRequestDraft',
+      payload
+    });
+  });
+
   it('round-trips host.sendHttpRequest through plugins:hostBridgeInvoke', async () => {
     const send = vi.fn();
     const mockWindow = {

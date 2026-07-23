@@ -8,12 +8,18 @@ import {
   pluginRequestToSaveInput,
   uniqueFolderNames,
   validateCreateCollectionPayload,
-  validatePluginConsoleLogPayload
+  validatePluginConsoleLogPayload,
+  validateApplyRequestDraftPayload,
+  applyPayloadToUpdateArgs,
+  applyRequestDraftToActiveTab
 } from './hostRequestCommands';
 import { store } from '#/renderer/src/store/redux';
 import { clearConsole } from '#/renderer/src/store/slices/consoleSlice';
+import { openTabWithDraft } from '#/renderer/src/store/slices/tabsSlice';
+import { defaultDraft } from '#/renderer/src/store/tabs';
 import { toPluginHttpRequest } from '#/shared/plugin/httpRequest';
 import type { RootState } from '#/renderer/src/store/redux';
+import { selectEffectiveActiveRequestTab } from '#/renderer/src/store/selectors';
 
 describe('toPluginHttpRequest', () => {
   it('includes source request metadata and enabled params for plugin hooks', () => {
@@ -194,5 +200,62 @@ describe('hostRequestCommands', () => {
         result: { status: '200', timeMs: 1 }
       })
     ).toThrow(/result.status and result.timeMs/);
+  });
+
+  it('validates apply-request-draft payloads and maps them to replace-mode updates', () => {
+    expect(() => validateApplyRequestDraftPayload(null)).toThrow(/payload object/);
+    expect(() => validateApplyRequestDraftPayload({ method: 1 })).toThrow(
+      /method must be a string/
+    );
+
+    const validated = validateApplyRequestDraftPayload({
+      method: 'POST',
+      url: 'https://example.com/users?page=1',
+      headers: { Authorization: 'Bearer token' },
+      params: [{ key: 'page', value: '1' }],
+      body: '{"ok":true}',
+      bodyType: 'json'
+    });
+
+    expect(validated.method).toBe('POST');
+    expect(validated.bodyType).toBe('json');
+
+    const args = applyPayloadToUpdateArgs(validated);
+    expect(args.method).toBe('POST');
+    expect(args.headers_mode).toBe('replace');
+    expect(args.params_mode).toBe('replace');
+    expect(args.body_type).toBe('json');
+    expect(args.headers).toEqual([{ key: 'Authorization', value: 'Bearer token', enabled: true }]);
+  });
+
+  it('applies a draft payload to the active request tab in place', () => {
+    store.dispatch(
+      openTabWithDraft({
+        ...defaultDraft(),
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [{ key: 'X-Old', value: '1', enabled: true }],
+        body: '',
+        body_type: 'none'
+      })
+    );
+
+    applyRequestDraftToActiveTab({
+      method: 'PUT',
+      url: 'https://example.com/items/1',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{"name":"Ada"}',
+      bodyType: 'json'
+    });
+
+    const tab = selectEffectiveActiveRequestTab(store.getState());
+    expect(tab?.draft.method).toBe('PUT');
+    expect(tab?.draft.url).toBe('https://example.com/items/1');
+    expect(tab?.draft.body).toBe('{"name":"Ada"}');
+    expect(tab?.draft.body_type).toBe('json');
+    expect(tab?.draft.headers).toEqual([
+      { key: 'Content-Type', value: 'application/json', enabled: true },
+      { key: '', value: '', enabled: true }
+    ]);
   });
 });

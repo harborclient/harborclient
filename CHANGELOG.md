@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(plugin): implement applyRequestDraft functionality and enhance plugin context. (`e84592f`)
+
 ## 2.5.6 - 2026-07-23
 
 - feat(plugin): enhance plugin runner shutdown handling and add action menu. (`aa4bb57`)

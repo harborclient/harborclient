@@ -46,6 +46,7 @@ import {
   clearActiveResponse,
   logRequestToConsole,
   openRequestDraft,
+  applyRequestDraftToActiveTab,
   sendHttpRequestForPlugin,
   triggerSendRequest,
   type PluginConsoleLogPayload
@@ -303,6 +304,9 @@ export async function handlePluginHostBridge(message: HostBridgeMessage): Promis
     }
     case 'host.openRequestDraft':
       await openRequestDraft((payload as { payload: never }).payload);
+      return;
+    case 'host.applyRequestDraft':
+      applyRequestDraftToActiveTab((payload as { payload: never }).payload);
       return;
     case 'host.loadRequest':
       loadSavedRequest((payload as { requestId: number }).requestId);
