@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.5.6 - 2026-07-23
+
 - feat(plugin): enhance plugin runner shutdown handling and add action menu. (`aa4bb57`)
 - fix(catalog): correct theme plugin version references in catalog.json. (`9197435`)
 
