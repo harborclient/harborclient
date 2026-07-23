@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(markdown-editor): add copy to clipboard functionality with user feedback. (`28974de`)
+
 ## 2.5.7 - 2026-07-23
 
 - feat(plugin): implement applyRequestDraft functionality and enhance plugin context. (`e84592f`)

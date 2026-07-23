@@ -1,5 +1,6 @@
 import { Button } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
+import toast from 'react-hot-toast';
 import type { Variable } from '#/shared/types';
 import { acceleratorMatchesChord, getShortcutDef, type KeyChord } from '#/shared/shortcuts';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
@@ -108,6 +109,18 @@ export function MarkdownEditorTab({ tab, variables, onEditVariables }: Props): J
   }, [dispatch, tab.tabId]);
 
   /**
+   * Copies the current markdown source (including unsaved edits) to the clipboard.
+   */
+  const handleCopy = useCallback(async (): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(tab.content);
+      toast.success('Copied to clipboard');
+    } catch {
+      toast.error('Failed to copy');
+    }
+  }, [tab.content]);
+
+  /**
    * Opens the shared rename-document modal for the active tab's document.
    */
   const handleRename = useCallback((): void => {
@@ -184,6 +197,14 @@ export function MarkdownEditorTab({ tab, variables, onEditVariables }: Props): J
         description="Edit the markdown document."
         actions={
           <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              aria-label="Copy markdown to clipboard"
+              onClick={() => void handleCopy()}
+            >
+              Copy
+            </Button>
             <Button
               type="button"
               variant="secondary"
