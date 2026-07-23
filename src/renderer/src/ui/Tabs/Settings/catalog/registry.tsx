@@ -4,8 +4,7 @@ import type { SettingsSection } from '#/shared/types';
 import { AiInfoExtra } from '../extras/AiInfoExtra';
 import { GeneralInfoExtra } from '../extras/GeneralInfoExtra';
 import { ProxyInfoExtra } from '../extras/ProxyInfoExtra';
-import { SyntaxInfoExtra } from '../extras/SyntaxInfoExtra';
-import { SyntaxPreviewExtra } from '../extras/SyntaxPreviewExtra';
+import { SyntaxSectionLeading } from '../extras/SyntaxSectionLeading';
 import { AiSettingsExtras } from '../extras/AiSettingsExtras';
 import { BackupRestoreSection } from '../BackupRestoreSection';
 import { GitIdentitiesSection } from '../GitIdentitiesSection';
@@ -117,14 +116,13 @@ export const FORM_SECTION_LEADING_EXTRAS: Partial<Record<FormSettingsSection, Co
   general: GeneralInfoExtra,
   ai: AiInfoExtra,
   proxy: ProxyInfoExtra,
-  syntax: SyntaxInfoExtra
+  syntax: SyntaxSectionLeading
 };
 
 /**
  * Optional trailing content rendered after field components in a form section.
  */
 export const FORM_SECTION_EXTRAS: Partial<Record<FormSettingsSection, ComponentType>> = {
-  syntax: SyntaxPreviewExtra,
   ai: AiSettingsExtras
 };
 

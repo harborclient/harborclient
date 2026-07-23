@@ -42,6 +42,32 @@ describe('pluginRunnerHost shutdown', () => {
       PluginRunnerUnavailableError
     );
   });
+
+  it('rejects in-flight work with PluginRunnerUnavailableError when the runner exits during app quit', async () => {
+    vi.resetModules();
+    let exitHandler: (() => void) | undefined;
+    vi.mocked((await import('electron')).utilityProcess.fork).mockImplementationOnce(() => {
+      const child = {
+        on: vi.fn((event: string, handler: () => void) => {
+          if (event === 'exit') {
+            exitHandler = handler;
+          }
+        }),
+        postMessage: vi.fn(),
+        kill: vi.fn()
+      };
+      return child as never;
+    });
+
+    const { activatePluginMain, markPluginRunnerAppQuitting, PluginRunnerUnavailableError } =
+      await import('#/main/plugins/pluginRunnerHost');
+
+    const pending = activatePluginMain('test.plugin', 'export {}', []);
+    markPluginRunnerAppQuitting();
+    exitHandler?.();
+
+    await expect(pending).rejects.toBeInstanceOf(PluginRunnerUnavailableError);
+  });
 });
 
 describe('pluginRunnerHost storage handlers', () => {

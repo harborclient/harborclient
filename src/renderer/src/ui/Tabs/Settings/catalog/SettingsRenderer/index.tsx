@@ -4,7 +4,7 @@ import type { JSX } from 'react';
 import type { SettingsSection } from '#/shared/types';
 
 import { settingsSectionMeta } from '../../constants';
-import { SettingsSaveFooter } from '../../components/SettingsSaveFooter';
+import { SettingsSaveAction } from '../../components/SettingsSaveAction';
 import {
   fieldEntriesForSection,
   FORM_SECTION_DESCRIPTIONS,
@@ -79,14 +79,12 @@ export function SettingsRenderer({
         title={label}
         icon={icon}
         description={FORM_SECTION_DESCRIPTIONS[section]}
+        actions={<SettingsSaveAction tabId={tabId} />}
       >
         <SettingsDraftError />
         <FormSectionLeadingExtras section={section} />
         <div className="mb-6 flex flex-col gap-6">{renderSettingFields(fieldIds)}</div>
         <FormSectionExtras section={section} />
-        <div className="mt-2">
-          <SettingsSaveFooter tabId={tabId} />
-        </div>
       </Page>
     );
   }

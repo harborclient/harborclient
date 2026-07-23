@@ -154,6 +154,7 @@ let pluginDatabaseAccess: PluginDatabaseAccess | null = null;
 let runner: UtilityProcess | null = null;
 let nextId = 1;
 let shuttingDown = false;
+let appQuitting = false;
 const pending = new Map<number, PendingCall>();
 
 /**
@@ -161,6 +162,14 @@ const pending = new Map<number, PendingCall>();
  */
 export function isPluginRunnerShuttingDown(): boolean {
   return shuttingDown;
+}
+
+/**
+ * Marks the app as quitting so in-flight runner calls fail gracefully instead of
+ * surfacing as unexpected IPC handler errors when Electron tears down the child.
+ */
+export function markPluginRunnerAppQuitting(): void {
+  appQuitting = true;
 }
 
 /**
@@ -201,7 +210,9 @@ function rejectPending(id: number, message: string): void {
   }
   clearTimeout(entry.timeout);
   pending.delete(id);
-  entry.reject(new Error(message));
+  entry.reject(
+    shuttingDown || appQuitting ? new PluginRunnerUnavailableError(message) : new Error(message)
+  );
 }
 
 /**
@@ -603,9 +614,14 @@ function attachRunnerHandlers(child: UtilityProcess): void {
   });
 
   child.on('exit', () => {
-    if (runner === child) {
-      resetRunner('Plugin runner exited unexpectedly');
+    if (runner !== child) {
+      return;
     }
+    if (shuttingDown) {
+      runner = null;
+      return;
+    }
+    resetRunner('Plugin runner exited unexpectedly');
   });
 }
 

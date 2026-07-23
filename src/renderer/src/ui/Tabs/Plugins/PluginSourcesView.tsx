@@ -89,6 +89,11 @@ export function PluginSourcesView({
       title="Settings"
       icon={faGear}
       description="Configure where HarborClient loads marketplace catalogs and trusted publisher keys. Enabled endpoints are fetched in list order; the first source wins when entries overlap. Team Hub endpoints are managed by your hub administrator and cannot be removed here."
+      actions={
+        <Button type="button" disabled={busy} onClick={onSave}>
+          {busy ? 'Saving…' : 'Save'}
+        </Button>
+      }
     >
       {error ? (
         <p className="mb-4 text-[14px] text-danger" role="alert">
@@ -123,12 +128,9 @@ export function PluginSourcesView({
         />
       </div>
 
-      <div className="mt-6 flex max-w-2xl flex-wrap justify-between gap-2 border-t border-separator pt-4">
+      <div className="mt-6 flex max-w-2xl flex-wrap gap-2 border-t border-separator pt-4">
         <Button type="button" variant="secondary" disabled={busy} onClick={onResetDefaults}>
           Reset defaults
-        </Button>
-        <Button type="button" disabled={busy} onClick={onSave}>
-          {busy ? 'Saving…' : 'Save'}
         </Button>
       </div>
     </Page>

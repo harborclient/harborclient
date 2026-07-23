@@ -116,7 +116,7 @@ export function CustomThemeView({ onSaved, tabId }: Props): JSX.Element {
         icon={faWandMagicSparkles}
         description="Design a custom appearance theme with live preview across HarborClient."
         actions={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
               variant="toolbar"
@@ -150,6 +150,14 @@ export function CustomThemeView({ onSaved, tabId }: Props): JSX.Element {
               onClick={() => void handleImport()}
             >
               Import
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={busy || !canSave || !isDirty}
+              onClick={() => void handleSave()}
+            >
+              {busy ? 'Saving…' : 'Save'}
             </Button>
           </div>
         }
@@ -209,14 +217,6 @@ export function CustomThemeView({ onSaved, tabId }: Props): JSX.Element {
                 onClick={handleOpenStylesheet}
               >
                 Stylesheet
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                disabled={busy || !canSave || !isDirty}
-                onClick={() => void handleSave()}
-              >
-                {busy ? 'Saving…' : 'Save'}
               </Button>
             </div>
           </div>

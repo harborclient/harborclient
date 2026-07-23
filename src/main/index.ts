@@ -53,7 +53,7 @@ import {
   isDisablePluginsFlagEnabled,
   parseDevPluginPaths
 } from '#/main/plugins/PluginManager';
-import { disposePluginRunner } from '#/main/plugins/pluginRunnerHost';
+import { disposePluginRunner, markPluginRunnerAppQuitting } from '#/main/plugins/pluginRunnerHost';
 import { getPluginUiBroker, initPluginUiBroker } from '#/main/plugins/PluginUiBroker';
 import { setPluginMcpRegistryMainWindow } from '#/main/plugins/pluginMcpRegistry';
 import { bootstrapMcpHost } from '#/main/ipc/handlers/mcp';
@@ -420,6 +420,7 @@ async function applyPersistedTheme(): Promise<ThemeSource> {
  */
 function beginQuitWithoutPrompt(window: BrowserWindow | null = mainWindow): void {
   isQuitting = true;
+  markPluginRunnerAppQuitting();
   if (window && !window.isDestroyed()) {
     saveWindowState(window);
   }
@@ -866,6 +867,7 @@ ipcMain.on('app:close-decision', (_event, ...raw) => {
   }
 
   isQuitting = true;
+  markPluginRunnerAppQuitting();
   const reason = closeReason;
   closeReason = null;
 

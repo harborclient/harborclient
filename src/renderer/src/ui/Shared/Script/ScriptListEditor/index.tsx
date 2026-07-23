@@ -188,10 +188,6 @@ export function ScriptListEditor({
   const copiedScript = useAppSelector(selectCopiedScriptRef);
   const normalized = useMemo(() => normalizeScriptRefs(scripts), [scripts]);
   const scriptGroups = useMemo(() => splitScriptRefsByGroup(normalized), [normalized]);
-  const compatibleSnippets = useMemo(
-    () => snippets.filter((snippet) => snippetMatchesPhase(snippet.scope, phase)),
-    [snippets, phase]
-  );
   const importableModuleNames = useMemo(
     () =>
       [
@@ -422,29 +418,32 @@ export function ScriptListEditor({
 
   /**
    * Builds grouped menu entries for the snippet library picker.
+   * Incompatible snippets stay visible but disabled for the active phase.
    */
   const snippetMenuGroups = useMemo((): MenuItem[][] => {
     const createGroup: MenuItem[] = [
       { label: 'Create a snippet', onSelect: openCreateSnippetModal }
     ];
 
-    if (compatibleSnippets.length > 0) {
+    if (snippets.length === 0) {
       return [
         createGroup,
-        compatibleSnippets.map((snippet) => ({
-          label: snippet.name,
-          onSelect: () => handleSnippetSelect(snippet.uuid)
-        }))
+        [{ label: 'No snippets saved yet', disabled: true, onSelect: () => undefined }]
       ];
     }
 
-    const emptyMessage =
-      snippets.length === 0
-        ? 'No snippets saved yet'
-        : `No snippets saved for the ${phase === 'pre' ? 'pre-request' : 'post-request'} stage yet`;
-
-    return [createGroup, [{ label: emptyMessage, disabled: true, onSelect: () => undefined }]];
-  }, [compatibleSnippets, handleSnippetSelect, openCreateSnippetModal, phase, snippets.length]);
+    return [
+      createGroup,
+      snippets.map((snippet) => {
+        const compatible = snippetMatchesPhase(snippet.scope, phase);
+        return {
+          label: snippet.name,
+          disabled: !compatible,
+          onSelect: compatible ? () => handleSnippetSelect(snippet.uuid) : () => undefined
+        };
+      })
+    ];
+  }, [handleSnippetSelect, openCreateSnippetModal, phase, snippets]);
 
   /**
    * Exports the current phase script list as a snippets bundle JSON file.

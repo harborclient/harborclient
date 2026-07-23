@@ -19,9 +19,10 @@ interface Props {
 }
 
 /**
- * Shared Save footer for catalog-driven form settings sections.
+ * Shared Save button for catalog-driven form settings sections.
+ * Intended for {@link Page} header `actions` so Save stays visible without scrolling.
  */
-export function SettingsSaveFooter({ tabId }: Props): JSX.Element {
+export function SettingsSaveAction({ tabId }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const dirty = useAppSelector(selectSettingsDraftDirty);
   const disabled = useAppSelector(selectSettingsDraftDisabled);
@@ -40,17 +41,15 @@ export function SettingsSaveFooter({ tabId }: Props): JSX.Element {
   }, [dispatch]);
 
   /**
-   * Whether File → Save / Ctrl+S should invoke this footer (mirrors Save button).
+   * Whether File → Save / Ctrl+S should invoke this action (mirrors Save button).
    */
   const menuCanSave = dirty && !disabled && !saving;
 
   useTabSaveRegistration(tabId, menuCanSave, handleSave);
 
   return (
-    <div className="flex items-center gap-3">
-      <Button type="button" disabled={disabled || !dirty} onClick={() => void handleSave()}>
-        {saving ? 'Saving…' : 'Save'}
-      </Button>
-    </div>
+    <Button type="button" disabled={disabled || !dirty} onClick={() => void handleSave()}>
+      {saving ? 'Saving…' : 'Save'}
+    </Button>
   );
 }

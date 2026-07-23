@@ -1,7 +1,6 @@
 import {
   VariableTable,
   cleanVariables,
-  ModalFooter,
   Page,
   Button,
   FormGroup,
@@ -116,6 +115,11 @@ export function Form({
       className="flex min-h-0 flex-1 flex-col p-6 pt-0!"
       title="Environment Settings"
       description="Manage environment settings and configuration"
+      actions={
+        <Button type="button" onClick={() => void handleSave()} disabled={!name.trim() || saving}>
+          {saving ? 'Saving…' : 'Save'}
+        </Button>
+      }
     >
       <div className="hc-scroll-stable -mx-6 flex min-h-0 flex-1 flex-col overflow-y-auto px-6">
         <div className="mb-6">
@@ -155,12 +159,6 @@ export function Form({
             focusKey={focusVariableKey}
           />
         </FormSection>
-
-        <ModalFooter spaced>
-          <Button onClick={() => void handleSave()} disabled={!name.trim() || saving}>
-            {saving ? 'Saving…' : 'Save'}
-          </Button>
-        </ModalFooter>
       </div>
     </Page>
   );

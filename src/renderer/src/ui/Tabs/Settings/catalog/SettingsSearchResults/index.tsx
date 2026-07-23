@@ -3,7 +3,7 @@ import type { JSX } from 'react';
 
 import type { SettingsSection } from '#/shared/types';
 
-import { SettingsSaveFooter } from '../../components/SettingsSaveFooter';
+import { SettingsSaveAction } from '../../components/SettingsSaveAction';
 import { entryById, type FieldSettingId, type SettingId } from '../catalog';
 import { renderSettingFields } from '../registry';
 import { SettingsDraftError } from '../SettingsDraftError';
@@ -44,7 +44,12 @@ export function SettingsSearchResults({
   const groupIds = matchedIds.filter((id) => entryById(id).kind === 'group');
 
   return (
-    <Page embedded className="mb-6 flex flex-col" title="Search results">
+    <Page
+      embedded
+      className="mb-6 flex flex-col"
+      title="Search results"
+      actions={fieldIds.length > 0 ? <SettingsSaveAction tabId={tabId} /> : undefined}
+    >
       {matchedIds.length === 0 ? (
         <p className="text-[14px] text-muted" role="status">
           No settings match &ldquo;{query.trim()}&rdquo;.
@@ -55,7 +60,6 @@ export function SettingsSearchResults({
             <div className="flex flex-col gap-6">
               <SettingsDraftError />
               {renderSettingFields(fieldIds)}
-              <SettingsSaveFooter tabId={tabId} />
             </div>
           ) : null}
 

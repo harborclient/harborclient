@@ -24,7 +24,7 @@ import {
 import { GitAuthorForm } from '#/renderer/src/ui/Shared/Git/GitAuthorForm';
 import { entryById } from '#/renderer/src/ui/Tabs/Settings/catalog/catalog';
 import type { SettingsSectionComponentProps } from '#/renderer/src/ui/Tabs/Settings/catalog/registry';
-import { SettingsSaveFooter } from '#/renderer/src/ui/Tabs/Settings/components/SettingsSaveFooter';
+import { SettingsSaveAction } from '#/renderer/src/ui/Tabs/Settings/components/SettingsSaveAction';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectDraftGeneral,
@@ -227,17 +227,19 @@ export function GitIdentitiesSection({ tabId }: SettingsSectionComponentProps): 
       icon={faGithub}
       description="Manage shared credentials for git hosts. One identity per host is reused by all git-backed collections."
       className="mb-6 flex flex-col"
-      actions={[
-        <Button
-          key="add"
-          type="button"
-          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
-          onClick={() => openEditor()}
-        >
-          <FaIcon icon={faPlus} />
-          Add
-        </Button>
-      ]}
+      actions={
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
+            onClick={() => openEditor()}
+          >
+            <FaIcon icon={faPlus} />
+            Add
+          </Button>
+          <SettingsSaveAction tabId={tabId} />
+        </div>
+      }
     >
       <div className="mb-6 flex flex-col gap-6">
         <FormGroup
@@ -301,10 +303,6 @@ export function GitIdentitiesSection({ tabId }: SettingsSectionComponentProps): 
             onEmailChange={handleCommitAuthorEmailChange}
           />
         </FormGroup>
-      </div>
-
-      <div className="mb-6 mt-2">
-        <SettingsSaveFooter tabId={tabId} />
       </div>
 
       <SettingSectionHeading settingId="git.identities" title="Git Identities" className="mb-2" />

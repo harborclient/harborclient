@@ -88,6 +88,11 @@ export function GlobalsSectionForm({
       title={label}
       description="Use variables in request URLs with {{variable}} syntax."
       icon={icon}
+      actions={
+        <Button type="button" onClick={() => void handleSave()} disabled={!isDirty || saving}>
+          {saving ? 'Saving…' : 'Save'}
+        </Button>
+      }
     >
       <FormSection
         title={<SettingIdLabel settingId="globals.variables">Variables</SettingIdLabel>}
@@ -95,12 +100,6 @@ export function GlobalsSectionForm({
         description="When value is empty, the default is used. Global variables have the lowest precedence; collection and environment variables override globals with the same key."
       >
         <VariableTable variables={variables} onChange={setVariables} focusKey={focusVariableKey} />
-
-        <div className="flex gap-2 mt-4">
-          <Button onClick={() => void handleSave()} disabled={!isDirty || saving}>
-            {saving ? 'Saving…' : 'Save'}
-          </Button>
-        </div>
       </FormSection>
     </Page>
   );

@@ -1,7 +1,6 @@
 import {
   Button,
   cleanVariables,
-  ModalFooter,
   Page,
   SegmentedTabs,
   SegmentedTabPanel,
@@ -437,6 +436,15 @@ export function ScopedSettingsForm({
         .join(' ')}
       title={title}
       description={description}
+      actions={
+        <Button
+          type="button"
+          onClick={() => void handleSave()}
+          disabled={!name.trim() || disableSave || saving}
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </Button>
+      }
     >
       <SegmentedTabsGroup value={tab} onChange={handleTabChange} ariaLabel={ariaLabel}>
         <div className="-mx-6 -mt-3 mb-6 shrink-0">
@@ -496,14 +504,6 @@ export function ScopedSettingsForm({
               {entry.panel(renderState)}
             </SegmentedTabPanel>
           ))}
-          <ModalFooter spaced>
-            <Button
-              onClick={() => void handleSave()}
-              disabled={!name.trim() || disableSave || saving}
-            >
-              {saving ? 'Saving…' : 'Save'}
-            </Button>
-          </ModalFooter>
         </div>
       </SegmentedTabsGroup>
     </Page>

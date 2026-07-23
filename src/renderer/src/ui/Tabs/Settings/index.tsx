@@ -7,6 +7,7 @@ import { normalizePageSidebarSection } from '#/shared/pageSidebarSection';
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import { usePluginSettingsSections } from '#/renderer/src/plugins/pluginHooks';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
+import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { loadSettingsDraft } from '#/renderer/src/store/thunks/settingsDraft';
 import { SETTINGS_SECTIONS } from './constants';
 import { SettingsRenderer } from './catalog/SettingsRenderer';
@@ -106,6 +107,7 @@ export function Settings({
 
   /**
    * Opens a section from search results, optionally focusing a catalog group anchor.
+   * Syncs Redux `tab.page.section` so the tab bar label matches the active sub-panel.
    */
   const handleNavigateFromSearch = (
     nextSection: SettingsSection,
@@ -114,14 +116,23 @@ export function Settings({
     setSection(nextSection);
     setQuery('');
     setSearchFocusSettingId(nextFocusSettingId);
+    dispatch(
+      openPageTab({
+        type: 'settings',
+        section: nextSection,
+        ...(nextFocusSettingId ? { focusSettingId: nextFocusSettingId } : {})
+      })
+    );
   };
 
   /**
    * Clears pending group focus when the user picks a sidebar section directly.
+   * Syncs Redux `tab.page.section` so the tab bar label matches the active sub-panel.
    */
   const handleSelectSection = (nextSection: SettingsSection): void => {
     setSearchFocusSettingId(undefined);
     setSection(nextSection);
+    dispatch(openPageTab({ type: 'settings', section: nextSection }));
   };
 
   return (

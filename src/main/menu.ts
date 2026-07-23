@@ -233,6 +233,12 @@ export function buildMenu(
       label: 'View',
       submenu: [
         {
+          label: 'Action menu',
+          accelerator: acceleratorFor(accelerators, 'action-menu'),
+          click: () => sendMenuAction(window, 'action-menu')
+        },
+        { type: 'separator' },
+        {
           label: 'Collections Sidebar',
           type: 'checkbox',
           checked: sidebarVisible,
