@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(core): update .gitignore, add thumbnails, and refactor auth module. (`58bbb3b6`)
 - feat(docs): update documentation search index and improve logging format. (`6edd9fc`)
 - refactor(build): streamline CLI packaging and enhance native dependency handling. (`9463508`)
 - feat(gui): refactor path resolution and enhance sidebar actions. (`56b3645`)

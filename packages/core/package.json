@@ -60,7 +60,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && node scripts/assert-dist-publishable.mjs",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist && find src -type f \\( -name '*.js' -o -name '*.d.ts' -o -name '*.js.map' -o -name '*.d.ts.map' \\) -delete",
     "lint": "eslint --cache .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
