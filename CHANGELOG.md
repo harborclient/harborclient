@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(gui): add initial configuration files and resources for HarborClient application. (`60a72f5`)
+
 ## 2.6.0 - 2026-07-24
 
 - feat(file-access): implement file system access in scripts with new settings. (`f7b4e04`)
