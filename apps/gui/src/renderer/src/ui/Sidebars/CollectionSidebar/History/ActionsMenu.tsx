@@ -7,10 +7,11 @@ import {
   useDeveloperToolsEnabled,
   type InspectPoint
 } from '#/renderer/src/ui/Shared/devInspectContextMenu';
+import { buildCopyIdMenuItem } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/copyEntityId';
 
 interface Props {
   /**
-   * History entry this menu acts on (single-delete target and menu id).
+   * History entry this menu acts on (Copy ID target, single-delete target, and menu id).
    */
   entry: RequestHistoryEntry;
 
@@ -47,7 +48,7 @@ interface Props {
 
 /**
  * Builds and renders the history row actions menu, switching between bulk
- * delete and single-item delete based on multi-selection size.
+ * delete and single-item Copy ID / delete based on multi-selection size.
  */
 export function ActionsMenu({
   entry,
@@ -62,7 +63,7 @@ export function ActionsMenu({
   const menuId = `history-entry-${entry.id}`;
 
   /**
-   * Assembles delete and inspect groups for bulk or single-item history menus.
+   * Assembles Copy ID, delete, and inspect groups for bulk or single-item history menus.
    */
   const menuGroups = useMemo((): MenuItem[][] => {
     const groups: MenuItem[][] = showBulkMenu
@@ -78,6 +79,7 @@ export function ActionsMenu({
           ]
         ]
       : [
+          [buildCopyIdMenuItem(String(entry.id))],
           [
             {
               label: 'Delete',

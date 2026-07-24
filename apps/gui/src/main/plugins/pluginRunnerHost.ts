@@ -1,6 +1,6 @@
 import { utilityProcess, type UtilityProcess } from 'electron';
 import { transformSync } from 'esbuild';
-import { join } from 'path';
+import { resolveFromMainOut } from '#/main/paths';
 import type { EchoServerIncomingRequest } from '#/main/plugins/echoServer/types';
 import {
   getEchoServerStatus,
@@ -194,7 +194,7 @@ export function setPluginDatabaseAccess(handlers: PluginDatabaseAccess): void {
  * Resolves the built plugin runner entry path beside the main bundle.
  */
 function resolveRunnerPath(): string {
-  return join(__dirname, 'pluginRunner.js');
+  return resolveFromMainOut('pluginRunner.js');
 }
 
 /**

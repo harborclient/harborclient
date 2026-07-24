@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # Auto-append the subject of the just-made commit to the `## Unreleased`
-# section of CHANGELOG.md and fold the change into the same commit via
-# `git commit --amend`. Recursion is prevented with an env-var guard.
+# section of relevant CHANGELOG.md files and fold the change into the same
+# commit via `git commit --amend`. Recursion is prevented with an env-var guard.
+#
+# Changelogs:
+#   - Root CHANGELOG.md — every meaningful commit (desktop / monorepo history)
+#   - packages/core/CHANGELOG.md — commits that touch packages/core/**
 #
 # The env-var name (CHANGELOG_HOOK_SKIP) can be renamed to a project-specific
 # prefix; just keep the two references in this file in sync.
@@ -31,16 +35,6 @@ if git rev-parse --verify -q HEAD^2 >/dev/null; then
 fi
 
 repo_root="$(git rev-parse --show-toplevel)"
-changelog="$repo_root/CHANGELOG.md"
-[[ -f "$changelog" ]] || exit 0
-grep -q '^## Unreleased' "$changelog" || exit 0
-
-# If the developer included CHANGELOG.md in the commit themselves, trust them
-# and don't auto-append.
-if git diff-tree --no-commit-id --name-only -r HEAD | grep -qx 'CHANGELOG.md'; then
-  exit 0
-fi
-
 subject="$(git log -1 --pretty=%s)"
 short_sha="$(git log -1 --pretty=%h)"
 
@@ -59,16 +53,34 @@ if [[ "$subject" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
   exit 0
 fi
 
-# Idempotency: if this commit's short SHA is already referenced in
-# `## Unreleased`, do nothing. Protects against re-running the hook on the
-# same commit (e.g. if someone amends manually with the env-var unset).
-if grep -qF "\`$short_sha\`" "$changelog"; then
-  exit 0
-fi
-
+changed_files="$(git diff-tree --no-commit-id --name-only -r HEAD)"
 bullet="- ${subject}. (\`${short_sha}\`)"
+files_to_amend=()
 
-python3 - "$changelog" "$bullet" <<'PY'
+# Append a changelog bullet under ## Unreleased when the file is eligible:
+# exists, has ## Unreleased, was not manually included in this commit, and
+# does not already reference this commit's short SHA.
+# Args: $1 = absolute CHANGELOG.md path, $2 = repo-relative path for checks.
+append_changelog_bullet() {
+  local changelog="$1"
+  local relative_path="$2"
+
+  [[ -f "$changelog" ]] || return 0
+  grep -q '^## Unreleased' "$changelog" || return 0
+
+  # If the developer included this changelog in the commit themselves, trust
+  # them and don't auto-append.
+  if printf '%s\n' "$changed_files" | grep -qx "$relative_path"; then
+    return 0
+  fi
+
+  # Idempotency: if this commit's short SHA is already referenced in
+  # `## Unreleased`, do nothing.
+  if grep -qF "\`$short_sha\`" "$changelog"; then
+    return 0
+  fi
+
+  python3 - "$changelog" "$bullet" <<'PY'
 import re
 import sys
 import pathlib
@@ -96,5 +108,22 @@ new_text = re.sub(
 path.write_text(new_text)
 PY
 
-git add -- "$changelog"
-CHANGELOG_HOOK_SKIP=1 git commit --amend --no-edit --no-verify --quiet -- "$changelog"
+  files_to_amend+=("$changelog")
+}
+
+# Root monorepo / desktop changelog.
+append_changelog_bullet "$repo_root/CHANGELOG.md" "CHANGELOG.md"
+
+# @harborclient/core npm package changelog — only when the commit touches core.
+if printf '%s\n' "$changed_files" | grep -q '^packages/core/'; then
+  append_changelog_bullet \
+    "$repo_root/packages/core/CHANGELOG.md" \
+    "packages/core/CHANGELOG.md"
+fi
+
+if [[ ${#files_to_amend[@]} -eq 0 ]]; then
+  exit 0
+fi
+
+git add -- "${files_to_amend[@]}"
+CHANGELOG_HOOK_SKIP=1 git commit --amend --no-edit --no-verify --quiet -- "${files_to_amend[@]}"

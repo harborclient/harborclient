@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { defaultOAuth2Config } from '@harborclient/core/auth';
+import { defaultOAuth2Config } from '../auth';
+import {
+  detectExport,
+  parseCollection,
+  parseRequest,
+  stringifyCollection,
+  stringifyRequest
+} from './index';
 import {
   collectionExportContainsScripts,
   requestExportContainsScripts,
@@ -7,7 +14,7 @@ import {
   validateEnvironmentExport,
   validateRequestExport,
   validateRunResultsExport
-} from './collectionData';
+} from './validate';
 
 const validKeyValue = { key: 'Accept', value: 'application/json', enabled: true };
 
@@ -541,5 +548,43 @@ describe('validateRunResultsExport', () => {
     ).toThrow(
       'Invalid run results file: request: request metadata is required for request run results'
     );
+  });
+});
+
+describe('parse and stringify', () => {
+  it('parses a collection from a JSON string and round-trips with stringify', () => {
+    const json = stringifyCollection(validateCollectionExport(validV1Export));
+    const parsed = parseCollection(json);
+
+    expect(parsed.name).toBe('Imported');
+    expect(parsed.harborclientExport).toBe('collection');
+    expect(detectExport(parsed)).toBe('collection');
+  });
+
+  it('parses a request from an already-parsed object', () => {
+    const parsed = parseRequest(validRequestExport);
+    expect(parsed.name).toBe('Health');
+    expect(stringifyRequest(parsed, { pretty: false })).toContain('"harborclientExport":"request"');
+  });
+
+  it('rejects invalid JSON strings on parseCollection', () => {
+    expect(() => parseCollection('{not-json')).toThrow(
+      'Invalid collection file: file is not valid JSON'
+    );
+  });
+
+  it('masks private variables when stringifyCollection requests it', () => {
+    const exportData = validateCollectionExport({
+      ...validV1Export,
+      variables: [
+        { key: 'public', value: 'shown', defaultValue: '', share: true },
+        { key: 'secret', value: 'hidden', defaultValue: '', share: false }
+      ]
+    });
+    const json = stringifyCollection(exportData, { maskPrivateVariables: true, pretty: false });
+    const reparsed = parseCollection(json);
+
+    expect(reparsed.variables.find((v) => v.key === 'public')?.value).toBe('shown');
+    expect(reparsed.variables.find((v) => v.key === 'secret')?.value).toBe('');
   });
 });

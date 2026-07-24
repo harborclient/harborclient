@@ -8,6 +8,7 @@ Source lives under `src/`. Major areas:
 | `scripting/` | SES-sandboxed pre/post scripts, assertions, and the script API |
 | `cookies/` | Cookie jar implementation used by request runs |
 | `network/` | HTTP send helpers shared by hosts |
+| `filestore/` | Harbor-native portable JSON parse / validate / stringify |
 | `types/` | Domain types and the `api/` IPC contract surface |
 | `interfaces/` | Host-facing interfaces (`ICookieJar`, `IScriptRunner`, settings) |
 | `search/` | Unified search indexes and slash-command helpers |

@@ -1,5 +1,5 @@
 import { utilityProcess, type UtilityProcess } from 'electron';
-import { join } from 'path';
+import { resolveFromMainOut } from '#/main/paths';
 import type {
   ScriptRunInput,
   ScriptRunResult,
@@ -152,7 +152,7 @@ export function initScriptRunnerHost(cookieJar: ICookieJar): void {
  * @returns Absolute path to `scriptRunner.js` in the main output directory.
  */
 function resolveRunnerPath(): string {
-  return join(__dirname, 'scriptRunner.js');
+  return resolveFromMainOut('scriptRunner.js');
 }
 
 /**

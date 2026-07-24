@@ -29,7 +29,33 @@ export const sidebar: DefaultTheme.SidebarItem[] =
   },
   {
     "text": "Imports and exports",
-    "link": "/imports-and-exports"
+    "link": "/imports-and-exports",
+    "items": [
+      {
+        "text": "Module imports",
+        "link": "/imports-and-exports#module-imports"
+      },
+      {
+        "text": "Portable HarborClient files",
+        "link": "/imports-and-exports#portable-harborclient-files",
+        "items": [
+          {
+            "text": "Discriminators",
+            "link": "/imports-and-exports#discriminators"
+          },
+          {
+            "text": "Parse and stringify",
+            "link": "/imports-and-exports#parse-and-stringify"
+          },
+          {
+            "text": "Related helpers",
+            "link": "/imports-and-exports#related-helpers"
+          }
+        ],
+        "collapsed": false
+      }
+    ],
+    "collapsed": false
   },
   {
     "text": "Request runner",

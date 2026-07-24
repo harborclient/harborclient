@@ -11,6 +11,7 @@ import {
   useDeveloperToolsEnabled,
   type InspectPoint
 } from '#/renderer/src/ui/Shared/devInspectContextMenu';
+import { buildCopyIdMenuItem } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/copyEntityId';
 import { SidebarRowActionsMenu } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/SidebarRowActionsMenu';
 import { useCollectionActions } from '#/renderer/src/ui/Sidebars/CollectionSidebar/actions/useCollectionActions';
 import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/sidebarGitContext';
@@ -171,7 +172,7 @@ export function ActionsMenu({
 
   /**
    * Assembles collection row action groups from named sections so the
-   * menu structure stays readable and order stays explicit.
+   * menu structure stays readable and order stays explicit (New, Copy ID, Run, …).
    */
   const menuGroups = useMemo((): MenuItem[][] => {
     const groups: MenuItem[][] = [];
@@ -230,6 +231,7 @@ export function ActionsMenu({
     }
 
     groups.push(createGroup);
+    groups.push([buildCopyIdMenuItem(collection.uuid)]);
     groups.push([
       {
         label: 'Run',

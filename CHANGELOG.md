@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(gui): refactor path resolution and enhance sidebar actions. (`56b3645`)
 - feat(monorepo): restructure project into a pnpm monorepo with CLI and core packages. (`1ba4293`)
 - feat(gui): add initial configuration files and resources for HarborClient application. (`60a72f5`)
 

@@ -226,15 +226,22 @@ The `pre-commit` hook blocks commits that stage a local SDK link override
 override and run `pnpm install` before committing those files. CI runs the same
 check as a backup for `git commit --no-verify`.
 
-`CHANGELOG.md` is kept up to date automatically by the `post-commit` hook in
-`.githooks/post-commit`.
+Changelogs are kept up to date automatically by the `post-commit` hook in
+`.githooks/post-commit`:
+
+- Root [`CHANGELOG.md`](CHANGELOG.md) — every meaningful commit (desktop app /
+  monorepo history). Renamed by [`.github/workflows/release.yml`](.github/workflows/release.yml).
+- [`packages/core/CHANGELOG.md`](packages/core/CHANGELOG.md) — commits that
+  touch `packages/core/**`. Renamed by
+  [`.github/workflows/core-release.yml`](.github/workflows/core-release.yml)
+  when publishing `@harborclient/core` to npm (`core-v*` tags).
 
 How it works:
 
-- After each commit, the hook prepends `- <commit subject>. (\`<short sha>\`)`to
-the`## Unreleased` section and amends the change into the same commit.
+- After each commit, the hook prepends `- <commit subject>. (\`<short sha>\`)`to the relevant`## Unreleased` section(s) and amends the change into the
+  same commit.
 - The hook stays out of the way when:
-  - `CHANGELOG.md` is already part of the commit (you wrote your own entry).
+  - That changelog file is already part of the commit (you wrote your own entry).
   - The commit is a merge, revert, fixup, squash, or `chore(changelog)` /
     `chore(release)` commit.
   - The commit subject is a bare version number like `0.4.9` or `v1.2.3`.
@@ -245,14 +252,15 @@ What this means for you:
 
 - Write a clear, single-line commit subject — it becomes the changelog entry.
 - If you want a more detailed entry than the subject line, edit `## Unreleased`
-  yourself and stage `CHANGELOG.md` as part of the commit. The hook will detect
+  yourself and stage the changelog as part of the commit. The hook will detect
   it and leave your entry alone.
-- Don't add version numbers or dates manually. The release workflow
-  (`.github/workflows/release.yml`) bumps `package.json` and renames
-  `## Unreleased` to `## <new version> - <YYYY-MM-DD>` when a maintainer
-  triggers a release.
+- Don't add version numbers or dates manually. The desktop release workflow
+  bumps `apps/harborclient/package.json`; the core workflow bumps
+  `packages/core/package.json` and publishes to npm.
 - Don't run version-bump commands locally (`pnpm version`, `npm version`,
-  etc.); use the release workflow instead so the changelog and tags stay in sync.
+  etc.); use the release workflows instead so the changelog and tags stay in sync.
+- Core npm releases: `pnpm release:core` (or `release:core:minor` /
+  `release:core:major`). Requires repository secret `NPM_TOKEN`.
 
 ### Pulling after a release
 

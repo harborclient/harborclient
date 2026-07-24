@@ -1,8 +1,6 @@
-out
-dist
-apps/*/out
-apps/*/dist
-packages/*/dist
+**/out
+**/dist
+**/release
 packages/core/docs
 packages/core/scripts
 scripts

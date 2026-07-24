@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, screen, type App } from 'electron';
 import { join, resolve } from 'path';
+import { resolveFromMainOut } from '#/main/paths';
 import { RoutingStorage } from './storage';
 import { initLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import {
@@ -511,7 +512,7 @@ function applyLinuxDesktopIdentity(): void {
 function resolveAppIcon(): string {
   return app.isPackaged
     ? join(process.resourcesPath, 'icon.png')
-    : join(__dirname, '../../images/logo-icon.png');
+    : resolveFromMainOut('../../images/logo-icon.png');
 }
 
 /**
@@ -520,7 +521,7 @@ function resolveAppIcon(): string {
  * @returns Absolute path to the Vite-built `out/renderer/splash.html`.
  */
 function resolveSplashPath(): string {
-  return join(__dirname, '../renderer/splash.html');
+  return resolveFromMainOut('../renderer/splash.html');
 }
 
 /**
@@ -684,7 +685,7 @@ function createWindow(): BrowserWindow {
       frame: false
     }),
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: resolveFromMainOut('../preload/index.js'),
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false,
@@ -740,8 +741,8 @@ function createWindow(): BrowserWindow {
     });
   }
 
-  const indexPath = join(__dirname, '../renderer/index.html');
-  const rendererRoot = join(__dirname, '../renderer');
+  const indexPath = resolveFromMainOut('../renderer/index.html');
+  const rendererRoot = resolveFromMainOut('../renderer');
   attachRendererNavigationGuards(
     window.webContents,
     createRendererNavigationPolicy({
@@ -776,7 +777,7 @@ function createWindow(): BrowserWindow {
     webPreferences.contextIsolation = true;
     webPreferences.nodeIntegration = false;
     webPreferences.sandbox = true;
-    webPreferences.preload = join(__dirname, '../preload/plugin.js');
+    webPreferences.preload = resolveFromMainOut('../preload/plugin.js');
     webPreferences.additionalArguments = [
       `--plugin-id=${pluginId}`,
       `--plugin-role=${role}`,
@@ -948,7 +949,7 @@ app.whenReady().then(async () => {
     });
     registerHarborPluginProtocol(
       pluginManager,
-      join(__dirname, '../..'),
+      resolveFromMainOut('../..'),
       (pluginId) => {
         pluginUiBroker.markAgentReady(pluginId);
       },

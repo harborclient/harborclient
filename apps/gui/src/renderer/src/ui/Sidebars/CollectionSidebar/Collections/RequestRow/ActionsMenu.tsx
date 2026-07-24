@@ -21,6 +21,7 @@ import {
   useDeveloperToolsEnabled,
   type InspectPoint
 } from '#/renderer/src/ui/Shared/devInspectContextMenu';
+import { buildCopyIdMenuItem } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/copyEntityId';
 import { SidebarRowActionsMenu } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/SidebarRowActionsMenu';
 import { buildGitItemMenuGroups } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/buildGitItemMenuGroups';
 
@@ -206,6 +207,7 @@ export function ActionsMenu(props: Props): JSX.Element {
         }
       });
     }
+    primaryGroup.push(buildCopyIdMenuItem(props.req.uuid));
     if (props.aiChatAvailable) {
       primaryGroup.push({
         label: 'Copy to chat',

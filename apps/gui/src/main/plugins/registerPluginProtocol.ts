@@ -1,6 +1,7 @@
 import { protocol, session, type Session } from 'electron';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join, dirname, sep } from 'path';
+import { resolveFromMainOut } from '#/main/paths';
 import { tmpdir } from 'os';
 import { createRequire } from 'module';
 import { buildSync } from 'esbuild';
@@ -312,8 +313,8 @@ async function serveHostAsset(pathname: string, appRoot: string): Promise<Respon
   }
 
   if (pathname === '/bootstrap.js') {
-    const prodBootstrap = join(__dirname, 'pluginBootstrap.js');
-    const devBootstrap = join(__dirname, '../../src/main/plugins/pluginBootstrap.js');
+    const prodBootstrap = resolveFromMainOut('pluginBootstrap.js');
+    const devBootstrap = resolveFromMainOut('../../src/main/plugins/pluginBootstrap.js');
     const bootstrapPath = existsSync(prodBootstrap) ? prodBootstrap : devBootstrap;
     return new Response(readFileSync(bootstrapPath, 'utf8'), {
       headers: { 'Content-Type': 'text/javascript' }
@@ -369,8 +370,8 @@ async function servePluginAsset(
   onAgentFailed?: (pluginId: string, message: string) => void
 ): Promise<Response> {
   if (pathname === '/shell.html' || pathname === '/shell.html/') {
-    const prodShell = join(__dirname, 'pluginShell.html');
-    const devShell = join(__dirname, '../../src/main/plugins/pluginShell.html');
+    const prodShell = resolveFromMainOut('pluginShell.html');
+    const devShell = resolveFromMainOut('../../src/main/plugins/pluginShell.html');
     const shellPath = existsSync(prodShell) ? prodShell : devShell;
     return new Response(readFileSync(shellPath, 'utf8'), {
       headers: { 'Content-Type': 'text/html' }

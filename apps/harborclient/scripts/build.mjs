@@ -6,8 +6,8 @@ import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const packageRoot = dirname(fileURLToPath(import.meta.url));
-const repoRoot = join(packageRoot, '..', '..');
+const scriptsDir = dirname(fileURLToPath(import.meta.url));
+const repoRoot = join(scriptsDir, '..', '..', '..');
 
 /**
  * Runs a pnpm filter script and exits the process on failure.
@@ -15,7 +15,7 @@ const repoRoot = join(packageRoot, '..', '..');
  * @param filter - pnpm `--filter` package name.
  * @param script - Package script name to run.
  */
-function runFilter(filter: string, script: string): void {
+function runFilter(filter, script) {
   const result = spawnSync('pnpm', ['--filter', filter, script], {
     cwd: repoRoot,
     stdio: 'inherit',

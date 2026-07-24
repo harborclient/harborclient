@@ -2,6 +2,15 @@
   "name": "@harborclient/core",
   "version": "0.1.0",
   "description": "Platform-neutral HarborClient engine: types, request orchestration helpers, and shared utilities.",
+  "homepage": "https://harborclient.github.io/harborclient/core/",
+  "bugs": {
+    "url": "https://github.com/harborclient/harborclient/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harborclient/harborclient.git",
+    "directory": "packages/core"
+  },
   "license": "MIT",
   "author": {
     "name": "HarborClient",
@@ -27,16 +36,30 @@
   },
   "files": [
     "dist",
-    "src"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": ">=22"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./*": {
+        "types": "./dist/*",
+        "import": "./dist/*",
+        "default": "./dist/*"
+      }
+    }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/assert-dist-publishable.mjs",
     "clean": "rm -rf dist",
     "lint": "eslint --cache .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -45,7 +68,11 @@
     "docs:build": "pnpm docs:build:nav && vitepress build docs",
     "docs:build:nav": "node scripts/build-docs-nav.mjs && node scripts/assert-docs-slugs.mjs",
     "docs:preview": "pnpm docs:build && vitepress preview docs",
-    "docs:serve": "pnpm docs:build:nav && concurrently --kill-others --prefixColors=auto -n nav,vp \"node scripts/watch-docs-nav.mjs\" \"vitepress dev docs\""
+    "docs:serve": "pnpm docs:build:nav && concurrently --kill-others --prefixColors=auto -n nav,vp \"node scripts/watch-docs-nav.mjs\" \"vitepress dev docs\"",
+    "release": "gh workflow run core-release.yml --ref main -f branch=main -f bump=patch",
+    "release:patch": "gh workflow run core-release.yml --ref main -f branch=main -f bump=patch",
+    "release:minor": "gh workflow run core-release.yml --ref main -f branch=main -f bump=minor",
+    "release:major": "gh workflow run core-release.yml --ref main -f branch=main -f bump=major"
   },
   "dependencies": {
     "@harborclient/http": "1.0.0",

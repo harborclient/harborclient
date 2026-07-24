@@ -7,12 +7,13 @@ import {
   useDeveloperToolsEnabled,
   type InspectPoint
 } from '#/renderer/src/ui/Shared/devInspectContextMenu';
+import { buildCopyIdMenuItem } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/copyEntityId';
 
 interface Props {
   /**
-   * Saved run identity and label used for the menu id and confirm copy.
+   * Saved run identity and label used for the menu id, Copy ID, and confirm copy.
    */
-  runResult: { id: number; label: string };
+  runResult: { id: number; uuid: string; label: string };
 
   /**
    * Whether to show the multi-select bulk actions menu instead of single-item actions.
@@ -47,7 +48,7 @@ interface Props {
 
 /**
  * Builds and renders the saved-run row actions menu, switching between bulk
- * delete and single-item delete with confirmation based on multi-selection size.
+ * delete and single-item Copy ID / delete with confirmation based on multi-selection size.
  */
 export function ActionsMenu({
   runResult,
@@ -63,7 +64,7 @@ export function ActionsMenu({
   const menuId = `run-result-${runResult.id}`;
 
   /**
-   * Assembles delete and inspect groups for bulk or single-item saved-run menus.
+   * Assembles Copy ID, delete, and inspect groups for bulk or single-item saved-run menus.
    */
   const menuGroups = useMemo((): MenuItem[][] => {
     /**
@@ -94,6 +95,7 @@ export function ActionsMenu({
           ]
         ]
       : [
+          [buildCopyIdMenuItem(runResult.uuid)],
           [
             {
               label: 'Delete',
@@ -118,6 +120,7 @@ export function ActionsMenu({
     onDeleteSelected,
     runResult.id,
     runResult.label,
+    runResult.uuid,
     showBulkMenu
   ]);
 

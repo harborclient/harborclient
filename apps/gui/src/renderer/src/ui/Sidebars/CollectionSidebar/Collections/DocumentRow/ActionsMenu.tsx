@@ -4,6 +4,7 @@ import {
   useDeveloperToolsEnabled,
   type InspectPoint
 } from '#/renderer/src/ui/Shared/devInspectContextMenu';
+import { buildCopyIdMenuItem } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/copyEntityId';
 import { SidebarRowActionsMenu } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/SidebarRowActionsMenu';
 import { buildGitItemMenuGroups } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/buildGitItemMenuGroups';
 import type { CollectionDocument, GitRequestFileStatus } from '@harborclient/core/types';
@@ -58,8 +59,8 @@ interface Props {
 }
 
 /**
- * Builds and renders the document row actions menu, including rename, optional
- * git stage/unstage, delete with confirm, color picker, and developer inspect.
+ * Builds and renders the document row actions menu, including rename, Copy ID,
+ * optional git stage/unstage, delete with confirm, color picker, and developer inspect.
  */
 export function ActionsMenu({
   doc,
@@ -77,7 +78,7 @@ export function ActionsMenu({
   const menuId = `document-${doc.id}`;
 
   /**
-   * Assembles rename, git, delete, and developer-inspect action groups.
+   * Assembles rename, Copy ID, git, delete, and developer-inspect action groups.
    */
   const menuGroups = useMemo(() => {
     /**
@@ -105,6 +106,7 @@ export function ActionsMenu({
     };
 
     const renameGroup: MenuItem[] = [{ label: 'Rename', onSelect: handleRename }];
+    const copyIdGroup: MenuItem[] = [buildCopyIdMenuItem(doc.uuid)];
 
     const gitGroups = buildGitItemMenuGroups(
       onGitStageItem != null,
@@ -123,7 +125,7 @@ export function ActionsMenu({
 
     const inspectGroups = buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled);
 
-    return [renameGroup].concat(gitGroups).concat([deleteGroup]).concat(inspectGroups);
+    return [renameGroup, copyIdGroup].concat(gitGroups).concat([deleteGroup]).concat(inspectGroups);
   }, [
     confirm,
     developerToolsEnabled,

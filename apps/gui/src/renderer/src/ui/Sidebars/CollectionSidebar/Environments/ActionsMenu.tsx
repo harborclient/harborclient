@@ -10,13 +10,14 @@ import {
   useDeveloperToolsEnabled,
   type InspectPoint
 } from '#/renderer/src/ui/Shared/devInspectContextMenu';
+import { buildCopyIdMenuItem } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/copyEntityId';
 import { SidebarRowActionsMenu } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/SidebarRowActionsMenu';
 
 interface Props {
   /**
    * Environment identity, display fields, and variables used by menu actions.
    */
-  environment: Pick<Environment, 'id' | 'name' | 'color' | 'variables'>;
+  environment: Pick<Environment, 'id' | 'uuid' | 'name' | 'color' | 'variables'>;
 
   /**
    * Zero-based index of this environment among sidebar environments.
@@ -109,7 +110,7 @@ export function ActionsMenu(props: Props): JSX.Element {
   const menuId = `environment-${props.environment.id}`;
 
   /**
-   * Assembles reorder, settings, export, duplicate, copy/merge, delete, and inspect
+   * Assembles reorder, settings, Copy ID, export, duplicate, copy/merge, delete, and inspect
    * groups for the single-environment row menu.
    */
   const singleMenuGroups = useMemo((): MenuItem[][] => {
@@ -183,6 +184,7 @@ export function ActionsMenu(props: Props): JSX.Element {
         label: 'Settings',
         onSelect: props.onConfigure
       },
+      buildCopyIdMenuItem(props.environment.uuid),
       {
         label: 'Export',
         onSelect: props.onExport

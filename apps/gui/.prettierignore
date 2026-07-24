@@ -1,0 +1,4 @@
+# electron-vite and electron-builder output (ignored when formatting from this package)
+out
+dist
+release
