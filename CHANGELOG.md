@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.6.0 - 2026-07-24
+
 - feat(file-access): implement file system access in scripts with new settings. (`f7b4e04`)
 - feat(request): add body_raw and body_raw_open fields to request handling. (`af23338`)
 - feat(markdown-editor): add copy to clipboard functionality with user feedback. (`28974de`)
