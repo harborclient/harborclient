@@ -2,8 +2,9 @@
 /**
  * Bundles the HarborClient CLI into a single ESM file.
  *
- * Native modules and packages that rely on Node built-in `require` stay
- * external so the runtime Node ABI rebuild continues to work.
+ * Native/binary packages stay external so packaging can ship Electron-rebuilt
+ * copies beside the CLI entry (`resources/cli/node_modules`). Pure JS deps are
+ * inlined so the packaged CLI does not need a full node_modules tree.
  */
 import { build } from 'esbuild';
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -26,17 +27,7 @@ await build({
   banner: {
     js: 'import { createRequire as __hcCreateRequire } from "module";\nconst require = __hcCreateRequire(import.meta.url);'
   },
-  external: [
-    'better-sqlite3',
-    'undici',
-    'ses',
-    'esbuild',
-    'openai',
-    '@orama/orama',
-    'firebase',
-    'cheerio',
-    'chai'
-  ],
+  external: ['better-sqlite3', 'esbuild'],
   logLevel: 'info'
 });
 

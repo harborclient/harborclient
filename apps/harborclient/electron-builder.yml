@@ -24,6 +24,8 @@ extraResources:
     to: builtin_collections
   - from: ../cli/dist/index.js
     to: cli/index.js
+  - from: ../cli/dist/node_modules
+    to: cli/node_modules
 directories:
   buildResources: build
   output: ../harborclient/release
