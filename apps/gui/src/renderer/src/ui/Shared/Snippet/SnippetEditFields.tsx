@@ -2,9 +2,9 @@ import { CodeEditor, FieldError, FormGroup, Input, Select } from '@harborclient/
 import type { CodeEditorTextSelection } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import { useCallback, useEffect, useId, useMemo } from 'react';
-import { SNIPPET_SCOPE_OPTIONS, type SnippetScope } from '#/shared/snippetScope';
-import { isImportableSnippetName } from '#/shared/snippetImport';
-import { SCRIPT_STAGE_OPTIONS } from '#/shared/scriptStage';
+import { SNIPPET_SCOPE_OPTIONS, type SnippetScope } from '@harborclient/core/snippetScope';
+import { isImportableSnippetName } from '@harborclient/core/snippetImport';
+import { SCRIPT_STAGE_OPTIONS } from '@harborclient/core/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
 import type { SnippetEditDraft } from './snippetEditDraft';
 import { providerOptionLabel, useProviders } from '#/renderer/src/hooks/useProviders';

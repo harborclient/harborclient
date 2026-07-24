@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { AuthConfig, KeyValue, ScriptRef, Variable } from '#/shared/types';
-import { mirrorLegacyScriptString } from '#/shared/scriptRefs';
+import type { AuthConfig, KeyValue, ScriptRef, Variable } from '@harborclient/core/types';
+import { mirrorLegacyScriptString } from '@harborclient/core/scriptRefs';
 import type { PageComponentProps } from '#/renderer/src/routing/types';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { setFolderSettingsDirty } from '#/renderer/src/store/slices/navigationSlice';

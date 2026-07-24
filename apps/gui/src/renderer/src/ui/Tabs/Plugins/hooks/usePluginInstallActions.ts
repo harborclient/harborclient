@@ -1,8 +1,8 @@
 import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
 import toast from 'react-hot-toast';
-import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
-import type { PluginInfo } from '#/shared/plugin/types';
-import { pluginIsTheme, formatThemeDisplayName } from '#/shared/plugin/themeCategory';
+import type { PluginCatalogEntry } from '@harborclient/core/plugin/catalog';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
+import { pluginIsTheme, formatThemeDisplayName } from '@harborclient/core/plugin/themeCategory';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import type { PluginManagementKind } from '#/renderer/src/ui/Tabs/Plugins/constants';
 import {

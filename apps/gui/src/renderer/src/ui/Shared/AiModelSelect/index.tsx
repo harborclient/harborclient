@@ -1,6 +1,6 @@
 import { useCallback, useId, useMemo, useRef, useState, type JSX, type KeyboardEvent } from 'react';
 import { FaIcon } from '@harborclient/sdk/components';
-import type { AiModelOption } from '#/shared/ai/models';
+import type { AiModelOption } from '@harborclient/core/ai/models';
 import { faChevronDown } from '#/renderer/src/fontawesome';
 import { AiModelSelectMenu } from './AiModelSelectMenu';
 

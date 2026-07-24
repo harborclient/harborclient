@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { requestEditorTabKey, resolveEditorTab } from '#/shared/requestEditorTab';
-import type { EditorTab } from '#/shared/types';
+import { requestEditorTabKey, resolveEditorTab } from '@harborclient/core/requestEditorTab';
+import type { EditorTab } from '@harborclient/core/types';
 import type { RequestDraft } from '#/renderer/src/store/tabs';
 import { isPluginTabId } from '#/renderer/src/plugins/pluginContextAdapters';
 

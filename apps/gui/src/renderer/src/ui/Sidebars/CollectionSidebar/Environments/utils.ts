@@ -1,4 +1,4 @@
-import type { Variable } from '#/shared/types';
+import type { Variable } from '@harborclient/core/types';
 
 /**
  * Counts persisted environment variables (non-empty keys only).

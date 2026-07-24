@@ -1,4 +1,4 @@
-import type { GithubModelsStatus } from '#/shared/types/ai';
+import type { GithubModelsStatus } from '@harborclient/core/types/ai';
 import {
   clearPendingGitHubDeviceFlow,
   completeGitHubDeviceFlow,

@@ -1,5 +1,5 @@
 import { parse } from 'dotenv';
-import type { EnvironmentExport, Variable } from '#/shared/types';
+import type { EnvironmentExport, Variable } from '@harborclient/core/types';
 
 /**
  * Returns whether a file name looks like a dotenv environment file.

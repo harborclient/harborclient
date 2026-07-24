@@ -9,7 +9,7 @@ import {
   sortContainerDocuments,
   type ActiveDragKindRef
 } from './utils';
-import type { CollectionDocument } from '#/shared/types';
+import type { CollectionDocument } from '@harborclient/core/types';
 
 /**
  * Options for building collision-detection test args.

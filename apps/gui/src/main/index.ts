@@ -64,8 +64,12 @@ import {
   registerHarborPluginProtocol,
   registerHarborPluginScheme
 } from '#/main/plugins/registerPluginProtocol';
-import type { StorageConnection, ThemeSource } from '#/shared/types';
-import { HARBOR_PROTOCOL, parseHarborDeepLink, type HarborDeepLink } from '#/shared/deepLink';
+import type { StorageConnection, ThemeSource } from '@harborclient/core/types';
+import {
+  HARBOR_PROTOCOL,
+  parseHarborDeepLink,
+  type HarborDeepLink
+} from '@harborclient/core/deepLink';
 
 const isDev = !app.isPackaged;
 

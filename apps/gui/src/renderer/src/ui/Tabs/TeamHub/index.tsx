@@ -3,7 +3,7 @@ import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { useTeamHubServiceScan } from '#/renderer/src/hooks/useTeamHubServiceScan';
 import { useTeamHubs } from '#/renderer/src/hooks/useTeamHubs';
-import type { TeamHub } from '#/shared/types';
+import type { TeamHub } from '@harborclient/core/types';
 import { TeamHubList } from './TeamHubList';
 import { teamHubDisplayName } from './teamHubDisplayName';
 

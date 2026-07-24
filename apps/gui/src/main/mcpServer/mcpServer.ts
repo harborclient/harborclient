@@ -8,7 +8,7 @@ import type { Express, NextFunction, Request, Response } from 'express';
 import { logVerbose } from '#/main/logger';
 import { isValidMcpServerToken } from '#/main/settings/mcpSettings';
 import { registerHarborMcpTools, shouldRunMcpServer } from './tools';
-import type { McpServerSettings, McpServerStatus } from '#/shared/types';
+import type { McpServerSettings, McpServerStatus } from '@harborclient/core/types';
 
 interface RunningMcpServer {
   httpServer: Server;

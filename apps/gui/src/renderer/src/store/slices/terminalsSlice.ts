@@ -1,6 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { nanoid } from 'nanoid';
-import type { TerminalSelectionSnapshot } from '#/shared/ai/scriptReferences';
+import type { TerminalSelectionSnapshot } from '@harborclient/core/ai/scriptReferences';
 import type { RootState } from '#/renderer/src/store/redux';
 
 /**

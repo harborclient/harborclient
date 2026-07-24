@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import type { CollectionDocument, SaveDocumentInput } from '#/shared/types';
+import type { CollectionDocument, SaveDocumentInput } from '@harborclient/core/types';
 import { isMarkdownTab, isPageTab } from '#/renderer/src/store/tabs';
 import {
   selectCollectionSettingsDirty,

@@ -1,8 +1,8 @@
 import { randomUUID } from 'crypto';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { deleteTeamHubToken, getTeamHubToken, storeTeamHubToken } from './teamHubSecrets';
-import { parseJson } from '#/shared/parseJson';
-import type { TeamHub } from '#/shared/types';
+import { parseJson } from '@harborclient/core/parseJson';
+import type { TeamHub } from '@harborclient/core/types';
 
 const TEAM_HUBS_KEY = 'teamHubs';
 

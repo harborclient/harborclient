@@ -1,7 +1,7 @@
 import { EditorState } from '@codemirror/state';
 import { describe, expect, it } from 'vitest';
-import type { AiScriptReferenceValidationContext } from '#/shared/ai/scriptReferences';
-import type { ScriptRef } from '#/shared/types';
+import type { AiScriptReferenceValidationContext } from '@harborclient/core/ai/scriptReferences';
+import type { ScriptRef } from '@harborclient/core/types';
 import { createScriptReferenceCompletionFilter } from './scriptReferenceCompletionFilter';
 
 const REQUEST_ID = 5_000_000_692;

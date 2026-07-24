@@ -6,7 +6,7 @@ import {
   THEME_CATALOG_URL,
   type PluginCatalogEntry,
   type ThemeCatalog
-} from '#/shared/plugin/catalog';
+} from '@harborclient/core/plugin/catalog';
 
 /**
  * Fetches and parses one theme catalog document from a remote URL.

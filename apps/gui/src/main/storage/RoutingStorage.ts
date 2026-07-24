@@ -18,7 +18,7 @@ import { classifyHarborChangePath } from '#/main/git/fileLayout';
 import { isCollectionScopedHarborChange } from '#/main/git/gitDiff';
 import { collectionDirName } from '#/main/git/slug';
 import { decodeGlobalId, encodeGlobalId } from './idNamespace';
-import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
+import type { ContainerItemRef } from '@harborclient/core/collectionContainerOrder';
 import type { IStorage } from './IStorage';
 import { TeamHubStorage } from './TeamHubStorage';
 import {
@@ -35,7 +35,7 @@ import {
 } from '@harborclient/team-hub-api';
 import { logVerbose } from '#/main/logger';
 import { isStorageConnectionConfigured } from '#/main/settings/storageSettings';
-import { parseJson } from '#/shared/parseJson';
+import { parseJson } from '@harborclient/core/parseJson';
 import { getSlotForConnection } from '#/main/settings/storageSlots';
 import { refreshTeamHubPluginSources } from '#/main/settings/teamHubPluginSources';
 import { unlinkSync } from 'fs';
@@ -58,16 +58,16 @@ import type {
   SourceControlStatus,
   TeamHub,
   Variable
-} from '#/shared/types';
-import type { SnippetScope } from '#/shared/snippetScope';
-import { DEFAULT_SCRIPT_STAGE } from '#/shared/scriptStage';
+} from '@harborclient/core/types';
+import type { SnippetScope } from '@harborclient/core/snippetScope';
+import { DEFAULT_SCRIPT_STAGE } from '@harborclient/core/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
-import { defaultAuth } from '#/shared/auth';
+import { defaultAuth } from '@harborclient/core/auth';
 import type {
   SavedRunResult,
   SavedRunResultSummary,
   SaveRunResultInput
-} from '#/shared/collectionRunner';
+} from '@harborclient/core/collectionRunner';
 
 /**
  * Numeric id offset so marketplace snippet ids never collide with registry global ids.

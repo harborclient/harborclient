@@ -1,7 +1,7 @@
 import { Button, Page } from '@harborclient/sdk/components';
 import { useCallback, type JSX } from 'react';
-import type { PluginSource, PluginSourcesSettings } from '#/shared/plugin/catalog';
-import type { TeamHubPluginSourcesView } from '#/shared/types';
+import type { PluginSource, PluginSourcesSettings } from '@harborclient/core/plugin/catalog';
+import type { TeamHubPluginSourcesView } from '@harborclient/core/types';
 import { faGear } from '#/renderer/src/fontawesome';
 import { useTabSaveRegistration } from '#/renderer/src/hooks/tabSaveRegistry';
 import { SettingsView } from './SettingsView';

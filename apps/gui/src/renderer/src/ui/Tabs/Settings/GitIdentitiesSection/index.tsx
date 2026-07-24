@@ -12,8 +12,8 @@ import {
 } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { GitIdentity } from '#/shared/types';
-import { normalizeGitHostKey } from '#/shared/gitUrl';
+import type { GitIdentity } from '@harborclient/core/types';
+import { normalizeGitHostKey } from '@harborclient/core/gitUrl';
 
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { faGithub, faPlus } from '#/renderer/src/fontawesome';

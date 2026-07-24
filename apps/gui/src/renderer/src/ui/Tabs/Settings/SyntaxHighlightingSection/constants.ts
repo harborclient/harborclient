@@ -1,4 +1,4 @@
-import type { CodeEditorSetup } from '#/shared/types';
+import type { CodeEditorSetup } from '@harborclient/core/types';
 
 /**
  * Sample JavaScript shown in the syntax highlighting preview editor.

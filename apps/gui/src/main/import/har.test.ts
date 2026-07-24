@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { validateCollectionExport } from '#/main/storage/collectionData';
 import { isPostmanCollection } from './postman';
 import { convertHarToCollection, isHarArchive } from './har';
-import { parseFormParts } from '#/shared/formData';
-import { parseUrlEncodedParts } from '#/shared/urlencoded';
+import { parseFormParts } from '@harborclient/core/formData';
+import { parseUrlEncodedParts } from '@harborclient/core/urlencoded';
 
 const sampleHarFixture = {
   log: {

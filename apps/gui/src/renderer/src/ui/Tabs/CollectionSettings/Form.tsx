@@ -6,9 +6,9 @@ import type {
   ScriptRef,
   StorageConnection,
   Variable
-} from '#/shared/types';
-import { normalizeAuth } from '#/shared/auth';
-import { resolveScriptRefs } from '#/shared/scriptRefs';
+} from '@harborclient/core/types';
+import { normalizeAuth } from '@harborclient/core/auth';
+import { resolveScriptRefs } from '@harborclient/core/scriptRefs';
 import { useProviders } from '#/renderer/src/hooks/useProviders';
 import { useStorageConnections } from '#/renderer/src/hooks/useStorageConnections';
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { Variable } from '#/shared/types';
+import type { Variable } from '@harborclient/core/types';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveEnvironmentId,

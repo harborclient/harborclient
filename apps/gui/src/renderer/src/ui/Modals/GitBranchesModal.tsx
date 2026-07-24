@@ -1,7 +1,7 @@
 import { Button, FaIcon, Input, Modal } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { SourceControlStatus } from '#/shared/types';
+import type { SourceControlStatus } from '@harborclient/core/types';
 import {
   filterBranches,
   isBranchDeleteDisabled,

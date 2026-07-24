@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { TabGroup } from '#/shared/types/tabGroup';
+import type { TabGroup } from '@harborclient/core/types/tabGroup';
 import tabGroupReducer, { reorderTabGroupsLocal } from './tabGroupSlice';
 import type { TabGroupState } from './tabGroupSlice';
 

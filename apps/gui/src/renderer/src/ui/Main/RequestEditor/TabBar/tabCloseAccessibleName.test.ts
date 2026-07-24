@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
+import { defaultAuth } from '@harborclient/core/auth';
 import type { PageTab, RequestTab } from '#/renderer/src/store/tabs';
 import { tabCloseAccessibleName } from './tabCloseAccessibleName';
 

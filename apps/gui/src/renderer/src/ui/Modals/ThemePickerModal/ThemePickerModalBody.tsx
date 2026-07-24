@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type JSX, type KeyboardEvent } from 'react';
-import { BUILTIN_THEME_OPTIONS } from '#/shared/themes';
-import type { ThemeSource } from '#/shared/types';
+import { BUILTIN_THEME_OPTIONS } from '@harborclient/core/themes';
+import type { ThemeSource } from '@harborclient/core/types';
 import {
   ZOOM_PRESET_OPTIONS,
   zoomFactorToPreset,
   zoomPresetToFactor,
   type ZoomPreset
-} from '#/shared/zoomPresets';
+} from '@harborclient/core/zoomPresets';
 import { previewThemePreference, applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
 import { ThemePreviewCard } from './ThemePreviewCard';
 import type { BuiltinThemeSource } from './previewPalettes';

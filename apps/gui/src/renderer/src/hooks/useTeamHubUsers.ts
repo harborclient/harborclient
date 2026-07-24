@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { HubUserRecord } from '#/shared/types';
+import type { HubUserRecord } from '@harborclient/core/types';
 
 /**
  * Loaded Team Hub user list and bootstrap state from IPC.

@@ -1,1 +1,1 @@
-export type { SettingsSection } from '#/shared/types';
+export type { SettingsSection } from '@harborclient/core/types';

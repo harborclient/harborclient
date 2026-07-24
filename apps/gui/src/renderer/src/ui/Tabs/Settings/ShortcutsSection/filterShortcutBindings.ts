@@ -1,5 +1,5 @@
-import type { ShortcutBinding } from '#/shared/types';
-import { formatAcceleratorDisplay } from '#/shared/shortcuts';
+import type { ShortcutBinding } from '@harborclient/core/types';
+import { formatAcceleratorDisplay } from '@harborclient/core/shortcuts';
 
 /**
  * Filters shortcut bindings by a search query against label and displayed key combination.

@@ -6,7 +6,7 @@ import { join } from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GitSyncManager } from './GitSyncManager';
 import { pullMergeConflictMessage } from './slug';
-import type { GitSettings } from '#/shared/types';
+import type { GitSettings } from '@harborclient/core/types';
 
 const cleanups: Array<() => void> = [];
 

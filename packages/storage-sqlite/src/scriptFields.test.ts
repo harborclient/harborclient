@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createInlineScriptRef } from '#/shared/scriptRefs';
+import { createInlineScriptRef } from '@harborclient/core/scriptRefs';
 import { teamHubScriptColumn, teamHubScriptRefsFromColumn } from './scriptFields';
 
 describe('teamHubScriptColumn', () => {

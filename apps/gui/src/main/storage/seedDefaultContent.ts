@@ -5,8 +5,8 @@ import { logVerbose } from '#/main/logger';
 import type { LocalDatabase } from './LocalDatabase';
 import type { RoutingStorage } from './RoutingStorage';
 import { validateCollectionExport } from './collectionData';
-import type { CollectionExport } from '#/shared/types';
-import type { BuiltinCollectionOpenRequestTarget } from '#/shared/types/app';
+import type { CollectionExport } from '@harborclient/core/types';
+import type { BuiltinCollectionOpenRequestTarget } from '@harborclient/core/types/app';
 
 /**
  * Local registry key marking that built-in collections have been seeded or skipped.

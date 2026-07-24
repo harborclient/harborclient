@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PluginInfo } from '#/shared/plugin/types';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
 import {
   AGENT_READY_TIMEOUT_MS,
   MAX_AGENT_ACTIVATION_ATTEMPTS,

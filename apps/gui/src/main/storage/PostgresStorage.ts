@@ -30,7 +30,7 @@ import {
   rowToRequest
 } from './entityMappers';
 import { assertContainerItemOrder, planContainerItemMove } from './containerReorder';
-import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
+import type { ContainerItemRef } from '@harborclient/core/collectionContainerOrder';
 import {
   CREATE_PROVIDER_SNIPPETS_TABLE_POSTGRES,
   PROVIDER_SNIPPET_COLUMNS
@@ -38,7 +38,7 @@ import {
 import { bundleScriptFieldsWithLegacy, migratePostgresScriptArrayColumns } from './scriptFields';
 import { serializeSidebarColor } from './sidebarColorMigration';
 import { trimRequiredName } from './trimRequiredName';
-import { DEFAULT_AUTH_JSON, defaultAuth, normalizeAuth } from '#/shared/auth';
+import { DEFAULT_AUTH_JSON, defaultAuth, normalizeAuth } from '@harborclient/core/auth';
 import type { IStorage } from './IStorage';
 import type {
   AuthConfig,
@@ -55,16 +55,16 @@ import type {
   ScriptRef,
   Snippet,
   Variable
-} from '#/shared/types';
+} from '@harborclient/core/types';
 import type {
   ProviderRunResult,
   ProviderRunResultSummary,
   SaveRunResultInput
-} from '#/shared/collectionRunner';
-import type { SnippetScope } from '#/shared/snippetScope';
-import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '#/shared/scriptStage';
+} from '@harborclient/core/collectionRunner';
+import type { SnippetScope } from '@harborclient/core/snippetScope';
+import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '@harborclient/core/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
-import { parseJson } from '#/shared/parseJson';
+import { parseJson } from '@harborclient/core/parseJson';
 import { generateDocumentUuid } from './uuid';
 
 const COLLECTION_COLUMNS =

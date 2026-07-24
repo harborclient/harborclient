@@ -1,7 +1,7 @@
 import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
 import toast from 'react-hot-toast';
-import type { SnippetCatalogEntry } from '#/shared/snippet/catalog';
-import type { InstalledSnippetPackage } from '#/shared/snippet/types';
+import type { SnippetCatalogEntry } from '@harborclient/core/snippet/catalog';
+import type { InstalledSnippetPackage } from '@harborclient/core/snippet/types';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { showAlert, formatIpcErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
 

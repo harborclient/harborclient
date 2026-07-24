@@ -16,7 +16,7 @@ import {
 import toast from 'react-hot-toast';
 import type { CompletionSource } from '@codemirror/autocomplete';
 import type { CodeEditorSlashTrigger, CodeEditorTextSelection } from '@harborclient/sdk/components';
-import { resolveScriptSourceCode } from '#/shared/scriptRefs';
+import { resolveScriptSourceCode } from '@harborclient/core/scriptRefs';
 import { CodePreviewTooltip } from '#/renderer/src/ui/Shared/CodePreview/CodePreviewTooltip';
 import { buildCodePreview } from '#/renderer/src/ui/Shared/CodePreview/codePreview';
 import { scriptRowIconButtonClass } from '#/renderer/src/ui/Shared/classes';
@@ -37,8 +37,8 @@ import {
   normalizeScriptStage,
   readScriptRefStage,
   SCRIPT_STAGE_OPTIONS
-} from '#/shared/scriptStage';
-import { getAvailableModels } from '#/shared/ai/models';
+} from '@harborclient/core/scriptStage';
+import { getAvailableModels } from '@harborclient/core/ai/models';
 import { createLiveHcCompletionSource } from '#/renderer/src/scripting/hcCompletions';
 import {
   faChevronDown,

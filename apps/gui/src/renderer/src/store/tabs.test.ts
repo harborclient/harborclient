@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
-import type { SavedRequest } from '#/shared/types';
-import { createInlineScriptRef } from '#/shared/scriptRefs';
+import { defaultAuth } from '@harborclient/core/auth';
+import type { SavedRequest } from '@harborclient/core/types';
+import { createInlineScriptRef } from '@harborclient/core/scriptRefs';
 import {
   cloneDraft,
   createMarkdownTab,
@@ -22,7 +22,7 @@ import {
   type RequestDraft,
   type RequestTab
 } from './tabs';
-import type { CollectionDocument } from '#/shared/types';
+import type { CollectionDocument } from '@harborclient/core/types';
 
 const sampleDraft = (): RequestDraft => ({
   name: 'Sample',

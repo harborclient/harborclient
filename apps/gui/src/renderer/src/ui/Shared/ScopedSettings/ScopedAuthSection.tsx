@@ -1,6 +1,6 @@
 import { FormSection } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import type { AuthConfig, Variable } from '#/shared/types';
+import type { AuthConfig, Variable } from '@harborclient/core/types';
 import { AuthEditor } from '#/renderer/src/ui/Main/RequestEditor/Editor/AuthEditor';
 
 type Scope = 'collection' | 'folder';

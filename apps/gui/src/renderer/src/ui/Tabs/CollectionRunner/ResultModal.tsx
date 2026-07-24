@@ -1,7 +1,7 @@
 import { useMemo, type JSX } from 'react';
-import type { ResponseTabContext } from '#/shared/plugin/types';
-import type { CollectionRunnerRequestResult } from '#/shared/collectionRunner';
-import { defaultAuth } from '#/shared/auth';
+import type { ResponseTabContext } from '@harborclient/core/plugin/types';
+import type { CollectionRunnerRequestResult } from '@harborclient/core/collectionRunner';
+import { defaultAuth } from '@harborclient/core/auth';
 import {
   pluginRequestKey,
   toPluginHttpResponse,

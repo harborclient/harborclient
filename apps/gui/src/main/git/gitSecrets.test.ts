@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { StorageConnection } from '#/shared/types';
+import type { StorageConnection } from '@harborclient/core/types';
 
 const settings = new Map<string, string>();
 const mockConnections: StorageConnection[] = [];

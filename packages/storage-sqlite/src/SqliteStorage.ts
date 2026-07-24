@@ -1,8 +1,6 @@
 import Database from 'better-sqlite3';
-import { app } from 'electron';
 import { copyFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
-import { isRandUserDirFlagEnabled } from '#/main/randUserDir';
 import {
   buildDocumentUuidIndex,
   buildFolderImportMaps,
@@ -38,7 +36,7 @@ import {
   rowToRequest
 } from './entityMappers';
 import { assertContainerItemOrder, planContainerItemMove } from './containerReorder';
-import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
+import type { ContainerItemRef } from '@harborclient/core/collectionContainerOrder';
 import {
   CREATE_PROVIDER_RUN_RESULTS_TABLE_SQL,
   PROVIDER_RUN_RESULT_COLUMNS
@@ -56,9 +54,9 @@ import {
   type ProviderRunResult,
   type ProviderRunResultSummary,
   type SaveRunResultInput
-} from '#/shared/collectionRunner';
-import { DEFAULT_AUTH_JSON, defaultAuth, normalizeAuth } from '#/shared/auth';
-import type { IStorage } from './IStorage';
+} from '@harborclient/core/collectionRunner';
+import { DEFAULT_AUTH_JSON, defaultAuth, normalizeAuth } from '@harborclient/core/auth';
+import type { IStorage } from '@harborclient/core/storage/IStorage';
 import type {
   AuthConfig,
   Collection,
@@ -74,11 +72,11 @@ import type {
   Snippet,
   SqliteSettings,
   Variable
-} from '#/shared/types';
-import type { SnippetScope } from '#/shared/snippetScope';
-import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '#/shared/scriptStage';
+} from '@harborclient/core/types';
+import type { SnippetScope } from '@harborclient/core/snippetScope';
+import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '@harborclient/core/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
-import { parseJson } from '#/shared/parseJson';
+import { parseJson } from '@harborclient/core/parseJson';
 import { generateDocumentUuid } from './uuid';
 import { migrateSidebarColorColumn, serializeSidebarColor } from './sidebarColorMigration';
 
@@ -91,16 +89,21 @@ const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, color';
  *
  * @param userDataPath - Electron app userData path where the database file is stored.
  * @param settings - SQLite filename and legacy migration settings.
+ * @param appDataPath - Optional app-data path where legacy installations stored data.
  * @returns Path to the database file to open.
  */
-function resolveDbPath(userDataPath: string, settings: SqliteSettings): string {
+function resolveDbPath(
+  userDataPath: string,
+  settings: SqliteSettings,
+  appDataPath?: string
+): string {
   const dbPath = join(userDataPath, settings.dbFilename);
   if (existsSync(dbPath)) return dbPath;
 
   const legacyCandidates = [join(userDataPath, settings.legacyDbFilename)];
-  if (!isRandUserDirFlagEnabled()) {
+  if (appDataPath) {
     legacyCandidates.unshift(
-      join(app.getPath('appData'), settings.legacyUserDataDir, settings.legacyDbFilename)
+      join(appDataPath, settings.legacyUserDataDir, settings.legacyDbFilename)
     );
   }
 
@@ -119,14 +122,17 @@ export class SqliteStorage implements IStorage {
   #db: Database.Database | null = null;
   readonly #userDataPath: string;
   readonly #settings: SqliteSettings;
+  readonly #appDataPath?: string;
 
   /**
    * @param userDataPath - Electron app userData path where the database file is stored.
    * @param settings - SQLite filename and legacy migration settings.
+   * @param appDataPath - Optional app-data path where legacy installations stored data.
    */
-  constructor(userDataPath: string, settings: SqliteSettings) {
+  constructor(userDataPath: string, settings: SqliteSettings, appDataPath?: string) {
     this.#userDataPath = userDataPath;
     this.#settings = settings;
+    this.#appDataPath = appDataPath;
   }
 
   /**
@@ -146,7 +152,7 @@ export class SqliteStorage implements IStorage {
   async init(): Promise<void> {
     if (this.#db) return;
 
-    const dbPath = resolveDbPath(this.#userDataPath, this.#settings);
+    const dbPath = resolveDbPath(this.#userDataPath, this.#settings, this.#appDataPath);
     this.#db = new Database(dbPath);
     this.#db.pragma('journal_mode = WAL');
     this.#db.pragma('foreign_keys = ON');

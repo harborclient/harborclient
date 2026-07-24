@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RoutingStorage } from '#/main/storage/RoutingStorage';
-import type { StorageConnection } from '#/shared/types/storage';
+import type { StorageConnection } from '@harborclient/core/types/storage';
 
 const { watchMock } = vi.hoisted(() => ({
   watchMock: vi.fn()

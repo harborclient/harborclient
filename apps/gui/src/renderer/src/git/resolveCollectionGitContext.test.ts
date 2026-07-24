@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
+import { defaultAuth } from '@harborclient/core/auth';
 import {
   resolveCollectionGitContext,
   resolveGitSidebarCollectionId
 } from './resolveCollectionGitContext';
-import type { Collection, SourceControlStatus } from '#/shared/types';
+import type { Collection, SourceControlStatus } from '@harborclient/core/types';
 
 /**
  * Returns a minimal collection for git context tests.

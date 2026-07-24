@@ -1,4 +1,4 @@
-import type { ReloadConfigResponse } from '#/shared/types';
+import type { ReloadConfigResponse } from '@harborclient/core/types';
 
 /**
  * Builds a user-facing alert message when config reload reported errors.

@@ -1,13 +1,16 @@
 import { FormGroup, Select } from '@harborclient/sdk/components';
 import { useMemo, type JSX } from 'react';
-import type { PluginCatalog } from '#/shared/plugin/catalog';
+import type { PluginCatalog } from '@harborclient/core/plugin/catalog';
 import {
   PLUGIN_CATALOG_CATEGORIES,
   PLUGIN_CATALOG_CATEGORY_LABELS,
   type PluginCatalogCategory
-} from '#/shared/plugin/catalogCategories';
-import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
-import { THEME_APPEARANCE_CATEGORIES, THEME_CATEGORY } from '#/shared/plugin/themeCategory';
+} from '@harborclient/core/plugin/catalogCategories';
+import type { PluginCatalogEntry } from '@harborclient/core/plugin/catalog';
+import {
+  THEME_APPEARANCE_CATEGORIES,
+  THEME_CATEGORY
+} from '@harborclient/core/plugin/themeCategory';
 import { faPalette, faStore } from '#/renderer/src/fontawesome';
 import type { PluginManagementKind } from './constants';
 import { MarketplaceBrowseView } from '#/renderer/src/ui/Shared/Marketplace/MarketplaceBrowseView';

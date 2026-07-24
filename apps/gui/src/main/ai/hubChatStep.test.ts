@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { runHubChatCompletionStep } from './hubChatStep';
-import { AI_SYSTEM_PROMPT, AI_TOOL_DEFINITIONS } from '#/shared/ai/tools';
+import { AI_SYSTEM_PROMPT, AI_TOOL_DEFINITIONS } from '@harborclient/core/ai/tools';
 
 const completeChatStep = vi.fn().mockResolvedValue({
   content: 'Hello from hub',

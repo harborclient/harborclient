@@ -7,7 +7,7 @@ import {
   ResourceListRow
 } from '@harborclient/sdk/components';
 import { useState, type JSX } from 'react';
-import type { AdminResourceOption, TeamHub } from '#/shared/types';
+import type { AdminResourceOption, TeamHub } from '@harborclient/core/types';
 
 import { faUsers } from '#/renderer/src/fontawesome';
 

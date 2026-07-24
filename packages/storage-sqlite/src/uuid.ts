@@ -4,8 +4,8 @@ import type {
   EnvironmentExport,
   ExportedRequest,
   RequestExport
-} from '#/shared/types';
-import type { SnippetExport } from '#/shared/types/snippet';
+} from '@harborclient/core/types';
+import type { SnippetExport } from '@harborclient/core/types/snippet';
 
 /**
  * Returns a copy of a snippet export with a fresh uuid.

@@ -1,7 +1,7 @@
 import { FooterPanel } from '@harborclient/sdk/components';
 import { type JSX } from 'react';
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
-import type { PluginContributionKind } from '#/shared/plugin/pluginSurface';
+import type { PluginContributionKind } from '@harborclient/core/plugin/pluginSurface';
 
 interface Props {
   /**

@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import type { ThemeColorToken } from '@harborclient/sdk';
-import { CUSTOM_THEME_TOKEN_GROUPS } from '#/shared/types/customTheme';
+import { CUSTOM_THEME_TOKEN_GROUPS } from '@harborclient/core/types/customTheme';
 import { ColorTokenField } from './ColorTokenField';
 
 interface Props {

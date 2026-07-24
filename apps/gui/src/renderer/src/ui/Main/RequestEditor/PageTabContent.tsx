@@ -1,6 +1,6 @@
 import { Suspense, useEffect, type JSX } from 'react';
 import { Spinner } from '@harborclient/sdk/components';
-import { pluginContributionId } from '#/shared/plugin/types';
+import { pluginContributionId } from '@harborclient/core/plugin/types';
 import { usePluginMainViews } from '#/renderer/src/plugins/pluginHooks';
 import { getPageRoute } from '#/renderer/src/store/routing';
 import type { PageRef } from '#/renderer/src/store/tabs';

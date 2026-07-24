@@ -1,5 +1,5 @@
 import { useCallback, useState, type JSX, type MouseEvent } from 'react';
-import type { AppSubmenuItemSnapshot, RootMenuLabel } from '#/shared/types';
+import type { AppSubmenuItemSnapshot, RootMenuLabel } from '@harborclient/core/types';
 import { LinuxAppSubmenu } from './LinuxAppSubmenu';
 
 const ROOT_MENU_LABELS: RootMenuLabel[] = ['File', 'Edit', 'View', 'Team', 'Git', 'Help'];

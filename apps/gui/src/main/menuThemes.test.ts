@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { BrowserWindow, MenuItemConstructorOptions } from 'electron';
 
 import { buildThemeMenuItems } from './menu';
-import { BUILTIN_THEME_OPTIONS } from '#/shared/themes';
+import { BUILTIN_THEME_OPTIONS } from '@harborclient/core/themes';
 
 describe('buildThemeMenuItems', () => {
   const window = {

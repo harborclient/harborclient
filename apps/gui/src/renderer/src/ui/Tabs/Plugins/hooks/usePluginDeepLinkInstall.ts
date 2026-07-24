@@ -1,6 +1,6 @@
 import { useEffect, type Dispatch, type SetStateAction } from 'react';
-import type { PluginCatalog } from '#/shared/plugin/catalog';
-import type { PluginInfo } from '#/shared/plugin/types';
+import type { PluginCatalog } from '@harborclient/core/plugin/catalog';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   consumePendingPluginInstall,
@@ -13,7 +13,10 @@ import {
 } from '#/renderer/src/ui/Modals/dialogHelpers';
 import type { PluginManagementKind } from '../constants';
 import { resolvePendingPluginInstallDeepLink } from '../helpers';
-import { catalogEntryIsTheme, formatThemeDisplayName } from '#/shared/plugin/themeCategory';
+import {
+  catalogEntryIsTheme,
+  formatThemeDisplayName
+} from '@harborclient/core/plugin/themeCategory';
 import type { PluginsSidebarSection } from '../sidebarTypes';
 
 interface UsePluginDeepLinkInstallArgs {

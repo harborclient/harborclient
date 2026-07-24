@@ -2,10 +2,10 @@ import {
   buildGitHubRawContentUrl,
   parseGitHubRepo,
   relativePathFromRawGitHubUrl
-} from '#/shared/plugin/githubRaw';
+} from '@harborclient/core/plugin/githubRaw';
 import { assertSafeGitPluginUrl } from '#/main/plugins/gitPluginUrl';
 import { parseSnippetManifest } from './manifestSchema';
-import type { SnippetGitPreview } from '#/shared/snippet/types';
+import type { SnippetGitPreview } from '@harborclient/core/snippet/types';
 
 const MANIFEST_FILENAME = 'snippets.json';
 const DEFAULT_REF = 'main';

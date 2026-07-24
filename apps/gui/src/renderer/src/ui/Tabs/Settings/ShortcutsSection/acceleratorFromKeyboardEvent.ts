@@ -1,4 +1,4 @@
-import { SHIFTED_SYMBOL_TO_DIGIT } from '#/shared/shortcuts';
+import { SHIFTED_SYMBOL_TO_DIGIT } from '@harborclient/core/shortcuts';
 
 /**
  * Minimal keyboard event shape used when converting DOM events to accelerators.

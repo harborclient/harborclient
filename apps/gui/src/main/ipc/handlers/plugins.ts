@@ -36,10 +36,10 @@ import {
   setPluginDatabaseAccess,
   setPluginStorageAccess
 } from '#/main/plugins/pluginRunnerHost';
-import type { PluginHttpResponse, PluginInfo } from '#/shared/plugin/types';
-import { toPluginHttpRequest } from '#/shared/plugin/httpRequest';
-import { parseHttpMethod } from '#/shared/httpMethod';
-import type { KeyValue, SendRequestInput } from '#/shared/types';
+import type { PluginHttpResponse, PluginInfo } from '@harborclient/core/plugin/types';
+import { toPluginHttpRequest } from '@harborclient/core/plugin/httpRequest';
+import { parseHttpMethod } from '@harborclient/core/httpMethod';
+import type { KeyValue, SendRequestInput } from '@harborclient/core/types';
 
 let manager: PluginManager | null = null;
 let databaseManager: PluginDatabaseManager | null = null;
@@ -158,7 +158,7 @@ export function setPluginManager(pluginManager: PluginManager): void {
  * @param req - Renderer HTTP request payload.
  * @returns Serializable request snapshot for plugin HTTP hooks.
  */
-export { toPluginHttpRequest } from '#/shared/plugin/httpRequest';
+export { toPluginHttpRequest } from '@harborclient/core/plugin/httpRequest';
 
 /**
  * Looks up a header value in a plugin hook result by case-insensitive key.

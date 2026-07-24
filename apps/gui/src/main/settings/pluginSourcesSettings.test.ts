@@ -8,7 +8,7 @@ import {
   getDefaultPluginSources,
   PLUGIN_CATALOG_URL,
   PLUGIN_TRUSTED_KEYS_URL
-} from '#/shared/plugin/catalog';
+} from '@harborclient/core/plugin/catalog';
 import {
   getEnabledCatalogUrls,
   getEnabledTrustedUrls,

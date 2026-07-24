@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
-import type { PluginInfo } from '#/shared/plugin/types';
+import type { PluginCatalogEntry } from '@harborclient/core/plugin/catalog';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
 import { loadInstalledPluginScreenshotSrcs } from '../resolvePluginScreenshot';
 
 interface UsePluginDetailArgs {

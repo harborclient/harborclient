@@ -6,7 +6,7 @@ import {
   SNIPPET_CATALOG_URL,
   type SnippetCatalog,
   type SnippetCatalogEntry
-} from '#/shared/snippet/catalog';
+} from '@harborclient/core/snippet/catalog';
 
 /**
  * Fetches and parses one snippet catalog document from a remote URL.

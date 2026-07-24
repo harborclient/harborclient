@@ -11,7 +11,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { _electron as electron } from 'playwright';
 
-const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../apps/gui');
 const defaultMacroPath = path.join(projectRoot, 'screenshots.macro.json');
 const defaultOutDir = path.join(projectRoot, 'images', 'screenshots');
 const mainEntry = path.join(projectRoot, 'out', 'main', 'index.js');

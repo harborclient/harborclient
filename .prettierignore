@@ -1,8 +1,13 @@
 out
 dist
+apps/*/out
+apps/*/dist
+packages/*/dist
+packages/core/docs
+packages/core/scripts
 scripts
 docs
 pnpm-lock.yaml
 LICENSE.md
 CHANGELOG.md
-resources/docsSearchIndex.json
+apps/gui/resources/docsSearchIndex.json

@@ -1,5 +1,10 @@
 import 'ses';
-import type { ScriptRunInput, ScriptRunResult, SendRequestInput, SendResult } from '#/shared/types';
+import type {
+  ScriptRunInput,
+  ScriptRunResult,
+  SendRequestInput,
+  SendResult
+} from '@harborclient/core/types';
 import { evaluateScript } from './scriptEvaluator';
 import type { ScriptFileRequest } from './scriptFileOperations';
 

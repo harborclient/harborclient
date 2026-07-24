@@ -5,7 +5,7 @@ import type { IStorage } from '#/main/storage/IStorage';
 import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { mintFreshSnippetExportUuid, resolveImportUuid } from '#/main/storage/uuid';
 import { confirmDuplicateImport } from './importDialogs';
-import type { ImportAction, Snippet } from '#/shared/types';
+import type { ImportAction, Snippet } from '@harborclient/core/types';
 
 /**
  * Result of importing a snippet from a portable export file.

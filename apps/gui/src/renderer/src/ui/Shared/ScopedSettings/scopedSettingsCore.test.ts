@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
-import type { KeyValue, ScriptRef, Variable } from '#/shared/types';
+import { defaultAuth } from '@harborclient/core/auth';
+import type { KeyValue, ScriptRef, Variable } from '@harborclient/core/types';
 
 vi.mock('@harborclient/sdk/components', () => ({
   cleanVariables: (variables: Variable[]) =>

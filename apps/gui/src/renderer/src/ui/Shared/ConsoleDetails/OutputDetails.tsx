@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import type { ScriptTestResult } from '#/shared/types';
+import type { ScriptTestResult } from '@harborclient/core/types';
 import { StatusDot } from '@harborclient/sdk/components';
 
 interface Props {

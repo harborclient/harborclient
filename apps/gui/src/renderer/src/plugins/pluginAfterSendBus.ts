@@ -1,5 +1,5 @@
 import type { PluginHttpRequest, PluginHttpResponse } from '@harborclient/sdk';
-import type { Disposable } from '#/shared/plugin/types';
+import type { Disposable } from '@harborclient/core/plugin/types';
 
 type AfterSendHandler = (
   request: PluginHttpRequest,

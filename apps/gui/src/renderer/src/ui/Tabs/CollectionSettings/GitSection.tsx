@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import type { StorageConnection } from '#/shared/types';
+import type { StorageConnection } from '@harborclient/core/types';
 
 import { GitFields } from '#/renderer/src/ui/Tabs/Settings/StorageLocationsSection/GitFields';
 

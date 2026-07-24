@@ -17,7 +17,7 @@ import {
 } from '@dnd-kit/sortable';
 import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
 import toast from 'react-hot-toast';
-import type { Environment } from '#/shared/types';
+import type { Environment } from '@harborclient/core/types';
 import { EmptySectionLabel, SidebarEnvironmentItem } from '@harborclient/sdk/components';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';

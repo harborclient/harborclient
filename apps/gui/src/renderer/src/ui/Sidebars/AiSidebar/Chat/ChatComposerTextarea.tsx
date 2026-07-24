@@ -10,7 +10,7 @@ import {
   type JSX,
   type Ref
 } from 'react';
-import type { AiScriptReferenceValidationContext } from '#/shared/ai/scriptReferences';
+import type { AiScriptReferenceValidationContext } from '@harborclient/core/ai/scriptReferences';
 import {
   COMPOSER_EMBEDDED_TEXT_MIN_HEIGHT_PX,
   COMPOSER_MAX_HEIGHT_PX,

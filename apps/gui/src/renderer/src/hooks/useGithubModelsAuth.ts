@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import type { GithubModelsStatus } from '#/shared/types';
+import type { GithubModelsStatus } from '@harborclient/core/types';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { setGithubModelsStatus } from '#/renderer/src/store/slices/aiChatSlice';
 import { refreshHubLlmModels } from '#/renderer/src/store/thunks/aiChat';

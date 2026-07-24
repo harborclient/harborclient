@@ -13,7 +13,11 @@
     "ignoreDeprecations": "5.0",
     "baseUrl": ".",
     "paths": {
-      "#/*": ["./src/*"]
+      "#/*": ["./src/*"],
+      "@harborclient/core": ["../../packages/core/src/index.ts"],
+      "@harborclient/core/*": ["../../packages/core/src/*"],
+      "@harborclient/storage-sqlite": ["../../packages/storage-sqlite/src/index.ts"],
+      "@harborclient/storage-sqlite/*": ["../../packages/storage-sqlite/src/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "electron.vite.config.ts"]

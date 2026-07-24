@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { AdminResourceOption } from '#/shared/types';
+import type { AdminResourceOption } from '@harborclient/core/types';
 
 /**
  * Loaded Team Hub admin collection list and bootstrap state from IPC.

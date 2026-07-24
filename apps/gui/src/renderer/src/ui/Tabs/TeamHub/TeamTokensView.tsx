@@ -14,7 +14,7 @@ import {
 } from '@harborclient/sdk/components';
 import { useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { HubApiTokenRecord, HubUserRecord, TeamHub } from '#/shared/types';
+import type { HubApiTokenRecord, HubUserRecord, TeamHub } from '@harborclient/core/types';
 
 import { faUsers } from '#/renderer/src/fontawesome';
 

@@ -1,16 +1,16 @@
 import { normalizeVariable } from './collectionData';
-import { normalizeSnippetScope } from '#/shared/snippetScope';
-import { normalizeScriptStage } from '#/shared/scriptStage';
-import { defaultAuth, normalizeAuth } from '#/shared/auth';
-import { readScriptRefsFromJson } from '#/shared/scriptRefs';
-import { readSidebarColor } from '#/shared/sidebarColor';
+import { normalizeSnippetScope } from '@harborclient/core/snippetScope';
+import { normalizeScriptStage } from '@harborclient/core/scriptStage';
+import { defaultAuth, normalizeAuth } from '@harborclient/core/auth';
+import { readScriptRefsFromJson } from '@harborclient/core/scriptRefs';
+import { readSidebarColor } from '@harborclient/core/sidebarColor';
 import {
   firstRunResultMethod,
   type ProviderRunResult,
   type ProviderRunResultSummary,
   type RunResultsExport,
   type RunResultsExportKind
-} from '#/shared/collectionRunner';
+} from '@harborclient/core/collectionRunner';
 import type {
   BodyType,
   Chat,
@@ -26,7 +26,7 @@ import type {
   SavedRequest,
   Snippet,
   Variable
-} from '#/shared/types';
+} from '@harborclient/core/types';
 
 /**
  * Parses a JSON string, returning a fallback value on failure.

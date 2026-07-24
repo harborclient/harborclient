@@ -1,12 +1,12 @@
 import toast from 'react-hot-toast';
-import { resolveAiModelOption } from '#/shared/ai/models';
+import { resolveAiModelOption } from '@harborclient/core/ai/models';
 import {
   appendScriptAskThinking,
   applyScriptAskAtLine,
   parseScriptAskResult,
   stripScriptAskThinking
-} from '#/shared/ai/scriptAsk';
-import type { AiSettings, HubLlmModelGroup } from '#/shared/types';
+} from '@harborclient/core/ai/scriptAsk';
+import type { AiSettings, HubLlmModelGroup } from '@harborclient/core/types';
 import { persistScriptAskModelId } from './scriptAskModel';
 
 interface RunScriptAskParams {

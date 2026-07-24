@@ -10,7 +10,7 @@ import {
 } from '@codemirror/view';
 import { buildVariableTooltipDom } from '@harborclient/sdk/components';
 import { parseVariableTokens, VARIABLE_TOKEN_PATTERN } from '@harborclient/sdk/variables';
-import type { Variable } from '#/shared/types';
+import type { Variable } from '@harborclient/core/types';
 
 const variableMatcher = new MatchDecorator({
   regexp: new RegExp(VARIABLE_TOKEN_PATTERN.source, 'g'),

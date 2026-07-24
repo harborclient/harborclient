@@ -1,4 +1,4 @@
-import type { ScriptExecutionEvent } from '#/shared/types';
+import type { ScriptExecutionEvent } from '@harborclient/core/types';
 
 const SCOPE_LABELS: Record<'request' | 'collection' | 'folder' | 'environment' | 'global', string> =
   {

@@ -1,4 +1,4 @@
-import type { ThemeSource } from '#/shared/types';
+import type { ThemeSource } from '@harborclient/core/types';
 
 const BUILTIN_THEME_SOURCES = new Set<ThemeSource>(['light', 'dark', 'system', 'high-contrast']);
 

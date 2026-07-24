@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import type { Snippet } from '#/shared/types';
-import type { SnippetScope } from '#/shared/snippetScope';
+import type { Snippet } from '@harborclient/core/types';
+import type { SnippetScope } from '@harborclient/core/snippetScope';
 import type { ScriptStage } from '@harborclient/sdk';
 import { setSnippets } from '#/renderer/src/store/slices/snippetsSlice';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';

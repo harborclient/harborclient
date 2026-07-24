@@ -4,10 +4,15 @@ import { LlmClientFactory } from './LlmClientFactory';
 import { runHubChatCompletionStep } from './hubChatStep';
 import { logVerbose } from '#/main/logger';
 import { mergeMcpClientTools } from '#/main/mcp/mergeMcpClientTools';
-import { truncateChatStepMessages } from '#/shared/ai/chatContext';
-import { resolveChatStepMode } from '#/shared/ai/chatStepMode';
-import { getAiModelById } from '#/shared/ai/models';
-import type { ChatStepInput, ChatStepMessage, ChatStepResult, LlmProvider } from '#/shared/types';
+import { truncateChatStepMessages } from '@harborclient/core/ai/chatContext';
+import { resolveChatStepMode } from '@harborclient/core/ai/chatStepMode';
+import { getAiModelById } from '@harborclient/core/ai/models';
+import type {
+  ChatStepInput,
+  ChatStepMessage,
+  ChatStepResult,
+  LlmProvider
+} from '@harborclient/core/types';
 
 /**
  * User-facing message when the model context limit is exceeded even after recovery.

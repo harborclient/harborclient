@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { Variable } from '#/shared/types';
+import type { Variable } from '@harborclient/core/types';
 import type { PageComponentProps } from '#/renderer/src/routing/types';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { setEnvironmentSettingsDirty } from '#/renderer/src/store/slices/navigationSlice';

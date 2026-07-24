@@ -3,7 +3,7 @@ import {
   BUILTIN_ACTIONS,
   pluginActionId,
   type ActionCommandDefinition
-} from '#/shared/search/actions';
+} from '@harborclient/core/search/actions';
 import { usePluginActions } from '#/renderer/src/plugins/pluginHooks';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import {

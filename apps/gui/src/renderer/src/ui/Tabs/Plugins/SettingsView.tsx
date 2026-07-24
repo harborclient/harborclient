@@ -1,8 +1,8 @@
 import { Badge, Button, Checkbox, FormGroup, Input } from '@harborclient/sdk/components';
 import { useState, type JSX } from 'react';
-import type { PluginSource } from '#/shared/plugin/catalog';
-import { isHarborClientEndpoint } from '#/shared/plugin/catalog';
-import type { TeamHubPluginSource } from '#/shared/types';
+import type { PluginSource } from '@harborclient/core/plugin/catalog';
+import { isHarborClientEndpoint } from '@harborclient/core/plugin/catalog';
+import type { TeamHubPluginSource } from '@harborclient/core/types';
 import type { FieldSettingId } from '#/renderer/src/ui/Tabs/Settings/catalog/catalog';
 import { SettingField } from '#/renderer/src/ui/Tabs/Settings/components/SettingField';
 

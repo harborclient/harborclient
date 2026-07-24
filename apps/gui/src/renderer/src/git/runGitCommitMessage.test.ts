@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AiSettings, ChatStepResult } from '#/shared/types';
+import type { AiSettings, ChatStepResult } from '@harborclient/core/types';
 import { runGitCommitMessage } from './runGitCommitMessage';
 
 const completeChatStepMock =

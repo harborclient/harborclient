@@ -1,7 +1,7 @@
 import { BusyIndicator, CodeEditorConfigProvider } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useMemo, type JSX } from 'react';
 import { Toaster } from 'react-hot-toast';
-import type { Collection, Environment } from '#/shared/types';
+import type { Collection, Environment } from '@harborclient/core/types';
 import { useBeforeClose } from '#/renderer/src/hooks/useBeforeClose';
 import { useEscapeBack } from '#/renderer/src/hooks/useEscapeBack';
 import { useMenuActions } from '#/renderer/src/hooks/useMenuActions';

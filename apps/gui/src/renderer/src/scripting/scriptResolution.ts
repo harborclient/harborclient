@@ -1,7 +1,7 @@
-import type { ScriptRef, Snippet } from '#/shared/types';
-import { isImportableSnippetName } from '#/shared/snippetImport';
-import { normalizeScriptRefs, resolveScriptRefs } from '#/shared/scriptRefs';
-import { orderScriptRefsByStage } from '#/shared/scriptStage';
+import type { ScriptRef, Snippet } from '@harborclient/core/types';
+import { isImportableSnippetName } from '@harborclient/core/snippetImport';
+import { normalizeScriptRefs, resolveScriptRefs } from '@harborclient/core/scriptRefs';
+import { orderScriptRefsByStage } from '@harborclient/core/scriptStage';
 
 /**
  * Ordered script slot to run for a send operation.

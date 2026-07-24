@@ -1,19 +1,19 @@
 import toast from 'react-hot-toast';
 import * as React from 'react';
-import '#/shared/plugin/databaseTypes';
+import '@harborclient/core/plugin/databaseTypes';
 import type {
   PluginContext,
   PluginManifest,
   PluginPermission,
   Disposable
-} from '#/shared/plugin/types';
+} from '@harborclient/core/plugin/types';
 import {
   activeThemeKey,
   pluginContributionId,
   pluginSettingsSectionId,
   toActiveTheme
-} from '#/shared/plugin/types';
-import type { ThemeSource } from '#/shared/types';
+} from '@harborclient/core/plugin/types';
+import type { ThemeSource } from '@harborclient/core/types';
 import {
   registerActionContribution,
   registerCollectionSettingsTabContribution,
@@ -53,8 +53,8 @@ import {
   type PluginConsoleLogPayload
 } from './hostRequestCommands';
 import { subscribePluginAfterSend } from './pluginAfterSendBus';
-import { createPluginDatabaseApi } from '#/shared/plugin/pluginDatabaseApi';
-import type { ImportHandler } from '#/shared/plugin/importHandlers';
+import { createPluginDatabaseApi } from '@harborclient/core/plugin/pluginDatabaseApi';
+import type { ImportHandler } from '@harborclient/core/plugin/importHandlers';
 import {
   normalizeImportExtensions,
   registerImportHandlerContribution

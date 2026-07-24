@@ -1,7 +1,7 @@
 import { Button, CodeEditor, FaIcon } from '@harborclient/sdk/components';
 import type { CodeEditorSelectionAction } from '@harborclient/sdk/components';
 import { useId, type JSX } from 'react';
-import type { Variable } from '#/shared/types';
+import type { Variable } from '@harborclient/core/types';
 import { faChevronDown, faChevronRight } from '#/renderer/src/fontawesome';
 import { AnimatedCollapse } from '#/renderer/src/ui/Shared/Animated/AnimatedCollapse';
 

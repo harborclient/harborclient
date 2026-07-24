@@ -1,5 +1,5 @@
-import { formatPluginThemeValue } from '#/shared/plugin/types';
-import type { ThemeSource } from '#/shared/types';
+import { formatPluginThemeValue } from '@harborclient/core/plugin/types';
+import type { ThemeSource } from '@harborclient/core/types';
 import { applyThemePreference } from './themeRuntime';
 
 /**

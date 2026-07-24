@@ -1,6 +1,6 @@
 import { Checkbox, FormGroup, Input } from '@harborclient/sdk/components';
 import { type JSX, type ReactNode } from 'react';
-import type { McpServerSettings, McpServerStatus } from '#/shared/types';
+import type { McpServerSettings, McpServerStatus } from '@harborclient/core/types';
 
 interface Props {
   /**

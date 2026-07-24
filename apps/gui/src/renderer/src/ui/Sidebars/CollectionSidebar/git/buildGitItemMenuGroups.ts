@@ -1,5 +1,5 @@
 import type { MenuItem } from '@harborclient/sdk/components';
-import type { GitRequestFileStatus } from '#/shared/types';
+import type { GitRequestFileStatus } from '@harborclient/core/types';
 
 /**
  * Builds the per-item Git submenu for request and markdown rows in git-backed collections.

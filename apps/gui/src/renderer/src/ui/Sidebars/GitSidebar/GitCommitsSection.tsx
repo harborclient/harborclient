@@ -4,7 +4,7 @@ import {
   type SidebarCommitPushStatus
 } from '@harborclient/sdk/components';
 import { useEffect, useState, type JSX } from 'react';
-import type { GitLogEntry } from '#/shared/types';
+import type { GitLogEntry } from '@harborclient/core/types';
 import { faCodeBranch } from '#/renderer/src/fontawesome';
 import { GitCommitDetailModal } from '#/renderer/src/ui/Sidebars/GitSidebar/modals/GitCommitDetailModal';
 

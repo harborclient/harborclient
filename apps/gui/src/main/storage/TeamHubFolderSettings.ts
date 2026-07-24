@@ -3,9 +3,9 @@ import { mkdirSync } from 'fs';
 import { dirname } from 'path';
 import { normalizeVariable } from './collectionData';
 import { bundleScriptFieldsWithLegacy } from './scriptFields';
-import { DEFAULT_AUTH_JSON, defaultAuth, normalizeAuth } from '#/shared/auth';
-import { readScriptRefsFromJson } from '#/shared/scriptRefs';
-import type { AuthConfig, KeyValue, ScriptRef, Variable } from '#/shared/types';
+import { DEFAULT_AUTH_JSON, defaultAuth, normalizeAuth } from '@harborclient/core/auth';
+import { readScriptRefsFromJson } from '@harborclient/core/scriptRefs';
+import type { AuthConfig, KeyValue, ScriptRef, Variable } from '@harborclient/core/types';
 
 /**
  * Folder settings persisted locally for Team Hub folders (server API has name only).

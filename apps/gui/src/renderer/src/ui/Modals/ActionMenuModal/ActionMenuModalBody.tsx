@@ -17,7 +17,7 @@ import {
   resolveSlashCommand,
   searchAll,
   type UnifiedSearchHit
-} from '#/shared/search';
+} from '@harborclient/core/search';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
 import { useActivateSearchHit } from '#/renderer/src/search/activateSearchHit';
 import { useActionCommands } from '#/renderer/src/search/useActionCommands';

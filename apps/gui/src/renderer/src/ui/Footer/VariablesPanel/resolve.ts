@@ -1,4 +1,4 @@
-import type { Variable } from '#/shared/types';
+import type { Variable } from '@harborclient/core/types';
 
 export type VariableScope = 'global' | 'collection' | 'folder' | 'environment';
 

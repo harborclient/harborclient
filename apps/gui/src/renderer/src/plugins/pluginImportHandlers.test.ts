@@ -10,7 +10,7 @@ import {
   runPluginImportHandlers,
   unregisterBridgedImportHandler
 } from './pluginImportHandlers';
-import type { ImportFile } from '#/shared/plugin/importHandlers';
+import type { ImportFile } from '@harborclient/core/plugin/importHandlers';
 
 const sampleFile: ImportFile = {
   name: 'petstore.yaml',

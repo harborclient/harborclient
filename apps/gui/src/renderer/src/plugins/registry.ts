@@ -17,8 +17,8 @@ import type {
   RegisteredStatusBarItem,
   Disposable,
   FooterPanelIndicatorState
-} from '#/shared/plugin/types';
-import { pluginContributionId } from '#/shared/plugin/types';
+} from '@harborclient/core/plugin/types';
+import { pluginContributionId } from '@harborclient/core/plugin/types';
 
 type Listener = () => void;
 

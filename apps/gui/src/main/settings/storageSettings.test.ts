@@ -9,7 +9,7 @@ import {
   listStorageConnections,
   saveStorageConnection
 } from './storageSettings';
-import type { StorageConnection, SqliteSettings } from '#/shared/types';
+import type { StorageConnection, SqliteSettings } from '@harborclient/core/types';
 
 const DEFAULT_SQLITE_SETTINGS: SqliteSettings = {
   dbFilename: 'harborclient.db',

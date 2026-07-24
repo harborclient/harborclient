@@ -1,6 +1,6 @@
 import { EmptyState, SIDEBAR_ITEM_BUTTON_CLASS } from '@harborclient/sdk/components';
 import { useCallback, useMemo, useState, type JSX } from 'react';
-import type { TrashItem } from '#/shared/types/trash';
+import type { TrashItem } from '@harborclient/core/types/trash';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectTrashItems } from '#/renderer/src/store/slices/trashSlice';

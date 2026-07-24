@@ -7,19 +7,19 @@ import type {
   SendResult,
   TrustedSharingKey,
   UpdateCheckResult
-} from '#/shared/types';
+} from '@harborclient/core/types';
 import type {
   CollectionRunnerConfig,
   CollectionRunnerRequestResult,
   CollectionRunnerResultStatus,
   RunResultsExport
-} from '#/shared/collectionRunner';
+} from '@harborclient/core/collectionRunner';
 import {
   DEFAULT_COLLECTION_RUNNER_CONFIG,
   summarizeRunnerResults
-} from '#/shared/collectionRunner';
+} from '@harborclient/core/collectionRunner';
 import type { RootState } from '#/renderer/src/store/redux';
-import type { StorageConnection } from '#/shared/types';
+import type { StorageConnection } from '@harborclient/core/types';
 
 export type CollectionModalMode = 'create' | 'create-and-save';
 export type CollectionModalTab = 'create' | 'git' | 'import' | 'join';

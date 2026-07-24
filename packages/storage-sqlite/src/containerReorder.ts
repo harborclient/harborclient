@@ -2,8 +2,8 @@ import {
   mergeContainerItems,
   toContainerItemRefs,
   type ContainerItemRef
-} from '#/shared/collectionContainerOrder';
-import type { CollectionDocument, SavedRequest } from '#/shared/types';
+} from '@harborclient/core/collectionContainerOrder';
+import type { CollectionDocument, SavedRequest } from '@harborclient/core/types';
 
 /**
  * Removes one item from a container item order list.

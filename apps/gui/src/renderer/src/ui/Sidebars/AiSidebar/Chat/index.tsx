@@ -1,6 +1,6 @@
 import { FaIcon } from '@harborclient/sdk/components';
 import { useEffect, type JSX } from 'react';
-import type { AiSettings } from '#/shared/types';
+import type { AiSettings } from '@harborclient/core/types';
 import { faComment } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {

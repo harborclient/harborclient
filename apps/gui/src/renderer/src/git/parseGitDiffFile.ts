@@ -1,5 +1,5 @@
 import type { CodeEditorLanguage } from '@harborclient/sdk/components';
-import type { GitRequestDiffFileEntry } from '#/shared/types';
+import type { GitRequestDiffFileEntry } from '@harborclient/core/types';
 
 /**
  * Parsed before/after file contents derived from a HarborClient git diff excerpt.

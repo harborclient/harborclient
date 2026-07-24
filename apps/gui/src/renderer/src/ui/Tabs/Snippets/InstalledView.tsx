@@ -9,10 +9,10 @@ import {
 } from '@harborclient/sdk/components';
 import { Fragment, useEffect, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { Snippet } from '#/shared/types';
-import type { InstalledSnippetPackage } from '#/shared/snippet/types';
-import { snippetScopeLabel } from '#/shared/snippetScope';
-import { scriptStageLabel } from '#/shared/scriptStage';
+import type { Snippet } from '@harborclient/core/types';
+import type { InstalledSnippetPackage } from '@harborclient/core/snippet/types';
+import { snippetScopeLabel } from '@harborclient/core/snippetScope';
+import { scriptStageLabel } from '@harborclient/core/scriptStage';
 import {
   faChevronDown,
   faChevronRight,

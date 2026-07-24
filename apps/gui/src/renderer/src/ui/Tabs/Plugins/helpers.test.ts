@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { PluginCatalog, PluginCatalogEntry } from '#/shared/plugin/catalog';
-import type { PluginInfo } from '#/shared/plugin/types';
+import type { PluginCatalog, PluginCatalogEntry } from '@harborclient/core/plugin/catalog';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
 import {
   installedPluginInstallationLabel,
   resolvePendingPluginInstallDeepLink,

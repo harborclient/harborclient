@@ -36,13 +36,13 @@ import { GitSyncManager } from '#/main/git/GitSyncManager';
 import { maskVariablesForExport, validateCollectionExport } from './collectionData';
 import { trimRequiredName } from './trimRequiredName';
 import { assertContainerItemOrder, planContainerItemMove } from './containerReorder';
-import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
+import type { ContainerItemRef } from '@harborclient/core/collectionContainerOrder';
 import type { IStorage } from './IStorage';
 import type {
   ProviderRunResult,
   ProviderRunResultSummary,
   SaveRunResultInput
-} from '#/shared/collectionRunner';
+} from '@harborclient/core/collectionRunner';
 import { generateDocumentUuid, resolveImportUuid } from './uuid';
 import {
   buildDocumentUuidIndex,
@@ -55,7 +55,7 @@ import {
   serializeImportedRequestFields
 } from './collectionImport';
 import { serializeSidebarColor } from './sidebarColorMigration';
-import { defaultAuth, normalizeAuth } from '#/shared/auth';
+import { defaultAuth, normalizeAuth } from '@harborclient/core/auth';
 import type {
   AuthConfig,
   Collection,
@@ -77,9 +77,9 @@ import type {
   SnippetExport,
   SourceControlStatus,
   Variable
-} from '#/shared/types';
-import type { SnippetScope } from '#/shared/snippetScope';
-import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '#/shared/scriptStage';
+} from '@harborclient/core/types';
+import type { SnippetScope } from '@harborclient/core/snippetScope';
+import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '@harborclient/core/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
 
 /**

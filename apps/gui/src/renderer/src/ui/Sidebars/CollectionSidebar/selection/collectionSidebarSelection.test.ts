@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CollectionDocument, SavedRequest } from '#/shared/types';
+import type { CollectionDocument, SavedRequest } from '@harborclient/core/types';
 import {
   collectionHasDeselectableSelection,
   removeCollectionRequestSelection

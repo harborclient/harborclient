@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { StorageConnection } from '#/shared/types';
+import type { StorageConnection } from '@harborclient/core/types';
 
 /**
  * Loaded database connection list and bootstrap state from IPC.

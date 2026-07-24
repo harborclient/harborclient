@@ -1,7 +1,7 @@
 import { Page } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 
-import type { SettingsSection } from '#/shared/types';
+import type { SettingsSection } from '@harborclient/core/types';
 
 import { settingsSectionMeta } from '../../constants';
 import { SettingsSaveAction } from '../../components/SettingsSaveAction';

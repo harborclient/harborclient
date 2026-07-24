@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_COLLECTION_RUNNER_CONFIG } from '#/shared/collectionRunner';
+import { DEFAULT_COLLECTION_RUNNER_CONFIG } from '@harborclient/core/collectionRunner';
 
 describe('collectionRunnerSettings', () => {
   beforeEach(() => {

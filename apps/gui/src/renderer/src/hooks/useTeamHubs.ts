@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { TeamHub } from '#/shared/types';
+import type { TeamHub } from '@harborclient/core/types';
 
 /**
  * Loaded team hub list and bootstrap state from IPC.

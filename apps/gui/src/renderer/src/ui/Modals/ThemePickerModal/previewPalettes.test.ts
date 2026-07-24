@@ -6,7 +6,7 @@ import {
   LIGHT_PREVIEW_PALETTE,
   getThemePreviewPalette
 } from './previewPalettes';
-import { HC_ACCENT, HC_SURFACE } from '#/shared/highContrastPalette';
+import { HC_ACCENT, HC_SURFACE } from '@harborclient/core/highContrastPalette';
 
 describe('getThemePreviewPalette', () => {
   it('returns light palette for light theme', () => {

@@ -18,8 +18,14 @@ directly. The test script rebuilds native modules (`better-sqlite3`) for system
 Node, runs vitest, then restores them for Electron. Skipping this leaves the
 wrong ABI and breaks `pnpm dev` / `pnpm build`.
 
-Tests are colocated as `src/**/*.test.ts`. See [TESTING.md](./TESTING.md) for
+Tests are colocated as `**/*.test.ts` under each package. See [TESTING.md](./TESTING.md) for
 philosophy, coverage goals, and when to add tests.
+
+```bash
+pnpm test                 # core + storage-sqlite + gui
+pnpm test:gui             # Electron GUI package only
+pnpm --filter @harborclient/core test
+```
 
 ## Package manager
 

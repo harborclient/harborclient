@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { MenuActionId } from '#/shared/types/app';
+import type { MenuActionId } from '@harborclient/core/types/app';
 import { useSidebarGit } from './sidebarGitContext';
 
 /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { ScriptRef, Snippet } from '#/shared/types';
-import { createInlineScriptRef } from '#/shared/scriptRefs';
+import type { ScriptRef, Snippet } from '@harborclient/core/types';
+import { createInlineScriptRef } from '@harborclient/core/scriptRefs';
 import { buildScriptModuleMap, buildSnippetModuleMap } from './scriptResolution';
 
 function makeSnippet(overrides: Partial<Snippet> & Pick<Snippet, 'name' | 'code'>): Snippet {

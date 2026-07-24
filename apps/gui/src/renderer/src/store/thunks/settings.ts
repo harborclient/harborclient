@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import type { GeneralSettings, Variable } from '#/shared/types';
+import type { GeneralSettings, Variable } from '@harborclient/core/types';
 import { setGeneralSettingsState } from '#/renderer/src/store/slices/settingsSlice';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
 

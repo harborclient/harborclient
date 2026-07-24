@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 
 import { faPuzzlePiece } from '#/renderer/src/fontawesome';
 import { usePersistedPageSidebarSection } from '#/renderer/src/hooks/usePersistedPageSidebarSection';
-import { normalizePageSidebarSection } from '#/shared/pageSidebarSection';
+import { normalizePageSidebarSection } from '@harborclient/core/pageSidebarSection';
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import { usePluginSettingsSections } from '#/renderer/src/plugins/pluginHooks';
 import { useAppDispatch } from '#/renderer/src/store/hooks';

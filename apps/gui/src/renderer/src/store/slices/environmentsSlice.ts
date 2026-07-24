@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { Environment } from '#/shared/types';
+import type { Environment } from '@harborclient/core/types';
 import { loadActiveEnvironmentId } from '#/renderer/src/store/persistence';
 
 export interface EnvironmentsState {

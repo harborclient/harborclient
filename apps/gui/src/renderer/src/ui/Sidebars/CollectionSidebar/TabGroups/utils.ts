@@ -1,4 +1,4 @@
-import type { TabGroup } from '#/shared/types/tabGroup';
+import type { TabGroup } from '@harborclient/core/types/tabGroup';
 
 /**
  * Returns a compact summary label for a tab group row.

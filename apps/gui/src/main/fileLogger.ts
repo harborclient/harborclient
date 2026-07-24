@@ -4,7 +4,7 @@ import { basename, dirname, extname, join } from 'path';
 import { inspect } from 'util';
 import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
-import type { GeneralSettings } from '#/shared/types';
+import type { GeneralSettings } from '@harborclient/core/types';
 
 const LOG_INSPECT_DEPTH = 5;
 const LOG_DATE_PATTERN = 'YYYY-MM-DD';

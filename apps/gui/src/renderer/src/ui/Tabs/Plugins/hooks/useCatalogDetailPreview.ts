@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
-import type { PluginInfo, PluginGitPreview } from '#/shared/plugin/types';
+import type { PluginCatalogEntry } from '@harborclient/core/plugin/catalog';
+import type { PluginInfo, PluginGitPreview } from '@harborclient/core/plugin/types';
 import { findInstalledCatalogPlugin } from '../helpers';
 
 interface UseCatalogDetailPreviewArgs {

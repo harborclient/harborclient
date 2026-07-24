@@ -1,4 +1,4 @@
-import type { SettingsSection } from '#/shared/types';
+import type { SettingsSection } from '@harborclient/core/types';
 import type { PageRef } from '#/renderer/src/store/tabs';
 import {
   faBook,

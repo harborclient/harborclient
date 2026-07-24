@@ -1,4 +1,4 @@
-import type { RedirectHop } from '#/shared/types';
+import type { RedirectHop } from '@harborclient/core/types';
 
 /**
  * Returns the final destination URL after the last recorded redirect hop.

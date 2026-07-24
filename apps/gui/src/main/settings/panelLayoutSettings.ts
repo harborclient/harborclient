@@ -1,5 +1,8 @@
 import Store from 'electron-store';
-import { DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT, type PanelLayoutState } from '#/shared/types';
+import {
+  DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT,
+  type PanelLayoutState
+} from '@harborclient/core/types';
 
 const STORE_KEY = 'panelLayout';
 

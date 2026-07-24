@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
-import type { PluginGitPreview, PluginInfo } from '#/shared/plugin/types';
+import type { PluginCatalogEntry } from '@harborclient/core/plugin/catalog';
+import type { PluginGitPreview, PluginInfo } from '@harborclient/core/plugin/types';
 import {
   loadInstalledPluginScreenshotSrcs,
   pluginAssetToDataUrl,

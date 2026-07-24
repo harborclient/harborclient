@@ -7,15 +7,15 @@ import {
 } from '@harborclient/sdk/components';
 import type { CodeEditorTextSelection } from '@harborclient/sdk/components';
 import { useCallback, useId, useMemo, useState, type JSX } from 'react';
-import type { BodyType, FormDataPart, KeyValue, Variable } from '#/shared/types';
-import { parseFormParts, serializeFormParts } from '#/shared/formData';
-import { parseUrlEncodedParts, serializeUrlEncodedParts } from '#/shared/urlencoded';
+import type { BodyType, FormDataPart, KeyValue, Variable } from '@harborclient/core/types';
+import { parseFormParts, serializeFormParts } from '@harborclient/core/formData';
+import { parseUrlEncodedParts, serializeUrlEncodedParts } from '@harborclient/core/urlencoded';
 import {
   generateMultipartBoundary,
   parseMultipartRaw,
   renderMultipartRaw
-} from '#/shared/multipartRaw';
-import { rawUrlEncodedToRows, rowsToRawUrlEncoded } from '#/shared/urlencodedRaw';
+} from '@harborclient/core/multipartRaw';
+import { rawUrlEncodedToRows, rowsToRawUrlEncoded } from '@harborclient/core/urlencodedRaw';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
 import {

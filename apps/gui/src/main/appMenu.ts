@@ -1,7 +1,7 @@
 import { BrowserWindow, Menu } from 'electron';
 import { buildMenu } from './menu';
-import type { ThemeMenuOption } from '#/shared/themes';
-import type { ThemeSource } from '#/shared/types';
+import type { ThemeMenuOption } from '@harborclient/core/themes';
+import type { ThemeSource } from '@harborclient/core/types';
 
 let mainWindow: BrowserWindow | null = null;
 let sidebarVisible = true;

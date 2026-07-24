@@ -1,6 +1,6 @@
 import type { BrowserWindow } from 'electron';
 import type { PluginManager } from './PluginManager';
-import type { McpClientHeader, McpClientServerListItem } from '#/shared/types';
+import type { McpClientHeader, McpClientServerListItem } from '@harborclient/core/types';
 
 /** Prefix for plugin-owned MCP client server ids. */
 export const PLUGIN_MCP_SERVER_ID_PREFIX = 'plugin:';

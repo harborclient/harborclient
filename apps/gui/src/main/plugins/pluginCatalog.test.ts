@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { PLUGIN_CATALOG_URL, parsePluginCatalog } from '#/shared/plugin/catalog';
+import { PLUGIN_CATALOG_URL, parsePluginCatalog } from '@harborclient/core/plugin/catalog';
 
 const sampleCatalog = {
   schemaVersion: 1 as const,

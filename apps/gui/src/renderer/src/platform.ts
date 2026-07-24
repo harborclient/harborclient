@@ -1,4 +1,4 @@
-import type { OperatingSystemInfo } from '#/shared/types';
+import type { OperatingSystemInfo } from '@harborclient/core/types';
 
 /**
  * True when running on macOS.

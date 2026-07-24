@@ -6,7 +6,7 @@ import {
   mintFreshRequestExportUuid,
   resolveImportUuid
 } from './uuid';
-import type { CollectionExport, EnvironmentExport, RequestExport } from '#/shared/types';
+import type { CollectionExport, EnvironmentExport, RequestExport } from '@harborclient/core/types';
 
 const sampleCollectionExport: CollectionExport = {
   harborclientVersion: 1,

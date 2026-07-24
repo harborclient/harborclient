@@ -1,4 +1,9 @@
-import type { BodyType, ScriptExecutionEvent, ScriptTestResult, SendResult } from '#/shared/types';
+import type {
+  BodyType,
+  ScriptExecutionEvent,
+  ScriptTestResult,
+  SendResult
+} from '@harborclient/core/types';
 import {
   formatFlowExecutionDetail,
   formatFlowExecutionLabel,

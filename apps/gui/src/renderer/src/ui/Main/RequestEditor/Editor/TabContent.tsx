@@ -1,9 +1,9 @@
 import { KeyValueEditor, SegmentedTabPanel } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import { useMemo } from 'react';
-import type { KeyValue, Variable } from '#/shared/types';
-import { mirrorLegacyScriptString } from '#/shared/scriptRefs';
-import type { RegisteredRequestTab, RequestTabContext } from '#/shared/plugin/types';
+import type { KeyValue, Variable } from '@harborclient/core/types';
+import { mirrorLegacyScriptString } from '@harborclient/core/scriptRefs';
+import type { RegisteredRequestTab, RequestTabContext } from '@harborclient/core/plugin/types';
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import { ScriptListEditor } from '#/renderer/src/ui/Shared/Script/ScriptListEditor';
 import {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { defaultOAuth2Config } from '#/shared/auth';
+import { defaultOAuth2Config } from '@harborclient/core/auth';
 import { clearOAuthToken, fetchClientCredentialsToken, getValidOAuthToken } from './oauthToken';
 import * as oauthSecrets from './oauthSecrets';
 

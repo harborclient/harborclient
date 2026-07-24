@@ -10,17 +10,11 @@ import type {
   ScriptTestResult,
   ScriptExecutionEvent,
   SendResult
-} from '#/shared/types';
-import { applyBodyRawOverride } from '#/shared/bodyRawSend';
-import {
-  buildAuthHeaderValue,
-  buildOAuthAuthHeaderValue,
-  buildOAuthCacheKey,
-  defaultAuth,
-  resolveAuthVariables
-} from '#/shared/auth';
-import { normalizeRequestTags } from '#/shared/requestTags';
-import { toPluginHttpRequest, toPluginHttpResponse } from '#/shared/plugin/httpRequest';
+} from '@harborclient/core/types';
+import { defaultAuth } from '@harborclient/core/auth';
+import { buildSendInput } from '@harborclient/core/requestRunner';
+import { normalizeRequestTags } from '@harborclient/core/requestTags';
+import { toPluginHttpRequest, toPluginHttpResponse } from '@harborclient/core/plugin/httpRequest';
 import { emitPluginAfterSend } from '#/renderer/src/plugins/pluginAfterSendBus';
 import { recordRequestHistoryFromSend } from './requestHistory';
 import { syncTrash } from './trash';
@@ -45,9 +39,9 @@ import {
   mergeScriptRefsUiState,
   mirrorLegacyScriptString,
   normalizeScriptRefs
-} from '#/shared/scriptRefs';
+} from '@harborclient/core/scriptRefs';
 import { migrateScriptEditorUiState } from '#/renderer/src/hooks/usePersistedScriptEditorUiState';
-import { buildScriptRunInfo } from '#/shared/types/script';
+import { buildScriptRunInfo } from '@harborclient/core/types/script';
 import { saveGlobalVariables } from './settings';
 import {
   cloneDraft,
@@ -752,85 +746,26 @@ export async function executeRequestDraft(
         error: 'Request skipped by script'
       };
     } else {
-      const resolvedUrl = substituteWithMap(scriptRequest.url, runtimeVars);
-      const collectionHeaders = collectionHeaderRows.map((header) => ({
-        ...header,
-        value: substituteWithMap(header.value, runtimeVars)
-      }));
-      const folderHeaders = folderHeaderRows.map((header) => ({
-        ...header,
-        value: substituteWithMap(header.value, runtimeVars)
-      }));
-      const draftHeaders = scriptRequest.headers.map((header) => ({
-        ...header,
-        value: substituteWithMap(header.value, runtimeVars)
-      }));
-      const effectiveAuth =
-        scriptRequest.auth && scriptRequest.auth.type !== 'none'
-          ? scriptRequest.auth
-          : folderAuthConfig.type !== 'none'
-            ? folderAuthConfig
-            : collectionAuthConfig;
-      const resolvedAuth = resolveAuthVariables(effectiveAuth, (text) =>
-        substituteWithMap(text, runtimeVars)
-      );
-      let authValue = buildAuthHeaderValue(resolvedAuth);
-      const manualHasAuth = [...collectionHeaders, ...folderHeaders, ...draftHeaders].some(
-        (header) =>
-          header.enabled &&
-          header.key.trim().toLowerCase() === 'authorization' &&
-          header.value.trim() !== ''
-      );
-      if (!authValue && resolvedAuth.type === 'oauth2' && !manualHasAuth) {
-        const usesRequestAuth = scriptRequest.auth?.type === 'oauth2';
-        const usesFolderAuth =
-          !usesRequestAuth &&
-          scriptRequest.auth?.type === 'none' &&
-          folderAuthConfig.type === 'oauth2';
-        const cacheKey =
-          usesRequestAuth && currentDraft.id != null
-            ? buildOAuthCacheKey('request', currentDraft.id)
-            : usesFolderAuth && folder?.id != null
-              ? buildOAuthCacheKey('folder', folder.id)
-              : !usesRequestAuth && collection?.id != null
-                ? buildOAuthCacheKey('collection', collection.id)
-                : '';
-        const tokenResult = await window.api.oauthFetchToken(cacheKey, resolvedAuth.oauth2, false);
-        authValue = buildOAuthAuthHeaderValue(tokenResult);
-        if (!authValue) {
-          throw new Error('OAuth token response contained an invalid access token.');
-        }
-      }
-      const headers =
-        authValue && !manualHasAuth
-          ? [
-              { key: 'Authorization', value: authValue, enabled: true },
-              ...collectionHeaders,
-              ...folderHeaders,
-              ...draftHeaders
-            ]
-          : [...collectionHeaders, ...folderHeaders, ...draftHeaders];
-      const params = scriptRequest.params.map((param) => ({
-        ...param,
-        value: substituteWithMap(param.value, runtimeVars)
-      }));
-      const body = substituteWithMap(scriptRequest.body, runtimeVars);
-
-      const sendInput = applyBodyRawOverride(
+      const sendInput = await buildSendInput(
         {
-          method: scriptRequest.method,
-          url: resolvedUrl,
-          headers,
-          params,
-          body,
-          bodyType: scriptRequest.bodyType,
-          ...(currentDraft.id != null ? { sourceRequestId: currentDraft.id } : {}),
-          ...(currentDraft.name.trim() ? { sourceRequestName: currentDraft.name } : {})
+          request: scriptRequest,
+          requestIdentity: {
+            id: currentDraft.id,
+            name: currentDraft.name,
+            bodyRaw: currentDraft.body_raw
+          },
+          collection: collection
+            ? { ...collection, headers: collectionHeaderRows, auth: collectionAuthConfig }
+            : undefined,
+          folder: folder
+            ? { ...folder, headers: folderHeaderRows, auth: folderAuthConfig }
+            : undefined
         },
-        currentDraft.body_raw != null
-          ? substituteWithMap(currentDraft.body_raw, runtimeVars)
-          : null,
-        scriptRequest.bodyType
+        scriptRequest,
+        runtimeVars,
+        {
+          fetchOAuthToken: (cacheKey, config) => window.api.oauthFetchToken(cacheKey, config, false)
+        }
       );
 
       result = await window.api.sendRequest(sendInput, requestId);

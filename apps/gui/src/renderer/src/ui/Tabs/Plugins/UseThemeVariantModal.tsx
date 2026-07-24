@@ -1,7 +1,7 @@
 import { ThemeVariantPickerModal } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import type { PluginInfo } from '#/shared/plugin/types';
-import { formatThemeDisplayName } from '#/shared/plugin/themeCategory';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
+import { formatThemeDisplayName } from '@harborclient/core/plugin/themeCategory';
 import type { PluginThemeVariant } from './listPluginThemeVariants';
 
 interface Props {

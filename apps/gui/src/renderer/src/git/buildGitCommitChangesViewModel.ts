@@ -1,4 +1,4 @@
-import type { GitCommitFileChange, GitCommitPlainFileChange } from '#/shared/types';
+import type { GitCommitFileChange, GitCommitPlainFileChange } from '@harborclient/core/types';
 
 /**
  * Flat commit file rows for rendering in the commit details modal.

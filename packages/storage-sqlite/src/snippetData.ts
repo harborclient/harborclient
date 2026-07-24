@@ -1,7 +1,7 @@
-import { normalizeSnippetScope, type SnippetScope } from '#/shared/snippetScope';
-import { normalizeScriptStage } from '#/shared/scriptStage';
+import { normalizeSnippetScope, type SnippetScope } from '@harborclient/core/snippetScope';
+import { normalizeScriptStage } from '@harborclient/core/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
-import type { SnippetExport } from '#/shared/types/snippet';
+import type { SnippetExport } from '@harborclient/core/types/snippet';
 
 /**
  * Validates and normalizes a snippet export payload read from disk.

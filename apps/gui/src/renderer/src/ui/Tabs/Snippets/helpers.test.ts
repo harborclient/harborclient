@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { SnippetCatalog, SnippetCatalogEntry } from '#/shared/snippet/catalog';
-import type { InstalledSnippetPackage } from '#/shared/snippet/types';
+import type { SnippetCatalog, SnippetCatalogEntry } from '@harborclient/core/snippet/catalog';
+import type { InstalledSnippetPackage } from '@harborclient/core/snippet/types';
 import { resolvePendingSnippetInstallDeepLink } from './helpers';
 
 const sampleEntry: SnippetCatalogEntry = {

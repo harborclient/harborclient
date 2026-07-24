@@ -1,7 +1,7 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { decryptSecret, encryptSecret, type EncryptedSecret } from '#/main/secrets/secretStorage';
-import { parseJson } from '#/shared/parseJson';
-import { normalizeGitHostKey } from '#/shared/gitUrl';
+import { parseJson } from '@harborclient/core/parseJson';
+import { normalizeGitHostKey } from '@harborclient/core/gitUrl';
 import { listStorageConnections } from '#/main/settings/storageSettings';
 import { getGitIdentity, persistGitIdentityAuth, upsertGitIdentity } from './gitIdentities';
 

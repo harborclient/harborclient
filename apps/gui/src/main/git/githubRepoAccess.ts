@@ -5,8 +5,8 @@ import {
   githubSsoRequiredMessage,
   isGitHubOAuthAppRestrictionMessage,
   ownerFromOAuthAppRestrictionMessage
-} from '#/shared/gitHttpErrors';
-import { parseGitHubRepo } from '#/shared/plugin/githubRaw';
+} from '@harborclient/core/gitHttpErrors';
+import { parseGitHubRepo } from '@harborclient/core/plugin/githubRaw';
 
 /**
  * Outcome of probing a GitHub repository via the REST API.

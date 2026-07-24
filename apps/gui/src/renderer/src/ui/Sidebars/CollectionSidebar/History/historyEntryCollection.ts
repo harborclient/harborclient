@@ -1,5 +1,5 @@
-import type { RequestHistoryEntry } from '#/shared/types/requestHistory';
-import type { SavedRequest } from '#/shared/types';
+import type { RequestHistoryEntry } from '@harborclient/core/types/requestHistory';
+import type { SavedRequest } from '@harborclient/core/types';
 
 /**
  * Resolves the collection id associated with a history sidebar entry, when known.

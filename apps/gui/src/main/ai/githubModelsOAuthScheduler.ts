@@ -1,7 +1,7 @@
 import type { WebContents } from 'electron';
 import { beginGithubModelsSignIn, finishGithubModelsSignIn } from './githubModelsAuth';
 import { clearPendingGitHubDeviceFlow } from '#/main/git/githubOAuth';
-import type { GithubModelsSignInFinishedEvent } from '#/shared/types/ai';
+import type { GithubModelsSignInFinishedEvent } from '@harborclient/core/types/ai';
 
 let activeCompletion: AbortController | undefined;
 

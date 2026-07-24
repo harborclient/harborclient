@@ -1,4 +1,4 @@
-import type { TeamHub } from '#/shared/types';
+import type { TeamHub } from '@harborclient/core/types';
 
 /**
  * Creates an empty team hub form record for add flows.

@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { CopiedScriptRef } from '#/shared/types/script';
+import type { CopiedScriptRef } from '@harborclient/core/types/script';
 import type { RootState } from '#/renderer/src/store/redux';
 
 /**

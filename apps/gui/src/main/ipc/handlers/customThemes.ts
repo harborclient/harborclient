@@ -13,8 +13,8 @@ import { openImportFile } from './importDialogs';
 import {
   envelopeToImportDraft,
   validateCustomThemeExport
-} from '#/shared/plugin/customThemeExport';
-import type { CustomThemeImportDraft } from '#/shared/types/customTheme';
+} from '@harborclient/core/plugin/customThemeExport';
+import type { CustomThemeImportDraft } from '@harborclient/core/types/customTheme';
 
 /**
  * Registers IPC handlers for user-authored custom themes.

@@ -1,9 +1,9 @@
 import { FormGroup, Input, Page } from '@harborclient/sdk/components';
 import { useMemo, type JSX } from 'react';
-import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
-import type { PluginInfo } from '#/shared/plugin/types';
-import type { CustomTheme } from '#/shared/types/customTheme';
-import type { ThemeSource } from '#/shared/types';
+import type { PluginCatalogEntry } from '@harborclient/core/plugin/catalog';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
+import type { CustomTheme } from '@harborclient/core/types/customTheme';
+import type { ThemeSource } from '@harborclient/core/types';
 import { faPalette, faPuzzlePiece } from '#/renderer/src/fontawesome';
 import type { PluginManagementKind } from './constants';
 import { CustomThemeCard } from './CustomThemeCard';

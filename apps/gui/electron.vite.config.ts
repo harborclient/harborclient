@@ -77,14 +77,29 @@ function copyPluginStaticAssets(): Plugin {
   };
 }
 
+/** Resolves workspace package deep imports to their source trees. */
+const harborWorkspaceAliases = {
+  '@harborclient/core': resolve(__dirname, '../../packages/core/src'),
+  '@harborclient/storage-sqlite': resolve(__dirname, '../../packages/storage-sqlite/src')
+};
+
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin({ exclude: ['ses'] }), copyPluginStaticAssets()],
+    plugins: [
+      externalizeDepsPlugin({
+        exclude: ['ses', '@harborclient/core', '@harborclient/storage-sqlite']
+      }),
+      copyPluginStaticAssets()
+    ],
+    resolve: {
+      alias: harborWorkspaceAliases
+    },
     build: {
       rollupOptions: {
         input: {
-          index: resolve(__dirname, 'src/main/index.ts'),
-          scriptRunner: resolve(__dirname, 'src/main/scripting/scriptRunner.ts'),
+          // Product router bootstrap — classifies argv before loading GUI main.
+          index: resolve(__dirname, '../harborclient/src/index.ts'),
+          scriptRunner: resolve(__dirname, '../../packages/core/src/scripting/scriptRunner.ts'),
           pluginRunner: resolve(__dirname, 'src/main/plugins/pluginRunner.ts')
         },
         external: ['better-sqlite3'],
@@ -96,7 +111,12 @@ export default defineConfig({
     }
   },
   preload: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [
+      externalizeDepsPlugin({ exclude: ['@harborclient/core', '@harborclient/storage-sqlite'] })
+    ],
+    resolve: {
+      alias: harborWorkspaceAliases
+    },
     build: {
       rollupOptions: {
         input: {
@@ -135,6 +155,7 @@ export default defineConfig({
       dedupe: [...CODEMIRROR_DEDUPE_PACKAGES],
       alias: {
         '@images': resolve(__dirname, 'images'),
+        ...harborWorkspaceAliases,
         '@harborclient/sdk/react': resolve(__dirname, 'node_modules/react'),
         '@harborclient/sdk/react-dom': resolve(__dirname, 'node_modules/react-dom'),
         '@harborclient/sdk/jsx-runtime': resolve(__dirname, 'node_modules/react/jsx-runtime'),

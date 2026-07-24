@@ -1,9 +1,9 @@
 import type { ThemeColorToken } from '@harborclient/sdk';
-import { parseCustomThemeSource } from '#/shared/plugin/customThemeExport';
-import { parsePluginThemeValue } from '#/shared/plugin/types';
-import { CUSTOM_THEME_TOKENS } from '#/shared/types/customTheme';
-import type { CustomThemeType } from '#/shared/types/customTheme';
-import type { ThemeSource } from '#/shared/types/settings';
+import { parseCustomThemeSource } from '@harborclient/core/plugin/customThemeExport';
+import { parsePluginThemeValue } from '@harborclient/core/plugin/types';
+import { CUSTOM_THEME_TOKENS } from '@harborclient/core/types/customTheme';
+import type { CustomThemeType } from '@harborclient/core/types/customTheme';
+import type { ThemeSource } from '@harborclient/core/types/settings';
 import { getRegisteredPluginThemes } from '#/renderer/src/plugins/registry';
 import { shouldUseHighContrastTheme } from '#/renderer/src/theme';
 import { getDefaultCustomThemePalette } from './customThemeDefaults';

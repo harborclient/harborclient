@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, type JSX } from 'react';
-import type { ScriptRef } from '#/shared/types';
-import { SCRIPT_EDITOR_GROUP_HEADINGS, type ScriptEditorGroup } from '#/shared/scriptStage';
+import type { ScriptRef } from '@harborclient/core/types';
+import {
+  SCRIPT_EDITOR_GROUP_HEADINGS,
+  type ScriptEditorGroup
+} from '@harborclient/core/scriptStage';
 import {
   SCRIPT_GROUP_ENABLE_LABELS,
   scriptGroupEnabledState,

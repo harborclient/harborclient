@@ -13,7 +13,7 @@ import {
   type RequestTab,
   type Tab
 } from './tabs';
-import type { BodyType, HttpMethod, KeyValue } from '#/shared/types';
+import type { BodyType, HttpMethod, KeyValue } from '@harborclient/core/types';
 import type { TerminalTab } from '#/renderer/src/store/slices/terminalsSlice';
 import { normalizePersistedPageRef } from '#/renderer/src/store/routing';
 

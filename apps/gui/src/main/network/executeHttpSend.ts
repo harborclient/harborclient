@@ -1,9 +1,11 @@
 import type { ICookieJar } from '#/main/cookieJar/ICookieJar';
 import { applyPluginAfterSendHooks, applyPluginBeforeSendHooks } from '#/main/ipc/handlers/plugins';
 import { getGeneralSettings } from '#/main/settings/generalSettings';
-import type { PluginHttpResponse } from '#/shared/plugin/types';
-import type { SendRequestInput, SendResult } from '#/shared/types';
-import { QueryString, Requester } from '@harborclient/http';
+import type { SendRequestInput, SendResult } from '@harborclient/core/types';
+import {
+  executeHttpSend as executeCoreHttpSend,
+  isScriptNetworkAllowed as isCoreScriptNetworkAllowed
+} from '@harborclient/core/network/executeHttpSend';
 
 /**
  * Executes an HTTP request through the shared HarborClient stack.
@@ -21,29 +23,18 @@ export async function executeHttpSend(
   cookieJar: ICookieJar,
   signal?: AbortSignal
 ): Promise<SendResult> {
-  const settings = getGeneralSettings();
-  const hookedRequest = await applyPluginBeforeSendHooks(req);
-  const url = new QueryString().buildUrl(hookedRequest.url, hookedRequest.params);
-  const cookieHeader = cookieJar.buildCookieHeader(url) ?? undefined;
-  const result = await new Requester().executeRequest(
-    hookedRequest,
-    settings,
-    signal,
-    cookieHeader
+  return executeCoreHttpSend(
+    req,
+    {
+      settings: getGeneralSettings(),
+      cookieJar,
+      pluginHooks: {
+        beforeSend: applyPluginBeforeSendHooks,
+        afterSend: applyPluginAfterSendHooks
+      }
+    },
+    signal
   );
-  if (result.request?.url) {
-    cookieJar.captureSetCookies(result.request.url, result.setCookieHeaders);
-  }
-  if (!result.error) {
-    const pluginResponse: PluginHttpResponse = {
-      status: result.status,
-      statusText: result.statusText,
-      headers: result.headers,
-      body: result.body
-    };
-    await applyPluginAfterSendHooks(hookedRequest, pluginResponse);
-  }
-  return result;
 }
 
 /**
@@ -52,5 +43,5 @@ export async function executeHttpSend(
  * @returns True when hc.sendRequest may execute outbound HTTP from scripts.
  */
 export function isScriptNetworkAllowed(): boolean {
-  return getGeneralSettings().allowScriptNetworkRequests === true;
+  return isCoreScriptNetworkAllowed(getGeneralSettings());
 }

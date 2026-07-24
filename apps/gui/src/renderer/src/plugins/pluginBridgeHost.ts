@@ -16,7 +16,7 @@ import type {
   RegisteredSidebarSection,
   RegisteredStatusBarItem,
   ThemeContribution
-} from '#/shared/plugin/types';
+} from '@harborclient/core/plugin/types';
 import {
   registerActionContribution,
   registerCollectionSettingsTabContribution,

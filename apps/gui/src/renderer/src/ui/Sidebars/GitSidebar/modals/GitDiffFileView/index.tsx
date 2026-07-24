@@ -1,5 +1,5 @@
 import { useMemo, type JSX } from 'react';
-import type { GitRequestDiffFileEntry } from '#/shared/types';
+import type { GitRequestDiffFileEntry } from '@harborclient/core/types';
 import { parseGitDiffFileSides } from '#/renderer/src/git/parseGitDiffFile';
 import { GitDiffFileSummary } from './GitDiffFileSummary';
 import { GitDiffMergeView } from './GitDiffMergeView';

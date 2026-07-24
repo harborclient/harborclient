@@ -1,5 +1,5 @@
-import type { PluginInfo } from '#/shared/plugin/types';
-import { buildPluginAgentUrl } from '#/shared/plugin/pluginSurface';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
+import { buildPluginAgentUrl } from '@harborclient/core/plugin/pluginSurface';
 import { clearPluginContributions, registerThemeContribution } from './registry';
 import { clearPluginImportHandlers } from './pluginImportHandlers';
 import { applyPersistedPluginTheme } from './themeRuntime';

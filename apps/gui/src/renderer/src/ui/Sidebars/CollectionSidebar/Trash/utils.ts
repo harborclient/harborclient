@@ -1,4 +1,4 @@
-import type { TrashEntityType } from '#/shared/types/trash';
+import type { TrashEntityType } from '@harborclient/core/types/trash';
 
 /**
  * Returns a short entity-kind label for a trash row subtitle.

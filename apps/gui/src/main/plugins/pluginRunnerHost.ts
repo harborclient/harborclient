@@ -13,7 +13,7 @@ import type {
   PluginHttpRequest,
   PluginHttpResponse,
   PluginPermission
-} from '#/shared/plugin/types';
+} from '@harborclient/core/plugin/types';
 
 const PLUGIN_TIMEOUT_MS = 10000;
 

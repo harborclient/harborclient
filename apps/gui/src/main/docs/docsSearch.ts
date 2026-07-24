@@ -3,7 +3,7 @@ import { join } from 'path';
 import { app } from 'electron';
 import { create, load, search, type AnyOrama } from '@orama/orama';
 import OpenAI from 'openai';
-import type { SearchDocsToolArgs } from '#/shared/ai/tools';
+import type { SearchDocsToolArgs } from '@harborclient/core/ai/tools';
 import { logVerbose } from '#/main/logger';
 import { getAiSettings } from '#/main/settings/aiSettings';
 

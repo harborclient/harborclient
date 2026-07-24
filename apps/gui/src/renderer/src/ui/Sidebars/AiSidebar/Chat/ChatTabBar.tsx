@@ -1,7 +1,7 @@
 import { Scrollbars } from '#/renderer/src/ui/Shared/Scrollbars';
 import { FaIcon, TabBar as SdkTabBar, buildTabCloseMenuGroups } from '@harborclient/sdk/components';
 import { useMemo, type JSX, type ReactNode } from 'react';
-import type { AiSettings } from '#/shared/types';
+import type { AiSettings } from '@harborclient/core/types';
 
 import { faComment } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';

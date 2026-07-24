@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
-import type { ShortcutBinding } from '#/shared/types';
-import { formatAcceleratorDisplay } from '#/shared/shortcuts';
+import type { ShortcutBinding } from '@harborclient/core/types';
+import { formatAcceleratorDisplay } from '@harborclient/core/shortcuts';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { closeShortcutsReferenceModal } from '#/renderer/src/store/slices/modalsSlice';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';

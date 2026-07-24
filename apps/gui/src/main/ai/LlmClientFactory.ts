@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import { getValidGithubModelsAccessToken } from './githubModelsAuth';
 import { resolveLlmClientOptions } from './llmClientOptions';
 import { getAiSettings } from '#/main/settings/aiSettings';
-import type { LlmProvider } from '#/shared/types';
+import type { LlmProvider } from '@harborclient/core/types';
 
 const GITHUB_MODELS_BASE_URL = 'https://models.github.ai/inference';
 const GITHUB_API_VERSION = '2026-03-10';

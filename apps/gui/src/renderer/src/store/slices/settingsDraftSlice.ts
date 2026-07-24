@@ -3,8 +3,13 @@ import {
   normalizeCodeEditorFontSize,
   normalizeCodeEditorSetup,
   normalizeCodeEditorTheme
-} from '#/shared/codeEditorSettings';
-import type { AiSettings, CodeEditorSetup, GeneralSettings, ProxySettings } from '#/shared/types';
+} from '@harborclient/core/codeEditorSettings';
+import type {
+  AiSettings,
+  CodeEditorSetup,
+  GeneralSettings,
+  ProxySettings
+} from '@harborclient/core/types';
 import type { RootState } from '#/renderer/src/store/redux';
 import {
   DEFAULT_AI_SETTINGS,

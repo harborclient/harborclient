@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX } from 'react';
 import { portalToBody } from '@harborclient/sdk/components';
-import { groupAvailableModels, type AiModelOption } from '#/shared/ai/models';
+import { groupAvailableModels, type AiModelOption } from '@harborclient/core/ai/models';
 import {
   computeAiModelSelectMenuPosition,
   type AiModelSelectMenuPosition

@@ -1,6 +1,6 @@
 import { FormGroup, Input } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import type { PostgresSettings } from '#/shared/types';
+import type { PostgresSettings } from '@harborclient/core/types';
 
 interface Props {
   /**

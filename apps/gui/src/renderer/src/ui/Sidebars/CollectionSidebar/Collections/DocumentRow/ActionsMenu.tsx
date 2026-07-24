@@ -6,7 +6,7 @@ import {
 } from '#/renderer/src/ui/Shared/devInspectContextMenu';
 import { SidebarRowActionsMenu } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/SidebarRowActionsMenu';
 import { buildGitItemMenuGroups } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/buildGitItemMenuGroups';
-import type { CollectionDocument, GitRequestFileStatus } from '#/shared/types';
+import type { CollectionDocument, GitRequestFileStatus } from '@harborclient/core/types';
 import type { MenuItem } from '@harborclient/sdk/components';
 import { type JSX, useMemo } from 'react';
 

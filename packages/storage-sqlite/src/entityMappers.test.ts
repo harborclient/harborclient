@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
-import { FOLDER_SETTINGS_DEFAULTS } from '#/shared/testFixtures/folder';
+import { defaultAuth } from '@harborclient/core/auth';
+import { FOLDER_SETTINGS_DEFAULTS } from '@harborclient/core/testFixtures/folder';
 import {
   docToCollection,
   docToEnvironment,

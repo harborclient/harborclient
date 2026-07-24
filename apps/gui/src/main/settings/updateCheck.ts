@@ -1,6 +1,6 @@
 import { app } from 'electron';
 import { isNewerVersion, normalizeVersion } from './versionCompare';
-import type { UpdateCheckResult } from '#/shared/types';
+import type { UpdateCheckResult } from '@harborclient/core/types';
 
 const RELEASES_URL = 'https://github.com/harborclient/harborclient/releases';
 const GITHUB_LATEST_RELEASE_URL =

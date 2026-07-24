@@ -1,6 +1,6 @@
 import { FormGroup, Input } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import type { SqliteSettings } from '#/shared/types';
+import type { SqliteSettings } from '@harborclient/core/types';
 
 interface Props {
   /**

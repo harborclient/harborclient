@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { GitAuthMethod, StorageConnection } from '#/shared/types';
+import type { GitAuthMethod, StorageConnection } from '@harborclient/core/types';
 
 const mockConnections: StorageConnection[] = [];
 const identityByHost = new Map<

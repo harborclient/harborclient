@@ -1,4 +1,4 @@
-import type { McpServerSettings, McpServerStatus } from '#/shared/types';
+import type { McpServerSettings, McpServerStatus } from '@harborclient/core/types';
 
 /**
  * Builds a paste-ready MCP server entry for Cursor / Claude Desktop config files.

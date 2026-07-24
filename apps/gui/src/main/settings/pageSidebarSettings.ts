@@ -1,5 +1,8 @@
 import Store from 'electron-store';
-import { normalizePageSidebarKey, normalizePageSidebarSection } from '#/shared/pageSidebarSection';
+import {
+  normalizePageSidebarKey,
+  normalizePageSidebarSection
+} from '@harborclient/core/pageSidebarSection';
 
 const STORE_KEY = 'pageSidebarSections';
 

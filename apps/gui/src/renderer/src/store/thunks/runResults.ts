@@ -1,7 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
-import { resolveImportedRunnerTargetIds } from '#/shared/collectionRunner';
-import type { SaveRunResultInput } from '#/shared/collectionRunner';
+import { resolveImportedRunnerTargetIds } from '@harborclient/core/collectionRunner';
+import type { SaveRunResultInput } from '@harborclient/core/collectionRunner';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
 import { syncTrash } from './trash';
 import {

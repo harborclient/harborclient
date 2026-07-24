@@ -1,7 +1,7 @@
 import { useMemo, type JSX } from 'react';
-import type { AuthConfig, Folder, KeyValue, ScriptRef, Variable } from '#/shared/types';
-import { normalizeAuth } from '#/shared/auth';
-import { resolveScriptRefs } from '#/shared/scriptRefs';
+import type { AuthConfig, Folder, KeyValue, ScriptRef, Variable } from '@harborclient/core/types';
+import { normalizeAuth } from '@harborclient/core/auth';
+import { resolveScriptRefs } from '@harborclient/core/scriptRefs';
 import { GeneralSection } from './GeneralSection';
 import { ScopedAuthSection } from '#/renderer/src/ui/Shared/ScopedSettings/ScopedAuthSection';
 import { ScopedHeadersSection } from '#/renderer/src/ui/Shared/ScopedSettings/ScopedHeadersSection';

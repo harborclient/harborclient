@@ -1,4 +1,4 @@
-import type { SerializableMenuContribution } from '#/shared/plugin/types';
+import type { SerializableMenuContribution } from '@harborclient/core/plugin/types';
 
 let menuContributions: SerializableMenuContribution[] = [];
 

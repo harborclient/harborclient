@@ -1,6 +1,6 @@
-import { defaultAuth, type AuthConfig } from '#/shared/auth';
-import { serializeFormParts } from '#/shared/formData';
-import { serializeUrlEncodedParts } from '#/shared/urlencoded';
+import { defaultAuth, type AuthConfig } from '@harborclient/core/auth';
+import { serializeFormParts } from '@harborclient/core/formData';
+import { serializeUrlEncodedParts } from '@harborclient/core/urlencoded';
 import type {
   BodyType,
   CollectionExport,
@@ -9,8 +9,8 @@ import type {
   HttpMethod,
   KeyValue,
   Variable
-} from '#/shared/types';
-import { scriptRefsFromLegacyString } from '#/shared/scriptRefs';
+} from '@harborclient/core/types';
+import { scriptRefsFromLegacyString } from '@harborclient/core/scriptRefs';
 
 /**
  * HTTP methods HarborClient accepts for saved requests.

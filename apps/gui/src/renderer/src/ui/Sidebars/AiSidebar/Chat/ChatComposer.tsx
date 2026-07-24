@@ -4,8 +4,8 @@ import {
   getAvailableModels,
   getAiModelOptionGroupLabel,
   resolveAiModelOption
-} from '#/shared/ai/models';
-import type { AiSettings } from '#/shared/types';
+} from '@harborclient/core/ai/models';
+import type { AiSettings } from '@harborclient/core/types';
 import { faArrowUp, faStop } from '#/renderer/src/fontawesome';
 import { AiModelSelect } from '#/renderer/src/ui/Shared/AiModelSelect';
 

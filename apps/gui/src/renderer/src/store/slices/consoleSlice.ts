@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { ScriptExecutionEvent, ScriptTestResult, SendResult } from '#/shared/types';
+import type { ScriptExecutionEvent, ScriptTestResult, SendResult } from '@harborclient/core/types';
 
 /**
  * A single entry in the global session console log.

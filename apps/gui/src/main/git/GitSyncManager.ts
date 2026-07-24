@@ -14,9 +14,9 @@ import {
 import { countConflictFiles, pullMergeConflictMessage } from './slug';
 import { buildGitGraphLog, readGitCommitDetail } from './gitGraph';
 import { validateRemoteCredentials, type GitRemoteValidationResult } from './gitRemoteValidation';
-import { formatGitHttpError, type GitHttpOperation } from '#/shared/gitHttpErrors';
-import { normalizeGitHostKey } from '#/shared/gitUrl';
-import { parseGitHubRepo } from '#/shared/plugin/githubRaw';
+import { formatGitHttpError, type GitHttpOperation } from '@harborclient/core/gitHttpErrors';
+import { normalizeGitHostKey } from '@harborclient/core/gitUrl';
+import { parseGitHubRepo } from '@harborclient/core/plugin/githubRaw';
 import { getGitIdentity } from './gitIdentities';
 import type {
   GitCommitDetail,
@@ -24,7 +24,7 @@ import type {
   GitLogEntry,
   GitSettings,
   SourceControlStatus
-} from '#/shared/types';
+} from '@harborclient/core/types';
 
 /**
  * Git operations for a single linked repository working tree.

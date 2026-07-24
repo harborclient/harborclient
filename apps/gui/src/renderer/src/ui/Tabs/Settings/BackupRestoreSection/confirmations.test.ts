@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { GeneralSettings } from '#/shared/types';
+import type { GeneralSettings } from '@harborclient/core/types';
 import {
   areAllConfirmationsDisabled,
   areAllConfirmationsEnabled,

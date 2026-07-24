@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { hasAvailableAiModels } from '#/shared/ai/models';
-import type { AiSettings } from '#/shared/types';
+import { hasAvailableAiModels } from '@harborclient/core/ai/models';
+import type { AiSettings } from '@harborclient/core/types';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectGithubModelsConnected,

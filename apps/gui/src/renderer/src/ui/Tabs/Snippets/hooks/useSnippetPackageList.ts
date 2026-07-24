@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { InstalledSnippetPackage } from '#/shared/snippet/types';
+import type { InstalledSnippetPackage } from '@harborclient/core/snippet/types';
 
 interface UseSnippetPackageListResult {
   installedPackages: InstalledSnippetPackage[];

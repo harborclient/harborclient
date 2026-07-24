@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-import type { SnippetCatalogEntry } from '#/shared/snippet/catalog';
-import type { SnippetGitPreview } from '#/shared/snippet/types';
+import type { SnippetCatalogEntry } from '@harborclient/core/snippet/catalog';
+import type { SnippetGitPreview } from '@harborclient/core/snippet/types';
 
 interface UseSnippetCatalogDetailResult {
   catalogDetailEntry: SnippetCatalogEntry | null;

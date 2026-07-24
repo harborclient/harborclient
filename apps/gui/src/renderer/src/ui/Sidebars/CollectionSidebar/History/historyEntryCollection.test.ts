@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { RequestHistoryEntry } from '#/shared/types/requestHistory';
-import type { SavedRequest } from '#/shared/types';
+import type { RequestHistoryEntry } from '@harborclient/core/types/requestHistory';
+import type { SavedRequest } from '@harborclient/core/types';
 import { historyEntryCollectionId } from './historyEntryCollection';
 
 /**

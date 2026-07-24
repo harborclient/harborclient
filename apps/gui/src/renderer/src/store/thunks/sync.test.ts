@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
-import type { Collection } from '#/shared/types';
+import { defaultAuth } from '@harborclient/core/auth';
+import type { Collection } from '@harborclient/core/types';
 
 vi.mock('react-hot-toast', () => ({
   default: { success: vi.fn(), error: vi.fn(), loading: vi.fn(), dismiss: vi.fn() }

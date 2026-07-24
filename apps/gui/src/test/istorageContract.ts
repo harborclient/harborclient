@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { mergeContainerItems } from '#/shared/collectionContainerOrder';
+import { mergeContainerItems } from '@harborclient/core/collectionContainerOrder';
 import type { IStorage } from '#/main/storage/IStorage';
-import { defaultAuth } from '#/shared/auth';
-import type { CollectionExport, SaveDocumentInput, SaveRequestInput } from '#/shared/types';
+import { defaultAuth } from '@harborclient/core/auth';
+import type {
+  CollectionExport,
+  SaveDocumentInput,
+  SaveRequestInput
+} from '@harborclient/core/types';
 
 export interface TestDbHandle {
   db: IStorage;

@@ -1,7 +1,7 @@
 import 'ses';
 import { transform } from 'esbuild';
-import type { ScriptRunInput, ScriptRunResult } from '#/shared/types';
-import { normalizeAuth } from '#/shared/auth';
+import type { ScriptRunInput, ScriptRunResult } from '@harborclient/core/types';
+import { normalizeAuth } from '@harborclient/core/auth';
 import { createScriptApi, type ScriptApiOptions } from './scriptApi';
 import { bundleUserScript, scriptUsesModuleSyntax } from './scriptSnippetBundler';
 

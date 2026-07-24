@@ -1,7 +1,7 @@
 import { Button, FormGroup, Input, ModalFooter } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useId, useRef, useState, type JSX } from 'react';
-import type { StorageConnection } from '#/shared/types';
-import { normalizeGitHostKey } from '#/shared/gitUrl';
+import type { StorageConnection } from '@harborclient/core/types';
+import { normalizeGitHostKey } from '@harborclient/core/gitUrl';
 
 import { Modal } from '@harborclient/sdk/components';
 import {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { HubInvitationRecord } from '#/shared/types';
+import type { HubInvitationRecord } from '@harborclient/core/types';
 
 interface UseTeamHubInvitationsResult {
   /**

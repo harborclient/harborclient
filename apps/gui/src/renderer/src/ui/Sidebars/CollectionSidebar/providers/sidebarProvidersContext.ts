@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { CollectionProviderKind } from '#/shared/types';
+import type { CollectionProviderKind } from '@harborclient/core/types';
 import type { ProviderOption } from '#/renderer/src/hooks/useProviders';
 
 /**

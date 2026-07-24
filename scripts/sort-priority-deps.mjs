@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../apps/gui')
 const packageJsonPath = path.join(projectRoot, 'package.json')
 
 /**
@@ -10,6 +10,7 @@ const packageJsonPath = path.join(projectRoot, 'package.json')
  * in this order, so they stay visible above the long alphabetical tail.
  */
 const PRIORITY_DEPENDENCIES = [
+  '@harborclient/core',
   '@harborclient/http',
   '@harborclient/sdk',
   '@harborclient/team-hub-api'

@@ -1,9 +1,9 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import type { CollectionExportResult, Environment, Variable } from '#/shared/types';
+import type { CollectionExportResult, Environment, Variable } from '@harborclient/core/types';
 import {
   appendMissingEnvironmentVariables,
   mergeEnvironmentVariables
-} from '#/shared/environmentVariables';
+} from '@harborclient/core/environmentVariables';
 import {
   reorderEnvironmentsLocal,
   setActiveEnvironmentId,

@@ -9,9 +9,9 @@ import {
 } from '@harborclient/sdk/components';
 import { useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import { snippetScopeLabel } from '#/shared/snippetScope';
-import { DEFAULT_SCRIPT_STAGE } from '#/shared/scriptStage';
-import type { TeamHub, TeamHubAdminSnippet } from '#/shared/types';
+import { snippetScopeLabel } from '@harborclient/core/snippetScope';
+import { DEFAULT_SCRIPT_STAGE } from '@harborclient/core/scriptStage';
+import type { TeamHub, TeamHubAdminSnippet } from '@harborclient/core/types';
 
 import { faPlus, faCode } from '#/renderer/src/fontawesome';
 

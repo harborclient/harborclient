@@ -1,5 +1,5 @@
-import type { BuiltinThemeId } from '#/shared/builtinThemes';
-import type { ThemeSource } from '#/shared/types';
+import type { BuiltinThemeId } from '@harborclient/core/builtinThemes';
+import type { ThemeSource } from '@harborclient/core/types';
 
 /**
  * Returns whether the OS requests increased contrast via `prefers-contrast: more`.

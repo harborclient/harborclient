@@ -1,6 +1,6 @@
 import { RowActionsMenu, type MenuItem } from '@harborclient/sdk/components';
 import { type JSX, useMemo } from 'react';
-import type { TrashItem } from '#/shared/types/trash';
+import type { TrashItem } from '@harborclient/core/types/trash';
 
 import {
   buildDevInspectMenuGroups,

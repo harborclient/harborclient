@@ -1,4 +1,4 @@
-import type { AiModelOption } from '#/shared/ai/models';
+import type { AiModelOption } from '@harborclient/core/ai/models';
 
 const STORAGE_KEY = 'harborclient.gitCommitMessageModelId';
 

@@ -1,6 +1,6 @@
 import { afterAll, afterEach, expect, it, vi } from 'vitest';
 import { FirestoreStorage } from './FirestoreStorage';
-import { defaultAuth } from '#/shared/auth';
+import { defaultAuth } from '@harborclient/core/auth';
 import {
   closeSharedSqlBackends,
   createFirestoreTestDbFactory,
@@ -12,7 +12,7 @@ import {
   baseRequestInput,
   type TestDbHandle
 } from '#/test/istorageContract';
-import type { CollectionExport } from '#/shared/types';
+import type { CollectionExport } from '@harborclient/core/types';
 
 const cleanups: Array<() => void | Promise<void>> = [];
 

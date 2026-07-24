@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { formatAcceleratorDisplay } from '#/shared/shortcuts';
+import { formatAcceleratorDisplay } from '@harborclient/core/shortcuts';
 
 const DEFAULT_SEND_REQUEST_ACCELERATOR = 'F5';
 

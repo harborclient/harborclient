@@ -48,6 +48,7 @@ jobs:
 
       - name: Bump version
         id: bump
+        working-directory: apps/harborclient
         run: |
           set -euo pipefail
           VERSION=$(pnpm version "${{ inputs.release_type }}" --no-git-tag-version | tail -n1 | sed 's/^v//')
@@ -96,7 +97,7 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json CHANGELOG.md
+          git add apps/harborclient/package.json CHANGELOG.md
           git commit -m "chore(changelog): release v${VERSION} [skip ci]"
           git tag -a "v${VERSION}" -m "Release v${VERSION}"
           git push origin HEAD:main --follow-tags
@@ -189,6 +190,7 @@ jobs:
           fi
 
       - name: Build and publish
+        working-directory: apps/harborclient
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: true
@@ -196,7 +198,7 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASS }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           DEBUG: electron-notarize*
-        run: pnpm build && npx electron-builder build ${{ matrix.args }} --publish always
+        run: pnpm dist -- ${{ matrix.args }} --publish always
 
   build-rpm:
     needs: release
@@ -227,7 +229,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build and publish RPM
+        working-directory: apps/harborclient
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: true
-        run: pnpm build && npx electron-builder build --linux rpm --publish always
+        run: pnpm dist -- --linux rpm --publish always

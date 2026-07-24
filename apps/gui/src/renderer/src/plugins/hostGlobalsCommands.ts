@@ -1,5 +1,5 @@
 import type { PluginVariableInput } from '@harborclient/sdk';
-import type { Variable } from '#/shared/types';
+import type { Variable } from '@harborclient/core/types';
 import { store } from '#/renderer/src/store/redux';
 import { saveGlobalVariables } from '#/renderer/src/store/thunks/settings';
 import { registerCommand } from './createPluginContext';

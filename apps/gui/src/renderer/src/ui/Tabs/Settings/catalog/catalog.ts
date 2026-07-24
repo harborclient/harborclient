@@ -1,1 +1,1 @@
-export * from '#/shared/search/settingsCatalog';
+export * from '@harborclient/core/search/settingsCatalog';

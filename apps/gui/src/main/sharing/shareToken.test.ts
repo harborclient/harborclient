@@ -16,7 +16,7 @@ import {
   asCipherKey,
   concatBuffers
 } from '#/main/crypto/bufferAdapters';
-import type { StorageConnection } from '#/shared/types';
+import type { StorageConnection } from '@harborclient/core/types';
 import {
   createShareToken,
   SHARE_TTL_MS,
@@ -26,7 +26,7 @@ import {
   type ShareCollectionMeta
 } from './shareToken';
 import type { SpentShareTokenStore } from './spentShareTokens';
-import type { TrustedSharingKey } from '#/shared/types';
+import type { TrustedSharingKey } from '@harborclient/core/types';
 
 interface TestKeyPair {
   privateKey: string;

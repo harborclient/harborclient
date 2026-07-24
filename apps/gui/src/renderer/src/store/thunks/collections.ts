@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
-import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
+import type { ContainerItemRef } from '@harborclient/core/collectionContainerOrder';
 import type {
   AuthConfig,
   Collection,
@@ -13,13 +13,13 @@ import type {
   ScriptRef,
   StorageConnection,
   Variable
-} from '#/shared/types';
+} from '@harborclient/core/types';
 import {
   resolveGitChangeSidebarTarget,
   type GitChangeSidebarTarget
 } from '#/renderer/src/git/resolveGitChangeSidebarTarget';
-import { mirrorLegacyScriptString } from '#/shared/scriptRefs';
-import { resolveImportedRunnerTargetIds } from '#/shared/collectionRunner';
+import { mirrorLegacyScriptString } from '@harborclient/core/scriptRefs';
+import { resolveImportedRunnerTargetIds } from '@harborclient/core/collectionRunner';
 import {
   focusSidebarItem as focusSidebarItemAction,
   moveContainerItemLocal,

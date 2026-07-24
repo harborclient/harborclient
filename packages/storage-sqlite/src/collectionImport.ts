@@ -1,4 +1,4 @@
-import { defaultAuth } from '#/shared/auth';
+import { defaultAuth } from '@harborclient/core/auth';
 import type {
   AuthConfig,
   CollectionDocument,
@@ -11,13 +11,13 @@ import type {
   SavedRequest,
   ScriptRef,
   Variable
-} from '#/shared/types';
+} from '@harborclient/core/types';
 import { bundleScriptFieldsWithLegacy } from './scriptFields';
 import { maskVariablesForExport } from './collectionData';
 import { resolveImportUuid } from './uuid';
-import { normalizeRequestTags } from '#/shared/requestTags';
+import { normalizeRequestTags } from '@harborclient/core/requestTags';
 import { serializeSidebarColor } from './sidebarColorMigration';
-import { mirrorLegacyScriptString, resolveScriptRefs } from '#/shared/scriptRefs';
+import { mirrorLegacyScriptString, resolveScriptRefs } from '@harborclient/core/scriptRefs';
 
 /**
  * Maps built during folder import for resolving request folder placement.

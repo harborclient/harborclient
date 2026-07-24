@@ -1,4 +1,4 @@
-import type { Collection, CollectionProviderKind } from '#/shared/types';
+import type { Collection, CollectionProviderKind } from '@harborclient/core/types';
 import { buildReorderMenuGroup, type MenuItem } from '@harborclient/sdk/components';
 import { type JSX, useMemo } from 'react';
 

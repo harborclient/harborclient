@@ -1,5 +1,5 @@
 import type { Extension } from '@codemirror/state';
-import type { Variable } from '#/shared/types';
+import type { Variable } from '@harborclient/core/types';
 import { useEffect, useMemo, useState } from 'react';
 import { isAppearanceDark } from '#/renderer/src/appearanceTheme';
 import { subscribeThemeColorsApplied } from '#/renderer/src/plugins/themeRuntime';

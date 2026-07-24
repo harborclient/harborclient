@@ -3,7 +3,7 @@ import {
   DEFAULT_COLLECTION_RUNNER_CONFIG,
   normalizeCollectionRunnerConfig,
   type CollectionRunnerConfig
-} from '#/shared/collectionRunner';
+} from '@harborclient/core/collectionRunner';
 
 const STORE_KEY = 'collectionRunnerConfig';
 

@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { CollectionDocument, SavedRequest } from '#/shared/types';
+import type { CollectionDocument, SavedRequest } from '@harborclient/core/types';
 import {
   cloneDraft,
   createMarkdownTab,

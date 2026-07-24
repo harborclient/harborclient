@@ -12,7 +12,7 @@ import {
   resolveAiScriptReferenceLabel,
   type AiScriptReferenceValidationContext,
   type ParsedAiScriptReference
-} from '#/shared/ai/scriptReferences';
+} from '@harborclient/core/ai/scriptReferences';
 
 const ANCHORED_REFERENCE_PATTERN = new RegExp(`^${AI_SCRIPT_REFERENCE_PATTERN.source}`);
 

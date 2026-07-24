@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { defaultAuth, type AuthConfig } from '#/shared/auth';
-import type { HttpMethod } from '#/shared/types';
+import { defaultAuth, type AuthConfig } from '@harborclient/core/auth';
+import type { HttpMethod } from '@harborclient/core/types';
 import {
   findAiScriptReferenceCandidates,
   isValidAiScriptReference,
   resolveAiScriptReferenceLabel
-} from '#/shared/ai/scriptReferences';
-import { createInlineScriptRef } from '#/shared/scriptRefs';
+} from '@harborclient/core/ai/scriptReferences';
+import { createInlineScriptRef } from '@harborclient/core/scriptRefs';
 import { openPageTab, openTabWithDraft } from '#/renderer/src/store/slices/tabsSlice';
 import { selectEffectiveActiveRequestTab } from '#/renderer/src/store/selectors';
 import { buildAiScriptReferenceValidationContext } from './useAiScriptReferenceValidationContext';

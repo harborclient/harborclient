@@ -2,7 +2,7 @@ import { createPrivateKey, createPublicKey, generateKeyPairSync, sign, verify } 
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { publicKeyFingerprint } from './shareToken';
-import type { SharingIdentity } from '#/shared/types';
+import type { SharingIdentity } from '@harborclient/core/types';
 
 const PRIVATE_KEY_FILENAME = 'sharing-key.pem';
 const PUBLIC_KEY_FILENAME = 'sharing-pub.pem';

@@ -21,7 +21,7 @@ import {
   runIstorageContractSuite,
   type TestDbHandle
 } from '#/test/istorageContract';
-import type { GitSettings } from '#/shared/types';
+import type { GitSettings } from '@harborclient/core/types';
 
 const cleanups: Array<() => void> = [];
 

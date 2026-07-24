@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Environment } from '#/shared/types';
+import type { Environment } from '@harborclient/core/types';
 import environmentsReducer, { reorderEnvironmentsLocal } from './environmentsSlice';
 import type { EnvironmentsState } from './environmentsSlice';
 

@@ -3,8 +3,8 @@ import { getHubOpenAiCapability, setHubOpenAiCapability } from './hubCapabilitie
 import { logVerbose } from '#/main/logger';
 import { mergeMcpClientTools } from '#/main/mcp/mergeMcpClientTools';
 import { listTeamHubs } from '#/main/settings/teamHubSettings';
-import { resolveChatStepMode } from '#/shared/ai/chatStepMode';
-import type { ChatStepInput, ChatStepResult, HubLlmModelGroup } from '#/shared/types';
+import { resolveChatStepMode } from '@harborclient/core/ai/chatStepMode';
+import type { ChatStepInput, ChatStepResult, HubLlmModelGroup } from '@harborclient/core/types';
 
 /**
  * Optional runtime controls for one hub chat step.

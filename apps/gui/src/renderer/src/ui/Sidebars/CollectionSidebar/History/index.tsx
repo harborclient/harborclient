@@ -1,6 +1,6 @@
 import { EmptySectionLabel, SidebarHistoryItem } from '@harborclient/sdk/components';
 import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
-import type { RequestHistoryEntry } from '#/shared/types/requestHistory';
+import type { RequestHistoryEntry } from '@harborclient/core/types/requestHistory';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectRequestsByCollection } from '#/renderer/src/store/selectors';

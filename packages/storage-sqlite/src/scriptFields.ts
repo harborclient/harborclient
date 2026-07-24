@@ -1,11 +1,11 @@
-import type { ScriptRef } from '#/shared/types';
+import type { ScriptRef } from '@harborclient/core/types';
 import {
   mirrorLegacyScriptString,
   normalizeScriptRefs,
   readScriptRefsFromJson,
   resolveScriptRefs,
   serializeScriptRefs
-} from '#/shared/scriptRefs';
+} from '@harborclient/core/scriptRefs';
 
 /**
  * Legacy string and JSON column values persisted together for script lists.

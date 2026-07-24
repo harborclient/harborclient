@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - resources/docsSearchIndex.json
+      - apps/gui/resources/docsSearchIndex.json
 
 permissions:
   contents: read

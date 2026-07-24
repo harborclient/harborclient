@@ -6,7 +6,7 @@ import Papa from 'papaparse';
 import { normalizePath, resolveRealPath } from '#/main/plugins/pluginFsAllowlist';
 import { getGeneralSettings } from '#/main/settings/generalSettings';
 import { listStorageConnections } from '#/main/settings/storageSettings';
-import type { GitSettings } from '#/shared/types';
+import type { GitSettings } from '@harborclient/core/types';
 
 /**
  * Maximum bytes a script may read or write in a single file operation.

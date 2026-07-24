@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'fs';
 import { dirname, join, normalize, relative, resolve } from 'path';
-import type { PluginManifest, PluginScreenshot } from '#/shared/plugin/types';
+import type { PluginManifest, PluginScreenshot } from '@harborclient/core/plugin/types';
 
 const MANIFEST_FILENAME = 'manifest.json';
 

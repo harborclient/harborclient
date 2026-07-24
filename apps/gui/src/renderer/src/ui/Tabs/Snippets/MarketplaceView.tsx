@@ -1,11 +1,11 @@
 import { FormGroup, Select } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import { faStore } from '#/renderer/src/fontawesome';
-import type { SnippetCatalogEntry } from '#/shared/snippet/catalog';
+import type { SnippetCatalogEntry } from '@harborclient/core/snippet/catalog';
 import {
   PLUGIN_CATALOG_CATEGORIES,
   PLUGIN_CATALOG_CATEGORY_LABELS
-} from '#/shared/plugin/catalogCategories';
+} from '@harborclient/core/plugin/catalogCategories';
 import { MarketplaceBrowseView } from '#/renderer/src/ui/Shared/Marketplace/MarketplaceBrowseView';
 import { CatalogCard } from './CatalogCard';
 

@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import type { SendResult } from '#/shared/types';
+import type { SendResult } from '@harborclient/core/types';
 import { formatBytes } from '#/renderer/src/ui/Shared/responseFormatUtils';
 import {
   buildTimingRows,

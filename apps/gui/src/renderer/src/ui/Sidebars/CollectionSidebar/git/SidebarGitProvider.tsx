@@ -56,7 +56,7 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
   } | null>(null);
   const [branchesReloadToken, setBranchesReloadToken] = useState(0);
   const [itemGitStatusByUuid, setItemGitStatusByUuid] = useState<
-    Record<string, import('#/shared/types').GitRequestFileStatus>
+    Record<string, import('@harborclient/core/types').GitRequestFileStatus>
   >({});
   const [changedItemCountByCollectionUuid, setChangedItemCountByCollectionUuid] = useState<
     Record<string, number>
@@ -120,7 +120,7 @@ export function SidebarGitProvider({ children }: ProviderProps): JSX.Element {
       return;
     }
 
-    const merged: Record<string, import('#/shared/types').GitRequestFileStatus> = {};
+    const merged: Record<string, import('@harborclient/core/types').GitRequestFileStatus> = {};
     const countsByCollectionUuid: Record<string, number> = {};
     await Promise.all(
       gitCollections.map(async (collection) => {

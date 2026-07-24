@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { TabGroup } from '#/shared/types/tabGroup';
+import type { TabGroup } from '@harborclient/core/types/tabGroup';
 import type { RootState } from '#/renderer/src/store/redux';
 
 /**

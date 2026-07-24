@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import { compareVersions, normalizeVersion } from '#/main/settings/versionCompare';
 import { scriptStage } from '#/main/schemas/scriptRef';
-import { sanitizePluginCatalogCategories } from '#/shared/plugin/catalogCategories';
+import { sanitizePluginCatalogCategories } from '@harborclient/core/plugin/catalogCategories';
 import type { ScriptStage } from '@harborclient/sdk';
-import type { SnippetScope } from '#/shared/snippetScope';
+import type { SnippetScope } from '@harborclient/core/snippetScope';
 
 const snippetScopeSchema = z.enum([
   'pre-request',

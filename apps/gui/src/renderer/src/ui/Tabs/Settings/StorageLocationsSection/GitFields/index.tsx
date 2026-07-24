@@ -1,13 +1,13 @@
 import { Button, FormGroup, Input } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useId, useRef, useState, type JSX } from 'react';
-import type { StorageConnection, GitSettings } from '#/shared/types';
-import { normalizeGitHostKey } from '#/shared/gitUrl';
+import type { StorageConnection, GitSettings } from '@harborclient/core/types';
+import { normalizeGitHostKey } from '@harborclient/core/gitUrl';
 import {
   formatGitHttpError,
   emptyRemoteConnectionTestMessage,
   readOnlyRepoAccessMessage,
   successfulConnectionTestMessage
-} from '#/shared/gitHttpErrors';
+} from '@harborclient/core/gitHttpErrors';
 
 import { GitAuthForm } from '#/renderer/src/ui/Shared/Git/GitAuthForm';
 import { useAppDispatch } from '#/renderer/src/store/hooks';

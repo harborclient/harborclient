@@ -1,6 +1,10 @@
 import { TeamHubClient, TeamHubClientError } from '@harborclient/team-hub-api';
 import { setHubOpenAiCapability } from '#/main/ai/hubCapabilities';
-import type { TeamHub, TeamHubServiceFlags, TeamHubSessionScanResult } from '#/shared/types';
+import type {
+  TeamHub,
+  TeamHubServiceFlags,
+  TeamHubSessionScanResult
+} from '@harborclient/core/types';
 
 /**
  * Returns hub service flags with every service marked unavailable.

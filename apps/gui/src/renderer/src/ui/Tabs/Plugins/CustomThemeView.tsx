@@ -1,6 +1,6 @@
 import { Button, FormGroup, Input, Page, Select } from '@harborclient/sdk/components';
 import { useCallback, useEffect, type JSX } from 'react';
-import type { CustomTheme } from '#/shared/types/customTheme';
+import type { CustomTheme } from '@harborclient/core/types/customTheme';
 import { faWandMagicSparkles } from '#/renderer/src/fontawesome';
 import { useTabSaveRegistration } from '#/renderer/src/hooks/tabSaveRegistry';
 import { useAppDispatch } from '#/renderer/src/store/hooks';

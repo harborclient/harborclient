@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { defaultAuth, type AuthConfig } from '#/shared/auth';
-import type { HttpMethod } from '#/shared/types';
-import { createInlineScriptRef } from '#/shared/scriptRefs';
+import { defaultAuth, type AuthConfig } from '@harborclient/core/auth';
+import type { HttpMethod } from '@harborclient/core/types';
+import { createInlineScriptRef } from '@harborclient/core/scriptRefs';
 import { isRequestTab } from './tabs';
 import {
   loadDocument,

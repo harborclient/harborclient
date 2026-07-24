@@ -1,5 +1,5 @@
 import { addActivePlugin$, addComposerChild$, Cell, realmPlugin } from '@mdxeditor/editor';
-import type { Variable } from '#/shared/types';
+import type { Variable } from '@harborclient/core/types';
 
 import { VariableHighlightComposer } from './VariableHighlightComposer';
 

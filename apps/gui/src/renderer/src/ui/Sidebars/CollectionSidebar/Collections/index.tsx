@@ -17,8 +17,13 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { useCallback, useEffect, useMemo, useState, type JSX, type MouseEvent } from 'react';
-import { toContainerItemRefs } from '#/shared/collectionContainerOrder';
-import type { Collection, CollectionDocument, Folder, SavedRequest } from '#/shared/types';
+import { toContainerItemRefs } from '@harborclient/core/collectionContainerOrder';
+import type {
+  Collection,
+  CollectionDocument,
+  Folder,
+  SavedRequest
+} from '@harborclient/core/types';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveDocumentId,

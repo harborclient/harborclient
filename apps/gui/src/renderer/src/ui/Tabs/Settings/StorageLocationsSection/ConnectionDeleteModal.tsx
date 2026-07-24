@@ -1,6 +1,6 @@
 import { Button, Modal, ModalFooter } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import type { StorageConnection } from '#/shared/types';
+import type { StorageConnection } from '@harborclient/core/types';
 
 interface Props {
   /**

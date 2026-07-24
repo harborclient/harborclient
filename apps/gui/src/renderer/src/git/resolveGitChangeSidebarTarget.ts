@@ -3,7 +3,7 @@ import type {
   CollectionDocument,
   GitRequestDiffFileEntry,
   SavedRequest
-} from '#/shared/types';
+} from '@harborclient/core/types';
 
 /**
  * Resolved collections-sidebar row for one git change file.

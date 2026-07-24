@@ -1,4 +1,4 @@
-import type { GeneralSettings } from '#/shared/types';
+import type { GeneralSettings } from '@harborclient/core/types';
 
 /**
  * Keys on {@link GeneralSettings} that control whether a confirmation prompt is shown.

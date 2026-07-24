@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { TrashItem } from '#/shared/types/trash';
+import type { TrashItem } from '@harborclient/core/types/trash';
 import type { RootState } from '#/renderer/src/store/redux';
 
 /**

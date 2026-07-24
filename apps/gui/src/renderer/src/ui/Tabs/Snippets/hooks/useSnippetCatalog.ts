@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
-import type { SnippetCatalog, SnippetCatalogEntry } from '#/shared/snippet/catalog';
-import type { PluginCatalogCategory } from '#/shared/plugin/catalogCategories';
+import type { SnippetCatalog, SnippetCatalogEntry } from '@harborclient/core/snippet/catalog';
+import type { PluginCatalogCategory } from '@harborclient/core/plugin/catalogCategories';
 import {
   buildSnippetCatalogSearchIndex,
   filterSnippetCatalogByCategory,
   searchSnippetCatalog
-} from '#/shared/search/snippets';
+} from '@harborclient/core/search/snippets';
 
 interface UseSnippetCatalogResult {
   catalog: SnippetCatalog | null;

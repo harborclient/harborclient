@@ -1,19 +1,31 @@
 import { utilityProcess, type UtilityProcess } from 'electron';
 import { join } from 'path';
-import type { ScriptRunInput, ScriptRunResult, SendRequestInput, SendResult } from '#/shared/types';
+import type {
+  ScriptRunInput,
+  ScriptRunResult,
+  SendRequestInput,
+  SendResult
+} from '@harborclient/core/types';
+import type { IScriptRunner } from '@harborclient/core/interfaces';
 import type { ICookieJar } from '#/main/cookieJar/ICookieJar';
-import { buildScriptPassthrough, sanitizeScriptErrorMessage } from './scriptEvaluator';
+import {
+  buildScriptPassthrough,
+  sanitizeScriptErrorMessage
+} from '@harborclient/core/scripting/scriptEvaluator';
 import { executeHttpSend, isScriptNetworkAllowed } from '#/main/network/executeHttpSend';
 import {
   getGeneralSettings,
   isScriptFileReadAllowed,
   isScriptFileWriteAllowed
 } from '#/main/settings/generalSettings';
+import { listStorageConnections } from '#/main/settings/storageSettings';
+import { homedir } from 'os';
+import type { GitSettings } from '@harborclient/core/types';
 import {
   executeScriptFileRequest,
   scriptFileAccessForOp,
   type ScriptFileRequest
-} from './scriptFileOperations';
+} from '@harborclient/core/scripting/scriptFileOperations';
 
 /**
  * Resolves the script execution timeout from persisted general settings.
@@ -101,6 +113,29 @@ let runner: UtilityProcess | null = null;
 let nextRunId = 1;
 const pendingRuns = new Map<number, PendingRun>();
 let scriptCookieJar: ICookieJar | null = null;
+
+/**
+ * Resolves the GUI's configured script filesystem root for one run.
+ *
+ * Git-backed collections use their checkout while other scripts use the
+ * configured root, falling back to the current user's home directory.
+ *
+ * @param context - Active collection connection context from the sandbox.
+ * @returns Absolute root directory allowed for this script.
+ */
+function resolveGuiScriptFileRoot(context?: { connectionId?: string | null }): string {
+  const connectionId = context?.connectionId?.trim();
+  const connection = connectionId
+    ? listStorageConnections().find((entry) => entry.id === connectionId)
+    : undefined;
+  if (connection?.type === 'git') {
+    const repoPath = (connection.settings as GitSettings).repoPath?.trim();
+    if (repoPath) {
+      return repoPath;
+    }
+  }
+  return getGeneralSettings().scriptFileRoot.trim() || homedir();
+}
 
 /**
  * Supplies the cookie jar used by hc.sendRequest network bridging.
@@ -261,9 +296,13 @@ function handleScriptFileRequest(child: UtilityProcess, message: FileRequestMess
 
   try {
     const pending = pendingRuns.get(message.runId);
-    const result = executeScriptFileRequest(message.req, {
-      connectionId: pending?.input.collection?.connectionId
-    });
+    const result = executeScriptFileRequest(
+      message.req,
+      {
+        resolveRoot: resolveGuiScriptFileRoot
+      },
+      { connectionId: pending?.input.collection?.connectionId }
+    );
     reply({
       kind: 'file-reply',
       runId: message.runId,
@@ -391,4 +430,29 @@ export function runScriptInProcess(input: ScriptRunInput): Promise<ScriptRunResu
  */
 export function disposeScriptRunner(): void {
   resetRunner('Script runner shutting down');
+}
+
+/**
+ * Electron utility-process adapter for the portable script runner contract.
+ *
+ * The adapter keeps Electron process lifecycle concerns in the GUI while
+ * callers can depend only on Core's {@link IScriptRunner} interface.
+ */
+export class ElectronScriptRunner implements IScriptRunner {
+  /**
+   * Runs one script through the shared Electron utility process.
+   *
+   * @param input - Script source and execution context.
+   * @returns Script mutations, tests, logs, and any execution error.
+   */
+  run(input: ScriptRunInput): Promise<ScriptRunResult> {
+    return runScriptInProcess(input);
+  }
+
+  /**
+   * Releases the shared utility process during application shutdown.
+   */
+  dispose(): void {
+    disposeScriptRunner();
+  }
 }

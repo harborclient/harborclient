@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { TeamHubAdminFolderSummary, TeamHubAdminRequestSummary } from '#/shared/types';
+import type {
+  TeamHubAdminFolderSummary,
+  TeamHubAdminRequestSummary
+} from '@harborclient/core/types';
 
 /**
  * Loaded Team Hub admin collection contents and bootstrap state from IPC.

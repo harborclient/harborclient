@@ -1,4 +1,4 @@
-import type { TeamHub } from '#/shared/types';
+import type { TeamHub } from '@harborclient/core/types';
 
 /**
  * Returns the display label for a configured team hub connection.

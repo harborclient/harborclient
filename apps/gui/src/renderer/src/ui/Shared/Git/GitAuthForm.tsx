@@ -1,14 +1,14 @@
 import { SegmentedTabPanel, SegmentedTabs, SegmentedTabsGroup } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useId, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { GitIdentity } from '#/shared/types';
-import { isGitHubRepositoryUrl } from '#/shared/gitUrl';
+import type { GitIdentity } from '@harborclient/core/types';
+import { isGitHubRepositoryUrl } from '@harborclient/core/gitUrl';
 import {
   credentialsSavedValidationMessage,
   emptyRemoteCredentialsMessage,
   isGitRepoNotFoundError,
   readOnlyRepoAccessMessage
-} from '#/shared/gitHttpErrors';
+} from '@harborclient/core/gitHttpErrors';
 
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch } from '#/renderer/src/store/hooks';

@@ -3,7 +3,7 @@ import { TeamHubStorage } from './TeamHubStorage';
 import { TeamHubIdMap } from './TeamHubIdMap';
 import { TeamHubFolderSettings } from './TeamHubFolderSettings';
 import { TeamHubClient } from '@harborclient/team-hub-api';
-import type { TeamHub } from '#/shared/types';
+import type { TeamHub } from '@harborclient/core/types';
 
 /**
  * Returns the SQLite path for a team hub id map file.

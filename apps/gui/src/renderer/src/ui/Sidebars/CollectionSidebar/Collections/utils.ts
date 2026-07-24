@@ -10,8 +10,8 @@ import {
   mergeContainerItems,
   type ContainerItem,
   type ContainerItemRef
-} from '#/shared/collectionContainerOrder';
-import type { CollectionDocument, SavedRequest } from '#/shared/types';
+} from '@harborclient/core/collectionContainerOrder';
+import type { CollectionDocument, SavedRequest } from '@harborclient/core/types';
 
 export type { ContainerItem, ContainerItemRef };
 export { mergeContainerItems };

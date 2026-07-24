@@ -1,4 +1,4 @@
-import type { ContextMenuTarget, RegisteredContextMenuItem } from '#/shared/plugin/types';
+import type { ContextMenuTarget, RegisteredContextMenuItem } from '@harborclient/core/plugin/types';
 import type { MenuItem } from '@harborclient/sdk/components';
 
 /**

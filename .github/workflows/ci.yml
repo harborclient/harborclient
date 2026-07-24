@@ -56,7 +56,7 @@ jobs:
 
       - name: Reject local SDK link override
         run: |
-          if grep -qF 'link:../harborclient-sdk' package.json pnpm-lock.yaml; then
+          if grep -qF 'link:../harborclient-sdk' package.json apps/gui/package.json apps/harborclient/package.json pnpm-lock.yaml; then
             echo "::error::package.json or pnpm-lock.yaml contains a local @harborclient/sdk link override (link:../harborclient-sdk). Remove it before pushing."
             exit 1
           fi
@@ -79,8 +79,9 @@ jobs:
           HARBOR_TEST_POSTGRES_USER: postgres
           HARBOR_TEST_POSTGRES_PASSWORD: harborclient
           HARBOR_TEST_POSTGRES_DATABASE: harborclient_test
+        working-directory: apps/gui
         run: >-
           pnpm exec firebase emulators:exec
           --only auth,firestore
           --project demo-harborclient-test
-          "node scripts/test-with-native.mjs"
+          "node ../../scripts/test-with-native.mjs"

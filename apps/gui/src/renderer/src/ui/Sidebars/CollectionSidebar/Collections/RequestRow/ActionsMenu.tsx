@@ -1,5 +1,5 @@
 import { RowActionsMenu, type MenuItem } from '@harborclient/sdk/components';
-import type { GitRequestFileStatus, SavedRequest } from '#/shared/types';
+import type { GitRequestFileStatus, SavedRequest } from '@harborclient/core/types';
 
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { usePluginContextMenuItems } from '#/renderer/src/plugins/pluginHooks';

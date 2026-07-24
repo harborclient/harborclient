@@ -6,8 +6,8 @@ import {
   type Dispatch,
   type SetStateAction
 } from 'react';
-import { defaultSidebarExpansion } from '#/shared/sidebarExpansion';
-import type { SidebarExpansionState } from '#/shared/types';
+import { defaultSidebarExpansion } from '@harborclient/core/sidebarExpansion';
+import type { SidebarExpansionState } from '@harborclient/core/types';
 
 interface Options {
   /**

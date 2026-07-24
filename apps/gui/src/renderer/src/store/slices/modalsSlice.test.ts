@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
+import { defaultAuth } from '@harborclient/core/auth';
 import type { RootState } from '#/renderer/src/store/redux';
 import modalsReducer, {
   appendCollectionRunnerResult,

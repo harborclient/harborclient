@@ -1,5 +1,5 @@
 import { SidebarRequestItem } from '@harborclient/sdk/components';
-import type { GitRequestFileStatus, SavedRequest } from '#/shared/types';
+import type { GitRequestFileStatus, SavedRequest } from '@harborclient/core/types';
 
 import { requestDragId } from '../utils';
 import { type JSX, type MouseEvent, useState } from 'react';

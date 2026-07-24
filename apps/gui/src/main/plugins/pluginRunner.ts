@@ -1,15 +1,15 @@
 import 'ses';
 import { createScriptContext } from './pluginScriptContext';
-import type { ScriptRunContextInput } from '#/main/scripting/scriptApi';
+import type { ScriptRunContextInput } from '@harborclient/core/scripting/scriptApi';
 import { runEchoRequestHandlers } from '#/main/plugins/echoServer/runEchoRequestHandlers';
 import type { EchoServerIncomingRequest } from '#/main/plugins/echoServer/types';
-import '#/shared/plugin/databaseTypes';
+import '@harborclient/core/plugin/databaseTypes';
 import type {
   PluginHttpRequest,
   PluginHttpResponse,
   PluginPermission
-} from '#/shared/plugin/types';
-import { createPluginDatabaseApi } from '#/shared/plugin/pluginDatabaseApi';
+} from '@harborclient/core/plugin/types';
+import { createPluginDatabaseApi } from '@harborclient/core/plugin/pluginDatabaseApi';
 
 lockdown();
 

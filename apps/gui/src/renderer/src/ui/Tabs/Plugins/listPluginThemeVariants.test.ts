@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { PluginInfo, RegisteredPluginTheme } from '#/shared/plugin/types';
+import type { PluginInfo, RegisteredPluginTheme } from '@harborclient/core/plugin/types';
 import { listPluginThemeVariants } from './listPluginThemeVariants';
 
 const PLUGIN_ID = 'com.example.solarized';

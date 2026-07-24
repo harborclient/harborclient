@@ -21,9 +21,9 @@ import { evaluateSnippetPackageSignature } from './snippetSignature';
 import { parseSnippetManifest, validateSnippetManifest } from './manifestSchema';
 import { resolveMarketplaceSnippetUuid } from './snippetUuid';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
-import type { InstalledSnippetPackage } from '#/shared/snippet/types';
-import type { PluginSignatureInfo } from '#/shared/plugin/types';
-import type { Snippet } from '#/shared/types';
+import type { InstalledSnippetPackage } from '@harborclient/core/snippet/types';
+import type { PluginSignatureInfo } from '@harborclient/core/plugin/types';
+import type { Snippet } from '@harborclient/core/types';
 
 const MANIFEST_FILENAME = 'snippets.json';
 

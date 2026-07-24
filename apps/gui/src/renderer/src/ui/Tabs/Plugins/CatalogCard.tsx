@@ -1,8 +1,11 @@
 import type { JSX } from 'react';
-import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
-import { PLUGIN_CATALOG_CATEGORY_LABELS } from '#/shared/plugin/catalogCategories';
-import { resolveCatalogScreenshotUrls } from '#/shared/plugin/githubRaw';
-import { catalogEntryIsTheme, formatThemeDisplayName } from '#/shared/plugin/themeCategory';
+import type { PluginCatalogEntry } from '@harborclient/core/plugin/catalog';
+import { PLUGIN_CATALOG_CATEGORY_LABELS } from '@harborclient/core/plugin/catalogCategories';
+import { resolveCatalogScreenshotUrls } from '@harborclient/core/plugin/githubRaw';
+import {
+  catalogEntryIsTheme,
+  formatThemeDisplayName
+} from '@harborclient/core/plugin/themeCategory';
 import { CatalogCard as SdkCatalogCard, ScreenshotCarousel } from '@harborclient/sdk/components';
 
 interface Props {

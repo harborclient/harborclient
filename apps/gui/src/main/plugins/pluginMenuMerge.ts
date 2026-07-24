@@ -1,5 +1,5 @@
 import type { MenuItemConstructorOptions } from 'electron';
-import type { SerializableMenuContribution } from '#/shared/plugin/types';
+import type { SerializableMenuContribution } from '@harborclient/core/plugin/types';
 
 /**
  * Electron menu roles that should remain last in a submenu.

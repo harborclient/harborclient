@@ -1,11 +1,13 @@
 import { GitStorage } from './GitStorage';
+import { app } from 'electron';
 import { getGeneralSettings } from '#/main/settings/generalSettings';
+import { isRandUserDirFlagEnabled } from '#/main/randUserDir';
 import { FirestoreStorage } from './FirestoreStorage';
 import { MySqlStorage } from './MySqlStorage';
 import { PostgresStorage } from './PostgresStorage';
 import { SqliteStorage } from './SqliteStorage';
 import type { IStorage } from './IStorage';
-import type { StorageConnection } from '#/shared/types';
+import type { StorageConnection } from '@harborclient/core/types';
 
 /**
  * Creates and initializes a database backend for a connection configuration.
@@ -35,7 +37,8 @@ export async function createStorageInstance(
       return db;
     }
     case 'sqlite': {
-      const db = new SqliteStorage(userDataPath, connection.settings);
+      const appDataPath = isRandUserDirFlagEnabled() ? undefined : app.getPath('appData');
+      const db = new SqliteStorage(userDataPath, connection.settings, appDataPath);
       await db.init();
       return db;
     }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, type JSX } from 'react';
 import type { PageRef } from '#/renderer/src/store/tabs';
 import { isRequestTab } from '#/renderer/src/store/tabs';
-import { mirrorLegacyScriptString } from '#/shared/scriptRefs';
+import { mirrorLegacyScriptString } from '@harborclient/core/scriptRefs';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectSnippets } from '#/renderer/src/store/selectors';
 import {

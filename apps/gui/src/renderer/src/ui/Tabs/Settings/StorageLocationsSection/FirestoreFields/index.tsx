@@ -1,6 +1,6 @@
 import { FormGroup, Input } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import type { FirestoreSettings } from '#/shared/types';
+import type { FirestoreSettings } from '@harborclient/core/types';
 
 interface Props {
   /**

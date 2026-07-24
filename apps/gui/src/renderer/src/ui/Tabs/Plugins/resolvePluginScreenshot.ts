@@ -1,10 +1,10 @@
-import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
-import type { PluginGitPreview, PluginInfo } from '#/shared/plugin/types';
+import type { PluginCatalogEntry } from '@harborclient/core/plugin/catalog';
+import type { PluginGitPreview, PluginInfo } from '@harborclient/core/plugin/types';
 import {
   relativePathFromRawGitHubUrl,
   resolveCatalogScreenshotUrls,
   resolveScreenshotUrl
-} from '#/shared/plugin/githubRaw';
+} from '@harborclient/core/plugin/githubRaw';
 
 /**
  * Returns the repository-relative path from a manifest screenshot entry.

@@ -10,7 +10,7 @@ import { handle } from '#/main/ipc/handle';
 import { confirmDuplicateImport, openImportFile } from './importDialogs';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import { getTrashService } from '#/main/storage/trashServiceInstance';
-import type { Environment, EnvironmentExport, ImportAction } from '#/shared/types';
+import type { Environment, EnvironmentExport, ImportAction } from '@harborclient/core/types';
 
 /**
  * Result of importing an environment from a portable export file.

@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { RequestBodySelectionSnapshot } from '#/shared/ai/scriptReferences';
+import type { RequestBodySelectionSnapshot } from '@harborclient/core/ai/scriptReferences';
 import type { RootState } from '#/renderer/src/store/redux';
 
 /**

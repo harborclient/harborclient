@@ -4,7 +4,7 @@ import type {
   SavedRequest,
   SendRequestInput,
   SendResult
-} from '#/shared/types';
+} from '@harborclient/core/types';
 import type {
   CreateCollectionPayload,
   CreateCollectionRequest,
@@ -14,10 +14,10 @@ import type {
   ApplyRequestDraftPayload
 } from '@harborclient/sdk';
 export type { OpenRequestDraftPayload, ApplyRequestDraftPayload } from '@harborclient/sdk';
-import { getRequestsInRunOrder } from '#/shared/collectionRunner';
-import type { Collection } from '#/shared/types';
-import { parseHttpMethod } from '#/shared/httpMethod';
-import { defaultAuth } from '#/shared/auth';
+import { getRequestsInRunOrder } from '@harborclient/core/collectionRunner';
+import type { Collection } from '@harborclient/core/types';
+import { parseHttpMethod } from '@harborclient/core/httpMethod';
+import { defaultAuth } from '@harborclient/core/auth';
 import { store } from '#/renderer/src/store/redux';
 import type { RootState } from '#/renderer/src/store/redux';
 import {
@@ -38,14 +38,14 @@ import {
 import { registerCommand } from './createPluginContext';
 import { addConsoleEntry } from '#/renderer/src/store/slices/consoleSlice';
 import { emitPluginAfterSend } from './pluginAfterSendBus';
-import { toPluginHttpRequest, toPluginHttpResponse } from '#/shared/plugin/httpRequest';
+import { toPluginHttpRequest, toPluginHttpResponse } from '@harborclient/core/plugin/httpRequest';
 import { recordRequestHistoryFromSend } from '#/renderer/src/store/thunks/requestHistory';
 import {
   applyRequestDraftUpdate,
   type UpdateActiveRequestToolArgs
-} from '#/shared/ai/requestUpdate';
+} from '@harborclient/core/ai/requestUpdate';
 import { selectEffectiveActiveRequestTab } from '#/renderer/src/store/selectors';
-import type { BodyType } from '#/shared/types/common';
+import type { BodyType } from '@harborclient/core/types/common';
 
 const HOST_PLUGIN_ID = 'harborclient';
 

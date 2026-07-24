@@ -1,4 +1,4 @@
-import type { Folder, SavedRequest } from '#/shared/types';
+import type { Folder, SavedRequest } from '@harborclient/core/types';
 
 /**
  * Inputs for resolving a human-readable collection runner target label.

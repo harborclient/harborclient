@@ -12,8 +12,8 @@ import {
 import { convertPostmanCollection, isPostmanCollection } from '#/main/import/postman';
 import { convertBrunoCollection, isBrunoCollectionManifest } from '#/main/import/bruno';
 import { convertHarToCollection, isHarArchive } from '#/main/import/har';
-import { defaultAuth } from '#/shared/auth';
-import { mirrorLegacyScriptString, resolveScriptRefs } from '#/shared/scriptRefs';
+import { defaultAuth } from '@harborclient/core/auth';
+import { mirrorLegacyScriptString, resolveScriptRefs } from '@harborclient/core/scriptRefs';
 import type { IStorage } from '#/main/storage/IStorage';
 import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { mintFreshCollectionExportUuids, mintFreshRequestExportUuid } from '#/main/storage/uuid';
@@ -32,14 +32,14 @@ import { importSnippetData } from './snippetImport';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import { getTrashService } from '#/main/storage/trashServiceInstance';
 import { logImportVerbose } from '#/main/import/importVerboseLog';
-import { readHarborclientExport } from '#/shared/harborclientExport';
+import { readHarborclientExport } from '@harborclient/core/harborclientExport';
 import type {
   Collection,
   CollectionExport,
   ImportAction,
   ImportEntityResult,
   RequestExport
-} from '#/shared/types';
+} from '@harborclient/core/types';
 
 /**
  * Result of importing a collection from a portable export file.

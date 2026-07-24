@@ -1,7 +1,7 @@
 import { FaIcon, Input } from '@harborclient/sdk/components';
 import { useEffect, useRef, useState, type JSX } from 'react';
-import type { ScriptRef, Snippet } from '#/shared/types';
-import { readScriptRefStage, scriptRowStageSuffix } from '#/shared/scriptStage';
+import type { ScriptRef, Snippet } from '@harborclient/core/types';
+import { readScriptRefStage, scriptRowStageSuffix } from '@harborclient/core/scriptStage';
 import { faCode } from '#/renderer/src/fontawesome';
 import {
   SCRIPT_ROW_SNIPPET_LINK_ICON_CLASS,

@@ -1,9 +1,9 @@
 import { SegmentedTabs, SegmentedTabsGroup } from '@harborclient/sdk/components';
 import { useCallback, useMemo, type JSX } from 'react';
-import type { KeyValue, Variable } from '#/shared/types';
-import { ensureDefaultScriptRef, hasScriptContent } from '#/shared/scriptRefs';
+import type { KeyValue, Variable } from '@harborclient/core/types';
+import { ensureDefaultScriptRef, hasScriptContent } from '@harborclient/core/scriptRefs';
 
-import type { RequestTabContext } from '#/shared/plugin/types';
+import type { RequestTabContext } from '@harborclient/core/plugin/types';
 import type { RequestDraft } from '#/renderer/src/store/tabs';
 import { usePluginRequestTabs } from '#/renderer/src/plugins/pluginHooks';
 

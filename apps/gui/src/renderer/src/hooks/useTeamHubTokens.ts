@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { HubApiTokenRecord } from '#/shared/types';
+import type { HubApiTokenRecord } from '@harborclient/core/types';
 
 /**
  * Loaded Team Hub token list and bootstrap state from IPC.

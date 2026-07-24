@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
-import { createInlineScriptRef } from '#/shared/scriptRefs';
+import { defaultAuth } from '@harborclient/core/auth';
+import { createInlineScriptRef } from '@harborclient/core/scriptRefs';
 import { asRequestTab, isRequestTab } from '#/renderer/src/store/tabs';
 import { scriptEditorUiStorageKey } from '#/renderer/src/hooks/usePersistedScriptEditorUiState';
-import type { SaveRequestInput, SavedRequest } from '#/shared/types';
+import type { SaveRequestInput, SavedRequest } from '@harborclient/core/types';
 
 // react-hot-toast pulls in the DOM at import time; stub it for the Node test env.
 vi.mock('react-hot-toast', () => ({

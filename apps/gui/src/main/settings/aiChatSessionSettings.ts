@@ -1,5 +1,5 @@
 import Store from 'electron-store';
-import type { AiChatSessionState } from '#/shared/types';
+import type { AiChatSessionState } from '@harborclient/core/types';
 
 const STORE_KEY = 'aiChatSession';
 

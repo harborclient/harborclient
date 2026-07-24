@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(monorepo): restructure project into a pnpm monorepo with CLI and core packages. (`1ba4293`)
 - feat(gui): add initial configuration files and resources for HarborClient application. (`60a72f5`)
 
 ## 2.6.0 - 2026-07-24

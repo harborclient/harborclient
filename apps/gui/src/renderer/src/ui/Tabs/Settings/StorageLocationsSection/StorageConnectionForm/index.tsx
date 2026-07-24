@@ -1,6 +1,6 @@
 import { SegmentedTabs, FormGroup, Input } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import type { StorageConnection, StorageProvider } from '#/shared/types';
+import type { StorageConnection, StorageProvider } from '@harborclient/core/types';
 
 import { createBlankConnection, PROVIDER_OPTIONS } from '../../constants';
 import { FirestoreFields } from '../FirestoreFields';

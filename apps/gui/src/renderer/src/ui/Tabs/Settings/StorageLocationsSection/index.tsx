@@ -12,7 +12,7 @@ import {
 } from '@harborclient/sdk/components';
 import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { DiscoveredCollection, StorageConnection } from '#/shared/types';
+import type { DiscoveredCollection, StorageConnection } from '@harborclient/core/types';
 import { faPlus } from '#/renderer/src/fontawesome';
 import { useStorageConnections } from '#/renderer/src/hooks/useStorageConnections';
 import { useAppDispatch } from '#/renderer/src/store/hooks';

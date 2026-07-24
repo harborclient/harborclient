@@ -6,8 +6,8 @@ import {
   parsePluginTrustedKeys,
   type PluginTrustedKeyEntry,
   type PluginTrustedKeys
-} from '#/shared/plugin/catalog';
-import type { PluginManifest, PluginSignatureInfo } from '#/shared/plugin/types';
+} from '@harborclient/core/plugin/catalog';
+import type { PluginManifest, PluginSignatureInfo } from '@harborclient/core/plugin/types';
 import { getEnabledTrustedUrls } from '#/main/settings/pluginSourcesSettings';
 
 /**

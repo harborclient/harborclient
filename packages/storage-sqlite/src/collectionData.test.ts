@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultOAuth2Config } from '#/shared/auth';
+import { defaultOAuth2Config } from '@harborclient/core/auth';
 import {
   collectionExportContainsScripts,
   requestExportContainsScripts,

@@ -1,6 +1,6 @@
 import { FormSection, KeyValueEditor } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import type { KeyValue, Variable } from '#/shared/types';
+import type { KeyValue, Variable } from '@harborclient/core/types';
 import { headerKeySource, headerValueSource } from '#/renderer/src/autocomplete/sources';
 
 type Scope = 'collection' | 'folder';

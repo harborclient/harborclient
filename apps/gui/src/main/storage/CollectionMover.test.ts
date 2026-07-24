@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { MoveCoordinator } from './CollectionMover';
 import type { CollectionRegistryEntry, LocalDatabase } from './LocalDatabase';
 import type { MountedBackend, RoutingInternals } from './routingInternals';
-import type { Collection, CollectionDocument, Folder } from '#/shared/types';
-import { defaultAuth } from '#/shared/auth';
+import type { Collection, CollectionDocument, Folder } from '@harborclient/core/types';
+import { defaultAuth } from '@harborclient/core/auth';
 
 /**
  * Builds a minimal routing internals mock for move coordinator tests.

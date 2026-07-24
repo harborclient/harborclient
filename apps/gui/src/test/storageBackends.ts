@@ -4,7 +4,7 @@ import { describe } from 'vitest';
 import { FirestoreStorage } from '#/main/storage/FirestoreStorage';
 import { MySqlStorage } from '#/main/storage/MySqlStorage';
 import { PostgresStorage } from '#/main/storage/PostgresStorage';
-import type { FirestoreSettings, MySqlSettings, PostgresSettings } from '#/shared/types';
+import type { FirestoreSettings, MySqlSettings, PostgresSettings } from '@harborclient/core/types';
 import type { CreateTestDb } from './istorageContract';
 
 function isCi(): boolean {

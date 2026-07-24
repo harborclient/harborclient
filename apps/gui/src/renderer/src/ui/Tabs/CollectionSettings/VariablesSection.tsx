@@ -1,6 +1,6 @@
 import { VariableTable, FormSection } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import type { Variable } from '#/shared/types';
+import type { Variable } from '@harborclient/core/types';
 
 interface Props {
   /**

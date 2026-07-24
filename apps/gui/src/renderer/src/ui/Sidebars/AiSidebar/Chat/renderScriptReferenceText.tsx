@@ -3,7 +3,7 @@ import {
   resolveAiScriptReferenceLabel,
   tokenizeChatComposerText,
   type AiScriptReferenceValidationContext
-} from '#/shared/ai/scriptReferences';
+} from '@harborclient/core/ai/scriptReferences';
 import { ScriptReferenceBadge } from './ScriptReferenceBadge';
 
 type BubbleVariant = 'user' | 'assistant';

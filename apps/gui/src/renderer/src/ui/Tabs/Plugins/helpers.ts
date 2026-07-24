@@ -1,5 +1,5 @@
-import type { PluginCatalog, PluginCatalogEntry } from '#/shared/plugin/catalog';
-import type { PluginInfo, PluginSource } from '#/shared/plugin/types';
+import type { PluginCatalog, PluginCatalogEntry } from '@harborclient/core/plugin/catalog';
+import type { PluginInfo, PluginSource } from '@harborclient/core/plugin/types';
 import { markPluginForThemePrompt } from '#/renderer/src/plugins/pluginLoader';
 
 /**

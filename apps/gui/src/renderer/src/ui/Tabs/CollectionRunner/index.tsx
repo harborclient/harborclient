@@ -6,8 +6,8 @@ import {
   getRequestsByIds,
   resolveImportedRunnerTargetIds,
   type CollectionRunnerRequestResult
-} from '#/shared/collectionRunner';
-import { buildRunResultsDeepLink } from '#/shared/deepLink';
+} from '@harborclient/core/collectionRunner';
+import { buildRunResultsDeepLink } from '@harborclient/core/deepLink';
 import type { PageRef } from '#/renderer/src/store/tabs';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {

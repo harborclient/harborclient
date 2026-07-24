@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { scanTeamHubSessions } from './teamHubSessionScan';
-import type { TeamHub } from '#/shared/types';
+import type { TeamHub } from '@harborclient/core/types';
 
 describe('scanTeamHubSessions', () => {
   const originalFetch = globalThis.fetch;

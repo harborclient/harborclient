@@ -1,9 +1,9 @@
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
-import type { PluginInfo } from '#/shared/plugin/types';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
 import {
   buildInstalledPluginSearchIndex,
   searchInstalledPlugins
-} from '#/shared/search/installedPlugins';
+} from '@harborclient/core/search/installedPlugins';
 
 interface Result {
   /**

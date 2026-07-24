@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type JSX, type ReactNode } from 'react';
-import type { PluginCatalog } from '#/shared/plugin/catalog';
-import type { PluginInfo } from '#/shared/plugin/types';
-import type { SnippetCatalog } from '#/shared/snippet/catalog';
+import type { PluginCatalog } from '@harborclient/core/plugin/catalog';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
+import type { SnippetCatalog } from '@harborclient/core/snippet/catalog';
 import {
   buildInstalledPluginSearchIndex,
   buildPluginCatalogSearchIndex,
@@ -10,7 +10,7 @@ import {
   buildSnippetCatalogSearchIndexForSearch,
   type SearchAllContext,
   type SidebarSearchInput
-} from '#/shared/search';
+} from '@harborclient/core/search';
 import {
   selectCollections,
   selectCollectionsListed,

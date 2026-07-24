@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "types": ["node"],
+    "paths": {
+      "@harborclient/core": ["../../packages/core/src/index.ts"],
+      "@harborclient/core/*": ["../../packages/core/src/*"],
+      "@harborclient/storage-sqlite": ["../../packages/storage-sqlite/src/index.ts"],
+      "@harborclient/storage-sqlite/*": ["../../packages/storage-sqlite/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

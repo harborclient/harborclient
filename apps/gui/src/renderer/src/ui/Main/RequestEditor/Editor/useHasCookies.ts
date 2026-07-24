@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Variable } from '#/shared/types';
+import type { Variable } from '@harborclient/core/types';
 import { buildRuntimeVars, substituteWithMap } from '#/renderer/src/scripting/scriptOrchestration';
 import { hostFromUrl } from './cookieHost';
 

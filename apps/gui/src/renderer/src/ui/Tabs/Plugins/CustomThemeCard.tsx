@@ -1,9 +1,9 @@
 import { Button, Card } from '@harborclient/sdk/components';
 import { useMemo, type JSX } from 'react';
 import type { ThemeColorToken } from '@harborclient/sdk';
-import { formatCustomThemeValue } from '#/shared/plugin/customThemeExport';
-import { CUSTOM_THEME_SWATCH_TOKENS, type CustomTheme } from '#/shared/types/customTheme';
-import type { ThemeSource } from '#/shared/types';
+import { formatCustomThemeValue } from '@harborclient/core/plugin/customThemeExport';
+import { CUSTOM_THEME_SWATCH_TOKENS, type CustomTheme } from '@harborclient/core/types/customTheme';
+import type { ThemeSource } from '@harborclient/core/types';
 import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/Shared/classes';
 import { getDefaultCustomThemePalette } from './customThemeDefaults';

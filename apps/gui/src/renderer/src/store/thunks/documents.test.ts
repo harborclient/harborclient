@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CollectionDocument } from '#/shared/types';
+import type { CollectionDocument } from '@harborclient/core/types';
 import { isMarkdownTab, isTabDirty } from '#/renderer/src/store/tabs';
 
 // react-hot-toast pulls in the DOM at import time; stub it for the Node test env.

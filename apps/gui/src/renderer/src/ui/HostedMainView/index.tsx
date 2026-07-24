@@ -3,7 +3,7 @@ import type { JSX } from 'react';
 
 import { usePluginMainViews } from '#/renderer/src/plugins/pluginHooks';
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
-import { pluginContributionId } from '#/shared/plugin/types';
+import { pluginContributionId } from '@harborclient/core/plugin/types';
 
 interface Props {
   /**

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import { hasTeamHubJoinDisplayMetadata } from '#/shared/deepLink';
-import type { HubInvitationPreview, TeamHubVerifiedSession } from '#/shared/types';
+import { hasTeamHubJoinDisplayMetadata } from '@harborclient/core/deepLink';
+import type { HubInvitationPreview, TeamHubVerifiedSession } from '@harborclient/core/types';
 import type { TeamHubJoinPayload } from '#/renderer/src/store/slices/navigationSlice';
 import {
   Badge,

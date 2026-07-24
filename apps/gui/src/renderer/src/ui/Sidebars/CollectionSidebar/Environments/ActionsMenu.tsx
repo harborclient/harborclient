@@ -1,5 +1,5 @@
-import type { Environment, Variable } from '#/shared/types';
-import { appendMissingEnvironmentVariables } from '#/shared/environmentVariables';
+import type { Environment, Variable } from '@harborclient/core/types';
+import { appendMissingEnvironmentVariables } from '@harborclient/core/environmentVariables';
 import { buildReorderMenuGroup, RowActionsMenu, type MenuItem } from '@harborclient/sdk/components';
 import { type JSX, useMemo } from 'react';
 import toast from 'react-hot-toast';

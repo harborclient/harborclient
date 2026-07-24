@@ -8,7 +8,7 @@ import {
   gitItemNameClass
 } from '#/renderer/src/git/gitCommitChangeDisplay';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
-import type { CollectionDocument, GitRequestFileStatus } from '#/shared/types';
+import type { CollectionDocument, GitRequestFileStatus } from '@harborclient/core/types';
 import { type JSX, useState } from 'react';
 import { ActionsMenu } from './ActionsMenu';
 

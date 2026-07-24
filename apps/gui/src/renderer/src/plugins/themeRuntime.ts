@@ -1,9 +1,9 @@
-import { parseCustomThemeSource } from '#/shared/plugin/customThemeExport';
-import { parsePluginThemeValue } from '#/shared/plugin/types';
-import type { BuiltinThemeId } from '#/shared/builtinThemes';
-import { isBuiltinThemeSource } from '#/shared/builtinThemes';
-import type { CustomThemeType } from '#/shared/types/customTheme';
-import type { ThemeSource } from '#/shared/types';
+import { parseCustomThemeSource } from '@harborclient/core/plugin/customThemeExport';
+import { parsePluginThemeValue } from '@harborclient/core/plugin/types';
+import type { BuiltinThemeId } from '@harborclient/core/builtinThemes';
+import { isBuiltinThemeSource } from '@harborclient/core/builtinThemes';
+import type { CustomThemeType } from '@harborclient/core/types/customTheme';
+import type { ThemeSource } from '@harborclient/core/types';
 import { getRegisteredPluginThemes } from './registry';
 import { applyThemeAttribute, resolveSystemBuiltinTheme } from '#/renderer/src/theme';
 

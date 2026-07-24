@@ -4,8 +4,8 @@ import { readBlobBytesFromTree } from './gitBlob';
 import { decodeBlobText } from './gitBlobText';
 import { GIT_DIFF_DEFAULT_MAX_CHARS_PER_FILE } from './gitDiff';
 import { buildFileDiffText } from './gitDiff';
-import { truncateTextForLlm } from '#/shared/ai/chatContext';
-import type { GitLogEntry } from '#/shared/types';
+import { truncateTextForLlm } from '@harborclient/core/ai/chatContext';
+import type { GitLogEntry } from '@harborclient/core/types';
 
 /**
  * Options for reading a file diff between two commits.

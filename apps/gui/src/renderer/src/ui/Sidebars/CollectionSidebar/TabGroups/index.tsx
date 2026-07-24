@@ -23,7 +23,7 @@ import {
 } from '@harborclient/sdk/components';
 import { SidebarRowActionsMenu } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/SidebarRowActionsMenu';
 import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
-import type { TabGroup } from '#/shared/types/tabGroup';
+import type { TabGroup } from '@harborclient/core/types/tabGroup';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { openTabGroupModal } from '#/renderer/src/store/slices/modalsSlice';

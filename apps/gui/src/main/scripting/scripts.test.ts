@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
+import { defaultAuth } from '@harborclient/core/auth';
 
 describe('evaluateScript', () => {
   it('returns passthrough for empty script', async () => {

@@ -9,7 +9,7 @@ import {
   PLUGIN_SIGNATURE_FILENAME,
   readPluginSignature
 } from '@harborclient/sdk/signing';
-import type { PluginSignatureInfo } from '#/shared/plugin/types';
+import type { PluginSignatureInfo } from '@harborclient/core/plugin/types';
 import {
   evaluatePluginSignature,
   fetchPublicKeyPem,

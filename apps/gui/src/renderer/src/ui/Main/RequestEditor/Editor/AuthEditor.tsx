@@ -7,8 +7,8 @@ import {
   CodeEditor
 } from '@harborclient/sdk/components';
 import { useState, type JSX } from 'react';
-import type { AuthConfig, AuthType, Variable } from '#/shared/types';
-import { buildOAuthAuthHeaderValue } from '#/shared/auth';
+import type { AuthConfig, AuthType, Variable } from '@harborclient/core/types';
+import { buildOAuthAuthHeaderValue } from '@harborclient/core/auth';
 
 interface Props {
   /**

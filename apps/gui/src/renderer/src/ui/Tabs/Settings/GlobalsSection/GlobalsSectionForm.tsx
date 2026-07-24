@@ -8,7 +8,7 @@ import {
 } from '@harborclient/sdk/components';
 import { useCallback, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { Variable } from '#/shared/types';
+import type { Variable } from '@harborclient/core/types';
 
 import { useTabSaveRegistration } from '#/renderer/src/hooks/tabSaveRegistry';
 import { useAppDispatch } from '#/renderer/src/store/hooks';

@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
-import type { TrashEntityType } from '#/shared/types/trash';
+import type { TrashEntityType } from '@harborclient/core/types/trash';
 import type { Dispatch } from '@reduxjs/toolkit';
 import type { AppDispatch, ThunkApiConfig } from '#/renderer/src/store/redux';
 import { removeTrashItem, setTrashItems } from '#/renderer/src/store/slices/trashSlice';

@@ -19,8 +19,8 @@ import { Button, FaIcon, RowActionsMenu } from '@harborclient/sdk/components';
 import type { MenuItem } from '@harborclient/sdk/components';
 import { Fragment, useCallback, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { ScriptRef, Snippet, Variable } from '#/shared/types';
-import type { SnippetScope } from '#/shared/snippetScope';
+import type { ScriptRef, Snippet, Variable } from '@harborclient/core/types';
+import type { SnippetScope } from '@harborclient/core/snippetScope';
 import type { ScriptStage } from '@harborclient/sdk';
 import {
   createInlineScriptRef,
@@ -32,7 +32,7 @@ import {
   normalizeScriptRefs,
   resolveScriptSourceCode,
   UNNAMED_SCRIPT_NAME
-} from '#/shared/scriptRefs';
+} from '@harborclient/core/scriptRefs';
 import { SnippetEditModal } from '#/renderer/src/ui/Shared/Snippet/SnippetEditModal';
 import {
   createBlankSnippet,
@@ -44,7 +44,7 @@ import {
   normalizeEditorPlaceholder,
   REQUEST_SCRIPTS_HELP_URL
 } from '#/renderer/src/ui/Shared/Script/scriptPlaceholders';
-import { isImportableSnippetName } from '#/shared/snippetImport';
+import { isImportableSnippetName } from '@harborclient/core/snippetImport';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
@@ -58,7 +58,7 @@ import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { createNewChat } from '#/renderer/src/store/thunks/aiChat';
 import { createSnippet, updateSnippet } from '#/renderer/src/store/thunks/snippets';
-import { snippetMatchesPhase, snippetScopeForPhase } from '#/shared/snippetScope';
+import { snippetMatchesPhase, snippetScopeForPhase } from '@harborclient/core/snippetScope';
 import {
   DEFAULT_SCRIPT_STAGE,
   mergeScriptRefGroups,
@@ -69,14 +69,14 @@ import {
   shouldShowScriptSectionHeadings,
   splitScriptRefsByGroup,
   type ScriptEditorGroup
-} from '#/shared/scriptStage';
+} from '@harborclient/core/scriptStage';
 import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
 import {
   selectCopiedScriptRef,
   setCopiedScript
 } from '#/renderer/src/store/slices/scriptClipboardSlice';
 import { showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
-import { buildSnippetBundle } from '#/shared/snippetBundle';
+import { buildSnippetBundle } from '@harborclient/core/snippetBundle';
 import {
   faSquareMinus,
   faFileImport,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ChatSummary } from '#/shared/types';
+import type { ChatSummary } from '@harborclient/core/types';
 import {
   CHAT_HISTORY_SECTION_ITEM_LIMIT,
   CHAT_HISTORY_TODAY_KEY,

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { TeamHub, TeamHubServiceFlags } from '#/shared/types';
+import type { TeamHub, TeamHubServiceFlags } from '@harborclient/core/types';
 
 /**
  * Team hub service scan state for the hub list UI.

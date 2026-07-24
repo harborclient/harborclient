@@ -14,8 +14,8 @@ import {
 } from '#/main/appMenu';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
-import type { ThemeMenuOption } from '#/shared/themes';
-import type { ThemeSource } from '#/shared/types';
+import type { ThemeMenuOption } from '@harborclient/core/themes';
+import type { ThemeSource } from '@harborclient/core/types';
 
 /**
  * Registers IPC handlers that keep the application menu in sync with renderer state.

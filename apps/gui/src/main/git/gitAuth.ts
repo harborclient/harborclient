@@ -22,8 +22,8 @@ import {
   storeGitOAuthTokens,
   storeGitPat
 } from './gitSecrets';
-import type { StorageConnection, GitAuthMethod, GitIdentity } from '#/shared/types';
-import { isGitHubRepositoryUrl, normalizeGitHostKey } from '#/shared/gitUrl';
+import type { StorageConnection, GitAuthMethod, GitIdentity } from '@harborclient/core/types';
+import { isGitHubRepositoryUrl, normalizeGitHostKey } from '@harborclient/core/gitUrl';
 import { listStorageConnections } from '#/main/settings/storageSettings';
 import { validateRemoteCredentials, type GitRemoteValidationResult } from './gitRemoteValidation';
 

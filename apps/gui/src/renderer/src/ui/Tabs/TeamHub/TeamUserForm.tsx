@@ -5,7 +5,7 @@ import type {
   HubUserRecord,
   TeamHubAdminResourceOptions,
   UpdateHubUserInput
-} from '#/shared/types';
+} from '@harborclient/core/types';
 import { Checkbox, Input, Select } from '@harborclient/sdk/components';
 import { FormGroup } from '@harborclient/sdk/components';
 import { StatusMessage } from '@harborclient/sdk/components';

@@ -1,5 +1,5 @@
 import { createContext, useContext, type Dispatch, type SetStateAction } from 'react';
-import type { SidebarSearchFilter } from '#/shared/search/sidebar';
+import type { SidebarSearchFilter } from '@harborclient/core/search/sidebar';
 
 /**
  * Sidebar search state shared across the search field, toolbar, and sections.

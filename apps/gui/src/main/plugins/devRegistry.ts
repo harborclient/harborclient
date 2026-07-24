@@ -1,5 +1,5 @@
 import Store from 'electron-store';
-import type { GitPluginOrigin } from '#/shared/plugin/types';
+import type { GitPluginOrigin } from '@harborclient/core/plugin/types';
 
 const ENABLEMENT_KEY = 'plugins.enablement';
 const UNPACKED_KEY = 'plugins.unpacked';

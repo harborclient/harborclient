@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { compareVersions, normalizeVersion } from '#/main/settings/versionCompare';
-import { sanitizePluginCatalogCategories } from '#/shared/plugin/catalogCategories';
-import type { PluginManifest, PluginPermission } from '#/shared/plugin/types';
+import { sanitizePluginCatalogCategories } from '@harborclient/core/plugin/catalogCategories';
+import type { PluginManifest, PluginPermission } from '@harborclient/core/plugin/types';
 
 const contributionEntry = z.object({
   id: z.string().min(1),

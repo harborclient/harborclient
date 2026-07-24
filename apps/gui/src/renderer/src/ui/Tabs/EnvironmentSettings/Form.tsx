@@ -8,7 +8,7 @@ import {
   FormSection
 } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
-import type { Environment, Variable } from '#/shared/types';
+import type { Environment, Variable } from '@harborclient/core/types';
 import { useTabSaveRegistration } from '#/renderer/src/hooks/tabSaveRegistry';
 import { ENVIRONMENT_SETTINGS_NAME_INPUT_ID } from './focusEnvironmentSettings';
 import { serializeEnvironmentForm } from './serialize';

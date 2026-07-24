@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
-import { entryById, type SettingId } from '#/shared/search/settingsCatalog';
+import { entryById, type SettingId } from '@harborclient/core/search/settingsCatalog';
 import { settingAnchorId } from '#/renderer/src/ui/Tabs/Settings/settingAnchorId';
-import { parseSidebarDocumentId } from '#/shared/search/sidebar';
-import type { SidebarSearchInput } from '#/shared/search/sidebar';
-import type { UnifiedSearchHit } from '#/shared/search/types';
-import type { SavedRequest } from '#/shared/types';
+import { parseSidebarDocumentId } from '@harborclient/core/search/sidebar';
+import type { SidebarSearchInput } from '@harborclient/core/search/sidebar';
+import type { UnifiedSearchHit } from '@harborclient/core/search/types';
+import type { SavedRequest } from '@harborclient/core/types';
 import { useSearchIndexes } from './useSearchIndexes';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { setSelectedCollectionId } from '#/renderer/src/store/slices/collectionsSlice';

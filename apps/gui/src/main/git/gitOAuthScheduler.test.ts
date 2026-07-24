@@ -1,6 +1,6 @@
 import type { WebContents } from 'electron';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { StorageConnection } from '#/shared/types';
+import type { StorageConnection } from '@harborclient/core/types';
 
 const finishHostGitHubOAuth = vi.hoisted(() => vi.fn(async () => undefined));
 const testHostCredentials = vi.hoisted(() =>

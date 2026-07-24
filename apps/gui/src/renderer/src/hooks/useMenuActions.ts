@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useStore } from 'react-redux';
-import type { HttpMethod } from '#/shared/types';
-import type { MenuActionId } from '#/shared/types/app';
+import type { HttpMethod } from '@harborclient/core/types';
+import type { MenuActionId } from '@harborclient/core/types/app';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   openAboutModal,

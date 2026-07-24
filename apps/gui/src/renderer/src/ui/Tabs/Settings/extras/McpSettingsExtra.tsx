@@ -15,7 +15,7 @@ import {
 } from '@harborclient/sdk/components';
 import { useEffect, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import { AI_TOOL_NAMES, type AiToolName } from '#/shared/ai/tools';
+import { AI_TOOL_NAMES, type AiToolName } from '@harborclient/core/ai/tools';
 import type {
   McpClientHeader,
   McpClientServer,
@@ -23,7 +23,7 @@ import type {
   McpClientServerStatus,
   McpServerSettings,
   McpServerStatus
-} from '#/shared/types';
+} from '@harborclient/core/types';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/Shared/classes';
 import { McpServerFormFields } from '#/renderer/src/ui/Shared/Mcp/McpServerFormFields';
 import { buildMcpConfigSnippet } from '#/renderer/src/ui/Shared/Mcp/buildMcpConfigSnippet';

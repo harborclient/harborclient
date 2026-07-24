@@ -1,6 +1,6 @@
 import { ControlledAccordion } from '@szhsin/react-accordion';
 import type { JSX } from 'react';
-import type { ScriptExecutionEvent, ScriptTestResult, SendResult } from '#/shared/types';
+import type { ScriptExecutionEvent, ScriptTestResult, SendResult } from '@harborclient/core/types';
 
 import { formatBytes } from '#/renderer/src/ui/Shared/responseFormatUtils';
 import { CollapsibleSection } from './CollapsibleSection';

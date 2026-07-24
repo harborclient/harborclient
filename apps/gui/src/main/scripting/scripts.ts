@@ -1,4 +1,4 @@
-import type { ScriptRunInput, ScriptRunResult } from '#/shared/types';
+import type { ScriptRunInput, ScriptRunResult } from '@harborclient/core/types';
 import { runScriptInProcess } from './scriptRunnerHost';
 
 /**

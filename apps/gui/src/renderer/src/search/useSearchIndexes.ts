@@ -1,5 +1,5 @@
 import { useContext, useMemo } from 'react';
-import { searchAll } from '#/shared/search';
+import { searchAll } from '@harborclient/core/search';
 import { SearchIndexContext } from './searchIndexContext';
 import type { SearchIndexContextValue } from './searchIndexContext';
 

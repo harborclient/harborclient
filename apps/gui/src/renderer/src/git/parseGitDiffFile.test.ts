@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { GitRequestDiffFileEntry } from '#/shared/types';
+import type { GitRequestDiffFileEntry } from '@harborclient/core/types';
 import { inferGitDiffLanguage, parseGitDiffFileSides } from './parseGitDiffFile';
 
 /**

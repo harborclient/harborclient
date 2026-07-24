@@ -40,13 +40,13 @@ import type {
   TeamHubAdminRunResult,
   TeamHubAdminSnippet,
   TeamHubVerifiedSession
-} from '#/shared/types';
+} from '@harborclient/core/types';
 import {
   asTeamHubRunResultClient,
   type TeamHubRunResultRecord
 } from '#/main/storage/teamHubRunResultApi';
 import { getCustomTheme } from '#/main/storage/customThemes';
-import { parseCustomThemeSource } from '#/shared/plugin/customThemeExport';
+import { parseCustomThemeSource } from '@harborclient/core/plugin/customThemeExport';
 import { getAiSettings, setAiSettings } from '#/main/settings/aiSettings';
 import { getGeneralSettings, setGeneralSettings } from '#/main/settings/generalSettings';
 import {
@@ -77,7 +77,7 @@ import {
   setShortcutOverrides,
   validateShortcuts
 } from '#/main/settings/shortcutSettings';
-import type { ThemeSource } from '#/shared/types';
+import type { ThemeSource } from '@harborclient/core/types';
 
 /**
  * Verifies a Team Hub bearer token via `GET /auth/session`.

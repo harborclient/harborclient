@@ -9,7 +9,7 @@ import {
   normalizeCollectionRunnerConfig,
   resolveCollectionRunnerNextIndex,
   type CollectionRunnerConfig
-} from '#/shared/collectionRunner';
+} from '@harborclient/core/collectionRunner';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
 import type { RootState } from '#/renderer/src/store/redux';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';

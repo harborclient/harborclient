@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { SavedRunResultSummary } from '#/shared/collectionRunner';
+import type { SavedRunResultSummary } from '@harborclient/core/collectionRunner';
 import type { RootState } from '#/renderer/src/store/redux';
 
 /**

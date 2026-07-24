@@ -1,4 +1,8 @@
-import type { Collection, CollectionProviderKind, SourceControlStatus } from '#/shared/types';
+import type {
+  Collection,
+  CollectionProviderKind,
+  SourceControlStatus
+} from '@harborclient/core/types';
 
 /**
  * Resolves which collection the Git sidebar and git menu actions should target.

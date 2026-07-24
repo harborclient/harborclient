@@ -1,8 +1,13 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { DEFAULT_CHAT_TITLE } from '#/shared/ai/chatTitle';
-import { getAvailableModels, resolveAiModelOption } from '#/shared/ai/models';
-import { buildAiScriptSelectionContextMessage } from '#/shared/ai/scriptReferences';
-import type { AiSettings, ChatMessage, ChatStepMessage, ChatSummary } from '#/shared/types';
+import { DEFAULT_CHAT_TITLE } from '@harborclient/core/ai/chatTitle';
+import { getAvailableModels, resolveAiModelOption } from '@harborclient/core/ai/models';
+import { buildAiScriptSelectionContextMessage } from '@harborclient/core/ai/scriptReferences';
+import type {
+  AiSettings,
+  ChatMessage,
+  ChatStepMessage,
+  ChatSummary
+} from '@harborclient/core/types';
 import { executeAiToolCall } from '#/renderer/src/store/ai/aiToolExecutor';
 import type { AppDispatch, RootState, ThunkApiConfig } from '#/renderer/src/store/redux';
 import { patchGeneralSettings } from './settings';

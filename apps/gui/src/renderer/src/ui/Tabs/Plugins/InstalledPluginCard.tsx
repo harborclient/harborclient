@@ -1,10 +1,10 @@
 import { useEffect, useState, type JSX, type KeyboardEvent } from 'react';
-import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
-import { PLUGIN_CATALOG_CATEGORY_LABELS } from '#/shared/plugin/catalogCategories';
-import type { PluginInfo } from '#/shared/plugin/types';
-import { parsePluginThemeValue } from '#/shared/plugin/types';
-import { formatThemeDisplayName, pluginIsTheme } from '#/shared/plugin/themeCategory';
-import type { ThemeSource } from '#/shared/types';
+import type { PluginCatalogEntry } from '@harborclient/core/plugin/catalog';
+import { PLUGIN_CATALOG_CATEGORY_LABELS } from '@harborclient/core/plugin/catalogCategories';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
+import { parsePluginThemeValue } from '@harborclient/core/plugin/types';
+import { formatThemeDisplayName, pluginIsTheme } from '@harborclient/core/plugin/themeCategory';
+import type { ThemeSource } from '@harborclient/core/types';
 import type { PluginManagementKind } from './constants';
 import { ErrorMessages } from './ErrorMessages';
 import { InstalledPluginFooterActions } from './InstalledPluginFooterActions';

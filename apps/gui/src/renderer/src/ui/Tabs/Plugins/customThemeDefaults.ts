@@ -31,8 +31,8 @@ import {
   HC_TOOLBAR_ACTION_ACTIVE,
   HC_VARIABLE_TOKEN,
   HC_WARNING
-} from '#/shared/highContrastPalette';
-import type { CustomThemeType } from '#/shared/types/customTheme';
+} from '@harborclient/core/highContrastPalette';
+import type { CustomThemeType } from '@harborclient/core/types/customTheme';
 
 /**
  * Full default palette for one custom theme base appearance.

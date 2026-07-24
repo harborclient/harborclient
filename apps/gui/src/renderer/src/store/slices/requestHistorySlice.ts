@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { RequestHistoryEntry } from '#/shared/types/requestHistory';
+import type { RequestHistoryEntry } from '@harborclient/core/types/requestHistory';
 import type { RootState } from '#/renderer/src/store/redux';
 
 /**

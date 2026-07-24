@@ -1,5 +1,5 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
-import { parseJson } from '#/shared/parseJson';
+import { parseJson } from '@harborclient/core/parseJson';
 import {
   getCachedTeamHubCatalogs,
   getCachedTeamHubTrusted,
@@ -9,7 +9,7 @@ import {
   getDefaultPluginSources,
   normalizePluginSources,
   type PluginSourcesSettings
-} from '#/shared/plugin/catalog';
+} from '@harborclient/core/plugin/catalog';
 
 const STORE_KEY = 'pluginSources';
 

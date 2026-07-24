@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import { FaIcon } from '@harborclient/sdk/components';
-import type { ResolvedSlashCommand } from '#/shared/search';
+import type { ResolvedSlashCommand } from '@harborclient/core/search';
 import { faTerminal, faWandMagicSparkles } from '#/renderer/src/fontawesome';
 import { searchResultRowClass } from './searchResultRowClass';
 

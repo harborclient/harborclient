@@ -1,4 +1,4 @@
-import type { Variable } from '#/shared/types';
+import type { Variable } from '@harborclient/core/types';
 
 /**
  * Coerces a partial or legacy variable record to the full Variable shape.

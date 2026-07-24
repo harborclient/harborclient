@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { MenuItemConstructorOptions } from 'electron';
 import { mergePluginMenuItemsIntoTemplate } from './pluginMenuMerge';
-import type { SerializableMenuContribution } from '#/shared/plugin/types';
+import type { SerializableMenuContribution } from '@harborclient/core/plugin/types';
 
 describe('mergePluginMenuItemsIntoTemplate', () => {
   it('inserts plugin items into the matching menu with group separators', () => {

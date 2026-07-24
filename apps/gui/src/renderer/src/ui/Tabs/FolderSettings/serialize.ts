@@ -1,4 +1,4 @@
-import type { AuthConfig, KeyValue, ScriptRef, Variable } from '#/shared/types';
+import type { AuthConfig, KeyValue, ScriptRef, Variable } from '@harborclient/core/types';
 import {
   cleanHeaders,
   serializeScopedSettingsForm,

@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { normalizeAuth } from '#/shared/auth';
-import type { AuthConfig, KeyValue, Variable } from '#/shared/types';
+import { normalizeAuth } from '@harborclient/core/auth';
+import type { AuthConfig, KeyValue, Variable } from '@harborclient/core/types';
 
 /**
  * Supported HTTP methods for saved and live requests.

@@ -1,7 +1,7 @@
 import { EmptySectionLabel, RowActionsMenu } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useMemo, useState, type JSX, type MouseEvent } from 'react';
 import toast from 'react-hot-toast';
-import type { GitRequestDiffFileEntry, SourceControlStatus } from '#/shared/types';
+import type { GitRequestDiffFileEntry, SourceControlStatus } from '@harborclient/core/types';
 import { resolveGitChangeDisplayLabel } from '#/renderer/src/git/gitCommitChangeDisplay';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { GitChangedFileRow } from '#/renderer/src/ui/Shared/Git/GitChangedFileRow';

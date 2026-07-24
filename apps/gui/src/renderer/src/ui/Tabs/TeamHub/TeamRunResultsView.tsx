@@ -7,7 +7,7 @@ import {
   ResourceListRow
 } from '@harborclient/sdk/components';
 import { type JSX } from 'react';
-import type { TeamHub, TeamHubAdminRunResult } from '#/shared/types';
+import type { TeamHub, TeamHubAdminRunResult } from '@harborclient/core/types';
 
 import { faClockRotateLeft } from '#/renderer/src/fontawesome';
 

@@ -1,4 +1,4 @@
-import type { PluginPermission } from '#/shared/plugin/types';
+import type { PluginPermission } from '@harborclient/core/plugin/types';
 
 /**
  * Which class of plugin-like extensions the management screen is showing.

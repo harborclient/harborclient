@@ -6,7 +6,7 @@ set -euo pipefail
 
 FORBIDDEN='link:../harborclient-sdk'
 
-for file in package.json pnpm-lock.yaml; do
+for file in package.json apps/gui/package.json pnpm-lock.yaml; do
   if ! git diff --cached --name-only --diff-filter=ACMR | grep -qx "$file"; then
     continue
   fi

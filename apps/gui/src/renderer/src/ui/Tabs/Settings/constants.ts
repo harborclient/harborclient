@@ -10,11 +10,11 @@ import type {
   PostgresSettings,
   ProxySettings,
   SqliteSettings
-} from '#/shared/types';
+} from '@harborclient/core/types';
 import {
   DEFAULT_CODE_EDITOR_FONT_SIZE,
   DEFAULT_CODE_EDITOR_SETUP
-} from '#/shared/codeEditorSettings';
+} from '@harborclient/core/codeEditorSettings';
 import {
   faCode,
   faDatabase,

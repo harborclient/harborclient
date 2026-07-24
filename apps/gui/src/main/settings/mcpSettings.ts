@@ -1,14 +1,14 @@
 import { randomBytes, randomUUID, timingSafeEqual } from 'crypto';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { decryptSecret, encryptSecret, type EncryptedSecret } from '#/main/secrets/secretStorage';
-import { AI_TOOL_NAMES, type AiToolName } from '#/shared/ai/tools';
-import { parseJson } from '#/shared/parseJson';
+import { AI_TOOL_NAMES, type AiToolName } from '@harborclient/core/ai/tools';
+import { parseJson } from '@harborclient/core/parseJson';
 import type {
   McpClientHeader,
   McpClientServer,
   McpClientServerListItem,
   McpServerSettings
-} from '#/shared/types';
+} from '@harborclient/core/types';
 import { isPluginMcpServerId, listPluginMcpClientServers } from '#/main/plugins/pluginMcpRegistry';
 
 const MCP_SERVER_KEY = 'mcpServerSettings';

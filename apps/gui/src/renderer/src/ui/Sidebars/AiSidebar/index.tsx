@@ -1,6 +1,6 @@
 import { Sidebar, Toolbar, type ToolbarAction } from '@harborclient/sdk/components';
 import { useEffect, useMemo, useRef, type JSX } from 'react';
-import { hasAvailableAiModels } from '#/shared/ai/models';
+import { hasAvailableAiModels } from '@harborclient/core/ai/models';
 
 import { faClockRotateLeft, faCircleCheck } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';

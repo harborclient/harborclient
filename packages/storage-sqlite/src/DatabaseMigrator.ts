@@ -1,4 +1,23 @@
-import type { RoutingInternals } from './routingInternals';
+import type { IStorage } from '@harborclient/core/storage/IStorage';
+import type { LocalDatabase } from './LocalDatabase';
+
+/**
+ * Backend details required while migrating legacy local data into routed storage.
+ */
+interface MigrationBackend {
+  connectionId: string;
+  connectionName: string;
+  db: IStorage;
+}
+
+/**
+ * Router operations required by the one-time storage migration.
+ */
+export interface MigrationInternals {
+  database: LocalDatabase;
+  resolveDefaultDataBackend(): MigrationBackend;
+  listBackends(): MigrationBackend[];
+}
 
 const MIGRATION_FLAG_KEY = '__migrated__';
 const SNIPPET_MIGRATION_FLAG_KEY = '__snippets_migrated__';
@@ -8,12 +27,12 @@ const THEME_SETTING_KEY = 'theme';
  * Performs one-time registry backfill from legacy and provider data on first run.
  */
 export class MigrationManager {
-  private readonly internals: RoutingInternals;
+  private readonly internals: MigrationInternals;
 
   /**
-   * @param internals - Shared routing context from RoutingStorage.
+   * @param internals - Shared routing context from the host application.
    */
-  constructor(internals: RoutingInternals) {
+  constructor(internals: MigrationInternals) {
     this.internals = internals;
   }
 

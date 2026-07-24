@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
-import type { ThemeSource } from '#/shared/types';
+import type { ThemeSource } from '@harborclient/core/types';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { closeThemePicker, selectThemePicker } from '#/renderer/src/store/slices/modalsSlice';
 import { ThemePickerModalBody } from './ThemePickerModalBody';

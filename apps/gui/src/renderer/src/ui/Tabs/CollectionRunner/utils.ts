@@ -1,4 +1,4 @@
-import { type CollectionRunnerRequestResult } from '#/shared/collectionRunner';
+import { type CollectionRunnerRequestResult } from '@harborclient/core/collectionRunner';
 import { selectCollectionRunner } from '#/renderer/src/store/slices/modalsSlice';
 import { type RunnerTargetRef } from './resolveRunnerTargetName';
 

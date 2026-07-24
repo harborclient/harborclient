@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { SavedRequest } from '#/shared/types';
-import { defaultAuth } from '#/shared/auth';
+import type { SavedRequest } from '@harborclient/core/types';
+import { defaultAuth } from '@harborclient/core/auth';
 import {
   draftFromOpenPayload,
   findSavedRequest,
@@ -17,7 +17,7 @@ import { store } from '#/renderer/src/store/redux';
 import { clearConsole } from '#/renderer/src/store/slices/consoleSlice';
 import { openTabWithDraft } from '#/renderer/src/store/slices/tabsSlice';
 import { defaultDraft } from '#/renderer/src/store/tabs';
-import { toPluginHttpRequest } from '#/shared/plugin/httpRequest';
+import { toPluginHttpRequest } from '@harborclient/core/plugin/httpRequest';
 import type { RootState } from '#/renderer/src/store/redux';
 import { selectEffectiveActiveRequestTab } from '#/renderer/src/store/selectors';
 

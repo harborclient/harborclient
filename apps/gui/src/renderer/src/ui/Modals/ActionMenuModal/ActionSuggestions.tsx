@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import { FaIcon } from '@harborclient/sdk/components';
-import { actionCommandDisplayLabel, type ActionCommandDefinition } from '#/shared/search';
+import { actionCommandDisplayLabel, type ActionCommandDefinition } from '@harborclient/core/search';
 import { faBars } from '#/renderer/src/fontawesome';
 import { searchResultRowClass } from './searchResultRowClass';
 

@@ -1,6 +1,9 @@
 import { cleanVariables } from '@harborclient/sdk/components';
-import type { AuthConfig, KeyValue, ScriptRef, Variable } from '#/shared/types';
-import { mirrorLegacyScriptString, normalizeScriptRefsForCompare } from '#/shared/scriptRefs';
+import type { AuthConfig, KeyValue, ScriptRef, Variable } from '@harborclient/core/types';
+import {
+  mirrorLegacyScriptString,
+  normalizeScriptRefsForCompare
+} from '@harborclient/core/scriptRefs';
 import { emptyKeyValue } from '#/renderer/src/store/tabs';
 
 /**

@@ -4,7 +4,7 @@ import type {
   GitCommitDetail,
   GitCommitPlainFileChange,
   GitRequestDiffFileEntry
-} from '#/shared/types';
+} from '@harborclient/core/types';
 import { buildGitCommitChangesViewModel } from '#/renderer/src/git/buildGitCommitChangesViewModel';
 import { resolveGitChangeDisplayLabel } from '#/renderer/src/git/gitCommitChangeDisplay';
 import { GitChangedFileRow } from '#/renderer/src/ui/Shared/Git/GitChangedFileRow';

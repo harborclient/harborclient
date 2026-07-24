@@ -1,6 +1,6 @@
 import { Select, CODE_EDITOR_THEME_OPTIONS } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import type { GeneralSettings } from '#/shared/types';
+import type { GeneralSettings } from '@harborclient/core/types';
 
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {

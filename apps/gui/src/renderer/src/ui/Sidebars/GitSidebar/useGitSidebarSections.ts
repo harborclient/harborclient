@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import type { GitSidebarSectionKey } from '#/shared/gitSidebarExpansion';
+import type { GitSidebarSectionKey } from '@harborclient/core/gitSidebarExpansion';
 import { useGitSidebarExpansion } from './useGitSidebarExpansion';
 
 /**

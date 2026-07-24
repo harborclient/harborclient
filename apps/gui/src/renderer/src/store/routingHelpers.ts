@@ -1,5 +1,5 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
-import type { SettingsSection } from '#/shared/types';
+import type { SettingsSection } from '@harborclient/core/types';
 import type { PageRef } from '#/renderer/src/store/tabs';
 import type { PageComponentProps, PageRoute } from '#/renderer/src/routing/types';
 

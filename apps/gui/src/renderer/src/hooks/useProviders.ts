@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { CollectionProviderKind, StorageProvider } from '#/shared/types';
+import type { CollectionProviderKind, StorageProvider } from '@harborclient/core/types';
 import { subscribeStorageConnectionsChanged } from './subscribeStorageConnectionsChanged';
 
 /**

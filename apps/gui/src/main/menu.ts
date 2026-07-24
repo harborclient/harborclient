@@ -3,10 +3,10 @@ import { isDeveloperToolsEnabled } from './devMode';
 import { getShortcutOverrides } from '#/main/settings/shortcutSettings';
 import { getPluginMenuContributions } from '#/main/plugins/pluginMenuContributions';
 import { mergePluginMenuItemsIntoTemplate } from '#/main/plugins/pluginMenuMerge';
-import { resolveAcceleratorMap, type ShortcutId } from '#/shared/shortcuts';
+import { resolveAcceleratorMap, type ShortcutId } from '@harborclient/core/shortcuts';
 import { stepZoomIn, stepZoomOut, resetZoom } from '#/main/window/zoom';
-import { BUILTIN_THEME_OPTIONS, type ThemeMenuOption } from '#/shared/themes';
-import type { MenuActionId, ThemeSource } from '#/shared/types';
+import { BUILTIN_THEME_OPTIONS, type ThemeMenuOption } from '@harborclient/core/themes';
+import type { MenuActionId, ThemeSource } from '@harborclient/core/types';
 
 /**
  * Sends a menu action to the renderer process.

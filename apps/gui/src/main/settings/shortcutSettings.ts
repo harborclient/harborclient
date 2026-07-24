@@ -1,5 +1,5 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
-import { parseJson } from '#/shared/parseJson';
+import { parseJson } from '@harborclient/core/parseJson';
 import {
   normalizeShortcutOverrides,
   resolveShortcuts,
@@ -7,7 +7,7 @@ import {
   type ShortcutBinding,
   type ShortcutOverrides,
   type ShortcutValidationResult
-} from '#/shared/shortcuts';
+} from '@harborclient/core/shortcuts';
 
 const STORE_KEY = 'shortcuts';
 

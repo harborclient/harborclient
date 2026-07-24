@@ -1,6 +1,6 @@
 import type { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { scanTeamHubSessions } from './teamHubSessionScan';
-import type { TeamHub } from '#/shared/types';
+import type { TeamHub } from '@harborclient/core/types';
 
 /**
  * Normalizes a team hub base URL for sibling connection matching.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { RedirectHop } from '#/shared/types';
+import type { RedirectHop } from '@harborclient/core/types';
 import {
   formatRedirectChain,
   formatRedirectHopLine,

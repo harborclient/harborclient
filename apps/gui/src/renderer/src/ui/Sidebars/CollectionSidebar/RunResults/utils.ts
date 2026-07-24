@@ -1,4 +1,4 @@
-import type { SavedRunResultSummary } from '#/shared/collectionRunner';
+import type { SavedRunResultSummary } from '@harborclient/core/collectionRunner';
 
 /**
  * Builds a stable sortable id for a run result row.

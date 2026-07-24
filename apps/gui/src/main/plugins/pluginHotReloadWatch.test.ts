@@ -3,7 +3,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { collectPluginHotReloadWatchTargets } from './pluginHotReloadWatch';
-import type { PluginManifest } from '#/shared/plugin/types';
+import type { PluginManifest } from '@harborclient/core/plugin/types';
 
 const cleanups: Array<() => void> = [];
 

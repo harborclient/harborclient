@@ -1,8 +1,8 @@
 import { runChatCompletionStep } from './completeChatTurn';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
-import { DEFAULT_CHAT_TITLE, parseChatTitleResult } from '#/shared/ai/chatTitle';
-import { stripAiScriptReferences } from '#/shared/ai/scriptReferences';
-import type { GenerateChatTitleInput } from '#/shared/types';
+import { DEFAULT_CHAT_TITLE, parseChatTitleResult } from '@harborclient/core/ai/chatTitle';
+import { stripAiScriptReferences } from '@harborclient/core/ai/scriptReferences';
+import type { GenerateChatTitleInput } from '@harborclient/core/types';
 
 /**
  * Generates and persists a 3-5 word chat title from the user's first message.

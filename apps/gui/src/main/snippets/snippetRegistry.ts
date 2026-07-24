@@ -1,5 +1,5 @@
 import Store from 'electron-store';
-import type { GitSnippetOrigin, InstalledSnippetPackage } from '#/shared/snippet/types';
+import type { GitSnippetOrigin, InstalledSnippetPackage } from '@harborclient/core/snippet/types';
 
 const GIT_KEY = 'snippets.git';
 const PACKAGES_KEY = 'snippets.packages';

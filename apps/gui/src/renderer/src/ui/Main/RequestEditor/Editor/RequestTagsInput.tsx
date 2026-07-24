@@ -1,7 +1,7 @@
 import { FaIcon, FormGroup } from '@harborclient/sdk/components';
 import { useEffect, useRef, useState, type JSX, type KeyboardEvent } from 'react';
 import { faXmark } from '#/renderer/src/fontawesome';
-import { formatRequestTags, parseRequestTags } from '#/shared/requestTags';
+import { formatRequestTags, parseRequestTags } from '@harborclient/core/requestTags';
 
 /** Element id for the request tags field on the Notes tab. */
 export const REQUEST_TAGS_INPUT_ID = 'request-tags-input';

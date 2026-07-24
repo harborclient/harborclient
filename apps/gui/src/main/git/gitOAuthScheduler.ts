@@ -5,7 +5,7 @@ import { finishHostGitHubOAuth, resolveConnectionHost, testHostCredentials } fro
 import type { GitRemoteValidationResult } from './gitRemoteValidation';
 import { clearPendingGitHubDeviceFlow } from './githubOAuth';
 import { listStorageConnections } from '#/main/settings/storageSettings';
-import type { GitOAuthFinishedEvent } from '#/shared/types';
+import type { GitOAuthFinishedEvent } from '@harborclient/core/types';
 
 const activeCompletions = new Map<string, AbortController>();
 

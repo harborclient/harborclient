@@ -7,7 +7,7 @@ import {
   type JSX,
   type MouseEvent
 } from 'react';
-import { formatAcceleratorDisplay } from '#/shared/shortcuts';
+import { formatAcceleratorDisplay } from '@harborclient/core/shortcuts';
 import {
   resolveSkipNavigationLinks,
   SKIP_NAVIGATION_ID,

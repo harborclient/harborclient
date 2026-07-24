@@ -17,14 +17,14 @@ import {
   variable
 } from '#/main/schemas/common';
 import { ipcScriptRefArray, scriptSource } from '#/main/schemas/scriptRef';
-import { CODE_EDITOR_THEME_IDS } from '#/shared/codeEditorSettings';
-import { MAX_ZOOM_FACTOR, MIN_ZOOM_FACTOR } from '#/shared/zoomPresets';
+import { CODE_EDITOR_THEME_IDS } from '@harborclient/core/codeEditorSettings';
+import { MAX_ZOOM_FACTOR, MIN_ZOOM_FACTOR } from '@harborclient/core/zoomPresets';
 import {
   requestExportSchema,
   runResultsExportSchema,
   saveRunResultInputSchema
 } from '#/main/storage/collectionSchemas';
-import { customThemeSaveInputSchema } from '#/shared/plugin/customThemeExport';
+import { customThemeSaveInputSchema } from '@harborclient/core/plugin/customThemeExport';
 import type {
   AiChatSessionState,
   AiSettings,
@@ -50,10 +50,10 @@ import type {
   CreateTabGroupInput,
   McpClientServer,
   McpServerSettings
-} from '#/shared/types';
-import type { CollectionRunnerConfig } from '#/shared/collectionRunner';
-import { pluginSourcesSchema } from '#/shared/plugin/catalog';
-import { AI_TOOL_NAMES } from '#/shared/ai/tools';
+} from '@harborclient/core/types';
+import type { CollectionRunnerConfig } from '@harborclient/core/collectionRunner';
+import { pluginSourcesSchema } from '@harborclient/core/plugin/catalog';
+import { AI_TOOL_NAMES } from '@harborclient/core/ai/tools';
 
 export {
   bodyType,

@@ -1,4 +1,4 @@
-import type { RequestTimingPhases } from '#/shared/types';
+import type { RequestTimingPhases } from '@harborclient/core/types';
 
 /**
  * Group heading shown above related timing phases in the Timing tab.

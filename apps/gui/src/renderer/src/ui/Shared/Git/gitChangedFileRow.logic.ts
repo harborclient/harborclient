@@ -1,4 +1,4 @@
-import type { GitCommitChangeStatus } from '#/shared/types';
+import type { GitCommitChangeStatus } from '@harborclient/core/types';
 import {
   buildGitCommitFileAccessibleName,
   gitChangeStatusMarker,

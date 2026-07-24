@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { PluginInfo } from '#/shared/plugin/types';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
 import {
   installedCardToggleLabel,
   resolveInstalledCardMiddleAction

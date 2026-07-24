@@ -1,7 +1,7 @@
-import { defaultAuth } from '#/shared/auth';
-import { serializeFormParts } from '#/shared/formData';
-import { parseQueryString, splitUrl } from '#/shared/queryParams';
-import { serializeUrlEncodedParts } from '#/shared/urlencoded';
+import { defaultAuth } from '@harborclient/core/auth';
+import { serializeFormParts } from '@harborclient/core/formData';
+import { parseQueryString, splitUrl } from '@harborclient/core/queryParams';
+import { serializeUrlEncodedParts } from '@harborclient/core/urlencoded';
 import type {
   BodyType,
   CollectionExport,
@@ -9,7 +9,7 @@ import type {
   FormDataPart,
   HttpMethod,
   KeyValue
-} from '#/shared/types';
+} from '@harborclient/core/types';
 
 /**
  * HTTP methods HarborClient accepts for saved requests.

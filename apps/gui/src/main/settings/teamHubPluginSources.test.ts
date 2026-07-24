@@ -4,7 +4,7 @@ import {
   clearLocalDatabaseForTesting,
   setLocalDatabaseForTesting
 } from '#/main/storage/localDatabaseInstance';
-import { PLUGIN_CATALOG_URL } from '#/shared/plugin/catalog';
+import { PLUGIN_CATALOG_URL } from '@harborclient/core/plugin/catalog';
 import {
   getCachedTeamHubCatalogs,
   mergeEnabledPluginUrls,

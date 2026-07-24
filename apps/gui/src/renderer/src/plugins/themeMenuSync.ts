@@ -1,8 +1,8 @@
-import { formatCustomThemeValue } from '#/shared/plugin/customThemeExport';
-import type { ThemeMenuOption } from '#/shared/themes';
-import type { ThemeSource } from '#/shared/types';
+import { formatCustomThemeValue } from '@harborclient/core/plugin/customThemeExport';
+import type { ThemeMenuOption } from '@harborclient/core/themes';
+import type { ThemeSource } from '@harborclient/core/types';
 import { getRegisteredPluginThemes, subscribePluginRegistry } from './registry';
-import { formatPluginThemeValue } from '#/shared/plugin/types';
+import { formatPluginThemeValue } from '@harborclient/core/plugin/types';
 
 /**
  * Builds custom theme menu options from saved custom themes.

@@ -1,7 +1,7 @@
 import { useCallback, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { ThemeSource } from '#/shared/types';
-import { formatPluginThemeValue } from '#/shared/plugin/types';
+import type { ThemeSource } from '@harborclient/core/types';
+import { formatPluginThemeValue } from '@harborclient/core/plugin/types';
 import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {

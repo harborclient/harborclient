@@ -1,6 +1,6 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { decryptSecret, encryptSecret, type EncryptedSecret } from '#/main/secrets/secretStorage';
-import { parseJson } from '#/shared/parseJson';
+import { parseJson } from '@harborclient/core/parseJson';
 
 const GITHUB_MODELS_AUTH_KEY = 'githubModelsAuth';
 

@@ -12,7 +12,7 @@ import type {
   GitCommitFileChange,
   GitGraphLogEntry,
   GitGraphLogResult
-} from '#/shared/types';
+} from '@harborclient/core/types';
 
 /**
  * One raw path-level change before file classification.

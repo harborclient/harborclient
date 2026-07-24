@@ -1,6 +1,6 @@
 import Store from 'electron-store';
 import { normalizeSqliteFilename } from './sqliteFilename';
-import type { SqliteSettings } from '#/shared/types';
+import type { SqliteSettings } from '@harborclient/core/types';
 
 const DEFAULT_SQLITE_SETTINGS: SqliteSettings = {
   dbFilename: 'harborclient.db',

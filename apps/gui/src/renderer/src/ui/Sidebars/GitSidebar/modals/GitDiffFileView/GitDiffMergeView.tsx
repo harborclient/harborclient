@@ -1,6 +1,6 @@
 import { MergeView } from '@codemirror/merge';
 import { useEffect, useRef, type JSX } from 'react';
-import type { GitRequestDiffFileEntry } from '#/shared/types';
+import type { GitRequestDiffFileEntry } from '@harborclient/core/types';
 import { createGitDiffMergeExtensionsForPath } from '#/renderer/src/git/gitDiffMergeExtensions';
 
 interface Props {

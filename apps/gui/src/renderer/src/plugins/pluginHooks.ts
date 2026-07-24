@@ -16,7 +16,7 @@ import type {
   RegisteredSidebarPanel,
   RegisteredSidebarSection,
   RegisteredStatusBarItem
-} from '#/shared/plugin/types';
+} from '@harborclient/core/plugin/types';
 import {
   getRegisteredCollectionSettingsTabs,
   getRegisteredActions,

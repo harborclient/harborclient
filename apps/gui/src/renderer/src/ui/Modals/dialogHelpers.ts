@@ -1,5 +1,5 @@
 import type { AppDispatch } from '#/renderer/src/store/redux';
-import { stripIpcInvokeErrorPrefix } from '#/shared/gitHttpErrors';
+import { stripIpcInvokeErrorPrefix } from '@harborclient/core/gitHttpErrors';
 import {
   setAlertModal,
   setConfirmModal,

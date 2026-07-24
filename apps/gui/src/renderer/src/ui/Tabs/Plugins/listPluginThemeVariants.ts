@@ -1,4 +1,4 @@
-import type { PluginInfo, RegisteredPluginTheme } from '#/shared/plugin/types';
+import type { PluginInfo, RegisteredPluginTheme } from '@harborclient/core/plugin/types';
 
 /**
  * One selectable theme variant contributed by an installed theme plugin.

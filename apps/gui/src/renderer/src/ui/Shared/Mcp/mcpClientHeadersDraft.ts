@@ -1,4 +1,4 @@
-import type { McpClientHeader } from '#/shared/types';
+import type { McpClientHeader } from '@harborclient/core/types';
 
 /**
  * Example JSON shown in the MCP client headers textarea when empty.

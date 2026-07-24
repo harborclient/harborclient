@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ThemeColorToken } from '@harborclient/sdk';
-import { customThemeToEnvelope, formatCustomThemeValue } from '#/shared/plugin/customThemeExport';
-import type { CustomTheme, CustomThemeType } from '#/shared/types/customTheme';
+import {
+  customThemeToEnvelope,
+  formatCustomThemeValue
+} from '@harborclient/core/plugin/customThemeExport';
+import type { CustomTheme, CustomThemeType } from '@harborclient/core/types/customTheme';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   commitBaseline,

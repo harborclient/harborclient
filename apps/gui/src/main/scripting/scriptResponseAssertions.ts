@@ -1,7 +1,7 @@
 /// <reference types="chai" />
 
 import { wrapCallablePropertyGetter } from './scriptAssertionCompat';
-import type { SendResult } from '#/shared/types';
+import type { SendResult } from '@harborclient/core/types';
 
 /**
  * Brand symbol marking objects that are valid subjects for response assertion matchers.

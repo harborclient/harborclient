@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import type { ScriptExecutionEvent } from '#/shared/types';
+import type { ScriptExecutionEvent } from '@harborclient/core/types';
 import { StatusDot } from '@harborclient/sdk/components';
 
 import {

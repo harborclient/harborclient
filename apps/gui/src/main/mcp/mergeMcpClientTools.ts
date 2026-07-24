@@ -1,5 +1,5 @@
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
-import type { ChatStepModeConfig } from '#/shared/ai/chatStepMode';
+import type { ChatStepModeConfig } from '@harborclient/core/ai/chatStepMode';
 import { getMcpClientTools } from './mcpClientManager';
 
 /**

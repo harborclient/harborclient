@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { GitCommitFileChange } from '#/shared/types';
+import type { GitCommitFileChange } from '@harborclient/core/types';
 import { buildGitCommitChangesViewModel } from './buildGitCommitChangesViewModel';
 
 describe('buildGitCommitChangesViewModel', () => {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { McpServerStatus } from '#/shared/types';
+import type { McpServerStatus } from '@harborclient/core/types';
 
 const POLL_INTERVAL_MS = 5000;
 

@@ -4,7 +4,7 @@ import type {
   ChatSummary,
   GithubModelsStatus,
   HubLlmModelGroup
-} from '#/shared/types';
+} from '@harborclient/core/types';
 import type { RootState } from '#/renderer/src/store/redux';
 
 export interface AiChatState {

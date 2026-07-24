@@ -1,9 +1,9 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { listTeamHubs } from './teamHubSettings';
 import { TeamHubClient } from '@harborclient/team-hub-api';
-import { parseJson } from '#/shared/parseJson';
+import { parseJson } from '@harborclient/core/parseJson';
 
-import type { TeamHubPluginSource, TeamHubPluginSourcesView } from '#/shared/types';
+import type { TeamHubPluginSource, TeamHubPluginSourcesView } from '@harborclient/core/types';
 
 const STORE_KEY = 'teamHubPluginSources';
 

@@ -13,9 +13,9 @@ import {
   watchFileForPlugin,
   writeFileForPlugin
 } from './pluginFsOperations';
-import type { PluginPermission } from '#/shared/plugin/types';
-import { toActiveTheme } from '#/shared/plugin/types';
-import type { ThemeSource } from '#/shared/types';
+import type { PluginPermission } from '@harborclient/core/plugin/types';
+import { toActiveTheme } from '@harborclient/core/plugin/types';
+import type { ThemeSource } from '@harborclient/core/types';
 import { isPluginNetworkAllowed } from '#/main/settings/generalSettings';
 import { logImportVerbose } from '#/main/import/importVerboseLog';
 import { refreshMcpClientConnections } from '#/main/mcp/mcpClientManager';

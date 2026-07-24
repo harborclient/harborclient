@@ -1,4 +1,4 @@
-import type { ImportFile } from '#/shared/plugin/importHandlers';
+import type { ImportFile } from '@harborclient/core/plugin/importHandlers';
 import { logImportVerbose } from '#/renderer/src/import/importVerboseLog';
 
 /**

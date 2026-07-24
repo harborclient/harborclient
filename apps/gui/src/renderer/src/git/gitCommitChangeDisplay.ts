@@ -1,4 +1,4 @@
-import type { GitCommitChangeStatus, GitRequestFileStatus } from '#/shared/types';
+import type { GitCommitChangeStatus, GitRequestFileStatus } from '@harborclient/core/types';
 
 /**
  * Tailwind text color class for one commit change status.

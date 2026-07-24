@@ -1,5 +1,5 @@
 import { cleanVariables } from '@harborclient/sdk/components';
-import type { Variable } from '#/shared/types';
+import type { Variable } from '@harborclient/core/types';
 
 /**
  * Serializes globals form state for dirty comparison and form remount keys.

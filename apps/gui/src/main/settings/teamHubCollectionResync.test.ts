@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RoutingStorage } from '#/main/storage/RoutingStorage';
-import type { TeamHub } from '#/shared/types';
+import type { TeamHub } from '@harborclient/core/types';
 import { resyncUserTeamHubsSharingServer } from './teamHubCollectionResync';
 
 vi.mock('#/main/settings/teamHubSessionScan', () => ({

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
-import type { Collection, ListCollectionsResult } from '#/shared/types';
+import { defaultAuth } from '@harborclient/core/auth';
+import type { Collection, ListCollectionsResult } from '@harborclient/core/types';
 import type { RequestDraft } from '#/renderer/src/store/tabs';
 import { isRequestTab } from '#/renderer/src/store/tabs';
 

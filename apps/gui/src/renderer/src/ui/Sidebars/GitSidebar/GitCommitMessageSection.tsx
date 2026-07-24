@@ -1,12 +1,12 @@
 import { Button, FormGroup, Textarea, FaIcon } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import { getAvailableModels } from '#/shared/ai/models';
+import { getAvailableModels } from '@harborclient/core/ai/models';
 import {
   canReplaceGitCommitMessage,
   DEFAULT_GIT_COMMIT_MESSAGE
-} from '#/shared/ai/gitCommitMessage';
-import type { SourceControlStatus } from '#/shared/types';
+} from '@harborclient/core/ai/gitCommitMessage';
+import type { SourceControlStatus } from '@harborclient/core/types';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';

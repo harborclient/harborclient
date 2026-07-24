@@ -1,6 +1,6 @@
 import * as git from 'isomorphic-git';
 import fs from 'fs';
-import type { GitRequestFileStatus } from '#/shared/types';
+import type { GitRequestFileStatus } from '@harborclient/core/types';
 
 /**
  * One isomorphic-git statusMatrix row: filepath, HEAD, workdir, stage.

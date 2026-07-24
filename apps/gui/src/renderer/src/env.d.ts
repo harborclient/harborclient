@@ -3,7 +3,7 @@
 declare global {
   interface Window {
     platform: NodeJS.Platform;
-    operatingSystemInfo: import('#/shared/types/app').OperatingSystemInfo;
+    operatingSystemInfo: import('@harborclient/core/types/app').OperatingSystemInfo;
   }
 }
 

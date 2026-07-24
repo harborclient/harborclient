@@ -1,4 +1,4 @@
-import type { ChatSummary } from '#/shared/types';
+import type { ChatSummary } from '@harborclient/core/types';
 
 /** Stable key used to identify Today and Yesterday groups. */
 export const CHAT_HISTORY_TODAY_KEY = 'today';

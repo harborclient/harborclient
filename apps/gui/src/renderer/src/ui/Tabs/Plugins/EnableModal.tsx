@@ -1,8 +1,8 @@
 import { useCallback, useState, type JSX } from 'react';
 import { Button, FaIcon, Modal, ModalFooter, FieldError } from '@harborclient/sdk/components';
-import type { PluginInfo } from '#/shared/plugin/types';
-import { formatThemeDisplayName, pluginIsTheme } from '#/shared/plugin/themeCategory';
-import type { GeneralSettings } from '#/shared/types';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
+import { formatThemeDisplayName, pluginIsTheme } from '@harborclient/core/plugin/themeCategory';
+import type { GeneralSettings } from '@harborclient/core/types';
 
 import { faCircleCheck } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';

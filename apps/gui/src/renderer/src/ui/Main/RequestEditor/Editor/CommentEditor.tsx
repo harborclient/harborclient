@@ -13,7 +13,7 @@ import {
   codeMirrorPlugin
 } from '@mdxeditor/editor';
 import '@mdxeditor/editor/style.css';
-import type { Variable } from '#/shared/types';
+import type { Variable } from '@harborclient/core/types';
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX, type ReactNode } from 'react';
 import { FormGroup, SelectionActionToolbar } from '@harborclient/sdk/components';
 import { faCopy } from '#/renderer/src/fontawesome';

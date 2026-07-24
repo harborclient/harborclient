@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildGitWorkingTreeSummary } from './gitWorkingTreeSummary';
-import type { SourceControlStatus } from '#/shared/types';
+import type { SourceControlStatus } from '@harborclient/core/types';
 
 const baseStatus: SourceControlStatus = {
   branch: 'main',

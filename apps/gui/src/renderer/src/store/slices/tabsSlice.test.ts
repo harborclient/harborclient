@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
+import { defaultAuth } from '@harborclient/core/auth';
 import type {
   CollectionDocument,
   SavedRequest,
   ScriptTestResult,
   SendResult
-} from '#/shared/types';
+} from '@harborclient/core/types';
 import {
   asRequestTab,
   draftFromSaved,

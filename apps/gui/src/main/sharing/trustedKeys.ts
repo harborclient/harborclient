@@ -1,7 +1,7 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { publicKeyFingerprint } from './shareToken';
-import type { TrustedSharingKey } from '#/shared/types';
-import { parseJson } from '#/shared/parseJson';
+import type { TrustedSharingKey } from '@harborclient/core/types';
+import { parseJson } from '@harborclient/core/parseJson';
 
 const TRUSTED_KEYS_SETTING = 'trustedSharingKeys';
 

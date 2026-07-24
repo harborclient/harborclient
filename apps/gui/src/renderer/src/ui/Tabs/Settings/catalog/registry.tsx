@@ -1,5 +1,5 @@
 import type { ComponentType, JSX } from 'react';
-import type { SettingsSection } from '#/shared/types';
+import type { SettingsSection } from '@harborclient/core/types';
 
 import { AiInfoExtra } from '../extras/AiInfoExtra';
 import { GeneralInfoExtra } from '../extras/GeneralInfoExtra';

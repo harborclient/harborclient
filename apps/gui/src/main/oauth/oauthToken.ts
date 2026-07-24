@@ -1,5 +1,5 @@
-import { encodeBasicAuth } from '#/shared/auth';
-import type { OAuth2Config, OAuthFetchTokenResult } from '#/shared/auth';
+import { encodeBasicAuth } from '@harborclient/core/auth';
+import type { OAuth2Config, OAuthFetchTokenResult } from '@harborclient/core/auth';
 import { deleteOAuthToken, getOAuthToken, storeOAuthToken } from './oauthSecrets';
 
 const TOKEN_EXPIRY_BUFFER_MS = 60_000;

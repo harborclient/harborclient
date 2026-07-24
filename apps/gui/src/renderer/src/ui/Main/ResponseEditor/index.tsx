@@ -10,8 +10,8 @@ import {
 import { focusableReadonlyClass } from '#/renderer/src/ui/Shared/classes';
 import { useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { ResponseTabContext } from '#/shared/plugin/types';
-import type { ScriptExecutionEvent, ScriptTestResult, SendResult } from '#/shared/types';
+import type { ResponseTabContext } from '@harborclient/core/plugin/types';
+import type { ScriptExecutionEvent, ScriptTestResult, SendResult } from '@harborclient/core/types';
 
 import { useSendRequestShortcutHint } from '#/renderer/src/hooks/useSendRequestShortcutHint';
 import { faGlobe } from '#/renderer/src/fontawesome';

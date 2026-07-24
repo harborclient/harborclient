@@ -1,4 +1,4 @@
-import type { SaveRunResultInput } from '#/shared/collectionRunner';
+import type { SaveRunResultInput } from '@harborclient/core/collectionRunner';
 import type { LocalDatabase } from './LocalDatabase';
 import type { IStorage } from './IStorage';
 import { RoutingStorage } from './RoutingStorage';
@@ -12,8 +12,12 @@ import type {
   SaveRequestInput,
   SavedRequest,
   TabGroup
-} from '#/shared/types';
-import type { InsertTrashItemInput, TrashEntityType, TrashItem } from '#/shared/types/trash';
+} from '@harborclient/core/types';
+import type {
+  InsertTrashItemInput,
+  TrashEntityType,
+  TrashItem
+} from '@harborclient/core/types/trash';
 import { deleteStorageConnection, listStorageConnections } from '#/main/settings/storageSettings';
 
 /**

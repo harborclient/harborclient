@@ -10,9 +10,9 @@ import {
   mergeVariableSets,
   substituteWithMap
 } from './scriptOrchestration';
-import { createInlineScriptRef, createSnippetScriptRef } from '#/shared/scriptRefs';
-import { defaultAuth } from '#/shared/auth';
-import type { ScriptRunResult, Snippet } from '#/shared/types';
+import { createInlineScriptRef, createSnippetScriptRef } from '@harborclient/core/scriptRefs';
+import { defaultAuth } from '@harborclient/core/auth';
+import type { ScriptRunResult, Snippet } from '@harborclient/core/types';
 
 const snippetLookup = new Map<string, Snippet>([
   [

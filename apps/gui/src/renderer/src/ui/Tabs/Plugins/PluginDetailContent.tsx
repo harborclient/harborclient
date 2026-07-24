@@ -7,14 +7,14 @@ import {
 } from '@harborclient/sdk/components';
 import { faBug, faGlobe } from '#/renderer/src/fontawesome';
 import { useMemo, type JSX } from 'react';
-import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
-import { stripPluginScreenshotImagesFromMarkdown } from '#/shared/plugin/stripPluginScreenshotImagesFromMarkdown';
+import type { PluginCatalogEntry } from '@harborclient/core/plugin/catalog';
+import { stripPluginScreenshotImagesFromMarkdown } from '@harborclient/core/plugin/stripPluginScreenshotImagesFromMarkdown';
 import type {
   PluginGitPreview,
   PluginInfo,
   PluginManifest,
   PluginScreenshot
-} from '#/shared/plugin/types';
+} from '@harborclient/core/plugin/types';
 
 import { PERMISSION_DESCRIPTIONS, PERMISSION_NAMES } from './constants';
 import { installedPluginInstallationLabel } from './helpers';

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type JSX } from 'react';
 import { createPortal } from 'react-dom';
-import type { AppSubmenuItemSnapshot, RootMenuLabel } from '#/shared/types';
+import type { AppSubmenuItemSnapshot, RootMenuLabel } from '@harborclient/core/types';
 
 interface Position {
   /** Viewport X coordinate where the menu opens. */

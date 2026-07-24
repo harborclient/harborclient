@@ -2,9 +2,9 @@ import type {
   ProviderRunResult,
   ProviderRunResultSummary,
   SaveRunResultInput
-} from '#/shared/collectionRunner';
-import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
-import type { SnippetScope } from '#/shared/snippetScope';
+} from '@harborclient/core/collectionRunner';
+import type { ContainerItemRef } from '@harborclient/core/collectionContainerOrder';
+import type { SnippetScope } from '@harborclient/core/snippetScope';
 import type { ScriptStage } from '@harborclient/sdk';
 import type {
   AuthConfig,
@@ -21,7 +21,7 @@ import type {
   Snippet,
   SourceControlStatus,
   Variable
-} from '#/shared/types';
+} from '@harborclient/core/types';
 
 /**
  * Contract for persistent storage of collections, requests, and app settings.

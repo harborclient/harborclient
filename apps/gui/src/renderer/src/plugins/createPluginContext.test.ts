@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import '#/shared/plugin/databaseTypes';
-import type { PluginManifest } from '#/shared/plugin/types';
+import '@harborclient/core/plugin/databaseTypes';
+import type { PluginManifest } from '@harborclient/core/plugin/types';
 import { createPluginContext } from './createPluginContext';
 import { clearPluginAfterSendSubscribers, emitPluginAfterSend } from './pluginAfterSendBus';
 

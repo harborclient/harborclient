@@ -15,7 +15,7 @@ import type {
   ScriptTestResult,
   SendResult,
   Snippet
-} from '#/shared/types';
+} from '@harborclient/core/types';
 
 /**
  * Returns all collections.

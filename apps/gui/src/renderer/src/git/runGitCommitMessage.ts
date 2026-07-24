@@ -1,9 +1,9 @@
-import { resolveAiModelOption } from '#/shared/ai/models';
+import { resolveAiModelOption } from '@harborclient/core/ai/models';
 import {
   buildGitCommitMessageMessages,
   normalizeGitCommitMessage
-} from '#/shared/ai/gitCommitMessage';
-import type { AiSettings, ChatStepMessage, HubLlmModelGroup } from '#/shared/types';
+} from '@harborclient/core/ai/gitCommitMessage';
+import type { AiSettings, ChatStepMessage, HubLlmModelGroup } from '@harborclient/core/types';
 import { executeAiToolCall } from '#/renderer/src/store/ai/aiToolExecutor';
 import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
 import { persistGitCommitMessageModelId } from './gitCommitMessageModel';

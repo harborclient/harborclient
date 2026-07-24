@@ -1,7 +1,7 @@
-import type { OAuthFetchTokenResult } from '#/shared/auth';
-import type { SearchDocsToolArgs } from '#/shared/ai/tools';
-import type { HarborDeepLink } from '#/shared/deepLink';
-import type { MenuSelectThemePayload, ThemeMenuOption } from '#/shared/themes';
+import type { OAuthFetchTokenResult } from '@harborclient/core/auth';
+import type { SearchDocsToolArgs } from '@harborclient/core/ai/tools';
+import type { HarborDeepLink } from '@harborclient/core/deepLink';
+import type { MenuSelectThemePayload, ThemeMenuOption } from '@harborclient/core/themes';
 import type { PluginHttpRequest, PluginHttpResponse } from '@harborclient/sdk';
 import { contextBridge, ipcRenderer } from 'electron';
 import os from 'node:os';
@@ -106,21 +106,21 @@ import type {
   TrashEntityType,
   TrashItem,
   TabGroupRequest
-} from '#/shared/types';
-import type { SnippetImportResult } from '#/shared/types/api/snippets';
+} from '@harborclient/core/types';
+import type { SnippetImportResult } from '@harborclient/core/types/api/snippets';
 import type {
   CreateTerminalInput,
   CreateTerminalResult,
   TerminalDataEvent,
   TerminalExitEvent
-} from '#/shared/types/api/terminal';
+} from '@harborclient/core/types/api/terminal';
 import type {
   CollectionRunnerConfig,
   RunResultsExport,
   SavedRunResult,
   SavedRunResultSummary,
   SaveRunResultInput
-} from '#/shared/collectionRunner';
+} from '@harborclient/core/collectionRunner';
 
 /**
  * Lists all collections via IPC.
@@ -613,7 +613,7 @@ function importSnippetFile(includeBundle?: boolean): Promise<SnippetImportResult
 /**
  * Fetches the public snippet marketplace catalog via IPC.
  */
-function getSnippetCatalog(): Promise<import('#/shared/snippet/catalog').SnippetCatalog> {
+function getSnippetCatalog(): Promise<import('@harborclient/core/snippet/catalog').SnippetCatalog> {
   return ipcRenderer.invoke('snippets:catalog');
 }
 
@@ -626,7 +626,7 @@ function getSnippetCatalog(): Promise<import('#/shared/snippet/catalog').Snippet
 function previewSnippetFromGit(
   url: string,
   ref?: string
-): Promise<import('#/shared/snippet/types').SnippetGitPreview> {
+): Promise<import('@harborclient/core/snippet/types').SnippetGitPreview> {
   return ipcRenderer.invoke('snippets:previewFromGit', url, ref);
 }
 
@@ -639,7 +639,7 @@ function previewSnippetFromGit(
 function installSnippetFromGit(
   url: string,
   ref?: string
-): Promise<import('#/shared/snippet/types').InstalledSnippetPackage> {
+): Promise<import('@harborclient/core/snippet/types').InstalledSnippetPackage> {
   return ipcRenderer.invoke('snippets:installFromGit', url, ref);
 }
 
@@ -647,7 +647,7 @@ function installSnippetFromGit(
  * Opens a native file picker for a `.hcs` or `.zip` snippet bundle and installs it via IPC.
  */
 function installSnippet(): Promise<
-  import('#/shared/snippet/types').InstalledSnippetPackage | null
+  import('@harborclient/core/snippet/types').InstalledSnippetPackage | null
 > {
   return ipcRenderer.invoke('snippets:install');
 }
@@ -659,7 +659,7 @@ function installSnippet(): Promise<
  */
 function installSnippetFromPath(
   path: string
-): Promise<import('#/shared/snippet/types').InstalledSnippetPackage> {
+): Promise<import('@harborclient/core/snippet/types').InstalledSnippetPackage> {
   return ipcRenderer.invoke('snippets:installFromPath', path);
 }
 
@@ -667,7 +667,7 @@ function installSnippetFromPath(
  * Opens a native directory picker and imports a snippet bundle via IPC.
  */
 function loadUnpackedSnippet(): Promise<
-  import('#/shared/snippet/types').InstalledSnippetPackage | null
+  import('@harborclient/core/snippet/types').InstalledSnippetPackage | null
 > {
   return ipcRenderer.invoke('snippets:loadUnpacked');
 }
@@ -679,7 +679,7 @@ function loadUnpackedSnippet(): Promise<
  */
 function loadUnpackedSnippetFromPath(
   path: string
-): Promise<import('#/shared/snippet/types').InstalledSnippetPackage> {
+): Promise<import('@harborclient/core/snippet/types').InstalledSnippetPackage> {
   return ipcRenderer.invoke('snippets:loadUnpackedFromPath', path);
 }
 
@@ -690,7 +690,7 @@ function loadUnpackedSnippetFromPath(
  */
 function updateSnippetFromGit(
   catalogId: string
-): Promise<import('#/shared/snippet/types').InstalledSnippetPackage> {
+): Promise<import('@harborclient/core/snippet/types').InstalledSnippetPackage> {
   return ipcRenderer.invoke('snippets:updateFromGit', catalogId);
 }
 
@@ -707,7 +707,7 @@ function uninstallSnippetPackage(catalogId: string): Promise<void> {
  * Lists installed marketplace snippet bundles via IPC.
  */
 function listInstalledSnippetPackages(): Promise<
-  import('#/shared/snippet/types').InstalledSnippetPackage[]
+  import('@harborclient/core/snippet/types').InstalledSnippetPackage[]
 > {
   return ipcRenderer.invoke('snippets:listInstalledPackages');
 }
@@ -2093,7 +2093,7 @@ function updateTeamHubCollectionDeletionLocked(
   hubId: string,
   collectionId: string,
   deletionLocked: boolean
-): Promise<import('#/shared/types').AdminEntityConfig> {
+): Promise<import('@harborclient/core/types').AdminEntityConfig> {
   return ipcRenderer.invoke(
     'teamHubs:updateCollectionDeletionLocked',
     hubId,
@@ -2113,7 +2113,7 @@ function updateTeamHubEnvironmentDeletionLocked(
   hubId: string,
   environmentId: string,
   deletionLocked: boolean
-): Promise<import('#/shared/types').AdminEntityConfig> {
+): Promise<import('@harborclient/core/types').AdminEntityConfig> {
   return ipcRenderer.invoke(
     'teamHubs:updateEnvironmentDeletionLocked',
     hubId,
@@ -2138,7 +2138,7 @@ function syncProvider(connectionId: string): Promise<void> {
  */
 function listUnregisteredCollections(
   connectionId: string
-): Promise<import('#/shared/types').DiscoveredCollection[]> {
+): Promise<import('@harborclient/core/types').DiscoveredCollection[]> {
   return ipcRenderer.invoke('providers:listUnregisteredCollections', connectionId);
 }
 
@@ -2151,7 +2151,7 @@ function listUnregisteredCollections(
 function registerDiscoveredCollections(
   connectionId: string,
   providerCollectionIds: number[]
-): Promise<import('#/shared/types').RegisterDiscoveredCollectionsResult> {
+): Promise<import('@harborclient/core/types').RegisterDiscoveredCollectionsResult> {
   return ipcRenderer.invoke(
     'providers:registerDiscoveredCollections',
     connectionId,
@@ -2166,14 +2166,16 @@ function registerDiscoveredCollections(
  */
 function markCollectionDiscoverySkipped(
   connectionId: string
-): Promise<import('#/shared/types').StorageConnection[]> {
+): Promise<import('@harborclient/core/types').StorageConnection[]> {
   return ipcRenderer.invoke('providers:markCollectionDiscoverySkipped', connectionId);
 }
 
 /**
  * Returns source-control status for each mounted git connection.
  */
-function listGitStatuses(): Promise<Record<string, import('#/shared/types').SourceControlStatus>> {
+function listGitStatuses(): Promise<
+  Record<string, import('@harborclient/core/types').SourceControlStatus>
+> {
   return ipcRenderer.invoke('git:statuses');
 }
 
@@ -2212,11 +2214,11 @@ function onStorageConnectionsChanged(callback: () => void): () => void {
  * @returns Unsubscribe function.
  */
 function onGitOAuthFinished(
-  callback: (event: import('#/shared/types').GitOAuthFinishedEvent) => void
+  callback: (event: import('@harborclient/core/types').GitOAuthFinishedEvent) => void
 ): () => void {
   const listener = (
     _event: Electron.IpcRendererEvent,
-    payload: import('#/shared/types').GitOAuthFinishedEvent
+    payload: import('@harborclient/core/types').GitOAuthFinishedEvent
   ): void => {
     callback(payload);
   };
@@ -2375,7 +2377,7 @@ function gitPush(connectionId: string): Promise<void> {
 function gitLog(
   connectionId: string,
   depth?: number
-): Promise<import('#/shared/types').GitLogEntry[]> {
+): Promise<import('@harborclient/core/types').GitLogEntry[]> {
   return ipcRenderer.invoke('git:log', connectionId, depth);
 }
 
@@ -2406,7 +2408,7 @@ function gitDeleteRepoDirectory(connectionId: string): Promise<void> {
 function gitGraphLog(
   connectionId: string,
   depth?: number
-): Promise<import('#/shared/types').GitGraphLogResult> {
+): Promise<import('@harborclient/core/types').GitGraphLogResult> {
   return ipcRenderer.invoke('git:graphLog', connectionId, depth);
 }
 
@@ -2419,7 +2421,7 @@ function gitGraphLog(
 function gitCommitDetail(
   connectionId: string,
   oid: string
-): Promise<import('#/shared/types').GitCommitDetail> {
+): Promise<import('@harborclient/core/types').GitCommitDetail> {
   return ipcRenderer.invoke('git:commitDetail', connectionId, oid);
 }
 
@@ -2437,7 +2439,7 @@ function gitCommitFileDiff(args: {
   resourceKind?: 'request' | 'document' | 'collection';
   method?: string;
   maxChars?: number;
-}): Promise<import('#/shared/types').GitRequestDiffFileEntry> {
+}): Promise<import('@harborclient/core/types').GitRequestDiffFileEntry> {
   return ipcRenderer.invoke('git:commitFileDiff', args);
 }
 
@@ -2518,7 +2520,7 @@ function gitFileDiff(args: {
 function gitListItemStatuses(
   connectionId: string,
   collectionUuid: string
-): Promise<Record<string, import('#/shared/types').GitRequestFileStatus>> {
+): Promise<Record<string, import('@harborclient/core/types').GitRequestFileStatus>> {
   return ipcRenderer.invoke('git:itemStatuses', connectionId, collectionUuid);
 }
 
@@ -2658,7 +2660,7 @@ function gitReadRemoteUrl(repoPath: string): Promise<string | null> {
 /**
  * Lists saved git host identities.
  */
-function listGitIdentities(): Promise<import('#/shared/types').GitIdentity[]> {
+function listGitIdentities(): Promise<import('@harborclient/core/types').GitIdentity[]> {
   return ipcRenderer.invoke('git:listIdentities');
 }
 
@@ -3101,7 +3103,7 @@ function removeTrustedKey(id: string): Promise<TrustedSharingKey[]> {
 /**
  * Lists all custom themes stored under `{userData}/custom_themes`.
  */
-function listCustomThemes(): Promise<import('#/shared/types/customTheme').CustomTheme[]> {
+function listCustomThemes(): Promise<import('@harborclient/core/types/customTheme').CustomTheme[]> {
   return ipcRenderer.invoke('customThemes:list');
 }
 
@@ -3112,7 +3114,7 @@ function listCustomThemes(): Promise<import('#/shared/types/customTheme').Custom
  */
 function getCustomTheme(
   id: string
-): Promise<import('#/shared/types/customTheme').CustomTheme | null> {
+): Promise<import('@harborclient/core/types/customTheme').CustomTheme | null> {
   return ipcRenderer.invoke('customThemes:get', id);
 }
 
@@ -3122,8 +3124,8 @@ function getCustomTheme(
  * @param input - Theme values to persist.
  */
 function saveCustomTheme(
-  input: import('#/shared/types/api/customThemes').SaveCustomThemeInput
-): Promise<import('#/shared/types/customTheme').CustomTheme> {
+  input: import('@harborclient/core/types/api/customThemes').SaveCustomThemeInput
+): Promise<import('@harborclient/core/types/customTheme').CustomTheme> {
   return ipcRenderer.invoke('customThemes:save', input);
 }
 
@@ -3143,7 +3145,7 @@ function deleteCustomTheme(id: string): Promise<void> {
  */
 function restoreBuiltinTheme(
   id: string
-): Promise<import('#/shared/types/customTheme').CustomTheme> {
+): Promise<import('@harborclient/core/types/customTheme').CustomTheme> {
   return ipcRenderer.invoke('customThemes:restoreBuiltin', id);
 }
 
@@ -3151,7 +3153,7 @@ function restoreBuiltinTheme(
  * Opens an import dialog and returns draft values without saving.
  */
 function importCustomTheme(): Promise<
-  import('#/shared/types/customTheme').CustomThemeImportDraft | null
+  import('@harborclient/core/types/customTheme').CustomThemeImportDraft | null
 > {
   return ipcRenderer.invoke('customThemes:import');
 }

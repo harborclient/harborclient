@@ -26,7 +26,7 @@ import {
   scheduleHostGitHubOAuthCompletion,
   testGitCredentials
 } from '#/main/git/gitOAuthScheduler';
-import { normalizeGitRemoteToHttps } from '#/shared/gitUrl';
+import { normalizeGitRemoteToHttps } from '@harborclient/core/gitUrl';
 import { isAllowedExternalUrl } from '#/main/window/navigationSecurity';
 import { buildGitDiff, makeCollectionScopedFilter, type GitDiffResult } from '#/main/git/gitDiff';
 import { resolveHarborclientRoot } from '#/main/git/fileLayout';
@@ -40,8 +40,8 @@ import type {
   GitFileInfoResult,
   GitRepoInfoResult,
   GitRequestDiffFileEntry
-} from '#/shared/types';
-import type { Collection } from '#/shared/types';
+} from '@harborclient/core/types';
+import type { Collection } from '@harborclient/core/types';
 import { getGeneralSettings } from '#/main/settings/generalSettings';
 
 /**

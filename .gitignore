@@ -1,7 +1,15 @@
 node_modules
+apps/*/node_modules
+packages/*/node_modules
 out
+apps/*/out
 release
+apps/*/release
 dist
+apps/*/dist
+packages/*/dist
+packages/core/docs/.vitepress/dist
+packages/core/docs/.vitepress/cache
 *.db
 .DS_Store
 *.log
@@ -10,6 +18,6 @@ dist
 *.scratch.txt
 *.scratch.md
 REVIEW.md
-plugins/signing.pem
+apps/gui/plugins/signing.pem
 scripts/.env
 scripts/.cache/

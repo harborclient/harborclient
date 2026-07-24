@@ -1,5 +1,5 @@
 import type { Completion, CompletionContext, CompletionSource } from '@codemirror/autocomplete';
-import type { ScriptPhase, Variable } from '#/shared/types';
+import type { ScriptPhase, Variable } from '@harborclient/core/types';
 import {
   DYNAMIC_VARIABLE_NAMES,
   FILTER_NAMES,

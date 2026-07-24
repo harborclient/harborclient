@@ -8,7 +8,7 @@ import {
   type KeyValueListMode,
   type ScriptUpdateMode,
   type UpdateActiveRequestToolArgs
-} from '#/shared/ai/requestUpdate';
+} from '@harborclient/core/ai/requestUpdate';
 import {
   AI_TOOL_NAMES,
   type AiToolName,
@@ -30,7 +30,7 @@ import {
   type SetActiveEnvironmentToolArgs,
   type TerminalExecToolArgs,
   type UpdateRequestScriptToolArgs
-} from '#/shared/ai/tools';
+} from '@harborclient/core/ai/tools';
 import {
   DEFAULT_RESPONSE_BODY_CHARS,
   formatHttpResponseForAgent,
@@ -39,8 +39,8 @@ import {
   type FormatHttpResponseOptions,
   type QueryResponseBodyError,
   type QueryResponseBodyResult
-} from '#/shared/ai/chatContext';
-import { isMcpPrefixedToolName } from '#/shared/mcpToolNames';
+} from '@harborclient/core/ai/chatContext';
+import { isMcpPrefixedToolName } from '@harborclient/core/mcpToolNames';
 import { hostFromUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/cookieHost';
 import {
   isMarkdownTab,
@@ -48,7 +48,7 @@ import {
   isTabDirty,
   type RequestTab
 } from '#/renderer/src/store/tabs';
-import { mirrorLegacyScriptString, resolveScriptSourceCode } from '#/shared/scriptRefs';
+import { mirrorLegacyScriptString, resolveScriptSourceCode } from '@harborclient/core/scriptRefs';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import { selectShowTerminal } from '#/renderer/src/store/slices/navigationSlice';
 import { updateTab } from '#/renderer/src/store/slices/tabsSlice';
@@ -76,7 +76,7 @@ import {
 } from '#/renderer/src/plugins/hostRequestCommands';
 import type { CreateCollectionRequest } from '@harborclient/sdk';
 import { createFolder, refreshRequests } from '#/renderer/src/store/thunks/collections';
-import type { OperatingSystemInfo } from '#/shared/types';
+import type { OperatingSystemInfo } from '@harborclient/core/types';
 import type {
   AuthConfig,
   BodyType,
@@ -89,7 +89,7 @@ import type {
   ScriptRef,
   Snippet,
   Variable
-} from '#/shared/types';
+} from '@harborclient/core/types';
 
 /**
  * Supported HTTP methods for update_active_request validation.

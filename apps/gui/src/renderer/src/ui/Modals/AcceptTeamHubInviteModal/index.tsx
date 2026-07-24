@@ -1,5 +1,5 @@
 import { useCallback, useState, type JSX } from 'react';
-import { parseTeamHubInviteLink } from '#/shared/deepLink';
+import { parseTeamHubInviteLink } from '@harborclient/core/deepLink';
 import {
   Button,
   FieldError,

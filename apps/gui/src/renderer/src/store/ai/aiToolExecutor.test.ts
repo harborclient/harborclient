@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_RESPONSE_BODY_CHARS, RESPONSE_BODY_PREVIEW_CHARS } from '#/shared/ai/chatContext';
-import { defaultAuth } from '#/shared/auth';
-import { createInlineScriptRef, createSnippetScriptRef } from '#/shared/scriptRefs';
+import {
+  DEFAULT_RESPONSE_BODY_CHARS,
+  RESPONSE_BODY_PREVIEW_CHARS
+} from '@harborclient/core/ai/chatContext';
+import { defaultAuth } from '@harborclient/core/auth';
+import { createInlineScriptRef, createSnippetScriptRef } from '@harborclient/core/scriptRefs';
 import type {
   Collection,
   Environment,
@@ -10,7 +13,7 @@ import type {
   SaveRequestInput,
   SavedRequest,
   SendResult
-} from '#/shared/types';
+} from '@harborclient/core/types';
 import { executeAiTool } from './aiToolExecutor';
 import {
   setCollections,

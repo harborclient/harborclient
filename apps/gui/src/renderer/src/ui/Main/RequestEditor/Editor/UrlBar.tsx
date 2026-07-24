@@ -6,7 +6,7 @@ import {
   fieldFrame
 } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import type { HttpMethod, Variable } from '#/shared/types';
+import type { HttpMethod, Variable } from '@harborclient/core/types';
 
 import { faStop, faFloppyDisk } from '#/renderer/src/fontawesome';
 import { usePluginRequestToolbarActions } from '#/renderer/src/plugins/pluginHooks';

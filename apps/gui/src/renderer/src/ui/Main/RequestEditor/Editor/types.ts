@@ -1,1 +1,1 @@
-export type { EditorTab } from '#/shared/types';
+export type { EditorTab } from '@harborclient/core/types';

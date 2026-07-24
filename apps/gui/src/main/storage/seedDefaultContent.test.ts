@@ -18,7 +18,7 @@ import {
   seedBuiltinCollectionsIfMissing,
   seedDefaultContentIfNeeded
 } from './seedDefaultContent';
-import type { SqliteSettings, StorageConnection } from '#/shared/types';
+import type { SqliteSettings, StorageConnection } from '@harborclient/core/types';
 import { describeSqlite } from '#/test/nativeModules';
 
 const { getAppPath } = vi.hoisted(() => ({

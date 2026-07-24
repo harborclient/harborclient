@@ -1,8 +1,8 @@
 import { Scrollbars } from '#/renderer/src/ui/Shared/Scrollbars';
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
-import type { RequestTabContext, ResponseTabContext } from '#/shared/plugin/types';
-import type { Variable } from '#/shared/types';
-import { DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT } from '#/shared/types';
+import type { RequestTabContext, ResponseTabContext } from '@harborclient/core/plugin/types';
+import type { Variable } from '@harborclient/core/types';
+import { DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT } from '@harborclient/core/types';
 import {
   isMarkdownTab,
   isPageTab,

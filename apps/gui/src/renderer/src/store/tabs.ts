@@ -9,15 +9,15 @@ import type {
   ScriptExecutionEvent,
   SendResult,
   SettingsSection
-} from '#/shared/types';
-import { defaultAuth, normalizeAuth, type AuthConfig } from '#/shared/auth';
-import { applyParamsToUrl } from '#/shared/queryParams';
+} from '@harborclient/core/types';
+import { defaultAuth, normalizeAuth, type AuthConfig } from '@harborclient/core/auth';
+import { applyParamsToUrl } from '@harborclient/core/queryParams';
 import {
   mirrorLegacyScriptString,
   normalizeScriptRefsForCompare,
   resolveScriptRefs
-} from '#/shared/scriptRefs';
-import { normalizeRequestTags } from '#/shared/requestTags';
+} from '@harborclient/core/scriptRefs';
+import { normalizeRequestTags } from '@harborclient/core/requestTags';
 import { routePageRefKey } from '#/renderer/src/store/routing';
 
 /**

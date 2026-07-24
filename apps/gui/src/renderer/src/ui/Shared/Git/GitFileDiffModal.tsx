@@ -1,6 +1,6 @@
 import { Modal } from '@harborclient/sdk/components';
 import { useId, type JSX } from 'react';
-import type { GitRequestDiffFileEntry } from '#/shared/types';
+import type { GitRequestDiffFileEntry } from '@harborclient/core/types';
 import { GitDiffFileView } from '#/renderer/src/ui/Sidebars/GitSidebar/modals/GitDiffFileView';
 
 interface Props {

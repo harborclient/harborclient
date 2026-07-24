@@ -2,10 +2,10 @@ import {
   buildGitHubRawContentUrl,
   parseGitHubRepo,
   relativePathFromRawGitHubUrl
-} from '#/shared/plugin/githubRaw';
+} from '@harborclient/core/plugin/githubRaw';
 import { assertSafeGitPluginUrl } from './gitPluginUrl';
 import { parsePluginManifest } from './manifestSchema';
-import type { PluginGitPreview, PluginScreenshot } from '#/shared/plugin/types';
+import type { PluginGitPreview, PluginScreenshot } from '@harborclient/core/plugin/types';
 
 const MANIFEST_FILENAME = 'manifest.json';
 const DEFAULT_REF = 'main';

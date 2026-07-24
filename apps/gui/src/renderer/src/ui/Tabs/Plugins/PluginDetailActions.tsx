@@ -1,8 +1,8 @@
 import { Button } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
-import type { PluginInfo } from '#/shared/plugin/types';
-import { formatThemeDisplayName } from '#/shared/plugin/themeCategory';
+import type { PluginCatalogEntry } from '@harborclient/core/plugin/catalog';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
+import { formatThemeDisplayName } from '@harborclient/core/plugin/themeCategory';
 import type { PluginManagementKind } from './constants';
 import { InstalledPluginFooterActions } from './InstalledPluginFooterActions';
 

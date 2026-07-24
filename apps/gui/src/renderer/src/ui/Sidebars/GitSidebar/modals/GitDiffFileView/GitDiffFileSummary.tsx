@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import type { GitRequestDiffFileEntry } from '#/shared/types';
+import type { GitRequestDiffFileEntry } from '@harborclient/core/types';
 
 interface Props {
   /**

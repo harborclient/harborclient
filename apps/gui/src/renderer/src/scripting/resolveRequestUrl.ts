@@ -1,5 +1,5 @@
-import type { KeyValue, Variable } from '#/shared/types';
-import { buildSendUrl } from '#/shared/queryParams';
+import type { KeyValue, Variable } from '@harborclient/core/types';
+import { buildSendUrl } from '@harborclient/core/queryParams';
 
 import { buildRuntimeVars, substituteWithMap } from './scriptOrchestration';
 

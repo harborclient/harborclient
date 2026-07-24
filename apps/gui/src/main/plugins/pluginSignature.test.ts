@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { signPlugin } from '@harborclient/sdk/signing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { PLUGIN_TRUSTED_KEYS_URL } from '#/shared/plugin/catalog';
+import { PLUGIN_TRUSTED_KEYS_URL } from '@harborclient/core/plugin/catalog';
 
 const TEST_AUTHOR = 'Test Publisher';
 const TEST_KEY_URL = 'https://example.com/test.key';

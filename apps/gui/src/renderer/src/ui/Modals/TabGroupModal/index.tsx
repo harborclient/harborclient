@@ -9,7 +9,7 @@ import {
   setTabGroupModalSubmitError
 } from '#/renderer/src/store/slices/modalsSlice';
 import { selectRequestsByCollection } from '#/renderer/src/store/selectors';
-import type { SavedRequest } from '#/shared/types';
+import type { SavedRequest } from '@harborclient/core/types';
 import {
   cloneTabGroup,
   createTabGroupFromOpenTabs,

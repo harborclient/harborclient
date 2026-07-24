@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../apps/gui')
 const isDarwin = process.platform === 'darwin'
 
 const require = getElectronRebuildRequire()
@@ -30,9 +30,12 @@ await rebuild({
 })
 
 function getElectronRebuildRequire() {
+  const repoRoot = path.resolve(projectRoot, '../..')
   const candidates = [
     path.join(projectRoot, 'node_modules/@electron/rebuild/package.json'),
-    ...findPnpmElectronRebuildPackageJsons()
+    path.join(repoRoot, 'node_modules/@electron/rebuild/package.json'),
+    ...findPnpmElectronRebuildPackageJsons(projectRoot),
+    ...findPnpmElectronRebuildPackageJsons(repoRoot)
   ]
 
   for (const candidate of candidates) {
@@ -44,8 +47,8 @@ function getElectronRebuildRequire() {
   throw new Error('Could not find @electron/rebuild')
 }
 
-function findPnpmElectronRebuildPackageJsons() {
-  const pnpmDir = path.join(projectRoot, 'node_modules/.pnpm')
+function findPnpmElectronRebuildPackageJsons(root) {
+  const pnpmDir = path.join(root, 'node_modules/.pnpm')
   if (!fs.existsSync(pnpmDir)) return []
 
   return fs

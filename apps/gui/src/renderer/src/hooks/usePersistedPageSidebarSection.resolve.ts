@@ -1,4 +1,4 @@
-import type { PageSidebarKey } from '#/shared/pageSidebarSection';
+import type { PageSidebarKey } from '@harborclient/core/pageSidebarSection';
 
 interface ResolvePageSidebarSectionInput<T extends string> {
   /**

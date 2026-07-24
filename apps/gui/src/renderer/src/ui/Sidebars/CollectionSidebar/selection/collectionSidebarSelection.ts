@@ -1,4 +1,4 @@
-import type { CollectionDocument, SavedRequest } from '#/shared/types';
+import type { CollectionDocument, SavedRequest } from '@harborclient/core/types';
 
 /**
  * Inputs for deciding whether a collection row should offer "Deselect all".

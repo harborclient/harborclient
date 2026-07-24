@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
-import type { Collection, SavedRequest } from '#/shared/types';
+import { defaultAuth } from '@harborclient/core/auth';
+import type { Collection, SavedRequest } from '@harborclient/core/types';
 import { isRequestTab, isPageTab } from '#/renderer/src/store/tabs';
 
 vi.mock('react-hot-toast', () => ({

@@ -36,7 +36,7 @@ import { assertSafeGitPluginUrl } from './gitPluginUrl';
 import { evaluatePluginSignature } from './pluginSignature';
 import type { PluginDatabaseManager } from './PluginDatabaseManager';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
-import { validateCustomThemeExport } from '#/shared/plugin/customThemeExport';
+import { validateCustomThemeExport } from '@harborclient/core/plugin/customThemeExport';
 import type {
   PluginAssetResult,
   PluginEntryKind,
@@ -45,7 +45,7 @@ import type {
   PluginSignatureInfo,
   PluginSource,
   ResolvedThemeImport
-} from '#/shared/plugin/types';
+} from '@harborclient/core/plugin/types';
 
 const MANIFEST_FILENAME = 'manifest.json';
 const PLUGINS_DIR = 'plugins';

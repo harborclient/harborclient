@@ -1,7 +1,7 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { decryptSecret, encryptSecret, type EncryptedSecret } from '#/main/secrets/secretStorage';
-import { parseJson } from '#/shared/parseJson';
-import type { AiSettings } from '#/shared/types';
+import { parseJson } from '@harborclient/core/parseJson';
+import type { AiSettings } from '@harborclient/core/types';
 
 export const DEFAULT_AI_SETTINGS: AiSettings = {
   openaiApiKey: '',

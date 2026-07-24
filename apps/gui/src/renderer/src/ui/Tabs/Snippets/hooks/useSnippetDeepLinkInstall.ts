@@ -1,6 +1,6 @@
 import { useEffect, type Dispatch, type SetStateAction } from 'react';
 import toast from 'react-hot-toast';
-import type { SnippetCatalog, SnippetCatalogEntry } from '#/shared/snippet/catalog';
+import type { SnippetCatalog, SnippetCatalogEntry } from '@harborclient/core/snippet/catalog';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   consumePendingSnippetInstall,

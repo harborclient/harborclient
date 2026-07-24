@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT } from '#/shared/types';
+import { DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT } from '@harborclient/core/types';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActivePluginFooterPanelId,

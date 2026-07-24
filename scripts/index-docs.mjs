@@ -17,9 +17,10 @@ import { create, insertMultiple, save } from '@orama/orama';
 import OpenAI from 'openai';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.resolve(scriptDir, '..');
+const repoRoot = path.resolve(scriptDir, '..');
+const guiRoot = path.resolve(repoRoot, 'apps/gui');
 
-const DEFAULT_OUT = path.join(projectRoot, 'resources', 'docsSearchIndex.json');
+const DEFAULT_OUT = path.join(guiRoot, 'resources', 'docsSearchIndex.json');
 const DEFAULT_MODEL = 'text-embedding-3-small';
 const EMBEDDING_DIMENSIONS = 1536;
 const BATCH_SIZE = 100;
@@ -29,12 +30,12 @@ const CACHE_PATH = path.join(scriptDir, '.cache', 'docs-embeddings.json');
 const DOC_SOURCES = [
   {
     source: 'site',
-    root: path.resolve(projectRoot, '../site/src'),
+    root: path.resolve(repoRoot, '../site/src'),
     urlBase: 'https://harborclient.com'
   },
   {
     source: 'sdk',
-    root: path.resolve(projectRoot, '../sdk/docs'),
+    root: path.resolve(repoRoot, '../sdk/docs'),
     urlBase: 'https://harborclient.github.io/sdk'
   }
 ];
@@ -49,7 +50,7 @@ const DOC_SOURCES = [
  */
 const PLUGIN_CATALOG = {
   source: 'site',
-  path: path.resolve(projectRoot, '../site/src/.vitepress/static/plugin_catalog.json'),
+  path: path.resolve(repoRoot, '../site/src/.vitepress/static/plugin_catalog.json'),
   urlBase: 'https://harborclient.com'
 };
 

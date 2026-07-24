@@ -8,9 +8,9 @@ import type {
   MySqlSettings,
   PostgresSettings,
   SqliteSettings
-} from '#/shared/types';
+} from '@harborclient/core/types';
 import { normalizeSqliteFilename } from './sqliteFilename';
-import { parseJson } from '#/shared/parseJson';
+import { parseJson } from '@harborclient/core/parseJson';
 
 const CONNECTIONS_KEY = 'storageConnections';
 const ACTIVE_ID_KEY = 'activeStorageId';

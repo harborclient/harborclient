@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 
-const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 const guardScript = path.join(projectRoot, 'scripts/changelog-merge-guard.sh');
 
 const tempDirs: string[] = [];

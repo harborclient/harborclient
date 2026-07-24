@@ -8,7 +8,7 @@ import {
   buildDevInspectMenuGroups,
   useDeveloperToolsEnabled
 } from '#/renderer/src/ui/Shared/devInspectContextMenu';
-import type { ChatSummary } from '#/shared/types';
+import type { ChatSummary } from '@harborclient/core/types';
 
 interface Props {
   /**

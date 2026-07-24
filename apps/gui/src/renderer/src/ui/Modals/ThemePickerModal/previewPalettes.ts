@@ -1,11 +1,11 @@
-import type { ThemeSource } from '#/shared/types';
+import type { ThemeSource } from '@harborclient/core/types';
 import {
   HC_ACCENT,
   HC_MUTED,
   HC_SEPARATOR,
   HC_SURFACE,
   HC_TEXT
-} from '#/shared/highContrastPalette';
+} from '@harborclient/core/highContrastPalette';
 
 /**
  * Colors used to render simplified theme preview cards in the picker modal.

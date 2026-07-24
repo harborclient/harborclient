@@ -11,8 +11,8 @@ import type {
   ScriptTestResult,
   SendRequestInput,
   SendResult
-} from '#/shared/types';
-import { buildScriptRunInfo } from '#/shared/types/script';
+} from '@harborclient/core/types';
+import { buildScriptRunInfo } from '@harborclient/core/types/script';
 import {
   applyScriptAuthSet,
   applyScriptAuthUpdate,
@@ -20,7 +20,7 @@ import {
   flattenAuthConfig,
   normalizeAuth,
   type AuthConfig
-} from '#/shared/auth';
+} from '@harborclient/core/auth';
 import {
   resolveDynamicVariable,
   substituteVariablesWithResolver

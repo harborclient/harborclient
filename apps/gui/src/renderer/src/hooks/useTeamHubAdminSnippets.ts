@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { TeamHubAdminSnippet } from '#/shared/types';
+import type { TeamHubAdminSnippet } from '@harborclient/core/types';
 
 /**
  * Loaded Team Hub admin snippet list and bootstrap state from IPC.

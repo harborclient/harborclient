@@ -1,5 +1,5 @@
 import type { LocalDatabase } from './LocalDatabase';
-import { parseJson } from '#/shared/parseJson';
+import { parseJson } from '@harborclient/core/parseJson';
 
 /**
  * Builds the registry settings key for a hub's detached snippet UUID list.

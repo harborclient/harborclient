@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { CollectionGitContext } from '#/renderer/src/git/resolveCollectionGitContext';
-import type { GitRequestFileStatus, SourceControlStatus } from '#/shared/types';
+import type { GitRequestFileStatus, SourceControlStatus } from '@harborclient/core/types';
 
 /**
  * Git source-control state and actions shared with sidebar sections.

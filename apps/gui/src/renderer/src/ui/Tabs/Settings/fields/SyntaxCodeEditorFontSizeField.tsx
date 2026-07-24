@@ -1,7 +1,7 @@
 import { Input } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 
-import { normalizeCodeEditorFontSize } from '#/shared/codeEditorSettings';
+import { normalizeCodeEditorFontSize } from '@harborclient/core/codeEditorSettings';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectDraftGeneral,

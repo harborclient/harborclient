@@ -1,6 +1,12 @@
-import type { AiSettings, HubLlmModelGroup, ScriptRef, Snippet, Variable } from '#/shared/types';
+import type {
+  AiSettings,
+  HubLlmModelGroup,
+  ScriptRef,
+  Snippet,
+  Variable
+} from '@harborclient/core/types';
 import type { ScriptStage } from '@harborclient/sdk';
-import type { RegisteredScriptEditorAction } from '#/shared/plugin/types';
+import type { RegisteredScriptEditorAction } from '@harborclient/core/plugin/types';
 
 /**
  * Props for one sortable script row with expandable editor body.

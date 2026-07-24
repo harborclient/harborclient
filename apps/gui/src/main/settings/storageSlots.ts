@@ -1,8 +1,8 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
-import type { StorageConnection } from '#/shared/types';
+import type { StorageConnection } from '@harborclient/core/types';
 import { getActiveStorageId, listStorageConnections } from './storageSettings';
 import { listTeamHubs } from './teamHubSettings';
-import { parseJson } from '#/shared/parseJson';
+import { parseJson } from '@harborclient/core/parseJson';
 
 const SLOTS_KEY = 'storageSlots';
 

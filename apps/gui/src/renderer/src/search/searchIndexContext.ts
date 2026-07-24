@@ -1,15 +1,15 @@
 import { createContext } from 'react';
-import type { PluginCatalog } from '#/shared/plugin/catalog';
-import type { PluginInfo } from '#/shared/plugin/types';
-import type { SnippetCatalog } from '#/shared/snippet/catalog';
-import type { SearchAllContext, SidebarSearchInput } from '#/shared/search';
+import type { PluginCatalog } from '@harborclient/core/plugin/catalog';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
+import type { SnippetCatalog } from '@harborclient/core/snippet/catalog';
+import type { SearchAllContext, SidebarSearchInput } from '@harborclient/core/search';
 import type {
   buildInstalledPluginSearchIndex,
   buildPluginCatalogSearchIndex,
   buildSettingsSearchIndex,
   buildSidebarSearchIndex,
   buildSnippetCatalogSearchIndexForSearch
-} from '#/shared/search';
+} from '@harborclient/core/search';
 
 /**
  * Readiness flags for each search domain warmed by the provider.

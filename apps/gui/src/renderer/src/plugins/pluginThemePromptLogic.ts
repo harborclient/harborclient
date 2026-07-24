@@ -1,5 +1,5 @@
-import { formatPluginThemeValue } from '#/shared/plugin/types';
-import type { RegisteredPluginTheme } from '#/shared/plugin/types';
+import { formatPluginThemeValue } from '@harborclient/core/plugin/types';
+import type { RegisteredPluginTheme } from '@harborclient/core/plugin/types';
 
 /** localStorage key for theme prompt deduplication across app restarts. */
 export const PROMPTED_THEMES_STORAGE_KEY = 'harborclient:promptedPluginThemes';

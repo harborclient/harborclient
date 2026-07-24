@@ -3,8 +3,8 @@ import type {
   MarkdownSelectionSnapshot,
   RequestBodySelectionSnapshot,
   TerminalSelectionSnapshot
-} from '#/shared/ai/scriptReferences';
-import type { Collection, Folder, SavedRequest, Snippet } from '#/shared/types';
+} from '@harborclient/core/ai/scriptReferences';
+import type { Collection, Folder, SavedRequest, Snippet } from '@harborclient/core/types';
 import { useMemo } from 'react';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import type { RootState } from '#/renderer/src/store/redux';

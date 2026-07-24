@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import toast from 'react-hot-toast';
-import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
-import type { CollectionDocument, SavedRequest } from '#/shared/types';
+import type { ContainerItemRef } from '@harborclient/core/collectionContainerOrder';
+import type { CollectionDocument, SavedRequest } from '@harborclient/core/types';
 import { isTeamHubProvider } from '#/renderer/src/hooks/useProviders';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectCollections } from '#/renderer/src/store/selectors';

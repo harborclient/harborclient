@@ -14,20 +14,39 @@ Use `pnpm` only (lockfile: `pnpm-lock.yaml`). Do not use npm or yarn.
 
 ## Project layout
 
-HarborClient is an Electron app built with [electron-vite](https://electron-vite.org/).
-Source lives under `src/`:
+HarborClient is a pnpm monorepo:
 
-| Path            | Role                                                              |
-| --------------- | ----------------------------------------------------------------- |
-| `src/main/`     | Main process — HTTP, SQLite, IPC handlers, menus, settings        |
-| `src/preload/`  | Preload script — exposes a typed `window.api` via `contextBridge` |
-| `src/renderer/` | React UI (Redux Toolkit, Tailwind CSS v4)                         |
-| `src/shared/`   | Types and pure utilities shared across processes                  |
+| Path                       | Role                                                                                   |
+| -------------------------- | -------------------------------------------------------------------------------------- |
+| `apps/harborclient/`       | Product package — argv router, `--help`/`--version`, electron-builder, release version |
+| `apps/gui/`                | Electron GUI (`@harborclient/gui`) — main, preload, renderer                           |
+| `apps/cli/`                | CLI implementation (`@harborclient/cli`) — invoked via the product binary              |
+| `packages/core/`           | `@harborclient/core` — types, request runner, SES scripts, shared utilities            |
+| `packages/storage-sqlite/` | `@harborclient/storage-sqlite` — SQLite `IStorage` implementation                      |
+
+### Product (`apps/harborclient`)
+
+Owns the public `harborclient` binary entry. Classifies argv and either opens
+the GUI, re-execs the CLI under `ELECTRON_RUN_AS_NODE`, or prints help/version.
+See [`apps/harborclient/README.md`](apps/harborclient/README.md).
+
+### GUI (`apps/gui`)
+
+Built with [electron-vite](https://electron-vite.org/). Source lives under `apps/gui/src/`:
+
+| Path            | Role                                                                 |
+| --------------- | -------------------------------------------------------------------- |
+| `src/main/`     | Main process — Electron host, IPC handlers, menus, settings adapters |
+| `src/preload/`  | Preload script — exposes a typed `window.api` via `contextBridge`    |
+| `src/renderer/` | React UI (Redux Toolkit, Tailwind CSS v4)                            |
+
+Shared types and engine code live in `packages/core` (import as `@harborclient/core/...`).
 
 Plugin subsystem architecture is documented in
-[`src/renderer/src/plugins/README.md`](src/renderer/src/plugins/README.md).
+[`apps/gui/src/renderer/src/plugins/README.md`](apps/gui/src/renderer/src/plugins/README.md).
 
-Build output goes to `out/`. User docs live in the
+Build output goes to `apps/gui/out/` (main entry is the product router from
+`apps/harborclient/src/index.ts`). User docs live in the
 [harborclient-site](https://github.com/harborclient/harborclient-site) repository.
 
 ## IPC contract
@@ -35,11 +54,11 @@ Build output goes to `out/`. User docs live in the
 The renderer never imports Node or Electron APIs directly. All main-process
 access goes through `window.api`, defined in three places that must stay in sync:
 
-1. **`src/shared/types/`** — domain type modules and `api/` IPC contract (`Api` interface)
-   Re-exported from **`src/shared/types.ts`** for backward-compatible imports
-2. **`src/preload/index.ts`** — thin `ipcRenderer.invoke` wrappers, exposed via
+1. **`packages/core/src/types/`** (and related modules) — domain type modules and `api/` IPC contract (`Api` interface)
+   Re-exported from **`packages/core/src/types.ts`** for deep imports via `@harborclient/core/types`
+2. **`apps/gui/src/preload/index.ts`** — thin `ipcRenderer.invoke` wrappers, exposed via
    `contextBridge.exposeInMainWorld('api', api)`
-3. **`src/main/ipc/index.ts`** — `ipcMain.handle` handlers that delegate to main-process modules
+3. **`apps/gui/src/main/ipc/index.ts`** — `ipcMain.handle` handlers that delegate to main-process modules
 
 When adding or changing an IPC method, update all three files. Do not bypass
 the preload bridge or expose additional Node/Electron APIs to the renderer.
@@ -64,10 +83,12 @@ The renderer uses Redux Toolkit (`src/renderer/src/store/`). Slices live in
 
 ### Path aliases
 
-| Alias     | Resolves to | Used in                               |
-| --------- | ----------- | ------------------------------------- |
-| `#/*`     | `./src/*`   | TypeScript, preload, renderer imports |
-| `@images` | `./images`  | Renderer (Vite alias)                 |
+| Alias                                         | Resolves to                   | Used in                                   |
+| --------------------------------------------- | ----------------------------- | ----------------------------------------- |
+| `#/*`                                         | `./src/*` within `apps/gui`   | GUI TypeScript, preload, renderer imports |
+| `@harborclient/core` / `@harborclient/core/*` | `packages/core/src`           | GUI, CLI, storage-sqlite                  |
+| `@harborclient/storage-sqlite`                | `packages/storage-sqlite/src` | GUI, CLI                                  |
+| `@images`                                     | `./images`                    | Renderer (Vite alias)                     |
 
 Vitest resolves bare `#` to `./src` (see `vitest.config.ts`).
 

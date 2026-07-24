@@ -1,6 +1,9 @@
 import Store from 'electron-store';
-import { defaultSidebarExpansion, normalizeSidebarExpansion } from '#/shared/sidebarExpansion';
-import type { SidebarExpansionState } from '#/shared/types';
+import {
+  defaultSidebarExpansion,
+  normalizeSidebarExpansion
+} from '@harborclient/core/sidebarExpansion';
+import type { SidebarExpansionState } from '@harborclient/core/types';
 
 const STORE_KEY = 'sidebarExpansion';
 

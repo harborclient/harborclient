@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { MarkdownSelectionSnapshot } from '#/shared/ai/scriptReferences';
+import type { MarkdownSelectionSnapshot } from '@harborclient/core/ai/scriptReferences';
 import type { RootState } from '#/renderer/src/store/redux';
 
 /**

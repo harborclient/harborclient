@@ -2,8 +2,8 @@ import { existsSync, readdirSync, renameSync } from 'fs';
 import { join } from 'path';
 import type { LocalDatabase } from '#/main/storage/LocalDatabase';
 import { storeTeamHubToken } from './teamHubSecrets';
-import { parseJson } from '#/shared/parseJson';
-import type { TeamHub } from '#/shared/types';
+import { parseJson } from '@harborclient/core/parseJson';
+import type { TeamHub } from '@harborclient/core/types';
 
 const LEGACY_TEAM_HUBS_KEY = 'serviceHubs';
 const TEAM_HUBS_KEY = 'teamHubs';

@@ -1,12 +1,12 @@
 import type { RequestDraft as StoreRequestDraft } from '#/renderer/src/store/tabs';
-import type { Collection, SendResult } from '#/shared/types';
-import { defaultAuth, normalizeAuth } from '#/shared/auth';
+import type { Collection, SendResult } from '@harborclient/core/types';
+import { defaultAuth, normalizeAuth } from '@harborclient/core/auth';
 import type {
   AuthConfig as PluginAuthConfig,
   HttpResponse,
   RequestDraft,
   RequestTabContext
-} from '#/shared/plugin/types';
+} from '@harborclient/core/plugin/types';
 
 /**
  * Adapts app auth config to the plugin SDK shape until the SDK adds oauth2.

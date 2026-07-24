@@ -13,8 +13,8 @@ import {
   normalizeCodeEditorFontSize,
   normalizeCodeEditorSetup,
   normalizeCodeEditorTheme
-} from '#/shared/codeEditorSettings';
-import type { GeneralSettings } from '#/shared/types';
+} from '@harborclient/core/codeEditorSettings';
+import type { GeneralSettings } from '@harborclient/core/types';
 
 /** Monotonic token so only the latest settings load may commit to the draft. */
 let settingsDraftLoadGeneration = 0;

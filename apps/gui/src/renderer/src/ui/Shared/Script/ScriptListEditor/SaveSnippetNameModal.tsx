@@ -8,8 +8,8 @@ import {
 } from '@harborclient/sdk/components';
 import { useEffect, useRef, useState, type JSX } from 'react';
 import type { ScriptStage } from '@harborclient/sdk';
-import { SNIPPET_SCOPE_OPTIONS, type SnippetScope } from '#/shared/snippetScope';
-import { SCRIPT_STAGE_OPTIONS } from '#/shared/scriptStage';
+import { SNIPPET_SCOPE_OPTIONS, type SnippetScope } from '@harborclient/core/snippetScope';
+import { SCRIPT_STAGE_OPTIONS } from '@harborclient/core/scriptStage';
 
 interface Props {
   /**

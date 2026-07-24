@@ -1,4 +1,7 @@
-import type { CollectionRunnerSummary, RunResultsExportKind } from '#/shared/collectionRunner';
+import type {
+  CollectionRunnerSummary,
+  RunResultsExportKind
+} from '@harborclient/core/collectionRunner';
 
 /**
  * Run result list row returned by Team Hub `GET /run-results`.

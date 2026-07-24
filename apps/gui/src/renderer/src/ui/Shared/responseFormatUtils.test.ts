@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { SendResult } from '#/shared/types';
+import type { SendResult } from '@harborclient/core/types';
 import {
   buildHtmlPreviewSrcdoc,
   buildResponseExport,

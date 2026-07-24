@@ -1,7 +1,7 @@
 import * as git from 'isomorphic-git';
 import fs, { existsSync, readFileSync } from 'fs';
 import { join, relative } from 'path';
-import { truncateTextForLlm } from '#/shared/ai/chatContext';
+import { truncateTextForLlm } from '@harborclient/core/ai/chatContext';
 import { hasConflictMarkers } from './slug';
 import { readBlobBytesFromTree } from './gitBlob';
 import {

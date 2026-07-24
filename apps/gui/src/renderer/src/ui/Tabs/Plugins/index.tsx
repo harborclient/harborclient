@@ -15,11 +15,11 @@ import {
   selectPendingMarketplaceSearch
 } from '#/renderer/src/store/slices/navigationSlice';
 import { usePersistedPageSidebarSection } from '#/renderer/src/hooks/usePersistedPageSidebarSection';
-import { formatThemeDisplayName, pluginIsTheme } from '#/shared/plugin/themeCategory';
-import { formatCustomThemeValue } from '#/shared/plugin/customThemeExport';
-import type { PluginInfo } from '#/shared/plugin/types';
-import type { CustomTheme } from '#/shared/types/customTheme';
-import type { ThemeSource } from '#/shared/types';
+import { formatThemeDisplayName, pluginIsTheme } from '@harborclient/core/plugin/themeCategory';
+import { formatCustomThemeValue } from '@harborclient/core/plugin/customThemeExport';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
+import type { CustomTheme } from '@harborclient/core/types/customTheme';
+import type { ThemeSource } from '@harborclient/core/types';
 import { applyPluginThemePreference } from '#/renderer/src/plugins/applyPluginTheme';
 import { getRegisteredPluginThemes } from '#/renderer/src/plugins/registry';
 import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';

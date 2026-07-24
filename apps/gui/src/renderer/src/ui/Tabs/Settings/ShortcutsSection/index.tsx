@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useId, useMemo, useState, type JSX } from 'react';
-import type { ShortcutBinding, ShortcutId } from '#/shared/types';
+import type { ShortcutBinding, ShortcutId } from '@harborclient/core/types';
 import {
   bindingsToOverrides,
   formatAcceleratorDisplay,
   validateShortcutOverrides
-} from '#/shared/shortcuts';
+} from '@harborclient/core/shortcuts';
 import { filterShortcutBindings } from './filterShortcutBindings';
 import { Button } from '@harborclient/sdk/components';
 import { FormGroup } from '@harborclient/sdk/components';

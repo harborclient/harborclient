@@ -1,7 +1,7 @@
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 
-import { searchSettings } from '#/shared/search/settings';
-import type { SettingId } from '#/shared/search/settingsCatalog';
+import { searchSettings } from '@harborclient/core/search/settings';
+import type { SettingId } from '@harborclient/core/search/settingsCatalog';
 import { useSearchIndexes } from '#/renderer/src/search/useSearchIndexes';
 
 interface Result {

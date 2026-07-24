@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { mergeMcpClientTools } from './mergeMcpClientTools';
-import { AI_TOOL_DEFINITIONS } from '#/shared/ai/tools';
+import { AI_TOOL_DEFINITIONS } from '@harborclient/core/ai/tools';
 
 vi.mock('#/main/mcp/mcpClientManager', () => ({
   getMcpClientTools: () => [

@@ -1,6 +1,6 @@
 import { Menu, type BrowserWindow, type WebContents } from 'electron';
-import { formatMenuAcceleratorDisplay } from '#/shared/shortcuts';
-import type { AppSubmenuItemSnapshot, RootMenuLabel } from '#/shared/types';
+import { formatMenuAcceleratorDisplay } from '@harborclient/core/shortcuts';
+import type { AppSubmenuItemSnapshot, RootMenuLabel } from '@harborclient/core/types';
 
 /**
  * Returns a serializable snapshot of a root application submenu for Linux in-app menus.

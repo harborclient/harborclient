@@ -1,8 +1,12 @@
 import { Button } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { Variable } from '#/shared/types';
-import { acceleratorMatchesChord, getShortcutDef, type KeyChord } from '#/shared/shortcuts';
+import type { Variable } from '@harborclient/core/types';
+import {
+  acceleratorMatchesChord,
+  getShortcutDef,
+  type KeyChord
+} from '@harborclient/core/shortcuts';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectDocumentsByCollection } from '#/renderer/src/store/selectors';
 import { updateMarkdownContent } from '#/renderer/src/store/slices/tabsSlice';

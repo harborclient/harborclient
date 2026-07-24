@@ -1,6 +1,6 @@
 import { useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import { buildTeamHubJoinUrl, summarizeInvitationAccess } from '#/shared/deepLink';
+import { buildTeamHubJoinUrl, summarizeInvitationAccess } from '@harborclient/core/deepLink';
 import type {
   CreateHubUserInput,
   CreateInvitedHubUserInput,
@@ -9,7 +9,7 @@ import type {
   TeamHub,
   TeamHubAdminResourceOptions,
   UpdateHubUserInput
-} from '#/shared/types';
+} from '@harborclient/core/types';
 import {
   AsyncListState,
   Badge,

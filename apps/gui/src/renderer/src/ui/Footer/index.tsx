@@ -8,7 +8,7 @@ import {
   StatusDot
 } from '@harborclient/sdk/components';
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
-import type { Variable } from '#/shared/types';
+import type { Variable } from '@harborclient/core/types';
 
 import {
   faInbox,

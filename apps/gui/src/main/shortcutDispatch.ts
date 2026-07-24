@@ -6,7 +6,7 @@ import {
   resolveAcceleratorMap,
   SHORTCUT_DEFS,
   type KeyChord
-} from '#/shared/shortcuts';
+} from '@harborclient/core/shortcuts';
 
 /**
  * Applies a matched zoom shortcut to the main renderer web contents.

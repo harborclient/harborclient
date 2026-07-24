@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
+import { defaultAuth } from '@harborclient/core/auth';
 import { createTab, type RequestTab } from '#/renderer/src/store/tabs';
 import { draftFromSaved } from '#/renderer/src/store/tabs';
-import type { SavedRequest } from '#/shared/types';
+import type { SavedRequest } from '@harborclient/core/types';
 import {
   buildTabGroupExport,
   resolveTabGroupMembersFromOpenTabs,
   resolveTabGroupMembersFromRequests
 } from './tabGroups';
-import type { TabGroup } from '#/shared/types/tabGroup';
-import { validateTabGroupExport } from '#/shared/types/tabGroup';
+import type { TabGroup } from '@harborclient/core/types/tabGroup';
+import { validateTabGroupExport } from '@harborclient/core/types/tabGroup';
 
 const savedRequest: SavedRequest = {
   id: 7,

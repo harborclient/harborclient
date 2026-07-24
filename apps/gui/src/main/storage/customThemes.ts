@@ -2,14 +2,18 @@ import { randomUUID } from 'crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { app } from 'electron';
-import { BUILTIN_THEME_IDS, isBuiltinThemeId, type BuiltinThemeId } from '#/shared/builtinThemes';
+import {
+  BUILTIN_THEME_IDS,
+  isBuiltinThemeId,
+  type BuiltinThemeId
+} from '@harborclient/core/builtinThemes';
 import {
   customThemeToEnvelope,
   envelopeToCustomTheme,
   isValidCustomThemeId,
   validateCustomThemeExport
-} from '#/shared/plugin/customThemeExport';
-import type { CustomTheme, CustomThemeExport } from '#/shared/types/customTheme';
+} from '@harborclient/core/plugin/customThemeExport';
+import type { CustomTheme, CustomThemeExport } from '@harborclient/core/types/customTheme';
 
 /** Directory name under userData where custom themes are stored. */
 export const CUSTOM_THEMES_DIR_NAME = 'custom_themes';

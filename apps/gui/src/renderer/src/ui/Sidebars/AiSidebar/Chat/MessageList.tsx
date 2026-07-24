@@ -1,7 +1,7 @@
 import { Scrollbars } from '#/renderer/src/ui/Shared/Scrollbars';
 import { EmptyState, FaIcon } from '@harborclient/sdk/components';
 import { useEffect, useRef, type JSX } from 'react';
-import type { ChatMessage } from '#/shared/types';
+import type { ChatMessage } from '@harborclient/core/types';
 import { faComment } from '#/renderer/src/fontawesome';
 import { MessageBubble } from './MessageBubble';
 

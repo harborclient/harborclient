@@ -4,8 +4,8 @@ import { getTrashService } from '#/main/storage/trashServiceInstance';
 import { handle } from '#/main/ipc/handle';
 import { openImportFile } from './importDialogs';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
-import type { TabGroup } from '#/shared/types/tabGroup';
-import { validateTabGroupExport } from '#/shared/types/tabGroup';
+import type { TabGroup } from '@harborclient/core/types/tabGroup';
+import { validateTabGroupExport } from '@harborclient/core/types/tabGroup';
 
 /**
  * Imports a tab group export file into the local registry.

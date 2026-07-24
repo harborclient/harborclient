@@ -1,6 +1,6 @@
 import { Button, Modal, ModalFormLayout, FieldError } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import type { StorageConnection } from '#/shared/types';
+import type { StorageConnection } from '@harborclient/core/types';
 
 import { StorageConnectionForm } from './StorageConnectionForm';
 

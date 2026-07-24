@@ -14,7 +14,7 @@ import {
 } from '@harborclient/sdk/components';
 import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { TrustedSharingKey } from '#/shared/types';
+import type { TrustedSharingKey } from '@harborclient/core/types';
 
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/Shared/classes';

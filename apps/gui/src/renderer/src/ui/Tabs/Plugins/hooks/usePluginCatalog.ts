@@ -1,16 +1,16 @@
 import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
-import type { PluginCatalog, PluginCatalogEntry } from '#/shared/plugin/catalog';
+import type { PluginCatalog, PluginCatalogEntry } from '@harborclient/core/plugin/catalog';
 import {
   buildPluginCatalogSearchIndex,
   filterPluginCatalogByCategory,
   searchPluginCatalog
-} from '#/shared/search/plugins';
-import type { PluginCatalogCategory } from '#/shared/plugin/catalogCategories';
+} from '@harborclient/core/search/plugins';
+import type { PluginCatalogCategory } from '@harborclient/core/plugin/catalogCategories';
 import {
   catalogEntryIsTheme,
   filterThemeCatalogByAppearance,
   isThemeAppearanceCategory
-} from '#/shared/plugin/themeCategory';
+} from '@harborclient/core/plugin/themeCategory';
 import type { PluginManagementKind } from '#/renderer/src/ui/Tabs/Plugins/constants';
 import { useSearchIndexes } from '#/renderer/src/search/useSearchIndexes';
 

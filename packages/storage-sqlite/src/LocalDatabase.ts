@@ -11,8 +11,8 @@ import {
 import { trimRequiredName } from './trimRequiredName';
 import { generateDocumentUuid } from './uuid';
 import { migrateSidebarColorColumn, serializeSidebarColor } from './sidebarColorMigration';
-import { readSidebarColor } from '#/shared/sidebarColor';
-import { DEFAULT_CHAT_TITLE, normalizeChatTitle } from '#/shared/ai/chatTitle';
+import { readSidebarColor } from '@harborclient/core/sidebarColor';
+import { DEFAULT_CHAT_TITLE, normalizeChatTitle } from '@harborclient/core/ai/chatTitle';
 import type {
   Chat,
   ChatMessage,
@@ -25,11 +25,11 @@ import type {
   TabGroup,
   TabGroupRequest,
   Variable
-} from '#/shared/types';
-import type { InsertTrashItemInput, TrashItem } from '#/shared/types/trash';
-import { REQUEST_HISTORY_CAP } from '#/shared/types/requestHistory';
-import type { SnippetScope } from '#/shared/snippetScope';
-import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '#/shared/scriptStage';
+} from '@harborclient/core/types';
+import type { InsertTrashItemInput, TrashItem } from '@harborclient/core/types/trash';
+import { REQUEST_HISTORY_CAP } from '@harborclient/core/types/requestHistory';
+import type { SnippetScope } from '@harborclient/core/snippetScope';
+import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '@harborclient/core/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
 
 const REGISTRY_DB_FILENAME = 'harborclient-registry.db';

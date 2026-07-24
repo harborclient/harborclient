@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { SourceControlStatus } from '#/shared/types';
+import type { SourceControlStatus } from '@harborclient/core/types';
 import { subscribeStorageConnectionsChanged } from './subscribeStorageConnectionsChanged';
 
 /**

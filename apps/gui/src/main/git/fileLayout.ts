@@ -15,14 +15,14 @@ import type {
   ExportedDocument,
   ExportedRequest,
   SnippetExport
-} from '#/shared/types';
-import type { RequestExport } from '#/shared/types/request';
-import { parseJson } from '#/shared/parseJson';
-import { readScriptRefsFromJson } from '#/shared/scriptRefs';
-import type { AuthConfig } from '#/shared/auth';
-import { defaultAuth } from '#/shared/auth';
-import type { KeyValue, Variable } from '#/shared/types/common';
-import type { ScriptRef } from '#/shared/types/script';
+} from '@harborclient/core/types';
+import type { RequestExport } from '@harborclient/core/types/request';
+import { parseJson } from '@harborclient/core/parseJson';
+import { readScriptRefsFromJson } from '@harborclient/core/scriptRefs';
+import type { AuthConfig } from '@harborclient/core/auth';
+import { defaultAuth } from '@harborclient/core/auth';
+import type { KeyValue, Variable } from '@harborclient/core/types/common';
+import type { ScriptRef } from '@harborclient/core/types/script';
 
 /**
  * Reserved top-level entries under a HarborClient data root.

@@ -1,5 +1,5 @@
 import { RowActionsMenu, type MenuItem } from '@harborclient/sdk/components';
-import type { RequestHistoryEntry } from '#/shared/types/requestHistory';
+import type { RequestHistoryEntry } from '@harborclient/core/types/requestHistory';
 import { type JSX, useMemo } from 'react';
 
 import {

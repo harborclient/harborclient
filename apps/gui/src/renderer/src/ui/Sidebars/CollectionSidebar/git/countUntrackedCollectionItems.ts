@@ -1,4 +1,4 @@
-import type { GitRequestFileStatus } from '#/shared/types';
+import type { GitRequestFileStatus } from '@harborclient/core/types';
 
 /**
  * Counts request and markdown document items in a collection that are untracked

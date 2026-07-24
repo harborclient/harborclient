@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { SettingsSection } from '#/shared/types';
+import type { SettingsSection } from '@harborclient/core/types';
 import {
   allFieldEntries,
   entryById,

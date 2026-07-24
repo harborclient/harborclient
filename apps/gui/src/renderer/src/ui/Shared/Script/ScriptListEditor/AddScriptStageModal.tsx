@@ -1,7 +1,7 @@
 import { Button, Modal, ModalFormLayout, Select } from '@harborclient/sdk/components';
 import { useId, useState, type JSX } from 'react';
 import type { ScriptStage } from '@harborclient/sdk';
-import { DEFAULT_SCRIPT_STAGE, SCRIPT_STAGE_OPTIONS } from '#/shared/scriptStage';
+import { DEFAULT_SCRIPT_STAGE, SCRIPT_STAGE_OPTIONS } from '@harborclient/core/scriptStage';
 
 interface Props {
   /**

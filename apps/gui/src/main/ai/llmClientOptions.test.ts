@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { resolveLlmClientOptions } from './llmClientOptions';
-import type { AiSettings } from '#/shared/types';
+import type { AiSettings } from '@harborclient/core/types';
 
 const TEST_SETTINGS: AiSettings = {
   openaiApiKey: 'sk-openai-test',

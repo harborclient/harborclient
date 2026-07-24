@@ -5,9 +5,9 @@ import {
   githubRepoNotFoundMessage,
   isGitRepoNotFoundError,
   readOnlyRepoAccessMessage
-} from '#/shared/gitHttpErrors';
-import { isGitHubRepositoryUrl } from '#/shared/gitUrl';
-import { parseGitHubRepo } from '#/shared/plugin/githubRaw';
+} from '@harborclient/core/gitHttpErrors';
+import { isGitHubRepositoryUrl } from '@harborclient/core/gitUrl';
+import { parseGitHubRepo } from '@harborclient/core/plugin/githubRaw';
 import { probeGitHubRepoAccess } from './githubRepoAccess';
 import type { ResolvedGitAuth } from './gitAuth';
 

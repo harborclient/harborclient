@@ -1,4 +1,8 @@
-import type { CreateHubUserInput, HubUserRecord, UpdateHubUserInput } from '#/shared/types';
+import type {
+  CreateHubUserInput,
+  HubUserRecord,
+  UpdateHubUserInput
+} from '@harborclient/core/types';
 
 /**
  * Form values edited in the Team Hub user modal.

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, type JSX, type ReactNode } from 'react';
 import toast from 'react-hot-toast';
-import type { CollectionDocument } from '#/shared/types';
+import type { CollectionDocument } from '@harborclient/core/types';
 import {
   Button,
   FieldError,

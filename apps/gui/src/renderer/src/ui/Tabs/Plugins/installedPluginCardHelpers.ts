@@ -1,4 +1,4 @@
-import type { PluginInfo } from '#/shared/plugin/types';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
 
 /**
  * Middle footer action available for an installed plugin card.

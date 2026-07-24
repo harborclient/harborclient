@@ -14,7 +14,7 @@ import {
   parseAiScriptReferenceMatch,
   resolveAiScriptReferenceLabel,
   type AiScriptReferenceValidationContext
-} from '#/shared/ai/scriptReferences';
+} from '@harborclient/core/ai/scriptReferences';
 import {
   createScriptReferenceBadgeElement,
   SCRIPT_REFERENCE_REMOVE_ATTR

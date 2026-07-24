@@ -8,8 +8,13 @@ import {
   requestExportSchema,
   runResultsExportSchema
 } from './collectionSchemas';
-import type { CollectionExport, EnvironmentExport, RequestExport, Variable } from '#/shared/types';
-import type { RunResultsExport } from '#/shared/collectionRunner';
+import type {
+  CollectionExport,
+  EnvironmentExport,
+  RequestExport,
+  Variable
+} from '@harborclient/core/types';
+import type { RunResultsExport } from '@harborclient/core/collectionRunner';
 
 export { normalizeVariable } from './collectionVariables';
 

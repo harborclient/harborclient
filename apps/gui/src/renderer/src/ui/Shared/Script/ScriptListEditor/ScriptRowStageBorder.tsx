@@ -2,7 +2,7 @@ import type { DraggableAttributes } from '@dnd-kit/core';
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
 import type { CSSProperties, JSX } from 'react';
 import type { ScriptStage } from '@harborclient/sdk';
-import { scriptStageBorderColor } from '#/shared/scriptStage';
+import { scriptStageBorderColor } from '@harborclient/core/scriptStage';
 import { SCRIPT_ROW_STAGE_BORDER_CLASS } from './constants';
 
 interface Props {

@@ -1,0 +1,79 @@
+appId: com.harborclient
+productName: HarborClient
+protocols:
+  - name: HarborClient
+    schemes:
+      - harborclient
+extraMetadata:
+  name: harborclient
+  productName: HarborClient
+artifactName: harborclient-${version}.${ext}
+executableName: harborclient
+# Paths are relative to the electron-builder project directory (apps/gui).
+icon: build/icons/512x512.png
+extraResources:
+  - from: build/icons/512x512.png
+    to: icon.png
+  - from: plugins/catalog.json
+    to: plugins/catalog.json
+  - from: resources/docsSearchIndex.json
+    to: docsSearchIndex.json
+  - from: resources/builtin_themes
+    to: builtin_themes
+  - from: resources/builtin_collections
+    to: builtin_collections
+  - from: ../cli/dist/index.js
+    to: cli/index.js
+directories:
+  buildResources: build
+  output: ../harborclient/release
+files:
+  - out/**/*
+  - package.json
+  - node_modules/better-sqlite3/**/*
+  - node_modules/node-pty/**/*
+  - '!**/node_modules/**/*.tgz'
+  - '!**/node_modules/**/prebuilds/**'
+asarUnpack:
+  - node_modules/better-sqlite3/**/*
+  - node_modules/node-pty/**/*
+  - node_modules/esbuild/**/*
+  - node_modules/@esbuild/**/*
+  - node_modules/react/**/*
+  - node_modules/react-dom/**/*
+  - node_modules/scheduler/**/*
+  - node_modules/@harborclient/sdk/**/*
+linux:
+  icon: build/icons
+  syncDesktopName: true
+  target:
+    - AppImage
+    - deb
+    - rpm
+  category: Development
+  maintainer: HarborClient <contact@harborclient.com>
+  vendor: HarborClient
+rpm:
+  packageCategory: Applications/Development
+mac:
+  artifactName: harborclient-${version}-${arch}.${ext}
+  target:
+    target: default
+    arch:
+      - arm64
+      - x64
+  type: distribution
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: true
+win:
+  signAndEditExecutable: false
+  target:
+    - nsis
+publish:
+  provider: github
+  owner: harborclient
+  repo: harborclient
+  releaseType: release

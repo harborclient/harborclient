@@ -8,7 +8,7 @@ import {
   StatusMessage
 } from '@harborclient/sdk/components';
 import { useCallback, useId, useState, type JSX } from 'react';
-import type { DiscoveredCollection } from '#/shared/types';
+import type { DiscoveredCollection } from '@harborclient/core/types';
 
 interface Props {
   /**

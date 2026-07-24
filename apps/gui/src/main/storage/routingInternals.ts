@@ -1,6 +1,6 @@
 import type { CollectionRegistryEntry, LocalDatabase } from './LocalDatabase';
 import type { IStorage } from './IStorage';
-import type { Collection, CollectionProviderKind } from '#/shared/types';
+import type { Collection, CollectionProviderKind } from '@harborclient/core/types';
 
 /**
  * Minimal descriptor for a mounted collection provider.

@@ -2,11 +2,11 @@ import Database from 'better-sqlite3';
 import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
-import { mergeContainerItems } from '#/shared/collectionContainerOrder';
-import { createInlineScriptRef } from '#/shared/scriptRefs';
-import type { SqliteSettings } from '#/shared/types';
+import { afterEach, describe, expect, it } from 'vitest';
+import { defaultAuth } from '@harborclient/core/auth';
+import { mergeContainerItems } from '@harborclient/core/collectionContainerOrder';
+import { createInlineScriptRef } from '@harborclient/core/scriptRefs';
+import type { SqliteSettings } from '@harborclient/core/types';
 import { SqliteStorage } from './SqliteStorage';
 import {
   baseRequestInput,
@@ -22,23 +22,6 @@ const DEFAULT_TEST_SETTINGS: SqliteSettings = {
 };
 
 const TEST_APP_DATA = join(tmpdir(), 'harborclient-test-appdata');
-
-const { isRandUserDirFlagEnabledMock } = vi.hoisted(() => ({
-  isRandUserDirFlagEnabledMock: vi.fn(() => false)
-}));
-
-vi.mock('#/main/randUserDir', () => ({
-  isRandUserDirFlagEnabled: isRandUserDirFlagEnabledMock
-}));
-
-vi.mock('electron', () => ({
-  app: {
-    getPath: vi.fn((name: string) => {
-      if (name === 'appData') return TEST_APP_DATA;
-      return tmpdir();
-    })
-  }
-}));
 
 const cleanups: Array<() => void | Promise<void>> = [];
 
@@ -313,10 +296,6 @@ describeSqlite('SqliteStorage contract', () => {
 });
 
 describeSqlite('SqliteStorage legacy migration', () => {
-  beforeEach(() => {
-    isRandUserDirFlagEnabledMock.mockReturnValue(false);
-  });
-
   it('copies legacy harbor-client.db from appData when harborclient.db is missing', async () => {
     const legacyDir = join(TEST_APP_DATA, 'harbor-client');
     mkdirSync(legacyDir, { recursive: true });
@@ -359,7 +338,7 @@ describeSqlite('SqliteStorage legacy migration', () => {
     legacyDb.close();
 
     const userDataDir = mkdtempSync(join(tmpdir(), 'harborclient-db-'));
-    const db = new SqliteStorage(userDataDir, DEFAULT_TEST_SETTINGS);
+    const db = new SqliteStorage(userDataDir, DEFAULT_TEST_SETTINGS, TEST_APP_DATA);
     cleanups.push(async () => {
       await db.close();
       rmSync(userDataDir, { recursive: true, force: true });
@@ -371,9 +350,7 @@ describeSqlite('SqliteStorage legacy migration', () => {
     expect((await db.listCollections()).map((c) => c.name)).toEqual(['Legacy Collection']);
   });
 
-  it('does not copy legacy harbor-client.db from appData when --rand-user-dir is active', async () => {
-    isRandUserDirFlagEnabledMock.mockReturnValue(true);
-
+  it('does not copy legacy harbor-client.db from appData when no app-data path is provided', async () => {
     const legacyDir = join(TEST_APP_DATA, 'harbor-client');
     mkdirSync(legacyDir, { recursive: true });
     const legacyPath = join(legacyDir, 'harbor-client.db');

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ShortcutBinding } from '#/shared/types';
+import type { ShortcutBinding } from '@harborclient/core/types';
 import { filterShortcutBindings } from './filterShortcutBindings';
 
 const SAMPLE_BINDINGS: ShortcutBinding[] = [

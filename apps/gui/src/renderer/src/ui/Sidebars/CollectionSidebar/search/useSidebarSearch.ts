@@ -7,8 +7,8 @@ import {
   type Dispatch,
   type SetStateAction
 } from 'react';
-import type { Collection, Folder } from '#/shared/types';
-import { searchSidebar, type SidebarSearchFilter } from '#/shared/search/sidebar';
+import type { Collection, Folder } from '@harborclient/core/types';
+import { searchSidebar, type SidebarSearchFilter } from '@harborclient/core/search/sidebar';
 import { useSearchIndexes } from '#/renderer/src/search/useSearchIndexes';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { refreshCollectionContents } from '#/renderer/src/store/thunks';

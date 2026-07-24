@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import type { RegisteredSidebarPanel } from '#/shared/plugin/types';
+import type { RegisteredSidebarPanel } from '@harborclient/core/plugin/types';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { setActiveSidebarPanel } from '#/renderer/src/store/slices/navigationSlice';
 

@@ -8,7 +8,7 @@ import {
   recordPluginHookFailure,
   setPluginManager
 } from './plugins';
-import type { PluginInfo } from '#/shared/plugin/types';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
 import type { PluginManager } from '#/main/plugins/PluginManager';
 
 vi.mock('#/main/plugins/pluginRunnerHost', () => ({

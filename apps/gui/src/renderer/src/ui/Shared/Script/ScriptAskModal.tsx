@@ -13,9 +13,9 @@ import {
   getAvailableModels,
   getAiModelOptionGroupLabel,
   resolveAiModelOption
-} from '#/shared/ai/models';
-import { removeScriptAskLine } from '#/shared/ai/scriptAsk';
-import type { AiSettings, HubLlmModelGroup } from '#/shared/types';
+} from '@harborclient/core/ai/models';
+import { removeScriptAskLine } from '@harborclient/core/ai/scriptAsk';
+import type { AiSettings, HubLlmModelGroup } from '@harborclient/core/types';
 import { runScriptAsk } from '#/renderer/src/scripting/runScriptAsk';
 import { resolveScriptAskModelId } from '#/renderer/src/scripting/scriptAskModel';
 import { AiModelSelect } from '#/renderer/src/ui/Shared/AiModelSelect';

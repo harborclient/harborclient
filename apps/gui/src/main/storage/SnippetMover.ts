@@ -1,6 +1,6 @@
 import type { MountedBackend, RoutingInternals } from './routingInternals';
 import type { SnippetRegistryEntry, LocalDatabase } from './LocalDatabase';
-import type { Snippet } from '#/shared/types';
+import type { Snippet } from '@harborclient/core/types';
 import { rethrowTeamHubSnippetCreateError } from './teamHubSnippetErrors';
 
 const SNIPPET_MOVE_PENDING_KEY = 'snippet_move_pending';

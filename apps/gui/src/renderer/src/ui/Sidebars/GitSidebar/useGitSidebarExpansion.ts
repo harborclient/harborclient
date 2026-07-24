@@ -3,7 +3,7 @@ import {
   DEFAULT_GIT_SIDEBAR_EXPANSION,
   type GitSidebarExpansionState,
   type GitSidebarSectionKey
-} from '#/shared/gitSidebarExpansion';
+} from '@harborclient/core/gitSidebarExpansion';
 
 /** localStorage key for Git sidebar section expansion and visibility. */
 const STORAGE_KEY = 'hc.gitSidebarExpansion';

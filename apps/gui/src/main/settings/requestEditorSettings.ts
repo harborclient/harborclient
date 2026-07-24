@@ -1,6 +1,6 @@
 import Store from 'electron-store';
-import { normalizeEditorTab } from '#/shared/requestEditorTab';
-import type { EditorTab } from '#/shared/types';
+import { normalizeEditorTab } from '@harborclient/core/requestEditorTab';
+import type { EditorTab } from '@harborclient/core/types';
 
 const STORE_KEY = 'requestEditorTabs';
 

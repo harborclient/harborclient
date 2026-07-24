@@ -1,5 +1,5 @@
 import { type ClientOptions } from 'openai';
-import type { AiSettings, LlmProvider } from '#/shared/types';
+import type { AiSettings, LlmProvider } from '@harborclient/core/types';
 
 const CLAUDE_BASE_URL = 'https://api.anthropic.com/v1/';
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/';

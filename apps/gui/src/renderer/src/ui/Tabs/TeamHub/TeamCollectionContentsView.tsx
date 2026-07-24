@@ -5,7 +5,7 @@ import type {
   TeamHub,
   TeamHubAdminFolderSummary,
   TeamHubAdminRequestSummary
-} from '#/shared/types';
+} from '@harborclient/core/types';
 import {
   AsyncListState,
   BackButton,

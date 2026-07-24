@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
-import type { Collection, CollectionDocument, Folder, SavedRequest } from '#/shared/types';
+import { defaultAuth } from '@harborclient/core/auth';
+import type {
+  Collection,
+  CollectionDocument,
+  Folder,
+  SavedRequest
+} from '@harborclient/core/types';
 import collectionsReducer, {
   focusSidebarItem,
   moveContainerItemLocal,

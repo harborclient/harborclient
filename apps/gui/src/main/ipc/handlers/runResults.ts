@@ -3,7 +3,7 @@ import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { getTrashService } from '#/main/storage/trashServiceInstance';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
-import type { SaveRunResultInput } from '#/shared/collectionRunner';
+import type { SaveRunResultInput } from '@harborclient/core/collectionRunner';
 
 /**
  * Registers IPC handlers for persisted collection run result snapshots.

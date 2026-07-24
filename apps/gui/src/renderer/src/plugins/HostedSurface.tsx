@@ -1,5 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type JSX } from 'react';
-import { buildPluginSurfaceUrl, type PluginContributionKind } from '#/shared/plugin/pluginSurface';
+import {
+  buildPluginSurfaceUrl,
+  type PluginContributionKind
+} from '@harborclient/core/plugin/pluginSurface';
 
 interface Props {
   /** Plugin manifest id. */

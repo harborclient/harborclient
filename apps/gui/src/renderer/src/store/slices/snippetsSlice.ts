@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { Snippet } from '#/shared/types';
+import type { Snippet } from '@harborclient/core/types';
 
 export interface SnippetsState {
   snippets: Snippet[];

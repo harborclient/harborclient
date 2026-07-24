@@ -1,8 +1,7 @@
 import { z } from 'zod';
 import { normalizeVariable } from './collectionVariables';
-import { authConfig, bodyType, httpMethod, keyValue } from '#/main/schemas/common';
-import { exportScriptRefArray } from '#/main/schemas/scriptRef';
-import { optionalSidebarColor } from '#/shared/sidebarColor';
+import { authConfig, bodyType, exportScriptRefArray, httpMethod, keyValue } from './storageSchemas';
+import { optionalSidebarColor } from '@harborclient/core/sidebarColor';
 import type {
   CollectionExport,
   EnvironmentExport,
@@ -12,7 +11,7 @@ import type {
   RequestExport,
   ScriptTestResult,
   Variable
-} from '#/shared/types';
+} from '@harborclient/core/types';
 
 /**
  * Validates an optional portable document uuid from an export file.

@@ -1,4 +1,4 @@
-import type { SourceControlStatus } from '#/shared/types';
+import type { SourceControlStatus } from '@harborclient/core/types';
 
 /**
  * Builds the working-tree summary line shown above changed files in the Git sidebar.

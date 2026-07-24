@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
+import { defaultAuth } from '@harborclient/core/auth';
 import type { RequestDraft } from './tabs';
 import { asRequestTab, createTab, isPageTab, isRequestTab, isTabDirty } from './tabs';
 import {

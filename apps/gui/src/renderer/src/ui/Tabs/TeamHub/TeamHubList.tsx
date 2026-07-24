@@ -13,7 +13,7 @@ import {
 } from '@harborclient/sdk/components';
 import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { TeamHub, TeamHubServiceFlags } from '#/shared/types';
+import type { TeamHub, TeamHubServiceFlags } from '@harborclient/core/types';
 
 import { faPlus, faUsers } from '#/renderer/src/fontawesome';
 

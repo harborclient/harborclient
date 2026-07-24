@@ -5,7 +5,7 @@ import {
   parsePluginCatalog,
   type PluginCatalog,
   type PluginCatalogEntry
-} from '#/shared/plugin/catalog';
+} from '@harborclient/core/plugin/catalog';
 import { getEnabledCatalogUrls } from '#/main/settings/pluginSourcesSettings';
 
 /**

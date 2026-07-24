@@ -37,7 +37,7 @@ import { trimRequiredName } from './trimRequiredName';
 import { resolveImportUuid } from './uuid';
 import { serializeSidebarColor } from './sidebarColorMigration';
 import { assertContainerItemOrder, planContainerItemMove } from './containerReorder';
-import type { ContainerItemRef } from '#/shared/collectionContainerOrder';
+import type { ContainerItemRef } from '@harborclient/core/collectionContainerOrder';
 import type { IStorage } from './IStorage';
 import {
   toTeamHubAuth,
@@ -51,15 +51,15 @@ import {
   type TeamHubAuthConfig,
   type TeamHubClient
 } from '@harborclient/team-hub-api';
-import { defaultAuth, normalizeAuth } from '#/shared/auth';
+import { defaultAuth, normalizeAuth } from '@harborclient/core/auth';
 import {
   firstRunResultMethod,
   type ProviderRunResult,
   type ProviderRunResultSummary,
   type SaveRunResultInput
-} from '#/shared/collectionRunner';
-import { readScriptRefsFromJson, resolveScriptRefs } from '#/shared/scriptRefs';
-import { normalizeRequestTags } from '#/shared/requestTags';
+} from '@harborclient/core/collectionRunner';
+import { readScriptRefsFromJson, resolveScriptRefs } from '@harborclient/core/scriptRefs';
+import { normalizeRequestTags } from '@harborclient/core/requestTags';
 import type {
   AuthConfig,
   Collection,
@@ -75,9 +75,9 @@ import type {
   ScriptRef,
   Snippet,
   Variable
-} from '#/shared/types';
-import type { SnippetScope } from '#/shared/snippetScope';
-import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '#/shared/scriptStage';
+} from '@harborclient/core/types';
+import type { SnippetScope } from '@harborclient/core/snippetScope';
+import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '@harborclient/core/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
 
 /**

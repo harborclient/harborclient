@@ -1,6 +1,6 @@
-import type { PluginCatalogEntry } from '#/shared/plugin/catalog';
-import type { PluginInfo } from '#/shared/plugin/types';
-import { formatThemeDisplayName } from '#/shared/plugin/themeCategory';
+import type { PluginCatalogEntry } from '@harborclient/core/plugin/catalog';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
+import { formatThemeDisplayName } from '@harborclient/core/plugin/themeCategory';
 import type { AppDispatch } from '#/renderer/src/store/redux';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import type { PluginManagementKind } from './constants';

@@ -1,7 +1,7 @@
-import type { Snippet } from '#/shared/types';
-import type { SnippetScope } from '#/shared/snippetScope';
+import type { Snippet } from '@harborclient/core/types';
+import type { SnippetScope } from '@harborclient/core/snippetScope';
 import type { ScriptStage } from '@harborclient/sdk';
-import { DEFAULT_SCRIPT_STAGE } from '#/shared/scriptStage';
+import { DEFAULT_SCRIPT_STAGE } from '@harborclient/core/scriptStage';
 
 /**
  * Editable snippet fields shown in the create/edit modal.

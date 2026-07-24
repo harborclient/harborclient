@@ -1,5 +1,5 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
-import { parseJson } from '#/shared/parseJson';
+import { parseJson } from '@harborclient/core/parseJson';
 
 const SPENT_SHARES_SETTING = 'spentShareTokens';
 

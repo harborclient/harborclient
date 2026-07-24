@@ -1,10 +1,10 @@
 import type { BrowserWindow } from 'electron';
-import { isBuiltinThemeId } from '#/shared/builtinThemes';
+import { isBuiltinThemeId } from '@harborclient/core/builtinThemes';
 import { listCustomThemes, saveCustomTheme } from '#/main/storage/customThemes';
 import { confirmDuplicateImport } from './importDialogs';
-import { validateCustomThemeExport } from '#/shared/plugin/customThemeExport';
-import type { CustomTheme } from '#/shared/types/customTheme';
-import type { ImportAction } from '#/shared/types';
+import { validateCustomThemeExport } from '@harborclient/core/plugin/customThemeExport';
+import type { CustomTheme } from '@harborclient/core/types/customTheme';
+import type { ImportAction } from '@harborclient/core/types';
 
 /**
  * Result of importing a custom theme from a portable export file.

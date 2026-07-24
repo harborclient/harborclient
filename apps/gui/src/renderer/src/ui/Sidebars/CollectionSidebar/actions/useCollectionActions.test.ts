@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
+import { defaultAuth } from '@harborclient/core/auth';
 import { resolveGitSidebarCollectionId } from '#/renderer/src/git/resolveCollectionGitContext';
 import collectionsReducer, { focusSidebarItem } from '#/renderer/src/store/slices/collectionsSlice';
 import {
   sidebarFocusPayloadForDocument,
   sidebarFocusPayloadForRequest
 } from './useCollectionActions';
-import type { CollectionDocument, SavedRequest } from '#/shared/types';
+import type { CollectionDocument, SavedRequest } from '@harborclient/core/types';
 
 /**
  * Returns a minimal saved request for sidebar focus tests.

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { GitRequestFileStatus } from '#/shared/types';
+import type { GitRequestFileStatus } from '@harborclient/core/types';
 import { buildGitItemMenuGroups } from './buildGitItemMenuGroups';
 
 describe('buildGitItemMenuGroups', () => {

@@ -1,7 +1,7 @@
 import { Button, FaIcon, Page, Input, Textarea, FormGroup } from '@harborclient/sdk/components';
 import { useEffect, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { SharingIdentity } from '#/shared/types';
+import type { SharingIdentity } from '@harborclient/core/types';
 import { faPlus } from '#/renderer/src/fontawesome';
 
 /**

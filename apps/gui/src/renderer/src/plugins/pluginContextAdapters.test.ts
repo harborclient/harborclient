@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
-import type { Collection } from '#/shared/types';
+import { defaultAuth } from '@harborclient/core/auth';
+import type { Collection } from '@harborclient/core/types';
 import type { RequestDraft } from '#/renderer/src/store/tabs';
 import {
   pluginRequestKey,

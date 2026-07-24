@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Completion, CompletionContext, CompletionSource } from '@codemirror/autocomplete';
-import type { Variable } from '#/shared/types';
+import type { Variable } from '@harborclient/core/types';
 import { createHcCompletionSource, createLiveHcCompletionSource } from './hcCompletions';
 
 /**

@@ -3,8 +3,13 @@ import {
   mergeContainerItems,
   toContainerItemRefs,
   type ContainerItemRef
-} from '#/shared/collectionContainerOrder';
-import type { Collection, CollectionDocument, Folder, SavedRequest } from '#/shared/types';
+} from '@harborclient/core/collectionContainerOrder';
+import type {
+  Collection,
+  CollectionDocument,
+  Folder,
+  SavedRequest
+} from '@harborclient/core/types';
 
 export interface CollectionsState {
   collections: Collection[];

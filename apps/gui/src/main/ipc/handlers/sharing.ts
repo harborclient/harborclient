@@ -18,7 +18,7 @@ import {
   saveStorageConnection
 } from '#/main/settings/storageSettings';
 import { getSlotForConnection } from '#/main/settings/storageSlots';
-import type { StorageConnection } from '#/shared/types';
+import type { StorageConnection } from '@harborclient/core/types';
 
 /**
  * Registers IPC handlers for collection sharing and trusted key management.

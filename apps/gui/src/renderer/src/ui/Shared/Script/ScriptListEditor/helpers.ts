@@ -1,10 +1,10 @@
 import type { PointerEvent as ReactPointerEvent } from 'react';
-import type { ScriptRef, Snippet } from '#/shared/types';
+import type { ScriptRef, Snippet } from '@harborclient/core/types';
 import {
   readScriptRefStage,
   scriptRowStageSuffix,
   type ScriptEditorGroup
-} from '#/shared/scriptStage';
+} from '@harborclient/core/scriptStage';
 
 /**
  * Accessible labels for bulk enable checkboxes on script group headings.

@@ -2,8 +2,8 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import {
   DEFAULT_CODE_EDITOR_FONT_SIZE,
   DEFAULT_CODE_EDITOR_SETUP
-} from '#/shared/codeEditorSettings';
-import type { CodeEditorSetup, CodeEditorTheme, GeneralSettings } from '#/shared/types';
+} from '@harborclient/core/codeEditorSettings';
+import type { CodeEditorSetup, CodeEditorTheme, GeneralSettings } from '@harborclient/core/types';
 import type { RootState } from '#/renderer/src/store/redux';
 
 export const defaultGeneralSettings: GeneralSettings = {

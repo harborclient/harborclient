@@ -1,9 +1,9 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import type { SendRequestInput } from '#/shared/types';
+import type { SendRequestInput } from '@harborclient/core/types';
 import type { SendResult } from '@harborclient/http';
-import type { RequestHistoryEntry } from '#/shared/types/requestHistory';
-import type { BodyType } from '#/shared/types/common';
-import { toPluginHttpRequest } from '#/shared/plugin/httpRequest';
+import type { RequestHistoryEntry } from '@harborclient/core/types/requestHistory';
+import type { BodyType } from '@harborclient/core/types/common';
+import { toPluginHttpRequest } from '@harborclient/core/plugin/httpRequest';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
 import { syncTrash } from './trash';
 import {

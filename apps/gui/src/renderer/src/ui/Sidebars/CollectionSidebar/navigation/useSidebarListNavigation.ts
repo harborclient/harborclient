@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
-import { acceleratorMatchesChord, getShortcutDef, type KeyChord } from '#/shared/shortcuts';
+import {
+  acceleratorMatchesChord,
+  getShortcutDef,
+  type KeyChord
+} from '@harborclient/core/shortcuts';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { advanceSidebarListItem } from './sidebarListNavigation';
 

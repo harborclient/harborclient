@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { TeamHubAdminRunResult } from '#/shared/types';
+import type { TeamHubAdminRunResult } from '@harborclient/core/types';
 
 /**
  * Loaded Team Hub admin run result list and bootstrap state from IPC.

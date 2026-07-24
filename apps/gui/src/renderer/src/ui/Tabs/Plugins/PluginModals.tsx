@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import type { PluginInfo } from '#/shared/plugin/types';
+import type { PluginInfo } from '@harborclient/core/plugin/types';
 import type { PluginThemeVariant } from './listPluginThemeVariants';
 import { EnableModal } from './EnableModal';
 import { UseThemeVariantModal } from './UseThemeVariantModal';

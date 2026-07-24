@@ -1,11 +1,11 @@
 import { CatalogReadmeMarkdown, ScreenshotCarousel, Spinner } from '@harborclient/sdk/components';
 import { useMemo, type JSX } from 'react';
-import type { SnippetCatalogEntry } from '#/shared/snippet/catalog';
-import type { SnippetGitPreview } from '#/shared/snippet/types';
-import { resolveCatalogScreenshotUrls } from '#/shared/plugin/githubRaw';
-import { stripPluginScreenshotImagesFromMarkdown } from '#/shared/plugin/stripPluginScreenshotImagesFromMarkdown';
-import { snippetScopeLabel } from '#/shared/snippetScope';
-import { scriptStageLabel } from '#/shared/scriptStage';
+import type { SnippetCatalogEntry } from '@harborclient/core/snippet/catalog';
+import type { SnippetGitPreview } from '@harborclient/core/snippet/types';
+import { resolveCatalogScreenshotUrls } from '@harborclient/core/plugin/githubRaw';
+import { stripPluginScreenshotImagesFromMarkdown } from '@harborclient/core/plugin/stripPluginScreenshotImagesFromMarkdown';
+import { snippetScopeLabel } from '@harborclient/core/snippetScope';
+import { scriptStageLabel } from '@harborclient/core/scriptStage';
 
 const SCREENSHOT_FALLBACK_PATH = 'screenshot.png';
 

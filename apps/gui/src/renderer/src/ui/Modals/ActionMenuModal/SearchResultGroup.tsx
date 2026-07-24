@@ -7,7 +7,7 @@ import {
   type SearchDomain,
   type SidebarSearchInput,
   type UnifiedSearchHit
-} from '#/shared/search';
+} from '@harborclient/core/search';
 import {
   faFolder,
   faGear,

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { MAX_IPC_SCRIPT_CHARS } from '#/main/ipc/ipcLimits';
-import type { ScriptRef } from '#/shared/types/script';
+import type { ScriptRef } from '@harborclient/core/types/script';
 
 /** Script stage within a pre/post script list. */
 export const scriptStage = z.enum(['before-all', 'before-each', 'main', 'after-each', 'after-all']);

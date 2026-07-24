@@ -4,7 +4,7 @@ import { join } from 'path';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { CookieJar } from './CookieJar';
 import { LocalDatabase } from '#/main/storage/LocalDatabase';
-import type { KeyValue } from '#/shared/types';
+import type { KeyValue } from '@harborclient/core/types';
 import { describeSqlite } from '#/test/nativeModules';
 
 let tempDir: string;

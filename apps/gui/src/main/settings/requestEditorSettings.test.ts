@@ -3,7 +3,7 @@ import {
   normalizeEditorTab,
   requestEditorTabKey,
   resolveEditorTab
-} from '#/shared/requestEditorTab';
+} from '@harborclient/core/requestEditorTab';
 
 describe('requestEditorTabKey', () => {
   it('uses saved request id when present', () => {

@@ -1,5 +1,5 @@
 import { useMemo, type JSX } from 'react';
-import type { Variable } from '#/shared/types';
+import type { Variable } from '@harborclient/core/types';
 import type { ConsoleEntry } from '#/renderer/src/store';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {

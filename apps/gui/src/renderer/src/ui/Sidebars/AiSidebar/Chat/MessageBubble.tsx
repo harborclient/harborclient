@@ -1,6 +1,6 @@
 import { fieldFrame } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import type { ChatMessage } from '#/shared/types';
+import type { ChatMessage } from '@harborclient/core/types';
 import { MarkdownContent } from './MarkdownContent';
 
 interface Props {

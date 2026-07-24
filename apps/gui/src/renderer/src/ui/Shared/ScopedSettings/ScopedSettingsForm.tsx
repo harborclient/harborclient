@@ -7,8 +7,8 @@ import {
   SegmentedTabsGroup
 } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useMemo, useState, type JSX, type ReactNode } from 'react';
-import type { AuthConfig, KeyValue, ScriptRef, Variable } from '#/shared/types';
-import { ensureDefaultScriptRef, hasScriptContent } from '#/shared/scriptRefs';
+import type { AuthConfig, KeyValue, ScriptRef, Variable } from '@harborclient/core/types';
+import { ensureDefaultScriptRef, hasScriptContent } from '@harborclient/core/scriptRefs';
 import { useTabSaveRegistration } from '#/renderer/src/hooks/tabSaveRegistry';
 import { VariablesSection } from '#/renderer/src/ui/Tabs/CollectionSettings/VariablesSection';
 import { ScriptSection } from '#/renderer/src/ui/Tabs/CollectionSettings/ScriptSection';

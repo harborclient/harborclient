@@ -1,4 +1,4 @@
-import type { Collection, Environment, TeamHub } from '#/shared/types';
+import type { Collection, Environment, TeamHub } from '@harborclient/core/types';
 import type { PageRef } from '#/renderer/src/store/tabs';
 import { getPageRoute, routePageCloseName } from '#/renderer/src/store/routing';
 import { resolveTeamHubAdminTabLabel } from '#/renderer/src/ui/Tabs/TeamHub/teamHubDisplayName';

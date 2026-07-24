@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { defaultAuth } from '#/shared/auth';
+import { defaultAuth } from '@harborclient/core/auth';
 import type {
   Collection,
   CollectionDocument,
   GitRequestDiffFileEntry,
   SavedRequest
-} from '#/shared/types';
+} from '@harborclient/core/types';
 import {
   gitChangePathBasename,
   parseRequestUuidFromGitFileName,

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { THEME_CATALOG_URL } from '#/shared/plugin/catalog';
+import { THEME_CATALOG_URL } from '@harborclient/core/plugin/catalog';
 
 const sampleThemeCatalog = {
   schemaVersion: 1 as const,

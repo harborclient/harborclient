@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { CollectionDocument } from '#/shared/types';
+import type { CollectionDocument } from '@harborclient/core/types';
 
 /**
  * Default filename offered when creating a new markdown document.

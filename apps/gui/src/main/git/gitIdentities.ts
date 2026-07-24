@@ -1,6 +1,6 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
-import { parseJson } from '#/shared/parseJson';
-import type { GitAuthMethod, GitIdentity } from '#/shared/types';
+import { parseJson } from '@harborclient/core/parseJson';
+import type { GitAuthMethod, GitIdentity } from '@harborclient/core/types';
 import { hasGitAccessToken } from './gitSecrets';
 
 const GIT_IDENTITIES_KEY = 'gitHostIdentities';

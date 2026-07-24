@@ -3,12 +3,16 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { decodeMcpToolName, encodeMcpToolName } from '#/shared/mcpToolNames';
+import { decodeMcpToolName, encodeMcpToolName } from '@harborclient/core/mcpToolNames';
 import { logVerbose } from '#/main/logger';
 import { createVerboseMcpClientFetch } from './mcpClientVerboseFetch';
 import { listMcpClientServers } from '#/main/settings/mcpSettings';
 import { listPluginMcpClientServers } from '#/main/plugins/pluginMcpRegistry';
-import type { McpClientServer, McpClientServerStatus, McpClientToolInfo } from '#/shared/types';
+import type {
+  McpClientServer,
+  McpClientServerStatus,
+  McpClientToolInfo
+} from '@harborclient/core/types';
 
 interface ConnectedMcpClient {
   server: McpClientServer;
