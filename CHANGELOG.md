@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(docs): update documentation search index and improve logging format. (`6edd9fc`)
 - refactor(build): streamline CLI packaging and enhance native dependency handling. (`9463508`)
 - feat(gui): refactor path resolution and enhance sidebar actions. (`56b3645`)
 - feat(monorepo): restructure project into a pnpm monorepo with CLI and core packages. (`1ba4293`)

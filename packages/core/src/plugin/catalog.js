@@ -17,9 +17,9 @@ export const PLUGIN_SIGNING_PUBLIC_KEY_URL = 'https://harborclient.com/plugins/h
  */
 export const PLUGIN_TRUSTED_KEYS_URL = 'https://harborclient.com/plugins/trusted.json';
 const pluginManifestId = z
-    .string()
-    .min(3)
-    .regex(/^[a-zA-Z][a-zA-Z0-9.-]*\.[a-zA-Z][a-zA-Z0-9.-]+$/);
+  .string()
+  .min(3)
+  .regex(/^[a-zA-Z][a-zA-Z0-9.-]*\.[a-zA-Z][a-zA-Z0-9.-]+$/);
 /**
  * Validates that a catalog entry points at a public GitHub repository over HTTPS.
  *
@@ -27,72 +27,71 @@ const pluginManifestId = z
  * @returns Trimmed URL when valid.
  */
 function parseGitHubRepoUrl(url) {
-    const trimmed = url.trim();
-    let parsed;
-    try {
-        parsed = new URL(trimmed);
-    }
-    catch {
-        throw new Error(`Plugin catalog repoUrl is not valid: ${url}`);
-    }
-    if (parsed.protocol !== 'https:') {
-        throw new Error(`Plugin catalog repoUrl must use https://: ${url}`);
-    }
-    if (parsed.hostname !== 'github.com') {
-        throw new Error(`Plugin catalog repoUrl must be hosted on github.com: ${url}`);
-    }
-    const segments = parsed.pathname.split('/').filter(Boolean);
-    if (segments.length < 2) {
-        throw new Error(`Plugin catalog repoUrl must include owner and repository: ${url}`);
-    }
-    return trimmed;
+  const trimmed = url.trim();
+  let parsed;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    throw new Error(`Plugin catalog repoUrl is not valid: ${url}`);
+  }
+  if (parsed.protocol !== 'https:') {
+    throw new Error(`Plugin catalog repoUrl must use https://: ${url}`);
+  }
+  if (parsed.hostname !== 'github.com') {
+    throw new Error(`Plugin catalog repoUrl must be hosted on github.com: ${url}`);
+  }
+  const segments = parsed.pathname.split('/').filter(Boolean);
+  if (segments.length < 2) {
+    throw new Error(`Plugin catalog repoUrl must include owner and repository: ${url}`);
+  }
+  return trimmed;
 }
 const catalogThemeContributionSchema = z.object({
-    id: z.string().min(1),
-    title: z.string().min(1),
-    type: z.enum(['light', 'dark', 'high-contrast'])
+  id: z.string().min(1),
+  title: z.string().min(1),
+  type: z.enum(['light', 'dark', 'high-contrast'])
 });
 /**
  * Zod schema for one curated plugin or theme marketplace listing.
  */
 export const pluginCatalogEntrySchema = z.object({
-    id: pluginManifestId,
-    name: z.string().min(1),
-    version: z.string().min(1),
-    summary: z.string().min(1),
-    author: z.string().min(1),
-    categories: z.array(z.string().min(1)).transform(sanitizePluginCatalogCategories),
-    repoUrl: z.string().min(1).transform(parseGitHubRepoUrl),
-    ref: z.string().min(1).optional(),
-    homepage: z.string().url().optional(),
-    icon: z.string().url().optional(),
-    /** Absolute URL or repository-relative path (e.g. `screenshot.png`). */
-    screenshot: z.string().min(1).optional(),
-    /** Absolute URLs or repository-relative paths for marketplace thumbnails. */
-    screenshots: z.array(z.string().min(1)).optional(),
-    /** Inlined Markdown description fetched from the plugin repository at build time. */
-    description: z.string().min(1).optional(),
-    minAppVersion: z.string().min(1).optional(),
-    /** Theme contributions copied from manifest.contributes.themes at catalog build time. */
-    contributes: z
-        .object({
-        themes: z.array(catalogThemeContributionSchema).optional()
+  id: pluginManifestId,
+  name: z.string().min(1),
+  version: z.string().min(1),
+  summary: z.string().min(1),
+  author: z.string().min(1),
+  categories: z.array(z.string().min(1)).transform(sanitizePluginCatalogCategories),
+  repoUrl: z.string().min(1).transform(parseGitHubRepoUrl),
+  ref: z.string().min(1).optional(),
+  homepage: z.string().url().optional(),
+  icon: z.string().url().optional(),
+  /** Absolute URL or repository-relative path (e.g. `screenshot.png`). */
+  screenshot: z.string().min(1).optional(),
+  /** Absolute URLs or repository-relative paths for marketplace thumbnails. */
+  screenshots: z.array(z.string().min(1)).optional(),
+  /** Inlined Markdown description fetched from the plugin repository at build time. */
+  description: z.string().min(1).optional(),
+  minAppVersion: z.string().min(1).optional(),
+  /** Theme contributions copied from manifest.contributes.themes at catalog build time. */
+  contributes: z
+    .object({
+      themes: z.array(catalogThemeContributionSchema).optional()
     })
-        .optional()
+    .optional()
 });
 /**
  * Zod schema for the plugin marketplace catalog document.
  */
 export const pluginCatalogSchema = z.object({
-    schemaVersion: z.literal(1),
-    plugins: z.array(pluginCatalogEntrySchema)
+  schemaVersion: z.literal(1),
+  plugins: z.array(pluginCatalogEntrySchema)
 });
 /**
  * Zod schema for the theme marketplace catalog document.
  */
 export const themeCatalogSchema = z.object({
-    schemaVersion: z.literal(1),
-    themes: z.array(pluginCatalogEntrySchema)
+  schemaVersion: z.literal(1),
+  themes: z.array(pluginCatalogEntrySchema)
 });
 /**
  * Parses and validates a plugin catalog payload.
@@ -102,15 +101,15 @@ export const themeCatalogSchema = z.object({
  * @throws When the payload is invalid or contains duplicate ids.
  */
 export function parsePluginCatalog(raw) {
-    const parsed = pluginCatalogSchema.parse(raw);
-    const seen = new Set();
-    for (const entry of parsed.plugins) {
-        if (seen.has(entry.id)) {
-            throw new Error(`Plugin catalog contains duplicate id: ${entry.id}`);
-        }
-        seen.add(entry.id);
+  const parsed = pluginCatalogSchema.parse(raw);
+  const seen = new Set();
+  for (const entry of parsed.plugins) {
+    if (seen.has(entry.id)) {
+      throw new Error(`Plugin catalog contains duplicate id: ${entry.id}`);
     }
-    return parsed;
+    seen.add(entry.id);
+  }
+  return parsed;
 }
 /**
  * Parses and validates a theme catalog payload.
@@ -120,19 +119,19 @@ export function parsePluginCatalog(raw) {
  * @throws When the payload is invalid or contains duplicate ids.
  */
 export function parseThemeCatalog(raw) {
-    const parsed = themeCatalogSchema.parse(raw);
-    const seen = new Set();
-    for (const entry of parsed.themes) {
-        if (seen.has(entry.id)) {
-            throw new Error(`Theme catalog contains duplicate id: ${entry.id}`);
-        }
-        seen.add(entry.id);
+  const parsed = themeCatalogSchema.parse(raw);
+  const seen = new Set();
+  for (const entry of parsed.themes) {
+    if (seen.has(entry.id)) {
+      throw new Error(`Theme catalog contains duplicate id: ${entry.id}`);
     }
-    return parsed;
+    seen.add(entry.id);
+  }
+  return parsed;
 }
 const pluginTrustedKeyEntrySchema = z.object({
-    author: z.string().min(1),
-    key: z.string().url()
+  author: z.string().min(1),
+  key: z.string().url()
 });
 /**
  * Parses and validates a trusted plugin signing key registry payload.
@@ -142,15 +141,15 @@ const pluginTrustedKeyEntrySchema = z.object({
  * @throws When the payload is invalid or contains duplicate key URLs.
  */
 export function parsePluginTrustedKeys(raw) {
-    const parsed = z.array(pluginTrustedKeyEntrySchema).parse(raw);
-    const seen = new Set();
-    for (const entry of parsed) {
-        if (seen.has(entry.key)) {
-            throw new Error(`Plugin trusted keys contain duplicate key URL: ${entry.key}`);
-        }
-        seen.add(entry.key);
+  const parsed = z.array(pluginTrustedKeyEntrySchema).parse(raw);
+  const seen = new Set();
+  for (const entry of parsed) {
+    if (seen.has(entry.key)) {
+      throw new Error(`Plugin trusted keys contain duplicate key URL: ${entry.key}`);
     }
-    return parsed;
+    seen.add(entry.key);
+  }
+  return parsed;
 }
 /**
  * Validates that a plugin source URL uses http or https and returns the trimmed value.
@@ -159,29 +158,28 @@ export function parsePluginTrustedKeys(raw) {
  * @returns Trimmed URL when valid.
  */
 function parsePluginSourceUrl(url) {
-    const trimmed = url.trim();
-    let parsed;
-    try {
-        parsed = new URL(trimmed);
-    }
-    catch {
-        throw new Error(`Plugin source URL is not valid: ${url}`);
-    }
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        throw new Error(`Plugin source URL must use http:// or https://: ${url}`);
-    }
-    return trimmed;
+  const trimmed = url.trim();
+  let parsed;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    throw new Error(`Plugin source URL is not valid: ${url}`);
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error(`Plugin source URL must use http:// or https://: ${url}`);
+  }
+  return trimmed;
 }
 const pluginSourceSchema = z.object({
-    url: z.string().min(1).transform(parsePluginSourceUrl),
-    enabled: z.boolean()
+  url: z.string().min(1).transform(parsePluginSourceUrl),
+  enabled: z.boolean()
 });
 /**
  * Zod schema for persisted plugin catalog and trusted-key source settings.
  */
 export const pluginSourcesSchema = z.object({
-    catalogs: z.array(pluginSourceSchema),
-    trusted: z.array(pluginSourceSchema)
+  catalogs: z.array(pluginSourceSchema),
+  trusted: z.array(pluginSourceSchema)
 });
 /**
  * Returns the built-in HarborClient catalog and trusted-key endpoints, enabled by default.
@@ -189,10 +187,10 @@ export const pluginSourcesSchema = z.object({
  * @returns Default plugin source settings with HarborClient URLs first in each list.
  */
 export function getDefaultPluginSources() {
-    return {
-        catalogs: [{ url: PLUGIN_CATALOG_URL, enabled: true }],
-        trusted: [{ url: PLUGIN_TRUSTED_KEYS_URL, enabled: true }]
-    };
+  return {
+    catalogs: [{ url: PLUGIN_CATALOG_URL, enabled: true }],
+    trusted: [{ url: PLUGIN_TRUSTED_KEYS_URL, enabled: true }]
+  };
 }
 /**
  * Deduplicates plugin source rows by URL while preserving the first occurrence.
@@ -201,16 +199,16 @@ export function getDefaultPluginSources() {
  * @returns Sources with duplicate URLs removed.
  */
 function dedupePluginSources(sources) {
-    const seen = new Set();
-    const deduped = [];
-    for (const source of sources) {
-        if (seen.has(source.url)) {
-            continue;
-        }
-        seen.add(source.url);
-        deduped.push(source);
+  const seen = new Set();
+  const deduped = [];
+  for (const source of sources) {
+    if (seen.has(source.url)) {
+      continue;
     }
-    return deduped;
+    seen.add(source.url);
+    deduped.push(source);
+  }
+  return deduped;
 }
 /**
  * Normalizes persisted plugin source settings with trimmed URLs and deduplication.
@@ -219,16 +217,16 @@ function dedupePluginSources(sources) {
  * @returns Validated settings, or defaults when both lists are empty after normalization.
  */
 export function normalizePluginSources(raw) {
-    const parsed = pluginSourcesSchema.safeParse(raw);
-    if (!parsed.success) {
-        return getDefaultPluginSources();
-    }
-    const catalogs = dedupePluginSources(parsed.data.catalogs);
-    const trusted = dedupePluginSources(parsed.data.trusted);
-    if (catalogs.length === 0 && trusted.length === 0) {
-        return getDefaultPluginSources();
-    }
-    return { catalogs, trusted };
+  const parsed = pluginSourcesSchema.safeParse(raw);
+  if (!parsed.success) {
+    return getDefaultPluginSources();
+  }
+  const catalogs = dedupePluginSources(parsed.data.catalogs);
+  const trusted = dedupePluginSources(parsed.data.trusted);
+  if (catalogs.length === 0 && trusted.length === 0) {
+    return getDefaultPluginSources();
+  }
+  return { catalogs, trusted };
 }
 /**
  * Returns whether a plugin source URL is hosted on harborclient.com or a subdomain.
@@ -237,12 +235,11 @@ export function normalizePluginSources(raw) {
  * @returns True when the hostname is harborclient.com or ends with .harborclient.com.
  */
 export function isHarborClientEndpoint(url) {
-    try {
-        const hostname = new URL(url.trim()).hostname.toLowerCase();
-        return hostname === 'harborclient.com' || hostname.endsWith('.harborclient.com');
-    }
-    catch {
-        return false;
-    }
+  try {
+    const hostname = new URL(url.trim()).hostname.toLowerCase();
+    return hostname === 'harborclient.com' || hostname.endsWith('.harborclient.com');
+  } catch {
+    return false;
+  }
 }
 //# sourceMappingURL=catalog.js.map

@@ -1,37 +1,50 @@
-import { buildTeamHubJoinUrl as buildApiTeamHubJoinUrl, summarizeInvitationAccess, type InvitationLinkParams } from '@harborclient/team-hub-api';
+import {
+  buildTeamHubJoinUrl as buildApiTeamHubJoinUrl,
+  summarizeInvitationAccess,
+  type InvitationLinkParams
+} from '@harborclient/team-hub-api';
 /**
  * Custom URL scheme registered by HarborClient for deep links from the web.
  */
-export declare const HARBOR_PROTOCOL = "harborclient";
-export { buildApiTeamHubJoinUrl as buildTeamHubJoinUrl, summarizeInvitationAccess, type InvitationLinkParams };
+export declare const HARBOR_PROTOCOL = 'harborclient';
+export {
+  buildApiTeamHubJoinUrl as buildTeamHubJoinUrl,
+  summarizeInvitationAccess,
+  type InvitationLinkParams
+};
 /**
  * Parsed HarborClient deep-link action dispatched to the renderer.
  */
-export type HarborDeepLink = {
-    action: 'install-plugin';
-    pluginId: string;
-} | {
-    action: 'install-theme';
-    pluginId: string;
-} | {
-    action: 'install-snippet';
-    pluginId: string;
-} | {
-    action: 'open-run-results';
-    uuid: string;
-} | TeamHubJoinDeepLinkPayload;
+export type HarborDeepLink =
+  | {
+      action: 'install-plugin';
+      pluginId: string;
+    }
+  | {
+      action: 'install-theme';
+      pluginId: string;
+    }
+  | {
+      action: 'install-snippet';
+      pluginId: string;
+    }
+  | {
+      action: 'open-run-results';
+      uuid: string;
+    }
+  | TeamHubJoinDeepLinkPayload;
 /**
  * Parsed Team Hub join payload carried by HTTPS invite links and deep links.
  */
 export interface TeamHubJoinDeepLinkPayload {
-    action: 'join-team-hub';
-    baseUrl: string;
-    code: string;
-    name?: string;
-    role?: 'admin' | 'user';
-    expiresAt?: string;
-    hubName?: string;
-    accessSummary?: string;
+  action: 'join-team-hub';
+  baseUrl: string;
+  code: string;
+  name?: string;
+  role?: 'admin' | 'user';
+  expiresAt?: string;
+  hubName?: string;
+  accessSummary?: string;
 }
 /**
  * Parses an HTTPS or harborclient:// Team Hub invite link into a join payload.
@@ -91,8 +104,8 @@ export declare function buildTeamHubJoinDeepLink(params: InvitationLinkParams): 
  * @param payload - Parsed join payload from an invite link.
  */
 export declare function hasTeamHubJoinDisplayMetadata(payload: {
-    name?: string;
-    role?: 'admin' | 'user';
-    expiresAt?: string;
+  name?: string;
+  role?: 'admin' | 'user';
+  expiresAt?: string;
 }): boolean;
 //# sourceMappingURL=deepLink.d.ts.map

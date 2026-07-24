@@ -3,7 +3,7 @@ import type { Snippet } from './types/snippet';
 /**
  * Default display label for newly added inline scripts before the user names them.
  */
-export declare const UNNAMED_SCRIPT_NAME = "Unnamed script...";
+export declare const UNNAMED_SCRIPT_NAME = 'Unnamed script...';
 /**
  * Maximum length for auto-generated script names derived from source code.
  */
@@ -16,7 +16,11 @@ export declare const SCRIPT_AUTO_NAME_MAX_LENGTH = 25;
  * @param stage - Stage within the phase script list.
  * @returns A new inline {@link ScriptRef}.
  */
-export declare function createInlineScriptRef(code?: string, name?: string, stage?: import("@harborclient/sdk").ScriptStage): ScriptRef;
+export declare function createInlineScriptRef(
+  code?: string,
+  name?: string,
+  stage?: import('@harborclient/sdk').ScriptStage
+): ScriptRef;
 /**
  * Creates a new snippet reference with a unique list id.
  *
@@ -25,7 +29,11 @@ export declare function createInlineScriptRef(code?: string, name?: string, stag
  * @param stage - Stage within the phase script list.
  * @returns A new snippet {@link ScriptRef}.
  */
-export declare function createSnippetScriptRef(snippetUuid: string, name?: string, stage?: import("@harborclient/sdk").ScriptStage): ScriptRef;
+export declare function createSnippetScriptRef(
+  snippetUuid: string,
+  name?: string,
+  stage?: import('@harborclient/sdk').ScriptStage
+): ScriptRef;
 /**
  * Extracts a clipboard-safe payload from one script row.
  *
@@ -46,7 +54,10 @@ export declare function copyScriptRefForClipboard(script: ScriptRef): CopiedScri
  * @param snippets - Snippet library used to resolve snippet references.
  * @returns A new script row, or null when a snippet uuid no longer exists.
  */
-export declare function createScriptRefFromClipboard(copied: CopiedScriptRef, snippets: Snippet[]): ScriptRef | null;
+export declare function createScriptRefFromClipboard(
+  copied: CopiedScriptRef,
+  snippets: Snippet[]
+): ScriptRef | null;
 /**
  * Converts an existing script row into a snippet reference without stale inline code.
  *
@@ -55,7 +66,11 @@ export declare function createScriptRefFromClipboard(copied: CopiedScriptRef, sn
  * @param name - Display label stored on the script row.
  * @returns Snippet-linked {@link ScriptRef} preserving row identity fields.
  */
-export declare function linkScriptRefToSnippet(script: ScriptRef, snippetUuid: string, name: string): ScriptRef;
+export declare function linkScriptRefToSnippet(
+  script: ScriptRef,
+  snippetUuid: string,
+  name: string
+): ScriptRef;
 /**
  * Sanitizes script reference arrays loaded from storage or the editor.
  *
@@ -72,7 +87,9 @@ export declare function normalizeScriptRefs(refs: ScriptRef[] | undefined | null
  * @param refs - Raw script references from drafts or forms.
  * @returns Comparable script references without ephemeral UI fields.
  */
-export declare function normalizeScriptRefsForCompare(refs: ScriptRef[] | undefined | null): ScriptRef[];
+export declare function normalizeScriptRefsForCompare(
+  refs: ScriptRef[] | undefined | null
+): ScriptRef[];
 /**
  * Resolves canonical script references, falling back to a legacy single string.
  *
@@ -80,7 +97,10 @@ export declare function normalizeScriptRefsForCompare(refs: ScriptRef[] | undefi
  * @param legacyScript - Legacy single-script column value.
  * @returns Normalized script references for the editor and send pipeline.
  */
-export declare function resolveScriptRefs(refs: ScriptRef[] | undefined | null, legacyScript: string): ScriptRef[];
+export declare function resolveScriptRefs(
+  refs: ScriptRef[] | undefined | null,
+  legacyScript: string
+): ScriptRef[];
 /**
  * Parses script references from a JSON column with legacy fallback.
  *
@@ -142,32 +162,36 @@ export declare function scriptAutoNameFromCode(code: string): string | null;
  * @param unnamedLabel - Placeholder label that triggers auto-naming.
  * @returns Script references with auto names applied where applicable.
  */
-export declare function autoNameUnnamedScripts(refs: ScriptRef[] | undefined | null, snippets: Snippet[], unnamedLabel?: string): ScriptRef[];
+export declare function autoNameUnnamedScripts(
+  refs: ScriptRef[] | undefined | null,
+  snippets: Snippet[],
+  unnamedLabel?: string
+): ScriptRef[];
 /**
  * One script row id change reported when storage round-trips regenerate list keys.
  */
 export interface ScriptRefIdMigration {
-    /**
-     * Previous {@link ScriptRef.id} from the pre-save editor draft.
-     */
-    from: string;
-    /**
-     * New {@link ScriptRef.id} from the saved storage payload.
-     */
-    to: string;
+  /**
+   * Previous {@link ScriptRef.id} from the pre-save editor draft.
+   */
+  from: string;
+  /**
+   * New {@link ScriptRef.id} from the saved storage payload.
+   */
+  to: string;
 }
 /**
  * Result of merging ephemeral script UI state into a post-save script list.
  */
 export interface MergeScriptRefsUiStateResult {
-    /**
-     * Saved script references with editor UI fields restored from the pre-save draft.
-     */
-    merged: ScriptRef[];
-    /**
-     * Id pairs to migrate persisted CodeEditor UI state in localStorage.
-     */
-    idMigrations: ScriptRefIdMigration[];
+  /**
+   * Saved script references with editor UI fields restored from the pre-save draft.
+   */
+  merged: ScriptRef[];
+  /**
+   * Id pairs to migrate persisted CodeEditor UI state in localStorage.
+   */
+  idMigrations: ScriptRefIdMigration[];
 }
 /**
  * Copies ephemeral {@link ScriptRef.expanded} from a pre-save list onto a saved list.
@@ -179,7 +203,10 @@ export interface MergeScriptRefsUiStateResult {
  * @param after - Script references returned from storage after save.
  * @returns Merged list and any id migrations detected during index fallback matching.
  */
-export declare function mergeScriptRefsUiState(before: ScriptRef[] | undefined | null, after: ScriptRef[] | undefined | null): MergeScriptRefsUiStateResult;
+export declare function mergeScriptRefsUiState(
+  before: ScriptRef[] | undefined | null,
+  after: ScriptRef[] | undefined | null
+): MergeScriptRefsUiStateResult;
 /**
  * Returns whether any enabled script references exist in the list.
  *

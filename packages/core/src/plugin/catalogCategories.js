@@ -2,57 +2,57 @@
  * Canonical marketplace plugin category slugs in display order.
  */
 export const PLUGIN_CATALOG_CATEGORIES = [
-    'requests',
-    'auth',
-    'environments',
-    'import',
-    'scripting',
-    'logging',
-    'jwt',
-    'response',
-    'themes',
-    'light',
-    'dark',
-    'high-contrast',
-    'collections',
-    'editor',
-    'testing',
-    'export',
-    'graphql',
-    'websocket',
-    'mock',
-    'debugging',
-    'security',
-    'sidebar',
-    'utilities'
+  'requests',
+  'auth',
+  'environments',
+  'import',
+  'scripting',
+  'logging',
+  'jwt',
+  'response',
+  'themes',
+  'light',
+  'dark',
+  'high-contrast',
+  'collections',
+  'editor',
+  'testing',
+  'export',
+  'graphql',
+  'websocket',
+  'mock',
+  'debugging',
+  'security',
+  'sidebar',
+  'utilities'
 ];
 /**
  * Human-readable labels for marketplace category slugs shown in UI.
  */
 export const PLUGIN_CATALOG_CATEGORY_LABELS = {
-    'requests': 'Requests',
-    'auth': 'Authentication',
-    'environments': 'Environments',
-    'import': 'Import',
-    'scripting': 'Scripting',
-    'logging': 'Logging',
-    'jwt': 'JWT',
-    'response': 'Response',
-    'themes': 'Themes',
-    'light': 'Light',
-    'dark': 'Dark',
-    'high-contrast': 'High Contrast',
-    'collections': 'Collections',
-    'editor': 'Editor',
-    'testing': 'Testing',
-    'export': 'Export',
-    'graphql': 'GraphQL',
-    'websocket': 'WebSocket',
-    'mock': 'Mocking',
-    'debugging': 'Debugging',
-    'security': 'Security',
-    'sidebar': 'Sidebar',
-    'utilities': 'Utilities'
+  'requests': 'Requests',
+  'auth': 'Authentication',
+  'environments': 'Environments',
+  'import': 'Import',
+  'scripting': 'Scripting',
+  'logging': 'Logging',
+  'jwt': 'JWT',
+  'response': 'Response',
+  'themes': 'Themes',
+  'light': 'Light',
+  'dark': 'Dark',
+  'high-contrast': 'High Contrast',
+  'collections': 'Collections',
+  'editor': 'Editor',
+  'testing': 'Testing',
+  'export': 'Export',
+  'graphql': 'GraphQL',
+  'websocket': 'WebSocket',
+  'mock': 'Mocking',
+  'debugging': 'Debugging',
+  'security': 'Security',
+  'sidebar': 'Sidebar',
+  'utilities': 'Utilities'
 };
 const categorySet = new Set(PLUGIN_CATALOG_CATEGORIES);
 /**
@@ -62,7 +62,7 @@ const categorySet = new Set(PLUGIN_CATALOG_CATEGORIES);
  * @returns True when the value is a predefined category slug.
  */
 export function isPluginCatalogCategory(value) {
-    return categorySet.has(value);
+  return categorySet.has(value);
 }
 /**
  * Keeps only predefined category slugs, preserving order and removing duplicates.
@@ -74,15 +74,15 @@ export function isPluginCatalogCategory(value) {
  * @returns Sanitized category slugs, which may be empty when none are recognized.
  */
 export function sanitizePluginCatalogCategories(categories) {
-    const seen = new Set();
-    const sanitized = [];
-    for (const category of categories) {
-        if (!isPluginCatalogCategory(category) || seen.has(category)) {
-            continue;
-        }
-        seen.add(category);
-        sanitized.push(category);
+  const seen = new Set();
+  const sanitized = [];
+  for (const category of categories) {
+    if (!isPluginCatalogCategory(category) || seen.has(category)) {
+      continue;
     }
-    return sanitized;
+    seen.add(category);
+    sanitized.push(category);
+  }
+  return sanitized;
 }
 //# sourceMappingURL=catalogCategories.js.map

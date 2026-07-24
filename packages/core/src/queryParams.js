@@ -4,7 +4,7 @@
  * @returns Empty KeyValue entry.
  */
 function emptyParamRow() {
-    return { key: '', value: '', enabled: true };
+  return { key: '', value: '', enabled: true };
 }
 /**
  * Splits a URL into base path, query string, and hash fragment without re-encoding.
@@ -13,13 +13,13 @@ function emptyParamRow() {
  * @returns Lenient split preserving raw text including {{variables}}.
  */
 export function splitUrl(url) {
-    const hashIndex = url.indexOf('#');
-    const hash = hashIndex === -1 ? '' : url.slice(hashIndex + 1);
-    const beforeHash = hashIndex === -1 ? url : url.slice(0, hashIndex);
-    const queryIndex = beforeHash.indexOf('?');
-    const base = queryIndex === -1 ? beforeHash : beforeHash.slice(0, queryIndex);
-    const query = queryIndex === -1 ? '' : beforeHash.slice(queryIndex + 1);
-    return { base, query, hash };
+  const hashIndex = url.indexOf('#');
+  const hash = hashIndex === -1 ? '' : url.slice(hashIndex + 1);
+  const beforeHash = hashIndex === -1 ? url : url.slice(0, hashIndex);
+  const queryIndex = beforeHash.indexOf('?');
+  const base = queryIndex === -1 ? beforeHash : beforeHash.slice(0, queryIndex);
+  const query = queryIndex === -1 ? '' : beforeHash.slice(queryIndex + 1);
+  return { base, query, hash };
 }
 /**
  * Parses the query string from a URL into key-value rows without decoding values.
@@ -28,24 +28,24 @@ export function splitUrl(url) {
  * @returns Parsed rows with enabled set to true; empty keys are skipped.
  */
 export function parseQueryString(url) {
-    const { query } = splitUrl(url);
-    if (!query) {
-        return [];
+  const { query } = splitUrl(url);
+  if (!query) {
+    return [];
+  }
+  const rows = [];
+  for (const segment of query.split('&')) {
+    if (!segment) {
+      continue;
     }
-    const rows = [];
-    for (const segment of query.split('&')) {
-        if (!segment) {
-            continue;
-        }
-        const equalsIndex = segment.indexOf('=');
-        const key = equalsIndex === -1 ? segment : segment.slice(0, equalsIndex);
-        const value = equalsIndex === -1 ? '' : segment.slice(equalsIndex + 1);
-        if (!key.trim()) {
-            continue;
-        }
-        rows.push({ key, value, enabled: true });
+    const equalsIndex = segment.indexOf('=');
+    const key = equalsIndex === -1 ? segment : segment.slice(0, equalsIndex);
+    const value = equalsIndex === -1 ? '' : segment.slice(equalsIndex + 1);
+    if (!key.trim()) {
+      continue;
     }
-    return rows;
+    rows.push({ key, value, enabled: true });
+  }
+  return rows;
 }
 /**
  * Returns enabled params with a non-empty key, preserving editor row order.
@@ -54,7 +54,7 @@ export function parseQueryString(url) {
  * @returns Rows that should appear in the URL query string.
  */
 function enabledParams(params) {
-    return params.filter((row) => row.enabled && row.key.trim());
+  return params.filter((row) => row.enabled && row.key.trim());
 }
 const SEND_URL_PROTOCOLS = new Set(['http:', 'https:']);
 /**
@@ -63,7 +63,7 @@ const SEND_URL_PROTOCOLS = new Set(['http:', 'https:']);
  * @param url - Trimmed URL string.
  */
 function isRootRelativePath(url) {
-    return url.startsWith('/') && !url.startsWith('//');
+  return url.startsWith('/') && !url.startsWith('//');
 }
 /**
  * Appends query parameters via string concatenation for root-relative paths.
@@ -72,11 +72,11 @@ function isRootRelativePath(url) {
  * @param activeParams - Enabled key-value pairs to append.
  */
 function appendQueryFallback(trimmed, activeParams) {
-    const separator = trimmed.includes('?') ? '&' : '?';
-    const query = activeParams
-        .map((param) => `${encodeURIComponent(param.key.trim())}=${encodeURIComponent(param.value)}`)
-        .join('&');
-    return `${trimmed}${separator}${query}`;
+  const separator = trimmed.includes('?') ? '&' : '?';
+  const query = activeParams
+    .map((param) => `${encodeURIComponent(param.key.trim())}=${encodeURIComponent(param.value)}`)
+    .join('&');
+  return `${trimmed}${separator}${query}`;
 }
 /**
  * Appends enabled query parameters to a base URL for outbound sends.
@@ -89,30 +89,29 @@ function appendQueryFallback(trimmed, activeParams) {
  * @returns URL with merged query parameters.
  */
 export function buildSendUrl(baseUrl, params) {
-    const trimmed = baseUrl.trim();
-    if (!trimmed) {
-        return trimmed;
+  const trimmed = baseUrl.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+  const active = enabledParams(params);
+  if (active.length === 0) {
+    return trimmed;
+  }
+  try {
+    const url = new URL(trimmed);
+    if (!SEND_URL_PROTOCOLS.has(url.protocol)) {
+      return trimmed;
     }
-    const active = enabledParams(params);
-    if (active.length === 0) {
-        return trimmed;
+    for (const param of active) {
+      url.searchParams.set(param.key.trim(), param.value);
     }
-    try {
-        const url = new URL(trimmed);
-        if (!SEND_URL_PROTOCOLS.has(url.protocol)) {
-            return trimmed;
-        }
-        for (const param of active) {
-            url.searchParams.set(param.key.trim(), param.value);
-        }
-        return url.toString();
+    return url.toString();
+  } catch {
+    if (!isRootRelativePath(trimmed)) {
+      return trimmed;
     }
-    catch {
-        if (!isRootRelativePath(trimmed)) {
-            return trimmed;
-        }
-        return appendQueryFallback(trimmed, active);
-    }
+    return appendQueryFallback(trimmed, active);
+  }
 }
 /**
  * Rebuilds a URL query string from enabled params without re-encoding raw text.
@@ -122,22 +121,22 @@ export function buildSendUrl(baseUrl, params) {
  * @returns URL with query string replaced from enabled params; hash preserved.
  */
 export function applyParamsToUrl(url, params) {
-    const { base, hash } = splitUrl(url);
-    const active = enabledParams(params);
-    const query = active
-        .map((row) => {
-        const key = row.key.trim();
-        return row.value === '' ? key : `${key}=${row.value}`;
+  const { base, hash } = splitUrl(url);
+  const active = enabledParams(params);
+  const query = active
+    .map((row) => {
+      const key = row.key.trim();
+      return row.value === '' ? key : `${key}=${row.value}`;
     })
-        .join('&');
-    let result = base;
-    if (query) {
-        result += `?${query}`;
-    }
-    if (hash) {
-        result += `#${hash}`;
-    }
-    return result;
+    .join('&');
+  let result = base;
+  if (query) {
+    result += `?${query}`;
+  }
+  if (hash) {
+    result += `#${hash}`;
+  }
+  return result;
 }
 /**
  * Returns whether a params row has content worth preserving when disabled.
@@ -146,7 +145,7 @@ export function applyParamsToUrl(url, params) {
  * @returns True when the row has a non-empty key or value.
  */
 function hasParamContent(row) {
-    return row.key.trim() !== '' || row.value.trim() !== '';
+  return row.key.trim() !== '' || row.value.trim() !== '';
 }
 /**
  * Merges query params parsed from a URL with disabled rows from the current table.
@@ -159,12 +158,12 @@ function hasParamContent(row) {
  * @returns Params rows for the editor, ending with one blank trailing row.
  */
 export function mergeParamsFromUrl(url, currentParams) {
-    const fromUrl = parseQueryString(url);
-    const disabledRows = currentParams.filter((row) => !row.enabled && hasParamContent(row));
-    const merged = [...fromUrl, ...disabledRows];
-    if (merged.length === 0 || merged[merged.length - 1].key.trim() !== '') {
-        merged.push(emptyParamRow());
-    }
-    return merged;
+  const fromUrl = parseQueryString(url);
+  const disabledRows = currentParams.filter((row) => !row.enabled && hasParamContent(row));
+  const merged = [...fromUrl, ...disabledRows];
+  if (merged.length === 0 || merged[merged.length - 1].key.trim() !== '') {
+    merged.push(emptyParamRow());
+  }
+  return merged;
 }
 //# sourceMappingURL=queryParams.js.map

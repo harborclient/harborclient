@@ -1,7 +1,31 @@
 /**
  * Canonical marketplace plugin category slugs in display order.
  */
-export declare const PLUGIN_CATALOG_CATEGORIES: readonly ["requests", "auth", "environments", "import", "scripting", "logging", "jwt", "response", "themes", "light", "dark", "high-contrast", "collections", "editor", "testing", "export", "graphql", "websocket", "mock", "debugging", "security", "sidebar", "utilities"];
+export declare const PLUGIN_CATALOG_CATEGORIES: readonly [
+  'requests',
+  'auth',
+  'environments',
+  'import',
+  'scripting',
+  'logging',
+  'jwt',
+  'response',
+  'themes',
+  'light',
+  'dark',
+  'high-contrast',
+  'collections',
+  'editor',
+  'testing',
+  'export',
+  'graphql',
+  'websocket',
+  'mock',
+  'debugging',
+  'security',
+  'sidebar',
+  'utilities'
+];
 /**
  * One allowed plugin marketplace category slug.
  */
@@ -26,5 +50,7 @@ export declare function isPluginCatalogCategory(value: string): value is PluginC
  * @param categories - Raw category strings from a catalog entry.
  * @returns Sanitized category slugs, which may be empty when none are recognized.
  */
-export declare function sanitizePluginCatalogCategories(categories: string[]): PluginCatalogCategory[];
+export declare function sanitizePluginCatalogCategories(
+  categories: string[]
+): PluginCatalogCategory[];
 //# sourceMappingURL=catalogCategories.d.ts.map

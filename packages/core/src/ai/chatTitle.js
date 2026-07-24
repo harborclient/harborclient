@@ -10,22 +10,22 @@ export const CHAT_TITLE_MAX_LENGTH = 40;
  * OpenAI tool definition for summarizing a user's first message into a chat title.
  */
 export const CHAT_TITLE_TOOL = {
-    type: 'function',
-    function: {
-        name: 'set_chat_title',
-        description: 'Sets a short 3-5 word title that summarizes the user question.',
-        parameters: {
-            type: 'object',
-            properties: {
-                title: {
-                    type: 'string',
-                    description: 'A 3-5 word summary of the user question. No quotes or trailing punctuation.'
-                }
-            },
-            required: ['title'],
-            additionalProperties: false
+  type: 'function',
+  function: {
+    name: 'set_chat_title',
+    description: 'Sets a short 3-5 word title that summarizes the user question.',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: {
+          type: 'string',
+          description: 'A 3-5 word summary of the user question. No quotes or trailing punctuation.'
         }
+      },
+      required: ['title'],
+      additionalProperties: false
     }
+  }
 };
 /**
  * Builds the system prompt for AI chat title generation.
@@ -33,7 +33,7 @@ export const CHAT_TITLE_TOOL = {
  * @returns System prompt instructing the model to call set_chat_title.
  */
 export function buildChatTitleSystemPrompt() {
-    return `You summarize user questions into very short chat titles.
+  return `You summarize user questions into very short chat titles.
 
 Rules:
 1. Always respond by calling the set_chat_title tool exactly once.
@@ -49,19 +49,21 @@ Rules:
  * @returns Sanitized title, or {@link DEFAULT_CHAT_TITLE} when empty after normalization.
  */
 export function normalizeChatTitle(raw) {
-    let normalized = raw.trim().replace(/\s+/g, ' ');
-    if ((normalized.startsWith('"') && normalized.endsWith('"')) ||
-        (normalized.startsWith("'") && normalized.endsWith("'"))) {
-        normalized = normalized.slice(1, -1).trim();
-    }
-    normalized = normalized.replace(/[.!?;:]+$/, '').trim();
-    if (!normalized) {
-        return DEFAULT_CHAT_TITLE;
-    }
-    if (normalized.length <= CHAT_TITLE_MAX_LENGTH) {
-        return normalized;
-    }
-    return `${normalized.slice(0, CHAT_TITLE_MAX_LENGTH - 1)}…`;
+  let normalized = raw.trim().replace(/\s+/g, ' ');
+  if (
+    (normalized.startsWith('"') && normalized.endsWith('"')) ||
+    (normalized.startsWith("'") && normalized.endsWith("'"))
+  ) {
+    normalized = normalized.slice(1, -1).trim();
+  }
+  normalized = normalized.replace(/[.!?;:]+$/, '').trim();
+  if (!normalized) {
+    return DEFAULT_CHAT_TITLE;
+  }
+  if (normalized.length <= CHAT_TITLE_MAX_LENGTH) {
+    return normalized;
+  }
+  return `${normalized.slice(0, CHAT_TITLE_MAX_LENGTH - 1)}…`;
 }
 /**
  * Parses tool arguments JSON from a set_chat_title call.
@@ -70,18 +72,18 @@ export function normalizeChatTitle(raw) {
  * @returns Normalized title, or null when parsing fails or title is empty.
  */
 function parseSetChatTitleArgs(raw) {
-    if (!raw.trim()) {
-        return null;
-    }
-    const parsed = JSON.parse(raw);
-    if (typeof parsed.title !== 'string' || !parsed.title.trim()) {
-        return null;
-    }
-    const normalized = normalizeChatTitle(parsed.title);
-    if (normalized === DEFAULT_CHAT_TITLE) {
-        return null;
-    }
-    return normalized;
+  if (!raw.trim()) {
+    return null;
+  }
+  const parsed = JSON.parse(raw);
+  if (typeof parsed.title !== 'string' || !parsed.title.trim()) {
+    return null;
+  }
+  const normalized = normalizeChatTitle(parsed.title);
+  if (normalized === DEFAULT_CHAT_TITLE) {
+    return null;
+  }
+  return normalized;
 }
 /**
  * Reads a set_chat_title tool call from a chat step result.
@@ -90,20 +92,19 @@ function parseSetChatTitleArgs(raw) {
  * @returns Normalized title, or null when no usable response is present.
  */
 export function parseChatTitleResult(result) {
-    const toolCall = result.toolCalls?.find((call) => call.name === 'set_chat_title');
-    if (toolCall) {
-        try {
-            return parseSetChatTitleArgs(toolCall.arguments);
-        }
-        catch {
-            return null;
-        }
+  const toolCall = result.toolCalls?.find((call) => call.name === 'set_chat_title');
+  if (toolCall) {
+    try {
+      return parseSetChatTitleArgs(toolCall.arguments);
+    } catch {
+      return null;
     }
-    const content = result.content?.trim();
-    if (content) {
-        const normalized = normalizeChatTitle(content);
-        return normalized === DEFAULT_CHAT_TITLE ? null : normalized;
-    }
-    return null;
+  }
+  const content = result.content?.trim();
+  if (content) {
+    const normalized = normalizeChatTitle(content);
+    return normalized === DEFAULT_CHAT_TITLE ? null : normalized;
+  }
+  return null;
 }
 //# sourceMappingURL=chatTitle.js.map

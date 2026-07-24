@@ -1,14 +1,14 @@
 import type { Api } from './api';
 declare global {
+  /**
+   * Extends Window with the preload-exposed API.
+   */
+  interface Window {
     /**
-     * Extends Window with the preload-exposed API.
+     * IPC bridge for collections, saved requests, and HTTP execution.
      */
-    interface Window {
-        /**
-         * IPC bridge for collections, saved requests, and HTTP execution.
-         */
-        api: Api;
-    }
+    api: Api;
+  }
 }
 export {};
 //# sourceMappingURL=window.d.ts.map

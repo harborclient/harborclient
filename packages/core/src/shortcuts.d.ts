@@ -2,32 +2,109 @@ import type { MenuActionId } from './types/app';
 /**
  * Identifiers for user-configurable keyboard shortcuts.
  */
-export type ShortcutId = 'new-request' | 'new-collection' | 'sync' | 'save' | 'settings' | 'plugins' | 'themes' | 'snippets' | 'team-hubs' | 'accept-team-hub-invite' | 'sharing-keys' | 'join-shared-collection' | 'import' | 'undo' | 'redo' | 'cut' | 'copy' | 'paste' | 'select-all' | 'toggle-sidebar' | 'focus-sidebar-search' | 'focus-request-url' | 'focus-first-collection' | 'focus-first-environment' | 'focus-first-request-tab' | 'focus-response-editor' | 'focus-main-nav' | 'next-sidebar-list-item' | 'previous-sidebar-list-item' | 'toggle-variables' | 'toggle-console' | 'toggle-ai-sidebar' | 'toggle-git-sidebar' | 'toggle-request-editor' | 'toggle-response-editor' | 'toggle-collections-section' | 'toggle-environments-section' | 'toggle-run-results-section' | 'send-request' | 'previous-request-tab' | 'next-request-tab' | 'set-method-get' | 'set-method-post' | 'set-method-put' | 'set-method-patch' | 'set-method-delete' | 'set-method-head' | 'set-method-options' | 'toggle-fullscreen' | 'zoom-in' | 'zoom-out' | 'reset-zoom' | 'documentation' | 'report-issue' | 'check-for-updates' | 'about' | 'shortcuts-reference' | 'action-menu' | 'new-collection-git' | 'git-create-branch' | 'git-delete-branch' | 'git-commit' | 'git-merge' | 'git-fetch' | 'git-pull' | 'git-push' | 'git-settings';
+export type ShortcutId =
+  | 'new-request'
+  | 'new-collection'
+  | 'sync'
+  | 'save'
+  | 'settings'
+  | 'plugins'
+  | 'themes'
+  | 'snippets'
+  | 'team-hubs'
+  | 'accept-team-hub-invite'
+  | 'sharing-keys'
+  | 'join-shared-collection'
+  | 'import'
+  | 'undo'
+  | 'redo'
+  | 'cut'
+  | 'copy'
+  | 'paste'
+  | 'select-all'
+  | 'toggle-sidebar'
+  | 'focus-sidebar-search'
+  | 'focus-request-url'
+  | 'focus-first-collection'
+  | 'focus-first-environment'
+  | 'focus-first-request-tab'
+  | 'focus-response-editor'
+  | 'focus-main-nav'
+  | 'next-sidebar-list-item'
+  | 'previous-sidebar-list-item'
+  | 'toggle-variables'
+  | 'toggle-console'
+  | 'toggle-ai-sidebar'
+  | 'toggle-git-sidebar'
+  | 'toggle-request-editor'
+  | 'toggle-response-editor'
+  | 'toggle-collections-section'
+  | 'toggle-environments-section'
+  | 'toggle-run-results-section'
+  | 'send-request'
+  | 'previous-request-tab'
+  | 'next-request-tab'
+  | 'set-method-get'
+  | 'set-method-post'
+  | 'set-method-put'
+  | 'set-method-patch'
+  | 'set-method-delete'
+  | 'set-method-head'
+  | 'set-method-options'
+  | 'toggle-fullscreen'
+  | 'zoom-in'
+  | 'zoom-out'
+  | 'reset-zoom'
+  | 'documentation'
+  | 'report-issue'
+  | 'check-for-updates'
+  | 'about'
+  | 'shortcuts-reference'
+  | 'action-menu'
+  | 'new-collection-git'
+  | 'git-create-branch'
+  | 'git-delete-branch'
+  | 'git-commit'
+  | 'git-merge'
+  | 'git-fetch'
+  | 'git-pull'
+  | 'git-push'
+  | 'git-settings';
 /**
  * Electron menu role names used by built-in shortcuts.
  */
-export type ShortcutRole = 'undo' | 'redo' | 'cut' | 'copy' | 'paste' | 'selectAll' | 'togglefullscreen' | 'zoomIn' | 'zoomOut' | 'resetZoom';
+export type ShortcutRole =
+  | 'undo'
+  | 'redo'
+  | 'cut'
+  | 'copy'
+  | 'paste'
+  | 'selectAll'
+  | 'togglefullscreen'
+  | 'zoomIn'
+  | 'zoomOut'
+  | 'resetZoom';
 /**
  * Definition of a configurable shortcut in the central registry.
  */
 export interface ShortcutDef {
-    /** Stable shortcut identifier. */
-    id: ShortcutId;
-    /** User-facing label shown in the settings table. */
-    label: string;
-    /** Default Electron accelerator string. */
-    defaultAccelerator: string;
-    /** Whether the shortcut dispatches a custom menu action or uses an Electron role. */
-    kind: 'action' | 'role';
-    /** Custom menu action id when `kind` is `action`. */
-    actionId?: MenuActionId;
-    /** Electron menu role when `kind` is `role`. */
-    role?: ShortcutRole;
-    /**
-     * When true, the main process does not dispatch this shortcut; the renderer
-     * handles it with context-sensitive logic (for example sidebar list navigation).
-     */
-    rendererOnly?: boolean;
+  /** Stable shortcut identifier. */
+  id: ShortcutId;
+  /** User-facing label shown in the settings table. */
+  label: string;
+  /** Default Electron accelerator string. */
+  defaultAccelerator: string;
+  /** Whether the shortcut dispatches a custom menu action or uses an Electron role. */
+  kind: 'action' | 'role';
+  /** Custom menu action id when `kind` is `action`. */
+  actionId?: MenuActionId;
+  /** Electron menu role when `kind` is `role`. */
+  role?: ShortcutRole;
+  /**
+   * When true, the main process does not dispatch this shortcut; the renderer
+   * handles it with context-sensitive logic (for example sidebar list navigation).
+   */
+  rendererOnly?: boolean;
 }
 /**
  * Persisted user overrides keyed by shortcut id.
@@ -37,23 +114,23 @@ export type ShortcutOverrides = Partial<Record<ShortcutId, string>>;
  * Resolved shortcut binding returned to the renderer and used when building menus.
  */
 export interface ShortcutBinding {
-    /** Stable shortcut identifier. */
-    id: ShortcutId;
-    /** User-facing label. */
-    label: string;
-    /** Effective accelerator after applying overrides. */
-    accelerator: string;
-    /** Default accelerator from the registry. */
-    defaultAccelerator: string;
+  /** Stable shortcut identifier. */
+  id: ShortcutId;
+  /** User-facing label. */
+  label: string;
+  /** Effective accelerator after applying overrides. */
+  accelerator: string;
+  /** Default accelerator from the registry. */
+  defaultAccelerator: string;
 }
 /**
  * Validation result for shortcut override maps.
  */
 export interface ShortcutValidationResult {
-    /** True when all bindings are valid and non-conflicting. */
-    valid: boolean;
-    /** Per-shortcut error messages keyed by shortcut id. */
-    errors: Partial<Record<ShortcutId, string>>;
+  /** True when all bindings are valid and non-conflicting. */
+  valid: boolean;
+  /** Per-shortcut error messages keyed by shortcut id. */
+  errors: Partial<Record<ShortcutId, string>>;
 }
 /**
  * Canonical list of configurable shortcuts in display order.
@@ -86,7 +163,9 @@ export declare function resolveShortcuts(overrides: ShortcutOverrides): Shortcut
  * @param overrides - User overrides keyed by shortcut id.
  * @returns Map of shortcut id to accelerator string.
  */
-export declare function resolveAcceleratorMap(overrides: ShortcutOverrides): Map<ShortcutId, string>;
+export declare function resolveAcceleratorMap(
+  overrides: ShortcutOverrides
+): Map<ShortcutId, string>;
 /**
  * Converts resolved bindings to a persisted override map (non-default values only).
  *
@@ -100,7 +179,9 @@ export declare function bindingsToOverrides(bindings: ShortcutBinding[]): Shortc
  * @param overrides - User overrides keyed by shortcut id.
  * @returns Validation result with per-shortcut error messages.
  */
-export declare function validateShortcutOverrides(overrides: ShortcutOverrides): ShortcutValidationResult;
+export declare function validateShortcutOverrides(
+  overrides: ShortcutOverrides
+): ShortcutValidationResult;
 /**
  * Formats an Electron accelerator for display in the settings table.
  *
@@ -118,26 +199,29 @@ export declare function formatAcceleratorDisplay(accelerator: string): string;
  * @param platform - Node.js platform from `process.platform`.
  * @returns Human-readable accelerator such as `Ctrl+Shift+N` or `Cmd+,`.
  */
-export declare function formatMenuAcceleratorDisplay(accelerator: string, platform: NodeJS.Platform): string;
+export declare function formatMenuAcceleratorDisplay(
+  accelerator: string,
+  platform: NodeJS.Platform
+): string;
 /**
  * Modifier and key state from an Electron `before-input-event` or DOM keyboard event.
  */
 export interface KeyChord {
-    /** Normalized key value (for example `F5`, `f`, `,`). */
-    key: string;
-    /**
-     * Physical key code from Electron or DOM (for example `KeyO`, `Digit1`).
-     * Used when Alt or layout changes make `key` an unmapped character.
-     */
-    code?: string;
-    /** Whether the control key is pressed. */
-    control: boolean;
-    /** Whether the meta (command) key is pressed. */
-    meta: boolean;
-    /** Whether the alt key is pressed. */
-    alt: boolean;
-    /** Whether the shift key is pressed. */
-    shift: boolean;
+  /** Normalized key value (for example `F5`, `f`, `,`). */
+  key: string;
+  /**
+   * Physical key code from Electron or DOM (for example `KeyO`, `Digit1`).
+   * Used when Alt or layout changes make `key` an unmapped character.
+   */
+  code?: string;
+  /** Whether the control key is pressed. */
+  control: boolean;
+  /** Whether the meta (command) key is pressed. */
+  meta: boolean;
+  /** Whether the alt key is pressed. */
+  alt: boolean;
+  /** Whether the shift key is pressed. */
+  shift: boolean;
 }
 /**
  * US keyboard shifted digit-row symbols mapped to their base digit tokens.

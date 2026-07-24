@@ -2,475 +2,475 @@
  * Canonical list of configurable shortcuts in display order.
  */
 export const SHORTCUT_DEFS = [
-    {
-        id: 'new-request',
-        label: 'New request',
-        defaultAccelerator: 'CmdOrCtrl+N',
-        kind: 'action',
-        actionId: 'new-request'
-    },
-    {
-        id: 'new-collection',
-        label: 'New collection',
-        defaultAccelerator: 'CmdOrCtrl+Shift+N',
-        kind: 'action',
-        actionId: 'new-collection'
-    },
-    {
-        id: 'sync',
-        label: 'Sync storage',
-        defaultAccelerator: 'CmdOrCtrl+Shift+S',
-        kind: 'action',
-        actionId: 'sync'
-    },
-    {
-        id: 'save',
-        label: 'Save',
-        defaultAccelerator: 'CmdOrCtrl+S',
-        kind: 'action',
-        actionId: 'save'
-    },
-    {
-        id: 'settings',
-        label: 'Settings',
-        defaultAccelerator: 'CmdOrCtrl+,',
-        kind: 'action',
-        actionId: 'settings'
-    },
-    {
-        id: 'plugins',
-        label: 'Plugins',
-        defaultAccelerator: 'Alt+Shift+P',
-        kind: 'action',
-        actionId: 'plugins'
-    },
-    {
-        id: 'themes',
-        label: 'Themes',
-        defaultAccelerator: 'CmdOrCtrl+Shift+T',
-        kind: 'action',
-        actionId: 'themes'
-    },
-    {
-        id: 'snippets',
-        label: 'Snippets',
-        defaultAccelerator: 'Alt+Shift+S',
-        kind: 'action',
-        actionId: 'snippets'
-    },
-    {
-        id: 'team-hubs',
-        label: 'Team Hub',
-        defaultAccelerator: 'CmdOrCtrl+Shift+H',
-        kind: 'action',
-        actionId: 'team-hubs'
-    },
-    {
-        id: 'accept-team-hub-invite',
-        label: 'Accept Team Hub Invite',
-        defaultAccelerator: 'CmdOrCtrl+Shift+J',
-        kind: 'action',
-        actionId: 'accept-team-hub-invite'
-    },
-    {
-        id: 'sharing-keys',
-        label: 'Sharing Keys',
-        defaultAccelerator: 'CmdOrCtrl+Shift+K',
-        kind: 'action',
-        actionId: 'sharing-keys'
-    },
-    {
-        id: 'join-shared-collection',
-        label: 'Join shared collection',
-        defaultAccelerator: 'CmdOrCtrl+Shift+L',
-        kind: 'action',
-        actionId: 'join-shared-collection'
-    },
-    {
-        id: 'import',
-        label: 'Import',
-        defaultAccelerator: 'CmdOrCtrl+Shift+I',
-        kind: 'action',
-        actionId: 'import'
-    },
-    {
-        id: 'undo',
-        label: 'Undo',
-        defaultAccelerator: 'CmdOrCtrl+Z',
-        kind: 'role',
-        role: 'undo'
-    },
-    {
-        id: 'redo',
-        label: 'Redo',
-        defaultAccelerator: 'CmdOrCtrl+Shift+Z',
-        kind: 'role',
-        role: 'redo'
-    },
-    {
-        id: 'cut',
-        label: 'Cut',
-        defaultAccelerator: 'CmdOrCtrl+X',
-        kind: 'role',
-        role: 'cut'
-    },
-    {
-        id: 'copy',
-        label: 'Copy',
-        defaultAccelerator: 'CmdOrCtrl+C',
-        kind: 'role',
-        role: 'copy'
-    },
-    {
-        id: 'paste',
-        label: 'Paste',
-        defaultAccelerator: 'CmdOrCtrl+V',
-        kind: 'role',
-        role: 'paste'
-    },
-    {
-        id: 'select-all',
-        label: 'Select all',
-        defaultAccelerator: 'CmdOrCtrl+A',
-        kind: 'role',
-        role: 'selectAll'
-    },
-    {
-        id: 'toggle-sidebar',
-        label: 'Toggle sidebar',
-        defaultAccelerator: 'CmdOrCtrl+B',
-        kind: 'action',
-        actionId: 'toggle-sidebar'
-    },
-    {
-        id: 'focus-sidebar-search',
-        label: 'Focus sidebar search',
-        defaultAccelerator: 'CmdOrCtrl+F',
-        kind: 'action',
-        actionId: 'focus-sidebar-search'
-    },
-    {
-        id: 'focus-request-url',
-        label: 'Focus request URL',
-        defaultAccelerator: 'Alt+Shift+R',
-        kind: 'action',
-        actionId: 'focus-request-url'
-    },
-    {
-        id: 'focus-first-collection',
-        label: 'Focus first collection',
-        defaultAccelerator: 'Alt+Shift+C',
-        kind: 'action',
-        actionId: 'focus-first-collection'
-    },
-    {
-        id: 'focus-first-environment',
-        label: 'Focus first environment',
-        defaultAccelerator: 'Alt+Shift+E',
-        kind: 'action',
-        actionId: 'focus-first-environment'
-    },
-    {
-        id: 'focus-first-request-tab',
-        label: 'Focus first request tab',
-        defaultAccelerator: 'Alt+Shift+O',
-        kind: 'action',
-        actionId: 'focus-first-request-tab'
-    },
-    {
-        id: 'focus-response-editor',
-        label: 'Focus response editor',
-        defaultAccelerator: 'Alt+Shift+T',
-        kind: 'action',
-        actionId: 'focus-response-editor'
-    },
-    {
-        id: 'focus-main-nav',
-        label: 'Focus main nav',
-        defaultAccelerator: 'F4',
-        kind: 'action',
-        actionId: 'focus-main-nav'
-    },
-    {
-        id: 'next-sidebar-list-item',
-        label: 'Next sidebar list item',
-        defaultAccelerator: 'CmdOrCtrl+Tab',
-        kind: 'action',
-        rendererOnly: true
-    },
-    {
-        id: 'previous-sidebar-list-item',
-        label: 'Previous sidebar list item',
-        defaultAccelerator: 'CmdOrCtrl+Shift+Tab',
-        kind: 'action',
-        rendererOnly: true
-    },
-    {
-        id: 'toggle-variables',
-        label: 'Toggle variables panel',
-        defaultAccelerator: 'Alt+Shift+V',
-        kind: 'action',
-        actionId: 'toggle-variables'
-    },
-    {
-        id: 'toggle-console',
-        label: 'Toggle console',
-        defaultAccelerator: 'Alt+Shift+L',
-        kind: 'action',
-        actionId: 'toggle-console'
-    },
-    {
-        id: 'toggle-ai-sidebar',
-        label: 'Toggle agent chat',
-        defaultAccelerator: 'CmdOrCtrl+Shift+B',
-        kind: 'action',
-        actionId: 'toggle-ai-sidebar'
-    },
-    {
-        id: 'toggle-git-sidebar',
-        label: 'Toggle Git',
-        defaultAccelerator: 'CmdOrCtrl+Shift+G',
-        kind: 'action',
-        actionId: 'toggle-git-sidebar'
-    },
-    {
-        id: 'toggle-request-editor',
-        label: 'Toggle request editor',
-        defaultAccelerator: 'CmdOrCtrl+Alt+R',
-        kind: 'action',
-        actionId: 'toggle-request-editor'
-    },
-    {
-        id: 'toggle-response-editor',
-        label: 'Toggle response editor',
-        defaultAccelerator: 'CmdOrCtrl+Alt+Y',
-        kind: 'action',
-        actionId: 'toggle-response-editor'
-    },
-    {
-        id: 'toggle-collections-section',
-        label: 'Toggle collections section',
-        defaultAccelerator: 'CmdOrCtrl+Shift+C',
-        kind: 'action',
-        actionId: 'toggle-collections-section'
-    },
-    {
-        id: 'toggle-environments-section',
-        label: 'Toggle environments section',
-        defaultAccelerator: 'CmdOrCtrl+Shift+E',
-        kind: 'action',
-        actionId: 'toggle-environments-section'
-    },
-    {
-        id: 'toggle-run-results-section',
-        label: 'Toggle run results section',
-        defaultAccelerator: 'CmdOrCtrl+Shift+M',
-        kind: 'action',
-        actionId: 'toggle-run-results-section'
-    },
-    {
-        id: 'send-request',
-        label: 'Send request',
-        defaultAccelerator: 'F5',
-        kind: 'action',
-        actionId: 'send-request'
-    },
-    {
-        id: 'previous-request-tab',
-        label: 'Previous request tab',
-        defaultAccelerator: 'CmdOrCtrl+Shift+Comma',
-        kind: 'action',
-        actionId: 'previous-request-tab'
-    },
-    {
-        id: 'next-request-tab',
-        label: 'Next request tab',
-        defaultAccelerator: 'CmdOrCtrl+Shift+Period',
-        kind: 'action',
-        actionId: 'next-request-tab'
-    },
-    {
-        id: 'set-method-get',
-        label: 'Set request method to GET',
-        defaultAccelerator: 'Alt+Shift+1',
-        kind: 'action',
-        actionId: 'set-method-get'
-    },
-    {
-        id: 'set-method-post',
-        label: 'Set request method to POST',
-        defaultAccelerator: 'Alt+Shift+2',
-        kind: 'action',
-        actionId: 'set-method-post'
-    },
-    {
-        id: 'set-method-put',
-        label: 'Set request method to PUT',
-        defaultAccelerator: 'Alt+Shift+3',
-        kind: 'action',
-        actionId: 'set-method-put'
-    },
-    {
-        id: 'set-method-patch',
-        label: 'Set request method to PATCH',
-        defaultAccelerator: 'Alt+Shift+4',
-        kind: 'action',
-        actionId: 'set-method-patch'
-    },
-    {
-        id: 'set-method-delete',
-        label: 'Set request method to DELETE',
-        defaultAccelerator: 'Alt+Shift+5',
-        kind: 'action',
-        actionId: 'set-method-delete'
-    },
-    {
-        id: 'set-method-head',
-        label: 'Set request method to HEAD',
-        defaultAccelerator: 'Alt+Shift+6',
-        kind: 'action',
-        actionId: 'set-method-head'
-    },
-    {
-        id: 'set-method-options',
-        label: 'Set request method to OPTIONS',
-        defaultAccelerator: 'Alt+Shift+7',
-        kind: 'action',
-        actionId: 'set-method-options'
-    },
-    {
-        id: 'toggle-fullscreen',
-        label: 'Toggle full screen',
-        defaultAccelerator: 'F11',
-        kind: 'role',
-        role: 'togglefullscreen'
-    },
-    {
-        id: 'zoom-in',
-        label: 'Zoom in',
-        defaultAccelerator: 'CmdOrCtrl+Plus',
-        kind: 'role',
-        role: 'zoomIn'
-    },
-    {
-        id: 'zoom-out',
-        label: 'Zoom out',
-        defaultAccelerator: 'CmdOrCtrl+-',
-        kind: 'role',
-        role: 'zoomOut'
-    },
-    {
-        id: 'reset-zoom',
-        label: 'Reset zoom',
-        defaultAccelerator: 'CmdOrCtrl+0',
-        kind: 'role',
-        role: 'resetZoom'
-    },
-    {
-        id: 'documentation',
-        label: 'Documentation',
-        defaultAccelerator: 'CmdOrCtrl+Shift+D',
-        kind: 'action',
-        actionId: 'documentation'
-    },
-    {
-        id: 'report-issue',
-        label: 'Report issue',
-        defaultAccelerator: 'CmdOrCtrl+Shift+R',
-        kind: 'action',
-        actionId: 'report-issue'
-    },
-    {
-        id: 'check-for-updates',
-        label: 'Check for updates',
-        defaultAccelerator: 'CmdOrCtrl+Shift+U',
-        kind: 'action',
-        actionId: 'check-for-updates'
-    },
-    {
-        id: 'shortcuts-reference',
-        label: 'Keyboard shortcuts',
-        defaultAccelerator: 'Alt+Shift+K',
-        kind: 'action',
-        actionId: 'shortcuts-reference'
-    },
-    {
-        id: 'action-menu',
-        label: 'Action menu',
-        defaultAccelerator: 'CmdOrCtrl+Shift+P',
-        kind: 'action',
-        actionId: 'action-menu'
-    },
-    {
-        id: 'new-collection-git',
-        label: 'New collection (Git)',
-        defaultAccelerator: '',
-        kind: 'action',
-        actionId: 'new-collection-git'
-    },
-    {
-        id: 'git-create-branch',
-        label: 'Create branch',
-        defaultAccelerator: 'CmdOrCtrl+Alt+B',
-        kind: 'action',
-        actionId: 'git-create-branch'
-    },
-    {
-        id: 'git-delete-branch',
-        label: 'Delete branch',
-        defaultAccelerator: 'CmdOrCtrl+Alt+D',
-        kind: 'action',
-        actionId: 'git-delete-branch'
-    },
-    {
-        id: 'git-commit',
-        label: 'Commit',
-        defaultAccelerator: 'CmdOrCtrl+Alt+C',
-        kind: 'action',
-        actionId: 'git-commit'
-    },
-    {
-        id: 'git-merge',
-        label: 'Merge',
-        defaultAccelerator: 'CmdOrCtrl+Alt+M',
-        kind: 'action',
-        actionId: 'git-merge'
-    },
-    {
-        id: 'git-fetch',
-        label: 'Fetch',
-        defaultAccelerator: 'CmdOrCtrl+Alt+F',
-        kind: 'action',
-        actionId: 'git-fetch'
-    },
-    {
-        id: 'git-pull',
-        label: 'Pull',
-        defaultAccelerator: 'CmdOrCtrl+Alt+L',
-        kind: 'action',
-        actionId: 'git-pull'
-    },
-    {
-        id: 'git-push',
-        label: 'Push',
-        defaultAccelerator: 'CmdOrCtrl+Alt+P',
-        kind: 'action',
-        actionId: 'git-push'
-    },
-    {
-        id: 'git-settings',
-        label: 'Git settings',
-        defaultAccelerator: 'CmdOrCtrl+Alt+G',
-        kind: 'action',
-        actionId: 'git-settings'
-    },
-    {
-        id: 'about',
-        label: 'About',
-        defaultAccelerator: 'CmdOrCtrl+Shift+A',
-        kind: 'action',
-        actionId: 'about'
-    }
+  {
+    id: 'new-request',
+    label: 'New request',
+    defaultAccelerator: 'CmdOrCtrl+N',
+    kind: 'action',
+    actionId: 'new-request'
+  },
+  {
+    id: 'new-collection',
+    label: 'New collection',
+    defaultAccelerator: 'CmdOrCtrl+Shift+N',
+    kind: 'action',
+    actionId: 'new-collection'
+  },
+  {
+    id: 'sync',
+    label: 'Sync storage',
+    defaultAccelerator: 'CmdOrCtrl+Shift+S',
+    kind: 'action',
+    actionId: 'sync'
+  },
+  {
+    id: 'save',
+    label: 'Save',
+    defaultAccelerator: 'CmdOrCtrl+S',
+    kind: 'action',
+    actionId: 'save'
+  },
+  {
+    id: 'settings',
+    label: 'Settings',
+    defaultAccelerator: 'CmdOrCtrl+,',
+    kind: 'action',
+    actionId: 'settings'
+  },
+  {
+    id: 'plugins',
+    label: 'Plugins',
+    defaultAccelerator: 'Alt+Shift+P',
+    kind: 'action',
+    actionId: 'plugins'
+  },
+  {
+    id: 'themes',
+    label: 'Themes',
+    defaultAccelerator: 'CmdOrCtrl+Shift+T',
+    kind: 'action',
+    actionId: 'themes'
+  },
+  {
+    id: 'snippets',
+    label: 'Snippets',
+    defaultAccelerator: 'Alt+Shift+S',
+    kind: 'action',
+    actionId: 'snippets'
+  },
+  {
+    id: 'team-hubs',
+    label: 'Team Hub',
+    defaultAccelerator: 'CmdOrCtrl+Shift+H',
+    kind: 'action',
+    actionId: 'team-hubs'
+  },
+  {
+    id: 'accept-team-hub-invite',
+    label: 'Accept Team Hub Invite',
+    defaultAccelerator: 'CmdOrCtrl+Shift+J',
+    kind: 'action',
+    actionId: 'accept-team-hub-invite'
+  },
+  {
+    id: 'sharing-keys',
+    label: 'Sharing Keys',
+    defaultAccelerator: 'CmdOrCtrl+Shift+K',
+    kind: 'action',
+    actionId: 'sharing-keys'
+  },
+  {
+    id: 'join-shared-collection',
+    label: 'Join shared collection',
+    defaultAccelerator: 'CmdOrCtrl+Shift+L',
+    kind: 'action',
+    actionId: 'join-shared-collection'
+  },
+  {
+    id: 'import',
+    label: 'Import',
+    defaultAccelerator: 'CmdOrCtrl+Shift+I',
+    kind: 'action',
+    actionId: 'import'
+  },
+  {
+    id: 'undo',
+    label: 'Undo',
+    defaultAccelerator: 'CmdOrCtrl+Z',
+    kind: 'role',
+    role: 'undo'
+  },
+  {
+    id: 'redo',
+    label: 'Redo',
+    defaultAccelerator: 'CmdOrCtrl+Shift+Z',
+    kind: 'role',
+    role: 'redo'
+  },
+  {
+    id: 'cut',
+    label: 'Cut',
+    defaultAccelerator: 'CmdOrCtrl+X',
+    kind: 'role',
+    role: 'cut'
+  },
+  {
+    id: 'copy',
+    label: 'Copy',
+    defaultAccelerator: 'CmdOrCtrl+C',
+    kind: 'role',
+    role: 'copy'
+  },
+  {
+    id: 'paste',
+    label: 'Paste',
+    defaultAccelerator: 'CmdOrCtrl+V',
+    kind: 'role',
+    role: 'paste'
+  },
+  {
+    id: 'select-all',
+    label: 'Select all',
+    defaultAccelerator: 'CmdOrCtrl+A',
+    kind: 'role',
+    role: 'selectAll'
+  },
+  {
+    id: 'toggle-sidebar',
+    label: 'Toggle sidebar',
+    defaultAccelerator: 'CmdOrCtrl+B',
+    kind: 'action',
+    actionId: 'toggle-sidebar'
+  },
+  {
+    id: 'focus-sidebar-search',
+    label: 'Focus sidebar search',
+    defaultAccelerator: 'CmdOrCtrl+F',
+    kind: 'action',
+    actionId: 'focus-sidebar-search'
+  },
+  {
+    id: 'focus-request-url',
+    label: 'Focus request URL',
+    defaultAccelerator: 'Alt+Shift+R',
+    kind: 'action',
+    actionId: 'focus-request-url'
+  },
+  {
+    id: 'focus-first-collection',
+    label: 'Focus first collection',
+    defaultAccelerator: 'Alt+Shift+C',
+    kind: 'action',
+    actionId: 'focus-first-collection'
+  },
+  {
+    id: 'focus-first-environment',
+    label: 'Focus first environment',
+    defaultAccelerator: 'Alt+Shift+E',
+    kind: 'action',
+    actionId: 'focus-first-environment'
+  },
+  {
+    id: 'focus-first-request-tab',
+    label: 'Focus first request tab',
+    defaultAccelerator: 'Alt+Shift+O',
+    kind: 'action',
+    actionId: 'focus-first-request-tab'
+  },
+  {
+    id: 'focus-response-editor',
+    label: 'Focus response editor',
+    defaultAccelerator: 'Alt+Shift+T',
+    kind: 'action',
+    actionId: 'focus-response-editor'
+  },
+  {
+    id: 'focus-main-nav',
+    label: 'Focus main nav',
+    defaultAccelerator: 'F4',
+    kind: 'action',
+    actionId: 'focus-main-nav'
+  },
+  {
+    id: 'next-sidebar-list-item',
+    label: 'Next sidebar list item',
+    defaultAccelerator: 'CmdOrCtrl+Tab',
+    kind: 'action',
+    rendererOnly: true
+  },
+  {
+    id: 'previous-sidebar-list-item',
+    label: 'Previous sidebar list item',
+    defaultAccelerator: 'CmdOrCtrl+Shift+Tab',
+    kind: 'action',
+    rendererOnly: true
+  },
+  {
+    id: 'toggle-variables',
+    label: 'Toggle variables panel',
+    defaultAccelerator: 'Alt+Shift+V',
+    kind: 'action',
+    actionId: 'toggle-variables'
+  },
+  {
+    id: 'toggle-console',
+    label: 'Toggle console',
+    defaultAccelerator: 'Alt+Shift+L',
+    kind: 'action',
+    actionId: 'toggle-console'
+  },
+  {
+    id: 'toggle-ai-sidebar',
+    label: 'Toggle agent chat',
+    defaultAccelerator: 'CmdOrCtrl+Shift+B',
+    kind: 'action',
+    actionId: 'toggle-ai-sidebar'
+  },
+  {
+    id: 'toggle-git-sidebar',
+    label: 'Toggle Git',
+    defaultAccelerator: 'CmdOrCtrl+Shift+G',
+    kind: 'action',
+    actionId: 'toggle-git-sidebar'
+  },
+  {
+    id: 'toggle-request-editor',
+    label: 'Toggle request editor',
+    defaultAccelerator: 'CmdOrCtrl+Alt+R',
+    kind: 'action',
+    actionId: 'toggle-request-editor'
+  },
+  {
+    id: 'toggle-response-editor',
+    label: 'Toggle response editor',
+    defaultAccelerator: 'CmdOrCtrl+Alt+Y',
+    kind: 'action',
+    actionId: 'toggle-response-editor'
+  },
+  {
+    id: 'toggle-collections-section',
+    label: 'Toggle collections section',
+    defaultAccelerator: 'CmdOrCtrl+Shift+C',
+    kind: 'action',
+    actionId: 'toggle-collections-section'
+  },
+  {
+    id: 'toggle-environments-section',
+    label: 'Toggle environments section',
+    defaultAccelerator: 'CmdOrCtrl+Shift+E',
+    kind: 'action',
+    actionId: 'toggle-environments-section'
+  },
+  {
+    id: 'toggle-run-results-section',
+    label: 'Toggle run results section',
+    defaultAccelerator: 'CmdOrCtrl+Shift+M',
+    kind: 'action',
+    actionId: 'toggle-run-results-section'
+  },
+  {
+    id: 'send-request',
+    label: 'Send request',
+    defaultAccelerator: 'F5',
+    kind: 'action',
+    actionId: 'send-request'
+  },
+  {
+    id: 'previous-request-tab',
+    label: 'Previous request tab',
+    defaultAccelerator: 'CmdOrCtrl+Shift+Comma',
+    kind: 'action',
+    actionId: 'previous-request-tab'
+  },
+  {
+    id: 'next-request-tab',
+    label: 'Next request tab',
+    defaultAccelerator: 'CmdOrCtrl+Shift+Period',
+    kind: 'action',
+    actionId: 'next-request-tab'
+  },
+  {
+    id: 'set-method-get',
+    label: 'Set request method to GET',
+    defaultAccelerator: 'Alt+Shift+1',
+    kind: 'action',
+    actionId: 'set-method-get'
+  },
+  {
+    id: 'set-method-post',
+    label: 'Set request method to POST',
+    defaultAccelerator: 'Alt+Shift+2',
+    kind: 'action',
+    actionId: 'set-method-post'
+  },
+  {
+    id: 'set-method-put',
+    label: 'Set request method to PUT',
+    defaultAccelerator: 'Alt+Shift+3',
+    kind: 'action',
+    actionId: 'set-method-put'
+  },
+  {
+    id: 'set-method-patch',
+    label: 'Set request method to PATCH',
+    defaultAccelerator: 'Alt+Shift+4',
+    kind: 'action',
+    actionId: 'set-method-patch'
+  },
+  {
+    id: 'set-method-delete',
+    label: 'Set request method to DELETE',
+    defaultAccelerator: 'Alt+Shift+5',
+    kind: 'action',
+    actionId: 'set-method-delete'
+  },
+  {
+    id: 'set-method-head',
+    label: 'Set request method to HEAD',
+    defaultAccelerator: 'Alt+Shift+6',
+    kind: 'action',
+    actionId: 'set-method-head'
+  },
+  {
+    id: 'set-method-options',
+    label: 'Set request method to OPTIONS',
+    defaultAccelerator: 'Alt+Shift+7',
+    kind: 'action',
+    actionId: 'set-method-options'
+  },
+  {
+    id: 'toggle-fullscreen',
+    label: 'Toggle full screen',
+    defaultAccelerator: 'F11',
+    kind: 'role',
+    role: 'togglefullscreen'
+  },
+  {
+    id: 'zoom-in',
+    label: 'Zoom in',
+    defaultAccelerator: 'CmdOrCtrl+Plus',
+    kind: 'role',
+    role: 'zoomIn'
+  },
+  {
+    id: 'zoom-out',
+    label: 'Zoom out',
+    defaultAccelerator: 'CmdOrCtrl+-',
+    kind: 'role',
+    role: 'zoomOut'
+  },
+  {
+    id: 'reset-zoom',
+    label: 'Reset zoom',
+    defaultAccelerator: 'CmdOrCtrl+0',
+    kind: 'role',
+    role: 'resetZoom'
+  },
+  {
+    id: 'documentation',
+    label: 'Documentation',
+    defaultAccelerator: 'CmdOrCtrl+Shift+D',
+    kind: 'action',
+    actionId: 'documentation'
+  },
+  {
+    id: 'report-issue',
+    label: 'Report issue',
+    defaultAccelerator: 'CmdOrCtrl+Shift+R',
+    kind: 'action',
+    actionId: 'report-issue'
+  },
+  {
+    id: 'check-for-updates',
+    label: 'Check for updates',
+    defaultAccelerator: 'CmdOrCtrl+Shift+U',
+    kind: 'action',
+    actionId: 'check-for-updates'
+  },
+  {
+    id: 'shortcuts-reference',
+    label: 'Keyboard shortcuts',
+    defaultAccelerator: 'Alt+Shift+K',
+    kind: 'action',
+    actionId: 'shortcuts-reference'
+  },
+  {
+    id: 'action-menu',
+    label: 'Action menu',
+    defaultAccelerator: 'CmdOrCtrl+Shift+P',
+    kind: 'action',
+    actionId: 'action-menu'
+  },
+  {
+    id: 'new-collection-git',
+    label: 'New collection (Git)',
+    defaultAccelerator: '',
+    kind: 'action',
+    actionId: 'new-collection-git'
+  },
+  {
+    id: 'git-create-branch',
+    label: 'Create branch',
+    defaultAccelerator: 'CmdOrCtrl+Alt+B',
+    kind: 'action',
+    actionId: 'git-create-branch'
+  },
+  {
+    id: 'git-delete-branch',
+    label: 'Delete branch',
+    defaultAccelerator: 'CmdOrCtrl+Alt+D',
+    kind: 'action',
+    actionId: 'git-delete-branch'
+  },
+  {
+    id: 'git-commit',
+    label: 'Commit',
+    defaultAccelerator: 'CmdOrCtrl+Alt+C',
+    kind: 'action',
+    actionId: 'git-commit'
+  },
+  {
+    id: 'git-merge',
+    label: 'Merge',
+    defaultAccelerator: 'CmdOrCtrl+Alt+M',
+    kind: 'action',
+    actionId: 'git-merge'
+  },
+  {
+    id: 'git-fetch',
+    label: 'Fetch',
+    defaultAccelerator: 'CmdOrCtrl+Alt+F',
+    kind: 'action',
+    actionId: 'git-fetch'
+  },
+  {
+    id: 'git-pull',
+    label: 'Pull',
+    defaultAccelerator: 'CmdOrCtrl+Alt+L',
+    kind: 'action',
+    actionId: 'git-pull'
+  },
+  {
+    id: 'git-push',
+    label: 'Push',
+    defaultAccelerator: 'CmdOrCtrl+Alt+P',
+    kind: 'action',
+    actionId: 'git-push'
+  },
+  {
+    id: 'git-settings',
+    label: 'Git settings',
+    defaultAccelerator: 'CmdOrCtrl+Alt+G',
+    kind: 'action',
+    actionId: 'git-settings'
+  },
+  {
+    id: 'about',
+    label: 'About',
+    defaultAccelerator: 'CmdOrCtrl+Shift+A',
+    kind: 'action',
+    actionId: 'about'
+  }
 ];
 const SHORTCUT_DEF_BY_ID = new Map(SHORTCUT_DEFS.map((def) => [def.id, def]));
 /**
@@ -480,7 +480,7 @@ const SHORTCUT_DEF_BY_ID = new Map(SHORTCUT_DEFS.map((def) => [def.id, def]));
  * @returns Matching definition or undefined.
  */
 export function getShortcutDef(id) {
-    return SHORTCUT_DEF_BY_ID.get(id);
+  return SHORTCUT_DEF_BY_ID.get(id);
 }
 /**
  * Normalizes persisted shortcut overrides by dropping unknown ids and invalid values.
@@ -489,29 +489,30 @@ export function getShortcutDef(id) {
  * @returns Sanitized override map.
  */
 export function normalizeShortcutOverrides(raw) {
-    if (typeof raw !== 'object' || raw === null) {
-        return {};
+  if (typeof raw !== 'object' || raw === null) {
+    return {};
+  }
+  const entries = Object.entries(raw);
+  const legacyActionMenu = entries.find(([key]) => key === 'search-anything');
+  const migratedEntries =
+    legacyActionMenu != null && !entries.some(([key]) => key === 'action-menu')
+      ? [...entries, ['action-menu', legacyActionMenu[1]]]
+      : entries;
+  const result = {};
+  for (const [key, value] of migratedEntries) {
+    if (!SHORTCUT_DEF_BY_ID.has(key)) {
+      continue;
     }
-    const entries = Object.entries(raw);
-    const legacyActionMenu = entries.find(([key]) => key === 'search-anything');
-    const migratedEntries = legacyActionMenu != null && !entries.some(([key]) => key === 'action-menu')
-        ? [...entries, ['action-menu', legacyActionMenu[1]]]
-        : entries;
-    const result = {};
-    for (const [key, value] of migratedEntries) {
-        if (!SHORTCUT_DEF_BY_ID.has(key)) {
-            continue;
-        }
-        if (typeof value !== 'string') {
-            continue;
-        }
-        const trimmed = value.trim();
-        if (trimmed.length === 0) {
-            continue;
-        }
-        result[key] = trimmed;
+    if (typeof value !== 'string') {
+      continue;
     }
-    return result;
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+      continue;
+    }
+    result[key] = trimmed;
+  }
+  return result;
 }
 /**
  * Merges defaults with user overrides into resolved shortcut bindings.
@@ -520,16 +521,17 @@ export function normalizeShortcutOverrides(raw) {
  * @returns Resolved bindings in registry order.
  */
 export function resolveShortcuts(overrides) {
-    return SHORTCUT_DEFS.map((def) => {
-        const override = overrides[def.id];
-        const accelerator = override != null && override.trim().length > 0 ? override.trim() : def.defaultAccelerator;
-        return {
-            id: def.id,
-            label: def.label,
-            accelerator,
-            defaultAccelerator: def.defaultAccelerator
-        };
-    });
+  return SHORTCUT_DEFS.map((def) => {
+    const override = overrides[def.id];
+    const accelerator =
+      override != null && override.trim().length > 0 ? override.trim() : def.defaultAccelerator;
+    return {
+      id: def.id,
+      label: def.label,
+      accelerator,
+      defaultAccelerator: def.defaultAccelerator
+    };
+  });
 }
 /**
  * Builds a lookup map from shortcut id to effective accelerator.
@@ -538,7 +540,7 @@ export function resolveShortcuts(overrides) {
  * @returns Map of shortcut id to accelerator string.
  */
 export function resolveAcceleratorMap(overrides) {
-    return new Map(resolveShortcuts(overrides).map((binding) => [binding.id, binding.accelerator]));
+  return new Map(resolveShortcuts(overrides).map((binding) => [binding.id, binding.accelerator]));
 }
 /**
  * Converts resolved bindings to a persisted override map (non-default values only).
@@ -547,13 +549,13 @@ export function resolveAcceleratorMap(overrides) {
  * @returns Overrides containing only values that differ from defaults.
  */
 export function bindingsToOverrides(bindings) {
-    const overrides = {};
-    for (const binding of bindings) {
-        if (binding.accelerator !== binding.defaultAccelerator) {
-            overrides[binding.id] = binding.accelerator;
-        }
+  const overrides = {};
+  for (const binding of bindings) {
+    if (binding.accelerator !== binding.defaultAccelerator) {
+      overrides[binding.id] = binding.accelerator;
     }
-    return overrides;
+  }
+  return overrides;
 }
 /**
  * Normalizes an accelerator string for duplicate comparison.
@@ -562,7 +564,7 @@ export function bindingsToOverrides(bindings) {
  * @returns Lowercase normalized accelerator.
  */
 function normalizeAcceleratorKey(accelerator) {
-    return accelerator.trim().toLowerCase();
+  return accelerator.trim().toLowerCase();
 }
 /**
  * Returns true when an accelerator includes a modifier or is a standalone function key.
@@ -571,16 +573,18 @@ function normalizeAcceleratorKey(accelerator) {
  * @returns Whether the accelerator is allowed without conflicting with plain typing.
  */
 function hasRequiredModifier(accelerator) {
-    const parts = accelerator.split('+').map((part) => part.trim());
-    if (parts.length === 0) {
-        return false;
-    }
-    const key = parts[parts.length - 1] ?? '';
-    if (parts.length === 1 && /^F([1-9]|1[0-2])$/i.test(key)) {
-        return true;
-    }
-    const modifiers = parts.slice(0, -1);
-    return modifiers.some((part) => /^(CmdOrCtrl|Alt|Shift|Cmd|Ctrl|Meta|Command|Control)$/i.test(part));
+  const parts = accelerator.split('+').map((part) => part.trim());
+  if (parts.length === 0) {
+    return false;
+  }
+  const key = parts[parts.length - 1] ?? '';
+  if (parts.length === 1 && /^F([1-9]|1[0-2])$/i.test(key)) {
+    return true;
+  }
+  const modifiers = parts.slice(0, -1);
+  return modifiers.some((part) =>
+    /^(CmdOrCtrl|Alt|Shift|Cmd|Ctrl|Meta|Command|Control)$/i.test(part)
+  );
 }
 /**
  * Returns true when the accelerator matches Electron's expected token pattern.
@@ -589,61 +593,61 @@ function hasRequiredModifier(accelerator) {
  * @returns Whether the accelerator appears well-formed.
  */
 function isValidAccelerator(accelerator) {
-    const trimmed = accelerator.trim();
-    if (trimmed.length === 0) {
-        return false;
-    }
-    const parts = trimmed.split('+').map((part) => part.trim());
-    if (parts.some((part) => part.length === 0)) {
-        return false;
-    }
-    const key = parts[parts.length - 1] ?? '';
-    if (/^F([1-9]|1[0-2])$/i.test(key)) {
-        return true;
-    }
-    if (/^[A-Za-z0-9]$/.test(key)) {
-        return true;
-    }
-    const namedKeys = new Set([
-        'Plus',
-        'Minus',
-        'Equal',
-        'Comma',
-        'Period',
-        'Slash',
-        'Backslash',
-        'Backquote',
-        'BracketLeft',
-        'BracketRight',
-        'Semicolon',
-        'Quote',
-        'Space',
-        'Tab',
-        'Enter',
-        'Escape',
-        'Backspace',
-        'Delete',
-        'Up',
-        'Down',
-        'Left',
-        'Right',
-        'Home',
-        'End',
-        'PageUp',
-        'PageDown',
-        ',',
-        '-',
-        '+',
-        '.',
-        '/',
-        '\\',
-        '`',
-        '[',
-        ']',
-        ';',
-        "'"
-    ]);
-    return namedKeys.has(key);
+  const trimmed = accelerator.trim();
+  if (trimmed.length === 0) {
+    return false;
+  }
+  const parts = trimmed.split('+').map((part) => part.trim());
+  if (parts.some((part) => part.length === 0)) {
+    return false;
+  }
+  const key = parts[parts.length - 1] ?? '';
+  if (/^F([1-9]|1[0-2])$/i.test(key)) {
+    return true;
+  }
+  if (/^[A-Za-z0-9]$/.test(key)) {
+    return true;
+  }
+  const namedKeys = new Set([
+    'Plus',
+    'Minus',
+    'Equal',
+    'Comma',
+    'Period',
+    'Slash',
+    'Backslash',
+    'Backquote',
+    'BracketLeft',
+    'BracketRight',
+    'Semicolon',
+    'Quote',
+    'Space',
+    'Tab',
+    'Enter',
+    'Escape',
+    'Backspace',
+    'Delete',
+    'Up',
+    'Down',
+    'Left',
+    'Right',
+    'Home',
+    'End',
+    'PageUp',
+    'PageDown',
+    ',',
+    '-',
+    '+',
+    '.',
+    '/',
+    '\\',
+    '`',
+    '[',
+    ']',
+    ';',
+    "'"
+  ]);
+  return namedKeys.has(key);
 }
 /**
  * Validates shortcut overrides for shape, modifier requirements, and conflicts.
@@ -652,38 +656,38 @@ function isValidAccelerator(accelerator) {
  * @returns Validation result with per-shortcut error messages.
  */
 export function validateShortcutOverrides(overrides) {
-    const bindings = resolveShortcuts(overrides);
-    const errors = {};
-    const byAccelerator = new Map();
-    for (const binding of bindings) {
-        if (binding.accelerator.trim().length === 0) {
-            continue;
-        }
-        if (!isValidAccelerator(binding.accelerator)) {
-            errors[binding.id] = 'Invalid key combination.';
-            continue;
-        }
-        if (!hasRequiredModifier(binding.accelerator)) {
-            errors[binding.id] = 'Include a modifier key (Ctrl, Alt, or Shift) or use a function key.';
-            continue;
-        }
-        const normalized = normalizeAcceleratorKey(binding.accelerator);
-        const existing = byAccelerator.get(normalized) ?? [];
-        existing.push(binding.id);
-        byAccelerator.set(normalized, existing);
+  const bindings = resolveShortcuts(overrides);
+  const errors = {};
+  const byAccelerator = new Map();
+  for (const binding of bindings) {
+    if (binding.accelerator.trim().length === 0) {
+      continue;
     }
-    for (const ids of byAccelerator.values()) {
-        if (ids.length <= 1) {
-            continue;
-        }
-        for (const id of ids) {
-            errors[id] = 'This key combination is already assigned to another shortcut.';
-        }
+    if (!isValidAccelerator(binding.accelerator)) {
+      errors[binding.id] = 'Invalid key combination.';
+      continue;
     }
-    return {
-        valid: Object.keys(errors).length === 0,
-        errors
-    };
+    if (!hasRequiredModifier(binding.accelerator)) {
+      errors[binding.id] = 'Include a modifier key (Ctrl, Alt, or Shift) or use a function key.';
+      continue;
+    }
+    const normalized = normalizeAcceleratorKey(binding.accelerator);
+    const existing = byAccelerator.get(normalized) ?? [];
+    existing.push(binding.id);
+    byAccelerator.set(normalized, existing);
+  }
+  for (const ids of byAccelerator.values()) {
+    if (ids.length <= 1) {
+      continue;
+    }
+    for (const id of ids) {
+      errors[id] = 'This key combination is already assigned to another shortcut.';
+    }
+  }
+  return {
+    valid: Object.keys(errors).length === 0,
+    errors
+  };
 }
 /**
  * Formats an Electron accelerator for display in the settings table.
@@ -692,32 +696,32 @@ export function validateShortcutOverrides(overrides) {
  * @returns Human-readable accelerator such as `ctrl+s`.
  */
 export function formatAcceleratorDisplay(accelerator) {
-    const keyDisplayNames = {
-        'Plus': 'plus',
-        'Minus': 'minus',
-        'Equal': 'equal',
-        'Comma': 'comma',
-        'Period': 'period',
-        ',': 'comma',
-        '-': 'minus',
-        '+': 'plus'
-    };
-    return accelerator
-        .replace(/CmdOrCtrl/gi, 'ctrl')
-        .replace(/CommandOrControl/gi, 'ctrl')
-        .replace(/Command/gi, 'cmd')
-        .replace(/Control/gi, 'ctrl')
-        .replace(/Cmd/gi, 'cmd')
-        .replace(/Meta/gi, 'cmd')
-        .replace(/Alt/gi, 'alt')
-        .replace(/Shift/gi, 'shift')
-        .split('+')
-        .map((part) => {
-        const trimmed = part.trim();
-        const mapped = keyDisplayNames[trimmed] ?? keyDisplayNames[trimmed.toLowerCase()];
-        return (mapped ?? trimmed).toLowerCase();
+  const keyDisplayNames = {
+    'Plus': 'plus',
+    'Minus': 'minus',
+    'Equal': 'equal',
+    'Comma': 'comma',
+    'Period': 'period',
+    ',': 'comma',
+    '-': 'minus',
+    '+': 'plus'
+  };
+  return accelerator
+    .replace(/CmdOrCtrl/gi, 'ctrl')
+    .replace(/CommandOrControl/gi, 'ctrl')
+    .replace(/Command/gi, 'cmd')
+    .replace(/Control/gi, 'ctrl')
+    .replace(/Cmd/gi, 'cmd')
+    .replace(/Meta/gi, 'cmd')
+    .replace(/Alt/gi, 'alt')
+    .replace(/Shift/gi, 'shift')
+    .split('+')
+    .map((part) => {
+      const trimmed = part.trim();
+      const mapped = keyDisplayNames[trimmed] ?? keyDisplayNames[trimmed.toLowerCase()];
+      return (mapped ?? trimmed).toLowerCase();
     })
-        .join('-');
+    .join('-');
 }
 /**
  * Formats an Electron accelerator for display beside application menu items.
@@ -730,103 +734,103 @@ export function formatAcceleratorDisplay(accelerator) {
  * @returns Human-readable accelerator such as `Ctrl+Shift+N` or `Cmd+,`.
  */
 export function formatMenuAcceleratorDisplay(accelerator, platform) {
-    const cmdOrCtrl = platform === 'darwin' ? 'Cmd' : 'Ctrl';
-    const keyDisplayNames = {
-        'Plus': '+',
-        'Minus': '-',
-        'Equal': '=',
-        'Comma': ',',
-        'Period': '.',
-        ',': ',',
-        '-': '-',
-        '+': '+'
-    };
-    return accelerator
-        .replace(/CmdOrCtrl/gi, cmdOrCtrl)
-        .replace(/CommandOrControl/gi, cmdOrCtrl)
-        .replace(/Command/gi, 'Cmd')
-        .replace(/Control/gi, 'Ctrl')
-        .replace(/Cmd/gi, 'Cmd')
-        .replace(/Meta/gi, 'Cmd')
-        .replace(/Alt/gi, 'Alt')
-        .replace(/Shift/gi, 'Shift')
-        .split('+')
-        .map((part) => {
-        const trimmed = part.trim();
-        return keyDisplayNames[trimmed] ?? trimmed;
+  const cmdOrCtrl = platform === 'darwin' ? 'Cmd' : 'Ctrl';
+  const keyDisplayNames = {
+    'Plus': '+',
+    'Minus': '-',
+    'Equal': '=',
+    'Comma': ',',
+    'Period': '.',
+    ',': ',',
+    '-': '-',
+    '+': '+'
+  };
+  return accelerator
+    .replace(/CmdOrCtrl/gi, cmdOrCtrl)
+    .replace(/CommandOrControl/gi, cmdOrCtrl)
+    .replace(/Command/gi, 'Cmd')
+    .replace(/Control/gi, 'Ctrl')
+    .replace(/Cmd/gi, 'Cmd')
+    .replace(/Meta/gi, 'Cmd')
+    .replace(/Alt/gi, 'Alt')
+    .replace(/Shift/gi, 'Shift')
+    .split('+')
+    .map((part) => {
+      const trimmed = part.trim();
+      return keyDisplayNames[trimmed] ?? trimmed;
     })
-        .join('+');
+    .join('+');
 }
 const CHORD_KEY_ALIASES = {
-    ',': 'Comma',
-    '.': 'Period',
-    '/': 'Slash',
-    '\\': 'Backslash',
-    '`': 'Backquote',
-    '-': 'Minus',
-    '=': 'Equal',
-    '+': 'Plus',
-    '[': 'BracketLeft',
-    ']': 'BracketRight',
-    ';': 'Semicolon',
-    "'": 'Quote',
-    ' ': 'Space',
-    'ArrowUp': 'Up',
-    'ArrowDown': 'Down',
-    'ArrowLeft': 'Left',
-    'ArrowRight': 'Right'
+  ',': 'Comma',
+  '.': 'Period',
+  '/': 'Slash',
+  '\\': 'Backslash',
+  '`': 'Backquote',
+  '-': 'Minus',
+  '=': 'Equal',
+  '+': 'Plus',
+  '[': 'BracketLeft',
+  ']': 'BracketRight',
+  ';': 'Semicolon',
+  "'": 'Quote',
+  ' ': 'Space',
+  'ArrowUp': 'Up',
+  'ArrowDown': 'Down',
+  'ArrowLeft': 'Left',
+  'ArrowRight': 'Right'
 };
 const CHORD_NAMED_KEYS = new Set([
-    'Enter',
-    'Backspace',
-    'Delete',
-    'Tab',
-    'Home',
-    'End',
-    'PageUp',
-    'PageDown',
-    'Escape'
+  'Enter',
+  'Backspace',
+  'Delete',
+  'Tab',
+  'Home',
+  'End',
+  'PageUp',
+  'PageDown',
+  'Escape'
 ]);
 const KEY_COMPARE_ALIASES = {
-    'Plus': 'plus',
-    'Minus': 'minus',
-    'Equal': 'equal',
-    'Comma': 'comma',
-    'Period': 'period',
-    'Slash': 'slash',
-    'Backslash': 'backslash',
-    'Backquote': 'backquote',
-    'BracketLeft': 'bracketleft',
-    'BracketRight': 'bracketright',
-    'Semicolon': 'semicolon',
-    'Quote': 'quote',
-    'Space': 'space',
-    'Tab': 'tab',
-    'Enter': 'enter',
-    'Escape': 'escape',
-    'Backspace': 'backspace',
-    'Delete': 'delete',
-    'Up': 'up',
-    'Down': 'down',
-    'Left': 'left',
-    'Right': 'right',
-    'Home': 'home',
-    'End': 'end',
-    'PageUp': 'pageup',
-    'PageDown': 'pagedown',
-    ',': 'comma',
-    '.': 'period',
-    '/': 'slash',
-    '\\': 'backslash',
-    '`': 'backquote',
-    '-': 'minus',
-    '=': 'equal',
-    '+': 'plus',
-    '[': 'bracketleft',
-    ']': 'bracketright',
-    ';': 'semicolon',
-    "'": 'quote',
-    ' ': 'space'
+  'Plus': 'plus',
+  'Minus': 'minus',
+  'Equal': 'equal',
+  'Comma': 'comma',
+  'Period': 'period',
+  'Slash': 'slash',
+  'Backslash': 'backslash',
+  'Backquote': 'backquote',
+  'BracketLeft': 'bracketleft',
+  'BracketRight': 'bracketright',
+  'Semicolon': 'semicolon',
+  'Quote': 'quote',
+  'Space': 'space',
+  'Tab': 'tab',
+  'Enter': 'enter',
+  'Escape': 'escape',
+  'Backspace': 'backspace',
+  'Delete': 'delete',
+  'Up': 'up',
+  'Down': 'down',
+  'Left': 'left',
+  'Right': 'right',
+  'Home': 'home',
+  'End': 'end',
+  'PageUp': 'pageup',
+  'PageDown': 'pagedown',
+  ',': 'comma',
+  '.': 'period',
+  '/': 'slash',
+  '\\': 'backslash',
+  '`': 'backquote',
+  '-': 'minus',
+  '=': 'equal',
+  '+': 'plus',
+  '[': 'bracketleft',
+  ']': 'bracketright',
+  ';': 'semicolon',
+  "'": 'quote',
+  ' ': 'space'
 };
 /**
  * US keyboard shifted digit-row symbols mapped to their base digit tokens.
@@ -835,16 +839,16 @@ const KEY_COMPARE_ALIASES = {
  * the unshifted digit when Shift is a modifier (e.g. `Alt+Shift+1`).
  */
 export const SHIFTED_SYMBOL_TO_DIGIT = {
-    '!': '1',
-    '@': '2',
-    '#': '3',
-    '$': '4',
-    '%': '5',
-    '^': '6',
-    '&': '7',
-    '*': '8',
-    '(': '9',
-    ')': '0'
+  '!': '1',
+  '@': '2',
+  '#': '3',
+  '$': '4',
+  '%': '5',
+  '^': '6',
+  '&': '7',
+  '*': '8',
+  '(': '9',
+  ')': '0'
 };
 /**
  * Maps a DOM/Electron physical key code to an Electron accelerator key token.
@@ -853,32 +857,32 @@ export const SHIFTED_SYMBOL_TO_DIGIT = {
  * @returns Electron key token or null when unsupported.
  */
 function normalizeKeyCodeToken(code) {
-    const letterMatch = /^Key([A-Z])$/.exec(code);
-    if (letterMatch != null) {
-        return letterMatch[1];
-    }
-    const digitMatch = /^Digit([0-9])$/.exec(code);
-    if (digitMatch != null) {
-        return digitMatch[1];
-    }
-    if (/^F([1-9]|1[0-2])$/.test(code)) {
-        return code.toUpperCase();
-    }
-    const codeAliases = {
-        Comma: 'Comma',
-        Period: 'Period',
-        Slash: 'Slash',
-        Backslash: 'Backslash',
-        Backquote: 'Backquote',
-        Minus: 'Minus',
-        Equal: 'Equal',
-        BracketLeft: 'BracketLeft',
-        BracketRight: 'BracketRight',
-        Semicolon: 'Semicolon',
-        Quote: 'Quote',
-        Space: 'Space'
-    };
-    return codeAliases[code] ?? null;
+  const letterMatch = /^Key([A-Z])$/.exec(code);
+  if (letterMatch != null) {
+    return letterMatch[1];
+  }
+  const digitMatch = /^Digit([0-9])$/.exec(code);
+  if (digitMatch != null) {
+    return digitMatch[1];
+  }
+  if (/^F([1-9]|1[0-2])$/.test(code)) {
+    return code.toUpperCase();
+  }
+  const codeAliases = {
+    Comma: 'Comma',
+    Period: 'Period',
+    Slash: 'Slash',
+    Backslash: 'Backslash',
+    Backquote: 'Backquote',
+    Minus: 'Minus',
+    Equal: 'Equal',
+    BracketLeft: 'BracketLeft',
+    BracketRight: 'BracketRight',
+    Semicolon: 'Semicolon',
+    Quote: 'Quote',
+    Space: 'Space'
+  };
+  return codeAliases[code] ?? null;
 }
 /**
  * Normalizes a DOM or Electron key value to an Electron accelerator key token.
@@ -887,27 +891,27 @@ function normalizeKeyCodeToken(code) {
  * @returns Electron key token or null when unsupported.
  */
 function normalizeChordKey(key) {
-    if (/^F([1-9]|1[0-2])$/i.test(key)) {
-        return key.toUpperCase();
-    }
-    if (key.length === 1 && /[a-zA-Z]/.test(key)) {
-        return key.toUpperCase();
-    }
-    if (key.length === 1 && /[0-9]/.test(key)) {
-        return key;
-    }
-    const shiftedDigit = SHIFTED_SYMBOL_TO_DIGIT[key];
-    if (shiftedDigit != null) {
-        return shiftedDigit;
-    }
-    const alias = CHORD_KEY_ALIASES[key];
-    if (alias != null) {
-        return alias;
-    }
-    if (CHORD_NAMED_KEYS.has(key)) {
-        return key;
-    }
-    return null;
+  if (/^F([1-9]|1[0-2])$/i.test(key)) {
+    return key.toUpperCase();
+  }
+  if (key.length === 1 && /[a-zA-Z]/.test(key)) {
+    return key.toUpperCase();
+  }
+  if (key.length === 1 && /[0-9]/.test(key)) {
+    return key;
+  }
+  const shiftedDigit = SHIFTED_SYMBOL_TO_DIGIT[key];
+  if (shiftedDigit != null) {
+    return shiftedDigit;
+  }
+  const alias = CHORD_KEY_ALIASES[key];
+  if (alias != null) {
+    return alias;
+  }
+  if (CHORD_NAMED_KEYS.has(key)) {
+    return key;
+  }
+  return null;
 }
 /**
  * Resolves the accelerator key token from a keyboard chord.
@@ -919,14 +923,14 @@ function normalizeChordKey(key) {
  * @returns Electron key token or null when unsupported.
  */
 function resolveChordKeyToken(chord) {
-    const fromKey = normalizeChordKey(chord.key);
-    if (fromKey != null) {
-        return fromKey;
-    }
-    if (chord.code == null || chord.code.length === 0) {
-        return null;
-    }
-    return normalizeKeyCodeToken(chord.code);
+  const fromKey = normalizeChordKey(chord.key);
+  if (fromKey != null) {
+    return fromKey;
+  }
+  if (chord.code == null || chord.code.length === 0) {
+    return null;
+  }
+  return normalizeKeyCodeToken(chord.code);
 }
 /**
  * Builds an Electron accelerator string from a key chord.
@@ -935,28 +939,30 @@ function resolveChordKeyToken(chord) {
  * @returns Electron accelerator string, or null when the chord should be ignored.
  */
 export function acceleratorFromChord(chord) {
-    if (chord.key === 'Control' ||
-        chord.key === 'Shift' ||
-        chord.key === 'Alt' ||
-        chord.key === 'Meta') {
-        return null;
-    }
-    const key = resolveChordKeyToken(chord);
-    if (key == null) {
-        return null;
-    }
-    const parts = [];
-    if (chord.control || chord.meta) {
-        parts.push('CmdOrCtrl');
-    }
-    if (chord.alt) {
-        parts.push('Alt');
-    }
-    if (chord.shift) {
-        parts.push('Shift');
-    }
-    parts.push(key);
-    return parts.join('+');
+  if (
+    chord.key === 'Control' ||
+    chord.key === 'Shift' ||
+    chord.key === 'Alt' ||
+    chord.key === 'Meta'
+  ) {
+    return null;
+  }
+  const key = resolveChordKeyToken(chord);
+  if (key == null) {
+    return null;
+  }
+  const parts = [];
+  if (chord.control || chord.meta) {
+    parts.push('CmdOrCtrl');
+  }
+  if (chord.alt) {
+    parts.push('Alt');
+  }
+  if (chord.shift) {
+    parts.push('Shift');
+  }
+  parts.push(key);
+  return parts.join('+');
 }
 /**
  * Maps an accelerator modifier token to a canonical compare token.
@@ -965,16 +971,16 @@ export function acceleratorFromChord(chord) {
  * @returns Canonical modifier token, or null when the segment is not a modifier.
  */
 function normalizeModifierForCompare(part) {
-    if (/^(CmdOrCtrl|CommandOrControl|Command|Control|Cmd|Ctrl|Meta)$/i.test(part)) {
-        return 'mod';
-    }
-    if (/^Alt$/i.test(part)) {
-        return 'alt';
-    }
-    if (/^Shift$/i.test(part)) {
-        return 'shift';
-    }
-    return null;
+  if (/^(CmdOrCtrl|CommandOrControl|Command|Control|Cmd|Ctrl|Meta)$/i.test(part)) {
+    return 'mod';
+  }
+  if (/^Alt$/i.test(part)) {
+    return 'alt';
+  }
+  if (/^Shift$/i.test(part)) {
+    return 'shift';
+  }
+  return null;
 }
 /**
  * Maps an accelerator key token to a canonical compare token.
@@ -983,17 +989,18 @@ function normalizeModifierForCompare(part) {
  * @returns Lowercase canonical key token for comparison.
  */
 function normalizeKeyTokenForCompare(key) {
-    const trimmed = key.trim();
-    if (/^F([1-9]|1[0-2])$/i.test(trimmed)) {
-        return trimmed.toUpperCase();
-    }
-    if (/^[A-Za-z0-9]$/.test(trimmed)) {
-        return trimmed.toUpperCase();
-    }
-    const mapped = KEY_COMPARE_ALIASES[trimmed] ??
-        KEY_COMPARE_ALIASES[trimmed.toLowerCase()] ??
-        trimmed.toLowerCase();
-    return mapped;
+  const trimmed = key.trim();
+  if (/^F([1-9]|1[0-2])$/i.test(trimmed)) {
+    return trimmed.toUpperCase();
+  }
+  if (/^[A-Za-z0-9]$/.test(trimmed)) {
+    return trimmed.toUpperCase();
+  }
+  const mapped =
+    KEY_COMPARE_ALIASES[trimmed] ??
+    KEY_COMPARE_ALIASES[trimmed.toLowerCase()] ??
+    trimmed.toLowerCase();
+  return mapped;
 }
 /**
  * Canonicalizes an Electron accelerator for chord comparison.
@@ -1005,23 +1012,23 @@ function normalizeKeyTokenForCompare(key) {
  * @returns Canonical compare string such as `mod+shift+comma`.
  */
 export function normalizeAcceleratorForCompare(accelerator) {
-    const parts = accelerator
-        .split('+')
-        .map((part) => part.trim())
-        .filter((part) => part.length > 0);
-    if (parts.length === 0) {
-        return '';
+  const parts = accelerator
+    .split('+')
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+  if (parts.length === 0) {
+    return '';
+  }
+  const key = parts[parts.length - 1] ?? '';
+  const modifiers = [];
+  for (const part of parts.slice(0, -1)) {
+    const normalized = normalizeModifierForCompare(part);
+    if (normalized != null) {
+      modifiers.push(normalized);
     }
-    const key = parts[parts.length - 1] ?? '';
-    const modifiers = [];
-    for (const part of parts.slice(0, -1)) {
-        const normalized = normalizeModifierForCompare(part);
-        if (normalized != null) {
-            modifiers.push(normalized);
-        }
-    }
-    modifiers.sort();
-    return [...modifiers, normalizeKeyTokenForCompare(key)].join('+');
+  }
+  modifiers.sort();
+  return [...modifiers, normalizeKeyTokenForCompare(key)].join('+');
 }
 /**
  * Returns true when a keyboard chord matches a configured accelerator.
@@ -1031,10 +1038,10 @@ export function normalizeAcceleratorForCompare(accelerator) {
  * @returns Whether the chord triggers the accelerator.
  */
 export function acceleratorMatchesChord(accelerator, chord) {
-    const derived = acceleratorFromChord(chord);
-    if (derived == null) {
-        return false;
-    }
-    return normalizeAcceleratorForCompare(accelerator) === normalizeAcceleratorForCompare(derived);
+  const derived = acceleratorFromChord(chord);
+  if (derived == null) {
+    return false;
+  }
+  return normalizeAcceleratorForCompare(accelerator) === normalizeAcceleratorForCompare(derived);
 }
 //# sourceMappingURL=shortcuts.js.map

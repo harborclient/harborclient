@@ -8,14 +8,14 @@
  * @returns Encoded `k=v&k2=v2` string for enabled rows with a non-empty key.
  */
 export function rowsToRawUrlEncoded(rows) {
-    const params = new URLSearchParams();
-    for (const row of rows) {
-        if (!row.enabled || !row.key.trim()) {
-            continue;
-        }
-        params.append(row.key.trim(), row.value);
+  const params = new URLSearchParams();
+  for (const row of rows) {
+    if (!row.enabled || !row.key.trim()) {
+      continue;
     }
-    return params.toString();
+    params.append(row.key.trim(), row.value);
+  }
+  return params.toString();
 }
 /**
  * Tolerantly parses a raw urlencoded body into key-value rows for the table preview.
@@ -28,33 +28,31 @@ export function rowsToRawUrlEncoded(rows) {
  * @returns Best-effort key-value rows; empty when `text` is blank.
  */
 export function rawUrlEncodedToRows(text) {
-    if (!text) {
-        return [];
+  if (!text) {
+    return [];
+  }
+  const rows = [];
+  for (const segment of text.split('&')) {
+    if (segment === '') {
+      continue;
     }
-    const rows = [];
-    for (const segment of text.split('&')) {
-        if (segment === '') {
-            continue;
-        }
-        const equalsIndex = segment.indexOf('=');
-        const rawKey = equalsIndex === -1 ? segment : segment.slice(0, equalsIndex);
-        const rawValue = equalsIndex === -1 ? '' : segment.slice(equalsIndex + 1);
-        let key = rawKey;
-        let value = rawValue;
-        try {
-            key = decodeURIComponent(rawKey.replace(/\+/g, ' '));
-        }
-        catch {
-            key = rawKey;
-        }
-        try {
-            value = decodeURIComponent(rawValue.replace(/\+/g, ' '));
-        }
-        catch {
-            value = rawValue;
-        }
-        rows.push({ key, value, enabled: true });
+    const equalsIndex = segment.indexOf('=');
+    const rawKey = equalsIndex === -1 ? segment : segment.slice(0, equalsIndex);
+    const rawValue = equalsIndex === -1 ? '' : segment.slice(equalsIndex + 1);
+    let key = rawKey;
+    let value = rawValue;
+    try {
+      key = decodeURIComponent(rawKey.replace(/\+/g, ' '));
+    } catch {
+      key = rawKey;
     }
-    return rows;
+    try {
+      value = decodeURIComponent(rawValue.replace(/\+/g, ' '));
+    } catch {
+      value = rawValue;
+    }
+    rows.push({ key, value, enabled: true });
+  }
+  return rows;
 }
 //# sourceMappingURL=urlencodedRaw.js.map

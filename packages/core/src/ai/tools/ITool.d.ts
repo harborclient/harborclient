@@ -10,17 +10,17 @@ import type { z } from 'zod';
  * @typeParam Name - Literal tool name string (for example `'get_collection'`).
  */
 export interface ITool<Name extends string = string> {
-    /**
-     * Stable tool name sent to the model and used as the MCP tool id.
-     */
-    readonly name: Name;
-    /**
-     * OpenAI Chat Completions tool definition (type + function schema).
-     */
-    readonly definition: ChatCompletionTool;
-    /**
-     * Zod raw shape for MCP `inputSchema` registration.
-     */
-    readonly inputShape: Record<string, z.ZodType>;
+  /**
+   * Stable tool name sent to the model and used as the MCP tool id.
+   */
+  readonly name: Name;
+  /**
+   * OpenAI Chat Completions tool definition (type + function schema).
+   */
+  readonly definition: ChatCompletionTool;
+  /**
+   * Zod raw shape for MCP `inputSchema` registration.
+   */
+  readonly inputShape: Record<string, z.ZodType>;
 }
 //# sourceMappingURL=ITool.d.ts.map

@@ -7,15 +7,15 @@ export type ContainerItemKind = 'request' | 'document';
  * Stable reference to a request or markdown document in a shared container.
  */
 export interface ContainerItemRef {
-    kind: ContainerItemKind;
-    id: number;
+  kind: ContainerItemKind;
+  id: number;
 }
 /**
  * Request or document row merged for unified sidebar ordering.
  */
 export interface ContainerItem extends ContainerItemRef {
-    sort_order: number;
-    name: string;
+  sort_order: number;
+  name: string;
 }
 /**
  * Compares two container items for unified sidebar display order.
@@ -32,7 +32,11 @@ export declare function compareContainerItems(a: ContainerItem, b: ContainerItem
  * @param folderId - Folder container id, or null for collection root.
  * @returns Requests and documents interleaved by shared sort_order semantics.
  */
-export declare function mergeContainerItems(requests: SavedRequest[], documents: CollectionDocument[], folderId: number | null): ContainerItem[];
+export declare function mergeContainerItems(
+  requests: SavedRequest[],
+  documents: CollectionDocument[],
+  folderId: number | null
+): ContainerItem[];
 /**
  * Maps container item refs from a merged list.
  *

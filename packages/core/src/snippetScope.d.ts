@@ -7,8 +7,8 @@ export type SnippetScope = 'pre-request' | 'post-request' | 'any';
  * Select options for snippet request-stage fields in settings and script editors.
  */
 export declare const SNIPPET_SCOPE_OPTIONS: {
-    value: SnippetScope;
-    label: string;
+  value: SnippetScope;
+  label: string;
 }[];
 /**
  * Maps a script phase tab to the matching snippet scope value.

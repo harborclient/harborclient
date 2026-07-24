@@ -1,7 +1,16 @@
 /**
  * Known HarborClient portable export discriminators used for File -> Import routing.
  */
-export declare const HARBORCLIENT_EXPORT_KINDS: readonly ["collection", "request", "environment", "snippet", "theme", "collection-run-results", "request-run-results", "tab_group"];
+export declare const HARBORCLIENT_EXPORT_KINDS: readonly [
+  'collection',
+  'request',
+  'environment',
+  'snippet',
+  'theme',
+  'collection-run-results',
+  'request-run-results',
+  'tab_group'
+];
 /**
  * Discriminator value on a HarborClient portable export JSON file.
  */

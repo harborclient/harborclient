@@ -10,73 +10,73 @@ export type OAuth2ClientAuth = 'body' | 'header';
  * OAuth 2.0 Client Credentials configuration stored on requests and collections.
  */
 export interface OAuth2Config {
-    /**
-     * Token endpoint URL.
-     */
-    tokenUrl: string;
-    /**
-     * OAuth client id.
-     */
-    clientId: string;
-    /**
-     * OAuth client secret.
-     */
-    clientSecret: string;
-    /**
-     * Space-delimited OAuth scopes.
-     */
-    scope: string;
-    /**
-     * Optional audience claim for token requests.
-     */
-    audience: string;
-    /**
-     * Whether client credentials are sent in the POST body or as HTTP Basic auth.
-     */
-    clientAuth: OAuth2ClientAuth;
+  /**
+   * Token endpoint URL.
+   */
+  tokenUrl: string;
+  /**
+   * OAuth client id.
+   */
+  clientId: string;
+  /**
+   * OAuth client secret.
+   */
+  clientSecret: string;
+  /**
+   * Space-delimited OAuth scopes.
+   */
+  scope: string;
+  /**
+   * Optional audience claim for token requests.
+   */
+  audience: string;
+  /**
+   * Whether client credentials are sent in the POST body or as HTTP Basic auth.
+   */
+  clientAuth: OAuth2ClientAuth;
 }
 /**
  * Basic and bearer credential fields stored together so switching type preserves values.
  */
 export interface AuthConfig {
-    /**
-     * Selected auth mode; none means no request-level override.
-     */
-    type: AuthType;
-    /**
-     * Username and password for Basic Auth.
-     */
-    basic: {
-        username: string;
-        password: string;
-    };
-    /**
-     * Token value for Bearer Token auth.
-     */
-    bearer: {
-        token: string;
-    };
-    /**
-     * OAuth 2.0 Client Credentials settings.
-     */
-    oauth2: OAuth2Config;
+  /**
+   * Selected auth mode; none means no request-level override.
+   */
+  type: AuthType;
+  /**
+   * Username and password for Basic Auth.
+   */
+  basic: {
+    username: string;
+    password: string;
+  };
+  /**
+   * Token value for Bearer Token auth.
+   */
+  bearer: {
+    token: string;
+  };
+  /**
+   * OAuth 2.0 Client Credentials settings.
+   */
+  oauth2: OAuth2Config;
 }
 /**
  * Result of fetching or refreshing an OAuth 2.0 access token.
  */
 export interface OAuthFetchTokenResult {
-    /**
-     * Access token returned by the authorization server.
-     */
-    accessToken: string;
-    /**
-     * ISO 8601 expiry timestamp when known.
-     */
-    expiresAt?: string;
-    /**
-     * Token type from the token response, typically Bearer.
-     */
-    tokenType: string;
+  /**
+   * Access token returned by the authorization server.
+   */
+  accessToken: string;
+  /**
+   * ISO 8601 expiry timestamp when known.
+   */
+  expiresAt?: string;
+  /**
+   * Token type from the token response, typically Bearer.
+   */
+  tokenType: string;
 }
 /**
  * Returns a default auth config with type none and empty credentials.
@@ -98,16 +98,16 @@ export declare const DEFAULT_AUTH_JSON: string;
  * Flat auth shape exposed by hc.request.auth and hc.collection.auth in scripts.
  */
 export type ScriptAuthInput = {
-    type?: AuthType;
-    token?: string;
-    username?: string;
-    password?: string;
-    tokenUrl?: string;
-    clientId?: string;
-    clientSecret?: string;
-    scope?: string;
-    audience?: string;
-    clientAuth?: OAuth2ClientAuth;
+  type?: AuthType;
+  token?: string;
+  username?: string;
+  password?: string;
+  tokenUrl?: string;
+  clientId?: string;
+  clientSecret?: string;
+  scope?: string;
+  audience?: string;
+  clientAuth?: OAuth2ClientAuth;
 };
 /**
  * Flat field names accepted by hc.*.auth.update().
@@ -139,7 +139,11 @@ export declare function applyScriptAuthSet(current: AuthConfig, input: unknown):
  * @param value - New value for the field.
  * @returns Updated auth config.
  */
-export declare function applyScriptAuthUpdate(current: AuthConfig, field: unknown, value: unknown): AuthConfig;
+export declare function applyScriptAuthUpdate(
+  current: AuthConfig,
+  field: unknown,
+  value: unknown
+): AuthConfig;
 /**
  * Builds a stable cache key for OAuth token storage.
  *
@@ -147,7 +151,10 @@ export declare function applyScriptAuthUpdate(current: AuthConfig, field: unknow
  * @param id - Saved entity id.
  * @returns Cache key used by the main-process token store.
  */
-export declare function buildOAuthCacheKey(scope: 'request' | 'collection' | 'folder', id: number): string;
+export declare function buildOAuthCacheKey(
+  scope: 'request' | 'collection' | 'folder',
+  id: number
+): string;
 /**
  * Normalizes a partial or legacy auth value from storage into a full AuthConfig.
  *
@@ -188,5 +195,8 @@ export declare function buildOAuthAuthHeaderValue(result: OAuthFetchTokenResult)
  * @param substitute - Function that resolves placeholders in a string.
  * @returns Auth config with substituted credential fields.
  */
-export declare function resolveAuthVariables(auth: AuthConfig, substitute: (text: string) => string): AuthConfig;
+export declare function resolveAuthVariables(
+  auth: AuthConfig,
+  substitute: (text: string) => string
+): AuthConfig;
 //# sourceMappingURL=auth.d.ts.map

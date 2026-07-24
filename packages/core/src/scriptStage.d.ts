@@ -7,8 +7,8 @@ export declare const DEFAULT_SCRIPT_STAGE: ScriptStage;
  * Select options for script stage fields in editors and modals.
  */
 export declare const SCRIPT_STAGE_OPTIONS: {
-    value: ScriptStage;
-    label: string;
+  value: ScriptStage;
+  label: string;
 }[];
 /**
  * Visual and drag-reorder grouping for script stages in the script list editor.
@@ -27,9 +27,9 @@ export declare const SCRIPT_EDITOR_GROUP_HEADINGS: Record<ScriptEditorGroup, str
  * @returns True when multiple non-empty groups should show section labels.
  */
 export declare function shouldShowScriptSectionHeadings(groups: {
-    before: unknown[];
-    main: unknown[];
-    after: unknown[];
+  before: unknown[];
+  main: unknown[];
+  after: unknown[];
 }): boolean;
 /**
  * Maps a script stage to its editor list group.
@@ -78,21 +78,27 @@ export declare function scriptStageBorderColor(stage: ScriptStage): string;
  * @param refs - Normalized script references for one phase.
  * @returns References ordered for send-time execution.
  */
-export declare function orderScriptRefsByStage<T extends {
+export declare function orderScriptRefsByStage<
+  T extends {
     stage?: ScriptStage;
-}>(refs: T[]): T[];
+  }
+>(refs: T[]): T[];
 /**
  * Splits script references into the three editor groups while preserving list order.
  *
  * @param refs - Normalized script references for one phase.
  * @returns Before, main, and after groups for the script list editor.
  */
-export declare function splitScriptRefsByGroup<T extends {
+export declare function splitScriptRefsByGroup<
+  T extends {
     stage?: ScriptStage;
-}>(refs: T[]): {
-    before: T[];
-    main: T[];
-    after: T[];
+  }
+>(
+  refs: T[]
+): {
+  before: T[];
+  main: T[];
+  after: T[];
 };
 /**
  * Concatenates editor groups back into canonical stored order.
@@ -101,9 +107,9 @@ export declare function splitScriptRefsByGroup<T extends {
  * @returns Combined script reference list for persistence.
  */
 export declare function mergeScriptRefGroups<T>(groups: {
-    before: T[];
-    main: T[];
-    after: T[];
+  before: T[];
+  main: T[];
+  after: T[];
 }): T[];
 /**
  * Reads a script reference stage, accepting legacy `role` JSON keys.
@@ -112,7 +118,7 @@ export declare function mergeScriptRefGroups<T>(groups: {
  * @returns Normalized script stage.
  */
 export declare function readScriptRefStage(ref: {
-    stage?: ScriptStage;
-    role?: unknown;
+  stage?: ScriptStage;
+  role?: unknown;
 }): ScriptStage;
 //# sourceMappingURL=scriptStage.d.ts.map

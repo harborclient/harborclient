@@ -10,15 +10,17 @@ export const optionalDocumentUuid = z.string().uuid().optional();
  * Normalizes imported collection variables and drops rows with no meaningful content.
  */
 export const importVariables = z
-    .array(z.unknown())
-    .default([])
-    .transform((items) => items
-    .map((item) => normalizeVariable(item && typeof item === 'object' && !Array.isArray(item)
-    ? item
-    : {}))
-    .filter((v) => v.key.trim() || v.value.trim() || v.defaultValue.trim()));
+  .array(z.unknown())
+  .default([])
+  .transform((items) =>
+    items
+      .map((item) =>
+        normalizeVariable(item && typeof item === 'object' && !Array.isArray(item) ? item : {})
+      )
+      .filter((v) => v.key.trim() || v.value.trim() || v.defaultValue.trim())
+  );
 const exportedFolderRow = z
-    .object({
+  .object({
     uuid: optionalDocumentUuid,
     name: z.string(),
     sort_order: z.number().optional(),
@@ -30,17 +32,17 @@ const exportedFolderRow = z
     pre_request_scripts: exportScriptRefArray,
     post_request_scripts: exportScriptRefArray,
     color: optionalSidebarColor
-})
-    .superRefine((folder, ctx) => {
+  })
+  .superRefine((folder, ctx) => {
     if (!folder.name.trim()) {
-        ctx.addIssue({
-            code: 'custom',
-            message: 'missing a name',
-            path: ['name']
-        });
+      ctx.addIssue({
+        code: 'custom',
+        message: 'missing a name',
+        path: ['name']
+      });
     }
-})
-    .transform((folder) => ({
+  })
+  .transform((folder) => ({
     uuid: folder.uuid,
     name: folder.name.trim(),
     sort_order: folder.sort_order,
@@ -52,7 +54,7 @@ const exportedFolderRow = z
     pre_request_scripts: folder.pre_request_scripts,
     post_request_scripts: folder.post_request_scripts,
     color: folder.color ?? null
-}));
+  }));
 /**
  * Returns the index of the first duplicate folder name, or null when all names are unique.
  *
@@ -60,18 +62,18 @@ const exportedFolderRow = z
  * @returns Index of the second occurrence, or null when names are unique.
  */
 export function findDuplicateFolderIndex(folders) {
-    const seen = new Set();
-    for (let index = 0; index < folders.length; index++) {
-        const name = folders[index]?.name;
-        if (name === undefined) {
-            continue;
-        }
-        if (seen.has(name)) {
-            return index;
-        }
-        seen.add(name);
+  const seen = new Set();
+  for (let index = 0; index < folders.length; index++) {
+    const name = folders[index]?.name;
+    if (name === undefined) {
+      continue;
     }
-    return null;
+    if (seen.has(name)) {
+      return index;
+    }
+    seen.add(name);
+  }
+  return null;
 }
 /**
  * Returns the index of the first duplicate folder uuid, or null when all uuids are unique.
@@ -80,58 +82,60 @@ export function findDuplicateFolderIndex(folders) {
  * @returns Index of the second occurrence, or null when uuids are unique or absent.
  */
 export function findDuplicateFolderUuidIndex(folders) {
-    const seen = new Set();
-    for (let index = 0; index < folders.length; index++) {
-        const uuid = folders[index]?.uuid?.trim();
-        if (!uuid) {
-            continue;
-        }
-        if (seen.has(uuid)) {
-            return index;
-        }
-        seen.add(uuid);
+  const seen = new Set();
+  for (let index = 0; index < folders.length; index++) {
+    const uuid = folders[index]?.uuid?.trim();
+    if (!uuid) {
+      continue;
     }
-    return null;
+    if (seen.has(uuid)) {
+      return index;
+    }
+    seen.add(uuid);
+  }
+  return null;
 }
 /**
  * Validates folder rows and applies index-based sort_order defaults.
  */
 export const exportedFolders = z
-    .array(exportedFolderRow)
-    .default([])
-    .transform((folders) => folders.map((folder, index) => ({
-    uuid: folder.uuid,
-    name: folder.name,
-    sort_order: typeof folder.sort_order === 'number' ? folder.sort_order : index,
-    variables: folder.variables,
-    headers: folder.headers,
-    auth: folder.auth,
-    pre_request_script: folder.pre_request_script,
-    post_request_script: folder.post_request_script,
-    pre_request_scripts: folder.pre_request_scripts,
-    post_request_scripts: folder.post_request_scripts,
-    color: folder.color ?? null
-})))
-    .superRefine((folders, ctx) => {
+  .array(exportedFolderRow)
+  .default([])
+  .transform((folders) =>
+    folders.map((folder, index) => ({
+      uuid: folder.uuid,
+      name: folder.name,
+      sort_order: typeof folder.sort_order === 'number' ? folder.sort_order : index,
+      variables: folder.variables,
+      headers: folder.headers,
+      auth: folder.auth,
+      pre_request_script: folder.pre_request_script,
+      post_request_script: folder.post_request_script,
+      pre_request_scripts: folder.pre_request_scripts,
+      post_request_scripts: folder.post_request_scripts,
+      color: folder.color ?? null
+    }))
+  )
+  .superRefine((folders, ctx) => {
     const duplicateNameIndex = findDuplicateFolderIndex(folders);
     if (duplicateNameIndex !== null) {
-        ctx.addIssue({
-            code: 'custom',
-            message: 'duplicate folder name',
-            path: [duplicateNameIndex, 'name']
-        });
+      ctx.addIssue({
+        code: 'custom',
+        message: 'duplicate folder name',
+        path: [duplicateNameIndex, 'name']
+      });
     }
     const duplicateUuidIndex = findDuplicateFolderUuidIndex(folders);
     if (duplicateUuidIndex !== null) {
-        ctx.addIssue({
-            code: 'custom',
-            message: 'duplicate folder uuid',
-            path: [duplicateUuidIndex, 'uuid']
-        });
+      ctx.addIssue({
+        code: 'custom',
+        message: 'duplicate folder uuid',
+        path: [duplicateUuidIndex, 'uuid']
+      });
     }
-});
+  });
 const exportedRequestRow = z
-    .object({
+  .object({
     uuid: optionalDocumentUuid,
     name: z.string(),
     method: httpMethod,
@@ -153,17 +157,17 @@ const exportedRequestRow = z
     folder_name: z.union([z.string(), z.null()]).optional(),
     folder_uuid: z.union([z.string().uuid(), z.null()]).optional(),
     color: optionalSidebarColor
-})
-    .superRefine((req, ctx) => {
+  })
+  .superRefine((req, ctx) => {
     if (!req.name.trim()) {
-        ctx.addIssue({
-            code: 'custom',
-            message: 'missing a name',
-            path: ['name']
-        });
+      ctx.addIssue({
+        code: 'custom',
+        message: 'missing a name',
+        path: ['name']
+      });
     }
-})
-    .transform((req) => ({
+  })
+  .transform((req) => ({
     uuid: req.uuid,
     name: req.name.trim(),
     method: req.method,
@@ -182,27 +186,31 @@ const exportedRequestRow = z
     comment: req.comment,
     tags: req.tags,
     sort_order: req.sort_order,
-    folder_name: typeof req.folder_name === 'string'
+    folder_name:
+      typeof req.folder_name === 'string'
         ? req.folder_name.trim() || null
         : req.folder_name === null
-            ? null
-            : undefined,
-    folder_uuid: typeof req.folder_uuid === 'string'
+          ? null
+          : undefined,
+    folder_uuid:
+      typeof req.folder_uuid === 'string'
         ? req.folder_uuid.trim() || null
         : req.folder_uuid === null
-            ? null
-            : undefined,
+          ? null
+          : undefined,
     color: req.color ?? null
-}));
+  }));
 /**
  * Validates exported request rows and applies index-based sort_order defaults.
  */
-export const exportedRequests = z.array(exportedRequestRow).transform((requests) => requests.map((req, index) => ({
+export const exportedRequests = z.array(exportedRequestRow).transform((requests) =>
+  requests.map((req, index) => ({
     ...req,
     sort_order: typeof req.sort_order === 'number' ? req.sort_order : index
-})));
+  }))
+);
 const exportedDocumentRow = z
-    .object({
+  .object({
     uuid: optionalDocumentUuid,
     name: z.string(),
     content: z.string().default(''),
@@ -210,64 +218,68 @@ const exportedDocumentRow = z
     folder_name: z.union([z.string(), z.null()]).optional(),
     folder_uuid: z.union([z.string().uuid(), z.null()]).optional(),
     color: optionalSidebarColor
-})
-    .superRefine((doc, ctx) => {
+  })
+  .superRefine((doc, ctx) => {
     if (!doc.name.trim()) {
-        ctx.addIssue({
-            code: 'custom',
-            message: 'missing a name',
-            path: ['name']
-        });
+      ctx.addIssue({
+        code: 'custom',
+        message: 'missing a name',
+        path: ['name']
+      });
     }
-})
-    .transform((doc) => ({
+  })
+  .transform((doc) => ({
     uuid: doc.uuid,
     name: doc.name.trim(),
     content: doc.content,
     sort_order: doc.sort_order,
-    folder_name: typeof doc.folder_name === 'string'
+    folder_name:
+      typeof doc.folder_name === 'string'
         ? doc.folder_name.trim() || null
         : doc.folder_name === null
-            ? null
-            : undefined,
-    folder_uuid: typeof doc.folder_uuid === 'string'
+          ? null
+          : undefined,
+    folder_uuid:
+      typeof doc.folder_uuid === 'string'
         ? doc.folder_uuid.trim() || null
         : doc.folder_uuid === null
-            ? null
-            : undefined
-}));
+          ? null
+          : undefined
+  }));
 /**
  * Validates exported document rows and applies index-based sort_order defaults.
  */
 export const exportedDocuments = z
-    .array(exportedDocumentRow)
-    .default([])
-    .transform((documents) => documents.map((doc, index) => ({
-    ...doc,
-    sort_order: typeof doc.sort_order === 'number' ? doc.sort_order : index
-})));
+  .array(exportedDocumentRow)
+  .default([])
+  .transform((documents) =>
+    documents.map((doc, index) => ({
+      ...doc,
+      sort_order: typeof doc.sort_order === 'number' ? doc.sort_order : index
+    }))
+  );
 const collectionExportFields = {
-    harborclientExport: z.literal('collection'),
-    uuid: optionalDocumentUuid,
-    name: z.string().trim().min(1, 'collection name is required'),
-    variables: importVariables,
-    headers: z.array(keyValue).default([]),
-    auth: authConfig.optional(),
-    pre_request_script: z.string().default(''),
-    post_request_script: z.string().default(''),
-    pre_request_scripts: exportScriptRefArray,
-    post_request_scripts: exportScriptRefArray,
-    requests: exportedRequests,
-    color: optionalSidebarColor
+  harborclientExport: z.literal('collection'),
+  uuid: optionalDocumentUuid,
+  name: z.string().trim().min(1, 'collection name is required'),
+  variables: importVariables,
+  headers: z.array(keyValue).default([]),
+  auth: authConfig.optional(),
+  pre_request_script: z.string().default(''),
+  post_request_script: z.string().default(''),
+  pre_request_scripts: exportScriptRefArray,
+  post_request_scripts: exportScriptRefArray,
+  requests: exportedRequests,
+  color: optionalSidebarColor
 };
 /**
  * Validates portable collection export files for import.
  */
 export const collectionExportSchema = z.object({
-    harborclientVersion: z.literal(1),
-    ...collectionExportFields,
-    folders: exportedFolders,
-    documents: exportedDocuments
+  harborclientVersion: z.literal(1),
+  ...collectionExportFields,
+  folders: exportedFolders,
+  documents: exportedDocuments
 });
 /**
  * Maps a Zod validation failure to a user-facing import error fragment.
@@ -276,73 +288,73 @@ export const collectionExportSchema = z.object({
  * @returns Message suffix after the "Invalid collection file:" prefix.
  */
 export function formatCollectionImportError(error) {
-    const issue = error.issues[0];
-    if (!issue) {
-        return 'invalid collection file';
+  const issue = error.issues[0];
+  if (!issue) {
+    return 'invalid collection file';
+  }
+  const path = issue.path;
+  if (path[0] === 'harborclientVersion') {
+    return 'unsupported format version';
+  }
+  if (path[0] === 'harborclientExport') {
+    return 'not a HarborClient collection export';
+  }
+  if (path[0] === 'name') {
+    return 'collection name is required';
+  }
+  if (path[0] === 'headers') {
+    return 'collection headers are malformed';
+  }
+  if (path[0] === 'requests' && path.length === 1) {
+    return 'requests must be an array';
+  }
+  if (path[0] === 'requests' && typeof path[1] === 'number') {
+    const requestNumber = path[1] + 1;
+    const field = path[2];
+    if (field === undefined) {
+      return `request ${requestNumber} is malformed`;
     }
-    const path = issue.path;
-    if (path[0] === 'harborclientVersion') {
-        return 'unsupported format version';
+    if (field === 'method') {
+      return `request ${requestNumber} has an invalid method`;
     }
-    if (path[0] === 'harborclientExport') {
-        return 'not a HarborClient collection export';
+    if (field === 'body_type') {
+      return `request ${requestNumber} has an invalid body type`;
     }
-    if (path[0] === 'name') {
-        return 'collection name is required';
+    if (field === 'name') {
+      return `request ${requestNumber} is missing a name`;
     }
-    if (path[0] === 'headers') {
-        return 'collection headers are malformed';
+    if (field === 'headers') {
+      return `request ${requestNumber} has invalid headers`;
     }
-    if (path[0] === 'requests' && path.length === 1) {
-        return 'requests must be an array';
+    if (field === 'params') {
+      return `request ${requestNumber} has invalid params`;
     }
-    if (path[0] === 'requests' && typeof path[1] === 'number') {
-        const requestNumber = path[1] + 1;
-        const field = path[2];
-        if (field === undefined) {
-            return `request ${requestNumber} is malformed`;
-        }
-        if (field === 'method') {
-            return `request ${requestNumber} has an invalid method`;
-        }
-        if (field === 'body_type') {
-            return `request ${requestNumber} has an invalid body type`;
-        }
-        if (field === 'name') {
-            return `request ${requestNumber} is missing a name`;
-        }
-        if (field === 'headers') {
-            return `request ${requestNumber} has invalid headers`;
-        }
-        if (field === 'params') {
-            return `request ${requestNumber} has invalid params`;
-        }
+  }
+  if (path[0] === 'folders' && typeof path[1] === 'number') {
+    const folderNumber = path[1] + 1;
+    if (path[2] === 'name') {
+      if (issue.message === 'duplicate folder name') {
+        return `folder ${folderNumber} has a duplicate name`;
+      }
+      return `folder ${folderNumber} is missing a name`;
     }
-    if (path[0] === 'folders' && typeof path[1] === 'number') {
-        const folderNumber = path[1] + 1;
-        if (path[2] === 'name') {
-            if (issue.message === 'duplicate folder name') {
-                return `folder ${folderNumber} has a duplicate name`;
-            }
-            return `folder ${folderNumber} is missing a name`;
-        }
-        if (path[2] === 'uuid' && issue.message === 'duplicate folder uuid') {
-            return `folder ${folderNumber} has a duplicate uuid`;
-        }
-        return `folder ${folderNumber} is malformed`;
+    if (path[2] === 'uuid' && issue.message === 'duplicate folder uuid') {
+      return `folder ${folderNumber} has a duplicate uuid`;
     }
-    if (path[0] === 'documents' && typeof path[1] === 'number') {
-        const documentNumber = path[1] + 1;
-        if (path[2] === 'name') {
-            return `document ${documentNumber} is missing a name`;
-        }
-        return `document ${documentNumber} is malformed`;
+    return `folder ${folderNumber} is malformed`;
+  }
+  if (path[0] === 'documents' && typeof path[1] === 'number') {
+    const documentNumber = path[1] + 1;
+    if (path[2] === 'name') {
+      return `document ${documentNumber} is missing a name`;
     }
-    const pathLabel = path.length > 0 ? path.join('.') : 'collection file';
-    return issue.message ? `${pathLabel}: ${issue.message}` : pathLabel;
+    return `document ${documentNumber} is malformed`;
+  }
+  const pathLabel = path.length > 0 ? path.join('.') : 'collection file';
+  return issue.message ? `${pathLabel}: ${issue.message}` : pathLabel;
 }
 const requestExportRow = z
-    .object({
+  .object({
     harborclientVersion: z.literal(1),
     harborclientExport: z.literal('request'),
     uuid: optionalDocumentUuid,
@@ -363,17 +375,17 @@ const requestExportRow = z
     comment: z.string().default(''),
     tags: z.string().default(''),
     color: optionalSidebarColor
-})
-    .superRefine((req, ctx) => {
+  })
+  .superRefine((req, ctx) => {
     if (!req.name.trim()) {
-        ctx.addIssue({
-            code: 'custom',
-            message: 'missing a name',
-            path: ['name']
-        });
+      ctx.addIssue({
+        code: 'custom',
+        message: 'missing a name',
+        path: ['name']
+      });
     }
-})
-    .transform((req) => ({
+  })
+  .transform((req) => ({
     harborclientVersion: req.harborclientVersion,
     harborclientExport: req.harborclientExport,
     uuid: req.uuid,
@@ -394,7 +406,7 @@ const requestExportRow = z
     comment: req.comment,
     tags: req.tags,
     color: req.color ?? null
-}));
+  }));
 /**
  * Validates portable request export files for import.
  */
@@ -406,45 +418,45 @@ export const requestExportSchema = requestExportRow;
  * @returns Message suffix after the "Invalid request file:" prefix.
  */
 export function formatRequestImportError(error) {
-    const issue = error.issues[0];
-    if (!issue) {
-        return 'invalid request file';
-    }
-    const path = issue.path;
-    if (path[0] === 'harborclientVersion') {
-        return 'unsupported format version';
-    }
-    if (path[0] === 'harborclientExport') {
-        return 'not a HarborClient request export';
-    }
-    if (path[0] === 'name') {
-        return 'request name is required';
-    }
-    if (path[0] === 'method') {
-        return 'request has an invalid method';
-    }
-    if (path[0] === 'body_type') {
-        return 'request has an invalid body type';
-    }
-    if (path[0] === 'headers') {
-        return 'request has invalid headers';
-    }
-    if (path[0] === 'params') {
-        return 'request has invalid params';
-    }
-    const pathLabel = path.length > 0 ? path.join('.') : 'request file';
-    return issue.message ? `${pathLabel}: ${issue.message}` : pathLabel;
+  const issue = error.issues[0];
+  if (!issue) {
+    return 'invalid request file';
+  }
+  const path = issue.path;
+  if (path[0] === 'harborclientVersion') {
+    return 'unsupported format version';
+  }
+  if (path[0] === 'harborclientExport') {
+    return 'not a HarborClient request export';
+  }
+  if (path[0] === 'name') {
+    return 'request name is required';
+  }
+  if (path[0] === 'method') {
+    return 'request has an invalid method';
+  }
+  if (path[0] === 'body_type') {
+    return 'request has an invalid body type';
+  }
+  if (path[0] === 'headers') {
+    return 'request has invalid headers';
+  }
+  if (path[0] === 'params') {
+    return 'request has invalid params';
+  }
+  const pathLabel = path.length > 0 ? path.join('.') : 'request file';
+  return issue.message ? `${pathLabel}: ${issue.message}` : pathLabel;
 }
 /**
  * Validates portable environment export files for import.
  */
 export const environmentExportSchema = z.object({
-    harborclientVersion: z.literal(1),
-    harborclientExport: z.literal('environment'),
-    uuid: optionalDocumentUuid,
-    name: z.string().trim().min(1, 'environment name is required'),
-    variables: importVariables,
-    color: optionalSidebarColor
+  harborclientVersion: z.literal(1),
+  harborclientExport: z.literal('environment'),
+  uuid: optionalDocumentUuid,
+  name: z.string().trim().min(1, 'environment name is required'),
+  variables: importVariables,
+  color: optionalSidebarColor
 });
 /**
  * Maps a Zod validation failure to a user-facing environment import error fragment.
@@ -453,103 +465,103 @@ export const environmentExportSchema = z.object({
  * @returns Message suffix after the "Invalid environment file:" prefix.
  */
 export function formatEnvironmentImportError(error) {
-    const issue = error.issues[0];
-    if (!issue) {
-        return 'invalid environment file';
-    }
-    const path = issue.path;
-    if (path[0] === 'harborclientVersion') {
-        return 'unsupported format version';
-    }
-    if (path[0] === 'harborclientExport') {
-        return 'not a HarborClient environment export';
-    }
-    if (path[0] === 'name') {
-        return 'environment name is required';
-    }
-    const pathLabel = path.length > 0 ? path.join('.') : 'environment file';
-    return issue.message ? `${pathLabel}: ${issue.message}` : pathLabel;
+  const issue = error.issues[0];
+  if (!issue) {
+    return 'invalid environment file';
+  }
+  const path = issue.path;
+  if (path[0] === 'harborclientVersion') {
+    return 'unsupported format version';
+  }
+  if (path[0] === 'harborclientExport') {
+    return 'not a HarborClient environment export';
+  }
+  if (path[0] === 'name') {
+    return 'environment name is required';
+  }
+  const pathLabel = path.length > 0 ? path.join('.') : 'environment file';
+  return issue.message ? `${pathLabel}: ${issue.message}` : pathLabel;
 }
 const scriptTestResultRow = z.object({
-    name: z.string(),
-    passed: z.boolean(),
-    error: z.string().optional(),
-    scriptName: z.string().optional()
+  name: z.string(),
+  passed: z.boolean(),
+  error: z.string().optional(),
+  scriptName: z.string().optional()
 });
 const importSendResult = z.object({
-    status: z.number(),
-    statusText: z.string(),
-    headers: z.record(z.string(), z.string()),
-    body: z.string(),
-    bodyBase64: z.string().optional(),
-    timeMs: z.number(),
-    sizeBytes: z.number(),
-    error: z.string().optional(),
-    setCookieHeaders: z.array(z.string()).optional(),
-    request: z.unknown().optional(),
-    timing: z.unknown().optional()
+  status: z.number(),
+  statusText: z.string(),
+  headers: z.record(z.string(), z.string()),
+  body: z.string(),
+  bodyBase64: z.string().optional(),
+  timeMs: z.number(),
+  sizeBytes: z.number(),
+  error: z.string().optional(),
+  setCookieHeaders: z.array(z.string()).optional(),
+  request: z.unknown().optional(),
+  timing: z.unknown().optional()
 });
 const collectionRunnerResultStatus = z.enum(['pending', 'running', 'passed', 'failed', 'skipped']);
 const collectionRunnerRequestResultRow = z.object({
-    requestId: z.number().int(),
-    requestName: z.string(),
-    requestMethod: httpMethod,
-    status: collectionRunnerResultStatus,
-    httpStatus: z.number().optional(),
-    httpError: z.string().optional(),
-    testsPassed: z.number().int().nonnegative(),
-    testsFailed: z.number().int().nonnegative(),
-    response: importSendResult.nullable().optional(),
-    testResults: z.array(scriptTestResultRow).optional(),
-    scriptLogs: z.array(z.string()).optional(),
-    scriptError: z.string().optional(),
-    requestUrl: z.string().optional()
+  requestId: z.number().int(),
+  requestName: z.string(),
+  requestMethod: httpMethod,
+  status: collectionRunnerResultStatus,
+  httpStatus: z.number().optional(),
+  httpError: z.string().optional(),
+  testsPassed: z.number().int().nonnegative(),
+  testsFailed: z.number().int().nonnegative(),
+  response: importSendResult.nullable().optional(),
+  testResults: z.array(scriptTestResultRow).optional(),
+  scriptLogs: z.array(z.string()).optional(),
+  scriptError: z.string().optional(),
+  requestUrl: z.string().optional()
 });
 /**
  * Validates portable collection or request run-results export files for import.
  */
 export const runResultsExportSchema = z
-    .object({
+  .object({
     harborclientVersion: z.literal(1),
     harborclientExport: z.enum(['collection-run-results', 'request-run-results']),
     delay: z.number().nonnegative(),
     stopOnFailure: z.boolean(),
     environment: z.object({
-        mode: z.enum(['active', 'override']),
-        id: z.number().int().positive().nullable(),
-        name: z.string().nullable()
+      mode: z.enum(['active', 'override']),
+      id: z.number().int().positive().nullable(),
+      name: z.string().nullable()
     }),
     collection: z
-        .object({
+      .object({
         uuid: z.string().uuid(),
         name: z.string(),
         folderName: z.string().nullable().optional()
-    })
-        .optional(),
+      })
+      .optional(),
     request: z
-        .object({
+      .object({
         uuid: z.string().uuid(),
         name: z.string(),
         method: httpMethod
-    })
-        .optional(),
+      })
+      .optional(),
     results: z.array(collectionRunnerRequestResultRow).min(1)
-})
-    .superRefine((data, ctx) => {
+  })
+  .superRefine((data, ctx) => {
     if (data.harborclientExport === 'request-run-results' && !data.request) {
-        ctx.addIssue({
-            code: 'custom',
-            message: 'request metadata is required for request run results',
-            path: ['request']
-        });
+      ctx.addIssue({
+        code: 'custom',
+        message: 'request metadata is required for request run results',
+        path: ['request']
+      });
     }
-});
+  });
 /**
  * Validates run-results payloads saved to storage providers.
  */
 export const saveRunResultInputSchema = z.object({
-    label: z.string().trim().min(1).optional(),
-    payload: runResultsExportSchema
+  label: z.string().trim().min(1).optional(),
+  payload: runResultsExportSchema
 });
 /**
  * Maps a Zod validation failure to a user-facing run-results import error fragment.
@@ -558,21 +570,21 @@ export const saveRunResultInputSchema = z.object({
  * @returns Message suffix after the "Invalid run results file:" prefix.
  */
 export function formatRunResultsImportError(error) {
-    const issue = error.issues[0];
-    if (!issue) {
-        return 'invalid run results file';
-    }
-    const path = issue.path;
-    if (path[0] === 'harborclientVersion') {
-        return 'unsupported format version';
-    }
-    if (path[0] === 'harborclientExport') {
-        return 'not a HarborClient run results export';
-    }
-    if (path[0] === 'results') {
-        return 'results must include at least one request row';
-    }
-    const pathLabel = path.length > 0 ? path.join('.') : 'run results file';
-    return issue.message ? `${pathLabel}: ${issue.message}` : pathLabel;
+  const issue = error.issues[0];
+  if (!issue) {
+    return 'invalid run results file';
+  }
+  const path = issue.path;
+  if (path[0] === 'harborclientVersion') {
+    return 'unsupported format version';
+  }
+  if (path[0] === 'harborclientExport') {
+    return 'not a HarborClient run results export';
+  }
+  if (path[0] === 'results') {
+    return 'results must include at least one request row';
+  }
+  const pathLabel = path.length > 0 ? path.join('.') : 'run results file';
+  return issue.message ? `${pathLabel}: ${issue.message}` : pathLabel;
 }
 //# sourceMappingURL=schemas.js.map

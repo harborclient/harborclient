@@ -5,7 +5,7 @@
  * @returns Trimmed, non-empty tags joined with ", ".
  */
 export function normalizeRequestTags(raw) {
-    return formatRequestTags(parseRequestTags(raw));
+  return formatRequestTags(parseRequestTags(raw));
 }
 /**
  * Splits a comma-separated tags string into trimmed, non-empty tag segments.
@@ -14,10 +14,10 @@ export function normalizeRequestTags(raw) {
  * @returns Ordered tag labels with surrounding whitespace and empty segments removed.
  */
 export function parseRequestTags(raw) {
-    return raw
-        .split(',')
-        .map((segment) => segment.trim())
-        .filter((segment) => segment.length > 0);
+  return raw
+    .split(',')
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0);
 }
 /**
  * Formats committed tag labels into the normalized comma-separated storage string.
@@ -26,9 +26,9 @@ export function parseRequestTags(raw) {
  * @returns Trimmed tags joined with ", " for draft persistence and search indexing.
  */
 export function formatRequestTags(tags) {
-    return tags
-        .map((tag) => tag.trim())
-        .filter((tag) => tag.length > 0)
-        .join(', ');
+  return tags
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.length > 0)
+    .join(', ');
 }
 //# sourceMappingURL=requestTags.js.map

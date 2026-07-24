@@ -3,7 +3,7 @@ import type { ChatStepResult } from '../types';
 /**
  * Default title for chats that have not received an AI-generated summary yet.
  */
-export declare const DEFAULT_CHAT_TITLE = "New Chat";
+export declare const DEFAULT_CHAT_TITLE = 'New Chat';
 /**
  * Maximum length for persisted chat tab titles.
  */

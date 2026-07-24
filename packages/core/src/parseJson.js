@@ -5,13 +5,11 @@
  * @param fallback - Value returned when parsing fails or value is empty.
  */
 export function parseJson(value, fallback) {
-    if (!value)
-        return fallback;
-    try {
-        return JSON.parse(value);
-    }
-    catch {
-        return fallback;
-    }
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
 }
 //# sourceMappingURL=parseJson.js.map

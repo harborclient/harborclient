@@ -3,18 +3,18 @@ import type { KeyValue } from './types/common';
  * Base URL, query string (without leading ?), and hash fragment (without leading #).
  */
 export interface SplitUrl {
-    /**
-     * URL portion before the query string and hash.
-     */
-    base: string;
-    /**
-     * Query string without a leading ?; empty when absent.
-     */
-    query: string;
-    /**
-     * Hash fragment without a leading #; empty when absent.
-     */
-    hash: string;
+  /**
+   * URL portion before the query string and hash.
+   */
+  base: string;
+  /**
+   * Query string without a leading ?; empty when absent.
+   */
+  query: string;
+  /**
+   * Hash fragment without a leading #; empty when absent.
+   */
+  hash: string;
 }
 /**
  * Splits a URL into base path, query string, and hash fragment without re-encoding.

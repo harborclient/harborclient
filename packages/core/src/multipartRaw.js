@@ -11,9 +11,9 @@ export const MULTIPART_FILE_TOKEN_RE = /^<<file:(.+)>>$/;
  * @returns Filename portion after the last `/` or `\`.
  */
 function fileBasename(filePath) {
-    const normalized = filePath.replace(/\\/g, '/');
-    const slash = normalized.lastIndexOf('/');
-    return slash === -1 ? normalized : normalized.slice(slash + 1);
+  const normalized = filePath.replace(/\\/g, '/');
+  const slash = normalized.lastIndexOf('/');
+  return slash === -1 ? normalized : normalized.slice(slash + 1);
 }
 /**
  * Prefix used when generating multipart boundaries for the Raw body drawer.
@@ -25,9 +25,9 @@ const BOUNDARY_PREFIX = '----HarborFormBoundary';
  * @returns Boundary string suitable for `multipart/form-data; boundary=…`.
  */
 export function generateMultipartBoundary() {
-    const random = Math.random().toString(36).slice(2, 12);
-    const time = Date.now().toString(36);
-    return `${BOUNDARY_PREFIX}${time}${random}`;
+  const random = Math.random().toString(36).slice(2, 12);
+  const time = Date.now().toString(36);
+  return `${BOUNDARY_PREFIX}${time}${random}`;
 }
 /**
  * Builds a path-embedded file token for a multipart raw body line.
@@ -36,7 +36,7 @@ export function generateMultipartBoundary() {
  * @returns Token line content such as `<<file:/abs/path>>`.
  */
 export function multipartFileToken(filePath) {
-    return `<<file:${filePath}>>`;
+  return `<<file:${filePath}>>`;
 }
 /**
  * Returns whether raw multipart text contains at least one file token.
@@ -48,7 +48,7 @@ export function multipartFileToken(filePath) {
  * @returns True when a `<<file:…>>` token is present.
  */
 export function multipartRawHasFileTokens(text) {
-    return /<<file:[^\n>]+>>/.test(text);
+  return /<<file:[^\n>]+>>/.test(text);
 }
 /**
  * Escapes a Content-Disposition parameter value for double-quoted form fields.
@@ -57,7 +57,7 @@ export function multipartRawHasFileTokens(text) {
  * @returns Value safe to place inside double quotes.
  */
 function escapeDispositionValue(value) {
-    return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 /**
  * Renders structured multipart form parts as editable raw wire-like text.
@@ -71,38 +71,42 @@ function escapeDispositionValue(value) {
  * @returns Multipart body text with CRLF line endings.
  */
 export function renderMultipartRaw(parts, boundary) {
-    const enabled = parts.filter((part) => part.enabled && part.key.trim());
-    if (enabled.length === 0) {
-        return '';
-    }
-    const chunks = [];
-    for (const part of enabled) {
-        const key = part.key.trim();
-        chunks.push(`--${boundary}`);
-        if (part.type === 'file') {
-            if (part.files.length === 0) {
-                chunks.push(`Content-Disposition: form-data; name="${escapeDispositionValue(key)}"; filename=""`);
-                chunks.push('');
-                chunks.push('');
-                continue;
-            }
-            part.files.forEach((filePath, index) => {
-                if (index > 0) {
-                    chunks.push(`--${boundary}`);
-                }
-                const filename = fileBasename(filePath) || 'file';
-                chunks.push(`Content-Disposition: form-data; name="${escapeDispositionValue(key)}"; filename="${escapeDispositionValue(filename)}"`);
-                chunks.push('');
-                chunks.push(multipartFileToken(filePath));
-            });
-            continue;
-        }
-        chunks.push(`Content-Disposition: form-data; name="${escapeDispositionValue(key)}"`);
+  const enabled = parts.filter((part) => part.enabled && part.key.trim());
+  if (enabled.length === 0) {
+    return '';
+  }
+  const chunks = [];
+  for (const part of enabled) {
+    const key = part.key.trim();
+    chunks.push(`--${boundary}`);
+    if (part.type === 'file') {
+      if (part.files.length === 0) {
+        chunks.push(
+          `Content-Disposition: form-data; name="${escapeDispositionValue(key)}"; filename=""`
+        );
         chunks.push('');
-        chunks.push(part.value);
+        chunks.push('');
+        continue;
+      }
+      part.files.forEach((filePath, index) => {
+        if (index > 0) {
+          chunks.push(`--${boundary}`);
+        }
+        const filename = fileBasename(filePath) || 'file';
+        chunks.push(
+          `Content-Disposition: form-data; name="${escapeDispositionValue(key)}"; filename="${escapeDispositionValue(filename)}"`
+        );
+        chunks.push('');
+        chunks.push(multipartFileToken(filePath));
+      });
+      continue;
     }
-    chunks.push(`--${boundary}--`);
-    return chunks.join('\r\n');
+    chunks.push(`Content-Disposition: form-data; name="${escapeDispositionValue(key)}"`);
+    chunks.push('');
+    chunks.push(part.value);
+  }
+  chunks.push(`--${boundary}--`);
+  return chunks.join('\r\n');
 }
 /**
  * Extracts a quoted or token parameter value from a Content-Disposition header.
@@ -112,15 +116,15 @@ export function renderMultipartRaw(parts, boundary) {
  * @returns Parameter value, or undefined when absent.
  */
 function dispositionParam(header, name) {
-    const re = new RegExp(`${name}\\s*=\\s*(?:"((?:\\\\.|[^"\\\\])*)"|([^;\\s]+))`, 'i');
-    const match = header.match(re);
-    if (!match) {
-        return undefined;
-    }
-    if (match[1] !== undefined) {
-        return match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-    }
-    return match[2];
+  const re = new RegExp(`${name}\\s*=\\s*(?:"((?:\\\\.|[^"\\\\])*)"|([^;\\s]+))`, 'i');
+  const match = header.match(re);
+  if (!match) {
+    return undefined;
+  }
+  if (match[1] !== undefined) {
+    return match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+  }
+  return match[2];
 }
 /**
  * Detects the multipart boundary from the first `--…` line in raw text.
@@ -129,15 +133,15 @@ function dispositionParam(header, name) {
  * @returns Boundary without leading dashes, or undefined when not found.
  */
 export function detectMultipartBoundary(text) {
-    const firstLine = text.split(/\r?\n/, 1)[0] ?? '';
-    if (!firstLine.startsWith('--')) {
-        return undefined;
-    }
-    let boundary = firstLine.slice(2);
-    if (boundary.endsWith('--')) {
-        boundary = boundary.slice(0, -2);
-    }
-    return boundary || undefined;
+  const firstLine = text.split(/\r?\n/, 1)[0] ?? '';
+  if (!firstLine.startsWith('--')) {
+    return undefined;
+  }
+  let boundary = firstLine.slice(2);
+  if (boundary.endsWith('--')) {
+    boundary = boundary.slice(0, -2);
+  }
+  return boundary || undefined;
 }
 /**
  * Builds a Content-Type header value for a raw multipart body.
@@ -146,11 +150,11 @@ export function detectMultipartBoundary(text) {
  * @returns `multipart/form-data; boundary=…`, or without boundary when undetectable.
  */
 export function multipartRawContentType(text) {
-    const boundary = detectMultipartBoundary(text);
-    if (!boundary) {
-        return 'multipart/form-data';
-    }
-    return `multipart/form-data; boundary=${boundary}`;
+  const boundary = detectMultipartBoundary(text);
+  if (!boundary) {
+    return 'multipart/form-data';
+  }
+  return `multipart/form-data; boundary=${boundary}`;
 }
 /**
  * Tolerantly parses a raw multipart body into structured form parts.
@@ -165,80 +169,80 @@ export function multipartRawContentType(text) {
  * @returns Best-effort parts plus whether they cleanly represent the raw text.
  */
 export function parseMultipartRaw(text) {
-    if (!text.trim()) {
-        return { parts: [], representable: true };
+  if (!text.trim()) {
+    return { parts: [], representable: true };
+  }
+  const boundary = detectMultipartBoundary(text);
+  if (!boundary) {
+    return { parts: [], representable: false };
+  }
+  const delimiter = `--${boundary}`;
+  const normalized = text.replace(/\r\n/g, '\n');
+  const sections = normalized.split(delimiter);
+  const parts = [];
+  let representable = true;
+  for (const section of sections) {
+    const trimmedStart = section.replace(/^\n/, '');
+    if (!trimmedStart || trimmedStart === '--' || trimmedStart.startsWith('--')) {
+      continue;
     }
-    const boundary = detectMultipartBoundary(text);
-    if (!boundary) {
-        return { parts: [], representable: false };
+    const bodySeparator = trimmedStart.indexOf('\n\n');
+    if (bodySeparator === -1) {
+      representable = false;
+      continue;
     }
-    const delimiter = `--${boundary}`;
-    const normalized = text.replace(/\r\n/g, '\n');
-    const sections = normalized.split(delimiter);
-    const parts = [];
-    let representable = true;
-    for (const section of sections) {
-        const trimmedStart = section.replace(/^\n/, '');
-        if (!trimmedStart || trimmedStart === '--' || trimmedStart.startsWith('--')) {
-            continue;
-        }
-        const bodySeparator = trimmedStart.indexOf('\n\n');
-        if (bodySeparator === -1) {
-            representable = false;
-            continue;
-        }
-        const headerBlock = trimmedStart.slice(0, bodySeparator);
-        let body = trimmedStart.slice(bodySeparator + 2);
-        // Trailing newline before the next boundary is part of the wire format.
-        if (body.endsWith('\n')) {
-            body = body.slice(0, -1);
-        }
-        const headers = headerBlock.split('\n');
-        let disposition = '';
-        for (const line of headers) {
-            const colon = line.indexOf(':');
-            if (colon === -1) {
-                continue;
-            }
-            const name = line.slice(0, colon).trim().toLowerCase();
-            const value = line.slice(colon + 1).trim();
-            if (name === 'content-disposition') {
-                disposition = value;
-            }
-        }
-        if (!disposition) {
-            representable = false;
-            continue;
-        }
-        const fieldName = dispositionParam(disposition, 'name');
-        if (fieldName === undefined) {
-            representable = false;
-            continue;
-        }
-        const filename = dispositionParam(disposition, 'filename');
-        const tokenMatch = body.match(MULTIPART_FILE_TOKEN_RE);
-        if (filename !== undefined || tokenMatch) {
-            const filePath = tokenMatch?.[1] ?? '';
-            parts.push({
-                key: fieldName,
-                value: '',
-                enabled: true,
-                type: 'file',
-                files: filePath ? [filePath] : []
-            });
-            continue;
-        }
-        parts.push({
-            key: fieldName,
-            value: body,
-            enabled: true,
-            type: 'text',
-            files: []
-        });
+    const headerBlock = trimmedStart.slice(0, bodySeparator);
+    let body = trimmedStart.slice(bodySeparator + 2);
+    // Trailing newline before the next boundary is part of the wire format.
+    if (body.endsWith('\n')) {
+      body = body.slice(0, -1);
     }
-    if (parts.length === 0 && text.trim()) {
-        representable = false;
+    const headers = headerBlock.split('\n');
+    let disposition = '';
+    for (const line of headers) {
+      const colon = line.indexOf(':');
+      if (colon === -1) {
+        continue;
+      }
+      const name = line.slice(0, colon).trim().toLowerCase();
+      const value = line.slice(colon + 1).trim();
+      if (name === 'content-disposition') {
+        disposition = value;
+      }
     }
-    return { parts, representable, boundary };
+    if (!disposition) {
+      representable = false;
+      continue;
+    }
+    const fieldName = dispositionParam(disposition, 'name');
+    if (fieldName === undefined) {
+      representable = false;
+      continue;
+    }
+    const filename = dispositionParam(disposition, 'filename');
+    const tokenMatch = body.match(MULTIPART_FILE_TOKEN_RE);
+    if (filename !== undefined || tokenMatch) {
+      const filePath = tokenMatch?.[1] ?? '';
+      parts.push({
+        key: fieldName,
+        value: '',
+        enabled: true,
+        type: 'file',
+        files: filePath ? [filePath] : []
+      });
+      continue;
+    }
+    parts.push({
+      key: fieldName,
+      value: body,
+      enabled: true,
+      type: 'text',
+      files: []
+    });
+  }
+  if (parts.length === 0 && text.trim()) {
+    representable = false;
+  }
+  return { parts, representable, boundary };
 }
 //# sourceMappingURL=multipartRaw.js.map

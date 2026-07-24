@@ -36,36 +36,36 @@ export { AI_SYSTEM_PROMPT } from './systemPrompt';
  * so consumers that iterate tools keep stable ordering.
  */
 export const AI_TOOLS = [
-    getSelectedCollectionTool,
-    listCollectionsTool,
-    getCollectionTool,
-    listRequestsTool,
-    getFolderTool,
-    getRequestTool,
-    listEnvironmentsTool,
-    getSidebarRequestTool,
-    getActiveRequestTool,
-    getActiveRequestDetailsTool,
-    getActiveResponseSummaryTool,
-    getActiveResponseTool,
-    queryResponseBodyTool,
-    sendActiveRequestTool,
-    setActiveEnvironmentTool,
-    updateActiveRequestTool,
-    updateRequestScriptTool,
-    createCollectionTool,
-    createFolderTool,
-    createRequestTool,
-    searchDocsTool,
-    getActiveTerminalTool,
-    getActiveTerminalLinesTool,
-    terminalExecTool,
-    getMarkdownDocumentTool,
-    gitDiffTool,
-    gitRepoInfoTool,
-    gitCommitsTool,
-    gitFileInfoTool,
-    gitFileDiffTool
+  getSelectedCollectionTool,
+  listCollectionsTool,
+  getCollectionTool,
+  listRequestsTool,
+  getFolderTool,
+  getRequestTool,
+  listEnvironmentsTool,
+  getSidebarRequestTool,
+  getActiveRequestTool,
+  getActiveRequestDetailsTool,
+  getActiveResponseSummaryTool,
+  getActiveResponseTool,
+  queryResponseBodyTool,
+  sendActiveRequestTool,
+  setActiveEnvironmentTool,
+  updateActiveRequestTool,
+  updateRequestScriptTool,
+  createCollectionTool,
+  createFolderTool,
+  createRequestTool,
+  searchDocsTool,
+  getActiveTerminalTool,
+  getActiveTerminalLinesTool,
+  terminalExecTool,
+  getMarkdownDocumentTool,
+  gitDiffTool,
+  gitRepoInfoTool,
+  gitCommitsTool,
+  gitFileInfoTool,
+  gitFileDiffTool
 ];
 /**
  * Extracts tool names from the registry while preserving the tuple of literal names.
@@ -74,7 +74,7 @@ export const AI_TOOLS = [
  * @returns Readonly tuple of each tool's `name` field.
  */
 function extractToolNames(tools) {
-    return tools.map((tool) => tool.name);
+  return tools.map((tool) => tool.name);
 }
 /**
  * Names of tools exposed to the AI chat agent, derived from {@link AI_TOOLS}.
@@ -87,7 +87,9 @@ export const AI_TOOL_DEFINITIONS = AI_TOOLS.map((tool) => tool.definition);
 /**
  * Zod raw shapes for Harbor AI tools, keyed by tool name for MCP registration.
  */
-const AI_TOOL_INPUT_SHAPES = Object.fromEntries(AI_TOOLS.map((tool) => [tool.name, tool.inputShape]));
+const AI_TOOL_INPUT_SHAPES = Object.fromEntries(
+  AI_TOOLS.map((tool) => [tool.name, tool.inputShape])
+);
 /**
  * Returns the Zod raw shape for a Harbor AI tool's MCP input schema.
  *
@@ -95,6 +97,6 @@ const AI_TOOL_INPUT_SHAPES = Object.fromEntries(AI_TOOLS.map((tool) => [tool.nam
  * @returns Zod raw shape used when registering the tool on the MCP server.
  */
 export function getAiToolInputShape(name) {
-    return AI_TOOL_INPUT_SHAPES[name];
+  return AI_TOOL_INPUT_SHAPES[name];
 }
 //# sourceMappingURL=index.js.map

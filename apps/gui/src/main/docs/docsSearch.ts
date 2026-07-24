@@ -184,7 +184,10 @@ export async function searchDocs(args: SearchDocsToolArgs): Promise<DocsSearchHi
     throw new Error('query is required.');
   }
 
-  logVerbose('[docs-search] query', JSON.stringify({ query, limit: args.limit, source: args.source }));
+  logVerbose(
+    '[docs-search] query',
+    JSON.stringify({ query, limit: args.limit, source: args.source })
+  );
 
   const apiKey = getAiSettings().openaiApiKey.trim();
   if (!apiKey) {

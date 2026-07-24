@@ -7,18 +7,18 @@ export declare const MULTIPART_FILE_TOKEN_RE: RegExp;
  * Result of tolerantly parsing a raw multipart body into structured parts.
  */
 export interface ParseMultipartRawResult {
-    /**
-     * Best-effort form parts derived from the raw text.
-     */
-    parts: FormDataPart[];
-    /**
-     * False when the raw text cannot cleanly map to structured rows (still sendable).
-     */
-    representable: boolean;
-    /**
-     * Boundary string detected in the raw text, when present.
-     */
-    boundary?: string;
+  /**
+   * Best-effort form parts derived from the raw text.
+   */
+  parts: FormDataPart[];
+  /**
+   * False when the raw text cannot cleanly map to structured rows (still sendable).
+   */
+  representable: boolean;
+  /**
+   * Boundary string detected in the raw text, when present.
+   */
+  boundary?: string;
 }
 /**
  * Generates a unique multipart boundary for rendering the Raw body drawer.

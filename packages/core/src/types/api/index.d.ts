@@ -23,6 +23,28 @@ import type { ApiTerminal } from './terminal';
 /**
  * IPC bridge API exposed to the renderer via contextBridge.
  */
-export interface Api extends ApiCollections, ApiEnvironments, ApiSnippets, ApiRequests, ApiDocuments, ApiHttp, ApiWindow, ApiSettings, ApiChats, ApiStorage, ApiTeamHub, ApiGit, ApiSharing, ApiBackup, ApiPlugins, ApiDocs, ApiMcp, ApiRequestHistory, ApiTabGroups, ApiTrash, ApiTerminal, ApiCustomThemes {
-}
+export interface Api
+  extends
+    ApiCollections,
+    ApiEnvironments,
+    ApiSnippets,
+    ApiRequests,
+    ApiDocuments,
+    ApiHttp,
+    ApiWindow,
+    ApiSettings,
+    ApiChats,
+    ApiStorage,
+    ApiTeamHub,
+    ApiGit,
+    ApiSharing,
+    ApiBackup,
+    ApiPlugins,
+    ApiDocs,
+    ApiMcp,
+    ApiRequestHistory,
+    ApiTabGroups,
+    ApiTrash,
+    ApiTerminal,
+    ApiCustomThemes {}
 //# sourceMappingURL=index.d.ts.map
