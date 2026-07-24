@@ -235,6 +235,26 @@ describe('findAiScriptReferenceCandidates', () => {
     ]);
   });
 
+  it('finds raw body references with character-offset suffixes', () => {
+    expect(findAiScriptReferenceCandidates('@body#10.42')).toEqual([
+      expect.objectContaining({
+        kind: 'body',
+        text: '@body#10.42',
+        selection: { start: 10, end: 42 }
+      })
+    ]);
+  });
+
+  it('parses bare @body without a selection suffix', () => {
+    expect(findAiScriptReferenceCandidates('@body')).toEqual([
+      expect.objectContaining({
+        kind: 'body',
+        text: '@body',
+        selection: undefined
+      })
+    ]);
+  });
+
   it('finds collection, folder, and request references by uuid', () => {
     const collectionUuid = '11111111-1111-1111-1111-111111111111';
     const folderUuid = '22222222-2222-2222-2222-222222222222';
@@ -379,6 +399,35 @@ describe('isValidAiScriptReference', () => {
   it('rejects markdown references without a stored snapshot', () => {
     const markdownUuid = '44444444-4444-4444-4444-444444444444';
     const [candidate] = findAiScriptReferenceCandidates(`@markdown.${markdownUuid}#10.42`);
+    expect(candidate).toBeDefined();
+    expect(isValidAiScriptReference(candidate!, context())).toBe(false);
+  });
+
+  it('accepts body references when a matching snapshot exists', () => {
+    const token = '@body#10.42';
+    const [candidate] = findAiScriptReferenceCandidates(token);
+    expect(candidate).toBeDefined();
+    expect(
+      isValidAiScriptReference(
+        candidate!,
+        context({
+          requestBodySelections: {
+            [token]: {
+              label: 'Raw multipart body',
+              selectedText: 'selected raw body',
+              startOffset: 10,
+              endOffset: 42,
+              startLine: 2,
+              endLine: 3
+            }
+          }
+        })
+      )
+    ).toBe(true);
+  });
+
+  it('rejects body references without a stored snapshot', () => {
+    const [candidate] = findAiScriptReferenceCandidates('@body#10.42');
     expect(candidate).toBeDefined();
     expect(isValidAiScriptReference(candidate!, context())).toBe(false);
   });
@@ -836,6 +885,35 @@ describe('buildAiScriptSelectionContextMessage', () => {
     expect(message).toContain('selected markdown');
     expect(message).toContain('get_markdown_document');
     expect(message).toContain('cannot be edited via tools');
+  });
+
+  it('includes raw body selection text and update_active_request guidance', () => {
+    const token = '@body#10.42';
+    const message = buildAiScriptSelectionContextMessage(
+      'Fix this @body#10.42',
+      context({
+        requestBodySelections: {
+          [token]: {
+            label: 'Raw urlencoded body',
+            selectedText: 'foo=bar&baz=1',
+            startOffset: 10,
+            endOffset: 42,
+            startLine: 1,
+            endLine: 1
+          }
+        }
+      })
+    );
+
+    expect(message).toContain(
+      'The user selected raw request body text and is asking specifically about the SELECTED TEXT below.'
+    );
+    expect(message).toContain(`Reference ${token}`);
+    expect(message).toContain('raw request body "Raw urlencoded body"');
+    expect(message).toContain('foo=bar&baz=1');
+    expect(message).toContain('get_active_request_details');
+    expect(message).toContain('update_active_request');
+    expect(message).toContain('body_raw');
   });
 
   it('returns null for collection, folder, and request references', () => {

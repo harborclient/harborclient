@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(request): add body_raw and body_raw_open fields to request handling. (`af23338`)
 - feat(markdown-editor): add copy to clipboard functionality with user feedback. (`28974de`)
 
 ## 2.5.7 - 2026-07-23

@@ -305,6 +305,10 @@ function serverToRequest(
     pre_request_scripts?: string;
     post_request_scripts?: string;
     tags?: string;
+    bodyRaw?: string | null;
+    body_raw?: string | null;
+    bodyRawOpen?: boolean;
+    body_raw_open?: boolean;
   };
   const preRequestScript = record.preRequestScript;
   const postRequestScript = record.postRequestScript;
@@ -316,6 +320,7 @@ function serverToRequest(
     postRequestScript,
     extended.post_request_scripts ?? extended.postRequestScripts
   );
+  const bodyRawSource = extended.bodyRaw ?? extended.body_raw;
   return {
     id: localId,
     uuid: record.id,
@@ -328,6 +333,8 @@ function serverToRequest(
     auth: normalizeAuth(record.auth),
     body: record.body,
     body_type: record.bodyType,
+    body_raw: bodyRawSource != null && bodyRawSource !== '' ? bodyRawSource : null,
+    body_raw_open: extended.bodyRawOpen === true || extended.body_raw_open === true,
     pre_request_script: preRequestScript,
     post_request_script: postRequestScript,
     pre_request_scripts,
@@ -360,6 +367,8 @@ function toServerRequestBody(
   auth: TeamHubAuthConfig;
   body: string;
   bodyType: SaveRequestInput['body_type'];
+  bodyRaw: string | null;
+  bodyRawOpen: boolean;
   preRequestScript: string;
   postRequestScript: string;
   pre_request_scripts: string;
@@ -387,6 +396,8 @@ function toServerRequestBody(
     auth: TeamHubAuthConfig;
     body: string;
     bodyType: SaveRequestInput['body_type'];
+    bodyRaw: string | null;
+    bodyRawOpen: boolean;
     preRequestScript: string;
     postRequestScript: string;
     pre_request_scripts: string;
@@ -404,6 +415,8 @@ function toServerRequestBody(
     auth: toTeamHubAuth(input.auth),
     body: input.body,
     bodyType: input.body_type,
+    bodyRaw: input.body_raw ?? null,
+    bodyRawOpen: input.body_raw_open === true,
     preRequestScript,
     postRequestScript,
     pre_request_scripts: preScripts.json,
@@ -854,6 +867,8 @@ export class TeamHubStorage implements IStorage {
       auth: existing.auth,
       body: existing.body,
       body_type: existing.body_type,
+      body_raw: existing.body_raw ?? null,
+      body_raw_open: existing.body_raw_open === true,
       pre_request_script: existing.pre_request_script,
       post_request_script: existing.post_request_script,
       pre_request_scripts: existing.pre_request_scripts,
@@ -1407,6 +1422,8 @@ export class TeamHubStorage implements IStorage {
         auth: request.auth ?? defaultAuth(),
         body: request.body,
         body_type: request.body_type,
+        body_raw: request.body_raw ?? null,
+        body_raw_open: request.body_raw_open === true,
         pre_request_script: scripts.pre_request_script,
         post_request_script: scripts.post_request_script,
         pre_request_scripts: scripts.pre_request_scripts,
@@ -1553,6 +1570,8 @@ export class TeamHubStorage implements IStorage {
         auth: request.auth ?? defaultAuth(),
         body: fields.body,
         body_type: fields.body_type,
+        body_raw: fields.body_raw,
+        body_raw_open: fields.body_raw_open,
         pre_request_script: scripts.pre_request_script,
         post_request_script: scripts.post_request_script,
         pre_request_scripts: scripts.pre_request_scripts,

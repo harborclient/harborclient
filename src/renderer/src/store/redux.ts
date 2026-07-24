@@ -18,6 +18,7 @@ import scriptClipboardReducer from '#/renderer/src/store/slices/scriptClipboardS
 import aiChatReducer from '#/renderer/src/store/slices/aiChatSlice';
 import terminalsReducer from '#/renderer/src/store/slices/terminalsSlice';
 import markdownSelectionsReducer from '#/renderer/src/store/slices/markdownSelectionsSlice';
+import requestBodySelectionsReducer from '#/renderer/src/store/slices/requestBodySelectionsSlice';
 import themeDesignerReducer from '#/renderer/src/store/slices/themeDesignerSlice';
 import { persistActiveEnvironmentId, persistTabs, persistTerminalLayout } from './persistence';
 export const store = configureStore({
@@ -40,6 +41,7 @@ export const store = configureStore({
     aiChat: aiChatReducer,
     terminals: terminalsReducer,
     markdownSelections: markdownSelectionsReducer,
+    requestBodySelections: requestBodySelectionsReducer,
     themeDesigner: themeDesignerReducer
   },
   /**

@@ -163,6 +163,8 @@ export const saveRequestInput = z.object({
   params: z.array(keyValue),
   body: ipcRequestBody,
   body_type: bodyType,
+  body_raw: z.string().nullable().optional().default(null),
+  body_raw_open: z.boolean().optional().default(false),
   pre_request_script: ipcScriptSource,
   post_request_script: ipcScriptSource,
   pre_request_scripts: ipcScriptRefArray.optional().default([]),
@@ -192,7 +194,8 @@ export const sendRequestInput = z.object({
   headers: z.array(keyValue),
   params: z.array(keyValue),
   body: ipcRequestBody,
-  bodyType: bodyType
+  bodyType: bodyType,
+  bodyRaw: z.string().optional()
 }) satisfies z.ZodType<SendRequestInput>;
 
 export const sentRequest = z.object({

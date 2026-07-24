@@ -8,8 +8,9 @@ import { AI_KEY_VALUE_SCHEMA, aiKeyValueShape } from './schemas';
  * @param {string} [name] - Display name for the request.
  * @param {string} [method] - HTTP method for the request.
  * @param {string} [url] - Request URL.
- * @param {string} [body] - Request body content.
+ * @param {string} [body] - Request body content (structured JSON for multipart/urlencoded rows).
  * @param {string} [body_type] - Content type of the request body.
+ * @param {string|null} [body_raw] - Verbatim Raw body override for multipart/urlencoded; null clears it.
  * @param {string} [pre_request_script] - JavaScript run before the request is sent.
  * @param {string} [pre_request_script_mode] - How to apply pre_request_script; defaults to replace.
  * @param {string} [post_request_script] - JavaScript run after the response is received.
@@ -30,7 +31,7 @@ export const updateActiveRequestTool = {
     function: {
       name: 'update_active_request',
       description:
-        'Modifies the request open in the editor (method, URL, params, headers, body, auth, pre/post scripts, cookies). Call get_active_request_details first when you need current values. Use HarborClient hc API in scripts, not Postman pm (hc.data for passing values between scripts in one send; hc.request.variables/collection.variables/environment.variables/globals with get/set/clear for persisted variables; hc.cookies, hc.execution.setNextRequest/skipRequest, await hc.sendRequest when enabled in Settings → General). Changes appear in the editor immediately but are not saved until the user saves.',
+        'Modifies the request open in the editor (method, URL, params, headers, body, auth, pre/post scripts, cookies). Call get_active_request_details first when you need current values. For multipart/urlencoded, use body for structured JSON rows and body_raw for the verbatim Raw body drawer text (authoritative at send time, including intentionally invalid bodies). Pass body_raw: null to clear the raw override. Use HarborClient hc API in scripts, not Postman pm (hc.data for passing values between scripts in one send; hc.request.variables/collection.variables/environment.variables/globals with get/set/clear for persisted variables; hc.cookies, hc.execution.setNextRequest/skipRequest, await hc.sendRequest when enabled in Settings → General). Changes appear in the editor immediately but are not saved until the user saves.',
       parameters: {
         type: 'object',
         properties: {
@@ -45,11 +46,20 @@ export const updateActiveRequestTool = {
             description:
               'Request URL. When changed without params, the params table syncs from the query string.'
           },
-          body: { type: 'string', description: 'Request body content.' },
+          body: {
+            type: 'string',
+            description:
+              'Request body content. For multipart/urlencoded this is JSON-serialized structured rows; prefer body_raw when editing the Raw body drawer.'
+          },
           body_type: {
             type: 'string',
             enum: ['none', 'json', 'text', 'multipart', 'urlencoded'],
             description: 'Content type of the request body.'
+          },
+          body_raw: {
+            type: ['string', 'null'],
+            description:
+              'Verbatim Raw body override for multipart/urlencoded. Sets the wire text sent as-is and best-effort syncs structured rows. Pass null to clear the override.'
           },
           pre_request_script: {
             type: 'string',
@@ -139,6 +149,7 @@ export const updateActiveRequestTool = {
     url: z.string().optional(),
     body: z.string().optional(),
     body_type: z.enum(['none', 'json', 'text', 'multipart', 'urlencoded']).optional(),
+    body_raw: z.string().nullable().optional(),
     pre_request_script: z.string().optional(),
     pre_request_script_mode: z.enum(['replace', 'append']).optional(),
     post_request_script: z.string().optional(),

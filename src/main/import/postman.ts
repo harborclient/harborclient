@@ -433,6 +433,8 @@ function convertRequestItem(
     auth: convertAuth(auth),
     body,
     body_type,
+    body_raw: null,
+    body_raw_open: false,
     pre_request_script: preRequestScript,
     post_request_script: postRequestScript,
     pre_request_scripts: scriptRefsFromLegacyString(preRequestScript),

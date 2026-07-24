@@ -11,6 +11,7 @@ import type {
   ScriptExecutionEvent,
   SendResult
 } from '#/shared/types';
+import { applyBodyRawOverride } from '#/shared/bodyRawSend';
 import {
   buildAuthHeaderValue,
   buildOAuthAuthHeaderValue,
@@ -116,6 +117,8 @@ export function buildRequestExport(req: SavedRequest): RequestExport {
     auth: req.auth,
     body: req.body,
     body_type: req.body_type,
+    body_raw: req.body_raw ?? null,
+    body_raw_open: req.body_raw_open === true,
     pre_request_script: req.pre_request_script ?? '',
     post_request_script: req.post_request_script ?? '',
     pre_request_scripts: req.pre_request_scripts,
@@ -233,6 +236,8 @@ async function persistRequestTab(
     params: currentDraft.params.filter((p) => p.key.trim() || p.value.trim()),
     body: currentDraft.body,
     body_type: currentDraft.body_type,
+    body_raw: currentDraft.body_raw ?? null,
+    body_raw_open: currentDraft.body_raw_open === true,
     pre_request_script: mirrorLegacyScriptString(preRequestScripts),
     post_request_script: mirrorLegacyScriptString(postRequestScripts),
     pre_request_scripts: preRequestScripts,
@@ -367,6 +372,8 @@ export const newRequestInFolder = createAsyncThunk<
     params: [],
     body: '',
     body_type: 'none',
+    body_raw: null,
+    body_raw_open: false,
     pre_request_script: '',
     post_request_script: '',
     pre_request_scripts: [],
@@ -404,6 +411,8 @@ export const duplicateRequest = createAsyncThunk<SavedRequest, SavedRequest, Thu
       params: req.params,
       body: req.body,
       body_type: req.body_type,
+      body_raw: req.body_raw ?? null,
+      body_raw_open: req.body_raw_open === true,
       pre_request_script: req.pre_request_script ?? '',
       post_request_script: req.post_request_script ?? '',
       pre_request_scripts: req.pre_request_scripts ?? [],
@@ -447,6 +456,8 @@ export const newRequestInCollection = createAsyncThunk<SavedRequest, number, Thu
       params: [],
       body: '',
       body_type: 'none',
+      body_raw: null,
+      body_raw_open: false,
       pre_request_script: '',
       post_request_script: '',
       pre_request_scripts: [],
@@ -804,16 +815,22 @@ export async function executeRequestDraft(
       }));
       const body = substituteWithMap(scriptRequest.body, runtimeVars);
 
-      const sendInput = {
-        method: scriptRequest.method,
-        url: resolvedUrl,
-        headers,
-        params,
-        body,
-        bodyType: scriptRequest.bodyType,
-        ...(currentDraft.id != null ? { sourceRequestId: currentDraft.id } : {}),
-        ...(currentDraft.name.trim() ? { sourceRequestName: currentDraft.name } : {})
-      };
+      const sendInput = applyBodyRawOverride(
+        {
+          method: scriptRequest.method,
+          url: resolvedUrl,
+          headers,
+          params,
+          body,
+          bodyType: scriptRequest.bodyType,
+          ...(currentDraft.id != null ? { sourceRequestId: currentDraft.id } : {}),
+          ...(currentDraft.name.trim() ? { sourceRequestName: currentDraft.name } : {})
+        },
+        currentDraft.body_raw != null
+          ? substituteWithMap(currentDraft.body_raw, runtimeVars)
+          : null,
+        scriptRequest.bodyType
+      );
 
       result = await window.api.sendRequest(sendInput, requestId);
 
@@ -980,6 +997,8 @@ export async function executeRequestDraft(
             params: savedRequest.params,
             body: savedRequest.body,
             body_type: savedRequest.body_type,
+            body_raw: savedRequest.body_raw ?? null,
+            body_raw_open: savedRequest.body_raw_open === true,
             pre_request_script: savedRequest.pre_request_script ?? '',
             post_request_script: savedRequest.post_request_script ?? '',
             pre_request_scripts: savedRequest.pre_request_scripts ?? [],

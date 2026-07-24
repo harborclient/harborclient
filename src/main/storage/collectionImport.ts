@@ -351,6 +351,8 @@ export function savedRequestToExportedRequest(
     auth: request.auth,
     body: request.body,
     body_type: request.body_type,
+    body_raw: request.body_raw ?? null,
+    body_raw_open: request.body_raw_open === true,
     pre_request_script: request.pre_request_script,
     post_request_script: request.post_request_script,
     pre_request_scripts: request.pre_request_scripts,
@@ -541,6 +543,8 @@ export function serializeImportedRequestFields(request: ExportedRequest): {
   authJson: string;
   body: string;
   body_type: ExportedRequest['body_type'];
+  body_raw: string | null;
+  body_raw_open: boolean;
   pre_request_script: string;
   post_request_script: string;
   pre_request_scripts_json: string;
@@ -569,6 +573,8 @@ export function serializeImportedRequestFields(request: ExportedRequest): {
     authJson: JSON.stringify(request.auth ?? defaultAuth()),
     body: request.body,
     body_type: request.body_type,
+    body_raw: request.body_raw ?? null,
+    body_raw_open: request.body_raw_open === true,
     pre_request_script: preScripts.legacy,
     post_request_script: postScripts.legacy,
     pre_request_scripts_json: preScripts.json,

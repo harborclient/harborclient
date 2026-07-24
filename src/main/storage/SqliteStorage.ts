@@ -176,6 +176,8 @@ export class SqliteStorage implements IStorage {
       auth TEXT NOT NULL DEFAULT '${DEFAULT_AUTH_JSON.replace(/'/g, "''")}',
       body TEXT NOT NULL DEFAULT '',
       body_type TEXT NOT NULL DEFAULT 'none',
+      body_raw TEXT,
+      body_raw_open INTEGER NOT NULL DEFAULT 0,
       pre_request_script TEXT NOT NULL DEFAULT '',
       post_request_script TEXT NOT NULL DEFAULT '',
       pre_request_scripts TEXT NOT NULL DEFAULT '[]',
@@ -276,6 +278,14 @@ export class SqliteStorage implements IStorage {
     const hasRequestTags = requestColumns.some((col) => col.name === 'tags');
     if (!hasRequestTags) {
       this.#db.exec("ALTER TABLE requests ADD COLUMN tags TEXT NOT NULL DEFAULT ''");
+    }
+    const hasRequestBodyRaw = requestColumns.some((col) => col.name === 'body_raw');
+    if (!hasRequestBodyRaw) {
+      this.#db.exec('ALTER TABLE requests ADD COLUMN body_raw TEXT');
+    }
+    const hasRequestBodyRawOpen = requestColumns.some((col) => col.name === 'body_raw_open');
+    if (!hasRequestBodyRawOpen) {
+      this.#db.exec('ALTER TABLE requests ADD COLUMN body_raw_open INTEGER NOT NULL DEFAULT 0');
     }
     const hasFolderId = requestColumns.some((col) => col.name === 'folder_id');
     if (!hasFolderId) {
@@ -737,6 +747,8 @@ export class SqliteStorage implements IStorage {
     const postRequestScript = postScripts.legacy;
     const comment = input.comment ?? '';
     const tags = input.tags ?? '';
+    const bodyRaw = input.body_raw ?? null;
+    const bodyRawOpen = input.body_raw_open === true ? 1 : 0;
     const folderId = input.folder_id ?? null;
     const serializedColor =
       input.color !== undefined ? serializeSidebarColor(input.color) : undefined;
@@ -764,6 +776,8 @@ export class SqliteStorage implements IStorage {
         auth,
         input.body,
         input.body_type,
+        bodyRaw,
+        bodyRawOpen,
         preRequestScript,
         postRequestScript,
         preScripts.json,
@@ -781,7 +795,7 @@ export class SqliteStorage implements IStorage {
         .prepare(
           `UPDATE requests SET
           collection_id = ?, folder_id = ?, name = ?, method = ?, url = ?,
-          headers = ?, params = ?, auth = ?, body = ?, body_type = ?,
+          headers = ?, params = ?, auth = ?, body = ?, body_type = ?, body_raw = ?, body_raw_open = ?,
           pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
           updated_at = ?${colorClause}
         WHERE id = ?`
@@ -809,6 +823,8 @@ export class SqliteStorage implements IStorage {
       auth,
       input.body,
       input.body_type,
+      bodyRaw,
+      bodyRawOpen,
       preRequestScript,
       postRequestScript,
       preScripts.json,
@@ -826,9 +842,9 @@ export class SqliteStorage implements IStorage {
     const result = this.getDb()
       .prepare(
         `INSERT INTO requests (
-        collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
+        collection_id, folder_id, name, method, url, headers, params, auth, body, body_type, body_raw, body_raw_open,
         pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, updated_at${insertColorClause}
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${insertColorValues})`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${insertColorValues})`
       )
       .run(...insertParams);
 
@@ -1476,9 +1492,9 @@ export class SqliteStorage implements IStorage {
 
       const insertRequest = database.prepare(
         `INSERT INTO requests (
-        collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
+        collection_id, folder_id, name, method, url, headers, params, auth, body, body_type, body_raw, body_raw_open,
         pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, updated_at, color
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       );
 
       const insertDocument = database.prepare(
@@ -1507,6 +1523,8 @@ export class SqliteStorage implements IStorage {
           fields.authJson,
           fields.body,
           fields.body_type,
+          fields.body_raw,
+          fields.body_raw_open ? 1 : 0,
           fields.pre_request_script,
           fields.post_request_script,
           fields.pre_request_scripts_json,
@@ -1696,14 +1714,14 @@ export class SqliteStorage implements IStorage {
 
       const insertRequest = database.prepare(
         `INSERT INTO requests (
-        collection_id, folder_id, name, method, url, headers, params, auth, body, body_type,
+        collection_id, folder_id, name, method, url, headers, params, auth, body, body_type, body_raw, body_raw_open,
         pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, updated_at, color
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       );
       const updateRequest = database.prepare(
         `UPDATE requests SET
           folder_id = ?, name = ?, method = ?, url = ?, headers = ?, params = ?, auth = ?,
-          body = ?, body_type = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
+          body = ?, body_type = ?, body_raw = ?, body_raw_open = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
           sort_order = ?, updated_at = ?, color = ?
         WHERE id = ? AND collection_id = ?`
       );
@@ -1739,6 +1757,8 @@ export class SqliteStorage implements IStorage {
             fields.authJson,
             fields.body,
             fields.body_type,
+            fields.body_raw,
+            fields.body_raw_open ? 1 : 0,
             fields.pre_request_script,
             fields.post_request_script,
             fields.pre_request_scripts_json,
@@ -1765,6 +1785,8 @@ export class SqliteStorage implements IStorage {
           fields.authJson,
           fields.body,
           fields.body_type,
+          fields.body_raw,
+          fields.body_raw_open ? 1 : 0,
           fields.pre_request_script,
           fields.post_request_script,
           fields.pre_request_scripts_json,

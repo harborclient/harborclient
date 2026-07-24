@@ -157,6 +157,8 @@ export function TabContent({
           <BodyEditor
             bodyType={draft.body_type}
             body={draft.body}
+            bodyRaw={draft.body_raw}
+            bodyRawOpen={draft.body_raw_open}
             update={update}
             variables={variables}
             onEditVariables={onEditVariables}

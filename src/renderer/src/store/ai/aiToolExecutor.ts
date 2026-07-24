@@ -4,6 +4,7 @@ import {
   applyScriptUpdate,
   hasRequestUpdateFields,
   mergeKeyValues,
+  resolveEffectiveBodyRaw,
   type KeyValueListMode,
   type ScriptUpdateMode,
   type UpdateActiveRequestToolArgs
@@ -737,6 +738,9 @@ async function getActiveRequestDetails(state: RootState): Promise<
       auth: AuthConfig;
       body: string;
       body_type: string;
+      body_raw: string | null;
+      body_raw_open: boolean;
+      body_raw_effective: string | null;
       pre_request_script: string;
       post_request_script: string;
       pre_request_scripts: AgentScriptSummary[];
@@ -763,6 +767,9 @@ async function getActiveRequestDetails(state: RootState): Promise<
     auth: draft.auth,
     body: draft.body,
     body_type: draft.body_type,
+    body_raw: draft.body_raw,
+    body_raw_open: draft.body_raw_open,
+    body_raw_effective: resolveEffectiveBodyRaw(draft),
     pre_request_script: draft.pre_request_script,
     post_request_script: draft.post_request_script,
     pre_request_scripts: formatScriptsForAgent(draft.pre_request_scripts, snippets),

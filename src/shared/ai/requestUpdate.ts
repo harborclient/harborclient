@@ -1,6 +1,14 @@
 import { normalizeAuth, type AuthConfig } from '#/shared/auth';
 import { applyParamsToUrl, mergeParamsFromUrl } from '#/shared/queryParams';
 import { scriptRefsFromLegacyString } from '#/shared/scriptRefs';
+import { parseFormParts, serializeFormParts } from '#/shared/formData';
+import {
+  generateMultipartBoundary,
+  parseMultipartRaw,
+  renderMultipartRaw
+} from '#/shared/multipartRaw';
+import { parseUrlEncodedParts, serializeUrlEncodedParts } from '#/shared/urlencoded';
+import { rawUrlEncodedToRows, rowsToRawUrlEncoded } from '#/shared/urlencodedRaw';
 import type { BodyType, HttpMethod, KeyValue } from '#/shared/types/common';
 import type { ScriptRef } from '#/shared/types/script';
 
@@ -57,6 +65,16 @@ export interface AiRequestDraft {
    * Content type of the request body.
    */
   body_type: BodyType;
+
+  /**
+   * Verbatim Raw body override; null when the structured editor is authoritative.
+   */
+  body_raw: string | null;
+
+  /**
+   * When true, the Raw body drawer is open in the request editor.
+   */
+  body_raw_open: boolean;
 
   /**
    * JavaScript run before the request is sent.
@@ -164,6 +182,13 @@ export interface UpdateActiveRequestToolArgs {
   body_type?: BodyType;
 
   /**
+   * Verbatim Raw body override for multipart/urlencoded. Pass a string to set the
+   * override (authoritative at send time) and best-effort sync structured rows; pass
+   * null to clear the override and restore structured-row projection.
+   */
+  body_raw?: string | null;
+
+  /**
    * Pre-request script content.
    */
   pre_request_script?: string;
@@ -249,6 +274,55 @@ export interface ApplyRequestDraftUpdateResult {
  */
 function emptyKeyValueRow(): KeyValue {
   return { key: '', value: '', enabled: true };
+}
+
+/**
+ * Resolves the effective raw body wire text for AI reads.
+ *
+ * When `body_raw` is set it is returned as-is. Otherwise multipart/urlencoded drafts
+ * project structured rows into wire text; other body types return null.
+ *
+ * @param draft - Request draft fields needed for projection.
+ * @returns Effective raw body text, or null when not applicable.
+ */
+export function resolveEffectiveBodyRaw(draft: {
+  body: string;
+  body_type: BodyType;
+  body_raw: string | null;
+}): string | null {
+  if (draft.body_raw != null) {
+    return draft.body_raw;
+  }
+
+  if (draft.body_type === 'urlencoded') {
+    return rowsToRawUrlEncoded(parseUrlEncodedParts(draft.body));
+  }
+
+  if (draft.body_type === 'multipart') {
+    return renderMultipartRaw(parseFormParts(draft.body), generateMultipartBoundary());
+  }
+
+  return null;
+}
+
+/**
+ * Best-effort syncs structured `body` from a verbatim raw override.
+ *
+ * @param bodyType - Active body type after the patch.
+ * @param bodyRaw - Verbatim raw body text.
+ * @returns Serialized structured body, or null when the body type does not use rows.
+ */
+function syncStructuredBodyFromRaw(bodyType: BodyType, bodyRaw: string): string | null {
+  if (bodyType === 'urlencoded') {
+    const rows = rawUrlEncodedToRows(bodyRaw);
+    return serializeUrlEncodedParts(rows.length ? rows : [emptyKeyValueRow()]);
+  }
+
+  if (bodyType === 'multipart') {
+    return serializeFormParts(parseMultipartRaw(bodyRaw).parts);
+  }
+
+  return null;
 }
 
 /**
@@ -385,6 +459,7 @@ export function hasRequestUpdateFields(args: UpdateActiveRequestToolArgs): boole
     args.url !== undefined ||
     args.body !== undefined ||
     args.body_type !== undefined ||
+    args.body_raw !== undefined ||
     args.pre_request_script !== undefined ||
     args.post_request_script !== undefined ||
     args.comment !== undefined ||
@@ -427,6 +502,31 @@ export function applyRequestDraftUpdate(
   if (args.body_type !== undefined) {
     next.body_type = args.body_type;
     changedFields.push('body_type');
+    // Match the request editor: switching body type clears a stale raw override unless
+    // the same patch also sets body_raw.
+    if (args.body_raw === undefined && next.body_raw != null) {
+      next.body_raw = null;
+      changedFields.push('body_raw');
+    }
+  }
+
+  if (args.body_raw !== undefined) {
+    next.body_raw = args.body_raw;
+    changedFields.push('body_raw');
+    if (args.body_raw != null) {
+      if (!next.body_raw_open) {
+        next.body_raw_open = true;
+        changedFields.push('body_raw_open');
+      }
+      // When the model only patches body_raw, refresh structured rows like the Raw drawer.
+      if (args.body === undefined) {
+        const synced = syncStructuredBodyFromRaw(next.body_type, args.body_raw);
+        if (synced != null) {
+          next.body = synced;
+          changedFields.push('body');
+        }
+      }
+    }
   }
 
   if (args.comment !== undefined) {

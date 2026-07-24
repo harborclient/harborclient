@@ -693,6 +693,8 @@ export class FirestoreStorage implements IStorage {
     const postRequestScript = postScripts.legacy;
     const comment = input.comment ?? '';
     const tags = input.tags ?? '';
+    const bodyRaw = input.body_raw ?? null;
+    const bodyRawOpen = input.body_raw_open === true;
     const now = new Date().toISOString();
     const firestore = this.getFirestore();
     const folderId = input.folder_id ?? null;
@@ -723,6 +725,8 @@ export class FirestoreStorage implements IStorage {
           auth: input.auth,
           body: input.body,
           body_type: input.body_type,
+          body_raw: bodyRaw,
+          body_raw_open: bodyRawOpen,
           pre_request_script: preRequestScript,
           post_request_script: postRequestScript,
           pre_request_scripts: preScripts.json,
@@ -762,6 +766,8 @@ export class FirestoreStorage implements IStorage {
       auth: input.auth,
       body: input.body,
       body_type: input.body_type,
+      body_raw: bodyRaw,
+      body_raw_open: bodyRawOpen,
       pre_request_script: preRequestScript,
       post_request_script: postRequestScript,
       pre_request_scripts: preScripts.json,
@@ -1436,6 +1442,8 @@ export class FirestoreStorage implements IStorage {
           auth: request.auth ?? defaultAuth(),
           body: fields.body,
           body_type: fields.body_type,
+          body_raw: fields.body_raw,
+          body_raw_open: fields.body_raw_open,
           pre_request_script: fields.pre_request_script,
           post_request_script: fields.post_request_script,
           pre_request_scripts: fields.pre_request_scripts_json,
@@ -1640,6 +1648,8 @@ export class FirestoreStorage implements IStorage {
           auth: request.auth ?? defaultAuth(),
           body: fields.body,
           body_type: fields.body_type,
+          body_raw: fields.body_raw,
+          body_raw_open: fields.body_raw_open,
           pre_request_script: fields.pre_request_script,
           post_request_script: fields.post_request_script,
           pre_request_scripts: fields.pre_request_scripts_json,
@@ -1667,6 +1677,8 @@ export class FirestoreStorage implements IStorage {
         auth: request.auth ?? defaultAuth(),
         body: fields.body,
         body_type: fields.body_type,
+        body_raw: fields.body_raw,
+        body_raw_open: fields.body_raw_open,
         pre_request_script: fields.pre_request_script,
         post_request_script: fields.post_request_script,
         pre_request_scripts: fields.pre_request_scripts_json,

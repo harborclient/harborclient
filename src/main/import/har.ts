@@ -536,6 +536,8 @@ function convertEntry(entry: HarEntry, sortOrder: number): ExportedRequest | nul
     auth: defaultAuth(),
     body,
     body_type,
+    body_raw: null,
+    body_raw_open: false,
     pre_request_script: '',
     post_request_script: '',
     comment: '',

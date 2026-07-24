@@ -80,6 +80,16 @@ export interface RequestDraft {
   body_type: BodyType;
 
   /**
+   * Verbatim Raw body override; null when the structured editor is authoritative.
+   */
+  body_raw: string | null;
+
+  /**
+   * When true, the Raw body drawer is open in the request editor.
+   */
+  body_raw_open: boolean;
+
+  /**
    * Legacy single-script JavaScript run before the request is sent.
    */
   pre_request_script: string;
@@ -493,6 +503,8 @@ export function normalizeDraftForCompare(draft: RequestDraft): string {
     url: draft.url,
     body: draft.body,
     body_type: draft.body_type,
+    body_raw: draft.body_raw ?? null,
+    body_raw_open: draft.body_raw_open === true,
     pre_request_script: draft.pre_request_script ?? '',
     post_request_script: draft.post_request_script ?? '',
     pre_request_scripts: normalizeScriptRefsForCompare(draft.pre_request_scripts),
@@ -717,6 +729,8 @@ export const defaultDraft = (): RequestDraft => ({
   auth: defaultAuth(),
   body: '',
   body_type: 'none',
+  body_raw: null,
+  body_raw_open: false,
   pre_request_script: '',
   post_request_script: '',
   pre_request_scripts: [],
@@ -808,6 +822,8 @@ export function draftFromSaved(req: SavedRequest): RequestDraft {
     auth: normalizeAuth(req.auth),
     body: req.body,
     body_type: req.body_type,
+    body_raw: req.body_raw ?? null,
+    body_raw_open: req.body_raw_open === true,
     pre_request_script: mirrorLegacyScriptString(preRequestScripts),
     post_request_script: mirrorLegacyScriptString(postRequestScripts),
     pre_request_scripts: preRequestScripts,

@@ -12,12 +12,14 @@ const AI_SCRIPT_REFERENCE_UUID =
  * - Folders: `@folder.<uuid>`
  * - Saved requests: `@request.<uuid>`
  * - Markdown documents and request comments: `@markdown.<uuid>`
+ * - Active request raw body: `@body`
  *
- * Request scripts, snippets, and markdown accept an optional `#<selection-start>.<selection-end>`
- * suffix (character offsets). Terminal references use the same suffix for 1-based line numbers.
+ * Request scripts, snippets, markdown, and raw body accept an optional
+ * `#<selection-start>.<selection-end>` suffix (character offsets). Terminal references use the
+ * same suffix for 1-based line numbers.
  */
 export const AI_SCRIPT_REFERENCE_PATTERN = new RegExp(
-  `@(?:(active|\\d+)\\.(pre|post)\\.(\\d+)|snippet\\.(${AI_SCRIPT_REFERENCE_UUID})|term\\.(\\d+)|collection\\.(${AI_SCRIPT_REFERENCE_UUID})|folder\\.(${AI_SCRIPT_REFERENCE_UUID})|request\\.(${AI_SCRIPT_REFERENCE_UUID})|markdown\\.(${AI_SCRIPT_REFERENCE_UUID}))(?:#(\\d+)\\.(\\d+))?(?!\\d)`,
+  `@(?:(active|\\d+)\\.(pre|post)\\.(\\d+)|snippet\\.(${AI_SCRIPT_REFERENCE_UUID})|term\\.(\\d+)|collection\\.(${AI_SCRIPT_REFERENCE_UUID})|folder\\.(${AI_SCRIPT_REFERENCE_UUID})|request\\.(${AI_SCRIPT_REFERENCE_UUID})|markdown\\.(${AI_SCRIPT_REFERENCE_UUID})|(body))(?:#(\\d+)\\.(\\d+))?(?!\\d)`,
   'g'
 );
 
@@ -172,6 +174,16 @@ export interface ParsedMarkdownReference extends ParsedAiScriptReferenceBase {
 }
 
 /**
+ * A parsed `@` reference to the active request's raw body editor.
+ */
+export interface ParsedRequestBodyReference extends ParsedAiScriptReferenceBase {
+  /**
+   * Discriminator for raw-body selection references.
+   */
+  kind: 'body';
+}
+
+/**
  * Snapshot of terminal output captured when the user copies a selection to chat.
  */
 export interface TerminalSelectionSnapshot {
@@ -237,6 +249,41 @@ export interface MarkdownSelectionSnapshot {
 }
 
 /**
+ * Snapshot of raw request body text captured when the user copies a selection to chat.
+ */
+export interface RequestBodySelectionSnapshot {
+  /**
+   * Display label at capture time (for example "Raw multipart body").
+   */
+  label: string;
+
+  /**
+   * Plain-text content of the user's selection.
+   */
+  selectedText: string;
+
+  /**
+   * Start offset in the raw body editor text.
+   */
+  startOffset: number;
+
+  /**
+   * End offset in the raw body editor text.
+   */
+  endOffset: number;
+
+  /**
+   * 1-based start line of the selection in the raw body text.
+   */
+  startLine: number;
+
+  /**
+   * 1-based end line of the selection in the raw body text.
+   */
+  endLine: number;
+}
+
+/**
  * A parsed `@` script reference with character offsets in the source text.
  */
 export type ParsedAiScriptReference =
@@ -246,7 +293,8 @@ export type ParsedAiScriptReference =
   | ParsedCollectionReference
   | ParsedFolderReference
   | ParsedRequestReference
-  | ParsedMarkdownReference;
+  | ParsedMarkdownReference
+  | ParsedRequestBodyReference;
 
 /**
  * Active request tab state used to decide whether an `@` reference is highlightable.
@@ -296,6 +344,11 @@ export interface AiScriptReferenceValidationContext {
    * Markdown selection snapshots keyed by the full `@markdown` reference token.
    */
   markdownSelections?: Record<string, MarkdownSelectionSnapshot>;
+
+  /**
+   * Raw-body selection snapshots keyed by the full `@body` reference token.
+   */
+  requestBodySelections?: Record<string, RequestBodySelectionSnapshot>;
 
   /**
    * Collection display names keyed by uuid for `@collection` badge resolution.
@@ -405,8 +458,19 @@ export function parseAiScriptReferenceMatch(
   const folderUuid = match[7];
   const requestUuid = match[8];
   const markdownUuid = match[9];
-  const selectionStartRaw = match[10];
-  const selectionEndRaw = match[11];
+  const bodyToken = match[10];
+  const selectionStartRaw = match[11];
+  const selectionEndRaw = match[12];
+
+  if (bodyToken != null) {
+    return {
+      kind: 'body',
+      start,
+      end: start + text.length,
+      text,
+      selection: parseSelectionSuffix(selectionStartRaw, selectionEndRaw)
+    };
+  }
 
   if (collectionUuid != null) {
     return {
@@ -578,6 +642,14 @@ export function isValidAiScriptReference(
     return context.markdownSelections?.[reference.text] != null;
   }
 
+  if (reference.kind === 'body') {
+    if (reference.selection == null) {
+      return false;
+    }
+
+    return context.requestBodySelections?.[reference.text] != null;
+  }
+
   if (reference.kind === 'terminal') {
     if (reference.selection == null) {
       return false;
@@ -657,6 +729,10 @@ export function resolveAiScriptReferenceName(
     return context.markdownSelections?.[reference.text]?.label ?? null;
   }
 
+  if (reference.kind === 'body') {
+    return context.requestBodySelections?.[reference.text]?.label ?? null;
+  }
+
   if (reference.kind === 'snippet') {
     const snippet = (context.snippets ?? []).find((entry) => entry.uuid === reference.snippetUuid);
     return snippet?.name ?? null;
@@ -724,6 +800,7 @@ function resolveReferenceSourceCode(
   if (
     reference.kind === 'terminal' ||
     reference.kind === 'markdown' ||
+    reference.kind === 'body' ||
     reference.kind === 'collection' ||
     reference.kind === 'folder' ||
     reference.kind === 'request'
@@ -828,6 +905,15 @@ export function resolveAiScriptReferenceLabel(
 
   if (reference.kind === 'markdown') {
     const snapshot = context.markdownSelections?.[reference.text];
+    if (snapshot == null) {
+      return name;
+    }
+
+    return `${name} ${formatTerminalSelectionLineRange(snapshot.startLine, snapshot.endLine)}`;
+  }
+
+  if (reference.kind === 'body') {
+    const snapshot = context.requestBodySelections?.[reference.text];
     if (snapshot == null) {
       return name;
     }
@@ -953,6 +1039,41 @@ function formatMarkdownSelectionContextBlock(
   ].join('\n');
 }
 
+/**
+ * Formats one resolved raw-body selection reference for the agent context block.
+ *
+ * @param reference - Parsed `@body` reference with a character-range suffix.
+ * @param context - Raw-body selection snapshots keyed by reference token.
+ * @returns Context block for one body reference, or null when not resolvable.
+ */
+function formatRequestBodySelectionContextBlock(
+  reference: ParsedRequestBodyReference,
+  context: AiScriptReferenceValidationContext
+): string | null {
+  if (reference.selection == null || !isValidAiScriptReference(reference, context)) {
+    return null;
+  }
+
+  const snapshot = context.requestBodySelections?.[reference.text];
+  if (snapshot == null) {
+    return null;
+  }
+
+  const lineSpan =
+    snapshot.startLine === snapshot.endLine
+      ? `line ${snapshot.startLine}`
+      : `lines ${snapshot.startLine}-${snapshot.endLine}`;
+
+  return [
+    `Reference ${reference.text} — raw request body "${snapshot.label}".`,
+    `Selected raw body text (characters ${snapshot.startOffset}–${snapshot.endOffset}, ${lineSpan}):`,
+    '```text',
+    snapshot.selectedText,
+    '```',
+    'Call get_active_request_details when you need the full body (including body_raw / body_raw_effective). Use update_active_request with body_raw to replace the raw body text.'
+  ].join('\n');
+}
+
 function formatScriptSelectionContextBlock(
   reference: ParsedAiScriptReference,
   context: AiScriptReferenceValidationContext
@@ -963,6 +1084,10 @@ function formatScriptSelectionContextBlock(
 
   if (reference.kind === 'markdown') {
     return formatMarkdownSelectionContextBlock(reference, context);
+  }
+
+  if (reference.kind === 'body') {
+    return formatRequestBodySelectionContextBlock(reference, context);
   }
 
   if (reference.selection == null || !isValidAiScriptReference(reference, context)) {
@@ -1030,6 +1155,7 @@ function formatWholeScriptReferenceContextBlock(
     reference.selection != null ||
     reference.kind === 'terminal' ||
     reference.kind === 'markdown' ||
+    reference.kind === 'body' ||
     reference.kind === 'collection' ||
     reference.kind === 'folder' ||
     reference.kind === 'request'
@@ -1133,6 +1259,9 @@ export function buildAiScriptSelectionContextMessage(
   const hasMarkdownSelection = resolved.some(
     (entry) => entry.reference.kind === 'markdown' && entry.reference.selection != null
   );
+  const hasBodySelection = resolved.some(
+    (entry) => entry.reference.kind === 'body' && entry.reference.selection != null
+  );
   const hasScriptSelection = resolved.some(
     (entry) =>
       (entry.reference.kind === 'request-script' || entry.reference.kind === 'snippet') &&
@@ -1155,6 +1284,11 @@ export function buildAiScriptSelectionContextMessage(
       'The user selected markdown text and is asking specifically about the SELECTED TEXT below.'
     );
   }
+  if (hasBodySelection) {
+    headerParts.push(
+      'The user selected raw request body text and is asking specifically about the SELECTED TEXT below.'
+    );
+  }
   if (hasScriptSelection) {
     headerParts.push(
       'The user selected part of a script and is asking specifically about the SELECTED TEXT below.'
@@ -1169,6 +1303,10 @@ export function buildAiScriptSelectionContextMessage(
   const footerParts: string[] = [];
   if (hasScriptSelection) {
     footerParts.push('Focus your answer on the selected region.');
+  } else if (hasBodySelection) {
+    footerParts.push(
+      'Focus your answer on the selected raw body region. Call get_active_request_details when you need the full body, and use update_active_request with body_raw to edit it.'
+    );
   } else if (hasMarkdownSelection) {
     footerParts.push(
       'Focus your answer on the selected markdown region. Call get_markdown_document when you need the full document or comment source.'
@@ -1186,6 +1324,12 @@ export function buildAiScriptSelectionContextMessage(
   if (hasMarkdownSelection) {
     footerParts.push(
       'Markdown documents and request comments referenced with @markdown.<uuid> cannot be edited via tools. Propose replacement markdown in your reply for the user to paste back into the editor.'
+    );
+  }
+
+  if (hasBodySelection) {
+    footerParts.push(
+      'Raw body selections referenced with @body#start.end can be edited via update_active_request with body_raw (verbatim wire text for multipart/urlencoded). Prefer body_raw over structured body when the user is editing the Raw body drawer.'
     );
   }
 

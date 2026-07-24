@@ -25,6 +25,8 @@ function sampleDraft(overrides: Partial<RequestDraft> = {}): RequestDraft {
     },
     body: '{"ok":true}',
     body_type: 'json',
+    body_raw: null,
+    body_raw_open: false,
     pre_request_script: '',
     post_request_script: '',
     pre_request_scripts: [],

@@ -1271,6 +1271,8 @@ export function writeCollectionToFolder(
       auth: request.auth,
       body: request.body,
       body_type: request.body_type,
+      body_raw: request.body_raw ?? null,
+      body_raw_open: request.body_raw_open === true,
       pre_request_script: request.pre_request_script,
       post_request_script: request.post_request_script,
       pre_request_scripts: request.pre_request_scripts,

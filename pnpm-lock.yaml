@@ -64,11 +64,11 @@ importers:
         specifier: ^3.3.1
         version: 3.3.1(@fortawesome/fontawesome-svg-core@7.2.0)(react@19.2.7)
       '@harborclient/http':
-        specifier: 0.1.2
-        version: 0.1.2
+        specifier: 1.0.0
+        version: 1.0.0
       '@harborclient/sdk':
-        specifier: 1.1.32
-        version: 1.1.32(@babel/runtime@7.29.7)(@codemirror/search@6.7.1)(@codemirror/theme-one-dark@6.1.3)(@dnd-kit/core@6.3.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(@dnd-kit/sortable@10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7))(@dnd-kit/utilities@3.2.2(react@19.2.7))(@szhsin/react-accordion@1.4.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(codemirror@6.0.2)(eslint@9.39.4(jiti@2.7.0))(overlayscrollbars-react@0.5.6(overlayscrollbars@2.16.0)(react@19.2.7))(overlayscrollbars@2.16.0)(react-dom@19.2.7(react@19.2.7))(react-markdown@10.1.0(@types/react@19.2.17)(react@19.2.7))(react@19.2.7)(remark-gfm@4.0.1)(typescript@5.9.3)
+        specifier: 1.1.33
+        version: 1.1.33(@babel/runtime@7.29.7)(@codemirror/search@6.7.1)(@codemirror/theme-one-dark@6.1.3)(@dnd-kit/core@6.3.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(@dnd-kit/sortable@10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7))(@dnd-kit/utilities@3.2.2(react@19.2.7))(@szhsin/react-accordion@1.4.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(codemirror@6.0.2)(eslint@9.39.4(jiti@2.7.0))(overlayscrollbars-react@0.5.6(overlayscrollbars@2.16.0)(react@19.2.7))(overlayscrollbars@2.16.0)(react-dom@19.2.7(react@19.2.7))(react-markdown@10.1.0(@types/react@19.2.17)(react@19.2.7))(react@19.2.7)(remark-gfm@4.0.1)(typescript@5.9.3)
       '@harborclient/team-hub-api':
         specifier: 0.4.0
         version: 0.4.0
@@ -1119,12 +1119,12 @@ packages:
     engines: {node: '>=6'}
     hasBin: true
 
-  '@harborclient/http@0.1.2':
-    resolution: {integrity: sha512-6DNRB/TFa1zgqDVliifdoa77qjqt9PKhm6XEAzMo46/kIM55/jeCHrYQgxCPEJaby0z/Mnv1It+3ZYoqONLygg==}
+  '@harborclient/http@1.0.0':
+    resolution: {integrity: sha512-VR/Pr9tyalRsY6VZg9XX+V7c9IRJTDvcgkhAphR6sDD928KVNk5HLJTp9L65IwQc3E+mg8Nd5HFnLw6sxsTRqA==}
     engines: {node: '>=24'}
 
-  '@harborclient/sdk@1.1.32':
-    resolution: {integrity: sha512-zTNYGCaesvJu5saBAhSU6a17dA9y4diQ0CYffxAUST8ZJqqYFLGPftYQPuC6GUqys9iBmk63aYrkzA0uE+XjWg==}
+  '@harborclient/sdk@1.1.33':
+    resolution: {integrity: sha512-Zc8LbhZLD0/BtXXmD6ZxqqgHuxlCQqgLZflHXS6mWvkloMHm0IbJOALLf0cgzBNjo71jBYswU0lLyO12ZSHOMA==}
     hasBin: true
     peerDependencies:
       '@dnd-kit/core': ^6.3.1
@@ -8256,11 +8256,11 @@ snapshots:
       protobufjs: 7.6.4
       yargs: 17.7.2
 
-  '@harborclient/http@0.1.2':
+  '@harborclient/http@1.0.0':
     dependencies:
       undici: 6.27.0
 
-  '@harborclient/sdk@1.1.32(@babel/runtime@7.29.7)(@codemirror/search@6.7.1)(@codemirror/theme-one-dark@6.1.3)(@dnd-kit/core@6.3.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(@dnd-kit/sortable@10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7))(@dnd-kit/utilities@3.2.2(react@19.2.7))(@szhsin/react-accordion@1.4.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(codemirror@6.0.2)(eslint@9.39.4(jiti@2.7.0))(overlayscrollbars-react@0.5.6(overlayscrollbars@2.16.0)(react@19.2.7))(overlayscrollbars@2.16.0)(react-dom@19.2.7(react@19.2.7))(react-markdown@10.1.0(@types/react@19.2.17)(react@19.2.7))(react@19.2.7)(remark-gfm@4.0.1)(typescript@5.9.3)':
+  '@harborclient/sdk@1.1.33(@babel/runtime@7.29.7)(@codemirror/search@6.7.1)(@codemirror/theme-one-dark@6.1.3)(@dnd-kit/core@6.3.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(@dnd-kit/sortable@10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7))(@dnd-kit/utilities@3.2.2(react@19.2.7))(@szhsin/react-accordion@1.4.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(codemirror@6.0.2)(eslint@9.39.4(jiti@2.7.0))(overlayscrollbars-react@0.5.6(overlayscrollbars@2.16.0)(react@19.2.7))(overlayscrollbars@2.16.0)(react-dom@19.2.7(react@19.2.7))(react-markdown@10.1.0(@types/react@19.2.17)(react@19.2.7))(react@19.2.7)(remark-gfm@4.0.1)(typescript@5.9.3)':
     dependencies:
       '@codemirror/autocomplete': 6.20.3
       '@codemirror/lang-css': 6.3.1

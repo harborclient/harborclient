@@ -49,6 +49,8 @@ const request: SavedRequest = {
   auth: defaultAuth(),
   body: '',
   body_type: 'none',
+  body_raw: null,
+  body_raw_open: false,
   pre_request_script: '',
   post_request_script: '',
   pre_request_scripts: [],

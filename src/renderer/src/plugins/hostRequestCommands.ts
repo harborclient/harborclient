@@ -493,6 +493,8 @@ export function pluginRequestToSaveInput(
     params: paramsToKeyValues(request.params),
     body,
     body_type: bodyType,
+    body_raw: null,
+    body_raw_open: false,
     auth: defaultAuth(),
     pre_request_script: '',
     post_request_script: '',

@@ -436,6 +436,8 @@ export function rowToRequest(row: Record<string, unknown>): SavedRequest {
     auth: readAuth(row.auth),
     body: readString(row.body),
     body_type: readString(row.body_type, 'none') as BodyType,
+    body_raw: row.body_raw == null ? null : readString(row.body_raw),
+    body_raw_open: row.body_raw_open === true || row.body_raw_open === 1,
     pre_request_script: preRequestScript,
     post_request_script: postRequestScript,
     pre_request_scripts: readScriptRefsFromJson(row.pre_request_scripts, preRequestScript),

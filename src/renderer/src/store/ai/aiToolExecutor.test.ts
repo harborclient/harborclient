@@ -118,6 +118,8 @@ function savedRequestFromInput(input: SaveRequestInput, id = 101): SavedRequest 
     auth: input.auth,
     body: input.body,
     body_type: input.body_type,
+    body_raw: input.body_raw ?? null,
+    body_raw_open: input.body_raw_open === true,
     pre_request_script: input.pre_request_script ?? '',
     post_request_script: input.post_request_script ?? '',
     pre_request_scripts: input.pre_request_scripts ?? [],
@@ -399,6 +401,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [],
@@ -440,6 +444,8 @@ describe('executeAiTool', () => {
         auth: defaultAuth(),
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [],
@@ -489,6 +495,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [],
@@ -545,6 +553,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [],
@@ -610,6 +620,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [],
@@ -648,6 +660,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [],
@@ -705,6 +719,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [],
@@ -762,6 +778,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [],
@@ -800,6 +818,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [],
@@ -822,6 +842,99 @@ describe('executeAiTool', () => {
     expect(result.cookies).toEqual([{ key: 'session', value: 'abc', enabled: true }]);
   });
 
+  it('returns body_raw fields for multipart drafts from get_active_request_details', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(
+      openTabWithDraft({
+        id: 9,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Multipart',
+        method: 'POST',
+        url: 'https://example.com/upload',
+        headers: [],
+        params: [],
+        body: JSON.stringify([
+          { key: 'file', value: '', enabled: true, type: 'text', files: [] },
+          { key: 'note', value: 'hello', enabled: true, type: 'text', files: [] }
+        ]),
+        body_type: 'multipart',
+        body_raw:
+          '----boundary\r\nContent-Disposition: form-data; name="note"\r\n\r\nhello\r\n----boundary--',
+        body_raw_open: true,
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [],
+        post_request_scripts: [],
+        comment: '',
+        tags: '',
+        auth: defaultAuth()
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_active_request_details',
+        {},
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result.body_type).toBe('multipart');
+    expect(result.body_raw).toContain('name="note"');
+    expect(result.body_raw_open).toBe(true);
+    expect(result.body_raw_effective).toBe(result.body_raw);
+  });
+
+  it('updates body_raw via update_active_request and syncs urlencoded rows', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(
+      openTabWithDraft({
+        id: 12,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Form',
+        method: 'POST',
+        url: 'https://example.com/form',
+        headers: [],
+        params: [],
+        body: '[]',
+        body_type: 'urlencoded',
+        body_raw: null,
+        body_raw_open: false,
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [],
+        post_request_scripts: [],
+        comment: '',
+        tags: '',
+        auth: defaultAuth()
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'update_active_request',
+        { body_raw: 'alpha=1&beta=two' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    const draft = selectDraft(store.getState());
+    expect(result.ok).toBe(true);
+    expect(result.changedFields).toEqual(
+      expect.arrayContaining(['body_raw', 'body_raw_open', 'body'])
+    );
+    expect(draft.body_raw).toBe('alpha=1&beta=two');
+    expect(draft.body_raw_open).toBe(true);
+    expect(JSON.parse(draft.body)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'alpha', value: '1' }),
+        expect.objectContaining({ key: 'beta', value: 'two' })
+      ])
+    );
+  });
+
   it('updates post_request_script and marks the draft dirty', async () => {
     const { store } = await import('#/renderer/src/store/redux');
     store.dispatch(
@@ -836,6 +949,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [],
@@ -877,6 +992,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [],
@@ -912,6 +1029,8 @@ describe('executeAiTool', () => {
         params: [{ key: 'page', value: '1', enabled: true }],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [],
@@ -948,6 +1067,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [],
@@ -985,6 +1106,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [],
@@ -1026,6 +1149,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [preScript],
@@ -1072,6 +1197,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [first, second],
@@ -1117,6 +1244,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [script],
@@ -1158,6 +1287,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [createInlineScriptRef('only one')],
@@ -1198,6 +1329,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [createSnippetScriptRef('snippet-uuid', 'Shared snippet')],
@@ -1238,6 +1371,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [createInlineScriptRef('code')],
@@ -1280,6 +1415,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [script],
@@ -1324,6 +1461,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [first, second],
@@ -1530,6 +1669,8 @@ describe('executeAiTool', () => {
       auth: defaultAuth(),
       body: '{}',
       body_type: 'json',
+      body_raw: null,
+      body_raw_open: false,
       pre_request_script: '',
       post_request_script: '',
       pre_request_scripts: [],
@@ -1591,6 +1732,8 @@ describe('executeAiTool', () => {
       auth: defaultAuth(),
       body: '{}',
       body_type: 'json',
+      body_raw: null,
+      body_raw_open: false,
       pre_request_script: '',
       post_request_script: '',
       pre_request_scripts: [],
@@ -1755,6 +1898,8 @@ describe('executeAiTool', () => {
       auth: defaultAuth(),
       body: '',
       body_type: 'none',
+      body_raw: null,
+      body_raw_open: false,
       pre_request_script: '',
       post_request_script: '',
       pre_request_scripts: [],
@@ -2202,6 +2347,8 @@ describe('executeAiTool', () => {
       params: [],
       body: '',
       body_type: 'none',
+      body_raw: null,
+      body_raw_open: false,
       pre_request_script: '',
       post_request_script: '',
       pre_request_scripts: [],
@@ -2311,6 +2458,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [],
@@ -2375,6 +2524,8 @@ describe('executeAiTool', () => {
         params: [],
         body: '',
         body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
         pre_request_script: '',
         post_request_script: '',
         pre_request_scripts: [],

@@ -204,6 +204,8 @@ function normalizePersistedDraft(value: unknown): RequestDraft | null {
     auth: value.auth,
     body: value.body,
     body_type: value.body_type as BodyType,
+    body_raw: typeof value.body_raw === 'string' ? value.body_raw : null,
+    body_raw_open: value.body_raw_open === true,
     pre_request_script:
       typeof value.pre_request_script === 'string' ? value.pre_request_script : '',
     post_request_script:

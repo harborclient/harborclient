@@ -70,6 +70,16 @@ export interface SavedRequest {
   body_type: BodyType;
 
   /**
+   * Verbatim Raw body override; null when the structured editor is authoritative.
+   */
+  body_raw: string | null;
+
+  /**
+   * When true, the Raw body drawer is open in the request editor.
+   */
+  body_raw_open: boolean;
+
+  /**
    * JavaScript run before the request is sent.
    */
   pre_request_script: string;
@@ -184,6 +194,18 @@ export interface RequestExport {
   body_type: BodyType;
 
   /**
+   * Verbatim Raw body override; null when the structured editor is authoritative.
+   * Omitted in legacy export files.
+   */
+  body_raw?: string | null;
+
+  /**
+   * When true, the Raw body drawer is open in the request editor.
+   * Omitted in legacy export files.
+   */
+  body_raw_open?: boolean;
+
+  /**
    * JavaScript run before the request is sent.
    */
   pre_request_script: string;
@@ -277,6 +299,16 @@ export interface SaveRequestInput {
    * Content type of the request body.
    */
   body_type: BodyType;
+
+  /**
+   * Verbatim Raw body override; null when the structured editor is authoritative.
+   */
+  body_raw: string | null;
+
+  /**
+   * When true, the Raw body drawer is open in the request editor.
+   */
+  body_raw_open: boolean;
 
   /**
    * JavaScript run before the request is sent.

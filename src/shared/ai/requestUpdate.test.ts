@@ -22,6 +22,8 @@ function sampleDraft(): AiRequestDraft {
     auth: defaultAuth(),
     body: '',
     body_type: 'none',
+    body_raw: null,
+    body_raw_open: false,
     pre_request_script: 'console.log("before");',
     post_request_script: '',
     pre_request_scripts: [],
@@ -82,6 +84,8 @@ describe('hasRequestUpdateFields', () => {
 
   it('returns true when any supported field is present', () => {
     expect(hasRequestUpdateFields({ comment: 'updated' })).toBe(true);
+    expect(hasRequestUpdateFields({ body_raw: 'a=b' })).toBe(true);
+    expect(hasRequestUpdateFields({ body_raw: null })).toBe(true);
   });
 });
 
@@ -95,6 +99,52 @@ describe('applyRequestDraftUpdate', () => {
 
     expect(result.draft.post_request_script).toBe("existing();\nhc.test('ok', () => {});");
     expect(result.changedFields).toContain('post_request_script');
+  });
+
+  it('sets body_raw and syncs urlencoded structured rows', () => {
+    const draft = { ...sampleDraft(), body_type: 'urlencoded' as const, body: '[]' };
+    const result = applyRequestDraftUpdate(draft, {
+      body_raw: 'foo=bar&baz=1'
+    });
+
+    expect(result.draft.body_raw).toBe('foo=bar&baz=1');
+    expect(result.draft.body_raw_open).toBe(true);
+    expect(JSON.parse(result.draft.body)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'foo', value: 'bar', enabled: true }),
+        expect.objectContaining({ key: 'baz', value: '1', enabled: true })
+      ])
+    );
+    expect(result.changedFields).toEqual(
+      expect.arrayContaining(['body_raw', 'body_raw_open', 'body'])
+    );
+  });
+
+  it('clears body_raw when null is passed', () => {
+    const draft = {
+      ...sampleDraft(),
+      body_type: 'urlencoded' as const,
+      body_raw: 'foo=bar',
+      body_raw_open: true
+    };
+    const result = applyRequestDraftUpdate(draft, { body_raw: null });
+
+    expect(result.draft.body_raw).toBeNull();
+    expect(result.changedFields).toContain('body_raw');
+  });
+
+  it('clears body_raw when body_type changes without a new override', () => {
+    const draft = {
+      ...sampleDraft(),
+      body_type: 'urlencoded' as const,
+      body_raw: 'foo=bar',
+      body_raw_open: true
+    };
+    const result = applyRequestDraftUpdate(draft, { body_type: 'json' });
+
+    expect(result.draft.body_type).toBe('json');
+    expect(result.draft.body_raw).toBeNull();
+    expect(result.changedFields).toEqual(expect.arrayContaining(['body_type', 'body_raw']));
   });
 
   it('syncs params from a url-only change', () => {
