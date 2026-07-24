@@ -130,10 +130,13 @@ describe('createHcCompletionSource', () => {
       'environment',
       'execution',
       'expect',
+      'fs',
       'globals',
       'info',
+      'parse',
       'request',
       'sendRequest',
+      'stringify',
       'test'
     ]);
   });
@@ -149,11 +152,14 @@ describe('createHcCompletionSource', () => {
       'environment',
       'execution',
       'expect',
+      'fs',
       'globals',
       'info',
+      'parse',
       'request',
       'response',
       'sendRequest',
+      'stringify',
       'test'
     ]);
   });

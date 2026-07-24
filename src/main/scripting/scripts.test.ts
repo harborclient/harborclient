@@ -661,6 +661,51 @@ describe('evaluateScript', () => {
     expect(result.variableSets).toEqual({ status: '200' });
   });
 
+  it('supports await hc.fs and hc.parse via injected file bridge', async () => {
+    const { evaluateScript } = await import('#/main/scripting/scriptEvaluator');
+    const calls: Array<{ op: string; path?: string }> = [];
+    const result = await evaluateScript(
+      {
+        phase: 'pre',
+        script: `
+          const text = await hc.fs.readText('fixture.txt');
+          const rows = await hc.parse.csv('id,name\\n1,Ada');
+          hc.request.variables.set('text', text);
+          hc.request.variables.set('name', rows[0].name);
+          await hc.fs.writeJson('out.json', { ok: true });
+        `,
+        request: {
+          method: 'GET',
+          url: 'https://example.com',
+          headers: [],
+          params: [],
+          body: '',
+          bodyType: 'none'
+        },
+        variables: {}
+      },
+      {
+        fileBridge: async (req) => {
+          calls.push({ op: req.op, path: req.path });
+          if (req.op === 'readText') {
+            return 'hello';
+          }
+          if (req.op === 'parseCsv') {
+            return [{ id: '1', name: 'Ada' }];
+          }
+          if (req.op === 'writeJson') {
+            return undefined;
+          }
+          throw new Error(`unexpected op ${req.op}`);
+        }
+      }
+    );
+
+    expect(result.error).toBeUndefined();
+    expect(result.variableSets).toEqual({ text: 'hello', name: 'Ada' });
+    expect(calls.map((call) => call.op)).toEqual(['readText', 'parseCsv', 'writeJson']);
+  });
+
   it('records execution flow directives from hc.execution', async () => {
     const { evaluateScript } = await import('#/main/scripting/scriptEvaluator');
     const result = await evaluateScript({

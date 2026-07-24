@@ -248,6 +248,7 @@ export const scriptRunInput = z.object({
     .object({
       id: z.number().int().nullable(),
       name: z.string(),
+      connectionId: z.string().nullable().optional(),
       headers: z.array(keyValue),
       auth: authConfig.optional()
     })
@@ -272,6 +273,9 @@ export const generalSettings = z.object({
   scriptTimeoutMs: z.number(),
   allowScriptNetworkRequests: z.boolean(),
   allowedNetworkPlugins: z.array(z.string()),
+  allowScriptFileRead: z.boolean(),
+  allowScriptFileWrite: z.boolean(),
+  scriptFileRoot: z.string(),
   maxResponseSizeMb: z.number().min(0).max(HARD_MAX_RESPONSE_SIZE_MB),
   verifySsl: z.boolean(),
   followRedirects: z.boolean(),

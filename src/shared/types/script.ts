@@ -127,6 +127,11 @@ export interface ScriptCollectionContext {
    */
   name: string;
   /**
+   * Storage connection id when the collection is backed by a mounted provider.
+   * Used to confine hc.fs to the git repository directory for git collections.
+   */
+  connectionId?: string | null;
+  /**
    * Raw collection headers (unsubstituted {{var}} values).
    */
   headers: KeyValue[];

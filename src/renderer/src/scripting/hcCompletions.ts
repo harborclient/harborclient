@@ -40,9 +40,58 @@ const HC_ROOT: HcCompletionOption[] = [
     type: 'function',
     detail: '(req) => Promise<Response> — requires Settings → General'
   },
+  {
+    label: 'fs',
+    type: 'property',
+    detail: 'Read/write files under the script root — requires Settings → General'
+  },
+  {
+    label: 'parse',
+    type: 'property',
+    detail: 'Parse YAML/CSV text in memory (bridged)'
+  },
+  {
+    label: 'stringify',
+    type: 'property',
+    detail: 'Serialize YAML/CSV text in memory (bridged)'
+  },
   { label: 'test', type: 'function', detail: '(name, fn) => void' },
   { label: 'expect', type: 'function', detail: '(actual) => Chai BDD assertion' },
   { label: 'response', type: 'property', detail: 'Post-request response (post scripts only)' }
+];
+
+const HC_FS: HcCompletionOption[] = [
+  { label: 'readText', type: 'method', detail: '(path) => Promise<string>' },
+  { label: 'readBytes', type: 'method', detail: '(path) => Promise<Uint8Array>' },
+  { label: 'writeText', type: 'method', detail: '(path, contents) => Promise<void>' },
+  { label: 'writeBytes', type: 'method', detail: '(path, bytes) => Promise<void>' },
+  { label: 'append', type: 'method', detail: '(path, contents) => Promise<void>' },
+  { label: 'exists', type: 'method', detail: '(path) => Promise<boolean>' },
+  {
+    label: 'stat',
+    type: 'method',
+    detail: '(path) => Promise<{ size, mtimeMs, isFile, isDirectory } | null>'
+  },
+  { label: 'readJson', type: 'method', detail: '(path) => Promise<any>' },
+  { label: 'readYaml', type: 'method', detail: '(path) => Promise<any>' },
+  {
+    label: 'readCsv',
+    type: 'method',
+    detail: '(path, options?) => Promise<object[] | string[][]>'
+  },
+  { label: 'writeJson', type: 'method', detail: '(path, value, options?) => Promise<void>' },
+  { label: 'writeYaml', type: 'method', detail: '(path, value) => Promise<void>' },
+  { label: 'writeCsv', type: 'method', detail: '(path, rows, options?) => Promise<void>' }
+];
+
+const HC_PARSE: HcCompletionOption[] = [
+  { label: 'yaml', type: 'method', detail: '(text) => Promise<any>' },
+  { label: 'csv', type: 'method', detail: '(text, options?) => Promise<object[] | string[][]>' }
+];
+
+const HC_STRINGIFY: HcCompletionOption[] = [
+  { label: 'yaml', type: 'method', detail: '(value) => Promise<string>' },
+  { label: 'csv', type: 'method', detail: '(rows, options?) => Promise<string>' }
 ];
 
 const HC_REQUEST: HcCompletionOption[] = [
@@ -346,6 +395,9 @@ const GROUPS: Record<string, HcCompletionOption[]> = {
   'hc.globals': HC_VARIABLE_BAG,
   'hc.cookies': HC_COOKIES,
   'hc.execution': HC_EXECUTION,
+  'hc.fs': HC_FS,
+  'hc.parse': HC_PARSE,
+  'hc.stringify': HC_STRINGIFY,
   'hc.info': HC_INFO,
   'hc.response': HC_RESPONSE,
   'hc.response.to': HC_RESPONSE_TO,

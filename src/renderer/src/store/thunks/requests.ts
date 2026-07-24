@@ -662,6 +662,7 @@ export async function executeRequestDraft(
         collection: {
           id: collection?.id ?? null,
           name: collection?.name ?? '',
+          connectionId: collection?.connectionId ?? null,
           headers: collectionHeaderRows,
           auth: collectionAuthConfig
         },

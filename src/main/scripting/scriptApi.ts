@@ -28,6 +28,11 @@ import {
 import { parseResponseDocument, type ScriptDocumentFacade } from './scriptResponseDocument';
 import { scriptExpect } from './scriptExpect';
 import { createResponseAssertionSubject } from './scriptResponseAssertions';
+import type {
+  ScriptCsvOptions,
+  ScriptFileRequest,
+  ScriptJsonWriteOptions
+} from './scriptFileOperations';
 
 /**
  * Context fields passed into the hc sandbox without user script source.
@@ -42,6 +47,11 @@ export interface ScriptApiOptions {
    * When provided, enables hc.sendRequest for outbound HTTP from the script sandbox.
    */
   sendRequest?: (req: SendRequestInput) => Promise<SendResult>;
+
+  /**
+   * When provided, enables hc.fs / hc.parse / hc.stringify via the main-process bridge.
+   */
+  fileBridge?: (req: ScriptFileRequest) => Promise<unknown>;
 }
 
 /**
@@ -775,6 +785,73 @@ export function createScriptApi(
       throw new Error('hc.sendRequest is not available in this script context');
     };
   }
+
+  const fileBridge = options?.fileBridge;
+  /**
+   * Invokes the main-process file bridge or throws when unavailable.
+   *
+   * @param req - Bridged operation payload.
+   * @returns Operation result from main.
+   */
+  const callFileBridge = async (req: ScriptFileRequest): Promise<unknown> => {
+    if (!fileBridge) {
+      throw new Error('hc.fs is not available in this script context');
+    }
+    return fileBridge(req);
+  };
+
+  hc.fs = {
+    readText: (path: unknown) => callFileBridge({ op: 'readText', path: String(path) }),
+    readBytes: (path: unknown) => callFileBridge({ op: 'readBytes', path: String(path) }),
+    writeText: (path: unknown, contents: unknown) =>
+      callFileBridge({ op: 'writeText', path: String(path), contents: String(contents ?? '') }),
+    writeBytes: (path: unknown, bytes: unknown) =>
+      callFileBridge({
+        op: 'writeBytes',
+        path: String(path),
+        bytes: bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes as ArrayLike<number>)
+      }),
+    append: (path: unknown, contents: unknown) =>
+      callFileBridge({ op: 'append', path: String(path), contents: String(contents ?? '') }),
+    exists: (path: unknown) => callFileBridge({ op: 'exists', path: String(path) }),
+    stat: (path: unknown) => callFileBridge({ op: 'stat', path: String(path) }),
+    readJson: (path: unknown) => callFileBridge({ op: 'readJson', path: String(path) }),
+    readYaml: (path: unknown) => callFileBridge({ op: 'readYaml', path: String(path) }),
+    readCsv: (path: unknown, csvOptions?: ScriptCsvOptions) =>
+      callFileBridge({ op: 'readCsv', path: String(path), options: csvOptions }),
+    writeJson: (path: unknown, value: unknown, jsonOptions?: ScriptJsonWriteOptions) =>
+      callFileBridge({
+        op: 'writeJson',
+        path: String(path),
+        value,
+        options: jsonOptions
+      }),
+    writeYaml: (path: unknown, value: unknown) =>
+      callFileBridge({ op: 'writeYaml', path: String(path), value }),
+    writeCsv: (path: unknown, rows: unknown, csvOptions?: ScriptCsvOptions) =>
+      callFileBridge({
+        op: 'writeCsv',
+        path: String(path),
+        value: rows,
+        options: csvOptions
+      })
+  };
+
+  hc.parse = {
+    yaml: (text: unknown) => callFileBridge({ op: 'parseYaml', contents: String(text ?? '') }),
+    csv: (text: unknown, csvOptions?: ScriptCsvOptions) =>
+      callFileBridge({
+        op: 'parseCsv',
+        contents: String(text ?? ''),
+        options: csvOptions
+      })
+  };
+
+  hc.stringify = {
+    yaml: (value: unknown) => callFileBridge({ op: 'stringifyYaml', value }),
+    csv: (rows: unknown, csvOptions?: ScriptCsvOptions) =>
+      callFileBridge({ op: 'stringifyCsv', value: rows, options: csvOptions })
+  };
 
   if (ctx.response) {
     const resp: SendResult = ctx.response;

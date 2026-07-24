@@ -4,7 +4,16 @@ import type { ScriptRunInput, ScriptRunResult, SendRequestInput, SendResult } fr
 import type { ICookieJar } from '#/main/cookieJar/ICookieJar';
 import { buildScriptPassthrough, sanitizeScriptErrorMessage } from './scriptEvaluator';
 import { executeHttpSend, isScriptNetworkAllowed } from '#/main/network/executeHttpSend';
-import { getGeneralSettings } from '#/main/settings/generalSettings';
+import {
+  getGeneralSettings,
+  isScriptFileReadAllowed,
+  isScriptFileWriteAllowed
+} from '#/main/settings/generalSettings';
+import {
+  executeScriptFileRequest,
+  scriptFileAccessForOp,
+  type ScriptFileRequest
+} from './scriptFileOperations';
 
 /**
  * Resolves the script execution timeout from persisted general settings.
@@ -57,7 +66,30 @@ interface NetErrorReply {
   error: string;
 }
 
-type ChildMessage = RunnerReply | NetRequestMessage;
+interface FileRequestMessage {
+  kind: 'file';
+  runId: number;
+  fileId: number;
+  req: ScriptFileRequest;
+}
+
+interface FileSuccessReply {
+  kind: 'file-reply';
+  runId: number;
+  fileId: number;
+  ok: true;
+  result: unknown;
+}
+
+interface FileErrorReply {
+  kind: 'file-reply';
+  runId: number;
+  fileId: number;
+  ok: false;
+  error: string;
+}
+
+type ChildMessage = RunnerReply | NetRequestMessage | FileRequestMessage;
 
 interface PendingRun {
   input: ScriptRunInput;
@@ -195,6 +227,66 @@ async function handleScriptNetworkRequest(
 }
 
 /**
+ * Handles an hc.fs / hc.parse bridge call from the utility process runner.
+ *
+ * @param child - Utility process that initiated the file call.
+ * @param message - File request payload from the script sandbox.
+ */
+function handleScriptFileRequest(child: UtilityProcess, message: FileRequestMessage): void {
+  const reply = (payload: FileSuccessReply | FileErrorReply): void => {
+    child.postMessage(payload);
+  };
+
+  const access = scriptFileAccessForOp(message.req.op);
+  if (access === 'read' && !isScriptFileReadAllowed()) {
+    reply({
+      kind: 'file-reply',
+      runId: message.runId,
+      fileId: message.fileId,
+      ok: false,
+      error: 'Script file read is disabled in Settings → General'
+    });
+    return;
+  }
+  if (access === 'write' && !isScriptFileWriteAllowed()) {
+    reply({
+      kind: 'file-reply',
+      runId: message.runId,
+      fileId: message.fileId,
+      ok: false,
+      error: 'Script file write is disabled in Settings → General'
+    });
+    return;
+  }
+
+  try {
+    const pending = pendingRuns.get(message.runId);
+    const result = executeScriptFileRequest(message.req, {
+      connectionId: pending?.input.collection?.connectionId
+    });
+    reply({
+      kind: 'file-reply',
+      runId: message.runId,
+      fileId: message.fileId,
+      ok: true,
+      result
+    });
+  } catch (err) {
+    const rawMessage =
+      err && typeof err === 'object' && 'message' in err
+        ? String((err as { message: unknown }).message)
+        : String(err);
+    reply({
+      kind: 'file-reply',
+      runId: message.runId,
+      fileId: message.fileId,
+      ok: false,
+      error: sanitizeScriptErrorMessage(rawMessage)
+    });
+  }
+}
+
+/**
  * Attaches lifecycle and message handlers to a newly spawned runner process.
  *
  * @param child - Utility process forked from the script runner entry.
@@ -203,6 +295,11 @@ function attachRunnerHandlers(child: UtilityProcess): void {
   child.on('message', (message: ChildMessage) => {
     if ('kind' in message && message.kind === 'net') {
       void handleScriptNetworkRequest(child, message);
+      return;
+    }
+
+    if ('kind' in message && message.kind === 'file') {
+      handleScriptFileRequest(child, message);
       return;
     }
 

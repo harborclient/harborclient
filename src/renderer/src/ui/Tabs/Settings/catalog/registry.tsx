@@ -24,6 +24,9 @@ import { GeneralMaxResponseSizeField } from '../fields/GeneralMaxResponseSizeFie
 import { GeneralRequestTimeoutField } from '../fields/GeneralRequestTimeoutField';
 import { GeneralScriptTimeoutField } from '../fields/GeneralScriptTimeoutField';
 import { GeneralAllowScriptNetworkRequestsField } from '../fields/GeneralAllowScriptNetworkRequestsField';
+import { GeneralAllowScriptFileReadField } from '../fields/GeneralAllowScriptFileReadField';
+import { GeneralAllowScriptFileWriteField } from '../fields/GeneralAllowScriptFileWriteField';
+import { GeneralScriptFileRootField } from '../fields/GeneralScriptFileRootField';
 import { GeneralVerifySslField } from '../fields/GeneralVerifySslField';
 import { ProxyAuthEnabledField } from '../fields/ProxyAuthEnabledField';
 import { ProxyEnabledField } from '../fields/ProxyEnabledField';
@@ -69,6 +72,9 @@ export const SETTINGS_FIELD_REGISTRY: Partial<Record<FieldSettingId, ComponentTy
   'general.requestTimeoutMs': GeneralRequestTimeoutField,
   'general.scriptTimeoutMs': GeneralScriptTimeoutField,
   'general.allowScriptNetworkRequests': GeneralAllowScriptNetworkRequestsField,
+  'general.allowScriptFileRead': GeneralAllowScriptFileReadField,
+  'general.allowScriptFileWrite': GeneralAllowScriptFileWriteField,
+  'general.scriptFileRoot': GeneralScriptFileRootField,
   'general.maxResponseSizeMb': GeneralMaxResponseSizeField,
   'general.verifySsl': GeneralVerifySslField,
   'general.followRedirects': GeneralFollowRedirectsField,

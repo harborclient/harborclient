@@ -523,3 +523,38 @@ describe('createScriptApi sendRequest', () => {
     );
   });
 });
+
+describe('createScriptApi hc.fs', () => {
+  it('bridges fs and parse calls through fileBridge', async () => {
+    const ops: string[] = [];
+    const api = createScriptApi(baseInput, {
+      fileBridge: async (req) => {
+        ops.push(req.op);
+        if (req.op === 'readText') {
+          return 'from-disk';
+        }
+        if (req.op === 'parseYaml') {
+          return { a: 1 };
+        }
+        return undefined;
+      }
+    });
+    const hc = api.hc as {
+      fs: { readText: (path: string) => Promise<string> };
+      parse: { yaml: (text: string) => Promise<{ a: number }> };
+    };
+
+    expect(await hc.fs.readText('a.txt')).toBe('from-disk');
+    expect(await hc.parse.yaml('a: 1')).toEqual({ a: 1 });
+    expect(ops).toEqual(['readText', 'parseYaml']);
+  });
+
+  it('throws when fileBridge is unavailable', async () => {
+    const api = createScriptApi(baseInput);
+    const readText = (api.hc.fs as { readText: (path: string) => Promise<string> }).readText;
+
+    await expect(readText('a.txt')).rejects.toThrow(
+      'hc.fs is not available in this script context'
+    );
+  });
+});

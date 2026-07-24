@@ -23,6 +23,9 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   scriptTimeoutMs: 5000,
   allowScriptNetworkRequests: false,
   allowedNetworkPlugins: [],
+  allowScriptFileRead: false,
+  allowScriptFileWrite: false,
+  scriptFileRoot: '',
   maxResponseSizeMb: 50,
   verifySsl: true,
   followRedirects: true,
@@ -158,6 +161,9 @@ function normalizeSettings(input: Partial<GeneralSettings>): GeneralSettings {
     ),
     allowScriptNetworkRequests: input.allowScriptNetworkRequests === true,
     allowedNetworkPlugins: normalizeAllowedNetworkPlugins(input.allowedNetworkPlugins),
+    allowScriptFileRead: input.allowScriptFileRead === true,
+    allowScriptFileWrite: input.allowScriptFileWrite === true,
+    scriptFileRoot: typeof input.scriptFileRoot === 'string' ? input.scriptFileRoot.trim() : '',
     maxResponseSizeMb: Math.min(
       normalizeNonNegativeNumber(
         input.maxResponseSizeMb,
@@ -235,4 +241,22 @@ export function isPluginNetworkAllowed(pluginId: string): boolean {
     return true;
   }
   return settings.allowedNetworkPlugins.includes(pluginId);
+}
+
+/**
+ * Returns whether script-initiated file reads (and exists/stat) are allowed.
+ *
+ * @returns True when hc.fs read APIs may access the filesystem from scripts.
+ */
+export function isScriptFileReadAllowed(): boolean {
+  return getGeneralSettings().allowScriptFileRead === true;
+}
+
+/**
+ * Returns whether script-initiated file writes (and append) are allowed.
+ *
+ * @returns True when hc.fs write APIs may modify the filesystem from scripts.
+ */
+export function isScriptFileWriteAllowed(): boolean {
+  return getGeneralSettings().allowScriptFileWrite === true;
 }

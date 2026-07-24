@@ -232,6 +232,22 @@ export interface GeneralSettings {
   allowedNetworkPlugins: string[];
 
   /**
+   * When true, pre/post scripts may call hc.fs read/exists/stat APIs.
+   */
+  allowScriptFileRead: boolean;
+
+  /**
+   * When true, pre/post scripts may call hc.fs write/append APIs.
+   */
+  allowScriptFileWrite: boolean;
+
+  /**
+   * Absolute directory that confines script file access when the request is not
+   * in a git-backed collection. Empty resolves to the user home directory.
+   */
+  scriptFileRoot: string;
+
+  /**
    * Maximum response body size in megabytes; 0 disables the limit.
    */
   maxResponseSizeMb: number;

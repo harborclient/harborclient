@@ -9,6 +9,8 @@ import {
   DEFAULT_PROXY_SETTINGS,
   getGeneralSettings,
   isPluginNetworkAllowed,
+  isScriptFileReadAllowed,
+  isScriptFileWriteAllowed,
   setGeneralSettings
 } from './generalSettings';
 
@@ -108,6 +110,37 @@ describe('generalSettings', () => {
 
   it('defaults allowScriptNetworkRequests to false when unset', () => {
     expect(getGeneralSettings().allowScriptNetworkRequests).toBe(false);
+  });
+
+  it('defaults allowScriptFileRead and allowScriptFileWrite to false', () => {
+    expect(getGeneralSettings().allowScriptFileRead).toBe(false);
+    expect(getGeneralSettings().allowScriptFileWrite).toBe(false);
+    expect(isScriptFileReadAllowed()).toBe(false);
+    expect(isScriptFileWriteAllowed()).toBe(false);
+  });
+
+  it('persists script file access settings', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      allowScriptFileRead: true,
+      allowScriptFileWrite: true,
+      scriptFileRoot: '/tmp/script-root'
+    });
+
+    expect(getGeneralSettings().allowScriptFileRead).toBe(true);
+    expect(getGeneralSettings().allowScriptFileWrite).toBe(true);
+    expect(getGeneralSettings().scriptFileRoot).toBe('/tmp/script-root');
+    expect(isScriptFileReadAllowed()).toBe(true);
+    expect(isScriptFileWriteAllowed()).toBe(true);
+  });
+
+  it('trims scriptFileRoot on normalize', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      scriptFileRoot: '  /tmp/root  '
+    });
+
+    expect(getGeneralSettings().scriptFileRoot).toBe('/tmp/root');
   });
 
   it('persists allowScriptNetworkRequests true', () => {

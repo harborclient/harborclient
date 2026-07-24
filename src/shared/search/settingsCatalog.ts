@@ -4,6 +4,9 @@ export type SettingId =
   | 'general.requestTimeoutMs'
   | 'general.scriptTimeoutMs'
   | 'general.allowScriptNetworkRequests'
+  | 'general.allowScriptFileRead'
+  | 'general.allowScriptFileWrite'
+  | 'general.scriptFileRoot'
   | 'general.maxResponseSizeMb'
   | 'general.verifySsl'
   | 'general.followRedirects'
@@ -158,6 +161,33 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     description:
       'When enabled, pre- and post-request scripts may call hc.sendRequest for outbound HTTP.',
     keywords: ['script', 'network', 'sendRequest', 'http', 'permission']
+  },
+  {
+    id: 'general.allowScriptFileRead',
+    section: 'general',
+    kind: 'field',
+    label: 'Allow script file read',
+    description:
+      'When enabled, pre- and post-request scripts may call hc.fs read, exists, and stat APIs under the script file root.',
+    keywords: ['script', 'file', 'read', 'fs', 'permission', 'hc.fs']
+  },
+  {
+    id: 'general.allowScriptFileWrite',
+    section: 'general',
+    kind: 'field',
+    label: 'Allow script file write',
+    description:
+      'When enabled, pre- and post-request scripts may call hc.fs write and append APIs under the script file root.',
+    keywords: ['script', 'file', 'write', 'fs', 'permission', 'hc.fs']
+  },
+  {
+    id: 'general.scriptFileRoot',
+    section: 'general',
+    kind: 'field',
+    label: 'Script file access root',
+    description:
+      'Directory that confines hc.fs paths for non-git collections. Leave empty to use your home directory. Git-backed collections are confined to their git repository directory instead.',
+    keywords: ['script', 'file', 'root', 'directory', 'path', 'hc.fs', 'sandbox']
   },
   {
     id: 'general.maxResponseSizeMb',
